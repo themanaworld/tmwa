@@ -986,6 +986,8 @@ int npc_buylist(struct map_session_data *sd,int n,unsigned short *item_list)
 		return 2;	// d—Ê’´‰ß
 	if (pc_inventoryblank(sd)<new)
 		return 3;	// í—Ş”’´‰ß
+	if (sd->trade_partner != 0)
+		return 4;	// cant buy while trading
 
 	pc_payzeny(sd,(int)z);
 	for(i=0;i<n;i++) {
@@ -1039,6 +1041,8 @@ int npc_selllist(struct map_session_data *sd,int n,unsigned short *item_list)
 		if (nameid == 0 ||
 		   sd->status.inventory[item_list[i*2]-2].amount < item_list[i*2+1])
 			return 1;
+		if (sd->trade_partner != 0)
+			return 2;
 		if (itemdb_value_notoc(nameid))
 			z+=(double)itemdb_value_sell(nameid) * item_list[i*2+1];
 		else
