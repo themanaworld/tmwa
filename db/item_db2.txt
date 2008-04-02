@@ -1,0 +1,4 @@
+// File created using Spamrat's Athena Database Editor v1.4.4
+//
+//ID,Name,Jname,Type,Price,Sell,Weight,ATK,DEF,Range,Slot,Job,Gender,Loc,wLV,eLV,View,{UseScript},{EquipScript}
+//

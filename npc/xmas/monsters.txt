@@ -1,0 +1,2 @@
+new_10-1.gat,0,0,0,0	monster	SantaSlime	1015,10,0,0,0
+new_10-1.gat,0,0,0,0	monster	RudolphSlime	1016,25,0,0,0

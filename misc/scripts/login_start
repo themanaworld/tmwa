@@ -1,0 +1,3 @@
+#!/bin/bash
+cd /home/tmw-server/tmw-server/
+./login-server >/dev/null &

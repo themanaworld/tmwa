@@ -1,0 +1,115 @@
+<html>
+<head><title>eAthena 1.0 RC5 Readme</title>
+<meta http-equiv="expires" content="-1" />
+<meta http-equiv="pragma" content="no-cache" />
+<meta name="author" content="eAthena Development Team" /
+<meta name="description" content="eAthena, ro server emulator" />
+<meta name="keywords" content="eathena, ro, ragnarok online, server emulator, server software" />
+<link href="./rc5.css" media="screen" rel="stylesheet" type="text/css">
+</head>
+<body>
+<table class="wrapper">
+	<tr class="topbanner">
+		<td class="topnav"><b><a href="../readme.html">Intro</a></b></td>
+		<td class="topnav"><b><a href="./changelog.html">Changelog</a></b></td>
+		<td class="topnav"><b><a href="./features.html">Features</a></b></td>
+		<td class="topnav"><b><a href="./Npcfeatures.html">Npc Features</a></b></td>
+		<td class="topnav"><b><a href="./settingup.html">Setting Up</a></b></td>
+		<td class="topnav"><b><a href="./gmcommands.html">GM Commands</a></b></td>
+		<td class="topnav"><b><a href="./faq.html">FAQ</a></b></td>
+		<td class="topnav"><b><a href="./support.html"> Support</a></b></td>
+	</tr>
+	<tr>
+		<td class="banner" colspan="8">
+			<div align="right"><img src="./midbanner.jpg" border="0"></div>
+		</td>
+	</tr>
+	<tr>
+		<td class="omgspacer"></td>
+	</tr>
+	<tr>
+		<td align="middle" colspan="8">
+			<table class="content">
+				<tr>
+					<td class="contenttitle"><b>eAthena Changelog</b></td>
+				</tr>
+				<tr>
+					<td class="contentbg">
+This is what has changed from eAthena 1.0.0 RC1 -&gt;
+eAthena 1.0.0 RC5
+</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td class="omgspacer"></td>
+	</tr>
+	<tr>
+		<td align="middle" colspan="8">
+			<table class="content">
+				<tr>
+					<td class="contenttitle"><b>Detailed Changelog</td>
+				</tr>
+				<tr>
+					<td class="contentbg">
+<font face="Courier New" size="2">
+<pre>                 .ZWBBBBBBBBBBBBBBBB0WWWWWWWWW@@@WW@WWWWW@M00Wi 
+               2MMMWBBBBBBBBWWWWWWWM@@WBBB808Z8ZZZ8Z88Z88Z800WMM;
+              MMMWBBBWBWWWW@BBW0088088aZZ888W00B0B0888ZZ8Z80800@MX
+            WMMWWWWWW@@WB08aZZZ80WM0ZMMM@WWW@@M@WW@W@@W@@WW088880MW
+          :MMM@@@WB08Zaa80BW@M@W@M0riSMMWBWBBM;MMW0WWB@B0WW@@WMMW0@M 
+         7MMWB0ZZZZZ8BW@WWWBW0WBM0SZ; 2MM@BBBM@ @MW0B0WMB0BW0W0MMMMM@
+        7M@Z888Z80BWMWWBBB@WWWB@M.M7   ;@M@WBWM0 BM@BB0MMW8BBW0@@WWMM0
+        M@800Z0W@WWBWBWWB@M7MW@Mr:M  .   WMMWWWM  MMMB0WM@@0WB0B@@WW@Mr
+       MM880W@WWBBBW@0BBBM2;MBMBX.W  ,,   .MMWBMZ :ZMMB@8@M@BMB8B@WWWMM.
+      2M80BWWWWWBB@ZWBBB@M ;MWMra M .,,,.   MMMMM  X8MM@@2MMWWMB0@W@WWMM 
+      MMW@WBWWBBBBMiM0WBMB 7MM0r  M .,,,.,.; rMMM;   XMMM;MMW@@@BBW@WW@M2 
+      MMWBBB@BWWW@8:M@WMMr iMMWr  M .,,,,,.   ;MM0    2MMi MMW@WW@WWWWWMM.
+      M@BWBB@0WBBMZZM0WM7   MMi   M, ,..,,,.,   MMMMMMMMMX rM@WWWW@WW@WWMM
+      MBBBBBWBBBMM. MBMZ    MM  . 7S ,,,,,,,, MMMMMMMMa,MMM 2MWWWW@WWWWWWMM 
+     SMBBBBBWBWBMS  MWM0MMMMMM  ,.:W ,,:,,,,:  M@BBBB@M8 MMMiMM@MWWW@WWWWWMB
+     MMWBBWBWBW@M,  MMZWMMWMMW  ,. . :.,,,,., .M0WWWBBWMS  aM;MZM@WW@WW@WWMMi
+     M@BBWB0MBBMB  MMMaMWB0BWM  ,,,.,.,,,,,,: BM0@@@WWBMM   aMM;MM@W@W@WWWWMM.
+     MBWBWB0MWWM ;M2 MMBBWWBBMM .,,,,,,,.,,,i BM0W@@MWWBM@   MZ ZMWWWWWWWWWWMM  
+     M0WBBB0M8WM.MZ  MWWWM@MWBM  :,.,,.:,,,.: iM0W@W@@BWMM   M2 ZM@WWW@WWW@WWMM 
+     M0WBBB0MB0MMM   MBBWMBBW0MM ::,,:.,.,,,,  MM@MM@@BWMM   MX.a@M@WWWWBWWWW@Mi
+     M0BBWB0@M MMZ   MWWWMWW@0MM :,..,.,,,,,,, MMMMMM@a8MM   M2:ZiMMWWWWWWWWWWMM
+     MBWBWBBBM  MZ   MMMMMM@M0@M i:,,,.,,,.,,:      M88MMi   M 7MrWMWWWWWWWWWWWW
+     MWBBB0BBM, MM   MM,,:MMW8MM :.,,,.,,,,,,.: 2;.SM0@M8      20ZrMMWWWWWWWWW@W
+     M@BBWBW0MM  MM       .@8aMB ,,..,.,,,..,,,. XMMMMMM. i:, .2BM.MMWWWWWWWWWWW
+     MMBBW0B0@M  MM   :MMMMMMMMr ,,,,,.   .,,..,.         .,,  a@7:rMW@WWWWWWWWW
+     WMBB0BWB0Mi  X     ZMMMM2   .,,.. aS: .,,..,..,...,.,,,,  2@r;.M0MWWWWWWWWW
+     ,MBBBBBB0MM    ,:, i      ..,,,,, B78r..:,.,,.,,,,,...,...aMi,0Ma@WWWWWWWWW
+      MWBBBBBB@M  .,,,..   .....,,,,,.     ..,,.,,.,.,,,,::,, .Z@ ZMM8B@WWWWWWWW
+      M@BBB000BMB ,,.,.....,,.,.,,,....,..,,....,..,,,.,,.,:. :a28MM@W0@@WWWWWWW
+      MMWBBBWB8MM  ..,.,:,...,:..,,,,,..,,...;:.,,,.,:.,,..,  iWMM@W@@0B@WWWWWWW
+      0M0BBBBBBBM; .,,.,,.,,,,,..,,,. eAthena .,,,,,,,,,.,.  iaMMWWW@MB8@@WWWWWW
+       MWBBBBBB0MM  .,.,,.,,,,,.,,.,,. 1.0.0 ..,.,,,,.,:,   iBMMWWWWW@WBBMWWWWWW
+       MM0WBBBBBBM@   .,,,,,..,,,.,,,,, RC5,.,.:,,,,:,.,   8MMMWWWWW@WW00@WWWWWW
+       ZM0WBBBBBZMMM      ...,,,,.,,,,,..,.,,,.:,.,:.    ZMMMWBW@WWWWWMW8W@@WWWW
+        M@WBWBBB0WMMMMM,      ,..,.,,,,,,,,,,,,,,,.   .MMMM@W@@WW@@W@BW@0B@@WWWW
+        8MBWBBWBB0@W@MMMMMB:      ..,,i.,,:,,,...   rMMMMWWWWW@@WWWWMBMMB8W@@@WW
+         MMBBWBBWBW@WWWW@MMMMMW;       .,.,..     WMM,MWWW@WWWMWWM@@@@W@W0BMBWWW
+         8MB0@B0WB0@@@W@B@W@@MMMMMMM2.         BMMZ7r,MWW@@W@BWMXMM@@WWW@B0MW@WW
+          MM0WM00W8W@@B@WWWWWWWWMM SWMMMMWBW0MM877XSSiMW@WWWWWWM2 MMWWWW@00WWWWW
+          2@B0MWBWB0WWWWWWWWWWWWWMS77rrXX222SX7XXSSSX;MB@WW@WWWMM  MWWWW@WBB@WWW</pre>
+</font>
+<br>
+<br>
+<iframe src="../Changelog.txt" name="Changelog"
+ title="eAthena Changelog" marginwidth="10" marginheight="10" border="0"
+ allowtransparency="true" frameborder="0" height="500" width="100%"></iframe></font>
+</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td class="spaceromg"></td>
+	</tr>
+	<tr>
+		<td class="copyright" colspan="8">&copy; Copyright 2004 eAthena Development Team<br>Design &copy; Copyright 2004 Evera</td>
+	</tr>
+</table>
+</body>

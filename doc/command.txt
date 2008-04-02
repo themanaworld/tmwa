@@ -1,0 +1,40 @@
+This file has explained some special commands. 
+It begins to explain the declared commands in this file. 
+Furthermore, many of the special command which is not stated in this file are not mounted.
+
+
+Index
+    1. mapmove
+    2. b and nb
+
+
+1. MapMove 
+	MapMove command is a warping command which a GM can use on the server. 
+	There is no restriction such, that presently you can use, just have GM enabled. The usage where it is possible
+	 to use as /mm or /mapmove is as follows. 
+	/mm <fieldname>* X Y 
+	/mm <fieldname.gat>* X Y
+	/mapmove <fieldname>* X Y 
+	/mapmove <fieldname.gat>* X Y 
+	* means for field name type /where, please input the map name which appears in the execution time. gat is not always a necessary. 
+	(X Y) X coordinate and the Y-coordinate of the place where you would like to go, exact coordinates. However it does
+	if no X or Y, it will jump randomly.
+	Example:
+	 /mm payon 
+	/mapmove prontera.gat 167 158
+
+2. Broadcast
+     Broadcastコマンドとは実際のサーバでGMが使えるGMメッセージと同様の働きをします。
+     /bもしくは/nbとして使うことができます使用方法は以下の通りです。
+         /b <message>
+         /nb <message>
+
+     /b
+         実行したユーザ名付きでメッセージを表示します。
+     /nb
+         実行したユーザ名を表示せずメッセージを表示します。
+
+     例:
+         /b テスト
+         /nb テスト
+$Id: command.txt,v 1.1 2004/05/28 03:55:43 wizputer Exp $

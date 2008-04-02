@@ -1,0 +1,23 @@
+new_1-1.gat,15,67,0	script	Nomad1	132,{
+	mes "[Nomad]";
+	mes "This is really a nice place.";
+	
+	mes "Don't you think so?";
+	close;
+}
+
+new_1-1.gat,18,68,0	script	Nomad2	128,{
+	mes "[Nomad]";
+	mes "I found a passage to a green land through the mountains west of here";
+	
+	mes "Do you want me to show you the way?";
+	next;
+	menu
+	"Sure",sure,
+	"No thank you",no;
+sure:
+	warp "new_9-1.gat",38,95;		mes "I'll be awaiting you here.";		mes "Tell me when you want to go back.";
+	close;
+no:
+	close;
+}

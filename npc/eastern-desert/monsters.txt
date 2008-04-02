@@ -1,0 +1,2 @@
+new_7-1.gat,0,0,0,0	monster	Maggot	1002,20,0,0,0
+new_7-1.gat,0,0,0,0	monster	Snake	1010,20,0,0,0

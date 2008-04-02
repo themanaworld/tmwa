@@ -1,0 +1,173 @@
+Version 1.4.4
+===========================================================
+- Fixed a bug that caused the drop chance for all MVP drops
+  to become 0 when the "View Mob" option was used in the
+  Mob Drop List. (This was forgotten in the previous
+  update.)
+- Finally updated the "item_descriptions.txt" file.
+
+Version 1.4.3
+===========================================================
+- Fixed a bug that caused the drop chance for all drops to
+  become 0 when the "View Mob" option was used in the Mob
+  Drop List.
+- Fixed a bug that caused other mob entries to show up when
+  searching for a specific mob with an ID that can be found
+  as a string subset within the other mob's entry.
+- Fixed a bug that caused all new entries to go into the
+  "item_db2.txt" or "mob_db2.txt" files.
+- Tweaked some of the code for the Mob Skill Editor's
+  interface to better help with editing/creating skill
+  entries.
+
+Version 1.4.2
+===========================================================
+- Corrected the labels on the Mob Location Editor window.
+  Thanks to ShadowLady for pointing this out.
+
+Version 1.4.1
+===========================================================
+- Added functionality to the "Locations" button in the Mob
+  View. It will now open up the Mob Location Editor window.
+- Added a list of map names with a brief description to the
+  "ID Helper.txt" file to be used with the Map Helper.
+- Added a new option in the "ADE.ini" file that points to
+  the location of the files with the mobs' spawn points.
+- Fixed a bug with the Drop List feature that would keep
+  the window open till it was closed by the cancel button
+  or the window's close button.
+- Fixed a bug that caused the selected entry to not
+  properly update when saved. Thanks to Taike for reporting
+  this bug.
+- Redid the code for handling backups. So now when you
+  restore the backup files, it won't reload both the item
+  and mob related files, it only restores the backups for
+  item related files while using the Item View and mob
+  related files for the Mob View, and it will no longer
+  rename files as a backup file if they have no backup to
+  replace them with.
+
+Version 1.4.0
+===========================================================
+- Added the Mob Skill Editor feature to ADE. It is
+  available through the Skills button in the Mob View.
+  This adds handling of the "mob_skill_db.txt" file.
+- Fixed a bug with the Mob's Mode ID Helper that caused
+  the value to keep increasing everytime it was opened
+  beyond the first time. Thanks to Lupus for pointing this
+  out.
+- Changed the font to Microsoft Sans Serif from MS Sans
+  Serif to better support the garbled text some items,
+  mobs, or other things may have.
+
+Version 1.3.2
+===========================================================
+- Edited the print functions related to the the following
+  DB files: "item_bluebox.txt", "item_cardalbum.txt",
+  "item_giftbox.txt", "item_violetbox.txt", and
+  "mob_branch.txt". Thanks to ShadowLady for pointing out
+  this problem, as well as mentioning the label change
+  mentioned below.
+- Edited a label for Mob Modes in ID Helper from
+  "Detects Hidden (Sensor)" to "Detects Hidden".
+- Redid some of the code in the data processing subroutine
+  for the Item and Mob DB files. This should prevent any
+  overflow/invalid index errors. Thanks to Cheex for
+  pointing this out.
+- Fixed a bug that caused ADE to crash if any of the files
+  it would normally create backups of weren't there. This
+  is more common among eAthena 1.0 RCx Text installs, due
+  to their lack of an "item_db2.txt" file. (This occured
+  while trying to save changes.)
+
+Version 1.3.1
+===========================================================
+- Added an ID Helper for the Mob Mode ID section.
+- You can now see a list of all mobs that drop the selected
+  item in ADE's Item View by clicking on the button in the
+  upper right corner that's labeled "Mob Drop List".
+
+Version 1.3.0
+===========================================================
+- Added support for handling five more of the server's DB
+  files. ADE now handles: "item_bluebox.txt",
+  "item_cardalbum.txt", "item_giftbox.txt",
+  "item_violetbox.txt", and "mob_branch.txt".
+- Added a "Restore Backup Files" option in the File menu.
+- Changed "Revert" to "Revert to Last Save".
+- ADE now inserts a blank comment line after the initial
+  header line and the last line for most of the server
+  files.
+- ADE will automatically set the compatability mode to
+  support higher jobs, if it reads in a job ID for any such
+  jobs while set for low jobs only.
+- Fixed a couple of minor bugs and tweaked some of the code.
+
+Version 1.2.0
+===========================================================
+- Added support for generating the item files related to
+  card labels. The files are "cardpostfixnametable.txt" and
+  "cardprefixnametable.txt". The file "card_labels.txt" is
+  used to hold the card labels. (To create it, just copy
+  any "cardprefixnametable.txt" file to the DB folder being
+  used and rename it to "card_labels.txt".)
+- Fixed a bug found by Solid that caused the program to end
+  when a Mob's entry had an invalid Race ID or Element ID.
+  Also applied this same fix to some of the other IDs that
+  were vunerable.
+- Resized the maximum entries allowed for both Items and
+  Mobs. Items now have a current max of 15,000 entries and
+  Mobs have a max of 1,000. Both used to have 10,000.
+- Included a minimum ID and max ID allowed when dealing
+  with either Items or Mobs. The new Item ID range is 501
+  to 15000, and the new Mob ID range is 1001 to 2000. Any
+  entries with IDs out of the range won't be kept.
+- Slightly redid some of the code with printing the headers
+  of all files made with the program.
+
+Version 1.1.1
+===========================================================
+- Fixed a bug that caused the duplicate scan process to be
+  used again during adding and removing entries.
+- Replaced the text box for the Item's Sex ID with a combo
+  box. (The Item's Sex ID is used to determine if the item
+  is limited to a character's sex or can be used by all.)
+- Added the ID Helper for the Item View ID text box, and
+  included a file called "Item Helper.txt" that contains
+  the data for it.
+- Fixed a bug that caused the "Allow High Jobs" option for
+  compatibility to be turned on when even with it set to
+  being off by default.
+- Added a small bit of code to print "All Low Jobs" for
+  the description files for any items that only allow
+  characters with low jobs only to use the item.
+- Added a temp fix for any forms that can get stuck behind
+  the main window by allowing them to show up in the
+  taskbar.
+
+Version 1.1.0
+===========================================================
+- Added support for higher jobs like Knight Lord, Assassin
+  Cross, High Priest, etc.
+- Added duplication scanning for the DB entries. This will
+  remove duplicates found. (An entry is considered a
+  duplicate if the ID or DBName is the same.)
+- Fixed a bug that would cause the program to keep loading
+  if you closed the progress bar during startup.
+
+Version 1.0.1
+===========================================================
+- Fixed a bug that caused a null mob DB entry.
+- Added some code to let the program load even if it didn't
+  find the files used for loading.
+- Redid small portions of the code to increase performance.
+
+Version 1.0.0
+===========================================================
+- Merged the previous programs.
+- Added a mob DB file editor.
+
+Version 0.X
+===========================================================
+- Created Stand-alone Item Database Editor.
+- Created Stand-alone Item File Generator.

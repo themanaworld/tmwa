@@ -1,0 +1,4 @@
+new_2-1.gat,36,30	warp	caveexit	3,0,new_1-1.gat,25,95
+new_1-1.gat,19,94	warp	caveentrance	1,1,new_2-1.gat,37,31
+new_1-1.gat,111,79	warp	eastdesert	2,2,new_7-1.gat,23,40
+new_7-1.gat,18,39	warp	westdesert	3,4,new_1-1.gat,106,78

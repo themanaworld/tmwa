@@ -1,0 +1,1 @@
+new_3-1.gat,27,73,0	script	Banker	107,{mes "[Banker]";mes "Welcome to the bank!";mes "How can I help you?";next;menu "Deposite",L_Dep,"Withdraw",L_With,"Nevermind that",L_Nev;L_Dep:	mes "Sorry, but we're still moving inventory!";	close;L_With:	mes "Sorry, but we're still moving inventory!";	close;L_Nev:	mes "Goodbye then";	close;}

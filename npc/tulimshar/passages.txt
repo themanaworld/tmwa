@@ -1,0 +1,2 @@
+new_1-1.gat,56,12	warp	totown	5,1,new_3-1.gat,44,80
+new_3-1.gat,42,88	warp	tofield	5,2,new_1-1.gat,58,17

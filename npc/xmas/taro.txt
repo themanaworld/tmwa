@@ -1,0 +1,13 @@
+new_10-1.gat,57,61,0	script	Child	114,{
+	mes "[Taro]";
+	mes "I'm scared!!!";	
+	mes "Bring me back, pleeeease!!!";
+	next;
+	menu
+	"Ok",yes,
+	"Just give me one more minute.",no;
+yes:
+	warp "new_9-1.gat",73,31;		close;
+no:
+	close;
+}

@@ -1,0 +1,90 @@
+new_3-1.gat,137,34,0	script	Vincent	113,{
+	if(Bugleg == 1) goto reas;
+	if(Bugleg == 2) goto done;
+	set @TEMP,rand(3);
+	if(@TEMP == 1) goto L_1;
+	if(@TEMP == 2) goto L_2;
+	if(@TEMP == 3) goto L_3;
+	if(@TEMP == 0) goto L_4;
+
+L_1:
+	mes "[Vincent]";
+	mes "I just need 30 more [Bug Legs] to finish my action figure!";
+	next;
+	goto main1;
+L_2:
+	mes "[Vincent]";
+	mes "This maggot action figure is awesome! I just need to attach [30 Part A{Bug Leg}]";
+	next;
+	goto main1;
+L_3:
+	mes "[Vincent]";
+	mes "This is a great action figure! A must have! All i need is a few parts...";
+	goto main1;
+L_4:
+	mes "[Vincent]";
+	mes "Can you get me 30 [Bug Legs]? I need them to replace the action figure parts.";
+	next;
+	goto main1;
+
+main1:
+	mes "[Vincent]";
+	mes "Will you help me find 30 [Bug Legs]?";
+	next;
+	menu "Yes",B_1,"No",B_2;
+B_1:
+	set Bugleg,1;
+	set @TEMP,rand(3);
+	if(@TEMP == 1) goto J_1;
+	if(@TEMP == 2) goto J_2;
+	if(@TEMP == 3) goto J_3;
+	if(@TEMP == 0) goto J_4;
+J_1:
+	mes "[Vincent]";
+	mes "Thank you!";
+	next;
+	goto main2;
+J_2:
+	mes "[Vincent]";
+	mes "I don't know how to thank you enough!";
+	next;
+	goto main2;
+J_3:
+	mes "[Vincent]";
+	mes "I will thank you when I get them!";
+	next;
+	goto main2;
+J_4:
+	mes "[Vincent]";
+	mes "I'm sure I will give a small reward. :D";
+	next;
+	goto main2;
+main2:
+	mes "[Vincent]";
+	mes "Now please go get me 30 [Bug Legs]";
+	close;
+reas:
+	if(countitem(518) >= 30) goto have;
+	mes "[Vincent]";
+	mes "Please help me collect 30 [Bug Legs]!";
+	close;
+have:
+	mes "[Vincent]";
+	mes "Excellent! Finally I can complete the model!!";
+	delitem 518,30;
+	next;
+	mes "[Vincent]";
+	mes "Here you go, a little of my appreciation!";
+	next;
+	mes "Got 1000 GP";
+	set zeny,zeny+1000;
+	set Bugleg,2;
+	close;
+done:
+	mes "[Vincent]";
+	mes "Thanks for your help!";
+	close;
+B_2:
+	close;
+}
+

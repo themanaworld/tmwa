@@ -1,0 +1,87 @@
+new_3-1.gat,33,30,0	script	Guide	102,{
+	mes "[Guide]";
+	mes "Would you like to know about something?";
+	next;
+	menua:
+	menu "Fighting",L_Fight,"Items",L_Items,"Monsters",L_Monster,"Stylist",L_Style,"Quests",L_Quests,"NPCs",L_NPC,"Commands",L_Comm,"Quick Keys",L_Key,"I know everything!",L_Know;
+L_Fight:
+	mes "[Guide]";
+	mes "People live in this world by living off of monsters";
+	mes "You can fight monsters and even players by hitting the [CTRL] key, or left mouse click.";
+	next;
+	mes "[Guide]";
+	mes "If you get tired of pressing the key too much, you can also type shift+ctrl";
+	mes "This will make your character attack continuously for the time you are inactive.";
+	next;
+	goto menua;
+L_Items:
+	mes "[Guide]";
+	mes "There are three types of items.";
+	mes "They can be Consumables, Equipment, or Miscellaneous";
+	next;
+	mes "[Guide]";
+	mes "Consumable items such as Potions, can be used only once";
+	mes "after use, they will dissapear from your inventory.";
+	next;
+	mes "[Guide]";
+	mes "Equipment items like Armors, Weapons, Accessories"; 
+	mes "can be equipped for fashionable purposes or to raise your status";
+	next;
+	mes "[Guide]";
+	mes "Miscellaneous items such as maggot slime, are used";
+	mes "in creating other items, or just to trade and sell.";
+	next;
+	goto menua;
+L_Monster:
+	mes "[Guide]";
+	mes "In every world, there are beasts. Monsters can be found almost anywhere!~";
+	mes "To fight them, please read [Fighting] if you do not know how";
+	next;
+	mes "There a several types of monsters, Aggressive, Neutral, Assistants";
+	next;
+	mes "[Guide]";
+	mes "Agressive monsters know that they are always in danger";
+	mes "so therefore they always keep their guard up";
+	mes "Making them attack anybody in sight";
+	next;
+	mes "[Guide]";
+	mes "Neutral monsters tend to just lounge around until attacked";
+	mes "They will leave everything alone unless they are threatened";
+	next;
+	mes "[Guide]";
+	mes "Assistants are monsters who help eachother, there havent been any yet";
+	mes "But there soon will be, These monsters attack in groups if they are threatened";
+	next;
+	goto menua;
+L_Style:
+	mes "[Guide]";
+	mes "The stylist NPC will cut and perm your hair!";
+	mes "they are known for their hair growth formula";
+	next;
+	goto menua;
+L_Quests:
+	mes "[Guide]";
+	mes "There are people in the world in need of help!";
+	mes "Most of these people aren't afraid to give rewards to those who help them";
+	mes "So be nice and help people along the way!";
+	next;
+	goto menua;
+L_NPC:
+	mes "[Guide]";
+	mes "NPC[Non Playable Characters] are people who are always in the game";
+	mes "Tending to many variatys of services from just chatting to helping others.";
+	next;
+	goto menua;
+L_Comm:
+	mes "[Guide]";
+	mes "There are no /Commands available currently";
+	next;
+	goto menua;
+L_Key:
+	mes "[Guide]";
+	mes "There are many key combinations, press F1 for a short list of them!";
+	next;
+	goto menua;
+L_Know:
+	close;
+}

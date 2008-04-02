@@ -1,0 +1,25 @@
+// Map: new_5-1
+// This is the cave below Tulimshar second level aka "Underground Palace"
+//
+// ALWAYS keep a backup file before edit (experience :)
+// The last param is the Event on Mobdeath
+//
+
+new_5-1.gat,0,0,0,0	monster	Spider	1012,10,2500,0,ConquestMob5::OnSpider
+new_5-1.gat,0,0,0,0	monster	SlimeY	1007,25,2500,0,ConquestMob5::OnSlimeY
+
+new_5-1.gat,0,0,0	script	ConquestMob5	-1,{
+// id 1012 = Spider
+OnSpider:
+	if (MPQUEST == 1) set Mobpt,Mobpt+56;
+	break;
+
+// id 1007 == Yellow Slime
+OnSlimeY:
+	if (MPQUEST == 1) set Mobpt,Mobpt+9;
+	break;
+end;
+}
+
+
+

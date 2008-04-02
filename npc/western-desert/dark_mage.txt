@@ -1,0 +1,37 @@
+new_1-1.gat,24,24,0	script	SoulThief	103,{
+
+	if (class == 1) goto L_Soul;
+	mes "[Dark Mage]";
+	mes "Psss hey would you like to have more power?";
+	next;
+	
+	menu "You fool, that's not possible",-,"I'm listening...",L_Go;
+	close;
+
+L_Go:
+	mes "I can give you ancient powers that will let you become the greatest warrior in The Mana World, or the best merchant.";
+	mes "But everything has got his price...";
+	next;
+	
+	mes "Oh nothing important nor expensive.";
+	mes	"Just your soul!";
+	next;
+	
+	menu "My soul? Here it is",L_Soul,"I need a better explanation!",-;
+	
+	mes "Well there's a very small possibility that your player will be translated into the new server.";
+	mes "I said a very, very small possibility.";
+	mes "Players without a soul instead will be lost forever...";
+	mes "Come on, you won't loose that much!";
+	next;
+	
+	menu "Hmmm ok, I guess you can take it.",L_Soul,"Maybe I'll think about it a bit more",-;
+	mes "I know you'll come here again when you'll get killed by a maggot, begging me to help you";
+	close;	
+
+L_Soul:
+	mes "[Dark Mage]";
+	mes "Hrhrhr, your soul is finally mine!";
+	jobchange 1;
+	close;
+}

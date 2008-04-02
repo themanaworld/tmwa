@@ -1,0 +1,68 @@
+	A 		{color: #000; text-decoration: none; background-color : inherit;} 
+	A:link		{color: #000; text-decoration: none; background-color : inherit;} 
+	A:visited		{ color: #000; text-decoration: none; background-color : inherit;} 
+	A:active		{ color: #000; text-decoration: none; background-color : inherit;} 
+	A:hover		{ color: #8282AE; text-decoration: underline; background-color : inherit;} 
+
+body {
+	margin: 0px;
+	font-size: 11px;
+	font-family: Lucila, Arial, Helvetica;
+	background: #E1E1F4;
+	color: #9999CD;
+}
+
+.wrapper {
+	width: 100%;
+	padding: 0px;
+	margin: 0px;
+}
+
+.topbanner {
+	background: #FFF;
+	height: 25px;
+}
+
+.topnav {
+	border-top: 1px solid #ADADD8;
+	border-left: 1px dotted #ADADD8;
+	border-right: 1px dotted #ADADD8;
+	width: 12.5%;
+}
+
+.banner {
+	border-bottom: 1px solid #000;
+	border-top: 1px solid #000;
+	background: #9999CD;
+	height: 136px; 
+}
+
+.omgspacer {
+	height: 10px;
+}
+
+.content {
+	width: 75%; 
+	padding: 3px; 
+	border: 1px dashed #ADADD8;
+}
+
+.contenttitle {
+	font-size: 20px;
+	background: #D3D3EB;
+	color: #8282AE;
+}
+
+.contentbg {
+	font-size: 15px;
+	background: #F1F1FA;
+}
+
+.spaceromg {
+	height: 20px;
+}
+
+.copyright {
+	background: #BDBDE0; 
+	height: 10px;
+	color: #000;

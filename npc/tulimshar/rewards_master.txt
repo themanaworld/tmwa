@@ -1,0 +1,185 @@
+new_3-1.gat,55,51,0	script	Rewards	106,{
+	if (MPQUEST == 0) goto Register;
+
+	mes "[Rewards Master]";
+	mes "Welcome! Would you like to exchange some points for items?";
+	next;
+	menu "Yes",Y1,"No Thanks",LEAVE;
+	next;
+
+Register:
+	mes "[Rewards Master]";
+	mes "Hey, it seems like you didn't register as a quest participant yet! You can sign up at the gate below.";
+	close;
+
+Y1:
+	mes "[Rewards Master]";
+	mes "Ok lets check those points.";
+        if (tvis == 0) set tvis,1;
+	if (Mobpt < tvis) goto NotEnough;
+	set Mobpt,Mobpt-tvis;
+	set tvis,tvis+1;
+	next;
+		set @TEMP,rand(1);
+		if(@TEMP ==0) goto R_1;
+		if(@TEMP ==1) goto R_2;
+R_1:
+		set @TEMP,rand(19);
+		if(@TEMP ==0) goto R1_1;
+		if(@TEMP ==1) goto R1_2;
+		if(@TEMP ==2) goto R1_3;
+		if(@TEMP ==3) goto R1_4;
+		if(@TEMP ==4) goto R1_5;
+		if(@TEMP ==5) goto R1_6;
+		if(@TEMP ==6) goto R1_7;
+		if(@TEMP ==7) goto R1_8;
+		if(@TEMP ==8) goto R1_9;
+		if(@TEMP ==9) goto R1_10;
+		if(@TEMP ==10) goto R1_11;
+		if(@TEMP ==11) goto R1_12;
+		if(@TEMP ==12) goto R1_13;
+		if(@TEMP ==13) goto R1_14;
+		if(@TEMP ==14) goto R1_15;
+		if(@TEMP ==15) goto R1_16;
+		if(@TEMP ==16) goto R1_17;
+		if(@TEMP ==17) goto R1_18;
+		if(@TEMP ==18) goto R1_19;
+		if(@TEMP ==19) goto R1_20;
+
+R1_1:
+	mes "[Rewards Master]";
+	mes "You got Cactus Drink.";
+	getitem 501,1;
+	goto Q;
+R1_2:
+	mes "[Rewards Master]";
+	mes "You got Cactus Potion.";
+	getitem 502,1;
+	goto Q;
+R1_3:
+	mes "[Rewards Master]";
+	mes "You got Casino Coins.";
+	getitem 503,1;
+	goto Q;
+R1_4:
+	mes "[Rewards Master]";
+	mes "You got Decor Candy Cane.";
+	getitem 504,1;
+	goto Q;
+R1_5:
+	mes "[Rewards Master]";
+	mes "You got Maggot Slime.";
+	getitem 505,1;
+	goto Q;
+R1_6:
+	mes "[Rewards Master]";
+	mes "You got Candy Cane.";
+	getitem 506,1;
+	goto Q;
+R1_7:
+	mes "[Rewards Master]";
+	mes "You got Scorpion Stinger.";
+	getitem 507,1;
+	goto Q;
+R1_8:
+	mes "[Rewards Master]";
+	mes "You got Xmas Cake.";
+	getitem 508,1;
+	goto Q;
+R1_9:
+	mes "[Rewards Master]";
+	mes "You got Chocolate Bar.";
+	getitem 509,1;
+	goto Q;
+R1_10:
+	mes "[Rewards Master]";
+	mes "You got Candy.";
+	getitem 510,1;
+	goto Q;
+R1_11:
+	mes "[Rewards Master]";
+	mes "You got Santa Hat.";
+	getitem 511,1;
+	goto Q;
+R1_12:
+	mes "[Rewards Master]";
+	mes "You got Ginger Bread Man.";
+	getitem 512,1;
+	goto Q;
+R1_13:
+	mes "[Rewards Master]";
+	mes "You got Cake.";
+	getitem 513,1;
+	goto Q;
+R1_14:
+	mes "[Rewards Master]";
+	mes "You got Candy Cane.";
+	getitem 514,1;
+	goto Q;
+R1_15:
+	mes "[Rewards Master]";
+	mes "You got Purple Present.";
+	getitem 515,1;
+	goto Q;
+R1_16:
+	mes "[Rewards Master]";
+	mes "You got Blue Present.";
+	getitem 516,1;
+	goto Q;
+R1_17:
+	mes "[Rewards Master]";
+	mes "You got Red Scorpion Stinger.";
+	getitem 517,1;
+	goto Q;
+R1_18:
+	mes "[Rewards Master]";
+	mes "You got Bug Leg.";
+	getitem 518,1;
+	goto Q;
+R1_19:
+	mes "[Rewards Master]";
+	mes "You got Cherry Cake.";
+	getitem 519,1;
+	goto Q;
+R1_20:
+	mes "[Rewards Master]";
+	mes "You got Easter Egg.";
+	getitem 520,1;
+	goto Q;
+
+R_2:
+		set @TEMP,rand(3);
+		if(@TEMP ==0) goto R2_1;
+		if(@TEMP ==1) goto R2_2;
+		if(@TEMP ==2) goto R2_3;
+		if(@TEMP ==3) goto R2_4;
+
+R2_1:
+	mes "[Rewards Master]";
+	mes "You got an Arrow.";
+	getitem 1199,1;
+	goto Q;
+R2_2:
+	mes "[Rewards Master]";
+	mes "You got a Bow.";
+	getitem 1200,1;
+	goto Q;
+R2_3:
+	mes "[Rewards Master]";
+	mes "You got a Knife.";
+	getitem 1201,1;
+	goto Q;
+R2_4:
+	mes "[Rewards Master]";
+	mes "You got an Cotton Shirt.";
+	getitem 1202,1;
+	goto Q;
+
+NotEnough:
+	next;
+	mes "[Rewards Master]";
+	mes "Kill some more monsters first.";
+	close;
+LEAVE:
+	close;
+}

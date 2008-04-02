@@ -1,0 +1,2 @@
+new_9-1.gat,0,0,0,0     monster EvilMushroom      1013,25,0,0,0
+new_9-1.gat,0,0,0,0     monster SleepFlower 	  1014,40,0,0,0

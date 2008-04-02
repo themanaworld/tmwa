@@ -1,0 +1,44 @@
+new_10-1.gat,77,44,0	script	Santa	129,{
+if( ChristmasQuest == 1) goto done;
+mes "[Snowman]";
+mes "Hello there young man.";
+mes "Would you like a Christmas hat?";
+next;
+L_M:
+menu "Yes",L_Y,"No",L_N,"What do you need?",L_R;
+	L_Y:
+		mes "[Snowman]";
+		mes "Hmm, let me see what you have.";
+		next;
+		if(countitem(510)<15) goto NoItem;
+		if(countitem(509)<10) goto NoItem;
+		if(countitem(502)<5) goto NoItem;
+		mes "Here you go, enjoy your new hat!";
+		delitem 510,15;
+		delitem 509,10;
+		delitem 502,5;
+		getitem 511,1;
+		set ChristmasQuest,1;
+		close;
+	L_R:
+		mes "[Snowman]";
+		mes "For this special hat, I need a pint of magic and a little help.";
+		mes "Just kidding. I would like to get some food;";
+		mes "15 Candies";
+		mes "10 Chocolate bars";
+		mes "5 Cactus potions";
+		next;
+		goto L_M;
+	L_N:
+		mes "[Snowman]";
+		mes "Well, thats too bad, but make sure to have the holiday spirit!";
+		close;
+	NoItem:
+		mes "[Snowman]";
+		mes "Well, I am interested in some food and you don't have enought to get a hat.";
+		close;
+	done:
+		mes "[Snowman]";
+		mes "Thank you for help!";
+		close;
+}
