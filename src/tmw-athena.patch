@@ -1,0 +1,228 @@
+diff -ru athena/src/char/char.c athena-tmw/src/char/char.c
+--- athena/src/char/char.c	2007-11-15 18:19:02.000000000 +0100
++++ athena-tmw/src/char/char.c	2007-11-15 17:58:30.000000000 +0100
+@@ -91,7 +91,7 @@
+ int autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+ int start_zeny = 500;
+ int start_weapon = 1201;
+-int start_armor = 2301;
++int start_armor = 1202;
+ 
+ // Initial position (it's possible to set it in conf file)
+ struct point start_point = {"new_1-1.gat", 53, 111};
+@@ -768,7 +768,7 @@
+ 	if (dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29] != 5*6 || // stats
+ 	    dat[30] >= 9 || // slots (dat[30] can not be negativ)
+ 	    dat[33] <= 0 || dat[33] >= 20 || // hair style
+-	    dat[31] >= 9) { // hair color (dat[31] can not be negativ)
++	    dat[31] >= 12) { // hair color (dat[31] can not be negativ)
+ 		char_log("Make new char error (invalid values): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d" RETCODE,
+ 		         fd, sd->account_id, dat[30], dat, dat[24], dat[25], dat[26], dat[27], dat[28], dat[29], dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29], dat[33], dat[31]);
+ 		return -1;
+diff -ru athena/src/login/login.c athena-tmw/src/login/login.c
+--- athena/src/login/login.c	2007-11-15 18:19:02.000000000 +0100
++++ athena-tmw/src/login/login.c	2007-11-15 17:58:24.000000000 +0100
+@@ -1036,7 +1036,7 @@
+ 		if (newaccount) {
+ 			login_log("Attempt of creation of an already existant account (account: %s_%c, pass: %s, received pass: %s, ip: %s)" RETCODE,
+ 			          account->userid, account->userid[len+1], auth_dat[i].pass, account->passwd, ip);
+-			return 1; // 1 = Incorrect Password
++			return 9; // 9 = Account already exists
+ 		}
+ 		ld = session[fd]->session_data;
+ #ifdef PASSWORDENC
+diff -ru athena/src/map/clif.c athena-tmw/src/map/clif.c
+--- athena/src/map/clif.c	2007-11-15 18:19:02.000000000 +0100
++++ athena-tmw/src/map/clif.c	2007-11-15 17:59:24.000000000 +0100
+@@ -3208,17 +3208,19 @@
+  * アイテム追加成功/失敗
+  *------------------------------------------
+  */
+-int clif_tradeitemok(struct map_session_data *sd,int index,int fail)
++int clif_tradeitemok(struct map_session_data *sd,int index,int amount,int fail)
+ {
+ 	int fd;
+ 
+ 	nullpo_retr(0, sd);
+ 
+ 	fd=sd->fd;
+-	WFIFOW(fd,0)=0xea;
++    WFIFOW(fd,0)=0x1b1;
++	//WFIFOW(fd,0)=0xea;
+ 	WFIFOW(fd,2)=index;
+-	WFIFOB(fd,4)=fail;
+-	WFIFOSET(fd,packet_len_table[0xea]);
++	WFIFOW(fd,4)=amount;
++    WFIFOB(fd,6)=fail;
++	WFIFOSET(fd,packet_len_table[0x1b1]);
+ 
+ 	return 0;
+ }
+@@ -7887,8 +7889,11 @@
+ 	if(sd->sc_data && ( sd->sc_data[SC_BLADESTOP].timer!=-1 || sd->sc_data[SC_BERSERK].timer!=-1 )) return;
+ 
+ 	if(sd->status.inventory[index].identify != 1) {		// 未鑑定
+-		clif_equipitemack(sd,index,0,0);	// fail
+-		return;
++		// Bjorn: Auto-identify items when equipping them as there
++		//  is no nice way to do this in the client yet.
++		sd->status.inventory[index].identify = 1;
++		//clif_equipitemack(sd,index,0,0);	// fail
++		//return;
+ 	}
+ 	//ペット用装備であるかないか
+ 	if(sd->inventory_data[index]) {
+diff -ru athena/src/map/clif.h athena-tmw/src/map/clif.h
+--- athena/src/map/clif.h	2007-11-15 18:19:16.000000000 +0100
++++ athena-tmw/src/map/clif.h	2007-11-15 17:59:18.000000000 +0100
+@@ -97,7 +97,7 @@
+ int clif_traderequest(struct map_session_data *sd,char *name);
+ int clif_tradestart(struct map_session_data *sd,int type);
+ int clif_tradeadditem(struct map_session_data *sd,struct map_session_data *tsd,int index,int amount);
+-int clif_tradeitemok(struct map_session_data *sd,int index,int fail);
++int clif_tradeitemok(struct map_session_data *sd,int index,int amount,int fail);
+ int clif_tradedeal_lock(struct map_session_data *sd,int fail);
+ int clif_tradecancelled(struct map_session_data *sd);
+ int clif_tradecompleted(struct map_session_data *sd,int fail);
+diff -ru athena/src/map/map.c athena-tmw/src/map/map.c
+--- athena/src/map/map.c	2007-11-15 18:19:02.000000000 +0100
++++ athena-tmw/src/map/map.c	2007-11-15 17:59:25.000000000 +0100
+@@ -1390,10 +1390,10 @@
+  *------------------------------------------
+  */
+ static int map_readmap(int m,char *fn, char *alias) {
+-	unsigned char *gat="";
++    unsigned char *gat = "";
+ 	int s;
+ 	int x,y,xs,ys;
+-	struct gat_1cell {float high[4]; int type;} *p=NULL;
++	struct gat_1cell {char type;} *p;
+ 	int wh;
+ 	size_t size;
+ 
+@@ -1401,28 +1401,34 @@
+ 	gat=grfio_read(fn);
+ 	if(gat==NULL)
+ 		return -1;
+-
++	
+ 	printf("\rLoading Maps [%d/%d]: %-50s  ",m,map_num,fn);
+ 	fflush(stdout);
+ 
+ 	map[m].m=m;
+-	xs=map[m].xs=*(int*)(gat+6);
+-	ys=map[m].ys=*(int*)(gat+10);
+-	map[m].gat = (unsigned char *)aCalloc(s = map[m].xs * map[m].ys,sizeof(unsigned char));
++	xs=map[m].xs=*(short*)(gat);
++	ys=map[m].ys=*(short*)(gat+2);
++	printf("\n%i %i\n", xs, ys);
++	map[m].gat = calloc(s = map[m].xs * map[m].ys, 1);
++	if(map[m].gat==NULL){
++		printf("out of memory : map_readmap gat\n");
++		exit(1);
++	}
++
+ 	map[m].npc_num=0;
+ 	map[m].users=0;
+ 	memset(&map[m].flag,0,sizeof(map[m].flag));
+ 	if(battle_config.pk_mode) map[m].flag.pvp = 1; // make all maps pvp for pk_mode [Valaris]
+ 	wh=map_waterheight(map[m].name);
+ 	for(y=0;y<ys;y++){
+-		p=(struct gat_1cell*)(gat+y*xs*20+14);
++		p=(struct gat_1cell*)(gat+y*xs+4);
+ 		for(x=0;x<xs;x++){
+-			if(wh!=NO_WATER && p->type==0){
++			/*if(wh!=NO_WATER && p->type==0){
+ 				// 水場判定
+ 				map[m].gat[x+y*xs]=(p->high[0]>wh || p->high[1]>wh || p->high[2]>wh || p->high[3]>wh) ? 3 : 0;
+-			} else {
++			} else {*/
+ 				map[m].gat[x+y*xs]=p->type;
+-			}
++			//}
+ 			p++;
+ 		}
+ 	}
+@@ -1431,12 +1437,36 @@
+ 	map[m].bxs=(xs+BLOCK_SIZE-1)/BLOCK_SIZE;
+ 	map[m].bys=(ys+BLOCK_SIZE-1)/BLOCK_SIZE;
+ 	size = map[m].bxs * map[m].bys * sizeof(struct block_list*);
+-	map[m].block = (struct block_list **)aCalloc(1,size);
+-	map[m].block_mob = (struct block_list **)aCalloc(1,size);
++
++	map[m].block = calloc(size, 1);
++	if(map[m].block == NULL){
++		printf("out of memory : map_readmap block\n");
++		exit(1);
++	}
++
++	map[m].block_mob = calloc(size, 1);
++	if (map[m].block_mob == NULL) {
++		printf("out of memory : map_readmap block_mob\n");
++		exit(1);
++	}
++
+ 	size = map[m].bxs*map[m].bys*sizeof(int);
+-	map[m].block_count = (int *)aCalloc(1,size);
+-	map[m].block_mob_count=(int *)aCalloc(1,size);
+-           strdb_insert(map_db,map[m].name,&map[m]);
++
++	map[m].block_count = calloc(size, 1);
++	if(map[m].block_count==NULL){
++		printf("out of memory : map_readmap block\n");
++		exit(1);
++	}
++	memset(map[m].block_count,0,size);
++
++	map[m].block_mob_count=calloc(size, 1);
++	if(map[m].block_mob_count==NULL){
++		printf("out of memory : map_readmap block_mob\n");
++		exit(1);
++	}
++	memset(map[m].block_mob_count,0,size);
++
++	strdb_insert(map_db,map[m].name,&map[m]);
+ 
+ //	printf("%s read done\n",fn);
+ 
+diff -ru athena/src/map/pc.c athena-tmw/src/map/pc.c
+--- athena/src/map/pc.c	2007-11-15 18:19:02.000000000 +0100
++++ athena-tmw/src/map/pc.c	2007-11-15 17:59:19.000000000 +0100
+@@ -6110,6 +6110,7 @@
+ 	nameid = sd->status.inventory[n].nameid;
+ 	id = sd->inventory_data[n];
+ 	pos = pc_equippoint(sd,n);
++
+ 	if(battle_config.battle_log)
+ 		printf("equip %d(%d) %x:%x\n",nameid,n,id->equip,pos);
+ 	if(!pc_isequip(sd,n) || !pos || sd->status.inventory[n].broken==1 ) { // [Valaris]
+diff -ru athena/src/map/trade.c athena-tmw/src/map/trade.c
+--- athena/src/map/trade.c	2007-11-15 18:19:02.000000000 +0100
++++ athena-tmw/src/map/trade.c	2007-11-15 17:59:18.000000000 +0100
+@@ -98,7 +98,7 @@
+ 				if(sd->deal_item_amount[trade_i] == 0){
+ 					trade_weight+=sd->inventory_data[index-2]->weight*amount;
+ 					if(target_sd->weight + trade_weight > target_sd->max_weight){
+-						clif_tradeitemok(sd,index,1); //fail to add item -- the player was over weighted.
++						clif_tradeitemok(sd,index,0,1); //fail to add item -- the player was over weighted.
+                                                 amount = 0; // [MouseJstr]
+ 					}else{
+ 						for(c=0; c==trade_i-1;c++){ // re-deal exploit protection [Valaris]
+@@ -109,7 +109,7 @@
+ 						}
+ 						sd->deal_item_index[trade_i] =index;
+ 						sd->deal_item_amount[trade_i]+=amount;
+-						clif_tradeitemok(sd,index,0); //success to add item
++						clif_tradeitemok(sd,index,amount,0); //success to add item
+ 						clif_tradeadditem(sd,target_sd,index,amount);
+ 					}
+ 					break;
+@@ -143,7 +143,7 @@
+ 	
+ 	if((target_sd = map_id2sd(sd->trade_partner)) != NULL){
+ 		sd->deal_locked=1;
+-		clif_tradeitemok(sd,0,0);
++		clif_tradeitemok(sd,0,0,0);
+ 		clif_tradedeal_lock(sd,0);
+ 		clif_tradedeal_lock(target_sd,1);
+ 	}
