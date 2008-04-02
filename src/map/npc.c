@@ -1042,7 +1042,7 @@ int npc_selllist(struct map_session_data *sd,int n,unsigned short *item_list)
 		   sd->status.inventory[item_list[i*2]-2].amount < item_list[i*2+1])
 			return 1;
 		if (sd->trade_partner != 0)
-			return 2;
+			return 2; // cant sell while trading
 		if (itemdb_value_notoc(nameid))
 			z+=(double)itemdb_value_sell(nameid) * item_list[i*2+1];
 		else
