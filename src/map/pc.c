@@ -2908,6 +2908,12 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 {
 	nullpo_retr(1, sd);
 
+	if(n < 0 || n >= MAX_INVENTORY)
+		return 0;
+
+	if(amount <= 0)
+		return 0;
+
 	if (sd->status.inventory[n].nameid <= 0 ||
 	    sd->status.inventory[n].amount < amount ||
 	    sd->trade_partner != 0 || sd->vender_id != 0 ||

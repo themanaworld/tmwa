@@ -27,6 +27,12 @@ void trade_traderequest(struct map_session_data *sd,int target_id)
 				return;
 			}
 		}
+		if (target_sd->npc_id)
+		{
+			//Trade fails if you are using an NPC.
+			clif_tradestart(sd, 2);
+			return;
+		}
 		if((target_sd->trade_partner !=0) || (sd->trade_partner !=0)) {
 			trade_tradecancel(sd); //person is in another trade
 		}
