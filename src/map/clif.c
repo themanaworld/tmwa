@@ -7796,6 +7796,9 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd) {
 	if (fitem == NULL || fitem->bl.m != sd->bl.m)
 		return;
 
+	if (abs(sd->bl.x - fitem->bl.x) >= 2 || abs(sd->bl.y - fitem->bl.y) >= 2)
+		return; // too far away to pick up
+
 	pc_takeitem(sd, fitem);
 }
 
