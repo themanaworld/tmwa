@@ -4068,8 +4068,8 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 	range = sd->attackrange;
 	if(sd->status.weapon != 11) range++;
 	if( dist > range ){	// “Í ‚©‚È‚¢‚Ì‚ÅˆÚ“®
-		if(pc_can_reach(sd,bl->x,bl->y))
-			clif_movetoattack(sd,bl);
+		//if(pc_can_reach(sd,bl->x,bl->y))
+			//clif_movetoattack(sd,bl);
 		return 0;
 	}
 
