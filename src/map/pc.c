@@ -4073,6 +4073,9 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 		return 0;
 	}
 
+	if (sd->attackabletime > tick)
+		return 0; // cannot attack yet
+
 	if(dist <= range && !battle_check_range(&sd->bl,bl,range) ) {
 		if(pc_can_reach(sd,bl->x,bl->y) && sd->canmove_tick < tick && (sd->sc_data[SC_ANKLE].timer == -1 || sd->sc_data[SC_SPIDERWEB].timer == -1))
 			pc_walktoxy(sd,bl->x,bl->y);
