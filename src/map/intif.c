@@ -584,22 +584,20 @@ int mapif_parse_WisToGM(int fd) { // 0x3003/0x3803 <packet_len>.w <wispname>.24B
 	int i, min_gm_level;
 	struct map_session_data *pl_sd;
 	char Wisp_name[24];
-        char mbuf[255];
-	char *message = ((RFIFOW(fd,2) - 30) >= sizeof(mbuf)) ? (char *) malloc((RFIFOW(fd,2) - 30)) : mbuf;
+	char *message = malloc((RFIFOW(fd,2) - 30));
 
 	min_gm_level = (int)RFIFOW(fd,28);
 	memcpy(Wisp_name, RFIFOP(fd,4), 24);
 	Wisp_name[23] = '\0';
-	memcpy(message, RFIFOP(fd,30), RFIFOW(fd,2) - 30);
-	message[sizeof(message) - 1] = '\0';
+	memcpy(message, RFIFOP(fd,30), (RFIFOW(fd,2) - 30));
+	message[RFIFOW(fd,2) - 31] = '\0';
 	// information is sended to all online GM
 	for (i = 0; i < fd_max; i++)
 		if (session[i] && (pl_sd = session[i]->session_data) && pl_sd->state.auth)
 			if (pc_isGM(pl_sd) >= min_gm_level)
 				clif_wis_message(i, Wisp_name, message, strlen(message) + 1);
 
-        if (message != mbuf)
-            free(message);
+    free(message);
 
 	return 0;
 }
