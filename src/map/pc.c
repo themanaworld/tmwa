@@ -836,6 +836,9 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, struct mmo_chars
 		}
 	}
 
+	sd->chat_lastmsg_time = sd->chat_threshold = sd->chat_repeatmsg = 0;
+	sd->chat_lastmsg[0] = '\0';
+
 #ifndef TXT_ONLY
 	if(battle_config.mail_system)
 		mail_check(sd,1); // check mail at login [Valaris]

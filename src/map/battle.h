@@ -331,6 +331,11 @@ extern struct Battle_Config {
 	int castrate_dex_scale; // added by [MouseJstr]
 	int area_size; // added by [MouseJstr]
 
+	int spam_ban;
+	int spam_time;
+	int spam_threshold;
+	int chat_maxline;
+
 #ifndef TXT_ONLY /* SQL-only options */
 	int mail_system; // [Valaris]
 #endif

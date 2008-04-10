@@ -308,7 +308,12 @@ struct map_session_data {
 	} ignore[80];
 	int ignoreAll;
 	short sg_count;
-	
+
+	unsigned int chat_lastmsg_time;
+	char chat_lastmsg[513];
+	int chat_threshold;
+	int chat_repeatmsg;
+
 #ifndef TXT_ONLY
 	int mail_counter;	// mail counter for mail system [Valaris]
 #endif

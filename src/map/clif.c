@@ -7397,7 +7397,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <len>.w <str>.?B
 	char *message = (char *) malloc(RFIFOW(fd,2) + 128);
 	char *buf = (char *) malloc(RFIFOW(fd,2) + 4);
-
+	int tick,elapsed = 0;
 	nullpo_retv(sd);
 
 	memset(message, '\0', RFIFOW(fd,2) + 128);
@@ -7412,6 +7412,55 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
                 free(buf);
 		return;
             }
+
+	if (!pc_isGM(sd))
+	{
+		tick = gettick();
+		elapsed = tick - sd->chat_lastmsg_time;
+		sd->chat_lastmsg_time = tick;
+
+		if (elapsed < battle_config.spam_time)
+			sd->chat_threshold++;
+
+		sd->chat_threshold -= (int)(elapsed / (battle_config.spam_time/2));
+
+		if (sd->chat_threshold < 0)
+			sd->chat_threshold = 0;
+
+		if (strncmp(sd->chat_lastmsg, RFIFOP(fd,4), battle_config.chat_maxline) == 0)
+			sd->chat_repeatmsg++;
+		else
+			sd->chat_repeatmsg--;
+
+		if (sd->chat_repeatmsg < 0)
+			sd->chat_repeatmsg = 0;
+
+		strncpy((char*)sd->chat_lastmsg, RFIFOP(fd,4), battle_config.chat_maxline);
+
+		if (sd->chat_threshold > battle_config.spam_threshold || sd->chat_repeatmsg > battle_config.spam_threshold) {
+			sprintf(message, "Spam detected from character '%s' (account: %d), threshold was exceeded.", sd->status.name, sd->status.account_id);
+			printf("%s\n", message);
+			intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
+
+			if (battle_config.spam_ban > 0)
+				sprintf(message, " This player has been banned for %d hours(s).", battle_config.spam_ban);
+			else
+				sprintf(message, " This player hasn't been banned (Ban option is disabled).");
+			printf("%s\n", message);
+			intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
+
+			if (battle_config.spam_ban > 0)
+			{
+				chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
+				clif_setwaitclose(fd); // forced to disconnect
+			}
+			else
+				return; // just ignore, dont ban.
+		}
+
+		if (strlen(RFIFOP(fd,4)) >= battle_config.chat_maxline)
+			return; // ignore lines exceeding the max length in config.
+	}
 
 	//printf("clif_parse_GlobalMessage: message: '%s'.\n", RFIFOP(fd,4));
 	if (strncmp(RFIFOP(fd,4), sd->status.name, strlen(sd->status.name)) != 0) {

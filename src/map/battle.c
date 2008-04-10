@@ -5016,6 +5016,11 @@ int battle_config_read(const char *cfgName)
 
 		battle_config.area_size = 14;
 
+		battle_config.spam_ban = 6;
+		battle_config.spam_time = 3000;
+		battle_config.spam_threshold = 10;
+		battle_config.chat_maxline = 255;
+
 //SQL-only options start
 #ifndef TXT_ONLY 
 		battle_config.mail_system = 0;
@@ -5238,7 +5243,11 @@ int battle_config_read(const char *cfgName)
 			{ "max_cloth_color",                   &battle_config.max_cloth_color	}, // added by [MouseJstr]
 			{ "castrate_dex_scale",                &battle_config.castrate_dex_scale	}, // added by [MouseJstr]
 			{ "area_size",                         &battle_config.area_size	}, // added by [MouseJstr]
-			{ "muting_players",                   &battle_config.muting_players}, // added by [Apple]
+			{ "muting_players",                    &battle_config.muting_players}, // added by [Apple]
+			{ "spam_ban",                          &battle_config.spam_ban		}, 
+			{ "spam_time",                         &battle_config.spam_time		}, 
+			{ "spam_threshold",                    &battle_config.spam_threshold	},
+			{ "chat_maxline",                      &battle_config.chat_maxline	},
 //SQL-only options start
 #ifndef TXT_ONLY 
 			{ "mail_system",		&battle_config.mail_system	}, // added by [Valaris]
@@ -5362,6 +5371,28 @@ int battle_config_read(const char *cfgName)
 			battle_config.any_warp_GM_min_level = 0;
 		else if (battle_config.any_warp_GM_min_level > 100)
 			battle_config.any_warp_GM_min_level = 100;
+
+
+                if (battle_config.spam_ban < 0)
+                        battle_config.spam_ban = 0;
+                else if (battle_config.spam_ban > 32767)
+                        battle_config.spam_ban = 32767;
+
+                if (battle_config.spam_time < 0)
+                        battle_config.spam_time = 0;
+                else if (battle_config.spam_time > 32767)
+                        battle_config.spam_time = 32767;
+
+                if (battle_config.spam_threshold < 0)
+                        battle_config.spam_threshold = 0;
+                else if (battle_config.spam_threshold > 32767)
+                        battle_config.spam_threshold = 32767; 
+
+                if (battle_config.chat_maxline < 1)
+                        battle_config.chat_maxline = 1;
+                else if (battle_config.chat_maxline > 512)
+                        battle_config.chat_maxline = 512;
+
 
 		// at least 1 client must be accepted
 		if ((battle_config.packet_ver_flag & 63) == 0) // added by [Yor]
