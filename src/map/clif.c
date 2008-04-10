@@ -7735,8 +7735,12 @@ void clif_parse_Restart(int fd, struct map_session_data *sd) {
 void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <nick>.24B <message>.?B // rewritten by [Yor]
 	struct map_session_data *dstsd;
 	int i;
-        int gmlen = strlen(RFIFOP(fd,28));
-        char gmbuf[512];
+	int gmlen = strlen(RFIFOP(fd,28));
+
+	if (RFIFOW(fd,2)-28 <= 0)
+		return;
+
+	char gmbuf[512];
 	char *gm_command = ((gmlen+28) > sizeof(gmbuf)) ? (char *) malloc(gmlen + 28) : gmbuf;
         // 24+3+(RFIFOW(fd,2)-28)+1 or 24+3+(strlen(RFIFOP(fd,28))+1 (size can be wrong with hacker)
 
