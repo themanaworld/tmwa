@@ -4248,7 +4248,7 @@ int pc_checkbaselevelup(struct map_session_data *sd)
 		sd->status.base_exp -= next;
 
 		sd->status.base_level ++;
-		sd->status.status_point += (sd->status.base_level+14) / 5 ;
+		sd->status.status_point += (sd->status.base_level + 14) / 4;
 		clif_updatestatus(sd,SP_STATUSPOINT);
 		clif_updatestatus(sd,SP_BASELEVEL);
 		clif_updatestatus(sd,SP_NEXTBASEEXP);
@@ -5183,7 +5183,7 @@ int pc_setparam(struct map_session_data *sd,int type,int val)
 	case SP_BASELEVEL:
 		if (val > sd->status.base_level) {
 			for (i = 1; i <= (val - sd->status.base_level); i++)
-				sd->status.status_point += (sd->status.base_level + i + 14) / 5 ;
+				sd->status.status_point += (sd->status.base_level + i + 14) / 4;
 		}
 		sd->status.base_level = val;
 		sd->status.base_exp = 0;

@@ -2117,7 +2117,7 @@ int atcommand_baselevelup(
 		if (level > battle_config.maximum_level || level > (battle_config.maximum_level - sd->status.base_level)) // fix positiv overflow
 			level = battle_config.maximum_level - sd->status.base_level;
 		for (i = 1; i <= level; i++)
-			sd->status.status_point += (sd->status.base_level + i + 14) / 5;
+			sd->status.status_point += (sd->status.base_level + i + 14) / 4;
 		sd->status.base_level += level;
 		clif_updatestatus(sd, SP_BASELEVEL);
 		clif_updatestatus(sd, SP_NEXTBASEEXP);
@@ -2135,7 +2135,7 @@ int atcommand_baselevelup(
 			level = 1 - sd->status.base_level;
 		if (sd->status.status_point > 0) {
 			for (i = 0; i > level; i--)
-				sd->status.status_point -= (sd->status.base_level + i + 14) / 5;
+				sd->status.status_point -= (sd->status.base_level + i + 14) / 4;
 			if (sd->status.status_point < 0)
 				sd->status.status_point = 0;
 			clif_updatestatus(sd, SP_STATUSPOINT);
@@ -4454,7 +4454,7 @@ int atcommand_character_baselevel(
 				if (level > battle_config.maximum_level || level > (battle_config.maximum_level - pl_sd->status.base_level)) // fix positiv overflow
 					level = battle_config.maximum_level - pl_sd->status.base_level;
 				for (i = 1; i <= level; i++)
-					pl_sd->status.status_point += (pl_sd->status.base_level + i + 14) / 5;
+					pl_sd->status.status_point += (pl_sd->status.base_level + i + 14) / 4;
 				pl_sd->status.base_level += level;
 				clif_updatestatus(pl_sd, SP_BASELEVEL);
 				clif_updatestatus(pl_sd, SP_NEXTBASEEXP);
@@ -4472,7 +4472,7 @@ int atcommand_character_baselevel(
 					level = 1 - pl_sd->status.base_level;
 				if (pl_sd->status.status_point > 0) {
 					for (i = 0; i > level; i--)
-						pl_sd->status.status_point -= (pl_sd->status.base_level + i + 14) / 5;
+						pl_sd->status.status_point -= (pl_sd->status.base_level + i + 14) / 4;
 					if (pl_sd->status.status_point < 0)
 						pl_sd->status.status_point = 0;
 					clif_updatestatus(pl_sd, SP_STATUSPOINT);
