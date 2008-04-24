@@ -7397,7 +7397,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <len>.w <str>.?B
 	char *message = (char *) malloc(RFIFOW(fd,2) + 128);
 	char *buf = (char *) malloc(RFIFOW(fd,2) + 4);
-	int tick,elapsed = 0;
+	unsigned int tick,elapsed = 0;
 	nullpo_retv(sd);
 
 	memset(message, '\0', RFIFOW(fd,2) + 128);
