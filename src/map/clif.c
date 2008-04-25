@@ -2895,7 +2895,7 @@ int clif_useitemack(struct map_session_data *sd,int index,int amount,int ok)
 		WBUFL(buf,6)=sd->bl.id;
 		WBUFW(buf,10)=amount;
 		WBUFB(buf,12)=ok;
-		clif_send(buf,packet_len_table[0x1c8],&sd->bl,AREA);
+		clif_send(buf,packet_len_table[0x1c8],&sd->bl,SELF);
 #endif
 	}
 
