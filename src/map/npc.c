@@ -995,7 +995,7 @@ int npc_buylist(struct map_session_data *sd,int n,unsigned short *item_list)
 		struct item_data *item_data;
 		if ((item_data = itemdb_exists(item_list[i*2+1])) != NULL)
 		{
-			int amount = item_list[i*2], flag;
+			int amount = item_list[i*2];
 			struct item item_tmp;
 			memset(&item_tmp,0,sizeof(item_tmp));
 
