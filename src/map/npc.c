@@ -990,14 +990,28 @@ int npc_buylist(struct map_session_data *sd,int n,unsigned short *item_list)
 		return 4;	// cant buy while trading
 
 	pc_payzeny(sd,(int)z);
+
 	for(i=0;i<n;i++) {
-		struct item item_tmp;
+		struct item_data *item_data;
+		if ((item_data = itemdb_exists(item_list[i*2+1])) != NULL)
+		{
+			int amount = item_list[i*2], flag;
+			struct item item_tmp;
+			memset(&item_tmp,0,sizeof(item_tmp));
 
-		memset(&item_tmp,0,sizeof(item_tmp));
-		item_tmp.nameid = item_list[i*2+1];
-		item_tmp.identify = 1;	// npc販売アイテムは鑑定済み
+			item_tmp.nameid = item_data->nameid;
+			item_tmp.identify = 1;	// npc販売アイテムは鑑定済み
 
-		pc_additem(sd,&item_tmp,item_list[i*2]);
+			if (amount > 1 && (item_data->type == 4 || item_data->type == 5 || item_data->type == 7 || item_data->type == 8))
+			{
+				for (j=0; j<amount; j++) {
+					pc_additem(sd,&item_tmp,1);
+				}
+			}
+			else {
+				pc_additem(sd,&item_tmp,amount);
+			}
+		}
 	}
 
 	//商人経験値
