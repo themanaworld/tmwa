@@ -41,6 +41,7 @@ int login_port = 6900;
 char lan_char_ip[16];
 int subneti[4];
 int subnetmaski[4];
+char update_host[128] = "";
 
 char account_filename[1024] = "save/account.txt";
 char GM_account_filename[1024] = "conf/GM_account.txt";
@@ -2706,6 +2707,7 @@ int parse_login(int fd) {
 	int result, i, j;
 	unsigned char *p = (unsigned char *) &session[fd]->client_addr.sin_addr;
 	char ip[16];
+	int host_len;
 
 	sprintf(ip, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
 
@@ -2788,6 +2790,29 @@ int parse_login(int fd) {
 						printf("Connection of the GM (level:%d) account '%s' accepted.\n", gm_level, account.userid);
 					else
 						printf("Connection of the account '%s' accepted.\n", account.userid);
+
+					/*
+ 					* Add a 0x0063 packet, which contains the name of the update host.  The packet will only
+ 					* be sent if login_athena.conf contains a non-null entry for "update_host:"
+					*
+					* Because older clients cannot handle the 0x63 packet, we check the "version 2" value
+					* from the incoming 0x64 packet (the byte at offset 54).  If bit 0 of this is set,
+					* then the client can safely accept the 0x63 packet.  The "version 2" value is not
+					* otherwise used by eAthena.
+					*/
+					if ((RFIFOW(fd, 0) == 0x64) && (RFIFOB(fd, 54) & 0x01))
+					{
+						host_len = (int)strlen(update_host);
+						if (host_len > 0)
+						{
+							WFIFOW(fd, 0) = 0x63;
+							WFIFOW(fd, 2) = 4 + host_len;
+							memcpy(WFIFOP(fd, 4), update_host, host_len);
+							WFIFOSET(fd, 4 + host_len);
+						}
+					}
+
+					// Load list of char servers into outbound packet
 					server_num = 0;
 					for(i = 0; i < MAX_SERVERS; i++) {
 						if (server_fd[i] >= 0) {
@@ -3351,6 +3376,9 @@ int login_config_read(const char *cfgName) {
 					ANTI_FREEZE_INTERVAL = 5; // minimum 5 seconds
 			} else if (strcmpi(w1, "import") == 0) {
 				login_config_read(w2);
+			} else if (strcmpi(w1, "update_host") == 0) {
+				strncpy(update_host, w2, sizeof(update_host));
+				update_host[sizeof(update_host)-1] = '\0';
 			}
 		}
 	}
