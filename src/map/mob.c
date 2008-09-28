@@ -3644,6 +3644,7 @@ static int mob_readdb(void)
 				continue;
 
 			for(i=0,p=line;i<55;i++){
+				while (*p == '\t' || *p == ' ') p++;
 				if((np=strchr(p,','))!=NULL){
 					str[i]=p;
 					*np=0;

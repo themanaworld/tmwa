@@ -329,6 +329,7 @@ static int itemdb_readdb(void)
 				continue;
 			memset(str,0,sizeof(str));
 			for(j=0,np=p=line;j<17 && p;j++){
+				while (*p == '\t' || *p == ' ') p++;
 				str[j]=p;
 				p=strchr(p,',');
 				if(p){ *p++=0; np=p; }
