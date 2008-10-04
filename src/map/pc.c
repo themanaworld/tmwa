@@ -2932,53 +2932,67 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
  * ƒAƒCƒeƒ€‚ðE‚¤
  *------------------------------------------
  */
+
+static int
+can_pick_item_up_from(struct map_session_data *self, int other_id)
+{
+        /* From ourselves or from no-one? */
+        if (!self
+            || self->bl.id == other_id
+            || !other_id)
+                return 1;
+
+        struct map_session_data *other = map_id2sd(other_id);
+
+        /* From our partner? */
+        if (other && self->status.partner_id == other->status.char_id)
+                return 1;
+
+        /* From someone who is far away? */
+        /* On another map? */
+        if (other->bl.m != self->bl.m)
+                return 1;
+        else {
+                int distance_x = abs(other->bl.x - self->bl.x);
+                int distance_y = abs(other->bl.y - self->bl.y);
+                int distance = (distance_x > distance_y) ? distance_x : distance_y;
+
+                return distance > battle_config.drop_pickup_safety_zone;
+        }
+}
+
 int pc_takeitem(struct map_session_data *sd,struct flooritem_data *fitem)
 {
 	int flag;
 	unsigned int tick = gettick();
-	struct map_session_data *first_sd = NULL,*second_sd = NULL,*third_sd = NULL;
 
 	nullpo_retr(0, sd);
 	nullpo_retr(0, fitem);
 
-	if(fitem->first_get_id > 0) {
-		first_sd = map_id2sd(fitem->first_get_id);
-		if(tick < fitem->first_get_tick) {
-			if(fitem->first_get_id != sd->bl.id) {
-				clif_additem(sd,0,0,6);
-				return 0;
-			}
-		}
-		else if(fitem->second_get_id > 0) {
-			second_sd = map_id2sd(fitem->second_get_id);
-			if(tick < fitem->second_get_tick) {
-				if(fitem->first_get_id != sd->bl.id && fitem->second_get_id != sd->bl.id) {
-					clif_additem(sd,0,0,6);
-					return 0;
-				}
-			}
-			else if(fitem->third_get_id > 0) {
-				third_sd = map_id2sd(fitem->third_get_id);
-				if(tick < fitem->third_get_tick) {
-					if(fitem->first_get_id != sd->bl.id) {
-						clif_additem(sd,0,0,6);
-						return 0;
-					}
-				}
-			}
-		}
-	}
-	if((flag = pc_additem(sd,&fitem->item_data,fitem->item_data.amount)))
-		// d—Êover‚ÅŽæ“¾Ž¸”s
-		clif_additem(sd,0,0,flag);
-	else {
-		/* Žæ“¾¬Œ÷ */
-		if(sd->attacktimer != -1)
-			pc_stopattack(sd);
-		clif_takeitem(&sd->bl,&fitem->bl);
-		map_clearflooritem(fitem->bl.id);
-	}
-	return 0;
+        if (can_pick_item_up_from (sd, fitem->first_get_id)
+             || fitem->first_get_tick <= tick)
+                if (can_pick_item_up_from (sd, fitem->second_get_id)
+                    || fitem->second_get_tick <= tick)
+                        if (can_pick_item_up_from (sd, fitem->third_get_id)
+                            || fitem->third_get_tick <= tick) {
+                                /* Can pick up */
+
+                                if((flag = pc_additem(sd,&fitem->item_data,fitem->item_data.amount)))
+                                        // d—Êover‚ÅŽæ“¾Ž¸”s
+                                        clif_additem(sd,0,0,flag);
+                                else {
+                                        /* Žæ“¾¬Œ÷ */
+                                        if(sd->attacktimer != -1)
+                                                pc_stopattack(sd);
+                                        clif_takeitem(&sd->bl,&fitem->bl);
+                                        map_clearflooritem(fitem->bl.id);
+                                }
+                                return 0;
+                        }
+
+	/* Otherwise, we can't pick up */
+        clif_additem(sd,0,0,6);
+        return 0;
 }
 
 int pc_isUseitem(struct map_session_data *sd,int n)

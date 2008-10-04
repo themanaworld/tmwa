@@ -4830,6 +4830,7 @@ int battle_config_read(const char *cfgName)
 		battle_config.attr_recover=1;
 		battle_config.flooritem_lifetime=LIFETIME_FLOORITEM*1000;
 		battle_config.item_auto_get=0;
+                battle_config.drop_pickup_safety_zone = 20;
 		battle_config.item_first_get_time=3000;
 		battle_config.item_second_get_time=1000;
 		battle_config.item_third_get_time=1000;
@@ -5059,6 +5060,7 @@ int battle_config_read(const char *cfgName)
 			{ "attribute_recover",                 &battle_config.attr_recover				},
 			{ "flooritem_lifetime",                &battle_config.flooritem_lifetime		},
 			{ "item_auto_get",                     &battle_config.item_auto_get			},
+			{ "drop_pickup_safety_zone",           &battle_config.drop_pickup_safety_zone		},
 			{ "item_first_get_time",               &battle_config.item_first_get_time		},
 			{ "item_second_get_time",              &battle_config.item_second_get_time		},
 			{ "item_third_get_time",               &battle_config.item_third_get_time		},

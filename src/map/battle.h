@@ -336,6 +336,8 @@ extern struct Battle_Config {
 	int spam_threshold;
 	int chat_maxline;
 
+        int drop_pickup_safety_zone; // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
+
 #ifndef TXT_ONLY /* SQL-only options */
 	int mail_system; // [Valaris]
 #endif
