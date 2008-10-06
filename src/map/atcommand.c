@@ -7178,6 +7178,7 @@ int
 atcommand_follow(const int fd, struct map_session_data* sd,
 	const char* command, const char* message)
 {
+#if 0
 	struct map_session_data *pl_sd = NULL;
 
 	if (!message || !*message)
@@ -7186,7 +7187,16 @@ atcommand_follow(const int fd, struct map_session_data* sd,
 		pc_follow(sd, pl_sd->bl.id);
 	else
 		return 1;
+#endif
+
+	/*
+	 * Command disabled - it's incompatible with the TMW
+	 * client.
+	 */
+	clif_displaymessage(fd, "@follow command not available");
+
 	return 0;
+
 }
 
 

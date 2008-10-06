@@ -4094,7 +4094,9 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 
 	if(dist <= range && !battle_check_range(&sd->bl,bl,range) ) {
 		if(pc_can_reach(sd,bl->x,bl->y) && sd->canmove_tick < tick && (sd->sc_data[SC_ANKLE].timer == -1 || sd->sc_data[SC_SPIDERWEB].timer == -1))
-			pc_walktoxy(sd,bl->x,bl->y);
+			// TMW client doesn't support this
+			//pc_walktoxy(sd,bl->x,bl->y);
+			clif_movetoattack(sd, bl);
 		sd->attackabletime = tick + (sd->aspd<<1);
 	}
 	else {
