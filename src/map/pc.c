@@ -2944,6 +2944,10 @@ can_pick_item_up_from(struct map_session_data *self, int other_id)
 
         struct map_session_data *other = map_id2sd(other_id);
 
+        /* Other no longer exists? */
+        if (!other)
+                return 1;
+
         /* From our partner? */
         if (other && self->status.partner_id == other->status.char_id)
                 return 1;
