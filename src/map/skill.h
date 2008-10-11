@@ -3,6 +3,7 @@
 #define _SKILL_H_
 
 #include "map.h"
+#include "magic.h"
 
 #define MAX_SKILL_DB			450
 #define MAX_SKILL_PRODUCE_DB	 150
@@ -145,6 +146,7 @@ int skill_check_cloaking(struct block_list *bl);
 int skill_is_danceskill(int id);
 
 // ステータス異常
+int skill_status_effect(struct block_list *bl,int type,int val1,int val2,int val3,int val4,int tick,int flag, int spell_invocation);
 int skill_status_change_start(struct block_list *bl,int type,int val1,int val2,int val3,int val4,int tick,int flag);
 int skill_status_change_timer(int tid, unsigned int tick, int id, int data);
 int skill_encchant_eremental_end(struct block_list *bl, int type);
@@ -329,6 +331,13 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 	SC_MATKPOT			=186,	// [Valaris]
 	SC_MINDBREAKER		=191,
 	SC_SPELLBREAKER		=192,
+
+// Added for Fate's spells
+        SC_HALT_REGENERATE	= 195, // Suspend regeneration
+        SC_FLYING_BACKPACK	= 196, // Flying backpack
+        SC_MBARRIER		= 197, // Magical barrier, magic resistance (val1 : power (%))
+        SC_HASTE		= 198, // `Haste' spell (val1 : power)
+        SC_PHYS_SHIELD		= 199, // `Protect' spell, reduce damage (val1: power)
 
 // -- testing various SC effects
 //	SC_AURABLADE			=81,
@@ -705,12 +714,21 @@ enum {
 	DC_FORTUNEKISS,
 	DC_SERVICEFORYOU,
 
+	NPC_SELFDESTRUCTION2 = 331,
+
 	WE_MALE = 334,
 	WE_FEMALE,
 	WE_CALLPARTNER,
 
-	NPC_SELFDESTRUCTION2 = 331,
 	NPC_DARKCROSS = 338,
+
+        TMW_MAGIC = 340,
+        TMW_MAGIC_LIFE,
+        TMW_MAGIC_WAR,
+        TMW_MAGIC_TRANSMUTE,
+        TMW_MAGIC_NATURE,
+        TMW_MAGIC_ETHER,
+        TMW_MAGIC_END,
 
 	LK_AURABLADE = 355,
 	LK_PARRYING,

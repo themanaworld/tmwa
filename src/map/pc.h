@@ -23,6 +23,9 @@
 #define pc_is50overweight(sd) (sd->weight*2 >= sd->max_weight) 
 #define pc_is90overweight(sd) (sd->weight*10 >= sd->max_weight*9)
 
+void pc_touch_all_relevant_npcs(struct map_session_data *sd); /* Checks all npcs/warps at the same location to see whether they
+                                                              ** should do something with the specified player. */
+
 int pc_isGM(struct map_session_data *sd);
 int pc_iskiller(struct map_session_data *src, struct map_session_data *target); // [MouseJstr]
 int pc_getrefinebonus(int lv,int type);
@@ -64,6 +67,8 @@ int pc_additem(struct map_session_data*,struct item*,int);
 int pc_getzeny(struct map_session_data*,int);
 int pc_delitem(struct map_session_data*,int,int,int);
 int pc_checkitem(struct map_session_data*);
+int pc_count_all_items(struct map_session_data* player, int item_id);
+int pc_remove_items(struct map_session_data* player, int item_id, int count);
 
 int pc_cart_additem(struct map_session_data *sd,struct item *item_data,int amount);
 int pc_cart_delitem(struct map_session_data *sd,int n,int amount,int type);
@@ -156,7 +161,7 @@ int pc_divorce(struct map_session_data *sd);
 struct map_session_data *pc_get_partner(struct map_session_data *sd);
 int pc_set_gm_level(int account_id, int level);
 void pc_setstand(struct map_session_data *sd);
-
+void pc_cleanup(struct map_session_data *sd); // [Fate] Clean up after a logged-out PC
 
 struct pc_base_job{
 	int job; //E‹ÆA‚½‚¾‚µ“]¶E‚â—{qE‚Ìê‡‚ÍŒ³‚ÌE‹Æ‚ğ•Ô‚·(”pƒvƒŠ¨ƒvƒŠ)

@@ -24,6 +24,14 @@ struct script_state {
 };
 
 unsigned char * parse_script(unsigned char *,int);
+typedef struct {
+        char *name;
+        union {
+                int i;
+                char * s;
+        } v;
+} argrec_t;
+int run_script_l(unsigned char *,int,int,int,int,argrec_t *args);
 int run_script(unsigned char *,int,int,int);
 
 struct dbt* script_get_label_db();

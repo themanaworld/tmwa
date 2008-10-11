@@ -28,8 +28,8 @@ struct TimerData {
 unsigned int gettick_nocache(void);
 unsigned int gettick(void);
 
-int add_timer(unsigned int,int (*)(int,unsigned int,int,int),int,int);
-int add_timer_interval(unsigned int,int (*)(int,unsigned int,int,int),int,int,int);
+int add_timer(unsigned int delay,int (*)(int index /* for deletion */,unsigned int orig_delay,int id, int data),int id, int data);
+int add_timer_interval(unsigned int,int (*)(int,unsigned int,int,int),int,int,int interval);
 int delete_timer(int,int (*)(int,unsigned int,int,int));
 
 int addtick_timer(int tid,unsigned int tick);

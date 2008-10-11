@@ -43,6 +43,7 @@
 #include "guild.h"
 #include "vending.h"
 #include "pet.h"
+#include "magic.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -670,6 +671,16 @@ int clif_clearchar_id(int id, int type, int fd) {
 	return 0;
 }
 
+static int
+current_weapon(struct map_session_data *sd)
+{
+        if (sd->attack_spell_override)
+                return sd->attack_spell_look_override;
+        else {
+                return sd->status.weapon;
+        }
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -709,7 +720,7 @@ static int clif_set0078(struct map_session_data *sd, unsigned char *buf) {
 	WBUFW(buf,14)= sd->view_class;
 	WBUFW(buf,16)= sd->status.hair;
 	if (sd->view_class != 22)
-		WBUFW(buf,18) = sd->status.weapon;
+		WBUFW(buf,18) = current_weapon(sd);
 	else
 		WBUFW(buf,18)=0;
 	WBUFW(buf,20)=sd->status.head_bottom;
@@ -741,13 +752,17 @@ static int clif_set0078(struct map_session_data *sd, unsigned char *buf) {
 	WBUFW(buf,12) = sd->status.option;
 	WBUFW(buf,14) = sd->view_class;
 	WBUFW(buf,16) = sd->status.hair;
-	if (sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]] && sd->view_class != 22) {
-		if (sd->inventory_data[sd->equip_index[9]]->view_id > 0)
-			WBUFW(buf,18) = sd->inventory_data[sd->equip_index[9]]->view_id;
-		else
-			WBUFW(buf,18) = sd->status.inventory[sd->equip_index[9]].nameid;
-	} else
-		WBUFW(buf,18) = 0;
+        if (sd->attack_spell_override)
+                WBUFB(buf, 18) = sd->attack_spell_look_override;
+        else {
+                if (sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]] && sd->view_class != 22) {
+                        if (sd->inventory_data[sd->equip_index[9]]->view_id > 0)
+                                WBUFW(buf,18) = sd->inventory_data[sd->equip_index[9]]->view_id;
+                        else
+                                WBUFW(buf,18) = sd->status.inventory[sd->equip_index[9]].nameid;
+                } else
+                        WBUFW(buf,18) = 0;
+        }
 	if (sd->equip_index[8] >= 0 && sd->equip_index[8] != sd->equip_index[9] && sd->inventory_data[sd->equip_index[8]] && sd->view_class != 22) {
 		if (sd->inventory_data[sd->equip_index[8]]->view_id > 0)
 			WBUFW(buf,20) = sd->inventory_data[sd->equip_index[8]]->view_id;
@@ -817,7 +832,7 @@ static int clif_set007b(struct map_session_data *sd,unsigned char *buf) {
 	WBUFW(buf,14)=sd->view_class;
 	WBUFW(buf,16)=sd->status.hair;
 	if(sd->view_class != 22)
-		WBUFW(buf,18)=sd->status.weapon;
+		WBUFW(buf,18)= current_weapon(sd);
 	else
 		WBUFW(buf,18)=0;
 	WBUFW(buf,20)=sd->status.head_bottom;
@@ -1303,6 +1318,39 @@ int clif_spawnnpc(struct npc_data *nd)
 
 	return 0;
 }
+
+int
+clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
+{
+        int fd;
+
+        nullpo_retr(0, sd);
+
+        fd = sd->fd;
+        if (!fd)
+                return 0;
+
+	WFIFOW(fd, 0) = 0x7c;
+	WFIFOL(fd, 2) = fake_npc_id;
+	WFIFOW(fd, 6) = 0;
+	WFIFOW(fd, 20) = 127;
+	WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
+        WFIFOSET(fd, packet_len_table[0x7c]);
+
+	WFIFOW(fd, 0)=0x78;
+	WFIFOL(fd, 2) = fake_npc_id;
+	WFIFOW(fd, 6) = 0;
+	WFIFOW(fd, 14) = 127; // identifies as NPC
+	WFIFOW(fd, 20) = 127;
+	WFIFOPOS(fd, 46, sd->bl.x, sd->bl.y);
+	WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
+	WFIFOB(fd, 49) = 5;
+	WFIFOB(fd, 50) = 5;
+        WFIFOSET(fd, packet_len_table[0x78]);
+
+        return 0;
+}
+
 
 /*==========================================
  *
@@ -2413,7 +2461,9 @@ int clif_updatestatus(struct map_session_data *sd,int type)
 		// 013a 終了
 	case SP_ATTACKRANGE:
 		WFIFOW(fd,0)=0x13a;
-		WFIFOW(fd,2)=sd->attackrange;
+		WFIFOW(fd,2) = (sd->attack_spell_override)
+                               ? sd->attack_spell_range
+                               : sd->attackrange;
 		len=4;
 		break;
 
@@ -2550,13 +2600,17 @@ int clif_changelook(struct block_list *bl,int type,int val)
 		}
 		else {
 			WBUFB(buf,6)=2;
-			if(sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]] && sd->view_class != 22) {
-				if(sd->inventory_data[sd->equip_index[9]]->view_id > 0)
-					WBUFW(buf,7)=sd->inventory_data[sd->equip_index[9]]->view_id;
-				else
-					WBUFW(buf,7)=sd->status.inventory[sd->equip_index[9]].nameid;
-			} else
-				WBUFW(buf,7)=0;
+                        if (sd->attack_spell_override)
+                                WBUFW(buf, 7) = sd->attack_spell_look_override;
+                        else {
+                                if(sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]] && sd->view_class != 22) {
+                                        if(sd->inventory_data[sd->equip_index[9]]->view_id > 0)
+                                                WBUFW(buf,7)=sd->inventory_data[sd->equip_index[9]]->view_id;
+                                        else
+                                                WBUFW(buf,7)=sd->status.inventory[sd->equip_index[9]].nameid;
+                                } else
+                                        WBUFW(buf,7)=0;
+                        }
 			if(sd->equip_index[8] >= 0 && sd->equip_index[8] != sd->equip_index[9] && sd->inventory_data[sd->equip_index[8]] &&
 				sd->view_class != 22) {
 				if(sd->inventory_data[sd->equip_index[8]]->view_id > 0)
@@ -4089,7 +4143,8 @@ int clif_skillinfoblock(struct map_session_data *sd)
 	fd=sd->fd;
 	WFIFOW(fd,0)=0x10f;
 	for ( i = c = 0; i < MAX_SKILL; i++){
-		if( (id=sd->status.skill[i].id)!=0 ){
+		if( (id=sd->status.skill[i].id)!=0
+                    && (i < TMW_MAGIC || i > TMW_MAGIC_END)){ // [Fate] Hack: Prevent killing the client
 			WFIFOW(fd,len  ) = id;
 			WFIFOW(fd,len+2) = skill_get_inf(id);
 			WFIFOW(fd,len+4) = 0;
@@ -7132,7 +7187,7 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 
 	// view equipment item
 #if PACKETVER < 4
-	clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
+	clif_changelook(&sd->bl,LOOK_WEAPON, current_weapon(sd));
 	clif_changelook(&sd->bl,LOOK_SHIELD,sd->status.shield);
 #else
 	clif_changelook(&sd->bl,LOOK_WEAPON,0);
@@ -7318,7 +7373,10 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 
 		nullpo_retv(ssd);
 
-		memcpy(WFIFOP(fd,6), ssd->status.name, 24);
+                if (ssd->state.shroud_active)
+                    memset(WFIFOP(fd,6), 0, 24);
+                else
+                    memcpy(WFIFOP(fd,6), ssd->status.name, 24);
 		if (ssd->status.guild_id > 0 && (g = guild_search(ssd->status.guild_id)) != NULL &&
 		    (ssd->status.party_id == 0 || (p = party_search(ssd->status.party_id)) != NULL)) {
 			// ギルド所属ならパケット0195を返す
@@ -7488,12 +7546,18 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 		}
 		// but for the hacker, we display on his screen (he see/look no difference).
 	} else {
+                int magic_status;
 		// send message to others
 		WBUFW(buf,0) = 0x8d;
 		WBUFW(buf,2) = RFIFOW(fd,2) + 4; // len of message - 4 + 8
 		WBUFL(buf,4) = sd->bl.id;
 		memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
-		clif_send(buf, WBUFW(buf,2), &sd->bl, sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
+                magic_status = magic_message(sd, buf, WBUFW(buf, 2));
+                if (magic_status)
+                        sd->chat_threshold = 0; /* Don't treat repeated magic as spamming */
+
+                if (magic_status >= 0)
+                        clif_send(buf, WBUFW(buf,2), &sd->bl, sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
 	}
 
 	// send back message to the speaker
@@ -7851,6 +7915,10 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd) {
 
 	if (abs(sd->bl.x - fitem->bl.x) >= 2 || abs(sd->bl.y - fitem->bl.y) >= 2)
 		return; // too far away to pick up
+
+        if (sd->state.shroud_active
+            && sd->state.shroud_disappears_on_pickup)
+            magic_unshroud(sd);
 
 	pc_takeitem(sd, fitem);
 }
@@ -8486,7 +8554,7 @@ void clif_parse_NpcSelectMenu(int fd,struct map_session_data *sd)
 	nullpo_retv(sd);
 
 	sd->npc_menu=RFIFOB(fd,6);
-	npc_scriptcont(sd,RFIFOL(fd,2));
+	map_scriptcont(sd,RFIFOL(fd,2));
 }
 
 /*==========================================
@@ -8495,7 +8563,7 @@ void clif_parse_NpcSelectMenu(int fd,struct map_session_data *sd)
  */
 void clif_parse_NpcNextClicked(int fd,struct map_session_data *sd)
 {
-	npc_scriptcont(sd,RFIFOL(fd,2));
+	map_scriptcont(sd,RFIFOL(fd,2));
 }
 
 /*==========================================
@@ -8512,7 +8580,7 @@ void clif_parse_NpcAmountInput(int fd,struct map_session_data *sd)
 
 #undef RFIFOL_
 
-	npc_scriptcont(sd,RFIFOL(fd,2));
+	map_scriptcont(sd,RFIFOL(fd,2));
 }
 
 /*==========================================
@@ -8529,7 +8597,7 @@ void clif_parse_NpcStringInput(int fd,struct map_session_data *sd)
 		sd->npc_str[sizeof(sd->npc_str)-1]=0;
 	} else
 		strcpy(sd->npc_str,RFIFOP(fd,8));
-	npc_scriptcont(sd,RFIFOL(fd,4));
+	map_scriptcont(sd,RFIFOL(fd,4));
 }
 
 /*==========================================
@@ -8538,7 +8606,7 @@ void clif_parse_NpcStringInput(int fd,struct map_session_data *sd)
  */
 void clif_parse_NpcCloseClicked(int fd,struct map_session_data *sd)
 {
-	npc_scriptcont(sd,RFIFOL(fd,2));
+	map_scriptcont(sd,RFIFOL(fd,2));
 }
 
 /*==========================================

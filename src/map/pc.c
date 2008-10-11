@@ -701,11 +701,14 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, struct mmo_chars
 	sd->inchealsptick = 0;
 	sd->hp_sub = 0;
 	sd->sp_sub = 0;
+        sd->quick_regeneration_hp.amount = 0;
+        sd->quick_regeneration_sp.amount = 0;
 	sd->inchealspirithptick = 0;
 	sd->inchealspiritsptick = 0;
 	sd->canact_tick = tick;
 	sd->canmove_tick = tick;
 	sd->attackabletime = tick;
+        sd->cast_tick = tick;
 
 	sd->doridori_counter = 0;
 
@@ -994,7 +997,8 @@ int pc_calc_skilltree(struct map_session_data *sd)
 		}
 	}
 
-	for(i=0;i<MAX_SKILL;i++){
+	for(i=0;i<MAX_SKILL;i++)
+            if (i < TMW_MAGIC || i > TMW_MAGIC_END){ // [Fate] This hack gets TMW magic working and persisted without bothering about the skill tree.
 		if (sd->status.skill[i].flag != 13) sd->status.skill[i].id=0;
 		if (sd->status.skill[i].flag && sd->status.skill[i].flag != 13){	// cardスキルなら、
 			sd->status.skill[i].lv=(sd->status.skill[i].flag==1)?0:sd->status.skill[i].flag-2;	// 本当のlvに
@@ -1014,6 +1018,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
 		for(i=355;i<MAX_SKILL;i++)
 			sd->status.skill[i].id=i;
 		}
+
 	}else{
 		// 通常の計算
 		do{
@@ -1049,7 +1054,9 @@ int pc_checkweighticon(struct map_session_data *sd)
 
 	nullpo_retr(0, sd);
 
-	if(sd->weight*2 >= sd->max_weight)
+
+	if(sd->weight*2 >= sd->max_weight
+            && sd->sc_data[SC_FLYING_BACKPACK].timer == -1)
 		flag=1;
 	if(sd->weight*10 >= sd->max_weight*9)
 		flag=2;
@@ -1067,6 +1074,16 @@ int pc_checkweighticon(struct map_session_data *sd)
 		skill_status_change_end(&sd->bl,SC_WEIGHT90,-1);
 	}
 	return 0;
+}
+
+
+void
+pc_set_weapon_look(struct map_session_data* sd)
+{
+        if (sd->attack_spell_override)
+                clif_changelook(&sd->bl, LOOK_WEAPON, sd->attack_spell_look_override);
+        else
+                clif_changelook(&sd->bl, LOOK_WEAPON, sd->status.weapon);
 }
 
 /*==========================================
@@ -1248,7 +1265,7 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 
 	if(!sd->disguiseflag && sd->disguise) {
 		sd->disguise=0;
-		clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
+                pc_set_weapon_look(sd);
 		clif_changelook(&sd->bl,LOOK_SHIELD,sd->status.shield);
 		clif_changelook(&sd->bl,LOOK_HEAD_BOTTOM,sd->status.head_bottom);
 		clif_changelook(&sd->bl,LOOK_HEAD_TOP,sd->status.head_top);
@@ -1776,6 +1793,15 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 			sd->sc_data[i=SC_SPEEDPOTION0].timer!=-1)	// 増 速ポーション
 			aspd_rate -= sd->sc_data[i].val2;
 
+                if (sd->sc_data[SC_HASTE].timer != -1)
+                    aspd_rate -= sd->sc_data[SC_HASTE].val1;
+
+
+                /* Slow down if protected */
+
+                if (sd->sc_data[SC_PHYS_SHIELD].timer != -1)
+                    aspd_rate += sd->sc_data[SC_PHYS_SHIELD].val1;
+
 		// HIT/FLEE変化系
 		if(sd->sc_data[SC_WHISTLE].timer!=-1){  // 口笛
 			sd->flee += sd->flee * (sd->sc_data[SC_WHISTLE].val1
@@ -1890,6 +1916,10 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		sd->aspd = sd->aspd*aspd_rate/100;
 	if(pc_isriding(sd))							// 騎兵修練
 		sd->aspd = sd->aspd*(100 + 10*(5 - pc_checkskill(sd,KN_CAVALIERMASTERY)))/ 100;
+
+        if (sd->attack_spell_override)
+                sd->aspd = sd->attack_spell_delay;
+
 	if(sd->aspd < battle_config.max_aspd) sd->aspd = battle_config.max_aspd;
 	sd->amotion = sd->aspd;
 	sd->dmotion = 800-sd->paramc[1]*4;
@@ -1921,7 +1951,7 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	if(b_class != sd->view_class) {
 		clif_changelook(&sd->bl,LOOK_BASE,sd->view_class);
 #if PACKETVER < 4
-		clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
+                pc_set_weapon_look(sd);
 		clif_changelook(&sd->bl,LOOK_SHIELD,sd->status.shield);
 #else
 		clif_changelook(&sd->bl,LOOK_WEAPON,0);
@@ -2824,6 +2854,47 @@ int pc_search_inventory(struct map_session_data *sd,int item_id)
 	}
 
 	return -1;
+}
+
+int
+pc_count_all_items(struct map_session_data *player, int item_id)
+{
+    int i;
+    int count = 0;
+
+    nullpo_retr(0, player);
+
+    for (i = 0; i < MAX_INVENTORY; i++) {
+        if (player->status.inventory[i].nameid == item_id)
+            count += player->status.inventory[i].amount;
+    }
+
+    return count;
+}
+
+int
+pc_remove_items(struct map_session_data *player, int item_id, int count)
+{
+    int i;
+
+    nullpo_retr(0, player);
+
+    for (i = 0; i < MAX_INVENTORY && count; i++) {
+        if (player->status.inventory[i].nameid == item_id) {
+            int to_delete = count;
+            /* only delete as much as we have */
+            if (to_delete > player->status.inventory[i].amount)
+                to_delete = player->status.inventory[i].amount;
+
+            count -= to_delete;
+
+            pc_delitem(player, i, to_delete, 0 /* means `really delete and update status' */);
+
+            if (!count)
+                return 0;
+        }
+    }
+    return 0;
 }
 
 /*==========================================
@@ -3830,6 +3901,15 @@ int pc_stop_walking(struct map_session_data *sd,int type)
 	return 0;
 }
 
+void
+pc_touch_all_relevant_npcs(struct map_session_data *sd)
+{
+	if(map_getcell(sd->bl.m,sd->bl.x,sd->bl.y)&0x80)
+		npc_touch_areanpc(sd,sd->bl.m,sd->bl.x,sd->bl.y);
+	else
+		sd->areanpc_id=0;
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -3878,10 +3958,7 @@ int pc_movepos(struct map_session_data *sd,int dst_x,int dst_y)
 
 	skill_unit_move(&sd->bl,gettick(),dist+7);	// スキルユニットの検査
 
-	if(map_getcell(sd->bl.m,sd->bl.x,sd->bl.y)&0x80)
-		npc_touch_areanpc(sd,sd->bl.m,sd->bl.x,sd->bl.y);
-	else
-		sd->areanpc_id=0;
+        pc_touch_all_relevant_npcs(sd);
 	return 0;
 }
 
@@ -4035,6 +4112,7 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 	short *opt;
 	int dist,skill,range;
 
+
 	sd=map_id2sd(id);
 	if(sd == NULL)
 		return 0;
@@ -4084,54 +4162,61 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 		}
 	}
 
-	dist = distance(sd->bl.x,sd->bl.y,bl->x,bl->y);
-	range = sd->attackrange;
-	if(sd->status.weapon != 11) range++;
-	if( dist > range ){	// 届 かないので移動
-		//if(pc_can_reach(sd,bl->x,bl->y))
-			//clif_movetoattack(sd,bl);
-		return 0;
-	}
-
 	if (sd->attackabletime > tick)
 		return 0; // cannot attack yet
 
-	if(dist <= range && !battle_check_range(&sd->bl,bl,range) ) {
-		if(pc_can_reach(sd,bl->x,bl->y) && sd->canmove_tick < tick && (sd->sc_data[SC_ANKLE].timer == -1 || sd->sc_data[SC_SPIDERWEB].timer == -1))
-			// TMW client doesn't support this
-			//pc_walktoxy(sd,bl->x,bl->y);
-			clif_movetoattack(sd, bl);
-		sd->attackabletime = tick + (sd->aspd<<1);
-	}
-	else {
-		if(battle_config.pc_attack_direction_change)
-			sd->dir=sd->head_dir=map_calc_dir(&sd->bl, bl->x,bl->y );	// 向き設定
+        if (sd->attack_spell_override // [Fate] If we have an active attack spell, use that
+            && spell_attack(id, sd->attacktarget)) {
+                // Return if the spell succeeded.  If the spell had disspiated, spell_attack() may fail.
+                sd->attackabletime = tick + sd->attack_spell_delay;
 
-		if(sd->walktimer != -1)
-			pc_stop_walking(sd,1);
+        } else {
+                dist = distance(sd->bl.x,sd->bl.y,bl->x,bl->y);
+                range = sd->attackrange;
+                if(sd->status.weapon != 11) range++;
+                if( dist > range ){	// 届 かないので移動
+                        //if(pc_can_reach(sd,bl->x,bl->y))
+			//clif_movetoattack(sd,bl);
+                        return 0;
+                }
 
-		if(sd->sc_data[SC_COMBO].timer == -1) {
-			map_freeblock_lock();
-			pc_stop_walking(sd,0);
-			sd->attacktarget_lv = battle_weapon_attack(&sd->bl,bl,tick,0);
-			if(!(battle_config.pc_cloak_check_type&2) && sd->sc_data[SC_CLOAKING].timer != -1)
-				skill_status_change_end(&sd->bl,SC_CLOAKING,-1);
-			if(sd->status.pet_id > 0 && sd->pd && sd->petDB && battle_config.pet_attack_support)
-				pet_target_check(sd,bl,0);
-			map_freeblock_unlock();
-			if(sd->skilltimer != -1 && (skill = pc_checkskill(sd,SA_FREECAST)) > 0 ) // フリーキャスト
-				sd->attackabletime = tick + ((sd->aspd<<1)*(150 - skill*5)/100);
-			else
-				sd->attackabletime = tick + (sd->aspd<<1);
-		}
-		else if(sd->attackabletime <= tick) {
-			if(sd->skilltimer != -1 && (skill = pc_checkskill(sd,SA_FREECAST)) > 0 ) // フリーキャスト
-				sd->attackabletime = tick + ((sd->aspd<<1)*(150 - skill*5)/100);
-			else
-				sd->attackabletime = tick + (sd->aspd<<1);
-		}
-		if(sd->attackabletime <= tick) sd->attackabletime = tick + (battle_config.max_aspd<<1);
-	}
+                if(dist <= range && !battle_check_range(&sd->bl,bl,range) ) {
+                        if(pc_can_reach(sd,bl->x,bl->y) && sd->canmove_tick < tick && (sd->sc_data[SC_ANKLE].timer == -1 || sd->sc_data[SC_SPIDERWEB].timer == -1))
+                                // TMW client doesn't support this
+                                //pc_walktoxy(sd,bl->x,bl->y);
+                                clif_movetoattack(sd, bl);
+                        sd->attackabletime = tick + (sd->aspd<<1);
+                }
+                else {
+                        if(battle_config.pc_attack_direction_change)
+                                sd->dir=sd->head_dir=map_calc_dir(&sd->bl, bl->x,bl->y );	// 向き設定
+
+                        if(sd->walktimer != -1)
+                                pc_stop_walking(sd,1);
+
+                        if(sd->sc_data[SC_COMBO].timer == -1) {
+                                map_freeblock_lock();
+                                pc_stop_walking(sd,0);
+                                sd->attacktarget_lv = battle_weapon_attack(&sd->bl,bl,tick,0);
+                                if(!(battle_config.pc_cloak_check_type&2) && sd->sc_data[SC_CLOAKING].timer != -1)
+                                        skill_status_change_end(&sd->bl,SC_CLOAKING,-1);
+                                if(sd->status.pet_id > 0 && sd->pd && sd->petDB && battle_config.pet_attack_support)
+                                        pet_target_check(sd,bl,0);
+                                map_freeblock_unlock();
+                                if(sd->skilltimer != -1 && (skill = pc_checkskill(sd,SA_FREECAST)) > 0 ) // フリーキャスト
+                                        sd->attackabletime = tick + ((sd->aspd<<1)*(150 - skill*5)/100);
+                                else
+                                        sd->attackabletime = tick + (sd->aspd<<1);
+                        }
+                        else if(sd->attackabletime <= tick) {
+                                if(sd->skilltimer != -1 && (skill = pc_checkskill(sd,SA_FREECAST)) > 0 ) // フリーキャスト
+                                        sd->attackabletime = tick + ((sd->aspd<<1)*(150 - skill*5)/100);
+                                else
+                                        sd->attackabletime = tick + (sd->aspd<<1);
+                        }
+                        if(sd->attackabletime <= tick) sd->attackabletime = tick + (battle_config.max_aspd<<1);
+                }
+        }
 
 	if(sd->state.attack_continue) {
 		sd->attacktimer=add_timer(sd->attackabletime,pc_attack_timer,sd->bl.id,0);
@@ -4658,7 +4743,8 @@ int pc_skillup(struct map_session_data *sd,int skill_num)
 
 	if( sd->status.skill_point>0 &&
 		sd->status.skill[skill_num].id!=0 &&
-		sd->status.skill[skill_num].lv < skill_get_max(skill_num) )
+		sd->status.skill[skill_num].lv < skill_get_max(skill_num)
+            && (skill_num < TMW_MAGIC || skill_num > TMW_MAGIC_END)) // [Fate] Hack: Prevent exploit for raising magic levels
 	{
 		sd->status.skill[skill_num].lv++;
 		sd->status.skill_point--;
@@ -4967,6 +5053,9 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 	skill_status_change_clear(&sd->bl,0);	// ステータス異常を解除する
 	clif_updatestatus(sd,SP_HP);
 	pc_calcstatus(sd,0);
+        // [Fate] Reset magic
+        sd->cast_tick = gettick();
+        magic_stop_completely(sd);
 
 	for(i=0;i<5;i++)
 		if(sd->dev.val1[i]){
@@ -5365,7 +5454,71 @@ int pc_heal(struct map_session_data *sd,int hp,int sp)
  * HP/SP回復
  *------------------------------------------
  */
+static int pc_itemheal_effect(struct map_session_data *sd,int hp,int sp);
+
+static int // Compute how quickly we regenerate (less is faster) for that amount
+pc_heal_quick_speed(int amount)
+{
+        if (amount >= 200) {
+                if (amount >= 500)
+                        return 0;
+                if (amount >= 350)
+                        return 1;
+                return 2;
+        } else { // < 200
+                if (amount >= 100)
+                        return 3;
+                if (amount >= 50)
+                        return 4;
+                return 5;
+        }
+}
+
+static void
+pc_heal_quick_accumulate(int new_amount, struct quick_regeneration *quick_regen, int max)
+{
+        int current_amount = quick_regen->amount;
+        int current_speed = quick_regen->speed;
+        int new_speed = pc_heal_quick_speed(new_amount);
+
+        int average_speed = ((new_speed * new_amount) + (current_speed * current_amount)) / (current_amount + new_amount); // new_amount > 0, current_amount >= 0
+
+        quick_regen->speed = average_speed;
+        quick_regen->amount = MIN(current_amount + new_amount, max);
+
+        quick_regen->tickdelay = MIN(quick_regen->speed, quick_regen->tickdelay);
+}
+
 int pc_itemheal(struct map_session_data *sd,int hp,int sp)
+{
+        /* defer healing */
+        if (hp > 0) {
+                pc_heal_quick_accumulate(hp,
+                                         &sd->quick_regeneration_hp,
+                                         sd->status.max_hp - sd->status.hp);
+                        
+                hp = 0;
+        }
+        if (sp > 0) {
+                pc_heal_quick_accumulate(sp,
+                                         &sd->quick_regeneration_sp,
+                                         sd->status.max_sp - sd->status.sp);
+
+                sp = 0;
+        }
+
+        /* Hurt right away, if necessary */
+        if (hp < 0 || sp < 0)
+                pc_itemheal_effect(sd, hp, sp);
+
+        return 0;
+}
+
+
+/* pc_itemheal_effect is invoked once every 0.5s whenever the pc
+ * has health recovery queued up (cf. pc_natural_heal_sub).
+ */
+static int pc_itemheal_effect(struct map_session_data *sd,int hp,int sp)
 {
 	int bonus;
 //	if(battle_config.battle_log)
@@ -5578,7 +5731,7 @@ int pc_equiplookall(struct map_session_data *sd)
 	nullpo_retr(0, sd);
 
 #if PACKETVER < 4
-	clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
+        pc_set_weapon_look(sd);
 	clif_changelook(&sd->bl,LOOK_SHIELD,sd->status.shield);
 #else
 	clif_changelook(&sd->bl,LOOK_WEAPON,0);
@@ -6191,8 +6344,11 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 		clif_arrowequip(sd,n);
 		clif_arrow_fail(sd,3);	// 3=矢が装備できました
 	}
-	else
-		clif_equipitemack(sd,n,pos,1);
+	else {
+                /* Don't update re-equipping if we're using a spell */
+                if (!(pos == 4 && sd->attack_spell_override))
+                        clif_equipitemack(sd,n,pos,1);
+        }
 
 	for(i=0;i<11;i++) {
 		if(pos & equip_pos[i])
@@ -6206,7 +6362,7 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 		else
 			sd->weapontype1 = 0;
 		pc_calcweapontype(sd);
-		clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
+                pc_set_weapon_look(sd);
 	}
 	if(sd->status.inventory[n].equip & 0x0020) {
 		if(sd->inventory_data[n]) {
@@ -6302,7 +6458,7 @@ int pc_unequipitem(struct map_session_data *sd,int n,int type)
 			sd->weapontype1 = 0;
 			sd->status.weapon = sd->weapontype2;
 			pc_calcweapontype(sd);
-			clif_changelook(&sd->bl,LOOK_WEAPON,sd->status.weapon);
+                        pc_set_weapon_look(sd);
 		}
 		if(sd->status.inventory[n].equip & 0x0020) {
 			sd->status.shield = sd->weapontype2 = 0;
@@ -6821,6 +6977,7 @@ static int pc_natural_heal_sp(struct map_session_data *sd)
 static int pc_spirit_heal_hp(struct map_session_data *sd,int level)
 {
 	int bonus_hp,interval = battle_config.natural_heal_skill_interval;
+	struct status_change *sc_data = battle_get_sc_data(&sd->bl);
 
 	nullpo_retr(0, sd);
 
@@ -6831,7 +6988,8 @@ static int pc_spirit_heal_hp(struct map_session_data *sd,int level)
 
 	sd->inchealspirithptick += natural_heal_diff_tick;
 
-	if(sd->weight*100/sd->max_weight >= battle_config.natural_heal_weight_rate)
+	if(sd->weight*100/sd->max_weight >= battle_config.natural_heal_weight_rate
+           && sc_data[SC_FLYING_BACKPACK].timer == -1)
 		interval += interval;
 
 	if(sd->inchealspirithptick >= interval) {
@@ -6872,7 +7030,7 @@ static int pc_spirit_heal_sp(struct map_session_data *sd,int level)
 	sd->inchealspiritsptick += natural_heal_diff_tick;
 
 	if(sd->weight*100/sd->max_weight >= battle_config.natural_heal_weight_rate)
-		interval += interval;
+            interval += interval;
 
 	if(sd->inchealspiritsptick >= interval) {
 		bonus_sp = sd->nsshealsp;
@@ -6903,17 +7061,49 @@ static int pc_spirit_heal_sp(struct map_session_data *sd,int level)
  * HP/SP 自然回復 各クライアント
  *------------------------------------------
  */
+static int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp);
+
+static int
+pc_quickregenerate_effect(struct quick_regeneration *quick_regen, int heal_speed)
+{
+        if (!(quick_regen->tickdelay--)) {
+                int bonus = MIN(heal_speed * battle_config.itemheal_regeneration_factor,
+                                quick_regen->amount);
+
+                quick_regen->amount -= bonus;
+
+                quick_regen->tickdelay = quick_regen->speed;
+
+                return bonus;
+        }
+
+        return 0;
+}
 
 static int pc_natural_heal_sub(struct map_session_data *sd,va_list ap) {
 	int skill;
 
 	nullpo_retr(0, sd);
 
+        if (sd->sc_data[SC_HALT_REGENERATE].timer != -1)
+            return 0;
+
+        if (sd->quick_regeneration_hp.amount || sd->quick_regeneration_sp.amount) {
+                int hp_bonus = pc_quickregenerate_effect(&sd->quick_regeneration_hp, sd->nhealhp);
+                int sp_bonus = pc_quickregenerate_effect(&sd->quick_regeneration_sp, sd->nhealsp);
+
+                pc_itemheal_effect(sd,
+                                   hp_bonus,
+                                   sp_bonus);
+        }
+
 // -- moonsoul (if conditions below altered to disallow natural healing if under berserk status)
-	if ((battle_config.natural_heal_weight_rate > 100 || sd->weight*100/sd->max_weight < battle_config.natural_heal_weight_rate) &&
-		!pc_isdead(sd) && 
-		!pc_ishiding(sd) && 
-		sd->sc_data[SC_POISON].timer == -1
+	if ((sd->sc_data[SC_FLYING_BACKPACK].timer != -1
+             || battle_config.natural_heal_weight_rate > 100
+             || sd->weight*100/sd->max_weight < battle_config.natural_heal_weight_rate) &&
+            !pc_isdead(sd) && 
+            !pc_ishiding(sd) && 
+            sd->sc_data[SC_POISON].timer == -1
 	  ) {
 		pc_natural_heal_hp(sd);
 		if( sd->sc_data && sd->sc_data[SC_EXTREMITYFIST].timer == -1 &&	//阿修羅状態ではSPが回復しない
@@ -7513,4 +7703,10 @@ int do_init_pc(void) {
 	}
 
 	return 0;
+}
+
+void
+pc_cleanup(struct map_session_data *sd)
+{
+        magic_stop_completely(sd);
 }

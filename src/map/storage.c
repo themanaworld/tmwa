@@ -234,7 +234,7 @@ int storage_storageget(struct map_session_data *sd,int index,int amount)
 				if((flag = pc_additem(sd,&stor->storage[index],amount)) == 0)
 					storage_delitem(sd,stor,index,amount);
 				else
-					clif_additem(sd,0,0,flag);
+                                        clif_additem(sd,0,0,flag);
 			} // valid amount
 		}// valid index
 	}// storage open

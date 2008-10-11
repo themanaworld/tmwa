@@ -342,6 +342,8 @@ extern struct Battle_Config {
 	int mail_system; // [Valaris]
 #endif
 
+        int itemheal_regeneration_factor; // [Fate] itemheal speed factor
+
 } battle_config;
 
 int battle_config_read(const char *cfgName);

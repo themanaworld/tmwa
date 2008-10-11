@@ -169,7 +169,7 @@ void trade_tradecancel(struct map_session_data *sd)
 	if((target_sd = map_id2sd(sd->trade_partner)) != NULL){
 		for(trade_i=0; trade_i<10;trade_i++) { //give items back (only virtual)
 			if(sd->deal_item_amount[trade_i] != 0) {
-				clif_additem(sd,sd->deal_item_index[trade_i]-2,sd->deal_item_amount[trade_i],0);
+                                clif_additem(sd,sd->deal_item_index[trade_i]-2,sd->deal_item_amount[trade_i],0);
 				sd->deal_item_index[trade_i] =0;
 				sd->deal_item_amount[trade_i]=0;
 			}

@@ -717,7 +717,7 @@ int npc_event(struct map_session_data *sd,const char *eventname,int mob_kill)
 		npc_event_dequeue(sd);
 		return 0;
 	}
-	
+
 	sd->npc_id=nd->bl.id;
 	sd->npc_pos=run_script(nd->u.scr.script,ev->pos,sd->bl.id,nd->bl.id);
 	return 0;
@@ -773,6 +773,7 @@ int npc_touch_areanpc(struct map_session_data *sd,int m,int x,int y)
 			xs=map[m].npc[i]->u.warp.xs;
 			ys=map[m].npc[i]->u.warp.ys;
 			break;
+		case MESSAGE:
 		case SCRIPT:
 			xs=map[m].npc[i]->u.scr.xs;
 			ys=map[m].npc[i]->u.scr.ys;
@@ -796,6 +797,7 @@ int npc_touch_areanpc(struct map_session_data *sd,int m,int x,int y)
 		skill_stop_dancing(&sd->bl,0);
 		pc_setpos(sd,map[m].npc[i]->u.warp.name,map[m].npc[i]->u.warp.x,map[m].npc[i]->u.warp.y,0);
 		break;
+	case MESSAGE:
 	case SCRIPT:
 		{
 			char *name=(char *)aCalloc(50,sizeof(char));
@@ -875,6 +877,10 @@ int npc_click(struct map_session_data *sd,int id)
 	case SCRIPT:
 		sd->npc_pos=run_script(nd->u.scr.script,0,sd->bl.id,id);
 		break;
+        case MESSAGE:
+                if (nd->u.message)
+                    clif_scriptmes(sd, id, nd->u.message);
+                break;
 	}
 
 	return 0;
@@ -896,6 +902,12 @@ int npc_scriptcont(struct map_session_data *sd,int id)
 		return 1;
 
 	nd=(struct npc_data *)map_id2bl(id);
+
+        if (!nd /* NPC was disposed? */ || nd->bl.subtype == MESSAGE) {
+            clif_scriptclose(sd, id);
+            npc_event_dequeue(sd);
+            return 0;
+        }
 
 	sd->npc_pos=run_script(nd->u.scr.script,sd->npc_pos,sd->bl.id,id);
 
@@ -1591,7 +1603,6 @@ static int npc_parse_script(char *w1,char *w2,char *w3,char *w4,char *first_line
 	nd->u.scr.nexttimer=-1;
 	nd->u.scr.timerid=-1;
 
-	
 	return 0;
 }
 
@@ -1889,6 +1900,88 @@ static int npcname_db_final(void *key,void *data,va_list ap)
 {
 	return 0;
 }
+
+struct npc_data *
+npc_spawn_text(int m, int x, int y,
+               int class,
+               char *name,
+               char *message)
+{
+    struct npc_data *retval = (struct npc_data *)aCalloc(1, sizeof(struct npc_data));
+    retval->bl.id = npc_get_new_npc_id();
+    retval->bl.x = x;
+    retval->bl.y = y;
+    retval->bl.m = m;
+    retval->bl.type = BL_NPC;
+    retval->bl.subtype = MESSAGE;
+
+    strncpy(retval->name, name, 23);
+    strncpy(retval->exname, name, 23);
+    retval->name[15] = 0;
+    retval->exname[15] = 0;
+    retval->u.message = message? strdup(message) : NULL;
+
+    retval->class = class;
+    retval->speed = 200;
+
+    clif_spawnnpc(retval);
+    map_addblock(&retval->bl);
+    map_addiddb(&retval->bl);
+    if (retval->name && retval->name[0])
+        strdb_insert(npcname_db, retval->name, retval);
+
+    return retval;
+}
+
+static void
+npc_free_internal(struct npc_data *nd)
+{
+    struct chat_data *cd;
+
+    if(nd->chat_id && (cd=(struct chat_data*)map_id2bl(nd->chat_id))) {
+        free(cd);
+        cd = NULL;
+    }
+    if(nd->bl.subtype == SCRIPT) {
+        if(nd->u.scr.timer_event)
+            free(nd->u.scr.timer_event);
+        if(nd->u.scr.src_id==0){
+            if(nd->u.scr.script){
+                free(nd->u.scr.script);
+                nd->u.scr.script=NULL;
+            }
+            if(nd->u.scr.label_list){
+                free(nd->u.scr.label_list);
+                nd->u.scr.label_list = NULL;
+            }
+        }
+    } else if (nd->bl.subtype == MESSAGE
+               && nd->u.message) {
+        free(nd->u.message);
+    }
+    free(nd);
+}
+
+void
+npc_propagate_update(struct npc_data *nd)
+{
+    map_foreachinarea(npc_enable_sub,
+                      nd->bl.m,
+                      nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
+                      nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys,
+                      BL_PC, nd);
+}
+
+void
+npc_free(struct npc_data *nd)
+{
+    clif_clearchar(&nd->bl, 0);
+    npc_propagate_update(nd);
+    map_deliddb(&nd->bl);
+    map_delblock(&nd->bl);
+    npc_free_internal(nd);
+}
+
 /*==========================================
  * èIóπ
  *------------------------------------------
@@ -1899,7 +1992,6 @@ int do_final_npc(void)
 	struct block_list *bl;
 	struct npc_data *nd;
 	struct mob_data *md;
-	struct chat_data *cd;
 	struct pet_data *pd;
 
 	if(ev_db)
@@ -1909,28 +2001,9 @@ int do_final_npc(void)
 
 	for(i=START_NPC_NUM;i<npc_id;i++){
 		if((bl=map_id2bl(i))){
-			if(bl->type == BL_NPC && (nd = (struct npc_data *)bl)){
-				if(nd->chat_id && (cd=(struct chat_data*)map_id2bl(nd->chat_id))){
-					free(cd);
-					cd = NULL;
-				}
-				if(nd->bl.subtype == SCRIPT){
-					if(nd->u.scr.timer_event)
-						free(nd->u.scr.timer_event);
-				 	if(nd->u.scr.src_id==0){
-						if(nd->u.scr.script){
-							free(nd->u.scr.script);
-							nd->u.scr.script=NULL;
-						}
-						if(nd->u.scr.label_list){
-							free(nd->u.scr.label_list);
-							nd->u.scr.label_list = NULL;
-						}
-					}
-				}
-				free(nd);
-				nd = NULL;
-			}else if(bl->type == BL_MOB && (md = (struct mob_data *)bl)){
+			if(bl->type == BL_NPC && (nd = (struct npc_data *)bl))
+                            npc_free_internal(nd);
+                        else if(bl->type == BL_MOB && (md = (struct mob_data *)bl)){
 				if(md->lootitem){
 					free(md->lootitem);
 					md->lootitem = NULL;

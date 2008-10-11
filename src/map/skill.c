@@ -9,6 +9,7 @@
 #include "timer.h"
 #include "nullpo.h"
 #include "malloc.h"
+#include "magic.h"
 
 #include "skill.h"
 #include "map.h"
@@ -3519,7 +3520,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			}
 			eflag = pc_additem(sd,&item_tmp,1);
 			if(eflag) {
-				clif_additem(sd,0,0,eflag);
+                                clif_additem(sd,0,0,eflag);
 				map_addflooritem(&item_tmp,1,sd->bl.m,sd->bl.x,sd->bl.y,NULL,NULL,NULL,0);
 			}
 		}
@@ -7708,6 +7709,8 @@ int skill_status_change_end(struct block_list* bl, int type, int tid)
 			case SC_MATKPOT:		/* magic attack potion [Valaris] */
 			case SC_WEDDING:	//結婚用(結婚衣裳になって歩くのが遅いとか)
 			case SC_MELTDOWN:		/* メルトダウン */
+                        case SC_PHYS_SHIELD:
+                        case SC_HASTE:
 				calc_flag = 1;
 				break;
 			case SC_BERSERK:			/* バーサーク */
@@ -7912,6 +7915,11 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 		if(battle_config.error_log)
 			printf("skill_status_change_timer %d != %d\n",tid,sc_data[type].timer);
 	}
+
+        if (sc_data[type].spell_invocation) { // Must report termination
+                spell_effect_report_termination(sc_data[type].spell_invocation, bl->id, type, 0);
+                sc_data[type].spell_invocation = 0;
+        }
 
 	switch(type){	/* 特殊な処理になる場合 */
 	case SC_MAXIMIZEPOWER:	/* マキシマイズパワー */
@@ -8229,6 +8237,11 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 				return 0;
 		}
 		break;
+
+        case SC_FLYING_BACKPACK:
+            clif_updatestatus(sd, SP_WEIGHT);
+            break;
+
 	}
 
 	return skill_status_change_end( bl,type,tid );
@@ -8265,6 +8278,12 @@ int skill_encchant_eremental_end(struct block_list *bl,int type)
  *------------------------------------------
  */
 int skill_status_change_start(struct block_list *bl, int type, int val1, int val2, int val3, int val4, int tick, int flag) 
+{
+        skill_status_effect(bl, type, val1, val2, val3, val4, tick, flag, 0);
+}
+
+
+int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int val3, int val4, int tick, int flag, int spell_invocation) 
 {
 	struct map_session_data *sd = NULL;
 	struct status_change* sc_data;
@@ -8663,7 +8682,7 @@ int skill_status_change_start(struct block_list *bl, int type, int val1, int val
 		case SC_SPEEDPOTION2:
 			calc_flag = 1;
 			tick = 1000 * tick;
-			val2 = 5*(2+type-SC_SPEEDPOTION0);
+//			val2 = 5*(2+type-SC_SPEEDPOTION0);
 			break;
 
 		/* atk & matk potions [Valaris] */
@@ -8921,8 +8940,16 @@ int skill_status_change_start(struct block_list *bl, int type, int val1, int val
 					val4 = (int)sg;
 			}
 			break;
+                case SC_HASTE:
+                        calc_flag = 1;
 		case SC_SPLASHER:		/* ベナムスプラッシャー */
+                case SC_PHYS_SHIELD:
+                case SC_MBARRIER:
+                case SC_HALT_REGENERATE:
 			break;
+                case SC_FLYING_BACKPACK:
+                        updateflag = SP_WEIGHT;
+                        break;
 		default:
 			if(battle_config.error_log)
 				printf("UnknownStatusChange [%d]\n", type);
@@ -9000,7 +9027,13 @@ int skill_status_change_start(struct block_list *bl, int type, int val1, int val
 	sc_data[type].val2 = val2;
 	sc_data[type].val3 = val3;
 	sc_data[type].val4 = val4;
+        if (sc_data[type].spell_invocation) // Supplant by newer spell
+                spell_effect_report_termination(sc_data[type].spell_invocation, bl->id, type, 1);
+
+        sc_data[type].spell_invocation = spell_invocation;
+
 	/* タイマー設定 */
+
 	sc_data[type].timer = add_timer(
 		gettick() + tick, skill_status_change_timer, bl->id, type);
 

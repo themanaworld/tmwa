@@ -249,6 +249,8 @@ int buildin_marriage(struct script_state *st);
 int buildin_wedding_effect(struct script_state *st);
 int buildin_divorce(struct script_state *st);
 int buildin_getitemname(struct script_state *st);
+int buildin_getspellinvocation(struct script_state *st); // [Fate]
+int buildin_getanchorinvocation(struct script_state *st); // [Fate]
 int buildin_makepet(struct script_state *st);
 int buildin_getexp(struct script_state *st);
 int buildin_getinventorylist(struct script_state *st);
@@ -283,6 +285,7 @@ int buildin_npctalk(struct script_state *st); // [Valaris]
 int buildin_hasitems(struct script_state *st); // [Valaris]
 int buildin_getlook(struct script_state *st);	//Lorky [Lupus]
 int buildin_getsavepoint(struct script_state *st);	//Lorky [Lupus]
+int buildin_getpartnerid(struct script_state *st); // [Fate]
 
 
 void push_val(struct script_stack *stack,int type,int val);
@@ -455,6 +458,9 @@ struct {
 	{buildin_wedding_effect,"wedding",""},
 	{buildin_divorce,"divorce",""},
 	{buildin_getitemname,"getitemname","i"},
+	{buildin_getspellinvocation,"getspellinvocation","s"},
+	{buildin_getanchorinvocation,"getanchorinvocation","s"},
+	{buildin_getpartnerid,"getpartnerid2","i"},
 	{buildin_makepet,"makepet","i"},
 	{buildin_getexp,"getexp","ii"},
 	{buildin_getinventorylist,"getinventorylist",""},
@@ -2301,7 +2307,7 @@ int buildin_getitem(struct script_state *st)
 		if(sd == NULL) //アイテムを渡す相手がいなかったらお帰り
 			return 0;
 		if((flag = pc_additem(sd,&item_tmp,amount))) {
-			clif_additem(sd,0,0,flag);
+                        clif_additem(sd,0,0,flag);
 			map_addflooritem(&item_tmp,amount,sd->bl.m,sd->bl.x,sd->bl.y,NULL,NULL,NULL,0);
 		}
 	}
@@ -5257,6 +5263,8 @@ int buildin_marriage(struct script_state *st)
 	struct map_session_data *sd=script_rid2sd(st);
 	struct map_session_data *p_sd=map_nick2sd(partner);
 
+        fprintf(stderr, "0=%p (%d,%d), 1=%p (%d,%d)\n", sd, sd->bl.id, sd->status.partner_id,
+                p_sd, p_sd->bl.id, p_sd->status.partner_id);
 	if(sd==NULL || p_sd==NULL || pc_marriage(sd,p_sd) < 0){
 		push_val(st->stack,C_INT,0);
 		return 0;
@@ -5390,6 +5398,46 @@ int buildin_getitemname(struct script_state *st)
 	push_str(st->stack,C_STR,item_name);
 	return 0;
 }
+
+
+int buildin_getspellinvocation(struct script_state *st)
+{
+        char *name;
+	char *invocation;
+
+	name = conv_str(st,& (st->stack->stack_data[st->start+2]));
+
+        invocation = magic_find_invocation(name);
+        if (!invocation)
+                invocation = "...";
+
+	push_str(st->stack, C_STR, strdup(invocation));
+	return 0;
+}
+
+int buildin_getanchorinvocation(struct script_state *st)
+{
+        char *name;
+	char *invocation;
+
+	name = conv_str(st,& (st->stack->stack_data[st->start+2]));
+
+        invocation = magic_find_anchor_invocation(name);
+        if (!invocation)
+                invocation = "...";
+
+	push_str(st->stack, C_STR, strdup(invocation));
+	return 0;
+}
+
+int buildin_getpartnerid(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+
+	push_val(st->stack, C_INT, sd->status.partner_id);
+	return 0;
+}
+
 
 /*==========================================
  * petskillbonus [Valaris]
@@ -6414,10 +6462,16 @@ int run_script_main(unsigned char *script,int pos,int rid,int oid,struct script_
  */
 int run_script(unsigned char *script,int pos,int rid,int oid)
 {
+        run_script_l(script, pos, rid, oid, 0, NULL);
+}
+
+int run_script_l(unsigned char *script,int pos,int rid,int oid, int args_nr, argrec_t *args)
+{
 	struct script_stack stack;
 	struct script_state st;
 	struct map_session_data *sd=map_id2sd(rid);
 	unsigned char *rootscript=script;
+        int i;
 
 	if(script==NULL || pos<0)
 		return -1;
@@ -6441,6 +6495,12 @@ int run_script(unsigned char *script,int pos,int rid,int oid)
 	st.pos=pos;
 	st.rid=rid;
 	st.oid=oid;
+        for (i = 0; i < args_nr; i++) {
+                if (args[i].name[strlen(args[i].name) - 1] == '$')
+                        pc_setregstr(sd, add_str(args[i].name), args[i].v.s);
+                else
+                        pc_setreg(sd, add_str(args[i].name), args[i].v.i);
+        }
 	run_script_main(script,pos,rid,oid,&st,rootscript);
 
 	free(stack.stack_data);

@@ -208,6 +208,8 @@ enum AtCommandType {
 	// SQL-only commands end
 #endif
 	
+        AtCommand_SetMagic,
+        AtCommand_MagicInfo,
 	// end
 	AtCommand_Unknown,
 	AtCommand_MAX

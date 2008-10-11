@@ -5,6 +5,13 @@
 #include <stdarg.h>
 #include "mmo.h"
 
+#ifndef MAX
+#  define MAX(x,y) (((x)>(y)) ? (x) : (y))
+#endif
+#ifndef MIN
+#  define MIN(x,y) (((x)<(y)) ? (x) : (y))
+#endif
+
 #define MAX_PC_CLASS (1+6+6+1+6+1+1+1+1+4023)
 #define PC_CLASS_BASE 0
 #define PC_CLASS_BASE2 (PC_CLASS_BASE + 4001)
@@ -36,8 +43,8 @@
 
 #define OPTION_HIDE 0x40
 
-enum { BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL , BL_PET };
-enum { WARP, SHOP, SCRIPT, MONS };
+enum { BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL, BL_PET, BL_SPELL };
+enum { WARP, SHOP, SCRIPT, MONS, MESSAGE };
 struct block_list {
 	struct block_list *next,*prev;
 	int id;
@@ -61,12 +68,15 @@ struct script_regstr {
 struct status_change {
 	int timer;
 	int val1,val2,val3,val4;
+        int spell_invocation; /* [Fate] If triggered by a spell, record here */
 };
 struct vending {
 	short index;
 	short amount;
 	int value;
 };
+
+struct invocation;
 
 struct skill_unit_group;
 struct skill_unit {
@@ -115,26 +125,36 @@ struct pet_db;
 struct item_data;
 struct square;
 
+struct quick_regeneration { // [Fate]
+        int amount; // Amount of HP/SP left to regenerate
+        unsigned char speed; // less is faster (number of half-second ticks to wait between updates)
+        unsigned char tickdelay; // number of ticks to next update
+};
+
 struct map_session_data {
 	struct block_list bl;
 	struct {
-		unsigned auth : 1;
-		unsigned change_walk_target : 1;
-		unsigned attack_continue : 1;
-		unsigned menu_or_input : 1;
-		unsigned dead_sit : 2;
-		unsigned skillcastcancel : 1;
-		unsigned waitingdisconnect : 1;
-		unsigned lr_flag : 2;
-		unsigned connect_new : 1;
-		unsigned arrow_atk : 1;
-		unsigned attack_type : 3;
-		unsigned skill_flag : 1;
-		unsigned gangsterparadise : 1;
-		unsigned produce_flag : 1;
-		unsigned make_arrow_flag : 1;
-		unsigned potionpitcher_flag : 1;
-		unsigned storage_flag : 1;
+            unsigned auth : 1;
+            unsigned change_walk_target : 1;
+            unsigned attack_continue : 1;
+            unsigned menu_or_input : 1;
+            unsigned dead_sit : 2;
+            unsigned skillcastcancel : 1;
+            unsigned waitingdisconnect : 1;
+            unsigned lr_flag : 2;
+            unsigned connect_new : 1;
+            unsigned arrow_atk : 1;
+            unsigned attack_type : 3;
+            unsigned skill_flag : 1;
+            unsigned gangsterparadise : 1;
+            unsigned produce_flag : 1;
+            unsigned make_arrow_flag : 1;
+            unsigned potionpitcher_flag : 1;
+            unsigned storage_flag : 1;
+            unsigned shroud_active : 1;
+            unsigned shroud_hides_name_talking : 1;
+            unsigned shroud_disappears_on_pickup : 1;
+            unsigned shroud_disappears_on_talk : 1;
 	} state;
 	struct {
 		unsigned killer : 1;
@@ -185,6 +205,16 @@ struct map_session_data {
         int followtimer; // [MouseJstr]
         int followtarget;
 
+        int cast_tick; // [Fate] Next tick at which spellcasting is allowed
+        struct invocation *active_spells; // [Fate] Singly-linked list of active spells linked to this PC
+        int attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
+                                   // like a weapon.  Check pc_attack_timer() for details.
+        short attack_spell_icon_override; // Weapon equipment slot (slot 4) item override
+        short attack_spell_look_override; // Weapon `look' (attack animation) override
+        short attack_spell_charges; // [Fate] Remaining number of charges for the attack spell
+        short attack_spell_delay;   // [Fate] ms delay after spell attack
+        short attack_spell_range;   // [Fate] spell range
+
 	short attackrange,attackrange_;
 	int skilltimer;
 	int skilltarget;
@@ -198,6 +228,9 @@ struct map_session_data {
 	struct skill_timerskill skilltimerskill[MAX_SKILLTIMERSKILL];
 	int cloneskill_id,cloneskill_lv;
 	int potion_hp,potion_sp,potion_per_hp,potion_per_sp;
+
+        // [Fate] Used for gradual healing; amount of enqueued regeneration
+        struct quick_regeneration quick_regeneration_hp, quick_regeneration_sp;
 
 	int invincible_timer;
 	unsigned int canact_tick;
@@ -358,6 +391,7 @@ struct npc_data {
 			short x,y;
 			char name[16];
 		} warp;
+                char *message; // for MESSAGE: only send this message
 	} u;
 	// ‚±‚±‚Éƒƒ“ƒo‚ð’Ç‰Á‚µ‚Ä‚Í‚È‚ç‚È‚¢(shop_item‚ª‰Â•Ï’·‚Ìˆ×)
 
@@ -365,6 +399,12 @@ struct npc_data {
 	int eventtimer[MAX_EVENTTIMER];
 	short arenaflag;
 };
+
+#define MOB_MODE_SUMMONED			0x1000
+#define MOB_MODE_TURNS_AGAINST_BAD_MASTER	0x2000
+
+#define MOB_SENSIBLE_MASK 0xf000	// fate: mob mode flags that I actually understand
+
 struct mob_data {
 	struct block_list bl;
 	short n;
@@ -650,6 +690,7 @@ void map_addiddb(struct block_list *);
 void map_deliddb(struct block_list *bl);
 int map_foreachiddb(int (*)(void*,void*,va_list),...);
 void map_addnickdb(struct map_session_data *);
+int map_scriptcont(struct map_session_data *sd,int id); /* Continues a script either on a spell or on an NPC */
 struct map_session_data * map_nick2sd(char*);
 
 // gatŠÖ˜A

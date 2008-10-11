@@ -210,6 +210,8 @@ ATCOMMAND_FUNC(adjgmlvl); // by MouseJstr
 ATCOMMAND_FUNC(adjcmdlvl); // by MouseJstr
 ATCOMMAND_FUNC(trade); // by MouseJstr
 ATCOMMAND_FUNC(unmute); // [Valaris]
+ATCOMMAND_FUNC(set_magic);
+ATCOMMAND_FUNC(magic_info);
 
 #ifndef TXT_ONLY
 ATCOMMAND_FUNC(checkmail); // [Valaris]
@@ -454,6 +456,8 @@ static AtCommandInfo atcommand_info[] = {
 	{ AtCommand_AdjCmdLvl,      "@adjcmdlvl", 99, atcommand_adjcmdlvl },
 	{ AtCommand_Trade,      "@trade", 60, atcommand_trade },
 	{ AtCommand_UnMute,	"@unmute", 60, atcommand_unmute }, // [Valaris]
+        { AtCommand_SetMagic,  "@setmagic", 99, atcommand_set_magic }, // [Fate]
+        { AtCommand_MagicInfo, "@magicinfo", 99, atcommand_magic_info }, // [Fate]
 
 #ifndef TXT_ONLY // sql-only commands
 	{ AtCommand_CheckMail,		 "@checkmail",	      1, atcommand_listmail }, // [Valaris]
@@ -1976,7 +1980,7 @@ int atcommand_item(
 				item_tmp.nameid = item_id;
 				item_tmp.identify = 1;
 				if ((flag = pc_additem((struct map_session_data*)sd, &item_tmp, get_count)))
-					clif_additem((struct map_session_data*)sd, 0, 0, flag);
+                                        clif_additem((struct map_session_data*)sd, 0, 0, flag);
 			}
 		}
 		clif_displaymessage(fd, msg_table[18]); // Item created.
@@ -7761,3 +7765,101 @@ int atcommand_refreshonline(
 }
 
 #endif /* end sql only */
+
+/* Magic atcommands by Fate */
+
+static int magic_base = TMW_MAGIC;
+#define magic_skills_nr 6
+static char *magic_skill_names[magic_skills_nr] = {"magic", "life", "war", "transmute", "nature", "ether"};
+
+int
+atcommand_magic_info(const int fd, struct map_session_data* sd,
+                     const char* command, const char* message)
+{
+	char character[100];
+        char buf[200];
+	struct map_session_data *pl_sd;
+
+	memset(character, '\0', sizeof(character));
+
+	if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1) {
+		clif_displaymessage(fd, "Usage: @magicinfo <char_name>");
+		return -1;
+	}
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+                int i;
+
+                sprintf(buf, "`%s' has the following magic skills:", character);
+                clif_displaymessage(fd, buf);
+
+                for (i = 0; i < magic_skills_nr; i++) {
+                        sprintf(buf, "%d in %s", pl_sd->status.skill[i + magic_base].lv, magic_skill_names[i]);
+                        if (pl_sd->status.skill[i + magic_base].id == i + magic_base)
+                                clif_displaymessage(fd, buf);
+                }
+
+                return 0;
+        } else
+                clif_displaymessage(fd, "Character not found.");
+
+        return -1;
+}
+
+static void
+set_skill(struct map_session_data* sd, int i, int level)
+{
+        sd->status.skill[i].id = level? i : 0;
+        sd->status.skill[i].lv = level;
+        sd->status.skill[i].flag = 0;
+}
+
+int
+atcommand_set_magic(const int fd, struct map_session_data* sd,
+                    const char* command, const char* message)
+{
+	char character[100];
+        char magic_type[20];
+        int skill_index = -1; // 0: all
+        int value;
+	struct map_session_data *pl_sd;
+
+	memset(character, '\0', sizeof(character));
+
+	if (!message || !*message || sscanf(message, "%99s %19s %i", character, magic_type, &value) < 1) {
+		clif_displaymessage(fd, "Usage: @setmagic <char_name> <school> <value>, where <school> is either `magic', one of the school names, or `all'.");
+		return -1;
+	}
+
+        if (!strcasecmp("all", magic_type))
+                skill_index = 0;
+        else {
+                int i;
+                for (i = 0; i < magic_skills_nr; i++) {
+                        if (!strcasecmp(magic_skill_names[i], magic_type)) {
+                                skill_index = i + magic_base;
+                                break;
+                        }
+                }
+        }
+
+        if (skill_index == -1) {
+		clif_displaymessage(fd, "Incorrect school of magic.  Use `magic', `nature', `life', `war', `transmute', `ether', or `all'.");
+                return -1;
+        }
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+                int i;
+                if (skill_index == 0)
+                        for (i = 0; i < magic_skills_nr; i++)
+                                set_skill(pl_sd, i + magic_base, value);
+                else
+                        set_skill(pl_sd, skill_index, value);
+
+                return 0;
+        } else
+                clif_displaymessage(fd, "Character not found.");
+
+        return -1;
+}
+

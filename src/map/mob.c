@@ -1881,7 +1881,7 @@ static int mob_delay_item_drop(int tid,unsigned int tick,int id,int data)
 
 	if(battle_config.item_auto_get==1){
 		if(ditem->first_sd && (flag = pc_additem(ditem->first_sd,&temp_item,ditem->amount))){
-			clif_additem(ditem->first_sd,0,0,flag);
+                        clif_additem(ditem->first_sd,0,0,flag);
 			map_addflooritem(&temp_item,1,ditem->m,ditem->x,ditem->y,ditem->first_sd,ditem->second_sd,ditem->third_sd,0);
 		}
 		free(ditem);
@@ -2020,6 +2020,15 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 	int skill,sp;
 
 	nullpo_retr(0, md); //srcはNULLで呼ばれる場合もあるので、他でチェック
+
+        if (src->id == md->master_id
+            && md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER) {
+            /* If the master hits a monster, have the monster turn against him */
+            md->master_id = 0;
+            md->mode = 0x85; /* Regular war mode */
+            md->target_id = src->id;
+            md->attacked_id = src->id;
+        }
 
 	max_hp = battle_get_max_hp(&md->bl);
 

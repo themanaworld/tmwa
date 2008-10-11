@@ -35,6 +35,7 @@
 #include "atcommand.h"
 #include "nullpo.h"
 #include "socket.h"
+#include "magic.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -284,6 +285,7 @@ int map_delblock(struct block_list *bl)
 
 	if(bl->type==BL_PC)
 		map[bl->m].users--;
+
 	if(bl->next) bl->next->prev = bl->prev;
 	if(bl->prev==&bl_head){
 		// リストの頭なので、map[]のblock_listを更新する
@@ -655,7 +657,10 @@ int map_delobject(int id) {
 	if(obj==NULL)
 		return 0;
 
-	map_delobjectnofree(id);	
+	map_delobjectnofree(id);
+        if (obj->type == BL_PC) // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
+                pc_cleanup((struct map_session_data *)obj);
+
 	map_freeblock(obj);
 
 	return 0;
@@ -1077,7 +1082,7 @@ struct map_session_data * map_nick2sd(char *nick) {
     nicklen = strlen(nick);
 
 	for (i = 0; i < fd_max; i++) {
-		if (session[i] && (pl_sd = session[i]->session_data) && pl_sd->state.auth)
+                if (session[i] && (pl_sd = session[i]->session_data) && pl_sd->state.auth) {
 			// Without case sensitive check (increase the number of similar character names found)
 			if (strnicmp(pl_sd->status.name, nick, nicklen) == 0) {
 				// Strict comparison (if found, we finish the function immediatly with correct value)
@@ -1086,6 +1091,7 @@ struct map_session_data * map_nick2sd(char *nick) {
 				quantity++;
 				sd = pl_sd;
 			}
+                }
 	}
 	// Here, the exact character name is not found
 	// We return the found index of a similar account ONLY if there is 1 similar character
@@ -1991,6 +1997,7 @@ int do_init(int argc, char *argv[]) {
 	do_init_storage();
 	do_init_skill();
 	do_init_pet();
+        do_init_magic();
 
 #ifndef TXT_ONLY /* mail system [Valaris] */
 	if(battle_config.mail_system)	
@@ -2007,3 +2014,20 @@ int do_init(int argc, char *argv[]) {
 	return 0;
 }
 
+int
+map_scriptcont(struct map_session_data *sd, int id)
+{
+        struct block_list *bl = map_id2bl(id);
+
+        if (!bl)
+                return 0;
+
+        switch (bl->type) {
+        case BL_NPC: return npc_scriptcont(sd, id);
+        case BL_SPELL:
+            spell_execute((struct invocation *) bl);
+            break;
+        }
+
+        return 0;
+}

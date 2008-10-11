@@ -1,0 +1,773 @@
+--------------------------------------------------------------------------------
+== Spell language
+
+* Comments: One-line comments using '#' or '//' as prefix
+* names vs. invocations:  spells and anchors have both names
+  and invocations.  Names are used to refer to spells and
+  anchors from within scripts without revealing their
+  invocations.
+
+
+Each spell specification file consists of a sequence of definitions of
+globals, anchors, spells, and procedures.
+
+Types:
+------
+  These are the primitive types:
+  * int
+  * string
+  * dir	       (a direction: N, S, SE, NW etc.)
+  * location   (a single spot in the world)
+  * entity     (a PC, NPC, or monster)
+  * area       (a set of locations)
+  * spell      (a spell)
+  * invocation (a spell instance)
+  * fail       (a separate type that arises implicitly when a function
+    	        fails)
+
+  `fail' arises in special circumstances in some functions, e.g. when
+trying to divide by zero, or when function parameters fail to
+type-check.  When a fail value flows into an operation, than that
+operation is skipped.  When a fail value flows into a function, then
+that function evaluates to fail, except for
+
+  * if_then_else (which permits `fail' in its true or false branch)
+  * failed (which returns true iff the argument is of type fail).
+
+  We will use standard functional type notation:
+
+  `int * string -> entity' denotes the type of a function that accepts
+an integer and a string and returns an entity.  We use the return `()'
+for operations (which return nothing).
+
+Globals:
+--------
+  A `global' is a global variable, declared and defined in the
+same line:
+
+	foo = "this is a string";
+
+  Expressions can be arbitrary language expressions.  Note that globals
+can only reference the values of globals defined earlier in the same
+program.
+
+  There are two special globals:
+
+  * min_casttime : int
+    Minimal number of milliseconds of cast delay, no matter what any
+    given spell may say.  Cast delay is the time before the next spell
+    can be cast.
+
+  * obscure : int
+    Chance of a character of a given spell to be obscured (masked out
+    by an asterisk).
+
+
+  Globals can also be defined as CONST (though this should not be done
+for the special globals listed above or they will not take effect.)
+CONST-defined globals cannot be re-defined.
+
+
+Expressions:
+------------
+  Expressions occur in globals, anchors, spells, and procedures.
+Expressions evaluate to values of a given type.  Expressions can be
+simple literals, area literals, infix expressions, function
+applications, or variable refecences.
+
+- Simple literals:
+  * 42, 0xff: int literals
+  * N, S, E, W, NE, NW, SE, SW : dir literals
+  * "foo bar" : string literals
+
+- Area literals:
+  * @("new_3-1.gat", 26, 26)
+    This area denotes a single field on a map (new_3-1.gat,
+    co-ordinates (26,26).
+  * @("new_3-1.gat", 26, 26) @+ (10, 10) 
+    This area is 100 fields, stretching to a field of size 10x10 to
+    the south and east of (26,26) in new_3-1.gat.
+  * @("new_3-1.gat", 26, 26) towards S (5, 3)
+    This area is a rectangular field of depth 3 and width 5 to the
+    south of (26,26) in new_3-1.gat.  `depth 3' here means that it
+    stretches three fields to the south.  `width 5' here means that it
+    extends five fields to the east and five to the west of the
+    specified coordinate, for a total width of 11.
+    The only directions supported here are S, E, N, W.
+
+- Infix expressions:
+  Infix expressions are special functions in which the operator is
+  written between two expressions.  Infix expressions largely follow
+  the C precedence rules.  The following infix operators are
+  supported:
+  * addition (+) (operates on ints, concatenates strings, and
+    	     	  constructs the union of areas)
+  * subtraction (- : int * int -> int)
+  * multiplication (* : int * int -> int)
+  * division (/ : int * int -> int, may fail)
+  * modulo (% : int * int -> int, may fail)
+  * comparison (<, >, >=, <=, =, <> : int * int -> int)
+    Comparison operators generally work on ints and strings.
+    (In)equality checks work on all values except for areas.
+    Note that "==" and "!=" are available as alternatives for "=" and
+    "<>" (respectively).
+  * conjunction and disjunction (&&, || : int * int -> int).  Note
+    that these are not short-circuit.
+  * Bitwise or (| : int * int -> int)
+  * Bitwise and (& : int * int -> int)
+  * Bitwise xor (^ : int * int -> int)
+  * Shift left and right (<<, >> : int * int -> int)
+
+- Function applications:
+  Function applications are written as
+
+    f(arg1, ..., argn)
+
+  where each `argi' is an arbitrary expression.
+  For a complete list of Functions, see `functions' below.
+
+- Variable references:
+  The expression (foo + 1) references a variable `foo' which must have
+  been previously defined.
+
+
+Anchors:
+--------
+  Anchors are teleport anchors; spells can look them up by name.  Each
+teleport anchor is written as
+
+    TELEPORT-ANCHOR <id> : <invocation-string> = <location>
+
+  For example:
+
+    TELEPORT-ANCHOR tulimshar : "home" = @("new_3-1.gat", 26, 26) @+(10, 10) 
+
+  This maps the teleport anchor `tulimshar' to an area in new_3-1.gat
+binds it to the name "home".  The function `anchor' can look up
+teleport anchors (cf. the function library).
+
+
+Spells:
+-------
+  Each spell is written either as
+
+    [spell-modifiers] SPELL <id> : <name> = <spelldef>
+
+  or as
+
+    [spell-modifiers] SPELL <id> (<id> : <sty>) : <name> = <spelldef>
+
+  For example,
+
+    SPELL random_dance : "zxr" = ...
+
+  creates a spell `random_dance' and makes it available under the
+invocation "zxr".  The string `...' is not a valid <spelldef>; we will
+look at proper spelldefs below.  An alternative example illustrates
+the use of parameters:
+
+    SPELL shout (message : STRING) : "zzx" = ...
+
+  This defines a spell `shout' (bound to invocation "zzx") that takes
+a parameter `message' of type STRING.  Valid types are STRING and PC:
+PC parameters are automatically translated into a player character
+entity of that name, or mapped to the caster if the specified name
+does not map to a player character or is missing.
+
+  The list of spell modifiers is short:
+
+  * SILENT means that the spell's invocation will never be broadcast,
+    	   not even obscured.
+  * LOCAL means that the spell is bound to the location it was cast at
+    	  and will not `travel' with the caster.
+
+  Modifiers may be given in any order, but only once.
+
+- Spell bodies
+
+  Spell bodies consist of three parts: LET bindings, spell guards and
+  effects.  LET bindings locally bind names to values.  Spell guards
+  are constraints that must be satisfied for the spell to be
+  triggered.  Effects describes what happens if the spell is
+  successfully triggered.  Spells may have multiple guards and
+  effects.
+
+  Consider the following example:
+
+    SPELL plugh (message : STRING) : "zzx" =
+          LET x = "kappa"
+              y = "sigma"
+          IN
+          (MANA 1, CATALYSTS ["Pearl"]) => EFFECT message (caster, "First branch");
+        | (MANA 20) => EFFECT message (caster, "Second branch")
+
+  This defines a spell `plugh' with two let bindings (`x' bound to
+  "kappa" and `y' bound to "sigma") and two `branches' which are
+  tested in sequence.  The first branch tests whether the caster has
+  one spellpoint and owns a pearl-- if so, the effect of sending a
+  message "First branch" to the caster is triggered.
+
+  However, if the spell guard is not satisfied, the magic engine
+  examines the second branch.  Now, if the caster has 20 spellpoints,
+  we INSTEAD trigger the effect of sending the message "Second branch"
+  to the caster.
+
+- Spell guards
+
+  Spell guards can be omitted; in that case, just use the effect
+  itself.  Otherwise they can be any of the following:
+  * MANA x:  Require x spellpoints to be present.  If this spellguard
+    is taken, x mana will be consumed implicitly.  This requirement is
+    cumulative.
+  * CASTTIME x:  Require that the caster spend x milliseconds until
+    the next spell can be cast.  This requirement is cumulative.  If
+    the total casttime for a spell is less than the global variable
+    min_casttime, then the latter supercedes the specified spell cast
+    delay.
+  * REQUIRE <expr>:  Test that the specified expression evaluates to
+    nonzero and does not fail.  Requirements are cumulative.
+  * CATALYSTS <items>: Ensure that the caster possesses all specified
+    items.  This effect is cumulative.
+  * COMPONENTS <items>: Ensure that the caster possesses all specified
+    items.  If the branch suceeeds, all items specified here are
+    consumed.  This effect is cumulative.
+
+  Items can be specified as follows:
+  * [ 700, 701 ]	-- require one item of item ID 700 and one of 701.
+  * [ 700, 3 * 701 ]	-- require 1 item of item ID 700 and 3 of 701.
+  * [ "Pearl" ]		-- require one item named `Pearl' in the item DB.
+
+  Spell guards can be combined as follows:
+  * `or': disjunction.  The first matching path is taken.
+  * (a, ..., n): conjunction.  a, n, and everything in between must be
+    satisfied.
+  * a => b:  Implication.  If `a' is satisfied, try to satisfy `b'.
+    This operation is useful to combine different branches (see
+    below.)
+
+  Different branches of spell effects are separated by the vertical
+  bar `|'.  For example,
+
+    SPELL plugh (message : STRING) : "zzx" =
+        MANA 5 => (  (CATALYSTS ["Pearl"]) =>
+                            EFFECT message (caster, "First branch");
+                   | (MANA 20) =>
+                            EFFECT message (caster, "Second branch");)
+
+  will always try to deduct 5 Mana points but then make a choice of
+  whether to go to the first branch (if the player has `Pearl') or to
+  the second (if the player does not have `Pear' but has another 20
+  spell points, for a total of 25 spell points, all of which will be
+  consumed in that case.)
+
+
+- Effects
+
+  Effects describe what happens when a spell is triggered.  Each
+  spell has at least one EFFECT specification, which looks as follows:
+
+    EFFECT <effectlist> [ ATTRIGGER <effectlist> ] [ ATEND <effectlist> ]
+
+  The three parts are as follows:
+  * EFFECT:  All effects here are executed as soon as the spell is
+    triggered.
+  * ATEND:  All steps described here are executed when the spell
+    finishes.   Note that the spell may remain active after all steps
+    from the EFFECT section have been taken; this happens when the spell
+    triggers a status change (using the `status_change' operation,
+    as described in the operations library).  In that case the spell
+    will terminate only after all status changes have finished.
+    The ATEND section is not called when the spell finishes due to the
+    caster dying.
+  * ATTRIGGER:  This section is used only for the `override_attack'
+    operation and described there.
+
+  Before effects are executed, the engine defines the following
+  variables:
+
+  * The parameter (if any)
+  * caster : entity (the caster of this spell)
+  * spellpower : int (the caster's spellpower, normally 6 -- 198)
+  * location : location (the location the spell is currently at)
+  * self_spell : spell (the current spell)
+  * self_invocation : invocation (the current spell instance)
+
+  The engine can then execute the following effects from the effect list:
+  * SKIP;	    #  a no-op
+  * ABORT;	    #  Abort the spell, don't run ATEND, don't consume a
+    		    #    trigger charge (cf. `override_attack')
+  * END;	    #  Skip to the ATEND block
+  * WAIT <expr>;    #  Wait <expr> milliseconds before continuing
+  * <id> = <expr>;  #  Set <id> to the result of evaluating <expr>
+  * (<s1> ... <sn>) #  Execute statements <s1> through <sn> in sequence
+  * IF <c>	    #  Test condition <c>.  If nonzero,
+    THEN <s1>	    #    execute <s1>.  Otherwise,
+    ELSE <s2> 	    #    execute <s2>.
+                    #    The `ELSE' branch can be omitted.
+
+  * FOREACH <k> <id> IN <expr> DO <s>
+                    # Evaluate <expr> to an area, find all entities in
+		    #   the area that match <k>, randomise this list,
+		    #   bind <id> to each in turn and execute <s>.
+
+    Example:
+
+    FOREACH ENTITY t IN rbox(location(caster), 20)
+      DO aggravate(t, 0, caster);
+      	 	    # This aggravates all entities within 20 paces of
+		    #   the caster to attack the caster.
+
+    Valid values for <k> are
+    + ENTITY : PC or mob
+    + PC
+    + MOB
+    + TARGET : mob, PC (but only if we are on a PvP map)
+
+  * FOR <id> = <start> TO <stop> DO <stmt>
+    # This will iterate from <start> to <stop> (inclusively), bind
+    # <id> to the current iteration value, and execute <stmt>.
+
+  * BREAK;
+    # This will break out of the current FOR loop, FOREACH loop, or
+    # procedure.
+
+  * <id> ( <expr1>,  ..., <exprn> );
+    # This executes an operation.  See `Operations', below, for a
+    # list.
+
+  * CALL <id> ( <expr1>,  ..., <exprn> );
+    # This will execute a procedure, after binding the actual
+    # parameters from <expr1> to <exprn> to the formal procedure
+    # parameters.
+
+  * { ... }
+    # This executes arbitrary eAthena script code.  The following
+    # variables script variables are bound implicitly:
+    # - @caster_name$ is the name of the spellcaster
+    # - @caster and @target are also bound, to useless values (sorry.)
+    #
+    # By default, script popup boxes are sent to the caster.  This can
+    # be overridden by setting the special `script_target' variable.
+
+Procedures:
+-----------
+  Procedures are defined as
+
+    PROCEDURE <id> ( <id>, ... , <id> ) = <effectlist>
+
+  For example,
+
+    PROCEDURE testproc(x) = message(caster, "foo(" + x + )");
+                            y = 10;
+                            x = 20;
+
+  defines a procedure `testproc' with one formal parameter `x'.
+  Procedure execution is nonrecursive and uses dynamic scoping.  The
+  latter means that it can modify variables in the caller's scope.  In
+  the above example, the assignment to `y' will be visible to the
+  caller.  The assignment to `x' however will be not be visible, since
+  that assignment goes to the parameter and is therefore limited in
+  scope to `testproc'.  More precisely,
+
+      EFFECT x = 0; y = 0; testproc(1);
+      	     message(caster, "x=" + x + ", y=" + y);
+
+  would print
+
+      foo(1)
+      x=0, y=10
+
+  (note how the update to x is isolated from the caller.)
+
+Functions:
+----------
+This section documents the function API.
+
+The following functions are available:
+
+  + max : int * int -> int
+    Pick the greater of two values.
+
+  + min : int * int -> int
+    Lesser of two values.
+
+  + is_in : location * area -> bool
+    Test whether a location is within an area.
+
+  + if_then_else : bool * 'a * 'a -> 'a
+    Test a condition (first parameter).  If the contition is nonzero,
+    return the second parameter, otherwise the third parameter.
+
+  + skill : entity * int -> int
+    Get the skill level that the `entity' has for the skill id.
+
+  + dex : entity -> int
+  + agi : entity -> int
+  + int : entity -> int
+  + vit : entity -> int
+  + str : entity -> int
+  + luk : entity -> int
+  + hp : entity -> int
+  + sp : entity -> int
+  + max_hp : entity -> int
+  + max_sp : entity -> int
+  + level : entity -> int
+    Status attributes.
+
+  + dir : entity -> dir
+    Direction that the entity is currently facing.
+
+  + not : int -> int
+    Logical negation. (NOT bitwise negation.)
+
+  + name_of : entity -> string
+            | spell -> string
+    Retrieves the name either of an entity or of a spell.
+
+  + location : entity -> location
+    Determines the location that the specified entity presently
+    occupies.
+
+  + random : int -> int		   	
+    random(6) yields a random value from 0 to 5.
+
+  + random_dir : int -> dir
+    random_dir(0) yields N, S, E, or W.
+    random_dir(1) yields N, S, E, W, SE, SW, NE, or NW.
+
+  + hash_entity : entity -> int
+    Retrieve a number idenfying the entity.
+
+  + is_married : entity -> int
+    Tests whether the entity is married.
+
+  + partner : entity -> entity
+    Retrieves the entity's partner, if online, or fails otherwise.
+
+  + awayfrom : location * dir * int -> location
+    awayfrom(loc, dir, distance) returns a location obtained by moving
+    at most `distance' towards `dir', starting at `loc'.  If the move
+    hits an obstacle, we stop before the obstacle.
+
+  + failed : 'a -> bool
+    True iff the input was the special failure value.
+
+  + pc : string -> entity
+    Looks up a player character by name.  Fails if there is no match.
+
+  + npc : string -> entity
+    Looks up an NPC by name.  Fails if there is no match.
+
+  + distance : location * location -> int
+    This is the `fake square distance':  The maximum of delta x and
+    delta y between the two locations.
+
+  + rdistance : location * location -> int
+    This is the `real' distance (square root of the square of dx, dy)
+
+  + anchor : string -> area
+    Looks up a teleport anchor by name and returns the associated
+    area.  Fails if the result is not an area.
+
+  + random_location : area -> location
+    Pick a random location from within an area.
+
+  + script_int : entity * string -> int
+    Read a player script variable as an integer.
+
+  + rbox : location * int -> area
+    rbox(l, n) computes rectangular box centered at `l', with a
+    `radius' of n.  The box contains (n*2 + 1)^2 squares.
+
+  + count_item : entity * int -> int
+               | entity * string -> int
+    Counts the number of instances of the specified item that the
+    entity has.  Items may be given by ID or by name.
+
+  + line_of_sight : location * location -> int
+    Determines whether there is a line-of-sight connection between the
+    two locations.
+
+  + running_status_update : entity * int -> bool
+    Determines whether the specified status update is still active.
+
+  + element : entity -> int
+    Determines what element the entity is associated with
+
+  + element_level : entity -> int
+    Determines what element level the entity has
+
+  + has_shroud : entity -> int
+
+
+Operations:
+-----------
+This section documents the operations API.
+
+  + sfx : entity * int * int -> ()
+        | location * int *int -> ()
+    Trigger a special effect (specified by sfx ID) for an entity or a
+    location.  The int specifies a delay until the effect is issued.
+
+  + itemheal : entity * int * int -> ()
+    itemheal(entity, hp, sp) triggers item healing.  This will
+    hopefully be slowed down if an appropriate server patch is
+    installed.
+
+  + instaheal : entity * int * int -> ()
+    itemheal(entity, hp, sp) heals instantly.
+
+  + shroud : entity * int -> ()
+    shroud(entity, flags) hides the entity's name (only for PCs).
+    Flags:  0x01: Hide PC'ss name when talking
+            0x02: Shroud vanishes when player picks something up
+            0x04: Shroud vanishes when player talks
+    The shroud will not affect players in visible range until the
+    entity has left and re-entered their field of vision.  This can be
+    enforced by warping.
+
+  + unshroud : entity -> ()
+    Counter a shroud.
+
+  + message : entity * string -> ()
+    Send a message to the entity.
+
+  + messenger_npc : location * int
+                    * string * string * int -> ()
+    messenger_npc(location, image, npc_name, message, duration)
+    creates a messenger NPC looking like the `image' at `location',
+    with name `npc_name' and delivering the `message' when clicked
+    upon.  The NPC disappears after the `duration' in ms has expired.
+
+  + move : entity * dir -> ()
+    Move the entity into the specified direction, unless that
+    direction is blocked.
+
+  + warp : entity * location -> ()
+    Warp entity to specified location.
+
+  + spawn : area * entity * int * int * int * int -> ()
+    spawn(area, owner, mob_id, attitude, count, lifetime) spawns for a
+    limited `lifetime' (in ms) a total of `count' monsters of kind
+    `mob_id' in `area'.  `attitude' specifies how they behave:
+      0 : attack everyone
+      1 : be friendly
+      2 : attack enemies of `owner' and give XP to `owner' if successful
+
+  + banish : entity -> ()
+    If the entity was spawned by the `spawn' operation, eliminate it.
+
+
+  + status_change : entity * int * int
+                    * int * int * int * int -> ()
+    status_change(entity, status, v1, v2, v3, v4, duration) initiates
+    a status change.  The precise status change (and the meaning of
+    `v1', `v2', `v3', `v4') varies depending on `status'.  This
+    operation may delay spell termination (and the ATEND effect).
+    ATEND can therefore be used to notify the caster that the status
+    change has finished.
+
+  + override_attack : entity * int * int
+                             * int * int *int -> ()
+    override_attack(entity, charges, delay, range, icon, animation)
+    overrides the entity's current attack (only for PCs).  The entity
+    will have `charges' attacks that instead result in calling the
+    ATTRIGGER effect for this spell.  When this operation is called,
+    the spell environment (variables etc.) is cloned into a separate
+    invocation.  This special invocation will be triggered every time
+    the entity tries to attack, until they have run out of charages (at
+    which time the previous behaviour is restored.)
+    `delay' specifies the attack delay.
+    `range' specifies the attack range as shown in the client GUI.
+    `icon' is presently unused.
+    `animation' is the attack animation ID that should be used.
+
+    Note that if the ATTRIGGER effect ABORTs, no charge will be
+    consumed.
+
+    ATTRIGGER can refernece the player's target via the `target'
+    variable.
+
+    Example:
+
+    SPELL tshuffle : "zvp" =
+        (MANA 1, CATALYSTS ["Pearl"]) =>
+        EFFECT
+                override_attack(caster, 3, 500, 10, 700, 31);
+        ATTRIGGER
+                IF (not (line_of_sight(location, location(target))))
+                THEN (message (caster, "No line of sight!"); ABORT;)
+                FOR i = 0 TO 10 DO (move(target, random_dir(0)););
+
+    This overrides the caster's attack for three attacks (attack delay
+    500, range 10) to instead randomly move around any entity that the
+    player tries to attack by up to 11 paces.
+
+  + create_item : entity * int * int -> ()
+                | entity * string * int -> ()
+    create_item(entity, item, count) gives the `entity' `count'
+    instances of `item'.  As usual, `item' can be either a string name
+    or an item ID.
+
+
+  + aggravate : entity * int * entity -> ()
+    aggravate (victim, mode, target) causes the `victim' to
+      mode = 0: attack `target'
+      mode = 1: become universally permanently aggressive
+      mode = 2: both of the above
+
+  + injure : entity * entity * int * int -> ()
+    injure(attacker, defender, hp, sp) causes damage to the defender
+    from the attacker (possibly killing, giving XP etc.), unless the
+    defender is immortal (NPC) or a PC on a non-PvP map.
+
+  + emote : entity * int -> ()
+    Issues the specified emotion to the specified entity.
+
+  - set_script_variable : entity * string * int -> ()
+    Sets a script variable to the specified value
+
+
+Script API updates:
+-------------------
+Two new script API functions are available:
+
+  * getspellinvocation : string -> string
+    Looks up a spell by spell ID and returns the spell's invocation.
+  * getanchorinvocation : string -> string
+    Looks up a teleport anchor by anchor ID and returns the invocation.
+
+
+Syntax Reference:
+-----------------
+
+SPELLCONF ::= (GLOBAL | ANCHOR | SPELL | PROCEDURE | ';')*  (* The ';' are only for decorative purposes *)
+
+  VALUE ::= <int>
+          | <hexint>
+          | <id>
+	  | <string>
+	  | <dir>	(* one of {N, S, E, W, NE, SE, NW, SW} *)
+
+  EXPR ::= (VALUE)
+	 | (AREA)
+         | (EXPR) '+' (EXPR)
+         | (EXPR) '*' (EXPR)
+         | (EXPR) '-' (EXPR)
+         | (EXPR) '/' (EXPR)
+         | (EXPR) '%' (EXPR)
+         | (EXPR) '<' (EXPR)
+         | (EXPR) '>' (EXPR)
+         | (EXPR) '<>' (EXPR)
+         | (EXPR) '=' (EXPR)
+         | (EXPR) '!=' (EXPR)
+         | (EXPR) '==' (EXPR)
+         | (EXPR) '<=' (EXPR)
+         | (EXPR) '>=' (EXPR)
+         | (EXPR) '&&' (EXPR)
+         | (EXPR) '||' (EXPR)
+         | (EXPR) '|' (EXPR)
+         | (EXPR) '^' (EXPR)		(* XOR *)
+         | (EXPR) '&' (EXPR)		(* binary AND *)
+         | (EXPR) '<<' (EXPR)
+         | (EXPR) '>>' (EXPR)
+	 | <id> '(' ((EXPR) /* ',') ')'
+	 | <id>
+	 | '(' (EXPR) ')'
+
+  INVOCATION ::= <string>  (* used for convenience *)
+
+  LOCATION ::= '@' '(' (EXPR) ',' (EXPR) ',' (EXPR) ')'  (* <map name, x, y> *)
+
+  AREA ::= (LOCATION)
+         | (LOCATION) '@' '+' '(' (EXPR) ',' (EXPR) ')'	(* width and height around location, passable only  *)
+	 | (LOCATION) 'towards' (EXPR) ':' '(' (EXPR) ',' (EXPR) ')' (* towards dir: Bar-shaped, width and depth; only NSEW supported *)
+
+  ITEMS ::= '[' (ITEMC) /+ ',' ']'
+
+  ITEMC ::= (ITEM)
+          | <int> '*' (ITEM)
+
+  ITEM  ::= <int>
+          | <id>
+
+* global
+
+  GLOBAL ::= 'CONST'? <id> '=' (EXPR) ';'
+
+  Available globals:
+  - min_casttime : int		(* min # of ticks for each spell (BEFORE scaling according to battle.conf) *)
+  - obscure : int		(* obscure percentage *)
+
+* teleport-anchor
+
+  ANCHOR ::= 'TELEPORT-ANCHOR' <id> ':' (INVOCATION) '=' (EXPR)
+
+  For example,
+
+    TELEPORT-ANCHOR t = "tulimshar" @("map_3-1.gat", 44, 70)
+
+  creates a teleport anchor with name `t' and invocation `tulimshar' at the speicfied location.
+
+* spell
+
+  SPELL ::= spellmod 'SPELL' <id> (ARG)? ':' (INVOCATION) '=' (SPELLDEF)
+
+  SPELLMOD ::= ('SILENT' | 'LOCAL')*
+
+  (silent:  invocation silently dropped.  local:  `location' variable doesn't change after spell init.)
+
+  ARG ::= '(' <id> ':' (ARGTYPE) ')"
+
+  ARGTYPE ::= 'PC'	(* yields a pc, or self *)
+	    | 'STRING'
+
+  SPELLDEF ::= ((SPELLBODY) /* '|')
+             | 'LET' (DECL)* 'IN' ((SPELLBODY) /* '|')
+
+  SPELLBODY ::= (SPELLGUARD) '=>' (SPELLBODY)
+              | 'EFFECT' (EFFECT) ('ATTRIGGER' (EFFECT))? ('ATEND' (EFFECT))?
+
+  (* `ATTRIGGER' is executed as a separate effect if the spell is `triggered'.  If the trigger has a target, it is denoted
+   * in the variable `target'.
+   * `ATEND' is invoked for normal termination, i.e., after the spell is over or has been dispelled.  `ATEND' is NOT used
+   * for the triggered effect; instead, spawn a separate spell in ATTRIGGER if that is desired. *)
+
+  DECL ::= <id> '=' (EXPR) ';'
+
+  SPELLGUARD ::= (PREREQ)
+  	       | (SPELLGUARD) 'or' (SPELLGUARD)
+	       | '(' (SPELLGUARD) /+ ',' ')'
+
+  PREREQ ::= 'REQUIRE' (EXPR)
+  	   | 'CATALYSTS' (ITEMS)
+	   | 'COMPONENTS' (ITEMS)
+	   | 'MANA' (EXPR)
+	   | 'CASTTIME' (EXPR)		(* # of ticks until the next spell can be cast *0
+
+  EFFECT ::= EFFECT ';' EFFECT
+           | '(' (EFFECT) ')'
+	   | 'SKIP'			(* no-op *)
+	   | 'ABORT'			(* abort spell.  If used in a trigger, no charges will be consumed. *)
+	   | 'END'			(* skip to atend *)
+	   | 'BREAK'			(* break out of loop *)
+	   | <id> '=' (EXPR)		(* interpreted in the current context, eval'ds trictly *)
+	   | 'FOREACH' (SELECTION) <id> 'IN' (AREA) 'DO' (EFFECT)	(* randomises the subjects first *)
+	   | 'FOR' <id> '=' (EXPR) 'TO' (EXPR) 'DO' (EFFECT)	(* bounds are evaluated when the loop begins, no updates are respected *)
+	   | 'IF' (EXPR) 'THEN' (EFFECT) ('ELSE' (EFFECT))?
+	   | 'WAIT' (EXPR)		(* amount in ticks before continuing. *)
+       	   | <id> '(' (EXPR) /* ',' ')'	(* operation *)
+	   | 'CALL' <id> '(' (EXPR) /* ',' ')'	(* procedure call *)
+	   | '{' ... '}'		(* script *)
+
+  SELECTION ::= 'PC'
+              | 'MOB'
+	      | 'ENTITY' (* MOB or PC *)
+	      | 'TARGET' (* like ENTITY, but includes PCs only on PvP maps *)
+(*	      | 'SPELL' *)
+
+* procedures
+
+  Procedures may be invoked via `CALL'.  They use dynamic scoping.
+
+  PROCEDURE ::= 'PROCEDURE' <id> '(' <id> /* ',' ')' '=' (EFFECT)

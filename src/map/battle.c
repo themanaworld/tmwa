@@ -275,7 +275,7 @@ int battle_get_vit(struct block_list *bl)
 		vit=mob_db[((struct pet_data *)bl)->class].vit;
 	if(sc_data) {
 		if(sc_data[SC_STRIPARMOR].timer != -1 && bl->type!=BL_PC)
-		vit = vit*60/100;
+                    vit = vit*60/100;
 		if(sc_data[SC_TRUESIGHT].timer!=-1 && bl->type != BL_PC)	// トゥルーサイト
 			vit += 5;
 	}
@@ -785,6 +785,11 @@ int battle_get_mdef(struct block_list *bl)
 	if(mdef < 1000000) {
 		if(sc_data) {
 			//バリアー状態時はMDEF100
+			if(mdef < 90 && sc_data[SC_MBARRIER].timer != -1) {
+                                mdef += sc_data[SC_MBARRIER].val1;
+                                if (mdef > 90)
+                                        mdef = 90;
+                        }
 			if(sc_data[SC_BARRIER].timer != -1)
 				mdef = 100;
 			//凍結、石化時は1.25倍
@@ -957,8 +962,11 @@ int battle_get_adelay(struct block_list *bl)
 			if(sc_data[SC_STEELBODY].timer!=-1)	// 金剛
 				aspd_rate += 25;
 			//増速ポーション使用時は減算
-			if(	sc_data[i=SC_SPEEDPOTION2].timer!=-1 || sc_data[i=SC_SPEEDPOTION1].timer!=-1 || sc_data[i=SC_SPEEDPOTION0].timer!=-1)
+			if(sc_data[i=SC_SPEEDPOTION2].timer!=-1 || sc_data[i=SC_SPEEDPOTION1].timer!=-1 || sc_data[i=SC_SPEEDPOTION0].timer!=-1)
 				aspd_rate -= sc_data[i].val2;
+                        // Fate's `haste' spell works the same as the above
+			if (sc_data[SC_HASTE].timer != -1)
+				aspd_rate -= sc_data[SC_HASTE].val1;
 			//ディフェンダー時は加算
 			if(sc_data[SC_DEFENDER].timer != -1)
 				adelay += (1100 - sc_data[SC_DEFENDER].val1*100);
@@ -1004,8 +1012,10 @@ int battle_get_amotion(struct block_list *bl)
 				aspd_rate += sc_data[SC_DONTFORGETME].val1*3 + sc_data[SC_DONTFORGETME].val2 + (sc_data[SC_DONTFORGETME].val3>>16);
 			if(sc_data[SC_STEELBODY].timer!=-1)	// 金剛
 				aspd_rate += 25;
-			if(	sc_data[i=SC_SPEEDPOTION2].timer!=-1 || sc_data[i=SC_SPEEDPOTION1].timer!=-1 || sc_data[i=SC_SPEEDPOTION0].timer!=-1)
+			if(sc_data[i=SC_SPEEDPOTION2].timer!=-1 || sc_data[i=SC_SPEEDPOTION1].timer!=-1 || sc_data[i=SC_SPEEDPOTION0].timer!=-1)
 				aspd_rate -= sc_data[i].val2;
+			if (sc_data[SC_HASTE].timer != -1)
+				aspd_rate -= sc_data[SC_HASTE].val1;
 			if(sc_data[SC_DEFENDER].timer != -1)
 				amotion += (550 - sc_data[SC_DEFENDER].val1*50);
 		}
@@ -1190,8 +1200,9 @@ int battle_get_mode(struct block_list *bl)
 int battle_get_mexp(struct block_list *bl)
 {
 	nullpo_retr(0, bl);
-	if(bl->type==BL_MOB && (struct mob_data *)bl)
+	if(bl->type==BL_MOB && (struct mob_data *)bl) {
 		return mob_db[((struct mob_data *)bl)->class].mexp;
+        }
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
 		return mob_db[((struct pet_data *)bl)->class].mexp;
 	else
@@ -4316,6 +4327,7 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 	short *opt1;
 	int race = 7, ele = 0;
 	int damage,rdamage = 0;
+        int i;
 	struct Damage wd;
 
 	nullpo_retr(0, src);
@@ -4365,6 +4377,19 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 		}
 		else
 			wd=battle_calc_weapon_attack(src,target,0,0,0);
+
+                // significantly increase injuries for hasted characters
+                if (wd.damage > 0
+                    && (t_sc_data[SC_HASTE].timer != -1)) {
+                    wd.damage = (wd.damage * (16 + t_sc_data[SC_HASTE].val1)) >> 4;
+                }
+
+                if (t_sc_data[SC_PHYS_SHIELD].timer != -1 && target->type == BL_PC) {
+                    wd.damage -= t_sc_data[SC_PHYS_SHIELD].val1;
+                    if (wd.damage < 0)
+                        wd.damage = 0;
+                }
+
 		if((damage = wd.damage + wd.damage2) > 0 && src != target) {
 			if(wd.flag&BF_SHORT) {
 				if(target->type == BL_PC) {
@@ -4388,6 +4413,7 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 					}
 				}
 			}
+
 			if(rdamage > 0)
 				clif_damage(src,src,tick, wd.amotion,0,rdamage,1,4,0);
 		}
@@ -4416,6 +4442,7 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 		if(sd && sd->splash_range > 0 && (wd.damage > 0 || wd.damage2 > 0) )
 			skill_castend_damage_id(src,target,0,-1,tick,0);
 		map_freeblock_lock();
+
 		battle_damage(src,target,(wd.damage+wd.damage2),0);
 		if(target->prev != NULL &&
 			(target->type != BL_PC || (target->type == BL_PC && !pc_isdead((struct map_session_data *)target) ) ) ) {
@@ -4898,6 +4925,7 @@ int battle_config_read(const char *cfgName)
 		battle_config.natural_healsp_interval=8000;
 		battle_config.natural_heal_skill_interval=10000;
 		battle_config.natural_heal_weight_rate=50;
+		battle_config.itemheal_regeneration_factor = 1;
 		battle_config.item_name_override_grffile=1;
 		battle_config.arrow_decrement=1;
 		battle_config.max_aspd = 199;
@@ -5130,6 +5158,7 @@ int battle_config_read(const char *cfgName)
 			{ "natural_healsp_interval",           &battle_config.natural_healsp_interval	},
 			{ "natural_heal_skill_interval",       &battle_config.natural_heal_skill_interval},
 			{ "natural_heal_weight_rate",          &battle_config.natural_heal_weight_rate	},
+			{ "itemheal_regeneration_factor",      &battle_config.itemheal_regeneration_factor	},
 			{ "item_name_override_grffile",        &battle_config.item_name_override_grffile},
 			{ "arrow_decrement",                   &battle_config.arrow_decrement			},
 			{ "max_aspd",                          &battle_config.max_aspd					},

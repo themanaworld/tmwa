@@ -28,6 +28,21 @@ struct npc_data* npc_name2id(const char *name);
 
 int npc_get_new_npc_id(void);
 
+/**
+ * Spawns and installs a talk-only NPC
+ *
+ * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
+ */
+struct npc_data *npc_spawn_text(int m, int x, int y,
+                                int class,
+                                char *name,
+                                char *message); // message is strdup'd within
+
+/**
+ * Uninstalls and frees an NPC
+ */
+void npc_free(struct npc_data *npc);
+
 void npc_addsrcfile(char *);
 void npc_delsrcfile(char *);
 int do_final_npc(void);
