@@ -3040,30 +3040,50 @@ int pc_takeitem(struct map_session_data *sd,struct flooritem_data *fitem)
 {
 	int flag;
 	unsigned int tick = gettick();
+        int can_take;
 
 	nullpo_retr(0, sd);
 	nullpo_retr(0, fitem);
 
-        if (can_pick_item_up_from (sd, fitem->first_get_id)
-             || fitem->first_get_tick <= tick)
-                if (can_pick_item_up_from (sd, fitem->second_get_id)
-                    || fitem->second_get_tick <= tick)
-                        if (can_pick_item_up_from (sd, fitem->third_get_id)
-                            || fitem->third_get_tick <= tick) {
-                                /* Can pick up */
+        /* Sometimes the owners reported to us are buggy: */
 
-                                if((flag = pc_additem(sd,&fitem->item_data,fitem->item_data.amount)))
-                                        // d—Êover‚ÅŽæ“¾Ž¸”s
-                                        clif_additem(sd,0,0,flag);
-                                else {
-                                        /* Žæ“¾¬Œ÷ */
-                                        if(sd->attacktimer != -1)
-                                                pc_stopattack(sd);
-                                        clif_takeitem(&sd->bl,&fitem->bl);
-                                        map_clearflooritem(fitem->bl.id);
-                                }
-                                return 0;
-                        }
+        if (fitem->first_get_id == fitem->third_get_id
+            || fitem->second_get_id == fitem->third_get_id)
+                fitem->third_get_id = 0;
+
+        if (fitem->first_get_id == fitem->second_get_id) {
+                fitem->second_get_id = fitem->third_get_id;
+                fitem->third_get_id = 0;
+        }
+
+        can_take = can_pick_item_up_from (sd, fitem->first_get_id);
+
+        if (!can_take)
+                can_take = fitem->first_get_tick <= tick
+                        && can_pick_item_up_from (sd, fitem->second_get_id);
+
+        if (!can_take)
+                can_take = fitem->second_get_tick <= tick
+                        && can_pick_item_up_from (sd, fitem->third_get_id);
+
+        if (!can_take)
+                can_take = fitem->third_get_tick <= tick;
+
+        if (can_take) {
+                /* Can pick up */
+
+                if((flag = pc_additem(sd,&fitem->item_data,fitem->item_data.amount)))
+                        // d—Êover‚ÅŽæ“¾Ž¸”s
+                        clif_additem(sd,0,0,flag);
+                else {
+                        /* Žæ“¾¬Œ÷ */
+                        if(sd->attacktimer != -1)
+                                pc_stopattack(sd);
+                        clif_takeitem(&sd->bl,&fitem->bl);
+                        map_clearflooritem(fitem->bl.id);
+                }
+                return 0;
+        }
 
 	/* Otherwise, we can't pick up */
         clif_additem(sd,0,0,6);
