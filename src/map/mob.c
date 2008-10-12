@@ -2021,7 +2021,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 
 	nullpo_retr(0, md); //srcはNULLで呼ばれる場合もあるので、他でチェック
 
-        if (src->id == md->master_id
+        if (src && src->id == md->master_id
             && md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER) {
             /* If the master hits a monster, have the monster turn against him */
             md->master_id = 0;
