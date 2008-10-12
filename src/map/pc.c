@@ -5030,6 +5030,10 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 		return 0;
 	}
 	sd->status.hp = 0;
+	// [Fate] Stop quickregen
+	sd->quick_regeneration_hp.amount = 0;
+	sd->quick_regeneration_sp.amount = 0;
+
 	pc_setdead(sd);
 	if(sd->vender_id)
 		vending_closevending(sd);
@@ -5459,16 +5463,16 @@ static int pc_itemheal_effect(struct map_session_data *sd,int hp,int sp);
 static int // Compute how quickly we regenerate (less is faster) for that amount
 pc_heal_quick_speed(int amount)
 {
-        if (amount >= 200) {
+        if (amount >= 100) {
                 if (amount >= 500)
                         return 0;
-                if (amount >= 350)
+                if (amount >= 250)
                         return 1;
                 return 2;
-        } else { // < 200
-                if (amount >= 100)
-                        return 3;
+        } else { // < 100
                 if (amount >= 50)
+                        return 3;
+                if (amount >= 20)
                         return 4;
                 return 5;
         }
