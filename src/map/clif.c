@@ -7407,6 +7407,12 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 		break;
 	case BL_NPC:
 		memcpy(WFIFOP(fd,6), ((struct npc_data*)bl)->name, 24);
+                {
+                        char *end = strchr(WFIFOP(fd, 6), '#'); // elim hashed out/invisible names for the client
+                        if (end)
+                                while (*end)
+                                        *end++ = 0;
+                }
 		WFIFOSET(fd,packet_len_table[0x95]);
 		break;
 	case BL_MOB:
