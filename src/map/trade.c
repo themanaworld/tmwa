@@ -108,7 +108,7 @@ void trade_tradeadditem(struct map_session_data *sd,int index,int amount)
 					// determine free slots of receiver
 					int i, free = 0;
 					for(i=0;i<MAX_INVENTORY;i++){
-						if(target_sd->status.inventory[i].nameid==0 || target_sd->inventory_data[i] == NULL)
+						if(target_sd->status.inventory[i].nameid==0 && target_sd->inventory_data[i] == NULL)
 							free++;
 					}
 					free -= trade_i;
