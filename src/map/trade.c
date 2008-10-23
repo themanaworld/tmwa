@@ -102,11 +102,27 @@ void trade_tradeadditem(struct map_session_data *sd,int index,int amount)
 		}else if(amount <= sd->status.inventory[index-2].amount && amount > 0){
 			for(trade_i=0; trade_i<10;trade_i++){
 				if(sd->deal_item_amount[trade_i] == 0){
+					// calculate trade weight
 					trade_weight+=sd->inventory_data[index-2]->weight*amount;
+
+					// determine free slots of receiver
+					int i, free = 0;
+					for(i=0;i<MAX_INVENTORY;i++){
+						if(target_sd->status.inventory[i].nameid==0 || target_sd->inventory_data[i] == NULL)
+							free++;
+					}
+					free -= trade_i;
 					if(target_sd->weight + trade_weight > target_sd->max_weight){
 						clif_tradeitemok(sd,index,0,1); //fail to add item -- the player was over weighted.
                                                 amount = 0; // [MouseJstr]
-					}else{
+					}
+					else if (free <= 0)
+					{
+						clif_tradeitemok(sd,index,0,2); //fail to add item -- no free slots at receiver
+												amount = 0; // peavey
+					}
+					else
+					{
 						for(c=0; c==trade_i-1;c++){ // re-deal exploit protection [Valaris]
 							if(sd->deal_item_index[c]==index) {
 								trade_tradecancel(sd);
