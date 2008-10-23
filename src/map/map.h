@@ -610,8 +610,23 @@ enum {
 };
 
 enum {
-	LOOK_BASE,LOOK_HAIR,LOOK_WEAPON,LOOK_HEAD_BOTTOM,LOOK_HEAD_TOP,LOOK_HEAD_MID,LOOK_HAIR_COLOR,LOOK_CLOTHES_COLOR,LOOK_SHIELD,LOOK_SHOES
+        LOOK_BASE,
+        LOOK_HAIR,
+        LOOK_WEAPON,
+        LOOK_HEAD_BOTTOM,
+        LOOK_HEAD_TOP,
+        LOOK_HEAD_MID,
+        LOOK_HAIR_COLOR,
+        LOOK_CLOTHES_COLOR,
+        LOOK_SHIELD,
+        LOOK_SHOES, /* 9 */
+        LOOK_GLOVES,
+        LOOK_CAPE,
+        LOOK_MISC1,
+        LOOK_MISC2
 };
+
+#define LOOK_LAST LOOK_MISC2
 
 struct chat_data {
 	struct block_list bl;

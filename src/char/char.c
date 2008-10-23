@@ -1247,6 +1247,19 @@ int count_users(void) {
 
 	return users;
 }
+//----------------------------------------
+// [Fate] Find inventory item based on equipment mask, return view.  ID must match view ID (!).
+//----------------------------------------
+static int
+find_equip_view(struct mmo_charstatus *p, unsigned int equipmask)
+{
+        int i;
+        for (i = 0; i < MAX_INVENTORY; i++)
+                if (p->inventory[i].amount
+                    && p->inventory[i].equip & equipmask)
+                        return p->inventory[i].nameid;
+        return 0;
+}
 
 //----------------------------------------
 // Function to send characters to a player
@@ -1286,8 +1299,10 @@ int mmo_char_send006b(int fd, struct char_session_data *sd) {
 		WFIFOL(fd,j+12) = p->job_exp;
 		WFIFOL(fd,j+16) = p->job_level;
 
-		WFIFOL(fd,j+20) = 0;
-		WFIFOL(fd,j+24) = 0;
+		WFIFOW(fd,j+20) = find_equip_view(p, 0x0040); // 9: shoes
+		WFIFOW(fd,j+22) = find_equip_view(p, 0x0004); // 10: gloves
+		WFIFOW(fd,j+24) = find_equip_view(p, 0x0008); // 11: cape
+		WFIFOW(fd,j+26) = find_equip_view(p, 0x0010); // 12: misc1
 		WFIFOL(fd,j+28) = p->option;
 
 		WFIFOL(fd,j+32) = p->karma;
@@ -1310,7 +1325,8 @@ int mmo_char_send006b(int fd, struct char_session_data *sd) {
 		WFIFOW(fd,j+66) = p->head_top;
 		WFIFOW(fd,j+68) = p->head_mid;
 		WFIFOW(fd,j+70) = p->hair_color;
-		WFIFOW(fd,j+72) = p->clothes_color;
+		WFIFOW(fd,j+72) = find_equip_view(p, 0x0080); // 13: misc2
+//		WFIFOW(fd,j+72) = p->clothes_color;
 
 		memcpy(WFIFOP(fd,j+74), p->name, 24);
 
@@ -1353,11 +1369,6 @@ int char_divorce(struct mmo_charstatus *cs) {
 			if (char_dat[i].char_id == cs->partner_id && char_dat[i].partner_id == cs->char_id) {
 				cs->partner_id = 0;
 				char_dat[i].partner_id = 0;
-				for(j = 0; j < MAX_INVENTORY; j++)
-					if (char_dat[i].inventory[j].nameid == WEDDING_RING_M || char_dat[i].inventory[j].nameid == WEDDING_RING_F)
-						memset(&char_dat[i].inventory[j], 0, sizeof(char_dat[i].inventory[0]));
-					if (cs->inventory[j].nameid == WEDDING_RING_M || cs->inventory[j].nameid == WEDDING_RING_F)
-						memset(&cs->inventory[j], 0, sizeof(cs->inventory[0]));
 				return 0;
 			}
 		}

@@ -689,13 +689,7 @@ int chrif_divorce(int char_id, int partner_id)
 	nullpo_retr(0, sd = map_nick2sd(map_charid2nick(partner_id)));
 	if (sd->status.partner_id == char_id) {
 		int i;
-		//—£¥(‘Š•û‚ÍŠù‚ÉƒLƒƒƒ‰‚ªÁ‚¦‚Ä‚¢‚é”¤‚È‚Ì‚Å)
 		sd->status.partner_id = 0;
-
-		//‘Š•û‚ÌŒ‹¥w—Ö‚ğ”’D
-		for(i = 0; i < MAX_INVENTORY; i++)
-			if (sd->status.inventory[i].nameid == WEDDING_RING_M || sd->status.inventory[i].nameid == WEDDING_RING_F)
-				pc_delitem(sd, i, 1, 0);
 	}
 
 	return 0;
@@ -717,7 +711,7 @@ int chrif_accountdeletion(int fd)
 	if (acc > 0) {
 		if (sd != NULL) {
 			sd->login_id1++; // change identify, because if player come back in char within the 5 seconds, he can change its characters
-			clif_displaymessage(sd->fd, "Your account has been deleted (disconnexion)...");
+			clif_displaymessage(sd->fd, "Your account has been deleted (disconnection)...");
 			clif_setwaitclose(sd->fd); // forced to disconnect for the change
 		}
 	} else {

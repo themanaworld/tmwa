@@ -1209,6 +1209,23 @@ static int clif_set0192(int fd, int m, int x, int y, int type) {
 	return 0;
 }
 
+/* These indices are derived from equip_pos in pc.c and some guesswork */
+static int equip_points[LOOK_LAST + 1] = {
+        -1, /* 0: base */
+        -1, /* 1: hair */
+        9, /* 2: weapon */
+        4, /* 3: head botom -- leg armour */
+        6, /* 4: head top -- hat */
+        5, /* 5: head mid -- torso armour */
+        -1, /* 6: hair colour */
+        -1, /* 6: clothes colour */
+        8, /* 6: shield */
+        2, /* 9: shoes */
+        3, /* gloves */
+        1, /* cape */
+        7, /* misc1 */
+        0, /* misc2 */};
+
 /*==========================================
  *
  *------------------------------------------
@@ -1286,6 +1303,8 @@ int clif_spawnpc(struct map_session_data *sd) {
 	if (map[sd->bl.m].flag.rain)
 		clif_specialeffect(&sd->bl, 161, 1);
 
+        clif_changelook_accessories(&sd->bl, NULL);
+
 	return 0;
 }
 
@@ -1315,6 +1334,7 @@ int clif_spawnnpc(struct npc_data *nd)
 
 	len = clif_npc0078(nd,buf);
 	clif_send(buf,len,&nd->bl,AREA);
+
 
 	return 0;
 }
@@ -2563,8 +2583,13 @@ int clif_changestatus(struct block_list *bl,int type,int val)
  */
 int clif_changelook(struct block_list *bl,int type,int val)
 {
+        clif_changelook_towards(bl, type, val, NULL);
+}
 
-	unsigned char buf[32];
+int clif_changelook_towards(struct block_list *bl,int type,int val, struct map_session_data *dstsd)
+{
+	unsigned char rbuf[32];
+        unsigned char *buf = dstsd ? WFIFOP(dstsd->fd, 0) : rbuf; // pick target buffer or general-purpose one
 	struct map_session_data *sd = NULL;
 
 	nullpo_retr(0, bl);
@@ -2582,18 +2607,24 @@ int clif_changelook(struct block_list *bl,int type,int val)
 	WBUFL(buf,2)=bl->id;
 	WBUFB(buf,6)=type;
 	WBUFB(buf,7)=val;
-	clif_send(buf,packet_len_table[0xc3],bl,AREA);
+
+        if (dstsd)
+                WFIFOSET(dstsd->fd, packet_len_table[0xc3]);
+        else
+                clif_send(buf,packet_len_table[0xc3],bl,AREA);
 #else
-	if(sd && (type == LOOK_WEAPON || type == LOOK_SHIELD || type == LOOK_SHOES)) {
+	if(sd && (type == LOOK_WEAPON || type == LOOK_SHIELD || type >= LOOK_SHOES)) {
 		WBUFW(buf,0)=0x1d7;
 		WBUFL(buf,2)=bl->id;
-		if(type == LOOK_SHOES) {
-			WBUFB(buf,6)=9;
-			if(sd->equip_index[2] >= 0 && sd->inventory_data[sd->equip_index[2]]) {
-				if(sd->inventory_data[sd->equip_index[2]]->view_id > 0)
-					WBUFW(buf,7)=sd->inventory_data[sd->equip_index[2]]->view_id;
+		if(type >= LOOK_SHOES) {
+                        int equip_point = equip_points[type];
+
+			WBUFB(buf,6) = type;
+			if(sd->equip_index[equip_point] >= 0 && sd->inventory_data[sd->equip_index[2]]) {
+				if(sd->inventory_data[sd->equip_index[equip_point]]->view_id > 0)
+					WBUFW(buf,7)=sd->inventory_data[sd->equip_index[equip_point]]->view_id;
 				else
-					WBUFW(buf,7)=sd->status.inventory[sd->equip_index[2]].nameid;
+					WBUFW(buf,7)=sd->status.inventory[sd->equip_index[equip_point]].nameid;
 			} else
 				WBUFW(buf,7)=0;
 			WBUFW(buf,9)=0;
@@ -2620,22 +2651,21 @@ int clif_changelook(struct block_list *bl,int type,int val)
 			} else
 				WBUFW(buf,9)=0;
 		}
-		clif_send(buf,packet_len_table[0x1d7],bl,AREA);
+                if (dstsd)
+                        WFIFOSET(dstsd->fd, packet_len_table[0x1d7]);
+                else
+                        clif_send(buf, packet_len_table[0x1d7], bl, AREA);
 	}
-	else if(sd && (type == LOOK_BASE) && (val > 255))
-		{
+	else {
 		WBUFW(buf,0)=0x1d7;
 		WBUFL(buf,2)=bl->id;
 		WBUFB(buf,6)=type;
 		WBUFW(buf,7)=val;
 		WBUFW(buf,9)=0;
-		clif_send(buf,packet_len_table[0x1d7],bl,AREA);
-	} else {
-		WBUFW(buf,0)=0xc3;
-		WBUFL(buf,2)=bl->id;
-		WBUFB(buf,6)=type;
-		WBUFB(buf,7)=val;
-		clif_send(buf,packet_len_table[0xc3],bl,AREA);
+                if (dstsd)
+                        WFIFOSET(dstsd->fd, packet_len_table[0x1d7]);
+                else
+                        clif_send(buf, packet_len_table[0x1d7], bl, AREA);
 	}
 #endif
 	return 0;
@@ -3514,6 +3544,17 @@ int clif_storageclose(struct map_session_data *sd)
 	return 0;
 }
 
+void
+clif_changelook_accessories(struct block_list *bl, struct map_session_data *dest)
+{
+        int i;
+
+         for (i = LOOK_SHOES; i <= LOOK_LAST; i++)
+                 clif_changelook_towards(bl, i, 0, dest);
+}
+
+
+
 //
 // callbackŒn ?
 //
@@ -3555,6 +3596,8 @@ void clif_getareachar_pc(struct map_session_data* sd,struct map_session_data* ds
 	if(sd->status.manner < 0)
 		clif_changestatus(&sd->bl,SP_MANNER,sd->status.manner);
 
+        clif_changelook_accessories(sd, dstsd);
+        clif_changelook_accessories(dstsd, sd);
 }
 
 /*==========================================
@@ -3640,6 +3683,7 @@ int clif_fixpcpos(struct map_session_data *sd)
 		len = clif_set0078(sd,buf);
 		clif_send(buf,len,&sd->bl,AREA);
 	}
+        clif_changelook_accessories(sd, NULL);
 
 	return 0;
 }
@@ -7220,6 +7264,8 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 		if(sd->status.inventory[i].equip && sd->status.inventory[i].equip & 0x0010 && sd->status.inventory[i].broken==1)
 			skill_status_change_start(&sd->bl,SC_BROKNARMOR,0,0,0,0,0,0);
 	}
+
+        clif_changelook_accessories(sd, NULL);
 
 	map_foreachinarea(clif_getareachar,sd->bl.m,sd->bl.x-AREA_SIZE,sd->bl.y-AREA_SIZE,sd->bl.x+AREA_SIZE,sd->bl.y+AREA_SIZE,0,sd);
 }

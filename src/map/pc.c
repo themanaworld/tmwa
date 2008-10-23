@@ -5759,11 +5759,13 @@ int pc_equiplookall(struct map_session_data *sd)
 	clif_changelook(&sd->bl,LOOK_SHIELD,sd->status.shield);
 #else
 	clif_changelook(&sd->bl,LOOK_WEAPON,0);
-	clif_changelook(&sd->bl,LOOK_SHOES,0);
+//	clif_changelook(&sd->bl,LOOK_SHOES,0);
 #endif
 	clif_changelook(&sd->bl,LOOK_HEAD_BOTTOM,sd->status.head_bottom);
 	clif_changelook(&sd->bl,LOOK_HEAD_TOP,sd->status.head_top);
 	clif_changelook(&sd->bl,LOOK_HEAD_MID,sd->status.head_mid);
+
+        clif_changelook_accessories(&sd->bl, NULL);
 
 	return 0;
 }
@@ -6307,9 +6309,25 @@ int pc_cleareventtimer(struct map_session_data *sd)
  * アイテムを装備する
  *------------------------------------------
  */
+static int
+pc_signal_advanced_equipment_change(struct map_session_data *sd,int n)
+{
+        if(sd->status.inventory[n].equip & 0x0040)
+                clif_changelook(&sd->bl,LOOK_SHOES,0);
+        if(sd->status.inventory[n].equip & 0x0004)
+                clif_changelook(&sd->bl, LOOK_GLOVES, 0);
+        if(sd->status.inventory[n].equip & 0x0008)
+                clif_changelook(&sd->bl, LOOK_CAPE, 0);
+        if(sd->status.inventory[n].equip & 0x0010)
+                clif_changelook(&sd->bl, LOOK_MISC1, 0);
+        if(sd->status.inventory[n].equip & 0x0080)
+                clif_changelook(&sd->bl, LOOK_MISC2, 0);
+}
+
+
 int pc_equipitem(struct map_session_data *sd,int n,int pos)
 {
-	int i,nameid, arrow;
+	int i,nameid, arrow, view;
 	struct item_data *id;
 	//転生や養子の場合の元の職業を算出する
 
@@ -6380,11 +6398,15 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 	}
 	sd->status.inventory[n].equip=pos;
 
+	if(sd->inventory_data[n]) {
+		view = sd->inventory_data[n]->look;
+		if (view == 0) view = sd->inventory_data[n]->nameid;
+	} else {
+		view = 0;
+	}
+
 	if(sd->status.inventory[n].equip & 0x0002) {
-		if(sd->inventory_data[n])
-			sd->weapontype1 = sd->inventory_data[n]->look;
-		else
-			sd->weapontype1 = 0;
+		sd->weapontype1 = view;
 		pc_calcweapontype(sd);
                 pc_set_weapon_look(sd);
 	}
@@ -6393,12 +6415,10 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 			if(sd->inventory_data[n]->type == 4) {
 				sd->status.shield = 0;
 				if(sd->status.inventory[n].equip == 0x0020)
-					sd->weapontype2 = sd->inventory_data[n]->look;
-				else
-					sd->weapontype2 = 0;
+					sd->weapontype2 = view;
 			}
 			else if(sd->inventory_data[n]->type == 5) {
-				sd->status.shield = sd->inventory_data[n]->look;
+				sd->status.shield = view;
 				sd->weapontype2 = 0;
 			}
 		}
@@ -6408,28 +6428,18 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 		clif_changelook(&sd->bl,LOOK_SHIELD,sd->status.shield);
 	}
 	if(sd->status.inventory[n].equip & 0x0001) {
-		if(sd->inventory_data[n])
-			sd->status.head_bottom = sd->inventory_data[n]->look;
-		else
-			sd->status.head_bottom = 0;
+		sd->status.head_bottom = view;
 		clif_changelook(&sd->bl,LOOK_HEAD_BOTTOM,sd->status.head_bottom);
 	}
 	if(sd->status.inventory[n].equip & 0x0100) {
-		if(sd->inventory_data[n])
-			sd->status.head_top = sd->inventory_data[n]->look;
-		else
-			sd->status.head_top = 0;
+		sd->status.head_top = view;
 		clif_changelook(&sd->bl,LOOK_HEAD_TOP,sd->status.head_top);
 	}
 	if(sd->status.inventory[n].equip & 0x0200) {
-		if(sd->inventory_data[n])
-			sd->status.head_mid = sd->inventory_data[n]->look;
-		else
-			sd->status.head_mid = 0;
+		sd->status.head_mid = view;
 		clif_changelook(&sd->bl,LOOK_HEAD_MID,sd->status.head_mid);
 	}
-	if(sd->status.inventory[n].equip & 0x0040)
-		clif_changelook(&sd->bl,LOOK_SHOES,0);
+        pc_signal_advanced_equipment_change(sd, n);
 
 	pc_checkallowskill(sd);	// 装備品でスキルか解除されるかチェック
 	if (itemdb_look(sd->status.inventory[n].nameid) == 11 && arrow){	// Added by RoVeRT
@@ -6501,8 +6511,7 @@ int pc_unequipitem(struct map_session_data *sd,int n,int type)
 			sd->status.head_mid = 0;
 			clif_changelook(&sd->bl,LOOK_HEAD_MID,sd->status.head_mid);
 		}
-		if(sd->status.inventory[n].equip & 0x0040)
-			clif_changelook(&sd->bl,LOOK_SHOES,0);
+                pc_signal_advanced_equipment_change(sd, n);
 
 		if(sd->sc_data[SC_BROKNWEAPON].timer != -1 && sd->status.inventory[n].equip & 0x0002 &&
 		sd->status.inventory[i].broken==1)
@@ -6733,19 +6742,12 @@ int pc_divorce(struct map_session_data *sd)
 		return -1;
 
 	if( (p_sd=map_nick2sd(map_charid2nick(sd->status.partner_id))) !=NULL){
-		int i;
 		if(p_sd->status.partner_id != sd->status.char_id || sd->status.partner_id != p_sd->status.char_id){
 			printf("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n",sd->status.partner_id,p_sd->status.partner_id);
 			return -1;
 		}
 		sd->status.partner_id=0;
 		p_sd->status.partner_id=0;
-		for(i=0;i<MAX_INVENTORY;i++)
-			if(sd->status.inventory[i].nameid == WEDDING_RING_M || sd->status.inventory[i].nameid == WEDDING_RING_F)
-				pc_delitem(sd,i,1,0);
-		for(i=0;i<MAX_INVENTORY;i++)
-			if(p_sd->status.inventory[i].nameid == WEDDING_RING_M || p_sd->status.inventory[i].nameid == WEDDING_RING_F)
-				pc_delitem(p_sd,i,1,0);
 
 	}else{
 		printf("pc_divorce: p_sd nullpo\n");
