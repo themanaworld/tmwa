@@ -486,7 +486,7 @@ int battle_get_critical(struct block_list *bl)
 	nullpo_retr(1, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_PC && (struct map_session_data *)bl){
-		critical = battle_get_luk(bl)*3 + 10;
+		critical = battle_get_luk(bl)*2 + 10;
 		critical += ((struct map_session_data *)bl)->critical - ((((struct map_session_data *)bl)->paramc[5]*3) + 10);
 	}
 	else
@@ -2744,7 +2744,6 @@ static struct Damage battle_calc_pc_weapon_attack(
 		return wd;
 	}
 
-
 	// アタッカー
 	s_race=battle_get_race(src); //種族
 	s_ele=battle_get_attack_element(src); //属性
@@ -2808,6 +2807,12 @@ static struct Damage battle_calc_pc_weapon_attack(
 		}
 	}
 	hitrate=battle_get_hit(src) - flee + 80; //命中率計算
+        { // [Fate] Reduce hit chance by distance
+                int dx = abs(src->x - target->x);
+                int dy = abs(src->y - target->y);
+                int dist = MAX(dx, dy);
+                hitrate -= (dist * (dist + 1));
+        }
 
 	type=0;	// normal
 	div_ = 1; // single attack

@@ -1504,9 +1504,11 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	else {
 		str = sd->paramc[0];
 		dex = sd->paramc[4];
+                sd->critical += ((dex * 3) >> 1);
 	}
 	dstr = str/10;
 	sd->base_atk += str + dstr*dstr + dex/5 + sd->paramc[5]/5;
+//fprintf(stderr, "baseatk = %d = x + %d + %d + %d + %d\n", sd->base_atk, str, dstr*dstr, dex/5, sd->paramc[5]/5);
 	sd->matk1 += sd->paramc[3]+(sd->paramc[3]/5)*(sd->paramc[3]/5);
 	sd->matk2 += sd->paramc[3]+(sd->paramc[3]/7)*(sd->paramc[3]/7);
 	if(sd->matk1 < sd->matk2) {
