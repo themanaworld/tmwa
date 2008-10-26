@@ -6324,6 +6324,7 @@ pc_signal_advanced_equipment_change(struct map_session_data *sd,int n)
                 clif_changelook(&sd->bl, LOOK_MISC1, 0);
         if(sd->status.inventory[n].equip & 0x0080)
                 clif_changelook(&sd->bl, LOOK_MISC2, 0);
+        return 0;
 }
 
 

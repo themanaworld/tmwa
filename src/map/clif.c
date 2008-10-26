@@ -1303,7 +1303,7 @@ int clif_spawnpc(struct map_session_data *sd) {
 	if (map[sd->bl.m].flag.rain)
 		clif_specialeffect(&sd->bl, 161, 1);
 
-        clif_changelook_accessories(&sd->bl, NULL);
+//        clif_changelook_accessories(&sd->bl, NULL);
 
 	return 0;
 }
@@ -3549,8 +3549,8 @@ clif_changelook_accessories(struct block_list *bl, struct map_session_data *dest
 {
         int i;
 
-         for (i = LOOK_SHOES; i <= LOOK_LAST; i++)
-                 clif_changelook_towards(bl, i, 0, dest);
+        for (i = LOOK_SHOES; i <= LOOK_LAST; i++)
+                clif_changelook_towards(bl, i, 0, dest);
 }
 
 
@@ -7265,7 +7265,7 @@ void clif_parse_LoadEndAck(int fd,struct map_session_data *sd)
 			skill_status_change_start(&sd->bl,SC_BROKNARMOR,0,0,0,0,0,0);
 	}
 
-        clif_changelook_accessories(sd, NULL);
+//        clif_changelook_accessories(sd, NULL);
 
 	map_foreachinarea(clif_getareachar,sd->bl.m,sd->bl.x-AREA_SIZE,sd->bl.y-AREA_SIZE,sd->bl.x+AREA_SIZE,sd->bl.y+AREA_SIZE,0,sd);
 }
