@@ -609,7 +609,6 @@ This section documents the operations API.
     instances of `item'.  As usual, `item' can be either a string name
     or an item ID.
 
-
   + aggravate : entity * int * entity -> ()
     aggravate (victim, mode, target) causes the `victim' to
       mode = 0: attack `target'
@@ -624,9 +623,27 @@ This section documents the operations API.
   + emote : entity * int -> ()
     Issues the specified emotion to the specified entity.
 
-  - set_script_variable : entity * string * int -> ()
+  + set_script_variable : entity * string * int -> ()
     Sets a script variable to the specified value
 
+  + set_hair_colour : entity * int -> ()
+    Sets the hair colour of the specified entity to the specified
+    value (must be a PC).
+
+  + set_hair_style : entity * int -> ()
+    Adjusts the hair style of a PC.
+
+  + drop_item : location * (int | string) * int * int -> ()
+    drop_item(place, "name", count, duration) drops `count' items
+    (where count may be zero) of name "name" at `place'.  The items
+    vanish again after `duration'.
+
+  + drop_item_for : location * (int | string)
+                    * int * int * entity * int -> ()
+    drop_item_for(place, obj, count, duration, owner, delay) works
+    like drop_item(place, obj, count, duration), except that the item
+    can only be picked up by `owner' for the next `delay'
+    milliseconds, modulo pickup rules (spousal pickup, out-of-range).
 
 Script API updates:
 -------------------

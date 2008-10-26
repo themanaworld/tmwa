@@ -3058,19 +3058,24 @@ int pc_takeitem(struct map_session_data *sd,struct flooritem_data *fitem)
                 fitem->third_get_id = 0;
         }
 
+fprintf(stderr, "pickuptime = %d, ticktime = %d\n", fitem->first_get_tick, tick);
+fprintf(stderr, "canpickup-1 = %d\n", can_pick_item_up_from (sd, fitem->second_get_id));
         can_take = can_pick_item_up_from (sd, fitem->first_get_id);
-
+fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
         if (!can_take)
                 can_take = fitem->first_get_tick <= tick
                         && can_pick_item_up_from (sd, fitem->second_get_id);
+fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
 
         if (!can_take)
                 can_take = fitem->second_get_tick <= tick
                         && can_pick_item_up_from (sd, fitem->third_get_id);
 
+fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
         if (!can_take)
                 can_take = fitem->third_get_tick <= tick;
 
+fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
         if (can_take) {
                 /* Can pick up */
 

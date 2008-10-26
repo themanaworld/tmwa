@@ -504,15 +504,47 @@ op_override_attack(env_t *env, int args_nr, val_t *args)
         return 0;
 }
 
+static int // ret -1: not a string, ret 1: no such item, ret 0: OK
+find_item(val_t *args, int index, struct item *item, int *stackable)
+{
+        struct item_data *item_data;
+        int must_add_sequentially;
+
+        if (TY(index) == TY_INT)
+                item_data = itemdb_exists(ARGINT(index));
+        else if (TY(index) == TY_STRING)
+                item_data = itemdb_searchname(ARGSTR(index));
+        else
+                return -1;
+
+        if (!item_data)
+                return 1;
+
+        must_add_sequentially = (item_data->type == 4
+                                 || item_data->type == 5
+                                 || item_data->type == 7
+                                 || item_data->type == 8); /* Very elegant. */
+
+
+        if (stackable)
+            *stackable = !must_add_sequentially;
+
+        memset(item, 0, sizeof(struct item));
+        item->nameid = item_data->nameid;
+        item->identify = 1;
+
+        return 0;
+}
+
+#define GET_ARG_ITEM(index, dest, stackable) switch(find_item(args, index, &dest, &stackable)) { case -1 : return 1; case 1 : return 0; }
 
 static int
 op_create_item(env_t *env, int args_nr, val_t *args)
 {
-        struct item_data *item_data;
         struct item item;
         entity_t *entity = ARGENTITY(0);
         character_t *subject;
-        int must_add_sequentially;
+        int stackable;
         int count = ARGINT(2);
         if (count <= 0)
                 return 0;
@@ -522,26 +554,9 @@ op_create_item(env_t *env, int args_nr, val_t *args)
         else
                 return 0;
 
-        if (TY(1) == TY_INT)
-                item_data = itemdb_exists(ARGINT(1));
-        else if (TY(1) == TY_STRING)
-                item_data = itemdb_searchname(ARGSTR(1));
-        else
-                return 1;
+        GET_ARG_ITEM(1, item, stackable);
 
-        if (!item_data)
-                return 0;
-
-        must_add_sequentially = (item_data->type == 4
-                                 || item_data->type == 5
-                                 || item_data->type == 7
-                                 || item_data->type == 8); /* Very elegant. */
-
-        memset(&item, 0, sizeof(struct item));
-        item.nameid = item_data->nameid;
-        item.identify = 1;
-
-        if (must_add_sequentially)
+        if (!stackable)
                 while (count--)
                         pc_additem(subject, &item, 1);
         else
@@ -709,6 +724,60 @@ op_set_script_variable(env_t *env, int args_nr, val_t *args)
 }
 
 
+static int
+op_set_hair_colour(env_t *env, int args_nr, val_t *args)
+{
+        character_t *c = (ETY(0) == BL_PC)? ARGPC(0) : NULL;
+
+        if (!c)
+                return 1;
+
+        pc_changelook(c, LOOK_HAIR_COLOR, ARGINT(1));
+
+        return 0;
+}
+
+
+static int
+op_set_hair_style(env_t *env, int args_nr, val_t *args)
+{
+        character_t *c = (ETY(0) == BL_PC)? ARGPC(0) : NULL;
+
+        if (!c)
+                return 1;
+
+        pc_changelook(c, LOOK_HAIR, ARGINT(1));
+
+        return 0;
+}
+
+static int
+op_drop_item_for(env_t *env, int args_nr, val_t *args)
+{
+        struct item item;
+        int stackable;
+        location_t *loc = &ARGLOCATION(0);
+        int count = ARGINT(2);
+        int time = ARGINT(3);
+        character_t *c = ((args_nr > 4) && (ETY(4) == BL_PC))? ARGPC(4) : NULL;
+        int delay = (args_nr > 5)? ARGINT(5) : 0;
+        int delaytime[3] = { delay, delay, delay };
+        character_t *owners[3] = { c, NULL, NULL };
+
+        GET_ARG_ITEM(1, item, stackable);
+
+        if (stackable)
+                map_addflooritem_any(&item, count, loc->m, loc->x, loc->y,
+                                     owners, delaytime,
+                                     time, 0);
+        else while (count-- > 0)
+                map_addflooritem_any(&item, 1, loc->m, loc->x, loc->y,
+                                     owners, delaytime,
+                                     time, 0);
+
+        return 0;
+}
+
 static op_t operations[] =
 {
         { "sfx", ".ii", op_sfx },
@@ -729,6 +798,10 @@ static op_t operations[] =
         { "injure", "eeii", op_injure },
         { "emote", "ei", op_emote },
         { "set_script_variable", "esi", op_set_script_variable },
+        { "set_hair_colour", "ei", op_set_hair_colour },
+        { "set_hair_style", "ei", op_set_hair_style },
+        { "drop_item", "l.ii", op_drop_item_for },
+        { "drop_item_for", "l.iiei", op_drop_item_for },
         { NULL, NULL, NULL }
 };
 

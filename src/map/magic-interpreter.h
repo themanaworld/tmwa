@@ -377,8 +377,11 @@ spell_create_env(magic_conf_t *conf, spell_t *spell, character_t *caster, int sp
 void
 magic_free_env(env_t *env);
 
+/**
+ * near_miss is set to nonzero iff the spell only failed due to ephemereal issues (spell delay in effect, out of mana, out of components)
+ */
 effect_set_t *
-spell_trigger(spell_t *spell, character_t *caster, env_t *env);
+spell_trigger(spell_t *spell, character_t *caster, env_t *env, int *near_miss);
 
 invocation_t *
 spell_instantiate(effect_set_t *effect, env_t *env);

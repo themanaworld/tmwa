@@ -76,8 +76,9 @@ magic_message(character_t *caster,
         free(spell_invocation);
 
         if (spell) {
+                int near_miss;
                 env_t *env = spell_create_env(&magic_conf, spell, caster, power, parameter);
-                effect_set_t *effects = spell_trigger(spell, caster, env);
+                effect_set_t *effects = spell_trigger(spell, caster, env, &near_miss);
 
 #ifdef DEBUG
                 fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_, effects != NULL);
@@ -99,6 +100,11 @@ magic_message(character_t *caster,
                         return (spell->flags & SPELL_FLAG_SILENT)? -1 : 1;
                 } else {
                         magic_free_env(env);
+
+                        /* Obscure proper almost-triggered spell */
+                        if (near_miss)
+                                while (*source_invocation)
+                                        *source_invocation++ = '.';
                 }
                 return 0;
         }

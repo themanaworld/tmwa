@@ -288,14 +288,19 @@ consume_components(character_t *caster, component_t *component)
 
 
 static int
-spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *env)
+spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *env, int *near_miss)
 {
         int tick = gettick();
 
-        int retval = (caster->cast_tick <= tick /* Hasn't cast a spell too recently */
-                      && check->mana <= caster->status.sp
-                      && check_prerequisites(caster, check->catalysts)
-                      && check_prerequisites(caster, check->components));
+        int retval = check_prerequisites(caster, check->catalysts);
+
+        if (retval && near_miss)
+                *near_miss = 1; // close enough!
+
+        retval = retval
+                && caster->cast_tick <= tick /* Hasn't cast a spell too recently */
+                && check->mana <= caster->status.sp
+                && check_prerequisites(caster, check->components);
 
         if (retval) {
                 int casttime = check->casttime;
@@ -313,7 +318,7 @@ spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *en
 }
 
 static effect_set_t *
-spellguard_check_sub(spellguard_check_t *check, spellguard_t *guard, character_t *caster, env_t *env)
+spellguard_check_sub(spellguard_check_t *check, spellguard_t *guard, character_t *caster, env_t *env, int *near_miss)
 {
         if (guard == NULL)
                 return NULL;
@@ -342,13 +347,13 @@ spellguard_check_sub(spellguard_check_t *check, spellguard_t *guard, character_t
                 copy_components(&altcheck.catalysts, check->catalysts);
                 copy_components(&altcheck.components, check->components);
 
-                retval = spellguard_check_sub(&altcheck, guard->next, caster, env);
+                retval = spellguard_check_sub(&altcheck, guard->next, caster, env, near_miss);
                 free_components(&altcheck.catalysts);
                 free_components(&altcheck.components);
                 if (retval)
                         return retval;
                 else
-                    return spellguard_check_sub(check, guard->s.s_alt, caster, env);
+                    return spellguard_check_sub(check, guard->s.s_alt, caster, env, near_miss);
         }
 
         case SPELLGUARD_MANA:
@@ -360,7 +365,7 @@ spellguard_check_sub(spellguard_check_t *check, spellguard_t *guard, character_t
                 break;
 
         case SPELLGUARD_EFFECT:
-                if (spellguard_can_satisfy(check, caster, env))
+                if (spellguard_can_satisfy(check, caster, env, near_miss))
                         return &guard->s.s_effect;
                 else
                         return NULL;    
@@ -370,11 +375,11 @@ spellguard_check_sub(spellguard_check_t *check, spellguard_t *guard, character_t
                 return NULL;
         }
 
-        return spellguard_check_sub(check, guard->next, caster, env);
+        return spellguard_check_sub(check, guard->next, caster, env, near_miss);
 }
 
 static effect_set_t *
-check_spellguard(spellguard_t *guard, character_t *caster, env_t *env)
+check_spellguard(spellguard_t *guard, character_t *caster, env_t *env, int *near_miss)
 {
         spellguard_check_t check;
         effect_set_t *retval;
@@ -382,7 +387,7 @@ check_spellguard(spellguard_t *guard, character_t *caster, env_t *env)
         check.components = NULL;
         check.mana = check.casttime = 0;
 
-        retval = spellguard_check_sub(&check, guard, caster, env);
+        retval = spellguard_check_sub(&check, guard, caster, env, near_miss);
 
         free_components(&check.catalysts);
         free_components(&check.components);
@@ -396,17 +401,20 @@ check_spellguard(spellguard_t *guard, character_t *caster, env_t *env)
 
 
 effect_set_t *
-spell_trigger(spell_t *spell, character_t *caster, env_t *env)
+spell_trigger(spell_t *spell, character_t *caster, env_t *env, int *near_miss)
 {
         int i;
         spellguard_t *guard = spell->spellguard;
+
+        if (near_miss)
+            *near_miss = 0;
 
         for (i = 0; i < spell->letdefs_nr; i++)
                 magic_eval(env,
                            &env->vars[spell->letdefs[i].id],
                            spell->letdefs[i].expr);
 
-        return check_spellguard(guard, caster, env);
+        return check_spellguard(guard, caster, env, near_miss);
 }
 
 static void

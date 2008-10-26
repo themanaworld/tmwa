@@ -783,15 +783,18 @@ int map_searchrandfreecell(int m,int x,int y,int range) {
  * item_dataÇÕamountà»äOÇcopyÇ∑ÇÈ
  *------------------------------------------
  */
-int map_addflooritem(struct item *item_data,int amount,int m,int x,int y,struct map_session_data *first_sd,
-    struct map_session_data *second_sd,struct map_session_data *third_sd,int type) {
+int map_addflooritem_any(struct item *item_data, int amount, int m, int x, int y,
+                         struct map_session_data **owners,
+                         int *owner_protection,
+                         int lifetime, int dispersal)
+{
 	int xy,r;
 	unsigned int tick;
 	struct flooritem_data *fitem=NULL;
 
 	nullpo_retr(0, item_data);
 
-	if((xy=map_searchrandfreecell(m,x,y,1))<0)
+	if((xy=map_searchrandfreecell(m,x,y, dispersal))<0)
 		return 0;
 	r=rand();
 
@@ -815,39 +818,117 @@ int map_addflooritem(struct item *item_data,int amount,int m,int x,int y,struct 
 	}
 
 	tick = gettick();
-	if(first_sd) {
-		fitem->first_get_id = first_sd->bl.id;
-		if(type)
-			fitem->first_get_tick = tick + battle_config.mvp_item_first_get_time;
-		else
-			fitem->first_get_tick = tick + battle_config.item_first_get_time;
-	}
-	if(second_sd) {
-		fitem->second_get_id = second_sd->bl.id;
-		if(type)
-			fitem->second_get_tick = tick + battle_config.mvp_item_first_get_time + battle_config.mvp_item_second_get_time;
-		else
-			fitem->second_get_tick = tick + battle_config.item_first_get_time + battle_config.item_second_get_time;
-	}
-	if(third_sd) {
-		fitem->third_get_id = third_sd->bl.id;
-		if(type)
-			fitem->third_get_tick = tick + battle_config.mvp_item_first_get_time + battle_config.mvp_item_second_get_time + battle_config.mvp_item_third_get_time;
-		else
-			fitem->third_get_tick = tick + battle_config.item_first_get_time + battle_config.item_second_get_time + battle_config.item_third_get_time;
-	}
+
+	if (owners[0])
+                fitem->first_get_id = owners[0]->bl.id;
+        fitem->first_get_tick = tick + owner_protection[0];
+
+	if (owners[1])
+                fitem->second_get_id = owners[1]->bl.id;
+        fitem->second_get_tick = tick + owner_protection[1];
+
+	if (owners[2])
+                fitem->third_get_id = owners[2]->bl.id;
+        fitem->third_get_tick = tick + owner_protection[2];
 
 	memcpy(&fitem->item_data,item_data,sizeof(*item_data));
 	fitem->item_data.amount=amount;
 	fitem->subx=(r&3)*3+3;
 	fitem->suby=((r>>2)&3)*3+3;
-	fitem->cleartimer=add_timer(gettick()+battle_config.flooritem_lifetime,map_clearflooritem_timer,fitem->bl.id,0);
+	fitem->cleartimer=add_timer(gettick() + lifetime, map_clearflooritem_timer, fitem->bl.id, 0);
 
 	map_addblock(&fitem->bl);
 	clif_dropflooritem(fitem);
 
 	return fitem->bl.id;
 }
+
+
+int map_addflooritem(struct item *item_data,int amount,int m,int x,int y,struct map_session_data *first_sd,
+    struct map_session_data *second_sd,struct map_session_data *third_sd,int type)
+{
+        struct map_session_data *owners[3] = { first_sd, second_sd, third_sd };
+        int owner_protection[3];
+
+        if (type) {
+                owner_protection[0] = battle_config.mvp_item_first_get_time;
+                owner_protection[1] = owner_protection[0] + battle_config.mvp_item_second_get_time;
+                owner_protection[2] = owner_protection[1] + battle_config.mvp_item_third_get_time;
+        } else {
+                owner_protection[0] = battle_config.item_first_get_time;
+                owner_protection[1] = owner_protection[0] + battle_config.item_second_get_time;
+                owner_protection[2] = owner_protection[1] + battle_config.item_third_get_time;
+        }
+
+        return map_addflooritem_any(item_data, amount, m, x, y,
+                                    owners, owner_protection,
+                                    battle_config.flooritem_lifetime,
+                                    1);
+}
+
+/* 	int xy,r; */
+/* 	unsigned int tick; */
+/* 	struct flooritem_data *fitem=NULL; */
+
+/* 	nullpo_retr(0, item_data); */
+
+/* 	if((xy=map_searchrandfreecell(m,x,y,1))<0) */
+/* 		return 0; */
+/* 	r=rand(); */
+
+/* 	fitem = (struct flooritem_data *)aCalloc(1,sizeof(*fitem)); */
+/* 	fitem->bl.type=BL_ITEM; */
+/* 	fitem->bl.prev = fitem->bl.next = NULL; */
+/* 	fitem->bl.m=m; */
+/* 	fitem->bl.x=xy&0xffff; */
+/* 	fitem->bl.y=(xy>>16)&0xffff; */
+/* 	fitem->first_get_id = 0; */
+/* 	fitem->first_get_tick = 0; */
+/* 	fitem->second_get_id = 0; */
+/* 	fitem->second_get_tick = 0; */
+/* 	fitem->third_get_id = 0; */
+/* 	fitem->third_get_tick = 0; */
+
+/* 	fitem->bl.id = map_addobject(&fitem->bl); */
+/* 	if(fitem->bl.id==0){ */
+/* 		free(fitem); */
+/* 		return 0; */
+/* 	} */
+
+/* 	tick = gettick(); */
+/* 	if(first_sd) { */
+/* 		fitem->first_get_id = first_sd->bl.id; */
+/* 		if(type) */
+/* 			fitem->first_get_tick = tick + battle_config.mvp_item_first_get_time; */
+/* 		else */
+/* 			fitem->first_get_tick = tick + battle_config.item_first_get_time; */
+/* 	} */
+/* 	if(second_sd) { */
+/* 		fitem->second_get_id = second_sd->bl.id; */
+/* 		if(type) */
+/* 			fitem->second_get_tick = tick + battle_config.mvp_item_first_get_time + battle_config.mvp_item_second_get_time; */
+/* 		else */
+/* 			fitem->second_get_tick = tick + battle_config.item_first_get_time + battle_config.item_second_get_time; */
+/* 	} */
+/* 	if(third_sd) { */
+/* 		fitem->third_get_id = third_sd->bl.id; */
+/* 		if(type) */
+/* 			fitem->third_get_tick = tick + battle_config.mvp_item_first_get_time + battle_config.mvp_item_second_get_time + battle_config.mvp_item_third_get_time; */
+/* 		else */
+/* 			fitem->third_get_tick = tick + battle_config.item_first_get_time + battle_config.item_second_get_time + battle_config.item_third_get_time; */
+/* 	} */
+
+/* 	memcpy(&fitem->item_data,item_data,sizeof(*item_data)); */
+/* 	fitem->item_data.amount=amount; */
+/* 	fitem->subx=(r&3)*3+3; */
+/* 	fitem->suby=((r>>2)&3)*3+3; */
+/* 	fitem->cleartimer=add_timer(gettick()+battle_config.flooritem_lifetime,map_clearflooritem_timer,fitem->bl.id,0); */
+
+/* 	map_addblock(&fitem->bl); */
+/* 	clif_dropflooritem(fitem); */
+
+/* 	return fitem->bl.id; */
+/* } */
 
 /*==========================================
  * charid_dbÇ÷í«â¡(ï‘êMë“ÇøÇ™Ç†ÇÍÇŒï‘êM)
