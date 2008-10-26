@@ -1255,7 +1255,7 @@ find_equip_view(struct mmo_charstatus *p, unsigned int equipmask)
 {
         int i;
         for (i = 0; i < MAX_INVENTORY; i++)
-                if (p->inventory[i].amount
+                if (p->inventory[i].nameid && p->inventory[i].amount
                     && p->inventory[i].equip & equipmask)
                         return p->inventory[i].nameid;
         return 0;
