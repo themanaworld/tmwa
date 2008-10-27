@@ -1695,10 +1695,10 @@ int buildin_rand(struct script_state *st)
 			max=tmp;
 		}
 		range=max-min+1;
-		push_val(st->stack,C_INT,rand()%range+min);
+		push_val(st->stack,C_INT,(range <= 0 ? 0 : rand()%range) + min);
 	} else {
 		range=conv_num(st,& (st->stack->stack_data[st->start+2]));
-		push_val(st->stack,C_INT,rand()%range);
+		push_val(st->stack,C_INT,range <= 0 ? 0 : rand()%range);
 	}
 	return 0;
 }
