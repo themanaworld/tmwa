@@ -87,9 +87,12 @@ void trade_tradeack(struct map_session_data *sd,int type)
 void trade_tradeadditem(struct map_session_data *sd,int index,int amount)
 {
 	struct map_session_data *target_sd;
+	struct item_data *id;
 	int trade_i;
 	int trade_weight=0;
+	int free = 0;
 	int c;
+	int i;
 
 	nullpo_retv(sd);
 
@@ -100,18 +103,27 @@ void trade_tradeadditem(struct map_session_data *sd,int index,int amount)
 				clif_tradeadditem(sd,target_sd,0,amount);
 			}
 		}else if(amount <= sd->status.inventory[index-2].amount && amount > 0){
+			// determine free slots of receiver
+			for(i=0;i<MAX_INVENTORY;i++){
+				if(target_sd->status.inventory[i].nameid==0 && target_sd->inventory_data[i] == NULL)
+					free++;
+			}
 			for(trade_i=0; trade_i<10;trade_i++){
 				if(sd->deal_item_amount[trade_i] == 0){
 					// calculate trade weight
 					trade_weight+=sd->inventory_data[index-2]->weight*amount;
 
-					// determine free slots of receiver
-					int i, free = 0;
+					// determine if item is a stackable already in receivers inventory, and up free count
 					for(i=0;i<MAX_INVENTORY;i++){
-						if(target_sd->status.inventory[i].nameid==0 && target_sd->inventory_data[i] == NULL)
-							free++;
+						if (target_sd->status.inventory[i].nameid==sd->status.inventory[index-2].nameid && target_sd->inventory_data[i] != NULL){
+							id = target_sd->inventory_data[i];
+							if (id->type != 4 && id->type != 5 && id->type != 7 && id->type != 8){
+								free++;
+								break;
+							}
+						}
 					}
-					free -= trade_i;
+
 					if(target_sd->weight + trade_weight > target_sd->max_weight){
 						clif_tradeitemok(sd,index,0,1); //fail to add item -- the player was over weighted.
                                                 amount = 0; // [MouseJstr]
@@ -136,8 +148,21 @@ void trade_tradeadditem(struct map_session_data *sd,int index,int amount)
 					}
 					break;
 				}else{
+					// calculate weight for stored deal
 					trade_weight+=sd->inventory_data[sd->deal_item_index[trade_i]-2]->weight*sd->deal_item_amount[trade_i];
+					// count free stackables in stored deal
+					for(i=0;i<MAX_INVENTORY;i++){
+						if (target_sd->status.inventory[i].nameid==sd->status.inventory[sd->deal_item_index[trade_i]-2].nameid && target_sd->inventory_data[i] != NULL){
+							id = target_sd->inventory_data[i];
+							if (id->type != 4 && id->type != 5 && id->type != 7 && id->type != 8){
+								free++;
+								break;
+							}
+						}
+					}
 				}
+				// used a slot, but might be cancelled out by stackable checks above
+				free--;
 			}
 		}
 	}
