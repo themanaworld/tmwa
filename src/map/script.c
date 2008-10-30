@@ -104,6 +104,7 @@ int buildin_close(struct script_state *st);
 int buildin_close2(struct script_state *st);
 int buildin_menu(struct script_state *st);
 int buildin_rand(struct script_state *st);
+int buildin_pow(struct script_state *st);
 int buildin_warp(struct script_state *st);
 int buildin_areawarp(struct script_state *st);
 int buildin_heal(struct script_state *st);
@@ -333,6 +334,7 @@ struct {
 	{buildin_itemheal,"itemheal","ii"},
 	{buildin_percentheal,"percentheal","ii"},
 	{buildin_rand,"rand","i*"},
+	{buildin_pow,"pow","ii"},
 	{buildin_countitem,"countitem","i"},
 	{buildin_checkweight,"checkweight","ii"},
 	{buildin_readparam,"readparam","i*"},
@@ -1700,6 +1702,22 @@ int buildin_rand(struct script_state *st)
 		range=conv_num(st,& (st->stack->stack_data[st->start+2]));
 		push_val(st->stack,C_INT,range <= 0 ? 0 : rand()%range);
 	}
+	return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int buildin_pow(struct script_state *st)
+{
+        int a, b;
+
+        a = conv_num(st,& (st->stack->stack_data[st->start+2]));
+        b = conv_num(st,& (st->stack->stack_data[st->start+3]));
+
+        push_val(st->stack, C_INT, (int) pow(a * 0.001, b));
+
 	return 0;
 }
 
