@@ -7605,10 +7605,15 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 		WBUFL(buf,4) = sd->bl.id;
 		memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
                 magic_status = magic_message(sd, buf, WBUFW(buf, 2));
-                if (magic_status)
-                        sd->chat_threshold = 0; /* Don't treat repeated magic as spamming */
+                if (magic_status) {
+                        sd->chat_threshold = 0;
+                        sd->chat_repeatmsg -= 2;
 
-                if (magic_status >= 0)
+                        if (sd->chat_repeatmsg < 0)
+                                sd->chat_repeatmsg = 0;
+                }
+
+                if (magic_status == 0)
                         clif_send(buf, WBUFW(buf,2), &sd->bl, sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
 	}
 
