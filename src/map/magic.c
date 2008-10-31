@@ -106,7 +106,7 @@ magic_message(character_t *caster,
                                 while (*source_invocation)
                                         *source_invocation++ = '.';
                 }
-                return 0;
+                return 1;
         }
 
         return 0; /* Not a spell */
