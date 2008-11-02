@@ -673,7 +673,7 @@ fun_awayfrom(env_t *env, int args_nr, val_t *result, val_t *args)
         int dx = heading_x[ARGDIR(1)];
         int dy = heading_y[ARGDIR(1)];
         int distance = ARGINT(2);
-        while (distance-- && !map_is_solid(loc->m, loc->x, loc->y)) {
+        while (distance-- && !map_is_solid(loc->m, loc->x + dx, loc->y + dy)) {
                 loc->x += dx;
                 loc->y += dy;
         }

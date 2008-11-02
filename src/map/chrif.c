@@ -914,7 +914,7 @@ int chrif_parse(int fd)
 		switch(cmd) {
 		case 0x2af9: chrif_connectack(fd); break;
 		case 0x2afb: chrif_sendmapack(fd); break;
-		case 0x2afd: pc_authok(RFIFOL(fd,4), RFIFOL(fd,8), (time_t)RFIFOL(fd,12), (struct mmo_charstatus*)RFIFOP(fd,16)); break;
+		case 0x2afd: pc_authok(RFIFOL(fd,4), RFIFOL(fd,8), (time_t)RFIFOL(fd,12), RFIFOW(fd, 16), (struct mmo_charstatus*)RFIFOP(fd,18)); break;
 		case 0x2afe: pc_authfail(RFIFOL(fd,2)); break;
 		case 0x2b00: map_setusers(RFIFOL(fd,2)); break;
 		case 0x2b03: clif_charselectok(RFIFOL(fd,2)); break;
@@ -957,7 +957,9 @@ int send_users_tochar(int tid, unsigned int tick, int id, int data) {
 	WFIFOW(char_fd,0) = 0x2aff;
 	for (i = 0; i < fd_max; i++) {
 		if (session[i] && (sd = session[i]->session_data) && sd->state.auth &&
-		    !((battle_config.hide_GM_session || (sd->status.option & OPTION_HIDE)) && pc_isGM(sd))) {
+		    !((battle_config.hide_GM_session
+                       || sd->state.shroud_active
+                       || (sd->status.option & OPTION_HIDE)) && pc_isGM(sd))) {
 			WFIFOL(char_fd,6+4*users) = sd->status.char_id;
 			users++;
 		}

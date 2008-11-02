@@ -3147,6 +3147,7 @@ int buildin_skill(struct script_state *st)
 		flag=conv_num(st,&(st->stack->stack_data[st->start+4]) );
 	sd=script_rid2sd(st);
 	pc_skill(sd,id,level,flag);
+        clif_skillinfoblock(sd);
 
 	return 0;
 }
@@ -5281,8 +5282,6 @@ int buildin_marriage(struct script_state *st)
 	struct map_session_data *sd=script_rid2sd(st);
 	struct map_session_data *p_sd=map_nick2sd(partner);
 
-        fprintf(stderr, "0=%p (%d,%d), 1=%p (%d,%d)\n", sd, sd->bl.id, sd->status.partner_id,
-                p_sd, p_sd->bl.id, p_sd->status.partner_id);
 	if(sd==NULL || p_sd==NULL || pc_marriage(sd,p_sd) < 0){
 		push_val(st->stack,C_INT,0);
 		return 0;

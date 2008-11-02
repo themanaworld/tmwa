@@ -293,6 +293,12 @@ spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *en
         int tick = gettick();
 
         int retval = check_prerequisites(caster, check->catalysts);
+/*
+        fprintf(stderr, "Check: can satisfy? %d%d%d%d\n", retval, 
+                caster->cast_tick <= tick,
+                check->mana <= caster->status.sp,
+                check_prerequisites(caster, check->components));
+*/
 
         if (retval && near_miss)
                 *near_miss = 1; // close enough!

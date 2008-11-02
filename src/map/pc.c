@@ -651,7 +651,7 @@ int pc_breakarmor(struct map_session_data *sd)
  * char鯖から送られてきたステータスを設定
  *------------------------------------------
  */
-int pc_authok(int id, int login_id2, time_t connect_until_time, struct mmo_charstatus *st)
+int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_version, struct mmo_charstatus *st)
 {
 	struct map_session_data *sd = NULL;
 
@@ -665,6 +665,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, struct mmo_chars
 		return 1;
 
 	sd->login_id2 = login_id2;
+        sd->tmw_version = tmw_version;
 
 	memcpy(&sd->status, st, sizeof(*st));
 
@@ -1274,6 +1275,8 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		pc_setpos(sd, sd->mapname, sd->bl.x, sd->bl.y, 3);
 	}
 
+        sd->spellpower_bonus_target = 0;
+
 	for(i=0;i<10;i++) {
 		index = sd->equip_index[i];
 		if(index < 0)
@@ -1286,6 +1289,8 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 			continue;
 
 		if(sd->inventory_data[index]) {
+                        sd->spellpower_bonus_target += sd->inventory_data[index]->magic_bonus;
+
 			if(sd->inventory_data[index]->type == 4) {
 				if(sd->status.inventory[index].card[0]!=0x00ff && sd->status.inventory[index].card[0]!=0x00fe && sd->status.inventory[index].card[0]!=(short)0xff00) {
 					int j;
@@ -1312,6 +1317,10 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 			}
 		}
 	}
+
+        if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
+                sd->spellpower_bonus_current = sd->spellpower_bonus_target;
+
 	wele = sd->atk_ele;
 	wele_ = sd->atk_ele_;
 	def_ele = sd->def_ele;
@@ -1793,10 +1802,10 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		if(	sd->sc_data[i=SC_SPEEDPOTION2].timer!=-1 ||
 			sd->sc_data[i=SC_SPEEDPOTION1].timer!=-1 ||
 			sd->sc_data[i=SC_SPEEDPOTION0].timer!=-1)	// 増 速ポーション
-			aspd_rate -= sd->sc_data[i].val2;
+			aspd_rate -= sd->sc_data[i].val1;
 
                 if (sd->sc_data[SC_HASTE].timer != -1)
-                    aspd_rate -= sd->sc_data[SC_HASTE].val1;
+                        aspd_rate -= sd->sc_data[SC_HASTE].val1;
 
 
                 /* Slow down if protected */
@@ -3058,24 +3067,18 @@ int pc_takeitem(struct map_session_data *sd,struct flooritem_data *fitem)
                 fitem->third_get_id = 0;
         }
 
-fprintf(stderr, "pickuptime = %d, ticktime = %d\n", fitem->first_get_tick, tick);
-fprintf(stderr, "canpickup-1 = %d\n", can_pick_item_up_from (sd, fitem->second_get_id));
         can_take = can_pick_item_up_from (sd, fitem->first_get_id);
-fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
         if (!can_take)
                 can_take = fitem->first_get_tick <= tick
                         && can_pick_item_up_from (sd, fitem->second_get_id);
-fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
 
         if (!can_take)
                 can_take = fitem->second_get_tick <= tick
                         && can_pick_item_up_from (sd, fitem->third_get_id);
 
-fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
         if (!can_take)
                 can_take = fitem->third_get_tick <= tick;
 
-fprintf(stderr, "Can take at L%d? %d\n", __LINE__, can_take);
         if (can_take) {
                 /* Can pick up */
 
@@ -7118,6 +7121,12 @@ static int pc_natural_heal_sub(struct map_session_data *sd,va_list ap) {
 	int skill;
 
 	nullpo_retr(0, sd);
+
+        // Hijack this callback:  Adjust spellpower bonus
+        if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
+                sd->spellpower_bonus_current = sd->spellpower_bonus_target;
+        else if (sd->spellpower_bonus_target > sd->spellpower_bonus_current)
+                sd->spellpower_bonus_current += 1 + ((sd->spellpower_bonus_target - sd->spellpower_bonus_current) >> 5);
 
         if (sd->sc_data[SC_HALT_REGENERATE].timer != -1)
             return 0;

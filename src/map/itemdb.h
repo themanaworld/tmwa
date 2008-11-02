@@ -19,6 +19,7 @@ struct item_data {
 	int atk;
 	int def;
 	int range;
+        int magic_bonus;
 	int slot;
 	int look;
 	int elv;

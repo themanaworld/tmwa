@@ -328,7 +328,7 @@ static int itemdb_readdb(void)
 			if(line[0]=='/' && line[1]=='/')
 				continue;
 			memset(str,0,sizeof(str));
-			for(j=0,np=p=line;j<17 && p;j++){
+			for(j=0,np=p=line;j<18 && p;j++){
 				while (*p == '\t' || *p == ' ') p++;
 				str[j]=p;
 				p=strchr(p,',');
@@ -359,15 +359,16 @@ static int itemdb_readdb(void)
 			id->atk=atoi(str[7]);
 			id->def=atoi(str[8]);
 			id->range=atoi(str[9]);
-			id->slot=atoi(str[10]);
-			id->class=atoi(str[11]);
-			id->sex=atoi(str[12]);
-			if(id->equip != atoi(str[13])){
-				id->equip=atoi(str[13]);
+			id->magic_bonus = atoi(str[10]);
+			id->slot=atoi(str[11]);
+			id->class=atoi(str[12]);
+			id->sex=atoi(str[13]);
+			if(id->equip != atoi(str[14])){
+				id->equip=atoi(str[14]);
 			}
-			id->wlv=atoi(str[14]);
-			id->elv=atoi(str[15]);
-			id->look=atoi(str[16]);
+			id->wlv=atoi(str[15]);
+			id->elv=atoi(str[16]);
+			id->look=atoi(str[17]);
 			id->flag.available=1;
 			id->flag.value_notdc=0;
 			id->flag.value_notoc=0;

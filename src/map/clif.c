@@ -4188,7 +4188,8 @@ int clif_skillinfoblock(struct map_session_data *sd)
 	WFIFOW(fd,0)=0x10f;
 	for ( i = c = 0; i < MAX_SKILL; i++){
 		if( (id=sd->status.skill[i].id)!=0
-                    && (i < TMW_MAGIC || i > TMW_MAGIC_END)){ // [Fate] Hack: Prevent killing the client
+                    && (sd->tmw_version >= 1  // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
+                        || (i < TMW_MAGIC || i > TMW_MAGIC_END))){ // [Fate] Hack: Prevent killing the client
 			WFIFOW(fd,len  ) = id;
 			WFIFOW(fd,len+2) = skill_get_inf(id);
 			WFIFOW(fd,len+4) = 0;

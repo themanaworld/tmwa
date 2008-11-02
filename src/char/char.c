@@ -70,6 +70,7 @@ char char_name_letters[1024] = ""; // list of letters/symbols authorised (or not
 
 struct char_session_data{
 	int account_id, login_id1, login_id2, sex;
+        unsigned short packet_tmw_version;
 	int found_char[9];
 	char email[40]; // e-mail (default: a@a.com) by [Yor]
 	time_t connect_until_time; // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
@@ -78,6 +79,7 @@ struct char_session_data{
 #define AUTH_FIFO_SIZE 256
 struct {
 	int account_id, char_id, login_id1, login_id2, ip, char_pos, delflag, sex;
+        unsigned short packet_tmw_version;
 	time_t connect_until_time; // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 } auth_fifo[AUTH_FIFO_SIZE];
 int auth_fifo_pos = 0;
@@ -1592,7 +1594,7 @@ int parse_tologin(int fd) {
 					if (char_dat[i].account_id == acc) {
 						int jobclass = char_dat[i].class;
 						char_dat[i].sex = sex;
-						auth_fifo[i].sex = sex;
+//						auth_fifo[i].sex = sex;
 						if (jobclass == 19 || jobclass == 20 ||
 						    jobclass == 4020 || jobclass == 4021 ||
 						    jobclass == 4042 || jobclass == 4043) {
@@ -1969,12 +1971,14 @@ int parse_frommap(int fd) {
 				    !auth_fifo[i].delflag) {
 					auth_fifo[i].delflag = 1;
 					WFIFOW(fd,0) = 0x2afd;
-					WFIFOW(fd,2) = 16 + sizeof(struct mmo_charstatus);
+					WFIFOW(fd,2) = 18 + sizeof(struct mmo_charstatus);
 					WFIFOL(fd,4) = RFIFOL(fd,2);
 					WFIFOL(fd,8) = auth_fifo[i].login_id2;
 					WFIFOL(fd,12) = (unsigned long)auth_fifo[i].connect_until_time;
 					char_dat[auth_fifo[i].char_pos].sex = auth_fifo[i].sex;
-					memcpy(WFIFOP(fd,16), &char_dat[auth_fifo[i].char_pos], sizeof(struct mmo_charstatus));
+                                        WFIFOW(fd, 16) = auth_fifo[i].packet_tmw_version;
+                                        fprintf(stderr, "From queue index %d: recalling packet version %d\n", i, auth_fifo[i].packet_tmw_version);
+					memcpy(WFIFOP(fd,18), &char_dat[auth_fifo[i].char_pos], sizeof(struct mmo_charstatus));
 					WFIFOSET(fd, WFIFOW(fd,2));
 					//printf("auth_fifo search success (auth #%d, account %d, character: %d).\n", i, RFIFOL(fd,2), RFIFOL(fd,6));
 					break;
@@ -2380,6 +2384,7 @@ int parse_char(int fd) {
 			sd->account_id = RFIFOL(fd,2);
 			sd->login_id1 = RFIFOL(fd,6);
 			sd->login_id2 = RFIFOL(fd,10);
+                        sd->packet_tmw_version = RFIFOW(fd, 14);
 			sd->sex = RFIFOB(fd,16);
 			// send back account_id
 			WFIFOL(fd,0) = RFIFOL(fd,2);
@@ -2401,6 +2406,8 @@ int parse_char(int fd) {
 							WFIFOL(login_fd,2) = sd->account_id;
 							WFIFOSET(login_fd,6);
 						}
+                                                // Record client version
+                                                auth_fifo[i].packet_tmw_version = sd->packet_tmw_version;
 						// send characters to player
 						mmo_char_send006b(fd, sd);
 					} else {
@@ -2523,6 +2530,7 @@ int parse_char(int fd) {
 					auth_fifo[auth_fifo_pos].sex = sd->sex;
 					auth_fifo[auth_fifo_pos].connect_until_time = sd->connect_until_time;
 					auth_fifo[auth_fifo_pos].ip = session[fd]->client_addr.sin_addr.s_addr;
+                                        auth_fifo[auth_fifo_pos].packet_tmw_version = sd->packet_tmw_version;
 					auth_fifo_pos++;
 				}
 			}

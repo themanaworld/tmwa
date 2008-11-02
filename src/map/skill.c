@@ -8301,7 +8301,6 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 	nullpo_retr(0, opt2=battle_get_opt2(bl));
 	nullpo_retr(0, opt3=battle_get_opt3(bl));
 
-
 	race=battle_get_race(bl);
 	mode=battle_get_mode(bl);
 	elem=battle_get_elem_type(bl);
@@ -9042,6 +9041,7 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 
 	if(bl->type==BL_PC && updateflag)
 		clif_updatestatus(sd,updateflag);	/* ステータスをクライアントに送る */
+
 
 	return 0;
 }

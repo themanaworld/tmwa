@@ -130,6 +130,7 @@ int level_new_gm = 60;
 
 static struct dbt *gm_account_db;
 
+#define VERSION_2_UPDATEHOST 0x01	// client supports updatehost
 //------------------------------
 // Writing function of logs file
 //------------------------------
@@ -2786,6 +2787,8 @@ int parse_login(int fd) {
 					WFIFOL(fd,2) = 1; // 01 = Server closed
 					WFIFOSET(fd,3);
 				} else {
+                                        int version_2 = RFIFOB(fd, 54); // version 2
+
 					if (gm_level)
 						printf("Connection of the GM (level:%d) account '%s' accepted.\n", gm_level, account.userid);
 					else
@@ -2800,7 +2803,8 @@ int parse_login(int fd) {
 					* then the client can safely accept the 0x63 packet.  The "version 2" value is not
 					* otherwise used by eAthena.
 					*/
-					if ((RFIFOW(fd, 0) == 0x64) && (RFIFOB(fd, 54) & 0x01))
+                                        if ((RFIFOW(fd, 0) == 0x64)
+                                            && (version_2 & VERSION_2_UPDATEHOST))
 					{
 						host_len = (int)strlen(update_host);
 						if (host_len > 0)

@@ -7770,7 +7770,7 @@ int atcommand_refreshonline(
 
 static int magic_base = TMW_MAGIC;
 #define magic_skills_nr 6
-static char *magic_skill_names[magic_skills_nr] = {"magic", "life", "war", "transmute", "nature", "ether"};
+static char *magic_skill_names[magic_skills_nr] = {"magic", "life", "war", "transmute", "nature", "astral"};
 
 int
 atcommand_magic_info(const int fd, struct map_session_data* sd,
@@ -7856,6 +7856,7 @@ atcommand_set_magic(const int fd, struct map_session_data* sd,
                 else
                         set_skill(pl_sd, skill_index, value);
 
+                clif_skillinfoblock(pl_sd);
                 return 0;
         } else
                 clif_displaymessage(fd, "Character not found.");

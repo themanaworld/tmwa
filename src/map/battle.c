@@ -963,7 +963,7 @@ int battle_get_adelay(struct block_list *bl)
 				aspd_rate += 25;
 			//増速ポーション使用時は減算
 			if(sc_data[i=SC_SPEEDPOTION2].timer!=-1 || sc_data[i=SC_SPEEDPOTION1].timer!=-1 || sc_data[i=SC_SPEEDPOTION0].timer!=-1)
-				aspd_rate -= sc_data[i].val2;
+				aspd_rate -= sc_data[i].val1;
                         // Fate's `haste' spell works the same as the above
 			if (sc_data[SC_HASTE].timer != -1)
 				aspd_rate -= sc_data[SC_HASTE].val1;
@@ -971,6 +971,7 @@ int battle_get_adelay(struct block_list *bl)
 			if(sc_data[SC_DEFENDER].timer != -1)
 				adelay += (1100 - sc_data[SC_DEFENDER].val1*100);
 		}
+
 		if(aspd_rate != 100)
 			adelay = adelay*aspd_rate/100;
 		if(adelay < battle_config.monster_max_aspd<<1) adelay = battle_config.monster_max_aspd<<1;
@@ -1013,12 +1014,13 @@ int battle_get_amotion(struct block_list *bl)
 			if(sc_data[SC_STEELBODY].timer!=-1)	// 金剛
 				aspd_rate += 25;
 			if(sc_data[i=SC_SPEEDPOTION2].timer!=-1 || sc_data[i=SC_SPEEDPOTION1].timer!=-1 || sc_data[i=SC_SPEEDPOTION0].timer!=-1)
-				aspd_rate -= sc_data[i].val2;
+				aspd_rate -= sc_data[i].val1;
 			if (sc_data[SC_HASTE].timer != -1)
 				aspd_rate -= sc_data[SC_HASTE].val1;
 			if(sc_data[SC_DEFENDER].timer != -1)
 				amotion += (550 - sc_data[SC_DEFENDER].val1*50);
 		}
+
 		if(aspd_rate != 100)
 			amotion = amotion*aspd_rate/100;
 		if(amotion < battle_config.monster_max_aspd) amotion = battle_config.monster_max_aspd;

@@ -56,7 +56,7 @@ int
 magic_message(character_t *caster,
               char *spell_, size_t spell_len)
 {
-        int power = caster->status.base_level + caster->status.int_;
+        int power = caster->status.base_level + (caster->status.int_ * 2) + caster->spellpower_bonus_current;
         char *invocation_base = spell_ + 8;
         char *source_invocation = strchr(invocation_base, ':');
         spell_t *spell;
@@ -78,7 +78,7 @@ magic_message(character_t *caster,
         if (spell) {
                 int near_miss;
                 env_t *env = spell_create_env(&magic_conf, spell, caster, power, parameter);
-                effect_set_t *effects = spell_trigger(spell, caster, env, &near_miss);
+                effect_set_t *effects = (power < 1) ? NULL : spell_trigger(spell, caster, env, &near_miss);
 
 #ifdef DEBUG
                 fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_, effects != NULL);

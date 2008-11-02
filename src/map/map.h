@@ -131,6 +131,8 @@ struct quick_regeneration { // [Fate]
         unsigned char tickdelay; // number of ticks to next update
 };
 
+#define VERSION_2_SKILLINFO  0x02	// client supports full skillinfo blocks
+
 struct map_session_data {
 	struct block_list bl;
 	struct {
@@ -173,6 +175,7 @@ struct map_session_data {
 	} special_state;
 	int char_id, login_id1, login_id2, sex;
 	int packet_ver; // 5: old, 6: 7july04, 7: 13july04, 8: 26july04, 9: 9aug04/16aug04/17aug04, 10: 6sept04 (by [Yor])
+        unsigned char tmw_version; // tmw client version
 	struct mmo_charstatus status;
 	struct item_data *inventory_data[MAX_INVENTORY];
 	short equip_index[11];
@@ -214,6 +217,8 @@ struct map_session_data {
         short attack_spell_charges; // [Fate] Remaining number of charges for the attack spell
         short attack_spell_delay;   // [Fate] ms delay after spell attack
         short attack_spell_range;   // [Fate] spell range
+        short spellpower_bonus_target, spellpower_bonus_current; // [Fate] Spellpower boni.  _current is the active one.
+                                         //_current slowly approximates _target, and _target is determined by equipment.
 
 	short attackrange,attackrange_;
 	int skilltimer;
