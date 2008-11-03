@@ -132,8 +132,8 @@ int mob_once_spawn(struct map_session_data *sd,char *mapname,
 		int k;
 		if(j>=0 && j<MAX_RANDOMMONSTER){
 			do{
-				class=rand()%1000+1001;
-				k=rand()%1000000;
+				class=MPRAND(1001, 1000);
+				k=MRAND(1000000);
 			}while((mob_db[class].max_hp <= 0 || mob_db[class].summonper[j] <= k ||
 				 (lv<mob_db[class].lv && battle_config.random_monster_checklv==1)) && (i++) < 2000);
 			if(i>=2000){
@@ -216,8 +216,8 @@ int mob_once_spawn_area(struct map_session_data *sd,char *mapname,
 	for(i=0;i<amount;i++){
 		int j=0;
 		do{
-			x=rand()%(x1-x0+1)+x0;
-			y=rand()%(y1-y0+1)+y0;
+			x=MPRAND(x0, (x1-x0+1));
+			y=MPRAND(y0, (y1-y0+1));
 		}while( ( (c=map_getcell(m,x,y))==1 || c==5)&& (++j)<max );
 		if(j>=max){
 			if(lx>=0){	// Since reference went wrong, the place which boiled before is used.
@@ -858,11 +858,11 @@ int mob_spawn(int id)
 	md->bl.m =md->m;
 	do {
 		if(md->x0==0 && md->y0==0){
-			x=rand()%(map[md->bl.m].xs-2)+1;
-			y=rand()%(map[md->bl.m].ys-2)+1;
+			x=MPRAND(1, (map[md->bl.m].xs-2));
+			y=MPRAND(1, (map[md->bl.m].ys-2));
 		} else {
-			x=md->x0+rand()%(md->xs+1)-md->xs/2;
-			y=md->y0+rand()%(md->ys+1)-md->ys/2;
+			x=MPRAND(md->x0, (md->xs+1)) - md->xs/2;
+			y=MPRAND(md->y0, (md->ys+1)) - md->ys/2;
 		}
 		i++;
 	} while(((c=map_getcell(md->bl.m,x,y))==1 || c==5) && i<50);
@@ -895,7 +895,7 @@ int mob_spawn(int id)
 	md->state.skillstate = MSS_IDLE;
 	md->timer = -1;
 	md->last_thinktime = tick;
-	md->next_walktime = tick+rand()%50+5000;
+	md->next_walktime = tick+MPRAND(5000, 50);
 	md->attackabletime = tick;
 	md->canmove_tick = tick;
 	
@@ -1115,7 +1115,7 @@ int mob_target(struct mob_data *md,struct block_list *bl,int dist)
 		return 0;
 	}
 	// Nothing will be carried out if there is no mind of changing TAGE by TAGE ending.
-	if( (md->target_id > 0 && md->state.targettype == ATTACKABLE) && ( !(mode&0x04) || rand()%100>25) )
+	if( (md->target_id > 0 && md->state.targettype == ATTACKABLE) && ( !(mode&0x04) || MRAND(100)>25) )
 		return 0;
 
 	if(mode&0x20 ||	// Coercion is exerted if it is MVPMOB.
@@ -1188,7 +1188,7 @@ static int mob_ai_sub_hard_activesearch(struct block_list *bl,va_list ap)
 				(tsd->sc_data[SC_TRICKDEAD].timer == -1 &&
 				((!pc_ishiding(tsd) && !tsd->state.gangsterparadise) || race==4 || race==6))){	// 妨害がないか判定
 				if( mob_can_reach(smd,bl,12) && 		// 到達可能性判定
-					rand()%1000<1000/(++(*pcc)) ){	// 範囲内PCで等確率にする
+					MRAND(1000)<1000/(++(*pcc)) ){	// 範囲内PCで等確率にする
 					smd->target_id=tsd->bl.id;
 					smd->state.targettype = ATTACKABLE;
 					smd->min_chase=13;
@@ -1202,7 +1202,7 @@ static int mob_ai_sub_hard_activesearch(struct block_list *bl,va_list ap)
 			)
 		{
 			if( mob_can_reach(smd,bl,12) && 		// 到達可能性判定
-				rand()%1000<1000/(++(*pcc)) ){	// 範囲内で等確率にする
+				MRAND(1000)<1000/(++(*pcc)) ){	// 範囲内で等確率にする
 				smd->target_id=bl->id;
 				smd->state.targettype = ATTACKABLE;
 				smd->min_chase=13;
@@ -1237,7 +1237,7 @@ static int mob_ai_sub_hard_lootsearch(struct block_list *bl,va_list ap)
 			return 0;
 		if(bl->m == md->bl.m && (dist=distance(md->bl.x,md->bl.y,bl->x,bl->y))<9){
 			if( mob_can_reach(md,bl,12) && 		// Reachability judging
-				rand()%1000<1000/(++(*itc)) ){	// It is made a probability, such as within the limits PC.
+				MRAND(1000)<1000/(++(*itc)) ){	// It is made a probability, such as within the limits PC.
 				md->target_id=bl->id;
 				md->state.targettype = NONE_ATTACKABLE;
 				md->min_chase=13;
@@ -1333,13 +1333,13 @@ static int mob_ai_sub_hard_slavemob(struct mob_data *md,unsigned int tick)
 				if(i<=5){
 					dx=mmd->bl.x - md->bl.x;
 					dy=mmd->bl.y - md->bl.y;
-					if(dx<0) dx+=(rand()%( (dx<-3)?3:-dx )+1);
-					else if(dx>0) dx-=(rand()%( (dx>3)?3:dx )+1);
-					if(dy<0) dy+=(rand()%( (dy<-3)?3:-dy )+1);
-					else if(dy>0) dy-=(rand()%( (dy>3)?3:dy )+1);
+					if(dx<0) dx+=(MPRAND(1, ( (dx<-3)?3:-dx )));
+					else if(dx>0) dx-=(MPRAND(1, ( (dx>3)?3:dx )));
+					if(dy<0) dy+=(MPRAND(1, ( (dy<-3)?3:-dy )));
+					else if(dy>0) dy-=(MPRAND(1, ( (dy>3)?3:dy )));
 				}else{
-					dx=mmd->bl.x - md->bl.x + rand()%7 - 3;
-					dy=mmd->bl.y - md->bl.y + rand()%7 - 3;
+					dx=mmd->bl.x - md->bl.x + MRAND(7) - 3;
+					dy=mmd->bl.y - md->bl.y + MRAND(7) - 3;
 				}
 
 				ret=mob_walktoxy(md,md->bl.x+dx,md->bl.y+dy,0);
@@ -1348,11 +1348,11 @@ static int mob_ai_sub_hard_slavemob(struct mob_data *md,unsigned int tick)
 		}
 		else {
 			do {
-				dx = rand()%9 - 5;
-				dy = rand()%9 - 5;
+				dx = MRAND(9) - 5;
+				dy = MRAND(9) - 5;
 				if( dx == 0 && dy == 0) {
-					dx = (rand()%1)? 1:-1;
-					dy = (rand()%1)? 1:-1;
+					dx = (MRAND(1))? 1:-1;
+					dy = (MRAND(1))? 1:-1;
 				}
 				dx += mmd->bl.x;
 				dy += mmd->bl.y;
@@ -1416,7 +1416,7 @@ static int mob_unlocktarget(struct mob_data *md,int tick)
 	md->target_id=0;
 	md->state.targettype = NONE_ATTACKABLE;
 	md->state.skillstate=MSS_IDLE;
-	md->next_walktime=tick+rand()%3000+3000;
+	md->next_walktime=tick+MPRAND(3000, 3000);
 	return 0;
 }
 /*==========================================
@@ -1458,7 +1458,7 @@ static int mob_randomwalk(struct mob_data *md,int tick)
 			else
 				c+=speed;
 		}
-		md->next_walktime = tick+rand()%3000+3000+c;
+		md->next_walktime = tick+MPRAND(3000, 3000)+c;
 		md->state.skillstate=MSS_WALK;
 		return 1;
 	}
@@ -1525,7 +1525,7 @@ static int mob_ai_sub_hard(struct block_list *bl,va_list ap)
 
 	// It checks to see it was attacked first (if active, it is target change at 25% of probability).
 	if( mode>0 && md->attacked_id>0 && (!md->target_id || md->state.targettype == NONE_ATTACKABLE
-		|| (mode&0x04 && rand()%100<25 ) ) ){
+		|| (mode&0x04 && MRAND(100)<25 ) ) ){
 		struct block_list *abl=map_id2bl(md->attacked_id);
 		struct map_session_data *asd=NULL;
 		if(abl){
@@ -1617,8 +1617,8 @@ static int mob_ai_sub_hard(struct block_list *bl,va_list ap)
 							if(dy<0) dy++;
 							else if(dy>0) dy--;
 							}else{	// だめならAthena式(ランダム)
-								dx=tbl->x - md->bl.x + rand()%3 - 1;
-								dy=tbl->y - md->bl.y + rand()%3 - 1;
+								dx=tbl->x - md->bl.x + MRAND(3) - 1;
+								dy=tbl->y - md->bl.y + MRAND(3) - 1;
 							}
 	/*						if(path_search(&md->walkpath,md->bl.m,md->bl.x,md->bl.y,md->bl.x+dx,md->bl.y+dy,0)){
 								dx=tsd->bl.x - md->bl.x;
@@ -1727,7 +1727,7 @@ static int mob_ai_sub_hard(struct block_list *bl,va_list ap)
 
 		if( DIFF_TICK(md->next_walktime,tick) > + 7000 &&
 			(md->walkpath.path_len==0 || md->walkpath.path_pos>=md->walkpath.path_len) ){
-			md->next_walktime = tick + 3000*rand()%2000;
+			md->next_walktime = tick + 3000*MRAND(2000);
 		}
 
 		// Random movement
@@ -1810,11 +1810,11 @@ static int mob_ai_sub_lazy(void * key,void * data,va_list app)
 			// Since PC is in the same map, somewhat better negligent processing is carried out.
 
 			// It sometimes moves.
-			if(rand()%1000<MOB_LAZYMOVEPERC)
+			if(MRAND(1000)<MOB_LAZYMOVEPERC)
 				mob_randomwalk(md,tick);
 
 			// MOB which is not not the summons MOB but BOSS, either sometimes reboils.
-			else if( rand()%1000<MOB_LAZYWARPPERC && md->x0<=0 && md->master_id!=0 &&
+			else if( MRAND(1000)<MOB_LAZYWARPPERC && md->x0<=0 && md->master_id!=0 &&
 				mob_db[md->class].mexp <= 0 && !(mob_db[md->class].mode & 0x20))
 				mob_spawn(md->bl.id);
 
@@ -1822,12 +1822,12 @@ static int mob_ai_sub_lazy(void * key,void * data,va_list app)
 			// Since PC is not even in the same map, suitable processing is carried out even if it takes.
 
 			// MOB which is not BOSS which is not Summons MOB, either -- a case -- sometimes -- leaping
-			if( rand()%1000<MOB_LAZYWARPPERC && md->x0<=0 && md->master_id!=0 &&
+			if( MRAND(1000)<MOB_LAZYWARPPERC && md->x0<=0 && md->master_id!=0 &&
 				mob_db[md->class].mexp <= 0 && !(mob_db[md->class].mode & 0x20))
 				mob_warp(md,-1,-1,-1,-1);
 		}
 
-		md->next_walktime = tick+rand()%10000+5000;
+		md->next_walktime = tick+MPRAND(5000, 10000);
 	}
 	return 0;
 }
@@ -2360,7 +2360,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 				drop_rate = 1;
 			if(battle_config.drops_by_luk>0 && sd && md) drop_rate+=(sd->status.luk*battle_config.drops_by_luk)/100;	// drops affected by luk [Valaris]
 			if(sd && md && battle_config.pk_mode==1 && (mob_db[md->class].lv - sd->status.base_level >= 20)) drop_rate*=1.25; // pk_mode increase drops if 20 level difference [Valaris]
-			if(drop_rate <= rand()%10000)
+			if(drop_rate <= MRAND(10000))
 				continue;
 
 			ditem=(struct delay_item_drop *)aCalloc(1,sizeof(struct delay_item_drop));
@@ -2383,7 +2383,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 				if(sd->monster_drop_race[i] & (1<<race) ||
 					(mob_db[md->class].mode & 0x20 && sd->monster_drop_race[i] & 1<<10) ||
 					(!(mob_db[md->class].mode & 0x20) && sd->monster_drop_race[i] & 1<<11) ) {
-					if(sd->monster_drop_itemrate[i] <= rand()%10000)
+					if(sd->monster_drop_itemrate[i] <= MRAND(10000))
 						continue;
 
 					ditem=(struct delay_item_drop *)aCalloc(1,sizeof(struct delay_item_drop));
@@ -2399,7 +2399,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 				}
 			}
 			if(sd->get_zeny_num > 0)
-				pc_getzeny(sd,mob_db[md->class].lv*10 + rand()%(sd->get_zeny_num+1));
+				pc_getzeny(sd,mob_db[md->class].lv*10 + MRAND((sd->get_zeny_num+1)));
 		}
 		if(md->lootitem) {
 			for(i=0;i<md->lootitem_count;i++) {
@@ -2429,7 +2429,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 		clif_mvp_exp(mvp_sd,mexp);
 		pc_gainexp(mvp_sd,mexp,0);
 		for(j=0;j<3;j++){
-			i = rand() % 3;
+			i = MRAND(3);
 			if(mob_db[md->class].mvpitem[i].nameid <= 0)
 				continue;
 			drop_rate = mob_db[md->class].mvpitem[i].p;
@@ -2439,7 +2439,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 				drop_rate = battle_config.item_drop_mvp_min;
 			if(drop_rate > battle_config.item_drop_mvp_max)
 				drop_rate = battle_config.item_drop_mvp_max;
-			if(drop_rate <= rand()%10000)
+			if(drop_rate <= MRAND(10000))
 				continue;
 			memset(&item,0,sizeof(item));
 			item.nameid=mob_db[md->class].mvpitem[i].nameid;
@@ -2520,7 +2520,7 @@ int mob_class_change(struct mob_data *md,int *value)
 	while(count < 5 && value[count] > 1000 && value[count] <= 2000) count++;
 	if(count < 1) return 0;
 
-	class = value[rand()%count];
+	class = value[MRAND(count)];
 	if(class<=1000 || class>2000) return 0;
 
 	max_hp = battle_get_max_hp(&md->bl);
@@ -2550,7 +2550,7 @@ int mob_class_change(struct mob_data *md,int *value)
 	skill_castcancel(&md->bl,0);
 	md->state.skillstate = MSS_IDLE;
 	md->last_thinktime = tick;
-	md->next_walktime = tick+rand()%50+5000;
+	md->next_walktime = tick+MPRAND(5000, 50);
 	md->attackabletime = tick;
 	md->canmove_tick = tick;
 	md->sg_count=0;
@@ -2664,11 +2664,11 @@ int mob_warp(struct mob_data *md,int m,int x,int y,int type)
 
 	while( ( x<0 || y<0 || ((c=read_gat(m,x,y))==1 || c==5) ) && (i++)<1000 ){
 		if( xs>0 && ys>0 && i<250 ){	// 指定位置付近の探索
-			x=bx+rand()%xs-xs/2;
-			y=by+rand()%ys-ys/2;
+			x=MPRAND(bx, xs) - xs/2;
+			y=MPRAND(by, ys) - ys/2;
 		}else{			// 完全ランダム探索
-			x=rand()%(map[m].xs-2)+1;
-			y=rand()%(map[m].ys-2)+1;
+			x=MPRAND(1, (map[m].xs-2));
+			y=MPRAND(1, (map[m].ys-2));
 		}
 	}
 	md->dir=0;
@@ -2772,8 +2772,8 @@ int mob_summonslave(struct mob_data *md2,int *value,int amount,int flag)
 				md->lootitem=NULL;
 
 			while((x<=0 || y<=0 || (c=map_getcell(m,x,y))==1 || c==5 ) && (i++)<100){
-				x=rand()%9-4+bx;
-				y=rand()%9-4+by;
+				x=MPRAND(bx, 9)-4;
+				y=MPRAND(by, 9)-4;
 			}
 			if(i>=100){
 				x=bx;
@@ -3444,7 +3444,7 @@ int mobskill_use(struct mob_data *md,unsigned int tick,int event)
 		}
 
 		// 確率判定
-		if( flag && rand()%10000 < ms[i].permillage ){
+		if( flag && MRAND(10000) < ms[i].permillage ){
 
 			if( skill_get_inf(ms[i].skill_id)&2 ){
 				// 場所指定
@@ -3463,8 +3463,8 @@ int mobskill_use(struct mob_data *md,unsigned int tick,int event)
 				if( ms[i].target>=MST_AROUND1 ){
 					int bx=x, by=y, i=0, c, m=bl->m, r=ms[i].target-MST_AROUND1;
 					do{
-						bx=x + rand()%(r*2+3) - r;
-						by=y + rand()%(r*2+3) - r;
+						bx=x + MRAND((r*2+3)) - r;
+						by=y + MRAND((r*2+3)) - r;
 					}while( ( bx<=0 || by<=0 || bx>=map[m].xs || by>=map[m].ys ||
 						((c=read_gat(m,bx,by))==1 || c==5) ) && (i++)<1000);
 					if(i<1000){
@@ -3475,8 +3475,8 @@ int mobskill_use(struct mob_data *md,unsigned int tick,int event)
 				if( ms[i].target>=MST_AROUND5 ){
 					int bx=x, by=y, i=0, c, m=bl->m, r=(ms[i].target-MST_AROUND5)+1;
 					do{
-						bx=x + rand()%(r*2+1) - r;
-						by=y + rand()%(r*2+1) - r;
+						bx=x + MRAND((r*2+1)) - r;
+						by=y + MRAND((r*2+1)) - r;
 					}while( ( bx<=0 || by<=0 || bx>=map[m].xs || by>=map[m].ys ||
 						((c=read_gat(m,bx,by))==1 || c==5) ) && (i++)<1000);
 					if(i<1000){
