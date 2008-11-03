@@ -31,3 +31,5 @@
   if (!((result) = (type *) realloc ((result), sizeof(type) * (number))))\
       { printf("SYSERR: realloc failure"); abort(); } } while(0)
 
+#define MRAND(max) (int) ((float)max * (rand() / (RAND_MAX + 1.0)))
+#define MMRAND(min, max) min + (int) ((float)max * (rand() / (RAND_MAX + (float)min)))
