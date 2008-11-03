@@ -31,5 +31,12 @@
   if (!((result) = (type *) realloc ((result), sizeof(type) * (number))))\
       { printf("SYSERR: realloc failure"); abort(); } } while(0)
 
-#define MRAND(max) (int) ((float)max * (rand() / (RAND_MAX + 1.0)))
-#define MMRAND(min, max) min + (int) ((float)max * (rand() / (RAND_MAX + (float)min)))
+/*
+ * ModuloRand and ModuloPlusRand. These macros are used to replace the
+ * vast number of calls to rand()%mod which is low-order bits. These
+ * instead use the high-order bits as suggested in the man page of rand().
+ * MRAND(10), returns 0-9.
+ * MPRAND(5,10) returns 5-14.
+ */
+#define MRAND(mod) (int) ((float)mod * (rand() / (RAND_MAX + 1.0)))
+#define MPRAND(add, mod) add + MRAND(mod)
