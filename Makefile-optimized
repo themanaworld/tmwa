@@ -1,4 +1,4 @@
-# $Id: Makefile-optimized,v 1.7 2004/07/29 09:35:21 Yor Exp $
+# $Id$
 
 CC = gcc -pipe
 PACKETDEF = -DPACKETVER=5 -DNEW_006b

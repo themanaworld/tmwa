@@ -1,4 +1,4 @@
-# $Id: Makefile 158 2004-10-01 03:45:15Z PoW $
+# $Id$
 
 CC = gcc -pipe
 PACKETDEF = -DPACKETVER=5 -DNEW_006b
