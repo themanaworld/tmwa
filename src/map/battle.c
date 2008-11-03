@@ -1961,7 +1961,7 @@ static struct Damage battle_calc_pet_weapon_attack(
 				damage *= div_;
 				break;
 			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(MMRAND(50, 150))/100;
+				damage = damage*(MPRAND(50, 150))/100;
 				break;
 			// 属性攻撃（適当）
 			case NPC_WATERATTACK:
@@ -2434,7 +2434,7 @@ static struct Damage battle_calc_mob_weapon_attack(
 				damage *= div_;
 				break;
 			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(MMRAND(50, 150))/100;
+				damage = damage*(MPRAND(50, 150))/100;
 				break;
 			// 属性攻撃（適当）
 			case NPC_WATERATTACK:
@@ -2884,9 +2884,9 @@ static struct Damage battle_calc_pc_weapon_attack(
 
 	// 過剰精錬ボーナス
 	if(sd->overrefine>0 )
-		damage+=MMRAND(1, sd->overrefine);
+		damage+=MPRAND(1, sd->overrefine);
 	if(sd->overrefine_>0 )
-		damage2+=MMRAND(1, sd->overrefine_);
+		damage2+=MPRAND(1, sd->overrefine_);
 
 	if(da == 0){ //ダブルアタックが発動していない
 		// クリティカル計算
@@ -3176,8 +3176,8 @@ static struct Damage battle_calc_pc_weapon_attack(
 				damage2 *= div_;
 				break;
 			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(MMRAND(50, 150))/100;
-				damage2 = damage2*(MMRAND(50, 150))/100;
+				damage = damage*(MPRAND(50, 150))/100;
+				damage2 = damage2*(MPRAND(50, 150))/100;
 				break;
 			// 属性攻撃（適当）
 			case NPC_WATERATTACK:
