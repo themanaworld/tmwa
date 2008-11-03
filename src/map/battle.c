@@ -1556,7 +1556,7 @@ int battle_calc_damage(struct block_list *src,struct block_list *bl,int damage,i
 		}
 
 		if(sc_data[SC_AUTOGUARD].timer != -1 && damage > 0 && flag&BF_WEAPON) {
-			if(rand()%100 < sc_data[SC_AUTOGUARD].val2) {
+			if(MRAND(100) < sc_data[SC_AUTOGUARD].val2) {
 				damage = 0;
 				clif_skill_nodamage(bl,bl,CR_AUTOGUARD,sc_data[SC_AUTOGUARD].val1,1);
 				if(sd)
@@ -1568,7 +1568,7 @@ int battle_calc_damage(struct block_list *src,struct block_list *bl,int damage,i
 // -- moonsoul (chance to block attacks with new Lord Knight skill parrying)
 //
 		if(sc_data[SC_PARRYING].timer != -1 && damage > 0 && flag&BF_WEAPON) {
-			if(rand()%100 < sc_data[SC_PARRYING].val2) {
+			if(MRAND(100) < sc_data[SC_PARRYING].val2) {
 				damage = 0;
 				clif_skill_nodamage(bl,bl,LK_PARRYING,sc_data[SC_PARRYING].val1,1);
 			}
@@ -1576,7 +1576,7 @@ int battle_calc_damage(struct block_list *src,struct block_list *bl,int damage,i
 		// リジェクトソード
 		if(sc_data[SC_REJECTSWORD].timer!=-1 && damage > 0 && flag&BF_WEAPON &&
 		  ((src->type==BL_PC && ((struct map_session_data *)src)->status.weapon == (1 || 2 || 3)) || src->type==BL_MOB )){
-			if(rand()%100 < (10+5*sc_data[SC_REJECTSWORD].val1)){ //反射確率は10+5*Lv
+			if(MRAND(100) < (10+5*sc_data[SC_REJECTSWORD].val1)){ //反射確率は10+5*Lv
 				damage = damage*50/100;
 				battle_damage(bl,src,damage,0);
 				//ダメージを与えたのは良いんだが、ここからどうして表示するんだかわかんねぇ
@@ -1868,7 +1868,7 @@ static struct Damage battle_calc_pet_weapon_attack(
 	if(t_sc_data != NULL && t_sc_data[SC_SLEEP].timer!=-1 )
 		cri <<=1;
 
-	if(skill_num == 0 && skill_lv >= 0 && battle_config.enemy_critical && (rand() % 1000) < cri)
+	if(skill_num == 0 && skill_lv >= 0 && battle_config.enemy_critical && (MRAND(1000)) < cri)
 	{
 		damage += atkmax;
 		type = 0x0a;
@@ -1877,7 +1877,7 @@ static struct Damage battle_calc_pet_weapon_attack(
 		int vitbonusmax;
 
 		if(atkmax > atkmin)
-			damage += atkmin + rand() % (atkmax-atkmin + 1);
+			damage += atkmin + MRAND((atkmax-atkmin + 1));
 		else
 			damage += atkmin ;
 		// スキル修正１（攻撃力倍化系）
@@ -1961,7 +1961,7 @@ static struct Damage battle_calc_pet_weapon_attack(
 				damage *= div_;
 				break;
 			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(50+rand()%150)/100;
+				damage = damage*(MMRAND(50, 150))/100;
 				break;
 			// 属性攻撃（適当）
 			case NPC_WATERATTACK:
@@ -2114,10 +2114,10 @@ static struct Damage battle_calc_pet_weapon_attack(
 				t_def = def2*8/10;
 				vitbonusmax = (t_vit/20)*(t_vit/20)-1;
 				if(battle_config.pet_defense_type) {
-					damage = damage - (def1 * battle_config.pet_defense_type) - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+					damage = damage - (def1 * battle_config.pet_defense_type) - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 				}
 				else{
-					damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+					damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 				}
 			}
 		}
@@ -2134,7 +2134,7 @@ static struct Damage battle_calc_pet_weapon_attack(
 		t_sc_data[SC_STAN].timer!=-1 ||		// スタンは必中
 		t_sc_data[SC_FREEZE].timer!=-1 || (t_sc_data[SC_STONE].timer!=-1 && t_sc_data[SC_STONE].val2==0) ) ) )	// 凍結は必中
 		hitrate = 1000000;
-	if(type == 0 && rand()%100 >= hitrate) {
+	if(type == 0 && MRAND(100) >= hitrate) {
 		damage = damage2 = 0;
 		dmg_lv = ATK_FLEE;
 	} else {
@@ -2168,7 +2168,7 @@ static struct Damage battle_calc_pet_weapon_attack(
 
 	// 完全回避の判定
 	if(battle_config.enemy_perfect_flee) {
-		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && rand()%1000 < battle_get_flee2(target) ){
+		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && MRAND(1000) < battle_get_flee2(target) ){
 			damage=0;
 			type=0x0b;
 			dmg_lv = ATK_LUCKY;
@@ -2324,7 +2324,7 @@ static struct Damage battle_calc_mob_weapon_attack(
 	if(tsd && tsd->critical_def)
 		cri = cri * (100 - tsd->critical_def) / 100;
 
-	if((skill_num == 0 || skill_num == KN_AUTOCOUNTER) && skill_lv >= 0 && battle_config.enemy_critical && (rand() % 1000) < cri)	// 判定（スキルの場合は無視）
+	if((skill_num == 0 || skill_num == KN_AUTOCOUNTER) && skill_lv >= 0 && battle_config.enemy_critical && (MRAND(1000)) < cri)	// 判定（スキルの場合は無視）
 			// 敵の判定
 	{
 		damage += atkmax;
@@ -2334,7 +2334,7 @@ static struct Damage battle_calc_mob_weapon_attack(
 		int vitbonusmax;
 
 		if(atkmax > atkmin)
-			damage += atkmin + rand() % (atkmax-atkmin + 1);
+			damage += atkmin + MRAND((atkmax-atkmin + 1));
 		else
 			damage += atkmin ;
 		// スキル修正１（攻撃力倍化系）
@@ -2434,7 +2434,7 @@ static struct Damage battle_calc_mob_weapon_attack(
 				damage *= div_;
 				break;
 			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(50+rand()%150)/100;
+				damage = damage*(MMRAND(50, 150))/100;
 				break;
 			// 属性攻撃（適当）
 			case NPC_WATERATTACK:
@@ -2591,10 +2591,10 @@ static struct Damage battle_calc_mob_weapon_attack(
 
 				vitbonusmax = (t_vit/20)*(t_vit/20)-1;
 				if(battle_config.monster_defense_type) {
-					damage = damage - (def1 * battle_config.monster_defense_type) - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+					damage = damage - (def1 * battle_config.monster_defense_type) - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 				}
 				else{
-					damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+					damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 				}
 			}
 		}
@@ -2611,7 +2611,7 @@ static struct Damage battle_calc_mob_weapon_attack(
 		t_sc_data[SC_STAN].timer!=-1 ||		// スタンは必中
 		t_sc_data[SC_FREEZE].timer!=-1 || (t_sc_data[SC_STONE].timer!=-1 && t_sc_data[SC_STONE].val2==0) ) ) )	// 凍結は必中
 		hitrate = 1000000;
-	if(type == 0 && rand()%100 >= hitrate) {
+	if(type == 0 && MRAND(100) >= hitrate) {
 		damage = damage2 = 0;
 		dmg_lv = ATK_FLEE;
 	} else {
@@ -2675,14 +2675,14 @@ static struct Damage battle_calc_mob_weapon_attack(
 	}
 
 	// 完全回避の判定
-	if(skill_num == 0 && skill_lv >= 0 && tsd!=NULL && rand()%1000 < battle_get_flee2(target) ){
+	if(skill_num == 0 && skill_lv >= 0 && tsd!=NULL && MRAND(1000) < battle_get_flee2(target) ){
 		damage=0;
 		type=0x0b;
 		dmg_lv = ATK_LUCKY;
 	}
 
 	if(battle_config.enemy_perfect_flee) {
-		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && rand()%1000 < battle_get_flee2(target) ){
+		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && MRAND(1000) < battle_get_flee2(target) ){
 			damage=0;
 			type=0x0b;
 			dmg_lv = ATK_LUCKY;
@@ -2871,22 +2871,22 @@ static struct Damage battle_calc_pc_weapon_attack(
 	//ダブルアタック判定
 	if(sd->weapontype1 == 0x01) {
 		if(skill_num == 0 && skill_lv >= 0 && (skill = pc_checkskill(sd,TF_DOUBLE)) > 0)
-			da = (rand()%100 < (skill*5)) ? 1:0;
+			da = (MRAND(100) < (skill*5)) ? 1:0;
 	}
 
 	//三段掌
 	if(skill_num == 0 && skill_lv >= 0 && (skill = pc_checkskill(sd,MO_TRIPLEATTACK)) > 0 && sd->status.weapon <= 16 && !sd->state.arrow_atk) {
-			da = (rand()%100 < (30 - skill)) ? 2:0;
+			da = (MRAND(100) < (30 - skill)) ? 2:0;
 	}
 
 	if(sd->double_rate > 0 && da == 0 && skill_num == 0 && skill_lv >= 0)
-		da = (rand()%100 < sd->double_rate) ? 1:0;
+		da = (MRAND(100) < sd->double_rate) ? 1:0;
 
 	// 過剰精錬ボーナス
 	if(sd->overrefine>0 )
-		damage+=(rand()%sd->overrefine)+1;
+		damage+=MMRAND(1, sd->overrefine);
 	if(sd->overrefine_>0 )
-		damage2+=(rand()%sd->overrefine_)+1;
+		damage2+=MMRAND(1, sd->overrefine_);
 
 	if(da == 0){ //ダブルアタックが発動していない
 		// クリティカル計算
@@ -2909,7 +2909,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 				cri <<= 1;
 		}
 
-		if(skill_num == SN_SHARPSHOOTING && rand()%100 < 50)
+		if(skill_num == SN_SHARPSHOOTING && MRAND(100) < 50)
 			cri = 1000;
 	}
 
@@ -2917,7 +2917,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 		cri = cri * (100-tsd->critical_def) / 100;
 
 	if(da == 0 && (skill_num==0 || skill_num == KN_AUTOCOUNTER || skill_num == SN_SHARPSHOOTING) && skill_lv >= 0 && //ダブルアタックが発動していない
-		(rand() % 1000) < cri)	// 判定（スキルの場合は無視）
+		(MRAND(1000)) < cri)	// 判定（スキルの場合は無視）
 	{
 		damage += atkmax;
 		damage2 += atkmax_;
@@ -2964,11 +2964,11 @@ static struct Damage battle_calc_pc_weapon_attack(
 		int vitbonusmax;
 
 		if(atkmax > atkmin)
-			damage += atkmin + rand() % (atkmax-atkmin + 1);
+			damage += atkmin + MRAND((atkmax-atkmin + 1));
 		else
 			damage += atkmin ;
 		if(atkmax_ > atkmin_)
-			damage2 += atkmin_ + rand() % (atkmax_-atkmin_ + 1);
+			damage2 += atkmin_ + MRAND((atkmax_-atkmin_ + 1));
 		else
 			damage2 += atkmin_ ;
 		if(sd->atk_rate != 100) {
@@ -2978,7 +2978,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 
 		if(sd->state.arrow_atk) {
 			if(sd->arrow_atk > 0)
-				damage += rand()%(sd->arrow_atk+1);
+				damage += MRAND((sd->arrow_atk+1));
 			hitrate += sd->arrow_hit;
 		}
 
@@ -3057,7 +3057,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 				break;
 			case AC_DOUBLE:	// ダブルストレイフィング
 				if(!sd->state.arrow_atk && sd->arrow_atk > 0) {
-					int arr = rand()%(sd->arrow_atk+1);
+					int arr = MRAND((sd->arrow_atk+1));
 					damage += arr;
 					damage2 += arr;
 				}
@@ -3073,7 +3073,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 				break;
 			case AC_SHOWER:	// アローシャワー
 				if(!sd->state.arrow_atk && sd->arrow_atk > 0) {
-					int arr = rand()%(sd->arrow_atk+1);
+					int arr = MRAND((sd->arrow_atk+1));
 					damage += arr;
 					damage2 += arr;
 				}
@@ -3088,7 +3088,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 				break;
 			case AC_CHARGEARROW:	// チャージアロー
 				if(!sd->state.arrow_atk && sd->arrow_atk > 0) {
-					int arr = rand()%(sd->arrow_atk+1);
+					int arr = MRAND((sd->arrow_atk+1));
 					damage += arr;
 					damage2 += arr;
 				}
@@ -3176,8 +3176,8 @@ static struct Damage battle_calc_pc_weapon_attack(
 				damage2 *= div_;
 				break;
 			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(50+rand()%150)/100;
-				damage2 = damage2*(50+rand()%150)/100;
+				damage = damage*(MMRAND(50, 150))/100;
+				damage2 = damage2*(MMRAND(50, 150))/100;
 				break;
 			// 属性攻撃（適当）
 			case NPC_WATERATTACK:
@@ -3287,7 +3287,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 				break;
 			case BA_MUSICALSTRIKE:	// ミュージカルストライク
 				if(!sd->state.arrow_atk && sd->arrow_atk > 0) {
-					int arr = rand()%(sd->arrow_atk+1);
+					int arr = MRAND((sd->arrow_atk+1));
 					damage += arr;
 					damage2 += arr;
 				}
@@ -3302,7 +3302,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 				break;
 			case DC_THROWARROW:	// 矢撃ち
 				if(!sd->state.arrow_atk && sd->arrow_atk > 0) {
-					int arr = rand()%(sd->arrow_atk+1);
+					int arr = MRAND((sd->arrow_atk+1));
 					damage += arr;
 					damage2 += arr;
 				}
@@ -3379,8 +3379,8 @@ static struct Damage battle_calc_pc_weapon_attack(
 					int mdef2=battle_get_mdef2(target);
 					int imdef_flag=0;
 	
-					damage = ((damage * 5) + (skill_lv * battle_get_int(src) * 5) + rand()%500 + 500) /2;
-					damage2 = ((damage2 * 5) + (skill_lv * battle_get_int(src) * 5) + rand()%500 + 500) /2;
+					damage = ((damage * 5) + (skill_lv * battle_get_int(src) * 5) + MRAND(500) + 500) /2;
+					damage2 = ((damage2 * 5) + (skill_lv * battle_get_int(src) * 5) + MRAND(500) + 500) /2;
 					damage3 = damage;
 					hitrate = 1000000;
 	
@@ -3461,18 +3461,18 @@ static struct Damage battle_calc_pc_weapon_attack(
 
 				if(!idef_flag){
 					if(battle_config.player_defense_type) {
-						damage = damage - (def1 * battle_config.player_defense_type) - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+						damage = damage - (def1 * battle_config.player_defense_type) - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 					}
 					else{
-						damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+						damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 					}
 				}
 				if(!idef_flag_){
 					if(battle_config.player_defense_type) {
-						damage2 = damage2 - (def1 * battle_config.player_defense_type) - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+						damage2 = damage2 - (def1 * battle_config.player_defense_type) - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 					}
 					else{
-						damage2 = damage2 * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: rand()%(vitbonusmax+1) );
+						damage2 = damage2 * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
 					}
 				}
 			}
@@ -3514,7 +3514,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 	}
 
 	if(sd->perfect_hit > 0) {
-		if(rand()%100 < sd->perfect_hit)
+		if(MRAND(100) < sd->perfect_hit)
 			hitrate = 1000000;
 	}
 
@@ -3525,7 +3525,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 		t_sc_data[SC_STAN].timer!=-1 ||		// スタンは必中
 		t_sc_data[SC_FREEZE].timer!=-1 || (t_sc_data[SC_STONE].timer!=-1 && t_sc_data[SC_STONE].val2==0) ) ) )	// 凍結は必中
 		hitrate = 1000000;
-	if(type == 0 && rand()%100 >= hitrate) {
+	if(type == 0 && MRAND(100) >= hitrate) {
 		damage = damage2 = 0;
 		dmg_lv = ATK_FLEE;
 	} else {
@@ -3738,7 +3738,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 	}
 
 	// 完全回避の判定
-	if(skill_num == 0 && skill_lv >= 0 && tsd!=NULL && div_ < 255 && rand()%1000 < battle_get_flee2(target) ){
+	if(skill_num == 0 && skill_lv >= 0 && tsd!=NULL && div_ < 255 && MRAND(1000) < battle_get_flee2(target) ){
 		damage=damage2=0;
 		type=0x0b;
 		dmg_lv = ATK_LUCKY;
@@ -3746,7 +3746,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 
 	// 対象が完全回避をする設定がONなら
 	if(battle_config.enemy_perfect_flee) {
-		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && div_ < 255 && rand()%1000 < battle_get_flee2(target) ) {
+		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && div_ < 255 && MRAND(1000) < battle_get_flee2(target) ) {
 			damage=damage2=0;
 			type=0x0b;
 			dmg_lv = ATK_LUCKY;
@@ -3781,7 +3781,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 
 	/*				For executioner card [Valaris]				*/
 		if(src->type == BL_PC && sd->random_attack_increase_add > 0 && sd->random_attack_increase_per > 0 && skill_num == 0 ){
-			if(rand()%100 < sd->random_attack_increase_per){
+			if(MRAND(100) < sd->random_attack_increase_per){
 				if(damage >0) damage*=sd->random_attack_increase_add/100;
 				if(damage2 >0) damage2*=sd->random_attack_increase_add/100;
 				}
@@ -3843,14 +3843,14 @@ struct Damage battle_calc_weapon_attack(
 			int breakrate=1;
 			if(target->type == BL_PC && sd->sc_data[SC_MELTDOWN].timer!=-1){ 
 				breakrate+=100*sd->sc_data[SC_MELTDOWN].val1;
-				if(rand()%10000 < breakrate*battle_config.equipment_break_rate/100 || breakrate >= 10000)
+				if(MRAND(10000) < breakrate*battle_config.equipment_break_rate/100 || breakrate >= 10000)
 					pc_breakweapon((struct map_session_data *)target);
 			}
 			if(sd->sc_data[SC_OVERTHRUST].timer!=-1)
 				breakrate+=20*sd->sc_data[SC_OVERTHRUST].val1;
 			if(wd.type==0x0a)
 				breakrate*=2;
-			if(rand()%10000 < breakrate*battle_config.equipment_break_rate/100 || breakrate >= 10000) {
+			if(MRAND(10000) < breakrate*battle_config.equipment_break_rate/100 || breakrate >= 10000) {
 				pc_breakweapon(sd);
 				memset(&wd,0,sizeof(wd));
 			}
@@ -3862,7 +3862,7 @@ struct Damage battle_calc_weapon_attack(
 		if(src->type==BL_PC && ((struct map_session_data *)src)->sc_data[SC_MELTDOWN].timer!=-1) breakrate+=70*((struct map_session_data *)src)->sc_data[SC_MELTDOWN].val1;
 		if (wd.type==0x0a)
 			breakrate*=2;
-		if (rand()%10000 < breakrate*battle_config.equipment_break_rate/100 || breakrate >= 10000) {
+		if (MRAND(10000) < breakrate*battle_config.equipment_break_rate/100 || breakrate >= 10000) {
 			pc_breakarmor((struct map_session_data *)target);
 		}
 	}
@@ -3952,7 +3952,7 @@ struct Damage battle_calc_magic_attack(
 				if(thres > 700) thres = 700;
 //				if(battle_config.battle_log)
 //					printf("ターンアンデッド！ 確率%d ‰(千分率)\n", thres);
-				if(rand()%1000 < thres && !(t_mode&0x20))	// 成功
+				if(MRAND(1000) < thres && !(t_mode&0x20))	// 成功
 					damage = hp;
 				else					// 失敗
 					damage = battle_get_lv(bl) + battle_get_int(bl) + skill_lv * 10;
@@ -4045,7 +4045,7 @@ struct Damage battle_calc_magic_attack(
 	if(normalmagic_flag){	// 一般魔法ダメージ計算
 		int imdef_flag=0;
 		if(matk1>matk2)
-			damage= matk2+rand()%(matk1-matk2+1);
+			damage= matk2+MRAND((matk1-matk2+1));
 		else
 			damage= matk2;
 		if(sd) {
@@ -4249,8 +4249,8 @@ struct Damage  battle_calc_misc_attack(
 			if(sc_data && (sc_data[SC_SLEEP].timer!=-1 || sc_data[SC_STAN].timer!=-1 ||
 				sc_data[SC_FREEZE].timer!=-1 || (sc_data[SC_STONE].timer!=-1 && sc_data[SC_STONE].val2==0) ) )
 				hitrate = 1000000;
-			if(rand()%100 < hitrate) {
-				damage = 500 + (skill_lv-1)*1000 + rand()%1000;
+			if(MRAND(100) < hitrate) {
+				damage = 500 + (skill_lv-1)*1000 + MRAND(1000);
 				if(damage > 9999) damage = 9999;
 			}
 		}
@@ -4456,24 +4456,24 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 			if(wd.damage > 0 || wd.damage2 > 0) {
 				skill_additional_effect(src,target,0,0,BF_WEAPON,tick);
 				if(sd) {
-					if(sd->weapon_coma_ele[ele] > 0 && rand()%10000 < sd->weapon_coma_ele[ele])
+					if(sd->weapon_coma_ele[ele] > 0 && MRAND(10000) < sd->weapon_coma_ele[ele])
 						battle_damage(src,target,battle_get_max_hp(target),1);
-					if(sd->weapon_coma_race[race] > 0 && rand()%10000 < sd->weapon_coma_race[race])
+					if(sd->weapon_coma_race[race] > 0 && MRAND(10000) < sd->weapon_coma_race[race])
 						battle_damage(src,target,battle_get_max_hp(target),1);
 					if(battle_get_mode(target) & 0x20) {
-						if(sd->weapon_coma_race[10] > 0 && rand()%10000 < sd->weapon_coma_race[10])
+						if(sd->weapon_coma_race[10] > 0 && MRAND(10000) < sd->weapon_coma_race[10])
 							battle_damage(src,target,battle_get_max_hp(target),1);
 					}
 					else {
-						if(sd->weapon_coma_race[11] > 0 && rand()%10000 < sd->weapon_coma_race[11])
+						if(sd->weapon_coma_race[11] > 0 && MRAND(10000) < sd->weapon_coma_race[11])
 							battle_damage(src,target,battle_get_max_hp(target),1);
 					}
 				}
 			}
 		}
-		if(sc_data && sc_data[SC_AUTOSPELL].timer != -1 && rand()%100 < sc_data[SC_AUTOSPELL].val4) {
+		if(sc_data && sc_data[SC_AUTOSPELL].timer != -1 && MRAND(100) < sc_data[SC_AUTOSPELL].val4) {
 			int skilllv=sc_data[SC_AUTOSPELL].val3,i,f=0;
-			i = rand()%100;
+			i = MRAND(100);
 			if(i >= 50) skilllv -= 2;
 			else if(i >= 15) skilllv--;
 			if(skilllv < 1) skilllv = 1;
@@ -4517,9 +4517,9 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 			}
 		}
 		if(sd) {
-			if(sd->autospell_id > 0 && sd->autospell_lv > 0 && rand()%100 < sd->autospell_rate) {
+			if(sd->autospell_id > 0 && sd->autospell_lv > 0 && MRAND(100) < sd->autospell_rate) {
 				int skilllv=sd->autospell_lv,i,f=0,sp;
-				i = rand()%100;
+				i = MRAND(100);
 				if(i >= 50) skilllv -= 2;
 				else if(i >= 15) skilllv--;
 				if(skilllv < 1) skilllv = 1;
@@ -4545,22 +4545,22 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 			}
 			if(wd.flag&BF_WEAPON && src != target && (wd.damage > 0 || wd.damage2 > 0)) {
 				int hp = 0,sp = 0;
-				if(sd->hp_drain_rate && sd->hp_drain_per > 0 && wd.damage > 0 && rand()%100 < sd->hp_drain_rate) {
+				if(sd->hp_drain_rate && sd->hp_drain_per > 0 && wd.damage > 0 && MRAND(100) < sd->hp_drain_rate) {
 					hp += (wd.damage * sd->hp_drain_per)/100;
 					if(sd->hp_drain_rate > 0 && hp < 1) hp = 1;
 					else if(sd->hp_drain_rate < 0 && hp > -1) hp = -1;
 				}
-				if(sd->hp_drain_rate_ && sd->hp_drain_per_ > 0 && wd.damage2 > 0 && rand()%100 < sd->hp_drain_rate_) {
+				if(sd->hp_drain_rate_ && sd->hp_drain_per_ > 0 && wd.damage2 > 0 && MRAND(100) < sd->hp_drain_rate_) {
 					hp += (wd.damage2 * sd->hp_drain_per_)/100;
 					if(sd->hp_drain_rate_ > 0 && hp < 1) hp = 1;
 					else if(sd->hp_drain_rate_ < 0 && hp > -1) hp = -1;
 				}
-				if(sd->sp_drain_rate && sd->sp_drain_per > 0 && wd.damage > 0 && rand()%100 < sd->sp_drain_rate) {
+				if(sd->sp_drain_rate && sd->sp_drain_per > 0 && wd.damage > 0 && MRAND(100) < sd->sp_drain_rate) {
 					sp += (wd.damage * sd->sp_drain_per)/100;
 					if(sd->sp_drain_rate > 0 && sp < 1) sp = 1;
 					else if(sd->sp_drain_rate < 0 && sp > -1) sp = -1;
 				}
-				if(sd->sp_drain_rate_ && sd->sp_drain_per_ > 0 && wd.damage2 > 0 && rand()%100 < sd->sp_drain_rate_) {
+				if(sd->sp_drain_rate_ && sd->sp_drain_per_ > 0 && wd.damage2 > 0 && MRAND(100) < sd->sp_drain_rate_) {
 					sp += (wd.damage2 * sd->sp_drain_per_)/100;
 					if(sd->sp_drain_rate_ > 0 && sp < 1) sp = 1;
 					else if(sd->sp_drain_rate_ < 0 && sp > -1) sp = -1;
