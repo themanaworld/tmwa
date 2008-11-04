@@ -1,3 +1,0 @@
-new_1-1.gat,0,0,0,0     monster GreenSlime      1005,50,0,0,0
-new_1-1.gat,0,0,0,0     monster GiantMaggot     1006,30,0,0,0
-new_1-1.gat,0,0,0,0     monster RedScorpion     1004,20,0,0,0
