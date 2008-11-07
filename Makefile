@@ -1,6 +1,10 @@
 # $Id$
 
-CC = gcc -pipe
+ifeq ($(shell uname -m), x86_64)
+M32=-m32
+endif
+
+CC = gcc ${M32} -pipe
 PACKETDEF = -DPACKETVER=5 -DNEW_006b
 #PACKETDEF = -DPACKETVER=4 -DNEW_006b
 #PACKETDEF = -DPACKETVER=3 -DNEW_006b
@@ -15,7 +19,7 @@ else
 MAKE = make
 endif
 
-OPT = -g -O2
+OPT = -g -O2 ${M32}
 
 ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
 OS_TYPE = -DCYGWIN
