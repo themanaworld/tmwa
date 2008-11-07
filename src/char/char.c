@@ -726,6 +726,31 @@ int mmo_char_sync_timer(int tid, unsigned int tick, int id, int data) {
 	return 0;
 }
 
+//----------------------------------------------------
+// Remove trailing whitespace from a name
+//----------------------------------------------------
+static void remove_trailing_blanks(char *name)
+{
+        char *tail = name + strlen(name) - 1;
+
+        while (tail > name
+               && *tail == ' ')
+                *tail-- = 0;
+}
+
+//----------------------------------------------------
+// Remove prefix whitespace from a name
+//----------------------------------------------------
+static void remove_prefix_blanks(char *name)
+{
+        char *dst = name;
+        char *src = name;
+
+        while (*src == ' ') // find first nonblank
+                ++src;
+        while (*dst++ = *src++); // `strmove'
+}
+
 //-----------------------------------
 // Function to create a new character
 //-----------------------------------
@@ -742,6 +767,10 @@ int make_new_char(int fd, unsigned char *dat) {
 		         fd, sd->account_id);
 		return -1;
 	}
+
+        // Eliminate whitespace
+        remove_trailing_blanks((char *)dat);
+        remove_prefix_blanks((char *)dat);
 
 	// check lenght of character name
 	if (strlen(dat) < 4) {
