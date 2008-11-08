@@ -7826,8 +7826,8 @@ atcommand_set_magic(const int fd, struct map_session_data* sd,
 
 	memset(character, '\0', sizeof(character));
 
-	if (!message || !*message || sscanf(message, "%99s %19s %i", character, magic_type, &value) < 1) {
-		clif_displaymessage(fd, "Usage: @setmagic <char_name> <school> <value>, where <school> is either `magic', one of the school names, or `all'.");
+	if (!message || !*message || sscanf(message, "%19s %i %99s", magic_type, &value, character) < 1) {
+		clif_displaymessage(fd, "Usage: @setmagic <school> <value> <char-name>, where <school> is either `magic', one of the school names, or `all'.");
 		return -1;
 	}
 
