@@ -208,7 +208,7 @@ struct map_session_data {
         int followtimer; // [MouseJstr]
         int followtarget;
 
-        int cast_tick; // [Fate] Next tick at which spellcasting is allowed
+        unsigned int cast_tick; // [Fate] Next tick at which spellcasting is allowed
         struct invocation *active_spells; // [Fate] Singly-linked list of active spells linked to this PC
         int attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
                                    // like a weapon.  Check pc_attack_timer() for details.

@@ -290,15 +290,17 @@ consume_components(character_t *caster, component_t *component)
 static int
 spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *env, int *near_miss)
 {
-        int tick = gettick();
+        unsigned int tick = gettick();
 
         int retval = check_prerequisites(caster, check->catalysts);
-/*
-        fprintf(stderr, "Check: can satisfy? %d%d%d%d\n", retval, 
+
+        fprintf(stderr, "MC(%d/%s)? %d%d%d%d (%u <= %u)\n",
+                caster->bl.id, caster->status.name,
+                retval, 
                 caster->cast_tick <= tick,
                 check->mana <= caster->status.sp,
-                check_prerequisites(caster, check->components));
-*/
+                check_prerequisites(caster, check->components),
+                caster->cast_tick, tick);
 
         if (retval && near_miss)
                 *near_miss = 1; // close enough!
@@ -309,12 +311,14 @@ spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *en
                 && check_prerequisites(caster, check->components);
 
         if (retval) {
-                int casttime = check->casttime;
+                unsigned int casttime = (unsigned int) check->casttime;
 
                 if (VAR(VAR_MIN_CASTTIME).ty == TY_INT)
                         casttime = MAX(casttime, VAR(VAR_MIN_CASTTIME).v.v_int);
 
                 caster->cast_tick = tick + casttime; /* Make sure not to cast too frequently */
+
+                fprintf(stderr, " -> NC %u + %u = %u\n", tick, casttime, caster->cast_tick);
 
                 consume_components(caster, check->components);
                 pc_heal(caster, 0, -check->mana);
