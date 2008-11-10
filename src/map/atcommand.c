@@ -210,8 +210,9 @@ ATCOMMAND_FUNC(adjgmlvl); // by MouseJstr
 ATCOMMAND_FUNC(adjcmdlvl); // by MouseJstr
 ATCOMMAND_FUNC(trade); // by MouseJstr
 ATCOMMAND_FUNC(unmute); // [Valaris]
-ATCOMMAND_FUNC(set_magic);
-ATCOMMAND_FUNC(magic_info);
+ATCOMMAND_FUNC(char_wipe); // [Fate]
+ATCOMMAND_FUNC(set_magic); // [Fate]
+ATCOMMAND_FUNC(magic_info); // [Fate]
 
 #ifndef TXT_ONLY
 ATCOMMAND_FUNC(checkmail); // [Valaris]
@@ -456,8 +457,9 @@ static AtCommandInfo atcommand_info[] = {
 	{ AtCommand_AdjCmdLvl,      "@adjcmdlvl", 99, atcommand_adjcmdlvl },
 	{ AtCommand_Trade,      "@trade", 60, atcommand_trade },
 	{ AtCommand_UnMute,	"@unmute", 60, atcommand_unmute }, // [Valaris]
+	{ AtCommand_UnMute,	"@charwipe", 60, atcommand_char_wipe }, // [Fate]
         { AtCommand_SetMagic,  "@setmagic", 99, atcommand_set_magic }, // [Fate]
-        { AtCommand_MagicInfo, "@magicinfo", 99, atcommand_magic_info }, // [Fate]
+        { AtCommand_MagicInfo, "@magicinfo", 60, atcommand_magic_info }, // [Fate]
 
 #ifndef TXT_ONLY // sql-only commands
 	{ AtCommand_CheckMail,		 "@checkmail",	      1, atcommand_listmail }, // [Valaris]
@@ -4482,8 +4484,10 @@ int atcommand_character_baselevel(
 					clif_updatestatus(pl_sd, SP_STATUSPOINT);
 				} // to add: remove status points from stats
 				pl_sd->status.base_level += level;
+                                pl_sd->status.base_exp = 0;
 				clif_updatestatus(pl_sd, SP_BASELEVEL);
 				clif_updatestatus(pl_sd, SP_NEXTBASEEXP);
+				clif_updatestatus(pl_sd, SP_BASEEXP);
 				pc_calcstatus(pl_sd, 0);
 				clif_displaymessage(fd, msg_table[66]); // Character's base level lowered.
 			}
@@ -5100,7 +5104,90 @@ int atcommand_charreset(
 		if (pc_isGM(sd) >= pc_isGM(pl_sd)) { // you can reset a character only for lower or same GM level
 			pc_resetstate(pl_sd);
 			pc_resetskill(pl_sd);
+                        pc_setglobalreg(pl_sd, "MAGIC_FLAGS", 0); // [Fate] Reset magic quest variables
+                        pc_setglobalreg(pl_sd, "MAGIC_EXP", 0); // [Fate] Reset magic experience
 			sprintf(output, msg_table[208], character); // '%s' skill and stats points reseted!
+			clif_displaymessage(fd, output);
+		} else {
+			clif_displaymessage(fd, msg_table[81]); // Your GM level don't authorise you to do this action on this player.
+			return -1;
+		}
+	} else {
+		clif_displaymessage(fd, msg_table[3]); // Character not found.
+		return -1;
+	}
+
+	return 0;
+}
+
+/*==========================================
+ * Character Wipe
+ *------------------------------------------
+ */
+int atcommand_char_wipe(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message)
+{
+	char character[100];
+	char output[200];
+	struct map_session_data *pl_sd;
+
+	memset(character, '\0', sizeof(character));
+	memset(output, '\0', sizeof(output));
+
+	if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1) {
+		clif_displaymessage(fd, "Please, enter a player name (usage: @charwipe <charname>).");
+		return -1;
+	}
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+		if (pc_isGM(sd) >= pc_isGM(pl_sd)) { // you can reset a character only for lower or same GM level
+                        int i;
+
+                        // Reset base level
+                        pl_sd->status.base_level = 1;
+                        pl_sd->status.base_exp = 0;
+                        clif_updatestatus(pl_sd, SP_BASELEVEL);
+                        clif_updatestatus(pl_sd, SP_NEXTBASEEXP);
+                        clif_updatestatus(pl_sd, SP_BASEEXP);
+
+                        // Reset job level
+                        pl_sd->status.job_level = 1;
+                        pl_sd->status.job_exp = 0;
+                        clif_updatestatus(pl_sd, SP_JOBLEVEL);
+                        clif_updatestatus(pl_sd, SP_NEXTJOBEXP);
+                        clif_updatestatus(pl_sd, SP_JOBEXP);
+
+                        // Zeny to 50
+                        pl_sd->status.zeny = 50;
+			clif_updatestatus(pl_sd, SP_ZENY);
+
+                        // Clear inventory
+                        for (i = 0; i < MAX_INVENTORY; i++) {
+                                if (sd->status.inventory[i].amount) {
+                                        if (sd->status.inventory[i].equip)
+                                                pc_unequipitem(pl_sd, i, 0);
+                                        pc_delitem(pl_sd, i, sd->status.inventory[i].amount, 0);
+                                }
+                        }
+
+                        // Give knife and shirt
+                        struct item item;
+                        item.nameid = 1201; // knife
+                        item.identify = 1;
+                        item.broken = 0;
+                        pc_additem(pl_sd, &item, 1);
+                        item.nameid = 1202; // shirt
+                        pc_additem(pl_sd, &item, 1);
+
+                        // Reset stats and skills
+                        pc_calcstatus(pl_sd, 0);
+			pc_resetstate(pl_sd);
+			pc_resetskill(pl_sd);
+                        pc_setglobalreg(pl_sd, "MAGIC_FLAGS", 0); // [Fate] Reset magic quest variables
+                        pc_setglobalreg(pl_sd, "MAGIC_EXP", 0); // [Fate] Reset magic experience
+
+			sprintf(output, "%s:  wiped.", character); // '%s' skill and stats points reseted!
 			clif_displaymessage(fd, output);
 		} else {
 			clif_displaymessage(fd, msg_table[81]); // Your GM level don't authorise you to do this action on this player.

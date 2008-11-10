@@ -193,6 +193,7 @@ enum AtCommandType {
 	AtCommand_AdjCmdLvl,
 	AtCommand_Trade,
 	AtCommand_UnMute,	
+        AtCommand_CharWipe,
 
 	// SQL-only commands start
 #ifndef TXT_ONLY 

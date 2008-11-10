@@ -4937,14 +4937,16 @@ int pc_resetstate(struct map_session_data* sd)
 //	add += sumsp(sd->status.luk);
 //	sd->status.status_point+=add;
 
+        sd->status.status_point -= 8 * 6; // [Fate] Remove points used for setting stats to 5
+
 	clif_updatestatus(sd,SP_STATUSPOINT);
 
-	sd->status.str=1;
-	sd->status.agi=1;
-	sd->status.vit=1;
-	sd->status.int_=1;
-	sd->status.dex=1;
-	sd->status.luk=1;
+	sd->status.str=5;
+	sd->status.agi=5;
+	sd->status.vit=5;
+	sd->status.int_=5;
+	sd->status.dex=5;
+	sd->status.luk=5;
 
 	clif_updatestatus(sd,SP_STR);
 	clif_updatestatus(sd,SP_AGI);
@@ -4978,7 +4980,7 @@ int pc_resetskill(struct map_session_data* sd)
 	for(i=1;i<MAX_SKILL;i++){
 		if( (skill = pc_checkskill(sd,i)) > 0) {
 			if(!(skill_get_inf2(i)&0x01) || battle_config.quest_skill_learn) {
-				if(!sd->status.skill[i].flag)
+                                if(!sd->status.skill[i].flag && !QUEST_SKILL(i))
 					sd->status.skill_point += skill;
 				else if(sd->status.skill[i].flag > 2 && sd->status.skill[i].flag != 13) {
 					sd->status.skill_point += (sd->status.skill[i].flag - 2);
