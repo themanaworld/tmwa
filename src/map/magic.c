@@ -78,7 +78,13 @@ magic_message(character_t *caster,
         if (spell) {
                 int near_miss;
                 env_t *env = spell_create_env(&magic_conf, spell, caster, power, parameter);
-                effect_set_t *effects = (power < 1) ? NULL : spell_trigger(spell, caster, env, &near_miss);
+                effect_set_t *effects;
+
+                if ((spell->flags & SPELL_FLAG_NONMAGIC)
+                    || (power >= 1))
+                        effects = spell_trigger(spell, caster, env, &near_miss);
+                else
+                        effects = NULL;
 
 #ifdef DEBUG
                 fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_, effects != NULL);

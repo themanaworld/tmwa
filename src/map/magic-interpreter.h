@@ -239,6 +239,7 @@ typedef struct letdef {
 
 #define SPELL_FLAG_LOCAL	(1 << 0) // spell associated not with caster but with place
 #define SPELL_FLAG_SILENT	(1 << 1) // spell invocation never uttered
+#define SPELL_FLAG_NONMAGIC	(1 << 2) // `magic word' only:  don't require spellcasting ability
 
 typedef struct spell {
     char *name;

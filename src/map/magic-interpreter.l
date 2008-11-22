@@ -65,6 +65,7 @@
 "TELEPORT-ANCHOR"	{FIXLOC; return TELEPORT_ANCHOR;}
 "SILENT"		{FIXLOC; return SILENT;}
 "LOCAL"			{FIXLOC; return LOCAL;}
+"NONMAGIC"		{FIXLOC; return NONMAGIC;}
 "SPELL"			{FIXLOC; return SPELL;}
 "LET"			{FIXLOC; return LET;}
 "IN"			{FIXLOC; return IN;}

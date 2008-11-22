@@ -119,6 +119,7 @@ find_constant(char *name);
 %token CALL
 %token SILENT
 %token LOCAL
+%token NONMAGIC
 %token SHL
 %token SHR
 %token EQ
@@ -290,6 +291,11 @@ spell_flags		: /* empty */
                         	{ if ($2 & SPELL_FLAG_LOCAL)
                                         fail(@1.first_line, @1.first_column, "`LOCAL' specified more than once");
                                    $$ = $2 | SPELL_FLAG_LOCAL;
+                                }
+			| NONMAGIC spell_flags
+                        	{ if ($2 & SPELL_FLAG_NONMAGIC)
+                                        fail(@1.first_line, @1.first_column, "`NONMAGIC' specified more than once");
+                                   $$ = $2 | SPELL_FLAG_NONMAGIC;
                                 }
 			| SILENT spell_flags
                         	{ if ($2 & SPELL_FLAG_SILENT)

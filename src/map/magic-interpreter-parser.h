@@ -48,47 +48,48 @@
      CALL = 264,
      SILENT = 265,
      LOCAL = 266,
-     SHL = 267,
-     SHR = 268,
-     EQ = 269,
-     NEQ = 270,
-     GTE = 271,
-     LTE = 272,
-     ANDAND = 273,
-     OROR = 274,
-     SCRIPT_DATA = 275,
-     TO = 276,
-     TOWARDS = 277,
-     TELEPORT_ANCHOR = 278,
-     SPELL = 279,
-     LET = 280,
-     IN = 281,
-     END = 282,
-     DARROW = 283,
-     STRING_TY = 284,
-     REQUIRE = 285,
-     CATALYSTS = 286,
-     COMPONENTS = 287,
-     MANA = 288,
-     CASTTIME = 289,
-     SKIP = 290,
-     ABORT = 291,
-     BREAK = 292,
-     EFFECT = 293,
-     ATEND = 294,
-     ATTRIGGER = 295,
-     PC_F = 296,
-     MOB_F = 297,
-     ENTITY_F = 298,
-     TARGET_F = 299,
-     IF = 300,
-     THEN = 301,
-     ELSE = 302,
-     FOREACH = 303,
-     FOR = 304,
-     DO = 305,
-     SLEEP = 306,
-     OR = 307
+     NONMAGIC = 267,
+     SHL = 268,
+     SHR = 269,
+     EQ = 270,
+     NEQ = 271,
+     GTE = 272,
+     LTE = 273,
+     ANDAND = 274,
+     OROR = 275,
+     SCRIPT_DATA = 276,
+     TO = 277,
+     TOWARDS = 278,
+     TELEPORT_ANCHOR = 279,
+     SPELL = 280,
+     LET = 281,
+     IN = 282,
+     END = 283,
+     DARROW = 284,
+     STRING_TY = 285,
+     REQUIRE = 286,
+     CATALYSTS = 287,
+     COMPONENTS = 288,
+     MANA = 289,
+     CASTTIME = 290,
+     SKIP = 291,
+     ABORT = 292,
+     BREAK = 293,
+     EFFECT = 294,
+     ATEND = 295,
+     ATTRIGGER = 296,
+     PC_F = 297,
+     MOB_F = 298,
+     ENTITY_F = 299,
+     TARGET_F = 300,
+     IF = 301,
+     THEN = 302,
+     ELSE = 303,
+     FOREACH = 304,
+     FOR = 305,
+     DO = 306,
+     SLEEP = 307,
+     OR = 308
    };
 #endif
 /* Tokens.  */
@@ -101,47 +102,48 @@
 #define CALL 264
 #define SILENT 265
 #define LOCAL 266
-#define SHL 267
-#define SHR 268
-#define EQ 269
-#define NEQ 270
-#define GTE 271
-#define LTE 272
-#define ANDAND 273
-#define OROR 274
-#define SCRIPT_DATA 275
-#define TO 276
-#define TOWARDS 277
-#define TELEPORT_ANCHOR 278
-#define SPELL 279
-#define LET 280
-#define IN 281
-#define END 282
-#define DARROW 283
-#define STRING_TY 284
-#define REQUIRE 285
-#define CATALYSTS 286
-#define COMPONENTS 287
-#define MANA 288
-#define CASTTIME 289
-#define SKIP 290
-#define ABORT 291
-#define BREAK 292
-#define EFFECT 293
-#define ATEND 294
-#define ATTRIGGER 295
-#define PC_F 296
-#define MOB_F 297
-#define ENTITY_F 298
-#define TARGET_F 299
-#define IF 300
-#define THEN 301
-#define ELSE 302
-#define FOREACH 303
-#define FOR 304
-#define DO 305
-#define SLEEP 306
-#define OR 307
+#define NONMAGIC 267
+#define SHL 268
+#define SHR 269
+#define EQ 270
+#define NEQ 271
+#define GTE 272
+#define LTE 273
+#define ANDAND 274
+#define OROR 275
+#define SCRIPT_DATA 276
+#define TO 277
+#define TOWARDS 278
+#define TELEPORT_ANCHOR 279
+#define SPELL 280
+#define LET 281
+#define IN 282
+#define END 283
+#define DARROW 284
+#define STRING_TY 285
+#define REQUIRE 286
+#define CATALYSTS 287
+#define COMPONENTS 288
+#define MANA 289
+#define CASTTIME 290
+#define SKIP 291
+#define ABORT 292
+#define BREAK 293
+#define EFFECT 294
+#define ATEND 295
+#define ATTRIGGER 296
+#define PC_F 297
+#define MOB_F 298
+#define ENTITY_F 299
+#define TARGET_F 300
+#define IF 301
+#define THEN 302
+#define ELSE 303
+#define FOREACH 304
+#define FOR 305
+#define DO 306
+#define SLEEP 307
+#define OR 308
 
 
 
@@ -170,7 +172,7 @@ typedef union YYSTYPE
     proc_t *proc;
 }
 /* Line 1489 of yacc.c.  */
-#line 174 "magic-interpreter-parser.h"
+#line 176 "magic-interpreter-parser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

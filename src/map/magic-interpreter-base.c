@@ -294,6 +294,7 @@ spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *en
 
         int retval = check_prerequisites(caster, check->catalysts);
 
+/*
         fprintf(stderr, "MC(%d/%s)? %d%d%d%d (%u <= %u)\n",
                 caster->bl.id, caster->status.name,
                 retval, 
@@ -301,6 +302,7 @@ spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *en
                 check->mana <= caster->status.sp,
                 check_prerequisites(caster, check->components),
                 caster->cast_tick, tick);
+*/
 
         if (retval && near_miss)
                 *near_miss = 1; // close enough!
@@ -317,8 +319,6 @@ spellguard_can_satisfy(spellguard_check_t *check, character_t *caster, env_t *en
                         casttime = MAX(casttime, VAR(VAR_MIN_CASTTIME).v.v_int);
 
                 caster->cast_tick = tick + casttime; /* Make sure not to cast too frequently */
-
-                fprintf(stderr, " -> NC %u + %u = %u\n", tick, casttime, caster->cast_tick);
 
                 consume_components(caster, check->components);
                 pc_heal(caster, 0, -check->mana);

@@ -180,6 +180,8 @@ does not map to a player character or is missing.
     	   not even obscured.
   * LOCAL means that the spell is bound to the location it was cast at
     	  and will not `travel' with the caster.
+  * NONMAGIC means that the spell is not affected by the caster's ability
+          to perform magic.  Typically used for special (quest) keywords.
 
   Modifiers may be given in any order, but only once.
 
