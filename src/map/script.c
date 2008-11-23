@@ -5792,7 +5792,7 @@ int buildin_specialeffect2(struct script_state *st)
 
 int buildin_nude(struct script_state *st)
 {
-	struct map_session_data *sd=script_rid2sd(st);	
+	struct map_session_data *sd=script_rid2sd(st);
 	int i;
 
 	if(sd==NULL)
@@ -5800,7 +5800,8 @@ int buildin_nude(struct script_state *st)
 	
 	for(i=0;i<11;i++) 
 		if(sd->equip_index[i] >= 0)
-			pc_unequipitem(sd,sd->equip_index[i],1);
+			pc_unequipitem(sd,sd->equip_index[i], i);
+        pc_calcstatus(sd, 0);
 
 	return 0;
 }
