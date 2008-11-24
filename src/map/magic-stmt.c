@@ -1195,6 +1195,9 @@ print_cfg(int i, effect_t *e)
 static int
 spell_run(invocation_t *invocation, int allow_delete)
 {
+        const int invocation_id = invocation->bl.id;
+#define REFRESH_INVOCATION invocation = (invocation_t *) map_id2bl(invocation_id); if (!invocation) return 0;
+
 #ifdef DEBUG
         fprintf(stderr, "Resuming execution:  invocation of `%s'\n", invocation->spell->name);
         print_cfg(1, invocation->current_effect);
@@ -1285,6 +1288,7 @@ spell_run(invocation_t *invocation, int allow_delete)
                                         invocation->script_pos = 0;
                                 clif_clearchar_id(invocation->bl.id, 1, caster->fd);
                         }
+                        REFRESH_INVOCATION; // Script may have killed the caster
                         break;
                 }
 
@@ -1306,6 +1310,8 @@ spell_run(invocation_t *invocation, int allow_delete)
 
                         for (i = 0; i < e->e.e_op.args_nr; i++)
                                 magic_clear_var(&args[i]);
+
+                        REFRESH_INVOCATION; // Effect may have killed the caster
                         break;
                 }
 
@@ -1327,6 +1333,7 @@ spell_run(invocation_t *invocation, int allow_delete)
         if (allow_delete)
                 try_to_finish_invocation(invocation);
         return 0;
+#undef REFRESH_INVOCATION
 }
 
 
@@ -1371,7 +1378,11 @@ spell_attack(int caster_id, int target_id)
                 invocation->flags &= ~INVOCATION_FLAG_ABORTED;
                 spell_execute_d(invocation, 0 /* don't delete the invocation if done */);
 
-                if (!(invocation->flags & INVOCATION_FLAG_ABORTED)) // If we didn't abort:
+                // If the caster died, we need to refresh here:
+                invocation = (invocation_t *)map_id2bl(caster->attack_spell_override);
+
+                if (invocation
+                    && !(invocation->flags & INVOCATION_FLAG_ABORTED)) // If we didn't abort:
                         caster->attack_spell_charges--;
         }
 
