@@ -1,0 +1,8 @@
+This is just eAthena. We store our scripts, item and monster databases, etc.
+in a separate git repository called tmw-eathena-data, available at:
+
+ http://gitorious.org/projects/tmw-eathena-data
+
+Note that this repository contains more than just the contents of this data
+directory. Either set up symbolic links or just copy the server executables
+into it.
