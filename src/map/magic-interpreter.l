@@ -55,6 +55,7 @@
 "]"			{FIXLOC; return ']';}
 "&"			{FIXLOC; return '&';}
 "^"			{FIXLOC; return '^';}
+"."			{FIXLOC; return '.';}
 "<<"			{FIXLOC; return SHL;}
 ">>"			{FIXLOC; return SHR;}
 "PROCEDURE"		{FIXLOC; return PROCEDURE;}

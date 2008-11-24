@@ -150,7 +150,7 @@
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-#line 71 "magic-interpreter-parser.y"
+#line 74 "magic-interpreter-parser.y"
 {
     int i;
     char *s;

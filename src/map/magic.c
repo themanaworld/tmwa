@@ -56,7 +56,7 @@ int
 magic_message(character_t *caster,
               char *spell_, size_t spell_len)
 {
-        int power = caster->status.base_level + (caster->status.int_ * 2) + caster->spellpower_bonus_current;
+        int power = caster->matk1;
         char *invocation_base = spell_ + 8;
         char *source_invocation = strchr(invocation_base, ':');
         spell_t *spell;

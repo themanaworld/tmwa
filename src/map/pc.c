@@ -1525,6 +1525,12 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		sd->matk2 = sd->matk1;
 		sd->matk1 = temp;
 	}
+        // [Fate] New tmw magic system
+        sd->matk1 += sd->status.base_level + sd->spellpower_bonus_current;
+        sd->matk2 = 0;
+        if (sd->matk1 < 0)
+            sd->matk1 = 0;
+
 	sd->hit += sd->paramc[4] + sd->status.base_level;
 	sd->flee += sd->paramc[1] + sd->status.base_level;
 	sd->def2 += sd->paramc[2];
@@ -7125,10 +7131,14 @@ static int pc_natural_heal_sub(struct map_session_data *sd,va_list ap) {
 	nullpo_retr(0, sd);
 
         // Hijack this callback:  Adjust spellpower bonus
-        if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
+        if (sd->spellpower_bonus_target < sd->spellpower_bonus_current) {
                 sd->spellpower_bonus_current = sd->spellpower_bonus_target;
-        else if (sd->spellpower_bonus_target > sd->spellpower_bonus_current)
+                pc_calcstatus(sd, 0);
+        }
+        else if (sd->spellpower_bonus_target > sd->spellpower_bonus_current) {
                 sd->spellpower_bonus_current += 1 + ((sd->spellpower_bonus_target - sd->spellpower_bonus_current) >> 5);
+                pc_calcstatus(sd, 0);
+        }
 
         if (sd->sc_data[SC_HALT_REGENERATE].timer != -1)
             return 0;

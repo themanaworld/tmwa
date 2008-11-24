@@ -12,6 +12,9 @@ intern_id(char *id_name);
 static expr_t *
 fun_expr(char *name, int args_nr, expr_t **args, int line, int column);
 
+static expr_t *
+dot_expr(expr_t *lhs, int id);
+
 #define BIN_EXPR(x, name, arg1, arg2, line, column) { expr_t *e[2]; e[0] = arg1; e[1] = arg2; x = fun_expr(name, 2, e, line, column); }
 
 static int failed_flag = 0;
@@ -106,6 +109,7 @@ find_constant(char *name);
 %token '%'
 %token '@'
 %token ','
+%token '.'
 %token ':'
 %token ';'
 %token '|'
@@ -200,6 +204,7 @@ find_constant(char *name);
 %right '='
 %left OR
 %left DARROW
+%left '.'
 
 %%
 
@@ -394,6 +399,8 @@ expr			: value
                                   free($1); }
 			| '(' expr ')'
                         	{ $$ = $2; }
+			| expr '.' ID
+                        	{ $$ = dot_expr($1, intern_id($3)); }
 			;
 
 arg_list		: /* empty */
@@ -766,6 +773,16 @@ fail(int line, int column, char *fmt, ...)
         va_start(ap, fmt);
         vfprintf(stderr, fmt, ap);
         failed_flag = 1;
+}
+
+static expr_t *
+dot_expr(expr_t *expr, int id)
+{
+        expr_t *retval = magic_new_expr(EXPR_SPELLFIELD);
+        retval->e.e_field.id = id;
+        retval->e.e_field.expr = expr;
+
+        return retval;
 }
 
 static expr_t *

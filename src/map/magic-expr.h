@@ -89,4 +89,10 @@ magic_copy_var(val_t *dest, val_t *src);
 void
 magic_random_location(location_t *dest, area_t *area);
 
+int // ret -1: not a string, ret 1: no such item, ret 0: OK
+magic_find_item(val_t *args, int index, struct item *item, int *stackable);
+
+#define GET_ARG_ITEM(index, dest, stackable) switch(magic_find_item(args, index, &dest, &stackable)) { case -1 : return 1; case 1 : return 0; }
+
+
 #endif /* !defined(MAGIC_EXPR_H_) */

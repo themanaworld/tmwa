@@ -504,40 +504,6 @@ op_override_attack(env_t *env, int args_nr, val_t *args)
         return 0;
 }
 
-static int // ret -1: not a string, ret 1: no such item, ret 0: OK
-find_item(val_t *args, int index, struct item *item, int *stackable)
-{
-        struct item_data *item_data;
-        int must_add_sequentially;
-
-        if (TY(index) == TY_INT)
-                item_data = itemdb_exists(ARGINT(index));
-        else if (TY(index) == TY_STRING)
-                item_data = itemdb_searchname(ARGSTR(index));
-        else
-                return -1;
-
-        if (!item_data)
-                return 1;
-
-        must_add_sequentially = (item_data->type == 4
-                                 || item_data->type == 5
-                                 || item_data->type == 7
-                                 || item_data->type == 8); /* Very elegant. */
-
-
-        if (stackable)
-            *stackable = !must_add_sequentially;
-
-        memset(item, 0, sizeof(struct item));
-        item->nameid = item_data->nameid;
-        item->identify = 1;
-
-        return 0;
-}
-
-#define GET_ARG_ITEM(index, dest, stackable) switch(find_item(args, index, &dest, &stackable)) { case -1 : return 1; case 1 : return 0; }
-
 static int
 op_create_item(env_t *env, int args_nr, val_t *args)
 {

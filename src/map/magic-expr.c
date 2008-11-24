@@ -621,31 +621,69 @@ fun_hash_entity(env_t *env, int args_nr, val_t *result, val_t *args)
         return 0;
 }
 
+int // ret -1: not a string, ret 1: no such item, ret 0: OK
+magic_find_item(val_t *args, int index, struct item *item, int *stackable)
+{
+        struct item_data *item_data;
+        int must_add_sequentially;
+
+        if (TY(index) == TY_INT)
+                item_data = itemdb_exists(ARGINT(index));
+        else if (TY(index) == TY_STRING)
+                item_data = itemdb_searchname(ARGSTR(index));
+        else
+                return -1;
+
+        if (!item_data)
+                return 1;
+
+        must_add_sequentially = (item_data->type == 4
+                                 || item_data->type == 5
+                                 || item_data->type == 7
+                                 || item_data->type == 8); /* Very elegant. */
+
+
+        if (stackable)
+            *stackable = !must_add_sequentially;
+
+        memset(item, 0, sizeof(struct item));
+        item->nameid = item_data->nameid;
+        item->identify = 1;
+
+        return 0;
+}
+
 static int
 fun_count_item(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         character_t *chr = (ETY(0) == BL_PC) ? ARGPC(0) : NULL;
-        int item_id;
+        int stackable;
+        struct item item;
 
-        if (TY(1) == TY_INT)
-                item_id = ARGINT(1);
-        else if (TY(1) == TY_STRING) {
-                struct item_data *bitem = itemdb_searchname(ARGSTR(1));
-                if (!bitem) {
-                        fprintf(stderr, "Unknown item `%s' used in spell\n", ARGSTR(1));
-                        return 1;
-                } else
-                        item_id = bitem->nameid;
-        } else
-                return 0;
+        GET_ARG_ITEM(1, item, stackable);
 
         if (!chr)
                 return 1;
 
-        RESULTINT = pc_count_all_items(chr, item_id);
+        RESULTINT = pc_count_all_items(chr, item.id);
         return 0;
 }
 
+static int
+fun_equipped(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        character_t *chr = (ETY(0) == BL_PC) ? ARGPC(0) : NULL;
+        int stackable;
+        struct item item;
+
+        GET_ARG_ITEM(1, item, stackable);
+
+        if (!chr)
+                return 1;
+
+        RESULTINT = pc_checkequip(chr, item.id);
+        return 0;
+}
 
 static int
 fun_is_married(env_t *env, int args_nr, val_t *result, val_t *args)
@@ -944,6 +982,7 @@ static fun_t functions[] = {
         { "element", "e", 'i', fun_element },
         { "element_level", "e", 'i', fun_element_level },
         { "has_shroud", "e", 'i', fun_has_shroud },
+        { "equipped", "e.", 'i', fun_equipped },
         { NULL, NULL, '.', NULL }
 };
 
@@ -1241,8 +1280,30 @@ magic_eval(env_t *env, val_t *dest, expr_t *expr)
                 break;
         }
 
+        case EXPR_SPELLFIELD: {
+                val_t v;
+                int id = expr->e.e_field.id;
+                magic_eval(env, &v, expr->e.e_field.expr);
+
+                if (v.ty == TY_INVOCATION) {
+                        invocation_t *t = (invocation_t *) map_id2bl(v.v.v_int);
+
+                        if (!t)
+                                dest->ty = TY_UNDEF;
+                        else {
+                                env_t *env = t->env;
+                                val_t v = VAR(id);
+                                magic_copy_var(dest, &v);
+                        }
+                } else {
+                        fprintf(stderr, "[magic] Attempt to access field %s on non-spell\n", env->base_env->var_name[id]);
+                        dest->ty = TY_FAIL;
+                }
+                break;
+        }
+
         default:
-                fprintf(stderr, "INTERNAL ERROR: Unknown expression type %d\n", expr->ty);
+                fprintf(stderr, "[magic] INTERNAL ERROR: Unknown expression type %d\n", expr->ty);
                 break;
         }
 }

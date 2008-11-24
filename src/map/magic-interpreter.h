@@ -115,6 +115,7 @@ typedef struct val {
 #define EXPR_AREA	2
 #define EXPR_FUNAPP	3
 #define EXPR_ID		4
+#define EXPR_SPELLFIELD	5
 
 typedef struct e_location {
     struct expr *m, *x, *y;
@@ -137,6 +138,7 @@ typedef struct expr {
         e_area_t e_area;
         struct { int id, line_nr, column; int args_nr; struct expr *args[MAX_ARGS]; } e_funapp;
         int e_id;
+        struct { struct expr *expr; int id; } e_field;
     } e;
     unsigned char ty;
 } expr_t;
