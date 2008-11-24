@@ -679,23 +679,34 @@ fun_count_item(env_t *env, int args_nr, val_t *result, val_t *args)
         if (!chr)
                 return 1;
 
-        RESULTINT = pc_count_all_items(chr, item.id);
+        RESULTINT = pc_count_all_items(chr, item.nameid);
         return 0;
 }
 
 static int
-fun_equipped(env_t *env, int args_nr, val_t *result, val_t *args)
+fun_is_equipped(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         character_t *chr = (ETY(0) == BL_PC) ? ARGPC(0) : NULL;
         int stackable;
         struct item item;
+        int i;
+        int retval = 0;
 
         GET_ARG_ITEM(1, item, stackable);
 
         if (!chr)
                 return 1;
 
-        RESULTINT = pc_checkequip(chr, item.id);
+        fprintf(stderr, "Checking for equipped status of item %d\n", item.nameid);
+
+        for (i = 0; i < 11; i++)
+                if (chr->equip_index[i] >= 0
+                    && chr->status.inventory[chr->equip_index[i]].nameid == item.nameid) {
+                        retval = i + 1;
+                        break;
+                }
+
+        RESULTINT = retval;
         return 0;
 }
 
@@ -1003,7 +1014,7 @@ static fun_t functions[] = {
         { "element", "e", 'i', fun_element },
         { "element_level", "e", 'i', fun_element_level },
         { "has_shroud", "e", 'i', fun_has_shroud },
-        { "equipped", "e.", 'i', fun_equipped },
+        { "is_equipped", "e.", 'i', fun_is_equipped },
         { "spell_index", "S", 'i', fun_index },
         { NULL, NULL, '.', NULL }
 };
