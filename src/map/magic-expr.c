@@ -497,13 +497,13 @@ magic_area_rect(int *m, int *x, int *y, int *width, int *height, area_t *area)
         }
 }
 
-static int
-location_in_area(int m, int x, int y, area_t *area)
+int
+magic_location_in_area(int m, int x, int y, area_t *area)
 {
         switch (area->ty) {
         case AREA_UNION:
-                return location_in_area(m, x, y, area->a.a_union[0])
-                        || location_in_area(m, x, y, area->a.a_union[1]);
+                return magic_location_in_area(m, x, y, area->a.a_union[0])
+                        || magic_location_in_area(m, x, y, area->a.a_union[1]);
         case AREA_LOCATION:
         case AREA_RECT:
         case AREA_BAR: {
@@ -524,10 +524,10 @@ location_in_area(int m, int x, int y, area_t *area)
 static int
 fun_is_in(env_t *env, int args_nr, val_t *result, val_t *args)
 {
-        RESULTINT = location_in_area(ARGLOCATION(0).m,
-                                     ARGLOCATION(0).x,
-                                     ARGLOCATION(0).y,
-                                     ARGAREA(1));
+        RESULTINT = magic_location_in_area(ARGLOCATION(0).m,
+                                           ARGLOCATION(0).x,
+                                           ARGLOCATION(0).y,
+                                           ARGAREA(1));
         return 0;
 }
 
@@ -655,7 +655,6 @@ magic_find_item(val_t *args, int index, struct item *item, int *stackable)
                                  || item_data->type == 5
                                  || item_data->type == 7
                                  || item_data->type == 8); /* Very elegant. */
-
 
         if (stackable)
             *stackable = !must_add_sequentially;

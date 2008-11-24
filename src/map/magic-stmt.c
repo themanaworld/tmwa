@@ -884,7 +884,7 @@ return_to_stack(invocation_t *invocation)
                         } while (!entity_id || !map_id2bl(entity_id));
 
                         magic_clear_var(var);
-                        var->ty = TY_ENTITY;
+                        var->ty = ar->c.c_foreach.ty;
                         var->v.v_int = entity_id;
 
                         return ar->c.c_foreach.body;
@@ -934,6 +934,17 @@ find_entities_in_area_c(entity_t *target, va_list va)
         int **entities_p = va_arg(va, int **);
         int filter = va_arg(va, int);
 
+/* The following macro adds an entity to the result list: */
+#define ADD_ENTITY(e)                                                   \
+        if (*entities_nr_p == *entities_allocd_p) {                     \
+                /* Need more space */                                   \
+                (*entities_allocd_p) += 32;                             \
+                *entities_p = realloc(*entities_p, sizeof(int) * (*entities_allocd_p)); \
+        }                                                               \
+        (*entities_p)[(*entities_nr_p)++] = e;
+
+
+
         switch (target->type) {
 
         case BL_PC:
@@ -942,8 +953,16 @@ find_entities_in_area_c(entity_t *target, va_list va)
                     || (filter == FOREACH_FILTER_TARGET
                         && map[target->m].flag.pvp))
                         break;
-                else
-                        return 0;
+                else if (filter == FOREACH_FILTER_SPELL) { /* Check all spells bound to the caster */
+                        invocation_t *invoc = ((character_t *) target) -> active_spells;
+                        /* Add all spells locked onto thie PC */
+
+                        while (invoc) {
+                                ADD_ENTITY(invoc->bl.id);
+                                invoc = invoc->next_invocation;
+                        }
+                }
+                return 0;
 
         case BL_MOB:
                 if (filter == FOREACH_FILTER_MOB
@@ -953,18 +972,24 @@ find_entities_in_area_c(entity_t *target, va_list va)
                 else
                         return 0;
 
+        case BL_SPELL:
+                if (filter == FOREACH_FILTER_SPELL) {
+                        invocation_t *invocation = (invocation_t *) target;
+
+                        /* Check whether the spell is `bound'-- if so, we'll consider it iff we see the caster (case BL_PC). */
+                        if (invocation->flags & INVOCATION_FLAG_BOUND)
+                                return 0;
+                        else
+                                break; /* Add the spell */
+                } else
+                        return 0;
+
         default:
                 return 0;
         }
 
-        if (*entities_nr_p == *entities_allocd_p) {
-                /* Need more space */
-                (*entities_allocd_p) += 32;
-                *entities_p = realloc(*entities_p, sizeof(int) * (*entities_allocd_p));
-        }
-
-        (*entities_p)[(*entities_nr_p)++] = target->id;
-
+        ADD_ENTITY(target->id);
+#undef ADD_ENTITY
         return 0;
 }
 
@@ -1037,6 +1062,7 @@ run_foreach(invocation_t *invocation, effect_t *foreach, effect_t *return_locati
                 ar->c.c_foreach.index = 0;
                 ar->c.c_foreach.entities_nr = entities_nr;
                 ar->c.c_foreach.entities = entities;
+                ar->c.c_foreach.ty = (filter == FOREACH_FILTER_SPELL) ? TY_INVOCATION : TY_ENTITY;
 
                 magic_clear_var(&area);
 

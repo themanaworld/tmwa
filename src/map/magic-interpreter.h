@@ -315,7 +315,7 @@ typedef struct env {
 typedef struct cont_activation_record {
     effect_t *return_location;
     union c {
-        struct { int id; effect_t *body; int entities_nr; int *entities; int index; } c_foreach;
+        struct { int id, ty; effect_t *body; int entities_nr; int *entities; int index; } c_foreach;
         struct { int id; effect_t *body; int current; int stop; } c_for;
         struct { int args_nr, *formals; val_t *old_actuals; } c_proc;
     } c;
