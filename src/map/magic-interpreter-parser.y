@@ -821,7 +821,10 @@ fun_expr(char *name, int args_nr, expr_t **args, int line, int column)
 static spell_t *
 new_spell(spellguard_t *guard)
 {
+        static int spell_counter = 0;
+
         spell_t *retval = calloc(1, sizeof(spell_t));
+        retval->index = ++spell_counter;
         retval->spellguard = guard;
         return retval;
 }

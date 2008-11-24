@@ -246,6 +246,7 @@ typedef struct letdef {
 typedef struct spell {
     char *name;
     char *invocation;
+    int index; // Relative location in the definitions file
     int flags;
     int arg;
     int spellarg_ty;

@@ -10,6 +10,7 @@ clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id);
 
 //#define DEBUG
 
+#ifdef DEBUG
 static void
 print_val(val_t *v)
 {
@@ -37,6 +38,7 @@ dump_env(env_t *env)
                 fprintf(stderr, ")\n");
         }
 }
+#endif
 
 static void
 clear_activation_record(cont_activation_record_t *ar)
@@ -1098,6 +1100,7 @@ run_call(invocation_t *invocation, effect_t *return_location)
         return current->e.e_call.body;
 }
 
+#ifdef DEBUG
 static void
 print_cfg(int i, effect_t *e)
 {
@@ -1151,6 +1154,7 @@ print_cfg(int i, effect_t *e)
         }
         print_cfg(i, e->next);
 }
+#endif
 
 
 /**

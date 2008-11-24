@@ -500,6 +500,15 @@ The following functions are available:
     Determines what element level the entity has
 
   + has_shroud : entity -> int
+    Determines whether the player is presently shrouded (i.e., whether
+    the player's name is being obscured.)
+
+  + is_equipped : entity * int -> int
+                : entity * string -> int
+    Determines whether the player has equipped the specified item
+
+  + spell_index : spell -> int
+    Determines a unique index assigned to each spell
 
 
 Operations:

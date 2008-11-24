@@ -214,6 +214,20 @@ make_location(val_t *v)
         }
 }
 
+static void
+make_spell(val_t *v)
+{
+        if (v->ty == TY_INVOCATION) {
+                invocation_t *invoc = v->v.v_invocation; //(invocation_t *) map_id2bl(v->v.v_int);
+                if (!invoc)
+                        v->ty = TY_FAIL;
+                else {
+                        v->ty = TY_SPELL;
+                        v->v.v_spell = invoc->spell;
+                }
+        }
+}
+
 static int
 fun_add(env_t *env, int args_nr, val_t *result, val_t *args)
 {
@@ -923,6 +937,13 @@ fun_element_level(env_t *env, int args_nr, val_t *result, val_t *args)
         return 0;
 }
 
+static int
+fun_index(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = ARGSPELL(0)->index;
+        return 0;
+}
+
 #define BATTLE_RECORD2(sname, name) { sname, "e", 'i', fun_get_##name }
 #define BATTLE_RECORD(name) BATTLE_RECORD2(#name, name)
 static fun_t functions[] = {
@@ -983,6 +1004,7 @@ static fun_t functions[] = {
         { "element_level", "e", 'i', fun_element_level },
         { "has_shroud", "e", 'i', fun_has_shroud },
         { "equipped", "e.", 'i', fun_equipped },
+        { "spell_index", "S", 'i', fun_index },
         { NULL, NULL, '.', NULL }
 };
 
@@ -1206,6 +1228,7 @@ magic_signature_check(char *opname, char *funname, char *signature, int args_nr,
                 case TY_STRING:	stringify(arg, 1); break; /* 100% success rate */
                 case TY_AREA:	make_area(arg); break; /* Only works for locations */
                 case TY_LOCATION: make_location(arg); break; /* Only works for some areas */
+                case TY_SPELL:	make_spell(arg); break; /* Only works for still-active invocatoins */
                 default: break; /* We'll fail right below */
                 }
 
