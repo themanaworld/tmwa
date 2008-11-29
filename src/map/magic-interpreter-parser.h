@@ -79,17 +79,18 @@
      ATEND = 295,
      ATTRIGGER = 296,
      PC_F = 297,
-     MOB_F = 298,
-     ENTITY_F = 299,
-     TARGET_F = 300,
-     IF = 301,
-     THEN = 302,
-     ELSE = 303,
-     FOREACH = 304,
-     FOR = 305,
-     DO = 306,
-     SLEEP = 307,
-     OR = 308
+     NPC_F = 298,
+     MOB_F = 299,
+     ENTITY_F = 300,
+     TARGET_F = 301,
+     IF = 302,
+     THEN = 303,
+     ELSE = 304,
+     FOREACH = 305,
+     FOR = 306,
+     DO = 307,
+     SLEEP = 308,
+     OR = 309
    };
 #endif
 /* Tokens.  */
@@ -133,17 +134,18 @@
 #define ATEND 295
 #define ATTRIGGER 296
 #define PC_F 297
-#define MOB_F 298
-#define ENTITY_F 299
-#define TARGET_F 300
-#define IF 301
-#define THEN 302
-#define ELSE 303
-#define FOREACH 304
-#define FOR 305
-#define DO 306
-#define SLEEP 307
-#define OR 308
+#define NPC_F 298
+#define MOB_F 299
+#define ENTITY_F 300
+#define TARGET_F 301
+#define IF 302
+#define THEN 303
+#define ELSE 304
+#define FOREACH 305
+#define FOR 306
+#define DO 307
+#define SLEEP 308
+#define OR 309
 
 
 
@@ -172,7 +174,7 @@ typedef union YYSTYPE
     proc_t *proc;
 }
 /* Line 1489 of yacc.c.  */
-#line 176 "magic-interpreter-parser.h"
+#line 178 "magic-interpreter-parser.h"
 	YYSTYPE;
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1

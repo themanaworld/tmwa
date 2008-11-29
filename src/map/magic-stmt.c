@@ -984,6 +984,12 @@ find_entities_in_area_c(entity_t *target, va_list va)
                 } else
                         return 0;
 
+        case BL_NPC:
+                if (filter == FOREACH_FILTER_NPC)
+                        break;
+                else
+                        return 0;
+
         default:
                 return 0;
         }

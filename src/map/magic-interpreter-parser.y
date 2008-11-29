@@ -154,6 +154,7 @@ find_constant(char *name);
 %token ATEND
 %token ATTRIGGER
 %token PC_F
+%token NPC_F
 %token MOB_F
 %token ENTITY_F
 %token TARGET_F
@@ -612,6 +613,8 @@ selection		: PC_F
 				{ $$ = FOREACH_FILTER_SPELL; }
 			| TARGET_F
 				{ $$ = FOREACH_FILTER_TARGET; }
+			| NPC_F
+				{ $$ = FOREACH_FILTER_NPC; }
 			;
 
 

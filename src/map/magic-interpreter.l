@@ -86,6 +86,7 @@
 "ATTRIGGER"		{FIXLOC; return ATTRIGGER;}
 "CONST"			{FIXLOC; return CONST;}
 "PC"			{FIXLOC; return PC_F;}
+"NPC"			{FIXLOC; return NPC_F;}
 "MOB"			{FIXLOC; return MOB_F;}
 "ENTITY"		{FIXLOC; return ENTITY_F;}
 "TARGET"		{FIXLOC; return TARGET_F;}

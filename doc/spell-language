@@ -533,6 +533,9 @@ The following functions are available:
     offset `offset'.  The substring is automatically clipped, i.e., the
     function will never fail.
 
+  + sqrt : int -> int
+    Computes the square root of the specified number
+
 Operations:
 -----------
 This section documents the operations API.
@@ -814,7 +817,8 @@ SPELLCONF ::= (GLOBAL | ANCHOR | SPELL | PROCEDURE | ';')*  (* The ';' are only 
               | 'MOB'
 	      | 'ENTITY' (* MOB or PC *)
 	      | 'TARGET' (* like ENTITY, but includes PCs only on PvP maps *)
-(*	      | 'SPELL' *)
+	      | 'SPELL'
+	      | 'NPC'
 
 * procedures
 

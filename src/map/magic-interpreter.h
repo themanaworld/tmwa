@@ -166,6 +166,7 @@ typedef struct expr {
 #define FOREACH_FILTER_ENTITY	3
 #define FOREACH_FILTER_TARGET	4
 #define FOREACH_FILTER_SPELL	5
+#define FOREACH_FILTER_NPC	6
 
 typedef struct effect {
     struct effect* next;
