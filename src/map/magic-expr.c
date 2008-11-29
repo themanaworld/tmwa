@@ -312,6 +312,13 @@ fun_not(env_t *env, int args_nr, val_t *result, val_t *args)
 }
 
 static int
+fun_neg(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = ~ARGINT(0);
+        return 0;
+}
+
+static int
 fun_gte(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         if (TY(0) == TY_STRING || TY(1) == TY_STRING) {
@@ -1028,6 +1035,7 @@ static fun_t functions[] = {
         { "<<", "ii", 'i', fun_bitshl },
         { ">>", "ii", 'i', fun_bitshr },
         { "not", "i", 'i', fun_not },
+        { "neg", "i", 'i', fun_neg },
         { "max", "ii", 'i', fun_max },
         { "min", "ii", 'i', fun_min },
         { "is_in", "la", 'i', fun_is_in },

@@ -422,6 +422,9 @@ The following functions are available:
   + not : int -> int
     Logical negation. (NOT bitwise negation.)
 
+  + neg : int -> int
+    Bitwise negation.
+
   + name_of : entity -> string
             | spell -> string
     Retrieves the name either of an entity or of a spell.
