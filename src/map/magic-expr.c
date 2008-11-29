@@ -954,6 +954,61 @@ fun_index(env_t *env, int args_nr, val_t *result, val_t *args)
         return 0;
 }
 
+static int
+fun_is_exterior(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = map[ARGLOCATION(0).m].name[4] == '1';
+        return 0;
+}
+
+static int
+fun_contains_string(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = NULL != strstr(ARGSTR(0), ARGSTR(1));
+        return 0;
+}
+
+static int
+fun_strstr(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        char *offset = strstr(ARGSTR(0), ARGSTR(1));
+        RESULTINT = offset - ARGSTR(0);
+        return offset == NULL;
+}
+
+static int
+fun_strlen(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = strlen(ARGSTR(0));
+        return 0;
+}
+
+static int
+fun_substr(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        const char *src = ARGSTR(0);
+        const int slen = strlen(src);
+        int offset = ARGINT(1);
+        int len = ARGINT(2);
+
+        if (len < 0)
+                len = 0;
+        if (offset < 0)
+                offset = 0;
+
+        if (offset > slen)
+                offset = slen;
+
+        if (offset + len > slen)
+                len = slen - offset;
+
+        RESULTSTR = (char *) calloc(1, 1 + len);
+        memcpy(RESULTSTR, src + offset, len);
+
+        return 0;
+}
+
+
 #define BATTLE_RECORD2(sname, name) { sname, "e", 'i', fun_get_##name }
 #define BATTLE_RECORD(name) BATTLE_RECORD2(#name, name)
 static fun_t functions[] = {
@@ -1015,6 +1070,11 @@ static fun_t functions[] = {
         { "has_shroud", "e", 'i', fun_has_shroud },
         { "is_equipped", "e.", 'i', fun_is_equipped },
         { "spell_index", "S", 'i', fun_index },
+        { "is_exterior", "l", 'i', fun_is_exterior },
+        { "contains_string", "ss", 'i', fun_contains_string },
+        { "strstr", "ss", 'i', fun_strstr },
+        { "strlen", "s", 'i', fun_strlen },
+        { "substr", "sii", 's', fun_substr },
         { NULL, NULL, '.', NULL }
 };
 

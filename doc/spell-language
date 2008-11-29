@@ -510,6 +510,25 @@ The following functions are available:
   + spell_index : spell -> int
     Determines a unique index assigned to each spell
 
+  + is_exterior : location -> bool
+    Determines whether the location is under an open sky
+
+  + contains_string : string * string -> bool
+    contains_string(a, b) determines whether the string `a' contains
+    the string `b' as a substring.
+
+  + strstr : string * string -> bool
+    strstr(a, b) returns the offset of the first instance of the
+    string `b' in the string `a', or fails if there is none.  The
+    offset is reported with a base of zero, i.e., strstr("xyz", "x") = 0.
+
+  + strlen : string -> int
+    Compute the length of a string, in characters.
+
+  + substr : string * int * int -> string
+    substr(s, offset, len) extracts a substring of the length `len' at
+    offset `offset'.  The substring is automatically clipped, i.e., the
+    function will never fail.
 
 Operations:
 -----------
