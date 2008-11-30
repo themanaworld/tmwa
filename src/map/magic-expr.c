@@ -723,6 +723,14 @@ fun_is_married(env_t *env, int args_nr, val_t *result, val_t *args)
 }
 
 static int
+fun_is_dead(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = (ETY(0) == BL_PC
+                     && pc_isdead(ARGPC(0)));
+        return 0;
+}
+
+static int
 fun_partner(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         if (ETY(0) == BL_PC
@@ -1164,6 +1172,7 @@ static fun_t functions[] = {
         { "map_level", "l", 'i', fun_map_level },
         { "map_nr", "l", 'i', fun_map_nr },
         { "dir_towards", "lli", 'd', fun_dir_towards },
+        { "is_dead", "e", 'i', fun_is_dead },
         { NULL, NULL, '.', NULL }
 };
 

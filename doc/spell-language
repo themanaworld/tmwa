@@ -550,6 +550,10 @@ The following functions are available:
     otherwise NE, SE, NW, SW will also be used.  The two locations must be
     on the same map.
 
+  + is_dead : entity -> bool
+    Determines whether the specified entity is no longer alive.
+
+
 Operations:
 -----------
 This section documents the operations API.
