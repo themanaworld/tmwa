@@ -101,7 +101,7 @@ show_entity(entity_t *entity)
 static void
 stringify(val_t *v, int within_op)
 {
-        static char *dirs[8] = {"S", "SW", "W", "NW", "N", "NE", "E", "SE"};
+        static char *dirs[8] = {"south", "south-west", "west", "north-west", "north", "north-east", "east", "south-east"};
         char *buf;
 
         switch (v->ty) {
@@ -703,8 +703,6 @@ fun_is_equipped(env_t *env, int args_nr, val_t *result, val_t *args)
         if (!chr)
                 return 1;
 
-        fprintf(stderr, "Checking for equipped status of item %d\n", item.nameid);
-
         for (i = 0; i < 11; i++)
                 if (chr->equip_index[i] >= 0
                     && chr->status.inventory[chr->equip_index[i]].nameid == item.nameid) {
@@ -1022,6 +1020,78 @@ fun_sqrt(env_t *env, int args_nr, val_t *result, val_t *args)
         return 0;
 }
 
+static int
+fun_map_level(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = map[ARGLOCATION(0).m].name[4] - '0';
+        return 0;
+}
+
+static int
+fun_map_nr(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        const char *mapname = map[ARGLOCATION(0).m].name;
+
+        RESULTINT = ((mapname[0] - '0') * 100)
+                + ((mapname[1] - '0') * 10)
+                + ((mapname[2] - '0'));
+        return 0;
+}
+
+static int
+fun_dir_towards(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        int dx;
+        int dy;
+
+        if (ARGLOCATION(0).m != ARGLOCATION(1).m)
+                return 1;
+
+        dx = ARGLOCATION(1).x - ARGLOCATION(0).x;
+        dy = ARGLOCATION(1).y - ARGLOCATION(0).y;
+
+        if (ARGINT(1)) {
+                /* 8-direction mode */
+                if (abs(dx) > abs(dy) * 2) { /* east or west */
+                        if (dx < 0)
+                                RESULTINT = 2/* west */;
+                        else
+                                RESULTINT = 6/* east */;
+                } else if (abs(dy) > abs(dx) * 2) { /* north or south */
+                        if (dy > 0)
+                                RESULTINT = 0/* south */;
+                        else
+                                RESULTINT = 4/* north */;
+                } else if (dx < 0) { /* north-west or south-west */
+                        if (dy < 0)
+                                RESULTINT = 3/* north-west */;
+                        else
+                                RESULTINT = 1/* south-west */;
+                } else { /* north-east or south-east */
+                        if (dy < 0)
+                                RESULTINT = 5/* north-east */;
+                        else
+                                RESULTINT = 7/* south-east */;
+                }
+        } else {
+                /* 4-direction mode */
+                if (abs(dx) > abs(dy)) { /* east or west */
+                        if (dx < 0)
+                                RESULTINT = 2/* west */;
+                        else
+                                RESULTINT = 6/* east */;
+                } else { /* north or south */
+                        if (dy > 0)
+                                RESULTINT = 0/* south */;
+                        else
+                                RESULTINT = 4/* north */;
+                }
+        }
+
+        return 0;
+}
+
+
 
 #define BATTLE_RECORD2(sname, name) { sname, "e", 'i', fun_get_##name }
 #define BATTLE_RECORD(name) BATTLE_RECORD2(#name, name)
@@ -1091,6 +1161,9 @@ static fun_t functions[] = {
         { "strlen", "s", 'i', fun_strlen },
         { "substr", "sii", 's', fun_substr },
         { "sqrt", "i", 'i', fun_sqrt },
+        { "map_level", "l", 'i', fun_map_level },
+        { "map_nr", "l", 'i', fun_map_nr },
+        { "dir_towards", "lli", 'd', fun_dir_towards },
         { NULL, NULL, '.', NULL }
 };
 

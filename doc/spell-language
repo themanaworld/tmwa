@@ -536,6 +536,20 @@ The following functions are available:
   + sqrt : int -> int
     Computes the square root of the specified number
 
+  + map_level : location -> int
+    Determines the map level: 0 for outside, 1 for inside, 2ff for
+    dungeon levels (going down)
+
+  + map_nr : location -> int
+    Computes the map number.  Map number and map level together uniquely
+    identify a map.
+
+  + dir_towards : location * location * int -> dir
+    dir_towards(start, end, flag) computes the direction from `start' to
+    `end'.  If flag is zero, directions are limited to N, S, E, W;
+    otherwise NE, SE, NW, SW will also be used.  The two locations must be
+    on the same map.
+
 Operations:
 -----------
 This section documents the operations API.
