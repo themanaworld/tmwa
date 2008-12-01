@@ -28,6 +28,7 @@ struct mob_db {
 	int size,race,element,mode;
 	int speed,adelay,amotion,dmotion;
 	int mexp,mexpper;
+        int mutations_nr, mutation_power;
 	struct { int nameid,p; } dropitem[8];
 	struct { int nameid,p; } mvpitem[3];
 	int view_class,sex;

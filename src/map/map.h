@@ -410,6 +410,22 @@ struct npc_data {
 
 #define MOB_SENSIBLE_MASK 0xf000	// fate: mob mode flags that I actually understand
 
+enum mob_stat {
+    MOB_LV,
+    MOB_MAX_HP,
+    MOB_STR, MOB_AGI, MOB_VIT, MOB_INT, MOB_DEX, MOB_LUK,
+    MOB_ATK1, MOB_ATK2, // low and high attacks
+    MOB_ADELAY, 	// attack delay
+    MOB_DEF, MOB_MDEF,
+    MOB_SPEED,
+    // These must come last:
+    MOB_XP_BONUS, /* [Fate] Encoded as base to 1024: 1024 means 100% */
+    MOB_LAST
+};
+
+#define MOB_XP_BONUS_BASE  1024
+#define MOB_XP_BONUS_SHIFT 10
+
 struct mob_data {
 	struct block_list bl;
 	short n;
@@ -431,7 +447,6 @@ struct mob_data {
 	} state;
 	int timer;
 	short to_x,to_y;
-	short speed;
 	int hp;
 	int target_id,attacked_id;
 	short target_lv;
@@ -468,6 +483,7 @@ struct mob_data {
 	struct skill_unit_group skillunit[MAX_MOBSKILLUNITGROUP];
 	struct skill_unit_group_tickset skillunittick[MAX_SKILLUNITGROUPTICKSET];
 	char npc_event[50];
+        unsigned short stats[MOB_LAST]; // [Fate] mob-specific stats
 	short size;
 };
 struct pet_data {

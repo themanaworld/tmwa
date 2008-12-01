@@ -1388,7 +1388,7 @@ int clif_spawnmob(struct mob_data *md)
 
 		WBUFW(buf,0)=0x7c;
 		WBUFL(buf,2)=md->bl.id;
-		WBUFW(buf,6)=md->speed;
+		WBUFW(buf,6)=md->stats[MOB_SPEED];
 		WBUFW(buf,8)=md->opt1;
 		WBUFW(buf,10)=md->opt2;
 		WBUFW(buf,12)=md->option;

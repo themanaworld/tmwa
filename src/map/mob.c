@@ -74,6 +74,9 @@ int mobdb_checkid(const int id)
 	return id;
 }
 
+static void
+mob_init(struct mob_data *md);
+
 /*==========================================
  * The minimum data set for MOB spawning
  *------------------------------------------
@@ -82,8 +85,6 @@ int mob_spawn_dataset(struct mob_data *md,const char *mobname,int class)
 {
 	nullpo_retr(0, md);
 
-	md->bl.prev=NULL;
-	md->bl.next=NULL;
 	if(strcmp(mobname,"--en--")==0)
 		memcpy(md->name,mob_db[class].name,24);
 	else if(strcmp(mobname,"--ja--")==0)
@@ -91,6 +92,8 @@ int mob_spawn_dataset(struct mob_data *md,const char *mobname,int class)
 	else
 		memcpy(md->name,mobname,24);
 
+        md->bl.prev=NULL;
+        md->bl.next=NULL;
 	md->n = 0;
 	md->base_class = md->class = class;
 	md->bl.id= npc_get_new_npc_id();
@@ -99,9 +102,155 @@ int mob_spawn_dataset(struct mob_data *md,const char *mobname,int class)
 	md->timer = -1;
 	md->target_id=0;
 	md->attacked_id=0;
-	md->speed=mob_db[class].speed;
+
+        mob_init(md);
 
 	return 0;
+}
+
+// Mutation values indicate how `valuable' a change to each stat is, XP wise.
+// For one 256th of change, we give out that many 1024th fractions of XP change
+// (i.e., 1024 means a 100% XP increase for a single point of adjustment, 4 means 100% XP bonus for doubling the value)
+static int
+mutation_value[MOB_XP_BONUS] =
+{
+        2,	// MOB_LV
+        3,	// MOB_MAX_HP
+        1,	// MOB_STR
+        2,	// MOB_AGI
+        1,	// MOB_VIT
+        0,	// MOB_INT
+        2,	// MOB_DEX
+        2,	// MOB_LUK
+        1,	// MOB_ATK1
+        1,	// MOB_ATK2
+        2,	// MOB_ADELAY
+        2,	// MOB_DEF
+        2,	// MOB_MDEF
+        2,	// MOB_SPEED
+};
+
+// The mutation scale indicates how far `up' we can go, with 256 indicating 100%  Note that this may stack with multiple
+// calls to `mutate'.
+static int
+mutation_scale[MOB_XP_BONUS] =
+{
+        16,	// MOB_LV
+        256,	// MOB_MAX_HP
+        32,	// MOB_STR
+        48,	// MOB_AGI
+        48,	// MOB_VIT
+        48,	// MOB_INT
+        48,	// MOB_DEX
+        64,	// MOB_LUK
+        48,	// MOB_ATK1
+        48,	// MOB_ATK2
+        80,	// MOB_ADELAY
+        48,	// MOB_DEF
+        48,	// MOB_MDEF
+        80,	// MOB_SPEED
+};
+
+
+/*========================================
+ * Mutates a MOB.  For large `direction' values, calling this multiple times will give bigger XP boni.
+ *----------------------------------------
+ */
+static void
+mob_mutate(struct mob_data *md, int stat, int intensity) // intensity: positive: strengthen, negative: weaken.  256 = 100%.
+{
+        int old_stat;
+        int new_stat;
+        int real_intensity;
+        int sign = 1;
+
+        if (!md || stat < 0 || stat >= MOB_XP_BONUS || intensity == 0)
+                return;
+
+        while (intensity > mutation_scale[stat]) {
+                mob_mutate(md, stat, mutation_scale[stat]); // give better XP assignments
+                intensity -= mutation_scale[stat];
+        }
+        while (intensity < -mutation_scale[stat]) {
+                mob_mutate(md, stat, mutation_scale[stat]); // give better XP assignments
+                intensity += mutation_scale[stat];
+        }
+
+        if (!intensity)
+                return;
+
+        // MOB_ADELAY and MOB_SPEED are special because going DOWN is good here.
+        if (stat == MOB_ADELAY || stat == MOB_SPEED)
+                sign = -1;
+
+        // Now compute the new stat
+        old_stat = md->stats[stat];
+        new_stat = old_stat + ((old_stat * sign * intensity) / 256);
+
+        if (new_stat < 0)
+                new_stat = 0;
+
+        if (old_stat == 0)
+                real_intensity = 0;
+        else
+                real_intensity = sign * (((new_stat - old_stat) << 8) / old_stat);
+
+        md->stats[stat] = new_stat;
+
+        // Adjust XP value
+        md->stats[MOB_XP_BONUS] += mutation_value[stat] * real_intensity;
+        if (md->stats[MOB_XP_BONUS] <= 0)
+                md->stats[MOB_XP_BONUS] = 1;
+
+        // Sanitise
+        if (md->stats[MOB_ATK1] > md->stats[MOB_ATK2]) {
+                int swap = md->stats[MOB_ATK2];
+                md->stats[MOB_ATK2] = md->stats[MOB_ATK1];
+                md->stats[MOB_ATK1] = swap;
+        }
+}
+
+
+static void
+mob_init(struct mob_data *md)
+{
+        int i;
+        const int class = md->class;
+        const int mutations_nr = mob_db[class].mutations_nr;
+        const int mutation_power = mob_db[class].mutation_power;
+
+	md->stats[MOB_LV] = mob_db[class].lv;
+	md->stats[MOB_MAX_HP] = mob_db[class].max_hp;
+	md->stats[MOB_STR] = mob_db[class].str;
+	md->stats[MOB_AGI] = mob_db[class].agi;
+	md->stats[MOB_VIT] = mob_db[class].vit;
+	md->stats[MOB_INT] = mob_db[class].int_;
+	md->stats[MOB_DEX] = mob_db[class].dex;
+	md->stats[MOB_LUK] = mob_db[class].luk;
+	md->stats[MOB_ATK1] = mob_db[class].atk1;
+	md->stats[MOB_ATK2] = mob_db[class].atk2;
+	md->stats[MOB_ADELAY] = mob_db[class].adelay;
+	md->stats[MOB_DEF] = mob_db[class].def;
+	md->stats[MOB_MDEF] = mob_db[class].mdef;
+	md->stats[MOB_SPEED] = mob_db[class].speed;
+	md->stats[MOB_XP_BONUS] = MOB_XP_BONUS_BASE;
+
+        for (i = 0; i < mutations_nr; i++) {
+                int stat_nr = MRAND(MOB_XP_BONUS + 1);
+                int strength;
+
+                if (stat_nr >= MOB_XP_BONUS)
+                        stat_nr = MOB_MAX_HP;
+
+                strength = ((MRAND((mutation_power >> 1)) + (MRAND((mutation_power >> 1))) + 2) * mutation_scale[stat_nr]) / 100;
+
+                strength = MRAND(2)? strength : -strength;
+
+                if (strength < -240)
+                        strength = -240; /* Don't go too close to zero */
+
+                mob_mutate(md, stat_nr, strength);
+        }
 }
 
 
@@ -845,7 +994,7 @@ int mob_spawn(int id)
 
 	if(!md || !md->bl.type || md->bl.type!=BL_MOB)
 		return -1;
-		
+
 	md->last_spawntime=tick;
 	if( md->bl.prev!=NULL ){
 //		clif_clearchar_area(&md->bl,3);
@@ -884,9 +1033,10 @@ int mob_spawn(int id)
 	md->attacked_id = 0;
 	md->target_id = 0;
 	md->move_fail_count = 0;
+        mob_init(md);
 
-	if(!md->speed)
-	md->speed = mob_db[md->class].speed;
+	if(!md->stats[MOB_SPEED])
+	md->stats[MOB_SPEED] = mob_db[md->class].speed;
 	md->def_ele = mob_db[md->class].element;
 	md->master_id=0;
 	md->master_dist=0;
@@ -2304,7 +2454,8 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 		per=(double)md->dmglog[i].dmg*256*(9+(double)((count > 6)? 6:count))/10/(double)max_hp;
 		if(per>512) per=512;
 		if(per<1) per=1;
-		base_exp=mob_db[md->class].base_exp*per/256;
+
+		base_exp = ((mob_db[md->class].base_exp * md->stats[MOB_XP_BONUS]) >> MOB_XP_BONUS_SHIFT) * per/256;
 		if(base_exp < 1) base_exp = 1;
 		if(sd && md && battle_config.pk_mode==1 && (mob_db[md->class].lv - sd->status.base_level >= 20)) {
 			base_exp*=1.15; // pk_mode additional exp if monster >20 levels [Valaris]
@@ -2421,8 +2572,8 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 	// mvp処理
 	if(mvp_sd && mob_db[md->class].mexp > 0 ){
 		int j;
-		int mexp;
-		temp = ((double)mob_db[md->class].mexp * (double)battle_config.mvp_exp_rate * (9.+(double)count)/1000.);
+		int mexp = battle_get_mexp(&md->bl);
+		temp = ((double)mexp * (double)battle_config.mvp_exp_rate * (9.+(double)count)/1000.);
 		mexp = (temp > 2147483647.)? 0x7fffffff:(int)temp;
 		if(mexp < 1) mexp = 1;
 		clif_mvp_effect(mvp_sd);					// エフェクト
@@ -2543,7 +2694,7 @@ int mob_class_change(struct mob_data *md,int *value)
 	md->target_id = 0;
 	md->move_fail_count = 0;
 
-	md->speed = mob_db[md->class].speed;
+	md->stats[MOB_SPEED] = mob_db[md->class].speed;
 	md->def_ele = mob_db[md->class].element;
 
 	mob_changestate(md,MS_IDLE,0);
@@ -2781,6 +2932,8 @@ int mob_summonslave(struct mob_data *md2,int *value,int amount,int flag)
 			}
 
 			mob_spawn_dataset(md,"--ja--",class);
+                        md->bl.prev=NULL;
+                        md->bl.next=NULL;
 			md->bl.m=m;
 			md->bl.x=x;
 			md->bl.y=y;
@@ -2790,7 +2943,7 @@ int mob_summonslave(struct mob_data *md2,int *value,int amount,int flag)
 			md->y0=y;
 			md->xs=0;
 			md->ys=0;
-			md->speed=md2->speed;
+			md->stats[MOB_SPEED]=md2->stats[MOB_SPEED];
 			md->spawndelay1=-1;	// 一度のみフラグ
 			md->spawndelay2=-1;	// 一度のみフラグ
 
@@ -3647,12 +3800,12 @@ static int mob_readdb(void)
 		}
 		while(fgets(line,1020,fp)){
 			int class,i;
-			char *str[55],*p,*np;
+			char *str[57],*p,*np;
 
 			if(line[0] == '/' && line[1] == '/')
 				continue;
 
-			for(i=0,p=line;i<55;i++){
+			for(i=0,p=line;i<57;i++){
 				while (*p == '\t' || *p == ' ') p++;
 				if((np=strchr(p,','))!=NULL){
 					str[i]=p;
@@ -3753,6 +3906,9 @@ static int mob_readdb(void)
 				mob_db[class].mvpitem[i].nameid=atoi(str[47+i*2]);
 				mob_db[class].mvpitem[i].p=atoi(str[48+i*2])*battle_config.mvp_item_rate/100;
 			}
+			mob_db[class].mutations_nr = atoi(str[55]);
+			mob_db[class].mutation_power = atoi(str[56]);
+
 			for(i=0;i<MAX_RANDOMMONSTER;i++)
 				mob_db[class].summonper[i]=0;
 			mob_db[class].maxskill=0;

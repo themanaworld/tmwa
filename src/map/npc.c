@@ -1729,7 +1729,6 @@ int npc_parse_mob(char *w1,char *w2,char *w3,char *w4)
 		md->timer = -1;
 		md->target_id=0;
 		md->attacked_id=0;
-		md->speed=mob_db[class].speed;
 
 		if (mob_db[class].mode&0x02)
 			md->lootitem=(struct item *)aCalloc(LOOTITEM_SIZE,sizeof(struct item));

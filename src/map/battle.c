@@ -98,7 +98,7 @@ int battle_get_lv(struct block_list *bl)
 {
 	nullpo_retr(0, bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
-		return mob_db[((struct mob_data *)bl)->class].lv;
+		return ((struct mob_data *)bl)->stats[MOB_LV];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->status.base_level;
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
@@ -152,7 +152,7 @@ int battle_get_max_hp(struct block_list *bl)
 		struct status_change *sc_data=battle_get_sc_data(bl);
 		int max_hp=1;
 		if(bl->type==BL_MOB && ((struct mob_data*)bl)) {
-			max_hp = mob_db[((struct mob_data*)bl)->class].max_hp;
+			max_hp = ((struct mob_data*)bl)->stats[MOB_MAX_HP];
 			if(mob_db[((struct mob_data*)bl)->class].mexp > 0) {
 				if(battle_config.mvp_hp_rate != 100)
 					max_hp = (max_hp * battle_config.mvp_hp_rate)/100;
@@ -196,7 +196,7 @@ int battle_get_str(struct block_list *bl)
 	nullpo_retr(0, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_MOB && ((struct mob_data *)bl))
-		str = mob_db[((struct mob_data *)bl)->class].str;
+		str = ((struct mob_data *)bl)->stats[MOB_STR];
 	else if(bl->type==BL_PC && ((struct map_session_data *)bl))
 		return ((struct map_session_data *)bl)->paramc[0];
 	else if(bl->type==BL_PET && ((struct pet_data *)bl))
@@ -230,7 +230,7 @@ int battle_get_agi(struct block_list *bl)
 	nullpo_retr(0, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
-		agi=mob_db[((struct mob_data *)bl)->class].agi;
+		agi=((struct mob_data *)bl)->stats[MOB_AGI];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		agi=((struct map_session_data *)bl)->paramc[1];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
@@ -268,7 +268,7 @@ int battle_get_vit(struct block_list *bl)
 	nullpo_retr(0, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
-		vit=mob_db[((struct mob_data *)bl)->class].vit;
+                vit=((struct mob_data *)bl)->stats[MOB_VIT];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		vit=((struct map_session_data *)bl)->paramc[2];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
@@ -296,7 +296,7 @@ int battle_get_int(struct block_list *bl)
 	nullpo_retr(0, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
-		int_=mob_db[((struct mob_data *)bl)->class].int_;
+		int_=((struct mob_data *)bl)->stats[MOB_INT];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		int_=((struct map_session_data *)bl)->paramc[3];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
@@ -329,7 +329,7 @@ int battle_get_dex(struct block_list *bl)
 	nullpo_retr(0, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
-		dex=mob_db[((struct mob_data *)bl)->class].dex;
+		dex=((struct mob_data *)bl)->stats[MOB_DEX];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		dex=((struct map_session_data *)bl)->paramc[4];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
@@ -366,7 +366,7 @@ int battle_get_luk(struct block_list *bl)
 	nullpo_retr(0, bl);
 	sc_data=battle_get_sc_data(bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
-		luk=mob_db[((struct mob_data *)bl)->class].luk;
+		luk=((struct mob_data *)bl)->stats[MOB_LUK];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		luk=((struct map_session_data *)bl)->paramc[5];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
@@ -550,7 +550,7 @@ int battle_get_atk(struct block_list *bl)
 	if(bl->type==BL_PC && (struct map_session_data *)bl)
 		atk = ((struct map_session_data*)bl)->watk;
 	else if(bl->type==BL_MOB && (struct mob_data *)bl)
-		atk = mob_db[((struct mob_data*)bl)->class].atk1;
+		atk = ((struct mob_data*)bl)->stats[MOB_ATK1];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
 		atk = mob_db[((struct pet_data*)bl)->class].atk1;
 
@@ -597,7 +597,7 @@ int battle_get_atk2(struct block_list *bl)
 		struct status_change *sc_data=battle_get_sc_data(bl);
 		int atk2=0;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
-			atk2 = mob_db[((struct mob_data*)bl)->class].atk2;
+                        atk2 = ((struct mob_data*)bl)->stats[MOB_ATK2];
 		else if(bl->type==BL_PET && (struct pet_data *)bl)
 			atk2 = mob_db[((struct pet_data*)bl)->class].atk2;
 		if(sc_data) {
@@ -716,7 +716,7 @@ int battle_get_def(struct block_list *bl)
 		skillid = ((struct map_session_data *)bl)->skillid;
 	}
 	else if(bl->type==BL_MOB && (struct mob_data *)bl) {
-		def = mob_db[((struct mob_data *)bl)->class].def;
+		def = ((struct mob_data *)bl)->stats[MOB_DEF];
 		skilltimer = ((struct mob_data *)bl)->skilltimer;
 		skillid = ((struct mob_data *)bl)->skillid;
 	}
@@ -778,7 +778,7 @@ int battle_get_mdef(struct block_list *bl)
 	if(bl->type==BL_PC && (struct map_session_data *)bl)
 		mdef = ((struct map_session_data *)bl)->mdef;
 	else if(bl->type==BL_MOB && (struct mob_data *)bl)
-		mdef = mob_db[((struct mob_data *)bl)->class].mdef;
+		mdef = ((struct mob_data *)bl)->stats[MOB_MDEF];
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
 		mdef = mob_db[((struct pet_data *)bl)->class].mdef;
 
@@ -817,7 +817,7 @@ int battle_get_def2(struct block_list *bl)
 	if(bl->type==BL_PC)
 		def2 = ((struct map_session_data *)bl)->def2;
 	else if(bl->type==BL_MOB)
-		def2 = mob_db[((struct mob_data *)bl)->class].vit;
+		def2 = ((struct mob_data *)bl)->stats[MOB_VIT];
 	else if(bl->type==BL_PET)
 		def2 = mob_db[((struct pet_data *)bl)->class].vit;
 
@@ -847,7 +847,7 @@ int battle_get_mdef2(struct block_list *bl)
 
 	nullpo_retr(0, bl);
 	if(bl->type==BL_MOB)
-		mdef2 = mob_db[((struct mob_data *)bl)->class].int_ + (mob_db[((struct mob_data *)bl)->class].vit>>1);
+		mdef2 = ((struct mob_data *)bl)->stats[MOB_INT] + (((struct mob_data *)bl)->stats[MOB_VIT]>>1);
 	else if(bl->type==BL_PC)
 		mdef2 = ((struct map_session_data *)bl)->mdef2 + (((struct map_session_data *)bl)->paramc[2]>>1);
 	else if(bl->type==BL_PET)
@@ -874,8 +874,7 @@ int battle_get_speed(struct block_list *bl)
 		struct status_change *sc_data=battle_get_sc_data(bl);
 		int speed = 1000;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
-//			speed = mob_db[((struct mob_data *)bl)->class].speed;
-			speed = ((struct mob_data *)bl)->speed;
+			speed = ((struct mob_data *)bl)->stats[MOB_SPEED];
 		else if(bl->type==BL_PET && (struct pet_data *)bl)
 			speed = ((struct pet_data *)bl)->msd->petDB->speed;
 
@@ -928,7 +927,7 @@ int battle_get_adelay(struct block_list *bl)
 		struct status_change *sc_data=battle_get_sc_data(bl);
 		int adelay=4000,aspd_rate = 100,i;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
-			adelay = mob_db[((struct mob_data *)bl)->class].adelay;
+			adelay = ((struct mob_data *)bl)->stats[MOB_ADELAY];
 		else if(bl->type==BL_PET && (struct pet_data *)bl)
 			adelay = mob_db[((struct pet_data *)bl)->class].adelay;
 
@@ -1203,7 +1202,10 @@ int battle_get_mexp(struct block_list *bl)
 {
 	nullpo_retr(0, bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl) {
-		return mob_db[((struct mob_data *)bl)->class].mexp;
+                const struct mob_data *mob = (struct mob_data *) bl;
+                const int retval = (mob_db[mob->class].mexp * (int) (mob->stats[MOB_XP_BONUS])) >> MOB_XP_BONUS_SHIFT;
+                fprintf(stderr, "Modifier of %x: -> %d\n", mob->stats[MOB_XP_BONUS], retval);
+		return retval;
         }
 	else if(bl->type==BL_PET && (struct pet_data *)bl)
 		return mob_db[((struct pet_data *)bl)->class].mexp;
@@ -4334,7 +4336,6 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 	short *opt1;
 	int race = 7, ele = 0;
 	int damage,rdamage = 0;
-        int i;
 	struct Damage wd;
 
 	nullpo_retr(0, src);

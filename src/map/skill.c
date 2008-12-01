@@ -8227,8 +8227,8 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 	case SC_SELFDESTRUCTION:		/* 自爆 */
 		if(--sc_data[type].val3>0){
 			struct mob_data *md;
-			if(bl->type==BL_MOB && (md=(struct mob_data *)bl) && md->speed > 250){
-				md->speed -= 250;
+			if(bl->type==BL_MOB && (md=(struct mob_data *)bl) && md->stats[MOB_SPEED] > 250){
+				md->stats[MOB_SPEED] -= 250;
 				md->next_walktime=tick;
 			}
 			sc_data[type].timer=add_timer(	/* タイマー再設定 */
