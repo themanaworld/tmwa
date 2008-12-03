@@ -2147,6 +2147,11 @@ int mob_deleteslave(struct mob_data *md)
 	return 0;
 }
 
+#define DAMAGE_BONUS_COUNT 6	// max. number of players to account for
+const static double damage_bonus_factor[DAMAGE_BONUS_COUNT + 1] = {
+        1.0, 1.0, 2.0, 2.5, 2.75, 2.9, 3.0
+};
+
 /*==========================================
  * It is the damage of sd to damage to md.
  *------------------------------------------
@@ -2434,6 +2439,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 
 	// ŒoŒ±’l‚Ì•ª”z
 	for(i=0;i<DAMAGELOG_SIZE;i++){
+
 		int pid,base_exp,job_exp,flag=1;
 		double per;
 		struct party *p;
@@ -2451,8 +2457,11 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 		if(job_exp < 0) job_exp = 0;
 */
 //eAthena's exp formula rather than jAthena's
-		per=(double)md->dmglog[i].dmg*256*(9+(double)((count > 6)? 6:count))/10/(double)max_hp;
-		if(per>512) per=512;
+//		per=(double)md->dmglog[i].dmg*256*(9+(double)((count > 6)? 6:count))/10/(double)max_hp;
+                // [Fate] The above is the old formula.  We do a more involved computation below.
+                per = (double)md->dmglog[i].dmg * 256 / (double) max_hp; // 256 = 100% of the score
+                per *= damage_bonus_factor[count > DAMAGE_BONUS_COUNT ? DAMAGE_BONUS_COUNT : count]; // Bonus for party attack
+		if(per>512) per=512; // [Fate] Retained from before.  The maximum a single individual can get is double the original value.
 		if(per<1) per=1;
 
 		base_exp = ((mob_db[md->class].base_exp * md->stats[MOB_XP_BONUS]) >> MOB_XP_BONUS_SHIFT) * per/256;
