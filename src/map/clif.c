@@ -2583,7 +2583,7 @@ int clif_changestatus(struct block_list *bl,int type,int val)
  */
 int clif_changelook(struct block_list *bl,int type,int val)
 {
-        clif_changelook_towards(bl, type, val, NULL);
+        return clif_changelook_towards(bl, type, val, NULL);
 }
 
 int clif_changelook_towards(struct block_list *bl,int type,int val, struct map_session_data *dstsd)
