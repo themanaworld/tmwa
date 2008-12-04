@@ -7501,6 +7501,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 	}
 }
 
+
 /*==========================================
  *
  *------------------------------------------
@@ -7632,7 +7633,14 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 int clif_message(struct block_list *bl, char* msg)
 {
 	unsigned short msg_len = strlen(msg) + 1;
-	unsigned char buf[256];
+        static int buf_len = -1;
+	static unsigned char *buf = NULL;
+
+        if (buf_len < msg_len) {
+                if (buf)
+                        free(buf);
+                buf = malloc(buf_len = (msg_len + 16));
+        }
 
 	nullpo_retr(0, bl);
 
