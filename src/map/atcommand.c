@@ -635,31 +635,51 @@ int get_atcommand_level(const AtCommandType type) {
  * At-command logging
  */
 
+int last_logfile_nr = 0;
 char *gm_logfile_name = NULL;
 static FILE *gm_logfile = NULL;
 
 static void
 log_atcommand(struct map_session_data *sd, const char *message)
 {
-        if (!gm_logfile && gm_logfile_name) {
-                gm_logfile = fopen(gm_logfile_name, "a");
-                if (!gm_logfile) {
-                        perror("GM log file");
-                        gm_logfile_name = NULL;
-                }
-        }
-
-        if (gm_logfile && pc_isGM(sd)) {
+        if (gm_logfile_name) {
                 time_t time_v;
                 struct tm ctime;
+                int month, year, logfile_nr;
                 time(&time_v);
                 gmtime_r(&time_v, &ctime);
-                
-                fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n",
-                        ctime.tm_year + 1900, ctime.tm_mon, ctime.tm_mday,
-                        ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
-                        message);
-                fflush(gm_logfile);
+
+                year = ctime.tm_year + 1900;
+                month = ctime.tm_mon + 1;
+                logfile_nr = (year * 12) + month;
+
+                if (logfile_nr != last_logfile_nr) {
+                        char *fullname = malloc(strlen(gm_logfile_name) + 10);
+                        sprintf(fullname, "%s.%04d-%02d", gm_logfile_name,
+                                year, month);
+
+                        if (gm_logfile)
+                                close(gm_logfile);
+
+                        gm_logfile = fopen(fullname, "a");
+                        free(fullname);
+
+                        if (!gm_logfile) {
+                                perror("GM log file");
+                                gm_logfile_name = NULL;
+                        }
+
+                        last_logfile_nr = logfile_nr;
+                }
+
+                if (gm_logfile && pc_isGM(sd)) {
+                        fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s(%d,%d) %s\n",
+                                year, month, ctime.tm_mday,
+                                ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
+                                map[sd->bl.m].name, sd->bl.x, sd->bl.y, 
+                                message);
+                        fflush(gm_logfile);
+                }
         }
 }
 
