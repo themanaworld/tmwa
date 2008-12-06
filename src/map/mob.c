@@ -188,7 +188,8 @@ mob_mutate(struct mob_data *md, int stat, int intensity) // intensity: positive:
 {
         int old_stat;
         int new_stat;
-        int real_intensity;
+        int real_intensity;  // relative intensity 
+        const int mut_base = mutation_base[stat];
         int sign = 1;
 
         if (!md || stat < 0 || stat >= MOB_XP_BONUS || intensity == 0)
@@ -220,7 +221,23 @@ mob_mutate(struct mob_data *md, int stat, int intensity) // intensity: positive:
         if (old_stat == 0)
                 real_intensity = 0;
         else
-                real_intensity = sign * (((new_stat - old_stat) << 8) / old_stat);
+                real_intensity = (((new_stat - old_stat) << 8) / old_stat);
+
+        if (mut_base != -1) {
+                // Now compute the mutation intensity relative to an absolute value.
+                // Take the lesser of the two effects.
+                int real_intensity2 = (((new_stat - old_stat) << 8) / mut_base);
+
+                if (real_intensity < 0)
+                        if (real_intensity2 > real_intensity)
+                                real_intensity = real_intensity2;
+
+                if (real_intensity > 0)
+                        if (real_intensity2 < real_intensity)
+                                real_intensity = real_intensity2;
+        }
+
+        real_intensity *= sign;
 
         md->stats[stat] = new_stat;
 
