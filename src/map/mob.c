@@ -152,6 +152,33 @@ mutation_scale[MOB_XP_BONUS] =
 };
 
 
+// The table below indicates the `average' value for each of the statistics, or -1 if there is none.
+// This average is used to determine XP modifications for mutations.  The experience point bonus is
+// based on mutation_value and mutation_base as follows:
+// (1) first, compute the percentage change of the attribute (p0)
+// (2) second, determine the absolute stat change
+// (3) third, compute the percentage stat change relative to mutation_base (p1)
+// (4) fourth, compute the XP mofication based on the smaller of (p0, p1).
+static int
+mutation_base[MOB_XP_BONUS] =
+{
+        30,	// MOB_LV
+        -1,	// MOB_MAX_HP
+        20,	// MOB_STR
+        20,	// MOB_AGI
+        20,	// MOB_VIT
+        20,	// MOB_INT
+        20,	// MOB_DEX
+        20,	// MOB_LUK
+        -1,	// MOB_ATK1
+        -1,	// MOB_ATK2
+        -1,	// MOB_ADELAY
+        -1,	// MOB_DEF
+        20,	// MOB_MDEF
+        -1,	// MOB_SPEED
+};
+
+
 /*========================================
  * Mutates a MOB.  For large `direction' values, calling this multiple times will give bigger XP boni.
  *----------------------------------------
