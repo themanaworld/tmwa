@@ -1648,6 +1648,8 @@ int map_delmap(char *mapname) {
 	return 0;
 }
 
+extern char *gm_logfile_name;
+
 /*==========================================
  * İ’èƒtƒ@ƒCƒ‹‚ğ“Ç‚İ‚Ş
  *------------------------------------------
@@ -1715,6 +1717,8 @@ int map_config_read(char *cfgName) {
 				strcpy(help_txt, w2);
 			} else if (strcmpi(w1, "mapreg_txt") == 0) {
 				strcpy(mapreg_txt, w2);
+                        } else if (strcmpi(w1, "gm_log") == 0) {
+                                gm_logfile_name = strdup(w2);
 			} else if (strcmpi(w1, "import") == 0) {
 				map_config_read(w2);
 			}

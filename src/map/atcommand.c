@@ -4,6 +4,11 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "socket.h"
 #include "timer.h"
@@ -213,6 +218,8 @@ ATCOMMAND_FUNC(unmute); // [Valaris]
 ATCOMMAND_FUNC(char_wipe); // [Fate]
 ATCOMMAND_FUNC(set_magic); // [Fate]
 ATCOMMAND_FUNC(magic_info); // [Fate]
+ATCOMMAND_FUNC(log); // [Fate]
+ATCOMMAND_FUNC(tee); // [Fate]
 
 #ifndef TXT_ONLY
 ATCOMMAND_FUNC(checkmail); // [Valaris]
@@ -460,6 +467,10 @@ static AtCommandInfo atcommand_info[] = {
 	{ AtCommand_UnMute,	"@charwipe", 60, atcommand_char_wipe }, // [Fate]
         { AtCommand_SetMagic,  "@setmagic", 99, atcommand_set_magic }, // [Fate]
         { AtCommand_MagicInfo, "@magicinfo", 60, atcommand_magic_info }, // [Fate]
+        { AtCommand_Log, "@log", 60, atcommand_log }, // [Fate]
+        { AtCommand_Log, "@l", 60, atcommand_log }, // [Fate]
+        { AtCommand_Tee, "@tee", 60, atcommand_tee }, // [Fate]
+        { AtCommand_Tee, "@t", 60, atcommand_tee }, // [Fate]
 
 #ifndef TXT_ONLY // sql-only commands
 	{ AtCommand_CheckMail,		 "@checkmail",	      1, atcommand_listmail }, // [Valaris]
@@ -619,6 +630,39 @@ int get_atcommand_level(const AtCommandType type) {
 	return 100; // 100: command can not be used
 }
 
+
+/*========================================
+ * At-command logging
+ */
+
+char *gm_logfile_name = NULL;
+static FILE *gm_logfile = NULL;
+
+static void
+log_atcommand(struct map_session_data *sd, const char *message)
+{
+        if (!gm_logfile && gm_logfile_name) {
+                gm_logfile = fopen(gm_logfile_name, "a");
+                if (!gm_logfile) {
+                        perror("GM log file");
+                        gm_logfile_name = NULL;
+                }
+        }
+
+        if (gm_logfile && pc_isGM(sd)) {
+                time_t time_v;
+                struct tm ctime;
+                time(&time_v);
+                gmtime_r(&time_v, &ctime);
+                
+                fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n",
+                        ctime.tm_year + 1900, ctime.tm_mon, ctime.tm_mday,
+                        ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
+                        message);
+                fflush(gm_logfile);
+        }
+}
+
 /*==========================================
  *is_atcommand @コマンドに存在するかどうか確認する
  *------------------------------------------
@@ -668,7 +712,9 @@ is_atcommand(const int fd, struct map_session_data* sd, const char* message, int
 				// Command can not be executed
 				sprintf(output, msg_table[154], command); // %s failed.
 				clif_displaymessage(fd, output);
-			}
+			} else {
+                                log_atcommand(sd, message);
+                        }
 		}
 
 		return info.type;
@@ -7951,3 +7997,23 @@ atcommand_set_magic(const int fd, struct map_session_data* sd,
         return -1;
 }
 
+
+
+int
+atcommand_log(const int fd, struct map_session_data* sd,
+              const char* command, const char* message)
+{
+        return 0; // only used for (implicit) logging
+}
+
+int
+atcommand_tee(const int fd, struct map_session_data* sd,
+              const char* command, const char* message)
+{
+        char *data = malloc(strlen(message) + 28);
+        strcpy(data, sd->status.name);
+        strcat(data, " : ");
+        strcat(data, message);
+        clif_message(&sd->bl, data);
+        return 0;
+}

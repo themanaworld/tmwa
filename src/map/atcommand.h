@@ -211,6 +211,8 @@ enum AtCommandType {
 	
         AtCommand_SetMagic,
         AtCommand_MagicInfo,
+        AtCommand_Log,
+        AtCommand_Tee,
 	// end
 	AtCommand_Unknown,
 	AtCommand_MAX
