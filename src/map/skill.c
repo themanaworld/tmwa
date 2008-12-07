@@ -7820,6 +7820,16 @@ int skill_status_change_end(struct block_list* bl, int type, int tid)
 			opt_flag = 1;
 			break;
 
+                case SC_SPEEDPOTION0:
+			*opt2 &= ~0x20;
+			opt_flag = 1;
+                        break;
+
+                case SC_ATKPOT:
+			*opt2 &= ~0x80;
+			opt_flag = 1;
+                        break;
+
 		case SC_HIDING:
 		case SC_CLOAKING:
 			*option &= ~((type == SC_HIDING) ? 2 : 4);
@@ -8677,6 +8687,7 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 			break;
 
 		case SC_SPEEDPOTION0:		/* ëùë¨É|Å[ÉVÉáÉì */
+                        *opt2 |= 0x20;
 		case SC_SPEEDPOTION1:
 		case SC_SPEEDPOTION2:
 			calc_flag = 1;
@@ -8686,6 +8697,7 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 
 		/* atk & matk potions [Valaris] */
 		case SC_ATKPOT:
+                        *opt2 |= 0x80;
 		case SC_MATKPOT:
 			calc_flag = 1;
 			tick = 1000 * tick;

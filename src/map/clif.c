@@ -799,7 +799,6 @@ static int clif_set0078(struct map_session_data *sd, unsigned char *buf) {
  */
 static int clif_set007b(struct map_session_data *sd,unsigned char *buf) {
 	int level=0;
-
 	nullpo_retr(0, sd);
 
 	if (sd->disguise > 23 && sd->disguise < 4001) { // mob disguises [Valaris]

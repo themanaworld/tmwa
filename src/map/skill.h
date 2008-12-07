@@ -183,7 +183,7 @@ enum {
 enum {	// struct map_session_data の status_changeの番号テーブル
 // SC_SENDMAX未満はクライアントへの通知あり。
 // 2-2次職の値はなんかめちゃくちゃっぽいので暫定。たぶん変更されます。
-	SC_SENDMAX				=128,
+	SC_SENDMAX				= 256,
 	SC_PROVOKE			= 0,
 	SC_ENDURE			= 1,
 	SC_TWOHANDQUICKEN		= 2,
