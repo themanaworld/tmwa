@@ -348,12 +348,13 @@ static int itemdb_readdb(void)
 			memcpy(id->jname,str[2],24);
 			id->type=atoi(str[3]);
 			// buy‚sell*2 ‚Í item_value_db.txt ‚Åw’è‚µ‚Ä‚­‚¾‚³‚¢B
-			if (atoi(str[5])) {		// sell’l‚ğ—Dæ‚Æ‚·‚é
-				id->value_buy=atoi(str[5])*2;
-				id->value_sell=atoi(str[5]);
-			} else {
-				id->value_buy=atoi(str[4]);
-				id->value_sell=atoi(str[4])/2;
+			id->value_buy=atoi(str[4]);
+			id->value_sell=atoi(str[5]);
+			if (id->value_buy == 0 && id->value_sell == 0) {
+			} else if (id->value_buy == 0) {
+				id->value_buy=id->value_sell*2;
+			} else if (id->value_sell == 0) {
+				id->value_sell=id->value_buy/2;
 			}
 			id->weight=atoi(str[6]);
 			id->atk=atoi(str[7]);
