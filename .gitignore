@@ -1,0 +1,6 @@
+# files generated during make
+*.o
+char-server
+ladmin
+login-server
+map-server
