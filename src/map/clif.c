@@ -286,6 +286,27 @@ int clif_send(unsigned char *buf, int len, struct block_list *bl, int type) {
 
 	if (type != ALL_CLIENT) {
 		nullpo_retr(0, bl);
+
+                if (bl->type == BL_PC) {
+                    struct map_session_data *sd = (struct map_session_data *) bl;
+                    if (sd->status.option & OPTION_INVISIBILITY) {
+                        // Obscure hidden GMs
+
+                        switch (type) {
+                        case AREA:
+                        case AREA_WOC:
+                            type = SELF;
+                            break;
+
+                        case AREA_WOS:
+                        case AREA_WOSC:
+                            return;
+
+                        default:
+                            break;
+                        }
+                    }
+                }
 	}
 
 	switch(type) {
@@ -3564,6 +3585,9 @@ clif_changelook_accessories(struct block_list *bl, struct map_session_data *dest
 void clif_getareachar_pc(struct map_session_data* sd,struct map_session_data* dstsd)
 {
 	int len;
+
+        if (dstsd->status.option & OPTION_INVISIBILITY)
+            return;
 
 	nullpo_retv(sd);
 	nullpo_retv(dstsd);

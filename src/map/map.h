@@ -41,7 +41,22 @@
 
 #define DEFAULT_AUTOSAVE_INTERVAL 60*1000
 
-#define OPTION_HIDE 0x40
+// [Fate] status.option properties.  These are persistent status changes.
+// IDs that are not listed are not used in the code (to the best of my knowledge)
+#define OPTION_HIDE2		0x0002  // apparently some weaker non-GM hide
+#define OPTION_CLOAK		0x0004
+#define OPTION_10		0x0010
+#define OPTION_20		0x0020
+#define OPTION_HIDE		0x0040  // [Fate] This is the GM `@hide' flag
+#define OPTION_800		0x0800
+#define OPTION_INVISIBILITY	0x1000  // [Fate] Complete invisibility to other clients
+#define OPTION_SCRIBE		0x2000  // [Fate] Auto-logging of nearby comments
+#define OPTION_CHASEWALK	0x4000
+
+//  Below are special clif_changestatus() IDs reserved for option updates
+#define CLIF_OPTION_SC_BASE		0x1000
+#define CLIF_OPTION_SC_INVISIBILITY	(CLIF_OPTION_SC_BASE)
+#define CLIF_OPTION_SC_SCRIBE		(CLIF_OPTION_SC_BASE + 1)
 
 enum { BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL, BL_PET, BL_SPELL };
 enum { WARP, SHOP, SCRIPT, MONS, MESSAGE };

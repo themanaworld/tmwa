@@ -220,6 +220,8 @@ ATCOMMAND_FUNC(set_magic); // [Fate]
 ATCOMMAND_FUNC(magic_info); // [Fate]
 ATCOMMAND_FUNC(log); // [Fate]
 ATCOMMAND_FUNC(tee); // [Fate]
+ATCOMMAND_FUNC(invisible); // [Fate]
+ATCOMMAND_FUNC(visible); // [Fate]
 
 #ifndef TXT_ONLY
 ATCOMMAND_FUNC(checkmail); // [Valaris]
@@ -471,6 +473,8 @@ static AtCommandInfo atcommand_info[] = {
         { AtCommand_Log, "@l", 60, atcommand_log }, // [Fate]
         { AtCommand_Tee, "@tee", 60, atcommand_tee }, // [Fate]
         { AtCommand_Tee, "@t", 60, atcommand_tee }, // [Fate]
+        { AtCommand_Tee, "@invisible", 60, atcommand_invisible }, // [Fate]
+        { AtCommand_Tee, "@visible", 60, atcommand_visible }, // [Fate]
 
 #ifndef TXT_ONLY // sql-only commands
 	{ AtCommand_CheckMail,		 "@checkmail",	      1, atcommand_listmail }, // [Valaris]
@@ -8037,3 +8041,20 @@ atcommand_tee(const int fd, struct map_session_data* sd,
         clif_message(&sd->bl, data);
         return 0;
 }
+
+int
+atcommand_invisible(const int fd, struct map_session_data* sd,
+                    const char* command, const char* message)
+{
+        pc_invisibility(sd, 1);
+        return 0;
+}
+
+int
+atcommand_visible(const int fd, struct map_session_data* sd,
+                  const char* command, const char* message)
+{
+        pc_invisibility(sd, 0);
+        return 0;
+}
+
