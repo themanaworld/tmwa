@@ -213,6 +213,10 @@ enum AtCommandType {
         AtCommand_MagicInfo,
         AtCommand_Log,
         AtCommand_Tee,
+        AtCommand_Invisible,
+        AtCommand_Visible,
+        AtCommand_IterateForward,
+        AtCommand_IterateBackward,
 	// end
 	AtCommand_Unknown,
 	AtCommand_MAX

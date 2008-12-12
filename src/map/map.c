@@ -1145,6 +1145,74 @@ char * map_charid2nick(int id) {
 	return p->nick;
 }
 
+/*========================================*/
+/* [Fate] Operations to iterate over active map sessions */
+
+static struct map_session_data *
+map_get_session(int i)
+{
+        struct map_session_data *d;
+
+        if (i >= 0 && i < fd_max
+            && session[i] && (d = session[i]->session_data)
+            && d->state.auth)
+                return d;
+
+        return NULL;
+}
+
+static struct map_session_data *
+map_get_session_forward(int start)
+{
+        int i;
+	for (i = start; i < fd_max; i++) {
+                struct map_session_data *d = map_get_session(i);
+                if (d)
+                        return d;
+        }
+
+        return NULL;
+}
+
+static struct map_session_data *
+map_get_session_backward(int start)
+{
+        int i;
+	for (i = start; i >= 0; i--) {
+                struct map_session_data *d = map_get_session(i);
+                if (d)
+                        return d;
+        }
+
+        return NULL;
+}
+
+struct map_session_data *
+map_get_first_session()
+{
+        return map_get_session_forward(0);
+}
+
+struct map_session_data *
+map_get_next_session(struct map_session_data *d)
+{
+        return map_get_session_forward(d->fd + 1);
+}
+
+struct map_session_data *
+map_get_last_session()
+{
+        return map_get_session_backward(fd_max);
+}
+
+struct map_session_data *
+map_get_prev_session(struct map_session_data *d)
+{
+        return map_get_session_backward(d->fd - 1);
+}
+
+
+
 
 /*==========================================
  * Search session data from a nick name

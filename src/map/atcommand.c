@@ -222,6 +222,8 @@ ATCOMMAND_FUNC(log); // [Fate]
 ATCOMMAND_FUNC(tee); // [Fate]
 ATCOMMAND_FUNC(invisible); // [Fate]
 ATCOMMAND_FUNC(visible); // [Fate]
+ATCOMMAND_FUNC(iterate_forward_over_players); // [Fate]
+ATCOMMAND_FUNC(iterate_backwards_over_players); // [Fate]
 
 #ifndef TXT_ONLY
 ATCOMMAND_FUNC(checkmail); // [Valaris]
@@ -473,8 +475,10 @@ static AtCommandInfo atcommand_info[] = {
         { AtCommand_Log, "@l", 60, atcommand_log }, // [Fate]
         { AtCommand_Tee, "@tee", 60, atcommand_tee }, // [Fate]
         { AtCommand_Tee, "@t", 60, atcommand_tee }, // [Fate]
-        { AtCommand_Tee, "@invisible", 60, atcommand_invisible }, // [Fate]
-        { AtCommand_Tee, "@visible", 60, atcommand_visible }, // [Fate]
+        { AtCommand_Invisible, "@invisible", 60, atcommand_invisible }, // [Fate]
+        { AtCommand_Visible, "@visible", 60, atcommand_visible }, // [Fate]
+        { AtCommand_IterateForward, "@hugo", 60, atcommand_iterate_forward_over_players }, // [Fate]
+        { AtCommand_IterateBackward, "@linus", 60, atcommand_iterate_backwards_over_players }, // [Fate]
 
 #ifndef TXT_ONLY // sql-only commands
 	{ AtCommand_CheckMail,		 "@checkmail",	      1, atcommand_listmail }, // [Valaris]
@@ -8058,3 +8062,65 @@ atcommand_visible(const int fd, struct map_session_data* sd,
         return 0;
 }
 
+
+
+int atcommand_jump_iterate(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message,
+        struct map_session_data *(*get_start)(),
+        struct map_session_data *(*get_next)(struct map_session_data *current)
+    )
+{
+	char output[200];
+	struct map_session_data *pl_sd;
+
+	memset(output, '\0', sizeof(output));
+
+        pl_sd = map_id2bl(sd->followtarget);
+
+        if (pl_sd)
+                pl_sd = get_next(pl_sd);
+
+        if (!pl_sd)
+                pl_sd = get_start();
+
+        if (pl_sd == sd) {
+                pl_sd = get_next(pl_sd);
+                if (!pl_sd)
+                        pl_sd = get_start();
+        }
+
+        if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarpto && battle_config.any_warp_GM_min_level > pc_isGM(sd)) {
+                clif_displaymessage(fd, "You are not authorised to warp you to the map of this player.");
+                return -1;
+        }
+        if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp && battle_config.any_warp_GM_min_level > pc_isGM(sd)) {
+                clif_displaymessage(fd, "You are not authorised to warp you from your actual map.");
+                return -1;
+        }
+        pc_setpos(sd, map[pl_sd->bl.m].name, pl_sd->bl.x, pl_sd->bl.y, 3);
+        sprintf(output, msg_table[4], pl_sd->status.name); // Jump to %s
+        clif_displaymessage(fd, output);
+
+        sd->followtarget = pl_sd->bl.id;
+
+	return 0;
+}
+
+int
+atcommand_iterate_forward_over_players(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message)
+{
+        return atcommand_jump_iterate(fd, sd, command, message,
+                                      map_get_first_session, map_get_next_session);
+}
+
+int
+atcommand_iterate_backwards_over_players(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message)
+{
+        return atcommand_jump_iterate(fd, sd, command, message,
+                                      map_get_last_session, map_get_prev_session);
+}

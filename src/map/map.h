@@ -748,6 +748,11 @@ void map_addnickdb(struct map_session_data *);
 int map_scriptcont(struct map_session_data *sd,int id); /* Continues a script either on a spell or on an NPC */
 struct map_session_data * map_nick2sd(char*);
 
+struct map_session_data * map_get_first_session();
+struct map_session_data * map_get_last_session();
+struct map_session_data * map_get_next_session(struct map_session_data *current);
+struct map_session_data * map_get_prev_session(struct map_session_data *current);
+
 // gatŠÖ˜A
 int map_getcell(int,int,int);
 int map_setcell(int,int,int,int);
