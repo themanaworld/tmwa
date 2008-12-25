@@ -69,7 +69,6 @@ int clif_changelook_towards(struct block_list *,int,int, struct map_session_data
 void clif_changelook_accessories(struct block_list *bl, struct map_session_data *dst); // area or target; list gloves, boots etc.
 int clif_arrowequip(struct map_session_data *sd,int val); //self
 int clif_arrow_fail(struct map_session_data *sd,int type); //self
-int clif_arrow_create_list(struct map_session_data *sd);	//self
 int clif_statusupack(struct map_session_data *,int,int,int);	// self
 int clif_equipitemack(struct map_session_data *,int,int,int);	// self
 int clif_unequipitemack(struct map_session_data *,int,int,int);	// self
@@ -152,7 +151,6 @@ int clif_skill_warppoint(struct map_session_data *sd,int skill_num,
 	const char *map1,const char *map2,const char *map3,const char *map4);
 int clif_skill_memo(struct map_session_data *sd,int flag);
 int clif_skill_teleportmessage(struct map_session_data *sd,int flag);
-int clif_skill_produce_mix_list(struct map_session_data *sd,int trigger);
 
 int clif_produceeffect(struct map_session_data *sd,int flag,int nameid);
 

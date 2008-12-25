@@ -723,15 +723,6 @@ static int rdamage;
 /* スキルデータベース */
 struct skill_db skill_db[MAX_SKILL_DB];
 
-/* アイテム作成データベース */
-struct skill_produce_db skill_produce_db[MAX_SKILL_PRODUCE_DB];
-
-/* 矢作成スキルデータベース */
-struct skill_arrow_db skill_arrow_db[MAX_SKILL_ARROW_DB];
-
-/* アブラカダブラ発動スキルデータベース */
-struct skill_abra_db skill_abra_db[MAX_SKILL_ABRA_DB];
-
 int	skill_get_hit( int id ){ return skill_db[id].hit; }
 int	skill_get_inf( int id ){ return skill_db[id].inf; }
 int	skill_get_pl( int id ){ return skill_db[id].pl; }
@@ -761,7 +752,6 @@ int skill_castend_damage_id( struct block_list* src, struct block_list *bl,int s
 int skill_frostjoke_scream(struct block_list *bl,va_list ap);
 int skill_status_change_timer_sub(struct block_list *bl, va_list ap );
 int skill_attack_area(struct block_list *bl,va_list ap);
-int skill_abra_dataset(int skilllv);
 int skill_clear_element_field(struct block_list *bl);
 int skill_landprotector(struct block_list *bl, va_list ap );
 int skill_trap_splash(struct block_list *bl, va_list ap );
@@ -2627,7 +2617,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 	struct map_session_data *dstsd=NULL;
 	struct mob_data *md=NULL;
 	struct mob_data *dstmd=NULL;
-	int i,abra_skillid=0,abra_skilllv;
+	int i;
 	int sc_def_vit,sc_def_mdef,strip_fix,strip_time,strip_per;
 	int sc_dex,sc_luk;
 	//クラスチェンジ用ボスモンスターID
@@ -2799,22 +2789,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 		}
 		break;
 	case SA_ABRACADABRA:
-	//require 1 yellow gemstone even with mistress card or Into the Abyss
-	if (pc_search_inventory(sd, 715) <= 0 ) {
-		clif_skill_fail(sd,sd->skillid,0,0);
 		break;
-	}
-	pc_delitem(sd, pc_search_inventory(sd, 715), 1, 0);
-	//
-	do{
-		abra_skillid=skill_abra_dataset(skilllv);
-	}while(abra_skillid == 0);
-	abra_skilllv=skill_get_max(abra_skillid)>pc_checkskill(sd,SA_ABRACADABRA)?pc_checkskill(sd,SA_ABRACADABRA):skill_get_max(abra_skillid);
-	clif_skill_nodamage(src,bl,skillid,skilllv,1);
-	sd->skillitem=abra_skillid;
-	sd->skillitemlv=abra_skilllv;
-	clif_item_skill(sd,abra_skillid,abra_skilllv,"アブラカダブラ");
-	break;
 	case SA_COMA:
 		clif_skill_nodamage(src,bl,skillid,skilllv,1);
 		if( bl->type==BL_PC && ((struct map_session_data *)bl)->special_state.no_magic_damage )
@@ -3128,29 +3103,29 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 		break;
 
 	case AC_MAKINGARROW:			/* 矢作成 */
-		if(sd) {
+/*		if(sd) {
 			clif_arrow_create_list(sd);
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
-		}
+		}*/
 		break;
 
 	case AM_PHARMACY:			/* ポーション作成 */
-		if(sd) {
+/*		if(sd) {
 			clif_skill_produce_mix_list(sd,32);
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
-		}
+		}*/
 		break;
 	case WS_CREATECOIN:				/* クリエイトコイン */
-		if(sd) {
+/*		if(sd) {
 			clif_skill_produce_mix_list(sd,64);
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
-		}
+		}*/
 		break;
 	case WS_CREATENUGGET:			/* 塊製造 */
-		if(sd) {
+/*		if(sd) {
 			clif_skill_produce_mix_list(sd,128);
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
-		}
+		}*/
 		break;
 	case BS_HAMMERFALL:		/* ハンマーフォール */
 		clif_skill_nodamage(src,bl,skillid,skilllv,1);
@@ -6116,10 +6091,10 @@ int skill_check_condition(struct map_session_data *sd,int type)
 		sd->skillitem = sd->skillitemlv = -1;
 		return 0;
 	}
-	if(sd->skillid == AM_PHARMACY &&	sd->state.produce_flag == 1) {
+	/*if(sd->skillid == AM_PHARMACY &&	sd->state.produce_flag == 1) {
 		sd->skillitem = sd->skillitemlv = -1;
 		return 0;
-	}
+	}*/
 
 	if(sd->skillitem == sd->skillid) {	/* アイテムの場合無条件成功 */
 		if(type&1)
@@ -7381,23 +7356,6 @@ int skill_frostjoke_scream(struct block_list *bl,va_list ap)
 	}
 
 	return 0;
-}
-
-/*==========================================
- *アブラカダブラの使用スキル決定(決定スキルがダメなら0を返す)
- *------------------------------------------
- */
-int skill_abra_dataset(int skilllv)
-{
-	int skill = rand()%331;
-	//dbに基づくレベル・確率判定
-	if(skill_abra_db[skill].req_lv > skilllv || rand()%10000 >= skill_abra_db[skill].per) return 0;
-	//NPCスキルはダメ
-	if(skill >= NPC_PIERCINGATT && skill <= NPC_SUMMONMONSTER) return 0;
-	//演奏スキルはダメ
-	if(skill_is_danceskill(skill)) return 0;
-
-	return skill;
 }
 
 /*==========================================
@@ -9943,272 +9901,6 @@ int skill_unit_move_unit_group( struct skill_unit_group *group, int m,int dx,int
  *----------------------------------------------------------------------------
  */
 
-/*==========================================
- * アイテム合成可能判定
- *------------------------------------------
- */
-int skill_can_produce_mix( struct map_session_data *sd, int nameid, int trigger )
-{
-	int i,j;
-
-	nullpo_retr(0, sd);
-
-	if(nameid<=0)
-		return 0;
-
-	for(i=0;i<MAX_SKILL_PRODUCE_DB;i++){
-		if(skill_produce_db[i].nameid == nameid )
-			break;
-	}
-	if( i >= MAX_SKILL_PRODUCE_DB )	/* データベースにない */
-		return 0;
-
-	if(trigger>=0){
-		if(trigger==32 || trigger==16 || trigger==64){
-			if(skill_produce_db[i].itemlv!=trigger)	/* ファーマシー＊ポーション類と溶鉱炉＊鉱石以外はだめ */
-				return 0;
-		}else{
-			if(skill_produce_db[i].itemlv>=16)		/* 武器以外はだめ */
-				return 0;
-			if( itemdb_wlv(nameid)>trigger )	/* 武器Lv判定 */
-				return 0;
-		}
-	}
-	if( (j=skill_produce_db[i].req_skill)>0 && pc_checkskill(sd,j)<=0 )
-		return 0;		/* スキルが足りない */
-
-	for(j=0;j<5;j++){
-		int id,x,y;
-		if( (id=skill_produce_db[i].mat_id[j]) <= 0 )	/* これ以上は材料要らない */
-			continue;
-		if(skill_produce_db[i].mat_amount[j] <= 0) {
-			if(pc_search_inventory(sd,id) < 0)
-				return 0;
-		}
-		else {
-			for(y=0,x=0;y<MAX_INVENTORY;y++)
-				if( sd->status.inventory[y].nameid == id )
-					x+=sd->status.inventory[y].amount;
-			if(x<skill_produce_db[i].mat_amount[j])	/* アイテムが足りない */
-				return 0;
-		}
-	}
-	return i+1;
-}
-
-/*==========================================
- * アイテム合成可能判定
- *------------------------------------------
- */
-int skill_produce_mix( struct map_session_data *sd,
-	int nameid, int slot1, int slot2, int slot3 )
-{
-	int slot[3];
-	int i,sc,ele,idx,equip,wlv,make_per,flag;
-
-	nullpo_retr(0, sd);
-
-	if( !(idx=skill_can_produce_mix(sd,nameid,-1)) )	/* 条件不足 */
-		return 0;
-	idx--;
-	slot[0]=slot1;
-	slot[1]=slot2;
-	slot[2]=slot3;
-
-	/* 埋め込み処理 */
-	for(i=0,sc=0,ele=0;i<3;i++){
-		int j;
-		if( slot[i]<=0 )
-			continue;
-		j = pc_search_inventory(sd,slot[i]);
-		if(j < 0)	/* 不正パケット(アイテム存在)チェック */
-			continue;
-		if(slot[i]==1000){	/* 星のかけら */
-			pc_delitem(sd,j,1,1);
-			sc++;
-		}
-		if(slot[i]>=994 && slot[i]<=997 && ele==0){	/* 属性石 */
-			static const int ele_table[4]={3,1,4,2};
-			pc_delitem(sd,j,1,1);
-			ele=ele_table[slot[i]-994];
-		}
-	}
-
-	/* 材料消費 */
-	for(i=0;i<5;i++){
-		int j,id,x;
-		if( (id=skill_produce_db[idx].mat_id[i]) <= 0 )
-			continue;
-		x=skill_produce_db[idx].mat_amount[i];	/* 必要な個数 */
-		do{	/* ２つ以上のインデックスにまたがっているかもしれない */
-			int y=0;
-			j = pc_search_inventory(sd,id);
-
-			if(j >= 0){
-				y = sd->status.inventory[j].amount;
-				if(y>x)y=x;	/* 足りている */
-				pc_delitem(sd,j,y,0);
-			}else {
-				if(battle_config.error_log)
-					printf("skill_produce_mix: material item error\n");
-			}
-
-			x-=y;	/* まだ足りない個数を計算 */
-		}while( j>=0 && x>0 );	/* 材料を消費するか、エラーになるまで繰り返す */
-	}
-
-	/* 確率判定 */
-	equip = itemdb_isequip(nameid);
-	if(!equip) {
-		if(skill_produce_db[idx].req_skill==AM_PHARMACY) {
-			if((nameid >= 501 && nameid <= 506) || (nameid >= 545 && nameid <= 547) || nameid == 525)
-				make_per = 2000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300 + pc_checkskill(sd,AM_POTIONPITCHER)*100;
-			else if(nameid == 970)
-				make_per = 1500 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300;
-			else if(nameid == 7135)
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300 + pc_checkskill(sd,AM_DEMONSTRATION)*100;
-			else if(nameid == 7136)
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300 + pc_checkskill(sd,AM_ACIDTERROR)*100;
-			else if(nameid == 7137)
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300 + pc_checkskill(sd,AM_CANNIBALIZE)*100;
-			else if(nameid == 7138)
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300 + pc_checkskill(sd,AM_SPHEREMINE)*100;
-			else if(nameid == 7139)
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300 + pc_checkskill(sd,AM_CP_WEAPON)*100 +
-					pc_checkskill(sd,AM_CP_SHIELD)*100 + pc_checkskill(sd,AM_CP_ARMOR)*100 + pc_checkskill(sd,AM_CP_HELM)*100;
-			else
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[3]*20 + sd->paramc[4]*15 + pc_checkskill(sd,AM_LEARNINGPOTION)*100 + pc_checkskill(sd,AM_PHARMACY)*300;
-		}
-		else {
-			if(nameid == 998)
-				make_per = 2000 + sd->status.base_level*30 + sd->paramc[4]*20 + sd->paramc[5]*10 + pc_checkskill(sd,skill_produce_db[idx].req_skill)*600;
-			else if(nameid == 985)
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[4]*20 + sd->paramc[5]*10 + (pc_checkskill(sd,skill_produce_db[idx].req_skill)-1)*500;
-			else
-				make_per = 1000 + sd->status.base_level*30 + sd->paramc[4]*20 + sd->paramc[5]*10 + pc_checkskill(sd,skill_produce_db[idx].req_skill)*500;
-		}
-	}
-	else {
-		int add_per;
-		if(pc_search_inventory(sd,989) >= 0) add_per = 750;
-		else if(pc_search_inventory(sd,988) >= 0) add_per = 500;
-		else if(pc_search_inventory(sd,987) >= 0) add_per = 250;
-		else if(pc_search_inventory(sd,986) >= 0) add_per = 0;
-		else add_per = -500;
-		if(ele) add_per -= 500;
-		add_per -= sc*500;
-		wlv = itemdb_wlv(nameid);
-		make_per = ((250 + sd->status.base_level*15 + sd->paramc[4]*10 + sd->paramc[5]*5 + pc_checkskill(sd,skill_produce_db[idx].req_skill)*500 +
-			add_per) * (100 - (wlv - 1)*20))/100 + pc_checkskill(sd,BS_WEAPONRESEARCH)*100 + ((wlv >= 3)? pc_checkskill(sd,BS_ORIDEOCON)*100 : 0);
-	}
-
-	if(make_per < 1) make_per = 1;
-
-	if(skill_produce_db[idx].req_skill==AM_PHARMACY) {
-		if( battle_config.pp_rate!=100 )
-			make_per=make_per*battle_config.pp_rate/100;
-	}
-	else {
-		if( battle_config.wp_rate!=100 )	/* 確率補正 */
-			make_per=make_per*battle_config.wp_rate/100;
-	}
-
-//	if(battle_config.etc_log)
-//		printf("make rate = %d\n",make_per);
-
-	if(rand()%10000 < make_per){
-		/* 成功 */
-		struct item tmp_item;
-		memset(&tmp_item,0,sizeof(tmp_item));
-		tmp_item.nameid=nameid;
-		tmp_item.amount=1;
-		tmp_item.identify=1;
-		if(equip){	/* 武器の場合 */
-			tmp_item.card[0]=0x00ff; /* 製造武器フラグ */
-			tmp_item.card[1]=((sc*5)<<8)+ele;	/* 属性とつよさ */
-			*((unsigned long *)(&tmp_item.card[2]))=sd->char_id;	/* キャラID */
-		}
-		else if((battle_config.produce_item_name_input && skill_produce_db[idx].req_skill!=AM_PHARMACY) ||
-			(battle_config.produce_potion_name_input && skill_produce_db[idx].req_skill==AM_PHARMACY)) {
-			tmp_item.card[0]=0x00fe;
-			tmp_item.card[1]=0;
-			*((unsigned long *)(&tmp_item.card[2]))=sd->char_id;	/* キャラID */
-		}
-
-		if(skill_produce_db[idx].req_skill!=AM_PHARMACY && skill_produce_db[idx].req_skill!=WS_CREATECOIN) {	//武器製造の場合
-			clif_produceeffect(sd,0,nameid);/* 武器製造エフェクトパケット */
-			clif_misceffect(&sd->bl,3); /* 他人にも成功を通知（精錬成功エフェクトと同じでいいの？） */
-		}
-		else if(skill_produce_db[idx].req_skill==AM_PHARMACY){	//ファーマシーの場合
-			clif_produceeffect(sd,2,nameid);/* 製薬エフェクトパケット */
-			clif_misceffect(&sd->bl,5); /* 他人にも成功を通知*/
-		}else{
-			clif_produceeffect(sd,0,nameid);/* 不明なのでとりあえず製造エフェクトパケット */
-			clif_misceffect(&sd->bl,3); /* 他人にも成功を通知*/
-		}
-
-		if((flag = pc_additem(sd,&tmp_item,1))) {
-			clif_additem(sd,0,0,flag);
-			map_addflooritem(&tmp_item,1,sd->bl.m,sd->bl.x,sd->bl.y,NULL,NULL,NULL,0);
-		}
-	}
-	else {
-		if(skill_produce_db[idx].req_skill!=AM_PHARMACY) {	//武器製造の場合
-			clif_produceeffect(sd,1,nameid);/* 武器製造失敗エフェクトパケット */
-			clif_misceffect(&sd->bl,2); /* 他人にも失敗を通知 */
-		}
-		else if(skill_produce_db[idx].req_skill==AM_PHARMACY){	//ファーマシーの場合
-			clif_produceeffect(sd,3,nameid);/* 製薬失敗エフェクトパケット */
-			clif_misceffect(&sd->bl,6); /* 他人にも失敗を通知*/
-		}else{
-			clif_produceeffect(sd,1,nameid);/* 不明なのでとりあえず製造失敗エフェクトパケット */
-			clif_misceffect(&sd->bl,2); /* 他人にも失敗を通知*/
-		}
-	}
-	return 0;
-}
-
-int skill_arrow_create( struct map_session_data *sd,int nameid)
-{
-	int i,j,flag,index=-1;
-	struct item tmp_item;
-
-	nullpo_retr(0, sd);
-
-	if(nameid <= 0)
-		return 1;
-
-	for(i=0;i<MAX_SKILL_ARROW_DB;i++)
-		if(nameid == skill_arrow_db[i].nameid) {
-			index = i;
-			break;
-		}
-
-	if(index < 0 || (j = pc_search_inventory(sd,nameid)) < 0)
-		return 1;
-
-	pc_delitem(sd,j,1,0);
-	for(i=0;i<5;i++) {
-		memset(&tmp_item,0,sizeof(tmp_item));
-		tmp_item.identify = 1;
-		tmp_item.nameid = skill_arrow_db[index].cre_id[i];
-		tmp_item.amount = skill_arrow_db[index].cre_amount[i];
-		if(battle_config.making_arrow_name_input) {
-			tmp_item.card[0]=0x00fe;
-			tmp_item.card[1]=0;
-			*((unsigned long *)(&tmp_item.card[2]))=sd->char_id;	/* キャラID */
-		}
-		if(tmp_item.nameid <= 0 || tmp_item.amount <= 0)
-			continue;
-		if((flag = pc_additem(sd,&tmp_item,tmp_item.amount))) {
-			clif_additem(sd,0,0,flag);
-			map_addflooritem(&tmp_item,tmp_item.amount,sd->bl.m,sd->bl.x,sd->bl.y,NULL,NULL,NULL,0);
-		}
-	}
-
-	return 0;
-}
-
 /*----------------------------------------------------------------------------
  * 初期化系
  */
@@ -10217,9 +9909,6 @@ int skill_arrow_create( struct map_session_data *sd,int nameid)
  * スキル関係ファイル読み込み
  * skill_db.txt スキルデータ
  * skill_cast_db.txt スキルの詠唱時間とディレイデータ
- * produce_db.txt アイテム作成スキル用データ
- * create_arrow_db.txt 矢作成スキル用データ
- * abra_db.txt アブラカダブラ発動スキルデータ
  *------------------------------------------
  */
 int skill_readdb(void)
@@ -10227,9 +9916,8 @@ int skill_readdb(void)
 	int i,j,k,l,m;
 	FILE *fp;
 	char line[1024],*p;
-	char *filename[]={"db/produce_db.txt","db/produce_db2.txt"};
 
-	/* スキルデータベース */
+	/* The main skill database */
 	memset(skill_db,0,sizeof(skill_db));
 	fp=fopen("db/skill_db.txt","r");
 	if(fp==NULL){
@@ -10241,6 +9929,7 @@ int skill_readdb(void)
 		if(line[0]=='/' && line[1]=='/')
 			continue;
 		for(j=0,p=line;j<14 && p;j++){
+			while (*p == '\t' || *p == ' ') p++;
 			split[j]=p;
 			p=strchr(p,',');
 			if(p) *p++=0;
@@ -10252,7 +9941,6 @@ int skill_readdb(void)
 		if(i<0 || i>MAX_SKILL_DB)
 			continue;
 
-/*		printf("skill id=%d\n",i); */
 		memset(split2,0,sizeof(split2));
 		for(j=0,p=split[1];j<MAX_SKILL_LEVEL && p;j++){
 			split2[j]=p;
@@ -10313,6 +10001,7 @@ int skill_readdb(void)
 		if(line[0]=='/' && line[1]=='/')
 			continue;
 		for(j=0,p=line;j<30 && p;j++){
+			while (*p == '\t' || *p == ' ') p++;
 			split[j]=p;
 			p=strchr(p,',');
 			if(p) *p++=0;
@@ -10440,7 +10129,7 @@ int skill_readdb(void)
 	fclose(fp);
 	printf("read db/skill_require_db.txt done\n");
 
-	/* キャスティングデータベース */
+	/* ? */
 	fp=fopen("db/skill_cast_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_cast_db.txt\n");
@@ -10452,6 +10141,7 @@ int skill_readdb(void)
 		if(line[0]=='/' && line[1]=='/')
 			continue;
 		for(j=0,p=line;j<5 && p;j++){
+			while (*p == '\t' || *p == ' ') p++;
 			split[j]=p;
 			p=strchr(p,',');
 			if(p) *p++=0;
@@ -10502,120 +10192,6 @@ int skill_readdb(void)
 	fclose(fp);
 	printf("read db/skill_cast_db.txt done\n");
 
-	/* 製造系スキルデータベース */
-	memset(skill_produce_db,0,sizeof(skill_produce_db));
-	for(m=0;m<2;m++){
-		fp=fopen(filename[m],"r");
-		if(fp==NULL){
-			if(m>0)
-				continue;
-			printf("can't read %s\n",filename[m]);
-			return 1;
-		}
-		k=0;
-		while(fgets(line,1020,fp)){
-			char *split[16];
-			int x,y;
-			if(line[0]=='/' && line[1]=='/')
-				continue;
-			memset(split,0,sizeof(split));
-			for(j=0,p=line;j<13 && p;j++){
-				split[j]=p;
-				p=strchr(p,',');
-				if(p) *p++=0;
-			}
-			if(split[0]==NULL)
-				continue;
-			i=atoi(split[0]);
-			if(i<=0)
-				continue;
-
-			skill_produce_db[k].nameid=i;
-			skill_produce_db[k].itemlv=atoi(split[1]);
-			skill_produce_db[k].req_skill=atoi(split[2]);
-
-			for(x=3,y=0;split[x] && split[x+1] && y<5;x+=2,y++){
-				skill_produce_db[k].mat_id[y]=atoi(split[x]);
-				skill_produce_db[k].mat_amount[y]=atoi(split[x+1]);
-			}
-			k++;
-			if(k >= MAX_SKILL_PRODUCE_DB)
-				break;
-		}
-		fclose(fp);
-		printf("read %s done (count=%d)\n",filename[m],k);
-	}
-
-	memset(skill_arrow_db,0,sizeof(skill_arrow_db));
-	fp=fopen("db/create_arrow_db.txt","r");
-	if(fp==NULL){
-		printf("can't read db/create_arrow_db.txt\n");
-		return 1;
-	}
-	k=0;
-	while(fgets(line,1020,fp)){
-		char *split[16];
-		int x,y;
-		if(line[0]=='/' && line[1]=='/')
-			continue;
-		memset(split,0,sizeof(split));
-		for(j=0,p=line;j<13 && p;j++){
-			split[j]=p;
-			p=strchr(p,',');
-			if(p) *p++=0;
-		}
-		if(split[0]==NULL)
-			continue;
-		i=atoi(split[0]);
-		if(i<=0)
-			continue;
-
-		skill_arrow_db[k].nameid=i;
-
-		for(x=1,y=0;split[x] && split[x+1] && y<5;x+=2,y++){
-			skill_arrow_db[k].cre_id[y]=atoi(split[x]);
-			skill_arrow_db[k].cre_amount[y]=atoi(split[x+1]);
-		}
-		k++;
-		if(k >= MAX_SKILL_ARROW_DB)
-			break;
-	}
-	fclose(fp);
-	printf("read db/create_arrow_db.txt done (count=%d)\n",k);
-
-	memset(skill_abra_db,0,sizeof(skill_abra_db));
-	fp=fopen("db/abra_db.txt","r");
-	if(fp==NULL){
-		printf("can't read db/abra_db.txt\n");
-		return 1;
-	}
-	k=0;
-	while(fgets(line,1020,fp)){
-		char *split[16];
-		if(line[0]=='/' && line[1]=='/')
-			continue;
-		memset(split,0,sizeof(split));
-		for(j=0,p=line;j<13 && p;j++){
-			split[j]=p;
-			p=strchr(p,',');
-			if(p) *p++=0;
-		}
-		if(split[0]==NULL)
-			continue;
-		i=atoi(split[0]);
-		if(i<=0)
-			continue;
-
-		skill_abra_db[i].req_lv=atoi(split[2]);
-		skill_abra_db[i].per=atoi(split[3]);
-
-		k++;
-		if(k >= MAX_SKILL_ABRA_DB)
-			break;
-	}
-	fclose(fp);
-	printf("read db/abra_db.txt done (count=%d)\n",k);
-
 	fp=fopen("db/skill_castnodex_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_castnodex_db.txt\n");
@@ -10627,6 +10203,7 @@ int skill_readdb(void)
 		if(line[0]=='/' && line[1]=='/')
 			continue;
 		for(j=0,p=line;j<2 && p;j++){
+			while (*p == '\t' || *p == ' ') p++;
 			split[j]=p;
 			p=strchr(p,',');
 			if(p) *p++=0;

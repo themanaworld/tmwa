@@ -36,29 +36,6 @@ struct skill_name_db {
 };
 extern struct skill_name_db skill_names[];
 
-// アイテム作成データベース
-struct skill_produce_db {
-	int nameid, trigger;
-	int req_skill,itemlv;
-	int mat_id[5],mat_amount[5];
-};
-extern struct skill_produce_db skill_produce_db[MAX_SKILL_PRODUCE_DB];
-
-// 矢作成データベース
-struct skill_arrow_db {
-	int nameid, trigger;
-	int cre_id[5],cre_amount[5];
-};
-extern struct skill_arrow_db skill_arrow_db[MAX_SKILL_ARROW_DB];
-
-// アブラカダブラデータベース
-struct skill_abra_db {
-	int nameid;
-	int req_lv;
-	int per;
-};
-extern struct skill_abra_db skill_abra_db[MAX_SKILL_ABRA_DB];
-
 struct block_list;
 struct map_session_data;
 struct skill_unit;
@@ -158,11 +135,11 @@ int skill_status_change_clear(struct block_list *bl,int type);
 
 
 // アイテム作成
-int skill_can_produce_mix( struct map_session_data *sd, int nameid, int trigger );
-int skill_produce_mix( struct map_session_data *sd,
-	int nameid, int slot1, int slot2, int slot3 );
+//int skill_can_produce_mix( struct map_session_data *sd, int nameid, int trigger );
+/*int skill_produce_mix( struct map_session_data *sd,
+	int nameid, int slot1, int slot2, int slot3 );*/
 
-int skill_arrow_create( struct map_session_data *sd,int nameid);
+//int skill_arrow_create( struct map_session_data *sd,int nameid);
 
 // mobスキルのため
 int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int skillid,int skilllv,unsigned int tick,int flag );

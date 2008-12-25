@@ -2792,36 +2792,6 @@ int clif_arrow_fail(struct map_session_data *sd,int type)
 }
 
 /*==========================================
- * 作成可能 矢リスト送信
- *------------------------------------------
- */
-int clif_arrow_create_list(struct map_session_data *sd)
-{
-	int i,c,view;
-	int fd;
-
-	nullpo_retr(0, sd);
-
-	fd=sd->fd;
-	WFIFOW(fd,0)=0x1ad;
-
-	for(i=0,c=0;i<MAX_SKILL_ARROW_DB;i++){
-		if(skill_arrow_db[i].nameid > 0 && pc_search_inventory(sd,skill_arrow_db[i].nameid)>=0){
-			if((view = itemdb_viewid(skill_arrow_db[i].nameid)) > 0)
-				WFIFOW(fd,c*2+4) = view;
-			else
-				WFIFOW(fd,c*2+4) = skill_arrow_db[i].nameid;
-			c++;
-		}
-	}
-	WFIFOW(fd,2)=c*2+4;
-	WFIFOSET(fd,WFIFOW(fd,2));
-	if(c > 0) sd->state.make_arrow_flag = 1;
-
-	return 0;
-}
-
-/*==========================================
  *
  *------------------------------------------
  */
@@ -4637,34 +4607,6 @@ int clif_skill_estimation(struct map_session_data *sd,struct block_list *dst)
 		memcpy(WFIFOP(sd->fd,0),buf,packet_len_table[0x18c]);
 		WFIFOSET(sd->fd,packet_len_table[0x18c]);
 	}
-	return 0;
-}
-/*==========================================
- * アイテム合成可能リスト
- *------------------------------------------
- */
-int clif_skill_produce_mix_list(struct map_session_data *sd,int trigger)
-{
-	int i,c,view,fd;
-	nullpo_retr(0, sd);
-
-	fd=sd->fd;
-	WFIFOW(fd, 0)=0x18d;
-
-	for(i=0,c=0;i<MAX_SKILL_PRODUCE_DB;i++){
-		if( skill_can_produce_mix(sd,skill_produce_db[i].nameid,trigger) ){
-			if((view = itemdb_viewid(skill_produce_db[i].nameid)) > 0)
-				WFIFOW(fd,c*8+ 4)= view;
-			else
-				WFIFOW(fd,c*8+ 4)= skill_produce_db[i].nameid;
-			WFIFOW(fd,c*8+ 6)= 0x0012;
-			WFIFOL(fd,c*8+ 8)= sd->status.char_id;
-			c++;
-		}
-	}
-	WFIFOW(fd, 2)=c*8+8;
-	WFIFOSET(fd,WFIFOW(fd,2));
-	if(c > 0) sd->state.produce_flag = 1;
 	return 0;
 }
 
@@ -8622,17 +8564,6 @@ void clif_parse_RequestMemo(int fd,struct map_session_data *sd)
 {
 	pc_memo(sd,-1);
 }
-/*==========================================
- * アイテム合成
- *------------------------------------------
- */
-void clif_parse_ProduceMix(int fd,struct map_session_data *sd)
-{
-	nullpo_retv(sd);
-
-	sd->state.produce_flag = 0;
-	skill_produce_mix(sd,RFIFOW(fd,2),RFIFOW(fd,4),RFIFOW(fd,6),RFIFOW(fd,8));
-}
 
 /*==========================================
  *
@@ -8705,17 +8636,6 @@ void clif_parse_NpcCloseClicked(int fd,struct map_session_data *sd)
 void clif_parse_ItemIdentify(int fd,struct map_session_data *sd)
 {
 	pc_item_identify(sd,RFIFOW(fd,2)-2);
-}
-/*==========================================
- * 矢作成
- *------------------------------------------
- */
-void clif_parse_SelectArrow(int fd,struct map_session_data *sd)
-{
-	nullpo_retv(sd);
-
-	sd->state.make_arrow_flag = 0;
-	skill_arrow_create(sd,RFIFOW(fd,2));
 }
 /*==========================================
  * オートスペル受信
@@ -9651,13 +9571,13 @@ static void (*clif_parse_func_table[4][0x220])() = {
 
 	// 180
 	clif_parse_GuildOpposition, NULL, NULL, clif_parse_GuildDelAlliance, NULL, NULL, NULL, NULL,
-	NULL, NULL, clif_parse_QuitGame, NULL, NULL, NULL, clif_parse_ProduceMix, NULL,
+	NULL, NULL, clif_parse_QuitGame, NULL, NULL, NULL, NULL, NULL,
 	// 190
 	clif_parse_UseSkillToPos, NULL, NULL, clif_parse_SolveCharName, NULL, NULL, NULL, clif_parse_ResetChar,
 	NULL, NULL, NULL, NULL, clif_parse_LGMmessage, clif_parse_GMHide, NULL, clif_parse_CatchPet,
 	// 1a0
 	NULL, clif_parse_PetMenu, NULL, NULL, NULL, clif_parse_ChangePetName, NULL, clif_parse_SelectEgg,
-	NULL, clif_parse_SendEmotion, NULL, NULL, NULL, NULL, clif_parse_SelectArrow, clif_parse_ChangeCart,
+	NULL, clif_parse_SendEmotion, NULL, NULL, NULL, NULL, NULL, clif_parse_ChangeCart,
 	// 1b0
 	NULL, NULL, clif_parse_OpenVending, NULL, NULL, NULL, NULL, NULL,
 	NULL, NULL, clif_parse_Shift, clif_parse_Shift, clif_parse_Recall, clif_parse_Recall, NULL, NULL,

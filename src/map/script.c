@@ -177,7 +177,6 @@ int buildin_gettimestr(struct script_state *st);
 int buildin_openstorage(struct script_state *st);
 int buildin_guildopenstorage(struct script_state *st);
 int buildin_itemskill(struct script_state *st);
-int buildin_produce(struct script_state *st);
 int buildin_monster(struct script_state *st);
 int buildin_areamonster(struct script_state *st);
 int buildin_killmonster(struct script_state *st);
@@ -386,7 +385,6 @@ struct {
 	{buildin_openstorage,"openstorage",""},
 	{buildin_guildopenstorage,"guildopenstorage","*"},
 	{buildin_itemskill,"itemskill","iis"},
-	{buildin_produce,"produce","i"},
 	{buildin_monster,"monster","siisii*"},
 	{buildin_areamonster,"areamonster","siiiisii*"},
 	{buildin_killmonster,"killmonster","ss"},
@@ -3535,20 +3533,6 @@ int buildin_itemskill(struct script_state *st)
 	sd->skillitem=id;
 	sd->skillitemlv=lv;
 	clif_item_skill(sd,id,lv,str);
-	return 0;
-}
-/*==========================================
- * ƒAƒCƒeƒ€ì¬
- *------------------------------------------
- */
-int buildin_produce(struct script_state *st)
-{
-	int trigger;
-	struct map_session_data *sd=script_rid2sd(st);
-
-	if(	sd->state.produce_flag == 1) return 0;
-	trigger=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	clif_skill_produce_mix_list(sd,trigger);
 	return 0;
 }
 /*==========================================
