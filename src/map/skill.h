@@ -133,14 +133,6 @@ int skill_encchant_eremental_end(struct block_list *bl, int type);
 int skill_status_change_end( struct block_list* bl , int type,int tid );
 int skill_status_change_clear(struct block_list *bl,int type);
 
-
-// アイテム作成
-//int skill_can_produce_mix( struct map_session_data *sd, int nameid, int trigger );
-/*int skill_produce_mix( struct map_session_data *sd,
-	int nameid, int slot1, int slot2, int slot3 );*/
-
-//int skill_arrow_create( struct map_session_data *sd,int nameid);
-
 // mobスキルのため
 int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int skillid,int skilllv,unsigned int tick,int flag );
 int skill_castend_damage_id( struct block_list* src, struct block_list *bl,int skillid,int skilllv,unsigned int tick,int flag );
@@ -158,8 +150,6 @@ enum {
 };
 
 enum {	// struct map_session_data の status_changeの番号テーブル
-// SC_SENDMAX未満はクライアントへの通知あり。
-// 2-2次職の値はなんかめちゃくちゃっぽいので暫定。たぶん変更されます。
 	SC_SENDMAX				= 256,
 	SC_PROVOKE			= 0,
 	SC_ENDURE			= 1,
