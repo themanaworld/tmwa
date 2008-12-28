@@ -286,7 +286,7 @@ int buildin_hasitems(struct script_state *st); // [Valaris]
 int buildin_getlook(struct script_state *st);	//Lorky [Lupus]
 int buildin_getsavepoint(struct script_state *st);	//Lorky [Lupus]
 int buildin_getpartnerid(struct script_state *st); // [Fate]
-
+int buildin_areatimer(struct script_state *st); // [Jaxad0127]
 
 void push_val(struct script_stack *stack,int type,int val);
 int run_func(struct script_state *st);
@@ -493,7 +493,8 @@ struct {
 	{buildin_hasitems,"hasitems","*"}, // [Valaris]
 	{buildin_mobcount,"mobcount","ss"},
         {buildin_getlook,"getlook","i"},                
-        {buildin_getsavepoint,"getsavepoint","i"},              // End Additions
+        {buildin_getsavepoint,"getsavepoint","i"},
+	{buildin_areatimer,"areatimer","siiiiis"},              // End Additions
 	{NULL,NULL,NULL},
 };
 int buildin_message(struct script_state *st); // [MouseJstr]
@@ -5979,6 +5980,43 @@ int buildin_getsavepoint(struct script_state *st)
         }
         return 0;
 }
+
+/*==========================================
+ *     areatimer
+ *------------------------------------------
+ */
+int buildin_areatimer_sub(struct block_list *bl,va_list ap)
+{
+	int tick;
+	char *event;
+	tick=va_arg(ap,int);
+	event=va_arg(ap, char *);
+	pc_addeventtimer((struct map_session_data *) bl,tick,event);
+	return 0;
+}
+int buildin_areatimer(struct script_state *st)
+{
+	int tick,m;
+	char *event;
+	char *mapname;
+	int x0,y0,x1,y1;
+
+	mapname=conv_str(st,& (st->stack->stack_data[st->start+2]));
+	x0=conv_num(st,& (st->stack->stack_data[st->start+3]));
+	y0=conv_num(st,& (st->stack->stack_data[st->start+4]));
+	x1=conv_num(st,& (st->stack->stack_data[st->start+5]));
+	y1=conv_num(st,& (st->stack->stack_data[st->start+6]));
+	tick=conv_num(st,& (st->stack->stack_data[st->start+7]));
+	event=conv_str(st,& (st->stack->stack_data[st->start+8]));
+
+	if( (m=map_mapname2mapid(mapname))< 0)
+		return 0;
+
+	map_foreachinarea(buildin_areatimer_sub,
+		m,x0,y0,x1,y1,BL_PC,	tick,event );
+	return 0;
+}
+
 
 
 //
