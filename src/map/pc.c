@@ -5067,6 +5067,9 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 
 		return 0;
 	}
+
+        // Character is dead!
+
 	sd->status.hp = 0;
 	// [Fate] Stop quickregen
 	sd->quick_regeneration_hp.amount = 0;
@@ -5212,6 +5215,15 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 		pc_setrestartvalue(sd,3);
 		pc_setpos(sd,sd->status.save_point.map,sd->status.save_point.x,sd->status.save_point.y,0);
 	}
+
+        if (src && src->type == BL_PC) {
+                // [Fate] PK death, trigger scripts
+                argrec_t arg;
+                arg.name = "@killerrid";
+                arg.v.i = src->id;
+                npc_event_doall_l("OnPCKillEvent", sd->bl.id, 1, &arg);
+        }
+        npc_event_doall_l("OnPCDieEvent", sd->bl.id, 0, NULL);
 
 	return 0;
 }

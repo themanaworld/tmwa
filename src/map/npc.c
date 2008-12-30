@@ -266,6 +266,8 @@ int npc_event_export(void *key,void *data,va_list ap)
 int npc_event_doall_sub(void *key,void *data,va_list ap)
 {
 	char *p=(char *)key;
+        int rid, argc;
+        argrec_t *argv;
 	struct event_data *ev;
 	int *c;
 	const char *name;
@@ -275,53 +277,63 @@ int npc_event_doall_sub(void *key,void *data,va_list ap)
 	nullpo_retr(0, c=va_arg(ap,int *));
 
 	name=va_arg(ap,const char *);
+        rid = va_arg(ap, int);
+        argc = va_arg(ap, int);
+        argv = va_arg(ap, argrec_t *);
+
 
 	if( (p=strchr(p,':')) && p && strcasecmp(name,p)==0 ){
-		run_script(ev->nd->u.scr.script,ev->pos,0,ev->nd->bl.id);
+                run_script_l(ev->nd->u.scr.script,ev->pos,rid,ev->nd->bl.id, argc, argv);
 		(*c)++;
 	}
 	
 	return 0;
 }
-int npc_event_doall(const char *name)
+int npc_event_doall_l(const char *name, int rid, int argc, argrec_t *args)
 {
 	int c=0;
 	char buf[64]="::";
 	
 	strncpy(buf+2,name,62);
-	strdb_foreach(ev_db,npc_event_doall_sub,&c,buf);
-	return c;	
+	strdb_foreach(ev_db,npc_event_doall_sub,&c,buf, rid, argc, args);
+	return c;
 }
 
-int npc_event_do_sub(void *key,void *data,va_list ap)
+int npc_event_do_sub(void *key,void *data, va_list ap)
 {
 	char *p=(char *)key;
 	struct event_data *ev;
 	int *c;
 	const char *name;
+        int rid, argc;
+        argrec_t *argv;
 
 	nullpo_retr(0, ev=(struct event_data *)data);
 	nullpo_retr(0, ap);
 	nullpo_retr(0, c=va_arg(ap,int *));
 
 	name=va_arg(ap,const char *);
+        rid = va_arg(ap, int);
+        argc = va_arg(ap, int);
+        argv = va_arg(ap, argrec_t *);
+
 
 	if (p && strcasecmp(name,p)==0 ) {
-		run_script(ev->nd->u.scr.script,ev->pos,0,ev->nd->bl.id);
+		run_script_l(ev->nd->u.scr.script,ev->pos, rid, ev->nd->bl.id, argc, argv);
 		(*c)++;
 	}
 
 	return 0;
 }
-int npc_event_do(const char *name)
+int npc_event_do_l(const char *name, int rid, int argc, argrec_t *args)
 {
 	int c=0;
 	
 	if (*name==':' && name[1]==':') {
-		return npc_event_doall(name+2);
+		return npc_event_doall_l(name+2, rid, argc, args);
 	}
 
-	strdb_foreach(ev_db,npc_event_do_sub,&c,name);
+	strdb_foreach(ev_db,npc_event_do_sub,&c,name, rid, argc, args);
 	return c;
 }
 

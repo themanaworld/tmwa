@@ -24,7 +24,7 @@ struct script_state {
 };
 
 unsigned char * parse_script(unsigned char *,int);
-typedef struct {
+typedef struct argrec {
         char *name;
         union {
                 int i;

@@ -50,8 +50,11 @@ int do_init_npc(void);
 int npc_event_do_oninit(void);
 int npc_do_ontimer(int,struct map_session_data *,int);
 
-int npc_event_doall(const char *name);
-int npc_event_do(const char *name);
+struct argrec;
+int npc_event_doall_l(const char *name, int rid, int argc, struct argrec *argv);
+int npc_event_do_l(const char *name, int rid, int argc, struct argrec *argv);
+#define npc_event_doall(name) npc_event_doall_l(name, 0, 0, NULL)
+#define npc_event_do(name) npc_event_do_l(name, 0, 0, NULL)
 
 int npc_timerevent_start(struct npc_data *nd);
 int npc_timerevent_stop(struct npc_data *nd);
