@@ -1,4 +1,5 @@
 // $Id: mob.c,v 1.7 2004/09/25 05:32:18 MouseJstr Exp $
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -23,6 +24,10 @@
 
 #ifdef MEMWATCH
 #include "memwatch.h"
+#endif
+
+#ifndef max
+	#define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
 #endif
 
 #define MIN_MOBTHINKTIME 100
@@ -254,6 +259,22 @@ mob_mutate(struct mob_data *md, int stat, int intensity) // intensity: positive:
         }
 }
 
+// This calculates the exp of a given mob
+int
+mob_gen_exp(struct mob_db *mob)
+{
+	if (mob->max_hp <= 1) return 1;
+	double mod_def = 100 - mob->def;
+	if (mod_def == 0) mod_def = 1;
+	double effective_hp = ((50 - mob->luk) * mob->max_hp / 50.0) + (2  * mob->luk * mob->max_hp / mod_def);
+	double attack_factor = (mob->atk1 + mob->atk2 + mob->str / 3.0 + mob->dex / 2.0 + mob->luk) * (1872 / mob->adelay) / 4;
+	double dodge_factor = pow(mob->lv + mob->agi + mob->luk / 2.0, 4.0 / 3.0);
+	double persuit_factor = (3 + mob->range) * (mob->mode % 2) * 1000 / mob->speed;
+	double aggression_factor = (mob->mode & 4) == 4 ? 10.0 / 9.0 : 1.0;
+	double xp = floor(effective_hp * pow(sqrt(attack_factor) + sqrt(dodge_factor) + sqrt(persuit_factor) + 55, 3) * aggression_factor / 2000000.0);
+	if (xp < 1) xp = 1;
+	return xp;
+}
 
 static void
 mob_init(struct mob_data *md)
@@ -3975,6 +3996,8 @@ static int mob_readdb(void)
 			mob_db[class].head_mid=0;
 			mob_db[class].head_buttom=0;
 			mob_db[class].clothes_color=0; //Add for player monster dye - Valaris
+
+			if (mob_db[class].base_exp == 0) mob_db[class].base_exp = mob_gen_exp(&mob_db[class]);
 		}
 		fclose(fp);
 		printf("read %s done\n",filename[i]);
