@@ -271,8 +271,9 @@ mob_gen_exp(struct mob_db *mob)
 	double dodge_factor = pow(mob->lv + mob->agi + mob->luk / 2.0, 4.0 / 3.0);
 	double persuit_factor = (3 + mob->range) * (mob->mode % 2) * 1000 / mob->speed;
 	double aggression_factor = (mob->mode & 4) == 4 ? 10.0 / 9.0 : 1.0;
-	double xp = floor(effective_hp * pow(sqrt(attack_factor) + sqrt(dodge_factor) + sqrt(persuit_factor) + 55, 3) * aggression_factor / 2000000.0);
+	int xp = (int) floor(effective_hp * pow(sqrt(attack_factor) + sqrt(dodge_factor) + sqrt(persuit_factor) + 55, 3) * aggression_factor / 2000000.0 * (double) battle_config.base_exp_rate / 100.);
 	if (xp < 1) xp = 1;
+	printf("Exp for mob '%s' generated: %d\n", mob->name, xp);
 	return xp;
 }
 
