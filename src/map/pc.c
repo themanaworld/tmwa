@@ -5108,8 +5108,8 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 			sd->dev.val1[i] = sd->dev.val2[i]=0;
 		}
 
-	if(battle_config.death_penalty_type>0) { // changed penalty options, added death by player if pk_mode [Valaris]
-		if(!map[sd->bl.m].flag.nopenalty && !map[sd->bl.m].flag.gvg){ // only novices will recieve no penalty
+	if(battle_config.death_penalty_type>0 && sd->status.base_level >= 20) { // changed penalty options, added death by player if pk_mode [Valaris]
+		if(!map[sd->bl.m].flag.nopenalty && !map[sd->bl.m].flag.gvg){
 			if(battle_config.death_penalty_type==1 && battle_config.death_penalty_base > 0)
 				sd->status.base_exp -= (double)pc_nextbaseexp(sd) * (double)battle_config.death_penalty_base/10000;
 				if(battle_config.pk_mode && src && src->type==BL_PC)
