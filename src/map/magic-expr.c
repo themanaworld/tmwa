@@ -569,6 +569,8 @@ BATTLE_GETTER(luk);
 BATTLE_GETTER(int);
 BATTLE_GETTER(lv);
 BATTLE_GETTER(hp);
+BATTLE_GETTER(mdef);
+BATTLE_GETTER(def);
 BATTLE_GETTER(max_hp);
 BATTLE_GETTER(dir);
 
@@ -1133,6 +1135,8 @@ static fun_t functions[] = {
         BATTLE_RECORD(luk),
         BATTLE_RECORD(int),
         BATTLE_RECORD2("level", lv),
+        BATTLE_RECORD(mdef),
+        BATTLE_RECORD(def),
         BATTLE_RECORD(hp),
         BATTLE_RECORD(max_hp),
         BATTLE_RECORD(sp),

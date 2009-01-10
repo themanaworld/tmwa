@@ -411,6 +411,8 @@ The following functions are available:
   + luk : entity -> int
   + hp : entity -> int
   + sp : entity -> int
+  + def : entity -> int
+  + mdef : entity -> int
   + max_hp : entity -> int
   + max_sp : entity -> int
   + level : entity -> int
@@ -776,7 +778,7 @@ SPELLCONF ::= (GLOBAL | ANCHOR | SPELL | PROCEDURE | ';')*  (* The ';' are only 
 
   For example,
 
-    TELEPORT-ANCHOR t = "tulimshar" @("map_3-1.gat", 44, 70)
+    TELEPORT-ANCHOR t : "tulimshar" = @("map_3-1.gat", 44, 70)
 
   creates a teleport anchor with name `t' and invocation `tulimshar' at the speicfied location.
 

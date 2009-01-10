@@ -303,6 +303,7 @@ enum {	// struct map_session_data ‚Ì status_change‚Ì”Ô†ƒe[ƒuƒ‹
 	SC_SPELLBREAKER		=192,
 
 // Added for Fate's spells
+        SC_HIDE			= 194, // Hide from `detect' magic
         SC_HALT_REGENERATE	= 195, // Suspend regeneration
         SC_FLYING_BACKPACK	= 196, // Flying backpack
         SC_MBARRIER		= 197, // Magical barrier, magic resistance (val1 : power (%))
