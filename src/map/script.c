@@ -106,6 +106,7 @@ int buildin_menu(struct script_state *st);
 int buildin_rand(struct script_state *st);
 int buildin_pow(struct script_state *st);
 int buildin_warp(struct script_state *st);
+int buildin_isat(struct script_state *st);
 int buildin_areawarp(struct script_state *st);
 int buildin_heal(struct script_state *st);
 int buildin_itemheal(struct script_state *st);
@@ -312,6 +313,7 @@ struct {
 	{buildin_jobchange,"jobchange","i*"},
 	{buildin_input,"input","*"},
 	{buildin_warp,"warp","sii"},
+	{buildin_isat,"isat","sii"},
 	{buildin_areawarp,"areawarp","siiiisii"},
 	{buildin_setlook,"setlook","ii"},
 	{buildin_set,"set","ii"},
@@ -1720,6 +1722,30 @@ int buildin_pow(struct script_state *st)
 	return 0;
 }
 
+/*==========================================
+ * Check whether the PC is at the specified location
+ *------------------------------------------
+ */
+int buildin_isat(struct script_state *st)
+{
+	int x,y;
+	char *str;
+	struct map_session_data *sd=script_rid2sd(st);
+
+	str=conv_str(st,& (st->stack->stack_data[st->start+2]));
+	x=conv_num(st,& (st->stack->stack_data[st->start+3]));
+	y=conv_num(st,& (st->stack->stack_data[st->start+4]));
+
+        if (!sd)
+                return 1;
+
+        push_val(st->stack, C_INT,
+                 (x == sd->bl.x)
+                 && (y == sd->bl.y)
+                 && (!strcmp(str, map[sd->bl.m].name)));
+
+	return 0;
+}
 /*==========================================
  *
  *------------------------------------------
