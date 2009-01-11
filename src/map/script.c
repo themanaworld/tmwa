@@ -157,6 +157,7 @@ int buildin_bonus(struct script_state *st);
 int buildin_bonus2(struct script_state *st);
 int buildin_bonus3(struct script_state *st);
 int buildin_skill(struct script_state *st);
+int buildin_setskill(struct script_state *st);
 int buildin_guildskill(struct script_state *st);
 int buildin_getskilllv(struct script_state *st);
 int buildin_getgdskilllv(struct script_state *st);
@@ -364,6 +365,7 @@ struct {
 	{buildin_bonus2,"bonus2","iii"},
 	{buildin_bonus3,"bonus3","iiii"},
 	{buildin_skill,"skill","ii*"},
+	{buildin_setskill,"setskill","ii"}, // [Fate]
 	{buildin_guildskill,"guildskill","ii"},
 	{buildin_getskilllv,"getskilllv","i"},
 	{buildin_getgdskilllv,"getgdskilllv","ii"},
@@ -3176,6 +3178,26 @@ int buildin_skill(struct script_state *st)
 
 	return 0;
 }
+
+/*==========================================
+ * [Fate] Sets the skill level permanently
+ *------------------------------------------
+ */
+int buildin_setskill(struct script_state *st)
+{
+	int id,level,flag=1;
+	struct map_session_data *sd;
+
+	id=conv_num(st,& (st->stack->stack_data[st->start+2]));
+	level=conv_num(st,& (st->stack->stack_data[st->start+3]));
+	sd=script_rid2sd(st);
+
+        sd->status.skill[id].id = level? id : 0;
+        sd->status.skill[id].lv = level;
+        sd->status.skill[id].flag = 0;
+        clif_skillinfoblock(sd);
+}
+
 /*==========================================
  * ƒMƒ‹ƒhƒXƒLƒ‹æ“¾
  *------------------------------------------
