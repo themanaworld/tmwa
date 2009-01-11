@@ -20,7 +20,7 @@ cd ${SRVHOMEDIR}
 eathena_start() {
     if [ -x ${SRVHOMEDIR}/eathena-monitor ]; 
 	then echo "Starting eathena monitor..."
-	     ${SRVHOMEDIR}/eathena-monitor
+	     ${SRVHOMEDIR}/eathena-monitor ${SRVHOMEDIR}/conf/eathena-monitor.conf
 	else echo "Eathena monitor binary is not executable or not found."
     fi
 }
