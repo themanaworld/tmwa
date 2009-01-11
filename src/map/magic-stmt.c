@@ -659,12 +659,10 @@ op_injure(env_t *env, int args_nr, val_t *args)
         if (damage_caused < 0)
                 damage_caused = 0;
 
-        if (damage_caused || mp_damage) {
-                // display damage first, because dealing damage may deallocate the target.
-                clif_damage(caster, target, gettick(),
-                            0, 0, damage_caused, 0, 0, 0);
-                battle_damage(caster, target, damage_caused, mp_damage);
-        }
+        // display damage first, because dealing damage may deallocate the target.
+        clif_damage(caster, target, gettick(),
+                    0, 0, damage_caused, 0, 0, 0);
+        battle_damage(caster, target, damage_caused, mp_damage);
 
         return 0;
 }
