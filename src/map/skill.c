@@ -8915,6 +8915,7 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
                 case SC_PHYS_SHIELD:
                 case SC_MBARRIER:
                 case SC_HALT_REGENERATE:
+                case SC_HIDE:
 			break;
                 case SC_FLYING_BACKPACK:
                         updateflag = SP_WEIGHT;
