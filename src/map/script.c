@@ -461,7 +461,7 @@ struct {
 	{buildin_marriage,"marriage","s"},
 	{buildin_wedding_effect,"wedding",""},
 	{buildin_divorce,"divorce",""},
-	{buildin_getitemname,"getitemname","i"},
+	{buildin_getitemname,"getitemname","*"},
 	{buildin_getspellinvocation,"getspellinvocation","s"},
 	{buildin_getanchorinvocation,"getanchorinvocation","s"},
 	{buildin_getpartnerid,"getpartnerid2","i"},
@@ -2325,7 +2325,7 @@ int buildin_getitem(struct script_state *st)
 	if( data->type==C_STR || data->type==C_CONSTSTR ){
 		const char *name=conv_str(st,data);
 		struct item_data *item_data = itemdb_searchname(name);
-		nameid=512; //Apple item ID
+		nameid=727; //Default to iten
 		if( item_data != NULL)
 			nameid=item_data->nameid;
 	}else
@@ -5434,18 +5434,28 @@ int buildin_guardianinfo(struct script_state *st)
  */
 int buildin_getitemname(struct script_state *st)
 {
-	int item_id;
 	struct item_data *i_data;
 	char *item_name;
+	struct script_data *data;
 
-	item_id=conv_num(st,& (st->stack->stack_data[st->start+2]));
+	data=&(st->stack->stack_data[st->start+2]);
+	get_val(st,data);
+	if( data->type==C_STR || data->type==C_CONSTSTR ){
+		const char *name=conv_str(st,data);
+		i_data = itemdb_searchname(name);
+	} else {
+		int item_id = conv_num(st,data);
+		i_data = itemdb_search(item_id);
+	}
 
-	i_data = NULL;
-	i_data = itemdb_search(item_id);
 	item_name=(char *)aCalloc(24,sizeof(char));
+	if (i_data)
+		strncpy(item_name,i_data->jname,23);
+	else
+		strncpy(item_name,"Unknown Item",23);
 
-	strncpy(item_name,i_data->jname,23);
 	push_str(st->stack,C_STR,item_name);
+		
 	return 0;
 }
 
