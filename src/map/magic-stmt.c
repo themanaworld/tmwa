@@ -566,6 +566,7 @@ op_aggravate(env_t *env, int args_nr, val_t *args)
 #define MONSTER_ATTITUDE_HOSTILE	0
 #define MONSTER_ATTITUDE_FRIENDLY	1
 #define MONSTER_ATTITUDE_SERVANT	2
+#define MONSTER_ATTITUDE_FROZEN		3
 
 static int
 op_spawn(env_t *env, int args_nr, val_t *args)
@@ -614,6 +615,10 @@ op_spawn(env_t *env, int args_nr, val_t *args)
                                         mob->target_id = owner->bl.id;
                                         mob->attacked_id = owner->bl.id;
                                 }
+                                break;
+
+                        case MONSTER_ATTITUDE_FROZEN:
+                                mob->mode = 0;
                                 break;
                         }
 
