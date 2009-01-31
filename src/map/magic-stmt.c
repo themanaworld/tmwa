@@ -99,7 +99,6 @@ free_invocation(invocation_t *invocation)
 
         magic_free_env(invocation->env);
 
-fprintf(stderr, "[MDEBUG] Freeing spell %d\n", invocation->bl.id);
 	map_delblock(&invocation->bl);
         map_delobject(invocation->bl.id); // also frees the object
 //        free(invocation);
@@ -855,12 +854,8 @@ spell_effect_report_termination(int invocation_id, int bl_id, int sc_id, int sup
         int index = -1;
         invocation_t *invocation = (invocation_t *) map_id2bl(invocation_id);
 
-fprintf(stderr, "[MDEBUG] Reporting remote termination of %d\n", invocation_id);
-
         if (!invocation || invocation->bl.type != BL_SPELL)
                 return;
-
-fprintf(stderr, "[MDEBUG] %d is a valid invocation\n", invocation_id);
 
         for (i = 0; i < invocation->status_change_refs_nr; i++) {
                 status_change_ref_t *cr = &invocation->status_change_refs[i];
