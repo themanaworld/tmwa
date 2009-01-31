@@ -555,6 +555,11 @@ The following functions are available:
   + is_dead : entity -> bool
     Determines whether the specified entity is no longer alive.
 
+  + extract_healer_experience : entity -> int
+    Extracts `healer experience points' from the specified entity.
+    Non-PCs always have an empty pool of healer exprerience points.
+    PCs gain such experience points by killing/completing quests,
+    though this `healer experience point pool' slowly drains itself.
 
 Operations:
 -----------
@@ -700,6 +705,13 @@ This section documents the operations API.
     like drop_item(place, obj, count, duration), except that the item
     can only be picked up by `owner' for the next `delay'
     milliseconds, modulo pickup rules (spousal pickup, out-of-range).
+
+  + gain_experience : entity * int * int * int -> ()
+    gain_experience(player, base_xp, job_xp, reason) gives expereince
+    points to `player'.  If reason is 0, they are handed out normally,
+    but if reason is 1, then those experience points are NOT added to
+    the pool of experience points that healers can draw from `player'.
+
 
 Script API updates:
 -------------------

@@ -3628,7 +3628,7 @@ int buildin_getexp(struct script_state *st)
 	if(base<0 || job<0)
 		return 0;
 	if(sd)
-		pc_gainexp(sd,base,job);
+                pc_gainexp_reason(sd,base,job, PC_GAINEXP_REASON_SCRIPT);
 
 	return 0;
 }

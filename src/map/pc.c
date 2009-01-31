@@ -307,6 +307,7 @@ int pc_setrestartvalue(struct map_session_data *sd,int type) {
 		if(sd->status.zeny < 0) sd->status.zeny = 0;
 		clif_updatestatus(sd,SP_ZENY);
 	}
+        sd->heal_xp = 0; // [Fate] Set gainable xp for healing this player to 0
 
 	return 0;
 }
@@ -704,6 +705,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	sd->sp_sub = 0;
         sd->quick_regeneration_hp.amount = 0;
         sd->quick_regeneration_sp.amount = 0;
+        sd->heal_xp = 0;
 	sd->inchealspirithptick = 0;
 	sd->inchealspiritsptick = 0;
 	sd->canact_tick = tick;
@@ -4443,6 +4445,11 @@ int pc_checkjoblevelup(struct map_session_data *sd)
  */
 int pc_gainexp(struct map_session_data *sd,int base_exp,int job_exp)
 {
+        return pc_gainexp_reason(sd, base_exp, job_exp, PC_GAINEXP_REASON_KILLING);
+}
+
+int pc_gainexp_reason(struct map_session_data *sd,int base_exp,int job_exp, int reason)
+{
 	char output[256];
 	nullpo_retr(0, sd);
 
@@ -4470,6 +4477,16 @@ int pc_gainexp(struct map_session_data *sd,int base_exp,int job_exp)
 	}
 
 	sd->status.base_exp += base_exp;
+
+        // [Fate] Adjust experience points that healers can extract from this character
+        if (reason != PC_GAINEXP_REASON_HEALING) {
+                const int max_heal_xp = 20 + (sd->status.base_level * sd->status.base_level);
+
+                sd->heal_xp += base_exp;
+                if (sd->heal_xp > max_heal_xp)
+                        sd->heal_xp = max_heal_xp;
+        }
+
 	if(sd->status.base_exp < 0)
 		sd->status.base_exp = 0;
 	
@@ -4497,6 +4514,20 @@ int pc_gainexp(struct map_session_data *sd,int base_exp,int job_exp)
 	}
 
 	return 0;
+}
+
+int
+pc_extract_healer_exp(struct map_session_data *sd, int max)
+{
+        int amount;
+	nullpo_retr(0, sd);
+
+        amount = sd->heal_xp;
+        if (max < amount)
+                amount = max;
+
+        sd->heal_xp -= amount;
+        return amount;
 }
 
 /*==========================================
@@ -7141,6 +7172,13 @@ static int pc_natural_heal_sub(struct map_session_data *sd,va_list ap) {
 	int skill;
 
 	nullpo_retr(0, sd);
+
+        if (sd->heal_xp > 0) {
+                if (sd->heal_xp < 64)
+                        --sd->heal_xp; // [Fate] Slowly reduce XP that healers can get for healing this char
+                else
+                        sd->heal_xp -= (sd->heal_xp >> 6);
+        }
 
         // Hijack this callback:  Adjust spellpower bonus
         if (sd->spellpower_bonus_target < sd->spellpower_bonus_current) {

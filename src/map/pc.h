@@ -105,6 +105,13 @@ int pc_follow(struct map_session_data*, int); // [MouseJstr]
 int pc_checkbaselevelup(struct map_session_data *sd);
 int pc_checkjoblevelup(struct map_session_data *sd);
 int pc_gainexp(struct map_session_data*,int,int);
+
+#define PC_GAINEXP_REASON_KILLING	0
+#define PC_GAINEXP_REASON_HEALING	1
+#define PC_GAINEXP_REASON_SCRIPT	2
+int pc_gainexp_reason(struct map_session_data*,int,int, int reason);
+int pc_extract_healer_exp(struct map_session_data*, int max); // [Fate] Used by healers: extract healer-xp from the target, return result (up to max)
+
 int pc_nextbaseexp(struct map_session_data *);
 int pc_nextbaseafter(struct map_session_data *); // [Valaris]
 int pc_nextjobexp(struct map_session_data *);

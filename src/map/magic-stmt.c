@@ -761,6 +761,18 @@ op_drop_item_for(env_t *env, int args_nr, val_t *args)
         return 0;
 }
 
+static int
+op_gain_exp(env_t *env, int args_nr, val_t *args)
+{
+        character_t *c = (ETY(0) == BL_PC)? ARGPC(0) : NULL;
+
+        if (!c)
+                return 1;
+
+        pc_gainexp_reason(c, ARGINT(1), ARGINT(2), ARGINT(3));
+        return 0;
+}
+
 static op_t operations[] =
 {
         { "sfx", ".ii", op_sfx },
@@ -785,6 +797,7 @@ static op_t operations[] =
         { "set_hair_style", "ei", op_set_hair_style },
         { "drop_item", "l.ii", op_drop_item_for },
         { "drop_item_for", "l.iiei", op_drop_item_for },
+        { "gain_experience", "eiii", op_gain_exp },
         { NULL, NULL, NULL }
 };
 

@@ -251,6 +251,8 @@ struct map_session_data {
 
         // [Fate] Used for gradual healing; amount of enqueued regeneration
         struct quick_regeneration quick_regeneration_hp, quick_regeneration_sp;
+        // [Fate] XP that can be extracted from this player by healing
+        int heal_xp; // i.e., OTHER players (healers) can partake in this player's XP
 
 	int invincible_timer;
 	unsigned int canact_tick;

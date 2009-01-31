@@ -1101,6 +1101,18 @@ fun_dir_towards(env_t *env, int args_nr, val_t *result, val_t *args)
         return 0;
 }
 
+static int
+fun_extract_healer_xp(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        character_t *sd = (ETY(0) == BL_PC) ? ARGPC(0) : NULL;
+
+        if (!sd)
+                RESULTINT = 0;
+        else
+                RESULTINT = pc_extract_healer_exp(sd, ARGINT(1));
+        return 0;
+}
+
 
 
 #define BATTLE_RECORD2(sname, name) { sname, "e", 'i', fun_get_##name }
@@ -1177,6 +1189,7 @@ static fun_t functions[] = {
         { "map_nr", "l", 'i', fun_map_nr },
         { "dir_towards", "lli", 'd', fun_dir_towards },
         { "is_dead", "e", 'i', fun_is_dead },
+        { "extract_healer_experience", "ei", 'i', fun_extract_healer_xp },
         { NULL, NULL, '.', NULL }
 };
 
