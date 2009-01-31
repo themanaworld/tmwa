@@ -79,8 +79,12 @@ clear_stack(invocation_t *invocation)
 static void
 free_invocation(invocation_t *invocation)
 {
-        if (invocation->status_change_refs)
+        if (invocation->status_change_refs) {
                 free(invocation->status_change_refs);
+                /* The following cleanup shouldn't be necessary, but I've added it to help tracking a certain bug */
+                invocation->status_change_refs = NULL;
+                invocation->status_change_refs_nr = 0;
+        }
 
         if (invocation->flags & INVOCATION_FLAG_BOUND) {
                 entity_t *e = map_id2bl(invocation->subject);
@@ -95,6 +99,7 @@ free_invocation(invocation_t *invocation)
 
         magic_free_env(invocation->env);
 
+fprintf(stderr, "[MDEBUG] Freeing spell %d\n", invocation->bl.id);
 	map_delblock(&invocation->bl);
         map_delobject(invocation->bl.id); // also frees the object
 //        free(invocation);
@@ -142,6 +147,11 @@ char_set_attack_info(character_t *subject, int speed, int range)
 void
 magic_stop_completely(character_t *c)
 {
+        int i;
+        // Zap all status change references to spells
+        for (i = 0; i < MAX_STATUSCHANGE; i++)
+                c->sc_data[i].spell_invocation = 0;
+
         while (c->active_spells)
                 free_invocation(c->active_spells);
 
@@ -845,8 +855,12 @@ spell_effect_report_termination(int invocation_id, int bl_id, int sc_id, int sup
         int index = -1;
         invocation_t *invocation = (invocation_t *) map_id2bl(invocation_id);
 
-        if (!invocation)
+fprintf(stderr, "[MDEBUG] Reporting remote termination of %d\n", invocation_id);
+
+        if (!invocation || invocation->bl.type != BL_SPELL)
                 return;
+
+fprintf(stderr, "[MDEBUG] %d is a valid invocation\n", invocation_id);
 
         for (i = 0; i < invocation->status_change_refs_nr; i++) {
                 status_change_ref_t *cr = &invocation->status_change_refs[i];

@@ -93,6 +93,7 @@ magic_message(character_t *caster,
                 if (effects) {
                         invocation_t *invocation = spell_instantiate(effects, env);
 
+fprintf(stderr, "[MDEBUG] Allocd spell %d\n", invocation->bl.id);
                         /* We have a proper spell effect-- obscure the invocation! */
                         while (*source_invocation) {
                                 if (((rand() * 100.0) / (RAND_MAX * 1.0)) < magic_conf.obscure_chance)
