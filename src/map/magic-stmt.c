@@ -105,6 +105,15 @@ magic_stop_completely(character_t *c)
 {
         while (c->active_spells)
                 free_invocation(c->active_spells);
+
+        if (c->attack_spell_override) {
+                invocation_t *attack_spell = (invocation_t *)map_id2bl(c->attack_spell_override);
+                if (attack_spell)
+                        free_invocation(attack_spell);
+                c->attack_spell_override = 0;
+                char_set_weapon_icon(caster, 0, 0, 0);
+                char_set_attack_info(caster, 0, 0);
+        }
 }
 
 /* Spell execution has finished normally or we have been notified by a finished skill timer */
@@ -197,7 +206,9 @@ char_update(character_t *character)
 static int
 timer_callback_effect(int _, unsigned int __, int id, int data)
 {
-        clif_misceffect(map_id2bl(id), data);
+        entity_t *target = map_id2bl(id);
+        if (target)
+                clif_misceffect(target, data);
         return 0;
 }
 
@@ -1375,7 +1386,12 @@ int
 spell_attack(int caster_id, int target_id)
 {
         character_t *caster = (character_t *)map_id2bl(caster_id);
-        invocation_t *invocation = (invocation_t *)map_id2bl(caster->attack_spell_override);
+        invocation_t *invocation;
+
+        if (!caster)
+                return 1;
+
+        invocation = (invocation_t *)map_id2bl(caster->attack_spell_override);
 
         if (invocation
             && caster->attack_spell_charges > 0) {
@@ -1398,7 +1414,7 @@ spell_attack(int caster_id, int target_id)
         if (invocation
             && caster->attack_spell_override != invocation->bl.id) {
                 /* Attack spell changed / was refreshed */
-                free_invocation(invocation);
+                // free_invocation(invocation); // [Fate] This would be a double free.
         } else if (!invocation
                    || caster->attack_spell_charges <= 0) {
                 caster->attack_spell_override = 0;
