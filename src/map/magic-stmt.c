@@ -100,6 +100,51 @@ free_invocation(invocation_t *invocation)
 //        free(invocation);
 }
 
+static void
+char_set_weapon_icon(character_t *subject, int count, int icon, int look)
+{
+//        const int magic_item_inventory_index = -1;
+//        const int weapon_position = 4;
+
+        // The icon isn't working at the moment.
+
+        subject->attack_spell_icon_override = icon;
+        subject->attack_spell_look_override = look;
+
+        clif_fixpcpos(subject);
+        if (count) {
+//                /* Set it to `override' */
+//                clif_additem(subject, magic_item_inventory_index, count, 0, icon);
+                clif_changelook(&subject->bl, LOOK_WEAPON, look);
+//                clif_equipitemack(subject, magic_item_inventory_index, weapon_position, 1);
+        } else {
+                /* Set it to `normal' */
+                clif_changelook(&subject->bl, LOOK_WEAPON, subject->status.weapon);
+
+//                if (subject->equip_index[weapon_position] == -1)
+//                        clif_equipitemack(subject, 0, weapon_position, 1);
+//                else
+//                        clif_equipitemack(subject, subject->equip_index[weapon_position], weapon_position, 1);
+        }
+}
+
+static void
+char_set_attack_info(character_t *subject, int speed, int range)
+{
+        subject->attack_spell_delay = speed;
+        subject->attack_spell_range = range;
+
+        if (speed == 0) {
+                pc_calcstatus(subject, 1);
+                clif_updatestatus(subject, SP_ASPD);
+                clif_updatestatus(subject, SP_ATTACKRANGE);
+        } else {
+                subject->aspd = speed;
+                clif_updatestatus(subject, SP_ASPD);
+                clif_updatestatus(subject, SP_ATTACKRANGE);
+        }
+}
+
 void
 magic_stop_completely(character_t *c)
 {
@@ -128,51 +173,6 @@ try_to_finish_invocation(invocation_t *invocation)
                         spell_execute(invocation);
                 } else
                         free_invocation(invocation);
-        }
-}
-
-static void
-char_set_attack_info(character_t *subject, int speed, int range)
-{
-        subject->attack_spell_delay = speed;
-        subject->attack_spell_range = range;
-
-        if (speed == 0) {
-                pc_calcstatus(subject, 1);
-                clif_updatestatus(subject, SP_ASPD);
-                clif_updatestatus(subject, SP_ATTACKRANGE);
-        } else {
-                subject->aspd = speed;
-                clif_updatestatus(subject, SP_ASPD);
-                clif_updatestatus(subject, SP_ATTACKRANGE);
-        }
-}
-
-static void
-char_set_weapon_icon(character_t *subject, int count, int icon, int look)
-{
-//        const int magic_item_inventory_index = -1;
-//        const int weapon_position = 4;
-
-        // The icon isn't working at the moment.
-
-        subject->attack_spell_icon_override = icon;
-        subject->attack_spell_look_override = look;
-
-        clif_fixpcpos(subject);
-        if (count) {
-//                /* Set it to `override' */
-//                clif_additem(subject, magic_item_inventory_index, count, 0, icon);
-                clif_changelook(&subject->bl, LOOK_WEAPON, look);
-//                clif_equipitemack(subject, magic_item_inventory_index, weapon_position, 1);
-        } else {
-                /* Set it to `normal' */
-                clif_changelook(&subject->bl, LOOK_WEAPON, subject->status.weapon);
-
-//                if (subject->equip_index[weapon_position] == -1)
-//                        clif_equipitemack(subject, 0, weapon_position, 1);
-//                else
-//                        clif_equipitemack(subject, subject->equip_index[weapon_position], weapon_position, 1);
         }
 }
 
