@@ -156,8 +156,8 @@ magic_stop_completely(character_t *c)
                 if (attack_spell)
                         free_invocation(attack_spell);
                 c->attack_spell_override = 0;
-                char_set_weapon_icon(caster, 0, 0, 0);
-                char_set_attack_info(caster, 0, 0);
+                char_set_weapon_icon(c, 0, 0, 0);
+                char_set_attack_info(c, 0, 0);
         }
 }
 
