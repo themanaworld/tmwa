@@ -640,7 +640,8 @@ This section documents the operations API.
     which time the previous behaviour is restored.)
     `delay' specifies the attack delay.
     `range' specifies the attack range as shown in the client GUI.
-    `icon' is presently unused.
+    `icon' is the ID of a status-effect ID that will be displayed
+    while the spell is in effect.
     `animation' is the attack animation ID that should be used.
 
     Note that if the ATTRIGGER effect ABORTs, no charge will be

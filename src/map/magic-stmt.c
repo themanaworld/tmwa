@@ -103,28 +103,22 @@ free_invocation(invocation_t *invocation)
 static void
 char_set_weapon_icon(character_t *subject, int count, int icon, int look)
 {
-//        const int magic_item_inventory_index = -1;
-//        const int weapon_position = 4;
-
-        // The icon isn't working at the moment.
+        const int old_icon = subject->attack_spell_icon_override;
 
         subject->attack_spell_icon_override = icon;
         subject->attack_spell_look_override = look;
 
+        if (old_icon && old_icon != icon)
+                clif_status_change(&subject->bl, old_icon, 0);
+
         clif_fixpcpos(subject);
         if (count) {
-//                /* Set it to `override' */
-//                clif_additem(subject, magic_item_inventory_index, count, 0, icon);
                 clif_changelook(&subject->bl, LOOK_WEAPON, look);
-//                clif_equipitemack(subject, magic_item_inventory_index, weapon_position, 1);
+                if (icon)
+                        clif_status_change(&subject->bl, icon, 1);
         } else {
                 /* Set it to `normal' */
                 clif_changelook(&subject->bl, LOOK_WEAPON, subject->status.weapon);
-
-//                if (subject->equip_index[weapon_position] == -1)
-//                        clif_equipitemack(subject, 0, weapon_position, 1);
-//                else
-//                        clif_equipitemack(subject, subject->equip_index[weapon_position], weapon_position, 1);
         }
 }
 
