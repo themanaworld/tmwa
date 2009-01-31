@@ -472,7 +472,7 @@ op_status_change(env_t *env, int args_nr, val_t *args)
 
         skill_status_effect(subject, ARGINT(1), ARGINT(2), ARGINT(3), ARGINT(4), ARGINT(5), ARGINT(6), 0, invocation_id);
 
-        if (invocation)
+        if (invocation && subject->type == BL_PC)
                 record_status_change(invocation, subject->id, ARGINT(1));
 
         return 0;
@@ -487,6 +487,7 @@ op_override_attack(env_t *env, int args_nr, val_t *args)
         int attack_range = ARGINT(3);
         int icon = ARGINT(4);
         int look = ARGINT(5);
+        int stopattack = ARGINT(6);
         character_t *subject;
 
         if (psubject->type != BL_PC)
@@ -504,6 +505,10 @@ op_override_attack(env_t *env, int args_nr, val_t *args)
         subject->attack_spell_charges = charges;
 
         if (subject->attack_spell_override) {
+                invocation_t *attack_spell = (invocation_t *)map_id2bl(subject->attack_spell_override);
+                if (attack_spell && stopattack)
+                        attack_spell->flags |= INVOCATION_FLAG_STOPATTACK;
+
                 char_set_weapon_icon(subject, charges, icon, look);
                 char_set_attack_info(subject, attack_delay, attack_range);
         }
@@ -780,7 +785,7 @@ static op_t operations[] =
         { "warp", "el", op_warp },
         { "banish", "e", op_banish },
         { "status_change", "eiiiiii", op_status_change },
-        { "override_attack", "eiiiii", op_override_attack },
+        { "override_attack", "eiiiiii", op_override_attack },
         { "create_item", "e.i", op_create_item },
         { "aggravate", "eie", op_aggravate },
         { "spawn", "aeiiii", op_spawn },
@@ -852,7 +857,9 @@ spell_effect_report_termination(int invocation_id, int bl_id, int sc_id, int sup
         }
 
         if (index == -1) {
-                fprintf(stderr, "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n", bl_id, sc_id);
+                entity_t *entity = map_id2bl(bl_id);
+                if (entity->type == BL_PC)
+                        fprintf(stderr, "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n", bl_id, sc_id);
                 return;
         }
 
@@ -1394,11 +1401,15 @@ spell_attack(int caster_id, int target_id)
 {
         character_t *caster = (character_t *)map_id2bl(caster_id);
         invocation_t *invocation;
+        int stop_attack = 0;
 
         if (!caster)
-                return 1;
+                return 0;
 
         invocation = (invocation_t *)map_id2bl(caster->attack_spell_override);
+
+        if (invocation && invocation->flags & INVOCATION_FLAG_STOPATTACK)
+                stop_attack = 1;
 
         if (invocation
             && caster->attack_spell_charges > 0) {
@@ -1427,6 +1438,9 @@ spell_attack(int caster_id, int target_id)
                 caster->attack_spell_override = 0;
                 char_set_weapon_icon(caster, 0, 0, 0);
                 char_set_attack_info(caster, 0, 0);
+
+                if (stop_attack)
+                        pc_stopattack(caster);
 
                 if (invocation)
                         free_invocation(invocation);

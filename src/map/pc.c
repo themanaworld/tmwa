@@ -4149,7 +4149,7 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 	struct status_change *sc_data;
 	short *opt;
 	int dist,skill,range;
-
+        int attack_spell_delay;
 
 	sd=map_id2sd(id);
 	if(sd == NULL)
@@ -4203,10 +4203,11 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
 	if (sd->attackabletime > tick)
 		return 0; // cannot attack yet
 
+        attack_spell_delay = sd->attack_spell_delay;
         if (sd->attack_spell_override // [Fate] If we have an active attack spell, use that
             && spell_attack(id, sd->attacktarget)) {
                 // Return if the spell succeeded.  If the spell had disspiated, spell_attack() may fail.
-                sd->attackabletime = tick + sd->attack_spell_delay;
+                sd->attackabletime = tick + attack_spell_delay;
 
         } else {
                 dist = distance(sd->bl.x,sd->bl.y,bl->x,bl->y);

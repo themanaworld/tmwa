@@ -330,6 +330,7 @@ typedef struct status_change_ref {
 
 #define INVOCATION_FLAG_BOUND		(1 << 0)	/* Bound directly to the caster (i.e., ignore its location) */
 #define INVOCATION_FLAG_ABORTED		(1 << 1)	/* Used `abort' to terminate */
+#define INVOCATION_FLAG_STOPATTACK	(1 << 2)	/* On magical attacks:  if we run out of steam, stop attacking altogether */
 
 typedef struct invocation {
     struct block_list bl;

@@ -561,6 +561,9 @@ The following functions are available:
     PCs gain such experience points by killing/completing quests,
     though this `healer experience point pool' slowly drains itself.
 
+  + is_pc : entity -> bool
+    Determines whether the target is a player character
+
 Operations:
 -----------
 This section documents the operations API.
@@ -629,8 +632,8 @@ This section documents the operations API.
     change has finished.
 
   + override_attack : entity * int * int
-                             * int * int *int -> ()
-    override_attack(entity, charges, delay, range, icon, animation)
+                             * int * int *int * int -> ()
+    override_attack(entity, charges, delay, range, icon, animation, stop)
     overrides the entity's current attack (only for PCs).  The entity
     will have `charges' attacks that instead result in calling the
     ATTRIGGER effect for this spell.  When this operation is called,
@@ -643,6 +646,9 @@ This section documents the operations API.
     `icon' is the ID of a status-effect ID that will be displayed
     while the spell is in effect.
     `animation' is the attack animation ID that should be used.
+    `stop' decides whether attacking should stop once the spell is out
+    of charges (1) or continue (0). (Note: this doesn't properly work,
+    possibly due to client issues.  Always use 0.)
 
     Note that if the ATTRIGGER effect ABORTs, no charge will be
     consumed.

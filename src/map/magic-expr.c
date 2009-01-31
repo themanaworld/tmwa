@@ -733,6 +733,13 @@ fun_is_dead(env_t *env, int args_nr, val_t *result, val_t *args)
 }
 
 static int
+fun_is_pc(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = (ETY(0) == BL_PC);
+        return 0;
+}
+
+static int
 fun_partner(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         if (ETY(0) == BL_PC
@@ -941,7 +948,7 @@ fun_rbox(env_t *env, int args_nr, val_t *result, val_t *args)
 static int
 fun_running_status_update(env_t *env, int args_nr, val_t *result, val_t *args)
 {
-        if (ETY(0) != BL_PC)
+        if (ETY(0) != BL_PC && ETY(0) != BL_MOB)
                 return 1;
 
         RESULTINT = battle_get_sc_data(ARGENTITY(0))[ARGINT(1)].timer != -1;
@@ -1189,6 +1196,7 @@ static fun_t functions[] = {
         { "map_nr", "l", 'i', fun_map_nr },
         { "dir_towards", "lli", 'd', fun_dir_towards },
         { "is_dead", "e", 'i', fun_is_dead },
+        { "is_pc", "e", 'i', fun_is_pc },
         { "extract_healer_experience", "ei", 'i', fun_extract_healer_xp },
         { NULL, NULL, '.', NULL }
 };
