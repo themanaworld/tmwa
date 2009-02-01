@@ -1374,6 +1374,8 @@ clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
 	WFIFOL(fd, 2) = fake_npc_id;
 	WFIFOW(fd, 6) = 0;
 	WFIFOW(fd, 8) = 0;
+	WFIFOW(fd, 10) = 0;
+	WFIFOW(fd, 12) = 0;
 	WFIFOW(fd, 20) = 127;
 	WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
         WFIFOSET(fd, packet_len_table[0x7c]);
@@ -1382,6 +1384,8 @@ clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
 	WFIFOL(fd, 2) = fake_npc_id;
 	WFIFOW(fd, 6) = 0;
 	WFIFOW(fd, 8) = 0;
+	WFIFOW(fd, 10) = 0;
+	WFIFOW(fd, 12) = 0;
 	WFIFOW(fd, 14) = 127; // identifies as NPC
 	WFIFOW(fd, 20) = 127;
 	WFIFOPOS(fd, 46, sd->bl.x, sd->bl.y);
