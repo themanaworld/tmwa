@@ -1230,12 +1230,18 @@ static int npc_parse_shop(char *w1,char *w2,char *w3,char *w4)
 
 	while (p && pos < max) {
 		int nameid,value;
+		char name[24];
+		struct item_data *id;
 		p++;
-		if (sscanf(p, "%d:%d", &nameid, &value) != 2)
-			break;
+		if (sscanf(p, "%d:%d", &nameid, &value) == 2) {
+		} else if (sscanf(p, "%s :%d", name, &value) == 2) {
+			id = itemdb_searchname(name);
+			if (id == NULL) break;
+			nameid = id->nameid;
+		} else break;
 		nd->u.shop_item[pos].nameid = nameid;
 		if (value < 0) {
-			struct item_data *id = itemdb_search(nameid);
+			if (id == NULL) id = itemdb_search(nameid);
 			value = id->value_buy;
 		}
 		nd->u.shop_item[pos].value = value;
