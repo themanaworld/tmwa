@@ -2470,6 +2470,7 @@ int clif_updatestatus(struct map_session_data *sd,int type)
 
 
 	case SP_ZENY:
+		trade_verifyzeny(sd);
 		WFIFOW(fd,0)=0xb1;
 		if(sd->status.zeny < 0)
 			sd->status.zeny = 0;

@@ -277,6 +277,7 @@ void trade_tradecommit(struct map_session_data *sd)
 					}
 				}
 				if(sd->deal_zeny) {
+					if (sd->deal_zeny > sd->status.zeny) sd->deal_zeny = sd->status.zeny;
 					sd->status.zeny -= sd->deal_zeny;
 					clif_updatestatus(sd,SP_ZENY);
 					target_sd->status.zeny += sd->deal_zeny;
@@ -284,6 +285,7 @@ void trade_tradecommit(struct map_session_data *sd)
 					sd->deal_zeny=0;
 				}
 				if(target_sd->deal_zeny) {
+					if (target_sd->deal_zeny > target_sd->status.zeny) target_sd->deal_zeny = target_sd->status.zeny;
 					target_sd->status.zeny -= target_sd->deal_zeny;
 					clif_updatestatus(target_sd,SP_ZENY);
 					sd->status.zeny += target_sd->deal_zeny;
@@ -297,6 +299,23 @@ void trade_tradecommit(struct map_session_data *sd)
 				clif_tradecompleted(sd,0);
 				clif_tradecompleted(target_sd,0);
 			}
+		}
+	}
+}
+
+// This is called when a char's zeny is changed
+// This helps prevent money duplication and other problems
+// [Jaxad0127]
+void trade_verifyzeny(struct map_session_data *sd)
+{
+	struct map_session_data *target_sd;
+
+	nullpo_retv(sd);
+
+	if((target_sd = map_id2sd(sd->trade_partner)) != NULL) {
+		if (sd->deal_zeny > sd->status.zeny) {
+			if (sd->deal_locked < 1) trade_tradeadditem(sd, 0, sd->status.zeny); // Fix money ammount
+			else trade_tradecancel(sd); // Or cancel the trade if we can't fix it
 		}
 	}
 }
