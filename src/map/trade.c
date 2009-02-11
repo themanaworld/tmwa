@@ -252,6 +252,12 @@ void trade_tradecommit(struct map_session_data *sd)
 		if( (sd->deal_locked >=1) && (target_sd->deal_locked >=1) ){ // both have pressed 'ok'
 			if(sd->deal_locked < 2) {sd->deal_locked=2;} // set locked to 2
 			if(target_sd->deal_locked==2) { // the other one pressed 'trade' too
+				if(sd->deal_zeny) {
+					if (sd->deal_zeny > sd->status.zeny) trade_tradecancel(sd);
+				}
+				if(target_sd->deal_zeny) {
+					if (target_sd->deal_zeny > target_sd->status.zeny) trade_tradecancel(sd);
+				}
 				for(trade_i=0; trade_i<10;trade_i++) {
 					if(sd->deal_item_amount[trade_i] != 0) {
 						int n=sd->deal_item_index[trade_i]-2;
@@ -277,7 +283,6 @@ void trade_tradecommit(struct map_session_data *sd)
 					}
 				}
 				if(sd->deal_zeny) {
-					if (sd->deal_zeny > sd->status.zeny) trade_tradecancel(sd);
 					sd->status.zeny -= sd->deal_zeny;
 					clif_updatestatus(sd,SP_ZENY);
 					target_sd->status.zeny += sd->deal_zeny;
@@ -285,7 +290,6 @@ void trade_tradecommit(struct map_session_data *sd)
 					sd->deal_zeny=0;
 				}
 				if(target_sd->deal_zeny) {
-					if (target_sd->deal_zeny > target_sd->status.zeny) trade_tradecancel(sd);
 					target_sd->status.zeny -= target_sd->deal_zeny;
 					clif_updatestatus(target_sd,SP_ZENY);
 					sd->status.zeny += target_sd->deal_zeny;
