@@ -1236,19 +1236,22 @@ static int npc_parse_shop(char *w1,char *w2,char *w3,char *w4)
 		if (sscanf(p, "%d:%d", &nameid, &value) == 2) {
 		} else if (sscanf(p, "%s :%d", name, &value) == 2) {
 			id = itemdb_searchname(name);
-			if (id == NULL) break;
-			nameid = id->nameid;
+			if (id == NULL) nameid = -1;
+			else nameid = id->nameid;
 		} else break;
-		nd->u.shop_item[pos].nameid = nameid;
-		if (value < 0) {
-			int temp = abs(value);
-			if (id == NULL) id = itemdb_search(nameid);
-			value = id->value_buy;
-			if (temp % 2) value = value / ((temp + 1) / 2);
-			else value = value * (temp / 2);
+
+		if (nameid > 0) {
+			nd->u.shop_item[pos].nameid = nameid;
+			if (value < 0) {
+				int temp = abs(value);
+				if (id == NULL) id = itemdb_search(nameid);
+				value = id->value_buy;
+				if (temp % 2) value = value / ((temp + 1) / 2);
+				else value = value * (temp / 2);
+			}
+			nd->u.shop_item[pos].value = value;
+			pos++;
 		}
-		nd->u.shop_item[pos].value = value;
-		pos++;
 		p=strchr(p,',');
 	}
 	if (pos == 0) {
