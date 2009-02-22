@@ -287,18 +287,20 @@ void trade_tradecommit(struct map_session_data *sd)
 					}
 				}
 				if(sd->deal_zeny) {
-					sd->status.zeny -= sd->deal_zeny;
-					clif_updatestatus(sd,SP_ZENY);
-					target_sd->status.zeny += sd->deal_zeny;
-					clif_updatestatus(target_sd,SP_ZENY);
+					int deal = sd->deal_zeny;
 					sd->deal_zeny=0;
+					sd->status.zeny -= deal;
+					clif_updatestatus(sd,SP_ZENY);
+					target_sd->status.zeny += deal;
+					clif_updatestatus(target_sd,SP_ZENY);
 				}
 				if(target_sd->deal_zeny) {
-					target_sd->status.zeny -= target_sd->deal_zeny;
-					clif_updatestatus(target_sd,SP_ZENY);
-					sd->status.zeny += target_sd->deal_zeny;
-					clif_updatestatus(sd,SP_ZENY);
+					int deal = target_sd->deal_zeny;
 					target_sd->deal_zeny=0;
+					target_sd->status.zeny -= deal;
+					clif_updatestatus(target_sd,SP_ZENY);
+					sd->status.zeny += deal;
+					clif_updatestatus(sd,SP_ZENY);
 				}
 				sd->deal_locked =0;
 				sd->trade_partner=0;
