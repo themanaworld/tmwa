@@ -1245,9 +1245,8 @@ static int npc_parse_shop(char *w1,char *w2,char *w3,char *w4)
 			if (value < 0) {
 				int temp = abs(value);
 				if (id == NULL) id = itemdb_search(nameid);
-				value = id->value_buy;
-				if (temp % 2) value = value / ((temp + 1) / 2);
-				else value = value * (temp / 2);
+				value = id->value_buy; * temp
+
 			}
 			nd->u.shop_item[pos].value = value;
 			pos++;
