@@ -2679,7 +2679,7 @@ int parse_char(int fd) {
 				} else {
 					for (i = 0; i < 9; i++) {
 						struct mmo_charstatus *cs = NULL;
-						if ((cs = &char_dat[sd->found_char[i]])->char_id == RFIFOL(fd,2)) {
+						if (sd->found_char[i] >= 0 && (cs = &char_dat[sd->found_char[i]])->char_id == RFIFOL(fd,2)) {
 							char_delete(cs); // deletion process
 
 							if (sd->found_char[i] != char_num - 1) {
