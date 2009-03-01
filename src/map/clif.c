@@ -7527,9 +7527,9 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 			intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
 
 			if (battle_config.spam_ban > 0)
-				sprintf(message, " This player has been banned for %d hours(s).", battle_config.spam_ban);
+				sprintf(message, "This player has been banned for %d hours(s).", battle_config.spam_ban);
 			else
-				sprintf(message, " This player hasn't been banned (Ban option is disabled).");
+				sprintf(message, "This player hasn't been banned (Ban option is disabled).");
 			printf("%s\n", message);
 			intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
 
