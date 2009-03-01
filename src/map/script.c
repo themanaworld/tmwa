@@ -460,7 +460,7 @@ struct {
 	{buildin_failedremovecards,"failedremovecards","ii"},
 	{buildin_marriage,"marriage","s"},
 	{buildin_wedding_effect,"wedding",""},
-	{buildin_divorce,"divorce",""},
+	{buildin_divorce,"divorce","i"},
 	{buildin_getitemname,"getitemname","*"},
 	{buildin_getspellinvocation,"getspellinvocation","s"},
 	{buildin_getanchorinvocation,"getanchorinvocation","s"},
