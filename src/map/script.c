@@ -289,6 +289,7 @@ int buildin_getlook(struct script_state *st);	//Lorky [Lupus]
 int buildin_getsavepoint(struct script_state *st);	//Lorky [Lupus]
 int buildin_getpartnerid(struct script_state *st); // [Fate]
 int buildin_areatimer(struct script_state *st); // [Jaxad0127]
+int buildin_isin(struct script_state *st); // [Jaxad0127]
 
 void push_val(struct script_stack *stack,int type,int val);
 int run_func(struct script_state *st);
@@ -498,7 +499,8 @@ struct {
 	{buildin_mobcount,"mobcount","ss"},
         {buildin_getlook,"getlook","i"},                
         {buildin_getsavepoint,"getsavepoint","i"},
-	{buildin_areatimer,"areatimer","siiiiis"},              // End Additions
+	{buildin_areatimer,"areatimer","siiiiis"},
+	{buildin_isin,"isin","siiii"},              // End Additions
 	{NULL,NULL,NULL},
 };
 int buildin_message(struct script_state *st); // [MouseJstr]
@@ -6075,7 +6077,32 @@ int buildin_areatimer(struct script_state *st)
 	return 0;
 }
 
+/*==========================================
+ * Check whether the PC is in the specified rectangle
+ *------------------------------------------
+ */
+int buildin_isin(struct script_state *st)
+{
+	int x1,y1,x2,y2;
+	char *str;
+	struct map_session_data *sd=script_rid2sd(st);
 
+	str=conv_str(st,& (st->stack->stack_data[st->start+2]));
+	x1=conv_num(st,& (st->stack->stack_data[st->start+3]));
+	y1=conv_num(st,& (st->stack->stack_data[st->start+4]));
+	x2=conv_num(st,& (st->stack->stack_data[st->start+5]));
+	y2=conv_num(st,& (st->stack->stack_data[st->start+6]));
+
+        if (!sd)
+                return 1;
+
+        push_val(st->stack, C_INT,
+                 (sd->bl.x >= x1 && sd->bl.x <= x2)
+                 && (sd->bl.y >= y1 && sd->bl.y <= y2)
+                 && (!strcmp(str, map[sd->bl.m].name)));
+
+	return 0;
+}
 
 //
 // Às•”main
