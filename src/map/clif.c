@@ -289,7 +289,7 @@ int clif_send(unsigned char *buf, int len, struct block_list *bl, int type) {
 
                         case AREA_WOS:
                         case AREA_WOSC:
-                            return;
+                            return 1;
 
                         default:
                             break;
@@ -561,7 +561,7 @@ int clif_charselectok(int id) {
  *
  *------------------------------------------
  */
-static int clif_set009e(struct flooritem_data *fitem,unsigned char *buf) {
+static int clif_set009e(struct flooritem_data *fitem, char *buf) {
 	int view;
 
 	nullpo_retr(0, fitem);
@@ -1635,12 +1635,12 @@ int clif_scriptmes(struct map_session_data *sd, int npcid, char *mes) {
 
 	nullpo_retr(0, sd);
 
-	fd=sd->fd;
-	WFIFOW(fd,0)=0xb4;
-	WFIFOW(fd,2)=strlen(mes)+9;
-	WFIFOL(fd,4)=npcid;
-	strcpy(WFIFOP(fd,8),mes);
-	WFIFOSET(fd,WFIFOW(fd,2));
+	fd = sd->fd;
+	WFIFOW(fd, 0) = 0xb4;
+	WFIFOW(fd, 2) = strlen(mes) + 9;
+	WFIFOL(fd, 4) = npcid;
+	strcpy(WFIFOP(fd, 8), mes);
+	WFIFOSET(fd, WFIFOW(fd, 2));
 
 	return 0;
 }
@@ -7153,7 +7153,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 	memset(message, '\0', RFIFOW(fd,2) + 128);
 	memset(buf, '\0', RFIFOW(fd,2) + 4);
 
-	if ((is_atcommand(fd, sd, RFIFOP(fd,4), 0) != AtCommand_None) ||
+	if ((is_atcommand(fd, sd, RFIFOP(fd, 4), 0) != AtCommand_None) ||
             ( sd->sc_data && 
 		(sd->sc_data[SC_BERSERK].timer!=-1 ||	//バーサーク時は会話も不可
 		sd->sc_data[SC_NOCHAT].timer!=-1 ) ))	//チャット禁止 
@@ -9128,11 +9128,7 @@ static void (*clif_parse_func_table[0x220])() = {
 	// 200
 	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 	// 210
-	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-#if 0
-	case 0xce: clif_parse_GMkillall
-	case 0xd3: clif_parse_IgnoreList
-#endif
+	NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
 
 /*==========================================
