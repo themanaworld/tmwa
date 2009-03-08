@@ -189,7 +189,6 @@ struct map_session_data {
 		unsigned infinite_autospell : 1;
 	} special_state;
 	int char_id, login_id1, login_id2, sex;
-	int packet_ver; // 5: old, 6: 7july04, 7: 13july04, 8: 26july04, 9: 9aug04/16aug04/17aug04, 10: 6sept04 (by [Yor])
         unsigned char tmw_version; // tmw client version
 	struct mmo_charstatus status;
 	struct item_data *inventory_data[MAX_INVENTORY];
