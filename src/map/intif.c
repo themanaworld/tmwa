@@ -18,19 +18,19 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include "nullpo.h"
 #include "socket.h"
 #include "timer.h"
-#include "map.h"
+
 #include "battle.h"
 #include "chrif.h"
 #include "clif.h"
-#include "pc.h"
-#include "intif.h"
-#include "storage.h"
-#include "party.h"
 #include "guild.h"
-#include "pet.h"
-#include "nullpo.h"
+#include "intif.h"
+#include "map.h"
+#include "party.h"
+#include "pc.h"
+#include "storage.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -54,59 +54,7 @@ extern int char_fd;		// inter serverのfdはchar_fdを使う
 //-----------------------------------------------------------------
 // inter serverへの送信
 
-// pet
-int intif_create_pet(int account_id,int char_id,short pet_class,short pet_lv,short pet_egg_id,
-	short pet_equip,short intimate,short hungry,char rename_flag,char incuvate,char *pet_name)
-{
-	WFIFOW(inter_fd,0) = 0x3080;
-	WFIFOL(inter_fd,2) = account_id;
-	WFIFOL(inter_fd,6) = char_id;
-	WFIFOW(inter_fd,10) = pet_class;
-	WFIFOW(inter_fd,12) = pet_lv;
-	WFIFOW(inter_fd,14) = pet_egg_id;
-	WFIFOW(inter_fd,16) = pet_equip;
-	WFIFOW(inter_fd,18) = intimate;
-	WFIFOW(inter_fd,20) = hungry;
-	WFIFOB(inter_fd,22) = rename_flag;
-	WFIFOB(inter_fd,23) = incuvate;
-	memcpy(WFIFOP(inter_fd,24),pet_name,24);
-	WFIFOSET(inter_fd,48);
-
-	return 0;
-}
-
-int intif_request_petdata(int account_id,int char_id,int pet_id)
-{
-	WFIFOW(inter_fd,0) = 0x3081;
-	WFIFOL(inter_fd,2) = account_id;
-	WFIFOL(inter_fd,6) = char_id;
-	WFIFOL(inter_fd,10) = pet_id;
-	WFIFOSET(inter_fd,14);
-
-	return 0;
-}
-
-int intif_save_petdata(int account_id,struct s_pet *p)
-{
-	WFIFOW(inter_fd,0) = 0x3082;
-	WFIFOW(inter_fd,2) = sizeof(struct s_pet) + 8;
-	WFIFOL(inter_fd,4) = account_id;
-	memcpy(WFIFOP(inter_fd,8),p,sizeof(struct s_pet));
-	WFIFOSET(inter_fd,WFIFOW(inter_fd,2));
-
-	return 0;
-}
-
-int intif_delete_petdata(int pet_id)
-{
-	WFIFOW(inter_fd,0) = 0x3083;
-	WFIFOL(inter_fd,2) = pet_id;
-	WFIFOSET(inter_fd,6);
-
-	return 0;
-}
-
-// GMメッセージを送信
+// Message for all GMs on all map servers
 int intif_GMmessage(char* mes,int len,int flag)
 {
 	int lp = (flag&0x10) ? 8 : 4;
@@ -929,48 +877,6 @@ int intif_parse_GuildCastleAllDataLoad(int fd)
 	return guild_castlealldataload(RFIFOW(fd,2),(struct guild_castle *)RFIFOP(fd,4));
 }
 
-// pet
-int intif_parse_CreatePet(int fd)
-{
-	pet_get_egg(RFIFOL(fd,2),RFIFOL(fd,7),RFIFOB(fd,6));
-
-	return 0;
-}
-
-int intif_parse_RecvPetData(int fd)
-{
-	struct s_pet p;
-	int len=RFIFOW(fd,2);
-	if(sizeof(struct s_pet)!=len-9) {
-		if(battle_config.etc_log)
-			printf("intif: pet data: data size error %d %d\n",sizeof(struct s_pet),len-9);
-	}
-	else{
-		memcpy(&p,RFIFOP(fd,9),sizeof(struct s_pet));
-		pet_recv_petdata(RFIFOL(fd,4),&p,RFIFOB(fd,8));
-	}
-
-	return 0;
-}
-int intif_parse_SavePetOk(int fd)
-{
-	if(RFIFOB(fd,6) == 1) {
-		if(battle_config.error_log)
-			printf("pet data save failure\n");
-	}
-
-	return 0;
-}
-
-int intif_parse_DeletePetOk(int fd)
-{
-	if(RFIFOB(fd,2) == 1) {
-		if(battle_config.error_log)
-			printf("pet data delete failure\n");
-	}
-
-	return 0;
-}
 //-----------------------------------------------------------------
 // inter serverからの通信
 // エラーがあれば0(false)を返すこと
@@ -1032,10 +938,10 @@ int intif_parse(int fd)
 	case 0x3840:	intif_parse_GuildCastleDataLoad(fd); break;
 	case 0x3841:	intif_parse_GuildCastleDataSave(fd); break;
 	case 0x3842:	intif_parse_GuildCastleAllDataLoad(fd); break;
-	case 0x3880:	intif_parse_CreatePet(fd); break;
-	case 0x3881:	intif_parse_RecvPetData(fd); break;
-	case 0x3882:	intif_parse_SavePetOk(fd); break;
-	case 0x3883:	intif_parse_DeletePetOk(fd); break;
+	//case 0x3880:	intif_parse_CreateP.et(fd); break;
+	//case 0x3881:	intif_parse_RecvP.etData(fd); break;
+	//case 0x3882:	intif_parse_SaveP.etOk(fd); break;
+	//case 0x3883:	intif_parse_DeleteP.etOk(fd); break;
 	default:
 		if(battle_config.error_log)
 			printf("intif_parse : unknown packet %d %x\n",fd,RFIFOW(fd,0));

@@ -2,24 +2,23 @@
 #ifndef _ATCOMMAND_H_
 #define _ATCOMMAND_H_
 
+#include "map.h"
+
 enum AtCommandType {
 	AtCommand_None = -1,
 	AtCommand_Broadcast = 0,
 	AtCommand_LocalBroadcast,
 	AtCommand_MapMove,
 	AtCommand_ResetState,
-	AtCommand_RuraP,
-	AtCommand_Rura,
+	AtCommand_CharWarp,
 	AtCommand_Warp,
 	AtCommand_Where,
 	AtCommand_JumpTo,
 	AtCommand_Jump,
 	AtCommand_Who,
-	AtCommand_Who2,
-	AtCommand_Who3,
+	AtCommand_WhoGroup,
 	AtCommand_WhoMap,
-	AtCommand_WhoMap2,
-	AtCommand_WhoMap3,
+	AtCommand_WhoMapGroup,
 	AtCommand_WhoGM,
 	AtCommand_Save,
 	AtCommand_Load,
@@ -72,11 +71,6 @@ enum AtCommandType {
 	AtCommand_Dexterity,
 	AtCommand_Luck,
 	AtCommand_GuildLevelUp,
-	AtCommand_MakeEgg,
-	AtCommand_PetFriendly,
-	AtCommand_PetHungry,
-	AtCommand_PetRename,
-	AtCommand_CharPetRename, // by Yor
 	AtCommand_Recall,
 	AtCommand_CharacterJob,
 	AtCommand_CharacterJob2,
@@ -121,16 +115,12 @@ enum AtCommandType {
 	AtCommand_ReloadItemDB,
 	AtCommand_ReloadMobDB,
 	AtCommand_ReloadSkillDB,
-#ifndef TXT_ONLY
-	AtCommand_Rehash,
-#else /* TXT_ONLY */
 	AtCommand_ReloadScript,
-#endif /* TXT_ONLY */
 	AtCommand_ReloadGMDB,
 	AtCommand_MapInfo,
 	AtCommand_Dye,
-	AtCommand_Hstyle,
-	AtCommand_Hcolor,
+	AtCommand_HairStyle,
+	AtCommand_HairColor,
 	AtCommand_StatAll,
 	AtCommand_CharChangeSex, // by Yor
 	AtCommand_CharBlock, // by Yor
@@ -144,7 +134,6 @@ enum AtCommandType {
 	AtCommand_RepairAll, // [Valaris]
 	AtCommand_GuildRecall, // by Yor
 	AtCommand_PartyRecall, // by Yor
-//	AtCommand_Nuke,	// [Valaris]
 	AtCommand_Enablenpc,
 	AtCommand_Disablenpc,
 	AtCommand_ServerTime, // by Yor
@@ -194,21 +183,6 @@ enum AtCommandType {
 	AtCommand_Trade,
 	AtCommand_UnMute,	
         AtCommand_CharWipe,
-
-	// SQL-only commands start
-#ifndef TXT_ONLY 
-	AtCommand_CheckMail, // [Valaris]
-	AtCommand_ListMail, // [Valaris]
-	AtCommand_ListNewMail, // [Valaris]
-	AtCommand_ReadMail, // [Valaris]
-	AtCommand_SendMail, // [Valaris]
-	AtCommand_DeleteMail, // [Valaris]
-	AtCommand_SendPriorityMail, // [Valaris]
-	AtCommand_Sound, // [Valaris]	
-	AtCommand_RefreshOnline, // [Valaris]
-	// SQL-only commands end
-#endif
-	
         AtCommand_SetMagic,
         AtCommand_MagicInfo,
         AtCommand_Log,
@@ -232,17 +206,15 @@ typedef struct AtCommandInfo {
 		const char* command, const char* message);
 } AtCommandInfo;
 
-AtCommandType
-is_atcommand(const int fd, struct map_session_data* sd, const char* message, int gmlvl);
+AtCommandType is_atcommand(const int fd, struct map_session_data* sd, const char* message, int gmlvl);
 
-AtCommandType atcommand(
-	const int level, const char* message, AtCommandInfo* info);
+AtCommandType atcommand(const int level, const char* message, AtCommandInfo* info);
 int get_atcommand_level(const AtCommandType type);
 
 char * msg_txt(int msg_number); // [Yor]
 
-int atcommand_item(const int fd, struct map_session_data* sd,const char* command, const char* message); // [Valaris]
-int atcommand_rura(const int fd, struct map_session_data* sd,const char* command, const char* message); // [Yor]
+int atcommand_item(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Valaris]
+int atcommand_warp(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]
 int atcommand_spawn(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Valaris]
 int atcommand_jumpto(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]
 int atcommand_recall(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]

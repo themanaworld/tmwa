@@ -47,10 +47,4 @@ int intif_guild_emblem(int guild_id, int len, const char *data);
 int intif_guild_castle_dataload(int castle_id, int index);
 int intif_guild_castle_datasave(int castle_id, int index, int value);
 
-int intif_create_pet(int account_id, int char_id, short pet_type, short pet_lv, short pet_egg_id,
-                     short pet_equip, short intimate, short hungry, char rename_flag, char incuvate, char *pet_name);
-int intif_request_petdata(int account_id, int char_id, int pet_id);
-int intif_save_petdata(int account_id, struct s_pet *p);
-int intif_delete_petdata(int pet_id);
-
 #endif

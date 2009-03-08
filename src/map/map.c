@@ -31,7 +31,6 @@
 #include "battle.h"
 #include "script.h"
 #include "guild.h"
-#include "pet.h"
 #include "atcommand.h"
 #include "nullpo.h"
 #include "socket.h"
@@ -724,8 +723,6 @@ int map_clearflooritem_timer(int tid,unsigned int tick,int id,int data) {
 	}
 	if(data)
 		delete_timer(fitem->cleartimer,map_clearflooritem_timer);
-	else if(fitem->item_data.card[0] == (short)0xff00)
-		intif_delete_petdata(*((long *)(&fitem->item_data.card[1])));
 	clif_clearflooritem(fitem,0);
 	map_delobject(fitem->bl.id);
 
@@ -1058,19 +1055,6 @@ int map_quit(struct map_session_data *sd) {
 	pc_calcstatus(sd,4);
 
 	clif_clearchar_area(&sd->bl,2);
-
-	if(sd->status.pet_id && sd->pd) {
-		pet_lootitem_drop(sd->pd,sd);
-		pet_remove_map(sd);
-		if(sd->pet.intimate <= 0) {
-			intif_delete_petdata(sd->status.pet_id);
-			sd->status.pet_id = 0;
-			sd->pd = NULL;
-			sd->petDB = NULL;
-		}
-		else
-			intif_save_petdata(sd->status.account_id,&sd->pet);
-	}
 
 	if(pc_isdead(sd))
 		pc_setrestartvalue(sd,2);
@@ -2009,9 +1993,6 @@ static int cleanup_sub(struct block_list *bl, va_list ap) {
         case BL_MOB:
             mob_delete((struct mob_data *)bl);
             break;
-        case BL_PET:
-            pet_remove_map((struct map_session_data *)bl);
-            break;
         case BL_ITEM:
             map_clearflooritem(bl->id);
             break;
@@ -2149,7 +2130,6 @@ int do_init(int argc, char *argv[]) {
 	do_init_guild();
 	do_init_storage();
 	do_init_skill();
-	do_init_pet();
         do_init_magic();
 
 #ifndef TXT_ONLY /* mail system [Valaris] */

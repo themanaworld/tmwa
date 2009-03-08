@@ -186,18 +186,6 @@ extern struct Battle_Config {
 	int guild_exp_limit;
 	int guild_max_castles;
 	int pc_invincible_time;
-	int pet_catch_rate;
-	int pet_rename;
-	int pet_friendly_rate;
-	int pet_hungry_delay_rate;
-	int pet_hungry_friendly_decrease;
-	int pet_str;
-	int pet_status_support;
-	int pet_attack_support;
-	int pet_damage_support;
-	int pet_support_rate;
-	int pet_attack_exp_to_master;
-	int pet_attack_exp_rate;
 	int skill_min_damage;
 	int finger_offensive_type;
 	int heal_exp;
@@ -236,7 +224,6 @@ extern struct Battle_Config {
 	int vit_penaly_num;
 	int player_defense_type;
 	int monster_defense_type;
-	int pet_defense_type;
 	int magic_defense_type;
 	int pc_skill_reiteration;
 	int monster_skill_reiteration;
@@ -265,12 +252,8 @@ extern struct Battle_Config {
 	int chat_warpportal;
 	int mob_warpportal;
 	int dead_branch_active;
-	int vending_max_value;
-//	int pet_lootitem; // removed [Valaris]
-//	int pet_weight; // removed [Valaris]
 	int show_steal_in_same_party;
 	int enable_upper_class;
-	int pet_attack_attr_none;
 	int mob_attack_attr_none;
 	int mob_ghostring_fix;
 	int pc_attack_attr_none;
@@ -290,7 +273,6 @@ extern struct Battle_Config {
 	int monsters_ignore_gm;
 	int equipment_breaking;
 	int equipment_break_rate;
-	int pet_equip_required;
 	int multi_level_up;
 	int pk_mode;
 	int show_mob_hp;  // end additions [Valaris]

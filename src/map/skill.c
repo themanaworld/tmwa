@@ -11,17 +11,16 @@
 #include "malloc.h"
 #include "magic.h"
 
-#include "skill.h"
-#include "map.h"
-#include "clif.h"
-#include "pc.h"
-#include "pet.h"
-#include "mob.h"
 #include "battle.h"
-#include "party.h"
-#include "itemdb.h"
-#include "script.h"
+#include "clif.h"
 #include "intif.h"
+#include "itemdb.h"
+#include "map.h"
+#include "mob.h"
+#include "party.h"
+#include "pc.h"
+#include "script.h"
+#include "skill.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -442,7 +441,6 @@ struct skill_name_db skill_names[] = {
  { MC_MAMMONITE, "MAMMONITE", "Mammonite" } ,
  { MC_OVERCHARGE, "OVERCHARGE", "Overcharge" } ,
  { MC_PUSHCART, "PUSHCART", "Pushcart" } ,
- { MC_VENDING, "VENDING", "Vending" } ,
  { MG_COLDBOLT, "COLDBOLT", "Cold_Bolt" } ,
  { MG_ENERGYCOAT, "ENERGYCOAT", "Energy_Coat" } ,
  { MG_FIREBALL, "FIREBALL", "Fire_Ball" } ,
@@ -508,7 +506,6 @@ struct skill_name_db skill_names[] = {
  { NPC_PIERCINGATT, "PIERCINGATT", "NPC_PIERCINGATT" } ,
  { NPC_POISON, "POISON", "NPC_POISON" } ,
  { NPC_POISONATTACK, "POISONATTACK", "NPC_POISONATTACK" } ,
- { NPC_PROVOCATION, "PROVOCATION", "NPC_PROVOCATION" } ,
  { NPC_RANDOMATTACK, "RANDOMATTACK", "NPC_RANDOMATTACK" } ,
  { NPC_RANGEATTACK, "RANGEATTACK", "NPC_RANGEATTACK" } ,
  { NPC_REBIRTH, "REBIRTH", "NPC_REBIRTH" } ,
@@ -597,7 +594,6 @@ struct skill_name_db skill_names[] = {
  { SA_SEISMICWEAPON, "SEISMICWEAPON", "Seismic_Weapon" } ,
  { SA_SPELLBREAKER, "SPELLBREAKER", "Break_Spell" } ,
  { SA_SUMMONMONSTER, "SUMMONMONSTER", "Summon_Monster" } ,
- { SA_TAMINGMONSTER, "TAMINGMONSTER", "Taming_Monster" } ,
  { SA_VIOLENTGALE, "VIOLENTGALE", "Violent_Gale" } ,
  { SA_VOLCANO, "VOLCANO", "Volcano" } ,
  { SG_DEVIL, "DEVIL", "Devil" } ,
@@ -766,7 +762,6 @@ static int skillnotok(int skillid, struct map_session_data *sd) {
      switch (skillid) {
        case AL_WARP:
        case AL_TELEPORT:
-       case MC_VENDING:
        case MC_IDENTIFY:
              return 0; // always allowed
        default:
@@ -888,7 +883,6 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	struct map_session_data *dstsd=NULL;
 	struct mob_data *md=NULL;
 	struct mob_data *dstmd=NULL;
-	struct pet_data *pd=NULL;
 
 	int skill,skill2;
 	int rate,luk;
@@ -905,8 +899,6 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 		nullpo_retr(0, sd=(struct map_session_data *)src);
 	}else if(src->type==BL_MOB){
 		nullpo_retr(0, md=(struct mob_data *)src); //未使用？
-	}else if(src->type==BL_PET){
-		nullpo_retr(0, pd=(struct pet_data *)src); // [Valaris]
 	}
 
 	//対象の耐性
@@ -1082,10 +1074,8 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	case NPC_POISON:
 	case NPC_SILENCEATTACK:
 	case NPC_STUNATTACK:
-		if(rand()%100 < sc_def_vit && src->type!=BL_PET)
+		if(rand()%100 < sc_def_vit)
 			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
-		if(src->type==BL_PET)
-			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skilllv*1000,0);
 		break;
 	case NPC_CURSEATTACK:
 		if(rand()%100 < sc_def_luk)
@@ -1236,7 +1226,6 @@ int skill_blown( struct block_list *src, struct block_list *target,int count)
 	int moveblock;
 	struct map_session_data *sd=NULL;
 	struct mob_data *md=NULL;
-	struct pet_data *pd=NULL;
 	struct skill_unit *su=NULL;
 
 	nullpo_retr(0, src);
@@ -1246,13 +1235,11 @@ int skill_blown( struct block_list *src, struct block_list *target,int count)
 		nullpo_retr(0, sd=(struct map_session_data *)target);
 	}else if(target->type==BL_MOB){
 		nullpo_retr(0, md=(struct mob_data *)target);
-	}else if(target->type==BL_PET){
-		nullpo_retr(0, pd=(struct pet_data *)target);
 	}else if(target->type==BL_SKILL){
 		nullpo_retr(0, su=(struct skill_unit *)target);
 	}else return 0;
 
-	if(!(count&0x10000 && (sd||md||pd||su))){	/* 指定なしなら位置関係から方向を求める */
+	if(!(count&0x10000 && (sd||md||su))){	/* 指定なしなら位置関係から方向を求める */
 		dx=target->x-src->x; dx=(dx>0)?1:((dx<0)?-1: 0);
 		dy=target->y-src->y; dy=(dy>0)?1:((dy<0)?-1: 0);
 	}
@@ -1285,13 +1272,6 @@ int skill_blown( struct block_list *src, struct block_list *target,int count)
 			md->state.state = MS_WALK;
 			clif_fixmobpos(md);
 		}
-		else if(pd) {
-			pd->to_x=nx;
-			pd->to_y=ny;
-			prev_state = pd->state.state;
-			pd->state.state = MS_WALK;
-			clif_fixpetpos(pd);
-		}
 	}
 	else
 		battle_stopwalking(target,2);
@@ -1303,8 +1283,6 @@ int skill_blown( struct block_list *src, struct block_list *target,int count)
 		map_foreachinmovearea(clif_pcoutsight,target->m,x-AREA_SIZE,y-AREA_SIZE,x+AREA_SIZE,y+AREA_SIZE,dx,dy,0,sd);
 	else if(md)
 		map_foreachinmovearea(clif_moboutsight,target->m,x-AREA_SIZE,y-AREA_SIZE,x+AREA_SIZE,y+AREA_SIZE,dx,dy,BL_PC,md);
-	else if(pd)
-		map_foreachinmovearea(clif_petoutsight,target->m,x-AREA_SIZE,y-AREA_SIZE,x+AREA_SIZE,y+AREA_SIZE,dx,dy,BL_PC,pd);
 
 	if(su){
 		skill_unit_move_unit_group(su->group,target->m,dx,dy);
@@ -1332,11 +1310,6 @@ int skill_blown( struct block_list *src, struct block_list *target,int count)
 		map_foreachinmovearea(clif_mobinsight,target->m,nx-AREA_SIZE,ny-AREA_SIZE,nx+AREA_SIZE,ny+AREA_SIZE,-dx,-dy,BL_PC,md);
 		if(count&0x20000)
 			md->state.state = prev_state;
-	}
-	else if(pd) {
-		map_foreachinmovearea(clif_petinsight,target->m,nx-AREA_SIZE,ny-AREA_SIZE,nx+AREA_SIZE,ny+AREA_SIZE,-dx,-dy,BL_PC,pd);
-		if(count&0x20000)
-			pd->state.state = prev_state;
 	}
 
 	skill_unit_move(target,gettick(),(count&0xffff)+7);	/* スキルユニットの判定 */
@@ -1431,11 +1404,6 @@ int skill_attack( int attack_type, struct block_list* src, struct block_list *ds
 		clif_skill_nodamage(bl,bl,SA_MAGICROD,sc_data[SC_MAGICROD].val1,1); //マジックロッドエフェクトを表示
 	}
 //マジックロッド処理ここまで
-
-	if(src->type==BL_PET) { // [Valaris]
-		dmg.damage=battle_attr_fix(skilllv, skill_get_pl(skillid), battle_get_element(bl) );
-		dmg.damage2=0;
-	}
 
 	damage = dmg.damage + dmg.damage2;
 
@@ -1578,8 +1546,6 @@ int skill_attack( int attack_type, struct block_list* src, struct block_list *ds
 			skill_blown(dsrc,bl,dmg.blewcount);
 		if(bl->type == BL_MOB)
 			clif_fixmobpos((struct mob_data *)bl);
-		else if(bl->type == BL_PET)
-			clif_fixpetpos((struct pet_data *)bl);
 		else
 			clif_fixpos(bl);
 	}
@@ -1838,7 +1804,6 @@ static int skill_timerskill(int tid, unsigned int tick, int id,int data )
 {
 	struct map_session_data *sd = NULL;
 	struct mob_data *md = NULL;
-	struct pet_data *pd = NULL;
 	struct block_list *src = map_id2bl(id),*target;
 	struct skill_timerskill *skl = NULL;
 	int range;
@@ -1855,10 +1820,6 @@ static int skill_timerskill(int tid, unsigned int tick, int id,int data )
 	else if(src->type == BL_MOB) {
 		nullpo_retr(0, md = (struct mob_data *)src);
 		skl = &md->skilltimerskill[data];
-	}
-	else if(src->type == BL_PET) { // [Valaris]
-		nullpo_retr(0, pd = (struct pet_data *)src);
-		skl = &pd->skilltimerskill[data];
 	}
 
 	else
@@ -2020,27 +1981,7 @@ int skill_addtimerskill(struct block_list *src,unsigned int tick,int target,int 
 		}
 		return 1;
 	}
-	else if(src->type == BL_PET) { // [Valaris]
-		struct pet_data *pd = (struct pet_data *)src;
-		nullpo_retr(1, pd);
-		for(i=0;i<MAX_MOBSKILLTIMERSKILL;i++) {
-			if(pd->skilltimerskill[i].timer == -1) {
-				pd->skilltimerskill[i].timer = add_timer(tick, skill_timerskill, src->id, i);
-				pd->skilltimerskill[i].src_id = src->id;
-				pd->skilltimerskill[i].target_id = target;
-				pd->skilltimerskill[i].skill_id = skill_id;
-				pd->skilltimerskill[i].skill_lv = skill_lv;
-				pd->skilltimerskill[i].map = src->m;
-				pd->skilltimerskill[i].x = x;
-				pd->skilltimerskill[i].y = y;
-				pd->skilltimerskill[i].type = type;
-				pd->skilltimerskill[i].flag = flag;
 
-				return 0;
-			}
-		}
-		return 1;
-	}
 	return 1;
 }
 
@@ -2193,8 +2134,6 @@ int skill_castend_damage_id( struct block_list* src, struct block_list *bl,int s
 				skill_blown(src,bl,skill_get_blewcount(skillid,skilllv));
 				if(bl->type == BL_MOB)
 					clif_fixmobpos((struct mob_data *)bl);
-				else if(bl->type == BL_PET)
-					clif_fixpetpos((struct pet_data *)bl);
 				else
 					clif_fixpos(bl);
 			}
@@ -2359,8 +2298,6 @@ int skill_castend_damage_id( struct block_list* src, struct block_list *bl,int s
 					skill_blown(src,bl,1);
 					if(bl->type == BL_MOB)
 						clif_fixmobpos((struct mob_data *)bl);
-					else if(bl->type == BL_PET)
-						clif_fixpetpos((struct pet_data *)bl);
 					else
 						clif_fixpos(bl);
 					skill_area_temp[0]=0;
@@ -2847,17 +2784,6 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 	case SA_FORTUNE:
 		clif_skill_nodamage(src,bl,skillid,skilllv,1);
 		if(sd) pc_getzeny(sd,battle_get_lv(bl)*100);
-		break;
-	case SA_TAMINGMONSTER:
-		clif_skill_nodamage(src,bl,skillid,skilllv,1);
-		if (dstmd){
-			for(i=0;i<MAX_PET_DB;i++){
-				if(dstmd->class == pet_db[i].class){
-					pet_catch_process1(sd,dstmd->class);
-					break;
-				}
-			}
-		}
 		break;
 	case AL_INCAGI:			/* 速度増加 */
 	case AL_BLESSING:		/* ブレッシング */
@@ -3458,11 +3384,6 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 //			clif_item_repair_list(sd);
 		break;
 
-	case MC_VENDING:			/* 露店開設 */
-		if(sd)
-			clif_openvendingreq(sd,2+sd->skilllv);
-		break;
-
 	case AL_TELEPORT:			/* テレポート */
 		if( sd ){
 			if(map[sd->bl.m].flag.noteleport){	/* テレポ禁止 */
@@ -3737,8 +3658,6 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 		skill_blown(src,bl,skill_get_blewcount(skillid,skilllv)|0x10000);
 		if(src->type == BL_MOB)
 			clif_fixmobpos((struct mob_data *)src);
-		else if(src->type == BL_PET)
-			clif_fixpetpos((struct pet_data *)src);
 		else if(src->type == BL_PC)
 			clif_fixpos(src);
 		skill_addtimerskill(src,tick + 200,src->id,0,0,skillid,skilllv,0,flag);
@@ -3875,12 +3794,6 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				md->def_ele=rand()%10;	/* 不死属性は除く */
 			md->def_ele+=(1+rand()%4)*20;	/* 属性レベルはランダム */
 		}
-		break;
-
-	case NPC_PROVOCATION:
-		clif_skill_nodamage(src,bl,skillid,skilllv,1);
-		if(md)
-			clif_pet_performance(src,mob_db[md->class].skill[md->skillidx].val[0]);
 		break;
 
 	case NPC_HALLUCINATION:
@@ -5309,8 +5222,6 @@ int skill_unit_onplace(struct skill_unit *src,struct block_list *bl,unsigned int
 			if(moveblock) map_addblock(bl);
 			if(bl->type == BL_MOB)
 				clif_fixmobpos((struct mob_data *)bl);
-			else if(bl->type == BL_PET)
-				clif_fixpetpos((struct pet_data *)bl);
 			else
 				clif_fixpos(bl);
 			clif_01ac(&src->bl);
@@ -5464,8 +5375,6 @@ int skill_unit_onplace(struct skill_unit *src,struct block_list *bl,unsigned int
 			if(moveblock) map_addblock(bl);
 			if(bl->type == BL_MOB)
 				clif_fixmobpos((struct mob_data *)bl);
-			else if(bl->type == BL_PET)
-				clif_fixpetpos((struct pet_data *)bl);
 			else
 				clif_fixpos(bl);
 			clif_01ac(&src->bl);
@@ -9275,9 +9184,6 @@ struct skill_unit_group *skill_initunitgroup(struct block_list *src,
 	}else if(src->type==BL_MOB){
 		list=((struct mob_data *)src)->skillunit;
 		maxsug=MAX_MOBSKILLUNITGROUP;
-	}else if(src->type==BL_PET){
-		list=((struct pet_data *)src)->skillunit;
-		maxsug=MAX_MOBSKILLUNITGROUP;
 	}
 	if(list){
 		for(i=0;i<maxsug;i++)	/* 空いているもの検索 */
@@ -9409,9 +9315,6 @@ int skill_clear_unitgroup(struct block_list *src)
 		maxsug=MAX_SKILLUNITGROUP;
 	}else if(src->type==BL_MOB){
 		group=((struct mob_data *)src)->skillunit;
-		maxsug=MAX_MOBSKILLUNITGROUP;
-	}else if(src->type==BL_PET){ // [Valaris]
-		group=((struct pet_data *)src)->skillunit;
 		maxsug=MAX_MOBSKILLUNITGROUP;
 	}
 	if(group){

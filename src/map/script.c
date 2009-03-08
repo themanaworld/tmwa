@@ -19,25 +19,23 @@
 #include "malloc.h"
 #include "lock.h"
 
-#include "map.h"
-#include "clif.h"
+#include "atcommand.h"
+#include "battle.h"
+#include "chat.h"
 #include "chrif.h"
+#include "clif.h"
+#include "db.h"
+#include "intif.h"
 #include "itemdb.h"
-#include "pc.h"
-#include "script.h"
-#include "storage.h"
+#include "lock.h"
+#include "map.h"
 #include "mob.h"
 #include "npc.h"
-#include "pet.h"
-#include "intif.h"
-#include "db.h"
-#include "skill.h"
-#include "chat.h"
-#include "battle.h"
 #include "party.h"
-#include "guild.h"
-#include "lock.h"
-#include "atcommand.h"
+#include "pc.h"
+#include "script.h"
+#include "skill.h"
+#include "storage.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -211,8 +209,6 @@ int buildin_sc_start2(struct script_state *st);
 int buildin_sc_end(struct script_state *st);
 int buildin_getscrate(struct script_state *st);
 int buildin_debugmes(struct script_state *st);
-int buildin_catchpet(struct script_state *st);
-int buildin_birthpet(struct script_state *st);
 int buildin_resetlvl(struct script_state *st);
 int buildin_resetstatus(struct script_state *st);
 int buildin_resetskill(struct script_state *st);
@@ -253,7 +249,6 @@ int buildin_divorce(struct script_state *st);
 int buildin_getitemname(struct script_state *st);
 int buildin_getspellinvocation(struct script_state *st); // [Fate]
 int buildin_getanchorinvocation(struct script_state *st); // [Fate]
-int buildin_makepet(struct script_state *st);
 int buildin_getexp(struct script_state *st);
 int buildin_getinventorylist(struct script_state *st);
 int buildin_getskilllist(struct script_state *st);
@@ -270,12 +265,6 @@ int buildin_mobcount(struct script_state *st);
 int buildin_strmobinfo(struct script_state *st); // Script for displaying mob info [Valaris]
 int buildin_guardian(struct script_state *st); // Script for displaying mob info [Valaris]
 int buildin_guardianinfo(struct script_state *st); // Script for displaying mob info [Valaris]
-int buildin_petskillbonus(struct script_state *st); // petskillbonus [Valaris]
-int buildin_petrecovery(struct script_state *st); // pet skill for curing status [Valaris]
-int buildin_petloot(struct script_state *st); // pet looting [Valaris]
-int buildin_petheal(struct script_state *st); // pet healing [Valaris]
-int buildin_petmag(struct script_state *st); // pet magnificat [Valaris]
-int buildin_petskillattack(struct script_state *st); // pet skill attacks [Valaris]
 int buildin_npcskilleffect(struct script_state *st); // skill effects for npcs [Valaris]
 int buildin_specialeffect(struct script_state *st); // special effect script [Valaris]
 int buildin_specialeffect2(struct script_state *st); // special effect script [Valaris]
@@ -422,8 +411,6 @@ struct {
 	{buildin_sc_end,"sc_end","i"},
 	{buildin_getscrate,"getscrate","ii*"},
 	{buildin_debugmes,"debugmes","s"},
-	{buildin_catchpet,"pet","i"},
-	{buildin_birthpet,"bpet",""},
 	{buildin_resetlvl,"resetlvl","i"},
 	{buildin_resetstatus,"resetstatus",""},
 	{buildin_resetskill,"resetskill",""},
@@ -466,7 +453,6 @@ struct {
 	{buildin_getspellinvocation,"getspellinvocation","s"},
 	{buildin_getanchorinvocation,"getanchorinvocation","s"},
 	{buildin_getpartnerid,"getpartnerid2","i"},
-	{buildin_makepet,"makepet","i"},
 	{buildin_getexp,"getexp","ii"},
 	{buildin_getinventorylist,"getinventorylist",""},
 	{buildin_getskilllist,"getskilllist",""},
@@ -477,12 +463,6 @@ struct {
 	{buildin_strmobinfo,"strmobinfo","ii"},	// display mob data [Valaris]
 	{buildin_guardian,"guardian","siisii*i"},	// summon guardians
 	{buildin_guardianinfo,"guardianinfo","i"},	// display guardian data [Valaris]
-	{buildin_petskillbonus,"petskillbonus","iiii"}, // [Valaris]
-	{buildin_petrecovery,"petrecovery","ii"}, // [Valaris]
-	{buildin_petloot,"petloot","i"}, // [Valaris]
-	{buildin_petheal,"petheal","iii"}, // [Valaris]
-	{buildin_petmag,"petmag","iiii"}, // [Valaris]
-	{buildin_petskillattack,"petskillattack","iiii"}, // [Valaris]
 	{buildin_npcskilleffect,"npcskilleffect","iiii"}, // npc skill effect [Valaris]
 	{buildin_specialeffect,"specialeffect","i"}, // npc skill effect [Valaris]
 	{buildin_specialeffect2,"specialeffect2","i"}, // skill effect on players[Valaris]
@@ -2531,14 +2511,6 @@ int buildin_delitem(struct script_state *st)
 		   sd->inventory_data[i]->type!=7 ||
 		   sd->status.inventory[i].amount<=0)
 			continue;
-		if(sd->status.inventory[i].nameid == nameid){
-			if(sd->status.inventory[i].card[0] == (short)0xff00){
-				if(search_petDB_index(nameid, PET_EGG) >= 0){
-					intif_delete_petdata(*((long *)(&sd->status.inventory[i].card[1])));
-					break;
-				}
-			}
-		}
 	}
 	for(i=0;i<MAX_INVENTORY;i++){
 		if(sd->status.inventory[i].nameid==nameid){
@@ -3586,36 +3558,7 @@ int buildin_itemskill(struct script_state *st)
 	clif_item_skill(sd,id,lv,str);
 	return 0;
 }
-/*==========================================
- * NPCでペット作る
- *------------------------------------------
- */
-int buildin_makepet(struct script_state *st)
-{
-	struct map_session_data *sd = script_rid2sd(st);
-	struct script_data *data;
-	int id,pet_id;
 
-	data=&(st->stack->stack_data[st->start+2]);
-	get_val(st,data);
-
-	id=conv_num(st,data);
-
-	pet_id = search_petDB_index(id, PET_CLASS);
-
-	if (pet_id < 0)
-		pet_id = search_petDB_index(id, PET_EGG);
-	if (pet_id >= 0 && sd) {
-		sd->catch_target_class = pet_db[pet_id].class;
-		intif_create_pet(
-			sd->status.account_id, sd->status.char_id,
-			pet_db[pet_id].class, mob_db[pet_db[pet_id].class].lv,
-			pet_db[pet_id].EggID, 0, pet_db[pet_id].intimate,
-			100, 0, 1, pet_db[pet_id].jname);
-	}
-
-	return 0;
-}
 /*==========================================
  * NPCで経験値上げる
  *------------------------------------------
@@ -4237,32 +4180,6 @@ int buildin_debugmes(struct script_state *st)
 {
 	conv_str(st,& (st->stack->stack_data[st->start+2]));
 	printf("script debug : %d %d : %s\n",st->rid,st->oid,st->stack->stack_data[st->start+2].u.str);
-	return 0;
-}
-
-/*==========================================
- *捕獲アイテム使用
- *------------------------------------------
- */
-int buildin_catchpet(struct script_state *st)
-{
-	int pet_id;
-	struct map_session_data *sd;
-	pet_id= conv_num(st,& (st->stack->stack_data[st->start+2]));
-	sd=script_rid2sd(st);
-	pet_catch_process1(sd,pet_id);
-	return 0;
-}
-
-/*==========================================
- *携帯卵孵化機使用
- *------------------------------------------
- */
-int buildin_birthpet(struct script_state *st)
-{
-	struct map_session_data *sd;
-	sd=script_rid2sd(st);
-	clif_sendegg(sd);
 	return 0;
 }
 
@@ -5500,68 +5417,6 @@ int buildin_getpartnerid(struct script_state *st)
 	return 0;
 }
 
-
-/*==========================================
- * petskillbonus [Valaris]
- *------------------------------------------
- */
-
-int buildin_petskillbonus(struct script_state *st)
-{
-	int type,val,duration,timer; 
-	struct pet_data *pd;
-
-	struct map_session_data *sd=script_rid2sd(st);	
-
-	if(sd==NULL || sd->pd==NULL) 
-		return 0;
-
-	pd=sd->pd;
-
-	if(pd==NULL)
-		return 0;
-
-	type=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	val=conv_num(st,& (st->stack->stack_data[st->start+3]));
-	duration=conv_num(st,& (st->stack->stack_data[st->start+4]));
-	timer=conv_num(st,& (st->stack->stack_data[st->start+5]));
-
-	pd->skillbonusduration=-1;
-	pd->skillbonustimer=-1;
-		
-	pet_skill_bonus(sd,pd,type,val,duration,timer,0);
-
-	return 0;
-}
-
-/*==========================================
- * pet looting [Valaris]
- *------------------------------------------
- */
-int buildin_petloot(struct script_state *st)
-{
-	int max;
-	struct pet_data *pd;
-
-	struct map_session_data *sd=script_rid2sd(st);
-	if(sd==NULL || sd->pd==NULL)
-		return 0;
-
-	pd=sd->pd;
-
-	if(pd==NULL)
-		return 0;
-
-	max=conv_num(st,& (st->stack->stack_data[st->start+2]));
-
-	if(!max)
-		return 0;
-	
-	pd->loot=1;
-	pd->lootmax=max;
-
-	return 0;
-}
 /*==========================================
  * PCの所持品情報読み取り
  *------------------------------------------
@@ -5678,112 +5533,7 @@ int buildin_soundeffect(struct script_state *st)
 	}
 	return 0;
 }
-/*==========================================
- * pet status recovery [Valaris]
- *------------------------------------------
- */
-int buildin_petrecovery(struct script_state *st)
-{
-	struct pet_data *pd;
 
-	struct map_session_data *sd=script_rid2sd(st);	
-
-	if(sd==NULL || sd->pd==NULL) 
-		return 0;
-
-	pd=sd->pd;
-
-	if(pd==NULL)
-		return 0;
-
-	pd->skilltype=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	pd->skilltimer=conv_num(st,& (st->stack->stack_data[st->start+3]));
-
-	pd->skillbonustimer=add_timer(gettick()+pd->skilltimer*1000,pet_recovery_timer,sd->bl.id,0);
-
-	return 0;
-}
-
-/*==========================================
- * pet healing [Valaris]
- *------------------------------------------
- */
-int buildin_petheal(struct script_state *st)
-
-{
-	struct pet_data *pd;
-	struct map_session_data *sd=script_rid2sd(st);	
-
-	if(sd==NULL || sd->pd==NULL) 
-		return 0;
-
-	pd=sd->pd;
-
-	if(pd==NULL)
-		return 0;
-
-	pd->skilltype=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	pd->skillval=conv_num(st,& (st->stack->stack_data[st->start+3]));
-	pd->skilltimer=conv_num(st,& (st->stack->stack_data[st->start+4]));
-
-	pd->skillbonustimer=add_timer(gettick()+pd->skilltimer*1000,pet_heal_timer,sd->bl.id,0);
-
-	return 0;
-}
-	
-/*==========================================
- * pet magnificat [Valaris]
- *------------------------------------------
- */
-int buildin_petmag(struct script_state *st)
-{
-	struct pet_data *pd;
-	struct map_session_data *sd=script_rid2sd(st);	
-
-	if(sd==NULL || sd->pd==NULL) 
-		return 0;
-
-	pd=sd->pd;
-
-	if(pd==NULL)
-		return 0;
-
-	pd->skilltype=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	pd->skillduration=conv_num(st,& (st->stack->stack_data[st->start+3]));
-	pd->skillval=conv_num(st,& (st->stack->stack_data[st->start+4]));
-	pd->skilltimer=conv_num(st,& (st->stack->stack_data[st->start+5]));
-
-	pd->skillbonustimer=add_timer(gettick()+pd->skilltimer*1000,pet_mag_timer,sd->bl.id,0);
-
-	return 0;
-}
-
-/*==========================================
- * pet attack skills [Valaris]
- *------------------------------------------
- */
-int buildin_petskillattack(struct script_state *st)
-{
-	struct pet_data *pd;
-	struct map_session_data *sd=script_rid2sd(st);	
-
-	if(sd==NULL || sd->pd==NULL) 
-		return 0;
-
-	pd=sd->pd;
-
-	if(pd==NULL)
-		return 0;
-
-	pd->skilltype=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	pd->skillval=conv_num(st,& (st->stack->stack_data[st->start+3]));	
-	pd->skillduration=conv_num(st,& (st->stack->stack_data[st->start+4]));
-	pd->skilltimer=conv_num(st,& (st->stack->stack_data[st->start+5]));
-
-	pd->skillbonustimer=add_timer(gettick()+100,pet_skillattack_timer,sd->bl.id,0);
-
-	return 0;
-}
 /*==========================================
  * NPC skill effects [Valaris]
  *------------------------------------------

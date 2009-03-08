@@ -175,10 +175,6 @@ struct item_data* itemdb_search(int nameid)
 		id->type=5;   //armor
 	else if(nameid>4000 && nameid<5000)
 		id->type=6;   //card
-	else if(nameid>9000 && nameid<10000)
-		id->type=7;   //egg
-	else if(nameid>10000)
-		id->type=8;   //petequip
 
 	return id;
 }

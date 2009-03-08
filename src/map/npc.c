@@ -6,20 +6,20 @@
 #include <math.h>
 #include <time.h>
 
-#include "db.h"
-#include "timer.h"
-#include "nullpo.h"
 #include "malloc.h"
-#include "map.h"
-#include "npc.h"
-#include "clif.h"
-#include "intif.h"
-#include "pc.h"
-#include "itemdb.h"
-#include "script.h"
-#include "mob.h"
-#include "pet.h"
+#include "nullpo.h"
+#include "timer.h"
+
 #include "battle.h"
+#include "clif.h"
+#include "db.h"
+#include "intif.h"
+#include "itemdb.h"
+#include "map.h"
+#include "mob.h"
+#include "npc.h"
+#include "pc.h"
+#include "script.h"
 #include "skill.h"
 
 #ifdef MEMWATCH
@@ -1039,8 +1039,6 @@ int npc_selllist(struct map_session_data *sd,int n,unsigned short *item_list)
 		if(	sd->status.inventory[item_id].nameid>0 && sd->inventory_data[item_id] != NULL &&
 			sd->inventory_data[item_id]->type==7 && sd->status.inventory[item_id].amount>0 &&
 			sd->status.inventory[item_id].card[0] == (short)0xff00)
-				if(search_petDB_index(sd->status.inventory[item_id].nameid, PET_EGG) >= 0)
-					intif_delete_petdata((*(long *)(&sd->status.inventory[item_id].card[1])));
 		pc_delitem(sd,item_id,item_list[i*2+1],0);
 	}
 
@@ -1958,7 +1956,6 @@ int do_final_npc(void)
 	struct block_list *bl;
 	struct npc_data *nd;
 	struct mob_data *md;
-	struct pet_data *pd;
 
 	if(ev_db)
 		strdb_final(ev_db,ev_db_final);
@@ -1976,9 +1973,6 @@ int do_final_npc(void)
 				}
 				free(md);
 				md = NULL;
-			}else if(bl->type == BL_PET && (pd = (struct pet_data *)bl)){
-				free(pd);
-				pd = NULL;
 			}
 		}
 	}

@@ -1914,8 +1914,6 @@ static int mob_ai_sub_hard(struct block_list *bl,va_list ap)
 					return 0;
 				}
 				else {
-					if(md->lootitem[0].card[0] == (short)0xff00)
-						intif_delete_petdata(*((long *)(&md->lootitem[0].card[1])));
 					for(i=0;i<LOOTITEM_SIZE-1;i++)
 						memcpy(&md->lootitem[i],&md->lootitem[i+1],sizeof(md->lootitem[0]));
 					memcpy(&md->lootitem[LOOTITEM_SIZE-1],&fitem->item_data,sizeof(md->lootitem[0]));
@@ -2313,28 +2311,6 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 			if(md->attacked_id <= 0 && md->state.special_mob_ai==0)
 				md->attacked_id = sd->bl.id;
 		}
-		if(src && src->type == BL_PET && battle_config.pet_attack_exp_to_master==1) {
-			struct pet_data *pd = (struct pet_data *)src;
-			nullpo_retr(0, pd);
-			for(i=0,minpos=0,mindmg=0x7fffffff;i<DAMAGELOG_SIZE;i++){
-				if(md->dmglog[i].id==pd->msd->bl.id)
-					break;
-				if(md->dmglog[i].id==0){
-					minpos=i;
-					mindmg=0;
-				}
-				else if(md->dmglog[i].dmg<mindmg){
-					minpos=i;
-					mindmg=md->dmglog[i].dmg;
-				}
-			}
-			if(i<DAMAGELOG_SIZE)
-				md->dmglog[i].dmg+=(damage*battle_config.pet_attack_exp_rate)/100;
-			else {
-				md->dmglog[minpos].id=pd->msd->bl.id;
-				md->dmglog[minpos].dmg=(damage*battle_config.pet_attack_exp_rate)/100;
-			}
-		}
 		if(src && src->type == BL_MOB && ((struct mob_data*)src)->state.special_mob_ai){
 			struct mob_data *md2 = (struct mob_data *)src;
 			nullpo_retr(0, md2);
@@ -2692,10 +2668,6 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 
 		// SCRIPTŽÀs
 	if(md->npc_event[0]){
-//		if(battle_config.battle_log==1)
-//			printf("mob_damage : run event : %s\n",md->npc_event);
-		if(src && src->type == BL_PET)
-			sd = ((struct pet_data *)src)->msd;
 		if(sd == NULL) {
 			if(mvp_sd != NULL)
 				sd = mvp_sd;
@@ -3060,11 +3032,6 @@ static int mob_counttargeted_sub(struct block_list *bl,va_list ap)
 	else if(bl->type == BL_MOB) {
 		struct mob_data *md = (struct mob_data *)bl;
 		if(md && md->target_id == id && md->timer != -1 && md->state.state == MS_ATTACK && md->target_lv >= target_lv)
-			(*c)++;
-	}
-	else if(bl->type == BL_PET) {
-		struct pet_data *pd = (struct pet_data *)bl;
-		if(pd->target_id == id && pd->timer != -1 && pd->state.state == MS_ATTACK && pd->target_lv >= target_lv)
 			(*c)++;
 	}
 	return 0;
@@ -3955,7 +3922,7 @@ static int mob_readdb(void)
 					ratemin = battle_config.item_drop_use_min;
 					ratemax = battle_config.item_drop_use_max;	// End
 				}
-				else if (type == 4 || type == 5 || type == 8) {		// Changed to include Pet Equip
+				else if (type == 4 || type == 5 || type == 8) {
 					rate = battle_config.item_rate_equip;
 					ratemin = battle_config.item_drop_equip_min;
 					ratemax = battle_config.item_drop_equip_max;
@@ -4380,7 +4347,7 @@ static int mob_read_sqldb(void)
 					ratemin = battle_config.item_drop_use_min;
 					ratemax = battle_config.item_drop_use_max;	// End
 				}
-				else if (type == 4 || type == 5 || type == 8) {		// Changed to include Pet Equip
+				else if (type == 4 || type == 5 || type == 8) {
 					rate = battle_config.item_rate_equip;
 					ratemin = battle_config.item_drop_equip_min;
 					ratemax = battle_config.item_drop_equip_max;

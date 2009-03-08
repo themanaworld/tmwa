@@ -36,17 +36,14 @@ int clif_spawnpc(struct map_session_data*);	//area
 int clif_spawnnpc(struct npc_data*);	// area
 int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id);
 int clif_spawnmob(struct mob_data*);	// area
-int clif_spawnpet(struct pet_data*);	// area
 int clif_walkok(struct map_session_data*);	// self
 int clif_movechar(struct map_session_data*);	// area
 int clif_movemob(struct mob_data*);	//area
-int clif_movepet(struct pet_data *pd);	//area
 int clif_changemap(struct map_session_data*,char*,int,int);	//self
 int clif_changemapserver(struct map_session_data*,char*,int,int,int,int);	//self
 int clif_fixpos(struct block_list *);	// area
 int clif_fixmobpos(struct mob_data *md);
 int clif_fixpcpos(struct map_session_data *sd);
-int clif_fixpetpos(struct pet_data *pd);
 int clif_npcbuysell(struct map_session_data*,int);	//self
 int clif_buylist(struct map_session_data*,struct npc_data*);	//self
 int clif_selllist(struct map_session_data*);	//self
@@ -121,8 +118,6 @@ int clif_pcinsight(struct block_list *,va_list);	// map_forallinmovearea callbac
 int clif_pcoutsight(struct block_list *,va_list);	// map_forallinmovearea callback
 int clif_mobinsight(struct block_list *,va_list);	// map_forallinmovearea callback
 int clif_moboutsight(struct block_list *,va_list);	// map_forallinmovearea callback
-int clif_petoutsight(struct block_list *bl,va_list ap);
-int clif_petinsight(struct block_list *bl,va_list ap);
 
 int clif_class_change(struct block_list *bl,int class,int type);
 int clif_mob_class_change(struct mob_data *md,int class);
@@ -194,15 +189,6 @@ int clif_mvp_effect(struct map_session_data *sd);
 int clif_mvp_item(struct map_session_data *sd,int nameid);
 int clif_mvp_exp(struct map_session_data *sd,int exp);
 
-// vending
-int clif_openvendingreq(struct map_session_data *sd,int num);
-int clif_showvendingboard(struct block_list* bl,char *message,int fd);
-int clif_closevendingboard(struct block_list* bl,int fd);
-int clif_vendinglist(struct map_session_data *sd,int id,struct vending *vending);
-int clif_buyvending(struct map_session_data *sd,int index,int amount,int fail);
-int clif_openvending(struct map_session_data *sd,int id,struct vending *vending);
-int clif_vendingreport(struct map_session_data *sd,int index,int amount);
-
 int clif_movetoattack(struct map_session_data *sd,struct block_list *bl);
 
 // party
@@ -253,17 +239,6 @@ int clif_set0199(int fd,int type);
 int clif_pvpset(struct map_session_data *sd, int pvprank, int pvpnum,int type);
 int clif_send0199(int map,int type);
 int clif_refine(int fd,struct map_session_data *sd,int fail,int index,int val);
-
-//petsystem
-int clif_catch_process(struct map_session_data *sd);
-int clif_pet_rulet(struct map_session_data *sd,int data);
-int clif_sendegg(struct map_session_data *sd);
-int clif_send_petdata(struct map_session_data *sd,int type,int param);
-int clif_send_petstatus(struct map_session_data *sd);
-int clif_pet_emotion(struct pet_data *pd,int param);
-int clif_pet_performance(struct block_list *bl,int param);
-int clif_pet_equip(struct pet_data *pd,int nameid);
-int clif_pet_food(struct map_session_data *sd,int foodid,int fail);
 
 int clif_specialeffect(struct block_list *bl,int type, int flag); // special effects [Valaris]
 int clif_message(struct block_list *bl, char* msg); // messages (from mobs/npcs) [Valaris]

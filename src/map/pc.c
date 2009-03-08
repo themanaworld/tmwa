@@ -10,26 +10,24 @@
 #include "db.h"
 
 #include "malloc.h"
-#include "map.h"
+#include "nullpo.h"
+
+#include "atcommand.h"
+#include "battle.h"
+#include "chat.h"
 #include "chrif.h"
 #include "clif.h"
 #include "intif.h"
-#include "pc.h"
-#include "npc.h"
-#include "mob.h"
-#include "pet.h"
 #include "itemdb.h"
-#include "script.h"
-#include "battle.h"
-#include "skill.h"
+#include "map.h"
+#include "mob.h"
+#include "npc.h"
 #include "party.h"
-#include "guild.h"
-#include "chat.h"
-#include "trade.h"
+#include "pc.h"
+#include "script.h"
+#include "skill.h"
 #include "storage.h"
-#include "vending.h"
-#include "nullpo.h"
-#include "atcommand.h"
+#include "trade.h"
 
 #ifndef TXT_ONLY // mail system [Valaris]
 #include "mail.h"
@@ -738,12 +736,6 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	pc_setinventorydata(sd);
 	pc_checkitem(sd);
 
-	// pet
-	sd->petDB = NULL;
-	sd->pd = NULL;
-	sd->pet_hungry_timer = -1;
-	memset(&sd->pet, 0, sizeof(struct s_pet));
-
 	// ステータス異常の初期化
 	for(i = 0; i < MAX_STATUSCHANGE; i++) {
 		sd->sc_data[i].timer=-1;
@@ -782,10 +774,6 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 
 	// 位置の設定
 	pc_setpos(sd,sd->status.last_point.map, sd->status.last_point.x, sd->status.last_point.y, 0);
-
-	// pet
-	if (sd->status.pet_id > 0)
-		intif_request_petdata(sd->status.account_id, sd->status.char_id, sd->status.pet_id);
 
 	// パーティ、ギルドデータの要求
 	if (sd->status.party_id > 0 && (p = party_search(sd->status.party_id)) == NULL)
@@ -1326,16 +1314,6 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	wele = sd->atk_ele;
 	wele_ = sd->atk_ele_;
 	def_ele = sd->def_ele;
-	if(sd->status.pet_id > 0) {
-		struct pet_data *pd=sd->pd;
-		if((pd && battle_config.pet_status_support==1) && (battle_config.pet_equip_required==0 || (battle_config.pet_equip_required && pd->equip > 0))) {
-			if(sd->status.pet_id > 0 && sd->petDB && sd->pet.intimate > 0)
-				run_script(sd->petDB->script,0,sd->bl.id,0);
-			pele = sd->atk_ele;
-			pdef_ele = sd->def_ele;
-			sd->atk_ele = sd->def_ele = 0;
-		}
-	}
 	memcpy(sd->paramcard,sd->parame,sizeof(sd->paramcard));
 
 	// 装備品によるステータス変化はここで実行
@@ -1416,12 +1394,6 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		sd->atk_ele_ = wele_;
 	if(def_ele > 0)
 		sd->def_ele = def_ele;
-	if(battle_config.pet_status_support) {
-		if(pele > 0 && !sd->atk_ele)
-			sd->atk_ele = pele;
-		if(pdef_ele > 0 && !sd->def_ele)
-			sd->def_ele = pdef_ele;
-	}
 	sd->double_rate += sd->double_add_rate;
 	sd->perfect_hit += sd->perfect_hit_add;
 	sd->get_zeny_num += sd->get_zeny_add_num;
@@ -3004,7 +2976,7 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 
 	if (sd->status.inventory[n].nameid <= 0 ||
 	    sd->status.inventory[n].amount < amount ||
-	    sd->trade_partner != 0 || sd->vender_id != 0 ||
+	    sd->trade_partner != 0 ||
 	    sd->status.inventory[n].amount <= 0)
 		return 1;
 	map_addflooritem(&sd->status.inventory[n], amount, sd->bl.m, sd->bl.x, sd->bl.y, NULL, NULL, NULL, 0);
@@ -3261,7 +3233,7 @@ int pc_putitemtocart(struct map_session_data *sd,int idx,int amount) {
 	nullpo_retr(0, sd);
 	nullpo_retr(0, item_data = &sd->status.inventory[idx]);
 
-	if (item_data->nameid==0 || item_data->amount<amount || sd->vender_id)
+	if (item_data->nameid==0 || item_data->amount<amount)
 		return 1;
 	if (pc_cart_additem(sd,item_data,amount) == 0)
 		return pc_delitem(sd,idx,amount,0);
@@ -3297,7 +3269,7 @@ int pc_getitemfromcart(struct map_session_data *sd,int idx,int amount)
 	nullpo_retr(0, sd);
 	nullpo_retr(0, item_data=&sd->status.cart[idx]);
 
-	if( item_data->nameid==0 || item_data->amount<amount || sd->vender_id )
+	if( item_data->nameid==0 || item_data->amount<amount)
 		return 1;
 	if((flag = pc_additem(sd,item_data,amount)) == 0)
 		return pc_cart_delitem(sd,idx,amount,0);
@@ -3496,11 +3468,6 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 	if(sd->sc_data[SC_DANCING].timer!=-1) // clear dance effect when warping [Valaris]
 		skill_stop_dancing(&sd->bl,0);
 
-	if(sd->status.pet_id > 0 && sd->pd && sd->pet.intimate > 0) {
-		pet_stopattack(sd->pd);
-		pet_changestate(sd->pd,MS_IDLE,0);
-	}
-	
 	if(sd->disguise) { // clear disguises when warping [Valaris]
 		clif_clearchar(&sd->bl, 9);
 		disguise=sd->disguise;
@@ -3523,30 +3490,11 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 				clif_clearchar_area(&sd->bl,clrtype&0xffff);
 				skill_gangsterparadise(sd,0);
 				map_delblock(&sd->bl);
-				if(sd->status.pet_id > 0 && sd->pd) {
-					if(sd->pd->bl.m != m && sd->pet.intimate <= 0) {
-						pet_remove_map(sd);
-						intif_delete_petdata(sd->status.pet_id);
-						sd->status.pet_id = 0;
-						sd->pd = NULL;
-						sd->petDB = NULL;
-						if(battle_config.pet_status_support)
-							pc_calcstatus(sd,2);
-					}
-					else if(sd->pet.intimate > 0) {
-						pet_stopattack(sd->pd);
-						pet_changestate(sd->pd,MS_IDLE,0);
-						clif_clearchar_area(&sd->pd->bl,clrtype&0xffff);
-						map_delblock(&sd->pd->bl);
-					}
-				}
 				memcpy(sd->mapname,mapname,24);
 				sd->bl.x=x;
 				sd->bl.y=y;
 				sd->state.waitingdisconnect=1;
 				pc_makesavestatus(sd);
-				if(sd->status.pet_id > 0 && sd->pd)
-					intif_save_petdata(sd->status.account_id,&sd->pet);
 				chrif_save(sd);
 				storage_storage_save(sd);
 				chrif_changemapserver(sd, mapname, x, y, ip, port);
@@ -3578,27 +3526,6 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 		clif_clearchar_area(&sd->bl,clrtype&0xffff);
 		skill_gangsterparadise(sd,0);
 		map_delblock(&sd->bl);
-		// pet
-		if(sd->status.pet_id > 0 && sd->pd) {
-			if(sd->pd->bl.m != m && sd->pet.intimate <= 0) {
-				pet_remove_map(sd);
-				intif_delete_petdata(sd->status.pet_id);
-				sd->status.pet_id = 0;
-				sd->pd = NULL;
-				sd->petDB = NULL;
-				if(battle_config.pet_status_support)
-					pc_calcstatus(sd,2);
-				pc_makesavestatus(sd);
-				chrif_save(sd);
-				storage_storage_save(sd);
-			}
-			else if(sd->pet.intimate > 0) {
-				pet_stopattack(sd->pd);
-				pet_changestate(sd->pd,MS_IDLE,0);
-				clif_clearchar_area(&sd->pd->bl,clrtype&0xffff);
-				map_delblock(&sd->pd->bl);
-			}
-		}
 		clif_changemap(sd,map[m].name,x,y); // [MouseJstr]
 	}
 
@@ -3614,13 +3541,6 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 
 	sd->bl.x =  x;
 	sd->bl.y =  y;
-
-	if(sd->status.pet_id > 0 && sd->pd && sd->pet.intimate > 0) {
-		sd->pd->bl.m = m;
-		sd->pd->bl.x = sd->pd->to_x = x;
-		sd->pd->bl.y = sd->pd->to_y = y;
-		sd->pd->dir = sd->dir;
-	}
 
 //	map_addblock(&sd->bl);	/// ブロック登録とspawnは
 //	clif_spawnpc(sd);
@@ -4234,8 +4154,6 @@ int pc_attack_timer(int tid,unsigned int tick,int id,int data)
                                 sd->attacktarget_lv = battle_weapon_attack(&sd->bl,bl,tick,0);
                                 if(!(battle_config.pc_cloak_check_type&2) && sd->sc_data[SC_CLOAKING].timer != -1)
                                         skill_status_change_end(&sd->bl,SC_CLOAKING,-1);
-                                if(sd->status.pet_id > 0 && sd->pd && sd->petDB && battle_config.pet_attack_support)
-                                        pet_target_check(sd,bl,0);
                                 map_freeblock_unlock();
                                 if(sd->skilltimer != -1 && (skill = pc_checkskill(sd,SA_FREECAST)) > 0 ) // フリーキャスト
                                         sd->attackabletime = tick + ((sd->aspd<<1)*(150 - skill*5)/100);
@@ -5064,8 +4982,6 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 		skill_stop_dancing(&sd->bl,0);
 
 	sd->status.hp-=damage;
-	if(sd->status.pet_id > 0 && sd->pd && sd->petDB && battle_config.pet_damage_support)
-		pet_target_check(sd,src,1);
 
 	if (sd->sc_data[SC_TRICKDEAD].timer != -1)
 		skill_status_change_end(&sd->bl, SC_TRICKDEAD, -1);
@@ -5103,17 +5019,6 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 	sd->quick_regeneration_sp.amount = 0;
 
 	pc_setdead(sd);
-	if(sd->vender_id)
-		vending_closevending(sd);
-
-	if(sd->status.pet_id > 0 && sd->pd) {
-		if(sd->petDB) {
-			sd->pet.intimate -= sd->petDB->die;
-			if(sd->pet.intimate < 0)
-				sd->pet.intimate = 0;
-			clif_send_petdata(sd,1,sd->pet.intimate);
-		}
-	}
 
 	pc_stop_walking(sd,0);
 	skill_castcancel(&sd->bl,0);	// 詠唱の中止
@@ -7263,11 +7168,7 @@ static int pc_autosave_sub(struct map_session_data *sd,va_list ap)
 	if(save_flag==0 && sd->fd>last_save_fd){
 		struct guild_castle *gc=NULL;
 		int i;
-//		if(battle_config.save_log)
-//			printf("autosave %d\n",sd->fd);
-		// pet
-		if(sd->status.pet_id > 0 && sd->pd)
-			intif_save_petdata(sd->status.account_id,&sd->pet);
+
 		pc_makesavestatus(sd);
 		chrif_save(sd);
 		storage_storage_save(sd);

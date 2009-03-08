@@ -10,14 +10,13 @@
 #include "nullpo.h"
 #include "malloc.h"
 
+#include "clif.h"
+#include "guild.h"
+#include "itemdb.h"
 #include "map.h"
+#include "mob.h"
 #include "pc.h"
 #include "skill.h"
-#include "mob.h"
-#include "itemdb.h"
-#include "clif.h"
-#include "pet.h"
-#include "guild.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -67,8 +66,6 @@ int battle_get_class(struct block_list *bl)
 		return ((struct mob_data *)bl)->class;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->status.class;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return ((struct pet_data *)bl)->class;
 	else
 		return 0;
 }
@@ -84,8 +81,6 @@ int battle_get_dir(struct block_list *bl)
 		return ((struct mob_data *)bl)->dir;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->dir;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return ((struct pet_data *)bl)->dir;
 	else
 		return 0;
 }
@@ -101,8 +96,6 @@ int battle_get_lv(struct block_list *bl)
 		return ((struct mob_data *)bl)->stats[MOB_LV];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->status.base_level;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return ((struct pet_data *)bl)->msd->pet.level;
 	else
 		return 0;
 }
@@ -118,8 +111,6 @@ int battle_get_range(struct block_list *bl)
 		return mob_db[((struct mob_data *)bl)->class].range;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->attackrange;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return mob_db[((struct pet_data *)bl)->class].range;
 	else
 		return 0;
 }
@@ -162,17 +153,6 @@ int battle_get_max_hp(struct block_list *bl)
 					max_hp = (max_hp * battle_config.monster_hp_rate)/100;
 			}
 		}
-		else if(bl->type==BL_PET && ((struct pet_data*)bl)) {
-			max_hp = mob_db[((struct pet_data*)bl)->class].max_hp;
-			if(mob_db[((struct pet_data*)bl)->class].mexp > 0) {
-				if(battle_config.mvp_hp_rate != 100)
-					max_hp = (max_hp * battle_config.mvp_hp_rate)/100;
-			}
-			else {
-				if(battle_config.monster_hp_rate != 100)
-					max_hp = (max_hp * battle_config.monster_hp_rate)/100;
-			}
-		}
 		if(sc_data) {
 			if(sc_data[SC_APPLEIDUN].timer!=-1)
 				max_hp += ((5+sc_data[SC_APPLEIDUN].val1*2+((sc_data[SC_APPLEIDUN].val2+1)>>1)
@@ -199,8 +179,6 @@ int battle_get_str(struct block_list *bl)
 		str = ((struct mob_data *)bl)->stats[MOB_STR];
 	else if(bl->type==BL_PC && ((struct map_session_data *)bl))
 		return ((struct map_session_data *)bl)->paramc[0];
-	else if(bl->type==BL_PET && ((struct pet_data *)bl))
-		str = mob_db[((struct pet_data *)bl)->class].str;
 
 	if(sc_data) {
 		if(sc_data[SC_LOUD].timer!=-1 && sc_data[SC_QUAGMIRE].timer == -1 && bl->type != BL_PC)
@@ -233,8 +211,6 @@ int battle_get_agi(struct block_list *bl)
 		agi=((struct mob_data *)bl)->stats[MOB_AGI];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		agi=((struct map_session_data *)bl)->paramc[1];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		agi=mob_db[((struct pet_data *)bl)->class].agi;
 
 	if(sc_data) {
 		if( sc_data[SC_INCREASEAGI].timer!=-1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1 &&
@@ -271,8 +247,6 @@ int battle_get_vit(struct block_list *bl)
                 vit=((struct mob_data *)bl)->stats[MOB_VIT];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		vit=((struct map_session_data *)bl)->paramc[2];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		vit=mob_db[((struct pet_data *)bl)->class].vit;
 	if(sc_data) {
 		if(sc_data[SC_STRIPARMOR].timer != -1 && bl->type!=BL_PC)
                     vit = vit*60/100;
@@ -299,8 +273,6 @@ int battle_get_int(struct block_list *bl)
 		int_=((struct mob_data *)bl)->stats[MOB_INT];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		int_=((struct map_session_data *)bl)->paramc[3];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		int_=mob_db[((struct pet_data *)bl)->class].int_;
 
 	if(sc_data) {
 		if( sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC){	// ブレッシング
@@ -332,8 +304,6 @@ int battle_get_dex(struct block_list *bl)
 		dex=((struct mob_data *)bl)->stats[MOB_DEX];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		dex=((struct map_session_data *)bl)->paramc[4];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		dex=mob_db[((struct pet_data *)bl)->class].dex;
 
 	if(sc_data) {
 		if(sc_data[SC_CONCENTRATE].timer!=-1 && sc_data[SC_QUAGMIRE].timer == -1 && bl->type != BL_PC)
@@ -369,8 +339,6 @@ int battle_get_luk(struct block_list *bl)
 		luk=((struct mob_data *)bl)->stats[MOB_LUK];
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		luk=((struct map_session_data *)bl)->paramc[5];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		luk=mob_db[((struct pet_data *)bl)->class].luk;
 
 	if(sc_data) {
 		if(sc_data[SC_GLORIA].timer!=-1 && bl->type != BL_PC)	// グロリア(PCはpc.cで)
@@ -551,8 +519,6 @@ int battle_get_atk(struct block_list *bl)
 		atk = ((struct map_session_data*)bl)->watk;
 	else if(bl->type==BL_MOB && (struct mob_data *)bl)
 		atk = ((struct mob_data*)bl)->stats[MOB_ATK1];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		atk = mob_db[((struct pet_data*)bl)->class].atk1;
 
 	if(sc_data) {
 		if(sc_data[SC_PROVOKE].timer!=-1 && bl->type != BL_PC)
@@ -598,8 +564,6 @@ int battle_get_atk2(struct block_list *bl)
 		int atk2=0;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
                         atk2 = ((struct mob_data*)bl)->stats[MOB_ATK2];
-		else if(bl->type==BL_PET && (struct pet_data *)bl)
-			atk2 = mob_db[((struct pet_data*)bl)->class].atk2;
 		if(sc_data) {
 			if( sc_data[SC_IMPOSITIO].timer!=-1)
 				atk2 += sc_data[SC_IMPOSITIO].val1*5;
@@ -655,15 +619,6 @@ int battle_get_matk1(struct block_list *bl)
 	}
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->matk1;
-	else if(bl->type==BL_PET){
-		int matk,int_=battle_get_int(bl);
-		matk = int_+(int_/5)*(int_/5);
-
-		if(sc_data)
-			if(sc_data[SC_MINDBREAKER].timer!=-1 && bl->type != BL_PC)
-				matk = matk*(100+2*sc_data[SC_MINDBREAKER].val1)/100;
-		return matk;
-	}
 	else
 		return 0;
 }
@@ -687,14 +642,6 @@ int battle_get_matk2(struct block_list *bl)
 	}
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return ((struct map_session_data *)bl)->matk2;
-	else if(bl->type==BL_PET){
-		int matk,int_=battle_get_int(bl);
-		matk = int_+(int_/7)*(int_/7);
-		if(sc_data)
-			if(sc_data[SC_MINDBREAKER].timer!=-1 && bl->type != BL_PC)
-				matk = matk*(100+2*sc_data[SC_MINDBREAKER].val1)/100;
-			return matk;
-	}
 	else
 		return 0;
 }
@@ -720,8 +667,6 @@ int battle_get_def(struct block_list *bl)
 		skilltimer = ((struct mob_data *)bl)->skilltimer;
 		skillid = ((struct mob_data *)bl)->skillid;
 	}
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		def = mob_db[((struct pet_data *)bl)->class].def;
 
 	if(def < 1000000) {
 		if(sc_data) {
@@ -779,8 +724,6 @@ int battle_get_mdef(struct block_list *bl)
 		mdef = ((struct map_session_data *)bl)->mdef;
 	else if(bl->type==BL_MOB && (struct mob_data *)bl)
 		mdef = ((struct mob_data *)bl)->stats[MOB_MDEF];
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		mdef = mob_db[((struct pet_data *)bl)->class].mdef;
 
 	if(mdef < 1000000) {
 		if(sc_data) {
@@ -818,8 +761,6 @@ int battle_get_def2(struct block_list *bl)
 		def2 = ((struct map_session_data *)bl)->def2;
 	else if(bl->type==BL_MOB)
 		def2 = ((struct mob_data *)bl)->stats[MOB_VIT];
-	else if(bl->type==BL_PET)
-		def2 = mob_db[((struct pet_data *)bl)->class].vit;
 
 	if(sc_data) {
 		if( sc_data[SC_ANGELUS].timer!=-1 && bl->type != BL_PC)
@@ -850,8 +791,6 @@ int battle_get_mdef2(struct block_list *bl)
 		mdef2 = ((struct mob_data *)bl)->stats[MOB_INT] + (((struct mob_data *)bl)->stats[MOB_VIT]>>1);
 	else if(bl->type==BL_PC)
 		mdef2 = ((struct map_session_data *)bl)->mdef2 + (((struct map_session_data *)bl)->paramc[2]>>1);
-	else if(bl->type==BL_PET)
-		mdef2 = mob_db[((struct pet_data *)bl)->class].int_ + (mob_db[((struct pet_data *)bl)->class].vit>>1);
 	if(sc_data) {
 			if( sc_data[SC_MINDBREAKER].timer!=-1 && bl->type != BL_PC)
 				mdef2 -= (mdef2*6*sc_data[SC_MINDBREAKER].val1)/100;
@@ -875,8 +814,6 @@ int battle_get_speed(struct block_list *bl)
 		int speed = 1000;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
 			speed = ((struct mob_data *)bl)->stats[MOB_SPEED];
-		else if(bl->type==BL_PET && (struct pet_data *)bl)
-			speed = ((struct pet_data *)bl)->msd->petDB->speed;
 
 		if(sc_data) {
 			//速度増加時は25%減算
@@ -928,8 +865,6 @@ int battle_get_adelay(struct block_list *bl)
 		int adelay=4000,aspd_rate = 100,i;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
 			adelay = ((struct mob_data *)bl)->stats[MOB_ADELAY];
-		else if(bl->type==BL_PET && (struct pet_data *)bl)
-			adelay = mob_db[((struct pet_data *)bl)->class].adelay;
 
 		if(sc_data) {
 			//ツーハンドクイッケン使用時でクァグマイアでも私を忘れないで…でもない時は3割減算
@@ -988,8 +923,6 @@ int battle_get_amotion(struct block_list *bl)
 		int amotion=2000,aspd_rate = 100,i;
 		if(bl->type==BL_MOB && (struct mob_data *)bl)
 			amotion = mob_db[((struct mob_data *)bl)->class].amotion;
-		else if(bl->type==BL_PET && (struct pet_data *)bl)
-			amotion = mob_db[((struct pet_data *)bl)->class].amotion;
 
 		if(sc_data) {
 			if(sc_data[SC_TWOHANDQUICKEN].timer != -1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1)	// 2HQ
@@ -1044,8 +977,6 @@ int battle_get_dmotion(struct block_list *bl)
 		if(battle_config.pc_damage_delay_rate != 100)
 			ret = ret*battle_config.pc_damage_delay_rate/400;
 	}
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		ret=mob_db[((struct pet_data *)bl)->class].dmotion;
 	else
 		return 2000;
 
@@ -1066,8 +997,6 @@ int battle_get_element(struct block_list *bl)
 		ret=((struct mob_data *)bl)->def_ele;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		ret=20+((struct map_session_data *)bl)->def_ele;	// 防御属性Lv1
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		ret = mob_db[((struct pet_data *)bl)->class].element;
 
 	if(sc_data) {
 		if( sc_data[SC_BENEDICTIO].timer!=-1 )	// 聖体降福
@@ -1090,8 +1019,6 @@ int battle_get_attack_element(struct block_list *bl)
 		ret=0;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		ret=((struct map_session_data *)bl)->atk_ele;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		ret=0;
 
 	if(sc_data) {
 		if( sc_data[SC_FROSTWEAPON].timer!=-1)	// フロストウェポン
@@ -1170,8 +1097,6 @@ int battle_get_race(struct block_list *bl)
 		return mob_db[((struct mob_data *)bl)->class].race;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return 7;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return mob_db[((struct pet_data *)bl)->class].race;
 	else
 		return 0;
 }
@@ -1182,8 +1107,6 @@ int battle_get_size(struct block_list *bl)
 		return mob_db[((struct mob_data *)bl)->class].size;
 	else if(bl->type==BL_PC && (struct map_session_data *)bl)
 		return 1;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return mob_db[((struct pet_data *)bl)->class].size;
 	else
 		return 1;
 }
@@ -1192,8 +1115,6 @@ int battle_get_mode(struct block_list *bl)
 	nullpo_retr(0x01, bl);
 	if(bl->type==BL_MOB && (struct mob_data *)bl)
 		return mob_db[((struct mob_data *)bl)->class].mode;
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return mob_db[((struct pet_data *)bl)->class].mode;
 	else
 		return 0x01;	// とりあえず動くということで1
 }
@@ -1207,8 +1128,6 @@ int battle_get_mexp(struct block_list *bl)
                 fprintf(stderr, "Modifier of %x: -> %d\n", mob->stats[MOB_XP_BONUS], retval);
 		return retval;
         }
-	else if(bl->type==BL_PET && (struct pet_data *)bl)
-		return mob_db[((struct pet_data *)bl)->class].mexp;
 	else
 		return 0;
 }
@@ -1319,7 +1238,7 @@ int battle_damage(struct block_list *bl,struct block_list *target,int damage,int
 
 	nullpo_retr(0, target); //blはNULLで呼ばれることがあるので他でチェック
 
-	if(damage==0 || target->type == BL_PET)
+	if(damage==0)
 		return 0;
 
 	if(target->prev == NULL)
@@ -1390,8 +1309,6 @@ int battle_heal(struct block_list *bl,struct block_list *target,int hp,int sp,in
 {
 	nullpo_retr(0, target); //blはNULLで呼ばれることがあるので他でチェック
 
-	if(target->type == BL_PET)
-		return 0;
 	if( target->type ==BL_PC && pc_isdead((struct map_session_data *)target) )
 		return 0;
 	if(hp==0 && sp==0)
@@ -1415,8 +1332,6 @@ int battle_stopattack(struct block_list *bl)
 		return mob_stopattack((struct mob_data*)bl);
 	else if(bl->type==BL_PC)
 		return pc_stopattack((struct map_session_data*)bl);
-	else if(bl->type==BL_PET)
-		return pet_stopattack((struct pet_data*)bl);
 	return 0;
 }
 // 移動停止
@@ -1427,8 +1342,6 @@ int battle_stopwalking(struct block_list *bl,int type)
 		return mob_stop_walking((struct mob_data*)bl,type);
 	else if(bl->type==BL_PC)
 		return pc_stop_walking((struct map_session_data*)bl,type);
-	else if(bl->type==BL_PET)
-		return pet_stop_walking((struct pet_data*)bl,type);
 	return 0;
 }
 
@@ -1781,422 +1694,6 @@ int battle_addmastery(struct map_session_data *sd,struct block_list *target,int 
 	}
 	damage = dmg + damage;
 	return (damage);
-}
-
-static struct Damage battle_calc_pet_weapon_attack(
-	struct block_list *src,struct block_list *target,int skill_num,int skill_lv,int wflag)
-{
-	struct pet_data *pd = (struct pet_data *)src;
-	struct mob_data *tmd=NULL;
-	int hitrate,flee,cri = 0,atkmin,atkmax;
-	int luk,target_count = 1;
-	int def1 = battle_get_def(target);
-	int def2 = battle_get_def2(target);
-	int t_vit = battle_get_vit(target);
-	struct Damage wd;
-	int damage,damage2=0,type,div_,blewcount=skill_get_blewcount(skill_num,skill_lv);
-	int flag,dmg_lv=0;
-	int t_mode=0,t_race=0,t_size=1,s_race=0,s_ele=0;
-	struct status_change *t_sc_data;
-
-	//return前の処理があるので情報出力部のみ変更
-	if( target == NULL || pd == NULL ){ //srcは内容に直接触れていないのでスルーしてみる
-		nullpo_info(NLP_MARK);
-		memset(&wd,0,sizeof(wd));
-		return wd;
-	}
-
-	s_race=battle_get_race(src);
-	s_ele=battle_get_attack_element(src);
-
-	// ターゲット
-	if(target->type == BL_MOB)
-		tmd=(struct mob_data *)target;
-	else {
-		memset(&wd,0,sizeof(wd));
-		return wd;
-	}
-	t_race=battle_get_race( target );
-	t_size=battle_get_size( target );
-	t_mode=battle_get_mode( target );
-	t_sc_data=battle_get_sc_data( target );
-
-	flag=BF_SHORT|BF_WEAPON|BF_NORMAL;	// 攻撃の種類の設定
-
-	// 回避率計算、回避判定は後で
-	flee = battle_get_flee(target);
-	if(battle_config.agi_penaly_type > 0 || battle_config.vit_penaly_type > 0)
-		target_count += battle_counttargeted(target,src,battle_config.agi_penaly_count_lv);
-	if(battle_config.agi_penaly_type > 0) {
-		if(target_count >= battle_config.agi_penaly_count) {
-			if(battle_config.agi_penaly_type == 1)
-				flee = (flee * (100 - (target_count - (battle_config.agi_penaly_count - 1))*battle_config.agi_penaly_num))/100;
-			else if(battle_config.agi_penaly_type == 2)
-				flee -= (target_count - (battle_config.agi_penaly_count - 1))*battle_config.agi_penaly_num;
-			if(flee < 1) flee = 1;
-		}
-	}
-	hitrate=battle_get_hit(src) - flee + 80;
-
-	type=0;	// normal
-	div_ = 1; // single attack
-
-	luk=battle_get_luk(src);
-
-	if(battle_config.pet_str)
-		damage = battle_get_baseatk(src);
-	else
-		damage = 0;
-
-	if(skill_num==HW_MAGICCRASHER){			/* マジッククラッシャーはMATKで殴る */
-		atkmin = battle_get_matk1(src);
-		atkmax = battle_get_matk2(src);
-	}else{
-	atkmin = battle_get_atk(src);
-	atkmax = battle_get_atk2(src);
-	}
-	if(mob_db[pd->class].range>3 )
-		flag=(flag&~BF_RANGEMASK)|BF_LONG;
-
-	if(atkmin > atkmax) atkmin = atkmax;
-
-	cri = battle_get_critical(src);
-	cri -= battle_get_luk(target) * 2; // luk/5*10 => target_luk*2 not target_luk*3
-	if(battle_config.enemy_critical_rate != 100) {
-		cri = cri*battle_config.enemy_critical_rate/100;
-		if(cri < 1)
-			cri = 1;
-	}
-	if(t_sc_data != NULL && t_sc_data[SC_SLEEP].timer!=-1 )
-		cri <<=1;
-
-	if(skill_num == 0 && skill_lv >= 0 && battle_config.enemy_critical && (MRAND(1000)) < cri)
-	{
-		damage += atkmax;
-		type = 0x0a;
-	}
-	else {
-		int vitbonusmax;
-
-		if(atkmax > atkmin)
-			damage += atkmin + MRAND((atkmax-atkmin + 1));
-		else
-			damage += atkmin ;
-		// スキル修正１（攻撃力倍化系）
-		// オーバートラスト(+5% ～ +25%),他攻撃系スキルの場合ここで補正
-		// バッシュ,マグナムブレイク,
-		// ボーリングバッシュ,スピアブーメラン,ブランディッシュスピア,スピアスタッブ,
-		// メマーナイト,カートレボリューション
-		// ダブルストレイフィング,アローシャワー,チャージアロー,
-		// ソニックブロー
-		if(skill_num>0){
-			int i;
-			if( (i=skill_get_pl(skill_num))>0 )
-				s_ele=i;
-
-			flag=(flag&~BF_SKILLMASK)|BF_SKILL;
-			switch( skill_num ){
-			case SM_BASH:		// バッシュ
-				damage = damage*(100+ 30*skill_lv)/100;
-				hitrate = (hitrate*(100+5*skill_lv))/100;
-				break;
-			case SM_MAGNUM:		// マグナムブレイク
-				damage = damage*(5*skill_lv +(wflag)?65:115 )/100;
-				break;
-			case MC_MAMMONITE:	// メマーナイト
-				damage = damage*(100+ 50*skill_lv)/100;
-				break;
-			case AC_DOUBLE:	// ダブルストレイフィング
-				damage = damage*(180+ 20*skill_lv)/100;
-				div_=2;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case AC_SHOWER:	// アローシャワー
-				damage = damage*(75 + 5*skill_lv)/100;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case AC_CHARGEARROW:	// チャージアロー
-				damage = damage*150/100;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case KN_PIERCE:	// ピアース
-				damage = damage*(100+ 10*skill_lv)/100;
-				hitrate = hitrate*(100+5*skill_lv)/100;
-				div_=t_size+1;
-				damage*=div_;
-				break;
-			case KN_SPEARSTAB:	// スピアスタブ
-				damage = damage*(100+ 15*skill_lv)/100;
-				break;
-			case KN_SPEARBOOMERANG:	// スピアブーメラン
-				damage = damage*(100+ 50*skill_lv)/100;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case KN_BRANDISHSPEAR: // ブランディッシュスピア
-				damage = damage*(100+ 20*skill_lv)/100;
-				if(skill_lv>3 && wflag==1) damage2+=damage/2;
-				if(skill_lv>6 && wflag==1) damage2+=damage/4;
-				if(skill_lv>9 && wflag==1) damage2+=damage/8;
-				if(skill_lv>6 && wflag==2) damage2+=damage/2;
-				if(skill_lv>9 && wflag==2) damage2+=damage/4;
-				if(skill_lv>9 && wflag==3) damage2+=damage/2;
-				damage +=damage2;
-				blewcount=0;
-				break;
-			case KN_BOWLINGBASH:	// ボウリングバッシュ
-				damage = damage*(100+ 50*skill_lv)/100;
-				blewcount=0;
-				break;
-			case AS_SONICBLOW:	// ソニックブロウ
-				damage = damage*(300+ 50*skill_lv)/100;
-				div_=8;
-				break;
-			case TF_SPRINKLESAND:	// 砂まき
-				damage = damage*125/100;
-				break;
-			case MC_CARTREVOLUTION:	// カートレボリューション
-				damage = (damage*150)/100;
-				break;
-			// 以下MOB
-			case NPC_COMBOATTACK:	// 多段攻撃
-				div_=skill_get_num(skill_num,skill_lv);
-				damage *= div_;
-				break;
-			case NPC_RANDOMATTACK:	// ランダムATK攻撃
-				damage = damage*(MPRAND(50, 150))/100;
-				break;
-			// 属性攻撃（適当）
-			case NPC_WATERATTACK:
-			case NPC_GROUNDATTACK:
-			case NPC_FIREATTACK:
-			case NPC_WINDATTACK:
-			case NPC_POISONATTACK:
-			case NPC_HOLYATTACK:
-			case NPC_DARKNESSATTACK:
-			case NPC_TELEKINESISATTACK:
-				div_= pd->skillduration; // [Valaris]
-				break;
-			case NPC_GUIDEDATTACK:
-				hitrate = 1000000;
-				break;
-			case NPC_RANGEATTACK:
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case NPC_PIERCINGATT:
-				flag=(flag&~BF_RANGEMASK)|BF_SHORT;
-				break;
-			case RG_BACKSTAP:	// バックスタブ
-				damage = damage*(300+ 40*skill_lv)/100;
-				hitrate = 1000000;
-				break;
-			case RG_RAID:	// サプライズアタック
-				damage = damage*(100+ 40*skill_lv)/100;
-				break;
-			case RG_INTIMIDATE:	// インティミデイト
-				damage = damage*(100+ 30*skill_lv)/100;
-				break;
-			case CR_SHIELDCHARGE:	// シールドチャージ
-				damage = damage*(100+ 20*skill_lv)/100;
-				flag=(flag&~BF_RANGEMASK)|BF_SHORT;
-				s_ele = 0;
-				break;
-			case CR_SHIELDBOOMERANG:	// シールドブーメラン
-				damage = damage*(100+ 30*skill_lv)/100;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				s_ele = 0;
-				break;
-			case CR_HOLYCROSS:	// ホーリークロス
-				damage = damage*(100+ 35*skill_lv)/100;
-				div_=2;
-				break;
-			case CR_GRANDCROSS:
-				hitrate= 1000000;
-				break;
-			case AM_DEMONSTRATION:	// デモンストレーション
-				damage = damage*(100+ 20*skill_lv)/100;
-				damage2 = damage2*(100+ 20*skill_lv)/100;
-				break;
-			case AM_ACIDTERROR:	// アシッドテラー
-				damage = damage*(100+ 40*skill_lv)/100;
-				damage2 = damage2*(100+ 40*skill_lv)/100;
-				break;
-			case MO_FINGEROFFENSIVE:	//指弾
-				damage = damage * (100 + 50 * skill_lv) / 100;
-				div_ = 1;
-				break;
-			case MO_INVESTIGATE:	// 発 勁
-				if(def1 < 1000000)
-					damage = damage*(100+ 75*skill_lv)/100 * (def1 + def2)/100;
-				hitrate = 1000000;
-				s_ele = 0;
-				break;
-			case MO_EXTREMITYFIST:	// 阿修羅覇鳳拳
-				damage = damage * 8 + 250 + (skill_lv * 150);
-				hitrate = 1000000;
-				s_ele = 0;
-				break;
-			case MO_CHAINCOMBO:	// 連打掌
-				damage = damage*(150+ 50*skill_lv)/100;
-				div_=4;
-				break;
-			case MO_COMBOFINISH:	// 猛龍拳
-				damage = damage*(240+ 60*skill_lv)/100;
-				break;
-			case DC_THROWARROW:	// 矢撃ち
-				damage = damage*(100+ 50 * skill_lv)/100;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case BA_MUSICALSTRIKE:	// ミュージカルストライク
-				damage = damage*(100+ 50 * skill_lv)/100;
-				flag=(flag&~BF_RANGEMASK)|BF_LONG;
-				break;
-			case CH_TIGERFIST:	// 伏虎拳
-				damage = damage*(100+ 20*skill_lv)/100;
-				break;
-			case CH_CHAINCRUSH:	// 連柱崩撃
-				damage = damage*(100+ 20*skill_lv)/100;
-				div_=skill_get_num(skill_num,skill_lv);
-				break;
-			case CH_PALMSTRIKE:	// 猛虎硬派山
-				damage = damage*(50+ 100*skill_lv)/100;
-				break;
-			case LK_SPIRALPIERCE:			/* スパイラルピアース */
-				damage = damage*(100+ 50*skill_lv)/100; //増加量が分からないので適当に
-				div_=5;
-				if(target->type == BL_PC)
-					((struct map_session_data *)target)->canmove_tick = gettick() + 1000;
-				else if(target->type == BL_MOB)
-					((struct mob_data *)target)->canmove_tick = gettick() + 1000;
-				break;
-			case LK_HEADCRUSH:				/* ヘッドクラッシュ */
-				damage = damage*(100+ 20*skill_lv)/100;
-				break;
-			case LK_JOINTBEAT:				/* ジョイントビート */
-				damage = damage*(50+ 10*skill_lv)/100;
-				break;
-			case ASC_METEORASSAULT:			/* メテオアサルト */
-				damage = damage*(40+ 40*skill_lv)/100;
-				break;
-			case SN_SHARPSHOOTING:			/* シャープシューティング */
-				damage += damage*(30*skill_lv)/100;
-				break;
-			case CG_ARROWVULCAN:			/* アローバルカン */
-				damage = damage*(160+40*skill_lv)/100;
-				div_=9;
-				break;
-			case AS_SPLASHER:		/* ベナムスプラッシャー */
-				damage = damage*(200+20*skill_lv)/100;
-				break;
-			}
-		}
-
-		if( skill_num!=NPC_CRITICALSLASH ){
-			// 対 象の防御力によるダメージの減少
-			// ディバインプロテクション（ここでいいのかな？）
-			if ( skill_num != MO_INVESTIGATE && skill_num != MO_EXTREMITYFIST && skill_num != KN_AUTOCOUNTER && def1 < 1000000 ) {	//DEF, VIT無視
-				int t_def;
-				target_count = 1 + battle_counttargeted(target,src,battle_config.vit_penaly_count_lv);
-				if(battle_config.vit_penaly_type > 0) {
-					if(target_count >= battle_config.vit_penaly_count) {
-						if(battle_config.vit_penaly_type == 1) {
-							def1 = (def1 * (100 - (target_count - (battle_config.vit_penaly_count - 1))*battle_config.vit_penaly_num))/100;
-							def2 = (def2 * (100 - (target_count - (battle_config.vit_penaly_count - 1))*battle_config.vit_penaly_num))/100;
-							t_vit = (t_vit * (100 - (target_count - (battle_config.vit_penaly_count - 1))*battle_config.vit_penaly_num))/100;
-						}
-						else if(battle_config.vit_penaly_type == 2) {
-							def1 -= (target_count - (battle_config.vit_penaly_count - 1))*battle_config.vit_penaly_num;
-							def2 -= (target_count - (battle_config.vit_penaly_count - 1))*battle_config.vit_penaly_num;
-							t_vit -= (target_count - (battle_config.vit_penaly_count - 1))*battle_config.vit_penaly_num;
-						}
-						if(def1 < 0) def1 = 0;
-						if(def2 < 1) def2 = 1;
-						if(t_vit < 1) t_vit = 1;
-					}
-				}
-				t_def = def2*8/10;
-				vitbonusmax = (t_vit/20)*(t_vit/20)-1;
-				if(battle_config.pet_defense_type) {
-					damage = damage - (def1 * battle_config.pet_defense_type) - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
-				}
-				else{
-					damage = damage * (100 - def1) /100 - t_def - ((vitbonusmax < 1)?0: MRAND((vitbonusmax+1)) );
-				}
-			}
-		}
-	}
-
-	// 0未満だった場合1に補正
-	if(damage<1) damage=1;
-
-	// 回避修正
-	if(hitrate < 1000000)
-		hitrate = ( (hitrate>95)?95: ((hitrate<5)?5:hitrate) );
-	if(	hitrate < 1000000 &&			// 必中攻撃
-		(t_sc_data != NULL && (t_sc_data[SC_SLEEP].timer!=-1 ||	// 睡眠は必中
-		t_sc_data[SC_STAN].timer!=-1 ||		// スタンは必中
-		t_sc_data[SC_FREEZE].timer!=-1 || (t_sc_data[SC_STONE].timer!=-1 && t_sc_data[SC_STONE].val2==0) ) ) )	// 凍結は必中
-		hitrate = 1000000;
-	if(type == 0 && MRAND(100) >= hitrate) {
-		damage = damage2 = 0;
-		dmg_lv = ATK_FLEE;
-	} else {
-		dmg_lv = ATK_DEF;
-	}
-
-	
-	if(t_sc_data) {
-		int cardfix=100;
-		if(t_sc_data[SC_DEFENDER].timer != -1 && flag&BF_LONG)
-			cardfix=cardfix*(100-t_sc_data[SC_DEFENDER].val2)/100;
-		if(cardfix != 100)
-			damage=damage*cardfix/100;
-	}
-	if(damage < 0) damage = 0;
-
-	// 属 性の適用
-	if(skill_num != 0 || s_ele != 0 || !battle_config.pet_attack_attr_none)
-	damage=battle_attr_fix(damage, s_ele, battle_get_element(target) );
-
-	if(skill_num==PA_PRESSURE) /* プレッシャー 必中? */
-		damage = 700+100*skill_lv;
-
-	// インベナム修正
-	if(skill_num==TF_POISON){
-		damage = battle_attr_fix(damage + 15*skill_lv, s_ele, battle_get_element(target) );
-	}
-	if(skill_num==MC_CARTREVOLUTION){
-		damage = battle_attr_fix(damage, 0, battle_get_element(target) );
-	}
-
-	// 完全回避の判定
-	if(battle_config.enemy_perfect_flee) {
-		if(skill_num == 0 && skill_lv >= 0 && tmd!=NULL && MRAND(1000) < battle_get_flee2(target) ){
-			damage=0;
-			type=0x0b;
-			dmg_lv = ATK_LUCKY;
-		}
-	}
-
-//	if(def1 >= 1000000 && damage > 0)
-	if(t_mode&0x40 && damage > 0)
-		damage = 1;
-
-	if(skill_num != CR_GRANDCROSS)
-		damage=battle_calc_damage(src,target,damage,div_,skill_num,skill_lv,flag);
-
-	wd.damage=damage;
-	wd.damage2=0;
-	wd.type=type;
-	wd.div_=div_;
-	wd.amotion=battle_get_amotion(src);
-	if(skill_num == KN_AUTOCOUNTER)
-		wd.amotion >>= 1;
-	wd.dmotion=battle_get_dmotion(target);
-	wd.blewcount=blewcount;
-	wd.flag=flag;
-	wd.dmg_lv=dmg_lv;
-
-	return wd;
 }
 
 static struct Damage battle_calc_mob_weapon_attack(
@@ -3827,15 +3324,10 @@ struct Damage battle_calc_weapon_attack(
 		return wd;
 	}
 
-	if(target->type == BL_PET)
-		memset(&wd,0,sizeof(wd));
-
 	else if(src->type == BL_PC)
 		wd = battle_calc_pc_weapon_attack(src,target,skill_num,skill_lv,wflag); // weapon breaking [Valaris]
 	else if(src->type == BL_MOB)
 		wd = battle_calc_mob_weapon_attack(src,target,skill_num,skill_lv,wflag);
-	else if(src->type == BL_PET)
-		wd = battle_calc_pet_weapon_attack(src,target,skill_num,skill_lv,wflag);
 	else
 		memset(&wd,0,sizeof(wd));
 
@@ -3893,11 +3385,6 @@ struct Damage battle_calc_magic_attack(
 	//return前の処理があるので情報出力部のみ変更
 	if( bl == NULL || target == NULL ){
 		nullpo_info(NLP_MARK);
-		memset(&md,0,sizeof(md));
-		return md;
-	}
-
-	if(target->type == BL_PET) {
 		memset(&md,0,sizeof(md));
 		return md;
 	}
@@ -4185,11 +3672,6 @@ struct Damage  battle_calc_misc_attack(
 	//return前の処理があるので情報出力部のみ変更
 	if( bl == NULL || target == NULL ){
 		nullpo_info(NLP_MARK);
-		memset(&md,0,sizeof(md));
-		return md;
-	}
-
-	if(target->type == BL_PET) {
 		memset(&md,0,sizeof(md));
 		return md;
 	}
@@ -4655,9 +4137,6 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
 		}
 	}
 
-	if(target->type == BL_PET)
-		return -1;
-
 				// スキルユニットの場合、親を求める
 	if( src->type==BL_SKILL) {
 		int inf2 = skill_get_inf2(((struct skill_unit *)src)->group->skill_id);
@@ -4715,9 +4194,6 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
 	if( (ss->type == BL_PC && target->type==BL_MOB) ||
 		(ss->type == BL_MOB && target->type==BL_PC) )
 		return 0;	// PCvsMOBなら否定
-
-	if(ss->type == BL_PET && target->type==BL_MOB)
-		return 0;
 
 	s_p=battle_get_party_id(ss);
 	s_g=battle_get_guild_id(ss);
@@ -4909,18 +4385,6 @@ int battle_config_read(const char *cfgName)
 		battle_config.guild_emperium_check=1;
 		battle_config.guild_exp_limit=50;
 		battle_config.pc_invincible_time = 5000;
-		battle_config.pet_catch_rate=100;
-		battle_config.pet_rename=0;
-		battle_config.pet_friendly_rate=100;
-		battle_config.pet_hungry_delay_rate=100;
-		battle_config.pet_hungry_friendly_decrease=5;
-		battle_config.pet_str=1;
-		battle_config.pet_status_support=0;
-		battle_config.pet_attack_support=0;
-		battle_config.pet_damage_support=0;
-		battle_config.pet_support_rate=100;
-		battle_config.pet_attack_exp_to_master=0;
-		battle_config.pet_attack_exp_rate=100;
 		battle_config.skill_min_damage=0;
 		battle_config.finger_offensive_type=0;
 		battle_config.heal_exp=0;
@@ -4962,7 +4426,6 @@ int battle_config_read(const char *cfgName)
 		battle_config.vit_penaly_count_lv = ATK_DEF;
 		battle_config.player_defense_type = 0;
 		battle_config.monster_defense_type = 0;
-		battle_config.pet_defense_type = 0;
 		battle_config.magic_defense_type = 0;
 		battle_config.pc_skill_reiteration = 0;
 		battle_config.monster_skill_reiteration = 0;
@@ -4991,10 +4454,8 @@ int battle_config_read(const char *cfgName)
 		battle_config.chat_warpportal = 0;
 		battle_config.mob_warpportal = 0;
 		battle_config.dead_branch_active = 0;
-		battle_config.vending_max_value = 10000000;
 		battle_config.show_steal_in_same_party = 0;
 		battle_config.enable_upper_class = 0;
-		battle_config.pet_attack_attr_none = 0;
 		battle_config.pc_attack_attr_none = 0;
 		battle_config.mob_attack_attr_none = 1;
 		battle_config.mob_ghostring_fix = 0;
@@ -5031,7 +4492,6 @@ int battle_config_read(const char *cfgName)
 		battle_config.equipment_breaking = 0; // [Valaris]
 		battle_config.equipment_break_rate = 100; // [Valaris]
 		battle_config.pk_mode = 0; // [Valaris]
-		battle_config.pet_equip_required = 0; // [Valaris]
 		battle_config.multi_level_up = 0; // [Valaris]
 		battle_config.backstab_bow_penalty = 0; // Akaru
 		battle_config.night_at_start = 0; // added by [Yor]
@@ -5142,18 +4602,6 @@ int battle_config_read(const char *cfgName)
 			{ "guild_emperium_check",              &battle_config.guild_emperium_check		},
 			{ "guild_exp_limit",                   &battle_config.guild_exp_limit			},
 			{ "player_invincible_time",            &battle_config.pc_invincible_time		},
-			{ "pet_catch_rate",                    &battle_config.pet_catch_rate			},
-			{ "pet_rename",                        &battle_config.pet_rename				},
-			{ "pet_friendly_rate",                 &battle_config.pet_friendly_rate		},
-			{ "pet_hungry_delay_rate",             &battle_config.pet_hungry_delay_rate	},
-			{ "pet_hungry_friendly_decrease",      &battle_config.pet_hungry_friendly_decrease},
-			{ "pet_str",                           &battle_config.pet_str					},
-			{ "pet_status_support",                &battle_config.pet_status_support		},
-			{ "pet_attack_support",                &battle_config.pet_attack_support		},
-			{ "pet_damage_support",                &battle_config.pet_damage_support		},
-			{ "pet_support_rate",                  &battle_config.pet_support_rate			},
-			{ "pet_attack_exp_to_master",          &battle_config.pet_attack_exp_to_master	},
-			{ "pet_attack_exp_rate",               &battle_config.pet_attack_exp_rate	 },
 			{ "skill_min_damage",                  &battle_config.skill_min_damage			},
 			{ "finger_offensive_type",             &battle_config.finger_offensive_type	},
 			{ "heal_exp",                          &battle_config.heal_exp					},
@@ -5195,7 +4643,6 @@ int battle_config_read(const char *cfgName)
 			{ "vit_penaly_count_lv",               &battle_config.vit_penaly_count_lv		},
 			{ "player_defense_type",               &battle_config.player_defense_type		},
 			{ "monster_defense_type",              &battle_config.monster_defense_type		},
-			{ "pet_defense_type",                  &battle_config.pet_defense_type			},
 			{ "magic_defense_type",                &battle_config.magic_defense_type		},
 			{ "player_skill_reiteration",          &battle_config.pc_skill_reiteration		},
 			{ "monster_skill_reiteration",         &battle_config.monster_skill_reiteration},
@@ -5223,10 +4670,8 @@ int battle_config_read(const char *cfgName)
 			{ "chat_warpportal",                   &battle_config.chat_warpportal			},
 			{ "mob_warpportal",                    &battle_config.mob_warpportal			},
 			{ "dead_branch_active",                &battle_config.dead_branch_active			},
-			{ "vending_max_value",                 &battle_config.vending_max_value		},
 			{ "show_steal_in_same_party",          &battle_config.show_steal_in_same_party		},
 			{ "enable_upper_class",                &battle_config.enable_upper_class		},
-			{ "pet_attack_attr_none",              &battle_config.pet_attack_attr_none		},
 			{ "mob_attack_attr_none",              &battle_config.mob_attack_attr_none		},
 			{ "mob_ghostring_fix",                 &battle_config.mob_ghostring_fix		},
 			{ "pc_attack_attr_none",               &battle_config.pc_attack_attr_none		},
@@ -5263,7 +4708,6 @@ int battle_config_read(const char *cfgName)
 			{ "equipment_breaking",                &battle_config.equipment_breaking	},	// [Valaris]
 			{ "equipment_break_rate",              &battle_config.equipment_break_rate	}, 	// [Valaris]
 			{ "pk_mode",                           &battle_config.pk_mode			},  	// [Valaris]
-			{ "pet_equip_required",                &battle_config.pet_equip_required	},	// [Valaris]
 			{ "multi_level_up",                    &battle_config.multi_level_up		}, // [Valaris]
 			{ "backstab_bow_penalty",              &battle_config.backstab_bow_penalty	},
 			{ "night_at_start",                    &battle_config.night_at_start	}, // added by [Yor]

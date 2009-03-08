@@ -1,32 +1,21 @@
 LEX=flex
 BISON=bison
 
-all: txt sql
+all: txt
 
-txt: txtobj map-server
+txt: obj map-server
 
-sql: sqlobj map-server_sql
-
-txtobj:
-	mkdir txtobj
-
-sqlobj:
-	mkdir sqlobj
+obj:
+	mkdir obj
 
 COMMON_OBJ = ../common/core.o ../common/socket.o ../common/timer.o ../common/grfio.o ../common/db.o ../common/lock.o ../common/nullpo.o ../common/malloc.o
 LIBS = -lz -lm
 
-map-server: txtobj/magic-interpreter-lexer.o txtobj/magic-interpreter-parser.o txtobj/magic-interpreter-base.o txtobj/magic-expr.o txtobj/magic-stmt.o txtobj/magic.o txtobj/map.o txtobj/chrif.o txtobj/clif.o txtobj/pc.o txtobj/npc.o txtobj/chat.o txtobj/path.o txtobj/itemdb.o txtobj/mob.o txtobj/script.o txtobj/storage.o txtobj/skill.o txtobj/atcommand.o txtobj/battle.o txtobj/intif.o txtobj/trade.o txtobj/party.o txtobj/vending.o txtobj/guild.o txtobj/pet.o $(COMMON_OBJ)
+map-server: obj/magic-interpreter-lexer.o obj/magic-interpreter-parser.o obj/magic-interpreter-base.o obj/magic-expr.o obj/magic-stmt.o obj/magic.o obj/map.o obj/chrif.o obj/clif.o obj/pc.o obj/npc.o obj/chat.o obj/path.o obj/itemdb.o obj/mob.o obj/script.o obj/storage.o obj/skill.o obj/atcommand.o obj/battle.o obj/intif.o obj/trade.o obj/party.o obj/guild.o $(COMMON_OBJ)
 	$(CC) -o ../../$@ $^ $(LIBS)
 
-map-server_sql: sqlobj/map.o sqlobj/chrif.o sqlobj/clif.o sqlobj/pc.o sqlobj/npc.o sqlobj/chat.o sqlobj/path.o sqlobj/itemdb.o sqlobj/mob.o sqlobj/script.o sqlobj/storage.o sqlobj/skill.o sqlobj/atcommand.o sqlobj/battle.o sqlobj/intif.o sqlobj/trade.o sqlobj/party.o sqlobj/vending.o sqlobj/guild.o sqlobj/pet.o sqlobj/mail.o $(COMMON_OBJ)
-	$(CC) -o ../../$@ $^ $(LIB_S)
-
-txtobj/%.o: %.c
+obj/%.o: %.c
 	$(COMPILE.c) -DTXT_ONLY $(OUTPUT_OPTION) $<
-
-sqlobj/%.o: %.c
-	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 magic-interpreter-lexer.c: magic-interpreter.l
 	$(LEX) -o magic-interpreter-lexer.c magic-interpreter.l
@@ -34,54 +23,29 @@ magic-interpreter-lexer.c: magic-interpreter.l
 magic-interpreter-parser.c: magic-interpreter-parser.y
 	$(BISON) -v -d -o magic-interpreter-parser.c magic-interpreter-parser.y
 
-txtobj/magic-interpreter-lexer.o: magic-interpreter-lexer.c magic-interpreter-parser.c magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/magic-interpreter-parser.o: magic-interpreter-parser.c magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/magic-interpreter-base.o: magic-interpreter-base.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/magic-expr.o: magic-expr.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/magic-stmt.o: magic-stmt.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/magic.o: magic.c magic.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/map.o: map.c map.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/chrif.o: chrif.c map.h battle.h chrif.h clif.h intif.h pc.h npc.h ../common/socket.h ../common/timer.h ../common/mmo.h
-txtobj/clif.o: magic.h clif.c map.h chrif.h clif.h mob.h intif.h pc.h npc.h itemdb.h chat.h script.h storage.h party.h guild.h atcommand.h pet.h atcommand.h ../common/socket.h ../common/timer.h ../common/mmo.h ../common/version.h
-txtobj/pc.o: pc.c map.h clif.h intif.h pc.h npc.h mob.h itemdb.h battle.h skill.h script.h party.h guild.h pet.h trade.h storage.h chat.h vending.h ../common/timer.h ../common/mmo.h ../common/db.h
-txtobj/npc.o: npc.c map.h npc.h clif.h pc.h script.h mob.h itemdb.h battle.h ../common/db.h ../common/timer.h ../common/mmo.h
-txtobj/chat.o: chat.c map.h clif.h pc.h chat.h ../common/db.h ../common/mmo.h
-txtobj/path.o: path.c map.h battle.h ../common/mmo.h
-txtobj/itemdb.o: itemdb.c map.h battle.h itemdb.h ../common/db.h ../common/grfio.h ../common/mmo.h
-txtobj/mob.o: mob.c map.h clif.h intif.h pc.h mob.h skill.h battle.h npc.h itemdb.h ../common/timer.h ../common/socket.h ../common/mmo.h
-txtobj/script.o: script.c itemdb.h map.h pc.h mob.h clif.h intif.h npc.h script.h storage.h skill.h pet.h battle.h ../common/timer.h ../common/socket.h ../common/db.h ../common/mmo.h ../common/lock.h
-txtobj/storage.o: storage.c itemdb.h pc.h clif.h intif.h storage.h guild.h ../common/mmo.h ../common/db.h
-txtobj/skill.o: skill.c skill.h map.h clif.h pc.h mob.h battle.h itemdb.h script.h ../common/timer.h ../common/mmo.h
-txtobj/atcommand.o: atcommand.c atcommand.h itemdb.h pc.h map.h skill.h clif.h mob.h intif.h battle.h storage.h guild.h pet.h ../common/socket.h ../common/timer.h ../common/mmo.h
-txtobj/battle.o: battle.c battle.h skill.h map.h mob.h pc.h pet.h guild.h ../common/timer.h ../common/mmo.h
-txtobj/intif.o: intif.c intif.h chrif.h clif.h party.h guild.h storage.h map.h battle.h pet.h ../common/socket.h ../common/mmo.h
-txtobj/trade.o: trade.c trade.h clif.h itemdb.h map.h pc.h npc.h ../common/mmo.h
-txtobj/party.o: party.c party.h clif.h intif.h pc.h map.h battle.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
-txtobj/vending.o: vending.c vending.h clif.h itemdb.h map.h pc.h ../common/mmo.h
-txtobj/guild.o: guild.c guild.h storage.h battle.h clif.h intif.h pc.h npc.h map.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
-txtobj/pet.o: pet.c pet.h map.h clif.h chrif.h intif.h pc.h itemdb.h battle.h mob.h npc.h script.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
-
-sqlobj/map.o: map.c map.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h pet.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
-sqlobj/chrif.o: chrif.c map.h battle.h chrif.h clif.h intif.h pc.h npc.h ../common/socket.h ../common/timer.h ../common/mmo.h
-sqlobj/clif.o: clif.c map.h chrif.h clif.h mob.h intif.h pc.h npc.h itemdb.h chat.h script.h storage.h party.h guild.h atcommand.h pet.h atcommand.h ../common/socket.h ../common/timer.h ../common/mmo.h ../common/version.h
-sqlobj/pc.o: pc.c map.h clif.h intif.h pc.h npc.h mob.h itemdb.h battle.h skill.h script.h party.h guild.h pet.h trade.h storage.h chat.h vending.h ../common/timer.h ../common/mmo.h ../common/db.h
-sqlobj/npc.o: npc.c map.h npc.h clif.h pc.h script.h mob.h itemdb.h battle.h ../common/db.h ../common/timer.h ../common/mmo.h
-sqlobj/chat.o: chat.c map.h clif.h pc.h chat.h ../common/db.h ../common/mmo.h
-sqlobj/path.o: path.c map.h battle.h ../common/mmo.h
-sqlobj/itemdb.o: itemdb.c map.h battle.h itemdb.h ../common/db.h ../common/grfio.h ../common/mmo.h
-sqlobj/mob.o: mob.c map.h clif.h intif.h pc.h mob.h skill.h battle.h npc.h itemdb.h ../common/timer.h ../common/socket.h ../common/mmo.h
-sqlobj/script.o: script.c itemdb.h map.h pc.h mob.h clif.h intif.h npc.h script.h storage.h skill.h pet.h battle.h ../common/timer.h ../common/socket.h ../common/db.h ../common/mmo.h ../common/lock.h
-sqlobj/storage.o: storage.c itemdb.h pc.h clif.h intif.h storage.h guild.h ../common/mmo.h ../common/db.h
-sqlobj/skill.o: skill.c skill.h map.h clif.h pc.h mob.h battle.h itemdb.h script.h ../common/timer.h ../common/mmo.h
-sqlobj/atcommand.o: atcommand.c atcommand.h itemdb.h pc.h map.h skill.h clif.h mob.h intif.h battle.h storage.h guild.h pet.h ../common/socket.h ../common/timer.h ../common/mmo.h
-sqlobj/battle.o: battle.c battle.h skill.h map.h mob.h pc.h pet.h guild.h ../common/timer.h ../common/mmo.h
-sqlobj/intif.o: intif.c intif.h chrif.h clif.h party.h guild.h storage.h map.h battle.h pet.h ../common/socket.h ../common/mmo.h
-sqlobj/trade.o: trade.c trade.h clif.h itemdb.h map.h pc.h npc.h ../common/mmo.h
-sqlobj/party.o: party.c party.h clif.h intif.h pc.h map.h battle.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
-sqlobj/vending.o: vending.c vending.h clif.h itemdb.h map.h pc.h ../common/mmo.h
-sqlobj/guild.o: guild.c guild.h storage.h battle.h clif.h intif.h pc.h npc.h map.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
-sqlobj/pet.o: pet.c pet.h map.h clif.h chrif.h intif.h pc.h itemdb.h battle.h mob.h npc.h script.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
-sqlobj/mail.o: mail.c mail.h
+obj/magic-interpreter-lexer.o: magic-interpreter-lexer.c magic-interpreter-parser.c magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/magic-interpreter-parser.o: magic-interpreter-parser.c magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/magic-interpreter-base.o: magic-interpreter-base.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/magic-expr.o: magic-expr.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/magic-stmt.o: magic-stmt.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/magic.o: magic.c magic.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/map.o: map.c map.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/chrif.o: chrif.c map.h battle.h chrif.h clif.h intif.h pc.h npc.h ../common/socket.h ../common/timer.h ../common/mmo.h
+obj/clif.o: magic.h clif.c map.h chrif.h clif.h mob.h intif.h pc.h npc.h itemdb.h chat.h script.h storage.h party.h guild.h atcommand.h atcommand.h ../common/socket.h ../common/timer.h ../common/mmo.h ../common/version.h
+obj/pc.o: pc.c map.h clif.h intif.h pc.h npc.h mob.h itemdb.h battle.h skill.h script.h party.h guild.h trade.h storage.h chat.h ../common/timer.h ../common/mmo.h ../common/db.h
+obj/npc.o: npc.c map.h npc.h clif.h pc.h script.h mob.h itemdb.h battle.h ../common/db.h ../common/timer.h ../common/mmo.h
+obj/chat.o: chat.c map.h clif.h pc.h chat.h ../common/db.h ../common/mmo.h
+obj/path.o: path.c map.h battle.h ../common/mmo.h
+obj/itemdb.o: itemdb.c map.h battle.h itemdb.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/mob.o: mob.c map.h clif.h intif.h pc.h mob.h skill.h battle.h npc.h itemdb.h ../common/timer.h ../common/socket.h ../common/mmo.h
+obj/script.o: script.c itemdb.h map.h pc.h mob.h clif.h intif.h npc.h script.h storage.h skill.h battle.h ../common/timer.h ../common/socket.h ../common/db.h ../common/mmo.h ../common/lock.h
+obj/storage.o: storage.c itemdb.h pc.h clif.h intif.h storage.h guild.h ../common/mmo.h ../common/db.h
+obj/skill.o: skill.c skill.h map.h clif.h pc.h mob.h battle.h itemdb.h script.h ../common/timer.h ../common/mmo.h
+obj/atcommand.o: atcommand.c atcommand.h itemdb.h pc.h map.h skill.h clif.h mob.h intif.h battle.h storage.h guild.h ../common/socket.h ../common/timer.h ../common/mmo.h
+obj/battle.o: battle.c battle.h skill.h map.h mob.h pc.h guild.h ../common/timer.h ../common/mmo.h
+obj/intif.o: intif.c intif.h chrif.h clif.h party.h guild.h storage.h map.h battle.h ../common/socket.h ../common/mmo.h
+obj/trade.o: trade.c trade.h clif.h itemdb.h map.h pc.h npc.h ../common/mmo.h
+obj/party.o: party.c party.h clif.h intif.h pc.h map.h battle.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
 
 clean:
-	rm -rf *.o ../../map-server ../../map-server_sql sqlobj txtobj
+	rm -rf *.o ../../map-server obj

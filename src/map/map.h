@@ -58,7 +58,7 @@
 #define CLIF_OPTION_SC_INVISIBILITY	(CLIF_OPTION_SC_BASE)
 #define CLIF_OPTION_SC_SCRIBE		(CLIF_OPTION_SC_BASE + 1)
 
-enum { BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL, BL_PET, BL_SPELL };
+enum { BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL, BL_SPELL };
 enum { WARP, SHOP, SCRIPT, MONS, MESSAGE };
 struct block_list {
 	struct block_list *next,*prev;
@@ -84,11 +84,6 @@ struct status_change {
 	int timer;
 	int val1,val2,val3,val4;
         int spell_invocation; /* [Fate] If triggered by a spell, record here */
-};
-struct vending {
-	short index;
-	short amount;
-	int value;
 };
 
 struct invocation;
@@ -136,7 +131,6 @@ struct skill_timerskill {
 };
 
 struct npc_data;
-struct pet_db;
 struct item_data;
 struct square;
 
@@ -340,16 +334,9 @@ struct map_session_data {
 	int guildspy; // [Syrus22]
 	int partyspy; // [Syrus22]
 
-	int vender_id;
-	int vend_num;
 	char message[80];
-	struct vending vending[12];
 
 	int catch_target_class;
-	struct s_pet pet;
-	struct pet_db *petDB;
-	struct pet_data *pd;
-	int pet_hungry_timer;
 
 	int pvp_point,pvp_rank,pvp_timer,pvp_lastusers;
 
@@ -501,38 +488,6 @@ struct mob_data {
 	char npc_event[50];
         unsigned short stats[MOB_LAST]; // [Fate] mob-specific stats
 	short size;
-};
-struct pet_data {
-	struct block_list bl;
-	short n;
-	short class,dir;
-	short speed;
-	char name[24];
-	struct {
-		unsigned state : 8 ;
-		unsigned skillstate : 8 ;
-		unsigned change_walk_target : 1 ;
-	} state;
-	int timer;
-	short to_x,to_y;
-	short equip;
-	struct walkpath_data walkpath;
-	int target_id;
-	short target_lv;
-	int move_fail_count;
-	unsigned int attackabletime,next_walktime,last_thinktime;
-	int skilltype,skillval,skilltimer,skillduration; // [Valaris]
-	int skillbonustype,skillbonusval,skillbonustimer,skillbonusduration; // [Valaris]
-	struct item *lootitem;
-	short loot; // [Valaris]
-	short lootmax; // [Valaris]
-	short lootitem_count;
-	short lootitem_weight;
-	int lootitem_timer;
-	struct skill_timerskill skilltimerskill[MAX_MOBSKILLTIMERSKILL]; // [Valaris]
-	struct skill_unit_group skillunit[MAX_MOBSKILLUNITGROUP]; // [Valaris]
-	struct skill_unit_group_tickset skillunittick[MAX_SKILLUNITGROUPTICKSET]; // [Valaris]
-	struct map_session_data *msd;
 };
 
 enum { MS_IDLE,MS_WALK,MS_ATTACK,MS_DEAD,MS_DELAY };
