@@ -32,10 +32,6 @@
 
 #include "core.h"
 
-#ifndef TXT_ONLY
-#include "mail.h"
-#endif
-
 #define STATE_BLIND 0x10
 
 static char command_symbol = '@'; // first char of the commands (by [Yor])
@@ -333,11 +329,7 @@ static AtCommandInfo atcommand_info[] = {
 	{ AtCommand_ReloadItemDB,        "@reloaditemdb",    99, atcommand_reloaditemdb }, // admin command
 	{ AtCommand_ReloadMobDB,         "@reloadmobdb",     99, atcommand_reloadmobdb }, // admin command
 	{ AtCommand_ReloadSkillDB,       "@reloadskilldb",   99, atcommand_reloadskilldb }, // admin command
-#ifndef TXT_ONLY
-	{ AtCommand_Rehash,              "@rehash",          99, atcommand_rehash }, // admin command
-#else /* TXT_ONLY */
 	{ AtCommand_ReloadScript,        "@reloadscript",    99, atcommand_reloadscript }, // admin command
-#endif /* TXT_ONLY */
 	{ AtCommand_ReloadGMDB,          "@reloadgmdb",      99, atcommand_reloadgmdb }, // admin command
 	{ AtCommand_CharReset,           "@charreset",       60, atcommand_charreset },
 	{ AtCommand_CharModel,           "@charmodel",       50, atcommand_charmodel },
@@ -440,17 +432,6 @@ static AtCommandInfo atcommand_info[] = {
         { AtCommand_Visible, "@visible", 60, atcommand_visible }, // [Fate]
         { AtCommand_IterateForward, "@hugo", 60, atcommand_iterate_forward_over_players }, // [Fate]
         { AtCommand_IterateBackward, "@linus", 60, atcommand_iterate_backwards_over_players }, // [Fate]
-
-#ifndef TXT_ONLY // sql-only commands
-	{ AtCommand_CheckMail,		 "@checkmail",	      1, atcommand_listmail }, // [Valaris]
-	{ AtCommand_ListMail,		 "@listmail",	      1, atcommand_listmail }, // [Valaris]
-	{ AtCommand_ListNewMail,	 "@listnewmail",      1, atcommand_listmail }, // [Valaris]
-	{ AtCommand_ReadMail,		 "@readmail",	      1, atcommand_readmail }, // [Valaris]
-	{ AtCommand_DeleteMail,		 "@deletemail",	      1, atcommand_readmail }, // [Valaris]
-	{ AtCommand_SendMail,		 "@sendmail",	      1, atcommand_sendmail }, // [Valaris]
-	{ AtCommand_SendPriorityMail,	 "@sendprioritymail",80, atcommand_sendmail }, // [Valaris]
-	{ AtCommand_RefreshOnline,	 "@refreshonline",   99, atcommand_refreshonline }, // [Valaris]
-#endif /* TXT_ONLY */
 
 // add new commands before this line
 	{ AtCommand_Unknown,             NULL,                1, NULL }
@@ -775,37 +756,6 @@ static int atkillmonster_sub(struct block_list *bl, va_list ap) {
 	return 0;
 }
 
-#ifndef TXT_ONLY
-static int atkillnpc_sub(struct block_list *bl, va_list ap)
-{
-        int flag = va_arg(ap,int);
-
-        nullpo_retr(0, bl);
-
-        npc_delete((struct npc_data *)bl);
-
-        flag = 0;
-
-        return 0;
-}
-
-void rehash( const int fd, struct map_session_data* sd )
-{
-        int map_id = 0;
-
-        int LOADED_MAPS = map_num;
-	
-        for (map_id = 0; map_id < LOADED_MAPS;map_id++) {
-
-            if (map_id > LOADED_MAPS)
-                break;
-
-            map_foreachinarea(atkillmonster_sub, map_id, 0, 0, map[map_id].xs, map[map_id].ys, BL_MOB, 0);
-            map_foreachinarea(atkillnpc_sub, map_id, 0, 0, map[map_id].xs, map[map_id].ys, BL_NPC, 0);
-        }
-}
-
-#endif /* not TXT_ONLY */
 /*==========================================
  * Read Message Data
  *------------------------------------------
@@ -5270,22 +5220,10 @@ int atcommand_reloadskilldb(
  *
  *------------------------------------------
  */
-#ifndef TXT_ONLY
-int atcommand_rehash(
-#else /* TXT_ONLY */
 int atcommand_reloadscript(
-#endif /* TXT_ONLY */
 	const int fd, struct map_session_data* sd,
 	const char* command, const char* message)
 {
-#ifndef TXT_ONLY
-	atcommand_broadcast( fd, sd, "@broadcast", "eAthena SQL Server is Rehashing..." );
-	atcommand_broadcast( fd, sd, "@broadcast", "You will feel a bit of lag at this point !" );
-	
-        rehash( fd, sd );
-
-	atcommand_broadcast( fd, sd, "@broadcast", "Reloading NPCs..." );
-#endif /* not TXT_ONLY */
 	do_init_npc();
 	do_init_script();
 
@@ -7413,101 +7351,6 @@ int atcommand_unmute(
 
 	return 0;
 }
-
-#ifndef TXT_ONLY  /* Begin SQL-Only commands */
-
-/*==========================================
- * Mail System commands by [Valaris]
- *------------------------------------------
- */
-int atcommand_listmail(
-	const int fd, struct map_session_data* sd,
-	const char* command, const char* message)
-{
-	if(!battle_config.mail_system)
-		return 0;
-
-	nullpo_retr(-1, sd);
-
-	if(strlen(command)==12)
-		mail_check(sd,3);
-	else if(strlen(command)==9)
-		mail_check(sd,2);
-	else 
-		mail_check(sd,1);
-	return 0;
-}
-
-int atcommand_readmail(
-	const int fd, struct map_session_data* sd,
-	const char* command, const char* message)
-{
-	if(!battle_config.mail_system)
-		return 0;
-
-	nullpo_retr(-1, sd);
-
-	if (!message || !*message) {
-		clif_displaymessage(sd->fd,"You must specify a message number.");
-		return 0;
-	}
-
-	if(strlen(command)==11)
-		mail_delete(sd,atoi(message));
-	else
-		mail_read(sd,atoi(message));
-
-	return 0;
-}
-
-int atcommand_sendmail(
-	const int fd, struct map_session_data* sd,
-	const char* command, const char* message)
-{
-	if(!battle_config.mail_system)
-		return 0;
-
-	char name[24],text[80];
-
-	nullpo_retr(-1, sd);
-
-	if (!message || !*message) {
-		clif_displaymessage(sd->fd,"You must specify a recipient and a message.");
-		return 0;
-	}
-
-	if ((sscanf(message, "\"%[^\"]\" %79[^\n]", name, text) < 2) &&
-		(sscanf(message, "%23s %79[^\n]", name, text) < 2)) {
-		clif_displaymessage(sd->fd,"You must specify a recipient and a message.");
-		return 0;
-	}
-
-	if(strlen(command)==17)
-		mail_send(sd,name,text,1);
-	else 
-		mail_send(sd,name,text,0);
-
-	return 0;
-}
-
-/*==========================================
- * Refresh online command for SQL [Valaris]
- * Will refresh and check online column of
- * players and set correctly.
- *------------------------------------------
- */
-int atcommand_refreshonline(
-	const int fd, struct map_session_data* sd,
-	const char* command, const char* message)
-{
-	nullpo_retr(-1, sd);
-
-	char_online_check();
-	
-	return 0;
-}
-
-#endif /* end sql only */
 
 /* Magic atcommands by Fate */
 

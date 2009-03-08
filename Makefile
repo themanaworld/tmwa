@@ -27,7 +27,7 @@ endif
 MKDEF = CC="$(CC)" CFLAGS="$(CFLAGS)"
 
 
-all clean: src/common/GNUmakefile src/login/GNUmakefile src/char_unblocked/GNUmakefile src/map/GNUmakefile src/ladmin/GNUmakefile
+all clean: src/common/GNUmakefile src/login/GNUmakefile src/char/GNUmakefile src/map/GNUmakefile src/ladmin/GNUmakefile
 	cd src ; cd common ; $(MAKE) $(MKDEF) $@ ; cd ..
 	cd src ; cd login ; $(MAKE) $(MKDEF) $@ ; cd ..
 	cd src ; cd char ; $(MAKE) $(MKDEF) $@ ; cd ..

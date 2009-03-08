@@ -354,11 +354,6 @@ struct map_session_data {
 	char chat_lastmsg[513];
 	int chat_threshold;
 	int chat_repeatmsg;
-
-#ifndef TXT_ONLY
-	int mail_counter;	// mail counter for mail system [Valaris]
-#endif
-
 };
 
 struct npc_timerevent_list {
@@ -725,43 +720,5 @@ int map_who(int fd);
 
 void map_helpscreen(); // [Valaris]
 int map_delmap(char *mapname);
-
-#ifndef TXT_ONLY
-
-// MySQL
-#include <mysql.h>
-
-void char_online_check(void); // [Valaris]
-void char_offline(struct map_session_data *sd);
-
-extern MYSQL mmysql_handle;
-extern char tmp_sql[65535];
-extern MYSQL_RES* sql_res ;
-extern MYSQL_ROW	sql_row ;
-
-extern MYSQL lmysql_handle;
-extern char tmp_lsql[65535];
-extern MYSQL_RES* lsql_res ;
-extern MYSQL_ROW	lsql_row ;
-
-extern MYSQL mail_handle;
-extern MYSQL_RES* 	mail_res ;
-extern MYSQL_ROW	mail_row ;
-extern char tmp_msql[65535];
-
-extern int db_use_sqldbs;
-
-extern char item_db_db[32];
-extern char mob_db_db[32];
-extern char login_db[32];
-
-extern char login_db_level[32];
-extern char login_db_account_id[32];
-
-extern int lowest_gm_level;
-extern int read_gm_interval;
-
-extern char char_db[32];
-#endif /* not TXT_ONLY */
 
 #endif

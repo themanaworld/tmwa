@@ -320,10 +320,6 @@ extern struct Battle_Config {
 
         int drop_pickup_safety_zone; // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
 
-#ifndef TXT_ONLY /* SQL-only options */
-	int mail_system; // [Valaris]
-#endif
-
         int itemheal_regeneration_factor; // [Fate] itemheal speed factor
 
 } battle_config;

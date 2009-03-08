@@ -11,7 +11,6 @@
 #include "int_party.h"
 #include "int_guild.h"
 #include "int_storage.h"
-#include "int_pet.h"
 #include "lock.h"
 
 #define WISDATA_TTL (60*1000)	// Existence time of Wisp/page data (60 seconds)
@@ -193,8 +192,6 @@ int inter_config_read(const char *cfgName) {
 			strncpy(party_txt, w2, sizeof(party_txt));
 		} else if (strcmpi(w1, "guild_txt") == 0) {
 			strncpy(guild_txt, w2, sizeof(guild_txt));
-		} else if (strcmpi(w1, "pet_txt") == 0) {
-			strncpy(pet_txt, w2, sizeof(pet_txt));
 		} else if (strcmpi(w1, "castle_txt") == 0) {
 			strncpy(castle_txt, w2, sizeof(castle_txt));
 		} else if (strcmpi(w1, "accreg_txt") == 0) {
@@ -238,7 +235,6 @@ int inter_save() {
 	inter_guild_save();
 	inter_storage_save();
 	inter_guild_storage_save();
-	inter_pet_save();
 	inter_accreg_save();
 
 	return 0;
@@ -253,7 +249,6 @@ int inter_init(const char *file) {
 	inter_party_init();
 	inter_guild_init();
 	inter_storage_init();
-	inter_pet_init();
 	inter_accreg_init();
 
 	return 0;
@@ -534,8 +529,6 @@ int inter_parse_frommap(int fd) {
 		if (inter_guild_parse_frommap(fd))
 			break;
 		if (inter_storage_parse_frommap(fd))
-			break;
-		if (inter_pet_parse_frommap(fd))
 			break;
 		return 0;
 	}

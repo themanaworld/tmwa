@@ -40,55 +40,6 @@
 #include "memwatch.h"
 #endif
 
-#ifndef TXT_ONLY
-
-#include "mail.h" // mail system [Valaris]
-
-MYSQL mmysql_handle;
-MYSQL_RES* 	sql_res ;
-MYSQL_ROW	sql_row ;
-char tmp_sql[65535]="";
-
-MYSQL lmysql_handle;
-MYSQL_RES* lsql_res ;
-MYSQL_ROW  lsql_row ;
-char tmp_lsql[65535]="";
-
-MYSQL mail_handle; // mail system [Valaris]
-MYSQL_RES* 	mail_res ;
-MYSQL_ROW	mail_row ;
-char tmp_msql[65535]="";
-
-int map_server_port = 3306;
-char map_server_ip[16] = "127.0.0.1";
-char map_server_id[32] = "ragnarok";
-char map_server_pw[32] = "ragnarok";
-char map_server_db[32] = "ragnarok";
-int db_use_sqldbs = 0;
-
-int login_server_port = 3306;
-char login_server_ip[16] = "127.0.0.1";
-char login_server_id[32] = "ragnarok";
-char login_server_pw[32] = "ragnarok";
-char login_server_db[32] = "ragnarok";
-
-char item_db_db[32] = "item_db";
-char mob_db_db[32] = "mob_db";
-char login_db[32] = "login";
-char login_db_level[32] = "level";
-char login_db_account_id[32] = "account_id";
-
-int lowest_gm_level = 1;
-int read_gm_interval = 600000;
-
-char char_db[32] = "char";
-
-static int online_timer(int,unsigned int,int,int);
-
-int CHECK_INTERVAL = 3600000; // [Valaris]
-int check_online_timer=0; // [Valaris]
-
-#endif /* not TXT_ONLY */
 // 極力 staticでローカルに収める
 static struct dbt * id_db=NULL;
 static struct dbt * map_db=NULL;
@@ -1075,10 +1026,6 @@ int map_quit(struct map_session_data *sd) {
 
 	map_delblock(&sd->bl);
 
-#ifndef TXT_ONLY
-	chrif_char_offline(sd);
-#endif
-
 	numdb_erase(id_db,sd->bl.id);
 	strdb_erase(nick_db,sd->status.name);
 	numdb_erase(charid_db,sd->status.char_id);
@@ -1781,200 +1728,6 @@ int map_config_read(char *cfgName) {
 	return 0;
 }
 
-#ifndef TXT_ONLY
-/*=======================================
- *  MySQL Init
- *---------------------------------------
- */
-
-int map_sql_init(void){
-
-    mysql_init(&mmysql_handle);
-
-	//DB connection start
-	printf("Connect Map DB Server....\n");
-	if(!mysql_real_connect(&mmysql_handle, map_server_ip, map_server_id, map_server_pw,
-		map_server_db ,map_server_port, (char *)NULL, 0)) {
-			//pointer check
-			printf("%s\n",mysql_error(&mmysql_handle));
-			exit(1);
-	}
-	else {
-		printf ("connect success! (Map Server Connection)\n");
-	}
-	
-    mysql_init(&lmysql_handle);
-    
-    //DB connection start
-    printf("Connect Login DB Server....\n");
-    if(!mysql_real_connect(&lmysql_handle, login_server_ip, login_server_id, login_server_pw,
-        login_server_db ,login_server_port, (char *)NULL, 0)) {
-	        //pointer check
-			printf("%s\n",mysql_error(&lmysql_handle));
-			exit(1);
-	}
-	 else {
-		printf ("connect success! (Login Server Connection)\n");
-	 }
-	
-	if(battle_config.mail_system) { // mail system [Valaris]
-		mysql_init(&mail_handle);
-		if(!mysql_real_connect(&mail_handle, map_server_ip, map_server_id, map_server_pw,
-			map_server_db ,map_server_port, (char *)NULL, 0)) {
-				printf("%s\n",mysql_error(&mail_handle));
-				exit(1);
-		}
-	}
-
-	return 0;
-}
-
-int map_sql_close(void){
-	mysql_close(&mmysql_handle);
-	printf("Close Map DB Connection....\n");
-
-	mysql_close(&lmysql_handle);
-	printf("Close Login DB Connection....\n");
-	return 0;
-}
-
-int sql_config_read(char *cfgName)
-{
-	int i;
-	char line[1024],w1[1024],w2[1024];
-	FILE *fp;
-
-	fp=fopen(cfgName,"r");
-	if(fp==NULL){
-		printf("file not found: %s\n",cfgName);
-		return 1;
-	}
-	while(fgets(line,1020,fp)){
-		if(line[0] == '/' && line[1] == '/')
-			continue;
-		i=sscanf(line,"%[^:]: %[^\r\n]",w1,w2);
-		if(i!=2)
-			continue;
-		if(strcmpi(w1,"item_db_db")==0){
-			strcpy(item_db_db,w2);
-		} else if(strcmpi(w1,"mob_db_db")==0){
-			strcpy(mob_db_db,w2);
-		} else if(strcmpi(w1,"login_db_level")==0){
-			strcpy(login_db_level,w2);
-		} else if(strcmpi(w1,"login_db_account_id")==0){
-		    strcpy(login_db_account_id,w2);
-		} else if(strcmpi(w1,"login_db")==0){
-			strcpy(login_db,w2);
-		} else if (strcmpi(w1, "char_db") == 0) {
-			strcpy(char_db, w2); 
-		//Map Server SQL DB
-		} else if(strcmpi(w1,"map_server_ip")==0){
-			strcpy(map_server_ip, w2);
-			printf ("set map_server_ip : %s\n",w2);
-		} else if(strcmpi(w1,"map_server_port")==0){
-			map_server_port=atoi(w2);
-			printf ("set map_server_port : %s\n",w2);
-		} else if(strcmpi(w1,"map_server_id")==0){
-			strcpy(map_server_id, w2);
-			printf ("set map_server_id : %s\n",w2);
-		} else if(strcmpi(w1,"map_server_pw")==0){
-			strcpy(map_server_pw, w2);
-			printf ("set map_server_pw : %s\n",w2);
-		} else if(strcmpi(w1,"map_server_db")==0){
-			strcpy(map_server_db, w2);
-			printf ("set map_server_db : %s\n",w2);
-		//Map server option to use SQL db or not
-		} else if(strcmpi(w1,"use_sql_db")==0){
-			if (strcmpi(w2,"yes")){db_use_sqldbs=0;} else if (strcmpi(w2,"no")){db_use_sqldbs=1;}
-			printf ("Using SQL dbs: %s\n",w2);
-		//Login Server SQL DB
-		} else if(strcmpi(w1,"login_server_ip")==0){
-			strcpy(login_server_ip, w2);
-			printf ("set login_server_ip : %s\n",w2);
-        	} else if(strcmpi(w1,"login_server_port")==0){
-			login_server_port = atoi(w2);
-			printf ("set login_server_port : %s\n",w2);
-		} else if(strcmpi(w1,"login_server_id")==0){
-			strcpy(login_server_id, w2);
-			printf ("set login_server_id : %s\n",w2);
-		} else if(strcmpi(w1,"login_server_pw")==0){
-			strcpy(login_server_pw, w2);
-			printf ("set login_server_pw : %s\n",w2);
-		} else if(strcmpi(w1,"login_server_db")==0){
-			strcpy(login_server_db, w2);
-			printf ("set login_server_db : %s\n",w2);
-		} else if(strcmpi(w1,"lowest_gm_level")==0){
-			lowest_gm_level = atoi(w2);
-			printf ("set lowest_gm_level : %s\n",w2);
-		} else if(strcmpi(w1,"read_gm_interval")==0){
-			read_gm_interval = ( atoi(w2) * 60 * 1000 ); // Minutes multiplied by 60 secs per min by 1000 milliseconds per second
-			printf ("set read_gm_interval : %s\n",w2);
-		}
-	}
-	fclose(fp);
-
-	return 0;
-}
-
-// sql online status checking [Valaris]
-void char_offline(struct map_session_data *sd)
-{
-	if(sd && sd->status.char_id) {
-		sprintf(tmp_sql,"UPDATE `%s` SET `online`='0' WHERE `char_id`='%d'", char_db, sd->status.char_id);
-	        if(mysql_query(&mmysql_handle, tmp_sql) ) {
-			printf("DB server Error (update online `%s`)- %s\n", char_db, mysql_error(&mmysql_handle) );
-	        }
-	}
-}
-
-void do_reset_online(void)
-{
-	sprintf(tmp_sql,"UPDATE `%s` SET `online`='0' WHERE `online`='1'", char_db);
-	if(mysql_query(&mmysql_handle, tmp_sql) ) {
-		printf("DB server Error (reset_online `%s`)- %s\n", char_db, mysql_error(&mmysql_handle) );
-	}
-}
-
-int online_timer(int tid,unsigned int tick,int id,int data)
-{
-	if(check_online_timer != tid)
-		return 0;
-
-	char_online_check();
-
-	check_online_timer=add_timer(gettick()+CHECK_INTERVAL,online_timer,0,0);	
-
-	return 0;
-}
-
-void char_online_check(void)
-{
-	int i;
-	struct map_session_data *sd=NULL;
-
-	do_reset_online();
-
-	for(i=0;i<fd_max;i++){
-		if (session[i] && (sd = session[i]->session_data) && sd && sd->state.auth && 
-		 !(battle_config.hide_GM_session && pc_isGM(sd)))
-			if(sd->status.char_id) {
-				sprintf(tmp_sql,"UPDATE `%s` SET `online`='1' WHERE `char_id`='%d'", char_db, sd->status.char_id);
-			        if(mysql_query(&mmysql_handle, tmp_sql) ) {
-					printf("DB server Error (update online `%s`)- %s\n", char_db, mysql_error(&mmysql_handle) );
-				}
-			}
-	}
-
-	
-	if(check_online_timer && check_online_timer != -1) {
-		delete_timer(check_online_timer,online_timer);
-		add_timer(gettick()+CHECK_INTERVAL,online_timer,0,0);
-	}
-
-}
-
-#endif /* not TXT_ONLY */
-
 int id_db_final(void *k,void *d,va_list ap){ return 0; }
 int map_db_final(void *k,void *d,va_list ap){ return 0; }
 int nick_db_final(void *k,void *d,va_list ap){ return 0; }
@@ -2038,10 +1791,6 @@ void do_final(void) {
 	do_final_itemdb();
 	do_final_storage();
         do_final_guild();
-#ifndef TXT_ONLY
-	do_reset_online();
-    map_sql_close();
-#endif /* not TXT_ONLY */
 }
 
 void map_helpscreen() {
@@ -2055,9 +1804,6 @@ void map_helpscreen() {
 int do_init(int argc, char *argv[]) {
 	int i;
 
-#ifndef TXT_ONLY
-	unsigned char *SQL_CONF_NAME="conf/inter_athena.conf";
-#endif
 	unsigned char *MAP_CONF_NAME = "conf/map_athena.conf";
 	unsigned char *BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
 	unsigned char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
@@ -2083,10 +1829,6 @@ int do_init(int argc, char *argv[]) {
 			MSG_CONF_NAME = argv[i+1];
 		else if (strcmp(argv[i],"--grf_path_file") == 0)
 			GRF_PATH_FILENAME = argv[i+1];
-#ifndef TXT_ONLY
-		else if (strcmp(argv[i],"--sql_config") == 0)
-		    SQL_CONF_NAME = argv[i+1];
-#endif /* not TXT_ONLY */
 	}
 
 	map_config_read(MAP_CONF_NAME);
@@ -2094,9 +1836,6 @@ int do_init(int argc, char *argv[]) {
 	atcommand_config_read(ATCOMMAND_CONF_FILENAME);
 	script_config_read(SCRIPT_CONF_NAME);
 	msg_config_read(MSG_CONF_NAME);
-#ifndef TXT_ONLY
-	sql_config_read(SQL_CONF_NAME);
-#endif /* not TXT_ONLY */
 
 	atexit(do_final);
 
@@ -2104,20 +1843,12 @@ int do_init(int argc, char *argv[]) {
 	map_db = strdb_init(16);
 	nick_db = strdb_init(24);
 	charid_db = numdb_init();
-#ifndef TXT_ONLY
-	map_sql_init();
-#endif /* not TXT_ONLY */
 
 	grfio_init(GRF_PATH_FILENAME);
 
 	map_readallmap();
 
 	add_timer_func_list(map_clearflooritem_timer, "map_clearflooritem_timer");
-
-#ifndef TXT_ONLY // online status timer, checks every hour [Valaris]
-	add_timer_func_list(online_timer, "online_timer");
-	check_online_timer=add_timer(gettick()+CHECK_INTERVAL,online_timer,0,0);	
-#endif /* not TXT_ONLY */
 
 	do_init_chrif();
 	do_init_clif();
@@ -2131,11 +1862,6 @@ int do_init(int argc, char *argv[]) {
 	do_init_storage();
 	do_init_skill();
         do_init_magic();
-
-#ifndef TXT_ONLY /* mail system [Valaris] */
-	if(battle_config.mail_system)	
-		do_init_mail();
-#endif /* not TXT_ONLY */
 
 	npc_event_do_oninit();	// npcのOnInitイベント実行
 

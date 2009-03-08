@@ -4517,14 +4517,7 @@ int battle_config_read(const char *cfgName)
 		battle_config.spam_time = 3000;
 		battle_config.spam_threshold = 10;
 		battle_config.chat_maxline = 255;
-
-//SQL-only options start
-#ifndef TXT_ONLY 
-		battle_config.mail_system = 0;
-//SQL-only options end
-#endif
-
-}
+	}
 
 	fp = fopen(cfgName,"r");
 	if (fp == NULL) {
@@ -4730,12 +4723,7 @@ int battle_config_read(const char *cfgName)
 			{ "spam_ban",                          &battle_config.spam_ban		}, 
 			{ "spam_time",                         &battle_config.spam_time		}, 
 			{ "spam_threshold",                    &battle_config.spam_threshold	},
-			{ "chat_maxline",                      &battle_config.chat_maxline	},
-//SQL-only options start
-#ifndef TXT_ONLY 
-			{ "mail_system",		&battle_config.mail_system	}, // added by [Valaris]
-//SQL-only options end
-#endif
+			{ "chat_maxline",                      &battle_config.chat_maxline	}
 		};
 
 		if (line[0] == '/' && line[1] == '/')

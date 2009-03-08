@@ -985,14 +985,6 @@ int check_connect_char_server(int tid, unsigned int tick, int id, int data) {
 		realloc_fifo(char_fd, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
 
 		chrif_connect(char_fd);
-#ifndef TXT_ONLY
-		srvinfo = 0;
-	} else {
-		if (srvinfo == 0) {
-			chrif_ragsrvinfo(battle_config.base_exp_rate, battle_config.job_exp_rate, battle_config.item_rate_common);
-			srvinfo = 1;
-		}
-#endif /* not TXT_ONLY */
 	}
 
 	return 0;

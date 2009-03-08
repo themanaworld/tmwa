@@ -8,7 +8,6 @@
 #include "utils.h" // LCCWIN32
 
 #ifdef CYGWIN
-// txtやlogなどの書き出すファイルの改行コード
 #define RETCODE	"\r\n"	// (CR/LF：Windows系)
 #else
 #define RETCODE "\n"	// (LF：Unix系）
@@ -64,9 +63,6 @@
 
 #define MAX_STATUS_TYPE 5
 
-#define WEDDING_RING_M 2634
-#define WEDDING_RING_F 2635
-
 #define CHAR_CONF_NAME  "conf/char_athena.conf"
 
 struct item {
@@ -95,21 +91,6 @@ struct global_reg {
 	int value;
 };
 
-struct s_pet {
-	int account_id;
-	int char_id;
-	int pet_id;
-	short class;
-	short level;
-	short egg_id;//pet egg id
-	short equip;//pet equip name_id
-	short intimate;//pet friendly
-	short hungry;//pet hungry
-	char name[24];
-	char rename_flag;
-	char incuvate;
-};
-
 struct mmo_charstatus {
 	int char_id;
 	int account_id;
@@ -122,7 +103,7 @@ struct mmo_charstatus {
 	int hp,max_hp,sp,max_sp;
 	short option,karma,manner;
 	short hair,hair_color,clothes_color;
-	int party_id,guild_id,pet_id;
+	int party_id,guild_id;
 
 	short weapon,shield;
 	short head_top,head_mid,head_bottom;

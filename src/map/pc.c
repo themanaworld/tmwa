@@ -29,10 +29,6 @@
 #include "storage.h"
 #include "trade.h"
 
-#ifndef TXT_ONLY // mail system [Valaris]
-#include "mail.h"
-#endif
-
 #ifdef MEMWATCH
 #include "memwatch.h"
 #endif
@@ -713,10 +709,6 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 
 	sd->doridori_counter = 0;
 
-#ifndef TXT_ONLY // mail system [Valaris]
-	if(battle_config.mail_system)
-		sd->mail_counter = 0;
-#endif
 	sd->spiritball = 0;
 	for(i = 0; i < MAX_SKILL_LEVEL; i++)
 		sd->spirit_timer[i] = -1;
@@ -832,11 +824,6 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 
 	sd->chat_lastmsg_time = sd->chat_threshold = sd->chat_repeatmsg = 0;
 	sd->chat_lastmsg[0] = '\0';
-
-#ifndef TXT_ONLY
-	if(battle_config.mail_system)
-		mail_check(sd,1); // check mail at login [Valaris]
-#endif
 
 	// message of the limited time of the account
 	if (connect_until_time != 0) { // don't display if it's unlimited or unknow value
@@ -7216,13 +7203,11 @@ int pc_autosave(int tid,unsigned int tick,int id,int data)
 
 int pc_read_gm_account(int fd)
 {
-#ifdef TXT_ONLY
         int i = 0;
-#endif
 	if (gm_account != NULL)
 		free(gm_account);
 	GM_num = 0;
-#ifdef TXT_ONLY
+
 	gm_account = calloc(sizeof(struct gm_account) * ((RFIFOW(fd,2) - 4) / 5), 1);
 	for (i = 4; i < RFIFOW(fd,2); i = i + 5) {
 		gm_account[GM_num].account_id = RFIFOL(fd,i);
@@ -7230,24 +7215,6 @@ int pc_read_gm_account(int fd)
 		//printf("GM account: %d -> level %d\n", gm_account[GM_num].account_id, gm_account[GM_num].level);
 		GM_num++;
 	}
-#else
-	sprintf (tmp_lsql, "SELECT `%s`,`%s` FROM `%s` WHERE `%s`>='%d'",login_db_account_id,login_db_level,login_db,login_db_level,lowest_gm_level);
-	if(mysql_query(&lmysql_handle, tmp_lsql) ) {
-		printf("DB server Error (select %s to Memory)- %s\n",login_db,mysql_error(&lmysql_handle) );
-	}
-	lsql_res = mysql_store_result(&lmysql_handle);
-	if (lsql_res) {
-	    gm_account = calloc(sizeof(struct gm_account) * mysql_num_rows(lsql_res), 1);
-	    while ((lsql_row = mysql_fetch_row(lsql_res))) {
-	        gm_account[GM_num].account_id = atoi(lsql_row[0]);
-		    gm_account[GM_num].level = atoi(lsql_row[1]);
-		    printf("GM account: %d -> level %d\n", gm_account[GM_num].account_id, gm_account[GM_num].level);
-		    GM_num++;
-	    }
-    }
-	
-    mysql_free_result(lsql_res);
-#endif /* TXT_ONLY */
 	return GM_num;
 }
 
@@ -7673,10 +7640,6 @@ int do_init_pc(void) {
 	add_timer_func_list(pc_spiritball_timer, "pc_spiritball_timer");
 	add_timer_interval((natural_heal_prev_tick = gettick() + NATURAL_HEAL_INTERVAL), pc_natural_heal, 0, 0, NATURAL_HEAL_INTERVAL);
 	add_timer(gettick() + autosave_interval, pc_autosave, 0, 0);
-
-#ifndef TXT_ONLY
-	pc_read_gm_account(0);
-#endif /* not TXT_ONLY */
 
 	// add night/day timer (by [yor])
 	add_timer_func_list(map_day_timer, "map_day_timer"); // by [yor]

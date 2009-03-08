@@ -15,7 +15,7 @@ map-server: obj/magic-interpreter-lexer.o obj/magic-interpreter-parser.o obj/mag
 	$(CC) -o ../../$@ $> $(LIBS)
 
 obj/%.o: %.c
-	$(COMPILE.c) -DTXT_ONLY $(OUTPUT_OPTION) $<
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 magic-interpreter-lexer.c: magic-interpreter.l
 	$(LEX) -o magic-interpreter-lexer.c magic-interpreter.l

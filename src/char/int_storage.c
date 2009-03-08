@@ -1,7 +1,6 @@
 // $Id: int_storage.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
 #include "inter.h"
 #include "int_storage.h"
-#include "int_pet.h"
 #include "int_guild.h"
 #include "mmo.h"
 #include "char.h"
@@ -354,11 +353,6 @@ int inter_storage_delete(int account_id)
 {
 	struct storage *s = numdb_search(storage_db,account_id);
 	if(s) {
-		int i;
-		for(i=0;i<s->storage_amount;i++){
-			if(s->storage[i].card[0] == (short)0xff00)
-				inter_pet_delete(*((long *)(&s->storage[i].card[2])));
-		}
 		numdb_erase(storage_db,account_id);
 		free(s);
 	}
@@ -370,11 +364,6 @@ int inter_guild_storage_delete(int guild_id)
 {
 	struct guild_storage *gs = numdb_search(guild_storage_db,guild_id);
 	if(gs) {
-		int i;
-		for(i=0;i<gs->storage_amount;i++){
-			if(gs->storage[i].card[0] == (short)0xff00)
-				inter_pet_delete(*((long *)(&gs->storage[i].card[2])));
-		}
 		numdb_erase(guild_storage_db,guild_id);
 		free(gs);
 	}

@@ -26,7 +26,6 @@
 #include "char.h"
 
 #include "inter.h"
-#include "int_pet.h"
 #include "int_guild.h"
 #include "int_party.h"
 #include "int_storage.h"
@@ -237,7 +236,7 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p) {
 	  p->str, p->agi, p->vit, p->int_, p->dex, p->luk,
 	  p->status_point, p->skill_point,
 	  p->option, p->karma, p->manner,	//
-	  p->party_id, p->guild_id, p->pet_id,
+	  p->party_id, p->guild_id, 0,
 	  p->hair, p->hair_color, p->clothes_color,
 	  p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom,
 	  p->last_point.map, p->last_point.x, p->last_point.y, //
@@ -384,7 +383,7 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p) {
 	p->manner = tmp_int[23];
 	p->party_id = tmp_int[24];
 	p->guild_id = tmp_int[25];
-	p->pet_id = tmp_int[26];
+//	p->pet_id = tmp_int[26];
 	p->hair = tmp_int[27];
 	p->hair_color = tmp_int[28];
 	p->clothes_color = tmp_int[29];
@@ -1470,15 +1469,6 @@ int disconnect_player(int accound_id) {
 static int char_delete(struct mmo_charstatus *cs) {
 	int j;
 
-	// ƒyƒbƒgíœ
-	if (cs->pet_id)
-		inter_pet_delete(cs->pet_id);
-	for (j = 0; j < MAX_INVENTORY; j++)
-		if (cs->inventory[j].card[0] == (short)0xff00)
-			inter_pet_delete(*((long *)(&cs->inventory[j].card[2])));
-	for (j = 0; j < MAX_CART; j++)
-		if (cs->cart[j].card[0] == (short)0xff00)
-			inter_pet_delete(*((long *)(&cs->cart[j].card[2])));
 	// ƒMƒ‹ƒh’E‘Þ
 	if (cs->guild_id)
 		inter_guild_leave(cs->guild_id, cs->account_id, cs->char_id);
