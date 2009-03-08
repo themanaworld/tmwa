@@ -748,7 +748,7 @@ static void remove_prefix_blanks(char *name)
 
         while (*src == ' ') // find first nonblank
                 ++src;
-        while (*dst++ = *src++); // `strmove'
+        while ((*dst++ = *src++)); // `strmove'
 }
 
 //-----------------------------------
@@ -1395,7 +1395,7 @@ int char_divorce(struct mmo_charstatus *cs) {
 		return 0;
 
 	if (cs->partner_id > 0){
-		int i, j;
+		int i;
 		for(i = 0; i < char_num; i++) {
 			if (char_dat[i].char_id == cs->partner_id && char_dat[i].partner_id == cs->char_id) {
 				cs->partner_id = 0;
@@ -2797,7 +2797,7 @@ int parse_char(int fd) {
 }
 
 // 全てのMAPサーバーにデータ送信（送信したmap鯖の数を返す）
-int mapif_sendall(unsigned char *buf, unsigned int len) {
+int mapif_sendall(char *buf, unsigned int len) {
 	int i, c;
 
 	c = 0;

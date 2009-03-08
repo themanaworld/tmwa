@@ -381,9 +381,6 @@ int clif_send(unsigned char *buf, int len, struct block_list *bl, int type) {
 						memcpy(WFIFOP(sd->fd,0), buf, len);
 						WFIFOSET(sd->fd,len);
 					}
-//					if(battle_config.etc_log)
-//						printf("send party %d %d %d\n",p->party_id,i,flag)
-
 				}
 			}
 			for (i = 0; i < fd_max; i++){
@@ -475,7 +472,6 @@ int clif_send(unsigned char *buf, int len, struct block_list *bl, int type) {
 			}
 		}
 		break;
-/*				End [Valaris]			*/
 
 	default:
 		if (battle_config.error_log)
@@ -679,8 +675,7 @@ int clif_clearchar_id(int id, int type, int fd) {
 	return 0;
 }
 
-static int
-current_weapon(struct map_session_data *sd)
+static int current_weapon(struct map_session_data *sd)
 {
         if (sd->attack_spell_override)
                 return sd->attack_spell_look_override;
