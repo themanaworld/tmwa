@@ -1297,11 +1297,7 @@ find_equip_view(struct mmo_charstatus *p, unsigned int equipmask)
 int mmo_char_send006b(int fd, struct char_session_data *sd) {
 	int i, j, found_num;
 	struct mmo_charstatus *p;
-#ifdef NEW_006b
 	const int offset = 24;
-#else
-	const int offset = 4;
-#endif
 
 	found_num = 0;
 	for(i = 0; i < char_num; i++) {
