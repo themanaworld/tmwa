@@ -2936,6 +2936,17 @@ int parse_login(int fd) {
 				login_log("Connection request of the char-server '%s' @ %d.%d.%d.%d:%d (ip: %s)" RETCODE,
 				          server_name, RFIFOB(fd,54), RFIFOB(fd,55), RFIFOB(fd,56), RFIFOB(fd,57), RFIFOW(fd,58), ip);
 				result = mmo_auth(&account, fd);
+
+				if (result == -1 && account.sex == 2) {
+					int i;
+					for (i = 0; i < MAX_SERVERS; i++) {
+						if (server_fd[i] == -1) {
+							account.account_id = i;
+							break;
+						}
+					}
+				}
+
 				if (result == -1 && account.sex == 2 && account.account_id < MAX_SERVERS && server_fd[account.account_id] == -1) {
 					login_log("Connection of the char-server '%s' accepted (account: %s, pass: %s, ip: %s)" RETCODE,
 					          server_name, account.userid, account.passwd, ip);
