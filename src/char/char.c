@@ -2455,7 +2455,7 @@ int parse_char(int fd) {
 			break;
 
 		case 0x66:	// ƒLƒƒƒ‰‘I‘ð
-			if (RFIFOREST(fd) < 3)
+			if (!sd || RFIFOREST(fd) < 3)
 				return 0;
 
 			// if we activated email creation and email is default email
@@ -2553,7 +2553,7 @@ int parse_char(int fd) {
 			break;
 
 		case 0x67:	// ì¬
-			if (RFIFOREST(fd) < 37)
+			if (!sd || RFIFOREST(fd) < 37)
 				return 0;
 			i = make_new_char(fd, RFIFOP(fd,2));
 			if (i < 0) {
@@ -2613,7 +2613,7 @@ int parse_char(int fd) {
 			}
 
 		case 0x68:	// delete char //Yor's Fix
-			if (RFIFOREST(fd) < 46)
+			if (!sd || RFIFOREST(fd) < 46)
 				return 0;
 			memcpy(email, RFIFOP(fd,6), 40);
 			if (e_mail_check(email) == 0)
