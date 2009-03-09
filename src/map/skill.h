@@ -154,17 +154,17 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 	SC_PROVOKE			= 0,
 	SC_ENDURE			= 1,
 	SC_TWOHANDQUICKEN		= 2,
-	SC_CONCENTRATE		= 3,
+	SC_CONCENTRATE			= 3,
 	SC_HIDING			= 4,
 	SC_CLOAKING			= 5,
 	SC_ENCPOISON			= 6,
-	SC_POISONREACT		= 7,
+	SC_POISONREACT			= 7,
 	SC_QUAGMIRE			= 8,
 	SC_ANGELUS			= 9,
 	SC_BLESSING			=10,
-	SC_SIGNUMCRUCIS		=11,
+	SC_SIGNUMCRUCIS			=11,
 	SC_INCREASEAGI			=12,
-	SC_DECREASEAGI		=13,
+	SC_DECREASEAGI			=13,
 	SC_SLOWPOISON			=14,
 	SC_IMPOSITIO			=15,
 	SC_SUFFRAGIUM			=16,
@@ -181,15 +181,18 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 	SC_RIDING			=27,
 	SC_FALCON			=28,
 	SC_TRICKDEAD			=29,
-	SC_LOUD			=30,
-	SC_ENERGYCOAT		=31,
+	SC_LOUD				=30,
+	SC_ENERGYCOAT			=31,
+	SC_BROKNARMOR			=32,
+	SC_BROKNWEAPON			=33,
 	SC_HALLUCINATION		=34,
 	SC_WEIGHT50			=35,
 	SC_WEIGHT90			=36,
-	SC_SPEEDPOTION0		=37,
-	SC_SPEEDPOTION1		=38,
-	SC_SPEEDPOTION2		=39,
-	SC_STRIPWEAPON		=50,
+	SC_SPEEDPOTION0			=37,
+	SC_SPEEDPOTION1			=38,
+	SC_SPEEDPOTION2			=39,
+
+	SC_STRIPWEAPON			=50,
 	SC_STRIPSHIELD			=51,
 	SC_STRIPARMOR			=52,
 	SC_STRIPHELM			=53,
@@ -203,40 +206,51 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 	SC_PROVIDENCE			=61,
 	SC_DEFENDER			=62,
 	SC_AUTOSPELL			=65,
-	SC_SPEARSQUICKEN		=68,
 	SC_EXPLOSIONSPIRITS		=86,
 	SC_STEELBODY			=87,
+	SC_SPEARSQUICKEN		=68,
+
+	SC_HEALING			=70,
+
+	SC_SIGHTTRASHER			=73,
+
 	SC_COMBO			=89,
 	SC_FLAMELAUNCHER		=90,
-	SC_FROSTWEAPON		=91,
+	SC_FROSTWEAPON			=91,
 	SC_LIGHTNINGLOADER		=92,
 	SC_SEISMICWEAPON		=93,
-	SC_AURABLADE			=103, /* オーラブレード */
-	SC_PARRYING			=104, /* パリイング */
-	SC_CONCENTRATION		=105, /* コンセントレーション */
-	SC_TENSIONRELAX		=106, /* テンションリラックス */
-	SC_BERSERK			=107, /* バーサーク */
-	SC_ASSUMPTIO			=110, /* アシャンプティオ */
-	SC_MAGICPOWER		=113, /* 魔法力増幅 */
-	SC_TRUESIGHT			=115, /* トゥルーサイト */
-	SC_WINDWALK			=116, /* ウインドウォーク */
-	SC_MELTDOWN			=117, /* メルトダウン */
-	SC_CARTBOOST			=118, /* カートブースト */
-	SC_REJECTSWORD		=120, /* リジェクトソード */
-	SC_MARIONETTE			=121, /* マリオネットコントロール */
-	SC_HEADCRUSH			=124, /* ヘッドクラッシュ */
-	SC_JOINTBEAT			=125, /* ジョイントビート */
+
+	SC_AURABLADE			=103,
+	SC_PARRYING			=104,
+	SC_CONCENTRATION		=105,
+	SC_TENSIONRELAX			=106,
+	SC_BERSERK			=107,
+
+	SC_ASSUMPTIO			=110,
+
+	SC_MAGICPOWER			=113,
+
+	SC_TRUESIGHT			=115,
+	SC_WINDWALK			=116,
+	SC_MELTDOWN			=117,
+	SC_CARTBOOST			=118,
+
+	SC_REJECTSWORD			=120,
+	SC_MARIONETTE			=121,
+
+	SC_HEADCRUSH			=124,
+	SC_JOINTBEAT			=125,
+	SC_BASILICA			=125,
 
 	SC_STONE			=128,
 	SC_FREEZE			=129,
-	SC_STAN			=130,
+	SC_STAN				=130,
 	SC_SLEEP			=131,
 	SC_POISON			=132,
 	SC_CURSE			=133,
 	SC_SILENCE			=134,
 	SC_CONFUSION			=135,
 	SC_BLIND			=136,
-	SC_DIVINA			= SC_SILENCE,
 
 	SC_SAFETYWALL			=140,
 	SC_PNEUMA			=141,
@@ -249,19 +263,20 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 	SC_MAGICROD			=149,
 	SC_SIGHT			=150,
 	SC_RUWACH			=151,
-	SC_AUTOCOUNTER		=152,
+	SC_AUTOCOUNTER			=152,
 	SC_VOLCANO			=153,
 	SC_DELUGE			=154,
-	SC_VIOLENTGALE		=155,
+	SC_VIOLENTGALE			=155,
 	SC_BLADESTOP_WAIT		=156,
 	SC_BLADESTOP			=157,
 	SC_EXTREMITYFIST		=158,
-	SC_GRAFFITI				=159,
+	SC_GRAFFITI			=159,
+	SC_ENSEMBLE			=159,
 
 	SC_LULLABY			=160,
 	SC_RICHMANKIM			=161,
-	SC_ETERNALCHAOS		=162,
-	SC_DRUMBATTLE		=163,
+	SC_ETERNALCHAOS			=162,
+	SC_DRUMBATTLE			=163,
 	SC_NIBELUNGEN			=164,
 	SC_ROKISWEIL			=165,
 	SC_INTOABYSS			=166,
@@ -273,60 +288,34 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 	SC_APPLEIDUN			=172,
 	SC_UGLYDANCE			=173,
 	SC_HUMMING			=174,
-	SC_DONTFORGETME		=175,
+	SC_DONTFORGETME			=175,
 	SC_FORTUNE			=176,
 	SC_SERVICE4U			=177,
-
-	SC_SPIDERWEB			=180,		/* スパイダーウェッブ */
-	SC_MEMORIZE			=181,		/* メモライズ */
-
-	SC_WEDDING			=187,	//結婚用(結婚衣裳になって歩くのが遅いとか)
-	SC_NOCHAT			=188,	//赤エモ状態
-	SC_SPLASHER			=189,	/* ベナムスプラッシャー */
-	SC_SELFDESTRUCTION		=190,	/* 自爆 */
-
-
-// Used by English Team
-	SC_BROKNARMOR		=32,
-	SC_BROKNWEAPON		=33,
-	SC_SIGHTTRASHER		=73,
-	SC_BASILICA			=125,
-	SC_ENSEMBLE			=159,
 	SC_FOGWALL			=178,
 	SC_GOSPEL			=179,
+	SC_SPIDERWEB			=180,
+	SC_MEMORIZE			=181,
 	SC_LANDPROTECTOR		=182,
 	SC_ADAPTATION			=183,
 	SC_CHASEWALK			=184,
-	SC_ATKPOT			=185,	// [Valaris]
-	SC_MATKPOT			=186,	// [Valaris]
-	SC_MINDBREAKER		=191,
-	SC_SPELLBREAKER		=192,
+	SC_ATKPOT			=185,
+	SC_MATKPOT			=186,
+	SC_WEDDING			=187,
+	SC_NOCHAT			=188,
+	SC_SPLASHER			=189,
+	SC_SELFDESTRUCTION		=190,
+	SC_MINDBREAKER			=191,
+	SC_SPELLBREAKER			=192,
 
 // Added for Fate's spells
-        SC_HIDE			= 194, // Hide from `detect' magic
-        SC_HALT_REGENERATE	= 195, // Suspend regeneration
-        SC_FLYING_BACKPACK	= 196, // Flying backpack
-        SC_MBARRIER		= 197, // Magical barrier, magic resistance (val1 : power (%))
-        SC_HASTE		= 198, // `Haste' spell (val1 : power)
-        SC_PHYS_SHIELD		= 199, // `Protect' spell, reduce damage (val1: power)
+        SC_HIDE				= 194, // Hide from `detect' magic
+        SC_HALT_REGENERATE		= 195, // Suspend regeneration
+        SC_FLYING_BACKPACK		= 196, // Flying backpack
+        SC_MBARRIER			= 197, // Magical barrier, magic resistance (val1 : power (%))
+        SC_HASTE			= 198, // `Haste' spell (val1 : power)
+        SC_PHYS_SHIELD			= 199, // `Protect' spell, reduce damage (val1: power)
 
-// -- testing various SC effects
-//	SC_AURABLADE			=81,
-//	SC_CONCENTRATION		=83,
-//	SC_TENSIONRELAX		=84,
-//	SC_BERSERK			=85,
-//	SC_CALLSPIRITS			=100,
-//	SC_PARRYING			=100,
-//	SC_FREECAST			=101,
-//	SC_ABSORBSPIRIT		=102,
-//	SC_ASSUMPTIO			=114,
-//	SC_SHARPSHOOT			=127,
-//	SC_GANGSTER			=184,
-//	SC_CANNIBALIZE			=186,
-//	SC_SPHEREMINE			=187,
-//	SC_METEOSTORM		=189,
-//	SC_CASTCANCEL			=190,
-//	SC_SPIDERWEB			=191,
+	SC_DIVINA			= SC_SILENCE,
 };
 extern int SkillStatusChangeTable[];
 

@@ -5469,7 +5469,7 @@ int pc_itemheal(struct map_session_data *sd,int hp,int sp)
                 pc_heal_quick_accumulate(hp,
                                          &sd->quick_regeneration_hp,
                                          sd->status.max_hp - sd->status.hp);
-                        
+		clif_status_change(&sd->bl, SC_HEALING, 1);
                 hp = 0;
         }
         if (sp > 0) {
@@ -7080,10 +7080,10 @@ static int pc_natural_heal_sub(struct map_session_data *sd,va_list ap) {
                 int hp_bonus = pc_quickregenerate_effect(&sd->quick_regeneration_hp, sd->nhealhp);
                 int sp_bonus = pc_quickregenerate_effect(&sd->quick_regeneration_sp, sd->nhealsp);
 
-                pc_itemheal_effect(sd,
-                                   hp_bonus,
-                                   sp_bonus);
-        }
+                pc_itemheal_effect(sd, hp_bonus, sp_bonus);
+        } else if  (!sd->quick_regeneration_hp.amount) {
+		clif_status_change(&sd->bl, SC_HEALING, 0);
+	}
 
 // -- moonsoul (if conditions below altered to disallow natural healing if under berserk status)
 	if ((sd->sc_data[SC_FLYING_BACKPACK].timer != -1
