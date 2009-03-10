@@ -422,15 +422,17 @@ int pc_equippoint(struct map_session_data *sd,int n)
 
 	nullpo_retr(0, sd);
 
+	if (!sd->inventory_data[n])
+		return 0;
+
 	s_class = pc_calc_base_job(sd->status.class);
 
-	if(sd->inventory_data[n]) {
-		ep = sd->inventory_data[n]->equip;
-		if(sd->inventory_data[n]->look == 1 || sd->inventory_data[n]->look == 2 || sd->inventory_data[n]->look == 6) {
-			if(ep == 2 && (pc_checkskill(sd,AS_LEFT) > 0 || s_class.job == 12))
-				return 34;
-		}
+	ep = sd->inventory_data[n]->equip;
+	if((sd->inventory_data[n]->look == 1 || sd->inventory_data[n]->look == 2 || sd->inventory_data[n]->look == 6) &&
+			(ep == 2 && (pc_checkskill(sd,AS_LEFT) > 0 || s_class.job == 12))) {
+		return 34;
 	}
+
 	return ep;
 }
 
@@ -2953,6 +2955,7 @@ int pc_delitem(struct map_session_data *sd,int n,int amount,int type)
  */
 int pc_dropitem(struct map_session_data *sd,int n,int amount)
 {
+	int i;
 	nullpo_retr(1, sd);
 
 	if(n < 0 || n >= MAX_INVENTORY)
@@ -2960,6 +2963,14 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 
 	if(amount <= 0)
 		return 0;
+    
+	for (i = 0; i < 11; i++) {
+		if (equip_pos[i] > 0 && sd->equip_index[i] == n) {      //Slot taken, remove item from there.
+		    pc_unequipitem(sd, sd->equip_index[i], 1);
+		    sd->equip_index[i] = -1;
+            	}
+	}
+
 
 	if (sd->status.inventory[n].nameid <= 0 ||
 	    sd->status.inventory[n].amount < amount ||
@@ -4842,8 +4853,10 @@ int pc_resetlvl(struct map_session_data* sd,int type)
 
 	for(i=0;i<11;i++) { // unequip items that can't be equipped by base 1 [Valaris]
 		if(sd->equip_index[i] >= 0)
-			if(!pc_isequip(sd,sd->equip_index[i]))
+			if(!pc_isequip(sd,sd->equip_index[i])) {
 				pc_unequipitem(sd,sd->equip_index[i],1);
+				sd->equip_index[i] = -1;
+			}
 	}
 
 	clif_skillinfoblock(sd);
@@ -6278,6 +6291,12 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 
 	nullpo_retr(0, sd);
 
+    
+	if (n < 0 || n >= MAX_INVENTORY) {
+		clif_equipitemack(sd, 0, 0, 0);
+		return 0;
+	}
+
 	nameid = sd->status.inventory[n].nameid;
 	id = sd->inventory_data[n];
 	pos = pc_equippoint(sd,n);
@@ -6322,8 +6341,10 @@ int pc_equipitem(struct map_session_data *sd,int n,int pos)
 
 	arrow=pc_search_inventory(sd,pc_checkequip(sd,9));	// Added by RoVeRT
 	for(i=0;i<11;i++) {
-		if(sd->equip_index[i] >= 0 && sd->status.inventory[sd->equip_index[i]].equip&pos) {
-			pc_unequipitem(sd,sd->equip_index[i],1);
+		if (pos & equip_pos[i]) {
+			if (sd->equip_index[i] >= 0)        //Slot taken, remove item from there.
+				pc_unequipitem(sd, sd->equip_index[i], 1);
+			sd->equip_index[i] = n;
 		}
 	}
 	// ‹|–î‘•”õ

@@ -140,6 +140,7 @@ int storage_additem(struct map_session_data *sd,struct storage *stor,struct item
 
 	i=MAX_STORAGE;
 	if(!itemdb_isequip2(data)){
+		printf("A");
 		// 装備品ではないので、既所有品なら個数のみ変化させる
 		for(i=0;i<MAX_STORAGE;i++){
 			if(stor->storage[i].nameid == item_data->nameid &&
@@ -154,6 +155,7 @@ int storage_additem(struct map_session_data *sd,struct storage *stor,struct item
 		}
 	}
 	if(i>=MAX_STORAGE){
+		printf("B");
 		// 装備品か未所有品だったので空き欄へ追加
 		for(i=0;i<MAX_STORAGE;i++){
 			if(stor->storage[i].nameid==0){
@@ -227,6 +229,8 @@ int storage_storageget(struct map_session_data *sd,int index,int amount)
 
 	nullpo_retr(0, sd);
 	nullpo_retr(0, stor=account2storage(sd->status.account_id));
+
+	printf("A!\n");
 
 	if(stor->storage_status == 1) { //  storage open
 		if(index>=0 && index<MAX_STORAGE) { // valid index

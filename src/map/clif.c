@@ -3065,10 +3065,10 @@ int clif_storageitemadded(struct map_session_data *sd,struct storage *stor,int i
 	WFIFOW(fd,0) =0xf4; // Storage item added
 	WFIFOW(fd,2) =index+1; // index
 	WFIFOL(fd,4) =amount; // amount
-	if((view = itemdb_viewid(stor->storage[index].nameid)) > 0)
+/*	if((view = itemdb_viewid(stor->storage[index].nameid)) > 0)
 		WFIFOW(fd,8) =view;
-	else
-		WFIFOW(fd,8) =stor->storage[index].nameid; // id
+	else*/
+		WFIFOW(fd,8) =stor->storage[index].nameid;
 	WFIFOB(fd,10)=stor->storage[index].identify; //identify flag
 	if(stor->storage[index].broken==1)
 		WFIFOB(fd,11)=1; // is weapon broken [Valaris]
