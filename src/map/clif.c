@@ -7682,6 +7682,8 @@ void clif_parse_CloseKafra(int fd, struct map_session_data *sd) {
 		storage_guild_storageclose(sd);
 	else
 		storage_storageclose(sd);
+
+	map_scriptcont(sd, sd->npc_id);
 }
 
 /*==========================================

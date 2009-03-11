@@ -3522,6 +3522,7 @@ int buildin_gettimestr(struct script_state *st)
  */
 int buildin_openstorage(struct script_state *st)
 {
+	st->state=STOP;
 	storage_storageopen(script_rid2sd(st));
 	return 0;
 }
