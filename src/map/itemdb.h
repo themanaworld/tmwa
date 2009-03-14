@@ -12,7 +12,6 @@ struct item_data {
 	int value_buy;
 	int value_sell;
 	int type;
-	int class;
 	int sex;
 	int equip;
 	int weight;
@@ -25,8 +24,8 @@ struct item_data {
 	int elv;
 	int wlv;
 	int refine;
-	char *use_script;	// 回復とかも全部この中でやろうかなと
-	char *equip_script;	// 攻撃,防御の属性設定もこの中で可能かな?
+	char *use_script;
+	char *equip_script;
 	struct {
 		unsigned available : 1;
 		unsigned value_notdc : 1;
@@ -71,11 +70,6 @@ int itemdb_isequip(int);
 int itemdb_isequip2(struct item_data *);
 int itemdb_isequip3(int);
 int itemdb_isdropable(int nameid);
-
-// itemdb_equipマクロとitemdb_equippointとの違いは
-// 前者が鯖側dbで定義された値そのものを返すのに対し
-// 後者はsessiondataを考慮した鞍側での装備可能場所
-// すべての組み合わせを返す
 
 void itemdb_reload(void);
 

@@ -542,19 +542,9 @@ int pc_isequip(struct map_session_data *sd,int n)
 		return 0;
 	if(item->elv > 0 && sd->status.base_level < item->elv)
 		return 0;
-// -- moonsoul	(below statement substituted for commented out version further below
-//			 as it allows all advanced classes to equip items their normal versions
-//			 could equip)
-//
-	if(((sd->status.class==13 || sd->status.class==4014) && ((1<<7)&item->class) == 0) || // have mounted classes use unmounted equipment [Valaris]
-  	  ((sd->status.class==21 || sd->status.class==4022) && ((1<<14)&item->class) == 0))
-		return 0;
+
 	if(sd->status.class!=13 && sd->status.class!=4014 && sd->status.class!=21 && sd->status.class!=4022)
-	if((sd->status.class<=4000 && ((1<<sd->status.class)&item->class) == 0) || (sd->status.class>4000 && sd->status.class<4023 && ((1<<(sd->status.class-4001))&item->class) == 0) ||
-		(sd->status.class>=4023 && ((1<<(sd->status.class-4023))&item->class) == 0))
-		return 0;
-//	if(((1<<sd->status.class)&item->class) == 0)
-//		return 0;
+
 	if(map[sd->bl.m].flag.pvp && (item->flag.no_equip==1 || item->flag.no_equip==3))
 		return 0;
 	if(map[sd->bl.m].flag.gvg && (item->flag.no_equip==2 || item->flag.no_equip==3))
@@ -3101,13 +3091,7 @@ int pc_isUseitem(struct map_session_data *sd,int n)
 		return 0;
 	if(item->elv > 0 && sd->status.base_level < item->elv)
 		return 0;
-	if(((sd->status.class==13 || sd->status.class==4014) && ((1<<7)&item->class) == 0) || // have mounted classes use unmounted items [Valaris]
-		((sd->status.class==21 || sd->status.class==4022) && ((1<<14)&item->class) == 0))
-		return 0;
 	if(sd->status.class!=13 && sd->status.class!=4014 && sd->status.class!=21 && sd->status.class!=4022)
-	if((sd->status.class<=4000 && ((1<<sd->status.class)&item->class) == 0) || (sd->status.class>4000 && sd->status.class<4023 && ((1<<(sd->status.class-4001))&item->class) == 0) ||
-	  (sd->status.class>=4023 && ((1<<(sd->status.class-4023))&item->class) == 0))
-		return 0;
 	return 1;
 }
 

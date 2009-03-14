@@ -149,7 +149,6 @@ struct item_data* itemdb_search(int nameid)
 	id->weight=10;
 	id->sex=2;
 	id->elv=0;
-	id->class=0xffffffff;
 	id->flag.available=0;
 	id->flag.value_notdc=0;  //一応・・・
 	id->flag.value_notoc=0;
@@ -313,7 +312,6 @@ static int itemdb_readdb(void)
 			memcpy(id->name,str[1],24);
 			memcpy(id->jname,str[2],24);
 			id->type=atoi(str[3]);
-			// buy≠sell*2 は item_value_db.txt で指定してください。
 			id->value_buy=atoi(str[4]);
 			id->value_sell=atoi(str[5]);
 			if (id->value_buy == 0 && id->value_sell == 0) {
@@ -328,14 +326,11 @@ static int itemdb_readdb(void)
 			id->range=atoi(str[9]);
 			id->magic_bonus = atoi(str[10]);
 			id->slot=atoi(str[11]);
-			id->class=atoi(str[12]);
-			id->sex=atoi(str[13]);
-			if(id->equip != atoi(str[14])){
-				id->equip=atoi(str[14]);
-			}
-			id->wlv=atoi(str[15]);
-			id->elv=atoi(str[16]);
-			id->look=atoi(str[17]);
+			id->sex=atoi(str[12]);
+			id->equip=atoi(str[13]);
+			id->wlv=atoi(str[14]);
+			id->elv=atoi(str[15]);
+			id->look=atoi(str[16]);
 			id->flag.available=1;
 			id->flag.value_notdc=0;
 			id->flag.value_notoc=0;
