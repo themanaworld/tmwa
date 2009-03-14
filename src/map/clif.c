@@ -7611,7 +7611,7 @@ void clif_parse_MoveToKafra(int fd, struct map_session_data *sd) {
 	item_index = RFIFOW(fd,2) - 2;
 	item_amount = RFIFOL(fd,4);
 
-	if (sd->npc_id != 0)
+	if (sd->npc_id != 0 && !sd->npc_flags.storage)
 		return;
 
 	if (sd->state.storage_flag)
@@ -7632,7 +7632,7 @@ void clif_parse_MoveFromKafra(int fd,struct map_session_data *sd) {
 	item_index = RFIFOW(fd,2) - 1;
 	item_amount = RFIFOL(fd,4);
 
-	if (sd->npc_id != 0)
+	if (sd->npc_id != 0 && !sd->npc_flags.storage)
 		return;
 
 	if (sd->state.storage_flag)
@@ -7648,7 +7648,7 @@ void clif_parse_MoveFromKafra(int fd,struct map_session_data *sd) {
 void clif_parse_MoveToKafraFromCart(int fd, struct map_session_data *sd) {
 	nullpo_retv(sd);
 
-	if (sd->npc_id != 0)
+	if (sd->npc_id != 0  && !sd->npc_flags.storage)
 		return;
 	if (sd->state.storage_flag)
 		storage_guild_storageaddfromcart(sd, RFIFOW(fd,2) - 2, RFIFOL(fd,4));
@@ -7683,7 +7683,10 @@ void clif_parse_CloseKafra(int fd, struct map_session_data *sd) {
 	else
 		storage_storageclose(sd);
 
-	map_scriptcont(sd, sd->npc_id);
+	if (sd->npc_flags.storage) {
+		sd->npc_flags.storage = 0;
+		map_scriptcont(sd, sd->npc_id);
+	}
 }
 
 /*==========================================

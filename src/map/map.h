@@ -206,6 +206,9 @@ struct map_session_data {
 	char *npc_script,*npc_scriptroot;
 	char *npc_stackbuf;
 	char npc_str[256];
+	struct {
+		unsigned storage : 1;
+	} npc_flags;
 	unsigned int chatID;
 
 	int attacktimer;

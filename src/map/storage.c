@@ -228,8 +228,6 @@ int storage_storageget(struct map_session_data *sd,int index,int amount)
 	nullpo_retr(0, sd);
 	nullpo_retr(0, stor=account2storage(sd->status.account_id));
 
-	printf("A!\n");
-
 	if(stor->storage_status == 1) { //  storage open
 		if(index>=0 && index<MAX_STORAGE) { // valid index
 			if( (amount <= stor->storage[index].amount) && (amount > 0) ) { //valid amount

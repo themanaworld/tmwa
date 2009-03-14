@@ -376,7 +376,7 @@ struct {
 	{buildin_gettimetick,"gettimetick","i"},
 	{buildin_gettime,"gettime","i"},
 	{buildin_gettimestr,"gettimestr","si"},
-	{buildin_openstorage,"openstorage",""},
+	{buildin_openstorage,"openstorage","*"},
 	{buildin_guildopenstorage,"guildopenstorage","*"},
 	{buildin_itemskill,"itemskill","iis"},
 	{buildin_monster,"monster","siisii*"},
@@ -3522,8 +3522,16 @@ int buildin_gettimestr(struct script_state *st)
  */
 int buildin_openstorage(struct script_state *st)
 {
-	st->state=STOP;
-	storage_storageopen(script_rid2sd(st));
+//	int sync = 0;
+//	if (st->end >= 3) sync = conv_num(st,& (st->stack->stack_data[st->start+2]));
+	struct map_session_data *sd=script_rid2sd(st);
+
+//	if (sync) {
+		st->state=STOP;
+		sd->npc_flags.storage = 1;
+//	} else st->state = END;
+
+	storage_storageopen(sd);
 	return 0;
 }
 
@@ -3531,6 +3539,7 @@ int buildin_guildopenstorage(struct script_state *st)
 {
 	struct map_session_data *sd=script_rid2sd(st);
 	int ret;
+	st->state=STOP;
 	ret = storage_guild_storageopen(sd);
 	push_val(st->stack,C_INT,ret);
 	return 0;
