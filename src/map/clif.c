@@ -8024,9 +8024,9 @@ void clif_parse_Shift(int fd, struct map_session_data *sd) {	// Rewriten by [Yor
 	memset(player_name, '\0', sizeof(player_name));
 
 	if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
-	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_JumpTo))) {
+	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_Goto))) {
 		memcpy(player_name, RFIFOP(fd,2), 24);
-		atcommand_jumpto(fd, sd, "@jumpto", player_name); // as @jumpto
+		atcommand_goto(fd, sd, "@jumpto", player_name); // as @jumpto
 	}
 
 	return;

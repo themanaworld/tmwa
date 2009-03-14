@@ -13,7 +13,7 @@ enum AtCommandType {
 	AtCommand_CharWarp,
 	AtCommand_Warp,
 	AtCommand_Where,
-	AtCommand_JumpTo,
+	AtCommand_Goto,
 	AtCommand_Jump,
 	AtCommand_Who,
 	AtCommand_WhoGroup,
@@ -27,9 +27,6 @@ enum AtCommandType {
 	AtCommand_GuildStorage,
 	AtCommand_Option,
 	AtCommand_Hide,
-	AtCommand_JobChange,
-	AtCommand_JobChange2,
-	AtCommand_JobChange3,
 	AtCommand_Die,
 	AtCommand_Kill,
 	AtCommand_Alive,
@@ -37,12 +34,10 @@ enum AtCommandType {
 	AtCommand_KamiB,
 	AtCommand_Heal,
 	AtCommand_Item,
-	AtCommand_Item2,
 	AtCommand_ItemReset,
 	AtCommand_ItemCheck,
 	AtCommand_BaseLevelUp,
 	AtCommand_JobLevelUp,
-	AtCommand_H,
 	AtCommand_Help,
 	AtCommand_GM,
 	AtCommand_PvPOff,
@@ -55,7 +50,6 @@ enum AtCommandType {
 	AtCommand_Monster,
 	AtCommand_KillMonster,
 	AtCommand_KillMonster2,
-	AtCommand_Refine,
 	AtCommand_Produce,
 	AtCommand_Memo,
 	AtCommand_GAT,
@@ -72,9 +66,6 @@ enum AtCommandType {
 	AtCommand_Luck,
 	AtCommand_GuildLevelUp,
 	AtCommand_Recall,
-	AtCommand_CharacterJob,
-	AtCommand_CharacterJob2,
-	AtCommand_CharacterJob3,
 	AtCommand_Revive,
 	AtCommand_CharacterStats,
 	AtCommand_CharacterStatsAll,
@@ -91,12 +82,11 @@ enum AtCommandType {
 	AtCommand_CharacterJobLevel,
 	AtCommand_Kick,
 	AtCommand_KickAll,
-	AtCommand_AllSkill,
+	AtCommand_AllSkills,
 	AtCommand_QuestSkill,
 	AtCommand_CharQuestSkill,
 	AtCommand_LostSkill,
 	AtCommand_CharLostSkill,
-	AtCommand_SpiritBall,
 	AtCommand_Party,
 	AtCommand_Guild,
 	AtCommand_AgitStart,
@@ -121,7 +111,7 @@ enum AtCommandType {
 	AtCommand_Dye,
 	AtCommand_HairStyle,
 	AtCommand_HairColor,
-	AtCommand_StatAll,
+	AtCommand_AllStats,
 	AtCommand_CharChangeSex, // by Yor
 	AtCommand_CharBlock, // by Yor
 	AtCommand_CharBan, // by Yor
@@ -131,7 +121,6 @@ enum AtCommandType {
 	AtCommand_CharMountPeco, // by Yor
 	AtCommand_GuildSpy, // [Syrus22]
 	AtCommand_PartySpy, // [Syrus22]
-	AtCommand_RepairAll, // [Valaris]
 	AtCommand_GuildRecall, // by Yor
 	AtCommand_PartyRecall, // by Yor
 	AtCommand_Enablenpc,
@@ -216,7 +205,7 @@ char * msg_txt(int msg_number); // [Yor]
 int atcommand_item(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Valaris]
 int atcommand_warp(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]
 int atcommand_spawn(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Valaris]
-int atcommand_jumpto(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]
+int atcommand_goto(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]
 int atcommand_recall(const int fd, struct map_session_data* sd, const char* command, const char* message); // [Yor]
 
 int atcommand_config_read(const char *cfgName);
