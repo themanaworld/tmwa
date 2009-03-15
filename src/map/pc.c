@@ -543,8 +543,6 @@ int pc_isequip(struct map_session_data *sd,int n)
 	if(item->elv > 0 && sd->status.base_level < item->elv)
 		return 0;
 
-	if(sd->status.class!=13 && sd->status.class!=4014 && sd->status.class!=21 && sd->status.class!=4022)
-
 	if(map[sd->bl.m].flag.pvp && (item->flag.no_equip==1 || item->flag.no_equip==3))
 		return 0;
 	if(map[sd->bl.m].flag.gvg && (item->flag.no_equip==2 || item->flag.no_equip==3))
@@ -3083,6 +3081,7 @@ int pc_isUseitem(struct map_session_data *sd,int n)
 		clif_skill_teleportmessage(sd,0);
 		return 0;
 	}
+
 	if(nameid == 602 && map[sd->bl.m].flag.noreturn)
 		return 0;
 	if(nameid == 604 && (map[sd->bl.m].flag.nobranch || map[sd->bl.m].flag.gvg))
@@ -3091,7 +3090,7 @@ int pc_isUseitem(struct map_session_data *sd,int n)
 		return 0;
 	if(item->elv > 0 && sd->status.base_level < item->elv)
 		return 0;
-	if(sd->status.class!=13 && sd->status.class!=4014 && sd->status.class!=21 && sd->status.class!=4022)
+
 	return 1;
 }
 
@@ -3105,18 +3104,15 @@ int pc_useitem(struct map_session_data *sd,int n)
 
 	nullpo_retr(1, sd);
 
-	if(n >=0 && n < MAX_INVENTORY) {
+	if(n >=0 && n < MAX_INVENTORY && sd->inventory_data[n]) {
 		nameid = sd->status.inventory[n].nameid;
 		amount = sd->status.inventory[n].amount;
-		if(sd->status.inventory[n].nameid <= 0 ||
-			sd->status.inventory[n].amount <= 0 ||
-			sd->sc_data[SC_BERSERK].timer!=-1 ||
-			!pc_isUseitem(sd,n) ) {
+		if(sd->status.inventory[n].nameid <= 0 || sd->status.inventory[n].amount <= 0 || sd->sc_data[SC_BERSERK].timer!=-1 || !pc_isUseitem(sd,n) ) {
 			clif_useitemack(sd,n,0,0);
 			return 1;
 		}
-		if(sd->inventory_data[n])
-			run_script(sd->inventory_data[n]->use_script,0,sd->bl.id,0);
+
+		run_script(sd->inventory_data[n]->use_script,0,sd->bl.id,0);
 
 		clif_useitemack(sd,n,amount-1,1);
 		pc_delitem(sd,n,1,1);

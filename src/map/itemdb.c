@@ -293,7 +293,7 @@ static int itemdb_readdb(void)
 			if(line[0]=='/' && line[1]=='/')
 				continue;
 			memset(str,0,sizeof(str));
-			for(j=0,np=p=line;j<18 && p;j++){
+			for(j=0,np=p=line;j<17 && p;j++){
 				while (*p == '\t' || *p == ' ') p++;
 				str[j]=p;
 				p=strchr(p,',');
@@ -342,6 +342,7 @@ static int itemdb_readdb(void)
 			if((p=strchr(np,'{'))==NULL)
 				continue;
 			id->use_script = parse_script(p,lines);
+
 			if((p=strchr(p+1,'{'))==NULL)
 				continue;
 			id->equip_script = parse_script(p,lines);
