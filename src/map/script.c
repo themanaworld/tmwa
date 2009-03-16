@@ -5265,11 +5265,14 @@ int buildin_divorce(struct script_state *st)
 	struct map_session_data *sd=script_rid2sd(st);
 
 	st->state=STOP; // rely on pc_divorce to restart
-	
+
+	sd->npc_flags.divorce = 1;
+
 	if(sd==NULL || pc_divorce(sd) < 0){
 		push_val(st->stack,C_INT,0);
 		return 0;
 	}
+
 	push_val(st->stack,C_INT,1);
 	return 0;
 }

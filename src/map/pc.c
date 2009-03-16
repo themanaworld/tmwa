@@ -6695,7 +6695,11 @@ int pc_divorce(struct map_session_data *sd)
 		}
 		p_sd->status.partner_id=0;
 		sd->status.partner_id=0;
-		map_scriptcont(sd, sd->npc_id);
+
+		if (sd->npc_flags.divorce){
+			sd->npc_flags.divorce = 0;
+			map_scriptcont(sd, sd->npc_id);
+		}
 	}
 	else
 		chrif_send_divorce(sd->status.char_id);

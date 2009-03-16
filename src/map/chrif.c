@@ -692,7 +692,11 @@ int chrif_divorce(int char_id, int partner_id)
 	sd = map_nick2sd(map_charid2nick(char_id));
 	if (sd && sd->status.partner_id == partner_id) {
 		sd->status.partner_id = 0;
-		map_scriptcont(sd, sd->npc_id);
+
+		if (sd->npc_flags.divorce) {
+			sd->npc_flags.divorce = 0;
+			map_scriptcont(sd, sd->npc_id);
+		}
 	}
 
 	nullpo_retr(0, sd = map_nick2sd(map_charid2nick(partner_id)));
