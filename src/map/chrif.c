@@ -676,7 +676,9 @@ int chrif_accountreg2(int fd)
 }
 
 /*==========================================
- * —£¥î•ñ“¯Šú—v‹
+ * Divorce request from char server
+ * triggered on account deletion or as an
+ * ack from a map-server divorce request
  *------------------------------------------
  */
 int chrif_divorce(int char_id, int partner_id) 
@@ -686,12 +688,32 @@ int chrif_divorce(int char_id, int partner_id)
 	if (!char_id || !partner_id)
 		return 0;
 
-	nullpo_retr(0, sd = map_nick2sd(map_charid2nick(partner_id)));
-	if (sd->status.partner_id == char_id) {
-		int i;
+
+	sd = map_nick2sd(map_charid2nick(char_id));
+	if (sd && sd->status.partner_id == partner_id) {
 		sd->status.partner_id = 0;
+		map_scriptcont(sd, sd->npc_id);
 	}
 
+	nullpo_retr(0, sd = map_nick2sd(map_charid2nick(partner_id)));
+	if (sd->status.partner_id == char_id)
+		sd->status.partner_id = 0;
+
+	return 0;
+}
+
+/*==========================================
+ * Tell character server someone is divorced
+ * Needed to divorce when partner is not connected to map server
+ *-------------------------------------
+ */
+int chrif_send_divorce(int char_id) {
+        if (char_fd < 0)
+                return -1;
+
+	WFIFOW(char_fd, 0) = 0x2b16;
+	WFIFOL(char_fd, 2) = char_id;
+	WFIFOSET(char_fd,6);
 	return 0;
 }
 

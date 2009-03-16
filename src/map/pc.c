@@ -6687,18 +6687,19 @@ int pc_divorce(struct map_session_data *sd)
 	if(sd == NULL || !pc_ismarried(sd))
 		return -1;
 
-	if( (p_sd=map_nick2sd(map_charid2nick(sd->status.partner_id))) !=NULL){
+	// If both are on map server we don't need to bother the char server
+	if( (p_sd=map_nick2sd(map_charid2nick(sd->status.partner_id))) !=NULL) { 
 		if(p_sd->status.partner_id != sd->status.char_id || sd->status.partner_id != p_sd->status.char_id){
 			printf("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n",sd->status.partner_id,p_sd->status.partner_id);
 			return -1;
 		}
-		sd->status.partner_id=0;
 		p_sd->status.partner_id=0;
-
-	}else{
-		printf("pc_divorce: p_sd nullpo\n");
-		return -1;
+		sd->status.partner_id=0;
+		map_scriptcont(sd, sd->npc_id);
 	}
+	else
+		chrif_send_divorce(sd->status.char_id);
+
 	return 0;
 }
 

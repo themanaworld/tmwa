@@ -1384,21 +1384,33 @@ int set_account_reg2(int acc, int num, struct global_reg *reg) {
 	return c;
 }
 
-// —£¥(charíœŽž‚ÉŽg—p)
+// Divorce a character from it's partner and let the map server know
 int char_divorce(struct mmo_charstatus *cs) {
+	int i;
+	char buf[10];
+
 	if (cs == NULL)
 		return 0;
 
-	if (cs->partner_id > 0){
-		int i;
-		for(i = 0; i < char_num; i++) {
-			if (char_dat[i].char_id == cs->partner_id && char_dat[i].partner_id == cs->char_id) {
-				cs->partner_id = 0;
-				char_dat[i].partner_id = 0;
-				return 0;
-			}
+	if (cs->partner_id <= 0)
+		return 0;
+
+	WBUFW(buf,0) = 0x2b12;
+	WBUFL(buf,2) = cs->char_id;
+
+	for(i = 0; i < char_num; i++) {
+		if (char_dat[i].char_id == cs->partner_id && char_dat[i].partner_id == cs->char_id) {
+			WBUFL(buf,6) = cs->partner_id;
+			mapif_sendall(buf,10);
+			cs->partner_id = 0;
+			char_dat[i].partner_id = 0;
+			return 0;
 		}
 	}
+
+	WBUFL(buf,6) = 0; // partner id 0 means failure
+	mapif_sendall(buf,10);
+
 	return 0;
 }
 
@@ -1472,16 +1484,9 @@ static int char_delete(struct mmo_charstatus *cs) {
 	if (cs->party_id)
 		inter_party_leave(cs->party_id, cs->account_id);
 	// —£¥
-	if (cs->partner_id){
-		// —£¥î•ñ‚ðmap‚É’Ê’m
-		char buf[10];
-		WBUFW(buf,0) = 0x2b12;
-		WBUFL(buf,2) = cs->char_id;
-		WBUFL(buf,6) = cs->partner_id;
-		mapif_sendall(buf,10);
-		// —£¥
+	if (cs->partner_id)
 		char_divorce(cs);
-	}
+
 	return 0;
 }
 
@@ -2285,6 +2290,23 @@ int parse_frommap(int fd) {
 			break;
 		  }
 
+		// Map server is requesting a divorce
+		case 0x2b16:
+			if (RFIFOREST(fd) < 4)
+                                return 0;
+		  {
+			for (i = 0; i < char_num; i++)
+				if (char_dat[i].char_id == RFIFOL(fd, 2))
+					break;
+
+			if (i != char_num)
+				char_divorce(&char_dat[i]);
+
+			RFIFOSKIP(fd,6);
+			break;
+
+		  }
+			
 		default:
 			// inter serverˆ—‚É“n‚·
 			{
