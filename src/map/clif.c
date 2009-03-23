@@ -8454,7 +8454,7 @@ static int clif_parse(int fd) {
 			break;
 		}
 		return 0;
-	}
+	} else if (cmd >= 0x200) return 0;
 
 	// パケット長を計算
 	packet_len = packet_len_table[cmd];
