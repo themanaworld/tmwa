@@ -41,6 +41,7 @@
 #include "script.h"
 #include "skill.h"
 #include "storage.h"
+#include "tmw.h"
 #include "trade.h"
 
 #ifdef MEMWATCH
@@ -6478,7 +6479,6 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <len>.w <str>.?B
 	char *message = (char *) malloc(RFIFOW(fd,2) + 128);
 	char *buf = (char *) malloc(RFIFOW(fd,2) + 4);
-	unsigned int tick,elapsed = 0;
 	nullpo_retv(sd);
 
 	memset(message, '\0', RFIFOW(fd,2) + 128);
@@ -6494,53 +6494,11 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 		return;
             }
 
-	if (!pc_isGM(sd))
-	{
-		tick = gettick();
-		elapsed = tick - sd->chat_lastmsg_time;
-		sd->chat_lastmsg_time = tick;
-
-		if (elapsed < battle_config.spam_time)
-			sd->chat_threshold++;
-
-		sd->chat_threshold -= (int)(elapsed / (battle_config.spam_time/2));
-
-		if (sd->chat_threshold < 0)
-			sd->chat_threshold = 0;
-
-		if (strncmp(sd->chat_lastmsg, RFIFOP(fd,4), battle_config.chat_maxline) == 0)
-			sd->chat_repeatmsg++;
-		else
-			sd->chat_repeatmsg--;
-
-		if (sd->chat_repeatmsg < 0)
-			sd->chat_repeatmsg = 0;
-
-		strncpy((char*)sd->chat_lastmsg, RFIFOP(fd,4), battle_config.chat_maxline);
-
-		if (sd->chat_threshold > battle_config.spam_threshold || sd->chat_repeatmsg > battle_config.spam_threshold) {
-			sprintf(message, "Spam detected from character '%s' (account: %d), threshold was exceeded.", sd->status.name, sd->status.account_id);
-			printf("%s\n", message);
-			intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
-
-			if (battle_config.spam_ban > 0)
-				sprintf(message, "This player has been banned for %d hours(s).", battle_config.spam_ban);
-			else
-				sprintf(message, "This player hasn't been banned (Ban option is disabled).");
-			printf("%s\n", message);
-			intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
-
-			if (battle_config.spam_ban > 0)
-			{
-				chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
-				clif_setwaitclose(fd); // forced to disconnect
-			}
-			else
-				return; // just ignore, dont ban.
-		}
-
-		if (strlen(RFIFOP(fd,4)) >= battle_config.chat_maxline)
-			return; // ignore lines exceeding the max length in config.
+	int ret = tmw_CheckChatSpam(sd, message);
+	if (ret == 2) clif_setwaitclose(fd);
+	if (ret > 0) {
+		free(message);
+		return;
 	}
 
 	//printf("clif_parse_GlobalMessage: message: '%s'.\n", RFIFOP(fd,4));
@@ -6807,27 +6765,20 @@ void clif_parse_Restart(int fd, struct map_session_data *sd) {
 void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <nick>.24B <message>.?B // rewritten by [Yor]
 	struct map_session_data *dstsd;
 	int i;
-	int gmlen = strlen(RFIFOP(fd,28));
 
 	if (RFIFOW(fd,2)-28 <= 0)
 		return;
 
-	char gmbuf[512];
-	char *gm_command = ((gmlen+28) > sizeof(gmbuf)) ? (char *) malloc(gmlen + 28) : gmbuf;
-        // 24+3+(RFIFOW(fd,2)-28)+1 or 24+3+(strlen(RFIFOP(fd,28))+1 (size can be wrong with hacker)
+	char *message = (char *) malloc(RFIFOW(fd,2) + 128);
+	memset(message, '\0', RFIFOW(fd,2) + 128);
 
-	//printf("clif_parse_Wis: message: '%s'.\n", RFIFOP(fd,28));
-	memset(gm_command, 0, gmlen);
-	sprintf(gm_command, "%s : %s", sd->status.name, RFIFOP(fd,28));
-	if ((is_atcommand(fd, sd, gm_command, 0) != AtCommand_None) ||
-            ( sd && sd->sc_data && 
-		(sd->sc_data[SC_BERSERK].timer!=-1 ||	//バーサーク時は会話も不可
-		sd->sc_data[SC_NOCHAT].timer!=-1 ) ))	//チャット禁止
-            {
-                if (gm_command != gmbuf)
-                    free(gm_command);
+	int ret = tmw_CheckChatSpam(sd, message);
+	if (ret == 2) clif_setwaitclose(fd);
+	if (ret > 0) {
+		printf("returning from whisper (spam)\n");
+		free(message);
 		return;
-            }
+	}
 
 	// searching destination character
 	dstsd = map_nick2sd(RFIFOP(fd,4));
@@ -6864,9 +6815,8 @@ void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <ni
 			}
 		}
 	}
-        
-        if (gm_command != gmbuf)
-            free(gm_command);
+
+	free(message);
 
 	return;
 }
