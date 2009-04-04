@@ -6494,7 +6494,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 		return;
             }
 
-	int ret = tmw_CheckChatSpam(sd, message);
+	int ret = tmw_CheckChatSpam(sd, RFIFOP(fd,4));
 	if (ret == 2) clif_setwaitclose(fd);
 	if (ret > 0) {
 		free(message);
@@ -6769,14 +6769,10 @@ void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <ni
 	if (RFIFOW(fd,2)-28 <= 0)
 		return;
 
-	char *message = (char *) malloc(RFIFOW(fd,2) + 128);
-	memset(message, '\0', RFIFOW(fd,2) + 128);
-
-	int ret = tmw_CheckChatSpam(sd, message);
+	int ret = tmw_CheckChatSpam(sd, RFIFOP(fd,28));
 	if (ret == 2) clif_setwaitclose(fd);
 	if (ret > 0) {
 		printf("returning from whisper (spam)\n");
-		free(message);
 		return;
 	}
 
@@ -6815,8 +6811,6 @@ void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <ni
 			}
 		}
 	}
-
-	free(message);
 
 	return;
 }
