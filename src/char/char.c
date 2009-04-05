@@ -1487,6 +1487,14 @@ static int char_delete(struct mmo_charstatus *cs) {
 	if (cs->partner_id)
 		char_divorce(cs);
 
+	// Fake account deletion to kick all active chars on the account (closes a loophole that allows chars to exist on a map server after being deleted)
+	{
+		unsigned char buf[6];
+		WBUFW(buf,0) = 0x2b13;
+		WBUFL(buf,2) = cs->account_id;
+		mapif_sendall(buf, 6);
+	}
+
 	return 0;
 }
 
