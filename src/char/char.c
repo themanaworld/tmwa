@@ -1406,6 +1406,14 @@ int char_divorce(struct mmo_charstatus *cs) {
 			char_dat[i].partner_id = 0;
 			return 0;
 		}
+		// The other char doesn't have us as their partner, so just clear our partner
+		// Don't worry about this, as the map server should verify itself that the other doesn't have us as a partner, and so won't mess with their marriage
+		else if (char_dat[i].char_id == cs->partner_id) {
+			WBUFL(buf,6) = cs->partner_id;
+			mapif_sendall(buf,10);
+			cs->partner_id = 0;
+			return 0;
+		}
 	}
 
 	WBUFL(buf,6) = 0; // partner id 0 means failure
