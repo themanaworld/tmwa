@@ -1393,7 +1393,13 @@ int char_divorce(struct mmo_charstatus *cs) {
 		return 0;
 
 	if (cs->partner_id <= 0)
+	{
+		WBUFW(buf,0) = 0x2b12;
+		WBUFL(buf,2) = cs->char_id;
+		WBUFL(buf,6) = 0; // partner id 0 means failure
+		mapif_sendall(buf,10);
 		return 0;
+	}
 
 	WBUFW(buf,0) = 0x2b12;
 	WBUFL(buf,2) = cs->char_id;
@@ -1416,7 +1422,9 @@ int char_divorce(struct mmo_charstatus *cs) {
 		}
 	}
 
-	WBUFL(buf,6) = 0; // partner id 0 means failure
+	// Our partner wasn't found, so just clear our marriage
+	WBUFL(buf,6) = cs->partner_id;
+	cs->partner_id = 0;
 	mapif_sendall(buf,10);
 
 	return 0;
