@@ -13,7 +13,7 @@
 //#define pc_setstand(sd) ((sd)->state.dead_sit = 0)
 #define pc_isdead(sd) ((sd)->state.dead_sit == 1)
 #define pc_issit(sd) ((sd)->state.dead_sit == 2)
-#define pc_setdir(sd,b,h) ((sd)->dir = (b) ,(sd)->head_dir = (h) )
+#define pc_setdir(sd,b) ((sd)->dir = (b))
 #define pc_setchatid(sd,n) ((sd)->chatID = n)
 #define pc_ishiding(sd) ((sd)->status.option&0x4006)
 #define pc_iscarton(sd) ((sd)->status.option&CART_MASK)

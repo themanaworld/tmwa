@@ -6611,18 +6611,18 @@ void clif_parse_MapMove(int fd, struct map_session_data *sd) {
  */
 void clif_parse_ChangeDir(int fd, struct map_session_data *sd) {
 	unsigned char buf[64];
-	short headdir, dir;
+	short dir;
 
 	nullpo_retv(sd);
 
-	headdir = RFIFOW(fd,2);
+	RFIFOW(fd,2); //skip
 	dir = RFIFOB(fd,4);
 
-	pc_setdir(sd, dir, headdir);
+	pc_setdir(sd, dir);
 
 	WBUFW(buf,0) = 0x9c;
 	WBUFL(buf,2) = sd->bl.id;
-	WBUFW(buf,6) = headdir;
+	WBUFW(buf,6) = 0;
 	WBUFB(buf,8) = dir;
 	if (sd->disguise > 23 && sd->disguise < 4001) // mob disguises [Valaris]
 		clif_send(buf, packet_len_table[0x9c], &sd->bl, AREA);
