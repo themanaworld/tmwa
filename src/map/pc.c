@@ -4868,16 +4868,14 @@ int pc_resetstate(struct map_session_data* sd)
 //	add += sumsp(sd->status.luk);
 //	sd->status.status_point+=add;
 
-        sd->status.status_point -= 8 * 6; // [Fate] Remove points used for setting stats to 5
-
 	clif_updatestatus(sd,SP_STATUSPOINT);
 
-	sd->status.str=5;
-	sd->status.agi=5;
-	sd->status.vit=5;
-	sd->status.int_=5;
-	sd->status.dex=5;
-	sd->status.luk=5;
+	sd->status.str=1;
+	sd->status.agi=1;
+	sd->status.vit=1;
+	sd->status.int_=1;
+	sd->status.dex=1;
+	sd->status.luk=1;
 
 	clif_updatestatus(sd,SP_STR);
 	clif_updatestatus(sd,SP_AGI);
