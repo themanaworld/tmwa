@@ -4498,7 +4498,6 @@ int battle_config_read(const char *cfgName)
 		battle_config.day_duration = 2*60*60*1000; // added by [Yor] (2 hours)
 		battle_config.night_duration = 30*60*1000; // added by [Yor] (30 minutes)
 		battle_config.show_mob_hp = 0; // [Valaris]
-		battle_config.ban_spoof_namer = 5; // added by [Yor] (default: 5 minutes)
 		battle_config.hack_info_GM_level = 60; // added by [Yor] (default: 60, GM level)
 		battle_config.any_warp_GM_min_level = 20; // added by [Yor]
 		battle_config.packet_ver_flag = 63; // added by [Yor]
@@ -4513,9 +4512,11 @@ int battle_config_read(const char *cfgName)
 
 		battle_config.area_size = 14;
 
-		battle_config.spam_ban = 6;
-		battle_config.spam_time = 3000;
-		battle_config.spam_threshold = 10;
+		battle_config.chat_lame_penalty = 2;
+		battle_config.chat_spam_threshold = 10000;
+		battle_config.chat_spam_flood = 10;
+		battle_config.chat_spam_ban = 1;
+		battle_config.chat_spam_warn = 8;
 		battle_config.chat_maxline = 255;
 	}
 
@@ -4707,7 +4708,6 @@ int battle_config_read(const char *cfgName)
 			{ "day_duration",                      &battle_config.day_duration	}, // added by [Yor]
 			{ "night_duration",                    &battle_config.night_duration	}, // added by [Yor]
 			{ "show_mob_hp",                       &battle_config.show_mob_hp	}, // [Valaris]
-			{ "ban_spoof_namer",                   &battle_config.ban_spoof_namer	}, // added by [Yor]
 			{ "hack_info_GM_level",                &battle_config.hack_info_GM_level	}, // added by [Yor]
 			{ "any_warp_GM_min_level",             &battle_config.any_warp_GM_min_level	}, // added by [Yor]
 			{ "packet_ver_flag",                   &battle_config.packet_ver_flag	}, // added by [Yor]
@@ -4720,9 +4720,11 @@ int battle_config_read(const char *cfgName)
 			{ "castrate_dex_scale",                &battle_config.castrate_dex_scale	}, // added by [MouseJstr]
 			{ "area_size",                         &battle_config.area_size	}, // added by [MouseJstr]
 			{ "muting_players",                    &battle_config.muting_players}, // added by [Apple]
-			{ "spam_ban",                          &battle_config.spam_ban		}, 
-			{ "spam_time",                         &battle_config.spam_time		}, 
-			{ "spam_threshold",                    &battle_config.spam_threshold	},
+			{ "chat_lame_penalty",                      &battle_config.chat_lame_penalty	},
+			{ "chat_spam_threshold",                    &battle_config.chat_spam_threshold	},
+			{ "chat_spam_flood",                        &battle_config.chat_spam_flood	},
+			{ "chat_spam_ban",                          &battle_config.chat_spam_ban	}, 
+			{ "chat_spam_warn",                          &battle_config.chat_spam_warn	}, 
 			{ "chat_maxline",                      &battle_config.chat_maxline	}
 		};
 
@@ -4828,11 +4830,6 @@ int battle_config_read(const char *cfgName)
 		if (battle_config.night_duration < 0) // added by [Yor]
 			battle_config.night_duration = 0;
 
-		if (battle_config.ban_spoof_namer < 0) // added by [Yor]
-			battle_config.ban_spoof_namer = 0;
-		else if (battle_config.ban_spoof_namer > 32767)
-			battle_config.ban_spoof_namer = 32767;
-
 		if (battle_config.hack_info_GM_level < 0) // added by [Yor]
 			battle_config.hack_info_GM_level = 0;
 		else if (battle_config.hack_info_GM_level > 100)
@@ -4844,20 +4841,25 @@ int battle_config_read(const char *cfgName)
 			battle_config.any_warp_GM_min_level = 100;
 
 
-                if (battle_config.spam_ban < 0)
-                        battle_config.spam_ban = 0;
-                else if (battle_config.spam_ban > 32767)
-                        battle_config.spam_ban = 32767;
+                if (battle_config.chat_spam_ban < 0)
+                        battle_config.chat_spam_ban = 0;
+                else if (battle_config.chat_spam_ban > 32767)
+                        battle_config.chat_spam_ban = 32767;
 
-                if (battle_config.spam_time < 0)
-                        battle_config.spam_time = 0;
-                else if (battle_config.spam_time > 32767)
-                        battle_config.spam_time = 32767;
+                if (battle_config.chat_spam_flood < 0)
+                        battle_config.chat_spam_flood = 0;
+                else if (battle_config.chat_spam_flood > 32767)
+                        battle_config.chat_spam_flood = 32767;
 
-                if (battle_config.spam_threshold < 0)
-                        battle_config.spam_threshold = 0;
-                else if (battle_config.spam_threshold > 32767)
-                        battle_config.spam_threshold = 32767; 
+                if (battle_config.chat_spam_warn < 0)
+                        battle_config.chat_spam_warn = 0;
+                else if (battle_config.chat_spam_warn > 32767)
+                        battle_config.chat_spam_warn = 32767;
+
+                if (battle_config.chat_spam_threshold < 0)
+                        battle_config.chat_spam_threshold = 0;
+                else if (battle_config.chat_spam_threshold > 32767)
+                        battle_config.chat_spam_threshold = 32767; 
 
                 if (battle_config.chat_maxline < 1)
                         battle_config.chat_maxline = 1;

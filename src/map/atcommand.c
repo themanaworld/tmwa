@@ -6309,7 +6309,7 @@ atcommand_npcmove(const int fd, struct map_session_data* sd,
 
 	memset(character, '\0', sizeof character);
 
-	if (sscanf(message, "%d %d %99[^\n]", &x, &y, character) < 4)
+	if (sscanf(message, "%d %d %99[^\n]", &x, &y, character) < 3)
 		return -1;
 
         nd=npc_name2id(character);

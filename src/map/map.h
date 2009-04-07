@@ -354,10 +354,9 @@ struct map_session_data {
 	int ignoreAll;
 	short sg_count;
 
-	unsigned int chat_lastmsg_time;
+	unsigned int chat_reset_due;
+	int chat_lines_in;
 	char chat_lastmsg[513];
-	int chat_threshold;
-	int chat_repeatmsg;
 };
 
 struct npc_timerevent_list {

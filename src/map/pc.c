@@ -812,7 +812,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 		}
 	}
 
-	sd->chat_lastmsg_time = sd->chat_threshold = sd->chat_repeatmsg = 0;
+	sd->chat_reset_due = sd->chat_lines_in = 0;
 	sd->chat_lastmsg[0] = '\0';
 
 	// message of the limited time of the account

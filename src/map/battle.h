@@ -297,7 +297,6 @@ extern struct Battle_Config {
 	int night_at_start; // added by [Yor]
 	int day_duration; // added by [Yor]
 	int night_duration; // added by [Yor]
-	int ban_spoof_namer; // added by [Yor]
 	int hack_info_GM_level; // added by [Yor]
 	int any_warp_GM_min_level; // added by [Yor]
 	int packet_ver_flag; // added by [Yor]
@@ -313,9 +312,11 @@ extern struct Battle_Config {
 	int castrate_dex_scale; // added by [MouseJstr]
 	int area_size; // added by [MouseJstr]
 
-	int spam_ban;
-	int spam_time;
-	int spam_threshold;
+	int chat_lame_penalty;
+	int chat_spam_threshold;
+	int chat_spam_flood;
+	int chat_spam_ban;
+	int chat_spam_warn;
 	int chat_maxline;
 
         int drop_pickup_safety_zone; // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works

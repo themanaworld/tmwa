@@ -1,5 +1,10 @@
 //
 
+#include <string.h>
+#include <ctype.h>
+#include <stdarg.h>
+
+
 #include "tmw.h"
 
 #include "socket.h"
@@ -25,62 +30,81 @@
 #include "script.h"
 #include "skill.h"
 #include "storage.h"
-#include "tmw.h"
 #include "trade.h"
 
-#include <string.h>
-
 int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
-	unsigned int tick,elapsed = 0;
 	nullpo_retr(1, sd);
 
 	if (pc_isGM(sd)) return 0;
 
-	tick = gettick();
-	elapsed = tick - sd->chat_lastmsg_time;
-	sd->chat_lastmsg_time = tick;
+	if (gettick() > sd->chat_reset_due) {
+		sd->chat_reset_due = gettick() + battle_config.chat_spam_threshold;
+		sd->chat_lines_in = 0;
+	}
 
-	if (elapsed < battle_config.spam_time)
-		sd->chat_threshold++;
+	sd->chat_lines_in++;
 
-	sd->chat_threshold -= (int)(elapsed / (battle_config.spam_time/2));
-
-	if (sd->chat_threshold < 0)
-		sd->chat_threshold = 0;
-
+	// Penalty for repeating
 	if (strncmp(sd->chat_lastmsg, message, battle_config.chat_maxline) == 0)
-		sd->chat_repeatmsg++;
-	else
-		sd->chat_repeatmsg--;
+		sd->chat_lines_in += battle_config.chat_lame_penalty;
 
-	if (sd->chat_repeatmsg < 0)
-		sd->chat_repeatmsg = 0;
+	// Penalty for lame, it can stack on top of the repeat penalty
+	if (tmw_CheckChatLameness(sd, message))
+		sd->chat_lines_in += battle_config.chat_lame_penalty;
 
 	strncpy((char*)sd->chat_lastmsg, message, battle_config.chat_maxline);
 
-	if (sd->chat_threshold > battle_config.spam_threshold || sd->chat_repeatmsg > battle_config.spam_threshold) {
-		sprintf(message, "Spam detected from character '%s' (account: %d), threshold was exceeded.", sd->status.name, sd->status.account_id);
-		printf("%s\n", message);
-		intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
+	if (sd->chat_lines_in >= battle_config.chat_spam_flood) {
+		sd->chat_lines_in = 0;
+		tmw_GmHackMsg("Spam detected from character '%s' (account: %d)", sd->status.name, sd->status.account_id);
 
-		if (battle_config.spam_ban > 0)
-			sprintf(message, "This player has been banned for %d hours(s).", battle_config.spam_ban);
-		else
-			sprintf(message, "This player hasn't been banned (Ban option is disabled).");
-		printf("%s\n", message);
-		intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
+		if (battle_config.chat_spam_ban > 0) {
+			clif_displaymessage(sd->fd, "You have been banned for spamming. Please do not spam.");
+			tmw_GmHackMsg("This player has been banned for %d hour(s).", battle_config.chat_spam_ban);
 
-		if (battle_config.spam_ban > 0)
-		{
-			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
+			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.chat_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			return 2; // forced to disconnect
 		}
 		else
 			return 1; // just ignore, dont ban.
 	}
 
+	if (battle_config.chat_spam_ban && sd->chat_lines_in >= battle_config.chat_spam_warn) {
+		clif_displaymessage(sd->fd, "WARNING: You are about to be automaticly banned for spam!");
+		clif_displaymessage(sd->fd, "WARNING: Please slow down, do not repeat, and do not SHOUT!");
+	}
+
 	if (strlen(message) >= battle_config.chat_maxline)
 		return 1; // ignore lines exceeding the max length in config.
 
 	return 0;
+}
+
+// Returns true if more than 50% of input message is caps or punctuation
+int tmw_CheckChatLameness(struct map_session_data *sd, char *message)
+{
+	int count, lame;
+
+	// Ignore the name
+	message += strlen(sd->status.name);
+
+	for(count = lame = 0; *message; message++,count++)
+		if (isupper(*message) || ispunct(*message))
+			lame++;
+
+	if (count > 7 && lame > count / 2)
+		return(1);
+
+	return(0);
+}
+
+void tmw_GmHackMsg(const char *fmt, ...) {
+	char buf[513];
+	va_list ap;
+
+	va_start(ap, fmt);
+	vsprintf(buf, fmt, ap);
+	va_end(ap);
+
+	intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, buf, strlen(buf) + 1);
 }

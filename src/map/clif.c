@@ -6477,83 +6477,47 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
  *------------------------------------------
  */
 void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <len>.w <str>.?B
-	char *message = (char *) malloc(RFIFOW(fd,2) + 128);
-	char *buf = (char *) malloc(RFIFOW(fd,2) + 4);
 	nullpo_retv(sd);
 
-	memset(message, '\0', RFIFOW(fd,2) + 128);
-	memset(buf, '\0', RFIFOW(fd,2) + 4);
 
 	if ((is_atcommand(fd, sd, RFIFOP(fd, 4), 0) != AtCommand_None) ||
             ( sd->sc_data && 
 		(sd->sc_data[SC_BERSERK].timer!=-1 ||	//バーサーク時は会話も不可
 		sd->sc_data[SC_NOCHAT].timer!=-1 ) ))	//チャット禁止 
-            {
-                free(message);
-                free(buf);
+	    {
 		return;
             }
 
 	int ret = tmw_CheckChatSpam(sd, RFIFOP(fd,4));
 	if (ret == 2) clif_setwaitclose(fd);
-	if (ret > 0) {
-		free(message);
+	if (ret > 0)
 		return;
-	}
 
 	//printf("clif_parse_GlobalMessage: message: '%s'.\n", RFIFOP(fd,4));
-	if (strncmp(RFIFOP(fd,4), sd->status.name, strlen(sd->status.name)) != 0) {
-		printf("Hack on global message: character '%s' (account: %d), use an other name to send a (normal) message.\n", sd->status.name, sd->status.account_id);
 
-		// information is sended to all online GM
-		sprintf(message, "Hack on global message (normal message): character '%s' (account: %d) uses an other name.", sd->status.name, sd->status.account_id);
-		intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
-		if (strlen(RFIFOP(fd,4)) == 0)
-			strcpy(message, " This player sends a void name and a void message.");
-		else
-			sprintf(message, " This player sends (name:message): '%s'.", RFIFOP(fd,4));
-		intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
-		// message about the ban
-		if (battle_config.ban_spoof_namer > 0)
-			sprintf(message, " This player has been banned for %d minute(s).", battle_config.ban_spoof_namer);
-		else
-			sprintf(message, " This player hasn't been banned (Ban option is disabled).");
-		intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, message, strlen(message) + 1);
+	// Simply ignore messages with spoofed/incorrect source names.
+	if (strncmp(RFIFOP(fd,4), sd->status.name, strlen(sd->status.name)) != 0)
+		return;
 
-		// if we ban people
-		if (battle_config.ban_spoof_namer > 0) {
-			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, 0, battle_config.ban_spoof_namer, 0); // type: 2 - ban (year, month, day, hour, minute, second)
-			clif_setwaitclose(fd); // forced to disconnect because of the hack
-		}
-		// but for the hacker, we display on his screen (he see/look no difference).
-	} else {
-                int magic_status;
-		// send message to others
-		WBUFW(buf,0) = 0x8d;
-		WBUFW(buf,2) = RFIFOW(fd,2) + 4; // len of message - 4 + 8
-		WBUFL(buf,4) = sd->bl.id;
-		memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
-                magic_status = magic_message(sd, buf, WBUFW(buf, 2));
-                if (magic_status) {
-                        sd->chat_threshold = 0;
-                        sd->chat_repeatmsg -= 2;
+	char *buf = (char *) malloc(RFIFOW(fd,2) + 4);
 
-                        if (sd->chat_repeatmsg < 0)
-                                sd->chat_repeatmsg = 0;
-                }
+	// Send message to others
+	WBUFW(buf,0) = 0x8d;
+	WBUFW(buf,2) = RFIFOW(fd,2) + 4; // len of message - 4 + 8
+	WBUFL(buf,4) = sd->bl.id;
+	memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
 
-                if (magic_status == 0)
-                        clif_send(buf, WBUFW(buf,2), &sd->bl, sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
-	}
+	if (magic_message(sd, buf, WBUFW(buf, 2)))
+		sd->chat_lines_in--;
+	else
+		clif_send(buf, WBUFW(buf,2), &sd->bl, sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
 
 	// send back message to the speaker
 	memcpy(WFIFOP(fd,0), RFIFOP(fd,0), RFIFOW(fd,2));
 	WFIFOW(fd,0) = 0x8e;
 	WFIFOSET(fd, WFIFOW(fd,2));
 
-        free(message);
-        free(buf);
-
+	free(buf);
 	return;
 }
 
