@@ -6488,9 +6488,10 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
 		return;
             }
 
-	int ret = tmw_CheckChatSpam(sd, RFIFOP(fd,4));
-	if (ret == 2) clif_setwaitclose(fd);
-	if (ret > 0)
+
+	tmw_CheckChatSpam(sd, RFIFOP(fd,4));
+
+	if (strlen(RFIFOP(fd,4)) >=  battle_config.chat_maxline)
 		return;
 
 	//printf("clif_parse_GlobalMessage: message: '%s'.\n", RFIFOP(fd,4));
@@ -6746,12 +6747,10 @@ void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <ni
 	    return;
 	}
 
-	int ret = tmw_CheckChatSpam(sd, RFIFOP(fd,28));
-	if (ret == 2) clif_setwaitclose(fd);
-	if (ret > 0) {
-		printf("returning from whisper (spam)\n");
+	tmw_CheckChatSpam(sd, RFIFOP(fd,28));
+
+	if (strlen(RFIFOP(fd,28)) >=  battle_config.chat_maxline)
 		return;
-	}
 
 	// searching destination character
 	dstsd = map_nick2sd(RFIFOP(fd,4));
@@ -7082,6 +7081,7 @@ void clif_parse_TradeRequest(int fd,struct map_session_data *sd)
 	nullpo_retv(sd);
 
 	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 1){
+		tmw_CheckChatSpam(sd, NULL);
 		trade_traderequest(sd,RFIFOL(sd->fd,2));
 	} else
 		clif_skill_fail(sd,1,0,0);

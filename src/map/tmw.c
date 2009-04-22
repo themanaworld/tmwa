@@ -44,15 +44,23 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 
 	sd->chat_lines_in++;
 
-	// Penalty for repeating
-	if (strncmp(sd->chat_lastmsg, message, battle_config.chat_maxline) == 0)
-		sd->chat_lines_in += battle_config.chat_lame_penalty;
+	if (message) {
+		// Penalty for repeating
+		if (strncmp(sd->chat_lastmsg, message, battle_config.chat_maxline) == 0)
+			sd->chat_lines_in += battle_config.chat_lame_penalty;
 
-	// Penalty for lame, it can stack on top of the repeat penalty
-	if (tmw_CheckChatLameness(sd, message))
-		sd->chat_lines_in += battle_config.chat_lame_penalty;
+		// Penalty for lame, it can stack on top of the repeat penalty.
+		// Trade is automaticly lame.
+		if (tmw_CheckChatLameness(sd, message))
+			sd->chat_lines_in += battle_config.chat_lame_penalty;
 
-	strncpy((char*)sd->chat_lastmsg, message, battle_config.chat_maxline);
+		strncpy((char*)sd->chat_lastmsg, message, battle_config.chat_maxline);
+	}
+	else {
+		// No message means we're checking another type of spam.
+		// Most other types are pretty lame..
+		sd->chat_lines_in += battle_config.chat_lame_penalty;
+	}
 
 	if (sd->chat_lines_in >= battle_config.chat_spam_flood) {
 		sd->chat_lines_in = 0;
@@ -63,19 +71,14 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 			tmw_GmHackMsg("This player has been banned for %d hour(s).", battle_config.chat_spam_ban);
 
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.chat_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
-			return 2; // forced to disconnect
+			clif_setwaitclose(sd->fd);
 		}
-		else
-			return 1; // just ignore, dont ban.
 	}
 
 	if (battle_config.chat_spam_ban && sd->chat_lines_in >= battle_config.chat_spam_warn) {
-		clif_displaymessage(sd->fd, "WARNING: You are about to be automaticly banned for spam!");
-		clif_displaymessage(sd->fd, "WARNING: Please slow down, do not repeat, and do not SHOUT!");
+		clif_displaymessage(sd->fd, "WARNING : You are about to be automaticly banned for spam!");
+		clif_displaymessage(sd->fd, "WARNING : Please slow down, do not repeat, and do not SHOUT!");
 	}
-
-	if (strlen(message) >= battle_config.chat_maxline)
-		return 1; // ignore lines exceeding the max length in config.
 
 	return 0;
 }
@@ -98,12 +101,15 @@ int tmw_CheckChatLameness(struct map_session_data *sd, char *message)
 	return(0);
 }
 
+// Sends a whisper to all GMs
 void tmw_GmHackMsg(const char *fmt, ...) {
-	char buf[513];
+	char buf[512];
 	va_list ap;
 
+	buf[512] = 0;
+
 	va_start(ap, fmt);
-	vsprintf(buf, fmt, ap);
+	vsnprintf(buf, 511, fmt, ap);
 	va_end(ap);
 
 	intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, buf, strlen(buf) + 1);
