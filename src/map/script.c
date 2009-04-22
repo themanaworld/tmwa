@@ -279,6 +279,7 @@ int buildin_getsavepoint(struct script_state *st);	//Lorky [Lupus]
 int buildin_getpartnerid(struct script_state *st); // [Fate]
 int buildin_areatimer(struct script_state *st); // [Jaxad0127]
 int buildin_isin(struct script_state *st); // [Jaxad0127]
+int buildin_shop(struct script_state *st); // [MadCamel]
 
 void push_val(struct script_stack *stack,int type,int val);
 int run_func(struct script_state *st);
@@ -480,7 +481,8 @@ struct {
         {buildin_getlook,"getlook","i"},                
         {buildin_getsavepoint,"getsavepoint","i"},
 	{buildin_areatimer,"areatimer","siiiiis"},
-	{buildin_isin,"isin","siiii"},              // End Additions
+	{buildin_isin,"isin","siiii"},              
+	{buildin_shop,"shop","s"},	// End Additions
 	{NULL,NULL,NULL},
 };
 int buildin_message(struct script_state *st); // [MouseJstr]
@@ -5867,6 +5869,25 @@ int buildin_isin(struct script_state *st)
                  && (sd->bl.y >= y1 && sd->bl.y <= y2)
                  && (!strcmp(str, map[sd->bl.m].name)));
 
+	return 0;
+}
+
+// Trigger the shop on a (hopefully) nearby shop NPC
+int buildin_shop(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+	struct npc_data *nd;
+	char *str;
+
+	if (!sd)
+		return 1;
+
+	nd = npc_name2id(conv_str(st,& (st->stack->stack_data[st->start+2])));
+	if (!nd)
+		return 1;
+
+	buildin_close(st);
+	clif_npcbuysell(sd,nd->bl.id);
 	return 0;
 }
 
