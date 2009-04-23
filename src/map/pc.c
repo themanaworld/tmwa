@@ -2979,7 +2979,8 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 static int
 can_pick_item_up_from(struct map_session_data *self, int other_id)
 {
-	struct party *p;
+	struct party *p = party_search(self->status.party_id);
+
         /* From ourselves or from no-one? */
         if (!self
             || self->bl.id == other_id
@@ -2993,11 +2994,11 @@ can_pick_item_up_from(struct map_session_data *self, int other_id)
                 return 1;
 
         /* From our partner? */
-        if (other && self->status.partner_id == other->status.char_id)
+        if (self->status.partner_id == other->status.char_id)
                 return 1;
 
         /* From a party member? */
-        if (other && self->status.party_id == other->status.party_id && p->item != 0)
+        if (self->status.party_id == other->status.party_id && p && p->item != 0)
                 return 1;
 
         /* From someone who is far away? */
