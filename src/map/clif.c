@@ -2322,6 +2322,9 @@ int clif_changelook_towards(struct block_list *bl,int type,int val, struct map_s
 	if(sd && sd->disguise > 23 && sd->disguise < 4001) // mob disguises [Valaris]
 		return 0;
 
+	if (sd && sd->status.option & OPTION_INVISIBILITY)
+		return 0;
+
 	if(sd && (type == LOOK_WEAPON || type == LOOK_SHIELD || type >= LOOK_SHOES)) {
 		WBUFW(buf,0)=0x1d7;
 		WBUFL(buf,2)=bl->id;
