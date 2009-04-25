@@ -2998,7 +2998,10 @@ can_pick_item_up_from(struct map_session_data *self, int other_id)
                 return 1;
 
         /* From a party member? */
-        if (self->status.party_id == other->status.party_id && p && p->item != 0)
+        if (self->status.party_id
+	    && self->status.party_id == other->status.party_id 
+	    && p && p->item != 0
+	   )
                 return 1;
 
         /* From someone who is far away? */
