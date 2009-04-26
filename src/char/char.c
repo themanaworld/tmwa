@@ -128,7 +128,7 @@ int char_log(char *fmt, ...) {
 			fprintf(logfp, RETCODE);
 		else {
 			gettimeofday(&tv, NULL);
-			strftime(tmpstr, 24, "%d-%m-%Y %H:%M:%S", localtime(&(tv.tv_sec)));
+			strftime(tmpstr, 24, "%d-%m-%Y %H:%M:%S", gmtime(&(tv.tv_sec)));
 			sprintf(tmpstr + 19, ".%03d: %s", (int)tv.tv_usec / 1000, fmt);
 			vfprintf(logfp, tmpstr, ap);
 		}

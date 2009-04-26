@@ -818,7 +818,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	// message of the limited time of the account
 	if (connect_until_time != 0) { // don't display if it's unlimited or unknow value
 		char tmpstr[1024];
-		strftime(tmpstr, sizeof(tmpstr) - 1, msg_txt(501), localtime(&connect_until_time)); // "Your account time limit is: %d-%m-%Y %H:%M:%S."
+		strftime(tmpstr, sizeof(tmpstr) - 1, msg_txt(501), gmtime(&connect_until_time)); // "Your account time limit is: %d-%m-%Y %H:%M:%S."
 		clif_wis_message(sd->fd, wisp_server_name, tmpstr, strlen(tmpstr)+1);
 	}
 

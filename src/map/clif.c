@@ -8435,11 +8435,11 @@ static int clif_parse(int fd) {
 					if (sd && sd->state.auth) {
 						if (sd->status.name != NULL)
 							fprintf(fp, "%sPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n",
-							        asctime(localtime(&now)), sd->status.account_id, sd->status.char_id, sd->status.name);
+							        asctime(gmtime(&now)), sd->status.account_id, sd->status.char_id, sd->status.name);
 						else
-							fprintf(fp, "%sPlayer with account ID %d sent wrong packet:\n", asctime(localtime(&now)), sd->bl.id);
+							fprintf(fp, "%sPlayer with account ID %d sent wrong packet:\n", asctime(gmtime(&now)), sd->bl.id);
 					} else if (sd) // not authentified! (refused by char-server or disconnect before to be authentified)
-						fprintf(fp, "%sPlayer with account ID %d sent wrong packet:\n", asctime(localtime(&now)), sd->bl.id);
+						fprintf(fp, "%sPlayer with account ID %d sent wrong packet:\n", asctime(gmtime(&now)), sd->bl.id);
 
 					fprintf(fp, "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
 					for(i = 0; i < packet_len; i++) {

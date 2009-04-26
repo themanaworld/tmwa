@@ -337,7 +337,7 @@ int mmo_auth( struct mmo_account* account , int fd){
 
 	// auth start : time seed
 	gettimeofday(&tv, NULL);
-	strftime(tmpstr, 24, "%Y-%m-%d %H:%M:%S",localtime(&(tv.tv_sec)));
+	strftime(tmpstr, 24, "%Y-%m-%d %H:%M:%S",gmtime(&(tv.tv_sec)));
 	sprintf(tmpstr+19, ".%03d", (int)tv.tv_usec/1000);
 
 	jstrescapecpy(t_uid,account->userid);
@@ -502,7 +502,7 @@ int mmo_auth( struct mmo_account* account , int fd){
 
 	//login {0-account_id/1-userid/2-user_pass/3-lastlogin/4-logincount/5-sex/6-connect_untl/7-last_ip/8-ban_until/9-state}
 	if (ban_until_time != 0) { // if account is banned
-		strftime(tmpstr, 20, date_format, localtime(&ban_until_time));
+		strftime(tmpstr, 20, date_format, gmtime(&ban_until_time));
 		tmpstr[19] = '\0';
 		if (ban_until_time > time(NULL)) { // always banned
 			return 6; // 6 = Your are Prohibited to log in until %s
@@ -843,7 +843,7 @@ int parse_fromchar(int fd){
 				timestamp = time(NULL);
 			else
 				timestamp = tmptime;
-			tmtime = localtime(&timestamp);
+			tmtime = gmtime(&timestamp);
 			tmtime->tm_year = tmtime->tm_year + (short)RFIFOW(fd,6);
 			tmtime->tm_mon = tmtime->tm_mon + (short)RFIFOW(fd,8);
 			tmtime->tm_mday = tmtime->tm_mday + (short)RFIFOW(fd,10);
@@ -1267,7 +1267,7 @@ int parse_login(int fd) {
 					char tmpstr[256];
 					time_t ban_until_time;
 					ban_until_time = atol(sql_row[0]);
-					strftime(tmpstr, 20, date_format, localtime(&ban_until_time));
+					strftime(tmpstr, 20, date_format, gmtime(&ban_until_time));
 					tmpstr[19] = '\0';
 					memcpy(WFIFOP(fd,3), tmpstr, 20);
 				} else { // we send error message

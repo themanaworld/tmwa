@@ -805,7 +805,7 @@ int chrif_accountban(int fd)
 				char tmpstr[2048];
 				timestamp = (time_t)RFIFOL(fd,7); // status or final date of a banishment
 				strcpy(tmpstr, "Your account has been banished until ");
-				strftime(tmpstr + strlen(tmpstr), 24, "%d-%m-%Y %H:%M:%S", localtime(&timestamp));
+				strftime(tmpstr + strlen(tmpstr), 24, "%d-%m-%Y %H:%M:%S", gmtime(&timestamp));
 				clif_displaymessage(sd->fd, tmpstr);
 			}
 			clif_setwaitclose(sd->fd); // forced to disconnect for the change

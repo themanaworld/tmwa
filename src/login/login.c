@@ -148,7 +148,7 @@ int login_log(char *fmt, ...) {
 			fprintf(logfp, RETCODE);
 		else {
 			gettimeofday(&tv, NULL);
-			strftime(tmpstr, 24, date_format, localtime(&(tv.tv_sec)));
+			strftime(tmpstr, 24, date_format, gmtime(&(tv.tv_sec)));
 			sprintf(tmpstr + strlen(tmpstr), ".%03d: %s", (int)tv.tv_usec / 1000, fmt);
 			vfprintf(logfp, tmpstr, ap);
 		}
@@ -975,7 +975,7 @@ int mmo_auth_new(struct mmo_account* account, char sex, char* email) {
 	else { // limited time
 		timestamp = time(NULL) + start_limited_time;
 		// double conversion to be sure that it is possible
-		tmtime = localtime(&timestamp);
+		tmtime = gmtime(&timestamp);
 		timestamp_temp = mktime(tmtime);
 		if (timestamp_temp != -1 && (timestamp_temp + 3600) >= timestamp) // check possible value and overflow (and avoid summer/winter hour)
 			auth_dat[i].connect_until_time = timestamp_temp;
@@ -1113,7 +1113,7 @@ int mmo_auth(struct mmo_account* account, int fd) {
 		}
 
 		if (auth_dat[i].ban_until_time != 0) { // if account is banned
-			strftime(tmpstr, 20, date_format, localtime(&auth_dat[i].ban_until_time));
+			strftime(tmpstr, 20, date_format, gmtime(&auth_dat[i].ban_until_time));
 			tmpstr[19] = '\0';
 			if (auth_dat[i].ban_until_time > time(NULL)) { // always banned
 				login_log("Connection refused (account: %s, pass: %s, banned until %s, ip: %s)" RETCODE,
@@ -1147,7 +1147,7 @@ int mmo_auth(struct mmo_account* account, int fd) {
 	}
 
 	gettimeofday(&tv, NULL);
-	strftime(tmpstr, 24, date_format, localtime(&(tv.tv_sec)));
+	strftime(tmpstr, 24, date_format, gmtime(&(tv.tv_sec)));
 	sprintf(tmpstr + strlen(tmpstr), ".%03d", (int)tv.tv_usec / 1000);
 
 	account->account_id = auth_dat[i].account_id;
@@ -1376,7 +1376,7 @@ int parse_fromchar(int fd) {
 								char tmpstr[24];
 								struct timeval tv;
 								gettimeofday(&tv, NULL);
-								strftime(tmpstr, 23, date_format, localtime(&(tv.tv_sec)));
+								strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 								fprintf(fp, RETCODE "// %s: @GM command on account %d" RETCODE "%d %d" RETCODE, tmpstr, acc, acc, level_new_gm);
 								fclose(fp);
 								WBUFL(buf,6) = level_new_gm;
@@ -1511,7 +1511,7 @@ int parse_fromchar(int fd) {
 							timestamp = time(NULL);
 						else
 							timestamp = auth_dat[i].ban_until_time;
-						tmtime = localtime(&timestamp);
+						tmtime = gmtime(&timestamp);
 						tmtime->tm_year = tmtime->tm_year + (short)RFIFOW(fd,6);
 						tmtime->tm_mon = tmtime->tm_mon + (short)RFIFOW(fd,8);
 						tmtime->tm_mday = tmtime->tm_mday + (short)RFIFOW(fd,10);
@@ -1526,7 +1526,7 @@ int parse_fromchar(int fd) {
 								if (timestamp != 0) {
 									unsigned char buf[16];
 									char tmpstr[2048];
-									strftime(tmpstr, 24, date_format, localtime(&timestamp));
+									strftime(tmpstr, 24, date_format, gmtime(&timestamp));
 									login_log("Char-server '%s': Ban request (account: %d, new final date of banishment: %d (%s), ip: %s)." RETCODE,
 									          server[id].name, acc, timestamp, (timestamp == 0 ? "no banishment" : tmpstr), ip);
 									WBUFW(buf,0) = 0x2731;
@@ -1677,7 +1677,7 @@ int parse_fromchar(int fd) {
 				logfp = fopen(login_log_unknown_packets_filename, "a");
 				if (logfp) {
 					gettimeofday(&tv, NULL);
-					strftime(tmpstr, 23, date_format, localtime(&(tv.tv_sec)));
+					strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 					fprintf(logfp, "%s.%03d: receiving of an unknown packet -> disconnection" RETCODE, tmpstr, (int)tv.tv_usec / 1000);
 					fprintf(logfp, "parse_fromchar: connection #%d (ip: %s), packet: 0x%x (with being read: %d)." RETCODE, fd, ip, RFIFOW(fd,0), RFIFOREST(fd));
 					fprintf(logfp, "Detail (in hex):" RETCODE);
@@ -2123,7 +2123,7 @@ int parse_admin(int fd) {
 							if ((fp2 = lock_fopen(GM_account_filename, &lock)) != NULL) {
 								if ((fp = fopen(GM_account_filename, "r")) != NULL) {
 									gettimeofday(&tv, NULL);
-									strftime(tmpstr, 23, date_format, localtime(&(tv.tv_sec)));
+									strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 									modify_flag = 0;
 									// read/write GM file
 									while(fgets(line, sizeof(line)-1, fp)) {
@@ -2309,7 +2309,7 @@ int parse_admin(int fd) {
 				account_name[23] = '\0';
 				remove_control_chars(account_name);
 				timestamp = (time_t)RFIFOL(fd,26);
-				strftime(tmpstr, 24, date_format, localtime(&timestamp));
+				strftime(tmpstr, 24, date_format, gmtime(&timestamp));
 				i = search_account_index(account_name);
 				if (i != -1) {
 					memcpy(WFIFOP(fd,6), auth_dat[i].userid, 24);
@@ -2343,7 +2343,7 @@ int parse_admin(int fd) {
 				timestamp = (time_t)RFIFOL(fd,26);
 				if (timestamp <= time(NULL))
 					timestamp = 0;
-				strftime(tmpstr, 24, date_format, localtime(&timestamp));
+				strftime(tmpstr, 24, date_format, gmtime(&timestamp));
 				i = search_account_index(account_name);
 				if (i != -1) {
 					memcpy(WFIFOP(fd,6), auth_dat[i].userid, 24);
@@ -2396,7 +2396,7 @@ int parse_admin(int fd) {
 						timestamp = time(NULL);
 					else
 						timestamp = auth_dat[i].ban_until_time;
-					tmtime = localtime(&timestamp);
+					tmtime = gmtime(&timestamp);
 					tmtime->tm_year = tmtime->tm_year + (short)RFIFOW(fd,26);
 					tmtime->tm_mon = tmtime->tm_mon + (short)RFIFOW(fd,28);
 					tmtime->tm_mday = tmtime->tm_mday + (short)RFIFOW(fd,30);
@@ -2407,7 +2407,7 @@ int parse_admin(int fd) {
 					if (timestamp != -1) {
 						if (timestamp <= time(NULL))
 							timestamp = 0;
-						strftime(tmpstr, 24, date_format, localtime(&timestamp));
+						strftime(tmpstr, 24, date_format, gmtime(&timestamp));
 						login_log("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %d (%s), ip: %s)" RETCODE,
 						          auth_dat[i].userid, (short)RFIFOW(fd,26), (short)RFIFOW(fd,28), (short)RFIFOW(fd,30), (short)RFIFOW(fd,32), (short)RFIFOW(fd,34), (short)RFIFOW(fd,36), timestamp, (timestamp == 0 ? "no banishment" : tmpstr), ip);
 						if (auth_dat[i].ban_until_time != timestamp) {
@@ -2426,7 +2426,7 @@ int parse_admin(int fd) {
 							mmo_auth_sync();
 						}
 					} else {
-						strftime(tmpstr, 24, date_format, localtime(&auth_dat[i].ban_until_time));
+						strftime(tmpstr, 24, date_format, gmtime(&auth_dat[i].ban_until_time));
 						login_log("'ladmin': Impossible to adjust the final date of a banishment (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)" RETCODE,
 						          auth_dat[i].userid, auth_dat[i].ban_until_time, (auth_dat[i].ban_until_time == 0 ? "no banishment" : tmpstr), (short)RFIFOW(fd,26), (short)RFIFOW(fd,28), (short)RFIFOW(fd,30), (short)RFIFOW(fd,32), (short)RFIFOW(fd,34), (short)RFIFOW(fd,36), ip);
 					}
@@ -2507,7 +2507,7 @@ int parse_admin(int fd) {
 					} else {
 						if (timestamp == 0 || timestamp < time(NULL))
 							timestamp = time(NULL);
-						tmtime = localtime(&timestamp);
+						tmtime = gmtime(&timestamp);
 						tmtime->tm_year = tmtime->tm_year + (short)RFIFOW(fd,26);
 						tmtime->tm_mon = tmtime->tm_mon + (short)RFIFOW(fd,28);
 						tmtime->tm_mday = tmtime->tm_mday + (short)RFIFOW(fd,30);
@@ -2516,15 +2516,15 @@ int parse_admin(int fd) {
 						tmtime->tm_sec = tmtime->tm_sec + (short)RFIFOW(fd,36);
 						timestamp = mktime(tmtime);
 						if (timestamp != -1) {
-							strftime(tmpstr, 24, date_format, localtime(&auth_dat[i].connect_until_time));
-							strftime(tmpstr2, 24, date_format, localtime(&timestamp));
+							strftime(tmpstr, 24, date_format, gmtime(&auth_dat[i].connect_until_time));
+							strftime(tmpstr2, 24, date_format, gmtime(&timestamp));
 							login_log("'ladmin': Adjustment of a validity limit (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %d (%s), ip: %s)" RETCODE,
 							          auth_dat[i].userid, auth_dat[i].connect_until_time, (auth_dat[i].connect_until_time == 0 ? "unlimited" : tmpstr), (short)RFIFOW(fd,26), (short)RFIFOW(fd,28), (short)RFIFOW(fd,30), (short)RFIFOW(fd,32), (short)RFIFOW(fd,34), (short)RFIFOW(fd,36), timestamp, (timestamp == 0 ? "unlimited" : tmpstr2), ip);
 							auth_dat[i].connect_until_time = timestamp;
 							mmo_auth_sync();
 							WFIFOL(fd,30) = (unsigned long)auth_dat[i].connect_until_time;
 						} else {
-							strftime(tmpstr, 24, date_format, localtime(&auth_dat[i].connect_until_time));
+							strftime(tmpstr, 24, date_format, gmtime(&auth_dat[i].connect_until_time));
 							login_log("'ladmin': Impossible to adjust a validity limit (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)" RETCODE,
 							          auth_dat[i].userid, auth_dat[i].connect_until_time, (auth_dat[i].connect_until_time == 0 ? "unlimited" : tmpstr), (short)RFIFOW(fd,26), (short)RFIFOW(fd,28), (short)RFIFOW(fd,30), (short)RFIFOW(fd,32), (short)RFIFOW(fd,34), (short)RFIFOW(fd,36), ip);
 							WFIFOL(fd,30) = 0;
@@ -2635,7 +2635,7 @@ int parse_admin(int fd) {
 				logfp = fopen(login_log_unknown_packets_filename, "a");
 				if (logfp) {
 					gettimeofday(&tv, NULL);
-					strftime(tmpstr, 23, date_format, localtime(&(tv.tv_sec)));
+					strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 					fprintf(logfp, "%s.%03d: receiving of an unknown packet -> disconnection" RETCODE, tmpstr, (int)tv.tv_usec / 1000);
 					fprintf(logfp, "parse_admin: connection #%d (ip: %s), packet: 0x%x (with being read: %d)." RETCODE, fd, ip, RFIFOW(fd,0), RFIFOREST(fd));
 					fprintf(logfp, "Detail (in hex):" RETCODE);
@@ -2870,7 +2870,7 @@ int parse_login(int fd) {
 					if (i != -1) {
 						if (auth_dat[i].ban_until_time != 0) { // if account is banned, we send ban timestamp
 							char tmpstr[256];
-							strftime(tmpstr, 20, date_format, localtime(&auth_dat[i].ban_until_time));
+							strftime(tmpstr, 20, date_format, gmtime(&auth_dat[i].ban_until_time));
 							tmpstr[19] = '\0';
 							memcpy(WFIFOP(fd,3), tmpstr, 20);
 						} else { // we send error message
@@ -3070,7 +3070,7 @@ int parse_login(int fd) {
 				logfp = fopen(login_log_unknown_packets_filename, "a");
 				if (logfp) {
 					gettimeofday(&tv, NULL);
-					strftime(tmpstr, 23, date_format, localtime(&(tv.tv_sec)));
+					strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 					fprintf(logfp, "%s.%03d: receiving of an unknown packet -> disconnection" RETCODE, tmpstr, (int)tv.tv_usec / 1000);
 					fprintf(logfp, "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %d)." RETCODE, fd, ip, RFIFOW(fd,0), RFIFOREST(fd));
 					fprintf(logfp, "Detail (in hex):" RETCODE);

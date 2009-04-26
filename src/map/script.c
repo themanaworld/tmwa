@@ -3437,7 +3437,7 @@ int buildin_gettimetick(struct script_state *st)	/* Asgard Version */
 	case 1:
 		//type 1:(Second Ticks: 0-86399, 00:00:00-23:59:59)
 		time(&timer);
-		t=localtime(&timer);
+		t=gmtime(&timer);
 		push_val(st->stack,C_INT,((t->tm_hour)*3600+(t->tm_min)*60+t->tm_sec));
 		break;
 	case 0:
@@ -3465,7 +3465,7 @@ int buildin_gettime(struct script_state *st)	/* Asgard Version */
 	type=conv_num(st,& (st->stack->stack_data[st->start+2]));
 
 	time(&timer);
-	t=localtime(&timer);
+	t=gmtime(&timer);
 
 	switch(type){
 	case 1://Sec(0~59)
@@ -3511,7 +3511,7 @@ int buildin_gettimestr(struct script_state *st)
 	maxlen=conv_num(st,& (st->stack->stack_data[st->start+3]));
 
 	tmpstr=(char *)aCalloc(maxlen+1,sizeof(char));
-	strftime(tmpstr,maxlen,fmtstr,localtime(&now));
+	strftime(tmpstr,maxlen,fmtstr,gmtime(&now));
 	tmpstr[maxlen]='\0';
 
 	push_str(st->stack,C_STR,tmpstr);

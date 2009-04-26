@@ -5222,7 +5222,7 @@ int atcommand_servertime(const int fd, struct map_session_data* sd,
 	memset(temp, '\0', sizeof(temp));
 
 	time(&time_server);  // get time in seconds since 1/1/1970
-	datetime = localtime(&time_server); // convert seconds in structure
+	datetime = gmtime(&time_server); // convert seconds in structure
 	// like sprintf, but only for date/time (Sunday, November 02 2003 15:12:52)
 	strftime(temp, sizeof(temp)-1, msg_table[230], datetime); // Server time (normal time): %A, %B %d %Y %X.
 	clif_displaymessage(fd, temp);

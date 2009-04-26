@@ -349,7 +349,7 @@ int npc_event_do_clock(int tid,unsigned int tick,int id,int data)
 	int c=0;
 	
 	time(&timer);
-	t=localtime(&timer);
+	t=gmtime(&timer);
 	
 	if (t->tm_min != ev_tm_b.tm_min ) {
 		sprintf(buf,"OnMinute%02d",t->tm_min);
