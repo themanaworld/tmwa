@@ -42,6 +42,7 @@ char lan_char_ip[16];
 int subneti[4];
 int subnetmaski[4];
 char update_host[128] = "";
+char main_server[20] = "";
 
 char account_filename[1024] = "save/account.txt";
 char GM_account_filename[1024] = "conf/GM_account.txt";
@@ -2818,7 +2819,7 @@ int parse_login(int fd) {
 
 					// Load list of char servers into outbound packet
 					server_num = 0;
-					for(i = 0; i < MAX_SERVERS; i++) {
+					for(i = MAX_SERVERS - 1; i >= 0; i--) { // Send them in reverse, as the client defaults to the last one
 						if (server_fd[i] >= 0) {
 							if (lan_ip_check(p))
 								WFIFOL(fd,47+server_num*32) = inet_addr(lan_char_ip);
@@ -2938,11 +2939,19 @@ int parse_login(int fd) {
 				result = mmo_auth(&account, fd);
 
 				if (result == -1 && account.sex == 2) {
-					int i;
-					for (i = 0; i < MAX_SERVERS; i++) {
-						if (server_fd[i] == -1) {
-							account.account_id = i;
-							break;
+					// If this is the main server, and we don't already have a main server
+					if (server_fd[0] <= 0 && strcmpi(server_name, main_server) == 0)
+					{
+						account.account_id = 0;
+					}
+					else
+					{
+						int i;
+						for (i = 1; i < MAX_SERVERS; i++) {
+							if (server_fd[i] <= 0) {
+								account.account_id = i;
+								break;
+							}
 						}
 					}
 				}
@@ -3394,6 +3403,9 @@ int login_config_read(const char *cfgName) {
 			} else if (strcmpi(w1, "update_host") == 0) {
 				strncpy(update_host, w2, sizeof(update_host));
 				update_host[sizeof(update_host)-1] = '\0';
+			} else if (strcmpi(w1, "main_server") == 0) {
+				strncpy(main_server, w2, sizeof(main_server));
+				update_host[sizeof(main_server)-1] = '\0';
 			}
 		}
 	}
