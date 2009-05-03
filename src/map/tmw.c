@@ -34,11 +34,12 @@
 
 int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 	nullpo_retr(1, sd);
+	time_t now = time(NULL);
 
 	if (pc_isGM(sd)) return 0;
 
-	if (gettick() > sd->chat_reset_due) {
-		sd->chat_reset_due = gettick() + battle_config.chat_spam_threshold;
+	if (now > sd->chat_reset_due) {
+		sd->chat_reset_due = now + battle_config.chat_spam_threshold;
 		sd->chat_lines_in = 0;
 	}
 
@@ -50,7 +51,6 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 			sd->chat_lines_in += battle_config.chat_lame_penalty;
 
 		// Penalty for lame, it can stack on top of the repeat penalty.
-		// Trade is automaticly lame.
 		if (tmw_CheckChatLameness(sd, message))
 			sd->chat_lines_in += battle_config.chat_lame_penalty;
 

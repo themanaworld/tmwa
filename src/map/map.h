@@ -3,6 +3,7 @@
 #define _MAP_H_
 
 #include <stdarg.h>
+#include <time.h>
 #include "mmo.h"
 
 #ifndef MAX
@@ -354,7 +355,7 @@ struct map_session_data {
 	int ignoreAll;
 	short sg_count;
 
-	unsigned int chat_reset_due;
+	time_t chat_reset_due;
 	int chat_lines_in;
 	char chat_lastmsg[513];
 };

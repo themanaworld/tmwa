@@ -4513,7 +4513,7 @@ int battle_config_read(const char *cfgName)
 		battle_config.area_size = 14;
 
 		battle_config.chat_lame_penalty = 2;
-		battle_config.chat_spam_threshold = 10000;
+		battle_config.chat_spam_threshold = 10;
 		battle_config.chat_spam_flood = 10;
 		battle_config.chat_spam_ban = 1;
 		battle_config.chat_spam_warn = 8;
