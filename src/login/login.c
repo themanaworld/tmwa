@@ -2992,13 +2992,13 @@ int parse_login(int fd) {
 		case 0x7530:	// Request of the server version
 			login_log("Sending of the server version (ip: %s)" RETCODE, ip);
 			WFIFOW(fd,0) = 0x7531;
-			WFIFOB(fd,2) = ATHENA_MAJOR_VERSION;
-			WFIFOB(fd,3) = ATHENA_MINOR_VERSION;
-			WFIFOB(fd,4) = ATHENA_REVISION;
-			WFIFOB(fd,5) = ATHENA_RELEASE_FLAG;
-			WFIFOB(fd,6) = ATHENA_OFFICIAL_FLAG;
-			WFIFOB(fd,7) = ATHENA_SERVER_LOGIN;
-			WFIFOW(fd,8) = ATHENA_MOD_VERSION;
+			WFIFOB(fd,2) = -1;
+			WFIFOB(fd,3) = 'T';
+			WFIFOB(fd,4) = 'M';
+			WFIFOB(fd,5) = 'W';
+			WFIFOB(fd,6) = ' ';
+			WFIFOB(fd,7) = 'e';
+			WFIFOW(fd,8) = 'A';
 			WFIFOSET(fd,10);
 			RFIFOSKIP(fd,2);
 			break;
@@ -3114,7 +3114,7 @@ int parse_login(int fd) {
 
 //-------------------------------------------------
 // Return numerical value of a switch configuration
-// on/off, english, français, deutsch, español
+// on/off, english, franï¿½ais, deutsch, espaï¿½ol
 //-------------------------------------------------
 int config_switch(const char *str) {
 	if (strcmpi(str, "on") == 0 || strcmpi(str, "yes") == 0 || strcmpi(str, "oui") == 0 || strcmpi(str, "ja") == 0 || strcmpi(str, "si") == 0)
