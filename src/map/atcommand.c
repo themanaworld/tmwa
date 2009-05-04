@@ -31,6 +31,7 @@
 #include "trade.h"
 
 #include "core.h"
+#include "tmw.h"
 
 #define STATE_BLIND 0x10
 
@@ -201,6 +202,7 @@ ATCOMMAND_FUNC(invisible); // [Fate]
 ATCOMMAND_FUNC(visible); // [Fate]
 ATCOMMAND_FUNC(iterate_forward_over_players); // [Fate]
 ATCOMMAND_FUNC(iterate_backwards_over_players); // [Fate]
+ATCOMMAND_FUNC(wgm);
 
 /*==========================================
  *AtCommandInfo atcommand_info[]\‘¢‘Ì‚Ì’è‹`
@@ -387,6 +389,7 @@ static AtCommandInfo atcommand_info[] = {
         { AtCommand_Visible, "@visible", 60, atcommand_visible }, // [Fate]
         { AtCommand_IterateForward, "@hugo", 60, atcommand_iterate_forward_over_players }, // [Fate]
         { AtCommand_IterateBackward, "@linus", 60, atcommand_iterate_backwards_over_players }, // [Fate]
+	{ AtCommand_Wgm, "@wgm", 0, atcommand_wgm },
 
 // add new commands before this line
 	{ AtCommand_Unknown,             NULL,                1, NULL }
@@ -638,7 +641,8 @@ is_atcommand(const int fd, struct map_session_data* sd, const char* message, int
 				sprintf(output, msg_table[154], command); // %s failed.
 				clif_displaymessage(fd, output);
 			} else {
-                                log_atcommand(sd, message);
+				if (get_atcommand_level(type) != 0) // Don't log level 0 commands
+                                	log_atcommand(sd, message);
                         }
 		}
 
@@ -7049,4 +7053,11 @@ atcommand_iterate_backwards_over_players(
 {
         return atcommand_jump_iterate(fd, sd, command, message,
                                       map_get_last_session, map_get_prev_session);
+}
+
+int atcommand_wgm(
+        const int fd, struct map_session_data* sd,
+        const char* command, const char* message)
+{
+	tmw_GmHackMsg("%s: %s", sd->status.name, message);
 }

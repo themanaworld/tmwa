@@ -112,5 +112,9 @@ void tmw_GmHackMsg(const char *fmt, ...) {
 	vsnprintf(buf, 511, fmt, ap);
 	va_end(ap);
 
-	intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, buf, strlen(buf) + 1);
+	char outbuf[512+5];
+	strcat(outbuf, "[GM] ");
+	strcat(outbuf, buf);
+
+	intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, outbuf, strlen(outbuf) + 1);
 }

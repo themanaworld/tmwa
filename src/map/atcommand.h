@@ -180,6 +180,7 @@ enum AtCommandType {
         AtCommand_Visible,
         AtCommand_IterateForward,
         AtCommand_IterateBackward,
+	AtCommand_Wgm,
 	// end
 	AtCommand_Unknown,
 	AtCommand_MAX
