@@ -132,6 +132,7 @@ int level_new_gm = 60;
 static struct dbt *gm_account_db;
 
 #define VERSION_2_UPDATEHOST 0x01	// client supports updatehost
+#define VERSION_2_SERVERORDER 0x02	// send servers in forward order
 //------------------------------
 // Writing function of logs file
 //------------------------------
@@ -2819,20 +2820,36 @@ int parse_login(int fd) {
 
 					// Load list of char servers into outbound packet
 					server_num = 0;
-					for(i = MAX_SERVERS - 1; i >= 0; i--) { // Send them in reverse, as the client defaults to the last one
-						if (server_fd[i] >= 0) {
-							if (lan_ip_check(p))
-								WFIFOL(fd,47+server_num*32) = inet_addr(lan_char_ip);
-							else
-								WFIFOL(fd,47+server_num*32) = server[i].ip;
-							WFIFOW(fd,47+server_num*32+4) = server[i].port;
-							memcpy(WFIFOP(fd,47+server_num*32+6), server[i].name, 20);
-							WFIFOW(fd,47+server_num*32+26) = server[i].users;
-							WFIFOW(fd,47+server_num*32+28) = server[i].maintenance;
-							WFIFOW(fd,47+server_num*32+30) = server[i].new;
-							server_num++;
+					if (version_2 && VERSION_2_SERVERORDER)
+						for(i = 0; i < MAX_SERVERS; i++) {
+							if (server_fd[i] >= 0) {
+								if (lan_ip_check(p))
+									WFIFOL(fd,47+server_num*32) = inet_addr(lan_char_ip);
+								else
+									WFIFOL(fd,47+server_num*32) = server[i].ip;
+								WFIFOW(fd,47+server_num*32+4) = server[i].port;
+								memcpy(WFIFOP(fd,47+server_num*32+6), server[i].name, 20);
+								WFIFOW(fd,47+server_num*32+26) = server[i].users;
+								WFIFOW(fd,47+server_num*32+28) = server[i].maintenance;
+								WFIFOW(fd,47+server_num*32+30) = server[i].new;
+								server_num++;
+							}
 						}
-					}
+					else // Send them in reverse, as the client defaults to the second (!) one
+						for(i = MAX_SERVERS - 1; i >= 0; i--) {
+							if (server_fd[i] >= 0) {
+								if (lan_ip_check(p))
+									WFIFOL(fd,47+server_num*32) = inet_addr(lan_char_ip);
+								else
+									WFIFOL(fd,47+server_num*32) = server[i].ip;
+								WFIFOW(fd,47+server_num*32+4) = server[i].port;
+								memcpy(WFIFOP(fd,47+server_num*32+6), server[i].name, 20);
+								WFIFOW(fd,47+server_num*32+26) = server[i].users;
+								WFIFOW(fd,47+server_num*32+28) = server[i].maintenance;
+								WFIFOW(fd,47+server_num*32+30) = server[i].new;
+								server_num++;
+							}
+						}
 					// if at least 1 char-server
 					if (server_num > 0) {
 						WFIFOW(fd,0) = 0x69;
