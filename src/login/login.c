@@ -3422,7 +3422,7 @@ int login_config_read(const char *cfgName) {
 				update_host[sizeof(update_host)-1] = '\0';
 			} else if (strcmpi(w1, "main_server") == 0) {
 				strncpy(main_server, w2, sizeof(main_server));
-				update_host[sizeof(main_server)-1] = '\0';
+				main_server[sizeof(main_server)-1] = '\0';
 			}
 		}
 	}
