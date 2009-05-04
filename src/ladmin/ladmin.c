@@ -1573,7 +1573,7 @@ int bansetaccountsub(char* name, char* date, char* time) {
 		tmtime->tm_min = minute;
 		tmtime->tm_sec = second;
 		tmtime->tm_isdst = -1; // -1: no winter/summer time modification
-		ban_until_time = mktime(tmtime);
+		ban_until_time = timegm(tmtime);
 		if (ban_until_time == -1) {
 			if (defaultlanguage == 'F') {
 				printf("Date incorrecte.\n");
@@ -2934,7 +2934,7 @@ int timesetaccount(char* param) {
 		tmtime->tm_min = minute;
 		tmtime->tm_sec = second;
 		tmtime->tm_isdst = -1; // -1: no winter/summer time modification
-		connect_until_time = mktime(tmtime);
+		connect_until_time = timegm(tmtime);
 		if (connect_until_time == -1) {
 			if (defaultlanguage == 'F') {
 				printf("Date incorrecte.\n");

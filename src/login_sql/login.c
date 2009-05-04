@@ -850,7 +850,7 @@ int parse_fromchar(int fd){
 			tmtime->tm_hour = tmtime->tm_hour + (short)RFIFOW(fd,12);
 			tmtime->tm_min = tmtime->tm_min + (short)RFIFOW(fd,14);
 			tmtime->tm_sec = tmtime->tm_sec + (short)RFIFOW(fd,16);
-			timestamp = mktime(tmtime);
+			timestamp = timegm(tmtime);
 			if (timestamp != -1) {
 				if (timestamp <= time(NULL))
 					timestamp = 0;
