@@ -7692,7 +7692,7 @@ pc_invisibility(struct map_session_data *sd, int enabled)
                 clif_clearchar_area(&sd->bl, 3);
                 sd->status.option |= OPTION_INVISIBILITY;
                 clif_status_change(&sd->bl, CLIF_OPTION_SC_INVISIBILITY, 1);
-        } else {
+        } else if (!enabled) {
                 sd->status.option &= ~OPTION_INVISIBILITY;
                 clif_status_change(&sd->bl, CLIF_OPTION_SC_INVISIBILITY, 0);
                 pc_setpos(sd, map[sd->bl.m].name, sd->bl.x, sd->bl.y, 3);
