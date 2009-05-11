@@ -182,6 +182,7 @@ struct map_session_data {
 		unsigned unbreakable_weapon : 1;
 		unsigned unbreakable_armor : 1;
 		unsigned infinite_autospell : 1;
+            unsigned heal_effect : 1;
 	} special_state;
 	int char_id, login_id1, login_id2, sex;
         unsigned char tmw_version; // tmw client version
