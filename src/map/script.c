@@ -13,6 +13,7 @@
 #endif
 
 #include <time.h>
+#include <math.h>
 
 #include "socket.h"
 #include "timer.h"
@@ -25,6 +26,7 @@
 #include "chrif.h"
 #include "clif.h"
 #include "db.h"
+#include "guild.h"
 #include "intif.h"
 #include "itemdb.h"
 #include "lock.h"
@@ -3163,7 +3165,7 @@ int buildin_skill(struct script_state *st)
  */
 int buildin_setskill(struct script_state *st)
 {
-	int id,level,flag=1;
+	int id,level;
 	struct map_session_data *sd;
 
 	id=conv_num(st,& (st->stack->stack_data[st->start+2]));
@@ -3174,6 +3176,7 @@ int buildin_setskill(struct script_state *st)
         sd->status.skill[id].lv = level;
         sd->status.skill[id].flag = 0;
         clif_skillinfoblock(sd);
+	return 0;
 }
 
 /*==========================================
@@ -5879,7 +5882,6 @@ int buildin_shop(struct script_state *st)
 {
 	struct map_session_data *sd=script_rid2sd(st);
 	struct npc_data *nd;
-	char *str;
 
 	if (!sd)
 		return 1;
@@ -5902,6 +5904,7 @@ int buildin_isdead(struct script_state *st)
 	struct map_session_data *sd=script_rid2sd(st);
 
         push_val(st->stack, C_INT, pc_isdead(sd));
+	return 0;
 }
 
 //
@@ -6387,7 +6390,7 @@ int run_script_main(unsigned char *script,int pos,int rid,int oid,struct script_
  */
 int run_script(unsigned char *script,int pos,int rid,int oid)
 {
-        run_script_l(script, pos, rid, oid, 0, NULL);
+        return run_script_l(script, pos, rid, oid, 0, NULL);
 }
 
 int run_script_l(unsigned char *script,int pos,int rid,int oid, int args_nr, argrec_t *args)

@@ -383,7 +383,8 @@ static int itemdb_read_randomitem()
 		struct random_item_data *pd=data[i].pdata;
 		int *pc=data[i].pcount;
 		int *pdefault=data[i].pdefault;
-		char *fn=data[i].filename;
+		const char *fn=data[i].filename;
+
 
 		*pdefault = 0;
 		if( (fp=fopen(fn,"r"))==NULL ){

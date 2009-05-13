@@ -676,6 +676,7 @@ int clif_clearchar_id(int id, int type, int fd) {
 	return 0;
 }
 
+/*
 static int current_weapon(struct map_session_data *sd)
 {
         if (sd->attack_spell_override)
@@ -684,6 +685,7 @@ static int current_weapon(struct map_session_data *sd)
                 return sd->status.weapon;
         }
 }
+*/
 
 /*==========================================
  *
@@ -3048,7 +3050,7 @@ int clif_updatestorageamount(struct map_session_data *sd,struct storage *stor)
  */
 int clif_storageitemadded(struct map_session_data *sd,struct storage *stor,int index,int amount)
 {
-	int view,fd,j;
+	int fd,j;
 
 	nullpo_retr(0, sd);
 	nullpo_retr(0, stor);
@@ -3256,8 +3258,8 @@ void clif_getareachar_pc(struct map_session_data* sd,struct map_session_data* ds
 	if(sd->status.manner < 0)
 		clif_changestatus(&sd->bl,SP_MANNER,sd->status.manner);
 
-        clif_changelook_accessories(sd, dstsd);
-        clif_changelook_accessories(dstsd, sd);
+        clif_changelook_accessories(&sd->bl, dstsd);
+        clif_changelook_accessories(&dstsd->bl, sd);
 }
 
 /*==========================================
@@ -3343,7 +3345,7 @@ int clif_fixpcpos(struct map_session_data *sd)
 		len = clif_set0078(sd,buf);
 		clif_send(buf,len,&sd->bl,AREA);
 	}
-        clif_changelook_accessories(sd, NULL);
+        clif_changelook_accessories(&sd->bl, NULL);
 
 	return 0;
 }
@@ -6413,9 +6415,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 		WFIFOSET(fd,packet_len_table[0x95]);
 		if (ssd->special_state.heal_effect)
 		{
-			unsigned char buf[16];
-
-			nullpo_retr(0, bl);
+			nullpo_retv(bl);
 
 			WFIFOW(fd,0)=0x0196;
 			WFIFOW(fd,2)=SC_HEALING;
@@ -6584,7 +6584,7 @@ void clif_parse_ChangeDir(int fd, struct map_session_data *sd) {
 
 	nullpo_retv(sd);
 
-	RFIFOW(fd,2); //skip
+//	RFIFOW(fd,2); // Apparently does nothing?
 	dir = RFIFOB(fd,4);
 
 	pc_setdir(sd, dir);

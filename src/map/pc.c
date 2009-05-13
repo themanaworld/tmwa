@@ -17,6 +17,7 @@
 #include "chat.h"
 #include "chrif.h"
 #include "clif.h"
+#include "guild.h"
 #include "intif.h"
 #include "itemdb.h"
 #include "map.h"
@@ -1069,7 +1070,6 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	struct skill b_skill[MAX_SKILL];
 	int i,bl,index;
 	int skill,aspd_rate,wele,wele_,def_ele,refinedef=0;
-	int pele=0,pdef_ele=0;
 	int str,dstr,dex;
 	struct pc_base_job s_class;
 

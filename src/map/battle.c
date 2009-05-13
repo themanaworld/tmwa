@@ -3792,6 +3792,8 @@ struct Damage battle_calc_attack(	int attack_type,
 	struct block_list *bl,struct block_list *target,int skill_num,int skill_lv,int flag)
 {
 	struct Damage d;
+	memset(&d, 0, sizeof(d));
+
 	switch(attack_type){
 	case BF_WEAPON:
 		return battle_calc_weapon_attack(bl,target,skill_num,skill_lv,flag);
