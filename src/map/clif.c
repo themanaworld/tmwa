@@ -6583,7 +6583,8 @@ void clif_parse_MapMove(int fd, struct map_session_data *sd) {
 	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_MapMove))) {
 		memcpy(map_name, RFIFOP(fd,2), 16);
 		sprintf(output, "%s %d %d", map_name, RFIFOW(fd,18), RFIFOW(fd,20));
-		atcommand_warp(fd, sd, "@rura", output);
+		log_atcommand(sd, "@warp %s", output);
+		atcommand_warp(fd, sd, "@warp", output);
 	}
 
 	return;
@@ -7510,10 +7511,12 @@ void clif_parse_ResetChar(int fd, struct map_session_data *sd) {
 	if (battle_config.atc_gmonly == 0 || pc_isGM(sd)) {
 		switch(RFIFOW(fd,2)){
 		case 0:
+			log_atcommand(sd, "@charstreset %s", sd->status.name);
 			if (pc_isGM(sd) >= get_atcommand_level(AtCommand_ResetState))
 				pc_resetstate(sd);
 			break;
 		case 1:
+			log_atcommand(sd, "@charskreset %s", sd->status.name);
 			if (pc_isGM(sd) >= get_atcommand_level(AtCommand_ResetState))
 				pc_resetskill(sd);
 			break;
@@ -7728,11 +7731,15 @@ void clif_parse_GM_Monster_Item(int fd, struct map_session_data *sd) {
 		memcpy(monster_item_name, RFIFOP(fd,2), 24);
 
 		if (mobdb_searchname(monster_item_name) != 0) {
-			if (pc_isGM(sd) >= get_atcommand_level(AtCommand_Monster))
+			if (pc_isGM(sd) >= get_atcommand_level(AtCommand_Monster)) {
+				log_atcommand(sd, "@spawn %s", monster_item_name);
 				atcommand_spawn(fd, sd, "@spawn", monster_item_name); // as @spawn
+			}
 		} else if (itemdb_searchname(monster_item_name) != NULL) {
-			if (pc_isGM(sd) >= get_atcommand_level(AtCommand_Item))
+			if (pc_isGM(sd) >= get_atcommand_level(AtCommand_Item)) {
+				log_atcommand(sd, "@item %s", monster_item_name);
 				atcommand_item(fd, sd, "@item", monster_item_name); // as @item
+			}
 		}
 
 	}
@@ -7940,6 +7947,7 @@ void clif_parse_GMKick(int fd, struct map_session_data *sd) {
 		if (target) {
 			if (target->type == BL_PC) {
 				struct map_session_data *tsd = (struct map_session_data *)target;
+				log_atcommand(sd, "@kick %s", tsd->status.name);
 				if (pc_isGM(sd) > pc_isGM(tsd))
 					clif_GM_kick(sd, tsd, 1);
 				else
@@ -7969,7 +7977,8 @@ void clif_parse_Shift(int fd, struct map_session_data *sd) {	// Rewriten by [Yor
 	if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
 	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_Goto))) {
 		memcpy(player_name, RFIFOP(fd,2), 24);
-		atcommand_goto(fd, sd, "@jumpto", player_name); // as @jumpto
+		log_atcommand(sd, "@goto %s", player_name);
+		atcommand_goto(fd, sd, "@goto", player_name); // as @jumpto
 	}
 
 	return;
@@ -7989,6 +7998,7 @@ void clif_parse_Recall(int fd, struct map_session_data *sd) {	// Added by RoVeRT
 	if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
 	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_Recall))) {
 		memcpy(player_name, RFIFOP(fd,2), 24);
+		log_atcommand(sd, "@recall %s", player_name);
 		atcommand_recall(fd, sd, "@recall", player_name); // as @recall
 	}
 
@@ -8001,6 +8011,7 @@ void clif_parse_GMHide(int fd, struct map_session_data *sd) {	// Modified by [Yo
 	//printf("%2x %2x %2x\n", RFIFOW(fd,0), RFIFOW(fd,2), RFIFOW(fd,4)); // R 019d <Option_value>.2B <flag>.2B
 	if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
 	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide))) {
+		log_atcommand(sd, "@hide");
 		if (sd->status.option & OPTION_HIDE) { // OPTION_HIDE = 0x40
 			sd->status.option &= ~OPTION_HIDE; // OPTION_HIDE = 0x40
 			clif_displaymessage(fd, "Invisible: Off.");

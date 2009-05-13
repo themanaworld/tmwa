@@ -547,48 +547,53 @@ int last_logfile_nr = 0;
 char *gm_logfile_name = NULL;
 static FILE *gm_logfile = NULL;
 
-static void
-log_atcommand(struct map_session_data *sd, const char *message)
+void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
 {
-        if (gm_logfile_name) {
-                time_t time_v;
-                struct tm ctime;
-                int month, year, logfile_nr;
-                time(&time_v);
-                gmtime_r(&time_v, &ctime);
+	time_t time_v;
+	struct tm ctime;
+	int month, year, logfile_nr;
+	char message[512];
+	va_list ap;
 
-                year = ctime.tm_year + 1900;
-                month = ctime.tm_mon + 1;
-                logfile_nr = (year * 12) + month;
+	if (!gm_logfile_name)
+		return;
 
-                if (logfile_nr != last_logfile_nr) {
-                        char *fullname = malloc(strlen(gm_logfile_name) + 10);
-                        sprintf(fullname, "%s.%04d-%02d", gm_logfile_name,
-                                year, month);
+        va_start(ap, fmt);
+        vsnprintf(message, 511, fmt, ap);
+        va_end(ap);
 
-                        if (gm_logfile)
-                                close(gm_logfile);
+	time(&time_v);
+	gmtime_r(&time_v, &ctime);
 
-                        gm_logfile = fopen(fullname, "a");
-                        free(fullname);
+	year = ctime.tm_year + 1900;
+	month = ctime.tm_mon + 1;
+	logfile_nr = (year * 12) + month;
 
-                        if (!gm_logfile) {
-                                perror("GM log file");
-                                gm_logfile_name = NULL;
-                        }
+	if (logfile_nr != last_logfile_nr) {
+		char *fullname = malloc(strlen(gm_logfile_name) + 10);
+		sprintf(fullname, "%s.%04d-%02d", gm_logfile_name, year, month);
 
-                        last_logfile_nr = logfile_nr;
-                }
+		if (gm_logfile)
+			close(gm_logfile);
 
-                if (gm_logfile && pc_isGM(sd)) {
-                        fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s(%d,%d) %s\n",
-                                year, month, ctime.tm_mday,
-                                ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
-                                map[sd->bl.m].name, sd->bl.x, sd->bl.y, 
-                                message);
+		gm_logfile = fopen(fullname, "a");
+		free(fullname);
+
+		if (!gm_logfile) {
+			perror("GM log file");
+			gm_logfile_name = NULL;
+		}
+		last_logfile_nr = logfile_nr;
+	}
+
+	if (gm_logfile && pc_isGM(sd)) {
+		fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s(%d,%d) %s : %s\n",
+			year, month, ctime.tm_mday,
+			ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
+			map[sd->bl.m].name, sd->bl.x, sd->bl.y, sd->status.name,
+			message);
                         fflush(gm_logfile);
-                }
-        }
+	}
 }
 
 /*==========================================
@@ -642,7 +647,7 @@ is_atcommand(const int fd, struct map_session_data* sd, const char* message, int
 				clif_displaymessage(fd, output);
 			} else {
 				if (get_atcommand_level(type) != 0) // Don't log level 0 commands
-                                	log_atcommand(sd, message);
+                                	log_atcommand(sd, "%s %s", command, p);
                         }
 		}
 
