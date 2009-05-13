@@ -2263,9 +2263,7 @@ int clif_updatestatus(struct map_session_data *sd,int type)
 		break;
 
 	case SP_GM:
-		WFIFOW(fd,0)=0xbc;
-		WFIFOB(fd,5)=0;
-		WFIFOB(fd,4)=pc_isGM(sd);
+		WFIFOL(fd,4)=pc_isGM(sd);
 		break;
 
 	default:
