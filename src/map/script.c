@@ -1625,21 +1625,34 @@ int buildin_close2(struct script_state *st)
 int buildin_menu(struct script_state *st)
 {
 	char *buf;
-	int len,i;
+	int i, len = 0; // [fate] len is the total # of bytes we need to transmit the string choices
+        int menu_choices = 0;
+        int finished_menu_items = 0; // [fate] set to 1 after we hit the first empty string
+
 	struct map_session_data *sd;
 	
 	sd=script_rid2sd(st);
 
+        // We don't need to do this iteration if the player cancels, strictly speaking.
+        for (i = st->start+2; i < st->end; i += 2) {
+                int choice_len;
+                conv_str(st,& (st->stack->stack_data[i]));
+                choice_len = strlen(st->stack->stack_data[i].u.str);
+                len += choice_len + 1; // count # of bytes we'll need for packet.  Only used if menu_or_input = 0.
+
+                if (choice_len && !finished_menu_items)
+                        ++menu_choices;
+                else
+                        finished_menu_items = 1;
+        }
+
 	if(sd->state.menu_or_input==0){
 		st->state=RERUNLINE;
 		sd->state.menu_or_input=1;
-		for(i=st->start+2,len=16;i<st->end;i+=2){
-			conv_str(st,& (st->stack->stack_data[i]));
-			len+=strlen(st->stack->stack_data[i].u.str)+1;
-		}
+
 		buf=(char *)aCalloc(len,sizeof(char));
 		buf[0]=0;
-		for(i=st->start+2,len=0;i<st->end;i+=2){
+		for(i=st->start+2; menu_choices > 0; i+=2, --menu_choices){
 			strcat(buf,st->stack->stack_data[i].u.str);
 			strcat(buf,":");
 		}
@@ -1653,10 +1666,9 @@ int buildin_menu(struct script_state *st)
 		pc_setreg(sd,add_str("l15"),sd->npc_menu);
 		pc_setreg(sd,add_str("@menu"),sd->npc_menu);
 		sd->state.menu_or_input=0;
-		if(sd->npc_menu>0 && sd->npc_menu<(st->end-st->start)/2){
+		if(sd->npc_menu > 0 && sd->npc_menu <= menu_choices){
 			int pos;
 			if( st->stack->stack_data[st->start+sd->npc_menu*2+1].type!=C_POS ){
-				printf("script: menu: not label !\n");
 				st->state=END;
 				return 0;
 			}
