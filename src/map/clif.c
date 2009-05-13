@@ -2564,22 +2564,6 @@ int clif_misceffect(struct block_list* bl,int type)
 
 	return 0;
 }
-int clif_misceffect2(struct block_list *bl, int type) {
-	unsigned char buf[24];
-
-	nullpo_retr(0, bl);
-
-	memset(buf, 0, packet_len_table[0x1f3]);
-
-	WBUFW(buf,0) = 0x1f3;
-	WBUFL(buf,2) = bl->id;
-	WBUFL(buf,6) = type;
-
-	clif_send(buf, packet_len_table[0x1f3], bl, AREA);
-
-	return 0;
-
-}
 /*==========================================
  * �\���I�v�V�����ύX
  *------------------------------------------
@@ -6082,9 +6066,9 @@ int clif_specialeffect(struct block_list *bl, int type, int flag) {
 
 	nullpo_retr(0, bl);
 
-	memset(buf, 0, packet_len_table[0x1f3]);
+	memset(buf, 0, packet_len_table[0x19b]);
 
-	WBUFW(buf,0) = 0x1f3;
+	WBUFW(buf,0) = 0x19b;
 	WBUFL(buf,2) = bl->id;
 	WBUFL(buf,6) = type;
 
@@ -6098,9 +6082,9 @@ int clif_specialeffect(struct block_list *bl, int type, int flag) {
 	}
 	
 	else if (flag==1)
-		clif_send(buf, packet_len_table[0x1f3], bl, SELF);
+		clif_send(buf, packet_len_table[0x19b], bl, SELF);
 	else if (!flag)
-		clif_send(buf, packet_len_table[0x1f3], bl, AREA);
+		clif_send(buf, packet_len_table[0x19b], bl, AREA);
 
 	return 0;
 
