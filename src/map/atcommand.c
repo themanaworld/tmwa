@@ -7065,4 +7065,8 @@ int atcommand_wgm(
         const char* command, const char* message)
 {
 	tmw_GmHackMsg("%s: %s", sd->status.name, message);
+	if (!pc_isGM(sd))
+		clif_displaymessage(fd, "Message sent.");
+
+	return 0;
 }
