@@ -2262,6 +2262,12 @@ int clif_updatestatus(struct map_session_data *sd,int type)
 		len=14;
 		break;
 
+	case SP_GM:
+		WFIFOW(fd,0)=0xbc;
+		WFIFOB(fd,5)=0;
+		WFIFOB(fd,4)=pc_isGM(sd);
+		break;
+
 	default:
 		if(battle_config.error_log)
 			printf("clif_updatestatus : make %d routine\n",type);
