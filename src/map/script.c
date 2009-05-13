@@ -280,6 +280,7 @@ int buildin_getpartnerid(struct script_state *st); // [Fate]
 int buildin_areatimer(struct script_state *st); // [Jaxad0127]
 int buildin_isin(struct script_state *st); // [Jaxad0127]
 int buildin_shop(struct script_state *st); // [MadCamel]
+int buildin_isdead(struct script_state *st);  // [Jaxad0127]
 
 void push_val(struct script_stack *stack,int type,int val);
 int run_func(struct script_state *st);
@@ -481,8 +482,9 @@ struct {
         {buildin_getlook,"getlook","i"},                
         {buildin_getsavepoint,"getsavepoint","i"},
 	{buildin_areatimer,"areatimer","siiiiis"},
-	{buildin_isin,"isin","siiii"},              
-	{buildin_shop,"shop","s"},	// End Additions
+	{buildin_isin,"isin","siiii"},
+	{buildin_shop,"shop","s"},
+	{buildin_isdead,"isdead","i"},	// End Additions
 	{NULL,NULL,NULL},
 };
 int buildin_message(struct script_state *st); // [MouseJstr]
@@ -5889,6 +5891,17 @@ int buildin_shop(struct script_state *st)
 	buildin_close(st);
 	clif_npcbuysell(sd,nd->bl.id);
 	return 0;
+}
+
+/*==========================================
+ * Check whether the PC is dead
+ *------------------------------------------
+ */
+int buildin_isdead(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+
+        push_val(st->stack, C_INT, pc_isdead(sd));
 }
 
 //
