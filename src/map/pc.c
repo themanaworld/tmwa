@@ -7704,3 +7704,14 @@ pc_invisibility(struct map_session_data *sd, int enabled)
                 pc_setpos(sd, map[sd->bl.m].name, sd->bl.x, sd->bl.y, 3);
         }
 }
+
+int pc_logout(struct map_session_data *sd) // [fate] Player logs out
+{
+        if (!sd)
+                return 0;
+
+        if (sd->sc_data[SC_POISON].timer != -1)
+                sd->status.hp = 1; // Logging out while poisoned -> bad
+
+        return 0;
+}

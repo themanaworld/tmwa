@@ -8351,6 +8351,7 @@ static int clif_parse(int fd) {
 	// �ڑ����؂��Ă��̂Ō��n��
 	if (!chrif_isconnect() || session[fd]->eof) { // char�I�Ɍq����ĂȂ��Ԃ͐ڑ��֎~ (!chrif_isconnect())
 		if (sd && sd->state.auth) {
+                        pc_logout(sd);
 			clif_quitsave(fd, sd);
 			if (sd->status.name != NULL)
 				printf("Player [%s] has logged off your server.\n", sd->status.name); // Player logout display [Valaris]
