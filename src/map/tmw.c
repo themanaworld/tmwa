@@ -106,8 +106,6 @@ void tmw_GmHackMsg(const char *fmt, ...) {
 	char buf[512];
 	va_list ap;
 
-	buf[512] = 0;
-
 	va_start(ap, fmt);
 	vsnprintf(buf, 511, fmt, ap);
 	va_end(ap);

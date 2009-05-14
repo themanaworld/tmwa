@@ -574,7 +574,7 @@ void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
 		sprintf(fullname, "%s.%04d-%02d", gm_logfile_name, year, month);
 
 		if (gm_logfile)
-			close(gm_logfile);
+			fclose(gm_logfile);
 
 		gm_logfile = fopen(fullname, "a");
 		free(fullname);
@@ -6740,7 +6740,7 @@ int atcommand_summon(const int fd, struct map_session_data* sd, const char* comm
 		md->state.special_mob_ai=1;
 		md->mode=mob_db[md->class].mode|0x04;
 		md->deletetimer=add_timer(tick+60000,mob_timer_delete,id,0);
-		clif_misceffect2(&md->bl,344);
+		clif_misceffect(&md->bl,344);
 	}
 	clif_skill_poseffect(&sd->bl,AM_CALLHOMUN,1,x,y,tick);
 
@@ -7011,7 +7011,7 @@ int atcommand_jump_iterate(
 
 	memset(output, '\0', sizeof(output));
 
-        pl_sd = map_id2bl(sd->followtarget);
+        pl_sd = (struct map_session_data*)map_id2bl(sd->followtarget);
 
         if (pl_sd)
                 pl_sd = get_next(pl_sd);

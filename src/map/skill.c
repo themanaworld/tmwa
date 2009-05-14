@@ -8156,7 +8156,7 @@ int skill_encchant_eremental_end(struct block_list *bl,int type)
  */
 int skill_status_change_start(struct block_list *bl, int type, int val1, int val2, int val3, int val4, int tick, int flag) 
 {
-        skill_status_effect(bl, type, val1, val2, val3, val4, tick, flag, 0);
+        return skill_status_effect(bl, type, val1, val2, val3, val4, tick, flag, 0);
 }
 
 
@@ -9817,7 +9817,7 @@ int skill_unit_move_unit_group( struct skill_unit_group *group, int m,int dx,int
  */
 int skill_readdb(void)
 {
-	int i,j,k,l,m;
+	int i,j,k,l;
 	FILE *fp;
 	char line[1024],*p;
 

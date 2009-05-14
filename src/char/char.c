@@ -1491,7 +1491,6 @@ int disconnect_player(int accound_id) {
 
 // ƒLƒƒƒ‰íœ‚É”º‚¤ƒf[ƒ^íœ
 static int char_delete(struct mmo_charstatus *cs) {
-	int j;
 
 	// ƒMƒ‹ƒh’E‘Ş
 	if (cs->guild_id)
