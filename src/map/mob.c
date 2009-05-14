@@ -3093,10 +3093,8 @@ int mobskill_castend_id( int tid, unsigned int tick, int id,int data )
 		printf("mobskill_castend_id nullpo mbl->id:%d\n",mbl->id);
 		return 0;
 	}
-
 	if( md->bl.type!=BL_MOB || md->bl.prev==NULL )
 		return 0;
-
 	if( md->skilltimer != tid )	// タイマIDの確認
 		return 0;
 
@@ -3335,6 +3333,7 @@ int mobskill_use_id(struct mob_data *md,struct block_list *target,int skill_idx)
 	range = skill_get_range(skill_id,skill_lv);
 	if(range < 0)
 		range = battle_get_range(&md->bl) - (range + 1);
+
 	if(!battle_check_range(&md->bl,target,range))
 		return 0;
 
@@ -4200,6 +4199,7 @@ static int mob_readskilldb(void)
 			}
 			ms->skill_id=atoi(sp[3]);
 			ms->skill_lv=atoi(sp[4]);
+
 			ms->permillage=atoi(sp[5]);
 			ms->casttime=atoi(sp[6]);
 			ms->delay=atoi(sp[7]);

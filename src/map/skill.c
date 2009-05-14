@@ -1075,7 +1075,7 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	case NPC_SILENCEATTACK:
 	case NPC_STUNATTACK:
 		if(rand()%100 < sc_def_vit)
-			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
+			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skilllv * skilllv * 5000,0);
 		break;
 	case NPC_CURSEATTACK:
 		if(rand()%100 < sc_def_luk)
@@ -7965,8 +7965,9 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 	case SC_POISON:
 		if(sc_data[SC_SLOWPOISON].timer == -1) {
 			if( (--sc_data[type].val3) > 0) {
-				int hp = battle_get_max_hp(bl);
-				if(battle_get_hp(bl) > hp>>2) {
+		
+                                int hp = battle_get_max_hp(bl);
+				if(battle_get_hp(bl) > hp>>4) {
 					if(bl->type == BL_PC) {
 						hp = 3 + hp*3/200;
 						pc_heal((struct map_session_data *)bl,-hp,0);
@@ -7983,9 +7984,10 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 			}
 		}
 		else
-			sc_data[type].timer=add_timer(1000+tick,skill_status_change_timer, bl->id, data );
+			sc_data[type].timer=add_timer(2000+tick,skill_status_change_timer, bl->id, data );
 		break;
-		case SC_TENSIONRELAX:	/* テンションリラックス */
+
+	case SC_TENSIONRELAX:	/* テンションリラックス */
 		if(sd){		/* SPがあって、HPが満タンでなければ継続 */
 			if( sd->status.sp > 12 && sd->status.max_hp > sd->status.hp ){
 				if(sc_data[type].val2 % (sc_data[type].val1+3) ==0 ){
