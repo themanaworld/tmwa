@@ -1652,7 +1652,7 @@ int buildin_menu(struct script_state *st)
 		st->state=RERUNLINE;
 		sd->state.menu_or_input=1;
 
-		buf=(char *)aCalloc(len,sizeof(char));
+		buf=(char *)aCalloc(len + 1, sizeof(char));
 		buf[0]=0;
 		for(i=st->start+2; menu_choices > 0; i+=2, --menu_choices){
 			strcat(buf,st->stack->stack_data[i].u.str);
