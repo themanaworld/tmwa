@@ -7980,7 +7980,7 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 		break;
 	case SC_POISON:
 		if(sc_data[SC_SLOWPOISON].timer == -1) {
-			if( (--sc_data[type].val3) > 0) {
+			if( (--sc_data[type].val1) > 0) {
 		
                                 int hp = battle_get_max_hp(bl);
 				if(battle_get_hp(bl) > hp>>4) {
