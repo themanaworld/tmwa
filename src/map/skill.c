@@ -7494,6 +7494,22 @@ int skill_status_change_timer_sub(struct block_list *bl, va_list ap )
  * ステータス異常終了
  *------------------------------------------
  */
+int skill_status_change_active(struct block_list* bl, int type) 
+{
+	struct status_change* sc_data;
+
+	nullpo_retr(0, bl);
+	if(bl->type!=BL_PC && bl->type!=BL_MOB) {
+		if(battle_config.error_log)
+			printf("skill_status_change_active: neither MOB nor PC !\n");
+		return 0;
+	}
+
+	nullpo_retr(0, sc_data = battle_get_sc_data(bl));
+
+        return sc_data[type].timer != -1;
+}
+
 int skill_status_change_end(struct block_list* bl, int type, int tid) 
 {
 	struct status_change* sc_data;

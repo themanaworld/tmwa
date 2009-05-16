@@ -209,6 +209,7 @@ int buildin_hideonnpc(struct script_state *st);
 int buildin_sc_start(struct script_state *st);
 int buildin_sc_start2(struct script_state *st);
 int buildin_sc_end(struct script_state *st);
+int buildin_sc_check(struct script_state *st);
 int buildin_getscrate(struct script_state *st);
 int buildin_debugmes(struct script_state *st);
 int buildin_resetlvl(struct script_state *st);
@@ -413,6 +414,7 @@ struct {
 	{buildin_sc_start,"sc_start","iii*"},
 	{buildin_sc_start2,"sc_start2","iiii*"},
 	{buildin_sc_end,"sc_end","i"},
+	{buildin_sc_check,"sc_check","i"},
 	{buildin_getscrate,"getscrate","ii*"},
 	{buildin_debugmes,"debugmes","s"},
 	{buildin_resetlvl,"resetlvl","i"},
@@ -4162,6 +4164,22 @@ int buildin_sc_end(struct script_state *st)
 //		printf("sc_end : %d %d\n",st->rid,type);
 	return 0;
 }
+
+int buildin_sc_check(struct script_state *st)
+{
+	struct block_list *bl;
+	int type;
+	type=conv_num(st,& (st->stack->stack_data[st->start+2]));
+	bl = map_id2bl(st->rid);
+	if(bl->type == BL_PC && ((struct map_session_data *)bl)->state.potionpitcher_flag)
+		bl = map_id2bl(((struct map_session_data *)bl)->skilltarget);
+
+        push_val (st->stack, C_INT,
+                  skill_status_change_active(bl, type));
+
+        return 0;
+}
+
 /*==========================================
  * ó‘ÔˆÙí‘Ï«‚ğŒvZ‚µ‚½Šm—¦‚ğ•Ô‚·
  *------------------------------------------

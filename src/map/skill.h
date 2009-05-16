@@ -129,6 +129,7 @@ int skill_is_danceskill(int id);
 int skill_status_effect(struct block_list *bl,int type,int val1,int val2,int val3,int val4,int tick,int flag, int spell_invocation);
 int skill_status_change_start(struct block_list *bl,int type,int val1,int val2,int val3,int val4,int tick,int flag);
 int skill_status_change_timer(int tid, unsigned int tick, int id, int data);
+int skill_status_change_active(struct block_list *bl,int type); // [fate]
 int skill_encchant_eremental_end(struct block_list *bl, int type);
 int skill_status_change_end( struct block_list* bl , int type,int tid );
 int skill_status_change_clear(struct block_list *bl,int type);
