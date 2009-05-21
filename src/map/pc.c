@@ -5000,6 +5000,12 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 
         // Character is dead!
 
+	// [Kage] Make sure the healing effect doesn't play
+	if  (sd->special_state.heal_effect) {
+		sd->special_state.heal_effect = 0;
+		clif_status_change(&sd->bl, SC_HEALING, 0);
+	}
+
 	sd->status.hp = 0;
 	// [Fate] Stop quickregen
 	sd->quick_regeneration_hp.amount = 0;
