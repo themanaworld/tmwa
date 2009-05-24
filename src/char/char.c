@@ -1871,6 +1871,30 @@ int parse_tologin(int fd) {
 			RFIFOSKIP(fd,RFIFOW(fd,2));
 			break;
 
+		case 0x2741:	// change password reply
+			if (RFIFOREST(fd) < 7)
+				return 0;
+		  {
+			int acc, status, i;
+			acc = RFIFOL(fd,2);
+			status = RFIFOB(fd,6);
+
+			for(i = 0; i < fd_max; i++) {
+				if (session[i] && (sd = session[i]->session_data)) {
+					if (sd->account_id == acc) {
+						WBUFW(i,0) = 0x62;
+						WBUFL(i,2) = acc;
+						WBUFB(i,6) = status;
+						WFIFOSET(i, 7);
+						break;
+					}
+				}
+			}
+		  }
+			RFIFOSKIP(fd, 7);
+			break;
+
+
 		default:
 			session[fd]->eof = 1;
 			return 0;
