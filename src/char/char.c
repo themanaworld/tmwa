@@ -2450,6 +2450,20 @@ int parse_char(int fd) {
 			RFIFOSKIP(fd,19);
 			break;
 
+		case 0x61: // change password request
+			if (RFIFOREST(fd) < 54)
+				return 0;
+		  {
+			WFIFOW(login_fd,0) = 0x2740;
+			WFIFOL(login_fd,2) = sd->account_id;
+			memcpy(WFIFOP(login_fd,6), RFIFOP(fd,6), 24);
+			memcpy(WFIFOP(login_fd,30), RFIFOP(fd,30), 24);
+			WFIFOSET(login_fd,54);
+
+		  }
+			RFIFOSKIP(fd,54);
+			break;
+
 		case 0x65:	// ê⁄ë±óvãÅ
 			if (RFIFOREST(fd) < 17)
 				return 0;
