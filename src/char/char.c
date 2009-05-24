@@ -2450,7 +2450,7 @@ int parse_char(int fd) {
 			break;
 
 		case 0x61: // change password request
-			if (RFIFOREST(fd) < 54)
+			if (RFIFOREST(fd) < 50)
 				return 0;
 		  {
 			WFIFOW(login_fd,0) = 0x2740;
@@ -2460,7 +2460,7 @@ int parse_char(int fd) {
 			WFIFOSET(login_fd,54);
 
 		  }
-			RFIFOSKIP(fd,54);
+			RFIFOSKIP(fd,50);
 			break;
 
 		case 0x65:	// Ú‘±—v‹
