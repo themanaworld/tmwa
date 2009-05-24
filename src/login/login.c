@@ -1671,6 +1671,54 @@ int parse_fromchar(int fd) {
 			}
 			return 0;
 
+		// request from char-server to change account password
+		case 0x2740: // 0x2740 <account_id>.L <actual_password>.24B <new_password>.24B
+			if (RFIFOREST(fd) < 54)
+				return 0;
+		  {
+			int acc;
+			char actual_pass[24], new_pass[24];
+			acc = RFIFOL(fd,2);
+			memcpy(actual_pass, RFIFOP(fd,6), 24);
+			actual_pass[23] = '\0';
+			remove_control_chars(actual_pass);
+			memcpy(new_pass, RFIFOP(fd,30), 24);
+			new_pass[23] = '\0';
+			remove_control_chars(new_pass);
+
+			int status = 0;
+
+			for(i = 0; i < auth_num; i++) {
+				if (auth_dat[i].account_id == acc) {
+					if (strcmpi(auth_dat[i].pass, actual_pass) == 0) {
+						if (strlen(new_pass) < 4)
+							status = 3;
+						else {
+							status = 1;
+							memcpy(auth_dat[i].pass, new_pass, 24);
+							login_log("Char-server '%s': Change pass success (account: %d (%s), ip: %s." RETCODE,
+						          server[id].name, acc, auth_dat[i].userid, ip);
+							// Save
+							mmo_auth_sync();
+						}
+					} else {
+						status = 2;
+						login_log("Char-server '%s': Attempt to modify a pass failed, wrong password. (account: %d (%s), ip: %s)." RETCODE,
+						          server[id].name, acc, auth_dat[i].userid, ip);
+					}
+					break;
+				}
+			}
+			unsigned char buf[16];
+			WBUFW(buf,0) = 0x2741;
+			WBUFL(buf,2) = acc;
+			WBUFB(buf,6) = status; // 0: acc not found, 1: success, 2: password mismatch, 3: pass too short
+			charif_sendallwos(-1, buf, 7);
+		  }
+
+			RFIFOSKIP(fd, 54);
+			break;
+
 		default:
 			{
 				FILE *logfp;
