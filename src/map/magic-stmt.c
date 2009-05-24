@@ -488,6 +488,16 @@ op_status_change(env_t *env, int args_nr, val_t *args)
 }
 
 static int
+op_stop_status_change(env_t *env, int args_nr, val_t *args)
+{
+        entity_t *subject = ARGENTITY(0);
+
+        skill_status_change_end(subject, ARGINT(1), -1);
+
+        return 0;
+}
+
+static int
 op_override_attack(env_t *env, int args_nr, val_t *args)
 {
         entity_t *psubject = ARGENTITY(0);
@@ -794,6 +804,7 @@ static op_t operations[] =
         { "warp", "el", op_warp },
         { "banish", "e", op_banish },
         { "status_change", "eiiiiii", op_status_change },
+        { "stop_status_change", "ei", op_stop_status_change },
         { "override_attack", "eiiiiii", op_override_attack },
         { "create_item", "e.i", op_create_item },
         { "aggravate", "eie", op_aggravate },

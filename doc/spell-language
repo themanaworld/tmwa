@@ -631,6 +631,9 @@ This section documents the operations API.
     ATEND can therefore be used to notify the caster that the status
     change has finished.
 
+  + stop_status_change : entity * int
+    Stops a status change
+
   + override_attack : entity * int * int
                              * int * int *int * int -> ()
     override_attack(entity, charges, delay, range, icon, animation, stop)
