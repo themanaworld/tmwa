@@ -1883,9 +1883,8 @@ int parse_tologin(int fd) {
 				if (session[i] && (sd = session[i]->session_data)) {
 					if (sd->account_id == acc) {
 						WBUFW(i,0) = 0x62;
-						WBUFL(i,2) = acc;
-						WBUFB(i,6) = status;
-						WFIFOSET(i, 7);
+						WBUFL(i,2) = status;
+						WFIFOSET(i,3);
 						break;
 					}
 				}
