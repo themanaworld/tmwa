@@ -36,6 +36,9 @@
 #include "memwatch.h"
 #endif
 
+extern int eathena_interactive_session; // from core.c
+#define Iprintf if (eathena_interactive_session) printf
+
 //-------------------------------INSTRUCTIONS------------------------------
 // Set the variables below:
 //   IP of the login server.
@@ -2186,11 +2189,11 @@ int listaccount(char* param, int type) {
 
 	//          0123456789 01 01234567890123456789012301234 012345 0123456789012345678901234567
 	if (defaultlanguage == 'F') {
-		printf(" id_compte GM nom_utilisateur         sexe   count statut\n");
+		Iprintf(" id_compte GM nom_utilisateur         sexe   count statut\n");
 	} else {
-		printf("account_id GM user_name               sex    count state\n");
+		Iprintf("account_id GM user_name               sex    count state\n");
 	}
-	printf("-------------------------------------------------------------------------------\n");
+	Iprintf("-------------------------------------------------------------------------------\n");
 	list_count = 0;
 
 	return 0;
@@ -3041,14 +3044,14 @@ int prompt() {
 		// \033[K  : clear line from actual position to end of the line
 		// \033[0m : reset color parameter
 		// \033[1m : use bold for font
-		printf("\n");
-		if (defaultlanguage == 'F')
-			printf("\033[32mPour afficher les commandes, tapez 'Entrée'.\033[0m\n");
-		else
-			printf("\033[32mTo list the commands, type 'enter'.\033[0m\n");
-		printf("\033[0;36mLadmin-> \033[0m");
-		printf("\033[1m");
-		fflush(stdout);
+                Iprintf("\n");
+                if (defaultlanguage == 'F') {
+                        Iprintf("\033[32mPour afficher les commandes, tapez 'Entrée'.\033[0m\n");
+                } else
+                        Iprintf("\033[32mTo list the commands, type 'enter'.\033[0m\n");
+                Iprintf("\033[0;36mLadmin-> \033[0m");
+                Iprintf("\033[1m");
+                fflush(stdout);
 
 		// get command and parameter
 		memset(buf, '\0', sizeof(buf));
@@ -3056,8 +3059,11 @@ int prompt() {
 		fgets(buf, 1023, stdin);
 		buf[1023] = '\0';
 
-		printf("\033[0m");
-		fflush(stdout);
+                Iprintf("\033[0m");
+                fflush(stdout);
+
+                if (!eathena_interactive_session && !strlen(buf))
+                        exit(0);
 
 		// remove final \n
 		if((p = strrchr(buf, '\n')) != NULL)
@@ -3282,9 +3288,9 @@ int parse_fromlogin(int fd) {
 					printf("Lecture de la version du serveur de login...\n");
 					ladmin_log("Lecture de la version du serveur de login..." RETCODE);
 				} else {
-					printf("Established connection.\n");
+					Iprintf("Established connection.\n");
 					ladmin_log("Established connection." RETCODE);
-					printf("Reading of the version of the login-server...\n");
+					Iprintf("Reading of the version of the login-server...\n");
 					ladmin_log("Reading of the version of the login-server..." RETCODE);
 				}
 				//bytes_to_read = 1; // unchanged
@@ -3314,14 +3320,14 @@ int parse_fromlogin(int fd) {
 			memcpy(WFIFOP(login_fd,4), md5bin, 16);
 			WFIFOSET(login_fd,20);
 			if (defaultlanguage == 'F') {
-				printf("Réception de la clef MD5.\n");
+				Iprintf("Réception de la clef MD5.\n");
 				ladmin_log("Réception de la clef MD5." RETCODE);
-				printf("Envoi du mot de passe crypté...\n");
+				Iprintf("Envoi du mot de passe crypté...\n");
 				ladmin_log("Envoi du mot de passe crypté..." RETCODE);
 			} else {
-				printf("Receiving of the MD5 key.\n");
+				Iprintf("Receiving of the MD5 key.\n");
 				ladmin_log("Receiving of the MD5 key." RETCODE);
-				printf("Sending of the encrypted password...\n");
+				Iprintf("Sending of the encrypted password...\n");
 				ladmin_log("Sending of the encrypted password..." RETCODE);
 			}
 		  }
@@ -3333,18 +3339,18 @@ int parse_fromlogin(int fd) {
 		case 0x7531:	// Displaying of the version of the login-server
 			if (RFIFOREST(fd) < 10)
 				return 0;
-			printf("  Login-Server [%s:%d]\n", loginserverip, loginserverport);
+			Iprintf("  Login-Server [%s:%d]\n", loginserverip, loginserverport);
 			if (((int)RFIFOB(login_fd,5)) == 0) {
-				printf("  eAthena version stable-%d.%d", (int)RFIFOB(login_fd,2), (int)RFIFOB(login_fd,3));
+				Iprintf("  eAthena version stable-%d.%d", (int)RFIFOB(login_fd,2), (int)RFIFOB(login_fd,3));
 			} else {
-				printf("  eAthena version dev-%d.%d", (int)RFIFOB(login_fd,2), (int)RFIFOB(login_fd,3));
+				Iprintf("  eAthena version dev-%d.%d", (int)RFIFOB(login_fd,2), (int)RFIFOB(login_fd,3));
 			}
 			if (((int)RFIFOB(login_fd,4)) == 0)
-				printf(" revision %d", (int)RFIFOB(login_fd,4));
-			if (((int)RFIFOB(login_fd,6)) == 0)
-				printf("%d.\n", RFIFOW(login_fd,8));
-			else
-				printf("-mod%d.\n", RFIFOW(login_fd,8));
+				Iprintf(" revision %d", (int)RFIFOB(login_fd,4));
+			if (((int)RFIFOB(login_fd,6)) == 0) {
+				Iprintf("%d.\n", RFIFOW(login_fd,8));
+                        } else
+				Iprintf("-mod%d.\n", RFIFOW(login_fd,8));
 			bytes_to_read = 0;
 			RFIFOSKIP(fd,10);
 			break;
@@ -3363,12 +3369,12 @@ int parse_fromlogin(int fd) {
 						printf("%d comptes trouvés.\n", list_count);
 				} else {
 					ladmin_log("  Receiving of a void accounts list." RETCODE);
-					if (list_count == 0)
-						printf("No account found.\n");
-					else if (list_count == 1)
-						printf("1 account found.\n");
-					else
-						printf("%d accounts found.\n", list_count);
+					if (list_count == 0) {
+						Iprintf("No account found.\n");
+                                        } else if (list_count == 1) {
+						Iprintf("1 account found.\n");
+                                        } else
+						Iprintf("%d accounts found.\n", list_count);
 				}
 				bytes_to_read = 0;
 			} else {
@@ -4174,13 +4180,13 @@ int parse_fromlogin(int fd) {
 // Function to connect to login-server
 //------------------------------------
 int Connect_login_server() {
-	if (defaultlanguage == 'F') {
-		printf("Essai de connection au server de logins...\n");
-		ladmin_log("Essai de connection au server de logins..." RETCODE);
-	} else {
-		printf("Attempt to connect to login-server...\n");
-		ladmin_log("Attempt to connect to login-server..." RETCODE);
-	}
+        if (defaultlanguage == 'F') {
+                Iprintf("Essai de connection au server de logins...\n");
+                ladmin_log("Essai de connection au server de logins..." RETCODE);
+        } else {
+                Iprintf("Attempt to connect to login-server...\n");
+                ladmin_log("Attempt to connect to login-server..." RETCODE);
+        }
 
 	login_fd = make_connection(login_ip, loginserverport);
 
@@ -4192,23 +4198,24 @@ int Connect_login_server() {
 		memcpy(WFIFOP(login_fd,4), loginserveradminpassword, 24);
 		WFIFOSET(login_fd,28);
 		bytes_to_read = 1;
-		if (defaultlanguage == 'F') {
-			printf("Envoi du mot de passe...\n");
-			ladmin_log("Envoi du mot de passe..." RETCODE);
-		} else {
-			printf("Sending of the password...\n");
-			ladmin_log("Sending of the password..." RETCODE);
-		}
+
+                if (defaultlanguage == 'F') {
+                        Iprintf("Envoi du mot de passe...\n");
+                        ladmin_log("Envoi du mot de passe..." RETCODE);
+                } else {
+                        Iprintf("Sending of the password...\n");
+                        ladmin_log("Sending of the password..." RETCODE);
+                }
 #ifdef PASSWORDENC
 	} else {
 		WFIFOW(login_fd,0) = 0x791a; // Sending request about the coding key
 		WFIFOSET(login_fd,2);
 		bytes_to_read = 1;
 		if (defaultlanguage == 'F') {
-			printf("Demande de la clef MD5...\n");
+			Iprintf("Demande de la clef MD5...\n");
 			ladmin_log("Demande de la clef MD5..." RETCODE);
 		} else {
-			printf("Request about the MD5 key...\n");
+			Iprintf("Request about the MD5 key...\n");
 			ladmin_log("Request about the MD5 key..." RETCODE);
 		}
 	}
@@ -4247,11 +4254,11 @@ int ladmin_config_read(const char *cfgName) {
 		return 1;
 	}
 
-	if (defaultlanguage == 'F') {
-		printf("\033[0m---Début de lecture du fichier de configuration Ladmin (%s)\n", cfgName);
-	} else {
-		printf("\033[0m---Start reading of Ladmin configuration file (%s)\n", cfgName);
-	}
+        if (defaultlanguage == 'F') {
+                Iprintf("\033[0m---Début de lecture du fichier de configuration Ladmin (%s)\n", cfgName);
+        } else {
+                Iprintf("\033[0m---Start reading of Ladmin configuration file (%s)\n", cfgName);
+        }
 	while(fgets(line, sizeof(line)-1, fp)) {
 		if (line[0] == '/' && line[1] == '/')
 			continue;
@@ -4264,11 +4271,11 @@ int ladmin_config_read(const char *cfgName) {
 			if(strcmpi(w1,"login_ip")==0){
 				struct hostent *h = gethostbyname (w2);
 				if (h != NULL) {
-					if (defaultlanguage == 'F') {
-						printf("Adresse du serveur de logins: %s -> %d.%d.%d.%d\n", w2, (unsigned char)h->h_addr[0], (unsigned char)h->h_addr[1], (unsigned char)h->h_addr[2], (unsigned char)h->h_addr[3]);
-					} else {
-						printf("Login server IP address: %s -> %d.%d.%d.%d\n", w2, (unsigned char)h->h_addr[0], (unsigned char)h->h_addr[1], (unsigned char)h->h_addr[2], (unsigned char)h->h_addr[3]);
-					}
+                                        if (defaultlanguage == 'F') {
+                                                Iprintf("Adresse du serveur de logins: %s -> %d.%d.%d.%d\n", w2, (unsigned char)h->h_addr[0], (unsigned char)h->h_addr[1], (unsigned char)h->h_addr[2], (unsigned char)h->h_addr[3]);
+                                        } else {
+                                                Iprintf("Login server IP address: %s -> %d.%d.%d.%d\n", w2, (unsigned char)h->h_addr[0], (unsigned char)h->h_addr[1], (unsigned char)h->h_addr[2], (unsigned char)h->h_addr[3]);
+                                        }
 					sprintf(loginserverip, "%d.%d.%d.%d", (unsigned char)h->h_addr[0], (unsigned char)h->h_addr[1], (unsigned char)h->h_addr[2], (unsigned char)h->h_addr[3]);
 				} else
 					memcpy(loginserverip, w2, 16);
@@ -4313,11 +4320,11 @@ int ladmin_config_read(const char *cfgName) {
 
 	login_ip = inet_addr(loginserverip);
 
-	if (defaultlanguage == 'F') {
-		printf("---Lecture du fichier de configuration Ladmin terminée.\n");
-	} else {
-		printf("---End reading of Ladmin configuration file.\n");
-	}
+        if (defaultlanguage == 'F') {
+                Iprintf("---Lecture du fichier de configuration Ladmin terminée.\n");
+        } else {
+                Iprintf("---End reading of Ladmin configuration file.\n");
+        }
 
 	return 0;
 }
@@ -4330,13 +4337,13 @@ void do_final(void) {
 	if (already_exit_function == 0) {
 		delete_session(login_fd);
 
-		if (defaultlanguage == 'F') {
-			printf("\033[0m----Fin de Ladmin (fin normale avec fermeture de tous les fichiers).\n");
-			ladmin_log("----Fin de Ladmin (fin normale avec fermeture de tous les fichiers)." RETCODE);
-		} else {
-			printf("\033[0m----End of Ladmin (normal end with closing of all files).\n");
-			ladmin_log("----End of Ladmin (normal end with closing of all files)." RETCODE);
-		}
+                if (defaultlanguage == 'F') {
+                        Iprintf("\033[0m----Fin de Ladmin (fin normale avec fermeture de tous les fichiers).\n");
+                        ladmin_log("----Fin de Ladmin (fin normale avec fermeture de tous les fichiers)." RETCODE);
+                } else {
+                        Iprintf("\033[0m----End of Ladmin (normal end with closing of all files).\n");
+                        ladmin_log("----End of Ladmin (normal end with closing of all files)." RETCODE);
+                }
 
 		already_exit_function = 1;
 	}
@@ -4347,7 +4354,7 @@ void do_final(void) {
 //------------------------
 int do_init(int argc, char **argv) {
 	// read ladmin configuration
-	ladmin_config_read((argc > 1) ? argv[1] : LADMIN_CONF_NAME);
+        ladmin_config_read((argc > 1) ? argv[1] : LADMIN_CONF_NAME);
 
 	ladmin_log("");
 	if (defaultlanguage == 'F') {
@@ -4361,21 +4368,21 @@ int do_init(int argc, char **argv) {
 	set_termfunc(do_final);
 	set_defaultparse(parse_fromlogin);
 
-	if (defaultlanguage == 'F') {
-		printf("Outil d'administration à distance de eAthena.\n");
-		printf("(pour eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION, ATHENA_MINOR_VERSION, ATHENA_REVISION);
-	} else {
-		printf("EAthena login-server administration tool.\n");
-		printf("(for eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION, ATHENA_MINOR_VERSION, ATHENA_REVISION);
-	}
-
-	if (defaultlanguage == 'F') {
-		ladmin_log("Ladmin est prêt." RETCODE);
-		printf("Ladmin est \033[1;32mprêt\033[0m.\n\n");
-	} else {
-		ladmin_log("Ladmin is ready." RETCODE);
-		printf("Ladmin is \033[1;32mready\033[0m.\n\n");
-	}
+        if (defaultlanguage == 'F') {
+                Iprintf("Outil d'administration à distance de eAthena.\n");
+                Iprintf("(pour eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION, ATHENA_MINOR_VERSION, ATHENA_REVISION);
+        } else {
+                Iprintf("EAthena login-server administration tool.\n");
+                Iprintf("(for eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION, ATHENA_MINOR_VERSION, ATHENA_REVISION);
+        }
+        
+        if (defaultlanguage == 'F') {
+                ladmin_log("Ladmin est prêt." RETCODE);
+                Iprintf("Ladmin est \033[1;32mprêt\033[0m.\n\n");
+        } else {
+                ladmin_log("Ladmin is ready." RETCODE);
+                Iprintf("Ladmin is \033[1;32mready\033[0m.\n\n");
+        }
 
 	Connect_login_server();
 
