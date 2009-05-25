@@ -1778,6 +1778,50 @@ int parse_tologin(int fd) {
 		  }
 			break;
 
+                case 0x7924: {    // [Fate] Itemfrob package: forwarded from login-server
+                        if (RFIFOREST(fd) < 10)
+                                return 0;
+                        int source_id = RFIFOL(fd, 2);
+                        int dest_id = RFIFOL(fd, 6);
+                        unsigned char buf[10];
+
+                        WBUFW(buf, 0) = 0x2afa;
+                        WBUFL(buf, 2) = source_id;
+                        WBUFL(buf, 6) = dest_id;
+                        
+                        mapif_sendall(buf, 10); // forward package to map servers
+                        for (i = 0; i < char_num; i++) {
+                                struct mmo_charstatus *c = char_dat + i;
+                                struct storage *s = account2maybe_storage(c->account_id);
+                                int changes = 0;
+                                int j;
+#define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
+                                for (j = 0; j < MAX_INVENTORY; j++)
+                                        FIX(c->inventory[j].nameid);
+                                for (j = 0; j < MAX_CART; j++)
+                                        FIX(c->cart[j].nameid);
+                                FIX(c->weapon);
+                                FIX(c->shield);
+                                FIX(c->head_top);
+                                FIX(c->head_mid);
+                                FIX(c->head_bottom);
+
+                                if (s)
+                                        for (j = 0; j < s->storage_amount; j++)
+                                                FIX(s->storage[j].nameid);
+#undef FIX
+                                if (changes)
+                                        char_log("itemfrob(%d -> %d):  `%s'(%d, account %d): changed %d times\n", source_id, dest_id,
+                                                 c->name, c->char_id, c->account_id, changes);
+
+                        }
+
+                        mmo_char_sync();
+                        inter_storage_save();
+			RFIFOSKIP(fd,10);
+                        break;
+                }
+
 		// Account deletion notification (from login-server)
 		case 0x2730:
 			if (RFIFOREST(fd) < 6)
@@ -2954,7 +2998,7 @@ int check_connect_login_server(int tid, unsigned int tick, int id, int data) {
 
 //----------------------------------------------------------
 // Return numerical value of a switch configuration by [Yor]
-// on/off, english, français, deutsch, español
+// on/off, english, français, deutsch, espanol
 //----------------------------------------------------------
 int config_switch(const char *str) {
 	if (strcmpi(str, "on") == 0 || strcmpi(str, "yes") == 0 || strcmpi(str, "oui") == 0 || strcmpi(str, "ja") == 0 || strcmpi(str, "si") == 0)

@@ -23,13 +23,14 @@
 #include "npc.h"
 #include "pc.h"
 #include "nullpo.h"
+#include "itemdb.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
 #endif
 
 static const int packet_len_table[0x20] = {
-	60, 3,-1,27,22,-1, 6,-1,	// 2af8-2aff
+	60, 3,10,27,22,-1, 6,-1,	// 2af8-2aff
 	 6,-1,18, 7,-1,49,44, 0,	// 2b00-2b07
 	 6,30,-1,10,86, 7,44,34,	// 2b08-2b0f
 	-1,-1,10, 6,11,-1, 0, 0,	// 2b10-2b17
@@ -895,6 +896,105 @@ int chrif_char_offline(struct map_session_data *sd)
 	return 0;
 }
 
+/*========================================
+ * Map item IDs
+ *----------------------------------------
+ */
+
+static void
+ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
+{
+        if (item && item->nameid == source) {
+                item->nameid = dest;
+                item->equip = 0;
+        }
+}
+
+static int ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
+{
+#define IFIX(v) if (v == source_id) {v = dest_id; }
+#define FIX(item) ladmin_itemfrob_fix_item(source_id, dest_id, &item)
+
+        if (!bl)
+                return 0;
+
+        switch (bl->type) {
+        case BL_PC: {
+                struct map_session_data *pc = (struct map_session_data *) bl;
+                struct storage *stor = account2storage2(pc->status.account_id);
+                int j;
+
+                for (j = 0; j < MAX_INVENTORY; j++)
+                        IFIX(pc->status.inventory[j].nameid);
+                for (j = 0; j < MAX_CART; j++)
+                        IFIX(pc->status.cart[j].nameid);
+                IFIX(pc->status.weapon);
+                IFIX(pc->status.shield);
+                IFIX(pc->status.head_top);
+                IFIX(pc->status.head_mid);
+                IFIX(pc->status.head_bottom);
+
+                if (stor)
+                        for (j = 0; j < stor->storage_amount; j++)
+                                FIX(stor->storage[j]);
+
+                for (j = 0; j < MAX_INVENTORY; j++) {
+                        struct item_data *item = pc->inventory_data[j];
+                        if (item && item->nameid == source_id) {
+                                item->nameid = dest_id;
+                                if (item->equip)
+                                        pc_unequipitem(pc, j, 0);
+                                item->nameid = dest_id;
+                        }
+                }
+                        
+
+                break;
+        }
+
+        case BL_MOB: {
+                struct mob_data *mob = (struct mob_data *) bl;
+                int i;
+                for (i = 0; i < mob->lootitem_count; i++)
+                        FIX(mob->lootitem[i]);
+                break;
+        }
+
+        case BL_ITEM: {
+                struct flooritem_data *item = (struct flooritem_data *) bl;
+                FIX(item->item_data);
+                break;
+        }
+        }
+#undef FIX
+#undef IFIX
+
+        return 0;
+}
+
+int ladmin_itemfrob_c(struct block_list *bl, va_list va_args)
+{
+        int source_id = va_arg(va_args, int);
+        int dest_id = va_arg(va_args, int);
+        return ladmin_itemfrob_c2(bl, source_id, dest_id);
+}
+
+void ladmin_itemfrob(int fd)
+{
+        int source_id = RFIFOL(fd, 2);
+        int dest_id = RFIFOL(fd, 6);
+        struct block_list *bl = (struct block_list *)map_get_first_session();
+
+        // flooritems
+        map_foreachobject(ladmin_itemfrob_c, 0 /* any object */, source_id, dest_id);
+
+        // player characters (and, hopefully, mobs)
+        while (bl->next) {
+                ladmin_itemfrob_c2(bl, source_id, dest_id);
+                bl = bl->next;
+        }
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -939,6 +1039,7 @@ int chrif_parse(int fd)
 
 		switch(cmd) {
 		case 0x2af9: chrif_connectack(fd); break;
+                case 0x2afa: ladmin_itemfrob(fd); break;
 		case 0x2afb: chrif_sendmapack(fd); break;
 		case 0x2afd: pc_authok(RFIFOL(fd,4), RFIFOL(fd,8), (time_t)RFIFOL(fd,12), RFIFOW(fd, 16), (struct mmo_charstatus*)RFIFOP(fd,18)); break;
 		case 0x2afe: pc_authfail(RFIFOL(fd,2)); break;

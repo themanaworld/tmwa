@@ -555,6 +555,8 @@ int check_command(char * command) {
 	else if ((strncmp(command, "list", 2) == 0 && strncmp(command, "list", strlen(command)) == 0) || // 'list' is default list command // not 1 letter command: 'language' or 'list'?
 	         strcmp(command,   "ls") == 0)
 		strcpy(command, "list");
+        else if (strncmp(command, "itemfrob", 6) == 0)
+		strcpy(command, "itemfrob");
 	else if ((strncmp(command, "listban", 5) == 0 && strncmp(command, "listban", strlen(command)) == 0) ||
 	         (strncmp(command, "lsban", 3) == 0 && strncmp(command, "lsban", strlen(command)) == 0) ||
 	         strcmp(command, "lb") == 0)
@@ -738,6 +740,8 @@ void display_help(char* param, int language) {
 			printf("  'Premier_id', 'Dernier_id': indique les identifiants de départ et de fin.\n");
 			printf("  La recherche par nom n'est pas possible avec cette commande.\n");
 			printf("  <example> list 10 9999999\n");
+		} else if (strcmp(command, "itemfrob") == 0) {
+			printf("Not localised yet.\n");
 		} else if (strcmp(command, "listban") == 0) {
 			printf("listBan/lsBan [Premier_id [Dernier_id]]\n");
 			printf("  Comme list/ls, mais seulement pour les comptes avec statut ou bannis.\n");
@@ -983,6 +987,11 @@ void display_help(char* param, int language) {
 			printf("  'start_id', 'end_id': indicate end and start identifiers.\n");
 			printf("  Research by name is not possible with this command.\n");
 			printf("  <example> list 10 9999999\n");
+		} else if (strcmp(command, "itemfrob") == 0) {
+			printf("itemfrob <source-id> <dest-id>\n");
+			printf("  Translates item IDs for all accounts.\n");
+                        printf("  Any items matching the source item ID will be mapped to the dest-id.\n");
+			printf("  <example> itemfrob 500 700\n");
 		} else if (strcmp(command, "listban") == 0) {
 			printf("listBan/lsBan [start_id [end_id]]\n");
 			printf("  Like list/ls, but only for accounts with state or banished.\n");
@@ -1102,6 +1111,7 @@ void display_help(char* param, int language) {
 			printf(" gm <account_name> [GM_level]         -- Modify the GM level of an account\n");
 			printf(" id <account name>                    -- Give the id of an account\n");
 			printf(" info <account_id>                    -- Display all information of an account\n");
+			printf(" itemfrob <source-id> <dest-id>       -- Map all items from one item ID to another\n");
 			printf(" kami <message>                       -- Sends a broadcast message (in yellow)\n");
 			printf(" kamib <message>                      -- Sends a broadcast message (in blue)\n");
 			printf(" language <language>                  -- Change the language of displaying.\n");
@@ -2199,6 +2209,29 @@ int listaccount(char* param, int type) {
 	return 0;
 }
 
+//--------------------------------------------------------
+// Sub-function: Frobnicate items
+//--------------------------------------------------------
+int itemfrob(char* param)
+{
+	int source_id, dest_id;
+
+        if (sscanf(param, "%d %d", &source_id, &dest_id) < 2) {
+		printf("You must provide the source and destination item IDs.\n");
+                return 1;
+	}
+
+	WFIFOW(login_fd,0) = 0x7924;
+	WFIFOL(login_fd,2) = source_id;
+	WFIFOL(login_fd,6) = dest_id;
+	WFIFOSET(login_fd,10);
+	bytes_to_read = 1; // all logging is done to the three main servers
+
+
+	return 0;
+}
+
+
 //--------------------------------------------
 // Sub-function: Asking to modify a memo field
 //--------------------------------------------
@@ -3179,6 +3212,8 @@ int prompt() {
 			sendbroadcast(0x10, parameters); // flag for blue
 		} else if (strcmp(command, "language") == 0) {
 			changelanguage(parameters);
+		} else if (strcmp(command, "itemfrob") == 0) {
+                       itemfrob(parameters); // 0: to list all
 		} else if (strcmp(command, "list") == 0) {
 			listaccount(parameters, 0); // 0: to list all
 		} else if (strcmp(command, "listban") == 0) {
@@ -3353,6 +3388,11 @@ int parse_fromlogin(int fd) {
 				Iprintf("-mod%d.\n", RFIFOW(login_fd,8));
 			bytes_to_read = 0;
 			RFIFOSKIP(fd,10);
+			break;
+
+		case 0x7925:	// Itemfrob-OK
+			RFIFOSKIP(fd, 2);
+                        bytes_to_read = 0;
 			break;
 
 		case 0x7921:	// Displaying of the list of accounts

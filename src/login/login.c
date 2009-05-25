@@ -1863,6 +1863,16 @@ int parse_admin(int fd) {
 			}
 			break;
 
+                case 0x7924: {    // [Fate] Itemfrob package: change item IDs
+                        if (RFIFOREST(fd) < 10)
+                                return 0;
+                        charif_sendallwos(-1, RFIFOP(fd, 0), 10); // forward package to char servers
+			RFIFOSKIP(fd,10);
+                        WFIFOW(fd,0) = 0x7925;
+                        WFIFOSET(fd, 2);
+                        break;
+                }
+
 		case 0x7930:	// Request for an account creation
 			if (RFIFOREST(fd) < 91)
 				return 0;

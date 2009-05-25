@@ -190,10 +190,17 @@ int guild_storage_fromstr(char *str,struct guild_storage *p)
 }
 
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
-struct storage *account2storage(int account_id)
+struct storage *account2maybe_storage(int account_id)
 {
 	struct storage *s;
 	s=numdb_search(storage_db,account_id);
+	return s;
+}
+
+struct storage *account2storage(int account_id)
+{
+        struct storage *s = account2maybe_storage(account_id);
+
 	if(s == NULL) {
 		s = calloc(sizeof(struct storage), 1);
 		if(s==NULL){
