@@ -1709,11 +1709,10 @@ int parse_fromchar(int fd) {
 					break;
 				}
 			}
-			unsigned char buf[16];
-			WBUFW(buf,0) = 0x2741;
-			WBUFL(buf,2) = acc;
-			WBUFB(buf,6) = status; // 0: acc not found, 1: success, 2: password mismatch, 3: pass too short
-			charif_sendallwos(-1, buf, 7);
+			WFIFOW(fd,0) = 0x2741;
+			WFIFOL(fd,2) = acc;
+			WFIFOB(fd,6) = status; // 0: acc not found, 1: success, 2: password mismatch, 3: pass too short
+			WFIFOSET(fd,7);
 		  }
 
 			RFIFOSKIP(fd, 54);

@@ -2458,7 +2458,6 @@ int parse_char(int fd) {
 			memcpy(WFIFOP(login_fd,6), RFIFOP(fd,2), 24);
 			memcpy(WFIFOP(login_fd,30), RFIFOP(fd,26), 24);
 			WFIFOSET(login_fd,54);
-
 		  }
 			RFIFOSKIP(fd,50);
 			break;
