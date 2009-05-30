@@ -5143,10 +5143,15 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 
         if (src && src->type == BL_PC) {
                 // [Fate] PK death, trigger scripts
-                argrec_t arg;
-                arg.name = "@killerrid";
-                arg.v.i = src->id;
-                npc_event_doall_l("OnPCKillEvent", sd->bl.id, 1, &arg);
+                argrec_t arg[3];
+                arg[0].name = "@killerrid";
+                arg[0].v.i = src->id;
+                arg[1].name = "@victimrid";
+                arg[1].v.i = sd->bl.id;
+                arg[2].name = "@victimlvl";
+                arg[2].v.i = sd->status.base_level;
+                npc_event_doall_l("OnPCKilledEvent", sd->bl.id, 3, arg);
+                npc_event_doall_l("OnPCKillEvent", src->id, 3, arg);
         }
         npc_event_doall_l("OnPCDieEvent", sd->bl.id, 0, NULL);
 

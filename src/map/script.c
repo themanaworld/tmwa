@@ -209,7 +209,7 @@ int buildin_hideonnpc(struct script_state *st);
 int buildin_sc_start(struct script_state *st);
 int buildin_sc_start2(struct script_state *st);
 int buildin_sc_end(struct script_state *st);
-int buildin_sc_check(struct script_state *st);
+int buildin_sc_check(struct script_state *st);		// [Fate]
 int buildin_getscrate(struct script_state *st);
 int buildin_debugmes(struct script_state *st);
 int buildin_resetlvl(struct script_state *st);
@@ -6430,7 +6430,6 @@ int run_script_l(unsigned char *script,int pos,int rid,int oid, int args_nr, arg
 	struct map_session_data *sd=map_id2sd(rid);
 	unsigned char *rootscript=script;
         int i;
-
 	if(script==NULL || pos<0)
 		return -1;
 
