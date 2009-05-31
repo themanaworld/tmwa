@@ -8930,7 +8930,6 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
         sc_data[type].spell_invocation = spell_invocation;
 
 	/* タイマー設定 */
-
 	sc_data[type].timer = add_timer(
 		gettick() + tick, skill_status_change_timer, bl->id, type);
 
