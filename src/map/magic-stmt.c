@@ -635,11 +635,11 @@ op_spawn(env_t *env, int args_nr, val_t *args)
                                 break;
 
                         case MONSTER_ATTITUDE_FRIENDLY:
-                                mob->mode = 0x81;
+                            mob->mode = 0x80 | (mob->mode & 1);
                                 break;
 
                         case MONSTER_ATTITUDE_HOSTILE:
-                                mob->mode = 0x85;
+                                mob->mode = 0x84 | (mob ->mode & 1);
                                 if (owner) {
                                         mob->target_id = owner->bl.id;
                                         mob->attacked_id = owner->bl.id;
