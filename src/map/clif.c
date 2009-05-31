@@ -6485,6 +6485,8 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
  *------------------------------------------
  */
 void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <len>.w <str>.?B
+        int malformed = 0;
+
 	nullpo_retv(sd);
 
 
@@ -6497,34 +6499,36 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
             }
 
 
-	tmw_CheckChatSpam(sd, RFIFOP(fd,4));
-
 	if (strlen(RFIFOP(fd,4)) >=  battle_config.chat_maxline)
-		return;
-
-	//printf("clif_parse_GlobalMessage: message: '%s'.\n", RFIFOP(fd,4));
+		malformed = 1;
 
 	// Simply ignore messages with spoofed/incorrect source names.
 	if (strncmp(RFIFOP(fd,4), sd->status.name, strlen(sd->status.name)) != 0)
-		return;
+		malformed = 1;
 
 	char *buf = (char *) malloc(RFIFOW(fd,2) + 4);
+        int msg_len = RFIFOW(fd,2) + 4; // len of message - 4 + 8
+        // Prepare to send message to others
+        WBUFW(buf,0) = 0x8d;
+        WBUFW(buf,2) = msg_len;
+        WBUFL(buf,4) = sd->bl.id;
+        memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
 
-	// Send message to others
-	WBUFW(buf,0) = 0x8d;
-	WBUFW(buf,2) = RFIFOW(fd,2) + 4; // len of message - 4 + 8
-	WBUFL(buf,4) = sd->bl.id;
-	memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
+	if (malformed || !magic_message(sd, buf, msg_len)) {
+                tmw_CheckChatSpam(sd, RFIFOP(fd,4));
 
-	if (magic_message(sd, buf, WBUFW(buf, 2)))
-		sd->chat_lines_in--;
-	else
+                if (malformed) {
+                        free(buf);
+                        return;
+                }
+
 		clif_send(buf, WBUFW(buf,2), &sd->bl, sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
+        }
 
-	// send back message to the speaker
-	memcpy(WFIFOP(fd,0), RFIFOP(fd,0), RFIFOW(fd,2));
-	WFIFOW(fd,0) = 0x8e;
-	WFIFOSET(fd, WFIFOW(fd,2));
+        // send back message to the speaker
+        memcpy(WFIFOP(fd,0), RFIFOP(fd,0), RFIFOW(fd,2));
+        WFIFOW(fd,0) = 0x8e;
+        WFIFOSET(fd, WFIFOW(fd,2));
 
 	free(buf);
 	return;
