@@ -889,6 +889,7 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 
 	int sc_def_mdef,sc_def_vit,sc_def_int,sc_def_luk;
 	int sc_def_mdef2,sc_def_vit2,sc_def_int2,sc_def_luk2;
+        int sc_def_phys_shield_spell;
 
 	nullpo_retr(0, src);
 	nullpo_retr(0, bl);
@@ -900,6 +901,10 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	}else if(src->type==BL_MOB){
 		nullpo_retr(0, md=(struct mob_data *)src); //ñ¢égópÅH
 	}
+
+        sc_def_phys_shield_spell = 0;
+        if (battle_get_sc_data(bl)[SC_PHYS_SHIELD].timer != -1)
+                sc_def_phys_shield_spell = battle_get_sc_data(bl)[SC_PHYS_SHIELD].val1;
 
 	//ëŒè€ÇÃëœê´
 	luk = battle_get_luk(bl);
@@ -1074,8 +1079,8 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	case NPC_POISON:
 	case NPC_SILENCEATTACK:
 	case NPC_STUNATTACK:
-		if(rand()%100 < sc_def_vit)
-			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skilllv * skilllv * 5000,0);
+		if (MRAND(100) < 50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) + (skilllv >> 2))
+			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skilllv,0);
 		break;
 	case NPC_CURSEATTACK:
 		if(rand()%100 < sc_def_luk)
