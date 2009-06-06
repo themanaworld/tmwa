@@ -464,7 +464,7 @@ struct {
 	{buildin_getskilllist,"getskilllist",""},
 	{buildin_clearitem,"clearitem",""},
 	{buildin_classchange,"classchange","ii"},
-	{buildin_misceffect,"misceffect","is"},
+	{buildin_misceffect,"misceffect","i*"},
 	{buildin_soundeffect,"soundeffect","si"},
 	{buildin_strmobinfo,"strmobinfo","ii"},	// display mob data [Valaris]
 	{buildin_guardian,"guardian","siisii*i"},	// summon guardians
@@ -5553,11 +5553,12 @@ int buildin_classchange(struct script_state *st)
 int buildin_misceffect(struct script_state *st)
 {
 	int type;
-	char *name;
+	char *name = NULL;
 
 	type=conv_num(st,& (st->stack->stack_data[st->start+2]));
-	name=conv_str(st,& (st->stack->stack_data[st->start+3]));
-	if (strlen(name) > 0)
+    if( st->end>st->start+3 )
+		name=conv_str(st,& (st->stack->stack_data[st->start+3]));
+	if (name)
 	{
 		struct map_session_data *sd = map_nick2sd(name);
 		if(sd)
