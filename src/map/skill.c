@@ -6333,14 +6333,16 @@ int skill_check_condition(struct map_session_data *sd,int type)
 	if(type&2)
 		return 1;
 
-	if(sp > 0) {					// SPÁ”ï
-		sd->status.sp-=sp;
-		clif_updatestatus(sd,SP_SP);
-	}
-	if(hp > 0) {					// HPÁ”ï
-		sd->status.hp-=hp;
-		clif_updatestatus(sd,SP_HP);
-	}
+        pc_heal(sd, -sp, -hp); // [Fate] This might suppress some dupe messages
+
+/* 	if(sp > 0) {					// SPÁ”ï */
+/* 		sd->status.sp-=sp; */
+/* 		clif_updatestatus(sd,SP_SP); */
+/* 	} */
+/* 	if(hp > 0) {					// HPÁ”ï */
+/* 		sd->status.hp-=hp; */
+/* 		clif_updatestatus(sd,SP_HP); */
+/* 	} */
 	if(zeny > 0)					// ZenyÁ”ï
 		pc_payzeny(sd,zeny);
 	if(spiritball > 0)				// Ÿ†‹…Á”ï
