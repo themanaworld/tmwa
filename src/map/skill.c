@@ -7705,6 +7705,13 @@ int skill_status_change_end(struct block_list* bl, int type, int tid)
 			opt_flag = 1;
 			break;
 
+        	case SC_SLOWPOISON:
+                        if (sc_data[SC_POISON].timer != -1)
+                                *opt2 |= 0x1;
+			*opt2 &= ~0x200;
+			opt_flag = 1;
+                        break;
+
 		case SC_SIGNUMCRUCIS:
 			*opt2 &= ~0x40;
 			opt_flag = 1;
@@ -8913,12 +8920,23 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 			opt_flag = 1;
 			break;
 		case SC_POISON:
+                        if (sc_data[SC_SLOWPOISON].timer == -1) {
+                                *opt2 |= 0x1;
+                                opt_flag = 1;
+                        }
+                        break;
+
 		case SC_CURSE:
 		case SC_SILENCE:
 		case SC_BLIND:
 			*opt2 |= 1<<(type-SC_POISON);
 			opt_flag = 1;
 			break;
+        	case SC_SLOWPOISON:
+			*opt2 &= ~0x1;
+			*opt2 |= 0x200;
+			opt_flag = 1;
+                        break;
 		case SC_SIGNUMCRUCIS:
 			*opt2 |= 0x40;
 			opt_flag = 1;
