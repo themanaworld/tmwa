@@ -6413,16 +6413,6 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd) {
 			}
 		}
 		WFIFOSET(fd,packet_len_table[0x95]);
-		if (ssd->special_state.heal_effect)
-		{
-			nullpo_retv(bl);
-
-			WFIFOW(fd,0)=0x0196;
-			WFIFOW(fd,2)=SC_HEALING;
-			WFIFOL(fd,4)=account_id;
-			WFIFOB(fd,8)=1;
-			WFIFOSET(fd,packet_len_table[0x196]);
-		}
 	  }
 		break;
 	case BL_NPC:

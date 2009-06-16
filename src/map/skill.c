@@ -7790,6 +7790,31 @@ int skill_status_change_end(struct block_list* bl, int type, int tid)
 
 	return 0;
 }
+
+
+int
+skill_update_heal_animation(struct map_session_data *sd)
+{
+        const int mask = 0x100;
+        int was_active;
+        int is_active;
+
+        nullpo_retr (0, sd);
+        was_active = sd->opt2 & mask;
+        is_active = sd->quick_regeneration_hp.amount > 0;
+
+        if ((was_active && is_active)
+            || (!was_active && !is_active))
+                return 0;  // no update
+
+        if (is_active)
+                sd->opt2 |= mask;
+        else
+                sd->opt2 &= ~mask;
+
+        return clif_changeoption(&sd->bl);
+}
+
 /*==========================================
  * ステータス異常終了タイマー
  *------------------------------------------

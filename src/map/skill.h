@@ -143,6 +143,8 @@ int skill_castend_pos2( struct block_list *src, int x,int y,int skillid,int skil
 int skill_attack( int attack_type, struct block_list* src, struct block_list *dsrc,
 	 struct block_list *bl,int skillid,int skilllv,unsigned int tick,int flag );
 
+int skill_update_heal_animation(struct map_session_data *sd); // [Fate]  Check whether the healing flag must be updated, do so if needed
+
 void skill_reload(void);
 
 enum {
