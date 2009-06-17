@@ -76,8 +76,8 @@ clear_stack(invocation_t *invocation)
         invocation->stack_size = 0;
 }
 
-static void
-free_invocation(invocation_t *invocation)
+void
+spell_free_invocation(invocation_t *invocation)
 {
         if (invocation->status_change_refs) {
                 free(invocation->status_change_refs);
@@ -100,7 +100,7 @@ free_invocation(invocation_t *invocation)
         magic_free_env(invocation->env);
 
 	map_delblock(&invocation->bl);
-        map_delobject(invocation->bl.id); // also frees the object
+        map_delobject(invocation->bl.id, BL_SPELL); // also frees the object
 //        free(invocation);
 }
 
@@ -152,12 +152,12 @@ magic_stop_completely(character_t *c)
                 c->sc_data[i].spell_invocation = 0;
 
         while (c->active_spells)
-                free_invocation(c->active_spells);
+                spell_free_invocation(c->active_spells);
 
         if (c->attack_spell_override) {
                 invocation_t *attack_spell = (invocation_t *)map_id2bl(c->attack_spell_override);
                 if (attack_spell)
-                        free_invocation(attack_spell);
+                        spell_free_invocation(attack_spell);
                 c->attack_spell_override = 0;
                 char_set_weapon_icon(c, 0, 0, 0);
                 char_set_attack_info(c, 0, 0);
@@ -175,7 +175,7 @@ try_to_finish_invocation(invocation_t *invocation)
                         invocation->end_effect = NULL;
                         spell_execute(invocation);
                 } else
-                        free_invocation(invocation);
+                        spell_free_invocation(invocation);
         }
 }
 
@@ -517,7 +517,7 @@ op_override_attack(env_t *env, int args_nr, val_t *args)
         if (subject->attack_spell_override) {
                 invocation_t *old_invocation = (invocation_t *)map_id2bl(subject->attack_spell_override);
                 if (old_invocation)
-                        free_invocation(old_invocation);
+                        spell_free_invocation(old_invocation);
         }
 
         subject->attack_spell_override = trigger_spell(subject->bl.id, VAR(VAR_INVOCATION).v.v_int);
@@ -1452,7 +1452,7 @@ spell_attack(int caster_id, int target_id)
         if (invocation
             && caster->attack_spell_override != invocation->bl.id) {
                 /* Attack spell changed / was refreshed */
-                // free_invocation(invocation); // [Fate] This would be a double free.
+                // spell_free_invocation(invocation); // [Fate] This would be a double free.
         } else if (!invocation
                    || caster->attack_spell_charges <= 0) {
                 caster->attack_spell_override = 0;
@@ -1463,7 +1463,7 @@ spell_attack(int caster_id, int target_id)
                         pc_stopattack(caster);
 
                 if (invocation)
-                        free_invocation(invocation);
+                        spell_free_invocation(invocation);
         }
 
         return 1;

@@ -575,9 +575,14 @@ int map_addobject(struct block_list *bl) {
  *	map_delobjectのfreeしないバージョン
  *------------------------------------------
  */
-int map_delobjectnofree(int id) {
+int map_delobjectnofree(int id, int type) {
 	if(object[id]==NULL)
 		return 0;
+
+        if (object[id]->type != type) {
+                fprintf(stderr, "Incorrect type: expected %d, got %d\n", type, object[id]->type);
+                *((char *) 0) = 0; // break for backtrace
+        }
 
 	map_delblock(object[id]);
 	numdb_erase(id_db,id);
@@ -601,13 +606,13 @@ int map_delobjectnofree(int id) {
  * addとの対称性が無いのが気になる
  *------------------------------------------
  */
-int map_delobject(int id) {
+int map_delobject(int id, int type) {
 	struct block_list *obj = object[id];
 
 	if(obj==NULL)
 		return 0;
 
-	map_delobjectnofree(id);
+	map_delobjectnofree(id, type);
         if (obj->type == BL_PC) // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
                 pc_cleanup((struct map_session_data *)obj);
 
@@ -675,7 +680,7 @@ int map_clearflooritem_timer(int tid,unsigned int tick,int id,int data) {
 	if(data)
 		delete_timer(fitem->cleartimer,map_clearflooritem_timer);
 	clif_clearflooritem(fitem,0);
-	map_delobject(fitem->bl.id);
+	map_delobject(fitem->bl.id, BL_ITEM);
 
 	return 0;
 }
@@ -1751,6 +1756,9 @@ static int cleanup_sub(struct block_list *bl, va_list ap) {
             break;
         case BL_SKILL:
             skill_delunit((struct skill_unit *) bl);
+            break;
+        case BL_SPELL:
+            spell_free_invocation((struct invocation *) bl);
             break;
         }
 

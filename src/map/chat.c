@@ -137,7 +137,7 @@ int chat_leavechat(struct map_session_data *sd)
 	if(cd->users == 0 && (*cd->owner)->type==BL_PC){
 			// 全員居なくなった&PCのチャットなので消す
 		clif_clearchat(cd,0);
-		map_delobject(cd->bl.id);	// freeまでしてくれる
+		map_delobject(cd->bl.id, BL_CHAT);	// freeまでしてくれる
 	} else {
 		for(i=leavechar;i < cd->users;i++)
 			cd->usersd[i] = cd->usersd[i+1];
@@ -307,7 +307,7 @@ int chat_deletenpcchat(struct npc_data *nd)
 	
 	chat_npckickall(cd);
 	clif_clearchat(cd,0);
-	map_delobject(cd->bl.id);	// freeまでしてくれる
+	map_delobject(cd->bl.id, BL_CHAT);	// freeまでしてくれる
 	nd->chat_id=0;
 	
 	return 0;

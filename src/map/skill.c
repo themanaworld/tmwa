@@ -9225,7 +9225,7 @@ int skill_delunit(struct skill_unit *unit)
 
 	unit->group=NULL;
 	unit->alive=0;
-	map_delobjectnofree(unit->bl.id);
+	map_delobjectnofree(unit->bl.id, BL_SKILL);
 	if(group->alive_count>0 && (--group->alive_count)<=0)
 		skill_delunitgroup(group);
 

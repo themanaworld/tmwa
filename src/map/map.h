@@ -667,8 +667,8 @@ int map_countnearpc(int,int,int);
 int map_count_oncell(int m,int x,int y);
 // ˆê“IobjectŠÖ˜A
 int map_addobject(struct block_list *);
-int map_delobject(int);
-int map_delobjectnofree(int id);
+int map_delobject(int, int type);
+int map_delobjectnofree(int id, int type);
 void map_foreachobject(int (*)(struct block_list*,va_list),int,...);
 //
 int map_quit(struct map_session_data *);

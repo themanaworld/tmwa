@@ -92,4 +92,8 @@ magic_stop_completely(character_t *c);
 int
 spell_attack(int caster, int target);
 
+
+void
+spell_free_invocation(struct invocation *invocation);
+
 #endif /* !defined(MAGIC_H_) */
