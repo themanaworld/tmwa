@@ -2842,6 +2842,9 @@ pc_remove_items(struct map_session_data *player, int item_id, int count)
 
     nullpo_retr(0, player);
 
+    if (player->trade_partner != 0)
+		trade_tradecancel(player);
+
     for (i = 0; i < MAX_INVENTORY && count; i++) {
         if (player->status.inventory[i].nameid == item_id) {
             int to_delete = count;
