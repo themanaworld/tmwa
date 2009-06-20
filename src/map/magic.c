@@ -56,6 +56,9 @@ int
 magic_message(character_t *caster,
               char *spell_, size_t spell_len)
 {
+        if (pc_isdead(caster))
+            return 0;
+
         int power = caster->matk1;
         char *invocation_base = spell_ + 8;
         char *source_invocation = strchr(invocation_base, ':');
