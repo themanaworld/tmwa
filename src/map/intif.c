@@ -595,7 +595,7 @@ int intif_parse_LoadStorage(int fd) {
 		printf("intif_openstorage: %d\n",RFIFOL(fd,4) );
 	memcpy(stor,RFIFOP(fd,8),sizeof(struct storage));
 	stor->storage_status=1;
-	sd->state.storage_flag = 0;
+	sd->state.storage_flag = 1;
 	clif_storageitemlist(sd,stor);
 	clif_storageequiplist(sd,stor);
 	clif_updatestorageamount(sd,stor);
@@ -608,6 +608,7 @@ int intif_parse_SaveStorage(int fd)
 {
 	if(battle_config.save_log)
 		printf("intif_savestorage: done %d %d\n",RFIFOL(fd,2),RFIFOB(fd,6) );
+	storage_storage_saved(RFIFOL(fd,2));
 	return 0;
 }
 
@@ -639,7 +640,7 @@ int intif_parse_LoadGuildStorage(int fd)
 			printf("intif_open_guild_storage: %d\n",RFIFOL(fd,4) );
 		memcpy(gstor,RFIFOP(fd,12),sizeof(struct guild_storage));
 		gstor->storage_status = 1;
-		sd->state.storage_flag = 1;
+		sd->state.storage_flag = 2;
 		clif_guildstorageitemlist(sd,gstor);
 		clif_guildstorageequiplist(sd,gstor);
 		clif_updateguildstorageamount(sd,gstor);
@@ -651,6 +652,7 @@ int intif_parse_SaveGuildStorage(int fd)
 	if(battle_config.save_log) {
 		printf("intif_save_guild_storage: done %d %d %d\n",RFIFOL(fd,2),RFIFOL(fd,6),RFIFOB(fd,10) );
 	}
+	storage_guild_storagesaved(RFIFOL(fd,2), RFIFOL(fd,6));
 	return 0;
 }
 

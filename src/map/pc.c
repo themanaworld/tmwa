@@ -3424,10 +3424,10 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 		chat_leavechat(sd);
 	if(sd->trade_partner)	// �����𒆒f����
 		trade_tradecancel(sd);
-	if(sd->state.storage_flag)
-		storage_guild_storage_quit(sd,0);
-	else
+	if(sd->state.storage_flag == 1)
 		storage_storage_quit(sd);	// �q�ɂ��J���Ă��Ȃ��ۑ�����
+	else if (sd->state.storage_flag == 2)
+		storage_guild_storage_quit(sd,0);
 
 	if(sd->party_invite>0)	// �p�[�e�B���U��ۂ���
 		party_reply_invite(sd,sd->party_invite_account,0);
@@ -3495,6 +3495,7 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 				}
 				else if (sd->state.storage_flag == 2)
 					storage_guild_storageclose(sd);
+
 				chrif_changemapserver(sd, mapname, x, y, ip, port);
 				return 0;
 			}

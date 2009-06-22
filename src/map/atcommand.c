@@ -1457,13 +1457,13 @@ int atcommand_storage(
 	struct storage *stor; //changes from Freya/Yor
 	nullpo_retr(-1, sd);
 
-	if (sd->state.storage_flag == 1) {
-		clif_displaymessage(fd, "You have opened your guild storage. Close it before.");
+	if (sd->state.storage_flag) {
+		clif_displaymessage(fd, msg_table[250]);
 		return -1;
 	}
 
 	if ((stor = account2storage2(sd->status.account_id)) != NULL && stor->storage_status == 1) {
-		clif_displaymessage(fd, "You have already opened your storage.");
+		clif_displaymessage(fd, msg_table[250]);
 		return -1;
 	}
 
@@ -1471,6 +1471,7 @@ int atcommand_storage(
 
 	return 0;
 }
+
 
 /*==========================================
  *
@@ -1484,18 +1485,18 @@ int atcommand_guildstorage(
 	nullpo_retr(-1, sd);
 
 	if (sd->status.guild_id > 0) {
-		if (sd->state.storage_flag == 1) {
-			clif_displaymessage(fd, "You have already opened your guild storage.");
+		if (sd->state.storage_flag) {
+			clif_displaymessage(fd, msg_table[251]);
 			return -1;
 		}
 		if ((stor = account2storage2(sd->status.account_id)) != NULL && stor->storage_status == 1) {
-			clif_displaymessage(fd, "Your storage is opened. Close it before.");
+			clif_displaymessage(fd, msg_table[251]);
 			return -1;
 		}
 		storage_guild_storageopen(sd);
 	} else {
-		clif_displaymessage(fd, "You are not in a guild.");
-		 return -1;
+		clif_displaymessage(fd, msg_table[252]);
+		return -1;
 	}
 
 	return 0;
@@ -1510,6 +1511,7 @@ int atcommand_option(
 	const char* command, const char* message)
 {
 	int param1 = 0, param2 = 0, param3 = 0;
+	nullpo_retr(-1, sd);
 
 	if (!message || !*message || sscanf(message, "%d %d %d", &param1, &param2, &param3) < 1 || param1 < 0 || param2 < 0 || param3 < 0) {
 		clif_displaymessage(fd, "Please, enter at least a option (usage: @option <param1:0+> <param2:0+> <param3:0+>).");
