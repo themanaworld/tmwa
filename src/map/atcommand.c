@@ -1453,6 +1453,19 @@ int atcommand_storage(
 	const int fd, struct map_session_data* sd,
 	const char* command, const char* message)
 {
+	struct storage *stor; //changes from Freya/Yor
+	nullpo_retr(-1, sd);
+
+	if (sd->state.storage_flag == 1) {
+		clif_displaymessage(fd, "You have opened your guild storage. Close it before.");
+		return -1;
+	}
+
+	if ((stor = account2storage2(sd->status.account_id)) != NULL && stor->storage_status == 1) {
+		clif_displaymessage(fd, "You have already opened your storage.");
+		return -1;
+	}
+
 	storage_storageopen(sd);
 
 	return 0;
@@ -1466,8 +1479,23 @@ int atcommand_guildstorage(
 	const int fd, struct map_session_data* sd,
 	const char* command, const char* message)
 {
-	if (sd->status.guild_id > 0)
+	struct storage *stor; //changes from Freya/Yor
+	nullpo_retr(-1, sd);
+
+	if (sd->status.guild_id > 0) {
+		if (sd->state.storage_flag == 1) {
+			clif_displaymessage(fd, "You have already opened your guild storage.");
+			return -1;
+		}
+		if ((stor = account2storage2(sd->status.account_id)) != NULL && stor->storage_status == 1) {
+			clif_displaymessage(fd, "Your storage is opened. Close it before.");
+			return -1;
+		}
 		storage_guild_storageopen(sd);
+	} else {
+		clif_displaymessage(fd, "You are not in a guild.");
+		 return -1;
+	}
 
 	return 0;
 }
