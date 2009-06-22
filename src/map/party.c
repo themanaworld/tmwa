@@ -251,7 +251,7 @@ int party_reply_invite(struct map_session_data *sd,int account_id,int flag)
 int party_member_added(int party_id,int account_id,int flag)
 {
 	struct map_session_data *sd= map_id2sd(account_id),*sd2;
-	if(sd==NULL && flag==0){
+	if(sd==NULL || flag==0){
 		if(battle_config.error_log)
 			printf("party: member added error %d is not online\n",account_id);
 		intif_party_leave(party_id,account_id); // ƒLƒƒƒ‰‘¤‚É“o˜^‚Å‚«‚È‚©‚Á‚½‚½‚ß’E‘Ş—v‹‚ğo‚·
