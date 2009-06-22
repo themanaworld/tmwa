@@ -162,7 +162,7 @@ struct map_session_data {
             unsigned produce_flag : 1;
             unsigned make_arrow_flag : 1;
             unsigned potionpitcher_flag : 1;
-            unsigned storage_flag : 1;
+            unsigned storage_flag : 2; //0: closed, 1: Normal Storage open, 2: guild storage open [Skotlex]
             unsigned shroud_active : 1;
             unsigned shroud_hides_name_talking : 1;
             unsigned shroud_disappears_on_pickup : 1;
@@ -703,6 +703,7 @@ int map_foreachiddb(int (*)(void*,void*,va_list),...);
 void map_addnickdb(struct map_session_data *);
 int map_scriptcont(struct map_session_data *sd,int id); /* Continues a script either on a spell or on an NPC */
 struct map_session_data * map_nick2sd(char*);
+int compare_item(struct item *a, struct item *b);
 
 struct map_session_data * map_get_first_session();
 struct map_session_data * map_get_last_session();

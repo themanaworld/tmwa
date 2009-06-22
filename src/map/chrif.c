@@ -111,7 +111,11 @@ int chrif_save(struct map_session_data *sd)
 	memcpy(WFIFOP(char_fd,12), &sd->status, sizeof(sd->status));
 	WFIFOSET(char_fd, WFIFOW(char_fd,2));
 
-	storage_storage_save(sd); // to synchronise storage with character [Yor]
+	//For data sync
+	if (sd->state.storage_flag == 1)
+		storage_storage_save(sd->status.account_id);
+	else if (sd->state.storage_flag == 2)
+		storage_guild_storagesave(sd->status.account_id, sd->status.guild_id);
 
 	return 0;
 }
@@ -938,7 +942,7 @@ static int ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
 
                 if (stor)
                         for (j = 0; j < stor->storage_amount; j++)
-                                FIX(stor->storage[j]);
+                                FIX(stor->storage_[j]);
 
                 for (j = 0; j < MAX_INVENTORY; j++) {
                         struct item_data *item = pc->inventory_data[j];

@@ -3485,8 +3485,16 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 				sd->bl.y=y;
 				sd->state.waitingdisconnect=1;
 				pc_makesavestatus(sd);
-				chrif_save(sd);
-				storage_storage_save(sd);
+				//The storage close routines save the char data. [Skotlex]
+				if (!sd->state.storage_flag)
+					chrif_save(sd);
+				else if (sd->state.storage_flag == 1)
+				{
+					storage_storageclose(sd);
+					storage_delete(sd->status.account_id);
+				}
+				else if (sd->state.storage_flag == 2)
+					storage_guild_storageclose(sd);
 				chrif_changemapserver(sd, mapname, x, y, ip, port);
 				return 0;
 			}
@@ -7180,7 +7188,6 @@ static int pc_autosave_sub(struct map_session_data *sd,va_list ap)
 
 		pc_makesavestatus(sd);
 		chrif_save(sd);
-		storage_storage_save(sd);
 
 		for(i=0;i<MAX_GUILDCASTLE;i++){
 			gc=guild_castle_search(i);

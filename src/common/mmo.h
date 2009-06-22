@@ -128,17 +128,19 @@ struct mmo_charstatus {
 };
 
 struct storage {
+	int dirty;
 	int account_id;
 	short storage_status;
 	short storage_amount;
-	struct item storage[MAX_STORAGE];
+	struct item storage_[MAX_STORAGE];
 };
 
 struct guild_storage {
+	int dirty;
 	int guild_id;
 	short storage_status;
 	short storage_amount;
-	struct item storage[MAX_GUILD_STORAGE];
+	struct item storage_[MAX_GUILD_STORAGE];
 };
 
 struct map_session_data;

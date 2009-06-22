@@ -1,15 +1,17 @@
 // $Id: int_storage.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
-#include "inter.h"
-#include "int_storage.h"
-#include "int_guild.h"
-#include "mmo.h"
-#include "char.h"
-#include "socket.h"
-#include "db.h"
-#include "lock.h"
 
 #include <string.h>
 #include <stdlib.h>
+
+#include "../common/mmo.h"
+#include "../common/socket.h"
+#include "../common/db.h"
+#include "../common/lock.h"
+#include "../common/malloc.h"
+#include "char.h"
+#include "inter.h"
+#include "int_storage.h"
+#include "int_guild.h"
 
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
@@ -27,11 +29,11 @@ int storage_tostr(char *str,struct storage *p)
 	str_p += sprintf(str_p,"%d,%d\t",p->account_id,p->storage_amount);
 
 	for(i=0;i<MAX_STORAGE;i++)
-		if( (p->storage[i].nameid) && (p->storage[i].amount) ){
-			str_p += sprintf(str_p,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
-				p->storage[i].id,p->storage[i].nameid,p->storage[i].amount,p->storage[i].equip,
-				p->storage[i].identify,p->storage[i].refine,p->storage[i].attribute,
-				p->storage[i].card[0],p->storage[i].card[1],p->storage[i].card[2],p->storage[i].card[3],p->storage[i].broken);
+		if( (p->storage_[i].nameid) && (p->storage_[i].amount) ){
+			str_p += sprintf(str_p,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
+				p->storage_[i].id,p->storage_[i].nameid,p->storage_[i].amount,p->storage_[i].equip,
+				p->storage_[i].identify,p->storage_[i].refine,p->storage_[i].attribute,
+				p->storage_[i].card[0],p->storage_[i].card[1],p->storage_[i].card[2],p->storage_[i].card[3]);
 			f++;
 		}
 
@@ -55,51 +57,49 @@ int storage_fromstr(char *str,struct storage *p)
 	if(set!=2)
 		return 1;
 	if(str[next]=='\n' || str[next]=='\r')
-		return 0;	
+		return 0;
 	next++;
 	for(i=0;str[next] && str[next]!='\t';i++){
 		if(sscanf(str + next, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
 		      &tmp_int[0], &tmp_int[1], &tmp_int[2], &tmp_int[3],
 		      &tmp_int[4], &tmp_int[5], &tmp_int[6],
-		      &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10], &tmp_int[11], &len) == 12) {
-			p->storage[i].id = tmp_int[0];
-			p->storage[i].nameid = tmp_int[1];
-			p->storage[i].amount = tmp_int[2];
-			p->storage[i].equip = tmp_int[3];
-			p->storage[i].identify = tmp_int[4];
-			p->storage[i].refine = tmp_int[5];
-			p->storage[i].attribute = tmp_int[6];
-			p->storage[i].card[0] = tmp_int[7];
-			p->storage[i].card[1] = tmp_int[8];
-			p->storage[i].card[2] = tmp_int[9];
-			p->storage[i].card[3] = tmp_int[10];
-			p->storage[i].broken  = tmp_int[11];
+		      &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10], &tmp_int[10], &len) == 12) {
+			p->storage_[i].id = tmp_int[0];
+			p->storage_[i].nameid = tmp_int[1];
+			p->storage_[i].amount = tmp_int[2];
+			p->storage_[i].equip = tmp_int[3];
+			p->storage_[i].identify = tmp_int[4];
+			p->storage_[i].refine = tmp_int[5];
+			p->storage_[i].attribute = tmp_int[6];
+			p->storage_[i].card[0] = tmp_int[7];
+			p->storage_[i].card[1] = tmp_int[8];
+			p->storage_[i].card[2] = tmp_int[9];
+			p->storage_[i].card[3] = tmp_int[10];
 			next += len;
 			if (str[next] == ' ')
-				next++;	
+				next++;
 		}
 
 		else if(sscanf(str + next, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
 		      &tmp_int[0], &tmp_int[1], &tmp_int[2], &tmp_int[3],
 		      &tmp_int[4], &tmp_int[5], &tmp_int[6],
 		      &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10], &len) == 11) {
-			p->storage[i].id = tmp_int[0];
-			p->storage[i].nameid = tmp_int[1];
-			p->storage[i].amount = tmp_int[2];
-			p->storage[i].equip = tmp_int[3];
-			p->storage[i].identify = tmp_int[4];
-			p->storage[i].refine = tmp_int[5];
-			p->storage[i].attribute = tmp_int[6];
-			p->storage[i].card[0] = tmp_int[7];
-			p->storage[i].card[1] = tmp_int[8];
-			p->storage[i].card[2] = tmp_int[9];
-			p->storage[i].card[3] = tmp_int[10];
-			p->storage[i].broken = 0;	
+			p->storage_[i].id = tmp_int[0];
+			p->storage_[i].nameid = tmp_int[1];
+			p->storage_[i].amount = tmp_int[2];
+			p->storage_[i].equip = tmp_int[3];
+			p->storage_[i].identify = tmp_int[4];
+			p->storage_[i].refine = tmp_int[5];
+			p->storage_[i].attribute = tmp_int[6];
+			p->storage_[i].card[0] = tmp_int[7];
+			p->storage_[i].card[1] = tmp_int[8];
+			p->storage_[i].card[2] = tmp_int[9];
+			p->storage_[i].card[3] = tmp_int[10];
 			next += len;
 			if (str[next] == ' ')
-				next++;	
+				next++;
 		}
-		
+
 		else return 1;
 	}
 	return 0;
@@ -112,11 +112,11 @@ int guild_storage_tostr(char *str,struct guild_storage *p)
 	str_p+=sprintf(str,"%d,%d\t",p->guild_id,p->storage_amount);
 
 	for(i=0;i<MAX_GUILD_STORAGE;i++)
-		if( (p->storage[i].nameid) && (p->storage[i].amount) ){
-			str_p += sprintf(str_p,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
-				p->storage[i].id,p->storage[i].nameid,p->storage[i].amount,p->storage[i].equip,
-				p->storage[i].identify,p->storage[i].refine,p->storage[i].attribute,
-				p->storage[i].card[0],p->storage[i].card[1],p->storage[i].card[2],p->storage[i].card[3],p->storage[i].broken);
+		if( (p->storage_[i].nameid) && (p->storage_[i].amount) ){
+			str_p += sprintf(str_p,"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
+				p->storage_[i].id,p->storage_[i].nameid,p->storage_[i].amount,p->storage_[i].equip,
+				p->storage_[i].identify,p->storage_[i].refine,p->storage_[i].attribute,
+				p->storage_[i].card[0],p->storage_[i].card[1],p->storage_[i].card[2],p->storage_[i].card[3]);
 			f++;
 		}
 
@@ -139,70 +139,61 @@ int guild_storage_fromstr(char *str,struct guild_storage *p)
 	if(set!=2)
 		return 1;
 	if(str[next]=='\n' || str[next]=='\r')
-		return 0;	
+		return 0;
 	next++;
 	for(i=0;str[next] && str[next]!='\t';i++){
 	if(sscanf(str + next, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
 		      &tmp_int[0], &tmp_int[1], &tmp_int[2], &tmp_int[3],
 		      &tmp_int[4], &tmp_int[5], &tmp_int[6],
-		      &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10], &tmp_int[11], &len) == 12) {
-			p->storage[i].id = tmp_int[0];
-			p->storage[i].nameid = tmp_int[1];
-			p->storage[i].amount = tmp_int[2];
-			p->storage[i].equip = tmp_int[3];
-			p->storage[i].identify = tmp_int[4];
-			p->storage[i].refine = tmp_int[5];
-			p->storage[i].attribute = tmp_int[6];
-			p->storage[i].card[0] = tmp_int[7];
-			p->storage[i].card[1] = tmp_int[8];
-			p->storage[i].card[2] = tmp_int[9];
-			p->storage[i].card[3] = tmp_int[10];
-			p->storage[i].broken  = tmp_int[11];
+		      &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10], &tmp_int[10], &len) == 12) {
+			p->storage_[i].id = tmp_int[0];
+			p->storage_[i].nameid = tmp_int[1];
+			p->storage_[i].amount = tmp_int[2];
+			p->storage_[i].equip = tmp_int[3];
+			p->storage_[i].identify = tmp_int[4];
+			p->storage_[i].refine = tmp_int[5];
+			p->storage_[i].attribute = tmp_int[6];
+			p->storage_[i].card[0] = tmp_int[7];
+			p->storage_[i].card[1] = tmp_int[8];
+			p->storage_[i].card[2] = tmp_int[9];
+			p->storage_[i].card[3] = tmp_int[10];
 			next += len;
 			if (str[next] == ' ')
-				next++;	
+				next++;
 		}
 
 		else if(sscanf(str + next, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
 		      &tmp_int[0], &tmp_int[1], &tmp_int[2], &tmp_int[3],
 		      &tmp_int[4], &tmp_int[5], &tmp_int[6],
 		      &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10], &len) == 11) {
-			p->storage[i].id = tmp_int[0];
-			p->storage[i].nameid = tmp_int[1];
-			p->storage[i].amount = tmp_int[2];
-			p->storage[i].equip = tmp_int[3];
-			p->storage[i].identify = tmp_int[4];
-			p->storage[i].refine = tmp_int[5];
-			p->storage[i].attribute = tmp_int[6];
-			p->storage[i].card[0] = tmp_int[7];
-			p->storage[i].card[1] = tmp_int[8];
-			p->storage[i].card[2] = tmp_int[9];
-			p->storage[i].card[3] = tmp_int[10];
-			p->storage[i].broken = 0;	
+			p->storage_[i].id = tmp_int[0];
+			p->storage_[i].nameid = tmp_int[1];
+			p->storage_[i].amount = tmp_int[2];
+			p->storage_[i].equip = tmp_int[3];
+			p->storage_[i].identify = tmp_int[4];
+			p->storage_[i].refine = tmp_int[5];
+			p->storage_[i].attribute = tmp_int[6];
+			p->storage_[i].card[0] = tmp_int[7];
+			p->storage_[i].card[1] = tmp_int[8];
+			p->storage_[i].card[2] = tmp_int[9];
+			p->storage_[i].card[3] = tmp_int[10];
 			next += len;
 			if (str[next] == ' ')
-				next++;	
+				next++;
 		}
-		
+
 		else return 1;
 	}
 	return 0;
 }
 
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
-struct storage *account2maybe_storage(int account_id)
-{
-	struct storage *s;
-	s=numdb_search(storage_db,account_id);
-	return s;
-}
-
 struct storage *account2storage(int account_id)
 {
-        struct storage *s = account2maybe_storage(account_id);
-
+	struct storage *s;
+	s= (struct storage *) numdb_search(storage_db,account_id);
 	if(s == NULL) {
-		s = calloc(sizeof(struct storage), 1);
+		s = (struct storage *) aCalloc(sizeof(struct storage), 1);
 		if(s==NULL){
 			printf("int_storage: out of memory!\n");
 			exit(0);
@@ -218,14 +209,14 @@ struct guild_storage *guild2storage(int guild_id)
 {
 	struct guild_storage *gs = NULL;
 	if(inter_guild_search(guild_id) != NULL) {
-		gs=numdb_search(guild_storage_db,guild_id);
+		gs= (struct guild_storage *) numdb_search(guild_storage_db,guild_id);
 		if(gs == NULL) {
-			gs = calloc(sizeof(struct guild_storage), 1);
+			gs = (struct guild_storage *) aCalloc(sizeof(struct guild_storage), 1);
 			if(gs==NULL){
 				printf("int_storage: out of memory!\n");
 				exit(0);
 			}
-			memset(gs,0,sizeof(struct guild_storage));
+//			memset(gs,0,sizeof(struct guild_storage)); aCalloc does this! [Skotlex]
 			gs->guild_id=guild_id;
 			numdb_insert(guild_storage_db,gs->guild_id,gs);
 		}
@@ -252,12 +243,12 @@ int inter_storage_init()
 	}
 	while(fgets(line,65535,fp)){
 		sscanf(line,"%d",&tmp_int);
-		s=calloc(sizeof(struct storage), 1);
+		s = (struct storage*)aCalloc(sizeof(struct storage), 1);
 		if(s==NULL){
 			printf("int_storage: out of memory!\n");
 			exit(0);
 		}
-		memset(s,0,sizeof(struct storage));
+//		memset(s,0,sizeof(struct storage)); aCalloc does this...
 		s->account_id=tmp_int;
 		if(s->account_id > 0 && storage_fromstr(line,s) == 0) {
 			numdb_insert(storage_db,s->account_id,s);
@@ -280,12 +271,12 @@ int inter_storage_init()
 	}
 	while(fgets(line,65535,fp)){
 		sscanf(line,"%d",&tmp_int);
-		gs=calloc(sizeof(struct guild_storage), 1);
+		gs = (struct guild_storage*)aCalloc(sizeof(struct guild_storage), 1);
 		if(gs==NULL){
 			printf("int_storage: out of memory!\n");
 			exit(0);
 		}
-		memset(gs,0,sizeof(struct guild_storage));
+//		memset(gs,0,sizeof(struct guild_storage)); aCalloc...
 		gs->guild_id=tmp_int;
 		if(gs->guild_id > 0 && guild_storage_fromstr(line,gs) == 0) {
 			numdb_insert(guild_storage_db,gs->guild_id,gs);
@@ -299,6 +290,22 @@ int inter_storage_init()
 	fclose(fp);
 
 	return 0;
+}
+
+int storage_db_final (void *k, void *data, va_list ap) {
+	struct storage *p = (struct storage *) data;
+	if (p) free(p);
+	return 0;
+}
+int guild_storage_db_final (void *k, void *data, va_list ap) {
+	struct guild_storage *p = (struct guild_storage *) data;
+	if (p) free(p);
+	return 0;
+}
+void inter_storage_final() {
+	numdb_final(storage_db, storage_db_final);
+	numdb_final(guild_storage_db, guild_storage_db_final);
+	return;
 }
 
 int inter_storage_save_sub(void *key,void *data,va_list ap)
@@ -358,7 +365,7 @@ int inter_guild_storage_save()
 // 倉庫データ削除
 int inter_storage_delete(int account_id)
 {
-	struct storage *s = numdb_search(storage_db,account_id);
+	struct storage *s = (struct storage *) numdb_search(storage_db,account_id);
 	if(s) {
 		numdb_erase(storage_db,account_id);
 		free(s);
@@ -369,7 +376,7 @@ int inter_storage_delete(int account_id)
 // ギルド倉庫データ削除
 int inter_guild_storage_delete(int guild_id)
 {
-	struct guild_storage *gs = numdb_search(guild_storage_db,guild_id);
+	struct guild_storage *gs = (struct guild_storage *) numdb_search(guild_storage_db,guild_id);
 	if(gs) {
 		numdb_erase(guild_storage_db,guild_id);
 		free(gs);

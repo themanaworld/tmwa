@@ -1792,7 +1792,7 @@ int parse_tologin(int fd) {
                         mapif_sendall(buf, 10); // forward package to map servers
                         for (i = 0; i < char_num; i++) {
                                 struct mmo_charstatus *c = char_dat + i;
-                                struct storage *s = account2maybe_storage(c->account_id);
+                                struct storage *s = account2storage(c->account_id);
                                 int changes = 0;
                                 int j;
 #define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
@@ -1808,7 +1808,7 @@ int parse_tologin(int fd) {
 
                                 if (s)
                                         for (j = 0; j < s->storage_amount; j++)
-                                                FIX(s->storage[j].nameid);
+                                                FIX(s->storage_[j].nameid);
 #undef FIX
                                 if (changes)
                                         char_log("itemfrob(%d -> %d):  `%s'(%d, account %d): changed %d times\n", source_id, dest_id,
