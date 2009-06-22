@@ -284,6 +284,7 @@ int buildin_areatimer(struct script_state *st); // [Jaxad0127]
 int buildin_isin(struct script_state *st); // [Jaxad0127]
 int buildin_shop(struct script_state *st); // [MadCamel]
 int buildin_isdead(struct script_state *st);  // [Jaxad0127]
+int buildin_fakenpcname(struct script_state *st); //[Kage]
 
 void push_val(struct script_stack *stack,int type,int val);
 int run_func(struct script_state *st);
@@ -488,7 +489,8 @@ struct {
 	{buildin_areatimer,"areatimer","siiiiis"},
 	{buildin_isin,"isin","siiii"},
 	{buildin_shop,"shop","s"},
-	{buildin_isdead,"isdead","i"},	// End Additions
+	{buildin_isdead,"isdead","i"},
+	{buildin_fakenpcname,"fakenpcname","ssi"}, //End Additions
 	{NULL,NULL,NULL},
 };
 int buildin_message(struct script_state *st); // [MouseJstr]
@@ -5943,6 +5945,32 @@ int buildin_isdead(struct script_state *st)
 	struct map_session_data *sd=script_rid2sd(st);
 
         push_val(st->stack, C_INT, pc_isdead(sd));
+	return 0;
+}
+
+/*========================================
+ * Changes a NPC name, and sprite
+ *----------------------------------------
+ */
+int buildin_fakenpcname(struct script_state *st)
+{
+	char *name, *newname;
+	int newsprite;
+	struct npc_data *nd;
+
+	name = conv_str(st,& (st->stack->stack_data[st->start+2]));
+	newname = conv_str(st,& (st->stack->stack_data[st->start+3]));
+	newsprite = conv_num(st,& (st->stack->stack_data[st->start+4]));
+	nd = npc_name2id(name);
+	if (!nd)
+		return 1;
+	strncpy(nd->name, newname, 24);
+	nd->class = newsprite;
+
+	// Refresh this npc
+ 	npc_enable(name,0);
+	npc_enable(name,1);
+
 	return 0;
 }
 
