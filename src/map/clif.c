@@ -7156,7 +7156,7 @@ void clif_parse_PutItemToCart(int fd,struct map_session_data *sd)
 {
 	nullpo_retv(sd);
 
-	if(sd->npc_id!=0)
+	if(sd->npc_id!=0 || sd->trade_partner != 0)
 		return;
 	pc_putitemtocart(sd,RFIFOW(fd,2)-2,RFIFOL(fd,4));
 }
@@ -7168,7 +7168,7 @@ void clif_parse_GetItemFromCart(int fd,struct map_session_data *sd)
 {
 	nullpo_retv(sd);
 
-	if(sd->npc_id!=0) return;
+	if(sd->npc_id!=0 || sd->trade_partner != 0) return;
 	pc_getitemfromcart(sd,RFIFOW(fd,2)-2,RFIFOL(fd,4));
 }
 
@@ -7537,7 +7537,7 @@ void clif_parse_MoveToKafra(int fd, struct map_session_data *sd) {
 	item_index = RFIFOW(fd,2) - 2;
 	item_amount = RFIFOL(fd,4);
 
-	if (sd->npc_id != 0 && !sd->npc_flags.storage)
+	if (sd->npc_id != 0 || sd->trade_partner != 0 || !sd->state.storage_flag)
 		return;
 
 	if (sd->state.storage_flag == 1)
@@ -7558,7 +7558,7 @@ void clif_parse_MoveFromKafra(int fd,struct map_session_data *sd) {
 	item_index = RFIFOW(fd,2) - 1;
 	item_amount = RFIFOL(fd,4);
 
-	if (sd->npc_id != 0 && !sd->npc_flags.storage)
+	if (sd->npc_id != 0 || sd->trade_partner != 0 || !sd->state.storage_flag)
 		return;
 
 	if (sd->state.storage_flag == 1)
@@ -7589,7 +7589,7 @@ void clif_parse_MoveToKafraFromCart(int fd, struct map_session_data *sd) {
 void clif_parse_MoveFromKafraToCart(int fd, struct map_session_data *sd) {
 	nullpo_retv(sd);
 
-	if (sd->npc_id != 0)
+	if (sd->npc_id != 0 || sd->trade_partner != 0 || !sd->state.storage_flag)
 		return;
 	if (sd->state.storage_flag == 1)
 		storage_storagegettocart(sd, RFIFOW(fd,2)-1, RFIFOL(fd,4));
