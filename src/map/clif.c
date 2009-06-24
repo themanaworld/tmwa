@@ -6296,7 +6296,7 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd) {
 		return;
 	}
 
-	if (sd->npc_id != 0)
+	if (sd->npc_id != 0 || sd->state.storage_flag)
 		return;
 
 	if (sd->skilltimer != -1 && pc_checkskill(sd, SA_FREECAST) <= 0) // �t���[�L���X�g
@@ -6642,7 +6642,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd) {
 		clif_clearchar_area(&sd->bl, 1);
 		return;
 	}
-	if (sd->npc_id != 0 || sd->opt1 > 0 || sd->status.option & 2 ||
+	if (sd->npc_id != 0 || sd->opt1 > 0 || sd->status.option & 2 || sd->state.storage_flag ||
 	    (sd->sc_data &&
 	     (sd->sc_data[SC_AUTOCOUNTER].timer != -1 || //�I�[�g�J�E���^�[
 	      sd->sc_data[SC_BLADESTOP].timer != -1 || //���n����
@@ -7233,7 +7233,7 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd) {
 	nullpo_retv(sd);
 
 	if(map[sd->bl.m].flag.noskill) return;
-	if (sd->chatID || sd->npc_id != 0)
+	if (sd->chatID || sd->npc_id != 0 || sd->state.storage_flag)
 		return;
 
 	skilllv = RFIFOW(fd,2);
@@ -7294,7 +7294,7 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd) {
 	nullpo_retv(sd);
 
 	if(map[sd->bl.m].flag.noskill) return;
-	if (sd->npc_id != 0) return;
+	if (sd->npc_id != 0 || sd->state.storage_flag) return;
 	if(sd->chatID) return;
 
 	skillmoreinfo = -1;
@@ -7574,7 +7574,7 @@ void clif_parse_MoveFromKafra(int fd,struct map_session_data *sd) {
 void clif_parse_MoveToKafraFromCart(int fd, struct map_session_data *sd) {
 	nullpo_retv(sd);
 
-	if (sd->npc_id != 0  && !sd->npc_flags.storage)
+	if (sd->npc_id != 0 || sd->trade_partner != 0 || !sd->state.storage_flag)
 		return;
 	if (sd->state.storage_flag == 1)
 		storage_storageaddfromcart(sd, RFIFOW(fd,2) - 2, RFIFOL(fd,4));
