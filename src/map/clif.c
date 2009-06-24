@@ -7608,11 +7608,6 @@ void clif_parse_CloseKafra(int fd, struct map_session_data *sd) {
 		storage_storageclose(sd);
 	else if (sd->state.storage_flag == 2)
 		storage_guild_storageclose(sd);
-
-	if (sd->npc_flags.storage) {
-		sd->npc_flags.storage = 0;
-		map_scriptcont(sd, sd->npc_id);
-	}
 }
 
 /*==========================================

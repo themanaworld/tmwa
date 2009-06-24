@@ -6520,9 +6520,18 @@ atcommand_storeall(const int fd, struct map_session_data* sd,
 	const char* command, const char* message)
 {
 	int i;
-	if (storage_storageopen(sd) == 1) {
-		clif_displaymessage(fd, "run this command again..");
-		return 0;
+	nullpo_retr(-1, sd);
+
+	if (sd->state.storage_flag != 1)
+	{   //Open storage.
+		switch (storage_storageopen(sd)) {
+		case 2: //Try again
+			clif_displaymessage(fd, "run this command again..");
+			return 0;
+		case 1: //Failure
+			clif_displaymessage(fd, "You can't open the storage currently.");
+			return 1;
+		}
 	}
 	for (i = 0; i < MAX_INVENTORY; i++) {
 		if (sd->status.inventory[i].amount) {

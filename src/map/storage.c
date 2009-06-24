@@ -367,6 +367,12 @@ int storage_storageclose(struct map_session_data *sd)
 	}
 	stor->storage_status=0;
 	sd->state.storage_flag=0;
+
+	if (sd->npc_flags.storage) {
+		sd->npc_flags.storage = 0;
+		map_scriptcont(sd, sd->npc_id);
+	}
+
 	return 0;
 }
 
