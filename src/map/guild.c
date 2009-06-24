@@ -664,6 +664,8 @@ int guild_member_leaved(int guild_id,int account_id,int char_id,int flag,
 			}
 	}
 	if(sd!=NULL && sd->status.guild_id==guild_id){
+		if (sd->state.storage_flag == 2) //Close the guild storage.
+			storage_guild_storageclose(sd);
 		sd->status.guild_id=0;
 		sd->guild_emblem_id=0;
 		sd->guild_sended=0;
