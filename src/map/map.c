@@ -64,6 +64,7 @@ int map_num = 0;
 int map_port=0;
 
 int autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+int save_settings = 0xFFFF;
 int agit_flag = 0;
 int night_flag = 0; // 0=day, 1=night [Yor]
 

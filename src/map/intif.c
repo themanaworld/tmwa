@@ -676,7 +676,7 @@ int intif_parse_SaveGuildStorage(int fd)
 	if(battle_config.save_log) {
 		printf("intif_save_guild_storage: done %d %d %d\n",RFIFOL(fd,2),RFIFOL(fd,6),RFIFOB(fd,10) );
 	}
-	storage_guild_storagesaved(RFIFOL(fd,2), RFIFOL(fd,6));
+	storage_guild_storagesaved(/*RFIFOL(fd,2), */RFIFOL(fd,6));
 	return 0;
 }
 

@@ -638,6 +638,7 @@ struct chat_data {
 extern struct map_data map[];
 extern int map_num;
 extern int autosave_interval;
+extern int save_settings;
 extern int agit_flag;
 extern int night_flag; // 0=day, 1=night [Yor]
 

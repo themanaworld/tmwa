@@ -113,9 +113,9 @@ int chrif_save(struct map_session_data *sd)
 
 	//For data sync
 	if (sd->state.storage_flag == 1)
-		storage_storage_save(sd->status.account_id);
+		storage_storage_save(sd->status.account_id, 0);
 	else if (sd->state.storage_flag == 2)
-		storage_guild_storagesave(sd->status.account_id, sd->status.guild_id);
+		storage_guild_storagesave(sd->status.account_id, sd->status.guild_id, 0);
 
 	return 0;
 }
