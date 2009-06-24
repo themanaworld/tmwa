@@ -3489,12 +3489,9 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 				if (!sd->state.storage_flag)
 					chrif_save(sd);
 				else if (sd->state.storage_flag == 1)
-				{
-					storage_storageclose(sd);
-					storage_delete(sd->status.account_id);
-				}
+					storage_storage_quit(sd);
 				else if (sd->state.storage_flag == 2)
-					storage_guild_storageclose(sd);
+					storage_guild_storage_quit(sd,1);
 
 				chrif_changemapserver(sd, mapname, x, y, ip, port);
 				return 0;

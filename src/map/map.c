@@ -988,11 +988,6 @@ int map_quit(struct map_session_data *sd) {
 
 	pc_cleareventtimer(sd);	// ƒCƒxƒ“ƒgƒ^ƒCƒ}‚ð”jŠü‚·‚é
 
-	if(sd->state.storage_flag == 1)
-		storage_storage_quit(sd);	// ‘qŒÉ‚ðŠJ‚¢‚Ä‚é‚È‚ç•Û‘¶‚·‚é
-	else if(sd->state.storage_flag == 2)
-		storage_guild_storage_quit(sd,0);
-
 	skill_castcancel(&sd->bl,0);	// ‰r¥‚ð’†’f‚·‚é
 	skill_stop_dancing(&sd->bl,1);// ƒ_ƒ“ƒX/‰‰‘t’†’f
 
@@ -1028,9 +1023,9 @@ int map_quit(struct map_session_data *sd) {
 	if (!sd->state.storage_flag)
 		chrif_save(sd);
 	else if (sd->state.storage_flag == 1)
-		storage_storageclose(sd);
+		storage_storage_quit(sd);
 	else if (sd->state.storage_flag == 2)
-		storage_guild_storageclose(sd);
+		storage_guild_storage_quit(sd,1);
 
 	if( sd->npc_stackbuf && sd->npc_stackbuf != NULL)
 		free( sd->npc_stackbuf );
