@@ -5560,7 +5560,7 @@ int atcommand_broadcast(
 		return -1;
 	}
 
-	sprintf(output, "%s : %s", sd->status.name, message);
+	snprintf(output, 199, "%s : %s", sd->status.name, message);
 	intif_GMmessage(output, strlen(output) + 1, 0);
 
 	return 0;
@@ -5583,7 +5583,7 @@ int atcommand_localbroadcast(
 		return -1;
 	}
 
-	sprintf(output, "%s : %s", sd->status.name, message);
+	snprintf(output, 199, "%s : %s", sd->status.name, message);
 
 	clif_GMmessage(&sd->bl, output, strlen(output) + 1, 1); // 1: ALL_SAMEMAP
 
