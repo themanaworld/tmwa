@@ -1,3 +1,9 @@
+/* To build:
+gcc -O2 -m32 -Isrc/common -Isrc/char -Isrc/map -Isrc/login -o marriage-info \
+marriage-info.c src/common/socket.o src/common/timer.o src/common/db.o \
+src/common/lock.o src/common/malloc.o src/char/int_guild.o \
+src/char/int_party.o src/char/int_storage.o src/char/inter.o
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
