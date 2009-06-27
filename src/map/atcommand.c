@@ -40,6 +40,7 @@ static char command_symbol = '@'; // first char of the commands (by [Yor])
 static char msg_table[1000][1024]; // Server messages (0-499 reserved for GM commands, 500-999 reserved for others)
 
 #define ATCOMMAND_FUNC(x) int atcommand_ ## x (const int fd, struct map_session_data* sd, const char* command, const char* message)
+ATCOMMAND_FUNC(setup);
 ATCOMMAND_FUNC(broadcast);
 ATCOMMAND_FUNC(localbroadcast);
 ATCOMMAND_FUNC(charwarp);
@@ -212,6 +213,7 @@ ATCOMMAND_FUNC(wgm);
 // First char of commands is configured in atcommand_athena.conf. Leave @ in this list for default value.
 // to set default level, read atcommand_athena.conf first please.
 static AtCommandInfo atcommand_info[] = {
+	{ AtCommand_Setup,		 "@setup",	     40, atcommand_setup    },
 	{ AtCommand_CharWarp,            "@charwarp",        60, atcommand_charwarp },
 	{ AtCommand_Warp,                "@warp",            40, atcommand_warp },
 	{ AtCommand_Where,               "@where",            1, atcommand_where },
@@ -812,6 +814,43 @@ int atcommand_config_read(const char *cfgName) {
 // @ command processing functions
  *------------------------------------------
  */
+
+/*==========================================
+ * @setup - Safely set a chars levels and warp them to a special place
+ * TAW Specific
+ *------------------------------------------
+ */
+int atcommand_setup(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message)
+{
+	char buf[256];
+	char character[100];
+	int level = 1;
+
+	memset(character, '\0', sizeof(character));
+
+	if (!message || !*message || sscanf(message, "%d %99[^\n]", &level, character) < 2) {
+		clif_displaymessage(fd, "Usage: @setup <level> <char name>");
+		return -1;
+	}
+	level--;
+
+	snprintf(buf, 255, "-255 %s", character);
+	atcommand_character_baselevel(fd, sd, "@charbaselvl", buf);
+
+	snprintf(buf, 255, "%d %s", level, character);
+	atcommand_character_baselevel(fd, sd, "@charbaselvl", buf);
+
+	snprintf(buf, 255, "+10 %s", character);
+	atcommand_character_joblevel(fd, sd, "@charjoblvl", buf);
+
+	snprintf(buf, 255, "018-1.gat 24 98 %s", character);
+	atcommand_charwarp(fd, sd, "@charwarp", buf);
+
+	return(0);
+
+}
 
 /*==========================================
  * @rura+

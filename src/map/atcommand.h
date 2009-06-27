@@ -7,6 +7,7 @@
 enum AtCommandType {
 	AtCommand_None = -1,
 	AtCommand_Broadcast = 0,
+	AtCommand_Setup,
 	AtCommand_LocalBroadcast,
 	AtCommand_MapMove,
 	AtCommand_ResetState,
