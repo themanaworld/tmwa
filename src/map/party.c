@@ -251,6 +251,8 @@ int party_reply_invite(struct map_session_data *sd,int account_id,int flag)
 int party_member_added(int party_id,int account_id,int flag)
 {
 	struct map_session_data *sd= map_id2sd(account_id),*sd2;
+	struct party *p=party_search(party_id);
+
 	if(sd == NULL){
 		if (flag == 0) {
 			if(battle_config.error_log)
@@ -262,22 +264,30 @@ int party_member_added(int party_id,int account_id,int flag)
 	sd2=map_id2sd(sd->party_invite_account);
 	sd->party_invite=0;
 	sd->party_invite_account=0;
-	
+
+	if (p==NULL) {
+		printf("party_member_added: party %d not found.\n",party_id);
+		intif_party_leave(party_id,account_id);
+		return 0;
+	}
+
 	if(flag==1){	// ¸”s
 		if( sd2!=NULL )
 			clif_party_inviteack(sd2,sd->status.name,0);
 		return 0;
 	}
-	
-		// ¬Œ÷
+
+	// ¬Œ÷
 	sd->party_sended=0;
 	sd->status.party_id=party_id;
-	
+
 	if( sd2!=NULL)
 		clif_party_inviteack(sd2,sd->status.name,2);
 
 	// ‚¢‚¿‚¨‚¤‹£‡Šm”F
 	party_check_conflict(sd);
+
+	party_send_xy_clear(p);
 
 	return 0;
 }
