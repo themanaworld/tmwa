@@ -146,10 +146,15 @@ static int connect_client(int listen_fd)
 
 	//printf("connect_client : %d\n",listen_fd);
 
-	len=sizeof(client_address);
+	len = sizeof(client_address);
 
-	fd=accept(listen_fd,(struct sockaddr*)&client_address,&len);
-	if(fd_max<=fd) fd_max=fd+1;
+	fd = accept(listen_fd,(struct sockaddr*)&client_address,&len);
+	if (fd_max <= fd) {
+		fd_max = fd + 1;
+	} else if (fd == -1) {
+		perror("accept");
+		return;
+	}
 
 //	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,NULL,0);
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char *)&yes,sizeof yes); // reuse fix
@@ -160,11 +165,7 @@ static int connect_client(int listen_fd)
 //	setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,NULL,0);
 	setsockopt(fd,IPPROTO_TCP,TCP_NODELAY,(char *)&yes,sizeof yes); // reuse fix
 
-	if(fd==-1){
-		perror("accept");
-	} else {
-		FD_SET(fd,&readfds);
-	}
+	FD_SET(fd,&readfds);
 
 #ifdef LCCWIN32
         {
