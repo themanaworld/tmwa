@@ -153,7 +153,7 @@ static int connect_client(int listen_fd)
 		fd_max = fd + 1;
 	} else if (fd == -1) {
 		perror("accept");
-		return;
+                return -1;
 	}
 
 //	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,NULL,0);
