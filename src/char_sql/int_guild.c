@@ -566,7 +566,7 @@ int inter_guild_readdb()
 	char line[1024];
 	for (i=0;i<100;i++) guild_exp[i]=0;
 	
-	fp=fopen("db/exp_guild.txt","r");
+	fp=fopen_("db/exp_guild.txt","r");
 	if(fp==NULL){
 		printf("can't read db/exp_guild.txt\n");
 		return 1;
@@ -578,7 +578,7 @@ int inter_guild_readdb()
 		guild_exp[i]=atoi(line);
 		i++;
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }

@@ -357,7 +357,7 @@ int inter_guild_readdb() {
 	FILE *fp;
 	char line[1024];
 
-	fp = fopen("db/exp_guild.txt", "r");
+	fp = fopen_("db/exp_guild.txt", "r");
 	if (fp == NULL) {
 		printf("can't read db/exp_guild.txt\n");
 		return 1;
@@ -369,7 +369,7 @@ int inter_guild_readdb() {
 		guild_exp[i] = atoi(line);
 		i++;
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }
@@ -387,7 +387,7 @@ int inter_guild_init() {
 	guild_db = numdb_init();
 	castle_db = numdb_init();
 
-	if ((fp = fopen(guild_txt,"r")) == NULL)
+	if ((fp = fopen_(guild_txt,"r")) == NULL)
 		return 1;
 	while(fgets(line, sizeof(line)-1, fp)) {
 		j = 0;
@@ -414,12 +414,12 @@ int inter_guild_init() {
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
 //	printf("int_guild: %s read done (%d guilds)\n", guild_txt, c);
 
 	c = 0;//ƒJƒEƒ“ƒ^‰Šú‰»
 
-	if ((fp = fopen(castle_txt, "r")) == NULL) {
+	if ((fp = fopen_(castle_txt, "r")) == NULL) {
 		return 1;
 	}
 
@@ -481,7 +481,7 @@ int inter_guild_init() {
 		return 0;
 	}
 
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }

@@ -3833,7 +3833,7 @@ static int mob_readdb(void)
 
 	for(i=0;i<2;i++){
 
-		fp=fopen(filename[i],"r");
+		fp=fopen_(filename[i],"r");
 		if(fp==NULL){
 			if(i>0)
 				continue;
@@ -3966,7 +3966,7 @@ static int mob_readdb(void)
 
 			if (mob_db[class].base_exp == 0) mob_db[class].base_exp = mob_gen_exp(&mob_db[class]);
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("read %s done\n",filename[i]);
 	}
 	return 0;
@@ -3984,7 +3984,7 @@ static int mob_readdb_mobavail(void)
 	int class,j,k;
 	char *str[20],*p,*np;
 
-	if( (fp=fopen("db/mob_avail.txt","r"))==NULL ){
+	if( (fp=fopen_("db/mob_avail.txt","r"))==NULL ){
 		printf("can't read db/mob_avail.txt\n");
 		return -1;
 	}
@@ -4031,7 +4031,7 @@ static int mob_readdb_mobavail(void)
 
 		ln++;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/mob_avail.txt done (count=%d)\n",ln);
 	return 0;
 }
@@ -4054,7 +4054,7 @@ static int mob_read_randommonster(void)
 
 	for(i=0;i<MAX_RANDOMMONSTER;i++){
 		mob_db[0].summonper[i] = 1002;	// Ý’è‚µ–Y‚ê‚½ê‡‚Íƒ|ƒŠƒ“‚ªo‚é‚æ‚¤‚É‚µ‚Ä‚¨‚­
-		fp=fopen(mobfile[i],"r");
+		fp=fopen_(mobfile[i],"r");
 		if(fp==NULL){
 			printf("can't read %s\n",mobfile[i]);
 			return -1;
@@ -4078,7 +4078,7 @@ static int mob_read_randommonster(void)
 			if((class>1000 && class<=2000) || class==0)
 				mob_db[class].summonper[i]=per;
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("read %s done\n",mobfile[i]);
 	}
 	return 0;
@@ -4153,7 +4153,7 @@ static int mob_readskilldb(void)
 
 	for(x=0;x<2;x++){
 
-		fp=fopen(filename[x],"r");
+		fp=fopen_(filename[x],"r");
 		if(fp==NULL){
 			if(x==0)
 				printf("can't read %s\n",filename[x]);
@@ -4231,7 +4231,7 @@ static int mob_readskilldb(void)
 				ms->emotion=-1;
 			mob_db[mob_id].maxskill=i+1;
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("read %s done\n",filename[x]);
 	}
 	return 0;

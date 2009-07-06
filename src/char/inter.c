@@ -108,7 +108,7 @@ int inter_accreg_init() {
 
 	accreg_db = numdb_init();
 
-	if( (fp = fopen(accreg_txt, "r")) == NULL)
+	if( (fp = fopen_(accreg_txt, "r")) == NULL)
 		return 1;
 	while(fgets(line, sizeof(line)-1, fp)){
 		line[sizeof(line)-1] = '\0';
@@ -126,7 +126,7 @@ int inter_accreg_init() {
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
 //	printf("inter: %s read done (%d)\n", accreg_txt, c);
 
 	return 0;
@@ -173,7 +173,7 @@ int inter_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp = fopen(cfgName, "r");
+	fp = fopen_(cfgName, "r");
 	if (fp == NULL) {
 		printf("file not found: %s\n", cfgName);
 		return 1;
@@ -208,7 +208,7 @@ int inter_config_read(const char *cfgName) {
 			inter_config_read(w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }
@@ -219,10 +219,10 @@ int inter_log(char *fmt,...) {
 	va_list ap;
 
 	va_start(ap,fmt);
-	logfp = fopen(inter_log_filename, "a");
+	logfp = fopen_(inter_log_filename, "a");
 	if (logfp) {
 		vfprintf(logfp, fmt, ap);
-		fclose(logfp);
+		fclose_(logfp);
 	}
 	va_end(ap);
 

@@ -21,6 +21,7 @@
 #include "pc.h"
 #include "script.h"
 #include "skill.h"
+#include "../common/socket.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -9890,7 +9891,7 @@ int skill_readdb(void)
 
 	/* The main skill database */
 	memset(skill_db,0,sizeof(skill_db));
-	fp=fopen("db/skill_db.txt","r");
+	fp=fopen_("db/skill_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_db.txt\n");
 		return 1;
@@ -9959,10 +9960,10 @@ int skill_readdb(void)
 		for(k=0;k<MAX_SKILL_LEVEL;k++)
 			skill_db[i].blewcount[k]=(split2[k])? atoi(split2[k]):atoi(split2[0]);
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/skill_db.txt done\n");
 
-	fp=fopen("db/skill_require_db.txt","r");
+	fp=fopen_("db/skill_require_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_require_db.txt\n");
 		return 1;
@@ -10097,11 +10098,11 @@ int skill_readdb(void)
 		skill_db[i].itemid[9]=atoi(split[28]);
 		skill_db[i].amount[9]=atoi(split[29]);
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/skill_require_db.txt done\n");
 
 	/* ? */
-	fp=fopen("db/skill_cast_db.txt","r");
+	fp=fopen_("db/skill_cast_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_cast_db.txt\n");
 		return 1;
@@ -10160,10 +10161,10 @@ int skill_readdb(void)
 		for(k=0;k<MAX_SKILL_LEVEL;k++)
 			skill_db[i].upkeep_time2[k]=(split2[k])? atoi(split2[k]):atoi(split2[0]);
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/skill_cast_db.txt done\n");
 
-	fp=fopen("db/skill_castnodex_db.txt","r");
+	fp=fopen_("db/skill_castnodex_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_castnodex_db.txt\n");
 		return 1;
@@ -10193,7 +10194,7 @@ int skill_readdb(void)
 		for(k=0;k<MAX_SKILL_LEVEL;k++)
 			skill_db[i].castnodex[k]=(split2[k])? atoi(split2[k]):atoi(split2[0]);
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/skill_castnodex_db.txt done\n");
 
 	return 0;

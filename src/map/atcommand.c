@@ -574,9 +574,9 @@ void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
 		sprintf(fullname, "%s.%04d-%02d", gm_logfile_name, year, month);
 
 		if (gm_logfile)
-			fclose(gm_logfile);
+			fclose_(gm_logfile);
 
-		gm_logfile = fopen(fullname, "a");
+		gm_logfile = fopen_(fullname, "a");
 		free(fullname);
 
 		if (!gm_logfile) {
@@ -729,7 +729,7 @@ int msg_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	if ((fp = fopen(cfgName, "r")) == NULL) {
+	if ((fp = fopen_(cfgName, "r")) == NULL) {
 		printf("Messages file not found: %s\n", cfgName);
 		return 1;
 	}
@@ -748,7 +748,7 @@ int msg_config_read(const char *cfgName) {
 			}
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }
@@ -776,7 +776,7 @@ int atcommand_config_read(const char *cfgName) {
 	AtCommandInfo* p;
 	FILE* fp;
 
-	if ((fp = fopen(cfgName, "r")) == NULL) {
+	if ((fp = fopen_(cfgName, "r")) == NULL) {
 		printf("At commands configuration file not found: %s\n", cfgName);
 		return 1;
 	}
@@ -803,7 +803,7 @@ int atcommand_config_read(const char *cfgName) {
 		         w2[0] != '%') // symbol of party chat speaking
 			command_symbol = w2[0];
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }
@@ -1934,7 +1934,7 @@ int atcommand_help(
 
 	memset(buf, '\0', sizeof(buf));
 
-	if ((fp = fopen(help_txt, "r")) != NULL) {
+	if ((fp = fopen_(help_txt, "r")) != NULL) {
 		clif_displaymessage(fd, msg_table[26]); // Help commands:
 		gm_level = pc_isGM(sd);
 		while(fgets(buf, sizeof(buf) - 1, fp) != NULL) {
@@ -1951,7 +1951,7 @@ int atcommand_help(
 			else if (gm_level >= atoi(w1))
 				clif_displaymessage(fd, w2);
 		}
-		fclose(fp);
+		fclose_(fp);
 	} else {
 		clif_displaymessage(fd, msg_table[27]); // File help.txt not found.
 		return -1;

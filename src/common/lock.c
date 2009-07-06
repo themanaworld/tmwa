@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include "lock.h"
+#include "socket.h"
 
 // 書き込みファイルの保護処理
 // （書き込みが終わるまで、旧ファイルを保管しておく）
@@ -14,9 +15,9 @@ FILE* lock_fopen(const char* filename,int *info) {
 	// 安全なファイル名を得る（手抜き）
 	do {
 		sprintf(newfile,"%s_%04d.tmp",filename,++no);
-	} while((fp = fopen(newfile,"r")) && (fclose(fp), no<9999) );
+	} while((fp = fopen_(newfile,"r")) && (fclose_(fp), no<9999) );
 	*info = no;
-	return fopen(newfile,"w");
+	return fopen_(newfile,"w");
 }
 
 // 旧ファイルを削除＆新ファイルをリネーム
@@ -24,7 +25,7 @@ int lock_fclose(FILE *fp,const char* filename,int *info) {
 	int  ret = 0;
 	char newfile[512];
 	if(fp != NULL) {
-		ret = fclose(fp);
+		ret = fclose_(fp);
 		sprintf(newfile,"%s_%04d.tmp",filename,*info);
 		remove(filename);
 		// このタイミングで落ちると最悪。

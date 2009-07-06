@@ -157,7 +157,7 @@ int inter_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp=fopen(cfgName,"r");
+	fp=fopen_(cfgName,"r");
 	if(fp==NULL){
 		printf("file not found: %s\n", cfgName);
 		return 1;
@@ -221,7 +221,7 @@ int inter_config_read(const char *cfgName) {
 			printf ("set login_server_db : %s\n",w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	
 	printf ("success reading interserver configuration\n");
 

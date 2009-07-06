@@ -87,7 +87,7 @@ int read_gm_account()
 	gm_account_db = numdb_init();
 	printf("gm_account: read start\n");
 
-	if( (fp=fopen("conf/GM_account.txt","r"))==NULL )
+	if( (fp=fopen_("conf/GM_account.txt","r"))==NULL )
 		return 1;
 	while(fgets(line,sizeof(line),fp)){
 		if(line[0] == '/' && line[1] == '/')
@@ -107,7 +107,7 @@ int read_gm_account()
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("gm_account: read done (%d gm account ID)\n",c);
 	return 0;
 }
@@ -138,7 +138,7 @@ int mmo_auth_init(void)
 	time_t connect_until_time;
 	char t_uid[256];
 
-	fp=fopen("save/account.txt","r");
+	fp=fopen_("save/account.txt","r");
 	auth_dat=malloc(sizeof(auth_dat[0])*256);
 	auth_max=256;
 	if(fp==NULL)
@@ -173,7 +173,7 @@ int mmo_auth_init(void)
 			printf("DB server Error - %s\n", mysql_error(&mysql_handle) );
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	printf ("convert end...\n");
 
@@ -191,7 +191,7 @@ int login_config_read(const char *cfgName){
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp=fopen(cfgName,"r");
+	fp=fopen_(cfgName,"r");
 
 	if(fp==NULL){
 		printf("file not found: %s\n", cfgName);
@@ -229,7 +229,7 @@ int login_config_read(const char *cfgName){
 			printf ("set db_server_logindb : %s\n",w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf ("End reading configuration...\n");
 	return 0;
 }

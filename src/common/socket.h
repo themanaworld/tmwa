@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #endif
+#include <time.h>
 
 // define declaration
 
@@ -44,13 +45,14 @@
 #define FD_SETSIZE 4096
 #endif	// __INTERIX
 
-
 /* Removed Cygwin FD_SETSIZE declarations, now are directly passed on to the compiler through Makefile [Valaris] */
 
 // Struct declaration
 
 struct socket_data{
 	int eof;
+	time_t created;
+	int connected;
 	unsigned char *rdata,*wdata;
 	int max_rdata,max_wdata;
 	int rdata_size,wdata_size;
@@ -70,6 +72,13 @@ struct socket_data{
 		#define FD_SETSIZE 4096
 
 #endif
+
+// save file descriptors for important stuff
+#define SOFT_LIMIT (FD_SETSIZE - 50)
+
+// socket timeout to establish a full connection in seconds
+#define CONNECT_TIMEOUT 15
+
 
 extern struct socket_data *session[FD_SETSIZE];
 
@@ -92,5 +101,10 @@ void do_socket(void);
 void set_defaultparse(int (*defaultparse)(int));
 
 int  Net_Init(void);
+
+int fclose_(FILE *fp);
+FILE *fopen_(const char *path, const char *mode);
+
+int free_fds();
 
 #endif	// _SOCKET_H_

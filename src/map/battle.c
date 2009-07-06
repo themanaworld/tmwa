@@ -17,6 +17,7 @@
 #include "mob.h"
 #include "pc.h"
 #include "skill.h"
+#include "../common/socket.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -4527,7 +4528,7 @@ int battle_config_read(const char *cfgName)
 		battle_config.trade_spam_warn = 8;
 	}
 
-	fp = fopen(cfgName,"r");
+	fp = fopen_(cfgName,"r");
 	if (fp == NULL) {
 		printf("file not found: %s\n", cfgName);
 		return 1;
@@ -4750,7 +4751,7 @@ int battle_config_read(const char *cfgName)
 		if (strcmpi(w1, "import") == 0)
 			battle_config_read(w2);
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	if (--count == 0) {
 		if(battle_config.flooritem_lifetime < 1000)

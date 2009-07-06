@@ -263,7 +263,7 @@ int ladmin_log(char *fmt, ...) {
 
 	va_start(ap, fmt);
 
-	logfp = fopen(ladmin_log_filename, "a");
+	logfp = fopen_(ladmin_log_filename, "a");
 	if (logfp) {
 		if (fmt[0] == '\0') // jump a line if no message
 			fprintf(logfp, RETCODE);
@@ -273,7 +273,7 @@ int ladmin_log(char *fmt, ...) {
 			sprintf(tmpstr + strlen(tmpstr), ".%03d: %s", (int)tv.tv_usec / 1000, fmt);
 			vfprintf(logfp, tmpstr, ap);
 		}
-		fclose(logfp);
+		fclose_(logfp);
 	}
 
 	va_end(ap);
@@ -4228,7 +4228,8 @@ int Connect_login_server() {
                 ladmin_log("Attempt to connect to login-server..." RETCODE);
         }
 
-	login_fd = make_connection(login_ip, loginserverport);
+	if ((login_fd = make_connection(login_ip, loginserverport)) < 0)
+		return 0;
 
 #ifdef PASSWORDENC
 	if (passenc == 0) {
@@ -4284,7 +4285,7 @@ int ladmin_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp = fopen(cfgName, "r");
+	fp = fopen_(cfgName, "r");
 	if (fp == NULL) {
 		if (defaultlanguage == 'F') {
 			printf("\033[0mFichier de configuration (%s) non trouvé.\n", cfgName);
@@ -4356,7 +4357,7 @@ int ladmin_config_read(const char *cfgName) {
 			}
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	login_ip = inet_addr(loginserverip);
 

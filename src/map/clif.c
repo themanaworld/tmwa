@@ -8339,8 +8339,17 @@ static void (*clif_parse_func_table[0x220])() = {
 static int clif_parse(int fd) {
 	int packet_len = 0, cmd=0;
 	struct map_session_data *sd=NULL;
-	
+
 	sd = session[fd]->session_data;
+
+	if (!sd || (sd && !sd->state.auth)) {
+		if (RFIFOREST(fd) < 2) { // too small a packet disconnect
+			session[fd]->eof = 1;
+		}
+		if (RFIFOW(fd,0) != 0x72) { // first packet not auth, disconnect
+			session[fd]->eof = 1;
+		}
+	}
 
 	// �ڑ����؂��Ă��̂Ō��n��
 	if (!chrif_isconnect() || session[fd]->eof) { // char�I�Ɍq����ĂȂ��Ԃ͐ڑ��֎~ (!chrif_isconnect())
@@ -8433,7 +8442,7 @@ static int clif_parse(int fd) {
 				} else if (sd) // not authentified! (refused by char-server or disconnect before to be authentified)
 					printf("\nAccount ID %d.\n", sd->bl.id);
 
-				if ((fp = fopen(packet_txt, "a")) == NULL) {
+				if ((fp = fopen_(packet_txt, "a")) == NULL) {
 					printf("clif.c: cant write [%s] !!! data is lost !!!\n", packet_txt);
 					return 1;
 				} else {
@@ -8454,7 +8463,7 @@ static int clif_parse(int fd) {
 						fprintf(fp, "%02X ", RFIFOB(fd,i));
 					}
 					fprintf(fp, "\n\n");
-					fclose(fp);
+					fclose_(fp);
 				}
 			}
 #endif

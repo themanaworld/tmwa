@@ -240,7 +240,7 @@ int inter_storage_init()
 
 	storage_db = numdb_init();
 
-	fp=fopen(storage_txt,"r");
+	fp=fopen_(storage_txt,"r");
 	if(fp==NULL){
 		printf("cant't read : %s\n",storage_txt);
 		return 1;
@@ -263,12 +263,12 @@ int inter_storage_init()
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	c = 0;
 	guild_storage_db = numdb_init();
 
-	fp=fopen(guild_storage_txt,"r");
+	fp=fopen_(guild_storage_txt,"r");
 	if(fp==NULL){
 		printf("cant't read : %s\n",guild_storage_txt);
 		return 1;
@@ -291,7 +291,7 @@ int inter_storage_init()
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }
