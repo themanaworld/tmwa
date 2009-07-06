@@ -2,24 +2,24 @@
 #ifndef _BATTLE_H_
 #define _BATTLE_H_
 
-// ƒ_ƒ[ƒW
+// ï¿½_ï¿½ï¿½ï¿½[ï¿½W
 struct Damage {
 	int damage,damage2;
 	int type,div_;
 	int amotion,dmotion;
 	int blewcount;
 	int flag;
-	int dmg_lv;	//ˆÍ‚Ü‚êŒ¸ZŒvZ—p@0:ƒXƒLƒ‹UŒ‚ ATK_LUCKY,ATK_FLEE,ATK_DEF
+	int dmg_lv;	//ï¿½Í‚Ü‚êŒ¸ï¿½Zï¿½vï¿½Zï¿½pï¿½@0:ï¿½Xï¿½Lï¿½ï¿½ï¿½Uï¿½ï¿½ ATK_LUCKY,ATK_FLEE,ATK_DEF
 };
 
-// ‘®«•\i“Ç‚İ‚İ‚Ípc.cAbattle_attr_fix‚Åg—pj
+// ï¿½ï¿½ï¿½ï¿½ï¿½\ï¿½iï¿½Ç‚İï¿½ï¿½İ‚ï¿½pc.cï¿½Abattle_attr_fixï¿½Ågï¿½pï¿½j
 extern int attr_fix_table[4][10][10];
 
 struct map_session_data;
 struct mob_data;
 struct block_list;
 
-// ƒ_ƒ[ƒWŒvZ
+// ï¿½_ï¿½ï¿½ï¿½[ï¿½Wï¿½vï¿½Z
 
 struct Damage battle_calc_attack(	int attack_type,
 	struct block_list *bl,struct block_list *target,int skill_num,int skill_lv,int flag);
@@ -30,12 +30,12 @@ struct Damage battle_calc_magic_attack(
 struct Damage  battle_calc_misc_attack(
 	struct block_list *bl,struct block_list *target,int skill_num,int skill_lv,int flag);
 
-// ‘®«C³ŒvZ
+// ï¿½ï¿½ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½vï¿½Z
 int battle_attr_fix(int damage,int atk_elem,int def_elem);
 
-// ƒ_ƒ[ƒWÅIŒvZ
+// ï¿½_ï¿½ï¿½ï¿½[ï¿½Wï¿½ÅIï¿½vï¿½Z
 int battle_calc_damage(struct block_list *src,struct block_list *bl,int damage,int div_,int skill_num,int skill_lv,int flag);
-enum {	// ÅIŒvZ‚Ìƒtƒ‰ƒO
+enum {	// ï¿½ÅIï¿½vï¿½Zï¿½Ìƒtï¿½ï¿½ï¿½O
 	BF_WEAPON	= 0x0001,
 	BF_MAGIC	= 0x0002,
 	BF_MISC		= 0x0004,
@@ -48,20 +48,20 @@ enum {	// ÅIŒvZ‚Ìƒtƒ‰ƒO
 	BF_SKILLMASK= 0x0f00,
 };
 
-// ÀÛ‚ÉHP‚ğ‘Œ¸
+// ï¿½ï¿½Û‚ï¿½HPï¿½ğ‘Œï¿½
 int battle_delay_damage(unsigned int tick,struct block_list *src,struct block_list *target,int damage,int flag);
 int battle_damage(struct block_list *bl,struct block_list *target,int damage,int flag);
 int battle_heal(struct block_list *bl,struct block_list *target,int hp,int sp,int flag);
 
-// UŒ‚‚âˆÚ“®‚ğ~‚ß‚é
+// ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½Ú“ï¿½ï¿½ï¿½ï¿½~ï¿½ß‚ï¿½
 int battle_stopattack(struct block_list *bl);
 int battle_stopwalking(struct block_list *bl,int type);
 
-// ’ÊíUŒ‚ˆ—‚Ü‚Æ‚ß
+// ï¿½Êï¿½ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ü‚Æ‚ï¿½
 int battle_weapon_attack( struct block_list *bl,struct block_list *target,
 	 unsigned int tick,int flag);
 
-// Šeíƒpƒ‰ƒ[ƒ^‚ğ“¾‚é
+// ï¿½eï¿½ï¿½ï¿½pï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½^ï¿½ğ“¾‚ï¿½
 int battle_counttargeted(struct block_list *bl,struct block_list *src,int target_lv);
 int battle_get_class(struct block_list *bl);
 int battle_get_dir(struct block_list *bl);
@@ -91,7 +91,7 @@ int battle_get_amotion(struct block_list *bl);
 int battle_get_dmotion(struct block_list *bl);
 int battle_get_element(struct block_list *bl);
 int battle_get_attack_element(struct block_list *bl);
-int battle_get_attack_element2(struct block_list *bl);  //¶è•Ší‘®«æ“¾
+int battle_get_attack_element2(struct block_list *bl);  //ï¿½ï¿½ï¿½è•ï¿½í‘®ï¿½ï¿½ï¿½æ“¾
 #define battle_get_elem_type(bl)	(battle_get_element(bl)%10)
 #define battle_get_elem_level(bl)	(battle_get_element(bl)/10/2)
 int battle_get_party_id(struct block_list *bl);
@@ -122,7 +122,7 @@ int battle_check_target( struct block_list *src, struct block_list *target,int f
 int battle_check_range(struct block_list *src,struct block_list *bl,int range);
 
 
-// İ’è
+// ï¿½İ’ï¿½
 
 int battle_config_switch(const char *str); // [Valaris]
 
@@ -318,6 +318,11 @@ extern struct Battle_Config {
 	int chat_spam_ban;
 	int chat_spam_warn;
 	int chat_maxline;
+	
+	int trade_spam_threshold;
+	int trade_spam_flood;
+	int trade_spam_ban;
+	int trade_spam_warn;
 
         int drop_pickup_safety_zone; // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
 
