@@ -116,36 +116,3 @@ void tmw_GmHackMsg(const char *fmt, ...) {
 
 	intif_wis_message_to_gm(wisp_server_name, battle_config.hack_info_GM_level, outbuf, strlen(outbuf) + 1);
 }
-
-int tmw_CheckTradeSpam(struct map_session_data *sd) {
-	nullpo_retr(1, sd);
-	time_t now = time(NULL);
-
-	if (pc_isGM(sd)) return 0;
-
-	if (now > sd->trade_reset_due) {
-		sd->trade_reset_due = now + battle_config.trade_spam_threshold;
-		sd->trades_in = 0;
-	}
-
-	sd->trades_in++;
-
-	if (sd->trades_in >= battle_config.trade_spam_flood) {
-		sd->trades_in = 0;
-		tmw_GmHackMsg("Trade spam detected from character '%s' (account: %d)", sd->status.name, sd->status.account_id);
-
-		if (battle_config.trade_spam_ban > 0) {
-			clif_displaymessage(sd->fd, "You have been banned for trade spamming. Please do not trade spam.");
-			tmw_GmHackMsg("This player has been banned for %d hour(s).", battle_config.trade_spam_ban);
-
-			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.trade_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
-			clif_setwaitclose(sd->fd);
-		}
-	}
-
-	if (battle_config.trade_spam_ban && sd->trades_in >= battle_config.trade_spam_warn) {
-		clif_displaymessage(sd->fd, "WARNING : You are about to be automaticly banned for trade spam!");
-	}
-
-	return 0;
-}

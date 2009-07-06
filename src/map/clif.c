@@ -7084,7 +7084,7 @@ void clif_parse_TradeRequest(int fd,struct map_session_data *sd)
 	nullpo_retv(sd);
 
 	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 1){
-		tmw_CheckTradeSpam(sd);
+		tmw_CheckChatSpam(sd, NULL);
 		trade_traderequest(sd,RFIFOL(sd->fd,2));
 	} else
 		clif_skill_fail(sd,1,0,0);
