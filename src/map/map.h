@@ -358,6 +358,9 @@ struct map_session_data {
 	time_t chat_reset_due;
 	int chat_lines_in;
 	char chat_lastmsg[513];
+
+	time_t trade_reset_due;
+	int trades_in;
 };
 
 struct npc_timerevent_list {

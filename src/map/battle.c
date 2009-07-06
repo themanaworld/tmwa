@@ -4520,6 +4520,11 @@ int battle_config_read(const char *cfgName)
 		battle_config.chat_spam_ban = 1;
 		battle_config.chat_spam_warn = 8;
 		battle_config.chat_maxline = 255;
+
+		battle_config.trade_spam_threshold = 10;
+		battle_config.trade_spam_flood = 10;
+		battle_config.trade_spam_ban = 1;
+		battle_config.trade_spam_warn = 8;
 	}
 
 	fp = fopen(cfgName,"r");
@@ -4722,12 +4727,16 @@ int battle_config_read(const char *cfgName)
 			{ "castrate_dex_scale",                &battle_config.castrate_dex_scale	}, // added by [MouseJstr]
 			{ "area_size",                         &battle_config.area_size	}, // added by [MouseJstr]
 			{ "muting_players",                    &battle_config.muting_players}, // added by [Apple]
-			{ "chat_lame_penalty",                      &battle_config.chat_lame_penalty	},
-			{ "chat_spam_threshold",                    &battle_config.chat_spam_threshold	},
-			{ "chat_spam_flood",                        &battle_config.chat_spam_flood	},
-			{ "chat_spam_ban",                          &battle_config.chat_spam_ban	}, 
-			{ "chat_spam_warn",                          &battle_config.chat_spam_warn	}, 
-			{ "chat_maxline",                      &battle_config.chat_maxline	}
+			{ "chat_lame_penalty",                 &battle_config.chat_lame_penalty	},
+			{ "chat_spam_threshold",               &battle_config.chat_spam_threshold	},
+			{ "chat_spam_flood",                   &battle_config.chat_spam_flood	},
+			{ "chat_spam_ban",                     &battle_config.chat_spam_ban	}, 
+			{ "chat_spam_warn",                    &battle_config.chat_spam_warn	}, 
+			{ "chat_maxline",                      &battle_config.chat_maxline	},
+			{ "trade_spam_threshold",              &battle_config.trade_spam_threshold	},
+			{ "trade_spam_flood",                  &battle_config.trade_spam_flood	},
+			{ "trade_spam_ban",                    &battle_config.trade_spam_ban	}, 
+			{ "trade_spam_warn",                   &battle_config.trade_spam_warn	}
 		};
 
 		if (line[0] == '/' && line[1] == '/')
@@ -4868,6 +4877,25 @@ int battle_config_read(const char *cfgName)
                 else if (battle_config.chat_maxline > 512)
                         battle_config.chat_maxline = 512;
 
+                if (battle_config.trade_spam_ban < 0)
+                        battle_config.trade_spam_ban = 0;
+                else if (battle_config.trade_spam_ban > 32767)
+                        battle_config.trade_spam_ban = 32767;
+
+                if (battle_config.trade_spam_flood < 0)
+                        battle_config.trade_spam_flood = 0;
+                else if (battle_config.trade_spam_flood > 32767)
+                        battle_config.trade_spam_flood = 32767;
+
+                if (battle_config.trade_spam_warn < 0)
+                        battle_config.trade_spam_warn = 0;
+                else if (battle_config.trade_spam_warn > 32767)
+                        battle_config.trade_spam_warn = 32767;
+
+                if (battle_config.trade_spam_threshold < 0)
+                        battle_config.trade_spam_threshold = 0;
+                else if (battle_config.trade_spam_threshold > 32767)
+                        battle_config.trade_spam_threshold = 32767; 
 
 		// at least 1 client must be accepted
 		if ((battle_config.packet_ver_flag & 63) == 0) // added by [Yor]
