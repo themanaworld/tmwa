@@ -1,9 +1,9 @@
-/*
-Name:    eAthena processes monitor
-Author:  Bartosz Waszak <waszi@evil.org.pl>
-License: GPL
-Compilation:
-gcc -o eathena-monitor eathena-monitor.c
+/**
+ * Name:    eAthena processes monitor
+ * Author:  Bartosz Waszak <waszi@evil.org.pl>
+ * License: GPL
+ * Compilation:
+ * gcc -o eathena-monitor eathena-monitor.c
 */
 
 #include <unistd.h>
@@ -11,7 +11,21 @@ gcc -o eathena-monitor eathena-monitor.c
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+
+#if !defined(linux) && (defined(__sgi) || defined(__sun__) || defined(__sun) || defined(__sparc) || defined(__sparc__))
+#include <sys/statfs.h>
+#endif
+
+#if defined (__FreeBSD__) || defined (__OpenBSD__) || defined (__NetBSD__) || defined (__APPLE__)
+#include <sys/param.h>
+#include <sys/mount.h>
+#endif
+
+#if defined(linux) || defined(__CYGWIN32__) || defined(__hpux)
 #include <sys/vfs.h>
+#endif
+
 #include <dirent.h>
 #include <errno.h>
 #include <time.h>
@@ -25,7 +39,9 @@ gcc -o eathena-monitor eathena-monitor.c
 #define CHAR_SERVER "char-server"
 #define CONFIG "conf/eathena-monitor.conf"
 #define LOGFILE "log/eathena-monitor.log"
+#ifndef PATH_MAX
 #define PATH_MAX 4096
+#endif
 
 #define IS_BLANK(ptr) \
     (((*(ptr)) == ' ') || ((*(ptr)) == '\b') || \
