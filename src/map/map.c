@@ -1454,7 +1454,7 @@ static void map_readwater(char *watertxt) {
 	FILE *fp=NULL;
 	int n=0;
 
-	fp=fopen(watertxt,"r");
+	fp=fopen_(watertxt,"r");
 	if(fp==NULL){
 		printf("file not found: %s\n",watertxt);
 		return;
@@ -1475,7 +1475,7 @@ static void map_readwater(char *watertxt) {
 			waterlist[n].waterheight = 3;
 		n++;
 	}
-	fclose(fp);
+	fclose_(fp);
 }
 
 /*==========================================
@@ -1665,7 +1665,7 @@ int map_config_read(char *cfgName) {
 	FILE *fp;
 	struct hostent *h = NULL;
 
-	fp = fopen(cfgName,"r");
+	fp = fopen_(cfgName,"r");
 	if (fp == NULL) {
 		printf("Map configuration file not found at: %s\n", cfgName);
 		exit(1);
@@ -1730,7 +1730,7 @@ int map_config_read(char *cfgName) {
 			}
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }

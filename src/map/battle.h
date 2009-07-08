@@ -318,6 +318,11 @@ extern struct Battle_Config {
 	int chat_spam_ban;
 	int chat_spam_warn;
 	int chat_maxline;
+	
+	int trade_spam_threshold;
+	int trade_spam_flood;
+	int trade_spam_ban;
+	int trade_spam_warn;
 
         int drop_pickup_safety_zone; // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
 

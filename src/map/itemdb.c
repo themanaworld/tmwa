@@ -12,6 +12,7 @@
 #include "itemdb.h"
 #include "script.h"
 #include "pc.h"
+#include "../common/socket.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -280,7 +281,7 @@ static int itemdb_readdb(void)
 
 	for(i=0;i<2;i++){
 
-		fp=fopen(filename[i],"r");
+		fp=fopen_(filename[i],"r");
 		if(fp==NULL){
 			if(i>0)
 				continue;
@@ -348,7 +349,7 @@ static int itemdb_readdb(void)
 				continue;
 			id->equip_script = parse_script(p,lines);
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("read %s done (count=%d)\n",filename[i],ln);
 	}
 	return 0;
@@ -388,7 +389,7 @@ static int itemdb_read_randomitem()
 
 
 		*pdefault = 0;
-		if( (fp=fopen(fn,"r"))==NULL ){
+		if( (fp=fopen_(fn,"r"))==NULL ){
 			printf("can't read %s\n",fn);
 			continue;
 		}
@@ -424,7 +425,7 @@ static int itemdb_read_randomitem()
 				break;
 			ln++;
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("read %s done (count=%d)\n",fn,*pc);
 	}
 
@@ -442,7 +443,7 @@ static int itemdb_read_itemavail(void)
 	int nameid,j,k;
 	char *str[10],*p;
 
-	if( (fp=fopen("db/item_avail.txt","r"))==NULL ){
+	if( (fp=fopen_("db/item_avail.txt","r"))==NULL ){
 		printf("can't read db/item_avail.txt\n");
 		return -1;
 	}
@@ -473,7 +474,7 @@ static int itemdb_read_itemavail(void)
 			id->flag.available = 0;
 		ln++;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/item_avail.txt done (count=%d)\n",ln);
 	return 0;
 }
@@ -568,7 +569,7 @@ static int itemdb_read_noequip(void)
 	char *str[32],*p;
 	struct item_data *id;
 
-	if( (fp=fopen("db/item_noequip.txt","r"))==NULL ){
+	if( (fp=fopen_("db/item_noequip.txt","r"))==NULL ){
 		printf("can't read db/item_noequip.txt\n");
 		return -1;
 	}
@@ -593,7 +594,7 @@ static int itemdb_read_noequip(void)
 		ln++;
 
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/item_noequip.txt done (count=%d)\n",ln);
 	return 0;
 }
@@ -650,9 +651,9 @@ static int itemdebug(void *key,void *data,va_list ap){
 }
 void itemdebugtxt()
 {
-	dfp=fopen("itemdebug.txt","wt");
+	dfp=fopen_("itemdebug.txt","wt");
 	numdb_foreach(item_db,itemdebug);
-	fclose(dfp);
+	fclose_(dfp);
 }
 */
 

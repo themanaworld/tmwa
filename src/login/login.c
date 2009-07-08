@@ -144,7 +144,7 @@ int login_log(char *fmt, ...) {
 
 	va_start(ap, fmt);
 
-	logfp = fopen(login_log_filename, "a");
+	logfp = fopen_(login_log_filename, "a");
 	if (logfp) {
 		if (fmt[0] == '\0') // jump a line if no message
 			fprintf(logfp, RETCODE);
@@ -154,7 +154,7 @@ int login_log(char *fmt, ...) {
 			sprintf(tmpstr + strlen(tmpstr), ".%03d: %s", (int)tv.tv_usec / 1000, fmt);
 			vfprintf(logfp, tmpstr, ap);
 		}
-		fclose(logfp);
+		fclose_(logfp);
 	}
 
 	va_end(ap);
@@ -194,7 +194,7 @@ int read_gm_account() {
 	else
 		creation_time_GM_account_file = file_stat.st_mtime;
 
-	if ((fp = fopen(GM_account_filename, "r")) == NULL) {
+	if ((fp = fopen_(GM_account_filename, "r")) == NULL) {
 		printf("read_gm_account: GM accounts file [%s] not found.\n", GM_account_filename);
 		printf("                 Actually, there is no GM accounts on the server.\n");
 		login_log("read_gm_account: GM accounts file [%s] not found." RETCODE, GM_account_filename);
@@ -239,7 +239,7 @@ int read_gm_account() {
 			}
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	printf("read_gm_account: file '%s' readed (%d GM accounts found).\n", GM_account_filename, c);
 	login_log("read_gm_account: file '%s' readed (%d GM accounts found)." RETCODE, GM_account_filename, c);
@@ -482,7 +482,7 @@ int mmo_auth_init(void) {
 	auth_dat = calloc(sizeof(struct auth_dat) * 256, 1);
 	auth_max = 256;
 
-	fp = fopen(account_filename, "r");
+	fp = fopen_(account_filename, "r");
 	if (fp == NULL) {
 		// no account file -> no account -> no login, including char-server (ERROR)
 		printf("\033[1;31mmmo_auth_init: Accounts file [%s] not found.\033[0m\n", account_filename);
@@ -744,7 +744,7 @@ int mmo_auth_init(void) {
 				account_id_count = account_id;
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	if (auth_num == 0) {
 		printf("mmo_auth_init: No account found in %s.\n", account_filename);
@@ -1374,13 +1374,13 @@ int parse_fromchar(int fd) {
 						// if we autorise creation
 						if (level_new_gm > 0) {
 							// if we can open the file to add the new GM
-							if ((fp = fopen(GM_account_filename, "a")) != NULL) {
+							if ((fp = fopen_(GM_account_filename, "a")) != NULL) {
 								char tmpstr[24];
 								struct timeval tv;
 								gettimeofday(&tv, NULL);
 								strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 								fprintf(fp, RETCODE "// %s: @GM command on account %d" RETCODE "%d %d" RETCODE, tmpstr, acc, acc, level_new_gm);
-								fclose(fp);
+								fclose_(fp);
 								WBUFL(buf,6) = level_new_gm;
 								read_gm_account();
 								send_GM_accounts();
@@ -1723,7 +1723,7 @@ int parse_fromchar(int fd) {
 				FILE *logfp;
 				char tmpstr[24];
 				struct timeval tv;
-				logfp = fopen(login_log_unknown_packets_filename, "a");
+				logfp = fopen_(login_log_unknown_packets_filename, "a");
 				if (logfp) {
 					gettimeofday(&tv, NULL);
 					strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
@@ -1756,7 +1756,7 @@ int parse_fromchar(int fd) {
 						fprintf(logfp, " %s" RETCODE, tmpstr);
 					}
 					fprintf(logfp, RETCODE);
-					fclose(logfp);
+					fclose_(logfp);
 				}
 			}
 			printf("parse_fromchar: Unknown packet 0x%x (from a char-server)! -> disconnection.\n", RFIFOW(fd,0));
@@ -2180,7 +2180,7 @@ int parse_admin(int fd) {
 							char tmpstr[24];
 							struct timeval tv;
 							if ((fp2 = lock_fopen(GM_account_filename, &lock)) != NULL) {
-								if ((fp = fopen(GM_account_filename, "r")) != NULL) {
+								if ((fp = fopen_(GM_account_filename, "r")) != NULL) {
 									gettimeofday(&tv, NULL);
 									strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
 									modify_flag = 0;
@@ -2206,7 +2206,7 @@ int parse_admin(int fd) {
 									}
 									if (modify_flag == 0)
 										fprintf(fp2, "// %s: 'ladmin' GM level on account %d '%s' (previous level: 0)" RETCODE "%d %d" RETCODE, tmpstr, acc, auth_dat[i].userid, acc, new_gm_level);
-									fclose(fp);
+									fclose_(fp);
 								} else {
 									login_log("'ladmin': Attempt to modify of a GM level - impossible to read GM accounts file (account: %s (%d), received GM level: %d, ip: %s)" RETCODE,
 									          auth_dat[i].userid, acc, (int)new_gm_level, ip);
@@ -2691,7 +2691,7 @@ int parse_admin(int fd) {
 				FILE *logfp;
 				char tmpstr[24];
 				struct timeval tv;
-				logfp = fopen(login_log_unknown_packets_filename, "a");
+				logfp = fopen_(login_log_unknown_packets_filename, "a");
 				if (logfp) {
 					gettimeofday(&tv, NULL);
 					strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
@@ -2724,7 +2724,7 @@ int parse_admin(int fd) {
 						fprintf(logfp, " %s" RETCODE, tmpstr);
 					}
 					fprintf(logfp, RETCODE);
-					fclose(logfp);
+					fclose_(logfp);
 				}
 			}
 			login_log("'ladmin': End of connection, unknown packet (ip: %s)" RETCODE, ip);
@@ -3150,7 +3150,7 @@ int parse_login(int fd) {
 				FILE *logfp;
 				char tmpstr[24];
 				struct timeval tv;
-				logfp = fopen(login_log_unknown_packets_filename, "a");
+				logfp = fopen_(login_log_unknown_packets_filename, "a");
 				if (logfp) {
 					gettimeofday(&tv, NULL);
 					strftime(tmpstr, 23, date_format, gmtime(&(tv.tv_sec)));
@@ -3183,7 +3183,7 @@ int parse_login(int fd) {
 						fprintf(logfp, " %s" RETCODE, tmpstr);
 					}
 					fprintf(logfp, RETCODE);
-					fclose(logfp);
+					fclose_(logfp);
 				}
 			}
 			login_log("End of connection, unknown packet (ip: %s)" RETCODE, ip);
@@ -3226,7 +3226,7 @@ int login_lan_config_read(const char *lancfgName) {
 	for(j = 0; j < 4; j++)
 		subnetmaski[j] = 255;
 
-	fp = fopen(lancfgName, "r");
+	fp = fopen_(lancfgName, "r");
 
 	if (fp == NULL) {
 		printf("***WARNING: LAN Support configuration file is not found: %s\n", lancfgName);
@@ -3278,7 +3278,7 @@ int login_lan_config_read(const char *lancfgName) {
 			printf("Sub-network mask of the char-server: %d.%d.%d.%d.\n", subnetmaski[0], subnetmaski[1], subnetmaski[2], subnetmaski[3]);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	// log the LAN configuration
 	login_log("The LAN configuration of the server is set:" RETCODE);
@@ -3311,7 +3311,7 @@ int login_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp = fopen(cfgName, "r");
+	fp = fopen_(cfgName, "r");
 	if (fp == NULL) {
 		printf("Configuration file (%s) not found.\n", cfgName);
 		return 1;
@@ -3483,7 +3483,7 @@ int login_config_read(const char *cfgName) {
 			}
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	printf("---End reading of Login Server configuration file.\n");
 

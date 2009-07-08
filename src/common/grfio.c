@@ -30,6 +30,7 @@
 #include "utils.h"
 #include "grfio.h"
 #include "mmo.h"
+#include "socket.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -414,7 +415,7 @@ char* grfio_resnametable(char* fname, char *lfname)
 
 	for(p=&restable[0];*p!=0;p++) if (*p=='\\') *p = '/';
 
-	fp = fopen(restable,"rb");
+	fp = fopen_(restable,"rb");
 	if(fp==NULL) {
 		printf("%s not found\n",restable);
 		exit(1);	// 1:not found error
@@ -423,11 +424,11 @@ char* grfio_resnametable(char* fname, char *lfname)
 	while(fgets(line,508,fp)){
 	    if((sscanf(line,"%[^#]#%[^#]#",w1,w2)==2) && (sscanf(fname,"%*5s%s",lfname)==1) &&  (!strcmpi(w1,lfname))){
 	         sprintf(lfname,"data\\%s",w2);
-		 fclose(fp);
+		 fclose_(fp);
 	         return lfname;
         }
     }
-    fclose(fp);
+    fclose_(fp);
     return fname;
 
 }
@@ -493,7 +494,7 @@ void* grfio_reads(char *fname, int *size)
 
 		for(p=&lfname[0];*p!=0;p++) if (*p=='\\') *p = '/';	// * At the time of Unix
 
-		in = fopen(lfname,"rb");
+		in = fopen_(lfname,"rb");
 		if(in!=NULL) {
 			if (entry!=NULL && entry->gentry==0) {
 				lentry.declen=entry->declen;
@@ -508,7 +509,7 @@ void* grfio_reads(char *fname, int *size)
 				goto errret;
 			}
 			fread(buf2,1,lentry.declen,in);
-			fclose(in); in = NULL;
+			fclose_(in); in = NULL;
 			strncpy( lentry.fn, fname, sizeof(lentry.fn)-1 );
 			lentry.gentry = 0;	// 0:LocalFile
 			entry = filelist_modify(&lentry);
@@ -530,7 +531,7 @@ void* grfio_reads(char *fname, int *size)
 			goto errret;
 		}
 		gfname = gentry_table[entry->gentry-1];
-		in = fopen(gfname,"rb");
+		in = fopen_(gfname,"rb");
 		if(in==NULL) {
 			printf("%s not found\n",gfname);
 			//goto errret;
@@ -539,7 +540,7 @@ void* grfio_reads(char *fname, int *size)
 		}
 		fseek(in,entry->srcpos,0);
 		fread(buf,1,entry->srclen_aligned,in);
-		fclose(in);
+		fclose_(in);
 		buf2=calloc(entry->declen+1024, 1);
 		if (buf2==NULL) {
 			printf("file decode memory allocate error\n");
@@ -567,7 +568,7 @@ void* grfio_reads(char *fname, int *size)
 errret:
 	if (buf!=NULL) free(buf);
 	if (buf2!=NULL) free(buf2);
-	if (in!=NULL) fclose(in);
+	if (in!=NULL) fclose_(in);
 	exit(1);	//return NULL;
 }
 
@@ -609,7 +610,7 @@ static int grfio_entryread(char *gfname,int gentry)
 	unsigned char *fname;
 	unsigned char *grf_filelist;
 
-	fp = fopen(gfname,"rb");
+	fp = fopen_(gfname,"rb");
 	if(fp==NULL) {
 		printf("%s not found\n",gfname);
 		return 1;	// 1:not found error
@@ -620,7 +621,7 @@ static int grfio_entryread(char *gfname,int gentry)
 	fseek(fp,0,0);	// SEEK_SET
 	fread(grf_header,1,0x2e,fp);
 	if(strcmp(grf_header,"Master of Magic") || fseek(fp,getlong(grf_header+0x1e),1)){	// SEEK_CUR
-		fclose(fp);
+		fclose_(fp);
 		printf("%s read error\n",gfname);
 		return 2;	// 2:file format error
 	}
@@ -631,12 +632,12 @@ static int grfio_entryread(char *gfname,int gentry)
 		list_size = grf_size-ftell(fp);
 		grf_filelist = calloc(list_size, 1);
 		if(grf_filelist==NULL){
-			fclose(fp);
+			fclose_(fp);
 			printf("out of memory : grf_filelist\n");
 			return 3;	// 3:memory alloc error
 		}
 		fread(grf_filelist,1,list_size,fp);
-		fclose(fp);
+		fclose_(fp);
 
 		entrys = getlong(grf_header+0x26) - getlong(grf_header+0x22) - 7;
 
@@ -699,26 +700,26 @@ static int grfio_entryread(char *gfname,int gentry)
 		eSize = getlong(eheader+4);	// Extend Size
 
 		if (rSize > grf_size-ftell(fp)) {
-			fclose(fp);
+			fclose_(fp);
 			printf("Illegal data format : grf compress entry size\n");
 			return 4;
 		}
 
 		rBuf = calloc( rSize , 1);	// Get a Read Size
 		if (rBuf==NULL) {
-			fclose(fp);
+			fclose_(fp);
 			printf("out of memory : grf compress entry table buffer\n");
 			return 3;
 		}
 		grf_filelist = calloc( eSize , 1);	// Get a Extend Size
 		if (grf_filelist==NULL) {
 			free(rBuf);
-			fclose(fp);
+			fclose_(fp);
 			printf("out of memory : grf extract entry table buffer\n");
 			return 3;
 		}
 		fread(rBuf,1,rSize,fp);
-		fclose(fp);
+		fclose_(fp);
 		decode_zip(grf_filelist,&eSize,rBuf,rSize);	// Decode function
 		list_size = eSize;
 		free(rBuf);
@@ -767,7 +768,7 @@ static int grfio_entryread(char *gfname,int gentry)
 		free(grf_filelist);
 
 	} else {	//****** Grf Other version ******
-		fclose(fp);
+		fclose_(fp);
 		printf("not support grf versions : %04x\n",getlong(grf_header+0x2a));
 		return 4;
 	}
@@ -903,7 +904,7 @@ void grfio_init(char *fname)
 	char line[1024], w1[1024], w2[1024];
 	int result = 0, result2 = 0, result3 = 0;
 
-	data_conf = fopen(fname, "r");
+	data_conf = fopen_(fname, "r");
 
 	// It will read, if there is grf-files.txt.
 	if (data_conf) {
@@ -920,7 +921,7 @@ void grfio_init(char *fname)
 			}
 		}
 
-		fclose(data_conf);
+		fclose_(data_conf);
 		printf("read %s done\n",fname);
 	} // end of reading grf-files.txt
 

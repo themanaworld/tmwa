@@ -864,7 +864,7 @@ int chrif_reloadGMdb(void)
 	WFIFOW(char_fd,4) = job_rate;
 	WFIFOW(char_fd,6) = drop_rate;
 
-	if ((fp = fopen(motd_txt, "r")) != NULL) {
+	if ((fp = fopen_(motd_txt, "r")) != NULL) {
 		if (fgets(buf, 250, fp) != NULL) {
 			for(i = 0; buf[i]; i++) {
 				if (buf[i] == '\r' || buf[i] == '\n') {
@@ -875,7 +875,7 @@ int chrif_reloadGMdb(void)
 			WFIFOW(char_fd,8) = sizeof(buf) + 10;
 			memcpy(WFIFOP(char_fd,10), buf, sizeof(buf));
 		}
-		fclose(fp);
+		fclose_(fp);
 	} else {
 		WFIFOW(char_fd,8) = sizeof(buf) + 10;
 		memcpy(WFIFOP(char_fd,10), buf, sizeof(buf));
@@ -1113,7 +1113,8 @@ int check_connect_char_server(int tid, unsigned int tick, int id, int data) {
 	if (char_fd <= 0 || session[char_fd] == NULL) {
 		printf("Attempt to connect to char-server...\n");
 		chrif_state = 0;
-		char_fd = make_connection(char_ip, char_port);
+		if ((char_fd = make_connection(char_ip, char_port)) < 0)
+			return 0;
 		session[char_fd]->func_parse = chrif_parse;
 		realloc_fifo(char_fd, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
 

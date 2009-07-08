@@ -666,7 +666,7 @@ int mmo_char_init(void){
   input=getchar();
   if(input == 'y' || input == 'Y'){
 	printf("\nConverting Character Database...\n");
-	fp=fopen("save/athena.txt","r");
+	fp=fopen_("save/athena.txt","r");
 	char_dat=malloc(sizeof(char_dat[0])*256);
 	char_max=256;
 	if(fp==NULL)
@@ -687,7 +687,7 @@ int mmo_char_init(void){
 	    }
 	  }
 	  printf("char data convert end\n");
-	  fclose(fp);
+	  fclose_(fp);
   }
   
   while(getchar() != '\n');  
@@ -695,7 +695,7 @@ int mmo_char_init(void){
   input=getchar();
   if(input == 'y' || input == 'Y') {
 	printf("\nConverting Storage Database...\n");
-	fp=fopen(storage_txt,"r");
+	fp=fopen_(storage_txt,"r");
 	if(fp==NULL){
 		printf("cant't read : %s\n",storage_txt);
 		return 0;
@@ -716,7 +716,7 @@ int mmo_char_init(void){
 			i++;
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
   }
 	
   while(getchar() != '\n');
@@ -724,7 +724,7 @@ int mmo_char_init(void){
   input=getchar();
   if(input == 'y' || input == 'Y') {
 	printf("\nConverting Pet Database...\n");
-	if( (fp=fopen(pet_txt,"r")) ==NULL )
+	if( (fp=fopen_(pet_txt,"r")) ==NULL )
 		return 1;
 	
 	p=malloc(sizeof(struct s_pet));
@@ -741,7 +741,7 @@ int mmo_char_init(void){
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
   }
 
   return 0;
@@ -752,7 +752,7 @@ int inter_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp=fopen(cfgName,"r");
+	fp=fopen_(cfgName,"r");
 	if(fp==NULL){
 		printf("file not found: %s\n", cfgName);
 		return 1;
@@ -790,7 +790,7 @@ int inter_config_read(const char *cfgName) {
 			printf ("set db_server_logindb : %s\n",w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	
 	printf ("success reading interserver configuration\n");
 
@@ -803,7 +803,7 @@ int char_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp=fopen(cfgName,"r");
+	fp=fopen_(cfgName,"r");
 	if(fp==NULL){
 		printf("file not found: %s\n", cfgName);
 		return 1;
@@ -821,7 +821,7 @@ int char_config_read(const char *cfgName) {
 				strcpy(char_txt, w2);
 			}
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("reading configure done.....\n");
 	
 	return 0;

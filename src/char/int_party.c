@@ -84,7 +84,7 @@ int inter_party_init() {
 
 	party_db = numdb_init();
 
-	if ((fp = fopen(party_txt, "r")) == NULL)
+	if ((fp = fopen_(party_txt, "r")) == NULL)
 		return 1;
 
 	while(fgets(line, sizeof(line) - 1, fp)) {
@@ -111,7 +111,7 @@ int inter_party_init() {
 		}
 		c++;
 	}
-	fclose(fp);
+	fclose_(fp);
 //	printf("int_party: %s read done (%d parties)\n", party_txt, c);
 
 	return 0;

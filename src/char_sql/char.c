@@ -2586,7 +2586,7 @@ int char_lan_config_read(const char *lancfgName){
 	FILE *fp;
 	struct hostent * h = NULL;
 
-	if ((fp = fopen(lancfgName, "r")) == NULL) {
+	if ((fp = fopen_(lancfgName, "r")) == NULL) {
 		printf("file not found: %s\n", lancfgName);
 		return 1;
 	}
@@ -2619,7 +2619,7 @@ int char_lan_config_read(const char *lancfgName){
 			printf("set subnetmask : %s\n", w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	printf("End reading of Lan Support configuration file\n");
 	return 0;
@@ -2667,7 +2667,7 @@ void sql_config_read(const char *cfgName){ /* Kalaspuff, to get login_db */
 
 	printf("reading configure: %s\n", cfgName);
 
-	if ((fp = fopen(cfgName, "r")) == NULL) {
+	if ((fp = fopen_(cfgName, "r")) == NULL) {
 		printf("file not found: %s\n", cfgName);
 		exit(1);
 	}
@@ -2737,7 +2737,7 @@ void sql_config_read(const char *cfgName){ /* Kalaspuff, to get login_db */
 			printf("set lowest_gm_level : %s\n",w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("reading configure done.....\n");
 }
 
@@ -2746,7 +2746,7 @@ int char_config_read(const char *cfgName) {
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	if ((fp = fopen(cfgName, "r")) == NULL) {
+	if ((fp = fopen_(cfgName, "r")) == NULL) {
 		printf("Configuration file not found: %s.\n", cfgName);
 		exit(1);
 	}
@@ -2849,7 +2849,7 @@ int char_config_read(const char *cfgName) {
 			char_config_read(w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 //Read ItemDB
 	do_init_itemdb();

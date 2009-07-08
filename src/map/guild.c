@@ -64,7 +64,7 @@ static int guild_read_castledb(void)
 	char *str[32],*p;
 	struct guild_castle *gc;
 
-	if( (fp=fopen("db/castle_db.txt","r"))==NULL){
+	if( (fp=fopen_("db/castle_db.txt","r"))==NULL){
 		printf("can't read db/castle_db.txt\n");
 		return -1;
 	}
@@ -97,7 +97,7 @@ static int guild_read_castledb(void)
 
 		ln++;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/castle_db.txt done (count=%d)\n",ln);
 	return 0;
 }

@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #ifdef LCCWIN32
 #define WIN32_LEAN_AND_MEAN
@@ -30,6 +31,7 @@
 
 fd_set readfds;
 int fd_max;
+int currentuse;
 
 int rfifo_size = 65536;
 int wfifo_size = 65536;
@@ -74,6 +76,7 @@ static int recv_to_fifo(int fd)
 	//{ int i; printf("recv %d : ",fd); for(i=0;i<len;i++){ printf("%02x ",RFIFOB(fd,session[fd]->rdata_size+i)); } printf("\n");}
 	if(len>0){
 		session[fd]->rdata_size+=len;
+		if (!session[fd]->connected) session[fd]->connected = 1;
 	} else if(len<=0){
 		// value of connection is not necessary the same
 //		if (fd == 4)			// Removed [Yor]
@@ -117,6 +120,7 @@ static int send_from_fifo(int fd)
 		} else {
 			session[fd]->wdata_size=0;
 		}
+		if (!session[fd]->connected) session[fd]->connected = 1;
 	} else {
 		printf("set eof :%d\n",fd);
 		session[fd]->eof=1;
@@ -146,6 +150,8 @@ static int connect_client(int listen_fd)
 
 	//printf("connect_client : %d\n",listen_fd);
 
+	printf("used: %d, max FDs: %d, SOFT: %d\n", currentuse, FD_SETSIZE, SOFT_LIMIT);
+
 	len = sizeof(client_address);
 
 	fd = accept(listen_fd,(struct sockaddr*)&client_address,&len);
@@ -155,6 +161,11 @@ static int connect_client(int listen_fd)
 		perror("accept");
                 return -1;
 	}
+  	if (!free_fds()) { // gracefully end the connecting if no free FD
+  		printf("softlimit reached, disconnecting : %d\n", fd);
+  		delete_session(fd);
+  		return -1;
+  	}
 
 //	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,NULL,0);
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char *)&yes,sizeof yes); // reuse fix
@@ -186,6 +197,10 @@ static int connect_client(int listen_fd)
 	session[fd]->func_send   = send_from_fifo;
 	session[fd]->func_parse  = default_func_parse;
 	session[fd]->client_addr = client_address;
+	session[fd]->created = time(NULL);
+	session[fd]->connected = 0;
+
+	currentuse++;
 
   //printf("new_session : %d %d\n",fd,session[fd]->eof);
   return fd;
@@ -200,6 +215,10 @@ int make_listen_port(int port)
 
 	fd = socket( AF_INET, SOCK_STREAM, 0 );
 	if(fd_max<=fd) fd_max=fd+1;
+	else if (fd == -1) {
+		perror("connect");
+		return -1;
+	}
 
 #ifdef LCCWIN32
         {
@@ -244,7 +263,10 @@ int make_listen_port(int port)
 	}
 	memset(session[fd],0,sizeof(*session[fd]));
 	session[fd]->func_recv = connect_client;
+	session[fd]->created = time(NULL);
+	session[fd]->connected = 1;
 
+	currentuse++;
 	return fd;
 }
 
@@ -257,6 +279,11 @@ int make_connection(long ip,int port)
 
 	fd = socket( AF_INET, SOCK_STREAM, 0 );
 	if(fd_max<=fd) fd_max=fd+1;
+	else if (fd == -1) {
+		perror("socket");
+		return -1;
+	}
+
 //	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,NULL,0);
 	setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(char *)&yes,sizeof yes); // reuse fix
 #ifdef SO_REUSEPORT
@@ -292,7 +319,10 @@ int make_connection(long ip,int port)
 	session[fd]->func_recv  = recv_to_fifo;
 	session[fd]->func_send  = send_from_fifo;
 	session[fd]->func_parse = default_func_parse;
+	session[fd]->created = time(NULL);
+	session[fd]->connected = 1;
 
+	currentuse++;
 	return fd;
 }
 
@@ -311,6 +341,13 @@ int delete_session(int fd)
 		free(session[fd]);
 	}
 	session[fd]=NULL;
+	shutdown(fd, SHUT_RDWR);
+	close(fd);
+	currentuse--;
+	if (currentuse<0) {
+		printf("delete_session: current sessions negative!\n");
+		currentuse=0;
+	}
 	//printf("delete_session:%d\n",fd);
 	return 0;
 }
@@ -390,6 +427,10 @@ int do_parsepacket(void)
 	for(i=0;i<fd_max;i++){
 		if(!session[i])
 			continue;
+		if(!session[i]->connected && time(NULL)-session[i]->created > CONNECT_TIMEOUT) {
+			printf("Session #%d timed out\n", i);
+			session[i]->eof = 1;
+		}
 		if(session[i]->rdata_size==0 && session[i]->eof==0)
 			continue;
 		if(session[i]->func_parse){
@@ -405,6 +446,7 @@ int do_parsepacket(void)
 void do_socket(void)
 {
 	FD_ZERO(&readfds);
+	currentuse = 2;
 }
 
 int RFIFOSKIP(int fd,int len)
@@ -436,5 +478,28 @@ int  Net_Init(void)
 	#endif
 
 	return(0);
+}
+
+int fclose_(FILE *fp)
+{
+	int res = fclose(fp);
+	if (res == 0)
+		currentuse--;
+//	printf("file closed: used: %d\n",currentuse);
+	return res;
+}
+
+FILE *fopen_(const char *path, const char *mode)
+{
+	FILE *f = fopen(path, mode);
+	if (f != NULL)
+		currentuse++;
+//	printf("file opened: used: %d\n",currentuse);
+	return f;
+}
+
+int free_fds()
+{
+	return (currentuse+1 < SOFT_LIMIT) ? 1 : 0;
 }
 

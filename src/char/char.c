@@ -122,7 +122,7 @@ int char_log(char *fmt, ...) {
 
 	va_start(ap, fmt);
 
-	logfp = fopen(char_log_filename, "a");
+	logfp = fopen_(char_log_filename, "a");
 	if (logfp) {
 		if (fmt[0] == '\0') // jump a line if no message
 			fprintf(logfp, RETCODE);
@@ -132,7 +132,7 @@ int char_log(char *fmt, ...) {
 			sprintf(tmpstr + 19, ".%03d: %s", (int)tv.tv_usec / 1000, fmt);
 			vfprintf(logfp, tmpstr, ap);
 		}
-		fclose(logfp);
+		fclose_(logfp);
 	}
 
 	va_end(ap);
@@ -558,7 +558,7 @@ int mmo_char_init(void) {
 
 	char_num = 0;
 
-	fp = fopen(char_txt, "r");
+	fp = fopen_(char_txt, "r");
 	if (fp == NULL) {
 		printf("Characters file not found: %s.\n", char_txt);
 		char_log("Characters file not found: %s." RETCODE, char_txt);
@@ -637,7 +637,7 @@ int mmo_char_init(void) {
 			char_log("%s", line);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	if (char_num == 0) {
 		printf("mmo_char_init: No character found in %s.\n", char_txt);
@@ -1091,9 +1091,9 @@ void create_online_files(void) {
 	}
 
 	// write files
-	fp = fopen(online_txt_filename, "w");
+	fp = fopen_(online_txt_filename, "w");
 	if (fp != NULL) {
-		fp2 = fopen(online_html_filename, "w");
+		fp2 = fopen_(online_html_filename, "w");
 		if (fp2 != NULL) {
 			// get time
 			time(&time_server); // get time in seconds since 1/1/1970
@@ -1256,9 +1256,9 @@ void create_online_files(void) {
 			}
 			fprintf(fp2, "  </BODY>\n");
 			fprintf(fp2, "</HTML>\n");
-			fclose(fp2);
+			fclose_(fp2);
 		}
-		fclose(fp);
+		fclose_(fp);
 	}
 
 	return;
@@ -2975,7 +2975,8 @@ int send_users_tologin(int tid, unsigned int tick, int id, int data) {
 int check_connect_login_server(int tid, unsigned int tick, int id, int data) {
 	if (login_fd <= 0 || session[login_fd] == NULL) {
 		printf("Attempt to connect to login-server...\n");
-		login_fd = make_connection(login_ip, login_port);
+		if ((login_fd = make_connection(login_ip, login_port)) < 0)
+			return 0;
 		session[login_fd]->func_parse = parse_tologin;
 		realloc_fifo(login_fd, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
 		WFIFOW(login_fd,0) = 0x2710;
@@ -3027,7 +3028,7 @@ int lan_config_read(const char *lancfgName) {
 	for(j = 0; j < 4; j++)
 		subnetmaski[j] = 255;
 
-	fp = fopen(lancfgName, "r");
+	fp = fopen_(lancfgName, "r");
 
 	if (fp == NULL) {
 		printf("LAN support configuration file not found: %s\n", lancfgName);
@@ -3079,7 +3080,7 @@ int lan_config_read(const char *lancfgName) {
 			printf("Sub-network mask of the map-server: %d.%d.%d.%d.\n", subnetmaski[0], subnetmaski[1], subnetmaski[2], subnetmaski[3]);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	// sub-network check of the map-server
 	{
@@ -3101,7 +3102,7 @@ int lan_config_read(const char *lancfgName) {
 int char_config_read(const char *cfgName) {
 	struct hostent *h = NULL;
 	char line[1024], w1[1024], w2[1024];
-	FILE *fp = fopen(cfgName, "r");
+	FILE *fp = fopen_(cfgName, "r");
 
 	if (fp == NULL) {
 		printf("Configuration file not found: %s.\n", cfgName);
@@ -3231,7 +3232,7 @@ int char_config_read(const char *cfgName) {
 			char_config_read(w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }

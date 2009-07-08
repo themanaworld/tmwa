@@ -262,8 +262,8 @@ int mmo_char_convert(char *fname1,char *fname2)
 	struct mmo_charstatus char_dat;
   FILE *ifp,*ofp;
 
-	ifp=fopen(fname1,"r");
-	ofp=fopen(fname2,"w");
+	ifp=fopen_(fname1,"r");
+	ofp=fopen_(fname2,"w");
   if(ifp==NULL) {
   	printf("file not found %s\n",fname1);
     return 0;

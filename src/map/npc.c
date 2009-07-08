@@ -21,6 +21,7 @@
 #include "pc.h"
 #include "script.h"
 #include "skill.h"
+#include "../common/socket.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -2008,7 +2009,7 @@ int do_init_npc(void)
 			free(nsl->prev);
 			nsl->prev = NULL;
 		}
-		fp=fopen(nsl->name,"r");
+		fp=fopen_(nsl->name,"r");
 		if (fp==NULL) {
 			printf("file not found : %s\n",nsl->name);
 			exit(1);
@@ -2065,7 +2066,7 @@ int do_init_npc(void)
 				npc_parse_mapflag(w1,w2,w3,w4);
 			}
 		}
-		fclose(fp);
+		fclose_(fp);
 		printf("\rLoading NPCs [%d]: %-54s",npc_id-START_NPC_NUM,nsl->name);
 		fflush(stdout);
 	}

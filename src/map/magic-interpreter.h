@@ -29,6 +29,7 @@
 #include "trade.h"
 
 #include "../common/timer.h"
+#include "../common/socket.h"
 
 #define SPELLARG_NONE	0	/* No spell parameter */
 #define SPELLARG_PC	1	/* Spell parameter describes pc (defaults to self) */

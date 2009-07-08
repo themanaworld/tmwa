@@ -3224,7 +3224,7 @@ magic_init(char *conffile) // must be called after itemdb initialisation
         INTERN_ASSERT("script_target", VAR_SCRIPTTARGET);
         INTERN_ASSERT("location", VAR_LOCATION);
 
-        magic_frontend_in = fopen(conffile, "r");
+        magic_frontend_in = fopen_(conffile, "r");
         if (!magic_frontend_in) {
                 fprintf(stderr, "[magic-conf] Magic configuration file `%s' not found -> no magic.\n", conffile);
                 return 0;

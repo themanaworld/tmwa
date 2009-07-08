@@ -1399,7 +1399,7 @@ int login_lan_config_read(const char *lancfgName){
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp=fopen(lancfgName, "r");
+	fp=fopen_(lancfgName, "r");
 
 	if (fp == NULL) {
 		printf("file not found: %s\n", lancfgName);
@@ -1427,7 +1427,7 @@ int login_lan_config_read(const char *lancfgName){
 			printf ("set subnetmask : %s\n",w2);
 			}
 		}
-	fclose(fp);
+	fclose_(fp);
 
 	{
 		unsigned int a0, a1, a2, a3;
@@ -1466,7 +1466,7 @@ int login_config_read(const char *cfgName){
 	char line[1024], w1[1024], w2[1024];
 	FILE *fp;
 
-	fp=fopen(cfgName,"r");
+	fp=fopen_(cfgName,"r");
 
 	if(fp==NULL){
 		printf("Configuration file (%s) not found.\n", cfgName);
@@ -1557,7 +1557,7 @@ int login_config_read(const char *cfgName){
                 check_ip_flag = config_switch(w2);
     	}
  	}
-	fclose(fp);
+	fclose_(fp);
 	printf ("End reading configuration...\n");
 	return 0;
 }
@@ -1566,7 +1566,7 @@ void sql_config_read(const char *cfgName){ /* Kalaspuff, to get login_db */
 	int i;
 	char line[1024], w1[1024], w2[1024];
 	printf("reading configure: %s\n", cfgName);
-	FILE *fp=fopen(cfgName,"r");
+	FILE *fp=fopen_(cfgName,"r");
 	if(fp==NULL){
 		printf("file not found: %s\n",cfgName);
 		exit(1);
@@ -1619,7 +1619,7 @@ void sql_config_read(const char *cfgName){ /* Kalaspuff, to get login_db */
 			strcpy(loginlog_db, w2);
 		}
         }
-        fclose(fp);
+        fclose_(fp);
         printf("reading configure done.....\n");
 }
 

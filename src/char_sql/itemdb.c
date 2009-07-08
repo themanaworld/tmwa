@@ -105,7 +105,7 @@ static int itemdb_readdb(void)
 	char *str[32],*p,*np;
 	struct item_data *id;
 
-	fp=fopen("db/item_db.txt","r");
+	fp=fopen_("db/item_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/item_db.txt\n");
 		exit(1);
@@ -134,7 +134,7 @@ static int itemdb_readdb(void)
 		id->type=atoi(str[3]);
 
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/item_db.txt done (count=%d)\n",ln);
 	return 0;
 }

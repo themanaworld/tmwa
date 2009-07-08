@@ -1090,7 +1090,7 @@ static void read_constdb(void)
 	char line[1024],name[1024];
 	int val,n,i,type;
 
-	fp=fopen("db/const.txt","r");
+	fp=fopen_("db/const.txt","r");
 	if(fp==NULL){
 		printf("can't read db/const.txt\n");
 		return ;
@@ -1111,7 +1111,7 @@ static void read_constdb(void)
 			str_data[n].val=val;
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 }
 
 /*==========================================
@@ -6549,7 +6549,7 @@ static int script_load_mapreg()
 	FILE *fp;
 	char line[1024];
 
-	if( (fp=fopen(mapreg_txt,"rt"))==NULL )
+	if( (fp=fopen_(mapreg_txt,"rt"))==NULL )
 		return -1;
 
 	while(fgets(line,sizeof(line),fp)){
@@ -6576,7 +6576,7 @@ static int script_load_mapreg()
 			numdb_insert(mapreg_db,(i<<24)|s,v);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	mapreg_dirty=0;
 	return 0;
 }
@@ -6666,7 +6666,7 @@ int script_config_read(char *cfgName)
 	script_config.check_cmdcount=8192;
 	script_config.check_gotocount=512;
 
-	fp=fopen(cfgName,"r");
+	fp=fopen_(cfgName,"r");
 	if(fp==NULL){
 		printf("file not found: %s\n",cfgName);
 		return 1;
@@ -6684,7 +6684,7 @@ int script_config_read(char *cfgName)
 			script_config_read(w2);
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 
 	return 0;
 }

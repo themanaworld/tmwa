@@ -798,7 +798,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	{
 		char buf[256];
 		FILE *fp;
-		if ((fp = fopen(motd_txt, "r")) != NULL) {
+		if ((fp = fopen_(motd_txt, "r")) != NULL) {
 			while (fgets(buf, sizeof(buf)-1, fp) != NULL) {
 				int i;
 				for(i=0; buf[i]; i++) {
@@ -809,12 +809,14 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 				}
 				clif_displaymessage(sd->fd, buf);
 			}
-			fclose(fp);
+			fclose_(fp);
 		}
 	}
 
 	sd->chat_reset_due = sd->chat_lines_in = 0;
 	sd->chat_lastmsg[0] = '\0';
+	
+	sd->trade_reset_due = sd->trades_in = 0;
 
 	// message of the limited time of the account
 	if (connect_until_time != 0) { // don't display if it's unlimited or unknow value
@@ -7328,7 +7330,7 @@ int pc_readdb(void)
 
 	// �K�v�o���l�ǂݍ���
 
-	fp=fopen("db/exp.txt","r");
+	fp=fopen_("db/exp.txt","r");
 	if(fp==NULL){
 		printf("can't read db/exp.txt\n");
 		return 1;
@@ -7358,11 +7360,11 @@ int pc_readdb(void)
 		if(i >= battle_config.maximum_level)
 			break;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/exp.txt done\n");
 
 	// JOB�␳���l�P
-	fp=fopen("db/job_db1.txt","r");
+	fp=fopen_("db/job_db1.txt","r");
 	if(fp==NULL){
 		printf("can't read db/job_db1.txt\n");
 		return 1;
@@ -7392,11 +7394,11 @@ int pc_readdb(void)
 		if(i==MAX_PC_CLASS)
 			break;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/job_db1.txt done\n");
 
 	// JOB�{�[�i�X
-	fp=fopen("db/job_db2.txt","r");
+	fp=fopen_("db/job_db2.txt","r");
 	if(fp==NULL){
 		printf("can't read db/job_db2.txt\n");
 		return 1;
@@ -7420,11 +7422,11 @@ int pc_readdb(void)
 		if(i==MAX_PC_CLASS)
 			break;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/job_db2.txt done\n");
 
 	// JOB�{�[�i�X2 �]���E�p
-	fp=fopen("db/job_db2-2.txt","r");
+	fp=fopen_("db/job_db2-2.txt","r");
 	if(fp==NULL){
 		printf("can't read db/job_db2-2.txt\n");
 		return 1;
@@ -7444,12 +7446,12 @@ int pc_readdb(void)
 		if(i==MAX_PC_CLASS)
 			break;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/job_db2-2.txt done\n");
 
 	// �X�L���c���[
 	memset(skill_tree,0,sizeof(skill_tree));
-	fp=fopen("db/skill_tree.txt","r");
+	fp=fopen_("db/skill_tree.txt","r");
 	if(fp==NULL){
 		printf("can't read db/skill_tree.txt\n");
 		return 1;
@@ -7478,7 +7480,7 @@ int pc_readdb(void)
 			skill_tree[2][i][j].need[k].lv=atoi(split[k*2+4]); //�{�q�E�͗ǂ��������Ȃ��̂Ŏb��
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/skill_tree.txt done\n");
 
 	// �����C���e�[�u��
@@ -7486,7 +7488,7 @@ int pc_readdb(void)
 		for(j=0;j<10;j++)
 			for(k=0;k<10;k++)
 				attr_fix_table[i][j][k]=100;
-	fp=fopen("db/attr_fix.txt","r");
+	fp=fopen_("db/attr_fix.txt","r");
 	if(fp==NULL){
 		printf("can't read db/attr_fix.txt\n");
 		return 1;
@@ -7524,14 +7526,14 @@ int pc_readdb(void)
 			i++;
 		}
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/attr_fix.txt done\n");
 
 	// �T�C�Y�␳�e�[�u��
 	for(i=0;i<3;i++)
 		for(j=0;j<20;j++)
 			atkmods[i][j]=100;
-	fp=fopen("db/size_fix.txt","r");
+	fp=fopen_("db/size_fix.txt","r");
 	if(fp==NULL){
 		printf("can't read db/size_fix.txt\n");
 		return 1;
@@ -7553,7 +7555,7 @@ int pc_readdb(void)
 			atkmods[i][j]=atoi(split[j]);
 		i++;
 	}
-	fclose(fp);
+	fclose_(fp);
 	printf("read db/size_fix.txt done\n");
 
 	// ���B�f�[�^�e�[�u��
@@ -7564,7 +7566,7 @@ int pc_readdb(void)
 		refinebonus[i][1]=0;
 		refinebonus[i][2]=10;
 	}
-	fp=fopen("db/refine_db.txt","r");
+	fp=fopen_("db/refine_db.txt","r");
 	if(fp==NULL){
 		printf("can't read db/refine_db.txt\n");
 		return 1;
@@ -7589,7 +7591,7 @@ int pc_readdb(void)
 			percentrefinery[i][j]=atoi(split[j+3]);
 		i++;
 	}
-	fclose(fp); //Lupus. close this file!!!
+	fclose_(fp); //Lupus. close this file!!!
 	printf("read db/refine_db.txt done\n");
 
 	return 0;
@@ -7617,7 +7619,7 @@ static void pc_statpointdb(void)
 
 	FILE *stp;
 
-	stp=fopen("db/statpoint.txt","r");
+	stp=fopen_("db/statpoint.txt","r");
 
 	if(stp==NULL){
 		printf("can't read db/statpoint.txt\n");
@@ -7630,7 +7632,7 @@ static void pc_statpointdb(void)
 
 	buf_stat = (char *) malloc (end + 1);
 	l = fread(buf_stat,1,end,stp);
-	fclose(stp);
+	fclose_(stp);
 	printf("read db/statpoint.txt done (size=%d)\n",l);
 
 	for(i=0;i<255;i++) {
