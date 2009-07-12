@@ -285,6 +285,7 @@ int buildin_isin(struct script_state *st); // [Jaxad0127]
 int buildin_shop(struct script_state *st); // [MadCamel]
 int buildin_isdead(struct script_state *st);  // [Jaxad0127]
 int buildin_fakenpcname(struct script_state *st); //[Kage]
+int buildin_unequip_by_id(struct script_state *st); // [Freeyorp]
 
 void push_val(struct script_stack *stack,int type,int val);
 int run_func(struct script_state *st);
@@ -490,7 +491,9 @@ struct {
 	{buildin_isin,"isin","siiii"},
 	{buildin_shop,"shop","s"},
 	{buildin_isdead,"isdead","i"},
-	{buildin_fakenpcname,"fakenpcname","ssi"}, //End Additions
+	{buildin_fakenpcname,"fakenpcname","ssi"},
+	{buildin_unequip_by_id,"unequipbyid","i"}, // [Freeyorp]
+	// End Additions
 	{NULL,NULL,NULL},
 };
 int buildin_message(struct script_state *st); // [MouseJstr]
@@ -5660,6 +5663,27 @@ int buildin_nude(struct script_state *st)
 	for(i=0;i<11;i++) 
 		if(sd->equip_index[i] >= 0)
 			pc_unequipitem(sd,sd->equip_index[i], i);
+        pc_calcstatus(sd, 0);
+
+	return 0;
+}
+
+/*==========================================
+ * UnequipById [Freeyorp]
+ *------------------------------------------
+ */
+
+int buildin_unequip_by_id(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+	if(sd==NULL)
+		return 0;
+
+	int slot_id = conv_num(st,& (st->stack->stack_data[st->start+2]));
+
+	if(slot_id>=0 && slot_id<11 && sd->equip_index[slot_id] >= 0)
+		pc_unequipitem(sd,sd->equip_index[slot_id], slot_id);
+
         pc_calcstatus(sd, 0);
 
 	return 0;
