@@ -954,6 +954,13 @@ fun_running_status_update(env_t *env, int args_nr, val_t *result, val_t *args)
 }
 
 static int
+fun_is_gm_invisible(env_t *env, int args_nr, val_t *result, val_t *args)
+{
+        RESULTINT = ((((struct map_session_data *)ARGENTITY(0))->status.option & 4096) != 0);
+        return 0;
+}
+
+static int
 fun_element(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         RESULTINT = battle_get_element(ARGENTITY(0)) % 10;
@@ -1179,6 +1186,7 @@ static fun_t functions[] = {
         { "count_item", "e.", 'i', fun_count_item },
         { "line_of_sight", "ll", 'i', fun_line_of_sight },
         { "running_status_update", "ei", 'i', fun_running_status_update },
+        { "is_gm_invisible", "e", 'i', fun_is_gm_invisible },
         { "element", "e", 'i', fun_element },
         { "element_level", "e", 'i', fun_element_level },
         { "has_shroud", "e", 'i', fun_has_shroud },
