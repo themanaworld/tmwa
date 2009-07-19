@@ -2951,12 +2951,15 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 	int i;
 	nullpo_retr(1, sd);
 
+	if (sd->trade_partner != 0 || sd->npc_id != 0 || sd->state.storage_flag)
+		return 0; // no dropping while trading/npc/storage
+
 	if(n < 0 || n >= MAX_INVENTORY)
 		return 0;
 
 	if(amount <= 0)
 		return 0;
-    
+
 	for (i = 0; i < 11; i++) {
 		if (equip_pos[i] > 0 && sd->equip_index[i] == n) {      //Slot taken, remove item from there.
 		    pc_unequipitem(sd, sd->equip_index[i], 1);
