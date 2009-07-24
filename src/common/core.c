@@ -7,6 +7,7 @@
 #include <unistd.h>
 #endif
 #include <signal.h>
+#include <wait.h>
 
 #include "core.h"
 #include "socket.h"
@@ -47,6 +48,9 @@ static void sig_proc(int sn)
 			close(i);
 		}
 		exit(0);
+		break;
+	case SIGCHLD:
+		wait(&i);
 		break;
 	}
 }
@@ -135,7 +139,8 @@ int main(int argc,char **argv)
 	compat_signal(SIGPIPE,SIG_IGN);
 	compat_signal(SIGTERM,sig_proc);
 	compat_signal(SIGINT,sig_proc);
-	
+	compat_signal(SIGCHLD,sig_proc);
+
 	// Signal to create coredumps by system when necessary (crash)
 	compat_signal(SIGSEGV, SIG_DFL);
 #ifndef LCCWIN32

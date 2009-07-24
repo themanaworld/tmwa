@@ -720,8 +720,20 @@ void mmo_char_sync(void) {
 // Function to save (in a periodic way) datas in files
 //----------------------------------------------------
 int mmo_char_sync_timer(int tid, unsigned int tick, int id, int data) {
+	pid_t pid;
+
+	// This can take a lot of time. Fork a child to handle the work and return at once
+	// If we're unable to fork just continue running the function normally
+	if ((pid = fork()) > 0)
+		return 0;
+
 	mmo_char_sync();
 	inter_save();
+
+	// If we're a child we should suicide now.
+	if (pid == 0)
+		exit(0);
+
 	return 0;
 }
 
