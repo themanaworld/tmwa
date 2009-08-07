@@ -917,7 +917,6 @@ int make_new_char(int fd, unsigned char *dat) {
 	memcpy(&char_dat[i].save_point, &start_point, sizeof(start_point));
 	char_num++;
 
-	mmo_char_sync();
 	return i;
 }
 
