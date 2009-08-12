@@ -2948,7 +2948,6 @@ int pc_delitem(struct map_session_data *sd,int n,int amount,int type)
  */
 int pc_dropitem(struct map_session_data *sd,int n,int amount)
 {
-	int i;
 	nullpo_retr(1, sd);
 
 	if (sd->trade_partner != 0 || sd->npc_id != 0 || sd->state.storage_flag)
@@ -2960,12 +2959,7 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 	if(amount <= 0)
 		return 0;
 
-	for (i = 0; i < 11; i++) {
-		if (equip_pos[i] > 0 && sd->equip_index[i] == n) {      //Slot taken, remove item from there.
-		    pc_unequipitem(sd, sd->equip_index[i], 1);
-		    sd->equip_index[i] = -1;
-            	}
-	}
+	pc_unequipinvyitem(sd, n, 1);
 
 
 	if (sd->status.inventory[n].nameid <= 0 ||
@@ -6502,6 +6496,22 @@ int pc_unequipitem(struct map_session_data *sd,int n,int type)
 		pc_calcstatus(sd,0);
 		if(sd->sc_data[SC_SIGNUMCRUCIS].timer != -1 && !battle_check_undead(7,sd->def_ele))
 			skill_status_change_end(&sd->bl,SC_SIGNUMCRUCIS,-1);
+	}
+
+	return 0;
+}
+
+int pc_unequipinvyitem(struct map_session_data* sd, int n, int type)
+{
+	int i;
+
+	nullpo_retr(1, sd);
+
+	for (i = 0; i < 11; i++) {
+		if (equip_pos[i] > 0 && sd->equip_index[i] == n) {      //Slot taken, remove item from there.
+			pc_unequipitem(sd, sd->equip_index[i], type);
+			sd->equip_index[i] = -1;
+		}
 	}
 
 	return 0;
