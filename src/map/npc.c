@@ -836,7 +836,10 @@ int npc_click(struct map_session_data *sd,int id)
 		break;
         case MESSAGE:
                 if (nd->u.message)
+		{
                     clif_scriptmes(sd, id, nd->u.message);
+		    clif_scriptclose(sd, id);
+		}
                 break;
 	}
 
