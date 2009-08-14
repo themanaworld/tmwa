@@ -63,7 +63,6 @@ int clif_damage(struct block_list *,struct block_list *,unsigned int,int,int,int
 #define clif_takeitem(src,dst) clif_damage(src,dst,0,0,0,0,0,1,0)
 int clif_changelook(struct block_list *,int,int);	// area
 int clif_changelook_towards(struct block_list *,int,int, struct map_session_data *dst);	// area or target
-int clif_changehair(struct block_list *,int,int);
 void clif_changelook_accessories(struct block_list *bl, struct map_session_data *dst); // area or target; list gloves, boots etc.
 int clif_arrowequip(struct map_session_data *sd,int val); //self
 int clif_arrow_fail(struct map_session_data *sd,int type); //self

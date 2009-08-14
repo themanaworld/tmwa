@@ -5763,11 +5763,7 @@ int pc_changelook(struct map_session_data *sd,int type,int val)
 	case LOOK_SHOES:
 		break;
 	}
-	
-	if (type == LOOK_HAIR || type == LOOK_HAIR_COLOR)
-	    clif_changehair(&sd->bl,sd->status.hair,sd->status.hair_color);
-	else
-	    clif_changelook(&sd->bl,type,val);
+	clif_changelook(&sd->bl,type,val);
 
 	return 0;
 }

@@ -2388,35 +2388,6 @@ int clif_changelook_towards(struct block_list *bl,int type,int val, struct map_s
 	return 0;
 }
 
-int clif_changehair(struct block_list *bl,  int hairStyle, int hairColor)
-{
-        unsigned char buf[32];
-	struct map_session_data *sd = NULL;
-
-	nullpo_retr(0, bl);
-
-	if(bl->type == BL_PC)
-		sd = (struct map_session_data *)bl;
-
-	if(sd && sd->disguise > 23 && sd->disguise < 4001) // mob disguises [Valaris]
-		return 0;
-
-	if (sd && sd->status.option & OPTION_INVISIBILITY)
-		return 0;
-
-	WBUFW(buf,0)=0x1d7;
-	WBUFL(buf,2)=bl->id;
-	WBUFB(buf,6)=LOOK_HAIR;
-	WBUFW(buf,7)=hairStyle;
-	WBUFW(buf,9)=hairColor;
-	clif_send(buf, packet_len_table[0x1d7], bl, AREA);
-
-	WBUFB(buf,6)=LOOK_HAIR_COLOR;
-	WBUFW(buf,7)=hairColor;
-	WBUFW(buf,9)=hairStyle;
-	clif_send(buf, packet_len_table[0x1d7], bl, AREA);
-}
-
 /*==========================================
  *
  *------------------------------------------
