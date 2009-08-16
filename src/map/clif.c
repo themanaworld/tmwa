@@ -756,8 +756,7 @@ static int clif_set0078(struct map_session_data *sd, unsigned char *buf) {
 	WBUFB(buf,45)=sd->sex;
 	WBUFPOS(buf,46,sd->bl.x,sd->bl.y);
 	WBUFB(buf,48)|=sd->dir&0x0f;
-	WBUFB(buf,49)=5;
-	WBUFB(buf,50)=5;
+	WBUFW(buf,49)=pc_isGM(sd) >= 60 ? 0x80 : 0;
 	WBUFB(buf,51)=sd->state.dead_sit;
 	WBUFW(buf,52)=((level = battle_get_lv(&sd->bl)) > battle_config.max_lv) ? battle_config.max_lv : level;
 
@@ -830,8 +829,7 @@ static int clif_set007b(struct map_session_data *sd,unsigned char *buf) {
 	WBUFB(buf,48)=sd->status.karma;
 	WBUFB(buf,49)=sd->sex;
 	WBUFPOS2(buf,50,sd->bl.x,sd->bl.y,sd->to_x,sd->to_y);
-	WBUFB(buf,55)=0;
-	WBUFB(buf,56)=5;
+	WBUFW(buf,55)=pc_isGM(sd) >= 60 ? 0x80 : 0;
 	WBUFB(buf,57)=5;
 	WBUFW(buf,58)=(sd->status.base_level>battle_config.max_lv)?battle_config.max_lv:sd->status.base_level;
 

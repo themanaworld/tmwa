@@ -790,7 +790,10 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	pc_calcstatus(sd,1);
 
 	if (pc_isGM(sd))
+	{
 		printf("Connection accepted: character '%s' (account: %d; GM level %d).\n", sd->status.name, sd->status.account_id, pc_isGM(sd));
+		clif_updatestatus(sd, SP_GM);
+	}
 	else
 		printf("Connection accepted: Character '%s' (account: %d).\n", sd->status.name, sd->status.account_id);
 
