@@ -361,6 +361,9 @@ struct map_session_data {
 
 	time_t trade_reset_due;
 	int trades_in;
+
+	time_t sit_reset_due;
+	int sits_in;
 };
 
 struct npc_timerevent_list {

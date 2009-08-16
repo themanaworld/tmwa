@@ -6503,7 +6503,8 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
         memcpy(WBUFP(buf,8), RFIFOP(fd,4), RFIFOW(fd,2) - 4);
 
 	if (malformed || !magic_message(sd, buf, msg_len)) {
-                tmw_CheckChatSpam(sd, RFIFOP(fd,4));
+                if (tmw_CheckChatSpam(sd, RFIFOP(fd,4)))
+			return;
 
                 if ((malformed)||(pc_isdead(sd))) {
                         free(buf);
@@ -6674,6 +6675,8 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd) {
 		break;
 	case 0x02: // sitdown
 		if (battle_config.basic_skill_check == 0 || pc_checkskill(sd, NV_BASIC) >= 3) {
+			if (tmw_CheckSitSpam(sd))
+				break;
 			pc_stop_walking(sd, 1);
 			skill_gangsterparadise(sd, 1); // �M�����O�X�^�[�p���_�C�X�ݒ�
 			pc_setsit(sd);
@@ -6748,7 +6751,8 @@ void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <ni
 	    return;
 	}
 
-	tmw_CheckChatSpam(sd, RFIFOP(fd,28));
+	if (tmw_CheckChatSpam(sd, RFIFOP(fd,28)))
+		return;
 
 	if (strlen(RFIFOP(fd,28)) >=  battle_config.chat_maxline)
 		return;
@@ -7082,7 +7086,8 @@ void clif_parse_TradeRequest(int fd,struct map_session_data *sd)
 	nullpo_retv(sd);
 
 	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 1){
-		tmw_CheckTradeSpam(sd);
+		if (tmw_CheckTradeSpam(sd))
+			return;
 		trade_traderequest(sd,RFIFOL(sd->fd,2));
 	} else
 		clif_skill_fail(sd,1,0,0);
