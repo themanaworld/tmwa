@@ -944,7 +944,10 @@ int npc_buylist(struct map_session_data *sd,int n,unsigned short *item_list)
 		case ADDITEM_EXIST:
 			break;
 		case ADDITEM_NEW:
-			new++;
+			if (itemdb_isequip)
+			    new += item_list[i*2];
+			else
+			    new++;
 			break;
 		case ADDITEM_OVERAMOUNT:
 			return 2;
@@ -952,6 +955,7 @@ int npc_buylist(struct map_session_data *sd,int n,unsigned short *item_list)
 
 		w+=itemdb_weight(item_list[i*2+1]) * item_list[i*2];
 	}
+
 	if (z > (double)sd->status.zeny)
 		return 1;	// zeny�s��
 	if (w+sd->weight > sd->max_weight)
