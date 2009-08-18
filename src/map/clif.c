@@ -6506,7 +6506,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd) { // S 008c <
                 if (tmw_CheckChatSpam(sd, RFIFOP(fd,4)))
 			return;
 
-                if ((malformed)||(pc_isdead(sd))) {
+                if (malformed) {
                         free(buf);
                         return;
                 }
