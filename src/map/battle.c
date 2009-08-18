@@ -4524,8 +4524,13 @@ int battle_config_read(const char *cfgName)
 
 		battle_config.trade_spam_threshold = 10;
 		battle_config.trade_spam_flood = 10;
-		battle_config.trade_spam_ban = 1;
+		battle_config.trade_spam_ban = 0;
 		battle_config.trade_spam_warn = 8;
+
+		battle_config.sit_spam_threshold = 1;
+		battle_config.sit_spam_flood = 15;
+		battle_config.sit_spam_ban = 0;
+		battle_config.sit_spam_warn = 3;
 	}
 
 	fp = fopen_(cfgName,"r");
@@ -4737,7 +4742,11 @@ int battle_config_read(const char *cfgName)
 			{ "trade_spam_threshold",              &battle_config.trade_spam_threshold	},
 			{ "trade_spam_flood",                  &battle_config.trade_spam_flood	},
 			{ "trade_spam_ban",                    &battle_config.trade_spam_ban	}, 
-			{ "trade_spam_warn",                   &battle_config.trade_spam_warn	}
+			{ "trade_spam_warn",                   &battle_config.trade_spam_warn	},
+			{ "sit_spam_threshold",              &battle_config.sit_spam_threshold	},
+			{ "sit_spam_flood",                  &battle_config.sit_spam_flood	},
+			{ "sit_spam_ban",                    &battle_config.sit_spam_ban	}, 
+			{ "sit_spam_warn",                   &battle_config.sit_spam_warn	}
 		};
 
 		if (line[0] == '/' && line[1] == '/')
@@ -4896,7 +4905,27 @@ int battle_config_read(const char *cfgName)
                 if (battle_config.trade_spam_threshold < 0)
                         battle_config.trade_spam_threshold = 0;
                 else if (battle_config.trade_spam_threshold > 32767)
-                        battle_config.trade_spam_threshold = 32767; 
+                        battle_config.trade_spam_threshold = 32767;
+
+                if (battle_config.sit_spam_ban < 0)
+                        battle_config.sit_spam_ban = 0;
+                else if (battle_config.sit_spam_ban > 32767)
+                        battle_config.sit_spam_ban = 32767;
+
+                if (battle_config.sit_spam_flood < 0)
+                        battle_config.sit_spam_flood = 0;
+                else if (battle_config.sit_spam_flood > 32767)
+                        battle_config.sit_spam_flood = 32767;
+
+                if (battle_config.sit_spam_warn < 0)
+                        battle_config.sit_spam_warn = 0;
+                else if (battle_config.sit_spam_warn > 32767)
+                        battle_config.sit_spam_warn = 32767;
+
+                if (battle_config.sit_spam_threshold < 0)
+                        battle_config.sit_spam_threshold = 0;
+                else if (battle_config.sit_spam_threshold > 32767)
+                        battle_config.sit_spam_threshold = 32767;
 
 		// at least 1 client must be accepted
 		if ((battle_config.packet_ver_flag & 63) == 0) // added by [Yor]

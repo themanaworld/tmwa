@@ -249,7 +249,7 @@ local_spell_effect(int m, int x, int y, int effect, int tdelay)
 {
     int delay = 30000; /* 1 minute should be enough for all interesting spell effects, I hope */
     struct npc_data *effect_npc = npc_spawn_text(m, x, y,
-                                                 INVISIBLE_NPC, "", NULL);
+                                                 INVISIBLE_NPC, "", "?");
     int effect_npc_id = effect_npc->bl.id;
 
     entity_effect(&effect_npc->bl, effect, tdelay);

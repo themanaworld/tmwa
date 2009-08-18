@@ -790,7 +790,10 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	pc_calcstatus(sd,1);
 
 	if (pc_isGM(sd))
+	{
 		printf("Connection accepted: character '%s' (account: %d; GM level %d).\n", sd->status.name, sd->status.account_id, pc_isGM(sd));
+		clif_updatestatus(sd, SP_GM);
+	}
 	else
 		printf("Connection accepted: Character '%s' (account: %d).\n", sd->status.name, sd->status.account_id);
 
@@ -817,6 +820,8 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 	sd->chat_lastmsg[0] = '\0';
 	
 	sd->trade_reset_due = sd->trades_in = 0;
+	
+	sd->sit_reset_due = sd->sits_in = 0;
 
 	// message of the limited time of the account
 	if (connect_until_time != 0) { // don't display if it's unlimited or unknow value
@@ -2948,7 +2953,6 @@ int pc_delitem(struct map_session_data *sd,int n,int amount,int type)
  */
 int pc_dropitem(struct map_session_data *sd,int n,int amount)
 {
-	int i;
 	nullpo_retr(1, sd);
 
 	if (sd->trade_partner != 0 || sd->npc_id != 0 || sd->state.storage_flag)
@@ -2960,12 +2964,7 @@ int pc_dropitem(struct map_session_data *sd,int n,int amount)
 	if(amount <= 0)
 		return 0;
 
-	for (i = 0; i < 11; i++) {
-		if (equip_pos[i] > 0 && sd->equip_index[i] == n) {      //Slot taken, remove item from there.
-		    pc_unequipitem(sd, sd->equip_index[i], 1);
-		    sd->equip_index[i] = -1;
-            	}
-	}
+	pc_unequipinvyitem(sd, n, 1);
 
 
 	if (sd->status.inventory[n].nameid <= 0 ||
@@ -6502,6 +6501,22 @@ int pc_unequipitem(struct map_session_data *sd,int n,int type)
 		pc_calcstatus(sd,0);
 		if(sd->sc_data[SC_SIGNUMCRUCIS].timer != -1 && !battle_check_undead(7,sd->def_ele))
 			skill_status_change_end(&sd->bl,SC_SIGNUMCRUCIS,-1);
+	}
+
+	return 0;
+}
+
+int pc_unequipinvyitem(struct map_session_data* sd, int n, int type)
+{
+	int i;
+
+	nullpo_retr(1, sd);
+
+	for (i = 0; i < 11; i++) {
+		if (equip_pos[i] > 0 && sd->equip_index[i] == n) {      //Slot taken, remove item from there.
+			pc_unequipitem(sd, sd->equip_index[i], type);
+			sd->equip_index[i] = -1;
+		}
 	}
 
 	return 0;
