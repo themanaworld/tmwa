@@ -1,4 +1,5 @@
 
+#include <unistd.h>
 #include <stdio.h>
 #include "lock.h"
 #include "socket.h"
@@ -10,12 +11,12 @@
 FILE* lock_fopen(const char* filename,int *info) {
 	char newfile[512];
 	FILE *fp;
-	int  no = 0;
+	int  no = getpid();
 
 	// 安全なファイル名を得る（手抜き）
 	do {
 		sprintf(newfile,"%s_%04d.tmp",filename,++no);
-	} while((fp = fopen_(newfile,"r")) && (fclose_(fp), no<9999) );
+	} while((fp = fopen_(newfile,"r")) && (fclose_(fp), no<99999) );
 	*info = no;
 	return fopen_(newfile,"w");
 }
