@@ -944,7 +944,7 @@ int npc_buylist(struct map_session_data *sd,int n,unsigned short *item_list)
 		case ADDITEM_EXIST:
 			break;
 		case ADDITEM_NEW:
-			if (itemdb_isequip)
+			if (itemdb_isequip(item_list[i*2+1]))
 			    new += item_list[i*2];
 			else
 			    new++;
