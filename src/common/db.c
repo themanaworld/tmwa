@@ -434,6 +434,9 @@ void db_foreach(struct dbt *table,int (*func)(void*,void*,va_list),...)
 	struct dbn *p,*pn,*stack[64];
 	va_list ap;
 
+	if (!table)
+		return;
+
 	va_start(ap,func);
 	for(i=0;i<HASH_SIZE;i++){
 		if((p=table->ht[i])==NULL)
