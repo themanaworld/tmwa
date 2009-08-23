@@ -45,25 +45,23 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 
 	sd->chat_lines_in++;
 
-	if (message) {
-		// Penalty for repeating
-		if (strncmp(sd->chat_lastmsg, message, battle_config.chat_maxline) == 0)
-			sd->chat_lines_in += battle_config.chat_lame_penalty;
-
-		// Penalty for lame, it can stack on top of the repeat penalty.
-		if (tmw_CheckChatLameness(sd, message))
-			sd->chat_lines_in += battle_config.chat_lame_penalty;
-
-		strncpy((char*)sd->chat_lastmsg, message, battle_config.chat_maxline);
+	// Penalty for repeats.
+	if (strncmp(sd->chat_lastmsg, message, tmw_ShorterStrlen(sd->chat_lastmsg, message)) == 0) {
+		sd->chat_lines_in += battle_config.chat_lame_penalty;
+		sd->chat_total_repeats++;
 	}
 	else {
-		// No message means we're checking another type of spam.
-		// Most other types are pretty lame..
-		sd->chat_lines_in += battle_config.chat_lame_penalty;
+		sd->chat_total_repeats=0;
 	}
 
-	if (sd->chat_lines_in >= battle_config.chat_spam_flood) {
-		sd->chat_lines_in = 0;
+	// Penalty for lame, it can stack on top of the repeat penalty.
+	if (tmw_CheckChatLameness(sd, message))
+		sd->chat_lines_in += battle_config.chat_lame_penalty;
+
+	strncpy((char*)sd->chat_lastmsg, message, battle_config.chat_maxline);
+
+	if (sd->chat_lines_in >= battle_config.chat_spam_flood || sd->chat_total_repeats >= battle_config.chat_spam_flood) {
+		sd->chat_lines_in = sd->chat_total_repeats = 0;
 
 		if (battle_config.chat_spam_ban > 0) {
 			tmw_GmHackMsg("Spam detected from character '%s' (account: %d)", sd->status.name, sd->status.account_id);
@@ -73,16 +71,24 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.chat_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			clif_setwaitclose(sd->fd);
 		}
-		
+
 		return 1;
 	}
 
-	if (battle_config.chat_spam_ban && sd->chat_lines_in >= battle_config.chat_spam_warn) {
+	if (battle_config.chat_spam_ban &&
+	    (sd->chat_lines_in >= battle_config.chat_spam_warn || sd->chat_total_repeats >= battle_config.chat_spam_warn)) {
 		clif_displaymessage(sd->fd, "WARNING : You are about to be automaticly banned for spam!");
 		clif_displaymessage(sd->fd, "WARNING : Please slow down, do not repeat, and do not SHOUT!");
 	}
 
 	return 0;
+}
+
+// Compares the length of two strings and returns that of the shorter
+int tmw_ShorterStrlen(char *s1, char *s2) {
+	int s1_len = strlen(s1);
+	int s2_len = strlen(s2);
+	return(s2_len >= s1_len ? s1_len : s2_len);
 }
 
 // Returns true if more than 50% of input message is caps or punctuation
@@ -143,7 +149,7 @@ int tmw_CheckTradeSpam(struct map_session_data *sd) {
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.trade_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			clif_setwaitclose(sd->fd);
 		}
-		
+
 		return 1;
 	}
 
@@ -178,7 +184,7 @@ int tmw_CheckSitSpam(struct map_session_data *sd) {
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.sit_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			clif_setwaitclose(sd->fd);
 		}
-		
+
 		return 1;
 	}
 
