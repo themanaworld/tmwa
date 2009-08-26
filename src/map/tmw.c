@@ -36,7 +36,7 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 	nullpo_retr(1, sd);
 	time_t now = time(NULL);
 
-//	if (pc_isGM(sd)) return 0;
+	if (pc_isGM(sd)) return 0;
 
 	if (now > sd->chat_reset_due) {
 		sd->chat_reset_due = now + battle_config.chat_spam_threshold;
