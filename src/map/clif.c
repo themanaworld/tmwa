@@ -6801,12 +6801,17 @@ void clif_parse_Wis(int fd, struct map_session_data *sd) { // S 0096 <len>.w <ni
  *------------------------------------------
  */
 void clif_parse_GMmessage(int fd, struct map_session_data *sd) {
-// /b
+	char m[512];
 	nullpo_retv(sd);
 
 	if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
 	    (pc_isGM(sd) >= get_atcommand_level(AtCommand_Broadcast)))
+	{
 		intif_GMmessage(RFIFOP(fd,4), RFIFOW(fd,2)-4, 0);
+		strncpy(m, RFIFOP(fd,4), RFIFOW(fd,2) - 4);
+		m[RFIFOW(fd,2) - 4] = 0;
+		log_atcommand(sd, "/announce %s", m);
+	}
 }
 
 /*==========================================
