@@ -544,13 +544,27 @@ int get_atcommand_level(const AtCommandType type) {
 /*========================================
  * At-command logging
  */
+void log_atcommand(struct map_session_data *sd, const char *fmt, ...) {
+	char message[512];
+	va_list ap;
 
-int last_logfile_nr = 0;
+        va_start(ap, fmt);
+        vsnprintf(message, 511, fmt, ap);
+        va_end(ap);
+
+	if (pc_isGM(sd))
+		gm_log("%s(%d,%d) %s : %s", map[sd->bl.m].name, sd->bl.x,
+			sd->bl.y, sd->status.name, message);
+}
+
 char *gm_logfile_name = NULL;
-static FILE *gm_logfile = NULL;
-
-void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
-{
+/*==========================================
+ * Log a timestamped line to GM log file
+ *------------------------------------------
+ */
+void gm_log(const char *fmt, ...) {
+	static int last_logfile_nr = 0;
+	static FILE *gm_logfile = NULL;
 	time_t time_v;
 	struct tm ctime;
 	int month, year, logfile_nr;
@@ -588,15 +602,13 @@ void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
 		last_logfile_nr = logfile_nr;
 	}
 
-	if (gm_logfile && pc_isGM(sd)) {
-		fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s(%d,%d) %s : %s\n",
-			year, month, ctime.tm_mday,
-			ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
-			map[sd->bl.m].name, sd->bl.x, sd->bl.y, sd->status.name,
-			message);
-                        fflush(gm_logfile);
-	}
+	fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n",
+		year, month, ctime.tm_mday, ctime.tm_hour,
+		ctime.tm_min, ctime.tm_sec, message);
+
+	fflush(gm_logfile);
 }
+
 
 /*==========================================
  *is_atcommand @コマンドに存在するかどうか確認する

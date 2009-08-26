@@ -36,11 +36,16 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 	nullpo_retr(1, sd);
 	time_t now = time(NULL);
 
-	if (pc_isGM(sd)) return 0;
+//	if (pc_isGM(sd)) return 0;
 
 	if (now > sd->chat_reset_due) {
 		sd->chat_reset_due = now + battle_config.chat_spam_threshold;
 		sd->chat_lines_in = 0;
+	}
+
+	if (now > sd->chat_repeat_reset_due) {
+		sd->chat_repeat_reset_due = now + (battle_config.chat_spam_threshold * 60);
+		sd->chat_total_repeats = 0;
 	}
 
 	sd->chat_lines_in++;
@@ -64,10 +69,10 @@ int tmw_CheckChatSpam(struct map_session_data *sd, char* message) {
 		sd->chat_lines_in = sd->chat_total_repeats = 0;
 
 		if (battle_config.chat_spam_ban > 0) {
-			tmw_GmHackMsg("Spam detected from character '%s' (account: %d)", sd->status.name, sd->status.account_id);
-			clif_displaymessage(sd->fd, "You have been banned for spamming. Please do not spam.");
-			tmw_GmHackMsg("This player has been banned for %d hour(s).", battle_config.chat_spam_ban);
+			tmw_GmHackMsg("%s has been autobanned for chat spam", sd->status.name);
+			gm_log("server(0,0) Server : @autoban %s %dh (chat spam)", sd->status.name, battle_config.chat_spam_ban);
 
+			clif_displaymessage(sd->fd, "You have been banned for spamming. Please do not spam.");
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.chat_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			clif_setwaitclose(sd->fd);
 		}
@@ -142,10 +147,10 @@ int tmw_CheckTradeSpam(struct map_session_data *sd) {
 		sd->trades_in = 0;
 
 		if (battle_config.trade_spam_ban > 0) {
-			tmw_GmHackMsg("Trade spam detected from character '%s' (account: %d)", sd->status.name, sd->status.account_id);
-			clif_displaymessage(sd->fd, "You have been banned for trade spamming. Please do not trade spam.");
-			tmw_GmHackMsg("This player has been banned for %d hour(s).", battle_config.trade_spam_ban);
+			tmw_GmHackMsg("%s has been autobanned for trade spam", sd->status.name);
+			gm_log("server(0,0) Server : @autoban %s %dh (trade spam)", sd->status.name, battle_config.trade_spam_ban);
 
+			clif_displaymessage(sd->fd, "You have been banned for trade spamming. Please do not trade spam.");
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.trade_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			clif_setwaitclose(sd->fd);
 		}
@@ -177,10 +182,10 @@ int tmw_CheckSitSpam(struct map_session_data *sd) {
 		sd->sits_in = 0;
 
 		if (battle_config.sit_spam_ban > 0) {
-			tmw_GmHackMsg("Sit spam detected from character '%s' (account: %d)", sd->status.name, sd->status.account_id);
-			clif_displaymessage(sd->fd, "You have been banned for sit spamming. Please do not sit spam.");
-			tmw_GmHackMsg("This player has been banned for %d hour(s).", battle_config.sit_spam_ban);
+			tmw_GmHackMsg("%s has been autobanned for sit spam", sd->status.name);
+			gm_log("server(0,0) Server : @autoban %s %dh (sit spam)", sd->status.name, battle_config.sit_spam_ban);
 
+			clif_displaymessage(sd->fd, "You have been banned for sit spamming. Please do not sit spam.");
 			chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, battle_config.sit_spam_ban, 0, 0); // type: 2 - ban (year, month, day, hour, minute, second)
 			clif_setwaitclose(sd->fd);
 		}

@@ -214,6 +214,7 @@ int atcommand_config_read(const char *cfgName);
 int msg_config_read(const char *cfgName);
 
 void log_atcommand(struct map_session_data *sd, const char *fmt, ...);
+void gm_log(const char *fmt, ...);
 
 #endif
 
