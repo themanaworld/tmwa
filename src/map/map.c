@@ -1906,7 +1906,7 @@ map_scriptcont(struct map_session_data *sd, int id)
         switch (bl->type) {
         case BL_NPC: return npc_scriptcont(sd, id);
         case BL_SPELL:
-            spell_execute((struct invocation *) bl);
+            spell_execute_script((struct invocation *) bl);
             break;
         }
 

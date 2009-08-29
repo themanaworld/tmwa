@@ -1402,10 +1402,15 @@ spell_execute_d(invocation_t *invocation, int allow_deletion)
         spell_update_location(invocation);
         delta = spell_run(invocation, allow_deletion);
 
-        if (delta > 0)
+        if (delta > 0) {
+                if (invocation->timer) {
+                        fprintf(stderr, "[magic] FATAL ERROR: Trying to add multiple timers to the same spell! Already had timer: %d\n", invocation->timer);
+                        /* *((int *)0x0) = 0; */
+                }
                 invocation->timer = add_timer(gettick() + delta,
                                               &invocation_timer_callback,
                                               invocation->bl.id, 0);
+        }
 
         /* If 0, the script cleaned itself.  If -1 (wait-for-script), we must wait for the user. */
 }
@@ -1414,6 +1419,17 @@ void
 spell_execute(invocation_t *invocation)
 {
         spell_execute_d(invocation, 1);
+}
+
+void
+spell_execute_script(invocation_t *invocation)
+{
+        if (invocation->script_pos)
+                spell_execute_d(invocation, 1);
+        /* Otherwise the script-within-the-spell has been terminated by some other means.
+         * In practice this happens when the script doesn't wait for user input: the client
+         * may still notify the server that it's done.  Without the above check, we'd be
+         * running the same spell twice! */
 }
 
 int

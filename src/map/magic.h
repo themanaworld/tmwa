@@ -78,6 +78,12 @@ void
 spell_execute(struct invocation *invocation);
 
 /**
+ * Continue an NPC script embedded in a spell
+ */
+void
+spell_execute_script(struct invocation *invocation);
+
+/**
  * Stops all magic bound to the specified character
  *
  */
