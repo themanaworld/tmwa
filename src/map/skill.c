@@ -1179,14 +1179,14 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 				sc_def_card=sc_def_luk;
 
 			if(!sd->state.arrow_atk) {
-				if(MRAND(100) < (sd->addeff[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(10000) < (sd->addeff[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: card‚É‚æ‚éˆÙí”­“® %d %d\n",sd->bl.id,i,sd->addeff[i-SC_STONE]);
 					skill_status_change_start(bl,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
 				}
 			}
 			else {
-				if(MRAND(100) < (sd->addeff[i-SC_STONE]+sd->arrow_addeff[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(10000) < (sd->addeff[i-SC_STONE]+sd->arrow_addeff[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: card‚É‚æ‚éˆÙí”­“® %d %d\n",sd->bl.id,i,sd->addeff[i-SC_STONE]);
 					skill_status_change_start(bl,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
@@ -1203,14 +1203,14 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 				sc_def_card=sc_def_luk2;
 
 			if(!sd->state.arrow_atk) {
-				if(MRAND(100) < (sd->addeff2[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(10000) < (sd->addeff2[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: card‚É‚æ‚éˆÙí”­“® %d %d\n",src->id,i,sd->addeff2[i-SC_STONE]);
 					skill_status_change_start(src,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
 				}
 			}
 			else {
-				if(MRAND(100) < (sd->addeff2[i-SC_STONE]+sd->arrow_addeff2[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(10000) < (sd->addeff2[i-SC_STONE]+sd->arrow_addeff2[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: card‚É‚æ‚éˆÙí”­“® %d %d\n",src->id,i,sd->addeff2[i-SC_STONE]);
 					skill_status_change_start(src,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
@@ -8274,7 +8274,7 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 			return 0;
 
 		if(SC_STONE<=type && type<=SC_BLIND){	/* ƒJ[ƒh‚É‚æ‚é‘Ï« */
-			if( sd && sd->reseff[type-SC_STONE] > 0 && MRAND(100)<sd->reseff[type-SC_STONE]){
+			if( sd && sd->reseff[type-SC_STONE] > 0 && MRAND(10000)<sd->reseff[type-SC_STONE]){
 				if(battle_config.battle_log)
 					printf("PC %d skill_sc_start: card‚É‚æ‚éˆÙí‘Ï«”­“®\n",sd->bl.id);
 				return 0;
