@@ -887,9 +887,9 @@ int atcommand_charwarp(
 	}
 
 	if (x <= 0)
-		x = rand() % 399 + 1;
+		x = MRAND(399) + 1;
 	if (y <= 0)
-		y = rand() % 399 + 1;
+		y = MRAND(399) + 1;
 	if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13) // 16 - 4 (.gat)
 		strcat(map_name, ".gat");
 
@@ -946,9 +946,9 @@ int atcommand_warp(const int fd, struct map_session_data* sd, const char* comman
 	}
 
 	if (x <= 0)
-		x = rand() % 399 + 1;
+		x = MRAND(399) + 1;
 	if (y <= 0)
-		y = rand() % 399 + 1;
+		y = MRAND(399) + 1;
 
 	if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13) // 16 - 4 (.gat)
 		strcat(map_name, ".gat");
@@ -1057,9 +1057,9 @@ int atcommand_jump(const int fd, struct map_session_data* sd, const char* comman
 	sscanf(message, "%d %d", &x, &y);
 
 	if (x <= 0)
-		x = rand() % 399 + 1;
+		x = MRAND(399) + 1;
 	if (y <= 0)
-		y = rand() % 399 + 1;
+		y = MRAND(399) + 1;
 	if (x > 0 && x < 400 && y > 0 && y < 400) {
 		if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto && battle_config.any_warp_GM_min_level > pc_isGM(sd)) {
 			clif_displaymessage(fd, "You are not authorised to warp you to your actual map.");
@@ -2537,11 +2537,11 @@ int atcommand_spawn(const int fd, struct map_session_data* sd, const char* comma
 		k = 0;
 		while(j++ < 8 && k == 0) { // try 8 times to spawn the monster (needed for close area)
 			if (x <= 0)
-				mx = sd->bl.x + (rand() % range - (range / 2));
+				mx = sd->bl.x + (MRAND(range) - (range / 2));
 			else
 				mx = x;
 			if (y <= 0)
-				my = sd->bl.y + (rand() % range - (range / 2));
+				my = sd->bl.y + (MRAND(range) - (range / 2));
 			else
 				my = y;
 			k = mob_once_spawn((struct map_session_data*)sd, "this", mx, my, "", mob_id, 1, "");
@@ -5461,7 +5461,7 @@ int atcommand_jail(
 
 	if ((pl_sd = map_nick2sd(character)) != NULL) {
 		if (pc_isGM(sd) >= pc_isGM(pl_sd)) { // you can jail only lower or same GM
-			switch(rand() % 2) {
+			switch(MRAND(2)) {
 			case 0:
 				x = 24;
 				y = 75;
@@ -6822,8 +6822,8 @@ int atcommand_summon(const int fd, struct map_session_data* sd, const char* comm
 	if(mob_id == 0)
 		return -1;
 
-	x = sd->bl.x + (rand() % 10 - 5);
-	y = sd->bl.y + (rand() % 10 - 5);
+	x = sd->bl.x + (MRAND(10) - 5);
+	y = sd->bl.y + (MRAND(10) - 5);
 
 	id = mob_once_spawn(sd,"this", x, y, "--ja--", mob_id, 1, "");
 	if((md=(struct mob_data *)map_id2bl(id))){

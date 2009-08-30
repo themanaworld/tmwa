@@ -13,6 +13,7 @@
 #include "socket.h"
 #include "timer.h"
 #include "version.h"
+#include "mt_rand.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -132,6 +133,8 @@ int runflag = 1;
 int main(int argc,char **argv)
 {
 	int next;
+
+	mt_seed(time(NULL) ^ getpid() ^ getppid());
 
 	Net_Init();
 	do_socket();

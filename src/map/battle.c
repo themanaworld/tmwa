@@ -18,6 +18,7 @@
 #include "pc.h"
 #include "skill.h"
 #include "../common/socket.h"
+#include "mt_rand.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"

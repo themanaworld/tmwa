@@ -709,7 +709,7 @@ int map_searchrandfreecell(int m,int x,int y,int range) {
 	}
 	if(free_cell==0)
 		return -1;
-	free_cell=rand()%free_cell;
+	free_cell=MRAND(free_cell);
 	for(i=-range;i<=range;i++){
 		if(i+y<0 || i+y>=map[m].ys)
 			continue;
@@ -750,7 +750,7 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x, int y
 
 	if((xy=map_searchrandfreecell(m,x,y, dispersal))<0)
 		return 0;
-	r=rand();
+	r=mt_random();
 
 	fitem = (struct flooritem_data *)aCalloc(1,sizeof(*fitem));
 	fitem->bl.type=BL_ITEM;
@@ -1832,8 +1832,6 @@ int do_init(int argc, char *argv[]) {
 	unsigned char *SCRIPT_CONF_NAME = "conf/script_athena.conf";
 	unsigned char *MSG_CONF_NAME = "conf/msg_athena.conf";
 	unsigned char *GRF_PATH_FILENAME = "conf/grf-files.txt";
-
-	srand(gettick());
 
 	for (i = 1; i < argc ; i++) {
 

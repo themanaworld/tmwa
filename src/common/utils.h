@@ -1,3 +1,4 @@
+#include "mt_rand.h"
 
 #ifndef NULL
 #define NULL (void *)0
@@ -38,5 +39,5 @@
  * MRAND(10), returns 0-9.
  * MPRAND(5,10) returns 5-14.
  */
-#define MRAND(mod) (int) ((float)mod * (rand() / (RAND_MAX + 1.0)))
+#define MRAND(mod) (int) ((float)mod * (mt_random() / (RAND_MAX + 1.0)))
 #define MPRAND(add, mod) add + MRAND(mod)

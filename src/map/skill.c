@@ -943,13 +943,13 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	case 0:					/* 通常攻撃 */
 		/* 自動鷹 */
 		if( sd && pc_isfalcon(sd) && sd->status.weapon == 11 && (skill=pc_checkskill(sd,HT_BLITZBEAT))>0 &&
-			rand()%1000 <= sd->paramc[5]*10/3+1 ) {
+			MRAND(1000) <= sd->paramc[5]*10/3+1 ) {
 			int lv=(sd->status.job_level+9)/10;
 			skill_castend_damage_id(src,bl,HT_BLITZBEAT,(skill<lv)?skill:lv,tick,0xf00000);
 		}
 		// スナッチャー
 		if(sd && sd->status.weapon != 11 && (skill=pc_checkskill(sd,RG_SNATCHER)) > 0)
-			if((skill*15 + 55) + (skill2 = pc_checkskill(sd,TF_STEAL))*10 > rand()%1000) {
+			if((skill*15 + 55) + (skill2 = pc_checkskill(sd,TF_STEAL))*10 > MRAND(1000)) {
 				if(pc_steal_item(sd,bl))
 					clif_skill_nodamage(src,bl,TF_STEAL,skill2,1);
 				else
@@ -959,14 +959,14 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 
 	case SM_BASH:			/* バッシュ（急所攻撃） */
 		if( sd && (skill=pc_checkskill(sd,SM_FATALBLOW))>0 ){
-			if( rand()%100 < 6*(skilllv-5)*sc_def_vit/100 )
+			if(MRAND(100) < 6*(skilllv-5)*sc_def_vit/100 )
 				skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(SM_FATALBLOW,skilllv),0);
 		}
 		break;
 
 	case TF_POISON:			/* インベナム */
 	case AS_SPLASHER:		/* ベナムスプラッシャー */
-		if(rand()%100< (2*skilllv+10)*sc_def_vit/100 )
+		if(MRAND(100) < (2*skilllv+10)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_POISON,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		else{
 			if(sd && skillid==TF_POISON)
@@ -975,14 +975,14 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 		break;
 
 	case AS_SONICBLOW:		/* ソニックブロー */
-		if( rand()%100 < (2*skilllv+10)*sc_def_vit/100 )
+		if(MRAND(100) < (2*skilllv+10)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 
 	case HT_FREEZINGTRAP:	/* フリージングトラップ */
 		rate=skilllv*3+35;
-		if(rand()%100 < rate*sc_def_mdef/100)
+		if(MRAND(100) < rate*sc_def_mdef/100)
 			skill_status_change_start(bl,SC_FREEZE,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
@@ -990,7 +990,7 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 	case WZ_FROSTNOVA:		/* フロストノヴァ */
 		rate=(skilllv*3+35)*sc_def_mdef/100-(battle_get_int(bl)+battle_get_luk(bl))/15;
 		rate=rate<=5?5:rate;
-		if(rand()%100 < rate)
+		if(MRAND(100) < rate)
 			skill_status_change_start(bl,SC_FREEZE,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		else if(sd)
 			clif_skill_fail(sd,skillid,0,0);
@@ -1008,7 +1008,7 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 		break;
 
 	case HT_LANDMINE:		/* ランドマイン */
-		if( rand()%100 < (5*skilllv+30)*sc_def_vit/100 )
+		if( MRAND(100) < (5*skilllv+30)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
@@ -1019,62 +1019,62 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 		}
 		break;
 	case HT_SANDMAN:		/* サンドマン */
-		if( rand()%100 < (5*skilllv+30)*sc_def_int/100 )
+		if( MRAND(100) < (5*skilllv+30)*sc_def_int/100 )
 			skill_status_change_start(bl,SC_SLEEP,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case TF_SPRINKLESAND:	/* 砂まき */
-		if( rand()%100 < 15*sc_def_int/100 )
+		if( MRAND(100) < 15*sc_def_int/100 )
 			skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case TF_THROWSTONE:		/* 石投げ */
-		if( rand()%100 < 5*sc_def_vit/100 )
+		if( MRAND(100) < 5*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case CR_HOLYCROSS:		/* ホーリークロス */
-		if( rand()%100 < 3*skilllv*sc_def_int/100 )
+		if( MRAND(100) < 3*skilllv*sc_def_int/100 )
 			skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case CR_GRANDCROSS:		/* グランドクロス */
 		{
 			int race = battle_get_race(bl);
-			if( (battle_check_undead(race,battle_get_elem_type(bl)) || race == 6) && rand()%100 < 100000*sc_def_int/100)	//強制付与だが完全耐性には無効
+			if( (battle_check_undead(race,battle_get_elem_type(bl)) || race == 6) && MRAND(100) < 100000*sc_def_int/100)	//強制付与だが完全耐性には無効
 				skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		}
 		break;
 
 	case CR_SHIELDCHARGE:		/* シールドチャージ */
-		if( rand()%100 < (15 + skilllv*5)*sc_def_vit/100 )
+		if( MRAND(100) < (15 + skilllv*5)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case RG_RAID:		/* サプライズアタック */
-		if( rand()%100 < (10+3*skilllv)*sc_def_vit/100 )
+		if( MRAND(100) < (10+3*skilllv)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
-		if( rand()%100 < (10+3*skilllv)*sc_def_int/100 )
+		if( MRAND(100) < (10+3*skilllv)*sc_def_int/100 )
 			skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case BA_FROSTJOKE:
-		if(rand()%100 < (15+5*skilllv)*sc_def_mdef/100)
+		if(MRAND(100) < (15+5*skilllv)*sc_def_mdef/100)
 			skill_status_change_start(bl,SC_FREEZE,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case DC_SCREAM:
-		if( rand()%100 < (25+5*skilllv)*sc_def_vit/100 )
+		if( MRAND(100) < (25+5*skilllv)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case BD_LULLABY:	/* 子守唄 */
-		if( rand()%100 < 15*sc_def_int/100 )
+		if( MRAND(100) < 15*sc_def_int/100 )
 			skill_status_change_start(bl,SC_SLEEP,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	/* MOBの追加効果付きスキル */
 
 	case NPC_PETRIFYATTACK:
-		if(rand()%100 < sc_def_mdef)
+		if(MRAND(100) < sc_def_mdef)
 			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case NPC_POISON:
@@ -1084,12 +1084,12 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skilllv,0);
 		break;
 	case NPC_CURSEATTACK:
-		if(rand()%100 < sc_def_luk)
+		if(MRAND(100) < sc_def_luk)
 			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case NPC_SLEEPATTACK:
 	case NPC_BLINDATTACK:
-		if(rand()%100 < sc_def_int)
+		if(MRAND(100) < sc_def_int)
 			skill_status_change_start(bl,sc[skillid-NPC_POISON],skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case NPC_MENTALBREAKER:
@@ -1103,43 +1103,43 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 // -- moonsoul (adding status effect chance given to wizard aoe skills meteor and vermillion)
 //
 	case WZ_METEOR:
-		if(rand()%100 < sc_def_vit)
+		if(MRAND(100) < sc_def_vit)
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);		
 		break;
 	case WZ_VERMILION:
-		if(rand()%100 < sc_def_int)
+		if(MRAND(100) < sc_def_int)
 			skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);		
 		break;
 
 // -- moonsoul (stun ability of new champion skill tigerfist)
 //
 	case CH_TIGERFIST:
-		if( rand()%100 < (5 + skilllv*5)*sc_def_vit/100 )
+		if( MRAND(100) < (5 + skilllv*5)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
 	case LK_SPIRALPIERCE:
-		if( rand()%100 < (15 + skilllv*5)*sc_def_vit/100 )
+		if( MRAND(100) < (15 + skilllv*5)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case ST_REJECTSWORD:	/* フリージングトラップ */
-		if( rand()%100 < (10 + skilllv*5) )
+		if( MRAND(100) < (10 + skilllv*5) )
 			skill_status_change_start(bl,SC_AUTOCOUNTER,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case PF_FOGWALL:		/* ホーリークロス */
-		if( rand()%100 < 3*skilllv*sc_def_int/100 )
+		if( MRAND(100) < 3*skilllv*sc_def_int/100 )
 			skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case LK_HEADCRUSH:				/* ヘッドクラッシュ */
 		{//条件が良く分からないので適当に
 			int race=battle_get_race(bl);
-			if( !(battle_check_undead(race,battle_get_elem_type(bl)) || race == 6) && rand()%100 < (2*skilllv+10)*sc_def_vit/100 )
+			if( !(battle_check_undead(race,battle_get_elem_type(bl)) || race == 6) && MRAND(100) < (2*skilllv+10)*sc_def_vit/100 )
 				skill_status_change_start(bl,SC_HEADCRUSH,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		}
 			break;
 	case LK_JOINTBEAT:				/* ジョイントビート */
 		//条件が良く分からないので適当に
-		if( rand()%100 < (2*skilllv+10)*sc_def_vit/100 )
+		if( MRAND(100) < (2*skilllv+10)*sc_def_vit/100 )
 			skill_status_change_start(bl,SC_JOINTBEAT,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case PF_SPIDERWEB:		/* スパイダーウェッブ */
@@ -1152,9 +1152,9 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 		}
 		break;
 	case ASC_METEORASSAULT:			/* メテオアサルト */
-		if( rand()%100 < (15 + skilllv*5)*sc_def_vit/100 ) //状態異常は詳細が分からないので適当に
+		if( MRAND(100) < (15 + skilllv*5)*sc_def_vit/100 ) //状態異常は詳細が分からないので適当に
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
-		if( rand()%100 < (10+3*skilllv)*sc_def_int/100 )
+		if( MRAND(100) < (10+3*skilllv)*sc_def_int/100 )
 			skill_status_change_start(bl,SC_BLIND,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 	case MO_EXTREMITYFIST:			/* 阿修羅覇凰拳 */
@@ -1179,14 +1179,14 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 				sc_def_card=sc_def_luk;
 
 			if(!sd->state.arrow_atk) {
-				if(rand()%10000 < (sd->addeff[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(100) < (sd->addeff[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: cardによる異常発動 %d %d\n",sd->bl.id,i,sd->addeff[i-SC_STONE]);
 					skill_status_change_start(bl,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
 				}
 			}
 			else {
-				if(rand()%10000 < (sd->addeff[i-SC_STONE]+sd->arrow_addeff[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(100) < (sd->addeff[i-SC_STONE]+sd->arrow_addeff[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: cardによる異常発動 %d %d\n",sd->bl.id,i,sd->addeff[i-SC_STONE]);
 					skill_status_change_start(bl,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
@@ -1203,14 +1203,14 @@ int skill_additional_effect( struct block_list* src, struct block_list *bl,int s
 				sc_def_card=sc_def_luk2;
 
 			if(!sd->state.arrow_atk) {
-				if(rand()%10000 < (sd->addeff2[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(100) < (sd->addeff2[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: cardによる異常発動 %d %d\n",src->id,i,sd->addeff2[i-SC_STONE]);
 					skill_status_change_start(src,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
 				}
 			}
 			else {
-				if(rand()%10000 < (sd->addeff2[i-SC_STONE]+sd->arrow_addeff2[i-SC_STONE])*sc_def_card/100 ){
+				if(MRAND(100) < (sd->addeff2[i-SC_STONE]+sd->arrow_addeff2[i-SC_STONE])*sc_def_card/100 ){
 					if(battle_config.battle_log)
 						printf("PC %d skill_addeff: cardによる異常発動 %d %d\n",src->id,i,sd->addeff2[i-SC_STONE]);
 					skill_status_change_start(src,i,7,0,0,0,(i==SC_CONFUSION)? 10000+7000:skill_get_time2(sc2[i-SC_STONE],7),0);
@@ -1564,7 +1564,7 @@ int skill_attack( int attack_type, struct block_list* src, struct block_list *ds
 		int s_lv = battle_get_lv(src),t_lv = battle_get_lv(bl);
 		int rate = 50 + skilllv * 5;
 		rate = rate + (s_lv - t_lv);
-		if(rand()%100 < rate)
+		if(MRAND(100) < rate)
 			skill_addtimerskill(src,tick + 800,bl->id,0,0,skillid,skilllv,0,flag);
 	}
 	if(damage > 0 && dmg.flag&BF_SKILL && bl->type==BL_PC && pc_checkskill((struct map_session_data *)bl,RG_PLAGIARISM)){
@@ -1617,22 +1617,22 @@ int skill_attack( int attack_type, struct block_list* src, struct block_list *ds
 		struct map_session_data *sd = (struct map_session_data *)src;
 		int hp = 0,sp = 0;
 		nullpo_retr(0, sd);
-		if(sd->hp_drain_rate && sd->hp_drain_per > 0 && dmg.damage > 0 && rand()%100 < sd->hp_drain_rate) {
+		if(sd->hp_drain_rate && sd->hp_drain_per > 0 && dmg.damage > 0 && MRAND(100) < sd->hp_drain_rate) {
 			hp += (dmg.damage * sd->hp_drain_per)/100;
 			if(sd->hp_drain_rate > 0 && hp < 1) hp = 1;
 			else if(sd->hp_drain_rate < 0 && hp > -1) hp = -1;
 		}
-		if(sd->hp_drain_rate_ && sd->hp_drain_per_ > 0 && dmg.damage2 > 0 && rand()%100 < sd->hp_drain_rate_) {
+		if(sd->hp_drain_rate_ && sd->hp_drain_per_ > 0 && dmg.damage2 > 0 && MRAND(100) < sd->hp_drain_rate_) {
 			hp += (dmg.damage2 * sd->hp_drain_per_)/100;
 			if(sd->hp_drain_rate_ > 0 && hp < 1) hp = 1;
 			else if(sd->hp_drain_rate_ < 0 && hp > -1) hp = -1;
 		}
-		if(sd->sp_drain_rate > 0 && sd->sp_drain_per > 0 && dmg.damage > 0 && rand()%100 < sd->sp_drain_rate) {
+		if(sd->sp_drain_rate > 0 && sd->sp_drain_per > 0 && dmg.damage > 0 && MRAND(100) < sd->sp_drain_rate) {
 			sp += (dmg.damage * sd->sp_drain_per)/100;
 			if(sd->sp_drain_rate > 0 && sp < 1) sp = 1;
 			else if(sd->sp_drain_rate < 0 && sp > -1) sp = -1;
 		}
-		if(sd->sp_drain_rate_ > 0 && sd->sp_drain_per_ > 0 && dmg.damage2 > 0 && rand()%100 < sd->sp_drain_rate_) {
+		if(sd->sp_drain_rate_ > 0 && sd->sp_drain_per_ > 0 && dmg.damage2 > 0 && MRAND(100) < sd->sp_drain_rate_) {
 			sp += (dmg.damage2 * sd->sp_drain_per_)/100;
 			if(sd->sp_drain_rate_ > 0 && sp < 1) sp = 1;
 			else if(sd->sp_drain_rate_ < 0 && sp > -1) sp = -1;
@@ -1865,7 +1865,7 @@ static int skill_timerskill(int tid, unsigned int tick, int id,int data )
 					int x,y,i,j,c;
 					pc_randomwarp(sd,3);
 					for(i=0;i<16;i++) {
-						j = rand()%8;
+						j = MRAND(8);
 						x = sd->bl.x + dirx[j];
 						y = sd->bl.y + diry[j];
 						if((c=map_getcell(sd->bl.m,x,y)) != 1 && c != 5)
@@ -1886,7 +1886,7 @@ static int skill_timerskill(int tid, unsigned int tick, int id,int data )
 					int x,y,i,j,c;
 					mob_warp(md,-1,-1,-1,3);
 					for(i=0;i<16;i++) {
-						j = rand()%8;
+						j = MRAND(8);
 						x = md->bl.x + dirx[j];
 						y = md->bl.y + diry[j];
 						if((c=map_getcell(md->bl.m,x,y)) != 1 && c != 5)
@@ -2163,7 +2163,7 @@ int skill_castend_damage_id( struct block_list* src, struct block_list *bl,int s
 
 	case AM_ACIDTERROR:		/* アシッドテラー */
 		skill_attack(BF_WEAPON,src,src,bl,skillid,skilllv,tick,flag);
-		if(bl->type == BL_PC && rand()%100 < skill_get_time(skillid,skilllv) && battle_config.equipment_breaking)
+		if(bl->type == BL_PC && MRAND(100) < skill_get_time(skillid,skilllv) && battle_config.equipment_breaking)
 			pc_breakarmor((struct map_session_data *)bl);
 		break;
 	case MO_FINGEROFFENSIVE:	/* 指弾 */
@@ -2692,7 +2692,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 	case AL_DECAGI:			/* 速度減少 */
 		if( bl->type==BL_PC && ((struct map_session_data *)bl)->special_state.no_magic_damage )
 			break;
-		if( rand()%100 < (50+skilllv*3+(battle_get_lv(src)+battle_get_int(src)/5)-sc_def_mdef) ) {
+		if( MRAND(100) < (50+skilllv*3+(battle_get_lv(src)+battle_get_int(src)/5)-sc_def_mdef) ) {
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
 			skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,skill_get_time(skillid,skilllv),0);
 		}
@@ -2704,7 +2704,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			if(battle_check_target(src,bl,BCT_ENEMY) && (race == 6 || battle_check_undead(race,ele))) {
 				int slv=battle_get_lv(src),tlv=battle_get_lv(bl),rate;
 				rate = 25 + skilllv*2 + slv - tlv;
-				if(rand()%100 < rate)
+				if(MRAND(100) < rate)
 					skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,0,0);
 			}
 		}
@@ -2726,7 +2726,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				break;
 			if(sc_data && sc_data[SC_DIVINA].timer != -1)
 				skill_status_change_end(bl,SC_DIVINA,-1);
-			else if( rand()%100 < sc_def_vit ) {
+			else if( MRAND(100) < sc_def_vit ) {
 				skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,skill_get_time(skillid,skilllv),0);
 			}
 		}
@@ -2826,7 +2826,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				break;
 			}
 		}
-		if(rand()%100 > (75+skilllv*1) && (skilllv != 5)) {
+		if(MRAND(100) > (75+skilllv*1) && (skilllv != 5)) {
 			clif_skill_fail(sd,skillid,0,0);
 			clif_skill_nodamage(src,bl,skillid,skilllv,0);
 			if(bl->type==BL_PC && battle_config.equipment_breaking) {
@@ -3021,7 +3021,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			}
 		}else if(sd && dstmd){ //対象がモンスターの場合
 			//20%の確率で対象のLv*2のSPを回復する。成功したときはターゲット(σﾟДﾟ)σｹﾞｯﾂ!!
-			if(rand()%100<20){
+			if(MRAND(100)<20){
 				i=2*mob_db[dstmd->class].lv;
 				mob_target(dstmd,src,0);
 			}
@@ -3063,7 +3063,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 		clif_skill_nodamage(src,bl,skillid,skilllv,1);
 		if( bl->type==BL_PC && ((struct map_session_data *)bl)->special_state.no_weapon_damage )
 			break;
-		if( rand()%100 < (20+ 10*skilllv)*sc_def_vit/100 ) {
+		if( MRAND(100) < (20+ 10*skilllv)*sc_def_vit/100 ) {
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		}
 		break;
@@ -3318,7 +3318,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 		clif_skill_nodamage(src,bl,skillid,skilllv,1);
 		if( bl->type==BL_PC && ((struct map_session_data *)bl)->special_state.no_magic_damage )
 			break;
-		if( rand()%100 < skilllv*4+20 && !battle_check_undead(battle_get_race(bl),battle_get_elem_type(bl)))
+		if( MRAND(100) < skilllv*4+20 && !battle_check_undead(battle_get_race(bl),battle_get_elem_type(bl)))
 			skill_status_change_start(bl,SC_STONE,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		else if(sd)
 			clif_skill_fail(sd,skillid,0,0);
@@ -3359,7 +3359,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				int blind_time;
 				//blind_time=30-battle_get_vit(bl)/10-battle_get_int/15;
 				blind_time=30*(100-(battle_get_int(bl)+battle_get_vit(bl))/2)/100;
-				if(rand()%100 < (100-(battle_get_int(bl)/2+battle_get_vit(bl)/3+battle_get_luk(bl)/10)))
+				if(MRAND(100) < (100-(battle_get_int(bl)/2+battle_get_vit(bl)/3+battle_get_luk(bl)/10)))
 					skill_status_change_start(bl, SC_BLIND,1,0,0,0,blind_time,0);
 			}
 			if(dstmd){
@@ -3367,7 +3367,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				dstmd->target_id=0;
 				dstmd->state.targettype = NONE_ATTACKABLE;
 				dstmd->state.skillstate=MSS_IDLE;
-				dstmd->next_walktime=tick+rand()%3000+3000;
+				dstmd->next_walktime=tick+MRAND(3000)+3000;
 			}
 		}
 		break;
@@ -3455,7 +3455,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			break;
 		strip_per = 5+2*skilllv+strip_fix/5;
 		strip_time = skill_get_time(skillid,skilllv)+strip_fix/2;
-		if(rand()%100 < strip_per){
+		if(MRAND(100) < strip_per){
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
 			skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,strip_time,0 );
 			if(dstsd){
@@ -3478,7 +3478,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			break;
 		strip_per = 5+2*skilllv+strip_fix/5;
 		strip_time = skill_get_time(skillid,skilllv)+strip_fix/2;
-		if(rand()%100 < strip_per){
+		if(MRAND(100) < strip_per){
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
 			skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,strip_time,0 );
 			if(dstsd){
@@ -3501,7 +3501,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			break;
 		strip_per = 5+2*skilllv+strip_fix/5;
 		strip_time = skill_get_time(skillid,skilllv)+strip_fix/2;
-		if(rand()%100 < strip_per){
+		if(MRAND(100) < strip_per){
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
 			skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,strip_time,0 );
 			if(dstsd){
@@ -3523,7 +3523,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			break;
 		strip_per = 5+2*skilllv+strip_fix/5;
 		strip_time = skill_get_time(skillid,skilllv)+strip_fix/2;
-		if(rand()%100 < strip_per){
+		if(MRAND(100) < strip_per){
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
 			skill_status_change_start(bl,SkillStatusChangeTable[skillid],skilllv,0,0,0,strip_time,0 );
 			if(dstsd){
@@ -3589,7 +3589,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				}
 			}
 			else {
-				hp = (1 + rand()%400) * (100 + skilllv*10) / 100;
+				hp = (1 + MRAND(400)) * (100 + skilllv*10) / 100;
 				hp = hp * (100 + (battle_get_vit(bl)<<1)) / 100;
 				if(dstsd)
 					hp = hp * (100 + pc_checkskill(dstsd,SM_RECOVERY)*10) / 100;
@@ -3768,7 +3768,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				maxlv = skilllv - 4;
 			}
 			else if(skilllv >=2) {
-				int i = rand()%3;
+				int i = MRAND(3);
 				spellid = spellarray[i];
 				maxlv = skilllv - 1;
 			}
@@ -3797,8 +3797,8 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			clif_skill_nodamage(src,bl,skillid,skilllv,1);
 			md->def_ele=skill_get_pl(skillid);
 			if(md->def_ele==0)			/* ランダム変化、ただし、*/
-				md->def_ele=rand()%10;	/* 不死属性は除く */
-			md->def_ele+=(1+rand()%4)*20;	/* 属性レベルはランダム */
+				md->def_ele=MRAND(10);	/* 不死属性は除く */
+			md->def_ele+=(1+MRAND(4))*20;	/* 属性レベルはランダム */
 		}
 		break;
 
@@ -3827,7 +3827,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 				break;
 			if(battle_get_elem_type(bl) == 7 || battle_get_race(bl) == 6)
 				break;
-			if(rand()%100 < sc_def*(50+skilllv*5)/100) {
+			if(MRAND(100) < sc_def*(50+skilllv*5)/100) {
 				if(dstsd) {
 					int hp = battle_get_hp(bl)-1;
 					pc_heal(dstsd,-hp,0);
@@ -3848,7 +3848,7 @@ int skill_castend_nodamage_id( struct block_list *src, struct block_list *bl,int
 			break;
 		if(dstsd)
 			pc_heal(dstsd,0,-100);
-		if(rand()%100 < (skilllv*5)*sc_def_vit/100)
+		if(MRAND(100) < (skilllv*5)*sc_def_vit/100)
 			skill_status_change_start(bl,SC_STAN,skilllv,0,0,0,skill_get_time2(skillid,skilllv),0);
 		break;
 
@@ -4313,8 +4313,8 @@ int skill_castend_pos2( struct block_list *src, int x,int y,int skillid,int skil
 			for(i=0;i<2+(skilllv>>1);i++) {
 				int j=0, c;
 				do {
-					tmpx = x + (rand()%7 - 3);
-					tmpy = y + (rand()%7 - 3);
+					tmpx = x + (MRAND(7) - 3);
+					tmpy = y + (MRAND(7) - 3);
 					if(tmpx < 0)
 						tmpx = 0;
 					else if(tmpx >= map[src->m].xs)
@@ -5346,7 +5346,7 @@ int skill_unit_onplace(struct skill_unit *src,struct block_list *bl,unsigned int
 
 	case 0xb1:	/* デモンストレーション */
 		skill_attack(BF_WEAPON,ss,&src->bl,bl,sg->skill_id,sg->skill_lv,tick,0);
-		if(bl->type == BL_PC && rand()%100 < sg->skill_lv && battle_config.equipment_breaking)
+		if(bl->type == BL_PC && MRAND(100) < sg->skill_lv && battle_config.equipment_breaking)
 			pc_breakweapon((struct map_session_data *)bl);
 		break;
 	case 0x99:				/* トーキーボックス */
@@ -7268,7 +7268,7 @@ int skill_frostjoke_scream(struct block_list *bl,va_list ap)
 	if(battle_check_target(src,bl,BCT_ENEMY) > 0)
 		skill_additional_effect(src,bl,skillnum,skilllv,BF_MISC,tick);
 	else if(battle_check_target(src,bl,BCT_PARTY) > 0) {
-		if(rand()%100 < 10)//PTメンバにも低確率でかかる(とりあえず10%)
+		if(MRAND(100) < 10)//PTメンバにも低確率でかかる(とりあえず10%)
 			skill_additional_effect(src,bl,skillnum,skilllv,BF_MISC,tick);
 	}
 
@@ -8274,7 +8274,7 @@ int skill_status_effect(struct block_list *bl, int type, int val1, int val2, int
 			return 0;
 
 		if(SC_STONE<=type && type<=SC_BLIND){	/* カードによる耐性 */
-			if( sd && sd->reseff[type-SC_STONE] > 0 && rand()%10000<sd->reseff[type-SC_STONE]){
+			if( sd && sd->reseff[type-SC_STONE] > 0 && MRAND(100)<sd->reseff[type-SC_STONE]){
 				if(battle_config.battle_log)
 					printf("PC %d skill_sc_start: cardによる異常耐性発動\n",sd->bl.id);
 				return 0;

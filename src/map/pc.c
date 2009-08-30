@@ -571,7 +571,7 @@ int pc_breakweapon(struct map_session_data *sd)
 
 	if(sd==NULL)
 		return -1;
-	if(sd->unbreakable>=rand()%100)
+	if(sd->unbreakable>=MRAND(100))
 		return 0;
 	if(sd->sc_data && sd->sc_data[SC_CP_WEAPON].timer != -1)
 		return 0;
@@ -608,7 +608,7 @@ int pc_breakarmor(struct map_session_data *sd)
 
 	if(sd==NULL)
 		return -1;
-	if(sd->unbreakable>=rand()%100)
+	if(sd->unbreakable>=MRAND(100))
 		return 0;
 	if(sd->sc_data && sd->sc_data[SC_CP_ARMOR].timer != -1)
 		return 0;
@@ -3399,8 +3399,8 @@ int pc_steal_coin(struct map_session_data *sd,struct block_list *bl)
 		if(md && !md->state.steal_coin_flag && md->sc_data && md->sc_data[SC_STONE].timer == -1 && md->sc_data[SC_FREEZE].timer == -1) {
 			skill = pc_checkskill(sd,RG_STEALCOIN)*10;
 			rate = skill + (sd->status.base_level - mob_db[md->class].lv)*3 + sd->paramc[4]*2 + sd->paramc[5]*2;
-			if(rand()%1000 < rate) {
-				pc_getzeny(sd,mob_db[md->class].lv*10 + rand()%100);
+			if(MRAND(1000) < rate) {
+				pc_getzeny(sd,mob_db[md->class].lv*10 + MRAND(100));
 				md->state.steal_coin_flag = 1;
 				return 1;
 			}
@@ -3515,8 +3515,8 @@ int pc_setpos(struct map_session_data *sd,char *mapname_org,int x,int y,int clrt
 				printf("stacked (%d,%d)\n",x,y);
 		}
 		do {
-			x=rand()%(map[m].xs-2)+1;
-			y=rand()%(map[m].ys-2)+1;
+			x=MRAND(map[m].xs-2)+1;
+			y=MRAND(map[m].ys-2)+1;
 		} while((c=read_gat(m,x,y))==1 || c==5);
 	}
 
@@ -3563,8 +3563,8 @@ int pc_randomwarp(struct map_session_data *sd, int type) {
 		return 0;
 
 	do{
-		x=rand()%(map[m].xs-2)+1;
-		y=rand()%(map[m].ys-2)+1;
+		x=MRAND(map[m].xs-2)+1;
+		y=MRAND(map[m].ys-2)+1;
 	} while (((c=read_gat(m,x,y)) == 1 || c == 5) && (i++) < 1000);
 
 	if (i < 1000)
@@ -5099,8 +5099,8 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 					}
 				}
 				if(eq_num > 0){
-					int n = eq_n[rand()%eq_num];//�Y���A�C�e���̒����烉���_��
-					if(rand()%10000 < per){
+					int n = eq_n[MRAND(eq_num)];//�Y���A�C�e���̒����烉���_��
+					if(MRAND(10000) < per){
 						if(sd->status.inventory[n].equip)
 							pc_unequipitem(sd,n,0);
 						pc_dropitem(sd,n,1);
@@ -5110,7 +5110,7 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 			else if(id > 0){
 				for(i=0;i<MAX_INVENTORY;i++){
 					if(sd->status.inventory[i].nameid == id//ItemID�����v���Ă���
-						&& rand()%10000 < per//�h���b�v��������OK��
+						&& MRAND(10000) < per//�h���b�v��������OK��
 						&& ((type == 1 && !sd->status.inventory[i].equip)//�^�C�v������OK�Ȃ��h���b�v
 							|| (type == 2 && sd->status.inventory[i].equip)
 							|| type == 3) ){
