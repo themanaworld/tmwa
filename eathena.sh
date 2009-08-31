@@ -15,6 +15,8 @@ SRVHOMEDIR=$HOME/tmwserver
 #----------------------------------------------------------------------
 # main()
 
+ulimit -u 10
+
 cd ${SRVHOMEDIR}
 
 eathena_start() {

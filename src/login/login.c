@@ -25,6 +25,7 @@
 #include "version.h"
 #include "db.h"
 #include "lock.h"
+#include "mt_rand.h"
 
 #ifdef PASSWORDENC
 #include "md5calc.h"
@@ -1153,8 +1154,8 @@ int mmo_auth(struct mmo_account* account, int fd) {
 	sprintf(tmpstr + strlen(tmpstr), ".%03d", (int)tv.tv_usec / 1000);
 
 	account->account_id = auth_dat[i].account_id;
-	account->login_id1 = rand();
-	account->login_id2 = rand();
+	account->login_id1 = mt_random();
+	account->login_id2 = mt_random();
 	memcpy(account->lastlogin, auth_dat[i].lastlogin, 24);
 	memcpy(auth_dat[i].lastlogin, tmpstr, 24);
 	account->sex = auth_dat[i].sex;
@@ -3784,8 +3785,6 @@ int do_init(int argc, char **argv) {
 	display_conf_warnings(); // not in login_config_read, because we can use 'import' option, and display same message twice or more
 	save_config_in_log(); // not before, because log file name can be changed
 	login_lan_config_read((argc > 1) ? argv[1] : LAN_CONF_NAME);
-
-	srand(time(NULL));
 
 	for(i = 0; i< AUTH_FIFO_SIZE; i++)
 		auth_fifo[i].delflag = 1;

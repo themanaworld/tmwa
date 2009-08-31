@@ -40,6 +40,7 @@ static char command_symbol = '@'; // first char of the commands (by [Yor])
 static char msg_table[1000][1024]; // Server messages (0-499 reserved for GM commands, 500-999 reserved for others)
 
 #define ATCOMMAND_FUNC(x) int atcommand_ ## x (const int fd, struct map_session_data* sd, const char* command, const char* message)
+ATCOMMAND_FUNC(setup);
 ATCOMMAND_FUNC(broadcast);
 ATCOMMAND_FUNC(localbroadcast);
 ATCOMMAND_FUNC(charwarp);
@@ -212,6 +213,7 @@ ATCOMMAND_FUNC(wgm);
 // First char of commands is configured in atcommand_athena.conf. Leave @ in this list for default value.
 // to set default level, read atcommand_athena.conf first please.
 static AtCommandInfo atcommand_info[] = {
+	{ AtCommand_Setup,		 "@setup",	     40, atcommand_setup    },
 	{ AtCommand_CharWarp,            "@charwarp",        60, atcommand_charwarp },
 	{ AtCommand_Warp,                "@warp",            40, atcommand_warp },
 	{ AtCommand_Where,               "@where",            1, atcommand_where },
@@ -542,13 +544,27 @@ int get_atcommand_level(const AtCommandType type) {
 /*========================================
  * At-command logging
  */
+void log_atcommand(struct map_session_data *sd, const char *fmt, ...) {
+	char message[512];
+	va_list ap;
 
-int last_logfile_nr = 0;
+        va_start(ap, fmt);
+        vsnprintf(message, 511, fmt, ap);
+        va_end(ap);
+
+	if (pc_isGM(sd))
+		gm_log("%s(%d,%d) %s : %s", map[sd->bl.m].name, sd->bl.x,
+			sd->bl.y, sd->status.name, message);
+}
+
 char *gm_logfile_name = NULL;
-static FILE *gm_logfile = NULL;
-
-void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
-{
+/*==========================================
+ * Log a timestamped line to GM log file
+ *------------------------------------------
+ */
+void gm_log(const char *fmt, ...) {
+	static int last_logfile_nr = 0;
+	static FILE *gm_logfile = NULL;
 	time_t time_v;
 	struct tm ctime;
 	int month, year, logfile_nr;
@@ -586,15 +602,13 @@ void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
 		last_logfile_nr = logfile_nr;
 	}
 
-	if (gm_logfile && pc_isGM(sd)) {
-		fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s(%d,%d) %s : %s\n",
-			year, month, ctime.tm_mday,
-			ctime.tm_hour, ctime.tm_min, ctime.tm_sec,
-			map[sd->bl.m].name, sd->bl.x, sd->bl.y, sd->status.name,
-			message);
-                        fflush(gm_logfile);
-	}
+	fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n",
+		year, month, ctime.tm_mday, ctime.tm_hour,
+		ctime.tm_min, ctime.tm_sec, message);
+
+	fflush(gm_logfile);
 }
+
 
 /*==========================================
  *is_atcommand @コマンドに存在するかどうか確認する
@@ -814,6 +828,43 @@ int atcommand_config_read(const char *cfgName) {
  */
 
 /*==========================================
+ * @setup - Safely set a chars levels and warp them to a special place
+ * TAW Specific
+ *------------------------------------------
+ */
+int atcommand_setup(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message)
+{
+	char buf[256];
+	char character[100];
+	int level = 1;
+
+	memset(character, '\0', sizeof(character));
+
+	if (!message || !*message || sscanf(message, "%d %99[^\n]", &level, character) < 2) {
+		clif_displaymessage(fd, "Usage: @setup <level> <char name>");
+		return -1;
+	}
+	level--;
+
+	snprintf(buf, 255, "-255 %s", character);
+	atcommand_character_baselevel(fd, sd, "@charbaselvl", buf);
+
+	snprintf(buf, 255, "%d %s", level, character);
+	atcommand_character_baselevel(fd, sd, "@charbaselvl", buf);
+
+	snprintf(buf, 255, "+10 %s", character);
+	atcommand_character_joblevel(fd, sd, "@charjoblvl", buf);
+
+	snprintf(buf, 255, "018-1.gat 24 98 %s", character);
+	atcommand_charwarp(fd, sd, "@charwarp", buf);
+
+	return(0);
+
+}
+
+/*==========================================
  * @rura+
  *------------------------------------------
  */
@@ -836,9 +887,9 @@ int atcommand_charwarp(
 	}
 
 	if (x <= 0)
-		x = rand() % 399 + 1;
+		x = MRAND(399) + 1;
 	if (y <= 0)
-		y = rand() % 399 + 1;
+		y = MRAND(399) + 1;
 	if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13) // 16 - 4 (.gat)
 		strcat(map_name, ".gat");
 
@@ -895,9 +946,9 @@ int atcommand_warp(const int fd, struct map_session_data* sd, const char* comman
 	}
 
 	if (x <= 0)
-		x = rand() % 399 + 1;
+		x = MRAND(399) + 1;
 	if (y <= 0)
-		y = rand() % 399 + 1;
+		y = MRAND(399) + 1;
 
 	if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13) // 16 - 4 (.gat)
 		strcat(map_name, ".gat");
@@ -1006,9 +1057,9 @@ int atcommand_jump(const int fd, struct map_session_data* sd, const char* comman
 	sscanf(message, "%d %d", &x, &y);
 
 	if (x <= 0)
-		x = rand() % 399 + 1;
+		x = MRAND(399) + 1;
 	if (y <= 0)
-		y = rand() % 399 + 1;
+		y = MRAND(399) + 1;
 	if (x > 0 && x < 400 && y > 0 && y < 400) {
 		if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto && battle_config.any_warp_GM_min_level > pc_isGM(sd)) {
 			clif_displaymessage(fd, "You are not authorised to warp you to your actual map.");
@@ -2486,11 +2537,11 @@ int atcommand_spawn(const int fd, struct map_session_data* sd, const char* comma
 		k = 0;
 		while(j++ < 8 && k == 0) { // try 8 times to spawn the monster (needed for close area)
 			if (x <= 0)
-				mx = sd->bl.x + (rand() % range - (range / 2));
+				mx = sd->bl.x + (MRAND(range) - (range / 2));
 			else
 				mx = x;
 			if (y <= 0)
-				my = sd->bl.y + (rand() % range - (range / 2));
+				my = sd->bl.y + (MRAND(range) - (range / 2));
 			else
 				my = y;
 			k = mob_once_spawn((struct map_session_data*)sd, "this", mx, my, "", mob_id, 1, "");
@@ -5410,7 +5461,7 @@ int atcommand_jail(
 
 	if ((pl_sd = map_nick2sd(character)) != NULL) {
 		if (pc_isGM(sd) >= pc_isGM(pl_sd)) { // you can jail only lower or same GM
-			switch(rand() % 2) {
+			switch(MRAND(2)) {
 			case 0:
 				x = 24;
 				y = 75;
@@ -6771,8 +6822,8 @@ int atcommand_summon(const int fd, struct map_session_data* sd, const char* comm
 	if(mob_id == 0)
 		return -1;
 
-	x = sd->bl.x + (rand() % 10 - 5);
-	y = sd->bl.y + (rand() % 10 - 5);
+	x = sd->bl.x + (MRAND(10) - 5);
+	y = sd->bl.y + (MRAND(10) - 5);
 
 	id = mob_once_spawn(sd,"this", x, y, "--ja--", mob_id, 1, "");
 	if((md=(struct mob_data *)map_id2bl(id))){

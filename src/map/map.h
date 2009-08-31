@@ -356,7 +356,9 @@ struct map_session_data {
 	short sg_count;
 
 	time_t chat_reset_due;
+	time_t chat_repeat_reset_due;
 	int chat_lines_in;
+	int chat_total_repeats;
 	char chat_lastmsg[513];
 
 	time_t trade_reset_due;

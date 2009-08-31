@@ -328,6 +328,10 @@ int inter_storage_save()
 {
 	FILE *fp;
 	int lock;
+
+	if (!storage_db)
+		return 1;
+
 	if( (fp=lock_fopen(storage_txt,&lock))==NULL ){
 		printf("int_storage: cant write [%s] !!! data is lost !!!\n",storage_txt);
 		return 1;
@@ -342,6 +346,7 @@ int inter_guild_storage_save_sub(void *key,void *data,va_list ap)
 {
 	char line[65536];
 	FILE *fp;
+
 	if(inter_guild_search(((struct guild_storage *)data)->guild_id) != NULL) {
 		guild_storage_tostr(line,(struct guild_storage *)data);
 		fp=va_arg(ap,FILE *);
@@ -356,6 +361,10 @@ int inter_guild_storage_save()
 {
 	FILE *fp;
 	int  lock;
+
+	if (!guild_storage_db)
+		return 1;
+
 	if( (fp=lock_fopen(guild_storage_txt,&lock))==NULL ){
 		printf("int_storage: cant write [%s] !!! data is lost !!!\n",guild_storage_txt);
 		return 1;
