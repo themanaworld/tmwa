@@ -2,8 +2,10 @@
 #ifndef _MAP_H_
 #define _MAP_H_
 
+#include <stdio.h>
 #include <stdarg.h>
 #include <time.h>
+#include <sys/time.h>
 #include "mmo.h"
 
 #ifndef MAX
@@ -683,6 +685,16 @@ void map_foreachobject(int (*)(struct block_list*,va_list),int,...);
 int map_quit(struct map_session_data *);
 // npc
 int map_addnpc(int,struct npc_data *);
+
+extern FILE *map_logfile;
+#define MAP_LOG(format, args...) 							\
+	if (map_logfile) {								\
+        	struct timeval tv;							\
+		gettimeofday(&tv, NULL);						\
+		fprintf(map_logfile, "%ld.%06ld ", (long)tv.tv_sec, (long) tv.tv_usec);	\
+		fprintf(map_logfile, format, ##args);					\
+		fputc('\n', map_logfile);						\
+	}
 
 // 床アイテム関連
 int map_clearflooritem_timer(int,unsigned int,int,int);

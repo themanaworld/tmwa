@@ -2425,6 +2425,8 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 		return 0;
 	}
 
+        MAP_LOG("MOB%d DEAD", md->bl.id);
+
 	// ----- ‚±‚±‚©‚ç€–Sˆ— -----
 
 	map_freeblock_lock();

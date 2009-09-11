@@ -1656,6 +1656,28 @@ int map_delmap(char *mapname) {
 
 extern char *gm_logfile_name;
 
+FILE *map_logfile = NULL;
+
+static void
+map_pclose_map_logfile()
+{
+        pclose(map_logfile);
+}
+
+static void
+map_setlogfile(const char *filename)
+{
+        char *filename_buf = malloc(strlen (filename) + 50);
+        sprintf(filename_buf, "gzip -c > %s", filename);
+        map_logfile = popen(filename_buf, "w");
+        if (!map_logfile)
+                perror(filename);
+        else
+                atexit(map_pclose_map_logfile);
+        free(filename_buf);
+        MAP_LOG("log-start");
+}
+
 /*==========================================
  * ê›íËÉtÉ@ÉCÉãÇì«Ç›çûÇﬁ
  *------------------------------------------
@@ -1725,6 +1747,8 @@ int map_config_read(char *cfgName) {
 				strcpy(mapreg_txt, w2);
                         } else if (strcmpi(w1, "gm_log") == 0) {
                                 gm_logfile_name = strdup(w2);
+			} else if (strcmpi(w1, "log_file") == 0) {
+				map_setlogfile(w2);
 			} else if (strcmpi(w1, "import") == 0) {
 				map_config_read(w2);
 			}

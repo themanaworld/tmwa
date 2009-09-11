@@ -93,6 +93,12 @@ magic_message(character_t *caster,
                 fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_, effects != NULL);
 #endif
 
+                MAP_LOG("PC%d %d:%d,%d CAST %s %s",
+                        caster->status.char_id, caster->bl.m, caster->bl.x, caster->bl.y,
+                        spell->name,
+                        effects? "SUCCESS" : "FAILURE");
+
+
                 if (effects) {
                         invocation_t *invocation = spell_instantiate(effects, env);
 

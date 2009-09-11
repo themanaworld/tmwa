@@ -3937,6 +3937,32 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
 			skill_castend_damage_id(src,target,0,-1,tick,0);
 		map_freeblock_lock();
 
+                if (src->type == BL_PC) {
+                        int weapon_index = sd->equip_index[9];
+                        int weapon = 0;
+                        if (sd->inventory_data[weapon_index] && sd->status.inventory[weapon_index].equip & 0x2)
+                                weapon = sd->inventory_data[weapon_index]->nameid;
+
+                        MAP_LOG("PC%d %d:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
+                                sd->status.char_id, src->m, src->x, src->y,
+                                (target->type == BL_PC)? "PC" : "MOB",
+                                (target->type == BL_PC)? ((struct map_session_data *) target)->status.char_id : target->id,
+                                (target->type == BL_PC)? 0 : ((struct mob_data *)target)->class,
+                                wd.damage+wd.damage2,
+                                weapon
+                                );
+                }
+
+                if (target->type == BL_PC) {
+                        struct map_session_data *sd2 = (struct map_session_data *) target;
+                        MAP_LOG("PC%d %d:%d,%d WPNINJURY %s%d %d FOR %d",
+                                sd2->status.char_id, target->m, target->x, target->y,
+                                (src->type == BL_PC)? "PC" : "MOB",
+                                (src->type == BL_PC)? ((struct map_session_data *) src)->status.char_id : src->id,
+                                (src->type == BL_PC)? 0 : ((struct mob_data *)src)->class,
+                                wd.damage+wd.damage2);
+                }
+
 		battle_damage(src,target,(wd.damage+wd.damage2),0);
 		if(target->prev != NULL &&
 			(target->type != BL_PC || (target->type == BL_PC && !pc_isdead((struct map_session_data *)target) ) ) ) {

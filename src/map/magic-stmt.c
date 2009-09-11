@@ -285,10 +285,19 @@ op_instaheal(env_t *env, int args_nr, val_t *args)
         entity_t *caster = (VAR(VAR_CASTER).ty == TY_ENTITY)
                          ? map_id2bl(VAR(VAR_CASTER).v.v_int)
                          : NULL;
+        entity_t *subject = ARGENTITY(0);
         if (!caster)
-                caster = ARGENTITY(0);
-                
-        battle_heal(caster, ARGENTITY(0), ARGINT(1), ARGINT(2), 0);
+                caster = subject;
+
+        if (caster->type == BL_PC && subject->type == BL_PC) {
+                character_t *caster_pc = (character_t *) caster;
+                character_t *subject_pc = (character_t *) subject;
+                MAP_LOG("PC%d %d:%d,%d SPELLHEAL-INSTA PC%d FOR %d",
+                        caster_pc->status.char_id, caster->m, caster->x, caster->y,
+                        subject_pc->status.char_id, ARGINT(1));
+        }
+
+        battle_heal(caster, subject, ARGINT(1), ARGINT(2), 0);
         return 0;
 }
 
@@ -696,6 +705,17 @@ op_injure(env_t *env, int args_nr, val_t *args)
         // display damage first, because dealing damage may deallocate the target.
         clif_damage(caster, target, gettick(),
                     0, 0, damage_caused, 0, 0, 0);
+
+        if (caster->type == BL_PC) {
+                character_t *caster_pc = (character_t *) caster;
+                if (target->type == BL_MOB) {
+                        struct mob_data *mob = (struct mob_data *) target;
+
+                        MAP_LOG("PC%d %d:%d,%d SPELLDMG MOB%d %d FOR %d",
+                                caster_pc->status.char_id, caster->m, caster->x, caster->y,
+                                mob->bl.id, mob->class, damage_caused);
+                }
+        }
         battle_damage(caster, target, damage_caused, mp_damage);
 
         return 0;

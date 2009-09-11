@@ -38,6 +38,27 @@
 
 #define STATE_BLIND 0x10
 
+#define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
+
+#define MAP_LOG_STATS(sd, suffix)	\
+        MAP_LOG_PC(sd, "STAT %d %d %d %d %d %d " suffix,            \
+                   sd->status.str, sd->status.agi, sd->status.vit, sd->status.int_, sd->status.dex, sd->status.luk)
+
+#define MAP_LOG_XP(sd, suffix)	\
+        MAP_LOG_PC(sd, "XP %d %d ZENY %d + %d " suffix,		\
+                   sd->status.base_level, sd->status.base_exp, sd->status.zeny, pc_readaccountreg(sd, "BankAccount"))
+
+#define MAP_LOG_MAGIC(sd, suffix)	\
+        MAP_LOG_PC(sd, "MAGIC %d %d %d %d %d %d EXP %d %d " suffix,	\
+                   sd->status.skill[TMW_MAGIC].lv,                      \
+                   sd->status.skill[TMW_MAGIC_LIFE].lv,			\
+                   sd->status.skill[TMW_MAGIC_WAR].lv,			\
+                   sd->status.skill[TMW_MAGIC_TRANSMUTE].lv,		\
+                   sd->status.skill[TMW_MAGIC_NATURE].lv,               \
+                   sd->status.skill[TMW_MAGIC_ETHER].lv,                \
+                   pc_readglobalreg(sd, "MAGIC_EXPERIENCE") & 0xffff,	\
+                   (pc_readglobalreg(sd, "MAGIC_EXPERIENCE") >> 24) & 0xff)
+
 static int max_weight_base[MAX_PC_CLASS];
 static int hp_coefficient[MAX_PC_CLASS];
 static int hp_coefficient2[MAX_PC_CLASS];
@@ -659,6 +680,10 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 		clif_authfail_fd(sd->fd, 0);
 		return 1;
 	}
+
+	MAP_LOG_STATS(sd, "LOGIN");
+	MAP_LOG_XP(sd, "LOGIN");
+	MAP_LOG_MAGIC(sd, "LOGIN");
 
 	memset(&sd->state, 0, sizeof(sd->state));
 	// ���{�I�ȏ�����
@@ -2878,6 +2903,8 @@ int pc_additem(struct map_session_data *sd,struct item *item_data,int amount)
 	struct item_data *data;
 	int i,w;
 
+        MAP_LOG_PC(sd, "PICKUP %d %d", item_data->nameid , amount);
+
 	nullpo_retr(1, sd);
 	nullpo_retr(1, item_data);
 
@@ -4372,6 +4399,8 @@ int pc_gainexp_reason(struct map_session_data *sd,int base_exp,int job_exp, int 
 	if((battle_config.pvp_exp == 0) && map[sd->bl.m].flag.pvp)  // [MouseJstr]
 		return 0; // no exp on pvp maps
 
+        MAP_LOG_PC(sd, "GAINXP %d %s", base_exp, ((reason == 2)? "SCRIPTXP" : ((reason == 1) ? "HEALXP" : "KILLXP")));
+
 	if(sd->sc_data[SC_RICHMANKIM].timer != -1) { // added bounds checking [Vaalris]
 		base_exp += base_exp*(25 + sd->sc_data[SC_RICHMANKIM].val1*25)/100;
 		job_exp += job_exp*(25 + sd->sc_data[SC_RICHMANKIM].val1*25)/100;
@@ -4629,6 +4658,8 @@ int pc_statusup(struct map_session_data *sd,int type)
 	pc_calcstatus(sd,0);
 	clif_statusupack(sd,type,1,val);
 
+        MAP_LOG_STATS(sd, "STATUP");
+
 	return 0;
 }
 
@@ -4704,6 +4735,7 @@ int pc_statusup2(struct map_session_data *sd,int type,int val)
 	clif_updatestatus(sd,type);
 	pc_calcstatus(sd,0);
 	clif_statusupack(sd,type,1,val);
+        MAP_LOG_STATS(sd, "STATUP2");
 
 	return 0;
 }
@@ -4863,6 +4895,8 @@ int pc_resetlvl(struct map_session_data* sd,int type)
 	clif_skillinfoblock(sd);
 	pc_calcstatus(sd,0);
 
+        MAP_LOG_STATS(sd, "STATRESET");
+
 	return 0;
 }
 /*==========================================
@@ -4973,6 +5007,12 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 		skill_gangsterparadise(sd,0);
 	}
 
+        if (src->type == BL_PC) {
+                MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d", ((struct map_session_data *)src)->status.char_id, damage);
+        } else {
+                MAP_LOG_PC(sd, "INJURED-BY MOB%d FOR %d", src->id, damage);
+        }
+
 	// �� ���Ă����瑫���~�߂�
 	if(sd->sc_data[SC_ENDURE].timer == -1 && !sd->special_state.infinite_endure)
 		pc_stop_walking(sd,3);
@@ -5009,6 +5049,8 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 
 		return 0;
 	}
+
+        MAP_LOG_PC(sd, "DEAD%s", "");
 
         // Character is dead!
 
@@ -7739,6 +7781,8 @@ int pc_logout(struct map_session_data *sd) // [fate] Player logs out
 
         if (sd->sc_data[SC_POISON].timer != -1)
                 sd->status.hp = 1; // Logging out while poisoned -> bad
+
+	MAP_LOG_STATS(sd, "LOGOUT")
 
         return 0;
 }
