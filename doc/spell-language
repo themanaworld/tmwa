@@ -555,11 +555,12 @@ The following functions are available:
   + is_dead : entity -> bool
     Determines whether the specified entity is no longer alive.
 
-  + extract_healer_experience : entity -> int
+  + extract_healer_experience : entity * int -> int
     Extracts `healer experience points' from the specified entity.
     Non-PCs always have an empty pool of healer exprerience points.
     PCs gain such experience points by killing/completing quests,
     though this `healer experience point pool' slowly drains itself.
+    extract_healer_experience(pc, xp) extracts up to `xp' points.
 
   + is_pc : entity -> bool
     Determines whether the target is a player character
