@@ -49,6 +49,7 @@
 #endif
 
 #define STATE_BLIND 0x10
+#define EMOTE_IGNORED 0x0e
 
 static const int packet_len_table[0x220] = {
    10,  0,  0,  0,  0,  0,  0,  0,   0,  0,  0,  0,  0,  0,  0,  0,
@@ -207,6 +208,18 @@ int clif_foreachclient(int (*func)(struct map_session_data*, va_list),...)
 	return 0;
 }
 
+static int
+is_deaf(struct block_list *bl)
+{
+        struct map_session_data *sd = (struct map_session_data *) bl;
+        if (!bl || bl->type != BL_PC)
+                return 0;
+        return sd->special_state.deaf;
+}
+
+static void clif_emotion_towards(struct block_list *bl, struct block_list *target, int type);
+
+
 /*==========================================
  * clif_send��AREA*�w�莞�p
  *------------------------------------------
@@ -233,9 +246,17 @@ int clif_send_sub(struct block_list *bl, va_list ap)
 		if (bl && bl == src_bl)
 			return 0;
 		break;
+
+        case AREA_CHAT_WOC:
+                if (is_deaf (bl) && !(bl->type == BL_PC && pc_isGM((struct map_session_data *)src_bl))) {
+                        clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
+                        return 0;
+                }
+                /* fall through... */
 	case AREA_WOC:
 		if ((sd && sd->chatID) || (bl && bl == src_bl))
 			return 0;
+
 		break;
 	case AREA_WOSC:
 		if ((sd) && sd->chatID && sd->chatID == ((struct map_session_data*)src_bl)->chatID)
@@ -325,7 +346,7 @@ int clif_send(unsigned char *buf, int len, struct block_list *bl, int type) {
 		map_foreachinarea(clif_send_sub, bl->m, bl->x-AREA_SIZE, bl->y-AREA_SIZE, bl->x+AREA_SIZE, bl->y+AREA_SIZE, BL_PC, buf, len, bl, type);
 		break;
 	case AREA_CHAT_WOC:
-		map_foreachinarea(clif_send_sub, bl->m, bl->x-(AREA_SIZE-5), bl->y-(AREA_SIZE-5), bl->x+(AREA_SIZE-5), bl->y+(AREA_SIZE-5), BL_PC, buf, len, bl, AREA_WOC);
+		map_foreachinarea(clif_send_sub, bl->m, bl->x-(AREA_SIZE-5), bl->y-(AREA_SIZE-5), bl->x+(AREA_SIZE-5), bl->y+(AREA_SIZE-5), BL_PC, buf, len, bl, AREA_CHAT_WOC);
 		break;
 	case CHAT:
 	case CHAT_WOS:
@@ -5876,6 +5897,26 @@ void clif_emotion(struct block_list *bl,int type)
 	WBUFL(buf,2)=bl->id;
 	WBUFB(buf,6)=type;
 	clif_send(buf,packet_len_table[0xc0],bl,AREA);
+}
+
+static void clif_emotion_towards(struct block_list *bl, struct block_list *target, int type)
+{
+	unsigned char buf[8];
+        int len = packet_len_table[0xc0];
+        struct map_session_data *sd = (struct map_session_data *) target;
+
+	nullpo_retv(bl);
+	nullpo_retv(target);
+
+        if (target->type != BL_PC)
+                return;
+
+	WBUFW(buf,0)=0xc0;
+	WBUFL(buf,2)=bl->id;
+	WBUFB(buf,6)=type;
+
+        memcpy(WFIFOP(sd->fd,0), buf, len);
+        WFIFOSET(sd->fd,len);
 }
 
 /*==========================================

@@ -184,6 +184,7 @@ struct map_session_data {
 		unsigned unbreakable_weapon : 1;
 		unsigned unbreakable_armor : 1;
 		unsigned infinite_autospell : 1;
+                unsigned deaf : 1;
 	} special_state;
 	int char_id, login_id1, login_id2, sex;
         unsigned char tmw_version; // tmw client version
@@ -581,6 +582,7 @@ enum {
 	SP_28,SP_ATK1,SP_ATK2,SP_MATK1,SP_MATK2,SP_DEF1,SP_DEF2,SP_MDEF1,	// 40-47
 	SP_MDEF2,SP_HIT,SP_FLEE1,SP_FLEE2,SP_CRITICAL,SP_ASPD,SP_36,SP_JOBLEVEL,	// 48-55
 	SP_UPPER,SP_PARTNER,SP_CART,SP_FAME,SP_UNBREAKABLE,	//56-58
+        SP_DEAF=70,
 	SP_CARTINFO=99,	// 99
 	SP_GM=500,
 

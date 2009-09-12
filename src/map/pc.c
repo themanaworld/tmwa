@@ -2398,6 +2398,9 @@ int pc_bonus(struct map_session_data *sd,int type,int val)
 			sd->unbreakable += val;
 		}
 		break;
+	case SP_DEAF:
+                sd->special_state.deaf = 1;
+		break;
 	default:
 		if(battle_config.error_log)
 			printf("pc_bonus: unknown type %d %d !\n",type,val);
