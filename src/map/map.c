@@ -1668,7 +1668,7 @@ static void
 map_setlogfile(const char *filename)
 {
         char *filename_buf = malloc(strlen (filename) + 50);
-        sprintf(filename_buf, "gzip -c > %s", filename);
+        sprintf(filename_buf, "gzip --rsyncable -c > %s", filename);
         map_logfile = popen(filename_buf, "w");
         if (!map_logfile)
                 perror(filename);
