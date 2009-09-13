@@ -3845,6 +3845,9 @@ int pc_walktoxy(struct map_session_data *sd,int x,int y)
 	sd->to_x=x;
 	sd->to_y=y;
 
+        if (pc_issit (sd))
+                pc_setstand(sd);
+
 	if(sd->walktimer != -1 && sd->state.change_walk_target==0){
 		// ���ݕ��Ă����Œ��̖ړI�n�ύX�Ȃ̂Ń}�X�ڂ̒��S�ɗ�������
 		// timer�֐�����pc_walktoxy_sub���ĂԂ悤�ɂ���
