@@ -1656,27 +1656,77 @@ int map_delmap(char *mapname) {
 
 extern char *gm_logfile_name;
 
+
+#define LOGFILE_SECONDS_PER_CHUNK_SHIFT 10
+
 FILE *map_logfile = NULL;
+char *map_logfile_name = NULL;
+static long map_logfile_index;
 
 static void
-map_pclose_map_logfile()
+map_close_logfile()
 {
-        pclose(map_logfile);
+        if (map_logfile) {
+                char *filenameop_buf = malloc(strlen(map_logfile_name) + 50);
+                sprintf(filenameop_buf, "gzip %s.%ld", map_logfile_name, map_logfile_index);
+
+                fclose(map_logfile);
+
+                if (!system(filenameop_buf))
+                        perror(filenameop_buf);
+
+                free(filenameop_buf);
+        }
+}
+
+
+static void
+map_start_logfile(long suffix)
+{
+        char *filename_buf = malloc(strlen(map_logfile_name) + 50);
+        map_logfile_index = suffix >> LOGFILE_SECONDS_PER_CHUNK_SHIFT;
+
+        sprintf(filename_buf, "%s.%ld", map_logfile_name, map_logfile_index);
+        map_logfile = fopen(filename_buf, "w+");
+        if (!map_logfile)
+                perror(map_logfile_name);
+
+        free(filename_buf);
 }
 
 static void
-map_setlogfile(const char *filename)
+map_set_logfile(char *filename)
 {
-        char *filename_buf = malloc(strlen (filename) + 50);
-        sprintf(filename_buf, "gzip --rsyncable -c > %s", filename);
-        map_logfile = popen(filename_buf, "w");
-        if (!map_logfile)
-                perror(filename);
-        else
-                atexit(map_pclose_map_logfile);
-        free(filename_buf);
+        struct timeval tv;
+
+        map_logfile_name = strdup(filename);
+        gettimeofday(&tv, NULL);
+
+        map_start_logfile(tv.tv_sec);
+        atexit(map_close_logfile);
         MAP_LOG("log-start");
 }
+
+
+void
+map_write_log(char *format, ...)
+{
+        struct timeval tv;
+        va_list args;
+        va_start(args, format);
+
+        gettimeofday(&tv, NULL);
+
+        if ((tv.tv_sec >> LOGFILE_SECONDS_PER_CHUNK_SHIFT) != map_logfile_index) {
+                map_close_logfile();
+                map_start_logfile(tv.tv_sec);
+        }
+
+        fprintf(map_logfile, "%ld.%06ld ", (long)tv.tv_sec, (long) tv.tv_usec);
+        vfprintf(map_logfile, format, args);
+        fputc('\n', map_logfile);
+}
+
 
 /*==========================================
  * ê›íËÉtÉ@ÉCÉãÇì«Ç›çûÇﬁ
@@ -1748,7 +1798,7 @@ int map_config_read(char *cfgName) {
                         } else if (strcmpi(w1, "gm_log") == 0) {
                                 gm_logfile_name = strdup(w2);
 			} else if (strcmpi(w1, "log_file") == 0) {
-				map_setlogfile(w2);
+				map_set_logfile(w2);
 			} else if (strcmpi(w1, "import") == 0) {
 				map_config_read(w2);
 			}
