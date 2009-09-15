@@ -1704,7 +1704,7 @@ map_set_logfile(char *filename)
 
         map_start_logfile(tv.tv_sec);
         atexit(map_close_logfile);
-        MAP_LOG("log-start");
+        MAP_LOG("log-start v2");
 }
 
 

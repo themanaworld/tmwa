@@ -5013,11 +5013,14 @@ int pc_damage(struct block_list *src,struct map_session_data *sd,int damage)
 		skill_gangsterparadise(sd,0);
 	}
 
-        if (src->type == BL_PC) {
-                MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d", ((struct map_session_data *)src)->status.char_id, damage);
-        } else {
-                MAP_LOG_PC(sd, "INJURED-BY MOB%d FOR %d", src->id, damage);
-        }
+        if (src) {
+            if (src->type == BL_PC) {
+                    MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d", ((struct map_session_data *)src)->status.char_id, damage);
+            } else {
+                    MAP_LOG_PC(sd, "INJURED-BY MOB%d FOR %d", src->id, damage);
+            }
+        } else
+                MAP_LOG_PC(sd, "INJURED-BY null FOR %d", damage);
 
 	// �� ���Ă����瑫���~�߂�
 	if(sd->sc_data[SC_ENDURE].timer == -1 && !sd->special_state.infinite_endure)
