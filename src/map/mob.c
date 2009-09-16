@@ -1651,7 +1651,7 @@ static int mob_randomwalk(struct mob_data *md,int tick)
 		int i,x,y,c,d=12-md->move_fail_count;
 		if(d<5) d=5;
 		for(i=0;i<retrycount;i++){	// Search of a movable place
-			int r=rand();
+			int r=mt_random();
 			x=md->bl.x+r%(d*2+1)-d;
 			y=md->bl.y+r/(d*2+1)%(d*2+1)-d;
 			if((c=map_getcell(md->bl.m,x,y))!=1 && c!=5 && mob_walktoxy(md,x,y,1)==0){

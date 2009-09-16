@@ -607,8 +607,6 @@ fun_location(env_t *env, int args_nr, val_t *result, val_t *args)
         return 0;
 }
 
-/* Recall that glibc's rand() isnt' too bad in the lower bits */
-
 static int
 fun_random(env_t *env, int args_nr, val_t *result, val_t *args)
 {
@@ -619,7 +617,8 @@ fun_random(env_t *env, int args_nr, val_t *result, val_t *args)
                 RESULTINT = 0;
                 return 0;
         }
-        RESULTINT = rand() % delta;
+        RESULTINT = MRAND(delta);
+
         if (ARGINT(0) < 0)
                 RESULTINT = -RESULTINT;
         return 0;
@@ -629,9 +628,9 @@ static int
 fun_random_dir(env_t *env, int args_nr, val_t *result, val_t *args)
 {
         if (ARGINT(0))
-                RESULTDIR = rand() & 0x7;
+                RESULTDIR = mt_random() & 0x7;
         else
-                RESULTDIR = (rand() & 0x3) * 2;
+                RESULTDIR = (mt_random() & 0x3) * 2;
         return 0;
 }
 
@@ -850,7 +849,7 @@ magic_random_location(location_t *dest, area_t *area)
 {
         switch (area->ty) {
         case AREA_UNION: {
-                int rv = rand() % area->size;
+                int rv = MRAND(area->size);
                 if (rv < area->a.a_union[0]->size)
                         magic_random_location(dest, area->a.a_union[0]);
                 else
@@ -870,14 +869,14 @@ magic_random_location(location_t *dest, area_t *area)
                 if (h <= 1)
                         h = 1;
 
-                x += rand() % w;
-                y += rand() % h;
+                x += MRAND(w);
+                y += MRAND(h);
 
                 if (!map_is_solid(m, x, y)) {
                         int start_x = x;
                         int start_y = y;
                         int i;
-                        int initial_dir = rand() & 0x7;
+                        int initial_dir = mt_random() & 0x7;
                         int dir = initial_dir;
 
                         /* try all directions, up to a distance to 10, for a free slot */
