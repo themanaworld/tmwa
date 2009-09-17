@@ -38,5 +38,5 @@
  * MRAND(10), returns 0-9.
  * MPRAND(5,10) returns 5-14.
  */
-#define MRAND(mod) (int) (mt_random() % mod)
+#define MRAND(mod) (int) (mt_random() % (mod))
 #define MPRAND(add, mod) add + MRAND(mod)
