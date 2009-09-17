@@ -28,7 +28,7 @@ void trade_traderequest(struct map_session_data *sd,int target_id)
 				return;
 			}
 		}
-		if (target_sd->npc_id)
+		if (target_sd->npc_id || target_sd->npc_shopid)
 		{
 			//Trade fails if you are using an NPC.
 			clif_tradestart(sd, 2);
