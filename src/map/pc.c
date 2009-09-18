@@ -881,7 +881,7 @@ static int pc_calc_skillpoint(struct map_session_data* sd)
 
 	for(i=1;i<MAX_SKILL;i++){
 		if( (skill = pc_checkskill(sd,i)) > 0) {
-			if(!(skill_get_inf2(i)&0x01) || battle_config.quest_skill_learn) {
+			if(skill_get_inf2(i)&0x01) {
 				if(!sd->status.skill[i].flag)
 					skill_point += skill;
 				else if(sd->status.skill[i].flag > 2 && sd->status.skill[i].flag != 13) {
@@ -997,6 +997,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
 		}
 	}
 
+	/*Comment this out for now, as we manage skills differently
 	for(i=0;i<MAX_SKILL;i++)
             if (i < TMW_MAGIC || i > TMW_MAGIC_END){ // [Fate] This hack gets TMW magic working and persisted without bothering about the skill tree.
 		if (sd->status.skill[i].flag != 13) sd->status.skill[i].id=0;
@@ -1005,6 +1006,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
 			sd->status.skill[i].flag=0;	// flag��0�ɂ��Ă���
 		}
 	}
+	*/
 
 	if (battle_config.gm_allskill > 0 && pc_isGM(sd) >= battle_config.gm_allskill){
 		// �S�ẴX�L��
@@ -4761,8 +4763,8 @@ int pc_skillup(struct map_session_data *sd,int skill_num)
 
 	if( sd->status.skill_point>0 &&
 		sd->status.skill[skill_num].id!=0 &&
-		sd->status.skill[skill_num].lv < skill_get_max(skill_num)
-            && (skill_num < TMW_MAGIC || skill_num > TMW_MAGIC_END)) // [Fate] Hack: Prevent exploit for raising magic levels
+		sd->status.skill[skill_num].lv < skill_get_max(skill_num) &&
+		skill_get_inf2(skill_num) & 0x01)
 	{
 		sd->status.skill[skill_num].lv++;
 		sd->status.skill_point--;
@@ -4811,7 +4813,7 @@ int pc_allskillup(struct map_session_data *sd)
 	}
 	else {
 		for(i=0;(id=skill_tree[s][c][i].id)>0;i++){
-			if(sd->status.skill[id].id==0 && (!(skill_get_inf2(id)&0x01) || battle_config.quest_skill_learn) )
+			if(sd->status.skill[id].id==0 && skill_get_inf2(id)&0x01 )
 				sd->status.skill[id].lv=skill_get_max(id);
 		}
 	}
@@ -4969,8 +4971,8 @@ int pc_resetskill(struct map_session_data* sd)
 
 	for(i=1;i<MAX_SKILL;i++){
 		if( (skill = pc_checkskill(sd,i)) > 0) {
-			if(!(skill_get_inf2(i)&0x01) || battle_config.quest_skill_learn) {
-                                if(!sd->status.skill[i].flag && !QUEST_SKILL(i))
+			if(skill_get_inf2(i)&0x01) {
+                                if(!sd->status.skill[i].flag)
 					sd->status.skill_point += skill;
 				else if(sd->status.skill[i].flag > 2 && sd->status.skill[i].flag != 13) {
 					sd->status.skill_point += (sd->status.skill[i].flag - 2);

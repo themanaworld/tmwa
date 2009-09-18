@@ -10,9 +10,6 @@
 #define MAX_SKILL_ARROW_DB	 150
 #define MAX_SKILL_ABRA_DB	 350
 
-#define QUEST_SKILL(i) ((i) >= TMW_MAGIC && (i) < TMW_MAGIC_END)
-// [Fate] A `quest skill' is a skill handled via quests, i.e., one that can't be modified via skill points.
-
 // スキルデータベース
 struct skill_db {
 	int range[MAX_SKILL_LEVEL],hit,inf,pl,nk,max;
@@ -323,7 +320,9 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 extern int SkillStatusChangeTable[];
 
 enum {
-	NV_BASIC = 1,
+	NV_EMOTE = 1,
+	NV_TRADE,
+	NV_PARTY,
 
 	SM_SWORD,
 	SM_TWOHAND,
@@ -677,7 +676,7 @@ enum {
 	DC_FORTUNEKISS,
 	DC_SERVICEFORYOU,
 
-	NPC_SELFDESTRUCTION2 = 331,
+	NPC_SELFDESTRUCTION2 = 333,
 
 	WE_MALE = 334,
 	WE_FEMALE,
