@@ -1668,7 +1668,7 @@ map_close_logfile()
 {
         if (map_logfile) {
                 char *filenameop_buf = malloc(strlen(map_logfile_name) + 50);
-                sprintf(filenameop_buf, "gzip %s.%ld", map_logfile_name, map_logfile_index);
+                sprintf(filenameop_buf, "gzip -f %s.%ld", map_logfile_name, map_logfile_index);
 
                 fclose(map_logfile);
 
