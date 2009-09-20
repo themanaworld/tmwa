@@ -4756,18 +4756,12 @@ int pc_skillup(struct map_session_data *sd,int skill_num)
 {
 	nullpo_retr(0, sd);
 
-	if( skill_num>=10000 ){
-		guild_skillup(sd,skill_num);
-		return 0;
-	}
-
-	if( sd->status.skill_point>0 &&
-		sd->status.skill[skill_num].id!=0 &&
-		sd->status.skill[skill_num].lv < skill_get_max(skill_num) &&
-		skill_get_inf2(skill_num) & 0x01)
-	{
+	if (sd->status.skill[skill_num].id !=0
+            && sd->status.skill_point > sd->status.skill[skill_num].lv
+            && sd->status.skill[skill_num].lv < skill_db[skill_num].max_raise) {
 		sd->status.skill[skill_num].lv++;
-		sd->status.skill_point--;
+		sd->status.skill_point -= sd->status.skill[skill_num].lv;
+
 		pc_calcstatus(sd,0);
 		clif_skillup(sd,skill_num);
 		clif_updatestatus(sd,SP_SKILLPOINT);

@@ -1257,6 +1257,28 @@ AthenaNPCScript
 
 		misceffect <id> <name>
 			Shows the effect with id on name. if name is omitted show on NPC.
+
+                getskilllist
+                	Computes the set of all skills that the player has access to.
+                        Results are written into @skilllist_id[], @skilllist_lv[], @skilllist_flag[],
+                        which have a total of @skilllist_count entries.
+
+                getpoolskilllist
+                	Same as getskilllist, but only list pool skills, and also set set
+                        @skilllist_name$[] to the skills' names.
+                        Note that flag & 1 here indicates that the spell is activated.
+
+                getactivatedpoolskilllist
+			Same as getpoolskilllist, but only list activated pool skills.
+
+		poolskill (skill_nr)
+			Moves the specified skill into the skill pool, if possible
+
+		unpoolskill (skill_nr)
+			Moves the specified skill out of the skill pool, if possible
+
+		checkpoolskill (skill_nr)
+			Checks whether the specified skill is in the skill pool (returns nonzero if so)
 		
 	＊定数ラベル
 		-ラベル

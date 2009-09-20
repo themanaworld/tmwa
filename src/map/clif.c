@@ -3768,7 +3768,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
                     && (sd->tmw_version >= 1)){  // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
 			WFIFOW(fd,len  ) = id;
 			WFIFOW(fd,len+2) = skill_get_inf(id);
-			WFIFOW(fd,len+4) = 0;
+			WFIFOW(fd,len+4) = skill_db[i].poolflags | (sd->status.skill[i].flag & (SKILL_POOL_ACTIVATED));
 			WFIFOW(fd,len+6) = sd->status.skill[i].lv;
 			WFIFOW(fd,len+8) = skill_get_sp(id,sd->status.skill[i].lv);
 			range = skill_get_range(id,sd->status.skill[i].lv);

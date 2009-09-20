@@ -1134,6 +1134,21 @@ int battle_get_mexp(struct block_list *bl)
 		return 0;
 }
 
+int battle_get_stat(int stat_id /* SP_VIT or similar */, struct block_list *bl)
+{
+        switch (stat_id) {
+        case SP_STR: return battle_get_str(bl);
+        case SP_AGI: return battle_get_agi(bl);
+        case SP_DEX: return battle_get_dex(bl);
+        case SP_VIT: return battle_get_vit(bl);
+        case SP_INT: return battle_get_int(bl);
+        case SP_LUK: return battle_get_luk(bl);
+        default:
+                return 0;
+        }
+}
+
+
 // StatusChangeŒn‚ÌŠ“¾
 struct status_change *battle_get_sc_data(struct block_list *bl)
 {

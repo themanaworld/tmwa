@@ -255,6 +255,13 @@ int buildin_getanchorinvocation(struct script_state *st); // [Fate]
 int buildin_getexp(struct script_state *st);
 int buildin_getinventorylist(struct script_state *st);
 int buildin_getskilllist(struct script_state *st);
+int buildin_get_pool_skills(struct script_state *st); // [fate]
+int buildin_get_activated_pool_skills(struct script_state *st); // [fate]
+int buildin_activate_pool_skill(struct script_state *st); // [fate]
+int buildin_deactivate_pool_skill(struct script_state *st); // [fate]
+int buildin_check_pool_skill(struct script_state *st); // [fate]
+int buildin_getskilllist(struct script_state *st);
+int buildin_getskilllist(struct script_state *st);
 int buildin_clearitem(struct script_state *st);
 int buildin_classchange(struct script_state *st);
 int buildin_misceffect(struct script_state *st);
@@ -464,6 +471,11 @@ struct {
 	{buildin_getexp,"getexp","ii"},
 	{buildin_getinventorylist,"getinventorylist",""},
 	{buildin_getskilllist,"getskilllist",""},
+	{buildin_get_activated_pool_skills,"getpoolskilllist",""},
+	{buildin_get_pool_skills,"getactivatedpoolskilllist",""},
+	{buildin_activate_pool_skill,"poolskill","i"},
+	{buildin_deactivate_pool_skill,"unpoolskill","i"},
+	{buildin_check_pool_skill,"checkpoolskill","i"},
 	{buildin_clearitem,"clearitem",""},
 	{buildin_classchange,"classchange","ii"},
 	{buildin_misceffect,"misceffect","i*"},
@@ -5519,6 +5531,101 @@ int buildin_getskilllist(struct script_state *st)
 	pc_setreg(sd,add_str("@skilllist_count"),j);
 	return 0;
 }
+
+
+
+int
+buildin_get_activated_pool_skills(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+        int pool_skills[MAX_SKILL_POOL];
+        int skill_pool_size = skill_pool(sd, pool_skills);
+        int i, count = 0;
+
+	if (!sd)
+            return 0;
+
+	for (i = 0; i < skill_pool_size; i++) {
+                int skill_id = pool_skills[i];
+
+                if (sd->status.skill[skill_id].id == skill_id) {
+			pc_setreg(sd,add_str("@skilllist_id")+(count<<24),sd->status.skill[skill_id].id);
+			pc_setreg(sd,add_str("@skilllist_lv")+(count<<24),sd->status.skill[skill_id].lv);
+			pc_setreg(sd,add_str("@skilllist_flag")+(count<<24),sd->status.skill[skill_id].flag);
+                        pc_setregstr(sd, add_str("@skilllist_name$")+(count<<24), skill_name(skill_id));
+                        ++count;
+		}
+	}
+	pc_setreg(sd,add_str("@skilllist_count"),count);
+
+	return 0;
+}
+
+extern int skill_pool_skills[];
+extern int skill_pool_skills_size;
+
+int
+buildin_get_pool_skills(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+        int i, count = 0;
+
+	if (!sd)
+            return 0;
+
+	for (i = 0; i < skill_pool_skills_size; i++) {
+                int skill_id = skill_pool_skills[i];
+
+                if (sd->status.skill[skill_id].id == skill_id) {
+			pc_setreg(sd,add_str("@skilllist_id")+(count<<24),sd->status.skill[skill_id].id);
+			pc_setreg(sd,add_str("@skilllist_lv")+(count<<24),sd->status.skill[skill_id].lv);
+			pc_setreg(sd,add_str("@skilllist_flag")+(count<<24),sd->status.skill[skill_id].flag);
+                        pc_setregstr(sd, add_str("@skilllist_name$")+(count<<24), skill_name(skill_id));
+                        ++count;
+		}
+	}
+	pc_setreg(sd,add_str("@skilllist_count"),count);
+
+	return 0;
+}
+
+int
+buildin_activate_pool_skill(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+        int skill_id = conv_num(st,& (st->stack->stack_data[st->start+2]));
+
+        skill_pool_activate(sd, skill_id);
+        clif_skillinfoblock(sd);
+
+        return 0;
+}
+
+
+int
+buildin_deactivate_pool_skill(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+        int skill_id = conv_num(st,& (st->stack->stack_data[st->start+2]));
+
+        skill_pool_deactivate(sd, skill_id);
+        clif_skillinfoblock(sd);
+
+        return 0;
+}
+
+
+int
+buildin_check_pool_skill(struct script_state *st)
+{
+	struct map_session_data *sd=script_rid2sd(st);
+        int skill_id = conv_num(st,& (st->stack->stack_data[st->start+2]));
+
+        push_val(st->stack, C_INT, skill_pool_is_activated(sd, skill_id));
+
+        return 0;
+}
+
 
 int buildin_clearitem(struct script_state *st)
 {

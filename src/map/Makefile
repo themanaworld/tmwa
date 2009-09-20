@@ -11,7 +11,7 @@ obj:
 COMMON_OBJ = ../common/core.o ../common/socket.o ../common/timer.o ../common/grfio.o ../common/db.o ../common/lock.o ../common/nullpo.o ../common/malloc.o ../common/mt_rand.o
 LIBS = -lz -lm
 
-map-server: obj/tmw.o obj/magic-interpreter-lexer.o obj/magic-interpreter-parser.o obj/magic-interpreter-base.o obj/magic-expr.o obj/magic-stmt.o obj/magic.o obj/map.o obj/chrif.o obj/clif.o obj/pc.o obj/npc.o obj/chat.o obj/path.o obj/itemdb.o obj/mob.o obj/script.o obj/storage.o obj/skill.o obj/atcommand.o obj/battle.o obj/intif.o obj/trade.o obj/party.o obj/guild.o $(COMMON_OBJ)
+map-server: obj/tmw.o obj/magic-interpreter-lexer.o obj/magic-interpreter-parser.o obj/magic-interpreter-base.o obj/magic-expr.o obj/magic-stmt.o obj/magic.o obj/map.o obj/chrif.o obj/clif.o obj/pc.o obj/npc.o obj/chat.o obj/path.o obj/itemdb.o obj/mob.o obj/script.o obj/storage.o obj/skill.o obj/skill-pools.o obj/atcommand.o obj/battle.o obj/intif.o obj/trade.o obj/party.o obj/guild.o $(COMMON_OBJ)
 	$(CC) -o ../../$@ $> $(LIBS)
 
 obj/%.o: %.c
@@ -41,6 +41,7 @@ obj/mob.o: mob.c map.h clif.h intif.h pc.h mob.h skill.h battle.h npc.h itemdb.h
 obj/script.o: script.c itemdb.h map.h pc.h mob.h clif.h intif.h npc.h script.h storage.h skill.h battle.h ../common/timer.h ../common/socket.h ../common/db.h ../common/mmo.h ../common/lock.h
 obj/storage.o: storage.c itemdb.h pc.h clif.h intif.h storage.h guild.h ../common/mmo.h ../common/db.h
 obj/skill.o: skill.c skill.h map.h clif.h pc.h mob.h battle.h itemdb.h script.h ../common/timer.h ../common/mmo.h
+obj/skill-pools.o: skill-pools.c skill.h map.h clif.h pc.h mob.h battle.h itemdb.h script.h ../common/timer.h ../common/mmo.h
 obj/atcommand.o: atcommand.c atcommand.h itemdb.h pc.h map.h skill.h clif.h mob.h intif.h battle.h storage.h guild.h ../common/socket.h ../common/timer.h ../common/mmo.h
 obj/battle.o: battle.c battle.h skill.h map.h mob.h pc.h guild.h ../common/timer.h ../common/mmo.h
 obj/intif.o: intif.c intif.h chrif.h clif.h party.h guild.h storage.h map.h battle.h ../common/socket.h ../common/mmo.h

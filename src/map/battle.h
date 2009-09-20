@@ -100,6 +100,7 @@ int battle_get_race(struct block_list *bl);
 int battle_get_size(struct block_list *bl);
 int battle_get_mode(struct block_list *bl);
 int battle_get_mexp(struct block_list *bl);
+int battle_get_stat(int stat_id /* SP_VIT or similar */, struct block_list *bl);
 
 struct status_change *battle_get_sc_data(struct block_list *bl);
 short *battle_get_sc_count(struct block_list *bl);
