@@ -201,6 +201,7 @@ ATCOMMAND_FUNC(log); // [Fate]
 ATCOMMAND_FUNC(tee); // [Fate]
 ATCOMMAND_FUNC(invisible); // [Fate]
 ATCOMMAND_FUNC(visible); // [Fate]
+ATCOMMAND_FUNC(list_nearby); // [Fate]
 ATCOMMAND_FUNC(iterate_forward_over_players); // [Fate]
 ATCOMMAND_FUNC(iterate_backwards_over_players); // [Fate]
 ATCOMMAND_FUNC(wgm);
@@ -334,6 +335,7 @@ static AtCommandInfo atcommand_info[] = {
 	{ AtCommand_Disablenpc,          "@disablenpc",      80, atcommand_disablenpc }, // []
 	{ AtCommand_ServerTime,          "@servertime",       0, atcommand_servertime }, // by Yor
 	{ AtCommand_CharDelItem,         "@chardelitem",     60, atcommand_chardelitem }, // by Yor
+	{ AtCommand_ListNearby,          "@listnearby",      40, atcommand_list_nearby }, // by Yor
 	{ AtCommand_Jail,                "@jail",            60, atcommand_jail }, // by Yor
 	{ AtCommand_UnJail,              "@unjail",          60, atcommand_unjail }, // by Yor
 	{ AtCommand_Disguise,            "@disguise",        20, atcommand_disguise }, // [Valaris]
@@ -2605,6 +2607,37 @@ int atcommand_killmonster(
 
 	return 0;
 }
+
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+static int atlist_nearby_sub(struct block_list *bl, va_list ap) {
+        char buf[32];
+	int fd = va_arg(ap, int);
+	nullpo_retr(0, bl);
+
+        sprintf (buf, " - \"%s\"",  ((struct map_session_data *)bl)->status.name);
+        clif_displaymessage(fd, buf);
+
+	return 0;
+}
+
+/*==========================================
+ *
+ *------------------------------------------
+ */
+int atcommand_list_nearby(
+	const int fd, struct map_session_data* sd,
+	const char* command, const char* message)
+{
+        clif_displaymessage(fd, "Nearby players:");
+	map_foreachinarea(atlist_nearby_sub, sd->bl.m, sd->bl.x-1, sd->bl.y-1, sd->bl.x+1, sd->bl.x+1, BL_PC, fd);
+
+	return 0;
+}
+
 
 /*==========================================
  *
