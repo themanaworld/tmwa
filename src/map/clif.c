@@ -6699,7 +6699,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd) {
 	switch(action_type) {
 	case 0x00: // once attack
 	case 0x07: // continuous attack
-		if(sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class==22)
+		if(sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class==22 || sd->status.option & OPTION_HIDE)
 			return;
 		if (!battle_config.sdelay_attack_enable && pc_checkskill(sd, SA_FREECAST) <= 0) {
 			if (DIFF_TICK(tick, sd->canact_tick) < 0) {
