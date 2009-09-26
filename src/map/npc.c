@@ -1833,22 +1833,25 @@ static int npc_parse_mapflag(char *w1,char *w2,char *w3,char *w4)
 	}
 	else if (strcmpi(w3,"noicewall")==0) { // noicewall [Valaris]
 		map[m].flag.noicewall=1;
-	}	
+	}
 	else if (strcmpi(w3,"snow")==0) { // snow [Valaris]
 		map[m].flag.snow=1;
-	}	
+	}
 	else if (strcmpi(w3,"fog")==0) { // fog [Valaris]
 		map[m].flag.fog=1;
-	}	
+	}
 	else if (strcmpi(w3,"sakura")==0) { // sakura [Valaris]
 		map[m].flag.sakura=1;
-	}	
+	}
 	else if (strcmpi(w3,"leaves")==0) { // leaves [Valaris]
 		map[m].flag.leaves=1;
-	}	
+	}
 	else if (strcmpi(w3,"rain")==0) { // rain [Valaris]
 		map[m].flag.rain=1;
-	}	
+	}
+	else if (strcmpi(w3,"no_player_drops")==0) { // rain [Valaris]
+		map[m].flag.no_player_drops=1;
+	}
 	
 	return 0;
 }
