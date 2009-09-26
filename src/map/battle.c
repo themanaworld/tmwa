@@ -381,6 +381,10 @@ int battle_get_flee(struct block_list *bl)
 			flee += flee*(sc_data[SC_WINDWALK].val2)/100;
 		if(sc_data[SC_SPIDERWEB].timer!=-1 && bl->type != BL_PC) //スパイダーウェブ
 			flee -= flee*50/100;
+
+                if (battle_is_unarmed(bl))
+                        flee += (skill_power_bl(bl, TMW_BRAWLING) >> 3); // +25 for 200
+                flee += skill_power_bl(bl, TMW_SPEED) >> 3;
 	}
 	if(flee < 1) flee = 1;
 	return flee;
@@ -412,6 +416,9 @@ int battle_get_hit(struct block_list *bl)
 			hit += 3*(sc_data[SC_TRUESIGHT].val1);
 		if(sc_data[SC_CONCENTRATION].timer!=-1 && bl->type != BL_PC) //コンセントレーション
 			hit += (hit*(10*(sc_data[SC_CONCENTRATION].val1)))/100;
+
+                if (battle_is_unarmed(bl))
+                        hit += (skill_power_bl(bl, TMW_BRAWLING) >> 4); // +12 for 200
 	}
 	if(hit < 1) hit = 1;
 	return hit;
@@ -439,6 +446,10 @@ int battle_get_flee2(struct block_list *bl)
 		if(sc_data[SC_WHISTLE].timer!=-1 && bl->type != BL_PC)
 			flee2 += (sc_data[SC_WHISTLE].val1+sc_data[SC_WHISTLE].val2
 					+(sc_data[SC_WHISTLE].val3&0xffff))*10;
+
+                if (battle_is_unarmed(bl))
+                        flee2 += (skill_power_bl(bl, TMW_BRAWLING) >> 3); // +25 for 200
+                flee2 += skill_power_bl(bl, TMW_SPEED) >> 3;
 	}
 	if(flee2 < 1) flee2 = 1;
 	return flee2;
@@ -582,6 +593,7 @@ int battle_get_atk2(struct block_list *bl)
 			if(sc_data[SC_CONCENTRATION].timer!=-1) //コンセントレーション
 				atk2 += atk2*(5*sc_data[SC_CONCENTRATION].val1)/100;
 		}
+
 		if(atk2 < 0) atk2 = 0;
 		return atk2;
 	}
@@ -595,8 +607,8 @@ int battle_get_atk2(struct block_list *bl)
 int battle_get_atk_2(struct block_list *bl)
 {
 	nullpo_retr(0, bl);
-	if(bl->type==BL_PC && (struct map_session_data *)bl)
-		return ((struct map_session_data*)bl)->watk_2;
+	if(bl->type==BL_PC)
+                return ((struct map_session_data*)bl)->watk_2;
 	else
 		return 0;
 }
@@ -2228,6 +2240,23 @@ static struct Damage battle_calc_mob_weapon_attack(
 	wd.dmg_lv=dmg_lv;
 	return wd;
 }
+
+
+int
+battle_is_unarmed(struct block_list *bl)
+{
+        if (!bl)
+                return 0;
+        if (bl->type == BL_PC) {
+                struct map_session_data *sd = (struct map_session_data *) bl;
+
+                return (sd->equip_index[EQUIP_SHIELD] == -1
+                        && sd->equip_index[EQUIP_WEAPON] == -1);
+        } else
+                return 0;
+}
+
+
 /*
  * =========================================================================
  * PCの武器による攻撃
@@ -2325,6 +2354,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 		}
 	}
 	hitrate=battle_get_hit(src) - flee + 80; //命中率計算
+        battle_is_unarmed(src);
         { // [Fate] Reduce hit chance by distance
                 int dx = abs(src->x - target->x);
                 int dy = abs(src->y - target->y);
@@ -3890,13 +3920,17 @@ int battle_weapon_attack( struct block_list *src,struct block_list *target,
                 // significantly increase injuries for hasted characters
                 if (wd.damage > 0
                     && (t_sc_data[SC_HASTE].timer != -1)) {
-                    wd.damage = (wd.damage * (16 + t_sc_data[SC_HASTE].val1)) >> 4;
+                        wd.damage = (wd.damage * (16 + t_sc_data[SC_HASTE].val1)) >> 4;
                 }
 
-                if (t_sc_data[SC_PHYS_SHIELD].timer != -1 && target->type == BL_PC) {
-                    wd.damage -= t_sc_data[SC_PHYS_SHIELD].val1;
-                    if (wd.damage < 0)
-                        wd.damage = 0;
+                if (wd.damage > 0
+                    && t_sc_data[SC_PHYS_SHIELD].timer != -1 && target->type == BL_PC) {
+                        int reduction = t_sc_data[SC_PHYS_SHIELD].val1;
+                        if (reduction > wd.damage)
+                                reduction = wd.damage;
+
+                        wd.damage -= reduction;
+                        MAP_LOG_PC(((struct map_session_data *)target), "MAGIC-ABSORB-DMG %d", reduction);
                 }
 
 		if((damage = wd.damage + wd.damage2) > 0 && src != target) {

@@ -3741,10 +3741,7 @@ int clif_skillinfo(struct map_session_data *sd,int skillid,int type,int range)
 	} else
 		WFIFOW(fd,12)= range;
 	memset(WFIFOP(fd,14),0,24);
-	if(skill_get_inf2(id)&0x01)
-		WFIFOB(fd,38)= (sd->status.skill[skillid].lv < skill_get_max(id) && sd->status.skill[skillid].flag ==0 )? 1:0;
-	else
-		WFIFOB(fd,38) = 0;
+        WFIFOB(fd,38)= (sd->status.skill[skillid].lv < skill_get_max_raise(id))? 1:0;
 	WFIFOSET(fd,packet_len_table[0x147]);
 
 	return 0;
@@ -3768,7 +3765,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
                     && (sd->tmw_version >= 1)){  // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
 			WFIFOW(fd,len  ) = id;
 			WFIFOW(fd,len+2) = skill_get_inf(id);
-			WFIFOW(fd,len+4) = skill_db[i].poolflags | (sd->status.skill[i].flag & (SKILL_POOL_ACTIVATED));
+			WFIFOW(fd,len+4) = skill_db[i].poolflags | (sd->status.skill[i].flags & (SKILL_POOL_ACTIVATED));
 			WFIFOW(fd,len+6) = sd->status.skill[i].lv;
 			WFIFOW(fd,len+8) = skill_get_sp(id,sd->status.skill[i].lv);
 			range = skill_get_range(id,sd->status.skill[i].lv);
@@ -3776,10 +3773,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
 				range = battle_get_range(&sd->bl) - (range + 1);
 			WFIFOW(fd,len+10)= range;
 			memset(WFIFOP(fd,len+12),0,24);
-			if(skill_get_inf2(id)&0x01)
-				WFIFOB(fd,len+36)= (sd->status.skill[i].lv < skill_get_max(id) && sd->status.skill[i].flag ==0 )? 1:0;
-			else
-				WFIFOB(fd,len+36) = 0;
+                        WFIFOB(fd,len+36)= (sd->status.skill[i].lv < skill_get_max_raise(id))? 1:0;
 			len+=37;
 			c++;
 		}
@@ -3809,7 +3803,7 @@ int clif_skillup(struct map_session_data *sd,int skill_num)
 	if(range < 0)
 		range = battle_get_range(&sd->bl) - (range + 1);
 	WFIFOW(fd,8) = range;
-	WFIFOB(fd,10) = (sd->status.skill[skill_num].lv < skill_get_max(sd->status.skill[skill_num].id)) ? 1 : 0;
+	WFIFOB(fd,10) = (sd->status.skill[skill_num].lv < skill_get_max_raise(sd->status.skill[skill_num].id)) ? 1 : 0;
 	WFIFOSET(fd,packet_len_table[0x10e]);
 
 	return 0;

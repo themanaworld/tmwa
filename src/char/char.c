@@ -269,8 +269,8 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p) {
 	*(str_p++) = '\t';
 
 	for(i = 0; i < MAX_SKILL; i++)
-		if (p->skill[i].id && p->skill[i].flag != 1) {
-			str_p += sprintf(str_p, "%d,%d ", p->skill[i].id, (p->skill[i].flag == 0) ? p->skill[i].lv : p->skill[i].flag-2);
+		if (p->skill[i].id) {
+                        str_p += sprintf(str_p, "%d,%d ", p->skill[i].id, p->skill[i].lv | (p->skill[i].flags << 16));
 		}
 	*(str_p++) = '\t';
 
@@ -506,7 +506,8 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p) {
 		if (sscanf(str + next, "%d,%d%n", &tmp_int[0], &tmp_int[1], &len) != 2)
 			return -6;
 		p->skill[tmp_int[0]].id = tmp_int[0];
-		p->skill[tmp_int[0]].lv = tmp_int[1];
+		p->skill[tmp_int[0]].lv = tmp_int[1] & 0xffff;
+		p->skill[tmp_int[0]].flags = ((tmp_int[1] >> 16) & 0xffff);
 		next += len;
 		if (str[next] == ' ')
 			next++;
@@ -1659,22 +1660,6 @@ int parse_tologin(int fd) {
 								char_dat[i].class = (sex) ? 4020 : 4021;
 							} else if (jobclass == 4042 || jobclass == 4043) {
 								char_dat[i].class = (sex) ? 4042 : 4043;
-							}
-							// remove specifical skills of classes 19, 4020 and 4042
-							for(j = 315; j <= 322; j++) {
-								if (char_dat[i].skill[j].id > 0 && !char_dat[i].skill[j].flag) {
-									char_dat[i].skill_point += char_dat[i].skill[j].lv;
-									char_dat[i].skill[j].id = 0;
-									char_dat[i].skill[j].lv = 0;
-								}
-							}
-							// remove specifical skills of classes 20, 4021 and 4043
-							for(j = 323; j <= 330; j++) {
-								if (char_dat[i].skill[j].id > 0 && !char_dat[i].skill[j].flag) {
-									char_dat[i].skill_point += char_dat[i].skill[j].lv;
-									char_dat[i].skill[j].id = 0;
-									char_dat[i].skill[j].lv = 0;
-								}
 							}
 						}
 						// to avoid any problem with equipment and invalid sex, equipment is unequiped.

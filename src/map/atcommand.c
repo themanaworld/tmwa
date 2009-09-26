@@ -204,6 +204,10 @@ ATCOMMAND_FUNC(visible); // [Fate]
 ATCOMMAND_FUNC(list_nearby); // [Fate]
 ATCOMMAND_FUNC(iterate_forward_over_players); // [Fate]
 ATCOMMAND_FUNC(iterate_backwards_over_players); // [Fate]
+ATCOMMAND_FUNC(skillpool_info); // [Fate]
+ATCOMMAND_FUNC(skillpool_focus); // [Fate]
+ATCOMMAND_FUNC(skillpool_unfocus); // [Fate]
+ATCOMMAND_FUNC(skill_learn); // [Fate]
 ATCOMMAND_FUNC(wgm);
 
 /*==========================================
@@ -393,6 +397,10 @@ static AtCommandInfo atcommand_info[] = {
         { AtCommand_Visible, "@visible", 60, atcommand_visible }, // [Fate]
         { AtCommand_IterateForward, "@hugo", 60, atcommand_iterate_forward_over_players }, // [Fate]
         { AtCommand_IterateBackward, "@linus", 60, atcommand_iterate_backwards_over_players }, // [Fate]
+        { AtCommand_IterateBackward, "@sp-info", 40, atcommand_skillpool_info }, // [Fate]
+        { AtCommand_IterateBackward, "@sp-focus", 80, atcommand_skillpool_focus }, // [Fate]
+        { AtCommand_IterateBackward, "@sp-unfocus", 80, atcommand_skillpool_unfocus }, // [Fate]
+        { AtCommand_IterateBackward, "@skill-learn", 80, atcommand_skill_learn }, // [Fate]
 	{ AtCommand_Wgm, "@wgm", 0, atcommand_wgm },
 
 // add new commands before this line
@@ -4088,7 +4096,7 @@ int atcommand_lostskill(
 		if (skill_get_inf2(skill_id) & 0x01) {
 			if (pc_checkskill(sd, skill_id) > 0) {
 				sd->status.skill[skill_id].lv = 0;
-				sd->status.skill[skill_id].flag = 0;
+				sd->status.skill[skill_id].flags = 0;
 				clif_skillinfoblock(sd);
 				clif_displaymessage(fd, msg_table[71]); // You have forgotten the skill.
 			} else {
@@ -4131,7 +4139,7 @@ int atcommand_charlostskill(
 			if ((pl_sd = map_nick2sd(character)) != NULL) {
 				if (pc_checkskill(pl_sd, skill_id) > 0) {
 					pl_sd->status.skill[skill_id].lv = 0;
-					pl_sd->status.skill[skill_id].flag = 0;
+					pl_sd->status.skill[skill_id].flags = 0;
 					clif_skillinfoblock(pl_sd);
 					clif_displaymessage(fd, msg_table[202]); // This player has forgotten the skill.
 				} else {
@@ -7002,7 +7010,7 @@ atcommand_magic_info(const int fd, struct map_session_data* sd,
 
 	memset(character, '\0', sizeof(character));
 
-	if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1) {
+	if (!message || !*message || sscanf(message, "%99s", character) < 1) {
 		clif_displaymessage(fd, "Usage: @magicinfo <char_name>");
 		return -1;
 	}
@@ -7031,7 +7039,6 @@ set_skill(struct map_session_data* sd, int i, int level)
 {
         sd->status.skill[i].id = level? i : 0;
         sd->status.skill[i].lv = level;
-        sd->status.skill[i].flag = 0;
 }
 
 int
@@ -7193,4 +7200,119 @@ int atcommand_wgm(
 		clif_displaymessage(fd, "Message sent.");
 
 	return 0;
+}
+
+int atcommand_skillpool_info(
+        const int fd, struct map_session_data* sd,
+        const char* command, const char* message)
+{
+	char character[100];
+	struct map_session_data *pl_sd;
+
+	if (!message || !*message || sscanf(message, "%99s", character) < 1) {
+		clif_displaymessage(fd, "Usage: @sp-info <char_name>");
+		return -1;
+	}
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+                char buf[200];
+                int pool_skills[MAX_SKILL_POOL];
+                int pool_skills_nr = skill_pool(pl_sd, pool_skills);
+                int i;
+
+                sprintf(buf, "Active skills %d out of %d for %s:", pool_skills_nr, skill_pool_max(pl_sd), character);
+                clif_displaymessage(fd, buf);
+                for (i = 0; i < pool_skills_nr; ++i) {
+                        sprintf(buf, " - %s [%d]: power %d", skill_name(pool_skills[i]), pool_skills[i], skill_power(pl_sd, pool_skills[i]));
+                        clif_displaymessage(fd, buf);
+                }
+
+                sprintf(buf, "Learned skills out of %d for %s:", skill_pool_skills_size, character);
+                clif_displaymessage(fd, buf);
+
+                for (i = 0; i < skill_pool_skills_size; ++i) {
+                        char *name = skill_name(skill_pool_skills[i]);
+                        int lvl = pl_sd->status.skill[skill_pool_skills[i]].lv;
+
+                        if (lvl) {
+                                sprintf(buf, " - %s [%d]: lvl %d", name, skill_pool_skills[i], lvl);
+                                clif_displaymessage(fd, buf);
+                        }
+                }
+
+        } else
+                clif_displaymessage(fd, "Character not found.");
+
+
+        return 0;
+}
+
+int atcommand_skillpool_focus(
+        const int fd, struct map_session_data* sd,
+        const char* command, const char* message)
+{
+	char character[100];
+        int skill;
+	struct map_session_data *pl_sd;
+
+	if (!message || !*message || sscanf(message, "%d %99[^\n]", &skill, character) < 1) {
+		clif_displaymessage(fd, "Usage: @sp-focus <skill-nr> <char_name>");
+		return -1;
+	}
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+                if (skill_pool_activate(pl_sd, skill))
+                        clif_displaymessage(fd, "Activation failed.");
+                else
+                        clif_displaymessage(fd, "Activation successful.");
+        } else
+                clif_displaymessage(fd, "Character not found.");
+
+        return 0;
+}
+
+int atcommand_skillpool_unfocus(
+        const int fd, struct map_session_data* sd,
+        const char* command, const char* message)
+{
+	char character[100];
+        int skill;
+	struct map_session_data *pl_sd;
+
+	if (!message || !*message || sscanf(message, "%d %99[^\n]", &skill, character) < 1) {
+		clif_displaymessage(fd, "Usage: @sp-unfocus <skill-nr> <char_name>");
+		return -1;
+	}
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+                if (skill_pool_deactivate(pl_sd, skill))
+                        clif_displaymessage(fd, "Deactivation failed.");
+                else
+                        clif_displaymessage(fd, "Deactivation successful.");
+        } else
+                clif_displaymessage(fd, "Character not found.");
+
+        return 0;
+}
+
+int atcommand_skill_learn(
+        const int fd, struct map_session_data* sd,
+        const char* command, const char* message)
+{
+	char character[100];
+        int skill, level;
+	struct map_session_data *pl_sd;
+
+	if (!message || !*message || sscanf(message, "%d %d %99[^\n]", &skill, &level, character) < 1) {
+		clif_displaymessage(fd, "Usage: @skill-learn <skill-nr> <level> <char_name>");
+		return -1;
+	}
+
+	if ((pl_sd = map_nick2sd(character)) != NULL) {
+                set_skill(pl_sd, skill, level);
+                clif_skillinfoblock(pl_sd);
+        } else
+                clif_displaymessage(fd, "Character not found.");
+
+        return 0;
 }

@@ -965,8 +965,6 @@ void map_addnickdb(struct map_session_data *sd) {
  *------------------------------------------
  */
 int map_quit(struct map_session_data *sd) {
-	int i;
-
 	nullpo_retr(0, sd);
 
 	if(sd->chatID)	// チャットから出る
@@ -1012,13 +1010,6 @@ int map_quit(struct map_session_data *sd) {
 		pc_setrestartvalue(sd,2);
 	pc_makesavestatus(sd);
 	//クローンスキルで覚えたスキルは消す
-	for(i=0;i<MAX_SKILL;i++){
-		if(sd->status.skill[i].flag == 13){
-			sd->status.skill[i].id=0;
-			sd->status.skill[i].lv=0;
-			sd->status.skill[i].flag=0;
-		}
-	}
 
 	//The storage closing routines will save the char if needed. [Skotlex]
 	if (!sd->state.storage_flag)
@@ -1704,7 +1695,7 @@ map_set_logfile(char *filename)
 
         map_start_logfile(tv.tv_sec);
         atexit(map_close_logfile);
-        MAP_LOG("log-start v2");
+        MAP_LOG("log-start v3");
 }
 
 

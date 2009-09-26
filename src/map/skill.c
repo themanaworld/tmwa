@@ -722,11 +722,16 @@ static int rdamage;
 /* スキルデータベース */
 struct skill_db skill_db[MAX_SKILL_DB];
 
+#define UNARMED_PLAYER_DAMAGE_MIN(bl)	(skill_power_bl((bl), TMW_BRAWLING) >> 4) // +50 for 200
+#define UNARMED_PLAYER_DAMAGE_MAX(bl)	(skill_power_bl((bl), TMW_BRAWLING)) // +200 for 200
+
+
 int	skill_get_hit( int id ){ return skill_db[id].hit; }
 int	skill_get_inf( int id ){ return skill_db[id].inf; }
 int	skill_get_pl( int id ){ return skill_db[id].pl; }
 int	skill_get_nk( int id ){ return skill_db[id].nk; }
 int	skill_get_max( int id ){ return skill_db[id].max; }
+int	skill_get_max_raise( int id ){ return skill_db[id].max_raise; }
 int skill_get_range( int id , int lv ){ return (lv <= 0) ? 0:skill_db[id].range[lv-1]; }
 int	skill_get_hp( int id ,int lv ){ return (lv <= 0) ? 0:skill_db[id].hp[lv-1]; }
 int	skill_get_sp( int id ,int lv ){ return (lv <= 0) ? 0:skill_db[id].sp[lv-1]; }
@@ -10008,6 +10013,8 @@ int skill_readdb(void)
                         char *s = skill_names[i].desc;
                         while ((s = strchr(s, '_')))
                                 *s = ' ';
+                        if ((s = strchr(skill_names[i].desc, '\t')) || (s = strchr (skill_names[i].desc, ' ')) || (s = strchr (skill_names[i].desc, '\n')))
+                                *s = '\000';
                 }
 	}
 	fclose_(fp);

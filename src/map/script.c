@@ -3205,7 +3205,6 @@ int buildin_setskill(struct script_state *st)
 
         sd->status.skill[id].id = level? id : 0;
         sd->status.skill[id].lv = level;
-        sd->status.skill[id].flag = 0;
         clif_skillinfoblock(sd);
 	return 0;
 }
@@ -5524,7 +5523,7 @@ int buildin_getskilllist(struct script_state *st)
 		if(sd->status.skill[i].id > 0 && sd->status.skill[i].lv > 0){
 			pc_setreg(sd,add_str("@skilllist_id")+(j<<24),sd->status.skill[i].id);
 			pc_setreg(sd,add_str("@skilllist_lv")+(j<<24),sd->status.skill[i].lv);
-			pc_setreg(sd,add_str("@skilllist_flag")+(j<<24),sd->status.skill[i].flag);
+			pc_setreg(sd,add_str("@skilllist_flag")+(j<<24),sd->status.skill[i].flags);
 			j++;
 		}
 	}
@@ -5551,7 +5550,7 @@ buildin_get_activated_pool_skills(struct script_state *st)
                 if (sd->status.skill[skill_id].id == skill_id) {
 			pc_setreg(sd,add_str("@skilllist_id")+(count<<24),sd->status.skill[skill_id].id);
 			pc_setreg(sd,add_str("@skilllist_lv")+(count<<24),sd->status.skill[skill_id].lv);
-			pc_setreg(sd,add_str("@skilllist_flag")+(count<<24),sd->status.skill[skill_id].flag);
+			pc_setreg(sd,add_str("@skilllist_flag")+(count<<24),sd->status.skill[skill_id].flags);
                         pc_setregstr(sd, add_str("@skilllist_name$")+(count<<24), skill_name(skill_id));
                         ++count;
 		}
@@ -5579,7 +5578,7 @@ buildin_get_pool_skills(struct script_state *st)
                 if (sd->status.skill[skill_id].id == skill_id) {
 			pc_setreg(sd,add_str("@skilllist_id")+(count<<24),sd->status.skill[skill_id].id);
 			pc_setreg(sd,add_str("@skilllist_lv")+(count<<24),sd->status.skill[skill_id].lv);
-			pc_setreg(sd,add_str("@skilllist_flag")+(count<<24),sd->status.skill[skill_id].flag);
+			pc_setreg(sd,add_str("@skilllist_flag")+(count<<24),sd->status.skill[skill_id].flags);
                         pc_setregstr(sd, add_str("@skilllist_name$")+(count<<24), skill_name(skill_id));
                         ++count;
 		}

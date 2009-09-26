@@ -63,6 +63,7 @@ int battle_weapon_attack( struct block_list *bl,struct block_list *target,
 
 // 各種パラメータを得る
 int battle_counttargeted(struct block_list *bl,struct block_list *src,int target_lv);
+int battle_is_unarmed(struct block_list *bl);
 int battle_get_class(struct block_list *bl);
 int battle_get_dir(struct block_list *bl);
 int battle_get_lv(struct block_list *bl);
