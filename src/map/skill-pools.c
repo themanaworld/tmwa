@@ -96,10 +96,10 @@ skill_pool_activate(struct map_session_data *sd, int skill_id)
         else if (sd->status.skill[skill_id].id == skill_id // knows the skill
                  && (skill_pool_size(sd) < skill_pool_max(sd))) {
                 sd->status.skill[skill_id].flags |= SKILL_POOL_ACTIVATED;
+                pc_calcstatus(sd, 0);
                 MAP_LOG_PC(sd, "SKILL-ACTIVATE %d %d %d", skill_id, sd->status.skill[skill_id].lv, skill_power(sd, skill_id));
                 return 0;
         }
-        pc_calcstatus(sd, 0);
 
         return 1; // failed
 }

@@ -2283,6 +2283,7 @@ static struct Damage battle_calc_pc_weapon_attack(
 	int watk,watk_,cardfix,t_ele;
 	int da=0,i,t_class,ac_flag = 0;
 	int idef_flag=0,idef_flag_=0;
+        int target_distance;
 
 	//return前の処理があるので情報出力部のみ変更
 	if( src == NULL || target == NULL || sd == NULL ){
@@ -2354,27 +2355,36 @@ static struct Damage battle_calc_pc_weapon_attack(
 		}
 	}
 	hitrate=battle_get_hit(src) - flee + 80; //命中率計算
-        battle_is_unarmed(src);
-        { // [Fate] Reduce hit chance by distance
+
+        { // [fate] Reduce hit chance by distance
                 int dx = abs(src->x - target->x);
                 int dy = abs(src->y - target->y);
-                int dist = MAX(dx, dy);
-                hitrate -= (dist * (dist + 1));
-        }
+                int malus_dist;
 
-	type=0;	// normal
-	div_ = 1; // single attack
+                target_distance = MAX(dx, dy);
+                malus_dist = MAX(0, target_distance - (skill_power(sd, AC_OWL) / 75));
+                hitrate -= (malus_dist * (malus_dist + 1));
+        }
 
 	dex=battle_get_dex(src); //DEX
 	luk=battle_get_luk(src); //LUK
 	watk = battle_get_atk(src); //ATK
 	watk_ = battle_get_atk_(src); //ATK左手
 
+	type=0;	// normal
+	div_ = 1; // single attack
+
 	if(skill_num==HW_MAGICCRASHER){			/* マジッククラッシャーはMATKで殴る */
 		damage = damage2 = battle_get_matk1(src); //damega,damega2初登場、base_atkの取得
 	}else{
 	damage = damage2 = battle_get_baseatk(&sd->bl); //damega,damega2初登場、base_atkの取得
 	}
+        if (sd->attackrange > 2) { // [fate] ranged weapon?
+                const int range_damage_bonus = 80; // up to 31.25% bonus for long-range hit
+                damage = damage * (256 + ((range_damage_bonus * target_distance) / sd->attackrange)) >> 8;
+                damage2 = damage2 * (256 + ((range_damage_bonus * target_distance) / sd->attackrange)) >> 8;
+        }
+
 	atkmin = atkmin_ = dex; //最低ATKはDEXで初期化？
 	sd->state.arrow_atk = 0; //arrow_atk初期化
 	if(sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]])

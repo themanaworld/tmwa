@@ -1431,9 +1431,6 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	if( (skill=pc_checkskill(sd,MC_INCCARRY))>0 )	// skill can be used with an item now, thanks to orn [Valaris]
 		sd->max_weight += skill*1000;
 
-	if( (skill=pc_checkskill(sd,AC_OWL))>0 )	// �ӂ��낤�̖�
-		sd->paramb[4] += skill;
-
 	// �X�e�[�^�X�ω��ɂ������{�p�����[�^�␳
 	if(sd->sc_count){
 		if(sd->sc_data[SC_CONCENTRATE].timer!=-1 && sd->sc_data[SC_QUAGMIRE].timer == -1){	// �W���͌���
@@ -1568,9 +1565,14 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 
 	if( (skill=pc_checkskill(sd,AC_VULTURE))>0){	// ���V�̖�
 		sd->hit += skill;
-		if(sd->status.weapon == 11)
+		if (sd->status.weapon == 11)
 			sd->attackrange += skill;
 	}
+
+        if (sd->attackrange > 2) { // [fate] ranged weapon?
+                sd->attackrange += MIN(skill_power(sd, AC_OWL) / 60, 3);
+                sd->hit += skill_power(sd, AC_OWL) / 10; // 20 for 200
+        }
 
 	if( (skill=pc_checkskill(sd,BS_WEAPONRESEARCH))>0)	// ���팤���̖���������
 		sd->hit += skill*2;
