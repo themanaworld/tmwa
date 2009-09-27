@@ -8029,6 +8029,10 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 		break;
 	case SC_POISON:
 		if(sc_data[SC_SLOWPOISON].timer == -1) {
+                        const int resist_poison = skill_power_bl(bl, TMW_RESIST_POISON) >> 3;
+                        if (resist_poison)
+                                sc_data[type].val1 -= MRAND(resist_poison + 1);
+
 			if( (--sc_data[type].val1) > 0) {
 		
                                 int hp = battle_get_max_hp(bl);
