@@ -38,6 +38,8 @@
 
 #define STATE_BLIND 0x10
 
+#define MAGIC_SKILL_THRESHOLD 200	// [fate] At this threshold, the Astral Soul skill kicks in 
+
 #define MAP_LOG_STATS(sd, suffix)	\
         MAP_LOG_PC(sd, "STAT %d %d %d %d %d %d " suffix,            \
                    sd->status.str, sd->status.agi, sd->status.vit, sd->status.int_, sd->status.dex, sd->status.luk)
@@ -1311,6 +1313,9 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		}
 	}
 
+        if (sd->spellpower_bonus_target < 0)
+                sd->spellpower_bonus_target = (sd->spellpower_bonus_target * 256) / (MIN (128 + skill_power(sd, TMW_ASTRAL_SOUL), 256));
+
         if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
                 sd->spellpower_bonus_current = sd->spellpower_bonus_target;
 
@@ -1512,6 +1517,14 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	}
         // [Fate] New tmw magic system
         sd->matk1 += sd->status.base_level + sd->spellpower_bonus_current;
+        if (sd->matk1 > MAGIC_SKILL_THRESHOLD) {
+                int bonus = sd->matk1 - MAGIC_SKILL_THRESHOLD;
+                int bound = 2 * skill_power(sd, TMW_ASTRAL_SOUL);
+                if (bonus > bound)
+                        bonus = (bonus * 100) / (100 + bonus - bound);
+
+                sd->matk1 = MAGIC_SKILL_THRESHOLD + bonus;
+        }
         sd->matk2 = 0;
         if (sd->matk1 < 0)
             sd->matk1 = 0;
