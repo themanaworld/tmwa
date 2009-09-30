@@ -14,7 +14,7 @@ else
 MAKE = make
 endif
 
-OPT = -g -O2 ${M32}
+OPT = -g -fno-strict-aliasing -O2 ${M32}
 
 ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
 OS_TYPE = -DCYGWIN
