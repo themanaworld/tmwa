@@ -63,6 +63,7 @@ int battle_weapon_attack( struct block_list *bl,struct block_list *target,
 
 // 各種パラメータを得る
 int battle_counttargeted(struct block_list *bl,struct block_list *src,int target_lv);
+int battle_is_unarmed(struct block_list *bl);
 int battle_get_class(struct block_list *bl);
 int battle_get_dir(struct block_list *bl);
 int battle_get_lv(struct block_list *bl);
@@ -100,6 +101,7 @@ int battle_get_race(struct block_list *bl);
 int battle_get_size(struct block_list *bl);
 int battle_get_mode(struct block_list *bl);
 int battle_get_mexp(struct block_list *bl);
+int battle_get_stat(int stat_id /* SP_VIT or similar */, struct block_list *bl);
 
 struct status_change *battle_get_sc_data(struct block_list *bl);
 short *battle_get_sc_count(struct block_list *bl);

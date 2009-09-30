@@ -83,7 +83,7 @@ struct point{
 };
 
 struct skill {
-	unsigned short id,lv,flag;
+	unsigned short id,lv,flags;
 };
 
 struct global_reg {

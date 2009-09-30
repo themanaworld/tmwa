@@ -182,6 +182,7 @@ enum AtCommandType {
         AtCommand_IterateForward,
         AtCommand_IterateBackward,
 	AtCommand_Wgm,
+        AtCommand_ListNearby, // [fate]
 	// end
 	AtCommand_Unknown,
 	AtCommand_MAX

@@ -546,6 +546,7 @@ struct map_data {
 		unsigned sakura : 1; // [Valaris]
 		unsigned leaves : 1; // [Valaris]
 		unsigned rain : 1; // [Valaris]
+		unsigned no_player_drops : 1; // [Jaxad0127]
 	} flag;
 	struct point save;
 	struct npc_data *npc[MAX_NPC_PER_MAP];
@@ -630,6 +631,11 @@ enum {
         LOOK_MISC2
 };
 
+enum {
+        EQUIP_SHIELD = 8,
+        EQUIP_WEAPON = 9
+};
+
 #define LOOK_LAST LOOK_MISC2
 
 struct chat_data {
@@ -691,6 +697,9 @@ int map_addnpc(int,struct npc_data *);
 extern FILE *map_logfile;
 void map_write_log(char *format, ...);
 #define MAP_LOG(format, args...) {if (map_logfile) map_write_log(format, ##args);}
+
+#define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
+
 
 // 床アイテム関連
 int map_clearflooritem_timer(int,unsigned int,int,int);

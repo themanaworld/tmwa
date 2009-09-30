@@ -3741,10 +3741,7 @@ int clif_skillinfo(struct map_session_data *sd,int skillid,int type,int range)
 	} else
 		WFIFOW(fd,12)= range;
 	memset(WFIFOP(fd,14),0,24);
-	if(!(skill_get_inf2(id)&0x01) || battle_config.quest_skill_learn == 1 || (battle_config.gm_allskill > 0 && pc_isGM(sd) >= battle_config.gm_allskill) )
-		WFIFOB(fd,38)= (sd->status.skill[skillid].lv < skill_get_max(id) && sd->status.skill[skillid].flag ==0 )? 1:0;
-	else
-		WFIFOB(fd,38) = 0;
+        WFIFOB(fd,38)= (sd->status.skill[skillid].lv < skill_get_max_raise(id))? 1:0;
 	WFIFOSET(fd,packet_len_table[0x147]);
 
 	return 0;
@@ -3765,11 +3762,10 @@ int clif_skillinfoblock(struct map_session_data *sd)
 	WFIFOW(fd,0)=0x10f;
 	for ( i = c = 0; i < MAX_SKILL; i++){
 		if( (id=sd->status.skill[i].id)!=0
-                    && (sd->tmw_version >= 1  // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
-                        || !QUEST_SKILL(i))){ // [Fate] Hack: Prevent killing the client
+                    && (sd->tmw_version >= 1)){  // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
 			WFIFOW(fd,len  ) = id;
 			WFIFOW(fd,len+2) = skill_get_inf(id);
-			WFIFOW(fd,len+4) = 0;
+			WFIFOW(fd,len+4) = skill_db[i].poolflags | (sd->status.skill[i].flags & (SKILL_POOL_ACTIVATED));
 			WFIFOW(fd,len+6) = sd->status.skill[i].lv;
 			WFIFOW(fd,len+8) = skill_get_sp(id,sd->status.skill[i].lv);
 			range = skill_get_range(id,sd->status.skill[i].lv);
@@ -3777,10 +3773,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
 				range = battle_get_range(&sd->bl) - (range + 1);
 			WFIFOW(fd,len+10)= range;
 			memset(WFIFOP(fd,len+12),0,24);
-			if(!(skill_get_inf2(id)&0x01) || battle_config.quest_skill_learn == 1 || (battle_config.gm_allskill > 0 && pc_isGM(sd) >= battle_config.gm_allskill) )
-				WFIFOB(fd,len+36)= (sd->status.skill[i].lv < skill_get_max(id) && sd->status.skill[i].flag ==0 )? 1:0;
-			else
-				WFIFOB(fd,len+36) = 0;
+                        WFIFOB(fd,len+36)= (sd->status.skill[i].lv < skill_get_max_raise(id))? 1:0;
 			len+=37;
 			c++;
 		}
@@ -3810,7 +3803,7 @@ int clif_skillup(struct map_session_data *sd,int skill_num)
 	if(range < 0)
 		range = battle_get_range(&sd->bl) - (range + 1);
 	WFIFOW(fd,8) = range;
-	WFIFOB(fd,10) = (sd->status.skill[skill_num].lv < skill_get_max(sd->status.skill[skill_num].id)) ? 1 : 0;
+	WFIFOB(fd,10) = (sd->status.skill[skill_num].lv < skill_get_max_raise(sd->status.skill[skill_num].id)) ? 1 : 0;
 	WFIFOSET(fd,packet_len_table[0x10e]);
 
 	return 0;
@@ -6648,7 +6641,7 @@ void clif_parse_Emotion(int fd, struct map_session_data *sd) {
 
 	nullpo_retv(sd);
 
-	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd, NV_BASIC) >= 2) {
+	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd, NV_EMOTE) >= 1) {
 		WBUFW(buf,0) = 0xc0;
 		WBUFL(buf,2) = sd->bl.id;
 		WBUFB(buf,6) = RFIFOB(fd,2);
@@ -6700,7 +6693,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd) {
 	switch(action_type) {
 	case 0x00: // once attack
 	case 0x07: // continuous attack
-		if(sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class==22)
+		if(sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class==22 || sd->status.option & OPTION_HIDE)
 			return;
 		if (!battle_config.sdelay_attack_enable && pc_checkskill(sd, SA_FREECAST) <= 0) {
 			if (DIFF_TICK(tick, sd->canact_tick) < 0) {
@@ -6715,15 +6708,12 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd) {
 		pc_attack(sd, target_id, action_type != 0);
 		break;
 	case 0x02: // sitdown
-		if (battle_config.basic_skill_check == 0 || pc_checkskill(sd, NV_BASIC) >= 3) {
-			if (tmw_CheckSitSpam(sd))
-				break;
-			pc_stop_walking(sd, 1);
-			skill_gangsterparadise(sd, 1); // �M�����O�X�^�[�p���_�C�X�ݒ�
-			pc_setsit(sd);
-			clif_sitting(fd, sd);
-		} else
-			clif_skill_fail(sd, 1, 0, 2);
+		if (tmw_CheckSitSpam(sd))
+			break;
+		pc_stop_walking(sd, 1);
+		skill_gangsterparadise(sd, 1); // �M�����O�X�^�[�p���_�C�X�ݒ�
+		pc_setsit(sd);
+		clif_sitting(fd, sd);
 		break;
 	case 0x03: // standup
 		skill_gangsterparadise(sd, 0); // �M�����O�X�^�[�p���_�C�X����
@@ -6906,7 +6896,7 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd) {
 		clif_clearchar_area(&sd->bl, 1);
 		return;
 	}
-	if (sd->npc_id != 0 || sd->opt1 > 0 ||
+	if (sd->npc_id != 0 || sd->opt1 > 0 || map[sd->bl.m].flag.no_player_drops ||
 		(sd->sc_data && (sd->sc_data[SC_AUTOCOUNTER].timer != -1 || //�I�[�g�J�E���^�[
 		sd->sc_data[SC_BLADESTOP].timer != -1 || //���n����
 		sd->sc_data[SC_BERSERK].timer != -1)) ) //�o�[�T�[�N
@@ -7072,10 +7062,7 @@ void clif_parse_NpcSellListSend(int fd,struct map_session_data *sd)
  */
 void clif_parse_CreateChatRoom(int fd,struct map_session_data *sd)
 {
-	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 4){
-		chat_createchat(sd,RFIFOW(fd,4),RFIFOB(fd,6),RFIFOP(fd,7),RFIFOP(fd,15),RFIFOW(fd,2)-15);
-	} else
-		clif_skill_fail(sd,1,0,3);
+	chat_createchat(sd,RFIFOW(fd,4),RFIFOB(fd,6),RFIFOP(fd,7),RFIFOP(fd,15),RFIFOW(fd,2)-15);
 }
 
 /*==========================================
@@ -7131,7 +7118,7 @@ void clif_parse_TradeRequest(int fd,struct map_session_data *sd)
 {
 	nullpo_retv(sd);
 
-	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 1){
+	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_TRADE) >= 1){
 		if (tmw_CheckTradeSpam(sd))
 			return;
 		trade_traderequest(sd,RFIFOL(sd->fd,2));
@@ -7664,7 +7651,7 @@ void clif_parse_CloseKafra(int fd, struct map_session_data *sd) {
  *------------------------------------------
  */
 void clif_parse_CreateParty(int fd, struct map_session_data *sd) {
-	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 7) {
+	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_PARTY) >= 2) {
 		party_create(sd,RFIFOP(fd,2));
 	} else
 		clif_skill_fail(sd,1,0,4);
@@ -7675,7 +7662,7 @@ void clif_parse_CreateParty(int fd, struct map_session_data *sd) {
  *------------------------------------------
  */
 void clif_parse_CreateParty2(int fd, struct map_session_data *sd) {
-	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 7){
+	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_PARTY) >= 2){
 		party_create(sd, RFIFOP(fd,2));
 	} else
 		clif_skill_fail(sd, 1, 0, 4);
@@ -7686,6 +7673,7 @@ void clif_parse_CreateParty2(int fd, struct map_session_data *sd) {
  *------------------------------------------
  */
 void clif_parse_PartyInvite(int fd, struct map_session_data *sd) {
+	printf("Party Invite!\n");
 	party_invite(sd, RFIFOL(fd,2));
 }
 
@@ -7694,7 +7682,7 @@ void clif_parse_PartyInvite(int fd, struct map_session_data *sd) {
  *------------------------------------------
  */
 void clif_parse_ReplyPartyInvite(int fd,struct map_session_data *sd) {
-	if(battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_BASIC) >= 5){
+	if (battle_config.basic_skill_check == 0 || pc_checkskill(sd,NV_PARTY) >= 1){
 		party_reply_invite(sd,RFIFOL(fd,2),RFIFOL(fd,6));
 	} else {
 		party_reply_invite(sd,RFIFOL(fd,2),-1);

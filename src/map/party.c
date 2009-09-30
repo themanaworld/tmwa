@@ -14,6 +14,7 @@
 #include "battle.h"
 #include "intif.h"
 #include "clif.h"
+#include "skill.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -203,23 +204,28 @@ int party_invite(struct map_session_data *sd,int account_id)
 
 	if(tsd==NULL || p==NULL)
 		return 0;
+
+	printf("\tA\n");
+
 	if(!battle_config.invite_request_check) {
-		if (tsd->guild_invite>0 || tsd->trade_partner) {	// 相手が取引中かどうか
+		if (tsd->guild_invite>0 || tsd->trade_partner || tsd->npc_id || tsd->npc_shopid || pc_checkskill(tsd,NV_PARTY) < 1) {
 			clif_party_inviteack(sd,tsd->status.name,0);
 			return 0;
 		}
 	}
+	printf("\tB\n");
 	if( tsd->status.party_id>0 || tsd->party_invite>0 ){	// 相手の所属確認
 		clif_party_inviteack(sd,tsd->status.name,0);
 		return 0;
 	}
+	printf("\tC\n");
 	for(i=0;i<MAX_PARTY;i++){	// 同アカウント確認
 		if(p->member[i].account_id==account_id){
 			clif_party_inviteack(sd,tsd->status.name,0);
 			return 0;
 		}
 	}
-	
+	printf("\tD\n");	
 	tsd->party_invite=sd->status.party_id;
 	tsd->party_invite_account=sd->status.account_id;
 

@@ -10,12 +10,13 @@
 #define MAX_SKILL_ARROW_DB	 150
 #define MAX_SKILL_ABRA_DB	 350
 
-#define QUEST_SKILL(i) ((i) >= TMW_MAGIC && (i) < TMW_MAGIC_END)
-// [Fate] A `quest skill' is a skill handled via quests, i.e., one that can't be modified via skill points.
+#define SKILL_POOL_FLAG		0x1 // is a pool skill
+#define SKILL_POOL_ACTIVE	0x2 // is an active pool skill
+#define SKILL_POOL_ACTIVATED	0x4 // pool skill has been activated (used for clif)
 
 // スキルデータベース
 struct skill_db {
-	int range[MAX_SKILL_LEVEL],hit,inf,pl,nk,max;
+	int range[MAX_SKILL_LEVEL],hit,inf,pl,nk,max, stat, poolflags, max_raise; // `max' is the global max, `max_raise' is the maximum attainable via skill-ups
 	int num[MAX_SKILL_LEVEL];
 	int cast[MAX_SKILL_LEVEL],delay[MAX_SKILL_LEVEL];
 	int upkeep_time[MAX_SKILL_LEVEL],upkeep_time2[MAX_SKILL_LEVEL];
@@ -49,6 +50,7 @@ int	skill_get_inf( int id );
 int	skill_get_pl( int id );
 int	skill_get_nk( int id );
 int	skill_get_max( int id );
+int	skill_get_max_raise( int id );
 int skill_get_range( int id , int lv );
 int	skill_get_hp( int id ,int lv );
 int	skill_get_mhp( int id ,int lv );
@@ -323,7 +325,9 @@ enum {	// struct map_session_data の status_changeの番号テーブル
 extern int SkillStatusChangeTable[];
 
 enum {
-	NV_BASIC = 1,
+	NV_EMOTE = 1,
+	NV_TRADE,
+	NV_PARTY,
 
 	SM_SWORD,
 	SM_TWOHAND,
@@ -370,7 +374,7 @@ enum {
 	MC_VENDING,
 	MC_MAMMONITE,
 
-	AC_OWL,
+	AC_OWL = 45,
 	AC_VULTURE,
 	AC_CONCENTRATION,
 	AC_DOUBLE,
@@ -380,7 +384,7 @@ enum {
 	TF_MISS,
 	TF_STEAL,
 	TF_HIDING,
-	TF_POISON, // 52
+	TF_POISON,
 	TF_DETOXIFY,
 
 	ALL_RESURRECTION,
@@ -677,7 +681,7 @@ enum {
 	DC_FORTUNEKISS,
 	DC_SERVICEFORYOU,
 
-	NPC_SELFDESTRUCTION2 = 331,
+	NPC_SELFDESTRUCTION2 = 333,
 
 	WE_MALE = 334,
 	WE_FEMALE,
@@ -685,13 +689,22 @@ enum {
 
 	NPC_DARKCROSS = 338,
 
+        TMW_SKILLPOOL = 339, // skill pool size
+
         TMW_MAGIC = 340,
-        TMW_MAGIC_LIFE,
-        TMW_MAGIC_WAR,
-        TMW_MAGIC_TRANSMUTE,
-        TMW_MAGIC_NATURE,
-        TMW_MAGIC_ETHER,
-        TMW_MAGIC_END,
+        TMW_MAGIC_LIFE = 341,
+        TMW_MAGIC_WAR = 342,
+        TMW_MAGIC_TRANSMUTE = 343,
+        TMW_MAGIC_NATURE = 344,
+        TMW_MAGIC_ETHER = 345,
+        TMW_MAGIC_DARK = 346,
+        TMW_MAGIC_LIGHT = 347,
+
+        TMW_BRAWLING = 350,
+        TMW_LUCKY_COUNTER = 351,
+        TMW_SPEED = 352,
+        TMW_RESIST_POISON = 353,
+        TMW_ASTRAL_SOUL = 354,
 
 	LK_AURABLADE = 355,
 	LK_PARRYING,
@@ -818,6 +831,31 @@ enum {
 	GD_CHARISMA,
 	GD_EXTENSION,
 };
+
+
+// [Fate] Skill pools API
+
+// Max. # of active entries in the skill pool
+#define MAX_SKILL_POOL 3
+// Max. # of skills that may be classified as pool skills in db/skill_db.txt
+#define MAX_POOL_SKILLS 128
+
+extern int skill_pool_skills[MAX_POOL_SKILLS]; // All pool skills
+extern int skill_pool_skills_size; // Number of entries in skill_pool_skills
+
+int skill_pool(struct map_session_data *sd, int *skills); // Yields all active skills in the skill pool; no more than MAX_SKILL_POOL.  Return is number of skills.
+int skill_pool_size(struct map_session_data *sd);
+int skill_pool_max(struct map_session_data *sd); // Max. number of pool skills
+void skill_pool_empty(struct map_session_data *sd); // Deactivate all pool skills
+int skill_pool_activate(struct map_session_data *sd, int skill); // Skill into skill pool.  Return is zero iff okay.
+int skill_pool_is_activated(struct map_session_data *sd, int skill); // Skill into skill pool.  Return is zero when activated.
+int skill_pool_deactivate(struct map_session_data *sd, int skill); // Skill out of skill pool.  Return is zero iff okay.
+char *skill_name(int skill); // Yield configurable skill name
+int skill_stat(int skill); // Yields the stat associated with a skill.  Returns zero if none, or SP_STR, SP_VIT, ... otherwise
+int skill_power(struct map_session_data *sd, int skill); // Yields the power of a skill.  This is zero if the skill is unknown or if it's a pool skill that is outside of the skill pool,
+							 // otherwise a value from 0 to 255 (with 200 being the `normal maximum')
+int skill_power_bl(struct block_list *bl, int skill); // Yields the power of a skill.  This is zero if the skill is unknown or if it's a pool skill that is outside of the skill pool,
+							 // otherwise a value from 0 to 255 (with 200 being the `normal maximum')
 
 #endif
 

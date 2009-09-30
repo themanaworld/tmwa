@@ -267,7 +267,7 @@ mob_gen_exp(struct mob_db *mob)
 	double mod_def = 100 - mob->def;
 	if (mod_def == 0) mod_def = 1;
 	double effective_hp = ((50 - mob->luk) * mob->max_hp / 50.0) + (2  * mob->luk * mob->max_hp / mod_def);
-	double attack_factor = (mob->atk1 + mob->atk2 + mob->str / 3.0 + mob->dex / 2.0 + mob->luk) * (1872 / mob->adelay) / 4;
+	double attack_factor = (mob->atk1 + mob->atk2 + mob->str / 3.0 + mob->dex / 2.0 + mob->luk) * (1872.0 / mob->adelay) / 4;
 	double dodge_factor = pow(mob->lv + mob->agi + mob->luk / 2.0, 4.0 / 3.0);
 	double persuit_factor = (3 + mob->range) * (mob->mode % 2) * 1000 / mob->speed;
 	double aggression_factor = (mob->mode & 4) == 4 ? 10.0 / 9.0 : 1.0;

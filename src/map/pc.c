@@ -38,8 +38,6 @@
 
 #define STATE_BLIND 0x10
 
-#define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
-
 #define MAP_LOG_STATS(sd, suffix)	\
         MAP_LOG_PC(sd, "STAT %d %d %d %d %d %d " suffix,            \
                    sd->status.str, sd->status.agi, sd->status.vit, sd->status.int_, sd->status.dex, sd->status.luk)
@@ -853,6 +851,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 		strftime(tmpstr, sizeof(tmpstr) - 1, msg_txt(501), gmtime(&connect_until_time)); // "Your account time limit is: %d-%m-%Y %H:%M:%S."
 		clif_wis_message(sd->fd, wisp_server_name, tmpstr, strlen(tmpstr)+1);
 	}
+	pc_calcstatus(sd,1);
 
 	return 0;
 }
@@ -875,23 +874,17 @@ int pc_authfail(int id) {
 
 static int pc_calc_skillpoint(struct map_session_data* sd)
 {
-	int  i,skill,skill_point=0;
+	int  i, skill_points = 0;
 
 	nullpo_retr(0, sd);
 
-	for(i=1;i<MAX_SKILL;i++){
-		if( (skill = pc_checkskill(sd,i)) > 0) {
-			if(!(skill_get_inf2(i)&0x01) || battle_config.quest_skill_learn) {
-				if(!sd->status.skill[i].flag)
-					skill_point += skill;
-				else if(sd->status.skill[i].flag > 2 && sd->status.skill[i].flag != 13) {
-					skill_point += (sd->status.skill[i].flag - 2);
-				}
-			}
-		}
-	}
+        for (i = 0; i < skill_pool_skills_size; i++) {
+                int lv = sd->status.skill[skill_pool_skills[i]].lv;
+                if (lv)
+                        skill_points += ((lv * (lv + 1)) >> 1) - 1;
+        }
 
-	return skill_point;
+	return skill_points;
 }
 
 /*==========================================
@@ -997,6 +990,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
 		}
 	}
 
+	/*Comment this out for now, as we manage skills differently
 	for(i=0;i<MAX_SKILL;i++)
             if (i < TMW_MAGIC || i > TMW_MAGIC_END){ // [Fate] This hack gets TMW magic working and persisted without bothering about the skill tree.
 		if (sd->status.skill[i].flag != 13) sd->status.skill[i].id=0;
@@ -1005,6 +999,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
 			sd->status.skill[i].flag=0;	// flag��0�ɂ��Ă���
 		}
 	}
+	*/
 
 	if (battle_config.gm_allskill > 0 && pc_isGM(sd) >= battle_config.gm_allskill){
 		// �S�ẴX�L��
@@ -1379,6 +1374,13 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		}
 	}
 
+        if (battle_is_unarmed(&sd->bl)) {
+                sd->watk += skill_power(sd, TMW_BRAWLING) / 3; // +66 for 200
+                sd->watk2 += skill_power(sd, TMW_BRAWLING) >> 3; // +25 for 200
+                sd->watk_ += skill_power(sd, TMW_BRAWLING) / 3; // +66 for 200
+                sd->watk_2 += skill_power(sd, TMW_BRAWLING) >> 3; // +25 for 200
+        }
+
 	if(sd->equip_index[10] >= 0){ // ��
 		index = sd->equip_index[10];
 		if(sd->inventory_data[index]){		//�܂�����������Ă��Ȃ�
@@ -1429,9 +1431,6 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	if( (skill=pc_checkskill(sd,MC_INCCARRY))>0 )	// skill can be used with an item now, thanks to orn [Valaris]
 		sd->max_weight += skill*1000;
 
-	if( (skill=pc_checkskill(sd,AC_OWL))>0 )	// �ӂ��낤�̖�
-		sd->paramb[4] += skill;
-
 	// �X�e�[�^�X�ω��ɂ������{�p�����[�^�␳
 	if(sd->sc_count){
 		if(sd->sc_data[SC_CONCENTRATE].timer!=-1 && sd->sc_data[SC_QUAGMIRE].timer == -1){	// �W���͌���
@@ -1469,6 +1468,10 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 			sd->paramb[5]+= 5;
 		}
 	}
+        sd->speed -= skill_power(sd, TMW_SPEED) >> 3;
+        sd->aspd_rate -= skill_power(sd, TMW_SPEED) / 10;
+        if (sd->aspd_rate < 20)
+                sd->aspd_rate = 20;
 
 	//1�x�����łȂ�Job70�X�p�m�r��+10
 	if(s_class.job == 23 && sd->die_counter == 0 && sd->status.job_level >= 70){
@@ -1562,9 +1565,14 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 
 	if( (skill=pc_checkskill(sd,AC_VULTURE))>0){	// ���V�̖�
 		sd->hit += skill;
-		if(sd->status.weapon == 11)
+		if (sd->status.weapon == 11)
 			sd->attackrange += skill;
 	}
+
+        if (sd->attackrange > 2) { // [fate] ranged weapon?
+                sd->attackrange += MIN(skill_power(sd, AC_OWL) / 60, 3);
+                sd->hit += skill_power(sd, AC_OWL) / 10; // 20 for 200
+        }
 
 	if( (skill=pc_checkskill(sd,BS_WEAPONRESEARCH))>0)	// ���팤���̖���������
 		sd->hit += skill*2;
@@ -2652,12 +2660,7 @@ int pc_skill(struct map_session_data *sd,int id,int level,int flag)
 		clif_skillinfoblock(sd);
 	}
 	else if(sd->status.skill[id].lv < level){	// �o�������邪lv���������Ȃ�
-		if(sd->status.skill[id].id==id)
-			sd->status.skill[id].flag=sd->status.skill[id].lv+2;	// lv���L��
-		else {
-			sd->status.skill[id].id=id;
-			sd->status.skill[id].flag=1;	// card�X�L���Ƃ���
-		}
+                sd->status.skill[id].id=id;
 		sd->status.skill[id].lv=level;
 	}
 
@@ -4356,6 +4359,7 @@ int pc_checkbaselevelup(struct map_session_data *sd)
 		//���x���A�b�v�����̂Ńp�[�e�B�[�������X�V����
 		//(��͈̓`�F�b�N)
 		party_send_movemap(sd);
+                MAP_LOG_XP(sd, "LEVELUP")
 		return 1;
 	}
 
@@ -4754,22 +4758,18 @@ int pc_skillup(struct map_session_data *sd,int skill_num)
 {
 	nullpo_retr(0, sd);
 
-	if( skill_num>=10000 ){
-		guild_skillup(sd,skill_num);
-		return 0;
-	}
-
-	if( sd->status.skill_point>0 &&
-		sd->status.skill[skill_num].id!=0 &&
-		sd->status.skill[skill_num].lv < skill_get_max(skill_num)
-            && (skill_num < TMW_MAGIC || skill_num > TMW_MAGIC_END)) // [Fate] Hack: Prevent exploit for raising magic levels
-	{
+	if (sd->status.skill[skill_num].id !=0
+            && sd->status.skill_point > sd->status.skill[skill_num].lv
+            && sd->status.skill[skill_num].lv < skill_db[skill_num].max_raise) {
 		sd->status.skill[skill_num].lv++;
-		sd->status.skill_point--;
+		sd->status.skill_point -= sd->status.skill[skill_num].lv;
+
 		pc_calcstatus(sd,0);
 		clif_skillup(sd,skill_num);
 		clif_updatestatus(sd,SP_SKILLPOINT);
 		clif_skillinfoblock(sd);
+                MAP_LOG_PC(sd, "SKILLUP %d %d %d",
+                           skill_num, sd->status.skill[skill_num].lv, skill_power(sd, skill_num));
 	}
 
 	return 0;
@@ -4792,13 +4792,8 @@ int pc_allskillup(struct map_session_data *sd)
 	c = s_class.job;
 	s = (s_class.upper==1) ? 1 : 0 ; //�]���ȊO�͒ʏ��̃X�L���H
 
-	for(i=0;i<MAX_SKILL;i++){
+	for(i=0;i<MAX_SKILL;i++)
 		sd->status.skill[i].id=0;
-		if (sd->status.skill[i].flag && sd->status.skill[i].flag != 13){	// card�X�L���Ȃ��A
-			sd->status.skill[i].lv=(sd->status.skill[i].flag==1)?0:sd->status.skill[i].flag-2;	// �{����lv��
-			sd->status.skill[i].flag=0;	// flag��0�ɂ��Ă���
-		}
-	}
 
 	if (battle_config.gm_allskill > 0 && pc_isGM(sd) >= battle_config.gm_allskill){
 		// �S�ẴX�L��
@@ -4811,7 +4806,7 @@ int pc_allskillup(struct map_session_data *sd)
 	}
 	else {
 		for(i=0;(id=skill_tree[s][c][i].id)>0;i++){
-			if(sd->status.skill[id].id==0 && (!(skill_get_inf2(id)&0x01) || battle_config.quest_skill_learn) )
+			if(sd->status.skill[id].id==0 && skill_get_inf2(id)&0x01 )
 				sd->status.skill[id].lv=skill_get_max(id);
 		}
 	}
@@ -4967,23 +4962,14 @@ int pc_resetskill(struct map_session_data* sd)
 
 	nullpo_retr(0, sd);
 
-	for(i=1;i<MAX_SKILL;i++){
+        sd->status.skill_point += pc_calc_skillpoint(sd);
+
+	for(i=1;i<MAX_SKILL;i++)
 		if( (skill = pc_checkskill(sd,i)) > 0) {
-			if(!(skill_get_inf2(i)&0x01) || battle_config.quest_skill_learn) {
-                                if(!sd->status.skill[i].flag && !QUEST_SKILL(i))
-					sd->status.skill_point += skill;
-				else if(sd->status.skill[i].flag > 2 && sd->status.skill[i].flag != 13) {
-					sd->status.skill_point += (sd->status.skill[i].flag - 2);
-				}
-				sd->status.skill[i].lv = 0;
-			}
-			else if(battle_config.quest_skill_reset)
-				sd->status.skill[i].lv = 0;
-			sd->status.skill[i].flag = 0;
-		}
-		else
 			sd->status.skill[i].lv = 0;
-	}
+			sd->status.skill[i].flags = 0;
+                }
+
 	clif_updatestatus(sd,SP_SKILLPOINT);
 	clif_skillinfoblock(sd);
 	pc_calcstatus(sd,0);

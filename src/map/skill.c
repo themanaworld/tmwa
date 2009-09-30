@@ -524,7 +524,9 @@ struct skill_name_db skill_names[] = {
  { NPC_TRANSFORMATION, "TRANSFORMATION", "NPC_TRANSFORMATION" } ,
  { NPC_WATERATTACK, "WATERATTACK", "NPC_WATERATTACK" } ,
  { NPC_WINDATTACK, "WINDATTACK", "NPC_WINDATTACK" } ,
- { NV_BASIC, "BASIC", "Basic_Skill" } ,
+ { NV_EMOTE, "EMOTE", "Emote_Skill" } ,
+ { NV_TRADE, "TRADE", "Trade_Skill" } ,
+ { NV_PARTY, "PARTY", "Party_Skill" } ,
  { NV_FIRSTAID, "FIRSTAID", "First Aid" } ,
  { NV_TRICKDEAD, "TRICKDEAD", "Play_Dead" } ,
  { PA_GOSPEL, "GOSPEL", "Gospel" } ,
@@ -720,11 +722,16 @@ static int rdamage;
 /* スキルデータベース */
 struct skill_db skill_db[MAX_SKILL_DB];
 
+#define UNARMED_PLAYER_DAMAGE_MIN(bl)	(skill_power_bl((bl), TMW_BRAWLING) >> 4) // +50 for 200
+#define UNARMED_PLAYER_DAMAGE_MAX(bl)	(skill_power_bl((bl), TMW_BRAWLING)) // +200 for 200
+
+
 int	skill_get_hit( int id ){ return skill_db[id].hit; }
 int	skill_get_inf( int id ){ return skill_db[id].inf; }
 int	skill_get_pl( int id ){ return skill_db[id].pl; }
 int	skill_get_nk( int id ){ return skill_db[id].nk; }
 int	skill_get_max( int id ){ return skill_db[id].max; }
+int	skill_get_max_raise( int id ){ return skill_db[id].max_raise; }
 int skill_get_range( int id , int lv ){ return (lv <= 0) ? 0:skill_db[id].range[lv-1]; }
 int	skill_get_hp( int id ,int lv ){ return (lv <= 0) ? 0:skill_db[id].hp[lv-1]; }
 int	skill_get_sp( int id ,int lv ){ return (lv <= 0) ? 0:skill_db[id].sp[lv-1]; }
@@ -1567,6 +1574,7 @@ int skill_attack( int attack_type, struct block_list* src, struct block_list *ds
 		if(MRAND(100) < rate)
 			skill_addtimerskill(src,tick + 800,bl->id,0,0,skillid,skilllv,0,flag);
 	}
+/*
 	if(damage > 0 && dmg.flag&BF_SKILL && bl->type==BL_PC && pc_checkskill((struct map_session_data *)bl,RG_PLAGIARISM)){
 		struct map_session_data *tsd = (struct map_session_data *)bl;
 		nullpo_retr(0, tsd);
@@ -1587,6 +1595,7 @@ int skill_attack( int attack_type, struct block_list* src, struct block_list *ds
 			clif_skillinfoblock(tsd);
 		}
 	}
+*/
 	/* ダメージがあるなら追加効果判定 */
 	if(bl->prev != NULL){
 		struct map_session_data *sd = (struct map_session_data *)bl;
@@ -8020,6 +8029,10 @@ int skill_status_change_timer(int tid, unsigned int tick, int id, int data)
 		break;
 	case SC_POISON:
 		if(sc_data[SC_SLOWPOISON].timer == -1) {
+                        const int resist_poison = skill_power_bl(bl, TMW_RESIST_POISON) >> 3;
+                        if (resist_poison)
+                                sc_data[type].val1 -= MRAND(resist_poison + 1);
+
 			if( (--sc_data[type].val1) > 0) {
 		
                                 int hp = battle_get_max_hp(bl);
@@ -9877,6 +9890,31 @@ int skill_unit_move_unit_group( struct skill_unit_group *group, int m,int dx,int
  * 初期化系
  */
 
+static int
+scan_stat(char *statname)
+{
+        if (!strcmpi(statname, "str"))
+                return SP_STR;
+        if (!strcmpi(statname, "dex"))
+                return SP_DEX;
+        if (!strcmpi(statname, "agi"))
+                return SP_AGI;
+        if (!strcmpi(statname, "vit"))
+                return SP_VIT;
+        if (!strcmpi(statname, "int"))
+                return SP_INT;
+        if (!strcmpi(statname, "luk"))
+                return SP_LUK;
+        if (!strcmpi(statname, "none"))
+                return 0;
+
+        else fprintf(stderr, "Unknown stat `%s'\n", statname);
+        return 0;
+}
+
+extern void
+skill_pool_register(int id); // [Fate] Remember that a certain skill ID belongs to a pool skill
+
 /*==========================================
  * スキル関係ファイル読み込み
  * skill_db.txt スキルデータ
@@ -9900,14 +9938,16 @@ int skill_readdb(void)
 		char *split[50], *split2[MAX_SKILL_LEVEL];
 		if(line[0]=='/' && line[1]=='/')
 			continue;
-		for(j=0,p=line;j<14 && p;j++){
+		for(j=0,p=line;j<18 && p;j++){
 			while (*p == '\t' || *p == ' ') p++;
 			split[j]=p;
 			p=strchr(p,',');
 			if(p) *p++=0;
 		}
-		if(split[13]==NULL || j<14)
+		if(split[17]==NULL || j<18) {
+                        fprintf(stderr, "Incomplete skill db data online (%d entries)\n", j);
 			continue;
+                }
 
 		i=atoi(split[0]);
 		if(i<0 || i>MAX_SKILL_DB)
@@ -9925,10 +9965,11 @@ int skill_readdb(void)
 		skill_db[i].inf=atoi(split[3]);
 		skill_db[i].pl=atoi(split[4]);
 		skill_db[i].nk=atoi(split[5]);
-		skill_db[i].max=atoi(split[6]);
+		skill_db[i].max_raise=atoi(split[6]);
+		skill_db[i].max=atoi(split[7]);
 
 		memset(split2,0,sizeof(split2));
-		for(j=0,p=split[7];j<MAX_SKILL_LEVEL && p;j++){
+		for(j=0,p=split[8];j<MAX_SKILL_LEVEL && p;j++){
 			split2[j]=p;
 			p=strchr(p,':');
 			if(p) *p++=0;
@@ -9936,14 +9977,14 @@ int skill_readdb(void)
 		for(k=0;k<MAX_SKILL_LEVEL;k++)
 			skill_db[i].num[k]=(split2[k])? atoi(split2[k]):atoi(split2[0]);
 
-		if(strcmpi(split[8],"yes") == 0)
+		if(strcmpi(split[9],"yes") == 0)
 			skill_db[i].castcancel=1;
 		else
 			skill_db[i].castcancel=0;
 		skill_db[i].cast_def_rate=atoi(split[9]);
 		skill_db[i].inf2=atoi(split[10]);
 		skill_db[i].maxcount=atoi(split[11]);
-		if(strcmpi(split[12],"weapon") == 0)
+		if(strcmpi(split[13],"weapon") == 0)
 			skill_db[i].skill_type=BF_WEAPON;
 		else if(strcmpi(split[12],"magic") == 0)
 			skill_db[i].skill_type=BF_MAGIC;
@@ -9952,13 +9993,33 @@ int skill_readdb(void)
 		else
 			skill_db[i].skill_type=0;
 		memset(split2,0,sizeof(split2));
-		for(j=0,p=split[13];j<MAX_SKILL_LEVEL && p;j++){
+		for(j=0,p=split[14];j<MAX_SKILL_LEVEL && p;j++){
 			split2[j]=p;
 			p=strchr(p,':');
 			if(p) *p++=0;
 		}
 		for(k=0;k<MAX_SKILL_LEVEL;k++)
 			skill_db[i].blewcount[k]=(split2[k])? atoi(split2[k]):atoi(split2[0]);
+
+                if (!strcmpi(split[15], "passive")) {
+                        skill_pool_register(i);
+                        skill_db[i].poolflags = SKILL_POOL_FLAG;
+                } else if (!strcmpi(split[15], "active")) {
+                        skill_pool_register(i);
+                        skill_db[i].poolflags = SKILL_POOL_FLAG | SKILL_POOL_ACTIVE;
+                } else
+                        skill_db[i].poolflags = 0;
+
+                skill_db[i].stat = scan_stat(split[16]);
+
+                skill_names[i].desc = strdup(split[17]);
+                { // replace "_" by " "
+                        char *s = skill_names[i].desc;
+                        while ((s = strchr(s, '_')))
+                                *s = ' ';
+                        if ((s = strchr(skill_names[i].desc, '\t')) || (s = strchr (skill_names[i].desc, ' ')) || (s = strchr (skill_names[i].desc, '\n')))
+                                *s = '\000';
+                }
 	}
 	fclose_(fp);
 	printf("read db/skill_db.txt done\n");

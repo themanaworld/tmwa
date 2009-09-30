@@ -595,22 +595,7 @@ int chrif_changedsex(int fd)
 			// reset skill of some job
 			if (s_class.job == 19 || s_class.job == 4020 || s_class.job == 4042 ||
 			    s_class.job == 20 || s_class.job == 4021 || s_class.job == 4043) {
-				// remove specifical skills of classes 19, 4020 and 4042
-				for(i = 315; i <= 322; i++) {
-					if (sd->status.skill[i].id > 0 && !sd->status.skill[i].flag) {
-						sd->status.skill_point += sd->status.skill[i].lv;
-						sd->status.skill[i].id = 0;
-						sd->status.skill[i].lv = 0;
-					}
-				}
-				// remove specifical skills of classes 20, 4021 and 4043
-				for(i = 323; i <= 330; i++) {
-					if (sd->status.skill[i].id > 0 && !sd->status.skill[i].flag) {
-						sd->status.skill_point += sd->status.skill[i].lv;
-						sd->status.skill[i].id = 0;
-						sd->status.skill[i].lv = 0;
-					}
-				}
+
 				clif_updatestatus(sd, SP_SKILLPOINT);
 				// change job if necessary
 				if (s_class.job == 20 || s_class.job == 4021 || s_class.job == 4043)

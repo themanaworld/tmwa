@@ -92,12 +92,12 @@ magic_message(character_t *caster,
 #ifdef DEBUG
                 fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_, effects != NULL);
 #endif
+                if (caster->status.option & OPTION_HIDE)
+                        return 0; // No spellcasting while hidden
 
-                MAP_LOG("PC%d %d:%d,%d CAST %s %s",
-                        caster->status.char_id, caster->bl.m, caster->bl.x, caster->bl.y,
-                        spell->name,
-                        effects? "SUCCESS" : "FAILURE");
-
+                MAP_LOG_PC(caster, "CAST %s %s",
+                           spell->name,
+                           effects? "SUCCESS" : "FAILURE");
 
                 if (effects) {
                         invocation_t *invocation = spell_instantiate(effects, env);

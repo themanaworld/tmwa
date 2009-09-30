@@ -292,9 +292,8 @@ op_instaheal(env_t *env, int args_nr, val_t *args)
         if (caster->type == BL_PC && subject->type == BL_PC) {
                 character_t *caster_pc = (character_t *) caster;
                 character_t *subject_pc = (character_t *) subject;
-                MAP_LOG("PC%d %d:%d,%d SPELLHEAL-INSTA PC%d FOR %d",
-                        caster_pc->status.char_id, caster->m, caster->x, caster->y,
-                        subject_pc->status.char_id, ARGINT(1));
+                MAP_LOG_PC(caster_pc, "SPELLHEAL-INSTA PC%d FOR %d",
+                           subject_pc->status.char_id, ARGINT(1));
         }
 
         battle_heal(caster, subject, ARGINT(1), ARGINT(2), 0);
@@ -677,6 +676,22 @@ op_spawn(env_t *env, int args_nr, val_t *args)
 }
 
 
+static char *
+get_invocation_name(env_t *env)
+{
+        invocation_t *invocation;
+
+        if (VAR(VAR_INVOCATION).ty != TY_INVOCATION)
+                return "?";
+        invocation = (invocation_t *)map_id2bl(VAR(VAR_INVOCATION).v.v_int);
+
+        if (invocation)
+                return invocation->spell->name;
+        else
+                return "??";
+}
+
+
 static int
 op_injure(env_t *env, int args_nr, val_t *args)
 {
@@ -711,9 +726,9 @@ op_injure(env_t *env, int args_nr, val_t *args)
                 if (target->type == BL_MOB) {
                         struct mob_data *mob = (struct mob_data *) target;
 
-                        MAP_LOG("PC%d %d:%d,%d SPELLDMG MOB%d %d FOR %d",
-                                caster_pc->status.char_id, caster->m, caster->x, caster->y,
-                                mob->bl.id, mob->class, damage_caused);
+                        MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s",
+                                   mob->bl.id, mob->class, damage_caused,
+                                   get_invocation_name(env));
                 }
         }
         battle_damage(caster, target, damage_caused, mp_damage);
