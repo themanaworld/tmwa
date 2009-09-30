@@ -108,3 +108,12 @@ unsigned long mt_random(void)
     y ^= (y << 15) & 0xEFC60000U;
     return(y ^ (y >> 18));
 }
+
+int mt_rand(void) {
+	unsigned long r = mt_random();
+	while (r >> 16)
+		r = (r & 0xFFFF) + (r >> 16);
+
+	return(r);
+}
+
