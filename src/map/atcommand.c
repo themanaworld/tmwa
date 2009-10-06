@@ -241,7 +241,6 @@ static AtCommandInfo atcommand_info[] = {
 	{ AtCommand_Kill,                "@kill",            60, atcommand_kill },
 	{ AtCommand_Alive,               "@alive",           60, atcommand_alive },
 	{ AtCommand_Kami,                "@kami",            40, atcommand_kami },
-	{ AtCommand_KamiB,               "@kamib",           40, atcommand_kami },
 	{ AtCommand_Heal,                "@heal",            40, atcommand_heal },
 	{ AtCommand_Item,                "@item",            60, atcommand_item },
 	{ AtCommand_ItemReset,           "@itemreset",       40, atcommand_itemreset },
@@ -1732,7 +1731,7 @@ int atcommand_kami(
 	}
 
 	sscanf(message, "%199[^\n]", output);
-	intif_GMmessage(output, strlen(output) + 1, (*(command + 5) == 'b') ? 0x10 : 0);
+	intif_GMmessage(output, strlen(output) + 1, 0);
 
 	return 0;
 }
