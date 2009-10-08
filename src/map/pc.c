@@ -4623,52 +4623,49 @@ int pc_statusup(struct map_session_data *sd,int type)
 
 	nullpo_retr(0, sd);
 
+	switch(type){
+	case SP_STR:
+		val= sd->status.str;
+		break;
+	case SP_AGI:
+		val= sd->status.agi;
+		break;
+	case SP_VIT:
+		val= sd->status.vit;
+		break;
+	case SP_INT:
+		val= sd->status.int_;
+		break;
+	case SP_DEX:
+		val= sd->status.dex;
+		break;
+	case SP_LUK:
+		val= sd->status.luk;
+		break;
+	}
+
 	need=pc_need_status_point(sd,type);
-	if(type<SP_STR || type>SP_LUK || need<0 || need>sd->status.status_point){
-		clif_statusupack(sd,type,0,0);
+	if(type<SP_STR || type>SP_LUK || need<0 || need>sd->status.status_point || val >= battle_config.max_parameter){
+		clif_statusupack(sd,type,0,val);
 		return 1;
 	}
 	switch(type){
 	case SP_STR:
-		if(sd->status.str >= battle_config.max_parameter) {
-			clif_statusupack(sd,type,0,0);
-			return 1;
-		}
 		val= ++sd->status.str;
 		break;
 	case SP_AGI:
-		if(sd->status.agi >= battle_config.max_parameter) {
-			clif_statusupack(sd,type,0,0);
-			return 1;
-		}
 		val= ++sd->status.agi;
 		break;
 	case SP_VIT:
-		if(sd->status.vit >= battle_config.max_parameter) {
-			clif_statusupack(sd,type,0,0);
-			return 1;
-		}
 		val= ++sd->status.vit;
 		break;
 	case SP_INT:
-		if(sd->status.int_ >= battle_config.max_parameter) {
-			clif_statusupack(sd,type,0,0);
-			return 1;
-		}
 		val= ++sd->status.int_;
 		break;
 	case SP_DEX:
-		if(sd->status.dex >= battle_config.max_parameter) {
-			clif_statusupack(sd,type,0,0);
-			return 1;
-		}
 		val= ++sd->status.dex;
 		break;
 	case SP_LUK:
-		if(sd->status.luk >= battle_config.max_parameter) {
-			clif_statusupack(sd,type,0,0);
-			return 1;
-		}
 		val= ++sd->status.luk;
 		break;
 	}
