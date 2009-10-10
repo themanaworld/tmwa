@@ -45,8 +45,8 @@
                    sd->status.str, sd->status.agi, sd->status.vit, sd->status.int_, sd->status.dex, sd->status.luk)
 
 #define MAP_LOG_XP(sd, suffix)	\
-        MAP_LOG_PC(sd, "XP %d %d ZENY %d + %d " suffix,		\
-                   sd->status.base_level, sd->status.base_exp, sd->status.zeny, pc_readaccountreg(sd, "BankAccount"))
+        MAP_LOG_PC(sd, "XP %d %d JOB %d %d %d ZENY %d + %d " suffix,		\
+                   sd->status.base_level, sd->status.base_exp, sd->status.job_level, sd->status.job_exp, sd->status.skill_point,  sd->status.zeny, pc_readaccountreg(sd, "BankAccount"))
 
 #define MAP_LOG_MAGIC(sd, suffix)	\
         MAP_LOG_PC(sd, "MAGIC %d %d %d %d %d %d EXP %d %d " suffix,	\
@@ -1427,11 +1427,13 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 	sd->atkmods_[1] = atkmods[1][sd->weapontype2];
 	sd->atkmods_[2] = atkmods[2][sd->weapontype2];
 
+/*
 	// job�{�[�i�X��
 	for(i=0;i<sd->status.job_level && i<MAX_LEVEL;i++){
 		if(job_bonus[s_class.upper][s_class.job][i])
 			sd->paramb[job_bonus[s_class.upper][s_class.job][i]-1]++;
 	}
+*/
 
 	if( (skill=pc_checkskill(sd,MC_INCCARRY))>0 )	// skill can be used with an item now, thanks to orn [Valaris]
 		sd->max_weight += skill*1000;
@@ -1478,6 +1480,7 @@ int pc_calcstatus(struct map_session_data* sd,int first)
         if (sd->aspd_rate < 20)
                 sd->aspd_rate = 20;
 
+/*
 	//1�x�����łȂ�Job70�X�p�m�r��+10
 	if(s_class.job == 23 && sd->die_counter == 0 && sd->status.job_level >= 70){
 		sd->paramb[0]+= 15;
@@ -1487,6 +1490,7 @@ int pc_calcstatus(struct map_session_data* sd,int first)
 		sd->paramb[4]+= 15;
 		sd->paramb[5]+= 15;
 	}
+*/
 	sd->paramc[0]=sd->status.str+sd->paramb[0]+sd->parame[0];
 	sd->paramc[1]=sd->status.agi+sd->paramb[1]+sd->parame[1];
 	sd->paramc[2]=sd->status.vit+sd->paramb[2]+sd->parame[2];
@@ -4379,21 +4383,54 @@ int pc_checkbaselevelup(struct map_session_data *sd)
 	return 0;
 }
 
+/*========================================
+ * Compute the maximum for sd->skill_point, i.e., the max. number of skill points that can still be filled in
+ *----------------------------------------
+ */
+int pc_skillpt_potential(struct map_session_data *sd)
+{
+        int skill_id;
+        int potential = 0;
+
+#define RAISE_COST(x) (((x)*((x)+1))>>1)
+
+	for (skill_id = 0; skill_id < MAX_SKILL; skill_id++)
+                if (sd->status.skill[skill_id].id != 0
+                    && sd->status.skill[skill_id].lv < skill_db[skill_id].max_raise)
+                        potential += RAISE_COST(skill_db[skill_id].max_raise)
+                                - RAISE_COST(sd->status.skill[skill_id].lv);
+#undef RAISE_COST
+
+        return potential;
+}
+
 int pc_checkjoblevelup(struct map_session_data *sd)
 {
 	int next = pc_nextjobexp(sd);
 
 	nullpo_retr(0, sd);
 
-	if(sd->status.job_exp >= next && next > 0){
+	if (sd->status.job_exp >= next
+            && next > 0) {
+
+                if (pc_skillpt_potential(sd) < sd->status.skill_point) { // [Fate] Bah, this is is painful.
+                        // But the alternative is quite error-prone, and eAthena has far worse performance issues...
+                        sd->status.job_exp = next - 1;
+                        return 0;
+                }
+
 		// job�����x���A�b�v����
 		sd->status.job_exp -= next;
-		sd->status.job_level ++;
-		clif_updatestatus(sd,SP_JOBLEVEL);
 		clif_updatestatus(sd,SP_NEXTJOBEXP);
-		sd->status.skill_point ++;
+		sd->status.skill_point++;
 		clif_updatestatus(sd,SP_SKILLPOINT);
 		pc_calcstatus(sd,0);
+
+                MAP_LOG_PC(sd, "SKILLPOINTS-UP %d", sd->status.skill_point);
+
+                if (sd->status.job_level < 250
+                    && sd->status.job_level < sd->status.base_level * 2)
+                        sd->status.job_level++; // Make levelling up a little harder
 
 		clif_misceffect(&sd->bl,1);
 		return 1;
@@ -4422,7 +4459,7 @@ int pc_gainexp_reason(struct map_session_data *sd,int base_exp,int job_exp, int 
 	if((battle_config.pvp_exp == 0) && map[sd->bl.m].flag.pvp)  // [MouseJstr]
 		return 0; // no exp on pvp maps
 
-        MAP_LOG_PC(sd, "GAINXP %d %s", base_exp, ((reason == 2)? "SCRIPTXP" : ((reason == 1) ? "HEALXP" : "KILLXP")));
+        MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp, ((reason == 2)? "SCRIPTXP" : ((reason == 1) ? "HEALXP" : "KILLXP")));
 
 	if(sd->sc_data[SC_RICHMANKIM].timer != -1) { // added bounds checking [Vaalris]
 		base_exp += base_exp*(25 + sd->sc_data[SC_RICHMANKIM].val1*25)/100;
@@ -4525,22 +4562,12 @@ int pc_nextbaseexp(struct map_session_data *sd)
  */
 int pc_nextjobexp(struct map_session_data *sd)
 {
-	int i;
+        // [fate]  For normal levels, this ranges from 20k to 50k, depending on job level.
+        // Job level is at most twice the player's experience level (base_level).  Levelling
+        // from 2 to 9 is 44 points, i.e., 880k to 2.2M job experience points (this is per
+        // skill, obviously.)
 
-	nullpo_retr(0, sd);
-
-	if(sd->status.job_level>=MAX_LEVEL || sd->status.job_level<=0)
-		return 0;
-
-	if(sd->status.class==0) i=7;
-	else if(sd->status.class<=6) i=8;
-	else if(sd->status.class<=22) i=9;
-	else if(sd->status.class==23) i=10;
-	else if(sd->status.class==4001) i=11;
-	else if(sd->status.class<=4007) i=12;
-	else i=13;
-
-	return exp_table[i][sd->status.job_level-1];
+        return 20000 + sd->status.job_level * 150;
 }
 
 /*==========================================

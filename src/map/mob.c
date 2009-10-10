@@ -2242,11 +2242,11 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 
         if (src && src->id == md->master_id
             && md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER) {
-            /* If the master hits a monster, have the monster turn against him */
-            md->master_id = 0;
-            md->mode = 0x85; /* Regular war mode */
-            md->target_id = src->id;
-            md->attacked_id = src->id;
+                /* If the master hits a monster, have the monster turn against him */
+                md->master_id = 0;
+                md->mode = 0x85; /* Regular war mode */
+                md->target_id = src->id;
+                md->attacked_id = src->id;
         }
 
 	max_hp = battle_get_max_hp(&md->bl);
@@ -2313,6 +2313,14 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 		}
 		if(src && src->type == BL_MOB && ((struct mob_data*)src)->state.special_mob_ai){
 			struct mob_data *md2 = (struct mob_data *)src;
+                        struct block_list *master_bl = map_id2bl(md2->master_id);
+                        if (master_bl->type == BL_PC) {
+                                MAP_LOG_PC(((struct map_session_data *)master_bl), "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d",
+                                           md2->bl.id, md2->class,
+                                           md->bl.id, md->class,
+                                           damage);
+                        }
+
 			nullpo_retr(0, md2);
 			for(i=0,minpos=0,mindmg=0x7fffffff;i<DAMAGELOG_SIZE;i++){
 				if(md->dmglog[i].id==md2->master_id)

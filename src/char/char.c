@@ -1335,7 +1335,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd) {
 		WFIFOL(fd,j+4) = p->base_exp;
 		WFIFOL(fd,j+8) = p->zeny;
 		WFIFOL(fd,j+12) = p->job_exp;
-		WFIFOL(fd,j+16) = p->job_level;
+		WFIFOL(fd,j+16) = 0; //p->job_level; // [Fate] We no longer reveal this to the player, as its meaning is weird.
 
 		WFIFOW(fd,j+20) = find_equip_view(p, 0x0040); // 9: shoes
 		WFIFOW(fd,j+22) = find_equip_view(p, 0x0004); // 10: gloves

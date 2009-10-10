@@ -28,28 +28,31 @@ ZEROTARGET ::= 'null' | <TARGET>
 
 MOB-MESSAGE ::= 'DEAD'
 
-PC-MESSAGE ::= 'WPNDMG' <TARGET> int 'FOR' int WPN int			# "WPNDMG MOB01 type FOR damage WPN weapon-item" 
+PC-MESSAGE ::= 'WPNDMG' <TARGET> int 'FOR' int WPN int				# "WPNDMG MOB01 type FOR damage WPN weapon-item" 
 	     | 'WPNINJURY' <TARGET> int 'FOR' int
+             | 'MOB-TO-MOB-DMG' 'FROM' <MOB> int 'TO' <MOB> int 'FOR' int	# Summoned monster damage
              | 'SPELLHEAL-INSTA' <PC> FOR int
              | 'SPELLDMG' <MOB> FOR int BY spell-id
              | 'CAST' spell-id <SPELLRESULT>
-             | 'STAT' int int int int int int <STATPLACE>		# str agi vit int dex luk
-             | 'XP' int int ZENY int '+' int <XPPLACE>			# level xp zeny bank-zeny
-             | 'MAGIC' int int int int int int 'EXP' int int 'LOGIN'	# magic life war transmute nature ether magic-xp healer-xp
-             | 'SKILL-ACTIVATE' int int int				# skillid skilllvl skillpower
-             | 'SKILL-UP' int int int					# skillid skilllvl skillpower
+             | 'STAT' int int int int int int <STATPLACE>			# str agi vit int dex luk
+             | 'XP' int int 'JOB' int int int 'ZENY' int '+' int <XPPLACE>	# level xp job-level skill-xp skill-pts zeny bank-zeny
+             | 'SKILLPOINTS-UP' int						# new number of unused skill points
+             | 'MAGIC' int int int int int int 'EXP' int int 'LOGIN'		# magic life war transmute nature ether magic-xp healer-xp
+             | 'SKILL-ACTIVATE' int int int					# skillid skilllvl skillpower
+             | 'SKILL-UP' int int int						# skillid skilllvl skillpower
              | 'SKILL-DEACTIVATE' int
              | 'MAGIC-ABSORB-DMG' int
              | 'GAINXP' int <XPREASON>
-             | 'PICKUP' int int						# item-id count
+             | 'PICKUP' int int							# item-id count
              | 'INJURED-BY' <ZEROTARGET> 'FOR' int
              | 'DEAD'
              | 'LOGOUT'
-             | 'TRADECOMMIT' 'WITH' int 'GIVE' int 'GET' int		# pc-id give-zeny get-zeny
+             | 'TRADECOMMIT' 'WITH' int 'GIVE' int 'GET' int			# pc-id give-zeny get-zeny
              | 'TRADECANCEL'
              | 'TRADEOK'
-
-
+             | 'STATUP'
+             | 'STATRESET'
+             | 'STATUP'
 
 NOTES:
 ------
