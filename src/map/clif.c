@@ -2120,8 +2120,7 @@ int clif_updatestatus(struct map_session_data *sd,int type)
 		WFIFOL(fd,4)=sd->status.base_level;
 		break;
 	case SP_JOBLEVEL:
-                return 1; // [Fate] Don't report this anymore
-		//WFIFOL(fd,4)=sd->status.job_level;
+                WFIFOL(fd,4)=0;
 		break;
 	case SP_MANNER:
 		WFIFOL(fd,4)=sd->status.manner;
