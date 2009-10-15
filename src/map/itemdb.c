@@ -111,8 +111,8 @@ int itemdb_searchrandomid(int flags)
 
 		if(count > 0) {
 			for(i=0;i<1000;i++) {
-				index = rand()%count;
-				if(	rand()%1000000 < list[index].per) {
+				index = MRAND(count);
+				if(	MRAND(1000000) < list[index].per) {
 					nameid = list[index].nameid;
 					break;
 				}

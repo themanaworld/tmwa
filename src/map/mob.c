@@ -699,10 +699,10 @@ static int mob_walk(struct mob_data *md,unsigned int tick,int data)
 }
 
 /*==========================================
- * Attack processing of mob
+ * Check if mob should be attempting to attack
  *------------------------------------------
  */
-static int mob_attack(struct mob_data *md,unsigned int tick,int data)
+static int mob_check_attack(struct mob_data *md)
 {
 	struct block_list *tbl=NULL;
 	struct map_session_data *tsd=NULL;
@@ -716,7 +716,7 @@ static int mob_attack(struct mob_data *md,unsigned int tick,int data)
 	md->state.state=MS_IDLE;
 	md->state.skillstate=MSS_IDLE;
 
-	if( md->skilltimer!=-1 )	// スキル使用中
+	if( md->skilltimer!=-1 )
 		return 0;
 
 	if(md->opt1>0 || md->option&2)
@@ -742,11 +742,11 @@ static int mob_attack(struct mob_data *md,unsigned int tick,int data)
 		return 0;
 
 	if(tsd){
-		if( pc_isdead(tsd) || tsd->invincible_timer != -1 ||  pc_isinvisible(tsd) || md->bl.m != tbl->m || tbl->prev == NULL || distance(md->bl.x,md->bl.y,tbl->x,tbl->y)>=13 ){
-		md->target_id=0;
-		md->state.targettype = NONE_ATTACKABLE;
-		return 0;
-	}
+		if( pc_isdead(tsd) || tsd->invincible_timer != -1 ||  pc_isinvisible(tsd) || md->bl.m != tbl->m || tbl->prev == NULL || distance(md->bl.x,md->bl.y,tbl->x,tbl->y)>=13 ) {
+			md->target_id=0;
+			md->state.targettype = NONE_ATTACKABLE;
+			return 0;
+		}
 	}
 	if(tmd){
 		if(md->bl.m != tbl->m || tbl->prev == NULL || distance(md->bl.x,md->bl.y,tbl->x,tbl->y)>=13){
@@ -758,7 +758,7 @@ static int mob_attack(struct mob_data *md,unsigned int tick,int data)
 
 
 	if(!md->mode)
-	mode=mob_db[md->class].mode;
+		mode=mob_db[md->class].mode;
 	else
 		mode=md->mode;
 
@@ -780,6 +780,26 @@ static int mob_attack(struct mob_data *md,unsigned int tick,int data)
 		range++;
 	if(distance(md->bl.x,md->bl.y,tbl->x,tbl->y) > range)
 		return 0;
+
+	return 1;
+}
+
+/*==========================================
+ * Attack processing of mob
+ *------------------------------------------
+ */
+static int mob_attack(struct mob_data *md,unsigned int tick,int data)
+{
+	struct block_list *tbl=NULL;
+
+	nullpo_retr(0, md);
+
+	if((tbl=map_id2bl(md->target_id))==NULL)
+		return 0;
+
+	if (!mob_check_attack(md))
+		return 0;
+
 	if(battle_config.monster_attack_direction_change)
 		md->dir=map_calc_dir(&md->bl, tbl->x,tbl->y );	// 向き設定
 
@@ -918,6 +938,7 @@ static int mob_timer(int tid,unsigned int tick,int id,int data)
 	map_freeblock_lock();
 	switch(md->state.state){
 	case MS_WALK:
+		mob_check_attack(md);
 		mob_walk(md,tick,data);
 		break;
 	case MS_ATTACK:
@@ -1651,7 +1672,7 @@ static int mob_randomwalk(struct mob_data *md,int tick)
 		int i,x,y,c,d=12-md->move_fail_count;
 		if(d<5) d=5;
 		for(i=0;i<retrycount;i++){	// Search of a movable place
-			int r=rand();
+			int r=mt_random();
 			x=md->bl.x+r%(d*2+1)-d;
 			y=md->bl.y+r/(d*2+1)%(d*2+1)-d;
 			if((c=map_getcell(md->bl.m,x,y))!=1 && c!=5 && mob_walktoxy(md,x,y,1)==0){

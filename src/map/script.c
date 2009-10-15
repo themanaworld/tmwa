@@ -4158,7 +4158,7 @@ int buildin_sc_start2(struct script_state *st)
 	bl = map_id2bl(st->rid);
 	if(bl->type == BL_PC && ((struct map_session_data *)bl)->state.potionpitcher_flag)
 		bl = map_id2bl(((struct map_session_data *)bl)->skilltarget);
-	if(rand()%10000 < per)
+	if(MRAND(10000) < per)
 	skill_status_change_start(bl,type,val1,0,0,0,tick,0);
 	return 0;
 }
