@@ -18,10 +18,10 @@ OPT = -g -fno-strict-aliasing -O2 ${M32}
 
 ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
 OS_TYPE = -DCYGWIN
-CFLAGS = $(OPT) -Wall -fno-strict-aliasing -DFD_SETSIZE=4096 -I../common $(PACKETDEF) $(OS_TYPE)
+CFLAGS = $(OPT) -Wall -DFD_SETSIZE=4096 -I../common $(PACKETDEF) $(OS_TYPE)
 else
 OS_TYPE =
-CFLAGS = $(OPT) -Wall -fno-strict-aliasing -Wno-pointer-sign -I../common $(PACKETDEF) $(OS_TYPE)
+CFLAGS = $(OPT) -Wall -Wno-pointer-sign -I../common $(PACKETDEF) $(OS_TYPE)
 endif
 
 MKDEF = CC="$(CC)" CFLAGS="$(CFLAGS)"
