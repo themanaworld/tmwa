@@ -358,6 +358,10 @@ struct map_session_data {
 	int ignoreAll;
 	short sg_count;
 
+	struct {
+		unsigned in_progress : 1;
+	} auto_ban_info;
+
 	time_t chat_reset_due;
 	time_t chat_repeat_reset_due;
 	int chat_lines_in;
