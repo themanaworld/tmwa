@@ -6742,8 +6742,8 @@ void clif_parse_Restart(int fd, struct map_session_data *sd) {
 		}
 		break;
 	case 0x01:
-		if(!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
-			return;
+		/*if(!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
+			return;*/
 
 		/*	Rovert's Prevent logout option - Fixed [Valaris]	*/
 		if ((battle_config.prevent_logout && (gettick() - sd->canlog_tick) >= 10000) || (!battle_config.prevent_logout)) {
