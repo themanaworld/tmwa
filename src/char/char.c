@@ -2778,12 +2778,12 @@ int parse_char(int fd) {
 
 			// otherwise, we delete the character
 			} else {
-				if (strcmpi(email, sd->email) != 0) { // if it's an invalid email
+				/*if (strcmpi(email, sd->email) != 0) { // if it's an invalid email
 					WFIFOW(fd, 0) = 0x70;
 					WFIFOB(fd, 2) = 0; // 00 = Incorrect Email address
 					WFIFOSET(fd, 3);
 				// if mail is correct
-				} else {
+				} else {*/
 					for (i = 0; i < 9; i++) {
 						struct mmo_charstatus *cs = NULL;
 						if (sd->found_char[i] >= 0 && (cs = &char_dat[sd->found_char[i]])->char_id == RFIFOL(fd,2)) {
@@ -2825,7 +2825,7 @@ int parse_char(int fd) {
 						WFIFOB(fd,2) = 0;
 						WFIFOSET(fd,3);
 					}
-				}
+				//}
 				RFIFOSKIP(fd,46);
 			}
 			break;

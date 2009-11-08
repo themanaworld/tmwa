@@ -777,7 +777,7 @@ static int clif_set0078(struct map_session_data *sd, unsigned char *buf) {
 	WBUFB(buf,45)=sd->sex;
 	WBUFPOS(buf,46,sd->bl.x,sd->bl.y);
 	WBUFB(buf,48)|=sd->dir&0x0f;
-	WBUFW(buf,49)=pc_isGM(sd) == 60 ? 0x80 : 0;
+	WBUFW(buf,49)=(pc_isGM(sd) == 60 || pc_isGM(sd) == 99) ? 0x80 : 0;
 	WBUFB(buf,51)=sd->state.dead_sit;
 	WBUFW(buf,52)=((level = battle_get_lv(&sd->bl)) > battle_config.max_lv) ? battle_config.max_lv : level;
 
@@ -6742,8 +6742,8 @@ void clif_parse_Restart(int fd, struct map_session_data *sd) {
 		}
 		break;
 	case 0x01:
-		if(!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
-			return;
+		/*if(!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
+			return;*/
 
 		/*	Rovert's Prevent logout option - Fixed [Valaris]	*/
 		if ((battle_config.prevent_logout && (gettick() - sd->canlog_tick) >= 10000) || (!battle_config.prevent_logout)) {

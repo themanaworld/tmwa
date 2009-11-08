@@ -841,6 +841,8 @@ int pc_authok(int id, int login_id2, time_t connect_until_time, short tmw_versio
 		}
 	}
 
+	sd->auto_ban_info.in_progress = 0;
+
 	// Initialize antispam vars
 	sd->chat_reset_due = sd->chat_lines_in = sd->chat_total_repeats = sd->chat_repeat_reset_due = 0;
 	sd->chat_lastmsg[0] = '\0';
