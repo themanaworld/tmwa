@@ -2335,7 +2335,7 @@ int mob_damage(struct block_list *src,struct mob_data *md,int damage,int type)
 		if(src && src->type == BL_MOB && ((struct mob_data*)src)->state.special_mob_ai){
 			struct mob_data *md2 = (struct mob_data *)src;
                         struct block_list *master_bl = map_id2bl(md2->master_id);
-                        if (master_bl->type == BL_PC) {
+                        if (master_bl && master_bl->type == BL_PC) {
                                 MAP_LOG_PC(((struct map_session_data *)master_bl), "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d",
                                            md2->bl.id, md2->class,
                                            md->bl.id, md->class,
