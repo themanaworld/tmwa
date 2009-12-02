@@ -6146,6 +6146,9 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
 		account_id = RFIFOL(fd,2);
 	} else return; // Not the auth packet
 
+	WFIFOL(fd,0) = account_id;
+	WFIFOSET(fd,4);
+
 	// if same account already connected, we disconnect the 2 sessions
 	if ((old_sd = map_id2sd(account_id)) != NULL) {
 		clif_authfail_fd(fd, 2); // same id
@@ -6160,9 +6163,6 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
 		sd->fd = fd;
 
 		pc_setnewpc(sd, account_id, RFIFOL(fd,6), RFIFOL(fd,10), RFIFOL(fd,14), RFIFOB(fd,18), fd);
-
-		WFIFOL(fd,0) = sd->bl.id;
-		WFIFOSET(fd,4);
 
 		map_addiddb(&sd->bl);
 
