@@ -4,7 +4,7 @@ ifeq ($(shell uname -m), x86_64)
 M32=-m32
 endif
 
-CC = gcc ${M32} -pipe
+CC = gcc ${M32}
 
 PLATFORM = $(shell uname)
 
@@ -14,14 +14,14 @@ else
 MAKE = make
 endif
 
-OPT = -g -fno-strict-aliasing -O2 ${M32}
+OPT = -pipe -g -fno-strict-aliasing -O2 -Wall
 
 ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
 OS_TYPE = -DCYGWIN
-CFLAGS = $(OPT) -Wall -DFD_SETSIZE=4096 -I../common $(PACKETDEF) $(OS_TYPE)
+CFLAGS = $(OPT) -DFD_SETSIZE=4096 -I../common $(PACKETDEF) $(OS_TYPE)
 else
 OS_TYPE =
-CFLAGS = $(OPT) -Wall -Wno-pointer-sign -I../common $(PACKETDEF) $(OS_TYPE)
+CFLAGS = $(OPT) -fstack-protector -Wno-pointer-sign -I../common $(PACKETDEF) $(OS_TYPE)
 endif
 
 MKDEF = CC="$(CC)" CFLAGS="$(CFLAGS)"
