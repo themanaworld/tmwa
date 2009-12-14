@@ -251,9 +251,11 @@ int storage_storageadd(struct map_session_data *sd,int index,int amount)
   		return 0;
 
 //	log_tostorage(sd, index, 0);
-	if(storage_additem(sd,stor,&sd->status.inventory[index],amount)==0)
+	if(storage_additem(sd,stor,&sd->status.inventory[index],amount)==0) {
   // remove item from inventory
+		pc_unequipinvyitem(sd,index,1);
 		pc_delitem(sd,index,amount,0);
+	}
 
 	return 1;
 }
