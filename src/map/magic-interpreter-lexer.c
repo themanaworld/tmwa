@@ -70,7 +70,7 @@ typedef uint32_t flex_uint32_t;
 typedef signed char flex_int8_t;
 typedef short int flex_int16_t;
 typedef int flex_int32_t;
-typedef unsigned char flex_uint8_t; 
+typedef unsigned char flex_uint8_t;
 typedef unsigned short int flex_uint16_t;
 typedef unsigned int flex_uint32_t;
 
@@ -112,15 +112,15 @@ typedef unsigned int flex_uint32_t;
 /* The "const" storage-class-modifier is valid. */
 #define YY_USE_CONST
 
-#else	/* ! __cplusplus */
+#else /* ! __cplusplus */
 
 /* C99 requires __STDC__ to be defined as 1. */
 #if defined (__STDC__)
 
 #define YY_USE_CONST
 
-#endif	/* defined (__STDC__) */
-#endif	/* ! __cplusplus */
+#endif /* defined (__STDC__) */
+#endif /* ! __cplusplus */
 
 #ifdef YY_USE_CONST
 #define yyconst const
@@ -188,14 +188,14 @@ extern FILE *magic_frontend_in, *magic_frontend_out;
      *       a 5% performance hit in a non-magic_frontend_lineno scanner, because yy_act is
      *       normally declared as a register variable-- so it is not worth it.
      */
-    #define  YY_LESS_LINENO(n) \
+#define  YY_LESS_LINENO(n) \
             do { \
                 int yyl;\
                 for ( yyl = n; yyl < magic_frontend_leng; ++yyl )\
                     if ( magic_frontend_text[yyl] == '\n' )\
                         --magic_frontend_lineno;\
             }while(0)
-    
+
 /* Return all but the first "n" matched characters back to the input stream. */
 #define yyless(n) \
 	do \
@@ -220,72 +220,72 @@ typedef size_t yy_size_t;
 #ifndef YY_STRUCT_YY_BUFFER_STATE
 #define YY_STRUCT_YY_BUFFER_STATE
 struct yy_buffer_state
-	{
-	FILE *yy_input_file;
+{
+    FILE *yy_input_file;
 
-	char *yy_ch_buf;		/* input buffer */
-	char *yy_buf_pos;		/* current position in input buffer */
+    char *yy_ch_buf;            /* input buffer */
+    char *yy_buf_pos;           /* current position in input buffer */
 
-	/* Size of input buffer in bytes, not including room for EOB
-	 * characters.
-	 */
-	yy_size_t yy_buf_size;
+    /* Size of input buffer in bytes, not including room for EOB
+     * characters.
+     */
+    yy_size_t yy_buf_size;
 
-	/* Number of characters read into yy_ch_buf, not including EOB
-	 * characters.
-	 */
-	int yy_n_chars;
+    /* Number of characters read into yy_ch_buf, not including EOB
+     * characters.
+     */
+    int  yy_n_chars;
 
-	/* Whether we "own" the buffer - i.e., we know we created it,
-	 * and can realloc() it to grow it, and should free() it to
-	 * delete it.
-	 */
-	int yy_is_our_buffer;
+    /* Whether we "own" the buffer - i.e., we know we created it,
+     * and can realloc() it to grow it, and should free() it to
+     * delete it.
+     */
+    int  yy_is_our_buffer;
 
-	/* Whether this is an "interactive" input source; if so, and
-	 * if we're using stdio for input, then we want to use getc()
-	 * instead of fread(), to make sure we stop fetching input after
-	 * each newline.
-	 */
-	int yy_is_interactive;
+    /* Whether this is an "interactive" input source; if so, and
+     * if we're using stdio for input, then we want to use getc()
+     * instead of fread(), to make sure we stop fetching input after
+     * each newline.
+     */
+    int  yy_is_interactive;
 
-	/* Whether we're considered to be at the beginning of a line.
-	 * If so, '^' rules will be active on the next match, otherwise
-	 * not.
-	 */
-	int yy_at_bol;
+    /* Whether we're considered to be at the beginning of a line.
+     * If so, '^' rules will be active on the next match, otherwise
+     * not.
+     */
+    int  yy_at_bol;
 
-    int yy_bs_lineno; /**< The line count. */
-    int yy_bs_column; /**< The column count. */
-    
-	/* Whether to try to fill the input buffer when we reach the
-	 * end of it.
-	 */
-	int yy_fill_buffer;
+    int  yy_bs_lineno;/**< The line count. */
+    int  yy_bs_column;/**< The column count. */
 
-	int yy_buffer_status;
+    /* Whether to try to fill the input buffer when we reach the
+     * end of it.
+     */
+    int  yy_fill_buffer;
+
+    int  yy_buffer_status;
 
 #define YY_BUFFER_NEW 0
 #define YY_BUFFER_NORMAL 1
-	/* When an EOF's been seen but there's still some text to process
-	 * then we mark the buffer as YY_EOF_PENDING, to indicate that we
-	 * shouldn't try reading from the input source any more.  We might
-	 * still have a bunch of tokens to match, though, because of
-	 * possible backing-up.
-	 *
-	 * When we actually see the EOF, we change the status to "new"
-	 * (via magic_frontend_restart()), so that the user can continue scanning by
-	 * just pointing magic_frontend_in at a new input file.
-	 */
+    /* When an EOF's been seen but there's still some text to process
+     * then we mark the buffer as YY_EOF_PENDING, to indicate that we
+     * shouldn't try reading from the input source any more.  We might
+     * still have a bunch of tokens to match, though, because of
+     * possible backing-up.
+     *
+     * When we actually see the EOF, we change the status to "new"
+     * (via magic_frontend_restart()), so that the user can continue scanning by
+     * just pointing magic_frontend_in at a new input file.
+     */
 #define YY_BUFFER_EOF_PENDING 2
 
-	};
+};
 #endif /* !YY_STRUCT_YY_BUFFER_STATE */
 
 /* Stack of input buffers. */
 static size_t yy_buffer_stack_top = 0; /**< index of top of stack. */
 static size_t yy_buffer_stack_max = 0; /**< capacity of stack. */
-static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
+static YY_BUFFER_STATE *yy_buffer_stack = 0;  /**< Stack as an array. */
 
 /* We provide macros for accessing buffer states in case in the
  * future we want to put the buffer states in a more general
@@ -304,40 +304,40 @@ static YY_BUFFER_STATE * yy_buffer_stack = 0; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when magic_frontend_text is formed. */
 static char yy_hold_char;
-static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int magic_frontend_leng;
+static int yy_n_chars;          /* number of characters read into yy_ch_buf */
+int  magic_frontend_leng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = (char *) 0;
-static int yy_init = 0;		/* whether we need to initialize */
-static int yy_start = 0;	/* start state number */
+static int yy_init = 0;         /* whether we need to initialize */
+static int yy_start = 0;        /* start state number */
 
 /* Flag which is used to allow magic_frontend_wrap()'s to do buffer switches
  * instead of setting up a fresh magic_frontend_in.  A bit of a hack ...
  */
 static int yy_did_buffer_switch_on_eof;
 
-void magic_frontend_restart (FILE *input_file  );
-void magic_frontend__switch_to_buffer (YY_BUFFER_STATE new_buffer  );
-YY_BUFFER_STATE magic_frontend__create_buffer (FILE *file,int size  );
-void magic_frontend__delete_buffer (YY_BUFFER_STATE b  );
-void magic_frontend__flush_buffer (YY_BUFFER_STATE b  );
-void magic_frontend_push_buffer_state (YY_BUFFER_STATE new_buffer  );
-void magic_frontend_pop_buffer_state (void );
+void magic_frontend_restart (FILE * input_file);
+void magic_frontend__switch_to_buffer (YY_BUFFER_STATE new_buffer);
+YY_BUFFER_STATE magic_frontend__create_buffer (FILE * file, int size);
+void magic_frontend__delete_buffer (YY_BUFFER_STATE b);
+void magic_frontend__flush_buffer (YY_BUFFER_STATE b);
+void magic_frontend_push_buffer_state (YY_BUFFER_STATE new_buffer);
+void magic_frontend_pop_buffer_state (void);
 
-static void magic_frontend_ensure_buffer_stack (void );
-static void magic_frontend__load_buffer_state (void );
-static void magic_frontend__init_buffer (YY_BUFFER_STATE b,FILE *file  );
+static void magic_frontend_ensure_buffer_stack (void);
+static void magic_frontend__load_buffer_state (void);
+static void magic_frontend__init_buffer (YY_BUFFER_STATE b, FILE * file);
 
 #define YY_FLUSH_BUFFER magic_frontend__flush_buffer(YY_CURRENT_BUFFER )
 
-YY_BUFFER_STATE magic_frontend__scan_buffer (char *base,yy_size_t size  );
-YY_BUFFER_STATE magic_frontend__scan_string (yyconst char *yy_str  );
-YY_BUFFER_STATE magic_frontend__scan_bytes (yyconst char *bytes,int len  );
+YY_BUFFER_STATE magic_frontend__scan_buffer (char *base, yy_size_t size);
+YY_BUFFER_STATE magic_frontend__scan_string (yyconst char *yy_str);
+YY_BUFFER_STATE magic_frontend__scan_bytes (yyconst char *bytes, int len);
 
-void *magic_frontend_alloc (yy_size_t  );
-void *magic_frontend_realloc (void *,yy_size_t  );
-void magic_frontend_free (void *  );
+void *magic_frontend_alloc (yy_size_t);
+void *magic_frontend_realloc (void *, yy_size_t);
+void magic_frontend_free (void *);
 
 #define yy_new_buffer magic_frontend__create_buffer
 
@@ -376,15 +376,15 @@ typedef int yy_state_type;
 
 extern int magic_frontend_lineno;
 
-int magic_frontend_lineno = 1;
+int  magic_frontend_lineno = 1;
 
 extern char *magic_frontend_text;
 #define yytext_ptr magic_frontend_text
 
-static yy_state_type yy_get_previous_state (void );
-static yy_state_type yy_try_NUL_trans (yy_state_type current_state  );
-static int yy_get_next_buffer (void );
-static void yy_fatal_error (yyconst char msg[]  );
+static yy_state_type yy_get_previous_state (void);
+static yy_state_type yy_try_NUL_trans (yy_state_type current_state);
+static int yy_get_next_buffer (void);
+static void yy_fatal_error (yyconst char msg[]);
 
 /* Done after the current pattern has been matched and before the
  * corresponding action - sets up magic_frontend_text.
@@ -401,242 +401,235 @@ static void yy_fatal_error (yyconst char msg[]  );
 /* This struct is not used in this scanner,
    but its presence is necessary. */
 struct yy_trans_info
-	{
-	flex_int32_t yy_verify;
-	flex_int32_t yy_nxt;
-	};
-static yyconst flex_int16_t yy_accept[240] =
-    {   0,
-        0,    0,   87,   85,   84,   84,   85,   85,   85,   23,
-       33,   17,   18,   21,   19,   28,   20,   35,   22,   79,
-       79,   27,   26,   14,    9,   13,   29,   81,   81,   81,
-       81,    7,   81,   81,   81,   81,   81,    5,   81,   81,
-       81,    1,   81,    3,   31,   32,   34,   85,   30,   12,
-        0,   78,    0,    0,   82,   24,   79,    0,    0,   36,
-       16,   11,   10,   51,   15,   37,   81,   81,   81,   81,
-       81,   81,   75,   81,   81,   81,   81,   70,   49,   81,
-       81,   81,   81,    6,   81,   81,    4,   40,   65,   81,
-       81,    8,   81,   81,   81,   81,    2,   81,   81,   81,
+{
+    flex_int32_t yy_verify;
+    flex_int32_t yy_nxt;
+};
+static yyconst flex_int16_t yy_accept[240] = { 0,
+    0, 0, 87, 85, 84, 84, 85, 85, 85, 23,
+    33, 17, 18, 21, 19, 28, 20, 35, 22, 79,
+    79, 27, 26, 14, 9, 13, 29, 81, 81, 81,
+    81, 7, 81, 81, 81, 81, 81, 5, 81, 81,
+    81, 1, 81, 3, 31, 32, 34, 85, 30, 12,
+    0, 78, 0, 0, 82, 24, 79, 0, 0, 36,
+    16, 11, 10, 51, 15, 37, 81, 81, 81, 81,
+    81, 81, 75, 81, 81, 81, 81, 70, 49, 81,
+    81, 81, 81, 6, 81, 81, 4, 40, 65, 81,
+    81, 8, 81, 81, 81, 81, 2, 81, 81, 81,
 
-       41,   81,    0,    0,   77,   25,    0,   78,    0,    0,
-       83,   80,   81,   81,   81,   81,   81,   81,   81,   81,
-       81,   81,   81,   50,   81,   74,   48,   81,   81,   67,
-       81,   66,   81,   81,   81,   81,   81,   81,   81,   81,
-       81,   81,   81,    0,    0,   77,   81,   81,   81,   81,
-       39,   81,   81,   81,   81,   81,   72,   81,   81,   81,
-       56,   81,   81,   81,   81,   58,   81,   81,   81,   81,
-       71,   81,   76,   59,   62,   81,   60,   81,   81,   81,
-       64,   81,   81,   81,   45,   81,   81,   81,   81,   47,
-       81,   81,   81,   81,   81,   81,   81,   81,   61,   68,
+    41, 81, 0, 0, 77, 25, 0, 78, 0, 0,
+    83, 80, 81, 81, 81, 81, 81, 81, 81, 81,
+    81, 81, 81, 50, 81, 74, 48, 81, 81, 67,
+    81, 66, 81, 81, 81, 81, 81, 81, 81, 81,
+    81, 81, 81, 0, 0, 77, 81, 81, 81, 81,
+    39, 81, 81, 81, 81, 81, 72, 81, 81, 81,
+    56, 81, 81, 81, 81, 58, 81, 81, 81, 81,
+    71, 81, 76, 59, 62, 81, 60, 81, 81, 81,
+    64, 81, 81, 81, 45, 81, 81, 81, 81, 47,
+    81, 81, 81, 81, 81, 81, 81, 81, 61, 68,
 
-       81,   81,   81,   81,   44,   52,   69,   81,   81,   81,
-       81,   81,   81,   73,   81,   81,   53,   81,   42,   81,
-       57,   81,   81,   46,   81,   81,   63,   54,   81,   38,
-       81,   55,   81,   81,   81,   81,   81,   43,    0
-    } ;
+    81, 81, 81, 81, 44, 52, 69, 81, 81, 81,
+    81, 81, 81, 73, 81, 81, 53, 81, 42, 81,
+    57, 81, 81, 46, 81, 81, 63, 54, 81, 38,
+    81, 55, 81, 81, 81, 81, 81, 43, 0
+};
 
-static yyconst flex_int32_t yy_ec[256] =
-    {   0,
-        1,    1,    1,    1,    1,    1,    1,    1,    2,    3,
-        1,    1,    2,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    2,    4,    5,    6,    1,    7,    8,    1,    9,
-       10,   11,   12,   13,   14,   15,   16,   17,   18,   18,
-       18,   18,   18,   18,   18,   18,   18,   19,   20,   21,
-       22,   23,   24,   25,   26,   27,   28,   29,   30,   31,
-       32,   33,   34,   35,   36,   37,   38,   39,   40,   41,
-       42,   43,   44,   45,   46,   35,   47,   35,   48,   35,
-       49,   50,   51,   52,   24,    1,   53,   53,   53,   53,
+static yyconst flex_int32_t yy_ec[256] = { 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 2, 3,
+    1, 1, 2, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 2, 4, 5, 6, 1, 7, 8, 1, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 18,
+    18, 18, 18, 18, 18, 18, 18, 19, 20, 21,
+    22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+    42, 43, 44, 45, 46, 35, 47, 35, 48, 35,
+    49, 50, 51, 52, 24, 1, 53, 53, 53, 53,
 
-       53,   53,   35,   35,   35,   35,   35,   35,   35,   35,
-       35,   35,   35,   35,   35,   35,   35,   35,   35,   54,
-       35,   35,   55,   56,   57,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
+    53, 53, 35, 35, 35, 35, 35, 35, 35, 35,
+    35, 35, 35, 35, 35, 35, 35, 35, 35, 54,
+    35, 35, 55, 56, 57, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1
-    } ;
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1
+};
 
-static yyconst flex_int32_t yy_meta[58] =
-    {   0,
-        1,    1,    1,    2,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    2,    1,    1,    3,    3,    1,    1,
-        1,    1,    1,    2,    1,    3,    3,    3,    3,    3,
-        3,    2,    2,    2,    2,    2,    2,    2,    2,    2,
-        2,    2,    2,    2,    2,    2,    2,    2,    1,    1,
-        1,    1,    3,    2,    1,    1,    1
-    } ;
+static yyconst flex_int32_t yy_meta[58] = { 0,
+    1, 1, 1, 2, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 2, 1, 1, 3, 3, 1, 1,
+    1, 1, 1, 2, 1, 3, 3, 3, 3, 3,
+    3, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+    2, 2, 2, 2, 2, 2, 2, 2, 1, 1,
+    1, 1, 3, 2, 1, 1, 1
+};
 
-static yyconst flex_int16_t yy_base[248] =
-    {   0,
-        0,    0,  289,  290,  290,  290,  266,   53,  284,  290,
-      278,  290,  290,  290,  290,  290,   42,  290,  269,   44,
-       46,  290,  290,   44,   46,   48,  290,   45,  241,   47,
-      243,   43,  242,    0,   44,   46,   51,   48,  238,   51,
-      250,   63,   76,  253,  290,  290,  290,   35,  222,  290,
-       76,  290,  102,  274,  290,  290,   83,  273,    0,  290,
-      290,  290,  290,  290,  290,  290,    0,  235,   66,  244,
-       75,   75,    0,  242,  228,   86,  228,    0,    0,  225,
-      241,  229,  240,    0,  227,  237,    0,    0,    0,  224,
-      221,    0,  225,  227,  230,  216,    0,  215,  220,  226,
+static yyconst flex_int16_t yy_base[248] = { 0,
+    0, 0, 289, 290, 290, 290, 266, 53, 284, 290,
+    278, 290, 290, 290, 290, 290, 42, 290, 269, 44,
+    46, 290, 290, 44, 46, 48, 290, 45, 241, 47,
+    243, 43, 242, 0, 44, 46, 51, 48, 238, 51,
+    250, 63, 76, 253, 290, 290, 290, 35, 222, 290,
+    76, 290, 102, 274, 290, 290, 83, 273, 0, 290,
+    290, 290, 290, 290, 290, 290, 0, 235, 66, 244,
+    75, 75, 0, 242, 228, 86, 228, 0, 0, 225,
+    241, 229, 240, 0, 227, 237, 0, 0, 0, 224,
+    221, 0, 225, 227, 230, 216, 0, 215, 220, 226,
 
-      208,  220,   67,  115,  290,  290,   79,  116,  120,  250,
-      290,    0,  209,  212,  207,  223,  211,  202,  220,  204,
-      200,  213,  212,    0,  207,  210,    0,  213,  212,    0,
-      199,    0,  208,  189,  204,  192,  195,  197,  198,  199,
-      189,  201,  181,   77,  119,   78,  180,  195,  189,  186,
-        0,  176,  183,  179,  173,  189,    0,  171,  189,  177,
-        0,  187,  182,  177,  171,    0,  172,  169,  177,  165,
-        0,  162,    0,    0,    0,  172,    0,  169,  154,  162,
-        0,  155,  151,  170,    0,  165,  146,  131,  128,    0,
-      139,  123,  127,  135,  131,  124,  117,  130,    0,    0,
+    208, 220, 67, 115, 290, 290, 79, 116, 120, 250,
+    290, 0, 209, 212, 207, 223, 211, 202, 220, 204,
+    200, 213, 212, 0, 207, 210, 0, 213, 212, 0,
+    199, 0, 208, 189, 204, 192, 195, 197, 198, 199,
+    189, 201, 181, 77, 119, 78, 180, 195, 189, 186,
+    0, 176, 183, 179, 173, 189, 0, 171, 189, 177,
+    0, 187, 182, 177, 171, 0, 172, 169, 177, 165,
+    0, 162, 0, 0, 0, 172, 0, 169, 154, 162,
+    0, 155, 151, 170, 0, 165, 146, 131, 128, 0,
+    139, 123, 127, 135, 131, 124, 117, 130, 0, 0,
 
-      126,  124,  111,  126,    0,    0,    0,  112,  110,  123,
-      121,  105,  110,    0,  120,  104,    0,  101,    0,  102,
-        0,  100,   98,    0,  112,  127,    0,    0,   96,    0,
-      113,    0,   99,  109,  103,   93,   89,    0,  290,  176,
-      179,  181,  184,  187,  190,  127,  193
-    } ;
+    126, 124, 111, 126, 0, 0, 0, 112, 110, 123,
+    121, 105, 110, 0, 120, 104, 0, 101, 0, 102,
+    0, 100, 98, 0, 112, 127, 0, 0, 96, 0,
+    113, 0, 99, 109, 103, 93, 89, 0, 290, 176,
+    179, 181, 184, 187, 190, 127, 193
+};
 
-static yyconst flex_int16_t yy_def[248] =
-    {   0,
-      239,    1,  239,  239,  239,  239,  239,  240,  241,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  239,  239,  239,  243,  239,  239,
-      240,  239,  244,  241,  239,  239,  239,  245,  246,  239,
-      239,  239,  239,  239,  239,  239,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
+static yyconst flex_int16_t yy_def[248] = { 0,
+    239, 1, 239, 239, 239, 239, 239, 240, 241, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 239, 239, 239, 243, 239, 239,
+    240, 239, 244, 241, 239, 239, 239, 245, 246, 239,
+    239, 239, 239, 239, 239, 239, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
 
-      242,  242,  243,  247,  239,  239,  240,  240,  244,  245,
-      239,  246,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  243,  247,  243,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
+    242, 242, 243, 247, 239, 239, 240, 240, 244, 245,
+    239, 246, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 243, 247, 243, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
 
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,  242,  242,
-      242,  242,  242,  242,  242,  242,  242,  242,    0,  239,
-      239,  239,  239,  239,  239,  239,  239
-    } ;
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 242, 242,
+    242, 242, 242, 242, 242, 242, 242, 242, 0, 239,
+    239, 239, 239, 239, 239, 239, 239
+};
 
-static yyconst flex_int16_t yy_nxt[348] =
-    {   0,
-        4,    5,    6,    7,    8,    9,   10,   11,   12,   13,
-       14,   15,   16,   17,   18,   19,   20,   21,   22,   23,
-       24,   25,   26,    4,   27,   28,   29,   30,   31,   32,
-       33,   34,   34,   35,   34,   34,   36,   37,   38,   39,
-       40,   34,   41,   42,   43,   34,   44,   34,   45,    4,
-       46,   47,   34,   34,   48,   49,    4,   52,   57,   57,
-       57,   57,   57,   57,   60,   61,   62,   63,   64,   65,
-       66,   68,   71,   74,   78,   80,   82,   84,   89,   75,
-       52,   76,   79,   52,  104,   81,   72,   85,   86,   69,
-       83,  105,   92,   90,   87,  114,   93,   59,   94,   57,
+static yyconst flex_int16_t yy_nxt[348] = { 0,
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+    14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+    24, 25, 26, 4, 27, 28, 29, 30, 31, 32,
+    33, 34, 34, 35, 34, 34, 36, 37, 38, 39,
+    40, 34, 41, 42, 43, 34, 44, 34, 45, 4,
+    46, 47, 34, 34, 48, 49, 4, 52, 57, 57,
+    57, 57, 57, 57, 60, 61, 62, 63, 64, 65,
+    66, 68, 71, 74, 78, 80, 82, 84, 89, 75,
+    52, 76, 79, 52, 104, 81, 72, 85, 86, 69,
+    83, 105, 92, 90, 87, 114, 93, 59, 94, 57,
 
-       57,   98,   53,   95,   51,   99,  108,   96,  100,   97,
-      115,  117,  120,  121,  124,  101,  104,  103,  118,  119,
-       52,  103,   51,  105,  108,   53,  104,  104,   53,  112,
-      125,  238,  237,  105,  105,  236,  235,  234,  233,  232,
-      231,  230,  229,  228,  227,  226,  225,  224,  223,  222,
-      221,  109,  220,  219,  218,  217,  216,  215,  214,  213,
-      212,  211,  210,  209,  145,   53,  208,  207,  145,  109,
-      206,  146,  205,  204,  203,  146,   51,   51,   51,   54,
-       54,   54,   67,   67,  103,  103,  103,  107,  107,  107,
-      110,  110,  110,  144,  144,  144,  202,  201,  200,  199,
+    57, 98, 53, 95, 51, 99, 108, 96, 100, 97,
+    115, 117, 120, 121, 124, 101, 104, 103, 118, 119,
+    52, 103, 51, 105, 108, 53, 104, 104, 53, 112,
+    125, 238, 237, 105, 105, 236, 235, 234, 233, 232,
+    231, 230, 229, 228, 227, 226, 225, 224, 223, 222,
+    221, 109, 220, 219, 218, 217, 216, 215, 214, 213,
+    212, 211, 210, 209, 145, 53, 208, 207, 145, 109,
+    206, 146, 205, 204, 203, 146, 51, 51, 51, 54,
+    54, 54, 67, 67, 103, 103, 103, 107, 107, 107,
+    110, 110, 110, 144, 144, 144, 202, 201, 200, 199,
 
-      198,  197,  196,  195,  194,  193,  192,  191,  190,  189,
-      188,  187,  186,  185,  184,  183,  182,  181,  180,  179,
-      178,  177,  176,  175,  174,  173,  172,  171,  170,  169,
-      168,  167,  166,  165,  164,  163,  162,  161,  160,  159,
-      158,  157,  156,  155,  154,  153,  152,  151,  150,  149,
-      148,  147,  111,  143,  142,  141,  140,  139,  138,  137,
-      136,  135,  134,  133,  132,  131,  130,  129,  128,  127,
-      126,  123,  122,  116,  113,  111,   55,  106,  102,   91,
-       88,   77,   73,   70,   58,   56,   55,   50,  239,    3,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
+    198, 197, 196, 195, 194, 193, 192, 191, 190, 189,
+    188, 187, 186, 185, 184, 183, 182, 181, 180, 179,
+    178, 177, 176, 175, 174, 173, 172, 171, 170, 169,
+    168, 167, 166, 165, 164, 163, 162, 161, 160, 159,
+    158, 157, 156, 155, 154, 153, 152, 151, 150, 149,
+    148, 147, 111, 143, 142, 141, 140, 139, 138, 137,
+    136, 135, 134, 133, 132, 131, 130, 129, 128, 127,
+    126, 123, 122, 116, 113, 111, 55, 106, 102, 91,
+    88, 77, 73, 70, 58, 56, 55, 50, 239, 3,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
 
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239
-    } ;
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239
+};
 
-static yyconst flex_int16_t yy_chk[348] =
-    {   0,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    1,    1,    1,
-        1,    1,    1,    1,    1,    1,    1,    8,   17,   17,
-       20,   20,   21,   21,   24,   24,   24,   25,   25,   26,
-       26,   28,   30,   32,   35,   36,   37,   38,   40,   32,
-       51,   32,   35,  107,   48,   36,   30,   38,   38,   28,
-       37,   48,   42,   40,   38,   69,   42,   20,   42,   57,
+static yyconst flex_int16_t yy_chk[348] = { 0,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 8, 17, 17,
+    20, 20, 21, 21, 24, 24, 24, 25, 25, 26,
+    26, 28, 30, 32, 35, 36, 37, 38, 40, 32,
+    51, 32, 35, 107, 48, 36, 30, 38, 38, 28,
+    37, 48, 42, 40, 38, 69, 42, 20, 42, 57,
 
-       57,   43,    8,   42,   53,   43,   53,   42,   43,   42,
-       69,   71,   72,   72,   76,   43,  103,  104,   71,   71,
-      108,  145,  109,  103,  109,   51,  144,  146,  107,  246,
-       76,  237,  236,  144,  146,  235,  234,  233,  231,  229,
-      226,  225,  223,  222,  220,  218,  216,  215,  213,  212,
-      211,   53,  210,  209,  208,  204,  203,  202,  201,  198,
-      197,  196,  195,  194,  104,  108,  193,  192,  145,  109,
-      191,  104,  189,  188,  187,  145,  240,  240,  240,  241,
-      241,  241,  242,  242,  243,  243,  243,  244,  244,  244,
-      245,  245,  245,  247,  247,  247,  186,  184,  183,  182,
+    57, 43, 8, 42, 53, 43, 53, 42, 43, 42,
+    69, 71, 72, 72, 76, 43, 103, 104, 71, 71,
+    108, 145, 109, 103, 109, 51, 144, 146, 107, 246,
+    76, 237, 236, 144, 146, 235, 234, 233, 231, 229,
+    226, 225, 223, 222, 220, 218, 216, 215, 213, 212,
+    211, 53, 210, 209, 208, 204, 203, 202, 201, 198,
+    197, 196, 195, 194, 104, 108, 193, 192, 145, 109,
+    191, 104, 189, 188, 187, 145, 240, 240, 240, 241,
+    241, 241, 242, 242, 243, 243, 243, 244, 244, 244,
+    245, 245, 245, 247, 247, 247, 186, 184, 183, 182,
 
-      180,  179,  178,  176,  172,  170,  169,  168,  167,  165,
-      164,  163,  162,  160,  159,  158,  156,  155,  154,  153,
-      152,  150,  149,  148,  147,  143,  142,  141,  140,  139,
-      138,  137,  136,  135,  134,  133,  131,  129,  128,  126,
-      125,  123,  122,  121,  120,  119,  118,  117,  116,  115,
-      114,  113,  110,  102,  101,  100,   99,   98,   96,   95,
-       94,   93,   91,   90,   86,   85,   83,   82,   81,   80,
-       77,   75,   74,   70,   68,   58,   54,   49,   44,   41,
-       39,   33,   31,   29,   19,   11,    9,    7,    3,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
+    180, 179, 178, 176, 172, 170, 169, 168, 167, 165,
+    164, 163, 162, 160, 159, 158, 156, 155, 154, 153,
+    152, 150, 149, 148, 147, 143, 142, 141, 140, 139,
+    138, 137, 136, 135, 134, 133, 131, 129, 128, 126,
+    125, 123, 122, 121, 120, 119, 118, 117, 116, 115,
+    114, 113, 110, 102, 101, 100, 99, 98, 96, 95,
+    94, 93, 91, 90, 86, 85, 83, 82, 81, 80,
+    77, 75, 74, 70, 68, 58, 54, 49, 44, 41,
+    39, 33, 31, 29, 19, 11, 9, 7, 3, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
 
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239,  239,  239,  239,
-      239,  239,  239,  239,  239,  239,  239
-    } ;
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239, 239, 239, 239,
+    239, 239, 239, 239, 239, 239, 239
+};
 
 /* Table of booleans, true if rule could match eol. */
-static yyconst flex_int32_t yy_rule_can_match_eol[87] =
-    {   0,
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 
-    0, 0, 0, 0, 1, 0, 0,     };
+static yyconst flex_int32_t yy_rule_can_match_eol[87] = { 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0,
+    0, 0, 0, 0, 1, 0, 0,
+};
 
 static yy_state_type yy_last_accepting_state;
 static char *yy_last_accepting_cpos;
 
 extern int magic_frontend__flex_debug;
-int magic_frontend__flex_debug = 0;
+int  magic_frontend__flex_debug = 0;
 
 /* The intent behind this definition is that it'll catch
  * any uses of REJECT which flex missed.
@@ -676,71 +669,71 @@ char *magic_frontend_text;
 #define YY_EXTRA_TYPE void *
 #endif
 
-static int yy_init_globals (void );
+static int yy_init_globals (void);
 
 /* Accessor methods to globals.
    These are made visible to non-reentrant scanners for convenience. */
 
-int magic_frontend_lex_destroy (void );
+int  magic_frontend_lex_destroy (void);
 
-int magic_frontend_get_debug (void );
+int  magic_frontend_get_debug (void);
 
-void magic_frontend_set_debug (int debug_flag  );
+void magic_frontend_set_debug (int debug_flag);
 
-YY_EXTRA_TYPE magic_frontend_get_extra (void );
+YY_EXTRA_TYPE magic_frontend_get_extra (void);
 
-void magic_frontend_set_extra (YY_EXTRA_TYPE user_defined  );
+void magic_frontend_set_extra (YY_EXTRA_TYPE user_defined);
 
-FILE *magic_frontend_get_in (void );
+FILE *magic_frontend_get_in (void);
 
-void magic_frontend_set_in  (FILE * in_str  );
+void magic_frontend_set_in (FILE * in_str);
 
-FILE *magic_frontend_get_out (void );
+FILE *magic_frontend_get_out (void);
 
-void magic_frontend_set_out  (FILE * out_str  );
+void magic_frontend_set_out (FILE * out_str);
 
-int magic_frontend_get_leng (void );
+int  magic_frontend_get_leng (void);
 
-char *magic_frontend_get_text (void );
+char *magic_frontend_get_text (void);
 
-int magic_frontend_get_lineno (void );
+int  magic_frontend_get_lineno (void);
 
-void magic_frontend_set_lineno (int line_number  );
+void magic_frontend_set_lineno (int line_number);
 
-YYSTYPE * magic_frontend_get_lval (void );
+YYSTYPE *magic_frontend_get_lval (void);
 
-void magic_frontend_set_lval (YYSTYPE * yylval_param  );
+void magic_frontend_set_lval (YYSTYPE * yylval_param);
 
-       YYLTYPE *magic_frontend_get_lloc (void );
-    
-        void magic_frontend_set_lloc (YYLTYPE * yylloc_param  );
-    
+YYLTYPE *magic_frontend_get_lloc (void);
+
+void magic_frontend_set_lloc (YYLTYPE * yylloc_param);
+
 /* Macros after this point can all be overridden by user definitions in
  * section 1.
  */
 
 #ifndef YY_SKIP_YYWRAP
 #ifdef __cplusplus
-extern "C" int magic_frontend_wrap (void );
+extern "C" int magic_frontend_wrap (void);
 #else
-extern int magic_frontend_wrap (void );
+extern int magic_frontend_wrap (void);
 #endif
 #endif
 
 #ifndef yytext_ptr
-static void yy_flex_strncpy (char *,yyconst char *,int );
+static void yy_flex_strncpy (char *, yyconst char *, int);
 #endif
 
 #ifdef YY_NEED_STRLEN
-static int yy_flex_strlen (yyconst char * );
+static int yy_flex_strlen (yyconst char *);
 #endif
 
 #ifndef YY_NO_INPUT
 
 #ifdef __cplusplus
-static int yyinput (void );
+static int yyinput (void);
 #else
-static int input (void );
+static int input (void);
 #endif
 
 #endif
@@ -825,8 +818,8 @@ static int input (void );
 #ifndef YY_DECL
 #define YY_DECL_IS_OURS 1
 
-extern int magic_frontend_lex \
-               (YYSTYPE * yylval_param,YYLTYPE * yylloc_param );
+extern int magic_frontend_lex
+    (YYSTYPE * yylval_param, YYLTYPE * yylloc_param);
 
 #define YY_DECL int magic_frontend_lex \
                (YYSTYPE * yylval_param, YYLTYPE * yylloc_param )
@@ -851,16 +844,15 @@ extern int magic_frontend_lex \
  */
 YY_DECL
 {
-	register yy_state_type yy_current_state;
-	register char *yy_cp, *yy_bp;
-	register int yy_act;
-    
-        YYSTYPE * yylval;
-    
-        YYLTYPE * yylloc;
-    
-#line 22 "magic-interpreter.l"
+    register yy_state_type yy_current_state;
+    register char *yy_cp, *yy_bp;
+    register int yy_act;
 
+    YYSTYPE *yylval;
+
+    YYLTYPE *yylloc;
+
+#line 22 "magic-interpreter.l"
 
 #line 866 "magic-interpreter-lexer.c"
 
@@ -868,691 +860,751 @@ YY_DECL
 
     yylloc = yylloc_param;
 
-	if ( !(yy_init) )
-		{
-		(yy_init) = 1;
+    if (!(yy_init))
+    {
+        (yy_init) = 1;
 
 #ifdef YY_USER_INIT
-		YY_USER_INIT;
+        YY_USER_INIT;
 #endif
 
-		if ( ! (yy_start) )
-			(yy_start) = 1;	/* first start state */
+        if (!(yy_start))
+            (yy_start) = 1;     /* first start state */
 
-		if ( ! magic_frontend_in )
-			magic_frontend_in = stdin;
+        if (!magic_frontend_in)
+            magic_frontend_in = stdin;
 
-		if ( ! magic_frontend_out )
-			magic_frontend_out = stdout;
+        if (!magic_frontend_out)
+            magic_frontend_out = stdout;
 
-		if ( ! YY_CURRENT_BUFFER ) {
-			magic_frontend_ensure_buffer_stack ();
-			YY_CURRENT_BUFFER_LVALUE =
-				magic_frontend__create_buffer(magic_frontend_in,YY_BUF_SIZE );
-		}
+        if (!YY_CURRENT_BUFFER)
+        {
+            magic_frontend_ensure_buffer_stack ();
+            YY_CURRENT_BUFFER_LVALUE =
+                magic_frontend__create_buffer (magic_frontend_in,
+                                               YY_BUF_SIZE);
+        }
 
-		magic_frontend__load_buffer_state( );
-		}
+        magic_frontend__load_buffer_state ();
+    }
 
-	while ( 1 )		/* loops until end-of-file is reached */
-		{
-		yy_cp = (yy_c_buf_p);
+    while (1)                   /* loops until end-of-file is reached */
+    {
+        yy_cp = (yy_c_buf_p);
 
-		/* Support of magic_frontend_text. */
-		*yy_cp = (yy_hold_char);
+        /* Support of magic_frontend_text. */
+        *yy_cp = (yy_hold_char);
 
-		/* yy_bp points to the position in yy_ch_buf of the start of
-		 * the current run.
-		 */
-		yy_bp = yy_cp;
+        /* yy_bp points to the position in yy_ch_buf of the start of
+         * the current run.
+         */
+        yy_bp = yy_cp;
 
-		yy_current_state = (yy_start);
-yy_match:
-		do
-			{
-			register YY_CHAR yy_c = yy_ec[YY_SC_TO_UI(*yy_cp)];
-			if ( yy_accept[yy_current_state] )
-				{
-				(yy_last_accepting_state) = yy_current_state;
-				(yy_last_accepting_cpos) = yy_cp;
-				}
-			while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
-				{
-				yy_current_state = (int) yy_def[yy_current_state];
-				if ( yy_current_state >= 240 )
-					yy_c = yy_meta[(unsigned int) yy_c];
-				}
-			yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
-			++yy_cp;
-			}
-		while ( yy_base[yy_current_state] != 290 );
+        yy_current_state = (yy_start);
+      yy_match:
+        do
+        {
+            register YY_CHAR yy_c = yy_ec[YY_SC_TO_UI (*yy_cp)];
+            if (yy_accept[yy_current_state])
+            {
+                (yy_last_accepting_state) = yy_current_state;
+                (yy_last_accepting_cpos) = yy_cp;
+            }
+            while (yy_chk[yy_base[yy_current_state] + yy_c] !=
+                   yy_current_state)
+            {
+                yy_current_state = (int) yy_def[yy_current_state];
+                if (yy_current_state >= 240)
+                    yy_c = yy_meta[(unsigned int) yy_c];
+            }
+            yy_current_state =
+                yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
+            ++yy_cp;
+        }
+        while (yy_base[yy_current_state] != 290);
 
-yy_find_action:
-		yy_act = yy_accept[yy_current_state];
-		if ( yy_act == 0 )
-			{ /* have to back up */
-			yy_cp = (yy_last_accepting_cpos);
-			yy_current_state = (yy_last_accepting_state);
-			yy_act = yy_accept[yy_current_state];
-			}
+      yy_find_action:
+        yy_act = yy_accept[yy_current_state];
+        if (yy_act == 0)
+        {                       /* have to back up */
+            yy_cp = (yy_last_accepting_cpos);
+            yy_current_state = (yy_last_accepting_state);
+            yy_act = yy_accept[yy_current_state];
+        }
 
-		YY_DO_BEFORE_ACTION;
+        YY_DO_BEFORE_ACTION;
 
-		if ( yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act] )
-			{
-			int yyl;
-			for ( yyl = 0; yyl < magic_frontend_leng; ++yyl )
-				if ( magic_frontend_text[yyl] == '\n' )
-					   
-    magic_frontend_lineno++;
-;
-			}
+        if (yy_act != YY_END_OF_BUFFER && yy_rule_can_match_eol[yy_act])
+        {
+            int  yyl;
+            for (yyl = 0; yyl < magic_frontend_leng; ++yyl)
+                if (magic_frontend_text[yyl] == '\n')
 
-do_action:	/* This label is used only to access EOF actions. */
+                    magic_frontend_lineno++;
+            ;
+        }
 
-		switch ( yy_act )
-	{ /* beginning of action switch */
-			case 0: /* must back up */
-			/* undo the effects of YY_DO_BEFORE_ACTION */
-			*yy_cp = (yy_hold_char);
-			yy_cp = (yy_last_accepting_cpos);
-			yy_current_state = (yy_last_accepting_state);
-			goto yy_find_action;
+      do_action:               /* This label is used only to access EOF actions. */
 
-case 1:
-YY_RULE_SETUP
+        switch (yy_act)
+        {                       /* beginning of action switch */
+            case 0:            /* must back up */
+                /* undo the effects of YY_DO_BEFORE_ACTION */
+                *yy_cp = (yy_hold_char);
+                yy_cp = (yy_last_accepting_cpos);
+                yy_current_state = (yy_last_accepting_state);
+                goto yy_find_action;
+
+            case 1:
+                YY_RULE_SETUP
 #line 24 "magic-interpreter.l"
-HEADING(0);
-	YY_BREAK
-case 2:
-YY_RULE_SETUP
+                    HEADING (0);
+                YY_BREAK case 2:YY_RULE_SETUP
 #line 25 "magic-interpreter.l"
-HEADING(1);
-	YY_BREAK
-case 3:
-YY_RULE_SETUP
+                     HEADING (1);
+                YY_BREAK case 3:YY_RULE_SETUP
 #line 26 "magic-interpreter.l"
-HEADING(2);
-	YY_BREAK
-case 4:
-YY_RULE_SETUP
+                     HEADING (2);
+                YY_BREAK case 4:YY_RULE_SETUP
 #line 27 "magic-interpreter.l"
-HEADING(3);
-	YY_BREAK
-case 5:
-YY_RULE_SETUP
+                     HEADING (3);
+                YY_BREAK case 5:YY_RULE_SETUP
 #line 28 "magic-interpreter.l"
-HEADING(4);
-	YY_BREAK
-case 6:
-YY_RULE_SETUP
+                     HEADING (4);
+                YY_BREAK case 6:YY_RULE_SETUP
 #line 29 "magic-interpreter.l"
-HEADING(5);
-	YY_BREAK
-case 7:
-YY_RULE_SETUP
+                     HEADING (5);
+                YY_BREAK case 7:YY_RULE_SETUP
 #line 30 "magic-interpreter.l"
-HEADING(6);
-	YY_BREAK
-case 8:
-YY_RULE_SETUP
+                     HEADING (6);
+                YY_BREAK case 8:YY_RULE_SETUP
 #line 31 "magic-interpreter.l"
-HEADING(7);
-	YY_BREAK
-case 9:
-YY_RULE_SETUP
+                     HEADING (7);
+                YY_BREAK case 9:YY_RULE_SETUP
 #line 32 "magic-interpreter.l"
-{FIXLOC; return '=';}
-	YY_BREAK
-case 10:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '=';
+            }
+                YY_BREAK case 10:YY_RULE_SETUP
 #line 33 "magic-interpreter.l"
-{FIXLOC; return EQ;}
-	YY_BREAK
-case 11:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return EQ;
+            }
+                YY_BREAK case 11:YY_RULE_SETUP
 #line 34 "magic-interpreter.l"
-{FIXLOC; return NEQ;}
-	YY_BREAK
-case 12:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return NEQ;
+            }
+                YY_BREAK case 12:YY_RULE_SETUP
 #line 35 "magic-interpreter.l"
-{FIXLOC; return NEQ;}
-	YY_BREAK
-case 13:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return NEQ;
+            }
+                YY_BREAK case 13:YY_RULE_SETUP
 #line 36 "magic-interpreter.l"
-{FIXLOC; return '>';}
-	YY_BREAK
-case 14:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '>';
+            }
+                YY_BREAK case 14:YY_RULE_SETUP
 #line 37 "magic-interpreter.l"
-{FIXLOC; return '<';}
-	YY_BREAK
-case 15:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '<';
+            }
+                YY_BREAK case 15:YY_RULE_SETUP
 #line 38 "magic-interpreter.l"
-{FIXLOC; return GTE;}
-	YY_BREAK
-case 16:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return GTE;
+            }
+                YY_BREAK case 16:YY_RULE_SETUP
 #line 39 "magic-interpreter.l"
-{FIXLOC; return LTE;}
-	YY_BREAK
-case 17:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return LTE;
+            }
+                YY_BREAK case 17:YY_RULE_SETUP
 #line 40 "magic-interpreter.l"
-{FIXLOC; return '(';}
-	YY_BREAK
-case 18:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '(';
+            }
+                YY_BREAK case 18:YY_RULE_SETUP
 #line 41 "magic-interpreter.l"
-{FIXLOC; return ')';}
-	YY_BREAK
-case 19:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ')';
+            }
+                YY_BREAK case 19:YY_RULE_SETUP
 #line 42 "magic-interpreter.l"
-{FIXLOC; return '+';}
-	YY_BREAK
-case 20:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '+';
+            }
+                YY_BREAK case 20:YY_RULE_SETUP
 #line 43 "magic-interpreter.l"
-{FIXLOC; return '-';}
-	YY_BREAK
-case 21:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '-';
+            }
+                YY_BREAK case 21:YY_RULE_SETUP
 #line 44 "magic-interpreter.l"
-{FIXLOC; return '*';}
-	YY_BREAK
-case 22:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '*';
+            }
+                YY_BREAK case 22:YY_RULE_SETUP
 #line 45 "magic-interpreter.l"
-{FIXLOC; return '/';}
-	YY_BREAK
-case 23:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '/';
+            }
+                YY_BREAK case 23:YY_RULE_SETUP
 #line 46 "magic-interpreter.l"
-{FIXLOC; return '%';}
-	YY_BREAK
-case 24:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '%';
+            }
+                YY_BREAK case 24:YY_RULE_SETUP
 #line 47 "magic-interpreter.l"
-{FIXLOC; return ANDAND;}
-	YY_BREAK
-case 25:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ANDAND;
+            }
+                YY_BREAK case 25:YY_RULE_SETUP
 #line 48 "magic-interpreter.l"
-{FIXLOC; return OROR;}
-	YY_BREAK
-case 26:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return OROR;
+            }
+                YY_BREAK case 26:YY_RULE_SETUP
 #line 49 "magic-interpreter.l"
-{FIXLOC; return ';';}
-	YY_BREAK
-case 27:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ';';
+            }
+                YY_BREAK case 27:YY_RULE_SETUP
 #line 50 "magic-interpreter.l"
-{FIXLOC; return ':';}
-	YY_BREAK
-case 28:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ':';
+            }
+                YY_BREAK case 28:YY_RULE_SETUP
 #line 51 "magic-interpreter.l"
-{FIXLOC; return ',';}
-	YY_BREAK
-case 29:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ',';
+            }
+                YY_BREAK case 29:YY_RULE_SETUP
 #line 52 "magic-interpreter.l"
-{FIXLOC; return '@';}
-	YY_BREAK
-case 30:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '@';
+            }
+                YY_BREAK case 30:YY_RULE_SETUP
 #line 53 "magic-interpreter.l"
-{FIXLOC; return '|';}
-	YY_BREAK
-case 31:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '|';
+            }
+                YY_BREAK case 31:YY_RULE_SETUP
 #line 54 "magic-interpreter.l"
-{FIXLOC; return '[';}
-	YY_BREAK
-case 32:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '[';
+            }
+                YY_BREAK case 32:YY_RULE_SETUP
 #line 55 "magic-interpreter.l"
-{FIXLOC; return ']';}
-	YY_BREAK
-case 33:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ']';
+            }
+                YY_BREAK case 33:YY_RULE_SETUP
 #line 56 "magic-interpreter.l"
-{FIXLOC; return '&';}
-	YY_BREAK
-case 34:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '&';
+            }
+                YY_BREAK case 34:YY_RULE_SETUP
 #line 57 "magic-interpreter.l"
-{FIXLOC; return '^';}
-	YY_BREAK
-case 35:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '^';
+            }
+                YY_BREAK case 35:YY_RULE_SETUP
 #line 58 "magic-interpreter.l"
-{FIXLOC; return '.';}
-	YY_BREAK
-case 36:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return '.';
+            }
+                YY_BREAK case 36:YY_RULE_SETUP
 #line 59 "magic-interpreter.l"
-{FIXLOC; return SHL;}
-	YY_BREAK
-case 37:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return SHL;
+            }
+                YY_BREAK case 37:YY_RULE_SETUP
 #line 60 "magic-interpreter.l"
-{FIXLOC; return SHR;}
-	YY_BREAK
-case 38:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return SHR;
+            }
+                YY_BREAK case 38:YY_RULE_SETUP
 #line 61 "magic-interpreter.l"
-{FIXLOC; return PROCEDURE;}
-	YY_BREAK
-case 39:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return PROCEDURE;
+            }
+                YY_BREAK case 39:YY_RULE_SETUP
 #line 62 "magic-interpreter.l"
-{FIXLOC; return CALL;}
-	YY_BREAK
-case 40:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return CALL;
+            }
+                YY_BREAK case 40:YY_RULE_SETUP
 #line 63 "magic-interpreter.l"
-{FIXLOC; return OR;}
-	YY_BREAK
-case 41:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return OR;
+            }
+                YY_BREAK case 41:YY_RULE_SETUP
 #line 64 "magic-interpreter.l"
-{FIXLOC; return TO;}
-	YY_BREAK
-case 42:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return TO;
+            }
+                YY_BREAK case 42:YY_RULE_SETUP
 #line 65 "magic-interpreter.l"
-{FIXLOC; return TOWARDS;}
-	YY_BREAK
-case 43:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return TOWARDS;
+            }
+                YY_BREAK case 43:YY_RULE_SETUP
 #line 66 "magic-interpreter.l"
-{FIXLOC; return TELEPORT_ANCHOR;}
-	YY_BREAK
-case 44:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return TELEPORT_ANCHOR;
+            }
+                YY_BREAK case 44:YY_RULE_SETUP
 #line 67 "magic-interpreter.l"
-{FIXLOC; return SILENT;}
-	YY_BREAK
-case 45:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return SILENT;
+            }
+                YY_BREAK case 45:YY_RULE_SETUP
 #line 68 "magic-interpreter.l"
-{FIXLOC; return LOCAL;}
-	YY_BREAK
-case 46:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return LOCAL;
+            }
+                YY_BREAK case 46:YY_RULE_SETUP
 #line 69 "magic-interpreter.l"
-{FIXLOC; return NONMAGIC;}
-	YY_BREAK
-case 47:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return NONMAGIC;
+            }
+                YY_BREAK case 47:YY_RULE_SETUP
 #line 70 "magic-interpreter.l"
-{FIXLOC; return SPELL;}
-	YY_BREAK
-case 48:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return SPELL;
+            }
+                YY_BREAK case 48:YY_RULE_SETUP
 #line 71 "magic-interpreter.l"
-{FIXLOC; return LET;}
-	YY_BREAK
-case 49:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return LET;
+            }
+                YY_BREAK case 49:YY_RULE_SETUP
 #line 72 "magic-interpreter.l"
-{FIXLOC; return IN;}
-	YY_BREAK
-case 50:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return IN;
+            }
+                YY_BREAK case 50:YY_RULE_SETUP
 #line 73 "magic-interpreter.l"
-{FIXLOC; return END;}
-	YY_BREAK
-case 51:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return END;
+            }
+                YY_BREAK case 51:YY_RULE_SETUP
 #line 74 "magic-interpreter.l"
-{FIXLOC; return DARROW;}
-	YY_BREAK
-case 52:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return DARROW;
+            }
+                YY_BREAK case 52:YY_RULE_SETUP
 #line 75 "magic-interpreter.l"
-{FIXLOC; return STRING_TY;}
-	YY_BREAK
-case 53:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return STRING_TY;
+            }
+                YY_BREAK case 53:YY_RULE_SETUP
 #line 76 "magic-interpreter.l"
-{FIXLOC; return REQUIRE;}
-	YY_BREAK
-case 54:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return REQUIRE;
+            }
+                YY_BREAK case 54:YY_RULE_SETUP
 #line 77 "magic-interpreter.l"
-{FIXLOC; return CATALYSTS;}
-	YY_BREAK
-case 55:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return CATALYSTS;
+            }
+                YY_BREAK case 55:YY_RULE_SETUP
 #line 78 "magic-interpreter.l"
-{FIXLOC; return COMPONENTS;}
-	YY_BREAK
-case 56:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return COMPONENTS;
+            }
+                YY_BREAK case 56:YY_RULE_SETUP
 #line 79 "magic-interpreter.l"
-{FIXLOC; return MANA;}
-	YY_BREAK
-case 57:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return MANA;
+            }
+                YY_BREAK case 57:YY_RULE_SETUP
 #line 80 "magic-interpreter.l"
-{FIXLOC; return CASTTIME;}
-	YY_BREAK
-case 58:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return CASTTIME;
+            }
+                YY_BREAK case 58:YY_RULE_SETUP
 #line 81 "magic-interpreter.l"
-{FIXLOC; return SKIP;}
-	YY_BREAK
-case 59:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return SKIP;
+            }
+                YY_BREAK case 59:YY_RULE_SETUP
 #line 82 "magic-interpreter.l"
-{FIXLOC; return ABORT;}
-	YY_BREAK
-case 60:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ABORT;
+            }
+                YY_BREAK case 60:YY_RULE_SETUP
 #line 83 "magic-interpreter.l"
-{FIXLOC; return BREAK;}
-	YY_BREAK
-case 61:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return BREAK;
+            }
+                YY_BREAK case 61:YY_RULE_SETUP
 #line 84 "magic-interpreter.l"
-{FIXLOC; return EFFECT;}
-	YY_BREAK
-case 62:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return EFFECT;
+            }
+                YY_BREAK case 62:YY_RULE_SETUP
 #line 85 "magic-interpreter.l"
-{FIXLOC; return ATEND;}
-	YY_BREAK
-case 63:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ATEND;
+            }
+                YY_BREAK case 63:YY_RULE_SETUP
 #line 86 "magic-interpreter.l"
-{FIXLOC; return ATTRIGGER;}
-	YY_BREAK
-case 64:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ATTRIGGER;
+            }
+                YY_BREAK case 64:YY_RULE_SETUP
 #line 87 "magic-interpreter.l"
-{FIXLOC; return CONST;}
-	YY_BREAK
-case 65:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return CONST;
+            }
+                YY_BREAK case 65:YY_RULE_SETUP
 #line 88 "magic-interpreter.l"
-{FIXLOC; return PC_F;}
-	YY_BREAK
-case 66:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return PC_F;
+            }
+                YY_BREAK case 66:YY_RULE_SETUP
 #line 89 "magic-interpreter.l"
-{FIXLOC; return NPC_F;}
-	YY_BREAK
-case 67:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return NPC_F;
+            }
+                YY_BREAK case 67:YY_RULE_SETUP
 #line 90 "magic-interpreter.l"
-{FIXLOC; return MOB_F;}
-	YY_BREAK
-case 68:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return MOB_F;
+            }
+                YY_BREAK case 68:YY_RULE_SETUP
 #line 91 "magic-interpreter.l"
-{FIXLOC; return ENTITY_F;}
-	YY_BREAK
-case 69:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ENTITY_F;
+            }
+                YY_BREAK case 69:YY_RULE_SETUP
 #line 92 "magic-interpreter.l"
-{FIXLOC; return TARGET_F;}
-	YY_BREAK
-case 70:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return TARGET_F;
+            }
+                YY_BREAK case 70:YY_RULE_SETUP
 #line 93 "magic-interpreter.l"
-{FIXLOC; return IF;}
-	YY_BREAK
-case 71:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return IF;
+            }
+                YY_BREAK case 71:YY_RULE_SETUP
 #line 94 "magic-interpreter.l"
-{FIXLOC; return THEN;}
-	YY_BREAK
-case 72:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return THEN;
+            }
+                YY_BREAK case 72:YY_RULE_SETUP
 #line 95 "magic-interpreter.l"
-{FIXLOC; return ELSE;}
-	YY_BREAK
-case 73:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return ELSE;
+            }
+                YY_BREAK case 73:YY_RULE_SETUP
 #line 96 "magic-interpreter.l"
-{FIXLOC; return FOREACH;}
-	YY_BREAK
-case 74:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return FOREACH;
+            }
+                YY_BREAK case 74:YY_RULE_SETUP
 #line 97 "magic-interpreter.l"
-{FIXLOC; return FOR;}
-	YY_BREAK
-case 75:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return FOR;
+            }
+                YY_BREAK case 75:YY_RULE_SETUP
 #line 98 "magic-interpreter.l"
-{FIXLOC; return DO;}
-	YY_BREAK
-case 76:
-YY_RULE_SETUP
+            {
+                FIXLOC;
+                return DO;
+            }
+                YY_BREAK case 76:YY_RULE_SETUP
 #line 99 "magic-interpreter.l"
-{FIXLOC; return SLEEP;}
-	YY_BREAK
-case 77:
+            {
+                FIXLOC;
+                return SLEEP;
+            }
+                YY_BREAK case 77:
 /* rule 77 can match eol */
-YY_RULE_SETUP
+                     YY_RULE_SETUP
 #line 101 "magic-interpreter.l"
-{ char *string = strdup(magic_frontend_text);
-                   magic_frontend_lval.s = string;
-		   FIXLOC;
-                   return SCRIPT_DATA;
-                   }
-	YY_BREAK
-case 78:
+            {
+                char *string = strdup (magic_frontend_text);
+                     magic_frontend_lval.s = string;
+                     FIXLOC;
+                     return SCRIPT_DATA;
+            }
+                YY_BREAK case 78:
 /* rule 78 can match eol */
-YY_RULE_SETUP
+                     YY_RULE_SETUP
 #line 107 "magic-interpreter.l"
-{ char *string = strdup(magic_frontend_text + 1);
-                   char *src = string;
-                   char *dst = string;
-                   while (*src && *src != '"')
-                       if (*src == '\\') {
-                           *dst++ = src[1];
-                           src += 2;
-                       } else
-                           *dst++ = *src++;
-                   *dst = '\0'; /* terminate */
-                   magic_frontend_lval.s = string;
-		   FIXLOC;
-                   return STRING;
-                   }
-	YY_BREAK
-case 79:
-YY_RULE_SETUP
+            {
+                char *string = strdup (magic_frontend_text + 1);
+                char *src = string;
+                char *dst = string;
+                while (*src && *src != '"')
+                    if   (*src == '\\')
+                    {
+                        *dst++ = src[1];
+                        src += 2;
+                    }
+                    else
+                            *dst++ = *src++;
+                *dst = '\0';    /* terminate */
+                magic_frontend_lval.s = string;
+                FIXLOC;
+                return STRING;
+            }
+                YY_BREAK case 79:YY_RULE_SETUP
 #line 122 "magic-interpreter.l"
-{ magic_frontend_lval.i = atoi(magic_frontend_text);
-		      FIXLOC;
-                      return INT; }
-	YY_BREAK
-case 80:
-YY_RULE_SETUP
+            {
+                magic_frontend_lval.i = atoi (magic_frontend_text);
+                FIXLOC;
+                return INT;
+            }
+                YY_BREAK case 80:YY_RULE_SETUP
 #line 126 "magic-interpreter.l"
-{ magic_frontend_lval.i = strtol(magic_frontend_text + 2, NULL, 16);
-		      FIXLOC;
-                      return INT; }
-	YY_BREAK
-case 81:
-YY_RULE_SETUP
+            {
+                magic_frontend_lval.i =
+                    strtol (magic_frontend_text + 2, NULL, 16);
+                FIXLOC;
+                return INT;
+            }
+                YY_BREAK case 81:YY_RULE_SETUP
 #line 130 "magic-interpreter.l"
-{ magic_frontend_lval.s = strdup(magic_frontend_text);
-		            FIXLOC;
-                            return ID; }
-	YY_BREAK
-case 82:
-*yy_cp = (yy_hold_char); /* undo effects of setting up magic_frontend_text */
-(yy_c_buf_p) = yy_cp -= 1;
-YY_DO_BEFORE_ACTION; /* set up magic_frontend_text again */
-YY_RULE_SETUP
+            {
+                magic_frontend_lval.s = strdup (magic_frontend_text);
+                FIXLOC;
+                return ID;
+            }
+                YY_BREAK case 82:*yy_cp = (yy_hold_char);   /* undo effects of setting up magic_frontend_text */
+                (yy_c_buf_p) = yy_cp -= 1;
+                YY_DO_BEFORE_ACTION;    /* set up magic_frontend_text again */
+                YY_RULE_SETUP
 #line 134 "magic-interpreter.l"
 /* Ignore comments */
-	YY_BREAK
-case 83:
-*yy_cp = (yy_hold_char); /* undo effects of setting up magic_frontend_text */
-(yy_c_buf_p) = yy_cp -= 1;
-YY_DO_BEFORE_ACTION; /* set up magic_frontend_text again */
-YY_RULE_SETUP
+            YY_BREAK case 83:
+                *yy_cp = (yy_hold_char);    /* undo effects of setting up magic_frontend_text */
+                (yy_c_buf_p) = yy_cp -= 1;
+                YY_DO_BEFORE_ACTION;    /* set up magic_frontend_text again */
+                YY_RULE_SETUP
 #line 135 "magic-interpreter.l"
 /* Ignore comments */
-	YY_BREAK
-case 84:
+            YY_BREAK case 84:
 /* rule 84 can match eol */
-YY_RULE_SETUP
+                YY_RULE_SETUP
 #line 136 "magic-interpreter.l"
-/* ignore whitespace */	
-	YY_BREAK
-case 85:
-YY_RULE_SETUP
+/* ignore whitespace */
+            YY_BREAK case 85:
+                YY_RULE_SETUP
 #line 137 "magic-interpreter.l"
-fprintf(stderr, "%s: Unexpected character in line %d\n", MAGIC_CONFIG_FILE, magic_frontend_lineno);
-	YY_BREAK
-case 86:
-YY_RULE_SETUP
+                    fprintf (stderr, "%s: Unexpected character in line %d\n",
+                             MAGIC_CONFIG_FILE, magic_frontend_lineno);
+                YY_BREAK case 86:YY_RULE_SETUP
 #line 140 "magic-interpreter.l"
-ECHO;
-	YY_BREAK
+                     ECHO;
+                YY_BREAK
 #line 1425 "magic-interpreter-lexer.c"
-case YY_STATE_EOF(INITIAL):
-	yyterminate();
+            case YY_STATE_EOF (INITIAL):
+                yyterminate ();
 
-	case YY_END_OF_BUFFER:
-		{
-		/* Amount of text matched not including the EOB char. */
-		int yy_amount_of_matched_text = (int) (yy_cp - (yytext_ptr)) - 1;
+            case YY_END_OF_BUFFER:
+            {
+                /* Amount of text matched not including the EOB char. */
+                int  yy_amount_of_matched_text =
+                    (int) (yy_cp - (yytext_ptr)) - 1;
 
-		/* Undo the effects of YY_DO_BEFORE_ACTION. */
-		*yy_cp = (yy_hold_char);
-		YY_RESTORE_YY_MORE_OFFSET
+                /* Undo the effects of YY_DO_BEFORE_ACTION. */
+                *yy_cp = (yy_hold_char);
+                YY_RESTORE_YY_MORE_OFFSET
+                    if (YY_CURRENT_BUFFER_LVALUE->yy_buffer_status ==
+                        YY_BUFFER_NEW)
+                {
+                    /* We're scanning a new file or input source.  It's
+                     * possible that this happened because the user
+                     * just pointed magic_frontend_in at a new source and called
+                     * magic_frontend_lex().  If so, then we have to assure
+                     * consistency between YY_CURRENT_BUFFER and our
+                     * globals.  Here is the right place to do so, because
+                     * this is the first action (other than possibly a
+                     * back-up) that will match for the new input source.
+                     */
+                    (yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
+                    YY_CURRENT_BUFFER_LVALUE->yy_input_file =
+                        magic_frontend_in;
+                    YY_CURRENT_BUFFER_LVALUE->yy_buffer_status =
+                        YY_BUFFER_NORMAL;
+                }
 
-		if ( YY_CURRENT_BUFFER_LVALUE->yy_buffer_status == YY_BUFFER_NEW )
-			{
-			/* We're scanning a new file or input source.  It's
-			 * possible that this happened because the user
-			 * just pointed magic_frontend_in at a new source and called
-			 * magic_frontend_lex().  If so, then we have to assure
-			 * consistency between YY_CURRENT_BUFFER and our
-			 * globals.  Here is the right place to do so, because
-			 * this is the first action (other than possibly a
-			 * back-up) that will match for the new input source.
-			 */
-			(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
-			YY_CURRENT_BUFFER_LVALUE->yy_input_file = magic_frontend_in;
-			YY_CURRENT_BUFFER_LVALUE->yy_buffer_status = YY_BUFFER_NORMAL;
-			}
+                /* Note that here we test for yy_c_buf_p "<=" to the position
+                 * of the first EOB in the buffer, since yy_c_buf_p will
+                 * already have been incremented past the NUL character
+                 * (since all states make transitions on EOB to the
+                 * end-of-buffer state).  Contrast this with the test
+                 * in input().
+                 */
+                if ((yy_c_buf_p) <=
+                    &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)])
+                {               /* This was really a NUL. */
+                    yy_state_type yy_next_state;
 
-		/* Note that here we test for yy_c_buf_p "<=" to the position
-		 * of the first EOB in the buffer, since yy_c_buf_p will
-		 * already have been incremented past the NUL character
-		 * (since all states make transitions on EOB to the
-		 * end-of-buffer state).  Contrast this with the test
-		 * in input().
-		 */
-		if ( (yy_c_buf_p) <= &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)] )
-			{ /* This was really a NUL. */
-			yy_state_type yy_next_state;
+                    (yy_c_buf_p) = (yytext_ptr) + yy_amount_of_matched_text;
 
-			(yy_c_buf_p) = (yytext_ptr) + yy_amount_of_matched_text;
+                    yy_current_state = yy_get_previous_state ();
 
-			yy_current_state = yy_get_previous_state(  );
+                    /* Okay, we're now positioned to make the NUL
+                     * transition.  We couldn't have
+                     * yy_get_previous_state() go ahead and do it
+                     * for us because it doesn't know how to deal
+                     * with the possibility of jamming (and we don't
+                     * want to build jamming into it because then it
+                     * will run more slowly).
+                     */
 
-			/* Okay, we're now positioned to make the NUL
-			 * transition.  We couldn't have
-			 * yy_get_previous_state() go ahead and do it
-			 * for us because it doesn't know how to deal
-			 * with the possibility of jamming (and we don't
-			 * want to build jamming into it because then it
-			 * will run more slowly).
-			 */
+                    yy_next_state = yy_try_NUL_trans (yy_current_state);
 
-			yy_next_state = yy_try_NUL_trans( yy_current_state );
+                    yy_bp = (yytext_ptr) + YY_MORE_ADJ;
 
-			yy_bp = (yytext_ptr) + YY_MORE_ADJ;
+                    if (yy_next_state)
+                    {
+                        /* Consume the NUL. */
+                        yy_cp = ++(yy_c_buf_p);
+                        yy_current_state = yy_next_state;
+                        goto yy_match;
+                    }
 
-			if ( yy_next_state )
-				{
-				/* Consume the NUL. */
-				yy_cp = ++(yy_c_buf_p);
-				yy_current_state = yy_next_state;
-				goto yy_match;
-				}
+                    else
+                    {
+                        yy_cp = (yy_c_buf_p);
+                        goto yy_find_action;
+                    }
+                }
 
-			else
-				{
-				yy_cp = (yy_c_buf_p);
-				goto yy_find_action;
-				}
-			}
+                else
+                    switch (yy_get_next_buffer ())
+                    {
+                        case EOB_ACT_END_OF_FILE:
+                        {
+                            (yy_did_buffer_switch_on_eof) = 0;
 
-		else switch ( yy_get_next_buffer(  ) )
-			{
-			case EOB_ACT_END_OF_FILE:
-				{
-				(yy_did_buffer_switch_on_eof) = 0;
+                            if (magic_frontend_wrap ())
+                            {
+                                /* Note: because we've taken care in
+                                 * yy_get_next_buffer() to have set up
+                                 * magic_frontend_text, we can now set up
+                                 * yy_c_buf_p so that if some total
+                                 * hoser (like flex itself) wants to
+                                 * call the scanner after we return the
+                                 * YY_NULL, it'll still work - another
+                                 * YY_NULL will get returned.
+                                 */
+                                (yy_c_buf_p) = (yytext_ptr) + YY_MORE_ADJ;
 
-				if ( magic_frontend_wrap( ) )
-					{
-					/* Note: because we've taken care in
-					 * yy_get_next_buffer() to have set up
-					 * magic_frontend_text, we can now set up
-					 * yy_c_buf_p so that if some total
-					 * hoser (like flex itself) wants to
-					 * call the scanner after we return the
-					 * YY_NULL, it'll still work - another
-					 * YY_NULL will get returned.
-					 */
-					(yy_c_buf_p) = (yytext_ptr) + YY_MORE_ADJ;
+                                yy_act = YY_STATE_EOF (YY_START);
+                                goto do_action;
+                            }
 
-					yy_act = YY_STATE_EOF(YY_START);
-					goto do_action;
-					}
+                            else
+                            {
+                                if (!(yy_did_buffer_switch_on_eof))
+                                    YY_NEW_FILE;
+                            }
+                            break;
+                        }
 
-				else
-					{
-					if ( ! (yy_did_buffer_switch_on_eof) )
-						YY_NEW_FILE;
-					}
-				break;
-				}
+                        case EOB_ACT_CONTINUE_SCAN:
+                            (yy_c_buf_p) =
+                                (yytext_ptr) + yy_amount_of_matched_text;
 
-			case EOB_ACT_CONTINUE_SCAN:
-				(yy_c_buf_p) =
-					(yytext_ptr) + yy_amount_of_matched_text;
+                            yy_current_state = yy_get_previous_state ();
 
-				yy_current_state = yy_get_previous_state(  );
+                            yy_cp = (yy_c_buf_p);
+                            yy_bp = (yytext_ptr) + YY_MORE_ADJ;
+                            goto yy_match;
 
-				yy_cp = (yy_c_buf_p);
-				yy_bp = (yytext_ptr) + YY_MORE_ADJ;
-				goto yy_match;
+                        case EOB_ACT_LAST_MATCH:
+                            (yy_c_buf_p) =
+                                &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)];
 
-			case EOB_ACT_LAST_MATCH:
-				(yy_c_buf_p) =
-				&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)];
+                            yy_current_state = yy_get_previous_state ();
 
-				yy_current_state = yy_get_previous_state(  );
+                            yy_cp = (yy_c_buf_p);
+                            yy_bp = (yytext_ptr) + YY_MORE_ADJ;
+                            goto yy_find_action;
+                    }
+                break;
+            }
 
-				yy_cp = (yy_c_buf_p);
-				yy_bp = (yytext_ptr) + YY_MORE_ADJ;
-				goto yy_find_action;
-			}
-		break;
-		}
-
-	default:
-		YY_FATAL_ERROR(
-			"fatal flex scanner internal error--no action found" );
-	} /* end of action switch */
-		} /* end of scanning one token */
-} /* end of magic_frontend_lex */
+            default:
+                YY_FATAL_ERROR
+                    ("fatal flex scanner internal error--no action found");
+        }                       /* end of action switch */
+    }                           /* end of scanning one token */
+}                               /* end of magic_frontend_lex */
 
 /* yy_get_next_buffer - try to read in a new buffer
  *
@@ -1563,163 +1615,171 @@ case YY_STATE_EOF(INITIAL):
  */
 static int yy_get_next_buffer (void)
 {
-    	register char *dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
-	register char *source = (yytext_ptr);
-	register int number_to_move, i;
-	int ret_val;
+    register char *dest = YY_CURRENT_BUFFER_LVALUE->yy_ch_buf;
+    register char *source = (yytext_ptr);
+    register int number_to_move, i;
+    int  ret_val;
 
-	if ( (yy_c_buf_p) > &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars) + 1] )
-		YY_FATAL_ERROR(
-		"fatal flex scanner internal error--end of buffer missed" );
+    if ((yy_c_buf_p) > &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars) + 1])
+        YY_FATAL_ERROR
+            ("fatal flex scanner internal error--end of buffer missed");
 
-	if ( YY_CURRENT_BUFFER_LVALUE->yy_fill_buffer == 0 )
-		{ /* Don't try to fill the buffer, so this is an EOF. */
-		if ( (yy_c_buf_p) - (yytext_ptr) - YY_MORE_ADJ == 1 )
-			{
-			/* We matched a single character, the EOB, so
-			 * treat this as a final EOF.
-			 */
-			return EOB_ACT_END_OF_FILE;
-			}
+    if (YY_CURRENT_BUFFER_LVALUE->yy_fill_buffer == 0)
+    {                           /* Don't try to fill the buffer, so this is an EOF. */
+        if ((yy_c_buf_p) - (yytext_ptr) - YY_MORE_ADJ == 1)
+        {
+            /* We matched a single character, the EOB, so
+             * treat this as a final EOF.
+             */
+            return EOB_ACT_END_OF_FILE;
+        }
 
-		else
-			{
-			/* We matched some text prior to the EOB, first
-			 * process it.
-			 */
-			return EOB_ACT_LAST_MATCH;
-			}
-		}
+        else
+        {
+            /* We matched some text prior to the EOB, first
+             * process it.
+             */
+            return EOB_ACT_LAST_MATCH;
+        }
+    }
 
-	/* Try to read more data. */
+    /* Try to read more data. */
 
-	/* First move last chars to start of buffer. */
-	number_to_move = (int) ((yy_c_buf_p) - (yytext_ptr)) - 1;
+    /* First move last chars to start of buffer. */
+    number_to_move = (int) ((yy_c_buf_p) - (yytext_ptr)) - 1;
 
-	for ( i = 0; i < number_to_move; ++i )
-		*(dest++) = *(source++);
+    for (i = 0; i < number_to_move; ++i)
+        *(dest++) = *(source++);
 
-	if ( YY_CURRENT_BUFFER_LVALUE->yy_buffer_status == YY_BUFFER_EOF_PENDING )
-		/* don't do the read, it's not guaranteed to return an EOF,
-		 * just force an EOF
-		 */
-		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars) = 0;
+    if (YY_CURRENT_BUFFER_LVALUE->yy_buffer_status == YY_BUFFER_EOF_PENDING)
+        /* don't do the read, it's not guaranteed to return an EOF,
+         * just force an EOF
+         */
+        YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars) = 0;
 
-	else
-		{
-			int num_to_read =
-			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
+    else
+    {
+        int  num_to_read =
+            YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
-		while ( num_to_read <= 0 )
-			{ /* Not enough room in the buffer - grow it. */
+        while (num_to_read <= 0)
+        {                       /* Not enough room in the buffer - grow it. */
 
-			/* just a shorter name for the current buffer */
-			YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
+            /* just a shorter name for the current buffer */
+            YY_BUFFER_STATE b = YY_CURRENT_BUFFER;
 
-			int yy_c_buf_p_offset =
-				(int) ((yy_c_buf_p) - b->yy_ch_buf);
+            int  yy_c_buf_p_offset = (int) ((yy_c_buf_p) - b->yy_ch_buf);
 
-			if ( b->yy_is_our_buffer )
-				{
-				int new_size = b->yy_buf_size * 2;
+            if (b->yy_is_our_buffer)
+            {
+                int  new_size = b->yy_buf_size * 2;
 
-				if ( new_size <= 0 )
-					b->yy_buf_size += b->yy_buf_size / 8;
-				else
-					b->yy_buf_size *= 2;
+                if (new_size <= 0)
+                    b->yy_buf_size += b->yy_buf_size / 8;
+                else
+                    b->yy_buf_size *= 2;
 
-				b->yy_ch_buf = (char *)
-					/* Include room in for 2 EOB chars. */
-					magic_frontend_realloc((void *) b->yy_ch_buf,b->yy_buf_size + 2  );
-				}
-			else
-				/* Can't grow it, we don't own it. */
-				b->yy_ch_buf = 0;
+                b->yy_ch_buf = (char *)
+                    /* Include room in for 2 EOB chars. */
+                    magic_frontend_realloc ((void *) b->yy_ch_buf,
+                                            b->yy_buf_size + 2);
+            }
+            else
+                /* Can't grow it, we don't own it. */
+                b->yy_ch_buf = 0;
 
-			if ( ! b->yy_ch_buf )
-				YY_FATAL_ERROR(
-				"fatal error - scanner input buffer overflow" );
+            if (!b->yy_ch_buf)
+                YY_FATAL_ERROR
+                    ("fatal error - scanner input buffer overflow");
 
-			(yy_c_buf_p) = &b->yy_ch_buf[yy_c_buf_p_offset];
+            (yy_c_buf_p) = &b->yy_ch_buf[yy_c_buf_p_offset];
 
-			num_to_read = YY_CURRENT_BUFFER_LVALUE->yy_buf_size -
-						number_to_move - 1;
+            num_to_read = YY_CURRENT_BUFFER_LVALUE->yy_buf_size -
+                number_to_move - 1;
 
-			}
+        }
 
-		if ( num_to_read > YY_READ_BUF_SIZE )
-			num_to_read = YY_READ_BUF_SIZE;
+        if (num_to_read > YY_READ_BUF_SIZE)
+            num_to_read = YY_READ_BUF_SIZE;
 
-		/* Read in more data. */
-		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
-			(yy_n_chars), (size_t) num_to_read );
+        /* Read in more data. */
+        YY_INPUT ((&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
+                  (yy_n_chars), (size_t) num_to_read);
 
-		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
-		}
+        YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
+    }
 
-	if ( (yy_n_chars) == 0 )
-		{
-		if ( number_to_move == YY_MORE_ADJ )
-			{
-			ret_val = EOB_ACT_END_OF_FILE;
-			magic_frontend_restart(magic_frontend_in  );
-			}
+    if ((yy_n_chars) == 0)
+    {
+        if (number_to_move == YY_MORE_ADJ)
+        {
+            ret_val = EOB_ACT_END_OF_FILE;
+            magic_frontend_restart (magic_frontend_in);
+        }
 
-		else
-			{
-			ret_val = EOB_ACT_LAST_MATCH;
-			YY_CURRENT_BUFFER_LVALUE->yy_buffer_status =
-				YY_BUFFER_EOF_PENDING;
-			}
-		}
+        else
+        {
+            ret_val = EOB_ACT_LAST_MATCH;
+            YY_CURRENT_BUFFER_LVALUE->yy_buffer_status =
+                YY_BUFFER_EOF_PENDING;
+        }
+    }
 
-	else
-		ret_val = EOB_ACT_CONTINUE_SCAN;
+    else
+        ret_val = EOB_ACT_CONTINUE_SCAN;
 
-	if ((yy_size_t) ((yy_n_chars) + number_to_move) > YY_CURRENT_BUFFER_LVALUE->yy_buf_size) {
-		/* Extend the array by 50%, plus the number we really need. */
-		yy_size_t new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
-		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) magic_frontend_realloc((void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf,new_size  );
-		if ( ! YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
-			YY_FATAL_ERROR( "out of dynamic memory in yy_get_next_buffer()" );
-	}
+    if ((yy_size_t) ((yy_n_chars) + number_to_move) >
+        YY_CURRENT_BUFFER_LVALUE->yy_buf_size)
+    {
+        /* Extend the array by 50%, plus the number we really need. */
+        yy_size_t new_size =
+            (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
+        YY_CURRENT_BUFFER_LVALUE->yy_ch_buf =
+            (char *) magic_frontend_realloc ((void *)
+                                             YY_CURRENT_BUFFER_LVALUE->yy_ch_buf,
+                                             new_size);
+        if (!YY_CURRENT_BUFFER_LVALUE->yy_ch_buf)
+            YY_FATAL_ERROR ("out of dynamic memory in yy_get_next_buffer()");
+    }
 
-	(yy_n_chars) += number_to_move;
-	YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)] = YY_END_OF_BUFFER_CHAR;
-	YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars) + 1] = YY_END_OF_BUFFER_CHAR;
+    (yy_n_chars) += number_to_move;
+    YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)] = YY_END_OF_BUFFER_CHAR;
+    YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars) + 1] =
+        YY_END_OF_BUFFER_CHAR;
 
-	(yytext_ptr) = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[0];
+    (yytext_ptr) = &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[0];
 
-	return ret_val;
+    return ret_val;
 }
 
 /* yy_get_previous_state - get the state just before the EOB char was reached */
 
-    static yy_state_type yy_get_previous_state (void)
+static yy_state_type yy_get_previous_state (void)
 {
-	register yy_state_type yy_current_state;
-	register char *yy_cp;
-    
-	yy_current_state = (yy_start);
+    register yy_state_type yy_current_state;
+    register char *yy_cp;
 
-	for ( yy_cp = (yytext_ptr) + YY_MORE_ADJ; yy_cp < (yy_c_buf_p); ++yy_cp )
-		{
-		register YY_CHAR yy_c = (*yy_cp ? yy_ec[YY_SC_TO_UI(*yy_cp)] : 1);
-		if ( yy_accept[yy_current_state] )
-			{
-			(yy_last_accepting_state) = yy_current_state;
-			(yy_last_accepting_cpos) = yy_cp;
-			}
-		while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
-			{
-			yy_current_state = (int) yy_def[yy_current_state];
-			if ( yy_current_state >= 240 )
-				yy_c = yy_meta[(unsigned int) yy_c];
-			}
-		yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
-		}
+    yy_current_state = (yy_start);
 
-	return yy_current_state;
+    for (yy_cp = (yytext_ptr) + YY_MORE_ADJ; yy_cp < (yy_c_buf_p); ++yy_cp)
+    {
+        register YY_CHAR yy_c = (*yy_cp ? yy_ec[YY_SC_TO_UI (*yy_cp)] : 1);
+        if (yy_accept[yy_current_state])
+        {
+            (yy_last_accepting_state) = yy_current_state;
+            (yy_last_accepting_cpos) = yy_cp;
+        }
+        while (yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state)
+        {
+            yy_current_state = (int) yy_def[yy_current_state];
+            if (yy_current_state >= 240)
+                yy_c = yy_meta[(unsigned int) yy_c];
+        }
+        yy_current_state =
+            yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
+    }
+
+    return yy_current_state;
 }
 
 /* yy_try_NUL_trans - try to make a transition on the NUL character
@@ -1727,167 +1787,166 @@ static int yy_get_next_buffer (void)
  * synopsis
  *	next_state = yy_try_NUL_trans( current_state );
  */
-    static yy_state_type yy_try_NUL_trans  (yy_state_type yy_current_state )
+static yy_state_type yy_try_NUL_trans (yy_state_type yy_current_state)
 {
-	register int yy_is_jam;
-    	register char *yy_cp = (yy_c_buf_p);
+    register int yy_is_jam;
+    register char *yy_cp = (yy_c_buf_p);
 
-	register YY_CHAR yy_c = 1;
-	if ( yy_accept[yy_current_state] )
-		{
-		(yy_last_accepting_state) = yy_current_state;
-		(yy_last_accepting_cpos) = yy_cp;
-		}
-	while ( yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state )
-		{
-		yy_current_state = (int) yy_def[yy_current_state];
-		if ( yy_current_state >= 240 )
-			yy_c = yy_meta[(unsigned int) yy_c];
-		}
-	yy_current_state = yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
-	yy_is_jam = (yy_current_state == 239);
+    register YY_CHAR yy_c = 1;
+    if (yy_accept[yy_current_state])
+    {
+        (yy_last_accepting_state) = yy_current_state;
+        (yy_last_accepting_cpos) = yy_cp;
+    }
+    while (yy_chk[yy_base[yy_current_state] + yy_c] != yy_current_state)
+    {
+        yy_current_state = (int) yy_def[yy_current_state];
+        if (yy_current_state >= 240)
+            yy_c = yy_meta[(unsigned int) yy_c];
+    }
+    yy_current_state =
+        yy_nxt[yy_base[yy_current_state] + (unsigned int) yy_c];
+    yy_is_jam = (yy_current_state == 239);
 
-	return yy_is_jam ? 0 : yy_current_state;
+    return yy_is_jam ? 0 : yy_current_state;
 }
 
 #ifndef YY_NO_INPUT
 #ifdef __cplusplus
-    static int yyinput (void)
+static int yyinput (void)
 #else
-    static int input  (void)
+static int input (void)
 #endif
-
 {
-	int c;
-    
-	*(yy_c_buf_p) = (yy_hold_char);
+    int  c;
 
-	if ( *(yy_c_buf_p) == YY_END_OF_BUFFER_CHAR )
-		{
-		/* yy_c_buf_p now points to the character we want to return.
-		 * If this occurs *before* the EOB characters, then it's a
-		 * valid NUL; if not, then we've hit the end of the buffer.
-		 */
-		if ( (yy_c_buf_p) < &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)] )
-			/* This was really a NUL. */
-			*(yy_c_buf_p) = '\0';
+    *(yy_c_buf_p) = (yy_hold_char);
 
-		else
-			{ /* need more input */
-			int offset = (yy_c_buf_p) - (yytext_ptr);
-			++(yy_c_buf_p);
+    if (*(yy_c_buf_p) == YY_END_OF_BUFFER_CHAR)
+    {
+        /* yy_c_buf_p now points to the character we want to return.
+         * If this occurs *before* the EOB characters, then it's a
+         * valid NUL; if not, then we've hit the end of the buffer.
+         */
+        if ((yy_c_buf_p) < &YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[(yy_n_chars)])
+            /* This was really a NUL. */
+            *(yy_c_buf_p) = '\0';
 
-			switch ( yy_get_next_buffer(  ) )
-				{
-				case EOB_ACT_LAST_MATCH:
-					/* This happens because yy_g_n_b()
-					 * sees that we've accumulated a
-					 * token and flags that we need to
-					 * try matching the token before
-					 * proceeding.  But for input(),
-					 * there's no matching to consider.
-					 * So convert the EOB_ACT_LAST_MATCH
-					 * to EOB_ACT_END_OF_FILE.
-					 */
+        else
+        {                       /* need more input */
+            int  offset = (yy_c_buf_p) - (yytext_ptr);
+            ++(yy_c_buf_p);
 
-					/* Reset buffer status. */
-					magic_frontend_restart(magic_frontend_in );
+            switch (yy_get_next_buffer ())
+            {
+                case EOB_ACT_LAST_MATCH:
+                    /* This happens because yy_g_n_b()
+                     * sees that we've accumulated a
+                     * token and flags that we need to
+                     * try matching the token before
+                     * proceeding.  But for input(),
+                     * there's no matching to consider.
+                     * So convert the EOB_ACT_LAST_MATCH
+                     * to EOB_ACT_END_OF_FILE.
+                     */
 
-					/*FALLTHROUGH*/
+                    /* Reset buffer status. */
+                    magic_frontend_restart (magic_frontend_in);
 
-				case EOB_ACT_END_OF_FILE:
-					{
-					if ( magic_frontend_wrap( ) )
-						return EOF;
+                 /*FALLTHROUGH*/ case EOB_ACT_END_OF_FILE:
+                {
+                    if (magic_frontend_wrap ())
+                        return EOF;
 
-					if ( ! (yy_did_buffer_switch_on_eof) )
-						YY_NEW_FILE;
+                    if (!(yy_did_buffer_switch_on_eof))
+                        YY_NEW_FILE;
 #ifdef __cplusplus
-					return yyinput();
+                    return yyinput ();
 #else
-					return input();
+                    return input ();
 #endif
-					}
+                }
 
-				case EOB_ACT_CONTINUE_SCAN:
-					(yy_c_buf_p) = (yytext_ptr) + offset;
-					break;
-				}
-			}
-		}
+                case EOB_ACT_CONTINUE_SCAN:
+                    (yy_c_buf_p) = (yytext_ptr) + offset;
+                    break;
+            }
+        }
+    }
 
-	c = *(unsigned char *) (yy_c_buf_p);	/* cast for 8-bit char's */
-	*(yy_c_buf_p) = '\0';	/* preserve magic_frontend_text */
-	(yy_hold_char) = *++(yy_c_buf_p);
+    c = *(unsigned char *) (yy_c_buf_p);    /* cast for 8-bit char's */
+    *(yy_c_buf_p) = '\0';       /* preserve magic_frontend_text */
+    (yy_hold_char) = *++(yy_c_buf_p);
 
-	if ( c == '\n' )
-		   
-    magic_frontend_lineno++;
-;
+    if (c == '\n')
 
-	return c;
+        magic_frontend_lineno++;
+    ;
+
+    return c;
 }
-#endif	/* ifndef YY_NO_INPUT */
+#endif /* ifndef YY_NO_INPUT */
 
 /** Immediately switch to a different input stream.
  * @param input_file A readable stream.
  * 
  * @note This function does not reset the start condition to @c INITIAL .
  */
-    void magic_frontend_restart  (FILE * input_file )
+void magic_frontend_restart (FILE * input_file)
 {
-    
-	if ( ! YY_CURRENT_BUFFER ){
-        magic_frontend_ensure_buffer_stack ();
-		YY_CURRENT_BUFFER_LVALUE =
-            magic_frontend__create_buffer(magic_frontend_in,YY_BUF_SIZE );
-	}
 
-	magic_frontend__init_buffer(YY_CURRENT_BUFFER,input_file );
-	magic_frontend__load_buffer_state( );
+    if (!YY_CURRENT_BUFFER)
+    {
+        magic_frontend_ensure_buffer_stack ();
+        YY_CURRENT_BUFFER_LVALUE =
+            magic_frontend__create_buffer (magic_frontend_in, YY_BUF_SIZE);
+    }
+
+    magic_frontend__init_buffer (YY_CURRENT_BUFFER, input_file);
+    magic_frontend__load_buffer_state ();
 }
 
 /** Switch to a different input buffer.
  * @param new_buffer The new input buffer.
  * 
  */
-    void magic_frontend__switch_to_buffer  (YY_BUFFER_STATE  new_buffer )
+void magic_frontend__switch_to_buffer (YY_BUFFER_STATE new_buffer)
 {
-    
-	/* TODO. We should be able to replace this entire function body
-	 * with
-	 *		magic_frontend_pop_buffer_state();
-	 *		magic_frontend_push_buffer_state(new_buffer);
+
+    /* TODO. We should be able to replace this entire function body
+     * with
+     *      magic_frontend_pop_buffer_state();
+     *      magic_frontend_push_buffer_state(new_buffer);
      */
-	magic_frontend_ensure_buffer_stack ();
-	if ( YY_CURRENT_BUFFER == new_buffer )
-		return;
+    magic_frontend_ensure_buffer_stack ();
+    if (YY_CURRENT_BUFFER == new_buffer)
+        return;
 
-	if ( YY_CURRENT_BUFFER )
-		{
-		/* Flush out information for old buffer. */
-		*(yy_c_buf_p) = (yy_hold_char);
-		YY_CURRENT_BUFFER_LVALUE->yy_buf_pos = (yy_c_buf_p);
-		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
-		}
+    if (YY_CURRENT_BUFFER)
+    {
+        /* Flush out information for old buffer. */
+        *(yy_c_buf_p) = (yy_hold_char);
+        YY_CURRENT_BUFFER_LVALUE->yy_buf_pos = (yy_c_buf_p);
+        YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
+    }
 
-	YY_CURRENT_BUFFER_LVALUE = new_buffer;
-	magic_frontend__load_buffer_state( );
+    YY_CURRENT_BUFFER_LVALUE = new_buffer;
+    magic_frontend__load_buffer_state ();
 
-	/* We don't actually know whether we did this switch during
-	 * EOF (magic_frontend_wrap()) processing, but the only time this flag
-	 * is looked at is after magic_frontend_wrap() is called, so it's safe
-	 * to go ahead and always set it.
-	 */
-	(yy_did_buffer_switch_on_eof) = 1;
+    /* We don't actually know whether we did this switch during
+     * EOF (magic_frontend_wrap()) processing, but the only time this flag
+     * is looked at is after magic_frontend_wrap() is called, so it's safe
+     * to go ahead and always set it.
+     */
+    (yy_did_buffer_switch_on_eof) = 1;
 }
 
-static void magic_frontend__load_buffer_state  (void)
+static void magic_frontend__load_buffer_state (void)
 {
-    	(yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
-	(yytext_ptr) = (yy_c_buf_p) = YY_CURRENT_BUFFER_LVALUE->yy_buf_pos;
-	magic_frontend_in = YY_CURRENT_BUFFER_LVALUE->yy_input_file;
-	(yy_hold_char) = *(yy_c_buf_p);
+    (yy_n_chars) = YY_CURRENT_BUFFER_LVALUE->yy_n_chars;
+    (yytext_ptr) = (yy_c_buf_p) = YY_CURRENT_BUFFER_LVALUE->yy_buf_pos;
+    magic_frontend_in = YY_CURRENT_BUFFER_LVALUE->yy_input_file;
+    (yy_hold_char) = *(yy_c_buf_p);
 }
 
 /** Allocate and initialize an input buffer state.
@@ -1896,106 +1955,109 @@ static void magic_frontend__load_buffer_state  (void)
  * 
  * @return the allocated buffer state.
  */
-    YY_BUFFER_STATE magic_frontend__create_buffer  (FILE * file, int  size )
+YY_BUFFER_STATE magic_frontend__create_buffer (FILE * file, int size)
 {
-	YY_BUFFER_STATE b;
-    
-	b = (YY_BUFFER_STATE) magic_frontend_alloc(sizeof( struct yy_buffer_state )  );
-	if ( ! b )
-		YY_FATAL_ERROR( "out of dynamic memory in magic_frontend__create_buffer()" );
+    YY_BUFFER_STATE b;
 
-	b->yy_buf_size = size;
+    b = (YY_BUFFER_STATE)
+        magic_frontend_alloc (sizeof (struct yy_buffer_state));
+    if (!b)
+        YY_FATAL_ERROR
+            ("out of dynamic memory in magic_frontend__create_buffer()");
 
-	/* yy_ch_buf has to be 2 characters longer than the size given because
-	 * we need to put in 2 end-of-buffer characters.
-	 */
-	b->yy_ch_buf = (char *) magic_frontend_alloc(b->yy_buf_size + 2  );
-	if ( ! b->yy_ch_buf )
-		YY_FATAL_ERROR( "out of dynamic memory in magic_frontend__create_buffer()" );
+    b->yy_buf_size = size;
 
-	b->yy_is_our_buffer = 1;
+    /* yy_ch_buf has to be 2 characters longer than the size given because
+     * we need to put in 2 end-of-buffer characters.
+     */
+    b->yy_ch_buf = (char *) magic_frontend_alloc (b->yy_buf_size + 2);
+    if (!b->yy_ch_buf)
+        YY_FATAL_ERROR
+            ("out of dynamic memory in magic_frontend__create_buffer()");
 
-	magic_frontend__init_buffer(b,file );
+    b->yy_is_our_buffer = 1;
 
-	return b;
+    magic_frontend__init_buffer (b, file);
+
+    return b;
 }
 
 /** Destroy the buffer.
  * @param b a buffer created with magic_frontend__create_buffer()
  * 
  */
-    void magic_frontend__delete_buffer (YY_BUFFER_STATE  b )
+void magic_frontend__delete_buffer (YY_BUFFER_STATE b)
 {
-    
-	if ( ! b )
-		return;
 
-	if ( b == YY_CURRENT_BUFFER ) /* Not sure if we should pop here. */
-		YY_CURRENT_BUFFER_LVALUE = (YY_BUFFER_STATE) 0;
+    if (!b)
+        return;
 
-	if ( b->yy_is_our_buffer )
-		magic_frontend_free((void *) b->yy_ch_buf  );
+    if (b == YY_CURRENT_BUFFER) /* Not sure if we should pop here. */
+        YY_CURRENT_BUFFER_LVALUE = (YY_BUFFER_STATE) 0;
 
-	magic_frontend_free((void *) b  );
+    if (b->yy_is_our_buffer)
+        magic_frontend_free ((void *) b->yy_ch_buf);
+
+    magic_frontend_free ((void *) b);
 }
 
 #ifndef __cplusplus
-extern int isatty (int );
+extern int isatty (int);
 #endif /* __cplusplus */
-    
+
 /* Initializes or reinitializes a buffer.
  * This function is sometimes called more than once on the same buffer,
  * such as during a magic_frontend_restart() or at EOF.
  */
-    static void magic_frontend__init_buffer  (YY_BUFFER_STATE  b, FILE * file )
-
+static void magic_frontend__init_buffer (YY_BUFFER_STATE b, FILE * file)
 {
-	int oerrno = errno;
-    
-	magic_frontend__flush_buffer(b );
+    int  oerrno = errno;
 
-	b->yy_input_file = file;
-	b->yy_fill_buffer = 1;
+    magic_frontend__flush_buffer (b);
+
+    b->yy_input_file = file;
+    b->yy_fill_buffer = 1;
 
     /* If b is the current buffer, then magic_frontend__init_buffer was _probably_
      * called from magic_frontend_restart() or through yy_get_next_buffer.
      * In that case, we don't want to reset the lineno or column.
      */
-    if (b != YY_CURRENT_BUFFER){
+    if (b != YY_CURRENT_BUFFER)
+    {
         b->yy_bs_lineno = 1;
         b->yy_bs_column = 0;
     }
 
-        b->yy_is_interactive = file ? (isatty( fileno(file) ) > 0) : 0;
-    
-	errno = oerrno;
+    b->yy_is_interactive = file ? (isatty (fileno (file)) > 0) : 0;
+
+    errno = oerrno;
 }
 
 /** Discard all buffered characters. On the next scan, YY_INPUT will be called.
  * @param b the buffer state to be flushed, usually @c YY_CURRENT_BUFFER.
  * 
  */
-    void magic_frontend__flush_buffer (YY_BUFFER_STATE  b )
+void magic_frontend__flush_buffer (YY_BUFFER_STATE b)
 {
-    	if ( ! b )
-		return;
+    if (!b)
+        return;
 
-	b->yy_n_chars = 0;
+    b->yy_n_chars = 0;
 
-	/* We always need two end-of-buffer characters.  The first causes
-	 * a transition to the end-of-buffer state.  The second causes
-	 * a jam in that state.
-	 */
-	b->yy_ch_buf[0] = YY_END_OF_BUFFER_CHAR;
-	b->yy_ch_buf[1] = YY_END_OF_BUFFER_CHAR;
+    /* We always need two end-of-buffer characters.  The first causes
+     * a transition to the end-of-buffer state.  The second causes
+     * a jam in that state.
+     */
+    b->yy_ch_buf[0] = YY_END_OF_BUFFER_CHAR;
+    b->yy_ch_buf[1] = YY_END_OF_BUFFER_CHAR;
 
-	b->yy_buf_pos = &b->yy_ch_buf[0];
+    b->yy_buf_pos = &b->yy_ch_buf[0];
 
-	b->yy_at_bol = 1;
-	b->yy_buffer_status = YY_BUFFER_NEW;
+    b->yy_at_bol = 1;
+    b->yy_buffer_status = YY_BUFFER_NEW;
 
-	if ( b == YY_CURRENT_BUFFER )
-		magic_frontend__load_buffer_state( );
+    if (b == YY_CURRENT_BUFFER)
+        magic_frontend__load_buffer_state ();
 }
 
 /** Pushes the new state onto the stack. The new state becomes
@@ -2004,30 +2066,30 @@ extern int isatty (int );
  *  @param new_buffer The new state.
  *  
  */
-void magic_frontend_push_buffer_state (YY_BUFFER_STATE new_buffer )
+void magic_frontend_push_buffer_state (YY_BUFFER_STATE new_buffer)
 {
-    	if (new_buffer == NULL)
-		return;
+    if (new_buffer == NULL)
+        return;
 
-	magic_frontend_ensure_buffer_stack();
+    magic_frontend_ensure_buffer_stack ();
 
-	/* This block is copied from magic_frontend__switch_to_buffer. */
-	if ( YY_CURRENT_BUFFER )
-		{
-		/* Flush out information for old buffer. */
-		*(yy_c_buf_p) = (yy_hold_char);
-		YY_CURRENT_BUFFER_LVALUE->yy_buf_pos = (yy_c_buf_p);
-		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
-		}
+    /* This block is copied from magic_frontend__switch_to_buffer. */
+    if (YY_CURRENT_BUFFER)
+    {
+        /* Flush out information for old buffer. */
+        *(yy_c_buf_p) = (yy_hold_char);
+        YY_CURRENT_BUFFER_LVALUE->yy_buf_pos = (yy_c_buf_p);
+        YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
+    }
 
-	/* Only push if top exists. Otherwise, replace top. */
-	if (YY_CURRENT_BUFFER)
-		(yy_buffer_stack_top)++;
-	YY_CURRENT_BUFFER_LVALUE = new_buffer;
+    /* Only push if top exists. Otherwise, replace top. */
+    if (YY_CURRENT_BUFFER)
+        (yy_buffer_stack_top)++;
+    YY_CURRENT_BUFFER_LVALUE = new_buffer;
 
-	/* copied from magic_frontend__switch_to_buffer. */
-	magic_frontend__load_buffer_state( );
-	(yy_did_buffer_switch_on_eof) = 1;
+    /* copied from magic_frontend__switch_to_buffer. */
+    magic_frontend__load_buffer_state ();
+    (yy_did_buffer_switch_on_eof) = 1;
 }
 
 /** Removes and deletes the top of the stack, if present.
@@ -2036,18 +2098,19 @@ void magic_frontend_push_buffer_state (YY_BUFFER_STATE new_buffer )
  */
 void magic_frontend_pop_buffer_state (void)
 {
-    	if (!YY_CURRENT_BUFFER)
-		return;
+    if (!YY_CURRENT_BUFFER)
+        return;
 
-	magic_frontend__delete_buffer(YY_CURRENT_BUFFER );
-	YY_CURRENT_BUFFER_LVALUE = NULL;
-	if ((yy_buffer_stack_top) > 0)
-		--(yy_buffer_stack_top);
+    magic_frontend__delete_buffer (YY_CURRENT_BUFFER);
+    YY_CURRENT_BUFFER_LVALUE = NULL;
+    if ((yy_buffer_stack_top) > 0)
+        --(yy_buffer_stack_top);
 
-	if (YY_CURRENT_BUFFER) {
-		magic_frontend__load_buffer_state( );
-		(yy_did_buffer_switch_on_eof) = 1;
-	}
+    if (YY_CURRENT_BUFFER)
+    {
+        magic_frontend__load_buffer_state ();
+        (yy_did_buffer_switch_on_eof) = 1;
+    }
 }
 
 /* Allocates the stack if it does not exist.
@@ -2055,45 +2118,49 @@ void magic_frontend_pop_buffer_state (void)
  */
 static void magic_frontend_ensure_buffer_stack (void)
 {
-	int num_to_alloc;
-    
-	if (!(yy_buffer_stack)) {
+    int  num_to_alloc;
 
-		/* First allocation is just for 2 elements, since we don't know if this
-		 * scanner will even need a stack. We use 2 instead of 1 to avoid an
-		 * immediate realloc on the next call.
+    if (!(yy_buffer_stack))
+    {
+
+        /* First allocation is just for 2 elements, since we don't know if this
+         * scanner will even need a stack. We use 2 instead of 1 to avoid an
+         * immediate realloc on the next call.
          */
-		num_to_alloc = 1;
-		(yy_buffer_stack) = (struct yy_buffer_state**)magic_frontend_alloc
-								(num_to_alloc * sizeof(struct yy_buffer_state*)
-								);
-		if ( ! (yy_buffer_stack) )
-			YY_FATAL_ERROR( "out of dynamic memory in magic_frontend_ensure_buffer_stack()" );
-								  
-		memset((yy_buffer_stack), 0, num_to_alloc * sizeof(struct yy_buffer_state*));
-				
-		(yy_buffer_stack_max) = num_to_alloc;
-		(yy_buffer_stack_top) = 0;
-		return;
-	}
+        num_to_alloc = 1;
+        (yy_buffer_stack) = (struct yy_buffer_state **) magic_frontend_alloc
+            (num_to_alloc * sizeof (struct yy_buffer_state *));
+        if (!(yy_buffer_stack))
+            YY_FATAL_ERROR
+                ("out of dynamic memory in magic_frontend_ensure_buffer_stack()");
 
-	if ((yy_buffer_stack_top) >= ((yy_buffer_stack_max)) - 1){
+        memset ((yy_buffer_stack), 0,
+                num_to_alloc * sizeof (struct yy_buffer_state *));
 
-		/* Increase the buffer to prepare for a possible push. */
-		int grow_size = 8 /* arbitrary grow size */;
+        (yy_buffer_stack_max) = num_to_alloc;
+        (yy_buffer_stack_top) = 0;
+        return;
+    }
 
-		num_to_alloc = (yy_buffer_stack_max) + grow_size;
-		(yy_buffer_stack) = (struct yy_buffer_state**)magic_frontend_realloc
-								((yy_buffer_stack),
-								num_to_alloc * sizeof(struct yy_buffer_state*)
-								);
-		if ( ! (yy_buffer_stack) )
-			YY_FATAL_ERROR( "out of dynamic memory in magic_frontend_ensure_buffer_stack()" );
+    if ((yy_buffer_stack_top) >= ((yy_buffer_stack_max)) - 1)
+    {
 
-		/* zero only the new slots.*/
-		memset((yy_buffer_stack) + (yy_buffer_stack_max), 0, grow_size * sizeof(struct yy_buffer_state*));
-		(yy_buffer_stack_max) = num_to_alloc;
-	}
+        /* Increase the buffer to prepare for a possible push. */
+        int  grow_size = 8 /* arbitrary grow size */ ;
+
+        num_to_alloc = (yy_buffer_stack_max) + grow_size;
+        (yy_buffer_stack) = (struct yy_buffer_state **) magic_frontend_realloc
+            ((yy_buffer_stack),
+             num_to_alloc * sizeof (struct yy_buffer_state *));
+        if (!(yy_buffer_stack))
+            YY_FATAL_ERROR
+                ("out of dynamic memory in magic_frontend_ensure_buffer_stack()");
+
+        /* zero only the new slots. */
+        memset ((yy_buffer_stack) + (yy_buffer_stack_max), 0,
+                grow_size * sizeof (struct yy_buffer_state *));
+        (yy_buffer_stack_max) = num_to_alloc;
+    }
 }
 
 /** Setup the input buffer state to scan directly from a user-specified character buffer.
@@ -2102,33 +2169,35 @@ static void magic_frontend_ensure_buffer_stack (void)
  * 
  * @return the newly allocated buffer state object. 
  */
-YY_BUFFER_STATE magic_frontend__scan_buffer  (char * base, yy_size_t  size )
+YY_BUFFER_STATE magic_frontend__scan_buffer (char *base, yy_size_t size)
 {
-	YY_BUFFER_STATE b;
-    
-	if ( size < 2 ||
-	     base[size-2] != YY_END_OF_BUFFER_CHAR ||
-	     base[size-1] != YY_END_OF_BUFFER_CHAR )
-		/* They forgot to leave room for the EOB's. */
-		return 0;
+    YY_BUFFER_STATE b;
 
-	b = (YY_BUFFER_STATE) magic_frontend_alloc(sizeof( struct yy_buffer_state )  );
-	if ( ! b )
-		YY_FATAL_ERROR( "out of dynamic memory in magic_frontend__scan_buffer()" );
+    if (size < 2 ||
+        base[size - 2] != YY_END_OF_BUFFER_CHAR ||
+        base[size - 1] != YY_END_OF_BUFFER_CHAR)
+        /* They forgot to leave room for the EOB's. */
+        return 0;
 
-	b->yy_buf_size = size - 2;	/* "- 2" to take care of EOB's */
-	b->yy_buf_pos = b->yy_ch_buf = base;
-	b->yy_is_our_buffer = 0;
-	b->yy_input_file = 0;
-	b->yy_n_chars = b->yy_buf_size;
-	b->yy_is_interactive = 0;
-	b->yy_at_bol = 1;
-	b->yy_fill_buffer = 0;
-	b->yy_buffer_status = YY_BUFFER_NEW;
+    b = (YY_BUFFER_STATE)
+        magic_frontend_alloc (sizeof (struct yy_buffer_state));
+    if (!b)
+        YY_FATAL_ERROR
+            ("out of dynamic memory in magic_frontend__scan_buffer()");
 
-	magic_frontend__switch_to_buffer(b  );
+    b->yy_buf_size = size - 2;  /* "- 2" to take care of EOB's */
+    b->yy_buf_pos = b->yy_ch_buf = base;
+    b->yy_is_our_buffer = 0;
+    b->yy_input_file = 0;
+    b->yy_n_chars = b->yy_buf_size;
+    b->yy_is_interactive = 0;
+    b->yy_at_bol = 1;
+    b->yy_fill_buffer = 0;
+    b->yy_buffer_status = YY_BUFFER_NEW;
 
-	return b;
+    magic_frontend__switch_to_buffer (b);
+
+    return b;
 }
 
 /** Setup the input buffer state to scan a string. The next call to magic_frontend_lex() will
@@ -2139,10 +2208,10 @@ YY_BUFFER_STATE magic_frontend__scan_buffer  (char * base, yy_size_t  size )
  * @note If you want to scan bytes that may contain NUL values, then use
  *       magic_frontend__scan_bytes() instead.
  */
-YY_BUFFER_STATE magic_frontend__scan_string (yyconst char * yystr )
+YY_BUFFER_STATE magic_frontend__scan_string (yyconst char *yystr)
 {
-    
-	return magic_frontend__scan_bytes(yystr,strlen(yystr) );
+
+    return magic_frontend__scan_bytes (yystr, strlen (yystr));
 }
 
 /** Setup the input buffer state to scan the given bytes. The next call to magic_frontend_lex() will
@@ -2152,44 +2221,46 @@ YY_BUFFER_STATE magic_frontend__scan_string (yyconst char * yystr )
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE magic_frontend__scan_bytes  (yyconst char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE magic_frontend__scan_bytes (yyconst char *yybytes,
+                                            int _yybytes_len)
 {
-	YY_BUFFER_STATE b;
-	char *buf;
-	yy_size_t n;
-	int i;
-    
-	/* Get memory for full buffer, including space for trailing EOB's. */
-	n = _yybytes_len + 2;
-	buf = (char *) magic_frontend_alloc(n  );
-	if ( ! buf )
-		YY_FATAL_ERROR( "out of dynamic memory in magic_frontend__scan_bytes()" );
+    YY_BUFFER_STATE b;
+    char *buf;
+    yy_size_t n;
+    int  i;
 
-	for ( i = 0; i < _yybytes_len; ++i )
-		buf[i] = yybytes[i];
+    /* Get memory for full buffer, including space for trailing EOB's. */
+    n = _yybytes_len + 2;
+    buf = (char *) magic_frontend_alloc (n);
+    if (!buf)
+        YY_FATAL_ERROR
+            ("out of dynamic memory in magic_frontend__scan_bytes()");
 
-	buf[_yybytes_len] = buf[_yybytes_len+1] = YY_END_OF_BUFFER_CHAR;
+    for (i = 0; i < _yybytes_len; ++i)
+        buf[i] = yybytes[i];
 
-	b = magic_frontend__scan_buffer(buf,n );
-	if ( ! b )
-		YY_FATAL_ERROR( "bad buffer in magic_frontend__scan_bytes()" );
+    buf[_yybytes_len] = buf[_yybytes_len + 1] = YY_END_OF_BUFFER_CHAR;
 
-	/* It's okay to grow etc. this buffer, and we should throw it
-	 * away when we're done.
-	 */
-	b->yy_is_our_buffer = 1;
+    b = magic_frontend__scan_buffer (buf, n);
+    if (!b)
+        YY_FATAL_ERROR ("bad buffer in magic_frontend__scan_bytes()");
 
-	return b;
+    /* It's okay to grow etc. this buffer, and we should throw it
+     * away when we're done.
+     */
+    b->yy_is_our_buffer = 1;
+
+    return b;
 }
 
 #ifndef YY_EXIT_FAILURE
 #define YY_EXIT_FAILURE 2
 #endif
 
-static void yy_fatal_error (yyconst char* msg )
+static void yy_fatal_error (yyconst char *msg)
 {
-    	(void) fprintf( stderr, "%s\n", msg );
-	exit( YY_EXIT_FAILURE );
+    (void) fprintf (stderr, "%s\n", msg);
+    exit (YY_EXIT_FAILURE);
 }
 
 /* Redefine yyless() so it works in section 3 code. */
@@ -2214,52 +2285,52 @@ static void yy_fatal_error (yyconst char* msg )
 /** Get the current line number.
  * 
  */
-int magic_frontend_get_lineno  (void)
+int magic_frontend_get_lineno (void)
 {
-        
+
     return magic_frontend_lineno;
 }
 
 /** Get the input stream.
  * 
  */
-FILE *magic_frontend_get_in  (void)
+FILE *magic_frontend_get_in (void)
 {
-        return magic_frontend_in;
+    return magic_frontend_in;
 }
 
 /** Get the output stream.
  * 
  */
-FILE *magic_frontend_get_out  (void)
+FILE *magic_frontend_get_out (void)
 {
-        return magic_frontend_out;
+    return magic_frontend_out;
 }
 
 /** Get the length of the current token.
  * 
  */
-int magic_frontend_get_leng  (void)
+int magic_frontend_get_leng (void)
 {
-        return magic_frontend_leng;
+    return magic_frontend_leng;
 }
 
 /** Get the current token.
  * 
  */
 
-char *magic_frontend_get_text  (void)
+char *magic_frontend_get_text (void)
 {
-        return magic_frontend_text;
+    return magic_frontend_text;
 }
 
 /** Set the current line number.
  * @param line_number
  * 
  */
-void magic_frontend_set_lineno (int  line_number )
+void magic_frontend_set_lineno (int line_number)
 {
-    
+
     magic_frontend_lineno = line_number;
 }
 
@@ -2269,35 +2340,35 @@ void magic_frontend_set_lineno (int  line_number )
  * 
  * @see magic_frontend__switch_to_buffer
  */
-void magic_frontend_set_in (FILE *  in_str )
+void magic_frontend_set_in (FILE * in_str)
 {
-        magic_frontend_in = in_str ;
+    magic_frontend_in = in_str;
 }
 
-void magic_frontend_set_out (FILE *  out_str )
+void magic_frontend_set_out (FILE * out_str)
 {
-        magic_frontend_out = out_str ;
+    magic_frontend_out = out_str;
 }
 
-int magic_frontend_get_debug  (void)
+int magic_frontend_get_debug (void)
 {
-        return magic_frontend__flex_debug;
+    return magic_frontend__flex_debug;
 }
 
-void magic_frontend_set_debug (int  bdebug )
+void magic_frontend_set_debug (int bdebug)
 {
-        magic_frontend__flex_debug = bdebug ;
+    magic_frontend__flex_debug = bdebug;
 }
 
 static int yy_init_globals (void)
 {
-        /* Initialization is the same as for the non-reentrant scanner.
+    /* Initialization is the same as for the non-reentrant scanner.
      * This function is called from magic_frontend_lex_destroy(), so don't allocate here.
      */
 
     /* We do not touch magic_frontend_lineno unless the option is enabled. */
-    magic_frontend_lineno =  1;
-    
+    magic_frontend_lineno = 1;
+
     (yy_buffer_stack) = 0;
     (yy_buffer_stack_top) = 0;
     (yy_buffer_stack_max) = 0;
@@ -2321,23 +2392,24 @@ static int yy_init_globals (void)
 }
 
 /* magic_frontend_lex_destroy is for both reentrant and non-reentrant scanners. */
-int magic_frontend_lex_destroy  (void)
+int magic_frontend_lex_destroy (void)
 {
-    
-    /* Pop the buffer stack, destroying each element. */
-	while(YY_CURRENT_BUFFER){
-		magic_frontend__delete_buffer(YY_CURRENT_BUFFER  );
-		YY_CURRENT_BUFFER_LVALUE = NULL;
-		magic_frontend_pop_buffer_state();
-	}
 
-	/* Destroy the stack itself. */
-	magic_frontend_free((yy_buffer_stack) );
-	(yy_buffer_stack) = NULL;
+    /* Pop the buffer stack, destroying each element. */
+    while (YY_CURRENT_BUFFER)
+    {
+        magic_frontend__delete_buffer (YY_CURRENT_BUFFER);
+        YY_CURRENT_BUFFER_LVALUE = NULL;
+        magic_frontend_pop_buffer_state ();
+    }
+
+    /* Destroy the stack itself. */
+    magic_frontend_free ((yy_buffer_stack));
+    (yy_buffer_stack) = NULL;
 
     /* Reset the globals. This is important in a non-reentrant scanner so the next time
      * magic_frontend_lex() is called, initialization will occur. */
-    yy_init_globals( );
+    yy_init_globals ();
 
     return 0;
 }
@@ -2347,50 +2419,47 @@ int magic_frontend_lex_destroy  (void)
  */
 
 #ifndef yytext_ptr
-static void yy_flex_strncpy (char* s1, yyconst char * s2, int n )
+static void yy_flex_strncpy (char *s1, yyconst char *s2, int n)
 {
-	register int i;
-	for ( i = 0; i < n; ++i )
-		s1[i] = s2[i];
+    register int i;
+    for (i = 0; i < n; ++i)
+        s1[i] = s2[i];
 }
 #endif
 
 #ifdef YY_NEED_STRLEN
-static int yy_flex_strlen (yyconst char * s )
+static int yy_flex_strlen (yyconst char *s)
 {
-	register int n;
-	for ( n = 0; s[n]; ++n )
-		;
+    register int n;
+    for (n = 0; s[n]; ++n)
+        ;
 
-	return n;
+    return n;
 }
 #endif
 
-void *magic_frontend_alloc (yy_size_t  size )
+void *magic_frontend_alloc (yy_size_t size)
 {
-	return (void *) malloc( size );
+    return (void *) malloc (size);
 }
 
-void *magic_frontend_realloc  (void * ptr, yy_size_t  size )
+void *magic_frontend_realloc (void *ptr, yy_size_t size)
 {
-	/* The cast to (char *) in the following accommodates both
-	 * implementations that use char* generic pointers, and those
-	 * that use void* generic pointers.  It works with the latter
-	 * because both ANSI C and C++ allow castless assignment from
-	 * any pointer type to void*, and deal with argument conversions
-	 * as though doing an assignment.
-	 */
-	return (void *) realloc( (char *) ptr, size );
+    /* The cast to (char *) in the following accommodates both
+     * implementations that use char* generic pointers, and those
+     * that use void* generic pointers.  It works with the latter
+     * because both ANSI C and C++ allow castless assignment from
+     * any pointer type to void*, and deal with argument conversions
+     * as though doing an assignment.
+     */
+    return (void *) realloc ((char *) ptr, size);
 }
 
-void magic_frontend_free (void * ptr )
+void magic_frontend_free (void *ptr)
 {
-	free( (char *) ptr );	/* see magic_frontend_realloc() for (char *) cast */
+    free ((char *) ptr);        /* see magic_frontend_realloc() for (char *) cast */
 }
 
 #define YYTABLES_NAME "yytables"
 
 #line 140 "magic-interpreter.l"
-
-
-

@@ -8,20 +8,22 @@
 #define RED 0
 #define BLACK 1
 
-struct dbn {
-	struct dbn *parent,*left,*right;
-	int color;
-	void *key;
-	void *data;
+struct dbn
+{
+    struct dbn *parent, *left, *right;
+    int  color;
+    void *key;
+    void *data;
 };
 
-struct dbt {
-	int (*cmp)(struct dbt*,void*,void*);
-	unsigned int (*hash)(struct dbt*,void*);
+struct dbt
+{
+    int  (*cmp) (struct dbt *, void *, void *);
+    unsigned int (*hash) (struct dbt *, void *);
     // which 1 - key,   2 - data,  3 - both
-	void (*release)(struct dbn*,int which);
-	int maxlen;
-	struct dbn *ht[HASH_SIZE];
+    void (*release) (struct dbn *, int which);
+    int  maxlen;
+    struct dbn *ht[HASH_SIZE];
 };
 
 #define strdb_search(t,k)   db_search((t),(void*)(k))
@@ -35,13 +37,13 @@ struct dbt {
 #define numdb_foreach       db_foreach
 #define numdb_final         db_final
 
-struct dbt* strdb_init(int maxlen);
-struct dbt* numdb_init(void);
-void* db_search(struct dbt *table,void* key);
-void* db_search2(struct dbt *table, const char *key); // [MouseJstr]
-struct dbn* db_insert(struct dbt *table,void* key,void* data);
-void* db_erase(struct dbt *table,void* key);
-void db_foreach(struct dbt*,int(*)(void*,void*,va_list),...);
-void db_final(struct dbt*,int(*)(void*,void*,va_list),...);
+struct dbt *strdb_init (int maxlen);
+struct dbt *numdb_init (void);
+void *db_search (struct dbt *table, void *key);
+void *db_search2 (struct dbt *table, const char *key);  // [MouseJstr]
+struct dbn *db_insert (struct dbt *table, void *key, void *data);
+void *db_erase (struct dbt *table, void *key);
+void db_foreach (struct dbt *, int (*)(void *, void *, va_list), ...);
+void db_final (struct dbt *, int (*)(void *, void *, va_list), ...);
 
 #endif

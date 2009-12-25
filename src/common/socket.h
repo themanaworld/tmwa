@@ -43,33 +43,34 @@
 
 #ifdef __INTERIX
 #define FD_SETSIZE 4096
-#endif	// __INTERIX
+#endif // __INTERIX
 
 /* Removed Cygwin FD_SETSIZE declarations, now are directly passed on to the compiler through Makefile [Valaris] */
 
 // Struct declaration
 
-struct socket_data{
-	int eof;
-	time_t created;
-	int connected;
-	unsigned char *rdata,*wdata;
-	int max_rdata,max_wdata;
-	int rdata_size,wdata_size;
-	int rdata_pos;
-	struct sockaddr_in client_addr;
-	int (*func_recv)(int);
-	int (*func_send)(int);
-	int (*func_parse)(int);
-	void* session_data;
+struct socket_data
+{
+    int  eof;
+    time_t created;
+    int  connected;
+    unsigned char *rdata, *wdata;
+    int  max_rdata, max_wdata;
+    int  rdata_size, wdata_size;
+    int  rdata_pos;
+    struct sockaddr_in client_addr;
+    int  (*func_recv) (int);
+    int  (*func_send) (int);
+    int  (*func_parse) (int);
+    void *session_data;
 };
 
 // Data prototype declaration
 
 #ifdef LCCWIN32
 
-		#undef FD_SETSIZE
-		#define FD_SETSIZE 4096
+#undef FD_SETSIZE
+#define FD_SETSIZE 4096
 
 #endif
 
@@ -79,32 +80,31 @@ struct socket_data{
 // socket timeout to establish a full connection in seconds
 #define CONNECT_TIMEOUT 15
 
-
 extern struct socket_data *session[FD_SETSIZE];
 
-extern int rfifo_size,wfifo_size;
+extern int rfifo_size, wfifo_size;
 extern int fd_max;
 
 // Function prototype declaration
 
-int make_listen_port(int);
-int make_connection(long,int);
-int delete_session(int);
-int realloc_fifo(int fd,int rfifo_size,int wfifo_size);
-int WFIFOSET(int fd,int len);
-int RFIFOSKIP(int fd,int len);
+int  make_listen_port (int);
+int  make_connection (long, int);
+int  delete_session (int);
+int  realloc_fifo (int fd, int rfifo_size, int wfifo_size);
+int  WFIFOSET (int fd, int len);
+int  RFIFOSKIP (int fd, int len);
 
-int do_sendrecv(int next);
-int do_parsepacket(void);
-void do_socket(void);
+int  do_sendrecv (int next);
+int  do_parsepacket (void);
+void do_socket (void);
 
-void set_defaultparse(int (*defaultparse)(int));
+void set_defaultparse (int (*defaultparse) (int));
 
-int  Net_Init(void);
+int  Net_Init (void);
 
-int fclose_(FILE *fp);
-FILE *fopen_(const char *path, const char *mode);
+int  fclose_ (FILE * fp);
+FILE *fopen_ (const char *path, const char *mode);
 
-int free_fds();
+int  free_fds ();
 
-#endif	// _SOCKET_H_
+#endif // _SOCKET_H_

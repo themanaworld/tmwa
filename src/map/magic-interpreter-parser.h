@@ -37,61 +37,62 @@
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
    /* Put the tokens into the symbol table, so that GDB and other debuggers
-      know about them.  */
-   enum yytokentype {
-     INT = 258,
-     STRING = 259,
-     ID = 260,
-     DIR = 261,
-     CONST = 262,
-     PROCEDURE = 263,
-     CALL = 264,
-     SILENT = 265,
-     LOCAL = 266,
-     NONMAGIC = 267,
-     SHL = 268,
-     SHR = 269,
-     EQ = 270,
-     NEQ = 271,
-     GTE = 272,
-     LTE = 273,
-     ANDAND = 274,
-     OROR = 275,
-     SCRIPT_DATA = 276,
-     TO = 277,
-     TOWARDS = 278,
-     TELEPORT_ANCHOR = 279,
-     SPELL = 280,
-     LET = 281,
-     IN = 282,
-     END = 283,
-     DARROW = 284,
-     STRING_TY = 285,
-     REQUIRE = 286,
-     CATALYSTS = 287,
-     COMPONENTS = 288,
-     MANA = 289,
-     CASTTIME = 290,
-     SKIP = 291,
-     ABORT = 292,
-     BREAK = 293,
-     EFFECT = 294,
-     ATEND = 295,
-     ATTRIGGER = 296,
-     PC_F = 297,
-     NPC_F = 298,
-     MOB_F = 299,
-     ENTITY_F = 300,
-     TARGET_F = 301,
-     IF = 302,
-     THEN = 303,
-     ELSE = 304,
-     FOREACH = 305,
-     FOR = 306,
-     DO = 307,
-     SLEEP = 308,
-     OR = 309
-   };
+    * know about them.  */
+enum yytokentype
+{
+    INT = 258,
+    STRING = 259,
+    ID = 260,
+    DIR = 261,
+    CONST = 262,
+    PROCEDURE = 263,
+    CALL = 264,
+    SILENT = 265,
+    LOCAL = 266,
+    NONMAGIC = 267,
+    SHL = 268,
+    SHR = 269,
+    EQ = 270,
+    NEQ = 271,
+    GTE = 272,
+    LTE = 273,
+    ANDAND = 274,
+    OROR = 275,
+    SCRIPT_DATA = 276,
+    TO = 277,
+    TOWARDS = 278,
+    TELEPORT_ANCHOR = 279,
+    SPELL = 280,
+    LET = 281,
+    IN = 282,
+    END = 283,
+    DARROW = 284,
+    STRING_TY = 285,
+    REQUIRE = 286,
+    CATALYSTS = 287,
+    COMPONENTS = 288,
+    MANA = 289,
+    CASTTIME = 290,
+    SKIP = 291,
+    ABORT = 292,
+    BREAK = 293,
+    EFFECT = 294,
+    ATEND = 295,
+    ATTRIGGER = 296,
+    PC_F = 297,
+    NPC_F = 298,
+    MOB_F = 299,
+    ENTITY_F = 300,
+    TARGET_F = 301,
+    IF = 302,
+    THEN = 303,
+    ELSE = 304,
+    FOREACH = 305,
+    FOR = 306,
+    DO = 307,
+    SLEEP = 308,
+    OR = 309
+};
 #endif
 /* Tokens.  */
 #define INT 258
@@ -147,36 +148,43 @@
 #define SLEEP 308
 #define OR 309
 
-
-
-
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
 #line 74 "magic-interpreter-parser.y"
 {
-    int i;
+    int  i;
     char *s;
-    int op;
+    int  op;
     magic_conf_t *magic_conf;
     val_t value;
     expr_t *expr;
     e_location_t location;
     e_area_t area;
     args_rec_t arg_list;
-    struct { int letdefs_nr; letdef_t *letdefs; } letdefs;
+    struct
+    {
+        int  letdefs_nr;
+        letdef_t *letdefs;
+    } letdefs;
     spell_t *spell;
-    struct { int id, ty; } spellarg_def;
+    struct
+    {
+        int  id, ty;
+    } spellarg_def;
     letdef_t vardef;
     spellguard_t *spellguard;
     component_t *components;
-    struct {int id, count; } component;
+    struct
+    {
+        int  id, count;
+    } component;
     effect_t *effect;
     proc_t *proc;
 }
 /* Line 1489 of yacc.c.  */
 #line 178 "magic-interpreter-parser.h"
-	YYSTYPE;
-# define yystype YYSTYPE /* obsolescent; will be withdrawn */
+YYSTYPE;
+# define yystype YYSTYPE        /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
 # define YYSTYPE_IS_TRIVIAL 1
 #endif
@@ -186,12 +194,12 @@ extern YYSTYPE magic_frontend_lval;
 #if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
 typedef struct YYLTYPE
 {
-  int first_line;
-  int first_column;
-  int last_line;
-  int last_column;
+    int  first_line;
+    int  first_column;
+    int  last_line;
+    int  last_column;
 } YYLTYPE;
-# define yyltype YYLTYPE /* obsolescent; will be withdrawn */
+# define yyltype YYLTYPE        /* obsolescent; will be withdrawn */
 # define YYLTYPE_IS_DECLARED 1
 # define YYLTYPE_IS_TRIVIAL 1
 #endif

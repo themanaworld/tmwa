@@ -14,37 +14,42 @@
 
 #define DEFAULT_AUTOSAVE_INTERVAL 300*1000
 
-struct mmo_map_server{
-  long ip;
-  short port;
-  int users;
-  char map[MAX_MAP_PER_SERVER][16];
+struct mmo_map_server
+{
+    long ip;
+    short port;
+    int  users;
+    char map[MAX_MAP_PER_SERVER][16];
 };
-struct itemtmp {
-	int flag;//checked = 1 else 0
-	int id;
-	short nameid;
-	short amount;
-	unsigned short equip;
-	char identify;
-	char refine;
-	char attribute;
-	short card[4];
-	short broken;
+struct itemtmp
+{
+    int  flag;                  //checked = 1 else 0
+    int  id;
+    short nameid;
+    short amount;
+    unsigned short equip;
+    char identify;
+    char refine;
+    char attribute;
+    short card[4];
+    short broken;
 };
-enum {
-	TABLE_INVENTORY,
-	TABLE_CART,
-	TABLE_STORAGE,
-	TABLE_GUILD_STORAGE,
+enum
+{
+    TABLE_INVENTORY,
+    TABLE_CART,
+    TABLE_STORAGE,
+    TABLE_GUILD_STORAGE,
 };
-struct itemtemp{
-	struct itemtmp equip[MAX_GUILD_STORAGE],notequip[MAX_GUILD_STORAGE];
+struct itemtemp
+{
+    struct itemtmp equip[MAX_GUILD_STORAGE], notequip[MAX_GUILD_STORAGE];
 };
-int memitemdata_to_sql(struct itemtemp mapitem, int eqcount, int noteqcount, int char_id,int tableswitch);
-int mapif_sendall(unsigned char *buf,unsigned int len);
-int mapif_sendallwos(int fd,unsigned char *buf,unsigned int len);
-int mapif_send(int fd,unsigned char *buf,unsigned int len);
+int  memitemdata_to_sql (struct itemtemp mapitem, int eqcount, int noteqcount,
+                         int char_id, int tableswitch);
+int  mapif_sendall (unsigned char *buf, unsigned int len);
+int  mapif_sendallwos (int fd, unsigned char *buf, unsigned int len);
+int  mapif_send (int fd, unsigned char *buf, unsigned int len);
 
 extern int autosave_interval;
 extern char char_db[256];
@@ -67,7 +72,7 @@ extern char guild_storage_db[256];
 extern char party_db[256];
 extern char pet_db[256];
 
-int db_use_sqldbs; // added for sql item_db read for char server [Valaris]
+int  db_use_sqldbs;             // added for sql item_db read for char server [Valaris]
 extern char login_db_level[32];
 extern char login_db_account_id[32];
 

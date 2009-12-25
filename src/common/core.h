@@ -5,8 +5,8 @@
 
 extern int runflag;
 
-int do_init(int,char**);
+int  do_init (int, char **);
 
-void set_termfunc(void (*termfunc)(void));
+void set_termfunc (void (*termfunc) (void));
 
-#endif	// _CORE_H_
+#endif // _CORE_H_

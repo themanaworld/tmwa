@@ -13,33 +13,35 @@
 
 // Struct declaration
 
-struct TimerData {
-	unsigned int tick;
-	int (*func)(int,unsigned int,int,int);
-	int id;
-	int data;
-	int type;
-	int interval;
-	int heap_pos;
+struct TimerData
+{
+    unsigned int tick;
+    int  (*func) (int, unsigned int, int, int);
+    int  id;
+    int  data;
+    int  type;
+    int  interval;
+    int  heap_pos;
 };
 
 // Function prototype declaration
 
-unsigned int gettick_nocache(void);
-unsigned int gettick(void);
+unsigned int gettick_nocache (void);
+unsigned int gettick (void);
 
-int add_timer(unsigned int,int (*)(int,unsigned int,int,int),int,int);
-int add_timer_interval(unsigned int,int (*)(int,unsigned int,int,int),int,int,int);
-int delete_timer(int,int (*)(int,unsigned int,int,int));
+int  add_timer (unsigned int, int (*)(int, unsigned int, int, int), int, int);
+int  add_timer_interval (unsigned int, int (*)(int, unsigned int, int, int),
+                         int, int, int);
+int  delete_timer (int, int (*)(int, unsigned int, int, int));
 
-int addtick_timer(int tid,unsigned int tick);
-struct TimerData *get_timer(int tid);
+int  addtick_timer (int tid, unsigned int tick);
+struct TimerData *get_timer (int tid);
 
-int do_timer(unsigned int tick);
+int  do_timer (unsigned int tick);
 
-int add_timer_func_list(int (*)(int,unsigned int,int,int),char*);
-char* search_timer_func_list(int (*)(int,unsigned int,int,int));
+int  add_timer_func_list (int (*)(int, unsigned int, int, int), char *);
+char *search_timer_func_list (int (*)(int, unsigned int, int, int));
 
-extern void timer_final();
+extern void timer_final ();
 
-#endif	// _TIMER_H_
+#endif // _TIMER_H_

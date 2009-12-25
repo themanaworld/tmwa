@@ -1,11 +1,9 @@
 #ifndef _NULLPO_H_
 #define _NULLPO_H_
 
-
 #define NULLPO_CHECK 1
-		// 全体のスイッチを宣言しているヘッダがあれば
-		// そこに移動していただけると
-
+        // 全体のスイッチを宣言しているヘッダがあれば
+        // そこに移動していただけると
 
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
@@ -16,9 +14,8 @@
 #endif
 
 #ifdef LCCWIN32
-#define __attribute__(x)	/* nothing */
+#define __attribute__(x)        /* nothing */
 #endif
-
 
 #define NLP_MARK __FILE__, __LINE__, __func__
 
@@ -86,7 +83,6 @@
 
 #define nullpo_retr(ret, t) \
 	if (nullpo_chk(NLP_MARK, (void *)(t))) {return(ret);}
-
 
 // 可変引数マクロに関する条件コンパイル
 #if __STDC_VERSION__ >= 199901L
@@ -165,8 +161,8 @@
  *  1 NULL
  *--------------------------------------
  */
-int nullpo_chk(const char *file, int line, const char *func, const void *target);
-
+int  nullpo_chk (const char *file, int line, const char *func,
+                 const void *target);
 
 /*======================================
  * nullpo_chk_f
@@ -184,10 +180,9 @@ int nullpo_chk(const char *file, int line, const char *func, const void *target)
  *  1 NULL
  *--------------------------------------
  */
-int nullpo_chk_f(const char *file, int line, const char *func, const void *target,
-                 const char *fmt, ...)
-                 __attribute__((format(printf,5,6)));
-
+int  nullpo_chk_f (const char *file, int line, const char *func,
+                   const void *target, const char *fmt, ...)
+    __attribute__ ((format (printf, 5, 6)));
 
 /*======================================
  * nullpo_info
@@ -199,8 +194,7 @@ int nullpo_chk_f(const char *file, int line, const char *func, const void *targe
  *    これらには NLP_MARK を使うとよい
  *--------------------------------------
  */
-void nullpo_info(const char *file, int line, const char *func);
-
+void nullpo_info (const char *file, int line, const char *func);
 
 /*======================================
  * nullpo_info_f
@@ -214,9 +208,8 @@ void nullpo_info(const char *file, int line, const char *func);
  *    備考や関係変数の書き出しなどに
  *--------------------------------------
  */
-void nullpo_info_f(const char *file, int line, const char *func, 
-                   const char *fmt, ...)
-                   __attribute__((format(printf,4,5)));
-
+void nullpo_info_f (const char *file, int line, const char *func,
+                    const char *fmt, ...)
+    __attribute__ ((format (printf, 4, 5)));
 
 #endif

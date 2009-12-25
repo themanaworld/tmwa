@@ -4,6 +4,6 @@
 // String function library.
 // code by Jioh L. Jung (ziozzang@4wish.net)
 // This code is under license "BSD"
-unsigned char* jstrescape (unsigned char* pt);
-unsigned char* jstrescapecpy (unsigned char* pt,unsigned char* spt);
+unsigned char *jstrescape (unsigned char *pt);
+unsigned char *jstrescapecpy (unsigned char *pt, unsigned char *spt);
 #endif

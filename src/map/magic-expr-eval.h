@@ -3,15 +3,16 @@
 
 /* Helper definitions for dealing with functions and operations */
 
-static int heading_x[8] = { 0, -1, -1, -1,  0,  1, 1, 1 };
-static int heading_y[8] = { 1,  1,  0, -1, -1, -1, 0, 1 };
+static int heading_x[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
+static int heading_y[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
 
 int
-magic_signature_check(char *opname, char *funname, char *signature, int args_nr, val_t *args, int line, int column);
+ magic_signature_check (char *opname, char *funname, char *signature,
+                        int args_nr, val_t * args, int line, int column);
 
 void
-magic_area_rect(int *m, int *x, int *y, int *width, int *height, area_t *area);
-
+magic_area_rect (int *m, int *x, int *y, int *width, int *height,
+                 area_t * area);
 
 #define ARGINT(x) args[x].v.v_int
 #define ARGDIR(x) args[x].v.v_int

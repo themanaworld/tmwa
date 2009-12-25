@@ -1,14 +1,13 @@
 #ifndef _INTER_H_
 #define _INTER_H_
 
-int inter_init(const char *file);
-int inter_parse_frommap(int fd);
-int inter_mapif_init(int fd);
+int  inter_init (const char *file);
+int  inter_parse_frommap (int fd);
+int  inter_mapif_init (int fd);
 
+int  inter_check_length (int fd, int length);
 
-int inter_check_length(int fd,int length);
-
-int inter_log(char *fmt,...);
+int  inter_log (char *fmt, ...);
 
 #define inter_cfgName "conf/inter_athena.conf"
 
@@ -20,14 +19,14 @@ extern char inter_log_filename[1024];
 
 extern MYSQL mysql_handle;
 extern char tmp_sql[65535];
-extern MYSQL_RES* 	sql_res ;
-extern MYSQL_ROW	sql_row ;
-extern int 	sql_cnt;
+extern MYSQL_RES *sql_res;
+extern MYSQL_ROW sql_row;
+extern int sql_cnt;
 
 extern MYSQL lmysql_handle;
 extern char tmp_lsql[65535];
-extern MYSQL_RES* 	lsql_res ;
-extern MYSQL_ROW	lsql_row ;
+extern MYSQL_RES *lsql_res;
+extern MYSQL_ROW lsql_row;
 
 extern int char_server_port;
 extern char char_server_ip[32];

@@ -9,18 +9,15 @@
 
 /* strcasecmp -> stricmp -> str_cmp */
 
-
 #ifdef LCCWIN32
-	int	strcasecmp(const char *arg1, const char *arg2);
-	int	strncasecmp(const char *arg1, const char *arg2, int n);
-	void str_upper(char *name);
-	void str_lower(char *name);
-    char *rindex(char *str, char c);
+int  strcasecmp (const char *arg1, const char *arg2);
+int  strncasecmp (const char *arg1, const char *arg2, int n);
+void str_upper (char *name);
+void str_lower (char *name);
+char *rindex (char *str, char c);
 #endif
 
-
- void dump(unsigned char *buffer, int num);
-
+void dump (unsigned char *buffer, int num);
 
 #define CREATE(result, type, number)  do {\
    if ((number) * sizeof(type) <= 0)   \
