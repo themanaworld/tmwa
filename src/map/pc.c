@@ -1461,11 +1461,14 @@ int pc_calcstatus (struct map_session_data *sd, int first)
                         int  c = sd->status.inventory[index].card[j];
                         if (c > 0)
                         {
+                            argrec_t arg;
+                            arg.name = "@slotId";
+                            arg.v.i = i;
                             if (i == 8
                                 && sd->status.inventory[index].equip == 0x20)
                                 sd->state.lr_flag = 1;
-                            run_script (itemdb_equipscript (c), 0, sd->bl.id,
-                                        0);
+                            run_script_l (itemdb_equipscript (c), 0, sd->bl.id,
+                                        0, 1, &arg);
                             sd->state.lr_flag = 0;
                         }
                     }
@@ -1481,9 +1484,13 @@ int pc_calcstatus (struct map_session_data *sd, int first)
                     for (j = 0; j < sd->inventory_data[index]->slot; j++)
                     {           // �J�[�h
                         int  c = sd->status.inventory[index].card[j];
-                        if (c > 0)
-                            run_script (itemdb_equipscript (c), 0, sd->bl.id,
-                                        0);
+                        if (c > 0) {
+                            argrec_t arg;
+                            arg.name = "@slotId";
+                            arg.v.i = i;
+                            run_script_l (itemdb_equipscript (c), 0, sd->bl.id,
+                                        0, 1, &arg);
+                        }
                     }
                 }
             }
@@ -1538,12 +1545,20 @@ int pc_calcstatus (struct map_session_data *sd, int first)
                     }
                     sd->attackrange_ += sd->inventory_data[index]->range;
                     sd->state.lr_flag = 1;
-                    run_script (sd->inventory_data[index]->equip_script, 0,
-                                sd->bl.id, 0);
+                    {
+                        argrec_t arg;
+                        arg.name = "@slotId";
+                        arg.v.i = i;
+                        run_script_l (sd->inventory_data[index]->equip_script, 0,
+                                      sd->bl.id, 0, 1, &arg);
+                    }
                     sd->state.lr_flag = 0;
                 }
                 else
                 {               //�񓁗������ȊO
+                    argrec_t arg;
+                    arg.name = "@slotId";
+                    arg.v.i = i;
                     sd->watk += sd->inventory_data[index]->atk;
                     sd->watk2 += (r = sd->status.inventory[index].refine) * // ���B�U����
                         refinebonus[wlv][0];
@@ -1556,17 +1571,20 @@ int pc_calcstatus (struct map_session_data *sd, int first)
                         wele = (sd->status.inventory[index].card[1] & 0x0f);    // �� ��
                     }
                     sd->attackrange += sd->inventory_data[index]->range;
-                    run_script (sd->inventory_data[index]->equip_script, 0,
-                                sd->bl.id, 0);
+                    run_script_l (sd->inventory_data[index]->equip_script, 0,
+                                  sd->bl.id, 0, 1, &arg);
                 }
             }
             else if (sd->inventory_data[index]->type == 5)
             {
+                argrec_t arg;
+                arg.name = "@slotId";
+                arg.v.i = i;
                 sd->watk += sd->inventory_data[index]->atk;
                 refinedef +=
                     sd->status.inventory[index].refine * refinebonus[0][0];
-                run_script (sd->inventory_data[index]->equip_script, 0,
-                            sd->bl.id, 0);
+                run_script_l (sd->inventory_data[index]->equip_script, 0,
+                              sd->bl.id, 0, 1, &arg);
             }
         }
     }
@@ -1584,9 +1602,12 @@ int pc_calcstatus (struct map_session_data *sd, int first)
         index = sd->equip_index[10];
         if (sd->inventory_data[index])
         {                       //�܂�����������Ă��Ȃ�
+            argrec_t arg;
+            arg.name = "@slotId";
+            arg.v.i = i;
             sd->state.lr_flag = 2;
-            run_script (sd->inventory_data[index]->equip_script, 0, sd->bl.id,
-                        0);
+            run_script_l (sd->inventory_data[index]->equip_script, 0, sd->bl.id,
+                        0, 1, &arg);
             sd->state.lr_flag = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
         }
