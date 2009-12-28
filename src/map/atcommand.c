@@ -643,8 +643,7 @@ void log_atcommand (struct map_session_data *sd, const char *fmt, ...)
     vsnprintf (message, 511, fmt, ap);
     va_end (ap);
 
-    if (pc_isGM (sd))
-        gm_log ("%s(%d,%d) %s : %s", map[sd->bl.m].name, sd->bl.x,
+    gm_log ("%s(%d,%d) %s : %s", map[sd->bl.m].name, sd->bl.x,
                 sd->bl.y, sd->status.name, message);
 }
 
