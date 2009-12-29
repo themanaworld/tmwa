@@ -995,11 +995,10 @@ static int pc_calc_skillpoint (struct map_session_data *sd)
 
     nullpo_retr (0, sd);
 
-    for (i = 0; i < skill_pool_skills_size; i++)
-    {
-        int  lv = sd->status.skill[skill_pool_skills[i]].lv;
+    for (i = 0; i < skill_pool_skills_size; i++) {
+        int lv = sd->status.skill[skill_pool_skills[i]].lv;
         if (lv)
-            skill_points += ((lv * (lv + 1)) >> 1) - 1;
+            skill_points += ((lv * (lv - 1)) >> 1) - 1;
     }
 
     return skill_points;
@@ -5096,7 +5095,7 @@ int pc_skillpt_potential (struct map_session_data *sd)
     int  skill_id;
     int  potential = 0;
 
-#define RAISE_COST(x) (((x)*((x)+1))>>1)
+#define RAISE_COST(x) (((x)*((x)-1))>>1)
 
     for (skill_id = 0; skill_id < MAX_SKILL; skill_id++)
         if (sd->status.skill[skill_id].id != 0
@@ -5117,12 +5116,21 @@ int pc_checkjoblevelup (struct map_session_data *sd)
     if (sd->status.job_exp >= next && next > 0)
     {
 
+<<<<<<< Updated upstream
         if (pc_skillpt_potential (sd) < sd->status.skill_point)
         {                       // [Fate] Bah, this is is painful.
             // But the alternative is quite error-prone, and eAthena has far worse performance issues...
             sd->status.job_exp = next - 1;
             return 0;
         }
+=======
+                if (pc_skillpt_potential(sd) <= sd->status.skill_point) { // [Fate] Bah, this is is painful.
+                        // But the alternative is quite error-prone, and eAthena has far worse performance issues...
+                        sd->status.job_exp = next - 1;
+                        pc_calcstatus(sd,0);
+                        return 0;
+                }
+>>>>>>> Stashed changes
 
         // job�����x���A�b�v����
         sd->status.job_exp -= next;
@@ -5544,6 +5552,7 @@ int pc_statusup2 (struct map_session_data *sd, int type, int val)
  * �X�L���|�C���g�����U��
  *------------------------------------------
  */
+<<<<<<< Updated upstream
 int pc_skillup (struct map_session_data *sd, int skill_num)
 {
     nullpo_retr (0, sd);
@@ -5563,6 +5572,25 @@ int pc_skillup (struct map_session_data *sd, int skill_num)
                     skill_num, sd->status.skill[skill_num].lv,
                     skill_power (sd, skill_num));
     }
+=======
+int pc_skillup(struct map_session_data *sd,int skill_num)
+{
+	nullpo_retr(0, sd);
+
+	if (sd->status.skill[skill_num].id !=0
+            && sd->status.skill_point >= sd->status.skill[skill_num].lv
+            && sd->status.skill[skill_num].lv < skill_db[skill_num].max_raise) {
+		sd->status.skill_point -= sd->status.skill[skill_num].lv;
+		sd->status.skill[skill_num].lv++;
+
+		pc_calcstatus(sd,0);
+		clif_skillup(sd,skill_num);
+		clif_updatestatus(sd,SP_SKILLPOINT);
+		clif_skillinfoblock(sd);
+                MAP_LOG_PC(sd, "SKILLUP %d %d %d",
+                           skill_num, sd->status.skill[skill_num].lv, skill_power(sd, skill_num));
+	}
+>>>>>>> Stashed changes
 
     return 0;
 }
