@@ -47,7 +47,7 @@ File.open("save/athena.txt", "r") do |f|
             account_id, char_index = split[1].split(',')
             character_name = split[2]
             characters.push(Character.new(character_name, account_id))
-            if $search_character == character_name
+            if $search_character.casecmp(character_name) == 0
                 puts "Searching for account #{account_id}"
                 $search_account_id = account_id
             end
