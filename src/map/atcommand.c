@@ -982,8 +982,17 @@ int atcommand_setup (const int fd, struct map_session_data *sd,
     snprintf (buf, 255, "%d %s", level, character);
     atcommand_character_baselevel (fd, sd, "@charbaselvl", buf);
 
-    snprintf (buf, 255, "+10 %s", character);
-    atcommand_character_joblevel (fd, sd, "@charjoblvl", buf);
+    // Emote skill
+    snprintf (buf, 255, "1 1 %s", character);
+    atcommand_skill_learn(fd, sd, "@skill-learn", buf);
+
+    // Trade skill
+    snprintf (buf, 255, "2 1 %s", character);
+    atcommand_skill_learn(fd, sd, "@skill-learn", buf);
+
+    // Party skill
+    snprintf (buf, 255, "2 2 %s", character);
+    atcommand_skill_learn(fd, sd, "@skill-learn", buf);
 
     snprintf (buf, 255, "018-1.gat 24 98 %s", character);
     atcommand_charwarp (fd, sd, "@charwarp", buf);
@@ -4557,6 +4566,8 @@ int atcommand_character_baselevel (const int fd, struct map_session_data *sd,
                 pc_calcstatus (pl_sd, 0);
                 clif_displaymessage (fd, msg_table[66]);    // Character's base level lowered.
             }
+	    // Reset their stat points to prevent extra points from stacking
+	    atcommand_charstreset(fd, sd,"@charstreset", character);
         }
         else
         {
