@@ -1161,7 +1161,7 @@ static effect_t *run_foreach (invocation_t * invocation, effect_t * foreach,
         cont_activation_record_t *ar =
             add_stack_entry (invocation, CONT_STACK_FOREACH, return_location);
         int  entities_allocd = 64;
-        int *entities_collect = malloc (entities_allocd * sizeof (int));
+        int *entities_collect;
         int *entities;
         int *shuffle_board;
         int  entities_nr = 0;
@@ -1169,6 +1169,8 @@ static effect_t *run_foreach (invocation_t * invocation, effect_t * foreach,
 
         if (!ar)
             return return_location;
+
+        entities_collect = malloc (entities_allocd * sizeof (int));
 
         find_entities_in_area (area.v.v_area, &entities_allocd, &entities_nr,
                                &entities_collect, filter);

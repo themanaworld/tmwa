@@ -268,6 +268,8 @@ spellconf_option	: ID '=' expr
 
                               if (!failed_flag)
                                   add_teleport_anchor(anchor, @1.first_line);
+                              else
+                                  free(anchor);
                               failed_flag = 0;
                           }
 			| PROCEDURE ID '(' proc_formals_list ')' '=' effect_list
