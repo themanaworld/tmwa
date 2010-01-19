@@ -5691,7 +5691,7 @@ int buildin_getcastlename (struct script_state *st)
             if (strcmp (mapname, gc->map_name) == 0)
             {
                 buf = (char *) aCalloc (24, sizeof (char));
-                strncpy (buf, gc->castle_name, 24);
+                strncpy (buf, gc->castle_name, 23);
                 break;
             }
         }
@@ -6942,10 +6942,10 @@ int buildin_getsavepoint (struct script_state *st)
 
     x = sd->status.save_point.x;
     y = sd->status.save_point.y;
-    strncpy (mapname, sd->status.save_point.map, 24);
     switch (type)
     {
         case 0:
+            strncpy (mapname, sd->status.save_point.map, 23);
             push_str (st->stack, C_STR, mapname);
             break;
         case 1:
@@ -7068,7 +7068,8 @@ int buildin_fakenpcname (struct script_state *st)
     nd = npc_name2id (name);
     if (!nd)
         return 1;
-    strncpy (nd->name, newname, 24);
+    strncpy (nd->name, newname, sizeof(nd->name)-1);
+    nd->name[sizeof(nd->name)-1] = '\0';
     nd->class = newsprite;
 
     // Refresh this npc

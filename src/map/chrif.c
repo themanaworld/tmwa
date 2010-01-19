@@ -51,7 +51,8 @@ static int chrif_state;
  */
 void chrif_setuserid (char *id)
 {
-    strncpy (userid, id, 24);
+    strncpy (userid, id, sizeof(userid)-1);
+    userid[sizeof(userid)-1] = '\0';
 }
 
 /*==========================================
@@ -60,7 +61,8 @@ void chrif_setuserid (char *id)
  */
 void chrif_setpasswd (char *pwd)
 {
-    strncpy (passwd, pwd, 24);
+    strncpy (passwd, pwd, sizeof(passwd)-1);
+    passwd[sizeof(passwd)-1] = '\0';
 }
 
 /*==========================================
@@ -69,7 +71,8 @@ void chrif_setpasswd (char *pwd)
  */
 void chrif_setip (char *ip)
 {
-    strncpy (char_ip_str, ip, 16);
+    strncpy (char_ip_str, ip, sizeof(char_ip_str)-1);
+    char_ip_str[sizeof(char_ip_str)-1] = '\0';
     char_ip = inet_addr (char_ip_str);
 }
 

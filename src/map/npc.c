@@ -321,7 +321,8 @@ int npc_event_doall_l (const char *name, int rid, int argc, argrec_t * args)
     int  c = 0;
     char buf[64] = "::";
 
-    strncpy (buf + 2, name, 62);
+    strncpy (buf + 2, name, sizeof(buf)-3);
+    buf[sizeof(buf)-1] = '\0';
     strdb_foreach (ev_db, npc_event_doall_sub, &c, buf, rid, argc, args);
     return c;
 }
@@ -1477,7 +1478,8 @@ int npc_convertlabel_db (void *key, void *data, va_list ap)
                                                 * (num + 1));
 
     *p = '\0';
-    strncpy (lst[num].name, lname, 24);
+    strncpy (lst[num].name, lname, sizeof(lst[num].name)-1);
+    lst[num].name[sizeof(lst[num].name)-1] = '\0';
     *p = ':';
     lst[num].pos = pos;
     nd->u.scr.label_list = lst;
@@ -1856,7 +1858,7 @@ static int npc_parse_function (char *w1, char *w2, char *w3, char *w4,
 
     p = (char *) aCalloc (50, sizeof (char));
 
-    strncpy (p, w3, 50);
+    strncpy (p, w3, 49);
     strdb_insert (script_get_userfunc_db (), p, script);
 
 //  label_db=script_get_label_db();

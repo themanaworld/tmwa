@@ -8359,7 +8359,8 @@ int pc_setsavepoint (struct map_session_data *sd, char *mapname, int x, int y)
 {
     nullpo_retr (0, sd);
 
-    strncpy (sd->status.save_point.map, mapname, 24);
+    strncpy (sd->status.save_point.map, mapname, 23);
+    sd->status.save_point.map[23] = '\0';
     sd->status.save_point.x = x;
     sd->status.save_point.y = y;
 
