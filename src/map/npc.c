@@ -74,7 +74,7 @@ int npc_enable_sub (struct block_list *bl, va_list ap)
         if (nd->flag & 1)       // �����������Ă���
             return 1;
 
-        memcpy (name, nd->name, 50);
+        memcpy (name, nd->name, sizeof(nd->name));
         if (sd->areanpc_id == nd->bl.id)
             return 1;
         sd->areanpc_id = nd->bl.id;
