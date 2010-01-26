@@ -16,7 +16,6 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <stdarg.h>
-#include <sys/wait.h>
 
 #include "core.h"
 #include "socket.h"
@@ -114,8 +113,6 @@ int  online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when
 
 int *online_chars;              // same size of char_dat, and id value of current server (or -1)
 time_t update_online;           // to update online files when we receiving information from a server (not less than 8 seconds)
-
-pid_t pid = 0; // For forked DB writes
 
 //------------------------------
 // Writing function of logs file
@@ -831,17 +828,7 @@ void mmo_char_sync (void)
 //----------------------------------------------------
 int mmo_char_sync_timer (int tid, unsigned int tick, int id, int data)
 {
-    if (pid != 0)
-    {
-        int status;
-        pid_t temp = waitpid (pid, &status, WNOHANG);
-
-        // Need to check status too?
-        if (temp == 0)
-        {
-            return 0;
-        }
-    }
+    pid_t pid;
 
     // This can take a lot of time. Fork a child to handle the work and return at once
     // If we're unable to fork just continue running the function normally

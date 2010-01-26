@@ -4,5 +4,8 @@
 
 void MD5_String (const char *string, char *output);
 void MD5_String2binary (const char *string, char *output);
+char *MD5_saltcrypt(const char *key, const char *salt);
+char *make_salt();
+int pass_ok(const char *password, const char *crypted);
 
 #endif
