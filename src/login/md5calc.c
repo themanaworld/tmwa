@@ -10,6 +10,7 @@
 #include "md5calc.h"
 #include <string.h>
 #include <stdio.h>
+#include "mt_rand.h"
 
 #ifndef UINT_MAX
 #define UINT_MAX 4294967295U
@@ -290,4 +291,43 @@ void MD5_String (const char *string, char *output)
              digest[4], digest[5], digest[6], digest[7],
              digest[8], digest[9], digest[10], digest[11],
              digest[12], digest[13], digest[14], digest[15]);
+}
+
+// Hash a password with a salt.
+char *MD5_saltcrypt(const char *key, const char *salt)
+{
+	char buf[66], *sbuf = buf+32;
+	static char obuf[33];
+
+	// hash the key then the salt
+	// buf ends up as a 64char null terminated string
+	MD5_String(key, buf);
+	MD5_String(salt, sbuf);
+
+	// Hash the buffer back into sbuf
+	MD5_String(buf, sbuf);
+
+	snprintf(obuf, 32, "!%s$%s", salt, sbuf);
+	return(obuf);
+}
+
+char *make_salt() {
+	static char salt[6];
+	int i;
+	for (i=0; i<5; i++)
+		salt[i] = (char)((mt_rand() % 78) + 48);
+	salt[5] = '\0';
+	return(salt);
+}
+
+int pass_ok(const char *password, const char *crypted) {
+	char buf[40], *salt=buf+1;
+
+	strncpy(buf, crypted, 40);
+	*strchr(buf, '$') = '\0';
+
+	if (!strcmp(crypted, MD5_saltcrypt(password, salt)))
+		return(1);
+
+	return(0);
 }

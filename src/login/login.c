@@ -27,9 +27,7 @@
 #include "lock.h"
 #include "mt_rand.h"
 
-#ifdef PASSWORDENC
 #include "md5calc.h"
-#endif
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -106,7 +104,7 @@ int  auth_fifo_pos = 0;
 struct auth_dat
 {
     int  account_id, sex;
-    char userid[24], pass[24], lastlogin[24];
+    char userid[24], pass[40], lastlogin[24];
     int  logincount;
     int  state;                 // packet 0x006a value + 1 (0: compte OK)
     char email[40];             // e-mail (by default: a@a.com)
@@ -667,9 +665,21 @@ int mmo_auth_init (void)
 
             strncpy (auth_dat[auth_num].userid, userid, 24);
 
-            pass[23] = '\0';
+            memo[254] = '\0';
+            remove_control_chars (memo);
+            strncpy (auth_dat[auth_num].memo, memo, 255);
+
+            pass[39] = '\0';
             remove_control_chars (pass);
-            strncpy (auth_dat[auth_num].pass, pass, 24);
+            // If a password is not encrypted, we encrypt it now.
+	    // A password beginning with ! and - in the memo field is our magic
+	    if (pass[0] != '!' && memo[0] == '-') {
+		strcpy(auth_dat[auth_num].pass, MD5_saltcrypt(pass, make_salt()));
+		auth_dat[auth_num].memo[0] = '!';
+		printf("encrypting pass: %s %s\n", pass, auth_dat[auth_num].pass);
+	    }
+	    else
+		strcpy(auth_dat[auth_num].pass, pass);
 
             lastlogin[23] = '\0';
             remove_control_chars (lastlogin);
@@ -726,10 +736,6 @@ int mmo_auth_init (void)
             last_ip[15] = '\0';
             remove_control_chars (last_ip);
             strncpy (auth_dat[auth_num].last_ip, last_ip, 16);
-
-            memo[254] = '\0';
-            remove_control_chars (memo);
-            strncpy (auth_dat[auth_num].memo, memo, 255);
 
             for (j = 0; j < ACCOUNT_REG2_NUM; j++)
             {
@@ -839,10 +845,6 @@ int mmo_auth_init (void)
 
             strncpy (auth_dat[auth_num].userid, userid, 24);
 
-            pass[23] = '\0';
-            remove_control_chars (pass);
-            strncpy (auth_dat[auth_num].pass, pass, 24);
-
             lastlogin[23] = '\0';
             remove_control_chars (lastlogin);
             strncpy (auth_dat[auth_num].lastlogin, lastlogin, 24);
@@ -879,7 +881,7 @@ int mmo_auth_init (void)
             auth_dat[auth_num].ban_until_time = 0;
             auth_dat[auth_num].connect_until_time = 0;
             strncpy (auth_dat[auth_num].last_ip, "-", 16);
-            strncpy (auth_dat[auth_num].memo, "-", 255);
+            strncpy (auth_dat[auth_num].memo, "!", 255);
 
             for (j = 0; j < ACCOUNT_REG2_NUM; j++)
             {
@@ -1174,8 +1176,8 @@ int mmo_auth_new (struct mmo_account *account, char sex, char *email)
     strncpy (auth_dat[i].userid, account->userid, 24);
     auth_dat[i].userid[23] = '\0';
 
-    strncpy (auth_dat[i].pass, account->passwd, 24);
-    auth_dat[i].pass[23] = '\0';
+    strcpy(auth_dat[i].pass, MD5_saltcrypt(account->passwd, make_salt()));
+    auth_dat[i].pass[39] = '\0';
 
     memcpy (auth_dat[i].lastlogin, "-", 2);
 
@@ -1210,7 +1212,7 @@ int mmo_auth_new (struct mmo_account *account, char sex, char *email)
 
     strncpy (auth_dat[i].last_ip, "-", 16);
 
-    strncpy (auth_dat[i].memo, "-", 255);
+    strncpy (auth_dat[i].memo, "!", 255);
 
     auth_dat[i].account_reg2_num = 0;
 
@@ -1228,7 +1230,9 @@ int mmo_auth (struct mmo_account *account, int fd)
     struct timeval tv;
     char tmpstr[256];
     int  len, newaccount = 0;
+#ifdef PASSWDENC
     char md5str[64], md5bin[32];
+#endif
     char ip[16];
     unsigned char *sin_addr =
         (unsigned char *) &session[fd]->client_addr.sin_addr;
@@ -1271,9 +1275,8 @@ int mmo_auth (struct mmo_account *account, int fd)
         if (newaccount)
         {
             login_log
-                ("Attempt of creation of an already existant account (account: %s_%c, pass: %s, received pass: %s, ip: %s)"
-                 RETCODE, account->userid, account->userid[len + 1],
-                 auth_dat[i].pass, account->passwd, ip);
+                ("Attempt of creation of an already existant account (account: %s_%c, ip: %s)"
+                 RETCODE, account->userid, account->userid[len + 1], ip);
             return 9;           // 9 = Account already exists
         }
         ld = session[fd]->session_data;
@@ -1312,13 +1315,13 @@ int mmo_auth (struct mmo_account *account, int fd)
 //          printf("client [%s] accountpass [%s]\n", account->passwd, auth_dat[i].pass);
         }
 #endif
-        if ((strcmp (account->passwd, auth_dat[i].pass) && !encpasswdok))
+        if ((!pass_ok (account->passwd, auth_dat[i].pass)) && !encpasswdok)
         {
             if (account->passwdenc == 0)
                 login_log
-                    ("Invalid password (account: %s, pass: %s, received pass: %s, ip: %s)"
-                     RETCODE, account->userid, auth_dat[i].pass,
-                     account->passwd, ip);
+                    ("Invalid password (account: %s, ip: %s)"
+                     RETCODE, account->userid, ip);
+
 #ifdef PASSWORDENC
             else
             {
@@ -1347,8 +1350,8 @@ int mmo_auth (struct mmo_account *account, int fd)
         if (auth_dat[i].state)
         {
             login_log
-                ("Connection refused (account: %s, pass: %s, state: %d, ip: %s)"
-                 RETCODE, account->userid, account->passwd, auth_dat[i].state,
+                ("Connection refused (account: %s, state: %d, ip: %s)"
+                 RETCODE, account->userid, auth_dat[i].state,
                  ip);
             switch (auth_dat[i].state)
             {                   // packet 0x006a value + 1
@@ -1378,15 +1381,15 @@ int mmo_auth (struct mmo_account *account, int fd)
             if (auth_dat[i].ban_until_time > time (NULL))
             {                   // always banned
                 login_log
-                    ("Connection refused (account: %s, pass: %s, banned until %s, ip: %s)"
-                     RETCODE, account->userid, account->passwd, tmpstr, ip);
+                    ("Connection refused (account: %s, banned until %s, ip: %s)"
+                     RETCODE, account->userid, tmpstr, ip);
                 return 6;       // 6 = Your are Prohibited to log in until %s
             }
             else
             {                   // ban is finished
                 login_log
-                    ("End of ban (account: %s, pass: %s, previously banned until %s -> not more banned, ip: %s)"
-                     RETCODE, account->userid, account->passwd, tmpstr, ip);
+                    ("End of ban (account: %s, previously banned until %s -> not more banned, ip: %s)"
+                     RETCODE, account->userid, tmpstr, ip);
                 auth_dat[i].ban_until_time = 0; // reset the ban time
             }
         }
@@ -1395,8 +1398,8 @@ int mmo_auth (struct mmo_account *account, int fd)
             && auth_dat[i].connect_until_time < time (NULL))
         {
             login_log
-                ("Connection refused (account: %s, pass: %s, expired ID, ip: %s)"
-                 RETCODE, account->userid, account->passwd, ip);
+                ("Connection refused (account: %s, expired ID, ip: %s)"
+                 RETCODE, account->userid, ip);
             return 2;           // 2 = This ID is expired
         }
 
@@ -1408,8 +1411,8 @@ int mmo_auth (struct mmo_account *account, int fd)
         if (newaccount == 0)
         {
             login_log
-                ("Unknown account (account: %s, received pass: %s, ip: %s)"
-                 RETCODE, account->userid, account->passwd, ip);
+                ("Unknown account (account: %s, ip: %s)"
+                 RETCODE, account->userid, ip);
             return 0;           // 0 = Unregistered ID
         }
         else
@@ -1417,8 +1420,8 @@ int mmo_auth (struct mmo_account *account, int fd)
             int  new_id =
                 mmo_auth_new (account, account->userid[len + 1], "a@a.com");
             login_log
-                ("Account creation and authentification accepted (account %s (id: %d), pass: %s, sex: %c, connection with _F/_M, ip: %s)"
-                 RETCODE, account->userid, new_id, account->passwd,
+                ("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)"
+                 RETCODE, account->userid, new_id,
                  account->userid[len + 1], ip);
             auth_before_save_file = 0;  // Creation of an account -> save accounts file immediatly
         }
@@ -2140,14 +2143,14 @@ int parse_fromchar (int fd)
                     {
                         if (auth_dat[i].account_id == acc)
                         {
-                            if (strcmpi (auth_dat[i].pass, actual_pass) == 0)
+                            if (pass_ok (actual_pass, auth_dat[i].pass))
                             {
                                 if (strlen (new_pass) < 4)
                                     status = 3;
                                 else
                                 {
                                     status = 1;
-                                    memcpy (auth_dat[i].pass, new_pass, 24);
+                                    strcpy (auth_dat[i].pass, MD5_saltcrypt(new_pass, make_salt()));
                                     login_log
                                         ("Char-server '%s': Change pass success (account: %d (%s), ip: %s."
                                          RETCODE, server[id].name, acc,
@@ -2393,14 +2396,14 @@ int parse_admin (int fd)
                     else if (ma.sex != 'F' && ma.sex != 'M')
                     {
                         login_log
-                            ("'ladmin': Attempt to create an invalid account (account: %s, received pass: %s, invalid sex, ip: %s)"
-                             RETCODE, ma.userid, ma.passwd, ip);
+                            ("'ladmin': Attempt to create an invalid account (account: %s, invalid sex, ip: %s)"
+                             RETCODE, ma.userid, ip);
                     }
                     else if (account_id_count > END_ACCOUNT_NUM)
                     {
                         login_log
-                            ("'ladmin': Attempt to create an account, but there is no more available id number (account: %s, pass: %s, sex: %c, ip: %s)"
-                             RETCODE, ma.userid, ma.passwd, ma.sex, ip);
+                            ("'ladmin': Attempt to create an account, but there is no more available id number (account: %s, sex: %c, ip: %s)"
+                             RETCODE, ma.userid, ma.sex, ip);
                     }
                     else
                     {
@@ -2412,9 +2415,8 @@ int parse_admin (int fd)
                                 0)
                             {
                                 login_log
-                                    ("'ladmin': Attempt to create an already existing account (account: %s, pass: %s, received pass: %s, ip: %s)"
-                                     RETCODE, auth_dat[i].userid,
-                                     auth_dat[i].pass, ma.passwd, ip);
+                                    ("'ladmin': Attempt to create an already existing account (account: %s ip: %s)"
+                                     RETCODE, auth_dat[i].userid, ip);
                                 break;
                             }
                         }
@@ -2427,8 +2429,8 @@ int parse_admin (int fd)
                             remove_control_chars (email);
                             new_id = mmo_auth_new (&ma, ma.sex, email);
                             login_log
-                                ("'ladmin': Account creation (account: %s (id: %d), pass: %s, sex: %c, email: %s, ip: %s)"
-                                 RETCODE, ma.userid, new_id, ma.passwd,
+                                ("'ladmin': Account creation (account: %s (id: %d), sex: %c, email: %s, ip: %s)"
+                                 RETCODE, ma.userid, new_id,
                                  ma.sex, auth_dat[i].email, ip);
                             WFIFOL (fd, 2) = new_id;
                             mmo_auth_sync ();
@@ -2494,9 +2496,8 @@ int parse_admin (int fd)
                 if (i != -1)
                 {
                     memcpy (WFIFOP (fd, 6), auth_dat[i].userid, 24);
-                    memcpy (auth_dat[i].pass, RFIFOP (fd, 26), 24);
-                    auth_dat[i].pass[23] = '\0';
-                    remove_control_chars (auth_dat[i].pass);
+                    strcpy (auth_dat[i].pass, MD5_saltcrypt(RFIFOP (fd, 26), make_salt()));
+                    auth_dat[i].pass[39] = '\0';
                     WFIFOL (fd, 2) = auth_dat[i].account_id;
                     login_log
                         ("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)"
@@ -2625,7 +2626,7 @@ int parse_admin (int fd)
                 if (i != -1)
                 {
                     memcpy (WFIFOP (fd, 6), auth_dat[i].userid, 24);
-                    if (strcmp (auth_dat[i].pass, RFIFOP (fd, 26)) == 0)
+		    if ( pass_ok(RFIFOP (fd, 26), auth_dat[i].pass) )
                     {
                         WFIFOL (fd, 2) = auth_dat[i].account_id;
                         login_log
@@ -2963,7 +2964,7 @@ int parse_admin (int fd)
                     memset (auth_dat[i].memo, '\0', size_of_memo);
                     if (RFIFOW (fd, 26) == 0)
                     {
-                        strncpy (auth_dat[i].memo, "-", size_of_memo);
+                        strncpy (auth_dat[i].memo, "!", size_of_memo);
                     }
                     else if (RFIFOW (fd, 26) > size_of_memo - 1)
                     {
