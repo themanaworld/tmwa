@@ -8204,14 +8204,14 @@ void clif_parse_NpcStringInput (int fd, struct map_session_data *sd)
 
     len = RFIFOW (fd, 2) - 7;
 
-    if (len >= sizeof (sd->npc_str))
+    if (len >= sizeof (sd->npc_str)-1)
     {
         printf ("clif: input string too long !\n");
         memcpy (sd->npc_str, RFIFOP (fd, 8), sizeof (sd->npc_str));
-        sd->npc_str[sizeof (sd->npc_str) - 1] = 0;
     }
     else
         strncpy (sd->npc_str, RFIFOP (fd, 8), len);
+    sd->npc_str[sizeof (sd->npc_str) - 1] = 0;
     map_scriptcont (sd, RFIFOL (fd, 4));
 }
 

@@ -146,7 +146,7 @@ void tmw_GmHackMsg (const char *fmt, ...)
     va_end (ap);
 
     char outbuf[512 + 5];
-    strcat (outbuf, "[GM] ");
+    strcpy (outbuf, "[GM] ");
     strcat (outbuf, buf);
 
     intif_wis_message_to_gm (wisp_server_name,
