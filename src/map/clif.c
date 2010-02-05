@@ -7145,42 +7145,33 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
  */
 void clif_parse_GlobalMessage (int fd, struct map_session_data *sd)
 {                               // S 008c <len>.w <str>.?B
-    int  malformed = 0;
-
     nullpo_retv (sd);
 
-    if ((is_atcommand (fd, sd, RFIFOP (fd, 4), 0) != AtCommand_None) || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1 || //�o�[�T�[�N���͉��b���s��
-                                                                                         sd->sc_data[SC_NOCHAT].timer != -1)))  //�`���b�g�֎~ 
-    {
+    if ((is_atcommand (fd, sd, RFIFOP (fd, 4), 0) != AtCommand_None) || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1 || 
+                                                                                         sd->sc_data[SC_NOCHAT].timer != -1)))  
         return;
-    }
 
     if (strlen (RFIFOP (fd, 4)) >= battle_config.chat_maxline)
-        malformed = 1;
+	return;
 
     // Simply ignore messages with spoofed/incorrect source names.
     if (strncmp (RFIFOP (fd, 4), sd->status.name, strlen (sd->status.name)) !=
         0)
-        malformed = 1;
+	return;
 
     char *buf = (char *) malloc (RFIFOW (fd, 2) + 4);
     int  msg_len = RFIFOW (fd, 2) + 4;  // len of message - 4 + 8
+
     // Prepare to send message to others
     WBUFW (buf, 0) = 0x8d;
     WBUFW (buf, 2) = msg_len;
     WBUFL (buf, 4) = sd->bl.id;
     memcpy (WBUFP (buf, 8), RFIFOP (fd, 4), RFIFOW (fd, 2) - 4);
-
-    if (malformed || !magic_message (sd, buf, msg_len))
+    
+    if (magic_message(sd, buf, msg_len) == 0)
     {
         if (tmw_CheckChatSpam (sd, RFIFOP (fd, 4)))
             return;
-
-        if (malformed)
-        {
-            free (buf);
-            return;
-        }
 
         clif_send (buf, WBUFW (buf, 2), &sd->bl,
                    sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
