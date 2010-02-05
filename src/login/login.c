@@ -119,15 +119,6 @@ struct auth_dat
 
 int  auth_num = 0, auth_max = 0;
 
-// define the number of times that some players must authentify them before to save account file.
-// it's just about normal authentification. If an account is created or modified, save is immediatly done.
-// An authentification just change last connected IP and date. It already save in log file.
-// set minimum auth change before save:
-#define AUTH_BEFORE_SAVE_FILE 10
-// set divider of auth_num to found number of change before save
-#define AUTH_SAVE_FILE_DIVIDER 50
-int  auth_before_save_file = 0; // Counter. First save when 1st char-server do connection.
-
 int  admin_state = 0;
 char admin_pass[24] = "";
 char gm_pass[64] = "";
@@ -1048,33 +1039,17 @@ void mmo_auth_sync (void)
 
     lock_fclose (fp, account_filename, &lock);
 
-    // set new counter to minimum number of auth before save
-    auth_before_save_file = auth_num / AUTH_SAVE_FILE_DIVIDER;  // Re-initialise counter. We have save.
-    if (auth_before_save_file < AUTH_BEFORE_SAVE_FILE)
-        auth_before_save_file = AUTH_BEFORE_SAVE_FILE;
-
     return;
 }
 
-//-----------------------------------------------------
-// Check if we must save accounts file or not
-//   every minute, we check if we must save because we
-//   have do some authentifications without arrive to
-//   the minimum of authentifications for the save.
-// Note: all other modification of accounts (deletion,
-//       change of some informations excepted lastip/
-//       lastlogintime, creation) are always save
-//       immediatly and set  the minimum of
-//       authentifications to its initialization value.
+// We want to sync the DB to disk as little as possible as it's fairly 
+// resource intensive. therefore most player-triggerable events that
+// update the account DB will not immideately trigger a save. Instead
+// we save periodicly on a timer.
 //-----------------------------------------------------
 int check_auth_sync (int tid, unsigned int tick, int id, int data)
 {
-    // we only save if necessary:
-    // we have do some authentifications without do saving
-    if (auth_before_save_file < AUTH_BEFORE_SAVE_FILE ||
-        auth_before_save_file < (int) (auth_num / AUTH_SAVE_FILE_DIVIDER))
-        mmo_auth_sync ();
-
+    mmo_auth_sync ();
     return 0;
 }
 
@@ -1423,7 +1398,6 @@ int mmo_auth (struct mmo_account *account, int fd)
                 ("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)"
                  RETCODE, account->userid, new_id,
                  account->userid[len + 1], ip);
-            auth_before_save_file = 0;  // Creation of an account -> save accounts file immediatly
         }
     }
 
@@ -1439,11 +1413,6 @@ int mmo_auth (struct mmo_account *account, int fd)
     account->sex = auth_dat[i].sex;
     strncpy (auth_dat[i].last_ip, ip, 16);
     auth_dat[i].logincount++;
-
-    // Save until for change ip/time of auth is not very useful => limited save for that
-    // Save there informations isnot necessary, because they are saved in log file.
-    if (--auth_before_save_file <= 0)   // Reduce counter. 0 or less, we save
-        mmo_auth_sync ();
 
     return -1;                  // account OK
 }
@@ -1639,8 +1608,6 @@ int parse_fromchar (int fd)
                             login_log
                                 ("Char-server '%s': Create an e-mail on an account with a default e-mail (account: %d, new e-mail: %s, ip: %s)."
                                  RETCODE, server[id].name, acc, email, ip);
-                            // Save
-                            mmo_auth_sync ();
                             break;
                         }
                     }
@@ -1814,8 +1781,6 @@ int parse_fromchar (int fd)
                                         ("Char-server '%s': Modify an e-mail on an account (@email GM command) (account: %d (%s), new e-mail: %s, ip: %s)."
                                          RETCODE, server[id].name, acc,
                                          auth_dat[i].userid, new_email, ip);
-                                    // Save
-                                    mmo_auth_sync ();
                                 }
                                 else
                                     login_log
@@ -2021,8 +1986,6 @@ int parse_fromchar (int fd)
                                 WBUFL (buf, 2) = acc;
                                 WBUFB (buf, 6) = sex;
                                 charif_sendallwos (-1, buf, 7);
-                                // Save
-                                mmo_auth_sync ();
                             }
                             break;
                         }
@@ -2155,8 +2118,6 @@ int parse_fromchar (int fd)
                                         ("Char-server '%s': Change pass success (account: %d (%s), ip: %s."
                                          RETCODE, server[id].name, acc,
                                          auth_dat[i].userid, ip);
-                                    // Save
-                                    mmo_auth_sync ();
                                 }
                             }
                             else
@@ -5117,7 +5078,8 @@ int do_init (int argc, char **argv)
 
     add_timer_func_list (check_auth_sync, "check_auth_sync");
 
-    i = add_timer_interval (gettick () + 60000, check_auth_sync, 0, 0, 60000);  // every 60 sec we check if we must save accounts file (only if necessary to save)
+    // Trigger auth sync every 5 minutes
+    i = add_timer_interval (gettick () + 300000, check_auth_sync, 0, 0, 300000);
 
     if (anti_freeze_enable > 0)
     {
