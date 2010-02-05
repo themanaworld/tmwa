@@ -6,3 +6,7 @@ login-server
 map-server
 GNUmakefile
 eathena-monitor
+magic-interpreter-parser.h
+magic-interpreter-parser.c
+magic-interpreter-lexer.c
+
