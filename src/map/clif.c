@@ -7170,8 +7170,10 @@ void clif_parse_GlobalMessage (int fd, struct map_session_data *sd)
     
     if (magic_message(sd, buf, msg_len) == 0)
     {
-        if (tmw_CheckChatSpam (sd, RFIFOP (fd, 4)))
+        if (tmw_CheckChatSpam (sd, RFIFOP (fd, 4))) {
+	    free(buf);
             return;
+	}
 
         clif_send (buf, WBUFW (buf, 2), &sd->bl,
                    sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
