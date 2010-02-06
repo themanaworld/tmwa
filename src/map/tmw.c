@@ -30,7 +30,7 @@
 #include "skill.h"
 #include "storage.h"
 #include "trade.h"
-
+    
 int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
 {
     nullpo_retr (1, sd);
@@ -78,20 +78,7 @@ int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
     {
         sd->chat_lines_in = sd->chat_total_repeats = 0;
 
-        if (battle_config.chat_spam_ban > 0 && !sd->auto_ban_info.in_progress)
-        {
-            tmw_GmHackMsg ("%s has been autobanned for chat spam",
-                           sd->status.name);
-            gm_log ("server(0,0) Server : @autoban %s %dh (chat spam)",
-                    sd->status.name, battle_config.chat_spam_ban);
-
-            sd->auto_ban_info.in_progress = 1;
-
-            clif_displaymessage (sd->fd,
-                                 "You have been banned for spamming. Please do not spam.");
-            chrif_char_ask_name (-1, sd->status.name, 2, 0, 0, 0, battle_config.chat_spam_ban, 0, 0);   // type: 2 - ban (year, month, day, hour, minute, second)
-            clif_setwaitclose (sd->fd);
-        }
+	tmw_AutoBan(sd, "chat", battle_config.chat_spam_ban);
 
         return 1;
     }
@@ -107,6 +94,98 @@ int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
     }
 
     return 0;
+}
+
+int tmw_CheckTradeSpam (struct map_session_data *sd)
+{
+    nullpo_retr (1, sd);
+    time_t now = time (NULL);
+
+    if (pc_isGM (sd))
+        return 0;
+
+    if (now > sd->trade_reset_due)
+    {
+        sd->trade_reset_due = now + battle_config.trade_spam_threshold;
+        sd->trades_in = 0;
+    }
+
+    sd->trades_in++;
+
+    if (sd->trades_in >= battle_config.trade_spam_flood)
+    {
+        sd->trades_in = 0;
+
+	tmw_AutoBan(sd, "trade", battle_config.trade_spam_ban);
+
+        return 1;
+    }
+
+    if (battle_config.trade_spam_ban
+        && sd->trades_in >= battle_config.trade_spam_warn)
+    {
+        clif_displaymessage (sd->fd,
+                             "WARNING : You are about to be automaticly banned for trade spam!");
+    }
+
+    return 0;
+}
+
+int tmw_CheckSitSpam (struct map_session_data *sd)
+{
+    nullpo_retr (1, sd);
+    time_t now = time (NULL);
+
+    if (pc_isGM (sd))
+        return 0;
+
+    if (now > sd->sit_reset_due)
+    {
+        sd->sit_reset_due = now + battle_config.sit_spam_threshold;
+        sd->sits_in = 0;
+    }
+
+    sd->sits_in++;
+
+    if (sd->sits_in >= battle_config.sit_spam_flood)
+    {
+        sd->sits_in = 0;
+
+	tmw_AutoBan(sd, "sit", battle_config.sit_spam_ban);
+
+        return 1;
+    }
+
+    if (battle_config.sit_spam_ban
+        && sd->sits_in >= battle_config.sit_spam_warn)
+    {
+        clif_displaymessage (sd->fd,
+                             "WARNING : You are about to be automaticly banned for sit spam!");
+    }
+
+    return 0;
+}
+
+void tmw_AutoBan(struct map_session_data *sd, char *reason, int length)
+{
+	char anotherbuf[512];
+
+	if (length == 0 || sd->auto_ban_info.in_progress)
+		return;
+
+            sd->auto_ban_info.in_progress = 1;
+
+            tmw_GmHackMsg ("%s has been autobanned for %s spam",
+                           sd->status.name, reason);
+
+            gm_log ("%s(%d,%d) Server : @autoban %s %dh (%s spam)",
+		    map[sd->bl.m].name, sd->bl.x, sd->bl.y,
+                    sd->status.name, length, reason);
+
+	    snprintf(anotherbuf, 511, "You have been banned for %s spamming. Please do not spam.", reason);
+            clif_displaymessage (sd->fd, anotherbuf);
+            chrif_char_ask_name (-1, sd->status.name, 2, 0, 0, 0, length, 0, 0);   // type: 2 - ban (year, month, day, hour, minute, second)
+            clif_setwaitclose (sd->fd);
 }
 
 // Compares the length of two strings and returns that of the shorter
@@ -152,101 +231,4 @@ void tmw_GmHackMsg (const char *fmt, ...)
     intif_wis_message_to_gm (wisp_server_name,
                              battle_config.hack_info_GM_level, outbuf,
                              strlen (outbuf) + 1);
-}
-
-int tmw_CheckTradeSpam (struct map_session_data *sd)
-{
-    nullpo_retr (1, sd);
-    time_t now = time (NULL);
-
-    if (pc_isGM (sd))
-        return 0;
-
-    if (now > sd->trade_reset_due)
-    {
-        sd->trade_reset_due = now + battle_config.trade_spam_threshold;
-        sd->trades_in = 0;
-    }
-
-    sd->trades_in++;
-
-    if (sd->trades_in >= battle_config.trade_spam_flood)
-    {
-        sd->trades_in = 0;
-
-        if (battle_config.trade_spam_ban > 0
-            && !sd->auto_ban_info.in_progress)
-        {
-            tmw_GmHackMsg ("%s has been autobanned for trade spam",
-                           sd->status.name);
-            gm_log ("server(0,0) Server : @autoban %s %dh (trade spam)",
-                    sd->status.name, battle_config.trade_spam_ban);
-
-            sd->auto_ban_info.in_progress = 1;
-
-            clif_displaymessage (sd->fd,
-                                 "You have been banned for trade spamming. Please do not trade spam.");
-            chrif_char_ask_name (-1, sd->status.name, 2, 0, 0, 0, battle_config.trade_spam_ban, 0, 0);  // type: 2 - ban (year, month, day, hour, minute, second)
-            clif_setwaitclose (sd->fd);
-        }
-
-        return 1;
-    }
-
-    if (battle_config.trade_spam_ban
-        && sd->trades_in >= battle_config.trade_spam_warn)
-    {
-        clif_displaymessage (sd->fd,
-                             "WARNING : You are about to be automaticly banned for trade spam!");
-    }
-
-    return 0;
-}
-
-int tmw_CheckSitSpam (struct map_session_data *sd)
-{
-    nullpo_retr (1, sd);
-    time_t now = time (NULL);
-
-    if (pc_isGM (sd))
-        return 0;
-
-    if (now > sd->sit_reset_due)
-    {
-        sd->sit_reset_due = now + battle_config.sit_spam_threshold;
-        sd->sits_in = 0;
-    }
-
-    sd->sits_in++;
-
-    if (sd->sits_in >= battle_config.sit_spam_flood)
-    {
-        sd->sits_in = 0;
-
-        if (battle_config.sit_spam_ban > 0 && !sd->auto_ban_info.in_progress)
-        {
-            tmw_GmHackMsg ("%s has been autobanned for sit spam",
-                           sd->status.name);
-            gm_log ("server(0,0) Server : @autoban %s %dh (sit spam)",
-                    sd->status.name, battle_config.sit_spam_ban);
-
-            sd->auto_ban_info.in_progress = 1;
-
-            clif_displaymessage (sd->fd,
-                                 "You have been banned for sit spamming. Please do not sit spam.");
-            chrif_char_ask_name (-1, sd->status.name, 2, 0, 0, 0, battle_config.sit_spam_ban, 0, 0);    // type: 2 - ban (year, month, day, hour, minute, second)
-            clif_setwaitclose (sd->fd);
-        }
-
-        return 1;
-    }
-
-    if (battle_config.sit_spam_ban
-        && sd->sits_in >= battle_config.sit_spam_warn)
-    {
-        clif_displaymessage (sd->fd,
-                             "WARNING : You are about to be automaticly banned for sit spam!");
-    }
-
-    return 0;
 }
