@@ -181,7 +181,7 @@ void trade_tradeadditem (struct map_session_data *sd, int index, int amount)
                                 return;
                             }
                         }
-                        pc_unequipinvyitem (sd, index - 2, 1);
+                        pc_unequipinvyitem (sd, index - 2, 0);
                         sd->deal_item_index[trade_i] = index;
                         sd->deal_item_amount[trade_i] += amount;
                         clif_tradeitemok (sd, index, amount, 0);    //success to add item
