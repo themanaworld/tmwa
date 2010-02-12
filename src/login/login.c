@@ -16,6 +16,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <sys/wait.h>
 
 #include "core.h"
 #include "socket.h"
@@ -125,6 +126,9 @@ char gm_pass[64] = "";
 int  level_new_gm = 60;
 
 static struct dbt *gm_account_db;
+
+pid_t pid = 0; // For forked DB writes
+
 
 #define VERSION_2_UPDATEHOST 0x01   // client supports updatehost
 #define VERSION_2_SERVERORDER 0x02  // send servers in forward order
@@ -1049,6 +1053,23 @@ void mmo_auth_sync (void)
 //-----------------------------------------------------
 int check_auth_sync (int tid, unsigned int tick, int id, int data)
 {
+    if (pid != 0)
+    {
+        int status;
+        pid_t temp = waitpid (pid, &status, WNOHANG);
+
+        // Need to check status too?
+        if (temp == 0)
+        {
+            return 0;
+        }
+    }
+
+    // This can take a lot of time. Fork a child to handle the work and return at once
+    // If we're unable to fork just continue running the function normally
+    if ((pid = fork ()) > 0)
+        return 0;
+
     mmo_auth_sync ();
     return 0;
 }
@@ -1831,8 +1852,6 @@ int parse_fromchar (int fd)
                                             auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                                 }
                                 auth_dat[i].state = statut;
-                                // Save
-                                mmo_auth_sync ();
                             }
                             else
                                 login_log
@@ -1921,8 +1940,6 @@ int parse_fromchar (int fd)
                                              ip);
                                     }
                                     auth_dat[i].ban_until_time = timestamp;
-                                    // Save
-                                    mmo_auth_sync ();
                                 }
                                 else
                                 {
@@ -2032,8 +2049,6 @@ int parse_fromchar (int fd)
                                     RFIFOW (fd, 2));
                             WBUFW (buf, 0) = 0x2729;
                             charif_sendallwos (fd, buf, WBUFW (buf, 2));
-                            // Save
-                            mmo_auth_sync ();
 //                      printf("parse_fromchar: receiving (from the char-server) of account_reg2 (account id: %d).\n", acc);
                             break;
                         }
@@ -2394,7 +2409,6 @@ int parse_admin (int fd)
                                  RETCODE, ma.userid, new_id,
                                  ma.sex, auth_dat[i].email, ip);
                             WFIFOL (fd, 2) = new_id;
-                            mmo_auth_sync ();
                         }
                     }
                     WFIFOSET (fd, 30);
@@ -2432,7 +2446,6 @@ int parse_admin (int fd)
                     memset (auth_dat[i].userid, '\0',
                             sizeof (auth_dat[i].userid));
                     auth_dat[i].account_id = -1;
-                    mmo_auth_sync ();
                 }
                 else
                 {
@@ -2463,7 +2476,6 @@ int parse_admin (int fd)
                     login_log
                         ("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)"
                          RETCODE, auth_dat[i].userid, auth_dat[i].pass, ip);
-                    mmo_auth_sync ();
                 }
                 else
                 {
@@ -2533,7 +2545,6 @@ int parse_admin (int fd)
                             auth_dat[i].state = statut;
                             memcpy (auth_dat[i].error_message, error_message,
                                     20);
-                            mmo_auth_sync ();
                         }
                     }
                     else
@@ -2664,7 +2675,6 @@ int parse_admin (int fd)
                                 login_log
                                     ("'ladmin': Modification of a sex (account: %s, new sex: %c, ip: %s)"
                                      RETCODE, auth_dat[i].userid, sex, ip);
-                                mmo_auth_sync ();
                                 // send to all char-server the change
                                 WBUFW (buf, 0) = 0x2723;
                                 WBUFL (buf, 2) = auth_dat[i].account_id;
@@ -2894,7 +2904,6 @@ int parse_admin (int fd)
                             login_log
                                 ("'ladmin': Modification of an email (account: %s, new e-mail: %s, ip: %s)"
                                  RETCODE, auth_dat[i].userid, email, ip);
-                            mmo_auth_sync ();
                         }
                         else
                         {
@@ -2943,7 +2952,6 @@ int parse_admin (int fd)
                     login_log
                         ("'ladmin': Modification of a memo field (account: %s, new memo: %s, ip: %s)"
                          RETCODE, auth_dat[i].userid, auth_dat[i].memo, ip);
-                    mmo_auth_sync ();
                 }
                 else
                 {
@@ -3036,7 +3044,6 @@ int parse_admin (int fd)
                              (timestamp == 0 ? "unlimited" : tmpstr), ip);
                         auth_dat[i].connect_until_time = timestamp;
                         WFIFOL (fd, 2) = auth_dat[i].account_id;
-                        mmo_auth_sync ();
                     }
                     else
                     {
@@ -3092,7 +3099,6 @@ int parse_admin (int fd)
                                         auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                             }
                             auth_dat[i].ban_until_time = timestamp;
-                            mmo_auth_sync ();
                         }
                     }
                     else
@@ -3179,7 +3185,6 @@ int parse_admin (int fd)
                                             auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                                 }
                                 auth_dat[i].ban_until_time = timestamp;
-                                mmo_auth_sync ();
                             }
                         }
                         else
@@ -3334,7 +3339,6 @@ int parse_admin (int fd)
                                      (timestamp == 0 ? "unlimited" : tmpstr2),
                                      ip);
                                 auth_dat[i].connect_until_time = timestamp;
-                                mmo_auth_sync ();
                                 WFIFOL (fd, 30) =
                                     (unsigned long)
                                     auth_dat[i].connect_until_time;
