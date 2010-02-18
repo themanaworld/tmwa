@@ -1071,6 +1071,11 @@ int check_auth_sync (int tid, unsigned int tick, int id, int data)
         return 0;
 
     mmo_auth_sync ();
+
+    // If we're a child we should suicide now.
+    if (pid == 0)
+        exit (0);
+
     return 0;
 }
 
