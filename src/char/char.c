@@ -853,7 +853,7 @@ int mmo_char_sync_timer (int tid, unsigned int tick, int id, int data)
 
     // If we're a child we should suicide now.
     if (pid == 0)
-        exit (0);
+        _exit (0);
 
     return 0;
 }
