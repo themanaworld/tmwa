@@ -889,10 +889,7 @@ static int clif_set0078 (struct map_session_data *sd, unsigned char *buf)
     WBUFB (buf, 48) |= sd->dir & 0x0f;
     WBUFW (buf, 49) = (pc_isGM (sd) == 60 || pc_isGM (sd) == 99) ? 0x80 : 0;
     WBUFB (buf, 51) = sd->state.dead_sit;
-    WBUFW (buf, 52) =
-        ((level =
-          battle_get_lv (&sd->bl)) >
-         battle_config.max_lv) ? battle_config.max_lv : level;
+    WBUFW (buf, 52) = 0;
 
     return packet_len_table[0x1d8];
 }
@@ -974,9 +971,7 @@ static int clif_set007b (struct map_session_data *sd, unsigned char *buf)
     WBUFPOS2 (buf, 50, sd->bl.x, sd->bl.y, sd->to_x, sd->to_y);
     WBUFW (buf, 55) = pc_isGM (sd) == 60 ? 0x80 : 0;
     WBUFB (buf, 57) = 5;
-    WBUFW (buf, 58) =
-        (sd->status.base_level >
-         battle_config.max_lv) ? battle_config.max_lv : sd->status.base_level;
+    WBUFW (buf, 58) = 0;
 
     return packet_len_table[0x1da];
 }
@@ -1291,9 +1286,7 @@ int clif_spawnpc (struct map_session_data *sd)
     clif_set0078 (sd, buf);
 
     WBUFW (buf, 0) = 0x1d9;
-    WBUFW (buf, 51) =
-        (sd->status.base_level >
-         battle_config.max_lv) ? battle_config.max_lv : sd->status.base_level;
+    WBUFW (buf, 51) = 0;
     clif_send (buf, packet_len_table[0x1d9], &sd->bl, AREA_WOS);
 
     if (sd->spiritball > 0)
