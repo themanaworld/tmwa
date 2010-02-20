@@ -3865,7 +3865,7 @@ int char_config_read (const char *cfgName)
         {
             if (strlen (w2) >= 4)
             {
-                memcpy (wisp_server_name, w2, sizeof (wisp_server_name));
+                strncpy (wisp_server_name, w2, sizeof (wisp_server_name));
                 wisp_server_name[sizeof (wisp_server_name) - 1] = '\0';
             }
         }
