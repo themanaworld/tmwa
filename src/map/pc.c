@@ -3383,9 +3383,6 @@ int pc_remove_items (struct map_session_data *player, int item_id, int count)
 
     nullpo_retr (0, player);
 
-    if (player->trade_partner != 0)
-        trade_tradecancel (player);
-
     for (i = 0; i < MAX_INVENTORY && count; i++)
     {
         if (player->status.inventory[i].nameid == item_id)
@@ -3475,6 +3472,9 @@ int pc_additem (struct map_session_data *sd, struct item *item_data,
 int pc_delitem (struct map_session_data *sd, int n, int amount, int type)
 {
     nullpo_retr (1, sd);
+
+    if (sd->trade_partner != 0)
+        trade_tradecancel (sd);
 
     if (sd->status.inventory[n].nameid == 0 || amount <= 0
         || sd->status.inventory[n].amount < amount
