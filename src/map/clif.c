@@ -7028,8 +7028,6 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
         case BL_PC:
         {
             struct map_session_data *ssd = (struct map_session_data *) bl;
-            struct party *p = NULL;
-            struct guild *g = NULL;
 
             nullpo_retv (ssd);
 
@@ -7037,12 +7035,17 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 memset (WFIFOP (fd, 6), 0, 24);
             else
                 memcpy (WFIFOP (fd, 6), ssd->status.name, 24);
-            if (ssd->status.guild_id > 0
-                && (g = guild_search (ssd->status.guild_id)) != NULL
-                && (ssd->status.party_id == 0
-                    || (p = party_search (ssd->status.party_id)) != NULL))
+            WFIFOSET (fd, packet_len_table[0x95]);
+
+            struct guild *g = NULL;
+            struct party *p = NULL;
+
+            char *guild_name = "", *guild_pos = "", *party_name = "";
+
+            int send = 0;
+
+            if (ssd->status.guild_id > 0 && (g = guild_search (ssd->status.guild_id)) != NULL)
             {
-                // �M���h�����Ȃ��p�P�b�g0195���Ԃ�
                 int  i, ps = -1;
                 for (i = 0; i < g->max_member; i++)
                 {
@@ -7052,18 +7055,29 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 }
                 if (ps >= 0 && ps < MAX_GUILDPOSITION)
                 {
-                    WFIFOW (fd, 0) = 0x195;
-                    if (p)
-                        memcpy (WFIFOP (fd, 30), p->name, 24);
-                    else
-                        WFIFOB (fd, 30) = 0;
-                    memcpy (WFIFOP (fd, 54), g->name, 24);
-                    memcpy (WFIFOP (fd, 78), g->position[ps].name, 24);
-                    WFIFOSET (fd, packet_len_table[0x195]);
-                    break;
+                    guild_name = g->name;
+                    guild_pos = g->position[ps].name;
+                    send = 1;
                 }
             }
-            WFIFOSET (fd, packet_len_table[0x95]);
+            if (ssd->status.party_id > 0 && (p = party_search (ssd->status.party_id)) != NULL)
+            {
+                party_name = p->name;
+                send = 1;
+            }
+
+            if (send)
+            {
+                WFIFOW (fd, 0) = 0x195;
+                WFIFOL (fd, 2) = account_id;
+                memcpy (WFIFOP (fd, 6), party_name, 24);
+                memcpy (WFIFOP (fd, 30), guild_name, 24);
+                memcpy (WFIFOP (fd, 54), guild_pos, 24);
+                memcpy (WFIFOP (fd, 78), guild_pos, 24); // We send this value twice because the client expects it
+                WFIFOSET (fd, packet_len_table[0x195]);
+
+            }
+
         }
             break;
         case BL_NPC:
@@ -7088,40 +7102,7 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
             nullpo_retv (md);
 
             memcpy (WFIFOP (fd, 6), md->name, 24);
-            if (md->class >= 1285 && md->class <= 1288)
-            {
-                struct guild *g;
-                struct guild_castle *gc =
-                    guild_mapname2gc (map[md->bl.m].name);
-                if (gc && gc->guild_id > 0
-                    && (g = guild_search (gc->guild_id)) != NULL)
-                {
-                    WFIFOW (fd, 0) = 0x195;
-                    WFIFOB (fd, 30) = 0;
-                    memcpy (WFIFOP (fd, 54), g->name, 24);
-                    memcpy (WFIFOP (fd, 78), gc->castle_name, 24);
-                    WFIFOSET (fd, packet_len_table[0x195]);
-                }
-                else
-                {
-                    WFIFOSET (fd, packet_len_table[0x95]);
-                }
-            }
-            else if (battle_config.show_mob_hp == 1)
-            {
-                char mobhp[50];
-                sprintf (mobhp, "hp: %d/%d", md->hp,
-                         mob_db[md->class].max_hp);
-                WFIFOW (fd, 0) = 0x195;
-                memcpy (WFIFOP (fd, 30), mobhp, 24);
-                WFIFOB (fd, 54) = 0;
-                WFIFOB (fd, 78) = 0;
-                WFIFOSET (fd, packet_len_table[0x195]);
-            }
-            else
-            {
-                WFIFOSET (fd, packet_len_table[0x95]);
-            }
+            WFIFOSET (fd, packet_len_table[0x95]);
         }
             break;
         default:
