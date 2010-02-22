@@ -343,6 +343,8 @@ void trade_tradecommit (struct map_session_data *sd)
                     MAP_LOG_PC (sd, " TRADECANCEL");
                     return;
                 }
+                sd->trade_partner = 0;
+                target_sd->trade_partner = 0;
                 for (trade_i = 0; trade_i < 10; trade_i++)
                 {
                     if (sd->deal_item_amount[trade_i] != 0)
@@ -399,9 +401,7 @@ void trade_tradecommit (struct map_session_data *sd)
                     clif_updatestatus (sd, SP_ZENY);
                 }
                 sd->deal_locked = 0;
-                sd->trade_partner = 0;
                 target_sd->deal_locked = 0;
-                target_sd->trade_partner = 0;
                 clif_tradecompleted (sd, 0);
                 clif_tradecompleted (target_sd, 0);
                 MAP_LOG_PC (sd, " TRADEOK");
