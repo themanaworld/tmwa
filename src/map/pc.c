@@ -5929,17 +5929,9 @@ int pc_damage (struct block_list *src, struct map_session_data *sd,
                         (double) sd->status.base_exp *
                         (double) battle_config.death_penalty_base / 10000;
             }
-            if (battle_config.death_penalty_type == 3
-                && battle_config.death_penalty_base > 0)
-                sd->status.zeny -= (double) sd->status.zeny *
-                                   (double) battle_config.death_penalty_base / 10000;
-
             if (sd->status.base_exp < 0)
                 sd->status.base_exp = 0;
-            if (sd->status.zeny < 0)
-                sd->status.zeny = 0;
             clif_updatestatus (sd, SP_BASEEXP);
-            clif_updatestatus (sd, SP_ZENY);
 
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_job > 0)
