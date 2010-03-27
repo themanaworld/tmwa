@@ -2,7 +2,9 @@
 //
 // Writen for TheManaWorld by Chuck Miller, A.K.A. Kage
 
+#include <cstring>
 #include <iostream>
+#include <stdlib.h>
 #include <string>
 
 using namespace std;
