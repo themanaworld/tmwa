@@ -300,6 +300,7 @@ int  buildin_specialeffect2 (struct script_state *st);  // special effect script
 int  buildin_nude (struct script_state *st);    // nude [Valaris]
 int  buildin_gmcommand (struct script_state *st);   // [MouseJstr]
 int  buildin_movenpc (struct script_state *st); // [MouseJstr]
+int  buildin_npcwarp (struct script_state *st); // [remoitnane]
 int  buildin_message (struct script_state *st); // [MouseJstr]
 int  buildin_npctalk (struct script_state *st); // [Valaris]
 int  buildin_hasitems (struct script_state *st);    // [Valaris]
@@ -701,6 +702,8 @@ struct
     {
     buildin_gmcommand, "gmcommand", "*"},   // [MouseJstr]
 //  {buildin_movenpc,"movenpc","siis"}, // [MouseJstr]
+    {
+    buildin_npcwarp, "npcwarp", "iis"}, // [remoitnane]
     {
     buildin_message, "message", "s*"},  // [MouseJstr]
     {
@@ -6797,6 +6800,41 @@ int buildin_movenpc (struct script_state *st)
     x = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     y = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     npc = conv_str (st, &(st->stack->stack_data[st->start + 5]));
+
+    return 0;
+}
+
+/*==========================================
+ * npcwarp [remoitnane]
+ * Move NPC to a new position on the same map.
+ *------------------------------------------
+ */
+int buildin_npcwarp (struct script_state *st)
+{
+    int  x, y;
+    char *npc;
+    struct npc_data *nd = NULL;
+
+    x = conv_num (st, &(st->stack->stack_data[st->start + 2]));
+    y = conv_num (st, &(st->stack->stack_data[st->start + 3]));
+    npc = conv_str (st, &(st->stack->stack_data[st->start + 4]));
+    nd = npc_name2id (npc);
+
+    if (!nd)
+        return -1;
+
+    short m = nd->bl.m;
+
+    /* Crude sanity checks. */
+    if (m < 0 || !nd->bl.prev
+            || x < 0 || x > map[m].xs -1
+            || y < 0 || y > map[m].ys - 1)
+        return -1;
+
+    npc_enable (npc, 0);
+    nd->bl.x = x;
+    nd->bl.y = y;
+    npc_enable (npc, 1);
 
     return 0;
 }
