@@ -618,7 +618,8 @@ void *grfio_reads (char *fname, int *size)
                 printf ("file read memory allocate error : declen\n");
                 goto errret;
             }
-            fread (buf2, 1, lentry.declen, in);
+            if (!fread (buf2, 1, lentry.declen, in))
+                goto errret;
             fclose_ (in);
             in = NULL;
             strncpy (lentry.fn, fname, sizeof (lentry.fn) - 1);
@@ -658,7 +659,8 @@ void *grfio_reads (char *fname, int *size)
             return NULL;
         }
         fseek (in, entry->srcpos, 0);
-        fread (buf, 1, entry->srclen_aligned, in);
+        if (!fread (buf, 1, entry->srclen_aligned, in))
+            goto errret;
         fclose_ (in);
         buf2 = calloc (entry->declen + 1024, 1);
         if (buf2 == NULL)
@@ -751,7 +753,9 @@ static int grfio_entryread (char *gfname, int gentry)
     fseek (fp, 0, 2);           // SEEK_END
     grf_size = ftell (fp);
     fseek (fp, 0, 0);           // SEEK_SET
-    fread (grf_header, 1, 0x2e, fp);
+    if (!fread (grf_header, 1, 0x2e, fp))
+        return 2;
+
     if (strcmp (grf_header, "Master of Magic")
         || fseek (fp, getlong (grf_header + 0x1e), 1))
     {                           // SEEK_CUR
@@ -772,7 +776,8 @@ static int grfio_entryread (char *gfname, int gentry)
             printf ("out of memory : grf_filelist\n");
             return 3;           // 3:memory alloc error
         }
-        fread (grf_filelist, 1, list_size, fp);
+        if (!fread (grf_filelist, 1, list_size, fp))
+            return 2;
         fclose_ (fp);
 
         entrys =
@@ -852,7 +857,9 @@ static int grfio_entryread (char *gfname, int gentry)
         unsigned char *rBuf;
         uLongf rSize, eSize;
 
-        fread (eheader, 1, 8, fp);
+        if (!fread (eheader, 1, 8, fp))
+            return 4;
+
         rSize = getlong (eheader);  // Read Size
         eSize = getlong (eheader + 4);  // Extend Size
 
@@ -878,7 +885,10 @@ static int grfio_entryread (char *gfname, int gentry)
             printf ("out of memory : grf extract entry table buffer\n");
             return 3;
         }
-        fread (rBuf, 1, rSize, fp);
+
+        if (!fread (rBuf, 1, rSize, fp))
+            return 4;
+
         fclose_ (fp);
         decode_zip (grf_filelist, &eSize, rBuf, rSize); // Decode function
         list_size = eSize;

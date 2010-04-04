@@ -4439,7 +4439,8 @@ int prompt ()
         // get command and parameter
         memset (buf, '\0', sizeof (buf));
         fflush (stdin);
-        fgets (buf, 1023, stdin);
+        if (!fgets (buf, 1023, stdin))
+            exit (0);
         buf[1023] = '\0';
 
         Iprintf ("\033[0m");

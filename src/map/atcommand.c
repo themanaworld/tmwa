@@ -3228,7 +3228,7 @@ int atcommand_produce (const int fd, struct map_session_data *sd,
         if (item_id != 0 && itemdb_exists (item_id))
             sprintf (output, msg_table[169], item_id, item_data->name); // This item (%d: '%s') is not an equipment.
         else
-            sprintf (output, msg_table[170]);   // This item is not an equipment.
+            sprintf (output, "%s", msg_table[170]);   // This item is not an equipment.
         clif_displaymessage (fd, output);
         return -1;
     }

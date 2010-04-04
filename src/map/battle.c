@@ -1671,7 +1671,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         {                       // ボルケーノ
             if (flag & BF_SKILL && skill_get_pl (skill_num) == 3)
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
-            else if (!flag & BF_SKILL && battle_get_attack_element (bl) == 3)
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 3))
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
         }
 
@@ -1679,7 +1679,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         {                       // バイオレントゲイル
             if (flag & BF_SKILL && skill_get_pl (skill_num) == 4)
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
-            else if (!flag & BF_SKILL && battle_get_attack_element (bl) == 4)
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 4))
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
         }
 
@@ -1687,7 +1687,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         {                       // デリュージ
             if (flag & BF_SKILL && skill_get_pl (skill_num) == 1)
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
-            else if (!flag & BF_SKILL && battle_get_attack_element (bl) == 1)
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 1))
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
         }
 
