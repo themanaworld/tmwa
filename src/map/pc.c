@@ -961,6 +961,9 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     sd->trade_reset_due = sd->trades_in = 0;
     sd->sit_reset_due = sd->sits_in = 0;
 
+    memset(sd->flood_rates, 0, sizeof(sd->flood_rates));
+    sd->packet_flood_reset_due = sd->packet_flood_in = 0;
+
     // message of the limited time of the account
     if (connect_until_time != 0)
     {                           // don't display if it's unlimited or unknow value

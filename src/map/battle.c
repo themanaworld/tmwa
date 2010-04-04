@@ -5662,6 +5662,11 @@ int battle_config_read (const char *cfgName)
         battle_config.sit_spam_flood = 15;
         battle_config.sit_spam_ban = 0;
         battle_config.sit_spam_warn = 3;
+
+        battle_config.packet_spam_threshold = 2;
+        battle_config.packet_spam_flood = 30;
+        battle_config.packet_spam_kick = 1;
+
     }
 
     fp = fopen_ (cfgName, "r");
@@ -6122,7 +6127,13 @@ int battle_config_read (const char *cfgName)
             {
             "sit_spam_ban", &battle_config.sit_spam_ban},
             {
-            "sit_spam_warn", &battle_config.sit_spam_warn}
+            "sit_spam_warn", &battle_config.sit_spam_warn},
+            {
+            "packet_spam_threshold", &battle_config.packet_spam_threshold},
+            {
+            "packet_spam_flood", &battle_config.packet_spam_flood},
+            {
+            "packet_spam_kick", &battle_config.packet_spam_kick}
         };
 
         if (line[0] == '/' && line[1] == '/')
@@ -6303,6 +6314,21 @@ int battle_config_read (const char *cfgName)
             battle_config.sit_spam_threshold = 0;
         else if (battle_config.sit_spam_threshold > 32767)
             battle_config.sit_spam_threshold = 32767;
+
+        if (battle_config.packet_spam_threshold < 0)
+            battle_config.packet_spam_threshold = 0;
+        else if (battle_config.packet_spam_threshold > 32767)
+            battle_config.packet_spam_threshold = 32767;
+
+        if (battle_config.packet_spam_flood < 0)
+            battle_config.packet_spam_flood = 0;
+        else if (battle_config.packet_spam_flood > 32767)
+            battle_config.packet_spam_flood = 32767;
+
+        if (battle_config.packet_spam_kick < 0)
+            battle_config.packet_spam_kick = 0;
+        else if (battle_config.packet_spam_kick > 1)
+            battle_config.packet_spam_kick = 1;
 
         // at least 1 client must be accepted
         if ((battle_config.packet_ver_flag & 63) == 0)  // added by [Yor]

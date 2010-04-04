@@ -402,6 +402,10 @@ struct map_session_data
 
     time_t sit_reset_due;
     int  sits_in;
+
+    unsigned int flood_rates[0x220];
+    time_t packet_flood_reset_due;
+    int packet_flood_in;
 };
 
 struct npc_timerevent_list
