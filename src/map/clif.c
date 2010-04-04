@@ -7331,8 +7331,6 @@ void clif_parse_ActionRequest (int fd, struct map_session_data *sd)
             pc_attack (sd, target_id, action_type != 0);
             break;
         case 0x02:             // sitdown
-            if (tmw_CheckSitSpam (sd))
-                break;
             pc_stop_walking (sd, 1);
             skill_gangsterparadise (sd, 1); // �M�����O�X�^�[�p���_�C�X�ݒ�
             pc_setsit (sd);
@@ -7796,8 +7794,6 @@ void clif_parse_TradeRequest (int fd, struct map_session_data *sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill (sd, NV_TRADE) >= 1)
     {
-        if (tmw_CheckTradeSpam (sd))
-            return;
         trade_traderequest (sd, RFIFOL (sd->fd, 2));
     }
     else
