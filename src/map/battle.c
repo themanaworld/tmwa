@@ -1671,7 +1671,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         {                       // ボルケーノ
             if (flag & BF_SKILL && skill_get_pl (skill_num) == 3)
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
-            else if (!flag & BF_SKILL && battle_get_attack_element (bl) == 3)
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 3))
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
         }
 
@@ -1679,7 +1679,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         {                       // バイオレントゲイル
             if (flag & BF_SKILL && skill_get_pl (skill_num) == 4)
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
-            else if (!flag & BF_SKILL && battle_get_attack_element (bl) == 4)
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 4))
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
         }
 
@@ -1687,7 +1687,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         {                       // デリュージ
             if (flag & BF_SKILL && skill_get_pl (skill_num) == 1)
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
-            else if (!flag & BF_SKILL && battle_get_attack_element (bl) == 1)
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 1))
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
         }
 
@@ -5662,6 +5662,11 @@ int battle_config_read (const char *cfgName)
         battle_config.sit_spam_flood = 15;
         battle_config.sit_spam_ban = 0;
         battle_config.sit_spam_warn = 3;
+
+        battle_config.packet_spam_threshold = 2;
+        battle_config.packet_spam_flood = 30;
+        battle_config.packet_spam_kick = 1;
+
     }
 
     fp = fopen_ (cfgName, "r");
@@ -6122,7 +6127,13 @@ int battle_config_read (const char *cfgName)
             {
             "sit_spam_ban", &battle_config.sit_spam_ban},
             {
-            "sit_spam_warn", &battle_config.sit_spam_warn}
+            "sit_spam_warn", &battle_config.sit_spam_warn},
+            {
+            "packet_spam_threshold", &battle_config.packet_spam_threshold},
+            {
+            "packet_spam_flood", &battle_config.packet_spam_flood},
+            {
+            "packet_spam_kick", &battle_config.packet_spam_kick}
         };
 
         if (line[0] == '/' && line[1] == '/')
@@ -6303,6 +6314,21 @@ int battle_config_read (const char *cfgName)
             battle_config.sit_spam_threshold = 0;
         else if (battle_config.sit_spam_threshold > 32767)
             battle_config.sit_spam_threshold = 32767;
+
+        if (battle_config.packet_spam_threshold < 0)
+            battle_config.packet_spam_threshold = 0;
+        else if (battle_config.packet_spam_threshold > 32767)
+            battle_config.packet_spam_threshold = 32767;
+
+        if (battle_config.packet_spam_flood < 0)
+            battle_config.packet_spam_flood = 0;
+        else if (battle_config.packet_spam_flood > 32767)
+            battle_config.packet_spam_flood = 32767;
+
+        if (battle_config.packet_spam_kick < 0)
+            battle_config.packet_spam_kick = 0;
+        else if (battle_config.packet_spam_kick > 1)
+            battle_config.packet_spam_kick = 1;
 
         // at least 1 client must be accepted
         if ((battle_config.packet_ver_flag & 63) == 0)  // added by [Yor]

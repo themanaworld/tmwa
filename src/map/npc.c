@@ -1543,7 +1543,8 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
             for (i = strlen (srcbuf) - 1; i >= 0 && isspace (srcbuf[i]); i--);
             if (i >= 0 && srcbuf[i] == '}')
                 break;
-            fgets (line, 1020, fp);
+            if (!fgets (line, 1020, fp))
+                break;
             (*lines)++;
             if (feof (fp))
                 break;
@@ -1827,7 +1828,8 @@ static int npc_parse_function (char *w1, char *w2, char *w3, char *w4,
         for (i = strlen (srcbuf) - 1; i >= 0 && isspace (srcbuf[i]); i--);
         if (i >= 0 && srcbuf[i] == '}')
             break;
-        fgets (line, 1020, fp);
+        if (!fgets (line, 1020, fp))
+            break;
         (*lines)++;
         if (feof (fp))
             break;

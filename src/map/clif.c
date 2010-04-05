@@ -7331,8 +7331,6 @@ void clif_parse_ActionRequest (int fd, struct map_session_data *sd)
             pc_attack (sd, target_id, action_type != 0);
             break;
         case 0x02:             // sitdown
-            if (tmw_CheckSitSpam (sd))
-                break;
             pc_stop_walking (sd, 1);
             skill_gangsterparadise (sd, 1); // �M�����O�X�^�[�p���_�C�X�ݒ�
             pc_setsit (sd);
@@ -7796,8 +7794,6 @@ void clif_parse_TradeRequest (int fd, struct map_session_data *sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill (sd, NV_TRADE) >= 1)
     {
-        if (tmw_CheckTradeSpam (sd))
-            return;
         trade_traderequest (sd, RFIFOL (sd->fd, 2));
     }
     else
@@ -9171,133 +9167,630 @@ void clif_parse_sn_explosionspirits (int fd, struct map_session_data *sd)
     return;
 }
 
-// functions list
-static void (*clif_parse_func_table[0x220]) () =
+// functions list. Rate is how many milliseconds are required between
+// calls. Packets exceeding this rate will be dropped. flood_rates in
+// map.h must be the same length as this table. rate 0 is default
+// rate -1 is unlimited
+typedef struct func_table
 {
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        // 40
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL,
-        // 70
-        NULL, NULL, clif_parse_WantToConnection, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, clif_parse_LoadEndAck,
-        clif_parse_TickSend, NULL,
-        // 80
-        NULL, NULL, NULL, NULL, NULL, clif_parse_WalkToXY, NULL, NULL,
-        NULL, clif_parse_ActionRequest, NULL, NULL, clif_parse_GlobalMessage,
-        NULL, NULL, NULL,
-        // 90
-        clif_parse_NpcClicked, NULL, NULL, NULL,
-        clif_parse_GetCharNameRequest, NULL, clif_parse_Wis, NULL, NULL,
-        clif_parse_GMmessage, NULL, clif_parse_ChangeDir, NULL, NULL, NULL,
-        clif_parse_TakeItem,
-        // a0
-        NULL, NULL, clif_parse_DropItem, NULL, NULL, NULL, NULL,
-        clif_parse_UseItem, NULL, clif_parse_EquipItem, NULL,
-        clif_parse_UnequipItem, NULL, NULL, NULL, NULL,
-        // b0
-        NULL, NULL, clif_parse_Restart, NULL, NULL, NULL, NULL, NULL,
-        clif_parse_NpcSelectMenu, clif_parse_NpcNextClicked, NULL,
-        clif_parse_StatusUp, NULL, NULL, NULL, clif_parse_Emotion,
-        // c0
-        NULL, clif_parse_HowManyConnections, NULL, NULL, NULL,
-        clif_parse_NpcBuySellSelected, NULL, NULL, clif_parse_NpcBuyListSend,
-        clif_parse_NpcSellListSend, NULL, NULL, clif_parse_GMKick, NULL, NULL,
-        clif_parse_PMIgnore,
-        // d0
-        clif_parse_PMIgnoreAll, NULL, NULL, NULL, NULL,
-        clif_parse_CreateChatRoom, NULL, NULL, NULL, clif_parse_ChatAddMember,
-        NULL, NULL, NULL, NULL, clif_parse_ChatRoomStatusChange, NULL,
-        // e0
-        clif_parse_ChangeChatOwner, NULL, clif_parse_KickFromChat,
-        clif_parse_ChatLeave, clif_parse_TradeRequest, NULL,
-        clif_parse_TradeAck, NULL, clif_parse_TradeAddItem, NULL, NULL,
-        clif_parse_TradeOk, NULL, clif_parse_TradeCansel, NULL,
-        clif_parse_TradeCommit,
-        // f0
-        NULL, NULL, NULL, clif_parse_MoveToKafra, NULL,
-        clif_parse_MoveFromKafra, NULL, clif_parse_CloseKafra, NULL,
-        clif_parse_CreateParty, NULL, NULL, clif_parse_PartyInvite, NULL,
-        NULL, clif_parse_ReplyPartyInvite,
-        // 100
-        clif_parse_LeaveParty, NULL, clif_parse_PartyChangeOption,
-        clif_parse_RemovePartyMember, NULL, NULL, NULL, NULL,
-        clif_parse_PartyMessage, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        // 110
-        NULL, NULL, clif_parse_SkillUp, clif_parse_UseSkillToId, NULL, NULL,
-        clif_parse_UseSkillToPos, NULL, clif_parse_StopAttack, NULL, NULL,
-        clif_parse_UseSkillMap, NULL, clif_parse_RequestMemo, NULL, NULL,
-        // 120
-        NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_PutItemToCart,
-        clif_parse_GetItemFromCart, clif_parse_MoveFromKafraToCart,
-        clif_parse_MoveToKafraFromCart, clif_parse_RemoveOption, NULL, NULL,
-        NULL, NULL, NULL,
-        // 130
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_GM_Monster_Item,
-        // 140
-        clif_parse_MapMove, NULL, NULL, clif_parse_NpcAmountInput, NULL, NULL,
-        clif_parse_NpcCloseClicked, NULL, NULL, clif_parse_GMReqNoChat, NULL,
-        NULL, NULL, clif_parse_GuildCheckMaster, NULL,
-        clif_parse_GuildReqeustInfo,
-        // 150
-        NULL, clif_parse_GuildRequestEmblem, NULL,
-        clif_parse_GuildChangeEmblem, NULL,
-        clif_parse_GuildChangeMemberPosition, NULL, NULL, NULL,
-        clif_parse_GuildLeave, NULL, clif_parse_GuildExplusion, NULL,
-        clif_parse_GuildBreak, NULL, NULL,
-        // 160
-        NULL, clif_parse_GuildChangePositionInfo, NULL, NULL, NULL,
-        clif_parse_CreateGuild, NULL, NULL, clif_parse_GuildInvite, NULL,
-        NULL, clif_parse_GuildReplyInvite, NULL, NULL,
-        clif_parse_GuildChangeNotice, NULL,
-        // 170
-        clif_parse_GuildRequestAlliance, NULL, clif_parse_GuildReplyAlliance,
-        NULL, NULL, NULL, NULL, NULL, clif_parse_ItemIdentify, NULL,
-        clif_parse_UseCard, NULL, clif_parse_InsertCard, NULL,
-        clif_parse_GuildMessage, NULL,
-        // 180
-        clif_parse_GuildOpposition, NULL, NULL, clif_parse_GuildDelAlliance,
-        NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_QuitGame, NULL, NULL,
-        NULL, NULL, NULL,
-        // 190
-        clif_parse_UseSkillToPos, NULL, NULL, clif_parse_SolveCharName, NULL,
-        NULL, NULL, clif_parse_ResetChar, NULL, NULL, NULL, NULL,
-        clif_parse_LGMmessage, clif_parse_GMHide, NULL, NULL,
-        // 1a0
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_ChangeCart,
-        // 1b0
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, clif_parse_Shift, clif_parse_Shift, clif_parse_Recall,
-        clif_parse_Recall, NULL, NULL,
-        // 1c0
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_AutoSpell, NULL,
-        // 1d0
-        NULL, NULL, NULL, NULL, NULL, clif_parse_NpcStringInput, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_GMReqNoChatCount,
-        // 1e0
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, clif_parse_sn_doridori,
-        clif_parse_CreateParty2, NULL, NULL, NULL, NULL,
-        clif_parse_sn_explosionspirits, NULL, NULL,
-        // 1f0
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL,
-        // 200
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL,
-        // 210
-NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL};
+	void (*func)();
+	int rate;
+} func_table;
+// *INDENT-OFF*
+func_table clif_parse_func_table[0x220] =
+{
+	{ NULL,					0	},	// 0
+	{ NULL,					0	},	// 1
+	{ NULL,					0	},	// 2
+	{ NULL,					0	},	// 3
+	{ NULL,					0	},	// 4
+	{ NULL,					0	},	// 5
+	{ NULL,					0	},	// 6
+	{ NULL,					0	},	// 7
+	{ NULL,					0	},	// 8
+	{ NULL,					0	},	// 9
+	{ NULL,					0	},	// a
+	{ NULL,					0	},	// b
+	{ NULL,					0	},	// c
+	{ NULL,					0	},	// d
+	{ NULL,					0	},	// e
+	{ NULL,					0	},	// f
+	{ NULL,					0	},	// 10
+	{ NULL,					0	},	// 11
+	{ NULL,					0	},	// 12
+	{ NULL,					0	},	// 13
+	{ NULL,					0	},	// 14
+	{ NULL,					0	},	// 15
+	{ NULL,					0	},	// 16
+	{ NULL,					0	},	// 17
+	{ NULL,					0	},	// 18
+	{ NULL,					0	},	// 19
+	{ NULL,					0	},	// 1a
+	{ NULL,					0	},	// 1b
+	{ NULL,					0	},	// 1c
+	{ NULL,					0	},	// 1d
+	{ NULL,					0	},	// 1e
+	{ NULL,					0	},	// 1f
+	{ NULL,					0	},	// 20
+	{ NULL,					0	},	// 21
+	{ NULL,					0	},	// 22
+	{ NULL,					0	},	// 23
+	{ NULL,					0	},	// 24
+	{ NULL,					0	},	// 25
+	{ NULL,					0	},	// 26
+	{ NULL,					0	},	// 27
+	{ NULL,					0	},	// 28
+	{ NULL,					0	},	// 29
+	{ NULL,					0	},	// 2a
+	{ NULL,					0	},	// 2b
+	{ NULL,					0	},	// 2c
+	{ NULL,					0	},	// 2d
+	{ NULL,					0	},	// 2e
+	{ NULL,					0	},	// 2f
+	{ NULL,					0	},	// 30
+	{ NULL,					0	},	// 31
+	{ NULL,					0	},	// 32
+	{ NULL,					0	},	// 33
+	{ NULL,					0	},	// 34
+	{ NULL,					0	},	// 35
+	{ NULL,					0	},	// 36
+	{ NULL,					0	},	// 37
+	{ NULL,					0	},	// 38
+	{ NULL,					0	},	// 39
+	{ NULL,					0	},	// 3a
+	{ NULL,					0	},	// 3b
+	{ NULL,					0	},	// 3c
+	{ NULL,					0	},	// 3d
+	{ NULL,					0	},	// 3e
+	{ NULL,					0	},	// 3f
+	{ NULL,					0	},	// 40
+	{ NULL,					0	},	// 41
+	{ NULL,					0	},	// 42
+	{ NULL,					0	},	// 43
+	{ NULL,					0	},	// 44
+	{ NULL,					0	},	// 45
+	{ NULL,					0	},	// 46
+	{ NULL,					0	},	// 47
+	{ NULL,					0	},	// 48
+	{ NULL,					0	},	// 49
+	{ NULL,					0	},	// 4a
+	{ NULL,					0	},	// 4b
+	{ NULL,					0	},	// 4c
+	{ NULL,					0	},	// 4d
+	{ NULL,					0	},	// 4e
+	{ NULL,					0	},	// 4f
+	{ NULL,					0	},	// 50
+	{ NULL,					0	},	// 51
+	{ NULL,					0	},	// 52
+	{ NULL,					0	},	// 53
+	{ NULL,					0	},	// 54
+	{ NULL,					0	},	// 55
+	{ NULL,					0	},	// 56
+	{ NULL,					0	},	// 57
+	{ NULL,					0	},	// 58
+	{ NULL,					0	},	// 59
+	{ NULL,					0	},	// 5a
+	{ NULL,					0	},	// 5b
+	{ NULL,					0	},	// 5c
+	{ NULL,					0	},	// 5d
+	{ NULL,					0	},	// 5e
+	{ NULL,					0	},	// 5f
+	{ NULL,					0	},	// 60
+	{ NULL,					0	},	// 61
+	{ NULL,					0	},	// 62
+	{ NULL,					0	},	// 63
+	{ NULL,					0	},	// 64
+	{ NULL,					0	},	// 65
+	{ NULL,					0	},	// 66
+	{ NULL,					0	},	// 67
+	{ NULL,					0	},	// 68
+	{ NULL,					0	},	// 69
+	{ NULL,					0	},	// 6a
+	{ NULL,					0	},	// 6b
+	{ NULL,					0	},	// 6c
+	{ NULL,					0	},	// 6d
+	{ NULL,					0	},	// 6e
+	{ NULL,					0	},	// 6f
+	{ NULL,					0	},	// 70
+	{ NULL,					0	},	// 71
+	{ clif_parse_WantToConnection,		0	},	// 72
+	{ NULL,					0	},	// 73
+	{ NULL,					0	},	// 74
+	{ NULL,					0	},	// 75
+	{ NULL,					0	},	// 76
+	{ NULL,					0	},	// 77
+	{ NULL,					0	},	// 78
+	{ NULL,					0	},	// 79
+	{ NULL,					0	},	// 7a
+	{ NULL,					0	},	// 7b
+	{ NULL,					0	},	// 7c
+	{ clif_parse_LoadEndAck,		-1	},	// 7d
+	{ clif_parse_TickSend,			0	},	// 7e
+	{ NULL,					0	},	// 7f
+	{ NULL,					0	},	// 80
+	{ NULL,					0	},	// 81
+	{ NULL,					0	},	// 82
+	{ NULL,					0	},	// 83
+	{ NULL,					0	},	// 84
+	{ clif_parse_WalkToXY,			-1	},	// 85 Walk code limits this on it's own
+	{ NULL,					0	},	// 86
+	{ NULL,					0	},	// 87
+	{ NULL,					0	},	// 88
+	{ clif_parse_ActionRequest,		1000	},	// 89 Special case - see below
+	{ NULL,					0	},	// 8a
+	{ NULL,					0	},	// 8b
+	{ clif_parse_GlobalMessage,		300	},	// 8c
+	{ NULL,					0	},	// 8d
+	{ NULL,					0	},	// 8e
+	{ NULL,					0	},	// 8f
+	{ clif_parse_NpcClicked,		500	},	// 90
+	{ NULL,					0	},	// 91
+	{ NULL,					0	},	// 92
+	{ NULL,					0	},	// 93
+	{ clif_parse_GetCharNameRequest,	-1	},	// 94
+	{ NULL,					0	},	// 95
+	{ clif_parse_Wis,			300	},	// 96
+	{ NULL,					0	},	// 97
+	{ NULL,					0	},	// 98
+	{ clif_parse_GMmessage,			300	},	// 99
+	{ NULL,					0	},	// 9a
+	{ clif_parse_ChangeDir,			-1	},	// 9b .29 clients spam this packet when walking into a blocked tile
+	{ NULL,					0	},	// 9c
+	{ NULL,					0	},	// 9d
+	{ NULL,					0	},	// 9e
+	{ clif_parse_TakeItem,			400	},	// 9f
+	{ NULL,					0	},	// a0
+	{ NULL,					0	},	// a1
+	{ clif_parse_DropItem,			200	},	// a2
+	{ NULL,					0	},	// a3
+	{ NULL,					0	},	// a4
+	{ NULL,					0	},	// a5
+	{ NULL,					0	},	// a6
+	{ clif_parse_UseItem,			0	},	// a7
+	{ NULL,					0	},	// a8
+	{ clif_parse_EquipItem,			-1	},	// a9 Special case - outfit window (not implemented yet - needs to allow bursts)
+	{ NULL,					0	},	// aa
+	{ clif_parse_UnequipItem,		-1	},	// ab Special case - outfit window (not implemented yet - needs to allow bursts)
+	{ NULL,					0	},	// ac
+	{ NULL,					0	},	// ad
+	{ NULL,					0	},	// ae
+	{ NULL,					0	},	// af
+	{ NULL,					0	},	// b0
+	{ NULL,					0	},	// b1
+	{ clif_parse_Restart,			0	},	// b2
+	{ NULL,					0	},	// b3
+	{ NULL,					0	},	// b4
+	{ NULL,					0	},	// b5
+	{ NULL,					0	},	// b6
+	{ NULL,					0	},	// b7
+	{ clif_parse_NpcSelectMenu,		300	},	// b8
+	{ clif_parse_NpcNextClicked,		300	},	// b9
+	{ NULL,					0	},	// ba
+	{ clif_parse_StatusUp,			-1	},	// bb People click this very quickly
+	{ NULL,					0	},	// bc
+	{ NULL,					0	},	// bd
+	{ NULL,					0	},	// be
+	{ clif_parse_Emotion,			1000	},	// bf
+	{ NULL,					0	},	// c0
+	{ clif_parse_HowManyConnections,	0	},	// c1
+	{ NULL,					0	},	// c2
+	{ NULL,					0	},	// c3
+	{ NULL,					0	},	// c4
+	{ clif_parse_NpcBuySellSelected,	300	},	// c5
+	{ NULL,					0	},	// c6
+	{ NULL,					0	},	// c7
+	{ clif_parse_NpcBuyListSend,		300	},	// c8
+	{ clif_parse_NpcSellListSend,		-1	},	// c9 Selling multiple 1-slot items
+	{ NULL,					0	},	// ca
+	{ NULL,					0	},	// cb
+	{ clif_parse_GMKick,			0	},	// cc
+	{ NULL,					0	},	// cd
+	{ NULL,					0	},	// ce
+	{ clif_parse_PMIgnore,			0	},	// cf
+	{ clif_parse_PMIgnoreAll,		0	},	// d0
+	{ NULL,					0	},	// d1
+	{ NULL,					0	},	// d2
+	{ NULL,					0	},	// d3
+	{ NULL,					0	},	// d4
+	{ clif_parse_CreateChatRoom,		1000	},	// d5
+	{ NULL,					0	},	// d6
+	{ NULL,					0	},	// d7
+	{ NULL,					0	},	// d8
+	{ clif_parse_ChatAddMember,		0	},	// d9
+	{ NULL,					0	},	// da
+	{ NULL,					0	},	// db
+	{ NULL,					0	},	// dc
+	{ NULL,					0	},	// dd
+	{ clif_parse_ChatRoomStatusChange,	0	},	// de
+	{ NULL,					0	},	// df
+	{ clif_parse_ChangeChatOwner,		0	},	// e0
+	{ NULL,					0	},	// e1
+	{ clif_parse_KickFromChat,		0	},	// e2
+	{ clif_parse_ChatLeave,			0	},	// e3
+	{ clif_parse_TradeRequest,		2000	},	// e4
+	{ NULL,					0	},	// e5
+	{ clif_parse_TradeAck,			0	},	// e6
+	{ NULL,					0	},	// e7
+	{ clif_parse_TradeAddItem,		0	},	// e8
+	{ NULL,					0	},	// e9
+	{ NULL,					0	},	// ea
+	{ clif_parse_TradeOk,			0	},	// eb
+	{ NULL,					0	},	// ec
+	{ clif_parse_TradeCansel,		0	},	// ed
+	{ NULL,					0	},	// ee
+	{ clif_parse_TradeCommit,		0	},	// ef
+	{ NULL,					0	},	// f0
+	{ NULL,					0	},	// f1
+	{ NULL,					0	},	// f2
+	{ clif_parse_MoveToKafra,		-1	},	// f3
+	{ NULL,					0	},	// f4
+	{ clif_parse_MoveFromKafra,		-1	},	// f5
+	{ NULL,					0	},	// f6
+	{ clif_parse_CloseKafra,		0	},	// f7
+	{ NULL,					0	},	// f8
+	{ clif_parse_CreateParty,		2000	},	// f9
+	{ NULL,					0	},	// fa
+	{ NULL,					0	},	// fb
+	{ clif_parse_PartyInvite,		2000	},	// fc
+	{ NULL,					0	},	// fd
+	{ NULL,					0	},	// fe
+	{ clif_parse_ReplyPartyInvite,		0	},	// ff
+	{ clif_parse_LeaveParty,		0	},	// 100
+	{ NULL,					0	},	// 101
+	{ clif_parse_PartyChangeOption,		0	},	// 102
+	{ clif_parse_RemovePartyMember,		0	},	// 103
+	{ NULL,					0	},	// 104
+	{ NULL,					0	},	// 105
+	{ NULL,					0	},	// 106
+	{ NULL,					0	},	// 107
+	{ clif_parse_PartyMessage,		300	},	// 108
+	{ NULL,					0	},	// 109
+	{ NULL,					0	},	// 10a
+	{ NULL,					0	},	// 10b
+	{ NULL,					0	},	// 10c
+	{ NULL,					0	},	// 10d
+	{ NULL,					0	},	// 10e
+	{ NULL,					0	},	// 10f
+	{ NULL,					0	},	// 110
+	{ NULL,					0	},	// 111
+	{ clif_parse_SkillUp,			-1	},	// 112
+	{ clif_parse_UseSkillToId,		0	},	// 113
+	{ NULL,					0	},	// 114
+	{ NULL,					0	},	// 115
+	{ clif_parse_UseSkillToPos,		0	},	// 116
+	{ NULL,					0	},	// 117
+	{ clif_parse_StopAttack,		0	},	// 118
+	{ NULL,					0	},	// 119
+	{ NULL,					0	},	// 11a
+	{ clif_parse_UseSkillMap,		0	},	// 11b
+	{ NULL,					0	},	// 11c
+	{ clif_parse_RequestMemo,		0	},	// 11d
+	{ NULL,					0	},	// 11e
+	{ NULL,					0	},	// 11f
+	{ NULL,					0	},	// 120
+	{ NULL,					0	},	// 121
+	{ NULL,					0	},	// 122
+	{ NULL,					0	},	// 123
+	{ NULL,					0	},	// 124
+	{ NULL,					0	},	// 125
+	{ clif_parse_PutItemToCart,		0	},	// 126
+	{ clif_parse_GetItemFromCart,		0	},	// 127
+	{ clif_parse_MoveFromKafraToCart,	0	},	// 128
+	{ clif_parse_MoveToKafraFromCart,	0	},	// 129
+	{ clif_parse_RemoveOption,		0	},	// 12a
+	{ NULL,					0	},	// 12b
+	{ NULL,					0	},	// 12c
+	{ NULL,					0	},	// 12d
+	{ NULL,					0	},	// 12e
+	{ NULL,					0	},	// 12f
+	{ NULL,					0	},	// 130
+	{ NULL,					0	},	// 131
+	{ NULL,					0	},	// 132
+	{ NULL,					0	},	// 133
+	{ NULL,					0	},	// 134
+	{ NULL,					0	},	// 135
+	{ NULL,					0	},	// 136
+	{ NULL,					0	},	// 137
+	{ NULL,					0	},	// 138
+	{ NULL,					0	},	// 139
+	{ NULL,					0	},	// 13a
+	{ NULL,					0	},	// 13b
+	{ NULL,					0	},	// 13c
+	{ NULL,					0	},	// 13d
+	{ NULL,					0	},	// 13e
+	{ clif_parse_GM_Monster_Item,		0	},	// 13f
+	{ clif_parse_MapMove,			0	},	// 140
+	{ NULL,					0	},	// 141
+	{ NULL,					0	},	// 142
+	{ clif_parse_NpcAmountInput,		300	},	// 143
+	{ NULL,					0	},	// 144
+	{ NULL,					0	},	// 145
+	{ clif_parse_NpcCloseClicked,		300	},	// 146
+	{ NULL,					0	},	// 147
+	{ NULL,					0	},	// 148
+	{ clif_parse_GMReqNoChat,		0	},	// 149
+	{ NULL,					0	},	// 14a
+	{ NULL,					0	},	// 14b
+	{ NULL,					0	},	// 14c
+	{ clif_parse_GuildCheckMaster,		0	},	// 14d
+	{ NULL,					0	},	// 14e
+	{ clif_parse_GuildReqeustInfo,		0	},	// 14f
+	{ NULL,					0	},	// 150
+	{ clif_parse_GuildRequestEmblem,	0	},	// 151
+	{ NULL,					0	},	// 152
+	{ clif_parse_GuildChangeEmblem,		0	},	// 153
+	{ NULL,					0	},	// 154
+	{ clif_parse_GuildChangeMemberPosition,	0	},	// 155
+	{ NULL,					0	},	// 156
+	{ NULL,					0	},	// 157
+	{ NULL,					0	},	// 158
+	{ clif_parse_GuildLeave,		0	},	// 159
+	{ NULL,					0	},	// 15a
+	{ clif_parse_GuildExplusion,		0	},	// 15b
+	{ NULL,					0	},	// 15c
+	{ clif_parse_GuildBreak,		0	},	// 15d
+	{ NULL,					0	},	// 15e
+	{ NULL,					0	},	// 15f
+	{ NULL,					0	},	// 160
+	{ clif_parse_GuildChangePositionInfo,	0	},	// 161
+	{ NULL,					0	},	// 162
+	{ NULL,					0	},	// 163
+	{ NULL,					0	},	// 164
+	{ clif_parse_CreateGuild,		0	},	// 165
+	{ NULL,					0	},	// 166
+	{ NULL,					0	},	// 167
+	{ clif_parse_GuildInvite,		2000	},	// 168
+	{ NULL,					0	},	// 169
+	{ NULL,					0	},	// 16a
+	{ clif_parse_GuildReplyInvite,		0	},	// 16b
+	{ NULL,					0	},	// 16c
+	{ NULL,					0	},	// 16d
+	{ clif_parse_GuildChangeNotice,		0	},	// 16e
+	{ NULL,					0	},	// 16f
+	{ clif_parse_GuildRequestAlliance,	0	},	// 170
+	{ NULL,					0	},	// 171
+	{ clif_parse_GuildReplyAlliance,	0	},	// 172
+	{ NULL,					0	},	// 173
+	{ NULL,					0	},	// 174
+	{ NULL,					0	},	// 175
+	{ NULL,					0	},	// 176
+	{ NULL,					0	},	// 177
+	{ clif_parse_ItemIdentify,		0	},	// 178
+	{ NULL,					0	},	// 179
+	{ clif_parse_UseCard,			0	},	// 17a
+	{ NULL,					0	},	// 17b
+	{ clif_parse_InsertCard,		0	},	// 17c
+	{ NULL,					0	},	// 17d
+	{ clif_parse_GuildMessage,		300	},	// 17e
+	{ NULL,					0	},	// 17f
+	{ clif_parse_GuildOpposition,		0	},	// 180
+	{ NULL,					0	},	// 181
+	{ NULL,					0	},	// 182
+	{ clif_parse_GuildDelAlliance,		0	},	// 183
+	{ NULL,					0	},	// 184
+	{ NULL,					0	},	// 185
+	{ NULL,					0	},	// 186
+	{ NULL,					0	},	// 187
+	{ NULL,					0	},	// 188
+	{ NULL,					0	},	// 189
+	{ clif_parse_QuitGame,			0	},	// 18a
+	{ NULL,					0	},	// 18b
+	{ NULL,					0	},	// 18c
+	{ NULL,					0	},	// 18d
+	{ NULL,					0	},	// 18e
+	{ NULL,					0	},	// 18f
+	{ clif_parse_UseSkillToPos,		0	},	// 190
+	{ NULL,					0	},	// 191
+	{ NULL,					0	},	// 192
+	{ clif_parse_SolveCharName,		0	},	// 193
+	{ NULL,					0	},	// 194
+	{ NULL,					0	},	// 195
+	{ NULL,					0	},	// 196
+	{ clif_parse_ResetChar,			0	},	// 197
+	{ NULL,					0	},	// 198
+	{ NULL,					0	},	// 199
+	{ NULL,					0	},	// 19a
+	{ NULL,					0	},	// 19b
+	{ clif_parse_LGMmessage,		0	},	// 19c
+	{ clif_parse_GMHide,			300	},	// 19d
+	{ NULL,					0	},	// 19e
+	{ NULL,					0	},	// 19f
+	{ NULL,					0	},	// 1a0
+	{ NULL,					0	},	// 1a1
+	{ NULL,					0	},	// 1a2
+	{ NULL,					0	},	// 1a3
+	{ NULL,					0	},	// 1a4
+	{ NULL,					0	},	// 1a5
+	{ NULL,					0	},	// 1a6
+	{ NULL,					0	},	// 1a7
+	{ NULL,					0	},	// 1a8
+	{ NULL,					0	},	// 1a9
+	{ NULL,					0	},	// 1aa
+	{ NULL,					0	},	// 1ab
+	{ NULL,					0	},	// 1ac
+	{ NULL,					0	},	// 1ad
+	{ NULL,					0	},	// 1ae
+	{ clif_parse_ChangeCart,		0	},	// 1af
+	{ NULL,					0	},	// 1b0
+	{ NULL,					0	},	// 1b1
+	{ NULL,					0	},	// 1b2
+	{ NULL,					0	},	// 1b3
+	{ NULL,					0	},	// 1b4
+	{ NULL,					0	},	// 1b5
+	{ NULL,					0	},	// 1b6
+	{ NULL,					0	},	// 1b7
+	{ NULL,					0	},	// 1b8
+	{ NULL,					0	},	// 1b9
+	{ clif_parse_Shift,			300	},	// 1ba
+	{ clif_parse_Shift,			300	},	// 1bb
+	{ clif_parse_Recall,			300	},	// 1bc
+	{ clif_parse_Recall,			300	},	// 1bd
+	{ NULL,					0	},	// 1be
+	{ NULL,					0	},	// 1bf
+	{ NULL,					0	},	// 1c0
+	{ NULL,					0	},	// 1c1
+	{ NULL,					0	},	// 1c2
+	{ NULL,					0	},	// 1c3
+	{ NULL,					0	},	// 1c4
+	{ NULL,					0	},	// 1c5
+	{ NULL,					0	},	// 1c6
+	{ NULL,					0	},	// 1c7
+	{ NULL,					0	},	// 1c8
+	{ NULL,					0	},	// 1c9
+	{ NULL,					0	},	// 1ca
+	{ NULL,					0	},	// 1cb
+	{ NULL,					0	},	// 1cc
+	{ NULL,					0	},	// 1cd
+	{ clif_parse_AutoSpell,			0	},	// 1ce
+	{ NULL,					0	},	// 1cf
+	{ NULL,					0	},	// 1d0
+	{ NULL,					0	},	// 1d1
+	{ NULL,					0	},	// 1d2
+	{ NULL,					0	},	// 1d3
+	{ NULL,					0	},	// 1d4
+	{ clif_parse_NpcStringInput,		300	},	// 1d5
+	{ NULL,					0	},	// 1d6
+	{ NULL,					0	},	// 1d7
+	{ NULL,					0	},	// 1d8
+	{ NULL,					0	},	// 1d9
+	{ NULL,					0	},	// 1da
+	{ NULL,					0	},	// 1db
+	{ NULL,					0	},	// 1dc
+	{ NULL,					0	},	// 1dd
+	{ NULL,					0	},	// 1de
+	{ clif_parse_GMReqNoChatCount,		0	},	// 1df
+	{ NULL,					0	},	// 1e0
+	{ NULL,					0	},	// 1e1
+	{ NULL,					0	},	// 1e2
+	{ NULL,					0	},	// 1e3
+	{ NULL,					0	},	// 1e4
+	{ NULL,					0	},	// 1e5
+	{ NULL,					0	},	// 1e6
+	{ clif_parse_sn_doridori,		0	},	// 1e7
+	{ clif_parse_CreateParty2,		1000	},	// 1e8
+	{ NULL,					0	},	// 1e9
+	{ NULL,					0	},	// 1ea
+	{ NULL,					0	},	// 1eb
+	{ NULL,					0	},	// 1ec
+	{ clif_parse_sn_explosionspirits,	0	},	// 1ed
+	{ NULL,					0	},	// 1ee
+	{ NULL,					0	},	// 1ef
+	{ NULL,					0	},	// 1f0
+	{ NULL,					0	},	// 1f1
+	{ NULL,					0	},	// 1f2
+	{ NULL,					0	},	// 1f3
+	{ NULL,					0	},	// 1f4
+	{ NULL,					0	},	// 1f5
+	{ NULL,					0	},	// 1f6
+	{ NULL,					0	},	// 1f7
+	{ NULL,					0	},	// 1f8
+	{ NULL,					0	},	// 1f9
+	{ NULL,					0	},	// 1fa
+	{ NULL,					0	},	// 1fb
+	{ NULL,					0	},	// 1fc
+	{ NULL,					0	},	// 1fd
+	{ NULL,					0	},	// 1fe
+	{ NULL,					0	},	// 1ff
+	{ NULL,					0	},	// 200
+	{ NULL,					0	},	// 201
+	{ NULL,					0	},	// 202
+	{ NULL,					0	},	// 203
+	{ NULL,					0	},	// 204
+	{ NULL,					0	},	// 205
+	{ NULL,					0	},	// 206
+	{ NULL,					0	},	// 207
+	{ NULL,					0	},	// 208
+	{ NULL,					0	},	// 209
+	{ NULL,					0	},	// 20a
+	{ NULL,					0	},	// 20b
+	{ NULL,					0	},	// 20c
+	{ NULL,					0	},	// 20d
+	{ NULL,					0	},	// 20e
+	{ NULL,					0	},	// 20f
+	{ NULL,					0	},	// 210
+	{ NULL,					0	},	// 211
+	{ NULL,					0	},	// 212
+	{ NULL,					0	},	// 213
+	{ NULL,					0	},	// 214
+	{ NULL,					0	},	// 215
+	{ NULL,					0	},	// 216
+	{ NULL,					0	},	// 217
+	{ NULL,					0	},	// 218
+	{ NULL,					0	},	// 219
+	{ NULL,					0	},	// 21a
+	{ NULL,					0	},	// 21b
+	{ NULL,					0	},	// 21c
+	{ NULL,					0	},	// 21d
+	{ NULL,					0	},	// 21e
+	{ NULL,					0	},	// 21f
+};
+// *INDENT-ON*
+
+// Checks for packet flooding
+int clif_check_packet_flood(fd, cmd)
+{
+    struct map_session_data *sd = session[fd]->session_data;
+    unsigned int rate, tick = gettick();
+
+    // sd will not be set if the client hasn't requested
+    // WantToConnection yet. Do not apply flood logic to GMs
+    // as approved bots (GMlvl1) should not have to work around
+    // flood logic.
+    if (!sd || pc_isGM(sd) || clif_parse_func_table[cmd].rate == -1)
+	return 0;
+
+    // Timer has wrapped
+    if (tick < sd->flood_rates[cmd])
+    {
+        sd->flood_rates[cmd] = tick;
+        return 0;
+    }
+
+    // Default rate is 100ms
+    if ((rate = clif_parse_func_table[cmd].rate) == 0)
+        rate = 100;
+
+    // ActionRequest - attacks are allowed a faster rate than sit/stand
+    if (cmd == 0x89)
+    {
+        int action_type = RFIFOB (fd, 6);
+        if (action_type == 0x00 || action_type == 0x07)
+            rate = 20;
+        else
+            rate = 1000;
+    }
+
+    // They are flooding
+    if (tick < sd->flood_rates[cmd] + rate)
+    {
+        time_t now = time(NULL);
+
+        // If it's a nasty flood we log and possibly kick
+        if (now > sd->packet_flood_reset_due)
+        {
+            sd->packet_flood_reset_due = now + battle_config.packet_spam_threshold;
+            sd->packet_flood_in = 0;
+        }
+
+        sd->packet_flood_in++;
+
+        if (sd->packet_flood_in >= battle_config.packet_spam_flood)
+        {
+            printf("packet flood detected from %s [0x%x]\n", sd->status.name, cmd);
+            if (battle_config.packet_spam_kick)
+            {
+                session[fd]->eof = 1; // Kick
+                return 1;
+            }
+            sd->packet_flood_in = 0;
+        }
+
+        return 1;
+    }
+
+    sd->flood_rates[cmd] = tick;
+    return 0;
+}
 
 /*==========================================
  * �N���C�A���g�����̃p�P�b�g����
@@ -9403,9 +9896,16 @@ static int clif_parse (int fd)
     {                           // �ؒf�҂��̏ꍇ�p�P�b�g������Ȃ�
 
     }
-    else if (clif_parse_func_table[cmd])
+    else if (clif_parse_func_table[cmd].func)
     {
-        clif_parse_func_table[cmd] (fd, sd);
+        if (clif_check_packet_flood(fd, cmd))
+        {
+            // Flood triggered. Skip packet.
+            RFIFOSKIP(sd->fd, packet_len);
+            return 0;
+        }
+
+        clif_parse_func_table[cmd].func (fd, sd);
     }
     else
     {
