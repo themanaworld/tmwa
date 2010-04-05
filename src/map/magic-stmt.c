@@ -714,7 +714,7 @@ static int op_injure (env_t * env, int args_nr, val_t * args)
     int  target_hp = battle_get_hp (target);
     int  mdef = battle_get_mdef (target);
 
-    if (target->type == BL_PC && !map[target->m].flag.pvp)
+    if (target->type == BL_PC && !map[target->m].flag.pvp && !((character_t *) target)->special_state.killable && (caster->type != BL_PC || !((character_t *) caster)->special_state.killer))
         return 0;               /* Cannot damage other players outside of pvp */
 
     if (target != caster)
