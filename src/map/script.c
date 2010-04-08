@@ -6875,8 +6875,10 @@ int buildin_npcwarp (struct script_state *st)
         return -1;
 
     npc_enable (npc, 0);
+    map_delblock(&nd->bl); /* [Freeyorp] */
     nd->bl.x = x;
     nd->bl.y = y;
+    map_addblock(&nd->bl);
     npc_enable (npc, 1);
 
     return 0;
