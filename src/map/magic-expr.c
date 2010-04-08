@@ -609,6 +609,15 @@ fun_name_of (env_t * env, int args_nr, val_t * result, val_t * args)
     return 1;
 }
 
+/* [Freeyorp] I'm putting this one in as name_of seems to have issues with summoned or spawned mobs. */
+static int
+fun_mob_id (env_t * env, int args_nr, val_t * result, val_t * args)
+{
+    if (ETY (0) != BL_MOB) return 1;
+    RESULTINT = ((struct mob_data *) (ARGENTITY(0)))->class;
+    return 0;
+}
+
 #define COPY_LOCATION(dest, src) (dest).x = (src).x; (dest).y = (src).y; (dest).m = (src).m;
 
 static int
@@ -1183,6 +1192,7 @@ static fun_t functions[] = {
     BATTLE_RECORD (max_sp),
     {"dir", "e", 'd', fun_get_dir},
     {"name_of", ".", 's', fun_name_of},
+    {"mob_id", "e", 'i', fun_mob_id},
     {"location", "e", 'l', fun_location},
     {"random", "i", 'i', fun_random},
     {"random_dir", "i", 'd', fun_random_dir},
