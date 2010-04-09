@@ -4016,9 +4016,7 @@ int parse_login (int fd)
                 WFIFOB (fd, 3) = 'T';
                 WFIFOB (fd, 4) = 'M';
                 WFIFOB (fd, 5) = 'W';
-                WFIFOB (fd, 6) = ' ';
-                WFIFOB (fd, 7) = 'e';
-                WFIFOW (fd, 8) = 'A';
+                WFIFOL (fd, 6) = new_account_flag ? 1 : 0;
                 WFIFOSET (fd, 10);
                 RFIFOSKIP (fd, 2);
                 break;
