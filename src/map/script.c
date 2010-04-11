@@ -6891,11 +6891,8 @@ int buildin_npcwarp (struct script_state *st)
 
 int buildin_message (struct script_state *st)
 {
-    struct map_session_data *sd;
     char *msg, *player;
     struct map_session_data *pl_sd = NULL;
-
-    sd = script_rid2sd (st);
 
     player = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     msg = conv_str (st, &(st->stack->stack_data[st->start + 3]));
