@@ -915,8 +915,10 @@ int npc_click (struct map_session_data *sd, int id)
         return 1;
     }
 
-    if (npc_checknear (sd, id))
+    if (npc_checknear (sd, id)) {
+        clif_scriptclose (sd, id);
         return 1;
+    }
 
     nd = (struct npc_data *) map_id2bl (id);
 
@@ -957,8 +959,10 @@ int npc_scriptcont (struct map_session_data *sd, int id)
 
     if (id != sd->npc_id)
         return 1;
-    if (npc_checknear (sd, id))
+    if (npc_checknear (sd, id)) {
+        clif_scriptclose (sd, id);
         return 1;
+    }
 
     nd = (struct npc_data *) map_id2bl (id);
 
