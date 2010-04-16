@@ -405,6 +405,7 @@ static void entity_warp (entity_t * target, int destm, int destx, int desty)
             case BL_PC:
             {
                 character_t *character = (character_t *) target;
+                char *map_name;
                 clif_clearchar_area (&character->bl, 3);
                 map_delblock (&character->bl);
                 character->bl.x = destx;
@@ -414,9 +415,13 @@ static void entity_warp (entity_t * target, int destm, int destx, int desty)
                 pc_touch_all_relevant_npcs (character);
 
                 // Note that touching NPCs may have triggered warping and thereby updated x and y:
-                clif_changemap (character, map[character->bl.m].name,
-                                character->bl.x, character->bl.y);
+                map_name = map[character->bl.m].name;
 
+                // Warp part #1: update relevant data, interrupt trading etc.:
+                pc_setpos (character, map_name, character->bl.x, character->bl.y, 0);
+                // Warp part #2: now notify the client
+                clif_changemap (character, map_name, 
+                                character->bl.x, character->bl.y); 
                 break;
             }
             case BL_MOB:

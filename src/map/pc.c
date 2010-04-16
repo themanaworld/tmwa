@@ -4046,7 +4046,7 @@ int pc_setpos (struct map_session_data *sd, char *mapname_org, int x, int y,
 
     if (pc_issit (sd))
     {
-        pc_setstand (sd);
+//        pc_setstand (sd); // [fate] Nothing wrong with warping while sitting
         skill_gangsterparadise (sd, 0);
     }
 
