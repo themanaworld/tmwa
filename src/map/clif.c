@@ -7229,6 +7229,9 @@ void clif_parse_ChangeDir (int fd, struct map_session_data *sd)
 //  RFIFOW(fd,2); // Apparently does nothing?
     dir = RFIFOB (fd, 4);
 
+    if (dir == sd->dir)
+        return;
+
     pc_setdir (sd, dir);
 
     WBUFW (buf, 0) = 0x9c;
