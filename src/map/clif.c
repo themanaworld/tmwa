@@ -9337,7 +9337,7 @@ func_table clif_parse_func_table[0x220] =
 	{ NULL,					0	},	// 98
 	{ clif_parse_GMmessage,			300	},	// 99
 	{ NULL,					0	},	// 9a
-	{ clif_parse_ChangeDir,			-1	},	// 9b .29 clients spam this packet when walking into a blocked tile
+	{ clif_parse_ChangeDir,			0	},	// 9b
 	{ NULL,					0	},	// 9c
 	{ NULL,					0	},	// 9d
 	{ NULL,					0	},	// 9e
@@ -9761,6 +9761,16 @@ int clif_check_packet_flood(fd, cmd)
             rate = 20;
         else
             rate = 1000;
+    }
+
+    // ChangeDir - only apply limit if not walking
+    if (cmd == 0x9b)
+    {
+        // .29 clients spam this packet when walking into a blocked tile
+        if (RFIFOB(fd, 4) == sd->dir || sd->walktimer != -1)
+            return 0;
+
+        rate = 500;
     }
 
     // They are flooding
