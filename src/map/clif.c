@@ -9366,8 +9366,8 @@ func_table clif_parse_func_table[0x220] =
 	{ NULL,					0	},	// b5
 	{ NULL,					0	},	// b6
 	{ NULL,					0	},	// b7
-	{ clif_parse_NpcSelectMenu,		300	},	// b8
-	{ clif_parse_NpcNextClicked,		300	},	// b9
+	{ clif_parse_NpcSelectMenu,		0	},	// b8
+	{ clif_parse_NpcNextClicked,		-1	},	// b9
 	{ NULL,					0	},	// ba
 	{ clif_parse_StatusUp,			-1	},	// bb People click this very quickly
 	{ NULL,					0	},	// bc
@@ -9379,10 +9379,10 @@ func_table clif_parse_func_table[0x220] =
 	{ NULL,					0	},	// c2
 	{ NULL,					0	},	// c3
 	{ NULL,					0	},	// c4
-	{ clif_parse_NpcBuySellSelected,	300	},	// c5
+	{ clif_parse_NpcBuySellSelected,	0	},	// c5
 	{ NULL,					0	},	// c6
 	{ NULL,					0	},	// c7
-	{ clif_parse_NpcBuyListSend,		300	},	// c8
+	{ clif_parse_NpcBuyListSend,		-1	},	// c8
 	{ clif_parse_NpcSellListSend,		-1	},	// c9 Selling multiple 1-slot items
 	{ NULL,					0	},	// ca
 	{ NULL,					0	},	// cb
