@@ -1,3 +1,5 @@
+include ../../../make.defs
+
 all: char-converter
 sql: char-converter
 

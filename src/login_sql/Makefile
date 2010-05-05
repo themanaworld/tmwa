@@ -1,3 +1,5 @@
+include ../../make.defs
+
 all: login-server_sql
 sql: login-server_sql
 

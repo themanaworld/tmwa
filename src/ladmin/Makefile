@@ -1,3 +1,5 @@
+include ../../make.defs
+
 all: ladmin
 txt: ladmin
 sql: ladmin

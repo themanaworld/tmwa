@@ -7,9 +7,9 @@ src/char/int_party.o src/char/int_storage.o src/char/inter.o
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "src/login/login.h"
-#include "src/common/mmo.h"
-#include "src/char/char.c"
+#include "login.h"
+#include "mmo.h"
+#include "char.c"
 
 int mode;
 #define MODE_MARRIED	0

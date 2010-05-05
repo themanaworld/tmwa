@@ -1,3 +1,5 @@
+include ../../make.defs
+
 all: char-server_sql
 sql: char-server_sql
 

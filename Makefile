@@ -1,33 +1,7 @@
 # $Id$
+include make.defs
 
-ifeq ($(shell uname -m), x86_64)
-M32=-m32
-endif
-
-CC = gcc ${M32}
-
-PLATFORM = $(shell uname)
-
-ifeq ($(findstring FreeBSD,$(PLATFORM)), FreeBSD)
-MAKE = gmake
-else
-MAKE = make
-endif
-
-OPT = -pipe -g -fno-strict-aliasing -O2 -Wall
-
-ifeq ($(findstring CYGWIN,$(PLATFORM)), CYGWIN)
-OS_TYPE = -DCYGWIN
-CFLAGS = $(OPT) -DFD_SETSIZE=4096 -I../common $(PACKETDEF) $(OS_TYPE)
-else
-OS_TYPE =
-CFLAGS = $(OPT) -fstack-protector -Wno-pointer-sign -I../common $(PACKETDEF) $(OS_TYPE)
-endif
-
-MKDEF = CC="$(CC)" CFLAGS="$(CFLAGS)"
-
-
-all clean: src/common/GNUmakefile src/login/GNUmakefile src/char/GNUmakefile src/map/GNUmakefile src/ladmin/GNUmakefile
+all clean: src/common/Makefile src/login/Makefile src/char/Makefile src/map/Makefile src/ladmin/Makefile
 	cd src ; cd common ; $(MAKE) $(MKDEF) $@ ; cd ..
 	cd src ; cd login ; $(MAKE) $(MKDEF) $@ ; cd ..
 	cd src ; cd char ; $(MAKE) $(MKDEF) $@ ; cd ..
@@ -35,20 +9,4 @@ all clean: src/common/GNUmakefile src/login/GNUmakefile src/char/GNUmakefile src
 	cd src ; cd ladmin ; $(MAKE) $(MKDEF) $@ ; cd ..
 
 tools:
-	cd tool && $(MAKE) $(MKDEF) && cd ..
-	$(CC) -o setupwizard setupwizard.c	
-
-src/common/GNUmakefile: src/common/Makefile
-	sed -e 's/$$>/$$^/' src/common/Makefile > src/common/GNUmakefile
-src/login/GNUmakefile: src/login/Makefile
-	sed -e 's/$$>/$$^/' src/login/Makefile > src/login/GNUmakefile
-src/char/GNUmakefile: src/char/Makefile
-	sed -e 's/$$>/$$^/' src/char/Makefile > src/char/GNUmakefile
-src/map/GNUmakefile: src/map/Makefile
-	sed -e 's/$$>/$$^/' src/map/Makefile > src/map/GNUmakefile
-src/ladmin/GNUmakefile: src/ladmin/Makefile
-	sed -e 's/$$>/$$^/' src/ladmin/Makefile > src/ladmin/GNUmakefile
-src/txt-converter/login/GNUmakefile: src/txt-converter/login/Makefile
-	sed -e 's/$$>/$$^/' src/txt-converter/login/Makefile > src/txt-converter/login/GNUmakefile
-src/txt-converter/char/GNUmakefile: src/txt-converter/char/Makefile
-	sed -e 's/$$>/$$^/' src/txt-converter/char/Makefile > src/txt-converter/char/GNUmakefile
+	cd src/tool && $(MAKE) $(MKDEF) && cd ..

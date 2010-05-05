@@ -1,3 +1,4 @@
+include ../../make.defs
 txt sql all: core.o socket.o timer.o grfio.o db.o lock.o nullpo.o malloc.o mt_rand.o
 
 core.o: core.c core.h

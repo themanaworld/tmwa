@@ -1,3 +1,4 @@
+include ../../../make.defs
 all: login-converter
 sql: login-converter
 

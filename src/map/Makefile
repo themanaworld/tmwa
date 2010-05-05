@@ -1,5 +1,4 @@
-LEX=flex
-BISON=bison
+include ../../make.defs
 
 all: txt
 
