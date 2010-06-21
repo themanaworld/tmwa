@@ -3,6 +3,9 @@
 #include <string.h>
 #include <fstream>
 #include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 
 #include "mmo.h"
 #include "athena_text.h"
@@ -10,9 +13,10 @@
 #define ATHENA_FILE "save/athena.txt"
 #define ACCREG_FILE "save/accreg.txt"
 
-long long countAthena()
+std::vector<int> values;
+
+void countAthena()
 {
-    long long zeny = 0;
     int total = 0;
     std::string input;
     std::ifstream fp(ATHENA_FILE);
@@ -28,26 +32,21 @@ long long countAthena()
         if (mmo_char_fromstr(buffer, thisChar))
         {
             total++;
-            zeny += thisChar->zeny;
+            values.push_back(thisChar->zeny);
         }
-        else
-            std::cout << "Could not parse line \"" << buffer << "\"\n";
 
         delete thisChar;
     }
 
 
-    std::cout << "Parsed a total of " << total << " lines in " << ATHENA_FILE << std::endl;
+    std::cout << "Parsed a total of " << total << " lines in " << ATHENA_FILE << std::endl << std::endl;
 
     delete [] buffer;
     fp.close();
-
-    return zeny;
 }
 
-long long countAccReg()
+void countAccReg()
 {
-     long long zeny = 0;
      int total = 0;
      std::ifstream fp(ACCREG_FILE);
      char *buffer = new char[65536];
@@ -66,33 +65,99 @@ long long countAccReg()
             {
                 if (strcmp(reg->reg[i].str,"#BankAccount") == 0)
                 {
-                    zeny += reg->reg[i].value;
+                    values.push_back(reg->reg[i].value);
                 }
             }
-         }
-         else
-         {
-             std::cout << "Could not parse line: \"" << buffer << "\"\n";
          }
 
          delete reg;
      }
 
-    std::cout << "Parsed a total of " << total << " lines in " << ACCREG_FILE << std::endl;
+     std::cout << "Parsed a total of " << total << " lines in " << ACCREG_FILE << std::endl << std::endl;
 
      delete [] buffer;
      fp.close();
+}
 
-     return zeny;
+long long stdDevTotal = 0;
+long long sum = 0;
+int mean = 0;
+
+bool lessthan (int i,int j) { return (i<j); }
+void findstddev(int i) { stdDevTotal += (i - mean) * (i - mean); }
+void findSum(int i) { sum += i; }
+
+void showStats()
+{
+    // Reset globals
+    sum = 0;
+    mean = 0;
+    stdDevTotal = 0;
+
+    std::sort(values.begin(), values.end(), lessthan);
+    std::for_each(values.begin(), values.end(), findSum);
+
+    long long total = sum;
+    int count = values.size();
+    mean = total / count;
+
+    std::for_each(values.begin(), values.end(), findstddev);
+
+    int a4th = count / 4;
+    int a10th = count / 10;
+
+    int lower = values[0],
+
+        t1 = values[a10th * 1],
+        t2 = values[a10th * 2],
+
+        q1 = values[a4th * 1],
+
+        t3 = values[a10th * 3],
+        t4 = values[a10th * 4],
+
+        median = values[a4th * 2],
+
+        t6 = values[a10th * 6],
+        t7 = values[a10th * 7],
+
+        q3 = values[a4th * 3],
+
+        t8 = values[a10th * 8],
+        t9 = values[a10th * 9],
+
+        upper = values[count - 1];
+
+    std::cout << "Sum = " << total
+              << "\nCount = " << count
+              << "\nMean = " << mean
+              << "\nSimple Variance = " << (stdDevTotal / (count - 1))
+              << "\nStandard Deviation = " << std::sqrt(stdDevTotal / (count - 1))
+              << "\nLower bound = " << lower
+              << "\n10th Percentile = " << t1
+              << "\n20th Percentile  = " << t2
+              << "\nQ1 = " << q1
+              << "\n30th Percentile = " << t3
+              << "\n40th Percentile = " << t4
+              << "\nMedian = " << median
+              << "\n60th Percentile = " << t6
+              << "\n70th Percentile = " << t7
+              << "\nQ3 = " << q3
+              << "\n80th Percentile = " << t8
+              << "\n90th Percentile = " << t9
+              << "\nUpper bound = " << upper << std::endl << std::endl;
 }
 
 int main()
 {
-    long long count = 0;
-    count = countAthena();
-    count += countAccReg();
+    countAthena();
+    std::cout << "The stats for player held money is:" << std::endl;
+    showStats();
+    values.clear();
 
-    std::cout << "There is a total of " << count << " zeny on this server!" << std::endl;
+    countAccReg();
+    std::cout << "The stats for bank held money is:" << std::endl;
+    showStats();
 
     return 0;
 }
