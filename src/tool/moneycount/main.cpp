@@ -9,6 +9,7 @@
 
 #include "mmo.h"
 #include "athena_text.h"
+#include "inf.hpp"
 
 #define ATHENA_FILE "save/athena.txt"
 #define ACCREG_FILE "save/accreg.txt"
@@ -79,13 +80,26 @@ void countAccReg()
      fp.close();
 }
 
-long long stdDevTotal = 0;
-long long sum = 0;
-int mean = 0;
+stlplus::inf stdDevTotal(0);
+stlplus::inf sum(0);
+stlplus::inf mean(0);
 
 bool lessthan (int i,int j) { return (i<j); }
-void findstddev(int i) { stdDevTotal += (i - mean) * (i - mean); }
-void findSum(int i) { sum += i; }
+void findstddev(int i) { stdDevTotal += stlplus::inf((stlplus::inf(i) - mean) * (stlplus::inf(i) - mean)); }
+void findSum(int i) { sum += stlplus::inf(i); }
+
+stlplus::inf infsqrt(stlplus::inf &x)
+{
+    stlplus::inf old(x);
+    stlplus::inf newv(x / stlplus::inf(2));
+    while (old - newv > stlplus::inf(1))
+    {
+        old = newv;
+        newv = old - (old * old - x) / (stlplus::inf(2) * old);
+    }
+    return newv;
+}
+
 
 void showStats()
 {
@@ -97,14 +111,14 @@ void showStats()
     std::sort(values.begin(), values.end(), lessthan);
     std::for_each(values.begin(), values.end(), findSum);
 
-    long long total = sum;
-    int count = values.size();
-    mean = total / count;
+    stlplus::inf total(sum);
+    stlplus::inf count(values.size());
+    stlplus::inf mean(total / count);
 
     std::for_each(values.begin(), values.end(), findstddev);
 
-    int a4th = count / 4;
-    int a10th = count / 10;
+    int a4th = stlplus::inf(count / stlplus::inf(4)).to_int();
+    int a10th = stlplus::inf(count / stlplus::inf(10)).to_int();
 
     int lower = values[0],
 
@@ -126,13 +140,15 @@ void showStats()
         t8 = values[a10th * 8],
         t9 = values[a10th * 9],
 
-        upper = values[count - 1];
+        upper = values[count.to_int() - 1];
+
+    stlplus::inf variance(stdDevTotal / count);
 
     std::cout << "Sum = " << total
               << "\nCount = " << count
               << "\nMean = " << mean
-              << "\nSimple Variance = " << (stdDevTotal / (count - 1))
-              << "\nStandard Deviation = " << std::sqrt(stdDevTotal / (count - 1))
+              << "\nSimple Variance = " << variance
+              << "\nStandard Deviation = " << infsqrt(variance)
               << "\nLower bound = " << lower
               << "\n10th Percentile = " << t1
               << "\n20th Percentile  = " << t2
