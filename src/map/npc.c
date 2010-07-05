@@ -2133,8 +2133,12 @@ static int npc_parse_mapflag (char *w1, char *w2, char *w3, char *w4)
         map[m].flag.rain = 1;
     }
     else if (strcmpi (w3, "no_player_drops") == 0)
-    {                           // rain [Valaris]
+    {                           // no player drops [Jaxad0127]
         map[m].flag.no_player_drops = 1;
+    }
+    else if (strcmpi (w3, "town") == 0)
+    {                           // town/safe zone [remoitnane]
+        map[m].flag.town = 1;
     }
 
     return 0;

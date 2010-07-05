@@ -594,6 +594,7 @@ struct map_data
         unsigned leaves:1;      // [Valaris]
         unsigned rain:1;        // [Valaris]
         unsigned no_player_drops:1; // [Jaxad0127]
+        unsigned town:1;        // [remoitnane]
     } flag;
     struct point save;
     struct npc_data *npc[MAX_NPC_PER_MAP];

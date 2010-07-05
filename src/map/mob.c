@@ -4256,6 +4256,9 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                           mob_getfriendstatus (md, ms[i].cond1,
                                                ms[i].cond2)) != NULL);
                     break;
+                case MSC_NOTINTOWN:     // Only outside of towns.
+                    flag = !map[md->bl.m].flag.town;
+                    break;
                 case MSC_SLAVELT:  // slave < num
                     flag = (mob_countslave (md) < c2);
                     break;
@@ -4835,6 +4838,8 @@ static int mob_readskilldb (void)
         "friendstatuson", MSC_FRIENDSTATUSON},
         {
         "friendstatusoff", MSC_FRIENDSTATUSOFF},
+        {
+        "notintown", MSC_NOTINTOWN},
         {
         "attackpcgt", MSC_ATTACKPCGT},
         {
