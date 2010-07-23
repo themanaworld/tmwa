@@ -7209,13 +7209,16 @@ int pc_addeventtimer (struct map_session_data *sd, int tick, const char *name)
     for (i = 0; i < MAX_EVENTTIMER; i++)
         if (sd->eventtimer[i] == -1)
             break;
+
     if (i < MAX_EVENTTIMER)
     {
         char *evname = (char *) aCalloc (24, sizeof (char));
-        memcpy (evname, name, 24);
+        strncpy (evname, name, 24);
+        evname[23] = '\0';
         sd->eventtimer[i] = add_timer (gettick () + tick,
                                        pc_eventtimer, sd->bl.id,
                                        (int) evname);
+        return 1;
     }
 
     return 0;

@@ -7165,15 +7165,10 @@ void clif_parse_GlobalMessage (int fd, struct map_session_data *sd)
 int clif_message (struct block_list *bl, char *msg)
 {
     unsigned short msg_len = strlen (msg) + 1;
-    static int buf_len = -1;
-    static unsigned char *buf = NULL;
+    unsigned char buf[512];
 
-    if (buf_len < msg_len)
-    {
-        if (buf)
-            free (buf);
-        buf = malloc (buf_len = (msg_len + 16));
-    }
+    if (msg_len + 16 > 512)
+        return 0;
 
     nullpo_retr (0, bl);
 

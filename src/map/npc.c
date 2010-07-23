@@ -138,16 +138,22 @@ int npc_event_dequeue (struct map_session_data *sd)
     nullpo_retr (0, sd);
 
     sd->npc_id = 0;
-    if (sd->eventqueue[0][0])
-    {                           // �L���[�̃C�x���g����
-        char *name = (char *) aCalloc (50, sizeof (char));
-        int  i;
 
-        memcpy (name, sd->eventqueue[0], 50);
-        for (i = MAX_EVENTQUEUE - 2; i >= 0; i--)
-            memcpy (sd->eventqueue[i], sd->eventqueue[i + 1], 50);
-        add_timer (gettick () + 100, npc_event_timer, sd->bl.id, (int) name);
+    if (sd->eventqueue[0][0])
+    {
+        if (!pc_addeventtimer(sd, 100, sd->eventqueue[0]))
+        {
+            printf ("npc_event_dequeue(): Event timer is full.\n");
+            return 0;
+        }
+
+        if (MAX_EVENTQUEUE > 1)
+            memmove (sd->eventqueue[0], sd->eventqueue[1],
+                     (MAX_EVENTQUEUE - 1) * sizeof (sd->eventqueue[0]));
+        sd->eventqueue[MAX_EVENTQUEUE - 1][0] = '\0';
+        return 1;
     }
+
     return 0;
 }
 
@@ -747,7 +753,8 @@ int npc_event (struct map_session_data *sd, const char *eventname,
         {
 //          if (battle_config.etc_log)
 //              printf("npc_event: enqueue\n");
-            memcpy (sd->eventqueue[i], eventname, 50);
+            strncpy (sd->eventqueue[i], eventname, 50);
+            sd->eventqueue[i][49] = '\0';
         }
         return 1;
     }
