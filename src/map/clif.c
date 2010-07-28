@@ -9758,6 +9758,8 @@ int clif_check_packet_flood(fd, cmd)
             rate = 1000;
     }
 
+// Restore this code when mana1.0 is released
+#if 0
     // ChangeDir - only apply limit if not walking
     if (cmd == 0x9b)
     {
@@ -9767,6 +9769,7 @@ int clif_check_packet_flood(fd, cmd)
 
         rate = 500;
     }
+#endif
 
     // They are flooding
     if (tick < sd->flood_rates[cmd] + rate)
