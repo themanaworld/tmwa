@@ -9332,7 +9332,7 @@ func_table clif_parse_func_table[0x220] =
 	{ NULL,					0	},	// 98
 	{ clif_parse_GMmessage,			300	},	// 99
 	{ NULL,					0	},	// 9a
-	{ clif_parse_ChangeDir,			0	},	// 9b
+	{ clif_parse_ChangeDir,			-1	},	// 9b
 	{ NULL,					0	},	// 9c
 	{ NULL,					0	},	// 9d
 	{ NULL,					0	},	// 9e
