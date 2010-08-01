@@ -9727,8 +9727,6 @@ func_table clif_parse_func_table[0x220] =
 // Checks for packet flooding
 int clif_check_packet_flood(fd, cmd)
 {
-    // Disable the spam system for now
-    return 0;
     struct map_session_data *sd = session[fd]->session_data;
     unsigned int rate, tick = gettick();
 
