@@ -7,7 +7,7 @@
 #include <unistd.h>
 #endif
 #include <signal.h>
-#include <wait.h>
+#include <sys/wait.h>
 
 #include "core.h"
 #include "socket.h"
