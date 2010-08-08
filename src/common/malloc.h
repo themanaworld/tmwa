@@ -1,8 +1,6 @@
 #ifndef _MALLOC_H_
 #define _MALLOC_H_
 
-#include <stdlib.h>
-
 #if __STDC_VERSION__ < 199901L
 # if __GNUC__ >= 2
 #  define __func__ __FUNCTION__
@@ -16,6 +14,7 @@
 void *aMalloc_ (size_t, const char *, int, const char *);
 void *aCalloc_ (size_t, size_t, const char *, int, const char *);
 void *aRealloc_ (void *, size_t, const char *, int, const char *);
+char *aStrdup_ (const char *, const char *, int, const char *);
 
 #define aMalloc(n) aMalloc_(n,ALC_MARK)
 #define aMallocA(n) aMalloc_(n,ALC_MARK)
