@@ -4102,29 +4102,40 @@ int buildin_savepoint (struct script_state *st)
 }
 
 /*==========================================
- * GetTimeTick(0: System Tick, 1: Time Second Tick)
+ * gettimetick(type)
+ * 
+ * type:
+ *  0 system tick (default)
+ *  1 seconds elapsed today
+ *  2 seconds since Unix epoch
  *------------------------------------------
  */
 int buildin_gettimetick (struct script_state *st)   /* Asgard Version */
 {
     int  type;
-    time_t timer;
-    struct tm *t;
-
     type = conv_num (st, &(st->stack->stack_data[st->start + 2]));
 
     switch (type)
     {
+        /* Number of seconds elapsed today (0-86399, 00:00:00-23:59:59). */
         case 1:
-            //type 1:(Second Ticks: 0-86399, 00:00:00-23:59:59)
+        {
+            time_t timer;
+            struct tm *t;
+
             time (&timer);
             t = gmtime (&timer);
             push_val (st->stack, C_INT,
                       ((t->tm_hour) * 3600 + (t->tm_min) * 60 + t->tm_sec));
             break;
+        }
+        /* Seconds since Unix epoch. */
+        case 2:
+            push_val (st->stack, C_INT, (int) time (NULL));
+            break;
+        /* System tick (unsigned int, and yes, it will wrap). */ 
         case 0:
         default:
-            //type 0:(System Ticks)
             push_val (st->stack, C_INT, gettick ());
             break;
     }
