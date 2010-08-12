@@ -442,7 +442,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     }
 
     if (str[next] == '\n' || str[next] == '\r')
-        return 1;               // V‹Kƒf[ƒ^
+        return 1;               // ï¿½Vï¿½Kï¿½fï¿½[ï¿½^
 
     next++;
 
@@ -557,7 +557,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     for (i = 0;
          str[next] && str[next] != '\t' && str[next] != '\n'
          && str[next] != '\r'; i++)
-    {                           // global_regÀ‘•ˆÈ‘O‚Ìathena.txtŒİŠ·‚Ì‚½‚ßˆê‰'\n'ƒ`ƒFƒbƒN
+    {                           // global_regï¿½ï¿½ï¿½ï¿½È‘Oï¿½ï¿½athena.txtï¿½İŠï¿½ï¿½Ì‚ï¿½ï¿½ßˆê‰'\n'ï¿½`ï¿½Fï¿½bï¿½N
         if (sscanf
             (str + next, "%[^,],%d%n", p->global_reg[i].str,
              &p->global_reg[i].value, &len) != 2)
@@ -1845,17 +1845,17 @@ int disconnect_player (int accound_id)
     return 0;
 }
 
-// ƒLƒƒƒ‰íœ‚É”º‚¤ƒf[ƒ^íœ
+// ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½íœï¿½É”ï¿½ï¿½ï¿½ï¿½fï¿½[ï¿½^ï¿½íœ
 static int char_delete (struct mmo_charstatus *cs)
 {
 
-    // ƒMƒ‹ƒh’E‘Ş
+    // ï¿½Mï¿½ï¿½ï¿½hï¿½Eï¿½ï¿½
     if (cs->guild_id)
         inter_guild_leave (cs->guild_id, cs->account_id, cs->char_id);
-    // ƒp[ƒeƒB[’E‘Ş
+    // ï¿½pï¿½[ï¿½eï¿½Bï¿½[ï¿½Eï¿½ï¿½
     if (cs->party_id)
         inter_party_leave (cs->party_id, cs->account_id);
-    // —£¥
+    // ï¿½ï¿½ï¿½ï¿½
     if (cs->partner_id)
         char_divorce (cs);
 
@@ -2157,7 +2157,7 @@ int parse_tologin (int fd)
                 RFIFOSKIP (fd, 8 + RFIFOL (fd, 4));
                 break;
 
-                // account_reg2•ÏX’Ê’m
+                // account_reg2ï¿½ÏXï¿½Ê’m
             case 0x2729:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2174,7 +2174,7 @@ int parse_tologin (int fd)
                         reg[j].value = RFIFOL (fd, p + 32);
                     }
                     set_account_reg2 (acc, j, reg);
-                    // “¯CƒƒOƒCƒ“‚ğ‹Ö~‚µ‚Ä‚¢‚ê‚Î‘—‚é•K—v‚Í–³‚¢
+                    // ï¿½ï¿½ï¿½Cï¿½ï¿½ï¿½Oï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½Ö~ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½ï¿½ï¿½Î‘ï¿½ï¿½ï¿½ï¿½Kï¿½vï¿½Í–ï¿½ï¿½ï¿½
                     memcpy (buf, RFIFOP (fd, 0), RFIFOW (fd, 2));
                     WBUFW (buf, 0) = 0x2b11;
                     mapif_sendall (buf, WBUFW (buf, 2));
@@ -2522,7 +2522,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, RFIFOW (fd, 2));
                 break;
 
-                // ”FØ—v‹
+                // ï¿½Fï¿½Ø—vï¿½ï¿½
             case 0x2afc:
                 if (RFIFOREST (fd) < 22)
                     return 0;
@@ -2572,7 +2572,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 22);
                 break;
 
-                // MAPƒT[ƒo[ã‚Ìƒ†[ƒU[”óM
+                // MAPï¿½Tï¿½[ï¿½oï¿½[ï¿½ï¿½ï¿½Ìƒï¿½ï¿½[ï¿½Uï¿½[ï¿½ï¿½ï¿½ï¿½ï¿½M
             case 0x2aff:
                 if (RFIFOREST (fd) < 6 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2604,7 +2604,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 6 + i * 4);
                 break;
 
-                // ƒLƒƒƒ‰ƒf[ƒ^•Û‘¶
+                // ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½fï¿½[ï¿½^ï¿½Û‘ï¿½
             case 0x2b01:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2620,7 +2620,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, RFIFOW (fd, 2));
                 break;
 
-                // ƒLƒƒƒ‰ƒZƒŒ—v‹
+                // ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½Zï¿½ï¿½ï¿½vï¿½ï¿½
             case 0x2b02:
                 if (RFIFOREST (fd) < 18)
                     return 0;
@@ -2643,7 +2643,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 18);
                 break;
 
-                // ƒ}ƒbƒvƒT[ƒo[ŠÔˆÚ“®—v‹
+                // ï¿½}ï¿½bï¿½vï¿½Tï¿½[ï¿½oï¿½[ï¿½ÔˆÚ“ï¿½ï¿½vï¿½ï¿½
             case 0x2b05:
                 if (RFIFOREST (fd) < 49)
                     return 0;
@@ -2675,7 +2675,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 49);
                 break;
 
-                // ƒLƒƒƒ‰–¼ŒŸõ
+                // ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             case 0x2b08:
                 if (RFIFOREST (fd) < 6)
                     return 0;
@@ -2868,7 +2868,7 @@ int parse_frommap (int fd)
 
 //      case 0x2b0f: not more used (available for futur usage)
 
-                // account_reg•Û‘¶—v‹
+                // account_regï¿½Û‘ï¿½ï¿½vï¿½ï¿½
             case 0x2b10:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2884,7 +2884,7 @@ int parse_frommap (int fd)
                         reg[j].value = RFIFOL (fd, p + 32);
                     }
                     set_account_reg2 (acc, j, reg);
-                    // loginƒT[ƒo[‚Ö‘—‚é
+                    // loginï¿½Tï¿½[ï¿½oï¿½[ï¿½Ö‘ï¿½ï¿½ï¿½
                     if (login_fd > 0)
                     {           // don't send request if no login-server
                         WFIFOW (login_fd, 0) = 0x2728;
@@ -2892,7 +2892,7 @@ int parse_frommap (int fd)
                                 RFIFOW (fd, 2));
                         WFIFOSET (login_fd, WFIFOW (login_fd, 2));
                     }
-                    // ƒ[ƒ‹ƒh‚Ö‚Ì“¯CƒƒOƒCƒ“‚ª‚È‚¯‚ê‚ÎmapƒT[ƒo[‚É‘—‚é•K—v‚Í‚È‚¢
+                    // ï¿½ï¿½ï¿½[ï¿½ï¿½ï¿½hï¿½Ö‚Ì“ï¿½ï¿½Cï¿½ï¿½ï¿½Oï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½mapï¿½Tï¿½[ï¿½oï¿½[ï¿½É‘ï¿½ï¿½ï¿½ï¿½Kï¿½vï¿½Í‚È‚ï¿½
                     //memcpy(buf, RFIFOP(fd,0), RFIFOW(fd,2));
                     //WBUFW(buf,0) = 0x2b11;
                     //mapif_sendall(buf, WBUFW(buf,2));
@@ -2919,15 +2919,15 @@ int parse_frommap (int fd)
                 }
 
             default:
-                // inter serverˆ—‚É“n‚·
+                // inter serverï¿½ï¿½ï¿½ï¿½ï¿½É“nï¿½ï¿½
             {
                 int  r = inter_parse_frommap (fd);
-                if (r == 1)     // ˆ—‚Å‚«‚½
+                if (r == 1)     // ï¿½ï¿½ï¿½ï¿½ï¿½Å‚ï¿½ï¿½ï¿½
                     break;
-                if (r == 2)     // ƒpƒPƒbƒg’·‚ª‘«‚è‚È‚¢
+                if (r == 2)     // ï¿½pï¿½Pï¿½bï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È‚ï¿½
                     return 0;
             }
-                // inter serverˆ—‚Å‚à‚È‚¢ê‡‚ÍØ’f
+                // inter serverï¿½ï¿½ï¿½ï¿½ï¿½Å‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½ÍØ’f
                 printf
                     ("char: unknown packet 0x%04x (%d bytes to read in buffer)! (from map).\n",
                      RFIFOW (fd, 0), RFIFOREST (fd));
@@ -2965,7 +2965,7 @@ int search_mapserver (char *map)
     return -1;
 }
 
-// char_mapif‚Ì‰Šú‰»ˆ—iŒ»İ‚Íinter_mapif‰Šú‰»‚Ì‚İj
+// char_mapifï¿½Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½iï¿½ï¿½ï¿½İ‚ï¿½inter_mapifï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚İj
 static int char_mapif_init (int fd)
 {
     return inter_mapif_init (fd);
@@ -3021,7 +3021,7 @@ int parse_char (int fd)
 
         switch (RFIFOW (fd, 0))
         {
-            case 0x20b:        //20040622ˆÃ†‰»ragexe‘Î‰
+            case 0x20b:        //20040622ï¿½Ãï¿½ï¿½ï¿½ragexeï¿½Î‰ï¿½
                 if (RFIFOREST (fd) < 19)
                     return 0;
                 RFIFOSKIP (fd, 19);
@@ -3040,7 +3040,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 50);
                 break;
 
-            case 0x65:         // Ú‘±—v‹
+            case 0x65:         // ï¿½Ú‘ï¿½ï¿½vï¿½ï¿½
                 if (RFIFOREST (fd) < 17)
                     return 0;
                 {
@@ -3133,7 +3133,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 17);
                 break;
 
-            case 0x66:         // ƒLƒƒƒ‰‘I‘ğ
+            case 0x66:         // ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½Iï¿½ï¿½
                 if (!sd || RFIFOREST (fd) < 3)
                     return 0;
 
@@ -3297,7 +3297,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 3);
                 break;
 
-            case 0x67:         // ì¬
+            case 0x67:         // ï¿½ì¬
                 if (!sd || RFIFOREST (fd) < 37)
                     return 0;
                 i = make_new_char (fd, RFIFOP (fd, 2));
@@ -3498,7 +3498,7 @@ int parse_char (int fd)
                 }
                 break;
 
-            case 0x2af8:       // ƒ}ƒbƒvƒT[ƒo[ƒƒOƒCƒ“
+            case 0x2af8:       // ï¿½}ï¿½bï¿½vï¿½Tï¿½[ï¿½oï¿½[ï¿½ï¿½ï¿½Oï¿½Cï¿½ï¿½
                 if (RFIFOREST (fd) < 60)
                     return 0;
                 WFIFOW (fd, 0) = 0x2af9;
@@ -3547,13 +3547,13 @@ int parse_char (int fd)
                 }
                 break;
 
-            case 0x187:        // AliveM†H
+            case 0x187:        // Aliveï¿½Mï¿½ï¿½ï¿½H
                 if (RFIFOREST (fd) < 6)
                     return 0;
                 RFIFOSKIP (fd, 6);
                 break;
 
-            case 0x7530:       // Athenaî•ñŠ“¾
+            case 0x7530:       // Athenaï¿½ï¿½ï¿½ñŠ“ï¿½
                 WFIFOW (fd, 0) = 0x7531;
                 WFIFOB (fd, 2) = ATHENA_MAJOR_VERSION;
                 WFIFOB (fd, 3) = ATHENA_MINOR_VERSION;
@@ -3566,7 +3566,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 2);
                 return 0;
 
-            case 0x7532:       // Ú‘±‚ÌØ’f(default‚Æˆ—‚Íˆê‚¾‚ª–¾¦“I‚É‚·‚é‚½‚ß)
+            case 0x7532:       // ï¿½Ú‘ï¿½ï¿½ÌØ’f(defaultï¿½Æï¿½ï¿½ï¿½ï¿½Íˆêï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Iï¿½É‚ï¿½ï¿½é‚½ï¿½ï¿½)
                 session[fd]->eof = 1;
                 return 0;
 
@@ -3579,7 +3579,7 @@ int parse_char (int fd)
     return 0;
 }
 
-// ‘S‚Ä‚ÌMAPƒT[ƒo[‚Éƒf[ƒ^‘—Mi‘—M‚µ‚½mapI‚Ì”‚ğ•Ô‚·j
+// ï¿½Sï¿½Ä‚ï¿½MAPï¿½Tï¿½[ï¿½oï¿½[ï¿½Éƒfï¿½[ï¿½^ï¿½ï¿½ï¿½Mï¿½iï¿½ï¿½ï¿½Mï¿½ï¿½ï¿½ï¿½mapï¿½Iï¿½Ìï¿½ï¿½ï¿½ï¿½Ô‚ï¿½ï¿½j
 int mapif_sendall (char *buf, unsigned int len)
 {
     int  i, c;
@@ -3598,7 +3598,7 @@ int mapif_sendall (char *buf, unsigned int len)
     return c;
 }
 
-// ©•ªˆÈŠO‚Ì‘S‚Ä‚ÌMAPƒT[ƒo[‚Éƒf[ƒ^‘—Mi‘—M‚µ‚½mapI‚Ì”‚ğ•Ô‚·j
+// ï¿½ï¿½ï¿½ï¿½ï¿½ÈŠOï¿½Ì‘Sï¿½Ä‚ï¿½MAPï¿½Tï¿½[ï¿½oï¿½[ï¿½Éƒfï¿½[ï¿½^ï¿½ï¿½ï¿½Mï¿½iï¿½ï¿½ï¿½Mï¿½ï¿½ï¿½ï¿½mapï¿½Iï¿½Ìï¿½ï¿½ï¿½ï¿½Ô‚ï¿½ï¿½j
 int mapif_sendallwos (int sfd, unsigned char *buf, unsigned int len)
 {
     int  i, c;
@@ -3617,7 +3617,7 @@ int mapif_sendallwos (int sfd, unsigned char *buf, unsigned int len)
     return c;
 }
 
-// MAPƒT[ƒo[‚Éƒf[ƒ^‘—MimapI¶‘¶Šm”F—L‚èj
+// MAPï¿½Tï¿½[ï¿½oï¿½[ï¿½Éƒfï¿½[ï¿½^ï¿½ï¿½ï¿½Mï¿½imapï¿½Iï¿½ï¿½ï¿½ï¿½ï¿½mï¿½Fï¿½Lï¿½ï¿½ï¿½j
 int mapif_send (int fd, unsigned char *buf, unsigned int len)
 {
     int  i;
@@ -3689,7 +3689,7 @@ int check_connect_login_server (int tid, unsigned int tick, int id, int data)
 
 //----------------------------------------------------------
 // Return numerical value of a switch configuration by [Yor]
-// on/off, english, français, deutsch, espanol
+// on/off, english, franï¿½ais, deutsch, espanol
 //----------------------------------------------------------
 int config_switch (const char *str)
 {
@@ -3976,13 +3976,13 @@ int char_config_read (const char *cfgName)
         }
         else if (strcmpi (w1, "start_weapon") == 0)
         {
-            start_zeny = atoi (w2);
+            start_weapon = atoi (w2);
             if (start_weapon < 0)
                 start_weapon = 0;
         }
         else if (strcmpi (w1, "start_armor") == 0)
         {
-            start_zeny = atoi (w2);
+            start_armor = atoi (w2);
             if (start_armor < 0)
                 start_armor = 0;
         }
@@ -4105,7 +4105,7 @@ int do_init (int argc, char **argv)
     update_online = time (NULL);
     create_online_files ();     // update online players files at start of the server
 
-    inter_init ((argc > 2) ? argv[2] : inter_cfgName);  // inter server ‰Šú‰»
+    inter_init ((argc > 2) ? argv[2] : inter_cfgName);  // inter server ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
     set_termfunc (do_final);
     set_defaultparse (parse_char);
