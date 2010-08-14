@@ -710,8 +710,6 @@ AtCommandType
 is_atcommand (const int fd, struct map_session_data *sd, const char *message,
               int gmlvl)
 {
-    const char *str = message;
-    int  s_flag = 0;
     AtCommandInfo info;
     AtCommandType type;
 
@@ -721,22 +719,14 @@ is_atcommand (const int fd, struct map_session_data *sd, const char *message,
         return AtCommand_None;
 
     memset (&info, 0, sizeof (info));
-    str += strlen (sd->status.name);
-    while (*str && (isspace (*str) || (s_flag == 0 && *str == ':')))
-    {
-        if (*str == ':')
-            s_flag = 1;
-        str++;
-    }
-    if (!*str)
-        return AtCommand_None;
 
-    type = atcommand (gmlvl > 0 ? gmlvl : pc_isGM (sd), str, &info);
+    type = atcommand (gmlvl > 0 ? gmlvl : pc_isGM (sd), message, &info);
     if (type != AtCommand_None)
     {
         char command[100];
         char output[200];
-        const char *p = str;
+        const char *str = message;
+        const char *p = message;
         memset (command, '\0', sizeof (command));
         memset (output, '\0', sizeof (output));
         while (*p && !isspace (*p))

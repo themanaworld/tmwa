@@ -131,9 +131,6 @@ int tmw_CheckChatLameness (struct map_session_data *sd, char *message)
 {
     int  count, lame;
 
-    // Ignore the name
-    message += strlen (sd->status.name);
-
     for (count = lame = 0; *message; message++, count++)
         if (isupper (*message) || ispunct (*message))
             lame++;
