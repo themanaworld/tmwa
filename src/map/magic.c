@@ -106,29 +106,14 @@ int magic_message (character_t * caster, char *spell_, size_t spell_len)
         {
             invocation_t *invocation = spell_instantiate (effects, env);
 
-            /* We have a proper spell effect-- obscure the invocation! */
-            while (*source_invocation)
-            {
-                if (((rand () * 100.0) / (RAND_MAX * 1.0)) <
-                    magic_conf.obscure_chance)
-                    *source_invocation = '*';
-                ++source_invocation;
-            }
-
             spell_bind (caster, invocation);
             spell_execute (invocation);
 
             return (spell->flags & SPELL_FLAG_SILENT) ? -1 : 1;
         }
         else
-        {
             magic_free_env (env);
 
-            /* Obscure proper almost-triggered spell */
-            if (near_miss)
-                while (*source_invocation)
-                    *source_invocation++ = '.';
-        }
         return 1;
     }
     else
