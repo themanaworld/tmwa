@@ -131,6 +131,8 @@ int magic_message (character_t * caster, char *spell_, size_t spell_len)
         }
         return 1;
     }
+    else
+        free (parameter);
 
     return 0;                   /* Not a spell */
 }

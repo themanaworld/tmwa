@@ -191,8 +191,11 @@ env_t *spell_create_env (magic_conf_t * conf, spell_t * spell,
         }
 
         case SPELLARG_NONE:
+            free (param);
             break;
+
         default:
+            free (param);
             fprintf (stderr, "Unexpected spellarg type %d\n",
                      spell->spellarg_ty);
     }
