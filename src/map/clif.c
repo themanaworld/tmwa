@@ -8865,12 +8865,14 @@ void clif_parse_GMHide (int fd, struct map_session_data *sd)
         if (sd->status.option & OPTION_HIDE)
         {                       // OPTION_HIDE = 0x40
             sd->status.option &= ~OPTION_HIDE;  // OPTION_HIDE = 0x40
-            clif_displaymessage (fd, "Invisible: Off.");
+            /* "Invisible: Off." */
+            clif_displaymessage (fd, msg_txt (10));
         }
         else
         {
             sd->status.option |= OPTION_HIDE;   // OPTION_HIDE = 0x40
-            clif_displaymessage (fd, "Invisible: On.");
+            /* "Invisible: On." */
+            clif_displaymessage (fd, msg_txt (11));
         }
         clif_changeoption (&sd->bl);
     }
@@ -8893,7 +8895,8 @@ void clif_parse_GMReqNoChat (int fd, struct map_session_data *sd)
 
     if (!battle_config.muting_players)
     {
-        clif_displaymessage (fd, "Muting is disabled.");
+        /* "Muting is disabled." */
+        clif_displaymessage (fd, msg_txt (245));
         return;
     }
 

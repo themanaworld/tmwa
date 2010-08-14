@@ -78,7 +78,7 @@ int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
     {
         sd->chat_lines_in = sd->chat_total_repeats = 0;
 
-	tmw_AutoBan(sd, "chat", battle_config.chat_spam_ban);
+        tmw_AutoBan (sd, "chat", battle_config.chat_spam_ban);
 
         return 1;
     }
@@ -87,10 +87,10 @@ int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
         (sd->chat_lines_in >= battle_config.chat_spam_warn
          || sd->chat_total_repeats >= battle_config.chat_spam_warn))
     {
-        clif_displaymessage (sd->fd,
-                             "WARNING : You are about to be automaticly banned for spam!");
-        clif_displaymessage (sd->fd,
-                             "WARNING : Please slow down, do not repeat, and do not SHOUT!");
+        /* "WARNING: You are about to be automatically banned for spam!" */
+        clif_displaymessage (sd->fd, msg_txt (506));
+        /* "WARNING: Please slow down, do not repeat, and do not SHOUT!" */
+        clif_displaymessage (sd->fd, msg_txt (507));
     }
 
     return 0;
@@ -98,24 +98,27 @@ int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
 
 void tmw_AutoBan(struct map_session_data *sd, char *reason, int length)
 {
-	char anotherbuf[512];
+    char anotherbuf[512];
 
-	if (length == 0 || sd->auto_ban_info.in_progress)
-		return;
+    if (length == 0 || sd->auto_ban_info.in_progress)
+        return;
 
-            sd->auto_ban_info.in_progress = 1;
+    sd->auto_ban_info.in_progress = 1;
 
-            tmw_GmHackMsg ("%s has been autobanned for %s spam",
-                           sd->status.name, reason);
+    tmw_GmHackMsg ("%s has been autobanned for %s spam",
+                   sd->status.name, reason);
 
-            gm_log ("%s(%d,%d) Server : @autoban %s %dh (%s spam)",
-		    map[sd->bl.m].name, sd->bl.x, sd->bl.y,
-                    sd->status.name, length, reason);
+    gm_log ("%s(%d,%d) Server : @autoban %s %dh (%s spam)",
+            map[sd->bl.m].name, sd->bl.x, sd->bl.y,
+            sd->status.name, length, reason);
 
-	    snprintf(anotherbuf, 511, "You have been banned for %s spamming. Please do not spam.", reason);
-            clif_displaymessage (sd->fd, anotherbuf);
-            chrif_char_ask_name (-1, sd->status.name, 2, 0, 0, 0, length, 0, 0);   // type: 2 - ban (year, month, day, hour, minute, second)
-            clif_setwaitclose (sd->fd);
+    /* "You have been banned for %s spamming. Please do not spam." */
+    snprintf (anotherbuf, 511, msg_txt (508), reason);
+
+    clif_displaymessage (sd->fd, anotherbuf);
+    /* type: 2 - ban (year, month, day, hour, minute, second) */
+    chrif_char_ask_name (-1, sd->status.name, 2, 0, 0, 0, length, 0, 0);
+    clif_setwaitclose (sd->fd);
 }
 
 // Compares the length of two strings and returns that of the shorter
