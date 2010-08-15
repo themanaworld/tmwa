@@ -3453,6 +3453,10 @@ int pc_additem (struct map_session_data *sd, struct item *item_data,
         {
             memcpy (&sd->status.inventory[i], item_data,
                     sizeof (sd->status.inventory[0]));
+
+            if (item_data->equip)
+                sd->status.inventory[i].equip = 0;
+
             sd->status.inventory[i].amount = amount;
             sd->inventory_data[i] = data;
             clif_additem (sd, i, amount, 0);
