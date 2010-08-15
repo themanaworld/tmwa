@@ -7149,6 +7149,15 @@ void clif_parse_GlobalMessage (int fd, struct map_session_data *sd)
 
     if (!magic_message (sd, buf, msg_len))
     {
+        /* Don't send chat that results in an automatic ban. */
+        if (tmw_CheckChatSpam (sd, message))
+        {
+            free (buf);
+            /* "Your message could not be sent." */
+            clif_displaymessage (fd, msg_txt (505));
+            return;
+        }
+
         /* It's not a spell/magic message, so send the message to others. */
         WBUFW (buf, 0) = 0x8d;
         WBUFW (buf, 2) = msg_len + 8;   /* Header (2) + length (2) + ID (4). */
@@ -7423,6 +7432,15 @@ void clif_parse_Wis (int fd, struct map_session_data *sd)
                                 || sd->sc_data[SC_NOCHAT].timer != -1)))
     {
         free (buf);
+        return;
+    }
+
+    /* Don't send chat that results in an automatic ban. */
+    if (tmw_CheckChatSpam (sd, message))
+    {
+        free (buf);
+        /* "Your message could not be sent." */
+        clif_displaymessage (fd, msg_txt (505));
         return;
     }
 
@@ -8497,6 +8515,15 @@ void clif_parse_PartyMessage (int fd, struct map_session_data *sd)
         return;
     }
 
+    /* Don't send chat that results in an automatic ban. */
+    if (tmw_CheckChatSpam (sd, message))
+    {
+        free (buf);
+        /* "Your message could not be sent." */
+        clif_displaymessage (fd, msg_txt (505));
+        return;
+    }
+
     party_send_message (sd, message, RFIFOW (fd, 2) - 4);
     free (buf);
 }
@@ -8719,6 +8746,16 @@ void clif_parse_GuildMessage (int fd, struct map_session_data *sd)
         free (buf);
         return;
     }
+
+    /* Don't send chat that results in an automatic ban. */
+    if (tmw_CheckChatSpam (sd, message))
+    {
+        free (buf);
+        /* "Your message could not be sent." */
+        clif_displaymessage (fd, msg_txt (505));
+        return;
+    }
+
 
     guild_send_message (sd, message, RFIFOW (fd, 2) - 4);
     free (buf);
@@ -9944,13 +9981,6 @@ static char *clif_validate_chat (struct map_session_data *sd, int type,
             (type != 2) ? buf_len - 1 : buf_len - 8 - 1);
     buf[buf_len - 1] = '\0';
     p = (type != 2) ? buf : buf + 8;
-
-    /* Don't send chat that results in an automatic ban. */
-    if (tmw_CheckChatSpam (sd, p))
-    {
-        free (buf);
-        return NULL;
-    }
 
     if (type != 2)
     {
