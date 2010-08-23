@@ -157,9 +157,8 @@ int login_log (char *fmt, ...)
                      (int) tv.tv_usec / 1000, fmt);
             vfprintf (logfp, tmpstr, ap);
         }
-        fclose_ (logfp);
     }
-
+    fclose_ (logfp);
     va_end (ap);
     return 0;
 }
