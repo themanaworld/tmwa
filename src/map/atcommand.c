@@ -209,6 +209,7 @@ ATCOMMAND_FUNC (skillpool_focus);   // [Fate]
 ATCOMMAND_FUNC (skillpool_unfocus); // [Fate]
 ATCOMMAND_FUNC (skill_learn);   // [Fate]
 ATCOMMAND_FUNC (wgm);
+ATCOMMAND_FUNC (ipcheck);
 
 /*==========================================
  *AtCommandInfo atcommand_info[]ç\ë¢ëÃÇÃíËã`
@@ -406,6 +407,7 @@ static AtCommandInfo atcommand_info[] = {
     {AtCommand_IterateBackward, "@sp-unfocus", 80, atcommand_skillpool_unfocus},    // [Fate]
     {AtCommand_IterateBackward, "@skill-learn", 80, atcommand_skill_learn}, // [Fate]
     {AtCommand_Wgm, "@wgm", 0, atcommand_wgm},
+    {AtCommand_IpCheck, "@ipcheck", 60, atcommand_ipcheck},
 
 // add new commands before this line
     {AtCommand_Unknown, NULL, 1, NULL}
@@ -8503,6 +8505,7 @@ int atcommand_wgm (const int fd, struct map_session_data *sd,
     return 0;
 }
 
+
 int atcommand_skillpool_info (const int fd, struct map_session_data *sd,
                               const char *command, const char *message)
 {
@@ -8633,5 +8636,66 @@ int atcommand_skill_learn (const int fd, struct map_session_data *sd,
     else
         clif_displaymessage (fd, "Character not found.");
 
+    return 0;
+}
+
+int atcommand_ipcheck (const int fd, struct map_session_data *sd,
+                   const char *command, const char *message)
+{
+    struct map_session_data *pl_sd;
+    struct sockaddr_in sai;
+    char output[200];
+    char character[25];
+    int i;
+    socklen_t sa_len = sizeof (struct sockaddr);
+    unsigned long ip;
+
+    memset(character, '\0', sizeof(character));
+
+    if (sscanf (message, "%24[^\n]", character) < 1)
+    {
+        clif_displaymessage (fd, "Usage: @ipcheck <char name>");
+        return -1;
+    }
+
+    if ((pl_sd = map_nick2sd (character)) == NULL)
+    {
+        clif_displaymessage (fd, "Character not found.");
+        return -1;
+    }
+
+    if (getpeername (pl_sd->fd, (struct sockaddr *)&sai, &sa_len))
+    {
+        clif_displaymessage (fd,
+                             "Guru Meditation Error: getpeername() failed");
+        return -1;
+    }
+
+    ip = sai.sin_addr.s_addr;
+
+    // We now have the IP address of a character.
+    // Loop over all logged in sessions looking for matches.
+
+    for (i = 0; i < fd_max; i++)
+    {
+        if (session[i] && (pl_sd = session[i]->session_data)
+            && pl_sd->state.auth)
+        {
+            if (getpeername (pl_sd->fd, (struct sockaddr *)&sai, &sa_len))
+                continue;
+
+            // Is checking GM levels really needed here?
+            if (ip == sai.sin_addr.s_addr)
+            {
+                snprintf (output, sizeof(output),
+                         "Name: %s | Location: %s %d %d",
+                         pl_sd->status.name, pl_sd->mapname,
+                         pl_sd->bl.x, pl_sd->bl.y);
+                clif_displaymessage (fd, output);
+            }
+        }
+    }
+
+    clif_displaymessage (fd, "End of list");
     return 0;
 }
