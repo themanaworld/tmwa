@@ -4104,10 +4104,11 @@ int buildin_savepoint (struct script_state *st)
 /*==========================================
  * gettimetick(type)
  * 
- * type:
- *  0 system tick (default)
- *  1 seconds elapsed today
- *  2 seconds since Unix epoch
+ * type The type of time measurement.
+ *  Specify 0 for the system tick, 1 for
+ *  seconds elapsed today, or 2 for seconds
+ *  since Unix epoch. Defaults to 0 for any
+ *  other value.
  *------------------------------------------
  */
 int buildin_gettimetick (struct script_state *st)   /* Asgard Version */
@@ -6671,31 +6672,56 @@ int buildin_classchange (struct script_state *st)
 }
 
 /*==========================================
- * NPC���甭�������G�t�F�N�g
+ * misceffect(effect, [target])
+ *
+ * effect The effect type/ID.
+ * target The player name or being ID on
+ *  which to display the effect. If not
+ *  specified, it attempts to default to
+ *  the current NPC or invoking PC.
  *------------------------------------------
  */
 int buildin_misceffect (struct script_state *st)
 {
     int  type;
+    int  id = 0;
     char *name = NULL;
+    struct block_list *bl = NULL;
 
     type = conv_num (st, &(st->stack->stack_data[st->start + 2]));
+
     if (st->end > st->start + 3)
-        name = conv_str (st, &(st->stack->stack_data[st->start + 3]));
+    {
+        struct script_data *sdata = &(st->stack->stack_data[st->start + 3]);
+
+        get_val (st, sdata);
+
+        if (sdata->type == C_STR || sdata->type == C_CONSTSTR)
+            name = conv_str (st, sdata);
+        else
+            id = conv_num (st, sdata);
+    }
+
     if (name)
     {
         struct map_session_data *sd = map_nick2sd (name);
         if (sd)
-            clif_misceffect (&sd->bl, type);
+            bl = &sd->bl;
     }
+    else if (id)
+        bl = map_id2bl (id);
     else if (st->oid)
-        clif_misceffect (map_id2bl (st->oid), type);
+        bl = map_id2bl (st->oid);
     else
     {
         struct map_session_data *sd = script_rid2sd (st);
         if (sd)
-            clif_misceffect (&sd->bl, type);
+            bl = &sd->bl;
     }
+
+    if (bl)
+        clif_misceffect (bl, type);
+
     return 0;
 }
 
