@@ -6908,9 +6908,9 @@ int pc_setregstr (struct map_session_data *sd, int reg, char *str)
 
     nullpo_retr (0, sd);
 
-    if (strlen (str) + 1 >= sizeof (sd->regstr[0].data))
+    if (strlen (str) + 1 > sizeof (sd->regstr[0].data))
     {
-        printf ("pc_setregstr: string too long !\n");
+        printf ("pc_setregstr(): String too long!\n");
         return 0;
     }
 

@@ -8178,7 +8178,9 @@ void clif_parse_NpcAmountInput (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * Process string-based input for an NPC.
  *
+ * (S 01d5 <len>.w <npc_ID>.l <message>.?B)
  *------------------------------------------
  */
 void clif_parse_NpcStringInput (int fd, struct map_session_data *sd)
@@ -8186,16 +8188,25 @@ void clif_parse_NpcStringInput (int fd, struct map_session_data *sd)
     int  len;
     nullpo_retv (sd);
 
-    len = RFIFOW (fd, 2) - 7;
+    len = RFIFOW (fd, 2) - 8;
 
-    if (len >= sizeof (sd->npc_str)-1)
+    /*
+     * If we check for equal to 0, too, we'll freeze clients that send (or
+     * claim to have sent) an "empty" message.
+     */
+    if (len < 0)
+        return;
+
+    if (len >= sizeof (sd->npc_str) - 1)
     {
-        printf ("clif: input string too long !\n");
-        memcpy (sd->npc_str, RFIFOP (fd, 8), sizeof (sd->npc_str));
+        printf ("clif_parse_NpcStringInput(): Input string too long!\n");
+        len = sizeof (sd->npc_str) - 1;
     }
-    else
+
+    if (len > 0)
         strncpy (sd->npc_str, RFIFOP (fd, 8), len);
-    sd->npc_str[sizeof (sd->npc_str) - 1] = 0;
+    sd->npc_str[len] = '\0';
+
     map_scriptcont (sd, RFIFOL (fd, 4));
 }
 
@@ -8755,7 +8766,6 @@ void clif_parse_GuildMessage (int fd, struct map_session_data *sd)
         clif_displaymessage (fd, msg_txt (505));
         return;
     }
-
 
     guild_send_message (sd, message, RFIFOW (fd, 2) - 4);
     free (buf);
