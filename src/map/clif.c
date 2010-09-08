@@ -5267,7 +5267,9 @@ int clif_party_info (struct party *p, int fd)
 }
 
 /*==========================================
- * �p�[�e�B���U
+ * Relay a party invitation.
+ *
+ * (S 00fe <sender_ID>.l <party_name>.24B)
  *------------------------------------------
  */
 int clif_party_invite (struct map_session_data *sd,
@@ -5281,7 +5283,7 @@ int clif_party_invite (struct map_session_data *sd,
 
     fd = tsd->fd;
 
-    if ((p = party_search (sd->status.party_id)) == NULL)
+    if (!(p = party_search (sd->status.party_id)))
         return 0;
 
     WFIFOW (fd, 0) = 0xfe;
@@ -5292,7 +5294,16 @@ int clif_party_invite (struct map_session_data *sd,
 }
 
 /*==========================================
- * �p�[�e�B���U����
+ * Relay the response to a party invitation.
+ *
+ * (R 00fd <name>.24B <flag>.B)
+ *
+ * flag:
+ *  0 The character is already in a party.
+ *  1 The invitation was rejected.
+ *  2 The invitation was accepted.
+ *  3 The party is full.
+ *  4 The character is in the same party.
  *------------------------------------------
  */
 int clif_party_inviteack (struct map_session_data *sd, char *nick, int flag)
@@ -8442,17 +8453,20 @@ void clif_parse_CreateParty2 (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
- * �p�[�e�B�Ɋ��U
+ * Process invitation to join a party.
+ *
+ * (S 00fc <account_ID>.l)
  *------------------------------------------
  */
 void clif_parse_PartyInvite (int fd, struct map_session_data *sd)
 {
-    printf ("Party Invite!\n");
     party_invite (sd, RFIFOL (fd, 2));
 }
 
 /*==========================================
- * �p�[�e�B���U�ԓ�
+ * Process reply to party invitation.
+ *
+ * (S 00ff <account_ID>.l <flag>.l)
  *------------------------------------------
  */
 void clif_parse_ReplyPartyInvite (int fd, struct map_session_data *sd)
@@ -8464,7 +8478,7 @@ void clif_parse_ReplyPartyInvite (int fd, struct map_session_data *sd)
     }
     else
     {
-        party_reply_invite (sd, RFIFOL (fd, 2), -1);
+        party_reply_invite (sd, RFIFOL (fd, 2), 0);
         clif_skill_fail (sd, 1, 0, 4);
     }
 }

@@ -219,45 +219,63 @@ int party_recv_info (struct party *sp)
     return 0;
 }
 
-// パーティへの勧誘
+/* Process party invitation from sd to account_id. */
 int party_invite (struct map_session_data *sd, int account_id)
 {
     struct map_session_data *tsd = map_id2sd (account_id);
     struct party *p = party_search (sd->status.party_id);
     int  i;
+    int  full = 1; /* Indicates whether or not there's room for one more. */
 
     nullpo_retr (0, sd);
 
-    if (tsd == NULL || p == NULL)
+    if (!tsd || !p || !tsd->fd)
         return 0;
-
-    printf ("\tA\n");
 
     if (!battle_config.invite_request_check)
     {
+        /* Disallow the invitation under these conditions. */
         if (tsd->guild_invite > 0 || tsd->trade_partner || tsd->npc_id
             || tsd->npc_shopid || pc_checkskill (tsd, NV_PARTY) < 1)
         {
-            clif_party_inviteack (sd, tsd->status.name, 0);
+            clif_party_inviteack (sd, tsd->status.name, 1);
             return 0;
         }
     }
-    printf ("\tB\n");
+
+    /* The target player is already in a party, or has a pending invitation. */
     if (tsd->status.party_id > 0 || tsd->party_invite > 0)
-    {                           // 相手の所属確認
+    {
         clif_party_inviteack (sd, tsd->status.name, 0);
         return 0;
     }
-    printf ("\tC\n");
+
     for (i = 0; i < MAX_PARTY; i++)
-    {                           // 同アカウント確認
+    {
+        /*
+         * A character from the target account is already in the same party.
+         * The response isn't strictly accurate, as they're separate
+         * characters, but we're making do with what was already in place and
+         * leaving this (mostly) alone for now.
+         */
         if (p->member[i].account_id == account_id)
         {
-            clif_party_inviteack (sd, tsd->status.name, 0);
+            clif_party_inviteack (sd, tsd->status.name, 1);
             return 0;
         }
+
+        if (!p->member[i].account_id)
+            full = 0;
     }
-    printf ("\tD\n");
+
+    /* There isn't enough room for a new member. */
+    if (full)
+    {
+        clif_party_inviteack (sd, tsd->status.name, 3);
+        return 0;
+    }
+
+    /* Otherwise, relay the invitation to the target player. */
     tsd->party_invite = sd->status.party_id;
     tsd->party_invite_account = sd->status.account_id;
 
@@ -265,26 +283,36 @@ int party_invite (struct map_session_data *sd, int account_id)
     return 0;
 }
 
-// パーティ勧誘への返答
+/* Process response to party invitation. */
 int party_reply_invite (struct map_session_data *sd, int account_id, int flag)
 {
-    struct map_session_data *tsd = map_id2sd (account_id);
-
     nullpo_retr (0, sd);
 
-    if (flag == 1)
-    {                           // 承諾
-        //inter鯖へ追加要求
-        intif_party_addmember (sd->party_invite, sd->status.account_id);
+    /* There is no pending invitation. */
+    if (!sd->party_invite || !sd->party_invite_account)
         return 0;
-    }
+
+    /*
+     * Only one invitation can be pending, so these have to be the same. Since
+     * the client continues to send the wrong ID, and it's already managed on
+     * this side of things, the sent ID is being ignored.
+     */
+    account_id = sd->party_invite_account;
+
+    /* The invitation was accepted. */
+    if (flag == 1)
+        intif_party_addmember (sd->party_invite, sd->status.account_id);
+    /* The invitation was rejected. */
     else
-    {                           // 拒否
+    {
+        /* This is the player who sent the invitation. */
+        struct map_session_data *tsd = NULL;
+
         sd->party_invite = 0;
         sd->party_invite_account = 0;
-        if (tsd == NULL)
-            return 0;
-        clif_party_inviteack (tsd, sd->status.name, 1);
+
+        if ((tsd = map_id2sd (account_id)))
+            clif_party_inviteack (tsd, sd->status.name, 1);
     }
     return 0;
 }
