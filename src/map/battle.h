@@ -340,16 +340,6 @@ extern struct Battle_Config
     int  chat_spam_warn;
     int  chat_maxline;
 
-    int  trade_spam_threshold;
-    int  trade_spam_flood;
-    int  trade_spam_ban;
-    int  trade_spam_warn;
-
-    int  sit_spam_threshold;
-    int  sit_spam_flood;
-    int  sit_spam_ban;
-    int  sit_spam_warn;
-
     int  packet_spam_threshold;
     int  packet_spam_flood;
     int  packet_spam_kick;
