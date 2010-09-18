@@ -1029,7 +1029,7 @@ int atcommand_charwarp (const int fd, struct map_session_data *sd,
     {
         if (pc_isGM (sd) >= pc_isGM (pl_sd))
         {                       // you can rura+ only lower or same GM level
-            if (x > 0 && x < 400 && y > 0 && y < 400)
+            if (x > 0 && x < 800 && y > 0 && y < 800)
             {
                 m = map_mapname2mapid (map_name);
                 if (m >= 0 && map[m].flag.nowarpto
@@ -1107,7 +1107,7 @@ int atcommand_warp (const int fd, struct map_session_data *sd,
     if (strstr (map_name, ".gat") == NULL && strstr (map_name, ".afm") == NULL && strlen (map_name) < 13)   // 16 - 4 (.gat)
         strcat (map_name, ".gat");
 
-    if (x > 0 && x < 400 && y > 0 && y < 400)
+    if (x > 0 && x < 800 && y > 0 && y < 800)
     {
         m = map_mapname2mapid (map_name);
         if (m >= 0 && map[m].flag.nowarpto
@@ -1244,7 +1244,7 @@ int atcommand_jump (const int fd, struct map_session_data *sd,
         x = MRAND (399) + 1;
     if (y <= 0)
         y = MRAND (399) + 1;
-    if (x > 0 && x < 400 && y > 0 && y < 400)
+    if (x > 0 && x < 800 && y > 0 && y < 800)
     {
         if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM (sd))
