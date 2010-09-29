@@ -9442,7 +9442,7 @@ func_table clif_parse_func_table[0x220] =
 	{ clif_parse_TakeItem,			400	},	// 9f
 	{ NULL,					0	},	// a0
 	{ NULL,					0	},	// a1
-	{ clif_parse_DropItem,			200	},	// a2
+	{ clif_parse_DropItem,			50	},	// a2
 	{ NULL,					0	},	// a3
 	{ NULL,					0	},	// a4
 	{ NULL,					0	},	// a5
