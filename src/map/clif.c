@@ -8757,7 +8757,7 @@ void clif_parse_GuildMessage (int fd, struct map_session_data *sd)
 
     nullpo_retv (sd);
 
-    if (!(buf = clif_validate_chat (sd, 0, &message, &message_len)))
+    if (!(buf = clif_validate_chat (sd, 2, &message, &message_len)))
     {
         /* "Your message could not be sent." */
         clif_displaymessage (fd, msg_txt (505));
@@ -8781,7 +8781,7 @@ void clif_parse_GuildMessage (int fd, struct map_session_data *sd)
         return;
     }
 
-    guild_send_message (sd, message, RFIFOW (fd, 2) - 4);
+    guild_send_message (sd, buf + 8, RFIFOW (fd, 2) - 4);
     free (buf);
 }
 
@@ -9914,9 +9914,9 @@ int clif_check_packet_flood(fd, cmd)
  *
  * @param sd active session data
  * @param type message type:
- *  0 for when the sender's name is not included (party/guild chat)
+ *  0 for when the sender's name is not included (party chat)
  *  1 for when the target's name is included (whisper chat)
- *  2 for when the sender's name is embedded ("sender : text", public chat)
+ *  2 for when the sender's name is given ("sender : text", public/guild chat)
  * @param[out] message the message text (pointing within return value, or NULL)
  * @param[out] message_len the length of the actual text, excluding NUL
  * @return a dynamically allocated copy of the message, or NULL upon failure
