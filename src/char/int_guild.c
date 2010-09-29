@@ -740,7 +740,7 @@ int guild_calcinfo (struct guild *g)
     g->next_exp = guild_nextexp (g->guild_lv);
 
     // メンバ上限（ギルド拡張適用）
-    g->max_member = 16 + guild_checkskill (g, 10004) * 2;
+    g->max_member = 100 + guild_checkskill (g, 10004) * 2;
 
     // 平均レベルとオンライン人数
     g->average_lv = 0;
@@ -1108,7 +1108,7 @@ int mapif_parse_CreateGuild (int fd, int account_id, char *name,
         sprintf (g->position[i].name, "Position %d", i + 1);
 
     // ここでギルド情報計算が必要と思われる
-    g->max_member = 16;
+    g->max_member = 100;
     g->average_lv = master->lv;
     for (i = 0; i < 5; i++)
         g->skill[i].id = i + 10000;

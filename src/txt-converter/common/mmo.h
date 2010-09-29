@@ -29,7 +29,7 @@
 #define MAX_STORAGE 100
 #define MAX_GUILD_STORAGE 1000
 #define MAX_PARTY 12
-#define MAX_GUILD 56            // increased max guild members to accomodate for +2 increase for extension levels [Valaris]
+#define MAX_GUILD 140            // increased max guild members to accomodate for +2 increase for extension levels [Valaris]
 #define MAX_GUILDPOSITION 56    // increased max guild positions to accomodate for all members [Valaris]
 #define MAX_GUILDEXPLUSION 32
 #define MAX_GUILDALLIANCE 16
