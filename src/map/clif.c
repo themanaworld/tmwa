@@ -8647,7 +8647,19 @@ void clif_parse_GuildReqeustInfo (int fd, struct map_session_data *sd)
  */
 void clif_parse_GuildChangePositionInfo (int fd, struct map_session_data *sd)
 {
-    int  i;
+    struct guild *g;
+    int  i, ps;
+
+    nullpo_retv (sd);
+
+    g = guild_search (sd->status.guild_id);
+
+    if (g == NULL)
+        return;
+
+    if ((ps = guild_getposition (sd, g)) < 0
+        || (!(g->position[ps].mode & 0x0010) && strcmp (g->master, sd->status.name)))
+        return;
 
     for (i = 4; i < RFIFOW (fd, 2); i += 40)
     {
@@ -8663,9 +8675,19 @@ void clif_parse_GuildChangePositionInfo (int fd, struct map_session_data *sd)
 void clif_parse_GuildChangeMemberPosition (int fd,
                                            struct map_session_data *sd)
 {
-    int  i;
+    struct guild *g;
+    int  i, ps;
 
     nullpo_retv (sd);
+
+    g = guild_search (sd->status.guild_id);
+
+    if (g == NULL)
+        return;
+
+    if ((ps = guild_getposition (sd, g)) < 0
+        || (!(g->position[ps].mode & 0x0010) && strcmp (g->master, sd->status.name)))
+        return;
 
     for (i = 4; i < RFIFOW (fd, 2); i += 12)
     {

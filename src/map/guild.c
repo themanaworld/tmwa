@@ -966,10 +966,23 @@ int guild_position_changed (int guild_id, int idx, struct guild_position *p)
 int guild_change_notice (struct map_session_data *sd, int guild_id,
                          const char *mes1, const char *mes2)
 {
+    struct guild *g;
+    int ps;
+
     nullpo_retr (0, sd);
+
+    g = guild_search (sd->status.guild_id);
+
+    if (g == NULL)
+        return 0;
+
+    if ((ps = guild_getposition (sd, g)) < 0
+        || !(g->position[ps].mode & 0x0010))
+        return 0;
 
     if (guild_id != sd->status.guild_id)
         return 0;
+
     return intif_guild_notice (guild_id, mes1, mes2);
 }
 
@@ -997,7 +1010,19 @@ int guild_notice_changed (int guild_id, const char *mes1, const char *mes2)
 int guild_change_emblem (struct map_session_data *sd, int len,
                          const char *data)
 {
+    struct guild *g;
+    int  ps;
+
     nullpo_retr (0, sd);
+
+    g = guild_search (sd->status.guild_id);
+
+    if (g == NULL)
+        return 0;
+
+    if ((ps = guild_getposition (sd, g)) < 0
+        || !(g->position[ps].mode & 0x0010))
+        return 0;
 
     return intif_guild_emblem (sd->status.guild_id, len, data);
 }
@@ -1126,7 +1151,7 @@ int guild_reqalliance (struct map_session_data *sd, int account_id)
 {
     struct map_session_data *tsd = map_id2sd (account_id);
     struct guild *g[2];
-    int  i;
+    int  i, ps;
 
     if (agit_flag)
     {                           // Disable alliance creation during woe [Valaris]
@@ -1144,6 +1169,10 @@ int guild_reqalliance (struct map_session_data *sd, int account_id)
     g[1] = guild_search (tsd->status.guild_id);
 
     if (g[0] == NULL || g[1] == NULL)
+        return 0;
+
+    if ((ps = guild_getposition (sd, g[0])) < 0
+        || !(g[0]->position[ps].mode & 0x0010))
         return 0;
 
     if (guild_get_alliance_count (g[0], 0) > 3) // 同盟数確認
@@ -1256,7 +1285,19 @@ int guild_delalliance (struct map_session_data *sd, int guild_id, int flag)
         return 0;
     }                           // end addition [Valaris]
 
+    struct guild *g;
+    int ps;
+
     nullpo_retr (0, sd);
+
+    g = guild_search (sd->status.guild_id);
+
+    if (g == NULL)
+        return 0;
+
+    if ((ps = guild_getposition (sd, g)) < 0
+        || !(g->position[ps].mode & 0x0010))
+        return 0;
 
     intif_guild_alliance (sd->status.guild_id, guild_id,
                           sd->status.account_id, 0, flag | 8);
@@ -1268,12 +1309,16 @@ int guild_opposition (struct map_session_data *sd, int char_id)
 {
     struct map_session_data *tsd = map_id2sd (char_id);
     struct guild *g;
-    int  i;
+    int  i, ps;
 
     nullpo_retr (0, sd);
 
     g = guild_search (sd->status.guild_id);
     if (g == NULL || tsd == NULL)
+        return 0;
+
+    if ((ps = guild_getposition (sd, g)) < 0
+        || !(g->position[ps].mode & 0x0010))
         return 0;
 
     if (guild_get_alliance_count (g, 1) > 3)    // 敵対数確認
