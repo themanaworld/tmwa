@@ -15,6 +15,7 @@
 #include "intif.h"
 #include "clif.h"
 #include "skill.h"
+#include "tmw.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -76,19 +77,30 @@ struct party *party_searchname (char *str)
     return p;
 }
 
-// ì¬—v‹
+/* Process a party creation request. */
 int party_create (struct map_session_data *sd, char *name)
 {
+    char pname[24];
     nullpo_retr (0, sd);
 
+    strncpy (pname, name, 24);
+    pname[23] = '\0';
+    tmw_TrimStr (pname);
+
+    /* The party name is empty/invalid. */
+    if (!*pname)
+        clif_party_created (sd, 1);
+
+    /* Make sure the character isn't already in a party. */
     if (sd->status.party_id == 0)
-        intif_create_party (sd, name);
+        intif_create_party (sd, pname);
     else
         clif_party_created (sd, 2);
+
     return 0;
 }
 
-// ì¬‰Â”Û
+/* Relay the result of a party creation request. */
 int party_created (int account_id, int fail, int party_id, char *name)
 {
     struct map_session_data *sd;
@@ -96,25 +108,30 @@ int party_created (int account_id, int fail, int party_id, char *name)
 
     nullpo_retr (0, sd);
 
-    if (fail == 0)
+    /* The party name is valid and not already taken. */
+    if (!fail)
     {
         struct party *p;
         sd->status.party_id = party_id;
+
         if ((p = numdb_search (party_db, party_id)) != NULL)
         {
-            printf ("party: id already exists!\n");
+            printf ("party_created(): ID already exists!\n");
             exit (1);
         }
+
         p = (struct party *) aCalloc (1, sizeof (struct party));
         p->party_id = party_id;
         memcpy (p->name, name, 24);
         numdb_insert (party_db, party_id, p);
+
+        /* The party was created successfully. */
         clif_party_created (sd, 0);
     }
+
     else
-    {
         clif_party_created (sd, 1);
-    }
+
     return 0;
 }
 

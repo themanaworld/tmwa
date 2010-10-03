@@ -5209,7 +5209,14 @@ int clif_cart_equiplist (struct map_session_data *sd)
 }
 
 /*==========================================
- * �p�[�e�B�쐬����
+ * Relay the result of party creation.
+ *
+ * (R 00fa <flag>.B)
+ *
+ * flag:
+ *  0 The party was created.
+ *  1 The party name is invalid/taken.
+ *  2 The character is already in a party.
  *------------------------------------------
  */
 int clif_party_created (struct map_session_data *sd, int flag)
@@ -5269,7 +5276,7 @@ int clif_party_info (struct party *p, int fd)
 /*==========================================
  * Relay a party invitation.
  *
- * (S 00fe <sender_ID>.l <party_name>.24B)
+ * (R 00fe <sender_ID>.l <party_name>.24B)
  *------------------------------------------
  */
 int clif_party_invite (struct map_session_data *sd,
@@ -5738,7 +5745,15 @@ int clif_mvp_exp (struct map_session_data *sd, int exp)
 }
 
 /*==========================================
- * �M���h�쐬�ےʒm
+ * Relay the result of guild creation.
+ *
+ * (R 0167 <flag>.B)
+ *
+ * flag:
+ *  0 The guild was created.
+ *  1 The character is already in a guild.
+ *  2 The guild name is invalid/taken.
+ *  3 The Emperium item is required.
  *------------------------------------------
  */
 int clif_guild_created (struct map_session_data *sd, int flag)
@@ -8423,7 +8438,9 @@ void clif_parse_CloseKafra (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
- * �p�[�e�B������
+ * Process request to create a party.
+ *
+ * (S 00f9 <party_name>.24B)
  *------------------------------------------
  */
 void clif_parse_CreateParty (int fd, struct map_session_data *sd)
@@ -8438,7 +8455,14 @@ void clif_parse_CreateParty (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
- * �p�[�e�B������
+ * Process request to create a party.
+ *
+ * (S 01e8 <party_name>.24B <exp>.B <itm>.B)
+ *
+ * Note: Upstream eAthena uses this to
+ *       specify experience/item sharing,
+ *       respectively, but it was left
+ *       incomplete here.
  *------------------------------------------
  */
 void clif_parse_CreateParty2 (int fd, struct map_session_data *sd)
@@ -8590,7 +8614,11 @@ void clif_parse_GM_Monster_Item (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
- * �M���h������
+ * Process request to create a guild.
+ *
+ * (S 0165 <account_ID>.l <guild_name>.24B)
+ *
+ * Note: The account ID seems to be ignored.
  *------------------------------------------
  */
 void clif_parse_CreateGuild (int fd, struct map_session_data *sd)

@@ -17,6 +17,7 @@
 #include "mob.h"
 #include "intif.h"
 #include "clif.h"
+#include "tmw.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -324,55 +325,75 @@ int guild_payexp_timer (int tid, unsigned int tick, int id, int data)
 
 //------------------------------------------------------------------------
 
-// 作成要求
+/* Process a guild creation request. */
 int guild_create (struct map_session_data *sd, char *name)
 {
+    char pname[24];
+
     nullpo_retr (0, sd);
 
+    strncpy (pname, name, 24);
+    pname[23] = '\0';
+    tmw_TrimStr (pname);
+
+    /* The guild name is empty/invalid. */
+    if (!*pname)
+        clif_guild_created (sd, 2);
+
+    /* Make sure the character isn't already in a guild. */
     if (sd->status.guild_id == 0)
     {
+        /*
+         * Require the "Emperium" (ID 714) item. Note that this is
+         * inadvertently a Snake Egg for us.
+         */
         if (!battle_config.guild_emperium_check
             || pc_search_inventory (sd, 714) >= 0)
         {
             struct guild_member m;
             guild_makemember (&m, sd);
             m.position = 0;
-            intif_guild_create (name, &m);
+            intif_guild_create (pname, &m);
         }
         else
-            clif_guild_created (sd, 3); // エンペリウムがいない
+            clif_guild_created (sd, 3);
     }
     else
-        clif_guild_created (sd, 1); // すでに所属している
+        clif_guild_created (sd, 1);
 
     return 0;
 }
 
-// 作成可否
+/* Relay the result of a guild creation request. */
 int guild_created (int account_id, int guild_id)
 {
     struct map_session_data *sd = map_id2sd (account_id);
 
-    if (sd == NULL)
+    if (!sd)
         return 0;
+
+    /* The guild name is valid and not already taken. */
     if (guild_id > 0)
     {
         struct guild *g;
         sd->status.guild_id = guild_id;
         sd->guild_sended = 0;
+
         if ((g = numdb_search (guild_db, guild_id)) != NULL)
         {
-            printf ("guild: id already exists!\n");
+            printf ("guild_created(): ID already exists!\n");
             exit (1);
         }
+
+        /* The guild was created successfully. */
         clif_guild_created (sd, 0);
+        /* The Emperium item is required. See the note in guild_create(). */
         if (battle_config.guild_emperium_check)
-            pc_delitem (sd, pc_search_inventory (sd, 714), 1, 0);   // エンペリウム消耗
+            pc_delitem (sd, pc_search_inventory (sd, 714), 1, 0);
     }
     else
-    {
-        clif_guild_created (sd, 2); // 作成失敗（同名ギルド存在）
-    }
+        clif_guild_created (sd, 2);
+
     return 0;
 }
 

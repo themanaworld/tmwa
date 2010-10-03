@@ -162,3 +162,27 @@ void tmw_GmHackMsg (const char *fmt, ...)
                              battle_config.hack_info_GM_level, outbuf,
                              strlen (outbuf) + 1);
 }
+
+/* Remove leading and trailing spaces from a string, modifying in place. */
+void tmw_TrimStr (char *str)
+{
+    char *l;
+    char *a;
+    char *e;
+
+    if (!*str)
+        return;
+
+    e = str + strlen (str) - 1;
+
+    /* Skip all leading spaces. */
+    for (l = str; *l && isspace (*l); ++l)
+        ;
+
+    /* Find the end of the string, or the start of trailing spaces. */
+    for (a = e; *a && a > l && isspace (*a); --a)
+        ;
+
+    memmove (str, l, a - l + 1);
+    str[a - l + 1] = '\0';
+}
