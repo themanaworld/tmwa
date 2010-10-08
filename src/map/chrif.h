@@ -4,6 +4,8 @@
 
 void chrif_setuserid (char *);
 void chrif_setpasswd (char *);
+char *chrif_getpasswd ();
+
 void chrif_setip (char *);
 void chrif_setport (int);
 

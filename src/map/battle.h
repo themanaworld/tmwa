@@ -344,8 +344,9 @@ extern struct Battle_Config
     int  packet_spam_flood;
     int  packet_spam_kick;
 
-    int  drop_pickup_safety_zone;   // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
+    int  mask_ip_gms;
 
+    int  drop_pickup_safety_zone;   // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
     int  itemheal_regeneration_factor;  // [Fate] itemheal speed factor
 
 } battle_config;

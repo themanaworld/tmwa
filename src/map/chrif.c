@@ -65,6 +65,11 @@ void chrif_setpasswd (char *pwd)
     passwd[sizeof(passwd)-1] = '\0';
 }
 
+char *chrif_getpasswd ()
+{
+    return passwd;
+}
+
 /*==========================================
  *
  *------------------------------------------

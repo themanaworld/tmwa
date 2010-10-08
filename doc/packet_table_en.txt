@@ -1315,7 +1315,8 @@ S 0204 <?>.16B
 	ログイン要求に付加されるパケット。16バイトは固定？
 S 020B <?>.17B
 	キャラクタサーバ接続要求0065に付加されるパケット。1+0204の16バイトで17バイト？
-
+S 020C <account id>.L, <ip address>.L
+        IP address in network byte order for a player account in response to a charname request [MadCamel]
 
 パケット長の追加。019e～01aaが増えてるので、0190～を切り抜き
 added packet lenth. 019e-01aa is a new, so here is a packet length table from 0190.

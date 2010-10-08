@@ -5657,6 +5657,7 @@ int battle_config_read (const char *cfgName)
         battle_config.packet_spam_flood = 30;
         battle_config.packet_spam_kick = 1;
 
+        battle_config.mask_ip_gms = 1;
     }
 
     fp = fopen_ (cfgName, "r");
@@ -6107,7 +6108,9 @@ int battle_config_read (const char *cfgName)
             {
             "packet_spam_flood", &battle_config.packet_spam_flood},
             {
-            "packet_spam_kick", &battle_config.packet_spam_kick}
+            "packet_spam_kick", &battle_config.packet_spam_kick},
+            {
+            "mask_ip_gms", &battle_config.mask_ip_gms}
         };
 
         if (line[0] == '/' && line[1] == '/')
@@ -6263,6 +6266,11 @@ int battle_config_read (const char *cfgName)
             battle_config.packet_spam_kick = 0;
         else if (battle_config.packet_spam_kick > 1)
             battle_config.packet_spam_kick = 1;
+
+        if (battle_config.mask_ip_gms < 0)
+            battle_config.mask_ip_gms = 0;
+        else if (battle_config.mask_ip_gms > 1)
+            battle_config.mask_ip_gms = 1;
 
         // at least 1 client must be accepted
         if ((battle_config.packet_ver_flag & 63) == 0)  // added by [Yor]

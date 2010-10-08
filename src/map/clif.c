@@ -23,6 +23,7 @@
 #include "malloc.h"
 #include "version.h"
 #include "nullpo.h"
+#include "md5calc.h"
 
 #include "atcommand.h"
 #include "battle.h"
@@ -93,7 +94,7 @@ static const int packet_len_table[0x220] = {
     30, 8, 34, 14, 2, 6, 26, 2, 28, 81, 6, 10, 26, 2, -1, -1,
     -1, -1, 20, 10, 32, 9, 34, 14, 2, 6, 48, 56, -1, 4, 5, 10,
 //#0x200
-    26, -1, 26, 10, 18, 26, 11, 34, 14, 36, 10, 19, 0, -1, 24, 0,
+    26, -1, 26, 10, 18, 26, 11, 34, 14, 36, 10, 19, 10, -1, 24, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
@@ -7106,6 +7107,22 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 WFIFOSET (fd, packet_len_table[0x195]);
 
             }
+
+#if 0
+            if (pc_isGM(sd) > battle_config.hack_info_GM_level)
+            {
+                in_addr_t ip = ssd->ip;
+                WFIFOW (fd, 0) = 0x20C;
+
+                // Mask the IP using the char-server password
+                if (battle_config.mask_ip_gms)
+                    ip = MD5_ip(chrif_getpasswd (), ssd->ip);
+
+                WFIFOL (fd, 2) = account_id;
+                WFIFOL (fd, 6) = ip;
+                WFIFOSET (fd, packet_len_table[0x20C]);
+             }
+#endif
 
         }
             break;
