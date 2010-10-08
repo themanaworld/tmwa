@@ -761,6 +761,8 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     struct guild *g;
     int  i;
     unsigned long tick = gettick ();
+    struct sockaddr_in sai;
+    socklen_t sa_len = sizeof(struct sockaddr);
 
     sd = map_id2sd (id);
     if (sd == NULL)
@@ -962,6 +964,10 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
 
     memset(sd->flood_rates, 0, sizeof(sd->flood_rates));
     sd->packet_flood_reset_due = sd->packet_flood_in = 0;
+
+    // Obtain IP address (if they are still connected)
+    if (!getpeername(sd->fd, (struct sockaddr *)&sai, &sa_len))
+        sd->ip = sai.sin_addr.s_addr;
 
     // message of the limited time of the account
     if (connect_until_time != 0)

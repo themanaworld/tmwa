@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include <time.h>
 #include <sys/time.h>
+#include <netinet/in.h>
 #include "mmo.h"
 
 #ifndef MAX
@@ -400,6 +401,8 @@ struct map_session_data
     unsigned int flood_rates[0x220];
     time_t packet_flood_reset_due;
     int packet_flood_in;
+
+    in_addr_t ip;
 };
 
 struct npc_timerevent_list
