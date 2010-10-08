@@ -11,7 +11,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "mt_rand.h"
-#include <netinet/in.h>
 
 #ifndef UINT_MAX
 #define UINT_MAX 4294967295U
@@ -331,5 +330,35 @@ int pass_ok(const char *password, const char *crypted) {
 		return(1);
 
 	return(0);
+}
+
+// [M|h]ashes up an IP address and a secret key
+// to return a hopefully unique masked IP.
+in_addr_t MD5_ip(char *secret, in_addr_t ip)
+{
+    char ipbuf[32];
+    char obuf[16];
+    union {
+        struct bytes {
+            unsigned char b1;
+            unsigned char b2;
+            unsigned char b3;
+            unsigned char b4;
+        } bytes;
+        in_addr_t ip;
+    } conv;
+
+    // MD5sum a secret + the IP address
+    memset(&ipbuf, 0, sizeof(ipbuf));
+    snprintf(ipbuf, sizeof(ipbuf), "%lu%s", (unsigned long)ip, secret);
+    MD5_String2binary(ipbuf, obuf);
+
+    // Fold the md5sum to 32 bits, pack the bytes to an in_addr_t
+    conv.bytes.b1 = obuf[0] ^ obuf[1] ^ obuf[8] ^ obuf[9];
+    conv.bytes.b2 = obuf[2] ^ obuf[3] ^ obuf[10] ^ obuf[11];
+    conv.bytes.b3 = obuf[4] ^ obuf[5] ^ obuf[12] ^ obuf[13];
+    conv.bytes.b4 = obuf[6] ^ obuf[7] ^ obuf[14] ^ obuf[15];
+
+    return conv.ip;
 }
 
