@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "mt_rand.h"
+#include <netinet/in.h>
 
 #ifndef UINT_MAX
 #define UINT_MAX 4294967295U
@@ -331,3 +332,4 @@ int pass_ok(const char *password, const char *crypted) {
 
 	return(0);
 }
+
