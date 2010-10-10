@@ -344,11 +344,14 @@ int guild_create (struct map_session_data *sd, char *name)
     if (sd->status.guild_id == 0)
     {
         /*
-         * Require the "Emperium" (ID 714) item. Note that this is
-         * inadvertently a Snake Egg for us.
+         * A special item is required to create a guild. This is specified
+         * in battle_athena.conf as guild_emperium_check. This item will
+         * be removed from the player's inventory when used to create a
+         * guild.
          */
         if (!battle_config.guild_emperium_check
-            || pc_search_inventory (sd, 714) >= 0)
+            || pc_search_inventory (sd,
+                                    battle_config.guild_emperium_check) >= 0)
         {
             struct guild_member m;
             guild_makemember (&m, sd);
@@ -387,9 +390,12 @@ int guild_created (int account_id, int guild_id)
 
         /* The guild was created successfully. */
         clif_guild_created (sd, 0);
-        /* The Emperium item is required. See the note in guild_create(). */
+
         if (battle_config.guild_emperium_check)
-            pc_delitem (sd, pc_search_inventory (sd, 714), 1, 0);
+            pc_delitem (sd,
+                        pc_search_inventory (sd,
+                                             battle_config.
+                                             guild_emperium_check), 1, 0);
     }
     else
         clif_guild_created (sd, 2);
@@ -988,7 +994,7 @@ int guild_change_notice (struct map_session_data *sd, int guild_id,
                          const char *mes1, const char *mes2)
 {
     struct guild *g;
-    int ps;
+    int  ps;
 
     nullpo_retr (0, sd);
 
@@ -1307,7 +1313,7 @@ int guild_delalliance (struct map_session_data *sd, int guild_id, int flag)
     }                           // end addition [Valaris]
 
     struct guild *g;
-    int ps;
+    int  ps;
 
     nullpo_retr (0, sd);
 
