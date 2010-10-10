@@ -4289,13 +4289,23 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                 int  x = 0, y = 0;
                 if (ms[i].target <= MST_AROUND)
                 {
-                    bl = ((ms[i].target == MST_TARGET
-                           || ms[i].target ==
-                           MST_AROUND5) ? map_id2bl (md->
-                                                     target_id)
-                          : (ms[i].target ==
-                             MST_FRIEND) ? &fmd->bl : &md->bl);
-                    if (bl != NULL)
+                    if (ms[i].target == MST_MASTER)
+                    {
+                        bl = &md->bl;
+                        if (md->master_id) 
+                            bl = map_id2bl (md->master_id);
+                    }
+                    else
+                    {
+                        bl = ((ms[i].target == MST_TARGET
+                               || ms[i].target ==
+                               MST_AROUND5) ? map_id2bl (md->
+                                                         target_id)
+                              : (ms[i].target ==
+                                 MST_FRIEND) ? &fmd->bl : &md->bl);
+                    }
+
+                    if (bl)
                     {
                         x = bl->x;
                         y = bl->y;
@@ -4349,6 +4359,15 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
             }
             else
             {
+                if (ms[i].target == MST_MASTER)
+                {
+                    struct block_list *bl = &md->bl;
+                    if (md->master_id)
+                        bl = map_id2bl (md->master_id);
+
+                    if (bl && !mobskill_use_id (md, bl, i))
+                        return 0;
+                }
                 // IDw’è
                 if (ms[i].target <= MST_FRIEND)
                 {
@@ -4903,6 +4922,8 @@ static int mob_readskilldb (void)
         "self", MST_SELF},
         {
         "friend", MST_FRIEND},
+        {
+        "master", MST_MASTER},
         {
         "around5", MST_AROUND5},
         {
