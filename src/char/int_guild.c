@@ -150,7 +150,7 @@ int inter_guild_fromstr (char *str, struct guild *g)
                     &tmp_int[8], &tmp_int[9], tmp_str[0]) < 11)
             return 1;
         m->account_id = tmp_int[0];
-        m->char_id = tmp_int[1];
+        m->char_id = 0 /*tmp_int[1]*/;
         m->hair = tmp_int[2];
         m->hair_color = tmp_int[3];
         m->gender = tmp_int[4];
@@ -674,13 +674,12 @@ int guild_check_conflict_sub (void *key, void *data, va_list ap)
 
     for (i = 0; i < MAX_GUILD; i++)
     {
-        if (g->member[i].account_id == account_id
-            && g->member[i].char_id == char_id)
+        if (g->member[i].account_id == account_id)
         {
             // 別のギルドに偽の所属データがあるので脱退
             printf ("int_guild: guild conflict! %d,%d %d!=%d\n", account_id,
                     char_id, guild_id, g->guild_id);
-            mapif_parse_GuildLeave (-1, g->guild_id, account_id, char_id, 0,
+            mapif_parse_GuildLeave (-1, g->guild_id, account_id, 0 /*char_id*/, 0,
                                     "**データ競合**");
         }
     }
@@ -692,7 +691,7 @@ int guild_check_conflict_sub (void *key, void *data, va_list ap)
 int guild_check_conflict (int guild_id, int account_id, int char_id)
 {
     numdb_foreach (guild_db, guild_check_conflict_sub, guild_id, account_id,
-                   char_id);
+                   0 /*char_id*/);
 
     return 0;
 }
@@ -828,7 +827,7 @@ int mapif_guild_memberadded (int fd, int guild_id, int account_id,
     WFIFOW (fd, 0) = 0x3832;
     WFIFOL (fd, 2) = guild_id;
     WFIFOL (fd, 6) = account_id;
-    WFIFOL (fd, 10) = char_id;
+    WFIFOL (fd, 10) = 0 /*char_id*/;
     WFIFOB (fd, 14) = flag;
     WFIFOSET (fd, 15);
 
@@ -844,7 +843,7 @@ int mapif_guild_leaved (int guild_id, int account_id, int char_id, int flag,
     WBUFW (buf, 0) = 0x3834;
     WBUFL (buf, 2) = guild_id;
     WBUFL (buf, 6) = account_id;
-    WBUFL (buf, 10) = char_id;
+    WBUFL (buf, 10) = 0 /*char_id*/;
     WBUFB (buf, 14) = flag;
     memcpy (WBUFP (buf, 15), mes, 40);
     memcpy (WBUFP (buf, 55), name, 24);
@@ -863,7 +862,7 @@ int mapif_guild_memberinfoshort (struct guild *g, int idx)
     WBUFW (buf, 0) = 0x3835;
     WBUFL (buf, 2) = g->guild_id;
     WBUFL (buf, 6) = g->member[idx].account_id;
-    WBUFL (buf, 10) = g->member[idx].char_id;
+    WBUFL (buf, 10) = 0 /*g->member[idx].char_id*/;
     WBUFB (buf, 14) = g->member[idx].online;
     WBUFW (buf, 15) = g->member[idx].lv;
     WBUFW (buf, 17) = g->member[idx].class;
@@ -925,7 +924,7 @@ int mapif_guild_memberinfochanged (int guild_id, int account_id, int char_id,
     WBUFW (buf, 2) = len + 18;
     WBUFL (buf, 4) = guild_id;
     WBUFL (buf, 8) = account_id;
-    WBUFL (buf, 12) = char_id;
+    WBUFL (buf, 12) = 0 /*char_id*/;
     WBUFW (buf, 16) = type;
     memcpy (WBUFP (buf, 18), data, len);
     mapif_sendall (buf, len + 18);
@@ -1150,7 +1149,7 @@ int mapif_parse_GuildAddMember (int fd, int guild_id, struct guild_member *m)
     g = numdb_search (guild_db, guild_id);
     if (g == NULL)
     {
-        mapif_guild_memberadded (fd, guild_id, m->account_id, m->char_id, 1);
+        mapif_guild_memberadded (fd, guild_id, m->account_id, 0 /*char_id*/, 1);
         return 0;
     }
 
@@ -1159,7 +1158,7 @@ int mapif_parse_GuildAddMember (int fd, int guild_id, struct guild_member *m)
         if (g->member[i].account_id == 0)
         {
             memcpy (&g->member[i], m, sizeof (struct guild_member));
-            mapif_guild_memberadded (fd, guild_id, m->account_id, m->char_id,
+            mapif_guild_memberadded (fd, guild_id, m->account_id, 0 /*char_id*/,
                                      0);
             guild_calcinfo (g);
             mapif_guild_info (-1, g);
@@ -1167,7 +1166,7 @@ int mapif_parse_GuildAddMember (int fd, int guild_id, struct guild_member *m)
             return 0;
         }
     }
-    mapif_guild_memberadded (fd, guild_id, m->account_id, m->char_id, 1);
+    mapif_guild_memberadded (fd, guild_id, m->account_id, 0 /*char_id*/, 1);
 
     return 0;
 }
@@ -1184,8 +1183,7 @@ int mapif_parse_GuildLeave (int fd, int guild_id, int account_id, int char_id,
     {
         for (i = 0; i < MAX_GUILD; i++)
         {
-            if (g->member[i].account_id == account_id
-                && g->member[i].char_id == char_id)
+            if (g->member[i].account_id == account_id)
             {
 //              printf("%d %d\n", i, (int)(&g->member[i]));
 //              printf("%d %s\n", i, g->member[i].name);
@@ -1209,7 +1207,7 @@ int mapif_parse_GuildLeave (int fd, int guild_id, int account_id, int char_id,
                     memcpy (g->explusion[j].mes, mes, 40);
                 }
 
-                mapif_guild_leaved (guild_id, account_id, char_id, flag,
+                mapif_guild_leaved (guild_id, account_id, 0 /*char_id*/, flag,
                                     g->member[i].name, mes);
 //              printf("%d %d\n", i, (int)(&g->member[i]));
 //              printf("%d %s\n", i, (&g->member[i])->name);
@@ -1243,8 +1241,7 @@ int mapif_parse_GuildChangeMemberInfoShort (int fd, int guild_id,
     c = 0;
     for (i = 0; i < MAX_GUILD; i++)
     {
-        if (g->member[i].account_id == account_id
-            && g->member[i].char_id == char_id)
+        if (g->member[i].account_id == account_id)
         {
             g->member[i].online = online;
             g->member[i].lv = lv;
@@ -1353,8 +1350,7 @@ int mapif_parse_GuildMemberInfoChange (int fd, int guild_id, int account_id,
         return 0;
 
     for (i = 0; i < g->max_member; i++)
-        if (g->member[i].account_id == account_id
-            && g->member[i].char_id == char_id)
+        if (g->member[i].account_id == account_id)
             break;
     if (i == g->max_member)
     {
@@ -1704,7 +1700,7 @@ int mapif_parse_GuildCastleDataSave (int fd, int castle_id, int index,
 // ギルドチェック要求
 int mapif_parse_GuildCheck (int fd, int guild_id, int account_id, int char_id)
 {
-    return guild_check_conflict (guild_id, account_id, char_id);
+    return guild_check_conflict (guild_id, account_id, 0 /*char_id*/);
 }
 
 // map server からの通信
@@ -1812,6 +1808,6 @@ int inter_guild_mapif_init (int fd)
 // サーバーから脱退要求（キャラ削除用）
 int inter_guild_leave (int guild_id, int account_id, int char_id)
 {
-    return mapif_parse_GuildLeave (-1, guild_id, account_id, char_id, 0,
+    return mapif_parse_GuildLeave (-1, guild_id, account_id, 0 /*char_id*/, 0,
                                    "**サーバー命令**");
 }

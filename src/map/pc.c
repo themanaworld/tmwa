@@ -3808,8 +3808,14 @@ int pc_putitemtocart (struct map_session_data *sd, int idx, int amount)
     struct item *item_data;
 
     nullpo_retr (0, sd);
+
+    if (idx < 0 || idx >= MAX_INVENTORY)
+        return 1;
+
     nullpo_retr (0, item_data = &sd->status.inventory[idx]);
 
+    if (!pc_iscarton (sd))
+        return 1;
     if (item_data->nameid == 0 || item_data->amount < amount)
         return 1;
     if (pc_cart_additem (sd, item_data, amount) == 0)
@@ -3827,8 +3833,14 @@ int pc_cartitem_amount (struct map_session_data *sd, int idx, int amount)
     struct item *item_data;
 
     nullpo_retr (-1, sd);
+
+    if (idx < 0 || idx >= MAX_CART)
+        return -1;
+
     nullpo_retr (-1, item_data = &sd->status.cart[idx]);
 
+    if (!pc_iscarton (sd))
+        return -1;
     if (item_data->nameid == 0 || !item_data->amount)
         return -1;
     return item_data->amount - amount;
@@ -3845,8 +3857,14 @@ int pc_getitemfromcart (struct map_session_data *sd, int idx, int amount)
     int  flag;
 
     nullpo_retr (0, sd);
+
+    if (idx < 0 || idx >= MAX_CART)
+        return 1;
+
     nullpo_retr (0, item_data = &sd->status.cart[idx]);
 
+    if (!pc_iscarton (sd))
+        return 1;
     if (item_data->nameid == 0 || item_data->amount < amount)
         return 1;
     if ((flag = pc_additem (sd, item_data, amount)) == 0)

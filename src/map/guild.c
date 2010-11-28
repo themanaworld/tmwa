@@ -230,8 +230,7 @@ int guild_getindex (struct guild *g, int account_id, int char_id)
     if (g == NULL)
         return -1;
     for (i = 0; i < g->max_member; i++)
-        if (g->member[i].account_id == account_id &&
-            g->member[i].char_id == char_id)
+        if (g->member[i].account_id == account_id)
             return i;
     return -1;
 }
@@ -246,8 +245,7 @@ int guild_getposition (struct map_session_data *sd, struct guild *g)
     if (g == NULL && (g = guild_search (sd->status.guild_id)) == NULL)
         return -1;
     for (i = 0; i < g->max_member; i++)
-        if (g->member[i].account_id == sd->status.account_id &&
-            g->member[i].char_id == sd->status.char_id)
+        if (g->member[i].account_id == sd->status.account_id)
             return g->member[i].position;
     return -1;
 }
@@ -259,7 +257,7 @@ void guild_makemember (struct guild_member *m, struct map_session_data *sd)
 
     memset (m, 0, sizeof (struct guild_member));
     m->account_id = sd->status.account_id;
-    m->char_id = sd->status.char_id;
+    m->char_id = 0;
     m->hair = sd->status.hair;
     m->hair_color = sd->status.hair_color;
     m->gender = sd->sex;
@@ -279,7 +277,7 @@ int guild_check_conflict (struct map_session_data *sd)
     nullpo_retr (0, sd);
 
     intif_guild_checkconflict (sd->status.guild_id,
-                               sd->status.account_id, sd->status.char_id);
+                               sd->status.account_id, 0 /*char_id*/);
     return 0;
 }
 
@@ -298,11 +296,11 @@ int guild_payexp_timer_sub (void *key, void *data, va_list ap)
     if (*delp >= GUILD_PAYEXP_LIST
         || (g = guild_search (c->guild_id)) == NULL)
         return 0;
-    if ((i = guild_getindex (g, c->account_id, c->char_id)) < 0)
+    if ((i = guild_getindex (g, c->account_id, 0 /*c->char_id*/)) < 0)
         return 0;
 
     g->member[i].exp += c->exp;
-    intif_guild_change_memberinfo (g->guild_id, c->account_id, c->char_id,
+    intif_guild_change_memberinfo (g->guild_id, c->account_id, 0 /*char_id*/,
                                    GMI_EXP, &g->member[i].exp,
                                    sizeof (g->member[i].exp));
     c->exp = 0;
@@ -451,8 +449,7 @@ int guild_check_member (const struct guild *g)
                 int  j, f = 1;
                 for (j = 0; j < MAX_GUILD; j++)
                 {               // ƒf[ƒ^‚ª‚ ‚é‚©
-                    if (g->member[j].account_id == sd->status.account_id &&
-                        g->member[j].char_id == sd->status.char_id)
+                    if (g->member[j].account_id == sd->status.account_id)
                         f = 0;
                 }
                 if (f)
@@ -514,7 +511,6 @@ int guild_recv_info (struct guild *sg)
         {
             struct map_session_data *sd = map_id2sd (g->member[i].account_id);
             g->member[i].sd = (sd != NULL &&
-                               sd->status.char_id == g->member[i].char_id &&
                                sd->status.guild_id ==
                                g->guild_id) ? sd : NULL;
             m++;
@@ -679,7 +675,7 @@ int guild_member_added (int guild_id, int account_id, int char_id, int flag)
         if (battle_config.error_log)
             printf ("guild: member added error %d is not online\n",
                     account_id);
-        intif_guild_leave (guild_id, account_id, char_id, 0, "**“o˜^¸”s**");
+        intif_guild_leave (guild_id, account_id, 0 /*char_id*/, 0, "**“o˜^¸”s**");
         return 0;
     }
     sd->guild_invite = 0;
@@ -722,13 +718,12 @@ int guild_leave (struct map_session_data *sd, int guild_id,
         return 0;
 
     if (sd->status.account_id != account_id ||
-        sd->status.char_id != char_id || sd->status.guild_id != guild_id)
+        sd->status.guild_id != guild_id)
         return 0;
 
     for (i = 0; i < g->max_member; i++)
     {                           // Š‘®‚µ‚Ä‚¢‚é‚©
-        if (g->member[i].account_id == sd->status.account_id &&
-            g->member[i].char_id == sd->status.char_id)
+        if (g->member[i].account_id == sd->status.account_id)
         {
             intif_guild_leave (g->guild_id, sd->status.account_id,
                                sd->status.char_id, 0, mes);
@@ -761,10 +756,9 @@ int guild_explusion (struct map_session_data *sd, int guild_id,
 
     for (i = 0; i < g->max_member; i++)
     {                           // Š‘®‚µ‚Ä‚¢‚é‚©
-        if (g->member[i].account_id == account_id &&
-            g->member[i].char_id == char_id)
+        if (g->member[i].account_id == account_id)
         {
-            intif_guild_leave (g->guild_id, account_id, char_id, 1, mes);
+            intif_guild_leave (g->guild_id, account_id, 0 /*char_id*/, 1, mes);
             return 0;
         }
     }
@@ -783,8 +777,7 @@ int guild_member_leaved (int guild_id, int account_id, int char_id, int flag,
     {
         int  i;
         for (i = 0; i < g->max_member; i++)
-            if (g->member[i].account_id == account_id &&
-                g->member[i].char_id == char_id)
+            if (g->member[i].account_id == account_id)
             {
                 struct map_session_data *sd2 = sd;
                 if (sd2 == NULL)
@@ -833,14 +826,14 @@ int guild_send_memberinfoshort (struct map_session_data *sd, int online)
         return 0;
 
     intif_guild_memberinfoshort (g->guild_id,
-                                 sd->status.account_id, sd->status.char_id,
+                                 sd->status.account_id, 0 /*char_id*/,
                                  online, sd->status.base_level,
                                  sd->status.class);
 
     if (!online)
     {                           // ƒƒOƒAƒEƒg‚·‚é‚È‚çsd‚ğƒNƒŠƒA‚µ‚ÄI—¹
         int  i =
-            guild_getindex (g, sd->status.account_id, sd->status.char_id);
+            guild_getindex (g, sd->status.account_id, 0 /*char_id*/);
         if (i >= 0)
             g->member[i].sd = NULL;
         return 0;
@@ -878,7 +871,7 @@ int guild_recv_memberinfoshort (int guild_id, int account_id, int char_id,
     for (i = 0, alv = 0, c = 0, om = 0; i < g->max_member; i++)
     {
         struct guild_member *m = &g->member[i];
-        if (m->account_id == account_id && m->char_id == char_id)
+        if (m->account_id == account_id)
         {
             oldonline = m->online;
             m->online = online;
@@ -911,7 +904,6 @@ int guild_recv_memberinfoshort (int guild_id, int account_id, int char_id,
     {                           // sdÄİ’è
         struct map_session_data *sd = map_id2sd (g->member[i].account_id);
         g->member[i].sd = (sd != NULL &&
-                           sd->status.char_id == g->member[i].char_id &&
                            sd->status.guild_id == guild_id) ? sd : NULL;
     }
 
@@ -946,7 +938,7 @@ int guild_recv_message (int guild_id, int account_id, char *mes, int len)
 int guild_change_memberposition (int guild_id, int account_id, int char_id,
                                  int idx)
 {
-    return intif_guild_change_memberinfo (guild_id, account_id, char_id,
+    return intif_guild_change_memberinfo (guild_id, account_id, 0 /*char_id*/,
                                           GMI_POSITION, &idx, sizeof (idx));
 }
 
@@ -1100,16 +1092,16 @@ int guild_payexp (struct map_session_data *sd, int exp)
     if ((exp2 = exp * per / 100) <= 0)
         return 0;
 
-    if ((c = numdb_search (guild_expcache_db, sd->status.char_id)) == NULL)
+    if ((c = numdb_search (guild_expcache_db, sd->status.account_id /*char_id*/)) == NULL)
     {
         c = (struct guild_expcache *) aCalloc (1,
                                                sizeof (struct
                                                        guild_expcache));
         c->guild_id = sd->status.guild_id;
         c->account_id = sd->status.account_id;
-        c->char_id = sd->status.char_id;
+        c->char_id = 0;
         c->exp = exp2;
-        numdb_insert (guild_expcache_db, c->char_id, c);
+        numdb_insert (guild_expcache_db, c->account_id /*char_id*/, c);
     }
     else
     {
@@ -1332,9 +1324,9 @@ int guild_delalliance (struct map_session_data *sd, int guild_id, int flag)
 }
 
 // ƒMƒ‹ƒh“G‘Î
-int guild_opposition (struct map_session_data *sd, int char_id)
+int guild_opposition (struct map_session_data *sd, int account_id /*char_id*/)
 {
-    struct map_session_data *tsd = map_id2sd (char_id);
+    struct map_session_data *tsd = map_id2sd (account_id /*char_id*/);
     struct guild *g;
     int  i, ps;
 
@@ -1528,8 +1520,7 @@ int guild_break (struct map_session_data *sd, char *name)
     for (i = 0; i < g->max_member; i++)
     {
         if (g->member[i].account_id > 0
-            && (g->member[i].account_id != sd->status.account_id
-                || g->member[i].char_id != sd->status.char_id))
+            && (g->member[i].account_id != sd->status.account_id))
             break;
     }
     if (i < g->max_member)

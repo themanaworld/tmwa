@@ -5806,7 +5806,7 @@ int clif_guild_memberlogin_notice (struct guild *g, int idx, int flag)
 
     WBUFW (buf, 0) = 0x16d;
     WBUFL (buf, 2) = g->member[idx].account_id;
-    WBUFL (buf, 6) = g->member[idx].char_id;
+    WBUFL (buf, 6) = 0;
     WBUFL (buf, 10) = flag;
     if (g->member[idx].sd == NULL)
     {
@@ -5996,7 +5996,7 @@ int clif_guild_memberlist (struct map_session_data *sd)
         if (m->account_id == 0)
             continue;
         WFIFOL (fd, c * 104 + 4) = m->account_id;
-        WFIFOL (fd, c * 104 + 8) = m->char_id;
+        WFIFOL (fd, c * 104 + 8) = 0;
         WFIFOW (fd, c * 104 + 12) = m->hair;
         WFIFOW (fd, c * 104 + 14) = m->hair_color;
         WFIFOW (fd, c * 104 + 16) = m->gender;
@@ -6106,7 +6106,7 @@ int clif_guild_memberpositionchanged (struct guild *g, int idx)
     WBUFW (buf, 0) = 0x156;
     WBUFW (buf, 2) = 16;
     WBUFL (buf, 4) = g->member[idx].account_id;
-    WBUFL (buf, 8) = g->member[idx].char_id;
+    WBUFL (buf, 8) = 0;
     WBUFL (buf, 12) = g->member[idx].position;
     if ((sd = guild_getavailablesd (g)) != NULL)
         clif_send (buf, WBUFW (buf, 2), &sd->bl, GUILD);
@@ -7079,8 +7079,7 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 int  i, ps = -1;
                 for (i = 0; i < g->max_member; i++)
                 {
-                    if (g->member[i].account_id == ssd->status.account_id &&
-                        g->member[i].char_id == ssd->status.char_id)
+                    if (g->member[i].account_id == ssd->status.account_id)
                         ps = g->member[i].position;
                 }
                 if (ps >= 0 && ps < MAX_GUILDPOSITION)
