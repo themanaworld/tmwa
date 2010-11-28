@@ -115,7 +115,7 @@ int  online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when
 int *online_chars;              // same size of char_dat, and id value of current server (or -1)
 time_t update_online;           // to update online files when we receiving information from a server (not less than 8 seconds)
 
-pid_t pid = 0; // For forked DB writes
+pid_t pid = 0;                  // For forked DB writes
 
 //------------------------------
 // Writing function of logs file
@@ -833,7 +833,7 @@ int mmo_char_sync_timer (int tid, unsigned int tick, int id, int data)
 {
     if (pid != 0)
     {
-        int status;
+        int  status;
         pid_t temp = waitpid (pid, &status, WNOHANG);
 
         // Need to check status too?
@@ -1032,12 +1032,18 @@ int make_new_char (int fd, unsigned char *dat)
             online_chars[j] = -1;
     }
 
+    char ip[16];
+    unsigned char *sin_addr =
+        (unsigned char *) &session[fd]->client_addr.sin_addr;
+    sprintf (ip, "%d.%d.%d.%d", sin_addr[0], sin_addr[1], sin_addr[2],
+             sin_addr[3]);
+
     char_log
-        ("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d."
+        ("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d. [%s]"
          RETCODE, fd, sd->account_id, dat[30], dat, dat[24], dat[25], dat[26],
          dat[27], dat[28], dat[29],
          dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29], dat[33],
-         dat[31]);
+         dat[31], ip);
 
     memset (&char_dat[i], 0, sizeof (struct mmo_charstatus));
 
@@ -3137,6 +3143,12 @@ int parse_char (int fd)
                 if (!sd || RFIFOREST (fd) < 3)
                     return 0;
 
+                char ip[16];
+                unsigned char *sin_addr =
+                    (unsigned char *) &session[fd]->client_addr.sin_addr;
+                sprintf (ip, "%d.%d.%d.%d", sin_addr[0], sin_addr[1],
+                         sin_addr[2], sin_addr[3]);
+
                 // if we activated email creation and email is default email
                 if (email_creation != 0 && strcmp (sd->email, "a@a.com") == 0
                     && login_fd > 0)
@@ -3157,9 +3169,9 @@ int parse_char (int fd)
                     if (ch != 9)
                     {
                         char_log
-                            ("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s."
+                            ("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]"
                              RETCODE, sd->account_id, RFIFOB (fd, 2),
-                             char_dat[sd->found_char[ch]].name);
+                             char_dat[sd->found_char[ch]].name, ip);
                         // searching map server
                         i = search_mapserver (char_dat
                                               [sd->found_char[ch]].last_point.
@@ -3263,9 +3275,9 @@ int parse_char (int fd)
                                 char_dat[sd->found_char[ch]].last_point.map,
                                 16);
                         printf
-                            ("Character selection '%s' (account: %d, slot: %d).\n",
+                            ("Character selection '%s' (account: %d, slot: %d) [%s]\n",
                              char_dat[sd->found_char[ch]].name,
-                             sd->account_id, ch);
+                             sd->account_id, ch, ip);
                         printf ("--Send IP of map-server. ");
                         if (lan_ip_check (p))
                             WFIFOL (fd, 22) = inet_addr (lan_map_ip);

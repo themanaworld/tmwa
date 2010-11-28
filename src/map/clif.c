@@ -7107,7 +7107,6 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
 
             }
 
-#if 0
             if (pc_isGM(sd) > battle_config.hack_info_GM_level)
             {
                 in_addr_t ip = ssd->ip;
@@ -7121,7 +7120,6 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 WFIFOL (fd, 6) = ip;
                 WFIFOSET (fd, packet_len_table[0x20C]);
              }
-#endif
 
         }
             break;
