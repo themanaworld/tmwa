@@ -7107,7 +7107,7 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
 
             }
 
-            if (pc_isGM(sd) > battle_config.hack_info_GM_level)
+            if (pc_isGM(sd) >= battle_config.hack_info_GM_level)
             {
                 in_addr_t ip = ssd->ip;
                 WFIFOW (fd, 0) = 0x20C;
