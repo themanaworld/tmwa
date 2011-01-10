@@ -1812,6 +1812,15 @@ int pc_calcstatus (struct map_session_data *sd, int first)
     sd->flee2 += sd->paramc[5] + 10;
     sd->critical += (sd->paramc[5] * 3) + 10;
 
+    // 200 is the maximum of the skill
+    // so critical chance can get multiplied by ~1.5 and setting def2 to a third when skill maxed out
+    // def2 is the defence gained by vit, whereas "def", which is gained by armor, stays as is
+    int spbsk = skill_power (sd, TMW_RAGING);
+    if (spbsk!=0) {
+        sd->critical *= (128 + spbsk)/256;
+        sd->def2 /=      (128 + spbsk)/128;
+    }
+
     if (sd->base_atk < 1)
         sd->base_atk = 1;
     if (sd->critical_rate != 100)
