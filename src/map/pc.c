@@ -1794,11 +1794,9 @@ int pc_calcstatus (struct map_session_data *sd, int first)
     if (sd->matk1 > MAGIC_SKILL_THRESHOLD)
     {
         int  bonus = sd->matk1 - MAGIC_SKILL_THRESHOLD;
-        int  bound = 2 * skill_power (sd, TMW_ASTRAL_SOUL);
-        if (bonus > bound)
-            bonus = (bonus * 100) / (100 + bonus - bound);
-
-        sd->matk1 = MAGIC_SKILL_THRESHOLD + bonus;
+        // Ok if you are above a certain threshold, you get only (1/8) of that matk1
+        // if you have Astral soul skill you can get the whole power again (and additionally the 1/8 added)
+        sd->matk1 = MAGIC_SKILL_THRESHOLD + (bonus>>3) + ((3*bonus*skill_power(sd, TMW_ASTRAL_SOUL))>>9);
     }
 #endif
     sd->matk2 = 0;
