@@ -551,7 +551,7 @@ struct
     {
     buildin_getareausers, "getareausers", "siiii"},
     {
-    buildin_getareadropitem, "getareadropitem", "siiiii"},
+    buildin_getareadropitem, "getareadropitem", "siiiiii"},
     {
     buildin_enablenpc, "enablenpc", "s"},
     {
@@ -4730,10 +4730,24 @@ int buildin_getareadropitem_sub (struct block_list *bl, va_list ap)
     return 0;
 }
 
+int buildin_getareadropitem_sub_anddelete (struct block_list *bl, va_list ap)
+{
+    int  item = va_arg (ap, int);
+    int *amount = va_arg (ap, int *);
+    struct flooritem_data *drop = (struct flooritem_data *) bl;
+
+    if (drop->item_data.nameid == item) {
+        (*amount) += drop->item_data.amount;
+        clif_clearflooritem(drop, 0);
+        map_delobject(drop->bl.id, drop->bl.type);
+    }
+    return 0;
+}
+
 int buildin_getareadropitem (struct script_state *st)
 {
     char *str;
-    int  m, x0, y0, x1, y1, item, amount = 0;
+    int  m, x0, y0, x1, y1, item, amount = 0, delitems = 0;
     struct script_data *data;
 
     str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -4755,13 +4769,20 @@ int buildin_getareadropitem (struct script_state *st)
     else
         item = conv_num (st, data);
 
+    delitems = conv_num (st, &(st->stack->stack_data[st->start + 8]));
+
     if ((m = map_mapname2mapid (str)) < 0)
     {
         push_val (st->stack, C_INT, -1);
         return 0;
     }
-    map_foreachinarea (buildin_getareadropitem_sub,
-                       m, x0, y0, x1, y1, BL_ITEM, item, &amount);
+    if (delitems)
+        map_foreachinarea (buildin_getareadropitem_sub_anddelete,
+                           m, x0, y0, x1, y1, BL_ITEM, item, &amount);
+    else
+        map_foreachinarea (buildin_getareadropitem_sub,
+                           m, x0, y0, x1, y1, BL_ITEM, item, &amount);
+
     push_val (st->stack, C_INT, amount);
     return 0;
 }
