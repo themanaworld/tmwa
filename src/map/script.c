@@ -551,7 +551,7 @@ struct
     {
     buildin_getareausers, "getareausers", "siiii"},
     {
-    buildin_getareadropitem, "getareadropitem", "siiiiii"},
+    buildin_getareadropitem, "getareadropitem", "siiiii*"},
     {
     buildin_enablenpc, "enablenpc", "s"},
     {
@@ -4769,7 +4769,8 @@ int buildin_getareadropitem (struct script_state *st)
     else
         item = conv_num (st, data);
 
-    delitems = conv_num (st, &(st->stack->stack_data[st->start + 8]));
+    if (st->end > st->start + 8)
+        delitems = conv_num (st, &(st->stack->stack_data[st->start + 8]));
 
     if ((m = map_mapname2mapid (str)) < 0)
     {
