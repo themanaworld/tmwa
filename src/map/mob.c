@@ -353,11 +353,11 @@ int mob_once_spawn (struct map_session_data *sd, char *mapname,
     else
         m = map_mapname2mapid (mapname);
 
-    if (m < 0 || amount <= 0 || (class >= 0 && class <= 1000) || class > 2000)  // ’l‚ªˆÙí‚È‚ç¢Š«‚ğ~‚ß‚é
+    if (m < 0 || amount <= 0 || (class >= 0 && class <= 1000) || class > 2000)  // å€¤ãŒç•°å¸¸ãªã‚‰å¬å–šã‚’æ­¢ã‚ã‚‹
         return 0;
 
     if (class < 0)
-    {                           // ƒ‰ƒ“ƒ_ƒ€‚É¢Š«
+    {                           // ãƒ©ãƒ³ãƒ€ãƒ ã«å¬å–š
         int  i = 0;
         int  j = -class - 1;
         int  k;
@@ -412,7 +412,7 @@ int mob_once_spawn (struct map_session_data *sd, char *mapname,
         md->bl.x = x;
         md->bl.y = y;
         if (r < 0 && battle_config.dead_branch_active == 1)
-            md->mode = 0x1 + 0x4 + 0x80;    //ˆÚ“®‚µ‚ÄƒAƒNƒeƒBƒu‚Å”½Œ‚‚·‚é
+            md->mode = 0x1 + 0x4 + 0x80;    //ç§»å‹•ã—ã¦ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã§åæ’ƒã™ã‚‹
         md->m = m;
         md->x0 = x;
         md->y0 = y;
@@ -510,7 +510,7 @@ int mob_spawn_guardian (struct map_session_data *sd, char *mapname,
     else
         m = map_mapname2mapid (mapname);
 
-    if (m < 0 || amount <= 0 || (class >= 0 && class <= 1000) || class > 2000)  // ’l‚ªˆÙí‚È‚ç¢Š«‚ğ~‚ß‚é
+    if (m < 0 || amount <= 0 || (class >= 0 && class <= 1000) || class > 2000)  // å€¤ãŒç•°å¸¸ãªã‚‰å¬å–šã‚’æ­¢ã‚ã‚‹
         return 0;
 
     if (class < 0)
@@ -677,11 +677,11 @@ int mob_can_move (struct mob_data *md)
     if (md->canmove_tick > gettick () || (md->opt1 > 0 && md->opt1 != 6)
         || md->option & 2)
         return 0;
-    // ƒAƒ“ƒNƒ‹’†‚Å“®‚¯‚È‚¢‚Æ‚©
-    if (md->sc_data[SC_ANKLE].timer != -1 ||    //ƒAƒ“ƒNƒ‹ƒXƒlƒA
-        md->sc_data[SC_AUTOCOUNTER].timer != -1 ||  //ƒI[ƒgƒJƒEƒ“ƒ^[
-        md->sc_data[SC_BLADESTOP].timer != -1 ||    //”’næ‚è
-        md->sc_data[SC_SPIDERWEB].timer != -1   //ƒXƒpƒCƒ_[ƒEƒFƒbƒu
+    // ã‚¢ãƒ³ã‚¯ãƒ«ä¸­ã§å‹•ã‘ãªã„ã¨ã‹
+    if (md->sc_data[SC_ANKLE].timer != -1 ||    //ã‚¢ãƒ³ã‚¯ãƒ«ã‚¹ãƒã‚¢
+        md->sc_data[SC_AUTOCOUNTER].timer != -1 ||  //ã‚ªãƒ¼ãƒˆã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
+        md->sc_data[SC_BLADESTOP].timer != -1 ||    //ç™½åˆƒå–ã‚Š
+        md->sc_data[SC_SPIDERWEB].timer != -1   //ã‚¹ãƒ‘ã‚¤ãƒ€ãƒ¼ã‚¦ã‚§ãƒƒãƒ–
         )
         return 0;
 
@@ -917,12 +917,12 @@ static int mob_attack (struct mob_data *md, unsigned int tick, int data)
         return 0;
 
     if (battle_config.monster_attack_direction_change)
-        md->dir = map_calc_dir (&md->bl, tbl->x, tbl->y);   // Œü‚«İ’è
+        md->dir = map_calc_dir (&md->bl, tbl->x, tbl->y);   // å‘ãè¨­å®š
 
     //clif_fixmobpos(md);
 
     md->state.skillstate = MSS_ATTACK;
-    if (mobskill_use (md, tick, -2))    // ƒXƒLƒ‹g—p
+    if (mobskill_use (md, tick, -2))    // ã‚¹ã‚­ãƒ«ä½¿ç”¨
         return 0;
 
     md->target_lv = battle_weapon_attack (&md->bl, tbl, tick, 0);
@@ -1041,7 +1041,7 @@ static int mob_timer (int tid, unsigned int tick, int id, int data)
     struct block_list *bl;
 
     if ((bl = map_id2bl (id)) == NULL)
-    {                           //UŒ‚‚µ‚Ä‚«‚½“G‚ª‚à‚¤‚¢‚È‚¢‚Ì‚Í³í‚Ì‚æ‚¤‚¾
+    {                           //æ”»æ’ƒã—ã¦ããŸæ•µãŒã‚‚ã†ã„ãªã„ã®ã¯æ­£å¸¸ã®ã‚ˆã†ã 
         return 1;
     }
 
@@ -1453,13 +1453,13 @@ int mob_can_reach (struct mob_data *md, struct block_list *bl, int range)
             return 0;
     }
 
-    if (md->bl.m != bl->m)      // ˆá‚¤ƒƒbƒv
+    if (md->bl.m != bl->m)      // é•ã†ãƒ£bãƒ—
         return 0;
 
-    if (range > 0 && range < ((dx > dy) ? dx : dy)) // ‰“‚·‚¬‚é
+    if (range > 0 && range < ((dx > dy) ? dx : dy)) // é ã™ãã‚‹
         return 0;
 
-    if (md->bl.x == bl->x && md->bl.y == bl->y) // “¯‚¶ƒƒX
+    if (md->bl.x == bl->x && md->bl.y == bl->y) // åŒã˜ãƒ£X
         return 1;
 
     // Obstacle judging
@@ -1573,7 +1573,7 @@ static int mob_ai_sub_hard_activesearch (struct block_list *bl, va_list ap)
     else
         return 0;
 
-    //“G–¡•û”»’è
+    //æ•µå‘³æ–¹åˆ¤å®š
     if (battle_check_target (&smd->bl, bl, BCT_ENEMY) == 0)
         return 0;
 
@@ -1582,11 +1582,11 @@ static int mob_ai_sub_hard_activesearch (struct block_list *bl, va_list ap)
     else
         mode = smd->mode;
 
-    // ƒAƒNƒeƒBƒu‚Åƒ^[ƒQƒbƒgË’ö“à‚É‚¢‚é‚È‚çAƒƒbƒN‚·‚é
+    // ã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã§ã‚¿ãƒ¼ã‚²ãƒƒãƒˆå°„ç¨‹å†…ã«ã„ã‚‹ãªã‚‰ã€ãƒ­ãƒƒã‚¯ã™ã‚‹
     if (mode & 0x04)
     {
         race = mob_db[smd->class].race;
-        //‘ÎÛ‚ªPC‚Ìê‡
+        //å¯¾è±¡ãŒPCã®å ´åˆ
         if (tsd &&
             !pc_isdead (tsd) &&
             tsd->bl.m == smd->bl.m &&
@@ -1599,25 +1599,25 @@ static int mob_ai_sub_hard_activesearch (struct block_list *bl, va_list ap)
                 (tsd->sc_data[SC_TRICKDEAD].timer == -1 &&
                  ((!pc_ishiding (tsd) && !tsd->state.gangsterparadise)
                   || race == 4 || race == 6)))
-            {                   // –WŠQ‚ª‚È‚¢‚©”»’è
-                if (mob_can_reach (smd, bl, 12) &&  // “’B‰Â”\«”»’è
+            {                   // å¦¨å®³ãŒãªã„ã‹åˆ¤å®š
+                if (mob_can_reach (smd, bl, 12) &&  // åˆ°é”å¯èƒ½æ€§åˆ¤å®š
                     MRAND (1000) < 1000 / (++(*pcc)))
-                {               // ”ÍˆÍ“àPC‚Å“™Šm—¦‚É‚·‚é
+                {               // ç¯„å›²å†…PCã§ç­‰ç¢ºç‡ã«ã™ã‚‹
                     smd->target_id = tsd->bl.id;
                     smd->state.targettype = ATTACKABLE;
                     smd->min_chase = 13;
                 }
             }
         }
-        //‘ÎÛ‚ªMob‚Ìê‡
+        //å¯¾è±¡ãŒMobã®å ´åˆ
         else if (tmd &&
                  tmd->bl.m == smd->bl.m &&
                  (dist =
                   distance (smd->bl.x, smd->bl.y, tmd->bl.x, tmd->bl.y)) < 9)
         {
-            if (mob_can_reach (smd, bl, 12) &&  // “’B‰Â”\«”»’è
+            if (mob_can_reach (smd, bl, 12) &&  // åˆ°é”å¯èƒ½æ€§åˆ¤å®š
                 MRAND (1000) < 1000 / (++(*pcc)))
-            {                   // ”ÍˆÍ“à‚Å“™Šm—¦‚É‚·‚é
+            {                   // ç¯„å›²å†…ã§ç­‰ç¢ºç‡ã«ã™ã‚‹
                 smd->target_id = bl->id;
                 smd->state.targettype = ATTACKABLE;
                 smd->min_chase = 13;
@@ -1828,7 +1828,7 @@ static int mob_ai_sub_hard_slavemob (struct mob_data *md, unsigned int tick)
                 (sd->sc_data[SC_TRICKDEAD].timer == -1 &&
                  ((!pc_ishiding (sd) && !sd->state.gangsterparadise)
                   || race == 4 || race == 6)))
-            {                   // –WŠQ‚ª‚È‚¢‚©”»’è
+            {                   // å¦¨å®³ãŒãªã„ã‹åˆ¤å®š
 
                 md->target_id = sd->bl.id;
                 md->state.targettype = ATTACKABLE;
@@ -2028,7 +2028,7 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
     if (md->master_id > 0 && md->state.special_mob_ai == 0)
         mob_ai_sub_hard_slavemob (md, tick);
 
-    // ƒAƒNƒeƒBƒ”ƒ‚ƒ“ƒXƒ^[‚Ìô“G (?? of a bitter taste TIVU monster)
+    // ã‚¢ã‚¯ãƒ†ã‚£ãƒ´ãƒ¢ãƒ³ã‚¹ã‚¿ãƒ¼ã®ç­–æ•µ (?? of a bitter taste TIVU monster)
     if ((!md->target_id || md->state.targettype == NONE_ATTACKABLE)
         && mode & 0x04 && !md->state.master_check
         && battle_config.monster_active_enable == 1)
@@ -2077,45 +2077,45 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
                     || (dist =
                         distance (md->bl.x, md->bl.y, tbl->x,
                                   tbl->y)) >= md->min_chase)
-                    mob_unlocktarget (md, tick);    // •Êƒ}ƒbƒv‚©A‹ŠEŠO
+                    mob_unlocktarget (md, tick);    // åˆ¥ãƒãƒƒãƒ—ã‹ã€è¦–ç•Œå¤–
                 else if (tsd && !(mode & 0x20)
                          && (tsd->sc_data[SC_TRICKDEAD].timer != -1
                              ||
                              ((pc_ishiding (tsd)
                                || tsd->state.gangsterparadise) && race != 4
                               && race != 6)))
-                    mob_unlocktarget (md, tick);    // ƒXƒLƒ‹‚È‚Ç‚É‚æ‚éô“G–WŠQ
+                    mob_unlocktarget (md, tick);    // ã‚¹ã‚­ãƒ«ãªã©ã«ã‚ˆã‚‹ç­–æ•µå¦¨å®³
                 else if (!battle_check_range
                          (&md->bl, tbl, mob_db[md->class].range))
                 {
-                    // UŒ‚”ÍˆÍŠO‚È‚Ì‚ÅˆÚ“®
+                    // æ”»æ’ƒç¯„å›²å¤–ãªã®ã§ç§»å‹•
                     if (!(mode & 1))
-                    {           // ˆÚ“®‚µ‚È‚¢ƒ‚[ƒh
+                    {           // ç§»å‹•ã—ãªã„ãƒ¢ãƒ¼ãƒ‰
                         mob_unlocktarget (md, tick);
                         return 0;
                     }
-                    if (!mob_can_move (md)) // “®‚¯‚È‚¢ó‘Ô‚É‚ ‚é
+                    if (!mob_can_move (md)) // å‹•ã‘ãªã„çŠ¶æ…‹ã«ã‚ã‚‹
                         return 0;
-                    md->state.skillstate = MSS_CHASE;   // “ËŒ‚ƒXƒLƒ‹
+                    md->state.skillstate = MSS_CHASE;   // çªæ’ƒæ™‚ã‚¹ã‚­ãƒ«
                     mobskill_use (md, tick, -1);
 //                  if(md->timer != -1 && (DIFF_TICK(md->next_walktime,tick)<0 || distance(md->to_x,md->to_y,tsd->bl.x,tsd->bl.y)<2) )
                     if (md->timer != -1 && md->state.state != MS_ATTACK
                         && (DIFF_TICK (md->next_walktime, tick) < 0
                             || distance (md->to_x, md->to_y, tbl->x,
                                          tbl->y) < 2))
-                        return 0;   // Šù‚ÉˆÚ“®’†
+                        return 0;   // æ—¢ã«ç§»å‹•ä¸­
                     if (!mob_can_reach
                         (md, tbl, (md->min_chase > 13) ? md->min_chase : 13))
-                        mob_unlocktarget (md, tick);    // ˆÚ“®‚Å‚«‚È‚¢‚Ì‚Åƒ^ƒQ‰ğœiIW‚Æ‚©Hj
+                        mob_unlocktarget (md, tick);    // ç§»å‹•ã§ããªã„ã®ã§ã‚¿ã‚²è§£é™¤ï¼ˆIWã¨ã‹ï¼Ÿï¼‰
                     else
                     {
-                        // ’ÇÕ
+                        // è¿½è·¡
                         md->next_walktime = tick + 500;
                         i = 0;
                         do
                         {
                             if (i == 0)
-                            {   // Å‰‚ÍAEGIS‚Æ“¯‚¶•û–@‚ÅŒŸõ
+                            {   // æœ€åˆã¯AEGISã¨åŒã˜æ–¹æ³•ã§æ¤œç´¢
                                 dx = tbl->x - md->bl.x;
                                 dy = tbl->y - md->bl.y;
                                 if (dx < 0)
@@ -2128,7 +2128,7 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
                                     dy--;
                             }
                             else
-                            {   // ‚¾‚ß‚È‚çAthena®(ƒ‰ƒ“ƒ_ƒ€)
+                            {   // ã ã‚ãªã‚‰Athenaå¼(ãƒ©ãƒ³ãƒ€ãƒ )
                                 dx = tbl->x - md->bl.x + MRAND (3) - 1;
                                 dy = tbl->y - md->bl.y + MRAND (3) - 1;
                             }
@@ -2148,7 +2148,7 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
                         while (ret && i < 5);
 
                         if (ret)
-                        {       // ˆÚ“®•s‰Â”\‚ÈŠ‚©‚ç‚ÌUŒ‚‚È‚ç2•à‰º‚é
+                        {       // ç§»å‹•ä¸å¯èƒ½ãªæ‰€ã‹ã‚‰ã®æ”»æ’ƒãªã‚‰2æ­©ä¸‹ã‚‹
                             if (dx < 0)
                                 dx = 2;
                             else if (dx > 0)
@@ -2163,15 +2163,15 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
                     }
                 }
                 else
-                {               // UŒ‚Ë’ö”ÍˆÍ“à
+                {               // æ”»æ’ƒå°„ç¨‹ç¯„å›²å†…
                     md->state.skillstate = MSS_ATTACK;
                     if (md->state.state == MS_WALK)
-                        mob_stop_walking (md, 1);   // •às’†‚È‚ç’â~
+                        mob_stop_walking (md, 1);   // æ­©è¡Œä¸­ãªã‚‰åœæ­¢
                     if (md->state.state == MS_ATTACK)
-                        return 0;   // Šù‚ÉUŒ‚’†
+                        return 0;   // æ—¢ã«æ”»æ’ƒä¸­
                     mob_changestate (md, MS_ATTACK, attack_type);
 
-/*					if(mode&0x08){	// ƒŠƒ“ƒNƒ‚ƒ“ƒXƒ^[
+/*					if(mode&0x08){	// ãƒªãƒ³ã‚¯ãƒ¢ãƒ³ã‚¹ã‚¿ãƒ¼
 					map_foreachinarea(mob_ai_sub_hard_linksearch,md->bl.m,
 						md->bl.x-13,md->bl.y-13,
 						md->bl.x+13,md->bl.y+13,
@@ -2181,34 +2181,34 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
                 return 0;
             }
             else
-            {                   // ƒ‹[ƒgƒ‚ƒ“ƒXƒ^[ˆ—
+            {                   // ãƒ«ãƒ¼ãƒˆãƒ¢ãƒ³ã‚¹ã‚¿ãƒ¼å‡¦ç†
                 if (tbl == NULL || tbl->type != BL_ITEM || tbl->m != md->bl.m
                     || (dist =
                         distance (md->bl.x, md->bl.y, tbl->x,
                                   tbl->y)) >= md->min_chase || !md->lootitem)
                 {
-                    // ‰“‚·‚¬‚é‚©ƒAƒCƒeƒ€‚ª‚È‚­‚È‚Á‚½
+                    // é ã™ãã‚‹ã‹ã‚¢ã‚¤ãƒ†ãƒ ãŒãªããªã£ãŸ
                     mob_unlocktarget (md, tick);
                     if (md->state.state == MS_WALK)
-                        mob_stop_walking (md, 1);   // •às’†‚È‚ç’â~
+                        mob_stop_walking (md, 1);   // æ­©è¡Œä¸­ãªã‚‰åœæ­¢
                 }
                 else if (dist)
                 {
                     if (!(mode & 1))
-                    {           // ˆÚ“®‚µ‚È‚¢ƒ‚[ƒh
+                    {           // ç§»å‹•ã—ãªã„ãƒ¢ãƒ¼ãƒ‰
                         mob_unlocktarget (md, tick);
                         return 0;
                     }
-                    if (!mob_can_move (md)) // “®‚¯‚È‚¢ó‘Ô‚É‚ ‚é
+                    if (!mob_can_move (md)) // å‹•ã‘ãªã„çŠ¶æ…‹ã«ã‚ã‚‹
                         return 0;
-                    md->state.skillstate = MSS_LOOT;    // ƒ‹[ƒgƒXƒLƒ‹g—p
+                    md->state.skillstate = MSS_LOOT;    // ãƒ«ãƒ¼ãƒˆæ™‚ã‚¹ã‚­ãƒ«ä½¿ç”¨
                     mobskill_use (md, tick, -1);
 //                  if(md->timer != -1 && (DIFF_TICK(md->next_walktime,tick)<0 || distance(md->to_x,md->to_y,tbl->x,tbl->y)<2) )
                     if (md->timer != -1 && md->state.state != MS_ATTACK
                         && (DIFF_TICK (md->next_walktime, tick) < 0
                             || distance (md->to_x, md->to_y, tbl->x,
                                          tbl->y) <= 0))
-                        return 0;   // Šù‚ÉˆÚ“®’†
+                        return 0;   // æ—¢ã«ç§»å‹•ä¸­
                     md->next_walktime = tick + 500;
                     dx = tbl->x - md->bl.x;
                     dy = tbl->y - md->bl.y;
@@ -2218,14 +2218,14 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
 				}*/
                     ret = mob_walktoxy (md, md->bl.x + dx, md->bl.y + dy, 0);
                     if (ret)
-                        mob_unlocktarget (md, tick);    // ˆÚ“®‚Å‚«‚È‚¢‚Ì‚Åƒ^ƒQ‰ğœiIW‚Æ‚©Hj
+                        mob_unlocktarget (md, tick);    // ç§»å‹•ã§ããªã„ã®ã§ã‚¿ã‚²è§£é™¤ï¼ˆIWã¨ã‹ï¼Ÿï¼‰
                 }
                 else
-                {               // ƒAƒCƒeƒ€‚Ü‚Å‚½‚Ç‚è’…‚¢‚½
+                {               // ã‚¢ã‚¤ãƒ†ãƒ ã¾ã§ãŸã©ã‚Šç€ã„ãŸ
                     if (md->state.state == MS_ATTACK)
-                        return 0;   // UŒ‚’†
+                        return 0;   // æ”»æ’ƒä¸­
                     if (md->state.state == MS_WALK)
-                        mob_stop_walking (md, 1);   // •às’†‚È‚ç’â~
+                        mob_stop_walking (md, 1);   // æ­©è¡Œä¸­ãªã‚‰åœæ­¢
                     fitem = (struct flooritem_data *) tbl;
                     if (md->lootitem_count < LOOTITEM_SIZE)
                         memcpy (&md->lootitem[md->lootitem_count++],
@@ -2254,7 +2254,7 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
         {
             mob_unlocktarget (md, tick);
             if (md->state.state == MS_WALK)
-                mob_stop_walking (md, 4);   // •às’†‚È‚ç’â~
+                mob_stop_walking (md, 4);   // æ­©è¡Œä¸­ãªã‚‰åœæ­¢
             return 0;
         }
     }
@@ -2263,11 +2263,11 @@ static int mob_ai_sub_hard (struct block_list *bl, va_list ap)
     if (mobskill_use (md, tick, -1))
         return 0;
 
-    // •àsˆ—
-    if (mode & 1 && mob_can_move (md) &&    // ˆÚ“®‰Â”\MOB&“®‚¯‚éó‘Ô‚É‚ ‚é
+    // æ­©è¡Œå‡¦ç†
+    if (mode & 1 && mob_can_move (md) &&    // ç§»å‹•å¯èƒ½MOB&å‹•ã‘ã‚‹çŠ¶æ…‹ã«ã‚ã‚‹
         (md->master_id == 0 || md->state.special_mob_ai
          || md->master_dist > 10))
-    {                           //æ‚èŠª‚«MOB‚¶‚á‚È‚¢
+    {                           //å–ã‚Šå·»ãMOBã˜ã‚ƒãªã„
 
         if (DIFF_TICK (md->next_walktime, tick) > +7000 &&
             (md->walkpath.path_len == 0
@@ -2599,7 +2599,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
     int  drop_rate;
     int  skill, sp;
 
-    nullpo_retr (0, md);        //src‚ÍNULL‚ÅŒÄ‚Î‚ê‚éê‡‚à‚ ‚é‚Ì‚ÅA‘¼‚Åƒ`ƒFƒbƒN
+    nullpo_retr (0, md);        //srcã¯NULLã§å‘¼ã°ã‚Œã‚‹å ´åˆã‚‚ã‚ã‚‹ã®ã§ã€ä»–ã§ãƒã‚§ãƒƒã‚¯
 
     if (src && src->id == md->master_id
         && md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER)
@@ -2818,7 +2818,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
         skill_status_change_end (&md->bl, SC_CLOAKING, -1);
 
     if (md->state.special_mob_ai == 2)
-    {                           //ƒXƒtƒBƒA[ƒ}ƒCƒ“
+    {                           //ã‚¹ãƒ•ã‚£ã‚¢ãƒ¼ãƒã‚¤ãƒ³
         int  skillidx = 0;
 
         if ((skillidx =
@@ -2826,7 +2826,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
         {
             md->mode |= 0x1;
             md->next_walktime = tick;
-            mobskill_use_id (md, &md->bl, skillidx);    //©”š‰r¥ŠJn
+            mobskill_use_id (md, &md->bl, skillidx);    //è‡ªçˆ†è© å”±é–‹å§‹
             md->state.special_mob_ai++;
         }
     }
@@ -2838,11 +2838,11 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
 
     MAP_LOG ("MOB%d DEAD", md->bl.id);
 
-    // ----- ‚±‚±‚©‚ç€–Sˆ— -----
+    // ----- ã“ã“ã‹ã‚‰æ­»äº¡å‡¦ç† -----
 
     map_freeblock_lock ();
     mob_changestate (md, MS_DEAD, 0);
-    mobskill_use (md, tick, -1);    // €–SƒXƒLƒ‹
+    mobskill_use (md, tick, -1);    // æ­»äº¡æ™‚ã‚¹ã‚­ãƒ«
 
     memset (tmpsd, 0, sizeof (tmpsd));
     memset (pt, 0, sizeof (pt));
@@ -2852,7 +2852,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
     if (src && src->type == BL_MOB)
         mob_unlocktarget ((struct mob_data *) src, tick);
 
-    /* ƒ\ƒEƒ‹ƒhƒŒƒCƒ“ */
+    /* ã‚½ã‚¦ãƒ«ãƒ‰ãƒ¬ã‚¤ãƒ³ */
     if (sd && (skill = pc_checkskill (sd, HW_SOULDRAIN)) > 0)
     {
         clif_skill_nodamage (src, &md->bl, HW_SOULDRAIN, skill, 1);
@@ -2863,8 +2863,8 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
         clif_heal (sd->fd, SP_SP, sp);
     }
 
-    // mapŠO‚ÉÁ‚¦‚½l‚ÍŒvZ‚©‚çœ‚­‚Ì‚Å
-    // overkill•ª‚Í–³‚¢‚¯‚Çsum‚Ímax_hp‚Æ‚Íˆá‚¤
+    // mapå¤–ã«æ¶ˆãˆãŸäººã¯è¨ˆç®—ã‹ã‚‰é™¤ãã®ã§
+    // overkillåˆ†ã¯ç„¡ã„ã‘ã©sumã¯max_hpã¨ã¯é•ã†
 
     tdmg = 0;
     for (i = 0, count = 0, mvp_damage = 0; i < DAMAGELOG_SIZE; i++)
@@ -2897,7 +2897,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
         else
             dmg_rate = 1;
 
-        // ŒoŒ±’l‚Ì•ª”z
+        // çµŒé¨“å€¤ã®åˆ†é…
         for (i = 0; i < DAMAGELOG_SIZE; i++)
         {
 
@@ -2953,13 +2953,13 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 job_exp = 0;    // Added [Valaris]
 
             if ((pid = tmpsd[i]->status.party_id) > 0)
-            {                   // ƒp[ƒeƒB‚É“ü‚Á‚Ä‚¢‚é
+            {                   // ãƒ‘ãƒ¼ãƒ†ã‚£ã«å…¥ã£ã¦ã„ã‚‹
                 int  j = 0;
-                for (j = 0; j < pnum; j++)  // Œö•½ƒp[ƒeƒBƒŠƒXƒg‚É‚¢‚é‚©‚Ç‚¤‚©
+                for (j = 0; j < pnum; j++)  // å…¬å¹³ãƒ‘ãƒ¼ãƒ†ã‚£ãƒªã‚¹ãƒˆã«ã„ã‚‹ã‹ã©ã†ã‹
                     if (pt[j].id == pid)
                         break;
                 if (j == pnum)
-                {               // ‚¢‚È‚¢‚Æ‚«‚ÍŒö•½‚©‚Ç‚¤‚©Šm”F
+                {               // ã„ãªã„ã¨ãã¯å…¬å¹³ã‹ã©ã†ã‹ç¢ºèª
                     if ((p = party_search (pid)) != NULL && p->exp != 0)
                     {
                         pt[pnum].id = pid;
@@ -2971,16 +2971,16 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                     }
                 }
                 else
-                {               // ‚¢‚é‚Æ‚«‚ÍŒö•½
+                {               // ã„ã‚‹ã¨ãã¯å…¬å¹³
                     pt[j].base_exp += base_exp;
                     pt[j].job_exp += job_exp;
                     flag = 0;
                 }
             }
-            if (flag)           // Še©Š“¾
+            if (flag)           // å„è‡ªæ‰€å¾—
                 pc_gainexp (tmpsd[i], base_exp, job_exp);
         }
-        // Œö•½•ª”z
+        // å…¬å¹³åˆ†é…
         for (i = 0; i < pnum; i++)
             party_exp_share (pt[i].p, md->bl.m, pt[i].base_exp,
                              pt[i].job_exp);
@@ -3086,7 +3086,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             }
         }
 
-        // mvpˆ—
+        // mvpå‡¦ç†
         if (mvp_sd && mob_db[md->class].mexp > 0)
         {
             int  j;
@@ -3097,7 +3097,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             mexp = (temp > 2147483647.) ? 0x7fffffff : (int) temp;
             if (mexp < 1)
                 mexp = 1;
-            clif_mvp_effect (mvp_sd);   // ƒGƒtƒFƒNƒg
+            clif_mvp_effect (mvp_sd);   // ã‚¨ãƒ•ã‚§ã‚¯ãƒˆ
             clif_mvp_exp (mvp_sd, mexp);
             pc_gainexp (mvp_sd, mexp, 0);
             for (j = 0; j < 3; j++)
@@ -3145,7 +3145,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             guild_agit_break (md);
     }
 
-    // SCRIPTÀs
+    // SCRIPTå®Ÿè¡Œ
     if (md->npc_event[0])
     {
         if (sd == NULL)
@@ -3265,7 +3265,7 @@ int mob_class_change (struct mob_data *md, int *value)
 }
 
 /*==========================================
- * mob‰ñ•œ
+ * mobå›å¾©
  *------------------------------------------
  */
 int mob_heal (struct mob_data *md, int heal)
@@ -3338,7 +3338,7 @@ int mob_warpslave (struct mob_data *md, int x, int y)
 }
 
 /*==========================================
- * mobƒ[ƒv
+ * mobãƒ¯ãƒ¼ãƒ—
  *------------------------------------------
  */
 int mob_warp (struct mob_data *md, int m, int x, int y, int type)
@@ -3363,7 +3363,7 @@ int mob_warp (struct mob_data *md, int m, int x, int y, int type)
     map_delblock (&md->bl);
 
     if (bx > 0 && by > 0)
-    {                           // ˆÊ’uw’è‚Ìê‡üˆÍ‚XƒZƒ‹‚ğ’Tõ
+    {                           // ä½ç½®æŒ‡å®šã®å ´åˆå‘¨å›²ï¼™ã‚»ãƒ«ã‚’æ¢ç´¢
         xs = ys = 9;
     }
 
@@ -3371,12 +3371,12 @@ int mob_warp (struct mob_data *md, int m, int x, int y, int type)
            && (i++) < 1000)
     {
         if (xs > 0 && ys > 0 && i < 250)
-        {                       // w’èˆÊ’u•t‹ß‚Ì’Tõ
+        {                       // æŒ‡å®šä½ç½®ä»˜è¿‘ã®æ¢ç´¢
             x = MPRAND (bx, xs) - xs / 2;
             y = MPRAND (by, ys) - ys / 2;
         }
         else
-        {                       // Š®‘Sƒ‰ƒ“ƒ_ƒ€’Tõ
+        {                       // å®Œå…¨ãƒ©ãƒ³ãƒ€ãƒ æ¢ç´¢
             x = MPRAND (1, (map[m].xs - 2));
             y = MPRAND (1, (map[m].ys - 2));
         }
@@ -3395,7 +3395,7 @@ int mob_warp (struct mob_data *md, int m, int x, int y, int type)
             printf ("MOB %d warp failed, class = %d\n", md->bl.id, md->class);
     }
 
-    md->target_id = 0;          // ƒ^ƒQ‚ğ‰ğœ‚·‚é
+    md->target_id = 0;          // ã‚¿ã‚²ã‚’è§£é™¤ã™ã‚‹
     md->state.targettype = NONE_ATTACKABLE;
     md->attacked_id = 0;
     md->state.skillstate = MSS_IDLE;
@@ -3419,7 +3419,7 @@ int mob_warp (struct mob_data *md, int m, int x, int y, int type)
 }
 
 /*==========================================
- * ‰æ–Ê“à‚Ìæ‚èŠª‚«‚Ì”ŒvZ—p(foreachinarea)
+ * ç”»é¢å†…ã®å–ã‚Šå·»ãã®æ•°è¨ˆç®—ç”¨(foreachinarea)
  *------------------------------------------
  */
 int mob_countslave_sub (struct block_list *bl, va_list ap)
@@ -3440,7 +3440,7 @@ int mob_countslave_sub (struct block_list *bl, va_list ap)
 }
 
 /*==========================================
- * ‰æ–Ê“à‚Ìæ‚èŠª‚«‚Ì”ŒvZ
+ * ç”»é¢å†…ã®å–ã‚Šå·»ãã®æ•°è¨ˆç®—
  *------------------------------------------
  */
 int mob_countslave (struct mob_data *md)
@@ -3456,7 +3456,7 @@ int mob_countslave (struct mob_data *md)
 }
 
 /*==========================================
- * è‰ºMOB¢Š«
+ * æ‰‹ä¸‹MOBå¬å–š
  *------------------------------------------
  */
 int mob_summonslave (struct mob_data *md2, int *value, int amount, int flag)
@@ -3471,7 +3471,7 @@ int mob_summonslave (struct mob_data *md2, int *value, int amount, int flag)
     by = md2->bl.y;
     m = md2->bl.m;
 
-    if (value[0] <= 1000 || value[0] > 2000)    // ’l‚ªˆÙí‚È‚ç¢Š«‚ğ~‚ß‚é
+    if (value[0] <= 1000 || value[0] > 2000)    // å€¤ãŒç•°å¸¸ãªã‚‰å¬å–šã‚’æ­¢ã‚ã‚‹
         return 0;
     while (count < 5 && value[count] > 1000 && value[count] <= 2000)
         count++;
@@ -3520,8 +3520,8 @@ int mob_summonslave (struct mob_data *md2, int *value, int amount, int flag)
             md->xs = 0;
             md->ys = 0;
             md->stats[MOB_SPEED] = md2->stats[MOB_SPEED];
-            md->spawndelay1 = -1;   // ˆê“x‚Ì‚İƒtƒ‰ƒO
-            md->spawndelay2 = -1;   // ˆê“x‚Ì‚İƒtƒ‰ƒO
+            md->spawndelay1 = -1;   // ä¸€åº¦ã®ã¿ãƒ•ãƒ©ã‚°
+            md->spawndelay2 = -1;   // ä¸€åº¦ã®ã¿ãƒ•ãƒ©ã‚°
 
             memset (md->npc_event, 0, sizeof (md->npc_event));
             md->bl.type = BL_MOB;
@@ -3539,7 +3539,7 @@ int mob_summonslave (struct mob_data *md2, int *value, int amount, int flag)
 }
 
 /*==========================================
- * ©•ª‚ğƒƒbƒN‚µ‚Ä‚¢‚éPC‚Ì”‚ğ”‚¦‚é(foreachclient)
+ * è‡ªåˆ†ã‚’ãƒ­ãƒƒã‚¯ã—ã¦ã„ã‚‹PCã®æ•°ã‚’æ•°ãˆã‚‹(foreachclient)
  *------------------------------------------
  */
 static int mob_counttargeted_sub (struct block_list *bl, va_list ap)
@@ -3574,7 +3574,7 @@ static int mob_counttargeted_sub (struct block_list *bl, va_list ap)
 }
 
 /*==========================================
- * ©•ª‚ğƒƒbƒN‚µ‚Ä‚¢‚éPC‚Ì”‚ğ”‚¦‚é
+ * è‡ªåˆ†ã‚’ãƒ­ãƒƒã‚¯ã—ã¦ã„ã‚‹PCã®æ•°ã‚’æ•°ãˆã‚‹
  *------------------------------------------
  */
 int mob_counttargeted (struct mob_data *md, struct block_list *src,
@@ -3592,7 +3592,7 @@ int mob_counttargeted (struct mob_data *md, struct block_list *src,
 }
 
 /*==========================================
- *MOBskill‚©‚çŠY“–skillid‚Ìskillidx‚ğ•Ô‚·
+ *MOBskillã‹ã‚‰è©²å½“skillidã®skillidxã‚’è¿”ã™
  *------------------------------------------
  */
 int mob_skillid2skillidx (int class, int skillid)
@@ -3613,11 +3613,11 @@ int mob_skillid2skillidx (int class, int skillid)
 }
 
 //
-// MOBƒXƒLƒ‹
+// MOBã‚¹ã‚­ãƒ«
 //
 
 /*==========================================
- * ƒXƒLƒ‹g—pi‰r¥Š®—¹AIDw’èj
+ * ã‚¹ã‚­ãƒ«ä½¿ç”¨ï¼ˆè© å”±å®Œäº†ã€IDæŒ‡å®šï¼‰
  *------------------------------------------
  */
 int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
@@ -3627,7 +3627,7 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
     struct block_list *mbl;
     int  range;
 
-    if ((mbl = map_id2bl (id)) == NULL) //‰r¥‚µ‚½Mob‚ª‚à‚¤‚¢‚È‚¢‚Æ‚¢‚¤‚Ì‚Í—Ç‚­‚ ‚é³íˆ—
+    if ((mbl = map_id2bl (id)) == NULL) //è© å”±ã—ãŸMobãŒã‚‚ã†ã„ãªã„ã¨ã„ã†ã®ã¯è‰¯ãã‚ã‚‹æ­£å¸¸å‡¦ç†
         return 0;
     if ((md = (struct mob_data *) mbl) == NULL)
     {
@@ -3636,30 +3636,30 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
     }
     if (md->bl.type != BL_MOB || md->bl.prev == NULL)
         return 0;
-    if (md->skilltimer != tid)  // ƒ^ƒCƒ}ID‚ÌŠm”F
+    if (md->skilltimer != tid)  // ã‚¿ã‚¤ãƒIDã®ç¢ºèª
         return 0;
 
     md->skilltimer = -1;
-    //’¾–Ù‚âó‘ÔˆÙí‚È‚Ç
+    //æ²ˆé»™ã‚„çŠ¶æ…‹ç•°å¸¸ãªã©
     if (md->sc_data)
     {
         if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
             || md->sc_data[SC_ROKISWEIL].timer != -1
             || md->sc_data[SC_STEELBODY].timer != -1)
             return 0;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ƒI[ƒgƒJƒEƒ“ƒ^[
+        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ã‚ªãƒ¼ãƒˆã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
             return 0;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //”’næ‚è
+        if (md->sc_data[SC_BLADESTOP].timer != -1)  //ç™½åˆƒå–ã‚Š
             return 0;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //ƒo[ƒT[ƒN
+        if (md->sc_data[SC_BERSERK].timer != -1)    //ãƒãƒ¼ã‚µãƒ¼ã‚¯
             return 0;
     }
     if (md->skillid != NPC_EMOTION)
         md->last_thinktime = tick + battle_get_adelay (&md->bl);
 
     if ((bl = map_id2bl (md->skilltarget)) == NULL || bl->prev == NULL)
-    {                           //ƒXƒLƒ‹ƒ^[ƒQƒbƒg‚ª‘¶İ‚µ‚È‚¢
-        //printf("mobskill_castend_id nullpo\n");//ƒ^[ƒQƒbƒg‚ª‚¢‚È‚¢‚Æ‚«‚Ínullpo‚¶‚á‚È‚­‚Ä•’Ê‚ÉI—¹
+    {                           //ã‚¹ã‚­ãƒ«ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒå­˜åœ¨ã—ãªã„
+        //printf("mobskill_castend_id nullpo\n");//ã‚¿ãƒ¼ã‚²ãƒƒãƒˆãŒã„ãªã„ã¨ãã¯nullpoã˜ã‚ƒãªãã¦æ™®é€šã«çµ‚äº†
         return 0;
     }
     if (md->bl.m != bl->m)
@@ -3682,7 +3682,7 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
         if (bl->type != BL_SKILL && (dist == 0 || map_check_dir (dir, t_dir)))
             return 0;
     }
-    if (((skill_get_inf (md->skillid) & 1) || (skill_get_inf2 (md->skillid) & 4)) &&    // ”Ş‰ä“G‘ÎŠÖŒWƒ`ƒFƒbƒN
+    if (((skill_get_inf (md->skillid) & 1) || (skill_get_inf2 (md->skillid) & 4)) &&    // å½¼æˆ‘æ•µå¯¾é–¢ä¿‚ãƒã‚§ãƒƒã‚¯
         battle_check_target (&md->bl, bl, BCT_ENEMY) <= 0)
         return 0;
     range = skill_get_range (md->skillid, md->skilllv);
@@ -3701,13 +3701,13 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
 
     switch (skill_get_nk (md->skillid))
     {
-            // UŒ‚Œn/‚«”ò‚Î‚µŒn
+            // æ”»æ’ƒç³»/å¹ãé£›ã°ã—ç³»
         case 0:
         case 2:
             skill_castend_damage_id (&md->bl, bl, md->skillid, md->skilllv,
                                      tick, 0);
             break;
-        case 1:                // x‰‡Œn
+        case 1:                // æ”¯æ´ç³»
             if (!mob_db[md->class].skill[md->skillidx].val[0] &&
                 (md->skillid == AL_HEAL
                  || (md->skillid == ALL_RESURRECTION && bl->type != BL_PC))
@@ -3725,7 +3725,7 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
 }
 
 /*==========================================
- * ƒXƒLƒ‹g—pi‰r¥Š®—¹AêŠw’èj
+ * ã‚¹ã‚­ãƒ«ä½¿ç”¨ï¼ˆè© å”±å®Œäº†ã€å ´æ‰€æŒ‡å®šï¼‰
  *------------------------------------------
  */
 int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
@@ -3734,7 +3734,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
     struct block_list *bl;
     int  range, maxcount;
 
-    //mobskill_castend_id“¯—l‰r¥‚µ‚½Mob‚ª‰r¥Š®—¹‚É‚à‚¤‚¢‚È‚¢‚Æ‚¢‚¤‚Ì‚Í‚ ‚è‚»‚¤‚È‚Ì‚Ånullpo‚©‚çœŠO
+    //mobskill_castend_idåŒæ§˜è© å”±ã—ãŸMobãŒè© å”±å®Œäº†æ™‚ã«ã‚‚ã†ã„ãªã„ã¨ã„ã†ã®ã¯ã‚ã‚Šãã†ãªã®ã§nullpoã‹ã‚‰é™¤å¤–
     if ((bl = map_id2bl (id)) == NULL)
         return 0;
 
@@ -3743,7 +3743,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
     if (md->bl.type != BL_MOB || md->bl.prev == NULL)
         return 0;
 
-    if (md->skilltimer != tid)  // ƒ^ƒCƒ}ID‚ÌŠm”F
+    if (md->skilltimer != tid)  // ã‚¿ã‚¤ãƒIDã®ç¢ºèª
         return 0;
 
     md->skilltimer = -1;
@@ -3753,11 +3753,11 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
             || md->sc_data[SC_ROKISWEIL].timer != -1
             || md->sc_data[SC_STEELBODY].timer != -1)
             return 0;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ƒI[ƒgƒJƒEƒ“ƒ^[
+        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ã‚ªãƒ¼ãƒˆã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
             return 0;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //”’næ‚è
+        if (md->sc_data[SC_BLADESTOP].timer != -1)  //ç™½åˆƒå–ã‚Š
             return 0;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //ƒo[ƒT[ƒN
+        if (md->sc_data[SC_BERSERK].timer != -1)    //ãƒãƒ¼ã‚µãƒ¼ã‚¯
             return 0;
     }
 
@@ -3777,7 +3777,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
             case HT_FREEZINGTRAP:
             case HT_BLASTMINE:
             case HT_CLAYMORETRAP:
-            case PF_SPIDERWEB: /* ƒXƒpƒCƒ_[ƒEƒFƒbƒu */
+            case PF_SPIDERWEB: /* ã‚¹ãƒ‘ã‚¤ãƒ€ãƒ¼ã‚¦ã‚§ãƒƒãƒ– */
                 range = 0;
                 break;
             case AL_PNEUMA:
@@ -3808,7 +3808,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
             case HT_BLASTMINE:
             case HT_CLAYMORETRAP:
             case AM_DEMONSTRATION:
-            case PF_SPIDERWEB: /* ƒXƒpƒCƒ_[ƒEƒFƒbƒu */
+            case PF_SPIDERWEB: /* ã‚¹ãƒ‘ã‚¤ãƒ€ãƒ¼ã‚¦ã‚§ãƒƒãƒ– */
                 range = 1;
                 break;
             case AL_WARP:
@@ -3882,18 +3882,18 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
     skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    // ’¾–Ù‚âˆÙí
+    // æ²ˆé»™ã‚„ç•°å¸¸
     if (md->sc_data)
     {
         if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
             || md->sc_data[SC_ROKISWEIL].timer != -1
             || md->sc_data[SC_STEELBODY].timer != -1)
             return 0;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ƒI[ƒgƒJƒEƒ“ƒ^[
+        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ã‚ªãƒ¼ãƒˆã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
             return 0;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //”’næ‚è
+        if (md->sc_data[SC_BLADESTOP].timer != -1)  //ç™½åˆƒå–ã‚Š
             return 0;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //ƒo[ƒT[ƒN
+        if (md->sc_data[SC_BERSERK].timer != -1)    //ãƒãƒ¼ã‚µãƒ¼ã‚¯
             return 0;
     }
 
@@ -3912,7 +3912,7 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
     if (skill_get_inf2 (skill_id) & 0x200 && md->bl.id == target->id)
         return 0;
 
-    // Ë’ö‚ÆáŠQ•¨ƒ`ƒFƒbƒN
+    // å°„ç¨‹ã¨éšœå®³ç‰©ãƒã‚§ãƒƒã‚¯
     range = skill_get_range (skill_id, skill_lv);
     if (range < 0)
         range = battle_get_range (&md->bl) - (range + 1);
@@ -3927,19 +3927,19 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
     md->skilldelay[skill_idx] = gettick ();
 
     switch (skill_id)
-    {                           /* ‰½‚©“Áê‚Èˆ—‚ª•K—v */
-        case ALL_RESURRECTION: /* ƒŠƒUƒŒƒNƒVƒ‡ƒ“ */
+    {                           /* ä½•ã‹ç‰¹æ®Šãªå‡¦ç†ãŒå¿…è¦ */
+        case ALL_RESURRECTION: /* ãƒªã‚¶ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ */
             if (target->type != BL_PC
                 && battle_check_undead (battle_get_race (target),
                                         battle_get_elem_type (target)))
-            {                   /* “G‚ªƒAƒ“ƒfƒbƒh‚È‚ç */
-                forcecast = 1;  /* ƒ^[ƒ“ƒAƒ“ƒfƒbƒg‚Æ“¯‚¶‰r¥ŠÔ */
+            {                   /* æ•µãŒã‚¢ãƒ³ãƒ‡ãƒƒãƒ‰ãªã‚‰ */
+                forcecast = 1;  /* ã‚¿ãƒ¼ãƒ³ã‚¢ãƒ³ãƒ‡ãƒƒãƒˆã¨åŒã˜è© å”±æ™‚é–“ */
                 casttime =
                     skill_castfix (&md->bl,
                                    skill_get_cast (PR_TURNUNDEAD, skill_lv));
             }
             break;
-        case MO_EXTREMITYFIST: /*ˆ¢C—…”e–PŒ */
+        case MO_EXTREMITYFIST: /*é˜¿ä¿®ç¾…è¦‡é³³æ‹³ */
         case SA_MAGICROD:
         case SA_SPELLBREAKER:
             forcecast = 1;
@@ -3952,12 +3952,12 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
              target->id, skill_id, skill_lv, casttime, md->class);
 
     if (casttime > 0 || forcecast)
-    {                           // ‰r¥‚ª•K—v
+    {                           // è© å”±ãŒå¿…è¦
 //      struct mob_data *md2;
         clif_skillcasting (&md->bl,
                            md->bl.id, target->id, 0, 0, skill_id, casttime);
 
-        // ‰r¥”½‰ƒ‚ƒ“ƒXƒ^[
+        // è© å”±åå¿œãƒ¢ãƒ³ã‚¹ã‚¿ãƒ¼
 /*		if( target->type==BL_MOB && mob_db[(md2=(struct mob_data *)target)->class].mode&0x10 &&
 			md2->state.state!=MS_ATTACK){
 				md2->target_id=md->bl.id;
@@ -3966,7 +3966,7 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
 		}*/
     }
 
-    if (casttime <= 0)          // ‰r¥‚Ì–³‚¢‚à‚Ì‚ÍƒLƒƒƒ“ƒZƒ‹‚³‚ê‚È‚¢
+    if (casttime <= 0)          // è© å”±ã®ç„¡ã„ã‚‚ã®ã¯ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã•ã‚Œãªã„
         md->state.skillcastcancel = 0;
 
     md->skilltarget = target->id;
@@ -3996,7 +3996,7 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
 }
 
 /*==========================================
- * ƒXƒLƒ‹g—piêŠw’èj
+ * ã‚¹ã‚­ãƒ«ä½¿ç”¨ï¼ˆå ´æ‰€æŒ‡å®šï¼‰
  *------------------------------------------
  */
 int mobskill_use_pos (struct mob_data *md,
@@ -4016,18 +4016,18 @@ int mobskill_use_pos (struct mob_data *md,
     skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    //’¾–Ù‚âó‘ÔˆÙí‚È‚Ç
+    //æ²ˆé»™ã‚„çŠ¶æ…‹ç•°å¸¸ãªã©
     if (md->sc_data)
     {
         if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
             || md->sc_data[SC_ROKISWEIL].timer != -1
             || md->sc_data[SC_STEELBODY].timer != -1)
             return 0;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ƒI[ƒgƒJƒEƒ“ƒ^[
+        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //ã‚ªãƒ¼ãƒˆã‚«ã‚¦ãƒ³ã‚¿ãƒ¼
             return 0;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //”’næ‚è
+        if (md->sc_data[SC_BLADESTOP].timer != -1)  //ç™½åˆƒå–ã‚Š
             return 0;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //ƒo[ƒT[ƒN
+        if (md->sc_data[SC_BERSERK].timer != -1)    //ãƒãƒ¼ã‚µãƒ¼ã‚¯
             return 0;
     }
 
@@ -4040,7 +4040,7 @@ int mobskill_use_pos (struct mob_data *md,
             || skill_id == TF_BACKSLIDING))
         return 0;
 
-    // Ë’ö‚ÆáŠQ•¨ƒ`ƒFƒbƒN
+    // å°„ç¨‹ã¨éšœå®³ç‰©ãƒã‚§ãƒƒã‚¯
     bl.type = BL_NUL;
     bl.m = md->bl.m;
     bl.x = skill_x;
@@ -4201,7 +4201,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
     if (md->state.special_mob_ai)
         return 0;
 
-    if (md->sc_data[SC_SELFDESTRUCTION].timer != -1)    //©”š’†‚ÍƒXƒLƒ‹‚ğg‚í‚È‚¢
+    if (md->sc_data[SC_SELFDESTRUCTION].timer != -1)    //è‡ªçˆ†ä¸­ã¯ã‚¹ã‚­ãƒ«ã‚’ä½¿ã‚ãªã„
         return 0;
 
     for (i = 0; i < mob_db[md->class].maxskill; i++)
@@ -4209,15 +4209,15 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
         int  c2 = ms[i].cond2, flag = 0;
         struct mob_data *fmd = NULL;
 
-        // ƒfƒBƒŒƒC’†
+        // ãƒ‡ã‚£ãƒ¬ã‚¤ä¸­
         if (DIFF_TICK (tick, md->skilldelay[i]) < ms[i].delay)
             continue;
 
-        // ó‘Ô”»’è
+        // çŠ¶æ…‹åˆ¤å®š
         if (ms[i].state >= 0 && ms[i].state != md->state.skillstate)
             continue;
 
-        // ğŒ”»’è
+        // æ¡ä»¶åˆ¤å®š
         flag = (event == ms[i].cond1);
         if (!flag)
         {
@@ -4278,13 +4278,13 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
             }
         }
 
-        // Šm—¦”»’è
+        // ç¢ºç‡åˆ¤å®š
         if (flag && MRAND (10000) < ms[i].permillage)
         {
 
             if (skill_get_inf (ms[i].skill_id) & 2)
             {
-                // êŠw’è
+                // å ´æ‰€æŒ‡å®š
                 struct block_list *bl = NULL;
                 int  x = 0, y = 0;
                 if (ms[i].target <= MST_AROUND)
@@ -4313,7 +4313,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                 }
                 if (x <= 0 || y <= 0)
                     continue;
-                // ©•ª‚ÌüˆÍ
+                // è‡ªåˆ†ã®å‘¨å›²
                 if (ms[i].target >= MST_AROUND1)
                 {
                     int  bx = x, by = y, i = 0, c, m = bl->m, r =
@@ -4333,7 +4333,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                         y = by;
                     }
                 }
-                // ‘Šè‚ÌüˆÍ
+                // ç›¸æ‰‹ã®å‘¨å›²
                 if (ms[i].target >= MST_AROUND5)
                 {
                     int  bx = x, by = y, i = 0, c, m = bl->m, r =
@@ -4368,7 +4368,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                     if (bl && !mobskill_use_id (md, bl, i))
                         return 0;
                 }
-                // IDw’è
+                // IDæŒ‡å®š
                 if (ms[i].target <= MST_FRIEND)
                 {
                     struct block_list *bl = NULL;
@@ -4411,7 +4411,7 @@ int mobskill_event (struct mob_data *md, int flag)
 }
 
 /*==========================================
- * Mob‚ªƒGƒ“ƒyƒŠƒEƒ€‚È‚Ç‚Ìê‡‚Ì”»’è
+ * MobãŒã‚¨ãƒ³ãƒšãƒªã‚¦ãƒ ãªã©ã®å ´åˆã®åˆ¤å®š
  *------------------------------------------
  */
 int mob_gvmobcheck (struct map_session_data *sd, struct block_list *bl)
@@ -4429,14 +4429,14 @@ int mob_gvmobcheck (struct map_session_data *sd, struct block_list *bl)
         struct guild *g = guild_search (sd->status.guild_id);
 
         if (g == NULL && md->class == 1288)
-            return 0;           //ƒMƒ‹ƒh–¢‰Á“ü‚È‚çƒ_ƒ[ƒW–³‚µ
+            return 0;           //ã‚®ãƒ«ãƒ‰æœªåŠ å…¥ãªã‚‰ãƒ€ãƒ¡ãƒ¼ã‚¸ç„¡ã—
         else if (gc != NULL && !map[sd->bl.m].flag.gvg)
-            return 0;           //Ô“à‚ÅGv‚¶‚á‚È‚¢‚Æ‚«‚Íƒ_ƒ[ƒW‚È‚µ
+            return 0;           //ç ¦å†…ã§Gvã˜ã‚ƒãªã„ã¨ãã¯ãƒ€ãƒ¡ãƒ¼ã‚¸ãªã—
         else if (g && gc != NULL && g->guild_id == gc->guild_id)
-            return 0;           //©è—ÌƒMƒ‹ƒh‚ÌƒGƒ“ƒy‚È‚çƒ_ƒ[ƒW–³‚µ
+            return 0;           //è‡ªå é ˜ã‚®ãƒ«ãƒ‰ã®ã‚¨ãƒ³ãƒšãªã‚‰ãƒ€ãƒ¡ãƒ¼ã‚¸ç„¡ã—
         else if (g && guild_checkskill (g, GD_APPROVAL) <= 0
                  && md->class == 1288)
-            return 0;           //³‹KƒMƒ‹ƒh³”F‚ª‚È‚¢‚Æƒ_ƒ[ƒW–³‚µ
+            return 0;           //æ­£è¦ã‚®ãƒ«ãƒ‰æ‰¿èªãŒãªã„ã¨ãƒ€ãƒ¡ãƒ¼ã‚¸ç„¡ã—
 
     }
 
@@ -4444,7 +4444,7 @@ int mob_gvmobcheck (struct map_session_data *sd, struct block_list *bl)
 }
 
 /*==========================================
- * ƒXƒLƒ‹—pƒ^ƒCƒ}[íœ
+ * ã‚¹ã‚­ãƒ«ç”¨ã‚¿ã‚¤ãƒãƒ¼å‰Šé™¤
  *------------------------------------------
  */
 int mobskill_deltimer (struct mob_data *md)
@@ -4463,7 +4463,7 @@ int mobskill_deltimer (struct mob_data *md)
 }
 
 //
-// ‰Šú‰»
+// åˆæœŸåŒ–
 //
 /*==========================================
  * Since un-setting [ mob ] up was used, it is an initial provisional value setup.
@@ -4742,7 +4742,7 @@ static int mob_readdb_mobavail (void)
 
         class = atoi (str[0]);
 
-        if (class <= 1000 || class > 2000)  // ’l‚ªˆÙí‚È‚çˆ—‚µ‚È‚¢B
+        if (class <= 1000 || class > 2000)  // å€¤ãŒç•°å¸¸ãªã‚‰å‡¦ç†ã—ãªã„ã€‚
             continue;
         k = atoi (str[1]);
         if (k >= 0)
@@ -4792,7 +4792,7 @@ static int mob_read_randommonster (void)
 
     for (i = 0; i < MAX_RANDOMMONSTER; i++)
     {
-        mob_db[0].summonper[i] = 1002;  // İ’è‚µ–Y‚ê‚½ê‡‚Íƒ|ƒŠƒ“‚ªo‚é‚æ‚¤‚É‚µ‚Ä‚¨‚­
+        mob_db[0].summonper[i] = 1002;  // è¨­å®šã—å¿˜ã‚ŒãŸå ´åˆã¯ãƒãƒªãƒ³ãŒå‡ºã‚‹ã‚ˆã†ã«ã—ã¦ãŠã
         fp = fopen_ (mobfile[i], "r");
         if (fp == NULL)
         {

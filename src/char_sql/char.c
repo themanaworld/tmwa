@@ -1715,7 +1715,7 @@ int parse_tologin (int fd)
                 }
                 break;
 
-                // account_reg2•ÏX’Ê’m
+                // account_reg2å¤‰æ›´é€šçŸ¥
             case 0x2729:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -1732,7 +1732,7 @@ int parse_tologin (int fd)
                         reg[j].value = RFIFOL (fd, p + 32);
                     }
                     // set_account_reg2(acc,j,reg);
-                    // “¯CƒƒOƒCƒ“‚ğ‹Ö~‚µ‚Ä‚¢‚ê‚Î‘—‚é•K—v‚Í–³‚¢
+                    // åŒå¢ãƒ­ã‚°ã‚¤ãƒ³ã‚’ç¦æ­¢ã—ã¦ã„ã‚Œã°é€ã‚‹å¿…è¦ã¯ç„¡ã„
                     memcpy (buf, RFIFOP (fd, 0), RFIFOW (fd, 2));
                     WBUFW (buf, 0) = 0x2b11;
                     mapif_sendall (buf, WBUFW (buf, 2));
@@ -2135,7 +2135,7 @@ int parse_frommap (int fd)
 			break;
 		*/
 
-                // account_reg•Û‘¶—v‹
+                // account_regä¿å­˜è¦æ±‚
             case 0x2b10:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2151,7 +2151,7 @@ int parse_frommap (int fd)
                         reg[j].value = RFIFOL (fd, p + 32);
                     }
                     // set_account_reg2(acc,j,reg);
-                    // loginƒT[ƒo[‚Ö‘—‚é
+                    // loginã‚µãƒ¼ãƒãƒ¼ã¸é€ã‚‹
                     if (login_fd > 0)
                     {           // don't send request if no login-server
                         WFIFOW (login_fd, 0) = 0x2728;
@@ -2159,7 +2159,7 @@ int parse_frommap (int fd)
                                 RFIFOW (fd, 2));
                         WFIFOSET (login_fd, WFIFOW (login_fd, 2));
                     }
-                    // ƒ[ƒ‹ƒh‚Ö‚Ì“¯CƒƒOƒCƒ“‚ª‚È‚¯‚ê‚ÎmapƒT[ƒo[‚É‘—‚é•K—v‚Í‚È‚¢
+                    // ãƒ¯ãƒ¼ãƒ«ãƒ‰ã¸ã®åŒå¢ãƒ­ã‚°ã‚¤ãƒ³ãŒãªã‘ã‚Œã°mapã‚µãƒ¼ãƒãƒ¼ã«é€ã‚‹å¿…è¦ã¯ãªã„
                     //memcpy(buf,RFIFOP(fd,0),RFIFOW(fd,2));
                     //WBUFW(buf,0)=0x2b11;
                     //mapif_sendall(buf,WBUFW(buf,2));
@@ -3241,7 +3241,7 @@ int check_connect_login_server (int tid, unsigned int tick, int id, int data)
 
 //----------------------------------------------------------
 // Return numerical value of a switch configuration by [Yor]
-// on/off, english, français, deutsch, español
+// on/off, english, franè»‹is, deutsch, espaîƒ«l
 //----------------------------------------------------------
 int config_switch (const char *str)
 {
@@ -3700,7 +3700,7 @@ int do_init (int argc, char **argv)
 
     printf ("charserver configuration reading done.....\n");
 
-    inter_init ((argc > 2) ? argv[2] : inter_cfgName);  // inter server ÃÊ±âÈ­
+    inter_init ((argc > 2) ? argv[2] : inter_cfgName);  // inter server ï¾ƒï¾Šï½±ç¯³ï½­
     printf ("interserver configuration reading done.....\n");
 
     printf ("start char server initializing.....\n");

@@ -422,8 +422,8 @@ Kick all characters off the server
 
 <OTHER COMMANDS>
 
-@gat                ---- ƒfƒoƒbƒO—p(ü•Ógat‚ğ’²‚×‚é)
-@packet             ---- ƒfƒoƒbƒO—p(ƒpƒPƒbƒgFX)
+@gat                ---- ãƒ‡ãƒãƒƒã‚°ç”¨(å‘¨è¾ºgatã‚’èª¿ã¹ã‚‹)
+@packet             ---- ãƒ‡ãƒãƒƒã‚°ç”¨(ãƒ‘ã‚±ãƒƒãƒˆè‰²ã€…)
 
 @mapexit
 Kick all players and shut down map-server.

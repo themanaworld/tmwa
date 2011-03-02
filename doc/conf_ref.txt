@@ -156,7 +156,7 @@ login_log_unknown_packets_filename
 			01-06-2004 21:25:21.579: receiving of an unknown packet -> disconnection
 			parse_login: connection #5 (ip: 82.64.111.96), packet: 0x4e92 (with being read: 28).
 			Detail (in hex):
-			92 4e 00 00 00 00 00 00 00  00 00 00 00 00 00 00  �N..............
+			92 4e 00 00 00 00 00 00 00  00 00 00 00 00 00 00  誰..............
 			00 00 00 00 00 00 00 00 00  00 00 00              ............
 	Default value: log/login_unknown_packets.log
 
@@ -594,76 +594,76 @@ passwd
 	It is a password corresponding to ID which this world uses.
 
 char_ip
-	map-server����݂��A���̃T�[�o�[���S������}�b�v�̃��[���h���Ǘ�����
-	char-server��IP�ł��B
+	map-serverからみた、このサーバーが担当するマップのワールドを管理する
+	char-serverのIPです。
 
 char_port
-	�}�b�v��o�^����char-server�̃|�[�g�ł��B�ȗ��\�Ńf�t�H���g��6121�ł��B
+	マップを登録するchar-serverのポートです。省略可能でデフォルトは6121です。
 
 map_ip
-	�N���C�A���g���猩������map-server��IP�ł��B
+	クライアントから見たこのmap-serverのIPです。
 
 map_port
-	map-server�Ŏg�p����|�[�g�ł��B�ȗ��\�Ńf�t�H���g��5121�ł��B
+	map-serverで使用するポートです。省略可能でデフォルトは5121です。
 
 autosave_time
-	�f�[�^�������I�ɃL�����I�ɑ��鎞�Ԃł��B�P�ʂ͕b�ł��B
-	�ȗ��\�Ńf�t�H���g��60(1��)�ł��B
+	データを自動的にキャラ鯖に送る時間です。単位は秒です。
+	省略可能でデフォルトは60(1分)です。
 
 water_height
-	����̍������w�肷��t�@�C�������߂܂��B
-	�ȗ��\�ŁA�f�t�H���g��conf/water_height.txt�ł��B
+	水場の高さを指定するファイルを決めます。
+	省略可能で、デフォルトはconf/water_height.txtです。
 
 motd_txt
-	Message of the Day�t�@�C�����w�肵�܂��B
-	�ȗ��\�ŁA�f�t�H���g��conf/motd.txt�ł��B
+	Message of the Dayファイルを指定します。
+	省略可能で、デフォルトはconf/motd.txtです。
 
 help_txt
-	@help�ŕ\������t�@�C�����w�肵�܂��B
-	�ȗ��\�ŁA�f�t�H���g��conf/help.txt�ł��B
+	@helpで表示するファイルを指定します。
+	省略可能で、デフォルトはconf/help.txtです。
 
 mapreg_txt
-	MAP�T�[�o�[���L�����N�^�[���L�ϐ���ۑ�����t�@�C�����w�肵�܂��B
-	�ȗ��\�ŁA�f�t�H���g��save/mapreg_txt�ł��B
+	MAPサーバー内キャラクター共有変数を保存するファイルを指定します。
+	省略可能で、デフォルトはsave/mapreg_txtです。
 
 data_grf
-	RO�f�[�^�t�@�C�� data.grf �ւ̃p�X�ł��B
-	�ȗ��\�ŁA�f�t�H���g�� ./data.grf �ł��B
-	grf-files.txt������ꍇ������̐ݒ肪�D�悳��܂��B
+	ROデータファイル data.grf へのパスです。
+	省略可能で、デフォルトは ./data.grf です。
+	grf-files.txtがある場合そちらの設定が優先されます。
 
 sdata_grf
-	�T�N���C�f�[�^�t�@�C�� sdata.grf �ւ̃p�X�ł��B
-	�ȗ��\�ŁA�f�t�H���g�� ./sdata.grf �ł��B
-	grf-files.txt������ꍇ������̐ݒ肪�D�悳��܂��B
+	サクライデータファイル sdata.grf へのパスです。
+	省略可能で、デフォルトは ./sdata.grf です。
+	grf-files.txtがある場合そちらの設定が優先されます。
 
 adata_grf
-	���f�[�^�t�@�C�� adata.grf �ւ̃p�X�ł��B
-	�ȗ��\�ŁA�f�t�H���g�� ./adata.grf �ł��B
-	grf-files.txt������ꍇ������̐ݒ肪�D�悳��܂��B
+	αデータファイル adata.grf へのパスです。
+	省略可能で、デフォルトは ./adata.grf です。
+	grf-files.txtがある場合そちらの設定が優先されます。
 
 npc
-	�ǂݍ���npc�f�[�^�t�@�C���ւ̃p�X�ł��B
-	�����w��\�ŁA�w�肵�����Ƀ��[�h���܂��B
-	clear ���w�肷��Ƃ���܂łɓo�^�����p�X��S�č폜���܂��B
+	読み込むnpcデータファイルへのパスです。
+	複数指定可能で、指定した順にロードします。
+	clear を指定するとそれまでに登録したパスを全て削除します。
 
 delnpc
-	�ǂݍ��܂Ȃ�npc�t�@�C���ւ̃p�X�ł��B
-	�w�肵���p�X��npc�Ŏw�肳�ꂽ�f�[�^�t�@�C�����X�g����폜����܂��B
-	all ���w�肷��ƑS�č폜���܂�( npc: clear �Ɠ��`)�B
+	読み込まないnpcファイルへのパスです。
+	指定したパスはnpcで指定されたデータファイルリストから削除されます。
+	all を指定すると全て削除します( npc: clear と同義)。
 
 map
-	���̃}�b�v���S������}�b�v�t�@�C�����ł��B
-	�����w��\�ŁA�w�肵�����Ƀ��[�h���܂��B
-	���݂��Ȃ��}�b�v���w�肵���ꍇ�G���[�ɂȂ�܂��B
-	clear ���w�肷��Ƃ���܂łɓo�^�����t�@�C������S�č폜���܂��B
+	このマップが担当するマップファイル名です。
+	複数指定可能で、指定した順にロードします。
+	存在しないマップを指定した場合エラーになります。
+	clear を指定するとそれまでに登録したファイル名を全て削除します。
 
 delmap
-	�ǂݍ��܂Ȃ��}�b�v�t�@�C���ւ̃p�X�ł��B
-	�w�肵���t�@�C����map�Ŏw�肳�ꂽ���X�g����폜����܂��B
-	all ���w�肷��ƑS�č폜���܂�( map: clear �Ɠ��`)�B
+	読み込まないマップファイルへのパスです。
+	指定したファイルはmapで指定されたリストから削除されます。
+	all を指定すると全て削除します( map: clear と同義)。
 
 import
-	���̍s��ʃt�@�C���̒��g�ƒu�������܂��B
+	その行を別ファイルの中身と置き換えます。
 
 < Example >
 
@@ -684,7 +684,7 @@ npc: conf/warp/npc_warp3.txt
 npc: conf/mob/npc_monster3J.txt
 map: prontera.gat
 map: prt_castle.gat
-�inpc�Amap�͑����̂ŏȗ��j
+（npc、mapは多いので省略）
 delnpc: conf/sample/npc_test.txt
 npc: clear
 delmap: prontera.gat
@@ -709,689 +709,689 @@ delmap: all
 < Explanation of a key >
 
 warp_point_debug
-	���[�v�|�C���g�𕁒ʂɕ\�����邩�ǂ����ł��B�����yes�ɂ����
-	���[�v�|�C���g�̂����ɃM���h�t���O�����̏ꏊ�ɏo�ă��[�v
-	�|�C���g�̖��O���m�F���邱�Ƃ��ł��܂��B�f�t�H���g��no�ł��B
+	ワープポイントを普通に表示するかどうかです。これをyesにすると
+	ワープポイントのかわりにギルドフラグがその場所に出てワープ
+	ポイントの名前を確認することができます。デフォルトはnoです。
 
 enemy_critical
-	�v���C���[�Ɠ���LUK�ɂ��N���e�B�J�������MOB�ƃy�b�g�ɗL���ɂ��邩�ǂ����ł��B
-	���̃N���e�B�J���͂������K���Ȃ̂ŁAon�ɂ���ƍ�Flee�ł��A
-	LUK�̍����G�̍U���������Â炭�Ȃ�܂��B�f�t�H���g��no�ł��B
+	プレイヤーと同じLUKによるクリティカル判定をMOBとペットに有効にするかどうかです。
+	このクリティカルはもちろん必中なので、onにすると高Fleeでも、
+	LUKの高い敵の攻撃が避けづらくなります。デフォルトはnoです。
 
 enemy_critical_rate
-	�����X�^�[�ƃy�b�g�̃N���e�B�J���p�x�̕S�����ł��Benemy_critical��yes����Ȃ��Ɛݒ肵�Ă����̈Ӗ�������܂���B�f�t�H���g��100�ł��B
+	モンスターとペットのクリティカル頻度の百分率です。enemy_criticalがyesじゃないと設定しても何の意味もありません。デフォルトは100です。
 
 enemy_str
-	�����X�^�[�̂��U������Ƃ���ATK�v�Z��STR���g�p���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	モンスターのが攻撃するときのATK計算にSTRを使用するかどうかです。
+	デフォルトはyesです。
 
 enemy_perfect_flee
-	�G�����S��������邩�ǂ����ł��B�����yes�ɂ���ƓG�����S�����
-	����悤�ɂȂ�܂��B�f�t�H���g��no�ł��B
+	敵が完全回避をするかどうかです。これをyesにすると敵も完全回避を
+	するようになります。デフォルトはnoです。
 
 casting_rate
-	�X�L���̉r�����Ԃ�S�����Œ������܂��B
-	200�ɂ���Ɖr�����Ԃ��{�ɂȂ�A0�ɂ���Ɖr�����Ȃ��Ȃ�܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	スキルの詠唱時間を百分率で調整します。
+	200にすると詠唱時間が倍になり、0にすると詠唱がなくなります。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 delay_rate
-	�X�L���g�p��f�B���C��S�����Œ������܂��B
-	200�ɂ���ƃf�B���C���{�ɂȂ�A0�ɂ���ƃf�B���C���Ȃ��Ȃ�܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	スキル使用後ディレイを百分率で調整します。
+	200にするとディレイが倍になり、0にするとディレイがなくなります。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 delay_dependon_dex
-	�X�L���g�p��f�B���C���r�����ԂƓ����悤��DEX�ŉe�����󂯂邩�ǂ�����
-	�w�肵�܂��B�f�t�H���g��no�ł��B
+	スキル使用後ディレイが詠唱時間と同じようにDEXで影響を受けるかどうかを
+	指定します。デフォルトはnoです。
 
 skill_delay_attack_enable
-	�X�L���f�B���C�̊ԍU���ł��邩�ǂ����ł��Byes�ɂ���΃X�L���f�B���C�̊ԃX�L���͎g���Ȃ����ǍU���͂ł��܂��B
-	�f�t�H���g��no�ł��B
+	スキルディレイの間攻撃できるかどうかです。yesにすればスキルディレイの間スキルは使えないけど攻撃はできます。
+	デフォルトはnoです。
 
 left_cardfix_to_right
-	�񓁗��̍��蕐��̎푰�A�����ASize�̃_���[�W�␳���E�蕐��ɓK�p���邩�ǂ����ł��B�����yes�ɂ���ƍ��蕐��ɂ͎푰�A�����ASize�̃_���[�W�␳���|����Ȃ��Ȃ�܂��B�f�t�H���g��no�ł��B
+	二刀流の左手武器の種族、属性、Sizeのダメージ補正を右手武器に適用するかどうかです。これをyesにすると左手武器には種族、属性、Sizeのダメージ補正が掛からなくなります。デフォルトはnoです。
 
 player_skill_add_range
-	�v���C���[�̃X�L���˒�����G�����ꂽ���ǂꂮ�炢�̋����܂ŃX�L�����g�p�\�ɂ��邩�����߂܂��B�X�L���̎˒�+player_skill_add_range�܂ŃX�L�����͂��܂��B�f�t�H���g��0�ł��������͓��ꂽ���������ł��B
+	プレイヤーのスキル射程から敵が離れた時どれぐらいの距離までスキルを使用可能にするかを決めます。スキルの射程+player_skill_add_rangeまでスキルが届きます。デフォルトは0ですが少しは入れた方がいいです。
 
 skill_out_range_consume
-	�X�L���̎˒�����G������ăX�L�������s������SP��A�C�e�������Ղ��邩�ǂ����ł��B�f�t�H���g��yes�ł��B
+	スキルの射程から敵が離れてスキルが失敗した時SPやアイテムを消耗するかどうかです。デフォルトはyesです。
 
 monster_skill_add_range
-	�����X�^�[�̃X�L���˒�����G�����ꂽ���ǂꂮ�炢�̋����܂ŃX�L�����g�p�\�ɂ��邩�����߂܂��B�X�L���̎˒�+monster_skill_add_range�܂ŃX�L�����͂��܂��B�f�t�H���g��0�ł��B
+	モンスターのスキル射程から敵が離れた時どれぐらいの距離までスキルを使用可能にするかを決めます。スキルの射程+monster_skill_add_rangeまでスキルが届きます。デフォルトは0です。
 
 player_damage_delay
-	�v���C���[�L�������_���[�W���󂯂����ړ��ł��Ȃ��f�B���C�����邩�ǂ����ł��B
-	yes�ɂ���ƃC���f���A�ł��g��Ȃ�����_���[�W���󂯂���
-	���΂炭�͓����܂���B�f�t�H���g��yes�ł��B
+	プレイヤーキャラがダメージを受けた時移動できないディレイを入れるかどうかです。
+	yesにするとインデュアでも使わない限りダメージを受けた時
+	しばらくは動きません。デフォルトはyesです。
 
 player_damage_delay_rate
-	�v���C���[�L�������_���[�W���󂯂����ړ��ł��Ȃ��f�B���C��S�����Œ������܂��B
-	200�ɂ���ƃf�B���C���{�ɂȂ�A0�ɂ���ƃf�B���C���Ȃ��Ȃ�܂��B
-	player_damage_delay��yes�ɂ��ĂȂ��ƈӖ�������܂���B
-	�f�t�H���g��100�ł��B
+	プレイヤーキャラがダメージを受けた時移動できないディレイを百分率で調整します。
+	200にするとディレイが倍になり、0にするとディレイがなくなります。
+	player_damage_delayがyesにしてないと意味がありません。
+	デフォルトは100です。
 
 defunit_not_enemy
-	�h�䃆�j�b�g�i�Z�C�t�e�B�E�H�[��/�j���[�}�Ȃǁj��MOB�Ɍ��ʂ�
-	�y�ڂ��Ȃ��悤�ɂ��邩�ǂ����ł��B�f�t�H���g��yes�ł��B
+	防御ユニット（セイフティウォール/ニューマなど）がMOBに効果を
+	及ぼさないようにするかどうかです。デフォルトはyesです。
 
 random_monster_checklv
-	�����X�^�[���҃A�C�e�����g�����Ƃ��Ɏ������LV�̍��������X�^�[�����҂��邩�ǂ����ł��B
-	yes�ɂ���ƁA�������LV�̍��������X�^�[�����҂��Ȃ��悤�ɂȂ�܂��B
-	�f�t�H���g��yes�ł��B
+	モンスター召還アイテムを使ったときに自分よりLVの高いモンスターを召還するかどうかです。
+	yesにすると、自分よりLVの高いモンスターを召還しないようになります。
+	デフォルトはyesです。
 
 attribute_recover
-	�����ɂ���čU������Ă��񕜂��邩�ǂ����ł��Bno�̏ꍇ��-������
-	0�ɂ��܂��B�f�t�H���g��yes�ł��B
+	属性によって攻撃されても回復するかどうかです。noの場合は-属性を
+	0にします。デフォルトはyesです。
 
 item_auto_get
-	�A�C�e�������擾�@�\���g�p���邩�ǂ����ł��B
-	yes�ɂ���ƃA�C�e���h���b�v�������X�^�[�Ɉ�ԑ����_���[�W��^�����L������
-	�����ŃA�C�e�����擾����悤�ɂȂ�܂��B
-	�f�t�H���g��no�ł��B
+	アイテム自動取得機能を使用するかどうかです。
+	yesにするとアイテムドロップをモンスターに一番多くダメージを与えたキャラが
+	自動でアイテムを取得するようになります。
+	デフォルトはnoです。
 
 flooritem_lifetime
-	���ɗ������A�C�e����������܂ł����鎞�Ԃł��B�P�ʂ�ms(�~���b)�ł��B
-	�f�t�H���g��60000(60�b)�ōŏ���1000(1�b)�ł��B1000�����Ȃ�f�t�H���g�ɃZ�b�g����܂��B
+	床に落ちたアイテムが消えるまでかかる時間です。単位はms(ミリ秒)です。
+	デフォルトは60000(60秒)で最小は1000(1秒)です。1000未満ならデフォルトにセットされます。
 
 item_first_get_time
-	�����X�^�[�Ɉ�ԃ_���[�W�𑽂��^�����L�����ȊO�����̃����X�^�[��
-	�h���b�v�A�C�e��������悤�ɂȂ�܂ł̎��Ԃł��B
-	�P�ʂ�ms(�~���b)�ł��B�f�t�H���g��10000(10�b)�ł��B
+	モンスターに一番ダメージを多く与えたキャラ以外がそのモンスターの
+	ドロップアイテムを取れるようになるまでの時間です。
+	単位はms(ミリ秒)です。デフォルトは10000(10秒)です。
 
 item_second_get_time
-	item_first_get_time�̌ヂ���X�^�[�ɓ�ԖڂɃ_���[�W�𑽂��^����
-	�L�����ȊO�����̃����X�^�[�̃h���b�v�A�C�e��������悤�ɂȂ�܂ł�
-	���Ԃł��B�P�ʂ�ms(�~���b)�ł��B�f�t�H���g��7000(7�b)�ł��B
+	item_first_get_timeの後モンスターに二番目にダメージを多く与えた
+	キャラ以外がそのモンスターのドロップアイテムを取れるようになるまでの
+	時間です。単位はms(ミリ秒)です。デフォルトは7000(7秒)です。
 
 item_third_get_time
-	item_second_get_time�̌ヂ���X�^�[�ɎO�ԖڂɃ_���[�W�𑽂��^����
-	�����ȊO�����̃����X�^�[�̃h���b�v�A�C�e��������悤�ɂȂ�܂ł�
-	���Ԃł��B�P�ʂ�ms(�~���b)�ł��B�f�t�H���g��5000(5�b)�ł��B
+	item_second_get_timeの後モンスターに三番目にダメージを多く与えた
+	ャラ以外がそのモンスターのドロップアイテムを取れるようになるまでの
+	時間です。単位はms(ミリ秒)です。デフォルトは5000(5秒)です。
 
 mvp_item_first_get_time
-	�����X�^�[�Ɉ�ԃ_���[�W�𑽂��^�����L�����ȊO�����̃����X�^�[��
-	MVP�A�C�e��������悤�ɂȂ�܂ł̎��Ԃł��B
-	�P�ʂ�ms(�~���b)�ł��B�f�t�H���g��10000(10�b)�ł��B
+	モンスターに一番ダメージを多く与えたキャラ以外がそのモンスターの
+	MVPアイテムを取れるようになるまでの時間です。
+	単位はms(ミリ秒)です。デフォルトは10000(10秒)です。
 
 mvp_item_second_get_time
-	mvp_item_first_get_time�̌ヂ���X�^�[�ɓ�ԖڂɃ_���[�W�𑽂��^����
-	�L�����ȊO�����̃����X�^�[��MVP�A�C�e��������悤�ɂȂ�܂ł�
-	���Ԃł��B�P�ʂ�ms(�~���b)�ł��B�f�t�H���g��10000(10�b)�ł��B
+	mvp_item_first_get_timeの後モンスターに二番目にダメージを多く与えた
+	キャラ以外がそのモンスターのMVPアイテムを取れるようになるまでの
+	時間です。単位はms(ミリ秒)です。デフォルトは10000(10秒)です。
 
 mvp_item_third_get_time
-	mvp_item_second_get_time�̌ヂ���X�^�[�ɎO�ԖڂɃ_���[�W�𑽂��^����
-	�L�����ȊO�����̃����X�^�[��MVP�A�C�e��������悤�ɂȂ�܂ł�
-	���Ԃł��B�P�ʂ�ms(�~���b)�ł��B�f�t�H���g��2000(2�b)�ł��B
+	mvp_item_second_get_timeの後モンスターに三番目にダメージを多く与えた
+	キャラ以外がそのモンスターのMVPアイテムを取れるようになるまでの
+	時間です。単位はms(ミリ秒)です。デフォルトは2000(2秒)です。
 
 item_rate
-	�A�C�e���h���b�v����S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	アイテムドロップ率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 drop_rate0item
-	�����m��0�̃A�C�e��(�ꕔ�����X�^�[�ɂ����郊���S)�𗎉����邩�ǂ����̐ݒ�ł��B
-	�f�t�H���g��no�ł��B
+	落下確率0のアイテム(一部モンスターにおけるリンゴ)を落下するかどうかの設定です。
+	デフォルトはnoです。
 
 base_exp_rate
-	BaseEXP�̏����{����S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	BaseEXPの所得倍率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 	
 job_exp_rate
-	JobEXP�̏����{����S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	JobEXPの所得倍率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 death_penalty_type
-	�f�X�y�i���e�B�̃^�C�v�����肵�܂��B
-	0�Ŏ��񂾌ナ�X�^�[�g���鎞�ɓK�p�Ŏ����Ă���EXP�̗ʂ���䗦�̕������炷�d�l�A1�Ŏ��񂾒���ɓK�p�Ŏ����Ă���EXP�̗ʂ���䗦�̕������炷�d�l�ł��B
-	2�Ŏ��񂾌ナ�X�^�[�g���鎞�ɓK�p�Ŏ��̃��x���A�b�v�܂ł�EXP����䗦�̕������炷�d�l�A3�Ŏ��񂾒���ɓK�p�Ŏ��̃��x���A�b�v�܂ł�EXP����䗦�̕������炷�d�l�ł��B
-	�f�t�H���g��0�ł��B
+	デスペナルティのタイプを決定します。
+	0で死んだ後リスタートする時に適用で持っているEXPの量から比率の分を減らす仕様、1で死んだ直後に適用で持っているEXPの量から比率の分を減らす仕様です。
+	2で死んだ後リスタートする時に適用で次のレベルアップまでのEXPから比率の分を減らす仕様、3で死んだ直後に適用で次のレベルアップまでのEXPから比率の分を減らす仕様です。
+	デフォルトは0です。
 
 death_penalty_base
-	�f�X�y�i���e�B�ɂ��BASE�o���l��������S�����Œ������܂��B
-	���܂�Ⴗ����l���g���ƌ���܂���B�P�ʂ�0.01%�ł��B
-	�f�t�H���g��0�ł��B
+	デスペナルティによるBASE経験値減少率を百分率で調整します。
+	あまり低すぎる値を使うと減りません。単位は0.01%です。
+	デフォルトは0です。
 
 death_penalty_job
-	�f�X�y�i���e�B�ɂ��JOB�o���l��������S�����Œ������܂��B
-	���܂�Ⴗ����l���g���ƌ���܂���B�P�ʂ�0.01%�ł��B
-	�f�t�H���g��0�ł��B
+	デスペナルティによるJOB経験値減少率を百分率で調整します。
+	あまり低すぎる値を使うと減りません。単位は0.01%です。
+	デフォルトは0です。
 
 zeny_penalty
-	���񂾎������Ȃ�[�j�ʂ̔䗦�ł��B�P�ʂ�0.01%�ł��B���񂾎�
-	����킯�ł͂Ȃ����񂾌�Z�[���|�C���g�ɖ߂鎞�K�p����܂��B
-	�f�t�H���g��0�ł��B
+	死んだ時無くなるゼニ量の比率です。単位は0.01%です。死んだ時
+	減るわけではなく死んだ後セーヴポイントに戻る時適用されます。
+	デフォルトは0です。
 
 restart_hp_rate
-	���X�^�[�g���鎞�ɉ񕜂���HP�䗦��S�����Œ������܂��B�P�ʂ�%�ł��B
-	�f�t�H���g��0�ł��B0�̏ꍇ1�񕜂ɂȂ�܂��B
+	リスタートする時に回復するHP比率を百分率で調整します。単位は%です。
+	デフォルトは0です。0の場合1回復になります。
 
 restart_sp_rate
-	���X�^�[�g���鎞�ɉ񕜂���SP�䗦��S�����Œ������܂��B�P�ʂ�%�ł��B
-	�f�t�H���g��0�ł��B0�̏ꍇ�͉񕜂��܂���B
-	������SP���䗦��荂���ꍇ���񕜂��܂���B
+	リスタートする時に回復するSP比率を百分率で調整します。単位は%です。
+	デフォルトは0です。0の場合は回復しません。
+	そしてSPが比率より高い場合も回復しません。
 
 mvp_hp_rate
-	MVP �����X�^�[��HP��S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	MVP モンスターのHPを百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 mvp_item_rate
-	MVP�A�C�e���̏����{����S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	MVPアイテムの所得倍率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 mvp_exp_rate
-	MVP EXP�̏����{����S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	MVP EXPの所得倍率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 monster_hp_rate
-	MVP �ȊO�̃����X�^�[��HP��S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	MVP 以外のモンスターのHPを百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 monster_max_aspd
-	�����X�^�[�̍ő�U�����x��ݒ肵�܂��B
-	�f�t�H���g��199�ł��B�ő��199�ōŏ���100�ł��B
+	モンスターの最大攻撃速度を設定します。
+	デフォルトは199です。最大は199で最小は100です。
 
 atcommand_gm_only
-	���R�}���h��GM��p�ɂ��邩�ǂ����ł��B�f�t�H���g��no�ł��B
+	＠コマンドをGM専用にするかどうかです。デフォルトはnoです。
 
 gm_all_skill
-	�S�ẴX�L�����o������悤�ɂ���GM�̃��x����ݒ肵�܂��B
-	�����0�ȊO�ɂ���ƁA����GM���x���ȏ��GM��JOB��X�L�����������Ɋ֌W�Ȃ��S�X�L�����o�����܂��B(�N�F�X�g�X�L�����܂߂�)
-	�f�t�H���g�� 0 �ł��B0�̏ꍇ��GM�ł͂Ȃ��S�ẴL�����̈Ӗ��ł͂Ȃ��S�Ă�GM���S�ẴX�L�����o�����Ȃ��ƌ������Ƃł��B
+	全てのスキルを覚えられるようにするGMのレベルを設定します。
+	これを0以外にすると、そのGMレベル以上のGMはJOBやスキル所得条件に関係なく全スキルが覚えられます。(クェストスキルも含めて)
+	デフォルトは 0 です。0の場合はGMではない全てのキャラの意味ではなく全てのGMが全てのスキルを覚えられないと言うことです。
 
 gm_all_equipment
-	�S�Ă̑����i�𑕔��ł���悤�ɂ���GM�̃��x����ݒ肵�܂��B
-	�����0�ȊO�ɂ���ƁA����GM���x���ȏ��GM��JOB�⃌�x���A���ʂɊ֌W�Ȃ�
-	�S�����i�𑕔��ł���悤�ɂȂ�܂��B�������A�N���C�A���g���ŃG���[��
-	�N�����g�ݍ��킹������Ǝv���܂��B�f�t�H���g�� 0 �ł��B
-	0�̏ꍇ�͑S�Ă�GM�͒ʏ�v���C���[�Ɠ������肪�s���܂��B
+	全ての装備品を装備できるようにするGMのレベルを設定します。
+	これを0以外にすると、そのGMレベル以上のGMはJOBやレベル、性別に関係なく
+	全装備品を装備できるようになります。ただし、クライアント側でエラーを
+	起こす組み合わせもあると思います。デフォルトは 0 です。
+	0の場合は全てのGMは通常プレイヤーと同じ判定が行われます。
 
 gm_skill_unconditional
-	�������ɃX�L�����g�p�ł���悤�ɂ���GM�̃��x����ݒ肵�܂��B
-	�����0�ȊO�ɂ���ƁA����GM���x���ȏ��GM�͑�����������A�C�e���̗L��
-	�ȂǂɊ֌W�Ȃ��A�����ĉ�������邱�ƂȂ��X�L�����g�p�ł���悤��
-	�Ȃ�܂��B���菈���𖳎�����̂œ���ɕs�s�����ł�\��������܂��B
-	�f�t�H���g�� 0 �ł��B 0�̏ꍇ�͑S�Ă�GM�͒ʏ�v���C���[�Ɠ������肪
-	�s���܂��B
+	無条件にスキルを使用できるようにするGMのレベルを設定します。
+	これを0以外にすると、そのGMレベル以上のGMは装備武器や消費アイテムの有無
+	などに関係なく、そして何も消費することなくスキルを使用できるように
+	なります。判定処理を無視するので動作に不都合がでる可能性があります。
+	デフォルトは 0 です。 0の場合は全てのGMは通常プレイヤーと同じ判定が
+	行われます。
 
 player_skillfree
-	�X�L���c���[�Ɋ֌W�Ȃ��X�L�����グ�邱�Ƃ��ł��邩�ǂ����ł��B
-	�����yes�ɂ���΃v���C���[�̐E�ƂŏK�����Ƃ��ł���X�L���S�Ă�
-	�X�L���c���[�Ɋ֌W�Ȃ��グ�邱�Ƃ��ł��܂��B�f�t�H���g��no�ł��B
+	スキルツリーに関係なくスキルを上げることができるかどうかです。
+	これをyesにすればプレイヤーの職業で習うことができるスキル全てを
+	スキルツリーに関係なく上げることができます。デフォルトはnoです。
 
 player_skillup_limit
-	�X�L�����Z�b�g�����������X�L���𐧌��Ȃ��ɏグ�邩�ǂ����ł��B
-	�����yes�ɂ���Ύn�߂̃X�L���|�C���g9�̓m�[�r�X�ŏK���X�L���ɂ���
-	�g���܂���B�����Ă��̌��39��1���E�ƂŏK�����ɂ����g���Ă��̌��
-	�|�C���g�͎��R�Ɏg�����Ƃ��ł��܂��B�f�t�H���g��no�ł��B
+	スキルリセット等をした時スキルを制限なしに上げるかどうかです。
+	これをyesにすれば始めのスキルポイント9つはノービスで習うスキルにしか
+	使えません。そしてその後の39は1次職業で習う物にだけ使えてその後の
+	ポイントは自由に使うことができます。デフォルトはnoです。
 
 weapon_produce_rate
-	���퐻���X�L���ł̐�����������S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	武器製造スキルでの製造成功率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 potion_produce_rate
-	�|�[�V���������X�L���ł̐�����������S�����Œ������܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	ポーション製造スキルでの製造成功率を百分率で調整します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 
 monster_active_enable
-	��U�����X�^�[���U�ɂ��邩�ǂ����ł��B�����no�ɂ����
-	��U�����X�^�[�����U�ɂȂ�܂��B�f�t�H���g��yes�ł��B
+	先攻モンスターを先攻にするかどうかです。これをnoにすると
+	先攻モンスターが非先攻になります。デフォルトはyesです。
 
 monster_damage_delay_rate
-	�����X�^�[���_���[�W���󂯂����ړ��ł��Ȃ��f�B���C��S�����Œ������܂��B
-	200�ɂ���ƃf�B���C���{�ɂȂ�A0�ɂ���ƃf�B���C���Ȃ��Ȃ�܂��B
-	�f�t�H���g��100�ł��B
+	モンスターがダメージを受けた時移動できないディレイを百分率で調整します。
+	200にするとディレイが倍になり、0にするとディレイがなくなります。
+	デフォルトは100です。
 
 monster_loot_type
-	���[�g�����X�^�[�̍s���̎d�����w�肵�܂��B
-	0�̏ꍇ��LOOTITEM_SIZE�܂ŃA�C�e����H�ׂĂ��܂��A�C�e����H�ׂāA
-	�O�̃A�C�e����������d�l�B1�̏ꍇ��LOOTITEM_SIZE�܂ŃA�C�e����H�ׂ��
-	�����A�C�e����H�ׂȂ��Ȃ�d�l�B�f�t�H���g��0�ł��B
+	ルートモンスターの行動の仕方を指定します。
+	0の場合はLOOTITEM_SIZEまでアイテムを食べてもまたアイテムを食べて、
+	前のアイテムが消える仕様。1の場合はLOOTITEM_SIZEまでアイテムを食べると
+	もうアイテムを食べなくなる仕様。デフォルトは0です。
 
 mob_skill_use
-	MOB���X�L�����g���Ă��邩�ǂ����ł��B�f�t�H���g��yes�ł��B
+	MOBがスキルを使ってくるかどうかです。デフォルトはyesです。
 
 mob_count_rate
-	map_athena.conf�Ŏw�肳�ꂽnpc�f�[�^��ǂݍ��ލہA
-	monster�Œ�`���ꂽ�z�uMOB�̐���S�����Œ������܂��B
-	��O�Ƃ��āA�z�u��1�Ƃ��Ē�`���ꂽMOB�̐��͕ς��܂���B(BOSS�΍�)
-	�܂��A�z�u���������C�������Ƃ��A1�����ɂȂ����ꍇ��1�Ƃ��ď������܂��B
-	0-1000���x�Ŏw�肵�Ă��������B�f�t�H���g��100�ł��B
+	map_athena.confで指定されたnpcデータを読み込む際、
+	monsterで定義された配置MOBの数を百分率で調整します。
+	例外として、配置数1として定義されたMOBの数は変わりません。(BOSS対策)
+	また、配置数を下方修正したとき、1未満になった場合は1として処理します。
+	0-1000程度で指定してください。デフォルトは100です。
 
 quest_skill_learn
-	�N�F�X�g�X�L���𕁒ʂɏK�����邩�ǂ����ł��B
-	�����yes�ɂ���ƃN�F�X�g�X�L�������ʂɕ\������ăX�L���|�C���g���g���ďK�����邱�Ƃ��ł��܂��B
-	�f�t�H���g�� no�ł��B
+	クェストスキルを普通に習得するかどうかです。
+	これをyesにするとクェストスキルが普通に表示されてスキルポイントを使って習得することができます。
+	デフォルトは noです。
 
 quest_skill_reset
-	�X�L�������Z�b�g���鎞�N�F�X�g�X�L�������Z�b�g���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
-	no�ɂ��Ă�quest_skill_learn��yes�ɂ���΃��Z�b�g����܂��B
+	スキルをリセットする時クェストスキルをリセットするかどうかです。
+	デフォルトはyesです。
+	noにしてもquest_skill_learnをyesにすればリセットされます。
 
 basic_skill_check
-	����A�����A�p�[�e�B�����A�`���b�g���[����蓙�̎���{�X�L�����`�F�b�N���邩�ǂ����ł��B 
-	�����no�ɂ���΍���A�������̊�{�X�L�����K�v�ȍs������{�X�L���Ɋ֌W�Ȃ��g�����Ƃ��ł��܂��B
-	�f�t�H���g�� yes�ł��B
+	座り、交換、パーティ結成、チャットルーム作り等の時基本スキルをチェックするかどうかです。 
+	これをnoにすれば座り、交換等の基本スキルが必要な行動を基本スキルに関係なく使うことができます。
+	デフォルトは yesです。
 
 guild_emperium_check
-	�M���h����鎞�G���y���E��������邩�ǂ����ł��B�����no�ɂ����
-	�G���y���E���Ȃ��ł��M���h�����܂��B
-	�f�t�H���g�� yes�ł��B
+	ギルドを作る時エンペリウムを消費するかどうかです。これをnoにすれば
+	エンペリウムなしでもギルドが作れます。
+	デフォルトは yesです。
 
 guild_exp_limit
-	�M���h�̖�E�ɐݒ�ł����[�o���l�̊����̏����ݒ�ł��܂��B
-	�f�t�H���g��50(%)�ł��B
+	ギルドの役職に設定できる上納経験値の割合の上限を設定できます。
+	デフォルトは50(%)です。
 
 player_invincible_time
-	�}�b�v�ړ���e���|�[�g�A�����������̖��G���Ԃ�ݒ肵�܂��B�P�͂�
-	ms(�~���b)�B�ړ��A�U���s���A�X�L���g�p�A�A�C�e���g�p������Ƃ���
-	���Ԃ͂Ȃ��Ȃ�B(�V�[�Y���[�h�ł͎��Ԃ�2�{�ɂ��ēK�p)
-	�f�t�H���g��5000(5�b)�ł��B
+	マップ移動やテレポート、復活した時の無敵時間を設定します。単囲は
+	ms(ミリ秒)。移動、攻撃行動、スキル使用、アイテム使用をするとこの
+	時間はなくなる。(シーズモードでは時間を2倍にして適用)
+	デフォルトは5000(5秒)です。
 	
 pet_catch_rate
-	�y�b�g�̕ߊl�{����S�����Őݒ肵�܂��B
-	0-1000���x�̐��l���w�肵�Ă��������B�f�t�H���g��100�ł��B
+	ペットの捕獲倍率を百分率で設定します。
+	0-1000程度の数値を指定してください。デフォルトは100です。
 pet_rename
-	�y�b�g�̖��O��ύX���邩�ǂ��������߂܂��B�f�t�H���g��no�ł��B
-	yes�͉��x�ł����O�̕ύX���\�Bno�͈�x�ύX����Ƃ����ύX�s�\�ɂȂ�B
+	ペットの名前を変更するかどうかを決めます。デフォルトはnoです。
+	yesは何度でも名前の変更が可能。noは一度変更するともう変更不可能になる。
 
 pet_friendly_rate
-	�y�b�g�ɉa�����������オ��e���x�̔{���ł��B
-	�e���x������ꍇ�͓K�p����܂���B�f�t�H���g��100�ł��B
+	ペットに餌をあげた時上がる親密度の倍率です。
+	親密度が減る場合は適用されません。デフォルトは100です。
 
 pet_hungry_delay_rate
-	�y�b�g�̕������鎞�Ԃ̔{���ł��B
-	�{���������ƕ��������Ȃ�܂��B�f�t�H���g��100�ł��B
+	ペットの腹が減る時間の倍率です。
+	倍率が高いと腹が減り難くなります。デフォルトは100です。
 
 pet_hungry_friendly_decrease
-	�y�b�g�̕������S�Ɍ�����������e���x�̗ʂł��B�f�t�H���g��5�ł��B
+	ペットの腹が完全に減った時減る親密度の量です。デフォルトは5です。
 
 pet_str
-	�y�b�g��ATK�v�Z��STR��K�p���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	ペットのATK計算にSTRを適用するかどうかです。
+	デフォルトはyesです。
 
 pet_status_support
-	�y�b�g�ɂ��X�e�[�^�X�{�[�i�X��K�p���邩�ǂ����ł��Byes�ɂ����
-	�y�b�g�������Ă鎞�y�b�g���ɐݒ肳��Ă���X�e�[�^�X�{�[�i�X��
-	�t���܂��B�f�t�H���g��no�ł��B
+	ペットによるステータスボーナスを適用するかどうかです。yesにすると
+	ペットを持ってる時ペット毎に設定されているステータスボーナスが
+	付きます。デフォルトはnoです。
 
 pet_attack_support
 pet_damage_support
-	��l�������X�^�[�Ƀ_���[�W��^�����Ƃ��A�󂯂��Ƃ���
-	�y�b�g���x���U�������邩�ǂ����ł��Byes�ɂ���ƃy�b�g�̐e���x��
-	����߂Đe�����̎������x���U�������Ă���܂��B�f�t�H���g��no�ł��B
+	主人がモンスターにダメージを与えたとき、受けたときに
+	ペットが支援攻撃をするかどうかです。yesにするとペットの親密度が
+	きわめて親しいの時だけ支援攻撃をしてくれます。デフォルトはnoです。
 
 pet_support_rate
-	�y�b�g�̎x���U���m���̔{���ł��B�i100�Œʏ�A200�Ŕ{�ł�) 
-	�{���������Ǝx���U���悭���Ă����悤�ɂȂ�܂��B�f�t�H���g��100�ł��B
+	ペットの支援攻撃確率の倍率です。（100で通常、200で倍です) 
+	倍率が高いと支援攻撃よくしてくれるようになります。デフォルトは100です。
 
 pet_attack_exp_to_master
-	�y�b�g���^�����_���[�W�̕��̌o���l����l���������邩�ǂ����ł��B
-	�����yes�ɂ���ƃy�b�g�̍U���ɂ��_���[�W����l���^�������ɂȂ�
-	��l���o���l���������邱�Ƃ��ł��܂��B�f�t�H���g��no�ł��B
+	ペットが与えたダメージの分の経験値を主人が収得するかどうかです。
+	これをyesにするとペットの攻撃によるダメージも主人が与えた物になり
+	主人が経験値を収得することができます。デフォルトはnoです。
 
 pet_attack_exp_rate
-	�y�b�g���^�����_���[�W�̕��̌o���l����l���������鎞�̔{���ł��B
-	�f�t�H���g��100�ł��B
+	ペットが与えたダメージの分の経験値を主人が収得する時の倍率です。
+	デフォルトは100です。
 pet_lootitem
-	�y�b�g���A�C�e�������[�g���邩�ǂ����̐ݒ�ł��B
-	�f�t�H���g��no�ł��B
+	ペットがアイテムをルートするかどうかの設定です。
+	デフォルトはnoです。
 
 pet_weight
-	�y�b�g�Ƀ��[�g������Ƃ��̏d�ʐ����ł��B
-	�f�t�H���g��1000�ł��B
+	ペットにルートさせるときの重量制限です。
+	デフォルトは1000です。
 
 skill_min_damage
-	�X�L�����g�������_���[�W���A�Ő���薢���̏ꍇ�S�ă~�X�ɂȂ邩1�_���[�W�ɂȂ邩�����肵�܂��B
-	�f�t�H���g��no�ł��B
+	スキルを使った時ダメージが連打数より未満の場合全てミスになるか1ダメージになるかを決定します。
+	デフォルトはnoです。
 
 finger_offensive_type
-	�X�L���w�e�̕\���^�C�v�����肵�܂��B
-	0�͖{�T�[�o�[�d�l��1�̓A�e�i�d�l�ł��B�f�t�H���g��0�ł��B
+	スキル指弾の表示タイプを決定します。
+	0は本サーバー仕様で1はアテナ仕様です。デフォルトは0です。
 
 heal_exp
-	�X�L���u�q�[���v���g�����ۂɂ��炦��W���u�o���l�ʂ̐ݒ�ł��B
-	100�ŉ񕜂����ʂƓ��ʂɂȂ�܂��B
-	�����X�^�[�̌o���l��ύX���ĂȂ��ꍇ��5�`10���x���K�����Ǝv���܂��B
-	�f�t�H���g��0�ł��B
+	スキル「ヒール」を使った際にもらえるジョブ経験値量の設定です。
+	100で回復した量と同量になります。
+	モンスターの経験値を変更してない場合は5〜10程度が適当だと思われます。
+	デフォルトは0です。
 
 resurrection_exp
- 	�X�L���u���U���N�V�����v���g�����ۂɂ��炦��o���l�ʂ̐ݒ�ł��B
-	�P�ʂ�0.01%�ł��B���������v���C���[�������Ă���o���l * ���x����/100 * resurrection_exp/10000 ���̌o�����Ⴆ�܂��B
-	�f�t�H���g��0�ł��B
+ 	スキル「リザレクション」を使った際にもらえる経験値量の設定です。
+	単位は0.01%です。復活したプレイヤーが持っている経験値 * レベル差/100 * resurrection_exp/10000 分の経験が貰えます。
+	デフォルトは0です。
 
 shop_exp
-	�X�L���f�B�X�J�E���g�ƃI�[�o�[�`���[�W���K�����Ă�ꍇNPC���p���z�ɉ�����JOB�o���l�l���{���ł��B�i100�Œʏ�A200�Ŕ{�ɂȂ�܂��j
-	�v�Z����ln(���*�X�L�����x��) * shop_exp / 100 �Ŕ����ꍇ�̓f�B�X�J�E���g�����鎞�̂ݓK�p�Ŕ���ꍇ�I�[�o�[�`���[�W�����鎞�̂ݓK�p����܂��B
-	�v�Z���͓K�x�ɍ�������ł��B
-	�f�t�H���g��0�ł��B
+	スキルディスカウントとオーバーチャージを習得してる場合NPC利用金額に応じたJOB経験値獲得倍率です。（100で通常、200で倍になります）
+	計算式はln(代金*スキルレベル) * shop_exp / 100 で買う場合はディスカウントがある時のみ適用で売る場合オーバーチャージがある時のみ適用されます。
+	計算式は適度に作った物です。
+	デフォルトは0です。
 
 combo_delay_rate
-	�����N�̃R���{�f�B���C�̎��Ԃ̔{���ł��B�i100�Œʏ�A200�Ŕ{�ɂȂ�܂��B�j
-	�������ӂ���ׂ��Ȃ͍̂����ݒ肷��̂��������Ƃł͂Ȃ����Ƃł��B
-	�R���{�f�B���C�������ƃR���{�̌q���͂悭�Ȃ�܂������̒����Ȃ���
-	���Ԃ̊Ԃ͍s���ł��Ȃ�����ł��B�f�t�H���g��100�ł��B
+	モンクのコンボディレイの時間の倍率です。（100で通常、200で倍になります。）
+	ただ注意するべきなのは高く設定するのがいいことではないことです。
+	コンボディレイが長いとコンボの繋ぎはよくなりますがその長くなった
+	時間の間は行動できないからです。デフォルトは100です。
 
 item_check
-	�A�C�e���̃`�F�b�N���s�����ǂ����ł��B
-	���O�C�����ƃ}�b�v�ړ����ɏ����A�C�e���ɕs���A�C�e�����Ȃ����`�F�b�N���܂��B
-	�܂�@item�ŕs���A�C�e���������ł��Ȃ����܂��B
-	�f�o�O��A�C�e���̊m�F���s���Ƃ��Ȃǂ�off�ɂ��Ă��������B
-	�f�t�H���g��on�ł��B
+	アイテムのチェックを行うかどうかです。
+	ログイン時とマップ移動時に所持アイテムに不正アイテムがないかチェックします。
+	また@itemで不正アイテムを所得できなくします。
+	デバグやアイテムの確認を行うときなどはoffにしてください。
+	デフォルトはonです。
 
 wedding_modifydisplay
-	�^�L�V�[�h�ƃE�F�f�B���O�h���X��\�����邩�ǂ����ł��B
-	�����L������\���������ꍇ�͂����yes�ɂ��Ă��������B
-	�f�t�H���g��no�ł��B
+	タキシードとウェディングドレスを表示するかどうかです。
+	結婚キャラを表示したい場合はこれをyesにしてください。
+	デフォルトはnoです。
 
 natural_healhp_interval
-	HP�������񕜂���܂Ŋ|���鎞�Ԃł��B�P�ʂ�ms(�~���b)�ł��B
-	�f�t�H���g��6000��NATURAL_HEAL_INTERVAL�����ɂ��邱�Ƃ͂ł��܂���B
+	HPが自動回復するまで掛かる時間です。単位はms(ミリ秒)です。
+	デフォルトは6000でNATURAL_HEAL_INTERVAL未満にすることはできません。
 
 natural_healsp_interval
-	SP�������񕜂���܂Ŋ|���鎞�Ԃł��B�P�ʂ�ms(�~���b)�ł��B
-	�f�t�H���g��8000��NATURAL_HEAL_INTERVAL�����ɂ��邱�Ƃ͂ł��܂���B
+	SPが自動回復するまで掛かる時間です。単位はms(ミリ秒)です。
+	デフォルトは8000でNATURAL_HEAL_INTERVAL未満にすることはできません。
 
 natural_heal_skill_interval
-	�X�L���ɂ���Ď����񕜂���ꍇ�|���鎞�Ԃł��B�P�ʂ�ms(�~���b)�ł��B
-	�f�t�H���g��10000��NATURAL_HEAL_INTERVAL�����ɂ��邱�Ƃ͂ł��܂���B
+	スキルによって自動回復する場合掛かる時間です。単位はms(ミリ秒)です。
+	デフォルトは10000でNATURAL_HEAL_INTERVAL未満にすることはできません。
 
 natural_heal_weight_rate
-	�����񕜂��ł��Ȃ��Ȃ�d�ʂ�ݒ肵�܂��B�P�ʂ�%�ł��B
-	�ŏ���50�ōő��101�ł��B�ő傪101�Ȃ̂͏d�ʂ�
-	natural_heal_weight_rate�����̎��Ɏ����񕜂��邩��ł��B(�܂�101�Ȃ�
-	���ł������񕜂ł��܂��B)
-	�f�t�H���g��50�ł��B
+	自動回復ができなくなる重量を設定します。単位は%です。
+	最小は50で最大は101です。最大が101なのは重量が
+	natural_heal_weight_rate未満の時に自動回復するからです。(つまり101なら
+	いつでも自動回復できます。)
+	デフォルトは50です。
 
 item_name_override_grffile
-	�A�C�e���̖��O(�p��ȊO�̖��O�ł��B)��.grf�t�@�C������ǂނ��ǂ����ł��B
-	no�ɂ����item_db.txt�̖��O���g���܂��B
-	�f�t�H���g��yes�ł��B
+	アイテムの名前(英語以外の名前です。)を.grfファイルから読むかどうかです。
+	noにするとitem_db.txtの名前を使います。
+	デフォルトはyesです。
 
 arrow_decrement
-	�|���g����������Ղ��邩�ǂ����ł��B�����no�ɂ����
-	����Ղ���܂���B(��𑕔�����K�v�͂���܂��B)
-	�f�t�H���g��yes�ł��B
+	弓を使う時矢を消耗するかどうかです。これをnoにすると
+	矢が消耗されません。(矢を装備する必要はあります。)
+	デフォルトはyesです。
 
 max_aspd
-	�v���C���[�̍ő�U�����x��ݒ肵�܂��B
-	�f�t�H���g��199�ł��B�ő��199�ōŏ���100�ł��B
+	プレイヤーの最大攻撃速度を設定します。
+	デフォルトは199です。最大は199で最小は100です。
 
 max_hp
-	 �ő�HP��ݒ肵�܂��B
-	�f�t�H���g��32500�ł��B�ő��1000000�ōŏ���100�ł��B
+	 最大HPを設定します。
+	デフォルトは32500です。最大は1000000で最小は100です。
 
 max_sp
-	 �ő�SP��ݒ肵�܂��B
-	�f�t�H���g��32500�ł��B�ő��1000000�ōŏ���100�ł��B
+	 最大SPを設定します。
+	デフォルトは32500です。最大は1000000で最小は100です。
 
 max_parameter
-	�v���C���[�̊�{�p�����[�^�̍ő�l��ݒ肵�܂��B
-	�f�t�H���g��99�ł��B�ő��10000�ōŏ���10�ł��B
-	��{�p�����[�^�傫���߂���ƃN���C�A���g�������N����̂�
-	�K���Ȓl��ݒ肷������ǂ��ł��B
+	プレイヤーの基本パラメータの最大値を設定します。
+	デフォルトは99です。最大は10000で最小は10です。
+	基本パラメータ大きい過ぎるとクライアント落ちが起こるので
+	適当な値を設定する方が良いです。
 
 max_cart_weight
-	 �J�[�g�̍ő�d�ʂ�ݒ肵�܂��B
-	�f�t�H���g��8000�ł��B�ő��1000000�ōŏ���100�ł��B
+	 カートの最大重量を設定します。
+	デフォルトは8000です。最大は1000000で最小は100です。
 
 player_skill_log
-	�v���C���[�̃X�L���g�p���O��\�����邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	プレイヤーのスキル使用ログを表示するかどうかです。
+	デフォルトはnoです。
 
 monster_skill_log
-	�����X�^�[�̃X�L���g�p���O��\�����邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	モンスターのスキル使用ログを表示するかどうかです。
+	デフォルトはnoです。
 
 battle_log
-	�퓬�֌W�̃��O��\�����邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	戦闘関係のログを表示するかどうかです。
+	デフォルトはnoです。
 
 save_log
-	�L�����̕ۑ��Ɋւ��郍�O��\�����邩�ǂ���
-	�f�t�H���g��no�ł��B
+	キャラの保存に関するログを表示するかどうか
+	デフォルトはnoです。
 
 error_log
-	�G���[���O��\�����邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	エラーログを表示するかどうかです。
+	デフォルトはyesです。
 
 etc_log
-	�X�L���A�퓬�A�L�����ۑ��A�G���[�ȊO�̃��O��\�����邩�ǂ���
-	�f�t�H���g��yes�ł��B
+	スキル、戦闘、キャラ保存、エラー以外のログを表示するかどうか
+	デフォルトはyesです。
 
 save_clothcolor
-	���̐F��ۑ����邩�ǂ����A�L���ɂ���Ɩ�肪���邩������܂���B
-	�f�t�H���g��no�ł��B
+	服の色を保存するかどうか、有効にすると問題があるかもしれません。
+	デフォルトはnoです。
 
 undead_detect_type
-	�A���f�b�h��F��������@��ݒ肵�܂��B0�ő����̂݁A1�Ŏ푰�̂݁A
-	2�ő����Ǝ푰�̗����̂ǂ���ł������Ă�ꍇ�ɂȂ�܂��B
-	�f�t�H���g��0�ł��B
+	アンデッドを認識する方法を設定します。0で属性のみ、1で種族のみ、
+	2で属性と種族の両方のどちらでもあってる場合になります。
+	デフォルトは0です。
 
 player_auto_counter_type
-	�v���C���[�̃I�[�g�J�E���^�[�̎d�l��ݒ肵�܂��B0��100%�N���e�B�J��
-	�ŃX�L�����������A1�Ŗh�䖳���AHit+20�A�N���e�B�J����2�{�ŃX�L������
-	�����A2��100%�N���e�B�J���ŃX�L�������L��A3�Ŗh�䖳���AHit+20�A
-	�N���e�B�J����2�{�ŃX�L�������L��ł��B
-	�f�t�H���g��1�ł��B
+	プレイヤーのオートカウンターの仕様を設定します。0で100%クリティカル
+	でスキル反撃無し、1で防御無視、Hit+20、クリティカル率2倍でスキル反撃
+	無し、2で100%クリティカルでスキル反撃有り、3で防御無視、Hit+20、
+	クリティカル率2倍でスキル反撃有りです。
+	デフォルトは1です。
 
 monster_auto_counter_type
-	�����X�^�[�̃I�[�g�J�E���^�[�̎d�l��ݒ肵�܂��B0��100%�N���e�B�J��
-	�ŃX�L�����������A1�Ŗh�䖳���AHit+20�A�N���e�B�J����2�{�ŃX�L������
-	�����A2��100%�N���e�B�J���ŃX�L�������L��A3�Ŗh�䖳���AHit+20�A
-	�N���e�B�J����2�{�ŃX�L�������L��ł��B
-	�f�t�H���g��1�ł��B
+	モンスターのオートカウンターの仕様を設定します。0で100%クリティカル
+	でスキル反撃無し、1で防御無視、Hit+20、クリティカル率2倍でスキル反撃
+	無し、2で100%クリティカルでスキル反撃有り、3で防御無視、Hit+20、
+	クリティカル率2倍でスキル反撃有りです。
+	デフォルトは1です。
 
 agi_penaly_type
-	agi_penaly_count�ȏ�̓G�ɍU�����ꂽ����agi�y�i���e�B�̎d�l��ݒ肵�܂��B
-	0�łȂ��A1��agi_penaly_num%�������āA2��agi_penaly_num��������܂��B
-	�f�t�H���g��0�ł��B
+	agi_penaly_count以上の敵に攻撃された時のagiペナルティの仕様を設定します。
+	0でなし、1でagi_penaly_num%ずつ減って、2でagi_penaly_numだけ減ります。
+	デフォルトは0です。
 
 agi_penaly_count
-	agi�y�i���e�B��K�p����G�̐���ݒ肵�܂��B
-	2�����ɐݒ肷�邱�Ƃ͂ł��܂���B�f�t�H���g��3�ł��B
+	agiペナルティを適用する敵の数を設定します。
+	2未満に設定することはできません。デフォルトは3です。
 
 agi_penaly_num
-	agi�y�i���e�B�ɂ���Č������̗ʂ�ݒ肵�܂��B
-	�f�t�H���g��0�ł��B
+	agiペナルティによって減る回避の量を設定します。
+	デフォルトは0です。
 
 vit_penaly_type
-	vit_penaly_count�ȏ�̓G�ɍU�����ꂽ����vit�y�i���e�B�̎d�l��ݒ肵�܂��B
-	0�łȂ��A1��vit_penaly_num%�������āA2��vit_penaly_num��������܂��B
-	(����̂�vit�ɂ��h��̂�)
-	�f�t�H���g��0�ł��B
+	vit_penaly_count以上の敵に攻撃された時のvitペナルティの仕様を設定します。
+	0でなし、1でvit_penaly_num%ずつ減って、2でvit_penaly_numだけ減ります。
+	(減るのはvitによる防御のみ)
+	デフォルトは0です。
 
 vit_penaly_count
-	vit�y�i���e�B��K�p����G�̐���ݒ肵�܂��B
-	2�����ɐݒ肷�邱�Ƃ͂ł��܂���B�f�t�H���g��3�ł��B
+	vitペナルティを適用する敵の数を設定します。
+	2未満に設定することはできません。デフォルトは3です。
 
 vit_penaly_num
-	vit�y�i���e�B�ɂ���Č������̗ʂ�ݒ肵�܂��B
-	�f�t�H���g��0�ł��B
+	vitペナルティによって減る回避の量を設定します。
+	デフォルトは0です。
 
 player_defense_type
-	�v���C���[���ΏۂɍU�����鎞��DEF�̌v�Z���@�B0�Ŗ{�I�d�l�A1�ȏ�Ō��Z(DEF*�l)�B
+	プレイヤーが対象に攻撃する時のDEFの計算方法。0で本鯖仕様、1以上で減算(DEF*値)。
 
 monster_defense_type
-	�����X�^�[���ΏۂɍU�����鎞��DEF�̌v�Z���@�B0�Ŗ{�I�d�l�A1�ȏ�Ō��Z(DEF*�l)�B
+	モンスターが対象に攻撃する時のDEFの計算方法。0で本鯖仕様、1以上で減算(DEF*値)。
 
 pet_defense_type
-	�y�b�g���ΏۂɍU�����鎞��DEF�̌v�Z���@�B0�Ŗ{�I�d�l�A1�ȏ�Ō��Z(DEF*�l)�B
+	ペットが対象に攻撃する時のDEFの計算方法。0で本鯖仕様、1以上で減算(DEF*値)。
 
 magic_defense_type
-	MDEF�̌v�Z���@�B0�Ŗ{�I�d�l�A1�ȏ�Ō��Z(MDEF*�l)
+	MDEFの計算方法。0で本鯖仕様、1以上で減算(MDEF*値)
 
 player_skill_reiteration
-	�v���C���[���g���ꕔ�̒n�ʃX�L���̏d�˒u���������邩�ǂ����ł��B
-	�����yes�ɂ����SW��j���[�}�A�g���b�v���d�˂Ēu�����Ƃ��ł��܂��B
-	�f�t�H���g��no�ł��B
+	プレイヤーが使う一部の地面スキルの重ね置きを許可するかどうかです。
+	これをyesにするとSWやニューマ、トラップを重ねて置くことができます。
+	デフォルトはnoです。
 
 monster_skill_reiteration
-	�����X�^�[���g���ꕔ�̒n�ʃX�L���̏d�˒u���������邩�ǂ����ł��B
-	�����yes�ɂ����SW��j���[�}�A�g���b�v���d�˂Ēu�����Ƃ��ł��܂��B
-	�f�t�H���g��no�ł��B
+	モンスターが使う一部の地面スキルの重ね置きを許可するかどうかです。
+	これをyesにするとSWやニューマ、トラップを重ねて置くことができます。
+	デフォルトはnoです。
 
 player_skill_nofootset
-	�v���C���[���g���ꕔ�̒n�ʃX�L�����v���C���[�⃂���X�^�[�̑�����
-	�u���̂��֎~���邩�ǂ����ł��B�����yes�ɂ���ƃX�L����ݒu���鎞����
-	���ʔ͈͂Ƀv���C���[�⃂���X�^�[������ƃX�L����u�����Ƃ��ł��܂���B
-	�f�t�H���g��no�ł��B
+	プレイヤーが使う一部の地面スキルをプレイヤーやモンスターの足元に
+	置くのを禁止するかどうかです。これをyesにするとスキルを設置する時その
+	効果範囲にプレイヤーやモンスターがいるとスキルを置くことができません。
+	デフォルトはnoです。
 
 monster_skill_nofootset
-	�����X�^�[���g���ꕔ�̒n�ʃX�L�����v���C���[�⃂���X�^�[�̑�����
-	�u���̂��֎~���邩�ǂ����ł��B�����yes�ɂ���ƃX�L����ݒu���鎞����
-	���ʔ͈͂Ƀv���C���[�⃂���X�^�[������ƃX�L����u�����Ƃ��ł��܂���B
-	�f�t�H���g��no�ł��B
+	モンスターが使う一部の地面スキルをプレイヤーやモンスターの足元に
+	置くのを禁止するかどうかです。これをyesにするとスキルを設置する時その
+	効果範囲にプレイヤーやモンスターがいるとスキルを置くことができません。
+	デフォルトはnoです。
 
 player_cloak_check_type
-	 �v���C���[�N���[�L���O�̎d�l��ݒ肵�܂��B
-	0�͕ǃ`�F�b�N�L��A�X�L���g�p�ƍU���ŉ��������B
-	1�͕ǃ`�F�b�N�����A�X�L���g�p�ƍU���ŉ��������B
-	2�͕͂ǃ`�F�b�N�L��A�X�L���g�p�ƍU���ŉ�������Ȃ��B
-	2�͕͂ǃ`�F�b�N�����A�X�L���g�p�ƍU���ŉ�������Ȃ��B
-	�f�t�H���g��0�ł��B
+	 プレイヤークローキングの仕様を設定します。
+	0は壁チェック有り、スキル使用と攻撃で解除される。
+	1は壁チェック無し、スキル使用と攻撃で解除される。
+	2はは壁チェック有り、スキル使用と攻撃で解除されない。
+	2はは壁チェック無し、スキル使用と攻撃で解除されない。
+	デフォルトは0です。
 
 monster_cloak_check_type
-	 �����X�^�[�N���[�L���O�̎d�l��ݒ肵�܂��B
-	0�͕ǃ`�F�b�N�L��A�X�L���g�p�ƍU���ŉ��������B
-	1�͕ǃ`�F�b�N�����A�X�L���g�p�ƍU���ŉ��������B
-	2�͕͂ǃ`�F�b�N�L��A�X�L���g�p�ƍU���ŉ�������Ȃ��B
-	2�͕͂ǃ`�F�b�N�����A�X�L���g�p�ƍU���ŉ�������Ȃ��B
-	�f�t�H���g��0�ł��B
+	 モンスタークローキングの仕様を設定します。
+	0は壁チェック有り、スキル使用と攻撃で解除される。
+	1は壁チェック無し、スキル使用と攻撃で解除される。
+	2はは壁チェック有り、スキル使用と攻撃で解除されない。
+	2はは壁チェック無し、スキル使用と攻撃で解除されない。
+	デフォルトは0です。
 
 gvg_short_attack_damage_rate
-	�V�[�Y���[�h�ŋߋ��������U���̃_���[�W�{���ł��B�f�t�H���g��100�ł��B
+	シーズモードで近距離物理攻撃のダメージ倍率です。デフォルトは100です。
 
 gvg_long_attack_damage_rate
-	�V�[�Y���[�h�ŉ����������U���̃_���[�W�{���ł��B�f�t�H���g��100�ł��B
+	シーズモードで遠距離物理攻撃のダメージ倍率です。デフォルトは100です。
 
 gvg_magic_attack_damage_rate
-	�V�[�Y���[�h�Ŗ��@�U���̃_���[�W�{���ł��B�f�t�H���g��100�ł��B
+	シーズモードで魔法攻撃のダメージ倍率です。デフォルトは100です。
 
 gvg_misc_attack_damage_rate
-	�V�[�Y���[�h�ŕ����U���Ɩ��@�U���ȊO�̍U��(���g���b�v��)��
-	�_���[�W�{���ł��B�f�t�H���g��100�ł��B
+	シーズモードで物理攻撃と魔法攻撃以外の攻撃(鷹やトラップ等)の
+	ダメージ倍率です。デフォルトは100です。
 
 mob_changetarget_byskill: no
-	������skillused�̃X�L����MOB��PC�Ɏg�p����Ƃ��A���̑Ώۂ��X�L���g�p�҂ɂ��邩�ǂ����ł��B
-	MOB�X�L���g�p��Ƀ^�Q�͖߂�܂��B�f�t�H���g��no�ł��B
+	条件がskillusedのスキルをMOBがPCに使用するとき、その対象をスキル使用者にするかどうかです。
+	MOBスキル使用後にタゲは戻ります。デフォルトはnoです。
 
 player_attack_direction_change
-	�v���C���[���U��������������ύX���邩�ǂ����ł��B�{�I�ł͓����Ȃ�����������ς���Ȃ��̂ł����o�O�ۂ��d�l�Ȃ̂Ńf�t�H���g��yes�ł��B
-	no�ɂ���Γ������Ƃ����ŕ������ς���悤�ɂȂ�܂��B
+	プレイヤーが攻撃した時方向を変更するかどうかです。本鯖では動けない限り方向が変えらないのですがバグぽい仕様なのでデフォルトはyesです。
+	noにすれば動くことだけで方向が変えるようになります。
 
 monster_attack_direction_change
-	�����X�^�[���U��������������ύX���邩�ǂ����ł��B�{�I�ł͓����Ȃ�����������ς���Ȃ��̂ł����o�O�ۂ��d�l�Ȃ̂Ńf�t�H���g��yes�ł��B
-	no�ɂ���Γ������Ƃ����ŕ������ς���悤�ɂȂ�܂��B
+	モンスターが攻撃した時方向を変更するかどうかです。本鯖では動けない限り方向が変えらないのですがバグぽい仕様なのでデフォルトはyesです。
+	noにすれば動くことだけで方向が変えるようになります。
 
 player_land_skill_limit
-	skill_db.txt�Őݒ肳��Ă���n�ʃX�L���̐��������v���C���[��
-	�K�p���邩�ǂ����ł��B�����yes�ɂ���ΐݒ肳��Ă��鐔�ȏ��
-	�n�ʂɐݒu���邱�Ƃ��ł��Ȃ��Ȃ�܂������������ǂ��ς��Ă�
-	MAX_SKILLUNITGROUP���z���鐔�̐ݒu�͂ł��܂���B
-	�f�t�H���g��yes�ł��B
+	skill_db.txtで設定されている地面スキルの数制限をプレイヤーに
+	適用するかどうかです。これをyesにすれば設定されている数以上は
+	地面に設置することができなくなりますが数制限をどう変えても
+	MAX_SKILLUNITGROUPを越える数の設置はできません。
+	デフォルトはyesです。
 
 monster_land_skill_limit
-	skill_db.txt�Őݒ肳��Ă���n�ʃX�L���̐������������X�^�[��
-	�K�p���邩�ǂ����ł��B�����yes�ɂ���ΐݒ肳��Ă��鐔�ȏ��
-	�n�ʂɐݒu���邱�Ƃ��ł��Ȃ��Ȃ�܂������������ǂ��ς��Ă�
-	MAX_MOBSKILLUNITGROUP���z���鐔�̐ݒu�͂ł��܂���B
-	�f�t�H���g��yes�ł��B
+	skill_db.txtで設定されている地面スキルの数制限をモンスターに
+	適用するかどうかです。これをyesにすれば設定されている数以上は
+	地面に設置することができなくなりますが数制限をどう変えても
+	MAX_MOBSKILLUNITGROUPを越える数の設置はできません。
+	デフォルトはyesです。
 
 party_skill_penaly
-	�ꕔ�̃p�[�e�B�X�L�����g�p�҂ƃp�[�e�B�ŃX�L�����ʂ��Ⴄ�悤��
-	���邩�ǂ����ł��B����̉e�����󂯂�X�L���͍��̏�
-	�A�h���i�������b�V���A�E�G�|���p�[�t�F�N�V�����A�I�[�o�[�g���X�g�݂̂ł��B
-	�f�t�H���g��yes�ł��B
+	一部のパーティスキルを使用者とパーティでスキル効果が違うように
+	するかどうかです。これの影響を受けるスキルは今の所
+	アドレナリンラッシュ、ウエポンパーフェクション、オーバートラストのみです。
+	デフォルトはyesです。
 
 monster_class_change_full_recover
-	�����X�^�[�����^�����t�H�[�V�X�ƃg�����X�t�H�[���[�V�������ɂ����
-	���̃����X�^�[�ɕς���������̃����X�^�[��HP���ő�Ȃŉ񕜂����邩
-	�ǂ����ł��B�����yes�ɂ���ƕς���������X�^�[�̍ő�HP�܂�
-	�񕜂��܂��Bno�Ȃ�ς��O��HP�ƍő�HP�̔䗦�̕���HP�ɂȂ�܂��B
-	�f�t�H���g��no�ł��B
+	モンスターがメタモルフォーシスとトランスフォーメーション等によって
+	他のモンスターに変わった時そのモンスターのHPを最大なで回復させるか
+	どうかです。これをyesにすると変わったモンスターの最大HPまで
+	回復します。noなら変わる前のHPと最大HPの比率の分のHPになります。
+	デフォルトはnoです。
 
 produce_item_name_input
-	�����ō��ꂽ�S�⑮���΂ɐ����҂̖��O��t���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	製造で作られた鉄や属性石に製造者の名前を付けるかどうかです。
+	デフォルトはyesです。
 
 produce_potion_name_input
-	�����ō��ꂽ�|�[�V�����ɐ����҂̖��O��t���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	製造で作られたポーションに製造者の名前を付けるかどうかです。
+	デフォルトはyesです。
 
 making_arrow_name_input
-	��쐬�ō��ꂽ��ɐ����҂̖��O��t���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	矢作成で作られた矢に製造者の名前を付けるかどうかです。
+	デフォルトはyesです。
 
 holywater_name_input
-	�A�N�A�x�l�f�B�N�^�ō��ꂽ�����ɐ����҂̖��O��t���邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	アクアベネディクタで作られた聖水に製造者の名前を付けるかどうかです。
+	デフォルトはyesです。
 
 display_delay_skill_fail
-	�X�L���g�p�̃f�B���C���Ɂu�X�L���g�p�̌�́A���΂炭���҂����������v��\�����邩�ǂ����ł��B
-	�f�t�H���g��yes�ł��B
+	スキル使用のディレイ中に「スキル使用の後は、しばらくお待ちください」を表示するかどうかです。
+	デフォルトはyesです。
 
 chat_warpportal
-	�`���b�g����PC�����[�v�|�[�^���Ŕ�΂��邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	チャット中のPCをワープポータルで飛ばせるかどうかです。
+	デフォルトはnoです。
 	
 mob_warpportal
-	MOB�����[�v�|�[�^���Ŕ�΂��邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	MOBをワープポータルで飛ばせるかどうかです。
+	デフォルトはnoです。
 
 dead_branch_active
-	�Ö؂̎}�Ȃ�monster���߂�mobid�𕉐��Ɏw�肵���ꍇ�ɏ�������郂���X�^�[���A�N�e�B�u�ɂ��邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	古木の枝などmonster命令でmobidを負数に指定した場合に召喚されるモンスターをアクティブにするかどうかです。
+	デフォルトはnoです。
 
 vending_max_value
-	�I�X�Œu����A�C�e�����i�̍ō��l�ł��B
-	�f�t�H���g��10000000�ł��B
+	露店で置けるアイテム価格の最高値です。
+	デフォルトは10000000です。
 
 show_steal_in_same_party
-	�X�e�B�[���������A��ʓ���PT�����o�[(�����܂�)��
-	�X�e�B�[�������A�C�e���̏������J���邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	スティール成功時、画面内のPTメンバー(自分含む)に
+	スティールしたアイテムの情報を公開するかどうかです。
+	デフォルトはnoです。
 
 enable_upper_class
-	�]���A�{�q�E��L���ɂ��邩�ǂ����ł��B
-	�f�t�H���g��no�ł��B
+	転生、養子職を有効にするかどうかです。
+	デフォルトはnoです。
 
 pet_atack_attr_none
-	�y�b�g�ɂ�閳�����ʏ�U����
-	��������(�����ɂ��␳����)�ɂ��邩�ǂ����ł��B
-	�f�t�H���g��no�ł�
+	ペットによる無属性通常攻撃を
+	属性無し(属性による補正無し)にするかどうかです。
+	デフォルトはnoです
 
 pc_atack_attr_none
-	�v���C���[�ɂ�閳�����ʏ�U����
-	��������(�����ɂ��␳����)�ɂ��邩�ǂ����ł��B
-	�f�t�H���g��no�ł�
+	プレイヤーによる無属性通常攻撃を
+	属性無し(属性による補正無し)にするかどうかです。
+	デフォルトはnoです
 
 mob_atack_attr_none
-	�����X�^�[�ɂ�閳�����ʏ�U����
-	��������(�����ɂ��␳����)�ɂ��邩�ǂ����ł��B
-	�f�t�H���g��yes�ł�
+	モンスターによる無属性通常攻撃を
+	属性無し(属性による補正無し)にするかどうかです。
+	デフォルトはyesです
 
 player_skill_partner_check
-	���̍~���⍇�t�X�L�����s���ۂɃp�[�g�i�[�̑��݂��`�F�b�N���邩�ǂ����ł��B
-	�f�t�H���g��yes(�`�F�b�N����)�ł��B
+	聖体降福や合奏スキルを行う際にパートナーの存在をチェックするかどうかです。
+	デフォルトはyes(チェックする)です。
 
 hide_GM_session
-	GM�A�J�E���g�̃L�����N�^�[��@�R�}���h���ŕ\���̑Ώۂɂ��邩�ǂ����ł��B
-	�f�t�H���g��no�ł�
+	GMアカウントのキャラクターを@コマンド等で表示の対象にするかどうかです。
+	デフォルトはnoです
 unit_movement_type
-	���j�b�g�ړ��������@��I�����܂��B
-	0�Ŗ{�I�d�l(������ׁ��d�A�I�������y)�A1��Athena�d�l(������ׁ��y�A�I�������d)
-	�f�t�H���g��0(�{�I�d�l)�ł�
+	ユニット移動処理方法を選択します。
+	0で本鯖仕様(回線負荷→重、鯖処理→軽)、1でAthena仕様(回線負荷→軽、鯖処理→重)
+	デフォルトは0(本鯖仕様)です
 invite_request_check
-	�v���C���[���e��v����(PT�����AGuild�����A���)�ɑ��̗v�����󂯓���邩�ǂ����ł��B
-	yes�Ŗ{�I�d�l�Ano��Athena�d�l(�󂯓���Ȃ�)
-	�f�t�H���g��yes(�󂯓����)�ł��B
+	プレイヤーが各種要請中(PT加入、Guild加入、取引)に他の要請を受け入れるかどうかです。
+	yesで本鯖仕様、noでAthena仕様(受け入れない)
+	デフォルトはyes(受け入れる)です。
 skill_removetrap_type
-	�����[�u�g���b�v�̎d�l��I�����܂��B
-	0:�{�I�d�l���1���擾����
-	1:Athena�d�l�Ŏg�����A�C�e�����g���������擾����
+	リムーブトラップの仕様を選択します。
+	0:本鯖仕様で罠1個を取得する
+	1:Athena仕様で使ったアイテムを使った個数を取得する
 disp_experience
-	�o���l��\�����邩�ǂ����ł��B
-	yes�ɂ���ƁA�G��|�������Ȃǌo���l�����������ɖ{�l�ɂ̂ݕ\������܂��B
-	�f�t�H���g��no�ł��B
+	経験値を表示するかどうかです。
+	yesにすると、敵を倒した時など経験値が入った時に本人にのみ表示されます。
+	デフォルトはnoです。
 
 night_at_start
 	Choose if server begin with night (yes) or day (no)
@@ -1438,7 +1438,7 @@ packet_ver_flag
 	default value: 63 (all clients)
 
 import
-	���̍s��ʃt�@�C���̒��g�ƒu�������܂��B
+	その行を別ファイルの中身と置き換えます。
 
 < Example >
 
@@ -1603,8 +1603,8 @@ packet_ver_flag: 63
 
 < What this file is. >
 
-  GM�R�}���h(/mm�A/nb��)��@�R�}���h���g�����Ƃ��ł���GM�̃��x����ݒ肷�镨�ł��B
-  �ݒ�͑S�ďȗ��\�ŁA�ȗ����̓f�t�H���g�l�����p����܂��B(�f�t�H���g��0�ł��B)
+  GMコマンド(/mm、/nb等)や@コマンドを使うことができるGMのレベルを設定する物です。
+  設定は全て省略可能で、省略時はデフォルト値が利用されます。(デフォルトは0です。)
 
 command_symbol
 	Set here the symbol that you want to use for your commands
@@ -1620,63 +1620,63 @@ Sets the level of the users that can use the GM commands.
 Max GM level is 99. If you want forbid a command to all people, set it with level 100.
 
 broadcast
-	GM�R�}���h /nb�A/b�A/bb
+	GMコマンド /nb、/b、/bb
 local_broadcast
-	GM�R�}���h /lb
+	GMコマンド /lb
 mapmove
-	GM�R�}���h /mm
+	GMコマンド /mm
 resetstate
-	GM�R�}���h /resetstate�A/resetskill
+	GMコマンド /resetstate、/resetskill
 rura+
-	@�R�}���h @rura+
+	@コマンド @rura+
 rura
-	@�R�}���h @rura
+	@コマンド @rura
 where
-	@�R�}���h @where
+	@コマンド @where
 jumpto
-	@�R�}���h @jumpto
+	@コマンド @jumpto
 jump
-	@�R�}���h @jump
+	@コマンド @jump
 who
-	@�R�}���h @who
+	@コマンド @who
 save
-	@�R�}���h @save
+	@コマンド @save
 load
-	@�R�}���h @load
+	@コマンド @load
 speed
-	@�R�}���h @speed
+	@コマンド @speed
 storage
-	@�R�}���h @storage
+	@コマンド @storage
 gstorage
-	@�R�}���h @gstorage
+	@コマンド @gstorage
 option
-	@�R�}���h @option
+	@コマンド @option
 hide
-	GM�R�}���h /hide��@�R�}���h @hide
+	GMコマンド /hideと@コマンド @hide
 jobchange
-	@�R�}���h @jobchange
+	@コマンド @jobchange
 die
-	@�R�}���h @die
+	@コマンド @die
 kill
-	@�R�}���h @kill
+	@コマンド @kill
 alive
-	@�R�}���h @alive
+	@コマンド @alive
 kami
-	@�R�}���h @kami�A@kamib
+	@コマンド @kami、@kamib
 heal
-	@�R�}���h @heal
+	@コマンド @heal
 item
-	@�R�}���h @item�A@item2
+	@コマンド @item、@item2
 itemreset
-	@�R�}���h @itemreset
+	@コマンド @itemreset
 itemcheck
-	@�R�}���h @itemcheck
+	@コマンド @itemcheck
 lvup
-	@�R�}���h @lvup
+	@コマンド @lvup
 joblvup
-	@�R�}���h @joblvup
+	@コマンド @joblvup
 help
-	@�R�}���h @help�A@h
+	@コマンド @help、@h
 gm
 	To become GM (need password; password is set in login_athena.conf).
 	special!: only a non-GM (player with gm level 0) need to have this command.
@@ -1687,101 +1687,101 @@ gm
 	- enable gm commands to normal player (battle_athena.conf, atcommand_gm_only parameter)
 	- and normal player must give correct password when he use the @gm command (gm_pass paramter in login_athena.conf)
 pvpoff
-	@�R�}���h @pvpoff
+	@コマンド @pvpoff
 pvpon
-	@�R�}���h @pvpon
+	@コマンド @pvpon
 gvgoff
-	@�R�}���h @gvgoff
+	@コマンド @gvgoff
 gvgon
-	@�R�}���h @gvgon
+	@コマンド @gvgon
 model
-	@�R�}���h @model
+	@コマンド @model
 go
-	@�R�}���h @go
+	@コマンド @go
 monster
-	@�R�}���h @monster
+	@コマンド @monster
 killmonster
-	@�R�}���h @killmonster�A@killmonster2
+	@コマンド @killmonster、@killmonster2
 refine
-	@�R�}���h @refine
+	@コマンド @refine
 produce
-	@�R�}���h @produce
+	@コマンド @produce
 memo
-	@�R�}���h @memo
+	@コマンド @memo
 gat
-	@�R�}���h @gat
+	@コマンド @gat
 packet
-	@�R�}���h @packet
+	@コマンド @packet
 stpoint
-	@�R�}���h @stpoint
+	@コマンド @stpoint
 skpoint
-	@�R�}���h @skpoint
+	@コマンド @skpoint
 zeny
-	@�R�}���h @zeny
+	@コマンド @zeny
 param
-	@�R�}���h @str�A@agi�A@vit�A@int�A@dex�A@luk
+	@コマンド @str、@agi、@vit、@int、@dex、@luk
 guildlvup
-	@�R�}���h @guildlvup
+	@コマンド @guildlvup
 makeegg
-	@�R�}���h @makeegg
+	@コマンド @makeegg
 petfriendly
-	@�R�}���h @petfriendly
+	@コマンド @petfriendly
 pethungry
-	@�R�}���h @pethungry
+	@コマンド @pethungry
 petrename
-	@�R�}���h @petrename
+	@コマンド @petrename
 recall
-	@�R�}���h @recall
+	@コマンド @recall
 charjob
-	@�R�}���h @charjob
+	@コマンド @charjob
 revive
-	@�R�}���h @revive
+	@コマンド @revive
 charstats
-	@�R�}���h @charstats
+	@コマンド @charstats
 charoption
-	@�R�}���h @charoption
+	@コマンド @charoption
 charsave
-	@�R�}���h @charsave
+	@コマンド @charsave
 charload
-	@�R�}���h @charload
+	@コマンド @charload
 night
-	@�R�}���h @night
+	@コマンド @night
 day
-	@�R�}���h @day
+	@コマンド @day
 doom
-	@�R�}���h @doom
+	@コマンド @doom
 doommap
-	@�R�}���h @doommap
+	@コマンド @doommap
 raise
-	@�R�}���h @raise
+	@コマンド @raise
 raisemap
-	@�R�}���h @raisemap
+	@コマンド @raisemap
 charbaselvl
-	@�R�}���h @charbaselvl
+	@コマンド @charbaselvl
 charjlvl
-	@�R�}���h @charjlvl
+	@コマンド @charjlvl
 kick
-	@�R�}���h @kick��GM�E�N���b�N���߁u�g�p�ҋ����I���v
+	@コマンド @kickとGM右クリック命令「使用者強制終了」
 allskill
-	@�R�}���h @allskill
+	@コマンド @allskill
 questskill
-	@�R�}���h @questskill
+	@コマンド @questskill
 lostskill
-	@�R�}���h @lostskill
+	@コマンド @lostskill
 spiritball
-	@�R�}���h @spiritball
+	@コマンド @spiritball
 party
-	@�R�}���h @party
+	@コマンド @party
 guild
-	@�R�}���h @guild
+	@コマンド @guild
 agitstart
-	@�R�}���h @agitstart
+	@コマンド @agitstart
 agitend
-	@�R�}���h @agitend
+	@コマンド @agitend
 mapexit
-	@�R�}���h @mapexit
+	@コマンド @mapexit
 idsearch
-	@�R�}���h @idsearch
+	@コマンド @idsearch
 charchangesex
 	Changes the sex of an online player (all characters on the account)
 ignorelist
@@ -1803,7 +1803,7 @@ email
 
 
 import
-	���̍s��ʃt�@�C���̒��g�ƒu�������܂��B
+	その行を別ファイルの中身と置き換えます。
 
 
 < Example >
@@ -1940,7 +1940,7 @@ passenc:
 defaultlanguage
 	You can specified a language to display information and for logs.
 	There are 2 values:
-	F: Fran�ais
+	F: Fran軋is
 	E: English (default)
 	If a displayed information isn't translated, English is used.
 	Default value: E

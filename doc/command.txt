@@ -24,17 +24,17 @@ Index
 	/mapmove prontera.gat 167 158
 
 2. Broadcast
-     BroadcastƒRƒ}ƒ“ƒh‚Æ‚ÍŽÀÛ‚ÌƒT[ƒo‚ÅGM‚ªŽg‚¦‚éGMƒƒbƒZ[ƒW‚Æ“¯—l‚Ì“­‚«‚ð‚µ‚Ü‚·B
-     /b‚à‚µ‚­‚Í/nb‚Æ‚µ‚ÄŽg‚¤‚±‚Æ‚ª‚Å‚«‚Ü‚·Žg—p•û–@‚ÍˆÈ‰º‚Ì’Ê‚è‚Å‚·B
+     Broadcastã‚³ãƒžãƒ³ãƒ‰ã¨ã¯å®Ÿéš›ã®ã‚µãƒ¼ãƒã§GMãŒä½¿ãˆã‚‹GMãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã¨åŒæ§˜ã®åƒãã‚’ã—ã¾ã™ã€‚
+     /bã‚‚ã—ãã¯/nbã¨ã—ã¦ä½¿ã†ã“ã¨ãŒã§ãã¾ã™ä½¿ç”¨æ–¹æ³•ã¯ä»¥ä¸‹ã®é€šã‚Šã§ã™ã€‚
          /b <message>
          /nb <message>
 
      /b
-         ŽÀs‚µ‚½ƒ†[ƒU–¼•t‚«‚ÅƒƒbƒZ[ƒW‚ð•\Ž¦‚µ‚Ü‚·B
+         å®Ÿè¡Œã—ãŸãƒ¦ãƒ¼ã‚¶åä»˜ãã§ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã—ã¾ã™ã€‚
      /nb
-         ŽÀs‚µ‚½ƒ†[ƒU–¼‚ð•\Ž¦‚¹‚¸ƒƒbƒZ[ƒW‚ð•\Ž¦‚µ‚Ü‚·B
+         å®Ÿè¡Œã—ãŸãƒ¦ãƒ¼ã‚¶åã‚’è¡¨ç¤ºã›ãšãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚’è¡¨ç¤ºã—ã¾ã™ã€‚
 
-     —á:
-         /b ƒeƒXƒg
-         /nb ƒeƒXƒg
+     ä¾‹:
+         /b ãƒ†ã‚¹ãƒˆ
+         /nb ãƒ†ã‚¹ãƒˆ
 $Id: command.txt,v 1.1 2004/05/28 03:55:43 wizputer Exp $

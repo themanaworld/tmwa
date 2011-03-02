@@ -15,8 +15,8 @@
 #include "int_pet.h"
 #include "lock.h"
 
-#define WISDATA_TTL		(60*1000)   // Wisƒf[ƒ^‚Ì¶‘¶ŠÔ(60•b)
-#define WISDELLIST_MAX	256     // Wisƒf[ƒ^íœƒŠƒXƒg‚Ì—v‘f”
+#define WISDATA_TTL		(60*1000)   // Wisãƒ‡ãƒ¼ã‚¿ã®ç”Ÿå­˜æ™‚é–“(60ç§’)
+#define WISDELLIST_MAX	256     // Wisãƒ‡ãƒ¼ã‚¿å‰Šé™¤ãƒªã‚¹ãƒˆã®è¦ç´ æ•°
 
 struct accreg
 {
@@ -601,13 +601,13 @@ int inter_parse_frommap (int fd)
     int  cmd = RFIFOW (fd, 0);
     int  len = 0;
 
-    // interIŠÇŠ‚©‚ğ’²‚×‚é
+    // interé¯–ç®¡è½„ã‹ã‚’èª¿ã¹ã‚‹
     if (cmd < 0x3000 || cmd >= 0x3000 + (sizeof (inter_recv_packet_length) /
                                          sizeof (inter_recv_packet_length
                                                  [0])))
         return 0;
 
-    // ƒpƒPƒbƒg’·‚ğ’²‚×‚é
+    // ãƒ‘ã‚±ãƒƒãƒˆé•·ã‚’èª¿ã¹ã‚‹
     if ((len =
          inter_check_length (fd,
                              inter_recv_packet_length[cmd - 0x3000])) == 0)

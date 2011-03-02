@@ -22,7 +22,7 @@ struct tmp_path
 #define calc_index(x,y) (((x)+(y)*MAX_WALKPATH) & (MAX_WALKPATH*MAX_WALKPATH-1))
 
 /*==========================================
- * Œo˜H’Tõ•â•heap push
+ * çµŒè·¯æ¢ç´¢è£œåŠ©heap push
  *------------------------------------------
  */
 static void push_heap_path (int *heap, struct tmp_path *tp, int index)
@@ -44,8 +44,8 @@ static void push_heap_path (int *heap, struct tmp_path *tp, int index)
 }
 
 /*==========================================
- * Œo˜H’Tõ•â•heap update
- * cost‚ªŒ¸‚Á‚½‚Ì‚Åª‚Ì•û‚ÖˆÚ“®
+ * çµŒè·¯æ¢ç´¢è£œåŠ©heap update
+ * costãŒæ¸›ã£ãŸã®ã§æ ¹ã®æ–¹ã¸ç§»å‹•
  *------------------------------------------
  */
 static void update_heap_path (int *heap, struct tmp_path *tp, int index)
@@ -70,7 +70,7 @@ static void update_heap_path (int *heap, struct tmp_path *tp, int index)
 }
 
 /*==========================================
- * Œo˜H’Tõ•â•heap pop
+ * çµŒè·¯æ¢ç´¢è£œåŠ©heap pop
  *------------------------------------------
  */
 static int pop_heap_path (int *heap, struct tmp_path *tp)
@@ -105,7 +105,7 @@ static int pop_heap_path (int *heap, struct tmp_path *tp)
 }
 
 /*==========================================
- * Œ»İ‚Ì“_‚ÌcostŒvZ
+ * ç¾åœ¨ã®ç‚¹ã®costè¨ˆç®—
  *------------------------------------------
  */
 static int calc_cost (struct tmp_path *p, int x1, int y1)
@@ -124,7 +124,7 @@ static int calc_cost (struct tmp_path *p, int x1, int y1)
 }
 
 /*==========================================
- * •K—v‚È‚çpath‚ğ’Ç‰Á/C³‚·‚é
+ * å¿…è¦ãªã‚‰pathã‚’è¿½åŠ /ä¿®æ­£ã™ã‚‹
  *------------------------------------------
  */
 static int add_path (int *heap, struct tmp_path *tp, int x, int y, int dist,
@@ -170,8 +170,8 @@ static int add_path (int *heap, struct tmp_path *tp, int x, int y, int dist,
 }
 
 /*==========================================
- * (x,y)‚ªˆÚ“®•s‰Â”\’n‘Ñ‚©‚Ç‚¤‚©
- * flag 0x10000 ‰“‹——£UŒ‚”»’è
+ * (x,y)ãŒç§»å‹•ä¸å¯èƒ½åœ°å¸¯ã‹ã©ã†ã‹
+ * flag 0x10000 é è·é›¢æ”»æ’ƒåˆ¤å®š
  *------------------------------------------
  */
 static int can_place (struct map_data *m, int x, int y, int flag)
@@ -190,7 +190,7 @@ static int can_place (struct map_data *m, int x, int y, int flag)
 }
 
 /*==========================================
- * (x0,y0)‚©‚ç(x1,y1)‚Ö1•à‚ÅˆÚ“®‰Â”\‚©ŒvZ
+ * (x0,y0)ã‹ã‚‰(x1,y1)ã¸1æ­©ã§ç§»å‹•å¯èƒ½ã‹è¨ˆç®—
  *------------------------------------------
  */
 static int can_move (struct map_data *m, int x0, int y0, int x1, int y1,
@@ -214,8 +214,8 @@ static int can_move (struct map_data *m, int x0, int y0, int x1, int y1,
 }
 
 /*==========================================
- * (x0,y0)‚©‚ç(dx,dy)•ûŒü‚ÖcountƒZƒ‹•ª
- * ‚«”ò‚Î‚µ‚½‚ ‚Æ‚ÌÀ•W‚ğŠ“¾
+ * (x0,y0)ã‹ã‚‰(dx,dy)æ–¹å‘ã¸countã‚»ãƒ«åˆ†
+ * å¹ãé£›ã°ã—ãŸã‚ã¨ã®åº§æ¨™ã‚’æ‰€å¾—
  *------------------------------------------
  */
 int path_blownpos (int m, int x0, int y0, int dx, int dy, int count)
@@ -227,7 +227,7 @@ int path_blownpos (int m, int x0, int y0, int dx, int dy, int count)
     md = &map[m];
 
     if (count > 15)
-    {                           // Å‘å10ƒ}ƒX‚É§ŒÀ
+    {                           // æœ€å¤§10ãƒã‚¹ã«åˆ¶é™
         if (battle_config.error_log)
             printf ("path_blownpos: count too many %d !\n", count);
         count = 15;
@@ -265,7 +265,7 @@ int path_blownpos (int m, int x0, int y0, int dx, int dy, int count)
 }
 
 /*==========================================
- * path’Tõ (x0,y0)->(x1,y1)
+ * pathæ¢ç´¢ (x0,y0)->(x1,y1)
  *------------------------------------------
  */
 int path_search (struct walkpath_data *wpd, int m, int x0, int y0, int x1,
@@ -408,7 +408,7 @@ char gat[64][64] = {
 struct map_data map[1];
 
 /*==========================================
- * Œo˜H’Tõƒ‹[ƒ`ƒ“’P‘ÌƒeƒXƒg—pmainŠÖ”
+ * çµŒè·¯æ¢ç´¢ãƒ«ãƒ¼ãƒãƒ³å˜ä½“ãƒ†ã‚¹ãƒˆç”¨mainé–¢æ•°
  *------------------------------------------
  */
 void main (int argc, char *argv[])

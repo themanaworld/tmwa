@@ -182,12 +182,12 @@ void pc_cleanup (struct map_session_data *sd);  // [Fate] Clean up after a logge
 
 struct pc_base_job
 {
-    int  job;                   //E‹ÆA‚½‚¾‚µ“]¶E‚â—{qE‚Ìê‡‚ÍŒ³‚ÌE‹Æ‚ğ•Ô‚·(”pƒvƒŠ¨ƒvƒŠ)
-    int  type;                  //ƒmƒr 0, ˆêŸE 1, “ñŸE 2, ƒXƒpƒmƒr 3
-    int  upper;                 //’Êí 0, “]¶ 1, —{q 2
+    int  job;                   //è·æ¥­ã€ãŸã ã—è»¢ç”Ÿè·ã‚„é¤Šå­è·ã®å ´åˆã¯å…ƒã®è·æ¥­ã‚’è¿”ã™(å»ƒãƒ—ãƒªâ†’ãƒ—ãƒª)
+    int  type;                  //ãƒãƒ“ 0, ä¸€æ¬¡è· 1, äºŒæ¬¡è· 2, ã‚¹ãƒ‘ãƒãƒ“ 3
+    int  upper;                 //é€šå¸¸ 0, è»¢ç”Ÿ 1, é¤Šå­ 2
 };
 
-struct pc_base_job pc_calc_base_job (int b_class);  //“]¶‚â—{qE‚ÌŒ³‚ÌE‹Æ‚ğ•Ô‚·
+struct pc_base_job pc_calc_base_job (int b_class);  //è»¢ç”Ÿã‚„é¤Šå­è·ã®å…ƒã®è·æ¥­ã‚’è¿”ã™
 
 int  pc_read_gm_account (int fd);
 int  pc_setinvincibletimer (struct map_session_data *sd, int);

@@ -16,7 +16,7 @@
 #define MAX_RANDITEM	2000
 
 // ** ITEMDB_OVERRIDE_NAME_VERBOSE **
-//   ’è‹`‚·‚é‚ÆAitemdb.txt‚Ægrf‚Å–¼‘O‚ªˆÙ‚È‚éê‡A•\¦‚µ‚Ü‚·.
+//   å®šç¾©ã™ã‚‹ã¨ã€itemdb.txtã¨grfã§åå‰ãŒç•°ãªã‚‹å ´åˆã€è¡¨ç¤ºã—ã¾ã™.
 //#define ITEMDB_OVERRIDE_NAME_VERBOSE  1
 
 char item_db_db[256] = "item_db";   // added to specify item_db sql table [Valaris]
@@ -24,7 +24,7 @@ char item_db_db[256] = "item_db";   // added to specify item_db sql table [Valar
 static struct dbt *item_db;
 
 /*==========================================
- * DB‚ÌŒŸõ
+ * DBã®æ¤œç´¢
  *------------------------------------------
  */
 struct item_data *itemdb_search (int nameid)
@@ -93,7 +93,7 @@ int itemdb_isequip2 (struct item_data *data)
 }
 
 /*==========================================
- * ƒAƒCƒeƒ€ƒf[ƒ^ƒx[ƒX‚Ì“Ç‚İ‚İ
+ * ã‚¢ã‚¤ãƒ†ãƒ ãƒ‡ãƒ¼ã‚¿ãƒ™ãƒ¼ã‚¹ã®èª­ã¿è¾¼ã¿
  *------------------------------------------
  */
 static int itemdb_readdb (void)

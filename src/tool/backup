@@ -1,47 +1,47 @@
 #!/usr/bin/perl
 
 ##########################################################################
-# Athena�p�f�[�^�o�b�N�A�b�v�c�[��
+# Athena用データバックアップツール
 #
-# �@Athena�̊e��f�[�^�t�@�C��*.txt���o�b�N�A�b�v����c�[��
+# 　Athenaの各種データファイル*.txtをバックアップするツール
 #
 #-------------------------------------------------------------------------
-# �ݒ���@
-# �@���s���鎞�̃J�����g�t�H���_����̃f�[�^�ւ̃p�X�A�t�@�C���̃��X�g��
-# �@�������ݒ肵�܂��B�o�b�N�A�b�v��̃t�H���_�͎����쐬����Ȃ��̂ŁA
-# �@�����ō쐬���Ă����K�v������܂��B
-# �@�t�H���_�̍Ō�́u/�v�͏ȗ��ł��܂���B
+# 設定方法
+# 　実行する時のカレントフォルダからのデータへのパス、ファイルのリストを
+# 　正しく設定します。バックアップ先のフォルダは自動作成されないので、
+# 　自分で作成しておく必要があります。
+# 　フォルダの最後の「/」は省略できません。
 #
-# �@�t�H���_�͈����ł��w��ł��܂��B�၄./backup ../save/ ./backup_data/
-# �@�t�H���_�̍Ō�́u/�v�͏ȗ��ł��܂���B
+# 　フォルダは引数でも指定できます。例＞./backup ../save/ ./backup_data/
+# 　フォルダの最後の「/」は省略できません。
 #
-# �@���s����ƃo�b�N�A�b�v��̃t�H���_�ցA�t�@�C�����Ɍ��݂̓��t�Ǝ�����
-# �@���ăt�@�C�����R�s�[���܂��B
+# 　実行するとバックアップ先のフォルダへ、ファイル名に現在の日付と時刻を
+# 　つけてファイルをコピーします。
 #
-#   * tool�t�H���_����backup_data�t�H���_���쐬���A
-# �@  athena.sh�̒��Ɂu./tool/backup ./save/ ./tool/backup_data/�v
-#     �Ƃ����s��ǉ�����ƁAathena���N�����邽�тɃo�b�N�A�b�v�����܂�
+#   * toolフォルダ内にbackup_dataフォルダを作成し、
+# 　  athena.shの中に「./tool/backup ./save/ ./tool/backup_data/」
+#     という行を追加すると、athenaを起動するたびにバックアップが取れます
 #
-#   ��������Ƃ��͈����Ɂu-r ���t�Ǝ����v���w�肵�܂��B
-# �@�܂����̌��Ƀt�H���_���w�肷�邱�Ƃ��o���܂�
-# �@��P�� ./backup -r 200309191607
-# �@��Q�� ./backup -r 200309191607 ../save ./backup_data/
-# �@���̗�ł�2003/09/19��16:07���Ƀo�b�N�A�b�v�����f�[�^�𕜌����Ă��܂�
+#   復元するときは引数に「-r 日付と時刻」を指定します。
+# 　またその後ろにフォルダを指定することも出来ます
+# 　例１＞ ./backup -r 200309191607
+# 　例２＞ ./backup -r 200309191607 ../save ./backup_data/
+# 　この例では2003/09/19の16:07分にバックアップしたデータを復元しています
 #
-# �@��������Ƃ��AAthena�f�B���N�g���ɂ���f�[�^�� *.bak �ɖ��O��ύX����
-# �@�c���Ă���̂ŁA����Ȃ��ꍇ�� rm *.bak �Ȃǂŏ����Ă��������B
+# 　復元するとき、Athenaディレクトリにあるデータは *.bak に名前を変更して
+# 　残しているので、いらない場合は rm *.bak などで消してください。
 #
 ##########################################################################
 
-$sdir="../save/";		#�o�b�N�A�b�v��(Athena�̃f�B���N�g��/save/)
-$tdir="./backup_data/";		#�o�b�N�A�b�v��
+$sdir="../save/";		#バックアップ元(Athenaのディレクトリ/save/)
+$tdir="./backup_data/";		#バックアップ先
 
-@files=(			#�t�@�C���̃��X�g
+@files=(			#ファイルのリスト
 	"account","athena","storage","party","guild","castle","pet"
 );
 
 
-#-------------------------------�ݒ肱���܂�-----------------------------
+#-------------------------------設定ここまで-----------------------------
 
 
 
@@ -54,7 +54,7 @@ $tdir="./backup_data/";		#�o�b�N�A�b�v��
 
 
 if($ARGV[0]=~/^\-r$/i || $ARGV[0]=~/\-\-(recover|restore)/i){
-	#��������
+	#復元処理
 
 	$file=$ARGV[1];
 	$sdir=$ARGV[2]||$sdir;
@@ -63,7 +63,7 @@ if($ARGV[0]=~/^\-r$/i || $ARGV[0]=~/\-\-(recover|restore)/i){
 	exit(0);
 }
 
-#�o�b�N�A�b�v����
+#バックアップ処理
 $sdir=$ARGV[0]||$sdir;
 $tdir=$ARGV[1]||$tdir;
 

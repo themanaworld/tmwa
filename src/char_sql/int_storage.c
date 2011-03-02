@@ -234,7 +234,7 @@ int inter_storage_sql_init ()
     return 1;
 }
 
-// 倉庫データ削除
+// 蛟牙ｺｫ繝�繝ｼ繧ｿ蜑企勁
 int inter_storage_delete (int account_id)
 {
     sprintf (tmp_sql, "DELETE FROM `%s` WHERE `account_id`='%d'", storage_db,

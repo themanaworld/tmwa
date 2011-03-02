@@ -253,7 +253,7 @@ int delete_timer (int id, int (*func) (int, unsigned int, int, int))
              search_timer_func_list (func));
         return -2;
     }
-    // ‚»‚Ì‚¤‚¿Á‚¦‚é‚É‚Ü‚©‚¹‚é
+    // ãã®ã†ã¡æ¶ˆãˆã‚‹ã«ã¾ã‹ã›ã‚‹
     timer_data[id].func = NULL;
     timer_data[id].type = TIMER_ONCE_AUTODEL;
     timer_data[id].tick -= 60 * 60 * 1000;
@@ -298,10 +298,10 @@ int do_timer (unsigned int tick)
         {
             if (DIFF_TICK (timer_data[i].tick, tick) < -1000)
             {
-                // 1•bˆÈã‚Ì‘å•‚È’x‰„‚ª”­¶‚µ‚Ä‚¢‚é‚Ì‚ÅA
-                // timerˆ—ƒ^ƒCƒ~ƒ“ƒO‚ğŒ»İ’l‚Æ‚·‚é–‚Å
-                // ŒÄ‚Ño‚µƒ^ƒCƒ~ƒ“ƒO(ˆø”‚Ìtick)‘Š‘Î‚Åˆ—‚µ‚Ä‚é
-                // timerŠÖ”‚ÌŸ‰ñˆ—ƒ^ƒCƒ~ƒ“ƒO‚ğ’x‚ç‚¹‚é
+                // 1ç§’ä»¥ä¸Šã®å¤§å¹…ãªé…å»¶ãŒç™ºç”Ÿã—ã¦ã„ã‚‹ã®ã§ã€
+                // timerå‡¦ç†ã‚¿ã‚¤ãƒŸãƒ³ã‚°ã‚’ç¾åœ¨å€¤ã¨ã™ã‚‹äº‹ã§
+                // å‘¼ã³å‡ºã—æ™‚ã‚¿ã‚¤ãƒŸãƒ³ã‚°(å¼•æ•°ã®tick)ç›¸å¯¾ã§å‡¦ç†ã—ã¦ã‚‹
+                // timeré–¢æ•°ã®æ¬¡å›å‡¦ç†ã‚¿ã‚¤ãƒŸãƒ³ã‚°ã‚’é…ã‚‰ã›ã‚‹
                 timer_data[i].func (i, tick, timer_data[i].id,
                                     timer_data[i].data);
             }

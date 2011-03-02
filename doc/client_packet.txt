@@ -41,1032 +41,1032 @@
 #0x200
    26,  0,  0,  0, 18,  0,  0,  0,  0,  0,  0, 19,
 
-S ƒNƒ‰ƒCƒAƒ“ƒg‚©‚çŒ©‚Ä‘—M
-R ƒNƒ‰ƒCƒAƒ“ƒg‚©‚çŒ©‚ÄŽóM
+S ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã‹ã‚‰è¦‹ã¦é€ä¿¡
+R ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã‹ã‚‰è¦‹ã¦å—ä¿¡
 
-B ƒoƒCƒg
-w ƒ[ƒh=2B
-l ƒƒ“ƒOƒ[ƒh=4B
-* 0ŒÂˆÈã‚­‚è‚©‚¦‚µ
+B ãƒã‚¤ãƒˆ
+w ãƒ¯ãƒ¼ãƒ‰=2B
+l ãƒ­ãƒ³ã‚°ãƒ¯ãƒ¼ãƒ‰=4B
+* 0å€‹ä»¥ä¸Šãã‚Šã‹ãˆã—
 
 S 0064 <version>.l <account name>.24B <password>.24B <version2>.B
-	ƒAƒJƒEƒ“ƒgID&ƒpƒXƒ[ƒh‘—M
+	ã‚¢ã‚«ã‚¦ãƒ³ãƒˆID&ãƒ‘ã‚¹ãƒ¯ãƒ¼ãƒ‰é€ä¿¡
 S 0065 <account ID>.l <login ID1>.l <login ID2>.l ?.2B <sex>.B
-	ƒLƒƒƒ‰ƒZƒŒŽIÚ‘±—v‹
+	ã‚­ãƒ£ãƒ©ã‚»ãƒ¬é¯–æŽ¥ç¶šè¦æ±‚
 S 0066 <charactor number>.B
-	ƒLƒƒƒ‰ƒNƒ^‘I‘ð—v‹
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿é¸æŠžè¦æ±‚
 S 0067 <charactor name>.24B <param etc>.11B
-	ƒLƒƒƒ‰ƒNƒ^ì¬—v‹
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ä½œæˆè¦æ±‚
 S 0068 <charactor ID>.l <mail address>.40B
-	ƒLƒƒƒ‰ƒNƒ^íœ—v‹
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿å‰Šé™¤è¦æ±‚
 R 0069 <len>.w <login ID1>.l <account ID>.l <login ID2>.l ?.32B <sex>.B {<IP>.l <port>.w <server name>.20B <login users>.w <maintenance>.w <new>.w}.32B*
-	login¬Œ÷&ŽIî•ñ
+	loginæˆåŠŸ&é¯–æƒ…å ±
 R 006a <error No>.B
-	loginŽ¸”s ‚»‚Ì‚P
-		err No=00 –¢“o˜^‚ÌID‚Å‚·
-		err No=01 ƒpƒXƒ[ƒh‚ªˆá‚¢‚Ü‚·
-		err No=02 Žg—pŠúŠÔ‚ªI—¹‚µ‚Ä‚¢‚Ü‚·
-		err No=03 ƒT[ƒo[‚©‚çÚ‘±‹‘”Û‚³‚ê‚Ü‚µ‚½
-		err No=04 ‰ð–ñ‚³‚ê‚½IDA‚Ü‚½‚ÍƒAƒJƒEƒ“ƒgƒuƒƒbƒN‚³‚ê‚Ä‚¢‚éID‚Å‚·
-		err No=05 ÅV‚Ìƒpƒbƒ`‚Å‚Í‚ ‚è‚Ü‚¹‚ñ
-		err No=06 ‰ð–ñ‚³‚ê‚½IDA‚Ü‚½‚ÍƒAƒJƒEƒ“ƒgƒuƒƒbƒN‚³‚ê‚Ä‚¢‚éID‚Å‚·
-		err No=07 ƒT[ƒo[‚ª¬ŽG‚µ‚Ä‚¢‚Ü‚·
+	loginå¤±æ•— ãã®ï¼‘
+		err No=00 æœªç™»éŒ²ã®IDã§ã™
+		err No=01 ãƒ‘ã‚¹ãƒ¯ãƒ¼ãƒ‰ãŒé•ã„ã¾ã™
+		err No=02 ä½¿ç”¨æœŸé–“ãŒçµ‚äº†ã—ã¦ã„ã¾ã™
+		err No=03 ã‚µãƒ¼ãƒãƒ¼ã‹ã‚‰æŽ¥ç¶šæ‹’å¦ã•ã‚Œã¾ã—ãŸ
+		err No=04 è§£ç´„ã•ã‚ŒãŸIDã€ã¾ãŸã¯ã‚¢ã‚«ã‚¦ãƒ³ãƒˆãƒ–ãƒ­ãƒƒã‚¯ã•ã‚Œã¦ã„ã‚‹IDã§ã™
+		err No=05 æœ€æ–°ã®ãƒ‘ãƒƒãƒã§ã¯ã‚ã‚Šã¾ã›ã‚“
+		err No=06 è§£ç´„ã•ã‚ŒãŸIDã€ã¾ãŸã¯ã‚¢ã‚«ã‚¦ãƒ³ãƒˆãƒ–ãƒ­ãƒƒã‚¯ã•ã‚Œã¦ã„ã‚‹IDã§ã™
+		err No=07 ã‚µãƒ¼ãƒãƒ¼ãŒæ··é›‘ã—ã¦ã„ã¾ã™
 R 006b <len>.w <charactor select data>.106B*
-	ƒLƒƒƒ‰ƒZƒŒŽIÚ‘±¬Œ÷&ƒLƒƒƒ‰ƒNƒ^ƒf[ƒ^
+	ã‚­ãƒ£ãƒ©ã‚»ãƒ¬é¯–æŽ¥ç¶šæˆåŠŸ&ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ãƒ‡ãƒ¼ã‚¿
 	<charactor select data> = <charactor ID>.l <base exp>.l <zeny>.l <job exp>.l <job level>.l ?.8B <option>.l <karma>.l <manner>.l ?.2B <HP>.w <MaxHP>.w <SP>.w <MaxSP>.w <speed>.w <class>.w <hair>.w <weapon>.2w <base level>.w <skill point>.w <head_bottom>.w <sheild>.w <head option top>.w <head option mid>.w <hair color>.w ?.w <name>.24B <STR>.B <AGI>.B <VIT>.B <INT>.B <DEX>.B <LUK>.B <charactor number>.B ?.B
 R 006c <error No>.B
-	ƒLƒƒƒ‰ƒNƒ^‘I‘ðŽ¸”s
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿é¸æŠžå¤±æ•—
 R 006d <charactor select data>.106B
-	ƒLƒƒƒ‰ƒNƒ^ì¬¬Œ÷
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ä½œæˆæˆåŠŸ
 R 006e <error No>.B
-	ƒLƒƒƒ‰ƒNƒ^ì¬Ž¸”s
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ä½œæˆå¤±æ•—
 R 006f
-	ƒLƒƒƒ‰ƒNƒ^íœ¬Œ÷
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿å‰Šé™¤æˆåŠŸ
 R 0070 <error No>.B
-	ƒLƒƒƒ‰ƒNƒ^íœŽ¸”s
-		err No=00 ƒ[ƒ‹ƒAƒhƒŒƒX‚ªˆá‚¤
-		err No=01 íœ‚ª‹‘”Û‚³‚ê‚½
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿å‰Šé™¤å¤±æ•—
+		err No=00 ãƒ¡ãƒ¼ãƒ«ã‚¢ãƒ‰ãƒ¬ã‚¹ãŒé•ã†
+		err No=01 å‰Šé™¤ãŒæ‹’å¦ã•ã‚ŒãŸ
 R 0071 <charactor ID>.l <map name>.16B <ip>.l <port>.w
-	ƒLƒƒƒ‰ƒNƒ^‘I‘ð¬Œ÷&ƒ}ƒbƒv–¼&ƒQ[ƒ€ŽIIP/port
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿é¸æŠžæˆåŠŸ&ãƒžãƒƒãƒ—å&ã‚²ãƒ¼ãƒ é¯–IP/port
 S 0072 <account ID>.l <charactor ID>.l <login ID1>.l <login ID2>.l <sex>.b
-	ƒQ[ƒ€ŽIÚ‘±—v‹
+	ã‚²ãƒ¼ãƒ é¯–æŽ¥ç¶šè¦æ±‚
 R 0073 <server tick>.l <coordidate>.3B ?.2B
-	ƒQ[ƒ€ŽIÚ‘±¬Œ÷&ƒT[ƒo‘¤1msŽžŒv&oŒ»ˆÊ’u
+	ã‚²ãƒ¼ãƒ é¯–æŽ¥ç¶šæˆåŠŸ&ã‚µãƒ¼ãƒå´1msæ™‚è¨ˆ&å‡ºç¾ä½ç½®
 R 0078 <ID>.l <speed>.w <opt1>.w <opt2>.w <option>.w <class>.w <hair>.w <weapon>.w <head option bottom>.w <sheild>.w <head option top>.w <head option mid>.w <hair color>.w ?.w <head dir>.w <guild>.l <emblem>.l <manner>.w <karma>.B <sex>.B <X_Y_dir>.3B ?.B ?.B <sit>.B <Lv>.B
-	ƒ}ƒbƒvƒ[ƒhŽž&ˆÚ“®Žž—pAŒü‚«•t‚«—pƒLƒƒƒ‰î•ñ?
+	ãƒžãƒƒãƒ—ãƒ­ãƒ¼ãƒ‰æ™‚&ç§»å‹•æ™‚ç”¨ã€å‘ãä»˜ãç”¨ã‚­ãƒ£ãƒ©æƒ…å ±?
 R 0079 <ID>.l <speed>.w <opt1>.w <opt2>.w <option>.w <class>.w <hair>.w <weapon>.w <head option bottom>.w <sheild>.w <head option top>.w <head option mid>.w <hair color>.w ?.w <head dir>.w <guild>.l <emblem>.l <manner>.w <karma>.B <sex>.B <X_Y_dir>.3B ?.B ?.B <Lv>.B
-	ƒeƒŒƒ|“™‚Ì•\Ž¦”ÍˆÍ“à•¦‚«ƒLƒƒƒ‰—pAŒü‚«•t‚«–³‚µƒLƒƒƒ‰î•ñ?
+	ãƒ†ãƒ¬ãƒç­‰ã®è¡¨ç¤ºç¯„å›²å†…æ²¸ãã‚­ãƒ£ãƒ©ç”¨ã€å‘ãä»˜ãç„¡ã—ã‚­ãƒ£ãƒ©æƒ…å ±?
 R 007b <ID>.l <speed>.w <opt1>.w <opt2>.w <option>.w <class>.w <hair>.w <weapon>.w <head option bottom>.w <server tick>.l <sheild>.w <head option top>.w <head option mid>.w <hair color>.w ?.w <head dir>.w <guild>.l <emblem>.l <manner>.w <karma>.B <sex>.B <X_Y_X_Y>.5B ?.B ?.B ?.B <Lv>.B
-	•\Ž¦”ÍˆÍ“àƒLƒƒƒ‰ˆÚ“®î•ñ
+	è¡¨ç¤ºç¯„å›²å†…ã‚­ãƒ£ãƒ©ç§»å‹•æƒ…å ±
 R 007c <ID>.l <speed>.w ?.6w <class>.w ?.7w <X_Y>.3B ?.2B
-	NPC—p•\Ž¦”ÍˆÍ“àƒLƒƒƒ‰î•ñ
+	NPCç”¨è¡¨ç¤ºç¯„å›²å†…ã‚­ãƒ£ãƒ©æƒ…å ±
 S 007d
-	mapƒ[ƒhI‚è
+	mapãƒ­ãƒ¼ãƒ‰çµ‚ã‚Š
 S 007e <client tick>.l
-	ƒNƒ‰ƒCƒAƒ“ƒg‘¤1msƒ^ƒCƒ}‘—M
+	ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆå´1msã‚¿ã‚¤ãƒžé€ä¿¡
 R 007f <server tick>.l
-	ƒT[ƒo‘¤1msƒ^ƒCƒ}‘—M
+	ã‚µãƒ¼ãƒå´1msã‚¿ã‚¤ãƒžé€ä¿¡
 R 0080 <ID>.l <type>.B
-	type=00 ƒLƒƒƒ‰Á–Å (‰æ–ÊŠOˆÚ“®BŽ€‘ÌÁ–Å“™?)
-	type=01 ƒLƒƒƒ‰Ž€–S
-	type=02 ƒLƒƒƒ‰Á–Å (logout“™?)
-	type=03 ƒeƒŒƒ|[ƒg (ƒeƒŒƒ|,”ˆ,’±“™H)
+	type=00 ã‚­ãƒ£ãƒ©æ¶ˆæ»… (ç”»é¢å¤–ç§»å‹•ã€‚æ­»ä½“æ¶ˆæ»…ç­‰?)
+	type=01 ã‚­ãƒ£ãƒ©æ­»äº¡
+	type=02 ã‚­ãƒ£ãƒ©æ¶ˆæ»… (logoutç­‰?)
+	type=03 ãƒ†ãƒ¬ãƒãƒ¼ãƒˆ (ãƒ†ãƒ¬ãƒ,è¿,è¶ç­‰ï¼Ÿ)
 R 0081 <type>.B
-	loginŽ¸”s ‚»‚Ì‚Q
-		type=01 ƒT[ƒo[Ú‘±I—¹
-		type=02 “¯‚¶ID‚Å‘¼‚ÌŽg—pŽÒ‚ªƒƒOƒCƒ“‚µ‚Ü‚µ‚½
-		type=03 ƒT[ƒo[‚Æ‚Ì“¯Šú‚ÉŽ¸”s‚µ‚Ü‚µ‚½
-		type=04 ’nˆæ‚ÌŽû—elˆõ’´‰ß‚ÅÚ‘±‚Å‚«‚Ü‚¹‚ñ
-		type=05 ‚P‚WÎˆÈ‰º‚ÍÚ‘±‚Å‚«‚Ü‚¹‚ñ
-		type=06 ŒˆÏ‚³‚ê‚½ƒAƒJƒEƒ“ƒg‚Å‚Í‚ ‚è‚Ü‚¹‚ñ
-		type=07 ƒT[ƒo[‚ª¬ŽG‚µ‚Ä‚¢‚Ü‚·
-		type=08 ‘O‚ÌÚ‘±î•ñ‚ªŽc‚Á‚Ä‚¢‚Ü‚·
-		type=0b ƒAƒJƒEƒ“ƒg‚ª•Û—¯‚³‚ê‚Ü‚µ‚½
-		type=0c ‰Û‹àƒVƒXƒeƒ€•ÏX‚Ì‚½‚ßAˆêŽžI—¹‚µ‚Ü‚·
-		type=0d IP‚ªˆê’v‚µ‚È‚¢‚½‚ßAÚ‘±‚ðI—¹‚µ‚Ü‚·
-		type=10 —L—¿ƒT[ƒrƒX‚É‚È‚è‚Ü‚µ‚½
-		type=11 ƒ`ƒPƒbƒg‚ª”ƒ‚í‚ê‚Ä‚¢‚È‚¢‚©A—LŒøŠúŒÀ‚ªØ‚ê‚Ä‚¢‚Ü‚·
+	loginå¤±æ•— ãã®ï¼’
+		type=01 ã‚µãƒ¼ãƒãƒ¼æŽ¥ç¶šçµ‚äº†
+		type=02 åŒã˜IDã§ä»–ã®ä½¿ç”¨è€…ãŒãƒ­ã‚°ã‚¤ãƒ³ã—ã¾ã—ãŸ
+		type=03 ã‚µãƒ¼ãƒãƒ¼ã¨ã®åŒæœŸã«å¤±æ•—ã—ã¾ã—ãŸ
+		type=04 åœ°åŸŸã®åŽå®¹äººå“¡è¶…éŽã§æŽ¥ç¶šã§ãã¾ã›ã‚“
+		type=05 ï¼‘ï¼˜æ­³ä»¥ä¸‹ã¯æŽ¥ç¶šã§ãã¾ã›ã‚“
+		type=06 æ±ºæ¸ˆã•ã‚ŒãŸã‚¢ã‚«ã‚¦ãƒ³ãƒˆã§ã¯ã‚ã‚Šã¾ã›ã‚“
+		type=07 ã‚µãƒ¼ãƒãƒ¼ãŒæ··é›‘ã—ã¦ã„ã¾ã™
+		type=08 å‰ã®æŽ¥ç¶šæƒ…å ±ãŒæ®‹ã£ã¦ã„ã¾ã™
+		type=0b ã‚¢ã‚«ã‚¦ãƒ³ãƒˆãŒä¿ç•™ã•ã‚Œã¾ã—ãŸ
+		type=0c èª²é‡‘ã‚·ã‚¹ãƒ†ãƒ å¤‰æ›´ã®ãŸã‚ã€ä¸€æ™‚çµ‚äº†ã—ã¾ã™
+		type=0d IPãŒä¸€è‡´ã—ãªã„ãŸã‚ã€æŽ¥ç¶šã‚’çµ‚äº†ã—ã¾ã™
+		type=10 æœ‰æ–™ã‚µãƒ¼ãƒ“ã‚¹ã«ãªã‚Šã¾ã—ãŸ
+		type=11 ãƒã‚±ãƒƒãƒˆãŒè²·ã‚ã‚Œã¦ã„ãªã„ã‹ã€æœ‰åŠ¹æœŸé™ãŒåˆ‡ã‚Œã¦ã„ã¾ã™
 S 0085 <X_Y>.3B
-	ˆÚ“®—v‹
+	ç§»å‹•è¦æ±‚
 R 0087 <server tick>.l <X_Y_X_Y>.5B ?.B
-	ˆÚ“®‰ž“š
+	ç§»å‹•å¿œç­”
 R 0088 <ID>.l <X>.w <Y>.w
-	ˆÚ“®“r’†’âŽ~
+	ç§»å‹•é€”ä¸­åœæ­¢
 S 0089 <target ID>.l <type>.B
-	type=00 target‚ð1‰ñ‰£‚é
-	type=02 À‚é
-	type=03 —§‚¿ã‚é
-	type=07 target‚ð‰£‚è‘±‚¯‚é
+	type=00 targetã‚’1å›žæ®´ã‚‹
+	type=02 åº§ã‚‹
+	type=03 ç«‹ã¡ä¸Šã‚‹
+	type=07 targetã‚’æ®´ã‚Šç¶šã‘ã‚‹
 R 008a <src ID>.l <dst ID>.l <server tick>.l <src speed>.l <dst speed>.l <param1>.w <param2>.w <type>.B <param3>.w
 	type=00 param1=0 miss
-	type=00 param1:ƒ_ƒ[ƒW(‚Ì‡Œv?) param2:•ªŠ„” param3:ƒAƒTƒVƒ“2“—¬‹tŽèƒ_ƒ[ƒW
-		NPC‚©‚ç‚ÌUŒ‚‚Ìê‡Aparam2,param3‚ÍƒSƒ~ƒf[ƒ^
-		speed‚ÍPC‚Ìê‡“à•”ASPD‚Æˆê’v
-	type=01 item‚ðE‚¤ ID*2ˆÈŠOƒSƒ~
-	type=02 À‚é src IDˆÈŠOƒSƒ~
-	type=03 —§‚Â src IDˆÈŠOƒSƒ~
-	type=08 •¡”UŒ‚
-	type=09 ƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚È‚µ‚Éƒ_ƒ[ƒW‚¾‚¯•\Ž¦‚³‚ê‚é•¨(ƒCƒ“ƒfƒ…ƒA)
-	type=0a ƒNƒŠƒeƒBƒJƒ‹
-	type=0b Š®‘S‰ñ”ð
+	type=00 param1:ãƒ€ãƒ¡ãƒ¼ã‚¸(ã®åˆè¨ˆ?) param2:åˆ†å‰²æ•° param3:ã‚¢ã‚µã‚·ãƒ³2åˆ€æµé€†æ‰‹ãƒ€ãƒ¡ãƒ¼ã‚¸
+		NPCã‹ã‚‰ã®æ”»æ’ƒã®å ´åˆã€param2,param3ã¯ã‚´ãƒŸãƒ‡ãƒ¼ã‚¿
+		speedã¯PCã®å ´åˆå†…éƒ¨ASPDã¨ä¸€è‡´
+	type=01 itemã‚’æ‹¾ã† ID*2ä»¥å¤–ã‚´ãƒŸ
+	type=02 åº§ã‚‹ src IDä»¥å¤–ã‚´ãƒŸ
+	type=03 ç«‹ã¤ src IDä»¥å¤–ã‚´ãƒŸ
+	type=08 è¤‡æ•°æ”»æ’ƒ
+	type=09 ãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãªã—ã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã ã‘è¡¨ç¤ºã•ã‚Œã‚‹ç‰©(ã‚¤ãƒ³ãƒ‡ãƒ¥ã‚¢)
+	type=0a ã‚¯ãƒªãƒ†ã‚£ã‚«ãƒ«
+	type=0b å®Œå…¨å›žé¿
 S 008c <len>.w <str>.?B
-	’Êí”­Œ¾‘—MBƒ`ƒƒƒbƒg’†‚Íƒ`ƒƒƒbƒg“à”­Œ¾—p‚É‚È‚é
-	æ“ª‚Ì"<nick> : "‚Ì•”•ª‚ÍƒNƒ‰ƒCƒAƒ“ƒg‘¤‚Å•t‚¯‚éŽ–
+	é€šå¸¸ç™ºè¨€é€ä¿¡ã€‚ãƒãƒ£ãƒƒãƒˆä¸­ã¯ãƒãƒ£ãƒƒãƒˆå†…ç™ºè¨€ç”¨ã«ãªã‚‹
+	å…ˆé ­ã®"<nick> : "ã®éƒ¨åˆ†ã¯ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆå´ã§ä»˜ã‘ã‚‹äº‹
 R 008d <len>.w <ID>.l <str>.?B
-	ID‚³‚ñ‚Ì”­Œ¾ŽóMBƒ`ƒƒƒbƒg’†‚Íƒ`ƒƒƒbƒg“à”­Œ¾—p‚É‚È‚é
+	IDã•ã‚“ã®ç™ºè¨€å—ä¿¡ã€‚ãƒãƒ£ãƒƒãƒˆä¸­ã¯ãƒãƒ£ãƒƒãƒˆå†…ç™ºè¨€ç”¨ã«ãªã‚‹
 R 008e <len>.w <str>.?B
-	Ž©•ª‚Ì”­Œ¾ŽóMBƒ`ƒƒƒbƒg’†‚Íƒ`ƒƒƒbƒg“à”­Œ¾—p‚É‚È‚é
+	è‡ªåˆ†ã®ç™ºè¨€å—ä¿¡ã€‚ãƒãƒ£ãƒƒãƒˆä¸­ã¯ãƒãƒ£ãƒƒãƒˆå†…ç™ºè¨€ç”¨ã«ãªã‚‹
 S 0090 <ID>.l <type?>.B
-	NPC‚É˜b‚µ‚©‚¯‚éBtype‚Í01‚µ‚©Œ©‚½Ž––³‚µ
+	NPCã«è©±ã—ã‹ã‘ã‚‹ã€‚typeã¯01ã—ã‹è¦‹ãŸäº‹ç„¡ã—
 R 0091 <map name>.16B <X>.w <Y>.w
-	ŽI“àƒ}ƒbƒvŠÔˆÚ“®AƒeƒŒƒ|,”ˆ“™—p
+	é¯–å†…ãƒžãƒƒãƒ—é–“ç§»å‹•ã€ãƒ†ãƒ¬ãƒ,è¿ç­‰ç”¨
 R 0092 <map name>.16B <X>.w <Y>.w <IP>.l <port>.w
-	ŽIŠÔˆÚ“®
+	é¯–é–“ç§»å‹•
 R 0093
-	8ŒŽ’†‚É1‰ñ‚¾‚¯ŠÏ‘ªB“ä
+	8æœˆä¸­ã«1å›žã ã‘è¦³æ¸¬ã€‚è¬Ž
 S 0094 <ID>.l
-	ID‚ÌƒLƒƒƒ‰–¼“™—v‹B0095‚©0195‚Ì•Ô“š‚ª‚ ‚é‚Í‚¸
+	IDã®ã‚­ãƒ£ãƒ©åç­‰è¦æ±‚ã€‚0095ã‹0195ã®è¿”ç­”ãŒã‚ã‚‹ã¯ãš
 R 0095 <ID>.l <nick>.24B
-	NPC,ƒMƒ‹ƒh–¢Š‘®PC‚Ì0094‚Ö‚Ì•Ô“š
-	0193	<charID>.l ‚Å–â‚¢‡‚í‚¹‚Ä
-	0194	<charID>.l <name>.24B ‚Ì‰ž“š‚Å“¾‚Ä‚Ü‚·B
+	NPC,ã‚®ãƒ«ãƒ‰æœªæ‰€å±žPCã®0094ã¸ã®è¿”ç­”
+	0193	<charID>.l ã§å•ã„åˆã‚ã›ã¦
+	0194	<charID>.l <name>.24B ã®å¿œç­”ã§å¾—ã¦ã¾ã™ã€‚
 
 S 0096 <len>.w <nick>.24B <message>.?B
-	wis‘—M
+	wisé€ä¿¡
 R 0097 <len>.w <nick>.24B <message>.?B
-	wisŽóM
+	wiså—ä¿¡
 R 0098 <type>.B
-	type=00 wis‘—M¬Œ÷
-	type=01 wis‘ŠŽè‚ªlogin‚µ‚Ä‚È‚¢?
-	type=02 wis‘ŠŽè‚©‚çignore‚³‚ê‚Ä‚é?
+	type=00 wisé€ä¿¡æˆåŠŸ
+	type=01 wisç›¸æ‰‹ãŒloginã—ã¦ãªã„?
+	type=02 wisç›¸æ‰‹ã‹ã‚‰ignoreã•ã‚Œã¦ã‚‹?
 S 0099 
-	_‚Ìº‘—M
+	ç¥žã®å£°é€ä¿¡
 R 009a <len>.w <message>.?B
-	GM‚©‚ç‚Ì“V‚Ìº
+	GMã‹ã‚‰ã®å¤©ã®å£°
 S 009b <head dir>.w <dir>.B
-	‘Ì&“ª‚Ì•ûŒü•ÏX—v‹BƒNƒ‰ƒCƒAƒ“ƒg‚Ö‚Ì‰ž“š‚Í–³‚¢–Í—l
-	dir‚Í00`07‚Å‘Ì‚ÌŒü‚«B00‚Å–k‚©‚ç”½ŽžŒv‰ñ‚è‚É45‹’PˆÊ‚Å07‚Ü‚Å
-	head dir‚Í00,01,02‚Å“ª‚ÌŒü‚«B00‚Å‘Ì‚Æ“¯‚¶A01‚ª‰EA02‚ª¶
+	ä½“&é ­ã®æ–¹å‘å¤‰æ›´è¦æ±‚ã€‚ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã¸ã®å¿œç­”ã¯ç„¡ã„æ¨¡æ§˜
+	dirã¯00ã€œ07ã§ä½“ã®å‘ãã€‚00ã§åŒ—ã‹ã‚‰åæ™‚è¨ˆå›žã‚Šã«45Â°å˜ä½ã§07ã¾ã§
+	head dirã¯00,01,02ã§é ­ã®å‘ãã€‚00ã§ä½“ã¨åŒã˜ã€01ãŒå³ã€02ãŒå·¦
 R 009c <ID>.l <head dir>.w <dir>.B
-	ID‚Ì‘Ì&“ª‚Ì•ûŒü•ÏX
+	IDã®ä½“&é ­ã®æ–¹å‘å¤‰æ›´
 R 009d <ID>.l <item ID>.w <identify flag>.B <X>.w <Y>.w <amount>.w <subX>.B <subY>.B
-	ˆÚ“®“™‚Å°ƒAƒCƒeƒ€‚ª‰æ–Ê“à‚É“ü‚Á‚Ä‚«‚½Žž
+	ç§»å‹•ç­‰ã§åºŠã‚¢ã‚¤ãƒ†ãƒ ãŒç”»é¢å†…ã«å…¥ã£ã¦ããŸæ™‚
 R 009e <ID>.l <item ID>.w <identify flag>.B <X>.w <Y>.w <subX>.B <subY>.B <amount>.w
-	item dropB‰½ŒÌ‚©009d‚Æƒ}ƒX–Ú“àˆÊ’u&ŒÂ”‚ª“ü‚ê•Ï‚Á‚Ä‚¢‚é
+	item dropã€‚ä½•æ•…ã‹009dã¨ãƒžã‚¹ç›®å†…ä½ç½®&å€‹æ•°ãŒå…¥ã‚Œå¤‰ã£ã¦ã„ã‚‹
 S 009f <ID>.l
-	ID‚Ì°ƒAƒCƒeƒ€‚ðE‚¤
+	IDã®åºŠã‚¢ã‚¤ãƒ†ãƒ ã‚’æ‹¾ã†
 R 00a0 <index>.w <amount>.w <item ID>.w <identify flag>.B <attribute?>.B <refine>.B <card>.4w <equip type>.w <type>.B <fail>.B
-	fail=02 Žæ“¾Ž¸”s?
-	fail=06 ƒ‹[ƒgŒ –³‚µBŽæ“¾Ž¸”s
+	fail=02 å–å¾—å¤±æ•—?
+	fail=06 ãƒ«ãƒ¼ãƒˆæ¨©ç„¡ã—ã€‚å–å¾—å¤±æ•—
 R 00a1 <ID>.l
-	ID‚Ì°ƒAƒCƒeƒ€Á‹Ž
+	IDã®åºŠã‚¢ã‚¤ãƒ†ãƒ æ¶ˆåŽ»
 S 00a2 <index>.w <amount>.w
-	Š—LƒAƒCƒeƒ€‚ð—Ž‚·
+	æ‰€æœ‰ã‚¢ã‚¤ãƒ†ãƒ ã‚’è½ã™
 R 00a3 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <amount>.w ?.2B}.10B*
-	Š—LÁ–Õ•i&ŽûW•iƒŠƒXƒg
+	æ‰€æœ‰æ¶ˆè€—å“&åŽé›†å“ãƒªã‚¹ãƒˆ
 R 00a4 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <equip type>.w <equip point>.w <attribute?>.B <refine>.B <card>.4w}.20B*
-	Š—L‘•”õƒŠƒXƒg
+	æ‰€æœ‰è£…å‚™ãƒªã‚¹ãƒˆ
 R 00a5 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <amount>.w ?.2B}.10B*
-	ƒJƒvƒ‰‚³‚ñ‚É—a‚¯‚Ä‚ ‚éÁ–Õ•i&ŽûW•iƒŠƒXƒg
+	ã‚«ãƒ—ãƒ©ã•ã‚“ã«é ã‘ã¦ã‚ã‚‹æ¶ˆè€—å“&åŽé›†å“ãƒªã‚¹ãƒˆ
 R 00a6 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <equip type>.w <equip point>.w <attribute?>.B <refine>.B <card>.4w}.20B*
-	ƒJƒvƒ‰‚³‚ñ‚É—a‚¯‚Ä‚ ‚é‘•”õƒŠƒXƒg
+	ã‚«ãƒ—ãƒ©ã•ã‚“ã«é ã‘ã¦ã‚ã‚‹è£…å‚™ãƒªã‚¹ãƒˆ
 S 00a7 <index>.w <ID>.l
-	ŠŽƒAƒCƒeƒ€index‚ðŽg—p‚·‚éBID‚ÍŽ©•ª‚Ì‚Ý?
+	æ‰€æŒã‚¢ã‚¤ãƒ†ãƒ indexã‚’ä½¿ç”¨ã™ã‚‹ã€‚IDã¯è‡ªåˆ†ã®ã¿?
 R 00a8 <index>.w <amount>.w <type>.B
-	ƒAƒCƒeƒ€Žg—p‰ž“šBtype=00‚Ìê‡Žg—pŽ¸”s? amount‚àƒSƒ~‚Ì–Í—l
-	type=01‚Ìê‡¬Œ÷‚ÅAamount‚ÍŽg—pŒã‚ÌŽc‚èŒÂ”
+	ã‚¢ã‚¤ãƒ†ãƒ ä½¿ç”¨å¿œç­”ã€‚type=00ã®å ´åˆä½¿ç”¨å¤±æ•—? amountã‚‚ã‚´ãƒŸã®æ¨¡æ§˜
+	type=01ã®å ´åˆæˆåŠŸã§ã€amountã¯ä½¿ç”¨å¾Œã®æ®‹ã‚Šå€‹æ•°
 S 00a9 <index>.w <equip type>.w
-	ƒAƒCƒeƒ€‘•”õ
+	ã‚¢ã‚¤ãƒ†ãƒ è£…å‚™
 R 00aa <index>.w <equip point>.w <type>.B
-	ƒAƒCƒeƒ€‘•”õ‰ž“šBtype=00‚Ìê‡‘•”õŽ¸”s? equip point‚àƒSƒ~‚Ì–Í—l
+	ã‚¢ã‚¤ãƒ†ãƒ è£…å‚™å¿œç­”ã€‚type=00ã®å ´åˆè£…å‚™å¤±æ•—? equip pointã‚‚ã‚´ãƒŸã®æ¨¡æ§˜
 S 00ab <index>.w
-	‘•”õ‰ðœ
+	è£…å‚™è§£é™¤
 R 00ac <index>.w <equip point>.w <type>.B
-	‘•”õ‰ðœ‰ž“šBtype=00‚Ìê‡Ž¸”s? equip point‚àƒSƒ~‚Ì–Í—l
+	è£…å‚™è§£é™¤å¿œç­”ã€‚type=00ã®å ´åˆå¤±æ•—? equip pointã‚‚ã‚´ãƒŸã®æ¨¡æ§˜
 R 00af <index>.w <amount>.w
-	ƒAƒCƒeƒ€”Œ¸­BamountŒÂ‚¾‚¯Œ¸‚ç‚·
+	ã‚¢ã‚¤ãƒ†ãƒ æ•°æ¸›å°‘ã€‚amountå€‹ã ã‘æ¸›ã‚‰ã™
 R 00b0 <type>.w <val>.l
-	FX‚È”\—Í’l‚ÌXVBˆÈ‰ºtype:‘Î‰ž‚·‚é”’l‚ð—ñ‹“
-	0000:speed 0003:ˆ«s’l 0004:ƒ}ƒi[ƒ|ƒCƒ“ƒg 0005:HP 0006:MaxHP
-	0007:SP 0008:MaxSP 0009:ƒXƒe[ƒ^ƒXƒ|ƒCƒ“ƒg 000b:ƒx[ƒXƒŒƒxƒ‹
-	000c:ƒXƒLƒ‹ƒ|ƒCƒ“ƒg 0018:d—Ê(•\Ž¦‚³‚ê‚Ä‚é”Žš‚Ì10”{)
-	0019:Å‘åd—Ê(•\Ž¦‚³‚ê‚Ä‚é”Žš‚Ì10”{)
-	0029:ATK‘O 002a:ATKŒã 002b:MATK‘O 002c:MATKŒã
-	002d:DEF‘O 002e:DEFŒã 002f:MDEF‘O 0030:MDEFŒã
-	0031:HIT 0032:FLEE‘O 0033:FLEEŒã 0034:ƒNƒŠƒeƒBƒJƒ‹
-	0035:ASPD(2ms’PˆÊ‚ÌŽžŠÔ?) 0037:ƒWƒ‡ƒuƒŒƒxƒ‹
-	0082:“ä ATKŒã‚Æ“¯‚¶”Žš?
+	è‰²ã€…ãªèƒ½åŠ›å€¤ã®æ›´æ–°ã€‚ä»¥ä¸‹type:å¯¾å¿œã™ã‚‹æ•°å€¤ã‚’åˆ—æŒ™
+	0000:speed 0003:æ‚ªè¡Œå€¤ 0004:ãƒžãƒŠãƒ¼ãƒã‚¤ãƒ³ãƒˆ 0005:HP 0006:MaxHP
+	0007:SP 0008:MaxSP 0009:ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ãƒã‚¤ãƒ³ãƒˆ 000b:ãƒ™ãƒ¼ã‚¹ãƒ¬ãƒ™ãƒ«
+	000c:ã‚¹ã‚­ãƒ«ãƒã‚¤ãƒ³ãƒˆ 0018:é‡é‡(è¡¨ç¤ºã•ã‚Œã¦ã‚‹æ•°å­—ã®10å€)
+	0019:æœ€å¤§é‡é‡(è¡¨ç¤ºã•ã‚Œã¦ã‚‹æ•°å­—ã®10å€)
+	0029:ATKå‰ 002a:ATKå¾Œ 002b:MATKå‰ 002c:MATKå¾Œ
+	002d:DEFå‰ 002e:DEFå¾Œ 002f:MDEFå‰ 0030:MDEFå¾Œ
+	0031:HIT 0032:FLEEå‰ 0033:FLEEå¾Œ 0034:ã‚¯ãƒªãƒ†ã‚£ã‚«ãƒ«
+	0035:ASPD(2mså˜ä½ã®æ™‚é–“?) 0037:ã‚¸ãƒ§ãƒ–ãƒ¬ãƒ™ãƒ«
+	0082:è¬Ž ATKå¾Œã¨åŒã˜æ•°å­—?
 R 00b1 <type>.w <val>.l
-	FX‚È”\—Í’l‚ÌXVBˆÈ‰ºtype:‘Î‰ž‚·‚é”’l‚ð—ñ‹“
-	0001:ƒx[ƒX‘¤ŒoŒ±’l 0002:ƒWƒ‡ƒu‘¤ŒoŒ±’l	0014:zeny
-	0016:ƒx[ƒX‘¤•K—vŒoŒ±’l 0017:ƒWƒ‡ƒu‘¤•K—vŒoŒ±’l
-	ƒÀ1‚Å‚Í00b0‚Íval‚ªshortA00b1‚Íval‚ªlong‚Æ‚¢‚¤Žg‚¢•ª‚¯‚ª‚ ‚Á‚½‚ñ‚¾‚¯‚Ç
-	¡‚Æ‚È‚Á‚Ä‚Í·‚ª–³‚­‚È‚Á‚ÄA–Ó’°‚Ý‚½‚¢‚È‚à‚Ì?
+	è‰²ã€…ãªèƒ½åŠ›å€¤ã®æ›´æ–°ã€‚ä»¥ä¸‹type:å¯¾å¿œã™ã‚‹æ•°å€¤ã‚’åˆ—æŒ™
+	0001:ãƒ™ãƒ¼ã‚¹å´çµŒé¨“å€¤ 0002:ã‚¸ãƒ§ãƒ–å´çµŒé¨“å€¤	0014:zeny
+	0016:ãƒ™ãƒ¼ã‚¹å´å¿…è¦çµŒé¨“å€¤ 0017:ã‚¸ãƒ§ãƒ–å´å¿…è¦çµŒé¨“å€¤
+	Î²1ã§ã¯00b0ã¯valãŒshortã€00b1ã¯valãŒlongã¨ã„ã†ä½¿ã„åˆ†ã‘ãŒã‚ã£ãŸã‚“ã ã‘ã©
+	ä»Šã¨ãªã£ã¦ã¯å·®ãŒç„¡ããªã£ã¦ã€ç›²è…¸ã¿ãŸã„ãªã‚‚ã®?
 S 00b2 <type>.B
-	type=00 Ž€–SŽžƒŠƒXƒ^[ƒg
-	type=01 ƒLƒƒƒ‰ƒZƒŒ—v‹
+	type=00 æ­»äº¡æ™‚ãƒªã‚¹ã‚¿ãƒ¼ãƒˆ
+	type=01 ã‚­ãƒ£ãƒ©ã‚»ãƒ¬è¦æ±‚
 R 00b3 <type>.B
-	type=01 ƒLƒƒƒ‰ƒZƒŒ‰ž“š
+	type=01 ã‚­ãƒ£ãƒ©ã‚»ãƒ¬å¿œç­”
 R 00b4 <len>.w <ID>.l <str>.?B
-	ID‚ÌNPC‚©‚ç‚ÌƒƒbƒZ[ƒW
+	IDã®NPCã‹ã‚‰ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
 R 00b5 <ID>.l
-	ID‚ÌNPC‚Æ‚ÌƒƒbƒZ[ƒWƒEƒBƒ“ƒhƒE‚É"NEXT"ƒAƒCƒRƒ“‚ðo‚·
+	IDã®NPCã¨ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«"NEXT"ã‚¢ã‚¤ã‚³ãƒ³ã‚’å‡ºã™
 R 00b6 <ID>.l
-	ID‚ÌNPC‚Æ‚ÌƒƒbƒZ[ƒWƒEƒBƒ“ƒhƒE‚É"CLOSE"ƒAƒCƒRƒ“‚ðo‚·
+	IDã®NPCã¨ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«"CLOSE"ã‚¢ã‚¤ã‚³ãƒ³ã‚’å‡ºã™
 R 00b7 <len>.w <ID>.l <str>.?B
-	ID‚ÌNPC‚Ì‰ï˜b‚Å‘I‘ð€–Ú•\Ž¦BŠe€–Ú‚Í':'‚Å‹æØ‚ç‚ê‚é
+	IDã®NPCã®ä¼šè©±ã§é¸æŠžé …ç›®è¡¨ç¤ºã€‚å„é …ç›®ã¯':'ã§åŒºåˆ‡ã‚‰ã‚Œã‚‹
 S 00b8 <ID>.l <select>.B
-	ID‚ÌNPC‚Ì‰ï˜b‚Ì‘I‘ðBŠe€–Ú‚É‡‚É1`‚ªU‚ç‚ê‚éBff‚ÅƒLƒƒƒ“ƒZƒ‹?
+	IDã®NPCã®ä¼šè©±ã®é¸æŠžã€‚å„é …ç›®ã«é †ã«1ã€œãŒæŒ¯ã‚‰ã‚Œã‚‹ã€‚ffã§ã‚­ãƒ£ãƒ³ã‚»ãƒ«?
 S 00b9 <ID>.l
-	ID‚ÌNPC‚Æ‚Ì‰ï˜bBNEXTƒ{ƒ^ƒ“‚ð‰Ÿ‚µ‚½
+	IDã®NPCã¨ã®ä¼šè©±ã€‚NEXTãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãŸ
 S 00bb <type>.w <amount>.B
-	ƒXƒe[ƒ^ƒXup—v‹Btype‚Í000d‚©‚ç0012‚ª‡‚ÉSTR,AGI,VIT,INT,DEX,LUK‚É‘Î‰ž
+	ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹upè¦æ±‚ã€‚typeã¯000dã‹ã‚‰0012ãŒé †ã«STR,AGI,VIT,INT,DEX,LUKã«å¯¾å¿œ
 R 00bc <type>.w <fail>.B <val>.B
-	ƒXƒe[ƒ^ƒXup‰ž“šBfail=01‚È‚ç¬Œ÷Btype‚Í00bb‚Æ“¯‚¶Bval‚Íã‚Á‚½Œã‚Ì”Žš
-	Ž¸”s—á‚ÍŒ©‚½Ž––³‚¢‚Ì‚Å“äBƒXƒe[ƒ^ƒXƒ|ƒCƒ“ƒg‚ª‘«‚è‚È‚¢ó‘Ô‚Å
-	00bb‚ð”­s‚Å‚«‚éƒNƒ‰ƒCƒAƒ“ƒg‚ª—L‚ê‚ÎAfail=00‚É‚È‚é‚Ì‚Å‚Í‚È‚¢‚©‚Æ—\‘z
+	ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹upå¿œç­”ã€‚fail=01ãªã‚‰æˆåŠŸã€‚typeã¯00bbã¨åŒã˜ã€‚valã¯ä¸Šã£ãŸå¾Œã®æ•°å­—
+	å¤±æ•—ä¾‹ã¯è¦‹ãŸäº‹ç„¡ã„ã®ã§è¬Žã€‚ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ãƒã‚¤ãƒ³ãƒˆãŒè¶³ã‚Šãªã„çŠ¶æ…‹ã§
+	00bbã‚’ç™ºè¡Œã§ãã‚‹ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆãŒæœ‰ã‚Œã°ã€fail=00ã«ãªã‚‹ã®ã§ã¯ãªã„ã‹ã¨äºˆæƒ³
 R 00bd <status point>.w <STR>.B <STRupP>.B <AGI>.B <AGIupP>.B <VIT>.B <VITupP>.B <INT>.B <INTupP>.B <DEX>.B <DEXupP>.B <LUK>.B <LUKupP>.B <ATK>.w <ATKbonus>.w <MATKmax>.w <MATKmin>.w <DEF>.w <DEFbonus>.w <MDEF>.w <MDEFbonus>.w <HIT>.w <FLEE>.w <FLEEbonus>.w <critical>.w ?.w
-	‚Ü‚Æ‚ß‚ÄƒXƒe[ƒ^ƒXî•ñ‚ð‘—‚éƒpƒPƒbƒg
+	ã¾ã¨ã‚ã¦ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹æƒ…å ±ã‚’é€ã‚‹ãƒ‘ã‚±ãƒƒãƒˆ
 R 00be <type>.w <val>.B
-	•K—vƒXƒe[ƒ^ƒXƒ|ƒCƒ“ƒgXVƒpƒPƒbƒgBtype‚Í0020`0025‚ª‡‚ÉSTR`LUK‚É‘Î‰ž
+	å¿…è¦ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹ãƒã‚¤ãƒ³ãƒˆæ›´æ–°ãƒ‘ã‚±ãƒƒãƒˆã€‚typeã¯0020ã€œ0025ãŒé †ã«STRã€œLUKã«å¯¾å¿œ
 S 00bf <type>.B
-	ƒGƒ‚[ƒVƒ‡ƒ“‚ðo‚·Btype‚Í00-0c(,0d)‚ªALT+1`ALT+9,ALT+0,ƒ`ƒ‡ƒL,ƒO[,ƒp[(,ŠØ‘Šø)‚É‘Î‰ž
-	00=!	01=?	02=‚¤‚ê‚µ‚¢(ô)	03=ƒn[ƒg	04=Š¾	05=‚ ‚Í‚Í(“d‹…)
-	06=‚¢‚â‚¾‚È(”)	07=“{‚è(‚à‚â‚à‚â)08=‚¨‹à()	09=c	0a=ƒ`ƒ‡ƒL
-	0b=ƒO[	0c=ƒp[	0d=ŠØ‘Šø	0e=‘å‚«‚¢ƒn[ƒg	0f=‚ ‚è‚ª‚Æ‚¤(thanks)
-	10=–³”O	11=‚²‚ß‚ñ(sorry)	12=Î‚¢	13=Š¾‚©‚«	14=‚ ‚Ì
-	15=Å‚(GoodJob)16=ƒLƒ‡ƒƒLƒ‡ƒ	17=ƒVƒ‡ƒbƒN	18=‚Ü‚é	19=ƒoƒc
-	1a=ƒwƒ‹ƒv(help)	1b=go	1c=‚¦[‚ñ	1d=‚­‚·‚­‚·	1e=‚¿‚ã
-	1f=‚¿‚ã‚¿‚ã	20=‚Ó‚ñ	21=‚¤‚ñ‚¤‚ñ
+	ã‚¨ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å‡ºã™ã€‚typeã¯00-0c(,0d)ãŒALT+1ã€œALT+9,ALT+0,ãƒãƒ§ã‚­,ã‚°ãƒ¼,ãƒ‘ãƒ¼(,éŸ“å›½æ——)ã«å¯¾å¿œ
+	00=!	01=?	02=ã†ã‚Œã—ã„(â™ª)	03=ãƒãƒ¼ãƒˆ	04=æ±—	05=ã‚ã¯ã¯(é›»çƒ)
+	06=ã„ã‚„ã ãª(ï¼ƒ)	07=æ€’ã‚Š(ã‚‚ã‚„ã‚‚ã‚„)08=ãŠé‡‘(ï¼„)	09=â€¦	0a=ãƒãƒ§ã‚­
+	0b=ã‚°ãƒ¼	0c=ãƒ‘ãƒ¼	0d=éŸ“å›½æ——	0e=å¤§ãã„ãƒãƒ¼ãƒˆ	0f=ã‚ã‚ŠãŒã¨ã†(thanks)
+	10=ç„¡å¿µ	11=ã”ã‚ã‚“(sorry)	12=ç¬‘ã„	13=æ±—ã‹ã	14=ã‚ã®
+	15=æœ€é«˜(GoodJob)16=ã‚­ãƒ§ãƒ­ã‚­ãƒ§ãƒ­	17=ã‚·ãƒ§ãƒƒã‚¯	18=ã¾ã‚‹	19=ãƒãƒ„
+	1a=ãƒ˜ãƒ«ãƒ—(help)	1b=go	1c=ãˆãƒ¼ã‚“	1d=ãã™ãã™	1e=ã¡ã‚…
+	1f=ã¡ã‚…ã¡ã‚…	20=ãµã‚“	21=ã†ã‚“ã†ã‚“
 R 00c0 <ID>.l <type>.B
-	ID‚Ìl‚ªƒGƒ‚[ƒVƒ‡ƒ“‚ðo‚µ‚½Btype‚Í00bf‚Æ“¯‚¶
+	IDã®äººãŒã‚¨ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å‡ºã—ãŸã€‚typeã¯00bfã¨åŒã˜
 S 00c1
-	loginl”–â‚¢‡‚í‚¹
+	loginäººæ•°å•ã„åˆã‚ã›
 R 00c2 <val>.l
-	loginl”‰ž“š
+	loginäººæ•°å¿œç­”
 R 00c3 <ID>.l <type>.B <val>.B
-	Œ©‚½–Ú•ÏXBtype‚Í00‚Å–{‘Ì(“]EŽž“™)A02‚ª•ŠíA03‚ª“ª(‰º)A04‚ª“ª(ã)A05‚ª“ª(’†)A08‚ª‚
+	è¦‹ãŸç›®å¤‰æ›´ã€‚typeã¯00ã§æœ¬ä½“(è»¢è·æ™‚ç­‰)ã€02ãŒæ­¦å™¨ã€03ãŒé ­(ä¸‹)ã€04ãŒé ­(ä¸Š)ã€05ãŒé ­(ä¸­)ã€08ãŒç›¾
 R 00c4 <ID>.l
-	˜b‚©‚¯‚½NPC‚ª¤l‚¾‚Á‚½‚Ì‚Åbuy/sell‘I‘ð‘‹o
+	è©±ã‹ã‘ãŸNPCãŒå•†äººã ã£ãŸã®ã§buy/sellé¸æŠžçª“å‡º
 R 00c5 <ID>.l <type>.B
-	buy/sell‘I‘ðBtype=00‚È‚çbuyBtype=01‚È‚çsell
+	buy/sellé¸æŠžã€‚type=00ãªã‚‰buyã€‚type=01ãªã‚‰sell
 R 00c6 <len>.w {<value>.l <DCvalue>.l <type>.B <item ID>.w}.11B*
-	NPC‚Ì‚¨“Xbuy‘I‘ðŽžBDCvalue‚Í¤lDCŒã‚Ì’l’i
+	NPCã®ãŠåº—buyé¸æŠžæ™‚ã€‚DCvalueã¯å•†äººDCå¾Œã®å€¤æ®µ
 R 00c7 <len>.w {<index>.w <value>.l <OCvalue>.l}.10B*
-	NPC‚Ì‚¨“Xsell‘I‘ðŽžBOCvalue‚Í¤lOCŒã‚Ì’l’i
+	NPCã®ãŠåº—sellé¸æŠžæ™‚ã€‚OCvalueã¯å•†äººOCå¾Œã®å€¤æ®µ
 S 00c8 <len>.w {<amount>.w <item ID>.w}.4B*
-	NPC‚Ì‚¨“X‚©‚ç”ƒ‚¤
+	NPCã®ãŠåº—ã‹ã‚‰è²·ã†
 S 00c9 <len>.w {<index>.w <amount>.w}.4B*
-	NPC‚Ì‚¨“X‚É”„‚é
+	NPCã®ãŠåº—ã«å£²ã‚‹
 R 00ca <type>.B
-	NPC‚©‚çw“üI—¹Btype=00¬Œ÷
+	NPCã‹ã‚‰è³¼å…¥çµ‚äº†ã€‚type=00æˆåŠŸ
 R 00cb <type>.B
-	NPC‚Ö”„‹pI—¹Btype=00¬Œ÷
+	NPCã¸å£²å´çµ‚äº†ã€‚type=00æˆåŠŸ
 S 00cc <ID>.l
-	GM—p‰EƒNƒŠƒbƒNƒƒjƒ…[uinamejŽg—pŽÒ‹­§I—¹vŽg—p
-R 00cd <IDH>.l
-	GM—p‰EƒNƒŠƒbƒNƒƒjƒ…[uinamejŽg—pŽÒ‹­§I—¹v‚Ì‰ž“š
-	<ID>‚ª0‚Ìê‡‚ÍŽ¸”s‚Æ•\Ž¦B(‚±‚ÌƒpƒPƒbƒg‚Í‚½‚¾‚Ì‰ž“š‚Å‚·BÚ‘±I—¹‚Ì‹@”\‚Í‚ ‚è‚Ü‚¹‚ñB)
+	GMç”¨å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã€Œï¼ˆnameï¼‰ä½¿ç”¨è€…å¼·åˆ¶çµ‚äº†ã€ä½¿ç”¨
+R 00cd <IDï¼Ÿ>.l
+	GMç”¨å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã€Œï¼ˆnameï¼‰ä½¿ç”¨è€…å¼·åˆ¶çµ‚äº†ã€ã®å¿œç­”
+	<ID>ãŒ0ã®å ´åˆã¯å¤±æ•—ã¨è¡¨ç¤ºã€‚(ã“ã®ãƒ‘ã‚±ãƒƒãƒˆã¯ãŸã ã®å¿œç­”ã§ã™ã€‚æŽ¥ç¶šçµ‚äº†ã®æ©Ÿèƒ½ã¯ã‚ã‚Šã¾ã›ã‚“ã€‚)
 S 00cf <nick>.24B <type>.B
-	type=00 nick‚©‚ç‚Ì”­Œ¾Žó‚¯•t‚¯‹‘”Û (/ex nick)
-	type=01 nick‚©‚ç‚Ì”­Œ¾Žó‚¯•t‚¯‹–‰Â (/in nick)
+	type=00 nickã‹ã‚‰ã®ç™ºè¨€å—ã‘ä»˜ã‘æ‹’å¦ (/ex nick)
+	type=01 nickã‹ã‚‰ã®ç™ºè¨€å—ã‘ä»˜ã‘è¨±å¯ (/in nick)
 S 00d0 <type>len.B
-	type=00 ‘S‚Ä‚Ì”­Œ¾Žó‚¯•t‚¯‹‘”Û (/exall)
-	type=01 ‘S‚Ä‚Ì”­Œ¾Žó‚¯•t‚¯‹–‰Â (/inall)
+	type=00 å…¨ã¦ã®ç™ºè¨€å—ã‘ä»˜ã‘æ‹’å¦ (/exall)
+	type=01 å…¨ã¦ã®ç™ºè¨€å—ã‘ä»˜ã‘è¨±å¯ (/inall)
 R 00d1 <type>.B <fail>.B
-	fail=00 ”­Œ¾Žó‚¯•t‚¯‹‘”Û¬Œ÷
-	fail=01 ”­Œ¾Žó‚¯•t‚¯‹‘”ÛŽ¸”s
+	fail=00 ç™ºè¨€å—ã‘ä»˜ã‘æ‹’å¦æˆåŠŸ
+	fail=01 ç™ºè¨€å—ã‘ä»˜ã‘æ‹’å¦å¤±æ•—
 R 00d2 <type>.B <fail>.B
-	fail=00 ‘S”­Œ¾Žó‚¯•t‚¯‹‘”Û¬Œ÷
-	fail=01 ‘S”­Œ¾Žó‚¯•t‚¯‹‘”ÛŽ¸”s
+	fail=00 å…¨ç™ºè¨€å—ã‘ä»˜ã‘æ‹’å¦æˆåŠŸ
+	fail=01 å…¨ç™ºè¨€å—ã‘ä»˜ã‘æ‹’å¦å¤±æ•—
 S 00d5 <len>.w <limit>.w <pub>.B <passwd>.8B <title>.?B
-	ƒ`ƒƒƒbƒg—§‚ÄB‚±‚±‚©‚çƒ`ƒƒƒbƒgŠÖŒW‚ª‘±‚­‚¯‚Ç’²‚×‚ªŠÃ‚¢‚Ì‚Å•âŠ®‚æ‚ë
+	ãƒãƒ£ãƒƒãƒˆç«‹ã¦ã€‚ã“ã“ã‹ã‚‰ãƒãƒ£ãƒƒãƒˆé–¢ä¿‚ãŒç¶šãã‘ã©èª¿ã¹ãŒç”˜ã„ã®ã§è£œå®Œã‚ˆã‚
 R 00d6 <fail>.B
-	ƒ`ƒƒƒbƒg—§‚Ä‰ž“š
+	ãƒãƒ£ãƒƒãƒˆç«‹ã¦å¿œç­”
 R 00d7 <len>.w <owner ID>.l <chat ID>.l <limit>.w <users>.w <pub>.B <title>.?B
-	‰æ–Ê“àƒ`ƒƒƒbƒgî•ñ
+	ç”»é¢å†…ãƒãƒ£ãƒƒãƒˆæƒ…å ±
 R 00d8 <chat ID>.l
-	ƒ`ƒƒƒbƒgÁ‹Ž
+	ãƒãƒ£ãƒƒãƒˆæ¶ˆåŽ»
 S 00d9 <chat ID>.l <passwd>.8B
-	ƒ`ƒƒƒbƒgŽQ‰Á—v¿
+	ãƒãƒ£ãƒƒãƒˆå‚åŠ è¦è«‹
 R 00da <fail>.B
-	ƒ`ƒƒƒbƒgŽQ‰ÁŽ¸”s
+	ãƒãƒ£ãƒƒãƒˆå‚åŠ å¤±æ•—
 R 00db <len>.w <chat ID>.l {<index>.l <nick>.24B}.28B*
-	ƒ`ƒƒƒbƒgŽQ‰ÁŽÒƒŠƒXƒg
+	ãƒãƒ£ãƒƒãƒˆå‚åŠ è€…ãƒªã‚¹ãƒˆ
 R 00dc <users>.w <nick>.24B
-	ƒ`ƒƒƒbƒg‚Ö‚ÌŽQ‰ÁŽÒ’Ç‰Á(?)
+	ãƒãƒ£ãƒƒãƒˆã¸ã®å‚åŠ è€…è¿½åŠ (?)
 R 00dd <index>.w <nick>.24B <fail>.B
-	ƒ`ƒƒƒbƒg‚©‚çŽQ‰ÁŽÒ”²‚¯
+	ãƒãƒ£ãƒƒãƒˆã‹ã‚‰å‚åŠ è€…æŠœã‘
 S 00de <len>.w <limit>.w <pub>.B <passwd>.8B <title>.?B
-	ƒ`ƒƒƒbƒgƒXƒe[ƒ^ƒX•ÏX
+	ãƒãƒ£ãƒƒãƒˆã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹å¤‰æ›´
 R 00df <len>.w <owner ID>.l <chat ID>.l <limit>.w <users>.w <pub>.B <title>.?B
-	ƒ`ƒƒƒbƒgƒXƒe[ƒ^ƒX•ÏX¬Œ÷
+	ãƒãƒ£ãƒƒãƒˆã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹å¤‰æ›´æˆåŠŸ
 S 00e0 ?.l <nick>.24B
-	ƒ`ƒƒƒbƒgƒ‹[ƒ€Š—LŽÒ•ÏX—v‹?
+	ãƒãƒ£ãƒƒãƒˆãƒ«ãƒ¼ãƒ æ‰€æœ‰è€…å¤‰æ›´è¦æ±‚?
 R 00e1 <index>.l <nick>.24B
-	ƒ`ƒƒƒbƒgŽQ‰ÁŽÒ”Ô†•t‚¯’¼‚µ?
+	ãƒãƒ£ãƒƒãƒˆå‚åŠ è€…ç•ªå·ä»˜ã‘ç›´ã—?
 S 00e2 <nick>.24B
-	ƒ`ƒƒƒbƒgkick
+	ãƒãƒ£ãƒƒãƒˆkick
 S 00e3
-	ƒ`ƒƒƒbƒg”²‚¯
+	ãƒãƒ£ãƒƒãƒˆæŠœã‘
 S 00e4 <ID>.l
-	Žæ‚èˆø‚«—v‹
+	å–ã‚Šå¼•ãè¦æ±‚
 R 00e5 <nick>.24B
-	Žæ‚èˆø‚«—v¿Žó‚¯
+	å–ã‚Šå¼•ãè¦è«‹å—ã‘
 S 00e6 <type>.B
-	type=03 Žæ‚èˆø‚«—v¿ok
-	type=04 Žæ‚èˆø‚«—v¿ƒLƒƒƒ“ƒZƒ‹
+	type=03 å–ã‚Šå¼•ãè¦è«‹ok
+	type=04 å–ã‚Šå¼•ãè¦è«‹ã‚­ãƒ£ãƒ³ã‚»ãƒ«
 R 00e7 <fail>.B
-	Žæ‚èˆø‚«—v‹‰ž“š
-	fail=00 ‹——£‚ª‰“‰ß‚¬
-	fail=03 —v¿Žó‚¯‚Ä‚­‚ê‚½
-	fail=04 ƒLƒƒƒ“ƒZƒ‹‚³‚ê‚½?
+	å–ã‚Šå¼•ãè¦æ±‚å¿œç­”
+	fail=00 è·é›¢ãŒé éŽãŽ
+	fail=03 è¦è«‹å—ã‘ã¦ãã‚ŒãŸ
+	fail=04 ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã•ã‚ŒãŸ?
 S 00e8 <index>.w <amount>.l
-	ƒAƒCƒeƒ€’Ç‰ÁBindex=0‚Åzeny’Ç‰ÁB³‹KƒNƒ‰ƒCƒAƒ“ƒg‚Å‚Ízeny‚Í00eb‚Ì’¼‘O‚Ì‚Ý
+	ã‚¢ã‚¤ãƒ†ãƒ è¿½åŠ ã€‚index=0ã§zenyè¿½åŠ ã€‚æ­£è¦ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆã§ã¯zenyã¯00ebã®ç›´å‰ã®ã¿
 R 00e9 <amount>.l <type ID>.w <identify flag>.B <attribute?>.B <refine>.B <card>.4w
-	‘ŠŽè•û‚©‚ç‚ÌƒAƒCƒeƒ€’Ç‰Á
+	ç›¸æ‰‹æ–¹ã‹ã‚‰ã®ã‚¢ã‚¤ãƒ†ãƒ è¿½åŠ 
 R 00ea <index>.w <fail>.B
-	fail=00 ƒAƒCƒeƒ€’Ç‰Á¬Œ÷
-	fail=01 ’Ç‰ÁŽ¸”sB‘ŠŽè‘¤d—ÊƒI[ƒo
+	fail=00 ã‚¢ã‚¤ãƒ†ãƒ è¿½åŠ æˆåŠŸ
+	fail=01 è¿½åŠ å¤±æ•—ã€‚ç›¸æ‰‹å´é‡é‡ã‚ªãƒ¼ãƒ
 S 00eb
-	ƒAƒCƒeƒ€’Ç‰ÁŠ®—¹(ok‰Ÿ‚µ)
+	ã‚¢ã‚¤ãƒ†ãƒ è¿½åŠ å®Œäº†(okæŠ¼ã—)
 R 00ec <fail>.B
-	fail=00 Ž©•ª‚©‚ç‚ÌokŽó—Ì
-	fail=01 ‘ŠŽè‚©‚ç‚ÌokŽó—Ì
+	fail=00 è‡ªåˆ†ã‹ã‚‰ã®okå—é ˜
+	fail=01 ç›¸æ‰‹ã‹ã‚‰ã®okå—é ˜
 S 00ed
-	Žæ‚èˆø‚«ƒLƒƒƒ“ƒZƒ‹
+	å–ã‚Šå¼•ãã‚­ãƒ£ãƒ³ã‚»ãƒ«
 R 00ee
-	Žæ‚èˆø‚«‚ªƒLƒƒƒ“ƒZƒ‹‚³‚ê‚Ü‚µ‚½
+	å–ã‚Šå¼•ããŒã‚­ãƒ£ãƒ³ã‚»ãƒ«ã•ã‚Œã¾ã—ãŸ
 S 00ef
-	Žæ‚èˆø‚«‹–‘ø(trade‰Ÿ‚µ)
+	å–ã‚Šå¼•ãè¨±è«¾(tradeæŠ¼ã—)
 R 00f0
-	Žæ‚èˆø‚«Š®—¹
+	å–ã‚Šå¼•ãå®Œäº†
 R 00f2 <num>.w <limit>.w
-	ƒJƒvƒ‰‚³‚ñ‹–—eƒAƒCƒeƒ€ŒÂ”&Œ»ó
+	ã‚«ãƒ—ãƒ©ã•ã‚“è¨±å®¹ã‚¢ã‚¤ãƒ†ãƒ å€‹æ•°&ç¾çŠ¶
 S 00f3 <index>.w <amount>.l
-	ƒJƒvƒ‰‚³‚ñ‘qŒÉ‚ÉƒAƒCƒeƒ€•ú‚èž‚Ý
+	ã‚«ãƒ—ãƒ©ã•ã‚“å€‰åº«ã«ã‚¢ã‚¤ãƒ†ãƒ æ”¾ã‚Šè¾¼ã¿
 R 00f4 <index>.w <amount>.l <type ID>.w <identify flag>.B <attribute?>.B <refine>.B <card>.4w
-	ƒJƒvƒ‰‚³‚ñ‘qŒÉ‚ÌƒAƒCƒeƒ€’Ç‰Á
+	ã‚«ãƒ—ãƒ©ã•ã‚“å€‰åº«ã®ã‚¢ã‚¤ãƒ†ãƒ è¿½åŠ 
 S 00f5 <index>.w <amount>.l
-	ƒJƒvƒ‰‚³‚ñ‘qŒÉ‚©‚çƒAƒCƒeƒ€Žæ‚èo‚µ—v‹
+	ã‚«ãƒ—ãƒ©ã•ã‚“å€‰åº«ã‹ã‚‰ã‚¢ã‚¤ãƒ†ãƒ å–ã‚Šå‡ºã—è¦æ±‚
 R 00f6 <index>.w <amount>.l
-	ƒJƒvƒ‰‚³‚ñ‘qŒÉ‚©‚çƒAƒCƒeƒ€Žæ‚èo‚µ‰ž“š
+	ã‚«ãƒ—ãƒ©ã•ã‚“å€‰åº«ã‹ã‚‰ã‚¢ã‚¤ãƒ†ãƒ å–ã‚Šå‡ºã—å¿œç­”
 S 00f7
-	ƒJƒvƒ‰‚³‚ñ‘qŒÉ•Â‚¶—v‹
+	ã‚«ãƒ—ãƒ©ã•ã‚“å€‰åº«é–‰ã˜è¦æ±‚
 R 00f8
-	ƒJƒvƒ‰‚³‚ñ‘qŒÉ•Â‚¶‰ž“š
+	ã‚«ãƒ—ãƒ©ã•ã‚“å€‰åº«é–‰ã˜å¿œç­”
 S 00f9 <party name>.24B
-	ƒp[ƒeƒBì¬—v‹
+	ãƒ‘ãƒ¼ãƒ†ã‚£ä½œæˆè¦æ±‚
 R 00fa <fail>.B
-	ƒp[ƒeƒBì¬‰ž“š
-	fail=00 uƒp[ƒeƒB[‚ðŒ‹¬‚µ‚Ü‚µ‚½Bv
-	fail=01 u“¯‚¶–¼‘O‚Ìƒp[ƒeƒB[‚ª‚ ‚è‚Ü‚·Bv
-	fail=02 u‚·‚Å‚Éƒp[ƒeƒB[‚É‰Á“ü‚µ‚Ä‚¢‚Ü‚·Bv
+	ãƒ‘ãƒ¼ãƒ†ã‚£ä½œæˆå¿œç­”
+	fail=00 ã€Œãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¼ã‚’çµæˆã—ã¾ã—ãŸã€‚ã€
+	fail=01 ã€ŒåŒã˜åå‰ã®ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¼ãŒã‚ã‚Šã¾ã™ã€‚ã€
+	fail=02 ã€Œã™ã§ã«ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¼ã«åŠ å…¥ã—ã¦ã„ã¾ã™ã€‚ã€
 R 00fb <len>.w <party name>.24B {<ID>.l <nick>.24B <map name>.16B <leader>.B <offline>.B}.46B*
-	ƒp[ƒeƒBî•ñ‚Ü‚Æ‚ß‚Ä‘—‚è
+	ãƒ‘ãƒ¼ãƒ†ã‚£æƒ…å ±ã¾ã¨ã‚ã¦é€ã‚Š
 S 00fc <ID>.l
-	ƒp[ƒeƒBŠ©—U‚·‚é
+	ãƒ‘ãƒ¼ãƒ†ã‚£å‹§èª˜ã™ã‚‹
 R 00fd <nick>.24B <fail>.B
-	fail=00 ‘ŠŽè‚ÍŠù‚Éƒp[ƒeƒB‚É“ü‚Á‚Ä‚¢‚½
-	fail=01 ‘ŠŽè‚É‹‘”Û‚³‚ê‚½
-	fail=02 Š©—U¬Œ÷
+	fail=00 ç›¸æ‰‹ã¯æ—¢ã«ãƒ‘ãƒ¼ãƒ†ã‚£ã«å…¥ã£ã¦ã„ãŸ
+	fail=01 ç›¸æ‰‹ã«æ‹’å¦ã•ã‚ŒãŸ
+	fail=02 å‹§èª˜æˆåŠŸ
 R 00fe <ID>.l <party name>.24B
-	ƒp[ƒeƒB‚É—U‚í‚ê‚½
+	ãƒ‘ãƒ¼ãƒ†ã‚£ã«èª˜ã‚ã‚ŒãŸ
 S 00ff <ID>.l <fail>.l
-	ƒp[ƒeƒB‚É—U‚í‚ê‚½Žž‚Ì•Ô“šBfail=1 ok•Ô“š?
+	ãƒ‘ãƒ¼ãƒ†ã‚£ã«èª˜ã‚ã‚ŒãŸæ™‚ã®è¿”ç­”ã€‚fail=1 okè¿”ç­”?
 S 0100
-	ƒp[ƒeƒB’E‘Þ—v‹
+	ãƒ‘ãƒ¼ãƒ†ã‚£è„±é€€è¦æ±‚
 R 0101 <exp>.w <item?>.w
-	ƒp[ƒeƒBÝ’èŒ»ó? exp=2‚Ìê‡‚ÍŒö•½”z•ªÝ’èŽ¸”s?
+	ãƒ‘ãƒ¼ãƒ†ã‚£è¨­å®šç¾çŠ¶? exp=2ã®å ´åˆã¯å…¬å¹³é…åˆ†è¨­å®šå¤±æ•—?
 S 0102 <exp>.w <item?>.w
-	ƒp[ƒeƒBÝ’è•ÏX
+	ãƒ‘ãƒ¼ãƒ†ã‚£è¨­å®šå¤‰æ›´
 R 0104 <ID>.l ?.l <X>.w <Y>.w <offline>.B <party name>.24B <nick>.24B <map name>.16B
-	ƒp[ƒeƒB1l•ªî•ñXV
+	ãƒ‘ãƒ¼ãƒ†ã‚£1äººåˆ†æƒ…å ±æ›´æ–°
 R 0105 <ID>.l <nick>.24B <fail>.B
-	nick‚³‚ñ‚ªƒp[ƒeƒB‚©‚ç—£’E
+	nickã•ã‚“ãŒãƒ‘ãƒ¼ãƒ†ã‚£ã‹ã‚‰é›¢è„±
 R 0106 <ID>,l <HP>.w <MaxHP>.w
-	ƒp[ƒeƒBƒƒ“ƒoHPXV
+	ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¡ãƒ³ãƒHPæ›´æ–°
 R 0107 <ID>.l <X>.w <Y>.w
-	ƒp[ƒeƒBƒƒ“ƒoˆÊ’uXV
+	ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¡ãƒ³ãƒä½ç½®æ›´æ–°
 S 0108 <len>.w <message>.?B
-	ƒp[ƒeƒB“à”­Œ¾
+	ãƒ‘ãƒ¼ãƒ†ã‚£å†…ç™ºè¨€
 R 0109 <len>.w <ID>.l <message>.?B
-	ƒp[ƒeƒB“à”­Œ¾ŽóM
+	ãƒ‘ãƒ¼ãƒ†ã‚£å†…ç™ºè¨€å—ä¿¡
 R 010a <type ID>.w
-	MVPƒAƒCƒeƒ€Žæ“¾
+	MVPã‚¢ã‚¤ãƒ†ãƒ å–å¾—
 R 010b <exp>.l
-	MVPŒoŒ±’lŽæ“¾
+	MVPçµŒé¨“å€¤å–å¾—
 R 010c <ID>.l
-	MVPƒLƒƒƒ‰•\Ž¦
+	MVPã‚­ãƒ£ãƒ©è¡¨ç¤º
 R 010e <skill ID>.w <lv>.w <sp>.w <range>.w <up>.B
-	ƒXƒLƒ‹î•ñXVBsp‚Í–¢Žg—p?
+	ã‚¹ã‚­ãƒ«æƒ…å ±æ›´æ–°ã€‚spã¯æœªä½¿ç”¨?
 R 010f <len>.w {<skill ID>.w <target type>.w ?.w <lv>.w <sp>.w <range>.w <skill name>.24B <up>.B}.37B*
-	ƒXƒLƒ‹î•ñ‚Ì‰òBskill name‚Íˆê•”—¬‚ê‚Ä—ˆ‚È‚¢•¨‚ª‚ ‚é„AL_PNEUMA,PR_SLOWPOISON“™
-	target type‚Í0-ƒpƒbƒVƒuA1-“GA2-êŠA4-‘¦Žž”­“®A16-–¡•û
-	lv=0 up=0‚Ìê‡‚ÍƒŠƒXƒg‚Éo‚µ‚Ä‚È‚¢?
+	ã‚¹ã‚­ãƒ«æƒ…å ±ã®å¡Šã€‚skill nameã¯ä¸€éƒ¨æµã‚Œã¦æ¥ãªã„ç‰©ãŒã‚ã‚‹ï¼žAL_PNEUMA,PR_SLOWPOISONç­‰
+	target typeã¯0-ãƒ‘ãƒƒã‚·ãƒ–ã€1-æ•µã€2-å ´æ‰€ã€4-å³æ™‚ç™ºå‹•ã€16-å‘³æ–¹
+	lv=0 up=0ã®å ´åˆã¯ãƒªã‚¹ãƒˆã«å‡ºã—ã¦ãªã„?
 R 0110 <skill ID>.w <basic type>.w ?.w <fail>.B <type>.B
-	fail=00‚ÌŽž‚ÉƒXƒLƒ‹—˜—pŽ¸”s?
-	type 00:basic type‚Ì•û 01:SP•s‘« 02:HP•s‘« 03:memo–³‚µ 04:delay’†
-	05:‚¨‹à–³‚µ(‚ß‚Ü[) 06:•Ší‚ª‚æ‚ë‚µ‚­‚È‚¢ 07:ÔƒWƒFƒ€–³‚µ 08:ÂƒWƒFƒ€–³‚µ 09:“ä
-	basic type 00:Žæ‚èˆø‚« 01:emotion 02:À‚è 03:ƒ`ƒƒƒbƒg 04:ƒp[ƒeƒB
-	05:shout? 06:PK 07:ƒ}ƒi[ƒ|ƒCƒ“ƒg
+	fail=00ã®æ™‚ã«ã‚¹ã‚­ãƒ«åˆ©ç”¨å¤±æ•—?
+	type 00:basic typeã®æ–¹ 01:SPä¸è¶³ 02:HPä¸è¶³ 03:memoç„¡ã— 04:delayä¸­
+	05:ãŠé‡‘ç„¡ã—(ã‚ã¾ãƒ¼) 06:æ­¦å™¨ãŒã‚ˆã‚ã—ããªã„ 07:èµ¤ã‚¸ã‚§ãƒ ç„¡ã— 08:é’ã‚¸ã‚§ãƒ ç„¡ã— 09:è¬Ž
+	basic type 00:å–ã‚Šå¼•ã 01:emotion 02:åº§ã‚Š 03:ãƒãƒ£ãƒƒãƒˆ 04:ãƒ‘ãƒ¼ãƒ†ã‚£
+	05:shout? 06:PK 07:ãƒžãƒŠãƒ¼ãƒã‚¤ãƒ³ãƒˆ
 R 0111 <skill ID>.w <target type>.w ?.w <lv>.w <sp>.w <range>.w <skill name>.24B <up>.B
-	010f‚Ì1‚Â•ªBƒÀ2‚¾‚Æ–¢Žg—p?
-	20040415“]EŽž‚ÉŠÏ‘ª
+	010fã®1ã¤åˆ†ã€‚Î²2ã ã¨æœªä½¿ç”¨?
+	20040415è»¢è·æ™‚ã«è¦³æ¸¬
 S 0112 <skill ID>.w
-	ƒXƒLƒ‹lvup—v‹
+	ã‚¹ã‚­ãƒ«lvupè¦æ±‚
 S 0113 <level>.w <skill ID>.w <ID>.l
-	ID‚ðƒ^[ƒQƒbƒg‚Éskill‚ðŽg‚¤
+	IDã‚’ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã«skillã‚’ä½¿ã†
 R 0114 <skill ID>.w <src ID>.l <dst ID>.l <server tick>.l <src speed>.l <dst speed>.l <param1>.w <param2>.w <param3>.w <type>.B
-	UŒ‚ŒnƒXƒLƒ‹ƒGƒtƒFƒNƒg@
-	type=04 ‰Î•Ç‚ÅŠÏ‘ª type=06‚Æ‚Ù‚Ú“¯‚¶?
-	type=05 NB/FBl‚Ì•ªŽU‚µ‚½ƒ_ƒ[ƒW—pH
-	type=06 ’P”­‚à‚Ì? param1‚Íƒ_ƒ[ƒW‡ŒvAparam2‚ÍlevelAparam3‚Í1ŒÅ’è‚Æ—\‘z
-	type=07 ƒ_ƒ[ƒW•\Ž¦–³‚µH
-	type=08 ˜A‘Å‚à‚Ì? param1‚Íƒ_ƒ[ƒW‡ŒvAparam2‚ÍlevelAparam3‚Í•ªŠ„”‚Æ—\‘z
-	type=09 ƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚È‚µ‚Éƒ_ƒ[ƒW‚¾‚¯•\Ž¦‚³‚ê‚é•¨(ƒCƒ“ƒfƒ…ƒA)‚ÆŽv‚Á‚½‚Ì‚¾‚ªƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚ªo‚é•¨B(‹@”\‚Í“ä)
+	æ”»æ’ƒç³»ã‚¹ã‚­ãƒ«ã‚¨ãƒ•ã‚§ã‚¯ãƒˆ@
+	type=04 ç«å£ã§è¦³æ¸¬ type=06ã¨ã»ã¼åŒã˜?
+	type=05 NB/FBlã®åˆ†æ•£ã—ãŸãƒ€ãƒ¡ãƒ¼ã‚¸ç”¨ï¼Ÿ
+	type=06 å˜ç™ºã‚‚ã®? param1ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸åˆè¨ˆã€param2ã¯levelã€param3ã¯1å›ºå®šã¨äºˆæƒ³
+	type=07 ãƒ€ãƒ¡ãƒ¼ã‚¸è¡¨ç¤ºç„¡ã—ï¼Ÿ
+	type=08 é€£æ‰“ã‚‚ã®? param1ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸åˆè¨ˆã€param2ã¯levelã€param3ã¯åˆ†å‰²æ•°ã¨äºˆæƒ³
+	type=09 ãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãªã—ã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã ã‘è¡¨ç¤ºã•ã‚Œã‚‹ç‰©(ã‚¤ãƒ³ãƒ‡ãƒ¥ã‚¢)ã¨æ€ã£ãŸã®ã ãŒãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãŒå‡ºã‚‹ç‰©ã€‚(æ©Ÿèƒ½ã¯è¬Ž)
 R 0115 <skill ID>.w <src ID>.l <dst ID>.l <server tick>.l <src speed>.l <dst speed>.l <X>.w <Y>.w <param1>.w <param2>.w <param3>.w <type>.B
-	’e‚«”ò‚Î‚µ—L‚èUŒ‚ŒnƒXƒLƒ‹ƒGƒtƒFƒNƒg
-	type=05 ƒ_ƒ[ƒW&’e‚«”ò‚Î‚µBparam1‚Íƒ_ƒ[ƒW‡ŒvAparam2‚ÍlevelAparam3‚Í•ªŠ„”‚Æ—\‘z
-	type=06 ”šS’n? ­‚È‚­‚Æ‚àparam1‚ÍƒSƒ~‚Ì–Í—l
-	type=09 ƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚È‚µ‚Éƒ_ƒ[ƒW‚¾‚¯•\Ž¦‚³‚ê‚é•¨(ƒCƒ“ƒfƒ…ƒA)‚ÆŽv‚Á‚½‚Ì‚¾‚ªƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚ªo‚é•¨B(‹@”\‚Í“ä)
+	å¼¾ãé£›ã°ã—æœ‰ã‚Šæ”»æ’ƒç³»ã‚¹ã‚­ãƒ«ã‚¨ãƒ•ã‚§ã‚¯ãƒˆ
+	type=05 ãƒ€ãƒ¡ãƒ¼ã‚¸&å¼¾ãé£›ã°ã—ã€‚param1ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸åˆè¨ˆã€param2ã¯levelã€param3ã¯åˆ†å‰²æ•°ã¨äºˆæƒ³
+	type=06 çˆ†å¿ƒåœ°? å°‘ãªãã¨ã‚‚param1ã¯ã‚´ãƒŸã®æ¨¡æ§˜
+	type=09 ãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãªã—ã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã ã‘è¡¨ç¤ºã•ã‚Œã‚‹ç‰©(ã‚¤ãƒ³ãƒ‡ãƒ¥ã‚¢)ã¨æ€ã£ãŸã®ã ãŒãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãŒå‡ºã‚‹ç‰©ã€‚(æ©Ÿèƒ½ã¯è¬Ž)
 S 0116 <level>.w <skill ID>.w <X>.w <Y>.w
-	(X,Y)‚ðƒ^[ƒQƒbƒg‚Éskill‚ðŽg‚¤
+	(X,Y)ã‚’ã‚¿ãƒ¼ã‚²ãƒƒãƒˆã«skillã‚’ä½¿ã†
 R 0117 <skill ID>.w <src ID>.l <val>.w <X>.w <Y>.w <server tick>.l
-	êŠ‘ŠŽè‚ÌƒXƒLƒ‹ƒGƒtƒFƒNƒg•\Ž¦Bval‚ÍƒŒƒxƒ‹‚©Aˆê•”ŒÅ‚³?(•X•Ç)
+	å ´æ‰€ç›¸æ‰‹ã®ã‚¹ã‚­ãƒ«ã‚¨ãƒ•ã‚§ã‚¯ãƒˆè¡¨ç¤ºã€‚valã¯ãƒ¬ãƒ™ãƒ«ã‹ã€ä¸€éƒ¨å›ºã•?(æ°·å£)
 S 0118
-	UŒ‚ƒLƒƒƒ“ƒZƒ‹
+	æ”»æ’ƒã‚­ãƒ£ãƒ³ã‚»ãƒ«
 R 0119 <ID>.l <param1>.w <param2>.w <param3>.w ?.B
-	Œ©‚½–Ú•ÏX
-	param1=02 ƒtƒƒXƒgƒ_ƒCƒo‚Å“€‚è’Ð‚¯?
-	param2=01 “Å?
-	param2=20 ANGELUSó‘Ô?
-	param3=01 ƒTƒCƒg‚©ƒ‹ƒƒbƒ`?
-	param3=0b ƒnƒCƒfƒBƒ“ƒOó‘Ô?
-	param3=0b ƒNƒ[ƒLƒ“ƒOó‘Ô?
-	param3=0d ƒJ[ƒg•t‚«
-	param3=0e ‘é•t‚«
-	param3=0f ƒyƒRƒyƒRæ‚è
+	è¦‹ãŸç›®å¤‰æ›´
+	param1=02 ãƒ•ãƒ­ã‚¹ãƒˆãƒ€ã‚¤ãƒã§å‡ã‚Šæ¼¬ã‘?
+	param2=01 æ¯’?
+	param2=20 ANGELUSçŠ¶æ…‹?
+	param3=01 ã‚µã‚¤ãƒˆã‹ãƒ«ãƒ¯ãƒƒãƒ?
+	param3=0b ãƒã‚¤ãƒ‡ã‚£ãƒ³ã‚°çŠ¶æ…‹?
+	param3=0b ã‚¯ãƒ­ãƒ¼ã‚­ãƒ³ã‚°çŠ¶æ…‹?
+	param3=0d ã‚«ãƒ¼ãƒˆä»˜ã
+	param3=0e é·¹ä»˜ã
+	param3=0f ãƒšã‚³ãƒšã‚³ä¹—ã‚Š
 
 R 011a <skill ID>.w <val>.w <dst ID>.l <src ID>.l <fail>.B
-	”ñƒ_ƒ[ƒWŒnƒXƒLƒ‹•\Ž¦Bƒq[ƒ‹‚Ìê‡val‚Í‰ñ•œ—Ê
-	fail=00‚Ìê‡Ž¸”s‚Û‚¢‚ªAƒXƒ`[ƒ‹ˆÈŠO‚Å‚ÍŒ©‚½Ž––³‚µ
+	éžãƒ€ãƒ¡ãƒ¼ã‚¸ç³»ã‚¹ã‚­ãƒ«è¡¨ç¤ºã€‚ãƒ’ãƒ¼ãƒ«ã®å ´åˆvalã¯å›žå¾©é‡
+	fail=00ã®å ´åˆå¤±æ•—ã½ã„ãŒã€ã‚¹ãƒãƒ¼ãƒ«ä»¥å¤–ã§ã¯è¦‹ãŸäº‹ç„¡ã—
 S 011b <skill ID>.w <map name>.16B
-	011c‚Ö‚Ì‰ž“šBŽg‚í‚È‚¢ê‡"cancel"Aƒ}ƒbƒv“àƒ‰ƒ“ƒ_ƒ€‚Ìê‡"Random"‚ð‘—‚é
+	011cã¸ã®å¿œç­”ã€‚ä½¿ã‚ãªã„å ´åˆ"cancel"ã€ãƒžãƒƒãƒ—å†…ãƒ©ãƒ³ãƒ€ãƒ ã®å ´åˆ"Random"ã‚’é€ã‚‹
 R 011c <skill ID>.w <map1>.16B <map2>.16B <map3>.16B <map4>.16B
-	ƒeƒŒƒ|/ƒ|ƒ^‚ÌêŠ‘I‘ðB
-	ƒeƒŒƒ|‚Ìê‡ARandom/ƒZ[ƒuêŠAƒ|ƒ^‚Ìê‡AƒZ[ƒuêŠ/memo1/memo2/memo3‚Æ‚È‚é
-	ƒ}ƒbƒv–¼‚Ì‚Ý‘—‚ç‚ê‚é
+	ãƒ†ãƒ¬ãƒ/ãƒã‚¿ã®å ´æ‰€é¸æŠžã€‚
+	ãƒ†ãƒ¬ãƒã®å ´åˆã€Random/ã‚»ãƒ¼ãƒ–å ´æ‰€ã€ãƒã‚¿ã®å ´åˆã€ã‚»ãƒ¼ãƒ–å ´æ‰€/memo1/memo2/memo3ã¨ãªã‚‹
+	ãƒžãƒƒãƒ—åã®ã¿é€ã‚‰ã‚Œã‚‹
 S 011d
-	Œ»Ý‹‚éŠ‚ðƒƒ‚—v‹
+	ç¾åœ¨å±…ã‚‹æ‰€ã‚’ãƒ¡ãƒ¢è¦æ±‚
 R 011e <fail>.B
-	fail=00 ƒƒ‚¬Œ÷
-	fail=01 ƒƒ‚Ž¸”s
+	fail=00 ãƒ¡ãƒ¢æˆåŠŸ
+	fail=01 ãƒ¡ãƒ¢å¤±æ•—
 R 011f <dst ID>.l <src ID>.l <X>.w <Y>.w <type>.B <fail>.B
-	ƒXƒLƒ‹Œø”\’nì¬
-	type 7e:SW 7f:‰Î•Ç 80:ƒ|ƒ^”­“®’† 81:ƒ|ƒ^”­“®‘O 83:ƒTƒ“ƒN 85:ƒtƒjƒ…[ƒ}
-	86:ƒo[ƒ~ƒŠƒIƒ“ 8c:ƒg[ƒL[ƒ{ƒbƒNƒX”­“®Žž 8d:•X•Ç 8e:‚­‚ ‚®‚Ü‚¢‚â[ 91:‚ ‚ñ‚­‚é‚·‚Ë‚ 
-	93:‚ç‚ñ‚Ç‚Ü‚¢‚ñ 97:?? 99:ƒg[ƒL[ƒ{ƒbƒNƒX”­“®‘O
-	‘¼î•ñ‹‚Þ
+	ã‚¹ã‚­ãƒ«åŠ¹èƒ½åœ°ä½œæˆ
+	type 7e:SW 7f:ç«å£ 80:ãƒã‚¿ç™ºå‹•ä¸­ 81:ãƒã‚¿ç™ºå‹•å‰ 83:ã‚µãƒ³ã‚¯ 85:ãƒ•ãƒ‹ãƒ¥ãƒ¼ãƒž
+	86:ãƒãƒ¼ãƒŸãƒªã‚ªãƒ³ 8c:ãƒˆãƒ¼ã‚­ãƒ¼ãƒœãƒƒã‚¯ã‚¹ç™ºå‹•æ™‚ 8d:æ°·å£ 8e:ãã‚ãã¾ã„ã‚„ãƒ¼ 91:ã‚ã‚“ãã‚‹ã™ã­ã‚
+	93:ã‚‰ã‚“ã©ã¾ã„ã‚“ 97:?? 99:ãƒˆãƒ¼ã‚­ãƒ¼ãƒœãƒƒã‚¯ã‚¹ç™ºå‹•å‰
+	ä»–æƒ…å ±æ±‚ã‚€
 R 0120 <ID>.l
-	ƒXƒLƒ‹Œø”\’nÁ‹Ž
+	ã‚¹ã‚­ãƒ«åŠ¹èƒ½åœ°æ¶ˆåŽ»
 R 0121 <num>.w <num limit>.w <weight>.l <weight limit>l
-	ƒJ[ƒg‚ÌŽí—Þ&d‚³‚ÌŒ»Ý’l&ãŒÀ
+	ã‚«ãƒ¼ãƒˆã®ç¨®é¡ž&é‡ã•ã®ç¾åœ¨å€¤&ä¸Šé™
 R 0122 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <equip type>.w <equip point>.w <attribute?>.B <refine>.B <card>.4w}.20B*
-	ƒJ[ƒg“àƒAƒCƒeƒ€B‘•”õ•i
+	ã‚«ãƒ¼ãƒˆå†…ã‚¢ã‚¤ãƒ†ãƒ ã€‚è£…å‚™å“
 R 0123 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <amount>.w ?.2B}.10B*
-	ƒJ[ƒg“àƒAƒCƒeƒ€BÁ–Õ•i/ŽûW•i
+	ã‚«ãƒ¼ãƒˆå†…ã‚¢ã‚¤ãƒ†ãƒ ã€‚æ¶ˆè€—å“/åŽé›†å“
 R 0124 <index>.w <amount>.l <item ID>.w <identify flag>.B <attribute?>.B <refine>.B <card>.4w
-	ƒJ[ƒg‚ÉƒAƒCƒeƒ€’Ç‰Á
+	ã‚«ãƒ¼ãƒˆã«ã‚¢ã‚¤ãƒ†ãƒ è¿½åŠ 
 R 0125 <index>.w <amount>.l
-	ƒJ[ƒg‚©‚çƒAƒCƒeƒ€íœ
+	ã‚«ãƒ¼ãƒˆã‹ã‚‰ã‚¢ã‚¤ãƒ†ãƒ å‰Šé™¤
 S 0126 <index>.w <amount>.l
-	ƒJ[ƒg‚ÉƒAƒCƒeƒ€‚ð“ü‚ê‚é
+	ã‚«ãƒ¼ãƒˆã«ã‚¢ã‚¤ãƒ†ãƒ ã‚’å…¥ã‚Œã‚‹
 S 0127 <index>.w <amount>.l
-	ƒJ[ƒg‚©‚çƒAƒCƒeƒ€‚ðŽæ‚èo‚·
+	ã‚«ãƒ¼ãƒˆã‹ã‚‰ã‚¢ã‚¤ãƒ†ãƒ ã‚’å–ã‚Šå‡ºã™
 S 0128 <index>.w <amount>.l
-	ƒJƒvƒ‰‚³‚ñ‚©‚çƒJ[ƒg‚ÖƒAƒCƒeƒ€‚ðˆÚ‚·
+	ã‚«ãƒ—ãƒ©ã•ã‚“ã‹ã‚‰ã‚«ãƒ¼ãƒˆã¸ã‚¢ã‚¤ãƒ†ãƒ ã‚’ç§»ã™
 S 0129 <index>.w <amount>.l
-	ƒJ[ƒg‚©‚çƒJƒvƒ‰‚³‚ñ‚ÖƒAƒCƒeƒ€‚ðˆÚ‚·
+	ã‚«ãƒ¼ãƒˆã‹ã‚‰ã‚«ãƒ—ãƒ©ã•ã‚“ã¸ã‚¢ã‚¤ãƒ†ãƒ ã‚’ç§»ã™
 R 012c <fail>.B
-	fail=00 ud—ÊƒI[ƒo[‚Å‚·Bv
-	fail=01 uƒAƒCƒeƒ€Å‘åŽí—Þ”‚ð’´‰ß‚µ‚Ü‚µ‚½Bv
+	fail=00 ã€Œé‡é‡ã‚ªãƒ¼ãƒãƒ¼ã§ã™ã€‚ã€
+	fail=01 ã€Œã‚¢ã‚¤ãƒ†ãƒ æœ€å¤§ç¨®é¡žæ•°ã‚’è¶…éŽã—ã¾ã—ãŸã€‚ã€
 R 012d <num>.w
-	˜I“XŠJÝBƒAƒCƒeƒ€ƒŠƒXƒg—v‹Bnum‚Í’u‚¯‚éÅ‘å”
+	éœ²åº—é–‹è¨­ã€‚ã‚¢ã‚¤ãƒ†ãƒ ãƒªã‚¹ãƒˆè¦æ±‚ã€‚numã¯ç½®ã‘ã‚‹æœ€å¤§æ•°
 S 012e
-	˜I“X•Â½
+	éœ²åº—é–‰éŽ–
 S 012f <len>.w <message>.80B {<index>.w <amount>.w <value>.l}.8B*
-	˜I“XŠJÝA˜I“X–¼&ƒAƒCƒeƒ€,’l’iƒŠƒXƒg
+	éœ²åº—é–‹è¨­ã€éœ²åº—å&ã‚¢ã‚¤ãƒ†ãƒ ,å€¤æ®µãƒªã‚¹ãƒˆ
 S 0130 <ID>.l
-	˜I“XƒAƒCƒeƒ€ƒŠƒXƒg—v‹
+	éœ²åº—ã‚¢ã‚¤ãƒ†ãƒ ãƒªã‚¹ãƒˆè¦æ±‚
 R 0131 <ID>.l <message>.80B
-	˜I“XŠÅ”Â•\Ž¦
+	éœ²åº—çœ‹æ¿è¡¨ç¤º
 R 0132 <ID>.l
-	˜I“XŠÅ”ÂÁ‹Ž
+	éœ²åº—çœ‹æ¿æ¶ˆåŽ»
 R 0133 <len>.w <ID>.l {<value>.l <amount>.w <index>.w <type>.B <item ID>.w <identify flag>.B <attribute?>.B <refine>.B <card>.4w}.22B
-	˜I“XƒAƒCƒeƒ€ƒŠƒXƒg
+	éœ²åº—ã‚¢ã‚¤ãƒ†ãƒ ãƒªã‚¹ãƒˆ
 S 0134 <len>.w <ID>.l {<amount>.w <index>.w}.4B*
-	˜I“XƒAƒCƒeƒ€w“ü
+	éœ²åº—ã‚¢ã‚¤ãƒ†ãƒ è³¼å…¥
 R 0135 <index>.w <amount>.w <fail>.B
-	˜I“XƒAƒCƒeƒ€w“üŽ¸”sB
-	fail=1 u‚¨‹à‚ª‘«‚è‚Ü‚¹‚ñBv
-	fail=2 ud—ÊƒI[ƒo[‚Å‚·Bv
+	éœ²åº—ã‚¢ã‚¤ãƒ†ãƒ è³¼å…¥å¤±æ•—ã€‚
+	fail=1 ã€ŒãŠé‡‘ãŒè¶³ã‚Šã¾ã›ã‚“ã€‚ã€
+	fail=2 ã€Œé‡é‡ã‚ªãƒ¼ãƒãƒ¼ã§ã™ã€‚ã€
 R 0136 <len>.w <ID>.l {<value>.l <index>.w <amount>.w <type>.B <item ID>.w <identify flag>.B <attribute?>.B <refine>.B <card>.4w}.22B*
-	˜I“XŠJÝ¬Œ÷
+	éœ²åº—é–‹è¨­æˆåŠŸ
 R 0137 <index>.w <amount>.w
-	˜I“XƒAƒCƒeƒ€”Ì”„•ñ
+	éœ²åº—ã‚¢ã‚¤ãƒ†ãƒ è²©å£²å ±å‘Š
 R 0139 <ID>.l <X>.w <Y>.w <X2>.w <Y2>.w <range>.w
-	ID‚Ì“G‚Í(X,Y)‚É‹‚ÄŽ©•ª‚Í(X2,Y2)‚É‹‚é‚Ì‚ÅUŒ‚‚ª“Í‚«‚Ü‚¹‚ñ‚Å‚µ‚½
-	UŒ‚‰Â”\‹——£‚Írange‚È‚Ì‚ÅA‹ßŠñ‚Á‚Ä‰º‚³‚¢?
+	IDã®æ•µã¯(X,Y)ã«å±…ã¦è‡ªåˆ†ã¯(X2,Y2)ã«å±…ã‚‹ã®ã§æ”»æ’ƒãŒå±Šãã¾ã›ã‚“ã§ã—ãŸ
+	æ”»æ’ƒå¯èƒ½è·é›¢ã¯rangeãªã®ã§ã€è¿‘å¯„ã£ã¦ä¸‹ã•ã„?
 R 013a <val>.w
-	UŒ‚ŽË’ö
+	æ”»æ’ƒå°„ç¨‹
 R 013b <type>.w
-	ŠeŽíƒƒbƒZ[ƒW•\Ž¦B3=–î‚ª‘•”õ‚Å‚«‚Ü‚µ‚½
+	å„ç¨®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸è¡¨ç¤ºã€‚3=çŸ¢ãŒè£…å‚™ã§ãã¾ã—ãŸ
 R 013c <ID>.w
-	‘•”õ‚³‚ê‚½–î‚ÌItemIDB0‚ÅA–¢‘•”õó‘ÔB
+	è£…å‚™ã•ã‚ŒãŸçŸ¢ã®ItemIDã€‚0ã§ã€æœªè£…å‚™çŠ¶æ…‹ã€‚
 R 013d <type>.w <val>.w
-	HP‰ñ•œƒXƒLƒ‹/SP‰ñ•œƒXƒLƒ‹‚É‚æ‚é‰ñ•œ
-	type=5‚È‚çHP type=7‚È‚çSP
+	HPå›žå¾©ã‚¹ã‚­ãƒ«/SPå›žå¾©ã‚¹ã‚­ãƒ«ã«ã‚ˆã‚‹å›žå¾©
+	type=5ãªã‚‰HP type=7ãªã‚‰SP
 R 013c <index>.w
-	‘•”õ‚µ‚Ä‚¢‚é–î
+	è£…å‚™ã—ã¦ã„ã‚‹çŸ¢
 
 R 013e <src ID>.l <dst ID>.l <X>.w <Y>.w <lv?>.w ?.w <wait>.l
-	ƒXƒLƒ‹‰r¥’†BPC/NPC‚ª‘ŠŽè‚Ìê‡‚Í(X,Y)‚Í0BêŠ‚ªƒ^[ƒQƒbƒg‚Ìê‡‚Ídst ID‚Í0‚É‚È‚é
+	ã‚¹ã‚­ãƒ«è© å”±ä¸­ã€‚PC/NPCãŒç›¸æ‰‹ã®å ´åˆã¯(X,Y)ã¯0ã€‚å ´æ‰€ãŒã‚¿ãƒ¼ã‚²ãƒƒãƒˆã®å ´åˆã¯dst IDã¯0ã«ãªã‚‹
 
-	0x013e ‚Ì offset+16(dword) ‚ÍƒXƒLƒ‹‘®«‚Å‚·(’²¸Ï)B
-	00:–³ 01:… 02:’n 03:‰Î 04:•— 05:“Å 06:¹ 07:ˆÃ 08:”O 09:Ž€
-	«—ˆ“I‚ÉA‰r¥’†‚ÌƒGƒtƒFƒNƒg‚ª‘®«‚Å•Ï‚í‚é‚Ì‚©‚ÆB
+	0x013e ã® offset+16(dword) ã¯ã‚¹ã‚­ãƒ«å±žæ€§ã§ã™(èª¿æŸ»æ¸ˆ)ã€‚
+	00:ç„¡ 01:æ°´ 02:åœ° 03:ç« 04:é¢¨ 05:æ¯’ 06:è– 07:æš— 08:å¿µ 09:æ­»
+	å°†æ¥çš„ã«ã€è© å”±ä¸­ã®ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãŒå±žæ€§ã§å¤‰ã‚ã‚‹ã®ã‹ã¨ã€‚
 
-	wait‚Íms’PˆÊ‚©‚È?
+	waitã¯mså˜ä½ã‹ãª?
 R 0141 <type>.l <base>.l <bonus>.l
-	ƒXƒe[ƒ^ƒXî•ñBtype‚Í0d‚©‚ç12‚ª‡‚ÉSTR,AGI,VIT,INT,DEX,LUK‚É‘Î‰ž
-	base+bonus‚Æ•\Ž¦‚³‚ê‚é
+	ã‚¹ãƒ†ãƒ¼ã‚¿ã‚¹æƒ…å ±ã€‚typeã¯0dã‹ã‚‰12ãŒé †ã«STR,AGI,VIT,INT,DEX,LUKã«å¯¾å¿œ
+	base+bonusã¨è¡¨ç¤ºã•ã‚Œã‚‹
 R 0142 <ID>.l
-	”’l“ü—Í—p‘‹•\Ž¦
+	æ•°å€¤å…¥åŠ›ç”¨çª“è¡¨ç¤º
 S 0143 <ID>.l <amount>.l
-	0142‚Ì‘‹‚É“ü—Í‚µ‚½”’l‚Ì‘—M
+	0142ã®çª“ã«å…¥åŠ›ã—ãŸæ•°å€¤ã®é€ä¿¡
 R 0144 <ID>.l <type>.l <X>.l <Y>.l <point ID>.B <color>.3B ?.B
-	ˆÄ“àˆõ—pAƒ}ƒbƒvãƒAƒCƒRƒ“•\Ž¦ƒpƒPƒbƒg
-	type=1 ƒAƒCƒRƒ“‚ð•\Ž¦
-	type=2 ƒAƒCƒRƒ“‚ðÁ‹Ž
+	æ¡ˆå†…å“¡ç”¨ã€ãƒžãƒƒãƒ—ä¸Šã‚¢ã‚¤ã‚³ãƒ³è¡¨ç¤ºãƒ‘ã‚±ãƒƒãƒˆ
+	type=1 ã‚¢ã‚¤ã‚³ãƒ³ã‚’è¡¨ç¤º
+	type=2 ã‚¢ã‚¤ã‚³ãƒ³ã‚’æ¶ˆåŽ»
 R 0145 <file name>.16B <type>.B
-	(¡‚ÌŠ)ƒJƒvƒ‰‚³‚ñcutin•\Ž¦
-	type=02 •\Ž¦
-	type=ff Á‹Ž
+	(ä»Šã®æ‰€)ã‚«ãƒ—ãƒ©ã•ã‚“cutinè¡¨ç¤º
+	type=02 è¡¨ç¤º
+	type=ff æ¶ˆåŽ»
 S 0146 <ID>.l
-	ID‚ÌNPC‚Æ‚Ì‰ï˜bBCLOSEƒ{ƒ^ƒ“‚ð‰Ÿ‚µ‚½Back–³‚µ‚ÉNPCƒƒbƒZ[ƒWƒEƒBƒ“ƒh‚ð“¯Žž‚É•Â‚¶‚é
+	IDã®NPCã¨ã®ä¼šè©±ã€‚CLOSEãƒœã‚¿ãƒ³ã‚’æŠ¼ã—ãŸã€‚ackç„¡ã—ã«NPCãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã‚¦ã‚£ãƒ³ãƒ‰ã‚’åŒæ™‚ã«é–‰ã˜ã‚‹
 R 0147 <skill ID>.w <target type>.w ?.w <lv>.w <sp>.w <range>.w <skill name>.24B <up>.B
-	ƒAƒCƒeƒ€—˜—p‚ÌŒ‹‰ÊˆêŽž“I‚É“¾‚ç‚ê‚½ƒXƒLƒ‹î•ñ
+	ã‚¢ã‚¤ãƒ†ãƒ åˆ©ç”¨ã®çµæžœä¸€æ™‚çš„ã«å¾—ã‚‰ã‚ŒãŸã‚¹ã‚­ãƒ«æƒ…å ±
 R 0148 <ID>.l
-	ƒŠƒUƒŒƒNƒVƒ‡ƒ“‚Ì‘ŠŽèŒˆ‚ß? @ ƒÀ1
+	ãƒªã‚¶ãƒ¬ã‚¯ã‚·ãƒ§ãƒ³ã®ç›¸æ‰‹æ±ºã‚? @ Î²1
 S 0149 <ID>.l <type>.B <time>.w
-	ID‚Éƒ`ƒƒƒbƒg‹ÖŽ~ŽžŠÔ‚ð•t‰Á type=0 ƒ}ƒCƒiƒX type=1 ƒvƒ‰ƒX
-	tyme‚Í•ª’PˆÊ
+	IDã«ãƒãƒ£ãƒƒãƒˆç¦æ­¢æ™‚é–“ã‚’ä»˜åŠ  type=0 ãƒžã‚¤ãƒŠã‚¹ type=1 ãƒ—ãƒ©ã‚¹
+	tymeã¯åˆ†å˜ä½
 R 014a <fail>.l
-	ƒ}ƒi[ƒ|ƒCƒ“ƒg‚ð—^‚¦‚½Œ‹‰ÊBfail=0 ¬Œ÷ fail=1 Ž¸”s
+	ãƒžãƒŠãƒ¼ãƒã‚¤ãƒ³ãƒˆã‚’ä¸ŽãˆãŸçµæžœã€‚fail=0 æˆåŠŸ fail=1 å¤±æ•—
 R 014b <type>.B <nick>.24B
-	ƒ}ƒi[ƒ|ƒCƒ“ƒg‚ð–á‚Á‚½Btype=00 ƒvƒ‰ƒX type=01 ƒ}ƒCƒiƒX
+	ãƒžãƒŠãƒ¼ãƒã‚¤ãƒ³ãƒˆã‚’è²°ã£ãŸã€‚type=00 ãƒ—ãƒ©ã‚¹ type=01 ãƒžã‚¤ãƒŠã‚¹
 R 014C <len>.w (<type>.l <guildID>.l <guild name>.24B).*
-	“¯–¿E“G‘ÎƒMƒ‹ƒh•\Ž¦
-	type=0 “¯–¿
-	type=1 “G‘Î
+	åŒç›Ÿãƒ»æ•µå¯¾ã‚®ãƒ«ãƒ‰è¡¨ç¤º
+	type=0 åŒç›Ÿ
+	type=1 æ•µå¯¾
 S 014D
-	ƒMƒ‹ƒhî•ñ•\Ž¦ŠJŽnH
+	ã‚®ãƒ«ãƒ‰æƒ…å ±è¡¨ç¤ºé–‹å§‹ï¼Ÿ
 R 014E <type?>.l
-	type=0x57 ˆê”ÊƒMƒ‹ƒh’cˆõ
-	type=0xD7 ƒMƒ‹ƒhƒ}ƒXƒ^[
+	type=0x57 ä¸€èˆ¬ã‚®ãƒ«ãƒ‰å›£å“¡
+	type=0xD7 ã‚®ãƒ«ãƒ‰ãƒžã‚¹ã‚¿ãƒ¼
 S 014F <page>.l
-	ƒMƒ‹ƒh•\Ž¦ƒ^ƒu‘—M
-R 0150 <guildID>.l <guildLv>.l <Ú‘±”>.l <’èˆõ>.l <Avl.lvl>.l <ŒoŒ±’l>.l <next_exp>.l <ã”[ƒ|ƒCƒ“ƒg>.l <«Œü¶‰EVW>.l <«Œüã‰ºRF>.l <l”H>.l <guild name>.24B <guild master>.24B <–{‹’’n>.16B
-	ƒMƒ‹ƒhî•ñ
+	ã‚®ãƒ«ãƒ‰è¡¨ç¤ºã‚¿ãƒ–é€ä¿¡
+R 0150 <guildID>.l <guildLv>.l <æŽ¥ç¶šæ•°>.l <å®šå“¡>.l <Avl.lvl>.l <çµŒé¨“å€¤>.l <next_exp>.l <ä¸Šç´ãƒã‚¤ãƒ³ãƒˆ>.l <æ€§å‘å·¦å³VW>.l <æ€§å‘ä¸Šä¸‹RF>.l <äººæ•°ï¼Ÿ>.l <guild name>.24B <guild master>.24B <æœ¬æ‹ åœ°>.16B
+	ã‚®ãƒ«ãƒ‰æƒ…å ±
 S 0151 <guild ID>.l
-	ƒGƒ“ƒuƒŒƒ€—v‹
-R 0152 <len>.w <guild ID>.l <emblem ID(•ÏX‰ñ”H)>.l <emblem data>.?B
-	ƒGƒ“ƒuƒŒƒ€ƒCƒ[ƒW‘—•t
+	ã‚¨ãƒ³ãƒ–ãƒ¬ãƒ è¦æ±‚
+R 0152 <len>.w <guild ID>.l <emblem ID(å¤‰æ›´å›žæ•°ï¼Ÿ)>.l <emblem data>.?B
+	ã‚¨ãƒ³ãƒ–ãƒ¬ãƒ ã‚¤ãƒ¡ãƒ¼ã‚¸é€ä»˜
 S 0153 <len>.w <emblem data>.?B
-	ƒGƒ“ƒuƒŒƒ€ƒCƒ[ƒW•ÏX
-R 0154 <len>.w {<accID>.l <charactorID>.l <”¯Œ^>.w <”¯‚ÌF>.w <«•ÊH>.w <job>.w <lvl?>.w <ã”[ŒoŒ±’l>.l <online>.l <Position>.l <ƒƒ‚H>.50B <nick>.24B}*
-	ƒMƒ‹ƒhƒƒ“ƒoƒŠƒXƒg
+	ã‚¨ãƒ³ãƒ–ãƒ¬ãƒ ã‚¤ãƒ¡ãƒ¼ã‚¸å¤‰æ›´
+R 0154 <len>.w {<accID>.l <charactorID>.l <é«ªåž‹>.w <é«ªã®è‰²>.w <æ€§åˆ¥ï¼Ÿ>.w <job>.w <lvl?>.w <ä¸Šç´çµŒé¨“å€¤>.l <online>.l <Position>.l <ãƒ¡ãƒ¢ï¼Ÿ>.50B <nick>.24B}*
+	ã‚®ãƒ«ãƒ‰ãƒ¡ãƒ³ãƒãƒªã‚¹ãƒˆ
 S 0155 <len>.w {<accID>.l <charaID>.l <index>.l}.12B*
-	–ðE•ÏX
+	å½¹è·å¤‰æ›´
 R 0156 <len>.w {<accID>.l <charaID>.l <index>.l}.12B*
-	–ðE•ÏX’Ê’m
+	å½¹è·å¤‰æ›´é€šçŸ¥
 S 0159 <guildID>.l <accID>.l <charID>.l <mess>.40B
-	ƒMƒ‹ƒh’E‘Þ‘—M
+	ã‚®ãƒ«ãƒ‰è„±é€€é€ä¿¡
 R 015A <nic>.24B <mess>.40B
-	ƒMƒ‹ƒh’E‘Þ(‘Sˆõ)ŽóM
+	ã‚®ãƒ«ãƒ‰è„±é€€(å…¨å“¡)å—ä¿¡
 S 015B <guildID>.l <accID>.l <charID>.l <mess>.40B
-	ƒMƒ‹ƒh’Ç•ú‘—M
-R 015C <nick>.24B <mess>.40B <ƒAƒJƒEƒ“ƒg‚h‚c>.24B
-	ƒMƒ‹ƒh’Ç•úi‘SˆõjŽóM
+	ã‚®ãƒ«ãƒ‰è¿½æ”¾é€ä¿¡
+R 015C <nick>.24B <mess>.40B <ã‚¢ã‚«ã‚¦ãƒ³ãƒˆï¼©ï¼¤>.24B
+	ã‚®ãƒ«ãƒ‰è¿½æ”¾ï¼ˆå…¨å“¡ï¼‰å—ä¿¡
 S 015D <guild name>.24B <?>.16B
-	ƒMƒ‹ƒh‰ðŽU
+	ã‚®ãƒ«ãƒ‰è§£æ•£
 R 015E <fail>.l
-	ƒMƒ‹ƒh‰ðŽU³”Û’Ê’m
-	0x00F¬Œ÷
-	0x01FZ–¯“o˜^”Ô†•sˆê’v
+	ã‚®ãƒ«ãƒ‰è§£æ•£æ­£å¦é€šçŸ¥
+	0x00ï¼šæˆåŠŸ
+	0x01ï¼šä½æ°‘ç™»éŒ²ç•ªå·ä¸ä¸€è‡´
 R 0160 <len>.w {<index>.l <mode>.l <index>.l <exp_mode>.l}.16B
-	EˆÊî•ñ
+	è·ä½æƒ…å ±
 S 0161 <len>.w {<index>.l <mode>.l <index>.l <exp_mode>.l <nickname>.24B}.40B*
-	EˆÊ•ÏX
+	è·ä½å¤‰æ›´
 R 0162 <len>.w <skill_point>.w {<skill ID>.w <target type>.w ?.w <lv>.w <sp>.w <range>.w <skill name>.24B <up>.B}.37B*
-	ƒMƒ‹ƒhƒXƒLƒ‹
-R 0163 <len>.w { <nick>.24B <ƒAƒJƒEƒ“ƒg‚h‚c>.24B <’Ç•ú——R>.40B }.88B*
-	ƒMƒ‹ƒh’Ç•úƒŠƒXƒg
+	ã‚®ãƒ«ãƒ‰ã‚¹ã‚­ãƒ«
+R 0163 <len>.w { <nick>.24B <ã‚¢ã‚«ã‚¦ãƒ³ãƒˆï¼©ï¼¤>.24B <è¿½æ”¾ç†ç”±>.40B }.88B*
+	ã‚®ãƒ«ãƒ‰è¿½æ”¾ãƒªã‚¹ãƒˆ
 S 0165 <myaccID>.l <guild name>.24B
-	ƒMƒ‹ƒhì¬
+	ã‚®ãƒ«ãƒ‰ä½œæˆ
 R 0166 <len>.w {<index>.l <name>.24B }.28B*
-	EˆÊ–¼ƒŠƒXƒg
+	è·ä½åãƒªã‚¹ãƒˆ
 R 0167 <type>.b
-	ƒMƒ‹ƒhì¬‡”Û
-	type = 0 ƒMƒ‹ƒhì¬¬Œ÷
-	type = 1 ‚·‚Å‚ÉƒMƒ‹ƒh‚ÉŠ‘®‚µ‚Ä‚¢‚é
-	type = 2 “¯–¼‚ÌƒMƒ‹ƒh‚ª‚ ‚é
-	type = 3 ƒGƒ“ƒyƒŠƒEƒ€–³‚µ
+	ã‚®ãƒ«ãƒ‰ä½œæˆåˆå¦
+	type = 0 ã‚®ãƒ«ãƒ‰ä½œæˆæˆåŠŸ
+	type = 1 ã™ã§ã«ã‚®ãƒ«ãƒ‰ã«æ‰€å±žã—ã¦ã„ã‚‹
+	type = 2 åŒåã®ã‚®ãƒ«ãƒ‰ãŒã‚ã‚‹
+	type = 3 ã‚¨ãƒ³ãƒšãƒªã‚¦ãƒ ç„¡ã—
 S 0168 <TargetAccID>.l <sourceAccID>.l <myCharactorID>.l
-	ƒMƒ‹ƒhŠ©—U
+	ã‚®ãƒ«ãƒ‰å‹§èª˜
 R 0169 <type>.B
-	ƒMƒ‹ƒhŠ©—UŒ‹‰Ê
-	type = 0 ‘¼‚ÌƒMƒ‹ƒh‚É‰Á“ü‚µ‚Ä‚¢‚é
-	type = 1 ‹‘”Û‚³‚ê‚½
-	type = 2 ‰Á“ü‚µ‚½
-	type = 3 ’èˆõ‚ð’´‰ß
+	ã‚®ãƒ«ãƒ‰å‹§èª˜çµæžœ
+	type = 0 ä»–ã®ã‚®ãƒ«ãƒ‰ã«åŠ å…¥ã—ã¦ã„ã‚‹
+	type = 1 æ‹’å¦ã•ã‚ŒãŸ
+	type = 2 åŠ å…¥ã—ãŸ
+	type = 3 å®šå“¡ã‚’è¶…éŽ
 R 016A <guild ID>.l <guild name>.24B
-	ƒMƒ‹ƒhŠ©—U‚³‚ê‚½
+	ã‚®ãƒ«ãƒ‰å‹§èª˜ã•ã‚ŒãŸ
 S 016B <guild ID>.l <type>.l
-	ƒMƒ‹ƒhŠ©—U•ÔM
-	type=0 ‹‘”Û‚·‚é
-	type=1 ‹–‘ø‚·‚é
+	ã‚®ãƒ«ãƒ‰å‹§èª˜è¿”ä¿¡
+	type=0 æ‹’å¦ã™ã‚‹
+	type=1 è¨±è«¾ã™ã‚‹
 R 016c <guild ID>.l <emblem ID>.l <mode>.l ?.5B <guild name>.24B
-	loginŽžƒMƒ‹ƒhî•ñ
-	mode=Ž©•ª‚ÌŠ‘®EˆÊ‚Ìmode
+	loginæ™‚ã‚®ãƒ«ãƒ‰æƒ…å ±
+	mode=è‡ªåˆ†ã®æ‰€å±žè·ä½ã®mode
 R 016d <ID>.l <charactor ID>.l <online>.l
-	ƒMƒ‹ƒhƒƒ“ƒo‚ªlogin‚µ‚½”²‚¯‚½“™
+	ã‚®ãƒ«ãƒ‰ãƒ¡ãƒ³ãƒãŒloginã—ãŸæŠœã‘ãŸç­‰
 S 016E <guildID>.l <mess1>.60B <mess2>.120B
-	ƒMƒ‹ƒh’mÝ’è
+	ã‚®ãƒ«ãƒ‰å‘ŠçŸ¥è¨­å®š
 R 016F <mess1>.60B <mess2>.120B
-	ƒMƒ‹ƒh’m
+	ã‚®ãƒ«ãƒ‰å‘ŠçŸ¥
 S 0170 <TargetAccID>.l <sourceAccID>.l <myCharactorID>.l
-	“¯–¿—v¿Š©—U
+	åŒç›Ÿè¦è«‹å‹§èª˜
 R 0171 <SorceAccID>.l <guild name>.24B
-	“¯–¿—v¿Š©—U‚³‚ê‚½
+	åŒç›Ÿè¦è«‹å‹§èª˜ã•ã‚ŒãŸ
 S 0172 <SorceAccID>.l <type>.l
-	“¯–¿—v¿•ÔM
-	type=0 ‹‘”Û‚·‚é
-	type=1 ‹–‘ø‚·‚é
+	åŒç›Ÿè¦è«‹è¿”ä¿¡
+	type=0 æ‹’å¦ã™ã‚‹
+	type=1 è¨±è«¾ã™ã‚‹
 R 0173 <type>.B
-	type = 0 ‚·‚Å‚É“¯–¿ŠÖŒW
-	type = 1 “¯–¿‹‘”Û‚³‚ê‚½
-	type = 2 “¯–¿¬Œ÷
-	type = 3 ‘ŠŽèƒMƒ‹ƒh‚Ì“¯–¿ƒMƒ‹ƒh”‚ª’´‰ß
-	type = 4 Ž©•ª‚ÌƒMƒ‹ƒh‚Ì“¯–¿ƒMƒ‹ƒh”‚ª’´‰ß
+	type = 0 ã™ã§ã«åŒç›Ÿé–¢ä¿‚
+	type = 1 åŒç›Ÿæ‹’å¦ã•ã‚ŒãŸ
+	type = 2 åŒç›ŸæˆåŠŸ
+	type = 3 ç›¸æ‰‹ã‚®ãƒ«ãƒ‰ã®åŒç›Ÿã‚®ãƒ«ãƒ‰æ•°ãŒè¶…éŽ
+	type = 4 è‡ªåˆ†ã®ã‚®ãƒ«ãƒ‰ã®åŒç›Ÿã‚®ãƒ«ãƒ‰æ•°ãŒè¶…éŽ
 R 0174 <len>.w {<index>.l <mode>.l <index>.l <exp_mode>.l <nickname>.24B}.40B*
-	EˆÊ•ÏX’Ê’m
+	è·ä½å¤‰æ›´é€šçŸ¥
 R 0177 <len>.w <index>.w*
-	ŠÓ’è‰Â”\ƒAƒCƒeƒ€ƒŠƒXƒg
+	é‘‘å®šå¯èƒ½ã‚¢ã‚¤ãƒ†ãƒ ãƒªã‚¹ãƒˆ
 S 0178 <index>.w
-	ƒAƒCƒeƒ€ŠÓ’è
+	ã‚¢ã‚¤ãƒ†ãƒ é‘‘å®š
 R 0179 <index>.w <fail>.B
-	ƒAƒCƒeƒ€ŠÓ’èŒ‹‰ÊBfail=00‚Å¬Œ÷Bfail=01‚Á‚Ä‚ ‚é‚Ì‚©?
+	ã‚¢ã‚¤ãƒ†ãƒ é‘‘å®šçµæžœã€‚fail=00ã§æˆåŠŸã€‚fail=01ã£ã¦ã‚ã‚‹ã®ã‹?
 S 017A <index>.w
-	ƒJ[ƒh‚vƒNƒŠƒbƒN
+	ã‚«ãƒ¼ãƒ‰ï¼·ã‚¯ãƒªãƒƒã‚¯
 R 017B <len>.w {<index>.w}*
-	ƒJ[ƒh‘}“ü‚Å‚«‚éƒAƒCƒeƒ€Index”Ô†
+	ã‚«ãƒ¼ãƒ‰æŒ¿å…¥ã§ãã‚‹ã‚¢ã‚¤ãƒ†ãƒ Indexç•ªå·
 S 017C <SrcIndex>.w <DescIndex>.w
-	Src ‚ðDesc‚É“Ë‚Áž‚Þ
+	Src ã‚’Descã«çªã£è¾¼ã‚€
 R 017D <DescIndex>.w <SrcIndex>.w <fail>.b
-	Src ‚ðDesc‚É“Ë‚Áž‚Ý<fail> 0=¬Œ÷ 1=Ž¸”sH
+	Src ã‚’Descã«çªã£è¾¼ã¿<fail> 0=æˆåŠŸ 1=å¤±æ•—ï¼Ÿ
 S 017e <len>.w <message>.?B
-	ƒMƒ‹ƒh“àƒƒbƒZ[ƒW”­Œ¾
+	ã‚®ãƒ«ãƒ‰å†…ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ç™ºè¨€
 R 017f <len>.w <message>.?B
-	ƒMƒ‹ƒh“àƒƒbƒZ[ƒWŽóM
+	ã‚®ãƒ«ãƒ‰å†…ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸å—ä¿¡
 S 0180 <charactorID>.l
-	ƒMƒ‹ƒh“G‘Î
+	ã‚®ãƒ«ãƒ‰æ•µå¯¾
 R 0181 <flag>.b
-	ƒMƒ‹ƒh“G‘Î‰Â”Û
-	flag=0 “G‘Î¬Œ÷
-	flag=1 “G‘ÎƒMƒ‹ƒh”‚ª‘½‚·‚¬‚é
-	flag=2 ‚·‚Å‚É“G‘ÎŠÖŒW
-R 0182 <accID>.l <charactorID>.l <”¯Œ^>.w <”¯‚ÌF>.w <«•ÊH>.w <job>.w <lvl?>.w <ã”[ŒoŒ±’l>.l <online>.l <Position>.l ?.50B <nick>.24B
+	ã‚®ãƒ«ãƒ‰æ•µå¯¾å¯å¦
+	flag=0 æ•µå¯¾æˆåŠŸ
+	flag=1 æ•µå¯¾ã‚®ãƒ«ãƒ‰æ•°ãŒå¤šã™ãŽã‚‹
+	flag=2 ã™ã§ã«æ•µå¯¾é–¢ä¿‚
+R 0182 <accID>.l <charactorID>.l <é«ªåž‹>.w <é«ªã®è‰²>.w <æ€§åˆ¥ï¼Ÿ>.w <job>.w <lvl?>.w <ä¸Šç´çµŒé¨“å€¤>.l <online>.l <Position>.l ?.50B <nick>.24B
 	
 S 0183 <guild_id>.l <type>.l
-	ƒMƒ‹ƒhŠÖŒW‰ðÁ
+	ã‚®ãƒ«ãƒ‰é–¢ä¿‚è§£æ¶ˆ
 R 0184 <guild_id>.l <type>.l
-	ƒMƒ‹ƒhŠÖŒW‰ðÁ’Ê’m
+	ã‚®ãƒ«ãƒ‰é–¢ä¿‚è§£æ¶ˆé€šçŸ¥
 R 0185 <flag>.l <guild_id>.l <guild_name>.24B
-	ƒMƒ‹ƒhŠÖŒW’Ç‰Á flag=0 “¯–¿/ 1 “G‘Î
+	ã‚®ãƒ«ãƒ‰é–¢ä¿‚è¿½åŠ  flag=0 åŒç›Ÿ/ 1 æ•µå¯¾
 R 0187 <account ID>.l
-	aliveM†?
+	aliveä¿¡å·?
 R 0188 <fail?>.w <index>.w <val>.w
-	•Ší¸˜BBŒ‹‰Ê+val•Ší‚É
+	æ­¦å™¨ç²¾éŒ¬ã€‚çµæžœ+valæ­¦å™¨ã«
 R 0189 <fail?>.w
-	“äBƒeƒŒƒ|(ƒ[ƒvƒ|[ƒ^ƒ‹memo)Ž¸”s?
-	1 memo‹ÖŽ~’nˆæ
+	è¬Žã€‚ãƒ†ãƒ¬ãƒ(ãƒ¯ãƒ¼ãƒ—ãƒãƒ¼ã‚¿ãƒ«memo)å¤±æ•—?
+	1 memoç¦æ­¢åœ°åŸŸ
 S 018a ?.w
-	ƒQ[ƒ€I—¹
+	ã‚²ãƒ¼ãƒ çµ‚äº†
 R 018b <fail>.w
-	ƒQ[ƒ€I—¹/ƒLƒƒƒ‰ƒZƒŒ‰ž“šBfail=0¬Œ÷Bfail=1Ž¸”s?
-R 018C <MonsID>.w <“™‹‰>.w <‘å¬>.w <¶–½’l>.w <?>.w <–hŒä—Í>.w <Ží‘°>.w <–‚–@–hŒä—Í>.w <‘®«>.w <–‚–@‘Š«‘®«>.9b
-	wiz‚Ì“G‚ÌƒZƒ“ƒXŒ‹‰Ê
-	0 ¬Œ^
-	1 ’†Œ^
-	2 ‘åŒ^
+	ã‚²ãƒ¼ãƒ çµ‚äº†/ã‚­ãƒ£ãƒ©ã‚»ãƒ¬å¿œç­”ã€‚fail=0æˆåŠŸã€‚fail=1å¤±æ•—?
+R 018C <MonsID>.w <ç­‰ç´š>.w <å¤§å°>.w <ç”Ÿå‘½å€¤>.w <?>.w <é˜²å¾¡åŠ›>.w <ç¨®æ—>.w <é­”æ³•é˜²å¾¡åŠ›>.w <å±žæ€§>.w <é­”æ³•ç›¸æ€§å±žæ€§>.9b
+	wizã®æ•µã®ã‚»ãƒ³ã‚¹çµæžœ
+	0 å°åž‹
+	1 ä¸­åž‹
+	2 å¤§åž‹
 R 018d <length>.w { <ItemID>,w ?.w <CharID?>.l }.8B*
-	»‘¢‰Â”\ƒAƒCƒeƒ€ƒŠƒXƒg•\Ž¦(?‚Ì•”•ª‚Í0012ŒÅ’è)
+	è£½é€ å¯èƒ½ã‚¢ã‚¤ãƒ†ãƒ ãƒªã‚¹ãƒˆè¡¨ç¤º(?ã®éƒ¨åˆ†ã¯0012å›ºå®š)
 S 018e <MakeItemID>.w <slot1ItemID>.w <slot2ItemID>,w <slot3.ItemID>.w
-	»‘¢ƒAƒCƒeƒ€‚Ì‘I‘ð
+	è£½é€ ã‚¢ã‚¤ãƒ†ãƒ ã®é¸æŠž
 R 018f <flag>.w [00] <MakeItemID>.w
-	»‘¢Œ‹‰Ê(flag = 00‚È‚ç¬Œ÷ 01‚È‚çŽ¸”s)
+	è£½é€ çµæžœ(flag = 00ãªã‚‰æˆåŠŸ 01ãªã‚‰å¤±æ•—)
 S 0190 <skill lv>.w <skill code>.w <x & y>.l <message>.80b
-	ƒƒbƒZ[ƒW(ƒg[ƒL[ƒ{ƒbƒNƒXj
+	ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸(ãƒˆãƒ¼ã‚­ãƒ¼ãƒœãƒƒã‚¯ã‚¹ï¼‰
 R 0191 <ID>.l <message>.80B
-	ƒg[ƒL[ƒ{ƒbƒNƒX‚ÌƒƒbƒZ[ƒW
+	ãƒˆãƒ¼ã‚­ãƒ¼ãƒœãƒƒã‚¯ã‚¹ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
 R 0192 <x & y>.l <type>.w <mapname>.16b
-	ƒAƒCƒXƒEƒH[ƒ‹“™‚É‚æ‚é’nŒ`‘®«•Ï‰»
+	ã‚¢ã‚¤ã‚¹ã‚¦ã‚©ãƒ¼ãƒ«ç­‰ã«ã‚ˆã‚‹åœ°å½¢å±žæ€§å¤‰åŒ–
 S 0193 <ID>.l
-	ƒMƒ‹ƒhƒƒ“ƒo–¼‘Oˆø‚«?
+	ã‚®ãƒ«ãƒ‰ãƒ¡ãƒ³ãƒåå‰å¼•ã?
 R 0194 <ID>.l <nick>.24B
-	ƒMƒ‹ƒhƒƒ“ƒo–¼‘Oˆø‚«‰ž“š?
+	ã‚®ãƒ«ãƒ‰ãƒ¡ãƒ³ãƒåå‰å¼•ãå¿œç­”?
 R 0195 <ID>.l <nick>.24B <party name>.24B <guild name>.24B <class name>.24B
-	ƒMƒ‹ƒhŠ‘®PC‚Ìê‡‚Ì0094•Ô“š
+	ã‚®ãƒ«ãƒ‰æ‰€å±žPCã®å ´åˆã®0094è¿”ç­”
 R 0196 <type>.w <ID>.l
-	‘‹­ŒnƒXƒLƒ‹Žg—pŽž‚ÌƒƒbƒZ[ƒWFXBID‚Ítarget‚ÆŽv‚í‚ê‚é‚ªŽ©•ª‘ŠŽè‚Ì‚Ý‚µ‚©—ˆ‚È‚¢?
-	type=00	2HQ•t—^uUŒ‚‘¬“x‚ª‘‰Á‚µ‚Ü‚µ‚½Bv
-	type=01	2HQ‰ðœuUŒ‚‘¬“x‚ªŒ¸­‚µ‚Ü‚µ‚½Bv
-	type=02 IMPOSITIO•t—^u•Ší‚ÌUŒ‚—Í‚ª‘‰Á‚µ‚Ü‚µ‚½Bv
-	type=03 IMPOSITIO‰ðœu•Ší‚ÌUŒ‚—Í‚ªŒ¸­‚µ‚Ü‚µ‚½Bv
-	type=04	uƒXƒLƒ‹Žg—pƒfƒBƒŒƒC‚ªŒ¸­‚µ‚Ü‚µ‚½Bv
-	type=05	uƒXƒLƒ‹Žg—pƒfƒBƒŒƒC‚ªŒ³‚É–ß‚è‚Ü‚µ‚½Bv
-	type=06	u•Ší‚É“Å‘®«‚ª•t—^‚³‚ê‚Ü‚µ‚½Bv
-	type=07 ASPERSIO•t—^u•Ší‚É¹‘®«‚ª•t—^‚³‚ê‚Ü‚µ‚½Bv
-	type=08 ASPERSIO‰ðœu•Ší‚Ì‘®«‚ªŒ³‚É–ß‚è‚Ü‚µ‚½Bv
-	type=09	u–h‹ï‚É¹‘®«‚ª•t—^‚³‚ê‚Ü‚µ‚½Bv
-	type=0a	u–h‹ï‚Ì‘®«‚ªŒ³‚É–ß‚è‚Ü‚µ‚½Bv
-	type=0b KYRIE•t—^uƒoƒŠƒAó‘Ô‚É‚È‚è‚Ü‚µ‚½Bv
-	type=0c KYRIE‰ðœuƒoƒŠƒAó‘Ô‚ª‰ðœ‚³‚ê‚Ü‚µ‚½Bv
-	type=0d	uƒEƒFƒ|ƒ“ƒp[ƒtƒFƒNƒVƒ‡ƒ“ƒ‚[ƒh‚É‚È‚è‚Ü‚µ‚½Bv
-	type=0e	uƒEƒFƒ|ƒ“ƒp[ƒtƒFƒNƒVƒ‡ƒ“ƒ‚[ƒh‚ª‰ðœ‚³‚ê‚Ü‚µ‚½Bv
-	type=0f	uƒI[ƒo[ƒgƒ‰ƒXƒgƒ‚[ƒh‚É‚È‚è‚Ü‚µ‚½Bv
-	type=10	uƒI[ƒo[ƒgƒ‰ƒXƒgƒ‚[ƒh‚ª‰ðœ‚³‚ê‚Ü‚µ‚½Bv
-	type=11	uƒ}ƒLƒVƒ}ƒCƒYƒpƒ[ƒ‚[ƒh‚É‚È‚è‚Ü‚µ‚½Bv
-	type=12	uƒ}ƒLƒVƒ}ƒCƒYƒpƒ[ƒ‚[ƒh‚ª‰ðœ‚³‚ê‚Ü‚µ‚½Bv
-R 0196 <type>.w <ID>.l <switch>.b	iƒRƒ‚ƒhˆÈ~j
-	switch=0‚Å‰ðœ,1‚Å•t‰Á
-	type=00	ƒvƒƒ{ƒbƒN
-	type=01	ƒCƒ“ƒfƒ…ƒA
-	type=02	uUŒ‚‘¬“x‚ª‘‰Á‚µ‚Ü‚µ‚½Bvi2HQj
-	type=03	W’†—ÍŒüã
-	type=04 ƒnƒCƒfƒBƒ“ƒO
-	type=05	ƒNƒ[ƒLƒ“ƒO
-	type=06	u•Ší‚É“Å‘®«‚ª•t—^‚³‚ê‚Ü‚µ‚½BviƒGƒ“ƒ`ƒƒƒ“ƒgƒ|ƒCƒYƒ“j
-	type=07	u“Å‚ð”½ŽË‚Å‚«‚éó‘Ô‚É‚È‚è‚Ü‚µ‚½Bviƒ|ƒCƒYƒ“ƒŠƒAƒNƒgj
-	type=08	uƒNƒ@ƒOƒ}ƒCƒAó‘Ô‚É‚È‚èAEEEv
-	type=09	uƒGƒ“ƒWƒFƒ‰ƒXó‘Ô‚É‚È‚èAEEEv
-	type=0a	ƒuƒŒƒbƒVƒ“ƒO
-	type=0b	ƒVƒOƒiƒ€ƒNƒ‹ƒVƒX
-	type=0c	u‘¬‚³‚ª‘‰Á‚µ‚Ü‚µ‚½vi‘¬“x‘‰Áj
-	type=0d	u‘¬‚³‚ªŒ¸­‚µ‚Ü‚µ‚½vi‘¬“xŒ¸­j
-	type=0e	uƒXƒ[ƒ|ƒCƒYƒ“ó‘Ô‚É‚È‚è‚Ü‚µ‚½viƒXƒ[ƒ|ƒCƒYƒ“j
-	type=0f	u•Ší‚ÌUŒ‚—Í‚ª‘‰Á‚µ‚Ü‚µ‚½viƒCƒ“ƒ|ƒVƒeƒBƒIƒ}ƒkƒXj
-	type=10	uƒXƒLƒ‹Žg—pƒfƒBƒŒƒC‚ªŒ¸­‚µ‚Ü‚µ‚½viƒTƒtƒ‰ƒMƒEƒ€j
-	type=11	u•Ší‚É¹‘®«‚ª•t—^‚³‚ê‚Ü‚µ‚½viƒAƒXƒyƒ‹ƒVƒIj
-	type=12	u–h‹ï‚É¹‘®«‚ª•t—^‚³‚ê‚Ü‚µ‚½vi¹‘Ì~—Õj
-	type=13	uƒoƒŠƒAó‘Ô‚É‚È‚è‚Ü‚µ‚½viƒLƒŠƒGƒGƒŒƒCƒ\ƒ“j
-	type=14	uƒ}ƒOƒjƒtƒBƒJ[ƒgó‘Ô‚É‚È‚è‚Ü‚µ‚½v
-	type=15	uƒOƒƒŠƒAó‘Ô‚É‚È‚è‚Ü‚µ‚½v
-	type=16	uƒŒƒbƒNƒXƒG[ƒeƒ‹ƒió‘Ô‚É‚È‚è‚Ü‚µ‚½v
-	type=17	uƒAƒhƒŒƒiƒŠƒ“ƒ‰ƒbƒVƒ…ó‘Ô‚É‚È‚è‚Ü‚µ‚½v
-	type=18	uƒEƒFƒ|ƒ“ƒp[ƒtƒFƒNƒVƒ‡ƒ“ƒ‚[ƒh‚É‚È‚è‚Ü‚µ‚½v
-	type=19	uƒI[ƒo[ƒgƒ‰ƒXƒgƒ‚[ƒh‚É‚È‚è‚Ü‚µ‚½v
-	type=1a	uƒ}ƒLƒVƒ}ƒCƒYƒpƒ[ƒ‚[ƒh‚É‚È‚è‚Ü‚µ‚½v
-	type=1b	ƒyƒRƒyƒR‹Ræ
-	type=1c	‘é
-	type=1d	Ž€‚ñ‚¾‚Ó‚è
-	type=1e	u‹©‚Ñ‚Ü‚µ‚½viƒ‰ƒEƒhƒ{ƒCƒXj
-	type=1f	uƒGƒiƒW[ƒR[ƒgó‘Ô‚É‚È‚è‚Ü‚µ‚½v
-	type=20	u–h‹ï‚ª‰ó‚ê‚Ü‚µ‚½v
-	type=21	u•Ší‚ª‰ó‚ê‚Ü‚µ‚½v
-	type=22	“äi–Ú‚ÌƒAƒbƒv‚Æ‚¢‚¤ƒAƒCƒRƒ“F–Ó–ÚHHj
-	type=23	d—Ê50“’´‚¦
-	type=24	d—Ê90“’´‚¦
-	type=25 “äuUŒ‚‘¬“x‚ª‘‰Á‚µ‚Ü‚µ‚½vi‚˜‚QƒAƒCƒRƒ“F‘¬“xŒnƒ|[ƒVƒ‡ƒ“Hj
-	type=26 “äuUŒ‚‘¬“x‚ª‘‰Á‚µ‚Ü‚µ‚½vi‚˜‚QƒAƒCƒRƒ“F‘¬“xŒnƒ|[ƒVƒ‡ƒ“Hj
-	type=27 “äuUŒ‚‘¬“x‚ª‘‰Á‚µ‚Ü‚µ‚½vi‚˜‚QƒAƒCƒRƒ“F‘¬“xŒnƒ|[ƒVƒ‡ƒ“Hj
-	type=28 (–¢Žg—p‚Á‚Û‚¢HF•s‰Â‚Æ‰ðœ‚ÅŒø‰Ê‚ªˆá‚¤)
-	type=29 “äu‘¬‚³‚ª‘‰Á‚µ‚Ü‚µ‚½vi”’‚¢ƒAƒCƒRƒ“j
-	type=32 ƒXƒgƒŠƒbƒvƒEƒGƒ|ƒ“
-	type=33 ƒXƒgƒŠƒbƒvƒV[ƒ‹ƒh
-	type=34 ƒXƒgƒŠƒbƒvƒA[ƒ}[
-	type=35 ƒXƒgƒŠƒbƒvƒwƒ‹ƒ€
-	type=36 ƒPƒ~ƒJƒ‹ƒEƒFƒ|ƒ“ƒ`ƒƒ[ƒW
-	type=37 ƒPƒ~ƒJƒ‹ƒV[ƒ‹ƒhƒ`ƒƒ[ƒW
-	type=38 ƒPƒ~ƒJƒ‹ƒA[ƒ}[ƒ`ƒƒ[ƒW
-	type=39 ƒPƒ~ƒJƒ‹ƒwƒ‹ƒ€ƒ`ƒƒ[ƒW
-	type=3a ƒI[ƒgƒK[ƒh
-	type=3b ƒŠƒtƒŒƒNƒgƒV[ƒ‹ƒh
-	type=3d ƒvƒƒ”ƒBƒfƒ“ƒX
-	type=3e ƒfƒBƒtƒFƒ“ƒ_[
-	type=41 ƒI[ƒgƒXƒyƒ‹
-	type=44 ƒXƒsƒAƒNƒBƒbƒPƒ“
-	type=56 ”š—ô”g“®(ƒAƒCƒRƒ“‚Í•\Ž¦‚³‚ê‚Ü‚¹‚ñB)
-	type=57 ‹à„(•\Ž¦‚Í‚³‚ê‚È‚¢‚ª‹à„‚Ì‰ðœ‚Í‚³‚ê‚é‚æ‚¤‚Å‚·B)
-	type=59 ƒRƒ“ƒ{ƒfƒBƒŒƒC
-	type=5a ƒtƒŒƒCƒ€ƒ‰ƒ“ƒ`ƒƒ[ 
-	type=5b ƒtƒƒXƒgƒEƒFƒ|ƒ“ 
-	type=5c ƒ‰ƒCƒgƒjƒ“ƒOƒ[ƒ_[ 
-	type=5d ƒTƒCƒYƒ~ƒbƒNƒEƒFƒ|ƒ“
+	å¢—å¼·ç³»ã‚¹ã‚­ãƒ«ä½¿ç”¨æ™‚ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸è‰²ã€…ã€‚IDã¯targetã¨æ€ã‚ã‚Œã‚‹ãŒè‡ªåˆ†ç›¸æ‰‹ã®ã¿ã—ã‹æ¥ãªã„?
+	type=00	2HQä»˜ä¸Žã€Œæ”»æ’ƒé€Ÿåº¦ãŒå¢—åŠ ã—ã¾ã—ãŸã€‚ã€
+	type=01	2HQè§£é™¤ã€Œæ”»æ’ƒé€Ÿåº¦ãŒæ¸›å°‘ã—ã¾ã—ãŸã€‚ã€
+	type=02 IMPOSITIOä»˜ä¸Žã€Œæ­¦å™¨ã®æ”»æ’ƒåŠ›ãŒå¢—åŠ ã—ã¾ã—ãŸã€‚ã€
+	type=03 IMPOSITIOè§£é™¤ã€Œæ­¦å™¨ã®æ”»æ’ƒåŠ›ãŒæ¸›å°‘ã—ã¾ã—ãŸã€‚ã€
+	type=04	ã€Œã‚¹ã‚­ãƒ«ä½¿ç”¨ãƒ‡ã‚£ãƒ¬ã‚¤ãŒæ¸›å°‘ã—ã¾ã—ãŸã€‚ã€
+	type=05	ã€Œã‚¹ã‚­ãƒ«ä½¿ç”¨ãƒ‡ã‚£ãƒ¬ã‚¤ãŒå…ƒã«æˆ»ã‚Šã¾ã—ãŸã€‚ã€
+	type=06	ã€Œæ­¦å™¨ã«æ¯’å±žæ€§ãŒä»˜ä¸Žã•ã‚Œã¾ã—ãŸã€‚ã€
+	type=07 ASPERSIOä»˜ä¸Žã€Œæ­¦å™¨ã«è–å±žæ€§ãŒä»˜ä¸Žã•ã‚Œã¾ã—ãŸã€‚ã€
+	type=08 ASPERSIOè§£é™¤ã€Œæ­¦å™¨ã®å±žæ€§ãŒå…ƒã«æˆ»ã‚Šã¾ã—ãŸã€‚ã€
+	type=09	ã€Œé˜²å…·ã«è–å±žæ€§ãŒä»˜ä¸Žã•ã‚Œã¾ã—ãŸã€‚ã€
+	type=0a	ã€Œé˜²å…·ã®å±žæ€§ãŒå…ƒã«æˆ»ã‚Šã¾ã—ãŸã€‚ã€
+	type=0b KYRIEä»˜ä¸Žã€Œãƒãƒªã‚¢çŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€‚ã€
+	type=0c KYRIEè§£é™¤ã€Œãƒãƒªã‚¢çŠ¶æ…‹ãŒè§£é™¤ã•ã‚Œã¾ã—ãŸã€‚ã€
+	type=0d	ã€Œã‚¦ã‚§ãƒãƒ³ãƒ‘ãƒ¼ãƒ•ã‚§ã‚¯ã‚·ãƒ§ãƒ³ãƒ¢ãƒ¼ãƒ‰ã«ãªã‚Šã¾ã—ãŸã€‚ã€
+	type=0e	ã€Œã‚¦ã‚§ãƒãƒ³ãƒ‘ãƒ¼ãƒ•ã‚§ã‚¯ã‚·ãƒ§ãƒ³ãƒ¢ãƒ¼ãƒ‰ãŒè§£é™¤ã•ã‚Œã¾ã—ãŸã€‚ã€
+	type=0f	ã€Œã‚ªãƒ¼ãƒãƒ¼ãƒˆãƒ©ã‚¹ãƒˆãƒ¢ãƒ¼ãƒ‰ã«ãªã‚Šã¾ã—ãŸã€‚ã€
+	type=10	ã€Œã‚ªãƒ¼ãƒãƒ¼ãƒˆãƒ©ã‚¹ãƒˆãƒ¢ãƒ¼ãƒ‰ãŒè§£é™¤ã•ã‚Œã¾ã—ãŸã€‚ã€
+	type=11	ã€Œãƒžã‚­ã‚·ãƒžã‚¤ã‚ºãƒ‘ãƒ¯ãƒ¼ãƒ¢ãƒ¼ãƒ‰ã«ãªã‚Šã¾ã—ãŸã€‚ã€
+	type=12	ã€Œãƒžã‚­ã‚·ãƒžã‚¤ã‚ºãƒ‘ãƒ¯ãƒ¼ãƒ¢ãƒ¼ãƒ‰ãŒè§£é™¤ã•ã‚Œã¾ã—ãŸã€‚ã€
+R 0196 <type>.w <ID>.l <switch>.b	ï¼ˆã‚³ãƒ¢ãƒ‰ä»¥é™ï¼‰
+	switch=0ã§è§£é™¤,1ã§ä»˜åŠ 
+	type=00	ãƒ—ãƒ­ãƒœãƒƒã‚¯
+	type=01	ã‚¤ãƒ³ãƒ‡ãƒ¥ã‚¢
+	type=02	ã€Œæ”»æ’ƒé€Ÿåº¦ãŒå¢—åŠ ã—ã¾ã—ãŸã€‚ã€ï¼ˆ2HQï¼‰
+	type=03	é›†ä¸­åŠ›å‘ä¸Š
+	type=04 ãƒã‚¤ãƒ‡ã‚£ãƒ³ã‚°
+	type=05	ã‚¯ãƒ­ãƒ¼ã‚­ãƒ³ã‚°
+	type=06	ã€Œæ­¦å™¨ã«æ¯’å±žæ€§ãŒä»˜ä¸Žã•ã‚Œã¾ã—ãŸã€‚ã€ï¼ˆã‚¨ãƒ³ãƒãƒ£ãƒ³ãƒˆãƒã‚¤ã‚ºãƒ³ï¼‰
+	type=07	ã€Œæ¯’ã‚’åå°„ã§ãã‚‹çŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€‚ã€ï¼ˆãƒã‚¤ã‚ºãƒ³ãƒªã‚¢ã‚¯ãƒˆï¼‰
+	type=08	ã€Œã‚¯ã‚¡ã‚°ãƒžã‚¤ã‚¢çŠ¶æ…‹ã«ãªã‚Šã€ãƒ»ãƒ»ãƒ»ã€
+	type=09	ã€Œã‚¨ãƒ³ã‚¸ã‚§ãƒ©ã‚¹çŠ¶æ…‹ã«ãªã‚Šã€ãƒ»ãƒ»ãƒ»ã€
+	type=0a	ãƒ–ãƒ¬ãƒƒã‚·ãƒ³ã‚°
+	type=0b	ã‚·ã‚°ãƒŠãƒ ã‚¯ãƒ«ã‚·ã‚¹
+	type=0c	ã€Œé€Ÿã•ãŒå¢—åŠ ã—ã¾ã—ãŸã€ï¼ˆé€Ÿåº¦å¢—åŠ ï¼‰
+	type=0d	ã€Œé€Ÿã•ãŒæ¸›å°‘ã—ã¾ã—ãŸã€ï¼ˆé€Ÿåº¦æ¸›å°‘ï¼‰
+	type=0e	ã€Œã‚¹ãƒ­ãƒ¼ãƒã‚¤ã‚ºãƒ³çŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€ï¼ˆã‚¹ãƒ­ãƒ¼ãƒã‚¤ã‚ºãƒ³ï¼‰
+	type=0f	ã€Œæ­¦å™¨ã®æ”»æ’ƒåŠ›ãŒå¢—åŠ ã—ã¾ã—ãŸã€ï¼ˆã‚¤ãƒ³ãƒã‚·ãƒ†ã‚£ã‚ªãƒžãƒŒã‚¹ï¼‰
+	type=10	ã€Œã‚¹ã‚­ãƒ«ä½¿ç”¨ãƒ‡ã‚£ãƒ¬ã‚¤ãŒæ¸›å°‘ã—ã¾ã—ãŸã€ï¼ˆã‚µãƒ•ãƒ©ã‚®ã‚¦ãƒ ï¼‰
+	type=11	ã€Œæ­¦å™¨ã«è–å±žæ€§ãŒä»˜ä¸Žã•ã‚Œã¾ã—ãŸã€ï¼ˆã‚¢ã‚¹ãƒšãƒ«ã‚·ã‚ªï¼‰
+	type=12	ã€Œé˜²å…·ã«è–å±žæ€§ãŒä»˜ä¸Žã•ã‚Œã¾ã—ãŸã€ï¼ˆè–ä½“é™è‡¨ï¼‰
+	type=13	ã€Œãƒãƒªã‚¢çŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€ï¼ˆã‚­ãƒªã‚¨ã‚¨ãƒ¬ã‚¤ã‚½ãƒ³ï¼‰
+	type=14	ã€Œãƒžã‚°ãƒ‹ãƒ•ã‚£ã‚«ãƒ¼ãƒˆçŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€
+	type=15	ã€Œã‚°ãƒ­ãƒªã‚¢çŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€
+	type=16	ã€Œãƒ¬ãƒƒã‚¯ã‚¹ã‚¨ãƒ¼ãƒ†ãƒ«ãƒŠçŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€
+	type=17	ã€Œã‚¢ãƒ‰ãƒ¬ãƒŠãƒªãƒ³ãƒ©ãƒƒã‚·ãƒ¥çŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€
+	type=18	ã€Œã‚¦ã‚§ãƒãƒ³ãƒ‘ãƒ¼ãƒ•ã‚§ã‚¯ã‚·ãƒ§ãƒ³ãƒ¢ãƒ¼ãƒ‰ã«ãªã‚Šã¾ã—ãŸã€
+	type=19	ã€Œã‚ªãƒ¼ãƒãƒ¼ãƒˆãƒ©ã‚¹ãƒˆãƒ¢ãƒ¼ãƒ‰ã«ãªã‚Šã¾ã—ãŸã€
+	type=1a	ã€Œãƒžã‚­ã‚·ãƒžã‚¤ã‚ºãƒ‘ãƒ¯ãƒ¼ãƒ¢ãƒ¼ãƒ‰ã«ãªã‚Šã¾ã—ãŸã€
+	type=1b	ãƒšã‚³ãƒšã‚³é¨Žä¹—
+	type=1c	é·¹
+	type=1d	æ­»ã‚“ã ãµã‚Š
+	type=1e	ã€Œå«ã³ã¾ã—ãŸã€ï¼ˆãƒ©ã‚¦ãƒ‰ãƒœã‚¤ã‚¹ï¼‰
+	type=1f	ã€Œã‚¨ãƒŠã‚¸ãƒ¼ã‚³ãƒ¼ãƒˆçŠ¶æ…‹ã«ãªã‚Šã¾ã—ãŸã€
+	type=20	ã€Œé˜²å…·ãŒå£Šã‚Œã¾ã—ãŸã€
+	type=21	ã€Œæ­¦å™¨ãŒå£Šã‚Œã¾ã—ãŸã€
+	type=22	è¬Žï¼ˆç›®ã®ã‚¢ãƒƒãƒ—ã¨ã„ã†ã‚¢ã‚¤ã‚³ãƒ³ï¼šç›²ç›®ï¼Ÿï¼Ÿï¼‰
+	type=23	é‡é‡50ï¼…è¶…ãˆ
+	type=24	é‡é‡90ï¼…è¶…ãˆ
+	type=25 è¬Žã€Œæ”»æ’ƒé€Ÿåº¦ãŒå¢—åŠ ã—ã¾ã—ãŸã€ï¼ˆï½˜ï¼’ã‚¢ã‚¤ã‚³ãƒ³ï¼šé€Ÿåº¦ç³»ãƒãƒ¼ã‚·ãƒ§ãƒ³ï¼Ÿï¼‰
+	type=26 è¬Žã€Œæ”»æ’ƒé€Ÿåº¦ãŒå¢—åŠ ã—ã¾ã—ãŸã€ï¼ˆï½˜ï¼’ã‚¢ã‚¤ã‚³ãƒ³ï¼šé€Ÿåº¦ç³»ãƒãƒ¼ã‚·ãƒ§ãƒ³ï¼Ÿï¼‰
+	type=27 è¬Žã€Œæ”»æ’ƒé€Ÿåº¦ãŒå¢—åŠ ã—ã¾ã—ãŸã€ï¼ˆï½˜ï¼’ã‚¢ã‚¤ã‚³ãƒ³ï¼šé€Ÿåº¦ç³»ãƒãƒ¼ã‚·ãƒ§ãƒ³ï¼Ÿï¼‰
+	type=28 (æœªä½¿ç”¨ã£ã½ã„ï¼Ÿï¼šä¸å¯ã¨è§£é™¤ã§åŠ¹æžœãŒé•ã†)
+	type=29 è¬Žã€Œé€Ÿã•ãŒå¢—åŠ ã—ã¾ã—ãŸã€ï¼ˆç™½ã„ã‚¢ã‚¤ã‚³ãƒ³ï¼‰
+	type=32 ã‚¹ãƒˆãƒªãƒƒãƒ—ã‚¦ã‚¨ãƒãƒ³
+	type=33 ã‚¹ãƒˆãƒªãƒƒãƒ—ã‚·ãƒ¼ãƒ«ãƒ‰
+	type=34 ã‚¹ãƒˆãƒªãƒƒãƒ—ã‚¢ãƒ¼ãƒžãƒ¼
+	type=35 ã‚¹ãƒˆãƒªãƒƒãƒ—ãƒ˜ãƒ«ãƒ 
+	type=36 ã‚±ãƒŸã‚«ãƒ«ã‚¦ã‚§ãƒãƒ³ãƒãƒ£ãƒ¼ã‚¸
+	type=37 ã‚±ãƒŸã‚«ãƒ«ã‚·ãƒ¼ãƒ«ãƒ‰ãƒãƒ£ãƒ¼ã‚¸
+	type=38 ã‚±ãƒŸã‚«ãƒ«ã‚¢ãƒ¼ãƒžãƒ¼ãƒãƒ£ãƒ¼ã‚¸
+	type=39 ã‚±ãƒŸã‚«ãƒ«ãƒ˜ãƒ«ãƒ ãƒãƒ£ãƒ¼ã‚¸
+	type=3a ã‚ªãƒ¼ãƒˆã‚¬ãƒ¼ãƒ‰
+	type=3b ãƒªãƒ•ãƒ¬ã‚¯ãƒˆã‚·ãƒ¼ãƒ«ãƒ‰
+	type=3d ãƒ—ãƒ­ãƒ´ã‚£ãƒ‡ãƒ³ã‚¹
+	type=3e ãƒ‡ã‚£ãƒ•ã‚§ãƒ³ãƒ€ãƒ¼
+	type=41 ã‚ªãƒ¼ãƒˆã‚¹ãƒšãƒ«
+	type=44 ã‚¹ãƒ”ã‚¢ã‚¯ã‚£ãƒƒã‚±ãƒ³
+	type=56 çˆ†è£‚æ³¢å‹•(ã‚¢ã‚¤ã‚³ãƒ³ã¯è¡¨ç¤ºã•ã‚Œã¾ã›ã‚“ã€‚)
+	type=57 é‡‘å‰›(è¡¨ç¤ºã¯ã•ã‚Œãªã„ãŒé‡‘å‰›ã®è§£é™¤ã¯ã•ã‚Œã‚‹ã‚ˆã†ã§ã™ã€‚)
+	type=59 ã‚³ãƒ³ãƒœãƒ‡ã‚£ãƒ¬ã‚¤
+	type=5a ãƒ•ãƒ¬ã‚¤ãƒ ãƒ©ãƒ³ãƒãƒ£ãƒ¼ 
+	type=5b ãƒ•ãƒ­ã‚¹ãƒˆã‚¦ã‚§ãƒãƒ³ 
+	type=5c ãƒ©ã‚¤ãƒˆãƒ‹ãƒ³ã‚°ãƒ­ãƒ¼ãƒ€ãƒ¼ 
+	type=5d ã‚µã‚¤ã‚ºãƒŸãƒƒã‚¯ã‚¦ã‚§ãƒãƒ³
 
 S 0197 <type>.w
 	type=0 /resetstate
 	type=1 /resetskill
-	Œø”\‚Í–³‚µ?
+	åŠ¹èƒ½ã¯ç„¡ã—?
 R 0199 <type>.w
-	type=1 pvpƒ‚[ƒhŠJŽn?
-	type=3 gvgƒ‚[ƒhŠJŽn?
+	type=1 pvpãƒ¢ãƒ¼ãƒ‰é–‹å§‹?
+	type=3 gvgãƒ¢ãƒ¼ãƒ‰é–‹å§‹?
 R 019a <ID>.l <rank>.l <num>.l
-	pvp‡ˆÊ rank/num
+	pvpé †ä½ rank/num
 R 019b <ID>.l <type>.l
-	‘¼l‚Ìlvup‚â•Ší¸˜B“™‚Ì•\Ž¦?
+	ä»–äººã®lvupã‚„æ­¦å™¨ç²¾éŒ¬ç­‰ã®è¡¨ç¤º?
 	type=0 base lvup?
 	type=1 job lvup?
-	type=2 •Ší¸˜BŽ¸”s
-	type=3 •Ší¸˜B¬Œ÷
+	type=2 æ­¦å™¨ç²¾éŒ¬å¤±æ•—
+	type=3 æ­¦å™¨ç²¾éŒ¬æˆåŠŸ
 
 R 019d <?>.4B
-	GMƒRƒ}ƒ“ƒh/hide
+	GMã‚³ãƒžãƒ³ãƒ‰/hide
 
 S 0149 <ID>.l <type>.B <time>.w
-	GM—p‰EƒNƒŠƒbƒNƒƒjƒ…[uƒ`ƒƒƒbƒg‹ÖŽ~ŽžŠÔ‚ð‰º‚°‚éi‰ð‚¯‚éjvŽg—p ¨ type=00
-	GM—p‰EƒNƒŠƒbƒNƒƒjƒ…[uƒ`ƒƒƒbƒg‹ÖŽ~ŽžŠÔ‚ðã‚°‚éiŠ|‚¯‚éjvŽg—p ¨ type=01
-	time‚Í•ª’PˆÊ‚Å‚·iŠm‚©
+	GMç”¨å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã€Œãƒãƒ£ãƒƒãƒˆç¦æ­¢æ™‚é–“ã‚’ä¸‹ã’ã‚‹ï¼ˆè§£ã‘ã‚‹ï¼‰ã€ä½¿ç”¨ â†’ type=00
+	GMç”¨å³ã‚¯ãƒªãƒƒã‚¯ãƒ¡ãƒ‹ãƒ¥ãƒ¼ã€Œãƒãƒ£ãƒƒãƒˆç¦æ­¢æ™‚é–“ã‚’ä¸Šã’ã‚‹ï¼ˆæŽ›ã‘ã‚‹ï¼‰ã€ä½¿ç”¨ â†’ type=01
+	timeã¯åˆ†å˜ä½ã§ã™ï¼ˆç¢ºã‹
 
 R 019e
-	•ßŠlƒ‚ƒ“ƒXƒ^[Œˆ‚ß
+	æ•ç²ãƒ¢ãƒ³ã‚¹ã‚¿ãƒ¼æ±ºã‚
 S 019f <ID>.l
-	•ßŠlƒ‚ƒ“ƒXƒ^[Žw’è
+	æ•ç²ãƒ¢ãƒ³ã‚¹ã‚¿ãƒ¼æŒ‡å®š
 R 01a0 <fail>.B
-	•ßŠl”»’è
-	fail=01‚Å¬Œ÷A00‚ÅŽ¸”s
+	æ•ç²åˆ¤å®š
+	fail=01ã§æˆåŠŸã€00ã§å¤±æ•—
 S 01a1 <param>.1B
 	<param>
-	0x00Fƒyƒbƒgó‘Ô•\Ž¦
-	0x01F‰a‚ð—^‚¦‚é
-	0x02FƒpƒtƒH[ƒ}ƒ“ƒX
-	0x03F—‘‚É–ß‚·
-	0x04FƒAƒNƒZƒTƒŠ‰ðœ
+	0x00ï¼šãƒšãƒƒãƒˆçŠ¶æ…‹è¡¨ç¤º
+	0x01ï¼šé¤Œã‚’ä¸Žãˆã‚‹
+	0x02ï¼šãƒ‘ãƒ•ã‚©ãƒ¼ãƒžãƒ³ã‚¹
+	0x03ï¼šåµã«æˆ»ã™
+	0x04ï¼šã‚¢ã‚¯ã‚»ã‚µãƒªè§£é™¤
 R 01a2 <pet name>.24B <name flag>.B <lv>.w <hungry>.w <friendly>.w <accessory>.w
-	ƒyƒbƒg‚Ìó‘Ô
-	name flag:00=–¼‘O–¢Ý’è 01=–¼‘OÝ’èÏ‚Ý(•ÏX•s‰Â)
-	lv=ƒyƒbƒg‚ÌƒŒƒxƒ‹Ahungry=–ž• “x(0~100)Afriendly=e–§“x(‰Šú’l250?)Aaccessory=ƒAƒNƒZƒTƒŠ‚ÌItemID
+	ãƒšãƒƒãƒˆã®çŠ¶æ…‹
+	name flag:00=åå‰æœªè¨­å®š 01=åå‰è¨­å®šæ¸ˆã¿(å¤‰æ›´ä¸å¯)
+	lv=ãƒšãƒƒãƒˆã®ãƒ¬ãƒ™ãƒ«ã€hungry=æº€è…¹åº¦(0~100)ã€friendly=è¦ªå¯†åº¦(åˆæœŸå€¤250?)ã€accessory=ã‚¢ã‚¯ã‚»ã‚µãƒªã®ItemID
 R 01a3 <fail>.B <itemID>.w
 	<fail>
-	0x00F‰a‚â‚èŽ¸”s
-	0x01F‰a‚â‚è¬Œ÷
+	0x00ï¼šé¤Œã‚„ã‚Šå¤±æ•—
+	0x01ï¼šé¤Œã‚„ã‚ŠæˆåŠŸ
 R 01a4 <type>.B <ID>.l <val>.l
-	ƒyƒbƒgŠÖ˜A’Ê’m
-	type=00,val=00 ƒyƒbƒg›z‰»Žž‚É‘—‚ç‚ê‚Ä‚­‚éBƒyƒbƒg”FŽ¯—pH
-	type=01 e–§“x•Ï‰»
-	type=02 –ž• “x•Ï‰»
-	type=03 ƒAƒNƒZƒTƒŠ•Ï‰»(0‚Å–¢‘•”õ)
-	type=04 ƒpƒtƒH[ƒ}ƒ“ƒX Šm”F‚³‚ê‚½val=1~3
-		(4‚ÍƒXƒyƒVƒƒƒ‹ƒpƒtƒH[ƒ}ƒ“ƒXH)
-	type=05 HŠm”F‚³‚ê‚½val=0x14
+	ãƒšãƒƒãƒˆé–¢é€£é€šçŸ¥
+	type=00,val=00 ãƒšãƒƒãƒˆå­µåŒ–æ™‚ã«é€ã‚‰ã‚Œã¦ãã‚‹ã€‚ãƒšãƒƒãƒˆèªè­˜ç”¨ï¼Ÿ
+	type=01 è¦ªå¯†åº¦å¤‰åŒ–
+	type=02 æº€è…¹åº¦å¤‰åŒ–
+	type=03 ã‚¢ã‚¯ã‚»ã‚µãƒªå¤‰åŒ–(0ã§æœªè£…å‚™)
+	type=04 ãƒ‘ãƒ•ã‚©ãƒ¼ãƒžãƒ³ã‚¹ ç¢ºèªã•ã‚ŒãŸval=1~3
+		(4ã¯ã‚¹ãƒšã‚·ãƒ£ãƒ«ãƒ‘ãƒ•ã‚©ãƒ¼ãƒžãƒ³ã‚¹ï¼Ÿ)
+	type=05 ï¼Ÿç¢ºèªã•ã‚ŒãŸval=0x14
 S 01a5 <pet name>.24B
-	ƒyƒbƒg‚Ì–¼‘OŒˆ‚ß
+	ãƒšãƒƒãƒˆã®åå‰æ±ºã‚
 R 01a6 <len>.w <index>.w*
-	ƒyƒbƒg‚Ì—‘ƒŠƒXƒg
+	ãƒšãƒƒãƒˆã®åµãƒªã‚¹ãƒˆ
 S 01a7 <index>.w
-	ƒyƒbƒg‚Ì—‘ƒŠƒXƒg‚ª‘I‘ð‚³‚ê‚½
+	ãƒšãƒƒãƒˆã®åµãƒªã‚¹ãƒˆãŒé¸æŠžã•ã‚ŒãŸ
 S 01a9 <emotion>.l
-	ƒyƒbƒgƒGƒ‚[ƒVƒ‡ƒ“‘—M
+	ãƒšãƒƒãƒˆã‚¨ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³é€ä¿¡
 R 01aa <ID>.l <emotion>.l
-	ƒyƒbƒgƒGƒ‚[ƒVƒ‡ƒ“ŽóM
+	ãƒšãƒƒãƒˆã‚¨ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³å—ä¿¡
 	<emotion>
-	33ˆÈ‰º‚Ì‚Æ‚«FƒGƒ‚[ƒVƒ‡ƒ“
-	34ˆÈã‚Ì‚Æ‚«F”­Œ¾ƒe[ƒuƒ‹H
+	33ä»¥ä¸‹ã®ã¨ãï¼šã‚¨ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³
+	34ä»¥ä¸Šã®ã¨ãï¼šç™ºè¨€ãƒ†ãƒ¼ãƒ–ãƒ«ï¼Ÿ
 R 01ac <object id>.l
-	ƒAƒ“ƒNƒ‹‚Ì”­“®(‚Ý’u)Žž‚Ì‚Ý–ˆ‰ñoŒ»(‹@”\‚Í“ä)
+	ã‚¢ãƒ³ã‚¯ãƒ«ã®ç™ºå‹•(â‰ è¨­ç½®)æ™‚ã®ã¿æ¯Žå›žå‡ºç¾(æ©Ÿèƒ½ã¯è¬Ž)
 R 01ad <len>.l <item>.w
-	–îì‚è‚Ìì¬‰Â”\ITEM•\ŽóM
+	çŸ¢ä½œã‚Šã®ä½œæˆå¯èƒ½ITEMè¡¨å—ä¿¡
 S 01ae <itemID>.w
-	–îì‚è‚ÅŽg‚¤Þ—¿‘—M
+	çŸ¢ä½œã‚Šã§ä½¿ã†ææ–™é€ä¿¡
 S 01af <type>.w
-	ƒ`ƒFƒ“ƒWƒJ[ƒgiƒJ[ƒg‘I‘ðj
-	type=1	ƒm[ƒ}ƒ‹ƒJ[ƒg
+	ãƒã‚§ãƒ³ã‚¸ã‚«ãƒ¼ãƒˆï¼ˆã‚«ãƒ¼ãƒˆé¸æŠžï¼‰
+	type=1	ãƒŽãƒ¼ãƒžãƒ«ã‚«ãƒ¼ãƒˆ
 R 01b0 <monster id>.l <?>.b <new monster code>.l
-	–û‚ÌƒNƒ‰ƒXƒ`ƒFƒ“ƒW
-	<new monster code>‚Íƒ`ƒFƒ“ƒWŒã‚ÌƒR[ƒh(1001`)‚ðdword‚Å
+	æ²¹ã®ã‚¯ãƒ©ã‚¹ãƒã‚§ãƒ³ã‚¸
+	<new monster code>ã¯ãƒã‚§ãƒ³ã‚¸å¾Œã®ã‚³ãƒ¼ãƒ‰(1001ã€œ)ã‚’dwordã§
 S 01b2 <len>.w <message>.80B <flag>.B {<index>.w <amount>.w <value>.l}.8B*
-	˜I“XŠJÝ
-	flag F 0=ƒLƒƒƒ“ƒZƒ‹ , 1=ƒI[ƒvƒ“
+	éœ²åº—é–‹è¨­
+	flag ï¼š 0=ã‚­ãƒ£ãƒ³ã‚»ãƒ« , 1=ã‚ªãƒ¼ãƒ—ãƒ³
 R 01b3 <filename>.64B <type>.B
-	R 0145‚ÌãˆÊŒÝŠ·
-R 01B6 <guildID>.l <guildLv>.l <connum>.l <’èˆõ>.l <Avl.lvl>.l <now_exp>.l <next_exp>.l <ã”[ƒ|ƒCƒ“ƒg>.l <«ŒüF-V>.l <«ŒüR-W>.l <members>.l <guild name>.24B <guild master>.24B <agit?>.20B
-	ƒMƒ‹ƒhî•ñ 
+	R 0145ã®ä¸Šä½äº’æ›
+R 01B6 <guildID>.l <guildLv>.l <connum>.l <å®šå“¡>.l <Avl.lvl>.l <now_exp>.l <next_exp>.l <ä¸Šç´ãƒã‚¤ãƒ³ãƒˆ>.l <æ€§å‘F-V>.l <æ€§å‘R-W>.l <members>.l <guild name>.24B <guild master>.24B <agit?>.20B
+	ã‚®ãƒ«ãƒ‰æƒ…å ± 
 R 01b9 <ID>.I
-	”íƒ_ƒ“™‚É‚æ‚éID‚Ì‰r¥’†’f
+	è¢«ãƒ€ãƒ¡ç­‰ã«ã‚ˆã‚‹IDã®è© å”±ä¸­æ–­
 R 01c4 <index>.w <amount>.l <itemID>.w <item data>.12B
-	ƒJƒvƒ‰‘qŒÉƒAƒCƒeƒ€ 
+	ã‚«ãƒ—ãƒ©å€‰åº«ã‚¢ã‚¤ãƒ†ãƒ  
 R 01c8 <index>.w <item ID>.w <ID>.l <amount left>.w <type>.B
-	ƒAƒCƒeƒ€Žg—p‰ž“šB(00a8‚ÌãˆÊƒo[ƒVƒ‡ƒ“H)
-	type=00‚Ìê‡Žg—pŽ¸”s? amount‚àƒSƒ~‚Ì–Í—l
-	type=01‚Ìê‡¬Œ÷‚ÅAamount‚ÍŽg—pŒã‚ÌŽc‚èŒÂ”
+	ã‚¢ã‚¤ãƒ†ãƒ ä½¿ç”¨å¿œç­”ã€‚(00a8ã®ä¸Šä½ãƒãƒ¼ã‚·ãƒ§ãƒ³ï¼Ÿ)
+	type=00ã®å ´åˆä½¿ç”¨å¤±æ•—? amountã‚‚ã‚´ãƒŸã®æ¨¡æ§˜
+	type=01ã®å ´åˆæˆåŠŸã§ã€amountã¯ä½¿ç”¨å¾Œã®æ®‹ã‚Šå€‹æ•°
 R 01c9 <dst ID>.l <src ID>.l <X>.w <Y>.w <type>.B <fail>.B ?.81b
-	ƒXƒLƒ‹Œø”\’nì¬(011f‚ÌãˆÊƒo[ƒVƒ‡ƒ“H)
-	type 0x7e:SWA0x7f:‰Î•ÇA0x80 ƒ|ƒ^ŠJ‚«’†A0x81 ƒ|ƒ^ŠJ‚«’¼‘O
-	0x82 ¹‘ÌA0x83 ƒTƒ“ƒNA0x84 ƒ}ƒOƒkƒXA0x85 ƒjƒ…[ƒ}
-	0x86 0x86 ‘å–‚–@(SG/MS/LoV/GX)A0x87 ƒtƒ@ƒCƒ„[ƒsƒ‰‘Ò‹@
-	0x88 ƒtƒ@ƒCƒ„[ƒsƒ‰”š”­A0x87`0x8B •\Ž¦–³‚µA
-	0x8c ƒg[ƒL[ƒ{ƒbƒNƒX(”­“®’†)A0x8D ƒAƒCƒXƒEƒH[ƒ‹
-	0x8E ƒNƒƒOƒ}ƒCƒAA0x8f ƒuƒ‰ƒXƒgƒ}ƒCƒ“A0x90 ƒXƒLƒbƒh
-	0x91 ƒAƒ“ƒNƒ‹A0x92 ƒxƒmƒ€ƒ_ƒXƒgA0x93 ƒ‰ƒ“ƒhƒ}ƒCƒ“
-	0x94 ƒVƒ‡ƒbƒNƒEƒF[ƒuƒgƒ‰ƒbƒvA0x95 ƒTƒ“ƒhƒ}ƒ“
-	0x96 ƒtƒ‰ƒbƒVƒƒ[A0x97 ƒtƒŠ[ƒWƒ“ƒOƒgƒ‰ƒbƒv
-	0x98 ƒNƒŒƒCƒ‚ƒA[ƒgƒ‰ƒbƒvA0x99 ƒg[ƒL[ƒ{ƒbƒNƒX
-	0x9A ƒ{ƒ‹ƒP[ƒmA0x9B ƒfƒŠƒ…[ƒWA0x9C ƒoƒCƒIƒŒƒ“ƒgƒQƒCƒ‹
-	0x9D ƒ‰ƒ“ƒhƒvƒƒeƒNƒ^[A0x9E Zenyƒ}[ƒNA0x9F Zeny‘Ü
-	0xA0 ‰ñ‚é—Î‚Ì—ÖA0xA1 ƒsƒ“ƒN‚Ì‰¹•„ (“ñ˜A•„—L‚è
-	0xA2 ^‚ñ’†‚É“_‚Ì‚ ‚éŒõ‚Ì‹ÊA0xA3 ƒsƒ“ƒN‚ÌƒXƒvƒŠƒ“ƒO
-	0xA4 [•£‚Ì’†‚ÉA0xA5 ‰ñ‚éÂ‚¢—ÖA0xA6 •s‹¦˜a‰¹
-	0xA7 Œû“JA0xA8 —[—z‚ÌƒAƒTƒVƒ“ƒNƒƒXA0xA9 ƒuƒ‰ƒM‚ÌŽ
-	0xAA ƒCƒhƒDƒ“‚Ì—ÑŒçA0xAB Ž©•ªŸŽè‚Èƒ_ƒ“ƒXA0xAC ƒnƒ~ƒ“ƒO
-	0xAD Ž„‚ð–Y‚ê‚È‚¢‚ÅcA0xAE ƒT[ƒrƒXƒtƒH[ƒ†[
-	0xAF ƒsƒ“ƒN‚ÌƒXƒvƒŠƒ“ƒOA0xB0 •\Ž¦–³‚µ
-	0xB0 ƒOƒ‰ƒtƒBƒeƒB,
-	0xB1 ƒfƒ‚ƒ“ƒXƒgƒŒ[ƒVƒ‡ƒ“A0xB2`0xBF •\Ž¦–³‚µ
-	0xB2 ƒsƒ“ƒN‚Ìƒ[ƒvƒ|[ƒ^ƒ‹•—
-	0xB3 ¬‚³‚È\Žš‰Ë‚ª‚Ó‚æ‚Ó‚æ
-	0xB4 ƒoƒWƒŠƒJA0xB5 ƒGƒtƒFƒNƒg‚È‚µH
-	0xB6 •‚¢~‚ª—§‘Ì“I‚É•‚‚©‚Ñã‚ª‚é
-	0xB7 ƒNƒ‚‚Ì‘ƒA0xB8` ƒGƒtƒFƒNƒg‚È‚µH
+	ã‚¹ã‚­ãƒ«åŠ¹èƒ½åœ°ä½œæˆ(011fã®ä¸Šä½ãƒãƒ¼ã‚·ãƒ§ãƒ³ï¼Ÿ)
+	type 0x7e:SWã€0x7f:ç«å£ã€0x80 ãƒã‚¿é–‹ãä¸­ã€0x81 ãƒã‚¿é–‹ãç›´å‰
+	0x82 è–ä½“ã€0x83 ã‚µãƒ³ã‚¯ã€0x84 ãƒžã‚°ãƒŒã‚¹ã€0x85 ãƒ‹ãƒ¥ãƒ¼ãƒž
+	0x86 0x86 å¤§é­”æ³•(SG/MS/LoV/GX)ã€0x87 ãƒ•ã‚¡ã‚¤ãƒ¤ãƒ¼ãƒ”ãƒ©å¾…æ©Ÿ
+	0x88 ãƒ•ã‚¡ã‚¤ãƒ¤ãƒ¼ãƒ”ãƒ©çˆ†ç™ºã€0x87ã€œ0x8B è¡¨ç¤ºç„¡ã—ã€
+	0x8c ãƒˆãƒ¼ã‚­ãƒ¼ãƒœãƒƒã‚¯ã‚¹(ç™ºå‹•ä¸­)ã€0x8D ã‚¢ã‚¤ã‚¹ã‚¦ã‚©ãƒ¼ãƒ«
+	0x8E ã‚¯ãƒ¯ã‚°ãƒžã‚¤ã‚¢ã€0x8f ãƒ–ãƒ©ã‚¹ãƒˆãƒžã‚¤ãƒ³ã€0x90 ã‚¹ã‚­ãƒƒãƒ‰
+	0x91 ã‚¢ãƒ³ã‚¯ãƒ«ã€0x92 ãƒ™ãƒŽãƒ ãƒ€ã‚¹ãƒˆã€0x93 ãƒ©ãƒ³ãƒ‰ãƒžã‚¤ãƒ³
+	0x94 ã‚·ãƒ§ãƒƒã‚¯ã‚¦ã‚§ãƒ¼ãƒ–ãƒˆãƒ©ãƒƒãƒ—ã€0x95 ã‚µãƒ³ãƒ‰ãƒžãƒ³
+	0x96 ãƒ•ãƒ©ãƒƒã‚·ãƒ£ãƒ¼ã€0x97 ãƒ•ãƒªãƒ¼ã‚¸ãƒ³ã‚°ãƒˆãƒ©ãƒƒãƒ—
+	0x98 ã‚¯ãƒ¬ã‚¤ãƒ¢ã‚¢ãƒ¼ãƒˆãƒ©ãƒƒãƒ—ã€0x99 ãƒˆãƒ¼ã‚­ãƒ¼ãƒœãƒƒã‚¯ã‚¹
+	0x9A ãƒœãƒ«ã‚±ãƒ¼ãƒŽã€0x9B ãƒ‡ãƒªãƒ¥ãƒ¼ã‚¸ã€0x9C ãƒã‚¤ã‚ªãƒ¬ãƒ³ãƒˆã‚²ã‚¤ãƒ«
+	0x9D ãƒ©ãƒ³ãƒ‰ãƒ—ãƒ­ãƒ†ã‚¯ã‚¿ãƒ¼ã€0x9E Zenyãƒžãƒ¼ã‚¯ã€0x9F Zenyè¢‹
+	0xA0 å›žã‚‹ç·‘ã®è¼ªã€0xA1 ãƒ”ãƒ³ã‚¯ã®éŸ³ç¬¦ (äºŒé€£ç¬¦æœ‰ã‚Š
+	0xA2 çœŸã‚“ä¸­ã«ç‚¹ã®ã‚ã‚‹å…‰ã®çŽ‰ã€0xA3 ãƒ”ãƒ³ã‚¯ã®ã‚¹ãƒ—ãƒªãƒ³ã‚°
+	0xA4 æ·±æ·µã®ä¸­ã«ã€0xA5 å›žã‚‹é’ã„è¼ªã€0xA6 ä¸å”å’ŒéŸ³
+	0xA7 å£ç¬›ã€0xA8 å¤•é™½ã®ã‚¢ã‚µã‚·ãƒ³ã‚¯ãƒ­ã‚¹ã€0xA9 ãƒ–ãƒ©ã‚®ã®è©©
+	0xAA ã‚¤ãƒ‰ã‚¥ãƒ³ã®æž—æªŽã€0xAB è‡ªåˆ†å‹æ‰‹ãªãƒ€ãƒ³ã‚¹ã€0xAC ãƒãƒŸãƒ³ã‚°
+	0xAD ç§ã‚’å¿˜ã‚Œãªã„ã§â€¦ã€0xAE ã‚µãƒ¼ãƒ“ã‚¹ãƒ•ã‚©ãƒ¼ãƒ¦ãƒ¼
+	0xAF ãƒ”ãƒ³ã‚¯ã®ã‚¹ãƒ—ãƒªãƒ³ã‚°ã€0xB0 è¡¨ç¤ºç„¡ã—
+	0xB0 ã‚°ãƒ©ãƒ•ã‚£ãƒ†ã‚£,
+	0xB1 ãƒ‡ãƒ¢ãƒ³ã‚¹ãƒˆãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ã€0xB2ã€œ0xBF è¡¨ç¤ºç„¡ã—
+	0xB2 ãƒ”ãƒ³ã‚¯ã®ãƒ¯ãƒ¼ãƒ—ãƒãƒ¼ã‚¿ãƒ«é¢¨
+	0xB3 å°ã•ãªåå­—æž¶ãŒãµã‚ˆãµã‚ˆ
+	0xB4 ãƒã‚¸ãƒªã‚«ã€0xB5 ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãªã—ï¼Ÿ
+	0xB6 é»’ã„Ã—ãŒç«‹ä½“çš„ã«æµ®ã‹ã³ä¸ŠãŒã‚‹
+	0xB7 ã‚¯ãƒ¢ã®å·£ã€0xB8ã€œ ã‚¨ãƒ•ã‚§ã‚¯ãƒˆãªã—ï¼Ÿ
 
-	‘¼î•ñ‹‚Þ
-	?.81b‚Í“äB
+	ä»–æƒ…å ±æ±‚ã‚€
+	?.81bã¯è¬Žã€‚
 R 01cd (<sid>.l)x7
-	ƒI[ƒgƒXƒyƒ‹‘I‘ðŽˆŽóM
-	<sid>x7 ‚É‚Í NB,CB,FB,LB,SS,FBL,FD ‚Ì‡‚ÅƒXƒLƒ‹ƒR[ƒh‚ªdword‚Å“ü‚é
-	‚Ü‚¾‘I‘ð‚Å‚«‚È‚¢ƒXƒLƒ‹‚Ì•”•ª‚Í <sid> = 0x00000000 ‚ª“ü‚é
+	ã‚ªãƒ¼ãƒˆã‚¹ãƒšãƒ«é¸æŠžè‚¢å—ä¿¡
+	<sid>x7 ã«ã¯ NB,CB,FB,LB,SS,FBL,FD ã®é †ã§ã‚¹ã‚­ãƒ«ã‚³ãƒ¼ãƒ‰ãŒdwordã§å…¥ã‚‹
+	ã¾ã é¸æŠžã§ããªã„ã‚¹ã‚­ãƒ«ã®éƒ¨åˆ†ã¯ <sid> = 0x00000000 ãŒå…¥ã‚‹
 S 01ce <sid>.l
-	ƒI[ƒgƒXƒyƒ‹‘I‘ðŽˆ‘—M
+	ã‚ªãƒ¼ãƒˆã‚¹ãƒšãƒ«é¸æŠžè‚¢é€ä¿¡
 R 01cf <crusader id>.l <target id>.l <?>.18b
-	Œ£gó‘Ôƒ^[ƒQƒbƒgON/OFFBŒ£g‚ªØ‚ê‚é‚Æ <target id> ‚ª 0x00000000 ‚É‚È‚é
+	çŒ®èº«çŠ¶æ…‹ã‚¿ãƒ¼ã‚²ãƒƒãƒˆON/OFFã€‚çŒ®èº«ãŒåˆ‡ã‚Œã‚‹ã¨ <target id> ãŒ 0x00000000 ã«ãªã‚‹
 
 R 01d0 <ID>.l <num>.w 
-	<num> : ‹CŒ÷‚Ì”(”ñLv)
+	<num> : æ°—åŠŸã®æ•°(éžLv)
 R 01d1 <monk id>.l <target monster id>.l <bool>.l
-	”’‰HŽæ‚èó‘ÔON/OFFB<bool> ‚Í”’nŽæ‚è¬—§Žž‚É 0x00000001 ‰ðœŽž‚É 0x00000000 ‚ª—ˆ‚é
+	ç™½ç¾½å–ã‚ŠçŠ¶æ…‹ON/OFFã€‚<bool> ã¯ç™½åˆƒå–ã‚Šæˆç«‹æ™‚ã« 0x00000001 è§£é™¤æ™‚ã« 0x00000000 ãŒæ¥ã‚‹
 R 01d2 <id>.l <delay>.l
-	ƒ‚ƒ“ƒN‚ÌƒRƒ“ƒ{ƒfƒBƒŒƒC(msec)
-	ŽO’iE˜A‘Å‚ÍŠî–{ƒfƒBƒŒƒC1000(+300)A–Ò—´‚ÍŠî–{ƒfƒBƒŒƒC700(+300)
+	ãƒ¢ãƒ³ã‚¯ã®ã‚³ãƒ³ãƒœãƒ‡ã‚£ãƒ¬ã‚¤(msec)
+	ä¸‰æ®µãƒ»é€£æ‰“ã¯åŸºæœ¬ãƒ‡ã‚£ãƒ¬ã‚¤1000(+300)ã€çŒ›é¾ã¯åŸºæœ¬ãƒ‡ã‚£ãƒ¬ã‚¤700(+300)
 R 01d4 <ID>.l
-	•¶Žš—ñ“ü—Í‘‹•\Ž¦(ID‚ÍNPC‚ÌID‚ª“ü‚é)
+	æ–‡å­—åˆ—å…¥åŠ›çª“è¡¨ç¤º(IDã¯NPCã®IDãŒå…¥ã‚‹)
 S 01d5 <len>.w <ID>.l <input>.?B 00
-	•¶Žš—ñ“ü—Í“à—e‘—M(ID‚ÍNPC‚ÌID‚ª“ü‚é)
+	æ–‡å­—åˆ—å…¥åŠ›å†…å®¹é€ä¿¡(IDã¯NPCã®IDãŒå…¥ã‚‹)
 R 01d7 <ID>.l <equip point>.b <item id1>.w <item id2>.w
-	‘•”õƒOƒ‰ƒtƒBƒbƒN <equip point> ‚Í 02Žè‚Æ09‘«‚Ì‚ÝŠm”FBid2‚Í¶Žè
+	è£…å‚™ã‚°ãƒ©ãƒ•ã‚£ãƒƒã‚¯ <equip point> ã¯ 02æ‰‹ã¨09è¶³ã®ã¿ç¢ºèªã€‚id2ã¯å·¦æ‰‹
 R 01d8 <ID>.l <speed>.w <opt1>.w <opt2>.w <option>.w <class>.w <hair>.w <item id1>.w <item id2>.w <head option bottom>.w <head option top>.w <head option mid>.w <hair color>.w ?.w <head dir>.w <guild>.l <emblem>.l <manner>.w <karma>.B <sex>.B <X_Y_dir>.3B ?.B ?.B <sit>.B <Lv>.B ?.B
-	ƒ}ƒbƒvƒ[ƒhŽž&ˆÚ“®Žž—pAŒü‚«•t‚«—pƒLƒƒƒ‰î•ñ?(0078‚ÌãˆÊƒo[ƒWƒ‡ƒ“)
+	ãƒžãƒƒãƒ—ãƒ­ãƒ¼ãƒ‰æ™‚&ç§»å‹•æ™‚ç”¨ã€å‘ãä»˜ãç”¨ã‚­ãƒ£ãƒ©æƒ…å ±?(0078ã®ä¸Šä½ãƒãƒ¼ã‚¸ãƒ§ãƒ³)
 R 01d9 <ID>.l <speed>.w <opt1>.w <opt2>.w <option>.w <class>.w <hair>.w <item id1>.w <item id2>.w.<head option bottom>.w <head option top>.w <head option mid>.w <hair color>.w ?.w <head dir>.w <guild>.l <emblem>.l <manner>.w <karma>.B <sex>.B <X_Y_dir>.3B ?.B ?.B <Lv>.B ?.B
-	ƒeƒŒƒ|“™‚Ì•\Ž¦”ÍˆÍ“à•¦‚«ƒLƒƒƒ‰—pAŒü‚«•t‚«–³‚µƒLƒƒƒ‰î•ñ?(0079‚ÌãˆÊƒo[ƒWƒ‡ƒ“)
+	ãƒ†ãƒ¬ãƒç­‰ã®è¡¨ç¤ºç¯„å›²å†…æ²¸ãã‚­ãƒ£ãƒ©ç”¨ã€å‘ãä»˜ãç„¡ã—ã‚­ãƒ£ãƒ©æƒ…å ±?(0079ã®ä¸Šä½ãƒãƒ¼ã‚¸ãƒ§ãƒ³)
 R 01da <ID>.l <speed>.w <opt1>.w <opt2>.w <option>.w <class>.w <hair>.<item id1>.w <item id2>.w <head option bottom>.w <server tick>.l <head option top>.w <head option mid>.w <hair color>.w ?.w <head dir>.w <guild>.l <emblem>.l <manner>.w <karma>.B <sex>.B <X_Y_X_Y>.5B ?.B ?.B ?.B <Lv>.B ?.B
-	•\Ž¦”ÍˆÍ“àƒLƒƒƒ‰ˆÚ“®î•ñ(007b‚ÌãˆÊƒo[ƒWƒ‡ƒ“)
+	è¡¨ç¤ºç¯„å›²å†…ã‚­ãƒ£ãƒ©ç§»å‹•æƒ…å ±(007bã®ä¸Šä½ãƒãƒ¼ã‚¸ãƒ§ãƒ³)
 S 01db
-	ˆÃ†‰»key—v‹
+	æš—å·åŒ–keyè¦æ±‚
 R 01dc <len>.w <key>.?B
-	ˆÃ†‰»key‘—•t
+	æš—å·åŒ–keyé€ä»˜
 S 01dd <version>.l <account name>.24B <md5 binary>.16B <version2>.1B
-	id&ˆÃ†‰»Ï‚Ýpass‘—M
-		‡‚ÉƒNƒ‰ƒCƒAƒ“ƒg‚ª01db‚ð‘—‚éA
-		ŽI‚ª01dc‚Åkey‚ð•Ô‚·A
-		ƒNƒ‰ƒCƒAƒ“ƒg‚ª"<key><password>"‚É‚Â‚¢‚Ämd5ŒvŽZ‚µ
-		<md5 binary>‚ÌŠ‚ð–„‚ß‚Ä01dd‚ð‘—‚éB
-		<passwordencrypt2>‚ÌŽž‚Í
-		"<key><password>"‚É‘Î‚µ‚Ämd5ŒvŽZ‚Æ‚µ‚Ä‚¢‚éŠ‚ð
-		"<password><key>"‚Æ•ÏX‚·‚é
+	id&æš—å·åŒ–æ¸ˆã¿passé€ä¿¡
+		é †ã«ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆãŒ01dbã‚’é€ã‚‹ã€
+		é¯–ãŒ01dcã§keyã‚’è¿”ã™ã€
+		ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆãŒ"<key><password>"ã«ã¤ã„ã¦md5è¨ˆç®—ã—
+		<md5 binary>ã®æ‰€ã‚’åŸ‹ã‚ã¦01ddã‚’é€ã‚‹ã€‚
+		<passwordencrypt2>ã®æ™‚ã¯
+		"<key><password>"ã«å¯¾ã—ã¦md5è¨ˆç®—ã¨ã—ã¦ã„ã‚‹æ‰€ã‚’
+		"<password><key>"ã¨å¤‰æ›´ã™ã‚‹
 R 01de <skill ID>.w <src ID>.l <dst ID>.l <server tick>.l <src speed>.l <dst speed>.l <param1>.l <param2>.w <param3>.w <type>.B
-	UŒ‚ŒnƒXƒLƒ‹ƒGƒtƒFƒNƒg@(0114‚ÌãˆÊƒo[ƒVƒ‡ƒ“H)
-	type=04 ‰Î•Ç‚ÅŠÏ‘ª type=06‚Æ‚Ù‚Ú“¯‚¶?
-	type=05 NB/FBl‚Ì•ªŽU‚µ‚½ƒ_ƒ[ƒW—pH
-	type=06 ’P”­‚à‚Ì? param1‚Íƒ_ƒ[ƒW‡ŒvAparam2‚ÍlevelAparam3‚Í1ŒÅ’è‚Æ—\‘z
-	type=07 ƒ_ƒ[ƒW•\Ž¦–³‚µH
-	type=08 ˜A‘Å‚à‚Ì? param1‚Íƒ_ƒ[ƒW‡ŒvAparam2‚ÍlevelAparam3‚Í•ªŠ„”‚Æ—\‘z
-	type=09 ƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚È‚µ‚Éƒ_ƒ[ƒW‚¾‚¯•\Ž¦‚³‚ê‚é•¨(ƒCƒ“ƒfƒ…ƒA)‚ÆŽv‚Á‚½‚Ì‚¾‚ªƒ_ƒ[ƒWƒ‚[ƒVƒ‡ƒ“‚ªo‚é•¨B(‹@”\‚Í“ä)
+	æ”»æ’ƒç³»ã‚¹ã‚­ãƒ«ã‚¨ãƒ•ã‚§ã‚¯ãƒˆ@(0114ã®ä¸Šä½ãƒãƒ¼ã‚·ãƒ§ãƒ³ï¼Ÿ)
+	type=04 ç«å£ã§è¦³æ¸¬ type=06ã¨ã»ã¼åŒã˜?
+	type=05 NB/FBlã®åˆ†æ•£ã—ãŸãƒ€ãƒ¡ãƒ¼ã‚¸ç”¨ï¼Ÿ
+	type=06 å˜ç™ºã‚‚ã®? param1ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸åˆè¨ˆã€param2ã¯levelã€param3ã¯1å›ºå®šã¨äºˆæƒ³
+	type=07 ãƒ€ãƒ¡ãƒ¼ã‚¸è¡¨ç¤ºç„¡ã—ï¼Ÿ
+	type=08 é€£æ‰“ã‚‚ã®? param1ã¯ãƒ€ãƒ¡ãƒ¼ã‚¸åˆè¨ˆã€param2ã¯levelã€param3ã¯åˆ†å‰²æ•°ã¨äºˆæƒ³
+	type=09 ãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãªã—ã«ãƒ€ãƒ¡ãƒ¼ã‚¸ã ã‘è¡¨ç¤ºã•ã‚Œã‚‹ç‰©(ã‚¤ãƒ³ãƒ‡ãƒ¥ã‚¢)ã¨æ€ã£ãŸã®ã ãŒãƒ€ãƒ¡ãƒ¼ã‚¸ãƒ¢ãƒ¼ã‚·ãƒ§ãƒ³ãŒå‡ºã‚‹ç‰©ã€‚(æ©Ÿèƒ½ã¯è¬Ž)
 S 01df <ID>.|
-	GM‰EƒNƒŠƒbƒN‚É‚æ‚éID‚Ìƒ`ƒƒƒbƒg‹ÖŽ~‰ñ”ŽQÆH
+	GMå³ã‚¯ãƒªãƒƒã‚¯ã«ã‚ˆã‚‹IDã®ãƒãƒ£ãƒƒãƒˆç¦æ­¢å›žæ•°å‚ç…§ï¼Ÿ
 R 01e1 <ID>.l <num>.w 
-	<num> : ‹CŒ÷‚Ì”(”ñLv) ˆê“x•\Ž¦‚µ‚½‚çŒã‚Ç‚ñ‚Ènum‚ª—ˆ‚Ä‚à–³Ž‹‚³‚ê‚éB
+	<num> : æ°—åŠŸã®æ•°(éžLv) ä¸€åº¦è¡¨ç¤ºã—ãŸã‚‰å¾Œã©ã‚“ãªnumãŒæ¥ã¦ã‚‚ç„¡è¦–ã•ã‚Œã‚‹ã€‚
 R 01e6 <partner name>.24B
-	Œ‹¥ƒXƒLƒ‹‚ ‚È‚½‚Éˆ§‚¢‚½‚¢Žg—pŽž‚Ì‹©‚Ñº
+	çµå©šã‚¹ã‚­ãƒ«ã‚ãªãŸã«é€¢ã„ãŸã„ä½¿ç”¨æ™‚ã®å«ã³å£°
 S 01e7
-	ƒXƒpƒmƒr‚Å/doridori‚µ‚½‚ç”ò‚ñ‚Å‚­‚éBSPR‰ñ•œ—Ê2”{ƒtƒ‰ƒO‚ð—§‚Ä‚éƒpƒPƒbƒg
+	ã‚¹ãƒ‘ãƒŽãƒ“ã§/doridoriã—ãŸã‚‰é£›ã‚“ã§ãã‚‹ã€‚SPRå›žå¾©é‡2å€ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹ãƒ‘ã‚±ãƒƒãƒˆ
 S 01e8 <party name>.24B <item1>B <item2>B
-	<item1>ƒAƒCƒeƒ€ŽûW•û–@B0‚ÅŒÂl•ÊA1‚Åƒp[ƒeƒBŒö—L
-	<item2>ƒAƒCƒeƒ€•ª”z•û–@B0‚ÅŒÂl•ÊA1‚Åƒp[ƒeƒB‚É‹Ï“™•ª”z
-	(00f9‚ÌãˆÊƒo[ƒVƒ‡ƒ“)
+	<item1>ã‚¢ã‚¤ãƒ†ãƒ åŽé›†æ–¹æ³•ã€‚0ã§å€‹äººåˆ¥ã€1ã§ãƒ‘ãƒ¼ãƒ†ã‚£å…¬æœ‰
+	<item2>ã‚¢ã‚¤ãƒ†ãƒ åˆ†é…æ–¹æ³•ã€‚0ã§å€‹äººåˆ¥ã€1ã§ãƒ‘ãƒ¼ãƒ†ã‚£ã«å‡ç­‰åˆ†é…
+	(00f9ã®ä¸Šä½ãƒãƒ¼ã‚·ãƒ§ãƒ³)
 R 01ea <ID>.l
-	Œ‹¥ƒGƒtƒFƒNƒg(‰¹ŠyAŽ†á)
-	ID‚ÍV•w‚Ì‚à‚Ì‚ª“ü‚éH
+	çµå©šã‚¨ãƒ•ã‚§ã‚¯ãƒˆ(éŸ³æ¥½ã€ç´™å¹é›ª)
+	IDã¯æ–°å©¦ã®ã‚‚ã®ãŒå…¥ã‚‹ï¼Ÿ
 S 01ed
-	ƒXƒpƒmƒr‚ª”š—ô”g“®‚É‚È‚éƒtƒ‰ƒO‚ð—§‚Ä‚éƒpƒPƒbƒg
+	ã‚¹ãƒ‘ãƒŽãƒ“ãŒçˆ†è£‚æ³¢å‹•ã«ãªã‚‹ãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹ãƒ‘ã‚±ãƒƒãƒˆ
 R 01ee <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <amount>.w ?.2B <card>.4w}.18B*
-	Š—LÁ–Õ•i&ŽûW•iƒŠƒXƒg
-	–î‚Ìê‡‚Í?.2B‚ª0x8000‚É‚È‚é
-	00a3‚©‚ç•ÏX
+	æ‰€æœ‰æ¶ˆè€—å“&åŽé›†å“ãƒªã‚¹ãƒˆ
+	çŸ¢ã®å ´åˆã¯?.2BãŒ0x8000ã«ãªã‚‹
+	00a3ã‹ã‚‰å¤‰æ›´
 R 01ef <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <amount>.w ?.2B <card>.4w}.18B*
-	ƒJ[ƒg“àƒAƒCƒeƒ€BÁ–Õ•i/ŽûW•i
-	0123‚©‚ç•ÏX
+	ã‚«ãƒ¼ãƒˆå†…ã‚¢ã‚¤ãƒ†ãƒ ã€‚æ¶ˆè€—å“/åŽé›†å“
+	0123ã‹ã‚‰å¤‰æ›´
 R 01f0 <len>.w {<index>.w <item ID>.w <type>.B <identify flag>.B <amount>.w ?.2B <card>.4w}.18B*
-	ƒJƒvƒ‰‚³‚ñ‚É—a‚¯‚Ä‚ ‚éÁ–Õ•i&ŽûW•iƒŠƒXƒg
-	00a5‚©‚ç•ÏX
+	ã‚«ãƒ—ãƒ©ã•ã‚“ã«é ã‘ã¦ã‚ã‚‹æ¶ˆè€—å“&åŽé›†å“ãƒªã‚¹ãƒˆ
+	00a5ã‹ã‚‰å¤‰æ›´
 R 01f4 <name>.24B <trade id?>.L <LV>.w
-	æ•û‚©‚çŽæˆø—v¿
-	00e5‚©‚ç•ÏX
+	å…ˆæ–¹ã‹ã‚‰å–å¼•è¦è«‹
+	00e5ã‹ã‚‰å¤‰æ›´
 R 01f5 <result>.B <trade id?>.L <LV>.w
-	‚±‚¿‚ç‚©‚ç‚ÌŽæˆø—v¿‚É‘Î‚·‚é”½‰ž
-	00e7‚©‚ç•ÏX
+	ã“ã¡ã‚‰ã‹ã‚‰ã®å–å¼•è¦è«‹ã«å¯¾ã™ã‚‹åå¿œ
+	00e7ã‹ã‚‰å¤‰æ›´
 S 0200 <login name>.24B
-	ragexe‚É/accountƒIƒvƒVƒ‡ƒ“‚ð‚Â‚¯‚Ä‹N“®‚·‚é‚ÆƒƒOƒCƒ“—v‹‚É•t‰Á‚³‚ê‚éƒpƒPƒbƒg
+	ragexeã«/accountã‚ªãƒ—ã‚·ãƒ§ãƒ³ã‚’ã¤ã‘ã¦èµ·å‹•ã™ã‚‹ã¨ãƒ­ã‚°ã‚¤ãƒ³è¦æ±‚ã«ä»˜åŠ ã•ã‚Œã‚‹ãƒ‘ã‚±ãƒƒãƒˆ
 S 0204 <?>.16B
-	ƒƒOƒCƒ“—v‹‚É•t‰Á‚³‚ê‚éƒpƒPƒbƒgB16ƒoƒCƒg‚ÍŒÅ’èH
+	ãƒ­ã‚°ã‚¤ãƒ³è¦æ±‚ã«ä»˜åŠ ã•ã‚Œã‚‹ãƒ‘ã‚±ãƒƒãƒˆã€‚16ãƒã‚¤ãƒˆã¯å›ºå®šï¼Ÿ
 S 020B <?>.17B
-	ƒLƒƒƒ‰ƒNƒ^ƒT[ƒoÚ‘±—v‹0065‚É•t‰Á‚³‚ê‚éƒpƒPƒbƒgB1+0204‚Ì16ƒoƒCƒg‚Å17ƒoƒCƒgH
+	ã‚­ãƒ£ãƒ©ã‚¯ã‚¿ã‚µãƒ¼ãƒæŽ¥ç¶šè¦æ±‚0065ã«ä»˜åŠ ã•ã‚Œã‚‹ãƒ‘ã‚±ãƒƒãƒˆã€‚1+0204ã®16ãƒã‚¤ãƒˆã§17ãƒã‚¤ãƒˆï¼Ÿ

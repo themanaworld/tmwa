@@ -164,7 +164,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     if (set != 41)
         return 0;
     if (str[next] == '\n' || str[next] == '\r')
-        return 1;               // V‹Kƒf[ƒ^
+        return 1;               // æ–°è¦ãƒ‡ãƒ¼ã‚¿
     next++;
     for (i = 0; str[next] && str[next] != '\t'; i++)
     {
@@ -245,7 +245,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     for (i = 0;
          str[next] && str[next] != '\t' && str[next] != '\n'
          && str[next] != '\r'; i++)
-    {                           //global_regŽÀ‘•ˆÈ‘O‚Ìathena.txtŒÝŠ·‚Ì‚½‚ßˆê‰ž'\n'ƒ`ƒFƒbƒN
+    {                           //global_regå®Ÿè£…ä»¥å‰ã®athena.txtäº’æ›ã®ãŸã‚ä¸€å¿œ'\n'ãƒã‚§ãƒƒã‚¯
         set = sscanf (str + next, "%[^,],%d%n",
                       p->global_reg[i].str, &p->global_reg[i].value, &len);
         if (set != 2)

@@ -85,12 +85,12 @@ enum
 
 enum
 {
-    MSS_IDLE,                   // �ҋ@
-    MSS_WALK,                   // �ړ�
-    MSS_ATTACK,                 // �U��
-    MSS_DEAD,                   // ���S
-    MSS_LOOT,                   // ���[�g
-    MSS_CHASE,                  // �ˌ�
+    MSS_IDLE,                   // 待機
+    MSS_WALK,                   // 移動
+    MSS_ATTACK,                 // 攻撃
+    MSS_DEAD,                   // 死亡
+    MSS_LOOT,                   // ルート
+    MSS_CHASE,                  // 突撃
 };
 
 int  mobdb_searchname (const char *str);

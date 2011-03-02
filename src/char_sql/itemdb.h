@@ -18,8 +18,8 @@ struct item_data
     int  look;
     int  elv;
     int  wlv;
-    char *use_script;           // ‰ñ•œ‚Æ‚©‚à‘S•”‚±‚Ì’†‚Å‚â‚ë‚¤‚©‚È‚Æ
-    char *equip_script;         // UŒ‚,–hŒä‚Ì‘®«İ’è‚à‚±‚Ì’†‚Å‰Â”\‚©‚È?
+    char *use_script;           // å›å¾©ã¨ã‹ã‚‚å…¨éƒ¨ã“ã®ä¸­ã§ã‚„ã‚ã†ã‹ãªã¨
+    char *equip_script;         // æ”»æ’ƒ,é˜²å¾¡ã®å±æ€§è¨­å®šã‚‚ã“ã®ä¸­ã§å¯èƒ½ã‹ãª?
     char available;
 };
 

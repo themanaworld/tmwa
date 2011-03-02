@@ -19,7 +19,7 @@ int  mapif_party_broken (int party_id, int flag);
 int  party_check_empty (struct party *p);
 int  mapif_parse_PartyLeave (int fd, int party_id, int account_id);
 
-// ƒp[ƒeƒBƒf[ƒ^‚Ì•¶š—ñ‚Ö‚Ì•ÏŠ·
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ‡ãƒ¼ã‚¿ã®æ–‡å­—åˆ—ã¸ã®å¤‰æ›
 int inter_party_tostr (char *str, struct party *p)
 {
     int  i, len;
@@ -38,7 +38,7 @@ int inter_party_tostr (char *str, struct party *p)
     return 0;
 }
 
-// ƒp[ƒeƒBƒf[ƒ^‚Ì•¶š—ñ‚©‚ç‚Ì•ÏŠ·
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ‡ãƒ¼ã‚¿ã®æ–‡å­—åˆ—ã‹ã‚‰ã®å¤‰æ›
 int inter_party_fromstr (char *str, struct party *p)
 {
     int  i, j;
@@ -86,7 +86,7 @@ int inter_party_fromstr (char *str, struct party *p)
     return 0;
 }
 
-// ƒp[ƒeƒBƒf[ƒ^‚Ìƒ[ƒh
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ‡ãƒ¼ã‚¿ã®ãƒ­ãƒ¼ãƒ‰
 int inter_party_init ()
 {
     char line[8192];
@@ -138,7 +138,7 @@ int inter_party_init ()
     return 0;
 }
 
-// ƒp[ƒeƒB[ƒf[ƒ^‚ÌƒZ[ƒu—p
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¼ãƒ‡ãƒ¼ã‚¿ã®ã‚»ãƒ¼ãƒ–ç”¨
 int inter_party_save_sub (void *key, void *data, va_list ap)
 {
     char line[8192];
@@ -151,7 +151,7 @@ int inter_party_save_sub (void *key, void *data, va_list ap)
     return 0;
 }
 
-// ƒp[ƒeƒB[ƒf[ƒ^‚ÌƒZ[ƒu
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¼ãƒ‡ãƒ¼ã‚¿ã®ã‚»ãƒ¼ãƒ–
 int inter_party_save ()
 {
     FILE *fp;
@@ -171,7 +171,7 @@ int inter_party_save ()
     return 0;
 }
 
-// ƒp[ƒeƒB–¼ŒŸõ—p
+// ãƒ‘ãƒ¼ãƒ†ã‚£åæ¤œç´¢ç”¨
 int search_partyname_sub (void *key, void *data, va_list ap)
 {
     struct party *p = (struct party *) data, **dst;
@@ -185,7 +185,7 @@ int search_partyname_sub (void *key, void *data, va_list ap)
     return 0;
 }
 
-// ƒp[ƒeƒB–¼ŒŸõ
+// ãƒ‘ãƒ¼ãƒ†ã‚£åæ¤œç´¢
 struct party *search_partyname (char *str)
 {
     struct party *p = NULL;
@@ -194,7 +194,7 @@ struct party *search_partyname (char *str)
     return p;
 }
 
-// EXPŒö•½•ª”z‚Å‚«‚é‚©ƒ`ƒFƒbƒN
+// EXPå…¬å¹³åˆ†é…ã§ãã‚‹ã‹ãƒã‚§ãƒƒã‚¯
 int party_check_exp_share (struct party *p)
 {
     int  i;
@@ -215,7 +215,7 @@ int party_check_exp_share (struct party *p)
     return (maxlv == 0 || maxlv - minlv <= party_share_level);
 }
 
-// ƒp[ƒeƒB‚ª‹ó‚©‚Ç‚¤‚©ƒ`ƒFƒbƒN
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãŒç©ºã‹ã©ã†ã‹ãƒã‚§ãƒƒã‚¯
 int party_check_empty (struct party *p)
 {
     int  i;
@@ -229,7 +229,7 @@ int party_check_empty (struct party *p)
             return 0;
         }
     }
-    // ’N‚à‚¢‚È‚¢‚Ì‚Å‰ğU
+    // èª°ã‚‚ã„ãªã„ã®ã§è§£æ•£
     mapif_party_broken (p->party_id, 0);
     numdb_erase (party_db, p->party_id);
     free (p);
@@ -237,7 +237,7 @@ int party_check_empty (struct party *p)
     return 1;
 }
 
-// ƒLƒƒƒ‰‚Ì‹£‡‚ª‚È‚¢‚©ƒ`ƒFƒbƒN—p
+// ã‚­ãƒ£ãƒ©ã®ç«¶åˆãŒãªã„ã‹ãƒã‚§ãƒƒã‚¯ç”¨
 int party_check_conflict_sub (void *key, void *data, va_list ap)
 {
     struct party *p = (struct party *) data;
@@ -248,7 +248,7 @@ int party_check_conflict_sub (void *key, void *data, va_list ap)
     account_id = va_arg (ap, int);
     nick = va_arg (ap, char *);
 
-    if (p->party_id == party_id)    // –{—ˆ‚ÌŠ‘®‚È‚Ì‚Å–â‘è‚È‚µ
+    if (p->party_id == party_id)    // æœ¬æ¥ã®æ‰€å±ãªã®ã§å•é¡Œãªã—
         return 0;
 
     for (i = 0; i < MAX_PARTY; i++)
@@ -256,7 +256,7 @@ int party_check_conflict_sub (void *key, void *data, va_list ap)
         if (p->member[i].account_id == account_id
             && strcmp (p->member[i].name, nick) == 0)
         {
-            // •Ê‚Ìƒp[ƒeƒB‚É‹U‚ÌŠ‘®ƒf[ƒ^‚ª‚ ‚é‚Ì‚Å’E‘Ş
+            // åˆ¥ã®ãƒ‘ãƒ¼ãƒ†ã‚£ã«å½ã®æ‰€å±ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚‹ã®ã§è„±é€€
             printf ("int_party: party conflict! %d %d %d\n", account_id,
                     party_id, p->party_id);
             mapif_parse_PartyLeave (-1, p->party_id, account_id);
@@ -266,7 +266,7 @@ int party_check_conflict_sub (void *key, void *data, va_list ap)
     return 0;
 }
 
-// ƒLƒƒƒ‰‚Ì‹£‡‚ª‚È‚¢‚©ƒ`ƒFƒbƒN
+// ã‚­ãƒ£ãƒ©ã®ç«¶åˆãŒãªã„ã‹ãƒã‚§ãƒƒã‚¯
 int party_check_conflict (int party_id, int account_id, char *nick)
 {
     numdb_foreach (party_db, party_check_conflict_sub, party_id, account_id,
@@ -276,9 +276,9 @@ int party_check_conflict (int party_id, int account_id, char *nick)
 }
 
 //-------------------------------------------------------------------
-// map server‚Ö‚Ì’ÊM
+// map serverã¸ã®é€šä¿¡
 
-// ƒp[ƒeƒBì¬‰Â”Û
+// ãƒ‘ãƒ¼ãƒ†ã‚£ä½œæˆå¯å¦
 int mapif_party_created (int fd, int account_id, struct party *p)
 {
     WFIFOW (fd, 0) = 0x3820;
@@ -301,7 +301,7 @@ int mapif_party_created (int fd, int account_id, struct party *p)
     return 0;
 }
 
-// ƒp[ƒeƒBî•ñŒ©‚Â‚©‚ç‚¸
+// ãƒ‘ãƒ¼ãƒ†ã‚£æƒ…å ±è¦‹ã¤ã‹ã‚‰ãš
 int mapif_party_noinfo (int fd, int party_id)
 {
     WFIFOW (fd, 0) = 0x3821;
@@ -313,7 +313,7 @@ int mapif_party_noinfo (int fd, int party_id)
     return 0;
 }
 
-// ƒp[ƒeƒBî•ñ‚Ü‚Æ‚ß‘—‚è
+// ãƒ‘ãƒ¼ãƒ†ã‚£æƒ…å ±ã¾ã¨ã‚é€ã‚Š
 int mapif_party_info (int fd, struct party *p)
 {
     unsigned char buf[4 + sizeof (struct party)];
@@ -330,7 +330,7 @@ int mapif_party_info (int fd, struct party *p)
     return 0;
 }
 
-// ƒp[ƒeƒBƒƒ“ƒo’Ç‰Á‰Â”Û
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¡ãƒ³ãƒè¿½åŠ å¯å¦
 int mapif_party_memberadded (int fd, int party_id, int account_id, int flag)
 {
     WFIFOW (fd, 0) = 0x3822;
@@ -342,7 +342,7 @@ int mapif_party_memberadded (int fd, int party_id, int account_id, int flag)
     return 0;
 }
 
-// ƒp[ƒeƒBİ’è•ÏX’Ê’m
+// ãƒ‘ãƒ¼ãƒ†ã‚£è¨­å®šå¤‰æ›´é€šçŸ¥
 int mapif_party_optionchanged (int fd, struct party *p, int account_id,
                                int flag)
 {
@@ -364,7 +364,7 @@ int mapif_party_optionchanged (int fd, struct party *p, int account_id,
     return 0;
 }
 
-// ƒp[ƒeƒB’E‘Ş’Ê’m
+// ãƒ‘ãƒ¼ãƒ†ã‚£è„±é€€é€šçŸ¥
 int mapif_party_leaved (int party_id, int account_id, char *name)
 {
     unsigned char buf[34];
@@ -379,7 +379,7 @@ int mapif_party_leaved (int party_id, int account_id, char *name)
     return 0;
 }
 
-// ƒp[ƒeƒBƒ}ƒbƒvXV’Ê’m
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒãƒƒãƒ—æ›´æ–°é€šçŸ¥
 int mapif_party_membermoved (struct party *p, int idx)
 {
     unsigned char buf[29];
@@ -395,7 +395,7 @@ int mapif_party_membermoved (struct party *p, int idx)
     return 0;
 }
 
-// ƒp[ƒeƒB‰ğU’Ê’m
+// ãƒ‘ãƒ¼ãƒ†ã‚£è§£æ•£é€šçŸ¥
 int mapif_party_broken (int party_id, int flag)
 {
     unsigned char buf[7];
@@ -408,7 +408,7 @@ int mapif_party_broken (int party_id, int flag)
     return 0;
 }
 
-// ƒp[ƒeƒB“à”­Œ¾
+// ãƒ‘ãƒ¼ãƒ†ã‚£å†…ç™ºè¨€
 int mapif_party_message (int party_id, int account_id, char *mes, int len)
 {
     unsigned char buf[len + 12];
@@ -424,9 +424,9 @@ int mapif_party_message (int party_id, int account_id, char *mes, int len)
 }
 
 //-------------------------------------------------------------------
-// map server‚©‚ç‚Ì’ÊM
+// map serverã‹ã‚‰ã®é€šä¿¡
 
-// ƒp[ƒeƒB
+// ãƒ‘ãƒ¼ãƒ†ã‚£
 int mapif_parse_CreateParty (int fd, int account_id, char *name, char *nick,
                              char *map, int lv)
 {
@@ -476,7 +476,7 @@ int mapif_parse_CreateParty (int fd, int account_id, char *name, char *nick,
     return 0;
 }
 
-// ƒp[ƒeƒBî•ñ—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£æƒ…å ±è¦æ±‚
 int mapif_parse_PartyInfo (int fd, int party_id)
 {
     struct party *p;
@@ -490,7 +490,7 @@ int mapif_parse_PartyInfo (int fd, int party_id)
     return 0;
 }
 
-// ƒp[ƒeƒB’Ç‰Á—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£è¿½åŠ è¦æ±‚
 int mapif_parse_PartyAddMember (int fd, int party_id, int account_id,
                                 char *nick, char *map, int lv)
 {
@@ -534,7 +534,7 @@ int mapif_parse_PartyAddMember (int fd, int party_id, int account_id,
     return 0;
 }
 
-// ƒp[ƒeƒB[İ’è•ÏX—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¼è¨­å®šå¤‰æ›´è¦æ±‚
 int mapif_parse_PartyChangeOption (int fd, int party_id, int account_id,
                                    int exp, int item)
 {
@@ -558,7 +558,7 @@ int mapif_parse_PartyChangeOption (int fd, int party_id, int account_id,
     return 0;
 }
 
-// ƒp[ƒeƒB’E‘Ş—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£è„±é€€è¦æ±‚
 int mapif_parse_PartyLeave (int fd, int party_id, int account_id)
 {
     struct party *p;
@@ -575,7 +575,7 @@ int mapif_parse_PartyLeave (int fd, int party_id, int account_id)
 
                 memset (&p->member[i], 0, sizeof (struct party_member));
                 if (party_check_empty (p) == 0)
-                    mapif_party_info (-1, p);   // ‚Ü‚¾l‚ª‚¢‚é‚Ì‚Åƒf[ƒ^‘—M
+                    mapif_party_info (-1, p);   // ã¾ã äººãŒã„ã‚‹ã®ã§ãƒ‡ãƒ¼ã‚¿é€ä¿¡
                 return 0;
             }
         }
@@ -584,7 +584,7 @@ int mapif_parse_PartyLeave (int fd, int party_id, int account_id)
     return 0;
 }
 
-// ƒp[ƒeƒBƒ}ƒbƒvXV—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒãƒƒãƒ—æ›´æ–°è¦æ±‚
 int mapif_parse_PartyChangeMap (int fd, int party_id, int account_id,
                                 char *map, int online, int lv)
 {
@@ -620,7 +620,7 @@ int mapif_parse_PartyChangeMap (int fd, int party_id, int account_id,
     return 0;
 }
 
-// ƒp[ƒeƒB‰ğU—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£è§£æ•£è¦æ±‚
 int mapif_parse_BreakParty (int fd, int party_id)
 {
     struct party *p;
@@ -635,24 +635,24 @@ int mapif_parse_BreakParty (int fd, int party_id)
     return 0;
 }
 
-// ƒp[ƒeƒBƒƒbƒZ[ƒW‘—M
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸é€ä¿¡
 int mapif_parse_PartyMessage (int fd, int party_id, int account_id, char *mes,
                               int len)
 {
     return mapif_party_message (party_id, account_id, mes, len);
 }
 
-// ƒp[ƒeƒBƒ`ƒFƒbƒN—v‹
+// ãƒ‘ãƒ¼ãƒ†ã‚£ãƒã‚§ãƒƒã‚¯è¦æ±‚
 int mapif_parse_PartyCheck (int fd, int party_id, int account_id, char *nick)
 {
     return party_check_conflict (party_id, account_id, nick);
 }
 
-// map server ‚©‚ç‚Ì’ÊM
-// E‚PƒpƒPƒbƒg‚Ì‚İ‰ğÍ‚·‚é‚±‚Æ
-// EƒpƒPƒbƒg’·ƒf[ƒ^‚Íinter.c‚ÉƒZƒbƒg‚µ‚Ä‚¨‚­‚±‚Æ
-// EƒpƒPƒbƒg’·ƒ`ƒFƒbƒN‚âARFIFOSKIP‚ÍŒÄ‚Ño‚µŒ³‚Ås‚í‚ê‚é‚Ì‚Ås‚Á‚Ä‚Í‚È‚ç‚È‚¢
-// EƒGƒ‰[‚È‚ç0(false)A‚»‚¤‚Å‚È‚¢‚È‚ç1(true)‚ğ‚©‚¦‚³‚È‚¯‚ê‚Î‚È‚ç‚È‚¢
+// map server ã‹ã‚‰ã®é€šä¿¡
+// ãƒ»ï¼‘ãƒ‘ã‚±ãƒƒãƒˆã®ã¿è§£æã™ã‚‹ã“ã¨
+// ãƒ»ãƒ‘ã‚±ãƒƒãƒˆé•·ãƒ‡ãƒ¼ã‚¿ã¯inter.cã«ã‚»ãƒƒãƒˆã—ã¦ãŠãã“ã¨
+// ãƒ»ãƒ‘ã‚±ãƒƒãƒˆé•·ãƒã‚§ãƒƒã‚¯ã‚„ã€RFIFOSKIPã¯å‘¼ã³å‡ºã—å…ƒã§è¡Œã‚ã‚Œã‚‹ã®ã§è¡Œã£ã¦ã¯ãªã‚‰ãªã„
+// ãƒ»ã‚¨ãƒ©ãƒ¼ãªã‚‰0(false)ã€ãã†ã§ãªã„ãªã‚‰1(true)ã‚’ã‹ãˆã•ãªã‘ã‚Œã°ãªã‚‰ãªã„
 int inter_party_parse_frommap (int fd)
 {
     switch (RFIFOW (fd, 0))
@@ -700,7 +700,7 @@ int inter_party_parse_frommap (int fd)
     return 1;
 }
 
-// ƒT[ƒo[‚©‚ç’E‘Ş—v‹iƒLƒƒƒ‰íœ—pj
+// ã‚µãƒ¼ãƒãƒ¼ã‹ã‚‰è„±é€€è¦æ±‚ï¼ˆã‚­ãƒ£ãƒ©å‰Šé™¤ç”¨ï¼‰
 int inter_party_leave (int party_id, int account_id)
 {
     return mapif_parse_PartyLeave (-1, party_id, account_id);

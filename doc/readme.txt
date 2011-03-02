@@ -91,7 +91,7 @@ provided above.
 
 The item_descriptions.txt file is where all of the
 descriptions are stored. Please note if you're manually
-changing something in it, that you should the » character
+changing something in it, that you should the ï½» character
 for a new line. (Use ALT + 175 to type it.) It should
 currently have the majority of the basic descriptions.
 You won't need to add how much defense or the attack

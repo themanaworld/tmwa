@@ -44,7 +44,7 @@ static int char_port = 6121;
 static char userid[24], passwd[24];
 static int chrif_state;
 
-// İ’èƒtƒ@ƒCƒ‹“Ç‚İ‚İŠÖŒW
+// è¨­å®šãƒ•ã‚¡ã‚¤ãƒ«èª­ã¿è¾¼ã¿é–¢ä¿‚
 /*==========================================
  *
  *------------------------------------------
@@ -147,7 +147,7 @@ int chrif_connect (int fd)
 }
 
 /*==========================================
- * ƒ}ƒbƒv‘—M
+ * ãƒãƒƒãƒ—é€ä¿¡
  *------------------------------------------
  */
 int chrif_sendmap (int fd)
@@ -167,7 +167,7 @@ int chrif_sendmap (int fd)
 }
 
 /*==========================================
- * ƒ}ƒbƒvóM
+ * ãƒãƒƒãƒ—å—ä¿¡
  *------------------------------------------
  */
 int chrif_recvmap (int fd)
@@ -175,7 +175,7 @@ int chrif_recvmap (int fd)
     int  i, j, ip, port;
     unsigned char *p = (unsigned char *) &ip;
 
-    if (chrif_state < 2)        // ‚Ü‚¾€”õ’†
+    if (chrif_state < 2)        // ã¾ã æº–å‚™ä¸­
         return -1;
 
     ip = RFIFOL (fd, 4);
@@ -194,7 +194,7 @@ int chrif_recvmap (int fd)
 }
 
 /*==========================================
- * ƒ}ƒbƒvIŠÔˆÚ“®‚Ì‚½‚ß‚Ìƒf[ƒ^€”õ—v‹
+ * ãƒãƒƒãƒ—é¯–é–“ç§»å‹•ã®ãŸã‚ã®ãƒ‡ãƒ¼ã‚¿æº–å‚™è¦æ±‚
  *------------------------------------------
  */
 int chrif_changemapserver (struct map_session_data *sd, char *name, int x,
@@ -230,7 +230,7 @@ int chrif_changemapserver (struct map_session_data *sd, char *name, int x,
 }
 
 /*==========================================
- * ƒ}ƒbƒvIŠÔˆÚ“®ack
+ * ãƒãƒƒãƒ—é¯–é–“ç§»å‹•ack
  *------------------------------------------
  */
 int chrif_changemapserverack (int fd)
@@ -361,7 +361,7 @@ int chrif_charselectreq (struct map_session_data *sd)
 }
 
 /*==========================================
- * ƒLƒƒƒ‰–¼–â‚¢‡‚í‚¹
+ * ã‚­ãƒ£ãƒ©åå•ã„åˆã‚ã›
  *------------------------------------------
  */
 int chrif_searchcharid (int char_id)
@@ -377,7 +377,7 @@ int chrif_searchcharid (int char_id)
 }
 
 /*==========================================
- * GM‚É•Ï‰»—v‹
+ * GMã«å¤‰åŒ–è¦æ±‚
  *------------------------------------------
  */
 int chrif_changegm (int id, const char *pass, int len)
@@ -633,7 +633,7 @@ int chrif_changedgm (int fd)
 }
 
 /*==========================================
- * «•Ê•Ï‰»I—¹ (modified by Yor)
+ * æ€§åˆ¥å¤‰åŒ–çµ‚äº† (modified by Yor)
  *------------------------------------------
  */
 int chrif_changedsex (int fd)
@@ -705,7 +705,7 @@ int chrif_changedsex (int fd)
 }
 
 /*==========================================
- * ƒAƒJƒEƒ“ƒg•Ï”•Û‘¶—v‹
+ * ã‚¢ã‚«ã‚¦ãƒ³ãƒˆå¤‰æ•°ä¿å­˜è¦æ±‚
  *------------------------------------------
  */
 int chrif_saveaccountreg2 (struct map_session_data *sd)
@@ -733,7 +733,7 @@ int chrif_saveaccountreg2 (struct map_session_data *sd)
 }
 
 /*==========================================
- * ƒAƒJƒEƒ“ƒg•Ï”’Ê’m
+ * ã‚¢ã‚«ã‚¦ãƒ³ãƒˆå¤‰æ•°é€šçŸ¥
  *------------------------------------------
  */
 int chrif_accountreg2 (int fd)
@@ -1151,12 +1151,12 @@ int chrif_parse (int fd)
             || packet_len_table[cmd - 0x2af8] == 0)
         {
 
-            int  r = intif_parse (fd);  // intif‚É“n‚·
+            int  r = intif_parse (fd);  // intifã«æ¸¡ã™
 
             if (r == 1)
-                continue;       // intif‚Åˆ—‚µ‚½
+                continue;       // intifã§å‡¦ç†ã—ãŸ
             if (r == 2)
-                return 0;       // intif‚Åˆ—‚µ‚½‚ªAƒf[ƒ^‚ª‘«‚è‚È‚¢
+                return 0;       // intifã§å‡¦ç†ã—ãŸãŒã€ãƒ‡ãƒ¼ã‚¿ãŒè¶³ã‚Šãªã„
 
             session[fd]->eof = 1;
             return 0;
@@ -1244,8 +1244,8 @@ int chrif_parse (int fd)
 }
 
 /*==========================================
- * timerŠÖ”
- * ¡‚±‚ÌmapI‚ÉŒq‚ª‚Á‚Ä‚¢‚éƒNƒ‰ƒCƒAƒ“ƒgl”‚ğcharI‚Ö‘—‚é
+ * timeré–¢æ•°
+ * ä»Šã“ã®mapé¯–ã«ç¹‹ãŒã£ã¦ã„ã‚‹ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆäººæ•°ã‚’charé¯–ã¸é€ã‚‹
  *------------------------------------------
  */
 int send_users_tochar (int tid, unsigned int tick, int id, int data)
@@ -1276,8 +1276,8 @@ int send_users_tochar (int tid, unsigned int tick, int id, int data)
 }
 
 /*==========================================
- * timerŠÖ”
- * charI‚Æ‚ÌÚ‘±‚ğŠm”F‚µA‚à‚µØ‚ê‚Ä‚¢‚½‚çÄ“xÚ‘±‚·‚é
+ * timeré–¢æ•°
+ * charé¯–ã¨ã®æ¥ç¶šã‚’ç¢ºèªã—ã€ã‚‚ã—åˆ‡ã‚Œã¦ã„ãŸã‚‰å†åº¦æ¥ç¶šã™ã‚‹
  *------------------------------------------
  */
 int check_connect_char_server (int tid, unsigned int tick, int id, int data)

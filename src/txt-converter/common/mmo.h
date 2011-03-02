@@ -6,10 +6,10 @@
 #include <time.h>
 
 #ifdef CYGWIN
-// txt‚âlog‚È‚Ç‚Ì‘‚«o‚·ƒtƒ@ƒCƒ‹‚Ì‰üsƒR[ƒh
-#define RETCODE	"\r\n"          // (CR/LFFWindowsŒn)
+// txtã‚„logãªã©ã®æ›¸ãå‡ºã™ãƒ•ã‚¡ã‚¤ãƒ«ã®æ”¹è¡Œã‚³ãƒ¼ãƒ‰
+#define RETCODE	"\r\n"          // (CR/LFï¼šWindowsç³»)
 #else
-#define RETCODE "\n"            // (LFFUnixŒnj
+#define RETCODE "\n"            // (LFï¼šUnixç³»ï¼‰
 #endif
 
 #define FIFOSIZE_SERVERLINK	128*1024
@@ -274,13 +274,13 @@ struct square
 
 enum
 {
-    GBI_EXP = 1,                // ƒMƒ‹ƒh‚ÌEXP
-    GBI_GUILDLV = 2,            // ƒMƒ‹ƒh‚ÌLv
-    GBI_SKILLPOINT = 3,         // ƒMƒ‹ƒh‚ÌƒXƒLƒ‹ƒ|ƒCƒ“ƒg
-    GBI_SKILLLV = 4,            // ƒMƒ‹ƒhƒXƒLƒ‹Lv
+    GBI_EXP = 1,                // ã‚®ãƒ«ãƒ‰ã®EXP
+    GBI_GUILDLV = 2,            // ã‚®ãƒ«ãƒ‰ã®Lv
+    GBI_SKILLPOINT = 3,         // ã‚®ãƒ«ãƒ‰ã®ã‚¹ã‚­ãƒ«ãƒã‚¤ãƒ³ãƒˆ
+    GBI_SKILLLV = 4,            // ã‚®ãƒ«ãƒ‰ã‚¹ã‚­ãƒ«Lv
 
-    GMI_POSITION = 0,           // ƒƒ“ƒo[‚Ì–ðE•ÏX
-    GMI_EXP = 1,                // ƒƒ“ƒo[‚ÌEXP
+    GMI_POSITION = 0,           // ãƒ¡ãƒ³ãƒãƒ¼ã®å½¹è·å¤‰æ›´
+    GMI_EXP = 1,                // ãƒ¡ãƒ³ãƒãƒ¼ã®EXP
 
 };
 
