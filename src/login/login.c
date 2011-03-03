@@ -4181,7 +4181,7 @@ int parse_login (int fd)
 
 //-------------------------------------------------
 // Return numerical value of a switch configuration
-// on/off, english, fran�ais, deutsch, espa�ol
+// on/off, english, français, deutsch, español
 //-------------------------------------------------
 int config_switch (const char *str)
 {

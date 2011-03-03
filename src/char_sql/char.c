@@ -3241,7 +3241,7 @@ int check_connect_login_server (int tid, unsigned int tick, int id, int data)
 
 //----------------------------------------------------------
 // Return numerical value of a switch configuration by [Yor]
-// on/off, english, fran軋is, deutsch, espal
+// on/off, english, français, deutsch, español
 //----------------------------------------------------------
 int config_switch (const char *str)
 {

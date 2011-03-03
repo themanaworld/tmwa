@@ -393,7 +393,7 @@ Date	Added
 	* Added Items Ability to be unbreakable (using bonus bUnbreakable,100;) it will totally unbreakable 
 	  any lower than a 100 it still has a chance of breaking but call it more durable ;p[AppleGirl]
 	* Added Start_Weapon and Start_Armor to all the other starts in char_athena.conf [AppleGirl]
-	* Updated skill_require_db and skill_cast_db.txt [AppleGirl]
+	* Updated skill_require_db and skill_cast_db.txt [AppleGirl]
 	* Finish to add a (reserved) wisp name for server - part 3: in map-server replace name where server name is used for wisp [Yor]
 	* Continue to add a (reserved) wisp name for server - part 2: in map-server, reception of the name [Yor]
 	* Begin to add a (reserved) wisp name for server - part 1: in char-server [Yor]
