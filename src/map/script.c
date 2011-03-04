@@ -6727,6 +6727,7 @@ int buildin_classchange (struct script_state *st)
 }
 
 /*==========================================
+ * NPCから発生するエフェクト
  * misceffect(effect, [target])
  *
  * effect The effect type/ID.

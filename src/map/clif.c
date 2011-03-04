@@ -5210,6 +5210,7 @@ int clif_cart_equiplist (struct map_session_data *sd)
 }
 
 /*==========================================
+ * パーティ作成完了
  * Relay the result of party creation.
  *
  * (R 00fa <flag>.B)
@@ -5275,6 +5276,7 @@ int clif_party_info (struct party *p, int fd)
 }
 
 /*==========================================
+ * パーティ勧誘
  * Relay a party invitation.
  *
  * (R 00fe <sender_ID>.l <party_name>.24B)
@@ -5302,6 +5304,7 @@ int clif_party_invite (struct map_session_data *sd,
 }
 
 /*==========================================
+ * パーティ勧誘結果
  * Relay the response to a party invitation.
  *
  * (R 00fd <name>.24B <flag>.B)
@@ -5746,6 +5749,7 @@ int clif_mvp_exp (struct map_session_data *sd, int exp)
 }
 
 /*==========================================
+ * ギルド作成可否通知
  * Relay the result of guild creation.
  *
  * (R 0167 <flag>.B)
@@ -7076,6 +7080,9 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
 
             if (ssd->status.guild_id > 0 && (g = guild_search (ssd->status.guild_id)) != NULL)
             {
+                // there used to be a comment near here, but the code has changed slightly
+                // ギルド所属ならパケット0195を返す
+                // google says that means: 0195 return if the packet belongs Guild
                 int  i, ps = -1;
                 for (i = 0; i < g->max_member; i++)
                 {
@@ -8453,6 +8460,7 @@ void clif_parse_CloseKafra (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * パーティを作る
  * Process request to create a party.
  *
  * (S 00f9 <party_name>.24B)
@@ -8470,6 +8478,7 @@ void clif_parse_CreateParty (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * パーティを作る
  * Process request to create a party.
  *
  * (S 01e8 <party_name>.24B <exp>.B <itm>.B)
@@ -8492,6 +8501,7 @@ void clif_parse_CreateParty2 (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * パーティに勧誘
  * Process invitation to join a party.
  *
  * (S 00fc <account_ID>.l)
@@ -8503,6 +8513,7 @@ void clif_parse_PartyInvite (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * パーティ勧誘返答
  * Process reply to party invitation.
  *
  * (S 00ff <account_ID>.l <flag>.l)
@@ -8550,6 +8561,7 @@ void clif_parse_PartyChangeOption (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * パーティメッセージ送信要求
  * Validate and process transmission of a
  * party message.
  *
@@ -8629,6 +8641,7 @@ void clif_parse_GM_Monster_Item (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * ギルドを作る
  * Process request to create a guild.
  *
  * (S 0165 <account_ID>.l <guild_name>.24B)
@@ -8808,6 +8821,7 @@ void clif_parse_GuildExplusion (int fd, struct map_session_data *sd)
 }
 
 /*==========================================
+ * ギルド会話
  * Validate and process transmission of a
  * guild message.
  *
