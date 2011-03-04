@@ -36,13 +36,13 @@ AthenaNPCScript
 		dy			It is the vertical effect range of a warp point. Probably I do not write a circle but think that it is a region.
 			Example of dx and dy (- is x and y) :
 				0,0	1,0		2,2
-				*@*	*****	*******
-				***	*****	*******
-				*@*	*****	*******
-				*@			*******
-				*@			*******
-				*@			*******
-				*@			*******
+				*@*-	*-*-*-*-*-	*-*-*-*-*-*-*-
+				*-*?*-	*-*-*?*-*-	*-*-*-*-*-*-*-
+				*@*-	*-*-*-*-*-	*-*-*-*-*-*-*-
+				*@			*-*-*-*?*-*-*-
+				*@			*-*-*-*-*-*-*-
+				*@			*-*-*-*-*-*-*-
+				*@			*-*-*-*-*-*-*-
 				*@			
 				* I hear that and it will leap if the cell of - is stepped on.
 				*@			
@@ -64,9 +64,9 @@ AthenaNPCScript
 		ys			The appearing vertical range is specified.
 			Example of xs and ys (- is x and y) :
 				0,0	2,1
-				*@*	*****
-				*@	*****
-				*@	*****
+				*@*?	*-*-*-*-*-
+				*@	*-*-*?*-*-
+				*@	*-*-*-*-*-
 				*@	
 				* And a monster appears from the cell of -.
 				
