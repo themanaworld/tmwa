@@ -6,9 +6,9 @@
 
 #include "battle.h"
 
-#include "timer.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/timer.h"
+#include "../common/nullpo.h"
+#include "../common/malloc.h"
 
 #include "clif.h"
 #include "guild.h"
@@ -18,7 +18,7 @@
 #include "pc.h"
 #include "skill.h"
 #include "../common/socket.h"
-#include "mt_rand.h"
+#include "../common/mt_rand.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"

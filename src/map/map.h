@@ -7,7 +7,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <netinet/in.h>
-#include "mmo.h"
+#include "../common/mmo.h"
 
 #ifndef MAX
 #  define MAX(x,y) (((x)>(y)) ? (x) : (y))

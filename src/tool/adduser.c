@@ -41,7 +41,7 @@ int main (int argc, char *argv[])
 
     // Check to see if account.txt exists.
     printf ("Checking if '%s' file exists...\n", account_txt);
-    FILE *FPaccin = fopen_ (account_txt, "r");
+    FILE *FPaccin = fopen (account_txt, "r");
     if (FPaccin == NULL)
     {
         printf ("'%s' file not found!\n", account_txt);
@@ -72,7 +72,7 @@ int main (int argc, char *argv[])
             }
         }
     }
-    close (FPaccin);
+    fclose (FPaccin);
     printf ("File exists.\n");
 
     printf ("Don't create an account if the login-server is online!!!\n");
@@ -105,11 +105,11 @@ int main (int argc, char *argv[])
         scanf ("%s", &sex);
     }
 
-    FILE *FPaccout = fopen_ (account_txt, "r+");
+    FILE *FPaccout = fopen (account_txt, "r+");
     fseek (FPaccout, 0, SEEK_END);
     fprintf (FPaccout, "%i	%s	%s	-	%s	-\r\n", next_id, username,
              password, sex);
-    close (FPaccout);
+    fclose (FPaccout);
 
     printf ("Account added.\n");
 }

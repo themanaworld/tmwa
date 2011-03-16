@@ -18,12 +18,12 @@
 #endif
 #include <time.h>
 
-#include "socket.h"
-#include "timer.h"
-#include "malloc.h"
-#include "version.h"
-#include "nullpo.h"
-#include "md5calc.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/malloc.h"
+#include "../common/version.h"
+#include "../common/nullpo.h"
+#include "../common/md5calc.h"
 
 #include "atcommand.h"
 #include "battle.h"

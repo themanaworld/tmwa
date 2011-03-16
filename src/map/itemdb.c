@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "db.h"
-#include "grfio.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/db.h"
+#include "../common/grfio.h"
+#include "../common/nullpo.h"
+#include "../common/malloc.h"
 #include "map.h"
 #include "battle.h"
 #include "itemdb.h"

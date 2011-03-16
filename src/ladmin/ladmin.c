@@ -22,11 +22,11 @@
 #include <stdarg.h>             // valist
 #include <ctype.h>              // tolower
 
-#include "core.h"
-#include "socket.h"
+#include "../common/core.h"
+#include "../common/socket.h"
 #include "ladmin.h"
-#include "version.h"
-#include "mmo.h"
+#include "../common/version.h"
+#include "../common/mmo.h"
 
 #ifdef PASSWORDENC
 #include "md5calc.h"

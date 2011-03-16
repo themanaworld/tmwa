@@ -5,11 +5,11 @@
 #include <stdarg.h>
 #include <string.h>
 
-#include "timer.h"
-#include "socket.h"
-#include "db.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/timer.h"
+#include "../common/socket.h"
+#include "../common/db.h"
+#include "../common/nullpo.h"
+#include "../common/malloc.h"
 #include "map.h"
 #include "clif.h"
 #include "intif.h"

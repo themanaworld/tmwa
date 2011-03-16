@@ -13,8 +13,8 @@
 #include <sys/types.h>
 #include <time.h>
 
-#include "socket.h"
-#include "timer.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
 #include "map.h"
 #include "battle.h"
 #include "chrif.h"
@@ -22,7 +22,7 @@
 #include "intif.h"
 #include "npc.h"
 #include "pc.h"
-#include "nullpo.h"
+#include "../common/nullpo.h"
 #include "itemdb.h"
 
 #ifdef MEMWATCH

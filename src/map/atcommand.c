@@ -10,9 +10,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "socket.h"
-#include "timer.h"
-#include "nullpo.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/nullpo.h"
 
 #include "atcommand.h"
 #include "battle.h"
@@ -30,7 +30,7 @@
 #include "skill.h"
 #include "trade.h"
 
-#include "core.h"
+#include "../common/core.h"
 #include "tmw.h"
 
 #define STATE_BLIND 0x10

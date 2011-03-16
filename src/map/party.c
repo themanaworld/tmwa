@@ -4,11 +4,11 @@
 #include <string.h>
 
 #include "party.h"
-#include "db.h"
-#include "timer.h"
-#include "socket.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/db.h"
+#include "../common/timer.h"
+#include "../common/socket.h"
+#include "../common/nullpo.h"
+#include "../common/malloc.h"
 #include "pc.h"
 #include "map.h"
 #include "battle.h"

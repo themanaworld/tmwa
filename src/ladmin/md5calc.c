@@ -10,7 +10,7 @@
 #include "md5calc.h"
 #include <string.h>
 #include <stdio.h>
-#include "mt_rand.h"
+#include "../common/mt_rand.h"
 
 #ifndef UINT_MAX
 #define UINT_MAX 4294967295U

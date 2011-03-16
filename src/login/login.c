@@ -18,17 +18,17 @@
 #include <netdb.h>
 #include <sys/wait.h>
 
-#include "core.h"
-#include "socket.h"
-#include "timer.h"
+#include "../common/core.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
 #include "login.h"
-#include "mmo.h"
-#include "version.h"
-#include "db.h"
-#include "lock.h"
-#include "mt_rand.h"
+#include "../common/mmo.h"
+#include "../common/version.h"
+#include "../common/db.h"
+#include "../common/lock.h"
+#include "../common/mt_rand.h"
 
-#include "md5calc.h"
+#include "../common/md5calc.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"

@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "db.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/db.h"
+#include "../common/nullpo.h"
+#include "../common/malloc.h"
 #include "map.h"
 #include "clif.h"
 #include "pc.h"

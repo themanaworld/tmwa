@@ -6,11 +6,11 @@
 
 #include "tmw.h"
 
-#include "socket.h"
-#include "timer.h"
-#include "malloc.h"
-#include "version.h"
-#include "nullpo.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/malloc.h"
+#include "../common/version.h"
+#include "../common/nullpo.h"
 
 #include "atcommand.h"
 #include "battle.h"

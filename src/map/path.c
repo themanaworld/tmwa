@@ -5,7 +5,7 @@
 
 #include "map.h"
 #include "battle.h"
-#include "nullpo.h"
+#include "../common/nullpo.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"

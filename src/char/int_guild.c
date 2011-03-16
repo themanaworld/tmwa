@@ -2,11 +2,11 @@
 #include "inter.h"
 #include "int_guild.h"
 #include "int_storage.h"
-#include "mmo.h"
+#include "../common/mmo.h"
 #include "char.h"
-#include "socket.h"
-#include "db.h"
-#include "lock.h"
+#include "../common/socket.h"
+#include "../common/db.h"
+#include "../common/lock.h"
 
 #include <string.h>
 #include <stdio.h>

@@ -1,9 +1,9 @@
 // $Id: inter.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
-#include "mmo.h"
+#include "../common/mmo.h"
 #include "char.h"
-#include "socket.h"
-#include "timer.h"
-#include "db.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/db.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -11,7 +11,7 @@
 #include "int_party.h"
 #include "int_guild.h"
 #include "int_storage.h"
-#include "lock.h"
+#include "../common/lock.h"
 
 #define WISDATA_TTL (60*1000)   // Existence time of Wisp/page data (60 seconds)
                                 // that is the waiting time of answers of all map-servers

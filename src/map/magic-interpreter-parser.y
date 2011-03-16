@@ -409,7 +409,7 @@ expr			: value
 arg_list		: /* empty */
 				{ $$.args_nr = 0; }
 			| arg_list_ne
-				{ $$ = $1 }
+				{ $$ = $1; }
 			;
 
 

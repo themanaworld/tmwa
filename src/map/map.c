@@ -9,11 +9,11 @@
 #include <netdb.h>
 #endif
 
-#include "core.h"
-#include "timer.h"
-#include "db.h"
-#include "grfio.h"
-#include "malloc.h"
+#include "../common/core.h"
+#include "../common/timer.h"
+#include "../common/db.h"
+#include "../common/grfio.h"
+#include "../common/malloc.h"
 
 #include "map.h"
 #include "chrif.h"
@@ -32,8 +32,8 @@
 #include "script.h"
 #include "guild.h"
 #include "atcommand.h"
-#include "nullpo.h"
-#include "socket.h"
+#include "../common/nullpo.h"
+#include "../common/socket.h"
 #include "magic.h"
 
 #ifdef MEMWATCH

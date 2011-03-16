@@ -15,21 +15,21 @@
 #include <time.h>
 #include <math.h>
 
-#include "socket.h"
-#include "timer.h"
-#include "malloc.h"
-#include "lock.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/malloc.h"
+#include "../common/lock.h"
 
 #include "atcommand.h"
 #include "battle.h"
 #include "chat.h"
 #include "chrif.h"
 #include "clif.h"
-#include "db.h"
+#include "../common/db.h"
 #include "guild.h"
 #include "intif.h"
 #include "itemdb.h"
-#include "lock.h"
+#include "../common/lock.h"
 #include "map.h"
 #include "mob.h"
 #include "npc.h"

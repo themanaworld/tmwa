@@ -18,12 +18,12 @@
 #include <stdarg.h>
 #include <sys/wait.h>
 
-#include "core.h"
-#include "socket.h"
-#include "timer.h"
-#include "mmo.h"
-#include "version.h"
-#include "lock.h"
+#include "../common/core.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/mmo.h"
+#include "../common/version.h"
+#include "../common/lock.h"
 #include "char.h"
 
 #include "inter.h"

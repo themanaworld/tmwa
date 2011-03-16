@@ -5,12 +5,12 @@
 #include <ctype.h>
 #include <time.h>
 
-#include "socket.h"             // [Valaris]
-#include "timer.h"
-#include "db.h"
+#include "../common/socket.h"             // [Valaris]
+#include "../common/timer.h"
+#include "../common/db.h"
 
-#include "malloc.h"
-#include "nullpo.h"
+#include "../common/malloc.h"
+#include "../common/nullpo.h"
 
 #include "atcommand.h"
 #include "battle.h"

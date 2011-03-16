@@ -6,13 +6,13 @@
 #include <math.h>
 #include <time.h>
 
-#include "malloc.h"
-#include "nullpo.h"
-#include "timer.h"
+#include "../common/malloc.h"
+#include "../common/nullpo.h"
+#include "../common/timer.h"
 
 #include "battle.h"
 #include "clif.h"
-#include "db.h"
+#include "../common/db.h"
 #include "intif.h"
 #include "itemdb.h"
 #include "map.h"

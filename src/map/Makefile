@@ -2,27 +2,25 @@ include ../../make.defs
 
 all: txt
 
-txt: obj map-server
+txt: map
 
 obj:
 	mkdir obj
 
 COMMON_OBJ = ../common/core.o ../common/socket.o ../common/timer.o ../common/grfio.o ../common/db.o ../common/lock.o ../common/nullpo.o ../common/malloc.o ../common/mt_rand.o ../common/md5calc.o
-LIBS = -lz -lm
+LDLIBS = -lz -lm
 
-map-server: obj/tmw.o obj/magic-interpreter-lexer.o obj/magic-interpreter-parser.o obj/magic-interpreter-base.o obj/magic-expr.o obj/magic-stmt.o obj/magic.o obj/map.o obj/chrif.o obj/clif.o obj/pc.o obj/npc.o obj/chat.o obj/path.o obj/itemdb.o obj/mob.o obj/script.o obj/storage.o obj/skill.o obj/skill-pools.o obj/atcommand.o obj/battle.o obj/intif.o obj/trade.o obj/party.o obj/guild.o $(COMMON_OBJ)
-	$(CC) -o ../../$@ $^ $(LIBS)
+map: obj/tmw.o obj/magic-interpreter-lexer.o obj/magic-interpreter-parser.o obj/magic-interpreter-base.o obj/magic-expr.o obj/magic-stmt.o obj/magic.o obj/map.o obj/chrif.o obj/clif.o obj/pc.o obj/npc.o obj/chat.o obj/path.o obj/itemdb.o obj/mob.o obj/script.o obj/storage.o obj/skill.o obj/skill-pools.o obj/atcommand.o obj/battle.o obj/intif.o obj/trade.o obj/party.o obj/guild.o $(COMMON_OBJ)
+	${LINK.c} $^ ${LDLIBS} -o $@
+obj/%.o: %.c | obj
+	${COMPILE.c} $< -o $@
 
-obj/%.o: %.c
-	$(COMPILE.c) $(OUTPUT_OPTION) $<
+magic-interpreter-lexer.c: magic-interpreter-lexer.l
+magic-interpreter-parser.c magic-interpreter-parser.h: magic-interpreter-parser.y
+#The builtin yacc rule is insufficient, (but yacc can be used in place of bison)
+	${YACC} $^ -d -o magic-interpreter-parser.c
 
-magic-interpreter-lexer.c: magic-interpreter.l
-	$(LEX) -o magic-interpreter-lexer.c magic-interpreter.l
-
-magic-interpreter-parser.c: magic-interpreter-parser.y
-	$(BISON) -v -d -o magic-interpreter-parser.c magic-interpreter-parser.y
-
-obj/magic-interpreter-lexer.o: magic-interpreter-lexer.c magic-interpreter-parser.c magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
+obj/magic-interpreter-lexer.o: magic-interpreter-lexer.c magic-interpreter-parser.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
 obj/magic-interpreter-parser.o: magic-interpreter-parser.c magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
 obj/magic-interpreter-base.o: magic-interpreter-base.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
 obj/magic-expr.o: magic-expr.c magic-expr-eval.h magic-interpreter-aux.h magic-expr.h magic-interpreter.h chrif.h clif.h npc.h pc.h mob.h chat.h skill.h itemdb.h storage.h party.h atcommand.h ../common/core.h ../common/timer.h ../common/db.h ../common/grfio.h ../common/mmo.h
@@ -47,6 +45,9 @@ obj/intif.o: intif.c intif.h chrif.h clif.h party.h guild.h storage.h map.h batt
 obj/trade.o: trade.c trade.h clif.h itemdb.h map.h pc.h npc.h ../common/mmo.h
 obj/party.o: party.c party.h clif.h intif.h pc.h map.h battle.h ../common/db.h ../common/socket.h ../common/timer.h ../common/mmo.h
 obj/tmw.o: tmw.c tmw.h map.h clif.h
+obj/guild.o: guild.c guild.h storage.h ../common/mmo.h ../common/utils.h \
+ ../common/mt_rand.h ../common/timer.h ../common/socket.h \
+ ../common/nullpo.h battle.h npc.h pc.h map.h mob.h intif.h clif.h tmw.h
 
 clean:
-	rm -rf *.o ../../map-server obj
+	rm -rf *.o map obj magic-interpreter-parser.c magic-interpreter-parser.h magic-interpreter-lexer.c
