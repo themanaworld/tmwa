@@ -29,7 +29,9 @@ clean-ladmin:
 	${MAKE} -C src/ladmin clean
 
 # This target is separate for historical reasons, and because it is optional
-tools: common
+tools: common eathena-monitor
+eathena-monitor:
 	${MAKE} -C src/tool
+	${CP} src/tool/eathena-monitor .
 clean-tools:
 	${MAKE} -C src/tool clean
