@@ -155,7 +155,6 @@ pid_t start_process(const char *exec) {
 }
 
 // Kill all children with the same signal we got, then ourself.
-// Note that none of the servers do any signal handling themselves.
 void stop_process(int sig) {
     if (pid_map) kill(pid_map, sig);
     if (pid_login) kill(pid_login, sig);

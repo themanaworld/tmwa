@@ -1,8 +1,6 @@
 include ../../make.defs
 
-all: txt
-
-txt: map
+all: map
 
 obj:
 	mkdir obj
