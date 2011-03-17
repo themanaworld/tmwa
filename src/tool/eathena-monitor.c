@@ -1,73 +1,88 @@
 /**
  * Name:    eAthena processes monitor
- * Author:  Bartosz Waszak <waszi@evil.org.pl>
+ * Original Author:  Bartosz Waszak <waszi@evil.org.pl>
+ * Rewrite Author: Ben Longbons <b.r.longbons@gmail.com>
  * License: GPL
  * Compilation:
  * gcc -o eathena-monitor eathena-monitor.c
-*/
+ */
 
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 
-#if !defined(linux) && (defined(__sgi) || defined(__sun__) || defined(__sun) || defined(__sparc) || defined(__sparc__))
-#include <sys/statfs.h>
-#endif
-
-#if defined (__FreeBSD__) || defined (__OpenBSD__) || defined (__NetBSD__) || defined (__APPLE__)
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
-
-#if defined(linux) || defined(__CYGWIN32__) || defined(__hpux)
-#include <sys/vfs.h>
-#endif
-
-#include <dirent.h>
-#include <errno.h>
 #include <time.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <signal.h>
 
 #define HOME getenv("HOME")
-#define LOGIN_SERVER "login-server"
-#define MAP_SERVER "map-server"
-#define CHAR_SERVER "char-server"
+#define LOGIN_SERVER "./login-server"
+#define MAP_SERVER "./map-server"
+#define CHAR_SERVER "./char-server"
 #define CONFIG "conf/eathena-monitor.conf"
 #define LOGFILE "log/eathena-monitor.log"
-#ifndef PATH_MAX
-#define PATH_MAX 4096
-#endif
 
-#define IS_BLANK(ptr) \
-    (((*(ptr)) == ' ') || ((*(ptr)) == '\b') || \
-    ((*(ptr)) == '\n') || ((*(ptr)) == '\r'))
 
-#define SKIP_BLANK(ptr) \
-    { while (((*(ptr)) == ' ') || ((*(ptr)) == '\b') || \
-    ((*(ptr)) == '\n') || ((*(ptr)) == '\r')) ptr++; }
+#define SKIP_BLANK(ptr) ptr += skip_blank(ptr)
+inline size_t skip_blank(const char* ptr) {
+    size_t i = 0;
+    while (
+        (ptr[i] == ' ') ||
+        (ptr[i] == '\b') ||
+        (ptr[i] == '\n') ||
+        (ptr[i] == '\r')
+    ) ptr++;
+    return i;
+}
 
-#define GOTO_EQL(ptr) \
-    { while (((*(ptr)) != '\0') && ((*(ptr)) != '=') && \
-    ((*(ptr)) != '\n') && ((*(ptr)) != '\r')) ptr++; }
+#define GOTO_EQL(ptr) ptr += goto_eql(ptr)
+inline size_t goto_eql(const char* ptr) {
+    size_t i = 0;
+    while (
+        (ptr[i] != '\0') &&
+        (ptr[i] != '=') &&
+        (ptr[i] != '\n') &&
+        (ptr[i] != '\r')
+    ) ptr++;
+    return i;
+}
 
-#define GOTO_EOL(ptr) \
-    { while (((*(ptr)) != '\0') && \
-    ((*(ptr)) != '\n') && ((*(ptr)) != '\r')) ptr++; }
+#define GOTO_EOL(ptr) ptr += goto_newline(ptr)
+inline size_t goto_newline(const char* ptr) {
+    size_t i = 0;
+    while (
+        (ptr[i] != '\0') &&
+        (ptr[i] != '\n') &&
+        (ptr[i] != '\r')
+    ) ptr++;
+    return i;
+}
 
-char *workdir;
-char *login_server;
-char *map_server;
-char *char_server;
-char *config;
-char *logfile;
-unsigned int interval = 5;
-unsigned int pid_login, pid_map, pid_char;
-char use_login = 1;
+// initialiized to $HOME/tmwserver
+const char *workdir;
+//the rest are relative to workdir
+const char *login_server = LOGIN_SERVER;
+const char *map_server = MAP_SERVER;
+const char *char_server = CHAR_SERVER;
+const char *logfile = LOGFILE;
+// this variable is hard-coded, but the command-line is checked first
+const char *config = CONFIG;
+
+pid_t pid_login, pid_map, pid_char;
+
+const char* make_path (const char* base, const char* path) {
+    size_t base_len = strlen(base);
+    size_t path_len = strlen(path);
+    char* out = malloc(base_len + 1 + path_len + 1);
+    memcpy(out, base, base_len);
+    out[base_len] = '/';
+    memcpy(out + base_len + 1, path, path_len);
+    out[base_len + 1 + path_len] = '\0';
+    return out;
+}
 
 void parse_option (char *name, char *value) {
     if (!strcasecmp(name, "login_server")) {
@@ -80,30 +95,24 @@ void parse_option (char *name, char *value) {
         workdir = strdup(value);
     } else if (!strcasecmp(name, "logfile")) {
         logfile = strdup(value);
-    } else if (!strcasecmp(name, "interval")) {
-        interval = atoi(strdup(value));
     } else {
-        printf("WARNING: ingnoring invalid options '%s'\n", name);
+        fprintf(stderr, "WARNING: ingnoring invalid option '%s' = '%s'\n", name, value);
     }
 }
 
-int read_config(char *filename) {
+void read_config(const char *filename) {
     FILE *input;
-    char *str, *base;
     char string[1000];
-    char *name;
-    char *value;
-    int errors = 0;
 
     if (!(input = fopen(filename,"r")) && !(input = fopen (config, "r"))) {
-        fprintf (stderr, "ERROR: Config file doesn't exist (%s and %s), using builtin defaults\n", filename, config);
-        return -1;
+        perror("Unable to load config file");
+        return;
     }
 
     while (1) {
-        if (fgets (&string[0], sizeof (string) - 1, input) == NULL)
+        if (fgets (string, sizeof (string) - 1, input) == NULL)
             break;
-        str = &string[0];
+        char *str = string, *name, *value;
         SKIP_BLANK(str);
         string[sizeof (string) - 1] = '\0';
         if (*str == '#')
@@ -127,162 +136,89 @@ int read_config(char *filename) {
     }
 
     fclose (input);
-    return(0);
 }
 
-void start_process(char *exec) {
-    pid_t pid;
-    pid = fork();
+pid_t start_process(const char *exec) {
+    const char *args[2] = {exec, NULL};
+    pid_t pid = fork();
+    if (pid == -1) {
+        fprintf(stderr, "Failed to fork");
+        return 0;
+    }
     if (pid == 0) {
-    if (!fork()) {
-        execl(exec,exec,NULL);
-        exit(0);
+        execv(exec, (char**)args);
+        perror("Failed to exec");
+        kill(getppid(), SIGABRT);
+        exit(1);
     }
-    exit(0);
-    }
-    wait(0);
+    return pid;
 }
 
+// Kill all children with the same signal we got, then ourself.
+// Note that none of the servers do any signal handling themselves.
 void stop_process(int sig) {
-    system("killall map-server");
-    system("killall login-server");
-    system("killall char-server");
-    exit(0);
+    if (pid_map) kill(pid_map, sig);
+    if (pid_login) kill(pid_login, sig);
+    if (pid_char) kill(pid_char, sig);
+    signal(sig, SIG_DFL);
+    raise(sig);
 }
 
 int main(int argc, char *argv[]) {
-    DIR *procdir;
-    FILE *log;
-
-    int fd;
-
-    char pathbuf[PATH_MAX];
-    char link[PATH_MAX];
-    char timestamp[256];
-
-    struct tm *tmp;
-    struct dirent *procdirp;
-    struct statfs sfs;
-
-    unsigned int proc_login, proc_map, proc_char;
-
-    time_t t;
-    size_t l_size;
-
-    if ( statfs("/proc", &sfs) == -1 ) {
-        fprintf(stderr,"ERROR: /proc filesystem is unaccessible\n");
-        return(255);
-    }
-
+    // These are all the signals we are likely to get
+    // The shell handles stop/cont
     signal(SIGTERM, stop_process);
     signal(SIGINT, stop_process);
+    signal(SIGQUIT, stop_process);
+    signal(SIGABRT, stop_process);
 
-    workdir = (char *) malloc(sizeof(char) * 1024);
-    login_server = (char *) malloc(sizeof(char) * 1024);
-    char_server = (char *) malloc(sizeof(char) * 1024);
-    map_server = (char *) malloc(sizeof(char) * 1024);
-    logfile = (char *) malloc(sizeof(char) *  1024);
-    config = (char *) malloc(sizeof(char) * 1024);
+    workdir = make_path(HOME, "tmwserver");
 
-    sprintf(workdir,"%s/tmwserver",HOME);
-    sprintf(login_server,"%s/%s", workdir, LOGIN_SERVER);
-    sprintf(map_server,"%s/%s",  workdir, MAP_SERVER);
-    sprintf(char_server,"%s/%s", workdir, CHAR_SERVER);
-    sprintf(logfile,"%s/%s", workdir,LOGFILE);
-    sprintf(config,"%s/%s", workdir, CONFIG);
+    read_config(argc>1 ? argv[1] : NULL);
 
-    read_config(argv[1]);
-
-    chdir(workdir);
-
-    if (strlen(login_server) == 0) use_login = 0;
+    if (chdir(workdir) < 0) perror("Failed to change directory"), exit(1);
 
     printf ("Starting:\n");
-    printf ("* interval: %d s\n", interval);
     printf ("* workdir: %s\n",  workdir);
-    if (use_login)
-        printf ("* login_server: %s\n", login_server);
-    else
-        printf ("* login_server: (none)\n");
+    printf ("* login_server: %s\n", login_server);
     printf ("* map_server: %s\n", map_server);
     printf ("* char_server: %s\n", char_server);
-
-    if (fork()) {
-        exit(0);
-    }
-
-    if ((fd = open("/dev/null", O_RDONLY)) != 0) {
+    {
+        //make sure all possible file descriptors are free for use by the servers
+        //if there are file descriptors higher than the max open from before the limit dropped, that's not our problem
+        int fd = sysconf(_SC_OPEN_MAX);
+        while (--fd > 2)
+           if (close(fd) == 0)
+               fprintf(stderr, "close fd %d\n", fd);
+        fd = open("/dev/null", O_RDWR);
+        if (fd < 0) perror("open /dev/null"), exit(1);
         dup2(fd, 0);
-        close(fd);
-    }
-
-    if ((fd = open("/dev/null", O_WRONLY)) != 1) {
         dup2(fd, 1);
         close(fd);
     }
-    dup2(1, 2);
-
     while (1) {
-        if (use_login) proc_login = 0;
-        proc_map = 0;
-        proc_char = 0;
+        // write stuff to stderr
+        time_t t = time(NULL);
+        struct tm *tmp = localtime(&t);
+        char timestamp[256];
+        strftime(timestamp, sizeof(timestamp), "%F %T", tmp);
 
-        if ((procdir = opendir("/proc")) == NULL) {
-            fprintf(stderr,"ERROR: Cannot open /proc filesystem\n");
-            return(255);
+        if (!pid_login) {
+            pid_login = start_process(login_server);
+            fprintf (stderr, "[%s] forked login server: %lu\n", timestamp, (unsigned long)pid_login);
         }
-
-        while ((procdirp = readdir(procdir)) != NULL) {
-            if (strtok(procdirp->d_name, "0123456789") == NULL) {
-                sprintf(pathbuf, "%s%s%s", "/proc/", procdirp->d_name, "/exe");
-                l_size = readlink(pathbuf, link, PATH_MAX);
-
-                if (l_size != -1) {
-                    link[l_size] = '\0';
-                    if (use_login && !strcmp(link, login_server)) {
-                        proc_login = 1;
-                        pid_login = (unsigned int) procdirp->d_name;
-                    }
-
-                    if (!strcmp(link, char_server)) {
-                        proc_char = 1;
-                        pid_char = (unsigned int) procdirp->d_name;
-                    }
-
-                    if (!strcmp(link, map_server)) {
-                        proc_map = 1;
-                        pid_map = (unsigned int) procdirp->d_name;
-                    }
-                }
-            }
+        if (!pid_char) {
+            pid_char = start_process(char_server);
+            fprintf (stderr, "[%s] forked char server: %lu\n", timestamp, (unsigned long)pid_char);
         }
-        closedir(procdir);
-
-        if (!(log = fopen (logfile,"a"))) {
-            log = fopen("/tmp/monitor.log","a");
+        if (!pid_map) {
+            pid_map = start_process(map_server);
+            fprintf (stderr, "[%s] forked map server: %lu\n", timestamp, (unsigned long)pid_map);
         }
-
-        t = time(NULL);
-        tmp = localtime(&t);
-        strftime(timestamp, sizeof(timestamp), "%F %X", tmp);
-
-        if (use_login && proc_login == 0) {
-            fprintf (log,"[%d][%s] NOTICE: Login server is dead - restarting\n", getpid(), timestamp);
-            start_process(login_server);
-            sleep(2);
-        }
-        if (proc_char == 0) {
-            fprintf (log,"[%d][%s] NOTICE: Char server is dead - restarting\n", getpid(), timestamp);
-            start_process(char_server);
-            sleep(2);
-        }
-        if (proc_map == 0) {
-            fprintf (log,"[%d][%s] NOTICE: Map server is dead - restarting\n", getpid(), timestamp);
-            start_process(map_server);
-            sleep(2);
-        }
-
-        fclose(log);
-        sleep(interval);
+        pid_t dead = wait(NULL);
+        if (dead < 0) perror("Failed to wait for child"), exit(1);
+        if (pid_login == dead) pid_login = 0;
+        if (pid_char == dead) pid_char = 0;
+        if (pid_map == dead) pid_map = 0;
     }
 }
