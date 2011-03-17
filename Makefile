@@ -1,18 +1,21 @@
 include make.defs
 
 all: login-server char-server map-server ladmin
-common:
+tools: tool eathena-monitor
+
+
+common: src/common
 	${MAKE} -C src/common
-login-server: common
+login-server: common src/login
 	${MAKE} -C src/login
 	${CP} src/login/login login-server
-char-server: common
+char-server: common src/char
 	${MAKE} -C src/char
 	${CP} src/char/char char-server
-map-server: common
+map-server: common src/map
 	${MAKE} -C src/map
 	${CP} src/map/map map-server
-ladmin: common
+ladmin: common src/ladmin
 	${MAKE} -C src/ladmin
 
 clean: clean-common clean-login clean-char clean-map clean-ladmin clean-tools
@@ -29,9 +32,9 @@ clean-ladmin:
 	${MAKE} -C src/ladmin clean
 
 # This target is separate for historical reasons, and because it is optional
-tools: common eathena-monitor
-eathena-monitor:
+tool: common src/tool
 	${MAKE} -C src/tool
+eathena-monitor: tool
 	${CP} src/tool/eathena-monitor .
 clean-tools:
 	${MAKE} -C src/tool clean
