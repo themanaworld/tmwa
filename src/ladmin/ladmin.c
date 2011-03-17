@@ -29,7 +29,7 @@
 #include "../common/mmo.h"
 
 #ifdef PASSWORDENC
-#include "md5calc.h"
+#include "../common/md5calc.h"
 #endif
 
 #ifdef MEMWATCH
