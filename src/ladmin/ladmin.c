@@ -57,7 +57,7 @@ int  passenc = 2;               // Encoding type of the password
 #else
 int  passenc = 0;               // Encoding type of the password
 #endif
-char defaultlanguage = 'E';     // Default language (F: Français/E: English)
+char defaultlanguage = 'E';     // Default language (F: FranÃ§ais/E: English)
                                              // (if it's not 'F', default is English)
 char ladmin_log_filename[1024] = "log/ladmin.log";
 char date_format[32] = "%Y-%m-%d %H:%M:%S";
@@ -316,7 +316,7 @@ char *makeordinal (int number)
         else if (number == 1)
             return "er";
         else
-            return "ème";
+            return "Ã¨me";
     }
     else
     {
@@ -352,10 +352,10 @@ int verify_accountname (char *account_name)
             if (defaultlanguage == 'F')
             {
                 printf
-                    ("Caractère interdit trouvé dans le nom du compte (%d%s caractère).\n",
+                    ("CaractÃ¨re interdit trouvÃ© dans le nom du compte (%d%s caractÃ¨re).\n",
                      i + 1, makeordinal (i + 1));
                 ladmin_log
-                    ("Caractère interdit trouvé dans le nom du compte (%d%s caractère)."
+                    ("CaractÃ¨re interdit trouvÃ© dans le nom du compte (%d%s caractÃ¨re)."
                      RETCODE, i + 1, makeordinal (i + 1));
             }
             else
@@ -376,9 +376,9 @@ int verify_accountname (char *account_name)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractères.\n");
+                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractÃ¨res.\n");
             ladmin_log
-                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractères."
+                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractÃ¨res."
                  RETCODE);
         }
         else
@@ -397,9 +397,9 @@ int verify_accountname (char *account_name)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Nom du compte trop long. Entrez un nom de compte de 4-23 caractères.\n");
+                ("Nom du compte trop long. Entrez un nom de compte de 4-23 caractÃ¨res.\n");
             ladmin_log
-                ("Nom du compte trop long. Entrez un nom de compte de 4-23 caractères."
+                ("Nom du compte trop long. Entrez un nom de compte de 4-23 caractÃ¨res."
                  RETCODE);
         }
         else
@@ -470,7 +470,7 @@ int typepasswd (char *password)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Aucun mot de passe n'a été donné. Demande d'un mot de passe."
+            ("Aucun mot de passe n'a Ã©tÃ© donnÃ©. Demande d'un mot de passe."
              RETCODE);
     }
     else
@@ -490,7 +490,7 @@ int typepasswd (char *password)
         password1[i++] = letter;
     if (defaultlanguage == 'F')
         printf
-            ("\033[0m\033[1;36m Ré-entrez le mot de passe > \033[0;32;42m");
+            ("\033[0m\033[1;36m RÃ©-entrez le mot de passe > \033[0;32;42m");
     else
         printf ("\033[0m\033[1;36m Verify the password > \033[0;32;42m");
     i = 0;
@@ -506,9 +506,9 @@ int typepasswd (char *password)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Erreur de vérification du mot de passe: Saisissez le même mot de passe svp.\n");
+                ("Erreur de vÃ©rification du mot de passe: Saisissez le mÃªme mot de passe svp.\n");
             ladmin_log
-                ("Erreur de vérification du mot de passe: Saisissez le même mot de passe svp."
+                ("Erreur de vÃ©rification du mot de passe: Saisissez le mÃªme mot de passe svp."
                  RETCODE);
             ladmin_log ("  Premier mot de passe: %s, second mot de passe: %s."
                         RETCODE, password1, password2);
@@ -551,10 +551,10 @@ int verify_password (char *password)
             if (defaultlanguage == 'F')
             {
                 printf
-                    ("Caractère interdit trouvé dans le mot de passe (%d%s caractère).\n",
+                    ("CaractÃ¨re interdit trouvÃ© dans le mot de passe (%d%s caractÃ¨re).\n",
                      i + 1, makeordinal (i + 1));
                 ladmin_log
-                    ("Caractère interdit trouvé dans le nom du compte (%d%s caractère)."
+                    ("CaractÃ¨re interdit trouvÃ© dans le nom du compte (%d%s caractÃ¨re)."
                      RETCODE, i + 1, makeordinal (i + 1));
             }
             else
@@ -575,9 +575,9 @@ int verify_password (char *password)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractères.\n");
+                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractÃ¨res.\n");
             ladmin_log
-                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractères."
+                ("Nom du compte trop court. Entrez un nom de compte de 4-23 caractÃ¨res."
                  RETCODE);
         }
         else
@@ -596,9 +596,9 @@ int verify_password (char *password)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Mot de passe trop long. Entrez un mot de passe de 4-23 caractères.\n");
+                ("Mot de passe trop long. Entrez un mot de passe de 4-23 caractÃ¨res.\n");
             ladmin_log
-                ("Mot de passe trop long. Entrez un mot de passe de 4-23 caractères."
+                ("Mot de passe trop long. Entrez un mot de passe de 4-23 caractÃ¨res."
                  RETCODE);
         }
         else
@@ -786,7 +786,7 @@ void display_help (char *param, int language)
             printf ("aide/help/?\n");
             printf ("  Affiche la description des commandes\n");
             printf ("aide/help/? [commande]\n");
-            printf ("  Affiche la description de la commande specifiée\n");
+            printf ("  Affiche la description de la commande specifiÃ©e\n");
         }
         else if (strcmp (command, "help") == 0)
         {
@@ -799,11 +799,11 @@ void display_help (char *param, int language)
         else if (strcmp (command, "add") == 0)
         {
             printf ("add <nomcompte> <sexe> <motdepasse>\n");
-            printf ("  Crée un compte avec l'email par défaut (a@a.com).\n");
+            printf ("  CrÃ©e un compte avec l'email par dÃ©faut (a@a.com).\n");
             printf
-                ("  Concernant le sexe, seule la première lettre compte (F ou M).\n");
+                ("  Concernant le sexe, seule la premiÃ¨re lettre compte (F ou M).\n");
             printf
-                ("  L'e-mail est a@a.com (e-mail par défaut). C'est comme n'avoir aucun e-mail.\n");
+                ("  L'e-mail est a@a.com (e-mail par dÃ©faut). C'est comme n'avoir aucun e-mail.\n");
             printf
                 ("  Lorsque motdepasse est omis, la saisie se fait sans que la frappe se voit.\n");
             printf ("  <exemple> add testname Male testpass\n");
@@ -812,17 +812,17 @@ void display_help (char *param, int language)
         {
             printf ("ban/banish aaaa/mm/jj hh:mm:ss <nom compte>\n");
             printf ("  Change la date de fin de bannissement d'un compte.\n");
-            printf ("  Comme banset, mais <nom compte> est à la fin.\n");
+            printf ("  Comme banset, mais <nom compte> est Ã  la fin.\n");
         }
         else if (strcmp (command, "banadd") == 0)
         {
             printf ("banadd <nomcompte> <Modificateur>\n");
             printf
-                ("  Ajoute ou soustrait du temps à la date de banissement d'un compte.\n");
+                ("  Ajoute ou soustrait du temps Ã  la date de banissement d'un compte.\n");
             printf ("  Les modificateurs sont construits comme suit:\n");
             printf ("    Valeur d'ajustement (-1, 1, +1, etc...)\n");
-            printf ("    Elément modifié:\n");
-            printf ("      a ou y: année\n");
+            printf ("    ElÃ©ment modifiÃ©:\n");
+            printf ("      a ou y: annÃ©e\n");
             printf ("      m:      mois\n");
             printf ("      j ou d: jour\n");
             printf ("      h:      heure\n");
@@ -831,7 +831,7 @@ void display_help (char *param, int language)
             printf ("  <exemple> banadd testname +1m-2mn1s-6a\n");
             printf
                 ("            Cette exemple ajoute 1 mois et une seconde, et soustrait 2 minutes\n");
-            printf ("            et 6 ans dans le même temps.\n");
+            printf ("            et 6 ans dans le mÃªme temps.\n");
             printf
                 ("NOTE: Si vous modifez la date de banissement d'un compte non bani,\n");
             printf
@@ -841,30 +841,30 @@ void display_help (char *param, int language)
         {
             printf ("banset <nomcompte> aaaa/mm/jj [hh:mm:ss]\n");
             printf ("  Change la date de fin de bannissement d'un compte.\n");
-            printf ("  Heure par défaut [hh:mm:ss]: 23:59:59.\n");
+            printf ("  Heure par dÃ©faut [hh:mm:ss]: 23:59:59.\n");
             printf ("banset <nomcompte> 0\n");
-            printf ("  Débanni un compte (0 = de-banni).\n");
+            printf ("  DÃ©banni un compte (0 = de-banni).\n");
         }
         else if (strcmp (command, "block") == 0)
         {
             printf ("block <nom compte>\n");
             printf
-                ("  Place le status d'un compte à 5 (You have been blocked by the GM Team).\n");
+                ("  Place le status d'un compte Ã  5 (You have been blocked by the GM Team).\n");
             printf
-                ("  La commande est l'équivalent de state <nom_compte> 5.\n");
+                ("  La commande est l'Ã©quivalent de state <nom_compte> 5.\n");
         }
         else if (strcmp (command, "check") == 0)
         {
             printf ("check <nomcompte> <motdepasse>\n");
             printf
-                ("  Vérifie la validité d'un mot de passe pour un compte\n");
+                ("  VÃ©rifie la validitÃ© d'un mot de passe pour un compte\n");
             printf ("  NOTE: Le serveur n'enverra jamais un mot de passe.\n");
             printf
-                ("        C'est la seule méthode que vous possédez pour savoir\n");
+                ("        C'est la seule mÃ©thode que vous possÃ©dez pour savoir\n");
             printf
-                ("        si un mot de passe est le bon. L'autre méthode est\n");
+                ("        si un mot de passe est le bon. L'autre mÃ©thode est\n");
             printf
-                ("        d'avoir un accès ('physique') au fichier des comptes.\n");
+                ("        d'avoir un accÃ¨s ('physique') au fichier des comptes.\n");
         }
         else if (strcmp (command, "create") == 0)
         {
@@ -878,7 +878,7 @@ void display_help (char *param, int language)
             printf ("del <nom compte>\n");
             printf ("  Supprime un compte.\n");
             printf
-                ("  La commande demande confirmation. Après confirmation, le compte est détruit.\n");
+                ("  La commande demande confirmation. AprÃ¨s confirmation, le compte est dÃ©truit.\n");
         }
         else if (strcmp (command, "email") == 0)
         {
@@ -896,7 +896,7 @@ void display_help (char *param, int language)
             printf ("gm <nomcompte> [Niveau_GM]\n");
             printf ("  Modifie le niveau de GM d'un compte.\n");
             printf
-                ("  Valeur par défaut: 0 (suppression du niveau de GM).\n");
+                ("  Valeur par dÃ©faut: 0 (suppression du niveau de GM).\n");
             printf ("  <exemple> gm nomtest 80\n");
         }
         else if (strcmp (command, "id") == 0)
@@ -913,26 +913,26 @@ void display_help (char *param, int language)
         {
             printf ("kami <message>\n");
             printf
-                ("  Envoi un message général sur tous les serveurs de map (en jaune).\n");
+                ("  Envoi un message gÃ©nÃ©ral sur tous les serveurs de map (en jaune).\n");
         }
         else if (strcmp (command, "kamib") == 0)
         {
             printf ("kamib <message>\n");
             printf
-                ("  Envoi un message général sur tous les serveurs de map (en bleu).\n");
+                ("  Envoi un message gÃ©nÃ©ral sur tous les serveurs de map (en bleu).\n");
         }
         else if (strcmp (command, "language") == 0)
         {
             printf ("language <langue>\n");
             printf ("  Change la langue d'affichage.\n");
-            printf ("  Langues possibles: 'Français' ou 'English'.\n");
+            printf ("  Langues possibles: 'FranÃ§ais' ou 'English'.\n");
         }
         else if (strcmp (command, "list") == 0)
         {
             printf ("list/ls [Premier_id [Dernier_id]]\n");
             printf ("  Affiche une liste de comptes.\n");
             printf
-                ("  'Premier_id', 'Dernier_id': indique les identifiants de départ et de fin.\n");
+                ("  'Premier_id', 'Dernier_id': indique les identifiants de dÃ©part et de fin.\n");
             printf
                 ("  La recherche par nom n'est pas possible avec cette commande.\n");
             printf ("  <example> list 10 9999999\n");
@@ -961,9 +961,9 @@ void display_help (char *param, int language)
         else if (strcmp (command, "memo") == 0)
         {
             printf ("memo <nomcompte> <memo>\n");
-            printf ("  Modifie le mémo d'un compte.\n");
+            printf ("  Modifie le mÃ©mo d'un compte.\n");
             printf
-                ("  'memo': Il peut avoir jusqu'à 253 caractères (avec des espaces ou non).\n");
+                ("  'memo': Il peut avoir jusqu'Ã  253 caractÃ¨res (avec des espaces ou non).\n");
         }
         else if (strcmp (command, "name") == 0)
         {
@@ -988,7 +988,7 @@ void display_help (char *param, int language)
             printf ("  Cherche des comptes.\n");
             printf ("  Affiche les comptes dont les noms correspondent.\n");
 //          printf("search -r/-e/--expr/--regex <expression>\n");
-//          printf("  Cherche des comptes par expression regulière.\n");
+//          printf("  Cherche des comptes par expression reguliÃ¨re.\n");
 //          printf("  Affiche les comptes dont les noms correspondent.\n");
         }
         else if (strcmp (command, "sex") == 0)
@@ -1002,8 +1002,8 @@ void display_help (char *param, int language)
             printf ("state <nomcompte> <nouveaustatut> <message_erreur_7>\n");
             printf ("  Change le statut d'un compte.\n");
             printf
-                ("  'nouveaustatut': Le statut est le même que celui du packet 0x006a + 1.\n");
-            printf ("               les possibilités sont:\n");
+                ("  'nouveaustatut': Le statut est le mÃªme que celui du packet 0x006a + 1.\n");
+            printf ("               les possibilitÃ©s sont:\n");
             printf ("               0 = Compte ok\n");
             printf ("               1 = Unregistered ID\n");
             printf ("               2 = Incorrect Password\n");
@@ -1029,11 +1029,11 @@ void display_help (char *param, int language)
         {
             printf ("timeadd <nomcompte> <modificateur>\n");
             printf
-                ("  Ajoute/soustrait du temps à la limite de validité d'un compte.\n");
-            printf ("  Le modificateur est composé comme suit:\n");
+                ("  Ajoute/soustrait du temps Ã  la limite de validitÃ© d'un compte.\n");
+            printf ("  Le modificateur est composÃ© comme suit:\n");
             printf ("    Valeur modificatrice (-1, 1, +1, etc...)\n");
-            printf ("    Elément modifié:\n");
-            printf ("      a ou y: année\n");
+            printf ("    ElÃ©ment modifiÃ©:\n");
+            printf ("      a ou y: annÃ©e\n");
             printf ("      m:      mois\n");
             printf ("      j ou d: jour\n");
             printf ("      h:      heure\n");
@@ -1042,36 +1042,36 @@ void display_help (char *param, int language)
             printf ("  <exemple> timeadd testname +1m-2mn1s-6a\n");
             printf
                 ("            Cette exemple ajoute 1 mois et une seconde, et soustrait 2 minutes\n");
-            printf ("            et 6 ans dans le même temps.\n");
+            printf ("            et 6 ans dans le mÃªme temps.\n");
             printf
-                ("NOTE: Vous ne pouvez pas modifier une limite de validité illimitée. Si vous\n");
+                ("NOTE: Vous ne pouvez pas modifier une limite de validitÃ© illimitÃ©e. Si vous\n");
             printf
-                ("      désirez le faire, c'est que vous voulez probablement créer un limite de\n");
+                ("      dÃ©sirez le faire, c'est que vous voulez probablement crÃ©er un limite de\n");
             printf
-                ("      validité limitée. Donc, en premier, fixé une limite de valitidé.\n");
+                ("      validitÃ© limitÃ©e. Donc, en premier, fixÃ© une limite de valitidÃ©.\n");
         }
         else if (strcmp (command, "timeadd") == 0)
         {
             printf ("timeset <nomcompte> aaaa/mm/jj [hh:mm:ss]\n");
-            printf ("  Change la limite de validité d'un compte.\n");
-            printf ("  Heure par défaut [hh:mm:ss]: 23:59:59.\n");
+            printf ("  Change la limite de validitÃ© d'un compte.\n");
+            printf ("  Heure par dÃ©faut [hh:mm:ss]: 23:59:59.\n");
             printf ("timeset <nomcompte> 0\n");
             printf
-                ("  Donne une limite de validité illimitée (0 = illimitée).\n");
+                ("  Donne une limite de validitÃ© illimitÃ©e (0 = illimitÃ©e).\n");
         }
         else if (strcmp (command, "unban") == 0)
         {
             printf ("unban/unbanish <nom compte>\n");
             printf ("  Ote le banissement d'un compte.\n");
             printf
-                ("  La commande est l'équivalent de banset <nom_compte> 0.\n");
+                ("  La commande est l'Ã©quivalent de banset <nom_compte> 0.\n");
         }
         else if (strcmp (command, "unblock") == 0)
         {
             printf ("unblock <nom compte>\n");
-            printf ("  Place le status d'un compte à 0 (Compte ok).\n");
+            printf ("  Place le status d'un compte Ã  0 (Compte ok).\n");
             printf
-                ("  La commande est l'équivalent de state <nom_compte> 0.\n");
+                ("  La commande est l'Ã©quivalent de state <nom_compte> 0.\n");
         }
         else if (strcmp (command, "version") == 0)
         {
@@ -1103,23 +1103,23 @@ void display_help (char *param, int language)
             printf
                 (" aide/help/? [commande]                  -- Affiche l'aide de la commande\n");
             printf
-                (" add <nomcompte> <sexe> <motdepasse>     -- Crée un compte (sans email)\n");
+                (" add <nomcompte> <sexe> <motdepasse>     -- CrÃ©e un compte (sans email)\n");
             printf
                 (" ban/banish aaaa/mm/jj hh:mm:ss <nom compte> -- Fixe la date finale de banismnt\n");
             printf
-                (" banadd/ba <nomcompte> <modificateur>    -- Ajout/soustrait du temps à la\n");
+                (" banadd/ba <nomcompte> <modificateur>    -- Ajout/soustrait du temps Ã  la\n");
             printf
                 ("   exemple: ba moncompte +1m-2mn1s-2y       date finale de banissement\n");
             printf
                 (" banset/bs <nomcompte> aaaa/mm/jj [hh:mm:ss] -- Change la date fin de banisemnt\n");
             printf
-                (" banset/bs <nomcompte> 0                 -- Dé-banis un compte.\n");
+                (" banset/bs <nomcompte> 0                 -- DÃ©-banis un compte.\n");
             printf
-                (" block <nom compte>  -- Mets le status d'un compte à 5 (blocked by the GM Team)\n");
+                (" block <nom compte>  -- Mets le status d'un compte Ã  5 (blocked by the GM Team)\n");
             printf
-                (" check <nomcompte> <motdepasse>          -- Vérifie un mot de passe d'un compte\n");
+                (" check <nomcompte> <motdepasse>          -- VÃ©rifie un mot de passe d'un compte\n");
             printf
-                (" create <nomcompte> <sexe> <email> <motdepasse> -- Crée un compte (avec email)\n");
+                (" create <nomcompte> <sexe> <email> <motdepasse> -- CrÃ©e un compte (avec email)\n");
             printf
                 (" del <nom compte>                        -- Supprime un compte\n");
             printf
@@ -1133,9 +1133,9 @@ void display_help (char *param, int language)
             printf
                 (" info <idcompte>                         -- Affiche les infos sur un compte\n");
             printf
-                (" kami <message>                          -- Envoi un message général (en jaune)\n");
+                (" kami <message>                          -- Envoi un message gÃ©nÃ©ral (en jaune)\n");
             printf
-                (" kamib <message>                         -- Envoi un message général (en bleu)\n");
+                (" kamib <message>                         -- Envoi un message gÃ©nÃ©ral (en bleu)\n");
             printf
                 (" language <langue>                       -- Change la langue d'affichage.\n");
             printf
@@ -1168,17 +1168,17 @@ void display_help (char *param, int language)
             printf
                 (" state <nomcompte> <nouveaustatut> <messageerr7> -- Change le statut d'1 compte\n");
             printf
-                (" timeadd/ta <nomcompte> <modificateur>   -- Ajout/soustrait du temps à la\n");
+                (" timeadd/ta <nomcompte> <modificateur>   -- Ajout/soustrait du temps Ã  la\n");
             printf
-                ("   exemple: ta moncompte +1m-2mn1s-2y       limite de validité\n");
+                ("   exemple: ta moncompte +1m-2mn1s-2y       limite de validitÃ©\n");
             printf
-                (" timeset/ts <nomcompte> aaaa/mm/jj [hh:mm:ss] -- Change la limite de validité\n");
+                (" timeset/ts <nomcompte> aaaa/mm/jj [hh:mm:ss] -- Change la limite de validitÃ©\n");
             printf
-                (" timeset/ts <nomcompte> 0                -- limite de validité = illimitée\n");
+                (" timeset/ts <nomcompte> 0                -- limite de validitÃ© = illimitÃ©e\n");
             printf
                 (" unban/unbanish <nom compte>             -- Ote le banissement d'un compte\n");
             printf
-                (" unblock <nom compte>             -- Mets le status d'un compte à 0 (Compte ok)\n");
+                (" unblock <nom compte>             -- Mets le status d'un compte Ã  0 (Compte ok)\n");
             printf
                 (" version                                 -- Donne la version du login-serveur\n");
             printf
@@ -1332,7 +1332,7 @@ void display_help (char *param, int language)
         {
             printf ("language <language>\n");
             printf ("  Change the language of displaying.\n");
-            printf ("  Possible languages: Français or English.\n");
+            printf ("  Possible languages: FranÃ§ais or English.\n");
         }
         else if (strcmp (command, "list") == 0)
         {
@@ -1626,7 +1626,7 @@ int addaccount (char *param, int emailflag)
                     ("Entrez un nom de compte, un sexe et un mot de passe svp.\n");
                 printf ("<exemple> add nomtest Male motdepassetest\n");
                 ladmin_log
-                    ("Nombre incorrect de paramètres pour créer un compte (commande 'add')."
+                    ("Nombre incorrect de paramÃ¨tres pour crÃ©er un compte (commande 'add')."
                      RETCODE);
             }
             else
@@ -1656,7 +1656,7 @@ int addaccount (char *param, int emailflag)
                 printf
                     ("<exemple> create nomtest Male mo@mail.com motdepassetest\n");
                 ladmin_log
-                    ("Nombre incorrect de paramètres pour créer un compte (commande 'create')."
+                    ("Nombre incorrect de paramÃ¨tres pour crÃ©er un compte (commande 'create')."
                      RETCODE);
             }
             else
@@ -1680,8 +1680,8 @@ int addaccount (char *param, int emailflag)
 /*	for(i = 0; name[i]; i++) {
 		if (strchr("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_", name[i]) == NULL) {
 			if (defaultlanguage == 'F') {
-				printf("Caractère interdit (%c) trouvé dans le nom du compte (%d%s caractère).\n", name[i], i+1, makeordinal(i+1));
-				ladmin_log("Caractère interdit (%c) trouvé dans le nom du compte (%d%s caractère)." RETCODE, name[i], i+1, makeordinal(i+1));
+				printf("CaractÃ¨re interdit (%c) trouvÃ© dans le nom du compte (%d%s caractÃ¨re).\n", name[i], i+1, makeordinal(i+1));
+				ladmin_log("CaractÃ¨re interdit (%c) trouvÃ© dans le nom du compte (%d%s caractÃ¨re)." RETCODE, name[i], i+1, makeordinal(i+1));
 			} else {
 				printf("Illegal character (%c) found in the account name (%d%s character).\n", name[i], i+1, makeordinal(i+1));
 				ladmin_log("Illegal character (%c) found in the account name (%d%s character)." RETCODE, name[i], i+1, makeordinal(i+1));
@@ -1733,10 +1733,10 @@ int addaccount (char *param, int emailflag)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Email trop longue [%s]. Entrez une e-mail de 39 caractères maximum svp.\n",
+                ("Email trop longue [%s]. Entrez une e-mail de 39 caractÃ¨res maximum svp.\n",
                  email);
             ladmin_log
-                ("Email trop longue [%s]. Entrez une e-mail de 39 caractères maximum svp."
+                ("Email trop longue [%s]. Entrez une e-mail de 39 caractÃ¨res maximum svp."
                  RETCODE, email);
         }
         else
@@ -1780,7 +1780,7 @@ int addaccount (char *param, int emailflag)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour créer un compte."
+            ("Envoi d'un requÃªte au serveur de logins pour crÃ©er un compte."
              RETCODE);
     }
     else
@@ -1823,9 +1823,9 @@ int banaddaccount (char *param)
             printf ("  <exemple> banadd nomtest +1m-2mn1s-6y\n");
             printf
                 ("            Cette exemple ajoute 1 mois et 1 seconde, et soustrait 2 minutes\n");
-            printf ("            et 6 ans dans le même temps.\n");
+            printf ("            et 6 ans dans le mÃªme temps.\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour modifier la fin de ban d'un compte (commande 'banadd')."
+                ("Nombre incorrect de paramÃ¨tres pour modifier la fin de ban d'un compte (commande 'banadd')."
                  RETCODE);
         }
         else
@@ -1905,7 +1905,7 @@ int banaddaccount (char *param)
 
     if (defaultlanguage == 'F')
     {
-        printf (" année:   %d\n", year);
+        printf (" annÃ©e:   %d\n", year);
         printf (" mois:    %d\n", month);
         printf (" jour:    %d\n", day);
         printf (" heure:   %d\n", hour);
@@ -1930,8 +1930,8 @@ int banaddaccount (char *param)
             printf
                 ("Vous devez entrer un ajustement avec cette commande, svp:\n");
             printf ("  Valeur d'ajustement (-1, 1, +1, etc...)\n");
-            printf ("  Element modifié:\n");
-            printf ("    a ou y: année\n");
+            printf ("  Element modifiÃ©:\n");
+            printf ("    a ou y: annÃ©e\n");
             printf ("    m:      mois\n");
             printf ("    j ou d: jour\n");
             printf ("    h:      heure\n");
@@ -1940,7 +1940,7 @@ int banaddaccount (char *param)
             printf ("  <exemple> banadd nomtest +1m-2mn1s-6y\n");
             printf
                 ("            Cette exemple ajoute 1 mois et 1 seconde, et soustrait 2 minutes\n");
-            printf ("            et 6 ans dans le même temps.\n");
+            printf ("            et 6 ans dans le mÃªme temps.\n");
             ladmin_log
                 ("Aucun ajustement n'est pas un ajustement (commande 'banadd')."
                  RETCODE);
@@ -1971,9 +1971,9 @@ int banaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement d'années correct (de -127 à 127), svp.\n");
+                ("Entrez un ajustement d'annÃ©es correct (de -127 Ã  127), svp.\n");
             ladmin_log
-                ("Ajustement de l'année hors norme (commande 'banadd')."
+                ("Ajustement de l'annÃ©e hors norme (commande 'banadd')."
                  RETCODE);
         }
         else
@@ -1991,7 +1991,7 @@ int banaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de mois correct (de -255 à 255), svp.\n");
+                ("Entrez un ajustement de mois correct (de -255 Ã  255), svp.\n");
             ladmin_log ("Ajustement du mois hors norme (commande 'banadd')."
                         RETCODE);
         }
@@ -2010,7 +2010,7 @@ int banaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de jours correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement de jours correct (de -32767 Ã  32767), svp.\n");
             ladmin_log ("Ajustement des jours hors norme (commande 'banadd')."
                         RETCODE);
         }
@@ -2029,7 +2029,7 @@ int banaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement d'heures correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement d'heures correct (de -32767 Ã  32767), svp.\n");
             ladmin_log
                 ("Ajustement des heures hors norme (commande 'banadd')."
                  RETCODE);
@@ -2049,7 +2049,7 @@ int banaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de minutes correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement de minutes correct (de -32767 Ã  32767), svp.\n");
             ladmin_log
                 ("Ajustement des minutes hors norme (commande 'banadd')."
                  RETCODE);
@@ -2069,7 +2069,7 @@ int banaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de secondes correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement de secondes correct (de -32767 Ã  32767), svp.\n");
             ladmin_log
                 ("Ajustement des secondes hors norme (commande 'banadd')."
                  RETCODE);
@@ -2088,7 +2088,7 @@ int banaddaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour modifier la date d'un bannissement."
+            ("Envoi d'un requÃªte au serveur de logins pour modifier la date d'un bannissement."
              RETCODE);
     }
     else
@@ -2141,7 +2141,7 @@ int bansetaccountsub (char *name, char *date, char *time)
             printf
                 ("Entrez une date et une heure svp (format: aaaa/mm/jj hh:mm:ss).\n");
             printf
-                ("Vous pouvez aussi mettre 0 à la place si vous utilisez la commande 'banset'.\n");
+                ("Vous pouvez aussi mettre 0 Ã  la place si vous utilisez la commande 'banset'.\n");
             ladmin_log
                 ("Format incorrect pour la date/heure (commande'banset' ou 'ban')."
                  RETCODE);
@@ -2310,7 +2310,7 @@ int bansetaccountsub (char *name, char *date, char *time)
                 printf
                     ("Entrez une date et une heure svp (format: aaaa/mm/jj hh:mm:ss).\n");
                 printf
-                    ("Vous pouvez aussi mettre 0 à la place si vous utilisez la commande 'banset'.\n");
+                    ("Vous pouvez aussi mettre 0 Ã  la place si vous utilisez la commande 'banset'.\n");
                 ladmin_log ("Date incorrecte. (command 'banset' ou 'ban')."
                             RETCODE);
             }
@@ -2331,7 +2331,7 @@ int bansetaccountsub (char *name, char *date, char *time)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour fixer un ban."
+            ("Envoi d'un requÃªte au serveur de logins pour fixer un ban."
              RETCODE);
     }
     else
@@ -2368,13 +2368,13 @@ int banaccount (char *param)
             printf ("Entrez un nom de compte, une date et une heure svp.\n");
             printf
                 ("<exemple>: banset <nom_du_compte> aaaa/mm/jj [hh:mm:ss]\n");
-            printf ("           banset <nom_du_compte> 0    (0 = dé-bani)\n");
+            printf ("           banset <nom_du_compte> 0    (0 = dÃ©-bani)\n");
             printf
                 ("           ban/banish aaaa/mm/jj hh:mm:ss <nom du compte>\n");
             printf ("           unban/unbanish <nom du compte>\n");
-            printf ("           Heure par défaut [hh:mm:ss]: 23:59:59.\n");
+            printf ("           Heure par dÃ©faut [hh:mm:ss]: 23:59:59.\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour fixer un ban (commande 'banset' ou 'ban')."
+                ("Nombre incorrect de paramÃ¨tres pour fixer un ban (commande 'banset' ou 'ban')."
                  RETCODE);
         }
         else
@@ -2418,13 +2418,13 @@ int bansetaccount (char *param)
             printf ("Entrez un nom de compte, une date et une heure svp.\n");
             printf
                 ("<exemple>: banset <nom_du_compte> aaaa/mm/jj [hh:mm:ss]\n");
-            printf ("           banset <nom_du_compte> 0    (0 = dé-bani)\n");
+            printf ("           banset <nom_du_compte> 0    (0 = dÃ©-bani)\n");
             printf
                 ("           ban/banish aaaa/mm/jj hh:mm:ss <nom du compte>\n");
             printf ("           unban/unbanish <nom du compte>\n");
-            printf ("           Heure par défaut [hh:mm:ss]: 23:59:59.\n");
+            printf ("           Heure par dÃ©faut [hh:mm:ss]: 23:59:59.\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour fixer un ban (commande 'banset' ou 'ban')."
+                ("Nombre incorrect de paramÃ¨tres pour fixer un ban (commande 'banset' ou 'ban')."
                  RETCODE);
         }
         else
@@ -2470,13 +2470,13 @@ int unbanaccount (char *param)
             printf ("Entrez un nom de compte svp.\n");
             printf
                 ("<exemple>: banset <nom_du_compte> aaaa/mm/jj [hh:mm:ss]\n");
-            printf ("           banset <nom_du_compte> 0    (0 = dé-bani)\n");
+            printf ("           banset <nom_du_compte> 0    (0 = dÃ©-bani)\n");
             printf
                 ("           ban/banish aaaa/mm/jj hh:mm:ss <nom du compte>\n");
             printf ("           unban/unbanish <nom du compte>\n");
-            printf ("           Heure par défaut [hh:mm:ss]: 23:59:59.\n");
+            printf ("           Heure par dÃ©faut [hh:mm:ss]: 23:59:59.\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour fixer un ban (commande 'unban')."
+                ("Nombre incorrect de paramÃ¨tres pour fixer un ban (commande 'unban')."
                  RETCODE);
         }
         else
@@ -2520,7 +2520,7 @@ int checkaccount (char *param)
             printf ("Entrez un nom de compte svp.\n");
             printf ("<exemple> check testname motdepasse\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour tester le mot d'un passe d'un compte (commande 'check')."
+                ("Nombre incorrect de paramÃ¨tres pour tester le mot d'un passe d'un compte (commande 'check')."
                  RETCODE);
         }
         else
@@ -2550,7 +2550,7 @@ int checkaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour test un mot de passe."
+            ("Envoi d'un requÃªte au serveur de logins pour test un mot de passe."
              RETCODE);
     }
     else
@@ -2589,7 +2589,7 @@ int delaccount (char *param)
             printf ("Entrez un nom de compte svp.\n");
             printf ("<exemple> del nomtestasupprimer\n");
             ladmin_log
-                ("Aucun nom donné pour supprimer un compte (commande 'delete')."
+                ("Aucun nom donnÃ© pour supprimer un compte (commande 'delete')."
                  RETCODE);
         }
         else
@@ -2614,7 +2614,7 @@ int delaccount (char *param)
     {
         if (defaultlanguage == 'F')
             printf
-                ("\033[1;36m ** Etes-vous vraiment sûr de vouloir SUPPRIMER le compte [$userid]? (o/n) > \033[0m");
+                ("\033[1;36m ** Etes-vous vraiment sÃ»r de vouloir SUPPRIMER le compte [$userid]? (o/n) > \033[0m");
         else
             printf
                 ("\033[1;36m ** Are you really sure to DELETE account [$userid]? (y/n) > \033[0m");
@@ -2629,9 +2629,9 @@ int delaccount (char *param)
     {
         if (defaultlanguage == 'F')
         {
-            printf ("Suppression annulée.\n");
+            printf ("Suppression annulÃ©e.\n");
             ladmin_log
-                ("Suppression annulée par l'utilisateur (commande 'delete')."
+                ("Suppression annulÃ©e par l'utilisateur (commande 'delete')."
                  RETCODE);
         }
         else
@@ -2646,7 +2646,7 @@ int delaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour détruire un compte."
+            ("Envoi d'un requÃªte au serveur de logins pour dÃ©truire un compte."
              RETCODE);
     }
     else
@@ -2681,7 +2681,7 @@ int changeemail (char *param)
             printf ("Entrez un nom de compte et une email svp.\n");
             printf ("<exemple> email testname nouveauemail\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer l'email d'un compte (commande 'email')."
+                ("Nombre incorrect de paramÃ¨tres pour changer l'email d'un compte (commande 'email')."
                  RETCODE);
         }
         else
@@ -2725,10 +2725,10 @@ int changeemail (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Email trop longue [%s]. Entrez une e-mail de 39 caractères maximum svp.\n",
+                ("Email trop longue [%s]. Entrez une e-mail de 39 caractÃ¨res maximum svp.\n",
                  email);
             ladmin_log
-                ("Email trop longue [%s]. Entrez une e-mail de 39 caractères maximum svp."
+                ("Email trop longue [%s]. Entrez une e-mail de 39 caractÃ¨res maximum svp."
                  RETCODE, email);
         }
         else
@@ -2764,7 +2764,7 @@ int changeemail (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour changer une email."
+            ("Envoi d'un requÃªte au serveur de logins pour changer une email."
              RETCODE);
     }
     else
@@ -2789,7 +2789,7 @@ int getlogincount ()
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour obtenir le nombre de joueurs en jeu."
+            ("Envoi d'un requÃªte au serveur de logins pour obtenir le nombre de joueurs en jeu."
              RETCODE);
     }
     else
@@ -2826,7 +2826,7 @@ int changegmlevel (char *param)
             printf ("Entrez un nom de compte et un niveau de GM svp.\n");
             printf ("<exemple> gm nomtest 80\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le Niveau de GM d'un compte (commande 'gm')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le Niveau de GM d'un compte (commande 'gm')."
                  RETCODE);
         }
         else
@@ -2850,10 +2850,10 @@ int changegmlevel (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Niveau de GM incorrect [%d]. Entrez une valeur de 0 à 99 svp.\n",
+                ("Niveau de GM incorrect [%d]. Entrez une valeur de 0 Ã  99 svp.\n",
                  GM_level);
             ladmin_log
-                ("Niveau de GM incorrect [%d]. La valeur peut être de 0 à 99."
+                ("Niveau de GM incorrect [%d]. La valeur peut Ãªtre de 0 Ã  99."
                  RETCODE, GM_level);
         }
         else
@@ -2871,7 +2871,7 @@ int changegmlevel (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour changer un niveau de GM."
+            ("Envoi d'un requÃªte au serveur de logins pour changer un niveau de GM."
              RETCODE);
     }
     else
@@ -2907,7 +2907,7 @@ int idaccount (char *param)
             printf ("Entrez un nom de compte svp.\n");
             printf ("<exemple> id nomtest\n");
             ladmin_log
-                ("Aucun nom donné pour rechecher l'id d'un compte (commande 'id')."
+                ("Aucun nom donnÃ© pour rechecher l'id d'un compte (commande 'id')."
                  RETCODE);
         }
         else
@@ -2929,7 +2929,7 @@ int idaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour connaître l'id d'un compte."
+            ("Envoi d'un requÃªte au serveur de logins pour connaÃ®tre l'id d'un compte."
              RETCODE);
     }
     else
@@ -2956,7 +2956,7 @@ int infoaccount (int account_id)
         {
             printf ("Entrez un id ayant une valeur positive svp.\n");
             ladmin_log
-                ("Une valeur négative a été donné pour trouver le compte."
+                ("Une valeur nÃ©gative a Ã©tÃ© donnÃ© pour trouver le compte."
                  RETCODE);
         }
         else
@@ -2971,7 +2971,7 @@ int infoaccount (int account_id)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour obtenir le information d'un compte (par l'id)."
+            ("Envoi d'un requÃªte au serveur de logins pour obtenir le information d'un compte (par l'id)."
              RETCODE);
     }
     else
@@ -3046,14 +3046,14 @@ int changelanguage (char *language)
         {
             printf ("Entrez une langue svp.\n");
             printf ("<exemple> language english\n");
-            printf ("          language français\n");
+            printf ("          language franÃ§ais\n");
             ladmin_log ("La langue est vide (commande 'language')." RETCODE);
         }
         else
         {
             printf ("Please input a language.\n");
             printf ("<example> language english\n");
-            printf ("          language français\n");
+            printf ("          language franÃ§ais\n");
             ladmin_log ("The language is void ('language' command)." RETCODE);
         }
         return 136;
@@ -3065,8 +3065,8 @@ int changelanguage (char *language)
         defaultlanguage = language[0];
         if (defaultlanguage == 'F')
         {
-            printf ("Changement de la langue d'affichage en Français.\n");
-            ladmin_log ("Changement de la langue d'affichage en Français."
+            printf ("Changement de la langue d'affichage en FranÃ§ais.\n");
+            ladmin_log ("Changement de la langue d'affichage en FranÃ§ais."
                         RETCODE);
         }
         else
@@ -3080,16 +3080,16 @@ int changelanguage (char *language)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Langue non paramétrée (langues possibles: 'Français' ou 'English').\n");
+                ("Langue non paramÃ©trÃ©e (langues possibles: 'FranÃ§ais' ou 'English').\n");
             ladmin_log
-                ("Langue non paramétrée (Français ou English nécessaire)."
+                ("Langue non paramÃ©trÃ©e (FranÃ§ais ou English nÃ©cessaire)."
                  RETCODE);
         }
         else
         {
             printf
-                ("Undefined language (possible languages: Français or English).\n");
-            ladmin_log ("Undefined language (must be Français or English)."
+                ("Undefined language (possible languages: FranÃ§ais or English).\n");
+            ladmin_log ("Undefined language (must be FranÃ§ais or English)."
                         RETCODE);
         }
     }
@@ -3151,7 +3151,7 @@ int listaccount (char *param, int type)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour obtenir la liste des comptes de %d à %d."
+            ("Envoi d'un requÃªte au serveur de logins pour obtenir la liste des comptes de %d Ã  %d."
              RETCODE, list_first, list_last);
     }
     else
@@ -3223,10 +3223,10 @@ int changememo (char *param)
     {                           // memo can be void
         if (defaultlanguage == 'F')
         {
-            printf ("Entrez un nom de compte et un mémo svp.\n");
+            printf ("Entrez un nom de compte et un mÃ©mo svp.\n");
             printf ("<exemple> memo nomtest nouveau memo\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le mémo d'un compte (commande 'email')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le mÃ©mo d'un compte (commande 'email')."
                  RETCODE);
         }
         else
@@ -3249,10 +3249,10 @@ int changememo (char *param)
     {
         if (defaultlanguage == 'F')
         {
-            printf ("Mémo trop long (%d caractères).\n", strlen (memo));
-            printf ("Entrez un mémo de 254 caractères maximum svp.\n");
+            printf ("MÃ©mo trop long (%d caractÃ¨res).\n", strlen (memo));
+            printf ("Entrez un mÃ©mo de 254 caractÃ¨res maximum svp.\n");
             ladmin_log
-                ("Mémo trop long (%d caractères). Entrez un mémo de 254 caractères maximum svp."
+                ("MÃ©mo trop long (%d caractÃ¨res). Entrez un mÃ©mo de 254 caractÃ¨res maximum svp."
                  RETCODE, strlen (memo));
         }
         else
@@ -3269,7 +3269,7 @@ int changememo (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour changer un mémo."
+            ("Envoi d'un requÃªte au serveur de logins pour changer un mÃ©mo."
              RETCODE);
     }
     else
@@ -3299,7 +3299,7 @@ int nameaccount (int id)
         {
             printf ("Entrez un id ayant une valeur positive svp.\n");
             ladmin_log
-                ("Id négatif donné pour rechecher le nom d'un compte (commande 'name')."
+                ("Id nÃ©gatif donnÃ© pour rechecher le nom d'un compte (commande 'name')."
                  RETCODE);
         }
         else
@@ -3314,7 +3314,7 @@ int nameaccount (int id)
 
     if (defaultlanguage == 'F')
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour connaître le nom d'un compte."
+            ("Envoi d'un requÃªte au serveur de logins pour connaÃ®tre le nom d'un compte."
              RETCODE);
     else
         ladmin_log ("Request to login-server to know an account name."
@@ -3348,7 +3348,7 @@ int changepasswd (char *param)
             printf ("Entrez un nom de compte svp.\n");
             printf ("<exemple> passwd nomtest nouveaumotdepasse\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le mot d'un passe d'un compte (commande 'password')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le mot d'un passe d'un compte (commande 'password')."
                  RETCODE);
         }
         else
@@ -3378,7 +3378,7 @@ int changepasswd (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour changer un mot de passe."
+            ("Envoi d'un requÃªte au serveur de logins pour changer un mot de passe."
              RETCODE);
     }
     else
@@ -3408,11 +3408,11 @@ int reloadGM ()
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Demande de recharger le fichier de configuration des GM envoyée."
+            ("Demande de recharger le fichier de configuration des GM envoyÃ©e."
              RETCODE);
         printf
-            ("Demande de recharger le fichier de configuration des GM envoyée.\n");
-        printf ("Vérifiez les comptes GM actuels (après rechargement):\n");
+            ("Demande de recharger le fichier de configuration des GM envoyÃ©e.\n");
+        printf ("VÃ©rifiez les comptes GM actuels (aprÃ¨s rechargement):\n");
     }
     else
     {
@@ -3445,7 +3445,7 @@ int changesex (char *param)
             printf ("Entrez un nom de compte et un sexe svp.\n");
             printf ("<exemple> sex nomtest Male\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le sexe d'un compte (commande 'sex')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le sexe d'un compte (commande 'sex')."
                  RETCODE);
         }
         else
@@ -3485,7 +3485,7 @@ int changesex (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour changer un sexe."
+            ("Envoi d'un requÃªte au serveur de logins pour changer un sexe."
              RETCODE);
     }
     else
@@ -3574,9 +3574,9 @@ int changestatesub (char *name, int state, char *error_message7)
             if (defaultlanguage == 'F')
             {
                 printf
-                    ("Message d'erreur trop court. Entrez un message de 1-19 caractères.\n");
+                    ("Message d'erreur trop court. Entrez un message de 1-19 caractÃ¨res.\n");
                 ladmin_log
-                    ("Message d'erreur trop court. Entrez un message de 1-19 caractères."
+                    ("Message d'erreur trop court. Entrez un message de 1-19 caractÃ¨res."
                      RETCODE);
             }
             else
@@ -3594,9 +3594,9 @@ int changestatesub (char *name, int state, char *error_message7)
             if (defaultlanguage == 'F')
             {
                 printf
-                    ("Message d'erreur trop long. Entrez un message de 1-19 caractères.\n");
+                    ("Message d'erreur trop long. Entrez un message de 1-19 caractÃ¨res.\n");
                 ladmin_log
-                    ("Message d'erreur trop long. Entrez un message de 1-19 caractères."
+                    ("Message d'erreur trop long. Entrez un message de 1-19 caractÃ¨res."
                      RETCODE);
             }
             else
@@ -3614,7 +3614,7 @@ int changestatesub (char *name, int state, char *error_message7)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour changer un statut."
+            ("Envoi d'un requÃªte au serveur de logins pour changer un statut."
              RETCODE);
     }
     else
@@ -3657,7 +3657,7 @@ int changestate (char *param)
             printf ("           block <nom compte>\n");
             printf ("           unblock <nom compte>\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le statut d'un compte (commande 'state')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le statut d'un compte (commande 'state')."
                  RETCODE);
         }
         else
@@ -3699,7 +3699,7 @@ int unblockaccount (char *param)
             printf ("           block <nom compte>\n");
             printf ("           unblock <nom compte>\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le statut d'un compte (commande 'unblock')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le statut d'un compte (commande 'unblock')."
                  RETCODE);
         }
         else
@@ -3741,7 +3741,7 @@ int blockaccount (char *param)
             printf ("           block <nom compte>\n");
             printf ("           unblock <nom compte>\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour changer le statut d'un compte (commande 'block')."
+                ("Nombre incorrect de paramÃ¨tres pour changer le statut d'un compte (commande 'block')."
                  RETCODE);
         }
         else
@@ -3785,9 +3785,9 @@ int timeaddaccount (char *param)
             printf ("  <exemple> timeadd nomtest +1m-2mn1s-6y\n");
             printf
                 ("            Cette exemple ajoute 1 mois et 1 seconde, et soustrait 2 minutes\n");
-            printf ("            et 6 ans dans le même temps.\n");
+            printf ("            et 6 ans dans le mÃªme temps.\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour modifier une date limite d'utilisation (commande 'timeadd')."
+                ("Nombre incorrect de paramÃ¨tres pour modifier une date limite d'utilisation (commande 'timeadd')."
                  RETCODE);
         }
         else
@@ -3867,7 +3867,7 @@ int timeaddaccount (char *param)
 
     if (defaultlanguage == 'F')
     {
-        printf (" année:   %d\n", year);
+        printf (" annÃ©e:   %d\n", year);
         printf (" mois:    %d\n", month);
         printf (" jour:    %d\n", day);
         printf (" heure:   %d\n", hour);
@@ -3892,8 +3892,8 @@ int timeaddaccount (char *param)
             printf
                 ("Vous devez entrer un ajustement avec cette commande, svp:\n");
             printf ("  Valeur d'ajustement (-1, 1, +1, etc...)\n");
-            printf ("  Elément modifié:\n");
-            printf ("    a ou y: année\n");
+            printf ("  ElÃ©ment modifiÃ©:\n");
+            printf ("    a ou y: annÃ©e\n");
             printf ("    m:      mois\n");
             printf ("    j ou d: jour\n");
             printf ("    h:      heure\n");
@@ -3902,7 +3902,7 @@ int timeaddaccount (char *param)
             printf ("  <exemple> timeadd nomtest +1m-2mn1s-6y\n");
             printf
                 ("            Cette exemple ajoute 1 mois et 1 seconde, et soustrait 2 minutes\n");
-            printf ("            et 6 ans dans le même temps.\n");
+            printf ("            et 6 ans dans le mÃªme temps.\n");
             ladmin_log
                 ("Aucun ajustement n'est pas un ajustement (commande 'timeadd')."
                  RETCODE);
@@ -3933,9 +3933,9 @@ int timeaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement d'années correct (de -127 à 127), svp.\n");
+                ("Entrez un ajustement d'annÃ©es correct (de -127 Ã  127), svp.\n");
             ladmin_log
-                ("Ajustement de l'année hors norme ('timeadd' command)."
+                ("Ajustement de l'annÃ©e hors norme ('timeadd' command)."
                  RETCODE);
         }
         else
@@ -3953,7 +3953,7 @@ int timeaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de mois correct (de -255 à 255), svp.\n");
+                ("Entrez un ajustement de mois correct (de -255 Ã  255), svp.\n");
             ladmin_log ("Ajustement du mois hors norme ('timeadd' command)."
                         RETCODE);
         }
@@ -3972,7 +3972,7 @@ int timeaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de jours correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement de jours correct (de -32767 Ã  32767), svp.\n");
             ladmin_log ("Ajustement des jours hors norme ('timeadd' command)."
                         RETCODE);
         }
@@ -3991,7 +3991,7 @@ int timeaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement d'heures correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement d'heures correct (de -32767 Ã  32767), svp.\n");
             ladmin_log
                 ("Ajustement des heures hors norme ('timeadd' command)."
                  RETCODE);
@@ -4011,7 +4011,7 @@ int timeaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de minutes correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement de minutes correct (de -32767 Ã  32767), svp.\n");
             ladmin_log
                 ("Ajustement des minutes hors norme ('timeadd' command)."
                  RETCODE);
@@ -4031,7 +4031,7 @@ int timeaddaccount (char *param)
         if (defaultlanguage == 'F')
         {
             printf
-                ("Entrez un ajustement de secondes correct (de -32767 à 32767), svp.\n");
+                ("Entrez un ajustement de secondes correct (de -32767 Ã  32767), svp.\n");
             ladmin_log
                 ("Ajustement des secondes hors norme ('timeadd' command)."
                  RETCODE);
@@ -4050,7 +4050,7 @@ int timeaddaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour modifier une date limite d'utilisation."
+            ("Envoi d'un requÃªte au serveur de logins pour modifier une date limite d'utilisation."
              RETCODE);
     }
     else
@@ -4100,10 +4100,10 @@ int timesetaccount (char *param)
             printf
                 ("<exemple>: timeset <nom_du_compte> aaaa/mm/jj [hh:mm:ss]\n");
             printf
-                ("           timeset <nom_du_compte> 0    (0 = illimité)\n");
-            printf ("           Heure par défaut [hh:mm:ss]: 23:59:59.\n");
+                ("           timeset <nom_du_compte> 0    (0 = illimitÃ©)\n");
+            printf ("           Heure par dÃ©faut [hh:mm:ss]: 23:59:59.\n");
             ladmin_log
-                ("Nombre incorrect de paramètres pour fixer une date limite d'utilisation (commande 'timeset')."
+                ("Nombre incorrect de paramÃ¨tres pour fixer une date limite d'utilisation (commande 'timeset')."
                  RETCODE);
         }
         else
@@ -4312,7 +4312,7 @@ int timesetaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour fixer une date limite d'utilisation."
+            ("Envoi d'un requÃªte au serveur de logins pour fixer une date limite d'utilisation."
              RETCODE);
     }
     else
@@ -4347,7 +4347,7 @@ int whoaccount (char *param)
         {
             printf ("Entrez un nom de compte svp.\n");
             printf ("<exemple> who nomtest\n");
-            ladmin_log ("Aucun nom n'a été donné pour trouver le compte."
+            ladmin_log ("Aucun nom n'a Ã©tÃ© donnÃ© pour trouver le compte."
                         RETCODE);
         }
         else
@@ -4366,7 +4366,7 @@ int whoaccount (char *param)
     if (defaultlanguage == 'F')
     {
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour obtenir le information d'un compte (par le nom)."
+            ("Envoi d'un requÃªte au serveur de logins pour obtenir le information d'un compte (par le nom)."
              RETCODE);
     }
     else
@@ -4391,7 +4391,7 @@ int checkloginversion ()
 {
     if (defaultlanguage == 'F')
         ladmin_log
-            ("Envoi d'un requête au serveur de logins pour obtenir sa version."
+            ("Envoi d'un requÃªte au serveur de logins pour obtenir sa version."
              RETCODE);
     else
         ladmin_log ("Request to login-server to obtain its version." RETCODE);
@@ -4428,7 +4428,7 @@ int prompt ()
         if (defaultlanguage == 'F')
         {
             Iprintf
-                ("\033[32mPour afficher les commandes, tapez 'Entrée'.\033[0m\n");
+                ("\033[32mPour afficher les commandes, tapez 'EntrÃ©e'.\033[0m\n");
         }
         else
             Iprintf ("\033[32mTo list the commands, type 'enter'.\033[0m\n");
@@ -4530,7 +4530,7 @@ int prompt ()
         {
             if (defaultlanguage == 'F')
             {
-                ladmin_log ("Commande: '%s' (sans paramètre)" RETCODE,
+                ladmin_log ("Commande: '%s' (sans paramÃ¨tre)" RETCODE,
                             command, parameters);
             }
             else
@@ -4543,7 +4543,7 @@ int prompt ()
         {
             if (defaultlanguage == 'F')
             {
-                ladmin_log ("Commande: '%s', paramètres: '%s'" RETCODE,
+                ladmin_log ("Commande: '%s', paramÃ¨tres: '%s'" RETCODE,
                             command, parameters);
             }
             else
@@ -4783,10 +4783,10 @@ int parse_fromlogin (int fd)
                         printf ("Erreur de login:\n");
                         printf (" - mot de passe incorrect,\n");
                         printf
-                            (" - système d'administration non activé, ou\n");
-                        printf (" - IP non autorisée.\n");
+                            (" - systÃ¨me d'administration non activÃ©, ou\n");
+                        printf (" - IP non autorisÃ©e.\n");
                         ladmin_log
-                            ("Erreur de login: mot de passe incorrect, système d'administration non activé, ou IP non autorisée."
+                            ("Erreur de login: mot de passe incorrect, systÃ¨me d'administration non activÃ©, ou IP non autorisÃ©e."
                              RETCODE);
                     }
                     else
@@ -4807,8 +4807,8 @@ int parse_fromlogin (int fd)
                 {
                     if (defaultlanguage == 'F')
                     {
-                        printf ("Connexion établie.\n");
-                        ladmin_log ("Connexion établie." RETCODE);
+                        printf ("Connexion Ã©tablie.\n");
+                        ladmin_log ("Connexion Ã©tablie." RETCODE);
                         printf
                             ("Lecture de la version du serveur de login...\n");
                         ladmin_log
@@ -4858,10 +4858,10 @@ int parse_fromlogin (int fd)
                     WFIFOSET (login_fd, 20);
                     if (defaultlanguage == 'F')
                     {
-                        Iprintf ("Réception de la clef MD5.\n");
-                        ladmin_log ("Réception de la clef MD5." RETCODE);
-                        Iprintf ("Envoi du mot de passe crypté...\n");
-                        ladmin_log ("Envoi du mot de passe crypté..."
+                        Iprintf ("RÃ©ception de la clef MD5.\n");
+                        ladmin_log ("RÃ©ception de la clef MD5." RETCODE);
+                        Iprintf ("Envoi du mot de passe cryptÃ©...\n");
+                        ladmin_log ("Envoi du mot de passe cryptÃ©..."
                                     RETCODE);
                     }
                     else
@@ -4920,14 +4920,14 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         ladmin_log
-                            ("  Réception d'une liste des comptes vide."
+                            ("  RÃ©ception d'une liste des comptes vide."
                              RETCODE);
                         if (list_count == 0)
-                            printf ("Aucun compte trouvé.\n");
+                            printf ("Aucun compte trouvÃ©.\n");
                         else if (list_count == 1)
-                            printf ("1 compte trouvé.\n");
+                            printf ("1 compte trouvÃ©.\n");
                         else
-                            printf ("%d comptes trouvés.\n", list_count);
+                            printf ("%d comptes trouvÃ©s.\n", list_count);
                     }
                     else
                     {
@@ -4950,7 +4950,7 @@ int parse_fromlogin (int fd)
                 {
                     int  i;
                     if (defaultlanguage == 'F')
-                        ladmin_log ("  Réception d'une liste des comptes."
+                        ladmin_log ("  RÃ©ception d'une liste des comptes."
                                     RETCODE);
                     else
                         ladmin_log ("  Receiving of a accounts list."
@@ -5047,7 +5047,7 @@ int parse_fromlogin (int fd)
                     // asking of the following acounts
                     if (defaultlanguage == 'F')
                         ladmin_log
-                            ("Envoi d'un requête au serveur de logins pour obtenir la liste des comptes de %d à %d (complément)."
+                            ("Envoi d'un requÃªte au serveur de logins pour obtenir la liste des comptes de %d Ã  %d (complÃ©ment)."
                              RETCODE, list_first, list_last);
                     else
                         ladmin_log
@@ -5070,10 +5070,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Echec à la création du compte [%s]. Un compte identique existe déjà.\n",
+                            ("Echec Ã  la crÃ©ation du compte [%s]. Un compte identique existe dÃ©jÃ .\n",
                              RFIFOP (fd, 6));
                         ladmin_log
-                            ("Echec à la création du compte [%s]. Un compte identique existe déjà."
+                            ("Echec Ã  la crÃ©ation du compte [%s]. Un compte identique existe dÃ©jÃ ."
                              RETCODE, RFIFOP (fd, 6));
                     }
                     else
@@ -5090,9 +5090,9 @@ int parse_fromlogin (int fd)
                 {
                     if (defaultlanguage == 'F')
                     {
-                        printf ("Compte [%s] créé avec succès [id: %d].\n",
+                        printf ("Compte [%s] crÃ©Ã© avec succÃ¨s [id: %d].\n",
                                 RFIFOP (fd, 6), RFIFOL (fd, 2));
-                        ladmin_log ("Compte [%s] créé avec succès [id: %d]."
+                        ladmin_log ("Compte [%s] crÃ©Ã© avec succÃ¨s [id: %d]."
                                     RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5137,10 +5137,10 @@ int parse_fromlogin (int fd)
                 {
                     if (defaultlanguage == 'F')
                     {
-                        printf ("Compte [%s][id: %d] SUPPRIME avec succès.\n",
+                        printf ("Compte [%s][id: %d] SUPPRIME avec succÃ¨s.\n",
                                 RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Compte [%s][id: %d] SUPPRIME avec succès."
+                            ("Compte [%s][id: %d] SUPPRIME avec succÃ¨s."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5189,10 +5189,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Modification du mot de passe du compte [%s][id: %d] réussie.\n",
+                            ("Modification du mot de passe du compte [%s][id: %d] rÃ©ussie.\n",
                              RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Modification du mot de passe du compte [%s][id: %d] réussie."
+                            ("Modification du mot de passe du compte [%s][id: %d] rÃ©ussie."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5239,7 +5239,7 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         sprintf (tmpstr,
-                                 "Statut du compte [%s] changé avec succès en [",
+                                 "Statut du compte [%s] changÃ© avec succÃ¨s en [",
                                  RFIFOP (fd, 6));
                     }
                     else
@@ -5309,7 +5309,7 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         ladmin_log
-                            ("  Réception du nombre de joueurs en ligne."
+                            ("  RÃ©ception du nombre de joueurs en ligne."
                              RETCODE);
                     }
                     else
@@ -5324,7 +5324,7 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("  Aucun serveur n'est connecté au login serveur.\n");
+                                ("  Aucun serveur n'est connectÃ© au login serveur.\n");
                         }
                         else
                         {
@@ -5387,10 +5387,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Le mot de passe donné correspond bien au compte [%s][id: %d].\n",
+                            ("Le mot de passe donnÃ© correspond bien au compte [%s][id: %d].\n",
                              RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Le mot de passe donné correspond bien au compte [%s][id: %d]."
+                            ("Le mot de passe donnÃ© correspond bien au compte [%s][id: %d]."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5418,10 +5418,10 @@ int parse_fromlogin (int fd)
                             ("Echec de la modification du sexe du compte [%s].\n",
                              RFIFOP (fd, 6));
                         printf
-                            ("Le compte [%s] n'existe pas ou le sexe est déjà celui demandé.\n",
+                            ("Le compte [%s] n'existe pas ou le sexe est dÃ©jÃ  celui demandÃ©.\n",
                              RFIFOP (fd, 6));
                         ladmin_log
-                            ("Echec de la modification du sexe du compte. Le compte [%s] n'existe pas ou le sexe est déjà celui demandé."
+                            ("Echec de la modification du sexe du compte. Le compte [%s] n'existe pas ou le sexe est dÃ©jÃ  celui demandÃ©."
                              RETCODE, RFIFOP (fd, 6));
                     }
                     else
@@ -5441,10 +5441,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Sexe du compte [%s][id: %d] changé avec succès.\n",
+                            ("Sexe du compte [%s][id: %d] changÃ© avec succÃ¨s.\n",
                              RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Sexe du compte [%s][id: %d] changé avec succès."
+                            ("Sexe du compte [%s][id: %d] changÃ© avec succÃ¨s."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5472,12 +5472,12 @@ int parse_fromlogin (int fd)
                             ("Echec de la modification du niveau de GM du compte [%s].\n",
                              RFIFOP (fd, 6));
                         printf
-                            ("Le compte [%s] n'existe pas, le niveau de GM est déjà celui demandé\n",
+                            ("Le compte [%s] n'existe pas, le niveau de GM est dÃ©jÃ  celui demandÃ©\n",
                              RFIFOP (fd, 6));
                         printf
                             ("ou il est impossible de modifier le fichier des comptes GM.\n");
                         ladmin_log
-                            ("Echec de la modification du niveau de GM du compte. Le compte [%s] n'existe pas, le niveau de GM est déjà celui demandé ou il est impossible de modifier le fichier des comptes GM."
+                            ("Echec de la modification du niveau de GM du compte. Le compte [%s] n'existe pas, le niveau de GM est dÃ©jÃ  celui demandÃ© ou il est impossible de modifier le fichier des comptes GM."
                              RETCODE, RFIFOP (fd, 6));
                     }
                     else
@@ -5499,10 +5499,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Niveau de GM du compte [%s][id: %d] changé avec succès.\n",
+                            ("Niveau de GM du compte [%s][id: %d] changÃ© avec succÃ¨s.\n",
                              RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Niveau de GM du compte [%s][id: %d] changé avec succès."
+                            ("Niveau de GM du compte [%s][id: %d] changÃ© avec succÃ¨s."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5551,10 +5551,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Modification de l'e-mail du compte [%s][id: %d] réussie.\n",
+                            ("Modification de l'e-mail du compte [%s][id: %d] rÃ©ussie.\n",
                              RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Modification de l'e-mail du compte [%s][id: %d] réussie."
+                            ("Modification de l'e-mail du compte [%s][id: %d] rÃ©ussie."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5579,10 +5579,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Echec du changement du mémo du compte [%s]. Le compte n'existe pas.\n",
+                            ("Echec du changement du mÃ©mo du compte [%s]. Le compte n'existe pas.\n",
                              RFIFOP (fd, 6));
                         ladmin_log
-                            ("Echec du changement du mémo du compte [%s]. Le compte n'existe pas."
+                            ("Echec du changement du mÃ©mo du compte [%s]. Le compte n'existe pas."
                              RETCODE, RFIFOP (fd, 6));
                     }
                     else
@@ -5600,10 +5600,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Mémo du compte [%s][id: %d] changé avec succès.\n",
+                            ("MÃ©mo du compte [%s][id: %d] changÃ© avec succÃ¨s.\n",
                              RFIFOP (fd, 6), RFIFOL (fd, 2));
                         ladmin_log
-                            ("Mémo du compte [%s][id: %d] changé avec succès."
+                            ("MÃ©mo du compte [%s][id: %d] changÃ© avec succÃ¨s."
                              RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                     }
                     else
@@ -5718,10 +5718,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Echec du changement de la validité du compte [%s]. Le compte n'existe pas.\n",
+                            ("Echec du changement de la validitÃ© du compte [%s]. Le compte n'existe pas.\n",
                              RFIFOP (fd, 6));
                         ladmin_log
-                            ("Echec du changement de la validité du compte [%s]. Le compte n'existe pas."
+                            ("Echec du changement de la validitÃ© du compte [%s]. Le compte n'existe pas."
                              RETCODE, RFIFOP (fd, 6));
                     }
                     else
@@ -5742,10 +5742,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Limite de validité du compte [%s][id: %d] changée avec succès en [illimité].\n",
+                                ("Limite de validitÃ© du compte [%s][id: %d] changÃ©e avec succÃ¨s en [illimitÃ©].\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2));
                             ladmin_log
-                                ("Limite de validité du compte [%s][id: %d] changée avec succès en [illimité]."
+                                ("Limite de validitÃ© du compte [%s][id: %d] changÃ©e avec succÃ¨s en [illimitÃ©]."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                         }
                         else
@@ -5766,10 +5766,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Limite de validité du compte [%s][id: %d] changée avec succès pour être jusqu'au %s.\n",
+                                ("Limite de validitÃ© du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s.\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2), tmpstr);
                             ladmin_log
-                                ("Limite de validité du compte [%s][id: %d] changée avec succès pour être jusqu'au %s."
+                                ("Limite de validitÃ© du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2),
                                  tmpstr);
                         }
@@ -5821,10 +5821,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès en [dé-bannie].\n",
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s en [dÃ©-bannie].\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2));
                             ladmin_log
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès en [dé-bannie]."
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s en [dÃ©-bannie]."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                         }
                         else
@@ -5845,10 +5845,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès pour être jusqu'au %s.\n",
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s.\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2), tmpstr);
                             ladmin_log
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès pour être jusqu'au %s."
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2),
                                  tmpstr);
                         }
@@ -5900,10 +5900,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès en [dé-bannie].\n",
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s en [dÃ©-bannie].\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2));
                             ladmin_log
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès en [dé-bannie]."
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s en [dÃ©-bannie]."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                         }
                         else
@@ -5924,10 +5924,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès pour être jusqu'au %s.\n",
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s.\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2), tmpstr);
                             ladmin_log
-                                ("Date finale de banissement du compte [%s][id: %d] changée avec succès pour être jusqu'au %s."
+                                ("Date finale de banissement du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2),
                                  tmpstr);
                         }
@@ -5974,9 +5974,9 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Message transmis au server de logins avec succès.\n");
+                            ("Message transmis au server de logins avec succÃ¨s.\n");
                         ladmin_log
-                            ("Message transmis au server de logins avec succès."
+                            ("Message transmis au server de logins avec succÃ¨s."
                              RETCODE);
                     }
                     else
@@ -6000,10 +6000,10 @@ int parse_fromlogin (int fd)
                     if (defaultlanguage == 'F')
                     {
                         printf
-                            ("Echec du changement de la validité du compte [%s]. Le compte n'existe pas.\n",
+                            ("Echec du changement de la validitÃ© du compte [%s]. Le compte n'existe pas.\n",
                              RFIFOP (fd, 6));
                         ladmin_log
-                            ("Echec du changement de la validité du compte [%s]. Le compte n'existe pas."
+                            ("Echec du changement de la validitÃ© du compte [%s]. Le compte n'existe pas."
                              RETCODE, RFIFOP (fd, 6));
                     }
                     else
@@ -6024,14 +6024,14 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Limite de validité du compte [%s][id: %d] inchangée.\n",
+                                ("Limite de validitÃ© du compte [%s][id: %d] inchangÃ©e.\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2));
                             printf
-                                ("Le compte a une validité illimitée ou\n");
+                                ("Le compte a une validitÃ© illimitÃ©e ou\n");
                             printf
-                                ("la modification est impossible avec les ajustements demandés.\n");
+                                ("la modification est impossible avec les ajustements demandÃ©s.\n");
                             ladmin_log
-                                ("Limite de validité du compte [%s][id: %d] inchangée. Le compte a une validité illimitée ou la modification est impossible avec les ajustements demandés."
+                                ("Limite de validitÃ© du compte [%s][id: %d] inchangÃ©e. Le compte a une validitÃ© illimitÃ©e ou la modification est impossible avec les ajustements demandÃ©s."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2));
                         }
                         else
@@ -6056,10 +6056,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             printf
-                                ("Limite de validité du compte [%s][id: %d] changée avec succès pour être jusqu'au %s.\n",
+                                ("Limite de validitÃ© du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s.\n",
                                  RFIFOP (fd, 6), RFIFOL (fd, 2), tmpstr);
                             ladmin_log
-                                ("Limite de validité du compte [%s][id: %d] changée avec succès pour être jusqu'au %s."
+                                ("Limite de validitÃ© du compte [%s][id: %d] changÃ©e avec succÃ¨s pour Ãªtre jusqu'au %s."
                                  RETCODE, RFIFOP (fd, 6), RFIFOL (fd, 2),
                                  tmpstr);
                         }
@@ -6150,10 +6150,10 @@ int parse_fromlogin (int fd)
                         if (defaultlanguage == 'F')
                         {
                             ladmin_log
-                                ("Réception d'information concernant un compte."
+                                ("RÃ©ception d'information concernant un compte."
                                  RETCODE);
                             printf
-                                ("Le compte a les caractéristiques suivantes:\n");
+                                ("Le compte a les caractÃ©ristiques suivantes:\n");
                         }
                         else
                         {
@@ -6267,18 +6267,18 @@ int parse_fromlogin (int fd)
                             else
                                 printf (" Compteur: %d connexion.\n",
                                         RFIFOL (fd, 32));
-                            printf (" Dernière connexion le: %s (ip: %s)\n",
+                            printf (" DerniÃ¨re connexion le: %s (ip: %s)\n",
                                     lastlogin, last_ip);
                             if (connect_until_time == 0)
                             {
-                                printf (" Limite de validité: illimité.\n");
+                                printf (" Limite de validitÃ©: illimitÃ©.\n");
                             }
                             else
                             {
                                 char tmpstr[128];
                                 strftime (tmpstr, 24, date_format,
                                           localtime (&connect_until_time));
-                                printf (" Limite de validité: jusqu'au %s.\n",
+                                printf (" Limite de validitÃ©: jusqu'au %s.\n",
                                         tmpstr);
                             }
                         }
@@ -6402,7 +6402,7 @@ int Connect_login_server ()
 
 //-------------------------------------------------
 // Return numerical value of a switch configuration
-// on/off, english, français, deutsch, español
+// on/off, english, franÃ§ais, deutsch, espaÃ±ol
 //-------------------------------------------------
 int config_switch (const char *str)
 {
@@ -6430,7 +6430,7 @@ int ladmin_config_read (const char *cfgName)
     {
         if (defaultlanguage == 'F')
         {
-            printf ("\033[0mFichier de configuration (%s) non trouvé.\n",
+            printf ("\033[0mFichier de configuration (%s) non trouvÃ©.\n",
                     cfgName);
         }
         else
@@ -6443,7 +6443,7 @@ int ladmin_config_read (const char *cfgName)
     if (defaultlanguage == 'F')
     {
         Iprintf
-            ("\033[0m---Début de lecture du fichier de configuration Ladmin (%s)\n",
+            ("\033[0m---DÃ©but de lecture du fichier de configuration Ladmin (%s)\n",
              cfgName);
     }
     else
@@ -6555,7 +6555,7 @@ int ladmin_config_read (const char *cfgName)
 
     if (defaultlanguage == 'F')
     {
-        Iprintf ("---Lecture du fichier de configuration Ladmin terminée.\n");
+        Iprintf ("---Lecture du fichier de configuration Ladmin terminÃ©e.\n");
     }
     else
     {
@@ -6621,7 +6621,7 @@ int do_init (int argc, char **argv)
 
     if (defaultlanguage == 'F')
     {
-        Iprintf ("Outil d'administration à distance de eAthena.\n");
+        Iprintf ("Outil d'administration Ã  distance de eAthena.\n");
         Iprintf ("(pour eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION,
                  ATHENA_MINOR_VERSION, ATHENA_REVISION);
     }
@@ -6634,8 +6634,8 @@ int do_init (int argc, char **argv)
 
     if (defaultlanguage == 'F')
     {
-        ladmin_log ("Ladmin est prêt." RETCODE);
-        Iprintf ("Ladmin est \033[1;32mprêt\033[0m.\n\n");
+        ladmin_log ("Ladmin est prÃªt." RETCODE);
+        Iprintf ("Ladmin est \033[1;32mprÃªt\033[0m.\n\n");
     }
     else
     {

@@ -442,7 +442,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     }
 
     if (str[next] == '\n' || str[next] == '\r')
-        return 1;               // �V�K�f�[�^
+        return 1;               // 新規データ
 
     next++;
 
@@ -557,7 +557,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     for (i = 0;
          str[next] && str[next] != '\t' && str[next] != '\n'
          && str[next] != '\r'; i++)
-    {                           // global_reg����ȑO��athena.txt�݊��̂��߈ꉞ'\n'�`�F�b�N
+    {                           // global_reg実装以前のathena.txt互換のため一応'\n'チェック
         if (sscanf
             (str + next, "%[^,],%d%n", p->global_reg[i].str,
              &p->global_reg[i].value, &len) != 2)
@@ -1851,17 +1851,17 @@ int disconnect_player (int accound_id)
     return 0;
 }
 
-// �L�����폜�ɔ����f�[�^�폜
+// キャラ削除に伴うデータ削除
 static int char_delete (struct mmo_charstatus *cs)
 {
 
-    // �M���h�E��
+    // ギルド脱退
     if (cs->guild_id)
         inter_guild_leave (cs->guild_id, cs->account_id, cs->char_id);
-    // �p�[�e�B�[�E��
+    // パーティー脱退
     if (cs->party_id)
         inter_party_leave (cs->party_id, cs->account_id);
-    // ����
+    // 離婚
     if (cs->partner_id)
         char_divorce (cs);
 
@@ -2163,7 +2163,7 @@ int parse_tologin (int fd)
                 RFIFOSKIP (fd, 8 + RFIFOL (fd, 4));
                 break;
 
-                // account_reg2�ύX�ʒm
+                // account_reg2変更通知
             case 0x2729:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2180,7 +2180,7 @@ int parse_tologin (int fd)
                         reg[j].value = RFIFOL (fd, p + 32);
                     }
                     set_account_reg2 (acc, j, reg);
-                    // ���C���O�C�����֎~���Ă����Α����K�v�͖���
+                    // 同垢ログインを禁止していれば送る必要は無い
                     memcpy (buf, RFIFOP (fd, 0), RFIFOW (fd, 2));
                     WBUFW (buf, 0) = 0x2b11;
                     mapif_sendall (buf, WBUFW (buf, 2));
@@ -2528,7 +2528,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, RFIFOW (fd, 2));
                 break;
 
-                // �F�ؗv��
+                // 認証要求
             case 0x2afc:
                 if (RFIFOREST (fd) < 22)
                     return 0;
@@ -2578,7 +2578,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 22);
                 break;
 
-                // MAP�T�[�o�[���̃��[�U�[�����M
+                // MAPサーバー上のユーザー数受信
             case 0x2aff:
                 if (RFIFOREST (fd) < 6 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2610,7 +2610,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 6 + i * 4);
                 break;
 
-                // �L�����f�[�^�ۑ�
+                // キャラデータ保存
             case 0x2b01:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2626,7 +2626,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, RFIFOW (fd, 2));
                 break;
 
-                // �L�����Z���v��
+                // キャラセレ要求
             case 0x2b02:
                 if (RFIFOREST (fd) < 18)
                     return 0;
@@ -2649,7 +2649,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 18);
                 break;
 
-                // �}�b�v�T�[�o�[�Ԉړ��v��
+                // マップサーバー間移動要求
             case 0x2b05:
                 if (RFIFOREST (fd) < 49)
                     return 0;
@@ -2681,7 +2681,7 @@ int parse_frommap (int fd)
                 RFIFOSKIP (fd, 49);
                 break;
 
-                // �L����������
+                // キャラ名検索
             case 0x2b08:
                 if (RFIFOREST (fd) < 6)
                     return 0;
@@ -2874,7 +2874,7 @@ int parse_frommap (int fd)
 
 //      case 0x2b0f: not more used (available for futur usage)
 
-                // account_reg�ۑ��v��
+                // account_reg保存要求
             case 0x2b10:
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
                     return 0;
@@ -2890,7 +2890,7 @@ int parse_frommap (int fd)
                         reg[j].value = RFIFOL (fd, p + 32);
                     }
                     set_account_reg2 (acc, j, reg);
-                    // login�T�[�o�[�֑���
+                    // loginサーバーへ送る
                     if (login_fd > 0)
                     {           // don't send request if no login-server
                         WFIFOW (login_fd, 0) = 0x2728;
@@ -2898,7 +2898,7 @@ int parse_frommap (int fd)
                                 RFIFOW (fd, 2));
                         WFIFOSET (login_fd, WFIFOW (login_fd, 2));
                     }
-                    // ���[���h�ւ̓��C���O�C�����Ȃ�����map�T�[�o�[�ɑ����K�v�͂Ȃ�
+                    // ワールドへの同垢ログインがなければmapサーバーに送る必要はない
                     //memcpy(buf, RFIFOP(fd,0), RFIFOW(fd,2));
                     //WBUFW(buf,0) = 0x2b11;
                     //mapif_sendall(buf, WBUFW(buf,2));
@@ -2925,15 +2925,15 @@ int parse_frommap (int fd)
                 }
 
             default:
-                // inter server�����ɓn��
+                // inter server処理に渡す
             {
                 int  r = inter_parse_frommap (fd);
-                if (r == 1)     // �����ł���
+                if (r == 1)     // 処理できた
                     break;
-                if (r == 2)     // �p�P�b�g���������Ȃ�
+                if (r == 2)     // パケット長が足りない
                     return 0;
             }
-                // inter server�����ł��Ȃ��ꍇ�͐ؒf
+                // inter server処理でもない場合は切断
                 printf
                     ("char: unknown packet 0x%04x (%d bytes to read in buffer)! (from map).\n",
                      RFIFOW (fd, 0), RFIFOREST (fd));
@@ -2971,7 +2971,7 @@ int search_mapserver (char *map)
     return -1;
 }
 
-// char_mapif�̏����������i���݂�inter_mapif�������̂݁j
+// char_mapifの初期化処理（現在はinter_mapif初期化のみ）
 static int char_mapif_init (int fd)
 {
     return inter_mapif_init (fd);
@@ -3027,7 +3027,7 @@ int parse_char (int fd)
 
         switch (RFIFOW (fd, 0))
         {
-            case 0x20b:        //20040622�Í���ragexe�Ή�
+            case 0x20b:        //20040622暗号化ragexe対応
                 if (RFIFOREST (fd) < 19)
                     return 0;
                 RFIFOSKIP (fd, 19);
@@ -3046,7 +3046,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 50);
                 break;
 
-            case 0x65:         // �ڑ��v��
+            case 0x65:         // 接続要求
                 if (RFIFOREST (fd) < 17)
                     return 0;
                 {
@@ -3139,7 +3139,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 17);
                 break;
 
-            case 0x66:         // �L�����I��
+            case 0x66:         // キャラ選択
                 if (!sd || RFIFOREST (fd) < 3)
                     return 0;
 
@@ -3309,7 +3309,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 3);
                 break;
 
-            case 0x67:         // �쐬
+            case 0x67:         // 作成
                 if (!sd || RFIFOREST (fd) < 37)
                     return 0;
                 i = make_new_char (fd, RFIFOP (fd, 2));
@@ -3510,7 +3510,7 @@ int parse_char (int fd)
                 }
                 break;
 
-            case 0x2af8:       // �}�b�v�T�[�o�[���O�C��
+            case 0x2af8:       // マップサーバーログイン
                 if (RFIFOREST (fd) < 60)
                     return 0;
                 WFIFOW (fd, 0) = 0x2af9;
@@ -3559,13 +3559,13 @@ int parse_char (int fd)
                 }
                 break;
 
-            case 0x187:        // Alive�M���H
+            case 0x187:        // Alive信号？
                 if (RFIFOREST (fd) < 6)
                     return 0;
                 RFIFOSKIP (fd, 6);
                 break;
 
-            case 0x7530:       // Athena���񏊓�
+            case 0x7530:       // Athena情報所得
                 WFIFOW (fd, 0) = 0x7531;
                 WFIFOB (fd, 2) = ATHENA_MAJOR_VERSION;
                 WFIFOB (fd, 3) = ATHENA_MINOR_VERSION;
@@ -3578,7 +3578,7 @@ int parse_char (int fd)
                 RFIFOSKIP (fd, 2);
                 return 0;
 
-            case 0x7532:       // �ڑ��̐ؒf(default�Ə����͈ꏏ���������I�ɂ��邽��)
+            case 0x7532:       // 接続の切断(defaultと処理は一緒だが明示的にするため)
                 session[fd]->eof = 1;
                 return 0;
 
@@ -3591,7 +3591,7 @@ int parse_char (int fd)
     return 0;
 }
 
-// �S�Ă�MAP�T�[�o�[�Ƀf�[�^���M�i���M����map�I�̐����Ԃ��j
+// 全てのMAPサーバーにデータ送信（送信したmap鯖の数を返す）
 int mapif_sendall (char *buf, unsigned int len)
 {
     int  i, c;
@@ -3610,7 +3610,7 @@ int mapif_sendall (char *buf, unsigned int len)
     return c;
 }
 
-// �����ȊO�̑S�Ă�MAP�T�[�o�[�Ƀf�[�^���M�i���M����map�I�̐����Ԃ��j
+// 自分以外の全てのMAPサーバーにデータ送信（送信したmap鯖の数を返す）
 int mapif_sendallwos (int sfd, unsigned char *buf, unsigned int len)
 {
     int  i, c;
@@ -3629,7 +3629,7 @@ int mapif_sendallwos (int sfd, unsigned char *buf, unsigned int len)
     return c;
 }
 
-// MAP�T�[�o�[�Ƀf�[�^���M�imap�I�����m�F�L���j
+// MAPサーバーにデータ送信（map鯖生存確認有り）
 int mapif_send (int fd, unsigned char *buf, unsigned int len)
 {
     int  i;
@@ -3701,7 +3701,7 @@ int check_connect_login_server (int tid, unsigned int tick, int id, int data)
 
 //----------------------------------------------------------
 // Return numerical value of a switch configuration by [Yor]
-// on/off, english, fran�ais, deutsch, espanol
+// on/off, english, français, deutsch, español
 //----------------------------------------------------------
 int config_switch (const char *str)
 {
@@ -4117,7 +4117,7 @@ int do_init (int argc, char **argv)
     update_online = time (NULL);
     create_online_files ();     // update online players files at start of the server
 
-    inter_init ((argc > 2) ? argv[2] : inter_cfgName);  // inter server ������
+    inter_init ((argc > 2) ? argv[2] : inter_cfgName);  // inter server 初期化
 
     set_termfunc (do_final);
     set_defaultparse (parse_char);

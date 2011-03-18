@@ -80,7 +80,7 @@ int  char_num, char_max;
 int  max_connect_user = 0;
 int  autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 
-// ÃÊ±â À§Ä¡(conf ÆÄÀÏ·ÎºÎÅÍ Àç¼³Á¤ °¡´É)
+// æ®µå¥„ æ˜¯å¸–(conf ç£æžç¨½æŽ¡æ–— ä»™ç«ºèˆ› äºœç®¡)
 struct point start_point = { "new_1-1.gat", 53, 111 };
 
 int inter_pet_fromstr (char *str, struct s_pet *p)
@@ -406,7 +406,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     }
 
     if (str[next] == '\n' || str[next] == '\r')
-        return 1;               // V‹Kƒf[ƒ^
+        return 1;               // æ–°è¦ãƒ‡ãƒ¼ã‚¿
 
     next++;
 
@@ -521,7 +521,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     for (i = 0;
          str[next] && str[next] != '\t' && str[next] != '\n'
          && str[next] != '\r'; i++)
-    {                           // global_regŽÀ‘•ˆÈ‘O‚Ìathena.txtŒÝŠ·‚Ì‚½‚ßˆê‰ž'\n'ƒ`ƒFƒbƒN
+    {                           // global_regå®Ÿè£…ä»¥å‰ã®athena.txtäº’æ›ã®ãŸã‚ä¸€å¿œ'\n'ãƒã‚§ãƒƒã‚¯
         set =
             sscanf (str + next, "%[^,],%d%n", p->global_reg[i].str,
                     &p->global_reg[i].value, &len);
