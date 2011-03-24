@@ -8,7 +8,6 @@
 
 #include "../common/socket.h"
 #include "../common/timer.h"
-#include "../common/malloc.h"
 #include "../common/version.h"
 #include "../common/nullpo.h"
 
@@ -30,7 +29,7 @@
 #include "skill.h"
 #include "storage.h"
 #include "trade.h"
-    
+
 int tmw_CheckChatSpam (struct map_session_data *sd, char *message)
 {
     nullpo_retr (1, sd);

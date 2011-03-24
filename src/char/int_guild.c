@@ -30,7 +30,7 @@ int  guild_calcinfo (struct guild *g);
 int  mapif_guild_basicinfochanged (int guild_id, int type, const void *data,
                                    int len);
 int  mapif_guild_info (int fd, struct guild *g);
-int  guild_break_sub (void *key, void *data, va_list ap);
+void guild_break_sub (db_key_t key, db_val_t data, va_list ap);
 
 // ギルドデータの文字列への変換
 int inter_guild_tostr (char *str, struct guild *g)
@@ -448,14 +448,7 @@ int inter_guild_init ()
             guild_newid = i;
             continue;
         }
-
-        g = calloc (sizeof (struct guild), 1);
-        if (g == NULL)
-        {
-            printf ("int_guild: out of memory!\n");
-            exit (0);
-        }
-        memset (g, 0, sizeof (struct guild));
+        CREATE (g, struct guild, 1);
         if (inter_guild_fromstr (line, g) == 0 && g->guild_id > 0)
         {
             if (g->guild_id >= guild_newid)
@@ -483,13 +476,7 @@ int inter_guild_init ()
 
     while (fgets (line, sizeof (line) - 1, fp))
     {
-        gc = calloc (sizeof (struct guild_castle), 1);
-        if (gc == NULL)
-        {
-            printf ("int_guild: out of memory!\n");
-            exit (0);
-        }
-        memset (gc, 0, sizeof (struct guild_castle));
+        CREATE (gc, struct guild_castle, 1);
         if (inter_guildcastle_fromstr (line, gc) == 0)
         {
             numdb_insert (castle_db, gc->castle_id, gc);
@@ -508,13 +495,7 @@ int inter_guild_init ()
         //デフォルトデータを作成
         for (i = 0; i < MAX_GUILDCASTLE; i++)
         {
-            gc = calloc (sizeof (struct guild_castle), 1);
-            if (gc == NULL)
-            {
-                printf ("int_guild: out of memory!\n");
-                exit (0);
-            }
-            memset (gc, 0, sizeof (struct guild_castle));
+            CREATE (gc, struct guild_castle, 1);
             gc->castle_id = i;
             gc->guild_id = 0;
             gc->economy = 0;
@@ -562,7 +543,7 @@ struct guild *inter_guild_search (int guild_id)
 }
 
 // ギルドデータのセーブ用
-int inter_guild_save_sub (void *key, void *data, va_list ap)
+void inter_guild_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[16384];
     FILE *fp;
@@ -570,12 +551,10 @@ int inter_guild_save_sub (void *key, void *data, va_list ap)
     inter_guild_tostr (line, (struct guild *) data);
     fp = va_arg (ap, FILE *);
     fprintf (fp, "%s" RETCODE, line);
-
-    return 0;
 }
 
 // ギルド城データのセーブ用
-int inter_castle_save_sub (void *key, void *data, va_list ap)
+void inter_castle_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[16384];
     FILE *fp;
@@ -583,8 +562,6 @@ int inter_castle_save_sub (void *key, void *data, va_list ap)
     inter_guildcastle_tostr (line, (struct guild_castle *) data);
     fp = va_arg (ap, FILE *);
     fprintf (fp, "%s" RETCODE, line);
-
-    return 0;
 }
 
 // ギルドデータのセーブ
@@ -617,16 +594,15 @@ int inter_guild_save ()
 }
 
 // ギルド名検索用
-int search_guildname_sub (void *key, void *data, va_list ap)
+void search_guildname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data, **dst;
     char *str;
 
     str = va_arg (ap, char *);
     dst = va_arg (ap, struct guild **);
-    if (strcmpi (g->name, str) == 0)
+    if (strcasecmp (g->name, str) == 0)
         *dst = g;
-    return 0;
 }
 
 // ギルド名検索
@@ -660,7 +636,7 @@ int guild_check_empty (struct guild *g)
 }
 
 // キャラの競合がないかチェック用
-int guild_check_conflict_sub (void *key, void *data, va_list ap)
+void guild_check_conflict_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data;
     int  guild_id, account_id, char_id, i;
@@ -670,7 +646,7 @@ int guild_check_conflict_sub (void *key, void *data, va_list ap)
     char_id = va_arg (ap, int);
 
     if (g->guild_id == guild_id)    // 本来の所属なので問題なし
-        return 0;
+        return;
 
     for (i = 0; i < MAX_GUILD; i++)
     {
@@ -683,8 +659,6 @@ int guild_check_conflict_sub (void *key, void *data, va_list ap)
                                     "**データ競合**");
         }
     }
-
-    return 0;
 }
 
 // キャラの競合がないかチェック
@@ -1037,7 +1011,7 @@ int mapif_guild_castle_datasave (int castle_id, int index, int value)
     return 0;
 }
 
-int mapif_guild_castle_alldataload_sub (void *key, void *data, va_list ap)
+void mapif_guild_castle_alldataload_sub (db_key_t key, db_val_t data, va_list ap)
 {
     int  fd = va_arg (ap, int);
     int *p = va_arg (ap, int *);
@@ -1045,8 +1019,6 @@ int mapif_guild_castle_alldataload_sub (void *key, void *data, va_list ap)
     memcpy (WFIFOP (fd, *p), (struct guild_castle *) data,
             sizeof (struct guild_castle));
     (*p) += sizeof (struct guild_castle);
-
-    return 0;
 }
 
 int mapif_guild_castle_alldataload (int fd)
@@ -1087,14 +1059,7 @@ int mapif_parse_CreateGuild (int fd, int account_id, char *name,
         mapif_guild_created (fd, account_id, NULL);
         return 0;
     }
-    g = calloc (sizeof (struct guild), 1);
-    if (g == NULL)
-    {
-        printf ("int_guild: CreateGuild: out of memory !\n");
-        mapif_guild_created (fd, account_id, NULL);
-        exit (0);
-    }
-    memset (g, 0, sizeof (struct guild));
+    CREATE (g, struct guild, 1);
     g->guild_id = guild_newid++;
     memcpy (g->name, name, 24);
     memcpy (g->master, master->name, 24);
@@ -1263,7 +1228,7 @@ int mapif_parse_GuildChangeMemberInfoShort (int fd, int guild_id,
 }
 
 // ギルド解散処理用（同盟/敵対を解除）
-int guild_break_sub (void *key, void *data, va_list ap)
+void guild_break_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data;
     int  guild_id = va_arg (ap, int);
@@ -1274,7 +1239,6 @@ int guild_break_sub (void *key, void *data, va_list ap)
         if (g->alliance[i].guild_id == guild_id)
             g->alliance[i].guild_id = 0;
     }
-    return 0;
 }
 
 // ギルド解散要求

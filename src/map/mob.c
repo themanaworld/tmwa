@@ -9,7 +9,7 @@
 #include "../common/socket.h"
 #include "../common/db.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
+#include "../common/mt_rand.h"
 #include "map.h"
 #include "clif.h"
 #include "intif.h"
@@ -43,7 +43,7 @@ struct mob_db mob_db[2001];
  */
 static int distance (int, int, int, int);
 static int mob_makedummymobdb (int);
-static int mob_timer (int, unsigned int, int, int);
+static void mob_timer (timer_id, tick_t, custom_id_t, custom_data_t);
 int  mobskill_use (struct mob_data *md, unsigned int tick, int event);
 int  mobskill_deltimer (struct mob_data *md);
 int  mob_skillid2skillidx (int class, int skillid);
@@ -61,7 +61,7 @@ int mobdb_searchname (const char *str)
 
     for (i = 0; i < sizeof (mob_db) / sizeof (mob_db[0]); i++)
     {
-        if (strcmpi (mob_db[i].name, str) == 0
+        if (strcasecmp (mob_db[i].name, str) == 0
             || strcmp (mob_db[i].jname, str) == 0
             || memcmp (mob_db[i].name, str, 24) == 0
             || memcmp (mob_db[i].jname, str, 24) == 0)
@@ -188,7 +188,7 @@ static void mob_mutate (struct mob_data *md, int stat, int intensity)   // inten
 {
     int  old_stat;
     int  new_stat;
-    int  real_intensity;        // relative intensity 
+    int  real_intensity;        // relative intensity
     const int mut_base = mutation_base[stat];
     int  sign = 1;
 
@@ -399,11 +399,10 @@ int mob_once_spawn (struct map_session_data *sd, char *mapname,
 
     for (count = 0; count < amount; count++)
     {
-        md = (struct mob_data *) aCalloc (1, sizeof (struct mob_data));
-        memset (md, '\0', sizeof *md);
+        md = (struct mob_data *) calloc (1, sizeof (struct mob_data));
         if (mob_db[class].mode & 0x02)
             md->lootitem =
-                (struct item *) aCalloc (LOOTITEM_SIZE, sizeof (struct item));
+                (struct item *) calloc (LOOTITEM_SIZE, sizeof (struct item));
         else
             md->lootitem = NULL;
 
@@ -1035,33 +1034,33 @@ int mob_changestate (struct mob_data *md, int state, int type)
  * It branches to a walk and an attack.
  *------------------------------------------
  */
-static int mob_timer (int tid, unsigned int tick, int id, int data)
+static void mob_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct mob_data *md;
     struct block_list *bl;
 
     if ((bl = map_id2bl (id)) == NULL)
     {                           //攻撃してきた敵がもういないのは正常のようだ
-        return 1;
+        return;
     }
 
     if (!bl || !bl->type || bl->type != BL_MOB)
-        return 1;
+        return;
 
-    nullpo_retr (1, md = (struct mob_data *) bl);
+    nullpo_retv (md = (struct mob_data *) bl);
 
     if (!md->bl.type || md->bl.type != BL_MOB)
-        return 1;
+        return;
 
     if (md->timer != tid)
     {
         if (battle_config.error_log == 1)
             printf ("mob_timer %d != %d\n", md->timer, tid);
-        return 0;
+        return;
     }
     md->timer = -1;
     if (md->bl.prev == NULL || md->state.state == MS_DEAD)
-        return 1;
+        return;
 
     map_freeblock_lock ();
     switch (md->state.state)
@@ -1082,7 +1081,7 @@ static int mob_timer (int tid, unsigned int tick, int id, int data)
             break;
     }
     map_freeblock_unlock ();
-    return 0;
+    return;
 }
 
 /*==========================================
@@ -1141,10 +1140,9 @@ int mob_walktoxy (struct mob_data *md, int x, int y, int easy)
  * mob spawn with delay (timer function)
  *------------------------------------------
  */
-static int mob_delayspawn (int tid, unsigned int tick, int m, int n)
+static void mob_delayspawn (timer_id tid, tick_t tick, custom_id_t m, custom_data_t n)
 {
     mob_spawn (m);
-    return 0;
 }
 
 /*==========================================
@@ -2311,44 +2309,42 @@ static int mob_ai_sub_foreachclient (struct map_session_data *sd, va_list ap)
  * Serious processing for mob in PC field of view   (interval timer function)
  *------------------------------------------
  */
-static int mob_ai_hard (int tid, unsigned int tick, int id, int data)
+static void mob_ai_hard (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     clif_foreachclient (mob_ai_sub_foreachclient, tick);
-
-    return 0;
 }
 
 /*==========================================
  * Negligent mode MOB AI (PC is not in near)
  *------------------------------------------
  */
-static int mob_ai_sub_lazy (void *key, void *data, va_list app)
+static void mob_ai_sub_lazy (db_key_t key, db_val_t data, va_list app)
 {
     struct mob_data *md = data;
     unsigned int tick;
     va_list ap;
 
-    nullpo_retr (0, md);
-    nullpo_retr (0, app);
-    nullpo_retr (0, ap = va_arg (app, va_list));
+    nullpo_retv (md);
+    nullpo_retv (app);
+    nullpo_retv (ap = va_arg (app, va_list));
 
     if (md == NULL)
-        return 0;
+        return;
 
     if (!md->bl.type || md->bl.type != BL_MOB)
-        return 0;
+        return;
 
     tick = va_arg (ap, unsigned int);
 
     if (DIFF_TICK (tick, md->last_thinktime) < MIN_MOBTHINKTIME * 10)
-        return 0;
+        return;
     md->last_thinktime = tick;
 
     if (md->bl.prev == NULL || md->skilltimer != -1)
     {
         if (DIFF_TICK (tick, md->next_walktime) > MIN_MOBTHINKTIME * 10)
             md->next_walktime = tick;
-        return 0;
+        return;
     }
 
     if (DIFF_TICK (md->next_walktime, tick) < 0 &&
@@ -2383,18 +2379,15 @@ static int mob_ai_sub_lazy (void *key, void *data, va_list app)
 
         md->next_walktime = tick + MPRAND (5000, 10000);
     }
-    return 0;
 }
 
 /*==========================================
  * Negligent processing for mob outside PC field of view   (interval timer function)
  *------------------------------------------
  */
-static int mob_ai_lazy (int tid, unsigned int tick, int id, int data)
+static void mob_ai_lazy (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     map_foreachiddb (mob_ai_sub_lazy, tick);
-
-    return 0;
 }
 
 /*==========================================
@@ -2421,13 +2414,13 @@ struct delay_item_drop2
  * item drop with delay (timer function)
  *------------------------------------------
  */
-static int mob_delay_item_drop (int tid, unsigned int tick, int id, int data)
+static void mob_delay_item_drop (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct delay_item_drop *ditem;
     struct item temp_item;
     int  flag;
 
-    nullpo_retr (0, ditem = (struct delay_item_drop *) id);
+    nullpo_retv (ditem = (struct delay_item_drop *) id);
 
     memset (&temp_item, 0, sizeof (temp_item));
     temp_item.nameid = ditem->nameid;
@@ -2446,26 +2439,25 @@ static int mob_delay_item_drop (int tid, unsigned int tick, int id, int data)
                               ditem->third_sd, 0);
         }
         free (ditem);
-        return 0;
+        return;
     }
 
     map_addflooritem (&temp_item, 1, ditem->m, ditem->x, ditem->y,
                       ditem->first_sd, ditem->second_sd, ditem->third_sd, 0);
 
     free (ditem);
-    return 0;
 }
 
 /*==========================================
  * item drop (timer function)-lootitem with delay
  *------------------------------------------
  */
-static int mob_delay_item_drop2 (int tid, unsigned int tick, int id, int data)
+static void mob_delay_item_drop2 (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct delay_item_drop2 *ditem;
     int  flag;
 
-    nullpo_retr (0, ditem = (struct delay_item_drop2 *) id);
+    nullpo_retv (ditem = (struct delay_item_drop2 *) id);
 
     if (battle_config.item_auto_get == 1)
     {
@@ -2480,7 +2472,7 @@ static int mob_delay_item_drop2 (int tid, unsigned int tick, int id, int data)
                               ditem->second_sd, ditem->third_sd, 0);
         }
         free (ditem);
-        return 0;
+        return;
     }
 
     map_addflooritem (&ditem->item_data, ditem->item_data.amount, ditem->m,
@@ -2488,7 +2480,6 @@ static int mob_delay_item_drop2 (int tid, unsigned int tick, int id, int data)
                       ditem->third_sd, 0);
 
     free (ditem);
-    return 0;
 }
 
 /*==========================================
@@ -2524,16 +2515,15 @@ int mob_catch_delete (struct mob_data *md, int type)
     return 0;
 }
 
-int mob_timer_delete (int tid, unsigned int tick, int id, int data)
+void mob_timer_delete (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct block_list *bl = map_id2bl (id);
     struct mob_data *md;
 
-    nullpo_retr (0, bl);
+    nullpo_retv (bl);
 
     md = (struct mob_data *) bl;
     mob_catch_delete (md, 3);
-    return 0;
 }
 
 /*==========================================
@@ -3009,10 +2999,8 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 if (drop_rate <= MRAND (10000))
                     continue;
 
-                ditem =
-                    (struct delay_item_drop *) aCalloc (1,
-                                                        sizeof (struct
-                                                                delay_item_drop));
+                ditem = (struct delay_item_drop *)
+                    calloc (1, sizeof (struct delay_item_drop));
                 ditem->nameid = mob_db[md->class].dropitem[i].nameid;
                 ditem->amount = 1;
                 ditem->m = md->bl.m;
@@ -3021,8 +3009,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 ditem->first_sd = mvp_sd;
                 ditem->second_sd = second_sd;
                 ditem->third_sd = third_sd;
-                add_timer (tick + 500 + i, mob_delay_item_drop, (int) ditem,
-                           0);
+                add_timer (tick + 500 + i, mob_delay_item_drop, (int) ditem, 0);
             }
             if (sd && sd->state.attack_type == BF_WEAPON)
             {
@@ -3041,10 +3028,8 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                         if (sd->monster_drop_itemrate[i] <= MRAND (10000))
                             continue;
 
-                        ditem =
-                            (struct delay_item_drop *) aCalloc (1,
-                                                                sizeof (struct
-                                                                        delay_item_drop));
+                        ditem = (struct delay_item_drop *)
+                            calloc (1, sizeof (struct delay_item_drop));
                         ditem->nameid = sd->monster_drop_itemid[i];
                         ditem->amount = 1;
                         ditem->m = md->bl.m;
@@ -3068,10 +3053,8 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 {
                     struct delay_item_drop2 *ditem;
 
-                    ditem =
-                        (struct delay_item_drop2 *) aCalloc (1,
-                                                             sizeof (struct
-                                                                     delay_item_drop2));
+                    ditem = (struct delay_item_drop2 *)
+                        calloc (1, sizeof (struct delay_item_drop2));
                     memcpy (&ditem->item_data, &md->lootitem[i],
                             sizeof (md->lootitem[0]));
                     ditem->m = md->bl.m;
@@ -3252,8 +3235,8 @@ int mob_class_change (struct mob_data *md, int *value)
     md->skilllv = 0;
 
     if (md->lootitem == NULL && mob_db[class].mode & 0x02)
-        md->lootitem =
-            (struct item *) aCalloc (LOOTITEM_SIZE, sizeof (struct item));
+        md->lootitem = (struct item *)
+            calloc (LOOTITEM_SIZE, sizeof (struct item));
 
     skill_clear_unitgroup (&md->bl);
     skill_cleartimerskill (&md->bl);
@@ -3487,11 +3470,10 @@ int mob_summonslave (struct mob_data *md2, int *value, int amount, int flag)
         for (; amount > 0; amount--)
         {
             int  x = 0, y = 0, c = 0, i = 0;
-            md = (struct mob_data *) aCalloc (1, sizeof (struct mob_data));
+            md = (struct mob_data *) calloc (1, sizeof (struct mob_data));
             if (mob_db[class].mode & 0x02)
-                md->lootitem =
-                    (struct item *) aCalloc (LOOTITEM_SIZE,
-                                             sizeof (struct item));
+                md->lootitem = (struct item *)
+                    calloc (LOOTITEM_SIZE, sizeof (struct item));
             else
                 md->lootitem = NULL;
 
@@ -3620,7 +3602,7 @@ int mob_skillid2skillidx (int class, int skillid)
  * スキル使用（詠唱完了、ID指定）
  *------------------------------------------
  */
-int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
+void mobskill_castend_id (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct mob_data *md = NULL;
     struct block_list *bl;
@@ -3628,16 +3610,16 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
     int  range;
 
     if ((mbl = map_id2bl (id)) == NULL) //詠唱したMobがもういないというのは良くある正常処理
-        return 0;
+        return;
     if ((md = (struct mob_data *) mbl) == NULL)
     {
         printf ("mobskill_castend_id nullpo mbl->id:%d\n", mbl->id);
-        return 0;
+        return;
     }
     if (md->bl.type != BL_MOB || md->bl.prev == NULL)
-        return 0;
+        return;
     if (md->skilltimer != tid)  // タイマIDの確認
-        return 0;
+        return;
 
     md->skilltimer = -1;
     //沈黙や状態異常など
@@ -3646,13 +3628,13 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
         if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
             || md->sc_data[SC_ROKISWEIL].timer != -1
             || md->sc_data[SC_STEELBODY].timer != -1)
-            return 0;
+            return;
         if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-            return 0;
+            return;
         if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-            return 0;
+            return;
         if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
-            return 0;
+            return;
     }
     if (md->skillid != NPC_EMOTION)
         md->last_thinktime = tick + battle_get_adelay (&md->bl);
@@ -3660,10 +3642,10 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
     if ((bl = map_id2bl (md->skilltarget)) == NULL || bl->prev == NULL)
     {                           //スキルターゲットが存在しない
         //printf("mobskill_castend_id nullpo\n");//ターゲットがいないときはnullpoじゃなくて普通に終了
-        return 0;
+        return;
     }
     if (md->bl.m != bl->m)
-        return 0;
+        return;
 
     if (md->skillid == PR_LEXAETERNA)
     {
@@ -3672,7 +3654,7 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
             && (sc_data[SC_FREEZE].timer != -1
                 || (sc_data[SC_STONE].timer != -1
                     && sc_data[SC_STONE].val2 == 0)))
-            return 0;
+            return;
     }
     else if (md->skillid == RG_BACKSTAP)
     {
@@ -3680,17 +3662,17 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
             battle_get_dir (bl);
         int  dist = distance (md->bl.x, md->bl.y, bl->x, bl->y);
         if (bl->type != BL_SKILL && (dist == 0 || map_check_dir (dir, t_dir)))
-            return 0;
+            return;
     }
     if (((skill_get_inf (md->skillid) & 1) || (skill_get_inf2 (md->skillid) & 4)) &&    // 彼我敵対関係チェック
         battle_check_target (&md->bl, bl, BCT_ENEMY) <= 0)
-        return 0;
+        return;
     range = skill_get_range (md->skillid, md->skilllv);
     if (range < 0)
         range = battle_get_range (&md->bl) - (range + 1);
     if (range + battle_config.mob_skill_add_range <
         distance (md->bl.x, md->bl.y, bl->x, bl->y))
-        return 0;
+        return;
 
     md->skilldelay[md->skillidx] = tick;
 
@@ -3720,15 +3702,13 @@ int mobskill_castend_id (int tid, unsigned int tick, int id, int data)
                                            md->skilllv, tick, 0);
             break;
     }
-
-    return 0;
 }
 
 /*==========================================
  * スキル使用（詠唱完了、場所指定）
  *------------------------------------------
  */
-int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
+void mobskill_castend_pos (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct mob_data *md = NULL;
     struct block_list *bl;
@@ -3736,15 +3716,15 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
 
     //mobskill_castend_id同様詠唱したMobが詠唱完了時にもういないというのはありそうなのでnullpoから除外
     if ((bl = map_id2bl (id)) == NULL)
-        return 0;
+        return;
 
-    nullpo_retr (0, md = (struct mob_data *) bl);
+    nullpo_retv (md = (struct mob_data *) bl);
 
     if (md->bl.type != BL_MOB || md->bl.prev == NULL)
-        return 0;
+        return;
 
     if (md->skilltimer != tid)  // タイマIDの確認
-        return 0;
+        return;
 
     md->skilltimer = -1;
     if (md->sc_data)
@@ -3752,13 +3732,13 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
         if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
             || md->sc_data[SC_ROKISWEIL].timer != -1
             || md->sc_data[SC_STEELBODY].timer != -1)
-            return 0;
+            return;
         if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-            return 0;
+            return;
         if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-            return 0;
+            return;
         if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
-            return 0;
+            return;
     }
 
     if (battle_config.monster_skill_reiteration == 0)
@@ -3789,7 +3769,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
         {
             if (skill_check_unit_range
                 (md->bl.m, md->skillx, md->skilly, range, md->skillid) > 0)
-                return 0;
+                return;
         }
     }
     if (battle_config.monster_skill_nofootset == 1)
@@ -3819,7 +3799,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
         {
             if (skill_check_unit_range2
                 (md->bl.m, md->skillx, md->skilly, range) > 0)
-                return 0;
+                return;
         }
     }
 
@@ -3836,7 +3816,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
                     c++;
             }
             if (c >= maxcount)
-                return 0;
+                return;
         }
     }
 
@@ -3845,7 +3825,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
         range = battle_get_range (&md->bl) - (range + 1);
     if (range + battle_config.mob_skill_add_range <
         distance (md->bl.x, md->bl.y, md->skillx, md->skilly))
-        return 0;
+        return;
     md->skilldelay[md->skillidx] = tick;
 
     if (battle_config.mob_skill_log == 1)
@@ -3856,7 +3836,7 @@ int mobskill_castend_pos (int tid, unsigned int tick, int id, int data)
     skill_castend_pos2 (&md->bl, md->skillx, md->skilly, md->skillid,
                         md->skilllv, tick, 0);
 
-    return 0;
+    return;
 }
 
 /*==========================================
@@ -4292,7 +4272,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                     if (ms[i].target == MST_MASTER)
                     {
                         bl = &md->bl;
-                        if (md->master_id) 
+                        if (md->master_id)
                             bl = map_id2bl (md->master_id);
                     }
                     else
@@ -5048,10 +5028,10 @@ static int mob_readskilldb (void)
 void mob_reload (void)
 {
     /*
-     * 
+     *
      * <empty monster database>
      * mob_read();
-     * 
+     *
      */
 
     do_init_mob ();
@@ -5069,15 +5049,6 @@ int do_init_mob (void)
     mob_read_randommonster ();
     mob_readskilldb ();
 
-    add_timer_func_list (mob_timer, "mob_timer");
-    add_timer_func_list (mob_delayspawn, "mob_delayspawn");
-    add_timer_func_list (mob_delay_item_drop, "mob_delay_item_drop");
-    add_timer_func_list (mob_delay_item_drop2, "mob_delay_item_drop2");
-    add_timer_func_list (mob_ai_hard, "mob_ai_hard");
-    add_timer_func_list (mob_ai_lazy, "mob_ai_lazy");
-    add_timer_func_list (mobskill_castend_id, "mobskill_castend_id");
-    add_timer_func_list (mobskill_castend_pos, "mobskill_castend_pos");
-    add_timer_func_list (mob_timer_delete, "mob_timer_delete");
     add_timer_interval (gettick () + MIN_MOBTHINKTIME, mob_ai_hard, 0, 0,
                         MIN_MOBTHINKTIME);
     add_timer_interval (gettick () + MIN_MOBTHINKTIME * 10, mob_ai_lazy, 0, 0,

@@ -169,7 +169,7 @@ int  pc_addeventtimercount (struct map_session_data *sd, const char *name,
                             int tick);
 
 int  pc_calc_pvprank (struct map_session_data *sd);
-int  pc_calc_pvprank_timer (int tid, unsigned int tick, int id, int data);
+void pc_calc_pvprank_timer (timer_id, tick_t, custom_id_t, custom_data_t);
 
 int  pc_ismarried (struct map_session_data *sd);
 int  pc_marriage (struct map_session_data *sd,
@@ -202,9 +202,9 @@ enum
 { ADDITEM_EXIST, ADDITEM_NEW, ADDITEM_OVERAMOUNT };
 
 // timer for night.day
-int  day_timer_tid;
-int  night_timer_tid;
-int  map_day_timer (int, unsigned int, int, int);   // by [yor]
-int  map_night_timer (int, unsigned int, int, int); // by [yor]
+timer_id day_timer_tid;
+timer_id night_timer_tid;
+void map_day_timer (timer_id, tick_t, custom_id_t, custom_data_t);   // by [yor]
+void map_night_timer (timer_id, tick_t, custom_id_t, custom_data_t); // by [yor]
 
 #endif

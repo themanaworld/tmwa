@@ -27,7 +27,7 @@
 
 
 #define SKIP_BLANK(ptr) ptr += skip_blank(ptr)
-inline size_t skip_blank(const char* ptr) {
+static inline size_t skip_blank(const char* ptr) {
     size_t i = 0;
     while (
         (ptr[i] == ' ') ||
@@ -39,7 +39,7 @@ inline size_t skip_blank(const char* ptr) {
 }
 
 #define GOTO_EQL(ptr) ptr += goto_eql(ptr)
-inline size_t goto_eql(const char* ptr) {
+static inline size_t goto_eql(const char* ptr) {
     size_t i = 0;
     while (
         (ptr[i] != '\0') &&
@@ -51,7 +51,7 @@ inline size_t goto_eql(const char* ptr) {
 }
 
 #define GOTO_EOL(ptr) ptr += goto_newline(ptr)
-inline size_t goto_newline(const char* ptr) {
+static inline size_t goto_newline(const char* ptr) {
     size_t i = 0;
     while (
         (ptr[i] != '\0') &&

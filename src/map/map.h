@@ -8,6 +8,8 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include "../common/mmo.h"
+#include "../common/timer.h"
+#include "../common/db.h"
 
 #ifndef MAX
 #  define MAX(x,y) (((x)>(y)) ? (x) : (y))
@@ -762,7 +764,7 @@ void map_write_log (char *format, ...);
 #define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
 
 // 床アイテム関連
-int  map_clearflooritem_timer (int, unsigned int, int, int);
+void map_clearflooritem_timer (timer_id, tick_t, custom_id_t, custom_data_t);
 #define map_clearflooritem(id) map_clearflooritem_timer(0,0,id,1)
 int  map_addflooritem_any (struct item *, int amount, int m, int x, int y,
                            struct map_session_data **owners,
@@ -787,7 +789,7 @@ int  map_setipport (char *name, unsigned long ip, int port);
 int  map_eraseipport (char *name, unsigned long ip, int port);
 void map_addiddb (struct block_list *);
 void map_deliddb (struct block_list *bl);
-int  map_foreachiddb (int (*)(void *, void *, va_list), ...);
+int  map_foreachiddb (db_func_t, ...);
 void map_addnickdb (struct map_session_data *);
 int  map_scriptcont (struct map_session_data *sd, int id);  /* Continues a script either on a spell or on an NPC */
 struct map_session_data *map_nick2sd (char *);

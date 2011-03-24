@@ -64,8 +64,8 @@ static void clear_activation_record (cont_activation_record_t * ar)
     }
 }
 
-static int
-invocation_timer_callback (int _, unsigned int __, int id, int data)
+static void
+invocation_timer_callback (timer_id UNUSED, tick_t UNUSED, custom_id_t id, custom_data_t data)
 {
     invocation_t *invocation = (invocation_t *) map_id2bl (id);
 
@@ -74,7 +74,6 @@ invocation_timer_callback (int _, unsigned int __, int id, int data)
         invocation->timer = 0;
         spell_execute (invocation);
     }
-    return 0;
 }
 
 static void clear_stack (invocation_t * invocation)
@@ -224,12 +223,11 @@ static void char_update (character_t * character)
                  character->bl.y);
 }
 
-static int timer_callback_effect (int _, unsigned int __, int id, int data)
+static void timer_callback_effect (timer_id UNUSED, tick_t UNUSED, custom_id_t id, custom_data_t data)
 {
     entity_t *target = map_id2bl (id);
     if (target)
         clif_misceffect (target, data);
-    return 0;
 }
 
 static void entity_effect (entity_t * entity, int effect_nr, int delay)
@@ -247,14 +245,12 @@ void magic_unshroud (character_t * other_char)
 //        entity_effect(&other_char->bl, MAGIC_EFFECT_REVEAL);
 }
 
-static int
-timer_callback_effect_npc_delete (int timer_id, unsigned int odelay,
-                                  int npc_id, int _)
+static void
+timer_callback_effect_npc_delete (timer_id UNUSED, tick_t odelay,
+                                  custom_id_t npc_id, custom_data_t UNUSED)
 {
     struct npc_data *effect_npc = (struct npc_data *) map_id2bl (npc_id);
     npc_free (effect_npc);
-
-    return 0;
 }
 
 static struct npc_data *local_spell_effect (int m, int x, int y, int effect,
@@ -370,15 +366,13 @@ static int op_message (env_t * env, int args_nr, val_t * args)
     return 0;
 }
 
-static int
-timer_callback_kill_npc (int timer_id, unsigned int odelay, int npc_id,
-                         int data)
+static void
+timer_callback_kill_npc (timer_id UNUSED, tick_t odelay, custom_id_t npc_id,
+                         custom_data_t data)
 {
     struct npc_data *npc = (struct npc_data *) map_id2bl (npc_id);
     if (npc)
         npc_free (npc);
-
-    return 0;
 }
 
 static int op_messenger_npc (env_t * env, int args_nr, val_t * args)
@@ -420,8 +414,8 @@ static void entity_warp (entity_t * target, int destm, int destx, int desty)
                 // Warp part #1: update relevant data, interrupt trading etc.:
                 pc_setpos (character, map_name, character->bl.x, character->bl.y, 0);
                 // Warp part #2: now notify the client
-                clif_changemap (character, map_name, 
-                                character->bl.x, character->bl.y); 
+                clif_changemap (character, map_name,
+                                character->bl.x, character->bl.y);
                 break;
             }
             case BL_MOB:
@@ -1252,7 +1246,8 @@ static effect_t *run_call (invocation_t * invocation,
     cont_activation_record_t *ar;
     int  args_nr = current->e.e_call.args_nr;
     int *formals = current->e.e_call.formals;
-    val_t *old_actuals = aCalloc (sizeof (val_t), args_nr);
+    val_t *old_actuals;
+    CREATE (old_actuals, val_t, args_nr);
     int  i;
 
     ar = add_stack_entry (invocation, CONT_STACK_PROC, return_location);

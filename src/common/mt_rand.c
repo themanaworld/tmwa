@@ -48,71 +48,69 @@
 #include <time.h>
 #include "mt_rand.h"
 
-#define N              (624)    /* length of state vector */
-#define M              (397)    /* a period parameter */
-#define K              (0x9908B0DFU)    /* a magic constant */
-#define hiBit(u)       ((u) & 0x80000000U)  /* mask all but highest bit of u */
-#define loBit(u)       ((u) & 0x00000001U)  /* mask all but lowest bit of u */
-#define loBits(u)      ((u) & 0x7FFFFFFFU)  /* mask the highest bit of u */
-#define mixBits(u, v)  (hiBit(u)|loBits(v)) /* move hi bit of u to hi bit of v */
+#define N              624                  // length of state vector
+#define M              397                  // a period parameter
+#define K              0x9908B0DFU          // a magic constant
 
-static unsigned long state[N + 1];  /* state vector + 1 extra to not violate ANSI C */
-static unsigned long *next;     /* next random value is computed from here */
-static int left = -1;           /* can *next++ this many times before reloading */
+#define hiBit(u)       ((u) & 0x80000000U)  // mask all but highest bit of u
+#define loBit(u)       ((u) & 0x00000001U)  // mask all but lowest bit of u
+#define loBits(u)      ((u) & 0x7FFFFFFFU)  // mask the highest bit of u
+#define mixBits(u, v)  (hiBit(u)|loBits(v)) // move hi bit of u to hi bit of v
 
-void mt_seed (unsigned long seed)
+static uint32_t state[N+1]; // state vector the +1 is needed due to the coding
+static uint32_t *next;      // next random value is computed from here
+static int left = -1;       // can *next++ this many times before reloading
+
+void mt_seed (uint32_t seed)
 {
-    register unsigned long x = (seed | 1U) & 0xFFFFFFFFU, *s = state;
-    register int j;
+    uint32_t x = seed | 1U;
+    uint32_t *s = state;
+    left = 0;
 
-    for (left = 0, *s++ = x, j = N; --j; *s++ = (x *= 69069U) & 0xFFFFFFFFU);
+    for (int j = N; *s++ = x, --j; x *= 69069U);
 }
 
-unsigned long mt_reload (void)
+void mt_reload (void)
 {
-    register unsigned long *p0 = state, *p2 = state + 2, *pM =
-        state + M, s0, s1;
-    register int j;
-
+    // if mt_seed has never been called
     if (left < -1)
         mt_seed (time (NULL));
 
-    left = N - 1, next = state + 1;
+    // conceptually, these are indices into the state that wrap
+    uint32_t *p0 = state;
+    uint32_t *p2 = state + 2;
+    uint32_t *pM = state + M;
 
-    for (s0 = state[0], s1 = state[1], j = N - M + 1; --j;
-         s0 = s1, s1 = *p2++)
+    uint32_t s0 = state[0];
+    uint32_t s1 = state[1];
+
+    // regenerate the lower N-M elements of the state
+    for (int j = N-M+1; --j != 0; s0 = s1, s1 = *p2++)
         *p0++ = *pM++ ^ (mixBits (s0, s1) >> 1) ^ (loBit (s1) ? K : 0U);
 
-    for (pM = state, j = M; --j; s0 = s1, s1 = *p2++)
+    pM = state;
+    // regenerate the next M-1 elements of the state
+    // note that s1 is set to state[N] at the end, but discarded
+    for (int j = M; --j != 0; s0 = s1, s1 = *p2++)
         *p0++ = *pM++ ^ (mixBits (s0, s1) >> 1) ^ (loBit (s1) ? K : 0U);
 
-    s1 = state[0], *p0 =
-        *pM ^ (mixBits (s0, s1) >> 1) ^ (loBit (s1) ? K : 0U);
-    s1 ^= (s1 >> 11);
-    s1 ^= (s1 << 7) & 0x9D2C5680U;
-    s1 ^= (s1 << 15) & 0xEFC60000U;
-    return (s1 ^ (s1 >> 18));
+    // regenerate the last 1 element of the state
+    s1 = state[0];
+    *p0 = *pM ^ (mixBits (s0, s1) >> 1) ^ (loBit (s1) ? K : 0U);
+
+    // ready for the normal mt_random algorithm
+    left = N;
+    next = state;
 }
 
-unsigned long mt_random (void)
+uint32_t mt_random (void)
 {
-    unsigned long y;
-
     if (--left < 0)
-        return (mt_reload ());
+        mt_reload ();
 
-    y = *next++;
+    uint32_t y = *next++;
     y ^= (y >> 11);
     y ^= (y << 7) & 0x9D2C5680U;
     y ^= (y << 15) & 0xEFC60000U;
-    return (y ^ (y >> 18));
-}
-
-int mt_rand (void)
-{
-    unsigned long r = mt_random ();
-    while (r >> 16)
-        r = (r & 0xFFFF) + (r >> 16);
-
-    return (r);
+    return y ^ (y >> 18);
 }

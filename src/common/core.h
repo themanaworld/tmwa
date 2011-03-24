@@ -1,12 +1,19 @@
-// original : core.h 2003/03/14 11:55:25 Rev 1.4
+#ifndef CORE_H
+#define CORE_H
+#include <stdbool.h>
+/// core.c contains a server-independent main() function
+/// and then runs a do_sendrecv loop
 
-#ifndef	_CORE_H_
-#define	_CORE_H_
+/// When this is cleared, the server exits gracefully
+/// only used by map server's GM command: @mapexit
+extern bool runflag;
 
-extern int runflag;
+/// This is an external function defined by each server
+/// This function must register stuff for the parse loop
+extern int  do_init (int, char **);
 
-int  do_init (int, char **);
+/// Cleanup function called whenever a signal kills us
+/// NOT currently called when exit() is called
+extern void term_func (void);
 
-void set_termfunc (void (*termfunc) (void));
-
-#endif // _CORE_H_
+#endif // CORE_H

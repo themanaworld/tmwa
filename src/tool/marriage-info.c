@@ -9,6 +9,7 @@ src/char/int_party.o src/char/int_storage.o src/char/inter.o
 #include <stdlib.h>
 #include "../login/login.h"
 #include "../common/mmo.h"
+// Yes, this is intentional
 #include "../char/char.c"
 
 int mode;
@@ -442,7 +443,6 @@ int mmo_char_dump()
                         mmo_check_dumpworthy(&char_dat);
                 }
         }
-        fcloseall();
         return 0;
 }
 
@@ -480,7 +480,3 @@ int main(int argc,char *argv[])
 
 	return 0;
 }
-
-
-/* satisfy linker */
-void set_termfunc(void (*termfunc)(void)) {};

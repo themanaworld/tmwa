@@ -7,7 +7,6 @@
 #include "../common/socket.h"
 #include "../common/db.h"
 #include "../common/lock.h"
-#include "../common/malloc.h"
 #include "char.h"
 #include "inter.h"
 #include "int_storage.h"
@@ -222,12 +221,7 @@ struct storage *account2storage (int account_id)
     s = (struct storage *) numdb_search (storage_db, account_id);
     if (s == NULL)
     {
-        s = (struct storage *) aCalloc (sizeof (struct storage), 1);
-        if (s == NULL)
-        {
-            printf ("int_storage: out of memory!\n");
-            exit (0);
-        }
+        CREATE (s, struct storage, 1);
         memset (s, 0, sizeof (struct storage));
         s->account_id = account_id;
         numdb_insert (storage_db, s->account_id, s);
@@ -244,14 +238,7 @@ struct guild_storage *guild2storage (int guild_id)
                                                     guild_id);
         if (gs == NULL)
         {
-            gs = (struct guild_storage *)
-                aCalloc (sizeof (struct guild_storage), 1);
-            if (gs == NULL)
-            {
-                printf ("int_storage: out of memory!\n");
-                exit (0);
-            }
-//          memset(gs,0,sizeof(struct guild_storage)); aCalloc does this! [Skotlex]
+            CREATE (gs, struct guild_storage, 1);
             gs->guild_id = guild_id;
             numdb_insert (guild_storage_db, gs->guild_id, gs);
         }
@@ -280,13 +267,7 @@ int inter_storage_init ()
     while (fgets (line, 65535, fp))
     {
         sscanf (line, "%d", &tmp_int);
-        s = (struct storage *) aCalloc (sizeof (struct storage), 1);
-        if (s == NULL)
-        {
-            printf ("int_storage: out of memory!\n");
-            exit (0);
-        }
-//      memset(s,0,sizeof(struct storage)); aCalloc does this...
+        CREATE (s, struct storage, 1);
         s->account_id = tmp_int;
         if (s->account_id > 0 && storage_fromstr (line, s) == 0)
         {
@@ -314,14 +295,7 @@ int inter_storage_init ()
     while (fgets (line, 65535, fp))
     {
         sscanf (line, "%d", &tmp_int);
-        gs = (struct guild_storage *) aCalloc (sizeof (struct guild_storage),
-                                               1);
-        if (gs == NULL)
-        {
-            printf ("int_storage: out of memory!\n");
-            exit (0);
-        }
-//      memset(gs,0,sizeof(struct guild_storage)); aCalloc...
+        CREATE (gs, struct guild_storage, 1);
         gs->guild_id = tmp_int;
         if (gs->guild_id > 0 && guild_storage_fromstr (line, gs) == 0)
         {
@@ -340,20 +314,18 @@ int inter_storage_init ()
     return 0;
 }
 
-int storage_db_final (void *k, void *data, va_list ap)
+void storage_db_final (db_key_t k, db_val_t data, va_list ap)
 {
     struct storage *p = (struct storage *) data;
     if (p)
         free (p);
-    return 0;
 }
 
-int guild_storage_db_final (void *k, void *data, va_list ap)
+void guild_storage_db_final (db_key_t k, db_val_t data, va_list ap)
 {
     struct guild_storage *p = (struct guild_storage *) data;
     if (p)
         free (p);
-    return 0;
 }
 
 void inter_storage_final ()
@@ -363,7 +335,7 @@ void inter_storage_final ()
     return;
 }
 
-int inter_storage_save_sub (void *key, void *data, va_list ap)
+void inter_storage_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[65536];
     FILE *fp;
@@ -371,7 +343,6 @@ int inter_storage_save_sub (void *key, void *data, va_list ap)
     fp = va_arg (ap, FILE *);
     if (*line)
         fprintf (fp, "%s" RETCODE, line);
-    return 0;
 }
 
 //---------------------------------------------------------
@@ -396,7 +367,7 @@ int inter_storage_save ()
     return 0;
 }
 
-int inter_guild_storage_save_sub (void *key, void *data, va_list ap)
+void inter_guild_storage_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[65536];
     FILE *fp;
@@ -409,7 +380,6 @@ int inter_guild_storage_save_sub (void *key, void *data, va_list ap)
         if (*line)
             fprintf (fp, "%s" RETCODE, line);
     }
-    return 0;
 }
 
 //---------------------------------------------------------

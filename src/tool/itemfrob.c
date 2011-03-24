@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../common/mmo.h"
+// Yes, this is intentional
 #include "../char/char.c"
 
 // Well, this is not terribly elegant, but I don't have that much time.
@@ -37,7 +38,6 @@ int mmo_char_convert ()
             fprintf (ofp, "%s" RETCODE, line);
         }
     }
-    fcloseall ();
     return 0;
 }
 
@@ -128,8 +128,3 @@ int main (int argc, char *argv[])
 
     return 0;
 }
-
-/* satisfy linker */
-void set_termfunc (void (*termfunc) (void))
-{
-};

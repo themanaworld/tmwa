@@ -1,7 +1,7 @@
 // $Id: mob.h,v 1.4 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef _MOB_H_
 #define _MOB_H_
-
+#include "../common/timer.h"
 #define MAX_RANDOMMONSTER 3
 
 struct mob_skill
@@ -129,7 +129,7 @@ int  do_init_mob (void);
 
 int  mob_delete (struct mob_data *md);
 int  mob_catch_delete (struct mob_data *md, int type);
-int  mob_timer_delete (int tid, unsigned int tick, int id, int data);
+void mob_timer_delete (timer_id, tick_t, custom_id_t, custom_data_t);
 
 int  mob_deleteslave (struct mob_data *md);
 
@@ -141,8 +141,8 @@ int  mob_warp (struct mob_data *md, int m, int x, int y, int type);
 
 int  mobskill_use (struct mob_data *md, unsigned int tick, int event);
 int  mobskill_event (struct mob_data *md, int flag);
-int  mobskill_castend_id (int tid, unsigned int tick, int id, int data);
-int  mobskill_castend_pos (int tid, unsigned int tick, int id, int data);
+void mobskill_castend_id (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
+void mobskill_castend_pos (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 int  mob_summonslave (struct mob_data *md2, int *value, int amount, int flag);
 
 int  mob_gvmobcheck (struct map_session_data *sd, struct block_list *bl);

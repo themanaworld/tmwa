@@ -8,7 +8,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "../common/malloc.h"
 #include "../common/nullpo.h"
 
 #include "battle.h"

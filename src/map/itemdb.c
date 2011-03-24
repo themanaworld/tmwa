@@ -6,13 +6,13 @@
 #include "../common/db.h"
 #include "../common/grfio.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
 #include "map.h"
 #include "battle.h"
 #include "itemdb.h"
 #include "script.h"
 #include "pc.h"
 #include "../common/socket.h"
+#include "../common/mt_rand.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -49,17 +49,16 @@ void itemdb_reload (void);
  *------------------------------------------
  */
 // name = item alias, so we should find items aliases first. if not found then look for "jname" (full name)
-int itemdb_searchname_sub (void *key, void *data, va_list ap)
+void itemdb_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct item_data *item = (struct item_data *) data, **dst;
     char *str;
     str = va_arg (ap, char *);
     dst = va_arg (ap, struct item_data **);
-//  if( strcmpi(item->name,str)==0 || strcmp(item->jname,str)==0 ||
+//  if( strcasecmp(item->name,str)==0 || strcmp(item->jname,str)==0 ||
 //      memcmp(item->name,str,24)==0 || memcmp(item->jname,str,24)==0 )
-    if (strcmpi (item->name, str) == 0) //by lupus
+    if (strcasecmp (item->name, str) == 0) //by lupus
         *dst = item;
-    return 0;
 }
 
 /*==========================================
@@ -72,7 +71,7 @@ int itemdb_searchjname_sub (void *key, void *data, va_list ap)
     char *str;
     str = va_arg (ap, char *);
     dst = va_arg (ap, struct item_data **);
-    if (strcmpi (item->jname, str) == 0)
+    if (strcasecmp (item->jname, str) == 0)
         *dst = item;
     return 0;
 }
@@ -159,7 +158,7 @@ struct item_data *itemdb_search (int nameid)
     if (id)
         return id;
 
-    id = (struct item_data *) aCalloc (1, sizeof (struct item_data));
+    id = (struct item_data *) calloc (1, sizeof (struct item_data));
     numdb_insert (item_db, nameid, id);
 
     id->nameid = nameid;
@@ -264,10 +263,9 @@ static int itemdb_read_itemslottable (void)
     char *buf, *p;
     int  s;
 
-    buf = grfio_read ("data\\itemslottable.txt");
+    buf = grfio_reads ("data\\itemslottable.txt", &s);
     if (buf == NULL)
         return -1;
-    s = grfio_size ("data\\itemslottable.txt");
     buf[s] = 0;
     for (p = buf; p - buf < s;)
     {
@@ -674,28 +672,26 @@ static int itemdb_read_noequip (void)
  *
  *------------------------------------------
  */
-static int itemdb_final (void *key, void *data, va_list ap)
+static void itemdb_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct item_data *id;
 
-    nullpo_retr (0, id = data);
+    nullpo_retv (id = data);
 
     if (id->use_script)
         free (id->use_script);
     if (id->equip_script)
         free (id->equip_script);
     free (id);
-
-    return 0;
 }
 
 void itemdb_reload (void)
 {
     /*
-     * 
+     *
      * <empty item databases>
      * itemdb_read();
-     * 
+     *
      */
 
     do_init_itemdb ();

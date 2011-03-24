@@ -9,7 +9,6 @@
 #include "../common/timer.h"
 #include "../common/socket.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
 #include "battle.h"
 #include "npc.h"
 #include "pc.h"
@@ -72,8 +71,8 @@ int guild_checkskill (struct guild *g, int id)
     return g->skill[id - 10000].lv;
 }
 
-int  guild_payexp_timer (int tid, unsigned int tick, int id, int data);
-int  guild_gvg_eliminate_timer (int tid, unsigned int tick, int id, int data);
+void guild_payexp_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
+void guild_gvg_eliminate_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 
 static int guild_read_castledb (void)
 {
@@ -94,8 +93,7 @@ static int guild_read_castledb (void)
         if (line[0] == '/' && line[1] == '/')
             continue;
         memset (str, 0, sizeof (str));
-        gc = (struct guild_castle *) aCalloc (1,
-                                              sizeof (struct guild_castle));
+        CREATE (gc, struct guild_castle, 1);
         for (j = 0, p = line; j < 6 && p; j++)
         {
             str[j] = p;
@@ -157,9 +155,6 @@ void do_init_guild (void)
 
     guild_read_castledb ();
 
-    add_timer_func_list (guild_gvg_eliminate_timer,
-                         "guild_gvg_eliminate_timer");
-    add_timer_func_list (guild_payexp_timer, "guild_payexp_timer");
     add_timer_interval (gettick () + GUILD_PAYEXP_INVERVAL,
                         guild_payexp_timer, 0, 0, GUILD_PAYEXP_INVERVAL);
 }
@@ -170,15 +165,14 @@ struct guild *guild_search (int guild_id)
     return numdb_search (guild_db, guild_id);
 }
 
-int guild_searchname_sub (void *key, void *data, va_list ap)
+void guild_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data, **dst;
     char *str;
     str = va_arg (ap, char *);
     dst = va_arg (ap, struct guild **);
-    if (strcmpi (g->name, str) == 0)
+    if (strcasecmp (g->name, str) == 0)
         *dst = g;
-    return 0;
 }
 
 // ギルド名検索
@@ -282,22 +276,22 @@ int guild_check_conflict (struct map_session_data *sd)
 }
 
 // ギルドのEXPキャッシュをinter鯖にフラッシュする
-int guild_payexp_timer_sub (void *key, void *data, va_list ap)
+void guild_payexp_timer_sub (db_key_t key, db_val_t data, va_list ap)
 {
-    int  i, *dellist, *delp, dataid = (int) key;
+    int  i, *dellist, *delp, dataid = key.i;
     struct guild_expcache *c;
     struct guild *g;
 
-    nullpo_retr (0, ap);
-    nullpo_retr (0, c = (struct guild_expcache *) data);
-    nullpo_retr (0, dellist = va_arg (ap, int *));
-    nullpo_retr (0, delp = va_arg (ap, int *));
+    nullpo_retv (ap);
+    nullpo_retv (c = (struct guild_expcache *) data);
+    nullpo_retv (dellist = va_arg (ap, int *));
+    nullpo_retv (delp = va_arg (ap, int *));
 
     if (*delp >= GUILD_PAYEXP_LIST
         || (g = guild_search (c->guild_id)) == NULL)
-        return 0;
+        return;
     if ((i = guild_getindex (g, c->account_id, 0 /*c->char_id*/)) < 0)
-        return 0;
+        return;
 
     g->member[i].exp += c->exp;
     intif_guild_change_memberinfo (g->guild_id, c->account_id, 0 /*char_id*/,
@@ -307,10 +301,9 @@ int guild_payexp_timer_sub (void *key, void *data, va_list ap)
 
     dellist[(*delp)++] = dataid;
     free (c);
-    return 0;
 }
 
-int guild_payexp_timer (int tid, unsigned int tick, int id, int data)
+void guild_payexp_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  dellist[GUILD_PAYEXP_LIST], delp = 0, i;
     numdb_foreach (guild_expcache_db, guild_payexp_timer_sub, dellist, &delp);
@@ -318,7 +311,6 @@ int guild_payexp_timer (int tid, unsigned int tick, int id, int data)
         numdb_erase (guild_expcache_db, dellist[i]);
 //  if(battle_config.etc_log)
 //      printf("guild exp %d charactor's exp flushed !\n",delp);
-    return 0;
 }
 
 //------------------------------------------------------------------------
@@ -424,7 +416,7 @@ int guild_npc_request_info (int guild_id, const char *event)
     if (event == NULL || *event == 0)
         return guild_request_info (guild_id);
 
-    ev = (struct eventlist *) aCalloc (1, sizeof (struct eventlist));
+    CREATE (ev, struct eventlist, 1);
     memcpy (ev->name, event, sizeof (ev->name));
     ev->next =
         (struct eventlist *) numdb_search (guild_infoevent_db, guild_id);
@@ -494,7 +486,7 @@ int guild_recv_info (struct guild *sg)
 
     if ((g = numdb_search (guild_db, sg->guild_id)) == NULL)
     {
-        g = (struct guild *) aCalloc (1, sizeof (struct guild));
+        CREATE (g, struct guild, 1);
         numdb_insert (guild_db, sg->guild_id, g);
         before = *sg;
 
@@ -1094,9 +1086,7 @@ int guild_payexp (struct map_session_data *sd, int exp)
 
     if ((c = numdb_search (guild_expcache_db, sd->status.account_id /*char_id*/)) == NULL)
     {
-        c = (struct guild_expcache *) aCalloc (1,
-                                               sizeof (struct
-                                                       guild_expcache));
+        CREATE (c, struct guild_expcache, 1);
         c->guild_id = sd->status.guild_id;
         c->account_id = sd->status.account_id;
         c->char_id = 0;
@@ -1452,14 +1442,14 @@ int guild_allianceack (int guild_id1, int guild_id2, int account_id1,
 }
 
 // ギルド解散通知用
-int guild_broken_sub (void *key, void *data, va_list ap)
+void guild_broken_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data;
     int  guild_id = va_arg (ap, int);
     int  i, j;
     struct map_session_data *sd = NULL;
 
-    nullpo_retr (0, g);
+    nullpo_retv (g);
 
     for (i = 0; i < MAX_GUILDALLIANCE; i++)
     {                           // 関係を破棄
@@ -1472,7 +1462,6 @@ int guild_broken_sub (void *key, void *data, va_list ap)
             g->alliance[i].guild_id = 0;
         }
     }
-    return 0;
 }
 
 // ギルド解散通知
@@ -1548,7 +1537,7 @@ int guild_addcastleinfoevent (int castle_id, int index, const char *name)
     if (name == NULL || *name == 0)
         return 0;
 
-    ev = (struct eventlist *) aCalloc (1, sizeof (struct eventlist));
+    CREATE (ev, struct eventlist, 1);
     memcpy (ev->name, name, sizeof (ev->name));
     ev->next = numdb_search (guild_castleinfoevent_db, code);
     numdb_insert (guild_castleinfoevent_db, code, ev);
@@ -1812,19 +1801,19 @@ int guild_agit_end (void)
     return 0;
 }
 
-int guild_gvg_eliminate_timer (int tid, unsigned int tick, int id, int data)
+void guild_gvg_eliminate_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {                               // Run One NPC_Event[OnAgitEliminate]
     size_t len = strlen ((const char *) data);
-    char *evname = (char *) aCalloc (len + 4, sizeof (char));
+    char *evname;
+    CREATE (evname, char, len + 4);
     int  c = 0;
 
     if (!agit_flag)
-        return 0;               // Agit already End
+        return;               // Agit already End
     memcpy (evname, (const char *) data, len - 5);
     strcpy (evname + len - 5, "Eliminate");
     c = npc_event_do (evname);
     printf ("NPC_Event:[%s] Run (%d) Events.\n", evname, c);
-    return 0;
 }
 
 int guild_agit_break (struct mob_data *md)
@@ -1833,7 +1822,7 @@ int guild_agit_break (struct mob_data *md)
 
     nullpo_retr (0, md);
 
-    evname = (char *) aCalloc (strlen (md->npc_event) + 1, sizeof (char));
+    CREATE (evname, char, strlen (md->npc_event) + 1);
 
     strcpy (evname, md->npc_event);
 // Now By User to Run [OnAgitBreak] NPC Event...
@@ -1891,40 +1880,32 @@ int guild_isallied (struct guild *g, struct guild_castle *gc)
     return 0;
 }
 
-static int guild_db_final (void *key, void *data, va_list ap)
+static void guild_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = data;
 
     free (g);
-
-    return 0;
 }
 
-static int castle_db_final (void *key, void *data, va_list ap)
+static void castle_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild_castle *gc = data;
 
     free (gc);
-
-    return 0;
 }
 
-static int guild_expcache_db_final (void *key, void *data, va_list ap)
+static void guild_expcache_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild_expcache *c = data;
 
     free (c);
-
-    return 0;
 }
 
-static int guild_infoevent_db_final (void *key, void *data, va_list ap)
+static void guild_infoevent_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct eventlist *ev = data;
 
     free (ev);
-
-    return 0;
 }
 
 void do_final_guild (void)

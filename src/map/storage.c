@@ -7,7 +7,6 @@
 
 #include "../common/db.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
 
 #include "storage.h"
 #include "chrif.h"
@@ -40,18 +39,16 @@ int storage_comp_item (const void *_i1, const void *_i2)
     return i1->nameid - i2->nameid;
 }
 
-static int guild_storage_db_final (void *key, void *data, va_list ap)
+static void guild_storage_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild_storage *gstor = (struct guild_storage *) data;
     free (gstor);
-    return 0;
 }
 
-static int storage_db_final (void *key, void *data, va_list ap)
+static void storage_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct storage *stor = (struct storage *) data;
     free (stor);
-    return 0;
 }
 
 void sortage_sortitem (struct storage *stor)
@@ -87,7 +84,7 @@ void do_final_storage (void)    // by [MC Cameri]
         numdb_final (guild_storage_db, guild_storage_db_final);
 }
 
-static int storage_reconnect_sub (void *key, void *data, va_list ap)
+static void storage_reconnect_sub (db_key_t key, db_val_t data, va_list ap)
 {                               //Parses storage and saves 'dirty' ones upon reconnect. [Skotlex]
     int  type = va_arg (ap, int);
     if (type)
@@ -102,7 +99,6 @@ static int storage_reconnect_sub (void *key, void *data, va_list ap)
         if (stor->dirty && stor->storage_status == 0)   //Save closed storages.
             storage_storage_save (stor->account_id, stor->dirty == 2 ? 1 : 0);
     }
-    return 0;
 }
 
 //Function to be invoked upon server reconnection to char. To save all 'dirty' storages [Skotlex
@@ -118,7 +114,7 @@ struct storage *account2storage (int account_id)
         (struct storage *) numdb_search (storage_db, account_id);
     if (stor == NULL)
     {
-        stor = (struct storage *) aCallocA (sizeof (struct storage), 1);
+        CREATE (stor, struct storage, 1);
         stor->account_id = account_id;
         numdb_insert (storage_db, stor->account_id, stor);
     }
@@ -481,13 +477,7 @@ struct guild_storage *guild2storage (int guild_id)
                                                     guild_id);
         if (gs == NULL)
         {
-            gs = (struct guild_storage *)
-                aCallocA (sizeof (struct guild_storage), 1);
-            if (gs == NULL)
-            {
-                printf ("storage: out of memory!\n");
-                exit (0);
-            }
+            CREATE (gs, struct guild_storage, 1);
             gs->guild_id = guild_id;
             numdb_insert (guild_storage_db, gs->guild_id, gs);
         }

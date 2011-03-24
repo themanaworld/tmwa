@@ -310,20 +310,5 @@ enum
 
 };
 
-#ifndef LCCWIN32
-#ifndef strcmpi
-#define strcmpi strcasecmp
-#endif
-#ifndef stricmp
-#define stricmp strcasecmp
-#endif
-#ifndef strncmpi
-#define strncmpi strncasecmp
-#endif
-#ifndef strnicmp
-#define strnicmp strncasecmp
-#endif
-#endif
-
 #endif // _MMO_H_
 

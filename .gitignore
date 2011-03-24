@@ -3,6 +3,7 @@
 src/char/char
 char-server
 src/ladmin/ladmin
+/ladmin
 src/login/login
 login-server
 src/map/map

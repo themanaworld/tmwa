@@ -224,13 +224,13 @@ semicolons		: /* empty */
 
 
 proc_formals_list	: /* empty  */
-                          { $$ = aCalloc(sizeof(proc_t), 1); }
+                          { CREATE ($$, proc_t, 1); }
 			| proc_formals_list_ne
                           { $$ = $1; }
 			;
 
 proc_formals_list_ne	: ID
-                          { $$ = aCalloc(sizeof(proc_t), 1);
+                          { CREATE ($$, proc_t, 1);
                             $$->args_nr = 1;
                             $$->args = malloc(sizeof(int));
                             $$->args[0] = intern_id($1);
@@ -414,7 +414,7 @@ arg_list		: /* empty */
 
 
 arg_list_ne		: expr
-				{ $$.args = aCalloc(sizeof(expr_t *), 1);
+				{ CREATE($$.args, expr_t *, 1);
                                   $$.args_nr = 1;
                                   $$.args[0] = $1;
                                 }
@@ -452,7 +452,7 @@ area			: location
 spelldef		: spellbody_list
                                 {  $$ = new_spell($1); }
 			| LET defs IN spellbody_list
-                                {  $$ = new_spell($4); 
+                                {  $$ = new_spell($4);
                                    $$->letdefs_nr = $2.letdefs_nr;
                                    $$->letdefs = $2.letdefs;
                                    $$->spellguard = $4;
@@ -693,7 +693,7 @@ effect_list		: /* empty */
 			| effect semicolons effect_list
                         	{ $$ = set_effect_continuation($1, $3); }
 			;
-			
+
 
 %%
 
@@ -743,7 +743,7 @@ add_spell(spell_t *spell, int line_nr)
         magic_conf.spells = realloc(magic_conf.spells, magic_conf.spells_nr * sizeof (spell_t*));
         magic_conf.spells[index] = spell;
 
-            
+
 }
 
 static void
@@ -867,7 +867,7 @@ spellguard_implication(spellguard_t *a, spellguard_t *b)
                 spellguard_implication(a->next, b);
         else
                 a->next = b;
-                
+
 
         return retval;
 }

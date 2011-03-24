@@ -1,16 +1,17 @@
-// $Id: grfio.h,v 1.1.1.1 2004/09/10 17:44:49 MagicalTux Exp $
-#ifndef	_GRFIO_H_
-#define	_GRFIO_H_
+/// Accessor to the .gat map virtual files
+// Note .gat files are mapped to .wlk files by data/resnametable.txt
+// Note that there currently is a 1-1 correlation between them,
+// but it is possible for a single .wlk to have multiple .gats reference it
+#ifndef GRFIO_H
+#define GRFIO_H
 
-void grfio_init (char *);       // GRFIO Initialize
-int  grfio_add (char *);        // GRFIO Resource file add
-void *grfio_read (char *);      // GRFIO data file read
-void *grfio_reads (char *, int *);  // GRFIO data file read & size get
-int  grfio_size (char *);       // GRFIO data file size get
+/// Load file into memory
+# define grfio_read(resourcename) grfio_reads (resourcename, NULL)
+/// Load file into memory and possibly record length
+// For some reason, this allocates an extra 1024 bytes at the end
+void *grfio_reads (const char *resourcename, size_t *size);
+/// Get size of file
+// This is only called once, and that is to check the existence of a file.
+size_t grfio_size (const char *resourcename) __attribute__((deprecated));
 
-// Accessor to GRF filenames
-char *grfio_setdatafile (const char *str);
-char *grfio_setadatafile (const char *str);
-char *grfio_setsdatafile (const char *str);
-
-#endif // _GRFIO_H_
+#endif // GRFIO_H

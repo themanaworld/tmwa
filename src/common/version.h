@@ -1,27 +1,24 @@
-// $Id: version.h,v 1.2 2004/09/22 09:49:06 PoW Exp $
-#ifndef _VERSION_H_
-#define _VERSION_H_
+/// Some constants to identify the version of (e)Athena
+/// The values are different if the client connects (-1,'T','M','W',flags32)
+// These numbers have never been changed while TMW
+#ifndef VERSION_H
+#define VERSION_H
+//When a server receives a 0x7530 packet from an admin connection,
+//it sends an 0x7531 packet with the following bytes
+# define ATHENA_MAJOR_VERSION    1   // Major Version
+# define ATHENA_MINOR_VERSION    0   // Minor Version
+# define ATHENA_REVISION         0   // Revision
 
-#define ATHENA_MAJOR_VERSION	1   // Major Version
-#define ATHENA_MINOR_VERSION	0   // Minor Version
-#define ATHENA_REVISION			0   // Revision
+# define ATHENA_RELEASE_FLAG     1   // 1=Develop,0=Stable
+# define ATHENA_OFFICIAL_FLAG    1   // 1=Mod,0=Official
 
-#define ATHENA_RELEASE_FLAG		1   // 1=Develop,0=Stable
-#define ATHENA_OFFICIAL_FLAG	1   // 1=Mod,0=Official
+// and a bitmask of these (the char server sends char and inter)
+# define ATHENA_SERVER_LOGIN     1   // login server
+# define ATHENA_SERVER_CHAR      2   // char server
+# define ATHENA_SERVER_INTER     4   // inter server
+# define ATHENA_SERVER_MAP       8   // map server
 
-#define ATHENA_SERVER_LOGIN		1   // login server
-#define ATHENA_SERVER_CHAR		2   // char server
-#define ATHENA_SERVER_INTER		4   // inter server
-#define ATHENA_SERVER_MAP		8   // map server
+// and this as two bytes
+# define ATHENA_MOD_VERSION   1052   // mod version (patch No.)
 
-// ATHENA_MOD_VERSIONはパッチ番号です。
-// これは無理に変えなくても気が向いたら変える程度の扱いで。
-// （毎回アップロードの度に変更するのも面倒と思われるし、そもそも
-// 　この項目を参照する人がいるかどうかで疑問だから。）
-// その程度の扱いなので、サーバーに問い合わせる側も、あくまで目安程度の扱いで
-// あんまり信用しないこと。
-// 鯖snapshotの時や、大きな変更があった場合は設定してほしいです。
-// C言語の仕様上、最初に0を付けると8進数になるので間違えないで下さい。
-#define ATHENA_MOD_VERSION	1052    // mod version (patch No.)
-
-#endif
+#endif // VERSION_H

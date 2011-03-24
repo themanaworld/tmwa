@@ -5,7 +5,7 @@
 
 #include "../common/timer.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
+#include "../common/mt_rand.h"
 #include "magic.h"
 
 #include "battle.h"

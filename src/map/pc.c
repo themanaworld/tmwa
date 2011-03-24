@@ -9,8 +9,8 @@
 #include "../common/timer.h"
 #include "../common/db.h"
 
-#include "../common/malloc.h"
 #include "../common/nullpo.h"
+#include "../common/mt_rand.h"
 
 #include "atcommand.h"
 #include "battle.h"
@@ -171,23 +171,21 @@ static int distance (int x0, int y0, int x1, int y1)
     return dx > dy ? dx : dy;
 }
 
-static int pc_invincible_timer (int tid, unsigned int tick, int id, int data)
+static void pc_invincible_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd;
 
     if ((sd = (struct map_session_data *) map_id2sd (id)) == NULL
         || sd->bl.type != BL_PC)
-        return 1;
+        return;
 
     if (sd->invincible_timer != tid)
     {
         if (battle_config.error_log)
             printf ("invincible_timer %d != %d\n", sd->invincible_timer, tid);
-        return 0;
+        return;
     }
     sd->invincible_timer = -1;
-
-    return 0;
 }
 
 int pc_setinvincibletimer (struct map_session_data *sd, int val)
@@ -213,20 +211,20 @@ int pc_delinvincibletimer (struct map_session_data *sd)
     return 0;
 }
 
-static int pc_spiritball_timer (int tid, unsigned int tick, int id, int data)
+static void pc_spiritball_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd;
     int  i;
 
     if ((sd = (struct map_session_data *) map_id2sd (id)) == NULL
         || sd->bl.type != BL_PC)
-        return 1;
+        return;
 
     if (sd->spirit_timer[0] != tid)
     {
         if (battle_config.error_log)
             printf ("spirit_timer %d != %d\n", sd->spirit_timer[0], tid);
-        return 0;
+        return;
     }
     sd->spirit_timer[0] = -1;
     for (i = 1; i < sd->spiritball; i++)
@@ -238,8 +236,6 @@ static int pc_spiritball_timer (int tid, unsigned int tick, int id, int data)
     if (sd->spiritball < 0)
         sd->spiritball = 0;
     clif_spiritball (sd);
-
-    return 0;
 }
 
 int pc_addspiritball (struct map_session_data *sd, int interval, int max)
@@ -4334,7 +4330,7 @@ static int calc_next_walk_step (struct map_session_data *sd)
  * 半歩進む(timer関数)
  *------------------------------------------
  */
-static int pc_walk (int tid, unsigned int tick, int id, int data)
+static void pc_walk (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd;
     int  i, ctype;
@@ -4343,18 +4339,18 @@ static int pc_walk (int tid, unsigned int tick, int id, int data)
 
     sd = map_id2sd (id);
     if (sd == NULL)
-        return 0;
+        return;
 
     if (sd->walktimer != tid)
     {
         if (battle_config.error_log)
             printf ("pc_walk %d != %d\n", sd->walktimer, tid);
-        return 0;
+        return;
     }
     sd->walktimer = -1;
     if (sd->walkpath.path_pos >= sd->walkpath.path_len
         || sd->walkpath.path_pos != data)
-        return 0;
+        return;
 
     //歩いたので息吹のタイマーを初期化
     sd->inchealspirithptick = 0;
@@ -4367,13 +4363,13 @@ static int pc_walk (int tid, unsigned int tick, int id, int data)
         if (sd->state.change_walk_target)
         {
             pc_walktoxy_sub (sd);
-            return 0;
+            return;
         }
     }
     else
     {                           // マス目境界へ到着
         if (sd->walkpath.path[sd->walkpath.path_pos] >= 8)
-            return 1;
+            return;
 
         x = sd->bl.x;
         y = sd->bl.y;
@@ -4381,7 +4377,7 @@ static int pc_walk (int tid, unsigned int tick, int id, int data)
         if (ctype == 1 || ctype == 5)
         {
             pc_stop_walking (sd, 1);
-            return 0;
+            return;
         }
         sd->dir = sd->head_dir = sd->walkpath.path[sd->walkpath.path_pos];
         dx = dirx[(int) sd->dir];
@@ -4390,7 +4386,7 @@ static int pc_walk (int tid, unsigned int tick, int id, int data)
         if (ctype == 1 || ctype == 5)
         {
             pc_walktoxy_sub (sd);
-            return 0;
+            return;
         }
 
         moveblock = (x / BLOCK_SIZE != (x + dx) / BLOCK_SIZE
@@ -4465,8 +4461,6 @@ static int pc_walk (int tid, unsigned int tick, int id, int data)
         sd->walktimer =
             add_timer (tick + i, pc_walk, id, sd->walkpath.path_pos);
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -4804,7 +4798,7 @@ struct pc_base_job pc_calc_base_job (int b_class)
  * PCの攻撃 (timer関数)
  *------------------------------------------
  */
-int pc_attack_timer (int tid, unsigned int tick, int id, int data)
+void pc_attack_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd;
     struct block_list *bl;
@@ -4815,48 +4809,48 @@ int pc_attack_timer (int tid, unsigned int tick, int id, int data)
 
     sd = map_id2sd (id);
     if (sd == NULL)
-        return 0;
+        return;
     if (sd->attacktimer != tid)
     {
         if (battle_config.error_log)
             printf ("pc_attack_timer %d != %d\n", sd->attacktimer, tid);
-        return 0;
+        return;
     }
     sd->attacktimer = -1;
 
     if (sd->bl.prev == NULL)
-        return 0;
+        return;
 
     bl = map_id2bl (sd->attacktarget);
     if (bl == NULL || bl->prev == NULL)
-        return 0;
+        return;
 
     if (bl->type == BL_PC && pc_isdead ((struct map_session_data *) bl))
-        return 0;
+        return;
 
     // 同じmapでないなら攻撃しない
     // PCが死んでても攻撃しない
     if (sd->bl.m != bl->m || pc_isdead (sd))
-        return 0;
+        return;
 
     if (sd->opt1 > 0 || sd->status.option & 2 || sd->status.option & 16388) // 異常などで攻撃できない
-        return 0;
+        return;
 
     if (sd->sc_data[SC_AUTOCOUNTER].timer != -1)
-        return 0;
+        return;
     if (sd->sc_data[SC_BLADESTOP].timer != -1)
-        return 0;
+        return;
 
     if ((opt = battle_get_option (bl)) != NULL && *opt & 0x46)
-        return 0;
+        return;
     if (((sc_data = battle_get_sc_data (bl)) != NULL
          && sc_data[SC_TRICKDEAD].timer != -1)
         || ((sc_data = battle_get_sc_data (bl)) != NULL
             && sc_data[SC_BASILICA].timer != -1))
-        return 0;
+        return;
 
     if (sd->skilltimer != -1 && pc_checkskill (sd, SA_FREECAST) <= 0)
-        return 0;
+        return;
 
     if (!battle_config.sdelay_attack_enable
         && pc_checkskill (sd, SA_FREECAST) <= 0)
@@ -4864,12 +4858,12 @@ int pc_attack_timer (int tid, unsigned int tick, int id, int data)
         if (DIFF_TICK (tick, sd->canact_tick) < 0)
         {
             clif_skill_fail (sd, 1, 4, 0);
-            return 0;
+            return;
         }
     }
 
     if (sd->attackabletime > tick)
-        return 0;               // cannot attack yet
+        return;               // cannot attack yet
 
     attack_spell_delay = sd->attack_spell_delay;
     if (sd->attack_spell_override   // [Fate] If we have an active attack spell, use that
@@ -4889,7 +4883,7 @@ int pc_attack_timer (int tid, unsigned int tick, int id, int data)
         {                       // 届 かないので移動
             //if(pc_can_reach(sd,bl->x,bl->y))
             //clif_movetoattack(sd,bl);
-            return 0;
+            return;
         }
 
         if (dist <= range && !battle_check_range (&sd->bl, bl, range))
@@ -4944,8 +4938,6 @@ int pc_attack_timer (int tid, unsigned int tick, int id, int data)
         sd->attacktimer =
             add_timer (sd->attackabletime, pc_attack_timer, sd->bl.id, 0);
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -5011,13 +5003,13 @@ int pc_stopattack (struct map_session_data *sd)
     return 0;
 }
 
-int pc_follow_timer (int tid, unsigned int tick, int id, int data)
+void pc_follow_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd, *bl;
 
     sd = map_id2sd (id);
     if (sd == NULL || sd->followtimer != tid)
-        return 0;
+        return;
 
     sd->followtimer = -1;
 
@@ -5029,14 +5021,14 @@ int pc_follow_timer (int tid, unsigned int tick, int id, int data)
         bl = (struct map_session_data *) map_id2bl (sd->followtarget);
 
         if (bl == NULL)
-            return 0;
+            return;
 
         if (bl->bl.prev == NULL)
             break;
 
         if (bl->bl.type == BL_PC
             && pc_isdead ((struct map_session_data *) bl))
-            return 0;
+            return;
 
         if (sd->skilltimer == -1 && sd->attacktimer == -1
             && sd->walktimer == -1)
@@ -5056,8 +5048,6 @@ int pc_follow_timer (int tid, unsigned int tick, int id, int data)
 
     sd->followtimer =
         add_timer (tick + sd->aspd, pc_follow_timer, sd->bl.id, 0);
-
-    return 0;
 }
 
 int pc_follow (struct map_session_data *sd, int target_id)
@@ -5677,8 +5667,8 @@ int pc_resetlvl (struct map_session_data *sd, int type)
         sd->status.skill_point = 0;
         sd->status.base_level = 1;
         sd->status.job_level = 1;
-        sd->status.base_exp = sd->status.base_exp = 0;
-        sd->status.job_exp = sd->status.job_exp = 0;
+        sd->status.base_exp = 0;
+        sd->status.job_exp = 0;
         if (sd->status.option != 0)
             sd->status.option = 0;
 
@@ -7213,12 +7203,12 @@ int pc_percentrefinery (struct map_session_data *sd, struct item *item)
  * イベントタイマー処理
  *------------------------------------------
  */
-int pc_eventtimer (int tid, unsigned int tick, int id, int data)
+void pc_eventtimer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd (id);
     int  i;
     if (sd == NULL)
-        return 0;
+        return;
 
     for (i = 0; i < MAX_EVENTTIMER; i++)
     {
@@ -7235,8 +7225,6 @@ int pc_eventtimer (int tid, unsigned int tick, int id, int data)
         if (battle_config.error_log)
             printf ("pc_eventtimer: no such event timer\n");
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -7255,7 +7243,7 @@ int pc_addeventtimer (struct map_session_data *sd, int tick, const char *name)
 
     if (i < MAX_EVENTTIMER)
     {
-        char *evname = (char *) aCalloc (24, sizeof (char));
+        char *evname = (char *) calloc (24, 1);
         strncpy (evname, name, 24);
         evname[23] = '\0';
         sd->eventtimer[i] = add_timer (gettick () + tick,
@@ -7811,20 +7799,19 @@ int pc_calc_pvprank (struct map_session_data *sd)
  * PVP順位計算(timer)
  *------------------------------------------
  */
-int pc_calc_pvprank_timer (int tid, unsigned int tick, int id, int data)
+void pc_calc_pvprank_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = NULL;
     if (battle_config.pk_mode)  // disable pvp ranking if pk_mode on [Valaris]
-        return 0;
+        return;
 
     sd = map_id2sd (id);
     if (sd == NULL)
-        return 0;
+        return;
     sd->pvp_timer = -1;
     if (pc_calc_pvprank (sd) > 0)
         sd->pvp_timer = add_timer (gettick () + PVP_CALCRANK_INTERVAL,
                                    pc_calc_pvprank_timer, id, data);
-    return 0;
 }
 
 /*==========================================
@@ -8387,7 +8374,7 @@ static int pc_natural_heal_sub (struct map_session_data *sd, va_list ap)
  * HP/SP自然回復 (interval timer関数)
  *------------------------------------------
  */
-int pc_natural_heal (int tid, unsigned int tick, int id, int data)
+void pc_natural_heal (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     natural_heal_tick = tick;
     natural_heal_diff_tick =
@@ -8395,7 +8382,6 @@ int pc_natural_heal (int tid, unsigned int tick, int id, int data)
     clif_foreachclient (pc_natural_heal_sub);
 
     natural_heal_prev_tick = tick;
-    return 0;
 }
 
 /*==========================================
@@ -8465,7 +8451,7 @@ static int pc_autosave_sub (struct map_session_data *sd, va_list ap)
  * 自動セーブ (timer関数)
  *------------------------------------------
  */
-int pc_autosave (int tid, unsigned int tick, int id, int data)
+void pc_autosave (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  interval;
 
@@ -8478,8 +8464,6 @@ int pc_autosave (int tid, unsigned int tick, int id, int data)
     if (interval <= 0)
         interval = 1;
     add_timer (gettick () + interval, pc_autosave, 0, 0);
-
-    return 0;
 }
 
 int pc_read_gm_account (int fd)
@@ -8505,7 +8489,7 @@ int pc_read_gm_account (int fd)
  * timer to do the day
  *------------------------------------------
  */
-int map_day_timer (int tid, unsigned int tick, int id, int data)
+void map_day_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {                               // by [yor]
     struct map_session_data *pl_sd = NULL;
     int  i;
@@ -8530,15 +8514,13 @@ int map_day_timer (int tid, unsigned int tick, int id, int data)
             }
         }
     }
-
-    return 0;
 }
 
 /*==========================================
  * timer to do the night
  *------------------------------------------
  */
-int map_night_timer (int tid, unsigned int tick, int id, int data)
+void map_night_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {                               // by [yor]
     struct map_session_data *pl_sd = NULL;
     int  i;
@@ -8563,8 +8545,6 @@ int map_night_timer (int tid, unsigned int tick, int id, int data)
             }
         }
     }
-
-    return 0;
 }
 
 void pc_setstand (struct map_session_data *sd)
@@ -8973,22 +8953,11 @@ int do_init_pc (void)
 
 //  gm_account_db = numdb_init();
 
-    add_timer_func_list (pc_walk, "pc_walk");
-    add_timer_func_list (pc_attack_timer, "pc_attack_timer");
-    add_timer_func_list (pc_natural_heal, "pc_natural_heal");
-    add_timer_func_list (pc_invincible_timer, "pc_invincible_timer");
-    add_timer_func_list (pc_eventtimer, "pc_eventtimer");
-    add_timer_func_list (pc_calc_pvprank_timer, "pc_calc_pvprank_timer");
-    add_timer_func_list (pc_autosave, "pc_autosave");
-    add_timer_func_list (pc_spiritball_timer, "pc_spiritball_timer");
     add_timer_interval ((natural_heal_prev_tick =
                          gettick () + NATURAL_HEAL_INTERVAL), pc_natural_heal,
                         0, 0, NATURAL_HEAL_INTERVAL);
     add_timer (gettick () + autosave_interval, pc_autosave, 0, 0);
 
-    // add night/day timer (by [yor])
-    add_timer_func_list (map_day_timer, "map_day_timer");   // by [yor]
-    add_timer_func_list (map_night_timer, "map_night_timer");   // by [yor]
     {
         int  day_duration = battle_config.day_duration;
         int  night_duration = battle_config.night_duration;

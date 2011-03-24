@@ -13,8 +13,7 @@
 #include "../common/timer.h"
 #include "../common/db.h"
 #include "../common/grfio.h"
-#include "../common/malloc.h"
-
+#include "../common/mt_rand.h"
 #include "map.h"
 #include "chrif.h"
 #include "clif.h"
@@ -785,7 +784,7 @@ void map_foreachobject (int (*func) (struct block_list *, va_list), int type,
  * map.h内で#defineしてある
  *------------------------------------------
  */
-int map_clearflooritem_timer (int tid, unsigned int tick, int id, int data)
+void map_clearflooritem_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct flooritem_data *fitem = NULL;
 
@@ -795,14 +794,12 @@ int map_clearflooritem_timer (int tid, unsigned int tick, int id, int data)
     {
         if (battle_config.error_log)
             printf ("map_clearflooritem_timer : error\n");
-        return 1;
+        return;
     }
     if (data)
         delete_timer (fitem->cleartimer, map_clearflooritem_timer);
     clif_clearflooritem (fitem, 0);
     map_delobject (fitem->bl.id, BL_ITEM);
-
-    return 0;
 }
 
 /*==========================================
@@ -876,7 +873,7 @@ int map_addflooritem_any (struct item *item_data, int amount, int m, int x,
         return 0;
     r = mt_random ();
 
-    fitem = (struct flooritem_data *) aCalloc (1, sizeof (*fitem));
+    CREATE (fitem, struct flooritem_data, 1);
     fitem->bl.type = BL_ITEM;
     fitem->bl.prev = fitem->bl.next = NULL;
     fitem->bl.m = m;
@@ -1030,7 +1027,7 @@ void map_addchariddb (int charid, char *name)
     p = numdb_search (charid_db, charid);
     if (p == NULL)
     {                           // データベースにない
-        p = (struct charid2nick *) aCalloc (1, sizeof (struct charid2nick));
+        CREATE (p, struct charid2nick, 1);
         p->req_id = 0;
     }
     else
@@ -1061,7 +1058,7 @@ int map_reqchariddb (struct map_session_data *sd, int charid)
     p = numdb_search (charid_db, charid);
     if (p != NULL)              // データベースにすでにある
         return 0;
-    p = (struct charid2nick *) aCalloc (1, sizeof (struct charid2nick));
+    CREATE (p, struct charid2nick, 1);
     p->req_id = sd->bl.id;
     numdb_insert (charid_db, charid, p);
     return 0;
@@ -1302,7 +1299,7 @@ struct map_session_data *map_nick2sd (char *nick)
             && pl_sd->state.auth)
         {
             // Without case sensitive check (increase the number of similar character names found)
-            if (strnicmp (pl_sd->status.name, nick, nicklen) == 0)
+            if (strncasecmp (pl_sd->status.name, nick, nicklen) == 0)
             {
                 // Strict comparison (if found, we finish the function immediatly with correct value)
                 if (strcmp (pl_sd->status.name, nick) == 0)
@@ -1341,7 +1338,7 @@ struct block_list *map_id2bl (int id)
  * id_db内の全てにfuncを実行
  *------------------------------------------
  */
-int map_foreachiddb (int (*func) (void *, void *, va_list), ...)
+int map_foreachiddb (db_func_t func, ...)
 {
     va_list ap = NULL;
 
@@ -1573,10 +1570,7 @@ int map_setipport (char *name, unsigned long ip, int port)
     md = strdb_search (map_db, name);
     if (md == NULL)
     {                           // not exist -> add new data
-        mdos =
-            (struct map_data_other_server *) aCalloc (1,
-                                                      sizeof (struct
-                                                              map_data_other_server));
+        CREATE (mdos, struct map_data_other_server, 1);
         memcpy (mdos->name, name, 24);
         mdos->gat = NULL;
         mdos->ip = ip;
@@ -1609,7 +1603,7 @@ int map_setipport (char *name, unsigned long ip, int port)
  * 水場高さ設定
  *------------------------------------------
  */
-static struct
+static struct Waterlist
 {
     char mapname[24];
     int  waterheight;
@@ -1642,7 +1636,9 @@ static void map_readwater (char *watertxt)
         return;
     }
     if (waterlist == NULL)
-        waterlist = aCalloc (MAX_MAP_PER_SERVER, sizeof (*waterlist));
+    {
+        CREATE (waterlist, struct Waterlist, MAX_MAP_PER_SERVER);
+    }
     while (fgets (line, 1020, fp) && n < MAX_MAP_PER_SERVER)
     {
         int  wh, count;
@@ -1777,7 +1773,8 @@ int map_readallmap (void)
         if (strstr (map[i].name, ".gat") == NULL)
             continue;
         sprintf (fn, "data\\%s", map[i].name);
-        if (grfio_size (fn) == -1)
+        // TODO - remove this, it is the last call to grfio_size, which is deprecated
+        if (!grfio_size (fn))
         {
             map_delmap (map[i].name);
             maps_removed++;
@@ -1825,7 +1822,7 @@ int map_readallmap (void)
  */
 int map_addmap (char *mapname)
 {
-    if (strcmpi (mapname, "clear") == 0)
+    if (strcasecmp (mapname, "clear") == 0)
     {
         map_num = 0;
         return 0;
@@ -1849,7 +1846,7 @@ int map_delmap (char *mapname)
 {
     int  i;
 
-    if (strcmpi (mapname, "all") == 0)
+    if (strcasecmp (mapname, "all") == 0)
     {
         map_num = 0;
         return 0;
@@ -1959,15 +1956,15 @@ int map_config_read (char *cfgName)
             continue;
         if (sscanf (line, "%[^:]: %[^\r\n]", w1, w2) == 2)
         {
-            if (strcmpi (w1, "userid") == 0)
+            if (strcasecmp (w1, "userid") == 0)
             {
                 chrif_setuserid (w2);
             }
-            else if (strcmpi (w1, "passwd") == 0)
+            else if (strcasecmp (w1, "passwd") == 0)
             {
                 chrif_setpasswd (w2);
             }
-            else if (strcmpi (w1, "char_ip") == 0)
+            else if (strcasecmp (w1, "char_ip") == 0)
             {
                 h = gethostbyname (w2);
                 if (h != NULL)
@@ -1985,11 +1982,11 @@ int map_config_read (char *cfgName)
                 }
                 chrif_setip (w2);
             }
-            else if (strcmpi (w1, "char_port") == 0)
+            else if (strcasecmp (w1, "char_port") == 0)
             {
                 chrif_setport (atoi (w2));
             }
-            else if (strcmpi (w1, "map_ip") == 0)
+            else if (strcasecmp (w1, "map_ip") == 0)
             {
                 h = gethostbyname (w2);
                 if (h != NULL)
@@ -2006,70 +2003,58 @@ int map_config_read (char *cfgName)
                 }
                 clif_setip (w2);
             }
-            else if (strcmpi (w1, "map_port") == 0)
+            else if (strcasecmp (w1, "map_port") == 0)
             {
                 clif_setport (atoi (w2));
                 map_port = (atoi (w2));
             }
-            else if (strcmpi (w1, "water_height") == 0)
+            else if (strcasecmp (w1, "water_height") == 0)
             {
                 map_readwater (w2);
             }
-            else if (strcmpi (w1, "map") == 0)
+            else if (strcasecmp (w1, "map") == 0)
             {
                 map_addmap (w2);
             }
-            else if (strcmpi (w1, "delmap") == 0)
+            else if (strcasecmp (w1, "delmap") == 0)
             {
                 map_delmap (w2);
             }
-            else if (strcmpi (w1, "npc") == 0)
+            else if (strcasecmp (w1, "npc") == 0)
             {
                 npc_addsrcfile (w2);
             }
-            else if (strcmpi (w1, "delnpc") == 0)
+            else if (strcasecmp (w1, "delnpc") == 0)
             {
                 npc_delsrcfile (w2);
             }
-            else if (strcmpi (w1, "data_grf") == 0)
-            {
-                grfio_setdatafile (w2);
-            }
-            else if (strcmpi (w1, "sdata_grf") == 0)
-            {
-                grfio_setsdatafile (w2);
-            }
-            else if (strcmpi (w1, "adata_grf") == 0)
-            {
-                grfio_setadatafile (w2);
-            }
-            else if (strcmpi (w1, "autosave_time") == 0)
+            else if (strcasecmp (w1, "autosave_time") == 0)
             {
                 autosave_interval = atoi (w2) * 1000;
                 if (autosave_interval <= 0)
                     autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
             }
-            else if (strcmpi (w1, "motd_txt") == 0)
+            else if (strcasecmp (w1, "motd_txt") == 0)
             {
                 strcpy (motd_txt, w2);
             }
-            else if (strcmpi (w1, "help_txt") == 0)
+            else if (strcasecmp (w1, "help_txt") == 0)
             {
                 strcpy (help_txt, w2);
             }
-            else if (strcmpi (w1, "mapreg_txt") == 0)
+            else if (strcasecmp (w1, "mapreg_txt") == 0)
             {
                 strcpy (mapreg_txt, w2);
             }
-            else if (strcmpi (w1, "gm_log") == 0)
+            else if (strcasecmp (w1, "gm_log") == 0)
             {
                 gm_logfile_name = strdup (w2);
             }
-            else if (strcmpi (w1, "log_file") == 0)
+            else if (strcasecmp (w1, "log_file") == 0)
             {
                 map_set_logfile (w2);
             }
-            else if (strcmpi (w1, "import") == 0)
+            else if (strcasecmp (w1, "import") == 0)
             {
                 map_config_read (w2);
             }
@@ -2077,26 +2062,6 @@ int map_config_read (char *cfgName)
     }
     fclose_ (fp);
 
-    return 0;
-}
-
-int id_db_final (void *k, void *d, va_list ap)
-{
-    return 0;
-}
-
-int map_db_final (void *k, void *d, va_list ap)
-{
-    return 0;
-}
-
-int nick_db_final (void *k, void *d, va_list ap)
-{
-    return 0;
-}
-
-int charid_db_final (void *k, void *d, va_list ap)
-{
     return 0;
 }
 
@@ -2150,10 +2115,10 @@ void do_final (void)
     map_removenpc ();
     timer_final ();
 
-    numdb_final (id_db, id_db_final);
-    strdb_final (map_db, map_db_final);
-    strdb_final (nick_db, nick_db_final);
-    numdb_final (charid_db, charid_db_final);
+    numdb_final (id_db, NULL);
+    strdb_final (map_db, NULL);
+    strdb_final (nick_db, NULL);
+    numdb_final (charid_db, NULL);
 
     for (i = 0; i <= map_num; i++)
     {
@@ -2190,6 +2155,10 @@ int compare_item (struct item *a, struct item *b)
             (a->card[2] == b->card[2]) && (a->card[3] == b->card[3]));
 }
 
+// TODO move shutdown stuff here
+void term_func (void)
+{
+}
 /*======================================================
  * Map-Server Init and Command-line Arguments [Valaris]
  *------------------------------------------------------
@@ -2203,7 +2172,6 @@ int do_init (int argc, char *argv[])
     unsigned char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
     unsigned char *SCRIPT_CONF_NAME = "conf/script_athena.conf";
     unsigned char *MSG_CONF_NAME = "conf/msg_athena.conf";
-    unsigned char *GRF_PATH_FILENAME = "conf/grf-files.txt";
 
     for (i = 1; i < argc; i++)
     {
@@ -2221,8 +2189,6 @@ int do_init (int argc, char *argv[])
             SCRIPT_CONF_NAME = argv[i + 1];
         else if (strcmp (argv[i], "--msg_config") == 0)
             MSG_CONF_NAME = argv[i + 1];
-        else if (strcmp (argv[i], "--grf_path_file") == 0)
-            GRF_PATH_FILENAME = argv[i + 1];
     }
 
     map_config_read (MAP_CONF_NAME);
@@ -2238,12 +2204,9 @@ int do_init (int argc, char *argv[])
     nick_db = strdb_init (24);
     charid_db = numdb_init ();
 
-    grfio_init (GRF_PATH_FILENAME);
-
     map_readallmap ();
 
-    add_timer_func_list (map_clearflooritem_timer,
-                         "map_clearflooritem_timer");
+//    add_timer_func_list (map_clearflooritem_timer, "map_clearflooritem_timer");
 
     do_init_chrif ();
     do_init_clif ();

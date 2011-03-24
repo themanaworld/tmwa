@@ -120,13 +120,7 @@ int inter_accreg_init ()
     while (fgets (line, sizeof (line) - 1, fp))
     {
         line[sizeof (line) - 1] = '\0';
-
-        reg = calloc (sizeof (struct accreg), 1);
-        if (reg == NULL)
-        {
-            printf ("inter: accreg: out of memory!\n");
-            exit (0);
-        }
+        CREATE (reg, struct accreg, 1);
         if (inter_accreg_fromstr (line, reg) == 0 && reg->account_id > 0)
         {
             numdb_insert (accreg_db, reg->account_id, reg);
@@ -146,7 +140,7 @@ int inter_accreg_init ()
 }
 
 // アカウント変数のセーブ用
-int inter_accreg_save_sub (void *key, void *data, va_list ap)
+void inter_accreg_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[8192];
     FILE *fp;
@@ -158,8 +152,6 @@ int inter_accreg_save_sub (void *key, void *data, va_list ap)
         fp = va_arg (ap, FILE *);
         fprintf (fp, "%s" RETCODE, line);
     }
-
-    return 0;
 }
 
 // アカウント変数のセーブ
@@ -207,41 +199,41 @@ int inter_config_read (const char *cfgName)
         if (sscanf (line, "%[^:]: %[^\r\n]", w1, w2) != 2)
             continue;
 
-        if (strcmpi (w1, "storage_txt") == 0)
+        if (strcasecmp (w1, "storage_txt") == 0)
         {
             strncpy (storage_txt, w2, sizeof (storage_txt));
         }
-        else if (strcmpi (w1, "party_txt") == 0)
+        else if (strcasecmp (w1, "party_txt") == 0)
         {
             strncpy (party_txt, w2, sizeof (party_txt));
         }
-        else if (strcmpi (w1, "guild_txt") == 0)
+        else if (strcasecmp (w1, "guild_txt") == 0)
         {
             strncpy (guild_txt, w2, sizeof (guild_txt));
         }
-        else if (strcmpi (w1, "castle_txt") == 0)
+        else if (strcasecmp (w1, "castle_txt") == 0)
         {
             strncpy (castle_txt, w2, sizeof (castle_txt));
         }
-        else if (strcmpi (w1, "accreg_txt") == 0)
+        else if (strcasecmp (w1, "accreg_txt") == 0)
         {
             strncpy (accreg_txt, w2, sizeof (accreg_txt));
         }
-        else if (strcmpi (w1, "guild_storage_txt") == 0)
+        else if (strcasecmp (w1, "guild_storage_txt") == 0)
         {
             strncpy (guild_storage_txt, w2, sizeof (guild_storage_txt));
         }
-        else if (strcmpi (w1, "party_share_level") == 0)
+        else if (strcasecmp (w1, "party_share_level") == 0)
         {
             party_share_level = atoi (w2);
             if (party_share_level < 0)
                 party_share_level = 0;
         }
-        else if (strcmpi (w1, "inter_log_filename") == 0)
+        else if (strcasecmp (w1, "inter_log_filename") == 0)
         {
             strncpy (inter_log_filename, w2, sizeof (inter_log_filename));
         }
-        else if (strcmpi (w1, "import") == 0)
+        else if (strcasecmp (w1, "import") == 0)
         {
             inter_config_read (w2);
         }
@@ -392,7 +384,7 @@ int mapif_account_reg_reply (int fd, int account_id)
 //--------------------------------------------------------
 
 // Existence check of WISP data
-int check_ttl_wisdata_sub (void *key, void *data, va_list ap)
+void check_ttl_wisdata_sub (db_key_t key, db_val_t data, va_list ap)
 {
     unsigned long tick;
     struct WisData *wd = (struct WisData *) data;
@@ -401,8 +393,6 @@ int check_ttl_wisdata_sub (void *key, void *data, va_list ap)
     if (DIFF_TICK (tick, wd->tick) > WISDATA_TTL
         && wis_delnum < WISDELLIST_MAX)
         wis_dellist[wis_delnum++] = wd->id;
-
-    return 0;
 }
 
 int check_ttl_wisdata ()
@@ -485,13 +475,7 @@ int mapif_parse_WisRequest (int fd)
         }
         else
         {
-
-            wd = (struct WisData *) calloc (sizeof (struct WisData), 1);
-            if (wd == NULL)
-            {
-                printf ("inter: WisRequest: out of memory !\n");
-                return 0;
-            }
+            CREATE (wd, struct WisData, 1);
 
             // Whether the failure of previous wisp/page transmission (timeout)
             check_ttl_wisdata ();
@@ -546,17 +530,13 @@ int mapif_parse_WisToGM (int fd)
 int mapif_parse_AccReg (int fd)
 {
     int  j, p;
-    struct accreg *reg = numdb_search (accreg_db, RFIFOL (fd, 4));
+    struct accreg *reg = numdb_search (accreg_db, (numdb_key_t)RFIFOL (fd, 4));
 
     if (reg == NULL)
     {
-        if ((reg = calloc (sizeof (struct accreg), 1)) == NULL)
-        {
-            printf ("inter: accreg: out of memory !\n");
-            exit (0);
-        }
+        CREATE (reg, struct accreg, 1);
         reg->account_id = RFIFOL (fd, 4);
-        numdb_insert (accreg_db, RFIFOL (fd, 4), reg);
+        numdb_insert (accreg_db, (numdb_key_t)RFIFOL (fd, 4), reg);
     }
 
     for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW (fd, 2);

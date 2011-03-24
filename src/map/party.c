@@ -8,7 +8,6 @@
 #include "../common/timer.h"
 #include "../common/socket.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
 #include "pc.h"
 #include "map.h"
 #include "battle.h"
@@ -25,15 +24,14 @@
 
 static struct dbt *party_db;
 
-int  party_send_xyhp_timer (int tid, unsigned int tick, int id, int data);
+void party_send_xyhp_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 /*==========================================
  * 終了
  *------------------------------------------
  */
-static int party_db_final (void *key, void *data, va_list ap)
+static void party_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     free (data);
-    return 0;
 }
 
 void do_final_party (void)
@@ -46,7 +44,6 @@ void do_final_party (void)
 void do_init_party (void)
 {
     party_db = numdb_init ();
-    add_timer_func_list (party_send_xyhp_timer, "party_send_xyhp_timer");
     add_timer_interval (gettick () + PARTY_SEND_XYHP_INVERVAL,
                         party_send_xyhp_timer, 0, 0,
                         PARTY_SEND_XYHP_INVERVAL);
@@ -58,15 +55,14 @@ struct party *party_search (int party_id)
     return numdb_search (party_db, party_id);
 }
 
-int party_searchname_sub (void *key, void *data, va_list ap)
+void party_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data, **dst;
     char *str;
     str = va_arg (ap, char *);
     dst = va_arg (ap, struct party **);
-    if (strcmpi (p->name, str) == 0)
+    if (strcasecmp (p->name, str) == 0)
         *dst = p;
-    return 0;
 }
 
 // パーティ名検索
@@ -120,7 +116,7 @@ int party_created (int account_id, int fail, int party_id, char *name)
             exit (1);
         }
 
-        p = (struct party *) aCalloc (1, sizeof (struct party));
+        CREATE (p, struct party, 1);
         p->party_id = party_id;
         memcpy (p->name, name, 24);
         numdb_insert (party_db, party_id, p);
@@ -205,7 +201,7 @@ int party_recv_info (struct party *sp)
 
     if ((p = numdb_search (party_db, sp->party_id)) == NULL)
     {
-        p = (struct party *) aCalloc (1, sizeof (struct party));
+        CREATE (p, struct party, 1);
         numdb_insert (party_db, sp->party_id, p);
 
         // 最初のロードなのでユーザーのチェックを行う
@@ -574,7 +570,7 @@ int party_send_movemap (struct map_session_data *sd)
     if (sd->party_sended != 0)  // もうパーティデータは送信済み
         return 0;
 
-    // 競合確認 
+    // 競合確認
     party_check_conflict (sd);
 
     // あるならパーティ情報送信
@@ -645,12 +641,12 @@ int party_check_conflict (struct map_session_data *sd)
 }
 
 // 位置やＨＰ通知用
-int party_send_xyhp_timer_sub (void *key, void *data, va_list ap)
+void party_send_xyhp_timer_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data;
     int  i;
 
-    nullpo_retr (0, p);
+    nullpo_retv (p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -673,14 +669,12 @@ int party_send_xyhp_timer_sub (void *key, void *data, va_list ap)
 
         }
     }
-    return 0;
 }
 
 // 位置やＨＰ通知
-int party_send_xyhp_timer (int tid, unsigned int tick, int id, int data)
+void party_send_xyhp_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     numdb_foreach (party_db, party_send_xyhp_timer_sub, tick);
-    return 0;
 }
 
 // 位置通知クリア

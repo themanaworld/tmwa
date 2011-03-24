@@ -36,7 +36,7 @@
 #include "memwatch.h"
 #endif
 
-extern int eathena_interactive_session; // from core.c
+int eathena_interactive_session; // from core.c
 #define Iprintf if (eathena_interactive_session) printf
 
 //-------------------------------INSTRUCTIONS------------------------------
@@ -4737,7 +4737,7 @@ int prompt ()
 //-------------------------------------------------------------
 // Function: Parse receiving informations from the login-server
 //-------------------------------------------------------------
-int parse_fromlogin (int fd)
+void parse_fromlogin (int fd)
 {
     struct char_session_data *sd;
 
@@ -4775,7 +4775,7 @@ int parse_fromlogin (int fd)
         {
             case 0x7919:       // answer of a connection request
                 if (RFIFOREST (fd) < 3)
-                    return 0;
+                    return;
                 if (RFIFOB (fd, 2) != 0)
                 {
                     if (defaultlanguage == 'F')
@@ -4834,7 +4834,7 @@ int parse_fromlogin (int fd)
 #ifdef PASSWORDENC
             case 0x01dc:       // answer of a coding key request
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
-                    return 0;
+                    return;
                 {
                     char md5str[64] =
                         "", md5bin[32], md5key[RFIFOW (fd, 2) - 4 + 1];
@@ -4851,7 +4851,7 @@ int parse_fromlogin (int fd)
                                  sizeof (loginserveradminpassword));
                         strcat (md5str, RFIFOP (fd, 4));
                     }
-                    MD5_String2binary (md5str, md5bin);
+                    MD5_to_bin(MD5_from_cstring(md5str), md5bin);
                     WFIFOW (login_fd, 0) = 0x7918;  // Request for administation login (encrypted password)
                     WFIFOW (login_fd, 2) = passenc; // Encrypted type
                     memcpy (WFIFOP (login_fd, 4), md5bin, 16);
@@ -4880,7 +4880,7 @@ int parse_fromlogin (int fd)
 
             case 0x7531:       // Displaying of the version of the login-server
                 if (RFIFOREST (fd) < 10)
-                    return 0;
+                    return;
                 Iprintf ("  Login-Server [%s:%d]\n", loginserverip,
                          loginserverport);
                 if (((int) RFIFOB (login_fd, 5)) == 0)
@@ -4914,7 +4914,7 @@ int parse_fromlogin (int fd)
 
             case 0x7921:       // Displaying of the list of accounts
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
-                    return 0;
+                    return;
                 if (RFIFOW (fd, 2) < 5)
                 {
                     if (defaultlanguage == 'F')
@@ -5064,7 +5064,7 @@ int parse_fromlogin (int fd)
 
             case 0x7931:       // Answer of login-server about an account creation
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5111,7 +5111,7 @@ int parse_fromlogin (int fd)
 
             case 0x7933:       // Answer of login-server about an account deletion
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5159,7 +5159,7 @@ int parse_fromlogin (int fd)
 
             case 0x7935:       // answer of the change of an account password
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5211,7 +5211,7 @@ int parse_fromlogin (int fd)
 
             case 0x7937:       // answer of the change of an account state
                 if (RFIFOREST (fd) < 34)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5301,7 +5301,7 @@ int parse_fromlogin (int fd)
 
             case 0x7939:       // answer of the number of online players
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
-                    return 0;
+                    return;
                 {
                     // Get length of the received packet
                     int  i;
@@ -5360,7 +5360,7 @@ int parse_fromlogin (int fd)
 
             case 0x793b:       // answer of the check of a password
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5409,7 +5409,7 @@ int parse_fromlogin (int fd)
 
             case 0x793d:       // answer of the change of an account sex
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5463,7 +5463,7 @@ int parse_fromlogin (int fd)
 
             case 0x793f:       // answer of the change of an account GM level
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5521,7 +5521,7 @@ int parse_fromlogin (int fd)
 
             case 0x7941:       // answer of the change of an account email
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5573,7 +5573,7 @@ int parse_fromlogin (int fd)
 
             case 0x7943:       // answer of the change of an account memo
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5622,7 +5622,7 @@ int parse_fromlogin (int fd)
 
             case 0x7945:       // answer of an account id search
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5667,7 +5667,7 @@ int parse_fromlogin (int fd)
 
             case 0x7947:       // answer of an account name search
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 if (strcmp (RFIFOP (fd, 6), "") == 0)
                 {
                     if (defaultlanguage == 'F')
@@ -5712,7 +5712,7 @@ int parse_fromlogin (int fd)
 
             case 0x7949:       // answer of an account validity limit set
                 if (RFIFOREST (fd) < 34)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5791,7 +5791,7 @@ int parse_fromlogin (int fd)
 
             case 0x794b:       // answer of an account ban set
                 if (RFIFOREST (fd) < 34)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5870,7 +5870,7 @@ int parse_fromlogin (int fd)
 
             case 0x794d:       // answer of an account ban date/time changing
                 if (RFIFOREST (fd) < 34)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5949,7 +5949,7 @@ int parse_fromlogin (int fd)
 
             case 0x794f:       // answer of a broadcast
                 if (RFIFOREST (fd) < 4)
-                    return 0;
+                    return;
                 if (RFIFOW (fd, 2) == (unsigned short) -1)
                 {
                     if (defaultlanguage == 'F')
@@ -5994,7 +5994,7 @@ int parse_fromlogin (int fd)
 
             case 0x7951:       // answer of an account validity limit changing
                 if (RFIFOREST (fd) < 34)
-                    return 0;
+                    return;
                 if (RFIFOL (fd, 2) == -1)
                 {
                     if (defaultlanguage == 'F')
@@ -6082,7 +6082,7 @@ int parse_fromlogin (int fd)
             case 0x7953:       // answer of a request about informations of an account (by account name/id)
                 if (RFIFOREST (fd) < 150
                     || RFIFOREST (fd) < (150 + RFIFOW (fd, 148)))
-                    return 0;
+                    return;
                 {
                     char userid[24], error_message[20], lastlogin[24],
                         last_ip[16], email[40], memo[255];
@@ -6328,14 +6328,12 @@ int parse_fromlogin (int fd)
                     ("Remote administration has been disconnected (unknown packet).\n");
                 ladmin_log ("'End of connection, unknown packet." RETCODE);
                 session[fd]->eof = 1;
-                return 0;
+                return;
         }
     }
 
     // if we don't wait new packets, do the prompt
     prompt ();
-
-    return 0;
 }
 
 //------------------------------------
@@ -6406,12 +6404,12 @@ int Connect_login_server ()
 //-------------------------------------------------
 int config_switch (const char *str)
 {
-    if (strcmpi (str, "on") == 0 || strcmpi (str, "yes") == 0
-        || strcmpi (str, "oui") == 0 || strcmpi (str, "ja") == 0
-        || strcmpi (str, "si") == 0)
+    if (strcasecmp (str, "on") == 0 || strcasecmp (str, "yes") == 0
+        || strcasecmp (str, "oui") == 0 || strcasecmp (str, "ja") == 0
+        || strcasecmp (str, "si") == 0)
         return 1;
-    if (strcmpi (str, "off") == 0 || strcmpi (str, "no") == 0
-        || strcmpi (str, "non") == 0 || strcmpi (str, "nein") == 0)
+    if (strcasecmp (str, "off") == 0 || strcasecmp (str, "no") == 0
+        || strcasecmp (str, "non") == 0 || strcasecmp (str, "nein") == 0)
         return 0;
 
     return atoi (str);
@@ -6463,7 +6461,7 @@ int ladmin_config_read (const char *cfgName)
             remove_control_chars (w1);
             remove_control_chars (w2);
 
-            if (strcmpi (w1, "login_ip") == 0)
+            if (strcasecmp (w1, "login_ip") == 0)
             {
                 struct hostent *h = gethostbyname (w2);
                 if (h != NULL)
@@ -6495,11 +6493,11 @@ int ladmin_config_read (const char *cfgName)
                 else
                     memcpy (loginserverip, w2, 16);
             }
-            else if (strcmpi (w1, "login_port") == 0)
+            else if (strcasecmp (w1, "login_port") == 0)
             {
                 loginserverport = atoi (w2);
             }
-            else if (strcmpi (w1, "admin_pass") == 0)
+            else if (strcasecmp (w1, "admin_pass") == 0)
             {
                 strncpy (loginserveradminpassword, w2,
                          sizeof (loginserveradminpassword));
@@ -6507,25 +6505,25 @@ int ladmin_config_read (const char *cfgName)
                                          1] = '\0';
 #ifdef PASSWORDENC
             }
-            else if (strcmpi (w1, "passenc") == 0)
+            else if (strcasecmp (w1, "passenc") == 0)
             {
                 passenc = atoi (w2);
                 if (passenc < 0 || passenc > 2)
                     passenc = 0;
 #endif
             }
-            else if (strcmpi (w1, "defaultlanguage") == 0)
+            else if (strcasecmp (w1, "defaultlanguage") == 0)
             {
                 if (w2[0] == 'F' || w2[0] == 'E')
                     defaultlanguage = w2[0];
             }
-            else if (strcmpi (w1, "ladmin_log_filename") == 0)
+            else if (strcasecmp (w1, "ladmin_log_filename") == 0)
             {
                 strncpy (ladmin_log_filename, w2,
                          sizeof (ladmin_log_filename));
                 ladmin_log_filename[sizeof (ladmin_log_filename) - 1] = '\0';
             }
-            else if (strcmpi (w1, "date_format") == 0)
+            else if (strcasecmp (w1, "date_format") == 0)
             {                   // note: never have more than 19 char for the date!
                 switch (atoi (w2))
                 {
@@ -6543,7 +6541,7 @@ int ladmin_config_read (const char *cfgName)
                         break;
                 }
             }
-            else if (strcmpi (w1, "import") == 0)
+            else if (strcasecmp (w1, "import") == 0)
             {
                 ladmin_config_read (w2);
             }
@@ -6568,7 +6566,7 @@ int ladmin_config_read (const char *cfgName)
 //--------------------------------------
 // Function called at exit of the server
 //--------------------------------------
-void do_final (void)
+void term_func (void)
 {
 
     if (already_exit_function == 0)
@@ -6601,6 +6599,7 @@ void do_final (void)
 //------------------------
 int do_init (int argc, char **argv)
 {
+    eathena_interactive_session = isatty (0);
     // read ladmin configuration
     ladmin_config_read ((argc > 1) ? argv[1] : LADMIN_CONF_NAME);
 
@@ -6616,7 +6615,6 @@ int do_init (int argc, char **argv)
 
     srand (time (NULL));
 
-    set_termfunc (do_final);
     set_defaultparse (parse_fromlogin);
 
     if (defaultlanguage == 'F')
@@ -6645,7 +6643,7 @@ int do_init (int argc, char **argv)
 
     Connect_login_server ();
 
-    atexit (do_final);
+    atexit (term_func);
 
     return 0;
 }

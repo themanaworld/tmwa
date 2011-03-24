@@ -5,7 +5,6 @@
 
 #include "../common/db.h"
 #include "../common/nullpo.h"
-#include "../common/malloc.h"
 #include "map.h"
 #include "clif.h"
 #include "pc.h"
@@ -29,7 +28,7 @@ int chat_createchat (struct map_session_data *sd, int limit, int pub,
 
     nullpo_retr (0, sd);
 
-    cd = aCalloc (1, sizeof (struct chat_data));
+    cd = calloc (1, sizeof (struct chat_data));
 
     cd->limit = limit;
     cd->pub = pub;
@@ -280,7 +279,7 @@ int chat_createnpcchat (struct npc_data *nd, int limit, int pub, int trigger,
 
     nullpo_retr (1, nd);
 
-    cd = aCalloc (1, sizeof (struct chat_data));
+    cd = calloc (1, sizeof (struct chat_data));
 
     cd->limit = cd->trigger = limit;
     if (trigger > 0)

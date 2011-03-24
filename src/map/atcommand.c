@@ -13,6 +13,7 @@
 #include "../common/socket.h"
 #include "../common/timer.h"
 #include "../common/nullpo.h"
+#include "../common/mt_rand.h"
 
 #include "atcommand.h"
 #include "battle.h"
@@ -794,7 +795,7 @@ AtCommandType atcommand (const int level, const char *message,
 
         while (atcommand_info[i].type != AtCommand_Unknown)
         {
-            if (strcmpi (command + 1, atcommand_info[i].command + 1) == 0
+            if (strcasecmp (command + 1, atcommand_info[i].command + 1) == 0
                 && level >= atcommand_info[i].level)
             {
                 p[0] = atcommand_info[i].command[0];    // set correct first symbol for after.
@@ -862,7 +863,7 @@ int msg_config_read (const char *cfgName)
             continue;
         if (sscanf (line, "%[^:]: %[^\r\n]", w1, w2) == 2)
         {
-            if (strcmpi (w1, "import") == 0)
+            if (strcasecmp (w1, "import") == 0)
             {
                 msg_config_read (w2);
             }
@@ -891,7 +892,7 @@ static AtCommandInfo *get_atcommandinfo_byname (const char *name)
     int  i;
 
     for (i = 0; atcommand_info[i].type != AtCommand_Unknown; i++)
-        if (strcmpi (atcommand_info[i].command + 1, name) == 0)
+        if (strcasecmp (atcommand_info[i].command + 1, name) == 0)
             return &atcommand_info[i];
 
     return NULL;
@@ -930,9 +931,9 @@ int atcommand_config_read (const char *cfgName)
                 p->level = 0;
         }
 
-        if (strcmpi (w1, "import") == 0)
+        if (strcasecmp (w1, "import") == 0)
             atcommand_config_read (w2);
-        else if (strcmpi (w1, "command_symbol") == 0 && w2[0] > 31 && w2[0] != '/' &&   // symbol of standard ragnarok GM commands
+        else if (strcasecmp (w1, "command_symbol") == 0 && w2[0] > 31 && w2[0] != '/' &&   // symbol of standard ragnarok GM commands
                  w2[0] != '%')  // symbol of party chat speaking
             command_symbol = w2[0];
     }
@@ -3506,7 +3507,7 @@ int atcommand_param (const int fd, struct map_session_data *sd,
     index = -1;
     for (i = 0; param[i] != NULL; i++)
     {
-        if (strcmpi (command, param[i]) == 0)
+        if (strcasecmp (command, param[i]) == 0)
         {
             index = i;
             break;
@@ -7131,12 +7132,12 @@ int atcommand_email (const int fd, struct map_session_data *sd,
         clif_displaymessage (fd, msg_table[145]);   // Invalid new email. Please enter a real e-mail.
         return -1;
     }
-    else if (strcmpi (new_email, "a@a.com") == 0)
+    else if (strcasecmp (new_email, "a@a.com") == 0)
     {
         clif_displaymessage (fd, msg_table[146]);   // New email must be a real e-mail.
         return -1;
     }
-    else if (strcmpi (actual_email, new_email) == 0)
+    else if (strcasecmp (actual_email, new_email) == 0)
     {
         clif_displaymessage (fd, msg_table[147]);   // New email must be different of the actual e-mail.
         return -1;
@@ -7829,7 +7830,7 @@ atcommand_dropall (const int fd, struct map_session_data *sd,
 
 /*==========================================
  * @chardropall by [MouseJstr]
- * 
+ *
  * Throw all the characters possessions on the ground.  Normally
  * done in response to them being disrespectful of a GM
  *------------------------------------------
@@ -7967,8 +7968,8 @@ atcommand_skillid (const int fd, struct map_session_data *sd,
     skillen = strlen (message);
     while (skill_names[idx].id != 0)
     {
-        if ((strnicmp (skill_names[idx].name, message, skillen) == 0) ||
-            (strnicmp (skill_names[idx].desc, message, skillen) == 0))
+        if ((strncasecmp (skill_names[idx].name, message, skillen) == 0) ||
+            (strncasecmp (skill_names[idx].desc, message, skillen) == 0))
         {
             char output[255];
             sprintf (output, "skill %d: %s", skill_names[idx].id,
@@ -8116,7 +8117,7 @@ atcommand_leaves (const int fd, struct map_session_data *sd,
 }
 
 /*==========================================
- * 
+ *
  *------------------------------------------
  */
 int atcommand_summon (const int fd, struct map_session_data *sd,
@@ -8182,7 +8183,7 @@ atcommand_adjcmdlvl (const int fd, struct map_session_data *sd,
     }
 
     for (i = 0; atcommand_info[i].type != AtCommand_None; i++)
-        if (strcmpi (cmd, atcommand_info[i].command + 1) == 0)
+        if (strcasecmp (cmd, atcommand_info[i].command + 1) == 0)
         {
             atcommand_info[i].level = newlev;
             clif_displaymessage (fd, "@command level changed.");
@@ -8230,7 +8231,7 @@ atcommand_adjgmlvl (const int fd, struct map_session_data *sd,
  *
  * Open a trade window with a remote player
  *
- * If I have to jump to a remote player one more time, I am 
+ * If I have to jump to a remote player one more time, I am
  * gonna scream!
  *------------------------------------------
  */

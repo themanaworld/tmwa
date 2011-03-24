@@ -3,6 +3,8 @@
 #include "itemdb.h"
 #include <math.h>
 
+#include "../common/mt_rand.h"
+
 #define IS_SOLID(c) ((c) == 1 || (c) == 5)
 
 int map_is_solid (int m, int x, int y)
@@ -180,7 +182,8 @@ static void intify (val_t * v)
 
 area_t *area_new (int ty)
 {
-    area_t *retval = (area_t *) aCalloc (sizeof (area_t), 1);
+    area_t *retval;
+    CREATE (retval, area_t, 1);
     retval->ty = ty;
     return retval;
 }
