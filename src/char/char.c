@@ -2337,7 +2337,6 @@ void parse_tologin (int fd)
 //--------------------------------
 // Map-server anti-freeze system
 //--------------------------------
-typedef void (*timer_func) (timer_id, tick_t, custom_id_t, custom_data_t);
 void map_anti_freeze_system (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  i;

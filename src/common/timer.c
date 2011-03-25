@@ -20,7 +20,7 @@ static uint32_t free_timer_list_max, free_timer_list_pos;
 // timer_heap[0] is the size (greatest index into the heap)
 // timer_heap[1] is the first actual element
 // timer_heap_max increases 256 at a time and never decreases
-static uint32_t timer_heap_max = 256;
+static uint32_t timer_heap_max = 0;
 /// FIXME: refactor the code to put the size in a separate variable
 //nontrivial because indices get multiplied
 static timer_id *timer_heap = NULL;
@@ -48,19 +48,14 @@ uint32_t gettick (void)
 
 static void push_timer_heap (timer_id index)
 {
-    if (timer_heap == NULL)
+    if (timer_heap == NULL || timer_heap[0] + 1 >= timer_heap_max)
     {
         timer_heap_max += 256;
-        CREATE (timer_heap, timer_id, timer_heap_max);
+        RECREATE (timer_heap, int, timer_heap_max);
+        memset (timer_heap + (timer_heap_max - 256), 0, sizeof (timer_id) * 256);
     }
 // timer_heap[0] is the greatest index into the heap, which increases
     timer_heap[0]++;
-    if (timer_heap[0] >= timer_heap_max)
-    {
-        timer_heap_max += 256;
-        RECREATE (timer_heap, timer_id, timer_heap_max);
-        memset (timer_heap + (timer_heap_max - 256), 0, 4 * 256);
-    }
 
     timer_id h = timer_heap[0]-1, i = (h - 1) / 2;
     while (h)
@@ -104,7 +99,8 @@ static timer_id pop_timer_heap ()
     uint32_t i = (h - 1) / 2;
     while (h)
     {
-        if (DIFF_TICK(timer_data[timer_heap[i + 1]].tick, timer_data[last].tick) <= 0)
+        if (DIFF_TICK (timer_data[timer_heap[i + 1]].tick, timer_data[last].tick) <= 0)
+            break;
         timer_heap[h + 1] = timer_heap[i + 1];
         h = i;
         i = (h - 1) / 2;
@@ -152,7 +148,7 @@ timer_id add_timer (tick_t tick, timer_func func, custom_id_t id, custom_data_t 
     }
     timer_data[i].tick = tick;
     timer_data[i].func = func;
-    timer_data[i].id   = id;
+    timer_data[i].id = id;
     timer_data[i].data = data;
     timer_data[i].type = TIMER_ONCE_AUTODEL;
     timer_data[i].interval = 1000;
@@ -237,7 +233,7 @@ interdb_val_t do_timer (tick_t tick)
                     free_timer_list_max += 256;
                     RECREATE (free_timer_list, uint32_t, free_timer_list_max);
                     memset (free_timer_list + (free_timer_list_max - 256),
-                            0, 256 * sizeof (timer_id));
+                            0, 256 * sizeof (uint32_t));
                 }
                 free_timer_list[free_timer_list_pos++] = i;
                 break;

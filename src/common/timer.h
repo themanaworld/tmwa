@@ -3,7 +3,8 @@
 
 # include "sanity.h"
 
-enum TIMER_TYPE {
+enum TIMER_TYPE
+{
     TIMER_ONCE_AUTODEL = 1,
     TIMER_INTERVAL = 2,
 };
@@ -32,7 +33,7 @@ struct TimerData
     /// Type of timer - 0 initially
     enum TIMER_TYPE type;
     /// Repeat rate
-    uint32_t interval;
+    interdb_val_t interval;
 };
 
 /// Server time, in milliseconds, since the epoch,
@@ -44,24 +45,16 @@ tick_t gettick_nocache (void);
 /// the next 255 times
 tick_t gettick (void);
 
-timer_id add_timer (tick_t tick, timer_func func, custom_id_t id,
-                    custom_data_t data);
-timer_id add_timer_interval (tick_t tick, timer_func func, custom_id_t id,
-                             custom_data_t data, interdb_val_t interval);
+timer_id add_timer (tick_t, timer_func, custom_id_t, custom_data_t);
+timer_id add_timer_interval (tick_t, timer_func, custom_id_t, custom_data_t, interdb_val_t);
 void delete_timer (timer_id, timer_func);
 
-tick_t addtick_timer (timer_id tid, interdb_val_t tick);
+tick_t addtick_timer (timer_id, interdb_val_t);
 struct TimerData *get_timer (timer_id tid);
 
 /// Do all timers scheduled before tick, and return the number of milliseconds until the next timer happens
 interdb_val_t do_timer (tick_t tick);
 
-// debugging
-static void add_timer_func_list (timer_func, char *) __attribute__((deprecated));
-static inline void add_timer_func_list (timer_func UNUSED, char *UNUSED) {}
 
-// used to just call free(), which doesn't matter when we're exiting
-static void timer_final () __attribute__((deprecated));
-static inline void timer_final() {};
 
 #endif // TIMER_H

@@ -2113,7 +2113,6 @@ void do_final (void)
         delete_session (i);
 
     map_removenpc ();
-    timer_final ();
 
     numdb_final (id_db, NULL);
     strdb_final (map_db, NULL);
