@@ -159,7 +159,7 @@ timer_id add_timer (tick_t tick, timer_func func, custom_id_t id, custom_data_t 
 }
 
 timer_id add_timer_interval (tick_t tick, timer_func func, custom_id_t id,
-                             custom_data_t data, interdb_val_t interval)
+                             custom_data_t data, interval_t interval)
 {
     timer_id tid = add_timer (tick, func, id, data);
     timer_data[tid].type = TIMER_INTERVAL;
@@ -185,7 +185,7 @@ void delete_timer (timer_id id, timer_func func)
     timer_data[id].tick -= 60 * 60 * 1000;
 }
 
-tick_t addtick_timer (timer_id tid, interdb_val_t tick)
+tick_t addtick_timer (timer_id tid, interval_t tick)
 {
     return timer_data[tid].tick += tick;
 }
@@ -195,12 +195,12 @@ struct TimerData *get_timer (timer_id tid)
     return &timer_data[tid];
 }
 
-interdb_val_t do_timer (tick_t tick)
+interval_t do_timer (tick_t tick)
 {
     timer_id i;
     /// Number of milliseconds until it calls this again
     // this says to wait 1 sec if all timers get popped
-    interdb_val_t nextmin = 1000;
+    interval_t nextmin = 1000;
 
     while ((i = top_timer_heap ()) != (timer_id)-1)
     {

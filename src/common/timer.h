@@ -13,7 +13,7 @@ enum TIMER_TYPE
 
 // TODO replace with signed 64-bit to make code more clear and protect from the future
 typedef uint32_t tick_t;
-typedef uint32_t interdb_val_t;
+typedef uint32_t interval_t;
 typedef uint32_t timer_id;
 // BUG: pointers are stored in here
 typedef int32_t custom_id_t;
@@ -33,7 +33,7 @@ struct TimerData
     /// Type of timer - 0 initially
     enum TIMER_TYPE type;
     /// Repeat rate
-    interdb_val_t interval;
+    interval_t interval;
 };
 
 /// Server time, in milliseconds, since the epoch,
@@ -46,14 +46,14 @@ tick_t gettick_nocache (void);
 tick_t gettick (void);
 
 timer_id add_timer (tick_t, timer_func, custom_id_t, custom_data_t);
-timer_id add_timer_interval (tick_t, timer_func, custom_id_t, custom_data_t, interdb_val_t);
+timer_id add_timer_interval (tick_t, timer_func, custom_id_t, custom_data_t, interval_t);
 void delete_timer (timer_id, timer_func);
 
-tick_t addtick_timer (timer_id, interdb_val_t);
+tick_t addtick_timer (timer_id, interval_t);
 struct TimerData *get_timer (timer_id tid);
 
 /// Do all timers scheduled before tick, and return the number of milliseconds until the next timer happens
-interdb_val_t do_timer (tick_t tick);
+interval_t do_timer (tick_t tick);
 
 
 
