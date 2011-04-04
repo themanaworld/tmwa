@@ -148,7 +148,7 @@ int login_log (char *fmt, ...)
     if (logfp)
     {
         if (fmt[0] == '\0')     // jump a line if no message
-            fprintf (logfp, RETCODE);
+            fprintf (logfp, "\n");
         else
         {
             gettimeofday (&tv, NULL);
@@ -203,11 +203,10 @@ int read_gm_account (void)
                 GM_account_filename);
         printf
             ("                 Actually, there is no GM accounts on the server.\n");
-        login_log ("read_gm_account: GM accounts file [%s] not found."
-                   RETCODE, GM_account_filename);
+        login_log ("read_gm_account: GM accounts file [%s] not found.\n",
+                   GM_account_filename);
         login_log
-            ("                 Actually, there is no GM accounts on the server."
-             RETCODE);
+            ("                 Actually, there is no GM accounts on the server.\n");
         return 1;
     }
     // limited to 4000, because we send information to char-servers (more than 4000 GM accounts???)
@@ -259,8 +258,7 @@ int read_gm_account (void)
                         printf
                             ("***WARNING: 4000 GM accounts found. Next GM accounts are not readed.\n");
                         login_log
-                            ("***WARNING: 4000 GM accounts found. Next GM accounts are not readed."
-                             RETCODE);
+                            ("***WARNING: 4000 GM accounts found. Next GM accounts are not readed.\n");
                     }
                 }
             }
@@ -270,8 +268,8 @@ int read_gm_account (void)
 
     printf ("read_gm_account: file '%s' readed (%d GM accounts found).\n",
             GM_account_filename, c);
-    login_log ("read_gm_account: file '%s' readed (%d GM accounts found)."
-               RETCODE, GM_account_filename, c);
+    login_log ("read_gm_account: file '%s' readed (%d GM accounts found).\n",
+               GM_account_filename, c);
 
     return 0;
 }
@@ -592,11 +590,11 @@ int mmo_auth_init (void)
                     ("               account id #%d -> account not read (saved in log file).\033[0m\n",
                      account_id);
                 login_log
-                    ("mmmo_auth_init: ******Error: an account has an id higher than %d."
-                     RETCODE, END_ACCOUNT_NUM);
+                    ("mmmo_auth_init: ******Error: an account has an id higher than %d.\n",
+                     END_ACCOUNT_NUM);
                 login_log
-                    ("               account id #%d -> account not read (saved in next line):"
-                     RETCODE, account_id);
+                    ("               account id #%d -> account not read (saved in next line):\n",
+                     account_id);
                 login_log ("%s", line);
                 continue;
             }
@@ -612,11 +610,10 @@ int mmo_auth_init (void)
                         ("               account id #%d -> new account not read (saved in log file).\033[0m\n",
                          account_id);
                     login_log
-                        ("mmmo_auth_init: ******Error: an account has an identical id to another."
-                         RETCODE);
+                        ("mmmo_auth_init: ******Error: an account has an identical id to another.\n");
                     login_log
-                        ("               account id #%d -> new account not read (saved in next line):"
-                         RETCODE, account_id);
+                        ("               account id #%d -> new account not read (saved in next line):\n",
+                         account_id);
                     login_log ("%s", line);
                     break;
                 }
@@ -628,11 +625,10 @@ int mmo_auth_init (void)
                     printf
                         ("               Account saved in log file.\033[0m\n");
                     login_log
-                        ("mmmo_auth_init: ******Error: an account has an identical id to another."
-                         RETCODE);
+                        ("mmmo_auth_init: ******Error: an account has an identical id to another.\n");
                     login_log
-                        ("               account id #%d -> new account not read (saved in next line):"
-                         RETCODE, account_id);
+                        ("               account id #%d -> new account not read (saved in next line):\n",
+                         account_id);
                     login_log ("%s", line);
                     break;
                 }
@@ -771,11 +767,11 @@ int mmo_auth_init (void)
                     ("               account id #%d -> account not read (saved in log file).\033[0m\n",
                      account_id);
                 login_log
-                    ("mmmo_auth_init: ******Error: an account has an id higher than %d."
-                     RETCODE, END_ACCOUNT_NUM);
+                    ("mmmo_auth_init: ******Error: an account has an id higher than %d.\n",
+                     END_ACCOUNT_NUM);
                 login_log
-                    ("               account id #%d -> account not read (saved in next line):"
-                     RETCODE, account_id);
+                    ("               account id #%d -> account not read (saved in next line):\n",
+                     account_id);
                 login_log ("%s", line);
                 continue;
             }
@@ -791,11 +787,10 @@ int mmo_auth_init (void)
                         ("               account id #%d -> new account not read (saved in log file).\033[0m\n",
                          account_id);
                     login_log
-                        ("mmmo_auth_init: ******Error: an account has an identical id to another."
-                         RETCODE);
+                        ("mmmo_auth_init: ******Error: an account has an identical id to another.\n");
                     login_log
-                        ("               account id #%d -> new account not read (saved in next line):"
-                         RETCODE, account_id);
+                        ("               account id #%d -> new account not read (saved in next line):\n",
+                         account_id);
                     login_log ("%s", line);
                     break;
                 }
@@ -807,11 +802,10 @@ int mmo_auth_init (void)
                     printf
                         ("               Account saved in log file.\033[0m\n");
                     login_log
-                        ("mmmo_auth_init: ******Error: an account has an identical id to another."
-                         RETCODE);
+                        ("mmmo_auth_init: ******Error: an account has an identical id to another.\n");
                     login_log
-                        ("               account id #%d -> new account not read (saved in next line):"
-                         RETCODE, account_id);
+                        ("               account id #%d -> new account not read (saved in next line):\n",
+                         account_id);
                     login_log ("%s", line);
                     break;
                 }
@@ -964,7 +958,7 @@ int mmo_auth_init (void)
             sprintf (line, "%s %d server accounts ('S').", str, server_count);
         }
     }
-    login_log ("%s" RETCODE, line);
+    login_log ("%s\n", line);
 
     return 0;
 }
@@ -1028,7 +1022,7 @@ void mmo_auth_sync (void)
             continue;
 
         mmo_auth_tostr (line, &auth_dat[k]);
-        fprintf (fp, "%s" RETCODE, line);
+        fprintf (fp, "%s\n", line);
     }
     fprintf (fp, "%d\t%%newid%%\n", account_id_count);
 
@@ -1271,8 +1265,8 @@ int mmo_auth (struct mmo_account *account, int fd)
         if (newaccount)
         {
             login_log
-                ("Attempt of creation of an already existant account (account: %s_%c, ip: %s)"
-                 RETCODE, account->userid, account->userid[len + 1], ip);
+                ("Attempt of creation of an already existant account (account: %s_%c, ip: %s)\n",
+                 account->userid, account->userid[len + 1], ip);
             return 9;           // 9 = Account already exists
         }
         ld = (struct login_session_data*) session[fd]->session_data;
@@ -1282,8 +1276,8 @@ int mmo_auth (struct mmo_account *account, int fd)
             int  j = account->passwdenc;
             if (!ld)
             {
-                login_log ("Md5 key not created (account: %s, ip: %s)"
-                           RETCODE, account->userid, ip);
+                login_log ("Md5 key not created (account: %s, ip: %s)\n",
+                           account->userid, ip);
                 return 1;       // 1 = Incorrect Password
             }
             if (j > 2)
@@ -1315,8 +1309,8 @@ int mmo_auth (struct mmo_account *account, int fd)
         {
             if (account->passwdenc == 0)
                 login_log
-                    ("Invalid password (account: %s, ip: %s)"
-                     RETCODE, account->userid, ip);
+                    ("Invalid password (account: %s, ip: %s)\n",
+                     account->userid, ip);
 
 #ifdef PASSWORDENC
             else
@@ -1336,7 +1330,7 @@ int mmo_auth (struct mmo_account *account, int fd)
                 for (j = 0; j < ld->md5keylen; j++)
                     p += sprintf (p, "%02x",
                                   ((unsigned char *) ld->md5key)[j]);
-                p += sprintf (p, "], ip: %s)" RETCODE, ip);
+                p += sprintf (p, "], ip: %s)\n", ip);
                 login_log (logbuf);
             }
 #endif
@@ -1346,8 +1340,8 @@ int mmo_auth (struct mmo_account *account, int fd)
         if (auth_dat[i].state)
         {
             login_log
-                ("Connection refused (account: %s, state: %d, ip: %s)"
-                 RETCODE, account->userid, auth_dat[i].state,
+                ("Connection refused (account: %s, state: %d, ip: %s)\n",
+                 account->userid, auth_dat[i].state,
                  ip);
             switch (auth_dat[i].state)
             {                   // packet 0x006a value + 1
@@ -1377,15 +1371,15 @@ int mmo_auth (struct mmo_account *account, int fd)
             if (auth_dat[i].ban_until_time > time (NULL))
             {                   // always banned
                 login_log
-                    ("Connection refused (account: %s, banned until %s, ip: %s)"
-                     RETCODE, account->userid, tmpstr, ip);
+                    ("Connection refused (account: %s, banned until %s, ip: %s)\n",
+                     account->userid, tmpstr, ip);
                 return 6;       // 6 = Your are Prohibited to log in until %s
             }
             else
             {                   // ban is finished
                 login_log
-                    ("End of ban (account: %s, previously banned until %s -> not more banned, ip: %s)"
-                     RETCODE, account->userid, tmpstr, ip);
+                    ("End of ban (account: %s, previously banned until %s -> not more banned, ip: %s)\n",
+                     account->userid, tmpstr, ip);
                 auth_dat[i].ban_until_time = 0; // reset the ban time
             }
         }
@@ -1394,21 +1388,21 @@ int mmo_auth (struct mmo_account *account, int fd)
             && auth_dat[i].connect_until_time < time (NULL))
         {
             login_log
-                ("Connection refused (account: %s, expired ID, ip: %s)"
-                 RETCODE, account->userid, ip);
+                ("Connection refused (account: %s, expired ID, ip: %s)\n",
+                 account->userid, ip);
             return 2;           // 2 = This ID is expired
         }
 
-        login_log ("Authentification accepted (account: %s (id: %d), ip: %s)"
-                   RETCODE, account->userid, auth_dat[i].account_id, ip);
+        login_log ("Authentification accepted (account: %s (id: %d), ip: %s)\n",
+                   account->userid, auth_dat[i].account_id, ip);
     }
     else
     {
         if (newaccount == 0)
         {
             login_log
-                ("Unknown account (account: %s, ip: %s)"
-                 RETCODE, account->userid, ip);
+                ("Unknown account (account: %s, ip: %s)\n",
+                 account->userid, ip);
             return 0;           // 0 = Unregistered ID
         }
         else
@@ -1416,8 +1410,8 @@ int mmo_auth (struct mmo_account *account, int fd)
             int  new_id =
                 mmo_auth_new (account, account->userid[len + 1], "a@a.com");
             login_log
-                ("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)"
-                 RETCODE, account->userid, new_id,
+                ("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n",
+                 account->userid, new_id,
                  account->userid[len + 1], ip);
         }
     }
@@ -1457,8 +1451,8 @@ void char_anti_freeze_system (timer_id tid, tick_t tick, custom_id_t id, custom_
                     ("Char-server anti-freeze system: char-server #%d '%s' is freezed -> disconnection.\n",
                      i, server[i].name);
                 login_log
-                    ("Char-server anti-freeze system: char-server #%d '%s' is freezed -> disconnection."
-                     RETCODE, i, server[i].name);
+                    ("Char-server anti-freeze system: char-server #%d '%s' is freezed -> disconnection.\n",
+                     i, server[i].name);
                 session[server_fd[i]]->eof = 1;
             }
         }
@@ -1484,7 +1478,7 @@ void parse_fromchar (int fd)
         if (id < MAX_SERVERS)
         {
             printf ("Char-server '%s' has disconnected.\n", server[id].name);
-            login_log ("Char-server '%s' has disconnected (ip: %s)." RETCODE,
+            login_log ("Char-server '%s' has disconnected (ip: %s).\n",
                        server[id].name, ip);
             server_fd[id] = -1;
             memset (&server[id], 0, sizeof (struct mmo_char_server));
@@ -1506,8 +1500,8 @@ void parse_fromchar (int fd)
                 // request from map-server via char-server to reload GM accounts (by Yor).
             case 0x2709:
                 login_log
-                    ("Char-server '%s': Request to re-load GM configuration file (ip: %s)."
-                     RETCODE, server[id].name, ip);
+                    ("Char-server '%s': Request to re-load GM configuration file (ip: %s).\n",
+                     server[id].name, ip);
                 read_gm_account ();
                 // send GM accounts to all char-servers
                 send_GM_accounts ();
@@ -1535,8 +1529,8 @@ void parse_fromchar (int fd)
                             int  p, k;
                             auth_fifo[i].delflag = 1;
                             login_log
-                                ("Char-server '%s': authentification of the account %d accepted (ip: %s)."
-                                 RETCODE, server[id].name, acc, ip);
+                                ("Char-server '%s': authentification of the account %d accepted (ip: %s).\n",
+                                 server[id].name, acc, ip);
 //                  printf("%d\n", i);
                             for (k = 0; k < auth_num; k++)
                             {
@@ -1576,8 +1570,8 @@ void parse_fromchar (int fd)
                     if (i == AUTH_FIFO_SIZE)
                     {
                         login_log
-                            ("Char-server '%s': authentification of the account %d REFUSED (ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': authentification of the account %d REFUSED (ip: %s).\n",
+                             server[id].name, acc, ip);
                         WFIFOW (fd, 0) = 0x2713;
                         WFIFOL (fd, 2) = acc;
                         WFIFOB (fd, 6) = 1;
@@ -1613,8 +1607,8 @@ void parse_fromchar (int fd)
                 //printf("parse_fromchar: an e-mail creation of an account with a default e-mail: server '%s', account: %d, e-mail: '%s'.\n", server[id].name, acc, RFIFOP(fd,6));
                 if (e_mail_check (email) == 0)
                     login_log
-                        ("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - e-mail is invalid (account: %d, ip: %s)"
-                         RETCODE, server[id].name, acc, ip);
+                        ("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - e-mail is invalid (account: %d, ip: %s)\n",
+                         server[id].name, acc, ip);
                 else
                 {
                     for (i = 0; i < auth_num; i++)
@@ -1625,15 +1619,15 @@ void parse_fromchar (int fd)
                         {
                             memcpy (auth_dat[i].email, email, 40);
                             login_log
-                                ("Char-server '%s': Create an e-mail on an account with a default e-mail (account: %d, new e-mail: %s, ip: %s)."
-                                 RETCODE, server[id].name, acc, email, ip);
+                                ("Char-server '%s': Create an e-mail on an account with a default e-mail (account: %d, new e-mail: %s, ip: %s).\n",
+                                 server[id].name, acc, email, ip);
                             break;
                         }
                     }
                     if (i == auth_num)
                         login_log
-                            ("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - account doesn't exist or e-mail of account isn't default e-mail (account: %d, ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - account doesn't exist or e-mail of account isn't default e-mail (account: %d, ip: %s).\n",
+                             server[id].name, acc, ip);
                 }
                 RFIFOSKIP (fd, 46);
                 break;
@@ -1649,8 +1643,8 @@ void parse_fromchar (int fd)
                     if (auth_dat[i].account_id == RFIFOL (fd, 2))
                     {
                         login_log
-                            ("Char-server '%s': e-mail of the account %d found (ip: %s)."
-                             RETCODE, server[id].name, RFIFOL (fd, 2), ip);
+                            ("Char-server '%s': e-mail of the account %d found (ip: %s).\n",
+                             server[id].name, RFIFOL (fd, 2), ip);
                         WFIFOW (fd, 0) = 0x2717;
                         WFIFOL (fd, 2) = RFIFOL (fd, 2);
                         memcpy (WFIFOP (fd, 6), auth_dat[i].email, 40);
@@ -1663,8 +1657,8 @@ void parse_fromchar (int fd)
                 if (i == auth_num)
                 {
                     login_log
-                        ("Char-server '%s': e-mail of the account %d NOT found (ip: %s)."
-                         RETCODE, server[id].name, RFIFOL (fd, 2), ip);
+                        ("Char-server '%s': e-mail of the account %d NOT found (ip: %s).\n",
+                         server[id].name, RFIFOL (fd, 2), ip);
                 }
                 RFIFOSKIP (fd, 6);
                 break;
@@ -1700,9 +1694,8 @@ void parse_fromchar (int fd)
                                     strftime (tmpstr, 23, date_format,
                                               gmtime (&(tv.tv_sec)));
                                     fprintf (fp,
-                                             RETCODE
-                                             "// %s: @GM command on account %d"
-                                             RETCODE "%d %d" RETCODE, tmpstr,
+                                             "\n// %s: @GM command on account %d\n%d %d\n",
+                                             tmpstr,
                                              acc, acc, level_new_gm);
                                     fclose_ (fp);
                                     WBUFL (buf, 6) = level_new_gm;
@@ -1712,8 +1705,8 @@ void parse_fromchar (int fd)
                                         ("GM Change of the account %d: level 0 -> %d.\n",
                                          acc, level_new_gm);
                                     login_log
-                                        ("Char-server '%s': GM Change of the account %d: level 0 -> %d (ip: %s)."
-                                         RETCODE, server[id].name, acc,
+                                        ("Char-server '%s': GM Change of the account %d: level 0 -> %d (ip: %s).\n",
+                                         server[id].name, acc,
                                          level_new_gm, ip);
                                 }
                                 else
@@ -1722,8 +1715,8 @@ void parse_fromchar (int fd)
                                         ("Error of GM change (suggested account: %d, correct password, unable to add a GM account in GM accounts file)\n",
                                          acc);
                                     login_log
-                                        ("Char-server '%s': Error of GM change (suggested account: %d, correct password, unable to add a GM account in GM accounts file, ip: %s)."
-                                         RETCODE, server[id].name, acc, ip);
+                                        ("Char-server '%s': Error of GM change (suggested account: %d, correct password, unable to add a GM account in GM accounts file, ip: %s).\n",
+                                         server[id].name, acc, ip);
                                 }
                             }
                             else
@@ -1732,8 +1725,8 @@ void parse_fromchar (int fd)
                                     ("Error of GM change (suggested account: %d, correct password, but GM creation is disable (level_new_gm = 0))\n",
                                      acc);
                                 login_log
-                                    ("Char-server '%s': Error of GM change (suggested account: %d, correct password, but GM creation is disable (level_new_gm = 0), ip: %s)."
-                                     RETCODE, server[id].name, acc, ip);
+                                    ("Char-server '%s': Error of GM change (suggested account: %d, correct password, but GM creation is disable (level_new_gm = 0), ip: %s).\n",
+                                     server[id].name, acc, ip);
                             }
                         }
                         else
@@ -1742,8 +1735,8 @@ void parse_fromchar (int fd)
                                 ("Error of GM change (suggested account: %d (already GM), correct password).\n",
                                  acc);
                             login_log
-                                ("Char-server '%s': Error of GM change (suggested account: %d (already GM), correct password, ip: %s)."
-                                 RETCODE, server[id].name, acc, ip);
+                                ("Char-server '%s': Error of GM change (suggested account: %d (already GM), correct password, ip: %s).\n",
+                                 server[id].name, acc, ip);
                         }
                     }
                     else
@@ -1752,8 +1745,8 @@ void parse_fromchar (int fd)
                             ("Error of GM change (suggested account: %d, invalid password).\n",
                              acc);
                         login_log
-                            ("Char-server '%s': Error of GM change (suggested account: %d, invalid password, ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Error of GM change (suggested account: %d, invalid password, ip: %s).\n",
+                             server[id].name, acc, ip);
                     }
                     charif_sendallwos (-1, buf, 10);
                 }
@@ -1776,16 +1769,16 @@ void parse_fromchar (int fd)
                     remove_control_chars (new_email);
                     if (e_mail_check (actual_email) == 0)
                         login_log
-                            ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual email is invalid (account: %d, ip: %s)"
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual email is invalid (account: %d, ip: %s)\n",
+                             server[id].name, acc, ip);
                     else if (e_mail_check (new_email) == 0)
                         login_log
-                            ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a invalid new e-mail (account: %d, ip: %s)"
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a invalid new e-mail (account: %d, ip: %s)\n",
+                             server[id].name, acc, ip);
                     else if (strcasecmp (new_email, "a@a.com") == 0)
                         login_log
-                            ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a default e-mail (account: %d, ip: %s)"
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a default e-mail (account: %d, ip: %s)\n",
+                             server[id].name, acc, ip);
                     else
                     {
                         for (i = 0; i < auth_num; i++)
@@ -1797,14 +1790,14 @@ void parse_fromchar (int fd)
                                 {
                                     memcpy (auth_dat[i].email, new_email, 40);
                                     login_log
-                                        ("Char-server '%s': Modify an e-mail on an account (@email GM command) (account: %d (%s), new e-mail: %s, ip: %s)."
-                                         RETCODE, server[id].name, acc,
+                                        ("Char-server '%s': Modify an e-mail on an account (@email GM command) (account: %d (%s), new e-mail: %s, ip: %s).\n",
+                                         server[id].name, acc,
                                          auth_dat[i].userid, new_email, ip);
                                 }
                                 else
                                     login_log
-                                        ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual e-mail is incorrect (account: %d (%s), actual e-mail: %s, proposed e-mail: %s, ip: %s)."
-                                         RETCODE, server[id].name, acc,
+                                        ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual e-mail is incorrect (account: %d (%s), actual e-mail: %s, proposed e-mail: %s, ip: %s).\n",
+                                         server[id].name, acc,
                                          auth_dat[i].userid,
                                          auth_dat[i].email, actual_email, ip);
                                 break;
@@ -1812,8 +1805,8 @@ void parse_fromchar (int fd)
                         }
                         if (i == auth_num)
                             login_log
-                                ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but account doesn't exist (account: %d, ip: %s)."
-                                 RETCODE, server[id].name, acc, ip);
+                                ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but account doesn't exist (account: %d, ip: %s).\n",
+                                 server[id].name, acc, ip);
                     }
                 }
                 RFIFOSKIP (fd, 86);
@@ -1834,8 +1827,8 @@ void parse_fromchar (int fd)
                             if (auth_dat[i].state != statut)
                             {
                                 login_log
-                                    ("Char-server '%s': Status change (account: %d, new status %d, ip: %s)."
-                                     RETCODE, server[id].name, acc, statut,
+                                    ("Char-server '%s': Status change (account: %d, new status %d, ip: %s).\n",
+                                     server[id].name, acc, statut,
                                      ip);
                                 if (statut != 0)
                                 {
@@ -1853,8 +1846,8 @@ void parse_fromchar (int fd)
                             }
                             else
                                 login_log
-                                    ("Char-server '%s':  Error of Status change - actual status is already the good status (account: %d, status %d, ip: %s)."
-                                     RETCODE, server[id].name, acc, statut,
+                                    ("Char-server '%s':  Error of Status change - actual status is already the good status (account: %d, status %d, ip: %s).\n",
+                                     server[id].name, acc, statut,
                                      ip);
                             break;
                         }
@@ -1862,8 +1855,8 @@ void parse_fromchar (int fd)
                     if (i == auth_num)
                     {
                         login_log
-                            ("Char-server '%s': Error of Status change (account: %d not found, suggested status %d, ip: %s)."
-                             RETCODE, server[id].name, acc, statut, ip);
+                            ("Char-server '%s': Error of Status change (account: %d not found, suggested status %d, ip: %s).\n",
+                             server[id].name, acc, statut, ip);
                     }
                     RFIFOSKIP (fd, 10);
                 }
@@ -1913,8 +1906,8 @@ void parse_fromchar (int fd)
                                         strftime (tmpstr, 24, date_format,
                                                   gmtime (&timestamp));
                                         login_log
-                                            ("Char-server '%s': Ban request (account: %d, new final date of banishment: %d (%s), ip: %s)."
-                                             RETCODE, server[id].name, acc,
+                                            ("Char-server '%s': Ban request (account: %d, new final date of banishment: %d (%s), ip: %s).\n",
+                                             server[id].name, acc,
                                              timestamp,
                                              (timestamp ==
                                               0 ? "no banishment" : tmpstr),
@@ -1933,8 +1926,8 @@ void parse_fromchar (int fd)
                                     else
                                     {
                                         login_log
-                                            ("Char-server '%s': Error of ban request (account: %d, new date unbans the account, ip: %s)."
-                                             RETCODE, server[id].name, acc,
+                                            ("Char-server '%s': Error of ban request (account: %d, new date unbans the account, ip: %s).\n",
+                                             server[id].name, acc,
                                              ip);
                                     }
                                     auth_dat[i].ban_until_time = timestamp;
@@ -1942,15 +1935,15 @@ void parse_fromchar (int fd)
                                 else
                                 {
                                     login_log
-                                        ("Char-server '%s': Error of ban request (account: %d, no change for ban date, ip: %s)."
-                                         RETCODE, server[id].name, acc, ip);
+                                        ("Char-server '%s': Error of ban request (account: %d, no change for ban date, ip: %s).\n",
+                                         server[id].name, acc, ip);
                                 }
                             }
                             else
                             {
                                 login_log
-                                    ("Char-server '%s': Error of ban request (account: %d, invalid date, ip: %s)."
-                                     RETCODE, server[id].name, acc, ip);
+                                    ("Char-server '%s': Error of ban request (account: %d, invalid date, ip: %s).\n",
+                                     server[id].name, acc, ip);
                             }
                             break;
                         }
@@ -1958,8 +1951,8 @@ void parse_fromchar (int fd)
                     if (i == auth_num)
                     {
                         login_log
-                            ("Char-server '%s': Error of ban request (account: %d not found, ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Error of ban request (account: %d not found, ip: %s).\n",
+                             server[id].name, acc, ip);
                     }
                     RFIFOSKIP (fd, 18);
                 }
@@ -1978,8 +1971,8 @@ void parse_fromchar (int fd)
                         {
                             if (auth_dat[i].sex == 2)
                                 login_log
-                                    ("Char-server '%s': Error of sex change - Server account (suggested account: %d, actual sex %d (Server), ip: %s)."
-                                     RETCODE, server[id].name, acc,
+                                    ("Char-server '%s': Error of sex change - Server account (suggested account: %d, actual sex %d (Server), ip: %s).\n",
+                                     server[id].name, acc,
                                      auth_dat[i].sex, ip);
                             else
                             {
@@ -1989,8 +1982,8 @@ void parse_fromchar (int fd)
                                 else
                                     sex = 0;
                                 login_log
-                                    ("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s)."
-                                     RETCODE, server[id].name, acc,
+                                    ("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s).\n",
+                                     server[id].name, acc,
                                      (sex == 2) ? 'S' : (sex ? 'M' : 'F'),
                                      ip);
                                 for (j = 0; j < AUTH_FIFO_SIZE; j++)
@@ -2008,8 +2001,8 @@ void parse_fromchar (int fd)
                     if (i == auth_num)
                     {
                         login_log
-                            ("Char-server '%s': Error of sex change (account: %d not found, sex would be reversed, ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Error of sex change (account: %d not found, sex would be reversed, ip: %s).\n",
+                             server[id].name, acc, ip);
                     }
                     RFIFOSKIP (fd, 6);
                 }
@@ -2027,8 +2020,8 @@ void parse_fromchar (int fd)
                         {
                             unsigned char buf[RFIFOW (fd, 2) + 1];
                             login_log
-                                ("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d, ip: %s)."
-                                 RETCODE, server[id].name, acc, ip);
+                                ("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d, ip: %s).\n",
+                                 server[id].name, acc, ip);
                             for (p = 8, j = 0;
                                  p < RFIFOW (fd, 2) && j < ACCOUNT_REG2_NUM;
                                  p += 36, j++)
@@ -2055,8 +2048,8 @@ void parse_fromchar (int fd)
                     {
 //                  printf("parse_fromchar: receiving (from the char-server) of account_reg2 (unknwon account id: %d).\n", acc);
                         login_log
-                            ("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d not found, ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d not found, ip: %s).\n",
+                             server[id].name, acc, ip);
                     }
                 }
                 RFIFOSKIP (fd, RFIFOW (fd, 2));
@@ -2076,14 +2069,14 @@ void parse_fromchar (int fd)
                             {
                                 auth_dat[i].ban_until_time = 0;
                                 login_log
-                                    ("Char-server '%s': UnBan request (account: %d, ip: %s)."
-                                     RETCODE, server[id].name, acc, ip);
+                                    ("Char-server '%s': UnBan request (account: %d, ip: %s).\n",
+                                     server[id].name, acc, ip);
                             }
                             else
                             {
                                 login_log
-                                    ("Char-server '%s': Error of UnBan request (account: %d, no change for unban date, ip: %s)."
-                                     RETCODE, server[id].name, acc, ip);
+                                    ("Char-server '%s': Error of UnBan request (account: %d, no change for unban date, ip: %s).\n",
+                                     server[id].name, acc, ip);
                             }
                             break;
                         }
@@ -2091,8 +2084,8 @@ void parse_fromchar (int fd)
                     if (i == auth_num)
                     {
                         login_log
-                            ("Char-server '%s': Error of UnBan request (account: %d not found, ip: %s)."
-                             RETCODE, server[id].name, acc, ip);
+                            ("Char-server '%s': Error of UnBan request (account: %d not found, ip: %s).\n",
+                             server[id].name, acc, ip);
                     }
                     RFIFOSKIP (fd, 6);
                 }
@@ -2128,8 +2121,8 @@ void parse_fromchar (int fd)
                                     status = 1;
                                     strcpy (auth_dat[i].pass, MD5_saltcrypt(new_pass, make_salt()));
                                     login_log
-                                        ("Char-server '%s': Change pass success (account: %d (%s), ip: %s."
-                                         RETCODE, server[id].name, acc,
+                                        ("Char-server '%s': Change pass success (account: %d (%s), ip: %s.\n",
+                                         server[id].name, acc,
                                          auth_dat[i].userid, ip);
                                 }
                             }
@@ -2137,8 +2130,8 @@ void parse_fromchar (int fd)
                             {
                                 status = 2;
                                 login_log
-                                    ("Char-server '%s': Attempt to modify a pass failed, wrong password. (account: %d (%s), ip: %s)."
-                                     RETCODE, server[id].name, acc,
+                                    ("Char-server '%s': Attempt to modify a pass failed, wrong password. (account: %d (%s), ip: %s).\n",
+                                     server[id].name, acc,
                                      auth_dat[i].userid, ip);
                             }
                             break;
@@ -2164,15 +2157,14 @@ void parse_fromchar (int fd)
                     gettimeofday (&tv, NULL);
                     strftime (tmpstr, 23, date_format, gmtime (&(tv.tv_sec)));
                     fprintf (logfp,
-                             "%s.%03d: receiving of an unknown packet -> disconnection"
-                             RETCODE, tmpstr, (int) tv.tv_usec / 1000);
+                             "%s.%03d: receiving of an unknown packet -> disconnection\n",
+                             tmpstr, (int) tv.tv_usec / 1000);
                     fprintf (logfp,
-                             "parse_fromchar: connection #%d (ip: %s), packet: 0x%x (with being read: %d)."
-                             RETCODE, fd, ip, RFIFOW (fd, 0), RFIFOREST (fd));
-                    fprintf (logfp, "Detail (in hex):" RETCODE);
+                             "parse_fromchar: connection #%d (ip: %s), packet: 0x%x (with being read: %d).\n",
+                             fd, ip, RFIFOW (fd, 0), RFIFOREST (fd));
+                    fprintf (logfp, "Detail (in hex):\n");
                     fprintf (logfp,
-                             "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F"
-                             RETCODE);
+                             "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
                     memset (tmpstr, '\0', sizeof (tmpstr));
                     for (i = 0; i < RFIFOREST (fd); i++)
                     {
@@ -2187,7 +2179,7 @@ void parse_fromchar (int fd)
                             fprintf (logfp, " ");
                         else if ((i + 1) % 16 == 0)
                         {
-                            fprintf (logfp, " %s" RETCODE, tmpstr);
+                            fprintf (logfp, " %s\n", tmpstr);
                             memset (tmpstr, '\0', sizeof (tmpstr));
                         }
                     }
@@ -2199,9 +2191,9 @@ void parse_fromchar (int fd)
                             if ((j - 7) % 16 == 0)  // -8 + 1
                                 fprintf (logfp, " ");
                         }
-                        fprintf (logfp, " %s" RETCODE, tmpstr);
+                        fprintf (logfp, " %s\n", tmpstr);
                     }
-                    fprintf (logfp, RETCODE);
+                    fprintf (logfp, "\n");
                     fclose_ (logfp);
                 }
             }
@@ -2248,8 +2240,8 @@ void parse_admin (int fd)
         switch (RFIFOW (fd, 0))
         {
             case 0x7530:       // Request of the server version
-                login_log ("'ladmin': Sending of the server version (ip: %s)"
-                           RETCODE, ip);
+                login_log ("'ladmin': Sending of the server version (ip: %s)\n",
+                           ip);
                 WFIFOW (fd, 0) = 0x7531;
                 WFIFOB (fd, 2) = ATHENA_MAJOR_VERSION;
                 WFIFOB (fd, 3) = ATHENA_MINOR_VERSION;
@@ -2263,7 +2255,7 @@ void parse_admin (int fd)
                 break;
 
             case 0x7532:       // Request of end of connection
-                login_log ("'ladmin': End of connection (ip: %s)" RETCODE,
+                login_log ("'ladmin': End of connection (ip: %s)\n",
                            ip);
                 RFIFOSKIP (fd, 2);
                 session[fd]->eof = 1;
@@ -2284,8 +2276,8 @@ void parse_admin (int fd)
                     if (ed > END_ACCOUNT_NUM || ed < st || ed <= 0)
                         ed = END_ACCOUNT_NUM;
                     login_log
-                        ("'ladmin': Sending an accounts list (ask: from %d to %d, ip: %s)"
-                         RETCODE, st, ed, ip);
+                        ("'ladmin': Sending an accounts list (ask: from %d to %d, ip: %s)\n",
+                         st, ed, ip);
                     // Sort before send
                     for (i = 0; i < auth_num; i++)
                     {
@@ -2358,26 +2350,26 @@ void parse_admin (int fd)
                     if (strlen (ma.userid) > 23 || strlen (ma.passwd) > 23)
                     {
                         login_log
-                            ("'ladmin': Attempt to create an invalid account (account or pass is too long, ip: %s)"
-                             RETCODE, ip);
+                            ("'ladmin': Attempt to create an invalid account (account or pass is too long, ip: %s)\n",
+                             ip);
                     }
                     else if (strlen (ma.userid) < 4 || strlen (ma.passwd) < 4)
                     {
                         login_log
-                            ("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)"
-                             RETCODE, ip);
+                            ("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)\n",
+                             ip);
                     }
                     else if (ma.sex != 'F' && ma.sex != 'M')
                     {
                         login_log
-                            ("'ladmin': Attempt to create an invalid account (account: %s, invalid sex, ip: %s)"
-                             RETCODE, ma.userid, ip);
+                            ("'ladmin': Attempt to create an invalid account (account: %s, invalid sex, ip: %s)\n",
+                             ma.userid, ip);
                     }
                     else if (account_id_count > END_ACCOUNT_NUM)
                     {
                         login_log
-                            ("'ladmin': Attempt to create an account, but there is no more available id number (account: %s, sex: %c, ip: %s)"
-                             RETCODE, ma.userid, ma.sex, ip);
+                            ("'ladmin': Attempt to create an account, but there is no more available id number (account: %s, sex: %c, ip: %s)\n",
+                             ma.userid, ma.sex, ip);
                     }
                     else
                     {
@@ -2389,8 +2381,8 @@ void parse_admin (int fd)
                                 0)
                             {
                                 login_log
-                                    ("'ladmin': Attempt to create an already existing account (account: %s ip: %s)"
-                                     RETCODE, auth_dat[i].userid, ip);
+                                    ("'ladmin': Attempt to create an already existing account (account: %s ip: %s)\n",
+                                     auth_dat[i].userid, ip);
                                 break;
                             }
                         }
@@ -2403,8 +2395,8 @@ void parse_admin (int fd)
                             remove_control_chars (email);
                             new_id = mmo_auth_new (&ma, ma.sex, email);
                             login_log
-                                ("'ladmin': Account creation (account: %s (id: %d), sex: %c, email: %s, ip: %s)"
-                                 RETCODE, ma.userid, new_id,
+                                ("'ladmin': Account creation (account: %s (id: %d), sex: %c, email: %s, ip: %s)\n",
+                                 ma.userid, new_id,
                                  ma.sex, auth_dat[i].email, ip);
                             WFIFOL (fd, 2) = new_id;
                         }
@@ -2435,11 +2427,11 @@ void parse_admin (int fd)
                     WFIFOL (fd, 2) = auth_dat[i].account_id;
                     // save deleted account in log file
                     login_log
-                        ("'ladmin': Account deletion (account: %s, id: %d, ip: %s) - saved in next line:"
-                         RETCODE, auth_dat[i].userid, auth_dat[i].account_id,
+                        ("'ladmin': Account deletion (account: %s, id: %d, ip: %s) - saved in next line:\n",
+                         auth_dat[i].userid, auth_dat[i].account_id,
                          ip);
                     mmo_auth_tostr (buf, &auth_dat[i]);
-                    login_log ("%s" RETCODE, buf);
+                    login_log ("%s\n", buf);
                     // delete account
                     memset (auth_dat[i].userid, '\0',
                             sizeof (auth_dat[i].userid));
@@ -2449,8 +2441,8 @@ void parse_admin (int fd)
                 {
                     memcpy (WFIFOP (fd, 6), account_name, 24);
                     login_log
-                        ("'ladmin': Attempt to delete an unknown account (account: %s, ip: %s)"
-                         RETCODE, account_name, ip);
+                        ("'ladmin': Attempt to delete an unknown account (account: %s, ip: %s)\n",
+                         account_name, ip);
                 }
                 WFIFOSET (fd, 30);
                 RFIFOSKIP (fd, 26);
@@ -2472,15 +2464,15 @@ void parse_admin (int fd)
                     auth_dat[i].pass[39] = '\0';
                     WFIFOL (fd, 2) = auth_dat[i].account_id;
                     login_log
-                        ("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)"
-                         RETCODE, auth_dat[i].userid, auth_dat[i].pass, ip);
+                        ("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)\n",
+                         auth_dat[i].userid, auth_dat[i].pass, ip);
                 }
                 else
                 {
                     memcpy (WFIFOP (fd, 6), account_name, 24);
                     login_log
-                        ("'ladmin': Attempt to modify the password of an unknown account (account: %s, ip: %s)"
-                         RETCODE, account_name, ip);
+                        ("'ladmin': Attempt to modify the password of an unknown account (account: %s, ip: %s)\n",
+                         account_name, ip);
                 }
                 WFIFOSET (fd, 30);
                 RFIFOSKIP (fd, 50);
@@ -2514,19 +2506,19 @@ void parse_admin (int fd)
                             && strcmp (auth_dat[i].error_message,
                                        error_message) == 0)
                             login_log
-                                ("'ladmin': Modification of a state, but the state of the account is already the good state (account: %s, received state: %d, ip: %s)"
-                                 RETCODE, account_name, statut, ip);
+                                ("'ladmin': Modification of a state, but the state of the account is already the good state (account: %s, received state: %d, ip: %s)\n",
+                                 account_name, statut, ip);
                         else
                         {
                             if (statut == 7)
                                 login_log
-                                    ("'ladmin': Modification of a state (account: %s, new state: %d - prohibited to login until '%s', ip: %s)"
-                                     RETCODE, auth_dat[i].userid, statut,
+                                    ("'ladmin': Modification of a state (account: %s, new state: %d - prohibited to login until '%s', ip: %s)\n",
+                                     auth_dat[i].userid, statut,
                                      error_message, ip);
                             else
                                 login_log
-                                    ("'ladmin': Modification of a state (account: %s, new state: %d, ip: %s)"
-                                     RETCODE, auth_dat[i].userid, statut, ip);
+                                    ("'ladmin': Modification of a state (account: %s, new state: %d, ip: %s)\n",
+                                     auth_dat[i].userid, statut, ip);
                             if (auth_dat[i].state == 0)
                             {
                                 unsigned char buf[16];
@@ -2549,8 +2541,8 @@ void parse_admin (int fd)
                     {
                         memcpy (WFIFOP (fd, 6), account_name, 24);
                         login_log
-                            ("'ladmin': Attempt to modify the state of an unknown account (account: %s, received state: %d, ip: %s)"
-                             RETCODE, account_name, statut, ip);
+                            ("'ladmin': Attempt to modify the state of an unknown account (account: %s, received state: %d, ip: %s)\n",
+                             account_name, statut, ip);
                     }
                     WFIFOL (fd, 30) = statut;
                 }
@@ -2559,8 +2551,7 @@ void parse_admin (int fd)
                 break;
 
             case 0x7938:       // Request for servers list and # of online players
-                login_log ("'ladmin': Sending of servers list (ip: %s)"
-                           RETCODE, ip);
+                login_log ("'ladmin': Sending of servers list (ip: %s)\n", ip);
                 server_num = 0;
                 for (i = 0; i < MAX_SERVERS; i++)
                 {
@@ -2600,8 +2591,8 @@ void parse_admin (int fd)
                     {
                         WFIFOL (fd, 2) = auth_dat[i].account_id;
                         login_log
-                            ("'ladmin': Check of password OK (account: %s, password: %s, ip: %s)"
-                             RETCODE, auth_dat[i].userid, auth_dat[i].pass,
+                            ("'ladmin': Check of password OK (account: %s, password: %s, ip: %s)\n",
+                             auth_dat[i].userid, auth_dat[i].pass,
                              ip);
                     }
                     else
@@ -2611,16 +2602,16 @@ void parse_admin (int fd)
                         pass[23] = '\0';
                         remove_control_chars (pass);
                         login_log
-                            ("'ladmin': Failure of password check (account: %s, proposed pass: %s, ip: %s)"
-                             RETCODE, auth_dat[i].userid, pass, ip);
+                            ("'ladmin': Failure of password check (account: %s, proposed pass: %s, ip: %s)\n",
+                             auth_dat[i].userid, pass, ip);
                     }
                 }
                 else
                 {
                     memcpy (WFIFOP (fd, 6), account_name, 24);
                     login_log
-                        ("'ladmin': Attempt to check the password of an unknown account (account: %s, ip: %s)"
-                         RETCODE, account_name, ip);
+                        ("'ladmin': Attempt to check the password of an unknown account (account: %s, ip: %s)\n",
+                         account_name, ip);
                 }
                 WFIFOSET (fd, 30);
                 RFIFOSKIP (fd, 50);
@@ -2642,12 +2633,12 @@ void parse_admin (int fd)
                     {
                         if (sex > 31)
                             login_log
-                                ("'ladmin': Attempt to give an invalid sex (account: %s, received sex: %c, ip: %s)"
-                                 RETCODE, account_name, sex, ip);
+                                ("'ladmin': Attempt to give an invalid sex (account: %s, received sex: %c, ip: %s)\n",
+                                 account_name, sex, ip);
                         else
                             login_log
-                                ("'ladmin': Attempt to give an invalid sex (account: %s, received sex: 'control char', ip: %s)"
-                                 RETCODE, account_name, ip);
+                                ("'ladmin': Attempt to give an invalid sex (account: %s, received sex: 'control char', ip: %s)\n",
+                                 account_name, ip);
                     }
                     else
                     {
@@ -2671,8 +2662,8 @@ void parse_admin (int fd)
                                                    's') ? 2 : (sex == 'M'
                                                                || sex == 'm');
                                 login_log
-                                    ("'ladmin': Modification of a sex (account: %s, new sex: %c, ip: %s)"
-                                     RETCODE, auth_dat[i].userid, sex, ip);
+                                    ("'ladmin': Modification of a sex (account: %s, new sex: %c, ip: %s)\n",
+                                     auth_dat[i].userid, sex, ip);
                                 // send to all char-server the change
                                 WBUFW (buf, 0) = 0x2723;
                                 WBUFL (buf, 2) = auth_dat[i].account_id;
@@ -2682,15 +2673,15 @@ void parse_admin (int fd)
                             else
                             {
                                 login_log
-                                    ("'ladmin': Modification of a sex, but the sex is already the good sex (account: %s, sex: %c, ip: %s)"
-                                     RETCODE, auth_dat[i].userid, sex, ip);
+                                    ("'ladmin': Modification of a sex, but the sex is already the good sex (account: %s, sex: %c, ip: %s)\n",
+                                     auth_dat[i].userid, sex, ip);
                             }
                         }
                         else
                         {
                             login_log
-                                ("'ladmin': Attempt to modify the sex of an unknown account (account: %s, received sex: %c, ip: %s)"
-                                 RETCODE, account_name, sex, ip);
+                                ("'ladmin': Attempt to modify the sex of an unknown account (account: %s, received sex: %c, ip: %s)\n",
+                                 account_name, sex, ip);
                         }
                     }
                 }
@@ -2713,8 +2704,8 @@ void parse_admin (int fd)
                     if (new_gm_level < 0 || new_gm_level > 99)
                     {
                         login_log
-                            ("'ladmin': Attempt to give an invalid GM level (account: %s, received GM level: %d, ip: %s)"
-                             RETCODE, account_name, (int) new_gm_level, ip);
+                            ("'ladmin': Attempt to give an invalid GM level (account: %s, received GM level: %d, ip: %s)\n",
+                             account_name, (int) new_gm_level, ip);
                     }
                     else
                     {
@@ -2759,7 +2750,7 @@ void parse_admin (int fd)
                                             if ((line[0] == '/'
                                                  && line[1] == '/')
                                                 || line[0] == '\0')
-                                                fprintf (fp2, "%s" RETCODE,
+                                                fprintf (fp2, "%s\n",
                                                          line);
                                             else
                                             {
@@ -2772,18 +2763,17 @@ void parse_admin (int fd)
                                                                &GM_level) !=
                                                     2)
                                                     fprintf (fp2,
-                                                             "%s" RETCODE,
+                                                             "%s\n",
                                                              line);
                                                 else if (GM_account != acc)
                                                     fprintf (fp2,
-                                                             "%s" RETCODE,
+                                                             "%s\n",
                                                              line);
                                                 else if (new_gm_level < 1)
                                                 {
                                                     fprintf (fp2,
-                                                             "// %s: 'ladmin' GM level removed on account %d '%s' (previous level: %d)"
-                                                             RETCODE "//%d %d"
-                                                             RETCODE, tmpstr,
+                                                             "// %s: 'ladmin' GM level removed on account %d '%s' (previous level: %d)\n//%d %d\n",
+                                                             tmpstr,
                                                              acc,
                                                              auth_dat
                                                              [i].userid,
@@ -2794,9 +2784,8 @@ void parse_admin (int fd)
                                                 else
                                                 {
                                                     fprintf (fp2,
-                                                             "// %s: 'ladmin' GM level on account %d '%s' (previous level: %d)"
-                                                             RETCODE "%d %d"
-                                                             RETCODE, tmpstr,
+                                                             "// %s: 'ladmin' GM level on account %d '%s' (previous level: %d)\n%d %d\n",
+                                                             tmpstr,
                                                              acc,
                                                              auth_dat
                                                              [i].userid,
@@ -2808,8 +2797,7 @@ void parse_admin (int fd)
                                         }
                                         if (modify_flag == 0)
                                             fprintf (fp2,
-                                                     "// %s: 'ladmin' GM level on account %d '%s' (previous level: 0)"
-                                                     RETCODE "%d %d" RETCODE,
+                                                     "// %s: 'ladmin' GM level on account %d '%s' (previous level: 0)\n%d %d\n",
                                                      tmpstr, acc,
                                                      auth_dat[i].userid, acc,
                                                      new_gm_level);
@@ -2818,15 +2806,15 @@ void parse_admin (int fd)
                                     else
                                     {
                                         login_log
-                                            ("'ladmin': Attempt to modify of a GM level - impossible to read GM accounts file (account: %s (%d), received GM level: %d, ip: %s)"
-                                             RETCODE, auth_dat[i].userid, acc,
+                                            ("'ladmin': Attempt to modify of a GM level - impossible to read GM accounts file (account: %s (%d), received GM level: %d, ip: %s)\n",
+                                             auth_dat[i].userid, acc,
                                              (int) new_gm_level, ip);
                                     }
                                     lock_fclose(fp2, GM_account_filename, &lock);
                                     WFIFOL (fd, 2) = acc;
                                     login_log
-                                        ("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)"
-                                            RETCODE, auth_dat[i].userid, acc,
+                                        ("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)\n",
+                                         auth_dat[i].userid, acc,
                                             (int) new_gm_level, ip);
                                     // read and send new GM informations
                                     read_gm_account ();
@@ -2835,24 +2823,24 @@ void parse_admin (int fd)
                                 else
                                 {
                                     login_log
-                                        ("'ladmin': Attempt to modify of a GM level - impossible to write GM accounts file (account: %s (%d), received GM level: %d, ip: %s)"
-                                         RETCODE, auth_dat[i].userid, acc,
+                                        ("'ladmin': Attempt to modify of a GM level - impossible to write GM accounts file (account: %s (%d), received GM level: %d, ip: %s)\n",
+                                         auth_dat[i].userid, acc,
                                          (int) new_gm_level, ip);
                                 }
                             }
                             else
                             {
                                 login_log
-                                    ("'ladmin': Attempt to modify of a GM level, but the GM level is already the good GM level (account: %s (%d), GM level: %d, ip: %s)"
-                                     RETCODE, auth_dat[i].userid, acc,
+                                    ("'ladmin': Attempt to modify of a GM level, but the GM level is already the good GM level (account: %s (%d), GM level: %d, ip: %s)\n",
+                                     auth_dat[i].userid, acc,
                                      (int) new_gm_level, ip);
                             }
                         }
                         else
                         {
                             login_log
-                                ("'ladmin': Attempt to modify the GM level of an unknown account (account: %s, received GM level: %d, ip: %s)"
-                                 RETCODE, account_name, (int) new_gm_level,
+                                ("'ladmin': Attempt to modify the GM level of an unknown account (account: %s, received GM level: %d, ip: %s)\n",
+                                 account_name, (int) new_gm_level,
                                  ip);
                         }
                     }
@@ -2876,8 +2864,8 @@ void parse_admin (int fd)
                     if (e_mail_check (email) == 0)
                     {
                         login_log
-                            ("'ladmin': Attempt to give an invalid e-mail (account: %s, ip: %s)"
-                             RETCODE, account_name, ip);
+                            ("'ladmin': Attempt to give an invalid e-mail (account: %s, ip: %s)\n",
+                             account_name, ip);
                     }
                     else
                     {
@@ -2889,14 +2877,14 @@ void parse_admin (int fd)
                             memcpy (auth_dat[i].email, email, 40);
                             WFIFOL (fd, 2) = auth_dat[i].account_id;
                             login_log
-                                ("'ladmin': Modification of an email (account: %s, new e-mail: %s, ip: %s)"
-                                 RETCODE, auth_dat[i].userid, email, ip);
+                                ("'ladmin': Modification of an email (account: %s, new e-mail: %s, ip: %s)\n",
+                                 auth_dat[i].userid, email, ip);
                         }
                         else
                         {
                             login_log
-                                ("'ladmin': Attempt to modify the e-mail of an unknown account (account: %s, received e-mail: %s, ip: %s)"
-                                 RETCODE, account_name, email, ip);
+                                ("'ladmin': Attempt to modify the e-mail of an unknown account (account: %s, received e-mail: %s, ip: %s)\n",
+                                 account_name, email, ip);
                         }
                     }
                 }
@@ -2937,15 +2925,15 @@ void parse_admin (int fd)
                     remove_control_chars (auth_dat[i].memo);
                     WFIFOL (fd, 2) = auth_dat[i].account_id;
                     login_log
-                        ("'ladmin': Modification of a memo field (account: %s, new memo: %s, ip: %s)"
-                         RETCODE, auth_dat[i].userid, auth_dat[i].memo, ip);
+                        ("'ladmin': Modification of a memo field (account: %s, new memo: %s, ip: %s)\n",
+                         auth_dat[i].userid, auth_dat[i].memo, ip);
                 }
                 else
                 {
                     memcpy (WFIFOP (fd, 6), account_name, 24);
                     login_log
-                        ("'ladmin': Attempt to modify the memo field of an unknown account (account: %s, ip: %s)"
-                         RETCODE, account_name, ip);
+                        ("'ladmin': Attempt to modify the memo field of an unknown account (account: %s, ip: %s)\n",
+                         account_name, ip);
                 }
                 WFIFOSET (fd, 30);
                 RFIFOSKIP (fd, 28 + RFIFOW (fd, 26));
@@ -2965,16 +2953,16 @@ void parse_admin (int fd)
                     memcpy (WFIFOP (fd, 6), auth_dat[i].userid, 24);
                     WFIFOL (fd, 2) = auth_dat[i].account_id;
                     login_log
-                        ("'ladmin': Request (by the name) of an account id (account: %s, id: %d, ip: %s)"
-                         RETCODE, auth_dat[i].userid, auth_dat[i].account_id,
+                        ("'ladmin': Request (by the name) of an account id (account: %s, id: %d, ip: %s)\n",
+                         auth_dat[i].userid, auth_dat[i].account_id,
                          ip);
                 }
                 else
                 {
                     memcpy (WFIFOP (fd, 6), account_name, 24);
                     login_log
-                        ("'ladmin': ID request (by the name) of an unknown account (account: %s, ip: %s)"
-                         RETCODE, account_name, ip);
+                        ("'ladmin': ID request (by the name) of an unknown account (account: %s, ip: %s)\n",
+                         account_name, ip);
                 }
                 WFIFOSET (fd, 30);
                 RFIFOSKIP (fd, 26);
@@ -2992,16 +2980,16 @@ void parse_admin (int fd)
                     {
                         strncpy (WFIFOP (fd, 6), auth_dat[i].userid, 24);
                         login_log
-                            ("'ladmin': Request (by id) of an account name (account: %s, id: %d, ip: %s)"
-                             RETCODE, auth_dat[i].userid, RFIFOL (fd, 2), ip);
+                            ("'ladmin': Request (by id) of an account name (account: %s, id: %d, ip: %s)\n",
+                             auth_dat[i].userid, RFIFOL (fd, 2), ip);
                         break;
                     }
                 }
                 if (i == auth_num)
                 {
                     login_log
-                        ("'ladmin': Name request (by id) of an unknown account (id: %d, ip: %s)"
-                         RETCODE, RFIFOL (fd, 2), ip);
+                        ("'ladmin': Name request (by id) of an unknown account (id: %d, ip: %s)\n",
+                         RFIFOL (fd, 2), ip);
                     strncpy (WFIFOP (fd, 6), "", 24);
                 }
                 WFIFOSET (fd, 30);
@@ -3026,8 +3014,8 @@ void parse_admin (int fd)
                     {
                         memcpy (WFIFOP (fd, 6), auth_dat[i].userid, 24);
                         login_log
-                            ("'ladmin': Change of a validity limit (account: %s, new validity: %d (%s), ip: %s)"
-                             RETCODE, auth_dat[i].userid, timestamp,
+                            ("'ladmin': Change of a validity limit (account: %s, new validity: %d (%s), ip: %s)\n",
+                             auth_dat[i].userid, timestamp,
                              (timestamp == 0 ? "unlimited" : tmpstr), ip);
                         auth_dat[i].connect_until_time = timestamp;
                         WFIFOL (fd, 2) = auth_dat[i].account_id;
@@ -3036,8 +3024,7 @@ void parse_admin (int fd)
                     {
                         memcpy (WFIFOP (fd, 6), account_name, 24);
                         login_log
-                            ("'ladmin': Attempt to change the validity limit of an unknown account (account: %s, received validity: %d (%s), ip: %s)"
-                             RETCODE, account_name, timestamp,
+                            ("'ladmin': Attempt to change the validity limit of an unknown account (account: %s, received validity: %d (%s), ip: %s)\n", account_name, timestamp,
                              (timestamp == 0 ? "unlimited" : tmpstr), ip);
                     }
                     WFIFOL (fd, 30) = timestamp;
@@ -3067,8 +3054,8 @@ void parse_admin (int fd)
                         memcpy (WFIFOP (fd, 6), auth_dat[i].userid, 24);
                         WFIFOL (fd, 2) = auth_dat[i].account_id;
                         login_log
-                            ("'ladmin': Change of the final date of a banishment (account: %s, new final date of banishment: %d (%s), ip: %s)"
-                             RETCODE, auth_dat[i].userid, timestamp,
+                            ("'ladmin': Change of the final date of a banishment (account: %s, new final date of banishment: %d (%s), ip: %s)\n",
+                             auth_dat[i].userid, timestamp,
                              (timestamp == 0 ? "no banishment" : tmpstr), ip);
                         if (auth_dat[i].ban_until_time != timestamp)
                         {
@@ -3092,8 +3079,8 @@ void parse_admin (int fd)
                     {
                         memcpy (WFIFOP (fd, 6), account_name, 24);
                         login_log
-                            ("'ladmin': Attempt to change the final date of a banishment of an unknown account (account: %s, received final date of banishment: %d (%s), ip: %s)"
-                             RETCODE, account_name, timestamp,
+                            ("'ladmin': Attempt to change the final date of a banishment of an unknown account (account: %s, received final date of banishment: %d (%s), ip: %s)\n",
+                             account_name, timestamp,
                              (timestamp == 0 ? "no banishment" : tmpstr), ip);
                     }
                     WFIFOL (fd, 30) = timestamp;
@@ -3145,8 +3132,8 @@ void parse_admin (int fd)
                             strftime (tmpstr, 24, date_format,
                                       gmtime (&timestamp));
                             login_log
-                                ("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %d (%s), ip: %s)"
-                                 RETCODE, auth_dat[i].userid,
+                                ("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %d (%s), ip: %s)\n",
+                                 auth_dat[i].userid,
                                  (short) RFIFOW (fd, 26), (short) RFIFOW (fd,
                                                                           28),
                                  (short) RFIFOW (fd, 30), (short) RFIFOW (fd,
@@ -3179,8 +3166,8 @@ void parse_admin (int fd)
                             strftime (tmpstr, 24, date_format,
                                       gmtime (&auth_dat[i].ban_until_time));
                             login_log
-                                ("'ladmin': Impossible to adjust the final date of a banishment (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)"
-                                 RETCODE, auth_dat[i].userid,
+                                ("'ladmin': Impossible to adjust the final date of a banishment (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
+                                 auth_dat[i].userid,
                                  auth_dat[i].ban_until_time,
                                  (auth_dat[i].ban_until_time ==
                                   0 ? "no banishment" : tmpstr),
@@ -3199,8 +3186,8 @@ void parse_admin (int fd)
                     {
                         memcpy (WFIFOP (fd, 6), account_name, 24);
                         login_log
-                            ("'ladmin': Attempt to adjust the final date of a banishment of an unknown account (account: %s, ip: %s)"
-                             RETCODE, account_name, ip);
+                            ("'ladmin': Attempt to adjust the final date of a banishment of an unknown account (account: %s, ip: %s)\n",
+                             account_name, ip);
                         WFIFOL (fd, 30) = 0;
                     }
                 }
@@ -3217,8 +3204,8 @@ void parse_admin (int fd)
                 if (RFIFOL (fd, 4) < 1)
                 {
                     login_log
-                        ("'ladmin': Receiving a message for broadcast, but message is void (ip: %s)"
-                         RETCODE, ip);
+                        ("'ladmin': Receiving a message for broadcast, but message is void (ip: %s)\n",
+                         ip);
                 }
                 else
                 {
@@ -3229,8 +3216,8 @@ void parse_admin (int fd)
                     if (i == MAX_SERVERS)
                     {
                         login_log
-                            ("'ladmin': Receiving a message for broadcast, but no char-server is online (ip: %s)"
-                             RETCODE, ip);
+                            ("'ladmin': Receiving a message for broadcast, but no char-server is online (ip: %s)\n",
+                             ip);
                     }
                     else
                     {
@@ -3243,12 +3230,12 @@ void parse_admin (int fd)
                         remove_control_chars (message);
                         if (RFIFOW (fd, 2) == 0)
                             login_log
-                                ("'ladmin': Receiving a message for broadcast (message (in yellow): %s, ip: %s)"
-                                 RETCODE, message, ip);
+                                ("'ladmin': Receiving a message for broadcast (message (in yellow): %s, ip: %s)\n",
+                                 message, ip);
                         else
                             login_log
-                                ("'ladmin': Receiving a message for broadcast (message (in blue): %s, ip: %s)"
-                                 RETCODE, message, ip);
+                                ("'ladmin': Receiving a message for broadcast (message (in blue): %s, ip: %s)\n",
+                                 message, ip);
                         // send same message to all char-servers (no answer)
                         memcpy (WBUFP (buf, 0), RFIFOP (fd, 0),
                                 8 + RFIFOL (fd, 4));
@@ -3282,8 +3269,8 @@ void parse_admin (int fd)
                         if (add_to_unlimited_account == 0 && timestamp == 0)
                         {
                             login_log
-                                ("'ladmin': Attempt to adjust the validity limit of an unlimited account (account: %s, ip: %s)"
-                                 RETCODE, auth_dat[i].userid, ip);
+                                ("'ladmin': Attempt to adjust the validity limit of an unlimited account (account: %s, ip: %s)\n",
+                                 auth_dat[i].userid, ip);
                             WFIFOL (fd, 30) = 0;
                         }
                         else
@@ -3312,8 +3299,8 @@ void parse_admin (int fd)
                                 strftime (tmpstr2, 24, date_format,
                                           gmtime (&timestamp));
                                 login_log
-                                    ("'ladmin': Adjustment of a validity limit (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %d (%s), ip: %s)"
-                                     RETCODE, auth_dat[i].userid,
+                                    ("'ladmin': Adjustment of a validity limit (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %d (%s), ip: %s)\n",
+                                     auth_dat[i].userid,
                                      auth_dat[i].connect_until_time,
                                      (auth_dat[i].connect_until_time ==
                                       0 ? "unlimited" : tmpstr),
@@ -3336,8 +3323,8 @@ void parse_admin (int fd)
                                           gmtime (&auth_dat
                                                   [i].connect_until_time));
                                 login_log
-                                    ("'ladmin': Impossible to adjust a validity limit (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)"
-                                     RETCODE, auth_dat[i].userid,
+                                    ("'ladmin': Impossible to adjust a validity limit (account: %s, %d (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
+                                     auth_dat[i].userid,
                                      auth_dat[i].connect_until_time,
                                      (auth_dat[i].connect_until_time ==
                                       0 ? "unlimited" : tmpstr),
@@ -3355,8 +3342,8 @@ void parse_admin (int fd)
                     {
                         memcpy (WFIFOP (fd, 6), account_name, 24);
                         login_log
-                            ("'ladmin': Attempt to adjust the validity limit of an unknown account (account: %s, ip: %s)"
-                             RETCODE, account_name, ip);
+                            ("'ladmin': Attempt to adjust the validity limit of an unknown account (account: %s, ip: %s)\n",
+                             account_name, ip);
                         WFIFOL (fd, 30) = 0;
                     }
                 }
@@ -3397,8 +3384,8 @@ void parse_admin (int fd)
                                 strlen (auth_dat[i].memo));
                     }
                     login_log
-                        ("'ladmin': Sending information of an account (request by the name; account: %s, id: %d, ip: %s)"
-                         RETCODE, auth_dat[i].userid, auth_dat[i].account_id,
+                        ("'ladmin': Sending information of an account (request by the name; account: %s, id: %d, ip: %s)\n",
+                         auth_dat[i].userid, auth_dat[i].account_id,
                          ip);
                     WFIFOSET (fd, 150 + strlen (auth_dat[i].memo));
                 }
@@ -3407,8 +3394,8 @@ void parse_admin (int fd)
                     memcpy (WFIFOP (fd, 7), account_name, 24);
                     WFIFOW (fd, 148) = 0;
                     login_log
-                        ("'ladmin': Attempt to obtain information (by the name) of an unknown account (account: %s, ip: %s)"
-                         RETCODE, account_name, ip);
+                        ("'ladmin': Attempt to obtain information (by the name) of an unknown account (account: %s, ip: %s)\n",
+                         account_name, ip);
                     WFIFOSET (fd, 150);
                 }
                 RFIFOSKIP (fd, 26);
@@ -3425,8 +3412,8 @@ void parse_admin (int fd)
                     if (auth_dat[i].account_id == RFIFOL (fd, 2))
                     {
                         login_log
-                            ("'ladmin': Sending information of an account (request by the id; account: %s, id: %d, ip: %s)"
-                             RETCODE, auth_dat[i].userid, RFIFOL (fd, 2), ip);
+                            ("'ladmin': Sending information of an account (request by the id; account: %s, id: %d, ip: %s)\n",
+                             auth_dat[i].userid, RFIFOL (fd, 2), ip);
                         WFIFOB (fd, 6) =
                             (unsigned char) isGM (auth_dat[i].account_id);
                         memcpy (WFIFOP (fd, 7), auth_dat[i].userid, 24);
@@ -3455,8 +3442,8 @@ void parse_admin (int fd)
                 if (i == auth_num)
                 {
                     login_log
-                        ("'ladmin': Attempt to obtain information (by the id) of an unknown account (id: %d, ip: %s)"
-                         RETCODE, RFIFOL (fd, 2), ip);
+                        ("'ladmin': Attempt to obtain information (by the id) of an unknown account (id: %d, ip: %s)\n",
+                         RFIFOL (fd, 2), ip);
                     strncpy (WFIFOP (fd, 7), "", 24);
                     WFIFOW (fd, 148) = 0;
                     WFIFOSET (fd, 150);
@@ -3466,8 +3453,8 @@ void parse_admin (int fd)
 
             case 0x7955:       // Request to reload GM file (no answer)
                 login_log
-                    ("'ladmin': Request to re-load GM configuration file (ip: %s)."
-                     RETCODE, ip);
+                    ("'ladmin': Request to re-load GM configuration file (ip: %s).\n",
+                     ip);
                 read_gm_account ();
                 // send GM accounts to all char-servers
                 send_GM_accounts ();
@@ -3485,15 +3472,14 @@ void parse_admin (int fd)
                     gettimeofday (&tv, NULL);
                     strftime (tmpstr, 23, date_format, gmtime (&(tv.tv_sec)));
                     fprintf (logfp,
-                             "%s.%03d: receiving of an unknown packet -> disconnection"
-                             RETCODE, tmpstr, (int) tv.tv_usec / 1000);
+                             "%s.%03d: receiving of an unknown packet -> disconnection\n",
+                             tmpstr, (int) tv.tv_usec / 1000);
                     fprintf (logfp,
-                             "parse_admin: connection #%d (ip: %s), packet: 0x%x (with being read: %d)."
-                             RETCODE, fd, ip, RFIFOW (fd, 0), RFIFOREST (fd));
-                    fprintf (logfp, "Detail (in hex):" RETCODE);
+                             "parse_admin: connection #%d (ip: %s), packet: 0x%x (with being read: %d).\n",
+                             fd, ip, RFIFOW (fd, 0), RFIFOREST (fd));
+                    fprintf (logfp, "Detail (in hex):\n");
                     fprintf (logfp,
-                             "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F"
-                             RETCODE);
+                             "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
                     memset (tmpstr, '\0', sizeof (tmpstr));
                     for (i = 0; i < RFIFOREST (fd); i++)
                     {
@@ -3508,7 +3494,7 @@ void parse_admin (int fd)
                             fprintf (logfp, " ");
                         else if ((i + 1) % 16 == 0)
                         {
-                            fprintf (logfp, " %s" RETCODE, tmpstr);
+                            fprintf (logfp, " %s\n", tmpstr);
                             memset (tmpstr, '\0', sizeof (tmpstr));
                         }
                     }
@@ -3520,15 +3506,15 @@ void parse_admin (int fd)
                             if ((j - 7) % 16 == 0)  // -8 + 1
                                 fprintf (logfp, " ");
                         }
-                        fprintf (logfp, " %s" RETCODE, tmpstr);
+                        fprintf (logfp, " %s\n", tmpstr);
                     }
-                    fprintf (logfp, RETCODE);
+                    fprintf (logfp, "\n");
                     fclose_ (logfp);
                 }
             }
                 login_log
-                    ("'ladmin': End of connection, unknown packet (ip: %s)"
-                     RETCODE, ip);
+                    ("'ladmin': End of connection, unknown packet (ip: %s)\n",
+                     ip);
                 session[fd]->eof = 1;
                 printf
                     ("Remote administration has been disconnected (unknown packet).\n");
@@ -3647,21 +3633,21 @@ void parse_login (int fd)
                 if (RFIFOW (fd, 0) == 0x64)
                 {
                     login_log
-                        ("Request for connection (non encryption mode) of %s (ip: %s)."
-                         RETCODE, account.userid, ip);
+                        ("Request for connection (non encryption mode) of %s (ip: %s).\n",
+                         account.userid, ip);
                 }
                 else
                 {
                     login_log
-                        ("Request for connection (encryption mode) of %s (ip: %s)."
-                         RETCODE, account.userid, ip);
+                        ("Request for connection (encryption mode) of %s (ip: %s).\n",
+                         account.userid, ip);
                 }
 
                 if (!check_ip (session[fd]->client_addr.sin_addr.s_addr))
                 {
                     login_log
-                        ("Connection refused: IP isn't authorised (deny/allow, ip: %s)."
-                         RETCODE, ip);
+                        ("Connection refused: IP isn't authorised (deny/allow, ip: %s).\n",
+                         ip);
                     WFIFOW (fd, 0) = 0x6a;
                     WFIFOB (fd, 2) = 0x03;
                     WFIFOSET (fd, 3);
@@ -3676,8 +3662,8 @@ void parse_login (int fd)
                     if (min_level_to_connect > gm_level)
                     {
                         login_log
-                            ("Connection refused: the minimum GM level for connection is %d (account: %s, GM level: %d, ip: %s)."
-                             RETCODE, min_level_to_connect, account.userid,
+                            ("Connection refused: the minimum GM level for connection is %d (account: %s, GM level: %d, ip: %s).\n",
+                             min_level_to_connect, account.userid,
                              gm_level, ip);
                         WFIFOW (fd, 0) = 0x81;
                         WFIFOL (fd, 2) = 1; // 01 = Server closed
@@ -3801,8 +3787,8 @@ void parse_login (int fd)
                         else
                         {
                             login_log
-                                ("Connection refused: there is no char-server online (account: %s, ip: %s)."
-                                 RETCODE, account.userid, ip);
+                                ("Connection refused: there is no char-server online (account: %s, ip: %s).\n",
+                                 account.userid, ip);
                             WFIFOW (fd, 0) = 0x81;
                             WFIFOL (fd, 2) = 1; // 01 = Server closed
                             WFIFOSET (fd, 3);
@@ -3862,14 +3848,14 @@ void parse_login (int fd)
                 }
                 if (RFIFOW (fd, 0) == 0x01db)
                 {
-                    login_log ("Sending request of the coding key (ip: %s)"
-                               RETCODE, ip);
+                    login_log ("Sending request of the coding key (ip: %s)\n",
+                               ip);
                 }
                 else
                 {
                     login_log
-                        ("'ladmin': Sending request of the coding key (ip: %s)"
-                         RETCODE, ip);
+                        ("'ladmin': Sending request of the coding key (ip: %s)\n",
+                         ip);
                 }
                 // Creation of the coding key
                 memset (ld->md5key, '\0', sizeof (ld->md5key));
@@ -3902,9 +3888,8 @@ void parse_login (int fd)
                     server_name[19] = '\0';
                     remove_control_chars (server_name);
                     login_log
-                        ("Connection request of the char-server '%s' @ %d.%d.%d.%d:%d (ip: %s)"
-                         RETCODE, server_name, RFIFOB (fd, 54), RFIFOB (fd,
-                                                                        55),
+                        ("Connection request of the char-server '%s' @ %d.%d.%d.%d:%d (ip: %s)\n",
+                         server_name, RFIFOB (fd, 54), RFIFOB (fd, 55),
                          RFIFOB (fd, 56), RFIFOB (fd, 57), RFIFOW (fd, 58),
                          ip);
                     result = mmo_auth (&account, fd);
@@ -3936,8 +3921,8 @@ void parse_login (int fd)
                         && server_fd[account.account_id] == -1)
                     {
                         login_log
-                            ("Connection of the char-server '%s' accepted (account: %s, pass: %s, ip: %s)"
-                             RETCODE, server_name, account.userid,
+                            ("Connection of the char-server '%s' accepted (account: %s, pass: %s, ip: %s)\n",
+                             server_name, account.userid,
                              account.passwd, ip);
                         printf
                             ("Connection of the char-server '%s' accepted.\n",
@@ -3980,8 +3965,8 @@ void parse_login (int fd)
                     else
                     {
                         login_log
-                            ("Connexion of the char-server '%s' REFUSED (account: %s, pass: %s, ip: %s)"
-                             RETCODE, server_name, account.userid,
+                            ("Connexion of the char-server '%s' REFUSED (account: %s, pass: %s, ip: %s)\n",
+                             server_name, account.userid,
                              account.passwd, ip);
                         WFIFOW (fd, 0) = 0x2711;
                         WFIFOB (fd, 2) = 3;
@@ -3992,7 +3977,7 @@ void parse_login (int fd)
                 return;
 
             case 0x7530:       // Request of the server version
-                login_log ("Sending of the server version (ip: %s)" RETCODE,
+                login_log ("Sending of the server version (ip: %s)\n",
                            ip);
                 WFIFOW (fd, 0) = 0x7531;
                 WFIFOB (fd, 2) = -1;
@@ -4005,7 +3990,7 @@ void parse_login (int fd)
                 break;
 
             case 0x7532:       // Request to end connection
-                login_log ("End of connection (ip: %s)" RETCODE, ip);
+                login_log ("End of connection (ip: %s)\n", ip);
                 session[fd]->eof = 1;
                 return;
 
@@ -4019,8 +4004,8 @@ void parse_login (int fd)
                     (session[fd]->client_addr.sin_addr.s_addr))
                 {
                     login_log
-                        ("'ladmin'-login: Connection in administration mode refused: IP isn't authorised (ladmin_allow, ip: %s)."
-                         RETCODE, ip);
+                        ("'ladmin'-login: Connection in administration mode refused: IP isn't authorised (ladmin_allow, ip: %s).\n",
+                         ip);
                 }
                 else
                 {
@@ -4036,8 +4021,8 @@ void parse_login (int fd)
                             && (strcmp (password, admin_pass) == 0))
                         {
                             login_log
-                                ("'ladmin'-login: Connection in administration mode accepted (non encrypted password: %s, ip: %s)"
-                                 RETCODE, password, ip);
+                                ("'ladmin'-login: Connection in administration mode accepted (non encrypted password: %s, ip: %s)\n",
+                                 password, ip);
                             printf
                                 ("Connection of a remote administration accepted (non encrypted password).\n");
                             WFIFOB (fd, 2) = 0;
@@ -4045,12 +4030,12 @@ void parse_login (int fd)
                         }
                         else if (admin_state != 1)
                             login_log
-                                ("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (non encrypted password: %s, ip: %s)"
-                                 RETCODE, password, ip);
+                                ("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (non encrypted password: %s, ip: %s)\n",
+                                 password, ip);
                         else
                             login_log
-                                ("'ladmin'-login: Connection in administration mode REFUSED - invalid password (non encrypted password: %s, ip: %s)"
-                                 RETCODE, password, ip);
+                                ("'ladmin'-login: Connection in administration mode REFUSED - invalid password (non encrypted password: %s, ip: %s)\n",
+                                 password, ip);
                     }
                     else
                     {           // encrypted password
@@ -4076,8 +4061,8 @@ void parse_login (int fd)
                                 && (memcmp (md5bin, RFIFOP (fd, 4), 16) == 0))
                             {
                                 login_log
-                                    ("'ladmin'-login: Connection in administration mode accepted (encrypted password, ip: %s)"
-                                     RETCODE, ip);
+                                    ("'ladmin'-login: Connection in administration mode accepted (encrypted password, ip: %s)\n",
+                                     ip);
                                 printf
                                     ("Connection of a remote administration accepted (encrypted password).\n");
                                 WFIFOB (fd, 2) = 0;
@@ -4085,12 +4070,12 @@ void parse_login (int fd)
                             }
                             else if (admin_state != 1)
                                 login_log
-                                    ("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (encrypted password, ip: %s)"
-                                     RETCODE, ip);
+                                    ("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (encrypted password, ip: %s)\n",
+                                     ip);
                             else
                                 login_log
-                                    ("'ladmin'-login: Connection in administration mode REFUSED - invalid password (encrypted password, ip: %s)"
-                                     RETCODE, ip);
+                                    ("'ladmin'-login: Connection in administration mode REFUSED - invalid password (encrypted password, ip: %s)\n",
+                                     ip);
                         }
                     }
                 }
@@ -4111,16 +4096,15 @@ void parse_login (int fd)
                         strftime (tmpstr, 23, date_format,
                                   gmtime (&(tv.tv_sec)));
                         fprintf (logfp,
-                                 "%s.%03d: receiving of an unknown packet -> disconnection"
-                                 RETCODE, tmpstr, (int) tv.tv_usec / 1000);
+                                 "%s.%03d: receiving of an unknown packet -> disconnection\n",
+                                 tmpstr, (int) tv.tv_usec / 1000);
                         fprintf (logfp,
-                                 "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %d)."
-                                 RETCODE, fd, ip, RFIFOW (fd, 0),
+                                 "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %d).\n",
+                                 fd, ip, RFIFOW (fd, 0),
                                  RFIFOREST (fd));
-                        fprintf (logfp, "Detail (in hex):" RETCODE);
+                        fprintf (logfp, "Detail (in hex):\n");
                         fprintf (logfp,
-                                 "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F"
-                                 RETCODE);
+                                 "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
                         memset (tmpstr, '\0', sizeof (tmpstr));
                         for (i = 0; i < RFIFOREST (fd); i++)
                         {
@@ -4135,7 +4119,7 @@ void parse_login (int fd)
                                 fprintf (logfp, " ");
                             else if ((i + 1) % 16 == 0)
                             {
-                                fprintf (logfp, " %s" RETCODE, tmpstr);
+                                fprintf (logfp, " %s\n", tmpstr);
                                 memset (tmpstr, '\0', sizeof (tmpstr));
                             }
                         }
@@ -4147,14 +4131,13 @@ void parse_login (int fd)
                                 if ((j - 7) % 16 == 0)  // -8 + 1
                                     fprintf (logfp, " ");
                             }
-                            fprintf (logfp, " %s" RETCODE, tmpstr);
+                            fprintf (logfp, " %s\n", tmpstr);
                         }
-                        fprintf (logfp, RETCODE);
+                        fprintf (logfp, "\n");
                         fclose_ (logfp);
                     }
                 }
-                login_log ("End of connection, unknown packet (ip: %s)"
-                           RETCODE, ip);
+                login_log ("End of connection, unknown packet (ip: %s)\n", ip);
                 session[fd]->eof = 1;
                 return;
         }
@@ -4280,11 +4263,11 @@ int login_lan_config_read (const char *lancfgName)
     fclose_ (fp);
 
     // log the LAN configuration
-    login_log ("The LAN configuration of the server is set:" RETCODE);
-    login_log ("- with LAN IP of char-server: %s." RETCODE, lan_char_ip);
+    login_log ("The LAN configuration of the server is set:\n");
+    login_log ("- with LAN IP of char-server: %s.\n", lan_char_ip);
     login_log
-        ("- with the sub-network of the char-server: %d.%d.%d.%d/%d.%d.%d.%d."
-         RETCODE, subneti[0], subneti[1], subneti[2], subneti[3],
+        ("- with the sub-network of the char-server: %d.%d.%d.%d/%d.%d.%d.%d.\n",
+         subneti[0], subneti[1], subneti[2], subneti[3],
          subnetmaski[0], subnetmaski[1], subnetmaski[2], subnetmaski[3]);
 
     // sub-network check of the char-server
@@ -4302,8 +4285,7 @@ int login_lan_config_read (const char *lancfgName)
             printf
                 ("\033[1;31m***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network\033[0m\n");
             login_log
-                ("***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network."
-                 RETCODE);
+                ("***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network.\n");
         }
     }
 
@@ -4796,156 +4778,136 @@ void save_config_in_log (void)
 
     // a newline in the log...
     login_log ("");
-    login_log ("The login-server starting..." RETCODE);
+    login_log ("The login-server starting...\n");
 
     // save configuration in log file
-    login_log ("The configuration of the server is set:" RETCODE);
+    login_log ("The configuration of the server is set:\n");
 
     if (admin_state != 1)
-        login_log ("- with no remote administration." RETCODE);
+        login_log ("- with no remote administration.\n");
     else if (admin_pass[0] == '\0')
-        login_log ("- with a remote administration with a VOID password."
-                   RETCODE);
+        login_log ("- with a remote administration with a VOID password.\n");
     else if (strcmp (admin_pass, "admin") == 0)
-        login_log ("- with a remote administration with the DEFAULT password."
-                   RETCODE);
+        login_log ("- with a remote administration with the DEFAULT password.\n");
     else
         login_log
-            ("- with a remote administration with the password of %d character(s)."
-             RETCODE, strlen (admin_pass));
+            ("- with a remote administration with the password of %d character(s).\n",
+             strlen (admin_pass));
     if (access_ladmin_allownum == 0
         || (access_ladmin_allownum == 1 && access_ladmin_allow[0] == '\0'))
     {
-        login_log ("- to accept any IP for remote administration" RETCODE);
+        login_log ("- to accept any IP for remote administration\n");
     }
     else
     {
-        login_log ("- to accept following IP for remote administration:"
-                   RETCODE);
+        login_log ("- to accept following IP for remote administration:\n");
         for (i = 0; i < access_ladmin_allownum; i++)
-            login_log ("  %s" RETCODE,
+            login_log ("  %s\n",
                        (char *) (access_ladmin_allow + i * ACO_STRSIZE));
     }
 
     if (gm_pass[0] == '\0')
-        login_log ("- with a VOID 'To GM become' password (gm_pass)."
-                   RETCODE);
+        login_log ("- with a VOID 'To GM become' password (gm_pass).\n");
     else if (strcmp (gm_pass, "gm") == 0)
-        login_log ("- with the DEFAULT 'To GM become' password (gm_pass)."
-                   RETCODE);
+        login_log ("- with the DEFAULT 'To GM become' password (gm_pass).\n");
     else
         login_log
-            ("- with a 'To GM become' password (gm_pass) of %d character(s)."
-             RETCODE, strlen (gm_pass));
+            ("- with a 'To GM become' password (gm_pass) of %d character(s).\n",
+             strlen (gm_pass));
     if (level_new_gm == 0)
-        login_log ("- to refuse any creation of GM with @gm." RETCODE);
+        login_log ("- to refuse any creation of GM with @gm.\n");
     else
-        login_log ("- to create GM with level '%d' when @gm is used." RETCODE,
+        login_log ("- to create GM with level '%d' when @gm is used.\n",
                    level_new_gm);
 
     if (new_account_flag == 1)
-        login_log ("- to ALLOW new users (with _F/_M)." RETCODE);
+        login_log ("- to ALLOW new users (with _F/_M).\n");
     else
-        login_log ("- to NOT ALLOW new users (with _F/_M)." RETCODE);
-    login_log ("- with port: %d." RETCODE, login_port);
-    login_log ("- with the accounts file name: '%s'." RETCODE,
+        login_log ("- to NOT ALLOW new users (with _F/_M).\n");
+    login_log ("- with port: %d.\n", login_port);
+    login_log ("- with the accounts file name: '%s'.\n",
                account_filename);
-    login_log ("- with the GM accounts file name: '%s'." RETCODE,
+    login_log ("- with the GM accounts file name: '%s'.\n",
                GM_account_filename);
     if (gm_account_filename_check_timer == 0)
-        login_log ("- to NOT check GM accounts file modifications." RETCODE);
+        login_log ("- to NOT check GM accounts file modifications.\n");
     else
         login_log
-            ("- to check GM accounts file modifications every %d seconds."
-             RETCODE, gm_account_filename_check_timer);
+            ("- to check GM accounts file modifications every %d seconds.\n",
+             gm_account_filename_check_timer);
 
     // not necessary to log the 'login_log_filename', we are inside :)
 
-    login_log ("- with the unknown packets file name: '%s'." RETCODE,
+    login_log ("- with the unknown packets file name: '%s'.\n",
                login_log_unknown_packets_filename);
     if (save_unknown_packets)
-        login_log ("- to SAVE all unkown packets." RETCODE);
+        login_log ("- to SAVE all unkown packets.\n");
     else
         login_log
-            ("- to SAVE only unkown packets sending by a char-server or a remote administration."
-             RETCODE);
+            ("- to SAVE only unkown packets sending by a char-server or a remote administration.\n");
     if (display_parse_login)
-        login_log ("- to display normal parse packets on console." RETCODE);
+        login_log ("- to display normal parse packets on console.\n");
     else
-        login_log ("- to NOT display normal parse packets on console."
-                   RETCODE);
+        login_log ("- to NOT display normal parse packets on console.\n");
     if (display_parse_admin)
-        login_log ("- to display administration parse packets on console."
-                   RETCODE);
+        login_log ("- to display administration parse packets on console.\n");
     else
-        login_log ("- to NOT display administration parse packets on console."
-                   RETCODE);
+        login_log ("- to NOT display administration parse packets on console.\n");
     if (display_parse_fromchar)
-        login_log ("- to display char-server parse packets on console."
-                   RETCODE);
+        login_log ("- to display char-server parse packets on console.\n");
     else
-        login_log ("- to NOT display char-server parse packets on console."
-                   RETCODE);
+        login_log ("- to NOT display char-server parse packets on console.\n");
 
     if (min_level_to_connect == 0)  // 0: all players, 1-99 at least gm level x
-        login_log ("- with no minimum level for connection." RETCODE);
+        login_log ("- with no minimum level for connection.\n");
     else if (min_level_to_connect == 99)
-        login_log ("- to accept only GM with level 99." RETCODE);
+        login_log ("- to accept only GM with level 99.\n");
     else
-        login_log ("- to accept only GM with level %d or more." RETCODE,
+        login_log ("- to accept only GM with level %d or more.\n",
                    min_level_to_connect);
 
     if (add_to_unlimited_account)
         login_log
-            ("- to authorize adjustment (with timeadd ladmin) on an unlimited account."
-             RETCODE);
+            ("- to authorize adjustment (with timeadd ladmin) on an unlimited account.\n");
     else
         login_log
-            ("- to refuse adjustment (with timeadd ladmin) on an unlimited account. You must use timeset (ladmin command) before."
-             RETCODE);
+            ("- to refuse adjustment (with timeadd ladmin) on an unlimited account. You must use timeset (ladmin command) before.\n");
 
     if (start_limited_time < 0)
-        login_log ("- to create new accounts with an unlimited time."
-                   RETCODE);
+        login_log ("- to create new accounts with an unlimited time.\n");
     else if (start_limited_time == 0)
         login_log
-            ("- to create new accounts with a limited time: time of creation."
-             RETCODE);
+            ("- to create new accounts with a limited time: time of creation.\n");
     else
         login_log
-            ("- to create new accounts with a limited time: time of creation + %d second(s)."
-             RETCODE, start_limited_time);
+            ("- to create new accounts with a limited time: time of creation + %d second(s).\n",
+             start_limited_time);
 
     if (check_ip_flag)
         login_log
-            ("- with control of players IP between login-server and char-server."
-             RETCODE);
+            ("- with control of players IP between login-server and char-server.\n");
     else
         login_log
-            ("- to not check players IP between login-server and char-server."
-             RETCODE);
+            ("- to not check players IP between login-server and char-server.\n");
 
     if (access_order == ACO_DENY_ALLOW)
     {
         if (access_denynum == 0)
         {
             login_log
-                ("- with the IP security order: 'deny,allow' (allow if not deny). You refuse no IP."
-                 RETCODE);
+                ("- with the IP security order: 'deny,allow' (allow if not deny). You refuse no IP.\n");
         }
         else if (access_denynum == 1 && access_deny[0] == '\0')
         {
             login_log
-                ("- with the IP security order: 'deny,allow' (allow if not deny). You refuse ALL IP."
-                 RETCODE);
+                ("- with the IP security order: 'deny,allow' (allow if not deny). You refuse ALL IP.\n");
         }
         else
         {
             login_log
-                ("- with the IP security order: 'deny,allow' (allow if not deny). Refused IP are:"
-                 RETCODE);
+                ("- with the IP security order: 'deny,allow' (allow if not deny). Refused IP are:\n");
             for (i = 0; i < access_denynum; i++)
-                login_log ("  %s" RETCODE,
+                login_log ("  %s\n",
                            (char *) (access_deny + i * ACO_STRSIZE));
         }
     }
@@ -4954,54 +4916,50 @@ void save_config_in_log (void)
         if (access_allownum == 0)
         {
             login_log
-                ("- with the IP security order: 'allow,deny' (deny if not allow). But, NO IP IS AUTHORISED!"
-                 RETCODE);
+                ("- with the IP security order: 'allow,deny' (deny if not allow). But, NO IP IS AUTHORISED!\n");
         }
         else if (access_allownum == 1 && access_allow[0] == '\0')
         {
             login_log
-                ("- with the IP security order: 'allow,deny' (deny if not allow). You authorise ALL IP."
-                 RETCODE);
+                ("- with the IP security order: 'allow,deny' (deny if not allow). You authorise ALL IP.\n");
         }
         else
         {
             login_log
-                ("- with the IP security order: 'allow,deny' (deny if not allow). Authorised IP are:"
-                 RETCODE);
+                ("- with the IP security order: 'allow,deny' (deny if not allow). Authorised IP are:\n");
             for (i = 0; i < access_allownum; i++)
-                login_log ("  %s" RETCODE,
+                login_log ("  %s\n",
                            (char *) (access_allow + i * ACO_STRSIZE));
         }
     }
     else
     {                           // ACO_MUTUAL_FAILTURE
         login_log
-            ("- with the IP security order: 'mutual-failture' (allow if in the allow list and not in the deny list)."
-             RETCODE);
+            ("- with the IP security order: 'mutual-failture' (allow if in the allow list and not in the deny list).\n");
         if (access_allownum == 0)
         {
-            login_log ("  But, NO IP IS AUTHORISED!" RETCODE);
+            login_log ("  But, NO IP IS AUTHORISED!\n");
         }
         else if (access_denynum == 1 && access_deny[0] == '\0')
         {
-            login_log ("  But, you refuse ALL IP!" RETCODE);
+            login_log ("  But, you refuse ALL IP!\n");
         }
         else
         {
             if (access_allownum == 1 && access_allow[0] == '\0')
             {
-                login_log ("  You authorise ALL IP." RETCODE);
+                login_log ("  You authorise ALL IP.\n");
             }
             else
             {
-                login_log ("  Authorised IP are:" RETCODE);
+                login_log ("  Authorised IP are:\n");
                 for (i = 0; i < access_allownum; i++)
-                    login_log ("    %s" RETCODE,
+                    login_log ("    %s\n",
                                (char *) (access_allow + i * ACO_STRSIZE));
             }
-            login_log ("  Refused IP are:" RETCODE);
+            login_log ("  Refused IP are:\n");
             for (i = 0; i < access_denynum; i++)
-                login_log ("    %s" RETCODE,
+                login_log ("    %s\n",
                            (char *) (access_deny + i * ACO_STRSIZE));
         }
     }
@@ -5026,8 +4984,7 @@ void do_final (void)
     delete_session (login_fd);
 
     login_log
-        ("----End of login-server (normal end with closing of all files)."
-         RETCODE);
+        ("----End of login-server (normal end with closing of all files).\n");
 }
 
 //------------------------------
@@ -5076,8 +5033,8 @@ int do_init (int argc, char **argv)
     i = add_timer_interval (gettick () + j * 1000, check_GM_file, 0, 0, j * 1000);  // every x sec we check if gm file has been changed
 
     login_log
-        ("The login-server is ready (Server is listening on the port %d)."
-         RETCODE, login_port);
+        ("The login-server is ready (Server is listening on the port %d).\n",
+         login_port);
 
     printf
         ("The login-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",

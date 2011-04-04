@@ -140,7 +140,7 @@ void inter_party_save_sub (db_key_t key, db_val_t data, va_list ap)
 
     inter_party_tostr (line, (struct party *) data);
     fp = va_arg (ap, FILE *);
-    fprintf (fp, "%s" RETCODE, line);
+    fprintf (fp, "%s\n", line);
 }
 
 // パーティーデータのセーブ

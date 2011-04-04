@@ -548,7 +548,7 @@ void inter_guild_save_sub (db_key_t key, db_val_t data, va_list ap)
 
     inter_guild_tostr (line, (struct guild *) data);
     fp = va_arg (ap, FILE *);
-    fprintf (fp, "%s" RETCODE, line);
+    fprintf (fp, "%s\n", line);
 }
 
 // ギルド城データのセーブ用
@@ -559,7 +559,7 @@ void inter_castle_save_sub (db_key_t key, db_val_t data, va_list ap)
 
     inter_guildcastle_tostr (line, (struct guild_castle *) data);
     fp = va_arg (ap, FILE *);
-    fprintf (fp, "%s" RETCODE, line);
+    fprintf (fp, "%s\n", line);
 }
 
 // ギルドデータのセーブ
@@ -1080,7 +1080,7 @@ int mapif_parse_CreateGuild (int fd, int account_id, char *name,
     mapif_guild_created (fd, account_id, g);
     mapif_guild_info (fd, g);
 
-    inter_log ("guild %s (id=%d) created by master %s (id=%d)" RETCODE,
+    inter_log ("guild %s (id=%d) created by master %s (id=%d)\n",
                name, g->guild_id, master->name, master->account_id);
 
     return 0;
@@ -1242,7 +1242,7 @@ int mapif_parse_BreakGuild (int fd, int guild_id)
     inter_guild_storage_delete (guild_id);
     mapif_guild_broken (guild_id, 0);
 
-    inter_log ("guild %s (id=%d) broken" RETCODE, g->name, guild_id);
+    inter_log ("guild %s (id=%d) broken\n", g->name, guild_id);
     free (g);
 
     return 0;
@@ -1553,7 +1553,7 @@ int mapif_parse_GuildCastleDataSave (int fd, int castle_id, int index,
             {
                 int  gid = (value) ? value : gc->guild_id;
                 struct guild *g = (struct guild *)numdb_search (guild_db, gid);
-                inter_log ("guild %s (id=%d) %s castle id=%d" RETCODE,
+                inter_log ("guild %s (id=%d) %s castle id=%d\n",
                            (g) ? g->name : "??", gid,
                            (value) ? "occupy" : "abandon", index);
             }

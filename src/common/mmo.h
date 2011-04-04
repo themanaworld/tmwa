@@ -5,12 +5,6 @@
 # include <time.h>
 # include "utils.h"              // LCCWIN32
 
-# ifdef CYGWIN
-#  define RETCODE "\r\n"
-# else
-#  define RETCODE "\n"
-# endif
-
 # define FIFOSIZE_SERVERLINK    256*1024
 
 // set to 0 to not check IP of player between each server.

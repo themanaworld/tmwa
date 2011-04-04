@@ -5,11 +5,6 @@
 #define	_MMO_H_
 
 #include <time.h>
-#ifdef CYGWIN
-#define RETCODE	"\r\n"          // (CR/LF?FWindows?n)
-#else
-#define RETCODE "\n"            // (LF?FUnix?n?j
-#endif
 
 #define FIFOSIZE_SERVERLINK	256*1024
 

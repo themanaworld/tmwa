@@ -133,7 +133,7 @@ int char_log (char *fmt, ...)
     if (logfp)
     {
         if (fmt[0] == '\0')     // jump a line if no message
-            fprintf (logfp, RETCODE);
+            fprintf (logfp, "\n");
         else
         {
             gettimeofday (&tv, NULL);
@@ -437,8 +437,8 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
         printf
             ("               Character readed. Suggestion: change the wisp server name.\n");
         char_log
-            ("mmo_auth_init: ******WARNING: character name has wisp server name: Character name '%s' = wisp server name '%s'."
-             RETCODE, p->name, wisp_server_name);
+            ("mmo_auth_init: ******WARNING: character name has wisp server name: Character name '%s' = wisp server name '%s'.\n",
+             p->name, wisp_server_name);
     }
 
     if (str[next] == '\n' || str[next] == '\r')
@@ -603,8 +603,8 @@ int mmo_char_init (void)
     if (fp == NULL)
     {
         printf ("Characters file not found: %s.\n", char_txt);
-        char_log ("Characters file not found: %s." RETCODE, char_txt);
-        char_log ("Id for the next created character: %d." RETCODE,
+        char_log ("Characters file not found: %s.\n", char_txt);
+        char_log ("Id for the next created character: %d.\n",
                   char_id_count);
         return 0;
     }
@@ -653,43 +653,35 @@ int mmo_char_init (void)
             {
                 case -1:
                     char_log
-                        ("Duplicate character id in the next character line (character not readed):"
-                         RETCODE);
+                        ("Duplicate character id in the next character line (character not readed):\n");
                     break;
                 case -2:
                     char_log
-                        ("Duplicate character name in the next character line (character not readed):"
-                         RETCODE);
+                        ("Duplicate character name in the next character line (character not readed):\n");
                     break;
                 case -3:
                     char_log
-                        ("Invalid memo point structure in the next character line (character not readed):"
-                         RETCODE);
+                        ("Invalid memo point structure in the next character line (character not readed):\n");
                     break;
                 case -4:
                     char_log
-                        ("Invalid inventory item structure in the next character line (character not readed):"
-                         RETCODE);
+                        ("Invalid inventory item structure in the next character line (character not readed):\n");
                     break;
                 case -5:
                     char_log
-                        ("Invalid cart item structure in the next character line (character not readed):"
-                         RETCODE);
+                        ("Invalid cart item structure in the next character line (character not readed):\n");
                     break;
                 case -6:
                     char_log
-                        ("Invalid skill structure in the next character line (character not readed):"
-                         RETCODE);
+                        ("Invalid skill structure in the next character line (character not readed):\n");
                     break;
                 case -7:
                     char_log
-                        ("Invalid register structure in the next character line (character not readed):"
-                         RETCODE);
+                        ("Invalid register structure in the next character line (character not readed):\n");
                     break;
                 default:       // 0
                     char_log
-                        ("Unabled to get a character in the next line - Basic structure of line (before inventory) is incorrect (character not readed):"
-                         RETCODE);
+                        ("Unabled to get a character in the next line - Basic structure of line (before inventory) is incorrect (character not readed):\n");
                     break;
             }
             char_log ("%s", line);
@@ -700,23 +692,23 @@ int mmo_char_init (void)
     if (char_num == 0)
     {
         printf ("mmo_char_init: No character found in %s.\n", char_txt);
-        char_log ("mmo_char_init: No character found in %s." RETCODE,
+        char_log ("mmo_char_init: No character found in %s.\n",
                   char_txt);
     }
     else if (char_num == 1)
     {
         printf ("mmo_char_init: 1 character read in %s.\n", char_txt);
-        char_log ("mmo_char_init: 1 character read in %s." RETCODE, char_txt);
+        char_log ("mmo_char_init: 1 character read in %s.\n", char_txt);
     }
     else
     {
         printf ("mmo_char_init: %d characters read in %s.\n", char_num,
                 char_txt);
-        char_log ("mmo_char_init: %d characters read in %s." RETCODE,
+        char_log ("mmo_char_init: %d characters read in %s.\n",
                   char_num, char_txt);
     }
 
-    char_log ("Id for the next created character: %d." RETCODE,
+    char_log ("Id for the next created character: %d.\n",
               char_id_count);
 
     return 0;
@@ -757,7 +749,7 @@ void mmo_char_sync (void)
     if (fp == NULL)
     {
         printf ("WARNING: Server can't not save characters.\n");
-        char_log ("WARNING: Server can't not save characters." RETCODE);
+        char_log ("WARNING: Server can't not save characters.\n");
     }
     else
     {
@@ -765,9 +757,9 @@ void mmo_char_sync (void)
         {
             // create only once the line, and save it in the 2 files (it's speeder than repeat twice the loop and create twice the line)
             mmo_char_tostr (line, &char_dat[id[i]]);    // use of sorted index
-            fprintf (fp, "%s" RETCODE, line);
+            fprintf (fp, "%s\n", line);
         }
-        fprintf (fp, "%d\t%%newid%%" RETCODE, char_id_count);
+        fprintf (fp, "%d\t%%newid%%\n", char_id_count);
         lock_fclose (fp, char_txt, &lock);
     }
 
@@ -780,17 +772,16 @@ void mmo_char_sync (void)
             printf
                 ("WARNING: Server can't not create backup of characters file.\n");
             char_log
-                ("WARNING: Server can't not create backup of characters file."
-                 RETCODE);
+                ("WARNING: Server can't not create backup of characters file.\n");
             return;
         }
         for (i = 0; i < char_num; i++)
         {
             // create only once the line, and save it in the 2 files (it's speeder than repeat twice the loop and create twice the line)
             mmo_char_tostr (line, &char_dat[id[i]]);    // use of sorted index
-            fprintf (fp, "%s" RETCODE, line);
+            fprintf (fp, "%s\n", line);
         }
-        fprintf (fp, "%d\t%%newid%%" RETCODE, char_id_count);
+        fprintf (fp, "%d\t%%newid%%\n", char_id_count);
         lock_fclose (fp, backup_txt, &lock);
     }
 
@@ -864,8 +855,8 @@ int make_new_char (int fd, unsigned char *dat)
     if (remove_control_chars (dat))
     {
         char_log
-            ("Make new char error (control char received in the name): (connection #%d, account: %d)."
-             RETCODE, fd, sd->account_id);
+            ("Make new char error (control char received in the name): (connection #%d, account: %d).\n",
+             fd, sd->account_id);
         return -1;
     }
 
@@ -877,8 +868,8 @@ int make_new_char (int fd, unsigned char *dat)
     if (strlen (dat) < 4)
     {
         char_log
-            ("Make new char error (character name too small): (connection #%d, account: %d, name: '%s')."
-             RETCODE, fd, sd->account_id, dat);
+            ("Make new char error (character name too small): (connection #%d, account: %d, name: '%s').\n",
+             fd, sd->account_id, dat);
         return -1;
     }
 
@@ -889,8 +880,8 @@ int make_new_char (int fd, unsigned char *dat)
             if (strchr (char_name_letters, dat[i]) == NULL)
             {
                 char_log
-                    ("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c."
-                     RETCODE, fd, sd->account_id, dat, dat[i]);
+                    ("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c.\n",
+                     fd, sd->account_id, dat, dat[i]);
                 return -1;
             }
     }
@@ -900,8 +891,8 @@ int make_new_char (int fd, unsigned char *dat)
             if (strchr (char_name_letters, dat[i]) != NULL)
             {
                 char_log
-                    ("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c."
-                     RETCODE, fd, sd->account_id, dat, dat[i]);
+                    ("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c.\n",
+                     fd, sd->account_id, dat, dat[i]);
                 return -1;
             }
     }                           // else, all letters/symbols are authorised (except control char removed before)
@@ -912,8 +903,8 @@ int make_new_char (int fd, unsigned char *dat)
         dat[31] >= 12)
     {                           // hair color (dat[31] can not be negativ)
         char_log
-            ("Make new char error (invalid values): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d"
-             RETCODE, fd, sd->account_id, dat[30], dat, dat[24], dat[25],
+            ("Make new char error (invalid values): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n",
+             fd, sd->account_id, dat[30], dat, dat[24], dat[25],
              dat[26], dat[27], dat[28], dat[29],
              dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29],
              dat[33], dat[31]);
@@ -926,8 +917,8 @@ int make_new_char (int fd, unsigned char *dat)
         if (dat[i] < 1 || dat[i] > 9)
         {
             char_log
-                ("Make new char error (invalid stat value: not between 1 to 9): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d"
-                 RETCODE, fd, sd->account_id, dat[30], dat, dat[24], dat[25],
+                ("Make new char error (invalid stat value: not between 1 to 9): (connection #%d, account: %d) slot %d, name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d\n",
+                 fd, sd->account_id, dat[30], dat, dat[24], dat[25],
                  dat[26], dat[27], dat[28], dat[29],
                  dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29],
                  dat[33], dat[31]);
@@ -942,8 +933,8 @@ int make_new_char (int fd, unsigned char *dat)
                 && strcasecmp (char_dat[i].name, dat) == 0))
         {
             char_log
-                ("Make new char error (name already exists): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d."
-                 RETCODE, fd, sd->account_id, dat[30], dat, char_dat[i].name,
+                ("Make new char error (name already exists): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
+                 fd, sd->account_id, dat[30], dat, char_dat[i].name,
                  dat[24], dat[25], dat[26], dat[27], dat[28], dat[29],
                  dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29],
                  dat[33], dat[31]);
@@ -953,8 +944,8 @@ int make_new_char (int fd, unsigned char *dat)
             && char_dat[i].char_num == dat[30])
         {
             char_log
-                ("Make new char error (slot already used): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d."
-                 RETCODE, fd, sd->account_id, dat[30], dat, char_dat[i].name,
+                ("Make new char error (slot already used): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
+                 fd, sd->account_id, dat[30], dat, char_dat[i].name,
                  dat[24], dat[25], dat[26], dat[27], dat[28], dat[29],
                  dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29],
                  dat[33], dat[31]);
@@ -965,8 +956,8 @@ int make_new_char (int fd, unsigned char *dat)
     if (strcmp (wisp_server_name, dat) == 0)
     {
         char_log
-            ("Make new char error (name used is wisp name for server): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %d), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d."
-             RETCODE, fd, sd->account_id, dat[30], dat, char_dat[i].name,
+            ("Make new char error (name used is wisp name for server): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %d), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
+             fd, sd->account_id, dat[30], dat, char_dat[i].name,
              dat[24], dat[25], dat[26], dat[27], dat[28], dat[29],
              dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29],
              dat[33], dat[31]);
@@ -989,8 +980,8 @@ int make_new_char (int fd, unsigned char *dat)
              sin_addr[3]);
 
     char_log
-        ("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d. [%s]"
-         RETCODE, fd, sd->account_id, dat[30], dat, dat[24], dat[25], dat[26],
+        ("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d. [%s]\n",
+         fd, sd->account_id, dat[30], dat, dat[24], dat[25], dat[26],
          dat[27], dat[28], dat[29],
          dat[24] + dat[25] + dat[26] + dat[27] + dat[28] + dat[29], dat[33],
          dat[31], ip);
@@ -1215,7 +1206,7 @@ void create_online_files (void)
     if (online_display_option == 0) // we display nothing, so return
         return;
 
-    //char_log("Creation of online players files." RETCODE);
+    //char_log("Creation of online players files.\n");
 
     // Get number of online players, id of each online players
     players = 0;
@@ -2032,8 +2023,7 @@ void parse_tologin (int fd)
                     return;
                 if (RFIFOL (fd, 4) < 1)
                     char_log
-                        ("Receiving a message for broadcast, but message is void."
-                         RETCODE);
+                        ("Receiving a message for broadcast, but message is void.\n");
                 else
                 {
                     // at least 1 map-server
@@ -2042,8 +2032,7 @@ void parse_tologin (int fd)
                             break;
                     if (i == MAX_MAP_SERVERS)
                         char_log
-                            ("'ladmin': Receiving a message for broadcast, but no map-server is online."
-                             RETCODE);
+                            ("'ladmin': Receiving a message for broadcast, but no map-server is online.\n");
                     else
                     {
                         char buf[128];
@@ -2061,23 +2050,22 @@ void parse_tologin (int fd)
                         // if message is only composed of spaces
                         if (p[0] == '\0')
                             char_log
-                                ("Receiving a message for broadcast, but message is only a lot of spaces."
-                                 RETCODE);
+                                ("Receiving a message for broadcast, but message is only a lot of spaces.\n");
                         // else send message to all map-servers
                         else
                         {
                             if (RFIFOW (fd, 2) == 0)
                             {
                                 char_log
-                                    ("'ladmin': Receiving a message for broadcast (message (in yellow): %s)"
-                                     RETCODE, message);
+                                    ("'ladmin': Receiving a message for broadcast (message (in yellow): %s)\n",
+                                     message);
                                 lp = 4;
                             }
                             else
                             {
                                 char_log
-                                    ("'ladmin': Receiving a message for broadcast (message (in blue): %s)"
-                                     RETCODE, message);
+                                    ("'ladmin': Receiving a message for broadcast (message (in blue): %s)\n",
+                                     message);
                                 lp = 8;
                             }
                             // split message to max 80 char
@@ -2288,8 +2276,8 @@ void parse_tologin (int fd)
                         ("From login-server: receiving of %d GM accounts information.\n",
                          GM_num);
                     char_log
-                        ("From login-server: receiving of %d GM accounts information."
-                         RETCODE, GM_num);
+                        ("From login-server: receiving of %d GM accounts information.\n",
+                         GM_num);
                     create_online_files (); // update online players files (perhaps some online players change of GM level)
                     // send new gm acccounts level to map-servers
                     memcpy (buf, RFIFOP (fd, 0), RFIFOW (fd, 2));
@@ -2351,8 +2339,8 @@ void map_anti_freeze_system (timer_id tid, tick_t tick, custom_id_t id, custom_d
                     ("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n",
                      i);
                 char_log
-                    ("Map-server anti-freeze system: char-server #%d is freezed -> disconnection."
-                     RETCODE, i);
+                    ("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n",
+                     i);
                 session[server_fd[i]]->eof = 1;
             }
         }
@@ -2421,8 +2409,8 @@ void parse_frommap (int fd)
                          id, j, p[0], p[1], p[2], p[3], server[id].port);
                     printf ("Map-server %d loading complete.\n", id);
                     char_log
-                        ("Map-Server %d connected: %d maps, from IP %d.%d.%d.%d port %d. Map-server %d loading complete."
-                         RETCODE, id, j, p[0], p[1], p[2], p[3],
+                        ("Map-Server %d connected: %d maps, from IP %d.%d.%d.%d port %d. Map-server %d loading complete.\n",
+                         id, j, p[0], p[1], p[2], p[3],
                          server[id].port, id);
                 }
                 WFIFOW (fd, 0) = 0x2afb;
@@ -2435,8 +2423,8 @@ void parse_frommap (int fd)
                     if (j == 0)
                     {
                         printf ("WARNING: Map-Server %d have NO map.\n", id);
-                        char_log ("WARNING: Map-Server %d have NO map."
-                                  RETCODE, id);
+                        char_log ("WARNING: Map-Server %d have NO map.\n",
+                                  id);
                         // Transmitting maps information to the other map-servers
                     }
                     else
@@ -3111,8 +3099,8 @@ void parse_char (int fd)
                     if (ch != 9)
                     {
                         char_log
-                            ("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]"
-                             RETCODE, sd->account_id, RFIFOB (fd, 2),
+                            ("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n",
+                             sd->account_id, RFIFOB (fd, 2),
                              char_dat[sd->found_char[ch]].name, ip);
                         // searching map server
                         i = search_mapserver (char_dat
@@ -4025,8 +4013,7 @@ void term_func (void)
     delete_session (login_fd);
     delete_session (char_fd);
 
-    char_log ("----End of char-server (normal end with closing of all files)."
-              RETCODE);
+    char_log ("----End of char-server (normal end with closing of all files).\n");
 }
 
 int do_init (int argc, char **argv)
@@ -4035,7 +4022,7 @@ int do_init (int argc, char **argv)
 
     // a newline in the log...
     char_log ("");
-    char_log ("The char-server starting..." RETCODE);
+    char_log ("The char-server starting...\n");
 
     char_config_read ((argc < 2) ? CHAR_CONF_NAME : argv[1]);
     lan_config_read ((argc > 1) ? argv[1] : LOGIN_LAN_CONF_NAME);
@@ -4078,8 +4065,8 @@ int do_init (int argc, char **argv)
         i = add_timer_interval (gettick () + 1000, map_anti_freeze_system, 0, 0, ANTI_FREEZE_INTERVAL * 1000);  // checks every X seconds user specifies
     }
 
-    char_log ("The char-server is ready (Server is listening on the port %d)."
-              RETCODE, char_port);
+    char_log ("The char-server is ready (Server is listening on the port %d).\n",
+              char_port);
 
     printf
         ("The char-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",

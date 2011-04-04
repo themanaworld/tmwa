@@ -150,7 +150,7 @@ void inter_accreg_save_sub (db_key_t key, db_val_t data, va_list ap)
     {
         inter_accreg_tostr (line, reg);
         fp = va_arg (ap, FILE *);
-        fprintf (fp, "%s" RETCODE, line);
+        fprintf (fp, "%s\n", line);
     }
 }
 
