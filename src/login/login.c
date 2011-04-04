@@ -170,9 +170,7 @@ int login_log (char *fmt, ...)
 //----------------------------------------------------------------------
 int isGM (int account_id)
 {
-    struct gm_account *p;
-
-    p = numdb_search (gm_account_db, account_id);
+    struct gm_account *p = (struct gm_account*) numdb_search (gm_account_db, account_id);
     if (p == NULL)
         return 0;
     return p->level;
@@ -181,7 +179,7 @@ int isGM (int account_id)
 //-------------------------------------------------------
 // Reading function of GM accounts file (and their level)
 //-------------------------------------------------------
-int read_gm_account ()
+int read_gm_account (void)
 {
     char line[512];
     struct gm_account *p;
@@ -1101,7 +1099,7 @@ int charif_sendallwos (int sfd, unsigned char *buf, unsigned int len)
 //-----------------------------------------------------
 // Send GM accounts to all char-server
 //-----------------------------------------------------
-void send_GM_accounts ()
+void send_GM_accounts (void)
 {
     int  i;
     char buf[32000];
@@ -1277,7 +1275,7 @@ int mmo_auth (struct mmo_account *account, int fd)
                  RETCODE, account->userid, account->userid[len + 1], ip);
             return 9;           // 9 = Account already exists
         }
-        ld = session[fd]->session_data;
+        ld = (struct login_session_data*) session[fd]->session_data;
 #ifdef PASSWORDENC
         if (account->passwdenc > 0)
         {
@@ -2576,7 +2574,7 @@ void parse_admin (int fd)
                             server[i].users;
                         WFIFOW (fd, 4 + server_num * 32 + 28) =
                             server[i].maintenance;
-                        WFIFOW (fd, 4 + server_num * 32 + 30) = server[i].new;
+                        WFIFOW (fd, 4 + server_num * 32 + 30) = server[i].is_new;
                         server_num++;
                     }
                 }
@@ -3744,7 +3742,7 @@ void parse_login (int fd)
                                     WFIFOW (fd, 47 + server_num * 32 + 28) =
                                         server[i].maintenance;
                                     WFIFOW (fd, 47 + server_num * 32 + 30) =
-                                        server[i].new;
+                                        server[i].is_new;
                                     server_num++;
                                 }
                             }
@@ -3769,7 +3767,7 @@ void parse_login (int fd)
                                     WFIFOW (fd, 47 + server_num * 32 + 28) =
                                         server[i].maintenance;
                                     WFIFOW (fd, 47 + server_num * 32 + 30) =
-                                        server[i].new;
+                                        server[i].is_new;
                                     server_num++;
                                 }
                             }
@@ -3953,7 +3951,7 @@ void parse_login (int fd)
                         server[account.account_id].users = 0;
                         server[account.account_id].maintenance =
                             RFIFOW (fd, 82);
-                        server[account.account_id].new = RFIFOW (fd, 84);
+                        server[account.account_id].is_new = RFIFOW (fd, 84);
                         server_fd[account.account_id] = fd;
                         if (anti_freeze_enable)
                             server_freezeflag[account.account_id] = 5;  // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
@@ -4026,7 +4024,7 @@ void parse_login (int fd)
                 }
                 else
                 {
-                    struct login_session_data *ld = session[fd]->session_data;
+                    struct login_session_data *ld = (struct login_session_data *)session[fd]->session_data;
                     if (RFIFOW (fd, 2) == 0)
                     {           // non encrypted password
                         unsigned char *password;

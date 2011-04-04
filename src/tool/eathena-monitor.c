@@ -76,7 +76,7 @@ pid_t pid_login, pid_map, pid_char;
 const char* make_path (const char* base, const char* path) {
     size_t base_len = strlen(base);
     size_t path_len = strlen(path);
-    char* out = malloc(base_len + 1 + path_len + 1);
+    char* out = (char *)malloc(base_len + 1 + path_len + 1);
     memcpy(out, base, base_len);
     out[base_len] = '/';
     memcpy(out + base_len + 1, path, path_len);

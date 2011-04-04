@@ -47,7 +47,7 @@ typedef struct op
  * @param name The name to look up
  * @return A function of that name, or NULL, and a function index
  */
-fun_t *magic_get_fun (char *name, int *index);
+fun_t *magic_get_fun (const char *name, int *index);
 
 /**
  * Retrieves an operation by name

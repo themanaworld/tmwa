@@ -165,7 +165,7 @@ void MD5_to_bin(MD5_state state, uint8_t out[0x10])
         out[i] = state.val[i/4] >> 8*(i%4);
 }
 
-static const char hex[0x10] = "0123456789abcdef";
+static const char hex[] = "0123456789abcdef";
 
 void MD5_to_str(MD5_state state, char out[0x21])
 {
@@ -291,7 +291,7 @@ const char *MD5_saltcrypt(const char *key, const char *salt)
     return obuf;
 }
 
-const char *make_salt() {
+const char *make_salt(void) {
     static char salt[6];
     for (int i=0; i<5; i++)
         salt[i] = MPRAND(48, 78);

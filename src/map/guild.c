@@ -162,7 +162,7 @@ void do_init_guild (void)
 // 検索
 struct guild *guild_search (int guild_id)
 {
-    return numdb_search (guild_db, guild_id);
+    return (struct guild *)numdb_search (guild_db, guild_id);
 }
 
 void guild_searchname_sub (db_key_t key, db_val_t data, va_list ap)
@@ -185,7 +185,7 @@ struct guild *guild_searchname (char *str)
 
 struct guild_castle *guild_castle_search (int gcid)
 {
-    return numdb_search (castle_db, gcid);
+    return (struct guild_castle *)numdb_search (castle_db, gcid);
 }
 
 // mapnameに対応したアジトのgcを返す
@@ -255,7 +255,7 @@ void guild_makemember (struct guild_member *m, struct map_session_data *sd)
     m->hair = sd->status.hair;
     m->hair_color = sd->status.hair_color;
     m->gender = sd->sex;
-    m->class = sd->status.class;
+    m->pc_class = sd->status.pc_class;
     m->lv = sd->status.base_level;
     m->exp = 0;
     m->exp_payper = 0;
@@ -372,7 +372,7 @@ int guild_created (int account_id, int guild_id)
         sd->status.guild_id = guild_id;
         sd->guild_sended = 0;
 
-        if ((g = numdb_search (guild_db, guild_id)) != NULL)
+        if ((g = (struct guild *)numdb_search (guild_db, guild_id)) != NULL)
         {
             printf ("guild_created(): ID already exists!\n");
             exit (1);
@@ -434,7 +434,7 @@ int guild_check_member (const struct guild *g)
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd->state.auth)
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth)
         {
             if (sd->status.guild_id == g->guild_id)
             {
@@ -466,7 +466,7 @@ int guild_recv_noinfo (int guild_id)
     struct map_session_data *sd;
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd->state.auth)
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth)
         {
             if (sd->status.guild_id == guild_id)
                 sd->status.guild_id = 0;
@@ -484,7 +484,7 @@ int guild_recv_info (struct guild *sg)
 
     nullpo_retr (0, sg);
 
-    if ((g = numdb_search (guild_db, sg->guild_id)) == NULL)
+    if ((g = (struct guild *)numdb_search (guild_db, sg->guild_id)) == NULL)
     {
         CREATE (g, struct guild, 1);
         numdb_insert (guild_db, sg->guild_id, g);
@@ -544,7 +544,7 @@ int guild_recv_info (struct guild *sg)
     }
 
     // イベントの発生
-    if ((ev = numdb_search (guild_infoevent_db, sg->guild_id)) != NULL)
+    if ((ev = (struct eventlist *)numdb_search (guild_infoevent_db, sg->guild_id)) != NULL)
     {
         numdb_erase (guild_infoevent_db, sg->guild_id);
         for (; ev; ev2 = ev->next, free (ev), ev = ev2)
@@ -820,7 +820,7 @@ int guild_send_memberinfoshort (struct map_session_data *sd, int online)
     intif_guild_memberinfoshort (g->guild_id,
                                  sd->status.account_id, 0 /*char_id*/,
                                  online, sd->status.base_level,
-                                 sd->status.class);
+                                 sd->status.pc_class);
 
     if (!online)
     {                           // ログアウトするならsdをクリアして終了
@@ -854,7 +854,7 @@ int guild_send_memberinfoshort (struct map_session_data *sd, int online)
 
 // ギルドメンバのオンライン状態/Lv更新通知
 int guild_recv_memberinfoshort (int guild_id, int account_id, int char_id,
-                                int online, int lv, int class)
+                                int online, int lv, int pc_class)
 {
     int  i, alv, c, idx = 0, om = 0, oldonline = -1;
     struct guild *g = guild_search (guild_id);
@@ -868,7 +868,7 @@ int guild_recv_memberinfoshort (int guild_id, int account_id, int char_id,
             oldonline = m->online;
             m->online = online;
             m->lv = lv;
-            m->class = class;
+            m->pc_class = pc_class;
             idx = i;
         }
         if (m->account_id > 0)
@@ -1084,7 +1084,7 @@ int guild_payexp (struct map_session_data *sd, int exp)
     if ((exp2 = exp * per / 100) <= 0)
         return 0;
 
-    if ((c = numdb_search (guild_expcache_db, sd->status.account_id /*char_id*/)) == NULL)
+    if ((c = (struct guild_expcache *)numdb_search (guild_expcache_db, sd->status.account_id /*char_id*/)) == NULL)
     {
         CREATE (c, struct guild_expcache, 1);
         c->guild_id = sd->status.guild_id;
@@ -1539,7 +1539,7 @@ int guild_addcastleinfoevent (int castle_id, int index, const char *name)
 
     CREATE (ev, struct eventlist, 1);
     memcpy (ev->name, name, sizeof (ev->name));
-    ev->next = numdb_search (guild_castleinfoevent_db, code);
+    ev->next = (struct eventlist *)numdb_search (guild_castleinfoevent_db, code);
     numdb_insert (guild_castleinfoevent_db, code, ev);
     return 0;
 }
@@ -1637,7 +1637,7 @@ int guild_castledataloadack (int castle_id, int index, int value)
                     index);
             return 0;
     }
-    if ((ev = numdb_search (guild_castleinfoevent_db, code)) != NULL)
+    if ((ev = (struct eventlist *)numdb_search (guild_castleinfoevent_db, code)) != NULL)
     {
         numdb_erase (guild_castleinfoevent_db, code);
         for (; ev; ev2 = ev->next, free (ev), ev = ev2)
@@ -1882,30 +1882,22 @@ int guild_isallied (struct guild *g, struct guild_castle *gc)
 
 static void guild_db_final (db_key_t key, db_val_t data, va_list ap)
 {
-    struct guild *g = data;
-
-    free (g);
+    free (data);
 }
 
 static void castle_db_final (db_key_t key, db_val_t data, va_list ap)
 {
-    struct guild_castle *gc = data;
-
-    free (gc);
+    free (data);
 }
 
 static void guild_expcache_db_final (db_key_t key, db_val_t data, va_list ap)
 {
-    struct guild_expcache *c = data;
-
-    free (c);
+    free (data);
 }
 
 static void guild_infoevent_db_final (db_key_t key, db_val_t data, va_list ap)
 {
-    struct eventlist *ev = data;
-
-    free (ev);
+    free (data);
 }
 
 void do_final_guild (void)

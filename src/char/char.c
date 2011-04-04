@@ -246,7 +246,7 @@ int mmo_char_tostr (char *str, struct mmo_charstatus *p)
     }
 
     str_p += sprintf (str_p, "%d\t%d,%d\t%s\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d,%d\t%d,%d,%d,%d,%d,%d\t%d,%d" "\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d,%d,%d" "\t%s,%d,%d\t%s,%d,%d,%d\t", p->char_id, p->account_id, p->char_num, p->name,  //
-                      p->class, p->base_level, p->job_level, p->base_exp, p->job_exp, p->zeny, p->hp, p->max_hp, p->sp, p->max_sp, p->str, p->agi, p->vit, p->int_, p->dex, p->luk, p->status_point, p->skill_point, p->option, p->karma, p->manner,    //
+                      p->pc_class, p->base_level, p->job_level, p->base_exp, p->job_exp, p->zeny, p->hp, p->max_hp, p->sp, p->max_sp, p->str, p->agi, p->vit, p->int_, p->dex, p->luk, p->status_point, p->skill_point, p->option, p->karma, p->manner,    //
                       p->party_id, p->guild_id, 0, p->hair, p->hair_color, p->clothes_color, p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom, p->last_point.map, p->last_point.x, p->last_point.y,   //
                       p->save_point.map, p->save_point.x, p->save_point.y,
                       p->partner_id);
@@ -364,7 +364,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     p->char_id = tmp_int[0];
     p->account_id = tmp_int[1];
     p->char_num = tmp_int[2];
-    p->class = tmp_int[3];
+    p->pc_class = tmp_int[3];
     p->base_level = tmp_int[4];
     p->job_level = tmp_int[5];
     p->base_exp = tmp_int[6];
@@ -857,9 +857,7 @@ static void remove_prefix_blanks (char *name)
 int make_new_char (int fd, unsigned char *dat)
 {
     int  i, j;
-    struct char_session_data *sd;
-
-    sd = session[fd]->session_data;
+    struct char_session_data *sd = (struct char_session_data *)session[fd]->session_data;
 
     // remove control characters from the name
     dat[23] = '\0';
@@ -1003,7 +1001,7 @@ int make_new_char (int fd, unsigned char *dat)
     char_dat[i].account_id = sd->account_id;
     char_dat[i].char_num = dat[30];
     strcpy (char_dat[i].name, dat);
-    char_dat[i].class = 0;
+    char_dat[i].pc_class = 0;
     char_dat[i].base_level = 1;
     char_dat[i].job_level = 1;
     char_dat[i].base_exp = 0;
@@ -1054,9 +1052,9 @@ int make_new_char (int fd, unsigned char *dat)
 //----------------------------------------------------
 // This function return the name of the job (by [Yor])
 //----------------------------------------------------
-char *job_name (int class)
+char *job_name (int pc_class)
 {
-    switch (class)
+    switch (pc_class)
     {
         case 0:
             return "Novice";
@@ -1278,13 +1276,13 @@ void create_online_files (void)
                     break;
                 case 4:        // by job (and job level)
                     for (j = 0; j < players; j++)
-                        if (char_dat[i].class < char_dat[id[j]].class ||
+                        if (char_dat[i].pc_class < char_dat[id[j]].pc_class ||
                             // if same job, we sort by job level.
-                            (char_dat[i].class == char_dat[id[j]].class &&
+                            (char_dat[i].pc_class == char_dat[id[j]].pc_class &&
                              char_dat[i].job_level <
                              char_dat[id[j]].job_level) ||
                             // if same job and job level, we sort by job exp.
-                            (char_dat[i].class == char_dat[id[j]].class &&
+                            (char_dat[i].pc_class == char_dat[id[j]].pc_class &&
                              char_dat[i].job_level ==
                              char_dat[id[j]].job_level
                              && char_dat[i].job_exp <
@@ -1459,7 +1457,7 @@ void create_online_files (void)
                     // displaying of the job
                     if (online_display_option & 6)
                     {
-                        char *jobname = job_name (char_dat[j].class);
+                        char *jobname = job_name (char_dat[j].pc_class);
                         if ((online_display_option & 6) == 6)
                         {
                             fprintf (fp2, "        <td>%s %d/%d</td>\n",
@@ -1638,7 +1636,7 @@ int mmo_char_send006b (int fd, struct char_session_data *sd)
         WFIFOW (fd, j + 46) = (p->sp > 0x7fff) ? 0x7fff : p->sp;
         WFIFOW (fd, j + 48) = (p->max_sp > 0x7fff) ? 0x7fff : p->max_sp;
         WFIFOW (fd, j + 50) = DEFAULT_WALK_SPEED;   // p->speed;
-        WFIFOW (fd, j + 52) = p->class;
+        WFIFOW (fd, j + 52) = p->pc_class;
         WFIFOW (fd, j + 54) = p->hair;
 //      WFIFOW(fd,j+56) = p->weapon; // dont send weapon since TMW does not support it
         WFIFOW (fd, j + 56) = 0;
@@ -1790,7 +1788,7 @@ int disconnect_player (int accound_id)
     // disconnect player if online on char-server
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data))
+        if (session[i] && (sd = (struct char_session_data*)session[i]->session_data))
         {
             if (sd->account_id == accound_id)
             {
@@ -1849,7 +1847,7 @@ void parse_tologin (int fd)
         return;
     }
 
-    sd = session[fd]->session_data;
+    sd = (struct char_session_data*)session[fd]->session_data;
 
     while (RFIFOREST (fd) >= 2)
     {
@@ -1892,7 +1890,7 @@ void parse_tologin (int fd)
 //          printf("parse_tologin 2713 : %d\n", RFIFOB(fd,6));
                 for (i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (sd = session[i]->session_data)
+                    if (session[i] && (sd = (struct char_session_data*)session[i]->session_data)
                         && sd->account_id == RFIFOL (fd, 2))
                     {
                         if (RFIFOB (fd, 6) != 0)
@@ -1935,7 +1933,7 @@ void parse_tologin (int fd)
                     return;
                 for (i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (sd = session[i]->session_data))
+                    if (session[i] && (sd = (struct char_session_data*)session[i]->session_data))
                     {
                         if (sd->account_id == RFIFOL (fd, 2))
                         {
@@ -1979,7 +1977,7 @@ void parse_tologin (int fd)
                         {
                             if (char_dat[i].account_id == acc)
                             {
-                                int  jobclass = char_dat[i].class;
+                                int  jobclass = char_dat[i].pc_class;
                                 char_dat[i].sex = sex;
 //                      auth_fifo[i].sex = sex;
                                 if (jobclass == 19 || jobclass == 20 ||
@@ -1989,18 +1987,18 @@ void parse_tologin (int fd)
                                     // job modification
                                     if (jobclass == 19 || jobclass == 20)
                                     {
-                                        char_dat[i].class = (sex) ? 19 : 20;
+                                        char_dat[i].pc_class = (sex) ? 19 : 20;
                                     }
                                     else if (jobclass == 4020
                                              || jobclass == 4021)
                                     {
-                                        char_dat[i].class =
+                                        char_dat[i].pc_class =
                                             (sex) ? 4020 : 4021;
                                     }
                                     else if (jobclass == 4042
                                              || jobclass == 4043)
                                     {
-                                        char_dat[i].class =
+                                        char_dat[i].pc_class =
                                             (sex) ? 4042 : 4043;
                                     }
                                 }
@@ -2216,7 +2214,7 @@ void parse_tologin (int fd)
                                 for (j = 0; j < fd_max; j++)
                                 {
                                     if (session[j]
-                                        && (sd2 = session[j]->session_data)
+                                        && (sd2 = (struct char_session_data*)session[j]->session_data)
                                         && sd2->account_id ==
                                         char_dat[char_num - 1].account_id)
                                     {
@@ -2311,7 +2309,7 @@ void parse_tologin (int fd)
 
                     for (i = 0; i < fd_max; i++)
                     {
-                        if (session[i] && (sd = session[i]->session_data))
+                        if (session[i] && (sd = (struct char_session_data*)session[i]->session_data))
                         {
                             if (sd->account_id == acc)
                             {
@@ -2963,7 +2961,7 @@ void parse_char (int fd)
         return;
     }
 
-    sd = session[fd]->session_data;
+    sd = (struct char_session_data*)session[fd]->session_data;
 
     while (RFIFOREST (fd) >= 2)
     {
@@ -3290,7 +3288,7 @@ void parse_char (int fd)
                     (char_dat[i].max_sp >
                      0x7fff) ? 0x7fff : char_dat[i].max_sp;
                 WFIFOW (fd, 2 + 50) = DEFAULT_WALK_SPEED;   // char_dat[i].speed;
-                WFIFOW (fd, 2 + 52) = char_dat[i].class;
+                WFIFOW (fd, 2 + 52) = char_dat[i].pc_class;
                 WFIFOW (fd, 2 + 54) = char_dat[i].hair;
 
                 WFIFOW (fd, 2 + 58) = char_dat[i].base_level;
@@ -3412,7 +3410,7 @@ void parse_char (int fd)
                                     for (j = 0; j < fd_max; j++)
                                     {
                                         if (session[j]
-                                            && (sd2 =
+                                            && (sd2 = (struct char_session_data*)
                                                 session[j]->session_data)
                                             && sd2->account_id ==
                                             char_dat[char_num - 1].account_id)

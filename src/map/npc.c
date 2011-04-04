@@ -85,7 +85,7 @@ int npc_enable_sub (struct block_list *bl, va_list ap)
 
 int npc_enable (const char *name, int flag)
 {
-    struct npc_data *nd = strdb_search (npcname_db, name);
+    struct npc_data *nd = (struct npc_data *)strdb_search (npcname_db, name);
     if (nd == NULL)
         return 0;
 
@@ -125,7 +125,7 @@ int npc_enable (const char *name, int flag)
  */
 struct npc_data *npc_name2id (const char *name)
 {
-    return strdb_search (npcname_db, name);
+    return (struct npc_data *)strdb_search (npcname_db, name);
 }
 
 /*==========================================
@@ -184,7 +184,7 @@ void npc_event_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t d
 
 int npc_timer_event (const char *eventname) // Added by RoVeRT
 {
-    struct event_data *ev = strdb_search (ev_db, eventname);
+    struct event_data *ev = (struct event_data *)strdb_search (ev_db, eventname);
     struct npc_data *nd;
 //  int xs,ys;
 
@@ -261,14 +261,9 @@ int npc_event_export (void *key, void *data, va_list ap)
         char *buf;
         char *p = strchr (lname, ':');
         // エクスポートされる
-        ev = calloc (sizeof (struct event_data), 1);
-        buf = calloc (50, 1);
-        if (ev == NULL || buf == NULL)
-        {
-            printf ("npc_event_export: out of memory !\n");
-            exit (1);
-        }
-        else if (p == NULL || (p - lname) > 24)
+        CREATE (ev, struct event_data, 1);
+        CREATE (buf, char, 50);
+        if (p == NULL || (p - lname) > 24)
         {
             printf ("npc_event_export: label name error !\n");
             exit (1);
@@ -428,12 +423,8 @@ int npc_addeventtimer (struct npc_data *nd, int tick, const char *name)
             break;
     if (i < MAX_EVENTTIMER)
     {
-        char *evname = malloc (24);
-        if (evname == NULL)
-        {
-            printf ("npc_addeventtimer: out of memory !\n");
-            exit (1);
-        }
+        char *evname;
+        CREATE (evname, char, 24);
         memcpy (evname, name, 24);
         nd->eventtimer[i] = add_timer (gettick () + tick,
                                        npc_event_timer, nd->bl.id,
@@ -529,15 +520,7 @@ int npc_timerevent_import (void *key, void *data, va_list ap)
         // タイマーイベント
         struct npc_timerevent_list *te = nd->u.scr.timer_event;
         int  j, i = nd->u.scr.timeramount;
-        if (te == NULL)
-            te = malloc (sizeof (struct npc_timerevent_list));
-        else
-            te = realloc (te, sizeof (struct npc_timerevent_list) * (i + 1));
-        if (te == NULL)
-        {
-            printf ("npc_timerevent_import: out of memory !\n");
-            exit (1);
-        }
+        RECREATE (te, struct npc_timerevent_list, i+1);
         for (j = 0; j < i; j++)
         {
             if (te[j].timer > t)
@@ -677,7 +660,7 @@ int npc_settimerevent_tick (struct npc_data *nd, int newtimer)
 int npc_event (struct map_session_data *sd, const char *eventname,
                int mob_kill)
 {
-    struct event_data *ev = strdb_search (ev_db, eventname);
+    struct event_data *ev = (struct event_data *)strdb_search (ev_db, eventname);
     struct npc_data *nd;
     int  xs, ys;
     char mobevent[100];
@@ -697,7 +680,7 @@ int npc_event (struct map_session_data *sd, const char *eventname,
         {
             strcpy (mobevent, eventname);
             strcat (mobevent, "::OnMyMobDead");
-            ev = strdb_search (ev_db, mobevent);
+            ev = (struct event_data *)strdb_search (ev_db, mobevent);
             if (ev == NULL || (nd = ev->nd) == NULL)
             {
                 if (strncasecmp (eventname, "GM_MONSTER", 10) != 0)
@@ -847,7 +830,7 @@ int npc_touch_areanpc (struct map_session_data *sd, int m, int x, int y)
         case MESSAGE:
         case SCRIPT:
         {
-            char *name = calloc (50, 1);
+            char *name = (char *)malloc (50);
 
             memcpy (name, map[m].npc[i]->name, 50);
             if (sd->areanpc_id == map[m].npc[i]->bl.id)
@@ -880,7 +863,7 @@ int npc_checknear (struct map_session_data *sd, int id)
         return 1;
     }
 
-    if (nd->class < 0)          // イベント系は常にOK
+    if (nd->npc_class < 0)          // イベント系は常にOK
         return 0;
 
     // エリア判定
@@ -1019,7 +1002,7 @@ int npc_buylist (struct map_session_data *sd, int n,
 {
     struct npc_data *nd;
     double z;
-    int  i, j, w, skill, itemamount = 0, new = 0;
+    int  i, j, w, skill, itemamount = 0, new_stacks = 0;
 
     nullpo_retr (3, sd);
     nullpo_retr (3, item_list);
@@ -1055,9 +1038,9 @@ int npc_buylist (struct map_session_data *sd, int n,
                 break;
             case ADDITEM_NEW:
                 if (itemdb_isequip (item_list[i * 2 + 1]))
-                    new += item_list[i * 2];
+                    new_stacks += item_list[i * 2];
                 else
-                    new++;
+                    new_stacks++;
                 break;
             case ADDITEM_OVERAMOUNT:
                 return 2;
@@ -1070,7 +1053,7 @@ int npc_buylist (struct map_session_data *sd, int n,
         return 1;               // zeny不足
     if (w + sd->weight > sd->max_weight)
         return 2;               // 重量超過
-    if (pc_inventoryblank (sd) < new)
+    if (pc_inventoryblank (sd) < new_stacks)
         return 3;               // 種類数超過
     if (sd->trade_partner != 0)
         return 4;               // cant buy while trading
@@ -1201,7 +1184,7 @@ int npc_selllist (struct map_session_data *sd, int n,
  * 読み込むnpcファイルのクリア
  *------------------------------------------
  */
-void npc_clearsrcfile ()
+void npc_clearsrcfile (void)
 {
     struct npc_src_list *p = npc_src_first;
 
@@ -1221,7 +1204,7 @@ void npc_clearsrcfile ()
  */
 void npc_addsrcfile (char *name)
 {
-    struct npc_src_list *new;
+    struct npc_src_list *new_src;
     size_t len;
 
     if (strcasecmp (name, "clear") == 0)
@@ -1230,16 +1213,16 @@ void npc_addsrcfile (char *name)
         return;
     }
 
-    len = sizeof (*new) + strlen (name);
-    new = (struct npc_src_list *) calloc (1, len);
-    new->next = NULL;
-    strncpy (new->name, name, strlen (name) + 1);
+    len = sizeof (*new_src) + strlen (name);
+    new_src = (struct npc_src_list *) calloc (1, len);
+    new_src->next = NULL;
+    strncpy (new_src->name, name, strlen (name) + 1);
     if (npc_src_first == NULL)
-        npc_src_first = new;
+        npc_src_first = new_src;
     if (npc_src_last)
-        npc_src_last->next = new;
+        npc_src_last->next = new_src;
 
-    npc_src_last = new;
+    npc_src_last = new_src;
 }
 
 /*==========================================
@@ -1306,9 +1289,9 @@ int npc_parse_warp (char *w1, char *w2, char *w3, char *w4)
 
     nd->chat_id = 0;
     if (!battle_config.warp_point_debug)
-        nd->class = WARP_CLASS;
+        nd->npc_class = WARP_CLASS;
     else
-        nd->class = WARP_DEBUG_CLASS;
+        nd->npc_class = WARP_DEBUG_CLASS;
     nd->speed = 200;
     nd->option = 0;
     nd->opt1 = 0;
@@ -1421,7 +1404,7 @@ static int npc_parse_shop (char *w1, char *w2, char *w3, char *w4)
     nd->dir = dir;
     nd->flag = 0;
     memcpy (nd->name, w3, 24);
-    nd->class = atoi (w4);
+    nd->npc_class = atoi (w4);
     nd->speed = 200;
     nd->chat_id = 0;
     nd->option = 0;
@@ -1488,7 +1471,7 @@ void npc_convertlabel_db (db_key_t key, db_val_t data, va_list ap)
 static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
                              char *first_line, FILE * fp, int *lines)
 {
-    int  x, y, dir = 0, m, xs = 0, ys = 0, class = 0;   // [Valaris] thanks to fov
+    int  x, y, dir = 0, m, xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
     char mapname[24];
     unsigned char *srcbuf = NULL, *script;
     int  srcsize = 65536;
@@ -1598,7 +1581,7 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
         // スクリプトコピー用のダミーNPC
 
     }
-    else if (sscanf (w4, "%d,%d,%d", &class, &xs, &ys) == 3)
+    else if (sscanf (w4, "%d,%d,%d", &npc_class, &xs, &ys) == 3)
     {
         // 接触型NPC
         int  i, j;
@@ -1608,7 +1591,7 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
         if (ys >= 0)
             ys = ys * 2 + 1;
 
-        if (class >= 0)
+        if (npc_class >= 0)
         {
 
             for (i = 0; i < ys; i++)
@@ -1629,12 +1612,12 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
     }
     else
     {                           // クリック型NPC
-        class = atoi (w4);
+        npc_class = atoi (w4);
         nd->u.scr.xs = 0;
         nd->u.scr.ys = 0;
     }
 
-    if (class < 0 && m >= 0)
+    if (npc_class < 0 && m >= 0)
     {                           // イベント型NPC
         evflag = 1;
     }
@@ -1663,7 +1646,7 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
     nd->bl.id = npc_get_new_npc_id ();
     nd->dir = dir;
     nd->flag = 0;
-    nd->class = class;
+    nd->npc_class = npc_class;
     nd->speed = 200;
     nd->u.scr.script = script;
     nd->u.scr.src_id = src_id;
@@ -1873,7 +1856,7 @@ static int npc_parse_function (char *w1, char *w2, char *w3, char *w4,
  */
 int npc_parse_mob (char *w1, char *w2, char *w3, char *w4)
 {
-    int  m, x, y, xs, ys, class, num, delay1, delay2;
+    int  m, x, y, xs, ys, mob_class, num, delay1, delay2;
     int  i;
     char mapname[24];
     char eventname[24] = "";
@@ -1883,7 +1866,7 @@ int npc_parse_mob (char *w1, char *w2, char *w3, char *w4)
     delay1 = delay2 = 0;
     // 引数の個数チェック
     if (sscanf (w1, "%[^,],%d,%d,%d,%d", mapname, &x, &y, &xs, &ys) < 3 ||
-        sscanf (w4, "%d,%d,%d,%d,%s", &class, &num, &delay1, &delay2,
+        sscanf (w4, "%d,%d,%d,%d,%s", &mob_class, &num, &delay1, &delay2,
                 eventname) < 2)
     {
         printf ("bad monster line : %s\n", w3);
@@ -1908,14 +1891,14 @@ int npc_parse_mob (char *w1, char *w2, char *w3, char *w4)
         md->bl.x = x;
         md->bl.y = y;
         if (strcmp (w3, "--en--") == 0)
-            memcpy (md->name, mob_db[class].name, 24);
+            memcpy (md->name, mob_db[mob_class].name, 24);
         else if (strcmp (w3, "--ja--") == 0)
-            memcpy (md->name, mob_db[class].jname, 24);
+            memcpy (md->name, mob_db[mob_class].jname, 24);
         else
             memcpy (md->name, w3, 24);
 
         md->n = i;
-        md->base_class = md->class = class;
+        md->base_class = md->mob_class = mob_class;
         md->bl.id = npc_get_new_npc_id ();
         md->m = m;
         md->x0 = x;
@@ -1930,7 +1913,7 @@ int npc_parse_mob (char *w1, char *w2, char *w3, char *w4)
         md->target_id = 0;
         md->attacked_id = 0;
 
-        if (mob_db[class].mode & 0x02)
+        if (mob_db[mob_class].mode & 0x02)
             md->lootitem =
                 (struct item *) calloc (LOOTITEM_SIZE, sizeof (struct item));
         else
@@ -2142,7 +2125,7 @@ static void ev_db_final (db_key_t key, db_val_t data, va_list ap)
 }
 
 struct npc_data *npc_spawn_text (int m, int x, int y,
-                                 int class, char *name, char *message)
+                                 int npc_class, char *name, char *message)
 {
     struct npc_data *retval =
         (struct npc_data *) calloc (1, sizeof (struct npc_data));
@@ -2159,7 +2142,7 @@ struct npc_data *npc_spawn_text (int m, int x, int y,
     retval->exname[15] = 0;
     retval->u.message = message ? strdup (message) : NULL;
 
-    retval->class = class;
+    retval->npc_class = npc_class;
     retval->speed = 200;
 
     clif_spawnnpc (retval);

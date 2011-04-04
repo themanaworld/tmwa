@@ -255,7 +255,7 @@ int  already_exit_function = 0; // sometimes, the exit function is called twice.
 //------------------------------
 // Writing function of logs file
 //------------------------------
-int ladmin_log (char *fmt, ...)
+int ladmin_log (const char *fmt, ...)
 {
     FILE *logfp;
     va_list ap;
@@ -307,7 +307,7 @@ int remove_control_chars (unsigned char *str)
 //---------------------------------------------
 // Function to return ordonal text of a number.
 //---------------------------------------------
-char *makeordinal (int number)
+const char *makeordinal (int number)
 {
     if (defaultlanguage == 'F')
     {
@@ -2784,7 +2784,7 @@ int changeemail (char *param)
 //-----------------------------------------------------
 // Sub-function: Asking of the number of online players
 //-----------------------------------------------------
-int getlogincount ()
+int getlogincount (void)
 {
     if (defaultlanguage == 'F')
     {
@@ -3399,7 +3399,7 @@ int changepasswd (char *param)
 // Sub-function: Request to login-server to reload GM configuration file
 // this function have no answer
 //----------------------------------------------------------------------
-int reloadGM ()
+int reloadGM (void)
 {
     WFIFOW (login_fd, 0) = 0x7955;
     WFIFOSET (login_fd, 2);
@@ -4387,7 +4387,7 @@ int whoaccount (char *param)
 //--------------------------------------------------------
 // Sub-function: Asking of the version of the login-server
 //--------------------------------------------------------
-int checkloginversion ()
+int checkloginversion (void)
 {
     if (defaultlanguage == 'F')
         ladmin_log
@@ -4408,7 +4408,7 @@ int checkloginversion ()
 // this function wait until user type a command
 // and analyse the command.
 //---------------------------------------------
-int prompt ()
+int prompt (void)
 {
     int  i, j;
     char buf[1024];
@@ -4767,7 +4767,7 @@ void parse_fromlogin (int fd)
     }
 
 //  printf("parse_fromlogin : %d %d %d\n", fd, RFIFOREST(fd), RFIFOW(fd,0));
-    sd = session[fd]->session_data;
+    sd = (struct char_session_data *)session[fd]->session_data;
 
     while (RFIFOREST (fd) >= 2)
     {
@@ -6339,7 +6339,7 @@ void parse_fromlogin (int fd)
 //------------------------------------
 // Function to connect to login-server
 //------------------------------------
-int Connect_login_server ()
+int Connect_login_server (void)
 {
     if (defaultlanguage == 'F')
     {

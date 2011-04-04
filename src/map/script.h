@@ -40,12 +40,12 @@ typedef struct argrec
 int  run_script_l (unsigned char *, int, int, int, int, argrec_t * args);
 int  run_script (unsigned char *, int, int, int);
 
-struct dbt *script_get_label_db ();
-struct dbt *script_get_userfunc_db ();
+struct dbt *script_get_label_db (void);
+struct dbt *script_get_userfunc_db (void);
 
 int  script_config_read (char *cfgName);
-int  do_init_script ();
-int  do_final_script ();
+int  do_init_script (void);
+int  do_final_script (void);
 
 extern char mapreg_txt[];
 

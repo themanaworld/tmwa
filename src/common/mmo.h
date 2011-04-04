@@ -101,7 +101,7 @@ struct mmo_charstatus
 
     int  base_exp, job_exp, zeny;
 
-    short class;
+    short pc_class;
     short status_point, skill_point;
     int  hp, max_hp, sp, max_sp;
     short option, karma, manner;
@@ -176,7 +176,7 @@ struct party
 struct guild_member
 {
     int  account_id, char_id;
-    short hair, hair_color, gender, class, lv;
+    short hair, hair_color, gender, pc_class, lv;
     int  exp, exp_payper;
     short online, position;
     int  rsv1, rsv2;

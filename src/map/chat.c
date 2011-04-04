@@ -28,7 +28,7 @@ int chat_createchat (struct map_session_data *sd, int limit, int pub,
 
     nullpo_retr (0, sd);
 
-    cd = calloc (1, sizeof (struct chat_data));
+    CREATE(cd, struct chat_data, 1);
 
     cd->limit = limit;
     cd->pub = pub;
@@ -279,7 +279,7 @@ int chat_createnpcchat (struct npc_data *nd, int limit, int pub, int trigger,
 
     nullpo_retr (1, nd);
 
-    cd = calloc (1, sizeof (struct chat_data));
+    CREATE (cd, struct chat_data, 1);
 
     cd->limit = cd->trigger = limit;
     if (trigger > 0)

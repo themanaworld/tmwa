@@ -130,6 +130,6 @@ void set_defaultparse (void (*defaultparse) (int));
 /// Wrappers to track number of free FDs
 void fclose_ (FILE * fp);
 FILE *fopen_ (const char *path, const char *mode);
-bool free_fds ();
+bool free_fds (void);
 
 #endif // SOCKET_H

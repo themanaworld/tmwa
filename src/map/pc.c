@@ -149,7 +149,7 @@ int pc_set_gm_level (int account_id, int level)
     }
 
     GM_num++;
-    gm_account = realloc (gm_account, sizeof (struct gm_account) * GM_num);
+    RECREATE (gm_account, struct gm_account, GM_num);
     gm_account[GM_num - 1].account_id = account_id;
     gm_account[GM_num - 1].level = level;
     return 0;
@@ -317,7 +317,7 @@ int pc_setrestartvalue (struct map_session_data *sd, int type)
 
     nullpo_retr (0, sd);
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
 
     //-----------------------
     // 死亡した
@@ -358,7 +358,7 @@ int pc_setrestartvalue (struct map_session_data *sd, int type)
 
     /* removed exp penalty on spawn [Valaris] */
 
-    if (type & 2 && sd->status.class != 0 && battle_config.zeny_penalty > 0
+    if (type & 2 && sd->status.pc_class != 0 && battle_config.zeny_penalty > 0
         && !map[sd->bl.m].flag.nozenypenalty)
     {
         int  zeny =
@@ -511,7 +511,7 @@ int pc_equippoint (struct map_session_data *sd, int n)
     if (!sd->inventory_data[n])
         return 0;
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
 
     ep = sd->inventory_data[n]->equip;
     if ((sd->inventory_data[n]->look == 1 || sd->inventory_data[n]->look == 2
@@ -788,7 +788,7 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     sd->bl.prev = sd->bl.next = NULL;
 
     sd->weapontype1 = sd->weapontype2 = 0;
-    sd->view_class = sd->status.class;
+    sd->view_class = sd->status.pc_class;
     sd->speed = DEFAULT_WALK_SPEED;
     sd->state.dead_sit = 0;
     sd->dir = 0;
@@ -1026,7 +1026,7 @@ int pc_calc_skilltree (struct map_session_data *sd)
 
     nullpo_retr (0, sd);
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
     c = s_class.job;
     s = (s_class.upper == 1) ? 1 : 0;   //ｿ転生以外は通常のスキル？
 
@@ -1257,7 +1257,7 @@ int pc_calcstatus (struct map_session_data *sd, int first)
     nullpo_retr (0, sd);
 
     //転生や養子の場合の元の職業を算出する
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
 
     b_speed = sd->speed;
     b_max_hp = sd->status.max_hp;
@@ -1284,7 +1284,7 @@ int pc_calcstatus (struct map_session_data *sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_class = sd->view_class;
-    sd->view_class = sd->status.class;
+    sd->view_class = sd->status.pc_class;
     b_base_atk = sd->base_atk;
 
     pc_calc_skilltree (sd);     // スキルツリーの計算
@@ -2025,15 +2025,15 @@ int pc_calcstatus (struct map_session_data *sd, int first)
     //Flee上昇
     if ((skill = pc_checkskill (sd, TF_MISS)) > 0)
     {                           // 回避率増加
-        if (sd->status.class == 6 || sd->status.class == 4007
-            || sd->status.class == 23)
+        if (sd->status.pc_class == 6 || sd->status.pc_class == 4007
+            || sd->status.pc_class == 23)
         {
             sd->flee += skill * 3;
         }
-        if (sd->status.class == 12 || sd->status.class == 17
-            || sd->status.class == 4013 || sd->status.class == 4018)
+        if (sd->status.pc_class == 12 || sd->status.pc_class == 17
+            || sd->status.pc_class == 4013 || sd->status.pc_class == 4018)
             sd->flee += skill * 4;
-        if (sd->status.class == 12 || sd->status.class == 4013)
+        if (sd->status.pc_class == 12 || sd->status.pc_class == 4013)
             sd->speed -= sd->speed * (skill * .5) / 100;
     }
     if ((skill = pc_checkskill (sd, MO_DODGE)) > 0) // 見切り
@@ -3959,24 +3959,26 @@ int pc_steal_item (struct map_session_data *sd, struct block_list *bl)
         int  i, skill, rate, itemid, flag, count;
         struct mob_data *md;
         md = (struct mob_data *) bl;
-        if (!md->state.steal_flag && mob_db[md->class].mexp <= 0 && !(mob_db[md->class].mode & 0x20) && md->sc_data[SC_STONE].timer == -1 && md->sc_data[SC_FREEZE].timer == -1 && (!(md->class > 1324 && md->class < 1364)))   // prevent stealing from treasure boxes [Valaris]
+        if (!md->state.steal_flag && mob_db[md->mob_class].mexp <= 0 &&
+            !(mob_db[md->mob_class].mode & 0x20) &&
+            md->sc_data[SC_STONE].timer == -1 &&
+            md->sc_data[SC_FREEZE].timer == -1 &&
+            (!(md->mob_class > 1324 && md->mob_class < 1364)))   // prevent stealing from treasure boxes [Valaris]
         {
-            skill =
-                sd->paramc[4] - mob_db[md->class].dex + pc_checkskill (sd,
-                                                                       TF_STEAL)
-                + 10;
+            skill = sd->paramc[4] - mob_db[md->mob_class].dex
+                + pc_checkskill (sd, TF_STEAL) + 10;
 
             if (0 < skill)
             {
                 for (count = 8; count <= 8 && count != 0; count--)
                 {
                     i = rand () % 8;
-                    itemid = mob_db[md->class].dropitem[i].nameid;
+                    itemid = mob_db[md->mob_class].dropitem[i].nameid;
 
                     if (itemid > 0 && itemdb_type (itemid) != 6)
                     {
                         rate =
-                            (mob_db[md->class].dropitem[i].p /
+                            (mob_db[md->mob_class].dropitem[i].p /
                              battle_config.item_rate_common * 100 * skill) /
                             100;
 
@@ -4032,11 +4034,11 @@ int pc_steal_coin (struct map_session_data *sd, struct block_list *bl)
         {
             skill = pc_checkskill (sd, RG_STEALCOIN) * 10;
             rate =
-                skill + (sd->status.base_level - mob_db[md->class].lv) * 3 +
+                skill + (sd->status.base_level - mob_db[md->mob_class].lv) * 3 +
                 sd->paramc[4] * 2 + sd->paramc[5] * 2;
             if (MRAND (1000) < rate)
             {
-                pc_getzeny (sd, mob_db[md->class].lv * 10 + MRAND (100));
+                pc_getzeny (sd, mob_db[md->mob_class].lv * 10 + MRAND (100));
                 md->state.steal_coin_flag = 1;
                 return 1;
             }
@@ -5077,7 +5079,7 @@ int pc_checkbaselevelup (struct map_session_data *sd)
 
     if (sd->status.base_exp >= next && next > 0)
     {
-        struct pc_base_job s_class = pc_calc_base_job (sd->status.class);
+        struct pc_base_job s_class = pc_calc_base_job (sd->status.pc_class);
 
         // base側レベルアップ処理
         sd->status.base_exp -= next;
@@ -5305,17 +5307,17 @@ int pc_nextbaseexp (struct map_session_data *sd)
     if (sd->status.base_level >= MAX_LEVEL || sd->status.base_level <= 0)
         return 0;
 
-    if (sd->status.class == 0)
+    if (sd->status.pc_class == 0)
         i = 0;
-    else if (sd->status.class <= 6)
+    else if (sd->status.pc_class <= 6)
         i = 1;
-    else if (sd->status.class <= 22)
+    else if (sd->status.pc_class <= 22)
         i = 2;
-    else if (sd->status.class == 23)
+    else if (sd->status.pc_class == 23)
         i = 3;
-    else if (sd->status.class == 4001)
+    else if (sd->status.pc_class == 4001)
         i = 4;
-    else if (sd->status.class <= 4007)
+    else if (sd->status.pc_class <= 4007)
         i = 5;
     else
         i = 6;
@@ -5350,17 +5352,17 @@ int pc_nextbaseafter (struct map_session_data *sd)
     if (sd->status.base_level >= MAX_LEVEL || sd->status.base_level <= 0)
         return 0;
 
-    if (sd->status.class == 0)
+    if (sd->status.pc_class == 0)
         i = 0;
-    else if (sd->status.class <= 6)
+    else if (sd->status.pc_class <= 6)
         i = 1;
-    else if (sd->status.class <= 22)
+    else if (sd->status.pc_class <= 22)
         i = 2;
-    else if (sd->status.class == 23)
+    else if (sd->status.pc_class == 23)
         i = 3;
-    else if (sd->status.class == 4001)
+    else if (sd->status.pc_class == 4001)
         i = 4;
-    else if (sd->status.class <= 4007)
+    else if (sd->status.pc_class <= 4007)
         i = 5;
     else
         i = 6;
@@ -5381,17 +5383,17 @@ int pc_nextjobafter (struct map_session_data *sd)
     if (sd->status.job_level >= MAX_LEVEL || sd->status.job_level <= 0)
         return 0;
 
-    if (sd->status.class == 0)
+    if (sd->status.pc_class == 0)
         i = 7;
-    else if (sd->status.class <= 6)
+    else if (sd->status.pc_class <= 6)
         i = 8;
-    else if (sd->status.class <= 22)
+    else if (sd->status.pc_class <= 22)
         i = 9;
-    else if (sd->status.class == 23)
+    else if (sd->status.pc_class == 23)
         i = 10;
-    else if (sd->status.class == 4001)
+    else if (sd->status.pc_class == 4001)
         i = 11;
-    else if (sd->status.class <= 4007)
+    else if (sd->status.pc_class <= 4007)
         i = 12;
     else
         i = 13;
@@ -5616,7 +5618,7 @@ int pc_allskillup (struct map_session_data *sd)
 
     nullpo_retr (0, sd);
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
     c = s_class.job;
     s = (s_class.upper == 1) ? 1 : 0;   //転生以外は通常のスキル？
 
@@ -5678,7 +5680,7 @@ int pc_resetlvl (struct map_session_data *sd, int type)
         sd->status.int_ = 1;
         sd->status.dex = 1;
         sd->status.luk = 1;
-        if (sd->status.class == 4001)
+        if (sd->status.pc_class == 4001)
             sd->status.status_point = 100;
     }
 
@@ -5831,7 +5833,7 @@ int pc_damage (struct block_list *src, struct map_session_data *sd,
     nullpo_retr (0, sd);
 
     //転生や養子の場合の元の職業を算出する
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
     // 既に死んでいたら無効
     if (pc_isdead (sd))
         return 0;
@@ -6116,7 +6118,7 @@ int pc_readparam (struct map_session_data *sd, int type)
     int  val = 0;
     struct pc_base_job s_class;
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
 
     nullpo_retr (0, sd);
 
@@ -6141,7 +6143,7 @@ int pc_readparam (struct map_session_data *sd, int type)
             if (val >= 24 && val < 45)
                 val += 3978;
             else
-                val = sd->status.class;
+                val = sd->status.pc_class;
             break;
         case SP_UPPER:
             val = s_class.upper;
@@ -6216,7 +6218,7 @@ int pc_setparam (struct map_session_data *sd, int type, int val)
 
     nullpo_retr (0, sd);
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
 
     switch (type)
     {
@@ -6237,10 +6239,10 @@ int pc_setparam (struct map_session_data *sd, int type, int val)
             pc_heal (sd, sd->status.max_hp, sd->status.max_sp);
             break;
         case SP_JOBLEVEL:
-            if (sd->status.class == 0)
+            if (sd->status.pc_class == 0)
                 up_level -= 40;
-            if ((sd->status.class == 23)
-                || (sd->status.class >= 4001 && sd->status.class <= 4022))
+            if ((sd->status.pc_class == 23)
+                || (sd->status.pc_class >= 4001 && sd->status.pc_class <= 4022))
                 up_level += 20;
             if (val >= sd->status.job_level)
             {
@@ -6626,7 +6628,7 @@ int pc_jobchange (struct map_session_data *sd, int job, int upper)
     int  i;
     int  b_class = 0;
     //転生や養子の場合の元の職業を算出する
-    struct pc_base_job s_class = pc_calc_base_job (sd->status.class);
+    struct pc_base_job s_class = pc_calc_base_job (sd->status.pc_class);
 
     nullpo_retr (0, sd);
 
@@ -6665,10 +6667,10 @@ int pc_jobchange (struct map_session_data *sd, int job, int upper)
 
     if ((sd->status.sex == 0 && job == 19) || (sd->status.sex == 1 && job == 20) ||
             (sd->status.sex == 0 && job == 4020) || (sd->status.sex == 1 && job == 4021) ||
-            job == 22 || sd->status.class == b_class)   //♀はバードになれない、♂はダンサーになれない、結婚衣裳もお断り
+            job == 22 || sd->status.pc_class == b_class)   //♀はバードになれない、♂はダンサーになれない、結婚衣裳もお断り
         return 1;
 
-    sd->status.class = sd->view_class = b_class;
+    sd->status.pc_class = sd->view_class = b_class;
 
     sd->status.job_level = 1;
     sd->status.job_exp = 0;
@@ -6842,17 +6844,17 @@ int pc_setriding (struct map_session_data *sd)
     {                           // ライディングスキル所持
         pc_setoption (sd, sd->status.option | 0x0020);
 
-        if (sd->status.class == 7)
-            sd->status.class = sd->view_class = 13;
+        if (sd->status.pc_class == 7)
+            sd->status.pc_class = sd->view_class = 13;
 
-        if (sd->status.class == 14)
-            sd->status.class = sd->view_class = 21;
+        if (sd->status.pc_class == 14)
+            sd->status.pc_class = sd->view_class = 21;
 
-        if (sd->status.class == 4008)
-            sd->status.class = sd->view_class = 4014;
+        if (sd->status.pc_class == 4008)
+            sd->status.pc_class = sd->view_class = 4014;
 
-        if (sd->status.class == 4015)
-            sd->status.class = sd->view_class = 4022;
+        if (sd->status.pc_class == 4015)
+            sd->status.pc_class = sd->view_class = 4022;
     }
 
     return 0;
@@ -6894,15 +6896,7 @@ int pc_setreg (struct map_session_data *sd, int reg, int val)
         }
     }
     sd->reg_num++;
-    sd->reg = realloc (sd->reg, sizeof (*(sd->reg)) * sd->reg_num);
-    if (sd->reg == NULL)
-    {
-        printf ("out of memory : pc_setreg\n");
-        exit (1);
-    }
-/*	memset(sd->reg + (sd->reg_num - 1) * sizeof(*(sd->reg)), 0,
-		sizeof(*(sd->reg)));
-*/
+    RECREATE (sd->reg, struct script_reg, sd->reg_num);
     sd->reg[i].index = reg;
     sd->reg[i].data = val;
 
@@ -6949,16 +6943,7 @@ int pc_setregstr (struct map_session_data *sd, int reg, char *str)
             return 0;
         }
     sd->regstr_num++;
-    sd->regstr =
-        realloc (sd->regstr, sizeof (sd->regstr[0]) * sd->regstr_num);
-    if (sd->regstr == NULL)
-    {
-        printf ("out of memory : pc_setreg\n");
-        exit (1);
-    }
-/*	memset(sd->reg + (sd->reg_num - 1) * sizeof(*(sd->reg)), 0,
-		sizeof(*(sd->reg)));
-*/
+    RECREATE (sd->regstr, struct script_regstr, sd->regstr_num);
     sd->regstr[i].index = reg;
     strcpy (sd->regstr[i].data, str);
 
@@ -7394,7 +7379,7 @@ int pc_equipitem (struct map_session_data *sd, int n, int pos)
     // 二刀流処理
     if ((pos == 0x22)           // 一応、装備要求箇所が二刀流武器かチェックする
         && (id->equip == 2)     // 単 手武器
-        && (pc_checkskill (sd, AS_LEFT) > 0 || sd->status.class == 12)) // 左手修錬有
+        && (pc_checkskill (sd, AS_LEFT) > 0 || sd->status.pc_class == 12)) // 左手修錬有
     {
         int  tpos = 0;
         if (sd->equip_index[8] >= 0)
@@ -8136,7 +8121,7 @@ static int pc_natural_heal_sp (struct map_session_data *sd)
         if (sd->inchealsptick >= battle_config.natural_heal_skill_interval
             && sd->status.sp < sd->status.max_sp)
         {
-            struct pc_base_job s_class = pc_calc_base_job (sd->status.class);
+            struct pc_base_job s_class = pc_calc_base_job (sd->status.pc_class);
             if (sd->doridori_counter && s_class.job == 23)
                 bonus = sd->nshealsp * 2;
             else
@@ -8473,8 +8458,7 @@ int pc_read_gm_account (int fd)
         free (gm_account);
     GM_num = 0;
 
-    gm_account =
-        calloc (sizeof (struct gm_account) * ((RFIFOW (fd, 2) - 4) / 5), 1);
+    CREATE (gm_account, struct gm_account, (RFIFOW (fd, 2) - 4) / 5);
     for (i = 4; i < RFIFOW (fd, 2); i = i + 5)
     {
         gm_account[GM_num].account_id = RFIFOL (fd, i);
@@ -8503,7 +8487,7 @@ void map_day_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
             night_flag = 0;     // 0=day, 1=night [Yor]
             for (i = 0; i < fd_max; i++)
             {
-                if (session[i] && (pl_sd = session[i]->session_data)
+                if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                     && pl_sd->state.auth)
                 {
                     pl_sd->opt2 &= ~STATE_BLIND;
@@ -8534,7 +8518,7 @@ void map_night_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t d
             night_flag = 1;     // 0=day, 1=night [Yor]
             for (i = 0; i < fd_max; i++)
             {
-                if (session[i] && (pl_sd = session[i]->session_data)
+                if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                     && pl_sd->state.auth)
                 {
                     pl_sd->opt2 |= STATE_BLIND;

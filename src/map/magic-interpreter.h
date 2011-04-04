@@ -335,7 +335,7 @@ typedef struct teleport_anchor
 typedef struct
 {
     int  vars_nr;
-    char **var_name;
+    const char **var_name;
     val_t *vars;                /* Initial assignments, if any, or NULL */
 
     int  obscure_chance;

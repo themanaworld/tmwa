@@ -3242,7 +3242,7 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
                 heal = 0;       /* 黄金蟲カード（ヒール量０） */
             if (sd)
             {
-                s_class = pc_calc_base_job (sd->status.class);
+                s_class = pc_calc_base_job (sd->status.pc_class);
                 if ((skill = pc_checkskill (sd, HP_MEDITATIO)) > 0) // メディテイティオ
                     heal += heal * (skill * 2 / 100);
                 if (sd && dstsd && sd->status.partner_id == dstsd->status.char_id && s_class.job == 23 && sd->status.sex == 0)  //自分も対象もPC、対象が自分のパートナー、自分がスパノビ、自分が♀なら
@@ -3719,9 +3719,9 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
                     || (!sd->status.party_id && !sd->status.guild_id)   // PTにもギルドにも所属無しはだめ
                     || ((sd->status.party_id != dstsd->status.party_id) // 同じパーティーか、
                         || (sd->status.guild_id != dstsd->status.guild_id)) // 同じギルドじゃないとだめ
-                    || (dstsd->status.class == 14 || dstsd->status.class == 21
-                        || dstsd->status.class == 4015
-                        || dstsd->status.class == 4022))
+                    || (dstsd->status.pc_class == 14 || dstsd->status.pc_class == 21
+                        || dstsd->status.pc_class == 4015
+                        || dstsd->status.pc_class == 4022))
                 {               // クルセだめ
                     clif_skill_fail (sd, skillid, 0, 0);
                     map_freeblock_unlock ();
@@ -3799,7 +3799,7 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
                 //20%の確率で対象のLv*2のSPを回復する。成功したときはターゲット(σﾟДﾟ)σｹﾞｯﾂ!!
                 if (MRAND (100) < 20)
                 {
-                    i = 2 * mob_db[dstmd->class].lv;
+                    i = 2 * mob_db[dstmd->mob_class].lv;
                     mob_target (dstmd, src, 0);
                 }
             }
@@ -4870,7 +4870,7 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
             if (md && !md->master_id)
             {
                 mob_summonslave (md,
-                                 mob_db[md->class].skill[md->skillidx].val,
+                                 mob_db[md->mob_class].skill[md->skillidx].val,
                                  skilllv,
                                  (skillid == NPC_SUMMONSLAVE) ? 1 : 0);
             }
@@ -4880,13 +4880,13 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
         case NPC_METAMORPHOSIS:
             if (md)
                 mob_class_change (md,
-                                  mob_db[md->class].skill[md->skillidx].val);
+                                  mob_db[md->mob_class].skill[md->skillidx].val);
             break;
 
         case NPC_EMOTION:      /* エモーション */
             if (md)
                 clif_emotion (&md->bl,
-                              mob_db[md->class].skill[md->skillidx].val[0]);
+                              mob_db[md->mob_class].skill[md->skillidx].val[0]);
             break;
 
         case NPC_DEFENDER:
@@ -5992,12 +5992,7 @@ struct skill_unit_group *skill_unitsetting (struct block_list *src,
     group->range = range;
     if (skillid == HT_TALKIEBOX || skillid == RG_GRAFFITI)
     {
-        group->valstr = calloc (80, 1);
-        if (group->valstr == NULL)
-        {
-            printf ("skill_castend_map: out of memory !\n");
-            exit (1);
-        }
+        CREATE (group->valstr, char, 80);
         memcpy (group->valstr, talkie_mes, 80);
     }
     for (i = 0; i < count; i++)
@@ -6929,12 +6924,7 @@ int skill_unit_onlimit (struct skill_unit *src, unsigned int tick)
                                    src->bl.x, src->bl.y, 1);
             if (group == NULL)
                 return 0;
-            group->valstr = calloc (24, 1);
-            if (group->valstr == NULL)
-            {
-                printf ("skill_unit_onlimit: out of memory !\n");
-                exit (1);
-            }
+            CREATE (group->valstr, char, 24);
             memcpy (group->valstr, sg->valstr, 24);
             group->val2 = sg->val2;
         }
@@ -7185,7 +7175,7 @@ static int skill_check_condition_char_sub (struct block_list *bl, va_list ap)
     nullpo_retr (0, c = va_arg (ap, int *));
     nullpo_retr (0, ssd = (struct map_session_data *) src);
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
     //チェックしない設定ならcにありえない大きな数字を返して終了
     if (!battle_config.player_skill_partner_check)
     {                           //本当はforeachの前にやりたいけど設定適用箇所をまとめるためにここへ
@@ -7194,15 +7184,15 @@ static int skill_check_condition_char_sub (struct block_list *bl, va_list ap)
     }
 
     ;
-    ss_class = pc_calc_base_job (ssd->status.class);
+    ss_class = pc_calc_base_job (ssd->status.pc_class);
 
     switch (ssd->skillid)
     {
         case PR_BENEDICTIO:    /* 聖体降福 */
             if (sd != ssd
-                && (sd->status.class == 4 || sd->status.class == 8
-                    || sd->status.class == 15 || sd->status.class == 4005
-                    || sd->status.class == 4009 || sd->status.class == 4016)
+                && (sd->status.pc_class == 4 || sd->status.pc_class == 8
+                    || sd->status.pc_class == 15 || sd->status.pc_class == 4005
+                    || sd->status.pc_class == 4009 || sd->status.pc_class == 4016)
                 && (sd->bl.x == ssd->bl.x - 1 || sd->bl.x == ssd->bl.x + 1)
                 && sd->status.sp >= 10)
                 (*c)++;
@@ -7218,12 +7208,12 @@ static int skill_check_condition_char_sub (struct block_list *bl, va_list ap)
         case BD_RAGNAROK:      /* 神々の黄昏 */
         case CG_MOONLIT:       /* 月明りの泉に落ちる花びら */
             if (sd != ssd &&
-                ((ssd->status.class == 19 && sd->status.class == 20) ||
-                 (ssd->status.class == 20 && sd->status.class == 19) ||
-                 (ssd->status.class == 4020 && sd->status.class == 4021) ||
-                 (ssd->status.class == 4021 && sd->status.class == 4020) ||
-                 (ssd->status.class == 20 && sd->status.class == 4020) ||
-                 (ssd->status.class == 19 && sd->status.class == 4021)) &&
+                ((ssd->status.pc_class == 19 && sd->status.pc_class == 20) ||
+                 (ssd->status.pc_class == 20 && sd->status.pc_class == 19) ||
+                 (ssd->status.pc_class == 4020 && sd->status.pc_class == 4021) ||
+                 (ssd->status.pc_class == 4021 && sd->status.pc_class == 4020) ||
+                 (ssd->status.pc_class == 20 && sd->status.pc_class == 4020) ||
+                 (ssd->status.pc_class == 19 && sd->status.pc_class == 4021)) &&
                 pc_checkskill (sd, ssd->skillid) > 0 &&
                 (*c) == 0 &&
                 sd->status.party_id == ssd->status.party_id &&
@@ -7256,7 +7246,7 @@ static int skill_check_condition_use_sub (struct block_list *bl, va_list ap)
     nullpo_retr (0, c = va_arg (ap, int *));
     nullpo_retr (0, ssd = (struct map_session_data *) src);
 
-    s_class = pc_calc_base_job (sd->status.class);
+    s_class = pc_calc_base_job (sd->status.pc_class);
 
     //チェックしない設定ならcにありえない大きな数字を返して終了
     if (!battle_config.player_skill_partner_check)
@@ -7265,16 +7255,16 @@ static int skill_check_condition_use_sub (struct block_list *bl, va_list ap)
         return 0;
     }
 
-    ss_class = pc_calc_base_job (ssd->status.class);
+    ss_class = pc_calc_base_job (ssd->status.pc_class);
     skillid = ssd->skillid;
     skilllv = ssd->skilllv;
     switch (skillid)
     {
         case PR_BENEDICTIO:    /* 聖体降福 */
             if (sd != ssd
-                && (sd->status.class == 4 || sd->status.class == 8
-                    || sd->status.class == 15 || sd->status.class == 4005
-                    || sd->status.class == 4009 || sd->status.class == 4016)
+                && (sd->status.pc_class == 4 || sd->status.pc_class == 8
+                    || sd->status.pc_class == 15 || sd->status.pc_class == 4005
+                    || sd->status.pc_class == 4009 || sd->status.pc_class == 4016)
                 && (sd->bl.x == ssd->bl.x - 1 || sd->bl.x == ssd->bl.x + 1)
                 && sd->status.sp >= 10)
             {
@@ -7294,7 +7284,12 @@ static int skill_check_condition_use_sub (struct block_list *bl, va_list ap)
         case BD_RAGNAROK:      /* 神々の黄昏 */
         case CG_MOONLIT:       /* 月明りの泉に落ちる花びら */
             if (sd != ssd &&    //本人以外で
-                ((ssd->status.class == 19 && sd->status.class == 20) || (ssd->status.class == 20 && sd->status.class == 19) || (ssd->status.class == 4020 && sd->status.class == 4021) || (ssd->status.class == 4021 && sd->status.class == 4020) || (ssd->status.class == 20 && sd->status.class == 4020) || (ssd->status.class == 19 && sd->status.class == 4021)) && //自分がダンサーならバードで
+                ((ssd->status.pc_class == 19 && sd->status.pc_class == 20) ||
+                (ssd->status.pc_class == 20 && sd->status.pc_class == 19) ||
+                (ssd->status.pc_class == 4020 && sd->status.pc_class == 4021) ||
+                (ssd->status.pc_class == 4021 && sd->status.pc_class == 4020) ||
+                (ssd->status.pc_class == 20 && sd->status.pc_class == 4020) ||
+                (ssd->status.pc_class == 19 && sd->status.pc_class == 4021)) && //自分がダンサーならバードで
                 pc_checkskill (sd, skillid) > 0 &&  //スキルを持っていて
                 (*c) == 0 &&    //最初の一人で
                 sd->status.party_id == ssd->status.party_id &&  //パーティーが同じで
@@ -7339,7 +7334,7 @@ static int skill_check_condition_mob_master_sub (struct block_list *bl,
         return 0;
     nullpo_retr (0, c = va_arg (ap, int *));
 
-    if (md->class == mob_class && md->master_id == src_id)
+    if (md->mob_class == mob_class && md->master_id == src_id)
         (*c)++;
     return 0;
 }
@@ -8235,7 +8230,7 @@ int skill_use_id (struct map_session_data *sd, int target_id,
 
         /* 詠唱反応モンスター */
         if (bl->type == BL_MOB && (md = (struct mob_data *) bl)
-            && mob_db[md->class].mode & 0x10 && md->state.state != MS_ATTACK
+            && mob_db[md->mob_class].mode & 0x10 && md->state.state != MS_ATTACK
             && sd->invincible_timer == -1)
         {
             md->target_id = sd->bl.id;

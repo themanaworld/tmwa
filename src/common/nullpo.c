@@ -47,6 +47,8 @@ void nullpo_info (const char *file, int line, const char *func)
 
 /// Actual output function
 static void nullpo_info_core (const char *file, int line, const char *func,
+                              const char *fmt, va_list ap) __attribute__((format(printf, 4, 0)));
+static void nullpo_info_core (const char *file, int line, const char *func,
                               const char *fmt, va_list ap)
 {
     if (!file)

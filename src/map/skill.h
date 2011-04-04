@@ -38,8 +38,8 @@ extern struct skill_db skill_db[MAX_SKILL_DB];
 struct skill_name_db
 {
     int  id;                    // skill id
-    char *name;                 // search strings
-    char *desc;                 // description that shows up for search's
+    const char *name;                 // search strings
+    const char *desc;                 // description that shows up for search's
 };
 extern struct skill_name_db skill_names[];
 

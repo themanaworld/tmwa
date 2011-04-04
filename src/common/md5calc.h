@@ -53,7 +53,7 @@ const char *MD5_saltcrypt(const char *key, const char *salt);
 
 /// return some random characters (statically allocated)
 // Currently, returns a 5-char string
-const char *make_salt();
+const char *make_salt(void);
 
 /// check plaintext password against saved saltcrypt
 bool pass_ok(const char *password, const char *crypted);

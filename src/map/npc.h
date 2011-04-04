@@ -33,7 +33,7 @@ int  npc_get_new_npc_id (void);
  *
  * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
  */
-struct npc_data *npc_spawn_text (int m, int x, int y, int class, char *name, char *message);    // message is strdup'd within
+struct npc_data *npc_spawn_text (int m, int x, int y, int class_, char *name, char *message);    // message is strdup'd within
 
 /**
  * Uninstalls and frees an NPC

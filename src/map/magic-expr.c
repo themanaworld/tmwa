@@ -34,7 +34,7 @@ static void free_area (area_t * area)
 
 static area_t *dup_area (area_t * area)
 {
-    area_t *retval = malloc (sizeof (area_t));
+    area_t *retval = (area_t *)malloc (sizeof (area_t));
     *retval = *area;
 
     switch (area->ty)
@@ -122,7 +122,7 @@ static void stringify (val_t * v, int within_op)
             break;
 
         case TY_INT:
-            buf = malloc (32);
+            buf = (char *)malloc (32);
             sprintf (buf, "%i", v->v.v_int);
             break;
 
@@ -138,7 +138,7 @@ static void stringify (val_t * v, int within_op)
             break;
 
         case TY_LOCATION:
-            buf = malloc (128);
+            buf = (char *) malloc (128);
             sprintf (buf, "<\"%s\", %d, %d>", map[v->v.v_location.m].name,
                      v->v.v_location.x, v->v.v_location.y);
             break;
@@ -204,7 +204,7 @@ static void make_area (val_t * v)
 {
     if (v->ty == TY_LOCATION)
     {
-        area_t *a = malloc (sizeof (area_t));
+        area_t *a = (char *)malloc (sizeof (area_t));
         v->ty = TY_AREA;
         a->ty = AREA_LOCATION;
         a->a.a_loc = v->v.v_location;
@@ -617,7 +617,7 @@ static int
 fun_mob_id (env_t * env, int args_nr, val_t * result, val_t * args)
 {
     if (ETY (0) != BL_MOB) return 1;
-    RESULTINT = ((struct mob_data *) (ARGENTITY(0)))->class;
+    RESULTINT = ((struct mob_data *) (ARGENTITY(0)))->mob_class;
     return 0;
 }
 
@@ -1243,7 +1243,7 @@ int compare_fun (const void *lhs, const void *rhs)
     return strcmp (((fun_t *) lhs)->name, ((fun_t *) rhs)->name);
 }
 
-fun_t *magic_get_fun (char *name, int *index)
+fun_t *magic_get_fun (const char *name, int *index)
 {
     static int functions_nr;
     fun_t *result;
@@ -1302,7 +1302,7 @@ eval_location (env_t * env, location_t * dest, e_location_t * expr)
 
 static area_t *eval_area (env_t * env, e_area_t * expr)
 {
-    area_t *area = malloc (sizeof (area_t));
+    area_t *area = (area_t *)malloc (sizeof (area_t));
     area->ty = expr->ty;
 
     switch (expr->ty)

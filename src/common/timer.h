@@ -5,8 +5,9 @@
 
 enum TIMER_TYPE
 {
-    TIMER_ONCE_AUTODEL = 1,
-    TIMER_INTERVAL = 2,
+    TIMER_NONE,
+    TIMER_ONCE_AUTODEL,
+    TIMER_INTERVAL,
 };
 /// This is needed to produce a signed result when 2 ticks are subtracted
 # define DIFF_TICK(a,b) ((int32_t)((a)-(b)))

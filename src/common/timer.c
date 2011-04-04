@@ -51,7 +51,7 @@ static void push_timer_heap (timer_id index)
     if (timer_heap == NULL || timer_heap[0] + 1 >= timer_heap_max)
     {
         timer_heap_max += 256;
-        RECREATE (timer_heap, int, timer_heap_max);
+        RECREATE (timer_heap, timer_id, timer_heap_max);
         memset (timer_heap + (timer_heap_max - 256), 0, sizeof (timer_id) * 256);
     }
 // timer_heap[0] is the greatest index into the heap, which increases
@@ -71,14 +71,14 @@ static void push_timer_heap (timer_id index)
     timer_heap[h + 1] = index;
 }
 
-static timer_id top_timer_heap ()
+static timer_id top_timer_heap (void)
 {
     if (!timer_heap || !timer_heap[0])
         return -1;
     return timer_heap[1];
 }
 
-static timer_id pop_timer_heap ()
+static timer_id pop_timer_heap (void)
 {
     if (!timer_heap || !timer_heap[0])
         return -1;
@@ -227,7 +227,7 @@ interval_t do_timer (tick_t tick)
         switch (timer_data[i].type)
         {
             case TIMER_ONCE_AUTODEL:
-                timer_data[i].type = 0;
+                timer_data[i].type = TIMER_NONE;
                 if (free_timer_list_pos >= free_timer_list_max)
                 {
                     free_timer_list_max += 256;

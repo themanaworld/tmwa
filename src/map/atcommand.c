@@ -418,9 +418,9 @@ static AtCommandInfo atcommand_info[] = {
  * This function return the name of the job (by [Yor])
  *----------------------------------------------------
  */
-char *job_name (int class)
+const char *job_name (int pc_class)
 {
-    switch (class)
+    switch (pc_class)
     {
         case 0:
             return "Novice";
@@ -681,7 +681,7 @@ void gm_log (const char *fmt, ...)
 
     if (logfile_nr != last_logfile_nr)
     {
-        char *fullname = malloc (strlen (gm_logfile_name) + 10);
+        char *fullname = (char *)malloc (strlen (gm_logfile_name) + 10);
         sprintf (fullname, "%s.%04d-%02d", gm_logfile_name, year, month);
 
         if (gm_logfile)
@@ -1301,7 +1301,7 @@ int atcommand_who (const int fd, struct map_session_data *sd,
     GM_level = pc_isGM (sd);
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM (pl_sd);
@@ -1377,7 +1377,7 @@ int atcommand_whogroup (const int fd, struct map_session_data *sd,
     GM_level = pc_isGM (sd);
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM (pl_sd);
@@ -1462,7 +1462,7 @@ int atcommand_whomap (const int fd, struct map_session_data *sd,
     GM_level = pc_isGM (sd);
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM (pl_sd);
@@ -1540,7 +1540,7 @@ int atcommand_whomapgroup (const int fd, struct map_session_data *sd,
     GM_level = pc_isGM (sd);
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM (pl_sd);
@@ -1623,7 +1623,7 @@ int atcommand_whogm (const int fd, struct map_session_data *sd,
     GM_level = pc_isGM (sd);
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM (pl_sd);
@@ -1647,7 +1647,7 @@ int atcommand_whogm (const int fd, struct map_session_data *sd,
                         sprintf (output,
                                  "       BLvl: %d | Job: %s (Lvl: %d)",
                                  pl_sd->status.base_level,
-                                 job_name (pl_sd->status.class),
+                                 job_name (pl_sd->status.pc_class),
                                  pl_sd->status.job_level);
                         clif_displaymessage (fd, output);
                         g = guild_search (pl_sd->status.guild_id);
@@ -1865,19 +1865,19 @@ int atcommand_option (const int fd, struct map_session_data *sd,
     }
     sd->status.option = param3;
     // fix pecopeco display
-    if (sd->status.class == 13 || sd->status.class == 21
-        || sd->status.class == 4014 || sd->status.class == 4022)
+    if (sd->status.pc_class == 13 || sd->status.pc_class == 21
+        || sd->status.pc_class == 4014 || sd->status.pc_class == 4022)
     {
         if (!pc_isriding (sd))
         {                       // sd have the new value...
-            if (sd->status.class == 13)
-                sd->status.class = sd->view_class = 7;
-            else if (sd->status.class == 21)
-                sd->status.class = sd->view_class = 14;
-            else if (sd->status.class == 4014)
-                sd->status.class = sd->view_class = 4008;
-            else if (sd->status.class == 4022)
-                sd->status.class = sd->view_class = 4015;
+            if (sd->status.pc_class == 13)
+                sd->status.pc_class = sd->view_class = 7;
+            else if (sd->status.pc_class == 21)
+                sd->status.pc_class = sd->view_class = 14;
+            else if (sd->status.pc_class == 4014)
+                sd->status.pc_class = sd->view_class = 4008;
+            else if (sd->status.pc_class == 4022)
+                sd->status.pc_class = sd->view_class = 4015;
         }
     }
     else
@@ -1890,14 +1890,14 @@ int atcommand_option (const int fd, struct map_session_data *sd,
             }
             else
             {
-                if (sd->status.class == 7)
-                    sd->status.class = sd->view_class = 13;
-                else if (sd->status.class == 14)
-                    sd->status.class = sd->view_class = 21;
-                else if (sd->status.class == 4008)
-                    sd->status.class = sd->view_class = 4014;
-                else if (sd->status.class == 4015)
-                    sd->status.class = sd->view_class = 4022;
+                if (sd->status.pc_class == 7)
+                    sd->status.pc_class = sd->view_class = 13;
+                else if (sd->status.pc_class == 14)
+                    sd->status.pc_class = sd->view_class = 21;
+                else if (sd->status.pc_class == 4008)
+                    sd->status.pc_class = sd->view_class = 4014;
+                else if (sd->status.pc_class == 4015)
+                    sd->status.pc_class = sd->view_class = 4022;
                 else
                     sd->status.option &= ~0x0020;
             }
@@ -2255,10 +2255,10 @@ int atcommand_joblevelup (const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    if (sd->status.class == 0 || sd->status.class == 4001)
+    if (sd->status.pc_class == 0 || sd->status.pc_class == 4001)
         up_level -= 40;
-    else if ((sd->status.class > 4007 && sd->status.class < 4024)
-             || sd->status.class == 23)
+    else if ((sd->status.pc_class > 4007 && sd->status.pc_class < 4024)
+             || sd->status.pc_class == 23)
         up_level += 20;
 
     if (level > 0)
@@ -2402,7 +2402,7 @@ int atcommand_pvpoff (const int fd, struct map_session_data *sd,
         clif_send0199 (sd->bl.m, 0);
         for (i = 0; i < fd_max; i++)
         {                       //人数分ループ
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 if (sd->bl.m == pl_sd->bl.m)
@@ -2450,7 +2450,7 @@ int atcommand_pvpon (const int fd, struct map_session_data *sd,
         clif_send0199 (sd->bl.m, 1);
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 if (sd->bl.m == pl_sd->bl.m && pl_sd->pvp_timer == -1)
@@ -2549,7 +2549,7 @@ int atcommand_model (const int fd, struct map_session_data *sd,
     {
         //服の色変更
         if (cloth_color != 0 && sd->status.sex == 1
-            && (sd->status.class == 12 || sd->status.class == 17))
+            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
         {
             //服の色未実装職の判定
             clif_displaymessage (fd, msg_table[35]);    // You can't use this command with this class.
@@ -2596,7 +2596,7 @@ int atcommand_dye (const int fd, struct map_session_data *sd,
     if (cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
     {
         if (cloth_color != 0 && sd->status.sex == 1
-            && (sd->status.class == 12 || sd->status.class == 17))
+            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
         {
             clif_displaymessage (fd, msg_table[35]);    // You can't use this command with this class.
             return -1;
@@ -2651,7 +2651,7 @@ int atcommand_hair_style (const int fd, struct map_session_data *sd,
     if (hair_style >= MIN_HAIR_STYLE && hair_style <= MAX_HAIR_STYLE)
     {
         if (hair_style != 0 && sd->status.sex == 1
-            && (sd->status.class == 12 || sd->status.class == 17))
+            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
         {
             clif_displaymessage (fd, msg_table[35]);    // You can't use this command with this class.
             return -1;
@@ -2706,7 +2706,7 @@ int atcommand_hair_color (const int fd, struct map_session_data *sd,
     if (hair_color >= MIN_HAIR_COLOR && hair_color <= MAX_HAIR_COLOR)
     {
         if (hair_color != 0 && sd->status.sex == 1
-            && (sd->status.class == 12 || sd->status.class == 17))
+            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
         {
             clif_displaymessage (fd, msg_table[35]);    // You can't use this command with this class.
             return -1;
@@ -3810,7 +3810,7 @@ int atcommand_character_stats (const int fd, struct map_session_data *sd,
             {
             NULL, 0}
         };
-        sprintf (job_jobname, "Job - %s %s", job_name (pl_sd->status.class),
+        sprintf (job_jobname, "Job - %s %s", job_name (pl_sd->status.pc_class),
                  "(level %d)");
         sprintf (output, msg_table[53], pl_sd->status.name);    // '%s' stats:
         clif_displaymessage (fd, output);
@@ -3848,7 +3848,7 @@ int atcommand_character_stats_all (const int fd, struct map_session_data *sd,
     count = 0;
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
 
@@ -3860,7 +3860,7 @@ int atcommand_character_stats_all (const int fd, struct map_session_data *sd,
             sprintf (output,
                      "Name: %s | BLvl: %d | Job: %s (Lvl: %d) | HP: %d/%d | SP: %d/%d",
                      pl_sd->status.name, pl_sd->status.base_level,
-                     job_name (pl_sd->status.class), pl_sd->status.job_level,
+                     job_name (pl_sd->status.pc_class), pl_sd->status.job_level,
                      pl_sd->status.hp, pl_sd->status.max_hp, pl_sd->status.sp,
                      pl_sd->status.max_sp);
             clif_displaymessage (fd, output);
@@ -3918,19 +3918,19 @@ int atcommand_character_option (const int fd, struct map_session_data *sd,
             pl_sd->opt2 = opt2;
             pl_sd->status.option = opt3;
             // fix pecopeco display
-            if (pl_sd->status.class == 13 || pl_sd->status.class == 21
-                || pl_sd->status.class == 4014 || pl_sd->status.class == 4022)
+            if (pl_sd->status.pc_class == 13 || pl_sd->status.pc_class == 21
+                || pl_sd->status.pc_class == 4014 || pl_sd->status.pc_class == 4022)
             {
                 if (!pc_isriding (pl_sd))
                 {               // pl_sd have the new value...
-                    if (pl_sd->status.class == 13)
-                        pl_sd->status.class = pl_sd->view_class = 7;
-                    else if (pl_sd->status.class == 21)
-                        pl_sd->status.class = pl_sd->view_class = 14;
-                    else if (pl_sd->status.class == 4014)
-                        pl_sd->status.class = pl_sd->view_class = 4008;
-                    else if (pl_sd->status.class == 4022)
-                        pl_sd->status.class = pl_sd->view_class = 4015;
+                    if (pl_sd->status.pc_class == 13)
+                        pl_sd->status.pc_class = pl_sd->view_class = 7;
+                    else if (pl_sd->status.pc_class == 21)
+                        pl_sd->status.pc_class = pl_sd->view_class = 14;
+                    else if (pl_sd->status.pc_class == 4014)
+                        pl_sd->status.pc_class = pl_sd->view_class = 4008;
+                    else if (pl_sd->status.pc_class == 4022)
+                        pl_sd->status.pc_class = pl_sd->view_class = 4015;
                 }
             }
             else
@@ -3943,14 +3943,14 @@ int atcommand_character_option (const int fd, struct map_session_data *sd,
                     }
                     else
                     {
-                        if (pl_sd->status.class == 7)
-                            pl_sd->status.class = pl_sd->view_class = 13;
-                        else if (pl_sd->status.class == 14)
-                            pl_sd->status.class = pl_sd->view_class = 21;
-                        else if (pl_sd->status.class == 4008)
-                            pl_sd->status.class = pl_sd->view_class = 4014;
-                        else if (pl_sd->status.class == 4015)
-                            pl_sd->status.class = pl_sd->view_class = 4022;
+                        if (pl_sd->status.pc_class == 7)
+                            pl_sd->status.pc_class = pl_sd->view_class = 13;
+                        else if (pl_sd->status.pc_class == 14)
+                            pl_sd->status.pc_class = pl_sd->view_class = 21;
+                        else if (pl_sd->status.pc_class == 4008)
+                            pl_sd->status.pc_class = pl_sd->view_class = 4014;
+                        else if (pl_sd->status.pc_class == 4015)
+                            pl_sd->status.pc_class = pl_sd->view_class = 4022;
                         else
                             pl_sd->status.option &= ~0x0020;
                     }
@@ -4324,7 +4324,7 @@ int atcommand_night (const int fd, struct map_session_data *sd,
         night_flag = 1;         // 0=day, 1=night [Yor]
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 pl_sd->opt2 |= STATE_BLIND;
@@ -4357,7 +4357,7 @@ int atcommand_day (const int fd, struct map_session_data *sd,
         night_flag = 0;         // 0=day, 1=night [Yor]
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 pl_sd->opt2 &= ~STATE_BLIND;
@@ -4387,7 +4387,7 @@ int atcommand_doom (const int fd, struct map_session_data *sd,
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth && i != fd
             && pc_isGM (sd) >= pc_isGM (pl_sd))
         {                       // you can doom only lower or same gm level
@@ -4412,7 +4412,7 @@ int atcommand_doommap (const int fd, struct map_session_data *sd,
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth && i != fd && sd->bl.m == pl_sd->bl.m
             && pc_isGM (sd) >= pc_isGM (pl_sd))
         {                       // you can doom only lower or same gm level
@@ -4455,7 +4455,7 @@ int atcommand_raise (const int fd, struct map_session_data *sd,
     for (i = 0; i < fd_max; i++)
     {
         if (session[i])
-            atcommand_raise_sub (session[i]->session_data);
+            atcommand_raise_sub ((struct map_session_data *)session[i]->session_data);
     }
     clif_displaymessage (fd, msg_table[64]);    // Mercy has been granted.
 
@@ -4474,7 +4474,7 @@ int atcommand_raisemap (const int fd, struct map_session_data *sd,
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth && sd->bl.m == pl_sd->bl.m)
             atcommand_raise_sub (pl_sd);
     }
@@ -4603,7 +4603,7 @@ int atcommand_character_joblevel (const int fd, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd (character)) != NULL)
     {
-        pl_s_class = pc_calc_base_job (pl_sd->status.class);
+        pl_s_class = pc_calc_base_job (pl_sd->status.pc_class);
         if (pc_isGM (sd) >= pc_isGM (pl_sd))
         {                       // you can change job level only lower or same gm level
             if (pl_s_class.job == 0)
@@ -4717,7 +4717,7 @@ int atcommand_kickall (const int fd, struct map_session_data *sd,
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth && pc_isGM (sd) >= pc_isGM (pl_sd))
         {                       // you can kick only lower or same gm level
             if (sd->status.account_id != pl_sd->status.account_id)
@@ -5063,7 +5063,7 @@ int atcommand_mapexit (const int fd, struct map_session_data *sd,
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             if (sd->status.account_id != pl_sd->status.account_id)
@@ -5380,7 +5380,7 @@ int atcommand_charmodel (const int fd, struct map_session_data *sd,
 
             if (cloth_color != 0 &&
                 pl_sd->status.sex == 1 &&
-                (pl_sd->status.class == 12 || pl_sd->status.class == 17))
+                (pl_sd->status.pc_class == 12 || pl_sd->status.pc_class == 17))
             {
                 clif_displaymessage (fd, msg_table[35]);    // You can't use this command with this class.
                 return -1;
@@ -5593,7 +5593,7 @@ int atcommand_recallall (const int fd, struct map_session_data *sd,
     count = 0;
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth
             && sd->status.account_id != pl_sd->status.account_id
             && pc_isGM (sd) >= pc_isGM (pl_sd))
@@ -5656,7 +5656,7 @@ int atcommand_guildrecall (const int fd, struct map_session_data *sd,
         count = 0;
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.guild_id == g->guild_id)
@@ -5725,7 +5725,7 @@ int atcommand_partyrecall (const int fd, struct map_session_data *sd,
         count = 0;
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.party_id == p->party_id)
@@ -5880,7 +5880,7 @@ int atcommand_mapinfo (const int fd, struct map_session_data *sd,
     chat_num = 0;
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth
             && (cd = (struct chat_data *) map_id2bl (pl_sd->chatID)))
         {
@@ -5933,7 +5933,7 @@ int atcommand_mapinfo (const int fd, struct map_session_data *sd,
             clif_displaymessage (fd, "----- Players in Map -----");
             for (i = 0; i < fd_max; i++)
             {
-                if (session[i] && (pl_sd = session[i]->session_data)
+                if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                     && pl_sd->state.auth
                     && strcmp (pl_sd->mapname, map_name) == 0)
                 {
@@ -5984,7 +5984,7 @@ int atcommand_mapinfo (const int fd, struct map_session_data *sd,
                 }
                 sprintf (output,
                          "NPC %d: %s | Direction: %s | Sprite: %d | Location: %d %d",
-                         ++i, nd->name, direction, nd->class, nd->bl.x,
+                         ++i, nd->name, direction, nd->npc_class, nd->bl.x,
                          nd->bl.y);
                 clif_displaymessage (fd, output);
             }
@@ -5993,7 +5993,7 @@ int atcommand_mapinfo (const int fd, struct map_session_data *sd,
             clif_displaymessage (fd, "----- Chats in Map -----");
             for (i = 0; i < fd_max; i++)
             {
-                if (session[i] && (pl_sd = session[i]->session_data)
+                if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                     && pl_sd->state.auth
                     && (cd = (struct chat_data *) map_id2bl (pl_sd->chatID))
                     && strcmp (pl_sd->mapname, map_name) == 0
@@ -6037,17 +6037,17 @@ int atcommand_mount_peco (const int fd, struct map_session_data *sd,
 
     if (!pc_isriding (sd))
     {                           // if actually no peco
-        if (sd->status.class == 7 || sd->status.class == 14
-            || sd->status.class == 4008 || sd->status.class == 4015)
+        if (sd->status.pc_class == 7 || sd->status.pc_class == 14
+            || sd->status.pc_class == 4008 || sd->status.pc_class == 4015)
         {
-            if (sd->status.class == 7)
-                sd->status.class = sd->view_class = 13;
-            else if (sd->status.class == 14)
-                sd->status.class = sd->view_class = 21;
-            else if (sd->status.class == 4008)
-                sd->status.class = sd->view_class = 4014;
-            else if (sd->status.class == 4015)
-                sd->status.class = sd->view_class = 4022;
+            if (sd->status.pc_class == 7)
+                sd->status.pc_class = sd->view_class = 13;
+            else if (sd->status.pc_class == 14)
+                sd->status.pc_class = sd->view_class = 21;
+            else if (sd->status.pc_class == 4008)
+                sd->status.pc_class = sd->view_class = 4014;
+            else if (sd->status.pc_class == 4015)
+                sd->status.pc_class = sd->view_class = 4022;
             pc_setoption (sd, sd->status.option | 0x0020);
             clif_displaymessage (fd, msg_table[102]);   // Mounted Peco.
         }
@@ -6059,14 +6059,14 @@ int atcommand_mount_peco (const int fd, struct map_session_data *sd,
     }
     else
     {
-        if (sd->status.class == 13)
-            sd->status.class = sd->view_class = 7;
-        else if (sd->status.class == 21)
-            sd->status.class = sd->view_class = 14;
-        else if (sd->status.class == 4014)
-            sd->status.class = sd->view_class = 4008;
-        else if (sd->status.class == 4022)
-            sd->status.class = sd->view_class = 4015;
+        if (sd->status.pc_class == 13)
+            sd->status.pc_class = sd->view_class = 7;
+        else if (sd->status.pc_class == 21)
+            sd->status.pc_class = sd->view_class = 14;
+        else if (sd->status.pc_class == 4014)
+            sd->status.pc_class = sd->view_class = 4008;
+        else if (sd->status.pc_class == 4022)
+            sd->status.pc_class = sd->view_class = 4015;
         pc_setoption (sd, sd->status.option & ~0x0020);
         clif_displaymessage (fd, msg_table[214]);   // Unmounted Peco.
     }
@@ -6103,17 +6103,17 @@ int atcommand_char_mount_peco (const int fd, struct map_session_data *sd,
 
         if (!pc_isriding (pl_sd))
         {                       // if actually no peco
-            if (pl_sd->status.class == 7 || pl_sd->status.class == 14
-                || pl_sd->status.class == 4008 || pl_sd->status.class == 4015)
+            if (pl_sd->status.pc_class == 7 || pl_sd->status.pc_class == 14
+                || pl_sd->status.pc_class == 4008 || pl_sd->status.pc_class == 4015)
             {
-                if (pl_sd->status.class == 7)
-                    pl_sd->status.class = pl_sd->view_class = 13;
-                else if (pl_sd->status.class == 14)
-                    pl_sd->status.class = pl_sd->view_class = 21;
-                else if (pl_sd->status.class == 4008)
-                    pl_sd->status.class = pl_sd->view_class = 4014;
-                else if (pl_sd->status.class == 4015)
-                    pl_sd->status.class = pl_sd->view_class = 4022;
+                if (pl_sd->status.pc_class == 7)
+                    pl_sd->status.pc_class = pl_sd->view_class = 13;
+                else if (pl_sd->status.pc_class == 14)
+                    pl_sd->status.pc_class = pl_sd->view_class = 21;
+                else if (pl_sd->status.pc_class == 4008)
+                    pl_sd->status.pc_class = pl_sd->view_class = 4014;
+                else if (pl_sd->status.pc_class == 4015)
+                    pl_sd->status.pc_class = pl_sd->view_class = 4022;
                 pc_setoption (pl_sd, pl_sd->status.option | 0x0020);
                 clif_displaymessage (fd, msg_table[216]);   // Now, this player mounts a peco.
             }
@@ -6125,14 +6125,14 @@ int atcommand_char_mount_peco (const int fd, struct map_session_data *sd,
         }
         else
         {
-            if (pl_sd->status.class == 13)
-                pl_sd->status.class = pl_sd->view_class = 7;
-            else if (pl_sd->status.class == 21)
-                pl_sd->status.class = pl_sd->view_class = 14;
-            else if (pl_sd->status.class == 4014)
-                pl_sd->status.class = pl_sd->view_class = 4008;
-            else if (pl_sd->status.class == 4022)
-                pl_sd->status.class = pl_sd->view_class = 4015;
+            if (pl_sd->status.pc_class == 13)
+                pl_sd->status.pc_class = pl_sd->view_class = 7;
+            else if (pl_sd->status.pc_class == 21)
+                pl_sd->status.pc_class = pl_sd->view_class = 14;
+            else if (pl_sd->status.pc_class == 4014)
+                pl_sd->status.pc_class = pl_sd->view_class = 4008;
+            else if (pl_sd->status.pc_class == 4022)
+                pl_sd->status.pc_class = pl_sd->view_class = 4015;
             pc_setoption (pl_sd, pl_sd->status.option & ~0x0020);
             clif_displaymessage (fd, msg_table[218]);   // Now, this player has not more peco.
         }
@@ -7176,7 +7176,7 @@ int atcommand_effect (const int fd, struct map_session_data *sd,
     {
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 clif_specialeffect (&pl_sd->bl, type, flag);
@@ -8151,7 +8151,7 @@ int atcommand_summon (const int fd, struct map_session_data *sd,
     {
         md->master_id = sd->bl.id;
         md->state.special_mob_ai = 1;
-        md->mode = mob_db[md->class].mode | 0x04;
+        md->mode = mob_db[md->mob_class].mode | 0x04;
         md->deletetimer = add_timer (tick + 60000, mob_timer_delete, id, 0);
         clif_misceffect (&md->bl, 344);
     }
@@ -8400,7 +8400,7 @@ int
 atcommand_tee (const int fd, struct map_session_data *sd,
                const char *command, const char *message)
 {
-    char *data = malloc (strlen (message) + 28);
+    char *data = (char *)malloc (strlen (message) + 28);
     strcpy (data, sd->status.name);
     strcat (data, " : ");
     strcat (data, message);
@@ -8426,7 +8426,7 @@ atcommand_visible (const int fd, struct map_session_data *sd,
 
 int atcommand_jump_iterate (const int fd, struct map_session_data *sd,
                             const char *command, const char *message,
-                            struct map_session_data *(*get_start) (),
+                            struct map_session_data *(*get_start) (void),
                             struct map_session_data *(*get_next) (struct
                                                                   map_session_data
                                                                   * current))
@@ -8679,7 +8679,7 @@ int atcommand_ipcheck (const int fd, struct map_session_data *sd,
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             if (getpeername (pl_sd->fd, (struct sockaddr *)&sai, &sa_len))

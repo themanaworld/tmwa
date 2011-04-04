@@ -366,7 +366,7 @@ int intif_guild_leave (int guild_id, int account_id, int char_id, int flag,
 // ギルドメンバのオンライン状況/Lv更新要求
 int intif_guild_memberinfoshort (int guild_id,
                                  int account_id, int char_id, int online,
-                                 int lv, int class)
+                                 int lv, int class_)
 {
     WFIFOW (inter_fd, 0) = 0x3035;
     WFIFOL (inter_fd, 2) = guild_id;
@@ -374,7 +374,7 @@ int intif_guild_memberinfoshort (int guild_id,
     WFIFOL (inter_fd, 10) = char_id;
     WFIFOB (inter_fd, 14) = online;
     WFIFOW (inter_fd, 15) = lv;
-    WFIFOW (inter_fd, 17) = class;
+    WFIFOW (inter_fd, 17) = class_;
     WFIFOSET (inter_fd, 19);
     return 0;
 }
@@ -603,7 +603,7 @@ int mapif_parse_WisToGM (int fd)
     message[len - 1] = '\0';
     // information is sended to all online GM
     for (i = 0; i < fd_max; i++)
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
             if (pc_isGM (pl_sd) >= min_gm_level)
                 clif_wis_message (i, Wisp_name, message,
