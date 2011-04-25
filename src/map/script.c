@@ -316,6 +316,9 @@ int  buildin_shop (struct script_state *st);    // [MadCamel]
 int  buildin_isdead (struct script_state *st);  // [Jaxad0127]
 int  buildin_fakenpcname (struct script_state *st); //[Kage]
 int  buildin_unequip_by_id (struct script_state *st);   // [Freeyorp]
+int  buildin_getx (struct script_state *st);  // [Kage]
+int  buildin_gety (struct script_state *st);  // [Kage]
+
 
 void push_val (struct script_stack *stack, int type, int val);
 int  run_func (struct script_state *st);
@@ -737,6 +740,10 @@ struct
     buildin_fakenpcname, "fakenpcname", "ssi"},
     {
     buildin_unequip_by_id, "unequipbyid", "i"}, // [Freeyorp]
+    {
+    buildin_getx, "getx", "i"}, // [Kage]
+    {
+    buildin_gety, "gety", "i"}, // [Kage]
         // End Additions
     {
 NULL, NULL, NULL},};
@@ -7247,6 +7254,31 @@ int buildin_fakenpcname (struct script_state *st)
     npc_enable (name, 0);
     npc_enable (name, 1);
 
+    return 0;
+}
+
+/*============================
+ * Gets the PC's x pos
+ *----------------------------
+ */
+
+int buildin_getx (struct script_state *st)
+{
+    struct map_session_data *sd = script_rid2sd (st);
+
+    push_val (st->stack, C_INT, sd->bl.x);
+    return 0;
+}
+
+/*============================
+ * Gets the PC's y pos
+ *----------------------------
+ */
+int buildin_gety (struct script_state *st)
+{
+    struct map_session_data *sd = script_rid2sd (st);
+
+    push_val (st->stack, C_INT, sd->bl.y);
     return 0;
 }
 
