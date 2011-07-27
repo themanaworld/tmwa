@@ -1884,13 +1884,8 @@ int pc_calcstatus (struct map_session_data *sd, int first)
 
     if (sd->attackrange > 2)
     {                           // [fate] ranged weapon?
-        if (skill_power (sd, TMW_RAGING)) {
-            sd->attackrange = 2;
-        }
-        else {
-                sd->attackrange += MIN (skill_power (sd, AC_OWL) / 60, 3);
-                sd->hit += skill_power (sd, AC_OWL) / 10;   // 20 for 200
-        }
+        sd->attackrange += MIN (skill_power (sd, AC_OWL) / 60, 3);
+        sd->hit += skill_power (sd, AC_OWL) / 10;   // 20 for 200
     }
 
     if ((skill = pc_checkskill (sd, BS_WEAPONRESEARCH)) > 0)    // 武器研究の命中率増加
