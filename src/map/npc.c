@@ -2343,9 +2343,9 @@ int do_init_npc (void)
                          || (j && line[j - 1] == ',')))
                         line[j++] = ' ';
                 }
-                else if (line[i] == '\t')
+                else if (line[i] == '\t' || line[i] == '|')
                 {
-                    if (!(j && line[j - 1] == '\t'))
+                    if (!(j && (line[j - 1] == '\t' || line[j - 1] == '|')))
                         line[j++] = '\t';
                 }
                 else
