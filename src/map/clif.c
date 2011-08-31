@@ -2613,7 +2613,7 @@ int clif_changelook_towards (struct block_list *bl, int type, int val,
 
             WBUFB (buf, 6) = type;
             if (sd->equip_index[equip_point] >= 0
-                && sd->inventory_data[sd->equip_index[2]])
+                && sd->inventory_data[sd->equip_index[equip_point]])
             {
                 if (sd->
                     inventory_data[sd->equip_index[equip_point]]->view_id > 0)
