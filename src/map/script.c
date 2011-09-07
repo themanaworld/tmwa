@@ -342,13 +342,13 @@ struct
     {
     buildin_close2, "close2", ""},
     {
-    buildin_menu, "menu", "*"},
+    buildin_menu, "menu", "sL*"},
     {
-    buildin_goto, "goto", "l"},
+    buildin_goto, "goto", "L"},
     {
-    buildin_callsub, "callsub", "i*"},
+    buildin_callsub, "callsub", "L*"},
     {
-    buildin_callfunc, "callfunc", "s*"},
+    buildin_callfunc, "callfunc", "F*"},
     {
     buildin_return, "return", "*"},
     {
@@ -356,39 +356,39 @@ struct
     {
     buildin_jobchange, "jobchange", "i*"},
     {
-    buildin_input, "input", "*"},
+    buildin_input, "input", "N"},
     {
-    buildin_warp, "warp", "sii"},
+    buildin_warp, "warp", "Mxy"},
     {
-    buildin_isat, "isat", "sii"},
+    buildin_isat, "isat", "Mxy"},
     {
-    buildin_areawarp, "areawarp", "siiiisii"},
+    buildin_areawarp, "areawarp", "MxyxyMxy"},
     {
     buildin_setlook, "setlook", "ii"},
     {
-    buildin_set, "set", "ii"},
+    buildin_set, "set", "Ne"},
     {
-    buildin_setarray, "setarray", "ii*"},
+    buildin_setarray, "setarray", "Ne*"},
     {
-    buildin_cleararray, "cleararray", "iii"},
+    buildin_cleararray, "cleararray", "Nei"},
     {
-    buildin_copyarray, "copyarray", "iii"},
+    buildin_copyarray, "copyarray", "NNi"},
     {
-    buildin_getarraysize, "getarraysize", "i"},
+    buildin_getarraysize, "getarraysize", "N"},
     {
-    buildin_deletearray, "deletearray", "ii"},
+    buildin_deletearray, "deletearray", "N*"},
     {
-    buildin_getelementofarray, "getelementofarray", "ii"},
+    buildin_getelementofarray, "getelementofarray", "Ni"},
     {
-    buildin_if, "if", "i*"},
+    buildin_if, "if", "iF*"},
     {
-    buildin_getitem, "getitem", "ii**"},
+    buildin_getitem, "getitem", "Ii**"},
     {
     buildin_getitem2, "getitem2", "iiiiiiiii*"},
     {
-    buildin_makeitem, "makeitem", "iisii"},
+    buildin_makeitem, "makeitem", "IiMxy"},
     {
-    buildin_delitem, "delitem", "ii"},
+    buildin_delitem, "delitem", "Ii"},
     {
     buildin_cutin, "cutin", "si"},
     {
@@ -406,9 +406,9 @@ struct
     {
     buildin_pow, "pow", "ii"},
     {
-    buildin_countitem, "countitem", "i"},
+    buildin_countitem, "countitem", "I"},
     {
-    buildin_checkweight, "checkweight", "ii"},
+    buildin_checkweight, "checkweight", "Ii"},
     {
     buildin_readparam, "readparam", "i*"},
     {
@@ -472,11 +472,11 @@ struct
     {
     buildin_basicskillcheck, "basicskillcheck", "*"},
     {
-    buildin_getgmlevel, "getgmlevel", "*"},
+    buildin_getgmlevel, "getgmlevel", ""},
     {
     buildin_end, "end", ""},
     {
-    buildin_getopt2, "getopt2", "i"},
+    buildin_getopt2, "getopt2", ""},
     {
     buildin_setopt2, "setopt2", "i"},
     {
@@ -500,7 +500,7 @@ struct
     {
     buildin_savepoint, "save", "sii"},
     {
-    buildin_savepoint, "savepoint", "sii"},
+    buildin_savepoint, "savepoint", "Mxy"},
     {
     buildin_gettimetick, "gettimetick", "i"},
     {
@@ -514,47 +514,47 @@ struct
     {
     buildin_itemskill, "itemskill", "iis"},
     {
-    buildin_monster, "monster", "siisii*"},
+    buildin_monster, "monster", "Mxysmi*"},
     {
-    buildin_areamonster, "areamonster", "siiiisii*"},
+    buildin_areamonster, "areamonster", "Mxyxysmi*"},
     {
-    buildin_killmonster, "killmonster", "ss"},
+    buildin_killmonster, "killmonster", "ME"},
     {
-    buildin_killmonsterall, "killmonsterall", "s"},
+    buildin_killmonsterall, "killmonsterall", "M"},
     {
-    buildin_doevent, "doevent", "s"},
+    buildin_doevent, "doevent", "E"},
     {
-    buildin_donpcevent, "donpcevent", "s"},
+    buildin_donpcevent, "donpcevent", "E"},
     {
-    buildin_addtimer, "addtimer", "is"},
+    buildin_addtimer, "addtimer", "tE"},
     {
-    buildin_deltimer, "deltimer", "s"},
+    buildin_deltimer, "deltimer", "E"},
     {
     buildin_addtimercount, "addtimercount", "si"},
     {
-    buildin_initnpctimer, "initnpctimer", "*"},
+    buildin_initnpctimer, "initnpctimer", ""},
     {
-    buildin_stopnpctimer, "stopnpctimer", "*"},
+    buildin_stopnpctimer, "stopnpctimer", ""},
     {
     buildin_startnpctimer, "startnpctimer", "*"},
     {
-    buildin_setnpctimer, "setnpctimer", "*"},
+    buildin_setnpctimer, "setnpctimer", "i"},
     {
-    buildin_getnpctimer, "getnpctimer", "i*"},
+    buildin_getnpctimer, "getnpctimer", "i"},
     {
     buildin_announce, "announce", "si"},
     {
-    buildin_mapannounce, "mapannounce", "ssi"},
+    buildin_mapannounce, "mapannounce", "Msi"},
     {
-    buildin_areaannounce, "areaannounce", "siiiisi"},
+    buildin_areaannounce, "areaannounce", "Mxyxysi"},
     {
     buildin_getusers, "getusers", "i"},
     {
-    buildin_getmapusers, "getmapusers", "s"},
+    buildin_getmapusers, "getmapusers", "M"},
     {
-    buildin_getareausers, "getareausers", "siiii"},
+    buildin_getareausers, "getareausers", "Mxyxy"},
     {
-    buildin_getareadropitem, "getareadropitem", "siiiii*"},
+    buildin_getareadropitem, "getareadropitem", "Mxyxyi*"},
     {
     buildin_enablenpc, "enablenpc", "s"},
     {
@@ -568,9 +568,9 @@ struct
     {
     buildin_hideonnpc, "hideonnpc", "s"},
     {
-    buildin_sc_start, "sc_start", "iii*"},
+    buildin_sc_start, "sc_start", "iTi*"},
     {
-    buildin_sc_start2, "sc_start2", "iiii*"},
+    buildin_sc_start2, "sc_start2", "iTii*"},
     {
     buildin_sc_end, "sc_end", "i"},
     {
@@ -610,15 +610,15 @@ struct
     {
     buildin_isloggedin, "isloggedin", "i"},
     {
-    buildin_setmapflagnosave, "setmapflagnosave", "ssii"},
+    buildin_setmapflagnosave, "setmapflagnosave", "MMxy"},
     {
-    buildin_setmapflag, "setmapflag", "si"},
+    buildin_setmapflag, "setmapflag", "Mi"},
     {
-    buildin_removemapflag, "removemapflag", "si"},
+    buildin_removemapflag, "removemapflag", "Mi"},
     {
-    buildin_pvpon, "pvpon", "s"},
+    buildin_pvpon, "pvpon", "M"},
     {
-    buildin_pvpoff, "pvpoff", "s"},
+    buildin_pvpoff, "pvpoff", "M"},
     {
     buildin_gvgon, "gvgon", "s"},
     {
@@ -650,19 +650,19 @@ struct
     {
     buildin_failedremovecards, "failedremovecards", "ii"},
     {
-    buildin_marriage, "marriage", "s"},
+    buildin_marriage, "marriage", "P"},
     {
     buildin_wedding_effect, "wedding", ""},
     {
-    buildin_divorce, "divorce", "i"},
+    buildin_divorce, "divorce", ""},
     {
-    buildin_getitemname, "getitemname", "*"},
+    buildin_getitemname, "getitemname", "I"},
     {
     buildin_getspellinvocation, "getspellinvocation", "s"},
     {
     buildin_getanchorinvocation, "getanchorinvocation", "s"},
     {
-    buildin_getpartnerid, "getpartnerid2", "i"},
+    buildin_getpartnerid, "getpartnerid2", ""},
     {
     buildin_getexp, "getexp", "ii"},
     {
@@ -690,7 +690,7 @@ struct
     {
     buildin_soundeffect, "soundeffect", "si"},
     {
-    buildin_strmobinfo, "strmobinfo", "ii"},    // display mob data [Valaris]
+    buildin_strmobinfo, "strmobinfo", "im"},    // display mob data [Valaris]
     {
     buildin_guardian, "guardian", "siisii*i"},  // summon guardians
     {
@@ -704,7 +704,7 @@ struct
     {
     buildin_nude, "nude", ""},  // nude command [Valaris]
     {
-    buildin_mapwarp, "mapwarp", "ssii"},    // Added by RoVeRT
+    buildin_mapwarp, "mapwarp", "MMxy"},    // Added by RoVeRT
     {
     buildin_inittimer, "inittimer", ""},
     {
@@ -712,38 +712,38 @@ struct
     {
     buildin_cmdothernpc, "cmdothernpc", "ss"},
     {
-    buildin_gmcommand, "gmcommand", "*"},   // [MouseJstr]
+    buildin_gmcommand, "gmcommand", "s"},   // [MouseJstr]
 //  {buildin_movenpc,"movenpc","siis"}, // [MouseJstr]
     {
-    buildin_npcwarp, "npcwarp", "iis"}, // [remoitnane]
+    buildin_npcwarp, "npcwarp", "xys"}, // [remoitnane]
     {
-    buildin_message, "message", "s*"},  // [MouseJstr]
+    buildin_message, "message", "Ps"},  // [MouseJstr]
     {
-    buildin_npctalk, "npctalk", "*"},   // [Valaris]
+    buildin_npctalk, "npctalk", "s"},   // [Valaris]
     {
-    buildin_hasitems, "hasitems", "*"}, // [Valaris]
+    buildin_hasitems, "hasitems", ""}, // [Valaris]
     {
-    buildin_mobcount, "mobcount", "ss"},
+    buildin_mobcount, "mobcount", "ME"},
     {
     buildin_getlook, "getlook", "i"},
     {
     buildin_getsavepoint, "getsavepoint", "i"},
     {
-    buildin_areatimer, "areatimer", "siiiiis"},
+    buildin_areatimer, "areatimer", "MxyxytE"},
     {
-    buildin_isin, "isin", "siiii"},
+    buildin_isin, "isin", "Mxyxy"},
     {
     buildin_shop, "shop", "s"},
     {
-    buildin_isdead, "isdead", "i"},
+    buildin_isdead, "isdead", ""},
     {
     buildin_fakenpcname, "fakenpcname", "ssi"},
     {
     buildin_unequip_by_id, "unequipbyid", "i"}, // [Freeyorp]
     {
-    buildin_getx, "getx", "i"}, // [Kage]
+    buildin_getx, "getx", ""}, // [Kage]
     {
-    buildin_gety, "gety", "i"}, // [Kage]
+    buildin_gety, "gety", ""}, // [Kage]
         // End Additions
     {
 NULL, NULL, NULL},};
@@ -1259,7 +1259,7 @@ unsigned char *parse_subexpr (unsigned char *p, int limit)
             }
 
             add_scriptc (C_ARG);
-            do
+            while (*p && *p != ')' && i < 128)
             {
                 plist[i] = p;
                 p = parse_subexpr (p, -1);
@@ -1274,7 +1274,6 @@ unsigned char *parse_subexpr (unsigned char *p, int limit)
                 p = skip_space (p);
                 i++;
             }
-            while (*p && *p != ')' && i < 128);
             plist[i] = p;
             if (*(p++) != ')')
             {
@@ -1297,7 +1296,7 @@ unsigned char *parse_subexpr (unsigned char *p, int limit)
                 }
             }
         }
-        else
+        else // not op == C_FUNC
         {
             p = parse_subexpr (p, opl);
         }
