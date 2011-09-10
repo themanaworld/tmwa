@@ -229,7 +229,7 @@ static void db_rebalance_erase (struct dbn *z, struct dbn **root)
             z->parent->right = y;
         y->parent = z->parent;
         {
-            int  tmp = y->color;
+            dbn_color tmp = y->color;
             y->color = z->color;
             z->color = tmp;
         }

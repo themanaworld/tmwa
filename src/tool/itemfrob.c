@@ -35,7 +35,7 @@ int mmo_char_convert ()
         {
             transform_char (&char_dat);
             mmo_char_tostr (line, &char_dat);
-            fprintf (ofp, "%s" RETCODE, line);
+            fprintf (ofp, "%s\n", line);
         }
     }
     return 0;

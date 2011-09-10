@@ -87,7 +87,7 @@ int inter_party_fromstr (char *str, struct party *p)
 }
 
 // パーティデータのロード
-int inter_party_init ()
+int inter_party_init (void)
 {
     char line[8192];
     struct party *p;
@@ -140,11 +140,11 @@ void inter_party_save_sub (db_key_t key, db_val_t data, va_list ap)
 
     inter_party_tostr (line, (struct party *) data);
     fp = va_arg (ap, FILE *);
-    fprintf (fp, "%s" RETCODE, line);
+    fprintf (fp, "%s\n", line);
 }
 
 // パーティーデータのセーブ
-int inter_party_save ()
+int inter_party_save (void)
 {
     FILE *fp;
     int  lock;
@@ -460,9 +460,7 @@ int mapif_parse_CreateParty (int fd, int account_id, char *name, char *nick,
 // パーティ情報要求
 int mapif_parse_PartyInfo (int fd, int party_id)
 {
-    struct party *p;
-
-    p = numdb_search (party_db, party_id);
+    struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p != NULL)
         mapif_party_info (fd, p);
     else
@@ -475,17 +473,14 @@ int mapif_parse_PartyInfo (int fd, int party_id)
 int mapif_parse_PartyAddMember (int fd, int party_id, int account_id,
                                 char *nick, char *map, int lv)
 {
-    struct party *p;
-    int  i;
-
-    p = numdb_search (party_db, party_id);
+    struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p == NULL)
     {
         mapif_party_memberadded (fd, party_id, account_id, 1);
         return 0;
     }
 
-    for (i = 0; i < MAX_PARTY; i++)
+    for (int i = 0; i < MAX_PARTY; i++)
     {
         if (p->member[i].account_id == 0)
         {
@@ -519,14 +514,12 @@ int mapif_parse_PartyAddMember (int fd, int party_id, int account_id,
 int mapif_parse_PartyChangeOption (int fd, int party_id, int account_id,
                                    int exp, int item)
 {
-    struct party *p;
-    int  flag = 0;
-
-    p = numdb_search (party_db, party_id);
+    struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p == NULL)
         return 0;
 
     p->exp = exp;
+    int  flag = 0;
     if (exp > 0 && !party_check_exp_share (p))
     {
         flag |= 0x01;
@@ -542,13 +535,10 @@ int mapif_parse_PartyChangeOption (int fd, int party_id, int account_id,
 // パーティ脱退要求
 int mapif_parse_PartyLeave (int fd, int party_id, int account_id)
 {
-    struct party *p;
-    int  i;
-
-    p = numdb_search (party_db, party_id);
+    struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p != NULL)
     {
-        for (i = 0; i < MAX_PARTY; i++)
+        for (int i = 0; i < MAX_PARTY; i++)
         {
             if (p->member[i].account_id == account_id)
             {
@@ -569,14 +559,11 @@ int mapif_parse_PartyLeave (int fd, int party_id, int account_id)
 int mapif_parse_PartyChangeMap (int fd, int party_id, int account_id,
                                 char *map, int online, int lv)
 {
-    struct party *p;
-    int  i;
-
-    p = numdb_search (party_db, party_id);
+    struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p == NULL)
         return 0;
 
-    for (i = 0; i < MAX_PARTY; i++)
+    for (int i = 0; i < MAX_PARTY; i++)
     {
         if (p->member[i].account_id == account_id)
         {
@@ -604,9 +591,7 @@ int mapif_parse_PartyChangeMap (int fd, int party_id, int account_id,
 // パーティ解散要求
 int mapif_parse_BreakParty (int fd, int party_id)
 {
-    struct party *p;
-
-    p = numdb_search (party_db, party_id);
+    struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p == NULL)
         return 0;
 

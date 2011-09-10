@@ -51,13 +51,13 @@ static int script_pos, script_size;
 
 char *str_buf;
 int  str_pos, str_size;
-static struct
+static struct str_data_t
 {
     int  type;
     int  str;
     int  backpatch;
     int  label;
-    int  (*func) ();
+    int  (*func) (struct script_state *);
     int  val;
     int  next;
 }   *str_data;
@@ -73,12 +73,12 @@ char mapreg_txt[256] = "save/mapreg.txt";
 static struct dbt *scriptlabel_db = NULL;
 static struct dbt *userfunc_db = NULL;
 
-struct dbt *script_get_label_db ()
+struct dbt *script_get_label_db (void)
 {
     return scriptlabel_db;
 }
 
-struct dbt *script_get_userfunc_db ()
+struct dbt *script_get_userfunc_db (void)
 {
     if (!userfunc_db)
         userfunc_db = strdb_init (50);
@@ -323,7 +323,7 @@ int  mapreg_setregstr (int num, const char *str);
 
 struct
 {
-    int  (*func) ();
+    int  (*func) (struct script_state *);
     char *name;
     char *arg;
 } buildin_func[] =
@@ -833,7 +833,7 @@ static int add_str (const unsigned char *p)
     if (str_num >= str_data_size)
     {
         str_data_size += 128;
-        str_data = realloc (str_data, sizeof (str_data[0]) * str_data_size);
+        RECREATE (str_data, struct str_data_t, str_data_size);
         memset (str_data + (str_data_size - 128), '\0', 128);
     }
     while (str_pos + strlen (p) + 1 >= str_size)
@@ -1939,7 +1939,7 @@ int buildin_callfunc (struct script_state *st)
     char *scr;
     char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
 
-    if ((scr = strdb_search (script_get_userfunc_db (), str)))
+    if ((scr = (char*)strdb_search (script_get_userfunc_db (), str)))
     {
         int  i, j;
         for (i = st->start + 3, j = 0; i < st->end; i++, j++)
@@ -3922,14 +3922,14 @@ int buildin_getopt2 (struct script_state *st)
 
 int buildin_setopt2 (struct script_state *st)
 {
-    int  new;
+    int  new_opt2;
     struct map_session_data *sd;
 
-    new = conv_num (st, &(st->stack->stack_data[st->start + 2]));
+    new_opt2 = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     sd = script_rid2sd (st);
-    if (!(new ^ sd->opt2))
+    if (new_opt2 == sd->opt2)
         return 0;
-    sd->opt2 = new;
+    sd->opt2 = new_opt2;
     clif_changeoption (&sd->bl);
     pc_calcstatus (sd, 0);
 
@@ -4292,19 +4292,19 @@ int buildin_getexp (struct script_state *st)
  */
 int buildin_monster (struct script_state *st)
 {
-    int  class, amount, x, y;
+    int  mob_class, amount, x, y;
     char *str, *map, *event = "";
 
     map = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     x = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     y = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     str = conv_str (st, &(st->stack->stack_data[st->start + 5]));
-    class = conv_num (st, &(st->stack->stack_data[st->start + 6]));
+    mob_class = conv_num (st, &(st->stack->stack_data[st->start + 6]));
     amount = conv_num (st, &(st->stack->stack_data[st->start + 7]));
     if (st->end > st->start + 8)
         event = conv_str (st, &(st->stack->stack_data[st->start + 8]));
 
-    mob_once_spawn (map_id2sd (st->rid), map, x, y, str, class, amount,
+    mob_once_spawn (map_id2sd (st->rid), map, x, y, str, mob_class, amount,
                     event);
     return 0;
 }
@@ -4315,7 +4315,7 @@ int buildin_monster (struct script_state *st)
  */
 int buildin_areamonster (struct script_state *st)
 {
-    int  class, amount, x0, y0, x1, y1;
+    int  mob_class, amount, x0, y0, x1, y1;
     char *str, *map, *event = "";
 
     map = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -4324,12 +4324,12 @@ int buildin_areamonster (struct script_state *st)
     x1 = conv_num (st, &(st->stack->stack_data[st->start + 5]));
     y1 = conv_num (st, &(st->stack->stack_data[st->start + 6]));
     str = conv_str (st, &(st->stack->stack_data[st->start + 7]));
-    class = conv_num (st, &(st->stack->stack_data[st->start + 8]));
+    mob_class = conv_num (st, &(st->stack->stack_data[st->start + 8]));
     amount = conv_num (st, &(st->stack->stack_data[st->start + 9]));
     if (st->end > st->start + 10)
         event = conv_str (st, &(st->stack->stack_data[st->start + 10]));
 
-    mob_once_spawn_area (map_id2sd (st->rid), map, x0, y0, x1, y1, str, class,
+    mob_once_spawn_area (map_id2sd (st->rid), map, x0, y0, x1, y1, str, mob_class,
                          amount, event);
     return 0;
 }
@@ -5077,15 +5077,15 @@ int buildin_changesex (struct script_state *st)
     {
         sd->status.sex = 1;
         sd->sex = 1;
-        if (sd->status.class == 20 || sd->status.class == 4021)
-            sd->status.class -= 1;
+        if (sd->status.pc_class == 20 || sd->status.pc_class == 4021)
+            sd->status.pc_class -= 1;
     }
     else if (sd->status.sex == 1)
     {
         sd->status.sex = 0;
         sd->sex = 0;
-        if (sd->status.class == 19 || sd->status.class == 4020)
-            sd->status.class += 1;
+        if (sd->status.pc_class == 19 || sd->status.pc_class == 4020)
+            sd->status.pc_class += 1;
     }
     chrif_char_ask_name (-1, sd->status.name, 5, 0, 0, 0, 0, 0, 0); // type: 5 - changesex
     chrif_save (sd);
@@ -5549,7 +5549,7 @@ int buildin_pvpon (struct script_state *st)
 
         for (i = 0; i < fd_max; i++)
         {                       //人数分ループ
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl.m && pl_sd->pvp_timer == -1)
@@ -5586,7 +5586,7 @@ int buildin_pvpoff (struct script_state *st)
 
         for (i = 0; i < fd_max; i++)
         {                       //人数分ループ
-            if (session[i] && (pl_sd = session[i]->session_data)
+            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl.m)
@@ -5678,7 +5678,7 @@ int buildin_maprespawnguildid_sub (struct block_list *bl, va_list ap)
     }
     if (md && flag & 4)
     {
-        if (md->class < 1285 || md->class > 1288)
+        if (md->mob_class < 1285 || md->mob_class > 1288)
             mob_delete (md);
     }
     return 0;
@@ -6337,35 +6337,35 @@ int buildin_strmobinfo (struct script_state *st)
 {
 
     int  num = conv_num (st, &(st->stack->stack_data[st->start + 2]));
-    int  class = conv_num (st, &(st->stack->stack_data[st->start + 3]));
+    int  mob_class = conv_num (st, &(st->stack->stack_data[st->start + 3]));
 
-    if (num <= 0 || num >= 8 || (class >= 0 && class <= 1000) || class > 2000)
+    if (num <= 0 || num >= 8 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)
         return 0;
 
     if (num == 1)
     {
         char *buf;
-        buf = mob_db[class].name;
+        buf = mob_db[mob_class].name;
         push_str (st->stack, C_STR, buf);
         return 0;
     }
     else if (num == 2)
     {
         char *buf;
-        buf = mob_db[class].jname;
+        buf = mob_db[mob_class].jname;
         push_str (st->stack, C_STR, buf);
         return 0;
     }
     else if (num == 3)
-        push_val (st->stack, C_INT, mob_db[class].lv);
+        push_val (st->stack, C_INT, mob_db[mob_class].lv);
     else if (num == 4)
-        push_val (st->stack, C_INT, mob_db[class].max_hp);
+        push_val (st->stack, C_INT, mob_db[mob_class].max_hp);
     else if (num == 5)
-        push_val (st->stack, C_INT, mob_db[class].max_sp);
+        push_val (st->stack, C_INT, mob_db[mob_class].max_sp);
     else if (num == 6)
-        push_val (st->stack, C_INT, mob_db[class].base_exp);
+        push_val (st->stack, C_INT, mob_db[mob_class].base_exp);
     else if (num == 7)
-        push_val (st->stack, C_INT, mob_db[class].job_exp);
+        push_val (st->stack, C_INT, mob_db[mob_class].job_exp);
     return 0;
 }
 
@@ -6375,20 +6375,20 @@ int buildin_strmobinfo (struct script_state *st)
  */
 int buildin_guardian (struct script_state *st)
 {
-    int  class = 0, amount = 1, x = 0, y = 0, guardian = 0;
+    int  mob_class = 0, amount = 1, x = 0, y = 0, guardian = 0;
     char *str, *map, *event = "";
 
     map = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     x = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     y = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     str = conv_str (st, &(st->stack->stack_data[st->start + 5]));
-    class = conv_num (st, &(st->stack->stack_data[st->start + 6]));
+    mob_class = conv_num (st, &(st->stack->stack_data[st->start + 6]));
     amount = conv_num (st, &(st->stack->stack_data[st->start + 7]));
     event = conv_str (st, &(st->stack->stack_data[st->start + 8]));
     if (st->end > st->start + 9)
         guardian = conv_num (st, &(st->stack->stack_data[st->start + 9]));
 
-    mob_spawn_guardian (map_id2sd (st->rid), map, x, y, str, class, amount,
+    mob_spawn_guardian (map_id2sd (st->rid), map, x, y, str, mob_class, amount,
                         event, guardian);
 
     return 0;
@@ -6712,15 +6712,15 @@ int buildin_clearitem (struct script_state *st)
  */
 int buildin_classchange (struct script_state *st)
 {
-    int  class, type;
+    int  npc_class, type;
     struct block_list *bl = map_id2bl (st->oid);
 
     if (bl == NULL)
         return 0;
 
-    class = conv_num (st, &(st->stack->stack_data[st->start + 2]));
+    npc_class = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     type = conv_num (st, &(st->stack->stack_data[st->start + 3]));
-    clif_class_change (bl, class, type);
+    clif_npc_class_change (bl, npc_class, type);
     return 0;
 }
 
@@ -7113,7 +7113,7 @@ int buildin_getsavepoint (struct script_state *st)
     switch (type)
     {
         case 0:
-            mapname = calloc (24, 1);
+            mapname = (char*)calloc (24, 1);
             strncpy (mapname, sd->status.save_point.map, 23);
             push_str (st->stack, C_STR, mapname);
             break;
@@ -7239,7 +7239,7 @@ int buildin_fakenpcname (struct script_state *st)
         return 1;
     strncpy (nd->name, newname, sizeof(nd->name)-1);
     nd->name[sizeof(nd->name)-1] = '\0';
-    nd->class = newsprite;
+    nd->npc_class = newsprite;
 
     // Refresh this npc
     npc_enable (name, 0);
@@ -7890,7 +7890,7 @@ int mapreg_setregstr (int num, const char *str)
 {
     char *p;
 
-    if ((p = numdb_search (mapregstr_db, num)) != NULL)
+    if ((p = (char *)numdb_search (mapregstr_db, num)) != NULL)
         free (p);
 
     if (str == NULL || *str == 0)
@@ -7910,7 +7910,7 @@ int mapreg_setregstr (int num, const char *str)
  * 永続的マップ変数の読み込み
  *------------------------------------------
  */
-static int script_load_mapreg ()
+static int script_load_mapreg (void)
 {
     FILE *fp;
     char line[1024];
@@ -7985,7 +7985,7 @@ static void script_save_mapreg_strsub (db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-static int script_save_mapreg ()
+static int script_save_mapreg (void)
 {
     FILE *fp;
     int  lock;
@@ -8089,7 +8089,7 @@ static void userfunc_db_final (db_key_t key, db_val_t data, va_list ap)
     free (data);
 }
 
-int do_final_script ()
+int do_final_script (void)
 {
     if (mapreg_dirty >= 0)
         script_save_mapreg ();
@@ -8117,7 +8117,7 @@ int do_final_script ()
  * 初期化
  *------------------------------------------
  */
-int do_init_script ()
+int do_init_script (void)
 {
     mapreg_db = numdb_init ();
     mapregstr_db = numdb_init ();

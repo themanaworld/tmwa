@@ -185,7 +185,7 @@ int clif_countusers (void)
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd
             && sd->state.auth && !(battle_config.hide_GM_session
                                    && pc_isGM (sd)))
             users++;
@@ -206,7 +206,7 @@ int clif_foreachclient (int (*func) (struct map_session_data *, va_list), ...)
     va_start (ap, func);
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd
             && sd->state.auth)
             func (sd, ap);
     }
@@ -348,7 +348,7 @@ int clif_send (unsigned char *buf, int len, struct block_list *bl, int type)
         case ALL_CLIENT:       // 全クライアントに送信
             for (i = 0; i < fd_max; i++)
             {
-                if (session[i] && (sd = session[i]->session_data) != NULL
+                if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                     && sd->state.auth)
                 {
                     if (packet_len_table[RBUFW (buf, 0)])
@@ -362,7 +362,7 @@ int clif_send (unsigned char *buf, int len, struct block_list *bl, int type)
         case ALL_SAMEMAP:      // 同じマップの全クライアントに送信
             for (i = 0; i < fd_max; i++)
             {
-                if (session[i] && (sd = session[i]->session_data) != NULL
+                if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                     && sd->state.auth && sd->bl.m == bl->m)
                 {
                     if (packet_len_table[RBUFW (buf, 0)])
@@ -462,7 +462,7 @@ int clif_send (unsigned char *buf, int len, struct block_list *bl, int type)
                 }
                 for (i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (sd = session[i]->session_data) != NULL
+                    if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                         && sd->state.auth)
                     {
                         if (sd->partyspy == p->party_id)
@@ -526,7 +526,7 @@ int clif_send (unsigned char *buf, int len, struct block_list *bl, int type)
                 }
                 for (i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (sd = session[i]->session_data) != NULL
+                    if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                         && sd->state.auth)
                     {
                         if (sd->guildspy == g->guild_id)
@@ -766,12 +766,9 @@ static void clif_clearchar_delay_sub (timer_id tid, tick_t tick, custom_id_t id,
 
 int clif_clearchar_delay (unsigned int tick, struct block_list *bl, int type)
 {
-    struct block_list *tmpbl = calloc (sizeof (struct block_list), 1);
-    if (tmpbl == NULL)
-    {
-        printf ("clif_clearchar_delay: out of memory !\n");
-        exit (1);
-    }
+    struct block_list *tmpbl;
+    CREATE (tmpbl, struct block_list, 1);
+
     memcpy (tmpbl, bl, sizeof (struct block_list));
     add_timer (tick, clif_clearchar_delay_sub, (custom_id_t) tmpbl, type);
 
@@ -982,18 +979,18 @@ static int clif_set007b (struct map_session_data *sd, unsigned char *buf)
  * クラスチェンジ typeはMobの場合は1で他は0？
  *------------------------------------------
  */
-int clif_class_change (struct block_list *bl, int class, int type)
+int clif_npc_class_change (struct block_list *bl, int npc_class, int type)
 {
     char buf[16];
 
     nullpo_retr (0, bl);
 
-    if (class >= MAX_PC_CLASS)
+    if (npc_class >= MAX_PC_CLASS)
     {
         WBUFW (buf, 0) = 0x1b0;
         WBUFL (buf, 2) = bl->id;
         WBUFB (buf, 6) = type;
-        WBUFL (buf, 7) = class;
+        WBUFL (buf, 7) = npc_class;
 
         clif_send (buf, packet_len_table[0x1b0], bl, AREA);
     }
@@ -1004,10 +1001,10 @@ int clif_class_change (struct block_list *bl, int class, int type)
  *
  *------------------------------------------
  */
-int clif_mob_class_change (struct mob_data *md, int class)
+int clif_mob_class_change (struct mob_data *md, int class_)
 {
     char buf[16];
-    int  view = mob_get_viewclass (class);
+    int  view = mob_get_viewclass (class_);
 
     nullpo_retr (0, md);
 
@@ -1061,24 +1058,24 @@ static int clif_mob0078 (struct mob_data *md, unsigned char *buf)
     WBUFW (buf, 8) = md->opt1;
     WBUFW (buf, 10) = md->opt2;
     WBUFW (buf, 12) = md->option;
-    WBUFW (buf, 14) = mob_get_viewclass (md->class);
-    if ((mob_get_viewclass (md->class) <= 23)
-        || (mob_get_viewclass (md->class) == 812)
-        || (mob_get_viewclass (md->class) >= 4001))
+    WBUFW (buf, 14) = mob_get_viewclass (md->mob_class);
+    if ((mob_get_viewclass (md->mob_class) <= 23)
+        || (mob_get_viewclass (md->mob_class) == 812)
+        || (mob_get_viewclass (md->mob_class) >= 4001))
     {
-        WBUFW (buf, 12) |= mob_db[md->class].option;
-        WBUFW (buf, 16) = mob_get_hair (md->class);
-        WBUFW (buf, 18) = mob_get_weapon (md->class);
-        WBUFW (buf, 20) = mob_get_head_buttom (md->class);
-        WBUFW (buf, 22) = mob_get_shield (md->class);
-        WBUFW (buf, 24) = mob_get_head_top (md->class);
-        WBUFW (buf, 26) = mob_get_head_mid (md->class);
-        WBUFW (buf, 28) = mob_get_hair_color (md->class);
-        WBUFW (buf, 30) = mob_get_clothes_color (md->class);    //Add for player monster dye - Valaris
-        WBUFB (buf, 45) = mob_get_sex (md->class);
+        WBUFW (buf, 12) |= mob_db[md->mob_class].option;
+        WBUFW (buf, 16) = mob_get_hair (md->mob_class);
+        WBUFW (buf, 18) = mob_get_weapon (md->mob_class);
+        WBUFW (buf, 20) = mob_get_head_buttom (md->mob_class);
+        WBUFW (buf, 22) = mob_get_shield (md->mob_class);
+        WBUFW (buf, 24) = mob_get_head_top (md->mob_class);
+        WBUFW (buf, 26) = mob_get_head_mid (md->mob_class);
+        WBUFW (buf, 28) = mob_get_hair_color (md->mob_class);
+        WBUFW (buf, 30) = mob_get_clothes_color (md->mob_class);    //Add for player monster dye - Valaris
+        WBUFB (buf, 45) = mob_get_sex (md->mob_class);
     }
 
-    if (md->class >= 1285 && md->class <= 1287)
+    if (md->mob_class >= 1285 && md->mob_class <= 1287)
     {                           // Added guardian emblems [Valaris]
         struct guild *g;
         struct guild_castle *gc = guild_mapname2gc (map[md->bl.m].name);
@@ -1123,26 +1120,26 @@ static int clif_mob007b (struct mob_data *md, unsigned char *buf)
     WBUFW (buf, 8) = md->opt1;
     WBUFW (buf, 10) = md->opt2;
     WBUFW (buf, 12) = md->option;
-    WBUFW (buf, 14) = mob_get_viewclass (md->class);
-    if ((mob_get_viewclass (md->class) < 24)
-        || (mob_get_viewclass (md->class) > 4000))
+    WBUFW (buf, 14) = mob_get_viewclass (md->mob_class);
+    if ((mob_get_viewclass (md->mob_class) < 24)
+        || (mob_get_viewclass (md->mob_class) > 4000))
     {
-        WBUFW (buf, 12) |= mob_db[md->class].option;
-        WBUFW (buf, 16) = mob_get_hair (md->class);
-        WBUFW (buf, 18) = mob_get_weapon (md->class);
-        WBUFW (buf, 20) = mob_get_head_buttom (md->class);
+        WBUFW (buf, 12) |= mob_db[md->mob_class].option;
+        WBUFW (buf, 16) = mob_get_hair (md->mob_class);
+        WBUFW (buf, 18) = mob_get_weapon (md->mob_class);
+        WBUFW (buf, 20) = mob_get_head_buttom (md->mob_class);
         WBUFL (buf, 22) = gettick ();
-        WBUFW (buf, 26) = mob_get_shield (md->class);
-        WBUFW (buf, 28) = mob_get_head_top (md->class);
-        WBUFW (buf, 30) = mob_get_head_mid (md->class);
-        WBUFW (buf, 32) = mob_get_hair_color (md->class);
-        WBUFW (buf, 34) = mob_get_clothes_color (md->class);    //Add for player monster dye - Valaris
-        WBUFB (buf, 49) = mob_get_sex (md->class);
+        WBUFW (buf, 26) = mob_get_shield (md->mob_class);
+        WBUFW (buf, 28) = mob_get_head_top (md->mob_class);
+        WBUFW (buf, 30) = mob_get_head_mid (md->mob_class);
+        WBUFW (buf, 32) = mob_get_hair_color (md->mob_class);
+        WBUFW (buf, 34) = mob_get_clothes_color (md->mob_class);    //Add for player monster dye - Valaris
+        WBUFB (buf, 49) = mob_get_sex (md->mob_class);
     }
     else
         WBUFL (buf, 22) = gettick ();
 
-    if (md->class >= 1285 && md->class <= 1287)
+    if (md->mob_class >= 1285 && md->mob_class <= 1287)
     {                           // Added guardian emblems [Valaris]
         struct guild *g;
         struct guild_castle *gc = guild_mapname2gc (map[md->bl.m].name);
@@ -1183,8 +1180,8 @@ static int clif_npc0078 (struct npc_data *nd, unsigned char *buf)
     WBUFW (buf, 0) = 0x78;
     WBUFL (buf, 2) = nd->bl.id;
     WBUFW (buf, 6) = nd->speed;
-    WBUFW (buf, 14) = nd->class;
-    if ((nd->class == 722) && (nd->u.scr.guild_id > 0)
+    WBUFW (buf, 14) = nd->npc_class;
+    if ((nd->npc_class == 722) && (nd->u.scr.guild_id > 0)
         && ((g = guild_search (nd->u.scr.guild_id)) != NULL))
     {
         WBUFL (buf, 22) = g->emblem_id;
@@ -1301,13 +1298,13 @@ int clif_spawnpc (struct map_session_data *sd)
             clif_guild_emblem (sd, g);
     }                           // end addition [Valaris]
 
-    if (sd->status.class == 13 || sd->status.class == 21
-        || sd->status.class == 4014 || sd->status.class == 4022)
+    if (sd->status.pc_class == 13 || sd->status.pc_class == 21
+        || sd->status.pc_class == 4014 || sd->status.pc_class == 4022)
         pc_setoption (sd, sd->status.option | 0x0020);  // [Valaris]
 
     if ((pc_isriding (sd) && pc_checkskill (sd, KN_RIDING) > 0)
-        && (sd->status.class == 7 || sd->status.class == 14
-            || sd->status.class == 4008 || sd->status.class == 4015))
+        && (sd->status.pc_class == 7 || sd->status.pc_class == 14
+            || sd->status.pc_class == 4008 || sd->status.pc_class == 4015))
         pc_setriding (sd);      // update peco riders for people upgrading athena [Valaris]
 
     if (map[sd->bl.m].flag.snow)
@@ -1337,7 +1334,7 @@ int clif_spawnnpc (struct npc_data *nd)
 
     nullpo_retr (0, nd);
 
-    if (nd->class < 0 || nd->flag & 1 || nd->class == INVISIBLE_CLASS)
+    if (nd->npc_class < 0 || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
 
     memset (buf, 0, packet_len_table[0x7c]);
@@ -1345,7 +1342,7 @@ int clif_spawnnpc (struct npc_data *nd)
     WBUFW (buf, 0) = 0x7c;
     WBUFL (buf, 2) = nd->bl.id;
     WBUFW (buf, 6) = nd->speed;
-    WBUFW (buf, 20) = nd->class;
+    WBUFW (buf, 20) = nd->npc_class;
     WBUFPOS (buf, 36, nd->bl.x, nd->bl.y);
 
     clif_send (buf, packet_len_table[0x7c], &nd->bl, AREA);
@@ -1405,7 +1402,7 @@ int clif_spawnmob (struct mob_data *md)
 
     nullpo_retr (0, md);
 
-    if (mob_get_viewclass (md->class) > 23)
+    if (mob_get_viewclass (md->mob_class) > 23)
     {
         memset (buf, 0, packet_len_table[0x7c]);
 
@@ -1415,7 +1412,7 @@ int clif_spawnmob (struct mob_data *md)
         WBUFW (buf, 8) = md->opt1;
         WBUFW (buf, 10) = md->opt2;
         WBUFW (buf, 12) = md->option;
-        WBUFW (buf, 20) = mob_get_viewclass (md->class);
+        WBUFW (buf, 20) = mob_get_viewclass (md->mob_class);
         WBUFPOS (buf, 36, md->bl.x, md->bl.y);
         clif_send (buf, packet_len_table[0x7c], &md->bl, AREA);
     }
@@ -1423,8 +1420,8 @@ int clif_spawnmob (struct mob_data *md)
     len = clif_mob0078 (md, buf);
     clif_send (buf, len, &md->bl, AREA);
 
-    if (mob_get_equip (md->class) > 0)  // mob equipment [Valaris]
-        clif_mob_equip (md, mob_get_equip (md->class));
+    if (mob_get_equip (md->mob_class) > 0)  // mob equipment [Valaris]
+        clif_mob_equip (md, mob_get_equip (md->mob_class));
 
     return 0;
 }
@@ -3634,7 +3631,7 @@ void clif_getareachar_npc (struct map_session_data *sd, struct npc_data *nd)
     nullpo_retv (sd);
     nullpo_retv (nd);
 
-    if (nd->class < 0 || nd->flag & 1 || nd->class == INVISIBLE_CLASS)
+    if (nd->npc_class < 0 || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return;
 
     len = clif_npc0078 (nd, WFIFOP (sd->fd, 0));
@@ -3661,8 +3658,8 @@ int clif_movemob (struct mob_data *md)
     len = clif_mob007b (md, buf);
     clif_send (buf, len, &md->bl, AREA);
 
-    if (mob_get_equip (md->class) > 0)  // mob equipment [Valaris]
-        clif_mob_equip (md, mob_get_equip (md->class));
+    if (mob_get_equip (md->mob_class) > 0)  // mob equipment [Valaris]
+        clif_mob_equip (md, mob_get_equip (md->mob_class));
 
     return 0;
 }
@@ -3790,8 +3787,8 @@ void clif_getareachar_mob (struct map_session_data *sd, struct mob_data *md)
         WFIFOSET (sd->fd, len);
     }
 
-    if (mob_get_equip (md->class) > 0)  // mob equipment [Valaris]
-        clif_mob_equip (md, mob_get_equip (md->class));
+    if (mob_get_equip (md->mob_class) > 0)  // mob equipment [Valaris]
+        clif_mob_equip (md, mob_get_equip (md->mob_class));
 }
 
 /*==========================================
@@ -3989,7 +3986,7 @@ int clif_pcoutsight (struct block_list *bl, va_list ap)
             }
             break;
         case BL_NPC:
-            if (((struct npc_data *) bl)->class != INVISIBLE_CLASS)
+            if (((struct npc_data *) bl)->npc_class != INVISIBLE_CLASS)
                 clif_clearchar_id (bl->id, 0, sd->fd);
             break;
         case BL_MOB:
@@ -4546,14 +4543,14 @@ int clif_skill_estimation (struct map_session_data *sd,
         return 0;
 
     WBUFW (buf, 0) = 0x18c;
-    WBUFW (buf, 2) = mob_get_viewclass (md->class);
-    WBUFW (buf, 4) = mob_db[md->class].lv;
-    WBUFW (buf, 6) = mob_db[md->class].size;
+    WBUFW (buf, 2) = mob_get_viewclass (md->mob_class);
+    WBUFW (buf, 4) = mob_db[md->mob_class].lv;
+    WBUFW (buf, 6) = mob_db[md->mob_class].size;
     WBUFL (buf, 8) = md->hp;
     WBUFW (buf, 12) = battle_get_def2 (&md->bl);
-    WBUFW (buf, 14) = mob_db[md->class].race;
+    WBUFW (buf, 14) = mob_db[md->mob_class].race;
     WBUFW (buf, 16) =
-        battle_get_mdef2 (&md->bl) - (mob_db[md->class].vit >> 1);
+        battle_get_mdef2 (&md->bl) - (mob_db[md->mob_class].vit >> 1);
     WBUFW (buf, 18) = battle_get_elem_type (&md->bl);
     for (i = 0; i < 9; i++)
         WBUFB (buf, 20 + i) = battle_attr_fix (100, i + 1, md->def_ele);
@@ -4613,7 +4610,7 @@ int clif_GMmessage (struct block_list *bl, char *mes, int len, int flag)
 {
     unsigned char lbuf[255];
     unsigned char *buf =
-        ((len + 16) >= sizeof (lbuf)) ? malloc (len + 16) : lbuf;
+        ((len + 16) >= sizeof (lbuf)) ? (unsigned char*)malloc (len + 16) : lbuf;
     int  lp = (flag & 0x10) ? 8 : 4;
 
     WBUFW (buf, 0) = 0x9a;
@@ -6000,7 +5997,7 @@ int clif_guild_memberlist (struct map_session_data *sd)
         WFIFOW (fd, c * 104 + 12) = m->hair;
         WFIFOW (fd, c * 104 + 14) = m->hair_color;
         WFIFOW (fd, c * 104 + 16) = m->gender;
-        WFIFOW (fd, c * 104 + 18) = m->class;
+        WFIFOW (fd, c * 104 + 18) = m->pc_class;
         WFIFOW (fd, c * 104 + 20) = m->lv;
         WFIFOL (fd, c * 104 + 22) = m->exp;
         WFIFOL (fd, c * 104 + 26) = m->online;
@@ -6315,7 +6312,7 @@ int clif_guild_message (struct guild *g, int account_id, const char *mes,
     unsigned char lbuf[255];
     unsigned char *buf = lbuf;
     if (len + 32 >= sizeof (lbuf))
-        buf = malloc (len + 32);
+        buf = (unsigned char *)malloc (len + 32);
     WBUFW (buf, 0) = 0x17f;
     WBUFW (buf, 2) = len + 4;
     memcpy (WBUFP (buf, 4), mes, len);
@@ -6570,7 +6567,7 @@ int clif_disp_onlyself (struct map_session_data *sd, char *mes, int len)
 {
     unsigned char lbuf[255];
     unsigned char *buf =
-        (len + 32 >= sizeof (lbuf)) ? malloc (len + 32) : lbuf;
+        (len + 32 >= sizeof (lbuf)) ? (unsigned char *)malloc (len + 32) : lbuf;
 
     nullpo_retr (0, sd);
 
@@ -6699,7 +6696,7 @@ int clif_specialeffect (struct block_list *bl, int type, int flag)
         int  i;
         for (i = 0; i < fd_max; i++)
         {
-            if (session[i] && (sd = session[i]->session_data) != NULL
+            if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                 && sd->state.auth && sd->bl.m == bl->m)
                 clif_specialeffect (&sd->bl, type, 1);
         }
@@ -6755,12 +6752,8 @@ void clif_parse_WantToConnection (int fd, struct map_session_data *sd)
     }
     else
     {
-        sd = session[fd]->session_data = calloc (sizeof (*sd), 1);
-        if (sd == NULL)
-        {
-            printf ("out of memory : clif_parse_WantToConnection\n");
-            exit (1);
-        }
+        CREATE (sd, struct map_session_data, 1);
+        session[fd]->session_data = sd;
         sd->fd = fd;
 
         pc_setnewpc (sd, account_id, RFIFOL (fd, 6), RFIFOL (fd, 10),
@@ -6864,7 +6857,7 @@ void clif_parse_LoadEndAck (int fd, struct map_session_data *sd)
     if (sd->state.connect_new)
     {
         sd->state.connect_new = 0;
-        if (sd->status.class != sd->view_class)
+        if (sd->status.pc_class != sd->view_class)
             clif_changelook (&sd->bl, LOOK_BASE, sd->view_class);
 
 /*						Stop players from spawning inside castles [Valaris]					*/
@@ -7957,17 +7950,17 @@ void clif_parse_RemoveOption (int fd, struct map_session_data *sd)
 {
     if (pc_isriding (sd))
     {                           // jobchange when removing peco [Valaris]
-        if (sd->status.class == 13)
-            sd->status.class = sd->view_class = 7;
+        if (sd->status.pc_class == 13)
+            sd->status.pc_class = sd->view_class = 7;
 
-        if (sd->status.class == 21)
-            sd->status.class = sd->view_class = 14;
+        if (sd->status.pc_class == 21)
+            sd->status.pc_class = sd->view_class = 14;
 
-        if (sd->status.class == 4014)
-            sd->status.class = sd->view_class = 4008;
+        if (sd->status.pc_class == 4014)
+            sd->status.pc_class = sd->view_class = 4008;
 
-        if (sd->status.class == 4022)
-            sd->status.class = sd->view_class = 4015;
+        if (sd->status.pc_class == 4022)
+            sd->status.pc_class = sd->view_class = 4015;
     }
 
     pc_setoption (sd, 0);
@@ -9316,7 +9309,7 @@ void clif_parse_sn_explosionspirits (int fd, struct map_session_data *sd)
     if (sd)
     {
         int  nextbaseexp = pc_nextbaseexp (sd);
-        struct pc_base_job s_class = pc_calc_base_job (sd->status.class);
+        struct pc_base_job s_class = pc_calc_base_job (sd->status.pc_class);
         if (battle_config.etc_log)
         {
             if (nextbaseexp != 0)
@@ -9349,7 +9342,7 @@ void clif_parse_sn_explosionspirits (int fd, struct map_session_data *sd)
 // rate -1 is unlimited
 typedef struct func_table
 {
-	void (*func)();
+	void (*func)(int fd, struct map_session_data *sd);
 	int rate;
 } func_table;
 // *INDENT-OFF*
@@ -9905,7 +9898,7 @@ func_table clif_parse_func_table[0x220] =
 // Checks for packet flooding
 int clif_check_packet_flood(int fd, int cmd)
 {
-    struct map_session_data *sd = session[fd]->session_data;
+    struct map_session_data *sd = (struct map_session_data *)session[fd]->session_data;
     unsigned int rate, tick = gettick();
 
     // sd will not be set if the client hasn't requested
@@ -10117,9 +10110,7 @@ static char *clif_validate_chat (struct map_session_data *sd, int type,
 static void clif_parse (int fd)
 {
     int  packet_len = 0, cmd = 0;
-    struct map_session_data *sd = NULL;
-
-    sd = session[fd]->session_data;
+    struct map_session_data *sd = (struct map_session_data *)session[fd]->session_data;
 
     if (!sd || (sd && !sd->state.auth))
     {

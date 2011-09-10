@@ -1,22 +1,13 @@
 # files generated during make
-*.o
-src/char/char
-char-server
-src/ladmin/ladmin
+/obj/
+# Copied executables
+/char-server
 /ladmin
-src/login/login
-login-server
-src/map/map
-map-server
-eathena-monitor
-magic-interpreter-parser.h
-magic-interpreter-parser.c
-magic-interpreter-lexer.c
-magic-interpreter-parser.output
+/login-server
+/map-server
+/eathena-monitor
+# Generated source files
+src/map/magic-interpreter-parser.h
+src/map/magic-interpreter-parser.c
+src/map/magic-interpreter-lexer.c
 
-src/tool/adduser
-src/tool/itemfrob
-src/tool/mapfrob
-src/tool/marriage-info
-src/tool/eathena-monitor
-src/webserver/webserver

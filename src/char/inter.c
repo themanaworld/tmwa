@@ -106,7 +106,7 @@ int inter_accreg_fromstr (const char *str, struct accreg *reg)
 }
 
 // アカウント変数の読み込み
-int inter_accreg_init ()
+int inter_accreg_init (void)
 {
     char line[8192];
     FILE *fp;
@@ -150,12 +150,12 @@ void inter_accreg_save_sub (db_key_t key, db_val_t data, va_list ap)
     {
         inter_accreg_tostr (line, reg);
         fp = va_arg (ap, FILE *);
-        fprintf (fp, "%s" RETCODE, line);
+        fprintf (fp, "%s\n", line);
     }
 }
 
 // アカウント変数のセーブ
-int inter_accreg_save ()
+int inter_accreg_save (void)
 {
     FILE *fp;
     int  lock;
@@ -262,7 +262,7 @@ int inter_log (char *fmt, ...)
 }
 
 // セーブ
-int inter_save ()
+int inter_save (void)
 {
     inter_party_save ();
     inter_guild_save ();
@@ -358,7 +358,7 @@ int mapif_account_reg (int fd, unsigned char *src)
 // アカウント変数要求返信
 int mapif_account_reg_reply (int fd, int account_id)
 {
-    struct accreg *reg = numdb_search (accreg_db, account_id);
+    struct accreg *reg = (struct accreg *)numdb_search (accreg_db, account_id);
 
     WFIFOW (fd, 0) = 0x3804;
     WFIFOL (fd, 4) = account_id;
@@ -395,7 +395,7 @@ void check_ttl_wisdata_sub (db_key_t key, db_val_t data, va_list ap)
         wis_dellist[wis_delnum++] = wd->id;
 }
 
-int check_ttl_wisdata ()
+int check_ttl_wisdata (void)
 {
     unsigned long tick = gettick ();
     int  i;
@@ -406,7 +406,7 @@ int check_ttl_wisdata ()
         numdb_foreach (wis_db, check_ttl_wisdata_sub, tick);
         for (i = 0; i < wis_delnum; i++)
         {
-            struct WisData *wd = numdb_search (wis_db, wis_dellist[i]);
+            struct WisData *wd = (struct WisData *)numdb_search (wis_db, wis_dellist[i]);
             printf ("inter: wis data id=%d time out : from %s to %s\n",
                     wd->id, wd->src, wd->dst);
             // removed. not send information after a timeout. Just no answer for the player
@@ -499,7 +499,7 @@ int mapif_parse_WisRequest (int fd)
 int mapif_parse_WisReply (int fd)
 {
     int  id = RFIFOL (fd, 2), flag = RFIFOB (fd, 6);
-    struct WisData *wd = numdb_search (wis_db, id);
+    struct WisData *wd = (struct WisData *)numdb_search (wis_db, id);
 
     if (wd == NULL)
         return 0;               // This wisp was probably suppress before, because it was timeout of because of target was found on another map-server
@@ -530,7 +530,7 @@ int mapif_parse_WisToGM (int fd)
 int mapif_parse_AccReg (int fd)
 {
     int  j, p;
-    struct accreg *reg = numdb_search (accreg_db, (numdb_key_t)RFIFOL (fd, 4));
+    struct accreg *reg = (struct accreg*)numdb_search (accreg_db, (numdb_key_t)RFIFOL (fd, 4));
 
     if (reg == NULL)
     {

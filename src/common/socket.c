@@ -23,8 +23,8 @@ fd_set readfds;
 int  fd_max;
 int  currentuse;
 
-const uint32_t rfifo_size = 65536;
-const uint32_t wfifo_size = 65536;
+const uint32_t RFIFO_SIZE = 65536;
+const uint32_t WFIFO_SIZE = 65536;
 
 struct socket_data *session[FD_SETSIZE];
 
@@ -126,11 +126,11 @@ static void connect_client (int listen_fd)
     fcntl (fd, F_SETFL, O_NONBLOCK);
 
     CREATE (session[fd], struct socket_data, 1);
-    CREATE (session[fd]->rdata, uint8_t, rfifo_size);
-    CREATE (session[fd]->wdata, uint8_t, wfifo_size);
+    CREATE (session[fd]->rdata, uint8_t, RFIFO_SIZE);
+    CREATE (session[fd]->wdata, uint8_t, WFIFO_SIZE);
 
-    session[fd]->max_rdata = rfifo_size;
-    session[fd]->max_wdata = wfifo_size;
+    session[fd]->max_rdata = RFIFO_SIZE;
+    session[fd]->max_wdata = WFIFO_SIZE;
     session[fd]->func_recv = recv_to_fifo;
     session[fd]->func_send = send_from_fifo;
     session[fd]->func_parse = default_func_parse;
@@ -231,11 +231,11 @@ int make_connection (uint32_t ip, uint16_t port)
     FD_SET (fd, &readfds);
 
     CREATE (session[fd], struct socket_data, 1);
-    CREATE (session[fd]->rdata, uint8_t, rfifo_size);
-    CREATE (session[fd]->wdata, uint8_t, wfifo_size);
+    CREATE (session[fd]->rdata, uint8_t, RFIFO_SIZE);
+    CREATE (session[fd]->wdata, uint8_t, WFIFO_SIZE);
 
-    session[fd]->max_rdata = rfifo_size;
-    session[fd]->max_wdata = wfifo_size;
+    session[fd]->max_rdata = RFIFO_SIZE;
+    session[fd]->max_wdata = WFIFO_SIZE;
     session[fd]->func_recv = recv_to_fifo;
     session[fd]->func_send = send_from_fifo;
     session[fd]->func_parse = default_func_parse;
@@ -399,7 +399,7 @@ FILE *fopen_ (const char *path, const char *mode)
     return f;
 }
 
-bool free_fds ()
+bool free_fds (void)
 {
     return currentuse < SOFT_LIMIT;
 }

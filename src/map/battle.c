@@ -67,9 +67,9 @@ int battle_get_class (struct block_list *bl)
 {
     nullpo_retr (0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return ((struct mob_data *) bl)->class;
+        return ((struct mob_data *) bl)->mob_class;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        return ((struct map_session_data *) bl)->status.class;
+        return ((struct map_session_data *) bl)->status.pc_class;
     else
         return 0;
 }
@@ -115,7 +115,7 @@ int battle_get_range (struct block_list *bl)
 {
     nullpo_retr (0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return mob_db[((struct mob_data *) bl)->class].range;
+        return mob_db[((struct mob_data *) bl)->mob_class].range;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         return ((struct map_session_data *) bl)->attackrange;
     else
@@ -155,7 +155,7 @@ int battle_get_max_hp (struct block_list *bl)
         if (bl->type == BL_MOB && ((struct mob_data *) bl))
         {
             max_hp = ((struct mob_data *) bl)->stats[MOB_MAX_HP];
-            if (mob_db[((struct mob_data *) bl)->class].mexp > 0)
+            if (mob_db[((struct mob_data *) bl)->mob_class].mexp > 0)
             {
                 if (battle_config.mvp_hp_rate != 100)
                     max_hp = (max_hp * battle_config.mvp_hp_rate) / 100;
@@ -1076,7 +1076,7 @@ int battle_get_amotion (struct block_list *bl)
         struct status_change *sc_data = battle_get_sc_data (bl);
         int  amotion = 2000, aspd_rate = 100, i;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
-            amotion = mob_db[((struct mob_data *) bl)->class].amotion;
+            amotion = mob_db[((struct mob_data *) bl)->mob_class].amotion;
 
         if (sc_data)
         {
@@ -1138,7 +1138,7 @@ int battle_get_dmotion (struct block_list *bl)
     sc_data = battle_get_sc_data (bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
     {
-        ret = mob_db[((struct mob_data *) bl)->class].dmotion;
+        ret = mob_db[((struct mob_data *) bl)->mob_class].dmotion;
         if (battle_config.monster_damage_delay_rate != 100)
             ret = ret * battle_config.monster_damage_delay_rate / 400;
     }
@@ -1267,7 +1267,7 @@ int battle_get_guild_id (struct block_list *bl)
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         return ((struct map_session_data *) bl)->status.guild_id;
     else if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return ((struct mob_data *) bl)->class;
+        return ((struct mob_data *) bl)->mob_class;
     else if (bl->type == BL_SKILL && (struct skill_unit *) bl)
         return ((struct skill_unit *) bl)->group->guild_id;
     else
@@ -1278,7 +1278,7 @@ int battle_get_race (struct block_list *bl)
 {
     nullpo_retr (0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return mob_db[((struct mob_data *) bl)->class].race;
+        return mob_db[((struct mob_data *) bl)->mob_class].race;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         return 7;
     else
@@ -1289,7 +1289,7 @@ int battle_get_size (struct block_list *bl)
 {
     nullpo_retr (1, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return mob_db[((struct mob_data *) bl)->class].size;
+        return mob_db[((struct mob_data *) bl)->mob_class].size;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         return 1;
     else
@@ -1300,7 +1300,7 @@ int battle_get_mode (struct block_list *bl)
 {
     nullpo_retr (0x01, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return mob_db[((struct mob_data *) bl)->class].mode;
+        return mob_db[((struct mob_data *) bl)->mob_class].mode;
     else
         return 0x01;            // とりあえず動くということで1
 }
@@ -1312,7 +1312,7 @@ int battle_get_mexp (struct block_list *bl)
     {
         const struct mob_data *mob = (struct mob_data *) bl;
         const int retval =
-            (mob_db[mob->class].mexp *
+            (mob_db[mob->mob_class].mexp *
              (int) (mob->stats[MOB_XP_BONUS])) >> MOB_XP_BONUS_SHIFT;
         fprintf (stderr, "Modifier of %x: -> %d\n", mob->stats[MOB_XP_BONUS],
                  retval);
@@ -1614,11 +1614,11 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
     struct mob_data *md = NULL;
     struct status_change *sc_data, *sc;
     short *sc_count;
-    int  class;
+    int  class_;
 
     nullpo_retr (0, bl);
 
-    class = battle_get_class (bl);
+    class_ = battle_get_class (bl);
     if (bl->type == BL_MOB)
         md = (struct mob_data *) bl;
     else
@@ -1785,10 +1785,10 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         }
     }
 
-    if (class == 1288 || class == 1287 || class == 1286 || class == 1285)
+    if (class_ == 1288 || class_ == 1287 || class_ == 1286 || class_ == 1285)
     {
 //  if(class == 1288) {
-        if (class == 1288 && flag & BF_SKILL)
+        if (class_ == 1288 && flag & BF_SKILL)
             damage = 0;
         if (src->type == BL_PC)
         {
@@ -1798,7 +1798,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
             struct guild_castle *gc = guild_mapname2gc (map[bl->m].name);
             if (!((struct map_session_data *) src)->status.guild_id)
                 damage = 0;
-            if (gc && agit_flag == 0 && class != 1288)  // guardians cannot be damaged during non-woe [Valaris]
+            if (gc && agit_flag == 0 && class_ != 1288)  // guardians cannot be damaged during non-woe [Valaris]
                 damage = 0;     // end woe check [Valaris]
             if (g == NULL)
                 damage = 0;     //ギルド未加入ならダメージ無し
@@ -2136,7 +2136,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
         atkmin = battle_get_atk (src);
         atkmax = battle_get_atk2 (src);
     }
-    if (mob_db[md->class].range > 3)
+    if (mob_db[md->mob_class].range > 3)
         flag = (flag & ~BF_RANGEMASK) | BF_LONG;
 
     if (atkmin > atkmax)
@@ -2536,13 +2536,13 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
         int  cardfix = 100, i;
         cardfix = cardfix * (100 - tsd->subele[s_ele]) / 100;   // 属 性によるダメージ耐性
         cardfix = cardfix * (100 - tsd->subrace[s_race]) / 100; // 種族によるダメージ耐性
-        if (mob_db[md->class].mode & 0x20)
+        if (mob_db[md->mob_class].mode & 0x20)
             cardfix = cardfix * (100 - tsd->subrace[10]) / 100;
         else
             cardfix = cardfix * (100 - tsd->subrace[11]) / 100;
         for (i = 0; i < tsd->add_def_class_count; i++)
         {
-            if (tsd->add_def_classid[i] == md->class)
+            if (tsd->add_def_classid[i] == md->mob_class)
             {
                 cardfix = cardfix * (100 - tsd->add_def_classrate[i]) / 100;
                 break;
@@ -3868,7 +3868,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         //特定Class用補正処理左手(少女の日記→ボンゴン用？)
         for (i = 0; i < tsd->add_def_class_count; i++)
         {
-            if (tsd->add_def_classid[i] == sd->status.class)
+            if (tsd->add_def_classid[i] == sd->status.pc_class)
             {
                 cardfix = cardfix * (100 - tsd->add_def_classrate[i]) / 100;
                 break;
@@ -4875,7 +4875,7 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                       BL_PC) ? ((struct map_session_data *) target)->
                      status.char_id : target->id,
                      (target->type ==
-                      BL_PC) ? 0 : ((struct mob_data *) target)->class,
+                      BL_PC) ? 0 : ((struct mob_data *) target)->mob_class,
                      wd.damage + wd.damage2, weapon);
         }
 
@@ -4889,7 +4889,7 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                       BL_PC) ? ((struct map_session_data *) src)->
                      status.char_id : src->id,
                      (src->type ==
-                      BL_PC) ? 0 : ((struct mob_data *) src)->class,
+                      BL_PC) ? 0 : ((struct mob_data *) src)->mob_class,
                      wd.damage + wd.damage2);
         }
 
@@ -5332,9 +5332,9 @@ int battle_check_target (struct block_list *src, struct block_list *target,
             if (su && su->group->target_flag == BCT_NOENEMY)
                 return 1;
             else if (battle_config.pk_mode
-                     && (((struct map_session_data *) ss)->status.class == 0
+                     && (((struct map_session_data *) ss)->status.pc_class == 0
                          || ((struct map_session_data *) target)->
-                         status.class == 0))
+                         status.pc_class == 0))
                 return 1;       // prevent novice engagement in pk_mode [Valaris]
             else if (map[ss->m].flag.pvp_noparty && s_p > 0 && t_p > 0
                      && s_p == t_p)

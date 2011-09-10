@@ -65,7 +65,7 @@ void chrif_setpasswd (char *pwd)
     passwd[sizeof(passwd)-1] = '\0';
 }
 
-char *chrif_getpasswd ()
+char *chrif_getpasswd (void)
 {
     return passwd;
 }
@@ -651,7 +651,7 @@ int chrif_changedsex (int fd)
     {
         if (sd != NULL && sd->status.sex != sex)
         {
-            s_class = pc_calc_base_job (sd->status.class);
+            s_class = pc_calc_base_job (sd->status.pc_class);
             if (sd->status.sex == 0)
             {
                 sd->status.sex = 1;
@@ -679,10 +679,10 @@ int chrif_changedsex (int fd)
                 // change job if necessary
                 if (s_class.job == 20 || s_class.job == 4021
                     || s_class.job == 4043)
-                    sd->status.class -= 1;
+                    sd->status.pc_class -= 1;
                 else if (s_class.job == 19 || s_class.job == 4020
                          || s_class.job == 4042)
-                    sd->status.class += 1;
+                    sd->status.pc_class += 1;
             }
             // save character
             chrif_save (sd);
@@ -1257,7 +1257,7 @@ void send_users_tochar (timer_id tid, tick_t tick, custom_id_t id, custom_data_t
     WFIFOW (char_fd, 0) = 0x2aff;
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd->state.auth &&
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active
                || (sd->status.option & OPTION_HIDE)) && pc_isGM (sd)))

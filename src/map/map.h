@@ -424,7 +424,7 @@ struct npc_data
 {
     struct block_list bl;
     short n;
-    short class, dir;
+    short npc_class, dir;
     short speed;
     char name[24];
     char exname[24];
@@ -487,7 +487,7 @@ struct mob_data
 {
     struct block_list bl;
     short n;
-    short base_class, class, dir, mode;
+    short base_class, mob_class, dir, mode;
     short m, x0, y0, xs, ys;
     char name[24];
     int  spawndelay1, spawndelay2;
@@ -795,8 +795,8 @@ int  map_scriptcont (struct map_session_data *sd, int id);  /* Continues a scrip
 struct map_session_data *map_nick2sd (char *);
 int  compare_item (struct item *a, struct item *b);
 
-struct map_session_data *map_get_first_session ();
-struct map_session_data *map_get_last_session ();
+struct map_session_data *map_get_first_session (void);
+struct map_session_data *map_get_last_session (void);
 struct map_session_data *map_get_next_session (struct map_session_data
                                                *current);
 struct map_session_data *map_get_prev_session (struct map_session_data
@@ -816,7 +816,7 @@ int  path_blownpos (int m, int x0, int y0, int dx, int dy, int count);
 
 int  map_who (int fd);
 
-void map_helpscreen ();         // [Valaris]
+void map_helpscreen (void);         // [Valaris]
 int  map_delmap (char *mapname);
 
 #endif

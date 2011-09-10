@@ -52,7 +52,7 @@ void do_init_party (void)
 // 検索
 struct party *party_search (int party_id)
 {
-    return numdb_search (party_db, party_id);
+    return (struct party *)numdb_search (party_db, party_id);
 }
 
 void party_searchname_sub (db_key_t key, db_val_t data, va_list ap)
@@ -110,7 +110,7 @@ int party_created (int account_id, int fail, int party_id, char *name)
         struct party *p;
         sd->status.party_id = party_id;
 
-        if ((p = numdb_search (party_db, party_id)) != NULL)
+        if ((p = (struct party *)numdb_search (party_db, party_id)) != NULL)
         {
             printf ("party_created(): ID already exists!\n");
             exit (1);
@@ -147,7 +147,7 @@ int party_check_member (struct party *p)
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd->state.auth)
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth)
         {
             if (sd->status.party_id == p->party_id)
             {
@@ -182,7 +182,7 @@ int party_recv_noinfo (int party_id)
     struct map_session_data *sd;
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = session[i]->session_data) && sd->state.auth)
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth)
         {
             if (sd->status.party_id == party_id)
                 sd->status.party_id = 0;
@@ -199,7 +199,7 @@ int party_recv_info (struct party *sp)
 
     nullpo_retr (0, sp);
 
-    if ((p = numdb_search (party_db, sp->party_id)) == NULL)
+    if ((p = (struct party *)numdb_search (party_db, sp->party_id)) == NULL)
     {
         CREATE (p, struct party, 1);
         numdb_insert (party_db, sp->party_id, p);

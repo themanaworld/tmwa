@@ -6,11 +6,11 @@
 magic_conf_t magic_conf;
 
 static int
-intern_id(char *id_name);
+intern_id(const char *id_name);
 
 
 static expr_t *
-fun_expr(char *name, int args_nr, expr_t **args, int line, int column);
+fun_expr(const char *name, int args_nr, expr_t **args, int line, int column);
 
 static expr_t *
 dot_expr(expr_t *lhs, int id);
@@ -23,7 +23,7 @@ static void
 magic_frontend_error(const char *msg);
 
 static void
-fail(int line, int column, char *fmt, ...);
+fail(int line, int column, const char *fmt, ...);
 
 static spell_t *
 new_spell(spellguard_t *guard);
@@ -50,7 +50,7 @@ static effect_t *
 op_effect(char *name, int args_nr, expr_t **args, int line, int column);
 
 int
-magic_frontend_lex();
+magic_frontend_lex(void);
 
 static void
 install_proc(proc_t *proc);
@@ -232,12 +232,12 @@ proc_formals_list	: /* empty  */
 proc_formals_list_ne	: ID
                           { CREATE ($$, proc_t, 1);
                             $$->args_nr = 1;
-                            $$->args = malloc(sizeof(int));
+                            $$->args = (int*)malloc(sizeof(int));
                             $$->args[0] = intern_id($1);
                           }
 			| proc_formals_list_ne ',' ID
                           { $$ = $1;
-                            $$->args = realloc($$->args, sizeof(int) * (1 + $$->args_nr));
+                            $$->args = (int*)realloc($$->args, sizeof(int) * (1 + $$->args_nr));
                             $$->args[$$->args_nr++] = intern_id($3);
                           }
 			;
@@ -261,7 +261,8 @@ spellconf_option	: ID '=' expr
                           }
                         | TELEPORT_ANCHOR ID ':' expr '=' expr
                           {
-                              teleport_anchor_t *anchor = calloc(sizeof(teleport_anchor_t), 1);
+                              teleport_anchor_t *anchor;
+                              CREATE (anchor, teleport_anchor_t, 1);
                               anchor->name = $2;
                               anchor->invocation = magic_eval_str(&magic_default_env, $4);
                               anchor->location = $6;
@@ -419,7 +420,7 @@ arg_list_ne		: expr
                                   $$.args[0] = $1;
                                 }
 			| arg_list_ne ',' expr
-                        	{ $$.args = realloc($$.args, (1 + $$.args_nr) * sizeof(expr_t *));
+                        	{ RECREATE($$.args, expr_t *, 1 + $$.args_nr);
                                   $$.args[$$.args_nr++] = $3;
                                 }
 			;
@@ -462,12 +463,12 @@ spelldef		: spellbody_list
 
 defs			: semicolons
 				{ $$.letdefs_nr = 0;
-                                  $$.letdefs = (letdef_t *) malloc(1);
+                                  CREATE($$.letdefs, letdef_t, 1);
                                 }
 			| defs def semicolons
 	                        { $$ = $1;
                                   $$.letdefs_nr++;
-                                  $$.letdefs = realloc($$.letdefs, sizeof(letdef_t) * $$.letdefs_nr);
+                                  RECREATE ($$.letdefs, letdef_t, $$.letdefs_nr);
                                   $$.letdefs[$1.letdefs_nr] = $2;
                                 }
                         ;
@@ -701,21 +702,21 @@ effect_list		: /* empty */
  * during startup for a relatively manageable set of configs, it should be fine. */
 
 static int
-intern_id(char *id_name)
+intern_id(const char *id_name)
 {
         int i;
 
         for (i = 0; i < magic_conf.vars_nr; i++)
                 if (!strcmp(id_name, magic_conf.var_name[i])) {
-                        free(id_name);
+                        free((char*)id_name);
                         return i;
                 }
 
         /* Must add new */
         i = magic_conf.vars_nr++;
-        magic_conf.var_name = realloc(magic_conf.var_name, magic_conf.vars_nr * sizeof(char *));
+        RECREATE(magic_conf.var_name, const char *, magic_conf.vars_nr);
         magic_conf.var_name[i] = id_name;
-        magic_conf.vars = realloc(magic_conf.vars, magic_conf.vars_nr * sizeof(val_t));
+        RECREATE(magic_conf.vars, val_t, magic_conf.vars_nr);
         magic_conf.vars[i].ty = TY_UNDEF;
 
         return i;
@@ -740,7 +741,7 @@ add_spell(spell_t *spell, int line_nr)
         }
         magic_conf.spells_nr++;
 
-        magic_conf.spells = realloc(magic_conf.spells, magic_conf.spells_nr * sizeof (spell_t*));
+        RECREATE(magic_conf.spells, spell_t *, magic_conf.spells_nr);
         magic_conf.spells[index] = spell;
 
 
@@ -765,13 +766,13 @@ add_teleport_anchor(teleport_anchor_t *anchor, int line_nr)
         }
         magic_conf.anchors_nr++;
 
-        magic_conf.anchors = realloc(magic_conf.anchors, magic_conf.anchors_nr * sizeof (teleport_anchor_t*));
+        RECREATE(magic_conf.anchors, teleport_anchor_t *, magic_conf.anchors_nr);
         magic_conf.anchors[index] = anchor;
 }
 
 
 static void
-fail(int line, int column, char *fmt, ...)
+fail(int line, int column, const char *fmt, ...)
 {
         va_list ap;
         fprintf(stderr, "[magic-init]  L%d:%d: ", line, column);
@@ -791,7 +792,7 @@ dot_expr(expr_t *expr, int id)
 }
 
 static expr_t *
-fun_expr(char *name, int args_nr, expr_t **args, int line, int column)
+fun_expr(const char *name, int args_nr, expr_t **args, int line, int column)
 {
         int id;
         expr_t *expr;
@@ -828,7 +829,7 @@ new_spell(spellguard_t *guard)
 {
         static int spell_counter = 0;
 
-        spell_t *retval = calloc(1, sizeof(spell_t));
+        spell_t *retval = (spell_t*)calloc(1, sizeof(spell_t));
         retval->index = ++spell_counter;
         retval->spellguard = guard;
         return retval;
@@ -837,7 +838,7 @@ new_spell(spellguard_t *guard)
 static spellguard_t *
 new_spellguard(int ty)
 {
-        spellguard_t *retval = calloc(1, sizeof(spellguard_t));
+        spellguard_t *retval = (spellguard_t *)calloc(1, sizeof(spellguard_t));
         retval->ty = ty;
         return retval;
 }
@@ -938,7 +939,7 @@ op_effect(char *name, int args_nr, expr_t **args, int line, int column)
 proc_t *procs = NULL;
 int procs_nr = 0;
 
-
+// I think this is a memory leak, or undefined behavior
 static void
 install_proc(proc_t *proc)
 {
@@ -946,7 +947,7 @@ install_proc(proc_t *proc)
                 procs = proc;
                 procs_nr = 1;
         } else {
-                procs = realloc(procs, sizeof(proc_t) * (1 + procs_nr));
+                RECREATE (procs, proc_t, 1 + procs_nr);
                 procs[procs_nr++] = *proc;
         }
 }
@@ -1042,10 +1043,10 @@ magic_init(char *conffile) // must be called after itemdb initialisation
         magic_conf.min_casttime = 100;
 
         magic_conf.spells_nr = 0;
-        magic_conf.spells = (spell_t **)malloc(1);
+        CREATE(magic_conf.spells, spell_t *, 1);
 
         magic_conf.anchors_nr = 0;
-        magic_conf.anchors = (teleport_anchor_t **)malloc(1);
+        CREATE(magic_conf.anchors, teleport_anchor_t *, 1);
 
         INTERN_ASSERT("min_casttime", VAR_MIN_CASTTIME);
         INTERN_ASSERT("obscure_chance", VAR_OBSCURE_CHANCE);

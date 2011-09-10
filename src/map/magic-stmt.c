@@ -473,14 +473,7 @@ record_status_change (invocation_t * invocation, int bl_id, int sc_id)
     int  index = invocation->status_change_refs_nr++;
     status_change_ref_t *cr;
 
-    if (invocation->status_change_refs)
-        invocation->status_change_refs =
-            realloc (invocation->status_change_refs,
-                     sizeof (status_change_ref_t) *
-                     invocation->status_change_refs_nr);
-    else
-        invocation->status_change_refs =
-            malloc (sizeof (status_change_ref_t));
+    RECREATE (invocation->status_change_refs, status_change_ref_t, invocation->status_change_refs_nr);
 
     cr = &invocation->status_change_refs[index];
 
@@ -739,7 +732,7 @@ static int op_injure (env_t * env, int args_nr, val_t * args)
             struct mob_data *mob = (struct mob_data *) target;
 
             MAP_LOG_PC (caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s",
-                        mob->bl.id, mob->class, damage_caused,
+                        mob->bl.id, mob->mob_class, damage_caused,
                         get_invocation_name (env));
         }
     }
@@ -884,7 +877,7 @@ op_t *magic_get_op (char *name, int *index)
     }
 
     key.name = name;
-    op_t *op = bsearch (&key, operations, operation_count, sizeof (op_t),
+    op_t *op = (op_t *)bsearch (&key, operations, operation_count, sizeof (op_t),
                         compare_operations);
 
     if (op && index)
@@ -1048,7 +1041,7 @@ static int find_entities_in_area_c (entity_t * target, va_list va)
         if (*entities_nr_p == *entities_allocd_p) {                     \
                 /* Need more space */                                   \
                 (*entities_allocd_p) += 32;                             \
-                *entities_p = realloc(*entities_p, sizeof(int) * (*entities_allocd_p)); \
+                RECREATE (*entities_p, int, *entities_allocd_p); \
         }                                                               \
         (*entities_p)[(*entities_nr_p)++] = e;
 
@@ -1169,14 +1162,14 @@ static effect_t *run_foreach (invocation_t * invocation, effect_t * foreach,
         if (!ar)
             return return_location;
 
-        entities_collect = malloc (entities_allocd * sizeof (int));
+        CREATE (entities_collect, int, entities_allocd);
 
         find_entities_in_area (area.v.v_area, &entities_allocd, &entities_nr,
                                &entities_collect, filter);
 
         /* Now shuffle */
-        shuffle_board = malloc ((sizeof (int) * (1 + entities_nr)));    // +1: to avoid spurious warnings in memory profilers
-        entities = malloc ((sizeof (int) * (1 + entities_nr))); // +1: to avoid spurious warnings in memory profilers
+        CREATE (shuffle_board, int, entities_nr);
+        CREATE (entities, int, entities_nr);
         for (i = 0; i < entities_nr; i++)
             shuffle_board[i] = i;
 

@@ -35,7 +35,7 @@ struct mmo_char_server
     short port;
     int  users;
     int  maintenance;
-    int  new;
+    int  is_new;
 };
 
 #endif

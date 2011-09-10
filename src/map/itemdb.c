@@ -38,7 +38,7 @@ static int blue_box_default = 0, violet_box_default = 0, card_album_default =
 
 static void itemdb_read (void);
 static int itemdb_readdb (void);
-static int itemdb_read_randomitem ();
+static int itemdb_read_randomitem (void);
 static int itemdb_read_itemavail (void);
 static int itemdb_read_itemnametable (void);
 static int itemdb_read_noequip (void);
@@ -143,7 +143,7 @@ int itemdb_searchrandomid (int flags)
  */
 struct item_data *itemdb_exists (int nameid)
 {
-    return numdb_search (item_db, nameid);
+    return (struct item_data *)numdb_search (item_db, nameid);
 }
 
 /*==========================================
@@ -152,9 +152,7 @@ struct item_data *itemdb_exists (int nameid)
  */
 struct item_data *itemdb_search (int nameid)
 {
-    struct item_data *id;
-
-    id = numdb_search (item_db, nameid);
+    struct item_data *id = (struct item_data *)numdb_search (item_db, nameid);
     if (id)
         return id;
 
@@ -263,7 +261,7 @@ static int itemdb_read_itemslottable (void)
     char *buf, *p;
     int  s;
 
-    buf = grfio_reads ("data\\itemslottable.txt", &s);
+    buf = (char *)grfio_reads ("data\\itemslottable.txt", &s);
     if (buf == NULL)
         return -1;
     buf[s] = 0;
@@ -397,7 +395,7 @@ static int itemdb_readdb (void)
  * ランダムアイテム出現データの読み込み
  *------------------------------------------
  */
-static int itemdb_read_randomitem ()
+static int itemdb_read_randomitem (void)
 {
     FILE *fp;
     char line[1024];
@@ -546,7 +544,7 @@ static int itemdb_read_itemnametable (void)
     char *buf, *p;
     int  s;
 
-    buf = grfio_reads ("data\\idnum2itemdisplaynametable.txt", &s);
+    buf = (char *)grfio_reads ("data\\idnum2itemdisplaynametable.txt", &s);
 
     if (buf == NULL)
         return -1;
@@ -592,7 +590,7 @@ static int itemdb_read_cardillustnametable (void)
     char *buf, *p;
     int  s;
 
-    buf = grfio_reads ("data\\num2cardillustnametable.txt", &s);
+    buf = (char *)grfio_reads ("data\\num2cardillustnametable.txt", &s);
 
     if (buf == NULL)
         return -1;
@@ -676,7 +674,7 @@ static void itemdb_final (db_key_t key, db_val_t data, va_list ap)
 {
     struct item_data *id;
 
-    nullpo_retv (id = data);
+    nullpo_retv (id = (struct item_data *)data);
 
     if (id->use_script)
         free (id->use_script);

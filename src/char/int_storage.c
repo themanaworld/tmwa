@@ -248,7 +248,7 @@ struct guild_storage *guild2storage (int guild_id)
 
 //---------------------------------------------------------
 // 倉庫データを読み込む
-int inter_storage_init ()
+int inter_storage_init (void)
 {
     char line[65536];
     int  c = 0, tmp_int;
@@ -328,7 +328,7 @@ void guild_storage_db_final (db_key_t k, db_val_t data, va_list ap)
         free (p);
 }
 
-void inter_storage_final ()
+void inter_storage_final (void)
 {
     numdb_final (storage_db, storage_db_final);
     numdb_final (guild_storage_db, guild_storage_db_final);
@@ -342,12 +342,12 @@ void inter_storage_save_sub (db_key_t key, db_val_t data, va_list ap)
     storage_tostr (line, (struct storage *) data);
     fp = va_arg (ap, FILE *);
     if (*line)
-        fprintf (fp, "%s" RETCODE, line);
+        fprintf (fp, "%s\n", line);
 }
 
 //---------------------------------------------------------
 // 倉庫データを書き込む
-int inter_storage_save ()
+int inter_storage_save (void)
 {
     FILE *fp;
     int  lock;
@@ -378,13 +378,13 @@ void inter_guild_storage_save_sub (db_key_t key, db_val_t data, va_list ap)
         guild_storage_tostr (line, (struct guild_storage *) data);
         fp = va_arg (ap, FILE *);
         if (*line)
-            fprintf (fp, "%s" RETCODE, line);
+            fprintf (fp, "%s\n", line);
     }
 }
 
 //---------------------------------------------------------
 // 倉庫データを書き込む
-int inter_guild_storage_save ()
+int inter_guild_storage_save (void)
 {
     FILE *fp;
     int  lock;

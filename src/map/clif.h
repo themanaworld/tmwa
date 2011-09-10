@@ -131,8 +131,8 @@ int  clif_pcoutsight (struct block_list *, va_list);    // map_forallinmovearea 
 int  clif_mobinsight (struct block_list *, va_list);    // map_forallinmovearea callback
 int  clif_moboutsight (struct block_list *, va_list);   // map_forallinmovearea callback
 
-int  clif_class_change (struct block_list *bl, int class, int type);
-int  clif_mob_class_change (struct mob_data *md, int class);
+int  clif_npc_class_change (struct block_list *bl, int npc_class, int type);
+int  clif_mob_class_change (struct mob_data *md, int mob_class);
 int  clif_mob_equip (struct mob_data *md, int nameid);  // [Valaris]
 
 int  clif_skillinfo (struct map_session_data *sd, int skillid, int type,

@@ -1021,10 +1021,7 @@ int map_addflooritem (struct item *item_data, int amount, int m, int x, int y,
  */
 void map_addchariddb (int charid, char *name)
 {
-    struct charid2nick *p = NULL;
-    int  req = 0;
-
-    p = numdb_search (charid_db, charid);
+    struct charid2nick *p = (struct charid2nick *)numdb_search (charid_db, charid);
     if (p == NULL)
     {                           // データベースにない
         CREATE (p, struct charid2nick, 1);
@@ -1033,7 +1030,7 @@ void map_addchariddb (int charid, char *name)
     else
         numdb_erase (charid_db, charid);
 
-    req = p->req_id;
+    int req = p->req_id;
     memcpy (p->nick, name, 24);
     p->req_id = 0;
     numdb_insert (charid_db, charid, p);
@@ -1051,11 +1048,9 @@ void map_addchariddb (int charid, char *name)
  */
 int map_reqchariddb (struct map_session_data *sd, int charid)
 {
-    struct charid2nick *p = NULL;
-
     nullpo_retr (0, sd);
 
-    p = numdb_search (charid_db, charid);
+    struct charid2nick *p = (struct charid2nick *)numdb_search (charid_db, charid);
     if (p != NULL)              // データベースにすでにある
         return 0;
     CREATE (p, struct charid2nick, 1);
@@ -1195,7 +1190,7 @@ struct map_session_data *map_id2sd (int id)
     struct map_session_data *sd = NULL;
 
     for (i = 0; i < fd_max; i++)
-        if (session[i] && (sd = session[i]->session_data) && sd->bl.id == id)
+        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->bl.id == id)
             return sd;
 
     return NULL;
@@ -1207,7 +1202,7 @@ struct map_session_data *map_id2sd (int id)
  */
 char *map_charid2nick (int id)
 {
-    struct charid2nick *p = numdb_search (charid_db, id);
+    struct charid2nick *p = (struct charid2nick *)numdb_search (charid_db, id);
 
     if (p == NULL)
         return NULL;
@@ -1224,7 +1219,7 @@ static struct map_session_data *map_get_session (int i)
     struct map_session_data *d;
 
     if (i >= 0 && i < fd_max
-        && session[i] && (d = session[i]->session_data) && d->state.auth)
+        && session[i] && (d = (struct map_session_data *)session[i]->session_data) && d->state.auth)
         return d;
 
     return NULL;
@@ -1256,7 +1251,7 @@ static struct map_session_data *map_get_session_backward (int start)
     return NULL;
 }
 
-struct map_session_data *map_get_first_session ()
+struct map_session_data *map_get_first_session (void)
 {
     return map_get_session_forward (0);
 }
@@ -1266,7 +1261,7 @@ struct map_session_data *map_get_next_session (struct map_session_data *d)
     return map_get_session_forward (d->fd + 1);
 }
 
-struct map_session_data *map_get_last_session ()
+struct map_session_data *map_get_last_session (void)
 {
     return map_get_session_backward (fd_max);
 }
@@ -1295,7 +1290,7 @@ struct map_session_data *map_nick2sd (char *nick)
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = session[i]->session_data)
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
             // Without case sensitive check (increase the number of similar character names found)
@@ -1329,7 +1324,7 @@ struct block_list *map_id2bl (int id)
     if (id < sizeof (object) / sizeof (object[0]))
         bl = object[id];
     else
-        bl = numdb_search (id_db, id);
+        bl = (struct block_list *)numdb_search (id_db, id);
 
     return bl;
 }
@@ -1413,9 +1408,7 @@ void map_removenpc (void)
  */
 int map_mapname2mapid (char *name)
 {
-    struct map_data *md = NULL;
-
-    md = strdb_search (map_db, name);
+    struct map_data *md = (struct map_data *)strdb_search (map_db, name);
     if (md == NULL || md->gat == NULL)
         return -1;
     return md->m;
@@ -1427,9 +1420,7 @@ int map_mapname2mapid (char *name)
  */
 int map_mapname2ipport (char *name, int *ip, int *port)
 {
-    struct map_data_other_server *mdos = NULL;
-
-    mdos = strdb_search (map_db, name);
+    struct map_data_other_server *mdos = (struct map_data_other_server *)strdb_search (map_db, name);
     if (mdos == NULL || mdos->gat)
         return -1;
     *ip = mdos->ip;
@@ -1564,10 +1555,9 @@ int map_setcell (int m, int x, int y, int t)
  */
 int map_setipport (char *name, unsigned long ip, int port)
 {
-    struct map_data *md = NULL;
     struct map_data_other_server *mdos = NULL;
 
-    md = strdb_search (map_db, name);
+    struct map_data *md = (struct map_data *)strdb_search (map_db, name);
     if (md == NULL)
     {                           // not exist -> add new data
         CREATE (mdos, struct map_data_other_server, 1);
@@ -1664,7 +1654,6 @@ static void map_readwater (char *watertxt)
  */
 static int map_readmap (int m, char *fn, char *alias)
 {
-    unsigned char *gat = "";
     int  s;
     int  x, y, xs, ys;
     struct gat_1cell
@@ -1675,7 +1664,7 @@ static int map_readmap (int m, char *fn, char *alias)
     size_t size;
 
     // read & convert fn
-    gat = grfio_read (fn);
+    uint8_t gat = (uint8_t *)grfio_read (fn);
     if (gat == NULL)
         return -1;
 
@@ -1686,7 +1675,7 @@ static int map_readmap (int m, char *fn, char *alias)
     xs = map[m].xs = *(short *) (gat);
     ys = map[m].ys = *(short *) (gat + 2);
     printf ("\n%i %i\n", xs, ys);
-    map[m].gat = calloc (s = map[m].xs * map[m].ys, 1);
+    map[m].gat = (uint8_t *)calloc (s = map[m].xs * map[m].ys, 1);
     if (map[m].gat == NULL)
     {
         printf ("out of memory : map_readmap gat\n");
@@ -1717,39 +1706,15 @@ static int map_readmap (int m, char *fn, char *alias)
 
     map[m].bxs = (xs + BLOCK_SIZE - 1) / BLOCK_SIZE;
     map[m].bys = (ys + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    size = map[m].bxs * map[m].bys * sizeof (struct block_list *);
+    size = map[m].bxs * map[m].bys;
 
-    map[m].block = calloc (size, 1);
-    if (map[m].block == NULL)
-    {
-        printf ("out of memory : map_readmap block\n");
-        exit (1);
-    }
+    CREATE (map[m].block, struct block_list *, size);
 
-    map[m].block_mob = calloc (size, 1);
-    if (map[m].block_mob == NULL)
-    {
-        printf ("out of memory : map_readmap block_mob\n");
-        exit (1);
-    }
+    CREATE (map[m].block_mob, struct block_list *, size);
 
-    size = map[m].bxs * map[m].bys * sizeof (int);
+    CREATE (map[m].block_count, int, size);
 
-    map[m].block_count = calloc (size, 1);
-    if (map[m].block_count == NULL)
-    {
-        printf ("out of memory : map_readmap block\n");
-        exit (1);
-    }
-    memset (map[m].block_count, 0, size);
-
-    map[m].block_mob_count = calloc (size, 1);
-    if (map[m].block_mob_count == NULL)
-    {
-        printf ("out of memory : map_readmap block_mob\n");
-        exit (1);
-    }
-    memset (map[m].block_mob_count, 0, size);
+    CREATE (map[m].block_mob_count, int, size);
 
     strdb_insert (map_db, map[m].name, &map[m]);
 
@@ -1873,11 +1838,11 @@ FILE *map_logfile = NULL;
 char *map_logfile_name = NULL;
 static long map_logfile_index;
 
-static void map_close_logfile ()
+static void map_close_logfile (void)
 {
     if (map_logfile)
     {
-        char *filenameop_buf = malloc (strlen (map_logfile_name) + 50);
+        char *filenameop_buf = (char*)malloc (strlen (map_logfile_name) + 50);
         sprintf (filenameop_buf, "gzip -f %s.%ld", map_logfile_name,
                  map_logfile_index);
 
@@ -1892,7 +1857,7 @@ static void map_close_logfile ()
 
 static void map_start_logfile (long suffix)
 {
-    char *filename_buf = malloc (strlen (map_logfile_name) + 50);
+    char *filename_buf = (char*)malloc (strlen (map_logfile_name) + 50);
     map_logfile_index = suffix >> LOGFILE_SECONDS_PER_CHUNK_SHIFT;
 
     sprintf (filename_buf, "%s.%ld", map_logfile_name, map_logfile_index);
@@ -2138,7 +2103,9 @@ void do_final (void)
     do_final_guild ();
 }
 
-void map_helpscreen ()
+/// --help was passed
+// FIXME this should produce output
+void map_helpscreen (void)
 {
     exit (1);
 }
