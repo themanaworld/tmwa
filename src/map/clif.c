@@ -18,12 +18,12 @@
 #endif
 #include <time.h>
 
-#include "socket.h"
-#include "timer.h"
-#include "malloc.h"
-#include "version.h"
-#include "nullpo.h"
-#include "md5calc.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/version.h"
+#include "../common/nullpo.h"
+#include "../common/md5calc.h"
+#include "../common/mt_rand.h"
 
 #include "atcommand.h"
 #include "battle.h"
@@ -755,15 +755,13 @@ int clif_clearchar (struct block_list *bl, int type)
     return 0;
 }
 
-static int clif_clearchar_delay_sub (int tid, unsigned int tick, int id,
-                                     int data)
+static void clif_clearchar_delay_sub (timer_id tid, tick_t tick, custom_id_t id,
+                                     custom_data_t data)
 {
     struct block_list *bl = (struct block_list *) id;
 
     clif_clearchar (bl, data);
     map_freeblock (bl);
-
-    return 0;
 }
 
 int clif_clearchar_delay (unsigned int tick, struct block_list *bl, int type)
@@ -775,7 +773,7 @@ int clif_clearchar_delay (unsigned int tick, struct block_list *bl, int type)
         exit (1);
     }
     memcpy (tmpbl, bl, sizeof (struct block_list));
-    add_timer (tick, clif_clearchar_delay_sub, (int) tmpbl, type);
+    add_timer (tick, clif_clearchar_delay_sub, (custom_id_t) tmpbl, type);
 
     return 0;
 }
@@ -1513,12 +1511,10 @@ void clif_quitsave (int fd, struct map_session_data *sd)
  *
  *------------------------------------------
  */
-static int clif_waitclose (int tid, unsigned int tick, int id, int data)
+static void clif_waitclose (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     if (session[id])
         session[id]->eof = 1;
-
-    return 0;
 }
 
 /*==========================================
@@ -5653,7 +5649,7 @@ int clif_combo_delay (struct block_list *bl, int wait)
  *白刃取り
  *------------------------------------------
  */
-int clif_bladestop (struct block_list *src, struct block_list *dst, int bool)
+int clif_bladestop (struct block_list *src, struct block_list *dst, int boolean)
 {
     unsigned char buf[32];
 
@@ -5663,7 +5659,7 @@ int clif_bladestop (struct block_list *src, struct block_list *dst, int bool)
     WBUFW (buf, 0) = 0x1d1;
     WBUFL (buf, 2) = src->id;
     WBUFL (buf, 6) = dst->id;
-    WBUFL (buf, 10) = bool;
+    WBUFL (buf, 10) = boolean;
 
     clif_send (buf, packet_len_table[0x1d1], src, AREA);
 
@@ -8582,7 +8578,7 @@ void clif_parse_PartyMessage (int fd, struct map_session_data *sd)
         clif_displaymessage (fd, msg_txt (505));
         return;
     }
-    
+
     if (is_atcommand (fd, sd, message, 0) != AtCommand_None
             || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
                                 || sd->sc_data[SC_NOCHAT].timer != -1))) //チャット禁止
@@ -9907,7 +9903,7 @@ func_table clif_parse_func_table[0x220] =
 // *INDENT-ON*
 
 // Checks for packet flooding
-int clif_check_packet_flood(fd, cmd)
+int clif_check_packet_flood(int fd, int cmd)
 {
     struct map_session_data *sd = session[fd]->session_data;
     unsigned int rate, tick = gettick();
@@ -10025,7 +10021,7 @@ static char *clif_validate_chat (struct map_session_data *sd, int type,
     fd = sd->fd;
     msg_len = RFIFOW (fd, 2) - 4;
     name_len = strlen (sd->status.name);
-    /* 
+    /*
      * At least one character is required in all instances.
      * Notes for length checks:
      *
@@ -10063,9 +10059,9 @@ static char *clif_validate_chat (struct map_session_data *sd, int type,
     p = (char *) (type != 1) ? RFIFOP (fd, 4) : RFIFOP (fd, 28);
     buf_len = (type == 1) ? msg_len - min_len: msg_len;
 
-    /* 
+    /*
      * The client attempted to exceed the maximum message length.
-     * 
+     *
      * The conf suggests up to chat_maxline characters, after which the message
      * is truncated. But the previous behavior was to drop the message, so
      * we'll do that, too.
@@ -10079,7 +10075,7 @@ static char *clif_validate_chat (struct map_session_data *sd, int type,
     /* We're leaving an extra eight bytes for public/global chat, 1 for NUL. */
     buf_len += (type == 2) ? 8 + 1 : 1;
 
-    buf = (char *) aMalloc (buf_len);
+    buf = (char *) malloc (buf_len);
     memcpy ((type != 2) ? buf : buf + 8, p,
             (type != 2) ? buf_len - 1 : buf_len - 8 - 1);
     buf[buf_len - 1] = '\0';
@@ -10118,7 +10114,7 @@ static char *clif_validate_chat (struct map_session_data *sd, int type,
  * socket.cのdo_parsepacketから呼び出される
  *------------------------------------------
  */
-static int clif_parse (int fd)
+static void clif_parse (int fd)
 {
     int  packet_len = 0, cmd = 0;
     struct map_session_data *sd = NULL;
@@ -10158,11 +10154,11 @@ static int clif_parse (int fd)
             close (fd);
         if (fd)
             delete_session (fd);
-        return 0;
+        return;
     }
 
     if (RFIFOREST (fd) < 2)
-        return 0;               // Too small (no packet number)
+        return;               // Too small (no packet number)
 
     cmd = RFIFOW (fd, 0);
 
@@ -10187,10 +10183,10 @@ static int clif_parse (int fd)
                 session[fd]->eof = 1;
                 break;
         }
-        return 0;
+        return;
     }
     else if (cmd >= 0x200)
-        return 0;
+        return;
 
     // パケット長を計算
     packet_len = packet_len_table[cmd];
@@ -10198,19 +10194,19 @@ static int clif_parse (int fd)
     {
         if (RFIFOREST (fd) < 4)
         {
-            return 0;           // Runt packet (variable length without a length sent)
+            return;           // Runt packet (variable length without a length sent)
         }
         packet_len = RFIFOW (fd, 2);
         if (packet_len < 4 || packet_len > 32768)
         {
             session[fd]->eof = 1;
-            return 0;           // Runt packet (variable out of bounds)
+            return;           // Runt packet (variable out of bounds)
         }
     }
 
     if (RFIFOREST (fd) < packet_len)
     {
-        return 0;               // Runt packet (sent legnth is too small)
+        return;               // Runt packet (sent legnth is too small)
     }
 
     if (sd && sd->state.auth == 1 && sd->state.waitingdisconnect == 1)
@@ -10223,7 +10219,7 @@ static int clif_parse (int fd)
         {
             // Flood triggered. Skip packet.
             RFIFOSKIP(sd->fd, packet_len);
-            return 0;
+            return;
         }
 
         clif_parse_func_table[cmd].func (fd, sd);
@@ -10267,7 +10263,7 @@ static int clif_parse (int fd)
                 {
                     printf ("clif.c: cant write [%s] !!! data is lost !!!\n",
                             packet_txt);
-                    return 1;
+                    return;
                 }
                 else
                 {
@@ -10306,8 +10302,6 @@ static int clif_parse (int fd)
         }
     }
     RFIFOSKIP (fd, packet_len);
-
-    return 0;
 }
 
 /*==========================================
@@ -10334,10 +10328,6 @@ int do_init_clif (void)
         printf ("cant bind game port\n");
         exit (1);
     }
-
-    add_timer_func_list (clif_waitclose, "clif_waitclose");
-    add_timer_func_list (clif_clearchar_delay_sub,
-                         "clif_clearchar_delay_sub");
 
     return 0;
 }

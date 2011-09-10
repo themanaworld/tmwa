@@ -1,69 +1,67 @@
-// $Id: mmo.h,v 1.3 2004/09/25 20:12:25 PoW Exp $
-// Original : mmo.h 2003/03/14 12:07:02 Rev.1.7
+/// Global structures and defines
+#ifndef MMO_H
+#define MMO_H
 
-#ifndef	_MMO_H_
-#define	_MMO_H_
+# include <time.h>
+# include "utils.h"              // LCCWIN32
 
-#include <time.h>
-#include "utils.h"              // LCCWIN32
+# ifdef CYGWIN
+#  define RETCODE "\r\n"
+# else
+#  define RETCODE "\n"
+# endif
 
-#ifdef CYGWIN
-#define RETCODE	"\r\n"          // (CR/LF：Windows系)
-#else
-#define RETCODE "\n"            // (LF：Unix系）
-#endif
-
-#define FIFOSIZE_SERVERLINK	256*1024
+# define FIFOSIZE_SERVERLINK    256*1024
 
 // set to 0 to not check IP of player between each server.
 // set to another value if you want to check (1)
-#define CMP_AUTHFIFO_IP 1
+# define CMP_AUTHFIFO_IP 1
 
-#define CMP_AUTHFIFO_LOGIN2 1
+# define CMP_AUTHFIFO_LOGIN2 1
 
-#define MAX_MAP_PER_SERVER 512
-#define MAX_INVENTORY 100
-#define MAX_AMOUNT 30000
-#define MAX_ZENY 1000000000     // 1G zeny
-#define MAX_CART 100
-#define MAX_SKILL 450
-#define GLOBAL_REG_NUM 96
-#define ACCOUNT_REG_NUM 16
-#define ACCOUNT_REG2_NUM 16
-#define DEFAULT_WALK_SPEED 150
-#define MIN_WALK_SPEED 0
-#define MAX_WALK_SPEED 1000
-#define MAX_STORAGE 300
-#define MAX_GUILD_STORAGE 1000
-#define MAX_PARTY 12
-#define MAX_GUILD 120            // increased max guild members to accomodate for +2 increase for extension levels [Valaris] (removed) [PoW]
-#define MAX_GUILDPOSITION 20    // increased max guild positions to accomodate for all members [Valaris] (removed) [PoW]
-#define MAX_GUILDEXPLUSION 32
-#define MAX_GUILDALLIANCE 16
-#define MAX_GUILDSKILL	8
-#define MAX_GUILDCASTLE 24      // increased to include novice castles [Valaris]
-#define MAX_GUILDLEVEL 50
+# define MAX_MAP_PER_SERVER 512
+# define MAX_INVENTORY 100
+# define MAX_AMOUNT 30000
+# define MAX_ZENY 1000000000     // 1G zeny
+# define MAX_CART 100
+# define MAX_SKILL 450
+# define GLOBAL_REG_NUM 96
+# define ACCOUNT_REG_NUM 16
+# define ACCOUNT_REG2_NUM 16
+# define DEFAULT_WALK_SPEED 150
+# define MIN_WALK_SPEED 0
+# define MAX_WALK_SPEED 1000
+# define MAX_STORAGE 300
+# define MAX_GUILD_STORAGE 1000
+# define MAX_PARTY 12
+# define MAX_GUILD 120            // increased max guild members to accomodate for +2 increase for extension levels [Valaris] (removed) [PoW]
+# define MAX_GUILDPOSITION 20    // increased max guild positions to accomodate for all members [Valaris] (removed) [PoW]
+# define MAX_GUILDEXPLUSION 32
+# define MAX_GUILDALLIANCE 16
+# define MAX_GUILDSKILL	8
+# define MAX_GUILDCASTLE 24      // increased to include novice castles [Valaris]
+# define MAX_GUILDLEVEL 50
 
-#define MIN_HAIR_STYLE battle_config.min_hair_style
-#define MAX_HAIR_STYLE battle_config.max_hair_style
-#define MIN_HAIR_COLOR battle_config.min_hair_color
-#define MAX_HAIR_COLOR battle_config.max_hair_color
-#define MIN_CLOTH_COLOR battle_config.min_cloth_color
-#define MAX_CLOTH_COLOR battle_config.max_cloth_color
+# define MIN_HAIR_STYLE battle_config.min_hair_style
+# define MAX_HAIR_STYLE battle_config.max_hair_style
+# define MIN_HAIR_COLOR battle_config.min_hair_color
+# define MAX_HAIR_COLOR battle_config.max_hair_color
+# define MIN_CLOTH_COLOR battle_config.min_cloth_color
+# define MAX_CLOTH_COLOR battle_config.max_cloth_color
 
 // for produce
-#define MIN_ATTRIBUTE 0
-#define MAX_ATTRIBUTE 4
-#define ATTRIBUTE_NORMAL 0
-#define MIN_STAR 0
-#define MAX_STAR 3
+# define MIN_ATTRIBUTE 0
+# define MAX_ATTRIBUTE 4
+# define ATTRIBUTE_NORMAL 0
+# define MIN_STAR 0
+# define MAX_STAR 3
 
-#define MIN_PORTAL_MEMO 0
-#define MAX_PORTAL_MEMO 2
+# define MIN_PORTAL_MEMO 0
+# define MAX_PORTAL_MEMO 2
 
-#define MAX_STATUS_TYPE 5
+# define MAX_STATUS_TYPE 5
 
-#define CHAR_CONF_NAME  "conf/char_athena.conf"
+# define CHAR_CONF_NAME  "conf/char_athena.conf"
 
 struct item
 {
@@ -288,19 +286,4 @@ enum
 
 };
 
-#ifndef LCCWIN32
-#ifndef strcmpi
-#define strcmpi strcasecmp
-#endif
-#ifndef stricmp
-#define stricmp strcasecmp
-#endif
-#ifndef strncmpi
-#define strncmpi strncasecmp
-#endif
-#ifndef strnicmp
-#define strnicmp strncasecmp
-#endif
-#endif
-
-#endif // _MMO_H_
+#endif // MMO_H

@@ -15,21 +15,21 @@
 #include <time.h>
 #include <math.h>
 
-#include "socket.h"
-#include "timer.h"
-#include "malloc.h"
-#include "lock.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
+#include "../common/lock.h"
+#include "../common/mt_rand.h"
 
 #include "atcommand.h"
 #include "battle.h"
 #include "chat.h"
 #include "chrif.h"
 #include "clif.h"
-#include "db.h"
+#include "../common/db.h"
 #include "guild.h"
 #include "intif.h"
 #include "itemdb.h"
-#include "lock.h"
+#include "../common/lock.h"
 #include "map.h"
 #include "mob.h"
 #include "npc.h"
@@ -83,11 +83,6 @@ struct dbt *script_get_userfunc_db ()
     if (!userfunc_db)
         userfunc_db = strdb_init (50);
     return userfunc_db;
-}
-
-int scriptlabel_final (void *k, void *d, va_list ap)
-{
-    return 0;
 }
 
 static char pos[11][100] =
@@ -838,13 +833,13 @@ static int add_str (const unsigned char *p)
     if (str_num >= str_data_size)
     {
         str_data_size += 128;
-        str_data = aRealloc (str_data, sizeof (str_data[0]) * str_data_size);
+        str_data = realloc (str_data, sizeof (str_data[0]) * str_data_size);
         memset (str_data + (str_data_size - 128), '\0', 128);
     }
     while (str_pos + strlen (p) + 1 >= str_size)
     {
         str_size += 256;
-        str_buf = (char *) aRealloc (str_buf, str_size);
+        str_buf = (char *) realloc (str_buf, str_size);
         memset (str_buf + (str_size - 256), '\0', 256);
     }
     strcpy (str_buf + str_pos, p);
@@ -867,7 +862,7 @@ static void check_script_buf (int size)
     if (script_pos + size >= script_size)
     {
         script_size += SCRIPT_BLOCK_SIZE;
-        script_buf = (char *) aRealloc (script_buf, script_size);
+        script_buf = (char *) realloc (script_buf, script_size);
         memset (script_buf + script_size - SCRIPT_BLOCK_SIZE, '\0',
                 SCRIPT_BLOCK_SIZE);
     }
@@ -1480,8 +1475,7 @@ unsigned char *parse_script (unsigned char *src, int line)
         read_constdb ();
     }
     first = 0;
-    script_buf =
-        (unsigned char *) aCalloc (SCRIPT_BLOCK_SIZE, sizeof (unsigned char));
+    script_buf = (unsigned char *) calloc (SCRIPT_BLOCK_SIZE, 1);
     script_pos = 0;
     script_size = SCRIPT_BLOCK_SIZE;
     str_data[LABEL_NEXTLINE].type = C_NOP;
@@ -1499,7 +1493,7 @@ unsigned char *parse_script (unsigned char *src, int line)
 
     // 外部用label dbの初期化
     if (scriptlabel_db != NULL)
-        strdb_final (scriptlabel_db, scriptlabel_final);
+        strdb_final (scriptlabel_db, NULL);
     scriptlabel_db = strdb_init (50);
 
     // for error message
@@ -1532,7 +1526,7 @@ unsigned char *parse_script (unsigned char *src, int line)
                 exit (1);
             }
             set_label (l, script_pos);
-            strdb_insert (scriptlabel_db, p, script_pos);   // 外部用label db登録
+            strdb_insert (scriptlabel_db, (const char*)p, script_pos);   // 外部用label db登録
             *skip_word (p) = c;
             p = tmpp + 1;
             continue;
@@ -1552,7 +1546,7 @@ unsigned char *parse_script (unsigned char *src, int line)
     add_scriptc (C_NOP);
 
     script_size = script_pos;
-    script_buf = (char *) aRealloc (script_buf, script_pos + 1);
+    script_buf = (char *) realloc (script_buf, script_pos + 1);
 
     // 未解決のラベルを解決
     for (i = LABEL_START; i < str_num; i++)
@@ -1778,7 +1772,7 @@ char *conv_str (struct script_state *st, struct script_data *data)
     if (data->type == C_INT)
     {
         char *buf;
-        buf = (char *) aCalloc (16, sizeof (char));
+        buf = (char *) calloc (16, 1);
         sprintf (buf, "%d", data->u.num);
         data->type = C_STR;
         data->u.str = buf;
@@ -1822,10 +1816,9 @@ void push_val (struct script_stack *stack, int type, int val)
     if (stack->sp >= stack->sp_max)
     {
         stack->sp_max += 64;
-        stack->stack_data =
-            (struct script_data *) aRealloc (stack->stack_data,
-                                             sizeof (stack->stack_data[0]) *
-                                             stack->sp_max);
+        stack->stack_data = (struct script_data *)
+            realloc (stack->stack_data, sizeof (stack->stack_data[0]) *
+                                        stack->sp_max);
         memset (stack->stack_data + (stack->sp_max - 64), 0,
                 64 * sizeof (*(stack->stack_data)));
     }
@@ -1845,10 +1838,9 @@ void push_str (struct script_stack *stack, int type, unsigned char *str)
     if (stack->sp >= stack->sp_max)
     {
         stack->sp_max += 64;
-        stack->stack_data =
-            (struct script_data *) aRealloc (stack->stack_data,
-                                             sizeof (stack->stack_data[0]) *
-                                             stack->sp_max);
+        stack->stack_data = (struct script_data *)
+            realloc (stack->stack_data, sizeof (stack->stack_data[0]) *
+                                        stack->sp_max);
         memset (stack->stack_data + (stack->sp_max - 64), '\0',
                 64 * sizeof (*(stack->stack_data)));
     }
@@ -2097,7 +2089,7 @@ int buildin_menu (struct script_state *st)
         st->state = RERUNLINE;
         sd->state.menu_or_input = 1;
 
-        buf = (char *) aCalloc (len + 1, sizeof (char));
+        buf = (char *) calloc (len + 1, 1);
         buf[0] = 0;
         for (i = st->start + 2; menu_choices > 0; i += 2, --menu_choices)
         {
@@ -3186,7 +3178,7 @@ char *buildin_getpartyname_sub (int party_id)
     if (p != NULL)
     {
         char *buf;
-        buf = (char *) aCalloc (24, sizeof (char));
+        buf = (char *) calloc (24, 1);
         strcpy (buf, p->name);
         return buf;
     }
@@ -3251,7 +3243,7 @@ char *buildin_getguildname_sub (int guild_id)
     if (g != NULL)
     {
         char *buf;
-        buf = (char *) aCalloc (24, sizeof (char));
+        buf = (char *) calloc (24, 1);
         strcpy (buf, g->name);
         return buf;
     }
@@ -3282,7 +3274,7 @@ char *buildin_getguildmaster_sub (int guild_id)
     if (g != NULL)
     {
         char *buf;
-        buf = (char *) aCalloc (24, sizeof (char));
+        buf = (char *) calloc (24, 1);
         strncpy (buf, g->master, 23);
         return buf;
     }
@@ -3338,7 +3330,7 @@ int buildin_strcharinfo (struct script_state *st)
     if (num == 0)
     {
         char *buf;
-        buf = (char *) aCalloc (24, sizeof (char));
+        buf = (char *) calloc (24, 1);
         strncpy (buf, sd->status.name, 23);
         push_str (st->stack, C_STR, buf);
     }
@@ -3413,7 +3405,7 @@ int buildin_getequipname (struct script_state *st)
     struct item_data *item;
     char *buf;
 
-    buf = (char *) aCalloc (64, sizeof (char));
+    buf = (char *) calloc (64, 1);
     sd = script_rid2sd (st);
     num = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     i = pc_checkequip (sd, equip[num - 1]);
@@ -4214,7 +4206,7 @@ int buildin_gettimestr (struct script_state *st)
     fmtstr = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     maxlen = conv_num (st, &(st->stack->stack_data[st->start + 3]));
 
-    tmpstr = (char *) aCalloc (maxlen + 1, sizeof (char));
+    tmpstr = (char *) calloc (maxlen + 1, 1);
     strftime (tmpstr, maxlen, fmtstr, gmtime (&now));
     tmpstr[maxlen] = '\0';
 
@@ -5779,7 +5771,7 @@ int buildin_getcastlename (struct script_state *st)
         {
             if (strcmp (mapname, gc->map_name) == 0)
             {
-                buf = (char *) aCalloc (24, sizeof (char));
+                buf = (char *) calloc (24, 1);
                 strncpy (buf, gc->castle_name, 23);
                 break;
             }
@@ -6457,7 +6449,7 @@ int buildin_getitemname (struct script_state *st)
         i_data = itemdb_search (item_id);
     }
 
-    item_name = (char *) aCalloc (24, sizeof (char));
+    item_name = (char *) calloc (24, 1);
     if (i_data)
         strncpy (item_name, i_data->jname, 23);
     else
@@ -7384,11 +7376,10 @@ void op_add (struct script_state *st)
     else
     {                           // ssの予定
         char *buf;
-        buf =
-            (char *)
-            aCalloc (strlen (st->stack->stack_data[st->stack->sp - 1].u.str) +
-                     strlen (st->stack->stack_data[st->stack->sp].u.str) + 1,
-                     sizeof (char));
+        buf = (char *)
+            calloc (strlen (st->stack->stack_data[st->stack->sp - 1].u.str) +
+                    strlen (st->stack->stack_data[st->stack->sp].u.str) + 1,
+                    1);
         strcpy (buf, st->stack->stack_data[st->stack->sp - 1].u.str);
         strcat (buf, st->stack->stack_data[st->stack->sp].u.str);
         if (st->stack->stack_data[st->stack->sp - 1].type == C_STR)
@@ -7803,9 +7794,8 @@ int run_script_main (unsigned char *script, int pos, int rid, int oid,
         {
             if (sd->npc_stackbuf)
                 free (sd->npc_stackbuf);
-            sd->npc_stackbuf =
-                (char *) aCalloc (sizeof (stack->stack_data[0]) *
-                                  stack->sp_max, sizeof (char));
+            sd->npc_stackbuf = (char *)
+                calloc (sizeof (stack->stack_data[0]) * stack->sp_max, 1);
             memcpy (sd->npc_stackbuf, stack->stack_data,
                     sizeof (stack->stack_data[0]) * stack->sp_max);
             sd->npc_stack = stack->sp;
@@ -7844,9 +7834,8 @@ int run_script_l (unsigned char *script, int pos, int rid, int oid,
         script = sd->npc_script;
         stack.sp = sd->npc_stack;
         stack.sp_max = sd->npc_stackmax;
-        stack.stack_data =
-            (struct script_data *) aCalloc (stack.sp_max,
-                                            sizeof (stack.stack_data[0]));
+        stack.stack_data = (struct script_data *)
+            calloc (stack.sp_max, sizeof (stack.stack_data[0]));
         memcpy (stack.stack_data, sd->npc_stackbuf,
                 sizeof (stack.stack_data[0]) * stack.sp_max);
         free (sd->npc_stackbuf);
@@ -7857,9 +7846,8 @@ int run_script_l (unsigned char *script, int pos, int rid, int oid,
         // スタック初期化
         stack.sp = 0;
         stack.sp_max = 64;
-        stack.stack_data =
-            (struct script_data *) aCalloc (stack.sp_max,
-                                            sizeof (stack.stack_data[0]));
+        stack.stack_data = (struct script_data *)
+            calloc (stack.sp_max, sizeof (stack.stack_data[0]));
     }
     st.stack = &stack;
     st.pos = pos;
@@ -7911,7 +7899,7 @@ int mapreg_setregstr (int num, const char *str)
         mapreg_dirty = 1;
         return 0;
     }
-    p = (char *) aCalloc (strlen (str) + 1, sizeof (char));
+    p = (char *) calloc (strlen (str) + 1, 1);
     strcpy (p, str);
     numdb_insert (mapregstr_db, num, p);
     mapreg_dirty = 1;
@@ -7944,7 +7932,7 @@ static int script_load_mapreg ()
                 printf ("%s: %s broken data !\n", mapreg_txt, buf1);
                 continue;
             }
-            p = (char *) aCalloc (strlen (buf2) + 1, sizeof (char));
+            p = (char *) calloc (strlen (buf2) + 1, 1);
             strcpy (p, buf2);
             s = add_str (buf1);
             numdb_insert (mapregstr_db, (i << 24) | s, p);
@@ -7969,10 +7957,10 @@ static int script_load_mapreg ()
  * 永続的マップ変数の書き込み
  *------------------------------------------
  */
-static int script_save_mapreg_intsub (void *key, void *data, va_list ap)
+static void script_save_mapreg_intsub (db_key_t key, db_val_t data, va_list ap)
 {
     FILE *fp = va_arg (ap, FILE *);
-    int  num = ((int) key) & 0x00ffffff, i = ((int) key) >> 24;
+    int  num = key.i & 0x00ffffff, i = key.i >> 24;
     char *name = str_buf + str_data[num].str;
     if (name[1] != '@')
     {
@@ -7981,13 +7969,12 @@ static int script_save_mapreg_intsub (void *key, void *data, va_list ap)
         else
             fprintf (fp, "%s,%d\t%d\n", name, i, (int) data);
     }
-    return 0;
 }
 
-static int script_save_mapreg_strsub (void *key, void *data, va_list ap)
+static void script_save_mapreg_strsub (db_key_t key, db_val_t data, va_list ap)
 {
     FILE *fp = va_arg (ap, FILE *);
-    int  num = ((int) key) & 0x00ffffff, i = ((int) key) >> 24;
+    int  num = key.i & 0x00ffffff, i = key.i >> 24;
     char *name = str_buf + str_data[num].str;
     if (name[1] != '@')
     {
@@ -7996,7 +7983,6 @@ static int script_save_mapreg_strsub (void *key, void *data, va_list ap)
         else
             fprintf (fp, "%s,%d\t%s\n", name, i, (char *) data);
     }
-    return 0;
 }
 
 static int script_save_mapreg ()
@@ -8013,12 +7999,11 @@ static int script_save_mapreg ()
     return 0;
 }
 
-static int script_autosave_mapreg (int tid, unsigned int tick, int id,
-                                   int data)
+static void script_autosave_mapreg (timer_id tid, tick_t tick, custom_id_t id,
+                                    custom_data_t data)
 {
     if (mapreg_dirty)
         script_save_mapreg ();
-    return 0;
 }
 
 /*==========================================
@@ -8074,11 +8059,11 @@ int script_config_read (char *cfgName)
         i = sscanf (line, "%[^:]: %[^\r\n]", w1, w2);
         if (i != 2)
             continue;
-        if (strcmpi (w1, "refine_posword") == 0)
+        if (strcasecmp (w1, "refine_posword") == 0)
         {
             set_posword (w2);
         }
-        if (strcmpi (w1, "import") == 0)
+        if (strcasecmp (w1, "import") == 0)
         {
             script_config_read (w2);
         }
@@ -8092,27 +8077,16 @@ int script_config_read (char *cfgName)
  * 終了
  *------------------------------------------
  */
-static int mapreg_db_final (void *key, void *data, va_list ap)
-{
-    return 0;
-}
 
-static int mapregstr_db_final (void *key, void *data, va_list ap)
+static void mapregstr_db_final (db_key_t key, db_val_t data, va_list ap)
 {
     free (data);
-    return 0;
 }
 
-static int scriptlabel_db_final (void *key, void *data, va_list ap)
+static void userfunc_db_final (db_key_t key, db_val_t data, va_list ap)
 {
-    return 0;
-}
-
-static int userfunc_db_final (void *key, void *data, va_list ap)
-{
-    free (key);
+    free ((char*)key.s);
     free (data);
-    return 0;
 }
 
 int do_final_script ()
@@ -8123,11 +8097,11 @@ int do_final_script ()
         free (script_buf);
 
     if (mapreg_db)
-        numdb_final (mapreg_db, mapreg_db_final);
+        numdb_final (mapreg_db, NULL);
     if (mapregstr_db)
         strdb_final (mapregstr_db, mapregstr_db_final);
     if (scriptlabel_db)
-        strdb_final (scriptlabel_db, scriptlabel_db_final);
+        strdb_final (scriptlabel_db, NULL);
     if (userfunc_db)
         strdb_final (userfunc_db, userfunc_db_final);
 
@@ -8149,7 +8123,6 @@ int do_init_script ()
     mapregstr_db = numdb_init ();
     script_load_mapreg ();
 
-    add_timer_func_list (script_autosave_mapreg, "script_autosave_mapreg");
     add_timer_interval (gettick () + MAPREG_AUTOSAVE_INTERVAL,
                         script_autosave_mapreg, 0, 0,
                         MAPREG_AUTOSAVE_INTERVAL);

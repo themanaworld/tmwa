@@ -6,9 +6,8 @@
 
 #include "battle.h"
 
-#include "timer.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/timer.h"
+#include "../common/nullpo.h"
 
 #include "clif.h"
 #include "guild.h"
@@ -18,7 +17,7 @@
 #include "pc.h"
 #include "skill.h"
 #include "../common/socket.h"
-#include "mt_rand.h"
+#include "../common/mt_rand.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -1423,22 +1422,19 @@ struct battle_delay_damage_
     int  damage;
     int  flag;
 };
-int battle_delay_damage_sub (int tid, unsigned int tick, int id, int data)
+void battle_delay_damage_sub (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct battle_delay_damage_ *dat = (struct battle_delay_damage_ *) data;
     if (dat && map_id2bl (id) == dat->src && dat->target->prev != NULL)
         battle_damage (dat->src, dat->target, dat->damage, dat->flag);
     free (dat);
-    return 0;
 }
 
 int battle_delay_damage (unsigned int tick, struct block_list *src,
                          struct block_list *target, int damage, int flag)
 {
-    struct battle_delay_damage_ *dat =
-        (struct battle_delay_damage_ *) aCalloc (1,
-                                                 sizeof (struct
-                                                         battle_delay_damage_));
+    struct battle_delay_damage_ *dat;
+    CREATE (dat, struct battle_delay_damage_, 1);
 
     nullpo_retr (0, src);
     nullpo_retr (0, target);
@@ -5432,12 +5428,12 @@ int battle_check_range (struct block_list *src, struct block_list *bl,
  */
 int battle_config_switch (const char *str)
 {
-    if (strcmpi (str, "on") == 0 || strcmpi (str, "yes") == 0
-        || strcmpi (str, "oui") == 0 || strcmpi (str, "ja") == 0
-        || strcmpi (str, "si") == 0)
+    if (strcasecmp (str, "on") == 0 || strcasecmp (str, "yes") == 0
+        || strcasecmp (str, "oui") == 0 || strcasecmp (str, "ja") == 0
+        || strcasecmp (str, "si") == 0)
         return 1;
-    if (strcmpi (str, "off") == 0 || strcmpi (str, "no") == 0
-        || strcmpi (str, "non") == 0 || strcmpi (str, "nein") == 0)
+    if (strcasecmp (str, "off") == 0 || strcasecmp (str, "no") == 0
+        || strcasecmp (str, "non") == 0 || strcasecmp (str, "nein") == 0)
         return 0;
     return atoi (str);
 }
@@ -6118,10 +6114,10 @@ int battle_config_read (const char *cfgName)
         if (sscanf (line, "%[^:]:%s", w1, w2) != 2)
             continue;
         for (i = 0; i < sizeof (data) / (sizeof (data[0])); i++)
-            if (strcmpi (w1, data[i].str) == 0)
+            if (strcasecmp (w1, data[i].str) == 0)
                 *data[i].val = battle_config_switch (w2);
 
-        if (strcmpi (w1, "import") == 0)
+        if (strcasecmp (w1, "import") == 0)
             battle_config_read (w2);
     }
     fclose_ (fp);
@@ -6276,8 +6272,6 @@ int battle_config_read (const char *cfgName)
         if ((battle_config.packet_ver_flag & 63) == 0)  // added by [Yor]
             battle_config.packet_ver_flag = 63; // accept all clients
 
-        add_timer_func_list (battle_delay_damage_sub,
-                             "battle_delay_damage_sub");
     }
 
     return 0;

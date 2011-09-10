@@ -177,7 +177,7 @@ int  clif_devotion (struct map_session_data *sd, int target);
 int  clif_spiritball (struct map_session_data *sd);
 int  clif_combo_delay (struct block_list *src, int wait);
 int  clif_bladestop (struct block_list *src, struct block_list *dst,
-                     int bool);
+                     int boolean);
 int  clif_changemapcell (int m, int x, int y, int cell_type, int type);
 
 int  clif_status_change (struct block_list *bl, int type, int flag);

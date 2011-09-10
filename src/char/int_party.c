@@ -1,11 +1,11 @@
 // $Id: int_party.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
 #include "inter.h"
 #include "int_party.h"
-#include "mmo.h"
+#include "../common/mmo.h"
 #include "char.h"
-#include "socket.h"
-#include "db.h"
-#include "lock.h"
+#include "../common/socket.h"
+#include "../common/db.h"
+#include "../common/lock.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,13 +110,7 @@ int inter_party_init ()
             continue;
         }
 
-        p = calloc (sizeof (struct party), 1);
-        if (p == NULL)
-        {
-            printf ("int_party: out of memory!\n");
-            exit (0);
-        }
-        memset (p, 0, sizeof (struct party));
+        CREATE (p, struct party, 1);
         if (inter_party_fromstr (line, p) == 0 && p->party_id > 0)
         {
             if (p->party_id >= party_newid)
@@ -139,7 +133,7 @@ int inter_party_init ()
 }
 
 // パーティーデータのセーブ用
-int inter_party_save_sub (void *key, void *data, va_list ap)
+void inter_party_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[8192];
     FILE *fp;
@@ -147,8 +141,6 @@ int inter_party_save_sub (void *key, void *data, va_list ap)
     inter_party_tostr (line, (struct party *) data);
     fp = va_arg (ap, FILE *);
     fprintf (fp, "%s" RETCODE, line);
-
-    return 0;
 }
 
 // パーティーデータのセーブ
@@ -172,17 +164,15 @@ int inter_party_save ()
 }
 
 // パーティ名検索用
-int search_partyname_sub (void *key, void *data, va_list ap)
+void search_partyname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data, **dst;
     char *str;
 
     str = va_arg (ap, char *);
     dst = va_arg (ap, struct party **);
-    if (strcmpi (p->name, str) == 0)
+    if (strcasecmp (p->name, str) == 0)
         *dst = p;
-
-    return 0;
 }
 
 // パーティ名検索
@@ -238,7 +228,7 @@ int party_check_empty (struct party *p)
 }
 
 // キャラの競合がないかチェック用
-int party_check_conflict_sub (void *key, void *data, va_list ap)
+void party_check_conflict_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data;
     int  party_id, account_id, i;
@@ -249,7 +239,7 @@ int party_check_conflict_sub (void *key, void *data, va_list ap)
     nick = va_arg (ap, char *);
 
     if (p->party_id == party_id)    // 本来の所属なので問題なし
-        return 0;
+        return;
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -262,8 +252,6 @@ int party_check_conflict_sub (void *key, void *data, va_list ap)
             mapif_parse_PartyLeave (-1, p->party_id, account_id);
         }
     }
-
-    return 0;
 }
 
 // キャラの競合がないかチェック
@@ -449,14 +437,7 @@ int mapif_parse_CreateParty (int fd, int account_id, char *name, char *nick,
         mapif_party_created (fd, account_id, NULL);
         return 0;
     }
-    p = calloc (sizeof (struct party), 1);
-    if (p == NULL)
-    {
-        printf ("int_party: out of memory !\n");
-        mapif_party_created (fd, account_id, NULL);
-        return 0;
-    }
-    memset (p, 0, sizeof (struct party));
+    CREATE (p, struct party, 1);
     p->party_id = party_newid++;
     memcpy (p->name, name, 24);
     p->exp = 0;

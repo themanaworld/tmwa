@@ -18,9 +18,9 @@
 #include <fcntl.h>
 #include <string.h>
 
-#include "nullpo.h"
-#include "socket.h"
-#include "timer.h"
+#include "../common/nullpo.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
 
 #include "battle.h"
 #include "chrif.h"

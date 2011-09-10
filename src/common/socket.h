@@ -1,110 +1,135 @@
-// original : core.h 2003/03/14 11:55:25 Rev 1.4
+#ifndef SOCKET_H
+#define SOCKET_H
 
-#ifndef	_SOCKET_H_
-#define _SOCKET_H_
+# include "sanity.h"
 
-#include <stdio.h>
+# include <stdio.h>
 
-#ifdef LCCWIN32
-#include <winsock.h>
-#else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
-#include <time.h>
+# include <sys/types.h>
+# include <sys/socket.h>
+# include <netinet/in.h>
 
-// define declaration
+# include <time.h>
 
-#define RFIFOP(fd,pos) (session[fd]->rdata+session[fd]->rdata_pos+(pos))
-#define RFIFOB(fd,pos) (*(unsigned char*)(session[fd]->rdata+session[fd]->rdata_pos+(pos)))
-#define RFIFOW(fd,pos) (*(unsigned short*)(session[fd]->rdata+session[fd]->rdata_pos+(pos)))
-#define RFIFOL(fd,pos) (*(unsigned int*)(session[fd]->rdata+session[fd]->rdata_pos+(pos)))
-//#define RFIFOSKIP(fd,len) ((session[fd]->rdata_size-session[fd]->rdata_pos-(len)<0) ? (fprintf(stderr,"too many skip\n"),exit(1)) : (session[fd]->rdata_pos+=(len)))
-#define RFIFOREST(fd) (session[fd]->rdata_size-session[fd]->rdata_pos)
-#define RFIFOFLUSH(fd) (memmove(session[fd]->rdata,RFIFOP(fd,0),RFIFOREST(fd)),session[fd]->rdata_size=RFIFOREST(fd),session[fd]->rdata_pos=0)
-#define RFIFOSPACE(fd) (session[fd]->max_rdata-session[fd]->rdata_size)
-#define RBUFP(p,pos) (((unsigned char*)(p))+(pos))
-#define RBUFB(p,pos) (*(unsigned char*)RBUFP((p),(pos)))
-#define RBUFW(p,pos) (*(unsigned short*)RBUFP((p),(pos)))
-#define RBUFL(p,pos) (*(unsigned int*)RBUFP((p),(pos)))
+/// Check how much can be read
+# define RFIFOREST(fd) (session[fd]->rdata_size-session[fd]->rdata_pos)
+/// Read from the queue
+# define RFIFOP(fd,pos) (session[fd]->rdata+session[fd]->rdata_pos+(pos))
+# define RFIFOB(fd,pos) (*(uint8_t*)(RFIFOP(fd, pos)))
+# define RFIFOW(fd,pos) (*(uint16_t*)(RFIFOP(fd, pos)))
+# define RFIFOL(fd,pos) (*(uint32_t*)(RFIFOP(fd, pos)))
+/// Done reading
+void RFIFOSKIP (int fd, size_t len);
+/// Internal - clean up by discarding handled bytes
+// Atm this is also called in char/char.c, but that is unnecessary
+# define RFIFOFLUSH(fd) (memmove(session[fd]->rdata,RFIFOP(fd,0),RFIFOREST(fd)),\
+session[fd]->rdata_size=RFIFOREST(fd),\
+session[fd]->rdata_pos=0)
 
-#define WFIFOSPACE(fd) (session[fd]->max_wdata-session[fd]->wdata_size)
-#define WFIFOP(fd,pos) (session[fd]->wdata+session[fd]->wdata_size+(pos))
-#define WFIFOB(fd,pos) (*(unsigned char*)(session[fd]->wdata+session[fd]->wdata_size+(pos)))
-#define WFIFOW(fd,pos) (*(unsigned short*)(session[fd]->wdata+session[fd]->wdata_size+(pos)))
-#define WFIFOL(fd,pos) (*(unsigned int*)(session[fd]->wdata+session[fd]->wdata_size+(pos)))
-// use function instead of macro.
-//#define WFIFOSET(fd,len) (session[fd]->wdata_size = (session[fd]->wdata_size+(len)+2048 < session[fd]->max_wdata) ? session[fd]->wdata_size+len : session[fd]->wdata_size)
-#define WBUFP(p,pos) (((unsigned char*)(p))+(pos))
-#define WBUFB(p,pos) (*(unsigned char*)WBUFP((p),(pos)))
-#define WBUFW(p,pos) (*(unsigned short*)WBUFP((p),(pos)))
-#define WBUFL(p,pos) (*(unsigned int*)WBUFP((p),(pos)))
+/// Used internally - how much room there is to read more data
+# define RFIFOSPACE(fd) (session[fd]->max_rdata-session[fd]->rdata_size)
 
-#ifdef __INTERIX
-#define FD_SETSIZE 4096
-#endif // __INTERIX
+/// Read from an arbitrary buffer
+# define RBUFP(p,pos) (((uint8_t*)(p))+(pos))
+# define RBUFB(p,pos) (*(uint8_t*)RBUFP((p),(pos)))
+# define RBUFW(p,pos) (*(uint16_t*)RBUFP((p),(pos)))
+# define RBUFL(p,pos) (*(uint32_t*)RBUFP((p),(pos)))
 
-/* Removed Cygwin FD_SETSIZE declarations, now are directly passed on to the compiler through Makefile [Valaris] */
+
+
+/// Unused - check how much data can be written
+# define WFIFOSPACE(fd) (session[fd]->max_wdata-session[fd]->wdata_size)
+/// Write to the queue
+# define WFIFOP(fd,pos) (session[fd]->wdata+session[fd]->wdata_size+(pos))
+# define WFIFOB(fd,pos) (*(uint8_t*)(WFIFOP(fd,pos)))
+# define WFIFOW(fd,pos) (*(uint16_t*)(WFIFOP(fd,pos)))
+# define WFIFOL(fd,pos) (*(uint32_t*)(WFIFOP(fd,pos)))
+/// Finish writing
+void WFIFOSET (int fd, size_t len);
+
+/// Write to an arbitrary buffer
+#define WBUFP(p,pos) (((uint8_t*)(p))+(pos))
+#define WBUFB(p,pos) (*(uint8_t*)WBUFP((p),(pos)))
+#define WBUFW(p,pos) (*(uint16_t*)WBUFP((p),(pos)))
+#define WBUFL(p,pos) (*(uint32_t*)WBUFP((p),(pos)))
 
 // Struct declaration
 
 struct socket_data
 {
-    int  eof;
+    /// Checks whether a newly-connected socket actually does anything
     time_t created;
-    int  connected;
-    unsigned char *rdata, *wdata;
-    int  max_rdata, max_wdata;
-    int  rdata_size, wdata_size;
-    int  rdata_pos;
+    bool connected;
+
+    /// Flag needed since structure must be freed in a server-dependent manner
+    bool eof;
+
+    /// Since this is a single-threaded application, it can't block
+    /// These are the read/write queues
+    uint8_t *rdata, *wdata;
+    size_t max_rdata, max_wdata;
+    /// How much is actually in the queue
+    size_t rdata_size, wdata_size;
+    /// How much has already been read from the queue
+    /// Note that there is no need for a wdata_pos
+    size_t rdata_pos;
+
     struct sockaddr_in client_addr;
-    int  (*func_recv) (int);
-    int  (*func_send) (int);
-    int  (*func_parse) (int);
+
+    /// Send or recieve
+    /// Only called when select() indicates the socket is ready
+    /// If, after that, nothing is read, it sets eof
+    // These could probably be hard-coded with a little work
+    void (*func_recv) (int);
+    void (*func_send) (int);
+    /// This is the important one
+    /// Set to different functions depending on whether the connection
+    /// is a player or a server/ladmin
+    /// Can be set explicitly or via set_defaultparse
+    void (*func_parse) (int);
+    /// Server-specific data type
     void *session_data;
 };
 
-// Data prototype declaration
-
-#ifdef LCCWIN32
-
-#undef FD_SETSIZE
-#define FD_SETSIZE 4096
-
-#endif
-
 // save file descriptors for important stuff
-#define SOFT_LIMIT (FD_SETSIZE - 50)
+# define SOFT_LIMIT (FD_SETSIZE - 50)
 
 // socket timeout to establish a full connection in seconds
-#define CONNECT_TIMEOUT 15
+# define CONNECT_TIMEOUT 15
 
+/// Everyone who has connected
+// note: call delete_session(i) to null out an element
 extern struct socket_data *session[FD_SETSIZE];
 
-extern int rfifo_size, wfifo_size;
+/// Maximum used FD, +1
 extern int fd_max;
 
-// Function prototype declaration
+/// open a socket, bind, and listen. Return an fd, or -1 if socket() fails,
+/// but exit if bind() or listen() fails
+int  make_listen_port (uint16_t port);
+/// Connect to an address, return a connected socket or -1
+// FIXME - this is IPv4 only!
+int  make_connection (uint32_t ip, uint16_t port);
+/// free() the structure and close() the fd
+void delete_session (int);
+/// Make a the internal queues bigger
+void realloc_fifo (int fd, size_t rfifo_size, size_t wfifo_size);
+/// Update all sockets that can be read/written from the queues
+void do_sendrecv (uint32_t next);
+/// Call the parser function for every socket that has read data
+void do_parsepacket (void);
 
-int  make_listen_port (int);
-int  make_connection (long, int);
-int  delete_session (int);
-int  realloc_fifo (int fd, int rfifo_size, int wfifo_size);
-int  WFIFOSET (int fd, int len);
-int  RFIFOSKIP (int fd, int len);
-
-int  do_sendrecv (int next);
-int  do_parsepacket (void);
+/// An init function
 void do_socket (void);
 
-void set_defaultparse (int (*defaultparse) (int));
+/// Change the default parser for newly connected clients
+// typically called once per server, but individual clients may identify
+// themselves as servers
+void set_defaultparse (void (*defaultparse) (int));
 
-int  Net_Init (void);
-
-int  fclose_ (FILE * fp);
+/// Wrappers to track number of free FDs
+void fclose_ (FILE * fp);
 FILE *fopen_ (const char *path, const char *mode);
+bool free_fds ();
 
-int  free_fds ();
-
-#endif // _SOCKET_H_
+#endif // SOCKET_H

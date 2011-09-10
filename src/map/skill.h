@@ -2,6 +2,8 @@
 #ifndef _SKILL_H_
 #define _SKILL_H_
 
+#include "../common/timer.h"
+
 #include "map.h"
 #include "magic.h"
 
@@ -149,7 +151,7 @@ int  skill_status_effect (struct block_list *bl, int type, int val1, int val2,
 int  skill_status_change_start (struct block_list *bl, int type, int val1,
                                 int val2, int val3, int val4, int tick,
                                 int flag);
-int  skill_status_change_timer (int tid, unsigned int tick, int id, int data);
+void skill_status_change_timer (timer_id, tick_t, custom_id_t, custom_data_t);
 int  skill_status_change_active (struct block_list *bl, int type);  // [fate]
 int  skill_encchant_eremental_end (struct block_list *bl, int type);
 int  skill_status_change_end (struct block_list *bl, int type, int tid);

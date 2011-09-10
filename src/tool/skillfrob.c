@@ -78,8 +78,3 @@ int main (int argc, char *argv[])
 
     return 0;
 }
-
-/* satisfy linker */
-void set_termfunc (void (*termfunc) (void))
-{
-};

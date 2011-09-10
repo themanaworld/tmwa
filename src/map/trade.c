@@ -9,7 +9,7 @@
 #include "npc.h"
 #include "battle.h"
 #include "storage.h"
-#include "nullpo.h"
+#include "../common/nullpo.h"
 
 /*==========================================
  * 取引要請を相手に送る

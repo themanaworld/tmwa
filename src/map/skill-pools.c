@@ -3,9 +3,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "timer.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/timer.h"
+#include "../common/nullpo.h"
+#include "../common/mt_rand.h"
 #include "magic.h"
 
 #include "battle.h"

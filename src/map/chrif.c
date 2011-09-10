@@ -13,8 +13,8 @@
 #include <sys/types.h>
 #include <time.h>
 
-#include "socket.h"
-#include "timer.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
 #include "map.h"
 #include "battle.h"
 #include "chrif.h"
@@ -22,7 +22,7 @@
 #include "intif.h"
 #include "npc.h"
 #include "pc.h"
-#include "nullpo.h"
+#include "../common/nullpo.h"
 #include "itemdb.h"
 
 #ifdef MEMWATCH
@@ -1121,7 +1121,7 @@ void ladmin_itemfrob (int fd)
  *
  *------------------------------------------
  */
-int chrif_parse (int fd)
+void chrif_parse (int fd)
 {
     int  packet_len, cmd;
 
@@ -1138,7 +1138,7 @@ int chrif_parse (int fd)
         }
         close (fd);
         delete_session (fd);
-        return 0;
+        return;
     }
 
     while (RFIFOREST (fd) >= 2)
@@ -1156,20 +1156,20 @@ int chrif_parse (int fd)
             if (r == 1)
                 continue;       // intifで処理した
             if (r == 2)
-                return 0;       // intifで処理したが、データが足りない
+                return;       // intifで処理したが、データが足りない
 
             session[fd]->eof = 1;
-            return 0;
+            return;
         }
         packet_len = packet_len_table[cmd - 0x2af8];
         if (packet_len == -1)
         {
             if (RFIFOREST (fd) < 4)
-                return 0;
+                return;
             packet_len = RFIFOW (fd, 2);
         }
         if (RFIFOREST (fd) < packet_len)
-            return 0;
+            return;
 
         switch (cmd)
         {
@@ -1235,12 +1235,10 @@ int chrif_parse (int fd)
                     printf ("chrif_parse : unknown packet %d %d\n", fd,
                             RFIFOW (fd, 0));
                 session[fd]->eof = 1;
-                return 0;
+                return;
         }
         RFIFOSKIP (fd, packet_len);
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -1248,13 +1246,13 @@ int chrif_parse (int fd)
  * 今このmap鯖に繋がっているクライアント人数をchar鯖へ送る
  *------------------------------------------
  */
-int send_users_tochar (int tid, unsigned int tick, int id, int data)
+void send_users_tochar (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  users = 0, i;
     struct map_session_data *sd;
 
     if (char_fd <= 0 || session[char_fd] == NULL)
-        return 0;
+        return;
 
     WFIFOW (char_fd, 0) = 0x2aff;
     for (i = 0; i < fd_max; i++)
@@ -1271,8 +1269,6 @@ int send_users_tochar (int tid, unsigned int tick, int id, int data)
     WFIFOW (char_fd, 2) = 6 + 4 * users;
     WFIFOW (char_fd, 4) = users;
     WFIFOSET (char_fd, 6 + 4 * users);
-
-    return 0;
 }
 
 /*==========================================
@@ -1280,21 +1276,19 @@ int send_users_tochar (int tid, unsigned int tick, int id, int data)
  * char鯖との接続を確認し、もし切れていたら再度接続する
  *------------------------------------------
  */
-int check_connect_char_server (int tid, unsigned int tick, int id, int data)
+void check_connect_char_server (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     if (char_fd <= 0 || session[char_fd] == NULL)
     {
         printf ("Attempt to connect to char-server...\n");
         chrif_state = 0;
         if ((char_fd = make_connection (char_ip, char_port)) < 0)
-            return 0;
+            return;
         session[char_fd]->func_parse = chrif_parse;
         realloc_fifo (char_fd, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
 
         chrif_connect (char_fd);
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -1303,9 +1297,8 @@ int check_connect_char_server (int tid, unsigned int tick, int id, int data)
  */
 int do_init_chrif (void)
 {
-    add_timer_func_list (check_connect_char_server,
-                         "check_connect_char_server");
-    add_timer_func_list (send_users_tochar, "send_users_tochar");
+//    add_timer_func_list (check_connect_char_server, "check_connect_char_server");
+//    add_timer_func_list (send_users_tochar, "send_users_tochar");
     add_timer_interval (gettick () + 1000, check_connect_char_server, 0, 0,
                         10 * 1000);
     add_timer_interval (gettick () + 1000, send_users_tochar, 0, 0, 5 * 1000);

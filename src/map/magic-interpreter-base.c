@@ -143,8 +143,9 @@ teleport_anchor_t *magic_find_anchor (char *name)
 
 static env_t *alloc_env (magic_conf_t * conf)
 {
-    env_t *env = (env_t *) aCalloc (sizeof (env_t), 1);
-    env->vars = (val_t *) aCalloc (sizeof (val_t), conf->vars_nr);
+    env_t *env;
+    CREATE (env, env_t, 1);
+    CREATE (env->vars, val_t, conf->vars_nr);
     env->base_env = conf;
     return env;
 }
@@ -295,7 +296,7 @@ spellguard_can_satisfy (spellguard_check_t * check, character_t * caster,
 /*
         fprintf(stderr, "MC(%d/%s)? %d%d%d%d (%u <= %u)\n",
                 caster->bl.id, caster->status.name,
-                retval, 
+                retval,
                 caster->cast_tick <= tick,
                 check->mana <= caster->status.sp,
                 check_prerequisites(caster, check->components),
@@ -456,8 +457,8 @@ void spell_update_location (invocation_t * invocation)
 
 invocation_t *spell_instantiate (effect_set_t * effect_set, env_t * env)
 {
-    invocation_t *retval =
-        (invocation_t *) aCalloc (sizeof (invocation_t), 1);
+    invocation_t *retval;
+    CREATE (retval, invocation_t, 1);
     entity_t *caster;
 
     retval->env = env;

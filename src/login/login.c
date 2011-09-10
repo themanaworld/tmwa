@@ -18,17 +18,17 @@
 #include <netdb.h>
 #include <sys/wait.h>
 
-#include "core.h"
-#include "socket.h"
-#include "timer.h"
+#include "../common/core.h"
+#include "../common/socket.h"
+#include "../common/timer.h"
 #include "login.h"
-#include "mmo.h"
-#include "version.h"
-#include "db.h"
-#include "lock.h"
-#include "mt_rand.h"
+#include "../common/mmo.h"
+#include "../common/version.h"
+#include "../common/db.h"
+#include "../common/lock.h"
+#include "../common/mt_rand.h"
 
-#include "md5calc.h"
+#include "../common/md5calc.h"
 
 #ifdef MEMWATCH
 #include "memwatch.h"
@@ -219,12 +219,7 @@ int read_gm_account ()
         if ((line[0] == '/' && line[1] == '/') || line[0] == '\0'
             || line[0] == '\n' || line[0] == '\r')
             continue;
-        p = calloc (sizeof (struct gm_account), 1);
-        if (p == NULL)
-        {
-            printf ("read_gm_account: memory allocation failure (malloc)!\n");
-            exit (0);
-        }
+        CREATE (p, struct gm_account, 1);
         if (sscanf (line, "%d %d", &p->account_id, &p->level) != 2
             && sscanf (line, "%d: %d", &p->account_id, &p->level) != 2)
             printf
@@ -492,7 +487,7 @@ int search_account_index (char *account_name)
     for (i = 0; i < auth_num; i++)
     {
         // Without case sensitive check (increase the number of similar account names found)
-        if (stricmp (auth_dat[i].userid, account_name) == 0)
+        if (strcasecmp (auth_dat[i].userid, account_name) == 0)
         {
             // Strict comparison (if found, we finish the function immediatly with correct value)
             if (strcmp (auth_dat[i].userid, account_name) == 0)
@@ -551,7 +546,7 @@ int mmo_auth_init (void)
     int  GM_count = 0;
     int  server_count = 0;
 
-    auth_dat = calloc (sizeof (struct auth_dat) * 256, 1);
+    CREATE (auth_dat, struct auth_dat, 256);
     auth_max = 256;
 
     fp = fopen_ (account_filename, "r");
@@ -650,8 +645,7 @@ int mmo_auth_init (void)
             if (auth_num >= auth_max)
             {
                 auth_max += 256;
-                auth_dat =
-                    realloc (auth_dat, sizeof (struct auth_dat) * auth_max);
+                RECREATE (auth_dat, struct auth_dat, auth_max);
             }
 
             memset (&auth_dat[auth_num], '\0', sizeof (struct auth_dat));
@@ -830,8 +824,7 @@ int mmo_auth_init (void)
             if (auth_num >= auth_max)
             {
                 auth_max += 256;
-                auth_dat =
-                    realloc (auth_dat, sizeof (struct auth_dat) * auth_max);
+                RECREATE (auth_dat, struct auth_dat, auth_max);
             }
 
             memset (&auth_dat[auth_num], '\0', sizeof (struct auth_dat));
@@ -1046,12 +1039,18 @@ void mmo_auth_sync (void)
     return;
 }
 
-// We want to sync the DB to disk as little as possible as it's fairly 
+void term_func (void)
+{
+    mmo_auth_sync ();
+}
+
+
+// We want to sync the DB to disk as little as possible as it's fairly
 // resource intensive. therefore most player-triggerable events that
 // update the account DB will not immideately trigger a save. Instead
 // we save periodicly on a timer.
 //-----------------------------------------------------
-int check_auth_sync (int tid, unsigned int tick, int id, int data)
+void check_auth_sync (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     if (pid != 0)
     {
@@ -1061,14 +1060,14 @@ int check_auth_sync (int tid, unsigned int tick, int id, int data)
         // Need to check status too?
         if (temp == 0)
         {
-            return 0;
+            return;
         }
     }
 
     // This can take a lot of time. Fork a child to handle the work and return at once
     // If we're unable to fork just continue running the function normally
     if ((pid = fork ()) > 0)
-        return 0;
+        return;
 
     mmo_auth_sync ();
 
@@ -1076,7 +1075,7 @@ int check_auth_sync (int tid, unsigned int tick, int id, int data)
     if (pid == 0)
         _exit (0);
 
-    return 0;
+    return;
 }
 
 //--------------------------------------------------------------------
@@ -1128,14 +1127,14 @@ void send_GM_accounts ()
 //-----------------------------------------------------
 // Check if GM file account have been changed
 //-----------------------------------------------------
-int check_GM_file (int tid, unsigned int tick, int id, int data)
+void check_GM_file (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct stat file_stat;
     long new_time;
 
     // if we would not check
     if (gm_account_filename_check_timer < 1)
-        return 0;
+        return;
 
     // get last modify time/date
     if (stat (GM_account_filename, &file_stat))
@@ -1148,8 +1147,6 @@ int check_GM_file (int tid, unsigned int tick, int id, int data)
         read_gm_account ();
         send_GM_accounts ();
     }
-
-    return 0;
 }
 
 //-------------------------------------
@@ -1164,7 +1161,7 @@ int mmo_auth_new (struct mmo_account *account, char sex, char *email)
     if (auth_num >= auth_max)
     {
         auth_max += 256;
-        auth_dat = realloc (auth_dat, sizeof (struct auth_dat) * auth_max);
+        RECREATE (auth_dat, struct auth_dat, auth_max);
     }
 
     memset (&auth_dat[i], '\0', sizeof (struct auth_dat));
@@ -1446,7 +1443,7 @@ int mmo_auth (struct mmo_account *account, int fd)
 //-------------------------------
 // Char-server anti-freeze system
 //-------------------------------
-int char_anti_freeze_system (int tid, unsigned int tick, int id, int data)
+void char_anti_freeze_system (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  i;
 
@@ -1468,14 +1465,12 @@ int char_anti_freeze_system (int tid, unsigned int tick, int id, int data)
             }
         }
     }
-
-    return 0;
 }
 
 //--------------------------------
 // Packet parsing for char-servers
 //--------------------------------
-int parse_fromchar (int fd)
+void parse_fromchar (int fd)
 {
     int  i, j, id;
     unsigned char *p = (unsigned char *) &session[fd]->client_addr.sin_addr;
@@ -1498,7 +1493,7 @@ int parse_fromchar (int fd)
         }
         close (fd);
         delete_session (fd);
-        return 0;
+        return;
     }
 
     while (RFIFOREST (fd) >= 2)
@@ -1523,7 +1518,7 @@ int parse_fromchar (int fd)
 
             case 0x2712:       // request from char-server to authentify an account
                 if (RFIFOREST (fd) < 19)
-                    return 0;
+                    return;
                 {
                     int  acc;
                     acc = RFIFOL (fd, 2);   // speed up
@@ -1598,7 +1593,7 @@ int parse_fromchar (int fd)
 
             case 0x2714:
                 if (RFIFOREST (fd) < 6)
-                    return 0;
+                    return;
                 //printf("parse_fromchar: Receiving of the users number of the server '%s': %d\n", server[id].name, RFIFOL(fd,2));
                 server[id].users = RFIFOL (fd, 2);
                 if (anti_freeze_enable)
@@ -1612,7 +1607,7 @@ int parse_fromchar (int fd)
                 int  acc;
                 char email[40];
                 if (RFIFOREST (fd) < 46)
-                    return 0;
+                    return;
                 acc = RFIFOL (fd, 2);   // speed up
                 memcpy (email, RFIFOP (fd, 6), 40);
                 email[39] = '\0';
@@ -1649,7 +1644,7 @@ int parse_fromchar (int fd)
             }
             case 0x2716:
                 if (RFIFOREST (fd) < 6)
-                    return 0;
+                    return;
                 //printf("parse_fromchar: E-mail/limited time request from '%s' server (concerned account: %d)\n", server[id].name, RFIFOL(fd,2));
                 for (i = 0; i < auth_num; i++)
                 {
@@ -1678,7 +1673,7 @@ int parse_fromchar (int fd)
 
             case 0x2720:       // To become GM request
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
-                    return 0;
+                    return;
                 {
                     int  acc;
                     unsigned char buf[10];
@@ -1765,12 +1760,12 @@ int parse_fromchar (int fd)
                     charif_sendallwos (-1, buf, 10);
                 }
                 RFIFOSKIP (fd, RFIFOW (fd, 2));
-                return 0;
+                return;
 
                 // Map server send information to change an email of an account via char-server
             case 0x2722:       // 0x2722 <account_id>.L <actual_e-mail>.40B <new_e-mail>.40B
                 if (RFIFOREST (fd) < 86)
-                    return 0;
+                    return;
                 {
                     int  acc;
                     char actual_email[40], new_email[40];
@@ -1789,7 +1784,7 @@ int parse_fromchar (int fd)
                         login_log
                             ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a invalid new e-mail (account: %d, ip: %s)"
                              RETCODE, server[id].name, acc, ip);
-                    else if (strcmpi (new_email, "a@a.com") == 0)
+                    else if (strcasecmp (new_email, "a@a.com") == 0)
                         login_log
                             ("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command) with a default e-mail (account: %d, ip: %s)"
                              RETCODE, server[id].name, acc, ip);
@@ -1799,7 +1794,7 @@ int parse_fromchar (int fd)
                         {
                             if (auth_dat[i].account_id == acc)
                             {
-                                if (strcmpi (auth_dat[i].email, actual_email)
+                                if (strcasecmp (auth_dat[i].email, actual_email)
                                     == 0)
                                 {
                                     memcpy (auth_dat[i].email, new_email, 40);
@@ -1829,7 +1824,7 @@ int parse_fromchar (int fd)
                 // Receiving of map-server via char-server a status change resquest (by Yor)
             case 0x2724:
                 if (RFIFOREST (fd) < 10)
-                    return 0;
+                    return;
                 {
                     int  acc, statut;
                     acc = RFIFOL (fd, 2);
@@ -1874,11 +1869,11 @@ int parse_fromchar (int fd)
                     }
                     RFIFOSKIP (fd, 10);
                 }
-                return 0;
+                return;
 
             case 0x2725:       // Receiving of map-server via char-server a ban resquest (by Yor)
                 if (RFIFOREST (fd) < 18)
-                    return 0;
+                    return;
                 {
                     int  acc;
                     acc = RFIFOL (fd, 2);
@@ -1970,11 +1965,11 @@ int parse_fromchar (int fd)
                     }
                     RFIFOSKIP (fd, 18);
                 }
-                return 0;
+                return;
 
             case 0x2727:       // Change of sex (sex is reversed)
                 if (RFIFOREST (fd) < 6)
-                    return 0;
+                    return;
                 {
                     int  acc, sex;
                     acc = RFIFOL (fd, 2);
@@ -2020,11 +2015,11 @@ int parse_fromchar (int fd)
                     }
                     RFIFOSKIP (fd, 6);
                 }
-                return 0;
+                return;
 
             case 0x2728:       // We receive account_reg2 from a char-server, and we send them to other char-servers.
                 if (RFIFOREST (fd) < 4 || RFIFOREST (fd) < RFIFOW (fd, 2))
-                    return 0;
+                    return;
                 {
                     int  acc, p;
                     acc = RFIFOL (fd, 4);
@@ -2071,7 +2066,7 @@ int parse_fromchar (int fd)
 
             case 0x272a:       // Receiving of map-server via char-server a unban resquest (by Yor)
                 if (RFIFOREST (fd) < 6)
-                    return 0;
+                    return;
                 {
                     int  acc;
                     acc = RFIFOL (fd, 2);
@@ -2103,12 +2098,12 @@ int parse_fromchar (int fd)
                     }
                     RFIFOSKIP (fd, 6);
                 }
-                return 0;
+                return;
 
                 // request from char-server to change account password
             case 0x2740:       // 0x2740 <account_id>.L <actual_password>.24B <new_password>.24B
                 if (RFIFOREST (fd) < 54)
-                    return 0;
+                    return;
                 {
                     int  acc;
                     char actual_pass[24], new_pass[24];
@@ -2218,16 +2213,16 @@ int parse_fromchar (int fd)
                 session[fd]->eof = 1;
                 printf
                     ("Char-server has been disconnected (unknown packet).\n");
-                return 0;
+                return;
         }
     }
-    return 0;
+    return;
 }
 
 //---------------------------------------
 // Packet parsing for administation login
 //---------------------------------------
-int parse_admin (int fd)
+void parse_admin (int fd)
 {
     int  i, j;
     unsigned char *p = (unsigned char *) &session[fd]->client_addr.sin_addr;
@@ -2242,7 +2237,7 @@ int parse_admin (int fd)
         delete_session (fd);
         printf ("Remote administration has disconnected (session #%d).\n",
                 fd);
-        return 0;
+        return;
     }
 
     while (RFIFOREST (fd) >= 2)
@@ -2278,7 +2273,7 @@ int parse_admin (int fd)
 
             case 0x7920:       // Request of an accounts list
                 if (RFIFOREST (fd) < 10)
-                    return 0;
+                    return;
                 {
                     int  st, ed, len;
                     int  id[auth_num];
@@ -2342,7 +2337,7 @@ int parse_admin (int fd)
             case 0x7924:
             {                   // [Fate] Itemfrob package: change item IDs
                 if (RFIFOREST (fd) < 10)
-                    return 0;
+                    return;
                 charif_sendallwos (-1, RFIFOP (fd, 0), 10); // forward package to char servers
                 RFIFOSKIP (fd, 10);
                 WFIFOW (fd, 0) = 0x7925;
@@ -2352,7 +2347,7 @@ int parse_admin (int fd)
 
             case 0x7930:       // Request for an account creation
                 if (RFIFOREST (fd) < 91)
-                    return 0;
+                    return;
                 {
                     struct mmo_account ma;
                     ma.userid = RFIFOP (fd, 2);
@@ -2423,7 +2418,7 @@ int parse_admin (int fd)
 
             case 0x7932:       // Request for an account deletion
                 if (RFIFOREST (fd) < 26)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7933;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2465,7 +2460,7 @@ int parse_admin (int fd)
 
             case 0x7934:       // Request to change a password
                 if (RFIFOREST (fd) < 50)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7935;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2495,7 +2490,7 @@ int parse_admin (int fd)
 
             case 0x7936:       // Request to modify a state
                 if (RFIFOREST (fd) < 50)
-                    return 0;
+                    return;
                 {
                     char error_message[20];
                     int  statut;
@@ -2593,7 +2588,7 @@ int parse_admin (int fd)
 
             case 0x793a:       // Request to password check
                 if (RFIFOREST (fd) < 50)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x793b;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2635,7 +2630,7 @@ int parse_admin (int fd)
 
             case 0x793c:       // Request to modify sex
                 if (RFIFOREST (fd) < 27)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x793d;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2707,7 +2702,7 @@ int parse_admin (int fd)
 
             case 0x793e:       // Request to modify GM level
                 if (RFIFOREST (fd) < 27)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x793f;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2829,26 +2824,15 @@ int parse_admin (int fd)
                                              RETCODE, auth_dat[i].userid, acc,
                                              (int) new_gm_level, ip);
                                     }
-                                    if (lock_fclose
-                                        (fp2, GM_account_filename,
-                                         &lock) == 0)
-                                    {
-                                        WFIFOL (fd, 2) = acc;
-                                        login_log
-                                            ("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)"
-                                             RETCODE, auth_dat[i].userid, acc,
-                                             (int) new_gm_level, ip);
-                                        // read and send new GM informations
-                                        read_gm_account ();
-                                        send_GM_accounts ();
-                                    }
-                                    else
-                                    {
-                                        login_log
-                                            ("'ladmin': Attempt to modify of a GM level - impossible to write GM accounts file (account: %s (%d), received GM level: %d, ip: %s)"
-                                             RETCODE, auth_dat[i].userid, acc,
-                                             (int) new_gm_level, ip);
-                                    }
+                                    lock_fclose(fp2, GM_account_filename, &lock);
+                                    WFIFOL (fd, 2) = acc;
+                                    login_log
+                                        ("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)"
+                                            RETCODE, auth_dat[i].userid, acc,
+                                            (int) new_gm_level, ip);
+                                    // read and send new GM informations
+                                    read_gm_account ();
+                                    send_GM_accounts ();
                                 }
                                 else
                                 {
@@ -2881,7 +2865,7 @@ int parse_admin (int fd)
 
             case 0x7940:       // Request to modify e-mail
                 if (RFIFOREST (fd) < 66)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7941;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2925,7 +2909,7 @@ int parse_admin (int fd)
             case 0x7942:       // Request to modify memo field
                 if (RFIFOREST (fd) < 28
                     || RFIFOREST (fd) < (28 + RFIFOW (fd, 26)))
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7943;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -2971,7 +2955,7 @@ int parse_admin (int fd)
 
             case 0x7944:       // Request to found an account id
                 if (RFIFOREST (fd) < 26)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7945;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -3000,7 +2984,7 @@ int parse_admin (int fd)
 
             case 0x7946:       // Request to found an account name
                 if (RFIFOREST (fd) < 6)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7947;
                 WFIFOL (fd, 2) = RFIFOL (fd, 2);
                 memset (WFIFOP (fd, 6), '\0', 24);
@@ -3028,7 +3012,7 @@ int parse_admin (int fd)
 
             case 0x7948:       // Request to change the validity limit (timestamp) (absolute value)
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 {
                     time_t timestamp;
                     char tmpstr[2048];
@@ -3066,7 +3050,7 @@ int parse_admin (int fd)
 
             case 0x794a:       // Request to change the final date of a banishment (timestamp) (absolute value)
                 if (RFIFOREST (fd) < 30)
-                    return 0;
+                    return;
                 {
                     time_t timestamp;
                     char tmpstr[2048];
@@ -3122,7 +3106,7 @@ int parse_admin (int fd)
 
             case 0x794c:       // Request to change the final date of a banishment (timestamp) (relative change)
                 if (RFIFOREST (fd) < 38)
-                    return 0;
+                    return;
                 {
                     time_t timestamp;
                     struct tm *tmtime;
@@ -3229,7 +3213,7 @@ int parse_admin (int fd)
             case 0x794e:       // Request to send a broadcast message
                 if (RFIFOREST (fd) < 8
                     || RFIFOREST (fd) < (8 + RFIFOL (fd, 4)))
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x794f;
                 WFIFOW (fd, 2) = -1;
                 if (RFIFOL (fd, 4) < 1)
@@ -3280,7 +3264,7 @@ int parse_admin (int fd)
 
             case 0x7950:       // Request to change the validity limite (timestamp) (relative change)
                 if (RFIFOREST (fd) < 38)
-                    return 0;
+                    return;
                 {
                     time_t timestamp;
                     struct tm *tmtime;
@@ -3384,7 +3368,7 @@ int parse_admin (int fd)
 
             case 0x7952:       // Request about informations of an account (by account name)
                 if (RFIFOREST (fd) < 26)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7953;
                 WFIFOL (fd, 2) = -1;
                 account_name = RFIFOP (fd, 2);
@@ -3434,7 +3418,7 @@ int parse_admin (int fd)
 
             case 0x7954:       // Request about information of an account (by account id)
                 if (RFIFOREST (fd) < 6)
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7953;
                 WFIFOL (fd, 2) = RFIFOL (fd, 2);
                 memset (WFIFOP (fd, 7), '\0', 24);
@@ -3550,12 +3534,12 @@ int parse_admin (int fd)
                 session[fd]->eof = 1;
                 printf
                     ("Remote administration has been disconnected (unknown packet).\n");
-                return 0;
+                return;
         }
         //WFIFOW(fd,0) = 0x791f;
         //WFIFOSET(fd,2);
     }
-    return 0;
+    return;
 }
 
 //--------------------------------------------
@@ -3586,7 +3570,7 @@ int lan_ip_check (unsigned char *p)
 //----------------------------------------------------------------------------------------
 // Default packet parsing (normal players or administation/char-server connexion requests)
 //----------------------------------------------------------------------------------------
-int parse_login (int fd)
+void parse_login (int fd)
 {
     struct mmo_account account;
     int  result, i, j;
@@ -3600,7 +3584,7 @@ int parse_login (int fd)
     {
         close (fd);
         delete_session (fd);
-        return 0;
+        return;
     }
 
     while (RFIFOREST (fd) >= 2)
@@ -3631,20 +3615,20 @@ int parse_login (int fd)
         {
             case 0x200:        // New alive packet: structure: 0x200 <account.userid>.24B. used to verify if client is always alive.
                 if (RFIFOREST (fd) < 26)
-                    return 0;
+                    return;
                 RFIFOSKIP (fd, 26);
                 break;
 
             case 0x204:        // New alive packet: structure: 0x204 <encrypted.account.userid>.16B. (new ragexe from 22 june 2004)
                 if (RFIFOREST (fd) < 18)
-                    return 0;
+                    return;
                 RFIFOSKIP (fd, 18);
                 break;
 
             case 0x64:         // Ask connection of a client
             case 0x01dd:       // Ask connection of a client (encryption mode)
                 if (RFIFOREST (fd) < ((RFIFOW (fd, 0) == 0x64) ? 55 : 47))
-                    return 0;
+                    return;
 
                 account.userid = RFIFOP (fd, 6);
                 account.userid[23] = '\0';
@@ -3867,15 +3851,16 @@ int parse_login (int fd)
                     printf
                         ("login: abnormal request of MD5 key (already opened session).\n");
                     session[fd]->eof = 1;
-                    return 0;
+                    return;
                 }
-                ld = session[fd]->session_data = calloc (sizeof (*ld), 1);
+                CREATE (ld, struct login_session_data, 1);
+                session[fd]->session_data = ld;
                 if (!ld)
                 {
                     printf
                         ("login: Request for md5 key: memory allocation failure (malloc)!\n");
                     session[fd]->eof = 1;
-                    return 0;
+                    return;
                 }
                 if (RFIFOW (fd, 0) == 0x01db)
                 {
@@ -3904,7 +3889,7 @@ int parse_login (int fd)
 
             case 0x2710:       // Connection request of a char-server
                 if (RFIFOREST (fd) < 86)
-                    return 0;
+                    return;
                 {
                     int  GM_value, len;
                     unsigned char *server_name;
@@ -3930,7 +3915,7 @@ int parse_login (int fd)
                     {
                         // If this is the main server, and we don't already have a main server
                         if (server_fd[0] <= 0
-                            && strcmpi (server_name, main_server) == 0)
+                            && strcasecmp (server_name, main_server) == 0)
                         {
                             account.account_id = 0;
                         }
@@ -4006,7 +3991,7 @@ int parse_login (int fd)
                     }
                 }
                 RFIFOSKIP (fd, 86);
-                return 0;
+                return;
 
             case 0x7530:       // Request of the server version
                 login_log ("Sending of the server version (ip: %s)" RETCODE,
@@ -4024,12 +4009,12 @@ int parse_login (int fd)
             case 0x7532:       // Request to end connection
                 login_log ("End of connection (ip: %s)" RETCODE, ip);
                 session[fd]->eof = 1;
-                return 0;
+                return;
 
             case 0x7918:       // Request for administation login
                 if (RFIFOREST (fd) < 4
                     || RFIFOREST (fd) < ((RFIFOW (fd, 2) == 0) ? 28 : 20))
-                    return 0;
+                    return;
                 WFIFOW (fd, 0) = 0x7919;
                 WFIFOB (fd, 2) = 1;
                 if (!check_ladminip
@@ -4087,7 +4072,7 @@ int parse_login (int fd)
                                 strncpy (md5str, admin_pass, sizeof (admin_pass));  // 24
                                 strcat (md5str, ld->md5key);    // 20
                             }
-                            MD5_String2binary (md5str, md5bin);
+                            MD5_to_bin(MD5_from_cstring(md5str), md5bin);
                             // If remote administration is enabled and password hash sent by client matches hash of password read from login server configuration file
                             if ((admin_state == 1)
                                 && (memcmp (md5bin, RFIFOP (fd, 4), 16) == 0))
@@ -4173,10 +4158,10 @@ int parse_login (int fd)
                 login_log ("End of connection, unknown packet (ip: %s)"
                            RETCODE, ip);
                 session[fd]->eof = 1;
-                return 0;
+                return;
         }
     }
-    return 0;
+    return;
 }
 
 //-------------------------------------------------
@@ -4185,12 +4170,12 @@ int parse_login (int fd)
 //-------------------------------------------------
 int config_switch (const char *str)
 {
-    if (strcmpi (str, "on") == 0 || strcmpi (str, "yes") == 0
-        || strcmpi (str, "oui") == 0 || strcmpi (str, "ja") == 0
-        || strcmpi (str, "si") == 0)
+    if (strcasecmp (str, "on") == 0 || strcasecmp (str, "yes") == 0
+        || strcasecmp (str, "oui") == 0 || strcasecmp (str, "ja") == 0
+        || strcasecmp (str, "si") == 0)
         return 1;
-    if (strcmpi (str, "off") == 0 || strcmpi (str, "no") == 0
-        || strcmpi (str, "non") == 0 || strcmpi (str, "nein") == 0)
+    if (strcasecmp (str, "off") == 0 || strcasecmp (str, "no") == 0
+        || strcasecmp (str, "non") == 0 || strcasecmp (str, "nein") == 0)
         return 0;
 
     return atoi (str);
@@ -4238,7 +4223,7 @@ int login_lan_config_read (const char *lancfgName)
 
         remove_control_chars (w1);
         remove_control_chars (w2);
-        if (strcmpi (w1, "lan_char_ip") == 0)
+        if (strcasecmp (w1, "lan_char_ip") == 0)
         {                       // Read Char-Server Lan IP Address
             h = gethostbyname (w2);
             if (h != NULL)
@@ -4256,7 +4241,7 @@ int login_lan_config_read (const char *lancfgName)
             }
             printf ("LAN IP of char-server: %s.\n", lan_char_ip);
         }
-        else if (strcmpi (w1, "subnet") == 0)
+        else if (strcasecmp (w1, "subnet") == 0)
         {                       // Read Subnetwork
             for (j = 0; j < 4; j++)
                 subneti[j] = 0;
@@ -4274,7 +4259,7 @@ int login_lan_config_read (const char *lancfgName)
             printf ("Sub-network of the char-server: %d.%d.%d.%d.\n",
                     subneti[0], subneti[1], subneti[2], subneti[3]);
         }
-        else if (strcmpi (w1, "subnetmask") == 0)
+        else if (strcasecmp (w1, "subnetmask") == 0)
         {                       // Read Subnetwork Mask
             for (j = 0; j < 4; j++)
                 subnetmaski[j] = 255;
@@ -4357,18 +4342,18 @@ int login_config_read (const char *cfgName)
             remove_control_chars (w1);
             remove_control_chars (w2);
 
-            if (strcmpi (w1, "admin_state") == 0)
+            if (strcasecmp (w1, "admin_state") == 0)
             {
                 admin_state = config_switch (w2);
             }
-            else if (strcmpi (w1, "admin_pass") == 0)
+            else if (strcasecmp (w1, "admin_pass") == 0)
             {
                 strncpy (admin_pass, w2, sizeof (admin_pass));
                 admin_pass[sizeof (admin_pass) - 1] = '\0';
             }
-            else if (strcmpi (w1, "ladminallowip") == 0)
+            else if (strcasecmp (w1, "ladminallowip") == 0)
             {
-                if (strcmpi (w2, "clear") == 0)
+                if (strcasecmp (w2, "clear") == 0)
                 {
                     if (access_ladmin_allow)
                         free (access_ladmin_allow);
@@ -4377,27 +4362,23 @@ int login_config_read (const char *cfgName)
                 }
                 else
                 {
-                    if (strcmpi (w2, "all") == 0)
+                    if (strcasecmp (w2, "all") == 0)
                     {
                         // reset all previous values
                         if (access_ladmin_allow)
                             free (access_ladmin_allow);
                         // set to all
-                        access_ladmin_allow = calloc (ACO_STRSIZE, 1);
+                        CREATE (access_ladmin_allow, char, ACO_STRSIZE);
                         access_ladmin_allownum = 1;
-                        access_ladmin_allow[0] = '\0';
                     }
                     else if (w2[0]
                              && !(access_ladmin_allownum == 1
                                   && access_ladmin_allow[0] == '\0'))
                     {           // don't add IP if already 'all'
                         if (access_ladmin_allow)
-                            access_ladmin_allow =
-                                realloc (access_ladmin_allow,
-                                         (access_ladmin_allownum +
-                                          1) * ACO_STRSIZE);
+                            RECREATE (access_ladmin_allow, char, (access_ladmin_allownum + 1) * ACO_STRSIZE);
                         else
-                            access_ladmin_allow = calloc (ACO_STRSIZE, 1);
+                            CREATE (access_ladmin_allow, char, ACO_STRSIZE);
                         strncpy (access_ladmin_allow +
                                  (access_ladmin_allownum++) * ACO_STRSIZE, w2,
                                  ACO_STRSIZE);
@@ -4406,44 +4387,44 @@ int login_config_read (const char *cfgName)
                     }
                 }
             }
-            else if (strcmpi (w1, "gm_pass") == 0)
+            else if (strcasecmp (w1, "gm_pass") == 0)
             {
                 strncpy (gm_pass, w2, sizeof (gm_pass));
                 gm_pass[sizeof (gm_pass) - 1] = '\0';
             }
-            else if (strcmpi (w1, "level_new_gm") == 0)
+            else if (strcasecmp (w1, "level_new_gm") == 0)
             {
                 level_new_gm = atoi (w2);
             }
-            else if (strcmpi (w1, "new_account") == 0)
+            else if (strcasecmp (w1, "new_account") == 0)
             {
                 new_account_flag = config_switch (w2);
             }
-            else if (strcmpi (w1, "login_port") == 0)
+            else if (strcasecmp (w1, "login_port") == 0)
             {
                 login_port = atoi (w2);
             }
-            else if (strcmpi (w1, "account_filename") == 0)
+            else if (strcasecmp (w1, "account_filename") == 0)
             {
                 strncpy (account_filename, w2, sizeof (account_filename));
                 account_filename[sizeof (account_filename) - 1] = '\0';
             }
-            else if (strcmpi (w1, "gm_account_filename") == 0)
+            else if (strcasecmp (w1, "gm_account_filename") == 0)
             {
                 strncpy (GM_account_filename, w2,
                          sizeof (GM_account_filename));
                 GM_account_filename[sizeof (GM_account_filename) - 1] = '\0';
             }
-            else if (strcmpi (w1, "gm_account_filename_check_timer") == 0)
+            else if (strcasecmp (w1, "gm_account_filename_check_timer") == 0)
             {
                 gm_account_filename_check_timer = atoi (w2);
             }
-            else if (strcmpi (w1, "login_log_filename") == 0)
+            else if (strcasecmp (w1, "login_log_filename") == 0)
             {
                 strncpy (login_log_filename, w2, sizeof (login_log_filename));
                 login_log_filename[sizeof (login_log_filename) - 1] = '\0';
             }
-            else if (strcmpi (w1, "login_log_unknown_packets_filename") == 0)
+            else if (strcasecmp (w1, "login_log_unknown_packets_filename") == 0)
             {
                 strncpy (login_log_unknown_packets_filename, w2,
                          sizeof (login_log_unknown_packets_filename));
@@ -4451,23 +4432,23 @@ int login_config_read (const char *cfgName)
                                                    (login_log_unknown_packets_filename)
                                                    - 1] = '\0';
             }
-            else if (strcmpi (w1, "save_unknown_packets") == 0)
+            else if (strcasecmp (w1, "save_unknown_packets") == 0)
             {
                 save_unknown_packets = config_switch (w2);
             }
-            else if (strcmpi (w1, "display_parse_login") == 0)
+            else if (strcasecmp (w1, "display_parse_login") == 0)
             {
                 display_parse_login = config_switch (w2);   // 0: no, 1: yes
             }
-            else if (strcmpi (w1, "display_parse_admin") == 0)
+            else if (strcasecmp (w1, "display_parse_admin") == 0)
             {
                 display_parse_admin = config_switch (w2);   // 0: no, 1: yes
             }
-            else if (strcmpi (w1, "display_parse_fromchar") == 0)
+            else if (strcasecmp (w1, "display_parse_fromchar") == 0)
             {
                 display_parse_fromchar = config_switch (w2);    // 0: no, 1: yes (without packet 0x2714), 2: all packets
             }
-            else if (strcmpi (w1, "date_format") == 0)
+            else if (strcasecmp (w1, "date_format") == 0)
             {                   // note: never have more than 19 char for the date!
                 switch (atoi (w2))
                 {
@@ -4485,38 +4466,38 @@ int login_config_read (const char *cfgName)
                         break;
                 }
             }
-            else if (strcmpi (w1, "min_level_to_connect") == 0)
+            else if (strcasecmp (w1, "min_level_to_connect") == 0)
             {
                 min_level_to_connect = atoi (w2);
             }
-            else if (strcmpi (w1, "add_to_unlimited_account") == 0)
+            else if (strcasecmp (w1, "add_to_unlimited_account") == 0)
             {
                 add_to_unlimited_account = config_switch (w2);
             }
-            else if (strcmpi (w1, "start_limited_time") == 0)
+            else if (strcasecmp (w1, "start_limited_time") == 0)
             {
                 start_limited_time = atoi (w2);
             }
-            else if (strcmpi (w1, "check_ip_flag") == 0)
+            else if (strcasecmp (w1, "check_ip_flag") == 0)
             {
                 check_ip_flag = config_switch (w2);
             }
-            else if (strcmpi (w1, "order") == 0)
+            else if (strcasecmp (w1, "order") == 0)
             {
                 access_order = atoi (w2);
-                if (strcmpi (w2, "deny,allow") == 0 ||
-                    strcmpi (w2, "deny, allow") == 0)
+                if (strcasecmp (w2, "deny,allow") == 0 ||
+                    strcasecmp (w2, "deny, allow") == 0)
                     access_order = ACO_DENY_ALLOW;
-                if (strcmpi (w2, "allow,deny") == 0 ||
-                    strcmpi (w2, "allow, deny") == 0)
+                if (strcasecmp (w2, "allow,deny") == 0 ||
+                    strcasecmp (w2, "allow, deny") == 0)
                     access_order = ACO_ALLOW_DENY;
-                if (strcmpi (w2, "mutual-failture") == 0 ||
-                    strcmpi (w2, "mutual-failure") == 0)
+                if (strcasecmp (w2, "mutual-failture") == 0 ||
+                    strcasecmp (w2, "mutual-failure") == 0)
                     access_order = ACO_MUTUAL_FAILTURE;
             }
-            else if (strcmpi (w1, "allow") == 0)
+            else if (strcasecmp (w1, "allow") == 0)
             {
-                if (strcmpi (w2, "clear") == 0)
+                if (strcasecmp (w2, "clear") == 0)
                 {
                     if (access_allow)
                         free (access_allow);
@@ -4525,26 +4506,23 @@ int login_config_read (const char *cfgName)
                 }
                 else
                 {
-                    if (strcmpi (w2, "all") == 0)
+                    if (strcasecmp (w2, "all") == 0)
                     {
                         // reset all previous values
                         if (access_allow)
                             free (access_allow);
                         // set to all
-                        access_allow = calloc (ACO_STRSIZE, 1);
+                        CREATE (access_allow, char, ACO_STRSIZE);
                         access_allownum = 1;
-                        access_allow[0] = '\0';
                     }
                     else if (w2[0]
                              && !(access_allownum == 1
                                   && access_allow[0] == '\0'))
                     {           // don't add IP if already 'all'
                         if (access_allow)
-                            access_allow =
-                                realloc (access_allow,
-                                         (access_allownum + 1) * ACO_STRSIZE);
+                            RECREATE (access_allow, char, (access_allownum + 1) * ACO_STRSIZE);
                         else
-                            access_allow = calloc (ACO_STRSIZE, 1);
+                            CREATE (access_allow, char, ACO_STRSIZE);
                         strncpy (access_allow +
                                  (access_allownum++) * ACO_STRSIZE, w2,
                                  ACO_STRSIZE);
@@ -4553,9 +4531,9 @@ int login_config_read (const char *cfgName)
                     }
                 }
             }
-            else if (strcmpi (w1, "deny") == 0)
+            else if (strcasecmp (w1, "deny") == 0)
             {
-                if (strcmpi (w2, "clear") == 0)
+                if (strcasecmp (w2, "clear") == 0)
                 {
                     if (access_deny)
                         free (access_deny);
@@ -4564,26 +4542,23 @@ int login_config_read (const char *cfgName)
                 }
                 else
                 {
-                    if (strcmpi (w2, "all") == 0)
+                    if (strcasecmp (w2, "all") == 0)
                     {
                         // reset all previous values
                         if (access_deny)
                             free (access_deny);
                         // set to all
-                        access_deny = calloc (ACO_STRSIZE, 1);
+                        CREATE (access_deny, char, ACO_STRSIZE);
                         access_denynum = 1;
-                        access_deny[0] = '\0';
                     }
                     else if (w2[0]
                              && !(access_denynum == 1
                                   && access_deny[0] == '\0'))
                     {           // don't add IP if already 'all'
                         if (access_deny)
-                            access_deny =
-                                realloc (access_deny,
-                                         (access_denynum + 1) * ACO_STRSIZE);
+                            RECREATE (access_deny, char, (access_denynum + 1) * ACO_STRSIZE);
                         else
-                            access_deny = calloc (ACO_STRSIZE, 1);
+                            CREATE (access_deny, char, ACO_STRSIZE);
                         strncpy (access_deny +
                                  (access_denynum++) * ACO_STRSIZE, w2,
                                  ACO_STRSIZE);
@@ -4591,26 +4566,26 @@ int login_config_read (const char *cfgName)
                     }
                 }
             }
-            else if (strcmpi (w1, "anti_freeze_enable") == 0)
+            else if (strcasecmp (w1, "anti_freeze_enable") == 0)
             {
                 anti_freeze_enable = config_switch (w2);
             }
-            else if (strcmpi (w1, "anti_freeze_interval") == 0)
+            else if (strcasecmp (w1, "anti_freeze_interval") == 0)
             {
                 ANTI_FREEZE_INTERVAL = atoi (w2);
                 if (ANTI_FREEZE_INTERVAL < 5)
                     ANTI_FREEZE_INTERVAL = 5;   // minimum 5 seconds
             }
-            else if (strcmpi (w1, "import") == 0)
+            else if (strcasecmp (w1, "import") == 0)
             {
                 login_config_read (w2);
             }
-            else if (strcmpi (w1, "update_host") == 0)
+            else if (strcasecmp (w1, "update_host") == 0)
             {
                 strncpy (update_host, w2, sizeof (update_host));
                 update_host[sizeof (update_host) - 1] = '\0';
             }
-            else if (strcmpi (w1, "main_server") == 0)
+            else if (strcasecmp (w1, "main_server") == 0)
             {
                 strncpy (main_server, w2, sizeof (main_server));
                 main_server[sizeof (main_server) - 1] = '\0';
@@ -5079,19 +5054,18 @@ int do_init (int argc, char **argv)
 
     read_gm_account ();
     mmo_auth_init ();
-    set_termfunc (mmo_auth_sync);
+//     set_termfunc (mmo_auth_sync);
     set_defaultparse (parse_login);
     login_fd = make_listen_port (login_port);
 
-    add_timer_func_list (check_auth_sync, "check_auth_sync");
+//    add_timer_func_list (check_auth_sync, "check_auth_sync");
 
     // Trigger auth sync every 5 minutes
     i = add_timer_interval (gettick () + 300000, check_auth_sync, 0, 0, 300000);
 
     if (anti_freeze_enable > 0)
     {
-        add_timer_func_list (char_anti_freeze_system,
-                             "char_anti_freeze_system");
+//        add_timer_func_list (char_anti_freeze_system, "char_anti_freeze_system");
         i = add_timer_interval (gettick () + 1000, char_anti_freeze_system, 0,
                                 0, ANTI_FREEZE_INTERVAL * 1000);
     }
@@ -5100,7 +5074,7 @@ int do_init (int argc, char **argv)
     j = gm_account_filename_check_timer;
     if (j == 0)                 // if we would not to check, we check every 60 sec, just to have timer (if we change timer, is was not necessary to check if timer already exists)
         j = 60;
-    add_timer_func_list (check_GM_file, "check_GM_file");
+//    add_timer_func_list (check_GM_file, "check_GM_file");
     i = add_timer_interval (gettick () + j * 1000, check_GM_file, 0, 0, j * 1000);  // every x sec we check if gm file has been changed
 
     login_log

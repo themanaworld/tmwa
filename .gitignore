@@ -1,12 +1,22 @@
 # files generated during make
 *.o
+src/char/char
 char-server
-ladmin
+src/ladmin/ladmin
+/ladmin
+src/login/login
 login-server
+src/map/map
 map-server
-GNUmakefile
 eathena-monitor
 magic-interpreter-parser.h
 magic-interpreter-parser.c
 magic-interpreter-lexer.c
+magic-interpreter-parser.output
 
+src/tool/adduser
+src/tool/itemfrob
+src/tool/mapfrob
+src/tool/marriage-info
+src/tool/eathena-monitor
+src/webserver/webserver

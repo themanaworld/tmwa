@@ -1,12 +1,40 @@
-# $Id$
 include make.defs
 
-all clean: src/common/Makefile src/login/Makefile src/char/Makefile src/map/Makefile src/ladmin/Makefile
-	cd src ; cd common ; $(MAKE) $(MKDEF) $@ ; cd ..
-	cd src ; cd login ; $(MAKE) $(MKDEF) $@ ; cd ..
-	cd src ; cd char ; $(MAKE) $(MKDEF) $@ ; cd ..
-	cd src ; cd map ; $(MAKE) $(MKDEF) $@ ; cd ..
-	cd src ; cd ladmin ; $(MAKE) $(MKDEF) $@ ; cd ..
+all: login-server char-server map-server ladmin
+tools: tool eathena-monitor
 
-tools:
-	cd src/tool && $(MAKE) $(MKDEF) && cd ..
+
+common: src/common
+	${MAKE} -C src/common
+login-server: common src/login
+	${MAKE} -C src/login
+	${CP} src/login/login login-server
+char-server: common src/char
+	${MAKE} -C src/char
+	${CP} src/char/char char-server
+map-server: common src/map
+	${MAKE} -C src/map
+	${CP} src/map/map map-server
+ladmin: common src/ladmin
+	${MAKE} -C src/ladmin
+
+clean: clean-common clean-login clean-char clean-map clean-ladmin clean-tools
+
+clean-common:
+	${MAKE} -C src/common clean
+clean-login:
+	${MAKE} -C src/login clean
+clean-char:
+	${MAKE} -C src/char clean
+clean-map:
+	${MAKE} -C src/map clean
+clean-ladmin:
+	${MAKE} -C src/ladmin clean
+
+# This target is separate for historical reasons, and because it is optional
+tool: common src/tool
+	${MAKE} -C src/tool
+eathena-monitor: tool
+	${CP} src/tool/eathena-monitor .
+clean-tools:
+	${MAKE} -C src/tool clean

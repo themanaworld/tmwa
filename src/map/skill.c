@@ -6,9 +6,9 @@
 #include <string.h>
 #include <time.h>
 
-#include "timer.h"
-#include "nullpo.h"
-#include "malloc.h"
+#include "../common/timer.h"
+#include "../common/nullpo.h"
+#include "../common/mt_rand.h"
 #include "magic.h"
 
 #include "battle.h"
@@ -2250,7 +2250,7 @@ int skill_area_sub_count (struct block_list *src, struct block_list *target,
  *
  *------------------------------------------
  */
-static int skill_timerskill (int tid, unsigned int tick, int id, int data)
+static void skill_timerskill (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = NULL;
     struct mob_data *md = NULL;
@@ -2258,26 +2258,26 @@ static int skill_timerskill (int tid, unsigned int tick, int id, int data)
     struct skill_timerskill *skl = NULL;
     int  range;
 
-    nullpo_retr (0, src);
+    nullpo_retv (src);
 
     if (src->prev == NULL)
-        return 0;
+        return;
 
     if (src->type == BL_PC)
     {
-        nullpo_retr (0, sd = (struct map_session_data *) src);
+        nullpo_retv (sd = (struct map_session_data *) src);
         skl = &sd->skilltimerskill[data];
     }
     else if (src->type == BL_MOB)
     {
-        nullpo_retr (0, md = (struct mob_data *) src);
+        nullpo_retv (md = (struct mob_data *) src);
         skl = &md->skilltimerskill[data];
     }
 
     else
-        return 0;
+        return;
 
-    nullpo_retr (0, skl);
+    nullpo_retv (skl);
 
     skl->timer = -1;
     if (skl->target_id)
@@ -2295,17 +2295,17 @@ static int skill_timerskill (int tid, unsigned int tick, int id, int data)
             }
         }
         if (target == NULL)
-            return 0;
+            return;
         if (target->prev == NULL && skl->skill_id != RG_INTIMIDATE)
-            return 0;
+            return;
         if (src->m != target->m)
-            return 0;
+            return;
         if (sd && pc_isdead (sd))
-            return 0;
+            return;
         if (target->type == BL_PC
             && pc_isdead ((struct map_session_data *) target)
             && skl->skill_id != RG_INTIMIDATE)
-            return 0;
+            return;
 
         switch (skl->skill_id)
         {
@@ -2392,7 +2392,7 @@ static int skill_timerskill (int tid, unsigned int tick, int id, int data)
     else
     {
         if (src->m != skl->map)
-            return 0;
+            return;
         switch (skl->skill_id)
         {
             case WZ_METEOR:
@@ -2410,8 +2410,6 @@ static int skill_timerskill (int tid, unsigned int tick, int id, int data)
                 break;
         }
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -5145,19 +5143,19 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
  * スキル使用（詠唱完了、ID指定）
  *------------------------------------------
  */
-int skill_castend_id (int tid, unsigned int tick, int id, int data)
+void skill_castend_id (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd (id) /*,*target_sd=NULL */ ;
     struct block_list *bl;
     int  range, inf2;
 
-    nullpo_retr (0, sd);
+    nullpo_retv ( sd);
 
     if (sd->bl.prev == NULL)    //prevが無いのはありなの？
-        return 0;
+        return;
 
     if (sd->skillid != SA_CASTCANCEL && sd->skilltimer != tid)  /* タイマIDの確認 */
-        return 0;
+        return;
     if (sd->skillid != SA_CASTCANCEL && sd->skilltimer != -1
         && pc_checkskill (sd, SA_FREECAST) > 0)
     {
@@ -5172,14 +5170,14 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         sd->skillitem = sd->skillitemlv = -1;
-        return 0;
+        return;
     }
     if (sd->bl.m != bl->m || pc_isdead (sd))
     {                           //マップが違うか自分が死んでいる
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         sd->skillitem = sd->skillitemlv = -1;
-        return 0;
+        return;
     }
 
     if (sd->skillid == PR_LEXAETERNA)
@@ -5194,7 +5192,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
             sd->skillitem = sd->skillitemlv = -1;
-            return 0;
+            return;
         }
     }
     else if (sd->skillid == RG_BACKSTAP)
@@ -5208,7 +5206,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
             sd->skillitem = sd->skillitemlv = -1;
-            return 0;
+            return;
         }
     }
 
@@ -5219,7 +5217,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         sd->skillitem = sd->skillitemlv = -1;
-        return 0;
+        return;
     }
     if (inf2 & 0xC00 && sd->bl.id != bl->id)
     {
@@ -5235,7 +5233,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
             sd->skillitem = sd->skillitemlv = -1;
-            return 0;
+            return;
         }
     }
 
@@ -5261,7 +5259,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
             sd->skillitem = sd->skillitemlv = -1;
-            return 0;
+            return;
         }
     }
     if (!skill_check_condition (sd, 1))
@@ -5269,7 +5267,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         sd->skillitem = sd->skillitemlv = -1;
-        return 0;
+        return;
     }
     sd->skillitem = sd->skillitemlv = -1;
     if (battle_config.skill_out_range_consume)
@@ -5279,7 +5277,7 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
             clif_skill_fail (sd, sd->skillid, 0, 0);
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
-            return 0;
+            return;
         }
     }
 
@@ -5308,8 +5306,6 @@ int skill_castend_id (int tid, unsigned int tick, int id, int data)
                                            sd->skilllv, tick, 0);
             break;
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -5631,7 +5627,7 @@ int skill_castend_map (struct map_session_data *sd, int skill_num,
                  skill_unitsetting (&sd->bl, sd->skillid, sd->skilllv,
                                     sd->skillx, sd->skilly, 0)) == NULL)
                 return 0;
-            group->valstr = (char *) aCalloc (24, sizeof (char));
+            CREATE (group->valstr, char, 24);
             memcpy (group->valstr, map, 24);
             group->val2 = (x << 16) | y;
         }
@@ -7001,17 +6997,17 @@ int skill_unit_ondamaged (struct skill_unit *src, struct block_list *bl,
  * スキル使用（詠唱完了、場所指定）
  *------------------------------------------
  */
-int skill_castend_pos (int tid, unsigned int tick, int id, int data)
+void skill_castend_pos (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd (id) /*,*target_sd=NULL */ ;
     int  range, maxcount;
 
-    nullpo_retr (0, sd);
+    nullpo_retv (sd);
 
     if (sd->bl.prev == NULL)
-        return 0;
+        return;
     if (sd->skilltimer != tid)  /* タイマIDの確認 */
-        return 0;
+        return;
     if (sd->skilltimer != -1 && pc_checkskill (sd, SA_FREECAST) > 0)
     {
         sd->speed = sd->prev_speed;
@@ -7023,7 +7019,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         sd->skillitem = sd->skillitemlv = -1;
-        return 0;
+        return;
     }
 
     if (battle_config.pc_skill_reiteration == 0)
@@ -7061,7 +7057,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
                 sd->canact_tick = tick;
                 sd->canmove_tick = tick;
                 sd->skillitem = sd->skillitemlv = -1;
-                return 0;
+                return;
             }
         }
     }
@@ -7098,7 +7094,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
                 sd->canact_tick = tick;
                 sd->canmove_tick = tick;
                 sd->skillitem = sd->skillitemlv = -1;
-                return 0;
+                return;
             }
         }
     }
@@ -7121,7 +7117,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
                 sd->canact_tick = tick;
                 sd->canmove_tick = tick;
                 sd->skillitem = sd->skillitemlv = -1;
-                return 0;
+                return;
             }
         }
     }
@@ -7138,7 +7134,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
             sd->skillitem = sd->skillitemlv = -1;
-            return 0;
+            return;
         }
     }
     if (!skill_check_condition (sd, 1))
@@ -7146,7 +7142,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         sd->skillitem = sd->skillitemlv = -1;
-        return 0;
+        return;
     }
     sd->skillitem = sd->skillitemlv = -1;
     if (battle_config.skill_out_range_consume)
@@ -7156,7 +7152,7 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
             clif_skill_fail (sd, sd->skillid, 0, 0);
             sd->canact_tick = tick;
             sd->canmove_tick = tick;
-            return 0;
+            return;
         }
     }
 
@@ -7166,8 +7162,6 @@ int skill_castend_pos (int tid, unsigned int tick, int id, int data)
 
     skill_castend_pos2 (&sd->bl, sd->skillx, sd->skilly, sd->skillid,
                         sd->skilllv, tick, 0);
-
-    return 0;
 }
 
 /*==========================================
@@ -7338,8 +7332,11 @@ static int skill_check_condition_mob_master_sub (struct block_list *bl,
     nullpo_retr (0, bl);
     nullpo_retr (0, ap);
     nullpo_retr (0, md = (struct mob_data *) bl);
-    nullpo_retr (0, src_id = va_arg (ap, int));
-    nullpo_retr (0, mob_class = va_arg (ap, int));
+
+    if (!(src_id = va_arg (ap, int)))
+        return 0;
+    if (!(mob_class = va_arg (ap, int)))
+        return 0;
     nullpo_retr (0, c = va_arg (ap, int *));
 
     if (md->class == mob_class && md->master_id == src_id)
@@ -8418,7 +8415,6 @@ int skill_use_pos (struct map_session_data *sd,
 int skill_castcancel (struct block_list *bl, int type)
 {
     int  inf;
-    int  ret = 0;
 
     nullpo_retr (0, bl);
 
@@ -8439,22 +8435,16 @@ int skill_castcancel (struct block_list *bl, int type)
             if (!type)
             {
                 if ((inf = skill_get_inf (sd->skillid)) == 2 || inf == 32)
-                    ret = delete_timer (sd->skilltimer, skill_castend_pos);
+                    delete_timer (sd->skilltimer, skill_castend_pos);
                 else
-                    ret = delete_timer (sd->skilltimer, skill_castend_id);
-                if (ret < 0)
-                    printf ("delete timer error : skillid : %d\n",
-                            sd->skillid);
+                    delete_timer (sd->skilltimer, skill_castend_id);
             }
             else
             {
                 if ((inf = skill_get_inf (sd->skillid_old)) == 2 || inf == 32)
-                    ret = delete_timer (sd->skilltimer, skill_castend_pos);
+                    delete_timer (sd->skilltimer, skill_castend_pos);
                 else
-                    ret = delete_timer (sd->skilltimer, skill_castend_id);
-                if (ret < 0)
-                    printf ("delete timer error : skillid : %d\n",
-                            sd->skillid_old);
+                    delete_timer (sd->skilltimer, skill_castend_id);
             }
             sd->skilltimer = -1;
             clif_skillcastcancel (bl);
@@ -8469,14 +8459,12 @@ int skill_castcancel (struct block_list *bl, int type)
         if (md->skilltimer != -1)
         {
             if ((inf = skill_get_inf (md->skillid)) == 2 || inf == 32)
-                ret = delete_timer (md->skilltimer, mobskill_castend_pos);
+                delete_timer (md->skilltimer, mobskill_castend_pos);
             else
-                ret = delete_timer (md->skilltimer, mobskill_castend_id);
+                delete_timer (md->skilltimer, mobskill_castend_id);
             md->skilltimer = -1;
             clif_skillcastcancel (bl);
         }
-        if (ret < 0)
-            printf ("delete timer error : skillid : %d\n", md->skillid);
         return 0;
     }
     return 1;
@@ -9496,7 +9484,7 @@ int skill_update_heal_animation (struct map_session_data *sd)
  * ステータス異常終了タイマー
  *------------------------------------------
  */
-int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
+void skill_status_change_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  type = data;
     struct block_list *bl;
@@ -9505,8 +9493,8 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
     //short *sc_count; //使ってない？
 
     if ((bl = map_id2bl (id)) == NULL)
-        return 0;               //該当IDがすでに消滅しているというのはいかにもありそうなのでスルーしてみる
-    nullpo_retr (0, sc_data = battle_get_sc_data (bl));
+        return;               //該当IDがすでに消滅しているというのはいかにもありそうなのでスルーしてみる
+    nullpo_retv (sc_data = battle_get_sc_data (bl));
 
     if (bl->type == BL_PC)
         sd = (struct map_session_data *) bl;
@@ -9543,7 +9531,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
             }
             break;
@@ -9562,7 +9550,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         1000 + tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
             }
             break;
@@ -9581,7 +9569,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                     250 + tick,
                                                     skill_status_change_timer,
                                                     bl->id, data);
-                return 0;
+                return;
             }
         }
             break;
@@ -9599,7 +9587,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                     250 + tick,
                                                     skill_status_change_timer,
                                                     bl->id, data);
-                return 0;
+                return;
             }
         }
             break;
@@ -9613,7 +9601,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                 sc_data[type].timer =
                     add_timer (1000 * 600 + tick, skill_status_change_timer,
                                bl->id, data);
-                return 0;
+                return;
             }
         }
             break;
@@ -9626,7 +9614,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                 sc_data[type].timer =
                     add_timer (1000 + tick, skill_status_change_timer, bl->id,
                                data);
-                return 0;
+                return;
             }
             break;
 
@@ -9642,7 +9630,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                 sc_data[type].timer =
                     add_timer (150 + tick, skill_status_change_timer, bl->id,
                                data);
-                return 0;
+                return;
             }
         }
             break;
@@ -9654,7 +9642,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                     add_timer (1000 * 600 + tick, skill_status_change_timer,
                                bl->id, data);
                 sc_data[type].val2 = 1;
-                return 0;
+                return;
             }
             break;
 
@@ -9678,7 +9666,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                (unit->group->skill_id,
                                 unit->group->skill_lv) + tick,
                                skill_status_change_timer, bl->id, data);
-                return 0;
+                return;
             }
             break;
 
@@ -9697,7 +9685,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                (unit->group->skill_id,
                                 unit->group->skill_lv) / 10 + tick,
                                skill_status_change_timer, bl->id, data);
-                return 0;
+                return;
             }
             break;
 
@@ -9716,7 +9704,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                 sc_data[type].timer =
                     add_timer (1000 + tick, skill_status_change_timer, bl->id,
                                data);
-                return 0;
+                return;
             }
             else if ((--sc_data[type].val3) > 0)
             {
@@ -9740,7 +9728,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                 sc_data[type].timer =
                     add_timer (1000 + tick, skill_status_change_timer, bl->id,
                                data);
-                return 0;
+                return;
             }
             break;
         case SC_POISON:
@@ -9796,7 +9784,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         10000 + tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
                 if (sd->status.max_hp <= sd->status.hp)
                     skill_status_change_end (&sd->bl, SC_TENSIONRELAX, -1);
@@ -9819,7 +9807,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                 sc_data[type].timer =
                     add_timer (1000 * 600 + tick, skill_status_change_timer,
                                bl->id, data);
-            return 0;
+            return;
 
         case SC_DANCING:       //ダンススキルの時間SP消費
         {
@@ -9869,7 +9857,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         1000 + tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
             }
         }
@@ -9885,7 +9873,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         15000 + tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
             }
             break;
@@ -9899,7 +9887,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         10000 + tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
             }
             break;
@@ -9916,7 +9904,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                         60000 + tick,
                                                         skill_status_change_timer,
                                                         bl->id, data);
-                    return 0;
+                    return;
                 }
             }
             break;
@@ -9934,7 +9922,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
                                                     1000 + tick,
                                                     skill_status_change_timer,
                                                     bl->id, data);
-                return 0;
+                return;
             }
             break;
 
@@ -9944,7 +9932,7 @@ int skill_status_change_timer (int tid, unsigned int tick, int id, int data)
 
     }
 
-    return skill_status_change_end (bl, type, tid);
+    skill_status_change_end (bl, type, tid);
 }
 
 /*==========================================
@@ -11153,8 +11141,7 @@ struct skill_unit_group *skill_initunitgroup (struct block_list *src,
     group->group_id = skill_unit_group_newid++;
     if (skill_unit_group_newid <= 0)
         skill_unit_group_newid = 10;
-    group->unit =
-        (struct skill_unit *) aCalloc (count, sizeof (struct skill_unit));
+    CREATE (group->unit, struct skill_unit, count);
     group->unit_count = count;
     group->val1 = group->val2 = 0;
     group->skill_id = skillid;
@@ -11493,15 +11480,13 @@ int skill_unit_timer_sub (struct block_list *bl, va_list ap)
  * スキルユニットタイマー処理
  *------------------------------------------
  */
-int skill_unit_timer (int tid, unsigned int tick, int id, int data)
+void skill_unit_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     map_freeblock_lock ();
 
     map_foreachobject (skill_unit_timer_sub, BL_SKILL, tick);
 
     map_freeblock_unlock ();
-
-    return 0;
 }
 
 /*==========================================
@@ -11814,19 +11799,19 @@ int skill_unit_move_unit_group (struct skill_unit_group *group, int m, int dx,
 
 static int scan_stat (char *statname)
 {
-    if (!strcmpi (statname, "str"))
+    if (!strcasecmp (statname, "str"))
         return SP_STR;
-    if (!strcmpi (statname, "dex"))
+    if (!strcasecmp (statname, "dex"))
         return SP_DEX;
-    if (!strcmpi (statname, "agi"))
+    if (!strcasecmp (statname, "agi"))
         return SP_AGI;
-    if (!strcmpi (statname, "vit"))
+    if (!strcasecmp (statname, "vit"))
         return SP_VIT;
-    if (!strcmpi (statname, "int"))
+    if (!strcasecmp (statname, "int"))
         return SP_INT;
-    if (!strcmpi (statname, "luk"))
+    if (!strcasecmp (statname, "luk"))
         return SP_LUK;
-    if (!strcmpi (statname, "none"))
+    if (!strcasecmp (statname, "none"))
         return 0;
 
     else
@@ -11911,18 +11896,18 @@ int skill_readdb (void)
             skill_db[i].num[k] =
                 (split2[k]) ? atoi (split2[k]) : atoi (split2[0]);
 
-        if (strcmpi (split[9], "yes") == 0)
+        if (strcasecmp (split[9], "yes") == 0)
             skill_db[i].castcancel = 1;
         else
             skill_db[i].castcancel = 0;
         skill_db[i].cast_def_rate = atoi (split[9]);
         skill_db[i].inf2 = atoi (split[10]);
         skill_db[i].maxcount = atoi (split[11]);
-        if (strcmpi (split[13], "weapon") == 0)
+        if (strcasecmp (split[13], "weapon") == 0)
             skill_db[i].skill_type = BF_WEAPON;
-        else if (strcmpi (split[12], "magic") == 0)
+        else if (strcasecmp (split[12], "magic") == 0)
             skill_db[i].skill_type = BF_MAGIC;
-        else if (strcmpi (split[12], "misc") == 0)
+        else if (strcasecmp (split[12], "misc") == 0)
             skill_db[i].skill_type = BF_MISC;
         else
             skill_db[i].skill_type = 0;
@@ -11938,12 +11923,12 @@ int skill_readdb (void)
             skill_db[i].blewcount[k] =
                 (split2[k]) ? atoi (split2[k]) : atoi (split2[0]);
 
-        if (!strcmpi (split[15], "passive"))
+        if (!strcasecmp (split[15], "passive"))
         {
             skill_pool_register (i);
             skill_db[i].poolflags = SKILL_POOL_FLAG;
         }
-        else if (!strcmpi (split[15], "active"))
+        else if (!strcasecmp (split[15], "active"))
         {
             skill_pool_register (i);
             skill_db[i].poolflags = SKILL_POOL_FLAG | SKILL_POOL_ACTIVE;
@@ -12086,29 +12071,29 @@ int skill_readdb (void)
                 skill_db[i].weapon |= 1 << l;
         }
 
-        if (strcmpi (split[8], "hiding") == 0)
+        if (strcasecmp (split[8], "hiding") == 0)
             skill_db[i].state = ST_HIDING;
-        else if (strcmpi (split[8], "cloaking") == 0)
+        else if (strcasecmp (split[8], "cloaking") == 0)
             skill_db[i].state = ST_CLOAKING;
-        else if (strcmpi (split[8], "hidden") == 0)
+        else if (strcasecmp (split[8], "hidden") == 0)
             skill_db[i].state = ST_HIDDEN;
-        else if (strcmpi (split[8], "riding") == 0)
+        else if (strcasecmp (split[8], "riding") == 0)
             skill_db[i].state = ST_RIDING;
-        else if (strcmpi (split[8], "falcon") == 0)
+        else if (strcasecmp (split[8], "falcon") == 0)
             skill_db[i].state = ST_FALCON;
-        else if (strcmpi (split[8], "cart") == 0)
+        else if (strcasecmp (split[8], "cart") == 0)
             skill_db[i].state = ST_CART;
-        else if (strcmpi (split[8], "shield") == 0)
+        else if (strcasecmp (split[8], "shield") == 0)
             skill_db[i].state = ST_SHIELD;
-        else if (strcmpi (split[8], "sight") == 0)
+        else if (strcasecmp (split[8], "sight") == 0)
             skill_db[i].state = ST_SIGHT;
-        else if (strcmpi (split[8], "explosionspirits") == 0)
+        else if (strcasecmp (split[8], "explosionspirits") == 0)
             skill_db[i].state = ST_EXPLOSIONSPIRITS;
-        else if (strcmpi (split[8], "recover_weight_rate") == 0)
+        else if (strcasecmp (split[8], "recover_weight_rate") == 0)
             skill_db[i].state = ST_RECOV_WEIGHT_RATE;
-        else if (strcmpi (split[8], "move_enable") == 0)
+        else if (strcasecmp (split[8], "move_enable") == 0)
             skill_db[i].state = ST_MOVE_ENABLE;
-        else if (strcmpi (split[8], "water") == 0)
+        else if (strcasecmp (split[8], "water") == 0)
             skill_db[i].state = ST_WATER;
         else
             skill_db[i].state = ST_NONE;
@@ -12275,10 +12260,10 @@ int skill_readdb (void)
 void skill_reload (void)
 {
     /*
-     * 
+     *
      * <empty skill database>
      * <?>
-     * 
+     *
      */
 
     do_init_skill ();
@@ -12292,12 +12277,6 @@ int do_init_skill (void)
 {
     skill_readdb ();
 
-    add_timer_func_list (skill_unit_timer, "skill_unit_timer");
-    add_timer_func_list (skill_castend_id, "skill_castend_id");
-    add_timer_func_list (skill_castend_pos, "skill_castend_pos");
-    add_timer_func_list (skill_timerskill, "skill_timerskill");
-    add_timer_func_list (skill_status_change_timer,
-                         "skill_status_change_timer");
     add_timer_interval (gettick () + SKILLUNITTIMER_INVERVAL,
                         skill_unit_timer, 0, 0, SKILLUNITTIMER_INVERVAL);
 
