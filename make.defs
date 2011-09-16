@@ -1,7 +1,7 @@
 # defaults
 CC = gcc
 BISON = bison
-CFLAGS = -pipe -g @warnings
+CFLAGS = -pipe -g -O2
 
 # works on both x86 and x86_64
 override CC += -m32 -std=gnu99
