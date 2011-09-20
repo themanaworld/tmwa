@@ -1664,7 +1664,7 @@ static int map_readmap (int m, char *fn, char *alias)
     size_t size;
 
     // read & convert fn
-    uint8_t gat = (uint8_t *)grfio_read (fn);
+    uint8_t *gat = (uint8_t *)grfio_read (fn);
     if (gat == NULL)
         return -1;
 
