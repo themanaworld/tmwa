@@ -15,7 +15,10 @@ uint32_t mt_random (void);
  * MRAND(10)    returns 0..9
  * MPRAND(5,10) returns 5..14
  */
-# define MRAND(mod) (mt_random() % (mod))
+// The cast is essential because the result is sometimes
+// compared with a possibly negative number.
+// Because it's using modulus, high numbers shouldn't happen anyway.
+# define MRAND(mod) ((int)(mt_random() % (mod)))
 # define MPRAND(add, mod) ((add) + MRAND(mod))
 
 #endif // MT_RAND_H
