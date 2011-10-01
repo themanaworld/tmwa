@@ -201,7 +201,7 @@ void *grfio_reads (const char *fname, size_t *size)
     }
     uint8_t *buf2;
     CREATE (buf2, uint8_t, lentry.declen + 1024);
-    if (!fread (buf2, 1, lentry.declen, in))
+    if (fread (buf2, 1, lentry.declen, in) != lentry.declen)
         exit(1);
     fclose_ (in);
     in = NULL;
