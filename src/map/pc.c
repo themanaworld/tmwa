@@ -819,7 +819,10 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     sd->canmove_tick = tick;
     sd->attackabletime = tick;
     /* We don't want players bypassing spell restrictions. [remoitnane] */
-    sd->cast_tick = tick + pc_readglobalreg (sd, "MAGIC_CAST_TICK");
+    // Removed because it was buggy with the ~50 day wraparound,
+    // and there's already a limit on how fast you can log in and log out.
+    // -o11c
+    sd->cast_tick = tick; // + pc_readglobalreg (sd, "MAGIC_CAST_TICK");
 
     sd->doridori_counter = 0;
 
@@ -9014,12 +9017,15 @@ int pc_logout (struct map_session_data *sd) // [fate] Player logs out
      * Trying to rapidly sign out/in or switch characters to avoid a spell's
      * cast time is also bad. [remoitnane]
      */
+#if 0
+    // Removed because it's buggy, see above.
     if (sd->cast_tick > tick)
     {
         if (pc_setglobalreg (sd, "MAGIC_CAST_TICK", sd->cast_tick - tick))
             sd->status.sp = 1;
     }
     else
+#endif
         pc_setglobalreg (sd, "MAGIC_CAST_TICK", 0);
 
     MAP_LOG_STATS (sd, "LOGOUT") return 0;
