@@ -896,7 +896,7 @@ static void add_scriptc (int a)
  * スクリプトバッファに整数を書き込む
  *------------------------------------------
  */
-static void add_scripti (int a)
+static void add_scripti (unsigned int a)
 {
     while (a >= 0x40)
     {
