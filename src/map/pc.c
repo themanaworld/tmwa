@@ -5465,6 +5465,7 @@ int pc_statusup (struct map_session_data *sd, int type)
         || val >= battle_config.max_parameter)
     {
         clif_statusupack (sd, type, 0, val);
+        clif_updatestatus (sd, SP_STATUSPOINT);
         return 1;
     }
     switch (type)
