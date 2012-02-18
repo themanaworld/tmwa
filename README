@@ -1,7 +1,31 @@
-This is just eAthena. We store our scripts, item and monster databases, etc.
+COMPILING TMW-EATHENA
+
+In addition to the basic build tools (GCC, Make, headers, ...), Bison, and
+Flex are needed. On Debian derivates, do:
+
+  sudo apt-get install build-essential flex bison
+
+In addition, on 64-bit machines you need 32-bit compatibility headers. On
+Debian derivatives you need to install libc6-dev-i386:
+
+  sudo apt-get install libc6-dev-i386
+
+If you're using make 3.81 instead of 3.82 (which isn't very unlikely), you
+will have to run the following command before running 'make':
+
+  mkdir -p obj/{common,login,char,map,ladmin,tool}
+
+Finally, you're ready to run:
+
+  make
+
+
+SERVER DATA AND CONFIGURATION
+
+This is just tmwAthena. We store our scripts, item and monster databases, etc.
 in a separate git repository called tmw-eathena-data, available at:
 
- http://gitorious.org/projects/tmw-eathena-data
+ http://github.com/themanaworld/tmwa-server-data
 
 Note that this repository contains more than just the contents of this data
 directory. Either set up symbolic links or just copy the server executables
