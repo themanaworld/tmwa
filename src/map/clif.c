@@ -382,10 +382,10 @@ int clif_send (unsigned char *buf, int len, struct block_list *bl, int type)
                                bl->y + AREA_SIZE, BL_PC, buf, len, bl, type);
             break;
         case AREA_CHAT_WOC:
-            map_foreachinarea (clif_send_sub, bl->m, bl->x - (AREA_SIZE - 5),
-                               bl->y - (AREA_SIZE - 5),
-                               bl->x + (AREA_SIZE - 5),
-                               bl->y + (AREA_SIZE - 5), BL_PC, buf, len, bl,
+            map_foreachinarea (clif_send_sub, bl->m, bl->x - (AREA_SIZE),
+                               bl->y - (AREA_SIZE),
+                               bl->x + (AREA_SIZE),
+                               bl->y + (AREA_SIZE), BL_PC, buf, len, bl,
                                AREA_CHAT_WOC);
             break;
         case CHAT:
