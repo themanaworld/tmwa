@@ -1,5 +1,6 @@
 # defaults
 CC = gcc
+LEX = flex
 BISON = bison
 CFLAGS = -pipe -g -O2
 
