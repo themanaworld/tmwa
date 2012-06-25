@@ -185,6 +185,7 @@ enum AtCommandType
     AtCommand_Wgm,
     AtCommand_IpCheck,
     AtCommand_ListNearby,       // [fate]
+    AtCommand_DoomSpot,
     // end
     AtCommand_Unknown,
     AtCommand_MAX

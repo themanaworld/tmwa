@@ -211,6 +211,7 @@ ATCOMMAND_FUNC (skillpool_unfocus); // [Fate]
 ATCOMMAND_FUNC (skill_learn);   // [Fate]
 ATCOMMAND_FUNC (wgm);
 ATCOMMAND_FUNC (ipcheck);
+ATCOMMAND_FUNC (doomspot);
 
 /*==========================================
  *AtCommandInfo atcommand_info[]構造体の定義
@@ -409,6 +410,7 @@ static AtCommandInfo atcommand_info[] = {
     {AtCommand_IterateBackward, "@skill-learn", 80, atcommand_skill_learn}, // [Fate]
     {AtCommand_Wgm, "@wgm", 0, atcommand_wgm},
     {AtCommand_IpCheck, "@ipcheck", 60, atcommand_ipcheck},
+    {AtCommand_DoomSpot, "@doomspot", 60, atcommand_doomspot},
 
 // add new commands before this line
     {AtCommand_Unknown, NULL, 1, NULL}
@@ -8698,5 +8700,27 @@ int atcommand_ipcheck (const int fd, struct map_session_data *sd,
     }
 
     clif_displaymessage (fd, "End of list");
+    return 0;
+}
+
+int atcommand_doomspot(const int fd, struct map_session_data *sd,
+                       const char *command, const char *message)
+{
+    struct map_session_data *pl_sd;
+    int  i;
+
+    for (i = 0; i < fd_max; i++)
+    {
+        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+            && pl_sd->state.auth && i != fd && sd->bl.m == pl_sd->bl.m
+            && sd->bl.x == pl_sd->bl.x && sd->bl.y == pl_sd->bl.y
+            && pc_isGM (sd) >= pc_isGM (pl_sd))
+        {                       // you can doom only lower or same gm level
+            pc_damage (NULL, pl_sd, pl_sd->status.hp + 1);
+            clif_displaymessage (pl_sd->fd, msg_table[61]); // The holy messenger has given judgement.
+        }
+    }
+    clif_displaymessage (fd, msg_table[62]);    // Judgement was made.
+
     return 0;
 }
