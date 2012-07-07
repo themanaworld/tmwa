@@ -931,8 +931,11 @@ static int mob_attack (struct mob_data *md, unsigned int tick, int data)
     md->target_lv = battle_weapon_attack (&md->bl, tbl, tick, 0);
     // If you are reading this, please note:
     // it is highly platform-specific that this even works at all.
-    if (tbl->type == BL_PC)
-        map_foreachincell(mob_ancillary_attack, tbl->m, tbl->x, tbl->y, BL_PC,
+    int radius = battle_config.mob_splash_radius;
+    if (radius >= 0 && tbl->type == BL_PC)
+        map_foreachinarea(mob_ancillary_attack,
+            tbl->m, tbl->x - radius, tbl->y - radius, tbl->x + radius, tbl->y + radius,
+            BL_PC,
             &md->bl, tbl, tick);
 
     if (!(battle_config.monster_cloak_check_type & 2)

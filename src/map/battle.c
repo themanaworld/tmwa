@@ -5654,6 +5654,8 @@ int battle_config_read (const char *cfgName)
         battle_config.packet_spam_kick = 1;
 
         battle_config.mask_ip_gms = 1;
+
+        battle_config.mob_splash_radius = -1;
     }
 
     fp = fopen_ (cfgName, "r");
@@ -6106,7 +6108,9 @@ int battle_config_read (const char *cfgName)
             {
             "packet_spam_kick", &battle_config.packet_spam_kick},
             {
-            "mask_ip_gms", &battle_config.mask_ip_gms}
+            "mask_ip_gms", &battle_config.mask_ip_gms},
+            {
+            "mob_splash_radius", &battle_config.mob_splash_radius},
         };
 
         if (line[0] == '/' && line[1] == '/')

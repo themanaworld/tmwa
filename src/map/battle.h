@@ -349,6 +349,7 @@ extern struct Battle_Config
     int  drop_pickup_safety_zone;   // [Fate] Max. distance to an object dropped by a kill by self in which dropsteal protection works
     int  itemheal_regeneration_factor;  // [Fate] itemheal speed factor
 
+    int  mob_splash_radius;
 } battle_config;
 
 int  battle_config_read (const char *cfgName);
