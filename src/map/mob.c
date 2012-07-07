@@ -893,6 +893,16 @@ static int mob_check_attack (struct mob_data *md)
     return 1;
 }
 
+static int mob_ancillary_attack(struct block_list *bl, va_list ap)
+{
+    struct block_list *mdbl = va_arg(ap, struct block_list *);
+    struct block_list *tbl = va_arg(ap, struct block_list *);
+    unsigned int tick = va_arg(ap, unsigned int);
+    if (bl != tbl)
+        battle_weapon_attack(mdbl, bl, tick, 0);
+    return 0;
+}
+
 /*==========================================
  * Attack processing of mob
  *------------------------------------------
@@ -919,6 +929,11 @@ static int mob_attack (struct mob_data *md, unsigned int tick, int data)
         return 0;
 
     md->target_lv = battle_weapon_attack (&md->bl, tbl, tick, 0);
+    // If you are reading this, please note:
+    // it is highly platform-specific that this even works at all.
+    if (tbl->type == BL_PC)
+        map_foreachincell(mob_ancillary_attack, tbl->m, tbl->x, tbl->y, BL_PC,
+            &md->bl, tbl, tick);
 
     if (!(battle_config.monster_cloak_check_type & 2)
         && md->sc_data[SC_CLOAKING].timer != -1)
