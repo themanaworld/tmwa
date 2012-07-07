@@ -75,3 +75,7 @@ deps.make:
 	done > deps.make
 
 include deps.make
+
+prefix=/usr/local
+install:
+	install -t ${prefix}/bin/ $(wildcard ${PROGS})
