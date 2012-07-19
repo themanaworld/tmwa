@@ -1876,7 +1876,7 @@ static void map_set_logfile (char *filename)
     gettimeofday (&tv, NULL);
 
     map_start_logfile (tv.tv_sec);
-    atexit (map_close_logfile);
+
     MAP_LOG ("log-start v3");
 }
 
@@ -2063,8 +2063,10 @@ static int cleanup_sub (struct block_list *bl, va_list ap)
  * map鯖終了時処理
  *------------------------------------------
  */
-void do_final (void)
+void term_func (void)
 {
+    map_close_logfile ();
+
     int  map_id, i;
 
     for (map_id = 0; map_id < map_num; map_id++)
@@ -2121,10 +2123,6 @@ int compare_item (struct item *a, struct item *b)
             (a->card[2] == b->card[2]) && (a->card[3] == b->card[3]));
 }
 
-// TODO move shutdown stuff here
-void term_func (void)
-{
-}
 /*======================================================
  * Map-Server Init and Command-line Arguments [Valaris]
  *------------------------------------------------------
@@ -2162,8 +2160,6 @@ int do_init (int argc, char *argv[])
     atcommand_config_read (ATCOMMAND_CONF_FILENAME);
     script_config_read (SCRIPT_CONF_NAME);
     msg_config_read (MSG_CONF_NAME);
-
-    atexit (do_final);
 
     id_db = numdb_init ();
     map_db = strdb_init (16);

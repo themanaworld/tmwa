@@ -13,7 +13,7 @@ extern bool runflag;
 extern int  do_init (int, char **);
 
 /// Cleanup function called whenever a signal kills us
-/// NOT currently called when exit() is called
+/// or when if we manage to exit() gracefully.
 extern void term_func (void);
 
 #endif // CORE_H

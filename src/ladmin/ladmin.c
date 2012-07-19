@@ -6472,7 +6472,5 @@ int do_init (int argc, char **argv)
 
     Connect_login_server ();
 
-    atexit (term_func);
-
     return 0;
 }

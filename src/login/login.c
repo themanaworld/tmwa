@@ -1031,12 +1031,6 @@ void mmo_auth_sync (void)
     return;
 }
 
-void term_func (void)
-{
-    mmo_auth_sync ();
-}
-
-
 // We want to sync the DB to disk as little as possible as it's fairly
 // resource intensive. therefore most player-triggerable events that
 // update the account DB will not immideately trigger a save. Instead
@@ -4968,7 +4962,7 @@ void save_config_in_log (void)
 //--------------------------------------
 // Function called at exit of the server
 //--------------------------------------
-void do_final (void)
+void term_func (void)
 {
     int  i, fd;
 
@@ -5040,6 +5034,5 @@ int do_init (int argc, char **argv)
         ("The login-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
          login_port);
 
-    atexit (do_final);
     return 0;
 }
