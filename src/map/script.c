@@ -547,7 +547,7 @@ struct
     {
     buildin_getmapusers, "getmapusers", "M"},
     {
-    buildin_getareausers, "getareausers", "Mxyxy"},
+    buildin_getareausers, "getareausers", "Mxyxy*"},
     {
     buildin_getareadropitem, "getareadropitem", "Mxyxyi*"},
     {
@@ -4691,6 +4691,13 @@ int buildin_getareausers_sub (struct block_list *bl, va_list ap)
     (*users)++;
     return 0;
 }
+int buildin_getareausers_living_sub (struct block_list *bl, va_list ap)
+{
+    int *users = va_arg (ap, int *);
+    if (!pc_isdead((struct map_session_data *)bl))
+        (*users)++;
+    return 0;
+}
 
 int buildin_getareausers (struct script_state *st)
 {
@@ -4701,12 +4708,18 @@ int buildin_getareausers (struct script_state *st)
     y0 = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     x1 = conv_num (st, &(st->stack->stack_data[st->start + 5]));
     y1 = conv_num (st, &(st->stack->stack_data[st->start + 6]));
+
+    int living = 0;
+    if (st->end > st->start + 7)
+    {
+        living = conv_num (st, &(st->stack->stack_data[st->start + 7]));
+    }
     if ((m = map_mapname2mapid (str)) < 0)
     {
         push_val (st->stack, C_INT, -1);
         return 0;
     }
-    map_foreachinarea (buildin_getareausers_sub,
+    map_foreachinarea (living ? buildin_getareausers_living_sub: buildin_getareausers_sub,
                        m, x0, y0, x1, y1, BL_PC, &users);
     push_val (st->stack, C_INT, users);
     return 0;
