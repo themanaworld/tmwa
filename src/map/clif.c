@@ -7610,11 +7610,19 @@ void clif_parse_DropItem (int fd, struct map_session_data *sd)
         clif_clearchar_area (&sd->bl, 1);
         return;
     }
-    if (sd->npc_id != 0 || sd->opt1 > 0 || map[sd->bl.m].flag.no_player_drops ||
+    if (map[sd->bl.m].flag.no_player_drops)
+    {
+        clif_displaymessage(sd->fd, "Can't drop items here.");
+        return;
+    }
+    if (sd->npc_id != 0 || sd->opt1 > 0 ||
             (sd->sc_data && (sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||    //オートカウンター
             sd->sc_data[SC_BLADESTOP].timer != -1 ||  //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1)))    //バーサーク
+    {
+        clif_displaymessage(sd->fd, "Can't drop items right now.");
         return;
+    }
 
     item_index = RFIFOW (fd, 2) - 2;
     item_amount = RFIFOW (fd, 4);
