@@ -8501,6 +8501,8 @@ atcommand_iterate_backwards_over_players (const int fd,
 int atcommand_wgm (const int fd, struct map_session_data *sd,
                    const char *command, const char *message)
 {
+    if (tmw_CheckChatSpam(sd, message))
+        return 0;
     tmw_GmHackMsg ("%s: %s", sd->status.name, message);
     if (!pc_isGM (sd))
         clif_displaymessage (fd, "Message sent.");
