@@ -932,7 +932,7 @@ static int mob_attack (struct mob_data *md, unsigned int tick, int data)
     // If you are reading this, please note:
     // it is highly platform-specific that this even works at all.
     int radius = battle_config.mob_splash_radius;
-    if (radius >= 0 && tbl->type == BL_PC)
+    if (radius >= 0 && tbl->type == BL_PC && !map[tbl->m].flag.town)
         map_foreachinarea(mob_ancillary_attack,
             tbl->m, tbl->x - radius, tbl->y - radius, tbl->x + radius, tbl->y + radius,
             BL_PC,
