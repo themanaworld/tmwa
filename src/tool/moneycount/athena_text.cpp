@@ -1,10 +1,10 @@
-#include "athena_text.h"
+#include "athena_text.hpp"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "mmo.h"
+#include "mmo.hpp"
 
 //-------------------------------------------------------------------------
 // Function to set the character from the line (at read of characters file)

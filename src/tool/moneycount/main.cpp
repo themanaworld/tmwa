@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include "mmo.h"
-#include "athena_text.h"
+#include "mmo.hpp"
+#include "athena_text.hpp"
 #include "inf.hpp"
 
 #define ATHENA_FILE "save/athena.txt"
