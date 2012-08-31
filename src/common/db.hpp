@@ -22,6 +22,9 @@ typedef union db_key_t
     char *ms __attribute__((deprecated));
     const char* s;
     numdb_key_t i;
+
+    db_key_t(numdb_key_t n) : i(n) {}
+    db_key_t(const char * z) : s(z) {}
 } db_key_t;
 typedef void* db_val_t;
 typedef uint32_t hash_t;

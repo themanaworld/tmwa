@@ -46,7 +46,7 @@ env_t magic_default_env = { &magic_conf, NULL };
 
 static int spells_sorted = 0;
 
-char *magic_find_invocation (char *spellname)
+const char *magic_find_invocation(const char *spellname)
 {
     int  i;
 
@@ -99,7 +99,7 @@ static int compare_teleport_anchor (const void *lhs, const void *rhs)
                    (*((teleport_anchor_t **) rhs))->invocation);
 }
 
-char *magic_find_anchor_invocation (char *anchor_name)
+const char *magic_find_anchor_invocation(const char *anchor_name)
 {
     int  i;
 

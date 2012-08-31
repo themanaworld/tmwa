@@ -29,7 +29,9 @@ static uint16_t filelist_entrys = 0;
 static uint16_t filelist_maxentry = 0;
 
 /// First index of the given hash, into the filelist[] array
-static int16_t filelist_hash[256] = {[0 ... 255] = -1};
+#define l -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+static int16_t filelist_hash[256] = {l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l};
+#undef l
 
 /// Hash a filename
 static uint8_t filehash (const char *fname)
@@ -45,6 +47,7 @@ static uint8_t filehash (const char *fname)
 }
 
 /// Find the filelist entry for the given filename, or NULL if it is not
+static
 FILELIST *filelist_find (const char *fname)
 {
     int16_t index = filelist_hash[filehash (fname)];
@@ -98,6 +101,7 @@ static FILELIST *filelist_modify (FILELIST * entry)
 
 /// Change fname data/*.gat to lfname data/*.wlk
 // TODO even if the file exists, don't keep reopening it every time one loads
+static
 void grfio_resnametable (const char *fname, char *lfname)
 {
     char restable[] = "data/resnametable.txt";

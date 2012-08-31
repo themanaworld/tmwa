@@ -485,6 +485,7 @@ struct guild_storage *guild2storage (int guild_id)
     return gs;
 }
 
+static
 struct guild_storage *guild2storage2 (int guild_id)
 {                               //For just locating a storage without creating one. [Skotlex]
     return (struct guild_storage *) numdb_search (guild_storage_db, guild_id);

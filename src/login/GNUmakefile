@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. login-server
+	${MAKE} -C ../.. login-server
 clean:
 	rm -r ../../obj/login/
 %::
-	make -C ../.. obj/login/$@
+	${MAKE} -C ../.. obj/login/$@

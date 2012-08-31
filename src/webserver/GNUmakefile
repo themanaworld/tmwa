@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. webserver
+	${MAKE} -C ../.. webserver
 clean:
 	rm -r ../../obj/webserver/
 %::
-	make -C ../.. obj/webserver/$@
+	${MAKE} -C ../.. obj/webserver/$@

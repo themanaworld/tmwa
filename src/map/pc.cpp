@@ -64,6 +64,9 @@
                    pc_readglobalreg(sd, "MAGIC_EXPERIENCE") & 0xffff,	\
                    (pc_readglobalreg(sd, "MAGIC_EXPERIENCE") >> 24) & 0xff)
 
+timer_id day_timer_tid;
+timer_id night_timer_tid;
+
 static int max_weight_base[MAX_PC_CLASS];
 static int hp_coefficient[MAX_PC_CLASS];
 static int hp_coefficient2[MAX_PC_CLASS];
@@ -526,6 +529,7 @@ int pc_equippoint (struct map_session_data *sd, int n)
     return ep;
 }
 
+static
 int pc_setinventorydata (struct map_session_data *sd)
 {
     int  i, id;
@@ -540,6 +544,7 @@ int pc_setinventorydata (struct map_session_data *sd)
     return 0;
 }
 
+static
 int pc_calcweapontype (struct map_session_data *sd)
 {
     nullpo_retr (0, sd);
@@ -566,6 +571,7 @@ int pc_calcweapontype (struct map_session_data *sd)
     return 0;
 }
 
+static
 int pc_setequipindex (struct map_session_data *sd)
 {
     int  i, j;
@@ -758,7 +764,6 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
 
     struct party *p;
     struct guild *g;
-    int  i;
     unsigned long tick = gettick ();
     struct sockaddr_in sai;
     socklen_t sa_len = sizeof(struct sockaddr);
@@ -827,13 +832,13 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     sd->doridori_counter = 0;
 
     sd->spiritball = 0;
-    for (i = 0; i < MAX_SKILL_LEVEL; i++)
+    for (int i = 0; i < MAX_SKILL_LEVEL; i++)
         sd->spirit_timer[i] = -1;
-    for (i = 0; i < MAX_SKILLTIMERSKILL; i++)
+    for (int i = 0; i < MAX_SKILLTIMERSKILL; i++)
         sd->skilltimerskill[i].timer = -1;
 
     memset (&sd->dev, 0, sizeof (struct square));
-    for (i = 0; i < 5; i++)
+    for (int i = 0; i < 5; i++)
     {
         sd->dev.val1[i] = 0;
         sd->dev.val2[i] = 0;
@@ -847,7 +852,7 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     pc_checkitem (sd);
 
     // ステータス異常の初期化
-    for (i = 0; i < MAX_STATUSCHANGE; i++)
+    for (int i = 0; i < MAX_STATUSCHANGE; i++)
     {
         sd->sc_data[i].timer = -1;
         sd->sc_data[i].val1 = sd->sc_data[i].val2 = sd->sc_data[i].val3 =
@@ -881,7 +886,7 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
 
     // イベント関係の初期化
     memset (sd->eventqueue, 0, sizeof (sd->eventqueue));
-    for (i = 0; i < MAX_EVENTTIMER; i++)
+    for (int i = 0; i < MAX_EVENTTIMER; i++)
         sd->eventtimer[i] = -1;
 
     // 位置の設定
@@ -914,7 +919,7 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     if (night_flag == 1)
     {
         char tmpstr[1024];
-        strcpy (tmpstr, msg_txt (500)); // Actually, it's the night...
+        strcpy (tmpstr, "Actually, it's the night...");
         clif_wis_message (sd->fd, wisp_server_name, tmpstr,
                           strlen (tmpstr) + 1);
         sd->opt2 |= STATE_BLIND;
@@ -942,8 +947,7 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
         {
             while (fgets (buf, sizeof (buf) - 1, fp) != NULL)
             {
-                int  i;
-                for (i = 0; buf[i]; i++)
+                for (int i = 0; buf[i]; i++)
                 {
                     if (buf[i] == '\r' || buf[i] == '\n')
                     {
@@ -969,13 +973,13 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
 
     // Obtain IP address (if they are still connected)
     if (!getpeername(sd->fd, (struct sockaddr *)&sai, &sa_len))
-        sd->ip = sai.sin_addr.s_addr;
+        sd->ip = sai.sin_addr;
 
     // message of the limited time of the account
     if (connect_until_time != 0)
     {                           // don't display if it's unlimited or unknow value
         char tmpstr[1024];
-        strftime (tmpstr, sizeof (tmpstr) - 1, msg_txt (501), gmtime (&connect_until_time));    // "Your account time limit is: %d-%m-%Y %H:%M:%S."
+        strftime (tmpstr, sizeof (tmpstr) - 1, "Your account time limit is: %d-%m-%Y %H:%M:%S.", gmtime (&connect_until_time));
         clif_wis_message (sd->fd, wisp_server_name, tmpstr,
                           strlen (tmpstr) + 1);
     }
@@ -1020,6 +1024,7 @@ static int pc_calc_skillpoint (struct map_session_data *sd)
  * 覚えられるスキルの計算
  *------------------------------------------
  */
+static
 int pc_calc_skilltree (struct map_session_data *sd)
 {
     int  i, id = 0, flag;
@@ -1228,6 +1233,7 @@ int pc_checkweighticon (struct map_session_data *sd)
     return 0;
 }
 
+static
 void pc_set_weapon_look (struct map_session_data *sd)
 {
     if (sd->attack_spell_override)
@@ -3652,6 +3658,7 @@ int pc_takeitem (struct map_session_data *sd, struct flooritem_data *fitem)
     return 0;
 }
 
+static
 int pc_isUseitem (struct map_session_data *sd, int n)
 {
     struct item_data *item;
@@ -3915,6 +3922,7 @@ int pc_item_identify (struct map_session_data *sd, int idx)
  * スティル品公開
  *------------------------------------------
  */
+static
 int pc_show_steal (struct block_list *bl, va_list ap)
 {
     struct map_session_data *sd;
@@ -4058,7 +4066,7 @@ int pc_steal_coin (struct map_session_data *sd, struct block_list *bl)
  * PCの位置設定
  *------------------------------------------
  */
-int pc_setpos (struct map_session_data *sd, char *mapname_org, int x, int y,
+int pc_setpos (struct map_session_data *sd, const char *mapname_org, int x, int y,
                int clrtype)
 {
     char mapname[24];
@@ -4124,7 +4132,8 @@ int pc_setpos (struct map_session_data *sd, char *mapname_org, int x, int y,
     {
         if (sd->mapname[0])
         {
-            int  ip, port;
+            struct in_addr ip;
+            int port;
             if (map_mapname2ipport (mapname, &ip, &port) == 0)
             {
                 skill_stop_dancing (&sd->bl, 1);
@@ -4803,6 +4812,7 @@ struct pc_base_job pc_calc_base_job (int b_class)
  * PCの攻撃 (timer関数)
  *------------------------------------------
  */
+static
 void pc_attack_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd;
@@ -5008,6 +5018,7 @@ int pc_stopattack (struct map_session_data *sd)
     return 0;
 }
 
+static
 void pc_follow_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd, *bl;
@@ -5133,6 +5144,7 @@ int pc_checkbaselevelup (struct map_session_data *sd)
  * Compute the maximum for sd->skill_point, i.e., the max. number of skill points that can still be filled in
  *----------------------------------------
  */
+static
 int pc_skillpt_potential (struct map_session_data *sd)
 {
     int  skill_id;
@@ -6928,7 +6940,7 @@ char *pc_readregstr (struct map_session_data *sd, int reg)
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-int pc_setregstr (struct map_session_data *sd, int reg, char *str)
+int pc_setregstr (struct map_session_data *sd, int reg, const char *str)
 {
     int  i;
 
@@ -6958,7 +6970,7 @@ int pc_setregstr (struct map_session_data *sd, int reg, char *str)
  * script用グローバル変数の値を読む
  *------------------------------------------
  */
-int pc_readglobalreg (struct map_session_data *sd, char *reg)
+int pc_readglobalreg (struct map_session_data *sd, const char *reg)
 {
     int  i;
 
@@ -6977,7 +6989,7 @@ int pc_readglobalreg (struct map_session_data *sd, char *reg)
  * script用グローバル変数の値を設定
  *------------------------------------------
  */
-int pc_setglobalreg (struct map_session_data *sd, char *reg, int val)
+int pc_setglobalreg (struct map_session_data *sd, const char *reg, int val)
 {
     int  i;
 
@@ -7029,7 +7041,7 @@ int pc_setglobalreg (struct map_session_data *sd, char *reg, int val)
  * script用アカウント変数の値を読む
  *------------------------------------------
  */
-int pc_readaccountreg (struct map_session_data *sd, char *reg)
+int pc_readaccountreg (struct map_session_data *sd, const char *reg)
 {
     int  i;
 
@@ -7048,7 +7060,7 @@ int pc_readaccountreg (struct map_session_data *sd, char *reg)
  * script用アカウント変数の値を設定
  *------------------------------------------
  */
-int pc_setaccountreg (struct map_session_data *sd, char *reg, int val)
+int pc_setaccountreg (struct map_session_data *sd, const char *reg, int val)
 {
     int  i;
 
@@ -7097,7 +7109,7 @@ int pc_setaccountreg (struct map_session_data *sd, char *reg, int val)
  * script用アカウント変数2の値を読む
  *------------------------------------------
  */
-int pc_readaccountreg2 (struct map_session_data *sd, char *reg)
+int pc_readaccountreg2 (struct map_session_data *sd, const char *reg)
 {
     int  i;
 
@@ -7116,7 +7128,7 @@ int pc_readaccountreg2 (struct map_session_data *sd, char *reg)
  * script用アカウント変数2の値を設定
  *------------------------------------------
  */
-int pc_setaccountreg2 (struct map_session_data *sd, char *reg, int val)
+int pc_setaccountreg2 (struct map_session_data *sd, const char *reg, int val)
 {
     int  i;
 
@@ -7192,6 +7204,7 @@ int pc_percentrefinery (struct map_session_data *sd, struct item *item)
  * イベントタイマー処理
  *------------------------------------------
  */
+static
 void pc_eventtimer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd (id);
@@ -7746,6 +7759,7 @@ int pc_checkoversp (struct map_session_data *sd)
  * PVP順位計算用(foreachinarea)
  *------------------------------------------
  */
+static
 int pc_calc_pvprank_sub (struct block_list *bl, va_list ap)
 {
     struct map_session_data *sd1, *sd2 = NULL;
@@ -8260,7 +8274,6 @@ static int pc_spirit_heal_sp (struct map_session_data *sd, int level)
  * HP/SP 自然回復 各クライアント
  *------------------------------------------
  */
-static int pc_itemheal_effect (struct map_session_data *sd, int hp, int sp);
 
 static int
 pc_quickregenerate_effect (struct quick_regeneration *quick_regen,
@@ -8363,6 +8376,7 @@ static int pc_natural_heal_sub (struct map_session_data *sd, va_list ap)
  * HP/SP自然回復 (interval timer関数)
  *------------------------------------------
  */
+static
 void pc_natural_heal (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     natural_heal_tick = tick;
@@ -8377,7 +8391,7 @@ void pc_natural_heal (timer_id tid, tick_t tick, custom_id_t id, custom_data_t d
  * セーブポイントの保存
  *------------------------------------------
  */
-int pc_setsavepoint (struct map_session_data *sd, char *mapname, int x, int y)
+int pc_setsavepoint (struct map_session_data *sd, const char *mapname, int x, int y)
 {
     nullpo_retr (0, sd);
 
@@ -8440,6 +8454,7 @@ static int pc_autosave_sub (struct map_session_data *sd, va_list ap)
  * 自動セーブ (timer関数)
  *------------------------------------------
  */
+static
 void pc_autosave (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  interval;
@@ -8487,7 +8502,7 @@ void map_day_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
     {                           // if we want a day
         if (night_flag != 0)
         {
-            strcpy (tmpstr, msg_txt (502)); // The day has arrived!
+            strcpy (tmpstr, "The day has arrived!");
             night_flag = 0;     // 0=day, 1=night [Yor]
             for (i = 0; i < fd_max; i++)
             {
@@ -8518,7 +8533,7 @@ void map_night_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_t d
     {                           // if we want a night
         if (night_flag == 0)
         {
-            strcpy (tmpstr, msg_txt (503)); // The night has fallen...
+            strcpy (tmpstr, "The night has fallen...");
             night_flag = 1;     // 0=day, 1=night [Yor]
             for (i = 0; i < fd_max; i++)
             {
@@ -8559,6 +8574,7 @@ void pc_setstand (struct map_session_data *sd)
  * refine_db.txt 精錬データテーブル
  *------------------------------------------
  */
+static
 int pc_readdb (void)
 {
     int  i, j, k;

@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. ladmin
+	${MAKE} -C ../.. ladmin
 clean:
 	rm -r ../../obj/ladmin/
 %::
-	make -C ../.. obj/ladmin/$@
+	${MAKE} -C ../.. obj/ladmin/$@

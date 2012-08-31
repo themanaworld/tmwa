@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. map-server
+	${MAKE} -C ../.. map-server
 clean:
 	rm -r ../../obj/map/
 %::
-	make -C ../.. obj/map/$@
+	${MAKE} -C ../.. obj/map/$@

@@ -22,7 +22,7 @@ int  chat_triggerevent (struct chat_data *cd);
  *------------------------------------------
  */
 int chat_createchat (struct map_session_data *sd, int limit, int pub,
-                     char *pass, char *title, int titlelen)
+                     const char *pass, const char *title, int titlelen)
 {
     struct chat_data *cd;
 
@@ -65,7 +65,7 @@ int chat_createchat (struct map_session_data *sd, int limit, int pub,
  * 既存チャットルームに参加
  *------------------------------------------
  */
-int chat_joinchat (struct map_session_data *sd, int chatid, char *pass)
+int chat_joinchat (struct map_session_data *sd, int chatid, const char *pass)
 {
     struct chat_data *cd;
 
@@ -165,7 +165,7 @@ int chat_leavechat (struct map_session_data *sd)
  * チャットルームの持ち主を譲る
  *------------------------------------------
  */
-int chat_changechatowner (struct map_session_data *sd, char *nextownername)
+int chat_changechatowner (struct map_session_data *sd, const char *nextownername)
 {
     struct chat_data *cd;
     struct map_session_data *tmp_sd;
@@ -213,7 +213,7 @@ int chat_changechatowner (struct map_session_data *sd, char *nextownername)
  *------------------------------------------
  */
 int chat_changechatstatus (struct map_session_data *sd, int limit, int pub,
-                           char *pass, char *title, int titlelen)
+                           const char *pass, const char *title, int titlelen)
 {
     struct chat_data *cd;
 
@@ -241,7 +241,7 @@ int chat_changechatstatus (struct map_session_data *sd, int limit, int pub,
  * チャットルームから蹴り出す
  *------------------------------------------
  */
-int chat_kickchat (struct map_session_data *sd, char *kickusername)
+int chat_kickchat (struct map_session_data *sd, const char *kickusername)
 {
     struct chat_data *cd;
     int  i, kickuser;
@@ -273,7 +273,7 @@ int chat_kickchat (struct map_session_data *sd, char *kickusername)
  *------------------------------------------
  */
 int chat_createnpcchat (struct npc_data *nd, int limit, int pub, int trigger,
-                        char *title, int titlelen, const char *ev)
+                        const char *title, int titlelen, const char *ev)
 {
     struct chat_data *cd;
 

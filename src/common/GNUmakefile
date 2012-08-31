@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. common
+	${MAKE} -C ../.. common
 clean:
 	rm -r ../../obj/common/
 %::
-	make -C ../.. obj/common/$@
+	${MAKE} -C ../.. obj/common/$@

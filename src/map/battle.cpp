@@ -521,6 +521,7 @@ int battle_get_flee2 (struct block_list *bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
+static
 int battle_get_critical (struct block_list *bl)
 {
     int  critical = 1;
@@ -625,6 +626,7 @@ int battle_get_atk (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
+static
 int battle_get_atk_ (struct block_list *bl)
 {
     nullpo_retr (0, bl);
@@ -687,6 +689,7 @@ int battle_get_atk2 (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
+static
 int battle_get_atk_2 (struct block_list *bl)
 {
     nullpo_retr (0, bl);
@@ -701,6 +704,7 @@ int battle_get_atk_2 (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
+static
 int battle_get_matk1 (struct block_list *bl)
 {
     struct status_change *sc_data;
@@ -727,6 +731,7 @@ int battle_get_matk1 (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
+static
 int battle_get_matk2 (struct block_list *bl)
 {
     struct status_change *sc_data = battle_get_sc_data (bl);
@@ -1422,6 +1427,7 @@ struct battle_delay_damage_
     int  damage;
     int  flag;
 };
+static
 void battle_delay_damage_sub (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct battle_delay_damage_ *dat = (struct battle_delay_damage_ *) data;
@@ -1853,6 +1859,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
  * 修練ダメージ
  *------------------------------------------
  */
+static
 int battle_addmastery (struct map_session_data *sd, struct block_list *target,
                        int dmg, int type)
 {

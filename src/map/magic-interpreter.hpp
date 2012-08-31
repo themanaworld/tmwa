@@ -226,7 +226,7 @@ typedef struct effect
             struct effect *true_branch, *false_branch;
         } e_if;
         expr_t *e_sleep;        /* sleep time */
-        unsigned char *e_script;
+        const ScriptCode *e_script;
         struct
         {
             int  id;
@@ -496,5 +496,9 @@ typedef struct
     int *args;
     effect_t *body;
 } proc_t;
+
+// must be called after itemdb initialisation
+int magic_init(const char *);
+void spell_update_location (invocation_t * invocation);
 
 #endif /* !defined (MAGIC_INTERPRETER_H) */

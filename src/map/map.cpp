@@ -1019,7 +1019,7 @@ int map_addflooritem (struct item *item_data, int amount, int m, int x, int y,
  * charid_dbへ追加(返信待ちがあれば返信)
  *------------------------------------------
  */
-void map_addchariddb (int charid, char *name)
+void map_addchariddb (int charid, const char *name)
 {
     struct charid2nick *p = (struct charid2nick *)numdb_search (charid_db, charid);
     if (p == NULL)
@@ -1277,7 +1277,7 @@ struct map_session_data *map_get_prev_session (struct map_session_data *d)
  * return map_session_data pointer or NULL
  *------------------------------------------
  */
-struct map_session_data *map_nick2sd (char *nick)
+struct map_session_data *map_nick2sd (const char *nick)
 {
     int  i, quantity = 0, nicklen;
     struct map_session_data *sd = NULL;
@@ -1375,6 +1375,7 @@ int map_addnpc (int m, struct npc_data *nd)
     return i;
 }
 
+static
 void map_removenpc (void)
 {
     int  i, m, n = 0;
@@ -1406,7 +1407,7 @@ void map_removenpc (void)
  * map名からmap番号へ変換
  *------------------------------------------
  */
-int map_mapname2mapid (char *name)
+int map_mapname2mapid (const char *name)
 {
     struct map_data *md = (struct map_data *)strdb_search (map_db, name);
     if (md == NULL || md->gat == NULL)
@@ -1418,7 +1419,7 @@ int map_mapname2mapid (char *name)
  * 他鯖map名からip,port変換
  *------------------------------------------
  */
-int map_mapname2ipport (char *name, int *ip, int *port)
+int map_mapname2ipport (const char *name, struct in_addr *ip, int *port)
 {
     struct map_data_other_server *mdos = (struct map_data_other_server *)strdb_search (map_db, name);
     if (mdos == NULL || mdos->gat)
@@ -1553,7 +1554,7 @@ int map_setcell (int m, int x, int y, int t)
  * 他鯖管理のマップをdbに追加
  *------------------------------------------
  */
-int map_setipport (char *name, unsigned long ip, int port)
+int map_setipport (const char *name, struct in_addr ip, int port)
 {
     struct map_data_other_server *mdos = NULL;
 
@@ -1571,9 +1572,9 @@ int map_setipport (char *name, unsigned long ip, int port)
     {
         if (md->gat)
         {                       // local -> check data
-            if (ip != clif_getip () || port != clif_getport ())
+            if (ip.s_addr != clif_getip ().s_addr || port != clif_getport ())
             {
-                printf ("from char server : %s -> %08lx:%d\n", name, ip,
+                printf ("from char server : %s -> %s:%d\n", name, ip2str(ip),
                         port);
                 return 1;
             }
@@ -1727,6 +1728,7 @@ static int map_readmap (int m, char *fn, char *alias)
  * 全てのmapデータを読み込む
  *------------------------------------------
  */
+static
 int map_readallmap (void)
 {
     int  i, maps_removed = 0;
@@ -1785,6 +1787,7 @@ int map_readallmap (void)
  * 読み込むmapを追加する
  *------------------------------------------
  */
+static
 int map_addmap (char *mapname)
 {
     if (strcasecmp (mapname, "clear") == 0)
@@ -1868,7 +1871,7 @@ static void map_start_logfile (long suffix)
     free (filename_buf);
 }
 
-static void map_set_logfile (char *filename)
+static void map_set_logfile (const char *filename)
 {
     struct timeval tv;
 
@@ -1880,7 +1883,7 @@ static void map_set_logfile (char *filename)
     MAP_LOG ("log-start v3");
 }
 
-void map_write_log (char *format, ...)
+void map_write_log (const char *format, ...)
 {
     struct timeval tv;
     va_list args;
@@ -1903,7 +1906,8 @@ void map_write_log (char *format, ...)
  * 設定ファイルを読み込む
  *------------------------------------------
  */
-int map_config_read (char *cfgName)
+static
+int map_config_read (const char *cfgName)
 {
     char line[1024], w1[1024], w2[1024];
     FILE *fp;
@@ -2131,11 +2135,11 @@ int do_init (int argc, char *argv[])
 {
     int  i;
 
-    unsigned char *MAP_CONF_NAME = "conf/map_athena.conf";
-    unsigned char *BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
-    unsigned char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
-    unsigned char *SCRIPT_CONF_NAME = "conf/script_athena.conf";
-    unsigned char *MSG_CONF_NAME = "conf/msg_athena.conf";
+    const char *MAP_CONF_NAME = "conf/map_athena.conf";
+    const char *BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
+    const char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
+    const char *SCRIPT_CONF_NAME = "conf/script_athena.conf";
+    const char *MSG_CONF_NAME = "conf/msg_athena.conf";
 
     for (i = 1; i < argc; i++)
     {
@@ -2159,7 +2163,6 @@ int do_init (int argc, char *argv[])
     battle_config_read (BATTLE_CONF_FILENAME);
     atcommand_config_read (ATCOMMAND_CONF_FILENAME);
     script_config_read (SCRIPT_CONF_NAME);
-    msg_config_read (MSG_CONF_NAME);
 
     id_db = numdb_init ();
     map_db = strdb_init (16);

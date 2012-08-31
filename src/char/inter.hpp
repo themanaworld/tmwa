@@ -9,7 +9,8 @@ int  inter_mapif_init (int fd);
 
 int  inter_check_length (int fd, int length);
 
-int  inter_log (char *fmt, ...);
+__attribute__((format(printf, 1, 2)))
+int  inter_log (const char *fmt, ...);
 
 #define inter_cfgName "conf/inter_athena.conf"
 

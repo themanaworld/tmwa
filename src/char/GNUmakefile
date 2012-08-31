@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. char-server
+	${MAKE} -C ../.. char-server
 clean:
 	rm -r ../../obj/char/
 %::
-	make -C ../.. obj/char/$@
+	${MAKE} -C ../.. obj/char/$@

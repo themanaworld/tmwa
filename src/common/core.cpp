@@ -11,10 +11,6 @@
 #include "mt_rand.hpp"
 #include "nullpo.hpp"
 
-/// Defined by each server
-extern int  do_init (int, char **);
-extern void term_func (void);
-
 // Added by Gabuzomeu
 //
 // This is an implementation of signal() using sigaction() for portability.
@@ -22,7 +18,7 @@ extern void term_func (void);
 // Programming in the UNIX Environment_.
 //
 typedef void (*sigfunc)(int);
-sigfunc compat_signal (int signo, sigfunc func)
+static sigfunc compat_signal (int signo, sigfunc func)
 {
     struct sigaction sact, oact;
 

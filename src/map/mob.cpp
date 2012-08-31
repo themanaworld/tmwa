@@ -44,7 +44,6 @@ struct mob_db mob_db[2001];
 static int distance (int, int, int, int);
 static int mob_makedummymobdb (int);
 static void mob_timer (timer_id, tick_t, custom_id_t, custom_data_t);
-int  mobskill_use (struct mob_data *md, unsigned int tick, int event);
 int  mobskill_deltimer (struct mob_data *md);
 int  mob_skillid2skillidx (int mob_class, int skillid);
 int  mobskill_use_id (struct mob_data *md, struct block_list *target,
@@ -90,6 +89,7 @@ static void mob_init (struct mob_data *md);
  * The minimum data set for MOB spawning
  *------------------------------------------
  */
+static
 int mob_spawn_dataset (struct mob_data *md, const char *mobname, int mob_class)
 {
     nullpo_retr (0, md);
@@ -259,12 +259,13 @@ static void mob_mutate (struct mob_data *md, int stat, int intensity)   // inten
 }
 
 // This calculates the exp of a given mob
+static
 int mob_gen_exp (struct mob_db *mob)
 {
     if (mob->max_hp <= 1)
         return 1;
     double mod_def = 100 - mob->def;
-    if (mod_def == 0)
+    if (100 == mob->def)
         mod_def = 1;
     double effective_hp =
         ((50 - mob->luk) * mob->max_hp / 50.0) +
@@ -338,7 +339,7 @@ static void mob_init (struct mob_data *md)
  * The MOB appearance for one time (for scripts)
  *------------------------------------------
  */
-int mob_once_spawn (struct map_session_data *sd, char *mapname,
+int mob_once_spawn (struct map_session_data *sd, const char *mapname,
                     int x, int y, const char *mobname, int mob_class, int amount,
                     const char *event)
 {
@@ -444,7 +445,7 @@ int mob_once_spawn (struct map_session_data *sd, char *mapname,
  * The MOB appearance for one time (& area specification for scripts)
  *------------------------------------------
  */
-int mob_once_spawn_area (struct map_session_data *sd, char *mapname,
+int mob_once_spawn_area (struct map_session_data *sd, const char *mapname,
                          int x0, int y0, int x1, int y1,
                          const char *mobname, int mob_class, int amount,
                          const char *event)
@@ -494,7 +495,7 @@ int mob_once_spawn_area (struct map_session_data *sd, char *mapname,
  * Summoning Guardians [Valaris]
  *------------------------------------------
  */
-int mob_spawn_guardian (struct map_session_data *sd, char *mapname,
+int mob_spawn_guardian (struct map_session_data *sd, const char *mapname,
                         int x, int y, const char *mobname, int mob_class,
                         int amount, const char *event, int guardian)
 {
@@ -663,6 +664,7 @@ int mob_get_equip (int mob_class)   // mob equip [Valaris]
  * Is MOB in the state in which the present movement is possible or not?
  *------------------------------------------
  */
+static
 int mob_can_move (struct mob_data *md)
 {
     nullpo_retr (0, md);
@@ -955,6 +957,7 @@ static int mob_attack (struct mob_data *md, unsigned int tick, int data)
  * The callback function of clif_foreachclient
  *------------------------------------------
  */
+static
 int mob_stopattacked (struct map_session_data *sd, va_list ap)
 {
     int  id;
@@ -1161,6 +1164,7 @@ static void mob_delayspawn (timer_id tid, tick_t tick, custom_id_t m, custom_dat
  * spawn timing calculation
  *------------------------------------------
  */
+static
 int mob_setdelayspawn (int id)
 {
     unsigned int spawntime, spawntime1, spawntime2, spawntime3;
@@ -1412,6 +1416,7 @@ int mob_stop_walking (struct mob_data *md, int type)
  * Reachability to a Specification ID existence place
  *------------------------------------------
  */
+static
 int mob_can_reach (struct mob_data *md, struct block_list *bl, int range)
 {
     int  dx, dy;
@@ -2542,6 +2547,7 @@ void mob_timer_delete (timer_id tid, tick_t tick, custom_id_t id, custom_data_t 
  *
  *------------------------------------------
  */
+static
 int mob_deleteslave_sub (struct block_list *bl, va_list ap)
 {
     struct mob_data *md;
@@ -2583,7 +2589,7 @@ const static double damage_bonus_factor[DAMAGE_BONUS_COUNT + 1] = {
 int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 int type)
 {
-    int  i, count, minpos, mindmg;
+    int count, minpos, mindmg;
     struct map_session_data *sd = NULL, *tmpsd[DAMAGELOG_SIZE];
     struct
     {
@@ -2598,7 +2604,6 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
     double dmg_rate, tdmg, temp;
     struct item item;
     int  ret;
-    int  drop_rate;
     int  skill, sp;
 
     nullpo_retr (0, md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
@@ -2659,6 +2664,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
     {
         if (sd != NULL)
         {
+            int i;
             for (i = 0, minpos = 0, mindmg = 0x7fffffff; i < DAMAGELOG_SIZE;
                  i++)
             {
@@ -2700,6 +2706,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             }
 
             nullpo_retr (0, md2);
+            int i;
             for (i = 0, minpos = 0, mindmg = 0x7fffffff; i < DAMAGELOG_SIZE;
                  i++)
             {
@@ -2869,7 +2876,9 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
     // overkill分は無いけどsumはmax_hpとは違う
 
     tdmg = 0;
-    for (i = 0, count = 0, mvp_damage = 0; i < DAMAGELOG_SIZE; i++)
+    count = 0;
+    mvp_damage = 0;
+    for (int i = 0; i < DAMAGELOG_SIZE; i++)
     {
         if (md->dmglog[i].id == 0)
             continue;
@@ -2900,7 +2909,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             dmg_rate = 1;
 
         // 経験値の分配
-        for (i = 0; i < DAMAGELOG_SIZE; i++)
+        for (int i = 0; i < DAMAGELOG_SIZE; i++)
         {
 
             int  pid, base_exp, job_exp, flag = 1;
@@ -2983,14 +2992,14 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 pc_gainexp (tmpsd[i], base_exp, job_exp);
         }
         // 公平分配
-        for (i = 0; i < pnum; i++)
+        for (int i = 0; i < pnum; i++)
             party_exp_share (pt[i].p, md->bl.m, pt[i].base_exp,
                              pt[i].job_exp);
 
         // item drop
         if (!(type & 1))
         {
-            for (i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 struct delay_item_drop *ditem;
                 int  drop_rate;
@@ -3025,7 +3034,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             }
             if (sd && sd->state.attack_type == BF_WEAPON)
             {
-                for (i = 0; i < sd->monster_drop_item_count; i++)
+                for (int i = 0; i < sd->monster_drop_item_count; i++)
                 {
                     struct delay_item_drop *ditem;
                     int  race = battle_get_race (&md->bl);
@@ -3061,7 +3070,7 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             }
             if (md->lootitem)
             {
-                for (i = 0; i < md->lootitem_count; i++)
+                for (int i = 0; i < md->lootitem_count; i++)
                 {
                     struct delay_item_drop2 *ditem;
 
@@ -3097,10 +3106,10 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
             pc_gainexp (mvp_sd, mexp, 0);
             for (j = 0; j < 3; j++)
             {
-                i = MRAND (3);
+                int i = MRAND (3);
                 if (mob_db[md->mob_class].mvpitem[i].nameid <= 0)
                     continue;
-                drop_rate = mob_db[md->mob_class].mvpitem[i].p;
+                int drop_rate = mob_db[md->mob_class].mvpitem[i].p;
                 if (drop_rate <= 0 && battle_config.drop_rate0item == 1)
                     drop_rate = 1;
                 if (drop_rate < battle_config.item_drop_mvp_min)
@@ -3149,16 +3158,16 @@ int mob_damage (struct block_list *src, struct mob_data *md, int damage,
                 sd = mvp_sd;
             else
             {
-                struct map_session_data *tmpsd;
+                struct map_session_data *tmp_sd;
                 int  i;
                 for (i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (tmpsd = (struct map_session_data *)session[i]->session_data)
-                        && tmpsd->state.auth)
+                    if (session[i] && (tmp_sd = (struct map_session_data *)session[i]->session_data)
+                        && tmp_sd->state.auth)
                     {
-                        if (md->bl.m == tmpsd->bl.m)
+                        if (md->bl.m == tmp_sd->bl.m)
                         {
-                            sd = tmpsd;
+                            sd = tmp_sd;
                             break;
                         }
                     }
@@ -3304,6 +3313,7 @@ int mob_heal (struct mob_data *md, int heal)
  * Added by RoVeRT
  *------------------------------------------
  */
+static
 int mob_warpslave_sub (struct block_list *bl, va_list ap)
 {
     struct mob_data *md = (struct mob_data *) bl;
@@ -3322,6 +3332,7 @@ int mob_warpslave_sub (struct block_list *bl, va_list ap)
  * Added by RoVeRT
  *------------------------------------------
  */
+static
 int mob_warpslave (struct mob_data *md, int x, int y)
 {
 //printf("warp slave\n");
@@ -3417,6 +3428,7 @@ int mob_warp (struct mob_data *md, int m, int x, int y, int type)
  * 画面内の取り巻きの数計算用(foreachinarea)
  *------------------------------------------
  */
+static
 int mob_countslave_sub (struct block_list *bl, va_list ap)
 {
     int  id, *c;
@@ -3438,6 +3450,7 @@ int mob_countslave_sub (struct block_list *bl, va_list ap)
  * 画面内の取り巻きの数計算
  *------------------------------------------
  */
+static
 int mob_countslave (struct mob_data *md)
 {
     int  c = 0;
@@ -3991,6 +4004,7 @@ int mobskill_use_id (struct mob_data *md, struct block_list *target,
  * スキル使用（場所指定）
  *------------------------------------------
  */
+static
 int mobskill_use_pos (struct mob_data *md,
                       int skill_x, int skill_y, int skill_idx)
 {
@@ -4089,6 +4103,7 @@ int mobskill_use_pos (struct mob_data *md,
  * Friendly Mob whose HP is decreasing by a nearby MOB is looked for.
  *------------------------------------------
  */
+static
 int mob_getfriendhpltmaxrate_sub (struct block_list *bl, va_list ap)
 {
     int  rate;
@@ -4109,6 +4124,7 @@ int mob_getfriendhpltmaxrate_sub (struct block_list *bl, va_list ap)
     return 0;
 }
 
+static
 struct mob_data *mob_getfriendhpltmaxrate (struct mob_data *md, int rate)
 {
     struct mob_data *fr = NULL;
@@ -4126,6 +4142,7 @@ struct mob_data *mob_getfriendhpltmaxrate (struct mob_data *md, int rate)
  * What a status state suits by nearby MOB is looked for.
  *------------------------------------------
  */
+static
 int mob_getfriendstatus_sub (struct block_list *bl, va_list ap)
 {
     int  cond1, cond2;
@@ -4158,6 +4175,7 @@ int mob_getfriendstatus_sub (struct block_list *bl, va_list ap)
     return 0;
 }
 
+static
 struct mob_data *mob_getfriendstatus (struct mob_data *md, int cond1,
                                       int cond2)
 {
@@ -4180,7 +4198,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
 {
     struct mob_skill *ms;
 //  struct block_list *target=NULL;
-    int  i, max_hp;
+    int max_hp;
 
     nullpo_retr (0, md);
     nullpo_retr (0, ms = mob_db[md->mob_class].skill);
@@ -4196,24 +4214,24 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
     if (md->sc_data[SC_SELFDESTRUCTION].timer != -1)    //自爆中はスキルを使わない
         return 0;
 
-    for (i = 0; i < mob_db[md->mob_class].maxskill; i++)
+    for (int ii = 0; ii < mob_db[md->mob_class].maxskill; ii++)
     {
-        int  c2 = ms[i].cond2, flag = 0;
+        int  c2 = ms[ii].cond2, flag = 0;
         struct mob_data *fmd = NULL;
 
         // ディレイ中
-        if (DIFF_TICK (tick, md->skilldelay[i]) < ms[i].delay)
+        if (DIFF_TICK (tick, md->skilldelay[ii]) < ms[ii].delay)
             continue;
 
         // 状態判定
-        if (ms[i].state >= 0 && ms[i].state != md->state.skillstate)
+        if (ms[ii].state >= 0 && ms[ii].state != md->state.skillstate)
             continue;
 
         // 条件判定
-        flag = (event == ms[i].cond1);
+        flag = (event == ms[ii].cond1);
         if (!flag)
         {
-            switch (ms[i].cond1)
+            switch (ms[ii].cond1)
             {
                 case MSC_ALWAYS:
                     flag = 1;
@@ -4223,7 +4241,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                     break;
                 case MSC_MYSTATUSON:   // status[num] on
                 case MSC_MYSTATUSOFF:  // status[num] off
-                    if (ms[i].cond2 == -1)
+                    if (ms[ii].cond2 == -1)
                     {
                         int  j;
                         for (j = SC_STONE; j <= SC_BLIND && !flag; j++)
@@ -4232,21 +4250,21 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                         }
                     }
                     else
-                        flag = (md->sc_data[ms[i].cond2].timer != -1);
-                    flag ^= (ms[i].cond1 == MSC_MYSTATUSOFF);
+                        flag = (md->sc_data[ms[ii].cond2].timer != -1);
+                    flag ^= (ms[ii].cond1 == MSC_MYSTATUSOFF);
                     break;
                 case MSC_FRIENDHPLTMAXRATE:    // friend HP < maxhp%
                     flag =
                         ((fmd =
                           mob_getfriendhpltmaxrate (md,
-                                                    ms[i].cond2)) != NULL);
+                                                    ms[ii].cond2)) != NULL);
                     break;
                 case MSC_FRIENDSTATUSON:   // friend status[num] on
                 case MSC_FRIENDSTATUSOFF:  // friend status[num] off
                     flag =
                         ((fmd =
-                          mob_getfriendstatus (md, ms[i].cond1,
-                                               ms[i].cond2)) != NULL);
+                          mob_getfriendstatus (md, ms[ii].cond1,
+                                               ms[ii].cond2)) != NULL);
                     break;
                 case MSC_NOTINTOWN:     // Only outside of towns.
                     flag = !map[md->bl.m].flag.town;
@@ -4271,17 +4289,17 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
         }
 
         // 確率判定
-        if (flag && MRAND (10000) < ms[i].permillage)
+        if (flag && MRAND (10000) < ms[ii].permillage)
         {
 
-            if (skill_get_inf (ms[i].skill_id) & 2)
+            if (skill_get_inf (ms[ii].skill_id) & 2)
             {
                 // 場所指定
                 struct block_list *bl = NULL;
                 int  x = 0, y = 0;
-                if (ms[i].target <= MST_AROUND)
+                if (ms[ii].target <= MST_AROUND)
                 {
-                    if (ms[i].target == MST_MASTER)
+                    if (ms[ii].target == MST_MASTER)
                     {
                         bl = &md->bl;
                         if (md->master_id)
@@ -4289,11 +4307,11 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                     }
                     else
                     {
-                        bl = ((ms[i].target == MST_TARGET
-                               || ms[i].target ==
+                        bl = ((ms[ii].target == MST_TARGET
+                               || ms[ii].target ==
                                MST_AROUND5) ? map_id2bl (md->
                                                          target_id)
-                              : (ms[i].target ==
+                              : (ms[ii].target ==
                                  MST_FRIEND) ? &fmd->bl : &md->bl);
                     }
 
@@ -4306,7 +4324,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                 if (x <= 0 || y <= 0)
                     continue;
                 // 自分の周囲
-                if (ms[i].target >= MST_AROUND1)
+                if (ms[ii].target >= MST_AROUND1)
                 {
                     int  bx = x, by = y, i = 0, c, m = bl->m, r =
                         ms[i].target - MST_AROUND1;
@@ -4326,7 +4344,7 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                     }
                 }
                 // 相手の周囲
-                if (ms[i].target >= MST_AROUND5)
+                if (ms[ii].target >= MST_AROUND5)
                 {
                     int  bx = x, by = y, i = 0, c, m = bl->m, r =
                         (ms[i].target - MST_AROUND5) + 1;
@@ -4345,37 +4363,37 @@ int mobskill_use (struct mob_data *md, unsigned int tick, int event)
                         y = by;
                     }
                 }
-                if (!mobskill_use_pos (md, x, y, i))
+                if (!mobskill_use_pos (md, x, y, ii))
                     return 0;
 
             }
             else
             {
-                if (ms[i].target == MST_MASTER)
+                if (ms[ii].target == MST_MASTER)
                 {
                     struct block_list *bl = &md->bl;
                     if (md->master_id)
                         bl = map_id2bl (md->master_id);
 
-                    if (bl && !mobskill_use_id (md, bl, i))
+                    if (bl && !mobskill_use_id (md, bl, ii))
                         return 0;
                 }
                 // ID指定
-                if (ms[i].target <= MST_FRIEND)
+                if (ms[ii].target <= MST_FRIEND)
                 {
                     struct block_list *bl = NULL;
-                    bl = ((ms[i].target ==
+                    bl = ((ms[ii].target ==
                            MST_TARGET) ? map_id2bl (md->
-                                                    target_id) : (ms[i].target
+                                                    target_id) : (ms[ii].target
                                                                   ==
                                                                   MST_FRIEND)
                           ? &fmd->bl : &md->bl);
-                    if (bl && !mobskill_use_id (md, bl, i))
+                    if (bl && !mobskill_use_id (md, bl, ii))
                         return 0;
                 }
             }
-            if (ms[i].emotion >= 0)
-                clif_emotion (&md->bl, ms[i].emotion);
+            if (ms[ii].emotion >= 0)
+                clif_emotion (&md->bl, ms[ii].emotion);
             return 1;
         }
     }
@@ -4521,30 +4539,30 @@ static int mob_readdb (void)
 {
     FILE *fp;
     char line[1024];
-    char *filename[] = { "db/mob_db.txt", "db/mob_db2.txt" };
-    int  i;
+    const char *filename[] = { "db/mob_db.txt", "db/mob_db2.txt" };
 
     memset (mob_db, 0, sizeof (mob_db));
 
-    for (i = 0; i < 2; i++)
+    for (int j = 0; j < 2; j++)
     {
 
-        fp = fopen_ (filename[i], "r");
+        fp = fopen_ (filename[j], "r");
         if (fp == NULL)
         {
-            if (i > 0)
+            if (j > 0)
                 continue;
             return -1;
         }
         while (fgets (line, 1020, fp))
         {
-            int  mob_class, i;
+            int  mob_class;
             char *str[57], *p, *np;
 
             if (line[0] == '/' && line[1] == '/')
                 continue;
 
-            for (i = 0, p = line; i < 57; i++)
+            p = line;
+            for (int i = 0; i < 57; i++)
             {
                 while (*p == '\t' || *p == ' ')
                     p++;
@@ -4615,7 +4633,7 @@ static int mob_readdb (void)
             mob_db[mob_class].amotion = atoi (str[27]);
             mob_db[mob_class].dmotion = atoi (str[28]);
 
-            for (i = 0; i < 8; i++)
+            for (int i = 0; i < 8; i++)
             {
                 int  rate = 0, type, ratemin, ratemax;
                 mob_db[mob_class].dropitem[i].nameid = atoi (str[29 + i * 2]);
@@ -4660,7 +4678,7 @@ static int mob_readdb (void)
             mob_db[mob_class].mexp =
                 atoi (str[45]) * battle_config.mvp_exp_rate / 100;
             mob_db[mob_class].mexpper = atoi (str[46]);
-            for (i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++)
             {
                 mob_db[mob_class].mvpitem[i].nameid = atoi (str[47 + i * 2]);
                 mob_db[mob_class].mvpitem[i].p =
@@ -4670,7 +4688,7 @@ static int mob_readdb (void)
             mob_db[mob_class].mutations_nr = atoi (str[55]);
             mob_db[mob_class].mutation_power = atoi (str[56]);
 
-            for (i = 0; i < MAX_RANDOMMONSTER; i++)
+            for (int i = 0; i < MAX_RANDOMMONSTER; i++)
                 mob_db[mob_class].summonper[i] = 0;
             mob_db[mob_class].maxskill = 0;
 
@@ -4688,7 +4706,7 @@ static int mob_readdb (void)
                 mob_db[mob_class].base_exp = mob_gen_exp (&mob_db[mob_class]);
         }
         fclose_ (fp);
-        printf ("read %s done\n", filename[i]);
+        printf ("read %s done\n", filename[j]);
     }
     return 0;
 }
@@ -4936,7 +4954,7 @@ static int mob_readskilldb (void)
     "around", MST_AROUND},};
 
     int  x;
-    char *filename[] = { "db/mob_skill_db.txt", "db/mob_skill_db2.txt" };
+    const char *filename[] = { "db/mob_skill_db.txt", "db/mob_skill_db2.txt" };
 
     for (x = 0; x < 2; x++)
     {

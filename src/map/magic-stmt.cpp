@@ -3,10 +3,6 @@
 #include "magic-expr-eval.hpp"
 #include "magic-interpreter-aux.hpp"
 
-int
- clif_spawn_fake_npc_for_player (struct map_session_data *sd,
-                                 int fake_npc_id);
-
 #define INVISIBLE_NPC 127       /* used for local spell effects */
 
 //#define DEBUG
@@ -683,7 +679,8 @@ static int op_spawn (env_t * env, int args_nr, val_t * args)
     return 0;
 }
 
-static char *get_invocation_name (env_t * env)
+static
+const char *get_invocation_name (env_t * env)
 {
     invocation_t *invocation;
 
@@ -853,6 +850,7 @@ static op_t operations[] = {
 static int operations_sorted = 0;
 static int operation_count;
 
+static
 int compare_operations (const void *lhs, const void *rhs)
 {
     return strcmp (((op_t *) lhs)->name, ((op_t *) rhs)->name);
@@ -1405,16 +1403,14 @@ static int spell_run (invocation_t * invocation, int allow_delete)
                 if (caster)
                 {
                     env_t *env = invocation->env;
-                    character_t *caster =
-                        (character_t *) map_id2bl (invocation->caster);
-                    argrec_t arg[] = { {"@target",.v.i =
+                    argrec_t arg[] = { {"@target",
                                         VAR (VAR_TARGET).ty ==
                                         TY_ENTITY ? 0 : VAR (VAR_TARGET).
                                         v.v_int}
                     ,
-                    {"@caster",.v.i = invocation->caster}
+                    {"@caster", invocation->caster}
                     ,
-                    {"@caster_name$",.v.s = caster ? caster->status.name : ""}
+                    {"@caster_name$", caster ? caster->status.name : ""}
                     };
                     int  message_recipient =
                         VAR (VAR_SCRIPTTARGET).ty ==
@@ -1501,8 +1497,7 @@ static int spell_run (invocation_t * invocation, int allow_delete)
 #undef REFRESH_INVOCATION
 }
 
-extern void spell_update_location (invocation_t * invocation);
-
+static
 void spell_execute_d (invocation_t * invocation, int allow_deletion)
 {
     int  delta;

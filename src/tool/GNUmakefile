@@ -1,7 +1,7 @@
 .SUFFIXES:
 all:
-	make -C ../.. tools
+	${MAKE} -C ../.. eathena-monitor
 clean:
 	rm -r ../../obj/tool/
 %::
-	make -C ../.. obj/tool/$@
+	${MAKE} -C ../.. obj/tool/$@

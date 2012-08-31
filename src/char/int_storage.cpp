@@ -21,6 +21,7 @@ static struct dbt *storage_db;
 static struct dbt *guild_storage_db;
 
 // 倉庫データを文字列に変換
+static
 int storage_tostr (char *str, struct storage *p)
 {
     int  i, f = 0;
@@ -49,6 +50,7 @@ int storage_tostr (char *str, struct storage *p)
 }
 
 // 文字列を倉庫データに変換
+static
 int storage_fromstr (char *str, struct storage *p)
 {
     int  tmp_int[256];
@@ -118,6 +120,7 @@ int storage_fromstr (char *str, struct storage *p)
     return 0;
 }
 
+static
 int guild_storage_tostr (char *str, struct guild_storage *p)
 {
     int  i, f = 0;
@@ -145,6 +148,7 @@ int guild_storage_tostr (char *str, struct guild_storage *p)
     return 0;
 }
 
+static
 int guild_storage_fromstr (char *str, struct guild_storage *p)
 {
     int  tmp_int[256];
@@ -229,6 +233,7 @@ struct storage *account2storage (int account_id)
     return s;
 }
 
+static
 struct guild_storage *guild2storage (int guild_id)
 {
     struct guild_storage *gs = NULL;
@@ -314,6 +319,7 @@ int inter_storage_init (void)
     return 0;
 }
 
+static
 void storage_db_final (db_key_t k, db_val_t data, va_list ap)
 {
     struct storage *p = (struct storage *) data;
@@ -321,6 +327,7 @@ void storage_db_final (db_key_t k, db_val_t data, va_list ap)
         free (p);
 }
 
+static
 void guild_storage_db_final (db_key_t k, db_val_t data, va_list ap)
 {
     struct guild_storage *p = (struct guild_storage *) data;
@@ -335,6 +342,7 @@ void inter_storage_final (void)
     return;
 }
 
+static
 void inter_storage_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[65536];
@@ -367,6 +375,7 @@ int inter_storage_save (void)
     return 0;
 }
 
+static
 void inter_guild_storage_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[65536];
@@ -434,6 +443,7 @@ int inter_guild_storage_delete (int guild_id)
 // map serverへの通信
 
 // 倉庫データの送信
+static
 int mapif_load_storage (int fd, int account_id)
 {
     struct storage *s = account2storage (account_id);
@@ -446,6 +456,7 @@ int mapif_load_storage (int fd, int account_id)
 }
 
 // 倉庫データ保存完了送信
+static
 int mapif_save_storage_ack (int fd, int account_id)
 {
     WFIFOW (fd, 0) = 0x3811;
@@ -455,6 +466,7 @@ int mapif_save_storage_ack (int fd, int account_id)
     return 0;
 }
 
+static
 int mapif_load_guild_storage (int fd, int account_id, int guild_id)
 {
     struct guild_storage *gs = guild2storage (guild_id);
@@ -477,6 +489,7 @@ int mapif_load_guild_storage (int fd, int account_id, int guild_id)
     return 0;
 }
 
+static
 int mapif_save_guild_storage_ack (int fd, int account_id, int guild_id,
                                   int fail)
 {
@@ -492,6 +505,7 @@ int mapif_save_guild_storage_ack (int fd, int account_id, int guild_id,
 // map serverからの通信
 
 // 倉庫データ要求受信
+static
 int mapif_parse_LoadStorage (int fd)
 {
     mapif_load_storage (fd, RFIFOL (fd, 2));
@@ -499,6 +513,7 @@ int mapif_parse_LoadStorage (int fd)
 }
 
 // 倉庫データ受信＆保存
+static
 int mapif_parse_SaveStorage (int fd)
 {
     struct storage *s;
@@ -518,12 +533,14 @@ int mapif_parse_SaveStorage (int fd)
     return 0;
 }
 
+static
 int mapif_parse_LoadGuildStorage (int fd)
 {
     mapif_load_guild_storage (fd, RFIFOL (fd, 2), RFIFOL (fd, 6));
     return 0;
 }
 
+static
 int mapif_parse_SaveGuildStorage (int fd)
 {
     struct guild_storage *gs;

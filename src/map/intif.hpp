@@ -1,14 +1,14 @@
 // $Id: intif.h,v 1.2 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef INTIF_HPP
-#define INFIF_HPP
+#define INTIF_HPP
 
 int  intif_parse (int fd);
 
-int  intif_GMmessage (char *mes, int len, int flag);
+int  intif_GMmessage (const char *mes, int len, int flag);
 
-int  intif_wis_message (struct map_session_data *sd, char *nick, char *mes,
+int  intif_wis_message (struct map_session_data *sd, const char *nick, const char *mes,
                         int mes_len);
-int  intif_wis_message_to_gm (char *Wisp_name, int min_gm_level, char *mes,
+int  intif_wis_message_to_gm (const char *Wisp_name, int min_gm_level, const char *mes,
                               int mes_len);
 
 int  intif_saveaccountreg (struct map_session_data *sd);
@@ -19,7 +19,7 @@ int  intif_send_storage (struct storage *stor);
 int  intif_request_guild_storage (int account_id, int guild_id);
 int  intif_send_guild_storage (int account_id, struct guild_storage *gstor);
 
-int  intif_create_party (struct map_session_data *sd, char *name);
+int  intif_create_party (struct map_session_data *sd, const char *name);
 int  intif_request_partyinfo (int party_id);
 int  intif_party_addmember (int party_id, int account_id);
 int  intif_party_changeoption (int party_id, int account_id, int exp,
@@ -27,8 +27,8 @@ int  intif_party_changeoption (int party_id, int account_id, int exp,
 int  intif_party_leave (int party_id, int accound_id);
 int  intif_party_changemap (struct map_session_data *sd, int online);
 int  intif_break_party (int party_id);
-int  intif_party_message (int party_id, int account_id, char *mes, int len);
-int  intif_party_checkconflict (int party_id, int account_id, char *nick);
+int  intif_party_message (int party_id, int account_id, const char *mes, int len);
+int  intif_party_checkconflict (int party_id, int account_id, const char *nick);
 
 int  intif_guild_create (const char *name, const struct guild_member *master);
 int  intif_guild_request_info (int guild_id);
@@ -38,7 +38,7 @@ int  intif_guild_leave (int guild_id, int account_id, int char_id, int flag,
 int  intif_guild_memberinfoshort (int guild_id, int account_id, int char_id,
                                   int online, int lv, int class_);
 int  intif_guild_break (int guild_id);
-int  intif_guild_message (int guild_id, int account_id, char *mes, int len);
+int  intif_guild_message (int guild_id, int account_id, const char *mes, int len);
 int  intif_guild_checkconflict (int guild_id, int account_id, int char_id);
 int  intif_guild_change_basicinfo (int guild_id, int type, const void *data,
                                    int len);

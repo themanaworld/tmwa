@@ -42,13 +42,13 @@ static int itemdb_read_randomitem (void);
 static int itemdb_read_itemavail (void);
 static int itemdb_read_itemnametable (void);
 static int itemdb_read_noequip (void);
-void itemdb_reload (void);
 
 /*==========================================
  * 名前で検索用
  *------------------------------------------
  */
 // name = item alias, so we should find items aliases first. if not found then look for "jname" (full name)
+static
 void itemdb_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct item_data *item = (struct item_data *) data, **dst;
@@ -65,6 +65,7 @@ void itemdb_searchname_sub (db_key_t key, db_val_t data, va_list ap)
  * 名前で検索用
  *------------------------------------------
  */
+static
 int itemdb_searchjname_sub (void *key, void *data, va_list ap)
 {
     struct item_data *item = (struct item_data *) data, **dst;
@@ -259,7 +260,7 @@ int itemdb_isdropable (int nameid)
 static int itemdb_read_itemslottable (void)
 {
     char *buf, *p;
-    int  s;
+    size_t s;
 
     buf = (char *)grfio_reads ("data\\itemslottable.txt", &s);
     if (buf == NULL)
@@ -297,7 +298,7 @@ static int itemdb_readdb (void)
     char *str[32], *p, *np;
     struct item_data *id;
     int  i = 0;
-    char *filename[] = { "db/item_db.txt", "db/item_db2.txt" };
+    const char *filename[] = { "db/item_db.txt", "db/item_db2.txt" };
 
     for (i = 0; i < 2; i++)
     {
@@ -542,7 +543,7 @@ static int itemdb_read_itemavail (void)
 static int itemdb_read_itemnametable (void)
 {
     char *buf, *p;
-    int  s;
+    size_t s;
 
     buf = (char *)grfio_reads ("data\\idnum2itemdisplaynametable.txt", &s);
 
@@ -588,7 +589,7 @@ static int itemdb_read_itemnametable (void)
 static int itemdb_read_cardillustnametable (void)
 {
     char *buf, *p;
-    int  s;
+    size_t s;
 
     buf = (char *)grfio_reads ("data\\num2cardillustnametable.txt", &s);
 
@@ -677,9 +678,9 @@ static void itemdb_final (db_key_t key, db_val_t data, va_list ap)
     nullpo_retv (id = (struct item_data *)data);
 
     if (id->use_script)
-        free (id->use_script);
+        free (const_cast<ScriptCode *>(id->use_script));
     if (id->equip_script)
-        free (id->equip_script);
+        free (const_cast<ScriptCode *>(id->equip_script));
     free (id);
 }
 

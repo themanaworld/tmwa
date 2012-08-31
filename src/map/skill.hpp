@@ -881,11 +881,12 @@ void skill_pool_empty (struct map_session_data *sd);    // Deactivate all pool s
 int  skill_pool_activate (struct map_session_data *sd, int skill);  // Skill into skill pool.  Return is zero iff okay.
 int  skill_pool_is_activated (struct map_session_data *sd, int skill);  // Skill into skill pool.  Return is zero when activated.
 int  skill_pool_deactivate (struct map_session_data *sd, int skill);    // Skill out of skill pool.  Return is zero iff okay.
-char *skill_name (int skill);   // Yield configurable skill name
+const char *skill_name(int skill);   // Yield configurable skill name
 int  skill_stat (int skill);    // Yields the stat associated with a skill.  Returns zero if none, or SP_STR, SP_VIT, ... otherwise
 int  skill_power (struct map_session_data *sd, int skill);  // Yields the power of a skill.  This is zero if the skill is unknown or if it's a pool skill that is outside of the skill pool,
                              // otherwise a value from 0 to 255 (with 200 being the `normal maximum')
 int  skill_power_bl (struct block_list *bl, int skill); // Yields the power of a skill.  This is zero if the skill is unknown or if it's a pool skill that is outside of the skill pool,
                              // otherwise a value from 0 to 255 (with 200 being the `normal maximum')
 
+void skill_pool_register (int id);   // [Fate] Remember that a certain skill ID belongs to a pool skill
 #endif

@@ -68,6 +68,7 @@ static int wis_dellist[WISDELLIST_MAX], wis_delnum;
 //--------------------------------------------------------
 
 // アカウント変数を文字列へ変換
+static
 int inter_accreg_tostr (char *str, struct accreg *reg)
 {
     int  j;
@@ -83,6 +84,7 @@ int inter_accreg_tostr (char *str, struct accreg *reg)
 }
 
 // アカウント変数を文字列から変換
+static
 int inter_accreg_fromstr (const char *str, struct accreg *reg)
 {
     int  j, v, n;
@@ -106,6 +108,7 @@ int inter_accreg_fromstr (const char *str, struct accreg *reg)
 }
 
 // アカウント変数の読み込み
+static
 int inter_accreg_init (void)
 {
     char line[8192];
@@ -140,6 +143,7 @@ int inter_accreg_init (void)
 }
 
 // アカウント変数のセーブ用
+static
 void inter_accreg_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[8192];
@@ -155,6 +159,7 @@ void inter_accreg_save_sub (db_key_t key, db_val_t data, va_list ap)
 }
 
 // アカウント変数のセーブ
+static
 int inter_accreg_save (void)
 {
     FILE *fp;
@@ -179,6 +184,7 @@ int inter_accreg_save (void)
  * 設定ファイルを読み込む
  *------------------------------------------
  */
+static
 int inter_config_read (const char *cfgName)
 {
     char line[1024], w1[1024], w2[1024];
@@ -244,7 +250,7 @@ int inter_config_read (const char *cfgName)
 }
 
 // ログ書き出し
-int inter_log (char *fmt, ...)
+int inter_log (const char *fmt, ...)
 {
     FILE *logfp;
     va_list ap;
@@ -300,6 +306,7 @@ int inter_mapif_init (int fd)
 // sended packets to map-server
 
 // GMメッセージ送信
+static
 int mapif_GMmessage (unsigned char *mes, int len)
 {
     unsigned char buf[len];
@@ -314,6 +321,7 @@ int mapif_GMmessage (unsigned char *mes, int len)
 }
 
 // Wisp/page transmission to all map-server
+static
 int mapif_wis_message (struct WisData *wd)
 {
     unsigned char buf[56 + wd->len];
@@ -330,6 +338,7 @@ int mapif_wis_message (struct WisData *wd)
 }
 
 // Wisp/page transmission result to map-server
+static
 int mapif_wis_end (struct WisData *wd, int flag)
 {
     unsigned char buf[27];
@@ -344,6 +353,7 @@ int mapif_wis_end (struct WisData *wd, int flag)
 }
 
 // アカウント変数送信
+static
 int mapif_account_reg (int fd, unsigned char *src)
 {
     unsigned char buf[WBUFW (src, 2)];
@@ -356,6 +366,7 @@ int mapif_account_reg (int fd, unsigned char *src)
 }
 
 // アカウント変数要求返信
+static
 int mapif_account_reg_reply (int fd, int account_id)
 {
     struct accreg *reg = (struct accreg *)numdb_search (accreg_db, account_id);
@@ -384,6 +395,7 @@ int mapif_account_reg_reply (int fd, int account_id)
 //--------------------------------------------------------
 
 // Existence check of WISP data
+static
 void check_ttl_wisdata_sub (db_key_t key, db_val_t data, va_list ap)
 {
     unsigned long tick;
@@ -395,6 +407,7 @@ void check_ttl_wisdata_sub (db_key_t key, db_val_t data, va_list ap)
         wis_dellist[wis_delnum++] = wd->id;
 }
 
+static
 int check_ttl_wisdata (void)
 {
     unsigned long tick = gettick ();
@@ -424,6 +437,7 @@ int check_ttl_wisdata (void)
 // received packets from map-server
 
 // GMメッセージ送信
+static
 int mapif_parse_GMmessage (int fd)
 {
     mapif_GMmessage (RFIFOP (fd, 4), RFIFOW (fd, 2));
@@ -432,6 +446,7 @@ int mapif_parse_GMmessage (int fd)
 }
 
 // Wisp/page request to send
+static
 int mapif_parse_WisRequest (int fd)
 {
     struct WisData *wd;
@@ -450,7 +465,7 @@ int mapif_parse_WisRequest (int fd)
     }
 
     // search if character exists before to ask all map-servers
-    if ((index = search_character_index (RFIFOP (fd, 28))) == -1)
+    if ((index = search_character_index ((const char *)RFIFOP (fd, 28))) == -1)
     {
         unsigned char buf[27];
         WBUFW (buf, 0) = 0x3802;
@@ -463,9 +478,9 @@ int mapif_parse_WisRequest (int fd)
     {
         // to be sure of the correct name, rewrite it
         memset (RFIFOP (fd, 28), 0, 24);
-        strncpy (RFIFOP (fd, 28), search_character_name (index), 24);
+        strncpy ((char *)RFIFOP (fd, 28), search_character_name (index), 24);
         // if source is destination, don't ask other servers.
-        if (strcmp (RFIFOP (fd, 4), RFIFOP (fd, 28)) == 0)
+        if (strcmp ((const char *)RFIFOP (fd, 4), (const char *)RFIFOP (fd, 28)) == 0)
         {
             unsigned char buf[27];
             WBUFW (buf, 0) = 0x3802;
@@ -496,6 +511,7 @@ int mapif_parse_WisRequest (int fd)
 }
 
 // Wisp/page transmission result
+static
 int mapif_parse_WisReply (int fd)
 {
     int  id = RFIFOL (fd, 2), flag = RFIFOB (fd, 6);
@@ -515,6 +531,7 @@ int mapif_parse_WisReply (int fd)
 }
 
 // Received wisp message from map-server for ALL gm (just copy the message and resends it to ALL map-servers)
+static
 int mapif_parse_WisToGM (int fd)
 {
     unsigned char buf[RFIFOW (fd, 2)];  // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
@@ -527,6 +544,7 @@ int mapif_parse_WisToGM (int fd)
 }
 
 // アカウント変数保存要求
+static
 int mapif_parse_AccReg (int fd)
 {
     int  j, p;
@@ -553,6 +571,7 @@ int mapif_parse_AccReg (int fd)
 }
 
 // アカウント変数送信要求
+static
 int mapif_parse_AccRegRequest (int fd)
 {
 //  printf("mapif: accreg request\n");

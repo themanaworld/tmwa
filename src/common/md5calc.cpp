@@ -309,31 +309,26 @@ bool pass_ok(const char *password, const char *crypted) {
 
 // [M|h]ashes up an IP address and a secret key
 // to return a hopefully unique masked IP.
-in_addr_t MD5_ip(char *secret, in_addr_t ip)
+struct in_addr MD5_ip(char *secret, struct in_addr ip)
 {
     char ipbuf[32];
     uint8_t obuf[16];
     union {
-        struct bytes {
-            uint8_t b1;
-            uint8_t b2;
-            uint8_t b3;
-            uint8_t b4;
-        } bytes;
-        in_addr_t ip;
+        uint8_t bytes[4];
+        struct in_addr ip;
     } conv;
 
     // MD5sum a secret + the IP address
     memset(&ipbuf, 0, sizeof(ipbuf));
-    snprintf(ipbuf, sizeof(ipbuf), "%lu%s", (unsigned long)ip, secret);
+    snprintf(ipbuf, sizeof(ipbuf), "%u%s", ip.s_addr, secret);
     /// TODO stop it from being a cstring
     MD5_to_bin(MD5_from_cstring(ipbuf), obuf);
 
-    // Fold the md5sum to 32 bits, pack the bytes to an in_addr_t
-    conv.bytes.b1 = obuf[0] ^ obuf[1] ^ obuf[8] ^ obuf[9];
-    conv.bytes.b2 = obuf[2] ^ obuf[3] ^ obuf[10] ^ obuf[11];
-    conv.bytes.b3 = obuf[4] ^ obuf[5] ^ obuf[12] ^ obuf[13];
-    conv.bytes.b4 = obuf[6] ^ obuf[7] ^ obuf[14] ^ obuf[15];
+    // Fold the md5sum to 32 bits, pack the bytes to an in_addr
+    conv.bytes[0] = obuf[0] ^ obuf[1] ^ obuf[8] ^ obuf[9];
+    conv.bytes[1] = obuf[2] ^ obuf[3] ^ obuf[10] ^ obuf[11];
+    conv.bytes[2] = obuf[4] ^ obuf[5] ^ obuf[12] ^ obuf[13];
+    conv.bytes[3] = obuf[6] ^ obuf[7] ^ obuf[14] ^ obuf[15];
 
     return conv.ip;
 }

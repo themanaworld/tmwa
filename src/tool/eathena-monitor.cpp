@@ -73,6 +73,7 @@ const char *config = CONFIG;
 
 pid_t pid_login, pid_map, pid_char;
 
+static
 const char* make_path (const char* base, const char* path) {
     size_t base_len = strlen(base);
     size_t path_len = strlen(path);
@@ -84,6 +85,7 @@ const char* make_path (const char* base, const char* path) {
     return out;
 }
 
+static
 void parse_option (char *name, char *value) {
     if (!strcasecmp(name, "login_server")) {
         login_server = strdup(value);
@@ -100,6 +102,7 @@ void parse_option (char *name, char *value) {
     }
 }
 
+static
 void read_config(const char *filename) {
     FILE *input;
     char string[1000];
@@ -138,6 +141,7 @@ void read_config(const char *filename) {
     fclose (input);
 }
 
+static
 pid_t start_process(const char *exec) {
     const char *args[2] = {exec, NULL};
     pid_t pid = fork();
@@ -155,6 +159,7 @@ pid_t start_process(const char *exec) {
 }
 
 // Kill all children with the same signal we got, then ourself.
+static
 void stop_process(int sig) {
     if (pid_map) kill(pid_map, sig);
     if (pid_login) kill(pid_login, sig);

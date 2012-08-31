@@ -58,6 +58,7 @@ static struct tm ev_tm_b;       // 時計イベント用
  * npc_enable_sub 有効時にOnTouchイベントを実行
  *------------------------------------------
  */
+static
 int npc_enable_sub (struct block_list *bl, va_list ap)
 {
     struct map_session_data *sd;
@@ -248,6 +249,7 @@ int npc_timer(int tid,unsigned int tick,int id,int data)	// Added by RoVeRT
  * npc_parse_script->strdb_foreachから呼ばれる
  *------------------------------------------
  */
+static
 int npc_event_export (void *key, void *data, va_list ap)
 {
     char *lname = (char *) key;
@@ -287,6 +289,7 @@ int npc_event_export (void *key, void *data, va_list ap)
  * 全てのNPCのOn*イベント実行
  *------------------------------------------
  */
+static
 void npc_event_doall_sub (db_key_t key, db_val_t data, va_list ap)
 {
     const char *p = key.s;
@@ -324,6 +327,7 @@ int npc_event_doall_l (const char *name, int rid, int argc, argrec_t * args)
     return c;
 }
 
+static
 void npc_event_do_sub (db_key_t key, db_val_t data, va_list ap)
 {
     const char *p = key.s;
@@ -367,6 +371,7 @@ int npc_event_do_l (const char *name, int rid, int argc, argrec_t * args)
  * 時計イベント実行
  *------------------------------------------
  */
+static
 void npc_event_do_clock (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     time_t timer;
@@ -415,6 +420,7 @@ int npc_event_do_oninit (void)
  * OnTimer NPC event - by RoVeRT
  *------------------------------------------
  */
+static
 int npc_addeventtimer (struct npc_data *nd, int tick, const char *name)
 {
     int  i;
@@ -436,6 +442,7 @@ int npc_addeventtimer (struct npc_data *nd, int tick, const char *name)
     return 0;
 }
 
+static
 int npc_deleventtimer (struct npc_data *nd, const char *name)
 {
     int  i;
@@ -453,6 +460,7 @@ int npc_deleventtimer (struct npc_data *nd, const char *name)
     return 0;
 }
 
+static
 int npc_cleareventtimer (struct npc_data *nd)
 {
     int  i;
@@ -466,6 +474,7 @@ int npc_cleareventtimer (struct npc_data *nd)
     return 0;
 }
 
+static
 void npc_do_ontimer_sub (db_key_t key, db_val_t data, va_list ap)
 {
     const char *p = key.s;
@@ -497,9 +506,9 @@ void npc_do_ontimer_sub (db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-int npc_do_ontimer (int npc_id, struct map_session_data *sd, int option)
+int npc_do_ontimer (int id, struct map_session_data *sd, int option)
 {
-    strdb_foreach (ev_db, npc_do_ontimer_sub, &npc_id, sd, option);
+    strdb_foreach (ev_db, npc_do_ontimer_sub, &id, sd, option);
     return 0;
 }
 
@@ -508,6 +517,7 @@ int npc_do_ontimer (int npc_id, struct map_session_data *sd, int option)
  * npc_parse_script->strdb_foreachから呼ばれる
  *------------------------------------------
  */
+static
 int npc_timerevent_import (void *key, void *data, va_list ap)
 {
     char *lname = (char *) key;
@@ -519,7 +529,8 @@ int npc_timerevent_import (void *key, void *data, va_list ap)
     {
         // タイマーイベント
         struct npc_timerevent_list *te = nd->u.scr.timer_event;
-        int  j, i = nd->u.scr.timeramount;
+        int  j;
+        i = nd->u.scr.timeramount;
         RECREATE (te, struct npc_timerevent_list, i+1);
         for (j = 0; j < i; j++)
         {
@@ -542,6 +553,7 @@ int npc_timerevent_import (void *key, void *data, va_list ap)
  * タイマーイベント実行
  *------------------------------------------
  */
+static
 void npc_timerevent (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  next, t;
@@ -744,6 +756,7 @@ int npc_event (struct map_session_data *sd, const char *eventname,
     return 0;
 }
 
+static
 void npc_command_sub (db_key_t key, db_val_t data, va_list ap)
 {
     const char *p = key.s;
@@ -762,7 +775,7 @@ void npc_command_sub (db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-int npc_command (struct map_session_data *sd, char *npcname, char *command)
+int npc_command (struct map_session_data *sd, const char *npcname, const char *command)
 {
     strdb_foreach (ev_db, npc_command_sub, npcname, command);
 
@@ -1184,6 +1197,7 @@ int npc_selllist (struct map_session_data *sd, int n,
  * 読み込むnpcファイルのクリア
  *------------------------------------------
  */
+static
 void npc_clearsrcfile (void)
 {
     struct npc_src_list *p = npc_src_first;
@@ -1256,7 +1270,7 @@ void npc_delsrcfile (char *name)
  * warp行解析
  *------------------------------------------
  */
-int npc_parse_warp (char *w1, char *w2, char *w3, char *w4)
+int npc_parse_warp (const char *w1, const char *w2, const char *w3, const char *w4)
 {
     int  x, y, xs, ys, to_x, to_y, m;
     int  i, j;
@@ -1431,6 +1445,7 @@ static int npc_parse_shop (char *w1, char *w2, char *w3, char *w4)
  * NPCのラベルデータコンバート
  *------------------------------------------
  */
+static
 void npc_convertlabel_db (db_key_t key, db_val_t data, va_list ap)
 {
     const char *lname = key.s;
@@ -1438,7 +1453,8 @@ void npc_convertlabel_db (db_key_t key, db_val_t data, va_list ap)
     struct npc_data *nd;
     struct npc_label_list *lst;
     int  num;
-    char *p = strchr (lname, ':');
+    // this exists for evil purposes
+    char *p = const_cast<char *>(strchr (lname, ':'));
 
     nullpo_retv (ap);
     nullpo_retv (nd = va_arg (ap, struct npc_data *));
@@ -1456,6 +1472,7 @@ void npc_convertlabel_db (db_key_t key, db_val_t data, va_list ap)
                 realloc (lst, sizeof (struct npc_label_list) * (num + 1));
 
     *p = '\0';
+    // temporarily NUL-terminate lname
     strncpy (lst[num].name, lname, sizeof(lst[num].name)-1);
     lst[num].name[sizeof(lst[num].name)-1] = '\0';
     *p = ':';
@@ -1468,16 +1485,17 @@ void npc_convertlabel_db (db_key_t key, db_val_t data, va_list ap)
  * script行解析
  *------------------------------------------
  */
-static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
-                             char *first_line, FILE * fp, int *lines)
+static
+int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
+                      const char *first_line, FILE * fp, int *lines)
 {
     int  x, y, dir = 0, m, xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
     char mapname[24];
-    unsigned char *srcbuf = NULL, *script;
+    char *srcbuf = NULL;
+    const ScriptCode *script = NULL;
     int  srcsize = 65536;
     int  startline = 0;
-    unsigned char line[1024];
-    int  i;
+    char line[1024];
     struct npc_data *nd;
     int  evflag = 0;
     struct dbt *label_db;
@@ -1517,6 +1535,7 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
             srcbuf[0] = 0;
         while (1)
         {
+            int i;
             for (i = strlen (srcbuf) - 1; i >= 0 && isspace (srcbuf[i]); i--);
             if (i >= 0 && srcbuf[i] == '}')
                 break;
@@ -1705,7 +1724,7 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
 
     //-----------------------------------------
     // イベント用ラベルデータのエクスポート
-    for (i = 0; i < nd->u.scr.label_list_num; i++)
+    for (int i = 0; i < nd->u.scr.label_list_num; i++)
     {
         char *lname = nd->u.scr.label_list[i].name;
         int  pos = nd->u.scr.label_list[i].pos;
@@ -1736,12 +1755,12 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
 
     //-----------------------------------------
     // ラベルデータからタイマーイベント取り込み
-    for (i = 0; i < nd->u.scr.label_list_num; i++)
+    for (int i = 0; i < nd->u.scr.label_list_num; i++)
     {
-        int  t = 0, k = 0;
+        int  t = 0, n = 0;
         char *lname = nd->u.scr.label_list[i].name;
         int  pos = nd->u.scr.label_list[i].pos;
-        if (sscanf (lname, "OnTimer%d%n", &t, &k) == 1 && lname[k] == '\0')
+        if (sscanf (lname, "OnTimer%d%n", &t, &n) == 1 && lname[n] == '\0')
         {
             // タイマーイベント
             struct npc_timerevent_list *te = nd->u.scr.timer_event;
@@ -1783,7 +1802,8 @@ static int npc_parse_script (char *w1, char *w2, char *w3, char *w4,
 static int npc_parse_function (char *w1, char *w2, char *w3, char *w4,
                                char *first_line, FILE * fp, int *lines)
 {
-    char *srcbuf = NULL, *script;
+    char *srcbuf = NULL;
+    const ScriptCode *script;
     int  srcsize = 65536;
     int  startline = 0;
     char line[1024];
@@ -1854,7 +1874,7 @@ static int npc_parse_function (char *w1, char *w2, char *w3, char *w4,
  * mob行解析
  *------------------------------------------
  */
-int npc_parse_mob (char *w1, char *w2, char *w3, char *w4)
+int npc_parse_mob (const char *w1, const char *w2, const char *w3, const char *w4)
 {
     int  m, x, y, xs, ys, mob_class, num, delay1, delay2;
     int  i;
@@ -2125,7 +2145,7 @@ static void ev_db_final (db_key_t key, db_val_t data, va_list ap)
 }
 
 struct npc_data *npc_spawn_text (int m, int x, int y,
-                                 int npc_class, char *name, char *message)
+                                 int npc_class, const char *name, const char *message)
 {
     struct npc_data *retval =
         (struct npc_data *) calloc (1, sizeof (struct npc_data));
@@ -2171,7 +2191,7 @@ static void npc_free_internal (struct npc_data *nd)
         {
             if (nd->u.scr.script)
             {
-                free (nd->u.scr.script);
+                free (const_cast<ScriptCode *>(nd->u.scr.script));
                 nd->u.scr.script = NULL;
             }
             if (nd->u.scr.label_list)
@@ -2188,6 +2208,7 @@ static void npc_free_internal (struct npc_data *nd)
     free (nd);
 }
 
+static
 void npc_propagate_update (struct npc_data *nd)
 {
     map_foreachinarea (npc_enable_sub,
@@ -2244,6 +2265,7 @@ int do_final_npc (void)
     return 0;
 }
 
+static
 void ev_release (db_key_t key, db_val_t val)
 {
     free ((char*)key.s);

@@ -10,6 +10,7 @@
 #include "../common/mmo.hpp"
 #include "../common/timer.hpp"
 #include "../common/db.hpp"
+#include "script.hpp"
 
 #ifndef MAX
 #  define MAX(x,y) (((x)>(y)) ? (x) : (y))
@@ -225,7 +226,7 @@ struct map_session_data
     int  npc_menu;
     int  npc_amount;
     int  npc_stack, npc_stackmax;
-    char *npc_script, *npc_scriptroot;
+    const ScriptCode *npc_script, *npc_scriptroot;
     char *npc_stackbuf;
     char npc_str[256];
     struct
@@ -404,7 +405,7 @@ struct map_session_data
     time_t packet_flood_reset_due;
     int packet_flood_in;
 
-    in_addr_t ip;
+    struct in_addr ip;
 };
 
 struct npc_timerevent_list
@@ -435,7 +436,7 @@ struct npc_data
     {
         struct
         {
-            char *script;
+            const ScriptCode *script;
             short xs, ys;
             int  guild_id;
             int  timer, timerid, timeramount, nexttimer;
@@ -614,7 +615,7 @@ struct map_data_other_server
 {
     char name[24];
     unsigned char *gat;         // NULL固定にして判断
-    unsigned long ip;
+    struct in_addr ip;
     unsigned int port;
 };
 #define read_gat(m,x,y) (map[m].gat[(x)+(y)*map[m].xs])
@@ -701,8 +702,8 @@ struct chat_data
 {
     struct block_list bl;
 
-    unsigned char pass[8];      /* password */
-    unsigned char title[61];    /* room title MAX 60 */
+    char pass[8];      /* password */
+    char title[61];    /* room title MAX 60 */
     unsigned char limit;        /* join limit */
     unsigned char trigger;
     unsigned char users;        /* current users */
@@ -758,7 +759,8 @@ int  map_quit (struct map_session_data *);
 int  map_addnpc (int, struct npc_data *);
 
 extern FILE *map_logfile;
-void map_write_log (char *format, ...);
+__attribute__((format(printf, 1, 2)))
+void map_write_log (const char *format, ...);
 #define MAP_LOG(format, args...) {if (map_logfile) map_write_log(format, ##args);}
 
 #define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
@@ -776,23 +778,23 @@ int  map_addflooritem (struct item *, int, int, int, int,
 int  map_searchrandfreecell (int, int, int, int);
 
 // キャラid＝＞キャラ名 変換関連
-void map_addchariddb (int charid, char *name);
+void map_addchariddb (int charid, const char *name);
 void map_delchariddb (int charid);
 int  map_reqchariddb (struct map_session_data *sd, int charid);
 char *map_charid2nick (int);
 
 struct map_session_data *map_id2sd (int);
 struct block_list *map_id2bl (int);
-int  map_mapname2mapid (char *);
-int  map_mapname2ipport (char *, int *, int *);
-int  map_setipport (char *name, unsigned long ip, int port);
-int  map_eraseipport (char *name, unsigned long ip, int port);
+int  map_mapname2mapid (const char *);
+int  map_mapname2ipport (const char *, struct in_addr *, int *);
+int  map_setipport (const char *name, struct in_addr ip, int port);
+int  map_eraseipport (const char *name, struct in_addr ip, int port);
 void map_addiddb (struct block_list *);
 void map_deliddb (struct block_list *bl);
 int  map_foreachiddb (db_func_t, ...);
 void map_addnickdb (struct map_session_data *);
 int  map_scriptcont (struct map_session_data *sd, int id);  /* Continues a script either on a spell or on an NPC */
-struct map_session_data *map_nick2sd (char *);
+struct map_session_data *map_nick2sd (const char *);
 int  compare_item (struct item *a, struct item *b);
 
 struct map_session_data *map_get_first_session (void);

@@ -6,9 +6,8 @@
 static int heading_x[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
 static int heading_y[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
 
-int
- magic_signature_check (char *opname, char *funname, char *signature,
-                        int args_nr, val_t * args, int line, int column);
+int magic_signature_check (const char *opname, const char *funname, const char *signature,
+                           int args_nr, val_t * args, int line, int column);
 
 void
 magic_area_rect (int *m, int *x, int *y, int *width, int *height,

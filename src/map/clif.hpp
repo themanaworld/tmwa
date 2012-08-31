@@ -4,21 +4,16 @@
 
 #include <sys/types.h>
 
-#ifdef LCCWIN32
-#include <winsock.h>
-typedef unsigned int in_addr_t;
-#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
 
 #include "map.hpp"
 
-void clif_setip (char *);
+void clif_setip (const char *);
 void clif_setport (int);
 
-in_addr_t clif_getip (void);
+struct in_addr clif_getip (void);
 int  clif_getport (void);
 int  clif_countusers (void);
 void clif_setwaitclose (int);
@@ -40,21 +35,21 @@ int  clif_spawnmob (struct mob_data *); // area
 int  clif_walkok (struct map_session_data *);   // self
 int  clif_movechar (struct map_session_data *); // area
 int  clif_movemob (struct mob_data *);  //area
-int  clif_changemap (struct map_session_data *, char *, int, int);  //self
-int  clif_changemapserver (struct map_session_data *, char *, int, int, int, int);  //self
+int  clif_changemap (struct map_session_data *, const char *, int, int);  //self
+int  clif_changemapserver (struct map_session_data *, const char *, int, int, struct in_addr, int);  //self
 int  clif_fixpos (struct block_list *); // area
 int  clif_fixmobpos (struct mob_data *md);
 int  clif_fixpcpos (struct map_session_data *sd);
 int  clif_npcbuysell (struct map_session_data *, int);  //self
 int  clif_buylist (struct map_session_data *, struct npc_data *);   //self
 int  clif_selllist (struct map_session_data *); //self
-int  clif_scriptmes (struct map_session_data *, int, char *);   //self
+int  clif_scriptmes (struct map_session_data *, int, const char *);   //self
 int  clif_scriptnext (struct map_session_data *, int);  //self
 int  clif_scriptclose (struct map_session_data *, int); //self
-int  clif_scriptmenu (struct map_session_data *, int, char *);  //self
+int  clif_scriptmenu (struct map_session_data *, int, const char *);  //self
 int  clif_scriptinput (struct map_session_data *, int); //self
 int  clif_scriptinputstr (struct map_session_data *sd, int npcid);  // self
-int  clif_cutin (struct map_session_data *, char *, int);   //self
+int  clif_cutin (struct map_session_data *, const char *, int);   //self
 int  clif_viewpoint (struct map_session_data *, int, int, int, int, int, int);  //self
 int  clif_additem (struct map_session_data *, int, int, int);   //self
 int  clif_delitem (struct map_session_data *, int, int);    //self
@@ -85,16 +80,16 @@ int  clif_leavechat (struct chat_data *, struct map_session_data *);    // chat
 int  clif_changechatstatus (struct chat_data *);    // chat
 
 void clif_emotion (struct block_list *bl, int type);
-void clif_talkiebox (struct block_list *bl, char *talkie);
+void clif_talkiebox (struct block_list *bl, const char *talkie);
 void clif_wedding_effect (struct block_list *bl);
 void clif_sitting (int fd, struct map_session_data *sd);
 //void clif_callpartner(struct map_session_data *sd);
 //void clif_sitting(struct map_session_data *sd);
 void clif_soundeffect (struct map_session_data *sd, struct block_list *bl,
-                       char *name, int type);
+                       const char *name, int type);
 
 // trade
-int  clif_traderequest (struct map_session_data *sd, char *name);
+int  clif_traderequest (struct map_session_data *sd, const char *name);
 int  clif_tradestart (struct map_session_data *sd, int type);
 int  clif_tradeadditem (struct map_session_data *sd,
                         struct map_session_data *tsd, int index, int amount);
@@ -182,7 +177,7 @@ int  clif_changemapcell (int m, int x, int y, int cell_type, int type);
 
 int  clif_status_change (struct block_list *bl, int type, int flag);
 
-int  clif_wis_message (int fd, char *nick, char *mes, int mes_len);
+int  clif_wis_message (int fd, const char *nick, const char *mes, int mes_len);
 int  clif_wis_end (int fd, int flag);
 
 int  clif_solved_charname (struct map_session_data *sd, int char_id);
@@ -217,12 +212,12 @@ int  clif_party_created (struct map_session_data *sd, int flag);
 int  clif_party_info (struct party *p, int fd);
 int  clif_party_invite (struct map_session_data *sd,
                         struct map_session_data *tsd);
-int  clif_party_inviteack (struct map_session_data *sd, char *nick, int flag);
+int  clif_party_inviteack (struct map_session_data *sd, const char *nick, int flag);
 int  clif_party_option (struct party *p, struct map_session_data *sd,
                         int flag);
 int  clif_party_leaved (struct party *p, struct map_session_data *sd,
-                        int account_id, char *name, int flag);
-int  clif_party_message (struct party *p, int account_id, char *mes, int len);
+                        int account_id, const char *name, int flag);
+int  clif_party_message (struct party *p, int account_id, const char *mes, int len);
 int  clif_party_move (struct party *p, struct map_session_data *sd,
                       int online);
 int  clif_party_xy (struct party *p, struct map_session_data *sd);
@@ -258,9 +253,9 @@ int  clif_guild_oppositionack (struct map_session_data *sd, int flag);
 int  clif_guild_broken (struct map_session_data *sd, int flag);
 
 // atcommand
-int  clif_displaymessage (const int fd, char *mes);
-int  clif_disp_onlyself (struct map_session_data *sd, char *mes, int len);
-int  clif_GMmessage (struct block_list *bl, char *mes, int len, int flag);
+int  clif_displaymessage (int fd, const char *mes);
+int  clif_disp_onlyself (struct map_session_data *sd, const char *mes, int len);
+int  clif_GMmessage (struct block_list *bl, const char *mes, int len, int flag);
 int  clif_heal (int fd, int type, int val);
 int  clif_resurrection (struct block_list *bl, int type);
 int  clif_set0199 (int fd, int type);
@@ -271,7 +266,7 @@ int  clif_refine (int fd, struct map_session_data *sd, int fail, int index,
                   int val);
 
 int  clif_specialeffect (struct block_list *bl, int type, int flag);    // special effects [Valaris]
-int  clif_message (struct block_list *bl, char *msg);   // messages (from mobs/npcs) [Valaris]
+int  clif_message (struct block_list *bl, const char *msg);   // messages (from mobs/npcs) [Valaris]
 
 int  clif_GM_kickack (struct map_session_data *sd, int id);
 int  clif_GM_kick (struct map_session_data *sd, struct map_session_data *tsd,

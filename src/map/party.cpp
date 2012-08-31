@@ -55,18 +55,19 @@ struct party *party_search (int party_id)
     return (struct party *)numdb_search (party_db, party_id);
 }
 
+static
 void party_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data, **dst;
-    char *str;
-    str = va_arg (ap, char *);
+    const char *str;
+    str = va_arg (ap, const char *);
     dst = va_arg (ap, struct party **);
     if (strcasecmp (p->name, str) == 0)
         *dst = p;
 }
 
 // パーティ名検索
-struct party *party_searchname (char *str)
+struct party *party_searchname (const char *str)
 {
     struct party *p = NULL;
     numdb_foreach (party_db, party_searchname_sub, str, &p);
@@ -74,7 +75,7 @@ struct party *party_searchname (char *str)
 }
 
 /* Process a party creation request. */
-int party_create (struct map_session_data *sd, char *name)
+int party_create (struct map_session_data *sd, const char *name)
 {
     char pname[24];
     nullpo_retr (0, sd);
@@ -97,7 +98,7 @@ int party_create (struct map_session_data *sd, char *name)
 }
 
 /* Relay the result of a party creation request. */
-int party_created (int account_id, int fail, int party_id, char *name)
+int party_created (int account_id, int fail, int party_id, const char *name)
 {
     struct map_session_data *sd;
     sd = map_id2sd (account_id);
@@ -138,6 +139,7 @@ int party_request_info (int party_id)
 }
 
 // 所属キャラの確認
+static
 int party_check_member (struct party *p)
 {
     int  i;
@@ -382,7 +384,7 @@ int party_member_added (int party_id, int account_id, int flag)
 
 // パーティ除名要求
 int party_removemember (struct map_session_data *sd, int account_id,
-                        char *name)
+                        const char *name)
 {
     struct party *p;
     int  i;
@@ -433,7 +435,7 @@ int party_leave (struct map_session_data *sd)
 }
 
 // パーティメンバが脱退した
-int party_member_leaved (int party_id, int account_id, char *name)
+int party_member_leaved (int party_id, int account_id, const char *name)
 {
     struct map_session_data *sd = map_id2sd (account_id);
     struct party *p = party_search (party_id);
@@ -512,7 +514,7 @@ int party_optionchanged (int party_id, int account_id, int exp, int item,
 }
 
 // パーティメンバの移動通知
-int party_recv_movemap (int party_id, int account_id, char *map, int online,
+int party_recv_movemap (int party_id, int account_id, const char *map, int online,
                         int lv)
 {
     struct party *p;
@@ -611,7 +613,7 @@ int party_send_logout (struct map_session_data *sd)
 }
 
 // パーティメッセージ送信
-int party_send_message (struct map_session_data *sd, char *mes, int len)
+int party_send_message (struct map_session_data *sd, const char *mes, int len)
 {
     if (sd->status.party_id == 0)
         return 0;
@@ -621,7 +623,7 @@ int party_send_message (struct map_session_data *sd, char *mes, int len)
 }
 
 // パーティメッセージ受信
-int party_recv_message (int party_id, int account_id, char *mes, int len)
+int party_recv_message (int party_id, int account_id, const char *mes, int len)
 {
     struct party *p;
     if ((p = party_search (party_id)) == NULL)
@@ -641,6 +643,7 @@ int party_check_conflict (struct map_session_data *sd)
 }
 
 // 位置やＨＰ通知用
+static
 void party_send_xyhp_timer_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data;

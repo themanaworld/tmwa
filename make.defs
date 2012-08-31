@@ -2,12 +2,12 @@
 CXX = g++
 LEX = flex
 BISON = bison
-CXXFLAGS = -pipe -g -O2
+CXXFLAGS = -pipe -g -O2 #@warnings
 
 # works on both x86 and x86_64
 override CXX += -m32 -std=c++0x
 # for linking
 override CC = ${CXX}
 
-override CXXFLAGS += -fstack-protector
+override CXXFLAGS += -fstack-protector -fno-strict-aliasing
 

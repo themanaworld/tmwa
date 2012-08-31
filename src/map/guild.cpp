@@ -165,6 +165,7 @@ struct guild *guild_search (int guild_id)
     return (struct guild *)numdb_search (guild_db, guild_id);
 }
 
+static
 void guild_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data, **dst;
@@ -176,7 +177,7 @@ void guild_searchname_sub (db_key_t key, db_val_t data, va_list ap)
 }
 
 // ギルド名検索
-struct guild *guild_searchname (char *str)
+struct guild *guild_searchname (const char *str)
 {
     struct guild *g = NULL;
     numdb_foreach (guild_db, guild_searchname_sub, str, &g);
@@ -189,7 +190,7 @@ struct guild_castle *guild_castle_search (int gcid)
 }
 
 // mapnameに対応したアジトのgcを返す
-struct guild_castle *guild_mapname2gc (char *mapname)
+struct guild_castle *guild_mapname2gc (const char *mapname)
 {
     int  i;
     struct guild_castle *gc = NULL;
@@ -245,6 +246,7 @@ int guild_getposition (struct map_session_data *sd, struct guild *g)
 }
 
 // メンバー情報の作成
+static
 void guild_makemember (struct guild_member *m, struct map_session_data *sd)
 {
     nullpo_retv (sd);
@@ -266,6 +268,7 @@ void guild_makemember (struct guild_member *m, struct map_session_data *sd)
 }
 
 // ギルド競合確認
+static
 int guild_check_conflict (struct map_session_data *sd)
 {
     nullpo_retr (0, sd);
@@ -276,6 +279,7 @@ int guild_check_conflict (struct map_session_data *sd)
 }
 
 // ギルドのEXPキャッシュをinter鯖にフラッシュする
+static
 void guild_payexp_timer_sub (db_key_t key, db_val_t data, va_list ap)
 {
     int  i, *dellist, *delp, dataid = key.i;
@@ -316,7 +320,7 @@ void guild_payexp_timer (timer_id tid, tick_t tick, custom_id_t id, custom_data_
 //------------------------------------------------------------------------
 
 /* Process a guild creation request. */
-int guild_create (struct map_session_data *sd, char *name)
+int guild_create (struct map_session_data *sd, const char *name)
 {
     char pname[24];
 
@@ -425,6 +429,7 @@ int guild_npc_request_info (int guild_id, const char *event)
 }
 
 // 所属キャラの確認
+static
 int guild_check_member (const struct guild *g)
 {
     int  i;
@@ -905,7 +910,7 @@ int guild_recv_memberinfoshort (int guild_id, int account_id, int char_id,
 }
 
 // ギルド会話送信
-int guild_send_message (struct map_session_data *sd, char *mes, int len)
+int guild_send_message (struct map_session_data *sd, const char *mes, int len)
 {
     nullpo_retr (0, sd);
 
@@ -917,7 +922,7 @@ int guild_send_message (struct map_session_data *sd, char *mes, int len)
 }
 
 // ギルド会話受信
-int guild_recv_message (int guild_id, int account_id, char *mes, int len)
+int guild_recv_message (int guild_id, int account_id, const char *mes, int len)
 {
     struct guild *g;
     if ((g = guild_search (guild_id)) == NULL)
@@ -1141,6 +1146,7 @@ int guild_skillupack (int guild_id, int skill_num, int account_id)
 }
 
 // ギルド同盟数所得
+static
 int guild_get_alliance_count (struct guild *g, int flag)
 {
     int  i, c;
@@ -1442,6 +1448,7 @@ int guild_allianceack (int guild_id1, int guild_id2, int account_id1,
 }
 
 // ギルド解散通知用
+static
 void guild_broken_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct guild *g = (struct guild *) data;
@@ -1493,7 +1500,7 @@ int guild_broken (int guild_id, int flag)
 }
 
 // ギルド解散
-int guild_break (struct map_session_data *sd, char *name)
+int guild_break (struct map_session_data *sd, const char *name)
 {
     struct guild *g;
     int  i;

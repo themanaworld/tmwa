@@ -4,17 +4,17 @@
 
 #include "map.hpp"
 
-int  chat_createchat (struct map_session_data *, int, int, char *, char *,
+int  chat_createchat (struct map_session_data *, int, int, const char *, const char *,
                       int);
-int  chat_joinchat (struct map_session_data *, int, char *);
+int  chat_joinchat (struct map_session_data *, int, const char *);
 int  chat_leavechat (struct map_session_data *);
-int  chat_changechatowner (struct map_session_data *, char *);
-int  chat_changechatstatus (struct map_session_data *, int, int, char *,
-                            char *, int);
-int  chat_kickchat (struct map_session_data *, char *);
+int  chat_changechatowner (struct map_session_data *, const char *);
+int  chat_changechatstatus (struct map_session_data *, int, int, const char *,
+                            const char *, int);
+int  chat_kickchat (struct map_session_data *, const char *);
 
 int  chat_createnpcchat (struct npc_data *nd, int limit, int pub, int trigger,
-                         char *title, int titlelen, const char *ev);
+                         const char *title, int titlelen, const char *ev);
 int  chat_deletenpcchat (struct npc_data *nd);
 int  chat_enableevent (struct chat_data *cd);
 int  chat_disableevent (struct chat_data *cd);

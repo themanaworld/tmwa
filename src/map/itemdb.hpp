@@ -3,6 +3,7 @@
 #define ITEMDB_HPP
 
 #include "map.hpp"
+#include "script.hpp"
 
 struct item_data
 {
@@ -25,8 +26,8 @@ struct item_data
     int  elv;
     int  wlv;
     int  refine;
-    char *use_script;
-    char *equip_script;
+    const ScriptCode *use_script;
+    const ScriptCode *equip_script;
     struct
     {
         unsigned available:1;

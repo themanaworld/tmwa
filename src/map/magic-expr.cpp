@@ -83,7 +83,8 @@ void magic_clear_var (val_t * v)
     }
 }
 
-static char *show_entity (entity_t * entity)
+static
+const char *show_entity (entity_t * entity)
 {
     switch (entity->type)
     {
@@ -109,7 +110,7 @@ static char *show_entity (entity_t * entity)
 
 static void stringify (val_t * v, int within_op)
 {
-    static char *dirs[8] =
+    static const char *dirs[8] =
         { "south", "south-west", "west", "north-west", "north", "north-east",
         "east", "south-east"
     };
@@ -180,6 +181,7 @@ static void intify (val_t * v)
     v->v.v_int = 1;
 }
 
+static
 area_t *area_new (int ty)
 {
     area_t *retval;
@@ -188,6 +190,7 @@ area_t *area_new (int ty)
     return retval;
 }
 
+static
 area_t *area_union (area_t * area, area_t * other_area)
 {
     area_t *retval = area_new (AREA_UNION);
@@ -204,7 +207,7 @@ static void make_area (val_t * v)
 {
     if (v->ty == TY_LOCATION)
     {
-        area_t *a = (char *)malloc (sizeof (area_t));
+        area_t *a = (area_t *)malloc (sizeof (area_t));
         v->ty = TY_AREA;
         a->ty = AREA_LOCATION;
         a->a.a_loc = v->v.v_location;
@@ -1238,6 +1241,7 @@ static fun_t functions[] = {
 
 static int functions_are_sorted = 0;
 
+static
 int compare_fun (const void *lhs, const void *rhs)
 {
     return strcmp (((fun_t *) lhs)->name, ((fun_t *) rhs)->name);
@@ -1436,9 +1440,8 @@ static int type_key (char ty_key)
     }
 }
 
-int
-magic_signature_check (char *opname, char *funname, char *signature,
-                       int args_nr, val_t * args, int line, int column)
+int magic_signature_check (const char *opname, const char *funname, const char *signature,
+                           int args_nr, val_t * args, int line, int column)
 {
     int  i;
     for (i = 0; i < args_nr; i++)
@@ -1520,8 +1523,13 @@ magic_signature_check (char *opname, char *funname, char *signature,
     return 0;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
 void magic_eval (env_t * env, val_t * dest, expr_t * expr)
 {
+#ifdef RECENT_GCC
+#pragma GCC diagnostic pop
+#endif
     switch (expr->ty)
     {
         case EXPR_VAL:
@@ -1598,9 +1606,16 @@ void magic_eval (env_t * env, val_t * dest, expr_t * expr)
                     dest->ty = TY_UNDEF;
                 else
                 {
+#ifdef RECENT_GCC
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#endif
                     env_t *env = t->env;
-                    val_t v = VAR (id);
-                    magic_copy_var (dest, &v);
+#ifdef RECENT_GCC
+#pragma GCC diagnostic pop
+#endif
+                    val_t val = VAR (id);
+                    magic_copy_var (dest, &val);
                 }
             }
             else
@@ -1620,6 +1635,9 @@ void magic_eval (env_t * env, val_t * dest, expr_t * expr)
             break;
     }
 }
+#ifndef RECENT_GCC
+#pragma GCC diagnostic pop
+#endif
 
 int magic_eval_int (env_t * env, expr_t * expr)
 {

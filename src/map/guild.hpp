@@ -20,17 +20,17 @@ int  guild_isallied (struct guild *g, struct guild_castle *gc);
 
 void do_init_guild (void);
 struct guild *guild_search (int guild_id);
-struct guild *guild_searchname (char *str);
+struct guild *guild_searchname (const char *str);
 struct guild_castle *guild_castle_search (int gcid);
 
-struct guild_castle *guild_mapname2gc (char *mapname);
+struct guild_castle *guild_mapname2gc (const char *mapname);
 
 struct map_session_data *guild_getavailablesd (struct guild *g);
 int  guild_getindex (struct guild *g, int account_id, int char_id);
 int  guild_getposition (struct map_session_data *sd, struct guild *g);
 int  guild_payexp (struct map_session_data *sd, int exp);
 
-int  guild_create (struct map_session_data *sd, char *name);
+int  guild_create (struct map_session_data *sd, const char *name);
 int  guild_created (int account_id, int guild_id);
 int  guild_request_info (int guild_id);
 int  guild_recv_noinfo (int guild_id);
@@ -73,10 +73,10 @@ int  guild_change_emblem (struct map_session_data *sd, int len,
                           const char *data);
 int  guild_emblem_changed (int len, int guild_id, int emblem_id,
                            const char *data);
-int  guild_send_message (struct map_session_data *sd, char *mes, int len);
-int  guild_recv_message (int guild_id, int account_id, char *mes, int len);
+int  guild_send_message (struct map_session_data *sd, const char *mes, int len);
+int  guild_recv_message (int guild_id, int account_id, const char *mes, int len);
 int  guild_skillupack (int guild_id, int skill_num, int account_id);
-int  guild_break (struct map_session_data *sd, char *name);
+int  guild_break (struct map_session_data *sd, const char *name);
 int  guild_broken (int guild_id, int flag);
 
 int  guild_addcastleinfoevent (int castle_id, int index, const char *name);

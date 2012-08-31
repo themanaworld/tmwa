@@ -18,14 +18,15 @@ struct mmo_map_server
     char map[MAX_MAP_PER_SERVER][16];
 };
 
-int  search_character_index (char *character_name);
+int  search_character_index (const char *character_name);
 char *search_character_name (int index);
 
-int  mapif_sendall (char *buf, unsigned int len);
-int  mapif_sendallwos (int fd, unsigned char *buf, unsigned int len);
-int  mapif_send (int fd, unsigned char *buf, unsigned int len);
+int  mapif_sendall (const uint8_t *buf, unsigned int len);
+int  mapif_sendallwos (int fd, const uint8_t *buf, unsigned int len);
+int  mapif_send (int fd, const uint8_t *buf, unsigned int len);
 
-int  char_log (char *fmt, ...);
+__attribute__((format(printf, 1, 2)))
+int  char_log (const char *fmt, ...);
 
 extern int autosave_interval;
 

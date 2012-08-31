@@ -1,5 +1,8 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
+
+#include "sanity.hpp"
+
 /*
 Notes about memory allocation in tmwAthena:
 There used to be 3 sources of allocation: these macros,
@@ -14,5 +17,10 @@ future calls should either use this or depend on the coming segfault.
 # define RECREATE(result,type,number) \
   if (!((result) = (type *) realloc ((result), sizeof(type) * (number))))\
       { perror("SYSERR: realloc failure"); abort(); } else (void)0
+
+int remove_control_chars (char *str);
+int e_mail_check (const char *email);
+int config_switch (const char *str);
+const char *ip2str(struct in_addr ip, bool extra_dot = false);
 
 #endif //UTILS_HPP

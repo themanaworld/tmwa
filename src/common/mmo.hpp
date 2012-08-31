@@ -185,14 +185,14 @@ struct guild_position
     int  exp_mode;
 };
 
-struct guild_alliance
+struct GuildAlliance
 {
     int  opposition;
     int  guild_id;
     char name[24];
 };
 
-struct guild_explusion
+struct GuildExpulsion
 {
     char name[24];
     char mes[40];
@@ -217,8 +217,8 @@ struct guild
     char mes1[60], mes2[120];
     int  emblem_len, emblem_id;
     char emblem_data[2048];
-    struct guild_alliance alliance[MAX_GUILDALLIANCE];
-    struct guild_explusion explusion[MAX_GUILDEXPLUSION];
+    GuildAlliance alliance[MAX_GUILDALLIANCE];
+    GuildExpulsion explusion[MAX_GUILDEXPLUSION];
     struct guild_skill skill[MAX_GUILDSKILL];
 };
 

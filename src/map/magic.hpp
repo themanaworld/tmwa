@@ -53,14 +53,14 @@ void do_init_magic (void);
  *
  * Returns NULL if not found
  */
-char *magic_find_invocation (char *spellame);
+const char *magic_find_invocation (const char *spellame);
 
 /**
  * Identifies the invocation used to denote a teleport location
  *
  * Returns NULL if not found
  */
-char *magic_find_anchor_invocation (char *teleport_location);
+const char *magic_find_anchor_invocation (const char *teleport_location);
 
 /**
  * Execute a spell invocation and sets up timers to finish

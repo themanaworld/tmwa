@@ -58,7 +58,7 @@ const char *make_salt(void);
 /// check plaintext password against saved saltcrypt
 bool pass_ok(const char *password, const char *crypted);
 
-/// This returns an in_addr_t because it is configurable whether it gets called at all
-in_addr_t MD5_ip(char *secret, in_addr_t ip);
+/// This returns an in_addr because it is configurable whether it gets called at all
+struct in_addr MD5_ip(char *secret, struct in_addr ip);
 
 #endif

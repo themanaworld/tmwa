@@ -1,9 +1,13 @@
-%{
-#include "magic-interpreter.hpp"
+%code requires {
 #include "magic-expr.hpp"
+}
+%code{
+#include "magic-interpreter-parser.hpp"
+
+#include "magic-interpreter.hpp"
 #include <stdarg.h>
 
-magic_conf_t magic_conf;
+#define YYLEX_PARAM 0, 0
 
 static int
 intern_id(const char *id_name);
@@ -49,8 +53,7 @@ add_teleport_anchor(teleport_anchor_t *anchor, int line_nr);
 static effect_t *
 op_effect(char *name, int args_nr, expr_t **args, int line, int column);
 
-int
-magic_frontend_lex(void);
+int magic_frontend_lex(YYSTYPE *, YYLTYPE *);
 
 static void
 install_proc(proc_t *proc);
@@ -64,8 +67,7 @@ bind_constant(char *name, val_t *val, int line_nr);
 static val_t *
 find_constant(char *name);
 
-
-%}
+}
 
 %name-prefix="magic_frontend_"
 
@@ -678,7 +680,7 @@ effect			: '(' effect_list ')'
                                 }
 			| SCRIPT_DATA
                         	{ $$ = new_effect(EFFECT_SCRIPT);
-                                  $$->e.e_script = parse_script((unsigned char *) $1, @1.first_line);
+                                  $$->e.e_script = parse_script($1, @1.first_line);
                                   free($1);
                                   if ($$->e.e_script == NULL)
                                       fail(@1.first_line, @1.first_column, "Failed to compile script\n");
@@ -771,8 +773,8 @@ add_teleport_anchor(teleport_anchor_t *anchor, int line_nr)
 }
 
 
-static void
-fail(int line, int column, const char *fmt, ...)
+static __attribute__((format(printf, 3, 4)))
+void fail(int line, int column, const char *fmt, ...)
 {
         va_list ap;
         fprintf(stderr, "[magic-init]  L%d:%d: ", line, column);
@@ -1030,13 +1032,14 @@ find_constant(char *name)
 
 extern FILE *magic_frontend_in;
 
-int
-magic_init(char *conffile) // must be called after itemdb initialisation
+// must be called after itemdb initialisation
+int magic_init(const char *conffile)
 {
         int error_flag = 0;
 
         magic_conf.vars_nr = 0;
-        magic_conf.var_name = (char **)malloc(1);
+        // can these be left NULL ? I'm afraid to change anything.
+        magic_conf.var_name = (const char **)malloc(1);
         magic_conf.vars = (val_t *)malloc(1);
 
         magic_conf.obscure_chance = 95;

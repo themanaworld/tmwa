@@ -29,16 +29,16 @@
  */
 typedef struct fun
 {
-    char *name;
-    char *signature;
+    const char *name;
+    const char *signature;
     char ret_ty;
     int  (*fun) (env_t * env, int args_nr, val_t * result, val_t * args);
 } fun_t;
 
 typedef struct op
 {
-    char *name;
-    char *signature;
+    const char *name;
+    const char *signature;
     int  (*op) (env_t * env, int args_nr, val_t * args);
 } op_t;
 

@@ -1,14 +1,12 @@
 -Werror=all
 -Werror=implicit-function-declaration
 -Wextra
--Werror=c++-compat
 -Werror=write-strings
 -Wunused
 -Wshadow
--Wbad-function-cast
 -Werror=strict-prototypes
 -Werror=old-style-definition
--Wno-missing-declarations
+-Werror=missing-declarations
 -Wvla
 -Wstack-protector
 -Wno-conversion
@@ -22,8 +20,8 @@
 -Wtrampolines
 -Wfloat-equal
 -Wmissing-format-attribute
--Wno-redundant-decls
--Wnested-externs
+-Werror=redundant-decls
 -Wno-sign-compare
 
 -Wno-switch
+-Wno-format-zero-length

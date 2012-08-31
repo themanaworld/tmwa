@@ -20,6 +20,7 @@ int  party_check_empty (struct party *p);
 int  mapif_parse_PartyLeave (int fd, int party_id, int account_id);
 
 // パーティデータの文字列への変換
+static
 int inter_party_tostr (char *str, struct party *p)
 {
     int  i, len;
@@ -39,6 +40,7 @@ int inter_party_tostr (char *str, struct party *p)
 }
 
 // パーティデータの文字列からの変換
+static
 int inter_party_fromstr (char *str, struct party *p)
 {
     int  i, j;
@@ -133,6 +135,7 @@ int inter_party_init (void)
 }
 
 // パーティーデータのセーブ用
+static
 void inter_party_save_sub (db_key_t key, db_val_t data, va_list ap)
 {
     char line[8192];
@@ -164,6 +167,7 @@ int inter_party_save (void)
 }
 
 // パーティ名検索用
+static
 void search_partyname_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data, **dst;
@@ -176,7 +180,8 @@ void search_partyname_sub (db_key_t key, db_val_t data, va_list ap)
 }
 
 // パーティ名検索
-struct party *search_partyname (char *str)
+static
+struct party *search_partyname (const char *str)
 {
     struct party *p = NULL;
     numdb_foreach (party_db, search_partyname_sub, str, &p);
@@ -185,6 +190,7 @@ struct party *search_partyname (char *str)
 }
 
 // EXP公平分配できるかチェック
+static
 int party_check_exp_share (struct party *p)
 {
     int  i;
@@ -228,6 +234,7 @@ int party_check_empty (struct party *p)
 }
 
 // キャラの競合がないかチェック用
+static
 void party_check_conflict_sub (db_key_t key, db_val_t data, va_list ap)
 {
     struct party *p = (struct party *) data;
@@ -255,7 +262,8 @@ void party_check_conflict_sub (db_key_t key, db_val_t data, va_list ap)
 }
 
 // キャラの競合がないかチェック
-int party_check_conflict (int party_id, int account_id, char *nick)
+static
+int party_check_conflict (int party_id, int account_id, const char *nick)
 {
     numdb_foreach (party_db, party_check_conflict_sub, party_id, account_id,
                    nick);
@@ -267,6 +275,7 @@ int party_check_conflict (int party_id, int account_id, char *nick)
 // map serverへの通信
 
 // パーティ作成可否
+static
 int mapif_party_created (int fd, int account_id, struct party *p)
 {
     WFIFOW (fd, 0) = 0x3820;
@@ -290,6 +299,7 @@ int mapif_party_created (int fd, int account_id, struct party *p)
 }
 
 // パーティ情報見つからず
+static
 int mapif_party_noinfo (int fd, int party_id)
 {
     WFIFOW (fd, 0) = 0x3821;
@@ -302,6 +312,7 @@ int mapif_party_noinfo (int fd, int party_id)
 }
 
 // パーティ情報まとめ送り
+static
 int mapif_party_info (int fd, struct party *p)
 {
     unsigned char buf[4 + sizeof (struct party)];
@@ -319,6 +330,7 @@ int mapif_party_info (int fd, struct party *p)
 }
 
 // パーティメンバ追加可否
+static
 int mapif_party_memberadded (int fd, int party_id, int account_id, int flag)
 {
     WFIFOW (fd, 0) = 0x3822;
@@ -331,6 +343,7 @@ int mapif_party_memberadded (int fd, int party_id, int account_id, int flag)
 }
 
 // パーティ設定変更通知
+static
 int mapif_party_optionchanged (int fd, struct party *p, int account_id,
                                int flag)
 {
@@ -353,6 +366,7 @@ int mapif_party_optionchanged (int fd, struct party *p, int account_id,
 }
 
 // パーティ脱退通知
+static
 int mapif_party_leaved (int party_id, int account_id, char *name)
 {
     unsigned char buf[34];
@@ -368,6 +382,7 @@ int mapif_party_leaved (int party_id, int account_id, char *name)
 }
 
 // パーティマップ更新通知
+static
 int mapif_party_membermoved (struct party *p, int idx)
 {
     unsigned char buf[29];
@@ -397,7 +412,8 @@ int mapif_party_broken (int party_id, int flag)
 }
 
 // パーティ内発言
-int mapif_party_message (int party_id, int account_id, char *mes, int len)
+static
+int mapif_party_message (int party_id, int account_id, const char *mes, int len)
 {
     unsigned char buf[len + 12];
 
@@ -415,8 +431,9 @@ int mapif_party_message (int party_id, int account_id, char *mes, int len)
 // map serverからの通信
 
 // パーティ
-int mapif_parse_CreateParty (int fd, int account_id, char *name, char *nick,
-                             char *map, int lv)
+static
+int mapif_parse_CreateParty (int fd, int account_id, const char *name, const char *nick,
+                             const char *map, int lv)
 {
     struct party *p;
     int  i;
@@ -458,6 +475,7 @@ int mapif_parse_CreateParty (int fd, int account_id, char *name, char *nick,
 }
 
 // パーティ情報要求
+static
 int mapif_parse_PartyInfo (int fd, int party_id)
 {
     struct party *p = (struct party *)numdb_search (party_db, party_id);
@@ -470,8 +488,9 @@ int mapif_parse_PartyInfo (int fd, int party_id)
 }
 
 // パーティ追加要求
+static
 int mapif_parse_PartyAddMember (int fd, int party_id, int account_id,
-                                char *nick, char *map, int lv)
+                                const char *nick, const char *map, int lv)
 {
     struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p == NULL)
@@ -511,6 +530,7 @@ int mapif_parse_PartyAddMember (int fd, int party_id, int account_id,
 }
 
 // パーティー設定変更要求
+static
 int mapif_parse_PartyChangeOption (int fd, int party_id, int account_id,
                                    int exp, int item)
 {
@@ -556,8 +576,9 @@ int mapif_parse_PartyLeave (int fd, int party_id, int account_id)
 }
 
 // パーティマップ更新要求
+static
 int mapif_parse_PartyChangeMap (int fd, int party_id, int account_id,
-                                char *map, int online, int lv)
+                                const char *map, int online, int lv)
 {
     struct party *p = (struct party *)numdb_search (party_db, party_id);
     if (p == NULL)
@@ -589,6 +610,7 @@ int mapif_parse_PartyChangeMap (int fd, int party_id, int account_id,
 }
 
 // パーティ解散要求
+static
 int mapif_parse_BreakParty (int fd, int party_id)
 {
     struct party *p = (struct party *)numdb_search (party_db, party_id);
@@ -602,14 +624,16 @@ int mapif_parse_BreakParty (int fd, int party_id)
 }
 
 // パーティメッセージ送信
-int mapif_parse_PartyMessage (int fd, int party_id, int account_id, char *mes,
+static
+int mapif_parse_PartyMessage (int fd, int party_id, int account_id, const char *mes,
                               int len)
 {
     return mapif_party_message (party_id, account_id, mes, len);
 }
 
 // パーティチェック要求
-int mapif_parse_PartyCheck (int fd, int party_id, int account_id, char *nick)
+static
+int mapif_parse_PartyCheck (int fd, int party_id, int account_id, const char *nick)
 {
     return party_check_conflict (party_id, account_id, nick);
 }
@@ -624,8 +648,8 @@ int inter_party_parse_frommap (int fd)
     switch (RFIFOW (fd, 0))
     {
         case 0x3020:
-            mapif_parse_CreateParty (fd, RFIFOL (fd, 2), RFIFOP (fd, 6),
-                                     RFIFOP (fd, 30), RFIFOP (fd, 54),
+            mapif_parse_CreateParty (fd, RFIFOL (fd, 2), (const char *)RFIFOP (fd, 6),
+                                     (const char *)RFIFOP (fd, 30), (const char *)RFIFOP (fd, 54),
                                      RFIFOW (fd, 70));
             break;
         case 0x3021:
@@ -633,7 +657,7 @@ int inter_party_parse_frommap (int fd)
             break;
         case 0x3022:
             mapif_parse_PartyAddMember (fd, RFIFOL (fd, 2), RFIFOL (fd, 6),
-                                        RFIFOP (fd, 10), RFIFOP (fd, 34),
+                                        (const char *)RFIFOP (fd, 10), (const char *)RFIFOP (fd, 34),
                                         RFIFOW (fd, 50));
             break;
         case 0x3023:
@@ -645,7 +669,7 @@ int inter_party_parse_frommap (int fd)
             break;
         case 0x3025:
             mapif_parse_PartyChangeMap (fd, RFIFOL (fd, 2), RFIFOL (fd, 6),
-                                        RFIFOP (fd, 10), RFIFOB (fd, 26),
+                                        (const char *)RFIFOP (fd, 10), RFIFOB (fd, 26),
                                         RFIFOW (fd, 27));
             break;
         case 0x3026:
@@ -653,11 +677,11 @@ int inter_party_parse_frommap (int fd)
             break;
         case 0x3027:
             mapif_parse_PartyMessage (fd, RFIFOL (fd, 4), RFIFOL (fd, 8),
-                                      RFIFOP (fd, 12), RFIFOW (fd, 2) - 12);
+                                      (const char *)RFIFOP (fd, 12), RFIFOW (fd, 2) - 12);
             break;
         case 0x3028:
             mapif_parse_PartyCheck (fd, RFIFOL (fd, 2), RFIFOL (fd, 6),
-                                    RFIFOP (fd, 10));
+                                    (const char *)RFIFOP (fd, 10));
             break;
         default:
             return 0;

@@ -133,13 +133,14 @@ int chrif_save (struct map_session_data *sd)
  *
  *------------------------------------------
  */
+static
 int chrif_connect (int fd)
 {
     WFIFOW (fd, 0) = 0x2af8;
     memcpy (WFIFOP (fd, 2), userid, 24);
     memcpy (WFIFOP (fd, 26), passwd, 24);
     WFIFOL (fd, 50) = 0;
-    WFIFOL (fd, 54) = clif_getip ();
+    WFIFOL (fd, 54) = clif_getip ().s_addr;
     WFIFOW (fd, 58) = clif_getport ();  // [Valaris] thanks to fov
     WFIFOSET (fd, 60);
 
@@ -150,6 +151,7 @@ int chrif_connect (int fd)
  * マップ送信
  *------------------------------------------
  */
+static
 int chrif_sendmap (int fd)
 {
     int  i;
@@ -170,25 +172,25 @@ int chrif_sendmap (int fd)
  * マップ受信
  *------------------------------------------
  */
+static
 int chrif_recvmap (int fd)
 {
-    int  i, j, ip, port;
-    unsigned char *p = (unsigned char *) &ip;
+    int  i, j, port;
 
     if (chrif_state < 2)        // まだ準備中
         return -1;
 
-    ip = RFIFOL (fd, 4);
+    struct in_addr ip;
+    ip.s_addr = RFIFOL (fd, 4);
     port = RFIFOW (fd, 8);
     for (i = 10, j = 0; i < RFIFOW (fd, 2); i += 16, j++)
     {
-        map_setipport (RFIFOP (fd, i), ip, port);
+        map_setipport ((const char *)RFIFOP (fd, i), ip, port);
 //      if (battle_config.etc_log)
 //          printf("recv map %d %s\n", j, RFIFOP(fd,i));
     }
     if (battle_config.etc_log)
-        printf ("recv map on %d.%d.%d.%d:%d (%d maps)\n", p[0], p[1], p[2],
-                p[3], port, j);
+        printf ("recv map on %s:%d (%d maps)\n", ip2str(ip), port, j);
 
     return 0;
 }
@@ -198,7 +200,7 @@ int chrif_recvmap (int fd)
  *------------------------------------------
  */
 int chrif_changemapserver (struct map_session_data *sd, char *name, int x,
-                           int y, int ip, short port)
+                           int y, struct in_addr ip, short port)
 {
     int  i, s_ip;
 
@@ -220,7 +222,7 @@ int chrif_changemapserver (struct map_session_data *sd, char *name, int x,
     memcpy (WFIFOP (char_fd, 18), name, 16);
     WFIFOW (char_fd, 34) = x;
     WFIFOW (char_fd, 36) = y;
-    WFIFOL (char_fd, 38) = ip;
+    WFIFOL (char_fd, 38) = ip.s_addr;
     WFIFOL (char_fd, 42) = port;
     WFIFOB (char_fd, 44) = sd->status.sex;
     WFIFOL (char_fd, 45) = s_ip;
@@ -233,6 +235,7 @@ int chrif_changemapserver (struct map_session_data *sd, char *name, int x,
  * マップ鯖間移動ack
  *------------------------------------------
  */
+static
 int chrif_changemapserverack (int fd)
 {
     struct map_session_data *sd = map_id2sd (RFIFOL (fd, 2));
@@ -247,8 +250,8 @@ int chrif_changemapserverack (int fd)
         pc_authfail (sd->fd);
         return 0;
     }
-    clif_changemapserver (sd, RFIFOP (fd, 18), RFIFOW (fd, 34),
-                          RFIFOW (fd, 36), RFIFOL (fd, 38), RFIFOW (fd, 42));
+    clif_changemapserver (sd, (const char *)RFIFOP (fd, 18), RFIFOW (fd, 34),
+                          RFIFOW (fd, 36), in_addr{RFIFOL (fd, 38)}, RFIFOW (fd, 42));
 
     return 0;
 }
@@ -257,6 +260,7 @@ int chrif_changemapserverack (int fd)
  *
  *------------------------------------------
  */
+static
 int chrif_connectack (int fd)
 {
     if (RFIFOB (fd, 2))
@@ -284,6 +288,7 @@ int chrif_connectack (int fd)
  *
  *------------------------------------------
  */
+static
 int chrif_sendmapack (int fd)
 {
     if (RFIFOB (fd, 2))
@@ -465,6 +470,7 @@ int chrif_char_ask_name (int id, char *character_name, short operation_type,
  *   3: login-server offline
  *------------------------------------------
  */
+static
 int chrif_char_ask_name_answer (int fd)
 {
     int  acc;
@@ -608,6 +614,7 @@ int chrif_char_ask_name_answer (int fd)
  * End of GM change (@GM) (modified by Yor)
  *------------------------------------------
  */
+static
 int chrif_changedgm (int fd)
 {
     int  acc, level;
@@ -636,6 +643,7 @@ int chrif_changedgm (int fd)
  * 性別変化終了 (modified by Yor)
  *------------------------------------------
  */
+static
 int chrif_changedsex (int fd)
 {
     int  acc, sex, i;
@@ -736,6 +744,7 @@ int chrif_saveaccountreg2 (struct map_session_data *sd)
  * アカウント変数通知
  *------------------------------------------
  */
+static
 int chrif_accountreg2 (int fd)
 {
     int  j, p;
@@ -762,6 +771,7 @@ int chrif_accountreg2 (int fd)
  * ack from a map-server divorce request
  *------------------------------------------
  */
+static
 int chrif_divorce (int char_id, int partner_id)
 {
     struct map_session_data *sd = NULL;
@@ -808,6 +818,7 @@ int chrif_send_divorce (int char_id)
  * Disconnection of a player (account has been deleted in login-server) by [Yor]
  *------------------------------------------
  */
+static
 int chrif_accountdeletion (int fd)
 {
     int  acc;
@@ -840,6 +851,7 @@ int chrif_accountdeletion (int fd)
  * Disconnection of a player (account has been banned of has a status, from login-server) by [Yor]
  *------------------------------------------
  */
+static
 int chrif_accountban (int fd)
 {
     int  acc;
@@ -930,6 +942,7 @@ int chrif_accountban (int fd)
  * Receiving GM accounts and their levels from char-server by [Yor]
  *------------------------------------------
  */
+static
 int chrif_recvgmaccounts (int fd)
 {
     printf ("From login-server: receiving of %d GM accounts information.\n",
@@ -1092,6 +1105,7 @@ static int ladmin_itemfrob_c2 (struct block_list *bl, int source_id,
     return 0;
 }
 
+static
 int ladmin_itemfrob_c (struct block_list *bl, va_list va_args)
 {
     int  source_id = va_arg (va_args, int);
@@ -1099,6 +1113,7 @@ int ladmin_itemfrob_c (struct block_list *bl, va_list va_args)
     return ladmin_itemfrob_c2 (bl, source_id, dest_id);
 }
 
+static
 void ladmin_itemfrob (int fd)
 {
     int  source_id = RFIFOL (fd, 2);
@@ -1121,6 +1136,7 @@ void ladmin_itemfrob (int fd)
  *
  *------------------------------------------
  */
+static
 void chrif_parse (int fd)
 {
     int  packet_len, cmd;
@@ -1203,7 +1219,7 @@ void chrif_parse (int fd)
                 chrif_changemapserverack (fd);
                 break;
             case 0x2b09:
-                map_addchariddb (RFIFOL (fd, 2), RFIFOP (fd, 6));
+                map_addchariddb (RFIFOL (fd, 2), (const char *)RFIFOP (fd, 6));
                 break;
             case 0x2b0b:
                 chrif_changedgm (fd);
@@ -1246,6 +1262,7 @@ void chrif_parse (int fd)
  * 今このmap鯖に繋がっているクライアント人数をchar鯖へ送る
  *------------------------------------------
  */
+static
 void send_users_tochar (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int  users = 0, i;
@@ -1276,6 +1293,7 @@ void send_users_tochar (timer_id tid, tick_t tick, custom_id_t id, custom_data_t
  * char鯖との接続を確認し、もし切れていたら再度接続する
  *------------------------------------------
  */
+static
 void check_connect_char_server (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     if (char_fd <= 0 || session[char_fd] == NULL)
