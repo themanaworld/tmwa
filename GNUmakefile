@@ -6,8 +6,14 @@ default: login-server char-server map-server ladmin eathena-monitor
 include make.defs
 
 .PHONY: all clean common
-.PRECIOUS: %/
-%/:
+# With no prerequisites, no target should ever be implicitly deleted.
+# With any prerequisites, those targets won't be (no patterns).
+.SECONDARY:
+# This does the same, but only for its prerequisites.
+# Unlike .SECONDARY, these may be patterns as well as normal prerequisites.
+# .PRECIOUS: %/.
+
+%/.:
 	+mkdir -p $@
 
 # The default recipe is suboptimal
@@ -18,21 +24,21 @@ include make.defs
 
 
 # All this duplication is required because make handles pattern rules specially
-${BUILD_DIR}/char/%.o: src/char/%.cpp | ${BUILD_DIR}/char/
+${BUILD_DIR}/char/%.o: src/char/%.cpp | ${BUILD_DIR}/char/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/common/%.o: src/common/%.cpp | ${BUILD_DIR}/common/
+${BUILD_DIR}/common/%.o: src/common/%.cpp | ${BUILD_DIR}/common/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/ladmin/%.o: src/ladmin/%.cpp | ${BUILD_DIR}/ladmin/
+${BUILD_DIR}/ladmin/%.o: src/ladmin/%.cpp | ${BUILD_DIR}/ladmin/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/login/%.o: src/login/%.cpp | ${BUILD_DIR}/login/
+${BUILD_DIR}/login/%.o: src/login/%.cpp | ${BUILD_DIR}/login/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/map/%.o: src/map/%.cpp | ${BUILD_DIR}/map/
+${BUILD_DIR}/map/%.o: src/map/%.cpp | ${BUILD_DIR}/map/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/tool/%.o: src/tool/%.cpp | ${BUILD_DIR}/tool/
+${BUILD_DIR}/tool/%.o: src/tool/%.cpp | ${BUILD_DIR}/tool/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/webserver/%.o: src/webserver/%.cpp | ${BUILD_DIR}/webserver/
+${BUILD_DIR}/webserver/%.o: src/webserver/%.cpp | ${BUILD_DIR}/webserver/.
 	$(COMPILE.cpp) -o $@ $<
-${BUILD_DIR}/webserver/pages/%.o: src/webserver/pages/%.cpp | ${BUILD_DIR}/webserver/pages/
+${BUILD_DIR}/webserver/pages/%.o: src/webserver/pages/%.cpp | ${BUILD_DIR}/webserver/pages/.
 	$(COMPILE.cpp) -o $@ $<
 
 PROGS = login-server char-server map-server ladmin eathena-monitor webserver
