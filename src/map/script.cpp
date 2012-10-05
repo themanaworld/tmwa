@@ -2587,7 +2587,7 @@ static int getarraysize (struct script_state *st, int num, int postfix)
     for (; i < 128; i++)
     {
         struct script_data vd = get_val2 (st, num + (i << 24));
-        if (postfix == '$' ? bool(vd.u.str) : bool(vd.u.num))
+        if (postfix == '$' ? bool(*vd.u.str) : bool(vd.u.num))
             c = i;
     }
     return c + 1;
