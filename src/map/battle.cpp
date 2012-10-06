@@ -5094,41 +5094,25 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                 && (wd.damage > 0 || wd.damage2 > 0))
             {
                 int  hp = 0, sp = 0;
-                if (sd->hp_drain_rate && sd->hp_drain_per > 0 && wd.damage > 0
+                if (sd->hp_drain_rate && wd.damage > 0
                     && MRAND (100) < sd->hp_drain_rate)
                 {
                     hp += (wd.damage * sd->hp_drain_per) / 100;
-                    if (sd->hp_drain_rate > 0 && hp < 1)
-                        hp = 1;
-                    else if (sd->hp_drain_rate < 0 && hp > -1)
-                        hp = -1;
                 }
-                if (sd->hp_drain_rate_ && sd->hp_drain_per_ > 0
-                    && wd.damage2 > 0 && MRAND (100) < sd->hp_drain_rate_)
+                if (sd->hp_drain_rate_ && wd.damage2 > 0
+                    && MRAND (100) < sd->hp_drain_rate_)
                 {
                     hp += (wd.damage2 * sd->hp_drain_per_) / 100;
-                    if (sd->hp_drain_rate_ > 0 && hp < 1)
-                        hp = 1;
-                    else if (sd->hp_drain_rate_ < 0 && hp > -1)
-                        hp = -1;
                 }
-                if (sd->sp_drain_rate && sd->sp_drain_per > 0 && wd.damage > 0
+                if (sd->sp_drain_rate && wd.damage > 0
                     && MRAND (100) < sd->sp_drain_rate)
                 {
                     sp += (wd.damage * sd->sp_drain_per) / 100;
-                    if (sd->sp_drain_rate > 0 && sp < 1)
-                        sp = 1;
-                    else if (sd->sp_drain_rate < 0 && sp > -1)
-                        sp = -1;
                 }
-                if (sd->sp_drain_rate_ && sd->sp_drain_per_ > 0
-                    && wd.damage2 > 0 && MRAND (100) < sd->sp_drain_rate_)
+                if (sd->sp_drain_rate_ && wd.damage2 > 0
+                    && MRAND (100) < sd->sp_drain_rate_)
                 {
                     sp += (wd.damage2 * sd->sp_drain_per_) / 100;
-                    if (sd->sp_drain_rate_ > 0 && sp < 1)
-                        sp = 1;
-                    else if (sd->sp_drain_rate_ < 0 && sp > -1)
-                        sp = -1;
                 }
                 if (hp || sp)
                     pc_heal (sd, hp, sp);

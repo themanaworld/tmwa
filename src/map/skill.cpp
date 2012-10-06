@@ -2020,41 +2020,25 @@ int skill_attack (int attack_type, struct block_list *src,
         struct map_session_data *sd = (struct map_session_data *) src;
         int  hp = 0, sp = 0;
         nullpo_retr (0, sd);
-        if (sd->hp_drain_rate && sd->hp_drain_per > 0 && dmg.damage > 0
+        if (sd->hp_drain_rate && dmg.damage > 0
             && MRAND (100) < sd->hp_drain_rate)
         {
             hp += (dmg.damage * sd->hp_drain_per) / 100;
-            if (sd->hp_drain_rate > 0 && hp < 1)
-                hp = 1;
-            else if (sd->hp_drain_rate < 0 && hp > -1)
-                hp = -1;
         }
-        if (sd->hp_drain_rate_ && sd->hp_drain_per_ > 0 && dmg.damage2 > 0
+        if (sd->hp_drain_rate_ && dmg.damage2 > 0
             && MRAND (100) < sd->hp_drain_rate_)
         {
             hp += (dmg.damage2 * sd->hp_drain_per_) / 100;
-            if (sd->hp_drain_rate_ > 0 && hp < 1)
-                hp = 1;
-            else if (sd->hp_drain_rate_ < 0 && hp > -1)
-                hp = -1;
         }
-        if (sd->sp_drain_rate > 0 && sd->sp_drain_per > 0 && dmg.damage > 0
+        if (sd->sp_drain_rate > 0 && dmg.damage > 0
             && MRAND (100) < sd->sp_drain_rate)
         {
             sp += (dmg.damage * sd->sp_drain_per) / 100;
-            if (sd->sp_drain_rate > 0 && sp < 1)
-                sp = 1;
-            else if (sd->sp_drain_rate < 0 && sp > -1)
-                sp = -1;
         }
-        if (sd->sp_drain_rate_ > 0 && sd->sp_drain_per_ > 0 && dmg.damage2 > 0
+        if (sd->sp_drain_rate_ > 0 && dmg.damage2 > 0
             && MRAND (100) < sd->sp_drain_rate_)
         {
             sp += (dmg.damage2 * sd->sp_drain_per_) / 100;
-            if (sd->sp_drain_rate_ > 0 && sp < 1)
-                sp = 1;
-            else if (sd->sp_drain_rate_ < 0 && sp > -1)
-                sp = -1;
         }
         if (hp || sp)
             pc_heal (sd, hp, sp);
