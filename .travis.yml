@@ -1,5 +1,64 @@
+## Doesn't appear to do anything useful.
 language: cpp
-compiler:
- - gcc
- - clang
-script: ./automated-build
+
+## Notifications
+## The default is to send email on all failures and changed success
+## Adding other notifiers (like IRC) does not disable the email one
+notifications:
+  ## This is, in fact, the default email setting so it is unnecessary.
+  ## It would probably be too annoying to set on_success: always
+  email:
+    on_success: changed
+    on_failure: always
+  ## Are we going to want this on or off?
+  irc:
+    # TMW irc doesn't work for some reason; freenode does ...
+    # I'm leaving it like this because it's what I'd like to use.
+    channels:   "irc.themanaworld.org#tmw-dev"
+    on_success: always
+    on_failure: always
+
+## Commands before installing prerequisites
+before_install: export CC=${REAL_CC} CXX=${REAL_CXX}
+# before_install: git submodule update --init --recursive
+
+## Install prerequisites
+install:
+# if > or | folding is used, error
+# but YAML folds by default on this, so it works (I hope)
+  -
+    if [ "${REAL_CXX}" = "g++-4.7" ];
+    then
+        sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test &&
+        sudo apt-get update -qq;
+    fi
+  - sudo apt-get install -qq ${REAL_CXX}
+
+## Do something before the main test script
+# before_script: ...
+
+## Main test script
+script:
+  - make -k -j2 CC=${REAL_CC} CXX=${REAL_CXX}
+
+## Do something after the main test script
+# after_script: ...
+
+### The rest of the file creates a build matrix
+### containing gcc-4.4 through gcc-4.7 and clang-3.1
+
+## This doesn't work - travis defaults to plain gcc if unknown
+# compiler: gcc-4.4
+# compiler: gcc-4.5
+# compiler: gcc-4.6
+# compiler: gcc-4.7
+# compiler: clang
+
+## Environment variables to expand the build matrix
+## Needed because compiler: gcc overwrites CC and CXX
+env:
+  - REAL_CC=gcc-4.4 REAL_CXX=g++-4.4
+  - REAL_CC=gcc-4.5 REAL_CXX=g++-4.5
+  - REAL_CC=gcc-4.6 REAL_CXX=g++-4.6
+  - REAL_CC=gcc-4.7 REAL_CXX=g++-4.7
+  - REAL_CC=clang   REAL_CXX=clang++
