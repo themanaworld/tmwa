@@ -8044,7 +8044,7 @@ int atcommand_summon (const int fd, struct map_session_data *sd,
 
     if (!message || !*message)
         return -1;
-    if (sscanf (message, "%99s", name) < 1)
+    if (sscanf (message, "%99[^\n]", name) < 1)
         return -1;
 
     if ((mob_id = atoi (name)) == 0)
@@ -8202,7 +8202,7 @@ atcommand_magic_info (const int fd, struct map_session_data *sd,
 
     memset (character, '\0', sizeof (character));
 
-    if (!message || !*message || sscanf (message, "%99s", character) < 1)
+    if (!message || !*message || sscanf (message, "%99[^\n]", character) < 1)
     {
         clif_displaymessage (fd, "Usage: @magicinfo <char_name>");
         return -1;
@@ -8250,7 +8250,7 @@ atcommand_set_magic (const int fd, struct map_session_data *sd,
     memset (character, '\0', sizeof (character));
 
     if (!message || !*message
-        || sscanf (message, "%19s %i %99s", magic_type, &value,
+        || sscanf (message, "%19s %i %99[^\n]", magic_type, &value,
                    character) < 1)
     {
         clif_displaymessage (fd,
@@ -8425,7 +8425,7 @@ int atcommand_skillpool_info (const int fd, struct map_session_data *sd,
     char character[100];
     struct map_session_data *pl_sd;
 
-    if (!message || !*message || sscanf (message, "%99s", character) < 1)
+    if (!message || !*message || sscanf (message, "%99[^\n]", character) < 1)
     {
         clif_displaymessage (fd, "Usage: @sp-info <char_name>");
         return -1;
