@@ -774,19 +774,18 @@ AtCommandType atcommand (const int level, const char *message,
  *
  *------------------------------------------
  */
-static int atkillmonster_sub (struct block_list *bl, va_list ap)
+static
+void atkillmonster_sub (struct block_list *bl, va_list ap)
 {
     int  flag = va_arg (ap, int);
 
-    nullpo_retr (0, bl);
+    nullpo_retv (bl);
 
     if (flag)
         mob_damage (NULL, (struct mob_data *) bl,
                     ((struct mob_data *) bl)->hp, 2);
     else
         mob_delete ((struct mob_data *) bl);
-
-    return 0;
 }
 
 /*==========================================
@@ -3032,16 +3031,15 @@ int atcommand_killmonster (const int fd, struct map_session_data *sd,
  *
  *------------------------------------------
  */
-static int atlist_nearby_sub (struct block_list *bl, va_list ap)
+static
+void atlist_nearby_sub (struct block_list *bl, va_list ap)
 {
     char buf[32];
     int  fd = va_arg (ap, int);
-    nullpo_retr (0, bl);
+    nullpo_retv (bl);
 
     sprintf (buf, " - \"%s\"", ((struct map_session_data *) bl)->status.name);
     clif_displaymessage (fd, buf);
-
-    return 0;
 }
 
 /*==========================================

@@ -53,8 +53,10 @@ struct script_stack
     struct script_data *stack_data;
 };
 
-struct script_state
+// future improvements coming!
+class ScriptState
 {
+public:
     struct script_stack *stack;
     int  start, end;
     int  pos, state;
@@ -83,9 +85,9 @@ int  run_script (const ScriptCode *, int, int, int);
 struct dbt *script_get_label_db (void);
 struct dbt *script_get_userfunc_db (void);
 
-int  script_config_read (const char *cfgName);
-int  do_init_script (void);
-int  do_final_script (void);
+void script_config_read (const char *cfgName);
+void do_init_script (void);
+void do_final_script (void);
 
 extern char mapreg_txt[];
 

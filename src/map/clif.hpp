@@ -121,10 +121,10 @@ int  clif_guildstorageitemadded (struct map_session_data *sd,
                                  struct guild_storage *stor, int index,
                                  int amount);
 
-int  clif_pcinsight (struct block_list *, va_list); // map_forallinmovearea callback
-int  clif_pcoutsight (struct block_list *, va_list);    // map_forallinmovearea callback
-int  clif_mobinsight (struct block_list *, va_list);    // map_forallinmovearea callback
-int  clif_moboutsight (struct block_list *, va_list);   // map_forallinmovearea callback
+void clif_pcinsight (struct block_list *, va_list); // map_forallinmovearea callback
+void clif_pcoutsight (struct block_list *, va_list);    // map_forallinmovearea callback
+void clif_mobinsight (struct block_list *, va_list);    // map_forallinmovearea callback
+void clif_moboutsight (struct block_list *, va_list);   // map_forallinmovearea callback
 
 int  clif_npc_class_change (struct block_list *bl, int npc_class, int type);
 int  clif_mob_class_change (struct mob_data *md, int mob_class);

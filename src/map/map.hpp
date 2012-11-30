@@ -738,12 +738,12 @@ int  map_freeblock_unlock (void);
 // block関連
 int  map_addblock (struct block_list *);
 int  map_delblock (struct block_list *);
-void map_foreachinarea (int (*)(struct block_list *, va_list), int, int, int,
+void map_foreachinarea (void (*)(struct block_list *, va_list), int, int, int,
                         int, int, int, ...);
 // -- moonsoul (added map_foreachincell)
-void map_foreachincell (int (*)(struct block_list *, va_list), int, int, int,
+void map_foreachincell (void (*)(struct block_list *, va_list), int, int, int,
                         int, ...);
-void map_foreachinmovearea (int (*)(struct block_list *, va_list), int, int,
+void map_foreachinmovearea (void (*)(struct block_list *, va_list), int, int,
                             int, int, int, int, int, int, ...);
 int  map_countnearpc (int, int, int);
 //block関連に追加
@@ -752,7 +752,7 @@ int  map_count_oncell (int m, int x, int y);
 int  map_addobject (struct block_list *);
 int  map_delobject (int, int type);
 int  map_delobjectnofree (int id, int type);
-void map_foreachobject (int (*)(struct block_list *, va_list), int, ...);
+void map_foreachobject (void (*)(struct block_list *, va_list), int, ...);
 //
 int  map_quit (struct map_session_data *);
 // npc

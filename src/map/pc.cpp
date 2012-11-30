@@ -383,22 +383,23 @@ int pc_setrestartvalue (struct map_session_data *sd, int type)
  * 自分をロックしているMOBの数を数える(foreachclient)
  *------------------------------------------
  */
-static int pc_counttargeted_sub (struct block_list *bl, va_list ap)
+static
+void pc_counttargeted_sub (struct block_list *bl, va_list ap)
 {
     int  id, *c, target_lv;
     struct block_list *src;
 
-    nullpo_retr (0, bl);
-    nullpo_retr (0, ap);
+    nullpo_retv (bl);
+    nullpo_retv (ap);
 
     id = va_arg (ap, int);
 
-    nullpo_retr (0, c = va_arg (ap, int *));
+    nullpo_retv (c = va_arg (ap, int *));
 
     src = va_arg (ap, struct block_list *);
     target_lv = va_arg (ap, int);
     if (id == bl->id || (src && id == src->id))
-        return 0;
+        return;
     if (bl->type == BL_PC)
     {
         struct map_session_data *sd = (struct map_session_data *) bl;
@@ -415,7 +416,6 @@ static int pc_counttargeted_sub (struct block_list *bl, va_list ap)
             (*c)++;
         //printf("md->target_lv:%d, target_lv:%d\n",((struct mob_data *)bl)->target_lv,target_lv);
     }
-    return 0;
 }
 
 int pc_counttargeted (struct map_session_data *sd, struct block_list *src,
@@ -3923,7 +3923,7 @@ int pc_item_identify (struct map_session_data *sd, int idx)
  *------------------------------------------
  */
 static
-int pc_show_steal (struct block_list *bl, va_list ap)
+void pc_show_steal (struct block_list *bl, va_list ap)
 {
     struct map_session_data *sd;
     int  itemid;
@@ -3932,9 +3932,9 @@ int pc_show_steal (struct block_list *bl, va_list ap)
     struct item_data *item = NULL;
     char output[100];
 
-    nullpo_retr (0, bl);
-    nullpo_retr (0, ap);
-    nullpo_retr (0, sd = va_arg (ap, struct map_session_data *));
+    nullpo_retv (bl);
+    nullpo_retv (ap);
+    nullpo_retv (sd = va_arg (ap, struct map_session_data *));
 
     itemid = va_arg (ap, int);
     type = va_arg (ap, int);
@@ -3954,8 +3954,6 @@ int pc_show_steal (struct block_list *bl, va_list ap)
                  sd->status.name);
         clif_displaymessage (((struct map_session_data *) bl)->fd, output);
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -7760,18 +7758,17 @@ int pc_checkoversp (struct map_session_data *sd)
  *------------------------------------------
  */
 static
-int pc_calc_pvprank_sub (struct block_list *bl, va_list ap)
+void pc_calc_pvprank_sub (struct block_list *bl, va_list ap)
 {
     struct map_session_data *sd1, *sd2 = NULL;
 
-    nullpo_retr (0, bl);
-    nullpo_retr (0, ap);
-    nullpo_retr (0, sd1 = (struct map_session_data *) bl);
-    nullpo_retr (0, sd2 = va_arg (ap, struct map_session_data *));
+    nullpo_retv (bl);
+    nullpo_retv (ap);
+    nullpo_retv (sd1 = (struct map_session_data *) bl);
+    nullpo_retv (sd2 = va_arg (ap, struct map_session_data *));
 
     if (sd1->pvp_point > sd2->pvp_point)
         sd2->pvp_rank++;
-    return 0;
 }
 
 /*==========================================

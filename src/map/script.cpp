@@ -59,7 +59,7 @@ static struct str_data_t
     int  str;
     int  backpatch;
     int  label;
-    int  (*func) (struct script_state *);
+    void (*func) (ScriptState *);
     int  val;
     int  next;
 }   *str_data;
@@ -109,641 +109,435 @@ static int parse_cmd;
  *------------------------------------------
  */
 const char *parse_subexpr (const char *, int);
-int  buildin_mes (struct script_state *st);
-int  buildin_goto (struct script_state *st);
-int  buildin_callsub (struct script_state *st);
-int  buildin_callfunc (struct script_state *st);
-int  buildin_return (struct script_state *st);
-int  buildin_getarg (struct script_state *st);
-int  buildin_next (struct script_state *st);
-int  buildin_close (struct script_state *st);
-int  buildin_close2 (struct script_state *st);
-int  buildin_menu (struct script_state *st);
-int  buildin_rand (struct script_state *st);
-int  buildin_pow (struct script_state *st);
-int  buildin_warp (struct script_state *st);
-int  buildin_isat (struct script_state *st);
-int  buildin_areawarp (struct script_state *st);
-int  buildin_heal (struct script_state *st);
-int  buildin_itemheal (struct script_state *st);
-int  buildin_percentheal (struct script_state *st);
-int  buildin_jobchange (struct script_state *st);
-int  buildin_input (struct script_state *st);
-int  buildin_setlook (struct script_state *st);
-int  buildin_set (struct script_state *st);
-int  buildin_setarray (struct script_state *st);
-int  buildin_cleararray (struct script_state *st);
-int  buildin_copyarray (struct script_state *st);
-int  buildin_getarraysize (struct script_state *st);
-int  buildin_deletearray (struct script_state *st);
-int  buildin_getelementofarray (struct script_state *st);
-int  buildin_if (struct script_state *st);
-int  buildin_getitem (struct script_state *st);
-int  buildin_getitem2 (struct script_state *st);
-int  buildin_makeitem (struct script_state *st);
-int  buildin_delitem (struct script_state *st);
-int  buildin_viewpoint (struct script_state *st);
-int  buildin_countitem (struct script_state *st);
-int  buildin_checkweight (struct script_state *st);
-int  buildin_readparam (struct script_state *st);
-int  buildin_getcharid (struct script_state *st);
-int  buildin_getpartyname (struct script_state *st);
-int  buildin_getpartymember (struct script_state *st);
-int  buildin_getguildname (struct script_state *st);
-int  buildin_getguildmaster (struct script_state *st);
-int  buildin_getguildmasterid (struct script_state *st);
-int  buildin_strcharinfo (struct script_state *st);
-int  buildin_getequipid (struct script_state *st);
-int  buildin_getequipname (struct script_state *st);
-int  buildin_getbrokenid (struct script_state *st); // [Valaris]
-int  buildin_repair (struct script_state *st);  // [Valaris]
-int  buildin_getequipisequiped (struct script_state *st);
-int  buildin_getequipisenableref (struct script_state *st);
-int  buildin_getequipisidentify (struct script_state *st);
-int  buildin_getequiprefinerycnt (struct script_state *st);
-int  buildin_getequipweaponlv (struct script_state *st);
-int  buildin_getequippercentrefinery (struct script_state *st);
-int  buildin_successrefitem (struct script_state *st);
-int  buildin_failedrefitem (struct script_state *st);
-int  buildin_cutin (struct script_state *st);
-int  buildin_cutincard (struct script_state *st);
-int  buildin_statusup (struct script_state *st);
-int  buildin_statusup2 (struct script_state *st);
-int  buildin_bonus (struct script_state *st);
-int  buildin_bonus2 (struct script_state *st);
-int  buildin_bonus3 (struct script_state *st);
-int  buildin_skill (struct script_state *st);
-int  buildin_setskill (struct script_state *st);
-int  buildin_guildskill (struct script_state *st);
-int  buildin_getskilllv (struct script_state *st);
-int  buildin_getgdskilllv (struct script_state *st);
-int  buildin_basicskillcheck (struct script_state *st);
-int  buildin_getgmlevel (struct script_state *st);
-int  buildin_end (struct script_state *st);
-int  buildin_getopt2 (struct script_state *st);
-int  buildin_setopt2 (struct script_state *st);
-int  buildin_checkoption (struct script_state *st);
-int  buildin_setoption (struct script_state *st);
-int  buildin_setcart (struct script_state *st);
-int  buildin_checkcart (struct script_state *st);   // check cart [Valaris]
-int  buildin_setfalcon (struct script_state *st);
-int  buildin_checkfalcon (struct script_state *st); // check falcon [Valaris]
-int  buildin_setriding (struct script_state *st);
-int  buildin_checkriding (struct script_state *st); // check for pecopeco [Valaris]
-int  buildin_savepoint (struct script_state *st);
-int  buildin_gettimetick (struct script_state *st);
-int  buildin_gettime (struct script_state *st);
-int  buildin_gettimestr (struct script_state *st);
-int  buildin_openstorage (struct script_state *st);
-int  buildin_guildopenstorage (struct script_state *st);
-int  buildin_itemskill (struct script_state *st);
-int  buildin_monster (struct script_state *st);
-int  buildin_areamonster (struct script_state *st);
-int  buildin_killmonster (struct script_state *st);
-int  buildin_killmonsterall (struct script_state *st);
-int  buildin_doevent (struct script_state *st);
-int  buildin_donpcevent (struct script_state *st);
-int  buildin_addtimer (struct script_state *st);
-int  buildin_deltimer (struct script_state *st);
-int  buildin_addtimercount (struct script_state *st);
-int  buildin_initnpctimer (struct script_state *st);
-int  buildin_stopnpctimer (struct script_state *st);
-int  buildin_startnpctimer (struct script_state *st);
-int  buildin_setnpctimer (struct script_state *st);
-int  buildin_getnpctimer (struct script_state *st);
-int  buildin_announce (struct script_state *st);
-int  buildin_mapannounce (struct script_state *st);
-int  buildin_areaannounce (struct script_state *st);
-int  buildin_getusers (struct script_state *st);
-int  buildin_getmapusers (struct script_state *st);
-int  buildin_getareausers (struct script_state *st);
-int  buildin_getareadropitem (struct script_state *st);
-int  buildin_enablenpc (struct script_state *st);
-int  buildin_disablenpc (struct script_state *st);
-int  buildin_enablearena (struct script_state *st); // Added by RoVeRT
-int  buildin_disablearena (struct script_state *st);    // Added by RoVeRT
-int  buildin_hideoffnpc (struct script_state *st);
-int  buildin_hideonnpc (struct script_state *st);
-int  buildin_sc_start (struct script_state *st);
-int  buildin_sc_start2 (struct script_state *st);
-int  buildin_sc_end (struct script_state *st);
-int  buildin_sc_check (struct script_state *st);    // [Fate]
-int  buildin_getscrate (struct script_state *st);
-int  buildin_debugmes (struct script_state *st);
-int  buildin_resetlvl (struct script_state *st);
-int  buildin_resetstatus (struct script_state *st);
-int  buildin_resetskill (struct script_state *st);
-int  buildin_changebase (struct script_state *st);
-int  buildin_changesex (struct script_state *st);
-int  buildin_waitingroom (struct script_state *st);
-int  buildin_delwaitingroom (struct script_state *st);
-int  buildin_enablewaitingroomevent (struct script_state *st);
-int  buildin_disablewaitingroomevent (struct script_state *st);
-int  buildin_getwaitingroomstate (struct script_state *st);
-int  buildin_warpwaitingpc (struct script_state *st);
-int  buildin_attachrid (struct script_state *st);
-int  buildin_detachrid (struct script_state *st);
-int  buildin_isloggedin (struct script_state *st);
-int  buildin_setmapflagnosave (struct script_state *st);
-int  buildin_setmapflag (struct script_state *st);
-int  buildin_removemapflag (struct script_state *st);
-int  buildin_pvpon (struct script_state *st);
-int  buildin_pvpoff (struct script_state *st);
-int  buildin_gvgon (struct script_state *st);
-int  buildin_gvgoff (struct script_state *st);
-int  buildin_emotion (struct script_state *st);
-int  buildin_maprespawnguildid (struct script_state *st);
-int  buildin_agitstart (struct script_state *st);   // <Agit>
-int  buildin_agitend (struct script_state *st);
-int  buildin_agitcheck (struct script_state *st);   // <Agitcheck>
-int  buildin_flagemblem (struct script_state *st);  // Flag Emblem
-int  buildin_getcastlename (struct script_state *st);
-int  buildin_getcastledata (struct script_state *st);
-int  buildin_setcastledata (struct script_state *st);
-int  buildin_requestguildinfo (struct script_state *st);
-int  buildin_getequipcardcnt (struct script_state *st);
-int  buildin_successremovecards (struct script_state *st);
-int  buildin_failedremovecards (struct script_state *st);
-int  buildin_marriage (struct script_state *st);
-int  buildin_wedding_effect (struct script_state *st);
-int  buildin_divorce (struct script_state *st);
-int  buildin_getitemname (struct script_state *st);
-int  buildin_getspellinvocation (struct script_state *st);  // [Fate]
-int  buildin_getanchorinvocation (struct script_state *st); // [Fate]
-int  buildin_getexp (struct script_state *st);
-int  buildin_getinventorylist (struct script_state *st);
-int  buildin_getskilllist (struct script_state *st);
-int  buildin_get_pool_skills (struct script_state *st); // [fate]
-int  buildin_get_activated_pool_skills (struct script_state *st);   // [fate]
-int  buildin_get_unactivated_pool_skills (struct script_state *st);   // [PO]
-int  buildin_activate_pool_skill (struct script_state *st); // [fate]
-int  buildin_deactivate_pool_skill (struct script_state *st);   // [fate]
-int  buildin_check_pool_skill (struct script_state *st);    // [fate]
-int  buildin_clearitem (struct script_state *st);
-int  buildin_classchange (struct script_state *st);
-int  buildin_misceffect (struct script_state *st);
-int  buildin_soundeffect (struct script_state *st);
-int  buildin_mapwarp (struct script_state *st);
-int  buildin_inittimer (struct script_state *st);
-int  buildin_stoptimer (struct script_state *st);
-int  buildin_cmdothernpc (struct script_state *st);
-int  buildin_mobcount (struct script_state *st);
-int  buildin_strmobinfo (struct script_state *st);  // Script for displaying mob info [Valaris]
-int  buildin_guardian (struct script_state *st);    // Script for displaying mob info [Valaris]
-int  buildin_guardianinfo (struct script_state *st);    // Script for displaying mob info [Valaris]
-int  buildin_npcskilleffect (struct script_state *st);  // skill effects for npcs [Valaris]
-int  buildin_specialeffect (struct script_state *st);   // special effect script [Valaris]
-int  buildin_specialeffect2 (struct script_state *st);  // special effect script [Valaris]
-int  buildin_nude (struct script_state *st);    // nude [Valaris]
-int  buildin_gmcommand (struct script_state *st);   // [MouseJstr]
-int  buildin_movenpc (struct script_state *st); // [MouseJstr]
-int  buildin_npcwarp (struct script_state *st); // [remoitnane]
-int  buildin_message (struct script_state *st); // [MouseJstr]
-int  buildin_npctalk (struct script_state *st); // [Valaris]
-int  buildin_hasitems (struct script_state *st);    // [Valaris]
-int  buildin_getlook (struct script_state *st); //Lorky [Lupus]
-int  buildin_getsavepoint (struct script_state *st);    //Lorky [Lupus]
-int  buildin_getpartnerid (struct script_state *st);    // [Fate]
-int  buildin_areatimer (struct script_state *st);   // [Jaxad0127]
-int  buildin_isin (struct script_state *st);    // [Jaxad0127]
-int  buildin_shop (struct script_state *st);    // [MadCamel]
-int  buildin_isdead (struct script_state *st);  // [Jaxad0127]
-int  buildin_fakenpcname (struct script_state *st); //[Kage]
-int  buildin_unequip_by_id (struct script_state *st);   // [Freeyorp]
-int  buildin_getx (struct script_state *st);  // [Kage]
-int  buildin_gety (struct script_state *st);  // [Kage]
-int  buildin_getmap (struct script_state *st);
+void builtin_mes(ScriptState *st);
+void builtin_goto(ScriptState *st);
+void builtin_callsub(ScriptState *st);
+void builtin_callfunc(ScriptState *st);
+void builtin_return(ScriptState *st);
+void builtin_getarg(ScriptState *st);
+void builtin_next(ScriptState *st);
+void builtin_close(ScriptState *st);
+void builtin_close2(ScriptState *st);
+void builtin_menu(ScriptState *st);
+void builtin_rand(ScriptState *st);
+void builtin_pow(ScriptState *st);
+void builtin_warp(ScriptState *st);
+void builtin_isat(ScriptState *st);
+void builtin_areawarp(ScriptState *st);
+void builtin_heal(ScriptState *st);
+void builtin_itemheal(ScriptState *st);
+void builtin_percentheal(ScriptState *st);
+void builtin_jobchange(ScriptState *st);
+void builtin_input(ScriptState *st);
+void builtin_setlook(ScriptState *st);
+void builtin_set(ScriptState *st);
+void builtin_setarray(ScriptState *st);
+void builtin_cleararray(ScriptState *st);
+void builtin_copyarray(ScriptState *st);
+void builtin_getarraysize(ScriptState *st);
+void builtin_deletearray(ScriptState *st);
+void builtin_getelementofarray(ScriptState *st);
+void builtin_if(ScriptState *st);
+void builtin_getitem(ScriptState *st);
+void builtin_getitem2(ScriptState *st);
+void builtin_makeitem(ScriptState *st);
+void builtin_delitem(ScriptState *st);
+void builtin_viewpoint(ScriptState *st);
+void builtin_countitem(ScriptState *st);
+void builtin_checkweight(ScriptState *st);
+void builtin_readparam(ScriptState *st);
+void builtin_getcharid(ScriptState *st);
+void builtin_getpartyname(ScriptState *st);
+void builtin_getpartymember(ScriptState *st);
+void builtin_getguildname(ScriptState *st);
+void builtin_getguildmaster(ScriptState *st);
+void builtin_getguildmasterid(ScriptState *st);
+void builtin_strcharinfo(ScriptState *st);
+void builtin_getequipid(ScriptState *st);
+void builtin_getequipname(ScriptState *st);
+void builtin_getbrokenid(ScriptState *st); // [Valaris]
+void builtin_repair(ScriptState *st);  // [Valaris]
+void builtin_getequipisequiped(ScriptState *st);
+void builtin_getequipisenableref(ScriptState *st);
+void builtin_getequipisidentify(ScriptState *st);
+void builtin_getequiprefinerycnt(ScriptState *st);
+void builtin_getequipweaponlv(ScriptState *st);
+void builtin_getequippercentrefinery(ScriptState *st);
+void builtin_successrefitem(ScriptState *st);
+void builtin_failedrefitem(ScriptState *st);
+void builtin_cutin(ScriptState *st);
+void builtin_cutincard(ScriptState *st);
+void builtin_statusup(ScriptState *st);
+void builtin_statusup2(ScriptState *st);
+void builtin_bonus(ScriptState *st);
+void builtin_bonus2(ScriptState *st);
+void builtin_bonus3(ScriptState *st);
+void builtin_skill(ScriptState *st);
+void builtin_setskill(ScriptState *st);
+void builtin_guildskill(ScriptState *st);
+void builtin_getskilllv(ScriptState *st);
+void builtin_getgdskilllv(ScriptState *st);
+void builtin_basicskillcheck(ScriptState *st);
+void builtin_getgmlevel(ScriptState *st);
+void builtin_end(ScriptState *st);
+void builtin_getopt2(ScriptState *st);
+void builtin_setopt2(ScriptState *st);
+void builtin_checkoption(ScriptState *st);
+void builtin_setoption(ScriptState *st);
+void builtin_setcart(ScriptState *st);
+void builtin_checkcart(ScriptState *st);   // check cart [Valaris]
+void builtin_setfalcon(ScriptState *st);
+void builtin_checkfalcon(ScriptState *st); // check falcon [Valaris]
+void builtin_setriding(ScriptState *st);
+void builtin_checkriding(ScriptState *st); // check for pecopeco [Valaris]
+void builtin_savepoint(ScriptState *st);
+void builtin_gettimetick(ScriptState *st);
+void builtin_gettime(ScriptState *st);
+void builtin_gettimestr(ScriptState *st);
+void builtin_openstorage(ScriptState *st);
+void builtin_guildopenstorage(ScriptState *st);
+void builtin_itemskill(ScriptState *st);
+void builtin_monster(ScriptState *st);
+void builtin_areamonster(ScriptState *st);
+void builtin_killmonster(ScriptState *st);
+void builtin_killmonsterall(ScriptState *st);
+void builtin_doevent(ScriptState *st);
+void builtin_donpcevent(ScriptState *st);
+void builtin_addtimer(ScriptState *st);
+void builtin_deltimer(ScriptState *st);
+void builtin_addtimercount(ScriptState *st);
+void builtin_initnpctimer(ScriptState *st);
+void builtin_stopnpctimer(ScriptState *st);
+void builtin_startnpctimer(ScriptState *st);
+void builtin_setnpctimer(ScriptState *st);
+void builtin_getnpctimer(ScriptState *st);
+void builtin_announce(ScriptState *st);
+void builtin_mapannounce(ScriptState *st);
+void builtin_areaannounce(ScriptState *st);
+void builtin_getusers(ScriptState *st);
+void builtin_getmapusers(ScriptState *st);
+void builtin_getareausers(ScriptState *st);
+void builtin_getareadropitem(ScriptState *st);
+void builtin_enablenpc(ScriptState *st);
+void builtin_disablenpc(ScriptState *st);
+void builtin_enablearena(ScriptState *st); // Added by RoVeRT
+void builtin_disablearena(ScriptState *st);    // Added by RoVeRT
+void builtin_hideoffnpc(ScriptState *st);
+void builtin_hideonnpc(ScriptState *st);
+void builtin_sc_start(ScriptState *st);
+void builtin_sc_start2(ScriptState *st);
+void builtin_sc_end(ScriptState *st);
+void builtin_sc_check(ScriptState *st);    // [Fate]
+void builtin_getscrate(ScriptState *st);
+void builtin_debugmes(ScriptState *st);
+void builtin_resetlvl(ScriptState *st);
+void builtin_resetstatus(ScriptState *st);
+void builtin_resetskill(ScriptState *st);
+void builtin_changebase(ScriptState *st);
+void builtin_changesex(ScriptState *st);
+void builtin_waitingroom(ScriptState *st);
+void builtin_delwaitingroom(ScriptState *st);
+void builtin_enablewaitingroomevent(ScriptState *st);
+void builtin_disablewaitingroomevent(ScriptState *st);
+void builtin_getwaitingroomstate(ScriptState *st);
+void builtin_warpwaitingpc(ScriptState *st);
+void builtin_attachrid(ScriptState *st);
+void builtin_detachrid(ScriptState *st);
+void builtin_isloggedin(ScriptState *st);
+void builtin_setmapflagnosave(ScriptState *st);
+void builtin_setmapflag(ScriptState *st);
+void builtin_removemapflag(ScriptState *st);
+void builtin_pvpon(ScriptState *st);
+void builtin_pvpoff(ScriptState *st);
+void builtin_gvgon(ScriptState *st);
+void builtin_gvgoff(ScriptState *st);
+void builtin_emotion(ScriptState *st);
+void builtin_maprespawnguildid(ScriptState *st);
+void builtin_agitstart(ScriptState *st);   // <Agit>
+void builtin_agitend(ScriptState *st);
+void builtin_agitcheck(ScriptState *st);   // <Agitcheck>
+void builtin_flagemblem(ScriptState *st);  // Flag Emblem
+void builtin_getcastlename(ScriptState *st);
+void builtin_getcastledata(ScriptState *st);
+void builtin_setcastledata(ScriptState *st);
+void builtin_requestguildinfo(ScriptState *st);
+void builtin_getequipcardcnt(ScriptState *st);
+void builtin_successremovecards(ScriptState *st);
+void builtin_failedremovecards(ScriptState *st);
+void builtin_marriage(ScriptState *st);
+void builtin_wedding_effect(ScriptState *st);
+void builtin_divorce(ScriptState *st);
+void builtin_getitemname(ScriptState *st);
+void builtin_getspellinvocation(ScriptState *st);  // [Fate]
+void builtin_getanchorinvocation(ScriptState *st); // [Fate]
+void builtin_getexp(ScriptState *st);
+void builtin_getinventorylist(ScriptState *st);
+void builtin_getskilllist(ScriptState *st);
+void builtin_get_pool_skills(ScriptState *st); // [fate]
+void builtin_get_activated_pool_skills(ScriptState *st);   // [fate]
+void builtin_get_unactivated_pool_skills(ScriptState *st);   // [PO]
+void builtin_activate_pool_skill(ScriptState *st); // [fate]
+void builtin_deactivate_pool_skill(ScriptState *st);   // [fate]
+void builtin_check_pool_skill(ScriptState *st);    // [fate]
+void builtin_clearitem(ScriptState *st);
+void builtin_classchange(ScriptState *st);
+void builtin_misceffect(ScriptState *st);
+void builtin_soundeffect(ScriptState *st);
+void builtin_mapwarp(ScriptState *st);
+void builtin_inittimer(ScriptState *st);
+void builtin_stoptimer(ScriptState *st);
+void builtin_cmdothernpc(ScriptState *st);
+void builtin_mobcount(ScriptState *st);
+void builtin_strmobinfo(ScriptState *st);  // Script for displaying mob info [Valaris]
+void builtin_guardian(ScriptState *st);    // Script for displaying mob info [Valaris]
+void builtin_guardianinfo(ScriptState *st);    // Script for displaying mob info [Valaris]
+void builtin_npcskilleffect(ScriptState *st);  // skill effects for npcs [Valaris]
+void builtin_specialeffect(ScriptState *st);   // special effect script [Valaris]
+void builtin_specialeffect2(ScriptState *st);  // special effect script [Valaris]
+void builtin_nude(ScriptState *st);    // nude [Valaris]
+void builtin_gmcommand(ScriptState *st);   // [MouseJstr]
+void builtin_movenpc(ScriptState *st); // [MouseJstr]
+void builtin_npcwarp(ScriptState *st); // [remoitnane]
+void builtin_message(ScriptState *st); // [MouseJstr]
+void builtin_npctalk(ScriptState *st); // [Valaris]
+void builtin_hasitems(ScriptState *st);    // [Valaris]
+void builtin_getlook(ScriptState *st); //Lorky [Lupus]
+void builtin_getsavepoint(ScriptState *st);    //Lorky [Lupus]
+void builtin_getpartnerid(ScriptState *st);    // [Fate]
+void builtin_areatimer(ScriptState *st);   // [Jaxad0127]
+void builtin_isin(ScriptState *st);    // [Jaxad0127]
+void builtin_shop(ScriptState *st);    // [MadCamel]
+void builtin_isdead(ScriptState *st);  // [Jaxad0127]
+void builtin_fakenpcname(ScriptState *st); //[Kage]
+void builtin_unequip_by_id(ScriptState *st);   // [Freeyorp]
+void builtin_getx(ScriptState *st);  // [Kage]
+void builtin_gety(ScriptState *st);  // [Kage]
+void builtin_getmap(ScriptState *st);
 
 
 void push_val (struct script_stack *stack, int type, int val);
-int  run_func (struct script_state *st);
+void run_func (ScriptState *st);
 
-int  mapreg_setreg (int num, int val);
-int  mapreg_setregstr (int num, const char *str);
+void mapreg_setreg (int num, int val);
+void mapreg_setregstr (int num, const char *str);
 
 struct
 {
-    int  (*func) (struct script_state *);
+    void (*func) (ScriptState *);
     const char *name;
     const char *arg;
-} buildin_func[] =
+} builtin_functions[] =
 {
-    {
-    buildin_mes, "mes", "s"},
-    {
-    buildin_next, "next", ""},
-    {
-    buildin_close, "close", ""},
-    {
-    buildin_close2, "close2", ""},
-    {
-    buildin_menu, "menu", "sL*"},
-    {
-    buildin_goto, "goto", "L"},
-    {
-    buildin_callsub, "callsub", "L*"},
-    {
-    buildin_callfunc, "callfunc", "F*"},
-    {
-    buildin_return, "return", "*"},
-    {
-    buildin_getarg, "getarg", "i"},
-    {
-    buildin_jobchange, "jobchange", "i*"},
-    {
-    buildin_input, "input", "N"},
-    {
-    buildin_warp, "warp", "Mxy"},
-    {
-    buildin_isat, "isat", "Mxy"},
-    {
-    buildin_areawarp, "areawarp", "MxyxyMxy"},
-    {
-    buildin_setlook, "setlook", "ii"},
-    {
-    buildin_set, "set", "Ne"},
-    {
-    buildin_setarray, "setarray", "Ne*"},
-    {
-    buildin_cleararray, "cleararray", "Nei"},
-    {
-    buildin_copyarray, "copyarray", "NNi"},
-    {
-    buildin_getarraysize, "getarraysize", "N"},
-    {
-    buildin_deletearray, "deletearray", "N*"},
-    {
-    buildin_getelementofarray, "getelementofarray", "Ni"},
-    {
-    buildin_if, "if", "iF*"},
-    {
-    buildin_getitem, "getitem", "Ii**"},
-    {
-    buildin_getitem2, "getitem2", "iiiiiiiii*"},
-    {
-    buildin_makeitem, "makeitem", "IiMxy"},
-    {
-    buildin_delitem, "delitem", "Ii"},
-    {
-    buildin_cutin, "cutin", "si"},
-    {
-    buildin_cutincard, "cutincard", "i"},
-    {
-    buildin_viewpoint, "viewpoint", "iiiii"},
-    {
-    buildin_heal, "heal", "ii"},
-    {
-    buildin_itemheal, "itemheal", "ii"},
-    {
-    buildin_percentheal, "percentheal", "ii"},
-    {
-    buildin_rand, "rand", "i*"},
-    {
-    buildin_pow, "pow", "ii"},
-    {
-    buildin_countitem, "countitem", "I"},
-    {
-    buildin_checkweight, "checkweight", "Ii"},
-    {
-    buildin_readparam, "readparam", "i*"},
-    {
-    buildin_getcharid, "getcharid", "i*"},
-    {
-    buildin_getpartyname, "getpartyname", "i"},
-    {
-    buildin_getpartymember, "getpartymember", "i"},
-    {
-    buildin_getguildname, "getguildname", "i"},
-    {
-    buildin_getguildmaster, "getguildmaster", "i"},
-    {
-    buildin_getguildmasterid, "getguildmasterid", "i"},
-    {
-    buildin_strcharinfo, "strcharinfo", "i"},
-    {
-    buildin_getequipid, "getequipid", "i"},
-    {
-    buildin_getequipname, "getequipname", "i"},
-    {
-    buildin_getbrokenid, "getbrokenid", "i"},   // [Valaris]
-    {
-    buildin_repair, "repair", "i"}, // [Valaris]
-    {
-    buildin_getequipisequiped, "getequipisequiped", "i"},
-    {
-    buildin_getequipisenableref, "getequipisenableref", "i"},
-    {
-    buildin_getequipisidentify, "getequipisidentify", "i"},
-    {
-    buildin_getequiprefinerycnt, "getequiprefinerycnt", "i"},
-    {
-    buildin_getequipweaponlv, "getequipweaponlv", "i"},
-    {
-    buildin_getequippercentrefinery, "getequippercentrefinery", "i"},
-    {
-    buildin_successrefitem, "successrefitem", "i"},
-    {
-    buildin_failedrefitem, "failedrefitem", "i"},
-    {
-    buildin_statusup, "statusup", "i"},
-    {
-    buildin_statusup2, "statusup2", "ii"},
-    {
-    buildin_bonus, "bonus", "ii"},
-    {
-    buildin_bonus2, "bonus2", "iii"},
-    {
-    buildin_bonus3, "bonus3", "iiii"},
-    {
-    buildin_skill, "skill", "ii*"},
-    {
-    buildin_setskill, "setskill", "ii"},    // [Fate]
-    {
-    buildin_guildskill, "guildskill", "ii"},
-    {
-    buildin_getskilllv, "getskilllv", "i"},
-    {
-    buildin_getgdskilllv, "getgdskilllv", "ii"},
-    {
-    buildin_basicskillcheck, "basicskillcheck", "*"},
-    {
-    buildin_getgmlevel, "getgmlevel", ""},
-    {
-    buildin_end, "end", ""},
-    {
-    buildin_getopt2, "getopt2", ""},
-    {
-    buildin_setopt2, "setopt2", "i"},
-    {
-    buildin_end, "break", ""},
-    {
-    buildin_checkoption, "checkoption", "i"},
-    {
-    buildin_setoption, "setoption", "i"},
-    {
-    buildin_setcart, "setcart", ""},
-    {
-    buildin_checkcart, "checkcart", "*"},   //fixed by Lupus (added '*')
-    {
-    buildin_setfalcon, "setfalcon", ""},
-    {
-    buildin_checkfalcon, "checkfalcon", "*"},   //fixed by Lupus (fixed wrong pointer, added '*')
-    {
-    buildin_setriding, "setriding", ""},
-    {
-    buildin_checkriding, "checkriding", "*"},   //fixed by Lupus (fixed wrong pointer, added '*')
-    {
-    buildin_savepoint, "save", "sii"},
-    {
-    buildin_savepoint, "savepoint", "Mxy"},
-    {
-    buildin_gettimetick, "gettimetick", "i"},
-    {
-    buildin_gettime, "gettime", "i"},
-    {
-    buildin_gettimestr, "gettimestr", "si"},
-    {
-    buildin_openstorage, "openstorage", "*"},
-    {
-    buildin_guildopenstorage, "guildopenstorage", "*"},
-    {
-    buildin_itemskill, "itemskill", "iis"},
-    {
-    buildin_monster, "monster", "Mxysmi*"},
-    {
-    buildin_areamonster, "areamonster", "Mxyxysmi*"},
-    {
-    buildin_killmonster, "killmonster", "ME"},
-    {
-    buildin_killmonsterall, "killmonsterall", "M"},
-    {
-    buildin_doevent, "doevent", "E"},
-    {
-    buildin_donpcevent, "donpcevent", "E"},
-    {
-    buildin_addtimer, "addtimer", "tE"},
-    {
-    buildin_deltimer, "deltimer", "E"},
-    {
-    buildin_addtimercount, "addtimercount", "si"},
-    {
-    buildin_initnpctimer, "initnpctimer", ""},
-    {
-    buildin_stopnpctimer, "stopnpctimer", ""},
-    {
-    buildin_startnpctimer, "startnpctimer", "*"},
-    {
-    buildin_setnpctimer, "setnpctimer", "i"},
-    {
-    buildin_getnpctimer, "getnpctimer", "i"},
-    {
-    buildin_announce, "announce", "si"},
-    {
-    buildin_mapannounce, "mapannounce", "Msi"},
-    {
-    buildin_areaannounce, "areaannounce", "Mxyxysi"},
-    {
-    buildin_getusers, "getusers", "i"},
-    {
-    buildin_getmapusers, "getmapusers", "M"},
-    {
-    buildin_getareausers, "getareausers", "Mxyxy*"},
-    {
-    buildin_getareadropitem, "getareadropitem", "Mxyxyi*"},
-    {
-    buildin_enablenpc, "enablenpc", "s"},
-    {
-    buildin_disablenpc, "disablenpc", "s"},
-    {
-    buildin_enablearena, "enablearena", ""},    // Added by RoVeRT
-    {
-    buildin_disablearena, "disablearena", ""},  // Added by RoVeRT
-    {
-    buildin_hideoffnpc, "hideoffnpc", "s"},
-    {
-    buildin_hideonnpc, "hideonnpc", "s"},
-    {
-    buildin_sc_start, "sc_start", "iTi*"},
-    {
-    buildin_sc_start2, "sc_start2", "iTii*"},
-    {
-    buildin_sc_end, "sc_end", "i"},
-    {
-    buildin_sc_check, "sc_check", "i"},
-    {
-    buildin_getscrate, "getscrate", "ii*"},
-    {
-    buildin_debugmes, "debugmes", "s"},
-    {
-    buildin_resetlvl, "resetlvl", "i"},
-    {
-    buildin_resetstatus, "resetstatus", ""},
-    {
-    buildin_resetskill, "resetskill", ""},
-    {
-    buildin_changebase, "changebase", "i"},
-    {
-    buildin_changesex, "changesex", ""},
-    {
-    buildin_waitingroom, "waitingroom", "si*"},
-    {
-    buildin_warpwaitingpc, "warpwaitingpc", "sii"},
-    {
-    buildin_delwaitingroom, "delwaitingroom", "*"},
-    {
-    buildin_enablewaitingroomevent, "enablewaitingroomevent", "*"},
-    {
-    buildin_disablewaitingroomevent, "disablewaitingroomevent", "*"},
-    {
-    buildin_getwaitingroomstate, "getwaitingroomstate", "i*"},
-    {
-    buildin_warpwaitingpc, "warpwaitingpc", "sii*"},
-    {
-    buildin_attachrid, "attachrid", "i"},
-    {
-    buildin_detachrid, "detachrid", ""},
-    {
-    buildin_isloggedin, "isloggedin", "i"},
-    {
-    buildin_setmapflagnosave, "setmapflagnosave", "MMxy"},
-    {
-    buildin_setmapflag, "setmapflag", "Mi"},
-    {
-    buildin_removemapflag, "removemapflag", "Mi"},
-    {
-    buildin_pvpon, "pvpon", "M"},
-    {
-    buildin_pvpoff, "pvpoff", "M"},
-    {
-    buildin_gvgon, "gvgon", "s"},
-    {
-    buildin_gvgoff, "gvgoff", "s"},
-    {
-    buildin_emotion, "emotion", "i"},
-    {
-    buildin_maprespawnguildid, "maprespawnguildid", "sii"},
-    {
-    buildin_agitstart, "agitstart", ""},    // <Agit>
-    {
-    buildin_agitend, "agitend", ""},
-    {
-    buildin_agitcheck, "agitcheck", "i"},   // <Agitcheck>
-    {
-    buildin_flagemblem, "flagemblem", "i"}, // Flag Emblem
-    {
-    buildin_getcastlename, "getcastlename", "s"},
-    {
-    buildin_getcastledata, "getcastledata", "si*"},
-    {
-    buildin_setcastledata, "setcastledata", "sii"},
-    {
-    buildin_requestguildinfo, "requestguildinfo", "i*"},
-    {
-    buildin_getequipcardcnt, "getequipcardcnt", "i"},
-    {
-    buildin_successremovecards, "successremovecards", "i"},
-    {
-    buildin_failedremovecards, "failedremovecards", "ii"},
-    {
-    buildin_marriage, "marriage", "P"},
-    {
-    buildin_wedding_effect, "wedding", ""},
-    {
-    buildin_divorce, "divorce", ""},
-    {
-    buildin_getitemname, "getitemname", "I"},
-    {
-    buildin_getspellinvocation, "getspellinvocation", "s"},
-    {
-    buildin_getanchorinvocation, "getanchorinvocation", "s"},
-    {
-    buildin_getpartnerid, "getpartnerid2", ""},
-    {
-    buildin_getexp, "getexp", "ii"},
-    {
-    buildin_getinventorylist, "getinventorylist", ""},
-    {
-    buildin_getskilllist, "getskilllist", ""},
-    {
-    buildin_get_pool_skills, "getpoolskilllist", ""},
-    {
-    buildin_get_activated_pool_skills, "getactivatedpoolskilllist", ""},
-    {
-    buildin_get_unactivated_pool_skills, "getunactivatedpoolskilllist", ""},
-    {
-    buildin_activate_pool_skill, "poolskill", "i"},
-    {
-    buildin_deactivate_pool_skill, "unpoolskill", "i"},
-    {
-    buildin_check_pool_skill, "checkpoolskill", "i"},
-    {
-    buildin_clearitem, "clearitem", ""},
-    {
-    buildin_classchange, "classchange", "ii"},
-    {
-    buildin_misceffect, "misceffect", "i*"},
-    {
-    buildin_soundeffect, "soundeffect", "si"},
-    {
-    buildin_strmobinfo, "strmobinfo", "im"},    // display mob data [Valaris]
-    {
-    buildin_guardian, "guardian", "siisii*i"},  // summon guardians
-    {
-    buildin_guardianinfo, "guardianinfo", "i"}, // display guardian data [Valaris]
-    {
-    buildin_npcskilleffect, "npcskilleffect", "iiii"},  // npc skill effect [Valaris]
-    {
-    buildin_specialeffect, "specialeffect", "i"},   // npc skill effect [Valaris]
-    {
-    buildin_specialeffect2, "specialeffect2", "i"}, // skill effect on players[Valaris]
-    {
-    buildin_nude, "nude", ""},  // nude command [Valaris]
-    {
-    buildin_mapwarp, "mapwarp", "MMxy"},    // Added by RoVeRT
-    {
-    buildin_inittimer, "inittimer", ""},
-    {
-    buildin_stoptimer, "stoptimer", ""},
-    {
-    buildin_cmdothernpc, "cmdothernpc", "ss"},
-    {
-    buildin_gmcommand, "gmcommand", "s"},   // [MouseJstr]
-//  {buildin_movenpc,"movenpc","siis"}, // [MouseJstr]
-    {
-    buildin_npcwarp, "npcwarp", "xys"}, // [remoitnane]
-    {
-    buildin_message, "message", "Ps"},  // [MouseJstr]
-    {
-    buildin_npctalk, "npctalk", "s"},   // [Valaris]
-    {
-    buildin_hasitems, "hasitems", ""}, // [Valaris]
-    {
-    buildin_mobcount, "mobcount", "ME"},
-    {
-    buildin_getlook, "getlook", "i"},
-    {
-    buildin_getsavepoint, "getsavepoint", "i"},
-    {
-    buildin_areatimer, "areatimer", "MxyxytE"},
-    {
-    buildin_isin, "isin", "Mxyxy"},
-    {
-    buildin_shop, "shop", "s"},
-    {
-    buildin_isdead, "isdead", ""},
-    {
-    buildin_fakenpcname, "fakenpcname", "ssi"},
-    {
-    buildin_unequip_by_id, "unequipbyid", "i"}, // [Freeyorp]
-    {
-    buildin_getx, "getx", ""}, // [Kage]
-    {
-    buildin_gety, "gety", ""}, // [Kage]
-    {
-    buildin_getmap, "getmap", ""},
-        // End Additions
-    {
-NULL, NULL, NULL},};
+    {builtin_mes, "mes", "s"},
+    {builtin_next, "next", ""},
+    {builtin_close, "close", ""},
+    {builtin_close2, "close2", ""},
+    {builtin_menu, "menu", "sL*"},
+    {builtin_goto, "goto", "L"},
+    {builtin_callsub, "callsub", "L*"},
+    {builtin_callfunc, "callfunc", "F*"},
+    {builtin_return, "return", "*"},
+    {builtin_getarg, "getarg", "i"},
+    {builtin_jobchange, "jobchange", "i*"},
+    {builtin_input, "input", "N"},
+    {builtin_warp, "warp", "Mxy"},
+    {builtin_isat, "isat", "Mxy"},
+    {builtin_areawarp, "areawarp", "MxyxyMxy"},
+    {builtin_setlook, "setlook", "ii"},
+    {builtin_set, "set", "Ne"},
+    {builtin_setarray, "setarray", "Ne*"},
+    {builtin_cleararray, "cleararray", "Nei"},
+    {builtin_copyarray, "copyarray", "NNi"},
+    {builtin_getarraysize, "getarraysize", "N"},
+    {builtin_deletearray, "deletearray", "N*"},
+    {builtin_getelementofarray, "getelementofarray", "Ni"},
+    {builtin_if, "if", "iF*"},
+    {builtin_getitem, "getitem", "Ii**"},
+    {builtin_getitem2, "getitem2", "iiiiiiiii*"},
+    {builtin_makeitem, "makeitem", "IiMxy"},
+    {builtin_delitem, "delitem", "Ii"},
+    {builtin_cutin, "cutin", "si"},
+    {builtin_cutincard, "cutincard", "i"},
+    {builtin_viewpoint, "viewpoint", "iiiii"},
+    {builtin_heal, "heal", "ii"},
+    {builtin_itemheal, "itemheal", "ii"},
+    {builtin_percentheal, "percentheal", "ii"},
+    {builtin_rand, "rand", "i*"},
+    {builtin_pow, "pow", "ii"},
+    {builtin_countitem, "countitem", "I"},
+    {builtin_checkweight, "checkweight", "Ii"},
+    {builtin_readparam, "readparam", "i*"},
+    {builtin_getcharid, "getcharid", "i*"},
+    {builtin_getpartyname, "getpartyname", "i"},
+    {builtin_getpartymember, "getpartymember", "i"},
+    {builtin_getguildname, "getguildname", "i"},
+    {builtin_getguildmaster, "getguildmaster", "i"},
+    {builtin_getguildmasterid, "getguildmasterid", "i"},
+    {builtin_strcharinfo, "strcharinfo", "i"},
+    {builtin_getequipid, "getequipid", "i"},
+    {builtin_getequipname, "getequipname", "i"},
+    {builtin_getbrokenid, "getbrokenid", "i"},   // [Valaris]
+    {builtin_repair, "repair", "i"}, // [Valaris]
+    {builtin_getequipisequiped, "getequipisequiped", "i"},
+    {builtin_getequipisenableref, "getequipisenableref", "i"},
+    {builtin_getequipisidentify, "getequipisidentify", "i"},
+    {builtin_getequiprefinerycnt, "getequiprefinerycnt", "i"},
+    {builtin_getequipweaponlv, "getequipweaponlv", "i"},
+    {builtin_getequippercentrefinery, "getequippercentrefinery", "i"},
+    {builtin_successrefitem, "successrefitem", "i"},
+    {builtin_failedrefitem, "failedrefitem", "i"},
+    {builtin_statusup, "statusup", "i"},
+    {builtin_statusup2, "statusup2", "ii"},
+    {builtin_bonus, "bonus", "ii"},
+    {builtin_bonus2, "bonus2", "iii"},
+    {builtin_bonus3, "bonus3", "iiii"},
+    {builtin_skill, "skill", "ii*"},
+    {builtin_setskill, "setskill", "ii"},    // [Fate]
+    {builtin_guildskill, "guildskill", "ii"},
+    {builtin_getskilllv, "getskilllv", "i"},
+    {builtin_getgdskilllv, "getgdskilllv", "ii"},
+    {builtin_basicskillcheck, "basicskillcheck", "*"},
+    {builtin_getgmlevel, "getgmlevel", ""},
+    {builtin_end, "end", ""},
+    {builtin_getopt2, "getopt2", ""},
+    {builtin_setopt2, "setopt2", "i"},
+    {builtin_end, "break", ""},
+    {builtin_checkoption, "checkoption", "i"},
+    {builtin_setoption, "setoption", "i"},
+    {builtin_setcart, "setcart", ""},
+    {builtin_checkcart, "checkcart", "*"},   //fixed by Lupus (added '*')
+    {builtin_setfalcon, "setfalcon", ""},
+    {builtin_checkfalcon, "checkfalcon", "*"},   //fixed by Lupus (fixed wrong pointer, added '*')
+    {builtin_setriding, "setriding", ""},
+    {builtin_checkriding, "checkriding", "*"},   //fixed by Lupus (fixed wrong pointer, added '*')
+    {builtin_savepoint, "save", "sii"},
+    {builtin_savepoint, "savepoint", "Mxy"},
+    {builtin_gettimetick, "gettimetick", "i"},
+    {builtin_gettime, "gettime", "i"},
+    {builtin_gettimestr, "gettimestr", "si"},
+    {builtin_openstorage, "openstorage", "*"},
+    {builtin_guildopenstorage, "guildopenstorage", "*"},
+    {builtin_itemskill, "itemskill", "iis"},
+    {builtin_monster, "monster", "Mxysmi*"},
+    {builtin_areamonster, "areamonster", "Mxyxysmi*"},
+    {builtin_killmonster, "killmonster", "ME"},
+    {builtin_killmonsterall, "killmonsterall", "M"},
+    {builtin_doevent, "doevent", "E"},
+    {builtin_donpcevent, "donpcevent", "E"},
+    {builtin_addtimer, "addtimer", "tE"},
+    {builtin_deltimer, "deltimer", "E"},
+    {builtin_addtimercount, "addtimercount", "si"},
+    {builtin_initnpctimer, "initnpctimer", ""},
+    {builtin_stopnpctimer, "stopnpctimer", ""},
+    {builtin_startnpctimer, "startnpctimer", "*"},
+    {builtin_setnpctimer, "setnpctimer", "i"},
+    {builtin_getnpctimer, "getnpctimer", "i"},
+    {builtin_announce, "announce", "si"},
+    {builtin_mapannounce, "mapannounce", "Msi"},
+    {builtin_areaannounce, "areaannounce", "Mxyxysi"},
+    {builtin_getusers, "getusers", "i"},
+    {builtin_getmapusers, "getmapusers", "M"},
+    {builtin_getareausers, "getareausers", "Mxyxy*"},
+    {builtin_getareadropitem, "getareadropitem", "Mxyxyi*"},
+    {builtin_enablenpc, "enablenpc", "s"},
+    {builtin_disablenpc, "disablenpc", "s"},
+    {builtin_enablearena, "enablearena", ""},    // Added by RoVeRT
+    {builtin_disablearena, "disablearena", ""},  // Added by RoVeRT
+    {builtin_hideoffnpc, "hideoffnpc", "s"},
+    {builtin_hideonnpc, "hideonnpc", "s"},
+    {builtin_sc_start, "sc_start", "iTi*"},
+    {builtin_sc_start2, "sc_start2", "iTii*"},
+    {builtin_sc_end, "sc_end", "i"},
+    {builtin_sc_check, "sc_check", "i"},
+    {builtin_getscrate, "getscrate", "ii*"},
+    {builtin_debugmes, "debugmes", "s"},
+    {builtin_resetlvl, "resetlvl", "i"},
+    {builtin_resetstatus, "resetstatus", ""},
+    {builtin_resetskill, "resetskill", ""},
+    {builtin_changebase, "changebase", "i"},
+    {builtin_changesex, "changesex", ""},
+    {builtin_waitingroom, "waitingroom", "si*"},
+    {builtin_warpwaitingpc, "warpwaitingpc", "sii"},
+    {builtin_delwaitingroom, "delwaitingroom", "*"},
+    {builtin_enablewaitingroomevent, "enablewaitingroomevent", "*"},
+    {builtin_disablewaitingroomevent, "disablewaitingroomevent", "*"},
+    {builtin_getwaitingroomstate, "getwaitingroomstate", "i*"},
+    {builtin_warpwaitingpc, "warpwaitingpc", "sii*"},
+    {builtin_attachrid, "attachrid", "i"},
+    {builtin_detachrid, "detachrid", ""},
+    {builtin_isloggedin, "isloggedin", "i"},
+    {builtin_setmapflagnosave, "setmapflagnosave", "MMxy"},
+    {builtin_setmapflag, "setmapflag", "Mi"},
+    {builtin_removemapflag, "removemapflag", "Mi"},
+    {builtin_pvpon, "pvpon", "M"},
+    {builtin_pvpoff, "pvpoff", "M"},
+    {builtin_gvgon, "gvgon", "s"},
+    {builtin_gvgoff, "gvgoff", "s"},
+    {builtin_emotion, "emotion", "i"},
+    {builtin_maprespawnguildid, "maprespawnguildid", "sii"},
+    {builtin_agitstart, "agitstart", ""},    // <Agit>
+    {builtin_agitend, "agitend", ""},
+    {builtin_agitcheck, "agitcheck", "i"},   // <Agitcheck>
+    {builtin_flagemblem, "flagemblem", "i"}, // Flag Emblem
+    {builtin_getcastlename, "getcastlename", "s"},
+    {builtin_getcastledata, "getcastledata", "si*"},
+    {builtin_setcastledata, "setcastledata", "sii"},
+    {builtin_requestguildinfo, "requestguildinfo", "i*"},
+    {builtin_getequipcardcnt, "getequipcardcnt", "i"},
+    {builtin_successremovecards, "successremovecards", "i"},
+    {builtin_failedremovecards, "failedremovecards", "ii"},
+    {builtin_marriage, "marriage", "P"},
+    {builtin_wedding_effect, "wedding", ""},
+    {builtin_divorce, "divorce", ""},
+    {builtin_getitemname, "getitemname", "I"},
+    {builtin_getspellinvocation, "getspellinvocation", "s"},
+    {builtin_getanchorinvocation, "getanchorinvocation", "s"},
+    {builtin_getpartnerid, "getpartnerid2", ""},
+    {builtin_getexp, "getexp", "ii"},
+    {builtin_getinventorylist, "getinventorylist", ""},
+    {builtin_getskilllist, "getskilllist", ""},
+    {builtin_get_pool_skills, "getpoolskilllist", ""},
+    {builtin_get_activated_pool_skills, "getactivatedpoolskilllist", ""},
+    {builtin_get_unactivated_pool_skills, "getunactivatedpoolskilllist", ""},
+    {builtin_activate_pool_skill, "poolskill", "i"},
+    {builtin_deactivate_pool_skill, "unpoolskill", "i"},
+    {builtin_check_pool_skill, "checkpoolskill", "i"},
+    {builtin_clearitem, "clearitem", ""},
+    {builtin_classchange, "classchange", "ii"},
+    {builtin_misceffect, "misceffect", "i*"},
+    {builtin_soundeffect, "soundeffect", "si"},
+    {builtin_strmobinfo, "strmobinfo", "im"},    // display mob data [Valaris]
+    {builtin_guardian, "guardian", "siisii*i"},  // summon guardians
+    {builtin_guardianinfo, "guardianinfo", "i"}, // display guardian data [Valaris]
+    {builtin_npcskilleffect, "npcskilleffect", "iiii"},  // npc skill effect [Valaris]
+    {builtin_specialeffect, "specialeffect", "i"},   // npc skill effect [Valaris]
+    {builtin_specialeffect2, "specialeffect2", "i"}, // skill effect on players[Valaris]
+    {builtin_nude, "nude", ""},  // nude command [Valaris]
+    {builtin_mapwarp, "mapwarp", "MMxy"},    // Added by RoVeRT
+    {builtin_inittimer, "inittimer", ""},
+    {builtin_stoptimer, "stoptimer", ""},
+    {builtin_cmdothernpc, "cmdothernpc", "ss"},
+    {builtin_gmcommand, "gmcommand", "s"},   // [MouseJstr]
+//  {builtin_movenpc,"movenpc","siis"}, // [MouseJstr]
+    {builtin_npcwarp, "npcwarp", "xys"}, // [remoitnane]
+    {builtin_message, "message", "Ps"},  // [MouseJstr]
+    {builtin_npctalk, "npctalk", "s"},   // [Valaris]
+    {builtin_hasitems, "hasitems", ""}, // [Valaris]
+    {builtin_mobcount, "mobcount", "ME"},
+    {builtin_getlook, "getlook", "i"},
+    {builtin_getsavepoint, "getsavepoint", "i"},
+    {builtin_areatimer, "areatimer", "MxyxytE"},
+    {builtin_isin, "isin", "Mxyxy"},
+    {builtin_shop, "shop", "s"},
+    {builtin_isdead, "isdead", ""},
+    {builtin_fakenpcname, "fakenpcname", "ssi"},
+    {builtin_unequip_by_id, "unequipbyid", "i"}, // [Freeyorp]
+    {builtin_getx, "getx", ""}, // [Kage]
+    {builtin_gety, "gety", ""}, // [Kage]
+    {builtin_getmap, "getmap", ""},
+    // End Additions
+    {NULL, NULL, NULL},
+};
 
 #ifdef RECENT_GCC
 enum class ScriptCode : uint8_t
@@ -1279,7 +1073,7 @@ const char *parse_subexpr (const char *p, int limit)
             if (str_data[func].type == ScriptCode::FUNC
                 && script_config.warn_func_mismatch_paramnum)
             {
-                const char *arg = buildin_func[str_data[func].val].arg;
+                const char *arg = builtin_functions[str_data[func].val].arg;
                 int  j = 0;
                 for (j = 0; arg[j]; j++)
                     if (arg[j] == '*')
@@ -1392,7 +1186,7 @@ const char *parse_line (const char *p)
     if (str_data[cmd].type == ScriptCode::FUNC
         && script_config.warn_cmd_mismatch_paramnum)
     {
-        const char *arg = buildin_func[str_data[cmd].val].arg;
+        const char *arg = builtin_functions[str_data[cmd].val].arg;
         int  j = 0;
         for (j = 0; arg[j]; j++)
             if (arg[j] == '*')
@@ -1411,15 +1205,15 @@ const char *parse_line (const char *p)
  * 組み込み関数の追加
  *------------------------------------------
  */
-static void add_buildin_func (void)
+static void add_builtin_functions (void)
 {
     int  i, n;
-    for (i = 0; buildin_func[i].func; i++)
+    for (i = 0; builtin_functions[i].func; i++)
     {
-        n = add_str (buildin_func[i].name);
+        n = add_str (builtin_functions[i].name);
         str_data[n].type = ScriptCode::FUNC;
         str_data[n].val = i;
-        str_data[n].func = buildin_func[i].func;
+        str_data[n].func = builtin_functions[i].func;
     }
 }
 
@@ -1472,7 +1266,7 @@ const ScriptCode *parse_script (const char *src, int line)
 
     if (first)
     {
-        add_buildin_func ();
+        add_builtin_functions ();
         read_constdb ();
     }
     first = 0;
@@ -1592,7 +1386,7 @@ enum
  *------------------------------------------
  */
 static
-struct map_session_data *script_rid2sd (struct script_state *st)
+struct map_session_data *script_rid2sd (ScriptState *st)
 {
     struct map_session_data *sd = map_id2sd (st->rid);
     if (!sd)
@@ -1607,7 +1401,7 @@ struct map_session_data *script_rid2sd (struct script_state *st)
  *------------------------------------------
  */
 static
-int get_val (struct script_state *st, struct script_data *data)
+void get_val (ScriptState *st, struct script_data *data)
 {
     struct map_session_data *sd = NULL;
     if (data->type == ScriptCode::NAME)
@@ -1689,7 +1483,6 @@ int get_val (struct script_state *st, struct script_data *data)
             }
         }
     }
-    return 0;
 }
 
 /*==========================================
@@ -1697,7 +1490,7 @@ int get_val (struct script_state *st, struct script_data *data)
  *------------------------------------------
  */
 static
-struct script_data get_val2 (struct script_state *st, int num)
+struct script_data get_val2 (ScriptState *st, int num)
 {
     struct script_data dat;
     dat.type = ScriptCode::NAME;
@@ -1711,7 +1504,7 @@ struct script_data get_val2 (struct script_state *st, int num)
  *------------------------------------------
  */
 static
-int set_reg (struct map_session_data *sd, int num, const char *name, struct script_data vd)
+void set_reg (struct map_session_data *sd, int num, const char *name, struct script_data vd)
 {
     char prefix = *name;
     char postfix = name[strlen (name) - 1];
@@ -1760,23 +1553,22 @@ int set_reg (struct map_session_data *sd, int num, const char *name, struct scri
             pc_setglobalreg (sd, name, val);
         }
     }
-    return 0;
 }
 
 static
-int set_reg (struct map_session_data *sd, int num, const char *name, int id)
+void set_reg (struct map_session_data *sd, int num, const char *name, int id)
 {
     struct script_data vd;
     vd.u.num = id;
-    return set_reg(sd, num, name, vd);
+    set_reg(sd, num, name, vd);
 }
 
 static
-int set_reg (struct map_session_data *sd, int num, const char *name, const char *zd)
+void set_reg (struct map_session_data *sd, int num, const char *name, const char *zd)
 {
     struct script_data vd;
     vd.u.str = zd;
-    return set_reg(sd, num, name, vd);
+    set_reg(sd, num, name, vd);
 }
 
 /*==========================================
@@ -1784,7 +1576,7 @@ int set_reg (struct map_session_data *sd, int num, const char *name, const char 
  *------------------------------------------
  */
 static
-const char *conv_str (struct script_state *st, struct script_data *data)
+const char *conv_str (ScriptState *st, struct script_data *data)
 {
     get_val (st, data);
     if (data->type == ScriptCode::INT)
@@ -1811,7 +1603,7 @@ const char *conv_str (struct script_state *st, struct script_data *data)
  *------------------------------------------
  */
 static
-int conv_num (struct script_state *st, struct script_data *data)
+int conv_num (ScriptState *st, struct script_data *data)
 {
     get_val (st, data);
     if (data->type == ScriptCode::STR || data->type == ScriptCode::CONSTSTR)
@@ -1829,6 +1621,7 @@ int conv_num (struct script_state *st, struct script_data *data)
  * スタックへ数値をプッシュ
  *------------------------------------------
  */
+static
 void push_val (struct script_stack *stack, ScriptCode type, int val)
 {
     if (stack->sp >= stack->sp_max)
@@ -1922,37 +1715,35 @@ void pop_stack (struct script_stack *stack, int start, int end)
  *
  *------------------------------------------
  */
-int buildin_mes (struct script_state *st)
+void builtin_mes (ScriptState *st)
 {
     conv_str (st, &(st->stack->stack_data[st->start + 2]));
     clif_scriptmes (script_rid2sd (st), st->oid,
                     st->stack->stack_data[st->start + 2].u.str);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_goto (struct script_state *st)
+void builtin_goto (ScriptState *st)
 {
     if (st->stack->stack_data[st->start + 2].type != ScriptCode::POS)
     {
         printf ("script: goto: not label !\n");
         st->state = END;
-        return 0;
+        return;
     }
 
     st->pos = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     st->state = GOTO;
-    return 0;
 }
 
 /*==========================================
  * ユーザー定義関数の呼び出し
  *------------------------------------------
  */
-int buildin_callfunc (struct script_state *st)
+void builtin_callfunc (ScriptState *st)
 {
     const ScriptCode *scr;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -1978,14 +1769,13 @@ int buildin_callfunc (struct script_state *st)
         printf ("script:callfunc: function not found! [%s]\n", str);
         st->state = END;
     }
-    return 0;
 }
 
 /*==========================================
  * サブルーティンの呼び出し
  *------------------------------------------
  */
-int buildin_callsub (struct script_state *st)
+void builtin_callsub (ScriptState *st)
 {
     int  pos_ = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     int  i, j;
@@ -2000,14 +1790,13 @@ int buildin_callsub (struct script_state *st)
     st->pos = pos_;
     st->defsp = st->start + 4 + j;
     st->state = GOTO;
-    return 0;
 }
 
 /*==========================================
  * 引数の所得
  *------------------------------------------
  */
-int buildin_getarg (struct script_state *st)
+void builtin_getarg (ScriptState *st)
 {
     int  num = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     int  max, stsp;
@@ -2016,7 +1805,7 @@ int buildin_getarg (struct script_state *st)
     {
         printf ("script:getarg without callfunc or callsub!\n");
         st->state = END;
-        return 0;
+        return;
     }
     max = conv_num (st, &(st->stack->stack_data[st->defsp - 4]));
     stsp = st->defsp - max - 4;
@@ -2024,60 +1813,55 @@ int buildin_getarg (struct script_state *st)
     {
         printf ("script:getarg arg1(%d) out of range(%d) !\n", num, max);
         st->state = END;
-        return 0;
+        return;
     }
     push_copy (st->stack, stsp + num);
-    return 0;
 }
 
 /*==========================================
  * サブルーチン/ユーザー定義関数の終了
  *------------------------------------------
  */
-int buildin_return (struct script_state *st)
+void builtin_return (ScriptState *st)
 {
     if (st->end > st->start + 2)
     {                           // 戻り値有り
         push_copy (st->stack, st->start + 2);
     }
     st->state = RETFUNC;
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_next (struct script_state *st)
+void builtin_next (ScriptState *st)
 {
     st->state = STOP;
     clif_scriptnext (script_rid2sd (st), st->oid);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_close (struct script_state *st)
+void builtin_close (ScriptState *st)
 {
     st->state = END;
     clif_scriptclose (script_rid2sd (st), st->oid);
-    return 0;
 }
 
-int buildin_close2 (struct script_state *st)
+void builtin_close2 (ScriptState *st)
 {
     st->state = STOP;
     clif_scriptclose (script_rid2sd (st), st->oid);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_menu (struct script_state *st)
+void builtin_menu (ScriptState *st)
 {
     char *buf;
     int  i, len = 0;            // [fate] len is the total # of bytes we need to transmit the string choices
@@ -2134,7 +1918,7 @@ int buildin_menu (struct script_state *st)
                 stack_data[st->start + sd->npc_menu * 2 + 1].type != ScriptCode::POS)
             {
                 st->state = END;
-                return 0;
+                return;
             }
             st->pos =
                 conv_num (st,
@@ -2144,14 +1928,13 @@ int buildin_menu (struct script_state *st)
             st->state = GOTO;
         }
     }
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_rand (struct script_state *st)
+void builtin_rand (ScriptState *st)
 {
     int  range, min, max;
 
@@ -2174,14 +1957,13 @@ int buildin_rand (struct script_state *st)
         range = conv_num (st, &(st->stack->stack_data[st->start + 2]));
         push_val (st->stack, ScriptCode::INT, range <= 0 ? 0 : MRAND (range));
     }
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_pow (struct script_state *st)
+void builtin_pow (ScriptState *st)
 {
     int  a, b;
 
@@ -2190,14 +1972,13 @@ int buildin_pow (struct script_state *st)
 
     push_val (st->stack, ScriptCode::INT, (int) pow (a * 0.001, b));
 
-    return 0;
 }
 
 /*==========================================
  * Check whether the PC is at the specified location
  *------------------------------------------
  */
-int buildin_isat (struct script_state *st)
+void builtin_isat (ScriptState *st)
 {
     int  x, y;
     struct map_session_data *sd = script_rid2sd (st);
@@ -2207,20 +1988,19 @@ int buildin_isat (struct script_state *st)
     y = conv_num (st, &(st->stack->stack_data[st->start + 4]));
 
     if (!sd)
-        return 1;
+        return;
 
     push_val (st->stack, ScriptCode::INT,
               (x == sd->bl.x)
               && (y == sd->bl.y) && (!strcmp (str, map[sd->bl.m].name)));
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_warp (struct script_state *st)
+void builtin_warp (ScriptState *st)
 {
     int  x, y;
     struct map_session_data *sd = script_rid2sd (st);
@@ -2233,7 +2013,7 @@ int buildin_warp (struct script_state *st)
     else if (strcmp (str, "SavePoint") == 0)
     {
         if (map[sd->bl.m].flag.noreturn)    // 蝶禁止
-            return 0;
+            return;
 
         pc_setpos (sd, sd->status.save_point.map,
                    sd->status.save_point.x, sd->status.save_point.y, 3);
@@ -2241,14 +2021,13 @@ int buildin_warp (struct script_state *st)
     else if (strcmp (str, "Save") == 0)
     {
         if (map[sd->bl.m].flag.noreturn)    // 蝶禁止
-            return 0;
+            return;
 
         pc_setpos (sd, sd->status.save_point.map,
                    sd->status.save_point.x, sd->status.save_point.y, 3);
     }
     else
         pc_setpos (sd, str, x, y, 0);
-    return 0;
 }
 
 /*==========================================
@@ -2256,7 +2035,7 @@ int buildin_warp (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_areawarp_sub (struct block_list *bl, va_list ap)
+void builtin_areawarp_sub (struct block_list *bl, va_list ap)
 {
     int  x, y;
     const char *mapname = va_arg (ap, const char *);
@@ -2266,10 +2045,9 @@ int buildin_areawarp_sub (struct block_list *bl, va_list ap)
         pc_randomwarp ((struct map_session_data *) bl, 3);
     else
         pc_setpos ((struct map_session_data *) bl, mapname, x, y, 0);
-    return 0;
 }
 
-int buildin_areawarp (struct script_state *st)
+void builtin_areawarp (ScriptState *st)
 {
     int  x, y, m;
     int  x0, y0, x1, y1;
@@ -2284,60 +2062,56 @@ int buildin_areawarp (struct script_state *st)
     y = conv_num (st, &(st->stack->stack_data[st->start + 9]));
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
+        return;
 
-    map_foreachinarea (buildin_areawarp_sub,
+    map_foreachinarea (builtin_areawarp_sub,
                        m, x0, y0, x1, y1, BL_PC, str, x, y);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_heal (struct script_state *st)
+void builtin_heal (ScriptState *st)
 {
     int  hp, sp;
 
     hp = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     sp = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     pc_heal (script_rid2sd (st), hp, sp);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_itemheal (struct script_state *st)
+void builtin_itemheal (ScriptState *st)
 {
     int  hp, sp;
 
     hp = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     sp = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     pc_itemheal (script_rid2sd (st), hp, sp);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_percentheal (struct script_state *st)
+void builtin_percentheal (ScriptState *st)
 {
     int  hp, sp;
 
     hp = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     sp = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     pc_percentheal (script_rid2sd (st), hp, sp);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_jobchange (struct script_state *st)
+void builtin_jobchange (ScriptState *st)
 {
     int  job, upper = -1;
 
@@ -2348,14 +2122,13 @@ int buildin_jobchange (struct script_state *st)
     if ((job >= 0 && job < MAX_PC_CLASS))
         pc_jobchange (script_rid2sd (st), job, upper);
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_input (struct script_state *st)
+void builtin_input (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  num =
@@ -2380,7 +2153,7 @@ int buildin_input (struct script_state *st)
             }
             else
             {
-                printf ("buildin_input: string discarded !!\n");
+                printf ("builtin_input: string discarded !!\n");
             }
         }
         else
@@ -2391,7 +2164,7 @@ int buildin_input (struct script_state *st)
             if (sd->npc_amount < 0) //** If input amount is less then 0
             {
                 clif_tradecancelled (sd);   // added "Deal has been cancelled" message by Valaris
-                buildin_close (st); //** close
+                builtin_close (st); //** close
             }
 
             // 数値
@@ -2415,20 +2188,19 @@ int buildin_input (struct script_state *st)
             clif_scriptinput (sd, st->oid);
         sd->state.menu_or_input = 1;
     }
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_if (struct script_state *st)
+void builtin_if (ScriptState *st)
 {
     int  sel, i;
 
     sel = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     if (!sel)
-        return 0;
+        return;
 
     // 関数名をコピー
     push_copy (st->stack, st->start + 3);
@@ -2441,14 +2213,13 @@ int buildin_if (struct script_state *st)
     }
     run_func (st);
 
-    return 0;
 }
 
 /*==========================================
  * 変数設定
  *------------------------------------------
  */
-int buildin_set (struct script_state *st)
+void builtin_set (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  num = st->stack->stack_data[st->start + 2].u.num;
@@ -2458,8 +2229,8 @@ int buildin_set (struct script_state *st)
 
     if (st->stack->stack_data[st->start + 2].type != ScriptCode::NAME)
     {
-        printf ("script: buildin_set: not name\n");
-        return 0;
+        printf ("script: builtin_set: not name\n");
+        return;
     }
 
     if (prefix != '$')
@@ -2478,14 +2249,13 @@ int buildin_set (struct script_state *st)
         set_reg (sd, num, name, val);
     }
 
-    return 0;
 }
 
 /*==========================================
  * 配列変数設定
  *------------------------------------------
  */
-int buildin_setarray (struct script_state *st)
+void builtin_setarray (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  num = st->stack->stack_data[st->start + 2].u.num;
@@ -2496,8 +2266,8 @@ int buildin_setarray (struct script_state *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf ("buildin_setarray: illegal scope !\n");
-        return 0;
+        printf ("builtin_setarray: illegal scope !\n");
+        return;
     }
     if (prefix != '$')
         sd = script_rid2sd (st);
@@ -2509,14 +2279,13 @@ int buildin_setarray (struct script_state *st)
         else
             set_reg(sd, num + (j << 24), name, conv_num(st, &(st->stack->stack_data[i])));
     }
-    return 0;
 }
 
 /*==========================================
  * 配列変数クリア
  *------------------------------------------
  */
-int buildin_cleararray (struct script_state *st)
+void builtin_cleararray (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  num = st->stack->stack_data[st->start + 2].u.num;
@@ -2529,8 +2298,8 @@ int buildin_cleararray (struct script_state *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf ("buildin_cleararray: illegal scope !\n");
-        return 0;
+        printf ("builtin_cleararray: illegal scope !\n");
+        return;
     }
     if (prefix != '$')
         sd = script_rid2sd (st);
@@ -2542,14 +2311,13 @@ int buildin_cleararray (struct script_state *st)
         for (i = 0; i < sz; i++)
             set_reg(sd, num + (i << 24), name, conv_num(st, &(st->stack->stack_data[st->start + 3])));
 
-    return 0;
 }
 
 /*==========================================
  * 配列変数コピー
  *------------------------------------------
  */
-int buildin_copyarray (struct script_state *st)
+void builtin_copyarray (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  num = st->stack->stack_data[st->start + 2].u.num;
@@ -2565,27 +2333,26 @@ int buildin_copyarray (struct script_state *st)
 
     if (prefix != '$' && prefix != '@' && prefix2 != '$' && prefix2 != '@')
     {
-        printf ("buildin_copyarray: illegal scope !\n");
-        return 0;
+        printf ("builtin_copyarray: illegal scope !\n");
+        return;
     }
     if ((postfix == '$' || postfix2 == '$') && postfix != postfix2)
     {
-        printf ("buildin_copyarray: type mismatch !\n");
-        return 0;
+        printf ("builtin_copyarray: type mismatch !\n");
+        return;
     }
     if (prefix != '$' || prefix2 != '$')
         sd = script_rid2sd (st);
 
     for (i = 0; i < sz; i++)
         set_reg (sd, num + (i << 24), name, get_val2 (st, num2 + (i << 24)));
-    return 0;
 }
 
 /*==========================================
  * 配列変数のサイズ所得
  *------------------------------------------
  */
-static int getarraysize (struct script_state *st, int num, int postfix)
+static int getarraysize (ScriptState *st, int num, int postfix)
 {
     int  i = (num >> 24), c = i;
     for (; i < 128; i++)
@@ -2597,7 +2364,7 @@ static int getarraysize (struct script_state *st, int num, int postfix)
     return c + 1;
 }
 
-int buildin_getarraysize (struct script_state *st)
+void builtin_getarraysize (ScriptState *st)
 {
     int  num = st->stack->stack_data[st->start + 2].u.num;
     char *name = str_buf + str_data[num & 0x00ffffff].str;
@@ -2606,19 +2373,18 @@ int buildin_getarraysize (struct script_state *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf ("buildin_copyarray: illegal scope !\n");
-        return 0;
+        printf ("builtin_copyarray: illegal scope !\n");
+        return;
     }
 
     push_val (st->stack, ScriptCode::INT, getarraysize (st, num, postfix));
-    return 0;
 }
 
 /*==========================================
  * 配列変数から要素削除
  *------------------------------------------
  */
-int buildin_deletearray (struct script_state *st)
+void builtin_deletearray (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  num = st->stack->stack_data[st->start + 2].u.num;
@@ -2633,8 +2399,8 @@ int buildin_deletearray (struct script_state *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf ("buildin_deletearray: illegal scope !\n");
-        return 0;
+        printf ("builtin_deletearray: illegal scope !\n");
+        return;
     }
     if (prefix != '$')
         sd = script_rid2sd (st);
@@ -2651,14 +2417,13 @@ int buildin_deletearray (struct script_state *st)
         if (postfix == '$')
             set_reg (sd, num + (i << 24), name, "");
     }
-    return 0;
 }
 
 /*==========================================
  * 指定要素を表す値(キー)を所得する
  *------------------------------------------
  */
-int buildin_getelementofarray (struct script_state *st)
+void builtin_getelementofarray (ScriptState *st)
 {
     if (st->stack->stack_data[st->start + 2].type == ScriptCode::NAME)
     {
@@ -2682,14 +2447,13 @@ int buildin_getelementofarray (struct script_state *st)
             ("script: getelementofarray (operator[]): param1 not name !\n");
         push_val (st->stack, ScriptCode::INT, 0);
     }
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_setlook (struct script_state *st)
+void builtin_setlook (ScriptState *st)
 {
     int  type, val;
 
@@ -2698,14 +2462,13 @@ int buildin_setlook (struct script_state *st)
 
     pc_changelook (script_rid2sd (st), type, val);
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_cutin (struct script_state *st)
+void builtin_cutin (ScriptState *st)
 {
     int  type;
 
@@ -2715,14 +2478,13 @@ int buildin_cutin (struct script_state *st)
     clif_cutin (script_rid2sd (st),
                 st->stack->stack_data[st->start + 2].u.str, type);
 
-    return 0;
 }
 
 /*==========================================
  * カードのイラストを表示する
  *------------------------------------------
  */
-int buildin_cutincard (struct script_state *st)
+void builtin_cutincard (ScriptState *st)
 {
     int  itemid;
 
@@ -2731,14 +2493,13 @@ int buildin_cutincard (struct script_state *st)
     clif_cutin (script_rid2sd (st), itemdb_search (itemid)->cardillustname,
                 4);
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_viewpoint (struct script_state *st)
+void builtin_viewpoint (ScriptState *st)
 {
     int  type, x, y, id, color;
 
@@ -2750,14 +2511,13 @@ int buildin_viewpoint (struct script_state *st)
 
     clif_viewpoint (script_rid2sd (st), st->oid, type, x, y, id, color);
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_countitem (struct script_state *st)
+void builtin_countitem (ScriptState *st)
 {
     int  nameid = 0, count = 0, i;
     struct map_session_data *sd;
@@ -2791,14 +2551,13 @@ int buildin_countitem (struct script_state *st)
     }
     push_val (st->stack, ScriptCode::INT, count);
 
-    return 0;
 }
 
 /*==========================================
  * 重量チェック
  *------------------------------------------
  */
-int buildin_checkweight (struct script_state *st)
+void builtin_checkweight (ScriptState *st)
 {
     int  nameid = 0, amount;
     struct map_session_data *sd;
@@ -2834,14 +2593,13 @@ int buildin_checkweight (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, 1);
     }
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_getitem (struct script_state *st)
+void builtin_getitem (ScriptState *st)
 {
     int  nameid, amount, flag = 0;
     struct item item_tmp;
@@ -2866,7 +2624,7 @@ int buildin_getitem (struct script_state *st)
     if ((amount =
          conv_num (st, &(st->stack->stack_data[st->start + 3]))) <= 0)
     {
-        return 0;               //return if amount <=0, skip the useles iteration
+        return;               //return if amount <=0, skip the useles iteration
     }
     //Violet Box, Blue Box, etc - random item pick
     if (nameid < 0)
@@ -2887,7 +2645,7 @@ int buildin_getitem (struct script_state *st)
             sd = map_id2sd (conv_num
                             (st, &(st->stack->stack_data[st->start + 5])));
         if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
-            return 0;
+            return;
         if ((flag = pc_additem (sd, &item_tmp, amount)))
         {
             clif_additem (sd, 0, 0, flag);
@@ -2896,14 +2654,13 @@ int buildin_getitem (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_getitem2 (struct script_state *st)
+void builtin_getitem2 (ScriptState *st)
 {
     int  nameid, amount, flag = 0;
     int  iden, ref, attr, c1, c2, c3, c4;
@@ -2938,7 +2695,7 @@ int buildin_getitem2 (struct script_state *st)
         sd = map_id2sd (conv_num
                         (st, &(st->stack->stack_data[st->start + 11])));
     if (sd == NULL)             //アイテムを渡す相手がいなかったらお帰り
-        return 0;
+        return;
 
     if (nameid < 0)
     {                           // ランダム
@@ -2985,14 +2742,13 @@ int buildin_getitem2 (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_makeitem (struct script_state *st)
+void builtin_makeitem (ScriptState *st)
 {
     int  nameid, amount, flag = 0;
     int  x, y, m;
@@ -3044,14 +2800,13 @@ int buildin_makeitem (struct script_state *st)
         map_addflooritem (&item_tmp, amount, m, x, y, NULL, NULL, NULL, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_delitem (struct script_state *st)
+void builtin_delitem (ScriptState *st)
 {
     int  nameid = 0, amount, i;
     struct map_session_data *sd;
@@ -3077,7 +2832,7 @@ int buildin_delitem (struct script_state *st)
     if (nameid < 500 || amount <= 0)
     {                           //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
         //printf("wrong item ID or amount<=0 : delitem %i,\n",nameid,amount);
-        return 0;
+        return;
     }
     sd = script_rid2sd (st);
 
@@ -3109,14 +2864,13 @@ int buildin_delitem (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
 /*==========================================
  *キャラ関係のパラメータ取得
  *------------------------------------------
  */
-int buildin_readparam (struct script_state *st)
+void builtin_readparam (ScriptState *st)
 {
     int  type;
     struct map_session_data *sd;
@@ -3131,19 +2885,18 @@ int buildin_readparam (struct script_state *st)
     if (sd == NULL)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
 
     push_val (st->stack, ScriptCode::INT, pc_readparam (sd, type));
 
-    return 0;
 }
 
 /*==========================================
  *キャラ関係のID取得
  *------------------------------------------
  */
-int buildin_getcharid (struct script_state *st)
+void builtin_getcharid (ScriptState *st)
 {
     int  num;
     struct map_session_data *sd;
@@ -3157,7 +2910,7 @@ int buildin_getcharid (struct script_state *st)
     if (sd == NULL)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
     if (num == 0)
         push_val (st->stack, ScriptCode::INT, sd->status.char_id);
@@ -3167,7 +2920,6 @@ int buildin_getcharid (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, sd->status.guild_id);
     if (num == 3)
         push_val (st->stack, ScriptCode::INT, sd->status.account_id);
-    return 0;
 }
 
 /*==========================================
@@ -3175,7 +2927,7 @@ int buildin_getcharid (struct script_state *st)
  *------------------------------------------
  */
 static
-char *buildin_getpartyname_sub (int party_id)
+char *builtin_getpartyname_sub (int party_id)
 {
     struct party *p;
 
@@ -3193,26 +2945,25 @@ char *buildin_getpartyname_sub (int party_id)
     return 0;
 }
 
-int buildin_getpartyname (struct script_state *st)
+void builtin_getpartyname (ScriptState *st)
 {
     char *name;
     int  party_id;
 
     party_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
-    name = buildin_getpartyname_sub (party_id);
+    name = builtin_getpartyname_sub (party_id);
     if (name != 0)
         push_str (st->stack, ScriptCode::STR, name);
     else
         push_str (st->stack, ScriptCode::CONSTSTR, "null");
 
-    return 0;
 }
 
 /*==========================================
  *指定IDのPT人数とメンバーID取得
  *------------------------------------------
  */
-int buildin_getpartymember (struct script_state *st)
+void builtin_getpartymember (ScriptState *st)
 {
     struct party *p;
     int  i, j = 0;
@@ -3235,7 +2986,6 @@ int buildin_getpartymember (struct script_state *st)
     }
     mapreg_setreg (add_str ("$@partymembercount"), j);
 
-    return 0;
 }
 
 /*==========================================
@@ -3243,7 +2993,7 @@ int buildin_getpartymember (struct script_state *st)
  *------------------------------------------
  */
 static
-char *buildin_getguildname_sub (int guild_id)
+char *builtin_getguildname_sub (int guild_id)
 {
     struct guild *g = NULL;
     g = guild_search (guild_id);
@@ -3258,16 +3008,15 @@ char *buildin_getguildname_sub (int guild_id)
     return 0;
 }
 
-int buildin_getguildname (struct script_state *st)
+void builtin_getguildname (ScriptState *st)
 {
     char *name;
     int  guild_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
-    name = buildin_getguildname_sub (guild_id);
+    name = builtin_getguildname_sub (guild_id);
     if (name != 0)
         push_str (st->stack, ScriptCode::STR, name);
     else
         push_str (st->stack, ScriptCode::CONSTSTR, "null");
-    return 0;
 }
 
 /*==========================================
@@ -3275,7 +3024,7 @@ int buildin_getguildname (struct script_state *st)
  *------------------------------------------
  */
 static
-char *buildin_getguildmaster_sub (int guild_id)
+char *builtin_getguildmaster_sub (int guild_id)
 {
     struct guild *g = NULL;
     g = guild_search (guild_id);
@@ -3291,30 +3040,29 @@ char *buildin_getguildmaster_sub (int guild_id)
     return 0;
 }
 
-int buildin_getguildmaster (struct script_state *st)
+void builtin_getguildmaster (ScriptState *st)
 {
     char *master;
     int  guild_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
-    master = buildin_getguildmaster_sub (guild_id);
+    master = builtin_getguildmaster_sub (guild_id);
     if (master != 0)
         push_str (st->stack, ScriptCode::STR, master);
     else
         push_str (st->stack, ScriptCode::CONSTSTR, "null");
-    return 0;
 }
 
-int buildin_getguildmasterid (struct script_state *st)
+void builtin_getguildmasterid (ScriptState *st)
 {
     char *master;
     struct map_session_data *sd = NULL;
     int  guild_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
-    master = buildin_getguildmaster_sub (guild_id);
+    master = builtin_getguildmaster_sub (guild_id);
     if (master != 0)
     {
         if ((sd = map_nick2sd (master)) == NULL)
         {
             push_val (st->stack, ScriptCode::INT, 0);
-            return 0;
+            return;
         }
         push_val (st->stack, ScriptCode::INT, sd->status.char_id);
     }
@@ -3322,14 +3070,13 @@ int buildin_getguildmasterid (struct script_state *st)
     {
         push_val (st->stack, ScriptCode::INT, 0);
     }
-    return 0;
 }
 
 /*==========================================
  * キャラクタの名前
  *------------------------------------------
  */
-int buildin_strcharinfo (struct script_state *st)
+void builtin_strcharinfo (ScriptState *st)
 {
     struct map_session_data *sd;
     int  num;
@@ -3346,7 +3093,7 @@ int buildin_strcharinfo (struct script_state *st)
     if (num == 1)
     {
         char *buf;
-        buf = buildin_getpartyname_sub (sd->status.party_id);
+        buf = builtin_getpartyname_sub (sd->status.party_id);
         if (buf != 0)
             push_str (st->stack, ScriptCode::STR, buf);
         else
@@ -3355,14 +3102,13 @@ int buildin_strcharinfo (struct script_state *st)
     if (num == 2)
     {
         char *buf;
-        buf = buildin_getguildname_sub (sd->status.guild_id);
+        buf = builtin_getguildname_sub (sd->status.guild_id);
         if (buf != 0)
             push_str (st->stack, ScriptCode::STR, buf);
         else
             push_str (st->stack, ScriptCode::CONSTSTR, "");
     }
 
-    return 0;
 }
 
 unsigned int equip[10] =
@@ -3374,7 +3120,7 @@ unsigned int equip[10] =
  * GetEquipID(Pos);     Pos: 1-10
  *------------------------------------------
  */
-int buildin_getequipid (struct script_state *st)
+void builtin_getequipid (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3384,7 +3130,7 @@ int buildin_getequipid (struct script_state *st)
     if (sd == NULL)
     {
         printf ("getequipid: sd == NULL\n");
-        return 0;
+        return;
     }
     num = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     i = pc_checkequip (sd, equip[num - 1]);
@@ -3400,14 +3146,13 @@ int buildin_getequipid (struct script_state *st)
     {
         push_val (st->stack, ScriptCode::INT, -1);
     }
-    return 0;
 }
 
 /*==========================================
  * 装備名文字列（精錬メニュー用）
  *------------------------------------------
  */
-int buildin_getequipname (struct script_state *st)
+void builtin_getequipname (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3432,14 +3177,13 @@ int buildin_getequipname (struct script_state *st)
     }
     push_str (st->stack, ScriptCode::STR, buf);
 
-    return 0;
 }
 
 /*==========================================
  * getbrokenid [Valaris]
  *------------------------------------------
  */
-int buildin_getbrokenid (struct script_state *st)
+void builtin_getbrokenid (ScriptState *st)
 {
     int  i, num, id = 0, brokencounter = 0;
     struct map_session_data *sd;
@@ -3462,14 +3206,13 @@ int buildin_getbrokenid (struct script_state *st)
 
     push_val (st->stack, ScriptCode::INT, id);
 
-    return 0;
 }
 
 /*==========================================
  * repair [Valaris]
  *------------------------------------------
  */
-int buildin_repair (struct script_state *st)
+void builtin_repair (ScriptState *st)
 {
     int  i, num;
     int  repaircounter = 0;
@@ -3495,14 +3238,13 @@ int buildin_repair (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
 /*==========================================
  * 装備チェック
  *------------------------------------------
  */
-int buildin_getequipisequiped (struct script_state *st)
+void builtin_getequipisequiped (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3519,14 +3261,13 @@ int buildin_getequipisequiped (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
  * 装備品精錬可能チェック
  *------------------------------------------
  */
-int buildin_getequipisenableref (struct script_state *st)
+void builtin_getequipisenableref (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3548,14 +3289,13 @@ int buildin_getequipisenableref (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
  * 装備品鑑定チェック
  *------------------------------------------
  */
-int buildin_getequipisidentify (struct script_state *st)
+void builtin_getequipisidentify (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3568,14 +3308,13 @@ int buildin_getequipisidentify (struct script_state *st)
     else
         push_val (st->stack, ScriptCode::INT, 0);
 
-    return 0;
 }
 
 /*==========================================
  * 装備品精錬度
  *------------------------------------------
  */
-int buildin_getequiprefinerycnt (struct script_state *st)
+void builtin_getequiprefinerycnt (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3588,14 +3327,13 @@ int buildin_getequiprefinerycnt (struct script_state *st)
     else
         push_val (st->stack, ScriptCode::INT, 0);
 
-    return 0;
 }
 
 /*==========================================
  * 装備品武器LV
  *------------------------------------------
  */
-int buildin_getequipweaponlv (struct script_state *st)
+void builtin_getequipweaponlv (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3608,14 +3346,13 @@ int buildin_getequipweaponlv (struct script_state *st)
     else
         push_val (st->stack, ScriptCode::INT, 0);
 
-    return 0;
 }
 
 /*==========================================
  * 装備品精錬成功率
  *------------------------------------------
  */
-int buildin_getequippercentrefinery (struct script_state *st)
+void builtin_getequippercentrefinery (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3629,14 +3366,13 @@ int buildin_getequippercentrefinery (struct script_state *st)
     else
         push_val (st->stack, ScriptCode::INT, 0);
 
-    return 0;
 }
 
 /*==========================================
  * 精錬成功
  *------------------------------------------
  */
-int buildin_successrefitem (struct script_state *st)
+void builtin_successrefitem (ScriptState *st)
 {
     int  i, num, ep;
     struct map_session_data *sd;
@@ -3657,14 +3393,13 @@ int buildin_successrefitem (struct script_state *st)
         clif_misceffect (&sd->bl, 3);
     }
 
-    return 0;
 }
 
 /*==========================================
  * 精錬失敗
  *------------------------------------------
  */
-int buildin_failedrefitem (struct script_state *st)
+void builtin_failedrefitem (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -3683,14 +3418,13 @@ int buildin_failedrefitem (struct script_state *st)
         clif_misceffect (&sd->bl, 2);
     }
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_statusup (struct script_state *st)
+void builtin_statusup (ScriptState *st)
 {
     int  type;
     struct map_session_data *sd;
@@ -3699,14 +3433,13 @@ int buildin_statusup (struct script_state *st)
     sd = script_rid2sd (st);
     pc_statusup (sd, type);
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_statusup2 (struct script_state *st)
+void builtin_statusup2 (ScriptState *st)
 {
     int  type, val;
     struct map_session_data *sd;
@@ -3716,14 +3449,13 @@ int buildin_statusup2 (struct script_state *st)
     sd = script_rid2sd (st);
     pc_statusup2 (sd, type, val);
 
-    return 0;
 }
 
 /*==========================================
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
-int buildin_bonus (struct script_state *st)
+void builtin_bonus (ScriptState *st)
 {
     int  type, val;
     struct map_session_data *sd;
@@ -3733,14 +3465,13 @@ int buildin_bonus (struct script_state *st)
     sd = script_rid2sd (st);
     pc_bonus (sd, type, val);
 
-    return 0;
 }
 
 /*==========================================
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
-int buildin_bonus2 (struct script_state *st)
+void builtin_bonus2 (ScriptState *st)
 {
     int  type, type2, val;
     struct map_session_data *sd;
@@ -3751,14 +3482,13 @@ int buildin_bonus2 (struct script_state *st)
     sd = script_rid2sd (st);
     pc_bonus2 (sd, type, type2, val);
 
-    return 0;
 }
 
 /*==========================================
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
-int buildin_bonus3 (struct script_state *st)
+void builtin_bonus3 (ScriptState *st)
 {
     int  type, type2, type3, val;
     struct map_session_data *sd;
@@ -3770,14 +3500,13 @@ int buildin_bonus3 (struct script_state *st)
     sd = script_rid2sd (st);
     pc_bonus3 (sd, type, type2, type3, val);
 
-    return 0;
 }
 
 /*==========================================
  * スキル所得
  *------------------------------------------
  */
-int buildin_skill (struct script_state *st)
+void builtin_skill (ScriptState *st)
 {
     int  id, level, flag = 1;
     struct map_session_data *sd;
@@ -3790,14 +3519,13 @@ int buildin_skill (struct script_state *st)
     pc_skill (sd, id, level, flag);
     clif_skillinfoblock (sd);
 
-    return 0;
 }
 
 /*==========================================
  * [Fate] Sets the skill level permanently
  *------------------------------------------
  */
-int buildin_setskill (struct script_state *st)
+void builtin_setskill (ScriptState *st)
 {
     int  id, level;
     struct map_session_data *sd;
@@ -3809,14 +3537,13 @@ int buildin_setskill (struct script_state *st)
     sd->status.skill[id].id = level ? id : 0;
     sd->status.skill[id].lv = level;
     clif_skillinfoblock (sd);
-    return 0;
 }
 
 /*==========================================
  * ギルドスキル取得
  *------------------------------------------
  */
-int buildin_guildskill (struct script_state *st)
+void builtin_guildskill (ScriptState *st)
 {
     int  id, level;
     struct map_session_data *sd;
@@ -3830,18 +3557,16 @@ int buildin_guildskill (struct script_state *st)
     for (i = 0; i < level; i++)
         guild_skillup (sd, id);
 
-    return 0;
 }
 
 /*==========================================
  * スキルレベル所得
  *------------------------------------------
  */
-int buildin_getskilllv (struct script_state *st)
+void builtin_getskilllv (ScriptState *st)
 {
     int  id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     push_val (st->stack, ScriptCode::INT, pc_checkskill (script_rid2sd (st), id));
-    return 0;
 }
 
 /*==========================================
@@ -3853,14 +3578,14 @@ int buildin_getskilllv (struct script_state *st)
  *            10004 : GD_EXTENSION
  *------------------------------------------
  */
-int buildin_getgdskilllv (struct script_state *st)
+void builtin_getgdskilllv (ScriptState *st)
 {
     int  guild_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     int  skill_id = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     struct guild *g = guild_search (guild_id);
     push_val (st->stack, ScriptCode::INT,
               (g == NULL) ? -1 : guild_checkskill (g, skill_id));
-    return 0;
+    return;
 /*
 	struct map_session_data *sd=NULL;
 	struct guild *g=NULL;
@@ -3874,7 +3599,7 @@ int buildin_getgdskilllv (struct script_state *st)
 	} else {
 		push_val(st->stack,ScriptCode::INT,-1);
 	}
-	return 0;
+	return;
 */
 }
 
@@ -3882,30 +3607,27 @@ int buildin_getgdskilllv (struct script_state *st)
  *
  *------------------------------------------
  */
-int buildin_basicskillcheck (struct script_state *st)
+void builtin_basicskillcheck (ScriptState *st)
 {
     push_val (st->stack, ScriptCode::INT, battle_config.basic_skill_check);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_getgmlevel (struct script_state *st)
+void builtin_getgmlevel (ScriptState *st)
 {
     push_val (st->stack, ScriptCode::INT, pc_isGM (script_rid2sd (st)));
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_end (struct script_state *st)
+void builtin_end (ScriptState *st)
 {
     st->state = END;
-    return 0;
 }
 
 /*==========================================
@@ -3913,7 +3635,7 @@ int buildin_end (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_getopt2 (struct script_state *st)
+void builtin_getopt2 (ScriptState *st)
 {
     struct map_session_data *sd;
 
@@ -3921,7 +3643,6 @@ int buildin_getopt2 (struct script_state *st)
 
     push_val (st->stack, ScriptCode::INT, sd->opt2);
 
-    return 0;
 }
 
 /*==========================================
@@ -3929,7 +3650,7 @@ int buildin_getopt2 (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_setopt2 (struct script_state *st)
+void builtin_setopt2 (ScriptState *st)
 {
     int  new_opt2;
     struct map_session_data *sd;
@@ -3937,19 +3658,18 @@ int buildin_setopt2 (struct script_state *st)
     new_opt2 = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     sd = script_rid2sd (st);
     if (new_opt2 == sd->opt2)
-        return 0;
+        return;
     sd->opt2 = new_opt2;
     clif_changeoption (&sd->bl);
     pc_calcstatus (sd, 0);
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_checkoption (struct script_state *st)
+void builtin_checkoption (ScriptState *st)
 {
     int  type;
     struct map_session_data *sd;
@@ -3966,14 +3686,13 @@ int buildin_checkoption (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_setoption (struct script_state *st)
+void builtin_setoption (ScriptState *st)
 {
     int  type;
     struct map_session_data *sd;
@@ -3982,7 +3701,6 @@ int buildin_setoption (struct script_state *st)
     sd = script_rid2sd (st);
     pc_setoption (sd, type);
 
-    return 0;
 }
 
 /*==========================================
@@ -3990,7 +3708,7 @@ int buildin_setoption (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_checkcart (struct script_state *st)
+void builtin_checkcart (ScriptState *st)
 {
     struct map_session_data *sd;
 
@@ -4004,21 +3722,19 @@ int buildin_checkcart (struct script_state *st)
     {
         push_val (st->stack, ScriptCode::INT, 0);
     }
-    return 0;
 }
 
 /*==========================================
  * カートを付ける
  *------------------------------------------
  */
-int buildin_setcart (struct script_state *st)
+void builtin_setcart (ScriptState *st)
 {
     struct map_session_data *sd;
 
     sd = script_rid2sd (st);
     pc_setcart (sd, 1);
 
-    return 0;
 }
 
 /*==========================================
@@ -4026,7 +3742,7 @@ int buildin_setcart (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_checkfalcon (struct script_state *st)
+void builtin_checkfalcon (ScriptState *st)
 {
     struct map_session_data *sd;
 
@@ -4041,21 +3757,19 @@ int buildin_checkfalcon (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
  * 鷹を付ける
  *------------------------------------------
  */
-int buildin_setfalcon (struct script_state *st)
+void builtin_setfalcon (ScriptState *st)
 {
     struct map_session_data *sd;
 
     sd = script_rid2sd (st);
     pc_setfalcon (sd);
 
-    return 0;
 }
 
 /*==========================================
@@ -4063,7 +3777,7 @@ int buildin_setfalcon (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_checkriding (struct script_state *st)
+void builtin_checkriding (ScriptState *st)
 {
     struct map_session_data *sd;
 
@@ -4078,28 +3792,26 @@ int buildin_checkriding (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
  * ペコペコ乗り
  *------------------------------------------
  */
-int buildin_setriding (struct script_state *st)
+void builtin_setriding (ScriptState *st)
 {
     struct map_session_data *sd;
 
     sd = script_rid2sd (st);
     pc_setriding (sd);
 
-    return 0;
 }
 
 /*==========================================
  *	セーブポイントの保存
  *------------------------------------------
  */
-int buildin_savepoint (struct script_state *st)
+void builtin_savepoint (ScriptState *st)
 {
     int  x, y;
 
@@ -4107,7 +3819,6 @@ int buildin_savepoint (struct script_state *st)
     x = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     y = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     pc_setsavepoint (script_rid2sd (st), str, x, y);
-    return 0;
 }
 
 /*==========================================
@@ -4120,7 +3831,7 @@ int buildin_savepoint (struct script_state *st)
  *  other value.
  *------------------------------------------
  */
-int buildin_gettimetick (struct script_state *st)   /* Asgard Version */
+void builtin_gettimetick (ScriptState *st)   /* Asgard Version */
 {
     int  type;
     type = conv_num (st, &(st->stack->stack_data[st->start + 2]));
@@ -4149,7 +3860,6 @@ int buildin_gettimetick (struct script_state *st)   /* Asgard Version */
             push_val (st->stack, ScriptCode::INT, gettick ());
             break;
     }
-    return 0;
 }
 
 /*==========================================
@@ -4159,7 +3869,7 @@ int buildin_gettimetick (struct script_state *st)   /* Asgard Version */
  * 7: Year
  *------------------------------------------
  */
-int buildin_gettime (struct script_state *st)   /* Asgard Version */
+void builtin_gettime (ScriptState *st)   /* Asgard Version */
 {
     int  type;
     time_t timer;
@@ -4197,14 +3907,13 @@ int buildin_gettime (struct script_state *st)   /* Asgard Version */
             push_val (st->stack, ScriptCode::INT, -1);
             break;
     }
-    return 0;
 }
 
 /*==========================================
  * GetTimeStr("TimeFMT", Length);
  *------------------------------------------
  */
-int buildin_gettimestr (struct script_state *st)
+void builtin_gettimestr (ScriptState *st)
 {
     char *tmpstr;
     int  maxlen;
@@ -4218,14 +3927,13 @@ int buildin_gettimestr (struct script_state *st)
     tmpstr[maxlen] = '\0';
 
     push_str (st->stack, ScriptCode::STR, tmpstr);
-    return 0;
 }
 
 /*==========================================
  * カプラ倉庫を開く
  *------------------------------------------
  */
-int buildin_openstorage (struct script_state *st)
+void builtin_openstorage (ScriptState *st)
 {
 //  int sync = 0;
 //  if (st->end >= 3) sync = conv_num(st,& (st->stack->stack_data[st->start+2]));
@@ -4237,24 +3945,22 @@ int buildin_openstorage (struct script_state *st)
 //  } else st->state = END;
 
     storage_storageopen (sd);
-    return 0;
 }
 
-int buildin_guildopenstorage (struct script_state *st)
+void builtin_guildopenstorage (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  ret;
     st->state = STOP;
     ret = storage_guild_storageopen (sd);
     push_val (st->stack, ScriptCode::INT, ret);
-    return 0;
 }
 
 /*==========================================
  * アイテムによるスキル発動
  *------------------------------------------
  */
-int buildin_itemskill (struct script_state *st)
+void builtin_itemskill (ScriptState *st)
 {
     int  id, lv;
     struct map_session_data *sd = script_rid2sd (st);
@@ -4265,19 +3971,18 @@ int buildin_itemskill (struct script_state *st)
 
     // 詠唱中にスキルアイテムは使用できない
     if (sd->skilltimer != -1)
-        return 0;
+        return;
 
     sd->skillitem = id;
     sd->skillitemlv = lv;
     clif_item_skill (sd, id, lv, str);
-    return 0;
 }
 
 /*==========================================
  * NPCで経験値上げる
  *------------------------------------------
  */
-int buildin_getexp (struct script_state *st)
+void builtin_getexp (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  base = 0, job = 0;
@@ -4285,18 +3990,17 @@ int buildin_getexp (struct script_state *st)
     base = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     job = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     if (base < 0 || job < 0)
-        return 0;
+        return;
     if (sd)
         pc_gainexp_reason (sd, base, job, PC_GAINEXP_REASON_SCRIPT);
 
-    return 0;
 }
 
 /*==========================================
  * モンスター発生
  *------------------------------------------
  */
-int buildin_monster (struct script_state *st)
+void builtin_monster (ScriptState *st)
 {
     int  mob_class, amount, x, y;
     const char *event = "";
@@ -4312,14 +4016,13 @@ int buildin_monster (struct script_state *st)
 
     mob_once_spawn (map_id2sd (st->rid), mapname, x, y, str, mob_class, amount,
                     event);
-    return 0;
 }
 
 /*==========================================
  * モンスター発生
  *------------------------------------------
  */
-int buildin_areamonster (struct script_state *st)
+void builtin_areamonster (ScriptState *st)
 {
     int  mob_class, amount, x0, y0, x1, y1;
     const char *event = "";
@@ -4337,7 +4040,6 @@ int buildin_areamonster (struct script_state *st)
 
     mob_once_spawn_area (map_id2sd (st->rid), mapname, x0, y0, x1, y1, str, mob_class,
                          amount, event);
-    return 0;
 }
 
 /*==========================================
@@ -4345,7 +4047,7 @@ int buildin_areamonster (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_killmonster_sub (struct block_list *bl, va_list ap)
+void builtin_killmonster_sub (struct block_list *bl, va_list ap)
 {
     char *event = va_arg (ap, char *);
     int  allflag = va_arg (ap, int);
@@ -4354,19 +4056,18 @@ int buildin_killmonster_sub (struct block_list *bl, va_list ap)
     {
         if (strcmp (event, ((struct mob_data *) bl)->npc_event) == 0)
             mob_delete ((struct mob_data *) bl);
-        return 0;
+        return;
     }
     else if (allflag)
     {
         if (((struct mob_data *) bl)->spawndelay1 == -1
             && ((struct mob_data *) bl)->spawndelay2 == -1)
             mob_delete ((struct mob_data *) bl);
-        return 0;
+        return;
     }
-    return 0;
 }
 
-int buildin_killmonster (struct script_state *st)
+void builtin_killmonster (ScriptState *st)
 {
     int  m, allflag = 0;
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -4375,95 +4076,87 @@ int buildin_killmonster (struct script_state *st)
         allflag = 1;
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
-    map_foreachinarea (buildin_killmonster_sub,
+        return;
+    map_foreachinarea (builtin_killmonster_sub,
                        m, 0, 0, map[m].xs, map[m].ys, BL_MOB, event, allflag);
-    return 0;
 }
 
 static
-int buildin_killmonsterall_sub (struct block_list *bl, va_list ap)
+void builtin_killmonsterall_sub (struct block_list *bl, va_list ap)
 {
     mob_delete ((struct mob_data *) bl);
-    return 0;
 }
 
-int buildin_killmonsterall (struct script_state *st)
+void builtin_killmonsterall (ScriptState *st)
 {
     int  m;
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
-    map_foreachinarea (buildin_killmonsterall_sub,
+        return;
+    map_foreachinarea (builtin_killmonsterall_sub,
                        m, 0, 0, map[m].xs, map[m].ys, BL_MOB);
-    return 0;
 }
 
 /*==========================================
  * イベント実行
  *------------------------------------------
  */
-int buildin_doevent (struct script_state *st)
+void builtin_doevent (ScriptState *st)
 {
     const char *event = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     npc_event (map_id2sd (st->rid), event, 0);
-    return 0;
 }
 
 /*==========================================
  * NPC主体イベント実行
  *------------------------------------------
  */
-int buildin_donpcevent (struct script_state *st)
+void builtin_donpcevent (ScriptState *st)
 {
     const char *event = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     npc_event_do (event);
-    return 0;
 }
 
 /*==========================================
  * イベントタイマー追加
  *------------------------------------------
  */
-int buildin_addtimer (struct script_state *st)
+void builtin_addtimer (ScriptState *st)
 {
     int  tick;
     tick = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     const char *event = conv_str (st, &(st->stack->stack_data[st->start + 3]));
     pc_addeventtimer (script_rid2sd (st), tick, event);
-    return 0;
 }
 
 /*==========================================
  * イベントタイマー削除
  *------------------------------------------
  */
-int buildin_deltimer (struct script_state *st)
+void builtin_deltimer (ScriptState *st)
 {
     const char *event = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     pc_deleventtimer (script_rid2sd (st), event);
-    return 0;
 }
 
 /*==========================================
  * イベントタイマーのカウント値追加
  *------------------------------------------
  */
-int buildin_addtimercount (struct script_state *st)
+void builtin_addtimercount (ScriptState *st)
 {
     int  tick;
     const char *event = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     tick = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     pc_addeventtimercount (script_rid2sd (st), event, tick);
-    return 0;
 }
 
 /*==========================================
  * NPCタイマー初期化
  *------------------------------------------
  */
-int buildin_initnpctimer (struct script_state *st)
+void builtin_initnpctimer (ScriptState *st)
 {
     struct npc_data *nd;
     if (st->end > st->start + 2)
@@ -4474,14 +4167,13 @@ int buildin_initnpctimer (struct script_state *st)
 
     npc_settimerevent_tick (nd, 0);
     npc_timerevent_start (nd);
-    return 0;
 }
 
 /*==========================================
  * NPCタイマー開始
  *------------------------------------------
  */
-int buildin_startnpctimer (struct script_state *st)
+void builtin_startnpctimer (ScriptState *st)
 {
     struct npc_data *nd;
     if (st->end > st->start + 2)
@@ -4491,14 +4183,13 @@ int buildin_startnpctimer (struct script_state *st)
         nd = (struct npc_data *) map_id2bl (st->oid);
 
     npc_timerevent_start (nd);
-    return 0;
 }
 
 /*==========================================
  * NPCタイマー停止
  *------------------------------------------
  */
-int buildin_stopnpctimer (struct script_state *st)
+void builtin_stopnpctimer (ScriptState *st)
 {
     struct npc_data *nd;
     if (st->end > st->start + 2)
@@ -4508,14 +4199,13 @@ int buildin_stopnpctimer (struct script_state *st)
         nd = (struct npc_data *) map_id2bl (st->oid);
 
     npc_timerevent_stop (nd);
-    return 0;
 }
 
 /*==========================================
  * NPCタイマー情報所得
  *------------------------------------------
  */
-int buildin_getnpctimer (struct script_state *st)
+void builtin_getnpctimer (ScriptState *st)
 {
     struct npc_data *nd;
     int  type = conv_num (st, &(st->stack->stack_data[st->start + 2]));
@@ -4539,14 +4229,13 @@ int buildin_getnpctimer (struct script_state *st)
             break;
     }
     push_val (st->stack, ScriptCode::INT, val);
-    return 0;
 }
 
 /*==========================================
  * NPCタイマー値設定
  *------------------------------------------
  */
-int buildin_setnpctimer (struct script_state *st)
+void builtin_setnpctimer (ScriptState *st)
 {
     int  tick;
     struct npc_data *nd;
@@ -4558,14 +4247,13 @@ int buildin_setnpctimer (struct script_state *st)
         nd = (struct npc_data *) map_id2bl (st->oid);
 
     npc_settimerevent_tick (nd, tick);
-    return 0;
 }
 
 /*==========================================
  * 天の声アナウンス
  *------------------------------------------
  */
-int buildin_announce (struct script_state *st)
+void builtin_announce (ScriptState *st)
 {
     int  flag;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -4579,7 +4267,6 @@ int buildin_announce (struct script_state *st)
     }
     else
         intif_GMmessage (str, strlen (str) + 1, flag);
-    return 0;
 }
 
 /*==========================================
@@ -4587,7 +4274,7 @@ int buildin_announce (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_mapannounce_sub (struct block_list *bl, va_list ap)
+void builtin_mapannounce_sub (struct block_list *bl, va_list ap)
 {
     char *str;
     int  len, flag;
@@ -4595,10 +4282,9 @@ int buildin_mapannounce_sub (struct block_list *bl, va_list ap)
     len = va_arg (ap, int);
     flag = va_arg (ap, int);
     clif_GMmessage (bl, str, len, flag | 3);
-    return 0;
 }
 
-int buildin_mapannounce (struct script_state *st)
+void builtin_mapannounce (ScriptState *st)
 {
     int  flag, m;
 
@@ -4607,18 +4293,17 @@ int buildin_mapannounce (struct script_state *st)
     flag = conv_num (st, &(st->stack->stack_data[st->start + 4]));
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
-    map_foreachinarea (buildin_mapannounce_sub,
+        return;
+    map_foreachinarea (builtin_mapannounce_sub,
                        m, 0, 0, map[m].xs, map[m].ys, BL_PC, str,
                        strlen (str) + 1, flag & 0x10);
-    return 0;
 }
 
 /*==========================================
  * 天の声アナウンス（特定エリア）
  *------------------------------------------
  */
-int buildin_areaannounce (struct script_state *st)
+void builtin_areaannounce (ScriptState *st)
 {
     int  flag, m;
     int  x0, y0, x1, y1;
@@ -4632,19 +4317,18 @@ int buildin_areaannounce (struct script_state *st)
     flag = conv_num (st, &(st->stack->stack_data[st->start + 8]));
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
+        return;
 
-    map_foreachinarea (buildin_mapannounce_sub,
+    map_foreachinarea (builtin_mapannounce_sub,
                        m, x0, y0, x1, y1, BL_PC, str, strlen (str) + 1,
                        flag & 0x10);
-    return 0;
 }
 
 /*==========================================
  * ユーザー数所得
  *------------------------------------------
  */
-int buildin_getusers (struct script_state *st)
+void builtin_getusers (ScriptState *st)
 {
     int  flag = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     struct block_list *bl = map_id2bl ((flag & 0x08) ? st->oid : st->rid);
@@ -4659,24 +4343,22 @@ int buildin_getusers (struct script_state *st)
             break;
     }
     push_val (st->stack, ScriptCode::INT, val);
-    return 0;
 }
 
 /*==========================================
  * マップ指定ユーザー数所得
  *------------------------------------------
  */
-int buildin_getmapusers (struct script_state *st)
+void builtin_getmapusers (ScriptState *st)
 {
     int  m;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     if ((m = map_mapname2mapid (str)) < 0)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
     push_val (st->stack, ScriptCode::INT, map[m].users);
-    return 0;
 }
 
 /*==========================================
@@ -4684,23 +4366,21 @@ int buildin_getmapusers (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_getareausers_sub (struct block_list *bl, va_list ap)
+void builtin_getareausers_sub (struct block_list *bl, va_list ap)
 {
     int *users = va_arg (ap, int *);
     (*users)++;
-    return 0;
 }
 
 static
-int buildin_getareausers_living_sub (struct block_list *bl, va_list ap)
+void builtin_getareausers_living_sub (struct block_list *bl, va_list ap)
 {
     int *users = va_arg (ap, int *);
     if (!pc_isdead((struct map_session_data *)bl))
         (*users)++;
-    return 0;
 }
 
-int buildin_getareausers (struct script_state *st)
+void builtin_getareausers (ScriptState *st)
 {
     int  m, x0, y0, x1, y1, users = 0;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -4717,12 +4397,11 @@ int buildin_getareausers (struct script_state *st)
     if ((m = map_mapname2mapid (str)) < 0)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
-    map_foreachinarea (living ? buildin_getareausers_living_sub: buildin_getareausers_sub,
+    map_foreachinarea (living ? builtin_getareausers_living_sub: builtin_getareausers_sub,
                        m, x0, y0, x1, y1, BL_PC, &users);
     push_val (st->stack, ScriptCode::INT, users);
-    return 0;
 }
 
 /*==========================================
@@ -4730,7 +4409,7 @@ int buildin_getareausers (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_getareadropitem_sub (struct block_list *bl, va_list ap)
+void builtin_getareadropitem_sub (struct block_list *bl, va_list ap)
 {
     int  item = va_arg (ap, int);
     int *amount = va_arg (ap, int *);
@@ -4739,11 +4418,10 @@ int buildin_getareadropitem_sub (struct block_list *bl, va_list ap)
     if (drop->item_data.nameid == item)
         (*amount) += drop->item_data.amount;
 
-    return 0;
 }
 
 static
-int buildin_getareadropitem_sub_anddelete (struct block_list *bl, va_list ap)
+void builtin_getareadropitem_sub_anddelete (struct block_list *bl, va_list ap)
 {
     int  item = va_arg (ap, int);
     int *amount = va_arg (ap, int *);
@@ -4754,10 +4432,9 @@ int buildin_getareadropitem_sub_anddelete (struct block_list *bl, va_list ap)
         clif_clearflooritem(drop, 0);
         map_delobject(drop->bl.id, drop->bl.type);
     }
-    return 0;
 }
 
-int buildin_getareadropitem (struct script_state *st)
+void builtin_getareadropitem (ScriptState *st)
 {
     int  m, x0, y0, x1, y1, item, amount = 0, delitems = 0;
     struct script_data *data;
@@ -4787,49 +4464,46 @@ int buildin_getareadropitem (struct script_state *st)
     if ((m = map_mapname2mapid (str)) < 0)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
     if (delitems)
-        map_foreachinarea (buildin_getareadropitem_sub_anddelete,
+        map_foreachinarea (builtin_getareadropitem_sub_anddelete,
                            m, x0, y0, x1, y1, BL_ITEM, item, &amount);
     else
-        map_foreachinarea (buildin_getareadropitem_sub,
+        map_foreachinarea (builtin_getareadropitem_sub,
                            m, x0, y0, x1, y1, BL_ITEM, item, &amount);
 
     push_val (st->stack, ScriptCode::INT, amount);
-    return 0;
 }
 
 /*==========================================
  * NPCの有効化
  *------------------------------------------
  */
-int buildin_enablenpc (struct script_state *st)
+void builtin_enablenpc (ScriptState *st)
 {
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     npc_enable (str, 1);
-    return 0;
 }
 
 /*==========================================
  * NPCの無効化
  *------------------------------------------
  */
-int buildin_disablenpc (struct script_state *st)
+void builtin_disablenpc (ScriptState *st)
 {
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     npc_enable (str, 0);
-    return 0;
 }
 
-int buildin_enablearena (struct script_state *st)   // Added by RoVeRT
+void builtin_enablearena (ScriptState *st)   // Added by RoVeRT
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl (st->oid);
     struct chat_data *cd;
 
     if (nd == NULL
         || (cd = (struct chat_data *) map_id2bl (nd->chat_id)) == NULL)
-        return 0;
+        return;
 
     npc_enable (nd->name, 1);
     nd->arenaflag = 1;
@@ -4837,44 +4511,40 @@ int buildin_enablearena (struct script_state *st)   // Added by RoVeRT
     if (cd->users >= cd->trigger && cd->npc_event[0])
         npc_timer_event (cd->npc_event);
 
-    return 0;
 }
 
-int buildin_disablearena (struct script_state *st)  // Added by RoVeRT
+void builtin_disablearena (ScriptState *st)  // Added by RoVeRT
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl (st->oid);
     nd->arenaflag = 0;
 
-    return 0;
 }
 
 /*==========================================
  * 隠れているNPCの表示
  *------------------------------------------
  */
-int buildin_hideoffnpc (struct script_state *st)
+void builtin_hideoffnpc (ScriptState *st)
 {
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     npc_enable (str, 2);
-    return 0;
 }
 
 /*==========================================
  * NPCをハイディング
  *------------------------------------------
  */
-int buildin_hideonnpc (struct script_state *st)
+void builtin_hideonnpc (ScriptState *st)
 {
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     npc_enable (str, 4);
-    return 0;
 }
 
 /*==========================================
  * 状態異常にかかる
  *------------------------------------------
  */
-int buildin_sc_start (struct script_state *st)
+void builtin_sc_start (ScriptState *st)
 {
     struct block_list *bl;
     int  type, tick, val1;
@@ -4890,14 +4560,13 @@ int buildin_sc_start (struct script_state *st)
         && ((struct map_session_data *) bl)->state.potionpitcher_flag)
         bl = map_id2bl (((struct map_session_data *) bl)->skilltarget);
     skill_status_change_start (bl, type, val1, 0, 0, 0, tick, 0);
-    return 0;
 }
 
 /*==========================================
  * 状態異常にかかる(確率指定)
  *------------------------------------------
  */
-int buildin_sc_start2 (struct script_state *st)
+void builtin_sc_start2 (ScriptState *st)
 {
     struct block_list *bl;
     int  type, tick, val1, per;
@@ -4915,14 +4584,13 @@ int buildin_sc_start2 (struct script_state *st)
         bl = map_id2bl (((struct map_session_data *) bl)->skilltarget);
     if (MRAND (10000) < per)
         skill_status_change_start (bl, type, val1, 0, 0, 0, tick, 0);
-    return 0;
 }
 
 /*==========================================
  * 状態異常が直る
  *------------------------------------------
  */
-int buildin_sc_end (struct script_state *st)
+void builtin_sc_end (ScriptState *st)
 {
     struct block_list *bl;
     int  type;
@@ -4934,10 +4602,9 @@ int buildin_sc_end (struct script_state *st)
     skill_status_change_end (bl, type, -1);
 //  if(battle_config.etc_log)
 //      printf("sc_end : %d %d\n",st->rid,type);
-    return 0;
 }
 
-int buildin_sc_check (struct script_state *st)
+void builtin_sc_check (ScriptState *st)
 {
     struct block_list *bl;
     int  type;
@@ -4949,14 +4616,13 @@ int buildin_sc_check (struct script_state *st)
 
     push_val (st->stack, ScriptCode::INT, skill_status_change_active (bl, type));
 
-    return 0;
 }
 
 /*==========================================
  * 状態異常耐性を計算した確率を返す
  *------------------------------------------
  */
-int buildin_getscrate (struct script_state *st)
+void builtin_getscrate (ScriptState *st)
 {
     struct block_list *bl;
     int  sc_def = 100, sc_def_mdef2, sc_def_vit2, sc_def_int2, sc_def_luk2;
@@ -4988,7 +4654,7 @@ int buildin_getscrate (struct script_state *st)
     rate = rate * sc_def / 100;
     push_val (st->stack, ScriptCode::INT, rate);
 
-    return 0;
+    return;
 
 }
 
@@ -4996,19 +4662,18 @@ int buildin_getscrate (struct script_state *st)
  *
  *------------------------------------------
  */
-int buildin_debugmes (struct script_state *st)
+void builtin_debugmes (ScriptState *st)
 {
     conv_str (st, &(st->stack->stack_data[st->start + 2]));
     printf ("script debug : %d %d : %s\n", st->rid, st->oid,
             st->stack->stack_data[st->start + 2].u.str);
-    return 0;
 }
 
 /*==========================================
  * Added - AppleGirl For Advanced Classes, (Updated for Cleaner Script Purposes)
  *------------------------------------------
  */
-int buildin_resetlvl (struct script_state *st)
+void builtin_resetlvl (ScriptState *st)
 {
     struct map_session_data *sd;
 
@@ -5016,38 +4681,35 @@ int buildin_resetlvl (struct script_state *st)
 
     sd = script_rid2sd (st);
     pc_resetlvl (sd, type);
-    return 0;
 }
 
 /*==========================================
  * ステータスリセット
  *------------------------------------------
  */
-int buildin_resetstatus (struct script_state *st)
+void builtin_resetstatus (ScriptState *st)
 {
     struct map_session_data *sd;
     sd = script_rid2sd (st);
     pc_resetstate (sd);
-    return 0;
 }
 
 /*==========================================
  * スキルリセット
  *------------------------------------------
  */
-int buildin_resetskill (struct script_state *st)
+void builtin_resetskill (ScriptState *st)
 {
     struct map_session_data *sd;
     sd = script_rid2sd (st);
     pc_resetskill (sd);
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int buildin_changebase (struct script_state *st)
+void builtin_changebase (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     int  vclass;
@@ -5059,11 +4721,11 @@ int buildin_changebase (struct script_state *st)
         sd = script_rid2sd (st);
 
     if (sd == NULL)
-        return 0;
+        return;
 
     vclass = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     if (vclass == 22 && !battle_config.wedding_modifydisplay)
-        return 0;
+        return;
 
 //  if(vclass==22) {
 //      pc_unequipitem(sd,sd->equip_index[9],0);    // 装備外
@@ -5071,14 +4733,13 @@ int buildin_changebase (struct script_state *st)
 
     sd->view_class = vclass;
 
-    return 0;
 }
 
 /*==========================================
  * 性別変換
  *------------------------------------------
  */
-int buildin_changesex (struct script_state *st)
+void builtin_changesex (ScriptState *st)
 {
     struct map_session_data *sd = NULL;
     sd = script_rid2sd (st);
@@ -5099,14 +4760,13 @@ int buildin_changesex (struct script_state *st)
     }
     chrif_char_ask_name (-1, sd->status.name, 5, 0, 0, 0, 0, 0, 0); // type: 5 - changesex
     chrif_save (sd);
-    return 0;
 }
 
 /*==========================================
  * npcチャット作成
  *------------------------------------------
  */
-int buildin_waitingroom (struct script_state *st)
+void builtin_waitingroom (ScriptState *st)
 {
     const char *name, *ev = "";
     int  limit, trigger = 0, pub = 1;
@@ -5140,14 +4800,13 @@ int buildin_waitingroom (struct script_state *st)
     }
     chat_createnpcchat ((struct npc_data *) map_id2bl (st->oid),
                         limit, pub, trigger, name, strlen (name) + 1, ev);
-    return 0;
 }
 
 /*==========================================
  * npcチャット削除
  *------------------------------------------
  */
-int buildin_delwaitingroom (struct script_state *st)
+void builtin_delwaitingroom (ScriptState *st)
 {
     struct npc_data *nd;
     if (st->end > st->start + 2)
@@ -5156,7 +4815,6 @@ int buildin_delwaitingroom (struct script_state *st)
     else
         nd = (struct npc_data *) map_id2bl (st->oid);
     chat_deletenpcchat (nd);
-    return 0;
 }
 
 /*==========================================
@@ -5164,7 +4822,7 @@ int buildin_delwaitingroom (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_waitingroomkickall (struct script_state *st)
+void builtin_waitingroomkickall (ScriptState *st)
 {
     struct npc_data *nd;
     struct chat_data *cd;
@@ -5177,16 +4835,15 @@ int buildin_waitingroomkickall (struct script_state *st)
 
     if (nd == NULL
         || (cd = (struct chat_data *) map_id2bl (nd->chat_id)) == NULL)
-        return 0;
+        return;
     chat_npckickall (cd);
-    return 0;
 }
 
 /*==========================================
  * npcチャットイベント有効化
  *------------------------------------------
  */
-int buildin_enablewaitingroomevent (struct script_state *st)
+void builtin_enablewaitingroomevent (ScriptState *st)
 {
     struct npc_data *nd;
     struct chat_data *cd;
@@ -5199,16 +4856,15 @@ int buildin_enablewaitingroomevent (struct script_state *st)
 
     if (nd == NULL
         || (cd = (struct chat_data *) map_id2bl (nd->chat_id)) == NULL)
-        return 0;
+        return;
     chat_enableevent (cd);
-    return 0;
 }
 
 /*==========================================
  * npcチャットイベント無効化
  *------------------------------------------
  */
-int buildin_disablewaitingroomevent (struct script_state *st)
+void builtin_disablewaitingroomevent (ScriptState *st)
 {
     struct npc_data *nd;
     struct chat_data *cd;
@@ -5221,16 +4877,15 @@ int buildin_disablewaitingroomevent (struct script_state *st)
 
     if (nd == NULL
         || (cd = (struct chat_data *) map_id2bl (nd->chat_id)) == NULL)
-        return 0;
+        return;
     chat_disableevent (cd);
-    return 0;
 }
 
 /*==========================================
  * npcチャット状態所得
  *------------------------------------------
  */
-int buildin_getwaitingroomstate (struct script_state *st)
+void builtin_getwaitingroomstate (ScriptState *st)
 {
     struct npc_data *nd;
     struct chat_data *cd;
@@ -5246,7 +4901,7 @@ int buildin_getwaitingroomstate (struct script_state *st)
         || (cd = (struct chat_data *) map_id2bl (nd->chat_id)) == NULL)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
 
     switch (type)
@@ -5272,23 +4927,22 @@ int buildin_getwaitingroomstate (struct script_state *st)
 
         case 4:
             push_str (st->stack, ScriptCode::CONSTSTR, cd->title);
-            return 0;
+            return;
         case 5:
             push_str (st->stack, ScriptCode::CONSTSTR, cd->pass);
-            return 0;
+            return;
         case 16:
             push_str (st->stack, ScriptCode::CONSTSTR, cd->npc_event);
-            return 0;
+            return;
     }
     push_val (st->stack, ScriptCode::INT, val);
-    return 0;
 }
 
 /*==========================================
  * チャットメンバー(規定人数)ワープ
  *------------------------------------------
  */
-int buildin_warpwaitingpc (struct script_state *st)
+void builtin_warpwaitingpc (ScriptState *st)
 {
     int  x, y, i, n;
     struct npc_data *nd = (struct npc_data *) map_id2bl (st->oid);
@@ -5296,7 +4950,7 @@ int buildin_warpwaitingpc (struct script_state *st)
 
     if (nd == NULL
         || (cd = (struct chat_data *) map_id2bl (nd->chat_id)) == NULL)
-        return 0;
+        return;
 
     n = cd->trigger & 0x7f;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -5317,7 +4971,7 @@ int buildin_warpwaitingpc (struct script_state *st)
         else if (strcmp (str, "SavePoint") == 0)
         {
             if (map[sd->bl.m].flag.noteleport)  // テレポ禁止
-                return 0;
+                return;
 
             pc_setpos (sd, sd->status.save_point.map,
                        sd->status.save_point.x, sd->status.save_point.y, 3);
@@ -5326,41 +4980,37 @@ int buildin_warpwaitingpc (struct script_state *st)
             pc_setpos (sd, str, x, y, 0);
     }
     mapreg_setreg (add_str ("$@warpwaitingpcnum"), n);
-    return 0;
 }
 
 /*==========================================
  * RIDのアタッチ
  *------------------------------------------
  */
-int buildin_attachrid (struct script_state *st)
+void builtin_attachrid (ScriptState *st)
 {
     st->rid = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     push_val (st->stack, ScriptCode::INT, (map_id2sd (st->rid) != NULL));
-    return 0;
 }
 
 /*==========================================
  * RIDのデタッチ
  *------------------------------------------
  */
-int buildin_detachrid (struct script_state *st)
+void builtin_detachrid (ScriptState *st)
 {
     st->rid = 0;
-    return 0;
 }
 
 /*==========================================
  * 存在チェック
  *------------------------------------------
  */
-int buildin_isloggedin (struct script_state *st)
+void builtin_isloggedin (ScriptState *st)
 {
     push_val (st->stack, ScriptCode::INT,
               map_id2sd (conv_num
                          (st,
                           &(st->stack->stack_data[st->start + 2]))) != NULL);
-    return 0;
 }
 
 /*==========================================
@@ -5375,7 +5025,7 @@ enum
     MF_SNOW, MF_FOG, MF_SAKURA, MF_LEAVES, MF_RAIN
 };
 
-int buildin_setmapflagnosave (struct script_state *st)
+void builtin_setmapflagnosave (ScriptState *st)
 {
     int  m, x, y;
 
@@ -5392,10 +5042,9 @@ int buildin_setmapflagnosave (struct script_state *st)
         map[m].save.y = y;
     }
 
-    return 0;
 }
 
-int buildin_setmapflag (struct script_state *st)
+void builtin_setmapflag (ScriptState *st)
 {
     int  m, i;
 
@@ -5463,10 +5112,9 @@ int buildin_setmapflag (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
-int buildin_removemapflag (struct script_state *st)
+void builtin_removemapflag (ScriptState *st)
 {
     int  m, i;
 
@@ -5535,10 +5183,9 @@ int buildin_removemapflag (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
-int buildin_pvpon (struct script_state *st)
+void builtin_pvpon (ScriptState *st)
 {
     int  m, i;
     struct map_session_data *pl_sd = NULL;
@@ -5551,7 +5198,7 @@ int buildin_pvpon (struct script_state *st)
         clif_send0199 (m, 1);
 
         if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
-            return 0;
+            return;
 
         for (i = 0; i < fd_max; i++)
         {                       //人数分ループ
@@ -5571,10 +5218,9 @@ int buildin_pvpon (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
-int buildin_pvpoff (struct script_state *st)
+void builtin_pvpoff (ScriptState *st)
 {
     int  m, i;
     struct map_session_data *pl_sd = NULL;
@@ -5587,7 +5233,7 @@ int buildin_pvpoff (struct script_state *st)
         clif_send0199 (m, 0);
 
         if (battle_config.pk_mode)  // disable ranking options if pk_mode is on [Valaris]
-            return 0;
+            return;
 
         for (i = 0; i < fd_max; i++)
         {                       //人数分ループ
@@ -5608,10 +5254,9 @@ int buildin_pvpoff (struct script_state *st)
         }
     }
 
-    return 0;
 }
 
-int buildin_gvgon (struct script_state *st)
+void builtin_gvgon (ScriptState *st)
 {
     int  m;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -5622,10 +5267,9 @@ int buildin_gvgon (struct script_state *st)
         clif_send0199 (m, 3);
     }
 
-    return 0;
 }
 
-int buildin_gvgoff (struct script_state *st)
+void builtin_gvgoff (ScriptState *st)
 {
     int  m;
     const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -5636,7 +5280,6 @@ int buildin_gvgoff (struct script_state *st)
         clif_send0199 (m, 0);
     }
 
-    return 0;
 }
 
 /*==========================================
@@ -5644,18 +5287,17 @@ int buildin_gvgoff (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_emotion (struct script_state *st)
+void builtin_emotion (ScriptState *st)
 {
     int  type;
     type = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     if (type < 0 || type > 100)
-        return 0;
+        return;
     clif_emotion (map_id2bl (st->oid), type);
-    return 0;
 }
 
 static
-int buildin_maprespawnguildid_sub (struct block_list *bl, va_list ap)
+void builtin_maprespawnguildid_sub (struct block_list *bl, va_list ap)
 {
     int  g_id = va_arg (ap, int);
     int  flag = va_arg (ap, int);
@@ -5683,10 +5325,9 @@ int buildin_maprespawnguildid_sub (struct block_list *bl, va_list ap)
         if (md->mob_class < 1285 || md->mob_class > 1288)
             mob_delete (md);
     }
-    return 0;
 }
 
-int buildin_maprespawnguildid (struct script_state *st)
+void builtin_maprespawnguildid (ScriptState *st)
 {
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     int  g_id = conv_num (st, &(st->stack->stack_data[st->start + 3]));
@@ -5695,27 +5336,24 @@ int buildin_maprespawnguildid (struct script_state *st)
     int  m = map_mapname2mapid (mapname);
 
     if (m)
-        map_foreachinarea (buildin_maprespawnguildid_sub, m, 0, 0,
+        map_foreachinarea (builtin_maprespawnguildid_sub, m, 0, 0,
                            map[m].xs - 1, map[m].ys - 1, BL_NUL, g_id, flag);
-    return 0;
 }
 
-int buildin_agitstart (struct script_state *st)
+void builtin_agitstart (ScriptState *st)
 {
     if (agit_flag == 1)
-        return 1;               // Agit already Start.
+        return;               // Agit already Start.
     agit_flag = 1;
     guild_agit_start ();
-    return 0;
 }
 
-int buildin_agitend (struct script_state *st)
+void builtin_agitend (ScriptState *st)
 {
     if (agit_flag == 0)
-        return 1;               // Agit already End.
+        return;               // Agit already End.
     agit_flag = 0;
     guild_agit_end ();
-    return 0;
 }
 
 /*==========================================
@@ -5724,7 +5362,7 @@ int buildin_agitend (struct script_state *st)
  * if(agitcheck(0) == 1) goto agit;
  *------------------------------------------
  */
-int buildin_agitcheck (struct script_state *st)
+void builtin_agitcheck (ScriptState *st)
 {
     struct map_session_data *sd;
     int  cond;
@@ -5746,22 +5384,20 @@ int buildin_agitcheck (struct script_state *st)
         if (agit_flag == 0)
             pc_setreg (sd, add_str ("@agit_flag"), 0);
     }
-    return 0;
 }
 
-int buildin_flagemblem (struct script_state *st)
+void builtin_flagemblem (ScriptState *st)
 {
     int  g_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
 
     if (g_id < 0)
-        return 0;
+        return;
 
 //  printf("Script.c: [FlagEmblem] GuildID=%d, Emblem=%d.\n", g->guild_id, g->emblem_id);
     ((struct npc_data *) map_id2bl (st->oid))->u.scr.guild_id = g_id;
-    return 1;
 }
 
-int buildin_getcastlename (struct script_state *st)
+void builtin_getcastlename (ScriptState *st)
 {
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     struct guild_castle *gc;
@@ -5783,10 +5419,9 @@ int buildin_getcastlename (struct script_state *st)
         push_str (st->stack, ScriptCode::STR, buf);
     else
         push_str (st->stack, ScriptCode::CONSTSTR, "");
-    return 0;
 }
 
-int buildin_getcastledata (struct script_state *st)
+void builtin_getcastledata (ScriptState *st)
 {
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     int  index = conv_num (st, &(st->stack->stack_data[st->start + 3]));
@@ -5898,15 +5533,14 @@ int buildin_getcastledata (struct script_state *st)
                         push_val (st->stack, ScriptCode::INT, 0);
                         break;
                 }
-                return 0;
+                return;
             }
         }
     }
     push_val (st->stack, ScriptCode::INT, 0);
-    return 0;
 }
 
-int buildin_setcastledata (struct script_state *st)
+void builtin_setcastledata (ScriptState *st)
 {
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     int  index = conv_num (st, &(st->stack->stack_data[st->start + 3]));
@@ -5999,21 +5633,20 @@ int buildin_setcastledata (struct script_state *st)
                         gc->Ghp7 = value;
                         break;
                     default:
-                        return 0;
+                        return;
                 }
                 guild_castledatasave (gc->castle_id, index, value);
-                return 0;
+                return;
             }
         }
     }
-    return 0;
 }
 
 /* =====================================================================
  * ギルド情報を要求する
  * ---------------------------------------------------------------------
  */
-int buildin_requestguildinfo (struct script_state *st)
+void builtin_requestguildinfo (ScriptState *st)
 {
     int  guild_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     const char *event = NULL;
@@ -6023,14 +5656,13 @@ int buildin_requestguildinfo (struct script_state *st)
 
     if (guild_id > 0)
         guild_npc_request_info (guild_id, event);
-    return 0;
 }
 
 /* =====================================================================
  * カードの数を得る
  * ---------------------------------------------------------------------
  */
-int buildin_getequipcardcnt (struct script_state *st)
+void builtin_getequipcardcnt (ScriptState *st)
 {
     int  i, num;
     struct map_session_data *sd;
@@ -6042,7 +5674,7 @@ int buildin_getequipcardcnt (struct script_state *st)
     if (sd->status.inventory[i].card[0] == 0x00ff)
     {                           // 製造武器はカードなし
         push_val (st->stack, ScriptCode::INT, 0);
-        return 0;
+        return;
     }
     do
     {
@@ -6051,19 +5683,18 @@ int buildin_getequipcardcnt (struct script_state *st)
         {
 
             push_val (st->stack, ScriptCode::INT, (c));
-            return 0;
+            return;
         }
     }
     while (c--);
     push_val (st->stack, ScriptCode::INT, 0);
-    return 0;
 }
 
 /* ================================================================
  * カード取り外し成功
  * ----------------------------------------------------------------
  */
-int buildin_successremovecards (struct script_state *st)
+void builtin_successremovecards (ScriptState *st)
 {
     int  i, num, cardflag = 0, flag;
     struct map_session_data *sd;
@@ -6075,7 +5706,7 @@ int buildin_successremovecards (struct script_state *st)
     i = pc_checkequip (sd, equip[num - 1]);
     if (sd->status.inventory[i].card[0] == 0x00ff)
     {                           // 製造武器は処理しない
-        return 0;
+        return;
     }
     do
     {
@@ -6118,9 +5749,8 @@ int buildin_successremovecards (struct script_state *st)
                               NULL, NULL, NULL, 0);
         }
         clif_misceffect (&sd->bl, 3);
-        return 0;
+        return;
     }
-    return 0;
 }
 
 /* ================================================================
@@ -6128,7 +5758,7 @@ int buildin_successremovecards (struct script_state *st)
  * type=0: 両方損失、1:カード損失、2:武具損失、3:損失無し
  * ----------------------------------------------------------------
  */
-int buildin_failedremovecards (struct script_state *st)
+void builtin_failedremovecards (ScriptState *st)
 {
     int  i, num, cardflag = 0, flag, typefail;
     struct map_session_data *sd;
@@ -6141,7 +5771,7 @@ int buildin_failedremovecards (struct script_state *st)
     i = pc_checkequip (sd, equip[num - 1]);
     if (sd->status.inventory[i].card[0] == 0x00ff)
     {                           // 製造武器は処理しない
-        return 0;
+        return;
     }
     do
     {
@@ -6178,7 +5808,7 @@ int buildin_failedremovecards (struct script_state *st)
         {                       // 武具損失
             pc_delitem (sd, i, 1, 0);
             clif_misceffect (&sd->bl, 2);
-            return 0;
+            return;
         }
         if (typefail == 1)
         {                       // カードのみ損失（武具を返す）
@@ -6198,12 +5828,11 @@ int buildin_failedremovecards (struct script_state *st)
             }
         }
         clif_misceffect (&sd->bl, 2);
-        return 0;
+        return;
     }
-    return 0;
 }
 
-int buildin_mapwarp (struct script_state *st)   // Added by RoVeRT
+void builtin_mapwarp (ScriptState *st)   // Added by RoVeRT
 {
     int  x, y, m;
     int  x0, y0, x1, y1;
@@ -6218,54 +5847,49 @@ int buildin_mapwarp (struct script_state *st)   // Added by RoVeRT
     y = conv_num (st, &(st->stack->stack_data[st->start + 5]));
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
+        return;
 
-    map_foreachinarea (buildin_areawarp_sub,
+    map_foreachinarea (builtin_areawarp_sub,
                        m, x0, y0, x1, y1, BL_PC, str, x, y);
-    return 0;
 }
 
-int buildin_cmdothernpc (struct script_state *st)   // Added by RoVeRT
+void builtin_cmdothernpc (ScriptState *st)   // Added by RoVeRT
 {
     const char *npc = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     const char *command = conv_str (st, &(st->stack->stack_data[st->start + 3]));
 
     npc_command (map_id2sd (st->rid), npc, command);
-    return 0;
 }
 
-int buildin_inittimer (struct script_state *st) // Added by RoVeRT
+void builtin_inittimer (ScriptState *st) // Added by RoVeRT
 {
 //  struct npc_data *nd=(struct npc_data*)map_id2bl(st->oid);
 
 //  nd->lastaction=nd->timer=gettick();
     npc_do_ontimer (st->oid, map_id2sd (st->rid), 1);
 
-    return 0;
 }
 
-int buildin_stoptimer (struct script_state *st) // Added by RoVeRT
+void builtin_stoptimer (ScriptState *st) // Added by RoVeRT
 {
 //  struct npc_data *nd=(struct npc_data*)map_id2bl(st->oid);
 
 //  nd->lastaction=nd->timer=-1;
     npc_do_ontimer (st->oid, map_id2sd (st->rid), 0);
 
-    return 0;
 }
 
 static
-int buildin_mobcount_sub (struct block_list *bl, va_list ap)    // Added by RoVeRT
+void builtin_mobcount_sub (struct block_list *bl, va_list ap)    // Added by RoVeRT
 {
     char *event = va_arg (ap, char *);
     int *c = va_arg (ap, int *);
 
     if (strcmp (event, ((struct mob_data *) bl)->npc_event) == 0)
         (*c)++;
-    return 0;
 }
 
-int buildin_mobcount (struct script_state *st)  // Added by RoVeRT
+void builtin_mobcount (ScriptState *st)  // Added by RoVeRT
 {
     int  m, c = 0;
     const char *mapname = conv_str (st, &(st->stack->stack_data[st->start + 2]));
@@ -6274,17 +5898,16 @@ int buildin_mobcount (struct script_state *st)  // Added by RoVeRT
     if ((m = map_mapname2mapid (mapname)) < 0)
     {
         push_val (st->stack, ScriptCode::INT, -1);
-        return 0;
+        return;
     }
-    map_foreachinarea (buildin_mobcount_sub,
+    map_foreachinarea (builtin_mobcount_sub,
                        m, 0, 0, map[m].xs, map[m].ys, BL_MOB, event, &c);
 
     push_val (st->stack, ScriptCode::INT, (c - 1));
 
-    return 0;
 }
 
-int buildin_marriage (struct script_state *st)
+void builtin_marriage (ScriptState *st)
 {
     const char *partner = conv_str (st, &(st->stack->stack_data[st->start + 2]));
     struct map_session_data *sd = script_rid2sd (st);
@@ -6293,23 +5916,21 @@ int buildin_marriage (struct script_state *st)
     if (sd == NULL || p_sd == NULL || pc_marriage (sd, p_sd) < 0)
     {
         push_val (st->stack, ScriptCode::INT, 0);
-        return 0;
+        return;
     }
     push_val (st->stack, ScriptCode::INT, 1);
-    return 0;
 }
 
-int buildin_wedding_effect (struct script_state *st)
+void builtin_wedding_effect (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     if (sd == NULL)
-        return 0;
+        return;
     clif_wedding_effect (&sd->bl);
-    return 0;
 }
 
-int buildin_divorce (struct script_state *st)
+void builtin_divorce (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
@@ -6320,39 +5941,38 @@ int buildin_divorce (struct script_state *st)
     if (sd == NULL || pc_divorce (sd) < 0)
     {
         push_val (st->stack, ScriptCode::INT, 0);
-        return 0;
+        return;
     }
 
     push_val (st->stack, ScriptCode::INT, 1);
-    return 0;
 }
 
 /*================================================
  * Script for Displaying MOB Information [Valaris]
  *------------------------------------------------
  */
-int buildin_strmobinfo (struct script_state *st)
+void builtin_strmobinfo (ScriptState *st)
 {
 
     int  num = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     int  mob_class = conv_num (st, &(st->stack->stack_data[st->start + 3]));
 
     if (num <= 0 || num >= 8 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)
-        return 0;
+        return;
 
     if (num == 1)
     {
         char *buf;
         buf = mob_db[mob_class].name;
         push_str (st->stack, ScriptCode::STR, buf);
-        return 0;
+        return;
     }
     else if (num == 2)
     {
         char *buf;
         buf = mob_db[mob_class].jname;
         push_str (st->stack, ScriptCode::STR, buf);
-        return 0;
+        return;
     }
     else if (num == 3)
         push_val (st->stack, ScriptCode::INT, mob_db[mob_class].lv);
@@ -6364,14 +5984,13 @@ int buildin_strmobinfo (struct script_state *st)
         push_val (st->stack, ScriptCode::INT, mob_db[mob_class].base_exp);
     else if (num == 7)
         push_val (st->stack, ScriptCode::INT, mob_db[mob_class].job_exp);
-    return 0;
 }
 
 /*==========================================
  * Summon guardians [Valaris]
  *------------------------------------------
  */
-int buildin_guardian (struct script_state *st)
+void builtin_guardian (ScriptState *st)
 {
     int  mob_class = 0, amount = 1, x = 0, y = 0, guardian = 0;
     const char *event = "";
@@ -6389,14 +6008,13 @@ int buildin_guardian (struct script_state *st)
     mob_spawn_guardian (map_id2sd (st->rid), mapname, x, y, str, mob_class, amount,
                         event, guardian);
 
-    return 0;
 }
 
 /*================================================
  * Script for Displaying Guardian Info [Valaris]
  *------------------------------------------------
  */
-int buildin_guardianinfo (struct script_state *st)
+void builtin_guardianinfo (ScriptState *st)
 {
     int  guardian = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     struct map_session_data *sd = script_rid2sd (st);
@@ -6421,14 +6039,13 @@ int buildin_guardianinfo (struct script_state *st)
     else
         push_val (st->stack, ScriptCode::INT, -1);
 
-    return 0;
 }
 
 /*==========================================
  * IDからItem名
  *------------------------------------------
  */
-int buildin_getitemname (struct script_state *st)
+void builtin_getitemname (ScriptState *st)
 {
     struct item_data *i_data;
     char *item_name;
@@ -6455,10 +6072,9 @@ int buildin_getitemname (struct script_state *st)
 
     push_str (st->stack, ScriptCode::STR, item_name);
 
-    return 0;
 }
 
-int buildin_getspellinvocation (struct script_state *st)
+void builtin_getspellinvocation (ScriptState *st)
 {
     const char *name = conv_str (st, &(st->stack->stack_data[st->start + 2]));
 
@@ -6467,10 +6083,9 @@ int buildin_getspellinvocation (struct script_state *st)
         invocation = "...";
 
     push_str (st->stack, ScriptCode::STR, strdup (invocation));
-    return 0;
 }
 
-int buildin_getanchorinvocation (struct script_state *st)
+void builtin_getanchorinvocation (ScriptState *st)
 {
     const char *name = conv_str (st, &(st->stack->stack_data[st->start + 2]));
 
@@ -6479,27 +6094,25 @@ int buildin_getanchorinvocation (struct script_state *st)
         invocation = "...";
 
     push_str (st->stack, ScriptCode::STR, strdup (invocation));
-    return 0;
 }
 
-int buildin_getpartnerid (struct script_state *st)
+void builtin_getpartnerid (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     push_val (st->stack, ScriptCode::INT, sd->status.partner_id);
-    return 0;
 }
 
 /*==========================================
  * PCの所持品情報読み取り
  *------------------------------------------
  */
-int buildin_getinventorylist (struct script_state *st)
+void builtin_getinventorylist (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  i, j = 0;
     if (!sd)
-        return 0;
+        return;
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].nameid > 0
@@ -6529,15 +6142,14 @@ int buildin_getinventorylist (struct script_state *st)
         }
     }
     pc_setreg (sd, add_str ("@inventorylist_count"), j);
-    return 0;
 }
 
-int buildin_getskilllist (struct script_state *st)
+void builtin_getskilllist (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  i, j = 0;
     if (!sd)
-        return 0;
+        return;
     for (i = 0; i < MAX_SKILL; i++)
     {
         if (sd->status.skill[i].id > 0 && sd->status.skill[i].lv > 0)
@@ -6552,10 +6164,9 @@ int buildin_getskilllist (struct script_state *st)
         }
     }
     pc_setreg (sd, add_str ("@skilllist_count"), j);
-    return 0;
 }
 
-int buildin_get_activated_pool_skills (struct script_state *st)
+void builtin_get_activated_pool_skills (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  pool_skills[MAX_SKILL_POOL];
@@ -6563,7 +6174,7 @@ int buildin_get_activated_pool_skills (struct script_state *st)
     int  i, count = 0;
 
     if (!sd)
-        return 0;
+        return;
 
     for (i = 0; i < skill_pool_size; i++)
     {
@@ -6584,19 +6195,18 @@ int buildin_get_activated_pool_skills (struct script_state *st)
     }
     pc_setreg (sd, add_str ("@skilllist_count"), count);
 
-    return 0;
 }
 
 extern int skill_pool_skills[];
 extern int skill_pool_skills_size;
 
-int buildin_get_unactivated_pool_skills (struct script_state *st)
+void builtin_get_unactivated_pool_skills (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  i, count = 0;
 
     if (!sd)
-        return 0;
+        return;
 
     for (i = 0; i < skill_pool_skills_size; i++)
     {
@@ -6617,16 +6227,15 @@ int buildin_get_unactivated_pool_skills (struct script_state *st)
     }
     pc_setreg (sd, add_str ("@skilllist_count"), count);
 
-    return 0;
 }
 
-int buildin_get_pool_skills (struct script_state *st)
+void builtin_get_pool_skills (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  i, count = 0;
 
     if (!sd)
-        return 0;
+        return;
 
     for (i = 0; i < skill_pool_skills_size; i++)
     {
@@ -6647,10 +6256,9 @@ int buildin_get_pool_skills (struct script_state *st)
     }
     pc_setreg (sd, add_str ("@skilllist_count"), count);
 
-    return 0;
 }
 
-int buildin_activate_pool_skill (struct script_state *st)
+void builtin_activate_pool_skill (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  skill_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
@@ -6658,10 +6266,9 @@ int buildin_activate_pool_skill (struct script_state *st)
     skill_pool_activate (sd, skill_id);
     clif_skillinfoblock (sd);
 
-    return 0;
 }
 
-int buildin_deactivate_pool_skill (struct script_state *st)
+void builtin_deactivate_pool_skill (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  skill_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
@@ -6669,31 +6276,28 @@ int buildin_deactivate_pool_skill (struct script_state *st)
     skill_pool_deactivate (sd, skill_id);
     clif_skillinfoblock (sd);
 
-    return 0;
 }
 
-int buildin_check_pool_skill (struct script_state *st)
+void builtin_check_pool_skill (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  skill_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
 
     push_val (st->stack, ScriptCode::INT, skill_pool_is_activated (sd, skill_id));
 
-    return 0;
 }
 
-int buildin_clearitem (struct script_state *st)
+void builtin_clearitem (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  i;
     if (sd == NULL)
-        return 0;
+        return;
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].amount)
             pc_delitem (sd, i, sd->status.inventory[i].amount, 0);
     }
-    return 0;
 }
 
 /*==========================================
@@ -6702,18 +6306,17 @@ int buildin_clearitem (struct script_state *st)
  * typeは通常0なのかな？
  *------------------------------------------
  */
-int buildin_classchange (struct script_state *st)
+void builtin_classchange (ScriptState *st)
 {
     int  npc_class, type;
     struct block_list *bl = map_id2bl (st->oid);
 
     if (bl == NULL)
-        return 0;
+        return;
 
     npc_class = conv_num (st, &(st->stack->stack_data[st->start + 2]));
     type = conv_num (st, &(st->stack->stack_data[st->start + 3]));
     clif_npc_class_change (bl, npc_class, type);
-    return 0;
 }
 
 /*==========================================
@@ -6727,7 +6330,7 @@ int buildin_classchange (struct script_state *st)
  *  the current NPC or invoking PC.
  *------------------------------------------
  */
-int buildin_misceffect (struct script_state *st)
+void builtin_misceffect (ScriptState *st)
 {
     int  type;
     int  id = 0;
@@ -6768,14 +6371,13 @@ int buildin_misceffect (struct script_state *st)
     if (bl)
         clif_misceffect (bl, type);
 
-    return 0;
 }
 
 /*==========================================
  * サウンドエフェクト
  *------------------------------------------
  */
-int buildin_soundeffect (struct script_state *st)
+void builtin_soundeffect (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  type = 0;
@@ -6791,14 +6393,13 @@ int buildin_soundeffect (struct script_state *st)
             clif_soundeffect (sd, &sd->bl, name, type);
         }
     }
-    return 0;
 }
 
 /*==========================================
  * NPC skill effects [Valaris]
  *------------------------------------------
  */
-int buildin_npcskilleffect (struct script_state *st)
+void builtin_npcskilleffect (ScriptState *st)
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl (st->oid);
 
@@ -6809,41 +6410,38 @@ int buildin_npcskilleffect (struct script_state *st)
 
     clif_skill_poseffect (&nd->bl, skillid, skilllv, x, y, gettick ());
 
-    return 0;
 }
 
 /*==========================================
  * Special effects [Valaris]
  *------------------------------------------
  */
-int buildin_specialeffect (struct script_state *st)
+void builtin_specialeffect (ScriptState *st)
 {
     struct block_list *bl = map_id2bl (st->oid);
 
     if (bl == NULL)
-        return 0;
+        return;
 
     clif_specialeffect (bl,
                         conv_num (st,
                                   &(st->stack->stack_data[st->start + 2])),
                         0);
 
-    return 0;
 }
 
-int buildin_specialeffect2 (struct script_state *st)
+void builtin_specialeffect2 (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     if (sd == NULL)
-        return 0;
+        return;
 
     clif_specialeffect (&sd->bl,
                         conv_num (st,
                                   &(st->stack->stack_data[st->start + 2])),
                         0);
 
-    return 0;
 }
 
 /*==========================================
@@ -6851,20 +6449,19 @@ int buildin_specialeffect2 (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_nude (struct script_state *st)
+void builtin_nude (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     int  i;
 
     if (sd == NULL)
-        return 0;
+        return;
 
     for (i = 0; i < 11; i++)
         if (sd->equip_index[i] >= 0)
             pc_unequipitem (sd, sd->equip_index[i], i);
     pc_calcstatus (sd, 0);
 
-    return 0;
 }
 
 /*==========================================
@@ -6872,11 +6469,11 @@ int buildin_nude (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_unequip_by_id (struct script_state *st)
+void builtin_unequip_by_id (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     if (sd == NULL)
-        return 0;
+        return;
 
     int  slot_id = conv_num (st, &(st->stack->stack_data[st->start + 2]));
 
@@ -6885,7 +6482,6 @@ int buildin_unequip_by_id (struct script_state *st)
 
     pc_calcstatus (sd, 0);
 
-    return 0;
 }
 
 /*==========================================
@@ -6895,7 +6491,7 @@ int buildin_unequip_by_id (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_gmcommand (struct script_state *st)
+void builtin_gmcommand (ScriptState *st)
 {
     struct map_session_data *sd;
 
@@ -6904,7 +6500,6 @@ int buildin_gmcommand (struct script_state *st)
 
     is_atcommand (sd->fd, sd, cmd, 99);
 
-    return 0;
 }
 
 /*==========================================
@@ -6912,7 +6507,7 @@ int buildin_gmcommand (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_movenpc (struct script_state *st)
+void builtin_movenpc (ScriptState *st)
 {
     struct map_session_data *sd;
     int  x, y;
@@ -6924,7 +6519,6 @@ int buildin_movenpc (struct script_state *st)
     y = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     const char *npc = conv_str (st, &(st->stack->stack_data[st->start + 5]));
 
-    return 0;
 }
 
 /*==========================================
@@ -6932,7 +6526,7 @@ int buildin_movenpc (struct script_state *st)
  * Move NPC to a new position on the same map.
  *------------------------------------------
  */
-int buildin_npcwarp (struct script_state *st)
+void builtin_npcwarp (ScriptState *st)
 {
     int  x, y;
     struct npc_data *nd = NULL;
@@ -6943,7 +6537,7 @@ int buildin_npcwarp (struct script_state *st)
     nd = npc_name2id (npc);
 
     if (!nd)
-        return -1;
+        return;
 
     short m = nd->bl.m;
 
@@ -6951,7 +6545,7 @@ int buildin_npcwarp (struct script_state *st)
     if (m < 0 || !nd->bl.prev
             || x < 0 || x > map[m].xs -1
             || y < 0 || y > map[m].ys - 1)
-        return -1;
+        return;
 
     npc_enable (npc, 0);
     map_delblock(&nd->bl); /* [Freeyorp] */
@@ -6960,7 +6554,6 @@ int buildin_npcwarp (struct script_state *st)
     map_addblock(&nd->bl);
     npc_enable (npc, 1);
 
-    return 0;
 }
 
 /*==========================================
@@ -6968,7 +6561,7 @@ int buildin_npcwarp (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_message (struct script_state *st)
+void builtin_message (ScriptState *st)
 {
     struct map_session_data *pl_sd = NULL;
 
@@ -6976,10 +6569,9 @@ int buildin_message (struct script_state *st)
     const char *msg = conv_str (st, &(st->stack->stack_data[st->start + 3]));
 
     if ((pl_sd = map_nick2sd ((char *) player)) == NULL)
-        return 1;
+        return;
     clif_displaymessage (pl_sd->fd, msg);
 
-    return 0;
 }
 
 /*==========================================
@@ -6988,7 +6580,7 @@ int buildin_message (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_npctalk (struct script_state *st)
+void builtin_npctalk (ScriptState *st)
 {
     char message[255];
 
@@ -7003,7 +6595,6 @@ int buildin_npctalk (struct script_state *st)
         clif_message (&(nd->bl), message);
     }
 
-    return 0;
 }
 
 /*==========================================
@@ -7013,7 +6604,7 @@ int buildin_npctalk (struct script_state *st)
  *------------------------------------------
  */
 
-int buildin_hasitems (struct script_state *st)
+void builtin_hasitems (ScriptState *st)
 {
     int  i;
     struct map_session_data *sd;
@@ -7025,20 +6616,19 @@ int buildin_hasitems (struct script_state *st)
         if (sd->status.inventory[i].amount)
         {
             push_val (st->stack, ScriptCode::INT, 1);
-            return 0;
+            return;
         }
     }
 
     push_val (st->stack, ScriptCode::INT, 0);
 
-    return 0;
 }
 
 /*==========================================
   * getlook char info. getlook(arg)
   *------------------------------------------
   */
-int buildin_getlook (struct script_state *st)
+void builtin_getlook (ScriptState *st)
 {
     int  type, val;
     struct map_session_data *sd;
@@ -7077,14 +6667,13 @@ int buildin_getlook (struct script_state *st)
     }
 
     push_val (st->stack, ScriptCode::INT, val);
-    return 0;
 }
 
 /*==========================================
   *     get char save point. argument: 0- map name, 1- x, 2- y
   *------------------------------------------
 */
-int buildin_getsavepoint (struct script_state *st)
+void builtin_getsavepoint (ScriptState *st)
 {
     int  x, y, type;
     char *mapname;
@@ -7110,7 +6699,6 @@ int buildin_getsavepoint (struct script_state *st)
             push_val (st->stack, ScriptCode::INT, y);
             break;
     }
-    return 0;
 }
 
 /*==========================================
@@ -7118,17 +6706,16 @@ int buildin_getsavepoint (struct script_state *st)
  *------------------------------------------
  */
 static
-int buildin_areatimer_sub (struct block_list *bl, va_list ap)
+void builtin_areatimer_sub (struct block_list *bl, va_list ap)
 {
     int  tick;
     char *event;
     tick = va_arg (ap, int);
     event = va_arg (ap, char *);
     pc_addeventtimer ((struct map_session_data *) bl, tick, event);
-    return 0;
 }
 
-int buildin_areatimer (struct script_state *st)
+void builtin_areatimer (ScriptState *st)
 {
     int  tick, m;
     int  x0, y0, x1, y1;
@@ -7142,18 +6729,17 @@ int buildin_areatimer (struct script_state *st)
     const char *event = conv_str (st, &(st->stack->stack_data[st->start + 8]));
 
     if ((m = map_mapname2mapid (mapname)) < 0)
-        return 0;
+        return;
 
-    map_foreachinarea (buildin_areatimer_sub,
+    map_foreachinarea (builtin_areatimer_sub,
                        m, x0, y0, x1, y1, BL_PC, tick, event);
-    return 0;
 }
 
 /*==========================================
  * Check whether the PC is in the specified rectangle
  *------------------------------------------
  */
-int buildin_isin (struct script_state *st)
+void builtin_isin (ScriptState *st)
 {
     int  x1, y1, x2, y2;
     struct map_session_data *sd = script_rid2sd (st);
@@ -7165,51 +6751,48 @@ int buildin_isin (struct script_state *st)
     y2 = conv_num (st, &(st->stack->stack_data[st->start + 6]));
 
     if (!sd)
-        return 1;
+        return;
 
     push_val (st->stack, ScriptCode::INT,
               (sd->bl.x >= x1 && sd->bl.x <= x2)
               && (sd->bl.y >= y1 && sd->bl.y <= y2)
               && (!strcmp (str, map[sd->bl.m].name)));
 
-    return 0;
 }
 
 // Trigger the shop on a (hopefully) nearby shop NPC
-int buildin_shop (struct script_state *st)
+void builtin_shop (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
     struct npc_data *nd;
 
     if (!sd)
-        return 1;
+        return;
 
     nd = npc_name2id (conv_str (st, &(st->stack->stack_data[st->start + 2])));
     if (!nd)
-        return 1;
+        return;
 
-    buildin_close (st);
+    builtin_close (st);
     clif_npcbuysell (sd, nd->bl.id);
-    return 0;
 }
 
 /*==========================================
  * Check whether the PC is dead
  *------------------------------------------
  */
-int buildin_isdead (struct script_state *st)
+void builtin_isdead (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     push_val (st->stack, ScriptCode::INT, pc_isdead (sd));
-    return 0;
 }
 
 /*========================================
  * Changes a NPC name, and sprite
  *----------------------------------------
  */
-int buildin_fakenpcname (struct script_state *st)
+void builtin_fakenpcname (ScriptState *st)
 {
     int  newsprite;
     struct npc_data *nd;
@@ -7219,7 +6802,7 @@ int buildin_fakenpcname (struct script_state *st)
     newsprite = conv_num (st, &(st->stack->stack_data[st->start + 4]));
     nd = npc_name2id (name);
     if (!nd)
-        return 1;
+        return;
     strncpy (nd->name, newname, sizeof(nd->name)-1);
     nd->name[sizeof(nd->name)-1] = '\0';
     nd->npc_class = newsprite;
@@ -7228,7 +6811,6 @@ int buildin_fakenpcname (struct script_state *st)
     npc_enable (name, 0);
     npc_enable (name, 1);
 
-    return 0;
 }
 
 /*============================
@@ -7236,36 +6818,33 @@ int buildin_fakenpcname (struct script_state *st)
  *----------------------------
  */
 
-int buildin_getx (struct script_state *st)
+void builtin_getx (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     push_val (st->stack, ScriptCode::INT, sd->bl.x);
-    return 0;
 }
 
 /*============================
  * Gets the PC's y pos
  *----------------------------
  */
-int buildin_gety (struct script_state *st)
+void builtin_gety (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     push_val (st->stack, ScriptCode::INT, sd->bl.y);
-    return 0;
 }
 
 /*
  * Get the PC's current map's name
  */
-int buildin_getmap (struct script_state *st)
+void builtin_getmap (ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd (st);
 
     // A map_data lives essentially forever.
     push_str (st->stack, ScriptCode::CONSTSTR, map[sd->bl.m].name);
-    return 0;
 }
 
 //
@@ -7309,7 +6888,7 @@ int get_num (const ScriptCode *scr, int *pos_)
  *------------------------------------------
  */
 static
-int pop_val (struct script_state *st)
+int pop_val (ScriptState *st)
 {
     if (st->stack->sp <= 0)
         return 0;
@@ -7327,7 +6906,7 @@ int pop_val (struct script_state *st)
  *------------------------------------------
  */
 static
-void op_add (struct script_state *st)
+void op_add (ScriptState *st)
 {
     st->stack->sp--;
     get_val (st, &(st->stack->stack_data[st->stack->sp]));
@@ -7367,7 +6946,7 @@ void op_add (struct script_state *st)
  *------------------------------------------
  */
 static
-void op_2str (struct script_state *st, ScriptCode op, int sp1, int sp2)
+void op_2str (ScriptState *st, ScriptCode op, int sp1, int sp2)
 {
     const char *s1 = st->stack->stack_data[sp1].u.str;
     const char *s2 = st->stack->stack_data[sp2].u.str;
@@ -7411,7 +6990,7 @@ void op_2str (struct script_state *st, ScriptCode op, int sp1, int sp2)
  *------------------------------------------
  */
 static
-void op_2num (struct script_state *st, ScriptCode op, int i1, int i2)
+void op_2num (ScriptState *st, ScriptCode op, int i1, int i2)
 {
     switch (op)
     {
@@ -7475,7 +7054,7 @@ void op_2num (struct script_state *st, ScriptCode op, int i1, int i2)
  *------------------------------------------
  */
 static
-void op_2 (struct script_state *st, ScriptCode op)
+void op_2 (ScriptState *st, ScriptCode op)
 {
     int  i1, i2;
     const char *s1 = NULL, *s2 = NULL;
@@ -7511,7 +7090,7 @@ void op_2 (struct script_state *st, ScriptCode op)
  *------------------------------------------
  */
 static
-void op_1num (struct script_state *st, ScriptCode op)
+void op_1num (ScriptState *st, ScriptCode op)
 {
     int  i1;
     i1 = pop_val (st);
@@ -7534,7 +7113,7 @@ void op_1num (struct script_state *st, ScriptCode op)
  * 関数の実行
  *------------------------------------------
  */
-int run_func (struct script_state *st)
+void run_func (ScriptState *st)
 {
     int  i, start_sp, end_sp, func;
 
@@ -7547,7 +7126,7 @@ int run_func (struct script_state *st)
             printf ("function not found\n");
 //      st->stack->sp=0;
         st->state = END;
-        return 0;
+        return;
     }
     start_sp = i - 1;
     st->start = i - 1;
@@ -7560,7 +7139,7 @@ int run_func (struct script_state *st)
         printf ("run_func: not function and command! \n");
 //      st->stack->sp=0;
         st->state = END;
-        return 0;
+        return;
     }
 #ifdef DEBUG_RUN
     if (battle_config.etc_log)
@@ -7620,7 +7199,7 @@ int run_func (struct script_state *st)
             printf
                 ("script:run_func(return) return without callfunc or callsub!\n");
             st->state = END;
-            return 0;
+            return;
         }
         i = conv_num (st, &(st->stack->stack_data[st->defsp - 4])); // 引数の数所得
         st->pos = conv_num (st, &(st->stack->stack_data[st->defsp - 1]));   // スクリプト位置の復元
@@ -7631,8 +7210,6 @@ int run_func (struct script_state *st)
 
         st->state = GOTO;
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -7640,8 +7217,8 @@ int run_func (struct script_state *st)
  *------------------------------------------
  */
 static
-int run_script_main (const ScriptCode *script, int pos_, int rid, int oid,
-                     struct script_state *st, const ScriptCode *rootscript)
+void run_script_main (const ScriptCode *script, int pos_, int rid, int oid,
+                      ScriptState *st, const ScriptCode *rootscript)
 {
     int rerun_pos;
     int  cmdcount = script_config.check_cmdcount;
@@ -7780,7 +7357,6 @@ int run_script_main (const ScriptCode *script, int pos_, int rid, int oid,
         }
     }
 
-    return 0;
 }
 
 /*==========================================
@@ -7796,7 +7372,7 @@ int run_script_l (const ScriptCode *script, int pos_, int rid, int oid,
                   int args_nr, argrec_t * args)
 {
     struct script_stack stack;
-    struct script_state st;
+    ScriptState st;
     struct map_session_data *sd = map_id2sd (rid);
     const ScriptCode *rootscript = script;
     int  i;
@@ -7846,7 +7422,7 @@ int run_script_l (const ScriptCode *script, int pos_, int rid, int oid,
  * マップ変数の変更
  *------------------------------------------
  */
-int mapreg_setreg (int num, int val)
+void mapreg_setreg (int num, int val)
 {
     if (val != 0)
         numdb_insert (mapreg_db, num, val);
@@ -7854,14 +7430,13 @@ int mapreg_setreg (int num, int val)
         numdb_erase (mapreg_db, num);
 
     mapreg_dirty = 1;
-    return 0;
 }
 
 /*==========================================
  * 文字列型マップ変数の変更
  *------------------------------------------
  */
-int mapreg_setregstr (int num, const char *str)
+void mapreg_setregstr (int num, const char *str)
 {
     char *p;
 
@@ -7872,26 +7447,26 @@ int mapreg_setregstr (int num, const char *str)
     {
         numdb_erase (mapregstr_db, num);
         mapreg_dirty = 1;
-        return 0;
+        return;
     }
     p = (char *) calloc (strlen (str) + 1, 1);
     strcpy (p, str);
     numdb_insert (mapregstr_db, num, p);
     mapreg_dirty = 1;
-    return 0;
 }
 
 /*==========================================
  * 永続的マップ変数の読み込み
  *------------------------------------------
  */
-static int script_load_mapreg (void)
+static
+void script_load_mapreg (void)
 {
     FILE *fp;
     char line[1024];
 
     if ((fp = fopen_ (mapreg_txt, "rt")) == NULL)
-        return -1;
+        return;
 
     while (fgets (line, sizeof (line), fp))
     {
@@ -7925,7 +7500,6 @@ static int script_load_mapreg (void)
     }
     fclose_ (fp);
     mapreg_dirty = 0;
-    return 0;
 }
 
 /*==========================================
@@ -7960,18 +7534,18 @@ static void script_save_mapreg_strsub (db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-static int script_save_mapreg (void)
+static
+void script_save_mapreg (void)
 {
     FILE *fp;
     int  lock;
 
     if ((fp = lock_fopen (mapreg_txt, &lock)) == NULL)
-        return -1;
+        return;
     numdb_foreach (mapreg_db, script_save_mapreg_intsub, fp);
     numdb_foreach (mapregstr_db, script_save_mapreg_strsub, fp);
     lock_fclose (fp, mapreg_txt, &lock);
     mapreg_dirty = 0;
-    return 0;
 }
 
 static void script_autosave_mapreg (timer_id tid, tick_t tick, custom_id_t id,
@@ -7985,7 +7559,8 @@ static void script_autosave_mapreg (timer_id tid, tick_t tick, custom_id_t id,
  *
  *------------------------------------------
  */
-static int set_posword (char *p)
+static
+void set_posword (char *p)
 {
     char *np, *str[15];
     int  i = 0;
@@ -8005,10 +7580,9 @@ static int set_posword (char *p)
         if (str[i])
             strcpy (pos[i], str[i]);
     }
-    return 0;
 }
 
-int script_config_read (const char *cfgName)
+void script_config_read (const char *cfgName)
 {
     int  i;
     char line[1024], w1[1024], w2[1024];
@@ -8025,7 +7599,7 @@ int script_config_read (const char *cfgName)
     if (fp == NULL)
     {
         printf ("file not found: %s\n", cfgName);
-        return 1;
+        return;
     }
     while (fgets (line, 1020, fp))
     {
@@ -8044,8 +7618,6 @@ int script_config_read (const char *cfgName)
         }
     }
     fclose_ (fp);
-
-    return 0;
 }
 
 /*==========================================
@@ -8064,7 +7636,7 @@ static void userfunc_db_final (db_key_t key, db_val_t data, va_list ap)
     free (data);
 }
 
-int do_final_script (void)
+void do_final_script (void)
 {
     if (mapreg_dirty >= 0)
         script_save_mapreg ();
@@ -8084,15 +7656,13 @@ int do_final_script (void)
         free (str_data);
     if (str_buf)
         free (str_buf);
-
-    return 0;
 }
 
 /*==========================================
  * 初期化
  *------------------------------------------
  */
-int do_init_script (void)
+void do_init_script (void)
 {
     mapreg_db = numdb_init ();
     mapregstr_db = numdb_init ();
@@ -8103,5 +7673,4 @@ int do_init_script (void)
                         MAPREG_AUTOSAVE_INTERVAL);
 
     scriptlabel_db = strdb_init (50);
-    return 0;
 }

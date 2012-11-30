@@ -1027,7 +1027,8 @@ static cont_activation_record_t *add_stack_entry (invocation_t * invocation,
     return ar;
 }
 
-static int find_entities_in_area_c (entity_t * target, va_list va)
+static
+void find_entities_in_area_c (entity_t * target, va_list va)
 {
     int *entities_allocd_p = va_arg (va, int *);
     int *entities_nr_p = va_arg (va, int *);
@@ -1063,7 +1064,7 @@ static int find_entities_in_area_c (entity_t * target, va_list va)
                     invoc = invoc->next_invocation;
                 }
             }
-            return 0;
+            return;
 
         case BL_MOB:
             if (filter == FOREACH_FILTER_MOB
@@ -1071,7 +1072,7 @@ static int find_entities_in_area_c (entity_t * target, va_list va)
                 || filter == FOREACH_FILTER_TARGET)
                 break;
             else
-                return 0;
+                return;
 
         case BL_SPELL:
             if (filter == FOREACH_FILTER_SPELL)
@@ -1080,26 +1081,25 @@ static int find_entities_in_area_c (entity_t * target, va_list va)
 
                 /* Check whether the spell is `bound'-- if so, we'll consider it iff we see the caster (case BL_PC). */
                 if (invocation->flags & INVOCATION_FLAG_BOUND)
-                    return 0;
+                    return;
                 else
                     break;      /* Add the spell */
             }
             else
-                return 0;
+                return;
 
         case BL_NPC:
             if (filter == FOREACH_FILTER_NPC)
                 break;
             else
-                return 0;
+                return;
 
         default:
-            return 0;
+            return;
     }
 
     ADD_ENTITY (target->id);
 #undef ADD_ENTITY
-    return 0;
 }
 
 static void

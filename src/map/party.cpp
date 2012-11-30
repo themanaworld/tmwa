@@ -701,15 +701,15 @@ int party_send_xy_clear (struct party *p)
 }
 
 // HP通知の必要性検査用（map_foreachinmoveareaから呼ばれる）
-int party_send_hp_check (struct block_list *bl, va_list ap)
+void party_send_hp_check (struct block_list *bl, va_list ap)
 {
     int  party_id;
     int *flag;
     struct map_session_data *sd;
 
-    nullpo_retr (0, bl);
-    nullpo_retr (0, ap);
-    nullpo_retr (0, sd = (struct map_session_data *) bl);
+    nullpo_retv (bl);
+    nullpo_retv (ap);
+    nullpo_retv (sd = (struct map_session_data *) bl);
 
     party_id = va_arg (ap, int);
     flag = va_arg (ap, int *);
@@ -719,7 +719,6 @@ int party_send_hp_check (struct block_list *bl, va_list ap)
         *flag = 1;
         sd->party_hp = -1;
     }
-    return 0;
 }
 
 // 経験値公平分配
@@ -744,7 +743,7 @@ int party_exp_share (struct party *p, int map, int base_exp, int job_exp)
 // 同じマップのパーティメンバー全体に処理をかける
 // type==0 同じマップ
 //     !=0 画面内
-void party_foreachsamemap (int (*func) (struct block_list *, va_list),
+void party_foreachsamemap (void (*func) (struct block_list *, va_list),
                            struct map_session_data *sd, int type, ...)
 {
     struct party *p;

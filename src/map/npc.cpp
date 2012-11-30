@@ -59,29 +59,28 @@ static struct tm ev_tm_b;       // 時計イベント用
  *------------------------------------------
  */
 static
-int npc_enable_sub (struct block_list *bl, va_list ap)
+void npc_enable_sub (struct block_list *bl, va_list ap)
 {
     struct map_session_data *sd;
     struct npc_data *nd;
     char *name = (char *) calloc (50, sizeof (char));
 
-    nullpo_retr (0, bl);
-    nullpo_retr (0, ap);
-    nullpo_retr (0, nd = va_arg (ap, struct npc_data *));
+    nullpo_retv (bl);
+    nullpo_retv (ap);
+    nullpo_retv (nd = va_arg (ap, struct npc_data *));
     if (bl->type == BL_PC && (sd = (struct map_session_data *) bl))
     {
 
         if (nd->flag & 1)       // 無効化されている
-            return 1;
+            return;
 
         memcpy (name, nd->name, sizeof(nd->name));
         if (sd->areanpc_id == nd->bl.id)
-            return 1;
+            return;
         sd->areanpc_id = nd->bl.id;
         npc_event (sd, strcat (name, "::OnTouch"), 0);
     }
     free (name);
-    return 0;
 }
 
 int npc_enable (const char *name, int flag)

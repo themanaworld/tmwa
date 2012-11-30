@@ -359,7 +359,7 @@ int map_count_oncell (int m, int x, int y)
  * type!=0 ならその種類のみ
  *------------------------------------------
  */
-void map_foreachinarea (int (*func) (struct block_list *, va_list), int m,
+void map_foreachinarea (void (*func) (struct block_list *, va_list), int m,
                         int x0, int y0, int x1, int y1, int type, ...)
 {
     int  bx, by;
@@ -437,7 +437,7 @@ void map_foreachinarea (int (*func) (struct block_list *, va_list), int m,
  * dx,dyは-1,0,1のみとする（どんな値でもいいっぽい？）
  *------------------------------------------
  */
-void map_foreachinmovearea (int (*func) (struct block_list *, va_list), int m,
+void map_foreachinmovearea (void (*func) (struct block_list *, va_list), int m,
                             int x0, int y0, int x1, int y1, int dx, int dy,
                             int type, ...)
 {
@@ -588,7 +588,7 @@ void map_foreachinmovearea (int (*func) (struct block_list *, va_list), int m,
 //           which only checks the exact single x/y passed to it rather than an
 //           area radius - may be more useful in some instances)
 //
-void map_foreachincell (int (*func) (struct block_list *, va_list), int m,
+void map_foreachincell (void (*func) (struct block_list *, va_list), int m,
                         int x, int y, int type, ...)
 {
     int  bx, by;
@@ -737,7 +737,7 @@ int map_delobject (int id, int type)
  *
  *------------------------------------------
  */
-void map_foreachobject (int (*func) (struct block_list *, va_list), int type,
+void map_foreachobject (void (*func) (struct block_list *, va_list), int type,
                         ...)
 {
     int  i;
@@ -2034,9 +2034,10 @@ int map_config_read (const char *cfgName)
     return 0;
 }
 
-static int cleanup_sub (struct block_list *bl, va_list ap)
+static
+void cleanup_sub (struct block_list *bl, va_list ap)
 {
-    nullpo_retr (0, bl);
+    nullpo_retv (bl);
 
     switch (bl->type)
     {
@@ -2059,8 +2060,6 @@ static int cleanup_sub (struct block_list *bl, va_list ap)
             spell_free_invocation ((struct invocation *) bl);
             break;
     }
-
-    return 0;
 }
 
 /*==========================================

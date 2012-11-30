@@ -42,11 +42,11 @@ int  party_recv_message (int party_id, int account_id, const char *mes, int len)
 int  party_check_conflict (struct map_session_data *sd);
 
 int  party_send_xy_clear (struct party *p);
-int  party_send_hp_check (struct block_list *bl, va_list ap);
+void party_send_hp_check (struct block_list *bl, va_list ap);
 
 int  party_exp_share (struct party *p, int map, int base_exp, int job_exp);
 
-void party_foreachsamemap (int (*func) (struct block_list *, va_list),
+void party_foreachsamemap (void (*func) (struct block_list *, va_list),
                            struct map_session_data *sd, int type, ...);
 
 #endif
