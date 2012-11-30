@@ -312,6 +312,7 @@ int  buildin_fakenpcname (struct script_state *st); //[Kage]
 int  buildin_unequip_by_id (struct script_state *st);   // [Freeyorp]
 int  buildin_getx (struct script_state *st);  // [Kage]
 int  buildin_gety (struct script_state *st);  // [Kage]
+int  buildin_getmap (struct script_state *st);
 
 
 void push_val (struct script_stack *stack, int type, int val);
@@ -738,6 +739,8 @@ struct
     buildin_getx, "getx", ""}, // [Kage]
     {
     buildin_gety, "gety", ""}, // [Kage]
+    {
+    buildin_getmap, "getmap", ""},
         // End Additions
     {
 NULL, NULL, NULL},};
@@ -1647,6 +1650,7 @@ int get_val (struct script_state *st, struct script_data *data)
             data->type = ScriptCode::INT;
             if (str_data[data->u.num & 0x00ffffff].type == ScriptCode::INT)
             {
+                // unreachable
                 data->u.num = str_data[data->u.num & 0x00ffffff].val;
             }
             else if (str_data[data->u.num & 0x00ffffff].type == ScriptCode::PARAM)
@@ -1790,15 +1794,15 @@ const char *conv_str (struct script_state *st, struct script_data *data)
         sprintf (buf, "%d", data->u.num);
         data->type = ScriptCode::STR;
         data->u.str = buf;
-#if 1
     }
+#if 1
     else if (data->type == ScriptCode::NAME)
     {
         // テンポラリ。本来無いはず
         data->type = ScriptCode::CONSTSTR;
         data->u.str = str_buf + str_data[data->u.num].str;
-#endif
     }
+#endif
     return data->u.str;
 }
 
@@ -7249,6 +7253,18 @@ int buildin_gety (struct script_state *st)
     struct map_session_data *sd = script_rid2sd (st);
 
     push_val (st->stack, ScriptCode::INT, sd->bl.y);
+    return 0;
+}
+
+/*
+ * Get the PC's current map's name
+ */
+int buildin_getmap (struct script_state *st)
+{
+    struct map_session_data *sd = script_rid2sd (st);
+
+    // A map_data lives essentially forever.
+    push_str (st->stack, ScriptCode::CONSTSTR, map[sd->bl.m].name);
     return 0;
 }
 
