@@ -247,6 +247,7 @@ void builtin_isloggedin(ScriptState *st);
 void builtin_setmapflagnosave(ScriptState *st);
 void builtin_setmapflag(ScriptState *st);
 void builtin_removemapflag(ScriptState *st);
+void builtin_getmapflag(ScriptState *st);
 void builtin_pvpon(ScriptState *st);
 void builtin_pvpoff(ScriptState *st);
 void builtin_gvgon(ScriptState *st);
@@ -469,6 +470,7 @@ struct
     {builtin_setmapflagnosave, "setmapflagnosave", "MMxy"},
     {builtin_setmapflag, "setmapflag", "Mi"},
     {builtin_removemapflag, "removemapflag", "Mi"},
+    {builtin_getmapflag, "getmapflag", "Mi"},
     {builtin_pvpon, "pvpon", "M"},
     {builtin_pvpoff, "pvpoff", "M"},
     {builtin_gvgon, "gvgon", "s"},
@@ -5183,6 +5185,78 @@ void builtin_removemapflag (ScriptState *st)
         }
     }
 
+}
+
+void builtin_getmapflag (ScriptState *st)
+{
+    int  m, i, r;
+
+    const char *str = conv_str (st, &(st->stack->stack_data[st->start + 2]));
+    i = conv_num (st, &(st->stack->stack_data[st->start + 3]));
+    m = map_mapname2mapid (str);
+    if (m >= 0)
+    {
+        switch (i)
+        {
+            case MF_NOMEMO:
+                r = map[m].flag.nomemo;
+                break;
+            case MF_NOTELEPORT:
+                r = map[m].flag.noteleport;
+                break;
+            case MF_NOSAVE:
+                r = map[m].flag.nosave;
+                break;
+            case MF_NOBRANCH:
+                r = map[m].flag.nobranch;
+                break;
+            case MF_NOPENALTY:
+                r = map[m].flag.nopenalty;
+                break;
+            case MF_PVP_NOPARTY:
+                r = map[m].flag.pvp_noparty;
+                break;
+            case MF_PVP_NOGUILD:
+                r = map[m].flag.pvp_noguild;
+                break;
+            case MF_GVG_NOPARTY:
+                r = map[m].flag.gvg_noparty;
+                break;
+            case MF_NOZENYPENALTY:
+                r = map[m].flag.nozenypenalty;
+                break;
+            case MF_NOSKILL:
+                r = map[m].flag.noskill;
+                break;
+            case MF_NOWARP:
+                r = map[m].flag.nowarp;
+                break;
+            case MF_NOPVP:
+                r = map[m].flag.nopvp;
+                break;
+            case MF_NOICEWALL: // [Valaris]
+                r = map[m].flag.noicewall;
+                break;
+            case MF_SNOW:      // [Valaris]
+                r = map[m].flag.snow;
+                break;
+            case MF_FOG:       // [Valaris]
+                r = map[m].flag.fog;
+                break;
+            case MF_SAKURA:    // [Valaris]
+                r = map[m].flag.sakura;
+                break;
+            case MF_LEAVES:    // [Valaris]
+                r = map[m].flag.leaves;
+                break;
+            case MF_RAIN:      // [Valaris]
+                r = map[m].flag.rain;
+                break;
+
+        }
+    }
+
+    push_val (st->stack, ScriptCode::INT, r);
 }
 
 void builtin_pvpon (ScriptState *st)
