@@ -16,7 +16,6 @@
 #include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
-#include "guild.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"

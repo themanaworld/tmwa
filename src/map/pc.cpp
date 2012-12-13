@@ -17,7 +17,6 @@
 #include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
-#include "guild.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
@@ -647,9 +646,6 @@ int pc_isequip (struct map_session_data *sd, int n)
     if (map[sd->bl.m].flag.pvp
         && (item->flag.no_equip == 1 || item->flag.no_equip == 3))
         return 0;
-    if (map[sd->bl.m].flag.gvg
-        && (item->flag.no_equip == 2 || item->flag.no_equip == 3))
-        return 0;
     if (item->equip & 0x0002 && sc_data
         && sc_data[SC_STRIPWEAPON].timer != -1)
         return 0;
@@ -763,7 +759,6 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     struct map_session_data *sd = NULL;
 
     struct party *p;
-    struct guild *g;
     unsigned long tick = gettick ();
     struct sockaddr_in sai;
     socklen_t sa_len = sizeof(struct sockaddr);
@@ -879,11 +874,6 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     sd->party_y = -1;
     sd->party_hp = -1;
 
-    // ギルド関係の初期化
-    sd->guild_sended = 0;
-    sd->guild_invite = 0;
-    sd->guild_alliance = 0;
-
     // イベント関係の初期化
     memset (sd->eventqueue, 0, sizeof (sd->eventqueue));
     for (int i = 0; i < MAX_EVENTTIMER; i++)
@@ -897,9 +887,6 @@ int pc_authok (int id, int login_id2, time_t connect_until_time,
     if (sd->status.party_id > 0
         && (p = party_search (sd->status.party_id)) == NULL)
         party_request_info (sd->status.party_id);
-    if (sd->status.guild_id > 0
-        && (g = guild_search (sd->status.guild_id)) == NULL)
-        guild_request_info (sd->status.guild_id);
 
     // pvpの設定
     sd->pvp_rank = 0;
@@ -3536,7 +3523,7 @@ int pc_dropitem (struct map_session_data *sd, int n, int amount)
 {
     nullpo_retr (1, sd);
 
-    if (sd->trade_partner != 0 || sd->npc_id != 0 || sd->state.storage_flag)
+    if (sd->trade_partner != 0 || sd->npc_id != 0 || sd->state.storage_open)
         return 0;               // no dropping while trading/npc/storage
 
     if (n < 0 || n >= MAX_INVENTORY)
@@ -3673,10 +3660,8 @@ int pc_isUseitem (struct map_session_data *sd, int n)
         return 0;
     if (itemdb_type (nameid) != 0)
         return 0;
-    if ((nameid == 605) && map[sd->bl.m].flag.gvg)
-        return 0;
     if (nameid == 601
-        && (map[sd->bl.m].flag.noteleport || map[sd->bl.m].flag.gvg))
+        && (map[sd->bl.m].flag.noteleport))
     {
         clif_skill_teleportmessage (sd, 0);
         return 0;
@@ -3685,7 +3670,7 @@ int pc_isUseitem (struct map_session_data *sd, int n)
     if (nameid == 602 && map[sd->bl.m].flag.noreturn)
         return 0;
     if (nameid == 604
-        && (map[sd->bl.m].flag.nobranch || map[sd->bl.m].flag.gvg))
+        && (map[sd->bl.m].flag.nobranch))
         return 0;
     if (item->sex != 2 && sd->status.sex != item->sex)
         return 0;
@@ -4076,17 +4061,11 @@ int pc_setpos (struct map_session_data *sd, const char *mapname_org, int x, int 
         chat_leavechat (sd);
     if (sd->trade_partner)      // 取引を中断する
         trade_tradecancel (sd);
-    if (sd->state.storage_flag == 1)
+    if (sd->state.storage_open)
         storage_storage_quit (sd);  // 倉庫を開いてるなら保存する
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storage_quit (sd, 0);
 
     if (sd->party_invite > 0)   // パーティ勧誘を拒否する
         party_reply_invite (sd, sd->party_invite_account, 0);
-    if (sd->guild_invite > 0)   // ギルド勧誘を拒否する
-        guild_reply_invite (sd, sd->guild_invite, 0);
-    if (sd->guild_alliance > 0) // ギルド同盟勧誘を拒否する
-        guild_reply_reqalliance (sd, sd->guild_alliance_account, 0);
 
     skill_castcancel (&sd->bl, 0);  // 詠唱中断
     pc_stop_walking (sd, 0);    // 歩行中断
@@ -4145,12 +4124,10 @@ int pc_setpos (struct map_session_data *sd, const char *mapname_org, int x, int 
                 sd->state.waitingdisconnect = 1;
                 pc_makesavestatus (sd);
                 //The storage close routines save the char data. [Skotlex]
-                if (!sd->state.storage_flag)
+                if (!sd->state.storage_open)
                     chrif_save (sd);
-                else if (sd->state.storage_flag == 1)
+                else if (sd->state.storage_open)
                     storage_storage_quit (sd);
-                else if (sd->state.storage_flag == 2)
-                    storage_guild_storage_quit (sd, 1);
 
                 chrif_changemapserver (sd, mapname, x, y, ip, port);
                 return 0;
@@ -4648,10 +4625,7 @@ int pc_checkskill (struct map_session_data *sd, int skill_id)
         return 0;
     if (skill_id >= 10000)
     {
-        struct guild *g;
-        if (sd->status.guild_id > 0
-            && (g = guild_search (sd->status.guild_id)) != NULL)
-            return guild_checkskill (g, skill_id);
+        // was: guild skills
         return 0;
     }
 
@@ -5228,13 +5202,6 @@ int pc_gainexp_reason (struct map_session_data *sd, int base_exp, int job_exp,
             base_exp * (25 + sd->sc_data[SC_RICHMANKIM].val1 * 25) / 100;
         job_exp +=
             job_exp * (25 + sd->sc_data[SC_RICHMANKIM].val1 * 25) / 100;
-    }
-
-    if (sd->status.guild_id > 0)
-    {                           // ギルドに上納
-        base_exp -= guild_payexp (sd, base_exp);
-        if (base_exp < 0)
-            base_exp = 0;
     }
 
     if (!battle_config.multi_level_up && pc_nextbaseafter (sd))
@@ -5954,7 +5921,7 @@ int pc_damage (struct block_list *src, struct map_session_data *sd,
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {                           // changed penalty options, added death by player if pk_mode [Valaris]
-        if (!map[sd->bl.m].flag.nopenalty && !map[sd->bl.m].flag.gvg)
+        if (!map[sd->bl.m].flag.nopenalty)
         {
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_base > 0)
@@ -6092,14 +6059,6 @@ int pc_damage (struct block_list *src, struct map_session_data *sd,
             pc_setpos (sd, sd->status.save_point.map, sd->status.save_point.x,
                        sd->status.save_point.y, 0);
         }
-    }
-    //GvG
-    if (map[sd->bl.m].flag.gvg)
-    {
-        pc_setstand (sd);
-        pc_setrestartvalue (sd, 3);
-        pc_setpos (sd, sd->status.save_point.map, sd->status.save_point.x,
-                   sd->status.save_point.y, 0);
     }
 
     if (src && src->type == BL_PC)
@@ -7706,12 +7665,6 @@ int pc_checkitem (struct map_session_data *sd)
             sd->status.inventory[i].equip = 0;
             calc_flag = 1;
         }
-        else if (sd->status.inventory[i].equip && map[sd->bl.m].flag.gvg
-                 && (it->flag.no_equip == 2 || it->flag.no_equip == 3))
-        {                       //GvG制限
-            sd->status.inventory[i].equip = 0;
-            calc_flag = 1;
-        }
     }
 
     pc_setequipindex (sd);
@@ -7911,7 +7864,6 @@ static int natural_heal_tick, natural_heal_prev_tick, natural_heal_diff_tick;
 static int pc_spheal (struct map_session_data *sd)
 {
     int  a;
-    struct guild_castle *gc = NULL;
 
     nullpo_retr (0, sd);
 
@@ -7920,15 +7872,6 @@ static int pc_spheal (struct map_session_data *sd)
         a += a;
     if (sd->sc_data[SC_MAGNIFICAT].timer != -1) // マグニフィカート
         a += a;
-
-    gc = guild_mapname2gc (sd->mapname);    // Increased guild castle regen [Valaris]
-    if (gc)
-    {
-        struct guild *g;
-        g = guild_search (sd->status.guild_id);
-        if (g && g->guild_id == gc->guild_id)
-            a += a;
-    }                           // end addition [Valaris]
 
     return a;
 }
@@ -7940,7 +7883,6 @@ static int pc_spheal (struct map_session_data *sd)
 static int pc_hpheal (struct map_session_data *sd)
 {
     int  a;
-    struct guild_castle *gc;
 
     nullpo_retr (0, sd);
 
@@ -7949,15 +7891,6 @@ static int pc_hpheal (struct map_session_data *sd)
         a += a;
     if (sd->sc_data[SC_MAGNIFICAT].timer != -1) // Modified by RoVeRT
         a += a;
-
-    gc = guild_mapname2gc (sd->mapname);    // Increased guild castle regen [Valaris]
-    if (gc)
-    {
-        struct guild *g;
-        g = guild_search (sd->status.guild_id);
-        if (g && g->guild_id == gc->guild_id)
-            a += a;
-    }                           // end addition [Valaris]
 
     return a;
 }
@@ -8411,34 +8344,10 @@ static int pc_autosave_sub (struct map_session_data *sd, va_list ap)
 
     if (save_flag == 0 && sd->fd > last_save_fd)
     {
-        struct guild_castle *gc = NULL;
         int  i;
 
         pc_makesavestatus (sd);
         chrif_save (sd);
-
-        for (i = 0; i < MAX_GUILDCASTLE; i++)
-        {
-            gc = guild_castle_search (i);
-            if (!gc)
-                continue;
-            if (gc->visibleG0 == 1)
-                guild_castledatasave (gc->castle_id, 18, gc->Ghp0);
-            if (gc->visibleG1 == 1)
-                guild_castledatasave (gc->castle_id, 19, gc->Ghp1);
-            if (gc->visibleG2 == 1)
-                guild_castledatasave (gc->castle_id, 20, gc->Ghp2);
-            if (gc->visibleG3 == 1)
-                guild_castledatasave (gc->castle_id, 21, gc->Ghp3);
-            if (gc->visibleG4 == 1)
-                guild_castledatasave (gc->castle_id, 22, gc->Ghp4);
-            if (gc->visibleG5 == 1)
-                guild_castledatasave (gc->castle_id, 23, gc->Ghp5);
-            if (gc->visibleG6 == 1)
-                guild_castledatasave (gc->castle_id, 24, gc->Ghp6);
-            if (gc->visibleG7 == 1)
-                guild_castledatasave (gc->castle_id, 25, gc->Ghp7);
-        }
 
         save_flag = 1;
         last_save_fd = sd->fd;

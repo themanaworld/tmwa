@@ -30,7 +30,6 @@
 #include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
-#include "guild.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
@@ -116,12 +115,6 @@ enum
     PARTY_SAMEMAP_WOS,
     PARTY_AREA,
     PARTY_AREA_WOS,
-    GUILD,
-    GUILD_WOS,
-    GUILD_SAMEMAP,              // [Valaris]
-    GUILD_SAMEMAP_WOS,
-    GUILD_AREA,
-    GUILD_AREA_WOS,             // end additions [Valaris]
     SELF
 };
 
@@ -311,7 +304,6 @@ int clif_send (const uint8_t *buf, int len, struct block_list *bl, int type)
     struct map_session_data *sd;
     struct chat_data *cd;
     struct party *p = NULL;
-    struct guild *g = NULL;
     int  x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 
     if (type != ALL_CLIENT)
@@ -483,96 +475,6 @@ int clif_send (const uint8_t *buf, int len, struct block_list *bl, int type)
             {                   // packet must exist
                 memcpy (WFIFOP (sd->fd, 0), buf, len);
                 WFIFOSET (sd->fd, len);
-            }
-            break;
-
-/* New definitions for guilds [Valaris]	*/
-
-        case GUILD_AREA:
-        case GUILD_AREA_WOS:
-            x0 = bl->x - AREA_SIZE;
-            y0 = bl->y - AREA_SIZE;
-            x1 = bl->x + AREA_SIZE;
-            y1 = bl->y + AREA_SIZE;
-        case GUILD:
-        case GUILD_WOS:
-            if (bl && bl->type == BL_PC)
-            {                   // guildspy [Syrus22]
-                sd = (struct map_session_data *) bl;
-                if (sd->guildspy > 0)
-                {
-                    g = guild_search (sd->guildspy);
-                }
-                else
-                {
-                    if (sd->status.guild_id > 0)
-                        g = guild_search (sd->status.guild_id);
-                }
-            }
-            if (g)
-            {
-                for (i = 0; i < g->max_member; i++)
-                {
-                    if ((sd = g->member[i].sd) != NULL)
-                    {
-                        if (type == GUILD_WOS && sd->bl.id == bl->id)
-                            continue;
-                        if (packet_len_table[RBUFW (buf, 0)])
-                        {       // packet must exist
-                            memcpy (WFIFOP (sd->fd, 0), buf, len);
-                            WFIFOSET (sd->fd, len);
-                        }
-                    }
-                }
-                for (i = 0; i < fd_max; i++)
-                {
-                    if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
-                        && sd->state.auth)
-                    {
-                        if (sd->guildspy == g->guild_id)
-                        {
-                            if (packet_len_table[RBUFW (buf, 0)])
-                            {   // packet must exist
-                                memcpy (WFIFOP (sd->fd, 0), buf, len);
-                                WFIFOSET (sd->fd, len);
-                            }
-                        }
-                    }
-                }
-            }
-            break;
-        case GUILD_SAMEMAP:
-        case GUILD_SAMEMAP_WOS:
-            if (bl->type == BL_PC)
-            {
-                sd = (struct map_session_data *) bl;
-                if (sd->status.guild_id > 0)
-                    g = guild_search (sd->status.guild_id);
-            }
-            if (g)
-            {
-                for (i = 0; i < g->max_member; i++)
-                {
-                    if ((sd = g->member[i].sd) != NULL)
-                    {
-                        if (sd->bl.id == bl->id && (type == GUILD_WOS ||
-                                                    type == GUILD_SAMEMAP_WOS
-                                                    || type ==
-                                                    GUILD_AREA_WOS))
-                            continue;
-                        if (type != GUILD && type != GUILD_WOS && bl->m != sd->bl.m)    // マップチェック
-                            continue;
-                        if ((type == GUILD_AREA || type == GUILD_AREA_WOS) &&
-                            (sd->bl.x < x0 || sd->bl.y < y0 ||
-                             sd->bl.x > x1 || sd->bl.y > y1))
-                            continue;
-                        if (packet_len_table[RBUFW (buf, 0)])
-                        {       // packet must exist
-                            memcpy (WFIFOP (sd->fd, 0), buf, len);
-                            WFIFOSET (sd->fd, len);
-                        }
-                    }
-                }
             }
             break;
 
@@ -878,8 +780,8 @@ static int clif_set0078 (struct map_session_data *sd, unsigned char *buf)
     WBUFW (buf, 28) = sd->status.hair_color;
     WBUFW (buf, 30) = sd->status.clothes_color;
     WBUFW (buf, 32) = sd->head_dir;
-    WBUFL (buf, 34) = sd->status.guild_id;
-    WBUFW (buf, 38) = sd->guild_emblem_id;
+    WBUFL (buf, 34) = 0 /*guild_id*/;
+    WBUFW (buf, 38) = 0 /*guild_emblem_id*/;
     WBUFW (buf, 40) = sd->status.manner;
     WBUFW (buf, 42) = sd->opt3;
     WBUFB (buf, 44) = sd->status.karma;
@@ -961,8 +863,8 @@ static int clif_set007b (struct map_session_data *sd, unsigned char *buf)
     WBUFW (buf, 32) = sd->status.hair_color;
     WBUFW (buf, 34) = sd->status.clothes_color;
     WBUFW (buf, 36) = sd->head_dir;
-    WBUFL (buf, 38) = sd->status.guild_id;
-    WBUFW (buf, 42) = sd->guild_emblem_id;
+    WBUFL (buf, 38) = 0/*guild_id*/;
+    WBUFW (buf, 42) = 0/*guild_emblem_id*/;
     WBUFW (buf, 44) = sd->status.manner;
     WBUFW (buf, 46) = sd->opt3;
     WBUFB (buf, 48) = sd->status.karma;
@@ -1075,21 +977,6 @@ static int clif_mob0078 (struct mob_data *md, unsigned char *buf)
         WBUFB (buf, 45) = mob_get_sex (md->mob_class);
     }
 
-    if (md->mob_class >= 1285 && md->mob_class <= 1287)
-    {                           // Added guardian emblems [Valaris]
-        struct guild *g;
-        struct guild_castle *gc = guild_mapname2gc (map[md->bl.m].name);
-        if (gc && gc->guild_id > 0)
-        {
-            g = guild_search (gc->guild_id);
-            if (g)
-            {
-                WBUFL (buf, 26) = gc->guild_id;
-                WBUFL (buf, 22) = g->emblem_id;
-            }
-        }
-    }                           // End addition
-
     WBUFPOS (buf, 46, md->bl.x, md->bl.y);
     WBUFB (buf, 48) |= md->dir & 0x0f;
     WBUFB (buf, 49) = 5;
@@ -1139,21 +1026,6 @@ static int clif_mob007b (struct mob_data *md, unsigned char *buf)
     else
         WBUFL (buf, 22) = gettick ();
 
-    if (md->mob_class >= 1285 && md->mob_class <= 1287)
-    {                           // Added guardian emblems [Valaris]
-        struct guild *g;
-        struct guild_castle *gc = guild_mapname2gc (map[md->bl.m].name);
-        if (gc && gc->guild_id > 0)
-        {
-            g = guild_search (gc->guild_id);
-            if (g)
-            {
-                WBUFL (buf, 28) = gc->guild_id;
-                WBUFL (buf, 24) = g->emblem_id;
-            }
-        }
-    }                           // End addition
-
     WBUFPOS2 (buf, 50, md->bl.x, md->bl.y, md->to_x, md->to_y);
     WBUFB (buf, 56) = 5;
     WBUFB (buf, 57) = 5;
@@ -1171,8 +1043,6 @@ static int clif_mob007b (struct mob_data *md, unsigned char *buf)
  */
 static int clif_npc0078 (struct npc_data *nd, unsigned char *buf)
 {
-    struct guild *g;
-
     nullpo_retr (0, nd);
 
     memset (buf, 0, packet_len_table[0x78]);
@@ -1181,12 +1051,6 @@ static int clif_npc0078 (struct npc_data *nd, unsigned char *buf)
     WBUFL (buf, 2) = nd->bl.id;
     WBUFW (buf, 6) = nd->speed;
     WBUFW (buf, 14) = nd->npc_class;
-    if ((nd->npc_class == 722) && (nd->u.scr.guild_id > 0)
-        && ((g = guild_search (nd->u.scr.guild_id)) != NULL))
-    {
-        WBUFL (buf, 22) = g->emblem_id;
-        WBUFL (buf, 26) = g->guild_id;
-    }
     WBUFPOS (buf, 46, nd->bl.x, nd->bl.y);
     WBUFB (buf, 48) |= nd->dir & 0x0f;
     WBUFB (buf, 49) = 5;
@@ -1290,13 +1154,6 @@ int clif_spawnpc (struct map_session_data *sd)
 
     if (sd->spiritball > 0)
         clif_spiritball (sd);
-
-    if (sd->status.guild_id > 0)
-    {                           // force display of guild emblem [Valaris]
-        struct guild *g = guild_search (sd->status.guild_id);
-        if (g)
-            clif_guild_emblem (sd, g);
-    }                           // end addition [Valaris]
 
     if (sd->status.pc_class == 13 || sd->status.pc_class == 21
         || sd->status.pc_class == 4014 || sd->status.pc_class == 4022)
@@ -2155,135 +2012,6 @@ int clif_storageequiplist (struct map_session_data *sd, struct storage *stor)
         WBUFW (buf, n * 20 + 12) = stor->storage_[i].equip;
         if (stor->storage_[i].broken == 1)
             WBUFB (buf, n * 20 + 14) = 1;   //is weapon broken [Valaris]
-        else
-            WBUFB (buf, n * 20 + 14) = stor->storage_[i].attribute;
-        WBUFB (buf, n * 20 + 15) = stor->storage_[i].refine;
-        if (stor->storage_[i].card[0] == 0x00ff
-            || stor->storage_[i].card[0] == 0x00fe
-            || stor->storage_[i].card[0] == (short) 0xff00)
-        {
-            WBUFW (buf, n * 20 + 16) = stor->storage_[i].card[0];
-            WBUFW (buf, n * 20 + 18) = stor->storage_[i].card[1];
-            WBUFW (buf, n * 20 + 20) = stor->storage_[i].card[2];
-            WBUFW (buf, n * 20 + 22) = stor->storage_[i].card[3];
-        }
-        else
-        {
-            if (stor->storage_[i].card[0] > 0
-                && (j = itemdb_viewid (stor->storage_[i].card[0])) > 0)
-                WBUFW (buf, n * 20 + 16) = j;
-            else
-                WBUFW (buf, n * 20 + 16) = stor->storage_[i].card[0];
-            if (stor->storage_[i].card[1] > 0
-                && (j = itemdb_viewid (stor->storage_[i].card[1])) > 0)
-                WBUFW (buf, n * 20 + 18) = j;
-            else
-                WBUFW (buf, n * 20 + 18) = stor->storage_[i].card[1];
-            if (stor->storage_[i].card[2] > 0
-                && (j = itemdb_viewid (stor->storage_[i].card[2])) > 0)
-                WBUFW (buf, n * 20 + 20) = j;
-            else
-                WBUFW (buf, n * 20 + 20) = stor->storage_[i].card[2];
-            if (stor->storage_[i].card[3] > 0
-                && (j = itemdb_viewid (stor->storage_[i].card[3])) > 0)
-                WBUFW (buf, n * 20 + 22) = j;
-            else
-                WBUFW (buf, n * 20 + 22) = stor->storage_[i].card[3];
-        }
-        n++;
-    }
-    if (n)
-    {
-        WBUFW (buf, 2) = 4 + n * 20;
-        WFIFOSET (fd, WFIFOW (fd, 2));
-    }
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int clif_guildstorageitemlist (struct map_session_data *sd,
-                               struct guild_storage *stor)
-{
-    struct item_data *id;
-    int  i, n, fd;
-    unsigned char *buf;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, stor);
-
-    fd = sd->fd;
-    buf = WFIFOP (fd, 0);
-
-    WBUFW (buf, 0) = 0x1f0;
-    for (i = 0, n = 0; i < MAX_GUILD_STORAGE; i++)
-    {
-        if (stor->storage_[i].nameid <= 0)
-            continue;
-        nullpo_retr (0, id = itemdb_search (stor->storage_[i].nameid));
-        if (itemdb_isequip2 (id))
-            continue;
-
-        WBUFW (buf, n * 18 + 4) = i + 1;
-        if (id->view_id > 0)
-            WBUFW (buf, n * 18 + 6) = id->view_id;
-        else
-            WBUFW (buf, n * 18 + 6) = stor->storage_[i].nameid;
-        WBUFB (buf, n * 18 + 8) = id->type;;
-        WBUFB (buf, n * 18 + 9) = stor->storage_[i].identify;
-        WBUFW (buf, n * 18 + 10) = stor->storage_[i].amount;
-        WBUFW (buf, n * 18 + 12) = 0;
-        WBUFW (buf, n * 18 + 14) = stor->storage_[i].card[0];
-        WBUFW (buf, n * 18 + 16) = stor->storage_[i].card[1];
-        WBUFW (buf, n * 18 + 18) = stor->storage_[i].card[2];
-        WBUFW (buf, n * 18 + 20) = stor->storage_[i].card[3];
-        n++;
-    }
-    if (n)
-    {
-        WBUFW (buf, 2) = 4 + n * 18;
-        WFIFOSET (fd, WFIFOW (fd, 2));
-    }
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int clif_guildstorageequiplist (struct map_session_data *sd,
-                                struct guild_storage *stor)
-{
-    struct item_data *id;
-    int  i, j, n, fd;
-    unsigned char *buf;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    buf = WFIFOP (fd, 0);
-
-    WBUFW (buf, 0) = 0xa6;
-    for (i = 0, n = 0; i < MAX_GUILD_STORAGE; i++)
-    {
-        if (stor->storage_[i].nameid <= 0)
-            continue;
-        nullpo_retr (0, id = itemdb_search (stor->storage_[i].nameid));
-        if (!itemdb_isequip2 (id))
-            continue;
-        WBUFW (buf, n * 20 + 4) = i + 1;
-        if (id->view_id > 0)
-            WBUFW (buf, n * 20 + 6) = id->view_id;
-        else
-            WBUFW (buf, n * 20 + 6) = stor->storage_[i].nameid;
-        WBUFB (buf, n * 20 + 8) = id->type;
-        WBUFB (buf, n * 20 + 9) = stor->storage_[i].identify;
-        WBUFW (buf, n * 20 + 10) = id->equip;
-        WBUFW (buf, n * 20 + 12) = stor->storage_[i].equip;
-        if (stor->storage_[i].broken == 1)
-            WBUFB (buf, n * 20 + 14) = 1;   // is weapon broken [Valaris]
         else
             WBUFB (buf, n * 20 + 14) = stor->storage_[i].attribute;
         WBUFB (buf, n * 20 + 15) = stor->storage_[i].refine;
@@ -3396,91 +3124,6 @@ int clif_storageitemadded (struct map_session_data *sd, struct storage *stor,
 		WFIFOW(fd,8) =view;
 	else*/
     WFIFOW (fd, 8) = stor->storage_[index].nameid;
-    WFIFOB (fd, 10) = stor->storage_[index].identify;   //identify flag
-    if (stor->storage_[index].broken == 1)
-        WFIFOB (fd, 11) = 1;    // is weapon broken [Valaris]
-    else
-        WFIFOB (fd, 11) = stor->storage_[index].attribute;  // attribute
-    WFIFOB (fd, 12) = stor->storage_[index].refine; //refine
-    if (stor->storage_[index].card[0] == 0x00ff
-        || stor->storage_[index].card[0] == 0x00fe
-        || stor->storage_[index].card[0] == (short) 0xff00)
-    {
-        WFIFOW (fd, 13) = stor->storage_[index].card[0];    //card (4w)
-        WFIFOW (fd, 15) = stor->storage_[index].card[1];    //card (4w)
-        WFIFOW (fd, 17) = stor->storage_[index].card[2];    //card (4w)
-        WFIFOW (fd, 19) = stor->storage_[index].card[3];    //card (4w)
-    }
-    else
-    {
-        if (stor->storage_[index].card[0] > 0
-            && (j = itemdb_viewid (stor->storage_[index].card[0])) > 0)
-            WFIFOW (fd, 13) = j;
-        else
-            WFIFOW (fd, 13) = stor->storage_[index].card[0];
-        if (stor->storage_[index].card[1] > 0
-            && (j = itemdb_viewid (stor->storage_[index].card[1])) > 0)
-            WFIFOW (fd, 15) = j;
-        else
-            WFIFOW (fd, 15) = stor->storage_[index].card[1];
-        if (stor->storage_[index].card[2] > 0
-            && (j = itemdb_viewid (stor->storage_[index].card[2])) > 0)
-            WFIFOW (fd, 17) = j;
-        else
-            WFIFOW (fd, 17) = stor->storage_[index].card[2];
-        if (stor->storage_[index].card[3] > 0
-            && (j = itemdb_viewid (stor->storage_[index].card[3])) > 0)
-            WFIFOW (fd, 19) = j;
-        else
-            WFIFOW (fd, 19) = stor->storage_[index].card[3];
-    }
-    WFIFOSET (fd, packet_len_table[0xf4]);
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int clif_updateguildstorageamount (struct map_session_data *sd,
-                                   struct guild_storage *stor)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, stor);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0xf2;      // update storage amount
-    WFIFOW (fd, 2) = stor->storage_amount;  //items
-    WFIFOW (fd, 4) = MAX_GUILD_STORAGE; //items max
-    WFIFOSET (fd, packet_len_table[0xf2]);
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int clif_guildstorageitemadded (struct map_session_data *sd,
-                                struct guild_storage *stor, int index,
-                                int amount)
-{
-    int  view, fd, j;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, stor);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0xf4;      // Storage item added
-    WFIFOW (fd, 2) = index + 1; // index
-    WFIFOL (fd, 4) = amount;    // amount
-    if ((view = itemdb_viewid (stor->storage_[index].nameid)) > 0)
-        WFIFOW (fd, 8) = view;
-    else
-        WFIFOW (fd, 8) = stor->storage_[index].nameid;  // id
     WFIFOB (fd, 10) = stor->storage_[index].identify;   //identify flag
     if (stor->storage_[index].broken == 1)
         WFIFOB (fd, 11) = 1;    // is weapon broken [Valaris]
@@ -5744,718 +5387,6 @@ int clif_mvp_exp (struct map_session_data *sd, int exp)
 }
 
 /*==========================================
- * ギルド作成可否通知
- * Relay the result of guild creation.
- *
- * (R 0167 <flag>.B)
- *
- * flag:
- *  0 The guild was created.
- *  1 The character is already in a guild.
- *  2 The guild name is invalid/taken.
- *  3 The Emperium item is required.
- *------------------------------------------
- */
-int clif_guild_created (struct map_session_data *sd, int flag)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x167;
-    WFIFOB (fd, 2) = flag;
-    WFIFOSET (fd, packet_len_table[0x167]);
-    return 0;
-}
-
-/*==========================================
- * ギルド所属通知
- *------------------------------------------
- */
-int clif_guild_belonginfo (struct map_session_data *sd, struct guild *g)
-{
-    int  ps, fd;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, g);
-
-    fd = sd->fd;
-    ps = guild_getposition (sd, g);
-
-    memset (WFIFOP (fd, 0), 0, packet_len_table[0x16c]);
-    WFIFOW (fd, 0) = 0x16c;
-    WFIFOL (fd, 2) = g->guild_id;
-    WFIFOL (fd, 6) = g->emblem_id;
-    WFIFOL (fd, 10) = g->position[ps].mode;
-    memcpy (WFIFOP (fd, 19), g->name, 24);
-    WFIFOSET (fd, packet_len_table[0x16c]);
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバログイン通知
- *------------------------------------------
- */
-int clif_guild_memberlogin_notice (struct guild *g, int idx, int flag)
-{
-    unsigned char buf[64];
-
-    nullpo_retr (0, g);
-
-    WBUFW (buf, 0) = 0x16d;
-    WBUFL (buf, 2) = g->member[idx].account_id;
-    WBUFL (buf, 6) = 0;
-    WBUFL (buf, 10) = flag;
-    if (g->member[idx].sd == NULL)
-    {
-        struct map_session_data *sd = guild_getavailablesd (g);
-        if (sd != NULL)
-            clif_send (buf, packet_len_table[0x16d], &sd->bl, GUILD);
-    }
-    else
-        clif_send (buf, packet_len_table[0x16d], &g->member[idx].sd->bl,
-                   GUILD_WOS);
-    return 0;
-}
-
-/*==========================================
- * ギルドマスター通知(14dへの応答)
- *------------------------------------------
- */
-static
-int clif_guild_masterormember (struct map_session_data *sd)
-{
-    int  type = 0x57, fd;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g != NULL && strcmp (g->master, sd->status.name) == 0)
-        type = 0xd7;
-    WFIFOW (fd, 0) = 0x14e;
-    WFIFOL (fd, 2) = type;
-    WFIFOSET (fd, packet_len_table[0x14e]);
-    return 0;
-}
-
-/*==========================================
- * Basic Info (Territories [Valaris])
- *------------------------------------------
- */
-int clif_guild_basicinfo (struct map_session_data *sd)
-{
-    int  fd, i, t = 0;
-    struct guild *g;
-    struct guild_castle *gc = NULL;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-
-    WFIFOW (fd, 0) = 0x1b6;     //0x150;
-    WFIFOL (fd, 2) = g->guild_id;
-    WFIFOL (fd, 6) = g->guild_lv;
-    WFIFOL (fd, 10) = g->connect_member;
-    WFIFOL (fd, 14) = g->max_member;
-    WFIFOL (fd, 18) = g->average_lv;
-    WFIFOL (fd, 22) = g->exp;
-    WFIFOL (fd, 26) = g->next_exp;
-    WFIFOL (fd, 30) = 0;        // 上納
-    WFIFOL (fd, 34) = 0;        // VW（性格の悪さ？：性向グラフ左右）
-    WFIFOL (fd, 38) = 0;        // RF（正義の度合い？：性向グラフ上下）
-    WFIFOL (fd, 42) = 0;        // 人数？
-    memcpy (WFIFOP (fd, 46), g->name, 24);
-    memcpy (WFIFOP (fd, 70), g->master, 24);
-
-    for (i = 0; i < MAX_GUILDCASTLE; i++)
-    {
-        gc = guild_castle_search (i);
-        if (!gc)
-            continue;
-        if (g->guild_id == gc->guild_id)
-            t++;
-    }
-
-    if (t == 1)
-        memcpy (WFIFOP (fd, 94), "One Castle", 20);
-    else if (t == 2)
-        memcpy (WFIFOP (fd, 94), "Two Castles", 20);
-    else if (t == 3)
-        memcpy (WFIFOP (fd, 94), "Three Castles", 20);
-    else if (t == 4)
-        memcpy (WFIFOP (fd, 94), "Four Castles", 20);
-    else if (t == 5)
-        memcpy (WFIFOP (fd, 94), "Five Castles", 20);
-    else if (t == 6)
-        memcpy (WFIFOP (fd, 94), "Six Castles", 20);
-    else if (t == 7)
-        memcpy (WFIFOP (fd, 94), "Seven Castles", 20);
-    else if (t == 8)
-        memcpy (WFIFOP (fd, 94), "Eight Castles", 20);
-    else if (t == 9)
-        memcpy (WFIFOP (fd, 94), "Nine Castles", 20);
-    else if (t == 10)
-        memcpy (WFIFOP (fd, 94), "Ten Castles", 20);
-    else if (t == 11)
-        memcpy (WFIFOP (fd, 94), "Eleven Castles", 20);
-    else if (t == 12)
-        memcpy (WFIFOP (fd, 94), "Twelve Castles", 20);
-    else if (t == 13)
-        memcpy (WFIFOP (fd, 94), "Thirteen Castles", 20);
-    else if (t == 14)
-        memcpy (WFIFOP (fd, 94), "Fourteen Castles", 20);
-    else if (t == 15)
-        memcpy (WFIFOP (fd, 94), "Fifteen Castles", 20);
-    else if (t == 16)
-        memcpy (WFIFOP (fd, 94), "Sixteen Castles", 20);
-    else if (t == 17)
-        memcpy (WFIFOP (fd, 94), "Seventeen Castles", 20);
-    else if (t == 18)
-        memcpy (WFIFOP (fd, 94), "Eighteen Castles", 20);
-    else if (t == 19)
-        memcpy (WFIFOP (fd, 94), "Nineteen Castles", 20);
-    else if (t == 20)
-        memcpy (WFIFOP (fd, 94), "Twenty Castles", 20);
-    else if (t == 21)
-        memcpy (WFIFOP (fd, 94), "Twenty One Castles", 20);
-    else if (t == 22)
-        memcpy (WFIFOP (fd, 94), "Twenty Two Castles", 20);
-    else if (t == 23)
-        memcpy (WFIFOP (fd, 94), "Twenty Three Castles", 20);
-    else if (t == 24)
-        memcpy (WFIFOP (fd, 94), "Twenty Four Castles", 20);
-    else if (t == MAX_GUILDCASTLE)
-        memcpy (WFIFOP (fd, 94), "Total Domination", 20);
-    else
-        memcpy (WFIFOP (fd, 94), "None Taken", 20);
-
-    WFIFOSET (fd, packet_len_table[WFIFOW (fd, 0)]);
-    clif_guild_emblem (sd, g);  // Guild emblem vanish fix [Valaris]
-    return 0;
-}
-
-/*==========================================
- * ギルド同盟/敵対情報
- *------------------------------------------
- */
-int clif_guild_allianceinfo (struct map_session_data *sd)
-{
-    int  fd, i, c;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-    WFIFOW (fd, 0) = 0x14c;
-    for (i = c = 0; i < MAX_GUILDALLIANCE; i++)
-    {
-        GuildAlliance *a = &g->alliance[i];
-        if (a->guild_id > 0)
-        {
-            WFIFOL (fd, c * 32 + 4) = a->opposition;
-            WFIFOL (fd, c * 32 + 8) = a->guild_id;
-            memcpy (WFIFOP (fd, c * 32 + 12), a->name, 24);
-            c++;
-        }
-    }
-    WFIFOW (fd, 2) = c * 32 + 4;
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバーリスト
- *------------------------------------------
- */
-int clif_guild_memberlist (struct map_session_data *sd)
-{
-    int  fd;
-    int  i, c;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-
-    WFIFOW (fd, 0) = 0x154;
-    for (i = 0, c = 0; i < g->max_member; i++)
-    {
-        struct guild_member *m = &g->member[i];
-        if (m->account_id == 0)
-            continue;
-        WFIFOL (fd, c * 104 + 4) = m->account_id;
-        WFIFOL (fd, c * 104 + 8) = 0;
-        WFIFOW (fd, c * 104 + 12) = m->hair;
-        WFIFOW (fd, c * 104 + 14) = m->hair_color;
-        WFIFOW (fd, c * 104 + 16) = m->gender;
-        WFIFOW (fd, c * 104 + 18) = m->pc_class;
-        WFIFOW (fd, c * 104 + 20) = m->lv;
-        WFIFOL (fd, c * 104 + 22) = m->exp;
-        WFIFOL (fd, c * 104 + 26) = m->online;
-        WFIFOL (fd, c * 104 + 30) = m->position;
-        memset (WFIFOP (fd, c * 104 + 34), 0, 50);  // メモ？
-        memcpy (WFIFOP (fd, c * 104 + 84), m->name, 24);
-        c++;
-    }
-    WFIFOW (fd, 2) = c * 104 + 4;
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルド役職名リスト
- *------------------------------------------
- */
-static
-int clif_guild_positionnamelist (struct map_session_data *sd)
-{
-    int  i, fd;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-    WFIFOW (fd, 0) = 0x166;
-    for (i = 0; i < MAX_GUILDPOSITION; i++)
-    {
-        WFIFOL (fd, i * 28 + 4) = i;
-        memcpy (WFIFOP (fd, i * 28 + 8), g->position[i].name, 24);
-    }
-    WFIFOW (fd, 2) = i * 28 + 4;
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルド役職情報リスト
- *------------------------------------------
- */
-static
-int clif_guild_positioninfolist (struct map_session_data *sd)
-{
-    int  i, fd;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-    WFIFOW (fd, 0) = 0x160;
-    for (i = 0; i < MAX_GUILDPOSITION; i++)
-    {
-        struct guild_position *p = &g->position[i];
-        WFIFOL (fd, i * 16 + 4) = i;
-        WFIFOL (fd, i * 16 + 8) = p->mode;
-        WFIFOL (fd, i * 16 + 12) = i;
-        WFIFOL (fd, i * 16 + 16) = p->exp_mode;
-    }
-    WFIFOW (fd, 2) = i * 16 + 4;
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルド役職変更通知
- *------------------------------------------
- */
-int clif_guild_positionchanged (struct guild *g, int idx)
-{
-    struct map_session_data *sd;
-    unsigned char buf[128];
-
-    nullpo_retr (0, g);
-
-    WBUFW (buf, 0) = 0x174;
-    WBUFW (buf, 2) = 44;
-    WBUFL (buf, 4) = idx;
-    WBUFL (buf, 8) = g->position[idx].mode;
-    WBUFL (buf, 12) = idx;
-    WBUFL (buf, 16) = g->position[idx].exp_mode;
-    memcpy (WBUFP (buf, 20), g->position[idx].name, 24);
-    if ((sd = guild_getavailablesd (g)) != NULL)
-        clif_send (buf, WBUFW (buf, 2), &sd->bl, GUILD);
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバ変更通知
- *------------------------------------------
- */
-int clif_guild_memberpositionchanged (struct guild *g, int idx)
-{
-    struct map_session_data *sd;
-    unsigned char buf[64];
-
-    nullpo_retr (0, g);
-
-    WBUFW (buf, 0) = 0x156;
-    WBUFW (buf, 2) = 16;
-    WBUFL (buf, 4) = g->member[idx].account_id;
-    WBUFL (buf, 8) = 0;
-    WBUFL (buf, 12) = g->member[idx].position;
-    if ((sd = guild_getavailablesd (g)) != NULL)
-        clif_send (buf, WBUFW (buf, 2), &sd->bl, GUILD);
-    return 0;
-}
-
-/*==========================================
- * ギルドエンブレム送信
- *------------------------------------------
- */
-int clif_guild_emblem (struct map_session_data *sd, struct guild *g)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, g);
-
-    fd = sd->fd;
-
-    if (g->emblem_len <= 0)
-        return 0;
-    WFIFOW (fd, 0) = 0x152;
-    WFIFOW (fd, 2) = g->emblem_len + 12;
-    WFIFOL (fd, 4) = g->guild_id;
-    WFIFOL (fd, 8) = g->emblem_id;
-    memcpy (WFIFOP (fd, 12), g->emblem_data, g->emblem_len);
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルドスキル送信
- *------------------------------------------
- */
-int clif_guild_skillinfo (struct map_session_data *sd)
-{
-    int  fd;
-    int  i, id, c;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-    WFIFOW (fd, 0) = 0x0162;
-    WFIFOW (fd, 4) = g->skill_point;
-    for (i = c = 0; i < MAX_GUILDSKILL; i++)
-    {
-        if (g->skill[i].id > 0)
-        {
-            WFIFOW (fd, c * 37 + 6) = id = g->skill[i].id;
-            WFIFOW (fd, c * 37 + 8) = guild_skill_get_inf (id);
-            WFIFOW (fd, c * 37 + 10) = 0;
-            WFIFOW (fd, c * 37 + 12) = g->skill[i].lv;
-            WFIFOW (fd, c * 37 + 14) =
-                guild_skill_get_sp (id, g->skill[i].lv);
-            WFIFOW (fd, c * 37 + 16) = guild_skill_get_range (id);
-            memset (WFIFOP (fd, c * 37 + 18), 0, 24);
-            WFIFOB (fd, c * 37 + 42) =  //up;
-                (g->skill[i].lv < guild_skill_get_max (id)) ? 1 : 0;
-            c++;
-        }
-    }
-    WFIFOW (fd, 2) = c * 37 + 6;
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルド告知送信
- *------------------------------------------
- */
-int clif_guild_notice (struct map_session_data *sd, struct guild *g)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, g);
-
-    fd = sd->fd;
-    if (*g->mes1 == 0 && *g->mes2 == 0)
-        return 0;
-    WFIFOW (fd, 0) = 0x16f;
-    memcpy (WFIFOP (fd, 2), g->mes1, 60);
-    memcpy (WFIFOP (fd, 62), g->mes2, 120);
-    WFIFOSET (fd, packet_len_table[0x16f]);
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバ勧誘
- *------------------------------------------
- */
-int clif_guild_invite (struct map_session_data *sd, struct guild *g)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-    nullpo_retr (0, g);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x16a;
-    WFIFOL (fd, 2) = g->guild_id;
-    memcpy (WFIFOP (fd, 6), g->name, 24);
-    WFIFOSET (fd, packet_len_table[0x16a]);
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバ勧誘結果
- *------------------------------------------
- */
-int clif_guild_inviteack (struct map_session_data *sd, int flag)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x169;
-    WFIFOB (fd, 2) = flag;
-    WFIFOSET (fd, packet_len_table[0x169]);
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバ脱退通知
- *------------------------------------------
- */
-int clif_guild_leave (struct map_session_data *sd, const char *name,
-                      const char *mes)
-{
-    unsigned char buf[128];
-
-    nullpo_retr (0, sd);
-
-    WBUFW (buf, 0) = 0x15a;
-    memcpy (WBUFP (buf, 2), name, 24);
-    memcpy (WBUFP (buf, 26), mes, 40);
-    clif_send (buf, packet_len_table[0x15a], &sd->bl, GUILD);
-    return 0;
-}
-
-/*==========================================
- * ギルドメンバ追放通知
- *------------------------------------------
- */
-int clif_guild_explusion (struct map_session_data *sd, const char *name,
-                          const char *mes, int account_id)
-{
-    unsigned char buf[128];
-
-    nullpo_retr (0, sd);
-
-    WBUFW (buf, 0) = 0x15c;
-    memcpy (WBUFP (buf, 2), name, 24);
-    memcpy (WBUFP (buf, 26), mes, 40);
-    memcpy (WBUFP (buf, 66), "dummy", 24);
-    clif_send (buf, packet_len_table[0x15c], &sd->bl, GUILD);
-    return 0;
-}
-
-/*==========================================
- * ギルド追放メンバリスト
- *------------------------------------------
- */
-static
-int clif_guild_explusionlist (struct map_session_data *sd)
-{
-    int  fd;
-    int  i, c;
-    struct guild *g;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    g = guild_search (sd->status.guild_id);
-    if (g == NULL)
-        return 0;
-    WFIFOW (fd, 0) = 0x163;
-    for (i = c = 0; i < MAX_GUILDEXPLUSION; i++)
-    {
-        GuildExpulsion *e = &g->explusion[i];
-        if (e->account_id > 0)
-        {
-            memcpy (WFIFOP (fd, c * 88 + 4), e->name, 24);
-            memcpy (WFIFOP (fd, c * 88 + 28), e->acc, 24);
-            memcpy (WFIFOP (fd, c * 88 + 52), e->mes, 44);
-            c++;
-        }
-    }
-    WFIFOW (fd, 2) = c * 88 + 4;
-    WFIFOSET (fd, WFIFOW (fd, 2));
-    return 0;
-}
-
-/*==========================================
- * ギルド会話
- *------------------------------------------
- */
-int clif_guild_message (struct guild *g, int account_id, const char *mes,
-                        int len)
-{
-    struct map_session_data *sd;
-    unsigned char lbuf[255];
-    unsigned char *buf = lbuf;
-    if (len + 32 >= sizeof (lbuf))
-        buf = (unsigned char *)malloc (len + 32);
-    WBUFW (buf, 0) = 0x17f;
-    WBUFW (buf, 2) = len + 4;
-    memcpy (WBUFP (buf, 4), mes, len);
-
-    if ((sd = guild_getavailablesd (g)) != NULL)
-        clif_send (buf, WBUFW (buf, 2), &sd->bl, GUILD);
-    if (buf != lbuf)
-        free (buf);
-    return 0;
-}
-
-/*==========================================
- * ギルドスキル割り振り通知
- *------------------------------------------
- */
-int clif_guild_skillup (struct map_session_data *sd, int skill_num, int lv)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x10e;
-    WFIFOW (fd, 2) = skill_num;
-    WFIFOW (fd, 4) = lv;
-    WFIFOW (fd, 6) = guild_skill_get_sp (skill_num, lv);
-    WFIFOW (fd, 8) = guild_skill_get_range (skill_num);
-    WFIFOB (fd, 10) = 1;
-    WFIFOSET (fd, 11);
-    return 0;
-}
-
-/*==========================================
- * ギルド同盟要請
- *------------------------------------------
- */
-int clif_guild_reqalliance (struct map_session_data *sd, int account_id,
-                            const char *name)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x171;
-    WFIFOL (fd, 2) = account_id;
-    memcpy (WFIFOP (fd, 6), name, 24);
-    WFIFOSET (fd, packet_len_table[0x171]);
-    return 0;
-}
-
-/*==========================================
- * ギルド同盟結果
- *------------------------------------------
- */
-int clif_guild_allianceack (struct map_session_data *sd, int flag)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x173;
-    WFIFOL (fd, 2) = flag;
-    WFIFOSET (fd, packet_len_table[0x173]);
-    return 0;
-}
-
-/*==========================================
- * ギルド関係解消通知
- *------------------------------------------
- */
-int clif_guild_delalliance (struct map_session_data *sd, int guild_id,
-                            int flag)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x184;
-    WFIFOL (fd, 2) = guild_id;
-    WFIFOL (fd, 6) = flag;
-    WFIFOSET (fd, packet_len_table[0x184]);
-    return 0;
-}
-
-/*==========================================
- * ギルド敵対結果
- *------------------------------------------
- */
-int clif_guild_oppositionack (struct map_session_data *sd, int flag)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x181;
-    WFIFOB (fd, 2) = flag;
-    WFIFOSET (fd, packet_len_table[0x181]);
-    return 0;
-}
-
-/*==========================================
- * ギルド関係追加
- *------------------------------------------
- */
-/*int clif_guild_allianceadded(struct guild *g,int idx)
-{
-	unsigned char buf[64];
-	WBUFW(fd,0)=0x185;
-	WBUFL(fd,2)=g->alliance[idx].opposition;
-	WBUFL(fd,6)=g->alliance[idx].guild_id;
-	memcpy(WBUFP(fd,10),g->alliance[idx].name,24);
-	clif_send(buf,packet_len_table[0x185],guild_getavailablesd(g),GUILD);
-	return 0;
-}*/
-
-/*==========================================
- * ギルド解散通知
- *------------------------------------------
- */
-int clif_guild_broken (struct map_session_data *sd, int flag)
-{
-    int  fd;
-
-    nullpo_retr (0, sd);
-
-    fd = sd->fd;
-    WFIFOW (fd, 0) = 0x15e;
-    WFIFOL (fd, 2) = flag;
-    WFIFOSET (fd, packet_len_table[0x15e]);
-    return 0;
-}
-
-/*==========================================
  * エモーション
  *------------------------------------------
  */
@@ -6819,17 +5750,12 @@ void clif_parse_LoadEndAck (int fd, struct map_session_data *sd)
     clif_initialstatus (sd);
     // party
     party_send_movemap (sd);
-    // guild
-    guild_send_memberinfoshort (sd, 1);
     // 119
     // 78
 
     if (battle_config.pc_invincible_time > 0)
     {
-        if (map[sd->bl.m].flag.gvg)
-            pc_setinvincibletimer (sd, battle_config.pc_invincible_time << 1);
-        else
-            pc_setinvincibletimer (sd, battle_config.pc_invincible_time);
+        pc_setinvincibletimer (sd, battle_config.pc_invincible_time);
     }
 
     map_addblock (&sd->bl);     // ブロック登録
@@ -6859,29 +5785,12 @@ void clif_parse_LoadEndAck (int fd, struct map_session_data *sd)
     {
         sd->pvp_timer = -1;
     }
-    if (map[sd->bl.m].flag.gvg)
-    {
-        clif_set0199 (sd->fd, 3);
-    }
 
     if (sd->state.connect_new)
     {
         sd->state.connect_new = 0;
         if (sd->status.pc_class != sd->view_class)
             clif_changelook (&sd->bl, LOOK_BASE, sd->view_class);
-
-/*						Stop players from spawning inside castles [Valaris]					*/
-
-        {
-            struct guild_castle *gc = guild_mapname2gc (map[sd->bl.m].name);
-            if (gc)
-                pc_setpos (sd, sd->status.save_point.map,
-                           sd->status.save_point.x, sd->status.save_point.y,
-                           2);
-        }
-
-/*						End Addition [Valaris]			*/
-
     }
 
     // view equipment item
@@ -6965,7 +5874,7 @@ void clif_parse_WalkToXY (int fd, struct map_session_data *sd)
         return;
     }
 
-    if (sd->npc_id != 0 || sd->state.storage_flag)
+    if (sd->npc_id != 0 || sd->state.storage_open)
         return;
 
     if (sd->skilltimer != -1 && pc_checkskill (sd, SA_FREECAST) <= 0)   // フリーキャスト
@@ -7073,31 +5982,12 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 memcpy (WFIFOP (fd, 6), ssd->status.name, 24);
             WFIFOSET (fd, packet_len_table[0x95]);
 
-            struct guild *g = NULL;
             struct party *p = NULL;
 
-            const char *guild_name = "", *guild_pos = "", *party_name = "";
+            const char *party_name = "";
 
             int send = 0;
 
-            if (ssd->status.guild_id > 0 && (g = guild_search (ssd->status.guild_id)) != NULL)
-            {
-                // there used to be a comment near here, but the code has changed slightly
-                // ギルド所属ならパケット0195を返す
-                // google says that means: 0195 return if the packet belongs Guild
-                int  i, ps = -1;
-                for (i = 0; i < g->max_member; i++)
-                {
-                    if (g->member[i].account_id == ssd->status.account_id)
-                        ps = g->member[i].position;
-                }
-                if (ps >= 0 && ps < MAX_GUILDPOSITION)
-                {
-                    guild_name = g->name;
-                    guild_pos = g->position[ps].name;
-                    send = 1;
-                }
-            }
             if (ssd->status.party_id > 0 && (p = party_search (ssd->status.party_id)) != NULL)
             {
                 party_name = p->name;
@@ -7109,9 +5999,9 @@ void clif_parse_GetCharNameRequest (int fd, struct map_session_data *sd)
                 WFIFOW (fd, 0) = 0x195;
                 WFIFOL (fd, 2) = account_id;
                 memcpy (WFIFOP (fd, 6), party_name, 24);
-                memcpy (WFIFOP (fd, 30), guild_name, 24);
-                memcpy (WFIFOP (fd, 54), guild_pos, 24);
-                memcpy (WFIFOP (fd, 78), guild_pos, 24); // We send this value twice because the client expects it
+                memcpy (WFIFOP (fd, 30), "", 24);
+                memcpy (WFIFOP (fd, 54), "", 24);
+                memcpy (WFIFOP (fd, 78), "", 24); // We send this value twice because the client expects it
                 WFIFOSET (fd, packet_len_table[0x195]);
 
             }
@@ -7359,7 +6249,7 @@ void clif_parse_ActionRequest (int fd, struct map_session_data *sd)
         clif_clearchar_area (&sd->bl, 1);
         return;
     }
-    if (sd->npc_id != 0 || sd->opt1 > 0 || sd->status.option & 2 || sd->state.storage_flag ||
+    if (sd->npc_id != 0 || sd->opt1 > 0 || sd->status.option & 2 || sd->state.storage_open ||
             (sd->sc_data && (sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||   //オートカウンター
             sd->sc_data[SC_BLADESTOP].timer != -1 || //白刃取り
             sd->sc_data[SC_DANCING].timer != -1)))
@@ -8062,7 +6952,7 @@ void clif_parse_UseSkillToId (int fd, struct map_session_data *sd)
 
     if (map[sd->bl.m].flag.noskill)
         return;
-    if (sd->chatID || sd->npc_id != 0 || sd->state.storage_flag)
+    if (sd->chatID || sd->npc_id != 0 || sd->state.storage_open)
         return;
 
     skilllv = RFIFOW (fd, 2);
@@ -8141,7 +7031,7 @@ void clif_parse_UseSkillToPos (int fd, struct map_session_data *sd)
 
     if (map[sd->bl.m].flag.noskill)
         return;
-    if (sd->npc_id != 0 || sd->state.storage_flag)
+    if (sd->npc_id != 0 || sd->state.storage_open)
         return;
     if (sd->chatID)
         return;
@@ -8438,13 +7328,11 @@ void clif_parse_MoveToKafra (int fd, struct map_session_data *sd)
     item_amount = RFIFOL (fd, 4);
 
     if ((sd->npc_id != 0 && !sd->npc_flags.storage) || sd->trade_partner != 0
-        || !sd->state.storage_flag)
+        || !sd->state.storage_open)
         return;
 
-    if (sd->state.storage_flag == 1)
+    if (sd->state.storage_open)
         storage_storageadd (sd, item_index, item_amount);
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storageadd (sd, item_index, item_amount);
 }
 
 /*==========================================
@@ -8462,13 +7350,11 @@ void clif_parse_MoveFromKafra (int fd, struct map_session_data *sd)
     item_amount = RFIFOL (fd, 4);
 
     if ((sd->npc_id != 0 && !sd->npc_flags.storage) || sd->trade_partner != 0
-        || !sd->state.storage_flag)
+        || !sd->state.storage_open)
         return;
 
-    if (sd->state.storage_flag == 1)
+    if (sd->state.storage_open)
         storage_storageget (sd, item_index, item_amount);
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storageget (sd, item_index, item_amount);
 }
 
 /*==========================================
@@ -8481,13 +7367,10 @@ void clif_parse_MoveToKafraFromCart (int fd, struct map_session_data *sd)
     nullpo_retv (sd);
 
     if ((sd->npc_id != 0 && !sd->npc_flags.storage) || sd->trade_partner != 0
-        || !sd->state.storage_flag)
+        || !sd->state.storage_open)
         return;
-    if (sd->state.storage_flag == 1)
+    if (sd->state.storage_open)
         storage_storageaddfromcart (sd, RFIFOW (fd, 2) - 2, RFIFOL (fd, 4));
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storageaddfromcart (sd, RFIFOW (fd, 2) - 2,
-                                          RFIFOL (fd, 4));
 }
 
 /*==========================================
@@ -8500,13 +7383,10 @@ void clif_parse_MoveFromKafraToCart (int fd, struct map_session_data *sd)
     nullpo_retv (sd);
 
     if ((sd->npc_id != 0 && !sd->npc_flags.storage) || sd->trade_partner != 0
-        || !sd->state.storage_flag)
+        || !sd->state.storage_open)
         return;
-    if (sd->state.storage_flag == 1)
+    if (sd->state.storage_open)
         storage_storagegettocart (sd, RFIFOW (fd, 2) - 1, RFIFOL (fd, 4));
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storagegettocart (sd, RFIFOW (fd, 2) - 1,
-                                        RFIFOL (fd, 4));
 }
 
 /*==========================================
@@ -8518,10 +7398,8 @@ void clif_parse_CloseKafra (int fd, struct map_session_data *sd)
 {
     nullpo_retv (sd);
 
-    if (sd->state.storage_flag == 1)
+    if (sd->state.storage_open)
         storage_storageclose (sd);
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storageclose (sd);
 }
 
 /*==========================================
@@ -8710,291 +7588,6 @@ void clif_parse_GM_Monster_Item (int fd, struct map_session_data *sd)
         }
 
     }
-}
-
-/*==========================================
- * ギルドを作る
- * Process request to create a guild.
- *
- * (S 0165 <account_ID>.l <guild_name>.24B)
- *
- * Note: The account ID seems to be ignored.
- *------------------------------------------
- */
-static
-void clif_parse_CreateGuild (int fd, struct map_session_data *sd)
-{
-    guild_create (sd, (const char *)RFIFOP (fd, 6));
-}
-
-/*==========================================
- * ギルドマスターかどうか確認
- *------------------------------------------
- */
-static
-void clif_parse_GuildCheckMaster (int fd, struct map_session_data *sd)
-{
-    clif_guild_masterormember (sd);
-}
-
-/*==========================================
- * ギルド情報要求
- *------------------------------------------
- */
-static
-void clif_parse_GuildReqeustInfo (int fd, struct map_session_data *sd)
-{
-    switch (RFIFOL (fd, 2))
-    {
-        case 0:                // ギルド基本情報、同盟敵対情報
-            clif_guild_basicinfo (sd);
-            clif_guild_allianceinfo (sd);
-            break;
-        case 1:                // メンバーリスト、役職名リスト
-            clif_guild_positionnamelist (sd);
-            clif_guild_memberlist (sd);
-            break;
-        case 2:                // 役職名リスト、役職情報リスト
-            clif_guild_positionnamelist (sd);
-            clif_guild_positioninfolist (sd);
-            break;
-        case 3:                // スキルリスト
-            clif_guild_skillinfo (sd);
-            break;
-        case 4:                // 追放リスト
-            clif_guild_explusionlist (sd);
-            break;
-        default:
-            if (battle_config.error_log)
-                printf ("clif: guild request info: unknown type %d\n",
-                        RFIFOL (fd, 2));
-            break;
-    }
-}
-
-/*==========================================
- * ギルド役職変更
- *------------------------------------------
- */
-static
-void clif_parse_GuildChangePositionInfo (int fd, struct map_session_data *sd)
-{
-    struct guild *g;
-    int  i, ps;
-
-    nullpo_retv (sd);
-
-    g = guild_search (sd->status.guild_id);
-
-    if (g == NULL)
-        return;
-
-    if ((ps = guild_getposition (sd, g)) < 0
-        || (!(g->position[ps].mode & 0x0010) && strcmp (g->master, sd->status.name)))
-        return;
-
-    for (i = 4; i < RFIFOW (fd, 2); i += 40)
-    {
-        guild_change_position (sd, RFIFOL (fd, i), RFIFOL (fd, i + 4),
-                               RFIFOL (fd, i + 12), (const char *)RFIFOP (fd, i + 16));
-    }
-}
-
-/*==========================================
- * ギルドメンバ役職変更
- *------------------------------------------
- */
-static
-void clif_parse_GuildChangeMemberPosition (int fd,
-                                           struct map_session_data *sd)
-{
-    struct guild *g;
-    int  i, ps;
-
-    nullpo_retv (sd);
-
-    g = guild_search (sd->status.guild_id);
-
-    if (g == NULL)
-        return;
-
-    if ((ps = guild_getposition (sd, g)) < 0
-        || (!(g->position[ps].mode & 0x0010) && strcmp (g->master, sd->status.name)))
-        return;
-
-    for (i = 4; i < RFIFOW (fd, 2); i += 12)
-    {
-        guild_change_memberposition (sd->status.guild_id,
-                                     RFIFOL (fd, i), RFIFOL (fd, i + 4),
-                                     RFIFOL (fd, i + 8));
-    }
-}
-
-/*==========================================
- * ギルドエンブレム要求
- *------------------------------------------
- */
-static
-void clif_parse_GuildRequestEmblem (int fd, struct map_session_data *sd)
-{
-    struct guild *g = guild_search (RFIFOL (fd, 2));
-    if (g != NULL)
-        clif_guild_emblem (sd, g);
-}
-
-/*==========================================
- * ギルドエンブレム変更
- *------------------------------------------
- */
-static
-void clif_parse_GuildChangeEmblem (int fd, struct map_session_data *sd)
-{
-    guild_change_emblem (sd, RFIFOW (fd, 2) - 4, (const char *)RFIFOP (fd, 4));
-}
-
-/*==========================================
- * ギルド告知変更
- *------------------------------------------
- */
-static
-void clif_parse_GuildChangeNotice (int fd, struct map_session_data *sd)
-{
-    guild_change_notice (sd, RFIFOL (fd, 2), (const char *)RFIFOP (fd, 6), (const char *)RFIFOP (fd, 66));
-}
-
-/*==========================================
- * ギルド勧誘
- *------------------------------------------
- */
-static
-void clif_parse_GuildInvite (int fd, struct map_session_data *sd)
-{
-    guild_invite (sd, RFIFOL (fd, 2));
-}
-
-/*==========================================
- * ギルド勧誘返信
- *------------------------------------------
- */
-static
-void clif_parse_GuildReplyInvite (int fd, struct map_session_data *sd)
-{
-    guild_reply_invite (sd, RFIFOL (fd, 2), RFIFOB (fd, 6));
-}
-
-/*==========================================
- * ギルド脱退
- *------------------------------------------
- */
-static
-void clif_parse_GuildLeave (int fd, struct map_session_data *sd)
-{
-    guild_leave (sd, RFIFOL (fd, 2), RFIFOL (fd, 6), RFIFOL (fd, 10),
-                 (const char *)RFIFOP (fd, 14));
-}
-
-/*==========================================
- * ギルド追放
- *------------------------------------------
- */
-static
-void clif_parse_GuildExplusion (int fd, struct map_session_data *sd)
-{
-    guild_explusion (sd, RFIFOL (fd, 2), RFIFOL (fd, 6), RFIFOL (fd, 10),
-                     (const char *)RFIFOP (fd, 14));
-}
-
-/*==========================================
- * ギルド会話
- * Validate and process transmission of a
- * guild message.
- *
- * (S 017e <len>.w <message>.?B)
- *------------------------------------------
- */
-static
-void clif_parse_GuildMessage (int fd, struct map_session_data *sd)
-{
-    size_t message_len = 0;
-    char *buf = NULL;
-    char *message = NULL;   /* The message text only. */
-
-    nullpo_retv (sd);
-
-    if (!(buf = clif_validate_chat (sd, 2, &message, &message_len)))
-    {
-        clif_displaymessage (fd, "Your message could not be sent.");
-        return;
-    }
-
-    if (is_atcommand (fd, sd, message, 0) != AtCommand_None
-            || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
-                                || sd->sc_data[SC_NOCHAT].timer != -1))) //チャット禁止
-    {
-        free (buf);
-        return;
-    }
-
-    /* Don't send chat that results in an automatic ban. */
-    if (tmw_CheckChatSpam (sd, message))
-    {
-        free (buf);
-        clif_displaymessage (fd, "Your message could not be sent.");
-        return;
-    }
-
-    guild_send_message (sd, buf + 8, RFIFOW (fd, 2) - 4);
-    free (buf);
-}
-
-/*==========================================
- * ギルド同盟要求
- *------------------------------------------
- */
-static
-void clif_parse_GuildRequestAlliance (int fd, struct map_session_data *sd)
-{
-    guild_reqalliance (sd, RFIFOL (fd, 2));
-}
-
-/*==========================================
- * ギルド同盟要求返信
- *------------------------------------------
- */
-static
-void clif_parse_GuildReplyAlliance (int fd, struct map_session_data *sd)
-{
-    guild_reply_reqalliance (sd, RFIFOL (fd, 2), RFIFOL (fd, 6));
-}
-
-/*==========================================
- * ギルド関係解消
- *------------------------------------------
- */
-static
-void clif_parse_GuildDelAlliance (int fd, struct map_session_data *sd)
-{
-    guild_delalliance (sd, RFIFOL (fd, 2), RFIFOL (fd, 6));
-}
-
-/*==========================================
- * ギルド敵対
- *------------------------------------------
- */
-static
-void clif_parse_GuildOpposition (int fd, struct map_session_data *sd)
-{
-    guild_opposition (sd, RFIFOL (fd, 2));
-}
-
-/*==========================================
- * ギルド解散
- *------------------------------------------
- */
-static
-void clif_parse_GuildBreak (int fd, struct map_session_data *sd)
-{
-    guild_break (sd, (const char *)RFIFOP (fd, 2));
 }
 
 // Kick (right click menu for GM "(name) force to quit")
@@ -9789,44 +8382,44 @@ func_table clif_parse_func_table[0x220] =
 	{ NULL,					0	},	// 14a
 	{ NULL,					0	},	// 14b
 	{ NULL,					0	},	// 14c
-	{ clif_parse_GuildCheckMaster,		0	},	// 14d
+	{ NULL,					0	},	// 14d
 	{ NULL,					0	},	// 14e
-	{ clif_parse_GuildReqeustInfo,		0	},	// 14f
+	{ NULL,					0	},	// 14f
 	{ NULL,					0	},	// 150
-	{ clif_parse_GuildRequestEmblem,	0	},	// 151
+	{ NULL,					0	},	// 151
 	{ NULL,					0	},	// 152
-	{ clif_parse_GuildChangeEmblem,		0	},	// 153
+	{ NULL,					0	},	// 153
 	{ NULL,					0	},	// 154
-	{ clif_parse_GuildChangeMemberPosition,	0	},	// 155
+	{ NULL,					0	},	// 155
 	{ NULL,					0	},	// 156
 	{ NULL,					0	},	// 157
 	{ NULL,					0	},	// 158
-	{ clif_parse_GuildLeave,		0	},	// 159
+	{ NULL,					0	},	// 159
 	{ NULL,					0	},	// 15a
-	{ clif_parse_GuildExplusion,		0	},	// 15b
+	{ NULL,					0	},	// 15b
 	{ NULL,					0	},	// 15c
-	{ clif_parse_GuildBreak,		0	},	// 15d
+	{ NULL,					0	},	// 15d
 	{ NULL,					0	},	// 15e
 	{ NULL,					0	},	// 15f
 	{ NULL,					0	},	// 160
-	{ clif_parse_GuildChangePositionInfo,	0	},	// 161
+	{ NULL,					0	},	// 161
 	{ NULL,					0	},	// 162
 	{ NULL,					0	},	// 163
 	{ NULL,					0	},	// 164
-	{ clif_parse_CreateGuild,		0	},	// 165
+	{ NULL,					0	},	// 165
 	{ NULL,					0	},	// 166
 	{ NULL,					0	},	// 167
-	{ clif_parse_GuildInvite,		2000	},	// 168
+	{ NULL,					0	},	// 168
 	{ NULL,					0	},	// 169
 	{ NULL,					0	},	// 16a
-	{ clif_parse_GuildReplyInvite,		0	},	// 16b
+	{ NULL,					0	},	// 16b
 	{ NULL,					0	},	// 16c
 	{ NULL,					0	},	// 16d
-	{ clif_parse_GuildChangeNotice,		0	},	// 16e
+	{ NULL,					0	},	// 16e
 	{ NULL,					0	},	// 16f
-	{ clif_parse_GuildRequestAlliance,	0	},	// 170
+	{ NULL,					0	},	// 170
 	{ NULL,					0	},	// 171
-	{ clif_parse_GuildReplyAlliance,	0	},	// 172
+	{ NULL,					0	},	// 172
 	{ NULL,					0	},	// 173
 	{ NULL,					0	},	// 174
 	{ NULL,					0	},	// 175
@@ -9838,12 +8431,12 @@ func_table clif_parse_func_table[0x220] =
 	{ NULL,					0	},	// 17b
 	{ clif_parse_InsertCard,		0	},	// 17c
 	{ NULL,					0	},	// 17d
-	{ clif_parse_GuildMessage,		300	},	// 17e
+	{ NULL,					0	},	// 17e
 	{ NULL,					0	},	// 17f
-	{ clif_parse_GuildOpposition,		0	},	// 180
+	{ NULL,					0	},	// 180
 	{ NULL,					0	},	// 181
 	{ NULL,					0	},	// 182
-	{ clif_parse_GuildDelAlliance,		0	},	// 183
+	{ NULL,					0	},	// 183
 	{ NULL,					0	},	// 184
 	{ NULL,					0	},	// 185
 	{ NULL,					0	},	// 186

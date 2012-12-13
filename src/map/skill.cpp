@@ -1720,9 +1720,6 @@ int skill_attack (int attack_type, struct block_list *src,
         return 0;
     if (dsrc->type == BL_PC && ((struct map_session_data *) dsrc)->chatID)  //術者がPCでチャット中なら何もしない
         return 0;
-    if (src->type == BL_PC && bl
-        && mob_gvmobcheck (((struct map_session_data *) src), bl) == 0)
-        return 0;
 
 //何もしない判定ここまで
 
@@ -1937,7 +1934,7 @@ int skill_attack (int attack_type, struct block_list *src,
                                (lv != 0) ? lv : skilllv,
                                (skillid == 0) ? 5 : type);
     }
-    if (dmg.blewcount > 0 && !map[src->m].flag.gvg)
+    if (dmg.blewcount > 0)
     {                           /* 吹き飛ばし処理とそのパケット */
         if (skillid == WZ_SIGHTRASHER)
             skill_blown (src, bl, dmg.blewcount);
@@ -1954,7 +1951,7 @@ int skill_attack (int attack_type, struct block_list *src,
     if (skillid != KN_BOWLINGBASH || flag)
         battle_damage (src, bl, damage, 0);
     if (skillid == RG_INTIMIDATE && damage > 0
-        && !(battle_get_mode (bl) & 0x20) && !map[src->m].flag.gvg)
+        && !(battle_get_mode (bl) & 0x20))
     {
         int  s_lv = battle_get_lv (src), t_lv = battle_get_lv (bl);
         int  rate = 50 + skilllv * 5;
@@ -2828,8 +2825,6 @@ int skill_castend_damage_id (struct block_list *src, struct block_list *bl,
                 {
                     int  i, c;  /* 他人から聞いた動きなので間違ってる可能性大＆効率が悪いっす＞＜ */
                     c = skill_get_blewcount (skillid, skilllv);
-                    if (map[bl->m].flag.gvg)
-                        c = 0;
                     for (i = 0; i < c; i++)
                     {
                         skill_blown (src, bl, 1);
@@ -3660,8 +3655,8 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
             if (dstmd && dstmd->skilltimer != -1 && dstmd->state.skillcastcancel)   // 詠唱妨害
                 skill_castcancel (bl, 0);
             if (dstsd && dstsd->skilltimer != -1
-                && (!dstsd->special_state.no_castcancel
-                    || map[bl->m].flag.gvg) && dstsd->state.skillcastcancel
+                && !dstsd->special_state.no_castcancel
+                && dstsd->state.skillcastcancel
                 && !dstsd->special_state.no_castcancel2)
                 skill_castcancel (bl, 0);
 
@@ -3696,9 +3691,9 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
                 if ((dstsd->bl.type != BL_PC)   // 相手はPCじゃないとだめ
                     || (sd->bl.id == dstsd->bl.id)  // 相手が自分はだめ
                     || (lv > 10)    // レベル差±10まで
-                    || (!sd->status.party_id && !sd->status.guild_id)   // PTにもギルドにも所属無しはだめ
-                    || ((sd->status.party_id != dstsd->status.party_id) // 同じパーティーか、
-                        || (sd->status.guild_id != dstsd->status.guild_id)) // 同じギルドじゃないとだめ
+                    || (!sd->status.party_id)   // PTにもギルドにも所属無しはだめ
+                    || (sd->status.party_id != dstsd->status.party_id) // 同じパーティーか、
+                         // 同じギルドじゃないとだめ
                     || (dstsd->status.pc_class == 14 || dstsd->status.pc_class == 21
                         || dstsd->status.pc_class == 4015
                         || dstsd->status.pc_class == 4022))
@@ -3760,8 +3755,7 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
             int i = 0;
             if (sd && dstsd)
             {
-                if (sd == dstsd || map[sd->bl.m].flag.pvp
-                    || map[sd->bl.m].flag.gvg)
+                if (sd == dstsd || map[sd->bl.m].flag.pvp)
                 {
                     if (dstsd->spiritball > 0)
                     {
@@ -4940,10 +4934,9 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
                 struct item item_tmp;
                 if ((bl->type == BL_SKILL) &&
                     (su = (struct skill_unit *) bl) &&
-                    (su->group->src_id == src->id || map[bl->m].flag.pvp
-                     || map[bl->m].flag.gvg) && (su->group->unit_id >= 0x8f
-                                                 && su->group->unit_id <=
-                                                 0x99)
+                    (su->group->src_id == src->id || map[bl->m].flag.pvp)
+                    && (su->group->unit_id >= 0x8f
+                        && su->group->unit_id <= 0x99)
                     && (su->group->unit_id != 0x92))
                 {               //罠を取り返す
                     if (sd)
@@ -5072,8 +5065,8 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
             if (dstmd && dstmd->skilltimer != -1 && dstmd->state.skillcastcancel)   // 詠唱妨害
                 skill_castcancel (bl, 0);
             if (dstsd && dstsd->skilltimer != -1
-                && (!dstsd->special_state.no_castcancel
-                    || map[bl->m].flag.gvg) && dstsd->state.skillcastcancel
+                && !dstsd->special_state.no_castcancel
+                && dstsd->state.skillcastcancel
                 && !dstsd->special_state.no_castcancel2)
                 skill_castcancel (bl, 0);
 
@@ -5104,8 +5097,8 @@ int skill_castend_nodamage_id (struct block_list *src, struct block_list *bl,
                 struct skill_unit *su = NULL;
                 if ((bl->type == BL_SKILL) &&
                     (su = (struct skill_unit *) bl) &&
-                    (su->group->src_id == src->id || map[bl->m].flag.pvp
-                     || map[bl->m].flag.gvg) && (su->group->unit_id == 0xb0))
+                    (su->group->src_id == src->id || map[bl->m].flag.pvp)
+                    && (su->group->unit_id == 0xb0))
                 {               //罠を取り返す
                     if (sd)
                         skill_delunit (su);
@@ -5207,9 +5200,6 @@ void skill_castend_id (timer_id tid, tick_t tick, custom_id_t id, custom_data_t 
     {
         int  fail_flag = 1;
         if (inf2 & 0x400 && battle_check_target (&sd->bl, bl, BCT_PARTY) > 0)
-            fail_flag = 0;
-        if (inf2 & 0x800 && sd->status.guild_id > 0
-            && sd->status.guild_id == battle_get_guild_id (bl))
             fail_flag = 0;
         if (fail_flag)
         {
@@ -6398,8 +6388,6 @@ int skill_unit_onplace (struct skill_unit *src, struct block_list *bl,
         case 0x90:             /* スキッドトラップ */
         {
             int  i, c = skill_get_blewcount (sg->skill_id, sg->skill_lv);
-            if (map[bl->m].flag.gvg)
-                c = 0;
             for (i = 0; i < c; i++)
                 skill_blown (&src->bl, bl, 1 | 0x30000);
             sg->unit_id = 0x8c;
@@ -7982,22 +7970,6 @@ int skill_use_id (struct map_session_data *sd, int target_id,
         && skill_num != RG_RAID)
         return 0;
 
-    if (map[sd->bl.m].flag.gvg)
-    {                           //GvGで使用できないスキル
-        switch (skill_num)
-        {
-            case SM_ENDURE:
-            case AL_TELEPORT:
-            case AL_WARP:
-            case WZ_ICEWALL:
-            case TF_BACKSLIDING:
-            case LK_BERSERK:
-            case HP_BASILICA:
-            case ST_CHASEWALK:
-                return 0;
-        }
-    }
-
     /* 演奏/ダンス中 */
     if (sc_data && sc_data[SC_DANCING].timer != -1)
     {
@@ -8302,12 +8274,6 @@ int skill_use_pos (struct map_session_data *sd,
     }
 
     if (sd->status.option & 2)
-        return 0;
-
-    if (map[sd->bl.m].flag.gvg
-        && (skill_num == SM_ENDURE || skill_num == AL_TELEPORT
-            || skill_num == AL_WARP || skill_num == WZ_ICEWALL
-            || skill_num == TF_BACKSLIDING))
         return 0;
 
     sd->skillid = skill_num;
@@ -11109,7 +11075,6 @@ struct skill_unit_group *skill_initunitgroup (struct block_list *src,
 
     group->src_id = src->id;
     group->party_id = battle_get_party_id (src);
-    group->guild_id = battle_get_guild_id (src);
     group->group_id = skill_unit_group_newid++;
     if (skill_unit_group_newid <= 0)
         skill_unit_group_newid = 10;

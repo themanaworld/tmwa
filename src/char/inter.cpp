@@ -9,7 +9,6 @@
 
 #include "inter.hpp"
 #include "int_party.hpp"
-#include "int_guild.hpp"
 #include "int_storage.hpp"
 #include "../common/lock.hpp"
 
@@ -213,21 +212,9 @@ int inter_config_read (const char *cfgName)
         {
             strncpy (party_txt, w2, sizeof (party_txt));
         }
-        else if (strcasecmp (w1, "guild_txt") == 0)
-        {
-            strncpy (guild_txt, w2, sizeof (guild_txt));
-        }
-        else if (strcasecmp (w1, "castle_txt") == 0)
-        {
-            strncpy (castle_txt, w2, sizeof (castle_txt));
-        }
         else if (strcasecmp (w1, "accreg_txt") == 0)
         {
             strncpy (accreg_txt, w2, sizeof (accreg_txt));
-        }
-        else if (strcasecmp (w1, "guild_storage_txt") == 0)
-        {
-            strncpy (guild_storage_txt, w2, sizeof (guild_storage_txt));
         }
         else if (strcasecmp (w1, "party_share_level") == 0)
         {
@@ -271,9 +258,7 @@ int inter_log (const char *fmt, ...)
 int inter_save (void)
 {
     inter_party_save ();
-    inter_guild_save ();
     inter_storage_save ();
-    inter_guild_storage_save ();
     inter_accreg_save ();
 
     return 0;
@@ -287,17 +272,8 @@ int inter_init (const char *file)
     wis_db = numdb_init ();
 
     inter_party_init ();
-    inter_guild_init ();
     inter_storage_init ();
     inter_accreg_init ();
-
-    return 0;
-}
-
-// マップサーバー接続
-int inter_mapif_init (int fd)
-{
-    inter_guild_mapif_init (fd);
 
     return 0;
 }
@@ -624,8 +600,6 @@ int inter_parse_frommap (int fd)
             break;
         default:
             if (inter_party_parse_frommap (fd))
-                break;
-            if (inter_guild_parse_frommap (fd))
                 break;
             if (inter_storage_parse_frommap (fd))
                 break;

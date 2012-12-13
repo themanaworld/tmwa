@@ -16,8 +16,6 @@ int  intif_request_accountreg (struct map_session_data *sd);
 
 int  intif_request_storage (int account_id);
 int  intif_send_storage (struct storage *stor);
-int  intif_request_guild_storage (int account_id, int guild_id);
-int  intif_send_guild_storage (int account_id, struct guild_storage *gstor);
 
 int  intif_create_party (struct map_session_data *sd, const char *name);
 int  intif_request_partyinfo (int party_id);
@@ -29,28 +27,5 @@ int  intif_party_changemap (struct map_session_data *sd, int online);
 int  intif_break_party (int party_id);
 int  intif_party_message (int party_id, int account_id, const char *mes, int len);
 int  intif_party_checkconflict (int party_id, int account_id, const char *nick);
-
-int  intif_guild_create (const char *name, const struct guild_member *master);
-int  intif_guild_request_info (int guild_id);
-int  intif_guild_addmember (int guild_id, struct guild_member *m);
-int  intif_guild_leave (int guild_id, int account_id, int char_id, int flag,
-                        const char *mes);
-int  intif_guild_memberinfoshort (int guild_id, int account_id, int char_id,
-                                  int online, int lv, int class_);
-int  intif_guild_break (int guild_id);
-int  intif_guild_message (int guild_id, int account_id, const char *mes, int len);
-int  intif_guild_checkconflict (int guild_id, int account_id, int char_id);
-int  intif_guild_change_basicinfo (int guild_id, int type, const void *data,
-                                   int len);
-int  intif_guild_change_memberinfo (int guild_id, int account_id, int char_id,
-                                    int type, const void *data, int len);
-int  intif_guild_position (int guild_id, int idx, struct guild_position *p);
-int  intif_guild_skillup (int guild_id, int skill_num, int account_id);
-int  intif_guild_alliance (int guild_id1, int guild_id2, int account_id1,
-                           int account_id2, int flag);
-int  intif_guild_notice (int guild_id, const char *mes1, const char *mes2);
-int  intif_guild_emblem (int guild_id, int len, const char *data);
-int  intif_guild_castle_dataload (int castle_id, int index);
-int  intif_guild_castle_datasave (int castle_id, int index, int value);
 
 #endif

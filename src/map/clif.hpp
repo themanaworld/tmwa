@@ -111,15 +111,6 @@ int  clif_storageitemadded (struct map_session_data *sd, struct storage *stor,
 int  clif_storageitemremoved (struct map_session_data *sd, int index,
                               int amount);
 int  clif_storageclose (struct map_session_data *sd);
-int  clif_guildstorageitemlist (struct map_session_data *sd,
-                                struct guild_storage *stor);
-int  clif_guildstorageequiplist (struct map_session_data *sd,
-                                 struct guild_storage *stor);
-int  clif_updateguildstorageamount (struct map_session_data *sd,
-                                    struct guild_storage *stor);
-int  clif_guildstorageitemadded (struct map_session_data *sd,
-                                 struct guild_storage *stor, int index,
-                                 int amount);
 
 void clif_pcinsight (struct block_list *, va_list); // map_forallinmovearea callback
 void clif_pcoutsight (struct block_list *, va_list);    // map_forallinmovearea callback
@@ -222,35 +213,6 @@ int  clif_party_move (struct party *p, struct map_session_data *sd,
                       int online);
 int  clif_party_xy (struct party *p, struct map_session_data *sd);
 int  clif_party_hp (struct party *p, struct map_session_data *sd);
-
-// guild
-int  clif_guild_created (struct map_session_data *sd, int flag);
-int  clif_guild_belonginfo (struct map_session_data *sd, struct guild *g);
-int  clif_guild_basicinfo (struct map_session_data *sd);
-int  clif_guild_allianceinfo (struct map_session_data *sd);
-int  clif_guild_memberlist (struct map_session_data *sd);
-int  clif_guild_skillinfo (struct map_session_data *sd);
-int  clif_guild_memberlogin_notice (struct guild *g, int idx, int flag);
-int  clif_guild_invite (struct map_session_data *sd, struct guild *g);
-int  clif_guild_inviteack (struct map_session_data *sd, int flag);
-int  clif_guild_leave (struct map_session_data *sd, const char *name,
-                       const char *mes);
-int  clif_guild_explusion (struct map_session_data *sd, const char *name,
-                           const char *mes, int account_id);
-int  clif_guild_positionchanged (struct guild *g, int idx);
-int  clif_guild_memberpositionchanged (struct guild *g, int idx);
-int  clif_guild_emblem (struct map_session_data *sd, struct guild *g);
-int  clif_guild_notice (struct map_session_data *sd, struct guild *g);
-int  clif_guild_message (struct guild *g, int account_id, const char *mes,
-                         int len);
-int  clif_guild_skillup (struct map_session_data *sd, int skill_num, int lv);
-int  clif_guild_reqalliance (struct map_session_data *sd, int account_id,
-                             const char *name);
-int  clif_guild_allianceack (struct map_session_data *sd, int flag);
-int  clif_guild_delalliance (struct map_session_data *sd, int guild_id,
-                             int flag);
-int  clif_guild_oppositionack (struct map_session_data *sd, int flag);
-int  clif_guild_broken (struct map_session_data *sd, int flag);
 
 // atcommand
 int  clif_displaymessage (int fd, const char *mes);

@@ -145,7 +145,6 @@ void mobskill_castend_id (timer_id tid, tick_t tick, custom_id_t id, custom_data
 void mobskill_castend_pos (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 int  mob_summonslave (struct mob_data *md2, int *value, int amount, int flag);
 
-int  mob_gvmobcheck (struct map_session_data *sd, struct block_list *bl);
 void mob_reload (void);
 
 #endif

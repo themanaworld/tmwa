@@ -29,7 +29,6 @@
 #include "party.hpp"
 #include "battle.hpp"
 #include "script.hpp"
-#include "guild.hpp"
 #include "atcommand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -64,7 +63,6 @@ int  map_port = 0;
 
 int  autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 int  save_settings = 0xFFFF;
-int  agit_flag = 0;
 int  night_flag = 0;            // 0=day, 1=night [Yor]
 
 struct charid2nick
@@ -1111,14 +1109,7 @@ int map_quit (struct map_session_data *sd)
     if (sd->party_invite > 0)   // パーティ勧誘を拒否する
         party_reply_invite (sd, sd->party_invite_account, 0);
 
-    if (sd->guild_invite > 0)   // ギルド勧誘を拒否する
-        guild_reply_invite (sd, sd->guild_invite, 0);
-    if (sd->guild_alliance > 0) // ギルド同盟勧誘を拒否する
-        guild_reply_reqalliance (sd, sd->guild_alliance_account, 0);
-
     party_send_logout (sd);     // パーティのログアウトメッセージ送信
-
-    guild_send_memberinfoshort (sd, 0); // ギルドのログアウトメッセージ送信
 
     pc_cleareventtimer (sd);    // イベントタイマを破棄する
 
@@ -1147,12 +1138,10 @@ int map_quit (struct map_session_data *sd)
     //クローンスキルで覚えたスキルは消す
 
     //The storage closing routines will save the char if needed. [Skotlex]
-    if (!sd->state.storage_flag)
+    if (!sd->state.storage_open)
         chrif_save (sd);
-    else if (sd->state.storage_flag == 1)
+    else if (sd->state.storage_open)
         storage_storage_quit (sd);
-    else if (sd->state.storage_flag == 2)
-        storage_guild_storage_quit (sd, 1);
 
     if (sd->npc_stackbuf && sd->npc_stackbuf != NULL)
         free (sd->npc_stackbuf);
@@ -2105,7 +2094,6 @@ void term_func (void)
     do_final_script ();
     do_final_itemdb ();
     do_final_storage ();
-    do_final_guild ();
 }
 
 /// --help was passed
@@ -2180,7 +2168,6 @@ int do_init (int argc, char *argv[])
     do_init_npc ();
     do_init_pc ();
     do_init_party ();
-    do_init_guild ();
     do_init_storage ();
     do_init_skill ();
     do_init_magic ();

@@ -26,7 +26,6 @@ enum AtCommandType
     AtCommand_Load,
     AtCommand_Speed,
     AtCommand_Storage,
-    AtCommand_GuildStorage,
     AtCommand_Option,
     AtCommand_Hide,
     AtCommand_Die,
@@ -66,7 +65,6 @@ enum AtCommandType
     AtCommand_Intelligence,
     AtCommand_Dexterity,
     AtCommand_Luck,
-    AtCommand_GuildLevelUp,
     AtCommand_Recall,
     AtCommand_Revive,
     AtCommand_CharacterStats,
@@ -90,9 +88,6 @@ enum AtCommandType
     AtCommand_LostSkill,
     AtCommand_CharLostSkill,
     AtCommand_Party,
-    AtCommand_Guild,
-    AtCommand_AgitStart,
-    AtCommand_AgitEnd,
     AtCommand_MapExit,
     AtCommand_IDSearch,
     AtCommand_CharSkReset,
@@ -121,9 +116,7 @@ enum AtCommandType
     AtCommand_CharUnBan,        // by Yor
     AtCommand_MountPeco,        // by Valaris
     AtCommand_CharMountPeco,    // by Yor
-    AtCommand_GuildSpy,         // [Syrus22]
     AtCommand_PartySpy,         // [Syrus22]
-    AtCommand_GuildRecall,      // by Yor
     AtCommand_PartyRecall,      // by Yor
     AtCommand_Enablenpc,
     AtCommand_Disablenpc,

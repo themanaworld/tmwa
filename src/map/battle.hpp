@@ -111,7 +111,6 @@ int  battle_get_attack_element2 (struct block_list *bl);    //左手武器属性
 #define battle_get_elem_type(bl)	(battle_get_element(bl)%10)
 #define battle_get_elem_level(bl)	(battle_get_element(bl)/10/2)
 int  battle_get_party_id (struct block_list *bl);
-int  battle_get_guild_id (struct block_list *bl);
 int  battle_get_race (struct block_list *bl);
 int  battle_get_size (struct block_list *bl);
 int  battle_get_mode (struct block_list *bl);
@@ -203,9 +202,6 @@ extern struct Battle_Config
     int  quest_skill_learn;
     int  quest_skill_reset;
     int  basic_skill_check;
-    int  guild_emperium_check;
-    int  guild_exp_limit;
-    int  guild_max_castles;
     int  pc_invincible_time;
     int  skill_min_damage;
     int  finger_offensive_type;
@@ -252,11 +248,6 @@ extern struct Battle_Config
     int  monster_skill_nofootset;
     int  pc_cloak_check_type;
     int  monster_cloak_check_type;
-    int  gvg_short_damage_rate;
-    int  gvg_long_damage_rate;
-    int  gvg_magic_damage_rate;
-    int  gvg_misc_damage_rate;
-    int  gvg_eliminate_time;
     int  mob_changetarget_byskill;
     int  pc_attack_direction_change;
     int  monster_attack_direction_change;
@@ -311,7 +302,6 @@ extern struct Battle_Config
     int  invite_request_check;
     int  skill_removetrap_type;
     int  disp_experience;
-    int  castle_defense_rate;
     int  riding_weight;
     int  backstab_bow_penalty;
 

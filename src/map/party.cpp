@@ -250,7 +250,7 @@ int party_invite (struct map_session_data *sd, int account_id)
     if (!battle_config.invite_request_check)
     {
         /* Disallow the invitation under these conditions. */
-        if (tsd->guild_invite > 0 || tsd->trade_partner || tsd->npc_id
+        if (tsd->trade_partner || tsd->npc_id
             || tsd->npc_shopid || pc_checkskill (tsd, NV_PARTY) < 1)
         {
             clif_party_inviteack (sd, tsd->status.name, 1);

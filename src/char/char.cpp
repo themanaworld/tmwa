@@ -27,7 +27,6 @@
 #include "char.hpp"
 
 #include "inter.hpp"
-#include "int_guild.hpp"
 #include "int_party.hpp"
 #include "int_storage.hpp"
 
@@ -229,7 +228,7 @@ int mmo_char_tostr (char *str, struct mmo_charstatus *p)
 
     str_p += sprintf (str_p, "%d\t%d,%d\t%s\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d,%d\t%d,%d,%d,%d,%d,%d\t%d,%d" "\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d,%d,%d" "\t%s,%d,%d\t%s,%d,%d,%d\t", p->char_id, p->account_id, p->char_num, p->name,  //
                       p->pc_class, p->base_level, p->job_level, p->base_exp, p->job_exp, p->zeny, p->hp, p->max_hp, p->sp, p->max_sp, p->str, p->agi, p->vit, p->int_, p->dex, p->luk, p->status_point, p->skill_point, p->option, p->karma, p->manner,    //
-                      p->party_id, p->guild_id, 0, p->hair, p->hair_color, p->clothes_color, p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom, p->last_point.map, p->last_point.x, p->last_point.y,   //
+                      p->party_id, 0/*guild_id*/, 0, p->hair, p->hair_color, p->clothes_color, p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom, p->last_point.map, p->last_point.x, p->last_point.y,   //
                       p->save_point.map, p->save_point.x, p->save_point.y,
                       p->partner_id);
     for (i = 0; i < 10; i++)
@@ -369,7 +368,7 @@ int mmo_char_fromstr (char *str, struct mmo_charstatus *p)
     p->karma = tmp_int[22];
     p->manner = tmp_int[23];
     p->party_id = tmp_int[24];
-    p->guild_id = tmp_int[25];
+    //p->guild_id = tmp_int[25];
 //  p->pet_id = tmp_int[26];
     p->hair = tmp_int[27];
     p->hair_color = tmp_int[28];
@@ -1003,7 +1002,7 @@ int make_new_char (int fd, unsigned char *dat)
     char_dat[i].karma = 0;
     char_dat[i].manner = 0;
     char_dat[i].party_id = 0;
-    char_dat[i].guild_id = 0;
+    //char_dat[i].guild_id = 0;
     char_dat[i].hair = dat[33];
     char_dat[i].hair_color = dat[31];
     char_dat[i].clothes_color = 0;
@@ -1749,10 +1748,6 @@ int disconnect_player (int accound_id)
 // キャラ削除に伴うデータ削除
 static int char_delete (struct mmo_charstatus *cs)
 {
-
-    // ギルド脱退
-    if (cs->guild_id)
-        inter_guild_leave (cs->guild_id, cs->account_id, cs->char_id);
     // パーティー脱退
     if (cs->party_id)
         inter_party_leave (cs->party_id, cs->account_id);
@@ -2861,12 +2856,6 @@ int search_mapserver (const char *map)
     return -1;
 }
 
-// char_mapifの初期化処理（現在はinter_mapif初期化のみ）
-static int char_mapif_init (int fd)
-{
-    return inter_mapif_init (fd);
-}
-
 //-----------------------------------------------------
 // Test to know if an IP come from LAN or WAN. by [Yor]
 //-----------------------------------------------------
@@ -3430,7 +3419,6 @@ void parse_char (int fd)
                     RFIFOSKIP (fd, 60);
                     realloc_fifo (fd, FIFOSIZE_SERVERLINK,
                                   FIFOSIZE_SERVERLINK);
-                    char_mapif_init (fd);
                     // send gm acccounts level to map-servers
                     len = 4;
                     WFIFOW (fd, 0) = 0x2b15;
