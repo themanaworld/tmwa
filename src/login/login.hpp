@@ -18,14 +18,14 @@ struct mmo_account
 {
     char *userid;
     char *passwd;
-    int  passwdenc;
+    int passwdenc;
 
     long account_id;
     long login_id1;
     long login_id2;
     long char_id;
     char lastlogin[24];
-    int  sex;
+    int sex;
 };
 
 struct mmo_char_server
@@ -33,9 +33,9 @@ struct mmo_char_server
     char name[20];
     long ip;
     short port;
-    int  users;
-    int  maintenance;
-    int  is_new;
+    int users;
+    int maintenance;
+    int is_new;
 };
 
 #endif

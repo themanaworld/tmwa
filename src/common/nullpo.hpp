@@ -42,20 +42,20 @@
 # include "sanity.hpp"
 
 /// Used by macros in this header
-bool nullpo_chk (const char *file, int line, const char *func,
+bool nullpo_chk(const char *file, int line, const char *func,
                  const void *target);
 
 /// Used by macros in this header
-bool nullpo_chk_f (const char *file, int line, const char *func,
+bool nullpo_chk_f(const char *file, int line, const char *func,
                    const void *target, const char *fmt, ...)
-    __attribute__ ((format (printf, 5, 6)));
+    __attribute__((format(printf, 5, 6)));
 
 /// Used only by map/battle.c
-void nullpo_info (const char *file, int line, const char *func);
+void nullpo_info(const char *file, int line, const char *func);
 
 /// Not used
-void nullpo_info_f (const char *file, int line, const char *func,
+void nullpo_info_f(const char *file, int line, const char *func,
                     const char *fmt, ...)
-    __attribute__ ((format (printf, 4, 5)));
+    __attribute__((format(printf, 4, 5)));
 
 #endif // NULLPO_HPP

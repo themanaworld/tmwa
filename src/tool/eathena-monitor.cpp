@@ -74,7 +74,7 @@ const char *config = CONFIG;
 pid_t pid_login, pid_map, pid_char;
 
 static
-const char* make_path (const char* base, const char* path) {
+const char* make_path(const char* base, const char* path) {
     size_t base_len = strlen(base);
     size_t path_len = strlen(path);
     char* out = (char *)malloc(base_len + 1 + path_len + 1);
@@ -86,7 +86,7 @@ const char* make_path (const char* base, const char* path) {
 }
 
 static
-void parse_option (char *name, char *value) {
+void parse_option(char *name, char *value) {
     if (!strcasecmp(name, "login_server")) {
         login_server = strdup(value);
     } else if (!strcasecmp(name, "map_server")) {
@@ -107,24 +107,24 @@ void read_config(const char *filename) {
     FILE *input;
     char string[1000];
 
-    if (!(input = fopen(filename,"r")) && !(input = fopen (config, "r"))) {
+    if (!(input = fopen(filename,"r")) && !(input = fopen(config, "r"))) {
         perror("Unable to load config file");
         return;
     }
 
     while (1) {
-        if (fgets (string, sizeof (string) - 1, input) == NULL)
+        if (fgets(string, sizeof(string) - 1, input) == NULL)
             break;
         char *str = string, *name, *value;
         SKIP_BLANK(str);
-        string[sizeof (string) - 1] = '\0';
+        string[sizeof(string) - 1] = '\0';
         if (*str == '#')
             continue;
         if (*str == '\0')
             continue;
         name = str;
 
-        GOTO_EQL (str);
+        GOTO_EQL(str);
 
         if (*str != '=') {
             continue;
@@ -138,7 +138,7 @@ void read_config(const char *filename) {
         parse_option(name, value);
     }
 
-    fclose (input);
+    fclose(input);
 }
 
 static
@@ -182,11 +182,11 @@ int main(int argc, char *argv[]) {
 
     if (chdir(workdir) < 0) perror("Failed to change directory"), exit(1);
 
-    printf ("Starting:\n");
-    printf ("* workdir: %s\n",  workdir);
-    printf ("* login_server: %s\n", login_server);
-    printf ("* map_server: %s\n", map_server);
-    printf ("* char_server: %s\n", char_server);
+    printf("Starting:\n");
+    printf("* workdir: %s\n",  workdir);
+    printf("* login_server: %s\n", login_server);
+    printf("* map_server: %s\n", map_server);
+    printf("* char_server: %s\n", char_server);
     {
         //make sure all possible file descriptors are free for use by the servers
         //if there are file descriptors higher than the max open from before the limit dropped, that's not our problem
@@ -209,15 +209,15 @@ int main(int argc, char *argv[]) {
 
         if (!pid_login) {
             pid_login = start_process(login_server);
-            fprintf (stderr, "[%s] forked login server: %lu\n", timestamp, (unsigned long)pid_login);
+            fprintf(stderr, "[%s] forked login server: %lu\n", timestamp, (unsigned long)pid_login);
         }
         if (!pid_char) {
             pid_char = start_process(char_server);
-            fprintf (stderr, "[%s] forked char server: %lu\n", timestamp, (unsigned long)pid_char);
+            fprintf(stderr, "[%s] forked char server: %lu\n", timestamp, (unsigned long)pid_char);
         }
         if (!pid_map) {
             pid_map = start_process(map_server);
-            fprintf (stderr, "[%s] forked map server: %lu\n", timestamp, (unsigned long)pid_map);
+            fprintf(stderr, "[%s] forked map server: %lu\n", timestamp, (unsigned long)pid_map);
         }
         pid_t dead = wait(NULL);
         if (dead < 0) perror("Failed to wait for child"), exit(1);

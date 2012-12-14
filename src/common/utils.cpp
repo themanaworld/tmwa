@@ -9,10 +9,10 @@
 //-----------------------------------------------------
 // Function to suppress control characters in a string.
 //-----------------------------------------------------
-int remove_control_chars (char *str)
+int remove_control_chars(char *str)
 {
-    int  i;
-    int  change = 0;
+    int i;
+    int change = 0;
 
     for (i = 0; str[i]; i++)
     {
@@ -29,39 +29,39 @@ int remove_control_chars (char *str)
 //---------------------------------------------------
 // E-mail check: return 0 (not correct) or 1 (valid).
 //---------------------------------------------------
-int e_mail_check (const char *email)
+int e_mail_check(const char *email)
 {
     char ch;
     const char *last_arobas;
 
     // athena limits
-    if (strlen (email) < 3 || strlen (email) > 39)
+    if (strlen(email) < 3 || strlen(email) > 39)
         return 0;
 
     // part of RFC limits (official reference of e-mail description)
-    if (strchr (email, '@') == NULL || email[strlen (email) - 1] == '@')
+    if (strchr(email, '@') == NULL || email[strlen(email) - 1] == '@')
         return 0;
 
-    if (email[strlen (email) - 1] == '.')
+    if (email[strlen(email) - 1] == '.')
         return 0;
 
-    last_arobas = strrchr (email, '@');
+    last_arobas = strrchr(email, '@');
 
-    if (strstr (last_arobas, "@.") != NULL ||
-        strstr (last_arobas, "..") != NULL)
+    if (strstr(last_arobas, "@.") != NULL ||
+        strstr(last_arobas, "..") != NULL)
         return 0;
 
     for (ch = 1; ch < 32; ch++)
     {
-        if (strchr (last_arobas, ch) != NULL)
+        if (strchr(last_arobas, ch) != NULL)
         {
             return 0;
             break;
         }
     }
 
-    if (strchr (last_arobas, ' ') != NULL ||
-        strchr (last_arobas, ';') != NULL)
+    if (strchr(last_arobas, ' ') != NULL ||
+        strchr(last_arobas, ';') != NULL)
         return 0;
 
     // all correct
@@ -74,15 +74,15 @@ int e_mail_check (const char *email)
 //-------------------------------------------------
 int config_switch (const char *str)
 {
-    if (strcasecmp (str, "on") == 0 || strcasecmp (str, "yes") == 0
-        || strcasecmp (str, "oui") == 0 || strcasecmp (str, "ja") == 0
-        || strcasecmp (str, "si") == 0)
+    if (strcasecmp(str, "on") == 0 || strcasecmp(str, "yes") == 0
+        || strcasecmp(str, "oui") == 0 || strcasecmp(str, "ja") == 0
+        || strcasecmp(str, "si") == 0)
         return 1;
-    if (strcasecmp (str, "off") == 0 || strcasecmp (str, "no") == 0
-        || strcasecmp (str, "non") == 0 || strcasecmp (str, "nein") == 0)
+    if (strcasecmp(str, "off") == 0 || strcasecmp(str, "no") == 0
+        || strcasecmp(str, "non") == 0 || strcasecmp(str, "nein") == 0)
         return 0;
 
-    return atoi (str);
+    return atoi(str);
 }
 
 const char *ip2str(struct in_addr ip, bool extra_dot)

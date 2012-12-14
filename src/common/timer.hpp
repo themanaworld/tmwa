@@ -19,7 +19,7 @@ typedef uint32_t timer_id;
 // BUG: pointers are stored in here
 typedef int32_t custom_id_t;
 typedef int32_t custom_data_t;
-typedef void (*timer_func) (timer_id, tick_t, custom_id_t, custom_data_t);
+typedef void(*timer_func)(timer_id, tick_t, custom_id_t, custom_data_t);
 
 struct TimerData
 {
@@ -41,20 +41,20 @@ struct TimerData
 /// but use of 32-bit integers means it wraps every 49 days.
 // The only external caller of this function is the core.c main loop, but that makes sense
 // in fact, it might make more sense if gettick() ALWAYS returned that cached value
-tick_t gettick_nocache (void);
+tick_t gettick_nocache(void);
 /// This function is called enough that it's worth caching the result for
 /// the next 255 times
-tick_t gettick (void);
+tick_t gettick(void);
 
-timer_id add_timer (tick_t, timer_func, custom_id_t, custom_data_t);
-timer_id add_timer_interval (tick_t, timer_func, custom_id_t, custom_data_t, interval_t);
-void delete_timer (timer_id, timer_func);
+timer_id add_timer(tick_t, timer_func, custom_id_t, custom_data_t);
+timer_id add_timer_interval(tick_t, timer_func, custom_id_t, custom_data_t, interval_t);
+void delete_timer(timer_id, timer_func);
 
-tick_t addtick_timer (timer_id, interval_t);
-struct TimerData *get_timer (timer_id tid);
+tick_t addtick_timer(timer_id, interval_t);
+struct TimerData *get_timer(timer_id tid);
 
 /// Do all timers scheduled before tick, and return the number of milliseconds until the next timer happens
-interval_t do_timer (tick_t tick);
+interval_t do_timer(tick_t tick);
 
 
 

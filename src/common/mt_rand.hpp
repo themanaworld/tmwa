@@ -4,9 +4,9 @@
 # include "sanity.hpp"
 
 /// Initialize the generator (called automatically with time() if you don't)
-void mt_seed (uint32_t seed);
+void mt_seed(uint32_t seed);
 /// Get a random number
-uint32_t mt_random (void);
+uint32_t mt_random(void);
 
 /**
  * ModuloRand and ModuloPlusRand

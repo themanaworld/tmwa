@@ -190,29 +190,29 @@ typedef struct AtCommandInfo
 {
     AtCommandType type;
     const char *command;
-    int  level;
-    int  (*proc) (const int, struct map_session_data *,
+    int level;
+    int(*proc)(const int, struct map_session_data *,
                   const char *command, const char *message);
 } AtCommandInfo;
 
-AtCommandType is_atcommand (const int fd, struct map_session_data *sd,
+AtCommandType is_atcommand(const int fd, struct map_session_data *sd,
                             const char *message, int gmlvl);
 
-AtCommandType atcommand (const int level, const char *message,
+AtCommandType atcommand(const int level, const char *message,
                          AtCommandInfo * info);
-int  get_atcommand_level (const AtCommandType type);
+int get_atcommand_level(const AtCommandType type);
 
-int  atcommand_item (const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Valaris]
-int  atcommand_warp (const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Yor]
-int  atcommand_spawn (const int fd, struct map_session_data *sd, const char *command, const char *message); // [Valaris]
-int  atcommand_goto (const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Yor]
-int  atcommand_recall (const int fd, struct map_session_data *sd, const char *command, const char *message);    // [Yor]
+int atcommand_item(const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Valaris]
+int atcommand_warp(const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Yor]
+int atcommand_spawn(const int fd, struct map_session_data *sd, const char *command, const char *message); // [Valaris]
+int atcommand_goto(const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Yor]
+int atcommand_recall(const int fd, struct map_session_data *sd, const char *command, const char *message);    // [Yor]
 
-int  atcommand_config_read (const char *cfgName);
+int atcommand_config_read(const char *cfgName);
 
 __attribute__((format(printf, 2, 3)))
-void log_atcommand (struct map_session_data *sd, const char *fmt, ...);
+void log_atcommand(struct map_session_data *sd, const char *fmt, ...);
 __attribute__((format(printf, 1, 2)))
-void gm_log (const char *fmt, ...);
+void gm_log(const char *fmt, ...);
 
 #endif

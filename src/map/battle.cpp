@@ -22,7 +22,7 @@
 #include "memwatch.hpp"
 #endif
 
-int  attr_fix_table[4][10][10];
+int attr_fix_table[4][10][10];
 
 struct Battle_Config battle_config;
 
@@ -31,12 +31,12 @@ struct Battle_Config battle_config;
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static int distance (int x0, int y0, int x1, int y1)
+static int distance(int x0, int y0, int x1, int y1)
 {
-    int  dx, dy;
+    int dx, dy;
 
-    dx = abs (x0 - x1);
-    dy = abs (y0 - y1);
+    dx = abs(x0 - x1);
+    dy = abs(y0 - y1);
     return dx > dy ? dx : dy;
 }
 
@@ -45,15 +45,15 @@ static int distance (int x0, int y0, int x1, int y1)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_counttargeted (struct block_list *bl, struct block_list *src,
+int battle_counttargeted(struct block_list *bl, struct block_list *src,
                           int target_lv)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_PC)
-        return pc_counttargeted ((struct map_session_data *) bl, src,
+        return pc_counttargeted((struct map_session_data *) bl, src,
                                  target_lv);
     else if (bl->type == BL_MOB)
-        return mob_counttargeted ((struct mob_data *) bl, src, target_lv);
+        return mob_counttargeted((struct mob_data *) bl, src, target_lv);
     return 0;
 }
 
@@ -62,9 +62,9 @@ int battle_counttargeted (struct block_list *bl, struct block_list *src,
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_class (struct block_list *bl)
+int battle_get_class(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return ((struct mob_data *) bl)->mob_class;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -78,9 +78,9 @@ int battle_get_class (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_dir (struct block_list *bl)
+int battle_get_dir(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return ((struct mob_data *) bl)->dir;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -94,9 +94,9 @@ int battle_get_dir (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_lv (struct block_list *bl)
+int battle_get_lv(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return ((struct mob_data *) bl)->stats[MOB_LV];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -110,9 +110,9 @@ int battle_get_lv (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_range (struct block_list *bl)
+int battle_get_range(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return mob_db[((struct mob_data *) bl)->mob_class].range;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -126,9 +126,9 @@ int battle_get_range (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_hp (struct block_list *bl)
+int battle_get_hp(struct block_list *bl)
 {
-    nullpo_retr (1, bl);
+    nullpo_retr(1, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return ((struct mob_data *) bl)->hp;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -142,15 +142,15 @@ int battle_get_hp (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_max_hp (struct block_list *bl)
+int battle_get_max_hp(struct block_list *bl)
 {
-    nullpo_retr (1, bl);
+    nullpo_retr(1, bl);
     if (bl->type == BL_PC && ((struct map_session_data *) bl))
         return ((struct map_session_data *) bl)->status.max_hp;
     else
     {
-        struct status_change *sc_data = battle_get_sc_data (bl);
-        int  max_hp = 1;
+        struct status_change *sc_data = battle_get_sc_data(bl);
+        int max_hp = 1;
         if (bl->type == BL_MOB && ((struct mob_data *) bl))
         {
             max_hp = ((struct mob_data *) bl)->stats[MOB_MAX_HP];
@@ -185,13 +185,13 @@ int battle_get_max_hp (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_str (struct block_list *bl)
+int battle_get_str(struct block_list *bl)
 {
-    int  str = 0;
+    int str = 0;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && ((struct mob_data *) bl))
         str = ((struct mob_data *) bl)->stats[MOB_STR];
     else if (bl->type == BL_PC && ((struct map_session_data *) bl))
@@ -204,8 +204,8 @@ int battle_get_str (struct block_list *bl)
             str += 4;
         if (sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC)
         {                       // ブレッシング
-            int  race = battle_get_race (bl);
-            if (battle_check_undead (race, battle_get_elem_type (bl))
+            int race = battle_get_race(bl);
+            if (battle_check_undead(race, battle_get_elem_type(bl))
                 || race == 6)
                 str >>= 1;      // 悪 魔/不死
             else
@@ -225,13 +225,13 @@ int battle_get_str (struct block_list *bl)
  *------------------------------------------
  */
 
-int battle_get_agi (struct block_list *bl)
+int battle_get_agi(struct block_list *bl)
 {
-    int  agi = 0;
+    int agi = 0;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         agi = ((struct mob_data *) bl)->stats[MOB_AGI];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -264,13 +264,13 @@ int battle_get_agi (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_vit (struct block_list *bl)
+int battle_get_vit(struct block_list *bl)
 {
-    int  vit = 0;
+    int vit = 0;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         vit = ((struct mob_data *) bl)->stats[MOB_VIT];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -293,13 +293,13 @@ int battle_get_vit (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_int (struct block_list *bl)
+int battle_get_int(struct block_list *bl)
 {
-    int  int_ = 0;
+    int int_ = 0;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         int_ = ((struct mob_data *) bl)->stats[MOB_INT];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -309,8 +309,8 @@ int battle_get_int (struct block_list *bl)
     {
         if (sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC)
         {                       // ブレッシング
-            int  race = battle_get_race (bl);
-            if (battle_check_undead (race, battle_get_elem_type (bl))
+            int race = battle_get_race(bl);
+            if (battle_check_undead(race, battle_get_elem_type(bl))
                 || race == 6)
                 int_ >>= 1;     // 悪 魔/不死
             else
@@ -331,13 +331,13 @@ int battle_get_int (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_dex (struct block_list *bl)
+int battle_get_dex(struct block_list *bl)
 {
-    int  dex = 0;
+    int dex = 0;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         dex = ((struct mob_data *) bl)->stats[MOB_DEX];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -351,8 +351,8 @@ int battle_get_dex (struct block_list *bl)
 
         if (sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC)
         {                       // ブレッシング
-            int  race = battle_get_race (bl);
-            if (battle_check_undead (race, battle_get_elem_type (bl))
+            int race = battle_get_race(bl);
+            if (battle_check_undead(race, battle_get_elem_type(bl))
                 || race == 6)
                 dex >>= 1;      // 悪 魔/不死
             else
@@ -374,13 +374,13 @@ int battle_get_dex (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_luk (struct block_list *bl)
+int battle_get_luk(struct block_list *bl)
 {
-    int  luk = 0;
+    int luk = 0;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         luk = ((struct mob_data *) bl)->stats[MOB_LUK];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -405,17 +405,17 @@ int battle_get_luk (struct block_list *bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-int battle_get_flee (struct block_list *bl)
+int battle_get_flee(struct block_list *bl)
 {
-    int  flee = 1;
+    int flee = 1;
     struct status_change *sc_data;
 
-    nullpo_retr (1, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(1, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         flee = ((struct map_session_data *) bl)->flee;
     else
-        flee = battle_get_agi (bl) + battle_get_lv (bl);
+        flee = battle_get_agi(bl) + battle_get_lv(bl);
 
     if (sc_data)
     {
@@ -430,9 +430,9 @@ int battle_get_flee (struct block_list *bl)
         if (sc_data[SC_SPIDERWEB].timer != -1 && bl->type != BL_PC) //スパイダーウェブ
             flee -= flee * 50 / 100;
 
-        if (battle_is_unarmed (bl))
-            flee += (skill_power_bl (bl, TMW_BRAWLING) >> 3);   // +25 for 200
-        flee += skill_power_bl (bl, TMW_SPEED) >> 3;
+        if (battle_is_unarmed(bl))
+            flee += (skill_power_bl(bl, TMW_BRAWLING) >> 3);   // +25 for 200
+        flee += skill_power_bl(bl, TMW_SPEED) >> 3;
     }
     if (flee < 1)
         flee = 1;
@@ -444,17 +444,17 @@ int battle_get_flee (struct block_list *bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-int battle_get_hit (struct block_list *bl)
+int battle_get_hit(struct block_list *bl)
 {
-    int  hit = 1;
+    int hit = 1;
     struct status_change *sc_data;
 
-    nullpo_retr (1, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(1, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         hit = ((struct map_session_data *) bl)->hit;
     else
-        hit = battle_get_dex (bl) + battle_get_lv (bl);
+        hit = battle_get_dex(bl) + battle_get_lv(bl);
 
     if (sc_data)
     {
@@ -470,8 +470,8 @@ int battle_get_hit (struct block_list *bl)
         if (sc_data[SC_CONCENTRATION].timer != -1 && bl->type != BL_PC) //コンセントレーション
             hit += (hit * (10 * (sc_data[SC_CONCENTRATION].val1))) / 100;
 
-        if (battle_is_unarmed (bl))
-            hit += (skill_power_bl (bl, TMW_BRAWLING) >> 4);    // +12 for 200
+        if (battle_is_unarmed(bl))
+            hit += (skill_power_bl(bl, TMW_BRAWLING) >> 4);    // +12 for 200
     }
     if (hit < 1)
         hit = 1;
@@ -483,22 +483,22 @@ int battle_get_hit (struct block_list *bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-int battle_get_flee2 (struct block_list *bl)
+int battle_get_flee2(struct block_list *bl)
 {
-    int  flee2 = 1;
+    int flee2 = 1;
     struct status_change *sc_data;
 
-    nullpo_retr (1, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(1, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
     {
-        flee2 = battle_get_luk (bl) + 10;
+        flee2 = battle_get_luk(bl) + 10;
         flee2 +=
             ((struct map_session_data *) bl)->flee2 -
             (((struct map_session_data *) bl)->paramc[5] + 10);
     }
     else
-        flee2 = battle_get_luk (bl) + 1;
+        flee2 = battle_get_luk(bl) + 1;
 
     if (sc_data)
     {
@@ -506,9 +506,9 @@ int battle_get_flee2 (struct block_list *bl)
             flee2 += (sc_data[SC_WHISTLE].val1 + sc_data[SC_WHISTLE].val2
                       + (sc_data[SC_WHISTLE].val3 & 0xffff)) * 10;
 
-        if (battle_is_unarmed (bl))
-            flee2 += (skill_power_bl (bl, TMW_BRAWLING) >> 3);  // +25 for 200
-        flee2 += skill_power_bl (bl, TMW_SPEED) >> 3;
+        if (battle_is_unarmed(bl))
+            flee2 += (skill_power_bl(bl, TMW_BRAWLING) >> 3);  // +25 for 200
+        flee2 += skill_power_bl(bl, TMW_SPEED) >> 3;
     }
     if (flee2 < 1)
         flee2 = 1;
@@ -521,22 +521,22 @@ int battle_get_flee2 (struct block_list *bl)
  *------------------------------------------
  */
 static
-int battle_get_critical (struct block_list *bl)
+int battle_get_critical(struct block_list *bl)
 {
-    int  critical = 1;
+    int critical = 1;
     struct status_change *sc_data;
 
-    nullpo_retr (1, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(1, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
     {
-        critical = battle_get_luk (bl) * 2 + 10;
+        critical = battle_get_luk(bl) * 2 + 10;
         critical +=
             ((struct map_session_data *) bl)->critical -
             ((((struct map_session_data *) bl)->paramc[5] * 3) + 10);
     }
     else
-        critical = battle_get_luk (bl) * 3 + 1;
+        critical = battle_get_luk(bl) * 3 + 1;
 
     if (sc_data)
     {
@@ -559,19 +559,19 @@ int battle_get_critical (struct block_list *bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-int battle_get_baseatk (struct block_list *bl)
+int battle_get_baseatk(struct block_list *bl)
 {
     struct status_change *sc_data;
-    int  batk = 1;
+    int batk = 1;
 
-    nullpo_retr (1, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(1, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         batk = ((struct map_session_data *) bl)->base_atk;  //設定されているbase_atk
     else
     {                           //それ以外なら
-        int  str, dstr;
-        str = battle_get_str (bl);  //STR
+        int str, dstr;
+        str = battle_get_str(bl);  //STR
         dstr = str / 10;
         batk = dstr * dstr + str;   //base_atkを計算する
     }
@@ -594,13 +594,13 @@ int battle_get_baseatk (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_atk (struct block_list *bl)
+int battle_get_atk(struct block_list *bl)
 {
     struct status_change *sc_data;
-    int  atk = 0;
+    int atk = 0;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         atk = ((struct map_session_data *) bl)->watk;
     else if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -626,12 +626,12 @@ int battle_get_atk (struct block_list *bl)
  *------------------------------------------
  */
 static
-int battle_get_atk_ (struct block_list *bl)
+int battle_get_atk_(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
     {
-        int  atk = ((struct map_session_data *) bl)->watk_;
+        int atk = ((struct map_session_data *) bl)->watk_;
 
         if (((struct map_session_data *) bl)->sc_data[SC_CURSE].timer != -1)
             atk -= atk * 25 / 100;
@@ -646,15 +646,15 @@ int battle_get_atk_ (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_atk2 (struct block_list *bl)
+int battle_get_atk2(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         return ((struct map_session_data *) bl)->watk2;
     else
     {
-        struct status_change *sc_data = battle_get_sc_data (bl);
-        int  atk2 = 0;
+        struct status_change *sc_data = battle_get_sc_data(bl);
+        int atk2 = 0;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
             atk2 = ((struct mob_data *) bl)->stats[MOB_ATK2];
         if (sc_data)
@@ -668,7 +668,7 @@ int battle_get_atk2 (struct block_list *bl)
             if (sc_data[SC_DRUMBATTLE].timer != -1)
                 atk2 += sc_data[SC_DRUMBATTLE].val2;
             if (sc_data[SC_NIBELUNGEN].timer != -1
-                && (battle_get_element (bl) / 10) >= 8)
+                && (battle_get_element(bl) / 10) >= 8)
                 atk2 += sc_data[SC_NIBELUNGEN].val2;
             if (sc_data[SC_STRIPWEAPON].timer != -1)
                 atk2 = atk2 * 90 / 100;
@@ -689,9 +689,9 @@ int battle_get_atk2 (struct block_list *bl)
  *------------------------------------------
  */
 static
-int battle_get_atk_2 (struct block_list *bl)
+int battle_get_atk_2(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_PC)
         return ((struct map_session_data *) bl)->watk_2;
     else
@@ -704,14 +704,14 @@ int battle_get_atk_2 (struct block_list *bl)
  *------------------------------------------
  */
 static
-int battle_get_matk1 (struct block_list *bl)
+int battle_get_matk1(struct block_list *bl)
 {
     struct status_change *sc_data;
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB)
     {
-        int  matk, int_ = battle_get_int (bl);
+        int matk, int_ = battle_get_int(bl);
         matk = int_ + (int_ / 5) * (int_ / 5);
 
         if (sc_data)
@@ -731,13 +731,13 @@ int battle_get_matk1 (struct block_list *bl)
  *------------------------------------------
  */
 static
-int battle_get_matk2 (struct block_list *bl)
+int battle_get_matk2(struct block_list *bl)
 {
-    struct status_change *sc_data = battle_get_sc_data (bl);
-    nullpo_retr (0, bl);
+    struct status_change *sc_data = battle_get_sc_data(bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB)
     {
-        int  matk, int_ = battle_get_int (bl);
+        int matk, int_ = battle_get_int(bl);
         matk = int_ + (int_ / 7) * (int_ / 7);
 
         if (sc_data)
@@ -756,13 +756,13 @@ int battle_get_matk2 (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_def (struct block_list *bl)
+int battle_get_def(struct block_list *bl)
 {
     struct status_change *sc_data;
-    int  def = 0, skilltimer = -1, skillid = 0;
+    int def = 0, skilltimer = -1, skillid = 0;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
     {
         def = ((struct map_session_data *) bl)->def;
@@ -814,7 +814,7 @@ int battle_get_def (struct block_list *bl)
         //詠唱中は詠唱時減算率に基づいて減算
         if (skilltimer != -1)
         {
-            int  def_rate = skill_get_castdef (skillid);
+            int def_rate = skill_get_castdef(skillid);
             if (def_rate != 0)
                 def = (def * (100 - def_rate)) / 100;
         }
@@ -829,13 +829,13 @@ int battle_get_def (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_mdef (struct block_list *bl)
+int battle_get_mdef(struct block_list *bl)
 {
     struct status_change *sc_data;
-    int  mdef = 0;
+    int mdef = 0;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         mdef = ((struct map_session_data *) bl)->mdef;
     else if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -873,13 +873,13 @@ int battle_get_mdef (struct block_list *bl)
  * 戻りは整数で1以上
  *------------------------------------------
  */
-int battle_get_def2 (struct block_list *bl)
+int battle_get_def2(struct block_list *bl)
 {
     struct status_change *sc_data;
-    int  def2 = 1;
+    int def2 = 1;
 
-    nullpo_retr (1, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(1, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_PC)
         def2 = ((struct map_session_data *) bl)->def2;
     else if (bl->type == BL_MOB)
@@ -907,12 +907,12 @@ int battle_get_def2 (struct block_list *bl)
  * 戻りは整数で0以上
  *------------------------------------------
  */
-int battle_get_mdef2 (struct block_list *bl)
+int battle_get_mdef2(struct block_list *bl)
 {
-    int  mdef2 = 0;
-    struct status_change *sc_data = battle_get_sc_data (bl);
+    int mdef2 = 0;
+    struct status_change *sc_data = battle_get_sc_data(bl);
 
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB)
         mdef2 =
             ((struct mob_data *) bl)->stats[MOB_INT] +
@@ -937,15 +937,15 @@ int battle_get_mdef2 (struct block_list *bl)
  * Speedは小さいほうが移動速度が速い
  *------------------------------------------
  */
-int battle_get_speed (struct block_list *bl)
+int battle_get_speed(struct block_list *bl)
 {
-    nullpo_retr (1000, bl);
+    nullpo_retr(1000, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         return ((struct map_session_data *) bl)->speed;
     else
     {
-        struct status_change *sc_data = battle_get_sc_data (bl);
-        int  speed = 1000;
+        struct status_change *sc_data = battle_get_sc_data(bl);
+        int speed = 1000;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
             speed = ((struct mob_data *) bl)->stats[MOB_SPEED];
 
@@ -996,15 +996,15 @@ int battle_get_speed (struct block_list *bl)
  * aDelayは小さいほうが攻撃速度が速い
  *------------------------------------------
  */
-int battle_get_adelay (struct block_list *bl)
+int battle_get_adelay(struct block_list *bl)
 {
-    nullpo_retr (4000, bl);
+    nullpo_retr(4000, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         return (((struct map_session_data *) bl)->aspd << 1);
     else
     {
-        struct status_change *sc_data = battle_get_sc_data (bl);
-        int  adelay = 4000, aspd_rate = 100, i;
+        struct status_change *sc_data = battle_get_sc_data(bl);
+        int adelay = 4000, aspd_rate = 100, i;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
             adelay = ((struct mob_data *) bl)->stats[MOB_ADELAY];
 
@@ -1070,15 +1070,15 @@ int battle_get_adelay (struct block_list *bl)
     return 4000;
 }
 
-int battle_get_amotion (struct block_list *bl)
+int battle_get_amotion(struct block_list *bl)
 {
-    nullpo_retr (2000, bl);
+    nullpo_retr(2000, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         return ((struct map_session_data *) bl)->amotion;
     else
     {
-        struct status_change *sc_data = battle_get_sc_data (bl);
-        int  amotion = 2000, aspd_rate = 100, i;
+        struct status_change *sc_data = battle_get_sc_data(bl);
+        int amotion = 2000, aspd_rate = 100, i;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
             amotion = mob_db[((struct mob_data *) bl)->mob_class].amotion;
 
@@ -1133,13 +1133,13 @@ int battle_get_amotion (struct block_list *bl)
     return 2000;
 }
 
-int battle_get_dmotion (struct block_list *bl)
+int battle_get_dmotion(struct block_list *bl)
 {
-    int  ret;
+    int ret;
     struct status_change *sc_data;
 
-    nullpo_retr (0, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(0, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
     {
         ret = mob_db[((struct mob_data *) bl)->mob_class].dmotion;
@@ -1163,13 +1163,13 @@ int battle_get_dmotion (struct block_list *bl)
     return ret;
 }
 
-int battle_get_element (struct block_list *bl)
+int battle_get_element(struct block_list *bl)
 {
-    int  ret = 20;
+    int ret = 20;
     struct status_change *sc_data;
 
-    nullpo_retr (ret, bl);
-    sc_data = battle_get_sc_data (bl);
+    nullpo_retr(ret, bl);
+    sc_data = battle_get_sc_data(bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)   // 10の位＝Lv*2、１の位＝属性
         ret = ((struct mob_data *) bl)->def_ele;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1188,12 +1188,12 @@ int battle_get_element (struct block_list *bl)
     return ret;
 }
 
-int battle_get_attack_element (struct block_list *bl)
+int battle_get_attack_element(struct block_list *bl)
 {
-    int  ret = 0;
-    struct status_change *sc_data = battle_get_sc_data (bl);
+    int ret = 0;
+    struct status_change *sc_data = battle_get_sc_data(bl);
 
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         ret = 0;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1218,12 +1218,12 @@ int battle_get_attack_element (struct block_list *bl)
     return ret;
 }
 
-int battle_get_attack_element2 (struct block_list *bl)
+int battle_get_attack_element2(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
     {
-        int  ret = ((struct map_session_data *) bl)->atk_ele_;
+        int ret = ((struct map_session_data *) bl)->atk_ele_;
         struct status_change *sc_data =
             ((struct map_session_data *) bl)->sc_data;
 
@@ -1247,9 +1247,9 @@ int battle_get_attack_element2 (struct block_list *bl)
     return 0;
 }
 
-int battle_get_party_id (struct block_list *bl)
+int battle_get_party_id(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_PC && (struct map_session_data *) bl)
         return ((struct map_session_data *) bl)->status.party_id;
     else if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -1265,9 +1265,9 @@ int battle_get_party_id (struct block_list *bl)
         return 0;
 }
 
-int battle_get_race (struct block_list *bl)
+int battle_get_race(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return mob_db[((struct mob_data *) bl)->mob_class].race;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1276,9 +1276,9 @@ int battle_get_race (struct block_list *bl)
         return 0;
 }
 
-int battle_get_size (struct block_list *bl)
+int battle_get_size(struct block_list *bl)
 {
-    nullpo_retr (1, bl);
+    nullpo_retr(1, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return mob_db[((struct mob_data *) bl)->mob_class].size;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1287,25 +1287,25 @@ int battle_get_size (struct block_list *bl)
         return 1;
 }
 
-int battle_get_mode (struct block_list *bl)
+int battle_get_mode(struct block_list *bl)
 {
-    nullpo_retr (0x01, bl);
+    nullpo_retr(0x01, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return mob_db[((struct mob_data *) bl)->mob_class].mode;
     else
         return 0x01;            // とりあえず動くということで1
 }
 
-int battle_get_mexp (struct block_list *bl)
+int battle_get_mexp(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
     {
         const struct mob_data *mob = (struct mob_data *) bl;
         const int retval =
             (mob_db[mob->mob_class].mexp *
-             (int) (mob->stats[MOB_XP_BONUS])) >> MOB_XP_BONUS_SHIFT;
-        fprintf (stderr, "Modifier of %x: -> %d\n", mob->stats[MOB_XP_BONUS],
+             (int)(mob->stats[MOB_XP_BONUS])) >> MOB_XP_BONUS_SHIFT;
+        fprintf(stderr, "Modifier of %x: -> %d\n", mob->stats[MOB_XP_BONUS],
                  retval);
         return retval;
     }
@@ -1313,32 +1313,32 @@ int battle_get_mexp (struct block_list *bl)
         return 0;
 }
 
-int battle_get_stat (int stat_id /* SP_VIT or similar */ ,
+int battle_get_stat(int stat_id /* SP_VIT or similar */ ,
                      struct block_list *bl)
 {
     switch (stat_id)
     {
         case SP_STR:
-            return battle_get_str (bl);
+            return battle_get_str(bl);
         case SP_AGI:
-            return battle_get_agi (bl);
+            return battle_get_agi(bl);
         case SP_DEX:
-            return battle_get_dex (bl);
+            return battle_get_dex(bl);
         case SP_VIT:
-            return battle_get_vit (bl);
+            return battle_get_vit(bl);
         case SP_INT:
-            return battle_get_int (bl);
+            return battle_get_int(bl);
         case SP_LUK:
-            return battle_get_luk (bl);
+            return battle_get_luk(bl);
         default:
             return 0;
     }
 }
 
 // StatusChange系の所得
-struct status_change *battle_get_sc_data (struct block_list *bl)
+struct status_change *battle_get_sc_data(struct block_list *bl)
 {
-    nullpo_retr (NULL, bl);
+    nullpo_retr(NULL, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return ((struct mob_data *) bl)->sc_data;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1346,9 +1346,9 @@ struct status_change *battle_get_sc_data (struct block_list *bl)
     return NULL;
 }
 
-short *battle_get_sc_count (struct block_list *bl)
+short *battle_get_sc_count(struct block_list *bl)
 {
-    nullpo_retr (NULL, bl);
+    nullpo_retr(NULL, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return &((struct mob_data *) bl)->sc_count;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1356,9 +1356,9 @@ short *battle_get_sc_count (struct block_list *bl)
     return NULL;
 }
 
-short *battle_get_opt1 (struct block_list *bl)
+short *battle_get_opt1(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return &((struct mob_data *) bl)->opt1;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1368,9 +1368,9 @@ short *battle_get_opt1 (struct block_list *bl)
     return 0;
 }
 
-short *battle_get_opt2 (struct block_list *bl)
+short *battle_get_opt2(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return &((struct mob_data *) bl)->opt2;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1380,9 +1380,9 @@ short *battle_get_opt2 (struct block_list *bl)
     return 0;
 }
 
-short *battle_get_opt3 (struct block_list *bl)
+short *battle_get_opt3(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return &((struct mob_data *) bl)->opt3;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1392,9 +1392,9 @@ short *battle_get_opt3 (struct block_list *bl)
     return 0;
 }
 
-short *battle_get_option (struct block_list *bl)
+short *battle_get_option(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return &((struct mob_data *) bl)->option;
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -1410,45 +1410,45 @@ short *battle_get_option (struct block_list *bl)
 struct battle_delay_damage_
 {
     struct block_list *src, *target;
-    int  damage;
-    int  flag;
+    int damage;
+    int flag;
 };
 static
-void battle_delay_damage_sub (timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void battle_delay_damage_sub(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct battle_delay_damage_ *dat = (struct battle_delay_damage_ *) data;
-    if (dat && map_id2bl (id) == dat->src && dat->target->prev != NULL)
-        battle_damage (dat->src, dat->target, dat->damage, dat->flag);
-    free (dat);
+    if (dat && map_id2bl(id) == dat->src && dat->target->prev != NULL)
+        battle_damage(dat->src, dat->target, dat->damage, dat->flag);
+    free(dat);
 }
 
-int battle_delay_damage (unsigned int tick, struct block_list *src,
+int battle_delay_damage(unsigned int tick, struct block_list *src,
                          struct block_list *target, int damage, int flag)
 {
     struct battle_delay_damage_ *dat;
-    CREATE (dat, struct battle_delay_damage_, 1);
+    CREATE(dat, struct battle_delay_damage_, 1);
 
-    nullpo_retr (0, src);
-    nullpo_retr (0, target);
+    nullpo_retr(0, src);
+    nullpo_retr(0, target);
 
     dat->src = src;
     dat->target = target;
     dat->damage = damage;
     dat->flag = flag;
-    add_timer (tick, battle_delay_damage_sub, src->id, (int) dat);
+    add_timer(tick, battle_delay_damage_sub, src->id, (int) dat);
     return 0;
 }
 
 // 実際にHPを操作
-int battle_damage (struct block_list *bl, struct block_list *target,
+int battle_damage(struct block_list *bl, struct block_list *target,
                    int damage, int flag)
 {
     struct map_session_data *sd = NULL;
-    struct status_change *sc_data = battle_get_sc_data (target);
+    struct status_change *sc_data = battle_get_sc_data(target);
     short *sc_count;
-    int  i;
+    int i;
 
-    nullpo_retr (0, target);    //blはNULLで呼ばれることがあるので他でチェック
+    nullpo_retr(0, target);    //blはNULLで呼ばれることがあるので他でチェック
 
     if (damage == 0)
         return 0;
@@ -1466,26 +1466,26 @@ int battle_damage (struct block_list *bl, struct block_list *target,
     }
 
     if (damage < 0)
-        return battle_heal (bl, target, -damage, 0, flag);
+        return battle_heal(bl, target, -damage, 0, flag);
 
-    if (!flag && (sc_count = battle_get_sc_count (target)) != NULL
+    if (!flag && (sc_count = battle_get_sc_count(target)) != NULL
         && *sc_count > 0)
     {
         // 凍結、石化、睡眠を消去
         if (sc_data[SC_FREEZE].timer != -1)
-            skill_status_change_end (target, SC_FREEZE, -1);
+            skill_status_change_end(target, SC_FREEZE, -1);
         if (sc_data[SC_STONE].timer != -1 && sc_data[SC_STONE].val2 == 0)
-            skill_status_change_end (target, SC_STONE, -1);
+            skill_status_change_end(target, SC_STONE, -1);
         if (sc_data[SC_SLEEP].timer != -1)
-            skill_status_change_end (target, SC_SLEEP, -1);
+            skill_status_change_end(target, SC_SLEEP, -1);
     }
 
     if (target->type == BL_MOB)
     {                           // MOB
         struct mob_data *md = (struct mob_data *) target;
         if (md && md->skilltimer != -1 && md->state.skillcastcancel)    // 詠唱妨害
-            skill_castcancel (target, 0);
-        return mob_damage (bl, md, damage, 0);
+            skill_castcancel(target, 0);
+        return mob_damage(bl, md, damage, 0);
     }
     else if (target->type == BL_PC)
     {                           // PC
@@ -1495,18 +1495,18 @@ int battle_damage (struct block_list *bl, struct block_list *target,
         if (tsd && tsd->sc_data && tsd->sc_data[SC_DEVOTION].val1)
         {                       // ディボーションをかけられている
             struct map_session_data *md =
-                map_id2sd (tsd->sc_data[SC_DEVOTION].val1);
-            if (md && skill_devotion3 (&md->bl, target->id))
+                map_id2sd(tsd->sc_data[SC_DEVOTION].val1);
+            if (md && skill_devotion3(&md->bl, target->id))
             {
-                skill_devotion (md, target->id);
+                skill_devotion(md, target->id);
             }
             else if (md && bl)
                 for (i = 0; i < 5; i++)
                     if (md->dev.val1[i] == target->id)
                     {
-                        clif_damage (bl, &md->bl, gettick (), 0, 0,
+                        clif_damage(bl, &md->bl, gettick(), 0, 0,
                                      damage, 0, 0, 0);
-                        pc_damage (&md->bl, md, damage);
+                        pc_damage(&md->bl, md, damage);
 
                         return 0;
                     }
@@ -1518,58 +1518,58 @@ int battle_damage (struct block_list *bl, struct block_list *target,
             if (!tsd->special_state.no_castcancel
                 && tsd->state.skillcastcancel
                 && !tsd->special_state.no_castcancel2)
-                skill_castcancel (target, 0);
+                skill_castcancel(target, 0);
         }
 
-        return pc_damage (bl, tsd, damage);
+        return pc_damage(bl, tsd, damage);
 
     }
     else if (target->type == BL_SKILL)
-        return skill_unit_ondamaged ((struct skill_unit *) target, bl, damage,
-                                     gettick ());
+        return skill_unit_ondamaged((struct skill_unit *) target, bl, damage,
+                                     gettick());
     return 0;
 }
 
-int battle_heal (struct block_list *bl, struct block_list *target, int hp,
+int battle_heal(struct block_list *bl, struct block_list *target, int hp,
                  int sp, int flag)
 {
-    nullpo_retr (0, target);    //blはNULLで呼ばれることがあるので他でチェック
+    nullpo_retr(0, target);    //blはNULLで呼ばれることがあるので他でチェック
 
     if (target->type == BL_PC
-        && pc_isdead ((struct map_session_data *) target))
+        && pc_isdead((struct map_session_data *) target))
         return 0;
     if (hp == 0 && sp == 0)
         return 0;
 
     if (hp < 0)
-        return battle_damage (bl, target, -hp, flag);
+        return battle_damage(bl, target, -hp, flag);
 
     if (target->type == BL_MOB)
-        return mob_heal ((struct mob_data *) target, hp);
+        return mob_heal((struct mob_data *) target, hp);
     else if (target->type == BL_PC)
-        return pc_heal ((struct map_session_data *) target, hp, sp);
+        return pc_heal((struct map_session_data *) target, hp, sp);
     return 0;
 }
 
 // 攻撃停止
-int battle_stopattack (struct block_list *bl)
+int battle_stopattack(struct block_list *bl)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB)
-        return mob_stopattack ((struct mob_data *) bl);
+        return mob_stopattack((struct mob_data *) bl);
     else if (bl->type == BL_PC)
-        return pc_stopattack ((struct map_session_data *) bl);
+        return pc_stopattack((struct map_session_data *) bl);
     return 0;
 }
 
 // 移動停止
-int battle_stopwalking (struct block_list *bl, int type)
+int battle_stopwalking(struct block_list *bl, int type)
 {
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
     if (bl->type == BL_MOB)
-        return mob_stop_walking ((struct mob_data *) bl, type);
+        return mob_stop_walking((struct mob_data *) bl, type);
     else if (bl->type == BL_PC)
-        return pc_stop_walking ((struct map_session_data *) bl, type);
+        return pc_stop_walking((struct map_session_data *) bl, type);
     return 0;
 }
 
@@ -1577,16 +1577,15 @@ int battle_stopwalking (struct block_list *bl, int type)
  * ダメージの属性修正
  *------------------------------------------
  */
-int battle_attr_fix (int damage, int atk_elem, int def_elem)
+int battle_attr_fix(int damage, int atk_elem, int def_elem)
 {
-    int  def_type = def_elem % 10, def_lv = def_elem / 10 / 2;
+    int def_type = def_elem % 10, def_lv = def_elem / 10 / 2;
 
     if (atk_elem < 0 || atk_elem > 9 || def_type < 0 || def_type > 9 ||
         def_lv < 1 || def_lv > 4)
     {                           // 属 性値がおかしいのでとりあえずそのまま返す
         if (battle_config.error_log)
-            printf
-                ("battle_attr_fix: unknown attr type: atk=%d def_type=%d def_lv=%d\n",
+            printf("battle_attr_fix: unknown attr type: atk=%d def_type=%d def_lv=%d\n",
                  atk_elem, def_type, def_lv);
         return damage;
     }
@@ -1598,7 +1597,7 @@ int battle_attr_fix (int damage, int atk_elem, int def_elem)
  * ダメージ最終計算
  *------------------------------------------
  */
-int battle_calc_damage (struct block_list *src, struct block_list *bl,
+int battle_calc_damage(struct block_list *src, struct block_list *bl,
                         int damage, int div_, int skill_num, int skill_lv,
                         int flag)
 {
@@ -1606,18 +1605,18 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
     struct mob_data *md = NULL;
     struct status_change *sc_data, *sc;
     short *sc_count;
-    int  class_;
+    int class_;
 
-    nullpo_retr (0, bl);
+    nullpo_retr(0, bl);
 
-    class_ = battle_get_class (bl);
+    class_ = battle_get_class(bl);
     if (bl->type == BL_MOB)
         md = (struct mob_data *) bl;
     else
         sd = (struct map_session_data *) bl;
 
-    sc_data = battle_get_sc_data (bl);
-    sc_count = battle_get_sc_count (bl);
+    sc_data = battle_get_sc_data(bl);
+    sc_count = battle_get_sc_count(bl);
 
     if (sc_count != NULL && *sc_count > 0)
     {
@@ -1630,8 +1629,8 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
             struct skill_unit *unit =
                 (struct skill_unit *) sc_data[SC_SAFETYWALL].val2;
             if (unit && unit->alive && (--unit->group->val2) <= 0)
-                skill_delunit (unit);
-            skill_unit_move (bl, gettick (), 1);    // 重ね掛けチェック
+                skill_delunit(unit);
+            skill_unit_move(bl, gettick(), 1);    // 重ね掛けチェック
             damage = 0;
         }
         if (sc_data[SC_PNEUMA].timer != -1 && damage > 0 && flag & BF_WEAPON
@@ -1651,31 +1650,31 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         if (sc_data[SC_AETERNA].timer != -1 && damage > 0)
         {                       // レックスエーテルナ
             damage <<= 1;
-            skill_status_change_end (bl, SC_AETERNA, -1);
+            skill_status_change_end(bl, SC_AETERNA, -1);
         }
 
         //属性場のダメージ増加
         if (sc_data[SC_VOLCANO].timer != -1)
         {                       // ボルケーノ
-            if (flag & BF_SKILL && skill_get_pl (skill_num) == 3)
+            if (flag & BF_SKILL && skill_get_pl(skill_num) == 3)
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
-            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 3))
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element(bl) == 3))
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
         }
 
         if (sc_data[SC_VIOLENTGALE].timer != -1)
         {                       // バイオレントゲイル
-            if (flag & BF_SKILL && skill_get_pl (skill_num) == 4)
+            if (flag & BF_SKILL && skill_get_pl(skill_num) == 4)
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
-            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 4))
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element(bl) == 4))
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
         }
 
         if (sc_data[SC_DELUGE].timer != -1)
         {                       // デリュージ
-            if (flag & BF_SKILL && skill_get_pl (skill_num) == 1)
+            if (flag & BF_SKILL && skill_get_pl(skill_num) == 1)
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
-            else if (!(flag & BF_SKILL) && (battle_get_attack_element (bl) == 1))
+            else if (!(flag & BF_SKILL) && (battle_get_attack_element(bl) == 1))
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
         }
 
@@ -1686,15 +1685,15 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
             {
                 if (sd->status.sp > 0)
                 {
-                    int  per = sd->status.sp * 5 / (sd->status.max_sp + 1);
+                    int per = sd->status.sp * 5 / (sd->status.max_sp + 1);
                     sd->status.sp -= sd->status.sp * (per * 5 + 10) / 1000;
                     if (sd->status.sp < 0)
                         sd->status.sp = 0;
                     damage -= damage * ((per + 1) * 6) / 100;
-                    clif_updatestatus (sd, SP_SP);
+                    clif_updatestatus(sd, SP_SP);
                 }
                 if (sd->status.sp <= 0)
-                    skill_status_change_end (bl, SC_ENERGYCOAT, -1);
+                    skill_status_change_end(bl, SC_ENERGYCOAT, -1);
             }
             else
                 damage -= damage * (sc_data[SC_ENERGYCOAT].val1 * 6) / 100;
@@ -1713,7 +1712,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
             }
             if ((--sc->val3) <= 0 || (sc->val2 <= 0)
                 || skill_num == AL_HOLYLIGHT)
-                skill_status_change_end (bl, SC_KYRIE, -1);
+                skill_status_change_end(bl, SC_KYRIE, -1);
         }
 
         if (sc_data[SC_BASILICA].timer != -1 && damage > 0)
@@ -1731,15 +1730,15 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         if (sc_data[SC_AUTOGUARD].timer != -1 && damage > 0
             && flag & BF_WEAPON)
         {
-            if (MRAND (100) < sc_data[SC_AUTOGUARD].val2)
+            if (MRAND(100) < sc_data[SC_AUTOGUARD].val2)
             {
                 damage = 0;
-                clif_skill_nodamage (bl, bl, CR_AUTOGUARD,
+                clif_skill_nodamage(bl, bl, CR_AUTOGUARD,
                                      sc_data[SC_AUTOGUARD].val1, 1);
                 if (sd)
-                    sd->canmove_tick = gettick () + 300;
+                    sd->canmove_tick = gettick() + 300;
                 else if (md)
-                    md->canmove_tick = gettick () + 300;
+                    md->canmove_tick = gettick() + 300;
             }
         }
 // -- moonsoul (chance to block attacks with new Lord Knight skill parrying)
@@ -1747,10 +1746,10 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
         if (sc_data[SC_PARRYING].timer != -1 && damage > 0
             && flag & BF_WEAPON)
         {
-            if (MRAND (100) < sc_data[SC_PARRYING].val2)
+            if (MRAND(100) < sc_data[SC_PARRYING].val2)
             {
                 damage = 0;
-                clif_skill_nodamage (bl, bl, LK_PARRYING,
+                clif_skill_nodamage(bl, bl, LK_PARRYING,
                                      sc_data[SC_PARRYING].val1, 1);
             }
         }
@@ -1763,16 +1762,16 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
                                                                       || 3))
              || src->type == BL_MOB))
         {
-            if (MRAND (100) < (10 + 5 * sc_data[SC_REJECTSWORD].val1))
+            if (MRAND(100) < (10 + 5 * sc_data[SC_REJECTSWORD].val1))
             {                   //反射確率は10+5*Lv
                 damage = damage * 50 / 100;
-                battle_damage (bl, src, damage, 0);
+                battle_damage(bl, src, damage, 0);
                 //ダメージを与えたのは良いんだが、ここからどうして表示するんだかわかんねぇ
                 //エフェクトもこれでいいのかわかんねぇ
-                clif_skill_nodamage (bl, bl, ST_REJECTSWORD,
+                clif_skill_nodamage(bl, bl, ST_REJECTSWORD,
                                      sc_data[SC_REJECTSWORD].val1, 1);
                 if ((--sc_data[SC_REJECTSWORD].val2) <= 0)
-                    skill_status_change_end (bl, SC_REJECTSWORD, -1);
+                    skill_status_change_end(bl, SC_REJECTSWORD, -1);
             }
         }
     }
@@ -1789,7 +1788,7 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
     }
 
     if (md != NULL && md->hp > 0 && damage > 0) // 反撃などのMOBスキル判定
-        mobskill_event (md, flag);
+        mobskill_event(md, flag);
 
     return damage;
 }
@@ -1799,24 +1798,24 @@ int battle_calc_damage (struct block_list *src, struct block_list *bl,
  *------------------------------------------
  */
 static
-int battle_addmastery (struct map_session_data *sd, struct block_list *target,
+int battle_addmastery(struct map_session_data *sd, struct block_list *target,
                        int dmg, int type)
 {
-    int  damage, skill;
-    int  race = battle_get_race (target);
-    int  weapon;
+    int damage, skill;
+    int race = battle_get_race(target);
+    int weapon;
     damage = 0;
 
-    nullpo_retr (0, sd);
+    nullpo_retr(0, sd);
 
     // デーモンベイン(+3 〜 +30) vs 不死 or 悪魔 (死人は含めない？)
-    if ((skill = pc_checkskill (sd, AL_DEMONBANE)) > 0
-        && (battle_check_undead (race, battle_get_elem_type (target))
+    if ((skill = pc_checkskill(sd, AL_DEMONBANE)) > 0
+        && (battle_check_undead(race, battle_get_elem_type(target))
             || race == 6))
         damage += (skill * 3);
 
     // ビーストベイン(+4 〜 +40) vs 動物 or 昆虫
-    if ((skill = pc_checkskill (sd, HT_BEASTBANE)) > 0
+    if ((skill = pc_checkskill(sd, HT_BEASTBANE)) > 0
         && (race == 2 || race == 4))
         damage += (skill * 4);
 
@@ -1830,7 +1829,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x02:             // 1HS
         {
             // 剣修練(+4 〜 +40) 片手剣 短剣含む
-            if ((skill = pc_checkskill (sd, SM_SWORD)) > 0)
+            if ((skill = pc_checkskill(sd, SM_SWORD)) > 0)
             {
                 damage += (skill * 4);
             }
@@ -1839,7 +1838,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x03:             // 2HS
         {
             // 両手剣修練(+4 〜 +40) 両手剣
-            if ((skill = pc_checkskill (sd, SM_TWOHAND)) > 0)
+            if ((skill = pc_checkskill(sd, SM_TWOHAND)) > 0)
             {
                 damage += (skill * 4);
             }
@@ -1848,9 +1847,9 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x04:             // 1HL
         {
             // 槍修練(+4 〜 +40,+5 〜 +50) 槍
-            if ((skill = pc_checkskill (sd, KN_SPEARMASTERY)) > 0)
+            if ((skill = pc_checkskill(sd, KN_SPEARMASTERY)) > 0)
             {
-                if (!pc_isriding (sd))
+                if (!pc_isriding(sd))
                     damage += (skill * 4);  // ペコに乗ってない
                 else
                     damage += (skill * 5);  // ペコに乗ってる
@@ -1860,9 +1859,9 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x05:             // 2HL
         {
             // 槍修練(+4 〜 +40,+5 〜 +50) 槍
-            if ((skill = pc_checkskill (sd, KN_SPEARMASTERY)) > 0)
+            if ((skill = pc_checkskill(sd, KN_SPEARMASTERY)) > 0)
             {
-                if (!pc_isriding (sd))
+                if (!pc_isriding(sd))
                     damage += (skill * 4);  // ペコに乗ってない
                 else
                     damage += (skill * 5);  // ペコに乗ってる
@@ -1871,7 +1870,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         }
         case 0x06:             // 片手斧
         {
-            if ((skill = pc_checkskill (sd, AM_AXEMASTERY)) > 0)
+            if ((skill = pc_checkskill(sd, AM_AXEMASTERY)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1879,7 +1878,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         }
         case 0x07:             // Axe by Tato
         {
-            if ((skill = pc_checkskill (sd, AM_AXEMASTERY)) > 0)
+            if ((skill = pc_checkskill(sd, AM_AXEMASTERY)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1888,7 +1887,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x08:             // メイス
         {
             // メイス修練(+3 〜 +30) メイス
-            if ((skill = pc_checkskill (sd, PR_MACEMASTERY)) > 0)
+            if ((skill = pc_checkskill(sd, PR_MACEMASTERY)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1904,7 +1903,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x0c:             // Knuckles
         {
             // 鉄拳(+3 〜 +30) 素手,ナックル
-            if ((skill = pc_checkskill (sd, MO_IRONHAND)) > 0)
+            if ((skill = pc_checkskill(sd, MO_IRONHAND)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1913,7 +1912,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x0d:             // Musical Instrument
         {
             // 楽器の練習(+3 〜 +30) 楽器
-            if ((skill = pc_checkskill (sd, BA_MUSICALLESSON)) > 0)
+            if ((skill = pc_checkskill(sd, BA_MUSICALLESSON)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1922,7 +1921,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x0e:             // Dance Mastery
         {
             // Dance Lesson Skill Effect(+3 damage for every lvl = +30) 鞭
-            if ((skill = pc_checkskill (sd, DC_DANCINGLESSON)) > 0)
+            if ((skill = pc_checkskill(sd, DC_DANCINGLESSON)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1931,7 +1930,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x0f:             // Book
         {
             // Advance Book Skill Effect(+3 damage for every lvl = +30) {
-            if ((skill = pc_checkskill (sd, SA_ADVANCEDBOOK)) > 0)
+            if ((skill = pc_checkskill(sd, SA_ADVANCEDBOOK)) > 0)
             {
                 damage += (skill * 3);
             }
@@ -1940,7 +1939,7 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
         case 0x10:             // Katars
         {
             // カタール修練(+3 〜 +30) カタール
-            if ((skill = pc_checkskill (sd, AS_KATAR)) > 0)
+            if ((skill = pc_checkskill(sd, AS_KATAR)) > 0)
             {
                 //ソニックブロー時は別処理（1撃に付き1/8適応)
                 damage += (skill * 3);
@@ -1952,23 +1951,23 @@ int battle_addmastery (struct map_session_data *sd, struct block_list *target,
     return (damage);
 }
 
-static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
+static struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
                                                     struct block_list *target,
                                                     int skill_num,
                                                     int skill_lv, int wflag)
 {
     struct map_session_data *tsd = NULL;
     struct mob_data *md = (struct mob_data *) src, *tmd = NULL;
-    int  hitrate, flee, cri = 0, atkmin, atkmax;
-    int  luk, target_count = 1;
-    int  def1 = battle_get_def (target);
-    int  def2 = battle_get_def2 (target);
-    int  t_vit = battle_get_vit (target);
+    int hitrate, flee, cri = 0, atkmin, atkmax;
+    int luk, target_count = 1;
+    int def1 = battle_get_def(target);
+    int def2 = battle_get_def2(target);
+    int t_vit = battle_get_vit(target);
     struct Damage wd;
-    int  damage, damage2 = 0, type, div_, blewcount =
-        skill_get_blewcount (skill_num, skill_lv);
-    int  flag, skill, ac_flag = 0, dmg_lv = 0;
-    int  t_mode = 0, t_race = 0, t_size = 1, s_race = 0, s_ele = 0;
+    int damage, damage2 = 0, type, div_, blewcount =
+        skill_get_blewcount(skill_num, skill_lv);
+    int flag, skill, ac_flag = 0, dmg_lv = 0;
+    int t_mode = 0, t_race = 0, t_size = 1, s_race = 0, s_ele = 0;
     struct status_change *sc_data, *t_sc_data;
     short *sc_count;
     short *option, *opt1, *opt2;
@@ -1976,28 +1975,28 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     //return前の処理があるので情報出力部のみ変更
     if (src == NULL || target == NULL || md == NULL)
     {
-        nullpo_info (NLP_MARK);
-        memset (&wd, 0, sizeof (wd));
+        nullpo_info(NLP_MARK);
+        memset(&wd, 0, sizeof(wd));
         return wd;
     }
 
-    s_race = battle_get_race (src);
-    s_ele = battle_get_attack_element (src);
-    sc_data = battle_get_sc_data (src);
-    sc_count = battle_get_sc_count (src);
-    option = battle_get_option (src);
-    opt1 = battle_get_opt1 (src);
-    opt2 = battle_get_opt2 (src);
+    s_race = battle_get_race(src);
+    s_ele = battle_get_attack_element(src);
+    sc_data = battle_get_sc_data(src);
+    sc_count = battle_get_sc_count(src);
+    option = battle_get_option(src);
+    opt1 = battle_get_opt1(src);
+    opt2 = battle_get_opt2(src);
 
     // ターゲット
     if (target->type == BL_PC)
         tsd = (struct map_session_data *) target;
     else if (target->type == BL_MOB)
         tmd = (struct mob_data *) target;
-    t_race = battle_get_race (target);
-    t_size = battle_get_size (target);
-    t_mode = battle_get_mode (target);
-    t_sc_data = battle_get_sc_data (target);
+    t_race = battle_get_race(target);
+    t_size = battle_get_size(target);
+    t_mode = battle_get_mode(target);
+    t_sc_data = battle_get_sc_data(target);
 
     if ((skill_num == 0
          || (target->type == BL_PC && battle_config.pc_auto_counter_type & 2)
@@ -2008,17 +2007,17 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
         if (skill_num != CR_GRANDCROSS && t_sc_data
             && t_sc_data[SC_AUTOCOUNTER].timer != -1)
         {
-            int  dir = map_calc_dir (src, target->x, target->y), t_dir =
-                battle_get_dir (target);
-            int  dist = distance (src->x, src->y, target->x, target->y);
-            if (dist <= 0 || map_check_dir (dir, t_dir))
+            int dir = map_calc_dir(src, target->x, target->y), t_dir =
+                battle_get_dir(target);
+            int dist = distance(src->x, src->y, target->x, target->y);
+            if (dist <= 0 || map_check_dir(dir, t_dir))
             {
-                memset (&wd, 0, sizeof (wd));
+                memset(&wd, 0, sizeof(wd));
                 t_sc_data[SC_AUTOCOUNTER].val3 = 0;
                 t_sc_data[SC_AUTOCOUNTER].val4 = 1;
                 if (sc_data && sc_data[SC_AUTOCOUNTER].timer == -1)
                 {
-                    int  range = battle_get_range (target);
+                    int range = battle_get_range(target);
                     if ((target->type == BL_PC
                          && ((struct map_session_data *) target)->
                          status.weapon != 11 && dist <= range + 1)
@@ -2035,11 +2034,11 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     flag = BF_SHORT | BF_WEAPON | BF_NORMAL;    // 攻撃の種類の設定
 
     // 回避率計算、回避判定は後で
-    flee = battle_get_flee (target);
+    flee = battle_get_flee(target);
     if (battle_config.agi_penaly_type > 0
         || battle_config.vit_penaly_type > 0)
         target_count +=
-            battle_counttargeted (target, src,
+            battle_counttargeted(target, src,
                                   battle_config.agi_penaly_count_lv);
     if (battle_config.agi_penaly_type > 0)
     {
@@ -2061,26 +2060,26 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                 flee = 1;
         }
     }
-    hitrate = battle_get_hit (src) - flee + 80;
+    hitrate = battle_get_hit(src) - flee + 80;
 
     type = 0;                   // normal
     div_ = 1;                   // single attack
 
-    luk = battle_get_luk (src);
+    luk = battle_get_luk(src);
 
     if (battle_config.enemy_str)
-        damage = battle_get_baseatk (src);
+        damage = battle_get_baseatk(src);
     else
         damage = 0;
     if (skill_num == HW_MAGICCRASHER)
     {                           /* マジッククラッシャーはMATKで殴る */
-        atkmin = battle_get_matk1 (src);
-        atkmax = battle_get_matk2 (src);
+        atkmin = battle_get_matk1(src);
+        atkmax = battle_get_matk2(src);
     }
     else
     {
-        atkmin = battle_get_atk (src);
-        atkmax = battle_get_atk2 (src);
+        atkmin = battle_get_atk(src);
+        atkmax = battle_get_atk2(src);
     }
     if (mob_db[md->mob_class].range > 3)
         flag = (flag & ~BF_RANGEMASK) | BF_LONG;
@@ -2093,8 +2092,8 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
         atkmin = atkmax;
     }
 
-    cri = battle_get_critical (src);
-    cri -= battle_get_luk (target) * 3;
+    cri = battle_get_critical(src);
+    cri -= battle_get_luk(target) * 3;
     if (battle_config.enemy_critical_rate != 100)
     {
         cri = cri * battle_config.enemy_critical_rate / 100;
@@ -2118,7 +2117,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     if (tsd && tsd->critical_def)
         cri = cri * (100 - tsd->critical_def) / 100;
 
-    if ((skill_num == 0 || skill_num == KN_AUTOCOUNTER) && skill_lv >= 0 && battle_config.enemy_critical && (MRAND (1000)) < cri)   // 判定（スキルの場合は無視）
+    if ((skill_num == 0 || skill_num == KN_AUTOCOUNTER) && skill_lv >= 0 && battle_config.enemy_critical && (MRAND(1000)) < cri)   // 判定（スキルの場合は無視）
         // 敵の判定
     {
         damage += atkmax;
@@ -2126,10 +2125,10 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     }
     else
     {
-        int  vitbonusmax;
+        int vitbonusmax;
 
         if (atkmax > atkmin)
-            damage += atkmin + MRAND ((atkmax - atkmin + 1));
+            damage += atkmin + MRAND((atkmax - atkmin + 1));
         else
             damage += atkmin;
         // スキル修正１（攻撃力倍化系）
@@ -2151,8 +2150,8 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
 
         if (skill_num > 0)
         {
-            int  i;
-            if ((i = skill_get_pl (skill_num)) > 0)
+            int i;
+            if ((i = skill_get_pl(skill_num)) > 0)
                 s_ele = i;
 
             flag = (flag & ~BF_SKILLMASK) | BF_SKILL;
@@ -2235,11 +2234,11 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                     break;
                     // 以下MOB
                 case NPC_COMBOATTACK:  // 多段攻撃
-                    div_ = skill_get_num (skill_num, skill_lv);
+                    div_ = skill_get_num(skill_num, skill_lv);
                     damage *= div_;
                     break;
                 case NPC_RANDOMATTACK: // ランダムATK攻撃
-                    damage = damage * (MPRAND (50, 150)) / 100;
+                    damage = damage * (MPRAND(50, 150)) / 100;
                     break;
                     // 属性攻撃（適当）
                 case NPC_WATERATTACK:
@@ -2334,7 +2333,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                     break;
                 case CH_CHAINCRUSH:    // 連柱崩撃
                     damage = damage * (100 + 20 * skill_lv) / 100;
-                    div_ = skill_get_num (skill_num, skill_lv);
+                    div_ = skill_get_num(skill_num, skill_lv);
                     break;
                 case CH_PALMSTRIKE:    // 猛虎硬派山
                     damage = damage * (50 + 100 * skill_lv) / 100;
@@ -2343,9 +2342,9 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                     damage = damage * (100 + 50 * skill_lv) / 100;  //増加量が分からないので適当に
                     div_ = 5;
                     if (tsd)
-                        tsd->canmove_tick = gettick () + 1000;
+                        tsd->canmove_tick = gettick() + 1000;
                     else if (tmd)
-                        tmd->canmove_tick = gettick () + 1000;
+                        tmd->canmove_tick = gettick() + 1000;
                     break;
                 case LK_HEADCRUSH: /* ヘッドクラッシュ */
                     damage = damage * (100 + 20 * skill_lv) / 100;
@@ -2376,9 +2375,9 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
             if (skill_num != MO_INVESTIGATE && skill_num != MO_EXTREMITYFIST
                 && skill_num != KN_AUTOCOUNTER && def1 < 1000000)
             {                   //DEF, VIT無視
-                int  t_def;
+                int t_def;
                 target_count =
-                    1 + battle_counttargeted (target, src,
+                    1 + battle_counttargeted(target, src,
                                               battle_config.vit_penaly_count_lv);
                 if (battle_config.vit_penaly_type > 0)
                 {
@@ -2432,9 +2431,9 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                     }
                 }
                 t_def = def2 * 8 / 10;
-                if (battle_check_undead (s_race, battle_get_elem_type (src))
+                if (battle_check_undead(s_race, battle_get_elem_type(src))
                     || s_race == 6)
-                    if (tsd && (skill = pc_checkskill (tsd, AL_DP)) > 0)
+                    if (tsd && (skill = pc_checkskill(tsd, AL_DP)) > 0)
                         t_def += skill * 3;
 
                 vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
@@ -2443,13 +2442,13 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                     damage =
                         damage - (def1 * battle_config.monster_defense_type) -
                         t_def -
-                        ((vitbonusmax < 1) ? 0 : MRAND ((vitbonusmax + 1)));
+                        ((vitbonusmax < 1) ? 0 : MRAND((vitbonusmax + 1)));
                 }
                 else
                 {
                     damage =
                         damage * (100 - def1) / 100 - t_def -
-                        ((vitbonusmax < 1) ? 0 : MRAND ((vitbonusmax + 1)));
+                        ((vitbonusmax < 1) ? 0 : MRAND((vitbonusmax + 1)));
                 }
             }
         }
@@ -2467,7 +2466,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
                                t_sc_data[SC_STAN].timer != -1 ||    // スタンは必中
                                t_sc_data[SC_FREEZE].timer != -1 || (t_sc_data[SC_STONE].timer != -1 && t_sc_data[SC_STONE].val2 == 0))))    // 凍結は必中
         hitrate = 1000000;
-    if (type == 0 && MRAND (100) >= hitrate)
+    if (type == 0 && MRAND(100) >= hitrate)
     {
         damage = damage2 = 0;
         dmg_lv = ATK_FLEE;
@@ -2479,7 +2478,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
 
     if (tsd)
     {
-        int  cardfix = 100, i;
+        int cardfix = 100, i;
         cardfix = cardfix * (100 - tsd->subele[s_ele]) / 100;   // 属 性によるダメージ耐性
         cardfix = cardfix * (100 - tsd->subrace[s_race]) / 100; // 種族によるダメージ耐性
         if (mob_db[md->mob_class].mode & 0x20)
@@ -2502,7 +2501,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     }
     if (t_sc_data)
     {
-        int  cardfix = 100;
+        int cardfix = 100;
         if (t_sc_data[SC_DEFENDER].timer != -1 && flag & BF_LONG)
             cardfix = cardfix * (100 - t_sc_data[SC_DEFENDER].val2) / 100;
         if (cardfix != 100)
@@ -2520,11 +2519,11 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
         damage = 0;
 
     // 属 性の適用
-    if (!((battle_config.mob_ghostring_fix == 1) && (battle_get_element (target) == 8) && (target->type == BL_PC))) // [MouseJstr]
+    if (!((battle_config.mob_ghostring_fix == 1) && (battle_get_element(target) == 8) && (target->type == BL_PC))) // [MouseJstr]
         if (skill_num != 0 || s_ele != 0
             || !battle_config.mob_attack_attr_none)
             damage =
-                battle_attr_fix (damage, s_ele, battle_get_element (target));
+                battle_attr_fix(damage, s_ele, battle_get_element(target));
 
     if (sc_data && sc_data[SC_AURABLADE].timer != -1)   /* オーラブレード 必中 */
         damage += sc_data[SC_AURABLADE].val1 * 10;
@@ -2535,17 +2534,17 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     if (skill_num == TF_POISON)
     {
         damage =
-            battle_attr_fix (damage + 15 * skill_lv, s_ele,
-                             battle_get_element (target));
+            battle_attr_fix(damage + 15 * skill_lv, s_ele,
+                             battle_get_element(target));
     }
     if (skill_num == MC_CARTREVOLUTION)
     {
-        damage = battle_attr_fix (damage, 0, battle_get_element (target));
+        damage = battle_attr_fix(damage, 0, battle_get_element(target));
     }
 
     // 完全回避の判定
     if (skill_num == 0 && skill_lv >= 0 && tsd != NULL
-        && MRAND (1000) < battle_get_flee2 (target))
+        && MRAND(1000) < battle_get_flee2(target))
     {
         damage = 0;
         type = 0x0b;
@@ -2555,7 +2554,7 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
     if (battle_config.enemy_perfect_flee)
     {
         if (skill_num == 0 && skill_lv >= 0 && tmd != NULL
-            && MRAND (1000) < battle_get_flee2 (target))
+            && MRAND(1000) < battle_get_flee2(target))
         {
             damage = 0;
             type = 0x0b;
@@ -2572,24 +2571,24 @@ static struct Damage battle_calc_mob_weapon_attack (struct block_list *src,
 
     if (skill_num != CR_GRANDCROSS)
         damage =
-            battle_calc_damage (src, target, damage, div_, skill_num,
+            battle_calc_damage(src, target, damage, div_, skill_num,
                                 skill_lv, flag);
 
     wd.damage = damage;
     wd.damage2 = 0;
     wd.type = type;
     wd.div_ = div_;
-    wd.amotion = battle_get_amotion (src);
+    wd.amotion = battle_get_amotion(src);
     if (skill_num == KN_AUTOCOUNTER)
         wd.amotion >>= 1;
-    wd.dmotion = battle_get_dmotion (target);
+    wd.dmotion = battle_get_dmotion(target);
     wd.blewcount = blewcount;
     wd.flag = flag;
     wd.dmg_lv = dmg_lv;
     return wd;
 }
 
-int battle_is_unarmed (struct block_list *bl)
+int battle_is_unarmed(struct block_list *bl)
 {
     if (!bl)
         return 0;
@@ -2609,7 +2608,7 @@ int battle_is_unarmed (struct block_list *bl)
  * PCの武器による攻撃
  *-------------------------------------------------------------------------
  */
-static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
+static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                                                    struct block_list *target,
                                                    int skill_num,
                                                    int skill_lv, int wflag)
@@ -2617,42 +2616,42 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     struct map_session_data *sd = (struct map_session_data *) src, *tsd =
         NULL;
     struct mob_data *tmd = NULL;
-    int  hitrate, flee, cri = 0, atkmin, atkmax;
-    int  dex, luk, target_count = 1;
-    int  def1 = battle_get_def (target);
-    int  def2 = battle_get_def2 (target);
-    int  t_vit = battle_get_vit (target);
+    int hitrate, flee, cri = 0, atkmin, atkmax;
+    int dex, luk, target_count = 1;
+    int def1 = battle_get_def(target);
+    int def2 = battle_get_def2(target);
+    int t_vit = battle_get_vit(target);
     struct Damage wd;
-    int  damage, damage2, damage3 = 0, damage4 = 0, type, div_, blewcount =
-        skill_get_blewcount (skill_num, skill_lv);
-    int  flag, skill, dmg_lv = 0;
-    int  t_mode = 0, t_race = 0, t_size = 1, s_race = 7, s_ele = 0;
+    int damage, damage2, damage3 = 0, damage4 = 0, type, div_, blewcount =
+        skill_get_blewcount(skill_num, skill_lv);
+    int flag, skill, dmg_lv = 0;
+    int t_mode = 0, t_race = 0, t_size = 1, s_race = 7, s_ele = 0;
     struct status_change *sc_data, *t_sc_data;
     short *sc_count;
     short *option, *opt1, *opt2;
-    int  atkmax_ = 0, atkmin_ = 0, s_ele_;  //二刀流用
-    int  watk, watk_, cardfix, t_ele;
-    int  da = 0, i, t_class, ac_flag = 0;
-    int  idef_flag = 0, idef_flag_ = 0;
-    int  target_distance;
+    int atkmax_ = 0, atkmin_ = 0, s_ele_;  //二刀流用
+    int watk, watk_, cardfix, t_ele;
+    int da = 0, i, t_class, ac_flag = 0;
+    int idef_flag = 0, idef_flag_ = 0;
+    int target_distance;
 
     //return前の処理があるので情報出力部のみ変更
     if (src == NULL || target == NULL || sd == NULL)
     {
-        nullpo_info (NLP_MARK);
-        memset (&wd, 0, sizeof (wd));
+        nullpo_info(NLP_MARK);
+        memset(&wd, 0, sizeof(wd));
         return wd;
     }
 
     // アタッカー
-    s_race = battle_get_race (src); //種族
-    s_ele = battle_get_attack_element (src);    //属性
-    s_ele_ = battle_get_attack_element2 (src);  //左手属性
-    sc_data = battle_get_sc_data (src); //ステータス異常
-    sc_count = battle_get_sc_count (src);   //ステータス異常の数
-    option = battle_get_option (src);   //鷹とかペコとかカートとか
-    opt1 = battle_get_opt1 (src);   //石化、凍結、スタン、睡眠、暗闇
-    opt2 = battle_get_opt2 (src);   //毒、呪い、沈黙、暗闇？
+    s_race = battle_get_race(src); //種族
+    s_ele = battle_get_attack_element(src);    //属性
+    s_ele_ = battle_get_attack_element2(src);  //左手属性
+    sc_data = battle_get_sc_data(src); //ステータス異常
+    sc_count = battle_get_sc_count(src);   //ステータス異常の数
+    option = battle_get_option(src);   //鷹とかペコとかカートとか
+    opt1 = battle_get_opt1(src);   //石化、凍結、スタン、睡眠、暗闇
+    opt2 = battle_get_opt2(src);   //毒、呪い、沈黙、暗闇？
 
     if (skill_num != CR_GRANDCROSS) //グランドクロスでないなら
         sd->state.attack_type = BF_WEAPON;  //攻撃タイプは武器攻撃
@@ -2662,11 +2661,11 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         tsd = (struct map_session_data *) target;   //tsdに代入(tmdはNULL)
     else if (target->type == BL_MOB)    //対象がMobなら
         tmd = (struct mob_data *) target;   //tmdに代入(tsdはNULL)
-    t_race = battle_get_race (target);  //対象の種族
-    t_ele = battle_get_elem_type (target);  //対象の属性
-    t_size = battle_get_size (target);  //対象のサイズ
-    t_mode = battle_get_mode (target);  //対象のMode
-    t_sc_data = battle_get_sc_data (target);    //対象のステータス異常
+    t_race = battle_get_race(target);  //対象の種族
+    t_ele = battle_get_elem_type(target);  //対象の属性
+    t_size = battle_get_size(target);  //対象のサイズ
+    t_mode = battle_get_mode(target);  //対象のMode
+    t_sc_data = battle_get_sc_data(target);    //対象のステータス異常
 
 //オートカウンター処理ここから
     if ((skill_num == 0
@@ -2678,17 +2677,17 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         if (skill_num != CR_GRANDCROSS && t_sc_data
             && t_sc_data[SC_AUTOCOUNTER].timer != -1)
         {                       //グランドクロスでなく、対象がオートカウンター状態の場合
-            int  dir = map_calc_dir (src, target->x, target->y), t_dir =
-                battle_get_dir (target);
-            int  dist = distance (src->x, src->y, target->x, target->y);
-            if (dist <= 0 || map_check_dir (dir, t_dir))
+            int dir = map_calc_dir(src, target->x, target->y), t_dir =
+                battle_get_dir(target);
+            int dist = distance(src->x, src->y, target->x, target->y);
+            if (dist <= 0 || map_check_dir(dir, t_dir))
             {                   //対象との距離が0以下、または対象の正面？
-                memset (&wd, 0, sizeof (wd));
+                memset(&wd, 0, sizeof(wd));
                 t_sc_data[SC_AUTOCOUNTER].val3 = 0;
                 t_sc_data[SC_AUTOCOUNTER].val4 = 1;
                 if (sc_data && sc_data[SC_AUTOCOUNTER].timer == -1)
                 {               //自分がオートカウンター状態
-                    int  range = battle_get_range (target);
+                    int range = battle_get_range(target);
                     if ((target->type == BL_PC && ((struct map_session_data *) target)->status.weapon != 11 && dist <= range + 1) ||    //対象がPCで武器が弓矢でなく射程内
                         (target->type == BL_MOB && range <= 3 && dist <= range + 1))    //または対象がMobで射程が3以下で射程内
                         t_sc_data[SC_AUTOCOUNTER].val3 = src->id;
@@ -2704,9 +2703,9 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     flag = BF_SHORT | BF_WEAPON | BF_NORMAL;    // 攻撃の種類の設定
 
     // 回避率計算、回避判定は後で
-    flee = battle_get_flee (target);
+    flee = battle_get_flee(target);
     if (battle_config.agi_penaly_type > 0 || battle_config.vit_penaly_type > 0) //AGI、VITペナルティ設定が有効
-        target_count += battle_counttargeted (target, src, battle_config.agi_penaly_count_lv);  //対象の数を算出
+        target_count += battle_counttargeted(target, src, battle_config.agi_penaly_count_lv);  //対象の数を算出
     if (battle_config.agi_penaly_type > 0)
     {
         if (target_count >= battle_config.agi_penaly_count)
@@ -2727,34 +2726,34 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 flee = 1;       //回避率は最低でも1
         }
     }
-    hitrate = battle_get_hit (src) - flee + 80; //命中率計算
+    hitrate = battle_get_hit(src) - flee + 80; //命中率計算
 
     {                           // [fate] Reduce hit chance by distance
-        int  dx = abs (src->x - target->x);
-        int  dy = abs (src->y - target->y);
-        int  malus_dist;
+        int dx = abs(src->x - target->x);
+        int dy = abs(src->y - target->y);
+        int malus_dist;
 
-        target_distance = MAX (dx, dy);
+        target_distance = MAX(dx, dy);
         malus_dist =
-            MAX (0, target_distance - (skill_power (sd, AC_OWL) / 75));
+            MAX(0, target_distance - (skill_power(sd, AC_OWL) / 75));
         hitrate -= (malus_dist * (malus_dist + 1));
     }
 
-    dex = battle_get_dex (src); //DEX
-    luk = battle_get_luk (src); //LUK
-    watk = battle_get_atk (src);    //ATK
-    watk_ = battle_get_atk_ (src);  //ATK左手
+    dex = battle_get_dex(src); //DEX
+    luk = battle_get_luk(src); //LUK
+    watk = battle_get_atk(src);    //ATK
+    watk_ = battle_get_atk_(src);  //ATK左手
 
     type = 0;                   // normal
     div_ = 1;                   // single attack
 
     if (skill_num == HW_MAGICCRASHER)
     {                           /* マジッククラッシャーはMATKで殴る */
-        damage = damage2 = battle_get_matk1 (src);  //damega,damega2初登場、base_atkの取得
+        damage = damage2 = battle_get_matk1(src);  //damega,damega2初登場、base_atkの取得
     }
     else
     {
-        damage = damage2 = battle_get_baseatk (&sd->bl);    //damega,damega2初登場、base_atkの取得
+        damage = damage2 = battle_get_baseatk(&sd->bl);    //damega,damega2初登場、base_atkの取得
     }
     if (sd->attackrange > 2)
     {                           // [fate] ranged weapon?
@@ -2793,7 +2792,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     // ペコ騎乗していて、槍で攻撃した場合は中型のサイズ修正を100にする
     // ウェポンパーフェクション,ドレイクC
     if (((sd->special_state.no_sizefix)
-         || (pc_isriding (sd)
+         || (pc_isriding(sd)
              && (sd->status.weapon == 4 || sd->status.weapon == 5)
              && t_size == 1) || skill_num == MO_EXTREMITYFIST))
     {                           //ペコ騎乗していて、槍で中型を攻撃
@@ -2829,38 +2828,38 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     if (sd->weapontype1 == 0x01)
     {
         if (skill_num == 0 && skill_lv >= 0
-            && (skill = pc_checkskill (sd, TF_DOUBLE)) > 0)
-            da = (MRAND (100) < (skill * 5)) ? 1 : 0;
+            && (skill = pc_checkskill(sd, TF_DOUBLE)) > 0)
+            da = (MRAND(100) < (skill * 5)) ? 1 : 0;
     }
 
     //三段掌
     if (skill_num == 0 && skill_lv >= 0
-        && (skill = pc_checkskill (sd, MO_TRIPLEATTACK)) > 0
+        && (skill = pc_checkskill(sd, MO_TRIPLEATTACK)) > 0
         && sd->status.weapon <= 16 && !sd->state.arrow_atk)
     {
-        da = (MRAND (100) < (30 - skill)) ? 2 : 0;
+        da = (MRAND(100) < (30 - skill)) ? 2 : 0;
     }
 
     if (sd->double_rate > 0 && da == 0 && skill_num == 0 && skill_lv >= 0)
-        da = (MRAND (100) < sd->double_rate) ? 1 : 0;
+        da = (MRAND(100) < sd->double_rate) ? 1 : 0;
 
     // 過剰精錬ボーナス
     if (sd->overrefine > 0)
-        damage += MPRAND (1, sd->overrefine);
+        damage += MPRAND(1, sd->overrefine);
     if (sd->overrefine_ > 0)
-        damage2 += MPRAND (1, sd->overrefine_);
+        damage2 += MPRAND(1, sd->overrefine_);
 
     if (da == 0)
     {                           //ダブルアタックが発動していない
         // クリティカル計算
-        cri = battle_get_critical (src);
+        cri = battle_get_critical(src);
 
         if (sd->state.arrow_atk)
             cri += sd->arrow_cri;
         if (sd->status.weapon == 16)
             // カタールの場合、クリティカルを倍に
             cri <<= 1;
-        cri -= battle_get_luk (target) * 3;
+        cri -= battle_get_luk(target) * 3;
         if (t_sc_data != NULL && t_sc_data[SC_SLEEP].timer != -1)   // 睡眠中はクリティカルが倍に
             cri <<= 1;
         if (ac_flag)
@@ -2874,7 +2873,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 cri <<= 1;
         }
 
-        if (skill_num == SN_SHARPSHOOTING && MRAND (100) < 50)
+        if (skill_num == SN_SHARPSHOOTING && MRAND(100) < 50)
             cri = 1000;
     }
 
@@ -2882,7 +2881,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         cri = cri * (100 - tsd->critical_def) / 100;
 
     if (da == 0 && (skill_num == 0 || skill_num == KN_AUTOCOUNTER || skill_num == SN_SHARPSHOOTING) && skill_lv >= 0 && //ダブルアタックが発動していない
-        (MRAND (1000)) < cri)   // 判定（スキルの場合は無視）
+        (MRAND(1000)) < cri)   // 判定（スキルの場合は無視）
     {
         damage += atkmax;
         damage2 += atkmax_;
@@ -2895,47 +2894,47 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
             damage += sd->arrow_atk;
         type = 0x0a;
 
-/*		if(def1 < 1000000) {
-			if(sd->def_ratio_atk_ele & (1<<t_ele) || sd->def_ratio_atk_race & (1<<t_race)) {
-				damage = (damage * (def1 + def2))/100;
-				idef_flag = 1;
-			}
-			if(sd->def_ratio_atk_ele_ & (1<<t_ele) || sd->def_ratio_atk_race_ & (1<<t_race)) {
-				damage2 = (damage2 * (def1 + def2))/100;
-				idef_flag_ = 1;
-			}
-			if(t_mode & 0x20) {
-				if(!idef_flag && sd->def_ratio_atk_race & (1<<10)) {
-					damage = (damage * (def1 + def2))/100;
-					idef_flag = 1;
-				}
-				if(!idef_flag_ && sd->def_ratio_atk_race_ & (1<<10)) {
-					damage2 = (damage2 * (def1 + def2))/100;
-					idef_flag_ = 1;
-				}
-			}
-			else {
-				if(!idef_flag && sd->def_ratio_atk_race & (1<<11)) {
-					damage = (damage * (def1 + def2))/100;
-					idef_flag = 1;
-				}
-				if(!idef_flag_ && sd->def_ratio_atk_race_ & (1<<11)) {
-					damage2 = (damage2 * (def1 + def2))/100;
-					idef_flag_ = 1;
-				}
-			}
-		}*/
+/*              if (def1 < 1000000) {
+                        if (sd->def_ratio_atk_ele & (1<<t_ele) || sd->def_ratio_atk_race & (1<<t_race)) {
+                                damage = (damage * (def1 + def2))/100;
+                                idef_flag = 1;
+                        }
+                        if (sd->def_ratio_atk_ele_ & (1<<t_ele) || sd->def_ratio_atk_race_ & (1<<t_race)) {
+                                damage2 = (damage2 * (def1 + def2))/100;
+                                idef_flag_ = 1;
+                        }
+                        if (t_mode & 0x20) {
+                                if (!idef_flag && sd->def_ratio_atk_race & (1<<10)) {
+                                        damage = (damage * (def1 + def2))/100;
+                                        idef_flag = 1;
+                                }
+                                if (!idef_flag_ && sd->def_ratio_atk_race_ & (1<<10)) {
+                                        damage2 = (damage2 * (def1 + def2))/100;
+                                        idef_flag_ = 1;
+                                }
+                        }
+                        else {
+                                if (!idef_flag && sd->def_ratio_atk_race & (1<<11)) {
+                                        damage = (damage * (def1 + def2))/100;
+                                        idef_flag = 1;
+                                }
+                                if (!idef_flag_ && sd->def_ratio_atk_race_ & (1<<11)) {
+                                        damage2 = (damage2 * (def1 + def2))/100;
+                                        idef_flag_ = 1;
+                                }
+                        }
+                }*/
     }
     else
     {
-        int  vitbonusmax;
+        int vitbonusmax;
 
         if (atkmax > atkmin)
-            damage += atkmin + MRAND ((atkmax - atkmin + 1));
+            damage += atkmin + MRAND((atkmax - atkmin + 1));
         else
             damage += atkmin;
         if (atkmax_ > atkmin_)
-            damage2 += atkmin_ + MRAND ((atkmax_ - atkmin_ + 1));
+            damage2 += atkmin_ + MRAND((atkmax_ - atkmin_ + 1));
         else
             damage2 += atkmin_;
         if (sd->atk_rate != 100)
@@ -2947,7 +2946,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         if (sd->state.arrow_atk)
         {
             if (sd->arrow_atk > 0)
-                damage += MRAND ((sd->arrow_atk + 1));
+                damage += MRAND((sd->arrow_atk + 1));
             hitrate += sd->arrow_hit;
         }
 
@@ -3021,8 +3020,8 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
 
         if (skill_num > 0)
         {
-            int  i;
-            if ((i = skill_get_pl (skill_num)) > 0)
+            int i;
+            if ((i = skill_get_pl(skill_num)) > 0)
                 s_ele = s_ele_ = i;
 
             flag = (flag & ~BF_SKILLMASK) | BF_SKILL;
@@ -3046,7 +3045,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case AC_DOUBLE:    // ダブルストレイフィング
                     if (!sd->state.arrow_atk && sd->arrow_atk > 0)
                     {
-                        int  arr = MRAND ((sd->arrow_atk + 1));
+                        int arr = MRAND((sd->arrow_atk + 1));
                         damage += arr;
                         damage2 += arr;
                     }
@@ -3064,7 +3063,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case AC_SHOWER:    // アローシャワー
                     if (!sd->state.arrow_atk && sd->arrow_atk > 0)
                     {
-                        int  arr = MRAND ((sd->arrow_atk + 1));
+                        int arr = MRAND((sd->arrow_atk + 1));
                         damage += arr;
                         damage2 += arr;
                     }
@@ -3081,7 +3080,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case AC_CHARGEARROW:   // チャージアロー
                     if (!sd->state.arrow_atk && sd->arrow_atk > 0)
                     {
-                        int  arr = MRAND ((sd->arrow_atk + 1));
+                        int arr = MRAND((sd->arrow_atk + 1));
                         damage += arr;
                         damage2 += arr;
                     }
@@ -3170,12 +3169,12 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                     {
                         damage =
                             (damage *
-                             (150 + pc_checkskill (sd, BS_WEAPONRESEARCH) +
+                             (150 + pc_checkskill(sd, BS_WEAPONRESEARCH) +
                               (sd->cart_weight * 100 /
                                sd->cart_max_weight))) / 100;
                         damage2 =
                             (damage2 *
-                             (150 + pc_checkskill (sd, BS_WEAPONRESEARCH) +
+                             (150 + pc_checkskill(sd, BS_WEAPONRESEARCH) +
                               (sd->cart_weight * 100 /
                                sd->cart_max_weight))) / 100;
                     }
@@ -3187,13 +3186,13 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                     break;
                     // 以下MOB
                 case NPC_COMBOATTACK:  // 多段攻撃
-                    div_ = skill_get_num (skill_num, skill_lv);
+                    div_ = skill_get_num(skill_num, skill_lv);
                     damage *= div_;
                     damage2 *= div_;
                     break;
                 case NPC_RANDOMATTACK: // ランダムATK攻撃
-                    damage = damage * (MPRAND (50, 150)) / 100;
-                    damage2 = damage2 * (MPRAND (50, 150)) / 100;
+                    damage = damage * (MPRAND(50, 150)) / 100;
+                    damage2 = damage2 * (MPRAND(50, 150)) / 100;
                     break;
                     // 属性攻撃（適当）
                 case NPC_WATERATTACK:
@@ -3310,7 +3309,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                         damage2 * (8 + ((sd->status.sp) / 10)) + 250 +
                         (skill_lv * 150);
                     sd->status.sp = 0;
-                    clif_updatestatus (sd, SP_SP);
+                    clif_updatestatus(sd, SP_SP);
                     hitrate = 1000000;
                     s_ele = 0;
                     s_ele_ = 0;
@@ -3327,7 +3326,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case BA_MUSICALSTRIKE: // ミュージカルストライク
                     if (!sd->state.arrow_atk && sd->arrow_atk > 0)
                     {
-                        int  arr = MRAND ((sd->arrow_atk + 1));
+                        int arr = MRAND((sd->arrow_atk + 1));
                         damage += arr;
                         damage2 += arr;
                     }
@@ -3344,7 +3343,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case DC_THROWARROW:    // 矢撃ち
                     if (!sd->state.arrow_atk && sd->arrow_atk > 0)
                     {
-                        int  arr = MRAND ((sd->arrow_atk + 1));
+                        int arr = MRAND((sd->arrow_atk + 1));
                         damage += arr;
                         damage2 += arr;
                     }
@@ -3365,7 +3364,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case CH_CHAINCRUSH:    // 連柱崩撃
                     damage = damage * (100 + 20 * skill_lv) / 100;
                     damage2 = damage2 * (100 + 20 * skill_lv) / 100;
-                    div_ = skill_get_num (skill_num, skill_lv);
+                    div_ = skill_get_num(skill_num, skill_lv);
                     break;
                 case CH_PALMSTRIKE:    // 猛虎硬派山
                     damage = damage * (50 + 100 * skill_lv) / 100;
@@ -3376,9 +3375,9 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                     damage2 = damage2 * (100 + 50 * skill_lv) / 100;    //増加量が分からないので適当に
                     div_ = 5;
                     if (tsd)
-                        tsd->canmove_tick = gettick () + 1000;
+                        tsd->canmove_tick = gettick() + 1000;
                     else if (tmd)
-                        tmd->canmove_tick = gettick () + 1000;
+                        tmd->canmove_tick = gettick() + 1000;
                     break;
                 case LK_HEADCRUSH: /* ヘッドクラッシュ */
                     damage = damage * (100 + 20 * skill_lv) / 100;
@@ -3404,19 +3403,19 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case AS_SPLASHER:  /* ベナムスプラッシャー */
                     damage =
                         damage * (200 + 20 * skill_lv +
-                                  20 * pc_checkskill (sd,
+                                  20 * pc_checkskill(sd,
                                                       AS_POISONREACT)) / 100;
                     damage2 =
                         damage2 * (200 + 20 * skill_lv +
-                                   20 * pc_checkskill (sd,
+                                   20 * pc_checkskill(sd,
                                                        AS_POISONREACT)) / 100;
                     break;
                 case PA_SACRIFICE:
                     if (sd)
                     {
-                        int  hp, mhp, damage3;
-                        hp = battle_get_hp (src);
-                        mhp = battle_get_max_hp (src);
+                        int hp, mhp, damage3;
+                        hp = battle_get_hp(src);
+                        mhp = battle_get_max_hp(src);
                         damage3 = mhp * ((skill_lv / 2) + (50 / 100)) / 100;
                         damage =
                             (((skill_lv * 15) + 90) / 100) * damage3 / 100;
@@ -3427,19 +3426,19 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                 case ASC_BREAKER:  // -- moonsoul (special damage for ASC_BREAKER skill)
                     if (sd)
                     {
-                        int  damage3;
-                        int  mdef1 = battle_get_mdef (target);
-                        int  mdef2 = battle_get_mdef2 (target);
-                        int  imdef_flag = 0;
+                        int damage3;
+                        int mdef1 = battle_get_mdef(target);
+                        int mdef2 = battle_get_mdef2(target);
+                        int imdef_flag = 0;
 
                         damage =
                             ((damage * 5) +
-                             (skill_lv * battle_get_int (src) * 5) +
-                             MRAND (500) + 500) / 2;
+                             (skill_lv * battle_get_int(src) * 5) +
+                             MRAND(500) + 500) / 2;
                         damage2 =
                             ((damage2 * 5) +
-                             (skill_lv * battle_get_int (src) * 5) +
-                             MRAND (500) + 500) / 2;
+                             (skill_lv * battle_get_int(src) * 5) +
+                             MRAND(500) + 500) / 2;
                         damage3 = damage;
                         hitrate = 1000000;
 
@@ -3477,8 +3476,8 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                             damage3 = 1;
 
                         damage3 =
-                            battle_attr_fix (damage2, s_ele_,
-                                             battle_get_element (target));
+                            battle_attr_fix(damage2, s_ele_,
+                                             battle_get_element(target));
                     }
                     break;
             }
@@ -3489,7 +3488,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
             div_ = 255;         //三段掌用に…
             damage =
                 damage * (100 +
-                          20 * pc_checkskill (sd, MO_TRIPLEATTACK)) / 100;
+                          20 * pc_checkskill(sd, MO_TRIPLEATTACK)) / 100;
         }
 
         if (skill_num != NPC_CRITICALSLASH)
@@ -3499,9 +3498,9 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
             if (skill_num != MO_INVESTIGATE && skill_num != MO_EXTREMITYFIST
                 && skill_num != KN_AUTOCOUNTER && def1 < 1000000)
             {                   //DEF, VIT無視
-                int  t_def;
+                int t_def;
                 target_count =
-                    1 + battle_counttargeted (target, src,
+                    1 + battle_counttargeted(target, src,
                                               battle_config.vit_penaly_count_lv);
                 if (battle_config.vit_penaly_type > 0)
                 {
@@ -3586,14 +3585,14 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                             (def1 * battle_config.player_defense_type) -
                             t_def -
                             ((vitbonusmax <
-                              1) ? 0 : MRAND ((vitbonusmax + 1)));
+                              1) ? 0 : MRAND((vitbonusmax + 1)));
                     }
                     else
                     {
                         damage =
                             damage * (100 - def1) / 100 - t_def -
                             ((vitbonusmax <
-                              1) ? 0 : MRAND ((vitbonusmax + 1)));
+                              1) ? 0 : MRAND((vitbonusmax + 1)));
                     }
                 }
                 if (!idef_flag_)
@@ -3605,14 +3604,14 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                             (def1 * battle_config.player_defense_type) -
                             t_def -
                             ((vitbonusmax <
-                              1) ? 0 : MRAND ((vitbonusmax + 1)));
+                              1) ? 0 : MRAND((vitbonusmax + 1)));
                     }
                     else
                     {
                         damage2 =
                             damage2 * (100 - def1) / 100 - t_def -
                             ((vitbonusmax <
-                              1) ? 0 : MRAND ((vitbonusmax + 1)));
+                              1) ? 0 : MRAND((vitbonusmax + 1)));
                     }
                 }
             }
@@ -3621,20 +3620,20 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     // 精錬ダメージの追加
     if (skill_num != MO_INVESTIGATE && skill_num != MO_EXTREMITYFIST)
     {                           //DEF, VIT無視
-        damage += battle_get_atk2 (src);
-        damage2 += battle_get_atk_2 (src);
+        damage += battle_get_atk2(src);
+        damage2 += battle_get_atk_2(src);
     }
     if (skill_num == CR_SHIELDBOOMERANG)
     {
         if (sd->equip_index[8] >= 0)
         {
-            int  index = sd->equip_index[8];
+            int index = sd->equip_index[8];
             if (sd->inventory_data[index]
                 && sd->inventory_data[index]->type == 5)
             {
                 damage += sd->inventory_data[index]->weight / 10;
                 damage +=
-                    sd->status.inventory[index].refine * pc_getrefinebonus (0,
+                    sd->status.inventory[index].refine * pc_getrefinebonus(0,
                                                                             1);
             }
         }
@@ -3643,15 +3642,15 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     {                           /* スパイラルピアース */
         if (sd->equip_index[9] >= 0)
         {                       //重量で追加ダメージらしいのでシールドブーメランを参考に追加
-            int  index = sd->equip_index[9];
+            int index = sd->equip_index[9];
             if (sd->inventory_data[index]
                 && sd->inventory_data[index]->type == 4)
             {
                 damage +=
-                    (int) (double) (sd->inventory_data[index]->weight *
+                    (int)(double)(sd->inventory_data[index]->weight *
                                     (0.8 * skill_lv * 4 / 10));
                 damage +=
-                    sd->status.inventory[index].refine * pc_getrefinebonus (0,
+                    sd->status.inventory[index].refine * pc_getrefinebonus(0,
                                                                             1);
             }
         }
@@ -3668,13 +3667,13 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     if (skill_num != MO_INVESTIGATE && skill_num != MO_EXTREMITYFIST
         && skill_num != CR_GRANDCROSS)
     {                           //修練ダメージ無視
-        damage = battle_addmastery (sd, target, damage, 0);
-        damage2 = battle_addmastery (sd, target, damage2, 1);
+        damage = battle_addmastery(sd, target, damage, 0);
+        damage2 = battle_addmastery(sd, target, damage2, 1);
     }
 
     if (sd->perfect_hit > 0)
     {
-        if (MRAND (100) < sd->perfect_hit)
+        if (MRAND(100) < sd->perfect_hit)
             hitrate = 1000000;
     }
 
@@ -3685,7 +3684,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
                                t_sc_data[SC_STAN].timer != -1 ||    // スタンは必中
                                t_sc_data[SC_FREEZE].timer != -1 || (t_sc_data[SC_STONE].timer != -1 && t_sc_data[SC_STONE].val2 == 0))))    // 凍結は必中
         hitrate = 1000000;
-    if (type == 0 && MRAND (100) >= hitrate)
+    if (type == 0 && MRAND(100) >= hitrate)
     {
         damage = damage2 = 0;
         dmg_lv = ATK_FLEE;
@@ -3695,7 +3694,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         dmg_lv = ATK_DEF;
     }
     // スキル修正３（武器研究）
-    if ((skill = pc_checkskill (sd, BS_WEAPONRESEARCH)) > 0)
+    if ((skill = pc_checkskill(sd, BS_WEAPONRESEARCH)) > 0)
     {
         damage += skill * 2;
         damage2 += skill * 2;
@@ -3703,7 +3702,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     //Advanced Katar Research by zanetheinsane
     if (sd->weapontype1 == 0x10 || sd->weapontype2 == 0x10)
     {
-        if ((skill = pc_checkskill (sd, ASC_KATAR)) > 0)
+        if ((skill = pc_checkskill(sd, ASC_KATAR)) > 0)
         {
             damage += (damage * ((skill * 2) + 10)) / 100;
         }
@@ -3759,7 +3758,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
             cardfix = cardfix * (100 + sd->addrace[11] + sd->arrow_addrace[11]) / 100;  //ボス以外モンスターに追加ダメージ(弓矢による追加あり)
     }
     //特定Class用補正処理(少女の日記→ボンゴン用？)
-    t_class = battle_get_class (target);
+    t_class = battle_get_class(target);
     for (i = 0; i < sd->add_damage_class_count; i++)
     {
         if (sd->add_damage_classid[i] == t_class)
@@ -3807,7 +3806,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         cardfix = 100;
         cardfix = cardfix * (100 - tsd->subrace[s_race]) / 100; // 種族によるダメージ耐性
         cardfix = cardfix * (100 - tsd->subele[s_ele]) / 100;   // 属性によるダメージ耐性
-        if (battle_get_mode (src) & 0x20)
+        if (battle_get_mode(src) & 0x20)
             cardfix = cardfix * (100 - tsd->subrace[10]) / 100; //ボスからの攻撃はダメージ減少
         else
             cardfix = cardfix * (100 - tsd->subrace[11]) / 100; //ボス以外からの攻撃はダメージ減少
@@ -3862,8 +3861,8 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
         damage2 = 0;
 
     // 属 性の適用
-    damage = battle_attr_fix (damage, s_ele, battle_get_element (target));
-    damage2 = battle_attr_fix (damage2, s_ele_, battle_get_element (target));
+    damage = battle_attr_fix(damage, s_ele, battle_get_element(target));
+    damage2 = battle_attr_fix(damage2, s_ele_, battle_get_element(target));
 
     // 星のかけら、気球の適用
     damage += sd->star;
@@ -3897,14 +3896,14 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     // 右手、左手修練の適用
     if (sd->status.weapon > 16)
     {                           // 二刀流か?
-        int  dmg = damage, dmg2 = damage2;
+        int dmg = damage, dmg2 = damage2;
         // 右手修練(60% 〜 100%) 右手全般
-        skill = pc_checkskill (sd, AS_RIGHT);
+        skill = pc_checkskill(sd, AS_RIGHT);
         damage = damage * (50 + (skill * 10)) / 100;
         if (dmg > 0 && damage < 1)
             damage = 1;
         // 左手修練(40% 〜 80%) 左手全般
-        skill = pc_checkskill (sd, AS_LEFT);
+        skill = pc_checkskill(sd, AS_LEFT);
         damage2 = damage2 * (30 + (skill * 10)) / 100;
         if (dmg2 > 0 && damage2 < 1)
             damage2 = 1;
@@ -3923,7 +3922,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     if (sd->status.weapon == 16)
     {
         // カタール追撃ダメージ
-        skill = pc_checkskill (sd, TF_DOUBLE);
+        skill = pc_checkskill(sd, TF_DOUBLE);
         damage2 = damage * (1 + (skill * 2)) / 100;
         if (damage > 0 && damage2 < 1)
             damage2 = 1;
@@ -3933,17 +3932,17 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     if (skill_num == TF_POISON)
     {
         damage =
-            battle_attr_fix (damage + 15 * skill_lv, s_ele,
-                             battle_get_element (target));
+            battle_attr_fix(damage + 15 * skill_lv, s_ele,
+                             battle_get_element(target));
     }
     if (skill_num == MC_CARTREVOLUTION)
     {
-        damage = battle_attr_fix (damage, 0, battle_get_element (target));
+        damage = battle_attr_fix(damage, 0, battle_get_element(target));
     }
 
     // 完全回避の判定
     if (skill_num == 0 && skill_lv >= 0 && tsd != NULL && div_ < 255
-        && MRAND (1000) < battle_get_flee2 (target))
+        && MRAND(1000) < battle_get_flee2(target))
     {
         damage = damage2 = 0;
         type = 0x0b;
@@ -3954,7 +3953,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     if (battle_config.enemy_perfect_flee)
     {
         if (skill_num == 0 && skill_lv >= 0 && tmd != NULL && div_ < 255
-            && MRAND (1000) < battle_get_flee2 (target))
+            && MRAND(1000) < battle_get_flee2(target))
         {
             damage = damage2 = 0;
             type = 0x0b;
@@ -3980,17 +3979,17 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     {
         if (damage2 < 1)        // ダメージ最終修正
             damage =
-                battle_calc_damage (src, target, damage, div_, skill_num,
+                battle_calc_damage(src, target, damage, div_, skill_num,
                                     skill_lv, flag);
         else if (damage < 1)    // 右手がミス？
             damage2 =
-                battle_calc_damage (src, target, damage2, div_, skill_num,
+                battle_calc_damage(src, target, damage2, div_, skill_num,
                                     skill_lv, flag);
         else
         {                       // 両 手/カタールの場合はちょっと計算ややこしい
-            int  d1 = damage + damage2, d2 = damage2;
+            int d1 = damage + damage2, d2 = damage2;
             damage =
-                battle_calc_damage (src, target, damage + damage2, div_,
+                battle_calc_damage(src, target, damage + damage2, div_,
                                     skill_num, skill_lv, flag);
             damage2 = (d2 * 100 / d1) * damage / 100;
             if (damage > 1 && damage2 < 1)
@@ -4003,7 +4002,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     if (src->type == BL_PC && sd->random_attack_increase_add > 0
         && sd->random_attack_increase_per > 0 && skill_num == 0)
     {
-        if (MRAND (100) < sd->random_attack_increase_per)
+        if (MRAND(100) < sd->random_attack_increase_per)
         {
             if (damage > 0)
                 damage *= sd->random_attack_increase_add / 100;
@@ -4024,10 +4023,10 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
     wd.damage2 = damage2;
     wd.type = type;
     wd.div_ = div_;
-    wd.amotion = battle_get_amotion (src);
+    wd.amotion = battle_get_amotion(src);
     if (skill_num == KN_AUTOCOUNTER)
         wd.amotion >>= 1;
-    wd.dmotion = battle_get_dmotion (target);
+    wd.dmotion = battle_get_dmotion(target);
     wd.blewcount = blewcount;
     wd.flag = flag;
     wd.dmg_lv = dmg_lv;
@@ -4039,7 +4038,7 @@ static struct Damage battle_calc_pc_weapon_attack (struct block_list *src,
  * 武器ダメージ計算
  *------------------------------------------
  */
-struct Damage battle_calc_weapon_attack (struct block_list *src,
+struct Damage battle_calc_weapon_attack(struct block_list *src,
                                          struct block_list *target,
                                          int skill_num, int skill_lv,
                                          int wflag)
@@ -4049,18 +4048,18 @@ struct Damage battle_calc_weapon_attack (struct block_list *src,
     //return前の処理があるので情報出力部のみ変更
     if (src == NULL || target == NULL)
     {
-        nullpo_info (NLP_MARK);
-        memset (&wd, 0, sizeof (wd));
+        nullpo_info(NLP_MARK);
+        memset(&wd, 0, sizeof(wd));
         return wd;
     }
 
     else if (src->type == BL_PC)
-        wd = battle_calc_pc_weapon_attack (src, target, skill_num, skill_lv, wflag);    // weapon breaking [Valaris]
+        wd = battle_calc_pc_weapon_attack(src, target, skill_num, skill_lv, wflag);    // weapon breaking [Valaris]
     else if (src->type == BL_MOB)
-        wd = battle_calc_mob_weapon_attack (src, target, skill_num, skill_lv,
+        wd = battle_calc_mob_weapon_attack(src, target, skill_num, skill_lv,
                                             wflag);
     else
-        memset (&wd, 0, sizeof (wd));
+        memset(&wd, 0, sizeof(wd));
 
     if (battle_config.equipment_breaking && src->type == BL_PC
         && (wd.damage > 0 || wd.damage2 > 0))
@@ -4068,25 +4067,25 @@ struct Damage battle_calc_weapon_attack (struct block_list *src,
         struct map_session_data *sd = (struct map_session_data *) src;
         if (sd->status.weapon && sd->status.weapon != 11)
         {
-            int  breakrate = 1;
+            int breakrate = 1;
             if (target->type == BL_PC && sd->sc_data[SC_MELTDOWN].timer != -1)
             {
                 breakrate += 100 * sd->sc_data[SC_MELTDOWN].val1;
-                if (MRAND (10000) <
+                if (MRAND(10000) <
                     breakrate * battle_config.equipment_break_rate / 100
                     || breakrate >= 10000)
-                    pc_breakweapon ((struct map_session_data *) target);
+                    pc_breakweapon((struct map_session_data *) target);
             }
             if (sd->sc_data[SC_OVERTHRUST].timer != -1)
                 breakrate += 20 * sd->sc_data[SC_OVERTHRUST].val1;
             if (wd.type == 0x0a)
                 breakrate *= 2;
-            if (MRAND (10000) <
+            if (MRAND(10000) <
                 breakrate * battle_config.equipment_break_rate / 100
                 || breakrate >= 10000)
             {
-                pc_breakweapon (sd);
-                memset (&wd, 0, sizeof (wd));
+                pc_breakweapon(sd);
+                memset(&wd, 0, sizeof(wd));
             }
         }
     }
@@ -4094,7 +4093,7 @@ struct Damage battle_calc_weapon_attack (struct block_list *src,
     if (battle_config.equipment_breaking && target->type == BL_PC
         && (wd.damage > 0 || wd.damage2 > 0))
     {
-        int  breakrate = 1;
+        int breakrate = 1;
         if (src->type == BL_PC
             && ((struct map_session_data *) src)->
             sc_data[SC_MELTDOWN].timer != -1)
@@ -4103,11 +4102,11 @@ struct Damage battle_calc_weapon_attack (struct block_list *src,
                 ((struct map_session_data *) src)->sc_data[SC_MELTDOWN].val1;
         if (wd.type == 0x0a)
             breakrate *= 2;
-        if (MRAND (10000) <
+        if (MRAND(10000) <
             breakrate * battle_config.equipment_break_rate / 100
             || breakrate >= 10000)
         {
-            pc_breakarmor ((struct map_session_data *) target);
+            pc_breakarmor((struct map_session_data *) target);
         }
     }
 
@@ -4118,18 +4117,18 @@ struct Damage battle_calc_weapon_attack (struct block_list *src,
  * 魔法ダメージ計算
  *------------------------------------------
  */
-struct Damage battle_calc_magic_attack (struct block_list *bl,
+struct Damage battle_calc_magic_attack(struct block_list *bl,
                                         struct block_list *target,
                                         int skill_num, int skill_lv, int flag)
 {
-    int  mdef1 = battle_get_mdef (target);
-    int  mdef2 = battle_get_mdef2 (target);
-    int  matk1, matk2, damage = 0, div_ = 1, blewcount =
-        skill_get_blewcount (skill_num, skill_lv), rdamage = 0;
+    int mdef1 = battle_get_mdef(target);
+    int mdef2 = battle_get_mdef2(target);
+    int matk1, matk2, damage = 0, div_ = 1, blewcount =
+        skill_get_blewcount(skill_num, skill_lv), rdamage = 0;
     struct Damage md;
-    int  aflag;
-    int  normalmagic_flag = 1;
-    int  ele = 0, race = 7, t_ele = 0, t_race = 7, t_mode =
+    int aflag;
+    int normalmagic_flag = 1;
+    int ele = 0, race = 7, t_ele = 0, t_race = 7, t_mode =
         0, cardfix, t_class, i;
     struct map_session_data *sd = NULL, *tsd = NULL;
     struct mob_data *tmd = NULL;
@@ -4137,18 +4136,18 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
     //return前の処理があるので情報出力部のみ変更
     if (bl == NULL || target == NULL)
     {
-        nullpo_info (NLP_MARK);
-        memset (&md, 0, sizeof (md));
+        nullpo_info(NLP_MARK);
+        memset(&md, 0, sizeof(md));
         return md;
     }
 
-    matk1 = battle_get_matk1 (bl);
-    matk2 = battle_get_matk2 (bl);
-    ele = skill_get_pl (skill_num);
-    race = battle_get_race (bl);
-    t_ele = battle_get_elem_type (target);
-    t_race = battle_get_race (target);
-    t_mode = battle_get_mode (target);
+    matk1 = battle_get_matk1(bl);
+    matk2 = battle_get_matk2(bl);
+    ele = skill_get_pl(skill_num);
+    race = battle_get_race(bl);
+    t_ele = battle_get_elem_type(target);
+    t_race = battle_get_race(target);
+    t_mode = battle_get_mode(target);
 
 #define MATK_FIX( a,b ) { matk1=matk1*(a)/(b); matk2=matk2*(a)/(b); }
 
@@ -4156,7 +4155,7 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
     {
         sd->state.attack_type = BF_MAGIC;
         if (sd->matk_rate != 100)
-            MATK_FIX (sd->matk_rate, 100);
+            MATK_FIX(sd->matk_rate, 100);
         sd->state.arrow_atk = 0;
     }
     if (target->type == BL_PC)
@@ -4173,7 +4172,7 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
                 // ヒールor聖体
             case AL_HEAL:
             case PR_BENEDICTIO:
-                damage = skill_calc_heal (bl, skill_lv) / 2;
+                damage = skill_calc_heal(bl, skill_lv) / 2;
                 normalmagic_flag = 0;
                 break;
             case PR_ASPERSIO:  /* アスペルシオ */
@@ -4188,39 +4187,38 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
             case ALL_RESURRECTION:
             case PR_TURNUNDEAD:    // 攻撃リザレクションとターンアンデッド
                 if (target->type != BL_PC
-                    && battle_check_undead (t_race, t_ele))
+                    && battle_check_undead(t_race, t_ele))
                 {
-                    int  hp, mhp, thres;
-                    hp = battle_get_hp (target);
-                    mhp = battle_get_max_hp (target);
-                    thres = (skill_lv * 20) + battle_get_luk (bl) +
-                        battle_get_int (bl) + battle_get_lv (bl) +
+                    int hp, mhp, thres;
+                    hp = battle_get_hp(target);
+                    mhp = battle_get_max_hp(target);
+                    thres = (skill_lv * 20) + battle_get_luk(bl) +
+                        battle_get_int(bl) + battle_get_lv(bl) +
                         ((200 - hp * 200 / mhp));
                     if (thres > 700)
                         thres = 700;
 //              if(battle_config.battle_log)
 //                  printf("ターンアンデッド！ 確率%d ‰(千分率)\n", thres);
-                    if (MRAND (1000) < thres && !(t_mode & 0x20))   // 成功
+                    if (MRAND(1000) < thres && !(t_mode & 0x20))   // 成功
                         damage = hp;
                     else        // 失敗
                         damage =
-                            battle_get_lv (bl) + battle_get_int (bl) +
+                            battle_get_lv(bl) + battle_get_int(bl) +
                             skill_lv * 10;
                 }
                 normalmagic_flag = 0;
                 break;
 
             case MG_NAPALMBEAT:    // ナパームビート（分散計算込み）
-                MATK_FIX (70 + skill_lv * 10, 100);
+                MATK_FIX(70 + skill_lv * 10, 100);
                 if (flag > 0)
                 {
-                    MATK_FIX (1, flag);
+                    MATK_FIX(1, flag);
                 }
                 else
                 {
                     if (battle_config.error_log)
-                        printf
-                            ("battle_calc_magic_attack(): napam enemy count=0 !\n");
+                        printf("battle_calc_magic_attack(): napam enemy count=0 !\n");
                 }
                 break;
             case MG_FIREBALL:  // ファイヤーボール
@@ -4229,73 +4227,72 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
                 if (flag > 2)
                     matk1 = matk2 = 0;
                 else
-                    MATK_FIX ((95 + skill_lv * 5) * drate[flag], 10000);
+                    MATK_FIX((95 + skill_lv * 5) * drate[flag], 10000);
             }
                 break;
             case MG_FIREWALL:  // ファイヤーウォール
 /*
-			if( (t_ele!=3 && !battle_check_undead(t_race,t_ele)) || target->type==BL_PC ) //PCは火属性でも飛ぶ？そもそもダメージ受ける？
-				blewcount |= 0x10000;
-			else
-				blewcount = 0;
+                        if ((t_ele!=3 && !battle_check_undead(t_race,t_ele)) || target->type==BL_PC ) //PCは火属性でも飛ぶ？そもそもダメージ受ける？
+                                blewcount |= 0x10000;
+                        else
+                                blewcount = 0;
 */
-                if ((t_ele == 3 || battle_check_undead (t_race, t_ele))
+                if ((t_ele == 3 || battle_check_undead(t_race, t_ele))
                     && target->type != BL_PC)
                     blewcount = 0;
                 else
                     blewcount |= 0x10000;
-                MATK_FIX (1, 2);
+                MATK_FIX(1, 2);
                 break;
             case MG_THUNDERSTORM:  // サンダーストーム
-                MATK_FIX (80, 100);
+                MATK_FIX(80, 100);
                 break;
             case MG_FROSTDIVER:    // フロストダイバ
-                MATK_FIX (100 + skill_lv * 10, 100);
+                MATK_FIX(100 + skill_lv * 10, 100);
                 break;
             case WZ_FROSTNOVA: // フロストダイバ
-                MATK_FIX (((100 + skill_lv * 10) * (2 / 3)), 100);
+                MATK_FIX(((100 + skill_lv * 10) * (2 / 3)), 100);
                 break;
             case WZ_FIREPILLAR:    // ファイヤーピラー
                 if (mdef1 < 1000000)
                     mdef1 = mdef2 = 0;  // MDEF無視
-                MATK_FIX (1, 5);
+                MATK_FIX(1, 5);
                 matk1 += 50;
                 matk2 += 50;
                 break;
             case WZ_SIGHTRASHER:
-                MATK_FIX (100 + skill_lv * 20, 100);
+                MATK_FIX(100 + skill_lv * 20, 100);
                 break;
             case WZ_METEOR:
             case WZ_JUPITEL:   // ユピテルサンダー
                 break;
             case WZ_VERMILION: // ロードオブバーミリオン
-                MATK_FIX (skill_lv * 20 + 80, 100);
+                MATK_FIX(skill_lv * 20 + 80, 100);
                 break;
             case WZ_WATERBALL: // ウォーターボール
                 matk1 += skill_lv * 30;
                 matk2 += skill_lv * 30;
                 break;
             case WZ_STORMGUST: // ストームガスト
-                MATK_FIX (skill_lv * 40 + 100, 100);
+                MATK_FIX(skill_lv * 40 + 100, 100);
                 blewcount |= 0x10000;
                 break;
             case AL_HOLYLIGHT: // ホーリーライト
-                MATK_FIX (125, 100);
+                MATK_FIX(125, 100);
                 break;
             case AL_RUWACH:
-                MATK_FIX (145, 100);
+                MATK_FIX(145, 100);
                 break;
             case HW_NAPALMVULCAN:  // ナパームビート（分散計算込み）
-                MATK_FIX (70 + skill_lv * 10, 100);
+                MATK_FIX(70 + skill_lv * 10, 100);
                 if (flag > 0)
                 {
-                    MATK_FIX (1, flag);
+                    MATK_FIX(1, flag);
                 }
                 else
                 {
                     if (battle_config.error_log)
-                        printf
-                            ("battle_calc_magic_attack(): napalmvulcan enemy count=0 !\n");
+                        printf("battle_calc_magic_attack(): napalmvulcan enemy count=0 !\n");
                 }
                 break;
         }
@@ -4303,9 +4300,9 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
 
     if (normalmagic_flag)
     {                           // 一般魔法ダメージ計算
-        int  imdef_flag = 0;
+        int imdef_flag = 0;
         if (matk1 > matk2)
-            damage = matk2 + MRAND ((matk1 - matk2 + 1));
+            damage = matk2 + MRAND((matk1 - matk2 + 1));
         else
             damage = matk2;
         if (sd)
@@ -4351,7 +4348,7 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
             cardfix = cardfix * (100 + sd->magic_addrace[10]) / 100;
         else
             cardfix = cardfix * (100 + sd->magic_addrace[11]) / 100;
-        t_class = battle_get_class (target);
+        t_class = battle_get_class(target);
         for (i = 0; i < sd->add_magic_damage_class_count; i++)
         {
             if (sd->add_magic_damage_classid[i] == t_class)
@@ -4366,12 +4363,12 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
 
     if (tsd)
     {
-        int  s_class = battle_get_class (bl);
+        int s_class = battle_get_class(bl);
         cardfix = 100;
         cardfix = cardfix * (100 - tsd->subele[ele]) / 100; // 属 性によるダメージ耐性
         cardfix = cardfix * (100 - tsd->subrace[race]) / 100;   // 種族によるダメージ耐性
         cardfix = cardfix * (100 - tsd->magic_subrace[race]) / 100;
-        if (battle_get_mode (bl) & 0x20)
+        if (battle_get_mode(bl) & 0x20)
             cardfix = cardfix * (100 - tsd->magic_subrace[10]) / 100;
         else
             cardfix = cardfix * (100 - tsd->magic_subrace[11]) / 100;
@@ -4389,21 +4386,21 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
     if (damage < 0)
         damage = 0;
 
-    damage = battle_attr_fix (damage, ele, battle_get_element (target));    // 属 性修正
+    damage = battle_attr_fix(damage, ele, battle_get_element(target));    // 属 性修正
 
     if (skill_num == CR_GRANDCROSS)
     {                           // グランドクロス
         struct Damage wd;
-        wd = battle_calc_weapon_attack (bl, target, skill_num, skill_lv,
+        wd = battle_calc_weapon_attack(bl, target, skill_num, skill_lv,
                                         flag);
         damage = (damage + wd.damage) * (100 + 40 * skill_lv) / 100;
         if (battle_config.gx_dupele)
-            damage = battle_attr_fix (damage, ele, battle_get_element (target));    //属性2回かかる
+            damage = battle_attr_fix(damage, ele, battle_get_element(target));    //属性2回かかる
         if (bl == target)
             damage = damage / 2;    //反動は半分
     }
 
-    div_ = skill_get_num (skill_num, skill_lv);
+    div_ = skill_get_num(skill_num, skill_lv);
 
     if (div_ > 1 && skill_num != WZ_VERMILION)
         damage *= div_;
@@ -4424,7 +4421,7 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
             damage = 0;         // 黄 金蟲カード（魔法ダメージ０）
     }
 
-    damage = battle_calc_damage (bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正
+    damage = battle_calc_damage(bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正
 
     /* magic_damage_return by [AppleGirl] and [Valaris]     */
     if (target->type == BL_PC && tsd && tsd->magic_damage_return > 0)
@@ -4432,15 +4429,15 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
         rdamage += damage * tsd->magic_damage_return / 100;
         if (rdamage < 1)
             rdamage = 1;
-        clif_damage (target, bl, gettick (), 0, 0, rdamage, 0, 0, 0);
-        battle_damage (target, bl, rdamage, 0);
+        clif_damage(target, bl, gettick(), 0, 0, rdamage, 0, 0, 0);
+        battle_damage(target, bl, rdamage, 0);
     }
     /*          end magic_damage_return         */
 
     md.damage = damage;
     md.div_ = div_;
-    md.amotion = battle_get_amotion (bl);
-    md.dmotion = battle_get_dmotion (target);
+    md.amotion = battle_get_amotion(bl);
+    md.dmotion = battle_get_dmotion(target);
     md.damage2 = 0;
     md.type = 0;
     md.blewcount = blewcount;
@@ -4453,27 +4450,27 @@ struct Damage battle_calc_magic_attack (struct block_list *bl,
  * その他ダメージ計算
  *------------------------------------------
  */
-struct Damage battle_calc_misc_attack (struct block_list *bl,
+struct Damage battle_calc_misc_attack(struct block_list *bl,
                                        struct block_list *target,
                                        int skill_num, int skill_lv, int flag)
 {
-    int  int_ = battle_get_int (bl);
+    int int_ = battle_get_int(bl);
 //  int luk=battle_get_luk(bl);
-    int  dex = battle_get_dex (bl);
-    int  skill, ele, race, cardfix;
+    int dex = battle_get_dex(bl);
+    int skill, ele, race, cardfix;
     struct map_session_data *sd = NULL, *tsd = NULL;
-    int  damage = 0, div_ = 1, blewcount =
-        skill_get_blewcount (skill_num, skill_lv);
+    int damage = 0, div_ = 1, blewcount =
+        skill_get_blewcount(skill_num, skill_lv);
     struct Damage md;
-    int  damagefix = 1;
+    int damagefix = 1;
 
-    int  aflag = BF_MISC | BF_LONG | BF_SKILL;
+    int aflag = BF_MISC | BF_LONG | BF_SKILL;
 
     //return前の処理があるので情報出力部のみ変更
     if (bl == NULL || target == NULL)
     {
-        nullpo_info (NLP_MARK);
-        memset (&md, 0, sizeof (md));
+        nullpo_info(NLP_MARK);
+        memset(&md, 0, sizeof(md));
         return md;
     }
 
@@ -4502,7 +4499,7 @@ struct Damage battle_calc_misc_attack (struct block_list *bl,
             break;
 
         case HT_BLITZBEAT:     // ブリッツビート
-            if (sd == NULL || (skill = pc_checkskill (sd, HT_STEELCROW)) <= 0)
+            if (sd == NULL || (skill = pc_checkskill(sd, HT_STEELCROW)) <= 0)
                 skill = 0;
             damage = (dex / 10 + int_ / 2 + skill * 3 + 40) * 2;
             if (flag > 1)
@@ -4516,11 +4513,11 @@ struct Damage battle_calc_misc_attack (struct block_list *bl,
 
         case BA_DISSONANCE:    // 不協和音
             damage =
-                (skill_lv) * 20 + pc_checkskill (sd, BA_MUSICALLESSON) * 3;
+                (skill_lv) * 20 + pc_checkskill(sd, BA_MUSICALLESSON) * 3;
             break;
 
         case NPC_SELFDESTRUCTION:  // 自爆
-            damage = battle_get_hp (bl) - (bl == target ? 1 : 0);
+            damage = battle_get_hp(bl) - (bl == target ? 1 : 0);
             damagefix = 0;
             break;
 
@@ -4531,9 +4528,9 @@ struct Damage battle_calc_misc_attack (struct block_list *bl,
 
         case NPC_DARKBREATH:
         {
-            struct status_change *sc_data = battle_get_sc_data (target);
-            int  hitrate =
-                battle_get_hit (bl) - battle_get_flee (target) + 80;
+            struct status_change *sc_data = battle_get_sc_data(target);
+            int hitrate =
+                battle_get_hit(bl) - battle_get_flee(target) + 80;
             hitrate = ((hitrate > 95) ? 95 : ((hitrate < 5) ? 5 : hitrate));
             if (sc_data
                 && (sc_data[SC_SLEEP].timer != -1
@@ -4542,24 +4539,24 @@ struct Damage battle_calc_misc_attack (struct block_list *bl,
                     || (sc_data[SC_STONE].timer != -1
                         && sc_data[SC_STONE].val2 == 0)))
                 hitrate = 1000000;
-            if (MRAND (100) < hitrate)
+            if (MRAND(100) < hitrate)
             {
-                damage = 500 + (skill_lv - 1) * 1000 + MRAND (1000);
+                damage = 500 + (skill_lv - 1) * 1000 + MRAND(1000);
                 if (damage > 9999)
                     damage = 9999;
             }
         }
             break;
         case SN_FALCONASSAULT: /* ファルコンアサルト */
-            skill = pc_checkskill (sd, HT_BLITZBEAT);
+            skill = pc_checkskill(sd, HT_BLITZBEAT);
             damage =
                 (100 + 50 * skill_lv +
                  (dex / 10 + int_ / 2 + skill * 3 + 40) * 2);
             break;
     }
 
-    ele = skill_get_pl (skill_num);
-    race = battle_get_race (bl);
+    ele = skill_get_pl(skill_num);
+    race = battle_get_race(bl);
 
     if (damagefix)
     {
@@ -4576,27 +4573,27 @@ struct Damage battle_calc_misc_attack (struct block_list *bl,
         }
         if (damage < 0)
             damage = 0;
-        damage = battle_attr_fix (damage, ele, battle_get_element (target));    // 属性修正
+        damage = battle_attr_fix(damage, ele, battle_get_element(target));    // 属性修正
     }
 
-    div_ = skill_get_num (skill_num, skill_lv);
+    div_ = skill_get_num(skill_num, skill_lv);
     if (div_ > 1)
         damage *= div_;
 
     if (damage > 0
         && (damage < div_
-            || (battle_get_def (target) >= 1000000
-                && battle_get_mdef (target) >= 1000000)))
+            || (battle_get_def(target) >= 1000000
+                && battle_get_mdef(target) >= 1000000)))
     {
         damage = div_;
     }
 
-    damage = battle_calc_damage (bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正
+    damage = battle_calc_damage(bl, target, damage, div_, skill_num, skill_lv, aflag); // 最終修正
 
     md.damage = damage;
     md.div_ = div_;
-    md.amotion = battle_get_amotion (bl);
-    md.dmotion = battle_get_dmotion (target);
+    md.amotion = battle_get_amotion(bl);
+    md.dmotion = battle_get_dmotion(target);
     md.damage2 = 0;
     md.type = 0;
     md.blewcount = blewcount;
@@ -4609,28 +4606,28 @@ struct Damage battle_calc_misc_attack (struct block_list *bl,
  * ダメージ計算一括処理用
  *------------------------------------------
  */
-struct Damage battle_calc_attack (int attack_type,
+struct Damage battle_calc_attack(int attack_type,
                                   struct block_list *bl,
                                   struct block_list *target, int skill_num,
                                   int skill_lv, int flag)
 {
     struct Damage d;
-    memset (&d, 0, sizeof (d));
+    memset(&d, 0, sizeof(d));
 
     switch (attack_type)
     {
         case BF_WEAPON:
-            return battle_calc_weapon_attack (bl, target, skill_num, skill_lv,
+            return battle_calc_weapon_attack(bl, target, skill_num, skill_lv,
                                               flag);
         case BF_MAGIC:
-            return battle_calc_magic_attack (bl, target, skill_num, skill_lv,
+            return battle_calc_magic_attack(bl, target, skill_num, skill_lv,
                                              flag);
         case BF_MISC:
-            return battle_calc_misc_attack (bl, target, skill_num, skill_lv,
+            return battle_calc_misc_attack(bl, target, skill_num, skill_lv,
                                             flag);
         default:
             if (battle_config.error_log)
-                printf ("battle_calc_attack: unknwon attack type ! %d\n",
+                printf("battle_calc_attack: unknwon attack type ! %d\n",
                         attack_type);
             break;
     }
@@ -4641,47 +4638,47 @@ struct Damage battle_calc_attack (int attack_type,
  * 通常攻撃処理まとめ
  *------------------------------------------
  */
-int battle_weapon_attack (struct block_list *src, struct block_list *target,
+int battle_weapon_attack(struct block_list *src, struct block_list *target,
                           unsigned int tick, int flag)
 {
     struct map_session_data *sd = NULL;
-    struct status_change *sc_data = battle_get_sc_data (src), *t_sc_data =
-        battle_get_sc_data (target);
+    struct status_change *sc_data = battle_get_sc_data(src), *t_sc_data =
+        battle_get_sc_data(target);
     short *opt1;
-    int  race = 7, ele = 0;
-    int  damage, rdamage = 0;
+    int race = 7, ele = 0;
+    int damage, rdamage = 0;
     struct Damage wd;
 
-    nullpo_retr (0, src);
-    nullpo_retr (0, target);
+    nullpo_retr(0, src);
+    nullpo_retr(0, target);
 
     if (src->type == BL_PC)
         sd = (struct map_session_data *) src;
 
     if (src->prev == NULL || target->prev == NULL)
         return 0;
-    if (src->type == BL_PC && pc_isdead (sd))
+    if (src->type == BL_PC && pc_isdead(sd))
         return 0;
     if (target->type == BL_PC
-        && pc_isdead ((struct map_session_data *) target))
+        && pc_isdead((struct map_session_data *) target))
         return 0;
 
-    opt1 = battle_get_opt1 (src);
+    opt1 = battle_get_opt1(src);
     if (opt1 && *opt1 > 0)
     {
-        battle_stopattack (src);
+        battle_stopattack(src);
         return 0;
     }
     if (sc_data && sc_data[SC_BLADESTOP].timer != -1)
     {
-        battle_stopattack (src);
+        battle_stopattack(src);
         return 0;
     }
 
-    race = battle_get_race (target);
-    ele = battle_get_elem_type (target);
-    if (battle_check_target (src, target, BCT_ENEMY) > 0 &&
-        battle_check_range (src, target, 0))
+    race = battle_get_race(target);
+    ele = battle_get_elem_type(target);
+    if (battle_check_target(src, target, BCT_ENEMY) > 0 &&
+        battle_check_range(src, target, 0))
     {
         // 攻撃対象となりうるので攻撃
         if (sd && sd->status.weapon == 11)
@@ -4689,11 +4686,11 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
             if (sd->equip_index[10] >= 0)
             {
                 if (battle_config.arrow_decrement)
-                    pc_delitem (sd, sd->equip_index[10], 1, 0);
+                    pc_delitem(sd, sd->equip_index[10], 1, 0);
             }
             else
             {
-                clif_arrow_fail (sd, 0);
+                clif_arrow_fail(sd, 0);
                 return 0;
             }
         }
@@ -4701,16 +4698,16 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
         {
             if (sd && battle_config.pc_attack_direction_change)
                 sd->dir = sd->head_dir =
-                    map_calc_dir (src, target->x, target->y);
+                    map_calc_dir(src, target->x, target->y);
             else if (src->type == BL_MOB
                      && battle_config.monster_attack_direction_change)
                 ((struct mob_data *) src)->dir =
-                    map_calc_dir (src, target->x, target->y);
-            wd = battle_calc_weapon_attack (src, target, KN_AUTOCOUNTER,
+                    map_calc_dir(src, target->x, target->y);
+            wd = battle_calc_weapon_attack(src, target, KN_AUTOCOUNTER,
                                             flag & 0xff, 0);
         }
         else
-            wd = battle_calc_weapon_attack (src, target, 0, 0, 0);
+            wd = battle_calc_weapon_attack(src, target, 0, 0, 0);
 
         // significantly increase injuries for hasted characters
         if (wd.damage > 0 && (t_sc_data[SC_HASTE].timer != -1))
@@ -4721,12 +4718,12 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
         if (wd.damage > 0
             && t_sc_data[SC_PHYS_SHIELD].timer != -1 && target->type == BL_PC)
         {
-            int  reduction = t_sc_data[SC_PHYS_SHIELD].val1;
+            int reduction = t_sc_data[SC_PHYS_SHIELD].val1;
             if (reduction > wd.damage)
                 reduction = wd.damage;
 
             wd.damage -= reduction;
-            MAP_LOG_PC (((struct map_session_data *) target),
+            MAP_LOG_PC(((struct map_session_data *) target),
                         "MAGIC-ABSORB-DMG %d", reduction);
         }
 
@@ -4771,50 +4768,50 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
             }
 
             if (rdamage > 0)
-                clif_damage (src, src, tick, wd.amotion, 0, rdamage, 1, 4, 0);
+                clif_damage(src, src, tick, wd.amotion, 0, rdamage, 1, 4, 0);
         }
 
         if (wd.div_ == 255 && sd)
         {                       //三段掌
-            int  delay =
-                1000 - 4 * battle_get_agi (src) - 2 * battle_get_dex (src);
-            int  skilllv;
-            if (wd.damage + wd.damage2 < battle_get_hp (target))
+            int delay =
+                1000 - 4 * battle_get_agi(src) - 2 * battle_get_dex(src);
+            int skilllv;
+            if (wd.damage + wd.damage2 < battle_get_hp(target))
             {
-                if ((skilllv = pc_checkskill (sd, MO_CHAINCOMBO)) > 0)
+                if ((skilllv = pc_checkskill(sd, MO_CHAINCOMBO)) > 0)
                     delay += 300 * battle_config.combo_delay_rate / 100;    //追加ディレイをconfにより調整
 
-                skill_status_change_start (src, SC_COMBO, MO_TRIPLEATTACK,
+                skill_status_change_start(src, SC_COMBO, MO_TRIPLEATTACK,
                                            skilllv, 0, 0, delay, 0);
             }
             sd->attackabletime = sd->canmove_tick = tick + delay;
-            clif_combo_delay (src, delay);
-            clif_skill_damage (src, target, tick, wd.amotion, wd.dmotion,
+            clif_combo_delay(src, delay);
+            clif_skill_damage(src, target, tick, wd.amotion, wd.dmotion,
                                wd.damage, 3, MO_TRIPLEATTACK,
-                               pc_checkskill (sd, MO_TRIPLEATTACK), -1);
+                               pc_checkskill(sd, MO_TRIPLEATTACK), -1);
         }
         else
         {
-            clif_damage (src, target, tick, wd.amotion, wd.dmotion,
+            clif_damage(src, target, tick, wd.amotion, wd.dmotion,
                          wd.damage, wd.div_, wd.type, wd.damage2);
             //二刀流左手とカタール追撃のミス表示(無理やり〜)
             if (sd && sd->status.weapon >= 16 && wd.damage2 == 0)
-                clif_damage (src, target, tick + 10, wd.amotion, wd.dmotion,
+                clif_damage(src, target, tick + 10, wd.amotion, wd.dmotion,
                              0, 1, 0, 0);
         }
         if (sd && sd->splash_range > 0 && (wd.damage > 0 || wd.damage2 > 0))
-            skill_castend_damage_id (src, target, 0, -1, tick, 0);
-        map_freeblock_lock ();
+            skill_castend_damage_id(src, target, 0, -1, tick, 0);
+        map_freeblock_lock();
 
         if (src->type == BL_PC)
         {
-            int  weapon_index = sd->equip_index[9];
-            int  weapon = 0;
+            int weapon_index = sd->equip_index[9];
+            int weapon = 0;
             if (sd->inventory_data[weapon_index]
                 && sd->status.inventory[weapon_index].equip & 0x2)
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
-            MAP_LOG ("PC%d %d:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
+            MAP_LOG("PC%d %d:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
                      sd->status.char_id, src->m, src->x, src->y,
                      (target->type == BL_PC) ? "PC" : "MOB",
                      (target->type ==
@@ -4828,7 +4825,7 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
         if (target->type == BL_PC)
         {
             struct map_session_data *sd2 = (struct map_session_data *) target;
-            MAP_LOG ("PC%d %d:%d,%d WPNINJURY %s%d %d FOR %d",
+            MAP_LOG("PC%d %d:%d,%d WPNINJURY %s%d %d FOR %d",
                      sd2->status.char_id, target->m, target->x, target->y,
                      (src->type == BL_PC) ? "PC" : "MOB",
                      (src->type ==
@@ -4839,47 +4836,47 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                      wd.damage + wd.damage2);
         }
 
-        battle_damage (src, target, (wd.damage + wd.damage2), 0);
+        battle_damage(src, target, (wd.damage + wd.damage2), 0);
         if (target->prev != NULL &&
             (target->type != BL_PC
              || (target->type == BL_PC
-                 && !pc_isdead ((struct map_session_data *) target))))
+                 && !pc_isdead((struct map_session_data *) target))))
         {
             if (wd.damage > 0 || wd.damage2 > 0)
             {
-                skill_additional_effect (src, target, 0, 0, BF_WEAPON, tick);
+                skill_additional_effect(src, target, 0, 0, BF_WEAPON, tick);
                 if (sd)
                 {
                     if (sd->weapon_coma_ele[ele] > 0
-                        && MRAND (10000) < sd->weapon_coma_ele[ele])
-                        battle_damage (src, target,
-                                       battle_get_max_hp (target), 1);
+                        && MRAND(10000) < sd->weapon_coma_ele[ele])
+                        battle_damage(src, target,
+                                       battle_get_max_hp(target), 1);
                     if (sd->weapon_coma_race[race] > 0
-                        && MRAND (10000) < sd->weapon_coma_race[race])
-                        battle_damage (src, target,
-                                       battle_get_max_hp (target), 1);
-                    if (battle_get_mode (target) & 0x20)
+                        && MRAND(10000) < sd->weapon_coma_race[race])
+                        battle_damage(src, target,
+                                       battle_get_max_hp(target), 1);
+                    if (battle_get_mode(target) & 0x20)
                     {
                         if (sd->weapon_coma_race[10] > 0
-                            && MRAND (10000) < sd->weapon_coma_race[10])
-                            battle_damage (src, target,
-                                           battle_get_max_hp (target), 1);
+                            && MRAND(10000) < sd->weapon_coma_race[10])
+                            battle_damage(src, target,
+                                           battle_get_max_hp(target), 1);
                     }
                     else
                     {
                         if (sd->weapon_coma_race[11] > 0
-                            && MRAND (10000) < sd->weapon_coma_race[11])
-                            battle_damage (src, target,
-                                           battle_get_max_hp (target), 1);
+                            && MRAND(10000) < sd->weapon_coma_race[11])
+                            battle_damage(src, target,
+                                           battle_get_max_hp(target), 1);
                     }
                 }
             }
         }
         if (sc_data && sc_data[SC_AUTOSPELL].timer != -1
-            && MRAND (100) < sc_data[SC_AUTOSPELL].val4)
+            && MRAND(100) < sc_data[SC_AUTOSPELL].val4)
         {
-            int  skilllv = sc_data[SC_AUTOSPELL].val3, i, f = 0;
-            i = MRAND (100);
+            int skilllv = sc_data[SC_AUTOSPELL].val3, i, f = 0;
+            i = MRAND(100);
             if (i >= 50)
                 skilllv -= 2;
             else if (i >= 15)
@@ -4888,22 +4885,22 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                 skilllv = 1;
             if (sd)
             {
-                int  sp = skill_get_sp (sc_data[SC_AUTOSPELL].val2,
+                int sp = skill_get_sp(sc_data[SC_AUTOSPELL].val2,
                                         skilllv) * 2 / 3;
                 if (sd->status.sp >= sp)
                 {
-                    if ((i = skill_get_inf (sc_data[SC_AUTOSPELL].val2) == 2)
+                    if ((i = skill_get_inf(sc_data[SC_AUTOSPELL].val2) == 2)
                         || i == 32)
-                        f = skill_castend_pos2 (src, target->x, target->y,
+                        f = skill_castend_pos2(src, target->x, target->y,
                                                 sc_data[SC_AUTOSPELL].val2,
                                                 skilllv, tick, flag);
                     else
                     {
-                        switch (skill_get_nk (sc_data[SC_AUTOSPELL].val2))
+                        switch (skill_get_nk(sc_data[SC_AUTOSPELL].val2))
                         {
                             case 0:
                             case 2:
-                                f = skill_castend_damage_id (src, target,
+                                f = skill_castend_damage_id(src, target,
                                                              sc_data
                                                              [SC_AUTOSPELL].val2,
                                                              skilllv, tick,
@@ -4914,14 +4911,14 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                                      || (sc_data[SC_AUTOSPELL].val2 ==
                                          ALL_RESURRECTION
                                          && target->type != BL_PC))
-                                    && battle_check_undead (race, ele))
-                                    f = skill_castend_damage_id (src, target,
+                                    && battle_check_undead(race, ele))
+                                    f = skill_castend_damage_id(src, target,
                                                                  sc_data
                                                                  [SC_AUTOSPELL].val2,
                                                                  skilllv,
                                                                  tick, flag);
                                 else
-                                    f = skill_castend_nodamage_id (src,
+                                    f = skill_castend_nodamage_id(src,
                                                                    target,
                                                                    sc_data
                                                                    [SC_AUTOSPELL].val2,
@@ -4932,23 +4929,23 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                         }
                     }
                     if (!f)
-                        pc_heal (sd, 0, -sp);
+                        pc_heal(sd, 0, -sp);
                 }
             }
             else
             {
-                if ((i = skill_get_inf (sc_data[SC_AUTOSPELL].val2) == 2)
+                if ((i = skill_get_inf(sc_data[SC_AUTOSPELL].val2) == 2)
                     || i == 32)
-                    skill_castend_pos2 (src, target->x, target->y,
+                    skill_castend_pos2(src, target->x, target->y,
                                         sc_data[SC_AUTOSPELL].val2, skilllv,
                                         tick, flag);
                 else
                 {
-                    switch (skill_get_nk (sc_data[SC_AUTOSPELL].val2))
+                    switch (skill_get_nk(sc_data[SC_AUTOSPELL].val2))
                     {
                         case 0:
                         case 2:
-                            skill_castend_damage_id (src, target,
+                            skill_castend_damage_id(src, target,
                                                      sc_data
                                                      [SC_AUTOSPELL].val2,
                                                      skilllv, tick, flag);
@@ -4958,13 +4955,13 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                                  || (sc_data[SC_AUTOSPELL].val2 ==
                                      ALL_RESURRECTION
                                      && target->type != BL_PC))
-                                && battle_check_undead (race, ele))
-                                skill_castend_damage_id (src, target,
+                                && battle_check_undead(race, ele))
+                                skill_castend_damage_id(src, target,
                                                          sc_data
                                                          [SC_AUTOSPELL].val2,
                                                          skilllv, tick, flag);
                             else
-                                skill_castend_nodamage_id (src, target,
+                                skill_castend_nodamage_id(src, target,
                                                            sc_data
                                                            [SC_AUTOSPELL].val2,
                                                            skilllv, tick,
@@ -4977,31 +4974,31 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
         if (sd)
         {
             if (sd->autospell_id > 0 && sd->autospell_lv > 0
-                && MRAND (100) < sd->autospell_rate)
+                && MRAND(100) < sd->autospell_rate)
             {
-                int  skilllv = sd->autospell_lv, i, f = 0, sp;
-                i = MRAND (100);
+                int skilllv = sd->autospell_lv, i, f = 0, sp;
+                i = MRAND(100);
                 if (i >= 50)
                     skilllv -= 2;
                 else if (i >= 15)
                     skilllv--;
                 if (skilllv < 1)
                     skilllv = 1;
-                sp = skill_get_sp (sd->autospell_id, skilllv) * 2 / 3;
+                sp = skill_get_sp(sd->autospell_id, skilllv) * 2 / 3;
                 if (sd->status.sp >= sp)
                 {
-                    if ((i = skill_get_inf (sd->autospell_id) == 2)
+                    if ((i = skill_get_inf(sd->autospell_id) == 2)
                         || i == 32)
-                        f = skill_castend_pos2 (src, target->x, target->y,
+                        f = skill_castend_pos2(src, target->x, target->y,
                                                 sd->autospell_id, skilllv,
                                                 tick, flag);
                     else
                     {
-                        switch (skill_get_nk (sd->autospell_id))
+                        switch (skill_get_nk(sd->autospell_id))
                         {
                             case 0:
                             case 2:
-                                f = skill_castend_damage_id (src, target,
+                                f = skill_castend_damage_id(src, target,
                                                              sd->autospell_id,
                                                              skilllv, tick,
                                                              flag);
@@ -5010,13 +5007,13 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                                 if ((sd->autospell_id == AL_HEAL
                                      || (sd->autospell_id == ALL_RESURRECTION
                                          && target->type != BL_PC))
-                                    && battle_check_undead (race, ele))
-                                    f = skill_castend_damage_id (src, target,
+                                    && battle_check_undead(race, ele))
+                                    f = skill_castend_damage_id(src, target,
                                                                  sd->autospell_id,
                                                                  skilllv,
                                                                  tick, flag);
                                 else
-                                    f = skill_castend_nodamage_id (src,
+                                    f = skill_castend_nodamage_id(src,
                                                                    target,
                                                                    sd->autospell_id,
                                                                    skilllv,
@@ -5026,69 +5023,69 @@ int battle_weapon_attack (struct block_list *src, struct block_list *target,
                         }
                     }
                     if (!f)
-                        pc_heal (sd, 0, -sp);
+                        pc_heal(sd, 0, -sp);
                 }
             }
             if (wd.flag & BF_WEAPON && src != target
                 && (wd.damage > 0 || wd.damage2 > 0))
             {
-                int  hp = 0, sp = 0;
+                int hp = 0, sp = 0;
                 if (sd->hp_drain_rate && wd.damage > 0
-                    && MRAND (100) < sd->hp_drain_rate)
+                    && MRAND(100) < sd->hp_drain_rate)
                 {
                     hp += (wd.damage * sd->hp_drain_per) / 100;
                 }
                 if (sd->hp_drain_rate_ && wd.damage2 > 0
-                    && MRAND (100) < sd->hp_drain_rate_)
+                    && MRAND(100) < sd->hp_drain_rate_)
                 {
                     hp += (wd.damage2 * sd->hp_drain_per_) / 100;
                 }
                 if (sd->sp_drain_rate && wd.damage > 0
-                    && MRAND (100) < sd->sp_drain_rate)
+                    && MRAND(100) < sd->sp_drain_rate)
                 {
                     sp += (wd.damage * sd->sp_drain_per) / 100;
                 }
                 if (sd->sp_drain_rate_ && wd.damage2 > 0
-                    && MRAND (100) < sd->sp_drain_rate_)
+                    && MRAND(100) < sd->sp_drain_rate_)
                 {
                     sp += (wd.damage2 * sd->sp_drain_per_) / 100;
                 }
                 if (hp || sp)
-                    pc_heal (sd, hp, sp);
+                    pc_heal(sd, hp, sp);
             }
         }
 
         if (rdamage > 0)
-            battle_damage (target, src, rdamage, 0);
+            battle_damage(target, src, rdamage, 0);
         if (t_sc_data && t_sc_data[SC_AUTOCOUNTER].timer != -1
             && t_sc_data[SC_AUTOCOUNTER].val4 > 0)
         {
             if (t_sc_data[SC_AUTOCOUNTER].val3 == src->id)
-                battle_weapon_attack (target, src, tick,
+                battle_weapon_attack(target, src, tick,
                                       0x8000 |
                                       t_sc_data[SC_AUTOCOUNTER].val1);
-            skill_status_change_end (target, SC_AUTOCOUNTER, -1);
+            skill_status_change_end(target, SC_AUTOCOUNTER, -1);
         }
         if (t_sc_data && t_sc_data[SC_BLADESTOP_WAIT].timer != -1)
         {
-            int  lv = t_sc_data[SC_BLADESTOP_WAIT].val1;
-            skill_status_change_end (target, SC_BLADESTOP_WAIT, -1);
-            skill_status_change_start (src, SC_BLADESTOP, lv, 1, (int) src,
+            int lv = t_sc_data[SC_BLADESTOP_WAIT].val1;
+            skill_status_change_end(target, SC_BLADESTOP_WAIT, -1);
+            skill_status_change_start(src, SC_BLADESTOP, lv, 1, (int) src,
                                        (int) target,
-                                       skill_get_time2 (MO_BLADESTOP, lv), 0);
-            skill_status_change_start (target, SC_BLADESTOP, lv, 2,
+                                       skill_get_time2(MO_BLADESTOP, lv), 0);
+            skill_status_change_start(target, SC_BLADESTOP, lv, 2,
                                        (int) target, (int) src,
-                                       skill_get_time2 (MO_BLADESTOP, lv), 0);
+                                       skill_get_time2(MO_BLADESTOP, lv), 0);
         }
         if (t_sc_data && t_sc_data[SC_SPLASHER].timer != -1)    //殴ったので対象のベナムスプラッシャー状態を解除
-            skill_status_change_end (target, SC_SPLASHER, -1);
+            skill_status_change_end(target, SC_SPLASHER, -1);
 
-        map_freeblock_unlock ();
+        map_freeblock_unlock();
     }
     return wd.dmg_lv;
 }
 
-int battle_check_undead (int race, int element)
+int battle_check_undead(int race, int element)
 {
     if (battle_config.undead_detect_type == 0)
     {
@@ -5111,24 +5108,24 @@ int battle_check_undead (int race, int element)
 /*==========================================
  * 敵味方判定(1=肯定,0=否定,-1=エラー)
  * flag&0xf0000 = 0x00000:敵じゃないか判定（ret:1＝敵ではない）
- *				= 0x10000:パーティー判定（ret:1=パーティーメンバ)
- *				= 0x20000:全て(ret:1=敵味方両方)
- *				= 0x40000:敵か判定(ret:1=敵)
- *				= 0x50000:パーティーじゃないか判定(ret:1=パーティでない)
+ *                              = 0x10000:パーティー判定（ret:1=パーティーメンバ)
+ *                              = 0x20000:全て(ret:1=敵味方両方)
+ *                              = 0x40000:敵か判定(ret:1=敵)
+ *                              = 0x50000:パーティーじゃないか判定(ret:1=パーティでない)
  *------------------------------------------
  */
-int battle_check_target (struct block_list *src, struct block_list *target,
+int battle_check_target(struct block_list *src, struct block_list *target,
                          int flag)
 {
-    int  s_p, t_p;
+    int s_p, t_p;
     struct block_list *ss = src;
 
-    nullpo_retr (0, src);
-    nullpo_retr (0, target);
+    nullpo_retr(0, src);
+    nullpo_retr(0, target);
 
     if (flag & 0x40000)
     {                           // 反転フラグ
-        int  ret = battle_check_target (src, target, flag & 0x30000);
+        int ret = battle_check_target(src, target, flag & 0x30000);
         if (ret != -1)
             return !ret;
         return -1;
@@ -5164,16 +5161,16 @@ int battle_check_target (struct block_list *src, struct block_list *target,
     // スキルユニットの場合、親を求める
     if (src->type == BL_SKILL)
     {
-        int  inf2 =
-            skill_get_inf2 (((struct skill_unit *) src)->group->skill_id);
+        int inf2 =
+            skill_get_inf2(((struct skill_unit *) src)->group->skill_id);
         if ((ss =
-             map_id2bl (((struct skill_unit *) src)->group->src_id)) == NULL)
+             map_id2bl(((struct skill_unit *) src)->group->src_id)) == NULL)
             return -1;
         if (ss->prev == NULL)
             return -1;
-        if (inf2 & 0x80 && (map[src->m].flag.pvp || pc_iskiller ((struct map_session_data *) src, (struct map_session_data *) target)) &&   // [MouseJstr]
+        if (inf2 & 0x80 && (map[src->m].flag.pvp || pc_iskiller((struct map_session_data *) src, (struct map_session_data *) target)) &&   // [MouseJstr]
             !(target->type == BL_PC
-              && pc_isinvisible ((struct map_session_data *) target)))
+              && pc_isinvisible((struct map_session_data *) target)))
             return 0;
         if (ss == target)
         {
@@ -5210,7 +5207,7 @@ int battle_check_target (struct block_list *src, struct block_list *target,
                     }
                 }
             }
-            if ((ss = map_id2bl (md->master_id)) == NULL)
+            if ((ss = map_id2bl(md->master_id)) == NULL)
                 return -1;
         }
     }
@@ -5219,20 +5216,20 @@ int battle_check_target (struct block_list *src, struct block_list *target,
         return 1;
 
     if (target->type == BL_PC
-        && pc_isinvisible ((struct map_session_data *) target))
+        && pc_isinvisible((struct map_session_data *) target))
         return -1;
 
     if (src->prev == NULL ||    // 死んでるならエラー
-        (src->type == BL_PC && pc_isdead ((struct map_session_data *) src)))
+        (src->type == BL_PC && pc_isdead((struct map_session_data *) src)))
         return -1;
 
     if ((ss->type == BL_PC && target->type == BL_MOB) ||
         (ss->type == BL_MOB && target->type == BL_PC))
         return 0;               // PCvsMOBなら否定
 
-    s_p = battle_get_party_id (ss);
+    s_p = battle_get_party_id(ss);
 
-    t_p = battle_get_party_id (target);
+    t_p = battle_get_party_id(target);
 
     if (flag & 0x10000)
     {
@@ -5251,7 +5248,7 @@ int battle_check_target (struct block_list *src, struct block_list *target,
         if (src->type == BL_SKILL)
             su = (struct skill_unit *) src;
         if (map[ss->m].flag.pvp
-            || pc_iskiller ((struct map_session_data *) ss,
+            || pc_iskiller((struct map_session_data *) ss,
                             (struct map_session_data *) target))
         {                       // [MouseJstr]
             if (su && su->group->target_flag == BCT_NOENEMY)
@@ -5275,19 +5272,19 @@ int battle_check_target (struct block_list *src, struct block_list *target,
  * 射程判定
  *------------------------------------------
  */
-int battle_check_range (struct block_list *src, struct block_list *bl,
+int battle_check_range(struct block_list *src, struct block_list *bl,
                         int range)
 {
 
-    int  dx, dy;
+    int dx, dy;
     struct walkpath_data wpd;
-    int  arange;
+    int arange;
 
-    nullpo_retr (0, src);
-    nullpo_retr (0, bl);
+    nullpo_retr(0, src);
+    nullpo_retr(0, bl);
 
-    dx = abs (bl->x - src->x);
-    dy = abs (bl->y - src->y);
+    dx = abs(bl->x - src->x);
+    dy = abs(bl->y - src->y);
     arange = ((dx > dy) ? dx : dy);
 
     if (src->m != bl->m)        // 違うマップ
@@ -5306,13 +5303,13 @@ int battle_check_range (struct block_list *src, struct block_list *bl,
     wpd.path_len = 0;
     wpd.path_pos = 0;
     wpd.path_half = 0;
-    if (path_search (&wpd, src->m, src->x, src->y, bl->x, bl->y, 0x10001) !=
+    if (path_search(&wpd, src->m, src->x, src->y, bl->x, bl->y, 0x10001) !=
         -1)
         return 1;
 
     dx = (dx > 0) ? 1 : ((dx < 0) ? -1 : 0);
     dy = (dy > 0) ? 1 : ((dy < 0) ? -1 : 0);
-    return (path_search (&wpd, src->m, src->x + dx, src->y + dy,
+    return (path_search(&wpd, src->m, src->x + dx, src->y + dy,
                          bl->x - dx, bl->y - dy, 0x10001) != -1) ? 1 : 0;
 }
 
@@ -5323,23 +5320,23 @@ int battle_check_range (struct block_list *src, struct block_list *bl,
  */
 int battle_config_switch (const char *str)
 {
-    if (strcasecmp (str, "on") == 0 || strcasecmp (str, "yes") == 0
-        || strcasecmp (str, "oui") == 0 || strcasecmp (str, "ja") == 0
-        || strcasecmp (str, "si") == 0)
+    if (strcasecmp(str, "on") == 0 || strcasecmp(str, "yes") == 0
+        || strcasecmp(str, "oui") == 0 || strcasecmp(str, "ja") == 0
+        || strcasecmp(str, "si") == 0)
         return 1;
-    if (strcasecmp (str, "off") == 0 || strcasecmp (str, "no") == 0
-        || strcasecmp (str, "non") == 0 || strcasecmp (str, "nein") == 0)
+    if (strcasecmp(str, "off") == 0 || strcasecmp(str, "no") == 0
+        || strcasecmp(str, "non") == 0 || strcasecmp(str, "nein") == 0)
         return 0;
-    return atoi (str);
+    return atoi(str);
 }
 
 /*==========================================
  * 設定ファイルを読み込む
  *------------------------------------------
  */
-int battle_config_read (const char *cfgName)
+int battle_config_read(const char *cfgName)
 {
-    int  i;
+    int i;
     char line[1024], w1[1024], w2[1024];
     FILE *fp;
     static int count = 0;
@@ -5545,13 +5542,13 @@ int battle_config_read (const char *cfgName)
         battle_config.mob_splash_radius = -1;
     }
 
-    fp = fopen_ (cfgName, "r");
+    fp = fopen_(cfgName, "r");
     if (fp == NULL)
     {
-        printf ("file not found: %s\n", cfgName);
+        printf("file not found: %s\n", cfgName);
         return 1;
     }
-    while (fgets (line, 1020, fp))
+    while (fgets(line, 1020, fp))
     {
         const struct
         {
@@ -5980,16 +5977,16 @@ int battle_config_read (const char *cfgName)
 
         if (line[0] == '/' && line[1] == '/')
             continue;
-        if (sscanf (line, "%[^:]:%s", w1, w2) != 2)
+        if (sscanf(line, "%[^:]:%s", w1, w2) != 2)
             continue;
-        for (i = 0; i < sizeof (data) / (sizeof (data[0])); i++)
-            if (strcasecmp (w1, data[i].str) == 0)
+        for (i = 0; i < sizeof(data) / (sizeof(data[0])); i++)
+            if (strcasecmp(w1, data[i].str) == 0)
                 *data[i].val = battle_config_switch (w2);
 
-        if (strcasecmp (w1, "import") == 0)
-            battle_config_read (w2);
+        if (strcasecmp(w1, "import") == 0)
+            battle_config_read(w2);
     }
-    fclose_ (fp);
+    fclose_(fp);
 
     if (--count == 0)
     {

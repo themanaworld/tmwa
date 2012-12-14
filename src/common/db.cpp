@@ -8,14 +8,14 @@
 
 #define ROOT_SIZE 4096
 
-static int strdb_cmp (struct dbt *table, const char *a, const char* b)
+static int strdb_cmp(struct dbt *table, const char *a, const char* b)
 {
     if (table->maxlen)
-        return strncmp (a, b, table->maxlen);
-    return strcmp (a, b);
+        return strncmp(a, b, table->maxlen);
+    return strcmp(a, b);
 }
 
-static hash_t strdb_hash (struct dbt *table, const char *a)
+static hash_t strdb_hash(struct dbt *table, const char *a)
 {
     size_t i = table->maxlen;
     if (i == 0)
@@ -29,16 +29,16 @@ static hash_t strdb_hash (struct dbt *table, const char *a)
     return h;
 }
 
-struct dbt *strdb_init (size_t maxlen)
+struct dbt *strdb_init(size_t maxlen)
 {
     struct dbt *table;
-    CREATE (table, struct dbt, 1);
+    CREATE(table, struct dbt, 1);
     table->type = DB_STRING;
     table->maxlen = maxlen;
     return table;
 }
 
-static int numdb_cmp (numdb_key_t a, numdb_key_t b)
+static int numdb_cmp(numdb_key_t a, numdb_key_t b)
 {
     if (a == b)
         return 0;
@@ -47,47 +47,47 @@ static int numdb_cmp (numdb_key_t a, numdb_key_t b)
     return 1;
 }
 
-static hash_t numdb_hash (numdb_key_t a)
+static hash_t numdb_hash(numdb_key_t a)
 {
     return (hash_t) a;
 }
 
-struct dbt *numdb_init (void)
+struct dbt *numdb_init(void)
 {
     struct dbt *table;
-    CREATE (table, struct dbt, 1);
+    CREATE(table, struct dbt, 1);
     table->type = DB_NUMBER;
     return table;
 }
 
-static int table_cmp (struct dbt *table, db_key_t a, db_key_t b)
+static int table_cmp(struct dbt *table, db_key_t a, db_key_t b)
 {
-    switch(table->type)
+    switch (table->type)
     {
-    case DB_NUMBER: return numdb_cmp (a.i, b.i);
-    case DB_STRING: return strdb_cmp (table, a.s, b.s);
+    case DB_NUMBER: return numdb_cmp(a.i, b.i);
+    case DB_STRING: return strdb_cmp(table, a.s, b.s);
     }
     abort();
 }
 
-static hash_t table_hash (struct dbt *table, db_key_t key)
+static hash_t table_hash(struct dbt *table, db_key_t key)
 {
-    switch(table->type)
+    switch (table->type)
     {
-    case DB_NUMBER: return numdb_hash (key.i);
-    case DB_STRING: return strdb_hash (table, key.s);
+    case DB_NUMBER: return numdb_hash(key.i);
+    case DB_STRING: return strdb_hash(table, key.s);
     }
     abort();
 }
 
 /// Search for a node with the given key
-db_val_t db_search (struct dbt *table, db_key_t key)
+db_val_t db_search(struct dbt *table, db_key_t key)
 {
-    struct dbn *p = table->ht[table_hash (table, key) % HASH_SIZE];
+    struct dbn *p = table->ht[table_hash(table, key) % HASH_SIZE];
 
     while (p)
     {
-        int  c = table_cmp (table, key, p->key);
+        int c = table_cmp(table, key, p->key);
         if (c == 0)
             return p->data;
         if (c < 0)
@@ -99,7 +99,7 @@ db_val_t db_search (struct dbt *table, db_key_t key)
 }
 
 // Tree maintainance methods
-static void db_rotate_left (struct dbn *p, struct dbn **root)
+static void db_rotate_left(struct dbn *p, struct dbn **root)
 {
     struct dbn *y = p->right;
     p->right = y->left;
@@ -117,7 +117,7 @@ static void db_rotate_left (struct dbn *p, struct dbn **root)
     p->parent = y;
 }
 
-static void db_rotate_right (struct dbn *p, struct dbn **root)
+static void db_rotate_right(struct dbn *p, struct dbn **root)
 {
     struct dbn *y = p->left;
     p->left = y->right;
@@ -135,7 +135,7 @@ static void db_rotate_right (struct dbn *p, struct dbn **root)
     p->parent = y;
 }
 
-static void db_rebalance (struct dbn *p, struct dbn **root)
+static void db_rebalance(struct dbn *p, struct dbn **root)
 {
     p->color = RED;
     while (p != *root && p->parent->color == RED)
@@ -155,11 +155,11 @@ static void db_rebalance (struct dbn *p, struct dbn **root)
                 if (p == p->parent->right)
                 {
                     p = p->parent;
-                    db_rotate_left (p, root);
+                    db_rotate_left(p, root);
                 }
                 p->parent->color = BLACK;
                 p->parent->parent->color = RED;
-                db_rotate_right (p->parent->parent, root);
+                db_rotate_right(p->parent->parent, root);
             }
         }
         else
@@ -177,11 +177,11 @@ static void db_rebalance (struct dbn *p, struct dbn **root)
                 if (p == p->parent->left)
                 {
                     p = p->parent;
-                    db_rotate_right (p, root);
+                    db_rotate_right(p, root);
                 }
                 p->parent->color = BLACK;
                 p->parent->parent->color = RED;
-                db_rotate_left (p->parent->parent, root);
+                db_rotate_left(p->parent->parent, root);
             }
         }
     }
@@ -189,7 +189,7 @@ static void db_rebalance (struct dbn *p, struct dbn **root)
 }
 
 // param z = node to remove
-static void db_rebalance_erase (struct dbn *z, struct dbn **root)
+static void db_rebalance_erase(struct dbn *z, struct dbn **root)
 {
     struct dbn *y = z;
     struct dbn *x = NULL;
@@ -257,7 +257,7 @@ static void db_rebalance_erase (struct dbn *z, struct dbn **root)
                 {
                     w->color = BLACK;
                     x_parent->color = RED;
-                    db_rotate_left (x_parent, root);
+                    db_rotate_left(x_parent, root);
                     w = x_parent->right;
                 }
                 if ((!w->left || w->left->color == BLACK) &&
@@ -274,14 +274,14 @@ static void db_rebalance_erase (struct dbn *z, struct dbn **root)
                         if (w->left)
                             w->left->color = BLACK;
                         w->color = RED;
-                        db_rotate_right (w, root);
+                        db_rotate_right(w, root);
                         w = x_parent->right;
                     }
                     w->color = x_parent->color;
                     x_parent->color = BLACK;
                     if (w->right)
                         w->right->color = BLACK;
-                    db_rotate_left (x_parent, root);
+                    db_rotate_left(x_parent, root);
                     break;
                 }
             }
@@ -293,7 +293,7 @@ static void db_rebalance_erase (struct dbn *z, struct dbn **root)
                 {
                     w->color = BLACK;
                     x_parent->color = RED;
-                    db_rotate_right (x_parent, root);
+                    db_rotate_right(x_parent, root);
                     w = x_parent->left;
                 }
                 if ((!w->right || w->right->color == BLACK) &&
@@ -310,14 +310,14 @@ static void db_rebalance_erase (struct dbn *z, struct dbn **root)
                         if (w->right)
                             w->right->color = BLACK;
                         w->color = RED;
-                        db_rotate_left (w, root);
+                        db_rotate_left(w, root);
                         w = x_parent->left;
                     }
                     w->color = x_parent->color;
                     x_parent->color = BLACK;
                     if (w->left)
                         w->left->color = BLACK;
-                    db_rotate_right (x_parent, root);
+                    db_rotate_right(x_parent, root);
                     break;
                 }
             }
@@ -326,21 +326,21 @@ static void db_rebalance_erase (struct dbn *z, struct dbn **root)
     }
 }
 
-struct dbn *db_insert (struct dbt *table, db_key_t key, db_val_t data)
+struct dbn *db_insert(struct dbt *table, db_key_t key, db_val_t data)
 {
-    hash_t hash = table_hash (table, key) % HASH_SIZE;
+    hash_t hash = table_hash(table, key) % HASH_SIZE;
     int c = 0;
     struct dbn *prev = NULL;
     struct dbn *p = table->ht[hash];
     while (p)
     {
-        c = table_cmp (table, key, p->key);
+        c = table_cmp(table, key, p->key);
         if (c == 0)
         {
             // key found in table, replace
             // Tell the user of the table to free the key and value
             if (table->release)
-                table->release (p->key, p->data);
+                table->release(p->key, p->data);
             p->data = data;
             p->key = key;
             return p;
@@ -352,7 +352,7 @@ struct dbn *db_insert (struct dbt *table, db_key_t key, db_val_t data)
         else
             p = p->right;
     }
-    CREATE (p, struct dbn, 1);
+    CREATE(p, struct dbn, 1);
     p->key = key;
     p->data = data;
     p->color = RED;
@@ -370,18 +370,18 @@ struct dbn *db_insert (struct dbt *table, db_key_t key, db_val_t data)
     if (prev->color == RED)
     {
         // must rebalance
-        db_rebalance (p, &table->ht[hash]);
+        db_rebalance(p, &table->ht[hash]);
     }
     return p;
 }
 
-db_val_t db_erase (struct dbt *table, db_key_t key)
+db_val_t db_erase(struct dbt *table, db_key_t key)
 {
-    hash_t hash = table_hash (table, key) % HASH_SIZE;
+    hash_t hash = table_hash(table, key) % HASH_SIZE;
     struct dbn *p = table->ht[hash];
     while (p)
     {
-        int c = table_cmp (table, key, p->key);
+        int c = table_cmp(table, key, p->key);
         if (c == 0)
             break;
         if (c < 0)
@@ -392,12 +392,12 @@ db_val_t db_erase (struct dbt *table, db_key_t key)
     if (!p)
         return NULL;
     db_val_t data = p->data;
-    db_rebalance_erase (p, &table->ht[hash]);
-    free (p);
+    db_rebalance_erase(p, &table->ht[hash]);
+    free(p);
     return data;
 }
 #ifdef SMART_WALK_TREE
-static inline void db_walk_tree (bool dealloc, struct dbn* p, db_func_t func, va_list ap)
+static inline void db_walk_tree(bool dealloc, struct dbn* p, db_func_t func, va_list ap)
 {
     if (!p)
         return;
@@ -415,7 +415,7 @@ static inline void db_walk_tree (bool dealloc, struct dbn* p, db_func_t func, va
     {
         // apply_func loop
         if (func)
-            func (p->key, p->data, ap);
+            func(p->key, p->data, ap);
         if (p->left)
         {
             // continue descending
@@ -434,7 +434,7 @@ static inline void db_walk_tree (bool dealloc, struct dbn* p, db_func_t func, va
             if (!p->parent)
             {
                 if (dealloc)
-                    free (p);
+                    free(p);
                 // if we have already done both children, there is no more to do
                 return;
             }
@@ -443,7 +443,7 @@ static inline void db_walk_tree (bool dealloc, struct dbn* p, db_func_t func, va
                 // finished the left tree, now walk the right tree
                 p = p->parent->right;
                 if (dealloc)
-                    free (p->parent->left);
+                    free(p->parent->left);
                 break; //goto apply_func;
             }
             // p->parent->right == p
@@ -451,21 +451,21 @@ static inline void db_walk_tree (bool dealloc, struct dbn* p, db_func_t func, va
             // keep backtracking
             p = p->parent;
             if (dealloc)
-                free (p->right?:p->left);
+                free(p->right?:p->left);
         } //backtrack loop
     } // apply_func loop
 }
 #endif // SMART_WALK_TREE
 
-void db_foreach (struct dbt *table, db_func_t func, ...)
+void db_foreach(struct dbt *table, db_func_t func, ...)
 {
     va_list ap;
-    va_start (ap, func);
+    va_start(ap, func);
 
     for (int i = 0; i < HASH_SIZE; i++)
     {
 #ifdef SMART_WALK_TREE
-        db_walk_tree (false, table->ht[i], func, ap);
+        db_walk_tree(false, table->ht[i], func, ap);
 #else
         struct dbn *p = table->ht[i];
         if (!p)
@@ -474,7 +474,7 @@ void db_foreach (struct dbt *table, db_func_t func, ...)
         int sp = 0;
         while (1)
         {
-            func (p->key, p->data, ap);
+            func(p->key, p->data, ap);
             struct dbn *pn = p->left;
             if (pn)
             {
@@ -496,19 +496,19 @@ void db_foreach (struct dbt *table, db_func_t func, ...)
         } // while true
 #endif // else ! SMART_WALK_TREE
     } // for i
-    va_end (ap);
+    va_end(ap);
 }
 
 // This function is suspiciously similar to the previous
-void db_final (struct dbt *table, db_func_t func, ...)
+void db_final(struct dbt *table, db_func_t func, ...)
 {
     va_list ap;
-    va_start (ap, func);
+    va_start(ap, func);
 
     for (int i = 0; i < HASH_SIZE; i++)
     {
 #ifdef SMART_WALK_TREE
-        db_walk_tree (true, table->ht[i], func, ap);
+        db_walk_tree(true, table->ht[i], func, ap);
 #else
         struct dbn *p = table->ht[i];
         if (!p)
@@ -518,7 +518,7 @@ void db_final (struct dbt *table, db_func_t func, ...)
         while (1)
         {
             if (func)
-                func (p->key, p->data, ap);
+                func(p->key, p->data, ap);
             struct dbn *pn = p->left;
             if (pn)
             {
@@ -536,11 +536,11 @@ void db_final (struct dbt *table, db_func_t func, ...)
                     pn = stack[--sp];
                 }
             } // if pn else if !pn
-            free (p);
+            free(p);
             p = pn;
         } // while true
 #endif // else ! SMART_WALK_TREE
     } // for i
-    free (table);
-    va_end (ap);
+    free(table);
+    va_end(ap);
 }

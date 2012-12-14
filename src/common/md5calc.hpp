@@ -37,13 +37,13 @@ MD5_state MD5_from_FILE(FILE* in);
 
 /// Output in ASCII - with lowercase hex digits, null-terminated
 // these may overlap safely
-static void MD5_String (const char *string, char output[33]) __attribute__((deprecated));
-static inline void MD5_String (const char *string, char output[33]) {
+static void MD5_String(const char *string, char output[33]) __attribute__((deprecated));
+static inline void MD5_String(const char *string, char output[33]) {
     MD5_to_str(MD5_from_cstring(string), output);
 }
 /// Output in binary
-static void MD5_String2binary (const char *string, uint8_t output[16]) __attribute__((deprecated));
-static inline void MD5_String2binary (const char *string, uint8_t output[16]) {
+static void MD5_String2binary(const char *string, uint8_t output[16]) __attribute__((deprecated));
+static inline void MD5_String2binary(const char *string, uint8_t output[16]) {
     MD5_to_bin(MD5_from_cstring(string), output);
 }
 

@@ -51,7 +51,7 @@
 
 struct item
 {
-    int  id;
+    int id;
     short nameid;
     short amount;
     unsigned short equip;
@@ -76,23 +76,23 @@ struct skill
 struct global_reg
 {
     char str[32];
-    int  value;
+    int value;
 };
 
 struct mmo_charstatus
 {
-    int  char_id;
-    int  account_id;
-    int  partner_id;
+    int char_id;
+    int account_id;
+    int partner_id;
 
-    int  base_exp, job_exp, zeny;
+    int base_exp, job_exp, zeny;
 
     short pc_class;
     short status_point, skill_point;
-    int  hp, max_hp, sp, max_sp;
+    int hp, max_hp, sp, max_sp;
     short option, karma, manner;
     short hair, hair_color, clothes_color;
-    int  party_id;
+    int party_id;
 
     short weapon, shield;
     short head_top, head_mid, head_bottom;
@@ -108,18 +108,18 @@ struct mmo_charstatus
     struct point last_point, save_point, memo_point[10];
     struct item inventory[MAX_INVENTORY], cart[MAX_CART];
     struct skill skill[MAX_SKILL];
-    int  global_reg_num;
+    int global_reg_num;
     struct global_reg global_reg[GLOBAL_REG_NUM];
-    int  account_reg_num;
+    int account_reg_num;
     struct global_reg account_reg[ACCOUNT_REG_NUM];
-    int  account_reg2_num;
+    int account_reg2_num;
     struct global_reg account_reg2[ACCOUNT_REG2_NUM];
 };
 
 struct storage
 {
-    int  dirty;
-    int  account_id;
+    int dirty;
+    int account_id;
     short storage_status;
     short storage_amount;
     struct item storage_[MAX_STORAGE];
@@ -129,31 +129,31 @@ struct map_session_data;
 
 struct gm_account
 {
-    int  account_id;
-    int  level;
+    int account_id;
+    int level;
 };
 
 struct party_member
 {
-    int  account_id;
+    int account_id;
     char name[24], map[24];
-    int  leader, online, lv;
+    int leader, online, lv;
     struct map_session_data *sd;
 };
 
 struct party
 {
-    int  party_id;
+    int party_id;
     char name[24];
-    int  exp;
-    int  item;
+    int exp;
+    int item;
     struct party_member member[MAX_PARTY];
 };
 
 struct square
 {
-    int  val1[5];
-    int  val2[5];
+    int val1[5];
+    int val2[5];
 };
 
 #endif // MMO_HPP

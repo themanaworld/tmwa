@@ -19,7 +19,7 @@
 # define RFIFOW(fd,pos) (*(uint16_t*)(RFIFOP(fd, pos)))
 # define RFIFOL(fd,pos) (*(uint32_t*)(RFIFOP(fd, pos)))
 /// Done reading
-void RFIFOSKIP (int fd, size_t len);
+void RFIFOSKIP(int fd, size_t len);
 /// Internal - clean up by discarding handled bytes
 // Atm this is also called in char/char.c, but that is unnecessary
 # define RFIFOFLUSH(fd) (memmove(session[fd]->rdata,RFIFOP(fd,0),RFIFOREST(fd)),\
@@ -45,7 +45,7 @@ session[fd]->rdata_pos=0)
 # define WFIFOW(fd,pos) (*(uint16_t*)(WFIFOP(fd,pos)))
 # define WFIFOL(fd,pos) (*(uint32_t*)(WFIFOP(fd,pos)))
 /// Finish writing
-void WFIFOSET (int fd, size_t len);
+void WFIFOSET(int fd, size_t len);
 
 /// Write to an arbitrary buffer
 #define WBUFP(p,pos) (((uint8_t*)(p))+(pos))
@@ -80,13 +80,13 @@ struct socket_data
     /// Only called when select() indicates the socket is ready
     /// If, after that, nothing is read, it sets eof
     // These could probably be hard-coded with a little work
-    void (*func_recv) (int);
-    void (*func_send) (int);
+    void(*func_recv)(int);
+    void(*func_send)(int);
     /// This is the important one
     /// Set to different functions depending on whether the connection
     /// is a player or a server/ladmin
     /// Can be set explicitly or via set_defaultparse
-    void (*func_parse) (int);
+    void(*func_parse)(int);
     /// Server-specific data type
     void *session_data;
 };
@@ -106,30 +106,30 @@ extern int fd_max;
 
 /// open a socket, bind, and listen. Return an fd, or -1 if socket() fails,
 /// but exit if bind() or listen() fails
-int  make_listen_port (uint16_t port);
+int make_listen_port(uint16_t port);
 /// Connect to an address, return a connected socket or -1
 // FIXME - this is IPv4 only!
-int  make_connection (uint32_t ip, uint16_t port);
+int make_connection(uint32_t ip, uint16_t port);
 /// free() the structure and close() the fd
-void delete_session (int);
+void delete_session(int);
 /// Make a the internal queues bigger
-void realloc_fifo (int fd, size_t rfifo_size, size_t wfifo_size);
+void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size);
 /// Update all sockets that can be read/written from the queues
-void do_sendrecv (uint32_t next);
+void do_sendrecv(uint32_t next);
 /// Call the parser function for every socket that has read data
-void do_parsepacket (void);
+void do_parsepacket(void);
 
 /// An init function
-void do_socket (void);
+void do_socket(void);
 
 /// Change the default parser for newly connected clients
 // typically called once per server, but individual clients may identify
 // themselves as servers
-void set_defaultparse (void (*defaultparse) (int));
+void set_defaultparse(void(*defaultparse)(int));
 
 /// Wrappers to track number of free FDs
-void fclose_ (FILE * fp);
-FILE *fopen_ (const char *path, const char *mode);
-bool free_fds (void);
+void fclose_(FILE * fp);
+FILE *fopen_(const char *path, const char *mode);
+bool free_fds(void);
 
 #endif // SOCKET_HPP

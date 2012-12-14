@@ -193,7 +193,7 @@ MD5_state MD5_from_string(const char* msg, const size_t msglen)
     }
     // now pad 1-512 bits + the 64-bit length - may be two blocks
     uint8_t buf[0x40] = {};
-    memcpy (buf, msg, rem);
+    memcpy(buf, msg, rem);
     buf[rem] = 0x80; // a single one bit
     if (64 - rem > 8)
     {
