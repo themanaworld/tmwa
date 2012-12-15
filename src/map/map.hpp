@@ -7,10 +7,13 @@
 #include <time.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+
 #include "../common/mmo.hpp"
 #include "../common/timer.hpp"
 #include "../common/db.hpp"
 #include "script.hpp"
+#include "mob.t.hpp"
+#include "skill.t.hpp"
 
 #ifndef MAX
 #  define MAX(x,y) (((x)>(y)) ? (x) : (y))
@@ -31,7 +34,6 @@
 #define DAMAGELOG_SIZE 30
 #define LOOTITEM_SIZE 10
 #define MAX_SKILL_LEVEL 100
-#define MAX_STATUSCHANGE 200
 #define MAX_SKILLUNITGROUP 32
 #define MAX_MOBSKILLUNITGROUP 8
 #define MAX_SKILLUNITGROUPTICKSET 128
@@ -59,11 +61,6 @@
 #define OPTION_INVISIBILITY     0x1000  // [Fate] Complete invisibility to other clients
 #define OPTION_SCRIBE           0x2000  // [Fate] Auto-logging of nearby comments
 #define OPTION_CHASEWALK        0x4000
-
-//  Below are special clif_changestatus() IDs reserved for option updates
-#define CLIF_OPTION_SC_BASE             0x1000
-#define CLIF_OPTION_SC_INVISIBILITY     (CLIF_OPTION_SC_BASE)
-#define CLIF_OPTION_SC_SCRIBE           (CLIF_OPTION_SC_BASE + 1)
 
 enum
 { BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL, BL_SPELL };
@@ -97,6 +94,7 @@ struct status_change
 {
     int timer;
     int val1, val2, val3, val4;
+    SkillID val1_sk() { return SkillID(val1); }
     int spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
 
@@ -122,7 +120,8 @@ struct skill_unit_group
     unsigned int tick;
     int limit, interval;
 
-    int skill_id, skill_lv;
+    SkillID skill_id;
+    int skill_lv;
     int val1, val2;
     char *valstr;
     int unit_id;
@@ -142,7 +141,8 @@ struct skill_timerskill
     int target_id;
     int map;
     short x, y;
-    short skill_id, skill_lv;
+    SkillID skill_id;
+    short skill_lv;
     int type;
     int flag;
 };
@@ -247,7 +247,8 @@ struct map_session_data
     struct invocation *active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
     int attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
     // like a weapon.  Check pc_attack_timer() for details.
-    short attack_spell_icon_override;   // Weapon equipment slot (slot 4) item override
+    // Weapon equipment slot (slot 4) item override
+    StatusChange attack_spell_icon_override;
     short attack_spell_look_override;   // Weapon `look' (attack animation) override
     short attack_spell_charges; // [Fate] Remaining number of charges for the attack spell
     short attack_spell_delay;   // [Fate] ms delay after spell attack
@@ -259,10 +260,14 @@ struct map_session_data
     int skilltimer;
     int skilltarget;
     short skillx, skilly;
-    short skillid, skilllv;
-    short skillitem, skillitemlv;
-    short skillid_old, skilllv_old;
-    short skillid_dance, skilllv_dance;
+    SkillID skillid;
+    short skilllv;
+    SkillID skillitem;
+    short skillitemlv;
+    SkillID skillid_old;
+    short skilllv_old;
+    SkillID skillid_dance;
+    short skilllv_dance;
     struct skill_unit_group skillunit[MAX_SKILLUNITGROUP];
     struct skill_unit_group_tickset skillunittick[MAX_SKILLUNITGROUPTICKSET];
     struct skill_timerskill skilltimerskill[MAX_SKILLTIMERSKILL];
@@ -295,13 +300,13 @@ struct map_session_data
     int atk_ele, def_ele, star, overrefine;
     int castrate, hprate, sprate, dsprate;
     int addele[10], addrace[12], addsize[3], subele[10], subrace[12];
-    int addeff[10], addeff2[10], reseff[10];
+    earray<int, BadSC, BadSC::COUNT> addeff, addeff2, reseff;
     int watk_, watk_2, atkmods_[3], addele_[10], addrace_[12], addsize_[3];    //二刀流のために追加
     int atk_ele_, star_, overrefine_;  //二刀流のために追加
     int base_atk, atk_rate;
     int arrow_atk, arrow_ele, arrow_cri, arrow_hit, arrow_range;
-    int arrow_addele[10], arrow_addrace[12], arrow_addsize[3],
-        arrow_addeff[10], arrow_addeff2[10];
+    int arrow_addele[10], arrow_addrace[12], arrow_addsize[3];
+    earray<int, BadSC, BadSC::COUNT> arrow_addeff, arrow_addeff2;
     int nhealhp, nhealsp, nshealhp, nshealsp, nsshealhp, nsshealsp;
     int aspd_rate, speed_rate, hprecov_rate, sprecov_rate, critical_def,
         double_rate;
@@ -331,7 +336,8 @@ struct map_session_data
     int double_add_rate, speed_add_rate, aspd_add_rate, perfect_hit_add,
         get_zeny_add_num;
     short splash_range, splash_add_range;
-    short autospell_id, autospell_lv, autospell_rate;
+    SkillID autospell_id;
+    short autospell_lv, autospell_rate;
     short hp_drain_rate, hp_drain_per, sp_drain_rate, sp_drain_per;
     short hp_drain_rate_, hp_drain_per_, sp_drain_rate_, sp_drain_per_;
     int short_weapon_damage_return, long_weapon_damage_return;
@@ -354,7 +360,7 @@ struct map_session_data
     int regstr_num;
     struct script_regstr *regstr;
 
-    struct status_change sc_data[MAX_STATUSCHANGE];
+    earray<struct status_change, StatusChange, MAX_STATUSCHANGE> sc_data;
     short sc_count;
     struct square dev;
 
@@ -378,7 +384,9 @@ struct map_session_data
     char eventqueue[MAX_EVENTQUEUE][50];
     int eventtimer[MAX_EVENTTIMER];
 
-    int last_skillid, last_skilllv;    // Added by RoVeRT
+    SkillID last_skillid;
+    int last_skilllv;
+
     struct
     {
         char name[24];
@@ -490,7 +498,7 @@ struct mob_data
     struct
     {
         unsigned state:8;
-        unsigned skillstate:8;
+        MSS skillstate;
         unsigned targettype:1;
         unsigned steal_flag:1;
         unsigned steal_coin_flag:1;
@@ -519,7 +527,7 @@ struct mob_data
     struct item *lootitem;
     short lootitem_count;
 
-    struct status_change sc_data[MAX_STATUSCHANGE];
+    earray<struct status_change, StatusChange, MAX_STATUSCHANGE> sc_data;
     short sc_count;
     short opt1, opt2, opt3, option;
     short min_chase;
@@ -529,7 +537,8 @@ struct mob_data
     int skilltimer;
     int skilltarget;
     short skillx, skilly;
-    short skillid, skilllv, skillidx;
+    SkillID skillid;
+    short skilllv, skillidx;
     unsigned int skilldelay[MAX_MOBSKILL];
     int def_ele;
     int master_id, master_dist;

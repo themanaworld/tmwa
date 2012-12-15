@@ -553,12 +553,13 @@ static int fun_is_in(env_t * env, int args_nr, val_t * result, val_t * args)
 static int fun_skill(env_t * env, int args_nr, val_t * result, val_t * args)
 {
     if (ETY(0) != BL_PC
+            // don't convert to enum until after the range check
         || ARGINT(1) < 0
-        || ARGINT(1) >= MAX_SKILL
-        || ARGPC(0)->status.skill[ARGINT(1)].id != ARGINT(1))
+        || ARGINT(1) >= uint16_t(MAX_SKILL)
+        || ARGPC(0)->status.skill[SkillID(ARGINT(1))].id != SkillID(ARGINT(1)))
         RESULTINT = 0;
     else
-        RESULTINT = ARGPC(0)->status.skill[ARGINT(1)].lv;
+        RESULTINT = ARGPC(0)->status.skill[SkillID(ARGINT(1))].lv;
     return 0;
 }
 
@@ -974,7 +975,8 @@ fun_running_status_update(env_t * env, int args_nr, val_t * result,
     if (ETY(0) != BL_PC && ETY(0) != BL_MOB)
         return 1;
 
-    RESULTINT = battle_get_sc_data(ARGENTITY(0))[ARGINT(1)].timer != -1;
+    StatusChange sc = StatusChange(ARGINT(1));
+    RESULTINT = battle_get_sc_data(ARGENTITY(0))[sc].timer != -1;
     return 0;
 }
 

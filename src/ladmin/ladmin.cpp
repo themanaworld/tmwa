@@ -2555,7 +2555,7 @@ int prompt(void)
         if (strlen(parameters) == 0)
         {
             ladmin_log("Command: '%s' (without parameters)\n",
-                        command, parameters);
+                        command);
         }
         else
         {

@@ -688,7 +688,7 @@ int map_delobjectnofree(int id, int type)
     {
         fprintf(stderr, "Incorrect type: expected %d, got %d\n", type,
                  object[id]->type);
-        *((char *) 0) = 0;      // break for backtrace
+        abort();
     }
 
     map_delblock(object[id]);
@@ -1115,7 +1115,7 @@ int map_quit(struct map_session_data *sd)
     skill_castcancel(&sd->bl, 0);  // 詠唱を中断する
     skill_stop_dancing(&sd->bl, 1);    // ダンス/演奏中断
 
-    if (sd->sc_data && sd->sc_data[SC_BERSERK].timer != -1) //バーサーク中の終了はHPを100に
+    if (sd->sc_data[SC_BERSERK].timer != -1) //バーサーク中の終了はHPを100に
         sd->status.hp = 100;
 
     skill_status_change_clear(&sd->bl, 1); // ステータス異常を解除する

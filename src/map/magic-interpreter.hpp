@@ -405,7 +405,7 @@ typedef struct cont_activation_record
 
 typedef struct status_change_ref
 {
-    int sc_type;
+    StatusChange sc_type;
     int bl_id;
 } status_change_ref_t;
 

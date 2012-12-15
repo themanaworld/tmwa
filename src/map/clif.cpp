@@ -2595,9 +2595,9 @@ int clif_changeoption(struct block_list *bl)
 {
     uint8_t buf[32];
     short option;
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
     static const int omask[] = { 0x10, 0x20 };
-    static const int scnum[] = { SC_FALCON, SC_RIDING };
+    static const StatusChange scnum[] = { SC_FALCON, SC_RIDING };
     int i;
 
     nullpo_retr(0, bl);
@@ -3371,7 +3371,7 @@ int clif_damage(struct block_list *src, struct block_list *dst,
                  int div, int type, int damage2)
 {
     unsigned char buf[256];
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
 
     nullpo_retr(0, src);
     nullpo_retr(0, dst);
@@ -3731,18 +3731,19 @@ void clif_mobinsight(struct block_list *bl, va_list ap)
  *
  *------------------------------------------
  */
-int clif_skillinfo(struct map_session_data *sd, int skillid, int type,
+int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
                     int range)
 {
-    int fd, id;
+    int fd;
 
     nullpo_retr(0, sd);
 
     fd = sd->fd;
-    if ((id = sd->status.skill[skillid].id) <= 0)
+    SkillID id = sd->status.skill[skillid].id;
+    if (id == SkillID::ZERO || id == SkillID::NEGATIVE)
         return 0;
     WFIFOW(fd, 0) = 0x147;
-    WFIFOW(fd, 2) = id;
+    WFIFOW(fd, 2) = uint16_t(id);
     if (type < 0)
         WFIFOW(fd, 4) = skill_get_inf(id);
     else
@@ -3774,17 +3775,19 @@ int clif_skillinfo(struct map_session_data *sd, int skillid, int type,
 int clif_skillinfoblock(struct map_session_data *sd)
 {
     int fd;
-    int i, c, len = 4, id, range;
+    int len = 4, range;
 
     nullpo_retr(0, sd);
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x10f;
-    for (i = c = 0; i < MAX_SKILL; i++)
+    for (SkillID i : erange(SkillID(), MAX_SKILL))
     {
-        if ((id = sd->status.skill[i].id) != 0 && (sd->tmw_version >= 1))
-        {                       // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
-            WFIFOW(fd, len) = id;
+        SkillID id = sd->status.skill[i].id;
+        if (id != SkillID::ZERO && sd->tmw_version >= 1)
+        {
+            // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
+            WFIFOW(fd, len) = uint16_t(id);
             WFIFOW(fd, len + 2) = skill_get_inf(id);
             WFIFOW(fd, len + 4) =
                 skill_db[i].poolflags | (sd->status.
@@ -3800,7 +3803,6 @@ int clif_skillinfoblock(struct map_session_data *sd)
             WFIFOB(fd, len + 36) =
                 (sd->status.skill[i].lv < skill_get_max_raise(id)) ? 1 : 0;
             len += 37;
-            c++;
         }
     }
     WFIFOW(fd, 2) = len;
@@ -3813,7 +3815,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
  * スキル割り振り通知
  *------------------------------------------
  */
-int clif_skillup(struct map_session_data *sd, int skill_num)
+int clif_skillup(struct map_session_data *sd, SkillID skill_num)
 {
     int range, fd;
 
@@ -3821,7 +3823,7 @@ int clif_skillup(struct map_session_data *sd, int skill_num)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x10e;
-    WFIFOW(fd, 2) = skill_num;
+    WFIFOW(fd, 2) = uint16_t(skill_num);
     WFIFOW(fd, 4) = sd->status.skill[skill_num].lv;
     WFIFOW(fd, 6) = skill_get_sp(skill_num, sd->status.skill[skill_num].lv);
     range = skill_get_range(skill_num, sd->status.skill[skill_num].lv);
@@ -3842,7 +3844,7 @@ int clif_skillup(struct map_session_data *sd, int skill_num)
  */
 int clif_skillcasting(struct block_list *bl,
                        int src_id, int dst_id, int dst_x, int dst_y,
-                       int skill_num, int casttime)
+                       SkillID skill_num, int casttime)
 {
     unsigned char buf[32];
     WBUFW(buf, 0) = 0x13e;
@@ -3850,7 +3852,7 @@ int clif_skillcasting(struct block_list *bl,
     WBUFL(buf, 6) = dst_id;
     WBUFW(buf, 10) = dst_x;
     WBUFW(buf, 12) = dst_y;
-    WBUFW(buf, 14) = skill_num;    //魔法詠唱スキル
+    WBUFW(buf, 14) = uint16_t(skill_num);    //魔法詠唱スキル
     WBUFL(buf, 16) = skill_get_pl(skill_num); //属性
     WBUFL(buf, 20) = casttime; //skill詠唱時間
     clif_send(buf, packet_len_table[0x13e], bl, AREA);
@@ -3879,7 +3881,7 @@ int clif_skillcastcancel(struct block_list *bl)
  * スキル詠唱失敗
  *------------------------------------------
  */
-int clif_skill_fail(struct map_session_data *sd, int skill_id, int type,
+int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
                      int btype)
 {
     int fd;
@@ -3894,7 +3896,7 @@ int clif_skill_fail(struct map_session_data *sd, int skill_id, int type,
     }
 
     WFIFOW(fd, 0) = 0x110;
-    WFIFOW(fd, 2) = skill_id;
+    WFIFOW(fd, 2) = uint16_t(skill_id);
     WFIFOW(fd, 4) = btype;
     WFIFOW(fd, 6) = 0;
     WFIFOB(fd, 8) = 0;
@@ -3910,10 +3912,10 @@ int clif_skill_fail(struct map_session_data *sd, int skill_id, int type,
  */
 int clif_skill_damage(struct block_list *src, struct block_list *dst,
                        unsigned int tick, int sdelay, int ddelay, int damage,
-                       int div, int skill_id, int skill_lv, int type)
+                       int div, SkillID skill_id, int skill_lv, int type)
 {
     unsigned char buf[64];
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
 
     nullpo_retr(0, src);
     nullpo_retr(0, dst);
@@ -3933,7 +3935,7 @@ int clif_skill_damage(struct block_list *src, struct block_list *dst,
     }
 
     WBUFW(buf, 0) = 0x1de;
-    WBUFW(buf, 2) = skill_id;
+    WBUFW(buf, 2) = uint16_t(skill_id);
     WBUFL(buf, 4) = src->id;
     WBUFL(buf, 8) = dst->id;
     WBUFL(buf, 12) = tick;
@@ -3954,10 +3956,10 @@ int clif_skill_damage(struct block_list *src, struct block_list *dst,
  */
 int clif_skill_damage2(struct block_list *src, struct block_list *dst,
                         unsigned int tick, int sdelay, int ddelay, int damage,
-                        int div, int skill_id, int skill_lv, int type)
+                        int div, SkillID skill_id, int skill_lv, int type)
 {
     unsigned char buf[64];
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
 
     nullpo_retr(0, src);
     nullpo_retr(0, dst);
@@ -3977,7 +3979,7 @@ int clif_skill_damage2(struct block_list *src, struct block_list *dst,
     }
 
     WBUFW(buf, 0) = 0x115;
-    WBUFW(buf, 2) = skill_id;
+    WBUFW(buf, 2) = uint16_t(skill_id);
     WBUFL(buf, 4) = src->id;
     WBUFL(buf, 8) = dst->id;
     WBUFL(buf, 12) = tick;
@@ -3999,7 +4001,7 @@ int clif_skill_damage2(struct block_list *src, struct block_list *dst,
  *------------------------------------------
  */
 int clif_skill_nodamage(struct block_list *src, struct block_list *dst,
-                         int skill_id, int heal, int fail)
+        SkillID skill_id, int heal, int fail)
 {
     unsigned char buf[32];
 
@@ -4007,7 +4009,7 @@ int clif_skill_nodamage(struct block_list *src, struct block_list *dst,
     nullpo_retr(0, dst);
 
     WBUFW(buf, 0) = 0x11a;
-    WBUFW(buf, 2) = skill_id;
+    WBUFW(buf, 2) = uint16_t(skill_id);
     WBUFW(buf, 4) = (heal > 0x7fff) ? 0x7fff : heal;
     WBUFL(buf, 6) = dst->id;
     WBUFL(buf, 10) = src->id;
@@ -4021,7 +4023,7 @@ int clif_skill_nodamage(struct block_list *src, struct block_list *dst,
  * 場所スキルエフェクト
  *------------------------------------------
  */
-int clif_skill_poseffect(struct block_list *src, int skill_id, int val,
+int clif_skill_poseffect(struct block_list *src, SkillID skill_id, int val,
                           int x, int y, int tick)
 {
     unsigned char buf[32];
@@ -4029,7 +4031,7 @@ int clif_skill_poseffect(struct block_list *src, int skill_id, int val,
     nullpo_retr(0, src);
 
     WBUFW(buf, 0) = 0x117;
-    WBUFW(buf, 2) = skill_id;
+    WBUFW(buf, 2) = uint16_t(skill_id);
     WBUFL(buf, 4) = src->id;
     WBUFW(buf, 8) = val;
     WBUFW(buf, 10) = x;
@@ -4117,7 +4119,7 @@ int clif_skill_delunit(struct skill_unit *unit)
  * ワープ場所選択
  *------------------------------------------
  */
-int clif_skill_warppoint(struct map_session_data *sd, int skill_num,
+int clif_skill_warppoint(struct map_session_data *sd, SkillID skill_num,
                           const char *map1, const char *map2,
                           const char *map3, const char *map4)
 {
@@ -4127,7 +4129,7 @@ int clif_skill_warppoint(struct map_session_data *sd, int skill_num,
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x11c;
-    WFIFOW(fd, 2) = skill_num;
+    WFIFOW(fd, 2) = uint16_t(skill_num);
     memcpy(WFIFOP(fd, 4), map1, 16);
     memcpy(WFIFOP(fd, 20), map2, 16);
     memcpy(WFIFOP(fd, 36), map3, 16);
@@ -4213,14 +4215,14 @@ int clif_skill_estimation(struct map_session_data *sd,
  * 状態異常アイコン/メッセージ表示
  *------------------------------------------
  */
-int clif_status_change(struct block_list *bl, int type, int flag)
+int clif_status_change(struct block_list *bl, StatusChange type, int flag)
 {
     unsigned char buf[16];
 
     nullpo_retr(0, bl);
 
     WBUFW(buf, 0) = 0x0196;
-    WBUFW(buf, 2) = type;
+    WBUFW(buf, 2) = uint16_t(type);
     WBUFL(buf, 4) = bl->id;
     WBUFB(buf, 8) = flag;
     clif_send(buf, packet_len_table[0x196], bl, AREA);
@@ -4611,7 +4613,7 @@ int clif_item_repair_list(struct map_session_data *sd)
  * アイテムによる一時的なスキル効果
  *------------------------------------------
  */
-int clif_item_skill(struct map_session_data *sd, int skillid, int skilllv,
+int clif_item_skill(struct map_session_data *sd, SkillID skillid, int skilllv,
                      const char *name)
 {
     int range, fd;
@@ -4620,7 +4622,7 @@ int clif_item_skill(struct map_session_data *sd, int skillid, int skilllv,
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x147;
-    WFIFOW(fd, 2) = skillid;
+    WFIFOW(fd, 2) = uint16_t(skillid);
     WFIFOW(fd, 4) = skill_get_inf(skillid);
     WFIFOW(fd, 6) = 0;
     WFIFOW(fd, 8) = skilllv;
@@ -5195,31 +5197,31 @@ int clif_autospell(struct map_session_data *sd, int skilllv)
     WFIFOW(fd, 0) = 0x1cd;
 
     if (skilllv > 0 && pc_checkskill(sd, MG_NAPALMBEAT) > 0)
-        WFIFOL(fd, 2) = MG_NAPALMBEAT;
+        WFIFOL(fd, 2) = uint16_t(MG_NAPALMBEAT);
     else
         WFIFOL(fd, 2) = 0x00000000;
     if (skilllv > 1 && pc_checkskill(sd, MG_COLDBOLT) > 0)
-        WFIFOL(fd, 6) = MG_COLDBOLT;
+        WFIFOL(fd, 6) = uint16_t(MG_COLDBOLT);
     else
         WFIFOL(fd, 6) = 0x00000000;
     if (skilllv > 1 && pc_checkskill(sd, MG_FIREBOLT) > 0)
-        WFIFOL(fd, 10) = MG_FIREBOLT;
+        WFIFOL(fd, 10) = uint16_t(MG_FIREBOLT);
     else
         WFIFOL(fd, 10) = 0x00000000;
     if (skilllv > 1 && pc_checkskill(sd, MG_LIGHTNINGBOLT) > 0)
-        WFIFOL(fd, 14) = MG_LIGHTNINGBOLT;
+        WFIFOL(fd, 14) = uint16_t(MG_LIGHTNINGBOLT);
     else
         WFIFOL(fd, 14) = 0x00000000;
     if (skilllv > 4 && pc_checkskill(sd, MG_SOULSTRIKE) > 0)
-        WFIFOL(fd, 18) = MG_SOULSTRIKE;
+        WFIFOL(fd, 18) = uint16_t(MG_SOULSTRIKE);
     else
         WFIFOL(fd, 18) = 0x00000000;
     if (skilllv > 7 && pc_checkskill(sd, MG_FIREBALL) > 0)
-        WFIFOL(fd, 22) = MG_FIREBALL;
+        WFIFOL(fd, 22) = uint16_t(MG_FIREBALL);
     else
         WFIFOL(fd, 22) = 0x00000000;
     if (skilllv > 9 && pc_checkskill(sd, MG_FROSTDIVER) > 0)
-        WFIFOL(fd, 26) = MG_FROSTDIVER;
+        WFIFOL(fd, 26) = uint16_t(MG_FROSTDIVER);
     else
         WFIFOL(fd, 26) = 0x00000000;
 
@@ -5922,7 +5924,7 @@ void clif_parse_QuitGame(int fd, struct map_session_data *sd)
          && (sd->opt1
              || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
         || sd->skilltimer != -1 || (DIFF_TICK(tick, sd->canact_tick) < 0)
-        || (sd->sc_data && sd->sc_data[SC_DANCING].timer != -1
+        || (sd->sc_data[SC_DANCING].timer != -1
             && sd->sc_data[SC_DANCING].val4
             && (sg = (struct skill_unit_group *) sd->sc_data[SC_DANCING].val2)
             && sg->src_id == sd->bl.id))
@@ -6078,7 +6080,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0) != AtCommand_None
-            || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
+            || ((sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
                                 || sd->sc_data[SC_NOCHAT].timer != -1)))//チャット禁止
     {
         free(buf);
@@ -6214,7 +6216,7 @@ void clif_parse_Emotion(int fd, struct map_session_data *sd)
         clif_send(buf, packet_len_table[0xc0], &sd->bl, AREA);
     }
     else
-        clif_skill_fail(sd, 1, 0, 1);
+        clif_skill_fail(sd, SkillID::ONE, 0, 1);
 }
 
 /*==========================================
@@ -6248,7 +6250,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
         return;
     }
     if (sd->npc_id != 0 || sd->opt1 > 0 || sd->status.option & 2 || sd->state.storage_open ||
-            (sd->sc_data && (sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||   //オートカウンター
+            ((sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||   //オートカウンター
             sd->sc_data[SC_BLADESTOP].timer != -1 || //白刃取り
             sd->sc_data[SC_DANCING].timer != -1)))
         return;
@@ -6273,7 +6275,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
             {
                 if (DIFF_TICK(tick, sd->canact_tick) < 0)
                 {
-                    clif_skill_fail(sd, 1, 4, 0);
+                    clif_skill_fail(sd, SkillID::ONE, 4, 0);
                     return;
                 }
             }
@@ -6370,7 +6372,7 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0) != AtCommand_None
-            || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1
+            || ((sd->sc_data[SC_BERSERK].timer != -1
                                 || sd->sc_data[SC_NOCHAT].timer != -1)))
     {
         free(buf);
@@ -6483,7 +6485,7 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (sd->npc_id != 0 || sd->opt1 > 0 || (sd->sc_data &&
+    if (sd->npc_id != 0 || sd->opt1 > 0 || (
             (sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
             sd->sc_data[SC_BLADESTOP].timer != -1 ||    //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1 ||  //バーサーク
@@ -6525,7 +6527,7 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd)
         return;
     }
     if (sd->npc_id != 0 || sd->opt1 > 0 ||
-            (sd->sc_data && (sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||    //オートカウンター
+            ((sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||    //オートカウンター
             sd->sc_data[SC_BLADESTOP].timer != -1 ||  //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1)))    //バーサーク
     {
@@ -6553,7 +6555,7 @@ void clif_parse_UseItem(int fd, struct map_session_data *sd)
         clif_clearchar_area(&sd->bl, 1);
         return;
     }
-    if (sd->npc_id != 0 || sd->opt1 > 0 || (sd->sc_data &&
+    if (sd->npc_id != 0 || sd->opt1 > 0 || (
             (sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
             sd->sc_data[SC_BLADESTOP].timer != -1 ||    //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1 ||  //バーサーク
@@ -6585,8 +6587,7 @@ void clif_parse_EquipItem(int fd, struct map_session_data *sd)
     index = RFIFOW(fd, 2) - 2;
     if (sd->npc_id != 0)
         return;
-    if (sd->sc_data
-        && (sd->sc_data[SC_BLADESTOP].timer != -1
+    if ((sd->sc_data[SC_BLADESTOP].timer != -1
             || sd->sc_data[SC_BERSERK].timer != -1))
         return;
 
@@ -6624,14 +6625,11 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
         return;
     }
     index = RFIFOW(fd, 2) - 2;
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data
-        && sd->sc_data[SC_BROKNWEAPON].timer != -1)
+    if (sd->status.inventory[index].broken == 1 && sd->sc_data[SC_BROKNWEAPON].timer != -1)
         skill_status_change_end(&sd->bl, SC_BROKNWEAPON, -1);
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data
-        && sd->sc_data[SC_BROKNARMOR].timer != -1)
+    if (sd->status.inventory[index].broken == 1 && sd->sc_data[SC_BROKNARMOR].timer != -1)
         skill_status_change_end(&sd->bl, SC_BROKNARMOR, -1);
-    if (sd->sc_data
-        && (sd->sc_data[SC_BLADESTOP].timer != -1
+    if ((sd->sc_data[SC_BLADESTOP].timer != -1
             || sd->sc_data[SC_BERSERK].timer != -1))
         return;
 
@@ -6786,7 +6784,7 @@ void clif_parse_TradeRequest(int fd, struct map_session_data *sd)
         trade_traderequest(sd, RFIFOL(sd->fd, 2));
     }
     else
-        clif_skill_fail(sd, 1, 0, 0);
+        clif_skill_fail(sd, SkillID::ONE, 0, 0);
 }
 
 /*==========================================
@@ -6933,7 +6931,7 @@ void clif_parse_StatusUp(int fd, struct map_session_data *sd)
 static
 void clif_parse_SkillUp(int fd, struct map_session_data *sd)
 {
-    pc_skillup(sd, RFIFOW(fd, 2));
+    pc_skillup(sd, SkillID(RFIFOW(fd, 2)));
 }
 
 /*==========================================
@@ -6943,7 +6941,7 @@ void clif_parse_SkillUp(int fd, struct map_session_data *sd)
 static
 void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
 {
-    int skillnum, skilllv, lv, target_id;
+    int skilllv, lv, target_id;
     unsigned int tick = gettick();
 
     nullpo_retv(sd);
@@ -6954,7 +6952,7 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
         return;
 
     skilllv = RFIFOW(fd, 2);
-    skillnum = RFIFOW(fd, 4);
+    SkillID skillnum = SkillID(RFIFOW(fd, 4));
     target_id = RFIFOL(fd, 6);
 
     if (sd->skilltimer != -1)
@@ -6975,7 +6973,7 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
         return;
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
-    if (sd->skillitem >= 0 && sd->skillitem == skillnum)
+    if (sd->skillitem != SkillID::NEGATIVE && sd->skillitem == skillnum)
     {
         if (skilllv != sd->skillitemlv)
             skilllv = sd->skillitemlv;
@@ -6983,12 +6981,13 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
     }
     else
     {
-        sd->skillitem = sd->skillitemlv = -1;
+        sd->skillitem = SkillID::NEGATIVE;
+        sd->skillitemlv = -1;
         if (skillnum == MO_EXTREMITYFIST)
         {
             if ((sd->sc_data[SC_COMBO].timer == -1
-                 || (sd->sc_data[SC_COMBO].val1 != MO_COMBOFINISH
-                     && sd->sc_data[SC_COMBO].val1 != CH_CHAINCRUSH)))
+                 || (sd->sc_data[SC_COMBO].val1_sk() != MO_COMBOFINISH
+                     && sd->sc_data[SC_COMBO].val1_sk() != CH_CHAINCRUSH)))
             {
                 if (!sd->state.skill_flag)
                 {
@@ -7021,7 +7020,7 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
 static
 void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
 {
-    int skillnum, skilllv, lv, x, y;
+    int skilllv, lv, x, y;
     unsigned int tick = gettick();
     int skillmoreinfo;
 
@@ -7036,7 +7035,7 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
 
     skillmoreinfo = -1;
     skilllv = RFIFOW(fd, 2);
-    skillnum = RFIFOW(fd, 4);
+    SkillID skillnum = SkillID(RFIFOW(fd, 4));
     x = RFIFOW(fd, 6);
     y = RFIFOW(fd, 8);
     if (RFIFOW(fd, 0) == 0x190)
@@ -7067,7 +7066,7 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
         return;
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
-    if (sd->skillitem >= 0 && sd->skillitem == skillnum)
+    if (sd->skillitem != SkillID::NEGATIVE && sd->skillitem == skillnum)
     {
         if (skilllv != sd->skillitemlv)
             skilllv = sd->skillitemlv;
@@ -7075,7 +7074,8 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
     }
     else
     {
-        sd->skillitem = sd->skillitemlv = -1;
+        sd->skillitem = SkillID::NEGATIVE;
+        sd->skillitemlv = -1;
         if ((lv = pc_checkskill(sd, skillnum)) > 0)
         {
             if (skilllv > lv)
@@ -7099,7 +7099,7 @@ void clif_parse_UseSkillMap(int fd, struct map_session_data *sd)
     if (sd->chatID)
         return;
 
-    if (sd->npc_id != 0 || (sd->sc_data &&
+    if (sd->npc_id != 0 || (
                             (sd->sc_data[SC_TRICKDEAD].timer != -1 ||
                              sd->sc_data[SC_BERSERK].timer != -1 ||
                              sd->sc_data[SC_NOCHAT].timer != -1 ||
@@ -7110,7 +7110,8 @@ void clif_parse_UseSkillMap(int fd, struct map_session_data *sd)
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
 
-    skill_castend_map(sd, RFIFOW(fd, 2), (const char *)RFIFOP(fd, 4));
+    SkillID skill_id = SkillID(RFIFOW(fd, 2));
+    skill_castend_map(sd, skill_id, (const char *)RFIFOP(fd, 4));
 }
 
 /*==========================================
@@ -7225,7 +7226,8 @@ void clif_parse_ItemIdentify(int fd, struct map_session_data *sd)
 static
 void clif_parse_AutoSpell(int fd, struct map_session_data *sd)
 {
-    skill_autospell(sd, RFIFOW(fd, 2));
+    SkillID skill_id = SkillID(RFIFOW(fd, 2));
+    skill_autospell(sd, skill_id);
 }
 
 /*==========================================
@@ -7416,7 +7418,7 @@ void clif_parse_CreateParty(int fd, struct map_session_data *sd)
         party_create(sd, (const char *)RFIFOP(fd, 2));
     }
     else
-        clif_skill_fail(sd, 1, 0, 4);
+        clif_skill_fail(sd, SkillID::ONE, 0, 4);
 }
 
 /*==========================================
@@ -7440,7 +7442,7 @@ void clif_parse_CreateParty2(int fd, struct map_session_data *sd)
         party_create(sd, (const char *)RFIFOP(fd, 2));
     }
     else
-        clif_skill_fail(sd, 1, 0, 4);
+        clif_skill_fail(sd, SkillID::ONE, 0, 4);
 }
 
 /*==========================================
@@ -7474,7 +7476,7 @@ void clif_parse_ReplyPartyInvite(int fd, struct map_session_data *sd)
     else
     {
         party_reply_invite(sd, RFIFOL(fd, 2), 0);
-        clif_skill_fail(sd, 1, 0, 4);
+        clif_skill_fail(sd, SkillID::ONE, 0, 4);
     }
 }
 
@@ -7532,7 +7534,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0) != AtCommand_None
-            || (sd->sc_data && (sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
+            || ((sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
                                 || sd->sc_data[SC_NOCHAT].timer != -1))) //チャット禁止
     {
         free(buf);

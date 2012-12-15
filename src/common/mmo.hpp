@@ -18,7 +18,8 @@
 # define MAX_AMOUNT 30000
 # define MAX_ZENY 1000000000     // 1G zeny
 # define MAX_CART 100
-# define MAX_SKILL 450
+enum class SkillID : uint16_t;
+constexpr SkillID MAX_SKILL = SkillID(474); // not 450
 # define GLOBAL_REG_NUM 96
 # define ACCOUNT_REG_NUM 16
 # define ACCOUNT_REG2_NUM 16
@@ -70,7 +71,8 @@ struct point
 
 struct skill
 {
-    unsigned short id, lv, flags;
+    SkillID id;
+    unsigned short lv, flags;
 };
 
 struct global_reg
@@ -107,7 +109,7 @@ struct mmo_charstatus
 
     struct point last_point, save_point, memo_point[10];
     struct item inventory[MAX_INVENTORY], cart[MAX_CART];
-    struct skill skill[MAX_SKILL];
+    earray<struct skill, SkillID, MAX_SKILL> skill;
     int global_reg_num;
     struct global_reg global_reg[GLOBAL_REG_NUM];
     int account_reg_num;

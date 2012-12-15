@@ -3126,16 +3126,16 @@ int atcommand_gat(const int fd, struct map_session_data *sd,
 int atcommand_packet(const int fd, struct map_session_data *sd,
                       const char *command, const char *message)
 {
-    int x = 0, y = 0;
+    int type = 0, flag = 0;
 
-    if (!message || !*message || sscanf(message, "%d %d", &x, &y) < 2)
+    if (!message || !*message || sscanf(message, "%d %d", &type, &flag) < 2)
     {
         clif_displaymessage(fd,
                              "Please, enter a status type/flag (usage: @packet <status type> <flag>).");
         return -1;
     }
 
-    clif_status_change(&sd->bl, x, y);
+    clif_status_change(&sd->bl, StatusChange(type), flag);
 
     return 0;
 }
@@ -4483,16 +4483,18 @@ int atcommand_allskills(const int fd, struct map_session_data *sd,
 int atcommand_questskill(const int fd, struct map_session_data *sd,
                           const char *command, const char *message)
 {
-    int skill_id;
+    int skill_id_;
 
-    if (!message || !*message || (skill_id = atoi(message)) < 0)
+    if (!message || !*message || (skill_id_ = atoi(message)) < 0)
     {
         clif_displaymessage(fd,
                              "Please, enter a quest skill number (usage: @questskill <#:0+>).");
         return -1;
     }
 
-    if (skill_id >= 0 && skill_id < MAX_SKILL_DB)
+    SkillID skill_id = SkillID(skill_id_);
+
+    if (skill_id >= SkillID() && skill_id < MAX_SKILL_DB)
     {
         if (skill_get_inf2(skill_id) & 0x01)
         {
@@ -4531,20 +4533,22 @@ int atcommand_charquestskill(const int fd, struct map_session_data *sd,
 {
     char character[100];
     struct map_session_data *pl_sd;
-    int skill_id = 0;
+    int skill_id_ = 0;
 
     memset(character, '\0', sizeof(character));
 
     if (!message || !*message
-        || sscanf(message, "%d %99[^\n]", &skill_id, character) < 2
-        || skill_id < 0)
+        || sscanf(message, "%d %99[^\n]", &skill_id_, character) < 2
+        || skill_id_ < 0)
     {
         clif_displaymessage(fd,
                              "Please, enter a quest skill number and a player name (usage: @charquestskill <#:0+> <char_name>).");
         return -1;
     }
 
-    if (skill_id >= 0 && skill_id < MAX_SKILL_DB)
+    SkillID skill_id = SkillID(skill_id_);
+
+    if (skill_id >= SkillID() && skill_id < MAX_SKILL_DB)
     {
         if (skill_get_inf2(skill_id) & 0x01)
         {
@@ -4589,16 +4593,18 @@ int atcommand_charquestskill(const int fd, struct map_session_data *sd,
 int atcommand_lostskill(const int fd, struct map_session_data *sd,
                          const char *command, const char *message)
 {
-    int skill_id;
+    int skill_id_;
 
-    if (!message || !*message || (skill_id = atoi(message)) < 0)
+    if (!message || !*message || (skill_id_ = atoi(message)) < 0)
     {
         clif_displaymessage(fd,
                              "Please, enter a quest skill number (usage: @lostskill <#:0+>).");
         return -1;
     }
 
-    if (skill_id >= 0 && skill_id < MAX_SKILL)
+    SkillID skill_id = SkillID(skill_id_);
+
+    if (skill_id >= SkillID() && skill_id < MAX_SKILL)
     {
         if (skill_get_inf2(skill_id) & 0x01)
         {
@@ -4639,20 +4645,22 @@ int atcommand_charlostskill(const int fd, struct map_session_data *sd,
 {
     char character[100];
     struct map_session_data *pl_sd;
-    int skill_id = 0;
+    int skill_id_ = 0;
 
     memset(character, '\0', sizeof(character));
 
     if (!message || !*message
-        || sscanf(message, "%d %99[^\n]", &skill_id, character) < 2
-        || skill_id < 0)
+        || sscanf(message, "%d %99[^\n]", &skill_id_, character) < 2
+        || skill_id_ < 0)
     {
         clif_displaymessage(fd,
                              "Please, enter a quest skill number and a player name (usage: @charlostskill <#:0+> <char_name>).");
         return -1;
     }
 
-    if (skill_id >= 0 && skill_id < MAX_SKILL)
+    SkillID skill_id = SkillID(skill_id_);
+
+    if (skill_id >= SkillID() && skill_id < MAX_SKILL)
     {
         if (skill_get_inf2(skill_id) & 0x01)
         {
@@ -5859,9 +5867,6 @@ const char *txt_time(unsigned int duration)
 
     memset(temp, '\0', sizeof(temp));
     memset(temp1, '\0', sizeof(temp1));
-
-    if (duration < 0)
-        duration = 0;
 
     days = duration / (60 * 60 * 24);
     duration = duration - (60 * 60 * 24 * days);
@@ -7511,14 +7516,14 @@ atcommand_skillid(const int fd, struct map_session_data *sd,
     if (!message || !*message)
         return -1;
     skillen = strlen(message);
-    while (skill_names[idx].id != 0)
+    while (skill_names[idx].id != SkillID::ZERO)
     {
         if ((strncasecmp(skill_names[idx].name, message, skillen) == 0) ||
             (strncasecmp(skill_names[idx].desc, message, skillen) == 0))
         {
             char output[255];
-            sprintf(output, "skill %d: %s", skill_names[idx].id,
-                     skill_names[idx].desc);
+            sprintf(output, "skill %d: %s",
+                    uint16_t(skill_names[idx].id), skill_names[idx].desc);
             clif_displaymessage(fd, output);
         }
         idx++;
@@ -7537,14 +7542,14 @@ atcommand_useskill(const int fd, struct map_session_data *sd,
                     const char *command, const char *message)
 {
     struct map_session_data *pl_sd = NULL;
-    int skillnum;
+    int skillnum_;
     int skilllv;
     int inf;
     char target[255];
 
     if (!message || !*message)
         return -1;
-    if (sscanf(message, "%d %d %s", &skillnum, &skilllv, target) != 3)
+    if (sscanf(message, "%d %d %s", &skillnum_, &skilllv, target) != 3)
     {
         clif_displaymessage(fd,
                              "Usage: @useskill <skillnum> <skillv> <target>");
@@ -7555,6 +7560,7 @@ atcommand_useskill(const int fd, struct map_session_data *sd,
         return -1;
     }
 
+    SkillID skillnum = SkillID(skillnum_);
     inf = skill_get_inf(skillnum);
 
     if ((inf == 2) || (inf == 1))
@@ -7823,10 +7829,28 @@ int atcommand_unmute(const int fd, struct map_session_data *sd,
 
 /* Magic atcommands by Fate */
 
-static int magic_base = TMW_MAGIC;
-#define magic_skills_nr 6
+static SkillID magic_skills[] =
+{
+    TMW_MAGIC,
+    TMW_MAGIC_LIFE,
+    TMW_MAGIC_WAR,
+    TMW_MAGIC_TRANSMUTE,
+    TMW_MAGIC_NATURE,
+    TMW_MAGIC_ETHER,
+};
+
+constexpr
+size_t magic_skills_nr = sizeof(magic_skills) / sizeof(magic_skills[0]);
+
 static const char *magic_skill_names[magic_skills_nr] =
-    { "magic", "life", "war", "transmute", "nature", "astral" };
+{
+    "magic",
+    "life",
+    "war",
+    "transmute",
+    "nature",
+    "astral"
+};
 
 int
 atcommand_magic_info(const int fd, struct map_session_data *sd,
@@ -7846,16 +7870,15 @@ atcommand_magic_info(const int fd, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        int i;
-
         sprintf(buf, "`%s' has the following magic skills:", character);
         clif_displaymessage(fd, buf);
 
-        for (i = 0; i < magic_skills_nr; i++)
+        for (size_t i = 0; i < magic_skills_nr; i++)
         {
-            sprintf(buf, "%d in %s", pl_sd->status.skill[i + magic_base].lv,
-                     magic_skill_names[i]);
-            if (pl_sd->status.skill[i + magic_base].id == i + magic_base)
+            SkillID sk = magic_skills[i];
+            sprintf(buf, "%d in %s",
+                    pl_sd->status.skill[sk].lv, magic_skill_names[i]);
+            if (pl_sd->status.skill[sk].id == sk)
                 clif_displaymessage(fd, buf);
         }
 
@@ -7867,9 +7890,9 @@ atcommand_magic_info(const int fd, struct map_session_data *sd,
     return -1;
 }
 
-static void set_skill(struct map_session_data *sd, int i, int level)
+static void set_skill(struct map_session_data *sd, SkillID i, int level)
 {
-    sd->status.skill[i].id = level ? i : 0;
+    sd->status.skill[i].id = level ? i : SkillID();
     sd->status.skill[i].lv = level;
 }
 
@@ -7879,7 +7902,6 @@ atcommand_set_magic(const int fd, struct map_session_data *sd,
 {
     char character[100];
     char magic_type[20];
-    int skill_index = -1;      // 0: all
     int value;
     struct map_session_data *pl_sd;
 
@@ -7894,22 +7916,22 @@ atcommand_set_magic(const int fd, struct map_session_data *sd,
         return -1;
     }
 
+    SkillID skill_index = SkillID::NEGATIVE;
     if (!strcasecmp("all", magic_type))
-        skill_index = 0;
+        skill_index = SkillID::ZERO;
     else
     {
-        int i;
-        for (i = 0; i < magic_skills_nr; i++)
+        for (size_t i = 0; i < magic_skills_nr; i++)
         {
             if (!strcasecmp(magic_skill_names[i], magic_type))
             {
-                skill_index = i + magic_base;
+                skill_index = magic_skills[i];
                 break;
             }
         }
     }
 
-    if (skill_index == -1)
+    if (skill_index == SkillID::NEGATIVE)
     {
         clif_displaymessage(fd,
                              "Incorrect school of magic.  Use `magic', `nature', `life', `war', `transmute', `ether', or `all'.");
@@ -7918,10 +7940,9 @@ atcommand_set_magic(const int fd, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        int i;
-        if (skill_index == 0)
-            for (i = 0; i < magic_skills_nr; i++)
-                set_skill(pl_sd, i + magic_base, value);
+        if (skill_index == SkillID::ZERO)
+            for (SkillID sk : magic_skills)
+                set_skill(pl_sd, sk, value);
         else
             set_skill(pl_sd, skill_index, value);
 
@@ -8070,7 +8091,7 @@ int atcommand_skillpool_info(const int fd, struct map_session_data *sd,
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
         char buf[200];
-        int pool_skills[MAX_SKILL_POOL];
+        SkillID pool_skills[MAX_SKILL_POOL];
         int pool_skills_nr = skill_pool(pl_sd, pool_skills);
         int i;
 
@@ -8079,8 +8100,10 @@ int atcommand_skillpool_info(const int fd, struct map_session_data *sd,
         clif_displaymessage(fd, buf);
         for (i = 0; i < pool_skills_nr; ++i)
         {
-            sprintf(buf, " - %s [%d]: power %d", skill_name(pool_skills[i]),
-                     pool_skills[i], skill_power(pl_sd, pool_skills[i]));
+            sprintf(buf, " - %s [%d]: power %d",
+                    skill_name(pool_skills[i]),
+                    uint16_t(pool_skills[i]),
+                    skill_power(pl_sd, pool_skills[i]));
             clif_displaymessage(fd, buf);
         }
 
@@ -8095,8 +8118,8 @@ int atcommand_skillpool_info(const int fd, struct map_session_data *sd,
 
             if (lvl)
             {
-                sprintf(buf, " - %s [%d]: lvl %d", name,
-                         skill_pool_skills[i], lvl);
+                sprintf(buf, " - %s [%d]: lvl %d",
+                        name, uint16_t(skill_pool_skills[i]), lvl);
                 clif_displaymessage(fd, buf);
             }
         }
@@ -8112,15 +8135,17 @@ int atcommand_skillpool_focus(const int fd, struct map_session_data *sd,
                                const char *command, const char *message)
 {
     char character[100];
-    int skill;
+    int skill_;
     struct map_session_data *pl_sd;
 
     if (!message || !*message
-        || sscanf(message, "%d %99[^\n]", &skill, character) < 1)
+        || sscanf(message, "%d %99[^\n]", &skill_, character) < 1)
     {
         clif_displaymessage(fd, "Usage: @sp-focus <skill-nr> <char_name>");
         return -1;
     }
+
+    SkillID skill = SkillID(skill_);
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
@@ -8139,15 +8164,17 @@ int atcommand_skillpool_unfocus(const int fd, struct map_session_data *sd,
                                  const char *command, const char *message)
 {
     char character[100];
-    int skill;
+    int skill_;
     struct map_session_data *pl_sd;
 
     if (!message || !*message
-        || sscanf(message, "%d %99[^\n]", &skill, character) < 1)
+        || sscanf(message, "%d %99[^\n]", &skill_, character) < 1)
     {
         clif_displaymessage(fd, "Usage: @sp-unfocus <skill-nr> <char_name>");
         return -1;
     }
+
+    SkillID skill = SkillID(skill_);
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
@@ -8166,16 +8193,18 @@ int atcommand_skill_learn(const int fd, struct map_session_data *sd,
                            const char *command, const char *message)
 {
     char character[100];
-    int skill, level;
+    int skill_, level;
     struct map_session_data *pl_sd;
 
     if (!message || !*message
-        || sscanf(message, "%d %d %99[^\n]", &skill, &level, character) < 1)
+        || sscanf(message, "%d %d %99[^\n]", &skill_, &level, character) < 1)
     {
         clif_displaymessage(fd,
                              "Usage: @skill-learn <skill-nr> <level> <char_name>");
         return -1;
     }
+
+    SkillID skill = SkillID(skill_);
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {

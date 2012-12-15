@@ -2,6 +2,9 @@
 #ifndef BATTLE_HPP
 #define BATTLE_HPP
 
+#include "../common/utils.hpp"
+#include "skill.t.hpp"
+
 // ダメージ
 struct Damage
 {
@@ -23,28 +26,24 @@ struct block_list;
 // ダメージ計算
 
 struct Damage battle_calc_attack(int attack_type,
-                                  struct block_list *bl,
-                                  struct block_list *target, int skill_num,
-                                  int skill_lv, int flag);
-struct Damage battle_calc_weapon_attack(struct block_list *bl,
-                                         struct block_list *target,
-                                         int skill_num, int skill_lv,
-                                         int flag);
-struct Damage battle_calc_magic_attack(struct block_list *bl,
-                                        struct block_list *target,
-                                        int skill_num, int skill_lv,
-                                        int flag);
-struct Damage battle_calc_misc_attack(struct block_list *bl,
-                                       struct block_list *target,
-                                       int skill_num, int skill_lv, int flag);
+        struct block_list *bl, struct block_list *target,
+        SkillID skill_num, int skill_lv, int flag);
+struct Damage battle_calc_weapon_attack(
+        struct block_list *bl, struct block_list *target,
+        SkillID skill_num, int skill_lv, int flag);
+struct Damage battle_calc_magic_attack(
+        struct block_list *bl, struct block_list *target,
+        SkillID skill_num, int skill_lv, int flag);
+struct Damage battle_calc_misc_attack(
+        struct block_list *bl, struct block_list *target,
+        SkillID skill_num, int skill_lv, int flag);
 
 // 属性修正計算
 int battle_attr_fix(int damage, int atk_elem, int def_elem);
 
 // ダメージ最終計算
 int battle_calc_damage(struct block_list *src, struct block_list *bl,
-                         int damage, int div_, int skill_num, int skill_lv,
-                         int flag);
+        int damage, int div_, SkillID skill_num, int skill_lv, int flag);
 enum
 {                               // 最終計算のフラグ
     BF_WEAPON = 0x0001,
@@ -118,7 +117,7 @@ int battle_get_mexp(struct block_list *bl);
 int battle_get_stat(int stat_id /* SP_VIT or similar */ ,
                       struct block_list *bl);
 
-struct status_change *battle_get_sc_data(struct block_list *bl);
+eptr<struct status_change, StatusChange> battle_get_sc_data(struct block_list *bl);
 short *battle_get_sc_count(struct block_list *bl);
 short *battle_get_opt1(struct block_list *bl);
 short *battle_get_opt2(struct block_list *bl);

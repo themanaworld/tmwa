@@ -40,14 +40,21 @@ struct mob_db mob_db[2001];
  * Local prototype declaration   (only required thing)
  *------------------------------------------
  */
-static int distance(int, int, int, int);
-static int mob_makedummymobdb(int);
-static void mob_timer(timer_id, tick_t, custom_id_t, custom_data_t);
+static
+int distance(int, int, int, int);
+static
+int mob_makedummymobdb(int);
+static
+void mob_timer(timer_id, tick_t, custom_id_t, custom_data_t);
+static
 int mobskill_deltimer(struct mob_data *md);
-int mob_skillid2skillidx(int mob_class, int skillid);
+static
+int mob_skillid2skillidx(int mob_class, SkillID skillid);
+static
 int mobskill_use_id(struct mob_data *md, struct block_list *target,
                       int skill_idx);
-static int mob_unlocktarget(struct mob_data *md, int tick);
+static
+int mob_unlocktarget(struct mob_data *md, int tick);
 
 /*==========================================
  * Mob is searched with a name.
@@ -867,7 +874,7 @@ static int mob_attack(struct mob_data *md, unsigned int tick, int data)
     //clif_fixmobpos(md);
 
     md->state.skillstate = MSS_ATTACK;
-    if (mobskill_use(md, tick, -2))    // スキル使用
+    if (mobskill_use(md, tick, MSC::NEVER_EQUAL))
         return 0;
 
     md->target_lv = battle_weapon_attack(&md->bl, tbl, tick, 0);
@@ -1243,18 +1250,18 @@ int mob_spawn(int id)
     md->skilltimer = -1;
     for (i = 0, c = tick - 1000 * 3600 * 10; i < MAX_MOBSKILL; i++)
         md->skilldelay[i] = c;
-    md->skillid = 0;
+    md->skillid = SkillID();
     md->skilllv = 0;
 
     memset(md->dmglog, 0, sizeof(md->dmglog));
     if (md->lootitem)
-        memset(md->lootitem, 0, sizeof(md->lootitem));
+        memset(md->lootitem, 0, sizeof(*md->lootitem));
     md->lootitem_count = 0;
 
     for (i = 0; i < MAX_MOBSKILLTIMERSKILL; i++)
         md->skilltimerskill[i].timer = -1;
 
-    for (i = 0; i < MAX_STATUSCHANGE; i++)
+    for (StatusChange i : erange(StatusChange(), MAX_STATUSCHANGE))
     {
         md->sc_data[i].timer = -1;
         md->sc_data[i].val1 = md->sc_data[i].val2 = md->sc_data[i].val3 =
@@ -1416,7 +1423,7 @@ int mob_can_reach(struct mob_data *md, struct block_list *bl, int range)
 int mob_target(struct mob_data *md, struct block_list *bl, int dist)
 {
     struct map_session_data *sd;
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
     short *option;
     int mode, race;
 
@@ -2015,7 +2022,7 @@ void mob_ai_sub_hard(struct block_list *bl, va_list ap)
                     if (!mob_can_move(md)) // 動けない状態にある
                         return;
                     md->state.skillstate = MSS_CHASE;   // 突撃時スキル
-                    mobskill_use(md, tick, -1);
+                    mobskill_use(md, tick, MSC::ANY);
 //                  if(md->timer != -1 && (DIFF_TICK(md->next_walktime,tick)<0 || distance(md->to_x,md->to_y,tsd->bl.x,tsd->bl.y)<2) )
                     if (md->timer != -1 && md->state.state != MS_ATTACK
                         && (DIFF_TICK(md->next_walktime, tick) < 0
@@ -2119,7 +2126,7 @@ void mob_ai_sub_hard(struct block_list *bl, va_list ap)
                     if (!mob_can_move(md)) // 動けない状態にある
                         return;
                     md->state.skillstate = MSS_LOOT;    // ルート時スキル使用
-                    mobskill_use(md, tick, -1);
+                    mobskill_use(md, tick, MSC::ANY);
 //                  if(md->timer != -1 && (DIFF_TICK(md->next_walktime,tick)<0 || distance(md->to_x,md->to_y,tbl->x,tbl->y)<2) )
                     if (md->timer != -1 && md->state.state != MS_ATTACK
                         && (DIFF_TICK(md->next_walktime, tick) < 0
@@ -2177,7 +2184,7 @@ void mob_ai_sub_hard(struct block_list *bl, va_list ap)
     }
 
     // It is skill use at the time of /standby at the time of a walk.
-    if (mobskill_use(md, tick, -1))
+    if (mobskill_use(md, tick, MSC::ANY))
         return;
 
     // 歩行処理
@@ -2540,7 +2547,9 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
         if (md->bl.prev != NULL)
         {
             mob_changestate(md, MS_DEAD, 0);
-            mobskill_use(md, tick, -1);    // It is skill at the time of death.
+            // It is skill at the time of death.
+            mobskill_use(md, tick, MSC::ANY);
+
             clif_clearchar_area(&md->bl, 1);
             map_delblock(&md->bl);
             mob_setdelayspawn(md->bl.id);
@@ -2669,7 +2678,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     map_freeblock_lock();
     mob_changestate(md, MS_DEAD, 0);
-    mobskill_use(md, tick, -1);    // 死亡時スキル
+    mobskill_use(md, tick, MSC::ANY);
 
     memset(tmpsd, 0, sizeof(tmpsd));
     memset(pt, 0, sizeof(pt));
@@ -3060,7 +3069,7 @@ int mob_class_change(struct mob_data *md, int *value)
 
     for (i = 0, c = tick - 1000 * 3600 * 10; i < MAX_MOBSKILL; i++)
         md->skilldelay[i] = c;
-    md->skillid = 0;
+    md->skillid = SkillID();
     md->skilllv = 0;
 
     if (md->lootitem == NULL && mob_db[mob_class].mode & 0x02)
@@ -3384,7 +3393,7 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
  *MOBskillから該当skillidのskillidxを返す
  *------------------------------------------
  */
-int mob_skillid2skillidx(int mob_class, int skillid)
+int mob_skillid2skillidx(int mob_class, SkillID skillid)
 {
     int i;
     struct mob_skill *ms = mob_db[mob_class].skill;
@@ -3429,20 +3438,18 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
         return;
 
     md->skilltimer = -1;
-    //沈黙や状態異常など
-    if (md->sc_data)
-    {
-        if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
-            || md->sc_data[SC_ROKISWEIL].timer != -1
-            || md->sc_data[SC_STEELBODY].timer != -1)
-            return;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-            return;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-            return;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
-            return;
-    }
+
+    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+        || md->sc_data[SC_ROKISWEIL].timer != -1
+        || md->sc_data[SC_STEELBODY].timer != -1)
+        return;
+    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
+        return;
+    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
+        return;
+    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+        return;
+
     if (md->skillid != NPC_EMOTION)
         md->last_thinktime = tick + battle_get_adelay(&md->bl);
 
@@ -3456,7 +3463,7 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
 
     if (md->skillid == PR_LEXAETERNA)
     {
-        struct status_change *sc_data = battle_get_sc_data(bl);
+        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
         if (sc_data
             && (sc_data[SC_FREEZE].timer != -1
                 || (sc_data[SC_STONE].timer != -1
@@ -3484,8 +3491,8 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
     md->skilldelay[md->skillidx] = tick;
 
     if (battle_config.mob_skill_log == 1)
-        printf("MOB skill castend skill=%d, mob_class = %d\n", md->skillid,
-                md->mob_class);
+        printf("MOB skill castend skill=%d, mob_class = %d\n",
+                uint16_t(md->skillid), md->mob_class);
     mob_stop_walking(md, 0);
 
     switch (skill_get_nk(md->skillid))
@@ -3534,19 +3541,17 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
         return;
 
     md->skilltimer = -1;
-    if (md->sc_data)
-    {
-        if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
-            || md->sc_data[SC_ROKISWEIL].timer != -1
-            || md->sc_data[SC_STEELBODY].timer != -1)
-            return;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-            return;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-            return;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
-            return;
-    }
+
+    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+        || md->sc_data[SC_ROKISWEIL].timer != -1
+        || md->sc_data[SC_STEELBODY].timer != -1)
+        return;
+    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
+        return;
+    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
+        return;
+    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+        return;
 
     if (battle_config.monster_skill_reiteration == 0)
     {
@@ -3634,8 +3639,8 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
     md->skilldelay[md->skillidx] = tick;
 
     if (battle_config.mob_skill_log == 1)
-        printf("MOB skill castend skill=%d, mob_class = %d\n", md->skillid,
-                md->mob_class);
+        printf("MOB skill castend skill=%d, mob_class = %d\n",
+                uint16_t(md->skillid), md->mob_class);
     mob_stop_walking(md, 0);
 
     skill_castend_pos2(&md->bl, md->skillx, md->skilly, md->skillid,
@@ -3653,7 +3658,8 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
 {
     int casttime, range;
     struct mob_skill *ms;
-    int skill_id, skill_lv, forcecast = 0;
+    SkillID skill_id;
+    int skill_lv, forcecast = 0;
 
     nullpo_retr(0, md);
     nullpo_retr(0, ms = &mob_db[md->mob_class].skill[skill_idx]);
@@ -3667,20 +3673,16 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    // 沈黙や異常
-    if (md->sc_data)
-    {
-        if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
-            || md->sc_data[SC_ROKISWEIL].timer != -1
-            || md->sc_data[SC_STEELBODY].timer != -1)
-            return 0;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-            return 0;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-            return 0;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
-            return 0;
-    }
+    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+        || md->sc_data[SC_ROKISWEIL].timer != -1
+        || md->sc_data[SC_STEELBODY].timer != -1)
+        return 0;
+    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
+        return 0;
+    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
+        return 0;
+    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+        return 0;
 
     if (md->option & 4 && skill_id == TF_HIDING)
         return 0;
@@ -3727,7 +3729,8 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
 
     if (battle_config.mob_skill_log == 1)
         printf("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n",
-             target->id, skill_id, skill_lv, casttime, md->mob_class);
+             target->id, uint16_t(skill_id), skill_lv,
+             casttime, md->mob_class);
 
     if (casttime > 0 || forcecast)
     {                           // 詠唱が必要
@@ -3784,7 +3787,7 @@ int mobskill_use_pos(struct mob_data *md,
     int casttime = 0, range;
     struct mob_skill *ms;
     struct block_list bl;
-    int skill_id, skill_lv;
+    int skill_lv;
 
     nullpo_retr(0, md);
     nullpo_retr(0, ms = &mob_db[md->mob_class].skill[skill_idx]);
@@ -3792,23 +3795,19 @@ int mobskill_use_pos(struct mob_data *md,
     if (md->bl.prev == NULL)
         return 0;
 
-    skill_id = ms->skill_id;
+    SkillID skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    //沈黙や状態異常など
-    if (md->sc_data)
-    {
-        if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
-            || md->sc_data[SC_ROKISWEIL].timer != -1
-            || md->sc_data[SC_STEELBODY].timer != -1)
-            return 0;
-        if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-            return 0;
-        if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-            return 0;
-        if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
-            return 0;
-    }
+    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+        || md->sc_data[SC_ROKISWEIL].timer != -1
+        || md->sc_data[SC_STEELBODY].timer != -1)
+        return 0;
+    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
+        return 0;
+    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
+        return 0;
+    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+        return 0;
 
     if (md->option & 2)
         return 0;
@@ -3831,7 +3830,8 @@ int mobskill_use_pos(struct mob_data *md,
 
     if (battle_config.mob_skill_log == 1)
         printf("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n",
-             skill_x, skill_y, skill_id, skill_lv, casttime, md->mob_class);
+             skill_x, skill_y, uint16_t(skill_id), skill_lv,
+             casttime, md->mob_class);
 
     if (casttime > 0)           // A cast time is required.
         clif_skillcasting(&md->bl,
@@ -3910,7 +3910,6 @@ struct mob_data *mob_getfriendhpltmaxrate(struct mob_data *md, int rate)
 static
 void mob_getfriendstatus_sub(struct block_list *bl, va_list ap)
 {
-    int cond1, cond2;
     struct mob_data **fr, *md, *mmd;
     int flag = 0;
 
@@ -3921,15 +3920,16 @@ void mob_getfriendstatus_sub(struct block_list *bl, va_list ap)
 
     if (mmd->bl.id == bl->id)
         return;
-    cond1 = va_arg(ap, int);
-    cond2 = va_arg(ap, int);
+    MSC cond1 = va_arg(ap, MSC);
+    StatusChange cond2 = va_arg(ap, StatusChange);
     fr = va_arg(ap, struct mob_data **);
-    if (cond2 == -1)
+    if (cond2 == StatusChange::ANY_BAD)
     {
-        int j;
-        for (j = SC_STONE; j <= SC_BLIND && !flag; j++)
+        for (StatusChange j : MAJOR_STATUS_EFFECTS)
         {
             flag = (md->sc_data[j].timer != -1);
+            if (flag)
+                break;
         }
     }
     else
@@ -3939,8 +3939,8 @@ void mob_getfriendstatus_sub(struct block_list *bl, va_list ap)
 }
 
 static
-struct mob_data *mob_getfriendstatus(struct mob_data *md, int cond1,
-                                      int cond2)
+struct mob_data *mob_getfriendstatus(struct mob_data *md,
+        MSC cond1, StatusChange cond2)
 {
     struct mob_data *fr = NULL;
     const int r = 8;
@@ -3957,7 +3957,8 @@ struct mob_data *mob_getfriendstatus(struct mob_data *md, int cond1,
  * Skill use judging
  *------------------------------------------
  */
-int mobskill_use(struct mob_data *md, unsigned int tick, int event)
+int mobskill_use(struct mob_data *md, unsigned int tick,
+        MSC event, SkillID skill)
 {
     struct mob_skill *ms;
 //  struct block_list *target=NULL;
@@ -3979,7 +3980,7 @@ int mobskill_use(struct mob_data *md, unsigned int tick, int event)
 
     for (int ii = 0; ii < mob_db[md->mob_class].maxskill; ii++)
     {
-        int c2 = ms[ii].cond2, flag = 0;
+        int flag = 0;
         struct mob_data *fmd = NULL;
 
         // ディレイ中
@@ -3987,10 +3988,10 @@ int mobskill_use(struct mob_data *md, unsigned int tick, int event)
             continue;
 
         // 状態判定
-        if (ms[ii].state >= 0 && ms[ii].state != md->state.skillstate)
+        if (ms[ii].state != MSS::ANY && ms[ii].state != md->state.skillstate)
             continue;
 
-        // 条件判定
+        // Note: these *may* both be MSC::ANY
         flag = (event == ms[ii].cond1);
         if (!flag)
         {
@@ -4000,53 +4001,55 @@ int mobskill_use(struct mob_data *md, unsigned int tick, int event)
                     flag = 1;
                     break;
                 case MSC_MYHPLTMAXRATE:    // HP< maxhp%
-                    flag = (md->hp < max_hp * c2 / 100);
+                    flag = (md->hp < max_hp * ms[ii].cond2i / 100);
                     break;
                 case MSC_MYSTATUSON:   // status[num] on
                 case MSC_MYSTATUSOFF:  // status[num] off
-                    if (ms[ii].cond2 == -1)
+                    if (ms[ii].cond2sc() == StatusChange::ANY_BAD)
                     {
-                        int j;
-                        for (j = SC_STONE; j <= SC_BLIND && !flag; j++)
+                        for (StatusChange j : MAJOR_STATUS_EFFECTS)
                         {
                             flag = (md->sc_data[j].timer != -1);
+                            if (flag)
+                                break;
                         }
                     }
                     else
-                        flag = (md->sc_data[ms[ii].cond2].timer != -1);
+                        flag = (md->sc_data[ms[ii].cond2sc()].timer != -1);
                     flag ^= (ms[ii].cond1 == MSC_MYSTATUSOFF);
                     break;
                 case MSC_FRIENDHPLTMAXRATE:    // friend HP < maxhp%
                     flag =
                         ((fmd =
                           mob_getfriendhpltmaxrate(md,
-                                                    ms[ii].cond2)) != NULL);
+                                                    ms[ii].cond2i)) != NULL);
                     break;
                 case MSC_FRIENDSTATUSON:   // friend status[num] on
                 case MSC_FRIENDSTATUSOFF:  // friend status[num] off
                     flag =
                         ((fmd =
                           mob_getfriendstatus(md, ms[ii].cond1,
-                                               ms[ii].cond2)) != NULL);
+                                               ms[ii].cond2sc())) != NULL);
                     break;
                 case MSC_NOTINTOWN:     // Only outside of towns.
                     flag = !map[md->bl.m].flag.town;
                     break;
                 case MSC_SLAVELT:  // slave < num
-                    flag = (mob_countslave(md) < c2);
+                    flag = (mob_countslave(md) < ms[ii].cond2i);
                     break;
                 case MSC_ATTACKPCGT:   // attack pc > num
-                    flag = (mob_counttargeted(md, NULL, 0) > c2);
+                    flag = (mob_counttargeted(md, NULL, 0) > ms[ii].cond2i);
                     break;
                 case MSC_SLAVELE:  // slave <= num
-                    flag = (mob_countslave(md) <= c2);
+                    flag = (mob_countslave(md) <= ms[ii].cond2i);
                     break;
                 case MSC_ATTACKPCGE:   // attack pc >= num
-                    flag = (mob_counttargeted(md, NULL, 0) >= c2);
+                    flag = (mob_counttargeted(md, NULL, 0) >= ms[ii].cond2i);
                     break;
                 case MSC_SKILLUSED:    // specificated skill used
-                    flag = ((event & 0xffff) == MSC_SKILLUSED
-                            && ((event >> 16) == c2 || c2 == 0));
+                    flag = (event == MSC_SKILLUSED
+                            && (skill == ms[ii].cond2sk()
+                                || ms[ii].cond2sk() == SkillID::ZERO));
                     break;
             }
         }
@@ -4089,8 +4092,9 @@ int mobskill_use(struct mob_data *md, unsigned int tick, int event)
                 // 自分の周囲
                 if (ms[ii].target >= MST_AROUND1)
                 {
-                    int bx = x, by = y, i = 0, c, m = bl->m, r =
-                        ms[i].target - MST_AROUND1;
+                    int bx = x, by = y, i = 0, c, m = bl->m;
+                    // the enum values for radii are adjacent
+                    int r = int(ms[i].target) - int(MST_AROUND1);
                     do
                     {
                         bx = x + MRAND((r * 2 + 3)) - r;
@@ -4109,8 +4113,8 @@ int mobskill_use(struct mob_data *md, unsigned int tick, int event)
                 // 相手の周囲
                 if (ms[ii].target >= MST_AROUND5)
                 {
-                    int bx = x, by = y, i = 0, c, m = bl->m, r =
-                        (ms[i].target - MST_AROUND5) + 1;
+                    int bx = x, by = y, i = 0, c, m = bl->m;
+                    int r = int(ms[i].target) - int(MST_AROUND5) + 1;
                     do
                     {
                         bx = x + MRAND((r * 2 + 1)) - r;
@@ -4580,108 +4584,79 @@ static int mob_readskilldb(void)
     const struct
     {
         char str[32];
-        int id;
+        MSC id;
     } cond1[] =
     {
-        {
-        "always", MSC_ALWAYS},
-        {
-        "myhpltmaxrate", MSC_MYHPLTMAXRATE},
-        {
-        "friendhpltmaxrate", MSC_FRIENDHPLTMAXRATE},
-        {
-        "mystatuson", MSC_MYSTATUSON},
-        {
-        "mystatusoff", MSC_MYSTATUSOFF},
-        {
-        "friendstatuson", MSC_FRIENDSTATUSON},
-        {
-        "friendstatusoff", MSC_FRIENDSTATUSOFF},
-        {
-        "notintown", MSC_NOTINTOWN},
-        {
-        "attackpcgt", MSC_ATTACKPCGT},
-        {
-        "attackpcge", MSC_ATTACKPCGE},
-        {
-        "slavelt", MSC_SLAVELT},
-        {
-        "slavele", MSC_SLAVELE},
-        {
-        "closedattacked", MSC_CLOSEDATTACKED},
-        {
-        "longrangeattacked", MSC_LONGRANGEATTACKED},
-        {
-        "skillused", MSC_SKILLUSED},
-        {
-    "casttargeted", MSC_CASTTARGETED},}, cond2[] =
+        {"always", MSC_ALWAYS},
+        {"myhpltmaxrate", MSC_MYHPLTMAXRATE},
+        {"friendhpltmaxrate", MSC_FRIENDHPLTMAXRATE},
+        {"mystatuson", MSC_MYSTATUSON},
+        {"mystatusoff", MSC_MYSTATUSOFF},
+        {"friendstatuson", MSC_FRIENDSTATUSON},
+        {"friendstatusoff", MSC_FRIENDSTATUSOFF},
+        {"notintown", MSC_NOTINTOWN},
+        {"attackpcgt", MSC_ATTACKPCGT},
+        {"attackpcge", MSC_ATTACKPCGE},
+        {"slavelt", MSC_SLAVELT},
+        {"slavele", MSC_SLAVELE},
+        {"closedattacked", MSC_CLOSEDATTACKED},
+        {"longrangeattacked", MSC_LONGRANGEATTACKED},
+        {"skillused", MSC_SKILLUSED},
+        {"casttargeted", MSC_CASTTARGETED},
+    };
+    const struct
     {
-        {
-        "anybad", -1},
-        {
-        "stone", SC_STONE},
-        {
-        "freeze", SC_FREEZE},
-        {
-        "stan", SC_STAN},
-        {
-        "sleep", SC_SLEEP},
-        {
-        "poison", SC_POISON},
-        {
-        "curse", SC_CURSE},
-        {
-        "silence", SC_SILENCE},
-        {
-        "confusion", SC_CONFUSION},
-        {
-        "blind", SC_BLIND},
-        {
-        "hiding", SC_HIDING},
-        {
-    "sight", SC_SIGHT},}, state[] =
+        char str[32];
+        StatusChange id;
+    } cond2[] =
     {
-        {
-        "any", -1},
-        {
-        "idle", MSS_IDLE},
-        {
-        "walk", MSS_WALK},
-        {
-        "attack", MSS_ATTACK},
-        {
-        "dead", MSS_DEAD},
-        {
-        "loot", MSS_LOOT},
-        {
-    "chase", MSS_CHASE},}, target[] =
+        {"anybad", StatusChange::ANY_BAD},
+        {"stone", SC_STONE},
+        {"freeze", SC_FREEZE},
+        {"stan", SC_STAN},
+        {"sleep", SC_SLEEP},
+        {"poison", SC_POISON},
+        {"curse", SC_CURSE},
+        {"silence", SC_SILENCE},
+        {"confusion", SC_CONFUSION},
+        {"blind", SC_BLIND},
+        {"hiding", SC_HIDING},
+        {"sight", SC_SIGHT},
+    };
+    const struct
     {
-        {
-        "target", MST_TARGET},
-        {
-        "self", MST_SELF},
-        {
-        "friend", MST_FRIEND},
-        {
-        "master", MST_MASTER},
-        {
-        "around5", MST_AROUND5},
-        {
-        "around6", MST_AROUND6},
-        {
-        "around7", MST_AROUND7},
-        {
-        "around8", MST_AROUND8},
-        {
-        "around1", MST_AROUND1},
-        {
-        "around2", MST_AROUND2},
-        {
-        "around3", MST_AROUND3},
-        {
-        "around4", MST_AROUND4},
-        {
-    "around", MST_AROUND},};
+        char str[32];
+        MSS id;
+    } state[] =
+    {
+        {"any", MSS::ANY},
+        {"idle", MSS_IDLE},
+        {"walk", MSS_WALK},
+        {"attack", MSS_ATTACK},
+        {"dead", MSS_DEAD},
+        {"loot", MSS_LOOT},
+        {"chase", MSS_CHASE},
+    };
+    const struct
+    {
+        char str[32];
+        MST id;
+    } target[] =
+    {
+        {"target", MST_TARGET},
+        {"self", MST_SELF},
+        {"friend", MST_FRIEND},
+        {"master", MST_MASTER},
+        {"around5", MST_AROUND5},
+        {"around6", MST_AROUND6},
+        {"around7", MST_AROUND7},
+        {"around8", MST_AROUND8},
+        {"around1", MST_AROUND1},
+        {"around2", MST_AROUND2},
+        {"around3", MST_AROUND3},
+        {"around4", MST_AROUND4},
+        {"around", MST_AROUND},
+    };
 
     int x;
     const char *filename[] = { "db/mob_skill_db.txt", "db/mob_skill_db2.txt" };
@@ -4725,7 +4700,7 @@ static int mob_readskilldb(void)
             }
 
             for (i = 0; i < MAX_MOBSKILL; i++)
-                if ((ms = &mob_db[mob_id].skill[i])->skill_id == 0)
+                if ((ms = &mob_db[mob_id].skill[i])->skill_id == SkillID::ZERO)
                     break;
             if (i == MAX_MOBSKILL)
             {
@@ -4734,13 +4709,13 @@ static int mob_readskilldb(void)
                 continue;
             }
 
-            ms->state = atoi(sp[2]);
+            ms->state = MSS(atoi(sp[2]));
             for (j = 0; j < sizeof(state) / sizeof(state[0]); j++)
             {
                 if (strcmp(sp[2], state[j].str) == 0)
                     ms->state = state[j].id;
             }
-            ms->skill_id = atoi(sp[3]);
+            ms->skill_id = SkillID(atoi(sp[3]));
             ms->skill_lv = atoi(sp[4]);
 
             ms->permillage = atoi(sp[5]);
@@ -4749,23 +4724,25 @@ static int mob_readskilldb(void)
             ms->cancel = atoi(sp[8]);
             if (strcmp(sp[8], "yes") == 0)
                 ms->cancel = 1;
-            ms->target = atoi(sp[9]);
+            ms->target = MST(atoi(sp[9]));
             for (j = 0; j < sizeof(target) / sizeof(target[0]); j++)
             {
                 if (strcmp(sp[9], target[j].str) == 0)
                     ms->target = target[j].id;
             }
-            ms->cond1 = -1;
+            ms->cond1 = MSC::ANY;
             for (j = 0; j < sizeof(cond1) / sizeof(cond1[0]); j++)
             {
                 if (strcmp(sp[10], cond1[j].str) == 0)
                     ms->cond1 = cond1[j].id;
             }
-            ms->cond2 = atoi(sp[11]);
+            // sometimes legitimately an integer
+            // in fact, with current data it always is. Yay!
+            ms->cond2i = atoi(sp[11]);
             for (j = 0; j < sizeof(cond2) / sizeof(cond2[0]); j++)
             {
                 if (strcmp(sp[11], cond2[j].str) == 0)
-                    ms->cond2 = cond2[j].id;
+                    ms->cond2i = int(cond2[j].id);
             }
             ms->val[0] = atoi(sp[12]);
             ms->val[1] = atoi(sp[13]);

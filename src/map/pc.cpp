@@ -77,11 +77,12 @@ static int exp_table[14][MAX_LEVEL];
 static char statp[255][7];
 static struct
 {
-    int id;
+    SkillID id;
     int max;
     struct
     {
-        short id, lv;
+        SkillID id;
+        short lv;
     } need[6];
 } skill_tree[3][MAX_PC_CLASS][100];
 
@@ -623,7 +624,7 @@ int pc_setequipindex(struct map_session_data *sd)
 int pc_isequip(struct map_session_data *sd, int n)
 {
     struct item_data *item;
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
     //転生や養子の場合の元の職業を算出する
 
     nullpo_retr(0, sd);
@@ -673,7 +674,7 @@ int pc_breakweapon(struct map_session_data *sd)
         return -1;
     if (sd->unbreakable >= MRAND(100))
         return 0;
-    if (sd->sc_data && sd->sc_data[SC_CP_WEAPON].timer != -1)
+    if (sd->sc_data[SC_CP_WEAPON].timer != -1)
         return 0;
 
     for (i = 0; i < MAX_INVENTORY; i++)
@@ -718,7 +719,7 @@ int pc_breakarmor(struct map_session_data *sd)
         return -1;
     if (sd->unbreakable >= MRAND(100))
         return 0;
-    if (sd->sc_data && sd->sc_data[SC_CP_ARMOR].timer != -1)
+    if (sd->sc_data[SC_CP_ARMOR].timer != -1)
         return 0;
 
     for (i = 0; i < MAX_INVENTORY; i++)
@@ -798,7 +799,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     sd->attacktimer = -1;
     sd->followtimer = -1;       // [MouseJstr]
     sd->skilltimer = -1;
-    sd->skillitem = -1;
+    sd->skillitem = SkillID::NEGATIVE;
     sd->skillitemlv = -1;
     sd->invincible_timer = -1;
     sd->sg_count = 0;
@@ -847,7 +848,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     pc_checkitem(sd);
 
     // ステータス異常の初期化
-    for (int i = 0; i < MAX_STATUSCHANGE; i++)
+    for (StatusChange i : erange(StatusChange(), MAX_STATUSCHANGE))
     {
         sd->sc_data[i].timer = -1;
         sd->sc_data[i].val1 = sd->sc_data[i].val2 = sd->sc_data[i].val3 =
@@ -1133,15 +1134,19 @@ int pc_calc_skilltree(struct map_session_data *sd)
         && pc_isGM(sd) >= battle_config.gm_allskill)
     {
         // 全てのスキル
-        for (i = 1; i < 158; i++)
+
+        // Restoring oritinal values
+        // This one is probably more correct than the copypasta
+        for (SkillID i : erange(NV_EMOTE, NPC_PIERCINGATT))
             sd->status.skill[i].id = i;
-        for (i = 210; i < 291; i++)
+        for (SkillID i : erange(RG_SNATCHER, SA_MONOCELL))
             sd->status.skill[i].id = i;
-        for (i = 304; i < 337; i++)
+        for (SkillID i : erange(BD_ADAPTATION, SkillID(uint16_t(WE_CALLPARTNER) + 1)))
             sd->status.skill[i].id = i;
         if (battle_config.enable_upper_class)
-        {                       //confで無効でなければ読み込む
-            for (i = 355; i < MAX_SKILL; i++)
+        {
+            //confで無効でなければ読み込む
+            for (SkillID i : erange(LK_AURABLADE, MAX_SKILL))
                 sd->status.skill[i].id = i;
         }
 
@@ -1152,21 +1157,25 @@ int pc_calc_skilltree(struct map_session_data *sd)
         do
         {
             flag = 0;
-            for (i = 0;(id = skill_tree[s][c][i].id) > 0; i++)
+            SkillID id;
+            for (i = 0;
+                    (id = skill_tree[s][c][i].id) != SkillID::ZERO
+                        && id != SkillID::NEGATIVE;
+                    i++)
             {
                 int j, f = 1;
                 if (!battle_config.skillfree)
                 {
                     for (j = 0; j < 5; j++)
                     {
-                        if (skill_tree[s][c][i].need[j].id &&
-                            pc_checkskill(sd,
+                        if (skill_tree[s][c][i].need[j].id != SkillID::ZERO
+                            && pc_checkskill(sd,
                                            skill_tree[s][c][i].need[j].id) <
                             skill_tree[s][c][i].need[j].lv)
                             f = 0;
                     }
                 }
-                if (f && sd->status.skill[id].id == 0)
+                if (f && sd->status.skill[id].id == SkillID::ZERO)
                 {
                     sd->status.skill[id].id = id;
                     flag = 1;
@@ -1243,7 +1252,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     int b_aspd, b_watk, b_def, b_watk2, b_def2, b_flee2, b_critical,
         b_attackrange, b_matk1, b_matk2, b_mdef, b_mdef2, b_class;
     int b_base_atk;
-    struct skill b_skill[MAX_SKILL];
+    earray<struct skill, SkillID, MAX_SKILL> b_skill;
     int i, bl, index;
     int skill, aspd_rate, wele, wele_, def_ele, refinedef = 0;
     int str, dstr, dex;
@@ -1263,7 +1272,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     b_max_weight = sd->max_weight;
     memcpy(b_paramb, &sd->paramb, sizeof(b_paramb));
     memcpy(b_parame, &sd->paramc, sizeof(b_parame));
-    memcpy(b_skill, &sd->status.skill, sizeof(b_skill));
+    b_skill = sd->status.skill;
     b_hit = sd->hit;
     b_flee = sd->flee;
     b_aspd = sd->aspd;
@@ -1356,9 +1365,12 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     memset(sd->addsize_, 0, sizeof(sd->addsize_));
     memset(sd->subele, 0, sizeof(sd->subele));
     memset(sd->subrace, 0, sizeof(sd->subrace));
-    memset(sd->addeff, 0, sizeof(sd->addeff));
-    memset(sd->addeff2, 0, sizeof(sd->addeff2));
-    memset(sd->reseff, 0, sizeof(sd->reseff));
+    for (int& ire : sd->addeff)
+        ire = 0;
+    for (int& ire : sd->addeff2)
+        ire = 0;
+    for (int& ire : sd->reseff)
+        ire = 0;
     memset(&sd->special_state, 0, sizeof(sd->special_state));
     memset(sd->weapon_coma_ele, 0, sizeof(sd->weapon_coma_ele));
     memset(sd->weapon_coma_race, 0, sizeof(sd->weapon_coma_race));
@@ -1385,8 +1397,10 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     memset(sd->arrow_addele, 0, sizeof(sd->arrow_addele));
     memset(sd->arrow_addrace, 0, sizeof(sd->arrow_addrace));
     memset(sd->arrow_addsize, 0, sizeof(sd->arrow_addsize));
-    memset(sd->arrow_addeff, 0, sizeof(sd->arrow_addeff));
-    memset(sd->arrow_addeff2, 0, sizeof(sd->arrow_addeff2));
+    for (int& ire : sd->arrow_addeff)
+        ire = 0;
+    for (int& ire : sd->arrow_addeff2)
+        ire = 0;
     memset(sd->magic_addele, 0, sizeof(sd->magic_addele));
     memset(sd->magic_addrace, 0, sizeof(sd->magic_addrace));
     memset(sd->magic_subrace, 0, sizeof(sd->magic_subrace));
@@ -1411,7 +1425,8 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->speed_add_rate = sd->aspd_add_rate = 100;
     sd->double_add_rate = sd->perfect_hit_add = sd->get_zeny_add_num = 0;
     sd->splash_range = sd->splash_add_range = 0;
-    sd->autospell_id = sd->autospell_lv = sd->autospell_rate = 0;
+    sd->autospell_id = SkillID::ZERO;
+    sd->autospell_lv = sd->autospell_rate = 0;
     sd->hp_drain_rate = sd->hp_drain_per = sd->sp_drain_rate =
         sd->sp_drain_per = 0;
     sd->hp_drain_rate_ = sd->hp_drain_per_ = sd->sp_drain_rate_ =
@@ -1922,7 +1937,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (sd->hprate != 100)
         sd->status.max_hp = sd->status.max_hp * sd->hprate / 100;
 
-    if (sd->sc_data && sd->sc_data[SC_BERSERK].timer != -1)
+    if (sd->sc_data[SC_BERSERK].timer != -1)
     {                           // バーサーク
         sd->status.max_hp = sd->status.max_hp * 3;
         sd->status.hp = sd->status.hp * 3;
@@ -2186,8 +2201,13 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                              (sd->sc_data[SC_DONTFORGETME].val3 & 0xffff)) /
                 100;
         }
-        if (sd->sc_data[i = SC_SPEEDPOTION2].timer != -1 || sd->sc_data[i = SC_SPEEDPOTION1].timer != -1 || sd->sc_data[i = SC_SPEEDPOTION0].timer != -1)   // 増 速ポーション
-            aspd_rate -= sd->sc_data[i].val1;
+        {
+            StatusChange i;
+            if (sd->sc_data[i = SC_SPEEDPOTION2].timer != -1
+                || sd->sc_data[i = SC_SPEEDPOTION1].timer != -1
+                || sd->sc_data[i = SC_SPEEDPOTION0].timer != -1)
+                aspd_rate -= sd->sc_data[i].val1;
+        }
 
         if (sd->sc_data[SC_HASTE].timer != -1)
             aspd_rate -= sd->sc_data[SC_HASTE].val1;
@@ -2315,7 +2335,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                 (sd->speed * (155 - sd->sc_data[SC_DEFENDER].val1 * 5)) / 100;
         }
         if (sd->sc_data[SC_ENCPOISON].timer != -1)
-            sd->addeff[4] += sd->sc_data[SC_ENCPOISON].val2;
+            sd->addeff[BadSC::POISON] += sd->sc_data[SC_ENCPOISON].val2;
 
         if (sd->sc_data[SC_DANCING].timer != -1)
         {                       // 演奏/ダンス使用中
@@ -2391,7 +2411,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         clif_changelook(&sd->bl, LOOK_WEAPON, 0);
     }
 
-    if (memcmp(b_skill, sd->status.skill, sizeof(sd->status.skill))
+    if (memcmp(&b_skill, &sd->status.skill, sizeof(sd->status.skill))
         || b_attackrange != sd->attackrange)
         clif_skillinfoblock(sd);   // スキル送信
 
@@ -2910,19 +2930,19 @@ int pc_bonus2(struct map_session_data *sd, int type, int type2, int val)
             break;
         case SP_ADDEFF:
             if (sd->state.lr_flag != 2)
-                sd->addeff[type2] += val;
+                sd->addeff[BadSC(type2)] += val;
             else
-                sd->arrow_addeff[type2] += val;
+                sd->arrow_addeff[BadSC(type2)] += val;
             break;
         case SP_ADDEFF2:
             if (sd->state.lr_flag != 2)
-                sd->addeff2[type2] += val;
+                sd->addeff2[BadSC(type2)] += val;
             else
-                sd->arrow_addeff2[type2] += val;
+                sd->arrow_addeff2[BadSC(type2)] += val;
             break;
         case SP_RESEFF:
             if (sd->state.lr_flag != 2)
-                sd->reseff[type2] += val;
+                sd->reseff[BadSC(type2)] += val;
             break;
         case SP_MAGIC_ADDELE:
             if (sd->state.lr_flag != 2)
@@ -3123,7 +3143,7 @@ int pc_bonus3(struct map_session_data *sd, int type, int type2, int type3,
         case SP_AUTOSPELL:
             if (sd->state.lr_flag != 2)
             {
-                sd->autospell_id = type2;
+                sd->autospell_id = SkillID(type2);
                 sd->autospell_lv = type3;
                 sd->autospell_rate = val;
             }
@@ -3142,7 +3162,7 @@ int pc_bonus3(struct map_session_data *sd, int type, int type2, int type3,
  * スクリプトによるスキル所得
  *------------------------------------------
  */
-int pc_skill(struct map_session_data *sd, int id, int level, int flag)
+int pc_skill(struct map_session_data *sd, SkillID id, int level, int flag)
 {
     nullpo_retr(0, sd);
 
@@ -4021,7 +4041,7 @@ int pc_steal_coin(struct map_session_data *sd, struct block_list *bl)
     {
         int rate, skill;
         struct mob_data *md = (struct mob_data *) bl;
-        if (md && !md->state.steal_coin_flag && md->sc_data
+        if (md && !md->state.steal_coin_flag
             && md->sc_data[SC_STONE].timer == -1
             && md->sc_data[SC_FREEZE].timer == -1)
         {
@@ -4429,7 +4449,7 @@ static void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
                 break;
             }
         // 被ディボーション検査
-        if (sd->sc_data && sd->sc_data[SC_DEVOTION].val1)
+        if (sd->sc_data[SC_DEVOTION].val1)
         {
             skill_devotion2(&sd->bl, sd->sc_data[SC_DEVOTION].val1);
         }
@@ -4617,15 +4637,10 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
  * スキルの検索 所有していた場合Lvが返る
  *------------------------------------------
  */
-int pc_checkskill(struct map_session_data *sd, int skill_id)
+int pc_checkskill(struct map_session_data *sd, SkillID skill_id)
 {
     if (sd == NULL)
         return 0;
-    if (skill_id >= 10000)
-    {
-        // was: guild skills
-        return 0;
-    }
 
     if (sd->status.skill[skill_id].id == skill_id)
         return (sd->status.skill[skill_id].lv);
@@ -4646,9 +4661,6 @@ int pc_checkskill(struct map_session_data *sd, int skill_id)
 int pc_checkallowskill(struct map_session_data *sd)
 {
     nullpo_retr(0, sd);
-
-    if (sd->sc_data == NULL)
-        return 0;
 
     if (!(skill_get_weapontype(KN_TWOHANDQUICKEN) & (1 << sd->status.weapon))
         && sd->sc_data[SC_TWOHANDQUICKEN].timer != -1)
@@ -4787,7 +4799,7 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t da
 {
     struct map_session_data *sd;
     struct block_list *bl;
-    struct status_change *sc_data;
+    eptr<struct status_change, StatusChange> sc_data;
     short *opt;
     int dist, skill, range;
     int attack_spell_delay;
@@ -4828,9 +4840,9 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t da
 
     if ((opt = battle_get_option(bl)) != NULL && *opt & 0x46)
         return;
-    if (((sc_data = battle_get_sc_data(bl)) != NULL
+    if (((sc_data = battle_get_sc_data(bl))
          && sc_data[SC_TRICKDEAD].timer != -1)
-        || ((sc_data = battle_get_sc_data(bl)) != NULL
+        || ((sc_data = battle_get_sc_data(bl))
             && sc_data[SC_BASILICA].timer != -1))
         return;
 
@@ -4842,7 +4854,7 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t da
     {
         if (DIFF_TICK(tick, sd->canact_tick) < 0)
         {
-            clif_skill_fail(sd, 1, 4, 0);
+            clif_skill_fail(sd, SkillID::ONE, 4, 0);
             return;
         }
     }
@@ -5117,13 +5129,13 @@ int pc_checkbaselevelup(struct map_session_data *sd)
 static
 int pc_skillpt_potential(struct map_session_data *sd)
 {
-    int skill_id;
     int potential = 0;
 
 #define RAISE_COST(x) (((x)*((x)-1))>>1)
 
-    for (skill_id = 0; skill_id < MAX_SKILL; skill_id++)
-        if (sd->status.skill[skill_id].id != 0
+    for (SkillID skill_id = SkillID(); skill_id < MAX_SKILL;
+            skill_id = SkillID(uint16_t(skill_id) + 1))
+        if (sd->status.skill[skill_id].id != SkillID::ZERO
             && sd->status.skill[skill_id].lv < skill_db[skill_id].max_raise)
             potential += RAISE_COST(skill_db[skill_id].max_raise)
                 - RAISE_COST(sd->status.skill[skill_id].lv);
@@ -5562,11 +5574,11 @@ int pc_statusup2(struct map_session_data *sd, int type, int val)
  * スキルポイント割り振り
  *------------------------------------------
  */
-int pc_skillup(struct map_session_data *sd, int skill_num)
+int pc_skillup(struct map_session_data *sd, SkillID skill_num)
 {
     nullpo_retr(0, sd);
 
-    if (sd->status.skill[skill_num].id != 0
+    if (sd->status.skill[skill_num].id != SkillID::ZERO
         && sd->status.skill_point >= sd->status.skill[skill_num].lv
         && sd->status.skill[skill_num].lv < skill_db[skill_num].max_raise)
     {
@@ -5578,7 +5590,7 @@ int pc_skillup(struct map_session_data *sd, int skill_num)
         clif_updatestatus(sd, SP_SKILLPOINT);
         clif_skillinfoblock(sd);
         MAP_LOG_PC(sd, "SKILLUP %d %d %d",
-                   skill_num, sd->status.skill[skill_num].lv, skill_power(sd, skill_num));
+                   uint16_t(skill_num), sd->status.skill[skill_num].lv, skill_power(sd, skill_num));
     }
 
     return 0;
@@ -5601,25 +5613,35 @@ int pc_allskillup(struct map_session_data *sd)
     c = s_class.job;
     s = (s_class.upper == 1) ? 1 : 0;   //転生以外は通常のスキル？
 
-    for (i = 0; i < MAX_SKILL; i++)
-        sd->status.skill[i].id = 0;
+    for (SkillID i : erange(SkillID(), MAX_SKILL))
+        sd->status.skill[i].id = SkillID::ZERO;
 
     if (battle_config.gm_allskill > 0
         && pc_isGM(sd) >= battle_config.gm_allskill)
     {
         // 全てのスキル
-        for (i = 1; i < 158; i++)
+
+        // Note: I restored to the original value, not the new ones.
+        // However, I left the MAX_SKILL, which was wrong and is fixed.
+        for (SkillID i : erange(NV_EMOTE, NPC_PIERCINGATT))
             sd->status.skill[i].lv = skill_get_max(i);
-        for (i = 210; i < 291; i++)
+        // Skip NPC_*
+        for (SkillID i : erange(RG_SNATCHER, SA_MONOCELL))
             sd->status.skill[i].lv = skill_get_max(i);
-        for (i = 304; i < MAX_SKILL; i++)
+        // Not sure why these few are skipped though
+        for (SkillID i : erange(BD_ADAPTATION, MAX_SKILL))
             sd->status.skill[i].lv = skill_get_max(i);
     }
     else
     {
-        for (i = 0;(id = skill_tree[s][c][i].id) > 0; i++)
+        SkillID id;
+        for (i = 0;
+                (id = skill_tree[s][c][i].id) != SkillID::ZERO
+                    && id != SkillID::NEGATIVE;
+                i++)
         {
-            if (sd->status.skill[id].id == 0 && skill_get_inf2(id) & 0x01)
+            if (sd->status.skill[id].id == SkillID::ZERO
+                && skill_get_inf2(id) & 0x01)
                 sd->status.skill[id].lv = skill_get_max(id);
         }
     }
@@ -5634,11 +5656,9 @@ int pc_allskillup(struct map_session_data *sd)
  */
 int pc_resetlvl(struct map_session_data *sd, int type)
 {
-    int i;
-
     nullpo_retr(0, sd);
 
-    for (i = 1; i < MAX_SKILL; i++)
+    for (SkillID i : erange(SkillID(1), MAX_SKILL))
     {
         sd->status.skill[i].lv = 0;
     }
@@ -5703,7 +5723,7 @@ int pc_resetlvl(struct map_session_data *sd, int type)
     clif_updatestatus(sd, SP_UDEX);
     clif_updatestatus(sd, SP_ULUK);    // End Addition
 
-    for (i = 0; i < 11; i++)
+    for (int i = 0; i < 11; i++)
     {                           // unequip items that can't be equipped by base 1 [Valaris]
         if (sd->equip_index[i] >= 0)
             if (!pc_isequip(sd, sd->equip_index[i]))
@@ -5779,13 +5799,13 @@ int pc_resetstate(struct map_session_data *sd)
  */
 int pc_resetskill(struct map_session_data *sd)
 {
-    int i, skill;
+    int skill;
 
     nullpo_retr(0, sd);
 
     sd->status.skill_point += pc_calc_skillpoint(sd);
 
-    for (i = 1; i < MAX_SKILL; i++)
+    for (SkillID i : erange(SkillID(1), MAX_SKILL))
         if ((skill = pc_checkskill(sd, i)) > 0)
         {
             sd->status.skill[i].lv = 0;
@@ -6337,7 +6357,7 @@ int pc_heal(struct map_session_data *sd, int hp, int sp)
             sp = 0;
     }
 
-    if (sd->sc_data && sd->sc_data[SC_BERSERK].timer != -1) //バーサーク中は回復させないらしい
+    if (sd->sc_data[SC_BERSERK].timer != -1) //バーサーク中は回復させないらしい
         return 0;
 
     if (hp + sd->status.hp > sd->status.max_hp)
@@ -6449,7 +6469,7 @@ static int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
 
     nullpo_retr(0, sd);
 
-    if (sd->sc_data && sd->sc_data[SC_GOSPEL].timer != -1)  //バーサーク中は回復させないらしい
+    if (sd->sc_data[SC_GOSPEL].timer != -1)  //バーサーク中は回復させないらしい
         return 0;
 
     if (sd->state.potionpitcher_flag)
@@ -6773,7 +6793,7 @@ int pc_setcart(struct map_session_data *sd, int type)
             clif_cart_itemlist(sd);
             clif_cart_equiplist(sd);
             clif_updatestatus(sd, SP_CARTINFO);
-            clif_status_change(&sd->bl, 0x0c, 0);
+            clif_status_change(&sd->bl, StatusChange::CART, 0);
         }
         else
         {
@@ -7543,7 +7563,7 @@ int pc_unequipitem(struct map_session_data *sd, int n, int type)
         if (!type)
             pc_checkallowskill(sd);
         if (sd->weapontype1 == 0 && sd->weapontype2 == 0)
-            skill_encchant_eremental_end(&sd->bl, -1); //武器持ち誓えは無条件で属性付与解除
+            skill_encchant_eremental_end(&sd->bl, StatusChange::NEGATIVE1);
     }
     else
     {
@@ -8098,7 +8118,7 @@ static int pc_natural_heal_sp(struct map_session_data *sd)
 static int pc_spirit_heal_hp(struct map_session_data *sd, int level)
 {
     int bonus_hp, interval = battle_config.natural_heal_skill_interval;
-    struct status_change *sc_data = battle_get_sc_data(&sd->bl);
+    eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(&sd->bl);
 
     nullpo_retr(0, sd);
 
@@ -8273,7 +8293,7 @@ static int pc_natural_heal_sub(struct map_session_data *sd, va_list ap)
         && !pc_ishiding(sd) && sd->sc_data[SC_POISON].timer == -1)
     {
         pc_natural_heal_hp(sd);
-        if (sd->sc_data && sd->sc_data[SC_EXTREMITYFIST].timer == -1 && //阿修羅状態ではSPが回復しない
+        if (sd->sc_data[SC_EXTREMITYFIST].timer == -1 && //阿修羅状態ではSPが回復しない
             sd->sc_data[SC_DANCING].timer == -1 &&  //ダンス状態ではSPが回復しない
             sd->sc_data[SC_BERSERK].timer == -1 //バーサーク状態ではSPが回復しない
             )
@@ -8457,7 +8477,7 @@ void pc_setstand(struct map_session_data *sd)
 {
     nullpo_retv(sd);
 
-    if (sd->sc_data && sd->sc_data[SC_TENSIONRELAX].timer != -1)
+    if (sd->sc_data[SC_TENSIONRELAX].timer != -1)
         skill_status_change_end(&sd->bl, SC_TENSIONRELAX, -1);
 
     sd->state.dead_sit = 0;
@@ -8643,16 +8663,16 @@ int pc_readdb(void)
         if (j < 13)
             continue;
         i = atoi(split[0]);
-        for (j = 0; skill_tree[0][i][j].id; j++);
-        skill_tree[0][i][j].id = atoi(split[1]);
+        for (j = 0; skill_tree[0][i][j].id != SkillID::ZERO; j++);
+        skill_tree[0][i][j].id = SkillID(atoi(split[1]));
         skill_tree[0][i][j].max = atoi(split[2]);
-        skill_tree[2][i][j].id = atoi(split[1]);   //養子職は良く分からないので暫定
+        skill_tree[2][i][j].id = SkillID(atoi(split[1]));   //養子職は良く分からないので暫定
         skill_tree[2][i][j].max = atoi(split[2]);  //養子職は良く分からないので暫定
         for (k = 0; k < 5; k++)
         {
-            skill_tree[0][i][j].need[k].id = atoi(split[k * 2 + 3]);
+            skill_tree[0][i][j].need[k].id = SkillID(atoi(split[k * 2 + 3]));
             skill_tree[0][i][j].need[k].lv = atoi(split[k * 2 + 4]);
-            skill_tree[2][i][j].need[k].id = atoi(split[k * 2 + 3]);   //養子職は良く分からないので暫定
+            skill_tree[2][i][j].need[k].id = SkillID(atoi(split[k * 2 + 3]));   //養子職は良く分からないので暫定
             skill_tree[2][i][j].need[k].lv = atoi(split[k * 2 + 4]);   //養子職は良く分からないので暫定
         }
     }

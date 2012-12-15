@@ -121,31 +121,31 @@ int clif_npc_class_change(struct block_list *bl, int npc_class, int type);
 int clif_mob_class_change(struct mob_data *md, int mob_class);
 int clif_mob_equip(struct mob_data *md, int nameid);  // [Valaris]
 
-int clif_skillinfo(struct map_session_data *sd, int skillid, int type,
+int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
                      int range);
 int clif_skillinfoblock(struct map_session_data *sd);
-int clif_skillup(struct map_session_data *sd, int skill_num);
+int clif_skillup(struct map_session_data *sd, SkillID skill_num);
 
 int clif_skillcasting(struct block_list *bl,
                         int src_id, int dst_id, int dst_x, int dst_y,
-                        int skill_num, int casttime);
+                        SkillID skill_num, int casttime);
 int clif_skillcastcancel(struct block_list *bl);
-int clif_skill_fail(struct map_session_data *sd, int skill_id, int type,
+int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
                       int btype);
 int clif_skill_damage(struct block_list *src, struct block_list *dst,
                         unsigned int tick, int sdelay, int ddelay, int damage,
-                        int div, int skill_id, int skill_lv, int type);
+                        int div, SkillID skill_id, int skill_lv, int type);
 int clif_skill_damage2(struct block_list *src, struct block_list *dst,
                          unsigned int tick, int sdelay, int ddelay,
-                         int damage, int div, int skill_id, int skill_lv,
+                         int damage, int div, SkillID skill_id, int skill_lv,
                          int type);
 int clif_skill_nodamage(struct block_list *src, struct block_list *dst,
-                          int skill_id, int heal, int fail);
-int clif_skill_poseffect(struct block_list *src, int skill_id, int val,
+                          SkillID skill_id, int heal, int fail);
+int clif_skill_poseffect(struct block_list *src, SkillID skill_id, int val,
                            int x, int y, int tick);
 int clif_skill_estimation(struct map_session_data *sd,
                             struct block_list *dst);
-int clif_skill_warppoint(struct map_session_data *sd, int skill_num,
+int clif_skill_warppoint(struct map_session_data *sd, SkillID skill_num,
                            const char *map1, const char *map2,
                            const char *map3, const char *map4);
 int clif_skill_memo(struct map_session_data *sd, int flag);
@@ -166,7 +166,8 @@ int clif_bladestop(struct block_list *src, struct block_list *dst,
                      int boolean);
 int clif_changemapcell(int m, int x, int y, int cell_type, int type);
 
-int clif_status_change(struct block_list *bl, int type, int flag);
+int clif_status_change(struct block_list *bl,
+        StatusChange type, int flag);
 
 int clif_wis_message(int fd, const char *nick, const char *mes, int mes_len);
 int clif_wis_end(int fd, int flag);
@@ -189,7 +190,7 @@ int clif_item_identify_list(struct map_session_data *sd);
 int clif_item_identified(struct map_session_data *sd, int idx, int flag);
 int clif_item_repair_list(struct map_session_data *sd);
 
-int clif_item_skill(struct map_session_data *sd, int skillid, int skilllv,
+int clif_item_skill(struct map_session_data *sd, SkillID skillid, int skilllv,
                       const char *name);
 
 int clif_mvp_effect(struct map_session_data *sd);

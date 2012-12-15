@@ -40,8 +40,8 @@ void magic_unshroud(character_t * character);
  * \param supplanted Whether the status_change finished normally (0) or was supplanted by a new status_change (1)
  */
 void
-spell_effect_report_termination(int invocation, int bl_id, int sc_id,
-                                 int supplanted);
+spell_effect_report_termination(int invocation, int bl_id,
+        StatusChange sc_id, int supplanted);
 
 /**
  * Initialise all spells, read config data

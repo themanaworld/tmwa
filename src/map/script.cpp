@@ -3378,10 +3378,10 @@ void builtin_bonus3(ScriptState *st)
  */
 void builtin_skill(ScriptState *st)
 {
-    int id, level, flag = 1;
+    int level, flag = 1;
     struct map_session_data *sd;
 
-    id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     level = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     if (st->end > st->start + 4)
         flag = conv_num(st, &(st->stack->stack_data[st->start + 4]));
@@ -3397,14 +3397,14 @@ void builtin_skill(ScriptState *st)
  */
 void builtin_setskill(ScriptState *st)
 {
-    int id, level;
+    int level;
     struct map_session_data *sd;
 
-    id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     level = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     sd = script_rid2sd(st);
 
-    sd->status.skill[id].id = level ? id : 0;
+    sd->status.skill[id].id = level ? id : SkillID();
     sd->status.skill[id].lv = level;
     clif_skillinfoblock(sd);
 }
@@ -3415,7 +3415,7 @@ void builtin_setskill(ScriptState *st)
  */
 void builtin_getskilllv(ScriptState *st)
 {
-    int id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     push_val(st->stack, ScriptCode::INT, pc_checkskill(script_rid2sd(st), id));
 }
 
@@ -3769,10 +3769,10 @@ void builtin_openstorage(ScriptState *st)
  */
 void builtin_itemskill(ScriptState *st)
 {
-    int id, lv;
+    int lv;
     struct map_session_data *sd = script_rid2sd(st);
 
-    id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     lv = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 4]));
 
@@ -4349,8 +4349,8 @@ void builtin_hideonnpc(ScriptState *st)
 void builtin_sc_start(ScriptState *st)
 {
     struct block_list *bl;
-    int type, tick, val1;
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    int tick, val1;
+    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     tick = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     val1 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     if (st->end > st->start + 5)    //指定したキャラを状態異常にする
@@ -4370,8 +4370,8 @@ void builtin_sc_start(ScriptState *st)
 void builtin_sc_start2(ScriptState *st)
 {
     struct block_list *bl;
-    int type, tick, val1, per;
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    int tick, val1, per;
+    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     tick = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     val1 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     per = conv_num(st, &(st->stack->stack_data[st->start + 5]));
@@ -4393,8 +4393,7 @@ void builtin_sc_start2(ScriptState *st)
 void builtin_sc_end(ScriptState *st)
 {
     struct block_list *bl;
-    int type;
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     bl = map_id2bl(st->rid);
     if (bl->type == BL_PC
         && ((struct map_session_data *) bl)->state.potionpitcher_flag)
@@ -4407,8 +4406,7 @@ void builtin_sc_end(ScriptState *st)
 void builtin_sc_check(ScriptState *st)
 {
     struct block_list *bl;
-    int type;
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     bl = map_id2bl(st->rid);
     if (bl->type == BL_PC
         && ((struct map_session_data *) bl)->state.potionpitcher_flag)
@@ -4426,9 +4424,9 @@ void builtin_getscrate(ScriptState *st)
 {
     struct block_list *bl;
     int sc_def = 100, sc_def_mdef2, sc_def_vit2, sc_def_int2, sc_def_luk2;
-    int type, rate, luk;
+    int rate, luk;
 
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     rate = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     if (st->end > st->start + 4)    //指定したキャラの耐性を計算する
         bl = map_id2bl(conv_num(st, &(st->stack->stack_data[st->start + 6])));
@@ -5567,15 +5565,17 @@ void builtin_getinventorylist(ScriptState *st)
 void builtin_getskilllist(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
-    int i, j = 0;
+    int j = 0;
     if (!sd)
         return;
-    for (i = 0; i < MAX_SKILL; i++)
+    for (SkillID i : erange(SkillID(), MAX_SKILL))
     {
-        if (sd->status.skill[i].id > 0 && sd->status.skill[i].lv > 0)
+        if (sd->status.skill[i].id != SkillID::ZERO
+            && sd->status.skill[i].id != SkillID::NEGATIVE
+            && sd->status.skill[i].lv > 0)
         {
             pc_setreg(sd, add_str("@skilllist_id") + (j << 24),
-                       sd->status.skill[i].id);
+                       uint16_t(sd->status.skill[i].id));
             pc_setreg(sd, add_str("@skilllist_lv") + (j << 24),
                        sd->status.skill[i].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (j << 24),
@@ -5589,7 +5589,7 @@ void builtin_getskilllist(ScriptState *st)
 void builtin_get_activated_pool_skills(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
-    int pool_skills[MAX_SKILL_POOL];
+    SkillID pool_skills[MAX_SKILL_POOL];
     int skill_pool_size = skill_pool(sd, pool_skills);
     int i, count = 0;
 
@@ -5598,12 +5598,12 @@ void builtin_get_activated_pool_skills(ScriptState *st)
 
     for (i = 0; i < skill_pool_size; i++)
     {
-        int skill_id = pool_skills[i];
+        SkillID skill_id = pool_skills[i];
 
         if (sd->status.skill[skill_id].id == skill_id)
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
-                       sd->status.skill[skill_id].id);
+                       uint16_t(sd->status.skill[skill_id].id));
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
                        sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
@@ -5617,9 +5617,6 @@ void builtin_get_activated_pool_skills(ScriptState *st)
 
 }
 
-extern int skill_pool_skills[];
-extern int skill_pool_skills_size;
-
 void builtin_get_unactivated_pool_skills(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5630,12 +5627,12 @@ void builtin_get_unactivated_pool_skills(ScriptState *st)
 
     for (i = 0; i < skill_pool_skills_size; i++)
     {
-        int skill_id = skill_pool_skills[i];
+        SkillID skill_id = skill_pool_skills[i];
 
         if (sd->status.skill[skill_id].id == skill_id && !(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
-                       sd->status.skill[skill_id].id);
+                       uint16_t(sd->status.skill[skill_id].id));
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
                        sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
@@ -5659,12 +5656,12 @@ void builtin_get_pool_skills(ScriptState *st)
 
     for (i = 0; i < skill_pool_skills_size; i++)
     {
-        int skill_id = skill_pool_skills[i];
+        SkillID skill_id = skill_pool_skills[i];
 
         if (sd->status.skill[skill_id].id == skill_id)
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
-                       sd->status.skill[skill_id].id);
+                       uint16_t(sd->status.skill[skill_id].id));
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
                        sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
@@ -5681,7 +5678,7 @@ void builtin_get_pool_skills(ScriptState *st)
 void builtin_activate_pool_skill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
-    int skill_id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
 
     skill_pool_activate(sd, skill_id);
     clif_skillinfoblock(sd);
@@ -5691,7 +5688,7 @@ void builtin_activate_pool_skill(ScriptState *st)
 void builtin_deactivate_pool_skill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
-    int skill_id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
 
     skill_pool_deactivate(sd, skill_id);
     clif_skillinfoblock(sd);
@@ -5701,7 +5698,7 @@ void builtin_deactivate_pool_skill(ScriptState *st)
 void builtin_check_pool_skill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
-    int skill_id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
 
     push_val(st->stack, ScriptCode::INT, skill_pool_is_activated(sd, skill_id));
 
@@ -5823,7 +5820,7 @@ void builtin_npcskilleffect(ScriptState *st)
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
 
-    int skillid = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SkillID skillid = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     int skilllv = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     int x = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     int y = conv_num(st, &(st->stack->stack_data[st->start + 5]));
@@ -6601,7 +6598,7 @@ void run_func(ScriptState *st)
     {
         if (battle_config.error_log)
             printf("run_func : %s? (%d(%d))\n", str_buf + str_data[func].str,
-                    func, str_data[func].type);
+                    func, uint8_t(str_data[func].type));
         push_val(st->stack, ScriptCode::INT, 0);
     }
 
@@ -6728,7 +6725,7 @@ void run_script_main(const ScriptCode *script, int pos_, int rid, int oid,
 
             default:
                 if (battle_config.error_log)
-                    printf("unknown command : %d @ %d\n", c, pos_);
+                    printf("unknown command : %d @ %d\n", uint8_t(c), pos_);
                 st->state = END;
                 break;
         }

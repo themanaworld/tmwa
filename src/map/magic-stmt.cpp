@@ -112,21 +112,22 @@ void spell_free_invocation(invocation_t * invocation)
 }
 
 static void
-char_set_weapon_icon(character_t * subject, int count, int icon, int look)
+char_set_weapon_icon(character_t * subject, int count,
+        StatusChange icon, int look)
 {
-    const int old_icon = subject->attack_spell_icon_override;
+    const StatusChange old_icon = subject->attack_spell_icon_override;
 
     subject->attack_spell_icon_override = icon;
     subject->attack_spell_look_override = look;
 
-    if (old_icon && old_icon != icon)
+    if (old_icon != StatusChange::ZERO && old_icon != icon)
         clif_status_change(&subject->bl, old_icon, 0);
 
     clif_fixpcpos(subject);
     if (count)
     {
         clif_changelook(&subject->bl, LOOK_WEAPON, look);
-        if (icon)
+        if (icon != StatusChange::ZERO)
             clif_status_change(&subject->bl, icon, 1);
     }
     else
@@ -157,9 +158,8 @@ static void char_set_attack_info(character_t * subject, int speed, int range)
 
 void magic_stop_completely(character_t * c)
 {
-    int i;
     // Zap all status change references to spells
-    for (i = 0; i < MAX_STATUSCHANGE; i++)
+    for (StatusChange i : erange(StatusChange(), MAX_STATUSCHANGE))
         c->sc_data[i].spell_invocation = 0;
 
     while (c->active_spells)
@@ -172,7 +172,7 @@ void magic_stop_completely(character_t * c)
         if (attack_spell)
             spell_free_invocation(attack_spell);
         c->attack_spell_override = 0;
-        char_set_weapon_icon(c, 0, 0, 0);
+        char_set_weapon_icon(c, 0, StatusChange::ZERO, 0);
         char_set_attack_info(c, 0, 0);
     }
 }
@@ -464,7 +464,8 @@ static int op_banish(env_t * env, int args_nr, val_t * args)
 }
 
 static void
-record_status_change(invocation_t * invocation, int bl_id, int sc_id)
+record_status_change(invocation_t * invocation, int bl_id,
+        StatusChange sc_id)
 {
     int index = invocation->status_change_refs_nr++;
     status_change_ref_t *cr;
@@ -484,12 +485,12 @@ static int op_status_change(env_t * env, int args_nr, val_t * args)
         ? VAR(VAR_INVOCATION).v.v_int : 0;
     invocation_t *invocation = (invocation_t *) map_id2bl(invocation_id);
 
-    skill_status_effect(subject, ARGINT(1), ARGINT(2), ARGINT(3),
-                         ARGINT(4), ARGINT(5), ARGINT(6), 0,
-                         invocation_id);
+    skill_status_effect(subject, StatusChange(ARGINT(1)),
+            ARGINT(2), ARGINT(3), ARGINT(4), ARGINT(5),
+            ARGINT(6), 0, invocation_id);
 
     if (invocation && subject->type == BL_PC)
-        record_status_change(invocation, subject->id, ARGINT(1));
+        record_status_change(invocation, subject->id, StatusChange(ARGINT(1)));
 
     return 0;
 }
@@ -498,7 +499,8 @@ static int op_stop_status_change(env_t * env, int args_nr, val_t * args)
 {
     entity_t *subject = ARGENTITY(0);
 
-    skill_status_change_end(subject, ARGINT(1), -1);
+    StatusChange sc = StatusChange(ARGINT(1));
+    skill_status_change_end(subject, sc, -1);
 
     return 0;
 }
@@ -509,7 +511,7 @@ static int op_override_attack(env_t * env, int args_nr, val_t * args)
     int charges = ARGINT(1);
     int attack_delay = ARGINT(2);
     int attack_range = ARGINT(3);
-    int icon = ARGINT(4);
+    StatusChange icon = StatusChange(ARGINT(4));
     int look = ARGINT(5);
     int stopattack = ARGINT(6);
     character_t *subject;
@@ -885,8 +887,8 @@ op_t *magic_get_op(char *name, int *index)
 }
 
 void
-spell_effect_report_termination(int invocation_id, int bl_id, int sc_id,
-                                 int supplanted)
+spell_effect_report_termination(int invocation_id, int bl_id,
+        StatusChange sc_id, int supplanted)
 {
     int i;
     int index = -1;
@@ -1578,7 +1580,7 @@ int spell_attack(int caster_id, int target_id)
     else if (!invocation || caster->attack_spell_charges <= 0)
     {
         caster->attack_spell_override = 0;
-        char_set_weapon_icon(caster, 0, 0, 0);
+        char_set_weapon_icon(caster, 0, StatusChange::ZERO, 0);
         char_set_attack_info(caster, 0, 0);
 
         if (stop_attack)

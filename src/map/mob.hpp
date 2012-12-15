@@ -1,18 +1,26 @@
 // $Id: mob.h,v 1.4 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef MOB_HPP
 #define MOB_HPP
+
+#include "mob.t.hpp"
 #include "../common/timer.hpp"
+#include "skill.t.hpp"
+
 #define MAX_RANDOMMONSTER 3
 
 struct mob_skill
 {
-    short state;
-    short skill_id, skill_lv;
+    MSS state;
+    SkillID skill_id;
+    short skill_lv;
     short permillage;
     int casttime, delay;
     short cancel;
-    short cond1, cond2;
-    short target;
+    MSC cond1;
+    int cond2i;
+    StatusChange cond2sc() { return StatusChange(cond2i); }
+    SkillID cond2sk() { return SkillID(cond2i); };
+    MST target;
     int val[5];
     short emotion;
 };
@@ -47,51 +55,6 @@ struct mob_db
     struct mob_skill skill[MAX_MOBSKILL];
 };
 extern struct mob_db mob_db[];
-
-enum
-{
-    MST_TARGET = 0,
-    MST_SELF,
-    MST_FRIEND,
-    MST_MASTER,
-    MST_AROUND5,
-    MST_AROUND6,
-    MST_AROUND7,
-    MST_AROUND8,
-    MST_AROUND1,
-    MST_AROUND2,
-    MST_AROUND3,
-    MST_AROUND4,
-    MST_AROUND = MST_AROUND4,
-
-    MSC_ALWAYS = 0x0000,
-    MSC_MYHPLTMAXRATE = 0x0001,
-    MSC_FRIENDHPLTMAXRATE = 0x0010,
-    MSC_MYSTATUSON = 0x0020,
-    MSC_MYSTATUSOFF = 0x0021,
-    MSC_FRIENDSTATUSON = 0x0030,
-    MSC_FRIENDSTATUSOFF = 0x0031,
-    MSC_NOTINTOWN = 0x0032,
-
-    MSC_ATTACKPCGT = 0x0100,
-    MSC_ATTACKPCGE = 0x0101,
-    MSC_SLAVELT = 0x0110,
-    MSC_SLAVELE = 0x0111,
-    MSC_CLOSEDATTACKED = 0x1000,
-    MSC_LONGRANGEATTACKED = 0x1001,
-    MSC_SKILLUSED = 0x1010,
-    MSC_CASTTARGETED = 0x1011,
-};
-
-enum
-{
-    MSS_IDLE,                   // 待機
-    MSS_WALK,                   // 移動
-    MSS_ATTACK,                 // 攻撃
-    MSS_DEAD,                   // 死亡
-    MSS_LOOT,                   // ルート
-    MSS_CHASE,                  // 突撃
-};
 
 int mobdb_searchname(const char *str);
 int mobdb_checkid(const int id);
@@ -139,7 +102,8 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
 int mob_class_change(struct mob_data *md, int *value);
 int mob_warp(struct mob_data *md, int m, int x, int y, int type);
 
-int mobskill_use(struct mob_data *md, unsigned int tick, int event);
+int mobskill_use(struct mob_data *md, unsigned int tick,
+        MSC event, SkillID skill=SkillID::ZERO);
 int mobskill_event(struct mob_data *md, int flag);
 void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);

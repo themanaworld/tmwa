@@ -270,11 +270,12 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         }
     *(str_p++) = '\t';
 
-    for (i = 0; i < MAX_SKILL; i++)
-        if (p->skill[i].id)
+    for (SkillID i = SkillID(); i < MAX_SKILL;
+            i = SkillID(uint16_t(i) + 1))
+        if (p->skill[i].id != SkillID()/*SkillID::ZERO*/)
         {
             str_p +=
-                sprintf(str_p, "%d,%d ", p->skill[i].id,
+                sprintf(str_p, "%d,%d ", uint16_t(p->skill[i].id),
                          p->skill[i].lv | (p->skill[i].flags << 16));
         }
     *(str_p++) = '\t';
@@ -517,9 +518,10 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p)
         if (sscanf(str + next, "%d,%d%n", &tmp_int[0], &tmp_int[1], &len) !=
             2)
             return -6;
-        p->skill[tmp_int[0]].id = tmp_int[0];
-        p->skill[tmp_int[0]].lv = tmp_int[1] & 0xffff;
-        p->skill[tmp_int[0]].flags = ((tmp_int[1] >> 16) & 0xffff);
+        SkillID skill_id = SkillID(tmp_int[0]);
+        p->skill[skill_id].id = skill_id;
+        p->skill[skill_id].lv = tmp_int[1] & 0xffff;
+        p->skill[skill_id].flags = ((tmp_int[1] >> 16) & 0xffff);
         next += len;
         if (str[next] == ' ')
             next++;

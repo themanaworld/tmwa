@@ -3,6 +3,9 @@
 
 #include "sanity.hpp"
 
+// unguarded!
+#include "utils2.hpp"
+
 /*
 Notes about memory allocation in tmwAthena:
 There used to be 3 sources of allocation: these macros,

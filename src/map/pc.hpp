@@ -45,7 +45,7 @@ int pc_equippoint(struct map_session_data *sd, int n);
 int pc_breakweapon(struct map_session_data *sd);  // weapon breaking [Valaris]
 int pc_breakarmor(struct map_session_data *sd);   // armor breaking [Valaris]
 
-int pc_checkskill(struct map_session_data *sd, int skill_id);
+int pc_checkskill(struct map_session_data *sd, SkillID skill_id);
 int pc_checkallowskill(struct map_session_data *sd);
 int pc_checkequip(struct map_session_data *sd, int pos);
 
@@ -90,7 +90,7 @@ int pc_calcstatus(struct map_session_data *, int);
 int pc_bonus(struct map_session_data *, int, int);
 int pc_bonus2(struct map_session_data *sd, int, int, int);
 int pc_bonus3(struct map_session_data *sd, int, int, int, int);
-int pc_skill(struct map_session_data *, int, int, int);
+int pc_skill(struct map_session_data *, SkillID, int, int);
 
 int pc_insert_card(struct map_session_data *sd, int idx_card,
                      int idx_equip);
@@ -124,7 +124,7 @@ int pc_nextjobafter(struct map_session_data *);   // [Valaris]
 int pc_need_status_point(struct map_session_data *, int);
 int pc_statusup(struct map_session_data *, int);
 int pc_statusup2(struct map_session_data *, int, int);
-int pc_skillup(struct map_session_data *, int);
+int pc_skillup(struct map_session_data *, SkillID);
 int pc_allskillup(struct map_session_data *);
 int pc_resetlvl(struct map_session_data *, int type);
 int pc_resetstate(struct map_session_data *);
