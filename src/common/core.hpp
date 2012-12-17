@@ -1,6 +1,6 @@
 #ifndef CORE_HPP
 #define CORE_HPP
-#include <stdbool.h>
+
 /// core.c contains a server-independent main() function
 /// and then runs a do_sendrecv loop
 

@@ -1,30 +1,26 @@
-// $Id: npc.c,v 1.5 2004/09/25 05:32:18 MouseJstr Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
+#include "npc.hpp"
 
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#include "../common/db.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/socket.hpp"
 #include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
-#include "../common/db.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "mob.hpp"
-#include "npc.hpp"
 #include "pc.hpp"
 #include "script.hpp"
 #include "skill.hpp"
-#include "../common/socket.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
 
 struct npc_src_list
 {
@@ -33,24 +29,30 @@ struct npc_src_list
     char name[4];
 };
 
-static struct npc_src_list *npc_src_first, *npc_src_last;
-static int npc_id = START_NPC_NUM;
-static int npc_warp, npc_shop, npc_script, npc_mob;
+static
+struct npc_src_list *npc_src_first, *npc_src_last;
+static
+int npc_id = START_NPC_NUM;
+static
+int npc_warp, npc_shop, npc_script, npc_mob;
 
 int npc_get_new_npc_id(void)
 {
     return npc_id++;
 }
 
-static struct dbt *ev_db;
-static struct dbt *npcname_db;
+static
+struct dbt *ev_db;
+static
+struct dbt *npcname_db;
 
 struct event_data
 {
     struct npc_data *nd;
     int pos;
 };
-static struct tm ev_tm_b;       // 時計イベント用
+static
+struct tm ev_tm_b;       // 時計イベント用
 
 /*==========================================
  * NPCの無効化/有効化
@@ -59,15 +61,13 @@ static struct tm ev_tm_b;       // 時計イベント用
  *------------------------------------------
  */
 static
-void npc_enable_sub(struct block_list *bl, va_list ap)
+void npc_enable_sub(struct block_list *bl, struct npc_data *nd)
 {
     struct map_session_data *sd;
-    struct npc_data *nd;
     char *name = (char *) calloc(50, sizeof(char));
 
     nullpo_retv(bl);
-    nullpo_retv(ap);
-    nullpo_retv(nd = va_arg(ap, struct npc_data *));
+
     if (bl->type == BL_PC && (sd = (struct map_session_data *) bl))
     {
 
@@ -112,9 +112,9 @@ int npc_enable(const char *name, int flag)
         clif_clearchar(&nd->bl, 0);
     }
     if (flag & 3 && (nd->u.scr.xs > 0 || nd->u.scr.ys > 0))
-        map_foreachinarea(npc_enable_sub, nd->bl.m, nd->bl.x - nd->u.scr.xs,
-                           nd->bl.y - nd->u.scr.ys, nd->bl.x + nd->u.scr.xs,
-                           nd->bl.y + nd->u.scr.ys, BL_PC, nd);
+        map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
+                nd->bl.m, nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
+                nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL_PC);
 
     return 0;
 }
@@ -172,7 +172,7 @@ int npc_delete(struct npc_data *nd)
  * イベントの遅延実行
  *------------------------------------------
  */
-void npc_event_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void npc_event_timer(timer_id, tick_t, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd(id);
     if (sd == NULL)
@@ -199,113 +199,18 @@ int npc_timer_event(const char *eventname) // Added by RoVeRT
     return 0;
 }
 
-/*
-int npc_timer_sub_sub(void *key,void *data,va_list ap)  // Added by RoVeRT
-{
-        char *p= (char *)key;
-        struct event_data *ev= (struct event_data *)data;
-        int *c=va_arg(ap,int *);
-        int tick=0,ctick=gettick();
-        char temp[10];
-        char event[100];
-
-        if (ev->nd->bl.id== (int)*c && (p=strchr(p,':')) && p && strncasecmp("::OnTimer",p,8)==0 ){
-                sscanf(&p[9],"%s",temp);
-                tick=atoi(temp);
-
-                strcpy( event, ev->nd->name);
-                strcat( event, p);
-
-                if (ctick >= ev->nd->lastaction && ctick - ev->nd->timer >= tick) {
-                        npc_timer_event(event);
-                        ev->nd->lastaction = ctick;
-                }
-        }
-        return 0;
-}
-
-int npc_timer_sub(void *key,void *data,va_list ap)      // Added by RoVeRT
-{
-        struct npc_data *nd= (struct npc_data*)data;
-
-        if (nd->timer == -1)
-                return 0;
-
-        strdb_foreach(ev_db,npc_timer_sub_sub,&nd->bl.id);
-
-        return 0;
-}
-
-int npc_timer(int tid,unsigned int tick,int id,int data)        // Added by RoVeRT
-{
-        strdb_foreach(npcname_db,npc_timer_sub);
-
-        free((void*)data);
-        return 0;
-}*/
-/*==========================================
- * イベント用ラベルのエクスポート
- * npc_parse_script->strdb_foreachから呼ばれる
- *------------------------------------------
- */
-static
-int npc_event_export(void *key, void *data, va_list ap)
-{
-    char *lname = (char *) key;
-    int pos = (int) data;
-    struct npc_data *nd = va_arg(ap, struct npc_data *);
-
-    if ((lname[0] == 'O' || lname[0] == 'o')
-        && (lname[1] == 'N' || lname[1] == 'n'))
-    {
-        struct event_data *ev;
-        char *buf;
-        char *p = strchr(lname, ':');
-        // エクスポートされる
-        CREATE(ev, struct event_data, 1);
-        CREATE(buf, char, 50);
-        if (p == NULL || (p - lname) > 24)
-        {
-            printf("npc_event_export: label name error !\n");
-            exit(1);
-        }
-        else
-        {
-            ev->nd = nd;
-            ev->pos = pos;
-            *p = '\0';
-            sprintf(buf, "%s::%s", nd->exname, lname);
-            *p = ':';
-            strdb_insert(ev_db, buf, ev);
-//          if (battle_config.etc_log)
-//              printf("npc_event_export: export [%s]\n",buf);
-        }
-    }
-    return 0;
-}
-
 /*==========================================
  * 全てのNPCのOn*イベント実行
  *------------------------------------------
  */
 static
-void npc_event_doall_sub(db_key_t key, db_val_t data, va_list ap)
+void npc_event_doall_sub(db_key_t key, db_val_t data,
+        int *c, const char *name, int rid, int argc, argrec_t *argv)
 {
     const char *p = key.s;
-    int rid, argc;
-    argrec_t *argv;
     struct event_data *ev;
-    int *c;
-    const char *name;
 
     nullpo_retv(ev = (struct event_data *) data);
-    nullpo_retv(ap);
-    nullpo_retv(c = va_arg(ap, int *));
-
-    name = va_arg(ap, const char *);
-    rid = va_arg(ap, int);
-    argc = va_arg(ap, int);
-    argv = va_arg(ap, argrec_t *);
 
     if ((p = strchr(p, ':')) && p && strcasecmp(name, p) == 0)
     {
@@ -315,35 +220,25 @@ void npc_event_doall_sub(db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-int npc_event_doall_l(const char *name, int rid, int argc, argrec_t * args)
+int npc_event_doall_l(const char *name, int rid, int argc, argrec_t *args)
 {
     int c = 0;
     char buf[64] = "::";
 
     strncpy(buf + 2, name, sizeof(buf)-3);
     buf[sizeof(buf)-1] = '\0';
-    strdb_foreach(ev_db, npc_event_doall_sub, &c, buf, rid, argc, args);
+    strdb_foreach(ev_db, std::bind(npc_event_doall_sub, ph::_1, ph::_2, &c, buf, rid, argc, args));
     return c;
 }
 
 static
-void npc_event_do_sub(db_key_t key, db_val_t data, va_list ap)
+void npc_event_do_sub(db_key_t key, db_val_t data,
+        int *c, const char *name, int rid, int argc, argrec_t *argv)
 {
     const char *p = key.s;
     struct event_data *ev;
-    int *c;
-    const char *name;
-    int rid, argc;
-    argrec_t *argv;
 
     nullpo_retv(ev = (struct event_data *) data);
-    nullpo_retv(ap);
-    nullpo_retv(c = va_arg(ap, int *));
-
-    name = va_arg(ap, const char *);
-    rid = va_arg(ap, int);
-    argc = va_arg(ap, int);
-    argv = va_arg(ap, argrec_t *);
 
     if (p && strcasecmp(name, p) == 0)
     {
@@ -353,7 +248,7 @@ void npc_event_do_sub(db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-int npc_event_do_l(const char *name, int rid, int argc, argrec_t * args)
+int npc_event_do_l(const char *name, int rid, int argc, argrec_t *args)
 {
     int c = 0;
 
@@ -362,7 +257,7 @@ int npc_event_do_l(const char *name, int rid, int argc, argrec_t * args)
         return npc_event_doall_l(name + 2, rid, argc, args);
     }
 
-    strdb_foreach(ev_db, npc_event_do_sub, &c, name, rid, argc, args);
+    strdb_foreach(ev_db, std::bind(npc_event_do_sub, ph::_1, ph::_2, &c, name, rid, argc, args));
     return c;
 }
 
@@ -371,7 +266,7 @@ int npc_event_do_l(const char *name, int rid, int argc, argrec_t * args)
  *------------------------------------------
  */
 static
-void npc_event_do_clock(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void npc_event_do_clock(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     time_t timer;
     struct tm *t;
@@ -459,28 +354,12 @@ int npc_deleventtimer(struct npc_data *nd, const char *name)
     return 0;
 }
 
-static
-int npc_cleareventtimer(struct npc_data *nd)
-{
-    int i;
-    for (i = 0; i < MAX_EVENTTIMER; i++)
-        if (nd->eventtimer[i] != -1)
-        {
-            delete_timer(nd->eventtimer[i], npc_event_timer);
-            nd->eventtimer[i] = -1;
-        }
-
-    return 0;
-}
 
 static
-void npc_do_ontimer_sub(db_key_t key, db_val_t data, va_list ap)
+void npc_do_ontimer_sub(db_key_t key, db_val_t data, int *c, int option)
 {
     const char *p = key.s;
     struct event_data *ev = (struct event_data *) data;
-    int *c = va_arg(ap, int *);
-//  struct map_session_data *sd=va_arg(ap,struct map_session_data *);
-    int option = va_arg(ap, int);
     int tick = 0;
     char temp[10];
     char event[50];
@@ -505,55 +384,19 @@ void npc_do_ontimer_sub(db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-int npc_do_ontimer(int id, struct map_session_data *sd, int option)
+int npc_do_ontimer(int id, struct map_session_data *, int option)
 {
-    strdb_foreach(ev_db, npc_do_ontimer_sub, &id, sd, option);
+    strdb_foreach(ev_db, std::bind(npc_do_ontimer_sub, ph::_1, ph::_2, &id, option));
     return 0;
 }
 
-/*==========================================
- * タイマーイベント用ラベルの取り込み
- * npc_parse_script->strdb_foreachから呼ばれる
- *------------------------------------------
- */
-static
-int npc_timerevent_import(void *key, void *data, va_list ap)
-{
-    char *lname = (char *) key;
-    int pos = (int) data;
-    struct npc_data *nd = va_arg(ap, struct npc_data *);
-    int t = 0, i = 0;
-
-    if (sscanf(lname, "OnTimer%d%n", &t, &i) == 1 && lname[i] == ':')
-    {
-        // タイマーイベント
-        struct npc_timerevent_list *te = nd->u.scr.timer_event;
-        int j;
-        i = nd->u.scr.timeramount;
-        RECREATE(te, struct npc_timerevent_list, i+1);
-        for (j = 0; j < i; j++)
-        {
-            if (te[j].timer > t)
-            {
-                memmove(te + j + 1, te + j,
-                         sizeof(struct npc_timerevent_list) * (i - j));
-                break;
-            }
-        }
-        te[j].timer = t;
-        te[j].pos = pos;
-        nd->u.scr.timer_event = te;
-        nd->u.scr.timeramount = i + 1;
-    }
-    return 0;
-}
 
 /*==========================================
  * タイマーイベント実行
  *------------------------------------------
  */
 static
-void npc_timerevent(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void npc_timerevent(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
 {
     int next, t;
     struct npc_data *nd = (struct npc_data *) map_id2bl(id);
@@ -756,12 +599,10 @@ int npc_event(struct map_session_data *sd, const char *eventname,
 }
 
 static
-void npc_command_sub(db_key_t key, db_val_t data, va_list ap)
+void npc_command_sub(db_key_t key, db_val_t data, const char *npcname, const char *command)
 {
     const char *p = key.s;
     struct event_data *ev = (struct event_data *) data;
-    char *npcname = va_arg(ap, char *);
-    char *command = va_arg(ap, char *);
     char temp[100];
 
     if (strcmp(ev->nd->name, npcname) == 0 && (p = strchr(p, ':')) && p
@@ -774,9 +615,9 @@ void npc_command_sub(db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-int npc_command(struct map_session_data *sd, const char *npcname, const char *command)
+int npc_command(struct map_session_data *, const char *npcname, const char *command)
 {
-    strdb_foreach(ev_db, npc_command_sub, npcname, command);
+    strdb_foreach(ev_db, std::bind(npc_command_sub, ph::_1, ph::_2, npcname, command));
 
     return 0;
 }
@@ -1269,7 +1110,7 @@ void npc_delsrcfile(char *name)
  * warp行解析
  *------------------------------------------
  */
-int npc_parse_warp(const char *w1, const char *w2, const char *w3, const char *w4)
+int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
 {
     int x, y, xs, ys, to_x, to_y, m;
     int i, j;
@@ -1345,7 +1186,8 @@ int npc_parse_warp(const char *w1, const char *w2, const char *w3, const char *w
  * shop行解析
  *------------------------------------------
  */
-static int npc_parse_shop(char *w1, char *w2, char *w3, char *w4)
+static
+int npc_parse_shop(char *w1, char *, char *w3, char *w4)
 {
     char *p;
     int x, y, dir, m;
@@ -1445,18 +1287,16 @@ static int npc_parse_shop(char *w1, char *w2, char *w3, char *w4)
  *------------------------------------------
  */
 static
-void npc_convertlabel_db(db_key_t key, db_val_t data, va_list ap)
+void npc_convertlabel_db(db_key_t key, db_val_t data, struct npc_data *nd)
 {
     const char *lname = key.s;
     int pos = (int) data;
-    struct npc_data *nd;
     struct npc_label_list *lst;
     int num;
     // this exists for evil purposes
     char *p = const_cast<char *>(strchr(lname, ':'));
 
-    nullpo_retv(ap);
-    nullpo_retv(nd = va_arg(ap, struct npc_data *));
+    nullpo_retv(nd);
 
     lst = nd->u.scr.label_list;
     num = nd->u.scr.label_list_num;
@@ -1704,7 +1544,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
 
         // ラベルデータのコンバート
         label_db = script_get_label_db();
-        strdb_foreach(label_db, npc_convertlabel_db, nd);
+        strdb_foreach(label_db, std::bind(npc_convertlabel_db, ph::_1, ph::_2, nd));
 
         // もう使わないのでバッファ解放
         free(srcbuf);
@@ -1798,7 +1638,8 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
  * function行解析
  *------------------------------------------
  */
-static int npc_parse_function(char *w1, char *w2, char *w3, char *w4,
+static
+int npc_parse_function(char *, char *, char *w3, char *,
                                char *first_line, FILE * fp, int *lines)
 {
     char *srcbuf = NULL;
@@ -1873,7 +1714,7 @@ static int npc_parse_function(char *w1, char *w2, char *w3, char *w4,
  * mob行解析
  *------------------------------------------
  */
-int npc_parse_mob(const char *w1, const char *w2, const char *w3, const char *w4)
+int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
 {
     int m, x, y, xs, ys, mob_class, num, delay1, delay2;
     int i;
@@ -1960,7 +1801,8 @@ int npc_parse_mob(const char *w1, const char *w2, const char *w3, const char *w4
  * マップフラグ行の解析
  *------------------------------------------
  */
-static int npc_parse_mapflag(char *w1, char *w2, char *w3, char *w4)
+static
+int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
 {
     int m;
     char mapname[24], savemap[16];
@@ -2124,7 +1966,8 @@ static int npc_parse_mapflag(char *w1, char *w2, char *w3, char *w4)
     return 0;
 }
 
-static void ev_db_final(db_key_t key, db_val_t data, va_list ap)
+static
+void ev_db_final(db_key_t key, db_val_t data)
 {
     free(data);
     if (strstr(key.s, "::") != NULL)
@@ -2161,7 +2004,8 @@ struct npc_data *npc_spawn_text(int m, int x, int y,
     return retval;
 }
 
-static void npc_free_internal(struct npc_data *nd)
+static
+void npc_free_internal(struct npc_data *nd)
 {
     struct chat_data *cd;
 
@@ -2198,11 +2042,9 @@ static void npc_free_internal(struct npc_data *nd)
 static
 void npc_propagate_update(struct npc_data *nd)
 {
-    map_foreachinarea(npc_enable_sub,
-                       nd->bl.m,
-                       nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
-                       nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys,
-                       BL_PC, nd);
+    map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
+            nd->bl.m, nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
+            nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL_PC);
 }
 
 void npc_free(struct npc_data *nd)

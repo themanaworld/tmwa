@@ -1,15 +1,11 @@
-// $Id: path.c,v 1.1.1.1 2004/09/10 17:27:00 MagicalTux Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
-#include "map.hpp"
-#include "battle.hpp"
 #include "../common/nullpo.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
+#include "battle.hpp"
+#include "map.hpp"
 
 //#define PATH_STANDALONETEST
 
@@ -25,7 +21,8 @@ struct tmp_path
  * 経路探索補助heap push
  *------------------------------------------
  */
-static void push_heap_path(int *heap, struct tmp_path *tp, int index)
+static
+void push_heap_path(int *heap, struct tmp_path *tp, int index)
 {
     int i, h;
 
@@ -48,7 +45,8 @@ static void push_heap_path(int *heap, struct tmp_path *tp, int index)
  * costが減ったので根の方へ移動
  *------------------------------------------
  */
-static void update_heap_path(int *heap, struct tmp_path *tp, int index)
+static
+void update_heap_path(int *heap, struct tmp_path *tp, int index)
 {
     int i, h;
 
@@ -73,7 +71,8 @@ static void update_heap_path(int *heap, struct tmp_path *tp, int index)
  * 経路探索補助heap pop
  *------------------------------------------
  */
-static int pop_heap_path(int *heap, struct tmp_path *tp)
+static
+int pop_heap_path(int *heap, struct tmp_path *tp)
 {
     int i, h, k;
     int ret, last;
@@ -108,7 +107,8 @@ static int pop_heap_path(int *heap, struct tmp_path *tp)
  * 現在の点のcost計算
  *------------------------------------------
  */
-static int calc_cost(struct tmp_path *p, int x1, int y1)
+static
+int calc_cost(struct tmp_path *p, int x1, int y1)
 {
     int xd, yd;
 
@@ -127,7 +127,8 @@ static int calc_cost(struct tmp_path *p, int x1, int y1)
  * 必要ならpathを追加/修正する
  *------------------------------------------
  */
-static int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
+static
+int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
                      int dir, int before, int x1, int y1)
 {
     int i;
@@ -174,7 +175,8 @@ static int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
  * flag 0x10000 遠距離攻撃判定
  *------------------------------------------
  */
-static int can_place(struct map_data *m, int x, int y, int flag)
+static
+int can_place(struct map_data *m, int x, int y, int flag)
 {
     int c;
 
@@ -193,7 +195,8 @@ static int can_place(struct map_data *m, int x, int y, int flag)
  * (x0,y0)から(x1,y1)へ1歩で移動可能か計算
  *------------------------------------------
  */
-static int can_move(struct map_data *m, int x0, int y0, int x1, int y1,
+static
+int can_move(struct map_data *m, int x0, int y0, int x1, int y1,
                      int flag)
 {
     nullpo_retr(0, m);
@@ -341,7 +344,7 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1,
     push_heap_path(heap, tp, calc_index(x0, y0));
     while (1)
     {
-        int e = 0, fromdir;
+        int e = 0;
 
         if (heap[0] == 0)
             return -1;
@@ -364,7 +367,6 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1,
 
             return 0;
         }
-        fromdir = tp[rp].dir;
         if (can_move(md, x, y, x + 1, y - 1, flag))
             e += add_path(heap, tp, x + 1, y - 1, tp[rp].dist + 14, 5, rp,
                            x1, y1);

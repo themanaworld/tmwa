@@ -1,58 +1,52 @@
-// $Id: script.c 148 2004-09-30 14:05:37Z MouseJstr $
-//#define DEBUG_FUNCIN
-//#define DEBUG_DISP
-//#define DEBUG_RUN
+#include "script.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifndef LCCWIN32
 #include <sys/time.h>
-#endif
-
-#include <time.h>
-#include <math.h>
 
 #include <cassert>
+#include <cctype>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
+#include "../common/db.hpp"
 #include "../common/lock.hpp"
 #include "../common/mt_rand.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
 #include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
-#include "../common/db.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
-#include "../common/lock.hpp"
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"
-#include "script.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
+//#define DEBUG_FUNCIN
+//#define DEBUG_DISP
+//#define DEBUG_RUN
 
 #define SCRIPT_BLOCK_SIZE 256
 enum
 { LABEL_NEXTLINE = 1, LABEL_START };
-static ScriptCode *script_buf;
-static int script_pos, script_size;
+static
+ScriptCode *script_buf;
+static
+int script_pos, script_size;
 
 char *str_buf;
 int str_pos, str_size;
-static struct str_data_t
+static
+struct str_data_t
 {
     ScriptCode type;
     int str;
@@ -65,14 +59,19 @@ static struct str_data_t
 int str_num = LABEL_START, str_data_size;
 int str_hash[16];
 
-static struct dbt *mapreg_db = NULL;
-static struct dbt *mapregstr_db = NULL;
-static int mapreg_dirty = -1;
+static
+struct dbt *mapreg_db = NULL;
+static
+struct dbt *mapregstr_db = NULL;
+static
+int mapreg_dirty = -1;
 char mapreg_txt[256] = "save/mapreg.txt";
 #define MAPREG_AUTOSAVE_INTERVAL        (10*1000)
 
-static struct dbt *scriptlabel_db = NULL;
-static struct dbt *userfunc_db = NULL;
+static
+struct dbt *scriptlabel_db = NULL;
+static
+struct dbt *userfunc_db = NULL;
 
 struct dbt *script_get_label_db(void)
 {
@@ -86,12 +85,14 @@ struct dbt *script_get_userfunc_db(void)
     return userfunc_db;
 }
 
-static char pos[11][100] =
+static
+char pos[11][100] =
     { "頭", "体", "左手", "右手", "ローブ", "靴", "アクセサリー1",
     "アクセサリー2", "頭2", "頭3", "装着していない"
 };
 
-static struct Script_Config
+static
+struct Script_Config
 {
     int warn_func_no_comma;
     int warn_cmd_no_comma;
@@ -100,8 +101,10 @@ static struct Script_Config
     int check_cmdcount;
     int check_gotocount;
 } script_config;
-static int parse_cmd_if = 0;
-static int parse_cmd;
+static
+int parse_cmd_if = 0;
+static
+int parse_cmd;
 
 /*==========================================
  * ローカルプロトタイプ宣言 (必要な物のみ)
@@ -277,7 +280,6 @@ void builtin_specialeffect(ScriptState *st);   // special effect script [Valaris
 void builtin_specialeffect2(ScriptState *st);  // special effect script [Valaris]
 void builtin_nude(ScriptState *st);    // nude [Valaris]
 void builtin_gmcommand(ScriptState *st);   // [MouseJstr]
-void builtin_movenpc(ScriptState *st); // [MouseJstr]
 void builtin_npcwarp(ScriptState *st); // [remoitnane]
 void builtin_message(ScriptState *st); // [MouseJstr]
 void builtin_npctalk(ScriptState *st); // [Valaris]
@@ -481,7 +483,6 @@ struct
     {builtin_stoptimer, "stoptimer", ""},
     {builtin_cmdothernpc, "cmdothernpc", "ss"},
     {builtin_gmcommand, "gmcommand", "s"},   // [MouseJstr]
-//  {builtin_movenpc,"movenpc","siis"}, // [MouseJstr]
     {builtin_npcwarp, "npcwarp", "xys"}, // [remoitnane]
     {builtin_message, "message", "Ps"},  // [MouseJstr]
     {builtin_npctalk, "npctalk", "s"},   // [Valaris]
@@ -520,7 +521,8 @@ enum class ScriptCode : uint8_t
  * 文字列のハッシュを計算
  *------------------------------------------
  */
-static int calc_hash(const char *s)
+static
+int calc_hash(const char *s)
 {
     const unsigned char *p = (const unsigned char *)s;
     int h = 0;
@@ -537,7 +539,8 @@ static int calc_hash(const char *s)
  *------------------------------------------
  */
 // 既存のであれば番号、無ければ-1
-static int search_str(const char *p)
+static
+int search_str(const char *p)
 {
     int i;
     i = str_hash[calc_hash(p)];
@@ -557,7 +560,8 @@ static int search_str(const char *p)
  *------------------------------------------
  */
 // 既存のであれば番号、無ければ登録して新規番号
-static int add_str(const char *p)
+static
+int add_str(const char *p)
 {
     int i;
     char *lowcase;
@@ -619,7 +623,8 @@ static int add_str(const char *p)
  * スクリプトバッファサイズの確認と拡張
  *------------------------------------------
  */
-static void check_script_buf(int size)
+static
+void check_script_buf(int size)
 {
     if (script_pos + size >= script_size)
     {
@@ -655,7 +660,8 @@ void add_scriptb(uint8_t a)
  * スクリプトバッファに整数を書き込む
  *------------------------------------------
  */
-static void add_scripti(unsigned int a)
+static
+void add_scripti(unsigned int a)
 {
     while (a >= 0x40)
     {
@@ -670,7 +676,8 @@ static void add_scripti(unsigned int a)
  *------------------------------------------
  */
 // 最大16Mまで
-static void add_scriptl(int l)
+static
+void add_scriptl(int l)
 {
     int backpatch = str_data[l].backpatch;
 
@@ -729,7 +736,8 @@ void set_label(int l, int pos_)
  * スペース/コメント読み飛ばし
  *------------------------------------------
  */
-static const char *skip_space(const char *p)
+static
+const char *skip_space(const char *p)
 {
     while (1)
     {
@@ -783,14 +791,17 @@ const char *skip_word(const char *p)
     return p;
 }
 
-static const char *startptr;
-static int startline;
+static
+const char *startptr;
+static
+int startline;
 
 /*==========================================
  * エラーメッセージ出力
  *------------------------------------------
  */
-static void disp_error_message(const char *mes, const char *pos_)
+static
+void disp_error_message(const char *mes, const char *pos_)
 {
     int line;
     const char *p;
@@ -1168,7 +1179,8 @@ const char *parse_line(const char *p)
  * 組み込み関数の追加
  *------------------------------------------
  */
-static void add_builtin_functions(void)
+static
+void add_builtin_functions(void)
 {
     int i, n;
     for (i = 0; builtin_functions[i].func; i++)
@@ -1184,7 +1196,8 @@ static void add_builtin_functions(void)
  * 定数データベースの読み込み
  *------------------------------------------
  */
-static void read_constdb(void)
+static
+void read_constdb(void)
 {
     FILE *fp;
     char line[1024], name[1024];
@@ -1998,12 +2011,8 @@ void builtin_warp(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_areawarp_sub(struct block_list *bl, va_list ap)
+void builtin_areawarp_sub(struct block_list *bl, const char *mapname, int x, int y)
 {
-    int x, y;
-    const char *mapname = va_arg(ap, const char *);
-    x = va_arg(ap, int);
-    y = va_arg(ap, int);
     if (strcmp(mapname, "Random") == 0)
         pc_randomwarp((struct map_session_data *) bl, 3);
     else
@@ -2027,8 +2036,8 @@ void builtin_areawarp(ScriptState *st)
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
 
-    map_foreachinarea(builtin_areawarp_sub,
-                       m, x0, y0, x1, y1, BL_PC, str, x, y);
+    map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
+                       m, x0, y0, x1, y1, BL_PC);
 }
 
 /*==========================================
@@ -2257,7 +2266,6 @@ void builtin_cleararray(ScriptState *st)
     char postfix = name[strlen(name) - 1];
     int sz = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     int i;
-    void *v;
 
     if (prefix != '$' && prefix != '@')
     {
@@ -2315,7 +2323,8 @@ void builtin_copyarray(ScriptState *st)
  * 配列変数のサイズ所得
  *------------------------------------------
  */
-static int getarraysize(ScriptState *st, int num, int postfix)
+static
+int getarraysize(ScriptState *st, int num, int postfix)
 {
     int i = (num >> 24), c = i;
     for (; i < 128; i++)
@@ -2982,8 +2991,17 @@ void builtin_strcharinfo(ScriptState *st)
 }
 
 unsigned int equip[10] =
-    { 0x0100, 0x0010, 0x0020, 0x0002, 0x0004, 0x0040, 0x0008, 0x0080, 0x0200,
-    0x0001
+{
+    0x0100,
+    0x0010,
+    0x0020,
+    0x0002,
+    0x0004,
+    0x0040,
+    0x0008,
+    0x0080,
+    0x0200,
+    0x0001,
 };
 
 /*==========================================
@@ -3854,11 +3872,8 @@ void builtin_areamonster(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_killmonster_sub(struct block_list *bl, va_list ap)
+void builtin_killmonster_sub(struct block_list *bl, const char *event, int allflag)
 {
-    char *event = va_arg(ap, char *);
-    int allflag = va_arg(ap, int);
-
     if (!allflag)
     {
         if (strcmp(event, ((struct mob_data *) bl)->npc_event) == 0)
@@ -3884,12 +3899,12 @@ void builtin_killmonster(ScriptState *st)
 
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
-    map_foreachinarea(builtin_killmonster_sub,
-                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB, event, allflag);
+    map_foreachinarea(std::bind(builtin_killmonster_sub, ph::_1, event, allflag),
+                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB);
 }
 
 static
-void builtin_killmonsterall_sub(struct block_list *bl, va_list ap)
+void builtin_killmonsterall_sub(struct block_list *bl)
 {
     mob_delete((struct mob_data *) bl);
 }
@@ -4076,13 +4091,8 @@ void builtin_announce(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_mapannounce_sub(struct block_list *bl, va_list ap)
+void builtin_mapannounce_sub(struct block_list *bl, const char *str, int len, int flag)
 {
-    char *str;
-    int len, flag;
-    str = va_arg(ap, char *);
-    len = va_arg(ap, int);
-    flag = va_arg(ap, int);
     clif_GMmessage(bl, str, len, flag | 3);
 }
 
@@ -4096,9 +4106,8 @@ void builtin_mapannounce(ScriptState *st)
 
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
-    map_foreachinarea(builtin_mapannounce_sub,
-                       m, 0, 0, map[m].xs, map[m].ys, BL_PC, str,
-                       strlen(str) + 1, flag & 0x10);
+    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, strlen(str) + 1, flag & 0x10),
+            m, 0, 0, map[m].xs, map[m].ys, BL_PC);
 }
 
 /*==========================================
@@ -4121,9 +4130,8 @@ void builtin_areaannounce(ScriptState *st)
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
 
-    map_foreachinarea(builtin_mapannounce_sub,
-                       m, x0, y0, x1, y1, BL_PC, str, strlen(str) + 1,
-                       flag & 0x10);
+    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, strlen(str) + 1, flag & 0x10),
+            m, x0, y0, x1, y1, BL_PC);
 }
 
 /*==========================================
@@ -4168,16 +4176,14 @@ void builtin_getmapusers(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_getareausers_sub(struct block_list *bl, va_list ap)
+void builtin_getareausers_sub(struct block_list *, int *users)
 {
-    int *users = va_arg(ap, int *);
     (*users)++;
 }
 
 static
-void builtin_getareausers_living_sub(struct block_list *bl, va_list ap)
+void builtin_getareausers_living_sub(struct block_list *bl, int *users)
 {
-    int *users = va_arg(ap, int *);
     if (!pc_isdead((struct map_session_data *)bl))
         (*users)++;
 }
@@ -4201,8 +4207,8 @@ void builtin_getareausers(ScriptState *st)
         push_val(st->stack, ScriptCode::INT, -1);
         return;
     }
-    map_foreachinarea(living ? builtin_getareausers_living_sub: builtin_getareausers_sub,
-                       m, x0, y0, x1, y1, BL_PC, &users);
+    map_foreachinarea(std::bind(living ? builtin_getareausers_living_sub: builtin_getareausers_sub, ph::_1, &users),
+                       m, x0, y0, x1, y1, BL_PC);
     push_val(st->stack, ScriptCode::INT, users);
 }
 
@@ -4211,10 +4217,8 @@ void builtin_getareausers(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_getareadropitem_sub(struct block_list *bl, va_list ap)
+void builtin_getareadropitem_sub(struct block_list *bl, int item, int *amount)
 {
-    int item = va_arg(ap, int);
-    int *amount = va_arg(ap, int *);
     struct flooritem_data *drop = (struct flooritem_data *) bl;
 
     if (drop->item_data.nameid == item)
@@ -4223,10 +4227,8 @@ void builtin_getareadropitem_sub(struct block_list *bl, va_list ap)
 }
 
 static
-void builtin_getareadropitem_sub_anddelete(struct block_list *bl, va_list ap)
+void builtin_getareadropitem_sub_anddelete(struct block_list *bl, int item, int *amount)
 {
-    int item = va_arg(ap, int);
-    int *amount = va_arg(ap, int *);
     struct flooritem_data *drop = (struct flooritem_data *) bl;
 
     if (drop->item_data.nameid == item) {
@@ -4269,11 +4271,11 @@ void builtin_getareadropitem(ScriptState *st)
         return;
     }
     if (delitems)
-        map_foreachinarea(builtin_getareadropitem_sub_anddelete,
-                           m, x0, y0, x1, y1, BL_ITEM, item, &amount);
+        map_foreachinarea(std::bind(builtin_getareadropitem_sub_anddelete, ph::_1, item, &amount),
+                m, x0, y0, x1, y1, BL_ITEM);
     else
-        map_foreachinarea(builtin_getareadropitem_sub,
-                           m, x0, y0, x1, y1, BL_ITEM, item, &amount);
+        map_foreachinarea(std::bind(builtin_getareadropitem_sub, ph::_1, item, &amount),
+                m, x0, y0, x1, y1, BL_ITEM);
 
     push_val(st->stack, ScriptCode::INT, amount);
 }
@@ -4610,27 +4612,6 @@ void builtin_delwaitingroom(ScriptState *st)
     else
         nd = (struct npc_data *) map_id2bl(st->oid);
     chat_deletenpcchat(nd);
-}
-
-/*==========================================
- * npcチャット全員蹴り出す
- *------------------------------------------
- */
-static
-void builtin_waitingroomkickall(ScriptState *st)
-{
-    struct npc_data *nd;
-    struct chat_data *cd;
-
-    if (st->end > st->start + 2)
-        nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 2])));
-    else
-        nd = (struct npc_data *) map_id2bl(st->oid);
-
-    if (nd == NULL
-        || (cd = (struct chat_data *) map_id2bl(nd->chat_id)) == NULL)
-        return;
-    chat_npckickall(cd);
 }
 
 /*==========================================
@@ -4982,7 +4963,7 @@ void builtin_removemapflag(ScriptState *st)
 
 void builtin_getmapflag(ScriptState *st)
 {
-    int m, i, r;
+    int m, i, r = -1;
 
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
     i = conv_num(st, &(st->stack->stack_data[st->start + 3]));
@@ -5039,7 +5020,6 @@ void builtin_getmapflag(ScriptState *st)
             case MF_RAIN:      // [Valaris]
                 r = map[m].flag.rain;
                 break;
-
         }
     }
 
@@ -5322,8 +5302,8 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
 
-    map_foreachinarea(builtin_areawarp_sub,
-                       m, x0, y0, x1, y1, BL_PC, str, x, y);
+    map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
+            m, x0, y0, x1, y1, BL_PC);
 }
 
 void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
@@ -5353,11 +5333,8 @@ void builtin_stoptimer(ScriptState *st) // Added by RoVeRT
 }
 
 static
-void builtin_mobcount_sub(struct block_list *bl, va_list ap)    // Added by RoVeRT
+void builtin_mobcount_sub(struct block_list *bl, const char *event, int *c)
 {
-    char *event = va_arg(ap, char *);
-    int *c = va_arg(ap, int *);
-
     if (strcmp(event, ((struct mob_data *) bl)->npc_event) == 0)
         (*c)++;
 }
@@ -5373,8 +5350,8 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
         push_val(st->stack, ScriptCode::INT, -1);
         return;
     }
-    map_foreachinarea(builtin_mobcount_sub,
-                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB, event, &c);
+    map_foreachinarea(std::bind(builtin_mobcount_sub, ph::_1, event, &c),
+                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB);
 
     push_val(st->stack, ScriptCode::INT, (c - 1));
 
@@ -5920,25 +5897,6 @@ void builtin_gmcommand(ScriptState *st)
 }
 
 /*==========================================
- * movenpc [MouseJstr]
- *------------------------------------------
- */
-
-void builtin_movenpc(ScriptState *st)
-{
-    struct map_session_data *sd;
-    int x, y;
-
-    sd = script_rid2sd(st);
-
-    const char *mapname = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    x = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    y = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    const char *npc = conv_str(st, &(st->stack->stack_data[st->start + 5]));
-
-}
-
-/*==========================================
  * npcwarp [remoitnane]
  * Move NPC to a new position on the same map.
  *------------------------------------------
@@ -6123,12 +6081,8 @@ void builtin_getsavepoint(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_areatimer_sub(struct block_list *bl, va_list ap)
+void builtin_areatimer_sub(struct block_list *bl, int tick, const char *event)
 {
-    int tick;
-    char *event;
-    tick = va_arg(ap, int);
-    event = va_arg(ap, char *);
     pc_addeventtimer((struct map_session_data *) bl, tick, event);
 }
 
@@ -6148,8 +6102,8 @@ void builtin_areatimer(ScriptState *st)
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
 
-    map_foreachinarea(builtin_areatimer_sub,
-                       m, x0, y0, x1, y1, BL_PC, tick, event);
+    map_foreachinarea(std::bind(builtin_areatimer_sub, ph::_1, tick, event),
+                       m, x0, y0, x1, y1, BL_PC);
 }
 
 /*==========================================
@@ -6633,7 +6587,7 @@ void run_func(ScriptState *st)
  *------------------------------------------
  */
 static
-void run_script_main(const ScriptCode *script, int pos_, int rid, int oid,
+void run_script_main(const ScriptCode *script, int pos_, int, int,
                       ScriptState *st, const ScriptCode *rootscript)
 {
     int rerun_pos;
@@ -6785,7 +6739,7 @@ int run_script(const ScriptCode *script, int pos_, int rid, int oid)
 }
 
 int run_script_l(const ScriptCode *script, int pos_, int rid, int oid,
-                  int args_nr, argrec_t * args)
+                  int args_nr, argrec_t *args)
 {
     struct script_stack stack;
     ScriptState st;
@@ -6922,9 +6876,9 @@ void script_load_mapreg(void)
  * 永続的マップ変数の書き込み
  *------------------------------------------
  */
-static void script_save_mapreg_intsub(db_key_t key, db_val_t data, va_list ap)
+static
+void script_save_mapreg_intsub(db_key_t key, db_val_t data, FILE *fp)
 {
-    FILE *fp = va_arg(ap, FILE *);
     int num = key.i & 0x00ffffff, i = key.i >> 24;
     char *name = str_buf + str_data[num].str;
     if (name[1] != '@')
@@ -6936,9 +6890,9 @@ static void script_save_mapreg_intsub(db_key_t key, db_val_t data, va_list ap)
     }
 }
 
-static void script_save_mapreg_strsub(db_key_t key, db_val_t data, va_list ap)
+static
+void script_save_mapreg_strsub(db_key_t key, db_val_t data, FILE *fp)
 {
-    FILE *fp = va_arg(ap, FILE *);
     int num = key.i & 0x00ffffff, i = key.i >> 24;
     char *name = str_buf + str_data[num].str;
     if (name[1] != '@')
@@ -6958,14 +6912,14 @@ void script_save_mapreg(void)
 
     if ((fp = lock_fopen(mapreg_txt, &lock)) == NULL)
         return;
-    numdb_foreach(mapreg_db, script_save_mapreg_intsub, fp);
-    numdb_foreach(mapregstr_db, script_save_mapreg_strsub, fp);
+    numdb_foreach(mapreg_db, std::bind(script_save_mapreg_intsub, ph::_1, ph::_2, fp));
+    numdb_foreach(mapregstr_db, std::bind(script_save_mapreg_strsub, ph::_1, ph::_2, fp));
     lock_fclose(fp, mapreg_txt, &lock);
     mapreg_dirty = 0;
 }
 
-static void script_autosave_mapreg(timer_id tid, tick_t tick, custom_id_t id,
-                                    custom_data_t data)
+static
+void script_autosave_mapreg(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     if (mapreg_dirty)
         script_save_mapreg();
@@ -7041,12 +6995,14 @@ void script_config_read(const char *cfgName)
  *------------------------------------------
  */
 
-static void mapregstr_db_final(db_key_t key, db_val_t data, va_list ap)
+static
+void mapregstr_db_final(db_key_t, db_val_t data)
 {
     free(data);
 }
 
-static void userfunc_db_final(db_key_t key, db_val_t data, va_list ap)
+static
+void userfunc_db_final(db_key_t key, db_val_t data)
 {
     free((char*)key.s);
     free(data);

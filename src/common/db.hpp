@@ -3,7 +3,7 @@
 #define DB_HPP
 # include "sanity.hpp"
 
-# include <stdarg.h>
+# include <functional>
 
 /// Number of tree roots
 // Somewhat arbitrary - larger wastes more space but is faster for large trees
@@ -13,7 +13,7 @@
 typedef enum dbn_color
 {
     RED,
-    BLACK
+    BLACK,
 } dbn_color;
 
 typedef intptr_t numdb_key_t;
@@ -28,7 +28,7 @@ typedef union db_key_t
 } db_key_t;
 typedef void* db_val_t;
 typedef uint32_t hash_t;
-typedef void(*db_func_t)(db_key_t, db_val_t, va_list);
+typedef std::function<void(db_key_t, db_val_t)> db_func_t;
 
 /// DataBase Node
 struct dbn
@@ -82,9 +82,9 @@ struct dbn *db_insert(struct dbt *table, db_key_t key, db_val_t data);
 db_val_t db_erase(struct dbt *table, db_key_t key);
 
 /// Execute a function for every element, in unspecified order
-void db_foreach(struct dbt *, db_func_t, ...);
+void db_foreach(struct dbt *, db_func_t);
 // opposite of init? Calls release for every element and frees memory
 // This probably isn't really needed: we don't have to free memory while exiting
-void db_final(struct dbt *, db_func_t, ...) __attribute__((deprecated));
+void db_final(struct dbt *, db_func_t) __attribute__((deprecated));
 
-#endif
+#endif // DB_HPP

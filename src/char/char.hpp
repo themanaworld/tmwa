@@ -1,6 +1,7 @@
-// $Id: char.h,v 1.1.1.1 2004/09/10 17:26:50 MagicalTux Exp $
 #ifndef CHAR_HPP
 #define CHAR_HPP
+
+#include "../common/mmo.hpp"
 
 #define MAX_MAP_SERVERS 30
 
@@ -30,4 +31,4 @@ int char_log(const char *fmt, ...);
 
 extern int autosave_interval;
 
-#endif
+#endif // CHAR_HPP

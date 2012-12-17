@@ -1,13 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "magic-interpreter.hpp"
 
 #undef DEBUG
 
-static char *magic_preprocess_message(character_t * character, char *start,
+static
+char *magic_preprocess_message(character_t *character, char *start,
                                        char *end)
 {
     if (character->state.shroud_active
@@ -30,7 +31,8 @@ static char *magic_preprocess_message(character_t * character, char *start,
 
 /* Returns a dynamically allocated copy of `src'.
  * `*parameter' may point within that copy or be NULL. */
-static char *magic_tokenise(char *src, char **parameter)
+static
+char *magic_tokenise(char *src, char **parameter)
 {
     char *retval = strdup(src);
     char *seeker = retval;
@@ -54,7 +56,7 @@ static char *magic_tokenise(char *src, char **parameter)
     return retval;
 }
 
-int magic_message(character_t * caster, char *spell_, size_t spell_len)
+int magic_message(character_t *caster, char *spell_, size_t)
 {
     if (pc_isdead(caster))
         return 0;

@@ -1,9 +1,11 @@
-// $Id: mob.h,v 1.4 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef MOB_HPP
 #define MOB_HPP
 
 #include "mob.t.hpp"
+
 #include "../common/timer.hpp"
+
+#include "map.hpp"
 #include "skill.t.hpp"
 
 #define MAX_RANDOMMONSTER 3
@@ -111,4 +113,4 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag);
 
 void mob_reload(void);
 
-#endif
+#endif // MOB_HPP

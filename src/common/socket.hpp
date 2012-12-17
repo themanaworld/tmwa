@@ -3,13 +3,12 @@
 
 # include "sanity.hpp"
 
-# include <stdio.h>
-
-# include <sys/types.h>
-# include <sys/socket.h>
 # include <netinet/in.h>
+# include <sys/socket.h>
+# include <sys/types.h>
 
-# include <time.h>
+# include <cstdio>
+# include <ctime>
 
 /// Check how much can be read
 # define RFIFOREST(fd) (session[fd]->rdata_size-session[fd]->rdata_pos)

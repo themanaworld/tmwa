@@ -1,10 +1,10 @@
 #include "utils.hpp"
 
-#include <cstring>
+#include <netinet/in.h>
+
 #include <cstdio>
 #include <cstdlib>
-
-#include <netinet/in.h>
+#include <cstring>
 
 //-----------------------------------------------------
 // Function to suppress control characters in a string.

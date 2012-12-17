@@ -1,41 +1,38 @@
-// $Id: login.c,v 1.1.1.1 2004/09/10 17:26:53 MagicalTux Exp $
-// new version of the login-server by [Yor]
+#include "login.hpp"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <sys/time.h>
-#include <time.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>           // for stat/lstat/fstat
-#include <unistd.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <string.h>
 #include <arpa/inet.h>
-#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 
+#include <fcntl.h>
+#include <netdb.h>
+#include <unistd.h>
+
+#include <csignal>
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include "../common/core.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "login.hpp"
-#include "../common/mmo.hpp"
-#include "../common/version.hpp"
 #include "../common/db.hpp"
 #include "../common/lock.hpp"
-#include "../common/mt_rand.hpp"
-
 #include "../common/md5calc.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
+#include "../common/mmo.hpp"
+#include "../common/mt_rand.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
+#include "../common/version.hpp"
 
 #include <type_traits>
-static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long");
+
+static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long (sorry)");
 
 int account_id_count = START_ACCOUNT_NUM;
 int server_num;
@@ -128,7 +125,8 @@ char admin_pass[24] = "";
 char gm_pass[64] = "";
 int level_new_gm = 60;
 
-static struct dbt *gm_account_db;
+static
+struct dbt *gm_account_db;
 
 pid_t pid = 0; // For forked DB writes
 
@@ -949,7 +947,7 @@ void mmo_auth_sync(void)
 // we save periodicly on a timer.
 //-----------------------------------------------------
 static
-void check_auth_sync(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void check_auth_sync(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     if (pid != 0)
     {
@@ -1029,7 +1027,7 @@ void send_GM_accounts(void)
 // Check if GM file account have been changed
 //-----------------------------------------------------
 static
-void check_GM_file(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void check_GM_file(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     struct stat file_stat;
     long new_time;
@@ -1169,77 +1167,18 @@ int mmo_auth(struct mmo_account *account, int fd)
     if (i != auth_num)
     {
         int encpasswdok = 0;
-        struct login_session_data *ld;
         if (newaccount)
         {
             login_log("Attempt of creation of an already existant account (account: %s_%c, ip: %s)\n",
                  account->userid, account->userid[len + 1], ip);
             return 9;           // 9 = Account already exists
         }
-        ld = (struct login_session_data*) session[fd]->session_data;
-#ifdef PASSWORDENC
-        if (account->passwdenc > 0)
-        {
-            int j = account->passwdenc;
-            if (!ld)
-            {
-                login_log("Md5 key not created (account: %s, ip: %s)\n",
-                           account->userid, ip);
-                return 1;       // 1 = Incorrect Password
-            }
-            if (j > 2)
-                j = 1;
-            do
-            {
-                if (j == 1)
-                {
-                    strncpy(md5str, ld->md5key, sizeof(ld->md5key));  // 20
-                    strcat(md5str, auth_dat[i].pass);  // 24
-                }
-                else if (j == 2)
-                {
-                    strncpy(md5str, auth_dat[i].pass, sizeof(auth_dat[i].pass));  // 24
-                    strcat(md5str, ld->md5key);    // 20
-                }
-                else
-                    md5str[0] = '\0';
-                md5str[sizeof(md5str) - 1] = '\0'; // 64
-                MD5_String2binary(md5str, md5bin);
-                encpasswdok = (memcmp(account->passwd, md5bin, 16) == 0);
-            }
-            while (j < 2 && !encpasswdok && (j++) != account->passwdenc);
-//          printf("key[%s] md5 [%s] ", md5key, md5);
-//          printf("client [%s] accountpass [%s]\n", account->passwd, auth_dat[i].pass);
-        }
-#endif
         if ((!pass_ok(account->passwd, auth_dat[i].pass)) && !encpasswdok)
         {
             if (account->passwdenc == 0)
                 login_log("Invalid password (account: %s, ip: %s)\n",
                      account->userid, ip);
 
-#ifdef PASSWORDENC
-            else
-            {
-                char logbuf[512], *p = logbuf;
-                int j;
-                p += sprintf(p,
-                              "Invalid password (account: %s, received md5[",
-                              account->userid);
-                for (j = 0; j < 16; j++)
-                    p += sprintf(p, "%02x",
-                                  ((unsigned char *) account->passwd)[j]);
-                p += sprintf(p, "] calculated md5[");
-                for (j = 0; j < 16; j++)
-                    p += sprintf(p, "%02x", ((unsigned char *) md5bin)[j]);
-                p += sprintf(p, "] md5 key[");
-                for (j = 0; j < ld->md5keylen; j++)
-                    p += sprintf(p, "%02x",
-                                  ((unsigned char *) ld->md5key)[j]);
-                p += sprintf(p, "], ip: %s)\n", ip);
-                login_log(logbuf);
-            }
-#endif
             return 1;           // 1 = Incorrect Password
         }
 
@@ -1336,7 +1275,7 @@ int mmo_auth(struct mmo_account *account, int fd)
 // Char-server anti-freeze system
 //-------------------------------
 static
-void char_anti_freeze_system(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void char_anti_freeze_system(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     int i;
 
@@ -2605,8 +2544,7 @@ void parse_admin(int fd)
                                                              "// %s: 'ladmin' GM level removed on account %d '%s' (previous level: %d)\n//%d %d\n",
                                                              tmpstr,
                                                              acc,
-                                                             auth_dat
-                                                             [i].userid,
+                                                             auth_dat[i].userid,
                                                              GM_level, acc,
                                                              new_gm_level);
                                                     modify_flag = 1;
@@ -2617,8 +2555,7 @@ void parse_admin(int fd)
                                                              "// %s: 'ladmin' GM level on account %d '%s' (previous level: %d)\n%d %d\n",
                                                              tmpstr,
                                                              acc,
-                                                             auth_dat
-                                                             [i].userid,
+                                                             auth_dat[i].userid,
                                                              GM_level, acc,
                                                              new_gm_level);
                                                     modify_flag = 1;
@@ -3416,12 +3353,7 @@ void parse_login(int fd)
                     account.passwd[23] = '\0';
                     remove_control_chars(account.passwd);
                 }
-#ifdef PASSWORDENC
-                account.passwdenc =
-                    (RFIFOW(fd, 0) == 0x64) ? 0 : PASSWORDENC;
-#else
                 account.passwdenc = 0;
-#endif
 
                 if (RFIFOW(fd, 0) == 0x64)
                 {

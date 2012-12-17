@@ -1,13 +1,15 @@
 // Reads .gat files by name-mapping .wlk files
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "grfio.hpp"
+
 #include <sys/stat.h>
 
-#include "utils.hpp"
-#include "grfio.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include "mmo.hpp"
 #include "socket.hpp"
+#include "utils.hpp"
 
 //----------------------------
 //  file entry table struct
@@ -22,19 +24,24 @@ typedef struct
 #define FILELIST_LIMIT  32768   // limit to number of filelists - if you increase this, change all shorts to int
 #define FILELIST_ADDS   1024    // amount to increment when reallocing
 
-static FILELIST *filelist = NULL;
+static
+FILELIST *filelist = NULL;
 /// Number of entries used
-static uint16_t filelist_entrys = 0;
+static
+uint16_t filelist_entrys = 0;
 /// Number of FILELIST entries actually allocated
-static uint16_t filelist_maxentry = 0;
+static
+uint16_t filelist_maxentry = 0;
 
 /// First index of the given hash, into the filelist[] array
 #define l -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
-static int16_t filelist_hash[256] = {l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l};
+static
+int16_t filelist_hash[256] = {l,l,l,l,l,l,l,l,l,l,l,l,l,l,l,l};
 #undef l
 
 /// Hash a filename
-static uint8_t filehash(const char *fname)
+static
+uint8_t filehash(const char *fname)
 {
     // Larger than the return type - upper bits are used in the process
     uint32_t hash = 0;
@@ -61,7 +68,8 @@ FILELIST *filelist_find(const char *fname)
 }
 
 /// Copy a temporary entry into the hash map
-static FILELIST *filelist_add(FILELIST * entry)
+static
+FILELIST *filelist_add(FILELIST * entry)
 {
     if (filelist_entrys >= FILELIST_LIMIT)
     {
@@ -87,7 +95,8 @@ static FILELIST *filelist_add(FILELIST * entry)
     return &filelist[new_index];
 }
 
-static FILELIST *filelist_modify(FILELIST * entry)
+static
+FILELIST *filelist_modify(FILELIST * entry)
 {
     FILELIST *fentry = filelist_find(entry->fn);
     if (fentry)

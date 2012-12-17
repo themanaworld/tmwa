@@ -1,22 +1,19 @@
-// $Id: itemdb.c,v 1.3 2004/09/25 05:32:18 MouseJstr Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "itemdb.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "../common/db.hpp"
 #include "../common/grfio.hpp"
-#include "../common/nullpo.hpp"
-#include "map.hpp"
-#include "battle.hpp"
-#include "itemdb.hpp"
-#include "script.hpp"
-#include "pc.hpp"
-#include "../common/socket.hpp"
 #include "../common/mt_rand.hpp"
+#include "../common/nullpo.hpp"
+#include "../common/socket.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
+#include "battle.hpp"
+#include "map.hpp"
+#include "pc.hpp"
+#include "script.hpp"
 
 #define MAX_RANDITEM    2000
 
@@ -24,24 +21,34 @@
 //   定義すると、itemdb.txtとgrfで名前が異なる場合、表示します.
 //#define ITEMDB_OVERRIDE_NAME_VERBOSE  1
 
-static struct dbt *item_db;
+static
+struct dbt *item_db;
 
-static struct random_item_data blue_box[MAX_RANDITEM],
+static
+struct random_item_data blue_box[MAX_RANDITEM],
     violet_box[MAX_RANDITEM], card_album[MAX_RANDITEM],
     gift_box[MAX_RANDITEM], scroll[MAX_RANDITEM];
-static int blue_box_count = 0, violet_box_count = 0, card_album_count =
+static
+int blue_box_count = 0, violet_box_count = 0, card_album_count =
     0, gift_box_count = 0, scroll_count = 0;
-static int blue_box_default = 0, violet_box_default = 0, card_album_default =
+static
+int blue_box_default = 0, violet_box_default = 0, card_album_default =
     0, gift_box_default = 0, scroll_default = 0;
 
 // Function declarations
 
-static void itemdb_read(void);
-static int itemdb_readdb(void);
-static int itemdb_read_randomitem(void);
-static int itemdb_read_itemavail(void);
-static int itemdb_read_itemnametable(void);
-static int itemdb_read_noequip(void);
+static
+void itemdb_read(void);
+static
+int itemdb_readdb(void);
+static
+int itemdb_read_randomitem(void);
+static
+int itemdb_read_itemavail(void);
+static
+int itemdb_read_itemnametable(void);
+static
+int itemdb_read_noequip(void);
 
 /*==========================================
  * 名前で検索用
@@ -49,32 +56,11 @@ static int itemdb_read_noequip(void);
  */
 // name = item alias, so we should find items aliases first. if not found then look for "jname" (full name)
 static
-void itemdb_searchname_sub(db_key_t key, db_val_t data, va_list ap)
+void itemdb_searchname_sub(db_key_t, db_val_t data, const char *str, struct item_data **dst)
 {
-    struct item_data *item = (struct item_data *) data, **dst;
-    char *str;
-    str = va_arg(ap, char *);
-    dst = va_arg(ap, struct item_data **);
-//  if( strcasecmp(item->name,str)==0 || strcmp(item->jname,str)==0 ||
-//      memcmp(item->name,str,24)==0 || memcmp(item->jname,str,24)==0 )
+    struct item_data *item = (struct item_data *) data;
     if (strcasecmp(item->name, str) == 0) //by lupus
         *dst = item;
-}
-
-/*==========================================
- * 名前で検索用
- *------------------------------------------
- */
-static
-int itemdb_searchjname_sub(void *key, void *data, va_list ap)
-{
-    struct item_data *item = (struct item_data *) data, **dst;
-    char *str;
-    str = va_arg(ap, char *);
-    dst = va_arg(ap, struct item_data **);
-    if (strcasecmp(item->jname, str) == 0)
-        *dst = item;
-    return 0;
 }
 
 /*==========================================
@@ -84,7 +70,7 @@ int itemdb_searchjname_sub(void *key, void *data, va_list ap)
 struct item_data *itemdb_searchname(const char *str)
 {
     struct item_data *item = NULL;
-    numdb_foreach(item_db, itemdb_searchname_sub, str, &item);
+    numdb_foreach(item_db, std::bind(itemdb_searchname_sub, ph::_1, ph::_2, str, &item));
     return item;
 }
 
@@ -257,7 +243,8 @@ int itemdb_isdropable(int nameid)
  *
  *------------------------------------------
  */
-static int itemdb_read_itemslottable(void)
+static
+int itemdb_read_itemslottable(void)
 {
     char *buf, *p;
     size_t s;
@@ -289,7 +276,8 @@ static int itemdb_read_itemslottable(void)
  * アイテムデータベースの読み込み
  *------------------------------------------
  */
-static int itemdb_readdb(void)
+static
+int itemdb_readdb(void)
 {
     FILE *fp;
     char line[1024];
@@ -396,7 +384,8 @@ static int itemdb_readdb(void)
  * ランダムアイテム出現データの読み込み
  *------------------------------------------
  */
-static int itemdb_read_randomitem(void)
+static
+int itemdb_read_randomitem(void)
 {
     FILE *fp;
     char line[1024];
@@ -487,7 +476,8 @@ static int itemdb_read_randomitem(void)
  * アイテム使用可能フラグのオーバーライド
  *------------------------------------------
  */
-static int itemdb_read_itemavail(void)
+static
+int itemdb_read_itemavail(void)
 {
     FILE *fp;
     char line[1024];
@@ -540,7 +530,8 @@ static int itemdb_read_itemavail(void)
  * アイテムの名前テーブルを読み込む
  *------------------------------------------
  */
-static int itemdb_read_itemnametable(void)
+static
+int itemdb_read_itemnametable(void)
 {
     char *buf, *p;
     size_t s;
@@ -586,7 +577,8 @@ static int itemdb_read_itemnametable(void)
  * カードイラストのリソース名前テーブルを読み込む
  *------------------------------------------
  */
-static int itemdb_read_cardillustnametable(void)
+static
+int itemdb_read_cardillustnametable(void)
 {
     char *buf, *p;
     size_t s;
@@ -624,7 +616,8 @@ static int itemdb_read_cardillustnametable(void)
  * 装備制限ファイル読み出し
  *------------------------------------------
  */
-static int itemdb_read_noequip(void)
+static
+int itemdb_read_noequip(void)
 {
     FILE *fp;
     char line[1024];
@@ -671,7 +664,8 @@ static int itemdb_read_noequip(void)
  *
  *------------------------------------------
  */
-static void itemdb_final(db_key_t key, db_val_t data, va_list ap)
+static
+void itemdb_final(db_key_t, db_val_t data)
 {
     struct item_data *id;
 
@@ -710,8 +704,10 @@ void do_final_itemdb(void)
 }
 
 /*
-static FILE *dfp;
-static int itemdebug(void *key,void *data,va_list ap){
+static
+FILE *dfp;
+static
+int itemdebug(void *key,void *data,_va_list ap){
 //      struct item_data *id=(struct item_data *)data;
         fprintf(dfp,"%6d", (int)key);
         return 0;
@@ -728,7 +724,8 @@ void itemdebugtxt()
  * Removed item_value_db, don't re-add
  *------------------------------------
  */
-static void itemdb_read(void)
+static
+void itemdb_read(void)
 {
     itemdb_read_itemslottable();
     itemdb_readdb();

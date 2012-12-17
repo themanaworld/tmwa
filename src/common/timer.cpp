@@ -1,18 +1,23 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
+#include "timer.hpp"
 
 #include <sys/socket.h>
 #include <sys/time.h>
+#include <sys/types.h>
 
-#include "timer.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include "utils.hpp"
 
-static struct TimerData *timer_data;
-static uint32_t timer_data_max, timer_data_num;
-static timer_id *free_timer_list;
-static uint32_t free_timer_list_max, free_timer_list_pos;
+static
+struct TimerData *timer_data;
+static
+uint32_t timer_data_max, timer_data_num;
+static
+timer_id *free_timer_list;
+static
+uint32_t free_timer_list_max, free_timer_list_pos;
 
 /// Okay, I think I understand this structure now:
 /// the timer heap is a magic queue that allows inserting timers and then popping them in order
@@ -20,14 +25,18 @@ static uint32_t free_timer_list_max, free_timer_list_pos;
 // timer_heap[0] is the size (greatest index into the heap)
 // timer_heap[1] is the first actual element
 // timer_heap_max increases 256 at a time and never decreases
-static uint32_t timer_heap_max = 0;
+static
+uint32_t timer_heap_max = 0;
 /// FIXME: refactor the code to put the size in a separate variable
 //nontrivial because indices get multiplied
-static timer_id *timer_heap = NULL;
+static
+timer_id *timer_heap = NULL;
 
 
-static uint32_t gettick_cache;
-static uint8_t gettick_count = 0;
+static
+uint32_t gettick_cache;
+static
+uint8_t gettick_count = 0;
 
 uint32_t gettick_nocache(void)
 {
@@ -46,7 +55,8 @@ uint32_t gettick(void)
     return gettick_nocache();
 }
 
-static void push_timer_heap(timer_id index)
+static
+void push_timer_heap(timer_id index)
 {
     if (timer_heap == NULL || timer_heap[0] + 1 >= timer_heap_max)
     {
@@ -71,14 +81,16 @@ static void push_timer_heap(timer_id index)
     timer_heap[h + 1] = index;
 }
 
-static timer_id top_timer_heap(void)
+static
+timer_id top_timer_heap(void)
 {
     if (!timer_heap || !timer_heap[0])
         return -1;
     return timer_heap[1];
 }
 
-static timer_id pop_timer_heap(void)
+static
+timer_id pop_timer_heap(void)
 {
     if (!timer_heap || !timer_heap[0])
         return -1;

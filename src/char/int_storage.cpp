@@ -1,21 +1,22 @@
-// $Id: int_storage.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
+#include "int_storage.hpp"
 
-#include <string.h>
-#include <stdlib.h>
-
-#include "../common/mmo.hpp"
-#include "../common/socket.hpp"
 #include "../common/db.hpp"
 #include "../common/lock.hpp"
+#include "../common/mmo.hpp"
+#include "../common/socket.hpp"
+
 #include "char.hpp"
 #include "inter.hpp"
-#include "int_storage.hpp"
+
+#include <cstdlib>
+#include <cstring>
 
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
 char storage_txt[1024] = "save/storage.txt";
 
-static struct dbt *storage_db;
+static
+struct dbt *storage_db;
 
 // 倉庫データを文字列に変換
 static
@@ -171,7 +172,7 @@ int inter_storage_init(void)
 }
 
 static
-void storage_db_final(db_key_t k, db_val_t data, va_list ap)
+void storage_db_final(db_key_t, db_val_t data)
 {
     struct storage *p = (struct storage *) data;
     if (p)
@@ -185,12 +186,10 @@ void inter_storage_final(void)
 }
 
 static
-void inter_storage_save_sub(db_key_t key, db_val_t data, va_list ap)
+void inter_storage_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
     char line[65536];
-    FILE *fp;
     storage_tostr(line, (struct storage *) data);
-    fp = va_arg(ap, FILE *);
     if (*line)
         fprintf(fp, "%s\n", line);
 }
@@ -211,7 +210,7 @@ int inter_storage_save(void)
                 storage_txt);
         return 1;
     }
-    numdb_foreach(storage_db, inter_storage_save_sub, fp);
+    numdb_foreach(storage_db, std::bind(inter_storage_save_sub, ph::_1, ph::_2, fp));
     lock_fclose(fp, storage_txt, &lock);
 //  printf("int_storage: %s saved.\n",storage_txt);
     return 0;

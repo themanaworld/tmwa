@@ -1,22 +1,19 @@
-// $Id: intif.c,v 1.2 2004/09/25 05:32:18 MouseJstr Exp $
-#include <sys/types.h>
-#ifdef LCCWIN32
-#include <winsock.h>
-#else
-#include <sys/socket.h>
-#include <netinet/in.h>
-#endif
-#include <stdio.h>
-#include <stdlib.h>
-#ifndef LCCWIN32
-#include <sys/time.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
+#include "intif.hpp"
+
 #include <arpa/inet.h>
-#endif
-#include <signal.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <fcntl.h>
-#include <string.h>
+#include <unistd.h>
+
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -25,17 +22,13 @@
 #include "battle.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
-#include "intif.hpp"
 #include "map.hpp"
 #include "party.hpp"
 #include "pc.hpp"
 #include "storage.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
-
-static const int packet_len_table[] = {
+static
+const int packet_len_table[] = {
     -1, -1, 27, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     -1, 7, 0, 0, 0, 0, 0, 0, -1, 11, 0, 0, 0, 0, 0, 0,
     35, -1, 11, 15, 34, 29, 7, -1, 0, 0, 0, 0, 0, 0, 0, 0,

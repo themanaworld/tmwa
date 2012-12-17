@@ -1,4 +1,3 @@
-// $Id: chrif.h,v 1.3 2004/09/25 11:39:17 MouseJstr Exp $
 #ifndef CHRIF_HPP
 #define CHRIF_HPP
 
@@ -33,4 +32,4 @@ int chrif_send_divorce(int char_id);
 
 int do_init_chrif (void);
 
-#endif
+#endif // CHRIF_HPP

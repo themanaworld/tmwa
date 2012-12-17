@@ -1,6 +1,7 @@
-// $Id: npc.h,v 1.5 2004/09/25 11:39:17 MouseJstr Exp $
 #ifndef NPC_HPP
 #define NPC_HPP
+
+#include "../common/timer.hpp"
 
 #define START_NPC_NUM 110000000
 
@@ -61,4 +62,4 @@ int npc_gettimerevent_tick(struct npc_data *nd);
 int npc_settimerevent_tick(struct npc_data *nd, int newtimer);
 int npc_delete(struct npc_data *nd);
 
-#endif
+#endif // NPC_HPP

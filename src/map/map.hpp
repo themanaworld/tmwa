@@ -1,18 +1,18 @@
-// $Id: map.h,v 1.8 2004/09/25 11:39:17 MouseJstr Exp $
 #ifndef MAP_HPP
 #define MAP_HPP
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <time.h>
-#include <sys/time.h>
 #include <netinet/in.h>
+#include <sys/time.h>
 
+#include <cstdio>
+#include <ctime>
+
+#include "../common/db.hpp"
 #include "../common/mmo.hpp"
 #include "../common/timer.hpp"
-#include "../common/db.hpp"
-#include "script.hpp"
+
 #include "mob.t.hpp"
+#include "script.hpp"   // change to script.t.hpp
 #include "skill.t.hpp"
 
 #ifndef MAX
@@ -481,7 +481,7 @@ enum mob_stat
     MOB_SPEED,
     // These must come last:
     MOB_XP_BONUS,               /* [Fate] Encoded as base to 1024: 1024 means 100% */
-    MOB_LAST
+    MOB_LAST,
 };
 
 #define MOB_XP_BONUS_BASE  1024
@@ -687,7 +687,7 @@ enum
     LOOK_GLOVES,
     LOOK_CAPE,
     LOOK_MISC1,
-    LOOK_MISC2
+    LOOK_MISC2,
 };
 
 enum
@@ -737,13 +737,20 @@ int map_freeblock_unlock(void);
 // block関連
 int map_addblock(struct block_list *);
 int map_delblock(struct block_list *);
-void map_foreachinarea(void(*)(struct block_list *, va_list), int, int, int,
-                        int, int, int, ...);
+void map_foreachinarea(std::function<void(struct block_list *)>,
+        int,
+        int, int, int, int,
+        int);
 // -- moonsoul (added map_foreachincell)
-void map_foreachincell(void(*)(struct block_list *, va_list), int, int, int,
-                        int, ...);
-void map_foreachinmovearea(void(*)(struct block_list *, va_list), int, int,
-                            int, int, int, int, int, int, ...);
+void map_foreachincell(std::function<void(struct block_list *)>,
+        int,
+        int, int,
+        int);
+void map_foreachinmovearea(std::function<void(struct block_list *)>,
+        int,
+        int, int, int, int,
+        int, int,
+        int);
 int map_countnearpc(int, int, int);
 //block関連に追加
 int map_count_oncell(int m, int x, int y);
@@ -751,7 +758,8 @@ int map_count_oncell(int m, int x, int y);
 int map_addobject(struct block_list *);
 int map_delobject(int, int type);
 int map_delobjectnofree(int id, int type);
-void map_foreachobject(void(*)(struct block_list *, va_list), int, ...);
+void map_foreachobject(std::function<void(struct block_list *)>,
+        int);
 //
 int map_quit(struct map_session_data *);
 // npc
@@ -790,7 +798,7 @@ int map_setipport(const char *name, struct in_addr ip, int port);
 int map_eraseipport(const char *name, struct in_addr ip, int port);
 void map_addiddb(struct block_list *);
 void map_deliddb(struct block_list *bl);
-int map_foreachiddb(db_func_t, ...);
+void map_foreachiddb(db_func_t);
 void map_addnickdb(struct map_session_data *);
 int map_scriptcont(struct map_session_data *sd, int id);  /* Continues a script either on a spell or on an NPC */
 struct map_session_data *map_nick2sd(const char *);
@@ -817,7 +825,6 @@ int path_blownpos(int m, int x0, int y0, int dx, int dy, int count);
 
 int map_who(int fd);
 
-void map_helpscreen(void);         // [Valaris]
 int map_delmap(char *mapname);
 
-#endif
+#endif // MAP_HPP

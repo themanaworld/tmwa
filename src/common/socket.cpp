@@ -1,22 +1,20 @@
-// $Id: socket.c,v 1.1.1.1 2004/09/10 17:44:49 MagicalTux Exp $
-// original : core.c 2003/02/26 18:03:12 Rev 1.7
+#include "socket.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <errno.h>
-
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
 #include <sys/time.h>
-#include <unistd.h>
+#include <sys/types.h>
 
 #include <fcntl.h>
-#include <string.h>
+#include <unistd.h>
 
-#include "mmo.hpp"                // [Valaris] thanks to fov
-#include "socket.hpp"
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include "mmo.hpp"
 #include "utils.hpp"
 
 fd_set readfds;
@@ -29,9 +27,11 @@ const uint32_t WFIFO_SIZE = 65536;
 struct socket_data *session[FD_SETSIZE];
 
 /// Discard all input
-static void null_parse(int fd);
+static
+void null_parse(int fd);
 /// Default parser for new connections
-static void(*default_func_parse)(int) = null_parse;
+static
+void(*default_func_parse)(int) = null_parse;
 
 void set_defaultparse(void(*defaultparse)(int))
 {
@@ -39,7 +39,8 @@ void set_defaultparse(void(*defaultparse)(int))
 }
 
 /// Read from socket to the queue
-static void recv_to_fifo(int fd)
+static
+void recv_to_fifo(int fd)
 {
     if (session[fd]->eof)
         return;
@@ -58,7 +59,8 @@ static void recv_to_fifo(int fd)
     }
 }
 
-static void send_from_fifo(int fd)
+static
+void send_from_fifo(int fd)
 {
     if (session[fd]->eof)
         return;
@@ -81,14 +83,16 @@ static void send_from_fifo(int fd)
     }
 }
 
-static void null_parse(int fd)
+static
+void null_parse(int fd)
 {
     printf("null_parse : %d\n", fd);
     RFIFOSKIP(fd, RFIFOREST(fd));
 }
 
 
-static void connect_client(int listen_fd)
+static
+void connect_client(int listen_fd)
 {
     struct sockaddr_in client_address;
     socklen_t len = sizeof(client_address);

@@ -1,5 +1,7 @@
 #include "md5calc.hpp"
-#include <string.h>
+
+#include <cstring>
+
 #include "mt_rand.hpp"
 
 // auxilary data
@@ -9,7 +11,8 @@ sin() constant table
 echo 'scale=40; obase=16; for (i=1;i<=64;i++) print 2^32 * sin(i), "\n"' |
 bc | sed 's/^-//;s/^/0x/;s/\..*$/,/'
 */
-static const uint32_t T[64] =
+static
+const uint32_t T[64] =
 {
     // used by round 1
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, //0
@@ -35,29 +38,35 @@ static const uint32_t T[64] =
 
 // auxilary functions
 // note - the RFC defines these by non-CS conventions: or=v, and=(empty)
-static inline uint32_t rotate_left(uint32_t val, unsigned shift)
+static
+uint32_t rotate_left(uint32_t val, unsigned shift)
 {
     return val << shift | val >> (32-shift);
 }
 
-static inline uint32_t F(uint32_t X, uint32_t Y, uint32_t Z)
+static
+uint32_t F(uint32_t X, uint32_t Y, uint32_t Z)
 {
     return (X & Y) | (~X & Z);
 }
-static inline uint32_t G(uint32_t X, uint32_t Y, uint32_t Z)
+static
+uint32_t G(uint32_t X, uint32_t Y, uint32_t Z)
 {
     return (X & Z) | (Y & ~Z);
 }
-static inline uint32_t H(uint32_t X, uint32_t Y, uint32_t Z)
+static
+uint32_t H(uint32_t X, uint32_t Y, uint32_t Z)
 {
     return X ^ Y ^ Z;
 }
-static inline uint32_t I(uint32_t X, uint32_t Y, uint32_t Z)
+static
+uint32_t I(uint32_t X, uint32_t Y, uint32_t Z)
 {
     return Y ^ (X | ~Z);
 }
 
-static const struct
+static
+const struct
 {
     uint8_t k : 4;
     uint8_t : 0;
@@ -165,7 +174,8 @@ void MD5_to_bin(MD5_state state, uint8_t out[0x10])
         out[i] = state.val[i/4] >> 8*(i%4);
 }
 
-static const char hex[] = "0123456789abcdef";
+static
+const char hex[] = "0123456789abcdef";
 
 void MD5_to_str(MD5_state state, char out[0x21])
 {

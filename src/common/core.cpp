@@ -1,15 +1,18 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
+#include "core.hpp"
+
 #include <sys/wait.h>
 
-#include "core.hpp"
+#include <unistd.h>
+
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+
+#include "mt_rand.hpp"
+#include "nullpo.hpp"
 #include "socket.hpp"
 #include "timer.hpp"
 #include "version.hpp"
-#include "mt_rand.hpp"
-#include "nullpo.hpp"
 
 // Added by Gabuzomeu
 //
@@ -18,7 +21,8 @@
 // Programming in the UNIX Environment_.
 //
 typedef void(*sigfunc)(int);
-static sigfunc compat_signal(int signo, sigfunc func)
+static
+sigfunc compat_signal(int signo, sigfunc func)
 {
     struct sigaction sact, oact;
 
@@ -37,11 +41,13 @@ static sigfunc compat_signal(int signo, sigfunc func)
     return oact.sa_handler;
 }
 
-static void chld_proc(int UNUSED)
+static
+void chld_proc(int)
 {
     wait(NULL);
 }
-static void sig_proc(int UNUSED)
+static
+void sig_proc(int)
 {
     for (int i = 1; i < 31; ++i)
         compat_signal(i, SIG_IGN);

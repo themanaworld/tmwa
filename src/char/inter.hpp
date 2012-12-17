@@ -1,4 +1,3 @@
-// $Id: inter.h,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
 #ifndef INTER_HPP
 #define INTER_HPP
 
@@ -16,4 +15,4 @@ int inter_log(const char *fmt, ...);
 extern int party_share_level;
 extern char inter_log_filename[1024];
 
-#endif
+#endif // INTER_HPP

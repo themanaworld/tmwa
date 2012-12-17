@@ -1,4 +1,3 @@
-// $Id: skill.h,v 1.5 2004/09/25 05:32:19 MouseJstr Exp $
 #ifndef SKILL_HPP
 #define SKILL_HPP
 
@@ -109,10 +108,8 @@ struct skill_unit_group *skill_initunitgroup(struct block_list *src,
                                               int count, SkillID skillid,
                                               int skilllv, int unit_id);
 int skill_delunitgroup(struct skill_unit_group *group);
-struct skill_unit_group_tickset *skill_unitgrouptickset_search(struct
-                                                                block_list
-                                                                *bl,
-                                                                int group_id);
+struct skill_unit_group_tickset *skill_unitgrouptickset_search(
+        struct block_list *bl, int group_id);
 int skill_unitgrouptickset_delete(struct block_list *bl, int group_id);
 int skill_clear_unitgroup(struct block_list *src);
 
@@ -224,4 +221,4 @@ int skill_power_bl(struct block_list *bl, SkillID skill);
 
 // [Fate] Remember that a certain skill ID belongs to a pool skill
 void skill_pool_register(SkillID id);
-#endif
+#endif // SKILL_HPP

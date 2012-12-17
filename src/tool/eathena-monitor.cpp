@@ -7,16 +7,17 @@
  * gcc -o eathena-monitor eathena-monitor.c
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <sys/types.h>
-
-#include <time.h>
-#include <fcntl.h>
 #include <sys/wait.h>
-#include <signal.h>
+
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #define HOME getenv("HOME")
 #define LOGIN_SERVER "./login-server"
@@ -27,7 +28,8 @@
 
 
 #define SKIP_BLANK(ptr) ptr += skip_blank(ptr)
-static inline size_t skip_blank(const char* ptr) {
+static
+size_t skip_blank(const char* ptr) {
     size_t i = 0;
     while (
         (ptr[i] == ' ') ||
@@ -39,7 +41,8 @@ static inline size_t skip_blank(const char* ptr) {
 }
 
 #define GOTO_EQL(ptr) ptr += goto_eql(ptr)
-static inline size_t goto_eql(const char* ptr) {
+static
+size_t goto_eql(const char* ptr) {
     size_t i = 0;
     while (
         (ptr[i] != '\0') &&
@@ -51,7 +54,8 @@ static inline size_t goto_eql(const char* ptr) {
 }
 
 #define GOTO_EOL(ptr) ptr += goto_newline(ptr)
-static inline size_t goto_newline(const char* ptr) {
+static
+size_t goto_newline(const char* ptr) {
     size_t i = 0;
     while (
         (ptr[i] != '\0') &&

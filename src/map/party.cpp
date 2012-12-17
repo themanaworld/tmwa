@@ -1,35 +1,34 @@
-// $Id: party.c,v 1.2 2004/09/22 02:59:47 Akitasha Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "party.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include "../common/db.hpp"
-#include "../common/timer.hpp"
-#include "../common/socket.hpp"
 #include "../common/nullpo.hpp"
-#include "pc.hpp"
-#include "map.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
+
 #include "battle.hpp"
-#include "intif.hpp"
 #include "clif.hpp"
+#include "intif.hpp"
+#include "map.hpp"
+#include "pc.hpp"
 #include "skill.hpp"
 #include "tmw.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
-
 #define PARTY_SEND_XYHP_INVERVAL        1000    // 座標やＨＰ送信の間隔
 
-static struct dbt *party_db;
+static
+struct dbt *party_db;
 
 void party_send_xyhp_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 /*==========================================
  * 終了
  *------------------------------------------
  */
-static void party_db_final(db_key_t key, db_val_t data, va_list ap)
+static
+void party_db_final(db_key_t, db_val_t data)
 {
     free(data);
 }
@@ -56,12 +55,9 @@ struct party *party_search(int party_id)
 }
 
 static
-void party_searchname_sub(db_key_t key, db_val_t data, va_list ap)
+void party_searchname_sub(db_key_t, db_val_t data, const char *str, struct party **dst)
 {
-    struct party *p = (struct party *) data, **dst;
-    const char *str;
-    str = va_arg(ap, const char *);
-    dst = va_arg(ap, struct party **);
+    struct party *p = (struct party *) data;
     if (strcasecmp(p->name, str) == 0)
         *dst = p;
 }
@@ -70,7 +66,7 @@ void party_searchname_sub(db_key_t key, db_val_t data, va_list ap)
 struct party *party_searchname(const char *str)
 {
     struct party *p = NULL;
-    numdb_foreach(party_db, party_searchname_sub, str, &p);
+    numdb_foreach(party_db, std::bind(party_searchname_sub, ph::_1, ph::_2, str, &p));
     return p;
 }
 
@@ -383,8 +379,7 @@ int party_member_added(int party_id, int account_id, int flag)
 }
 
 // パーティ除名要求
-int party_removemember(struct map_session_data *sd, int account_id,
-                        const char *name)
+int party_removemember(struct map_session_data *sd, int account_id, const char *)
 {
     struct party *p;
     int i;
@@ -514,7 +509,7 @@ int party_optionchanged(int party_id, int account_id, int exp, int item,
 }
 
 // パーティメンバの移動通知
-int party_recv_movemap(int party_id, int account_id, const char *map, int online,
+int party_recv_movemap(int party_id, int account_id, const char *mapname, int online,
                         int lv)
 {
     struct party *p;
@@ -531,7 +526,7 @@ int party_recv_movemap(int party_id, int account_id, const char *map, int online
         }
         if (m->account_id == account_id)
         {
-            memcpy(m->map, map, 16);
+            memcpy(m->map, mapname, 16);
             m->online = online;
             m->lv = lv;
             break;
@@ -644,7 +639,7 @@ int party_check_conflict(struct map_session_data *sd)
 
 // 位置やＨＰ通知用
 static
-void party_send_xyhp_timer_sub(db_key_t key, db_val_t data, va_list ap)
+void party_send_xyhp_timer_sub(db_key_t, db_val_t data)
 {
     struct party *p = (struct party *) data;
     int i;
@@ -675,9 +670,9 @@ void party_send_xyhp_timer_sub(db_key_t key, db_val_t data, va_list ap)
 }
 
 // 位置やＨＰ通知
-void party_send_xyhp_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void party_send_xyhp_timer(timer_id, tick_t, custom_id_t, custom_data_t)
 {
-    numdb_foreach(party_db, party_send_xyhp_timer_sub, tick);
+    numdb_foreach(party_db, party_send_xyhp_timer_sub);
 }
 
 // 位置通知クリア
@@ -701,18 +696,12 @@ int party_send_xy_clear(struct party *p)
 }
 
 // HP通知の必要性検査用（map_foreachinmoveareaから呼ばれる）
-void party_send_hp_check(struct block_list *bl, va_list ap)
+void party_send_hp_check(struct block_list *bl, int party_id, int *flag)
 {
-    int party_id;
-    int *flag;
     struct map_session_data *sd;
 
     nullpo_retv(bl);
-    nullpo_retv(ap);
-    nullpo_retv(sd = (struct map_session_data *) bl);
-
-    party_id = va_arg(ap, int);
-    flag = va_arg(ap, int *);
+    sd = (struct map_session_data *) bl;
 
     if (sd->status.party_id == party_id)
     {
@@ -722,7 +711,7 @@ void party_send_hp_check(struct block_list *bl, va_list ap)
 }
 
 // 経験値公平分配
-int party_exp_share(struct party *p, int map, int base_exp, int job_exp)
+int party_exp_share(struct party *p, int mapid, int base_exp, int job_exp)
 {
     struct map_session_data *sd;
     int i, c;
@@ -730,12 +719,12 @@ int party_exp_share(struct party *p, int map, int base_exp, int job_exp)
     nullpo_retr(0, p);
 
     for (i = c = 0; i < MAX_PARTY; i++)
-        if ((sd = p->member[i].sd) != NULL && sd->bl.m == map)
+        if ((sd = p->member[i].sd) != NULL && sd->bl.m == mapid)
             c++;
     if (c == 0)
         return 0;
     for (i = 0; i < MAX_PARTY; i++)
-        if ((sd = p->member[i].sd) != NULL && sd->bl.m == map)
+        if ((sd = p->member[i].sd) != NULL && sd->bl.m == mapid)
             pc_gainexp(sd, base_exp / c + 1, job_exp / c + 1);
     return 0;
 }
@@ -743,11 +732,10 @@ int party_exp_share(struct party *p, int map, int base_exp, int job_exp)
 // 同じマップのパーティメンバー全体に処理をかける
 // type==0 同じマップ
 //     !=0 画面内
-void party_foreachsamemap(void(*func)(struct block_list *, va_list),
-                           struct map_session_data *sd, int type, ...)
+void party_foreachsamemap(std::function<void(struct block_list *)> func,
+        struct map_session_data *sd, int type)
 {
     struct party *p;
-    va_list ap;
     int i;
     int x0, y0, x1, y1;
     struct block_list *list[MAX_PARTY];
@@ -762,8 +750,6 @@ void party_foreachsamemap(void(*func)(struct block_list *, va_list),
     y0 = sd->bl.y - AREA_SIZE;
     x1 = sd->bl.x + AREA_SIZE;
     y1 = sd->bl.y + AREA_SIZE;
-
-    va_start(ap, type);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -784,9 +770,7 @@ void party_foreachsamemap(void(*func)(struct block_list *, va_list),
 
     for (i = 0; i < blockcount; i++)
         if (list[i]->prev)      // 有効かどうかチェック
-            func(list[i], ap);
+            func(list[i]);
 
     map_freeblock_unlock();    // 解放を許可する
-
-    va_end(ap);
 }

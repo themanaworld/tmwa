@@ -5,4 +5,4 @@
 
 #define VAR(i) ((!env->vars || env->vars[i].ty == TY_UNDEF)? env->base_env->vars[i] : env->vars[i])
 
-#endif /* !defined(MAGIC_INTERPRETER_AUX_H_) */
+#endif // MAGIC_INTERPRETER_AUX_HPP

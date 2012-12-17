@@ -1,4 +1,3 @@
-// $Id: chat.h,v 1.3 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef CHAT_HPP
 #define CHAT_HPP
 
@@ -22,4 +21,4 @@ int chat_npckickall(struct chat_data *cd);
 
 int do_final_chat(void);
 
-#endif
+#endif // CHAT_HPP

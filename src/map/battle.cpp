@@ -1,13 +1,14 @@
-// $Id: battle.c,v 1.10 2004/09/29 21:08:17 Akitasha Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
 #include "battle.hpp"
 
-#include "../common/timer.hpp"
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "clif.hpp"
 #include "itemdb.hpp"
@@ -15,12 +16,6 @@
 #include "mob.hpp"
 #include "pc.hpp"
 #include "skill.hpp"
-#include "../common/socket.hpp"
-#include "../common/mt_rand.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
 
 int attr_fix_table[4][10][10];
 
@@ -31,7 +26,8 @@ struct Battle_Config battle_config;
  * 戻りは整数で0以上
  *------------------------------------------
  */
-static int distance(int x0, int y0, int x1, int y1)
+static
+int distance(int x0, int y0, int x1, int y1)
 {
     int dx, dy;
 
@@ -1005,7 +1001,7 @@ int battle_get_adelay(struct block_list *bl)
     else
     {
         eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-        int adelay = 4000, aspd_rate = 100, i;
+        int adelay = 4000, aspd_rate = 100;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
             adelay = ((struct mob_data *) bl)->stats[MOB_ADELAY];
 
@@ -1081,7 +1077,7 @@ int battle_get_amotion(struct block_list *bl)
     else
     {
         eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-        int amotion = 2000, aspd_rate = 100, i;
+        int amotion = 2000, aspd_rate = 100;
         if (bl->type == BL_MOB && (struct mob_data *) bl)
             amotion = mob_db[((struct mob_data *) bl)->mob_class].amotion;
 
@@ -1423,7 +1419,7 @@ struct battle_delay_damage_
     int flag;
 };
 static
-void battle_delay_damage_sub(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void battle_delay_damage_sub(timer_id, tick_t, custom_id_t id, custom_data_t data)
 {
     struct battle_delay_damage_ *dat = (struct battle_delay_damage_ *) data;
     if (dat && map_id2bl(id) == dat->src && dat->target->prev != NULL)
@@ -1452,7 +1448,6 @@ int battle_delay_damage(unsigned int tick, struct block_list *src,
 int battle_damage(struct block_list *bl, struct block_list *target,
                    int damage, int flag)
 {
-    struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(target);
     short *sc_count;
     int i;
@@ -1469,9 +1464,6 @@ int battle_damage(struct block_list *bl, struct block_list *target,
     {
         if (bl->prev == NULL)
             return 0;
-
-        if (bl->type == BL_PC)
-            sd = (struct map_session_data *) bl;
     }
 
     if (damage < 0)
@@ -1608,17 +1600,15 @@ int battle_attr_fix(int damage, int atk_elem, int def_elem)
  */
 int battle_calc_damage(struct block_list *src, struct block_list *bl,
                         int damage, int div_,
-                        SkillID skill_num, int skill_lv, int flag)
+                        SkillID skill_num, int, int flag)
 {
     struct map_session_data *sd = NULL;
     struct mob_data *md = NULL;
     eptr<struct status_change, StatusChange> sc_data;
     short *sc_count;
-    int class_;
 
     nullpo_retr(0, bl);
 
-    class_ = battle_get_class(bl);
     if (bl->type == BL_MOB)
         md = (struct mob_data *) bl;
     else
@@ -1961,7 +1951,8 @@ int battle_addmastery(struct map_session_data *sd, struct block_list *target,
     return (damage);
 }
 
-static struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
+static
+struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
                                                     struct block_list *target,
                                                     SkillID skill_num,
                                                     int skill_lv, int wflag)
@@ -1969,7 +1960,7 @@ static struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     struct map_session_data *tsd = NULL;
     struct mob_data *md = (struct mob_data *) src, *tmd = NULL;
     int hitrate, flee, cri = 0, atkmin, atkmax;
-    int luk, target_count = 1;
+    int target_count = 1;
     int def1 = battle_get_def(target);
     int def2 = battle_get_def2(target);
     int t_vit = battle_get_vit(target);
@@ -1977,10 +1968,8 @@ static struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     int damage, damage2 = 0, type, div_, blewcount =
         skill_get_blewcount(skill_num, skill_lv);
     int flag, skill, ac_flag = 0, dmg_lv = 0;
-    int t_mode = 0, t_race = 0, t_size = 1, s_race = 0, s_ele = 0;
+    int t_mode = 0, t_size = 1, s_race = 0, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
-    short *sc_count;
-    short *option, *opt1, *opt2;
 
     //return前の処理があるので情報出力部のみ変更
     if (src == NULL || target == NULL || md == NULL)
@@ -1993,17 +1982,12 @@ static struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     s_race = battle_get_race(src);
     s_ele = battle_get_attack_element(src);
     sc_data = battle_get_sc_data(src);
-    sc_count = battle_get_sc_count(src);
-    option = battle_get_option(src);
-    opt1 = battle_get_opt1(src);
-    opt2 = battle_get_opt2(src);
 
     // ターゲット
     if (target->type == BL_PC)
         tsd = (struct map_session_data *) target;
     else if (target->type == BL_MOB)
         tmd = (struct mob_data *) target;
-    t_race = battle_get_race(target);
     t_size = battle_get_size(target);
     t_mode = battle_get_mode(target);
     t_sc_data = battle_get_sc_data(target);
@@ -2074,8 +2058,6 @@ static struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
 
     type = 0;                   // normal
     div_ = 1;                   // single attack
-
-    luk = battle_get_luk(src);
 
     if (battle_config.enemy_str)
         damage = battle_get_baseatk(src);
@@ -2621,7 +2603,8 @@ int battle_is_unarmed(struct block_list *bl)
  * PCの武器による攻撃
  *-------------------------------------------------------------------------
  */
-static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
+static
+struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                                                    struct block_list *target,
                                                    SkillID skill_num,
                                                    int skill_lv, int wflag)
@@ -2630,21 +2613,19 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         NULL;
     struct mob_data *tmd = NULL;
     int hitrate, flee, cri = 0, atkmin, atkmax;
-    int dex, luk, target_count = 1;
+    int dex, target_count = 1;
     int def1 = battle_get_def(target);
     int def2 = battle_get_def2(target);
     int t_vit = battle_get_vit(target);
     struct Damage wd;
-    int damage, damage2, damage3 = 0, damage4 = 0, type, div_, blewcount =
+    int damage, damage2, damage4 = 0, type, div_, blewcount =
         skill_get_blewcount(skill_num, skill_lv);
     int flag, skill, dmg_lv = 0;
     int t_mode = 0, t_race = 0, t_size = 1, s_race = 7, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
-    short *sc_count;
-    short *option, *opt1, *opt2;
     int atkmax_ = 0, atkmin_ = 0, s_ele_;  //二刀流用
     int watk, watk_, cardfix, t_ele;
-    int da = 0, i, t_class, ac_flag = 0;
+    int da = 0, t_class, ac_flag = 0;
     int idef_flag = 0, idef_flag_ = 0;
     int target_distance;
 
@@ -2661,10 +2642,6 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     s_ele = battle_get_attack_element(src);    //属性
     s_ele_ = battle_get_attack_element2(src);  //左手属性
     sc_data = battle_get_sc_data(src); //ステータス異常
-    sc_count = battle_get_sc_count(src);   //ステータス異常の数
-    option = battle_get_option(src);   //鷹とかペコとかカートとか
-    opt1 = battle_get_opt1(src);   //石化、凍結、スタン、睡眠、暗闇
-    opt2 = battle_get_opt2(src);   //毒、呪い、沈黙、暗闇？
 
     if (skill_num != CR_GRANDCROSS) //グランドクロスでないなら
         sd->state.attack_type = BF_WEAPON;  //攻撃タイプは武器攻撃
@@ -2753,7 +2730,6 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
 
     dex = battle_get_dex(src); //DEX
-    luk = battle_get_luk(src); //LUK
     watk = battle_get_atk(src);    //ATK
     watk_ = battle_get_atk_(src);  //ATK左手
 
@@ -3127,19 +3103,22 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 case KN_BRANDISHSPEAR: // ブランディッシュスピア
                     damage = damage * (100 + 20 * skill_lv) / 100;
                     damage2 = damage2 * (100 + 20 * skill_lv) / 100;
-                    if (skill_lv > 3 && wflag == 1)
-                        damage3 += damage / 2;
-                    if (skill_lv > 6 && wflag == 1)
-                        damage3 += damage / 4;
-                    if (skill_lv > 9 && wflag == 1)
-                        damage3 += damage / 8;
-                    if (skill_lv > 6 && wflag == 2)
-                        damage3 += damage / 2;
-                    if (skill_lv > 9 && wflag == 2)
-                        damage3 += damage / 4;
-                    if (skill_lv > 9 && wflag == 3)
-                        damage3 += damage / 2;
-                    damage += damage3;
+                    {
+                        int damage3 = 0;
+                        if (skill_lv > 3 && wflag == 1)
+                            damage3 += damage / 2;
+                        if (skill_lv > 6 && wflag == 1)
+                            damage3 += damage / 4;
+                        if (skill_lv > 9 && wflag == 1)
+                            damage3 += damage / 8;
+                        if (skill_lv > 6 && wflag == 2)
+                            damage3 += damage / 2;
+                        if (skill_lv > 9 && wflag == 2)
+                            damage3 += damage / 4;
+                        if (skill_lv > 9 && wflag == 3)
+                            damage3 += damage / 2;
+                        damage += damage3;
+                    }
                     if (skill_lv > 3 && wflag == 1)
                         damage4 += damage2 / 2;
                     if (skill_lv > 6 && wflag == 1)
@@ -3426,8 +3405,7 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 case PA_SACRIFICE:
                     if (sd)
                     {
-                        int hp, mhp, damage3;
-                        hp = battle_get_hp(src);
+                        int mhp, damage3;
                         mhp = battle_get_max_hp(src);
                         damage3 = mhp * ((skill_lv / 2) + (50 / 100)) / 100;
                         damage =
@@ -3772,7 +3750,7 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
     //特定Class用補正処理(少女の日記→ボンゴン用？)
     t_class = battle_get_class(target);
-    for (i = 0; i < sd->add_damage_class_count; i++)
+    for (int i = 0; i < sd->add_damage_class_count; i++)
     {
         if (sd->add_damage_classid[i] == t_class)
         {
@@ -3797,7 +3775,7 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
             cardfix = cardfix * (100 + sd->addrace_[11]) / 100; //ボス以外モンスターに追加ダメージ左手
     }
     //特定Class用補正処理左手(少女の日記→ボンゴン用？)
-    for (i = 0; i < sd->add_damage_class_count_; i++)
+    for (int i = 0; i < sd->add_damage_class_count_; i++)
     {
         if (sd->add_damage_classid_[i] == t_class)
         {
@@ -3810,6 +3788,7 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 //カードによるダメージ増加処理(左手)ここまで
 
 // -- moonsoul (cardfix for magic damage portion of ASC_BREAKER)
+    int damage3 = 0;
     if (skill_num == ASC_BREAKER)
         damage3 = damage3 * cardfix / 100;
 
@@ -3824,7 +3803,7 @@ static struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         else
             cardfix = cardfix * (100 - tsd->subrace[11]) / 100; //ボス以外からの攻撃はダメージ減少
         //特定Class用補正処理左手(少女の日記→ボンゴン用？)
-        for (i = 0; i < tsd->add_def_class_count; i++)
+        for (int i = 0; i < tsd->add_def_class_count; i++)
         {
             if (tsd->add_def_classid[i] == sd->status.pc_class)
             {
@@ -4144,7 +4123,6 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
     int ele = 0, race = 7, t_ele = 0, t_race = 7, t_mode =
         0, cardfix, t_class, i;
     struct map_session_data *sd = NULL, *tsd = NULL;
-    struct mob_data *tmd = NULL;
 
     //return前の処理があるので情報出力部のみ変更
     if (bl == NULL || target == NULL)
@@ -4173,8 +4151,6 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
     }
     if (target->type == BL_PC)
         tsd = (struct map_session_data *) target;
-    else if (target->type == BL_MOB)
-        tmd = (struct mob_data *) target;
 
     aflag = BF_MAGIC | BF_LONG | BF_SKILL;
 

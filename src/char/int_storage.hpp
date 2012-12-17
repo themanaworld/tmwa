@@ -1,4 +1,3 @@
-// $Id: int_storage.h,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
 #ifndef INT_STORAGE_HPP
 #define INT_STORAGE_HPP
 
@@ -12,4 +11,4 @@ int inter_storage_parse_frommap(int fd);
 
 extern char storage_txt[1024];
 
-#endif
+#endif // INT_STORAGE_HPP

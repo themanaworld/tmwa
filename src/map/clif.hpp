@@ -1,14 +1,13 @@
-// $Id: clif.h,v 1.4 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef CLIF_HPP
 #define CLIF_HPP
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
 #include "map.hpp"
+#include "storage.hpp"
 
 void clif_setip(const char *);
 void clif_setport(int);
@@ -100,7 +99,6 @@ int clif_tradecancelled(struct map_session_data *sd);
 int clif_tradecompleted(struct map_session_data *sd, int fail);
 
 // storage
-#include "storage.hpp"
 int clif_storageitemlist(struct map_session_data *sd, struct storage *stor);
 int clif_storageequiplist(struct map_session_data *sd,
                             struct storage *stor);
@@ -112,10 +110,11 @@ int clif_storageitemremoved(struct map_session_data *sd, int index,
                               int amount);
 int clif_storageclose(struct map_session_data *sd);
 
-void clif_pcinsight(struct block_list *, va_list); // map_forallinmovearea callback
-void clif_pcoutsight(struct block_list *, va_list);    // map_forallinmovearea callback
-void clif_mobinsight(struct block_list *, va_list);    // map_forallinmovearea callback
-void clif_moboutsight(struct block_list *, va_list);   // map_forallinmovearea callback
+// map_forallinmovearea callbacks
+void clif_pcinsight(struct block_list *, struct map_session_data *);
+void clif_pcoutsight(struct block_list *, struct map_session_data *);
+void clif_mobinsight(struct block_list *, struct mob_data *);
+void clif_moboutsight(struct block_list *, struct mob_data *);
 
 int clif_npc_class_change(struct block_list *bl, int npc_class, int type);
 int clif_mob_class_change(struct mob_data *md, int mob_class);
@@ -235,9 +234,9 @@ int clif_GM_kickack(struct map_session_data *sd, int id);
 int clif_GM_kick(struct map_session_data *sd, struct map_session_data *tsd,
                    int type);
 
-int clif_foreachclient(int(*)(struct map_session_data *, va_list), ...);
+int clif_foreachclient(std::function<void(struct map_session_data *)>);
 
 int do_final_clif (void);
 int do_init_clif (void);
 
-#endif
+#endif // CLIF_HPP

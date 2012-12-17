@@ -1,38 +1,34 @@
-// $Id: char.c,v 1.3 2004/09/13 16:52:16 Yor Exp $
-// original : char2.c 2003/03/14 11:58:35 Rev.1.5
+#include "char.hpp"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <netinet/in.h>
-#include <sys/time.h>
-#include <time.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <fcntl.h>
-#include <string.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <stdarg.h>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 
+#include <fcntl.h>
+#include <netdb.h>
+#include <unistd.h>
+
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstdio>
+#include <cstdlib>
+#include <csignal>
+#include <cstring>
+#include <ctime>
+
 #include "../common/core.hpp"
+#include "../common/lock.hpp"
+#include "../common/mmo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
-#include "../common/mmo.hpp"
 #include "../common/version.hpp"
-#include "../common/lock.hpp"
-#include "char.hpp"
 
 #include "inter.hpp"
 #include "int_party.hpp"
 #include "int_storage.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
 
 struct mmo_map_server server[MAX_MAP_SERVERS];
 int server_fd[MAX_MAP_SERVERS];
@@ -215,7 +211,6 @@ char *search_character_name(int index)
 static
 int mmo_char_tostr(char *str, struct mmo_charstatus *p)
 {
-    int i;
     char *str_p = str;
 
     // on multi-map server, sometimes it's posssible that last_point become void. (reason???) We check that to not lost character at restart.
@@ -231,7 +226,7 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
                       p->party_id, 0/*guild_id*/, 0, p->hair, p->hair_color, p->clothes_color, p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom, p->last_point.map, p->last_point.x, p->last_point.y,   //
                       p->save_point.map, p->save_point.x, p->save_point.y,
                       p->partner_id);
-    for (i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++)
         if (p->memo_point[i].map[0])
         {
             str_p +=
@@ -240,7 +235,7 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         }
     *(str_p++) = '\t';
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (int i = 0; i < MAX_INVENTORY; i++)
         if (p->inventory[i].nameid)
         {
             str_p += sprintf(str_p, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
@@ -257,7 +252,7 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         }
     *(str_p++) = '\t';
 
-    for (i = 0; i < MAX_CART; i++)
+    for (int i = 0; i < MAX_CART; i++)
         if (p->cart[i].nameid)
         {
             str_p += sprintf(str_p, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
@@ -280,7 +275,7 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         }
     *(str_p++) = '\t';
 
-    for (i = 0; i < p->global_reg_num; i++)
+    for (int i = 0; i < p->global_reg_num; i++)
         if (p->global_reg[i].str[0])
             str_p +=
                 sprintf(str_p, "%s,%d ", p->global_reg[i].str,
@@ -756,7 +751,7 @@ void mmo_char_sync(void)
 // Function to save (in a periodic way) datas in files
 //----------------------------------------------------
 static
-void mmo_char_sync_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void mmo_char_sync_timer(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     if (pid != 0)
     {
@@ -786,7 +781,8 @@ void mmo_char_sync_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_
 //----------------------------------------------------
 // Remove trailing whitespace from a name
 //----------------------------------------------------
-static void remove_trailing_blanks(char *name)
+static
+void remove_trailing_blanks(char *name)
 {
     char *tail = name + strlen(name) - 1;
 
@@ -797,7 +793,8 @@ static void remove_trailing_blanks(char *name)
 //----------------------------------------------------
 // Remove prefix whitespace from a name
 //----------------------------------------------------
-static void remove_prefix_blanks(char *name)
+static
+void remove_prefix_blanks(char *name)
 {
     char *dst = name;
     char *src = name;
@@ -1526,7 +1523,8 @@ int count_users(void)
 //----------------------------------------
 // [Fate] Find inventory item based on equipment mask, return view.  ID must match view ID (!).
 //----------------------------------------
-static int find_equip_view(struct mmo_charstatus *p, unsigned int equipmask)
+static
+int find_equip_view(struct mmo_charstatus *p, unsigned int equipmask)
 {
     int i;
     for (i = 0; i < MAX_INVENTORY; i++)
@@ -1717,7 +1715,8 @@ int disconnect_player(int accound_id)
 }
 
 // キャラ削除に伴うデータ削除
-static int char_delete(struct mmo_charstatus *cs)
+static
+int char_delete(struct mmo_charstatus *cs)
 {
     // パーティー脱退
     if (cs->party_id)
@@ -2234,7 +2233,7 @@ void parse_tologin(int fd)
 // Map-server anti-freeze system
 //--------------------------------
 static
-void map_anti_freeze_system(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void map_anti_freeze_system(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     int i;
 
@@ -3473,7 +3472,7 @@ int mapif_send(int fd, const uint8_t *buf, unsigned int len)
 }
 
 static
-void send_users_tologin(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void send_users_tologin(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     int users = count_users();
     uint8_t buf[16];
@@ -3492,7 +3491,7 @@ void send_users_tologin(timer_id tid, tick_t tick, custom_id_t id, custom_data_t
 }
 
 static
-void check_connect_login_server(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void check_connect_login_server(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     if (login_fd <= 0 || session[login_fd] == NULL)
     {

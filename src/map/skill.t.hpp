@@ -1,6 +1,8 @@
 #ifndef SKILL_T_HPP
 #define SKILL_T_HPP
 
+#include <cstdint>
+
 // only ST_NONE is actually used - TODO remove
 enum class SkillState
 {
@@ -1410,6 +1412,7 @@ enum class SkillID : uint16_t
     SL_SKA              = 473,
 #define SL_SKA SkillID::SL_SKA
 
+    // Note: this value is also hard-coded in common/mmo.hpp
     MAX_SKILL_DB        = 474, // not 450
 #define MAX_SKILL_DB SkillID::MAX_SKILL_DB
 };

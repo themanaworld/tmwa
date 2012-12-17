@@ -1,60 +1,65 @@
-// $Id: map.c,v 1.6 2004/09/25 17:37:01 MouseJstr Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-#ifdef LCCWIN32
-#include <winsock.h>
-#else
+#include "map.hpp"
+
 #include <netdb.h>
-#endif
+
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "../common/core.hpp"
-#include "../common/timer.hpp"
 #include "../common/db.hpp"
 #include "../common/grfio.hpp"
 #include "../common/mt_rand.hpp"
-#include "map.hpp"
+#include "../common/nullpo.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
+
+#include "atcommand.hpp"
+#include "battle.hpp"
+#include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
-#include "npc.hpp"
-#include "pc.hpp"
-#include "mob.hpp"
-#include "chat.hpp"
 #include "itemdb.hpp"
-#include "storage.hpp"
-#include "skill.hpp"
-#include "trade.hpp"
-#include "party.hpp"
-#include "battle.hpp"
-#include "script.hpp"
-#include "atcommand.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
 #include "magic.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
+#include "mob.hpp"
+#include "npc.hpp"
+#include "party.hpp"
+#include "pc.hpp"
+#include "script.hpp"
+#include "skill.hpp"
+#include "storage.hpp"
+#include "trade.hpp"
 
 // 極力 staticでローカルに収める
-static struct dbt *id_db = NULL;
-static struct dbt *map_db = NULL;
-static struct dbt *nick_db = NULL;
-static struct dbt *charid_db = NULL;
+static
+struct dbt *id_db = NULL;
+static
+struct dbt *map_db = NULL;
+static
+struct dbt *nick_db = NULL;
+static
+struct dbt *charid_db = NULL;
 
-static int users = 0;
-static struct block_list *object[MAX_FLOORITEM];
-static int first_free_object_id = 0, last_object_id = 0;
+static
+int users = 0;
+static
+struct block_list *object[MAX_FLOORITEM];
+static
+int first_free_object_id = 0, last_object_id = 0;
 
 #define block_free_max 1048576
-static void *block_free[block_free_max];
-static int block_free_count = 0, block_free_lock = 0;
+static
+void *block_free[block_free_max];
+static
+int block_free_count = 0, block_free_lock = 0;
 
 #define BL_LIST_MAX 1048576
-static struct block_list *bl_list[BL_LIST_MAX];
-static int bl_list_count = 0;
+static
+struct block_list *bl_list[BL_LIST_MAX];
+static
+int bl_list_count = 0;
 
 struct map_data map[MAX_MAP_PER_SERVER];
 int map_num = 0;
@@ -172,7 +177,8 @@ int map_freeblock_unlock(void)
  * bl->prevにbl_headのアドレスを入れておく
  *------------------------------------------
  */
-static struct block_list bl_head;
+static
+struct block_list bl_head;
 
 /*==========================================
  * map[]のblock_listに追加
@@ -356,17 +362,17 @@ int map_count_oncell(int m, int x, int y)
  * type!=0 ならその種類のみ
  *------------------------------------------
  */
-void map_foreachinarea(void(*func)(struct block_list *, va_list), int m,
-                        int x0, int y0, int x1, int y1, int type, ...)
+void map_foreachinarea(std::function<void(struct block_list *)> func,
+        int m,
+        int x0, int y0, int x1, int y1,
+        int type)
 {
     int bx, by;
     struct block_list *bl = NULL;
-    va_list ap = NULL;
     int blockcount = bl_list_count, i, c;
 
     if (m < 0)
         return;
-    va_start(ap, type);
     if (x0 < 0)
         x0 = 0;
     if (y0 < 0)
@@ -418,11 +424,10 @@ void map_foreachinarea(void(*func)(struct block_list *, va_list), int m,
 
     for (i = blockcount; i < bl_list_count; i++)
         if (bl_list[i]->prev)   // 有効かどうかチェック
-            func(bl_list[i], ap);
+            func(bl_list[i]);
 
     map_freeblock_unlock();    // 解放を許可する
 
-    va_end(ap);
     bl_list_count = blockcount;
 }
 
@@ -434,16 +439,16 @@ void map_foreachinarea(void(*func)(struct block_list *, va_list), int m,
  * dx,dyは-1,0,1のみとする（どんな値でもいいっぽい？）
  *------------------------------------------
  */
-void map_foreachinmovearea(void(*func)(struct block_list *, va_list), int m,
-                            int x0, int y0, int x1, int y1, int dx, int dy,
-                            int type, ...)
+void map_foreachinmovearea(std::function<void(struct block_list *)> func,
+        int m,
+        int x0, int y0, int x1, int y1,
+        int dx, int dy,
+        int type)
 {
     int bx, by;
     struct block_list *bl = NULL;
-    va_list ap = NULL;
     int blockcount = bl_list_count, i, c;
 
-    va_start(ap, type);
     if (dx == 0 || dy == 0)
     {
         // 矩形領域の場合
@@ -573,11 +578,10 @@ void map_foreachinmovearea(void(*func)(struct block_list *, va_list), int m,
 
     for (i = blockcount; i < bl_list_count; i++)
         if (bl_list[i]->prev)   // 有効かどうかチェック
-            func(bl_list[i], ap);
+            func(bl_list[i]);
 
     map_freeblock_unlock();    // 解放を許可する
 
-    va_end(ap);
     bl_list_count = blockcount;
 }
 
@@ -585,15 +589,14 @@ void map_foreachinmovearea(void(*func)(struct block_list *, va_list), int m,
 //           which only checks the exact single x/y passed to it rather than an
 //           area radius - may be more useful in some instances)
 //
-void map_foreachincell(void(*func)(struct block_list *, va_list), int m,
-                        int x, int y, int type, ...)
+void map_foreachincell(std::function<void(struct block_list *)> func,
+        int m,
+        int x, int y,
+        int type)
 {
     int bx, by;
     struct block_list *bl = NULL;
-    va_list ap = NULL;
     int blockcount = bl_list_count, i, c;
-
-    va_start(ap, type);
 
     by = y / BLOCK_SIZE;
     bx = x / BLOCK_SIZE;
@@ -632,11 +635,10 @@ void map_foreachincell(void(*func)(struct block_list *, va_list), int m,
 
     for (i = blockcount; i < bl_list_count; i++)
         if (bl_list[i]->prev)   // 有効かどうかチェック
-            func(bl_list[i], ap);
+            func(bl_list[i]);
 
     map_freeblock_unlock();    // 解放を許可する
 
-    va_end(ap);
     bl_list_count = blockcount;
 }
 
@@ -734,14 +736,11 @@ int map_delobject(int id, int type)
  *
  *------------------------------------------
  */
-void map_foreachobject(void(*func)(struct block_list *, va_list), int type,
-                        ...)
+void map_foreachobject(std::function<void(struct block_list *)> func,
+        int type)
 {
     int i;
     int blockcount = bl_list_count;
-    va_list ap = NULL;
-
-    va_start(ap, type);
 
     for (i = 2; i <= last_object_id; i++)
     {
@@ -763,11 +762,10 @@ void map_foreachobject(void(*func)(struct block_list *, va_list), int type,
 
     for (i = blockcount; i < bl_list_count; i++)
         if (bl_list[i]->prev || bl_list[i]->next)
-            func(bl_list[i], ap);
+            func(bl_list[i]);
 
     map_freeblock_unlock();
 
-    va_end(ap);
     bl_list_count = blockcount;
 }
 
@@ -781,7 +779,7 @@ void map_foreachobject(void(*func)(struct block_list *, va_list), int type,
  * map.h内で#defineしてある
  *------------------------------------------
  */
-void map_clearflooritem_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void map_clearflooritem_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t data)
 {
     struct flooritem_data *fitem = NULL;
 
@@ -1202,7 +1200,8 @@ char *map_charid2nick(int id)
 /*========================================*/
 /* [Fate] Operations to iterate over active map sessions */
 
-static struct map_session_data *map_get_session(int i)
+static
+struct map_session_data *map_get_session(int i)
 {
     struct map_session_data *d;
 
@@ -1213,7 +1212,8 @@ static struct map_session_data *map_get_session(int i)
     return NULL;
 }
 
-static struct map_session_data *map_get_session_forward(int start)
+static
+struct map_session_data *map_get_session_forward(int start)
 {
     int i;
     for (i = start; i < fd_max; i++)
@@ -1226,7 +1226,8 @@ static struct map_session_data *map_get_session_forward(int start)
     return NULL;
 }
 
-static struct map_session_data *map_get_session_backward(int start)
+static
+struct map_session_data *map_get_session_backward(int start)
 {
     int i;
     for (i = start; i >= 0; i--)
@@ -1321,14 +1322,9 @@ struct block_list *map_id2bl(int id)
  * id_db内の全てにfuncを実行
  *------------------------------------------
  */
-int map_foreachiddb(db_func_t func, ...)
+void map_foreachiddb(db_func_t func)
 {
-    va_list ap = NULL;
-
-    va_start(ap, func);
-    numdb_foreach(id_db, func, ap);
-    va_end(ap);
-    return 0;
+    numdb_foreach(id_db, func);
 }
 
 /*==========================================
@@ -1582,27 +1578,15 @@ int map_setipport(const char *name, struct in_addr ip, int port)
  * 水場高さ設定
  *------------------------------------------
  */
-static struct Waterlist
+static
+struct Waterlist
 {
     char mapname[24];
     int waterheight;
 }   *waterlist = NULL;
 
-#define NO_WATER 1000000
-
-static int map_waterheight(char *mapname)
-{
-    if (waterlist)
-    {
-        int i;
-        for (i = 0; waterlist[i].mapname[0] && i < MAX_MAP_PER_SERVER; i++)
-            if (strcmp(waterlist[i].mapname, mapname) == 0)
-                return waterlist[i].waterheight;
-    }
-    return NO_WATER;
-}
-
-static void map_readwater(char *watertxt)
+static
+void map_readwater(char *watertxt)
 {
     char line[1024], w1[1024];
     FILE *fp = NULL;
@@ -1641,7 +1625,8 @@ static void map_readwater(char *watertxt)
  * マップ1枚読み込み
  *------------------------------------------
  */
-static int map_readmap(int m, char *fn, char *alias)
+static
+int map_readmap(int m, char *fn, char *)
 {
     int s;
     int x, y, xs, ys;
@@ -1649,7 +1634,6 @@ static int map_readmap(int m, char *fn, char *alias)
     {
         char type;
     }   *p;
-    int wh;
     size_t size;
 
     // read & convert fn
@@ -1676,7 +1660,6 @@ static int map_readmap(int m, char *fn, char *alias)
     memset(&map[m].flag, 0, sizeof(map[m].flag));
     if (battle_config.pk_mode)
         map[m].flag.pvp = 1;    // make all maps pvp for pk_mode [Valaris]
-    wh = map_waterheight(map[m].name);
     for (y = 0; y < ys; y++)
     {
         p = (struct gat_1cell *)(gat + y * xs + 4);
@@ -1827,9 +1810,11 @@ extern char *gm_logfile_name;
 
 FILE *map_logfile = NULL;
 char *map_logfile_name = NULL;
-static long map_logfile_index;
+static
+long map_logfile_index;
 
-static void map_close_logfile(void)
+static
+void map_close_logfile(void)
 {
     if (map_logfile)
     {
@@ -1846,7 +1831,8 @@ static void map_close_logfile(void)
     }
 }
 
-static void map_start_logfile(long suffix)
+static
+void map_start_logfile(long suffix)
 {
     char *filename_buf = (char*)malloc(strlen(map_logfile_name) + 50);
     map_logfile_index = suffix >> LOGFILE_SECONDS_PER_CHUNK_SHIFT;
@@ -1859,7 +1845,8 @@ static void map_start_logfile(long suffix)
     free(filename_buf);
 }
 
-static void map_set_logfile(const char *filename)
+static
+void map_set_logfile(const char *filename)
 {
     struct timeval tv;
 
@@ -2022,7 +2009,7 @@ int map_config_read(const char *cfgName)
 }
 
 static
-void cleanup_sub(struct block_list *bl, va_list ap)
+void cleanup_sub(struct block_list *bl)
 {
     nullpo_retv(bl);
 
@@ -2063,7 +2050,7 @@ void term_func(void)
     {
         if (map[map_id].m)
             map_foreachinarea(cleanup_sub, map_id, 0, 0, map[map_id].xs,
-                               map[map_id].ys, 0, 0);
+                               map[map_id].ys, 0);
     }
 
     for (i = 0; i < fd_max; i++)
@@ -2096,6 +2083,7 @@ void term_func(void)
 
 /// --help was passed
 // FIXME this should produce output
+static __attribute__((noreturn))
 void map_helpscreen(void)
 {
     exit(1);
@@ -2124,7 +2112,6 @@ int do_init(int argc, char *argv[])
     const char *BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
     const char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
     const char *SCRIPT_CONF_NAME = "conf/script_athena.conf";
-    const char *MSG_CONF_NAME = "conf/msg_athena.conf";
 
     for (i = 1; i < argc; i++)
     {
@@ -2140,8 +2127,6 @@ int do_init(int argc, char *argv[])
             ATCOMMAND_CONF_FILENAME = argv[i + 1];
         else if (strcmp(argv[i], "--script_config") == 0)
             SCRIPT_CONF_NAME = argv[i + 1];
-        else if (strcmp(argv[i], "--msg_config") == 0)
-            MSG_CONF_NAME = argv[i + 1];
     }
 
     map_config_read(MAP_CONF_NAME);

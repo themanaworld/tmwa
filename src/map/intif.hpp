@@ -1,4 +1,3 @@
-// $Id: intif.h,v 1.2 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef INTIF_HPP
 #define INTIF_HPP
 
@@ -28,4 +27,4 @@ int intif_break_party(int party_id);
 int intif_party_message(int party_id, int account_id, const char *mes, int len);
 int intif_party_checkconflict(int party_id, int account_id, const char *nick);
 
-#endif
+#endif // INTIF_HPP

@@ -1,15 +1,13 @@
-//
-
-#include <string.h>
-#include <ctype.h>
-#include <stdarg.h>
-
 #include "tmw.hpp"
 
+#include <cctype>
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstring>
+
+#include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 #include "../common/version.hpp"
-#include "../common/nullpo.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -124,7 +122,7 @@ int tmw_ShorterStrlen(const char *s1, const char *s2)
 }
 
 // Returns true if more than 50% of input message is caps or punctuation
-int tmw_CheckChatLameness(struct map_session_data *sd, const char *message)
+int tmw_CheckChatLameness(struct map_session_data *, const char *message)
 {
     int count, lame;
 

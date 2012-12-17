@@ -1,4 +1,3 @@
-// $Id: login.h,v 1.1.1.1 2004/09/10 17:26:53 MagicalTux Exp $
 #ifndef LOGIN_HPP
 #define LOGIN_HPP
 
@@ -6,11 +5,7 @@
 
 #define LOGIN_CONF_NAME "conf/login_athena.conf"
 #define LAN_CONF_NAME "conf/lan_support.conf"
-// It seems we don't need to emulate RO's "password encryption" - MC/TMW
-//#define PASSWORDENC 3           // A definition is given when making an encryption password correspond.
-                        // It is 1 at the time of passwordencrypt.
-                        // It is made into 2 at the time of passwordencrypt2.
-                        // When it is made 3, it corresponds to both.
+
 #define START_ACCOUNT_NUM 2000000
 #define END_ACCOUNT_NUM 100000000
 
@@ -38,4 +33,4 @@ struct mmo_char_server
     int is_new;
 };
 
-#endif
+#endif // LOGIN_HPP

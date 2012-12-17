@@ -10,6 +10,8 @@
 
 #define HEADING(dir) { magic_frontend_lval.i = dir; FIXLOC; return DIR; }
 
+// silence compiler warnings
+#define YY_USER_INIT (void)yylval, (void)yylloc
 %}
 
 %option yylineno
@@ -133,7 +135,7 @@
 
 "#".*$          /* Ignore comments */
 "//".*$         /* Ignore comments */
-[ \n\t\r]       /* ignore whitespace */ 
+[ \n\t\r]       /* ignore whitespace */
 .               fprintf(stderr, "%s: Unexpected character in line %d\n", MAGIC_CONFIG_FILE, magic_frontend_lineno);
 
 

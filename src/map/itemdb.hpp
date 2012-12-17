@@ -1,4 +1,3 @@
-// $Id: itemdb.h,v 1.3 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef ITEMDB_HPP
 #define ITEMDB_HPP
 
@@ -80,4 +79,4 @@ void itemdb_reload(void);
 void do_final_itemdb(void);
 int do_init_itemdb(void);
 
-#endif
+#endif // ITEMDB_HPP

@@ -1,8 +1,8 @@
 // included by utils.hpp as a porting aid.
 // Eventually it will be promoted to one or more normal headers.
 
-#include <type_traits>
 #include <iterator>
+#include <type_traits>
 
 template<class T, class E, E max>
 struct earray
@@ -64,14 +64,14 @@ public:
 template<class It>
 class IteratorPair
 {
-    It b, e;
+    It _b, _e;
 public:
     IteratorPair(It b, It e)
-    : b(b), e(e)
+    : _b(b), _e(e)
     {}
 
-    It begin() { return b; }
-    It end() { return e; }
+    It begin() { return _b; }
+    It end() { return _e; }
 };
 
 template<class It>
@@ -80,27 +80,23 @@ IteratorPair<It> iterator_pair(It b, It e)
     return {b, e};
 }
 
-#ifndef HAVE_STD_UNDERLYING_TYPE
-// Note: you *must* correctly define/not define this - it conflicts!
-namespace std
+// std::underlying_type isn't supported until gcc 4.7
+// this is a poor man's emulation
+template<class E>
+struct underlying_type
 {
-    template<class E>
-    struct underlying_type
-    {
-        static_assert(std::is_enum<E>::value, "Only enums have underlying type!");
-        typedef typename std::conditional<
-            std::is_signed<E>::value,
-            typename std::make_signed<E>::type,
-            typename std::make_unsigned<E>::type
-        >::type type;
-    };
-}
-#endif // HAVE_STD_UNDERLYING_TYPE
+    static_assert(std::is_enum<E>::value, "Only enums have underlying type!");
+    typedef typename std::conditional<
+        std::is_signed<E>::value,
+        typename std::make_signed<E>::type,
+        typename std::make_unsigned<E>::type
+    >::type type;
+};
 
 template<class E>
 class EnumValueIterator
 {
-    typedef typename std::underlying_type<E>::type U;
+    typedef typename underlying_type<E>::type U;
     E value;
 public:
     EnumValueIterator(E v)
@@ -136,3 +132,6 @@ IteratorPair<EnumValueIterator<E>> erange(E b, E e)
 {
     return {b, e};
 }
+
+namespace std { namespace placeholders {} }
+namespace ph = std::placeholders;

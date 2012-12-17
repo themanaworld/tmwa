@@ -1,16 +1,18 @@
-// $Id: inter.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
+#include "inter.hpp"
+
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstdlib>
+#include <cstring>
+
+#include "../common/db.hpp"
+#include "../common/lock.hpp"
 #include "../common/mmo.hpp"
-#include "char.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
-#include "../common/db.hpp"
-#include <string.h>
-#include <stdlib.h>
 
-#include "inter.hpp"
+#include "char.hpp"
 #include "int_party.hpp"
 #include "int_storage.hpp"
-#include "../common/lock.hpp"
 
 #define WISDATA_TTL (60*1000)   // Existence time of Wisp/page data (60 seconds)
                                 // that is the waiting time of answers of all map-servers
@@ -19,7 +21,8 @@
 char inter_log_filename[1024] = "log/inter.log";
 
 char accreg_txt[1024] = "save/accreg.txt";
-static struct dbt *accreg_db = NULL;
+static
+struct dbt *accreg_db = NULL;
 
 struct accreg
 {
@@ -61,8 +64,10 @@ struct WisData
     unsigned long tick;
     unsigned char src[24], dst[24], msg[1024];
 };
-static struct dbt *wis_db = NULL;
-static int wis_dellist[WISDELLIST_MAX], wis_delnum;
+static
+struct dbt *wis_db = NULL;
+static
+int wis_dellist[WISDELLIST_MAX], wis_delnum;
 
 //--------------------------------------------------------
 
@@ -143,16 +148,14 @@ int inter_accreg_init(void)
 
 // アカウント変数のセーブ用
 static
-void inter_accreg_save_sub(db_key_t key, db_val_t data, va_list ap)
+void inter_accreg_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
     char line[8192];
-    FILE *fp;
     struct accreg *reg = (struct accreg *) data;
 
     if (reg->reg_num > 0)
     {
         inter_accreg_tostr(line, reg);
-        fp = va_arg(ap, FILE *);
         fprintf(fp, "%s\n", line);
     }
 }
@@ -170,7 +173,7 @@ int inter_accreg_save(void)
                 accreg_txt);
         return 1;
     }
-    numdb_foreach(accreg_db, inter_accreg_save_sub, fp);
+    numdb_foreach(accreg_db, std::bind(inter_accreg_save_sub, ph::_1, ph::_2, fp));
     lock_fclose(fp, accreg_txt, &lock);
 //  printf("inter: %s saved.\n", accreg_txt);
 
@@ -372,11 +375,9 @@ int mapif_account_reg_reply(int fd, int account_id)
 
 // Existence check of WISP data
 static
-void check_ttl_wisdata_sub(db_key_t key, db_val_t data, va_list ap)
+void check_ttl_wisdata_sub(db_key_t, db_val_t data, unsigned long tick)
 {
-    unsigned long tick;
     struct WisData *wd = (struct WisData *) data;
-    tick = va_arg(ap, unsigned long);
 
     if (DIFF_TICK(tick, wd->tick) > WISDATA_TTL
         && wis_delnum < WISDELLIST_MAX)
@@ -392,7 +393,7 @@ int check_ttl_wisdata(void)
     do
     {
         wis_delnum = 0;
-        numdb_foreach(wis_db, check_ttl_wisdata_sub, tick);
+        numdb_foreach(wis_db, std::bind(check_ttl_wisdata_sub, ph::_1, ph::_2, tick));
         for (i = 0; i < wis_delnum; i++)
         {
             struct WisData *wd = (struct WisData *)numdb_search(wis_db, wis_dellist[i]);

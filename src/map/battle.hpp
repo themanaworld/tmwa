@@ -1,8 +1,8 @@
-// $Id: battle.h,v 1.6 2004/09/29 21:08:17 Akitasha Exp $
 #ifndef BATTLE_HPP
 #define BATTLE_HPP
 
 #include "../common/utils.hpp"
+
 #include "skill.t.hpp"
 
 // ダメージ
@@ -343,4 +343,4 @@ extern struct Battle_Config
 
 int battle_config_read(const char *cfgName);
 
-#endif
+#endif // BATTLE_HPP

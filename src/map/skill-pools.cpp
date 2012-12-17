@@ -1,28 +1,25 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
+#include "skill.hpp"
 
-#include "../common/timer.hpp"
-#include "../common/nullpo.hpp"
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include "../common/mt_rand.hpp"
-#include "magic.hpp"
+#include "../common/nullpo.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
+#include "magic.hpp"
 #include "map.hpp"
 #include "mob.hpp"
 #include "party.hpp"
 #include "pc.hpp"
 #include "script.hpp"
-#include "skill.hpp"
-#include "../common/socket.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
 
 SkillID skill_pool_skills[MAX_POOL_SKILLS];
 int skill_pool_skills_size = 0;

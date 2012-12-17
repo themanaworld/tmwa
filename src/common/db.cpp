@@ -1,21 +1,23 @@
 #include "db.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "utils.hpp"
 
 #define ROOT_SIZE 4096
 
-static int strdb_cmp(struct dbt *table, const char *a, const char* b)
+static
+int strdb_cmp(struct dbt *table, const char *a, const char* b)
 {
     if (table->maxlen)
         return strncmp(a, b, table->maxlen);
     return strcmp(a, b);
 }
 
-static hash_t strdb_hash(struct dbt *table, const char *a)
+static
+hash_t strdb_hash(struct dbt *table, const char *a)
 {
     size_t i = table->maxlen;
     if (i == 0)
@@ -38,7 +40,8 @@ struct dbt *strdb_init(size_t maxlen)
     return table;
 }
 
-static int numdb_cmp(numdb_key_t a, numdb_key_t b)
+static
+int numdb_cmp(numdb_key_t a, numdb_key_t b)
 {
     if (a == b)
         return 0;
@@ -47,7 +50,8 @@ static int numdb_cmp(numdb_key_t a, numdb_key_t b)
     return 1;
 }
 
-static hash_t numdb_hash(numdb_key_t a)
+static
+hash_t numdb_hash(numdb_key_t a)
 {
     return (hash_t) a;
 }
@@ -60,7 +64,8 @@ struct dbt *numdb_init(void)
     return table;
 }
 
-static int table_cmp(struct dbt *table, db_key_t a, db_key_t b)
+static
+int table_cmp(struct dbt *table, db_key_t a, db_key_t b)
 {
     switch (table->type)
     {
@@ -70,7 +75,8 @@ static int table_cmp(struct dbt *table, db_key_t a, db_key_t b)
     abort();
 }
 
-static hash_t table_hash(struct dbt *table, db_key_t key)
+static
+hash_t table_hash(struct dbt *table, db_key_t key)
 {
     switch (table->type)
     {
@@ -99,7 +105,8 @@ db_val_t db_search(struct dbt *table, db_key_t key)
 }
 
 // Tree maintainance methods
-static void db_rotate_left(struct dbn *p, struct dbn **root)
+static
+void db_rotate_left(struct dbn *p, struct dbn **root)
 {
     struct dbn *y = p->right;
     p->right = y->left;
@@ -117,7 +124,8 @@ static void db_rotate_left(struct dbn *p, struct dbn **root)
     p->parent = y;
 }
 
-static void db_rotate_right(struct dbn *p, struct dbn **root)
+static
+void db_rotate_right(struct dbn *p, struct dbn **root)
 {
     struct dbn *y = p->left;
     p->left = y->right;
@@ -135,7 +143,8 @@ static void db_rotate_right(struct dbn *p, struct dbn **root)
     p->parent = y;
 }
 
-static void db_rebalance(struct dbn *p, struct dbn **root)
+static
+void db_rebalance(struct dbn *p, struct dbn **root)
 {
     p->color = RED;
     while (p != *root && p->parent->color == RED)
@@ -189,7 +198,8 @@ static void db_rebalance(struct dbn *p, struct dbn **root)
 }
 
 // param z = node to remove
-static void db_rebalance_erase(struct dbn *z, struct dbn **root)
+static
+void db_rebalance_erase(struct dbn *z, struct dbn **root)
 {
     struct dbn *y = z;
     struct dbn *x = NULL;
@@ -397,7 +407,8 @@ db_val_t db_erase(struct dbt *table, db_key_t key)
     return data;
 }
 #ifdef SMART_WALK_TREE
-static inline void db_walk_tree(bool dealloc, struct dbn* p, db_func_t func, va_list ap)
+static
+void db_walk_tree(bool dealloc, struct dbn* p, db_func_t func)
 {
     if (!p)
         return;
@@ -415,7 +426,7 @@ static inline void db_walk_tree(bool dealloc, struct dbn* p, db_func_t func, va_
     {
         // apply_func loop
         if (func)
-            func(p->key, p->data, ap);
+            func(p->key, p->data);
         if (p->left)
         {
             // continue descending
@@ -457,11 +468,8 @@ static inline void db_walk_tree(bool dealloc, struct dbn* p, db_func_t func, va_
 }
 #endif // SMART_WALK_TREE
 
-void db_foreach(struct dbt *table, db_func_t func, ...)
+void db_foreach(struct dbt *table, db_func_t func)
 {
-    va_list ap;
-    va_start(ap, func);
-
     for (int i = 0; i < HASH_SIZE; i++)
     {
 #ifdef SMART_WALK_TREE
@@ -474,7 +482,7 @@ void db_foreach(struct dbt *table, db_func_t func, ...)
         int sp = 0;
         while (1)
         {
-            func(p->key, p->data, ap);
+            func(p->key, p->data);
             struct dbn *pn = p->left;
             if (pn)
             {
@@ -496,19 +504,15 @@ void db_foreach(struct dbt *table, db_func_t func, ...)
         } // while true
 #endif // else ! SMART_WALK_TREE
     } // for i
-    va_end(ap);
 }
 
 // This function is suspiciously similar to the previous
-void db_final(struct dbt *table, db_func_t func, ...)
+void db_final(struct dbt *table, db_func_t func)
 {
-    va_list ap;
-    va_start(ap, func);
-
     for (int i = 0; i < HASH_SIZE; i++)
     {
 #ifdef SMART_WALK_TREE
-        db_walk_tree(true, table->ht[i], func, ap);
+        db_walk_tree(true, table->ht[i], func);
 #else
         struct dbn *p = table->ht[i];
         if (!p)
@@ -518,7 +522,7 @@ void db_final(struct dbt *table, db_func_t func, ...)
         while (1)
         {
             if (func)
-                func(p->key, p->data, ap);
+                func(p->key, p->data);
             struct dbn *pn = p->left;
             if (pn)
             {
@@ -542,5 +546,4 @@ void db_final(struct dbt *table, db_func_t func, ...)
 #endif // else ! SMART_WALK_TREE
     } // for i
     free(table);
-    va_end(ap);
 }

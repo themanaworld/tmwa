@@ -1,23 +1,25 @@
 // Copyright (c) Athena Dev Teams - Licensed under GNU GPL
 // For more information, see LICENCE in the main folder
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "storage.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
 
-#include "storage.hpp"
+#include "atcommand.hpp"
+#include "battle.hpp"
 #include "chrif.hpp"
-#include "itemdb.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
+#include "itemdb.hpp"
 #include "pc.hpp"
-#include "battle.hpp"
-#include "atcommand.hpp"
 
-static struct dbt *storage_db;
+static
+struct dbt *storage_db;
 
 /*==========================================
  * 倉庫内アイテムソート
@@ -37,7 +39,8 @@ int storage_comp_item(const void *_i1, const void *_i2)
     return i1->nameid - i2->nameid;
 }
 
-static void storage_db_final(db_key_t key, db_val_t data, va_list ap)
+static
+void storage_db_final(db_key_t, db_val_t data)
 {
     struct storage *stor = (struct storage *) data;
     free(stor);
@@ -66,7 +69,8 @@ void do_final_storage(void)    // by [MC Cameri]
         numdb_final(storage_db, storage_db_final);
 }
 
-static void storage_reconnect_sub(db_key_t key, db_val_t data, va_list ap)
+static
+void storage_reconnect_sub(db_key_t, db_val_t data)
 {
     //Parses storage and saves 'dirty' ones upon reconnect. [Skotlex]
     struct storage *stor = (struct storage *) data;
@@ -146,7 +150,8 @@ int storage_storageopen(struct map_session_data *sd)
  * Internal add-item function.
  *------------------------------------------
  */
-static int storage_additem(struct map_session_data *sd, struct storage *stor,
+static
+int storage_additem(struct map_session_data *sd, struct storage *stor,
                             struct item *item_data, int amount)
 {
     struct item_data *data;
@@ -191,7 +196,8 @@ static int storage_additem(struct map_session_data *sd, struct storage *stor,
  * Internal del-item function
  *------------------------------------------
  */
-static int storage_delitem(struct map_session_data *sd, struct storage *stor,
+static
+int storage_delitem(struct map_session_data *sd, struct storage *stor,
                             int n, int amount)
 {
 

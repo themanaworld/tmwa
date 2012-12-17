@@ -1,19 +1,16 @@
-// $Id: chat.c,v 1.2 2004/09/22 02:59:47 Akitasha Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "chat.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
-#include "map.hpp"
-#include "clif.hpp"
-#include "pc.hpp"
-#include "chat.hpp"
-#include "npc.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
+#include "clif.hpp"
+#include "map.hpp"
+#include "npc.hpp"
+#include "pc.hpp"
 
 int chat_triggerevent(struct chat_data *cd);
 

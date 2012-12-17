@@ -1,6 +1,8 @@
 #ifndef MOB_T_HPP
 #define MOB_T_HPP
 
+#include <cstdint>
+
 enum class MST
 {
     MST_TARGET = 0,
@@ -90,4 +92,4 @@ enum class MSS : uint8_t
 #define MSS_CHASE MSS::MSS_CHASE
 };
 
-#endif
+#endif // MOB_T_HPP

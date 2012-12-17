@@ -1,9 +1,12 @@
+#ifndef GRFIO_HPP
+#define GRFIO_HPP
+
+# include "sanity.hpp"
+
 /// Accessor to the .gat map virtual files
 // Note .gat files are mapped to .wlk files by data/resnametable.txt
 // Note that there currently is a 1-1 correlation between them,
 // but it is possible for a single .wlk to have multiple .gats reference it
-#ifndef GRFIO_HPP
-#define GRFIO_HPP
 
 /// Load file into memory
 # define grfio_read(resourcename) grfio_reads(resourcename, NULL)

@@ -1,11 +1,14 @@
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
 #include "nullpo.hpp"
 
-static void nullpo_info_core(const char *file, int line, const char *func);
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstdio>
+#include <cstring>
+
+static
+void nullpo_info_core(const char *file, int line, const char *func);
 __attribute__((format(printf, 4, 0)))
-static void nullpo_info_core(const char *file, int line, const char *func,
+static
+void nullpo_info_core(const char *file, int line, const char *func,
                               const char *fmt, va_list ap);
 
 /// Null check and print format
@@ -48,7 +51,8 @@ void nullpo_info(const char *file, int line, const char *func)
 }
 
 /// Actual output function
-static void nullpo_info_core(const char *file, int line, const char *func)
+static
+void nullpo_info_core(const char *file, int line, const char *func)
 {
     if (!file)
         file = "??";
@@ -58,7 +62,8 @@ static void nullpo_info_core(const char *file, int line, const char *func)
     fprintf(stderr, "%s:%d: in func `%s': NULL pointer\n", file, line, func);
 }
 
-static void nullpo_info_core(const char *file, int line, const char *func,
+static
+void nullpo_info_core(const char *file, int line, const char *func,
                               const char *fmt, va_list ap)
 {
     nullpo_info_core(file, line, func);

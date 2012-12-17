@@ -2,70 +2,72 @@
 #include "magic-expr.hpp"
 }
 %code{
+#include <cstdarg>  // exception to "no va_list" rule
+
 #include "magic-interpreter-parser.hpp"
 
 #include "magic-interpreter.hpp"
-#include <stdarg.h>
 
 #define YYLEX_PARAM 0, 0
 
-static int
-intern_id(const char *id_name);
+static
+int intern_id(const char *id_name);
 
 
-static expr_t *
-fun_expr(const char *name, int args_nr, expr_t **args, int line, int column);
+static
+expr_t *fun_expr(const char *name, int args_nr, expr_t **args, int line, int column);
 
-static expr_t *
-dot_expr(expr_t *lhs, int id);
+static
+expr_t *dot_expr(expr_t *lhs, int id);
 
 #define BIN_EXPR(x, name, arg1, arg2, line, column) { expr_t *e[2]; e[0] = arg1; e[1] = arg2; x = fun_expr(name, 2, e, line, column); }
 
-static int failed_flag = 0;
+static
+int failed_flag = 0;
 
-static void
-magic_frontend_error(const char *msg);
+static
+void magic_frontend_error(const char *msg);
 
-static void
-fail(int line, int column, const char *fmt, ...);
+static
+void fail(int line, int column, const char *fmt, ...);
 
-static spell_t *
-new_spell(spellguard_t *guard);
+static
+spell_t *new_spell(spellguard_t *guard);
 
-static spellguard_t *
-spellguard_implication(spellguard_t *a, spellguard_t *b);
+static
+spellguard_t *spellguard_implication(spellguard_t *a, spellguard_t *b);
 
-static spellguard_t *
-new_spellguard(int ty);
+static
+spellguard_t *new_spellguard(int ty);
 
-static effect_t *
-new_effect(int ty);
+static
+effect_t *new_effect(int ty);
 
-static effect_t *
-set_effect_continuation(effect_t *src, effect_t *continuation);
+static
+effect_t *set_effect_continuation(effect_t *src, effect_t *continuation);
 
-static void
-add_spell(spell_t *spell, int line_nr);
+static
+void add_spell(spell_t *spell, int line_nr);
 
-static void
-add_teleport_anchor(teleport_anchor_t *anchor, int line_nr);
+static
+void add_teleport_anchor(teleport_anchor_t *anchor, int line_nr);
 
-static effect_t *
-op_effect(char *name, int args_nr, expr_t **args, int line, int column);
+static
+effect_t *op_effect(char *name, int args_nr, expr_t **args, int line, int column);
 
 int magic_frontend_lex(YYSTYPE *, YYLTYPE *);
 
-static void
-install_proc(proc_t *proc);
+static
+void install_proc(proc_t *proc);
 
-static effect_t *
-call_proc(char *name, int args_nr, expr_t **args, int line_nr, int column);
+static
+effect_t *call_proc(char *name, int args_nr, expr_t **args, int line_nr, int column);
 
-static void
-bind_constant(char *name, val_t *val, int line_nr);
+static
+void bind_constant(char *name, val_t *val, int line_nr);
 
-static val_t *
-find_constant(char *name);
+static
+val_t *find_constant(char *name);
 
 }
 
@@ -703,8 +705,8 @@ effect_list             : /* empty */
 /* We do incremental realloc here to store our results.  Since this happens only once
  * during startup for a relatively manageable set of configs, it should be fine. */
 
-static int
-intern_id(const char *id_name)
+static
+int intern_id(const char *id_name)
 {
         int i;
 
@@ -724,8 +726,8 @@ intern_id(const char *id_name)
         return i;
 }
 
-static void
-add_spell(spell_t *spell, int line_nr)
+static
+void add_spell(spell_t *spell, int line_nr)
 {
         int index = magic_conf.spells_nr;
         int i;
@@ -749,8 +751,8 @@ add_spell(spell_t *spell, int line_nr)
 
 }
 
-static void
-add_teleport_anchor(teleport_anchor_t *anchor, int line_nr)
+static
+void add_teleport_anchor(teleport_anchor_t *anchor, int line_nr)
 {
         int index = magic_conf.anchors_nr;
         int i;
@@ -783,8 +785,8 @@ void fail(int line, int column, const char *fmt, ...)
         failed_flag = 1;
 }
 
-static expr_t *
-dot_expr(expr_t *expr, int id)
+static
+expr_t *dot_expr(expr_t *expr, int id)
 {
         expr_t *retval = magic_new_expr(EXPR_SPELLFIELD);
         retval->e.e_field.id = id;
@@ -793,8 +795,8 @@ dot_expr(expr_t *expr, int id)
         return retval;
 }
 
-static expr_t *
-fun_expr(const char *name, int args_nr, expr_t **args, int line, int column)
+static
+expr_t *fun_expr(const char *name, int args_nr, expr_t **args, int line, int column)
 {
         int id;
         expr_t *expr;
@@ -826,8 +828,8 @@ fun_expr(const char *name, int args_nr, expr_t **args, int line, int column)
         return expr;
 }
 
-static spell_t *
-new_spell(spellguard_t *guard)
+static
+spell_t *new_spell(spellguard_t *guard)
 {
         static int spell_counter = 0;
 
@@ -837,16 +839,16 @@ new_spell(spellguard_t *guard)
         return retval;
 }
 
-static spellguard_t *
-new_spellguard(int ty)
+static
+spellguard_t *new_spellguard(int ty)
 {
         spellguard_t *retval = (spellguard_t *)calloc(1, sizeof(spellguard_t));
         retval->ty = ty;
         return retval;
 }
 
-static spellguard_t *
-spellguard_implication(spellguard_t *a, spellguard_t *b)
+static
+spellguard_t *spellguard_implication(spellguard_t *a, spellguard_t *b)
 {
         spellguard_t *retval = a;
 
@@ -875,16 +877,16 @@ spellguard_implication(spellguard_t *a, spellguard_t *b)
         return retval;
 }
 
-static effect_t *
-new_effect(int ty)
+static
+effect_t *new_effect(int ty)
 {
         effect_t *effect = (effect_t *) calloc(1, sizeof(effect_t));
         effect->ty = ty;
         return effect;
 }
 
-static effect_t *
-set_effect_continuation(effect_t *src, effect_t *continuation)
+static
+effect_t *set_effect_continuation(effect_t *src, effect_t *continuation)
 {
         effect_t *retval = src;
         /* This function is completely analogous to `spellguard_implication' above; read the control flow implications above first before pondering it. */
@@ -906,8 +908,8 @@ set_effect_continuation(effect_t *src, effect_t *continuation)
         return retval;
 }
 
-static effect_t *
-op_effect(char *name, int args_nr, expr_t **args, int line, int column)
+static
+effect_t *op_effect(char *name, int args_nr, expr_t **args, int line, int column)
 {
         int id;
         effect_t *effect;
@@ -942,8 +944,8 @@ proc_t *procs = NULL;
 int procs_nr = 0;
 
 // I think this is a memory leak, or undefined behavior
-static void
-install_proc(proc_t *proc)
+static
+void install_proc(proc_t *proc)
 {
         if (!procs) {
                 procs = proc;
@@ -954,8 +956,8 @@ install_proc(proc_t *proc)
         }
 }
 
-static effect_t *
-call_proc(char *name, int args_nr, expr_t **args, int line_nr, int column)
+static
+effect_t *call_proc(char *name, int args_nr, expr_t **args, int line_nr, int column)
 {
         proc_t *p = NULL;
         int i;
@@ -992,8 +994,8 @@ struct const_def_rec {
 
 int const_defs_nr = 0;
 
-static void
-bind_constant(char *name, val_t *val, int line_nr)
+static
+void bind_constant(char *name, val_t *val, int line_nr)
 {
         if (find_constant(name)) {
                 fail(line_nr, 0, "Redefinition of constant `%s'\n", name);
@@ -1011,8 +1013,8 @@ bind_constant(char *name, val_t *val, int line_nr)
         ++const_defs_nr;
 }
 
-static val_t *
-find_constant(char *name)
+static
+val_t *find_constant(char *name)
 {
         int i;
         for (i = 0; i < const_defs_nr; i++) {
@@ -1084,8 +1086,8 @@ int magic_init(const char *conffile)
 
 extern int magic_frontend_lineno;
 
-static void
-magic_frontend_error(const char *msg)
+static
+void magic_frontend_error(const char *msg)
 {
     fprintf(stderr, "[magic-conf] Parse error: %s at line %d\n", msg, magic_frontend_lineno);
     failed_flag = 1;

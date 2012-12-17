@@ -1,8 +1,8 @@
-// $Id: trade.h,v 1.2 2004/09/25 05:32:19 MouseJstr Exp $
 #ifndef TRADE_HPP
 #define TRADE_HPP
 
 #include "map.hpp"
+
 void trade_traderequest(struct map_session_data *sd, int target_id);
 void trade_tradeack(struct map_session_data *sd, int type);
 void trade_tradeadditem(struct map_session_data *sd, int index, int amount);

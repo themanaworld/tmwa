@@ -2,8 +2,9 @@
 #ifndef MMO_HPP
 #define MMO_HPP
 
-# include <time.h>
-# include "utils.hpp"              // LCCWIN32
+# include <ctime>
+
+# include "utils.hpp"
 
 # define FIFOSIZE_SERVERLINK    256*1024
 

@@ -21,8 +21,6 @@
 #  error "please compile with -m32"
 # endif
 
-/// A name for unused function arguments - can be repeated
-# define UNUSED /* empty works for C++ */
 /// Convert type assumptions to use the standard types here
 # include <cstdint>
 /// size_t, NULL

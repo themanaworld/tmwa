@@ -1,6 +1,7 @@
-// $Id: script.h,v 1.2 2004/09/25 05:32:19 MouseJstr Exp $
 #ifndef SCRIPT_HPP
 #define SCRIPT_HPP
+
+#include <cstdint>
 
 // values are private, but gcc < 4.6 doesn't
 // support forward-declared enums
@@ -79,7 +80,7 @@ typedef struct argrec
         _aru(const char *z) : s(z) {}
     } v;
 } argrec_t;
-int run_script_l(const ScriptCode *, int, int, int, int, argrec_t * args);
+int run_script_l(const ScriptCode *, int, int, int, int, argrec_t *args);
 int run_script(const ScriptCode *, int, int, int);
 
 struct dbt *script_get_label_db(void);
@@ -91,4 +92,4 @@ void do_final_script(void);
 
 extern char mapreg_txt[];
 
-#endif
+#endif // SCRIPT_HPP

@@ -1,35 +1,31 @@
-// $Id: chrif.c,v 1.6 2004/09/25 11:39:17 MouseJstr Exp $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#ifdef LCCWIN32
-#include <winsock.h>
-#else
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#endif
-#include <sys/types.h>
-#include <time.h>
+#include "chrif.hpp"
 
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+
+#include <unistd.h>
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+#include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
-#include "map.hpp"
+
 #include "battle.hpp"
-#include "chrif.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
+#include "itemdb.hpp"
+#include "map.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
-#include "../common/nullpo.hpp"
-#include "itemdb.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
-
-static const int packet_len_table[0x20] = {
+static
+const int packet_len_table[0x20] = {
     60, 3, 10, 27, 22, -1, 6, -1,   // 2af8-2aff
     6, -1, 18, 7, -1, 49, 44, 0,    // 2b00-2b07
     6, 30, -1, 10, 86, 7, 44, 34,   // 2b08-2b0f
@@ -38,11 +34,16 @@ static const int packet_len_table[0x20] = {
 
 int char_fd;
 int srvinfo;
-static char char_ip_str[16];
-static int char_ip;
-static int char_port = 6121;
-static char userid[24], passwd[24];
-static int chrif_state;
+static
+char char_ip_str[16];
+static
+int char_ip;
+static
+int char_port = 6121;
+static
+char userid[24], passwd[24];
+static
+int chrif_state;
 
 // 設定ファイル読み込み関係
 /*==========================================
@@ -1024,7 +1025,8 @@ int chrif_char_offline(struct map_session_data *sd)
  *----------------------------------------
  */
 
-static void ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
+static
+void ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
 {
     if (item && item->nameid == source)
     {
@@ -1100,10 +1102,8 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
 }
 
 static
-void ladmin_itemfrob_c(struct block_list *bl, va_list va_args)
+void ladmin_itemfrob_c(struct block_list *bl, int source_id, int dest_id)
 {
-    int source_id = va_arg(va_args, int);
-    int dest_id = va_arg(va_args, int);
     ladmin_itemfrob_c2(bl, source_id, dest_id);
 }
 
@@ -1115,8 +1115,7 @@ void ladmin_itemfrob(int fd)
     struct block_list *bl = (struct block_list *) map_get_first_session();
 
     // flooritems
-    map_foreachobject(ladmin_itemfrob_c, 0 /* any object */ , source_id,
-                       dest_id);
+    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), 0 /* any object */);
 
     // player characters (and, hopefully, mobs)
     while (bl->next)
@@ -1256,7 +1255,7 @@ void chrif_parse(int fd)
  *------------------------------------------
  */
 static
-void send_users_tochar(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void send_users_tochar(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     int users = 0, i;
     struct map_session_data *sd;
@@ -1287,7 +1286,7 @@ void send_users_tochar(timer_id tid, tick_t tick, custom_id_t id, custom_data_t 
  *------------------------------------------
  */
 static
-void check_connect_char_server(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void check_connect_char_server(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     if (char_fd <= 0 || session[char_fd] == NULL)
     {

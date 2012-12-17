@@ -1,4 +1,3 @@
-// $Id: atcommand.h 148 2004-09-30 14:05:37Z MouseJstr $
 #ifndef ATCOMMAND_HPP
 #define ATCOMMAND_HPP
 
@@ -139,7 +138,6 @@ enum AtCommandType
     AtCommand_Char_Storage_List,    // by Yor
     AtCommand_Char_Cart_List,   // by Yor
     AtCommand_AddWarp,          // by MouseJstr
-    AtCommand_Follow,           // by MouseJstr
     AtCommand_SkillOn,          // by MouseJstr
     AtCommand_SkillOff,         // by MouseJstr
     AtCommand_Killer,           // by MouseJstr
@@ -147,9 +145,6 @@ enum AtCommandType
     AtCommand_Killable,         // by MouseJstr
     AtCommand_CharKillable,     // by MouseJstr
     AtCommand_Chareffect,       // by MouseJstr
-    AtCommand_Chardye,          // by MouseJstr
-    AtCommand_Charhairstyle,    // by MouseJstr
-    AtCommand_Charhaircolor,    // by MouseJstr
     AtCommand_Dropall,          // by MouseJstr
     AtCommand_Chardropall,      // by MouseJstr
     AtCommand_Storeall,         // by MouseJstr
@@ -181,7 +176,7 @@ enum AtCommandType
     AtCommand_DoomSpot,
     // end
     AtCommand_Unknown,
-    AtCommand_MAX
+    AtCommand_MAX,
 };
 
 typedef enum AtCommandType AtCommandType;
@@ -215,4 +210,4 @@ void log_atcommand(struct map_session_data *sd, const char *fmt, ...);
 __attribute__((format(printf, 1, 2)))
 void gm_log(const char *fmt, ...);
 
-#endif
+#endif // ATCOMMAND_HPP

@@ -5,9 +5,9 @@
 
 #include <netinet/in.h>
 
-#include <stdint.h> // uint32_t, uint8_t
-#include <stddef.h> // size_t
-#include <stdio.h> // FILE*
+#include <cstdint>
+#include <cstddef>
+#include <cstdio>
 
 /// The digest state - becomes the output
 typedef struct
@@ -35,18 +35,6 @@ MD5_state MD5_from_cstring(const char* msg);
 MD5_state MD5_from_FILE(FILE* in);
 
 
-/// Output in ASCII - with lowercase hex digits, null-terminated
-// these may overlap safely
-static void MD5_String(const char *string, char output[33]) __attribute__((deprecated));
-static inline void MD5_String(const char *string, char output[33]) {
-    MD5_to_str(MD5_from_cstring(string), output);
-}
-/// Output in binary
-static void MD5_String2binary(const char *string, uint8_t output[16]) __attribute__((deprecated));
-static inline void MD5_String2binary(const char *string, uint8_t output[16]) {
-    MD5_to_bin(MD5_from_cstring(string), output);
-}
-
 // statically-allocated output
 // whoever wrote this fails basic understanding of
 const char *MD5_saltcrypt(const char *key, const char *salt);
@@ -61,4 +49,4 @@ bool pass_ok(const char *password, const char *crypted);
 /// This returns an in_addr because it is configurable whether it gets called at all
 struct in_addr MD5_ip(char *secret, struct in_addr ip);
 
-#endif
+#endif // MD5CALC_HPP

@@ -1,40 +1,30 @@
-// $Id: ladmin.c,v 1.1.1.1 2004/09/10 17:26:52 MagicalTux Exp $
-///////////////////////////////////////////////////////////////////////////
-// EAthena login-server remote administration tool
-// Ladamin in C by [Yor]
-// if you modify this software, modify ladmin in tool too.
-///////////////////////////////////////////////////////////////////////////
+#include "ladmin.hpp"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
-#include <sys/time.h>           // gettimeofday
-#include <time.h>
 #include <sys/ioctl.h>
-#include <unistd.h>             // close
-#include <signal.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
+
 #include <fcntl.h>
-#include <string.h>             // str*
-#include <arpa/inet.h>          // inet_addr
-#include <netdb.h>              // gethostbyname
-#include <stdarg.h>             // valist
-#include <ctype.h>              // tolower
+#include <netdb.h>
+#include <unistd.h>
+
+#include <cctype>
+#include <csignal>
+#include <cstdarg>  // exception to "no va_list" rule
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #include "../common/core.hpp"
-#include "../common/socket.hpp"
-#include "ladmin.hpp"
-#include "../common/version.hpp"
-#include "../common/mmo.hpp"
-
-#ifdef PASSWORDENC
 #include "../common/md5calc.hpp"
-#endif
+#include "../common/mmo.hpp"
+#include "../common/socket.hpp"
+#include "../common/version.hpp"
 
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
 
 int eathena_interactive_session; // from core.c
 #define Iprintf if (eathena_interactive_session) printf
@@ -51,11 +41,7 @@ int eathena_interactive_session; // from core.c
 char loginserverip[16] = "127.0.0.1";   // IP of login-server
 int loginserverport = 6900;    // Port of login-server
 char loginserveradminpassword[24] = "admin";    // Administration password
-#ifdef PASSWORDENC
 int passenc = 2;               // Encoding type of the password
-#else
-int passenc = 0;               // Encoding type of the password
-#endif
 char ladmin_log_filename[1024] = "log/ladmin.log";
 char date_format[32] = "%Y-%m-%d %H:%M:%S";
 //-------------------------------------------------------------------------
@@ -241,8 +227,8 @@ char date_format[32] = "%Y-%m-%d %H:%M:%S";
 int login_fd;
 int login_ip;
 int bytes_to_read = 0;         // flag to know if we waiting bytes from login-server
-char command[1024];
-char parameters[1024];
+char parameters[1024]; // needs to be global since it's passed to the parse function
+// really should be added to session data
 int list_first, list_last, list_type, list_count;  // parameter to display a list of accounts
 int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
 
@@ -1886,7 +1872,7 @@ int changepasswd(const char *param)
 // this function have no answer
 //----------------------------------------------------------------------
 static
-int reloadGM(void)
+int reloadGM(char *params)
 {
     WFIFOW(login_fd, 0) = 0x7955;
     WFIFOSET(login_fd, 2);
@@ -1895,7 +1881,7 @@ int reloadGM(void)
     ladmin_log("Request to reload the GM configuration file sended.\n");
     printf("Request to reload the GM configuration file sended.\n");
     printf("Check the actual GM accounts (after reloading):\n");
-    listaccount(parameters, 1);    // 1: to list only GM
+    listaccount(params, 1);    // 1: to list only GM
 
     return 180;
 }
@@ -2491,35 +2477,36 @@ int prompt(void)
             if (buf[i] < 32)
             {
                 // remove cursor control.
-                if (buf[i] == 27 && buf[i + 1] == '[' && (buf[i + 2] == 'H' ||  // home position (cursor)
-                                                          buf[i + 2] == 'J' ||  // clear screen
-                                                          buf[i + 2] == 'A' ||  // up 1 line
-                                                          buf[i + 2] == 'B' ||  // down 1 line
-                                                          buf[i + 2] == 'C' ||  // right 1 position
-                                                          buf[i + 2] == 'D' ||  // left 1 position
-                                                          buf[i + 2] == 'G'))
-                {               // center cursor (windows)
+                if (buf[i] == 27
+                    && buf[i + 1] == '['
+                    && (buf[i + 2] == 'H' // home position (cursor)
+                        || buf[i + 2] == 'J' // clear screen
+                        || buf[i + 2] == 'A' // up 1 line
+                        || buf[i + 2] == 'B' // down 1 line
+                        || buf[i + 2] == 'C' // right 1 position
+                        || buf[i + 2] == 'D' // left 1 position
+                        || buf[i + 2] == 'G')) // center cursor (windows)
+                {
                     for (j = i; buf[j]; j++)
                         buf[j] = buf[j + 3];
                 }
                 else if (buf[i] == 27 && buf[i + 1] == '['
                          && buf[i + 2] == '2' && buf[i + 3] == 'J')
-                {               // clear screen
+                {
+                    // clear screen
                     for (j = i; buf[j]; j++)
                         buf[j] = buf[j + 4];
                 }
-                else if (buf[i] == 27 && buf[i + 1] == '[' && buf[i + 3] == '~' && (buf[i + 2] == '1' ||    // home (windows)
-                                                                                    buf[i + 2] == '2' ||    // insert (windows)
-                                                                                    buf[i + 2] == '3' ||    // del (windows)
-                                                                                    buf[i + 2] == '4' ||    // end (windows)
-                                                                                    buf[i + 2] == '5' ||    // pgup (windows)
-                                                                                    buf
-                                                                                    [i
-                                                                                     +
-                                                                                     2]
-                                                                                    ==
-                                                                                    '6'))
-                {               // pgdown (windows)
+                else if (buf[i] == 27
+                        && buf[i + 1] == '['
+                        && buf[i + 3] == '~'
+                        && (buf[i + 2] == '1' // home (windows)
+                            || buf[i + 2] == '2' // insert (windows)
+                            || buf[i + 2] == '3' // del (windows)
+                            || buf[i + 2] == '4' // end (windows)
+                            || buf[i + 2] == '5' // pgup (windows)
+                            || buf[i + 2] == '6')) // pgdown (windows)
+                {
                     for (j = i; buf[j]; j++)
                         buf[j] = buf[j + 4];
                 }
@@ -2532,6 +2519,7 @@ int prompt(void)
                 i--;
             }
 
+        char command[1024];
         // extract command name and parameters
         memset(command, '\0', sizeof(command));
         memset(parameters, '\0', sizeof(parameters));
@@ -2664,7 +2652,7 @@ int prompt(void)
         }
         else if (strcmp(command, "reloadgm") == 0)
         {
-            reloadGM();
+            reloadGM(parameters);
         }
         else if (strcmp(command, "search") == 0)
         {                       // no regex in C version
@@ -2727,8 +2715,6 @@ int prompt(void)
 static
 void parse_fromlogin(int fd)
 {
-    struct char_session_data *sd;
-
     if (session[fd]->eof)
     {
         printf("Impossible to have a connection with the login-server [%s:%d] !\n",
@@ -2741,7 +2727,6 @@ void parse_fromlogin(int fd)
     }
 
 //  printf("parse_fromlogin : %d %d %d\n", fd, RFIFOREST(fd), RFIFOW(fd,0));
-    sd = (struct char_session_data *)session[fd]->session_data;
 
     while (RFIFOREST(fd) >= 2)
     {
@@ -2772,7 +2757,6 @@ void parse_fromlogin(int fd)
                 RFIFOSKIP(fd, 3);
                 break;
 
-#ifdef PASSWORDENC
             case 0x01dc:       // answer of a coding key request
                 if (RFIFOREST(fd) < 4 || RFIFOREST(fd) < RFIFOW(fd, 2))
                     return;
@@ -2805,7 +2789,6 @@ void parse_fromlogin(int fd)
                 bytes_to_read = 1;
                 RFIFOSKIP(fd, RFIFOW(fd, 2));
                 break;
-#endif
 
             case 0x7531:       // Displaying of the version of the login-server
                 if (RFIFOREST(fd) < 10)
@@ -3584,10 +3567,8 @@ int Connect_login_server(void)
     if ((login_fd = make_connection(login_ip, loginserverport)) < 0)
         return 0;
 
-#ifdef PASSWORDENC
     if (passenc == 0)
     {
-#endif
         WFIFOW(login_fd, 0) = 0x7918;  // Request for administation login
         WFIFOW(login_fd, 2) = 0;   // no encrypted
         memcpy(WFIFOP(login_fd, 4), loginserveradminpassword, 24);
@@ -3596,7 +3577,6 @@ int Connect_login_server(void)
 
         Iprintf("Sending of the password...\n");
         ladmin_log("Sending of the password...\n");
-#ifdef PASSWORDENC
     }
     else
     {
@@ -3606,7 +3586,6 @@ int Connect_login_server(void)
         Iprintf("Request about the MD5 key...\n");
         ladmin_log("Request about the MD5 key...\n");
     }
-#endif
 
     return 0;
 }
@@ -3669,14 +3648,12 @@ int ladmin_config_read(const char *cfgName)
                          sizeof(loginserveradminpassword));
                 loginserveradminpassword[sizeof(loginserveradminpassword) -
                                          1] = '\0';
-#ifdef PASSWORDENC
             }
             else if (strcasecmp(w1, "passenc") == 0)
             {
                 passenc = atoi(w2);
                 if (passenc < 0 || passenc > 2)
                     passenc = 0;
-#endif
             }
             else if (strcasecmp(w1, "ladmin_log_filename") == 0)
             {

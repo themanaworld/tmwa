@@ -1,16 +1,16 @@
-// $Id: pc.c 101 2004-09-25 17:57:22Z Valaris $
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
+#include "pc.hpp"
 
-#include "../common/socket.hpp"             // [Valaris]
-#include "../common/timer.hpp"
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
 #include "../common/db.hpp"
-
-#include "../common/nullpo.hpp"
 #include "../common/mt_rand.hpp"
+#include "../common/nullpo.hpp"
+#include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -23,15 +23,10 @@
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
-#include "pc.hpp"
 #include "script.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "trade.hpp"
-
-#ifdef MEMWATCH
-#include "memwatch.hpp"
-#endif
 
 #define PVP_CALCRANK_INTERVAL 1000  // PVP順位計算の間隔
 
@@ -66,16 +61,26 @@
 timer_id day_timer_tid;
 timer_id night_timer_tid;
 
-static int max_weight_base[MAX_PC_CLASS];
-static int hp_coefficient[MAX_PC_CLASS];
-static int hp_coefficient2[MAX_PC_CLASS];
-static int hp_sigma_val[MAX_PC_CLASS][MAX_LEVEL];
-static int sp_coefficient[MAX_PC_CLASS];
-static int aspd_base[MAX_PC_CLASS][20];
-static char job_bonus[3][MAX_PC_CLASS][MAX_LEVEL];
-static int exp_table[14][MAX_LEVEL];
-static char statp[255][7];
-static struct
+static
+int max_weight_base[MAX_PC_CLASS];
+static
+int hp_coefficient[MAX_PC_CLASS];
+static
+int hp_coefficient2[MAX_PC_CLASS];
+static
+int hp_sigma_val[MAX_PC_CLASS][MAX_LEVEL];
+static
+int sp_coefficient[MAX_PC_CLASS];
+static
+int aspd_base[MAX_PC_CLASS][20];
+static
+char job_bonus[3][MAX_PC_CLASS][MAX_LEVEL];
+static
+int exp_table[14][MAX_LEVEL];
+static
+char statp[255][7];
+static
+struct
 {
     SkillID id;
     int max;
@@ -86,21 +91,29 @@ static struct
     } need[6];
 } skill_tree[3][MAX_PC_CLASS][100];
 
-static int atkmods[3][20];      // 武器ATKサイズ修正(size_fix.txt)
-static int refinebonus[5][3];   // 精錬ボーナステーブル(refine_db.txt)
-static int percentrefinery[5][10];  // 精錬成功率(refine_db.txt)
+static
+int atkmods[3][20];      // 武器ATKサイズ修正(size_fix.txt)
+static
+int refinebonus[5][3];   // 精錬ボーナステーブル(refine_db.txt)
+static
+int percentrefinery[5][10];  // 精錬成功率(refine_db.txt)
 
-static int dirx[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
-static int diry[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
+static
+int dirx[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
+static
+int diry[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
 
-static unsigned int equip_pos[11] =
+static
+unsigned int equip_pos[11] =
     { 0x0080, 0x0008, 0x0040, 0x0004, 0x0001, 0x0200, 0x0100, 0x0010, 0x0020,
     0x0002, 0x8000
 };
 
 //static struct dbt *gm_account_db;
-static struct gm_account *gm_account = NULL;
-static int GM_num = 0;
+static
+struct gm_account *gm_account = NULL;
+static
+int GM_num = 0;
 
 int pc_isGM(struct map_session_data *sd)
 {
@@ -165,7 +178,8 @@ int pc_getrefinebonus(int lv, int type)
     return 0;
 }
 
-static int distance(int x0, int y0, int x1, int y1)
+static
+int distance(int x0, int y0, int x1, int y1)
 {
     int dx, dy;
 
@@ -174,7 +188,8 @@ static int distance(int x0, int y0, int x1, int y1)
     return dx > dy ? dx : dy;
 }
 
-static void pc_invincible_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+static
+void pc_invincible_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
 {
     struct map_session_data *sd;
 
@@ -214,7 +229,8 @@ int pc_delinvincibletimer(struct map_session_data *sd)
     return 0;
 }
 
-static void pc_spiritball_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+static
+void pc_spiritball_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
 {
     struct map_session_data *sd;
     int i;
@@ -384,20 +400,10 @@ int pc_setrestartvalue(struct map_session_data *sd, int type)
  *------------------------------------------
  */
 static
-void pc_counttargeted_sub(struct block_list *bl, va_list ap)
+void pc_counttargeted_sub(struct block_list *bl, int id, int *c, struct block_list *src, int target_lv)
 {
-    int id, *c, target_lv;
-    struct block_list *src;
-
     nullpo_retv(bl);
-    nullpo_retv(ap);
 
-    id = va_arg(ap, int);
-
-    nullpo_retv(c = va_arg(ap, int *));
-
-    src = va_arg(ap, struct block_list *);
-    target_lv = va_arg(ap, int);
     if (id == bl->id || (src && id == src->id))
         return;
     if (bl->type == BL_PC)
@@ -422,10 +428,9 @@ int pc_counttargeted(struct map_session_data *sd, struct block_list *src,
                       int target_lv)
 {
     int c = 0;
-    map_foreachinarea(pc_counttargeted_sub, sd->bl.m,
-                       sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
-                       sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE, 0,
-                       sd->bl.id, &c, src, target_lv);
+    map_foreachinarea(std::bind(pc_counttargeted_sub, ph::_1, sd->bl.id, &c, src, target_lv),
+            sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
+            sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE, 0);
     return c;
 }
 
@@ -433,7 +438,8 @@ int pc_counttargeted(struct map_session_data *sd, struct block_list *src,
  * ローカルプロトタイプ宣言 (必要な物のみ)
  *------------------------------------------
  */
-static int pc_walktoxy_sub(struct map_session_data *);
+static
+int pc_walktoxy_sub(struct map_session_data *);
 
 /*==========================================
  * saveに必要なステータス修正を行なう
@@ -484,7 +490,7 @@ int pc_makesavestatus(struct map_session_data *sd)
  *------------------------------------------
  */
 int pc_setnewpc(struct map_session_data *sd, int account_id, int char_id,
-                 int login_id1, int client_tick, int sex, int fd)
+                 int login_id1, int client_tick, int sex, int)
 {
     nullpo_retr(0, sd);
 
@@ -992,7 +998,8 @@ int pc_authfail(int id)
     return 0;
 }
 
-static int pc_calc_skillpoint(struct map_session_data *sd)
+static
+int pc_calc_skillpoint(struct map_session_data *sd)
 {
     int i, skill_points = 0;
 
@@ -1014,7 +1021,7 @@ static int pc_calc_skillpoint(struct map_session_data *sd)
 static
 int pc_calc_skilltree(struct map_session_data *sd)
 {
-    int i, id = 0, flag;
+    int flag;
     int c = 0, s = 0;
     //転生や養子の場合の元の職業を算出する
     struct pc_base_job s_class;
@@ -1158,7 +1165,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
         {
             flag = 0;
             SkillID id;
-            for (i = 0;
+            for (int i = 0;
                     (id = skill_tree[s][c][i].id) != SkillID::ZERO
                         && id != SkillID::NEGATIVE;
                     i++)
@@ -1253,7 +1260,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         b_attackrange, b_matk1, b_matk2, b_mdef, b_mdef2, b_class;
     int b_base_atk;
     earray<struct skill, SkillID, MAX_SKILL> b_skill;
-    int i, bl, index;
+    int bl, index;
     int skill, aspd_rate, wele, wele_, def_ele, refinedef = 0;
     int str, dstr, dex;
     struct pc_base_job s_class;
@@ -1298,7 +1305,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (first & 1)
     {
         sd->weight = 0;
-        for (i = 0; i < MAX_INVENTORY; i++)
+        for (int i = 0; i < MAX_INVENTORY; i++)
         {
             if (sd->status.inventory[i].nameid == 0
                 || sd->inventory_data[i] == NULL)
@@ -1311,7 +1318,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->cart_weight = 0;
         sd->cart_max_num = MAX_CART;
         sd->cart_num = 0;
-        for (i = 0; i < MAX_CART; i++)
+        for (int i = 0; i < MAX_CART; i++)
         {
             if (sd->status.cart[i].nameid == 0)
                 continue;
@@ -1449,7 +1456,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     sd->spellpower_bonus_target = 0;
 
-    for (i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++)
     {
         index = sd->equip_index[i];
         if (index < 0)
@@ -1535,7 +1542,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     memcpy(sd->paramcard, sd->parame, sizeof(sd->paramcard));
 
     // 装備品によるステータス変化はここで実行
-    for (i = 0; i < 10; i++)
+    for (int i = 0; i < 10; i++)
     {
         index = sd->equip_index[i];
         if (index < 0)
@@ -1634,7 +1641,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         {                       //まだ属性が入っていない
             argrec_t arg[2];
             arg[0].name = "@slotId";
-            arg[0].v.i = i;
+            arg[0].v.i = 10;
             arg[1].name = "@itemId";
             arg[1].v.i = sd->inventory_data[index]->nameid;
             sd->state.lr_flag = 2;
@@ -1767,7 +1774,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->paramc[3] = sd->status.int_ + sd->paramb[3] + sd->parame[3];
     sd->paramc[4] = sd->status.dex + sd->paramb[4] + sd->parame[4];
     sd->paramc[5] = sd->status.luk + sd->paramb[5] + sd->parame[5];
-    for (i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
         if (sd->paramc[i] < 0)
             sd->paramc[i] = 0;
 
@@ -2424,7 +2431,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         clif_updatestatus(sd, SP_MAXWEIGHT);
         pc_checkweighticon(sd);
     }
-    for (i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++)
         if (b_paramb[i] + b_parame[i] != sd->paramb[i] + sd->parame[i])
             clif_updatestatus(sd, SP_STR + i);
     if (b_hit != sd->hit)
@@ -3569,7 +3576,8 @@ int pc_dropitem(struct map_session_data *sd, int n, int amount)
  *------------------------------------------
  */
 
-static int can_pick_item_up_from(struct map_session_data *self, int other_id)
+static
+int can_pick_item_up_from(struct map_session_data *self, int other_id)
 {
     struct party *p = party_search(self->status.party_id);
 
@@ -3705,13 +3713,12 @@ int pc_isUseitem(struct map_session_data *sd, int n)
  */
 int pc_useitem(struct map_session_data *sd, int n)
 {
-    int nameid, amount;
+    int amount;
 
     nullpo_retr(1, sd);
 
     if (n >= 0 && n < MAX_INVENTORY && sd->inventory_data[n])
     {
-        nameid = sd->status.inventory[n].nameid;
         amount = sd->status.inventory[n].amount;
         if (sd->status.inventory[n].nameid <= 0
             || sd->status.inventory[n].amount <= 0
@@ -3927,21 +3934,14 @@ int pc_item_identify(struct map_session_data *sd, int idx)
  *------------------------------------------
  */
 static
-void pc_show_steal(struct block_list *bl, va_list ap)
+void pc_show_steal(struct block_list *bl,
+        struct map_session_data *sd, int itemid, int type)
 {
-    struct map_session_data *sd;
-    int itemid;
-    int type;
-
     struct item_data *item = NULL;
     char output[100];
 
     nullpo_retv(bl);
-    nullpo_retv(ap);
-    nullpo_retv(sd = va_arg(ap, struct map_session_data *));
-
-    itemid = va_arg(ap, int);
-    type = va_arg(ap, int);
+    nullpo_retv(sd);
 
     if (!type)
     {
@@ -4005,17 +4005,16 @@ int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
                             flag = pc_additem(sd, &tmp_item, 1);
                             if (battle_config.show_steal_in_same_party)
                             {
-                                party_foreachsamemap(pc_show_steal, sd, 1,
-                                                      sd, tmp_item.nameid, 0);
+                                party_foreachsamemap(
+                                        std::bind(pc_show_steal, ph::_1, sd, tmp_item.nameid, 0), sd, 1);
                             }
 
                             if (flag)
                             {
                                 if (battle_config.show_steal_in_same_party)
                                 {
-                                    party_foreachsamemap(pc_show_steal, sd,
-                                                          1, sd,
-                                                          tmp_item.nameid, 1);
+                                    party_foreachsamemap(
+                                            std::bind(pc_show_steal, ph::_1, sd, tmp_item.nameid, 1), sd, 1);
                                 }
 
                                 clif_additem(sd, 0, 0, flag);
@@ -4322,7 +4321,8 @@ int pc_can_reach(struct map_session_data *sd, int x, int y)
  * 次の1歩にかかる時間を計算
  *------------------------------------------
  */
-static int calc_next_walk_step(struct map_session_data *sd)
+static
+int calc_next_walk_step(struct map_session_data *sd)
 {
     nullpo_retr(0, sd);
 
@@ -4338,7 +4338,8 @@ static int calc_next_walk_step(struct map_session_data *sd)
  * 半歩進む(timer関数)
  *------------------------------------------
  */
-static void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+static
+void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd;
     int i, ctype;
@@ -4401,9 +4402,11 @@ static void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
                      || y / BLOCK_SIZE != (y + dy) / BLOCK_SIZE);
 
         sd->walktimer = 1;
-        map_foreachinmovearea(clif_pcoutsight, sd->bl.m, x - AREA_SIZE,
-                               y - AREA_SIZE, x + AREA_SIZE, y + AREA_SIZE,
-                               dx, dy, 0, sd);
+        map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
+                sd->bl.m, x - AREA_SIZE, y - AREA_SIZE,
+                x + AREA_SIZE, y + AREA_SIZE,
+                dx, dy,
+                0);
 
         x += dx;
         y += dy;
@@ -4420,9 +4423,11 @@ static void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
                                         sd->sc_data[SC_DANCING].val2,
                                         sd->bl.m, dx, dy);
 
-        map_foreachinmovearea(clif_pcinsight, sd->bl.m, x - AREA_SIZE,
-                               y - AREA_SIZE, x + AREA_SIZE, y + AREA_SIZE,
-                               -dx, -dy, 0, sd);
+        map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
+                sd->bl.m, x - AREA_SIZE, y - AREA_SIZE,
+                x + AREA_SIZE, y + AREA_SIZE,
+                -dx, -dy,
+                0);
         sd->walktimer = -1;
 
         if (sd->status.party_id > 0)
@@ -4431,10 +4436,11 @@ static void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
             if (p != NULL)
             {
                 int p_flag = 0;
-                map_foreachinmovearea(party_send_hp_check, sd->bl.m,
-                                       x - AREA_SIZE, y - AREA_SIZE,
-                                       x + AREA_SIZE, y + AREA_SIZE, -dx, -dy,
-                                       BL_PC, sd->status.party_id, &p_flag);
+                map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &p_flag),
+                        sd->bl.m, x - AREA_SIZE, y - AREA_SIZE,
+                        x + AREA_SIZE, y + AREA_SIZE,
+                        -dx, -dy,
+                        BL_PC);
                 if (p_flag)
                     sd->party_hp = -1;
             }
@@ -4475,7 +4481,8 @@ static void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t dat
  * 移動可能か確認して、可能なら歩行開始
  *------------------------------------------
  */
-static int pc_walktoxy_sub(struct map_session_data *sd)
+static
+int pc_walktoxy_sub(struct map_session_data *sd)
 {
     struct walkpath_data wpd;
     int i;
@@ -4590,9 +4597,11 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
     moveblock = (sd->bl.x / BLOCK_SIZE != dst_x / BLOCK_SIZE
                  || sd->bl.y / BLOCK_SIZE != dst_y / BLOCK_SIZE);
 
-    map_foreachinmovearea(clif_pcoutsight, sd->bl.m, sd->bl.x - AREA_SIZE,
-                           sd->bl.y - AREA_SIZE, sd->bl.x + AREA_SIZE,
-                           sd->bl.y + AREA_SIZE, dx, dy, 0, sd);
+    map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
+            sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
+            sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE,
+            dx, dy,
+            0);
 
     if (moveblock)
         map_delblock(&sd->bl);
@@ -4601,9 +4610,11 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
     if (moveblock)
         map_addblock(&sd->bl);
 
-    map_foreachinmovearea(clif_pcinsight, sd->bl.m, sd->bl.x - AREA_SIZE,
-                           sd->bl.y - AREA_SIZE, sd->bl.x + AREA_SIZE,
-                           sd->bl.y + AREA_SIZE, -dx, -dy, 0, sd);
+    map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
+            sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
+            sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE,
+            -dx, -dy,
+            0);
 
     if (sd->status.party_id > 0)
     {                           // パーティのＨＰ情報通知検査
@@ -4611,11 +4622,11 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
         if (p != NULL)
         {
             int flag = 0;
-            map_foreachinmovearea(party_send_hp_check, sd->bl.m,
-                                   sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
-                                   sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE,
-                                   -dx, -dy, BL_PC, sd->status.party_id,
-                                   &flag);
+            map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &flag),
+                    sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
+                    sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE,
+                    -dx, -dy,
+                    BL_PC);
             if (flag)
                 sd->party_hp = -1;
         }
@@ -4795,7 +4806,7 @@ struct pc_base_job pc_calc_base_job(int b_class)
  *------------------------------------------
  */
 static
-void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
 {
     struct map_session_data *sd;
     struct block_list *bl;
@@ -5001,7 +5012,7 @@ int pc_stopattack(struct map_session_data *sd)
 }
 
 static
-void pc_follow_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void pc_follow_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
 {
     struct map_session_data *sd, *bl;
 
@@ -5602,7 +5613,6 @@ int pc_skillup(struct map_session_data *sd, SkillID skill_num)
  */
 int pc_allskillup(struct map_session_data *sd)
 {
-    int i, id;
     int c = 0, s = 0;
     //転生や養子の場合の元の職業を算出する
     struct pc_base_job s_class;
@@ -5635,7 +5645,7 @@ int pc_allskillup(struct map_session_data *sd)
     else
     {
         SkillID id;
-        for (i = 0;
+        for (int i = 0;
                 (id = skill_tree[s][c][i].id) != SkillID::ZERO
                     && id != SkillID::NEGATIVE;
                 i++)
@@ -6393,9 +6403,11 @@ int pc_heal(struct map_session_data *sd, int hp, int sp)
  * HP/SP回復
  *------------------------------------------
  */
-static int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp);
+static
+int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp);
 
-static int                     // Compute how quickly we regenerate (less is faster) for that amount
+static
+int                     // Compute how quickly we regenerate (less is faster) for that amount
 pc_heal_quick_speed(int amount)
 {
     if (amount >= 100)
@@ -6416,8 +6428,8 @@ pc_heal_quick_speed(int amount)
     }
 }
 
-static void
-pc_heal_quick_accumulate(int new_amount,
+static
+void pc_heal_quick_accumulate(int new_amount,
                           struct quick_regeneration *quick_regen, int max)
 {
     int current_amount = quick_regen->amount;
@@ -6461,7 +6473,8 @@ int pc_itemheal(struct map_session_data *sd, int hp, int sp)
 /* pc_itemheal_effect is invoked once every 0.5s whenever the pc
  * has health recovery queued up (cf. pc_natural_heal_sub).
  */
-static int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
+static
+int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
 {
     int bonus;
 //  if(battle_config.battle_log)
@@ -7179,7 +7192,7 @@ int pc_percentrefinery(struct map_session_data *sd, struct item *item)
  *------------------------------------------
  */
 static
-void pc_eventtimer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void pc_eventtimer(timer_id tid, tick_t, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd(id);
     int i;
@@ -7306,8 +7319,8 @@ int pc_cleareventtimer(struct map_session_data *sd)
  * アイテムを装備する
  *------------------------------------------
  */
-static int
-pc_signal_advanced_equipment_change(struct map_session_data *sd, int n)
+static
+int pc_signal_advanced_equipment_change(struct map_session_data *sd, int n)
 {
     if (sd->status.inventory[n].equip & 0x0040)
         clif_changelook(&sd->bl, LOOK_SHOES, 0);
@@ -7728,14 +7741,13 @@ int pc_checkoversp(struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void pc_calc_pvprank_sub(struct block_list *bl, va_list ap)
+void pc_calc_pvprank_sub(struct block_list *bl, struct map_session_data *sd2)
 {
-    struct map_session_data *sd1, *sd2 = NULL;
+    struct map_session_data *sd1;
 
     nullpo_retv(bl);
-    nullpo_retv(ap);
-    nullpo_retv(sd1 = (struct map_session_data *) bl);
-    nullpo_retv(sd2 = va_arg(ap, struct map_session_data *));
+    sd1 = (struct map_session_data *) bl;
+    nullpo_retv(sd2);
 
     if (sd1->pvp_point > sd2->pvp_point)
         sd2->pvp_rank++;
@@ -7758,8 +7770,9 @@ int pc_calc_pvprank(struct map_session_data *sd)
     if (!(m->flag.pvp))
         return 0;
     sd->pvp_rank = 1;
-    map_foreachinarea(pc_calc_pvprank_sub, sd->bl.m, 0, 0, m->xs, m->ys,
-                       BL_PC, sd);
+    map_foreachinarea(std::bind(pc_calc_pvprank_sub, ph::_1, sd),
+            sd->bl.m, 0, 0, m->xs, m->ys,
+            BL_PC);
     if (old != sd->pvp_rank || sd->pvp_lastusers != m->users)
         clif_pvpset(sd, sd->pvp_rank, sd->pvp_lastusers = m->users, 0);
     return sd->pvp_rank;
@@ -7769,7 +7782,7 @@ int pc_calc_pvprank(struct map_session_data *sd)
  * PVP順位計算(timer)
  *------------------------------------------
  */
-void pc_calc_pvprank_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void pc_calc_pvprank_timer(timer_id, tick_t, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = NULL;
     if (battle_config.pk_mode)  // disable pvp ranking if pk_mode on [Valaris]
@@ -7877,8 +7890,10 @@ struct map_session_data *pc_get_partner(struct map_session_data *sd)
  * SP回復量計算
  *------------------------------------------
  */
-static int natural_heal_tick, natural_heal_prev_tick, natural_heal_diff_tick;
-static int pc_spheal(struct map_session_data *sd)
+static
+int natural_heal_tick, natural_heal_prev_tick, natural_heal_diff_tick;
+static
+int pc_spheal(struct map_session_data *sd)
 {
     int a;
 
@@ -7897,7 +7912,8 @@ static int pc_spheal(struct map_session_data *sd)
  * HP回復量計算
  *------------------------------------------
  */
-static int pc_hpheal(struct map_session_data *sd)
+static
+int pc_hpheal(struct map_session_data *sd)
 {
     int a;
 
@@ -7912,7 +7928,8 @@ static int pc_hpheal(struct map_session_data *sd)
     return a;
 }
 
-static int pc_natural_heal_hp(struct map_session_data *sd)
+static
+int pc_natural_heal_hp(struct map_session_data *sd)
 {
     int bhp;
     int inc_num, bonus, skill, hp_flag;
@@ -8036,7 +8053,8 @@ static int pc_natural_heal_hp(struct map_session_data *sd)
     return 0;
 }
 
-static int pc_natural_heal_sp(struct map_session_data *sd)
+static
+int pc_natural_heal_sp(struct map_session_data *sd)
 {
     int bsp;
     int inc_num, bonus;
@@ -8115,7 +8133,8 @@ static int pc_natural_heal_sp(struct map_session_data *sd)
     return 0;
 }
 
-static int pc_spirit_heal_hp(struct map_session_data *sd, int level)
+static
+int pc_spirit_heal_hp(struct map_session_data *sd, int)
 {
     int bonus_hp, interval = battle_config.natural_heal_skill_interval;
     eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(&sd->bl);
@@ -8167,7 +8186,8 @@ static int pc_spirit_heal_hp(struct map_session_data *sd, int level)
     return 0;
 }
 
-static int pc_spirit_heal_sp(struct map_session_data *sd, int level)
+static
+int pc_spirit_heal_sp(struct map_session_data *sd, int)
 {
     int bonus_sp, interval = battle_config.natural_heal_skill_interval;
 
@@ -8222,8 +8242,8 @@ static int pc_spirit_heal_sp(struct map_session_data *sd, int level)
  *------------------------------------------
  */
 
-static int
-pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
+static
+int pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
                            int heal_speed)
 {
     if (!(quick_regen->tickdelay--))
@@ -8242,11 +8262,12 @@ pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
     return 0;
 }
 
-static int pc_natural_heal_sub(struct map_session_data *sd, va_list ap)
+static
+void pc_natural_heal_sub(struct map_session_data *sd)
 {
     int skill;
 
-    nullpo_retr(0, sd);
+    nullpo_retv(sd);
 
     if (sd->heal_xp > 0)
     {
@@ -8272,7 +8293,7 @@ static int pc_natural_heal_sub(struct map_session_data *sd, va_list ap)
     }
 
     if (sd->sc_data[SC_HALT_REGENERATE].timer != -1)
-        return 0;
+        return;
 
     if (sd->quick_regeneration_hp.amount || sd->quick_regeneration_sp.amount)
     {
@@ -8316,7 +8337,6 @@ static int pc_natural_heal_sub(struct map_session_data *sd, va_list ap)
         sd->inchealspirithptick = 0;
         sd->inchealspiritsptick = 0;
     }
-    return 0;
 }
 
 /*==========================================
@@ -8324,7 +8344,7 @@ static int pc_natural_heal_sub(struct map_session_data *sd, va_list ap)
  *------------------------------------------
  */
 static
-void pc_natural_heal(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void pc_natural_heal(timer_id, tick_t tick, custom_id_t, custom_data_t)
 {
     natural_heal_tick = tick;
     natural_heal_diff_tick =
@@ -8354,23 +8374,21 @@ int pc_setsavepoint(struct map_session_data *sd, const char *mapname, int x, int
  * 自動セーブ 各クライアント
  *------------------------------------------
  */
-static int last_save_fd, save_flag;
-static int pc_autosave_sub(struct map_session_data *sd, va_list ap)
+static
+int last_save_fd, save_flag;
+static
+void pc_autosave_sub(struct map_session_data *sd)
 {
-    nullpo_retr(0, sd);
+    nullpo_retv(sd);
 
     if (save_flag == 0 && sd->fd > last_save_fd)
     {
-        int i;
-
         pc_makesavestatus(sd);
         chrif_save(sd);
 
         save_flag = 1;
         last_save_fd = sd->fd;
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -8378,7 +8396,7 @@ static int pc_autosave_sub(struct map_session_data *sd, va_list ap)
  *------------------------------------------
  */
 static
-void pc_autosave(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void pc_autosave(timer_id, tick_t, custom_id_t, custom_data_t)
 {
     int interval;
 
@@ -8415,8 +8433,9 @@ int pc_read_gm_account(int fd)
  * timer to do the day
  *------------------------------------------
  */
-void map_day_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
-{                               // by [yor]
+void map_day_timer(timer_id, tick_t, custom_id_t, custom_data_t)
+{
+    // by [yor]
     struct map_session_data *pl_sd = NULL;
     int i;
     char tmpstr[1024];
@@ -8446,8 +8465,9 @@ void map_day_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data
  * timer to do the night
  *------------------------------------------
  */
-void map_night_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
-{                               // by [yor]
+void map_night_timer(timer_id, tick_t, custom_id_t, custom_data_t)
+{
+    // by [yor]
     struct map_session_data *pl_sd = NULL;
     int i;
     char tmpstr[1024];
@@ -8810,7 +8830,8 @@ int pc_readdb(void)
     return 0;
 }
 
-static int pc_calc_sigma(void)
+static
+int pc_calc_sigma(void)
 {
     int i, j, k;
 
@@ -8827,7 +8848,8 @@ static int pc_calc_sigma(void)
     return 0;
 }
 
-static void pc_statpointdb(void)
+static
+void pc_statpointdb(void)
 {
     char *buf_stat;
     int i = 0, j = 0, k = 0, l = 0, end = 0;
@@ -8943,8 +8965,6 @@ void pc_invisibility(struct map_session_data *sd, int enabled)
 
 int pc_logout(struct map_session_data *sd) // [fate] Player logs out
 {
-    unsigned int tick = gettick();
-
     if (!sd)
         return 0;
 

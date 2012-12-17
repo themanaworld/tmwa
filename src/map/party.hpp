@@ -1,8 +1,7 @@
-// $Id: party.h,v 1.3 2004/09/25 05:32:18 MouseJstr Exp $
 #ifndef PARTY_HPP
 #define PARTY_HPP
 
-#include <stdarg.h>
+#include <functional>
 
 struct party;
 struct map_session_data;
@@ -42,11 +41,11 @@ int party_recv_message(int party_id, int account_id, const char *mes, int len);
 int party_check_conflict(struct map_session_data *sd);
 
 int party_send_xy_clear(struct party *p);
-void party_send_hp_check(struct block_list *bl, va_list ap);
+void party_send_hp_check(struct block_list *bl, int party_id, int *flag);
 
 int party_exp_share(struct party *p, int map, int base_exp, int job_exp);
 
-void party_foreachsamemap(void(*func)(struct block_list *, va_list),
-                           struct map_session_data *sd, int type, ...);
+void party_foreachsamemap(std::function<void(struct block_list *)> func,
+                           struct map_session_data *sd, int type);
 
-#endif
+#endif // PARTY_HPP

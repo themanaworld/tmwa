@@ -45,8 +45,9 @@
 //
 */
 
-#include <time.h>
 #include "mt_rand.hpp"
+
+#include <ctime>
 
 #define N              624                  // length of state vector
 #define M              397                  // a period parameter
@@ -57,9 +58,12 @@
 #define loBits(u)      ((u) & 0x7FFFFFFFU)  // mask the highest bit of u
 #define mixBits(u, v)  (hiBit(u)|loBits(v)) // move hi bit of u to hi bit of v
 
-static uint32_t state[N+1]; // state vector the +1 is needed due to the coding
-static uint32_t *next;      // next random value is computed from here
-static int left = -1;       // can *next++ this many times before reloading
+static
+uint32_t state[N+1]; // state vector the +1 is needed due to the coding
+static
+uint32_t *next;      // next random value is computed from here
+static
+int left = -1;       // can *next++ this many times before reloading
 
 void mt_seed(uint32_t seed)
 {

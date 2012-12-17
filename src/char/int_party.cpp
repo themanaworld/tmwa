@@ -1,19 +1,23 @@
-// $Id: int_party.c,v 1.1.1.1 2004/09/10 17:26:51 MagicalTux Exp $
-#include "inter.hpp"
 #include "int_party.hpp"
-#include "../common/mmo.hpp"
-#include "char.hpp"
-#include "../common/socket.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
 #include "../common/db.hpp"
 #include "../common/lock.hpp"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "../common/mmo.hpp"
+#include "../common/socket.hpp"
+
+#include "char.hpp"
+#include "inter.hpp"
 
 char party_txt[1024] = "save/party.txt";
 
-static struct dbt *party_db;
-static int party_newid = 100;
+static
+struct dbt *party_db;
+static
+int party_newid = 100;
 
 int mapif_party_broken(int party_id, int flag);
 int party_check_empty(struct party *p);
@@ -134,13 +138,11 @@ int inter_party_init(void)
 
 // パーティーデータのセーブ用
 static
-void inter_party_save_sub(db_key_t key, db_val_t data, va_list ap)
+void inter_party_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
     char line[8192];
-    FILE *fp;
 
     inter_party_tostr(line, (struct party *) data);
-    fp = va_arg(ap, FILE *);
     fprintf(fp, "%s\n", line);
 }
 
@@ -156,7 +158,7 @@ int inter_party_save(void)
                 party_txt);
         return 1;
     }
-    numdb_foreach(party_db, inter_party_save_sub, fp);
+    numdb_foreach(party_db, std::bind(inter_party_save_sub, ph::_1, ph::_2, fp));
 //  fprintf(fp, "%d\t%%newid%%\n", party_newid);
     lock_fclose(fp, party_txt, &lock);
 //  printf("int_party: %s saved.\n", party_txt);
@@ -166,13 +168,10 @@ int inter_party_save(void)
 
 // パーティ名検索用
 static
-void search_partyname_sub(db_key_t key, db_val_t data, va_list ap)
+void search_partyname_sub(db_key_t, db_val_t data, const char *str, struct party **dst)
 {
-    struct party *p = (struct party *) data, **dst;
-    char *str;
+    struct party *p = (struct party *) data;
 
-    str = va_arg(ap, char *);
-    dst = va_arg(ap, struct party **);
     if (strcasecmp(p->name, str) == 0)
         *dst = p;
 }
@@ -182,7 +181,7 @@ static
 struct party *search_partyname(const char *str)
 {
     struct party *p = NULL;
-    numdb_foreach(party_db, search_partyname_sub, str, &p);
+    numdb_foreach(party_db, std::bind(search_partyname_sub, ph::_1, ph::_2, str, &p));
 
     return p;
 }
@@ -233,15 +232,11 @@ int party_check_empty(struct party *p)
 
 // キャラの競合がないかチェック用
 static
-void party_check_conflict_sub(db_key_t key, db_val_t data, va_list ap)
+void party_check_conflict_sub(db_key_t, db_val_t data,
+        int party_id, int account_id, const char *nick)
 {
     struct party *p = (struct party *) data;
-    int party_id, account_id, i;
-    char *nick;
-
-    party_id = va_arg(ap, int);
-    account_id = va_arg(ap, int);
-    nick = va_arg(ap, char *);
+    int i;
 
     if (p->party_id == party_id)    // 本来の所属なので問題なし
         return;
@@ -263,8 +258,9 @@ void party_check_conflict_sub(db_key_t key, db_val_t data, va_list ap)
 static
 int party_check_conflict(int party_id, int account_id, const char *nick)
 {
-    numdb_foreach(party_db, party_check_conflict_sub, party_id, account_id,
-                   nick);
+    numdb_foreach(party_db,
+            std::bind(party_check_conflict_sub, ph::_1, ph::_2,
+                party_id, account_id, nick));
 
     return 0;
 }
@@ -551,7 +547,7 @@ int mapif_parse_PartyChangeOption(int fd, int party_id, int account_id,
 }
 
 // パーティ脱退要求
-int mapif_parse_PartyLeave(int fd, int party_id, int account_id)
+int mapif_parse_PartyLeave(int, int party_id, int account_id)
 {
     struct party *p = (struct party *)numdb_search(party_db, party_id);
     if (p != NULL)
@@ -623,7 +619,7 @@ int mapif_parse_BreakParty(int fd, int party_id)
 
 // パーティメッセージ送信
 static
-int mapif_parse_PartyMessage(int fd, int party_id, int account_id, const char *mes,
+int mapif_parse_PartyMessage(int, int party_id, int account_id, const char *mes,
                               int len)
 {
     return mapif_party_message(party_id, account_id, mes, len);
@@ -631,7 +627,7 @@ int mapif_parse_PartyMessage(int fd, int party_id, int account_id, const char *m
 
 // パーティチェック要求
 static
-int mapif_parse_PartyCheck(int fd, int party_id, int account_id, const char *nick)
+int mapif_parse_PartyCheck(int, int party_id, int account_id, const char *nick)
 {
     return party_check_conflict(party_id, account_id, nick);
 }
