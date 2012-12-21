@@ -1030,8 +1030,8 @@ static
 int fun_status_option(env_t *, int, val_t *result, val_t *args)
 {
     RESULTINT =
-        ((((struct map_session_data *) ARGENTITY(0))->
-          status.option & ARGINT(0)) != 0);
+        (bool(((struct map_session_data *) ARGENTITY(0))->
+          status.option & Option(ARGINT(0))));
     return 0;
 }
 

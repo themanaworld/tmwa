@@ -3,6 +3,7 @@
 
 #include "../common/utils.hpp"
 
+#include "map.t.hpp"
 #include "skill.t.hpp"
 
 // ダメージ
@@ -119,10 +120,10 @@ int battle_get_stat(int stat_id /* SP_VIT or similar */ ,
 
 eptr<struct status_change, StatusChange> battle_get_sc_data(struct block_list *bl);
 short *battle_get_sc_count(struct block_list *bl);
-short *battle_get_opt1(struct block_list *bl);
-short *battle_get_opt2(struct block_list *bl);
-short *battle_get_opt3(struct block_list *bl);
-short *battle_get_option(struct block_list *bl);
+Opt1 *battle_get_opt1(struct block_list *bl);
+Opt2 *battle_get_opt2(struct block_list *bl);
+Opt3 *battle_get_opt3(struct block_list *bl);
+Option *battle_get_option(struct block_list *bl);
 
 enum
 {

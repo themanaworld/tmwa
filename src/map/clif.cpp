@@ -8,7 +8,6 @@
 #include <unistd.h>
 
 #include <cctype>
-#include <stdarg.h> // needs justification for <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -41,7 +40,6 @@
 
 #define DUMP_UNKNOWN_PACKET     1
 
-#define STATE_BLIND 0x10
 #define EMOTE_IGNORED 0x0e
 
 static
@@ -298,7 +296,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, int type)
         if (bl->type == BL_PC)
         {
             struct map_session_data *sd2 = (struct map_session_data *) bl;
-            if (sd2->status.option & OPTION_INVISIBILITY)
+            if (bool(sd2->status.option & Option::INVISIBILITY))
             {
                 // Obscure hidden GMs
 
@@ -707,9 +705,9 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
         WBUFW(buf, 0) = 0x78;
         WBUFL(buf, 2) = sd->bl.id;
         WBUFW(buf, 6) = battle_get_speed(&sd->bl);
-        WBUFW(buf, 8) = sd->opt1;
-        WBUFW(buf, 10) = sd->opt2;
-        WBUFW(buf, 12) = sd->status.option;
+        WBUFW(buf, 8) = uint16_t(sd->opt1);
+        WBUFW(buf, 10) = uint16_t(sd->opt2);
+        WBUFW(buf, 12) = uint16_t(sd->status.option);
         WBUFW(buf, 14) = sd->disguise;
         WBUFW(buf, 42) = 0;
         WBUFB(buf, 44) = 0;
@@ -729,9 +727,9 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 0) = 0x1d8;
     WBUFL(buf, 2) = sd->bl.id;
     WBUFW(buf, 6) = sd->speed;
-    WBUFW(buf, 8) = sd->opt1;
-    WBUFW(buf, 10) = sd->opt2;
-    WBUFW(buf, 12) = sd->status.option;
+    WBUFW(buf, 8) = uint16_t(sd->opt1);
+    WBUFW(buf, 10) = uint16_t(sd->opt2);
+    WBUFW(buf, 12) = uint16_t(sd->status.option);
     WBUFW(buf, 14) = sd->view_class;
     WBUFW(buf, 16) = sd->status.hair;
     if (sd->attack_spell_override)
@@ -770,7 +768,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFL(buf, 34) = 0 /*guild_id*/;
     WBUFW(buf, 38) = 0 /*guild_emblem_id*/;
     WBUFW(buf, 40) = sd->status.manner;
-    WBUFW(buf, 42) = sd->opt3;
+    WBUFW(buf, 42) = uint16_t(sd->opt3);
     WBUFB(buf, 44) = sd->status.karma;
     WBUFB(buf, 45) = sd->sex;
     WBUFPOS(buf, 46, sd->bl.x, sd->bl.y);
@@ -797,9 +795,9 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
         WBUFW(buf, 0) = 0x7b;
         WBUFL(buf, 2) = sd->bl.id;
         WBUFW(buf, 6) = battle_get_speed(&sd->bl);
-        WBUFW(buf, 8) = sd->opt1;
-        WBUFW(buf, 10) = sd->opt2;
-        WBUFW(buf, 12) = sd->status.option;
+        WBUFW(buf, 8) = uint16_t(sd->opt1);
+        WBUFW(buf, 10) = uint16_t(sd->opt2);
+        WBUFW(buf, 12) = uint16_t(sd->status.option);
         WBUFW(buf, 14) = sd->disguise;
         WBUFL(buf, 22) = gettick();
         WBUFW(buf, 46) = 0;
@@ -819,9 +817,9 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 0) = 0x1da;
     WBUFL(buf, 2) = sd->bl.id;
     WBUFW(buf, 6) = sd->speed;
-    WBUFW(buf, 8) = sd->opt1;
-    WBUFW(buf, 10) = sd->opt2;
-    WBUFW(buf, 12) = sd->status.option;
+    WBUFW(buf, 8) = uint16_t(sd->opt1);
+    WBUFW(buf, 10) = uint16_t(sd->opt2);
+    WBUFW(buf, 12) = uint16_t(sd->status.option);
     WBUFW(buf, 14) = sd->view_class;
     WBUFW(buf, 16) = sd->status.hair;
     if (sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]]
@@ -854,7 +852,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFL(buf, 38) = 0/*guild_id*/;
     WBUFW(buf, 42) = 0/*guild_emblem_id*/;
     WBUFW(buf, 44) = sd->status.manner;
-    WBUFW(buf, 46) = sd->opt3;
+    WBUFW(buf, 46) = uint16_t(sd->opt3);
     WBUFB(buf, 48) = sd->status.karma;
     WBUFB(buf, 49) = sd->sex;
     WBUFPOS2(buf, 50, sd->bl.x, sd->bl.y, sd->to_x, sd->to_y);
@@ -946,9 +944,9 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
     WBUFW(buf, 0) = 0x78;
     WBUFL(buf, 2) = md->bl.id;
     WBUFW(buf, 6) = battle_get_speed(&md->bl);
-    WBUFW(buf, 8) = md->opt1;
-    WBUFW(buf, 10) = md->opt2;
-    WBUFW(buf, 12) = md->option;
+    WBUFW(buf, 8) = uint16_t(md->opt1);
+    WBUFW(buf, 10) = uint16_t(md->opt2);
+    WBUFW(buf, 12) = uint16_t(md->option);
     WBUFW(buf, 14) = mob_get_viewclass(md->mob_class);
     if ((mob_get_viewclass(md->mob_class) <= 23)
         || (mob_get_viewclass(md->mob_class) == 812)
@@ -994,9 +992,9 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
     WBUFW(buf, 0) = 0x7b;
     WBUFL(buf, 2) = md->bl.id;
     WBUFW(buf, 6) = battle_get_speed(&md->bl);
-    WBUFW(buf, 8) = md->opt1;
-    WBUFW(buf, 10) = md->opt2;
-    WBUFW(buf, 12) = md->option;
+    WBUFW(buf, 8) = uint16_t(md->opt1);
+    WBUFW(buf, 10) = uint16_t(md->opt2);
+    WBUFW(buf, 12) = uint16_t(md->option);
     WBUFW(buf, 14) = mob_get_viewclass(md->mob_class);
     if ((mob_get_viewclass(md->mob_class) < 24)
         || (mob_get_viewclass(md->mob_class) > 4000))
@@ -1132,9 +1130,9 @@ int clif_spawnpc(struct map_session_data *sd)
         WBUFW(buf, 0) = 0x7c;
         WBUFL(buf, 2) = sd->bl.id;
         WBUFW(buf, 6) = sd->speed;
-        WBUFW(buf, 8) = sd->opt1;
-        WBUFW(buf, 10) = sd->opt2;
-        WBUFW(buf, 12) = sd->status.option;
+        WBUFW(buf, 8) = uint16_t(sd->opt1);
+        WBUFW(buf, 10) = uint16_t(sd->opt2);
+        WBUFW(buf, 12) = uint16_t(sd->status.option);
         WBUFW(buf, 20) = sd->disguise;
         WBUFPOS(buf, 36, sd->bl.x, sd->bl.y);
         clif_send(buf, packet_len_table[0x7c], &sd->bl, AREA);
@@ -1151,7 +1149,7 @@ int clif_spawnpc(struct map_session_data *sd)
 
     if (sd->status.pc_class == 13 || sd->status.pc_class == 21
         || sd->status.pc_class == 4014 || sd->status.pc_class == 4022)
-        pc_setoption(sd, sd->status.option | 0x0020);  // [Valaris]
+        pc_setoption(sd, sd->status.option | Option::RIDING);  // [Valaris]
 
     if ((pc_isriding(sd) && pc_checkskill(sd, KN_RIDING) > 0)
         && (sd->status.pc_class == 7 || sd->status.pc_class == 14
@@ -1259,9 +1257,9 @@ int clif_spawnmob(struct mob_data *md)
         WBUFW(buf, 0) = 0x7c;
         WBUFL(buf, 2) = md->bl.id;
         WBUFW(buf, 6) = md->stats[MOB_SPEED];
-        WBUFW(buf, 8) = md->opt1;
-        WBUFW(buf, 10) = md->opt2;
-        WBUFW(buf, 12) = md->option;
+        WBUFW(buf, 8) = uint16_t(md->opt1);
+        WBUFW(buf, 10) = uint16_t(md->opt2);
+        WBUFW(buf, 12) = uint16_t(md->option);
         WBUFW(buf, 20) = mob_get_viewclass(md->mob_class);
         WBUFPOS(buf, 36, md->bl.x, md->bl.y);
         clif_send(buf, packet_len_table[0x7c], &md->bl, AREA);
@@ -2313,7 +2311,7 @@ int clif_changelook_towards(struct block_list *bl, int type, int val,
     if (sd && sd->disguise > 23 && sd->disguise < 4001) // mob disguises [Valaris]
         return 0;
 
-    if (sd && sd->status.option & OPTION_INVISIBILITY)
+    if (sd && bool(sd->status.option & Option::INVISIBILITY))
         return 0;
 
     if (sd
@@ -2586,22 +2584,21 @@ int clif_misceffect(struct block_list *bl, int type)
 int clif_changeoption(struct block_list *bl)
 {
     uint8_t buf[32];
-    short option;
     eptr<struct status_change, StatusChange> sc_data;
-    static const int omask[] = { 0x10, 0x20 };
+    static const Option omask[] = { Option::FALCON, Option::RIDING };
     static const StatusChange scnum[] = { SC_FALCON, SC_RIDING };
     int i;
 
     nullpo_retr(0, bl);
 
-    option = *battle_get_option(bl);
+    Option option = *battle_get_option(bl);
     sc_data = battle_get_sc_data(bl);
 
     WBUFW(buf, 0) = 0x119;
     WBUFL(buf, 2) = bl->id;
-    WBUFW(buf, 6) = *battle_get_opt1(bl);
-    WBUFW(buf, 8) = *battle_get_opt2(bl);
-    WBUFW(buf, 10) = option;
+    WBUFW(buf, 6) = uint16_t(*battle_get_opt1(bl));
+    WBUFW(buf, 8) = uint16_t(*battle_get_opt2(bl));
+    WBUFW(buf, 10) = uint16_t(option);
     WBUFB(buf, 12) = 0;        // ??
 
     if (bl->type == BL_PC)
@@ -2621,7 +2618,7 @@ int clif_changeoption(struct block_list *bl)
     // アイコンの表示
     for (i = 0; i < sizeof(omask) / sizeof(omask[0]); i++)
     {
-        if (option & omask[i])
+        if (bool(option & omask[i]))
         {
             if (sc_data[scnum[i]].timer == -1)
                 skill_status_change_start(bl, scnum[i], 0, 0, 0, 0, 0, 0);
@@ -3217,7 +3214,7 @@ void clif_getareachar_pc(struct map_session_data *sd,
 {
     int len;
 
-    if (dstsd->status.option & OPTION_INVISIBILITY)
+    if (bool(dstsd->status.option & Option::INVISIBILITY))
         return;
 
     nullpo_retv(sd);
@@ -4333,7 +4330,7 @@ int clif_pvpset(struct map_session_data *sd, int pvprank, int pvpnum,
 
         WBUFW(buf, 0) = 0x19a;
         WBUFL(buf, 2) = sd->bl.id;
-        if (sd->status.option & 0x46)
+        if (bool(sd->status.option & Option::REAL_ANY_HIDE))
             WBUFL(buf, 6) = -1;
         else if (pvprank <= 0)
             pc_calc_pvprank(sd);
@@ -5529,7 +5526,8 @@ int clif_GM_kick(struct map_session_data *sd, struct map_session_data *tsd,
 
     if (type)
         clif_GM_kickack(sd, tsd->status.account_id);
-    tsd->opt1 = tsd->opt2 = 0;
+    tsd->opt1 = Opt1::ZERO;
+    tsd->opt2 = Opt2::ZERO;
     clif_parse_QuitGame(tsd->fd, tsd);
 
     return 0;
@@ -5828,14 +5826,15 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
         return;
 
     // ステータス異常やハイディング中(トンネルドライブ無)で動けない
-    if ((sd->opt1 > 0 && sd->opt1 != 6) || sd->sc_data[SC_ANKLE].timer != -1 || //アンクルスネア
+    if ((bool(sd->opt1) && sd->opt1 != (Opt1::_stone6)) ||
+        sd->sc_data[SC_ANKLE].timer != -1 || //アンクルスネア
         sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||  //オートカウンター
         sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
         sd->sc_data[SC_BLADESTOP].timer != -1 ||    //白刃取り
         sd->sc_data[SC_SPIDERWEB].timer != -1 ||    //スパイダーウェッブ
         (sd->sc_data[SC_DANCING].timer != -1 && sd->sc_data[SC_DANCING].val4))  //合奏スキル演奏中は動けない
         return;
-    if ((sd->status.option & 2) && pc_checkskill(sd, RG_TUNNELDRIVE) <= 0)
+    if (bool(sd->status.option & Option::HIDE2) && pc_checkskill(sd, RG_TUNNELDRIVE) <= 0)
         return;
 
     if (sd->invincible_timer != -1)
@@ -5862,8 +5861,9 @@ void clif_parse_QuitGame(int fd, struct map_session_data *sd)
 
     WFIFOW(fd, 0) = 0x18b;
     if ((!pc_isdead(sd)
-         && (sd->opt1
-             || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
+         && (sd->opt1 != Opt1::ZERO
+             || (sd->opt2 != Opt2::ZERO
+                 && !(night_flag == 1 && sd->opt2 == Opt2::BLIND))))
         || sd->skilltimer != -1 || (DIFF_TICK(tick, sd->canact_tick) < 0)
         || (sd->sc_data[SC_DANCING].timer != -1
             && sd->sc_data[SC_DANCING].val4
@@ -6190,8 +6190,11 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
         clif_clearchar_area(&sd->bl, 1);
         return;
     }
-    if (sd->npc_id != 0 || sd->opt1 > 0 || sd->status.option & 2 || sd->state.storage_open ||
-            ((sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||   //オートカウンター
+    if (sd->npc_id != 0
+        || bool(sd->opt1)
+        || bool(sd->status.option & Option::HIDE2)
+        || sd->state.storage_open
+        || ((sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||   //オートカウンター
             sd->sc_data[SC_BLADESTOP].timer != -1 || //白刃取り
             sd->sc_data[SC_DANCING].timer != -1)))
         return;
@@ -6209,7 +6212,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
         case 0x00:             // once attack
         case 0x07:             // continuous attack
             if (sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class == 22
-                || sd->status.option & OPTION_HIDE)
+                || bool(sd->status.option & Option::HIDE))
                 return;
             if (!battle_config.sdelay_attack_enable
                 && pc_checkskill(sd, SA_FREECAST) <= 0)
@@ -6265,7 +6268,7 @@ void clif_parse_Restart(int fd, struct map_session_data *sd)
             }
             break;
         case 0x01:
-            /*if (!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == STATE_BLIND))))
+            /*if (!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == Opt2::BLIND))))
              * return; */
 
             /*  Rovert's Prevent logout option - Fixed [Valaris]    */
@@ -6426,7 +6429,9 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (sd->npc_id != 0 || sd->opt1 > 0 || (
+    if (sd->npc_id != 0
+        || sd->opt1 != Opt1::ZERO
+        || (
             (sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
             sd->sc_data[SC_BLADESTOP].timer != -1 ||    //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1 ||  //バーサーク
@@ -6467,8 +6472,9 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd)
         clif_displaymessage(sd->fd, "Can't drop items here.");
         return;
     }
-    if (sd->npc_id != 0 || sd->opt1 > 0 ||
-            ((sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||    //オートカウンター
+    if (sd->npc_id != 0
+        || sd->opt1 != Opt1::ZERO
+        || ((sd->sc_data[SC_AUTOCOUNTER].timer != -1 ||    //オートカウンター
             sd->sc_data[SC_BLADESTOP].timer != -1 ||  //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1)))    //バーサーク
     {
@@ -6496,7 +6502,9 @@ void clif_parse_UseItem(int fd, struct map_session_data *sd)
         clif_clearchar_area(&sd->bl, 1);
         return;
     }
-    if (sd->npc_id != 0 || sd->opt1 > 0 || (
+    if (sd->npc_id != 0
+        || sd->opt1 != Opt1::ZERO
+        || (
             (sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
             sd->sc_data[SC_BLADESTOP].timer != -1 ||    //白刃取り
             sd->sc_data[SC_BERSERK].timer != -1 ||  //バーサーク
@@ -6574,7 +6582,8 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
             || sd->sc_data[SC_BERSERK].timer != -1))
         return;
 
-    if (sd->npc_id != 0 || sd->opt1 > 0)
+    if (sd->npc_id != 0
+        || sd->opt1 != Opt1::ZERO)
         return;
     pc_unequipitem(sd, index, 0);
 }
@@ -6842,7 +6851,7 @@ void clif_parse_RemoveOption(int, struct map_session_data *sd)
             sd->status.pc_class = sd->view_class = 4015;
     }
 
-    pc_setoption(sd, 0);
+    pc_setoption(sd, Option::ZERO);
 }
 
 /*==========================================
@@ -7628,14 +7637,14 @@ void clif_parse_GMHide(int fd, struct map_session_data *sd)
         (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide)))
     {
         log_atcommand(sd, "@hide");
-        if (sd->status.option & OPTION_HIDE)
-        {                       // OPTION_HIDE = 0x40
-            sd->status.option &= ~OPTION_HIDE;  // OPTION_HIDE = 0x40
+        if (bool(sd->status.option & Option::HIDE))
+        {                       // Option::HIDE = 0x40
+            sd->status.option &= ~Option::HIDE;  // Option::HIDE = 0x40
             clif_displaymessage(fd, "Invisible: Off.");
         }
         else
         {
-            sd->status.option |= OPTION_HIDE;   // OPTION_HIDE = 0x40
+            sd->status.option |= Option::HIDE;   // Option::HIDE = 0x40
             clif_displaymessage(fd, "Invisible: On.");
         }
         clif_changeoption(&sd->bl);

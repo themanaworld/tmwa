@@ -1,6 +1,8 @@
 #ifndef MAP_HPP
 #define MAP_HPP
 
+#include "map.t.hpp"
+
 #include <netinet/in.h>
 #include <sys/time.h>
 
@@ -50,22 +52,6 @@
 
 #define DEFAULT_AUTOSAVE_INTERVAL 60*1000
 
-// [Fate] status.option properties.  These are persistent status changes.
-// IDs that are not listed are not used in the code (to the best of my knowledge)
-#define OPTION_HIDE2            0x0002  // apparently some weaker non-GM hide
-#define OPTION_CLOAK            0x0004
-#define OPTION_10               0x0010
-#define OPTION_20               0x0020
-#define OPTION_HIDE             0x0040  // [Fate] This is the GM `@hide' flag
-#define OPTION_800              0x0800
-#define OPTION_INVISIBILITY     0x1000  // [Fate] Complete invisibility to other clients
-#define OPTION_SCRIBE           0x2000  // [Fate] Auto-logging of nearby comments
-#define OPTION_CHASEWALK        0x4000
-
-enum
-{ BL_NUL, BL_PC, BL_NPC, BL_MOB, BL_ITEM, BL_CHAT, BL_SKILL, BL_SPELL };
-enum
-{ WARP, SHOP, SCRIPT, MONS, MESSAGE };
 struct block_list
 {
     struct block_list *next, *prev;
@@ -215,7 +201,9 @@ struct map_session_data
     int fd, new_fd;
     short to_x, to_y;
     short speed, prev_speed;
-    short opt1, opt2, opt3;
+    Opt1 opt1;
+    Opt2 opt2;
+    Opt3 opt3;
     char dir, head_dir;
     unsigned int client_tick, server_tick;
     struct walkpath_data walkpath;
@@ -434,7 +422,10 @@ struct npc_data
     char name[24];
     char exname[24];
     int chat_id;
-    short opt1, opt2, opt3, option;
+    Opt1 opt1;
+    Opt2 opt2;
+    Opt3 opt3;
+    Option option;
     short flag;
     union
     {
@@ -529,7 +520,10 @@ struct mob_data
 
     earray<struct status_change, StatusChange, MAX_STATUSCHANGE> sc_data;
     short sc_count;
-    short opt1, opt2, opt3, option;
+    Opt1 opt1;
+    Opt2 opt2;
+    Opt3 opt3;
+    Option option;
     short min_chase;
     short sg_count;
     int deletetimer;

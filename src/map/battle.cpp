@@ -1361,7 +1361,7 @@ short *battle_get_sc_count(struct block_list *bl)
     return NULL;
 }
 
-short *battle_get_opt1(struct block_list *bl)
+Opt1 *battle_get_opt1(struct block_list *bl)
 {
     nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -1373,7 +1373,7 @@ short *battle_get_opt1(struct block_list *bl)
     return 0;
 }
 
-short *battle_get_opt2(struct block_list *bl)
+Opt2 *battle_get_opt2(struct block_list *bl)
 {
     nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -1385,7 +1385,7 @@ short *battle_get_opt2(struct block_list *bl)
     return 0;
 }
 
-short *battle_get_opt3(struct block_list *bl)
+Opt3 *battle_get_opt3(struct block_list *bl)
 {
     nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -1397,7 +1397,7 @@ short *battle_get_opt3(struct block_list *bl)
     return 0;
 }
 
-short *battle_get_option(struct block_list *bl)
+Option *battle_get_option(struct block_list *bl)
 {
     nullpo_retr(0, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
@@ -4633,7 +4633,6 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(src);
     eptr<struct status_change, StatusChange> t_sc_data = battle_get_sc_data(target);
-    short *opt1;
     int race = 7, ele = 0;
     int damage, rdamage = 0;
     struct Damage wd;
@@ -4652,8 +4651,8 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
         && pc_isdead((struct map_session_data *) target))
         return 0;
 
-    opt1 = battle_get_opt1(src);
-    if (opt1 && *opt1 > 0)
+    Opt1 *opt1 = battle_get_opt1(src);
+    if (opt1 != NULL && bool(*opt1))
     {
         battle_stopattack(src);
         return 0;

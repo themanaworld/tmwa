@@ -98,7 +98,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
         fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_,
                  effects != NULL);
 #endif
-        if (caster->status.option & OPTION_HIDE)
+        if (bool(caster->status.option & Option::HIDE))
             return 0;           // No spellcasting while hidden
 
         MAP_LOG_PC(caster, "CAST %s %s",

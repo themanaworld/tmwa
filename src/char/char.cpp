@@ -360,7 +360,7 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p)
     p->luk = tmp_int[18];
     p->status_point = tmp_int[19];
     p->skill_point = tmp_int[20];
-    p->option = tmp_int[21];
+    p->option = Option(tmp_int[21]);
     p->karma = tmp_int[22];
     p->manner = tmp_int[23];
     p->party_id = tmp_int[24];
@@ -966,7 +966,7 @@ int make_new_char(int fd, unsigned char *dat)
     char_dat[i].sp = char_dat[i].max_sp;
     char_dat[i].status_point = 0;
     char_dat[i].skill_point = 0;
-    char_dat[i].option = 0;
+    char_dat[i].option = Option(0x0000);
     char_dat[i].karma = 0;
     char_dat[i].manner = 0;
     char_dat[i].party_id = 0;
@@ -1577,7 +1577,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 22) = find_equip_view(p, 0x0004);  // 10: gloves
         WFIFOW(fd, j + 24) = find_equip_view(p, 0x0008);  // 11: cape
         WFIFOW(fd, j + 26) = find_equip_view(p, 0x0010);  // 12: misc1
-        WFIFOL(fd, j + 28) = p->option;
+        WFIFOL(fd, j + 28) = uint16_t(p->option);
 
         WFIFOL(fd, j + 32) = p->karma;
         WFIFOL(fd, j + 36) = p->manner;

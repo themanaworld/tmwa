@@ -97,13 +97,13 @@ int npc_enable(const char *name, int flag)
     else if (flag & 2)
     {
         nd->flag &= ~1;
-        nd->option = 0x0000;
+        nd->option = Option::ZERO;
         clif_changeoption(&nd->bl);
     }
     else if (flag & 4)
     {
         nd->flag |= 1;
-        nd->option = 0x0002;
+        nd->option = Option::HIDE2;
         clif_changeoption(&nd->bl);
     }
     else
@@ -1147,10 +1147,10 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     else
         nd->npc_class = WARP_DEBUG_CLASS;
     nd->speed = 200;
-    nd->option = 0;
-    nd->opt1 = 0;
-    nd->opt2 = 0;
-    nd->opt3 = 0;
+    nd->option = Option::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
     memcpy(nd->u.warp.name, to_mapname, 16);
     xs += 2;
     ys += 2;
@@ -1262,10 +1262,10 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     nd->npc_class = atoi(w4);
     nd->speed = 200;
     nd->chat_id = 0;
-    nd->option = 0;
-    nd->opt1 = 0;
-    nd->opt2 = 0;
-    nd->opt3 = 0;
+    nd->option = Option::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
 
     nd = (struct npc_data *)
         realloc(nd, sizeof(struct npc_data) + sizeof(nd->u.shop_item[0]) * pos);
@@ -1509,10 +1509,10 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     nd->u.scr.script = script;
     nd->u.scr.src_id = src_id;
     nd->chat_id = 0;
-    nd->option = 0;
-    nd->opt1 = 0;
-    nd->opt2 = 0;
-    nd->opt3 = 0;
+    nd->option = Option::ZERO;
+    nd->opt1 = Opt1::ZERO;
+    nd->opt2 = Opt2::ZERO;
+    nd->opt3 = Opt3::ZERO;
 
     //printf("script npc %s %d %d read done\n",mapname,nd->bl.id,nd->class);
     npc_script++;

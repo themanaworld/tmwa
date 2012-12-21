@@ -1,7 +1,6 @@
 #include "mob.hpp"
 
 #include <cmath>
-#include <stdarg.h> // requires justification for <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -614,8 +613,9 @@ int mob_can_move(struct mob_data *md)
 {
     nullpo_retr(0, md);
 
-    if (md->canmove_tick > gettick() || (md->opt1 > 0 && md->opt1 != 6)
-        || md->option & 2)
+    if (md->canmove_tick > gettick()
+        || (bool(md->opt1) && md->opt1 != Opt1::_stone6)
+        || bool(md->option & Option::HIDE2))
         return 0;
     // アンクル中で動けないとか
     if (md->sc_data[SC_ANKLE].timer != -1 ||    //アンクルスネア
@@ -728,7 +728,7 @@ int mob_walk(struct mob_data *md, unsigned int tick, int data)
                 -dx, -dy, BL_PC);
         md->state.state = MS_IDLE;
 
-        if (md->option & 4)
+        if (bool(md->option & Option::CLOAK))
             skill_check_cloaking(&md->bl);
 
         skill_unit_move(&md->bl, tick, 1); // Inspection of a skill unit
@@ -770,7 +770,8 @@ int mob_check_attack(struct mob_data *md)
     if (md->skilltimer != -1)
         return 0;
 
-    if (md->opt1 > 0 || md->option & 2)
+    if (bool(md->opt1)
+        || bool(md->option & Option::HIDE2))
         return 0;
 
     if (md->sc_data[SC_AUTOCOUNTER].timer != -1)
@@ -1271,7 +1272,10 @@ int mob_spawn(int id)
             md->sc_data[i].val4 = 0;
     }
     md->sc_count = 0;
-    md->opt1 = md->opt2 = md->opt3 = md->option = 0;
+    md->opt1 = Opt1::ZERO;
+    md->opt2 = Opt2::ZERO;
+    md->opt3 = Opt3::ZERO;
+    md->option = Option::ZERO;
 
     memset(md->skillunit, 0, sizeof(md->skillunit));
     memset(md->skillunittick, 0, sizeof(md->skillunittick));
@@ -1428,14 +1432,13 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
 {
     struct map_session_data *sd;
     eptr<struct status_change, StatusChange> sc_data;
-    short *option;
     int mode, race;
 
     nullpo_retr(0, md);
     nullpo_retr(0, bl);
 
     sc_data = battle_get_sc_data(bl);
-    option = battle_get_option(bl);
+    Option *option = battle_get_option(bl);
     race = mob_db[md->mob_class].race;
 
     if (!md->mode)
@@ -1456,9 +1459,12 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
         && (!(mode & 0x04) || MRAND(100) > 25))
         return 0;
 
-    if (mode & 0x20 ||          // Coercion is exerted if it is MVPMOB.
-        (sc_data && sc_data[SC_TRICKDEAD].timer == -1 &&
-         ((option && !(*option & 0x06)) || race == 4 || race == 6)))
+    // Coercion is exerted if it is MVPMOB.
+    if (mode & 0x20
+        || (sc_data && sc_data[SC_TRICKDEAD].timer == -1
+            && ((option != NULL && !bool(*option & (Option::CLOAK | Option::HIDE2)))
+                || race == 4
+                || race == 6)))
     {
         if (bl->type == BL_PC)
         {
@@ -1893,7 +1899,8 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
     race = mob_db[md->mob_class].race;
 
     // Abnormalities
-    if ((md->opt1 > 0 && md->opt1 != 6) || md->state.state == MS_DELAY
+    if ((bool(md->opt1) && md->opt1 != Opt1::_stone6)
+        || md->state.state == MS_DELAY
         || md->sc_data[SC_BLADESTOP].timer != -1)
         return;
 
@@ -2629,9 +2636,9 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     md->hp -= damage;
 
-    if (md->option & 2)
+    if (bool(md->option & Option::HIDE2))
         skill_status_change_end(&md->bl, SC_HIDING, -1);
-    if (md->option & 4)
+    if (bool(md->option & Option::CLOAK))
         skill_status_change_end(&md->bl, SC_CLOAKING, -1);
 
     if (md->state.special_mob_ai == 2)
@@ -3397,7 +3404,8 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
 
     md->skilltimer = -1;
 
-    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+    if (bool(md->opt1)
+        || md->sc_data[SC_DIVINA].timer != -1
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return;
@@ -3500,7 +3508,8 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
 
     md->skilltimer = -1;
 
-    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+    if (bool(md->opt1)
+        || md->sc_data[SC_DIVINA].timer != -1
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return;
@@ -3631,7 +3640,8 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+    if (bool(md->opt1)
+        || md->sc_data[SC_DIVINA].timer != -1
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return 0;
@@ -3642,9 +3652,11 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return 0;
 
-    if (md->option & 4 && skill_id == TF_HIDING)
+    if (bool(md->option & Option::CLOAK)
+        && skill_id == TF_HIDING)
         return 0;
-    if (md->option & 2 && skill_id != TF_HIDING && skill_id != AS_GRIMTOOTH
+    if (bool(md->option & Option::HIDE2)
+        && skill_id != TF_HIDING && skill_id != AS_GRIMTOOTH
         && skill_id != RG_BACKSTAP && skill_id != RG_RAID)
         return 0;
 
@@ -3756,7 +3768,8 @@ int mobskill_use_pos(struct mob_data *md,
     SkillID skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    if (md->opt1 > 0 || md->sc_data[SC_DIVINA].timer != -1
+    if (bool(md->opt1)
+        || md->sc_data[SC_DIVINA].timer != -1
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return 0;
@@ -3767,7 +3780,7 @@ int mobskill_use_pos(struct mob_data *md,
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return 0;
 
-    if (md->option & 2)
+    if (bool(md->option & Option::HIDE2))
         return 0;
 
     // 射程と障害物チェック

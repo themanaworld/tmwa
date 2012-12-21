@@ -23,8 +23,6 @@
 
 #define SKILLUNITTIMER_INVERVAL 100
 
-#define STATE_BLIND 0x10
-
 // This table appears to be wrong
 /* スキル番号＝＞ステータス異常番号変換テーブル */
 earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable =
@@ -3642,7 +3640,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
         case SA_REVERSEORCISH:
             clif_skill_nodamage(src, bl, skillid, skilllv, 1);
             if (dstsd)
-                pc_setoption(dstsd, dstsd->status.option | 0x0800);
+                pc_setoption(dstsd, dstsd->status.option | Option::ORC_HEAD);
             break;
         case SA_FORTUNE:
             clif_skill_nodamage(src, bl, skillid, skilllv, 1);
@@ -5689,7 +5687,8 @@ int skill_castend_map(struct map_session_data *sd, SkillID skill_num,
     if (sd->bl.prev == NULL || pc_isdead(sd))
         return 0;
 
-    if (sd->opt1 > 0 || sd->status.option & 2)
+    if (bool(sd->opt1)
+        || bool(sd->status.option & Option::HIDE2))
         return 0;
 
     if (sd->sc_data[SC_DIVINA].timer != -1
@@ -7494,7 +7493,7 @@ int skill_check_condition(struct map_session_data *sd, int type)
         return 1;
     }
 
-    if (sd->opt1 > 0)
+    if (bool(sd->opt1))
     {
         clif_skill_fail(sd, sd->skillid, 0, 0);
         sd->skillitem = SkillID::NEGATIVE;
@@ -7529,7 +7528,7 @@ int skill_check_condition(struct map_session_data *sd, int type)
         }
         return 1;
     }
-    if (sd->opt1 > 0)
+    if (bool(sd->opt1))
     {
         clif_skill_fail(sd, sd->skillid, 0, 0);
         return 0;
@@ -7781,14 +7780,14 @@ int skill_check_condition(struct map_session_data *sd, int type)
     switch (state)
     {
         case ST_HIDING:
-            if (!(sd->status.option & 2))
+            if (!bool(sd->status.option & Option::HIDE2))
             {
                 clif_skill_fail(sd, skill, 0, 0);
                 return 0;
             }
             break;
         case ST_CLOAKING:
-            if (!(sd->status.option & 4))
+            if (!bool(sd->status.option & Option::CLOAK))
             {
                 clif_skill_fail(sd, skill, 0, 0);
                 return 0;
@@ -8076,7 +8075,7 @@ int skill_use_id(struct map_session_data *sd, int target_id,
     sc_data = sd->sc_data;
 
     /* 沈黙や異常（ただし、グリムなどの判定をする） */
-    if (sd->opt1 > 0)
+    if (bool(sd->opt1))
         return 0;
 
     if (sc_data[SC_CHASEWALK].timer != -1)
@@ -8122,10 +8121,13 @@ int skill_use_id(struct map_session_data *sd, int target_id,
             return 0;
     }
 
-    if (sd->status.option & 4 && skill_num == TF_HIDING)
+    if (bool(sd->status.option & Option::CLOAK)
+        && skill_num == TF_HIDING)
         return 0;
-    if (sd->status.option & 2 && skill_num != TF_HIDING
-        && skill_num != AS_GRIMTOOTH && skill_num != RG_BACKSTAP
+    if (bool(sd->status.option & Option::HIDE2)
+        && skill_num != TF_HIDING
+        && skill_num != AS_GRIMTOOTH
+        && skill_num != RG_BACKSTAP
         && skill_num != RG_RAID)
         return 0;
 
@@ -8419,7 +8421,7 @@ int skill_use_pos(struct map_session_data *sd,
 
     sc_data = sd->sc_data;
 
-    if (sd->opt1 > 0)
+    if (bool(sd->opt1))
         return 0;
     if (sc_data)
     {
@@ -8432,7 +8434,7 @@ int skill_use_pos(struct map_session_data *sd,
             return 0;           /* 状態異常や沈黙など */
     }
 
-    if (sd->status.option & 2)
+    if (bool(sd->status.option & Option::HIDE2))
         return 0;
 
     sd->skillid = skill_num;
@@ -9150,14 +9152,14 @@ void skill_status_change_timer_sub(struct block_list *bl,
     {
         case SC_SIGHT:         /* サイト */
         case SC_CONCENTRATE:
-            if ((*battle_get_option(bl)) & 6)
+            if (bool((*battle_get_option(bl)) & (Option::HIDE2 | Option::CLOAK)))
             {
                 skill_status_change_end(bl, SC_HIDING, -1);
                 skill_status_change_end(bl, SC_CLOAKING, -1);
             }
             break;
         case SC_RUWACH:        /* ルアフ */
-            if ((*battle_get_option(bl)) & 6)
+            if (bool((*battle_get_option(bl)) & (Option::HIDE2 | Option::CLOAK)))
             {
                 skill_status_change_end(bl, SC_HIDING, -1);
                 skill_status_change_end(bl, SC_CLOAKING, -1);
@@ -9199,7 +9201,11 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
 {
     eptr<struct status_change, StatusChange> sc_data;
     int opt_flag = 0, calc_flag = 0;
-    short *sc_count, *option, *opt1, *opt2, *opt3;
+    short *sc_count;
+    Option *option;
+    Opt1 *opt1;
+    Opt2 *opt2;
+    Opt3 *opt3;
 
     nullpo_retr(0, bl);
     if (bl->type != BL_PC && bl->type != BL_MOB)
@@ -9393,73 +9399,77 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
             case SC_FREEZE:
             case SC_STAN:
             case SC_SLEEP:
-                *opt1 = 0;
+                *opt1 = Opt1::ZERO;
                 opt_flag = 1;
                 break;
 
             case SC_POISON:
-                *opt2 &= ~0x0001;
+                *opt2 &= ~Opt2::_poison;
                 opt_flag = 1;
                 break;
 
             case SC_CURSE:
-                *opt2 &= ~0x0002;
+                *opt2 &= ~Opt2::_curse;
                 opt_flag = 1;
                 break;
 
             case SC_SILENCE:
-                *opt2 &= ~0x0004;
+                *opt2 &= ~Opt2::_silence;
                 opt_flag = 1;
                 break;
 
             case SC_BLIND:
-                *opt2 &= ~0x0010;
+                *opt2 &= ~Opt2::BLIND;
                 opt_flag = 1;
                 break;
 
             case SC_SLOWPOISON:
                 if (sc_data[SC_POISON].timer != -1)
-                    *opt2 |= 0x1;
-                *opt2 &= ~0x200;
+                    *opt2 |= Opt2::_poison;
+                *opt2 &= ~Opt2::_slowpoison;
                 opt_flag = 1;
                 break;
 
             case SC_SIGNUMCRUCIS:
-                *opt2 &= ~0x40;
+                *opt2 &= ~Opt2::_signumcrucis;
                 opt_flag = 1;
                 break;
 
             case SC_SPEEDPOTION0:
-                *opt2 &= ~0x20;
+                *opt2 &= ~Opt2::_speedpotion0;
                 opt_flag = 1;
                 break;
 
             case SC_ATKPOT:
-                *opt2 &= ~0x80;
+                *opt2 &= ~Opt2::_atkpot;
                 opt_flag = 1;
                 break;
 
             case SC_HIDING:
+                *option &= ~Option::HIDE2;
+                opt_flag = 1;
+                break;
+
             case SC_CLOAKING:
-                *option &= ~((type == SC_HIDING) ? 2 : 4);
+                *option &= ~Option::CLOAK;
                 opt_flag = 1;
                 break;
 
             case SC_CHASEWALK:
-                *option &= ~16388;
+                *option &= ~Option::CHASEWALK;
                 opt_flag = 1;
                 break;
 
             case SC_SIGHT:
-                *option &= ~1;
+                *option &= ~Option::SIGHT;
                 opt_flag = 1;
                 break;
             case SC_WEDDING:   //結婚用(結婚衣裳になって歩くのが遅いとか)
-                *option &= ~4096;
+                *option &= ~Option::_wedding;
                 opt_flag = 1;
                 break;
             case SC_RUWACH:
-                *option &= ~8192;
+                *option &= ~Option::_ruwach;
                 opt_flag = 1;
                 break;
 
@@ -9467,38 +9477,39 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
             case SC_TWOHANDQUICKEN:    /* 2HQ */
             case SC_SPEARSQUICKEN: /* スピアクイッケン */
             case SC_CONCENTRATION: /* コンセントレーション */
-                *opt3 &= ~1;
+                *opt3 &= ~Opt3::_concentration;
                 break;
             case SC_OVERTHRUST:    /* オーバースラスト */
-                *opt3 &= ~2;
+                *opt3 &= ~Opt3::_overthrust;
                 break;
             case SC_ENERGYCOAT:    /* エナジーコート */
-                *opt3 &= ~4;
+                *opt3 &= ~Opt3::_energycoat;
                 break;
             case SC_EXPLOSIONSPIRITS:  // 爆裂波動
-                *opt3 &= ~8;
+                *opt3 &= ~Opt3::_explosionspirits;
                 break;
             case SC_STEELBODY: // 金剛
-                *opt3 &= ~16;
+                *opt3 &= ~Opt3::_steelbody;
                 break;
             case SC_BLADESTOP: /* 白刃取り */
-                *opt3 &= ~32;
+                *opt3 &= ~Opt3::_bladestop;
                 break;
             case SC_BERSERK:   /* バーサーク */
-                *opt3 &= ~128;
+                *opt3 &= ~Opt3::_berserk;
                 break;
             case SC_MARIONETTE:    /* マリオネットコントロール */
-                *opt3 &= ~1024;
+                *opt3 &= ~Opt3::_marionette;
                 break;
             case SC_ASSUMPTIO: /* アスムプティオ */
-                *opt3 &= ~2048;
+                *opt3 &= ~Opt3::_assumptio;
                 break;
         }
 
-        if (night_flag == 1 && (*opt2 & STATE_BLIND) == 0
+        if (night_flag == 1
+            && !bool(*opt2 & Opt2::BLIND)
             && bl->type == BL_PC)
         {                       // by [Yor]
-            *opt2 |= STATE_BLIND;
+            *opt2 |= Opt2::BLIND;
             opt_flag = 1;
         }
 
@@ -9514,15 +9525,13 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
 
 int skill_update_heal_animation(struct map_session_data *sd)
 {
-    const int mask = 0x100;
-    int was_active;
-    int is_active;
+    const Opt2 mask = Opt2::_heal;
 
     nullpo_retr(0, sd);
-    was_active = sd->opt2 & mask;
-    is_active = sd->quick_regeneration_hp.amount > 0;
+    bool was_active = bool(sd->opt2 & mask);
+    bool is_active = sd->quick_regeneration_hp.amount > 0;
 
-    if ((was_active && is_active) || (!was_active && !is_active))
+    if (was_active == is_active)
         return 0;               // no update
 
     if (is_active)
@@ -9744,13 +9753,13 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
         case SC_STONE:
             if (sc_data[type].val2 != 0)
             {
-                short *opt1 = battle_get_opt1(bl);
+                Opt1 *opt1 = battle_get_opt1(bl);
                 sc_data[type].val2 = 0;
                 sc_data[type].val4 = 0;
                 battle_stopwalking(bl, 1);
                 if (opt1)
                 {
-                    *opt1 = 1;
+                    *opt1 = Opt1::_stone1;
                     clif_changeoption(bl);
                 }
                 sc_data[type].timer =
@@ -10034,7 +10043,11 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
 {
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> sc_data;
-    short *sc_count, *option, *opt1, *opt2, *opt3;
+    short *sc_count;
+    Option *option;
+    Opt1 *opt1;
+    Opt2 *opt2;
+    Opt3 *opt3;
     int opt_flag = 0, calc_flag = 0, updateflag =
         0, race, mode, elem, undead_flag;
     int scdef = 0;
@@ -10212,7 +10225,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
                 return 0;
             break;
         case SC_TWOHANDQUICKEN:    /* 2HQ */
-            *opt3 |= 1;
+            *opt3 |= Opt3::_concentration;
             calc_flag = 1;
             break;
         case SC_ADRENALINE:    /* アドレナリンラッシュ */
@@ -10223,7 +10236,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
                 tick /= 5;
             break;
         case SC_OVERTHRUST:    /* オーバースラスト */
-            *opt3 |= 2;
+            *opt3 |= Opt3::_overthrust;
             if (battle_config.party_skill_penaly && !val2)
                 tick /= 10;
             break;
@@ -10252,7 +10265,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         case SC_AETERNA:       /* エーテルナ */
             break;
         case SC_ENERGYCOAT:    /* エナジーコート */
-            *opt3 |= 4;
+            *opt3 |= Opt3::_energycoat;
             break;
         case SC_MAGICROD:
             val2 = val1 * 20;
@@ -10364,7 +10377,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         case SC_SPEARSQUICKEN: /* スピアクイッケン */
             calc_flag = 1;
             val2 = 20 + val1;
-            *opt3 |= 1;
+            *opt3 |= Opt3::_concentration;
             break;
         case SC_COMBO:
             break;
@@ -10374,7 +10387,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             if (val2 == 2)
                 clif_bladestop((struct block_list *) val3,
                                 (struct block_list *) val4, 1);
-            *opt3 |= 32;
+            *opt3 |= Opt3::_bladestop;
             break;
 
         case SC_LULLABY:       /* 子守唄 */
@@ -10458,11 +10471,11 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         case SC_EXPLOSIONSPIRITS:  // 爆裂波動
             calc_flag = 1;
             val2 = 75 + 25 * val1;
-            *opt3 |= 8;
+            *opt3 |= Opt3::_explosionspirits;
             break;
         case SC_STEELBODY:     // 金剛
             calc_flag = 1;
-            *opt3 |= 16;
+            *opt3 |= Opt3::_steelbody;
             break;
         case SC_EXTREMITYFIST: /* 阿修羅覇凰拳 */
             break;
@@ -10471,7 +10484,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             break;
 
         case SC_SPEEDPOTION0:  /* 増速ポーション */
-            *opt2 |= 0x20;
+            *opt2 |= Opt2::_speedpotion0;
         case SC_SPEEDPOTION1:
         case SC_SPEEDPOTION2:
             calc_flag = 1;
@@ -10481,7 +10494,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
 
             /* atk & matk potions [Valaris] */
         case SC_ATKPOT:
-            *opt2 |= 0x80;
+            *opt2 |= Opt2::_atkpot;
         case SC_MATKPOT:
             calc_flag = 1;
             tick = 1000 * tick;
@@ -10668,7 +10681,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         case SC_HALLUCINATION:
             break;
         case SC_CONCENTRATION: /* コンセントレーション */
-            *opt3 |= 1;
+            *opt3 |= Opt3::_concentration;
             calc_flag = 1;
             break;
         case SC_TENSIONRELAX:  /* テンションリラックス */
@@ -10724,15 +10737,15 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
                 clif_updatestatus(sd, SP_SP);
                 clif_status_change(bl, SC_INCREASEAGI, 1); /* アイコン表示 */
             }
-            *opt3 |= 128;
+            *opt3 |= Opt3::_berserk;
             tick = 1000;
             calc_flag = 1;
             break;
         case SC_ASSUMPTIO:     /* アスムプティオ */
-            *opt3 |= 2048;
+            *opt3 |= Opt3::_assumptio;
             break;
         case SC_MARIONETTE:    /* マリオネットコントロール */
-            *opt3 |= 1024;
+            *opt3 |= Opt3::_marionette;
             break;
         case SC_MELTDOWN:      /* メルトダウン */
         case SC_CARTBOOST:     /* カートブースト */
@@ -10797,64 +10810,68 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             }
             switch (type)
             {
-            case SC_STONE:  *opt1 = 6; break;
-            case SC_FREEZE: *opt1 = 2; break;
-            case SC_STAN:   *opt1 = 3; break;
-            case SC_SLEEP:  *opt1 = 4; break;
+            case SC_STONE:  *opt1 = Opt1::_stone6; break;
+            case SC_FREEZE: *opt1 = Opt1::_freeze; break;
+            case SC_STAN:   *opt1 = Opt1::_stan; break;
+            case SC_SLEEP:  *opt1 = Opt1::_sleep; break;
             }
             opt_flag = 1;
             break;
         case SC_POISON:
             if (sc_data[SC_SLOWPOISON].timer == -1)
             {
-                *opt2 |= 0x1;
+                *opt2 |= Opt2::_poison;
                 opt_flag = 1;
             }
             break;
 
         case SC_CURSE:
-            *opt2 |= 0x0002;
+            *opt2 |= Opt2::_curse;
             opt_flag = 1;
             break;
         case SC_SILENCE:
-            *opt2 |= 0x0004;
+            *opt2 |= Opt2::_silence;
             opt_flag = 1;
             break;
         case SC_BLIND:
-            *opt2 |= 0x0010;
+            *opt2 |= Opt2::BLIND;
             opt_flag = 1;
             break;
 
         case SC_SLOWPOISON:
-            *opt2 &= ~0x1;
-            *opt2 |= 0x200;
+            *opt2 &= ~Opt2::_poison;
+            *opt2 |= Opt2::_slowpoison;
             opt_flag = 1;
             break;
         case SC_SIGNUMCRUCIS:
-            *opt2 |= 0x40;
+            *opt2 |= Opt2::_signumcrucis;
             opt_flag = 1;
             break;
         case SC_HIDING:
+            battle_stopattack(bl); /* 攻撃停止 */
+            *option |= Option::HIDE2;
+            opt_flag = 1;
+            break;
         case SC_CLOAKING:
             battle_stopattack(bl); /* 攻撃停止 */
-            *option |= ((type == SC_HIDING) ? 2 : 4);
+            *option |= Option::CLOAK;
             opt_flag = 1;
             break;
         case SC_CHASEWALK:
             battle_stopattack(bl); /* 攻撃停止 */
-            *option |= 16388;
+            *option |= Option::CHASEWALK | Option::CLOAK;
             opt_flag = 1;
             break;
         case SC_SIGHT:
-            *option |= 1;
+            *option |= Option::SIGHT;
             opt_flag = 1;
             break;
         case SC_RUWACH:
-            *option |= 8192;
+            *option |= Option::_ruwach;
             opt_flag = 1;
             break;
         case SC_WEDDING:
-            *option |= 4096;
+            *option |= Option::_wedding;
             opt_flag = 1;
     }
 
@@ -10894,7 +10911,11 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
 int skill_status_change_clear(struct block_list *bl, int type)
 {
     eptr<struct status_change, StatusChange> sc_data;
-    short *sc_count, *option, *opt1, *opt2, *opt3;
+    short *sc_count;
+    Option *option;
+    Opt1 *opt1;
+    Opt2 *opt2;
+    Opt3 *opt3;
 
     nullpo_retr(0, bl);
     sc_data = battle_get_sc_data(bl);
@@ -10924,13 +10945,13 @@ int skill_status_change_clear(struct block_list *bl, int type)
         }
     }
     *sc_count = 0;
-    *opt1 = 0;
-    *opt2 = 0;
-    *opt3 = 0;
-    *option &= OPTION_MASK;
+    *opt1 = Opt1::ZERO;
+    *opt2 = Opt2::ZERO;
+    *opt3 = Opt3::ZERO;
+    *option &= Option::MASK;
 
     if (night_flag == 1 && type == BL_PC)   // by [Yor]
-        *opt2 |= STATE_BLIND;
+        *opt2 |= Opt2::BLIND;
 
     if (!type || type & 2)
         clif_changeoption(bl);
@@ -10963,7 +10984,7 @@ int skill_check_cloaking(struct block_list *bl)
     if (end)
     {
         skill_status_change_end(bl, SC_CLOAKING, -1);
-        *battle_get_option(bl) &= ~4;  /* 念のための処理 */
+        *battle_get_option(bl) &= ~Option::CLOAK;  /* 念のための処理 */
     }
     return end;
 }

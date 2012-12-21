@@ -3,23 +3,72 @@
 
 #include "map.hpp"
 
-#define OPTION_MASK 0xd7b8
-#define CART_MASK 0x788
-
-#define pc_setdead(sd) ((sd)->state.dead_sit = 1)
-#define pc_setsit(sd) ((sd)->state.dead_sit = 2)
-//#define pc_setstand(sd) ((sd)->state.dead_sit = 0)
-#define pc_isdead(sd) ((sd)->state.dead_sit == 1)
-#define pc_issit(sd) ((sd)->state.dead_sit == 2)
-#define pc_setdir(sd,b) ((sd)->dir = (b))
-#define pc_setchatid(sd,n) ((sd)->chatID = n)
-#define pc_ishiding(sd) ((sd)->status.option&0x4006)
-#define pc_iscarton(sd) ((sd)->status.option&CART_MASK)
-#define pc_isfalcon(sd) ((sd)->status.option&0x0010)
-#define pc_isriding(sd) ((sd)->status.option&0x0020)
-#define pc_isinvisible(sd) ((sd)->status.option&0x0040)
-#define pc_is50overweight(sd) (sd->weight*2 >= sd->max_weight)
-#define pc_is90overweight(sd) (sd->weight*10 >= sd->max_weight*9)
+inline
+void pc_setdead(struct map_session_data *sd)
+{
+    sd->state.dead_sit = 1;
+}
+inline
+void pc_setsit(struct map_session_data *sd)
+{
+    sd->state.dead_sit = 2;
+}
+//pc_setstand(struct map_session_data *sd) is a normal function
+inline
+bool pc_isdead(struct map_session_data *sd)
+{
+    return sd->state.dead_sit == 1;
+}
+inline
+bool pc_issit(struct map_session_data *sd)
+{
+    return sd->state.dead_sit == 2;
+}
+inline
+void pc_setdir(struct map_session_data *sd, int b)
+{
+    sd->dir = (b);
+}
+inline
+void pc_setchatid(struct map_session_data *sd, int n)
+{
+    sd->chatID = n;
+}
+inline
+bool pc_ishiding(struct map_session_data *sd)
+{
+    return bool(sd->status.option & Option::OLD_ANY_HIDE);
+}
+inline
+bool pc_iscarton(struct map_session_data *sd)
+{
+    return bool(sd->status.option & Option::CART_MASK);
+}
+inline
+bool pc_isfalcon(struct map_session_data *sd)
+{
+    return bool(sd->status.option & Option::FALCON);
+}
+inline
+bool pc_isriding(struct map_session_data *sd)
+{
+    return bool(sd->status.option & Option::RIDING);
+}
+inline
+bool pc_isinvisible(struct map_session_data *sd)
+{
+    return bool(sd->status.option & Option::HIDE);
+}
+inline
+bool pc_is50overweight(struct map_session_data *sd)
+{
+    return sd->weight*2 >= sd->max_weight;
+}
+inline
+bool pc_is90overweight(struct map_session_data *sd)
+{
+    return sd->weight*10 >= sd->max_weight*9;
+}
 
 void pc_touch_all_relevant_npcs(struct map_session_data *sd);  /* Checks all npcs/warps at the same location to see whether they
                                                                  ** should do something with the specified player. */
@@ -137,7 +186,7 @@ int pc_heal(struct map_session_data *, int, int);
 int pc_itemheal(struct map_session_data *sd, int hp, int sp);
 int pc_percentheal(struct map_session_data *sd, int, int);
 int pc_jobchange(struct map_session_data *, int, int);
-int pc_setoption(struct map_session_data *, int);
+int pc_setoption(struct map_session_data *, Option);
 int pc_setcart(struct map_session_data *sd, int type);
 int pc_setfalcon(struct map_session_data *sd);
 int pc_setriding(struct map_session_data *sd);

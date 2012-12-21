@@ -298,7 +298,6 @@ void builtin_gety(ScriptState *st);  // [Kage]
 void builtin_getmap(ScriptState *st);
 
 
-void push_val(struct script_stack *stack, int type, int val);
 void run_func(ScriptState *st);
 
 void mapreg_setreg(int num, int val);
@@ -3475,7 +3474,7 @@ void builtin_getopt2(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    push_val(st->stack, ScriptCode::INT, sd->opt2);
+    push_val(st->stack, ScriptCode::INT, uint16_t(sd->opt2));
 
 }
 
@@ -3486,10 +3485,9 @@ void builtin_getopt2(ScriptState *st)
 
 void builtin_setopt2(ScriptState *st)
 {
-    int new_opt2;
     struct map_session_data *sd;
 
-    new_opt2 = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    Opt2 new_opt2 = Opt2(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     sd = script_rid2sd(st);
     if (new_opt2 == sd->opt2)
         return;
@@ -3505,13 +3503,12 @@ void builtin_setopt2(ScriptState *st)
  */
 void builtin_checkoption(ScriptState *st)
 {
-    int type;
     struct map_session_data *sd;
 
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    Option type = Option(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     sd = script_rid2sd(st);
 
-    if (sd->status.option & type)
+    if (bool(sd->status.option & type))
     {
         push_val(st->stack, ScriptCode::INT, 1);
     }
@@ -3528,10 +3525,9 @@ void builtin_checkoption(ScriptState *st)
  */
 void builtin_setoption(ScriptState *st)
 {
-    int type;
     struct map_session_data *sd;
 
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    Option type = Option(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     sd = script_rid2sd(st);
     pc_setoption(sd, type);
 

@@ -1269,7 +1269,7 @@ void send_users_tochar(timer_id, tick_t, custom_id_t, custom_data_t)
         if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active
-               || (sd->status.option & OPTION_HIDE)) && pc_isGM(sd)))
+               || bool(sd->status.option & Option::HIDE)) && pc_isGM(sd)))
         {
             WFIFOL(char_fd, 6 + 4 * users) = sd->status.char_id;
             users++;

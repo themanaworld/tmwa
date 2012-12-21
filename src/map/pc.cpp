@@ -33,8 +33,6 @@
 //define it here, since the ifdef only occurs in this file
 #define USE_ASTRAL_SOUL_SKILL
 
-#define STATE_BLIND 0x10
-
 #ifdef USE_ASTRAL_SOUL_SKILL
 #define MAGIC_SKILL_THRESHOLD 200   // [fate] At this threshold, the Astral Soul skill kicks in
 #endif
@@ -863,9 +861,9 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     sd->sc_count = 0;
     if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
         (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide)))
-        sd->status.option &= (OPTION_MASK | OPTION_HIDE);
+        sd->status.option &= (Option::MASK | Option::HIDE);
     else
-        sd->status.option &= OPTION_MASK;
+        sd->status.option &= Option::MASK;
 
     // スキルユニット関係の初期化
     memset(sd->skillunit, 0, sizeof(sd->skillunit));
@@ -916,7 +914,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
         strcpy(tmpstr, "Actually, it's the night...");
         clif_wis_message(sd->fd, wisp_server_name, tmpstr,
                           strlen(tmpstr) + 1);
-        sd->opt2 |= STATE_BLIND;
+        sd->opt2 |= Opt2::BLIND;
     }
 
     // ステータス初期計算など
@@ -1903,7 +1901,8 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     if ((skill = pc_checkskill(sd, BS_WEAPONRESEARCH)) > 0)    // 武器研究の命中率増加
         sd->hit += skill * 2;
-    if (sd->status.option & 2 && (skill = pc_checkskill(sd, RG_TUNNELDRIVE)) > 0)  // トンネルドライブ
+    if (bool(sd->status.option & Option::HIDE2)
+        && (skill = pc_checkskill(sd, RG_TUNNELDRIVE)) > 0)  // トンネルドライブ
         sd->speed += (1.2 * DEFAULT_WALK_SPEED - skill * 9);
     if (pc_iscarton(sd) && (skill = pc_checkskill(sd, MC_PUSHCART)) > 0)  // カートによる速度低下
         sd->speed += (10 - skill) * (DEFAULT_WALK_SPEED * 0.1);
@@ -4097,11 +4096,11 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
 
     if (sd->sc_data[SC_TRICKDEAD].timer != -1)
         skill_status_change_end(&sd->bl, SC_TRICKDEAD, -1);
-    if (sd->status.option & 2)
+    if (bool(sd->status.option & Option::HIDE2))
         skill_status_change_end(&sd->bl, SC_HIDING, -1);
-    if (sd->status.option & 4)
+    if (bool(sd->status.option & Option::CLOAK))
         skill_status_change_end(&sd->bl, SC_CLOAKING, -1);
-    if (sd->status.option & 16386)
+    if (bool(sd->status.option & (Option::CHASEWALK | Option::HIDE2)))
         skill_status_change_end(&sd->bl, SC_CHASEWALK, -1);
     if (sd->sc_data[SC_BLADESTOP].timer != -1)
         skill_status_change_end(&sd->bl, SC_BLADESTOP, -1);
@@ -4445,7 +4444,8 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
                     sd->party_hp = -1;
             }
         }
-        if (sd->status.option & 4)  // クローキングの消滅検査
+        // クローキングの消滅検査
+        if (bool(sd->status.option & Option::CLOAK))
             skill_check_cloaking(&sd->bl);
         // ディボーション検査
         for (i = 0; i < 5; i++)
@@ -4632,7 +4632,8 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
         }
     }
 
-    if (sd->status.option & 4)  // クローキングの消滅検査
+    // クローキングの消滅検査
+    if (bool(sd->status.option & Option::CLOAK))
         skill_check_cloaking(&sd->bl);
 
     skill_unit_move(&sd->bl, gettick(), dist + 7);    // スキルユニットの検査
@@ -4811,7 +4812,6 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
     struct map_session_data *sd;
     struct block_list *bl;
     eptr<struct status_change, StatusChange> sc_data;
-    short *opt;
     int dist, skill, range;
     int attack_spell_delay;
 
@@ -4841,7 +4841,9 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
     if (sd->bl.m != bl->m || pc_isdead(sd))
         return;
 
-    if (sd->opt1 > 0 || sd->status.option & 2 || sd->status.option & 16388) // 異常などで攻撃できない
+    // 異常などで攻撃できない
+    if (sd->opt1 != Opt1::ZERO
+        || bool(sd->status.option & (Option::OLD_ANY_HIDE)))
         return;
 
     if (sd->sc_data[SC_AUTOCOUNTER].timer != -1)
@@ -4849,7 +4851,8 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
     if (sd->sc_data[SC_BLADESTOP].timer != -1)
         return;
 
-    if ((opt = battle_get_option(bl)) != NULL && *opt & 0x46)
+    Option *opt = battle_get_option(bl);
+    if (opt != NULL && bool(*opt & Option::REAL_ANY_HIDE))
         return;
     if (((sc_data = battle_get_sc_data(bl))
          && sc_data[SC_TRICKDEAD].timer != -1)
@@ -5680,8 +5683,7 @@ int pc_resetlvl(struct map_session_data *sd, int type)
         sd->status.job_level = 1;
         sd->status.base_exp = 0;
         sd->status.job_exp = 0;
-        if (sd->status.option != 0)
-            sd->status.option = 0;
+        sd->status.option = Option::ZERO;
 
         sd->status.str = 1;
         sd->status.agi = 1;
@@ -5881,11 +5883,11 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
 
     if (sd->sc_data[SC_TRICKDEAD].timer != -1)
         skill_status_change_end(&sd->bl, SC_TRICKDEAD, -1);
-    if (sd->status.option & 2)
+    if (bool(sd->status.option & Option::HIDE2))
         skill_status_change_end(&sd->bl, SC_HIDING, -1);
-    if (sd->status.option & 4)
+    if (bool(sd->status.option & Option::CLOAK))
         skill_status_change_end(&sd->bl, SC_CLOAKING, -1);
-    if (sd->status.option & 16386)
+    if (bool(sd->status.option & Option::CHASEWALK))
         skill_status_change_end(&sd->bl, SC_CHASEWALK, -1);
 
     if (sd->status.hp > 0)
@@ -6704,7 +6706,7 @@ int pc_jobchange(struct map_session_data *sd, int job, int upper)
     if (pc_isriding(sd))
     {                           // remove peco status if changing into invalid class [Valaris]
         if (!(pc_checkskill(sd, KN_RIDING)))
-            pc_setoption(sd, sd->status.option | -0x0000);
+            pc_setoption(sd, sd->status.option);
         if (pc_checkskill(sd, KN_RIDING) > 0)
             pc_setriding(sd);
     }
@@ -6777,7 +6779,7 @@ int pc_changelook(struct map_session_data *sd, int type, int val)
  * 付属品(鷹,ペコ,カート)設定
  *------------------------------------------
  */
-int pc_setoption(struct map_session_data *sd, int type)
+int pc_setoption(struct map_session_data *sd, Option type)
 {
     nullpo_retr(0, sd);
 
@@ -6794,7 +6796,8 @@ int pc_setoption(struct map_session_data *sd, int type)
  */
 int pc_setcart(struct map_session_data *sd, int type)
 {
-    int cart[6] = { 0x0000, 0x0008, 0x0080, 0x0100, 0x0200, 0x0400 };
+    Option cart[6] = {Option::ZERO, Option::CART1, Option::CART2,
+        Option::CART3, Option::CART4, Option::CART5};
 
     nullpo_retr(0, sd);
 
@@ -6825,7 +6828,7 @@ int pc_setfalcon(struct map_session_data *sd)
 {
     if (pc_checkskill(sd, HT_FALCON) > 0)
     {                           // ファルコンマスタリースキル所持
-        pc_setoption(sd, sd->status.option | 0x0010);
+        pc_setoption(sd, sd->status.option | Option::FALCON);
     }
 
     return 0;
@@ -6846,7 +6849,7 @@ int pc_setriding(struct map_session_data *sd)
 
     if ((pc_checkskill(sd, KN_RIDING) > 0))
     {                           // ライディングスキル所持
-        pc_setoption(sd, sd->status.option | 0x0020);
+        pc_setoption(sd, sd->status.option | Option::RIDING);
 
         if (sd->status.pc_class == 7)
             sd->status.pc_class = sd->view_class = 13;
@@ -8451,7 +8454,7 @@ void map_day_timer(timer_id, tick_t, custom_id_t, custom_data_t)
                 if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                     && pl_sd->state.auth)
                 {
-                    pl_sd->opt2 &= ~STATE_BLIND;
+                    pl_sd->opt2 &= ~Opt2::BLIND;
                     clif_changeoption(&pl_sd->bl);
                     clif_wis_message(pl_sd->fd, wisp_server_name, tmpstr,
                                       strlen(tmpstr) + 1);
@@ -8483,7 +8486,7 @@ void map_night_timer(timer_id, tick_t, custom_id_t, custom_data_t)
                 if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                     && pl_sd->state.auth)
                 {
-                    pl_sd->opt2 |= STATE_BLIND;
+                    pl_sd->opt2 |= Opt2::BLIND;
                     clif_changeoption(&pl_sd->bl);
                     clif_wis_message(pl_sd->fd, wisp_server_name, tmpstr,
                                       strlen(tmpstr) + 1);
@@ -8949,15 +8952,15 @@ void pc_cleanup(struct map_session_data *sd)
 
 void pc_invisibility(struct map_session_data *sd, int enabled)
 {
-    if (enabled && !(sd->status.option & OPTION_INVISIBILITY))
+    if (enabled && !bool(sd->status.option & Option::INVISIBILITY))
     {
         clif_clearchar_area(&sd->bl, 3);
-        sd->status.option |= OPTION_INVISIBILITY;
+        sd->status.option |= Option::INVISIBILITY;
         clif_status_change(&sd->bl, CLIF_OPTION_SC_INVISIBILITY, 1);
     }
     else if (!enabled)
     {
-        sd->status.option &= ~OPTION_INVISIBILITY;
+        sd->status.option &= ~Option::INVISIBILITY;
         clif_status_change(&sd->bl, CLIF_OPTION_SC_INVISIBILITY, 0);
         pc_setpos(sd, map[sd->bl.m].name, sd->bl.x, sd->bl.y, 3);
     }

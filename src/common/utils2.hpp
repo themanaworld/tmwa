@@ -93,6 +93,46 @@ struct underlying_type
     >::type type;
 };
 
+#define ENUM_BITWISE_OPERATORS(E)               \
+inline                                          \
+E operator & (E l, E r)                         \
+{                                               \
+    typedef typename underlying_type<E>::type U;\
+    return E(U(l) & U(r));                      \
+}                                               \
+inline                                          \
+E operator | (E l, E r)                         \
+{                                               \
+    typedef typename underlying_type<E>::type U;\
+    return E(U(l) | U(r));                      \
+}                                               \
+inline                                          \
+E operator ^ (E l, E r)                         \
+{                                               \
+    typedef typename underlying_type<E>::type U;\
+    return E(U(l) ^ U(r));                      \
+}                                               \
+inline                                          \
+E& operator &= (E& l, E r)                      \
+{                                               \
+    return l = l & r;                           \
+}                                               \
+inline                                          \
+E& operator |= (E& l, E r)                      \
+{                                               \
+    return l = l | r;                           \
+}                                               \
+inline                                          \
+E& operator ^= (E& l, E r)                      \
+{                                               \
+    return l = l ^ r;                           \
+}                                               \
+inline                                          \
+E operator ~ (E r)                              \
+{                                               \
+    return E(-1) ^ r;                           \
+}
+
 template<class E>
 class EnumValueIterator
 {

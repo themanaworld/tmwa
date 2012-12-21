@@ -82,6 +82,9 @@ struct global_reg
     int value;
 };
 
+// Option and Opt1..3 in map.hpp
+enum class Option : uint16_t;
+
 struct mmo_charstatus
 {
     int char_id;
@@ -93,7 +96,8 @@ struct mmo_charstatus
     short pc_class;
     short status_point, skill_point;
     int hp, max_hp, sp, max_sp;
-    short option, karma, manner;
+    Option option;
+    short karma, manner;
     short hair, hair_color, clothes_color;
     int party_id;
 

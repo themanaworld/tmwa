@@ -37,8 +37,6 @@
 #include "tmw.hpp"
 #include "trade.hpp"
 
-#define STATE_BLIND 0x10
-
 static
 char command_symbol = '@';   // first char of the commands (by [Yor])
 
@@ -1041,7 +1039,7 @@ int atcommand_where(const int fd, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL &&
         !((battle_config.hide_GM_session
-           || (pl_sd->status.option & OPTION_HIDE))
+           || bool(pl_sd->status.option & Option::HIDE))
           && (pc_isGM(pl_sd) > pc_isGM(sd))))
     {                           // you can look only lower or same level
         sprintf(output, "%s: %s (%d,%d)", pl_sd->status.name, pl_sd->mapname,
@@ -1187,7 +1185,7 @@ int atcommand_who(const int fd, struct map_session_data *sd,
             pl_GM_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || (pl_sd->status.option & OPTION_HIDE))
+                  || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
             {                   // you can look only lower or same level
                 memcpy(player_name, pl_sd->status.name, 24);
@@ -1262,7 +1260,7 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
             pl_GM_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || (pl_sd->status.option & OPTION_HIDE))
+                  || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
             {                   // you can look only lower or same level
                 memcpy(player_name, pl_sd->status.name, 24);
@@ -1341,7 +1339,7 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
             pl_GM_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || (pl_sd->status.option & OPTION_HIDE))
+                  || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
             {                   // you can look only lower or same level
                 if (pl_sd->bl.m == map_id)
@@ -1416,7 +1414,7 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
             pl_GM_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
-                  || (pl_sd->status.option & OPTION_HIDE))
+                  || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
             {
                 // you can look only lower or same level
@@ -1493,7 +1491,7 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
             {
                 if (!
                     ((battle_config.hide_GM_session
-                      || (pl_sd->status.option & OPTION_HIDE))
+                      || bool(pl_sd->status.option & Option::HIDE))
                      && (pl_GM_level > GM_level)))
                 {               // you can look only lower or same level
                     memcpy(player_name, pl_sd->status.name, 24);
@@ -1666,21 +1664,26 @@ int atcommand_storage(const int fd, struct map_session_data *sd,
 int atcommand_option(const int fd, struct map_session_data *sd,
                       const char *, const char *message)
 {
-    int param1 = 0, param2 = 0, param3 = 0;
+    int param1_ = 0, param2_ = 0, param3_ = 0;
     nullpo_retr(-1, sd);
 
     if (!message || !*message
-        || sscanf(message, "%d %d %d", &param1, &param2, &param3) < 1
-        || param1 < 0 || param2 < 0 || param3 < 0)
+        || sscanf(message, "%d %d %d", &param1_, &param2_, &param3_) < 1
+        || param1_ < 0 || param2_ < 0 || param3_ < 0)
     {
         clif_displaymessage(fd,
                              "Please, enter at least a option (usage: @option <param1:0+> <param2:0+> <param3:0+>).");
         return -1;
     }
 
+    Opt1 param1 = Opt1(param1_);
+    Opt2 param2 = Opt2(param2_);
+    Option param3 = Option(param3_);
+
     sd->opt1 = param1;
     sd->opt2 = param2;
-    if (!(sd->status.option & CART_MASK) && param3 & CART_MASK)
+    if (!bool(sd->status.option & Option::CART_MASK)
+        && bool(param3 & Option::CART_MASK))
     {
         clif_cart_itemlist(sd);
         clif_cart_equiplist(sd);
@@ -1709,7 +1712,7 @@ int atcommand_option(const int fd, struct map_session_data *sd,
         {                       // sd have the new value...
             if (sd->disguise > 0)
             {                   // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris] (code added by [Yor])
-                sd->status.option &= ~0x0020;
+                sd->status.option &= ~Option::RIDING;
             }
             else
             {
@@ -1722,7 +1725,7 @@ int atcommand_option(const int fd, struct map_session_data *sd,
                 else if (sd->status.pc_class == 4015)
                     sd->status.pc_class = sd->view_class = 4022;
                 else
-                    sd->status.option &= ~0x0020;
+                    sd->status.option &= ~Option::RIDING;
             }
         }
     }
@@ -1741,14 +1744,14 @@ int atcommand_option(const int fd, struct map_session_data *sd,
 int atcommand_hide(const int fd, struct map_session_data *sd,
                     const char *, const char *)
 {
-    if (sd->status.option & OPTION_HIDE)
+    if (bool(sd->status.option & Option::HIDE))
     {
-        sd->status.option &= ~OPTION_HIDE;
+        sd->status.option &= ~Option::HIDE;
         clif_displaymessage(fd, "Invisible: Off.");    // Invisible: Off
     }
     else
     {
-        sd->status.option |= OPTION_HIDE;
+        sd->status.option |= Option::HIDE;
         clif_displaymessage(fd, "Invisible: On.");    // Invisible: On
     }
     clif_changeoption(&sd->bl);
@@ -3572,19 +3575,23 @@ int atcommand_character_option(const int fd, struct map_session_data *sd,
                                 const char *, const char *message)
 {
     char character[100];
-    int opt1 = 0, opt2 = 0, opt3 = 0;
+    int opt1_ = 0, opt2_ = 0, opt3_ = 0;
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
 
     if (!message || !*message
-        || sscanf(message, "%d %d %d %99[^\n]", &opt1, &opt2, &opt3,
-                   character) < 4 || opt1 < 0 || opt2 < 0 || opt3 < 0)
+        || sscanf(message, "%d %d %d %99[^\n]", &opt1_, &opt2_, &opt3_,
+                   character) < 4 || opt1_ < 0 || opt2_ < 0 || opt3_ < 0)
     {
         clif_displaymessage(fd,
                              "Please, enter valid options and a player name (usage: @charoption <param1> <param2> <param3> <charname>).");
         return -1;
     }
+
+    Opt1 opt1 = Opt1(opt1_);
+    Opt2 opt2 = Opt2(opt2_);
+    Option opt3 = Option(opt3_);
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
@@ -3615,7 +3622,7 @@ int atcommand_character_option(const int fd, struct map_session_data *sd,
                 {               // pl_sd have the new value...
                     if (pl_sd->disguise > 0)
                     {           // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris] (code added by [Yor])
-                        pl_sd->status.option &= ~0x0020;
+                        pl_sd->status.option &= ~Option::RIDING;
                     }
                     else
                     {
@@ -3628,7 +3635,7 @@ int atcommand_character_option(const int fd, struct map_session_data *sd,
                         else if (pl_sd->status.pc_class == 4015)
                             pl_sd->status.pc_class = pl_sd->view_class = 4022;
                         else
-                            pl_sd->status.option &= ~0x0020;
+                            pl_sd->status.option &= ~Option::RIDING;
                     }
                 }
             }
@@ -4003,7 +4010,7 @@ int atcommand_night(const int fd, struct map_session_data *,
             if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
-                pl_sd->opt2 |= STATE_BLIND;
+                pl_sd->opt2 |= Opt2::BLIND;
                 clif_changeoption(&pl_sd->bl);
                 clif_displaymessage(pl_sd->fd, "Night has fallen.");
             }
@@ -4036,7 +4043,7 @@ int atcommand_day(const int fd, struct map_session_data *,
             if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
-                pl_sd->opt2 &= ~STATE_BLIND;
+                pl_sd->opt2 &= ~Opt2::BLIND;
                 clif_changeoption(&pl_sd->bl);
                 clif_displaymessage(pl_sd->fd, "Day has arrived.");
             }
@@ -5591,7 +5598,7 @@ int atcommand_mount_peco(const int fd, struct map_session_data *sd,
                 sd->status.pc_class = sd->view_class = 4014;
             else if (sd->status.pc_class == 4015)
                 sd->status.pc_class = sd->view_class = 4022;
-            pc_setoption(sd, sd->status.option | 0x0020);
+            pc_setoption(sd, sd->status.option | Option::RIDING);
             clif_displaymessage(fd, "Mounted Peco.");
         }
         else
@@ -5610,7 +5617,7 @@ int atcommand_mount_peco(const int fd, struct map_session_data *sd,
             sd->status.pc_class = sd->view_class = 4008;
         else if (sd->status.pc_class == 4022)
             sd->status.pc_class = sd->view_class = 4015;
-        pc_setoption(sd, sd->status.option & ~0x0020);
+        pc_setoption(sd, sd->status.option & ~Option::RIDING);
         clif_displaymessage(fd, "Unmounted Peco.");
     }
 
@@ -5657,7 +5664,7 @@ int atcommand_char_mount_peco(const int fd, struct map_session_data *,
                     pl_sd->status.pc_class = pl_sd->view_class = 4014;
                 else if (pl_sd->status.pc_class == 4015)
                     pl_sd->status.pc_class = pl_sd->view_class = 4022;
-                pc_setoption(pl_sd, pl_sd->status.option | 0x0020);
+                pc_setoption(pl_sd, pl_sd->status.option | Option::RIDING);
                 clif_displaymessage(fd, "Now, this player mounts a peco.");
             }
             else
@@ -5676,7 +5683,7 @@ int atcommand_char_mount_peco(const int fd, struct map_session_data *,
                 pl_sd->status.pc_class = pl_sd->view_class = 4008;
             else if (pl_sd->status.pc_class == 4022)
                 pl_sd->status.pc_class = pl_sd->view_class = 4015;
-            pc_setoption(pl_sd, pl_sd->status.option & ~0x0020);
+            pc_setoption(pl_sd, pl_sd->status.option & ~Option::RIDING);
             clif_displaymessage(fd, "Now, this player has not more peco.");
         }
     }
