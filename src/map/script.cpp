@@ -113,192 +113,6 @@ int parse_cmd;
 static
 const char *parse_subexpr(const char *, int);
 
-static void builtin_mes(ScriptState *st);
-static void builtin_goto(ScriptState *st);
-static void builtin_callsub(ScriptState *st);
-static void builtin_callfunc(ScriptState *st);
-static void builtin_return(ScriptState *st);
-static void builtin_getarg(ScriptState *st);
-static void builtin_next(ScriptState *st);
-static void builtin_close(ScriptState *st);
-static void builtin_close2(ScriptState *st);
-static void builtin_menu(ScriptState *st);
-static void builtin_rand(ScriptState *st);
-static void builtin_pow(ScriptState *st);
-static void builtin_warp(ScriptState *st);
-static void builtin_isat(ScriptState *st);
-static void builtin_areawarp(ScriptState *st);
-static void builtin_heal(ScriptState *st);
-static void builtin_itemheal(ScriptState *st);
-static void builtin_percentheal(ScriptState *st);
-static void builtin_jobchange(ScriptState *st);
-static void builtin_input(ScriptState *st);
-static void builtin_setlook(ScriptState *st);
-static void builtin_set(ScriptState *st);
-static void builtin_setarray(ScriptState *st);
-static void builtin_cleararray(ScriptState *st);
-static void builtin_copyarray(ScriptState *st);
-static void builtin_getarraysize(ScriptState *st);
-static void builtin_deletearray(ScriptState *st);
-static void builtin_getelementofarray(ScriptState *st);
-static void builtin_if (ScriptState *st);
-static void builtin_getitem(ScriptState *st);
-static void builtin_getitem2(ScriptState *st);
-static void builtin_makeitem(ScriptState *st);
-static void builtin_delitem(ScriptState *st);
-static void builtin_viewpoint(ScriptState *st);
-static void builtin_countitem(ScriptState *st);
-static void builtin_checkweight(ScriptState *st);
-static void builtin_readparam(ScriptState *st);
-static void builtin_getcharid(ScriptState *st);
-static void builtin_getpartyname(ScriptState *st);
-static void builtin_getpartymember(ScriptState *st);
-static void builtin_strcharinfo(ScriptState *st);
-static void builtin_getequipid(ScriptState *st);
-static void builtin_getequipname(ScriptState *st);
-static void builtin_getbrokenid(ScriptState *st); // [Valaris]
-static void builtin_repair(ScriptState *st);  // [Valaris]
-static void builtin_getequipisequiped(ScriptState *st);
-static void builtin_getequipisenableref(ScriptState *st);
-static void builtin_getequipisidentify(ScriptState *st);
-static void builtin_getequiprefinerycnt(ScriptState *st);
-static void builtin_getequipweaponlv(ScriptState *st);
-static void builtin_getequippercentrefinery(ScriptState *st);
-static void builtin_successrefitem(ScriptState *st);
-static void builtin_failedrefitem(ScriptState *st);
-static void builtin_cutin(ScriptState *st);
-static void builtin_cutincard(ScriptState *st);
-static void builtin_statusup(ScriptState *st);
-static void builtin_statusup2(ScriptState *st);
-static void builtin_bonus(ScriptState *st);
-static void builtin_bonus2(ScriptState *st);
-static void builtin_bonus3(ScriptState *st);
-static void builtin_skill(ScriptState *st);
-static void builtin_setskill(ScriptState *st);
-static void builtin_getskilllv(ScriptState *st);
-static void builtin_basicskillcheck(ScriptState *st);
-static void builtin_getgmlevel(ScriptState *st);
-static void builtin_end(ScriptState *st);
-static void builtin_getopt2(ScriptState *st);
-static void builtin_setopt2(ScriptState *st);
-static void builtin_checkoption(ScriptState *st);
-static void builtin_setoption(ScriptState *st);
-static void builtin_setcart(ScriptState *st);
-static void builtin_checkcart(ScriptState *st);   // check cart [Valaris]
-static void builtin_setfalcon(ScriptState *st);
-static void builtin_checkfalcon(ScriptState *st); // check falcon [Valaris]
-static void builtin_setriding(ScriptState *st);
-static void builtin_checkriding(ScriptState *st); // check for pecopeco [Valaris]
-static void builtin_savepoint(ScriptState *st);
-static void builtin_gettimetick(ScriptState *st);
-static void builtin_gettime(ScriptState *st);
-static void builtin_gettimestr(ScriptState *st);
-static void builtin_openstorage(ScriptState *st);
-static void builtin_itemskill(ScriptState *st);
-static void builtin_monster(ScriptState *st);
-static void builtin_areamonster(ScriptState *st);
-static void builtin_killmonster(ScriptState *st);
-static void builtin_killmonsterall(ScriptState *st);
-static void builtin_doevent(ScriptState *st);
-static void builtin_donpcevent(ScriptState *st);
-static void builtin_addtimer(ScriptState *st);
-static void builtin_deltimer(ScriptState *st);
-static void builtin_addtimercount(ScriptState *st);
-static void builtin_initnpctimer(ScriptState *st);
-static void builtin_stopnpctimer(ScriptState *st);
-static void builtin_startnpctimer(ScriptState *st);
-static void builtin_setnpctimer(ScriptState *st);
-static void builtin_getnpctimer(ScriptState *st);
-static void builtin_announce(ScriptState *st);
-static void builtin_mapannounce(ScriptState *st);
-static void builtin_areaannounce(ScriptState *st);
-static void builtin_getusers(ScriptState *st);
-static void builtin_getmapusers(ScriptState *st);
-static void builtin_getareausers(ScriptState *st);
-static void builtin_getareadropitem(ScriptState *st);
-static void builtin_enablenpc(ScriptState *st);
-static void builtin_disablenpc(ScriptState *st);
-static void builtin_enablearena(ScriptState *st); // Added by RoVeRT
-static void builtin_disablearena(ScriptState *st);    // Added by RoVeRT
-static void builtin_hideoffnpc(ScriptState *st);
-static void builtin_hideonnpc(ScriptState *st);
-static void builtin_sc_start(ScriptState *st);
-static void builtin_sc_start2(ScriptState *st);
-static void builtin_sc_end(ScriptState *st);
-static void builtin_sc_check(ScriptState *st);    // [Fate]
-static void builtin_getscrate(ScriptState *st);
-static void builtin_debugmes(ScriptState *st);
-static void builtin_resetlvl(ScriptState *st);
-static void builtin_resetstatus(ScriptState *st);
-static void builtin_resetskill(ScriptState *st);
-static void builtin_changebase(ScriptState *st);
-static void builtin_changesex(ScriptState *st);
-static void builtin_waitingroom(ScriptState *st);
-static void builtin_delwaitingroom(ScriptState *st);
-static void builtin_enablewaitingroomevent(ScriptState *st);
-static void builtin_disablewaitingroomevent(ScriptState *st);
-static void builtin_getwaitingroomstate(ScriptState *st);
-static void builtin_warpwaitingpc(ScriptState *st);
-static void builtin_attachrid(ScriptState *st);
-static void builtin_detachrid(ScriptState *st);
-static void builtin_isloggedin(ScriptState *st);
-static void builtin_setmapflagnosave(ScriptState *st);
-static void builtin_setmapflag(ScriptState *st);
-static void builtin_removemapflag(ScriptState *st);
-static void builtin_getmapflag(ScriptState *st);
-static void builtin_pvpon(ScriptState *st);
-static void builtin_pvpoff(ScriptState *st);
-static void builtin_emotion(ScriptState *st);
-static void builtin_getequipcardcnt(ScriptState *st);
-static void builtin_successremovecards(ScriptState *st);
-static void builtin_failedremovecards(ScriptState *st);
-static void builtin_marriage(ScriptState *st);
-static void builtin_wedding_effect(ScriptState *st);
-static void builtin_divorce(ScriptState *st);
-static void builtin_getitemname(ScriptState *st);
-static void builtin_getspellinvocation(ScriptState *st);  // [Fate]
-static void builtin_getanchorinvocation(ScriptState *st); // [Fate]
-static void builtin_getexp(ScriptState *st);
-static void builtin_getinventorylist(ScriptState *st);
-static void builtin_getskilllist(ScriptState *st);
-static void builtin_get_pool_skills(ScriptState *st); // [fate]
-static void builtin_get_activated_pool_skills(ScriptState *st);   // [fate]
-static void builtin_get_unactivated_pool_skills(ScriptState *st);   // [PO]
-static void builtin_activate_pool_skill(ScriptState *st); // [fate]
-static void builtin_deactivate_pool_skill(ScriptState *st);   // [fate]
-static void builtin_check_pool_skill(ScriptState *st);    // [fate]
-static void builtin_clearitem(ScriptState *st);
-static void builtin_classchange(ScriptState *st);
-static void builtin_misceffect(ScriptState *st);
-static void builtin_soundeffect(ScriptState *st);
-static void builtin_mapwarp(ScriptState *st);
-static void builtin_inittimer(ScriptState *st);
-static void builtin_stoptimer(ScriptState *st);
-static void builtin_cmdothernpc(ScriptState *st);
-static void builtin_mobcount(ScriptState *st);
-static void builtin_strmobinfo(ScriptState *st);  // Script for displaying mob info [Valaris]
-static void builtin_npcskilleffect(ScriptState *st);  // skill effects for npcs [Valaris]
-static void builtin_specialeffect(ScriptState *st);   // special effect script [Valaris]
-static void builtin_specialeffect2(ScriptState *st);  // special effect script [Valaris]
-static void builtin_nude(ScriptState *st);    // nude [Valaris]
-static void builtin_gmcommand(ScriptState *st);   // [MouseJstr]
-static void builtin_npcwarp(ScriptState *st); // [remoitnane]
-static void builtin_message(ScriptState *st); // [MouseJstr]
-static void builtin_npctalk(ScriptState *st); // [Valaris]
-static void builtin_hasitems(ScriptState *st);    // [Valaris]
-static void builtin_getlook(ScriptState *st); //Lorky [Lupus]
-static void builtin_getsavepoint(ScriptState *st);    //Lorky [Lupus]
-static void builtin_getpartnerid(ScriptState *st);    // [Fate]
-static void builtin_areatimer(ScriptState *st);   // [Jaxad0127]
-static void builtin_isin(ScriptState *st);    // [Jaxad0127]
-static void builtin_shop(ScriptState *st);    // [MadCamel]
-static void builtin_isdead(ScriptState *st);  // [Jaxad0127]
-static void builtin_fakenpcname(ScriptState *st); //[Kage]
-static void builtin_unequip_by_id(ScriptState *st);   // [Freeyorp]
-static void builtin_getx(ScriptState *st);  // [Kage]
-static void builtin_gety(ScriptState *st);  // [Kage]
-static void builtin_getmap(ScriptState *st);
-
 static
 void run_func(ScriptState *st);
 
@@ -307,204 +121,15 @@ void mapreg_setreg(int num, int val);
 static
 void mapreg_setregstr(int num, const char *str);
 
-struct
+struct BuiltinFunction
 {
     void(*func)(ScriptState *);
     const char *name;
     const char *arg;
-} builtin_functions[] =
-{
-    {builtin_mes, "mes", "s"},
-    {builtin_next, "next", ""},
-    {builtin_close, "close", ""},
-    {builtin_close2, "close2", ""},
-    {builtin_menu, "menu", "sL*"},
-    {builtin_goto, "goto", "L"},
-    {builtin_callsub, "callsub", "L*"},
-    {builtin_callfunc, "callfunc", "F*"},
-    {builtin_return, "return", "*"},
-    {builtin_getarg, "getarg", "i"},
-    {builtin_jobchange, "jobchange", "i*"},
-    {builtin_input, "input", "N"},
-    {builtin_warp, "warp", "Mxy"},
-    {builtin_isat, "isat", "Mxy"},
-    {builtin_areawarp, "areawarp", "MxyxyMxy"},
-    {builtin_setlook, "setlook", "ii"},
-    {builtin_set, "set", "Ne"},
-    {builtin_setarray, "setarray", "Ne*"},
-    {builtin_cleararray, "cleararray", "Nei"},
-    {builtin_copyarray, "copyarray", "NNi"},
-    {builtin_getarraysize, "getarraysize", "N"},
-    {builtin_deletearray, "deletearray", "N*"},
-    {builtin_getelementofarray, "getelementofarray", "Ni"},
-    {builtin_if, "if", "iF*"},
-    {builtin_getitem, "getitem", "Ii**"},
-    {builtin_getitem2, "getitem2", "iiiiiiiii*"},
-    {builtin_makeitem, "makeitem", "IiMxy"},
-    {builtin_delitem, "delitem", "Ii"},
-    {builtin_cutin, "cutin", "si"},
-    {builtin_cutincard, "cutincard", "i"},
-    {builtin_viewpoint, "viewpoint", "iiiii"},
-    {builtin_heal, "heal", "ii"},
-    {builtin_itemheal, "itemheal", "ii"},
-    {builtin_percentheal, "percentheal", "ii"},
-    {builtin_rand, "rand", "i*"},
-    {builtin_pow, "pow", "ii"},
-    {builtin_countitem, "countitem", "I"},
-    {builtin_checkweight, "checkweight", "Ii"},
-    {builtin_readparam, "readparam", "i*"},
-    {builtin_getcharid, "getcharid", "i*"},
-    {builtin_getpartyname, "getpartyname", "i"},
-    {builtin_getpartymember, "getpartymember", "i"},
-    {builtin_strcharinfo, "strcharinfo", "i"},
-    {builtin_getequipid, "getequipid", "i"},
-    {builtin_getequipname, "getequipname", "i"},
-    {builtin_getbrokenid, "getbrokenid", "i"},   // [Valaris]
-    {builtin_repair, "repair", "i"}, // [Valaris]
-    {builtin_getequipisequiped, "getequipisequiped", "i"},
-    {builtin_getequipisenableref, "getequipisenableref", "i"},
-    {builtin_getequipisidentify, "getequipisidentify", "i"},
-    {builtin_getequiprefinerycnt, "getequiprefinerycnt", "i"},
-    {builtin_getequipweaponlv, "getequipweaponlv", "i"},
-    {builtin_getequippercentrefinery, "getequippercentrefinery", "i"},
-    {builtin_successrefitem, "successrefitem", "i"},
-    {builtin_failedrefitem, "failedrefitem", "i"},
-    {builtin_statusup, "statusup", "i"},
-    {builtin_statusup2, "statusup2", "ii"},
-    {builtin_bonus, "bonus", "ii"},
-    {builtin_bonus2, "bonus2", "iii"},
-    {builtin_bonus3, "bonus3", "iiii"},
-    {builtin_skill, "skill", "ii*"},
-    {builtin_setskill, "setskill", "ii"},    // [Fate]
-    {builtin_getskilllv, "getskilllv", "i"},
-    {builtin_basicskillcheck, "basicskillcheck", "*"},
-    {builtin_getgmlevel, "getgmlevel", ""},
-    {builtin_end, "end", ""},
-    {builtin_getopt2, "getopt2", ""},
-    {builtin_setopt2, "setopt2", "i"},
-    {builtin_end, "break", ""},
-    {builtin_checkoption, "checkoption", "i"},
-    {builtin_setoption, "setoption", "i"},
-    {builtin_setcart, "setcart", ""},
-    {builtin_checkcart, "checkcart", "*"},   //fixed by Lupus (added '*')
-    {builtin_setfalcon, "setfalcon", ""},
-    {builtin_checkfalcon, "checkfalcon", "*"},   //fixed by Lupus (fixed wrong pointer, added '*')
-    {builtin_setriding, "setriding", ""},
-    {builtin_checkriding, "checkriding", "*"},   //fixed by Lupus (fixed wrong pointer, added '*')
-    {builtin_savepoint, "save", "sii"},
-    {builtin_savepoint, "savepoint", "Mxy"},
-    {builtin_gettimetick, "gettimetick", "i"},
-    {builtin_gettime, "gettime", "i"},
-    {builtin_gettimestr, "gettimestr", "si"},
-    {builtin_openstorage, "openstorage", "*"},
-    {builtin_itemskill, "itemskill", "iis"},
-    {builtin_monster, "monster", "Mxysmi*"},
-    {builtin_areamonster, "areamonster", "Mxyxysmi*"},
-    {builtin_killmonster, "killmonster", "ME"},
-    {builtin_killmonsterall, "killmonsterall", "M"},
-    {builtin_doevent, "doevent", "E"},
-    {builtin_donpcevent, "donpcevent", "E"},
-    {builtin_addtimer, "addtimer", "tE"},
-    {builtin_deltimer, "deltimer", "E"},
-    {builtin_addtimercount, "addtimercount", "si"},
-    {builtin_initnpctimer, "initnpctimer", ""},
-    {builtin_stopnpctimer, "stopnpctimer", ""},
-    {builtin_startnpctimer, "startnpctimer", "*"},
-    {builtin_setnpctimer, "setnpctimer", "i"},
-    {builtin_getnpctimer, "getnpctimer", "i"},
-    {builtin_announce, "announce", "si"},
-    {builtin_mapannounce, "mapannounce", "Msi"},
-    {builtin_areaannounce, "areaannounce", "Mxyxysi"},
-    {builtin_getusers, "getusers", "i"},
-    {builtin_getmapusers, "getmapusers", "M"},
-    {builtin_getareausers, "getareausers", "Mxyxy*"},
-    {builtin_getareadropitem, "getareadropitem", "Mxyxyi*"},
-    {builtin_enablenpc, "enablenpc", "s"},
-    {builtin_disablenpc, "disablenpc", "s"},
-    {builtin_enablearena, "enablearena", ""},    // Added by RoVeRT
-    {builtin_disablearena, "disablearena", ""},  // Added by RoVeRT
-    {builtin_hideoffnpc, "hideoffnpc", "s"},
-    {builtin_hideonnpc, "hideonnpc", "s"},
-    {builtin_sc_start, "sc_start", "iTi*"},
-    {builtin_sc_start2, "sc_start2", "iTii*"},
-    {builtin_sc_end, "sc_end", "i"},
-    {builtin_sc_check, "sc_check", "i"},
-    {builtin_getscrate, "getscrate", "ii*"},
-    {builtin_debugmes, "debugmes", "s"},
-    {builtin_resetlvl, "resetlvl", "i"},
-    {builtin_resetstatus, "resetstatus", ""},
-    {builtin_resetskill, "resetskill", ""},
-    {builtin_changebase, "changebase", "i"},
-    {builtin_changesex, "changesex", ""},
-    {builtin_waitingroom, "waitingroom", "si*"},
-    {builtin_warpwaitingpc, "warpwaitingpc", "sii"},
-    {builtin_delwaitingroom, "delwaitingroom", "*"},
-    {builtin_enablewaitingroomevent, "enablewaitingroomevent", "*"},
-    {builtin_disablewaitingroomevent, "disablewaitingroomevent", "*"},
-    {builtin_getwaitingroomstate, "getwaitingroomstate", "i*"},
-    {builtin_warpwaitingpc, "warpwaitingpc", "sii*"},
-    {builtin_attachrid, "attachrid", "i"},
-    {builtin_detachrid, "detachrid", ""},
-    {builtin_isloggedin, "isloggedin", "i"},
-    {builtin_setmapflagnosave, "setmapflagnosave", "MMxy"},
-    {builtin_setmapflag, "setmapflag", "Mi"},
-    {builtin_removemapflag, "removemapflag", "Mi"},
-    {builtin_getmapflag, "getmapflag", "Mi"},
-    {builtin_pvpon, "pvpon", "M"},
-    {builtin_pvpoff, "pvpoff", "M"},
-    {builtin_emotion, "emotion", "i"},
-    {builtin_getequipcardcnt, "getequipcardcnt", "i"},
-    {builtin_successremovecards, "successremovecards", "i"},
-    {builtin_failedremovecards, "failedremovecards", "ii"},
-    {builtin_marriage, "marriage", "P"},
-    {builtin_wedding_effect, "wedding", ""},
-    {builtin_divorce, "divorce", ""},
-    {builtin_getitemname, "getitemname", "I"},
-    {builtin_getspellinvocation, "getspellinvocation", "s"},
-    {builtin_getanchorinvocation, "getanchorinvocation", "s"},
-    {builtin_getpartnerid, "getpartnerid2", ""},
-    {builtin_getexp, "getexp", "ii"},
-    {builtin_getinventorylist, "getinventorylist", ""},
-    {builtin_getskilllist, "getskilllist", ""},
-    {builtin_get_pool_skills, "getpoolskilllist", ""},
-    {builtin_get_activated_pool_skills, "getactivatedpoolskilllist", ""},
-    {builtin_get_unactivated_pool_skills, "getunactivatedpoolskilllist", ""},
-    {builtin_activate_pool_skill, "poolskill", "i"},
-    {builtin_deactivate_pool_skill, "unpoolskill", "i"},
-    {builtin_check_pool_skill, "checkpoolskill", "i"},
-    {builtin_clearitem, "clearitem", ""},
-    {builtin_classchange, "classchange", "ii"},
-    {builtin_misceffect, "misceffect", "i*"},
-    {builtin_soundeffect, "soundeffect", "si"},
-    {builtin_strmobinfo, "strmobinfo", "im"},    // display mob data [Valaris]
-    {builtin_npcskilleffect, "npcskilleffect", "iiii"},  // npc skill effect [Valaris]
-    {builtin_specialeffect, "specialeffect", "i"},   // npc skill effect [Valaris]
-    {builtin_specialeffect2, "specialeffect2", "i"}, // skill effect on players[Valaris]
-    {builtin_nude, "nude", ""},  // nude command [Valaris]
-    {builtin_mapwarp, "mapwarp", "MMxy"},    // Added by RoVeRT
-    {builtin_inittimer, "inittimer", ""},
-    {builtin_stoptimer, "stoptimer", ""},
-    {builtin_cmdothernpc, "cmdothernpc", "ss"},
-    {builtin_gmcommand, "gmcommand", "s"},   // [MouseJstr]
-    {builtin_npcwarp, "npcwarp", "xys"}, // [remoitnane]
-    {builtin_message, "message", "Ps"},  // [MouseJstr]
-    {builtin_npctalk, "npctalk", "s"},   // [Valaris]
-    {builtin_hasitems, "hasitems", ""}, // [Valaris]
-    {builtin_mobcount, "mobcount", "ME"},
-    {builtin_getlook, "getlook", "i"},
-    {builtin_getsavepoint, "getsavepoint", "i"},
-    {builtin_areatimer, "areatimer", "MxyxytE"},
-    {builtin_isin, "isin", "Mxyxy"},
-    {builtin_shop, "shop", "s"},
-    {builtin_isdead, "isdead", ""},
-    {builtin_fakenpcname, "fakenpcname", "ssi"},
-    {builtin_unequip_by_id, "unequipbyid", "i"}, // [Freeyorp]
-    {builtin_getx, "getx", ""}, // [Kage]
-    {builtin_gety, "gety", ""}, // [Kage]
-    {builtin_getmap, "getmap", ""},
-    // End Additions
-    {NULL, NULL, NULL},
 };
+// defined later
+extern BuiltinFunction builtin_functions[];
+
 
 #ifdef RECENT_GCC
 enum class ScriptCode : uint8_t
@@ -1694,6 +1319,7 @@ void pop_stack(struct script_stack *stack, int start, int end)
  *
  *------------------------------------------
  */
+static
 void builtin_mes(ScriptState *st)
 {
     conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -1705,6 +1331,7 @@ void builtin_mes(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_goto(ScriptState *st)
 {
     if (st->stack->stack_data[st->start + 2].type != ScriptCode::POS)
@@ -1722,6 +1349,7 @@ void builtin_goto(ScriptState *st)
  * ユーザー定義関数の呼び出し
  *------------------------------------------
  */
+static
 void builtin_callfunc(ScriptState *st)
 {
     const ScriptCode *scr;
@@ -1754,6 +1382,7 @@ void builtin_callfunc(ScriptState *st)
  * サブルーティンの呼び出し
  *------------------------------------------
  */
+static
 void builtin_callsub(ScriptState *st)
 {
     int pos_ = conv_num(st, &(st->stack->stack_data[st->start + 2]));
@@ -1775,6 +1404,7 @@ void builtin_callsub(ScriptState *st)
  * 引数の所得
  *------------------------------------------
  */
+static
 void builtin_getarg(ScriptState *st)
 {
     int num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
@@ -1801,6 +1431,7 @@ void builtin_getarg(ScriptState *st)
  * サブルーチン/ユーザー定義関数の終了
  *------------------------------------------
  */
+static
 void builtin_return(ScriptState *st)
 {
     if (st->end > st->start + 2)
@@ -1814,6 +1445,7 @@ void builtin_return(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_next(ScriptState *st)
 {
     st->state = STOP;
@@ -1824,12 +1456,14 @@ void builtin_next(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_close(ScriptState *st)
 {
     st->state = END;
     clif_scriptclose(script_rid2sd(st), st->oid);
 }
 
+static
 void builtin_close2(ScriptState *st)
 {
     st->state = STOP;
@@ -1840,6 +1474,7 @@ void builtin_close2(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_menu(ScriptState *st)
 {
     char *buf;
@@ -1913,6 +1548,7 @@ void builtin_menu(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_rand(ScriptState *st)
 {
     int range, min, max;
@@ -1942,6 +1578,7 @@ void builtin_rand(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_pow(ScriptState *st)
 {
     int a, b;
@@ -1957,6 +1594,7 @@ void builtin_pow(ScriptState *st)
  * Check whether the PC is at the specified location
  *------------------------------------------
  */
+static
 void builtin_isat(ScriptState *st)
 {
     int x, y;
@@ -1979,6 +1617,7 @@ void builtin_isat(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_warp(ScriptState *st)
 {
     int x, y;
@@ -2022,6 +1661,7 @@ void builtin_areawarp_sub(struct block_list *bl, const char *mapname, int x, int
         pc_setpos((struct map_session_data *) bl, mapname, x, y, 0);
 }
 
+static
 void builtin_areawarp(ScriptState *st)
 {
     int x, y, m;
@@ -2047,6 +1687,7 @@ void builtin_areawarp(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_heal(ScriptState *st)
 {
     int hp, sp;
@@ -2060,6 +1701,7 @@ void builtin_heal(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_itemheal(ScriptState *st)
 {
     int hp, sp;
@@ -2073,6 +1715,7 @@ void builtin_itemheal(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_percentheal(ScriptState *st)
 {
     int hp, sp;
@@ -2086,6 +1729,7 @@ void builtin_percentheal(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_jobchange(ScriptState *st)
 {
     int job, upper = -1;
@@ -2103,6 +1747,7 @@ void builtin_jobchange(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_input(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -2169,6 +1814,7 @@ void builtin_input(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_if (ScriptState *st)
 {
     int sel, i;
@@ -2194,6 +1840,7 @@ void builtin_if (ScriptState *st)
  * 変数設定
  *------------------------------------------
  */
+static
 void builtin_set(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -2230,6 +1877,7 @@ void builtin_set(ScriptState *st)
  * 配列変数設定
  *------------------------------------------
  */
+static
 void builtin_setarray(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -2260,6 +1908,7 @@ void builtin_setarray(ScriptState *st)
  * 配列変数クリア
  *------------------------------------------
  */
+static
 void builtin_cleararray(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -2291,6 +1940,7 @@ void builtin_cleararray(ScriptState *st)
  * 配列変数コピー
  *------------------------------------------
  */
+static
 void builtin_copyarray(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -2339,6 +1989,7 @@ int getarraysize(ScriptState *st, int num, int postfix)
     return c + 1;
 }
 
+static
 void builtin_getarraysize(ScriptState *st)
 {
     int num = st->stack->stack_data[st->start + 2].u.num;
@@ -2359,6 +2010,7 @@ void builtin_getarraysize(ScriptState *st)
  * 配列変数から要素削除
  *------------------------------------------
  */
+static
 void builtin_deletearray(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -2398,6 +2050,7 @@ void builtin_deletearray(ScriptState *st)
  * 指定要素を表す値(キー)を所得する
  *------------------------------------------
  */
+static
 void builtin_getelementofarray(ScriptState *st)
 {
     if (st->stack->stack_data[st->start + 2].type == ScriptCode::NAME)
@@ -2426,6 +2079,7 @@ void builtin_getelementofarray(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_setlook(ScriptState *st)
 {
     int type, val;
@@ -2441,6 +2095,7 @@ void builtin_setlook(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_cutin(ScriptState *st)
 {
     int type;
@@ -2457,6 +2112,7 @@ void builtin_cutin(ScriptState *st)
  * カードのイラストを表示する
  *------------------------------------------
  */
+static
 void builtin_cutincard(ScriptState *st)
 {
     int itemid;
@@ -2472,6 +2128,7 @@ void builtin_cutincard(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_viewpoint(ScriptState *st)
 {
     int type, x, y, id, color;
@@ -2490,6 +2147,7 @@ void builtin_viewpoint(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_countitem(ScriptState *st)
 {
     int nameid = 0, count = 0, i;
@@ -2530,6 +2188,7 @@ void builtin_countitem(ScriptState *st)
  * 重量チェック
  *------------------------------------------
  */
+static
 void builtin_checkweight(ScriptState *st)
 {
     int nameid = 0, amount;
@@ -2572,6 +2231,7 @@ void builtin_checkweight(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_getitem(ScriptState *st)
 {
     int nameid, amount, flag = 0;
@@ -2632,6 +2292,7 @@ void builtin_getitem(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_getitem2(ScriptState *st)
 {
     int nameid, amount, flag = 0;
@@ -2719,6 +2380,7 @@ void builtin_getitem2(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_makeitem(ScriptState *st)
 {
     int nameid, amount, flag = 0;
@@ -2777,6 +2439,7 @@ void builtin_makeitem(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_delitem(ScriptState *st)
 {
     int nameid = 0, amount, i;
@@ -2841,6 +2504,7 @@ void builtin_delitem(ScriptState *st)
  *キャラ関係のパラメータ取得
  *------------------------------------------
  */
+static
 void builtin_readparam(ScriptState *st)
 {
     int type;
@@ -2866,6 +2530,7 @@ void builtin_readparam(ScriptState *st)
  *キャラ関係のID取得
  *------------------------------------------
  */
+static
 void builtin_getcharid(ScriptState *st)
 {
     int num;
@@ -2914,6 +2579,7 @@ char *builtin_getpartyname_sub(int party_id)
     return 0;
 }
 
+static
 void builtin_getpartyname(ScriptState *st)
 {
     char *name;
@@ -2932,6 +2598,7 @@ void builtin_getpartyname(ScriptState *st)
  *指定IDのPT人数とメンバーID取得
  *------------------------------------------
  */
+static
 void builtin_getpartymember(ScriptState *st)
 {
     struct party *p;
@@ -2962,6 +2629,7 @@ void builtin_getpartymember(ScriptState *st)
  * キャラクタの名前
  *------------------------------------------
  */
+static
 void builtin_strcharinfo(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3011,6 +2679,7 @@ unsigned int equip[10] =
  * GetEquipID(Pos);     Pos: 1-10
  *------------------------------------------
  */
+static
 void builtin_getequipid(ScriptState *st)
 {
     int i, num;
@@ -3043,6 +2712,7 @@ void builtin_getequipid(ScriptState *st)
  * 装備名文字列（精錬メニュー用）
  *------------------------------------------
  */
+static
 void builtin_getequipname(ScriptState *st)
 {
     int i, num;
@@ -3074,6 +2744,7 @@ void builtin_getequipname(ScriptState *st)
  * getbrokenid [Valaris]
  *------------------------------------------
  */
+static
 void builtin_getbrokenid(ScriptState *st)
 {
     int i, num, id = 0, brokencounter = 0;
@@ -3103,6 +2774,7 @@ void builtin_getbrokenid(ScriptState *st)
  * repair [Valaris]
  *------------------------------------------
  */
+static
 void builtin_repair(ScriptState *st)
 {
     int i, num;
@@ -3135,6 +2807,7 @@ void builtin_repair(ScriptState *st)
  * 装備チェック
  *------------------------------------------
  */
+static
 void builtin_getequipisequiped(ScriptState *st)
 {
     int i, num;
@@ -3158,6 +2831,7 @@ void builtin_getequipisequiped(ScriptState *st)
  * 装備品精錬可能チェック
  *------------------------------------------
  */
+static
 void builtin_getequipisenableref(ScriptState *st)
 {
     int i, num;
@@ -3186,6 +2860,7 @@ void builtin_getequipisenableref(ScriptState *st)
  * 装備品鑑定チェック
  *------------------------------------------
  */
+static
 void builtin_getequipisidentify(ScriptState *st)
 {
     int i, num;
@@ -3205,6 +2880,7 @@ void builtin_getequipisidentify(ScriptState *st)
  * 装備品精錬度
  *------------------------------------------
  */
+static
 void builtin_getequiprefinerycnt(ScriptState *st)
 {
     int i, num;
@@ -3224,6 +2900,7 @@ void builtin_getequiprefinerycnt(ScriptState *st)
  * 装備品武器LV
  *------------------------------------------
  */
+static
 void builtin_getequipweaponlv(ScriptState *st)
 {
     int i, num;
@@ -3243,6 +2920,7 @@ void builtin_getequipweaponlv(ScriptState *st)
  * 装備品精錬成功率
  *------------------------------------------
  */
+static
 void builtin_getequippercentrefinery(ScriptState *st)
 {
     int i, num;
@@ -3263,6 +2941,7 @@ void builtin_getequippercentrefinery(ScriptState *st)
  * 精錬成功
  *------------------------------------------
  */
+static
 void builtin_successrefitem(ScriptState *st)
 {
     int i, num, ep;
@@ -3290,6 +2969,7 @@ void builtin_successrefitem(ScriptState *st)
  * 精錬失敗
  *------------------------------------------
  */
+static
 void builtin_failedrefitem(ScriptState *st)
 {
     int i, num;
@@ -3315,6 +2995,7 @@ void builtin_failedrefitem(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_statusup(ScriptState *st)
 {
     int type;
@@ -3330,6 +3011,7 @@ void builtin_statusup(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_statusup2(ScriptState *st)
 {
     int type, val;
@@ -3346,6 +3028,7 @@ void builtin_statusup2(ScriptState *st)
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
+static
 void builtin_bonus(ScriptState *st)
 {
     int type, val;
@@ -3362,6 +3045,7 @@ void builtin_bonus(ScriptState *st)
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
+static
 void builtin_bonus2(ScriptState *st)
 {
     int type, type2, val;
@@ -3379,6 +3063,7 @@ void builtin_bonus2(ScriptState *st)
  * 装備品による能力値ボーナス
  *------------------------------------------
  */
+static
 void builtin_bonus3(ScriptState *st)
 {
     int type, type2, type3, val;
@@ -3397,6 +3082,7 @@ void builtin_bonus3(ScriptState *st)
  * スキル所得
  *------------------------------------------
  */
+static
 void builtin_skill(ScriptState *st)
 {
     int level, flag = 1;
@@ -3416,6 +3102,7 @@ void builtin_skill(ScriptState *st)
  * [Fate] Sets the skill level permanently
  *------------------------------------------
  */
+static
 void builtin_setskill(ScriptState *st)
 {
     int level;
@@ -3434,6 +3121,7 @@ void builtin_setskill(ScriptState *st)
  * スキルレベル所得
  *------------------------------------------
  */
+static
 void builtin_getskilllv(ScriptState *st)
 {
     SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
@@ -3444,6 +3132,7 @@ void builtin_getskilllv(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_basicskillcheck(ScriptState *st)
 {
     push_val(st->stack, ScriptCode::INT, battle_config.basic_skill_check);
@@ -3453,6 +3142,7 @@ void builtin_basicskillcheck(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_getgmlevel(ScriptState *st)
 {
     push_val(st->stack, ScriptCode::INT, pc_isGM(script_rid2sd(st)));
@@ -3462,6 +3152,7 @@ void builtin_getgmlevel(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_end(ScriptState *st)
 {
     st->state = END;
@@ -3472,6 +3163,7 @@ void builtin_end(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_getopt2(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3487,6 +3179,7 @@ void builtin_getopt2(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_setopt2(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3505,6 +3198,7 @@ void builtin_setopt2(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_checkoption(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3527,6 +3221,7 @@ void builtin_checkoption(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_setoption(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3542,6 +3237,7 @@ void builtin_setoption(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_checkcart(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3562,6 +3258,7 @@ void builtin_checkcart(ScriptState *st)
  * カートを付ける
  *------------------------------------------
  */
+static
 void builtin_setcart(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3576,6 +3273,7 @@ void builtin_setcart(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_checkfalcon(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3597,6 +3295,7 @@ void builtin_checkfalcon(ScriptState *st)
  * 鷹を付ける
  *------------------------------------------
  */
+static
 void builtin_setfalcon(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3611,6 +3310,7 @@ void builtin_setfalcon(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_checkriding(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3632,6 +3332,7 @@ void builtin_checkriding(ScriptState *st)
  * ペコペコ乗り
  *------------------------------------------
  */
+static
 void builtin_setriding(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -3645,6 +3346,7 @@ void builtin_setriding(ScriptState *st)
  *      セーブポイントの保存
  *------------------------------------------
  */
+static
 void builtin_savepoint(ScriptState *st)
 {
     int x, y;
@@ -3665,6 +3367,7 @@ void builtin_savepoint(ScriptState *st)
  *  other value.
  *------------------------------------------
  */
+static
 void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
 {
     int type;
@@ -3703,6 +3406,7 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
  * 7: Year
  *------------------------------------------
  */
+static
 void builtin_gettime(ScriptState *st)   /* Asgard Version */
 {
     int type;
@@ -3747,6 +3451,7 @@ void builtin_gettime(ScriptState *st)   /* Asgard Version */
  * GetTimeStr("TimeFMT", Length);
  *------------------------------------------
  */
+static
 void builtin_gettimestr(ScriptState *st)
 {
     char *tmpstr;
@@ -3767,6 +3472,7 @@ void builtin_gettimestr(ScriptState *st)
  * カプラ倉庫を開く
  *------------------------------------------
  */
+static
 void builtin_openstorage(ScriptState *st)
 {
 //  int sync = 0;
@@ -3785,6 +3491,7 @@ void builtin_openstorage(ScriptState *st)
  * アイテムによるスキル発動
  *------------------------------------------
  */
+static
 void builtin_itemskill(ScriptState *st)
 {
     int lv;
@@ -3807,6 +3514,7 @@ void builtin_itemskill(ScriptState *st)
  * NPCで経験値上げる
  *------------------------------------------
  */
+static
 void builtin_getexp(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -3825,6 +3533,7 @@ void builtin_getexp(ScriptState *st)
  * モンスター発生
  *------------------------------------------
  */
+static
 void builtin_monster(ScriptState *st)
 {
     int mob_class, amount, x, y;
@@ -3847,6 +3556,7 @@ void builtin_monster(ScriptState *st)
  * モンスター発生
  *------------------------------------------
  */
+static
 void builtin_areamonster(ScriptState *st)
 {
     int mob_class, amount, x0, y0, x1, y1;
@@ -3889,6 +3599,7 @@ void builtin_killmonster_sub(struct block_list *bl, const char *event, int allfl
     }
 }
 
+static
 void builtin_killmonster(ScriptState *st)
 {
     int m, allflag = 0;
@@ -3909,6 +3620,7 @@ void builtin_killmonsterall_sub(struct block_list *bl)
     mob_delete((struct mob_data *) bl);
 }
 
+static
 void builtin_killmonsterall(ScriptState *st)
 {
     int m;
@@ -3924,6 +3636,7 @@ void builtin_killmonsterall(ScriptState *st)
  * イベント実行
  *------------------------------------------
  */
+static
 void builtin_doevent(ScriptState *st)
 {
     const char *event = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -3934,6 +3647,7 @@ void builtin_doevent(ScriptState *st)
  * NPC主体イベント実行
  *------------------------------------------
  */
+static
 void builtin_donpcevent(ScriptState *st)
 {
     const char *event = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -3944,6 +3658,7 @@ void builtin_donpcevent(ScriptState *st)
  * イベントタイマー追加
  *------------------------------------------
  */
+static
 void builtin_addtimer(ScriptState *st)
 {
     int tick;
@@ -3956,6 +3671,7 @@ void builtin_addtimer(ScriptState *st)
  * イベントタイマー削除
  *------------------------------------------
  */
+static
 void builtin_deltimer(ScriptState *st)
 {
     const char *event = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -3966,6 +3682,7 @@ void builtin_deltimer(ScriptState *st)
  * イベントタイマーのカウント値追加
  *------------------------------------------
  */
+static
 void builtin_addtimercount(ScriptState *st)
 {
     int tick;
@@ -3978,6 +3695,7 @@ void builtin_addtimercount(ScriptState *st)
  * NPCタイマー初期化
  *------------------------------------------
  */
+static
 void builtin_initnpctimer(ScriptState *st)
 {
     struct npc_data *nd;
@@ -3994,6 +3712,7 @@ void builtin_initnpctimer(ScriptState *st)
  * NPCタイマー開始
  *------------------------------------------
  */
+static
 void builtin_startnpctimer(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4009,6 +3728,7 @@ void builtin_startnpctimer(ScriptState *st)
  * NPCタイマー停止
  *------------------------------------------
  */
+static
 void builtin_stopnpctimer(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4024,6 +3744,7 @@ void builtin_stopnpctimer(ScriptState *st)
  * NPCタイマー情報所得
  *------------------------------------------
  */
+static
 void builtin_getnpctimer(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4053,6 +3774,7 @@ void builtin_getnpctimer(ScriptState *st)
  * NPCタイマー値設定
  *------------------------------------------
  */
+static
 void builtin_setnpctimer(ScriptState *st)
 {
     int tick;
@@ -4070,6 +3792,7 @@ void builtin_setnpctimer(ScriptState *st)
  * 天の声アナウンス
  *------------------------------------------
  */
+static
 void builtin_announce(ScriptState *st)
 {
     int flag;
@@ -4096,6 +3819,7 @@ void builtin_mapannounce_sub(struct block_list *bl, const char *str, int len, in
     clif_GMmessage(bl, str, len, flag | 3);
 }
 
+static
 void builtin_mapannounce(ScriptState *st)
 {
     int flag, m;
@@ -4114,6 +3838,7 @@ void builtin_mapannounce(ScriptState *st)
  * 天の声アナウンス（特定エリア）
  *------------------------------------------
  */
+static
 void builtin_areaannounce(ScriptState *st)
 {
     int flag, m;
@@ -4138,6 +3863,7 @@ void builtin_areaannounce(ScriptState *st)
  * ユーザー数所得
  *------------------------------------------
  */
+static
 void builtin_getusers(ScriptState *st)
 {
     int flag = conv_num(st, &(st->stack->stack_data[st->start + 2]));
@@ -4159,6 +3885,7 @@ void builtin_getusers(ScriptState *st)
  * マップ指定ユーザー数所得
  *------------------------------------------
  */
+static
 void builtin_getmapusers(ScriptState *st)
 {
     int m;
@@ -4188,6 +3915,7 @@ void builtin_getareausers_living_sub(struct block_list *bl, int *users)
         (*users)++;
 }
 
+static
 void builtin_getareausers(ScriptState *st)
 {
     int m, x0, y0, x1, y1, users = 0;
@@ -4238,6 +3966,7 @@ void builtin_getareadropitem_sub_anddelete(struct block_list *bl, int item, int 
     }
 }
 
+static
 void builtin_getareadropitem(ScriptState *st)
 {
     int m, x0, y0, x1, y1, item, amount = 0, delitems = 0;
@@ -4284,6 +4013,7 @@ void builtin_getareadropitem(ScriptState *st)
  * NPCの有効化
  *------------------------------------------
  */
+static
 void builtin_enablenpc(ScriptState *st)
 {
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -4294,12 +4024,14 @@ void builtin_enablenpc(ScriptState *st)
  * NPCの無効化
  *------------------------------------------
  */
+static
 void builtin_disablenpc(ScriptState *st)
 {
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
     npc_enable(str, 0);
 }
 
+static
 void builtin_enablearena(ScriptState *st)   // Added by RoVeRT
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
@@ -4317,6 +4049,7 @@ void builtin_enablearena(ScriptState *st)   // Added by RoVeRT
 
 }
 
+static
 void builtin_disablearena(ScriptState *st)  // Added by RoVeRT
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
@@ -4328,6 +4061,7 @@ void builtin_disablearena(ScriptState *st)  // Added by RoVeRT
  * 隠れているNPCの表示
  *------------------------------------------
  */
+static
 void builtin_hideoffnpc(ScriptState *st)
 {
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -4338,6 +4072,7 @@ void builtin_hideoffnpc(ScriptState *st)
  * NPCをハイディング
  *------------------------------------------
  */
+static
 void builtin_hideonnpc(ScriptState *st)
 {
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -4348,6 +4083,7 @@ void builtin_hideonnpc(ScriptState *st)
  * 状態異常にかかる
  *------------------------------------------
  */
+static
 void builtin_sc_start(ScriptState *st)
 {
     struct block_list *bl;
@@ -4369,6 +4105,7 @@ void builtin_sc_start(ScriptState *st)
  * 状態異常にかかる(確率指定)
  *------------------------------------------
  */
+static
 void builtin_sc_start2(ScriptState *st)
 {
     struct block_list *bl;
@@ -4392,6 +4129,7 @@ void builtin_sc_start2(ScriptState *st)
  * 状態異常が直る
  *------------------------------------------
  */
+static
 void builtin_sc_end(ScriptState *st)
 {
     struct block_list *bl;
@@ -4405,6 +4143,7 @@ void builtin_sc_end(ScriptState *st)
 //      printf("sc_end : %d %d\n",st->rid,type);
 }
 
+static
 void builtin_sc_check(ScriptState *st)
 {
     struct block_list *bl;
@@ -4422,6 +4161,7 @@ void builtin_sc_check(ScriptState *st)
  * 状態異常耐性を計算した確率を返す
  *------------------------------------------
  */
+static
 void builtin_getscrate(ScriptState *st)
 {
     struct block_list *bl;
@@ -4461,6 +4201,7 @@ void builtin_getscrate(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_debugmes(ScriptState *st)
 {
     conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -4472,6 +4213,7 @@ void builtin_debugmes(ScriptState *st)
  * Added - AppleGirl For Advanced Classes, (Updated for Cleaner Script Purposes)
  *------------------------------------------
  */
+static
 void builtin_resetlvl(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -4486,6 +4228,7 @@ void builtin_resetlvl(ScriptState *st)
  * ステータスリセット
  *------------------------------------------
  */
+static
 void builtin_resetstatus(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -4497,6 +4240,7 @@ void builtin_resetstatus(ScriptState *st)
  * スキルリセット
  *------------------------------------------
  */
+static
 void builtin_resetskill(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -4508,6 +4252,7 @@ void builtin_resetskill(ScriptState *st)
  *
  *------------------------------------------
  */
+static
 void builtin_changebase(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -4537,6 +4282,7 @@ void builtin_changebase(ScriptState *st)
  * 性別変換
  *------------------------------------------
  */
+static
 void builtin_changesex(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -4564,6 +4310,7 @@ void builtin_changesex(ScriptState *st)
  * npcチャット作成
  *------------------------------------------
  */
+static
 void builtin_waitingroom(ScriptState *st)
 {
     const char *name, *ev = "";
@@ -4604,6 +4351,7 @@ void builtin_waitingroom(ScriptState *st)
  * npcチャット削除
  *------------------------------------------
  */
+static
 void builtin_delwaitingroom(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4618,6 +4366,7 @@ void builtin_delwaitingroom(ScriptState *st)
  * npcチャットイベント有効化
  *------------------------------------------
  */
+static
 void builtin_enablewaitingroomevent(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4638,6 +4387,7 @@ void builtin_enablewaitingroomevent(ScriptState *st)
  * npcチャットイベント無効化
  *------------------------------------------
  */
+static
 void builtin_disablewaitingroomevent(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4658,6 +4408,7 @@ void builtin_disablewaitingroomevent(ScriptState *st)
  * npcチャット状態所得
  *------------------------------------------
  */
+static
 void builtin_getwaitingroomstate(ScriptState *st)
 {
     struct npc_data *nd;
@@ -4714,6 +4465,7 @@ void builtin_getwaitingroomstate(ScriptState *st)
  * チャットメンバー(規定人数)ワープ
  *------------------------------------------
  */
+static
 void builtin_warpwaitingpc(ScriptState *st)
 {
     int x, y, i, n;
@@ -4758,6 +4510,7 @@ void builtin_warpwaitingpc(ScriptState *st)
  * RIDのアタッチ
  *------------------------------------------
  */
+static
 void builtin_attachrid(ScriptState *st)
 {
     st->rid = conv_num(st, &(st->stack->stack_data[st->start + 2]));
@@ -4768,6 +4521,7 @@ void builtin_attachrid(ScriptState *st)
  * RIDのデタッチ
  *------------------------------------------
  */
+static
 void builtin_detachrid(ScriptState *st)
 {
     st->rid = 0;
@@ -4777,6 +4531,7 @@ void builtin_detachrid(ScriptState *st)
  * 存在チェック
  *------------------------------------------
  */
+static
 void builtin_isloggedin(ScriptState *st)
 {
     push_val(st->stack, ScriptCode::INT,
@@ -4813,6 +4568,7 @@ enum
     MF_RAIN = 20,
 };
 
+static
 void builtin_setmapflagnosave(ScriptState *st)
 {
     int m, x, y;
@@ -4832,6 +4588,7 @@ void builtin_setmapflagnosave(ScriptState *st)
 
 }
 
+static
 void builtin_setmapflag(ScriptState *st)
 {
     int m, i;
@@ -4896,6 +4653,7 @@ void builtin_setmapflag(ScriptState *st)
 
 }
 
+static
 void builtin_removemapflag(ScriptState *st)
 {
     int m, i;
@@ -4961,6 +4719,7 @@ void builtin_removemapflag(ScriptState *st)
 
 }
 
+static
 void builtin_getmapflag(ScriptState *st)
 {
     int m, i, r = -1;
@@ -5026,6 +4785,7 @@ void builtin_getmapflag(ScriptState *st)
     push_val(st->stack, ScriptCode::INT, r);
 }
 
+static
 void builtin_pvpon(ScriptState *st)
 {
     int m, i;
@@ -5061,6 +4821,7 @@ void builtin_pvpon(ScriptState *st)
 
 }
 
+static
 void builtin_pvpoff(ScriptState *st)
 {
     int m, i;
@@ -5102,6 +4863,7 @@ void builtin_pvpoff(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_emotion(ScriptState *st)
 {
     int type;
@@ -5115,6 +4877,7 @@ void builtin_emotion(ScriptState *st)
  * カードの数を得る
  * ---------------------------------------------------------------------
  */
+static
 void builtin_getequipcardcnt(ScriptState *st)
 {
     int i, num;
@@ -5147,6 +4910,7 @@ void builtin_getequipcardcnt(ScriptState *st)
  * カード取り外し成功
  * ----------------------------------------------------------------
  */
+static
 void builtin_successremovecards(ScriptState *st)
 {
     int i, num, cardflag = 0, flag;
@@ -5211,6 +4975,7 @@ void builtin_successremovecards(ScriptState *st)
  * type=0: 両方損失、1:カード損失、2:武具損失、3:損失無し
  * ----------------------------------------------------------------
  */
+static
 void builtin_failedremovecards(ScriptState *st)
 {
     int i, num, cardflag = 0, flag, typefail;
@@ -5285,6 +5050,7 @@ void builtin_failedremovecards(ScriptState *st)
     }
 }
 
+static
 void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 {
     int x, y, m;
@@ -5306,6 +5072,7 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
             m, x0, y0, x1, y1, BL_PC);
 }
 
+static
 void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
 {
     const char *npc = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -5314,6 +5081,7 @@ void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
     npc_command(map_id2sd(st->rid), npc, command);
 }
 
+static
 void builtin_inittimer(ScriptState *st) // Added by RoVeRT
 {
 //  struct npc_data *nd=(struct npc_data*)map_id2bl(st->oid);
@@ -5323,6 +5091,7 @@ void builtin_inittimer(ScriptState *st) // Added by RoVeRT
 
 }
 
+static
 void builtin_stoptimer(ScriptState *st) // Added by RoVeRT
 {
 //  struct npc_data *nd=(struct npc_data*)map_id2bl(st->oid);
@@ -5339,6 +5108,7 @@ void builtin_mobcount_sub(struct block_list *bl, const char *event, int *c)
         (*c)++;
 }
 
+static
 void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 {
     int m, c = 0;
@@ -5357,6 +5127,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 
 }
 
+static
 void builtin_marriage(ScriptState *st)
 {
     const char *partner = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -5371,6 +5142,7 @@ void builtin_marriage(ScriptState *st)
     push_val(st->stack, ScriptCode::INT, 1);
 }
 
+static
 void builtin_wedding_effect(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5380,6 +5152,7 @@ void builtin_wedding_effect(ScriptState *st)
     clif_wedding_effect(&sd->bl);
 }
 
+static
 void builtin_divorce(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5401,6 +5174,7 @@ void builtin_divorce(ScriptState *st)
  * Script for Displaying MOB Information [Valaris]
  *------------------------------------------------
  */
+static
 void builtin_strmobinfo(ScriptState *st)
 {
 
@@ -5440,6 +5214,7 @@ void builtin_strmobinfo(ScriptState *st)
  * IDからItem名
  *------------------------------------------
  */
+static
 void builtin_getitemname(ScriptState *st)
 {
     struct item_data *i_data;
@@ -5469,6 +5244,7 @@ void builtin_getitemname(ScriptState *st)
 
 }
 
+static
 void builtin_getspellinvocation(ScriptState *st)
 {
     const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -5480,6 +5256,7 @@ void builtin_getspellinvocation(ScriptState *st)
     push_str(st->stack, ScriptCode::STR, strdup(invocation));
 }
 
+static
 void builtin_getanchorinvocation(ScriptState *st)
 {
     const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -5491,7 +5268,8 @@ void builtin_getanchorinvocation(ScriptState *st)
     push_str(st->stack, ScriptCode::STR, strdup(invocation));
 }
 
-void builtin_getpartnerid(ScriptState *st)
+static
+void builtin_getpartnerid2(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
 
@@ -5502,6 +5280,7 @@ void builtin_getpartnerid(ScriptState *st)
  * PCの所持品情報読み取り
  *------------------------------------------
  */
+static
 void builtin_getinventorylist(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5539,6 +5318,7 @@ void builtin_getinventorylist(ScriptState *st)
     pc_setreg(sd, add_str("@inventorylist_count"), j);
 }
 
+static
 void builtin_getskilllist(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5563,7 +5343,8 @@ void builtin_getskilllist(ScriptState *st)
     pc_setreg(sd, add_str("@skilllist_count"), j);
 }
 
-void builtin_get_activated_pool_skills(ScriptState *st)
+static
+void builtin_getactivatedpoolskilllist(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     SkillID pool_skills[MAX_SKILL_POOL];
@@ -5594,7 +5375,8 @@ void builtin_get_activated_pool_skills(ScriptState *st)
 
 }
 
-void builtin_get_unactivated_pool_skills(ScriptState *st)
+static
+void builtin_getunactivatedpoolskilllist(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     int i, count = 0;
@@ -5623,7 +5405,8 @@ void builtin_get_unactivated_pool_skills(ScriptState *st)
 
 }
 
-void builtin_get_pool_skills(ScriptState *st)
+static
+void builtin_getpoolskilllist(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     int i, count = 0;
@@ -5652,7 +5435,8 @@ void builtin_get_pool_skills(ScriptState *st)
 
 }
 
-void builtin_activate_pool_skill(ScriptState *st)
+static
+void builtin_poolskill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
@@ -5662,7 +5446,8 @@ void builtin_activate_pool_skill(ScriptState *st)
 
 }
 
-void builtin_deactivate_pool_skill(ScriptState *st)
+static
+void builtin_unpoolskill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
@@ -5672,7 +5457,8 @@ void builtin_deactivate_pool_skill(ScriptState *st)
 
 }
 
-void builtin_check_pool_skill(ScriptState *st)
+static
+void builtin_checkpoolskill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
@@ -5681,6 +5467,7 @@ void builtin_check_pool_skill(ScriptState *st)
 
 }
 
+static
 void builtin_clearitem(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5700,6 +5487,7 @@ void builtin_clearitem(ScriptState *st)
  * typeは通常0なのかな？
  *------------------------------------------
  */
+static
 void builtin_classchange(ScriptState *st)
 {
     int npc_class, type;
@@ -5724,6 +5512,7 @@ void builtin_classchange(ScriptState *st)
  *  the current NPC or invoking PC.
  *------------------------------------------
  */
+static
 void builtin_misceffect(ScriptState *st)
 {
     int type;
@@ -5771,6 +5560,7 @@ void builtin_misceffect(ScriptState *st)
  * サウンドエフェクト
  *------------------------------------------
  */
+static
 void builtin_soundeffect(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5793,6 +5583,7 @@ void builtin_soundeffect(ScriptState *st)
  * NPC skill effects [Valaris]
  *------------------------------------------
  */
+static
 void builtin_npcskilleffect(ScriptState *st)
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
@@ -5810,6 +5601,7 @@ void builtin_npcskilleffect(ScriptState *st)
  * Special effects [Valaris]
  *------------------------------------------
  */
+static
 void builtin_specialeffect(ScriptState *st)
 {
     struct block_list *bl = map_id2bl(st->oid);
@@ -5824,6 +5616,7 @@ void builtin_specialeffect(ScriptState *st)
 
 }
 
+static
 void builtin_specialeffect2(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5843,6 +5636,7 @@ void builtin_specialeffect2(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_nude(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5863,7 +5657,8 @@ void builtin_nude(ScriptState *st)
  *------------------------------------------
  */
 
-void builtin_unequip_by_id(ScriptState *st)
+static
+void builtin_unequipbyid(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
     if (sd == NULL)
@@ -5885,6 +5680,7 @@ void builtin_unequip_by_id(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_gmcommand(ScriptState *st)
 {
     struct map_session_data *sd;
@@ -5901,6 +5697,7 @@ void builtin_gmcommand(ScriptState *st)
  * Move NPC to a new position on the same map.
  *------------------------------------------
  */
+static
 void builtin_npcwarp(ScriptState *st)
 {
     int x, y;
@@ -5936,6 +5733,7 @@ void builtin_npcwarp(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_message(ScriptState *st)
 {
     struct map_session_data *pl_sd = NULL;
@@ -5955,6 +5753,7 @@ void builtin_message(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_npctalk(ScriptState *st)
 {
     char message[255];
@@ -5979,6 +5778,7 @@ void builtin_npctalk(ScriptState *st)
  *------------------------------------------
  */
 
+static
 void builtin_hasitems(ScriptState *st)
 {
     int i;
@@ -6003,6 +5803,7 @@ void builtin_hasitems(ScriptState *st)
   * getlook char info. getlook(arg)
   *------------------------------------------
   */
+static
 void builtin_getlook(ScriptState *st)
 {
     int type, val;
@@ -6048,6 +5849,7 @@ void builtin_getlook(ScriptState *st)
   *     get char save point. argument: 0- map name, 1- x, 2- y
   *------------------------------------------
 */
+static
 void builtin_getsavepoint(ScriptState *st)
 {
     int x, y, type;
@@ -6086,6 +5888,7 @@ void builtin_areatimer_sub(struct block_list *bl, int tick, const char *event)
     pc_addeventtimer((struct map_session_data *) bl, tick, event);
 }
 
+static
 void builtin_areatimer(ScriptState *st)
 {
     int tick, m;
@@ -6110,6 +5913,7 @@ void builtin_areatimer(ScriptState *st)
  * Check whether the PC is in the specified rectangle
  *------------------------------------------
  */
+static
 void builtin_isin(ScriptState *st)
 {
     int x1, y1, x2, y2;
@@ -6132,6 +5936,7 @@ void builtin_isin(ScriptState *st)
 }
 
 // Trigger the shop on a (hopefully) nearby shop NPC
+static
 void builtin_shop(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -6152,6 +5957,7 @@ void builtin_shop(ScriptState *st)
  * Check whether the PC is dead
  *------------------------------------------
  */
+static
 void builtin_isdead(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -6163,6 +5969,7 @@ void builtin_isdead(ScriptState *st)
  * Changes a NPC name, and sprite
  *----------------------------------------
  */
+static
 void builtin_fakenpcname(ScriptState *st)
 {
     int newsprite;
@@ -6189,6 +5996,7 @@ void builtin_fakenpcname(ScriptState *st)
  *----------------------------
  */
 
+static
 void builtin_getx(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -6200,6 +6008,7 @@ void builtin_getx(ScriptState *st)
  * Gets the PC's y pos
  *----------------------------
  */
+static
 void builtin_gety(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -6210,6 +6019,7 @@ void builtin_gety(ScriptState *st)
 /*
  * Get the PC's current map's name
  */
+static
 void builtin_getmap(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -7046,3 +6856,197 @@ void do_init_script(void)
 
     scriptlabel_db = strdb_init(50);
 }
+
+#define BUILTIN(func, args) \
+{builtin_##func, #func, args}
+
+BuiltinFunction builtin_functions[] =
+{
+    BUILTIN(mes, "s"),
+    BUILTIN(next, ""),
+    BUILTIN(close, ""),
+    BUILTIN(close2, ""),
+    BUILTIN(menu, "sL*"),
+    BUILTIN(goto, "L"),
+    BUILTIN(callsub, "L*"),
+    BUILTIN(callfunc, "F*"),
+    BUILTIN(return, "*"),
+    BUILTIN(getarg, "i"),
+    BUILTIN(jobchange, "i*"),
+    BUILTIN(input, "N"),
+    BUILTIN(warp, "Mxy"),
+    BUILTIN(isat, "Mxy"),
+    BUILTIN(areawarp, "MxyxyMxy"),
+    BUILTIN(setlook, "ii"),
+    BUILTIN(set, "Ne"),
+    BUILTIN(setarray, "Ne*"),
+    BUILTIN(cleararray, "Nei"),
+    BUILTIN(copyarray, "NNi"),
+    BUILTIN(getarraysize, "N"),
+    BUILTIN(deletearray, "N*"),
+    BUILTIN(getelementofarray, "Ni"),
+    BUILTIN(if, "iF*"),
+    BUILTIN(getitem, "Ii**"),
+    BUILTIN(getitem2, "iiiiiiiii*"),
+    BUILTIN(makeitem, "IiMxy"),
+    BUILTIN(delitem, "Ii"),
+    BUILTIN(cutin, "si"),
+    BUILTIN(cutincard, "i"),
+    BUILTIN(viewpoint, "iiiii"),
+    BUILTIN(heal, "ii"),
+    BUILTIN(itemheal, "ii"),
+    BUILTIN(percentheal, "ii"),
+    BUILTIN(rand, "i*"),
+    BUILTIN(pow, "ii"),
+    BUILTIN(countitem, "I"),
+    BUILTIN(checkweight, "Ii"),
+    BUILTIN(readparam, "i*"),
+    BUILTIN(getcharid, "i*"),
+    BUILTIN(getpartyname, "i"),
+    BUILTIN(getpartymember, "i"),
+    BUILTIN(strcharinfo, "i"),
+    BUILTIN(getequipid, "i"),
+    BUILTIN(getequipname, "i"),
+    BUILTIN(getbrokenid, "i"),
+    BUILTIN(repair, "i"),
+    BUILTIN(getequipisequiped, "i"),
+    BUILTIN(getequipisenableref, "i"),
+    BUILTIN(getequipisidentify, "i"),
+    BUILTIN(getequiprefinerycnt, "i"),
+    BUILTIN(getequipweaponlv, "i"),
+    BUILTIN(getequippercentrefinery, "i"),
+    BUILTIN(successrefitem, "i"),
+    BUILTIN(failedrefitem, "i"),
+    BUILTIN(statusup, "i"),
+    BUILTIN(statusup2, "ii"),
+    BUILTIN(bonus, "ii"),
+    BUILTIN(bonus2, "iii"),
+    BUILTIN(bonus3, "iiii"),
+    BUILTIN(skill, "ii*"),
+    BUILTIN(setskill, "ii"),
+    BUILTIN(getskilllv, "i"),
+    BUILTIN(basicskillcheck, "*"),
+    BUILTIN(getgmlevel, ""),
+    BUILTIN(end, ""),
+    BUILTIN(getopt2, ""),
+    BUILTIN(setopt2, "i"),
+    BUILTIN(checkoption, "i"),
+    BUILTIN(setoption, "i"),
+    BUILTIN(setcart, ""),
+    BUILTIN(checkcart, "*"),
+    BUILTIN(setfalcon, ""),
+    BUILTIN(checkfalcon, "*"),
+    BUILTIN(setriding, ""),
+    BUILTIN(checkriding, "*"),
+    BUILTIN(savepoint, "Mxy"),
+    BUILTIN(gettimetick, "i"),
+    BUILTIN(gettime, "i"),
+    BUILTIN(gettimestr, "si"),
+    BUILTIN(openstorage, "*"),
+    BUILTIN(itemskill, "iis"),
+    BUILTIN(monster, "Mxysmi*"),
+    BUILTIN(areamonster, "Mxyxysmi*"),
+    BUILTIN(killmonster, "ME"),
+    BUILTIN(killmonsterall, "M"),
+    BUILTIN(doevent, "E"),
+    BUILTIN(donpcevent, "E"),
+    BUILTIN(addtimer, "tE"),
+    BUILTIN(deltimer, "E"),
+    BUILTIN(addtimercount, "si"),
+    BUILTIN(initnpctimer, ""),
+    BUILTIN(stopnpctimer, ""),
+    BUILTIN(startnpctimer, "*"),
+    BUILTIN(setnpctimer, "i"),
+    BUILTIN(getnpctimer, "i"),
+    BUILTIN(announce, "si"),
+    BUILTIN(mapannounce, "Msi"),
+    BUILTIN(areaannounce, "Mxyxysi"),
+    BUILTIN(getusers, "i"),
+    BUILTIN(getmapusers, "M"),
+    BUILTIN(getareausers, "Mxyxy*"),
+    BUILTIN(getareadropitem, "Mxyxyi*"),
+    BUILTIN(enablenpc, "s"),
+    BUILTIN(disablenpc, "s"),
+    BUILTIN(enablearena, ""),
+    BUILTIN(disablearena, ""),
+    BUILTIN(hideoffnpc, "s"),
+    BUILTIN(hideonnpc, "s"),
+    BUILTIN(sc_start, "iTi*"),
+    BUILTIN(sc_start2, "iTii*"),
+    BUILTIN(sc_end, "i"),
+    BUILTIN(sc_check, "i"),
+    BUILTIN(getscrate, "ii*"),
+    BUILTIN(debugmes, "s"),
+    BUILTIN(resetlvl, "i"),
+    BUILTIN(resetstatus, ""),
+    BUILTIN(resetskill, ""),
+    BUILTIN(changebase, "i"),
+    BUILTIN(changesex, ""),
+    BUILTIN(waitingroom, "si*"),
+    BUILTIN(warpwaitingpc, "sii"),
+    BUILTIN(delwaitingroom, "*"),
+    BUILTIN(enablewaitingroomevent, "*"),
+    BUILTIN(disablewaitingroomevent, "*"),
+    BUILTIN(getwaitingroomstate, "i*"),
+    BUILTIN(warpwaitingpc, "sii*"),
+    BUILTIN(attachrid, "i"),
+    BUILTIN(detachrid, ""),
+    BUILTIN(isloggedin, "i"),
+    BUILTIN(setmapflagnosave, "MMxy"),
+    BUILTIN(setmapflag, "Mi"),
+    BUILTIN(removemapflag, "Mi"),
+    BUILTIN(getmapflag, "Mi"),
+    BUILTIN(pvpon, "M"),
+    BUILTIN(pvpoff, "M"),
+    BUILTIN(emotion, "i"),
+    BUILTIN(getequipcardcnt, "i"),
+    BUILTIN(successremovecards, "i"),
+    BUILTIN(failedremovecards, "ii"),
+    BUILTIN(marriage, "P"),
+    BUILTIN(divorce, ""),
+    BUILTIN(getitemname, "I"),
+    BUILTIN(getspellinvocation, "s"),
+    BUILTIN(getanchorinvocation, "s"),
+    BUILTIN(getpartnerid2, ""),
+    BUILTIN(getexp, "ii"),
+    BUILTIN(getinventorylist, ""),
+    BUILTIN(getskilllist, ""),
+    BUILTIN(getpoolskilllist, ""),
+    BUILTIN(getactivatedpoolskilllist, ""),
+    BUILTIN(getunactivatedpoolskilllist, ""),
+    BUILTIN(poolskill, "i"),
+    BUILTIN(unpoolskill, "i"),
+    BUILTIN(checkpoolskill, "i"),
+    BUILTIN(clearitem, ""),
+    BUILTIN(classchange, "ii"),
+    BUILTIN(misceffect, "i*"),
+    BUILTIN(soundeffect, "si"),
+    BUILTIN(strmobinfo, "im"),
+    BUILTIN(npcskilleffect, "iiii"),
+    BUILTIN(specialeffect, "i"),
+    BUILTIN(specialeffect2, "i"),
+    BUILTIN(nude, ""),
+    BUILTIN(mapwarp, "MMxy"),
+    BUILTIN(inittimer, ""),
+    BUILTIN(stoptimer, ""),
+    BUILTIN(cmdothernpc, "ss"),
+    BUILTIN(gmcommand, "s"),
+    BUILTIN(npcwarp, "xys"),
+    BUILTIN(message, "Ps"),
+    BUILTIN(npctalk, "s"),
+    BUILTIN(hasitems, ""),
+    BUILTIN(mobcount, "ME"),
+    BUILTIN(getlook, "i"),
+    BUILTIN(getsavepoint, "i"),
+    BUILTIN(areatimer, "MxyxytE"),
+    BUILTIN(isin, "Mxyxy"),
+    BUILTIN(shop, "s"),
+    BUILTIN(isdead, ""),
+    BUILTIN(fakenpcname, "ssi"),
+    BUILTIN(unequipbyid, "i"),
+    BUILTIN(getx, ""),
+    BUILTIN(gety, ""),
+    BUILTIN(getmap, ""),
+    {NULL, NULL, NULL},
+};
+
