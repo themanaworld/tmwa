@@ -93,7 +93,7 @@ void mob_init(struct mob_data *md);
 static
 int mob_spawn_dataset(struct mob_data *md, const char *mobname, int mob_class)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (strcmp(mobname, "--en--") == 0)
         memcpy(md->name, mob_db[mob_class].name, 24);
@@ -611,7 +611,7 @@ int mob_get_equip(int mob_class)   // mob equip [Valaris]
 static
 int mob_can_move(struct mob_data *md)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (md->canmove_tick > gettick()
         || (bool(md->opt1) && md->opt1 != Opt1::_stone6)
@@ -635,7 +635,7 @@ int mob_can_move(struct mob_data *md)
 static
 int calc_next_walk_step(struct mob_data *md)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (md->walkpath.path_pos >= md->walkpath.path_len)
         return -1;
@@ -660,7 +660,7 @@ int mob_walk(struct mob_data *md, unsigned int tick, int data)
     static int diry[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
     int x, y, dx, dy;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     md->state.state = MS_IDLE;
     if (md->walkpath.path_pos >= md->walkpath.path_len
@@ -761,7 +761,7 @@ int mob_check_attack(struct mob_data *md)
 
     int mode, race, range;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     md->min_chase = 13;
     md->state.state = MS_IDLE;
@@ -864,7 +864,7 @@ int mob_attack(struct mob_data *md, unsigned int tick, int)
 {
     struct block_list *tbl = NULL;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if ((tbl = map_id2bl(md->target_id)) == NULL)
         return 0;
@@ -925,7 +925,7 @@ int mob_changestate(struct mob_data *md, int state, int type)
     unsigned int tick;
     int i;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (md->timer != -1)
         delete_timer(md->timer, mob_timer);
@@ -1054,7 +1054,7 @@ int mob_walktoxy_sub(struct mob_data *md)
 {
     struct walkpath_data wpd;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (path_search(&wpd, md->bl.m, md->bl.x, md->bl.y, md->to_x, md->to_y,
          md->state.walk_easy))
@@ -1072,11 +1072,12 @@ int mob_walktoxy_sub(struct mob_data *md)
  * mob move start
  *------------------------------------------
  */
+static
 int mob_walktoxy(struct mob_data *md, int x, int y, int easy)
 {
     struct walkpath_data wpd;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (md->state.state == MS_WALK
         && path_search(&wpd, md->bl.m, md->bl.x, md->bl.y, x, y, easy))
@@ -1324,7 +1325,7 @@ int mob_stopattack(struct mob_data *md)
  */
 int mob_stop_walking(struct mob_data *md, int type)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (md->state.state == MS_WALK || md->state.state == MS_IDLE)
     {
@@ -1377,8 +1378,8 @@ int mob_can_reach(struct mob_data *md, struct block_list *bl, int range)
     struct walkpath_data wpd;
     int i;
 
-    nullpo_retr(0, md);
-    nullpo_retr(0, bl);
+    nullpo_ret(md);
+    nullpo_ret(bl);
 
     dx = abs(bl->x - md->bl.x);
     dy = abs(bl->y - md->bl.y);
@@ -1434,8 +1435,8 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
     eptr<struct status_change, StatusChange> sc_data;
     int mode, race;
 
-    nullpo_retr(0, md);
-    nullpo_retr(0, bl);
+    nullpo_ret(md);
+    nullpo_ret(bl);
 
     sc_data = battle_get_sc_data(bl);
     Option *option = battle_get_option(bl);
@@ -1468,7 +1469,7 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
     {
         if (bl->type == BL_PC)
         {
-            nullpo_retr(0, sd = (struct map_session_data *) bl);
+            nullpo_ret(sd = (struct map_session_data *) bl);
             if (sd->invincible_timer != -1 || pc_isinvisible(sd))
                 return 0;
             if (!(mode & 0x20) && race != 4 && race != 6
@@ -1654,7 +1655,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
     struct block_list *bl;
     int mode, race, old_dist;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if ((bl = map_id2bl(md->master_id)) != NULL)
         mmd = (struct mob_data *) bl;
@@ -1797,7 +1798,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
 static
 int mob_unlocktarget(struct mob_data *md, int tick)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     md->target_id = 0;
     md->state.targettype = NONE_ATTACKABLE;
@@ -1816,7 +1817,7 @@ int mob_randomwalk(struct mob_data *md, int tick)
     const int retrycount = 20;
     int speed;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     speed = battle_get_speed(&md->bl);
     if (DIFF_TICK(md->next_walktime, tick) < 0)
@@ -2464,7 +2465,7 @@ void mob_deleteslave_sub(struct block_list *bl, int id)
  */
 int mob_deleteslave(struct mob_data *md)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_deleteslave_sub, ph::_1, md->bl.id),
             md->bl.m, 0, 0,
@@ -2501,7 +2502,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     int ret;
     int skill, sp;
 
-    nullpo_retr(0, md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
+    nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
 
     if (src && src->id == md->master_id
         && md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER)
@@ -2602,7 +2603,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                             damage);
             }
 
-            nullpo_retr(0, md2);
+            nullpo_ret(md2);
             int i;
             for (i = 0, minpos = 0, mindmg = 0x7fffffff; i < DAMAGELOG_SIZE;
                  i++)
@@ -2997,8 +2998,8 @@ int mob_class_change(struct mob_data *md, int *value)
     unsigned int tick = gettick();
     int i, c, hp_rate, max_hp, mob_class, count = 0;
 
-    nullpo_retr(0, md);
-    nullpo_retr(0, value);
+    nullpo_ret(md);
+    nullpo_ret(value);
 
     if (value[0] <= 1000 || value[0] > 2000)
         return 0;
@@ -3075,7 +3076,7 @@ int mob_heal(struct mob_data *md, int heal)
 {
     int max_hp = battle_get_max_hp(&md->bl);
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     md->hp += heal;
     if (max_hp < md->hp)
@@ -3121,7 +3122,7 @@ int mob_warp(struct mob_data *md, int m, int x, int y, int type)
 {
     int i = 0, c, xs = 0, ys = 0, bx = x, by = y;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (md->bl.prev == NULL)
         return 0;
@@ -3219,7 +3220,7 @@ int mob_countslave(struct mob_data *md)
 {
     int c = 0;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_countslave_sub, ph::_1, md->bl.id, &c),
             md->bl.m, 0, 0,
@@ -3236,8 +3237,8 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
     struct mob_data *md;
     int bx, by, m, count = 0, mob_class, k, a = amount;
 
-    nullpo_retr(0, md2);
-    nullpo_retr(0, value);
+    nullpo_ret(md2);
+    nullpo_ret(value);
 
     bx = md2->bl.x;
     by = md2->bl.y;
@@ -3346,7 +3347,7 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
 {
     int c = 0;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_counttargeted_sub, ph::_1, md->bl.id, &c, src, target_lv),
             md->bl.m, md->bl.x - AREA_SIZE, md->bl.y - AREA_SIZE,
@@ -3628,8 +3629,8 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     SkillID skill_id;
     int skill_lv, forcecast = 0;
 
-    nullpo_retr(0, md);
-    nullpo_retr(0, ms = &mob_db[md->mob_class].skill[skill_idx]);
+    nullpo_ret(md);
+    nullpo_ret(ms = &mob_db[md->mob_class].skill[skill_idx]);
 
     if (target == NULL && (target = map_id2bl(md->target_id)) == NULL)
         return 0;
@@ -3759,8 +3760,8 @@ int mobskill_use_pos(struct mob_data *md,
     struct block_list bl;
     int skill_lv;
 
-    nullpo_retr(0, md);
-    nullpo_retr(0, ms = &mob_db[md->mob_class].skill[skill_idx]);
+    nullpo_ret(md);
+    nullpo_ret(ms = &mob_db[md->mob_class].skill[skill_idx]);
 
     if (md->bl.prev == NULL)
         return 0;
@@ -3909,7 +3910,7 @@ struct mob_data *mob_getfriendstatus(struct mob_data *md,
     struct mob_data *fr = NULL;
     const int r = 8;
 
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_getfriendstatus_sub, ph::_1, md, cond1, cond2, &fr),
             md->bl.m, md->bl.x - r, md->bl.y - r,
@@ -3928,8 +3929,8 @@ int mobskill_use(struct mob_data *md, unsigned int tick,
 //  struct block_list *target=NULL;
     int max_hp;
 
-    nullpo_retr(0, md);
-    nullpo_retr(0, ms = mob_db[md->mob_class].skill);
+    nullpo_ret(md);
+    nullpo_ret(ms = mob_db[md->mob_class].skill);
 
     max_hp = battle_get_max_hp(&md->bl);
 
@@ -4138,7 +4139,7 @@ int mobskill_use(struct mob_data *md, unsigned int tick,
  */
 int mobskill_event(struct mob_data *md, int flag)
 {
-    nullpo_retr(0, md);
+    nullpo_ret(md);
 
     if (flag == -1 && mobskill_use(md, gettick(), MSC_CASTTARGETED))
         return 1;

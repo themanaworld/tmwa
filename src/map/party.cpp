@@ -22,22 +22,10 @@
 static
 struct dbt *party_db;
 
-void party_send_xyhp_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
-/*==========================================
- * 終了
- *------------------------------------------
- */
 static
-void party_db_final(db_key_t, db_val_t data)
-{
-    free(data);
-}
-
-void do_final_party(void)
-{
-    if (party_db)
-        numdb_final(party_db, party_db_final);
-}
+int party_check_conflict(struct map_session_data *sd);
+static
+void party_send_xyhp_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 
 // 初期化
 void do_init_party(void)
@@ -74,7 +62,7 @@ struct party *party_searchname(const char *str)
 int party_create(struct map_session_data *sd, const char *name)
 {
     char pname[24];
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     strncpy(pname, name, 24);
     pname[23] = '\0';
@@ -99,7 +87,7 @@ int party_created(int account_id, int fail, int party_id, const char *name)
     struct map_session_data *sd;
     sd = map_id2sd(account_id);
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     /* The party name is valid and not already taken. */
     if (!fail)
@@ -141,7 +129,7 @@ int party_check_member(struct party *p)
     int i;
     struct map_session_data *sd;
 
-    nullpo_retr(0, p);
+    nullpo_ret(p);
 
     for (i = 0; i < fd_max; i++)
     {
@@ -195,7 +183,7 @@ int party_recv_info(struct party *sp)
     struct party *p;
     int i;
 
-    nullpo_retr(0, sp);
+    nullpo_ret(sp);
 
     if ((p = (struct party *)numdb_search(party_db, sp->party_id)) == NULL)
     {
@@ -238,7 +226,7 @@ int party_invite(struct map_session_data *sd, int account_id)
     int i;
     int full = 1; /* Indicates whether or not there's room for one more. */
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (!tsd || !p || !tsd->fd)
         return 0;
@@ -297,7 +285,7 @@ int party_invite(struct map_session_data *sd, int account_id)
 /* Process response to party invitation. */
 int party_reply_invite(struct map_session_data *sd, int account_id, int flag)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     /* There is no pending invitation. */
     if (!sd->party_invite || !sd->party_invite_account)
@@ -384,7 +372,7 @@ int party_removemember(struct map_session_data *sd, int account_id, const char *
     struct party *p;
     int i;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if ((p = party_search(sd->status.party_id)) == NULL)
         return 0;
@@ -413,7 +401,7 @@ int party_leave(struct map_session_data *sd)
     struct party *p;
     int i;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if ((p = party_search(sd->status.party_id)) == NULL)
         return 0;
@@ -481,7 +469,7 @@ int party_changeoption(struct map_session_data *sd, int exp, int item)
 {
     struct party *p;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (sd->status.party_id == 0
         || (p = party_search(sd->status.party_id)) == NULL)
@@ -558,7 +546,7 @@ int party_send_movemap(struct map_session_data *sd)
 {
     struct party *p;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (sd->status.party_id == 0)
         return 0;
@@ -590,7 +578,7 @@ int party_send_logout(struct map_session_data *sd)
 {
     struct party *p;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (sd->status.party_id > 0)
         intif_party_changemap(sd, 0);
@@ -630,7 +618,7 @@ int party_recv_message(int party_id, int account_id, const char *mes, int len)
 // パーティ競合確認
 int party_check_conflict(struct map_session_data *sd)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     intif_party_checkconflict(sd->status.party_id, sd->status.account_id,
                                sd->status.name);
@@ -680,7 +668,7 @@ int party_send_xy_clear(struct party *p)
 {
     int i;
 
-    nullpo_retr(0, p);
+    nullpo_ret(p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -716,7 +704,7 @@ int party_exp_share(struct party *p, int mapid, int base_exp, int job_exp)
     struct map_session_data *sd;
     int i, c;
 
-    nullpo_retr(0, p);
+    nullpo_ret(p);
 
     for (i = c = 0; i < MAX_PARTY; i++)
         if ((sd = p->member[i].sd) != NULL && sd->bl.m == mapid)

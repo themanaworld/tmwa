@@ -612,8 +612,20 @@ struct map_data_other_server
     struct in_addr ip;
     unsigned int port;
 };
-#define read_gat(m,x,y) (map[m].gat[(x)+(y)*map[m].xs])
-#define read_gatp(m,x,y) (m->gat[(x)+(y)*m->xs])
+
+extern struct map_data map[];
+extern int map_num;
+
+inline
+uint8_t read_gatp(struct map_data *m, int x, int y)
+{
+    return (m->gat[x + y * m->xs]);
+}
+inline
+uint8_t read_gat(int m, int x, int y)
+{
+    return read_gatp(&map[m], x, y);
+}
 
 struct flooritem_data
 {
@@ -708,8 +720,6 @@ struct chat_data
     char npc_event[50];
 };
 
-extern struct map_data map[];
-extern int map_num;
 extern int autosave_interval;
 extern int save_settings;
 extern int night_flag;          // 0=day, 1=night [Yor]
@@ -745,7 +755,6 @@ void map_foreachinmovearea(std::function<void(struct block_list *)>,
         int, int, int, int,
         int, int,
         int);
-int map_countnearpc(int, int, int);
 //block関連に追加
 int map_count_oncell(int m, int x, int y);
 // 一時的object関連
@@ -776,11 +785,9 @@ int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
 int map_addflooritem(struct item *, int, int, int, int,
                        struct map_session_data *, struct map_session_data *,
                        struct map_session_data *, int);
-int map_searchrandfreecell(int, int, int, int);
 
 // キャラid＝＞キャラ名 変換関連
 void map_addchariddb(int charid, const char *name);
-void map_delchariddb(int charid);
 int map_reqchariddb(struct map_session_data *sd, int charid);
 char *map_charid2nick(int);
 
@@ -789,7 +796,6 @@ struct block_list *map_id2bl(int);
 int map_mapname2mapid(const char *);
 int map_mapname2ipport(const char *, struct in_addr *, int *);
 int map_setipport(const char *name, struct in_addr ip, int port);
-int map_eraseipport(const char *name, struct in_addr ip, int port);
 void map_addiddb(struct block_list *);
 void map_deliddb(struct block_list *bl);
 void map_foreachiddb(db_func_t);
@@ -817,7 +823,6 @@ int map_calc_dir(struct block_list *src, int x, int y);
 int path_search(struct walkpath_data *, int, int, int, int, int, int);
 int path_blownpos(int m, int x0, int y0, int dx, int dy, int count);
 
-int map_who(int fd);
 
 int map_delmap(char *mapname);
 

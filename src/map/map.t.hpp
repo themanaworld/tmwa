@@ -60,7 +60,6 @@ enum class Opt2 : uint16_t
     _atkpot         = 0x0080,
     _heal           = 0x0100,
     _slowpoison     = 0x0200,
-    sign            = 0x8000,
 };
 enum class Opt3 : uint16_t
 {
@@ -75,8 +74,6 @@ enum class Opt3 : uint16_t
 
     _marionette     = 0x0400,
     _assumptio      = 0x0800,
-
-    sign            = 0x8000,
 };
 
 ENUM_BITWISE_OPERATORS(Option)

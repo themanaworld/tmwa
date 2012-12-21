@@ -57,7 +57,6 @@ int clif_changestatus(struct block_list *, int, int); //area
 int clif_damage(struct block_list *, struct block_list *, unsigned int, int, int, int, int, int, int);    // area
 #define clif_takeitem(src,dst) clif_damage(src,dst,0,0,0,0,0,1,0)
 int clif_changelook(struct block_list *, int, int);   // area
-int clif_changelook_towards(struct block_list *, int, int, struct map_session_data *dst); // area or target
 void clif_changelook_accessories(struct block_list *bl, struct map_session_data *dst); // area or target; list gloves, boots etc.
 int clif_arrowequip(struct map_session_data *sd, int val);    //self
 int clif_arrow_fail(struct map_session_data *sd, int type);   //self
@@ -68,21 +67,15 @@ int clif_misceffect(struct block_list *, int);    // area
 int clif_changeoption(struct block_list *);   // area
 int clif_useitemack(struct map_session_data *, int, int, int);    // self
 
-int clif_createchat(struct map_session_data *, int);  // self
 int clif_dispchat(struct chat_data *, int);   // area or fd
-int clif_joinchatfail(struct map_session_data *, int);    // self
-int clif_joinchatok(struct map_session_data *, struct chat_data *);   // self
-int clif_addchat(struct chat_data *, struct map_session_data *);  // chat
 int clif_changechatowner(struct chat_data *, struct map_session_data *);  // chat
 int clif_clearchat(struct chat_data *, int);  // area or fd
 int clif_leavechat(struct chat_data *, struct map_session_data *);    // chat
-int clif_changechatstatus(struct chat_data *);    // chat
 
 void clif_emotion(struct block_list *bl, int type);
 void clif_talkiebox(struct block_list *bl, const char *talkie);
 void clif_wedding_effect(struct block_list *bl);
 void clif_sitting(int fd, struct map_session_data *sd);
-//void clif_callpartner(struct map_session_data *sd);
 //void clif_sitting(struct map_session_data *sd);
 void clif_soundeffect(struct map_session_data *sd, struct block_list *bl,
                        const char *name, int type);
@@ -134,10 +127,6 @@ int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
 int clif_skill_damage(struct block_list *src, struct block_list *dst,
                         unsigned int tick, int sdelay, int ddelay, int damage,
                         int div, SkillID skill_id, int skill_lv, int type);
-int clif_skill_damage2(struct block_list *src, struct block_list *dst,
-                         unsigned int tick, int sdelay, int ddelay,
-                         int damage, int div, SkillID skill_id, int skill_lv,
-                         int type);
 int clif_skill_nodamage(struct block_list *src, struct block_list *dst,
                           SkillID skill_id, int heal, int fail);
 int clif_skill_poseffect(struct block_list *src, SkillID skill_id, int val,
@@ -173,10 +162,6 @@ int clif_wis_end(int fd, int flag);
 
 int clif_solved_charname(struct map_session_data *sd, int char_id);
 
-int clif_use_card(struct map_session_data *sd, int idx);
-int clif_insert_card(struct map_session_data *sd, int idx_equip,
-                       int idx_card, int flag);
-
 int clif_itemlist(struct map_session_data *sd);
 int clif_equiplist(struct map_session_data *sd);
 
@@ -186,7 +171,6 @@ int clif_cart_itemlist(struct map_session_data *sd);
 int clif_cart_equiplist(struct map_session_data *sd);
 
 int clif_item_identify_list(struct map_session_data *sd);
-int clif_item_identified(struct map_session_data *sd, int idx, int flag);
 int clif_item_repair_list(struct map_session_data *sd);
 
 int clif_item_skill(struct map_session_data *sd, SkillID skillid, int skilllv,
@@ -209,8 +193,6 @@ int clif_party_option(struct party *p, struct map_session_data *sd,
 int clif_party_leaved(struct party *p, struct map_session_data *sd,
                         int account_id, const char *name, int flag);
 int clif_party_message(struct party *p, int account_id, const char *mes, int len);
-int clif_party_move(struct party *p, struct map_session_data *sd,
-                      int online);
 int clif_party_xy(struct party *p, struct map_session_data *sd);
 int clif_party_hp(struct party *p, struct map_session_data *sd);
 
@@ -230,13 +212,11 @@ int clif_refine(int fd, struct map_session_data *sd, int fail, int index,
 int clif_specialeffect(struct block_list *bl, int type, int flag);    // special effects [Valaris]
 int clif_message(struct block_list *bl, const char *msg);   // messages (from mobs/npcs) [Valaris]
 
-int clif_GM_kickack(struct map_session_data *sd, int id);
 int clif_GM_kick(struct map_session_data *sd, struct map_session_data *tsd,
                    int type);
 
 int clif_foreachclient(std::function<void(struct map_session_data *)>);
 
-int do_final_clif (void);
 int do_init_clif (void);
 
 #endif // CLIF_HPP

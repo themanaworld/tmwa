@@ -63,7 +63,7 @@ int intif_GMmessage(const char *mes, int len, int flag)
 int intif_wis_message(struct map_session_data *sd, const char *nick, const char *mes,
                        int mes_len)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     WFIFOW(inter_fd, 0) = 0x3001;
     WFIFOW(inter_fd, 2) = mes_len + 52;
@@ -117,7 +117,7 @@ int intif_saveaccountreg(struct map_session_data *sd)
 {
     int j, p;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     WFIFOW(inter_fd, 0) = 0x3004;
     WFIFOL(inter_fd, 4) = sd->bl.id;
@@ -134,7 +134,7 @@ int intif_saveaccountreg(struct map_session_data *sd)
 // アカウント変数要求
 int intif_request_accountreg(struct map_session_data *sd)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     WFIFOW(inter_fd, 0) = 0x3005;
     WFIFOL(inter_fd, 2) = sd->bl.id;
@@ -154,7 +154,7 @@ int intif_request_storage(int account_id)
 // 倉庫データ送信
 int intif_send_storage(struct storage *stor)
 {
-    nullpo_retr(0, stor);
+    nullpo_ret(stor);
     WFIFOW(inter_fd, 0) = 0x3011;
     WFIFOW(inter_fd, 2) = sizeof(struct storage) + 8;
     WFIFOL(inter_fd, 4) = stor->account_id;
@@ -166,7 +166,7 @@ int intif_send_storage(struct storage *stor)
 // パーティ作成要求
 int intif_create_party(struct map_session_data *sd, const char *name)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     WFIFOW(inter_fd, 0) = 0x3020;
     WFIFOL(inter_fd, 2) = sd->status.account_id;
@@ -250,15 +250,6 @@ int intif_party_changemap(struct map_session_data *sd, int online)
     }
 //  if(battle_config.etc_log)
 //      printf("party: change map\n");
-    return 0;
-}
-
-// パーティー解散要求
-int intif_break_party(int party_id)
-{
-    WFIFOW(inter_fd, 0) = 0x3026;
-    WFIFOL(inter_fd, 2) = party_id;
-    WFIFOSET(inter_fd, 6);
     return 0;
 }
 

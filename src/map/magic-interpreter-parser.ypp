@@ -55,6 +55,7 @@ void add_teleport_anchor(teleport_anchor_t *anchor, int line_nr);
 static
 effect_t *op_effect(char *name, int args_nr, expr_t **args, int line, int column);
 
+// in magic-interpreter-lexer.cpp
 int magic_frontend_lex(YYSTYPE *, YYLTYPE *);
 
 static

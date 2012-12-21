@@ -7,9 +7,6 @@ int inter_parse_frommap(int fd);
 
 int inter_check_length(int fd, int length);
 
-__attribute__((format(printf, 1, 2)))
-int inter_log(const char *fmt, ...);
-
 #define inter_cfgName "conf/inter_athena.conf"
 
 extern int party_share_level;

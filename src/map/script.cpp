@@ -110,197 +110,201 @@ int parse_cmd;
  * ローカルプロトタイプ宣言 (必要な物のみ)
  *------------------------------------------
  */
+static
 const char *parse_subexpr(const char *, int);
-void builtin_mes(ScriptState *st);
-void builtin_goto(ScriptState *st);
-void builtin_callsub(ScriptState *st);
-void builtin_callfunc(ScriptState *st);
-void builtin_return(ScriptState *st);
-void builtin_getarg(ScriptState *st);
-void builtin_next(ScriptState *st);
-void builtin_close(ScriptState *st);
-void builtin_close2(ScriptState *st);
-void builtin_menu(ScriptState *st);
-void builtin_rand(ScriptState *st);
-void builtin_pow(ScriptState *st);
-void builtin_warp(ScriptState *st);
-void builtin_isat(ScriptState *st);
-void builtin_areawarp(ScriptState *st);
-void builtin_heal(ScriptState *st);
-void builtin_itemheal(ScriptState *st);
-void builtin_percentheal(ScriptState *st);
-void builtin_jobchange(ScriptState *st);
-void builtin_input(ScriptState *st);
-void builtin_setlook(ScriptState *st);
-void builtin_set(ScriptState *st);
-void builtin_setarray(ScriptState *st);
-void builtin_cleararray(ScriptState *st);
-void builtin_copyarray(ScriptState *st);
-void builtin_getarraysize(ScriptState *st);
-void builtin_deletearray(ScriptState *st);
-void builtin_getelementofarray(ScriptState *st);
-void builtin_if (ScriptState *st);
-void builtin_getitem(ScriptState *st);
-void builtin_getitem2(ScriptState *st);
-void builtin_makeitem(ScriptState *st);
-void builtin_delitem(ScriptState *st);
-void builtin_viewpoint(ScriptState *st);
-void builtin_countitem(ScriptState *st);
-void builtin_checkweight(ScriptState *st);
-void builtin_readparam(ScriptState *st);
-void builtin_getcharid(ScriptState *st);
-void builtin_getpartyname(ScriptState *st);
-void builtin_getpartymember(ScriptState *st);
-void builtin_strcharinfo(ScriptState *st);
-void builtin_getequipid(ScriptState *st);
-void builtin_getequipname(ScriptState *st);
-void builtin_getbrokenid(ScriptState *st); // [Valaris]
-void builtin_repair(ScriptState *st);  // [Valaris]
-void builtin_getequipisequiped(ScriptState *st);
-void builtin_getequipisenableref(ScriptState *st);
-void builtin_getequipisidentify(ScriptState *st);
-void builtin_getequiprefinerycnt(ScriptState *st);
-void builtin_getequipweaponlv(ScriptState *st);
-void builtin_getequippercentrefinery(ScriptState *st);
-void builtin_successrefitem(ScriptState *st);
-void builtin_failedrefitem(ScriptState *st);
-void builtin_cutin(ScriptState *st);
-void builtin_cutincard(ScriptState *st);
-void builtin_statusup(ScriptState *st);
-void builtin_statusup2(ScriptState *st);
-void builtin_bonus(ScriptState *st);
-void builtin_bonus2(ScriptState *st);
-void builtin_bonus3(ScriptState *st);
-void builtin_skill(ScriptState *st);
-void builtin_setskill(ScriptState *st);
-void builtin_getskilllv(ScriptState *st);
-void builtin_basicskillcheck(ScriptState *st);
-void builtin_getgmlevel(ScriptState *st);
-void builtin_end(ScriptState *st);
-void builtin_getopt2(ScriptState *st);
-void builtin_setopt2(ScriptState *st);
-void builtin_checkoption(ScriptState *st);
-void builtin_setoption(ScriptState *st);
-void builtin_setcart(ScriptState *st);
-void builtin_checkcart(ScriptState *st);   // check cart [Valaris]
-void builtin_setfalcon(ScriptState *st);
-void builtin_checkfalcon(ScriptState *st); // check falcon [Valaris]
-void builtin_setriding(ScriptState *st);
-void builtin_checkriding(ScriptState *st); // check for pecopeco [Valaris]
-void builtin_savepoint(ScriptState *st);
-void builtin_gettimetick(ScriptState *st);
-void builtin_gettime(ScriptState *st);
-void builtin_gettimestr(ScriptState *st);
-void builtin_openstorage(ScriptState *st);
-void builtin_itemskill(ScriptState *st);
-void builtin_monster(ScriptState *st);
-void builtin_areamonster(ScriptState *st);
-void builtin_killmonster(ScriptState *st);
-void builtin_killmonsterall(ScriptState *st);
-void builtin_doevent(ScriptState *st);
-void builtin_donpcevent(ScriptState *st);
-void builtin_addtimer(ScriptState *st);
-void builtin_deltimer(ScriptState *st);
-void builtin_addtimercount(ScriptState *st);
-void builtin_initnpctimer(ScriptState *st);
-void builtin_stopnpctimer(ScriptState *st);
-void builtin_startnpctimer(ScriptState *st);
-void builtin_setnpctimer(ScriptState *st);
-void builtin_getnpctimer(ScriptState *st);
-void builtin_announce(ScriptState *st);
-void builtin_mapannounce(ScriptState *st);
-void builtin_areaannounce(ScriptState *st);
-void builtin_getusers(ScriptState *st);
-void builtin_getmapusers(ScriptState *st);
-void builtin_getareausers(ScriptState *st);
-void builtin_getareadropitem(ScriptState *st);
-void builtin_enablenpc(ScriptState *st);
-void builtin_disablenpc(ScriptState *st);
-void builtin_enablearena(ScriptState *st); // Added by RoVeRT
-void builtin_disablearena(ScriptState *st);    // Added by RoVeRT
-void builtin_hideoffnpc(ScriptState *st);
-void builtin_hideonnpc(ScriptState *st);
-void builtin_sc_start(ScriptState *st);
-void builtin_sc_start2(ScriptState *st);
-void builtin_sc_end(ScriptState *st);
-void builtin_sc_check(ScriptState *st);    // [Fate]
-void builtin_getscrate(ScriptState *st);
-void builtin_debugmes(ScriptState *st);
-void builtin_resetlvl(ScriptState *st);
-void builtin_resetstatus(ScriptState *st);
-void builtin_resetskill(ScriptState *st);
-void builtin_changebase(ScriptState *st);
-void builtin_changesex(ScriptState *st);
-void builtin_waitingroom(ScriptState *st);
-void builtin_delwaitingroom(ScriptState *st);
-void builtin_enablewaitingroomevent(ScriptState *st);
-void builtin_disablewaitingroomevent(ScriptState *st);
-void builtin_getwaitingroomstate(ScriptState *st);
-void builtin_warpwaitingpc(ScriptState *st);
-void builtin_attachrid(ScriptState *st);
-void builtin_detachrid(ScriptState *st);
-void builtin_isloggedin(ScriptState *st);
-void builtin_setmapflagnosave(ScriptState *st);
-void builtin_setmapflag(ScriptState *st);
-void builtin_removemapflag(ScriptState *st);
-void builtin_getmapflag(ScriptState *st);
-void builtin_pvpon(ScriptState *st);
-void builtin_pvpoff(ScriptState *st);
-void builtin_emotion(ScriptState *st);
-void builtin_getequipcardcnt(ScriptState *st);
-void builtin_successremovecards(ScriptState *st);
-void builtin_failedremovecards(ScriptState *st);
-void builtin_marriage(ScriptState *st);
-void builtin_wedding_effect(ScriptState *st);
-void builtin_divorce(ScriptState *st);
-void builtin_getitemname(ScriptState *st);
-void builtin_getspellinvocation(ScriptState *st);  // [Fate]
-void builtin_getanchorinvocation(ScriptState *st); // [Fate]
-void builtin_getexp(ScriptState *st);
-void builtin_getinventorylist(ScriptState *st);
-void builtin_getskilllist(ScriptState *st);
-void builtin_get_pool_skills(ScriptState *st); // [fate]
-void builtin_get_activated_pool_skills(ScriptState *st);   // [fate]
-void builtin_get_unactivated_pool_skills(ScriptState *st);   // [PO]
-void builtin_activate_pool_skill(ScriptState *st); // [fate]
-void builtin_deactivate_pool_skill(ScriptState *st);   // [fate]
-void builtin_check_pool_skill(ScriptState *st);    // [fate]
-void builtin_clearitem(ScriptState *st);
-void builtin_classchange(ScriptState *st);
-void builtin_misceffect(ScriptState *st);
-void builtin_soundeffect(ScriptState *st);
-void builtin_mapwarp(ScriptState *st);
-void builtin_inittimer(ScriptState *st);
-void builtin_stoptimer(ScriptState *st);
-void builtin_cmdothernpc(ScriptState *st);
-void builtin_mobcount(ScriptState *st);
-void builtin_strmobinfo(ScriptState *st);  // Script for displaying mob info [Valaris]
-void builtin_npcskilleffect(ScriptState *st);  // skill effects for npcs [Valaris]
-void builtin_specialeffect(ScriptState *st);   // special effect script [Valaris]
-void builtin_specialeffect2(ScriptState *st);  // special effect script [Valaris]
-void builtin_nude(ScriptState *st);    // nude [Valaris]
-void builtin_gmcommand(ScriptState *st);   // [MouseJstr]
-void builtin_npcwarp(ScriptState *st); // [remoitnane]
-void builtin_message(ScriptState *st); // [MouseJstr]
-void builtin_npctalk(ScriptState *st); // [Valaris]
-void builtin_hasitems(ScriptState *st);    // [Valaris]
-void builtin_getlook(ScriptState *st); //Lorky [Lupus]
-void builtin_getsavepoint(ScriptState *st);    //Lorky [Lupus]
-void builtin_getpartnerid(ScriptState *st);    // [Fate]
-void builtin_areatimer(ScriptState *st);   // [Jaxad0127]
-void builtin_isin(ScriptState *st);    // [Jaxad0127]
-void builtin_shop(ScriptState *st);    // [MadCamel]
-void builtin_isdead(ScriptState *st);  // [Jaxad0127]
-void builtin_fakenpcname(ScriptState *st); //[Kage]
-void builtin_unequip_by_id(ScriptState *st);   // [Freeyorp]
-void builtin_getx(ScriptState *st);  // [Kage]
-void builtin_gety(ScriptState *st);  // [Kage]
-void builtin_getmap(ScriptState *st);
 
+static void builtin_mes(ScriptState *st);
+static void builtin_goto(ScriptState *st);
+static void builtin_callsub(ScriptState *st);
+static void builtin_callfunc(ScriptState *st);
+static void builtin_return(ScriptState *st);
+static void builtin_getarg(ScriptState *st);
+static void builtin_next(ScriptState *st);
+static void builtin_close(ScriptState *st);
+static void builtin_close2(ScriptState *st);
+static void builtin_menu(ScriptState *st);
+static void builtin_rand(ScriptState *st);
+static void builtin_pow(ScriptState *st);
+static void builtin_warp(ScriptState *st);
+static void builtin_isat(ScriptState *st);
+static void builtin_areawarp(ScriptState *st);
+static void builtin_heal(ScriptState *st);
+static void builtin_itemheal(ScriptState *st);
+static void builtin_percentheal(ScriptState *st);
+static void builtin_jobchange(ScriptState *st);
+static void builtin_input(ScriptState *st);
+static void builtin_setlook(ScriptState *st);
+static void builtin_set(ScriptState *st);
+static void builtin_setarray(ScriptState *st);
+static void builtin_cleararray(ScriptState *st);
+static void builtin_copyarray(ScriptState *st);
+static void builtin_getarraysize(ScriptState *st);
+static void builtin_deletearray(ScriptState *st);
+static void builtin_getelementofarray(ScriptState *st);
+static void builtin_if (ScriptState *st);
+static void builtin_getitem(ScriptState *st);
+static void builtin_getitem2(ScriptState *st);
+static void builtin_makeitem(ScriptState *st);
+static void builtin_delitem(ScriptState *st);
+static void builtin_viewpoint(ScriptState *st);
+static void builtin_countitem(ScriptState *st);
+static void builtin_checkweight(ScriptState *st);
+static void builtin_readparam(ScriptState *st);
+static void builtin_getcharid(ScriptState *st);
+static void builtin_getpartyname(ScriptState *st);
+static void builtin_getpartymember(ScriptState *st);
+static void builtin_strcharinfo(ScriptState *st);
+static void builtin_getequipid(ScriptState *st);
+static void builtin_getequipname(ScriptState *st);
+static void builtin_getbrokenid(ScriptState *st); // [Valaris]
+static void builtin_repair(ScriptState *st);  // [Valaris]
+static void builtin_getequipisequiped(ScriptState *st);
+static void builtin_getequipisenableref(ScriptState *st);
+static void builtin_getequipisidentify(ScriptState *st);
+static void builtin_getequiprefinerycnt(ScriptState *st);
+static void builtin_getequipweaponlv(ScriptState *st);
+static void builtin_getequippercentrefinery(ScriptState *st);
+static void builtin_successrefitem(ScriptState *st);
+static void builtin_failedrefitem(ScriptState *st);
+static void builtin_cutin(ScriptState *st);
+static void builtin_cutincard(ScriptState *st);
+static void builtin_statusup(ScriptState *st);
+static void builtin_statusup2(ScriptState *st);
+static void builtin_bonus(ScriptState *st);
+static void builtin_bonus2(ScriptState *st);
+static void builtin_bonus3(ScriptState *st);
+static void builtin_skill(ScriptState *st);
+static void builtin_setskill(ScriptState *st);
+static void builtin_getskilllv(ScriptState *st);
+static void builtin_basicskillcheck(ScriptState *st);
+static void builtin_getgmlevel(ScriptState *st);
+static void builtin_end(ScriptState *st);
+static void builtin_getopt2(ScriptState *st);
+static void builtin_setopt2(ScriptState *st);
+static void builtin_checkoption(ScriptState *st);
+static void builtin_setoption(ScriptState *st);
+static void builtin_setcart(ScriptState *st);
+static void builtin_checkcart(ScriptState *st);   // check cart [Valaris]
+static void builtin_setfalcon(ScriptState *st);
+static void builtin_checkfalcon(ScriptState *st); // check falcon [Valaris]
+static void builtin_setriding(ScriptState *st);
+static void builtin_checkriding(ScriptState *st); // check for pecopeco [Valaris]
+static void builtin_savepoint(ScriptState *st);
+static void builtin_gettimetick(ScriptState *st);
+static void builtin_gettime(ScriptState *st);
+static void builtin_gettimestr(ScriptState *st);
+static void builtin_openstorage(ScriptState *st);
+static void builtin_itemskill(ScriptState *st);
+static void builtin_monster(ScriptState *st);
+static void builtin_areamonster(ScriptState *st);
+static void builtin_killmonster(ScriptState *st);
+static void builtin_killmonsterall(ScriptState *st);
+static void builtin_doevent(ScriptState *st);
+static void builtin_donpcevent(ScriptState *st);
+static void builtin_addtimer(ScriptState *st);
+static void builtin_deltimer(ScriptState *st);
+static void builtin_addtimercount(ScriptState *st);
+static void builtin_initnpctimer(ScriptState *st);
+static void builtin_stopnpctimer(ScriptState *st);
+static void builtin_startnpctimer(ScriptState *st);
+static void builtin_setnpctimer(ScriptState *st);
+static void builtin_getnpctimer(ScriptState *st);
+static void builtin_announce(ScriptState *st);
+static void builtin_mapannounce(ScriptState *st);
+static void builtin_areaannounce(ScriptState *st);
+static void builtin_getusers(ScriptState *st);
+static void builtin_getmapusers(ScriptState *st);
+static void builtin_getareausers(ScriptState *st);
+static void builtin_getareadropitem(ScriptState *st);
+static void builtin_enablenpc(ScriptState *st);
+static void builtin_disablenpc(ScriptState *st);
+static void builtin_enablearena(ScriptState *st); // Added by RoVeRT
+static void builtin_disablearena(ScriptState *st);    // Added by RoVeRT
+static void builtin_hideoffnpc(ScriptState *st);
+static void builtin_hideonnpc(ScriptState *st);
+static void builtin_sc_start(ScriptState *st);
+static void builtin_sc_start2(ScriptState *st);
+static void builtin_sc_end(ScriptState *st);
+static void builtin_sc_check(ScriptState *st);    // [Fate]
+static void builtin_getscrate(ScriptState *st);
+static void builtin_debugmes(ScriptState *st);
+static void builtin_resetlvl(ScriptState *st);
+static void builtin_resetstatus(ScriptState *st);
+static void builtin_resetskill(ScriptState *st);
+static void builtin_changebase(ScriptState *st);
+static void builtin_changesex(ScriptState *st);
+static void builtin_waitingroom(ScriptState *st);
+static void builtin_delwaitingroom(ScriptState *st);
+static void builtin_enablewaitingroomevent(ScriptState *st);
+static void builtin_disablewaitingroomevent(ScriptState *st);
+static void builtin_getwaitingroomstate(ScriptState *st);
+static void builtin_warpwaitingpc(ScriptState *st);
+static void builtin_attachrid(ScriptState *st);
+static void builtin_detachrid(ScriptState *st);
+static void builtin_isloggedin(ScriptState *st);
+static void builtin_setmapflagnosave(ScriptState *st);
+static void builtin_setmapflag(ScriptState *st);
+static void builtin_removemapflag(ScriptState *st);
+static void builtin_getmapflag(ScriptState *st);
+static void builtin_pvpon(ScriptState *st);
+static void builtin_pvpoff(ScriptState *st);
+static void builtin_emotion(ScriptState *st);
+static void builtin_getequipcardcnt(ScriptState *st);
+static void builtin_successremovecards(ScriptState *st);
+static void builtin_failedremovecards(ScriptState *st);
+static void builtin_marriage(ScriptState *st);
+static void builtin_wedding_effect(ScriptState *st);
+static void builtin_divorce(ScriptState *st);
+static void builtin_getitemname(ScriptState *st);
+static void builtin_getspellinvocation(ScriptState *st);  // [Fate]
+static void builtin_getanchorinvocation(ScriptState *st); // [Fate]
+static void builtin_getexp(ScriptState *st);
+static void builtin_getinventorylist(ScriptState *st);
+static void builtin_getskilllist(ScriptState *st);
+static void builtin_get_pool_skills(ScriptState *st); // [fate]
+static void builtin_get_activated_pool_skills(ScriptState *st);   // [fate]
+static void builtin_get_unactivated_pool_skills(ScriptState *st);   // [PO]
+static void builtin_activate_pool_skill(ScriptState *st); // [fate]
+static void builtin_deactivate_pool_skill(ScriptState *st);   // [fate]
+static void builtin_check_pool_skill(ScriptState *st);    // [fate]
+static void builtin_clearitem(ScriptState *st);
+static void builtin_classchange(ScriptState *st);
+static void builtin_misceffect(ScriptState *st);
+static void builtin_soundeffect(ScriptState *st);
+static void builtin_mapwarp(ScriptState *st);
+static void builtin_inittimer(ScriptState *st);
+static void builtin_stoptimer(ScriptState *st);
+static void builtin_cmdothernpc(ScriptState *st);
+static void builtin_mobcount(ScriptState *st);
+static void builtin_strmobinfo(ScriptState *st);  // Script for displaying mob info [Valaris]
+static void builtin_npcskilleffect(ScriptState *st);  // skill effects for npcs [Valaris]
+static void builtin_specialeffect(ScriptState *st);   // special effect script [Valaris]
+static void builtin_specialeffect2(ScriptState *st);  // special effect script [Valaris]
+static void builtin_nude(ScriptState *st);    // nude [Valaris]
+static void builtin_gmcommand(ScriptState *st);   // [MouseJstr]
+static void builtin_npcwarp(ScriptState *st); // [remoitnane]
+static void builtin_message(ScriptState *st); // [MouseJstr]
+static void builtin_npctalk(ScriptState *st); // [Valaris]
+static void builtin_hasitems(ScriptState *st);    // [Valaris]
+static void builtin_getlook(ScriptState *st); //Lorky [Lupus]
+static void builtin_getsavepoint(ScriptState *st);    //Lorky [Lupus]
+static void builtin_getpartnerid(ScriptState *st);    // [Fate]
+static void builtin_areatimer(ScriptState *st);   // [Jaxad0127]
+static void builtin_isin(ScriptState *st);    // [Jaxad0127]
+static void builtin_shop(ScriptState *st);    // [MadCamel]
+static void builtin_isdead(ScriptState *st);  // [Jaxad0127]
+static void builtin_fakenpcname(ScriptState *st); //[Kage]
+static void builtin_unequip_by_id(ScriptState *st);   // [Freeyorp]
+static void builtin_getx(ScriptState *st);  // [Kage]
+static void builtin_gety(ScriptState *st);  // [Kage]
+static void builtin_getmap(ScriptState *st);
 
+static
 void run_func(ScriptState *st);
 
+static
 void mapreg_setreg(int num, int val);
+static
 void mapreg_setregstr(int num, const char *str);
 
 struct

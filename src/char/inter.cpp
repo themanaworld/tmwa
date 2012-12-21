@@ -1,6 +1,5 @@
 #include "inter.hpp"
 
-#include <cstdarg>  // exception to "no va_list" rule
 #include <cstdlib>
 #include <cstring>
 
@@ -235,24 +234,6 @@ int inter_config_read(const char *cfgName)
         }
     }
     fclose_(fp);
-
-    return 0;
-}
-
-// ログ書き出し
-int inter_log(const char *fmt, ...)
-{
-    FILE *logfp;
-    va_list ap;
-
-    va_start(ap, fmt);
-    logfp = fopen_(inter_log_filename, "a");
-    if (logfp)
-    {
-        vfprintf(logfp, fmt, ap);
-        fclose_(logfp);
-    }
-    va_end(ap);
 
     return 0;
 }

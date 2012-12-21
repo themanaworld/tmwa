@@ -23,7 +23,6 @@ int intif_party_changeoption(int party_id, int account_id, int exp,
                                int item);
 int intif_party_leave(int party_id, int accound_id);
 int intif_party_changemap(struct map_session_data *sd, int online);
-int intif_break_party(int party_id);
 int intif_party_message(int party_id, int account_id, const char *mes, int len);
 int intif_party_checkconflict(int party_id, int account_id, const char *nick);
 

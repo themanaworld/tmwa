@@ -193,15 +193,7 @@ typedef struct AtCommandInfo
 AtCommandType is_atcommand(const int fd, struct map_session_data *sd,
                             const char *message, int gmlvl);
 
-AtCommandType atcommand(const int level, const char *message,
-                         AtCommandInfo * info);
 int get_atcommand_level(const AtCommandType type);
-
-int atcommand_item(const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Valaris]
-int atcommand_warp(const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Yor]
-int atcommand_spawn(const int fd, struct map_session_data *sd, const char *command, const char *message); // [Valaris]
-int atcommand_goto(const int fd, struct map_session_data *sd, const char *command, const char *message);  // [Yor]
-int atcommand_recall(const int fd, struct map_session_data *sd, const char *command, const char *message);    // [Yor]
 
 int atcommand_config_read(const char *cfgName);
 

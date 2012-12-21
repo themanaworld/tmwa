@@ -172,20 +172,6 @@ int inter_storage_init(void)
 }
 
 static
-void storage_db_final(db_key_t, db_val_t data)
-{
-    struct storage *p = (struct storage *) data;
-    if (p)
-        free(p);
-}
-
-void inter_storage_final(void)
-{
-    numdb_final(storage_db, storage_db_final);
-    return;
-}
-
-static
 void inter_storage_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
     char line[65536];

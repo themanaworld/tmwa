@@ -469,8 +469,8 @@ invocation_t *spell_instantiate(effect_set_t *effect, env_t *env);
  */
 void spell_bind(character_t *subject, invocation_t *invocation);
 
-int                            // 1 on failure
-     spell_unbind(character_t *subject, invocation_t *invocation);
+// 1 on failure
+int spell_unbind(character_t *subject, invocation_t *invocation);
 
 /**
  * Clones a spell to run the at_effect field

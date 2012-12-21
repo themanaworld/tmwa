@@ -219,23 +219,6 @@ int itemdb_isequip3(int nameid)
     return 0;
 }
 
-/*==========================================
- * 捨てられるアイテムは1、そうでないアイテムは0
- *------------------------------------------
- */
-int itemdb_isdropable(int nameid)
-{
-    //結婚指輪は捨てられない
-    switch (nameid)
-    {
-        case 2634:             //結婚指輪
-        case 2635:             //結婚指輪
-            return 0;
-    }
-
-    return 1;
-}
-
 //
 // 初期化
 //

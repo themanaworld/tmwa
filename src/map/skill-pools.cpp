@@ -54,17 +54,6 @@ int skill_pool(struct map_session_data *sd, SkillID *skills)
     return count;
 }
 
-void skill_pool_empty(struct map_session_data *sd)
-{
-    int i;
-
-    for (i = 0; i < skill_pool_skills_size; i++)
-    {
-        SkillID skill_id = skill_pool_skills[i];
-        sd->status.skill[skill_id].flags = 0;
-    }
-}
-
 int skill_pool_size(struct map_session_data *sd)
 {
     return skill_pool(sd, NULL);
@@ -111,6 +100,9 @@ int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
     return 1;
 }
 
+// Yields the stat associated with a skill.
+// Returns zero if none, or SP_STR, SP_VIT, ... otherwise
+static
 int skill_stat(SkillID skill_id)
 {
     return skill_db[skill_id].stat;

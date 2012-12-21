@@ -46,9 +46,9 @@ ATCOMMAND_FUNC(setup);
 ATCOMMAND_FUNC(broadcast);
 ATCOMMAND_FUNC(localbroadcast);
 ATCOMMAND_FUNC(charwarp);
-//ATCOMMAND_FUNC (warp);
+ATCOMMAND_FUNC(warp);
 ATCOMMAND_FUNC(where);
-//ATCOMMAND_FUNC (goto);
+ATCOMMAND_FUNC(goto);
 ATCOMMAND_FUNC(jump);
 ATCOMMAND_FUNC(who);
 ATCOMMAND_FUNC(whogroup);
@@ -66,7 +66,7 @@ ATCOMMAND_FUNC(kill);
 ATCOMMAND_FUNC(alive);
 ATCOMMAND_FUNC(kami);
 ATCOMMAND_FUNC(heal);
-//ATCOMMAND_FUNC (item);
+ATCOMMAND_FUNC(item);
 ATCOMMAND_FUNC(itemreset);
 ATCOMMAND_FUNC(itemcheck);
 ATCOMMAND_FUNC(baselevelup);
@@ -77,7 +77,7 @@ ATCOMMAND_FUNC(pvpoff);
 ATCOMMAND_FUNC(pvpon);
 ATCOMMAND_FUNC(model);
 ATCOMMAND_FUNC(go);
-//ATCOMMAND_FUNC (spawn);
+ATCOMMAND_FUNC(spawn);
 ATCOMMAND_FUNC(killmonster);
 ATCOMMAND_FUNC(killmonster2);
 ATCOMMAND_FUNC(produce);
@@ -88,7 +88,7 @@ ATCOMMAND_FUNC(statuspoint);
 ATCOMMAND_FUNC(skillpoint);
 ATCOMMAND_FUNC(zeny);
 ATCOMMAND_FUNC(param);
-//ATCOMMAND_FUNC (recall);
+ATCOMMAND_FUNC(recall);
 ATCOMMAND_FUNC(recallall);
 ATCOMMAND_FUNC(revive);
 ATCOMMAND_FUNC(character_stats);
@@ -628,6 +628,9 @@ void gm_log(const char *fmt, ...)
     fflush(gm_logfile);
 }
 
+static
+AtCommandType atcommand(const int level, const char *message,
+                         struct AtCommandInfo * info);
 /*==========================================
  *is_atcommand @コマンドに存在するかどうか確認する
  *------------------------------------------

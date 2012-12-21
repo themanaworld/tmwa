@@ -134,7 +134,7 @@ struct npc_data *npc_name2id(const char *name)
  */
 int npc_event_dequeue(struct map_session_data *sd)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     sd->npc_id = 0;
 
@@ -172,6 +172,7 @@ int npc_delete(struct npc_data *nd)
  * イベントの遅延実行
  *------------------------------------------
  */
+static
 void npc_event_timer(timer_id, tick_t, custom_id_t id, custom_data_t data)
 {
     struct map_session_data *sd = map_id2sd(id);
@@ -429,7 +430,7 @@ int npc_timerevent_start(struct npc_data *nd)
 {
     int j, n, next;
 
-    nullpo_retr(0, nd);
+    nullpo_ret(nd);
 
     n = nd->u.scr.timeramount;
     if (nd->u.scr.nexttimer >= 0 || n == 0)
@@ -458,7 +459,7 @@ int npc_timerevent_start(struct npc_data *nd)
  */
 int npc_timerevent_stop(struct npc_data *nd)
 {
-    nullpo_retr(0, nd);
+    nullpo_ret(nd);
 
     if (nd->u.scr.nexttimer >= 0)
     {
@@ -479,7 +480,7 @@ int npc_gettimerevent_tick(struct npc_data *nd)
 {
     int tick;
 
-    nullpo_retr(0, nd);
+    nullpo_ret(nd);
 
     tick = nd->u.scr.timer;
 
@@ -496,7 +497,7 @@ int npc_settimerevent_tick(struct npc_data *nd, int newtimer)
 {
     int flag;
 
-    nullpo_retr(0, nd);
+    nullpo_ret(nd);
 
     flag = nd->u.scr.nexttimer;
 
@@ -702,11 +703,12 @@ int npc_touch_areanpc(struct map_session_data *sd, int m, int x, int y)
  * 近くかどうかの判定
  *------------------------------------------
  */
+static
 int npc_checknear(struct map_session_data *sd, int id)
 {
     struct npc_data *nd;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     nd = (struct npc_data *) map_id2bl(id);
     if (nd == NULL || nd->bl.type != BL_NPC)
@@ -1714,6 +1716,7 @@ int npc_parse_function(char *, char *, char *w3, char *,
  * mob行解析
  *------------------------------------------
  */
+static
 int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
 {
     int m, x, y, xs, ys, mob_class, num, delay1, delay2;
@@ -1966,14 +1969,6 @@ int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
     return 0;
 }
 
-static
-void ev_db_final(db_key_t key, db_val_t data)
-{
-    free(data);
-    if (strstr(key.s, "::") != NULL)
-        free((char*)key.s);
-}
-
 struct npc_data *npc_spawn_text(int m, int x, int y,
                                  int npc_class, const char *name, const char *message)
 {
@@ -2054,44 +2049,6 @@ void npc_free(struct npc_data *nd)
     map_deliddb(&nd->bl);
     map_delblock(&nd->bl);
     npc_free_internal(nd);
-}
-
-/*==========================================
- * 終了
- *------------------------------------------
- */
-int do_final_npc(void)
-{
-    int i;
-    struct block_list *bl;
-    struct npc_data *nd;
-    struct mob_data *md;
-
-    if (ev_db)
-        strdb_final(ev_db, ev_db_final);
-    if (npcname_db)
-        strdb_final(npcname_db, NULL);
-
-    for (i = START_NPC_NUM; i < npc_id; i++)
-    {
-        if ((bl = map_id2bl(i)))
-        {
-            if (bl->type == BL_NPC && (nd = (struct npc_data *) bl))
-                npc_free_internal(nd);
-            else if (bl->type == BL_MOB && (md = (struct mob_data *) bl))
-            {
-                if (md->lootitem)
-                {
-                    free(md->lootitem);
-                    md->lootitem = NULL;
-                }
-                free(md);
-                md = NULL;
-            }
-        }
-    }
-
-    return 0;
 }
 
 static

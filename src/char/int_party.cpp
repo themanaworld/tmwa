@@ -19,8 +19,11 @@ struct dbt *party_db;
 static
 int party_newid = 100;
 
+static
 int mapif_party_broken(int party_id, int flag);
+static
 int party_check_empty(struct party *p);
+static
 int mapif_parse_PartyLeave(int fd, int party_id, int account_id);
 
 // パーティデータの文字列への変換

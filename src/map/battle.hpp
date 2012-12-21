@@ -29,22 +29,10 @@ struct block_list;
 struct Damage battle_calc_attack(int attack_type,
         struct block_list *bl, struct block_list *target,
         SkillID skill_num, int skill_lv, int flag);
-struct Damage battle_calc_weapon_attack(
-        struct block_list *bl, struct block_list *target,
-        SkillID skill_num, int skill_lv, int flag);
-struct Damage battle_calc_magic_attack(
-        struct block_list *bl, struct block_list *target,
-        SkillID skill_num, int skill_lv, int flag);
-struct Damage battle_calc_misc_attack(
-        struct block_list *bl, struct block_list *target,
-        SkillID skill_num, int skill_lv, int flag);
 
 // 属性修正計算
 int battle_attr_fix(int damage, int atk_elem, int def_elem);
 
-// ダメージ最終計算
-int battle_calc_damage(struct block_list *src, struct block_list *bl,
-        int damage, int div_, SkillID skill_num, int skill_lv, int flag);
 enum
 {                               // 最終計算のフラグ
     BF_WEAPON = 0x0001,
@@ -60,8 +48,6 @@ enum
 };
 
 // 実際にHPを増減
-int battle_delay_damage(unsigned int tick, struct block_list *src,
-                          struct block_list *target, int damage, int flag);
 int battle_damage(struct block_list *bl, struct block_list *target,
                     int damage, int flag);
 int battle_heal(struct block_list *bl, struct block_list *target, int hp,
@@ -75,9 +61,6 @@ int battle_stopwalking(struct block_list *bl, int type);
 int battle_weapon_attack(struct block_list *bl, struct block_list *target,
                            unsigned int tick, int flag);
 
-// 各種パラメータを得る
-int battle_counttargeted(struct block_list *bl, struct block_list *src,
-                           int target_lv);
 int battle_is_unarmed(struct block_list *bl);
 int battle_get_class(struct block_list *bl);
 int battle_get_dir(struct block_list *bl);
@@ -91,28 +74,18 @@ int battle_get_vit(struct block_list *bl);
 int battle_get_int(struct block_list *bl);
 int battle_get_dex(struct block_list *bl);
 int battle_get_luk(struct block_list *bl);
-int battle_get_hit(struct block_list *bl);
-int battle_get_flee(struct block_list *bl);
 int battle_get_def(struct block_list *bl);
 int battle_get_mdef(struct block_list *bl);
-int battle_get_flee2(struct block_list *bl);
 int battle_get_def2(struct block_list *bl);
 int battle_get_mdef2(struct block_list *bl);
-int battle_get_baseatk(struct block_list *bl);
-int battle_get_atk(struct block_list *bl);
-int battle_get_atk2(struct block_list *bl);
 int battle_get_speed(struct block_list *bl);
 int battle_get_adelay(struct block_list *bl);
 int battle_get_amotion(struct block_list *bl);
 int battle_get_dmotion(struct block_list *bl);
 int battle_get_element(struct block_list *bl);
-int battle_get_attack_element(struct block_list *bl);
-int battle_get_attack_element2(struct block_list *bl);    //左手武器属性取得
 #define battle_get_elem_type(bl)        (battle_get_element(bl)%10)
-#define battle_get_elem_level(bl)       (battle_get_element(bl)/10/2)
 int battle_get_party_id(struct block_list *bl);
 int battle_get_race(struct block_list *bl);
-int battle_get_size(struct block_list *bl);
 int battle_get_mode(struct block_list *bl);
 int battle_get_mexp(struct block_list *bl);
 int battle_get_stat(int stat_id /* SP_VIT or similar */ ,
@@ -140,10 +113,6 @@ int battle_check_target(struct block_list *src, struct block_list *target,
                           int flag);
 int battle_check_range(struct block_list *src, struct block_list *bl,
                          int range);
-
-// 設定
-
-int battle_config_switch (const char *str);    // [Valaris]
 
 extern struct Battle_Config
 {

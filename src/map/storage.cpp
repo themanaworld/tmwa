@@ -25,6 +25,7 @@ struct dbt *storage_db;
  * 倉庫内アイテムソート
  *------------------------------------------
  */
+static
 int storage_comp_item(const void *_i1, const void *_i2)
 {
     struct item *i1 = (struct item *) _i1;
@@ -46,6 +47,7 @@ void storage_db_final(db_key_t, db_val_t data)
     free(stor);
 }
 
+static
 void sortage_sortitem(struct storage *stor)
 {
     nullpo_retv(stor);
@@ -69,21 +71,6 @@ void do_final_storage(void)    // by [MC Cameri]
         numdb_final(storage_db, storage_db_final);
 }
 
-static
-void storage_reconnect_sub(db_key_t, db_val_t data)
-{
-    //Parses storage and saves 'dirty' ones upon reconnect. [Skotlex]
-    struct storage *stor = (struct storage *) data;
-    if (stor->dirty && stor->storage_status == 0)   //Save closed storages.
-        storage_storage_save(stor->account_id, stor->dirty == 2 ? 1 : 0);
-}
-
-//Function to be invoked upon server reconnection to char. To save all 'dirty' storages [Skotlex
-void do_reconnect_storage(void)
-{
-    numdb_foreach(storage_db, storage_reconnect_sub);
-}
-
 struct storage *account2storage(int account_id)
 {
     struct storage *stor =
@@ -103,6 +90,7 @@ struct storage *account2storage2(int account_id)
     return (struct storage *) numdb_search(storage_db, account_id);
 }
 
+static
 int storage_delete(int account_id)
 {
     struct storage *stor =
@@ -122,7 +110,7 @@ int storage_delete(int account_id)
 int storage_storageopen(struct map_session_data *sd)
 {
     struct storage *stor;
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (sd->state.storage_open)
         return 1;               //Already open?
@@ -225,8 +213,8 @@ int storage_storageadd(struct map_session_data *sd, int index, int amount)
 {
     struct storage *stor;
 
-    nullpo_retr(0, sd);
-    nullpo_retr(0, stor = account2storage2(sd->status.account_id));
+    nullpo_ret(sd);
+    nullpo_ret(stor = account2storage2(sd->status.account_id));
 
     if ((stor->storage_amount > MAX_STORAGE) || !stor->storage_status)
         return 0;               // storage full / storage closed
@@ -260,8 +248,8 @@ int storage_storageget(struct map_session_data *sd, int index, int amount)
     struct storage *stor;
     int flag;
 
-    nullpo_retr(0, sd);
-    nullpo_retr(0, stor = account2storage2(sd->status.account_id));
+    nullpo_ret(sd);
+    nullpo_ret(stor = account2storage2(sd->status.account_id));
 
     if (index < 0 || index >= MAX_STORAGE)
         return 0;
@@ -281,66 +269,6 @@ int storage_storageget(struct map_session_data *sd, int index, int amount)
 }
 
 /*==========================================
- * Move an item from cart to storage.
- *------------------------------------------
- */
-int storage_storageaddfromcart(struct map_session_data *sd, int index,
-                                int amount)
-{
-    struct storage *stor;
-
-    nullpo_retr(0, sd);
-    nullpo_retr(0, stor = account2storage2(sd->status.account_id));
-
-    if (stor->storage_amount > MAX_STORAGE || !stor->storage_status)
-        return 0;               // storage full / storage closed
-
-    if (index < 0 || index >= MAX_CART)
-        return 0;
-
-    if (sd->status.cart[index].nameid <= 0)
-        return 0;               //No item there.
-
-    if (amount < 1 || amount > sd->status.cart[index].amount)
-        return 0;
-
-    if (storage_additem(sd, stor, &sd->status.cart[index], amount) == 0)
-        pc_cart_delitem(sd, index, amount, 0);
-
-    return 1;
-}
-
-/*==========================================
- * Get from Storage to the Cart
- *------------------------------------------
- */
-int storage_storagegettocart(struct map_session_data *sd, int index,
-                              int amount)
-{
-    struct storage *stor;
-
-    nullpo_retr(0, sd);
-    nullpo_retr(0, stor = account2storage2(sd->status.account_id));
-
-    if (!stor->storage_status)
-        return 0;
-
-    if (index < 0 || index >= MAX_STORAGE)
-        return 0;
-
-    if (stor->storage_[index].nameid <= 0)
-        return 0;               //Nothing there.
-
-    if (amount < 1 || amount > stor->storage_[index].amount)
-        return 0;
-
-    if (pc_cart_additem(sd, &stor->storage_[index], amount) == 0)
-        storage_delitem(sd, stor, index, amount);
-
-    return 1;
-}
-
-/*==========================================
  * Modified By Valaris to save upon closing [massdriller]
  *------------------------------------------
  */
@@ -348,8 +276,8 @@ int storage_storageclose(struct map_session_data *sd)
 {
     struct storage *stor;
 
-    nullpo_retr(0, sd);
-    nullpo_retr(0, stor = account2storage2(sd->status.account_id));
+    nullpo_ret(sd);
+    nullpo_ret(stor = account2storage2(sd->status.account_id));
 
     clif_storageclose(sd);
     if (stor->storage_status)
@@ -379,7 +307,7 @@ int storage_storage_quit(struct map_session_data *sd)
 {
     struct storage *stor;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     stor = account2storage2(sd->status.account_id);
     if (stor)
@@ -390,16 +318,6 @@ int storage_storage_quit(struct map_session_data *sd)
     }
 
     return 0;
-}
-
-void storage_storage_dirty(struct map_session_data *sd)
-{
-    struct storage *stor;
-
-    stor = account2storage2(sd->status.account_id);
-
-    if (stor)
-        stor->dirty = 1;
 }
 
 int storage_storage_save(int account_id, int final)

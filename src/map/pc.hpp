@@ -4,11 +4,6 @@
 #include "map.hpp"
 
 inline
-void pc_setdead(struct map_session_data *sd)
-{
-    sd->state.dead_sit = 1;
-}
-inline
 void pc_setsit(struct map_session_data *sd)
 {
     sd->state.dead_sit = 2;
@@ -60,11 +55,6 @@ bool pc_isinvisible(struct map_session_data *sd)
     return bool(sd->status.option & Option::HIDE);
 }
 inline
-bool pc_is50overweight(struct map_session_data *sd)
-{
-    return sd->weight*2 >= sd->max_weight;
-}
-inline
 bool pc_is90overweight(struct map_session_data *sd)
 {
     return sd->weight*10 >= sd->max_weight*9;
@@ -86,27 +76,20 @@ int pc_setnewpc(struct map_session_data *, int, int, int, int, int, int);
 int pc_authok(int, int, time_t, short tmw_version, struct mmo_charstatus *);
 int pc_authfail(int);
 
-int pc_isequip(struct map_session_data *sd, int n);
 int pc_equippoint(struct map_session_data *sd, int n);
 
 int pc_breakweapon(struct map_session_data *sd);  // weapon breaking [Valaris]
 int pc_breakarmor(struct map_session_data *sd);   // armor breaking [Valaris]
 
 int pc_checkskill(struct map_session_data *sd, SkillID skill_id);
-int pc_checkallowskill(struct map_session_data *sd);
 int pc_checkequip(struct map_session_data *sd, int pos);
 
-int pc_checkoverhp(struct map_session_data *);
-int pc_checkoversp(struct map_session_data *);
-
-int pc_can_reach(struct map_session_data *, int, int);
 int pc_walktoxy(struct map_session_data *, int, int);
 int pc_stop_walking(struct map_session_data *, int);
 int pc_movepos(struct map_session_data *, int, int);
 int pc_setpos(struct map_session_data *, const char *, int, int, int);
 int pc_setsavepoint(struct map_session_data *, const char *, int, int);
 int pc_randomwarp(struct map_session_data *sd, int type);
-int pc_memo(struct map_session_data *sd, int i);
 
 int pc_checkadditem(struct map_session_data *, int, int);
 int pc_inventoryblank(struct map_session_data *);
@@ -120,14 +103,6 @@ int pc_count_all_items(struct map_session_data *player, int item_id);
 int pc_remove_items(struct map_session_data *player, int item_id,
                       int count);
 
-int pc_cart_additem(struct map_session_data *sd, struct item *item_data,
-                      int amount);
-int pc_cart_delitem(struct map_session_data *sd, int n, int amount,
-                      int type);
-int pc_putitemtocart(struct map_session_data *sd, int idx, int amount);
-int pc_getitemfromcart(struct map_session_data *sd, int idx, int amount);
-int pc_cartitem_amount(struct map_session_data *sd, int idx, int amount);
-
 int pc_takeitem(struct map_session_data *, struct flooritem_data *);
 int pc_dropitem(struct map_session_data *, int, int);
 
@@ -139,10 +114,6 @@ int pc_bonus2(struct map_session_data *sd, int, int, int);
 int pc_bonus3(struct map_session_data *sd, int, int, int, int);
 int pc_skill(struct map_session_data *, SkillID, int, int);
 
-int pc_insert_card(struct map_session_data *sd, int idx_card,
-                     int idx_equip);
-
-int pc_item_identify(struct map_session_data *sd, int idx);
 int pc_steal_item(struct map_session_data *sd, struct block_list *bl);
 int pc_steal_coin(struct map_session_data *sd, struct block_list *bl);
 
@@ -152,10 +123,6 @@ int pc_modifysellvalue(struct map_session_data *, int);
 int pc_attack(struct map_session_data *, int, int);
 int pc_stopattack(struct map_session_data *);
 
-int pc_follow(struct map_session_data *, int);    // [MouseJstr]
-
-int pc_checkbaselevelup(struct map_session_data *sd);
-int pc_checkjoblevelup(struct map_session_data *sd);
 int pc_gainexp(struct map_session_data *, int, int);
 
 #define PC_GAINEXP_REASON_KILLING       0
@@ -165,9 +132,7 @@ int pc_gainexp_reason(struct map_session_data *, int, int, int reason);
 int pc_extract_healer_exp(struct map_session_data *, int max);    // [Fate] Used by healers: extract healer-xp from the target, return result (up to max)
 
 int pc_nextbaseexp(struct map_session_data *);
-int pc_nextbaseafter(struct map_session_data *);  // [Valaris]
 int pc_nextjobexp(struct map_session_data *);
-int pc_nextjobafter(struct map_session_data *);   // [Valaris]
 int pc_need_status_point(struct map_session_data *, int);
 int pc_statusup(struct map_session_data *, int);
 int pc_statusup2(struct map_session_data *, int, int);
@@ -191,7 +156,6 @@ int pc_setcart(struct map_session_data *sd, int type);
 int pc_setfalcon(struct map_session_data *sd);
 int pc_setriding(struct map_session_data *sd);
 int pc_changelook(struct map_session_data *, int, int);
-int pc_equiplookall(struct map_session_data *sd);
 
 int pc_readparam(struct map_session_data *, int);
 int pc_setparam(struct map_session_data *, int, int);
@@ -217,7 +181,6 @@ int pc_addeventtimercount(struct map_session_data *sd, const char *name,
 int pc_calc_pvprank(struct map_session_data *sd);
 void pc_calc_pvprank_timer(timer_id, tick_t, custom_id_t, custom_data_t);
 
-int pc_ismarried(struct map_session_data *sd);
 int pc_marriage(struct map_session_data *sd,
                   struct map_session_data *dstsd);
 int pc_divorce(struct map_session_data *sd);
@@ -250,7 +213,5 @@ enum
 // timer for night.day
 extern timer_id day_timer_tid;
 extern timer_id night_timer_tid;
-void map_day_timer(timer_id, tick_t, custom_id_t, custom_data_t);   // by [yor]
-void map_night_timer(timer_id, tick_t, custom_id_t, custom_data_t); // by [yor]
 
 #endif // PC_HPP

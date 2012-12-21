@@ -26,8 +26,6 @@ int chrif_char_ask_name(int id, char *character_name, short operation_type,
                           int second);
 int chrif_saveaccountreg2(struct map_session_data *sd);
 int chrif_reloadGMdb(void);
-int chrif_ragsrvinfo(int base_rate, int job_rate, int drop_rate);
-int chrif_char_offline(struct map_session_data *sd);
 int chrif_send_divorce(int char_id);
 
 int do_init_chrif (void);

@@ -191,7 +191,7 @@ int map_addblock(struct block_list *bl)
 {
     int m, x, y;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->prev != NULL)
     {
@@ -242,7 +242,7 @@ int map_addblock(struct block_list *bl)
 int map_delblock(struct block_list *bl)
 {
     int b;
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     // 既にblocklistから抜けている
     if (bl->prev == NULL)
@@ -287,38 +287,6 @@ int map_delblock(struct block_list *bl)
     bl->prev = NULL;
 
     return 0;
-}
-
-/*==========================================
- * 周囲のPC人数を数える (現在未使用)
- *------------------------------------------
- */
-int map_countnearpc(int m, int x, int y)
-{
-    int bx, by, c = 0;
-    struct block_list *bl = NULL;
-
-    if (map[m].users == 0)
-        return 0;
-    for (by = y / BLOCK_SIZE - AREA_SIZE / BLOCK_SIZE - 1;
-         by <= y / BLOCK_SIZE + AREA_SIZE / BLOCK_SIZE + 1; by++)
-    {
-        if (by < 0 || by >= map[m].bys)
-            continue;
-        for (bx = x / BLOCK_SIZE - AREA_SIZE / BLOCK_SIZE - 1;
-             bx <= x / BLOCK_SIZE + AREA_SIZE / BLOCK_SIZE + 1; bx++)
-        {
-            if (bx < 0 || bx >= map[m].bxs)
-                continue;
-            bl = map[m].block[bx + by * map[m].bxs];
-            for (; bl; bl = bl->next)
-            {
-                if (bl->type == BL_PC)
-                    c++;
-            }
-        }
-    }
-    return c;
 }
 
 /*==========================================
@@ -804,6 +772,7 @@ void map_clearflooritem_timer(timer_id tid, tick_t, custom_id_t id, custom_data_
  * 現状range=1でアイテムドロップ用途のみ
  *------------------------------------------
  */
+static
 int map_searchrandfreecell(int m, int x, int y, int range)
 {
     int free_cell, i, j, c;
@@ -862,7 +831,7 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
     unsigned int tick;
     struct flooritem_data *fitem = NULL;
 
-    nullpo_retr(0, item_data);
+    nullpo_ret(item_data);
 
     if ((xy = map_searchrandfreecell(m, x, y, dispersal)) < 0)
         return 0;
@@ -950,7 +919,7 @@ int map_addflooritem(struct item *item_data, int amount, int m, int x, int y,
 /*      unsigned int tick; */
 /*      struct flooritem_data *fitem=NULL; */
 
-/*      nullpo_retr(0, item_data); */
+/*      nullpo_ret(item_data); */
 
 /*      if ((xy=map_searchrandfreecell(m,x,y,1))<0) */
 /*              return 0; */
@@ -1043,7 +1012,7 @@ void map_addchariddb(int charid, const char *name)
  */
 int map_reqchariddb(struct map_session_data *sd, int charid)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     struct charid2nick *p = (struct charid2nick *)numdb_search(charid_db, charid);
     if (p != NULL)              // データベースにすでにある
@@ -1095,7 +1064,7 @@ void map_addnickdb(struct map_session_data *sd)
  */
 int map_quit(struct map_session_data *sd)
 {
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (sd->chatID)             // チャットから出る
         chat_leavechat(sd);
@@ -1350,7 +1319,7 @@ int map_addnpc(int m, struct npc_data *nd)
         map[m].npc_num++;
     }
 
-    nullpo_retr(0, nd);
+    nullpo_ret(nd);
 
     map[m].npc[i] = nd;
     nd->n = i;
@@ -1468,7 +1437,7 @@ int map_calc_dir(struct block_list *src, int x, int y)
     int dir = 0;
     int dx, dy;
 
-    nullpo_retr(0, src);
+    nullpo_ret(src);
 
     dx = x - src->x;
     dy = y - src->y;

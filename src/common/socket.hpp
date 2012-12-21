@@ -20,7 +20,6 @@
 /// Done reading
 void RFIFOSKIP(int fd, size_t len);
 /// Internal - clean up by discarding handled bytes
-// Atm this is also called in char/char.c, but that is unnecessary
 # define RFIFOFLUSH(fd) (memmove(session[fd]->rdata,RFIFOP(fd,0),RFIFOREST(fd)),\
 session[fd]->rdata_size=RFIFOREST(fd),\
 session[fd]->rdata_pos=0)

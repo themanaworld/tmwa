@@ -958,8 +958,39 @@ int rdamage;
 
 earray<struct skill_db, SkillID, MAX_SKILL_DB> skill_db;
 
-#define UNARMED_PLAYER_DAMAGE_MIN(bl)   (skill_power_bl((bl), TMW_BRAWLING) >> 4)   // +50 for 200
-#define UNARMED_PLAYER_DAMAGE_MAX(bl)   (skill_power_bl((bl), TMW_BRAWLING))    // +200 for 200
+
+static
+int skill_addtimerskill(struct block_list *src, unsigned int tick,
+        int target, int x, int y, SkillID skill_id, int skill_lv,
+        int type, int flag);
+static
+int skill_attack(int attack_type, struct block_list *src,
+        struct block_list *dsrc, struct block_list *bl,
+        SkillID skillid, int skilllv, unsigned int tick, int flag);
+static
+void skill_brandishspear_dir(struct square *tc, int dir, int are);
+static
+void skill_brandishspear_first(struct square *tc, int dir, int x, int y);
+static
+int skill_delunitgroup(struct skill_unit_group *group);
+static
+void skill_devotion_end(struct map_session_data *md,
+        struct map_session_data *sd, int target);
+static
+struct skill_unit *skill_initunit(struct skill_unit_group *group, int idx,
+        int x, int y);
+static
+struct skill_unit_group *skill_initunitgroup(struct block_list *src,
+        int count, SkillID skillid, int skilllv, int unit_id);
+static
+void skill_status_change_timer(timer_id tid, tick_t tick,
+        custom_id_t id, custom_data_t data);
+static
+int skill_unitgrouptickset_delete(struct block_list *bl, int group_id);
+static
+struct skill_unit_group_tickset *skill_unitgrouptickset_search(
+        struct block_list *bl, int group_id);
+
 
 int skill_get_hit(SkillID id)
 {
@@ -996,6 +1027,7 @@ int skill_get_range(SkillID id, int lv)
     return (lv <= 0) ? 0 : skill_db[id].range[lv - 1];
 }
 
+static
 int skill_get_hp(SkillID id, int lv)
 {
     return (lv <= 0) ? 0 : skill_db[id].hp[lv - 1];
@@ -1006,6 +1038,7 @@ int skill_get_sp(SkillID id, int lv)
     return (lv <= 0) ? 0 : skill_db[id].sp[lv - 1];
 }
 
+static
 int skill_get_zeny(SkillID id, int lv)
 {
     return (lv <= 0) ? 0 : skill_db[id].zeny[lv - 1];
@@ -1061,6 +1094,7 @@ int skill_get_blewcount(SkillID id, int lv)
     return (lv <= 0) ? 0 : skill_db[id].blewcount[lv - 1];
 }
 
+static
 int skill_get_mhp(SkillID id, int lv)
 {
     return (lv <= 0) ? 0 : skill_db[id].mhp[lv - 1];
@@ -1126,6 +1160,7 @@ int distance(int x0, int y0, int x1, int y1)
 }
 
 /* スキルユニットIDを返す（これもデータベースに入れたいな） */
+static
 int skill_get_unit_id(SkillID id, int flag)
 {
 
@@ -1286,19 +1321,19 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     int sc_def_mdef2, sc_def_vit2, sc_def_int2, sc_def_luk2;
     int sc_def_phys_shield_spell;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, bl);
+    nullpo_ret(src);
+    nullpo_ret(bl);
 
     if (skilllv < 0)
         return 0;
 
     if (src->type == BL_PC)
     {
-        nullpo_retr(0, sd = (struct map_session_data *) src);
+        nullpo_ret(sd = (struct map_session_data *) src);
     }
     else if (src->type == BL_MOB)
     {
-        nullpo_retr(0, md = (struct mob_data *) src);  //未使用？
+        nullpo_ret(md = (struct mob_data *) src);  //未使用？
     }
 
     sc_def_phys_shield_spell = 0;
@@ -1763,20 +1798,20 @@ int skill_blown(struct block_list *src, struct block_list *target, int count)
     struct mob_data *md = NULL;
     struct skill_unit *su = NULL;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, target);
+    nullpo_ret(src);
+    nullpo_ret(target);
 
     if (target->type == BL_PC)
     {
-        nullpo_retr(0, sd = (struct map_session_data *) target);
+        nullpo_ret(sd = (struct map_session_data *) target);
     }
     else if (target->type == BL_MOB)
     {
-        nullpo_retr(0, md = (struct mob_data *) target);
+        nullpo_ret(md = (struct mob_data *) target);
     }
     else if (target->type == BL_SKILL)
     {
-        nullpo_retr(0, su = (struct skill_unit *) target);
+        nullpo_ret(su = (struct skill_unit *) target);
     }
     else
         return 0;
@@ -1908,9 +1943,9 @@ int skill_attack(int attack_type, struct block_list *src,
     int type, lv, damage;
 
     rdamage = 0;
-    nullpo_retr(0, src);
-    nullpo_retr(0, dsrc);
-    nullpo_retr(0, bl);
+    nullpo_ret(src);
+    nullpo_ret(dsrc);
+    nullpo_ret(bl);
 
     sc_data = battle_get_sc_data(bl);
 
@@ -2005,7 +2040,7 @@ int skill_attack(int attack_type, struct block_list *src,
     if (src->type == BL_PC)
     {
         struct map_session_data *sd = (struct map_session_data *) src;
-        nullpo_retr(0, sd);
+        nullpo_ret(sd);
 //連打掌(MO_CHAINCOMBO)ここから
         if (skillid == MO_CHAINCOMBO)
         {
@@ -2113,7 +2148,7 @@ int skill_attack(int attack_type, struct block_list *src,
             if (bl->type == BL_PC)
             {                   //対象がPCの時
                 struct map_session_data *tsd = (struct map_session_data *) bl;
-                nullpo_retr(0, tsd);
+                nullpo_ret(tsd);
                 if (tsd->short_weapon_damage_return > 0)
                 {               //近距離攻撃跳ね返し？※
                     rdamage += damage * tsd->short_weapon_damage_return / 100;
@@ -2133,7 +2168,7 @@ int skill_attack(int attack_type, struct block_list *src,
             if (bl->type == BL_PC)
             {                   //対象がPCの時
                 struct map_session_data *tsd = (struct map_session_data *) bl;
-                nullpo_retr(0, tsd);
+                nullpo_ret(tsd);
                 if (tsd->long_weapon_damage_return > 0)
                 {               //遠距離攻撃跳ね返し？※
                     rdamage += damage * tsd->long_weapon_damage_return / 100;
@@ -2196,7 +2231,7 @@ int skill_attack(int attack_type, struct block_list *src,
 /*
         if (damage > 0 && dmg.flag&BF_SKILL && bl->type==BL_PC && pc_checkskill((struct map_session_data *)bl,RG_PLAGIARISM)){
                 struct map_session_data *tsd = (struct map_session_data *)bl;
-                nullpo_retr(0, tsd);
+                nullpo_ret(tsd);
                 if (!tsd->status.skill[skillid].id && !tsd->status.skill[skillid].id
                         && !(skillid > NPC_PIERCINGATT && skillid < NPC_SUMMONMONSTER) ){
                         //既に盗んでいるスキルがあれば該当スキルを消す
@@ -2219,7 +2254,7 @@ int skill_attack(int attack_type, struct block_list *src,
     if (bl->prev != NULL)
     {
         struct map_session_data *sd = (struct map_session_data *) bl;
-        nullpo_retr(0, sd);
+        nullpo_ret(sd);
         if (bl->type != BL_PC || (sd && !pc_isdead(sd)))
         {
             if (damage > 0)
@@ -2228,7 +2263,7 @@ int skill_attack(int attack_type, struct block_list *src,
             if (bl->type == BL_MOB && src != bl)    /* スキル使用条件のMOBスキル */
             {
                 struct mob_data *md = (struct mob_data *) bl;
-                nullpo_retr(0, md);
+                nullpo_ret(md);
                 if (battle_config.mob_changetarget_byskill == 1)
                 {
                     int target;
@@ -2249,7 +2284,7 @@ int skill_attack(int attack_type, struct block_list *src,
     {
         struct map_session_data *sd = (struct map_session_data *) src;
         int hp = 0, sp = 0;
-        nullpo_retr(0, sd);
+        nullpo_ret(sd);
         if (sd->hp_drain_rate && dmg.damage > 0
             && MRAND(100) < sd->hp_drain_rate)
         {
@@ -2681,12 +2716,12 @@ int skill_cleartimerskill(struct block_list *src)
 {
     int i;
 
-    nullpo_retr(0, src);
+    nullpo_ret(src);
 
     if (src->type == BL_PC)
     {
         struct map_session_data *sd = (struct map_session_data *) src;
-        nullpo_retr(0, sd);
+        nullpo_ret(sd);
         for (i = 0; i < MAX_SKILLTIMERSKILL; i++)
         {
             if (sd->skilltimerskill[i].timer != -1)
@@ -2699,7 +2734,7 @@ int skill_cleartimerskill(struct block_list *src)
     else if (src->type == BL_MOB)
     {
         struct mob_data *md = (struct mob_data *) src;
-        nullpo_retr(0, md);
+        nullpo_ret(md);
         for (i = 0; i < MAX_MOBSKILLTIMERSKILL; i++)
         {
             if (md->skilltimerskill[i].timer != -1)
@@ -5470,11 +5505,11 @@ int skill_castend_pos2(struct block_list *src, int x, int y,
     struct map_session_data *sd = NULL;
     int i, tmpx = 0, tmpy = 0, x1 = 0, y1 = 0;
 
-    nullpo_retr(0, src);
+    nullpo_ret(src);
 
     if (src->type == BL_PC)
     {
-        nullpo_retr(0, sd = (struct map_session_data *) src);
+        nullpo_ret(sd = (struct map_session_data *) src);
     }
     if (skillid != WZ_METEOR &&
         skillid != WZ_SIGHTRASHER &&
@@ -5683,7 +5718,7 @@ int skill_castend_map(struct map_session_data *sd, SkillID skill_num,
 {
     int x = 0, y = 0;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
     if (sd->bl.prev == NULL || pc_isdead(sd))
         return 0;
 
@@ -5794,7 +5829,7 @@ struct skill_unit_group *skill_unitsetting(struct block_list *src,
     int target = BCT_ENEMY, interval = 1000, range_ = 0;
     int dir = 0, aoe_diameter = 0; // -- aoe_diameter (moonsoul) added for sage Area Of Effect skills
 
-    nullpo_retr(0, src);
+    nullpo_ret(src);
 
     switch (skillid)
     {                           /* 設定 */
@@ -6407,24 +6442,24 @@ int skill_unit_onplace(struct skill_unit *src, struct block_list *bl,
     struct map_session_data *srcsd = NULL;
     int diff, goflag, splash_count = 0;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, bl);
+    nullpo_ret(src);
+    nullpo_ret(bl);
 
     if (bl->prev == NULL || !src->alive
         || (bl->type == BL_PC && pc_isdead((struct map_session_data *) bl)))
         return 0;
 
-    nullpo_retr(0, sg = src->group);
-    nullpo_retr(0, ss = map_id2bl(sg->src_id));
+    nullpo_ret(sg = src->group);
+    nullpo_ret(ss = map_id2bl(sg->src_id));
 
     if (ss->type == BL_PC)
-        nullpo_retr(0, srcsd = (struct map_session_data *) ss);
+        nullpo_ret(srcsd = (struct map_session_data *) ss);
     if (srcsd && srcsd->chatID)
         return 0;
 
     if (bl->type != BL_PC && bl->type != BL_MOB)
         return 0;
-    nullpo_retr(0, ts = skill_unitgrouptickset_search(bl, sg->group_id));
+    nullpo_ret(ts = skill_unitgrouptickset_search(bl, sg->group_id));
     diff = DIFF_TICK(tick, ts->tick);
     goflag = (diff > sg->interval || diff < 0);
     if (sg->skill_id == CR_GRANDCROSS && !battle_config.gx_allhit)  // 重なっていたら3HITしない
@@ -6859,9 +6894,9 @@ int skill_unit_onout(struct skill_unit *src, struct block_list *bl,
 {
     struct skill_unit_group *sg;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, bl);
-    nullpo_retr(0, sg = src->group);
+    nullpo_ret(src);
+    nullpo_ret(bl);
+    nullpo_ret(sg = src->group);
 
     if (bl->prev == NULL || !src->alive)
         return 0;
@@ -6989,9 +7024,9 @@ int skill_unit_ondelete(struct skill_unit *src, struct block_list *bl,
 {
     struct skill_unit_group *sg;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, bl);
-    nullpo_retr(0, sg = src->group);
+    nullpo_ret(src);
+    nullpo_ret(bl);
+    nullpo_ret(sg = src->group);
 
     if (bl->prev == NULL || !src->alive)
         return 0;
@@ -7046,8 +7081,8 @@ int skill_unit_onlimit(struct skill_unit *src, unsigned int)
 {
     struct skill_unit_group *sg;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, sg = src->group);
+    nullpo_ret(src);
+    nullpo_ret(sg = src->group);
 
     switch (sg->unit_id)
     {
@@ -7097,8 +7132,8 @@ int skill_unit_ondamaged(struct skill_unit *src, struct block_list *bl,
 {
     struct skill_unit_group *sg;
 
-    nullpo_retr(0, src);
-    nullpo_retr(0, sg = src->group);
+    nullpo_ret(src);
+    nullpo_ret(sg = src->group);
 
     switch (sg->unit_id)
     {
@@ -7483,7 +7518,7 @@ int skill_check_condition(struct map_session_data *sd, int type)
         lv, mhp;
     int index[10], itemid[10], amount[10];
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (battle_config.gm_skilluncond > 0
         && pc_isGM(sd) >= battle_config.gm_skilluncond)
@@ -7947,7 +7982,7 @@ int skill_castfix(struct block_list *bl, int time)
     SkillID skill;
     int lv, castnodex;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->type == BL_MOB)
     {                           // Crash fix [Valaris]
@@ -8010,7 +8045,7 @@ int skill_delayfix(struct block_list *bl, int time)
 {
     eptr<struct status_change, StatusChange> sc_data;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     sc_data = battle_get_sc_data(bl);
     if (time <= 0)
@@ -8052,7 +8087,7 @@ int skill_use_id(struct map_session_data *sd, int target_id,
     eptr<struct status_change, StatusChange> sc_data;
     tick = gettick();
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if ((bl = map_id2bl(target_id)) == NULL)
     {
@@ -8411,7 +8446,7 @@ int skill_use_pos(struct map_session_data *sd,
     unsigned int tick;
     int casttime = 0, delay = 0, skill, range;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (pc_isdead(sd))
         return 0;
@@ -8526,13 +8561,13 @@ int skill_castcancel(struct block_list *bl, int type)
 {
     int inf;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->type == BL_PC)
     {
         struct map_session_data *sd = (struct map_session_data *) bl;
         unsigned long tick = gettick();
-        nullpo_retr(0, sd);
+        nullpo_ret(sd);
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
         if (sd->skilltimer != -1)
@@ -8565,7 +8600,7 @@ int skill_castcancel(struct block_list *bl, int type)
     else if (bl->type == BL_MOB)
     {
         struct mob_data *md = (struct mob_data *) bl;
-        nullpo_retr(0, md);
+        nullpo_ret(md);
         if (md->skilltimer != -1)
         {
             if ((inf = skill_get_inf(md->skillid)) == 2 || inf == 32)
@@ -8819,61 +8854,6 @@ void skill_devotion_end(struct map_session_data *md,
 }
 
 /*==========================================
- * オートスペル
- *------------------------------------------
- */
-int skill_autospell(struct map_session_data *sd, SkillID skillid)
-{
-    int skilllv;
-    int maxlv = 1, lv;
-
-    nullpo_retr(0, sd);
-
-    skilllv = pc_checkskill(sd, SA_AUTOSPELL);
-
-    if (skillid == MG_NAPALMBEAT)
-        maxlv = 3;
-    else if (skillid == MG_COLDBOLT || skillid == MG_FIREBOLT
-             || skillid == MG_LIGHTNINGBOLT)
-    {
-        if (skilllv == 2)
-            maxlv = 1;
-        else if (skilllv == 3)
-            maxlv = 2;
-        else if (skilllv >= 4)
-            maxlv = 3;
-    }
-    else if (skillid == MG_SOULSTRIKE)
-    {
-        if (skilllv == 5)
-            maxlv = 1;
-        else if (skilllv == 6)
-            maxlv = 2;
-        else if (skilllv >= 7)
-            maxlv = 3;
-    }
-    else if (skillid == MG_FIREBALL)
-    {
-        if (skilllv == 8)
-            maxlv = 1;
-        else if (skilllv >= 9)
-            maxlv = 2;
-    }
-    else if (skillid == MG_FROSTDIVER)
-        maxlv = 1;
-    else
-        return 0;
-
-    if (maxlv > (lv = pc_checkskill(sd, skillid)))
-        maxlv = lv;
-
-    skill_status_change_start(&sd->bl, SC_AUTOSPELL,
-            skilllv, uint16_t(skillid), maxlv, 0,
-                               skill_get_time(SA_AUTOSPELL, skilllv), 0);
-    return 0;
-}
-
-/*==========================================
  * ギャングスターパラダイス判定処理(foreachinarea)
  *------------------------------------------
  */
@@ -8923,7 +8903,7 @@ int skill_gangsterparadise(struct map_session_data *sd, int type)
     int range = 1;
     int c = 0;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
 
     if (pc_checkskill(sd, RG_GANGSTER) <= 0)
         return 0;
@@ -9182,7 +9162,7 @@ int skill_status_change_active(struct block_list *bl, StatusChange type)
 {
     eptr<struct status_change, StatusChange> sc_data;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
     if (bl->type != BL_PC && bl->type != BL_MOB)
     {
         if (battle_config.error_log)
@@ -9207,7 +9187,7 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
     Opt2 *opt2;
     Opt3 *opt3;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
     if (bl->type != BL_PC && bl->type != BL_MOB)
     {
         if (battle_config.error_log)
@@ -9217,11 +9197,11 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
-    nullpo_retr(0, sc_count = battle_get_sc_count(bl));
-    nullpo_retr(0, option = battle_get_option(bl));
-    nullpo_retr(0, opt1 = battle_get_opt1(bl));
-    nullpo_retr(0, opt2 = battle_get_opt2(bl));
-    nullpo_retr(0, opt3 = battle_get_opt3(bl));
+    nullpo_ret(sc_count = battle_get_sc_count(bl));
+    nullpo_ret(option = battle_get_option(bl));
+    nullpo_ret(opt1 = battle_get_opt1(bl));
+    nullpo_ret(opt2 = battle_get_opt2(bl));
+    nullpo_ret(opt3 = battle_get_opt3(bl));
 
     if ((*sc_count) > 0 && sc_data[type].timer != -1
         && (sc_data[type].timer == tid || tid == -1))
@@ -9527,7 +9507,7 @@ int skill_update_heal_animation(struct map_session_data *sd)
 {
     const Opt2 mask = Opt2::_heal;
 
-    nullpo_retr(0, sd);
+    nullpo_ret(sd);
     bool was_active = bool(sd->opt2 & mask);
     bool is_active = sd->quick_regeneration_hp.amount > 0;
 
@@ -10004,7 +9984,7 @@ int skill_encchant_eremental_end(struct block_list *bl, StatusChange type)
 {
     eptr<struct status_change, StatusChange> sc_data;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
@@ -10052,17 +10032,17 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         0, race, mode, elem, undead_flag;
     int scdef = 0;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
     if (bl->type == BL_SKILL)
         return 0;
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
-    nullpo_retr(0, sc_count = battle_get_sc_count(bl));
-    nullpo_retr(0, option = battle_get_option(bl));
-    nullpo_retr(0, opt1 = battle_get_opt1(bl));
-    nullpo_retr(0, opt2 = battle_get_opt2(bl));
-    nullpo_retr(0, opt3 = battle_get_opt3(bl));
+    nullpo_ret(sc_count = battle_get_sc_count(bl));
+    nullpo_ret(option = battle_get_option(bl));
+    nullpo_ret(opt1 = battle_get_opt1(bl));
+    nullpo_ret(opt2 = battle_get_opt2(bl));
+    nullpo_ret(opt3 = battle_get_opt3(bl));
 
     race = battle_get_race(bl);
     mode = battle_get_mode(bl);
@@ -10917,15 +10897,15 @@ int skill_status_change_clear(struct block_list *bl, int type)
     Opt2 *opt2;
     Opt3 *opt3;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
         return 0;
-    nullpo_retr(0, sc_count = battle_get_sc_count(bl));
-    nullpo_retr(0, option = battle_get_option(bl));
-    nullpo_retr(0, opt1 = battle_get_opt1(bl));
-    nullpo_retr(0, opt2 = battle_get_opt2(bl));
-    nullpo_retr(0, opt3 = battle_get_opt3(bl));
+    nullpo_ret(sc_count = battle_get_sc_count(bl));
+    nullpo_ret(option = battle_get_option(bl));
+    nullpo_ret(opt1 = battle_get_opt1(bl));
+    nullpo_ret(opt2 = battle_get_opt2(bl));
+    nullpo_ret(opt3 = battle_get_opt3(bl));
 
     if (*sc_count == 0)
         return 0;
@@ -10967,7 +10947,7 @@ int skill_check_cloaking(struct block_list *bl)
     static int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1 };
     int end = 1, i;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (pc_checkskill(sd, AS_CLOAKING) > 2)
         return 0;
@@ -11001,6 +10981,7 @@ int skill_check_cloaking(struct block_list *bl)
  * 戻り ダンスじゃない=0 合奏=2 それ以外のダンス=1
  *------------------------------------------
  */
+static
 int skill_is_danceskill(SkillID id)
 {
     switch (id)
@@ -11139,10 +11120,10 @@ int skill_delunit(struct skill_unit *unit)
     struct skill_unit_group *group;
     int range;
 
-    nullpo_retr(0, unit);
+    nullpo_ret(unit);
     if (!unit->alive)
         return 0;
-    nullpo_retr(0, group = unit->group);
+    nullpo_ret(group = unit->group);
 
     /* onlimitイベント呼び出し */
     skill_unit_onlimit(unit, gettick());
@@ -11284,7 +11265,7 @@ int skill_delunitgroup(struct skill_unit_group *group)
     struct block_list *src;
     int i;
 
-    nullpo_retr(0, group);
+    nullpo_ret(group);
     if (group->unit_count <= 0)
         return 0;
 
@@ -11325,7 +11306,7 @@ int skill_clear_unitgroup(struct block_list *src)
     struct skill_unit_group *group = NULL;
     int maxsug = 0;
 
-    nullpo_retr(0, src);
+    nullpo_ret(src);
 
     if (src->type == BL_PC)
     {
@@ -11357,7 +11338,7 @@ struct skill_unit_group_tickset *skill_unitgrouptickset_search(
     int i, j = 0, k, s = group_id % MAX_SKILLUNITGROUPTICKSET;
     struct skill_unit_group_tickset *set = NULL;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->type == BL_PC)
     {
@@ -11388,7 +11369,7 @@ int skill_unitgrouptickset_delete(struct block_list *bl, int group_id)
     int i, s = group_id % MAX_SKILLUNITGROUPTICKSET;
     struct skill_unit_group_tickset *set = NULL, *ts;
 
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->type == BL_PC)
     {
@@ -11593,7 +11574,7 @@ void skill_unit_out_all_sub(struct block_list *bl,
  */
 int skill_unit_out_all(struct block_list *bl, unsigned int tick, int range)
 {
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->prev == NULL)
         return 0;
@@ -11646,7 +11627,7 @@ void skill_unit_move_sub(struct block_list *bl,
  */
 int skill_unit_move(struct block_list *bl, unsigned int tick, int range)
 {
-    nullpo_retr(0, bl);
+    nullpo_ret(bl);
 
     if (bl->prev == NULL)
         return 0;
@@ -11699,7 +11680,7 @@ void skill_unit_move_unit_group_sub(struct block_list *bl,
 int skill_unit_move_unit_group(struct skill_unit_group *group, int m, int dx,
                                 int dy)
 {
-    nullpo_retr(0, group);
+    nullpo_ret(group);
 
     if (group->unit_count <= 0)
         return 0;

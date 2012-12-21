@@ -27,6 +27,14 @@
 #include "storage.hpp"
 #include "trade.hpp"
 
+static
+void tmw_AutoBan(struct map_session_data *sd, const char *reason, int length);
+static
+int tmw_CheckChatLameness(struct map_session_data *sd, const char *message);
+static
+int tmw_ShorterStrlen(const char *s1, const char *s2);
+
+
 int tmw_CheckChatSpam(struct map_session_data *sd, const char *message)
 {
     nullpo_retr(1, sd);
