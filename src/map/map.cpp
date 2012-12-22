@@ -994,16 +994,9 @@ void map_addchariddb(int charid, const char *name)
     else
         numdb_erase(charid_db, charid);
 
-    int req = p->req_id;
     memcpy(p->nick, name, 24);
     p->req_id = 0;
     numdb_insert(charid_db, charid, p);
-    if (req)
-    {                           // 返信待ちがあれば返信
-        struct map_session_data *sd = map_id2sd(req);
-        if (sd != NULL)
-            clif_solved_charname(sd, charid);
-    }
 }
 
 /*==========================================

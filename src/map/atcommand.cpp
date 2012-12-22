@@ -1685,13 +1685,6 @@ int atcommand_option(const int fd, struct map_session_data *sd,
 
     sd->opt1 = param1;
     sd->opt2 = param2;
-    if (!bool(sd->status.option & Option::CART_MASK)
-        && bool(param3 & Option::CART_MASK))
-    {
-        clif_cart_itemlist(sd);
-        clif_cart_equiplist(sd);
-        clif_updatestatus(sd, SP_CARTINFO);
-    }
     sd->status.option = param3;
     // fix pecopeco display
     if (sd->status.pc_class == 13 || sd->status.pc_class == 21
@@ -1888,12 +1881,8 @@ int atcommand_heal(const int fd, struct map_session_data *sd,
             sp = 1 - sd->status.sp;
     }
 
-    if (hp > 0)                 // display like heal
-        clif_heal(fd, SP_HP, hp);
-    else if (hp < 0)            // display like damage
+    if (hp < 0)            // display like damage
         clif_damage(&sd->bl, &sd->bl, gettick(), 0, 0, -hp, 0, 4, 0);
-    if (sp > 0)                 // no display when we lost SP
-        clif_heal(fd, SP_SP, sp);
 
     if (hp != 0 || sp != 0)
     {
@@ -2228,7 +2217,6 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
     if (map[sd->bl.m].flag.pvp)
     {
         map[sd->bl.m].flag.pvp = 0;
-        clif_send0199(sd->bl.m, 0);
         for (i = 0; i < fd_max; i++)
         {                       //人数分ループ
             if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
@@ -2236,7 +2224,6 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
             {
                 if (sd->bl.m == pl_sd->bl.m)
                 {
-                    clif_pvpset(pl_sd, 0, 0, 2);
                     if (pl_sd->pvp_timer != -1)
                     {
                         delete_timer(pl_sd->pvp_timer,
@@ -2276,7 +2263,6 @@ int atcommand_pvpon(const int fd, struct map_session_data *sd,
     if (!map[sd->bl.m].flag.pvp && !map[sd->bl.m].flag.nopvp)
     {
         map[sd->bl.m].flag.pvp = 1;
-        clif_send0199(sd->bl.m, 1);
         for (i = 0; i < fd_max; i++)
         {
             if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
@@ -2960,7 +2946,6 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
         tmp_item.card[0] = 0x00ff;
         tmp_item.card[1] = ((star * 5) << 8) + attribute;
         *((unsigned long *) (&tmp_item.card[2])) = sd->char_id;
-        clif_produceeffect(sd, 0, item_id);    // 製造エフェクトパケット
         clif_misceffect(&sd->bl, 3);   // 他人にも成功を通知
         if ((flag = pc_additem(sd, &tmp_item, 1)))
             clif_additem(sd, 0, 0, flag);
@@ -3042,7 +3027,6 @@ int atcommand_memo(const int fd, struct map_session_data *sd,
                     24);
             sd->status.memo_point[position].x = sd->bl.x;
             sd->status.memo_point[position].y = sd->bl.y;
-            clif_skill_memo(sd, 0);
             if (pc_checkskill(sd, AL_WARP) <= (position + 1))
                 clif_displaymessage(fd, "Note: you don't have the 'Warp' skill level to use it.");
             atcommand_memo_sub(sd);
@@ -7608,7 +7592,6 @@ int atcommand_summon(const int, struct map_session_data *sd,
         md->deletetimer = add_timer(tick + 60000, mob_timer_delete, id, 0);
         clif_misceffect(&md->bl, 344);
     }
-    clif_skill_poseffect(&sd->bl, AM_CALLHOMUN, 1, x, y, tick);
 
     return 0;
 }

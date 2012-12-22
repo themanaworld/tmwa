@@ -268,7 +268,6 @@ void pc_spiritball_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
     sd->spiritball--;
     if (sd->spiritball < 0)
         sd->spiritball = 0;
-    clif_spiritball(sd);
 }
 
 int pc_addspiritball(struct map_session_data *sd, int interval, int max)
@@ -300,12 +299,11 @@ int pc_addspiritball(struct map_session_data *sd, int interval, int max)
 
     sd->spirit_timer[sd->spiritball - 1] =
         add_timer(gettick() + interval, pc_spiritball_timer, sd->bl.id, 0);
-    clif_spiritball(sd);
 
     return 0;
 }
 
-int pc_delspiritball(struct map_session_data *sd, int count, int type)
+int pc_delspiritball(struct map_session_data *sd, int count, int)
 {
     int i;
 
@@ -336,9 +334,6 @@ int pc_delspiritball(struct map_session_data *sd, int count, int type)
         sd->spirit_timer[i - count] = sd->spirit_timer[i];
         sd->spirit_timer[i] = -1;
     }
-
-    if (!type)
-        clif_spiritball(sd);
 
     return 0;
 }
@@ -3656,7 +3651,6 @@ int pc_isUseitem(struct map_session_data *sd, int n)
     if (nameid == 601
         && (map[sd->bl.m].flag.noteleport))
     {
-        clif_skill_teleportmessage(sd, 0);
         return 0;
     }
 
@@ -3708,7 +3702,7 @@ int pc_useitem(struct map_session_data *sd, int n)
  *------------------------------------------
  */
 static
-int pc_cart_delitem(struct map_session_data *sd, int n, int amount, int type)
+int pc_cart_delitem(struct map_session_data *sd, int n, int amount, int)
 {
     nullpo_retr(1, sd);
 
@@ -3721,11 +3715,6 @@ int pc_cart_delitem(struct map_session_data *sd, int n, int amount, int type)
     {
         memset(&sd->status.cart[n], 0, sizeof(sd->status.cart[0]));
         sd->cart_num--;
-    }
-    if (!type)
-    {
-        clif_cart_delitem(sd, n, amount);
-        clif_updatestatus(sd, SP_CARTINFO);
     }
 
     return 0;
@@ -6363,8 +6352,6 @@ int pc_jobchange(struct map_session_data *sd, int job, int upper)
     if (sd->status.clothes_color > 0)
         clif_changelook(&sd->bl, LOOK_CLOTHES_COLOR,
                          sd->status.clothes_color);
-    if (battle_config.muting_players && sd->status.manner < 0)
-        clif_changestatus(&sd->bl, SP_MANNER, sd->status.manner);
 
     pc_calcstatus(sd, 0);
     pc_checkallowskill(sd);
@@ -6474,9 +6461,6 @@ int pc_setcart(struct map_session_data *sd, int type)
         if (!pc_iscarton(sd))
         {                       // カートを付けていない
             pc_setoption(sd, cart[type]);
-            clif_cart_itemlist(sd);
-            clif_cart_equiplist(sd);
-            clif_updatestatus(sd, SP_CARTINFO);
             clif_status_change(&sd->bl, StatusChange::CART, 0);
         }
         else
@@ -7430,13 +7414,10 @@ void pc_calc_pvprank_sub(struct block_list *bl, struct map_session_data *sd2)
  */
 int pc_calc_pvprank(struct map_session_data *sd)
 {
-    int old;
     struct map_data *m;
 
     nullpo_ret(sd);
     nullpo_ret(m = &map[sd->bl.m]);
-
-    old = sd->pvp_rank;
 
     if (!(m->flag.pvp))
         return 0;
@@ -7444,8 +7425,6 @@ int pc_calc_pvprank(struct map_session_data *sd)
     map_foreachinarea(std::bind(pc_calc_pvprank_sub, ph::_1, sd),
             sd->bl.m, 0, 0, m->xs, m->ys,
             BL_PC);
-    if (old != sd->pvp_rank || sd->pvp_lastusers != m->users)
-        clif_pvpset(sd, sd->pvp_rank, sd->pvp_lastusers = m->users, 0);
     return sd->pvp_rank;
 }
 
@@ -7690,7 +7669,6 @@ int pc_natural_heal_hp(struct map_session_data *sd)
                     sd->status.hp = sd->status.max_hp;
                     sd->hp_sub = sd->inchealhptick = 0;
                 }
-                clif_heal(sd->fd, SP_HP, bonus);
             }
         }
     }
@@ -7715,7 +7693,6 @@ int pc_natural_heal_hp(struct map_session_data *sd)
                     sd->status.hp = sd->status.max_hp;
                     sd->hp_sub = sd->inchealhptick = 0;
                 }
-                clif_heal(sd->fd, SP_HP, bonus);
             }
         }
     }
@@ -7795,7 +7772,6 @@ int pc_natural_heal_sp(struct map_session_data *sd)
                     sd->status.sp = sd->status.max_sp;
                     sd->sp_sub = sd->inchealsptick = 0;
                 }
-                clif_heal(sd->fd, SP_SP, bonus);
             }
         }
     }
@@ -7843,7 +7819,6 @@ int pc_spirit_heal_hp(struct map_session_data *sd, int)
                         bonus_hp = sd->status.max_hp - sd->status.hp;
                         sd->status.hp = sd->status.max_hp;
                     }
-                    clif_heal(sd->fd, SP_HP, bonus_hp);
                     sd->inchealspirithptick = 0;
                 }
             }
@@ -7894,7 +7869,6 @@ int pc_spirit_heal_sp(struct map_session_data *sd, int)
                         bonus_sp = sd->status.max_sp - sd->status.sp;
                         sd->status.sp = sd->status.max_sp;
                     }
-                    clif_heal(sd->fd, SP_SP, bonus_sp);
                     sd->inchealspiritsptick = 0;
                 }
             }

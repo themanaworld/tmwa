@@ -3579,7 +3579,6 @@ void builtin_pvpon(ScriptState *st)
     if (m >= 0 && !map[m].flag.pvp && !map[m].flag.nopvp)
     {
         map[m].flag.pvp = 1;
-        clif_send0199(m, 1);
 
         if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
             return;
@@ -3615,7 +3614,6 @@ void builtin_pvpoff(ScriptState *st)
     if (m >= 0 && map[m].flag.pvp && map[m].flag.nopvp)
     {
         map[m].flag.pvp = 0;
-        clif_send0199(m, 0);
 
         if (battle_config.pk_mode)  // disable ranking options if pk_mode is on [Valaris]
             return;
@@ -3627,7 +3625,6 @@ void builtin_pvpoff(ScriptState *st)
             {
                 if (m == pl_sd->bl.m)
                 {
-                    clif_pvpset(pl_sd, 0, 0, 2);
                     if (pl_sd->pvp_timer != -1)
                     {
                         delete_timer(pl_sd->pvp_timer,

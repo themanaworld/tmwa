@@ -1719,8 +1719,6 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
             if (MRAND(100) < sc_data[SC_AUTOGUARD].val2)
             {
                 damage = 0;
-                clif_skill_nodamage(bl, bl, CR_AUTOGUARD,
-                                     sc_data[SC_AUTOGUARD].val1, 1);
                 if (sd)
                     sd->canmove_tick = gettick() + 300;
                 else if (md)
@@ -1733,11 +1731,7 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
             && flag & BF_WEAPON)
         {
             if (MRAND(100) < sc_data[SC_PARRYING].val2)
-            {
                 damage = 0;
-                clif_skill_nodamage(bl, bl, LK_PARRYING,
-                                     sc_data[SC_PARRYING].val1, 1);
-            }
         }
         // リジェクトソード
         if (sc_data[SC_REJECTSWORD].timer != -1 && damage > 0
@@ -1752,10 +1746,6 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
             {                   //反射確率は10+5*Lv
                 damage = damage * 50 / 100;
                 battle_damage(bl, src, damage, 0);
-                //ダメージを与えたのは良いんだが、ここからどうして表示するんだかわかんねぇ
-                //エフェクトもこれでいいのかわかんねぇ
-                clif_skill_nodamage(bl, bl, ST_REJECTSWORD,
-                                     sc_data[SC_REJECTSWORD].val1, 1);
                 if ((--sc_data[SC_REJECTSWORD].val2) <= 0)
                     skill_status_change_end(bl, SC_REJECTSWORD, -1);
             }
@@ -4762,7 +4752,6 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
                         uint16_t(MO_TRIPLEATTACK), skilllv, 0, 0, delay, 0);
             }
             sd->attackabletime = sd->canmove_tick = tick + delay;
-            clif_combo_delay(src, delay);
             clif_skill_damage(src, target, tick, wd.amotion, wd.dmotion,
                                wd.damage, 3, MO_TRIPLEATTACK,
                                pc_checkskill(sd, MO_TRIPLEATTACK), -1);

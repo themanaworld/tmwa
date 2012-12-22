@@ -43,23 +43,12 @@ int chat_leavechat(struct map_session_data *sd)
     if (leavechar < 0)          // そのchatに所属していないらしい (バグ時のみ)
         return -1;
 
-    if (leavechar == 0 && cd->users > 1 && (*cd->owner)->type == BL_PC)
-    {
-        // 所有者だった&他に人が居る&PCのチャット
-        clif_changechatowner(cd, cd->usersd[1]);
-        clif_clearchat(cd, 0);
-    }
-
-    // 抜けるPCにも送るのでusersを減らす前に実行
-    clif_leavechat(cd, sd);
-
     cd->users--;
     pc_setchatid(sd, 0);
 
     if (cd->users == 0 && (*cd->owner)->type == BL_PC)
     {
         // 全員居なくなった&PCのチャットなので消す
-        clif_clearchat(cd, 0);
         map_delobject(cd->bl.id, BL_CHAT); // freeまでしてくれる
     }
     else
@@ -72,7 +61,6 @@ int chat_leavechat(struct map_session_data *sd)
             cd->bl.x = cd->usersd[0]->bl.x;
             cd->bl.y = cd->usersd[0]->bl.y;
         }
-        clif_dispchat(cd, 0);
     }
 
     return 0;
@@ -118,8 +106,6 @@ int chat_createnpcchat(struct npc_data *nd, int limit, int pub, int trigger,
     }
     nd->chat_id = cd->bl.id;
 
-    clif_dispchat(cd, 0);
-
     return 0;
 }
 
@@ -135,7 +121,6 @@ int chat_deletenpcchat(struct npc_data *nd)
     nullpo_ret(cd = (struct chat_data *) map_id2bl(nd->chat_id));
 
     chat_npckickall(cd);
-    clif_clearchat(cd, 0);
     map_delobject(cd->bl.id, BL_CHAT); // freeまでしてくれる
     nd->chat_id = 0;
 

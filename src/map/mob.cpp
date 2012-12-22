@@ -2680,12 +2680,10 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     /* ソウルドレイン */
     if (sd && (skill = pc_checkskill(sd, HW_SOULDRAIN)) > 0)
     {
-        clif_skill_nodamage(src, &md->bl, HW_SOULDRAIN, skill, 1);
         sp = (battle_get_lv(&md->bl)) * (65 + 15 * skill) / 100;
         if (sd->status.sp + sp > sd->status.max_sp)
             sp = sd->status.max_sp - sd->status.sp;
         sd->status.sp += sp;
-        clif_heal(sd->fd, SP_SP, sp);
     }
 
     // map外に消えた人は計算から除くので
@@ -2912,7 +2910,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
             if (mexp < 1)
                 mexp = 1;
             clif_mvp_effect(mvp_sd);   // エフェクト
-            clif_mvp_exp(mvp_sd, mexp);
             pc_gainexp(mvp_sd, mexp, 0);
             for (j = 0; j < 3; j++)
             {
@@ -2931,7 +2928,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 memset(&item, 0, sizeof(item));
                 item.nameid = mob_db[md->mob_class].mvpitem[i].nameid;
                 item.identify = !itemdb_isequip3(item.nameid);
-                clif_mvp_item(mvp_sd, item.nameid);
                 if (mvp_sd->weight * 2 > mvp_sd->max_weight)
                     map_addflooritem(&item, 1, mvp_sd->bl.m, mvp_sd->bl.x,
                                       mvp_sd->bl.y, mvp_sd, second_sd,
@@ -3017,7 +3013,6 @@ int mob_class_change(struct mob_data *md, int *value)
 
     max_hp = battle_get_max_hp(&md->bl);
     hp_rate = md->hp * 100 / max_hp;
-    clif_mob_class_change(md, mob_class);
     md->mob_class = mob_class;
     max_hp = battle_get_max_hp(&md->bl);
     if (battle_config.monster_class_change_full_recover == 1)
@@ -3299,9 +3294,6 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
             md->bl.type = BL_MOB;
             map_addiddb(&md->bl);
             mob_spawn(md->bl.id);
-            clif_skill_nodamage(&md->bl, &md->bl,
-                                 (flag) ? NPC_SUMMONSLAVE : NPC_SUMMONMONSTER,
-                                 a, 1);
 
             if (flag)
                 md->master_id = md2->bl.id;
@@ -3703,21 +3695,6 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
              target->id, uint16_t(skill_id), skill_lv,
              casttime, md->mob_class);
 
-    if (casttime > 0 || forcecast)
-    {                           // 詠唱が必要
-//      struct mob_data *md2;
-        clif_skillcasting(&md->bl,
-                           md->bl.id, target->id, 0, 0, skill_id, casttime);
-
-        // 詠唱反応モンスター
-/*              if ( target->type==BL_MOB && mob_db[(md2= (struct mob_data *)target)->mob_class].mode&0x10 &&
-                        md2->state.state!=MS_ATTACK){
-                                md2->target_id=md->bl.id;
-                                md->state.targettype = ATTACKABLE;
-                                md2->min_chase=13;
-                }*/
-    }
-
     if (casttime <= 0)          // 詠唱の無いものはキャンセルされない
         md->state.skillcastcancel = 0;
 
@@ -3804,11 +3781,6 @@ int mobskill_use_pos(struct mob_data *md,
         printf("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n",
              skill_x, skill_y, uint16_t(skill_id), skill_lv,
              casttime, md->mob_class);
-
-    if (casttime > 0)           // A cast time is required.
-        clif_skillcasting(&md->bl,
-                           md->bl.id, 0, skill_x, skill_y, skill_id,
-                           casttime);
 
     if (casttime <= 0)          // A skill without a cast time wont be cancelled.
         md->state.skillcastcancel = 0;
