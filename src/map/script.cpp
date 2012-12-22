@@ -1357,9 +1357,11 @@ void builtin_callfunc(ScriptState *st)
 
     if ((scr = (const ScriptCode *)strdb_search(script_get_userfunc_db(), str)))
     {
-        int i, j;
-        for (i = st->start + 3, j = 0; i < st->end; i++, j++)
+        int j = 0;
+#if 0
+        for (int i = st->start + 3; i < st->end; i++, j++)
             push_copy(st->stack, i);
+#endif
 
         push_val(st->stack, ScriptCode::INT, j); // 引数の数をプッシュ
         push_val(st->stack, ScriptCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
@@ -1386,9 +1388,11 @@ static
 void builtin_callsub(ScriptState *st)
 {
     int pos_ = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    int i, j;
-    for (i = st->start + 3, j = 0; i < st->end; i++, j++)
+    int j = 0;
+#if 0
+    for (int i = st->start + 3; i < st->end; i++, j++)
         push_copy(st->stack, i);
+#endif
 
     push_val(st->stack, ScriptCode::INT, j); // 引数の数をプッシュ
     push_val(st->stack, ScriptCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
@@ -1401,43 +1405,18 @@ void builtin_callsub(ScriptState *st)
 }
 
 /*==========================================
- * 引数の所得
- *------------------------------------------
- */
-static
-void builtin_getarg(ScriptState *st)
-{
-    int num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    int max, stsp;
-    if (st->defsp < 4
-        || st->stack->stack_data[st->defsp - 1].type != ScriptCode::RETINFO)
-    {
-        printf("script:getarg without callfunc or callsub!\n");
-        st->state = END;
-        return;
-    }
-    max = conv_num(st, &(st->stack->stack_data[st->defsp - 4]));
-    stsp = st->defsp - max - 4;
-    if (num >= max)
-    {
-        printf("script:getarg arg1 (%d) out of range (%d) !\n", num, max);
-        st->state = END;
-        return;
-    }
-    push_copy(st->stack, stsp + num);
-}
-
-/*==========================================
  * サブルーチン/ユーザー定義関数の終了
  *------------------------------------------
  */
 static
 void builtin_return(ScriptState *st)
 {
+#if 0
     if (st->end > st->start + 2)
     {                           // 戻り値有り
         push_copy(st->stack, st->start + 2);
     }
+#endif
     st->state = RETFUNC;
 }
 
@@ -1730,24 +1709,6 @@ void builtin_percentheal(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_jobchange(ScriptState *st)
-{
-    int job, upper = -1;
-
-    job = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    if (st->end > st->start + 3)
-        upper = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-
-    if ((job >= 0 && job < MAX_PC_CLASS))
-        pc_jobchange(script_rid2sd(st), job, upper);
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
 void builtin_input(ScriptState *st)
 {
     struct map_session_data *sd = NULL;
@@ -1937,42 +1898,6 @@ void builtin_cleararray(ScriptState *st)
 }
 
 /*==========================================
- * 配列変数コピー
- *------------------------------------------
- */
-static
-void builtin_copyarray(ScriptState *st)
-{
-    struct map_session_data *sd = NULL;
-    int num = st->stack->stack_data[st->start + 2].u.num;
-    char *name = str_buf + str_data[num & 0x00ffffff].str;
-    char prefix = *name;
-    char postfix = name[strlen(name) - 1];
-    int num2 = st->stack->stack_data[st->start + 3].u.num;
-    char *name2 = str_buf + str_data[num2 & 0x00ffffff].str;
-    char prefix2 = *name2;
-    char postfix2 = name2[strlen(name2) - 1];
-    int sz = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    int i;
-
-    if (prefix != '$' && prefix != '@' && prefix2 != '$' && prefix2 != '@')
-    {
-        printf("builtin_copyarray: illegal scope !\n");
-        return;
-    }
-    if ((postfix == '$' || postfix2 == '$') && postfix != postfix2)
-    {
-        printf("builtin_copyarray: type mismatch !\n");
-        return;
-    }
-    if (prefix != '$' || prefix2 != '$')
-        sd = script_rid2sd(st);
-
-    for (i = 0; i < sz; i++)
-        set_reg(sd, num + (i << 24), name, get_val2(st, num2 + (i << 24)));
-}
-
-/*==========================================
  * 配列変数のサイズ所得
  *------------------------------------------
  */
@@ -2004,46 +1929,6 @@ void builtin_getarraysize(ScriptState *st)
     }
 
     push_val(st->stack, ScriptCode::INT, getarraysize(st, num, postfix));
-}
-
-/*==========================================
- * 配列変数から要素削除
- *------------------------------------------
- */
-static
-void builtin_deletearray(ScriptState *st)
-{
-    struct map_session_data *sd = NULL;
-    int num = st->stack->stack_data[st->start + 2].u.num;
-    char *name = str_buf + str_data[num & 0x00ffffff].str;
-    char prefix = *name;
-    char postfix = name[strlen(name) - 1];
-    int count = 1;
-    int i, sz = getarraysize(st, num, postfix) - (num >> 24) - count + 1;
-
-    if ((st->end > st->start + 3))
-        count = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-
-    if (prefix != '$' && prefix != '@')
-    {
-        printf("builtin_deletearray: illegal scope !\n");
-        return;
-    }
-    if (prefix != '$')
-        sd = script_rid2sd(st);
-
-    for (i = 0; i < sz; i++)
-    {
-        set_reg(sd, num + (i << 24), name,
-                 get_val2(st, num + ((i + count) << 24)));
-    }
-    for (; i < (128 - (num >> 24)); i++)
-    {
-        if (postfix != '$')
-            set_reg(sd, num + (i << 24), name, 0);
-        if (postfix == '$')
-            set_reg(sd, num + (i << 24), name, "");
-    }
 }
 
 /*==========================================
@@ -2088,58 +1973,6 @@ void builtin_setlook(ScriptState *st)
     val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
 
     pc_changelook(script_rid2sd(st), type, val);
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_cutin(ScriptState *st)
-{
-    int type;
-
-    conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    type = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-
-    clif_cutin(script_rid2sd(st),
-                st->stack->stack_data[st->start + 2].u.str, type);
-
-}
-
-/*==========================================
- * カードのイラストを表示する
- *------------------------------------------
- */
-static
-void builtin_cutincard(ScriptState *st)
-{
-    int itemid;
-
-    itemid = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-
-    clif_cutin(script_rid2sd(st), itemdb_search(itemid)->cardillustname,
-                4);
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_viewpoint(ScriptState *st)
-{
-    int type, x, y, id, color;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    x = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    y = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    id = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-    color = conv_num(st, &(st->stack->stack_data[st->start + 6]));
-
-    clif_viewpoint(script_rid2sd(st), st->oid, type, x, y, id, color);
 
 }
 
@@ -2278,94 +2111,6 @@ void builtin_getitem(ScriptState *st)
             sd = map_id2sd(conv_num(st, &(st->stack->stack_data[st->start + 5])));
         if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
             return;
-        if ((flag = pc_additem(sd, &item_tmp, amount)))
-        {
-            clif_additem(sd, 0, 0, flag);
-            map_addflooritem(&item_tmp, amount, sd->bl.m, sd->bl.x, sd->bl.y,
-                              NULL, NULL, NULL, 0);
-        }
-    }
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_getitem2(ScriptState *st)
-{
-    int nameid, amount, flag = 0;
-    int iden, ref, attr, c1, c2, c3, c4;
-    struct item item_tmp;
-    struct map_session_data *sd;
-    struct script_data *data;
-
-    sd = script_rid2sd(st);
-
-    data = &(st->stack->stack_data[st->start + 2]);
-    get_val(st, data);
-    if (data->type == ScriptCode::STR || data->type == ScriptCode::CONSTSTR)
-    {
-        const char *name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name);
-        nameid = 512;           //Apple item ID
-        if (item_data)
-            nameid = item_data->nameid;
-    }
-    else
-        nameid = conv_num(st, data);
-
-    amount = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    iden = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    ref = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-    attr = conv_num(st, &(st->stack->stack_data[st->start + 6]));
-    c1 = conv_num(st, &(st->stack->stack_data[st->start + 7]));
-    c2 = conv_num(st, &(st->stack->stack_data[st->start + 8]));
-    c3 = conv_num(st, &(st->stack->stack_data[st->start + 9]));
-    c4 = conv_num(st, &(st->stack->stack_data[st->start + 10]));
-    if (st->end > st->start + 11)   //アイテムを指定したIDに渡す
-        sd = map_id2sd(conv_num(st, &(st->stack->stack_data[st->start + 11])));
-    if (sd == NULL)             //アイテムを渡す相手がいなかったらお帰り
-        return;
-
-    if (nameid < 0)
-    {                           // ランダム
-        nameid = itemdb_searchrandomid(-nameid);
-        flag = 1;
-    }
-
-    if (nameid > 0)
-    {
-        memset(&item_tmp, 0, sizeof(item_tmp));
-        struct item_data *item_data = itemdb_search(nameid);
-        if (item_data->type == 4 || item_data->type == 5)
-        {
-            if (ref > 10)
-                ref = 10;
-        }
-        else if (item_data->type == 7)
-        {
-            iden = 1;
-            ref = 0;
-        }
-        else
-        {
-            iden = 1;
-            ref = attr = 0;
-        }
-
-        item_tmp.nameid = nameid;
-        if (!flag)
-            item_tmp.identify = iden;
-        else if (item_data->type == 4 || item_data->type == 5)
-            item_tmp.identify = 0;
-        item_tmp.refine = ref;
-        item_tmp.attribute = attr;
-        item_tmp.card[0] = c1;
-        item_tmp.card[1] = c2;
-        item_tmp.card[2] = c3;
-        item_tmp.card[3] = c4;
         if ((flag = pc_additem(sd, &item_tmp, amount)))
         {
             clif_additem(sd, 0, 0, flag);
@@ -2579,52 +2324,6 @@ char *builtin_getpartyname_sub(int party_id)
     return 0;
 }
 
-static
-void builtin_getpartyname(ScriptState *st)
-{
-    char *name;
-    int party_id;
-
-    party_id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    name = builtin_getpartyname_sub(party_id);
-    if (name != 0)
-        push_str(st->stack, ScriptCode::STR, name);
-    else
-        push_str(st->stack, ScriptCode::CONSTSTR, "null");
-
-}
-
-/*==========================================
- *指定IDのPT人数とメンバーID取得
- *------------------------------------------
- */
-static
-void builtin_getpartymember(ScriptState *st)
-{
-    struct party *p;
-    int i, j = 0;
-
-    p = NULL;
-    p = party_search(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-
-    if (p != NULL)
-    {
-        for (i = 0; i < MAX_PARTY; i++)
-        {
-            if (p->member[i].account_id)
-            {
-//              printf("name:%s %d\n",p->member[i].name,i);
-                mapreg_setregstr(add_str("$@partymembername$") + (i << 24),
-                                  p->member[i].name);
-                j++;
-            }
-        }
-    }
-    mapreg_setreg(add_str("$@partymembercount"), j);
-
-}
-
-
 /*==========================================
  * キャラクタの名前
  *------------------------------------------
@@ -2741,273 +2440,6 @@ void builtin_getequipname(ScriptState *st)
 }
 
 /*==========================================
- * getbrokenid [Valaris]
- *------------------------------------------
- */
-static
-void builtin_getbrokenid(ScriptState *st)
-{
-    int i, num, id = 0, brokencounter = 0;
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (sd->status.inventory[i].broken == 1)
-        {
-            brokencounter++;
-            if (num == brokencounter)
-            {
-                id = sd->status.inventory[i].nameid;
-                break;
-            }
-        }
-    }
-
-    push_val(st->stack, ScriptCode::INT, id);
-
-}
-
-/*==========================================
- * repair [Valaris]
- *------------------------------------------
- */
-static
-void builtin_repair(ScriptState *st)
-{
-    int i, num;
-    int repaircounter = 0;
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (sd->status.inventory[i].broken == 1)
-        {
-            repaircounter++;
-            if (num == repaircounter)
-            {
-                sd->status.inventory[i].broken = 0;
-                clif_equiplist(sd);
-                clif_produceeffect(sd, 0, sd->status.inventory[i].nameid);
-                clif_misceffect(&sd->bl, 3);
-                clif_displaymessage(sd->fd, "Item has been repaired.");
-                break;
-            }
-        }
-    }
-
-}
-
-/*==========================================
- * 装備チェック
- *------------------------------------------
- */
-static
-void builtin_getequipisequiped(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
-    {
-        push_val(st->stack, ScriptCode::INT, 1);
-    }
-    else
-    {
-        push_val(st->stack, ScriptCode::INT, 0);
-    }
-
-}
-
-/*==========================================
- * 装備品精錬可能チェック
- *------------------------------------------
- */
-static
-void builtin_getequipisenableref(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0 && num < 7 && sd->inventory_data[i]
-        && (num != 1 || sd->inventory_data[i]->def > 1
-            || (sd->inventory_data[i]->def == 1
-                && sd->inventory_data[i]->equip_script == NULL)
-            || (sd->inventory_data[i]->def <= 0
-                && sd->inventory_data[i]->equip_script != NULL)))
-    {
-        push_val(st->stack, ScriptCode::INT, 1);
-    }
-    else
-    {
-        push_val(st->stack, ScriptCode::INT, 0);
-    }
-
-}
-
-/*==========================================
- * 装備品鑑定チェック
- *------------------------------------------
- */
-static
-void builtin_getequipisidentify(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
-        push_val(st->stack, ScriptCode::INT, sd->status.inventory[i].identify);
-    else
-        push_val(st->stack, ScriptCode::INT, 0);
-
-}
-
-/*==========================================
- * 装備品精錬度
- *------------------------------------------
- */
-static
-void builtin_getequiprefinerycnt(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
-        push_val(st->stack, ScriptCode::INT, sd->status.inventory[i].refine);
-    else
-        push_val(st->stack, ScriptCode::INT, 0);
-
-}
-
-/*==========================================
- * 装備品武器LV
- *------------------------------------------
- */
-static
-void builtin_getequipweaponlv(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0 && sd->inventory_data[i])
-        push_val(st->stack, ScriptCode::INT, sd->inventory_data[i]->wlv);
-    else
-        push_val(st->stack, ScriptCode::INT, 0);
-
-}
-
-/*==========================================
- * 装備品精錬成功率
- *------------------------------------------
- */
-static
-void builtin_getequippercentrefinery(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
-        push_val(st->stack, ScriptCode::INT,
-                  pc_percentrefinery(sd, &sd->status.inventory[i]));
-    else
-        push_val(st->stack, ScriptCode::INT, 0);
-
-}
-
-/*==========================================
- * 精錬成功
- *------------------------------------------
- */
-static
-void builtin_successrefitem(ScriptState *st)
-{
-    int i, num, ep;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
-    {
-        ep = sd->status.inventory[i].equip;
-
-        sd->status.inventory[i].refine++;
-        pc_unequipitem(sd, i, 0);
-        clif_refine(sd->fd, sd, 0, i, sd->status.inventory[i].refine);
-        clif_delitem(sd, i, 1);
-        clif_additem(sd, i, 1, 0);
-        pc_equipitem(sd, i, ep);
-        clif_misceffect(&sd->bl, 3);
-    }
-
-}
-
-/*==========================================
- * 精錬失敗
- *------------------------------------------
- */
-static
-void builtin_failedrefitem(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (i >= 0)
-    {
-        sd->status.inventory[i].refine = 0;
-        pc_unequipitem(sd, i, 0);
-        // 精錬失敗エフェクトのパケット
-        clif_refine(sd->fd, sd, 1, i, sd->status.inventory[i].refine);
-        pc_delitem(sd, i, 1, 0);
-        // 他の人にも失敗を通知
-        clif_misceffect(&sd->bl, 2);
-    }
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_statusup(ScriptState *st)
-{
-    int type;
-    struct map_session_data *sd;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    pc_statusup(sd, type);
-
-}
-
-/*==========================================
  *
  *------------------------------------------
  */
@@ -3056,25 +2488,6 @@ void builtin_bonus2(ScriptState *st)
     val = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     sd = script_rid2sd(st);
     pc_bonus2(sd, type, type2, val);
-
-}
-
-/*==========================================
- * 装備品による能力値ボーナス
- *------------------------------------------
- */
-static
-void builtin_bonus3(ScriptState *st)
-{
-    int type, type2, type3, val;
-    struct map_session_data *sd;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    type2 = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    type3 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    val = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-    sd = script_rid2sd(st);
-    pc_bonus3(sd, type, type2, type3, val);
 
 }
 
@@ -3133,16 +2546,6 @@ void builtin_getskilllv(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_basicskillcheck(ScriptState *st)
-{
-    push_val(st->stack, ScriptCode::INT, battle_config.basic_skill_check);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
 void builtin_getgmlevel(ScriptState *st)
 {
     push_val(st->stack, ScriptCode::INT, pc_isGM(script_rid2sd(st)));
@@ -3191,154 +2594,6 @@ void builtin_setopt2(ScriptState *st)
     sd->opt2 = new_opt2;
     clif_changeoption(&sd->bl);
     pc_calcstatus(sd, 0);
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_checkoption(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    Option type = Option(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    sd = script_rid2sd(st);
-
-    if (bool(sd->status.option & type))
-    {
-        push_val(st->stack, ScriptCode::INT, 1);
-    }
-    else
-    {
-        push_val(st->stack, ScriptCode::INT, 0);
-    }
-
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_setoption(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    Option type = Option(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    sd = script_rid2sd(st);
-    pc_setoption(sd, type);
-
-}
-
-/*==========================================
- * Checkcart [Valaris]
- *------------------------------------------
- */
-
-static
-void builtin_checkcart(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-
-    if (pc_iscarton(sd))
-    {
-        push_val(st->stack, ScriptCode::INT, 1);
-    }
-    else
-    {
-        push_val(st->stack, ScriptCode::INT, 0);
-    }
-}
-
-/*==========================================
- * カートを付ける
- *------------------------------------------
- */
-static
-void builtin_setcart(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-    pc_setcart(sd, 1);
-
-}
-
-/*==========================================
- * checkfalcon [Valaris]
- *------------------------------------------
- */
-
-static
-void builtin_checkfalcon(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-
-    if (pc_isfalcon(sd))
-    {
-        push_val(st->stack, ScriptCode::INT, 1);
-    }
-    else
-    {
-        push_val(st->stack, ScriptCode::INT, 0);
-    }
-
-}
-
-/*==========================================
- * 鷹を付ける
- *------------------------------------------
- */
-static
-void builtin_setfalcon(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-    pc_setfalcon(sd);
-
-}
-
-/*==========================================
- * Checkcart [Valaris]
- *------------------------------------------
- */
-
-static
-void builtin_checkriding(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-
-    if (pc_isriding(sd))
-    {
-        push_val(st->stack, ScriptCode::INT, 1);
-    }
-    else
-    {
-        push_val(st->stack, ScriptCode::INT, 0);
-    }
-
-}
-
-/*==========================================
- * ペコペコ乗り
- *------------------------------------------
- */
-static
-void builtin_setriding(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-    pc_setriding(sd);
 
 }
 
@@ -3488,29 +2743,6 @@ void builtin_openstorage(ScriptState *st)
 }
 
 /*==========================================
- * アイテムによるスキル発動
- *------------------------------------------
- */
-static
-void builtin_itemskill(ScriptState *st)
-{
-    int lv;
-    struct map_session_data *sd = script_rid2sd(st);
-
-    SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    lv = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    const char *str = conv_str(st, &(st->stack->stack_data[st->start + 4]));
-
-    // 詠唱中にスキルアイテムは使用できない
-    if (sd->skilltimer != -1)
-        return;
-
-    sd->skillitem = id;
-    sd->skillitemlv = lv;
-    clif_item_skill(sd, id, lv, str);
-}
-
-/*==========================================
  * NPCで経験値上げる
  *------------------------------------------
  */
@@ -3633,17 +2865,6 @@ void builtin_killmonsterall(ScriptState *st)
 }
 
 /*==========================================
- * イベント実行
- *------------------------------------------
- */
-static
-void builtin_doevent(ScriptState *st)
-{
-    const char *event = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    npc_event(map_id2sd(st->rid), event, 0);
-}
-
-/*==========================================
  * NPC主体イベント実行
  *------------------------------------------
  */
@@ -3665,30 +2886,6 @@ void builtin_addtimer(ScriptState *st)
     tick = conv_num(st, &(st->stack->stack_data[st->start + 2]));
     const char *event = conv_str(st, &(st->stack->stack_data[st->start + 3]));
     pc_addeventtimer(script_rid2sd(st), tick, event);
-}
-
-/*==========================================
- * イベントタイマー削除
- *------------------------------------------
- */
-static
-void builtin_deltimer(ScriptState *st)
-{
-    const char *event = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    pc_deleventtimer(script_rid2sd(st), event);
-}
-
-/*==========================================
- * イベントタイマーのカウント値追加
- *------------------------------------------
- */
-static
-void builtin_addtimercount(ScriptState *st)
-{
-    int tick;
-    const char *event = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    tick = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    pc_addeventtimercount(script_rid2sd(st), event, tick);
 }
 
 /*==========================================
@@ -3832,31 +3029,6 @@ void builtin_mapannounce(ScriptState *st)
         return;
     map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, strlen(str) + 1, flag & 0x10),
             m, 0, 0, map[m].xs, map[m].ys, BL_PC);
-}
-
-/*==========================================
- * 天の声アナウンス（特定エリア）
- *------------------------------------------
- */
-static
-void builtin_areaannounce(ScriptState *st)
-{
-    int flag, m;
-    int x0, y0, x1, y1;
-
-    const char *mapname = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    x0 = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    y0 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    x1 = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-    y1 = conv_num(st, &(st->stack->stack_data[st->start + 6]));
-    const char *str = conv_str(st, &(st->stack->stack_data[st->start + 7]));
-    flag = conv_num(st, &(st->stack->stack_data[st->start + 8]));
-
-    if ((m = map_mapname2mapid(mapname)) < 0)
-        return;
-
-    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, strlen(str) + 1, flag & 0x10),
-            m, x0, y0, x1, y1, BL_PC);
 }
 
 /*==========================================
@@ -4031,54 +3203,6 @@ void builtin_disablenpc(ScriptState *st)
     npc_enable(str, 0);
 }
 
-static
-void builtin_enablearena(ScriptState *st)   // Added by RoVeRT
-{
-    struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
-    struct chat_data *cd;
-
-    if (nd == NULL
-        || (cd = (struct chat_data *) map_id2bl(nd->chat_id)) == NULL)
-        return;
-
-    npc_enable(nd->name, 1);
-    nd->arenaflag = 1;
-
-    if (cd->users >= cd->trigger && cd->npc_event[0])
-        npc_timer_event(cd->npc_event);
-
-}
-
-static
-void builtin_disablearena(ScriptState *st)  // Added by RoVeRT
-{
-    struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
-    nd->arenaflag = 0;
-
-}
-
-/*==========================================
- * 隠れているNPCの表示
- *------------------------------------------
- */
-static
-void builtin_hideoffnpc(ScriptState *st)
-{
-    const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    npc_enable(str, 2);
-}
-
-/*==========================================
- * NPCをハイディング
- *------------------------------------------
- */
-static
-void builtin_hideonnpc(ScriptState *st)
-{
-    const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    npc_enable(str, 4);
-}
-
 /*==========================================
  * 状態異常にかかる
  *------------------------------------------
@@ -4099,30 +3223,6 @@ void builtin_sc_start(ScriptState *st)
         && ((struct map_session_data *) bl)->state.potionpitcher_flag)
         bl = map_id2bl(((struct map_session_data *) bl)->skilltarget);
     skill_status_change_start(bl, type, val1, 0, 0, 0, tick, 0);
-}
-
-/*==========================================
- * 状態異常にかかる(確率指定)
- *------------------------------------------
- */
-static
-void builtin_sc_start2(ScriptState *st)
-{
-    struct block_list *bl;
-    int tick, val1, per;
-    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    tick = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    val1 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    per = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-    if (st->end > st->start + 6)    //指定したキャラを状態異常にする
-        bl = map_id2bl(conv_num(st, &(st->stack->stack_data[st->start + 6])));
-    else
-        bl = map_id2bl(st->rid);
-    if (bl->type == BL_PC
-        && ((struct map_session_data *) bl)->state.potionpitcher_flag)
-        bl = map_id2bl(((struct map_session_data *) bl)->skilltarget);
-    if (MRAND(10000) < per)
-        skill_status_change_start(bl, type, val1, 0, 0, 0, tick, 0);
 }
 
 /*==========================================
@@ -4158,46 +3258,6 @@ void builtin_sc_check(ScriptState *st)
 }
 
 /*==========================================
- * 状態異常耐性を計算した確率を返す
- *------------------------------------------
- */
-static
-void builtin_getscrate(ScriptState *st)
-{
-    struct block_list *bl;
-    int sc_def = 100, sc_def_mdef2, sc_def_vit2, sc_def_int2, sc_def_luk2;
-    int rate, luk;
-
-    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    rate = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    if (st->end > st->start + 4)    //指定したキャラの耐性を計算する
-        bl = map_id2bl(conv_num(st, &(st->stack->stack_data[st->start + 6])));
-    else
-        bl = map_id2bl(st->rid);
-
-    luk = battle_get_luk(bl);
-    sc_def_mdef2 = 100 - (3 + battle_get_mdef(bl) + luk / 3);
-    sc_def_vit2 = 100 - (3 + battle_get_vit(bl) + luk / 3);
-    sc_def_int2 = 100 - (3 + battle_get_int(bl) + luk / 3);
-    sc_def_luk2 = 100 - (3 + luk);
-
-    if (type == SC_STONE || type == SC_FREEZE)
-        sc_def = sc_def_mdef2;
-    else if (type == SC_STAN || type == SC_POISON || type == SC_SILENCE)
-        sc_def = sc_def_vit2;
-    else if (type == SC_SLEEP || type == SC_CONFUSION || type == SC_BLIND)
-        sc_def = sc_def_int2;
-    else if (type == SC_CURSE)
-        sc_def = sc_def_luk2;
-
-    rate = rate * sc_def / 100;
-    push_val(st->stack, ScriptCode::INT, rate);
-
-    return;
-
-}
-
-/*==========================================
  *
  *------------------------------------------
  */
@@ -4210,21 +3270,6 @@ void builtin_debugmes(ScriptState *st)
 }
 
 /*==========================================
- * Added - AppleGirl For Advanced Classes, (Updated for Cleaner Script Purposes)
- *------------------------------------------
- */
-static
-void builtin_resetlvl(ScriptState *st)
-{
-    struct map_session_data *sd;
-
-    int type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-
-    sd = script_rid2sd(st);
-    pc_resetlvl(sd, type);
-}
-
-/*==========================================
  * ステータスリセット
  *------------------------------------------
  */
@@ -4234,48 +3279,6 @@ void builtin_resetstatus(ScriptState *st)
     struct map_session_data *sd;
     sd = script_rid2sd(st);
     pc_resetstate(sd);
-}
-
-/*==========================================
- * スキルリセット
- *------------------------------------------
- */
-static
-void builtin_resetskill(ScriptState *st)
-{
-    struct map_session_data *sd;
-    sd = script_rid2sd(st);
-    pc_resetskill(sd);
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void builtin_changebase(ScriptState *st)
-{
-    struct map_session_data *sd = NULL;
-    int vclass;
-
-    if (st->end > st->start + 3)
-        sd = map_id2sd(conv_num(st, &(st->stack->stack_data[st->start + 3])));
-    else
-        sd = script_rid2sd(st);
-
-    if (sd == NULL)
-        return;
-
-    vclass = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    if (vclass == 22 && !battle_config.wedding_modifydisplay)
-        return;
-
-//  if(vclass==22) {
-//      pc_unequipitem(sd,sd->equip_index[9],0);    // 装備外
-//  }
-
-    sd->view_class = vclass;
-
 }
 
 /*==========================================
@@ -4304,206 +3307,6 @@ void builtin_changesex(ScriptState *st)
     }
     chrif_char_ask_name(-1, sd->status.name, 5, 0, 0, 0, 0, 0, 0); // type: 5 - changesex
     chrif_save(sd);
-}
-
-/*==========================================
- * npcチャット作成
- *------------------------------------------
- */
-static
-void builtin_waitingroom(ScriptState *st)
-{
-    const char *name, *ev = "";
-    int limit, trigger = 0, pub = 1;
-    name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    limit = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    if (limit == 0)
-        pub = 3;
-
-    if ((st->end > st->start + 5))
-    {
-        struct script_data *data = &(st->stack->stack_data[st->start + 5]);
-        get_val(st, data);
-        if (data->type == ScriptCode::INT)
-        {
-            // 新Athena仕様(旧Athena仕様と互換性あり)
-            ev = conv_str(st, &(st->stack->stack_data[st->start + 4]));
-            trigger = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-        }
-        else
-        {
-            // eathena仕様
-            trigger = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-            ev = conv_str(st, &(st->stack->stack_data[st->start + 5]));
-        }
-    }
-    else
-    {
-        // 旧Athena仕様
-        if (st->end > st->start + 4)
-            ev = conv_str(st, &(st->stack->stack_data[st->start + 4]));
-    }
-    chat_createnpcchat((struct npc_data *) map_id2bl(st->oid),
-                        limit, pub, trigger, name, strlen(name) + 1, ev);
-}
-
-/*==========================================
- * npcチャット削除
- *------------------------------------------
- */
-static
-void builtin_delwaitingroom(ScriptState *st)
-{
-    struct npc_data *nd;
-    if (st->end > st->start + 2)
-        nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 2])));
-    else
-        nd = (struct npc_data *) map_id2bl(st->oid);
-    chat_deletenpcchat(nd);
-}
-
-/*==========================================
- * npcチャットイベント有効化
- *------------------------------------------
- */
-static
-void builtin_enablewaitingroomevent(ScriptState *st)
-{
-    struct npc_data *nd;
-    struct chat_data *cd;
-
-    if (st->end > st->start + 2)
-        nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 2])));
-    else
-        nd = (struct npc_data *) map_id2bl(st->oid);
-
-    if (nd == NULL
-        || (cd = (struct chat_data *) map_id2bl(nd->chat_id)) == NULL)
-        return;
-    chat_enableevent(cd);
-}
-
-/*==========================================
- * npcチャットイベント無効化
- *------------------------------------------
- */
-static
-void builtin_disablewaitingroomevent(ScriptState *st)
-{
-    struct npc_data *nd;
-    struct chat_data *cd;
-
-    if (st->end > st->start + 2)
-        nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 2])));
-    else
-        nd = (struct npc_data *) map_id2bl(st->oid);
-
-    if (nd == NULL
-        || (cd = (struct chat_data *) map_id2bl(nd->chat_id)) == NULL)
-        return;
-    chat_disableevent(cd);
-}
-
-/*==========================================
- * npcチャット状態所得
- *------------------------------------------
- */
-static
-void builtin_getwaitingroomstate(ScriptState *st)
-{
-    struct npc_data *nd;
-    struct chat_data *cd;
-    int val = 0, type;
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    if (st->end > st->start + 3)
-        nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 3])));
-    else
-        nd = (struct npc_data *) map_id2bl(st->oid);
-
-    if (nd == NULL
-        || (cd = (struct chat_data *) map_id2bl(nd->chat_id)) == NULL)
-    {
-        push_val(st->stack, ScriptCode::INT, -1);
-        return;
-    }
-
-    switch (type)
-    {
-        case 0:
-            val = cd->users;
-            break;
-        case 1:
-            val = cd->limit;
-            break;
-        case 2:
-            val = cd->trigger & 0x7f;
-            break;
-        case 3:
-            val = ((cd->trigger & 0x80) > 0);
-            break;
-        case 32:
-            val = (cd->users >= cd->limit);
-            break;
-        case 33:
-            val = (cd->users >= cd->trigger);
-            break;
-
-        case 4:
-            push_str(st->stack, ScriptCode::CONSTSTR, cd->title);
-            return;
-        case 5:
-            push_str(st->stack, ScriptCode::CONSTSTR, cd->pass);
-            return;
-        case 16:
-            push_str(st->stack, ScriptCode::CONSTSTR, cd->npc_event);
-            return;
-    }
-    push_val(st->stack, ScriptCode::INT, val);
-}
-
-/*==========================================
- * チャットメンバー(規定人数)ワープ
- *------------------------------------------
- */
-static
-void builtin_warpwaitingpc(ScriptState *st)
-{
-    int x, y, i, n;
-    struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
-    struct chat_data *cd;
-
-    if (nd == NULL
-        || (cd = (struct chat_data *) map_id2bl(nd->chat_id)) == NULL)
-        return;
-
-    n = cd->trigger & 0x7f;
-    const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    x = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    y = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-
-    if (st->end > st->start + 5)
-        n = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-
-    for (i = 0; i < n; i++)
-    {
-        struct map_session_data *sd = cd->usersd[0];    // リスト先頭のPCを次々に。
-
-        mapreg_setreg(add_str("$@warpwaitingpc") + (i << 24), sd->bl.id);
-
-        if (strcmp(str, "Random") == 0)
-            pc_randomwarp(sd, 3);
-        else if (strcmp(str, "SavePoint") == 0)
-        {
-            if (map[sd->bl.m].flag.noteleport)  // テレポ禁止
-                return;
-
-            pc_setpos(sd, sd->status.save_point.map,
-                       sd->status.save_point.x, sd->status.save_point.y, 3);
-        }
-        else
-            pc_setpos(sd, str, x, y, 0);
-    }
-    mapreg_setreg(add_str("$@warpwaitingpcnum"), n);
 }
 
 /*==========================================
@@ -4567,26 +3370,6 @@ enum
     MF_LEAVES = 19,
     MF_RAIN = 20,
 };
-
-static
-void builtin_setmapflagnosave(ScriptState *st)
-{
-    int m, x, y;
-
-    const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    const char *str2 = conv_str(st, &(st->stack->stack_data[st->start + 3]));
-    x = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    y = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-    m = map_mapname2mapid(str);
-    if (m >= 0)
-    {
-        map[m].flag.nosave = 1;
-        memcpy(map[m].save.map, str2, 16);
-        map[m].save.x = x;
-        map[m].save.y = y;
-    }
-
-}
 
 static
 void builtin_setmapflag(ScriptState *st)
@@ -4873,183 +3656,6 @@ void builtin_emotion(ScriptState *st)
     clif_emotion(map_id2bl(st->oid), type);
 }
 
-/* =====================================================================
- * カードの数を得る
- * ---------------------------------------------------------------------
- */
-static
-void builtin_getequipcardcnt(ScriptState *st)
-{
-    int i, num;
-    struct map_session_data *sd;
-    int c = 4;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (sd->status.inventory[i].card[0] == 0x00ff)
-    {                           // 製造武器はカードなし
-        push_val(st->stack, ScriptCode::INT, 0);
-        return;
-    }
-    do
-    {
-        if ((sd->status.inventory[i].card[c - 1] > 4000) &&
-            (sd->status.inventory[i].card[c - 1] < 5000))
-        {
-
-            push_val(st->stack, ScriptCode::INT, (c));
-            return;
-        }
-    }
-    while (c--);
-    push_val(st->stack, ScriptCode::INT, 0);
-}
-
-/* ================================================================
- * カード取り外し成功
- * ----------------------------------------------------------------
- */
-static
-void builtin_successremovecards(ScriptState *st)
-{
-    int i, num, cardflag = 0, flag;
-    struct map_session_data *sd;
-    struct item item_tmp;
-    int c = 4;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (sd->status.inventory[i].card[0] == 0x00ff)
-    {                           // 製造武器は処理しない
-        return;
-    }
-    do
-    {
-        if ((sd->status.inventory[i].card[c - 1] > 4000) &&
-            (sd->status.inventory[i].card[c - 1] < 5000))
-        {
-
-            cardflag = 1;
-            item_tmp.id = 0, item_tmp.nameid =
-                sd->status.inventory[i].card[c - 1];
-            item_tmp.equip = 0, item_tmp.identify = 1, item_tmp.refine = 0;
-            item_tmp.attribute = 0;
-            item_tmp.card[0] = 0, item_tmp.card[1] = 0, item_tmp.card[2] =
-                0, item_tmp.card[3] = 0;
-
-            if ((flag = pc_additem(sd, &item_tmp, 1)))
-            {                   // 持てないならドロップ
-                clif_additem(sd, 0, 0, flag);
-                map_addflooritem(&item_tmp, 1, sd->bl.m, sd->bl.x, sd->bl.y,
-                                  NULL, NULL, NULL, 0);
-            }
-        }
-    }
-    while (c--);
-
-    if (cardflag == 1)
-    {                           // カードを取り除いたアイテム所得
-        flag = 0;
-        item_tmp.id = 0, item_tmp.nameid = sd->status.inventory[i].nameid;
-        item_tmp.equip = 0, item_tmp.identify = 1, item_tmp.refine =
-            sd->status.inventory[i].refine;
-        item_tmp.attribute = sd->status.inventory[i].attribute;
-        item_tmp.card[0] = 0, item_tmp.card[1] = 0, item_tmp.card[2] =
-            0, item_tmp.card[3] = 0;
-        pc_delitem(sd, i, 1, 0);
-        if ((flag = pc_additem(sd, &item_tmp, 1)))
-        {                       // もてないならドロップ
-            clif_additem(sd, 0, 0, flag);
-            map_addflooritem(&item_tmp, 1, sd->bl.m, sd->bl.x, sd->bl.y,
-                              NULL, NULL, NULL, 0);
-        }
-        clif_misceffect(&sd->bl, 3);
-        return;
-    }
-}
-
-/* ================================================================
- * カード取り外し失敗 slot,type
- * type=0: 両方損失、1:カード損失、2:武具損失、3:損失無し
- * ----------------------------------------------------------------
- */
-static
-void builtin_failedremovecards(ScriptState *st)
-{
-    int i, num, cardflag = 0, flag, typefail;
-    struct map_session_data *sd;
-    struct item item_tmp;
-    int c = 4;
-
-    num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    typefail = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    sd = script_rid2sd(st);
-    i = pc_checkequip(sd, equip[num - 1]);
-    if (sd->status.inventory[i].card[0] == 0x00ff)
-    {                           // 製造武器は処理しない
-        return;
-    }
-    do
-    {
-        if ((sd->status.inventory[i].card[c - 1] > 4000) &&
-            (sd->status.inventory[i].card[c - 1] < 5000))
-        {
-
-            cardflag = 1;
-
-            if (typefail == 2)
-            {                   // 武具のみ損失なら、カードは受け取らせる
-                item_tmp.id = 0, item_tmp.nameid =
-                    sd->status.inventory[i].card[c - 1];
-                item_tmp.equip = 0, item_tmp.identify = 1, item_tmp.refine =
-                    0;
-                item_tmp.attribute = 0;
-                item_tmp.card[0] = 0, item_tmp.card[1] = 0, item_tmp.card[2] =
-                    0, item_tmp.card[3] = 0;
-                if ((flag = pc_additem(sd, &item_tmp, 1)))
-                {
-                    clif_additem(sd, 0, 0, flag);
-                    map_addflooritem(&item_tmp, 1, sd->bl.m, sd->bl.x,
-                                      sd->bl.y, NULL, NULL, NULL, 0);
-                }
-            }
-        }
-    }
-    while (c--);
-
-    if (cardflag == 1)
-    {
-
-        if (typefail == 0 || typefail == 2)
-        {                       // 武具損失
-            pc_delitem(sd, i, 1, 0);
-            clif_misceffect(&sd->bl, 2);
-            return;
-        }
-        if (typefail == 1)
-        {                       // カードのみ損失（武具を返す）
-            flag = 0;
-            item_tmp.id = 0, item_tmp.nameid = sd->status.inventory[i].nameid;
-            item_tmp.equip = 0, item_tmp.identify = 1, item_tmp.refine =
-                sd->status.inventory[i].refine;
-            item_tmp.attribute = sd->status.inventory[i].attribute;
-            item_tmp.card[0] = 0, item_tmp.card[1] = 0, item_tmp.card[2] =
-                0, item_tmp.card[3] = 0;
-            pc_delitem(sd, i, 1, 0);
-            if ((flag = pc_additem(sd, &item_tmp, 1)))
-            {
-                clif_additem(sd, 0, 0, flag);
-                map_addflooritem(&item_tmp, 1, sd->bl.m, sd->bl.x, sd->bl.y,
-                                  NULL, NULL, NULL, 0);
-            }
-        }
-        clif_misceffect(&sd->bl, 2);
-        return;
-    }
-}
-
 static
 void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 {
@@ -5079,26 +3685,6 @@ void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
     const char *command = conv_str(st, &(st->stack->stack_data[st->start + 3]));
 
     npc_command(map_id2sd(st->rid), npc, command);
-}
-
-static
-void builtin_inittimer(ScriptState *st) // Added by RoVeRT
-{
-//  struct npc_data *nd=(struct npc_data*)map_id2bl(st->oid);
-
-//  nd->lastaction=nd->timer=gettick();
-    npc_do_ontimer(st->oid, map_id2sd(st->rid), 1);
-
-}
-
-static
-void builtin_stoptimer(ScriptState *st) // Added by RoVeRT
-{
-//  struct npc_data *nd=(struct npc_data*)map_id2bl(st->oid);
-
-//  nd->lastaction=nd->timer=-1;
-    npc_do_ontimer(st->oid, map_id2sd(st->rid), 0);
-
 }
 
 static
@@ -5143,16 +3729,6 @@ void builtin_marriage(ScriptState *st)
 }
 
 static
-void builtin_wedding_effect(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-
-    if (sd == NULL)
-        return;
-    clif_wedding_effect(&sd->bl);
-}
-
-static
 void builtin_divorce(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5168,46 +3744,6 @@ void builtin_divorce(ScriptState *st)
     }
 
     push_val(st->stack, ScriptCode::INT, 1);
-}
-
-/*================================================
- * Script for Displaying MOB Information [Valaris]
- *------------------------------------------------
- */
-static
-void builtin_strmobinfo(ScriptState *st)
-{
-
-    int num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    int mob_class = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-
-    if (num <= 0 || num >= 8 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)
-        return;
-
-    if (num == 1)
-    {
-        char *buf;
-        buf = mob_db[mob_class].name;
-        push_str(st->stack, ScriptCode::STR, buf);
-        return;
-    }
-    else if (num == 2)
-    {
-        char *buf;
-        buf = mob_db[mob_class].jname;
-        push_str(st->stack, ScriptCode::STR, buf);
-        return;
-    }
-    else if (num == 3)
-        push_val(st->stack, ScriptCode::INT, mob_db[mob_class].lv);
-    else if (num == 4)
-        push_val(st->stack, ScriptCode::INT, mob_db[mob_class].max_hp);
-    else if (num == 5)
-        push_val(st->stack, ScriptCode::INT, mob_db[mob_class].max_sp);
-    else if (num == 6)
-        push_val(st->stack, ScriptCode::INT, mob_db[mob_class].base_exp);
-    else if (num == 7)
-        push_val(st->stack, ScriptCode::INT, mob_db[mob_class].job_exp);
 }
 
 /*==========================================
@@ -5250,18 +3786,6 @@ void builtin_getspellinvocation(ScriptState *st)
     const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
 
     const char *invocation = magic_find_invocation(name);
-    if (!invocation)
-        invocation = "...";
-
-    push_str(st->stack, ScriptCode::STR, strdup(invocation));
-}
-
-static
-void builtin_getanchorinvocation(ScriptState *st)
-{
-    const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-
-    const char *invocation = magic_find_anchor_invocation(name);
     if (!invocation)
         invocation = "...";
 
@@ -5316,31 +3840,6 @@ void builtin_getinventorylist(ScriptState *st)
         }
     }
     pc_setreg(sd, add_str("@inventorylist_count"), j);
-}
-
-static
-void builtin_getskilllist(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-    int j = 0;
-    if (!sd)
-        return;
-    for (SkillID i : erange(SkillID(), MAX_SKILL))
-    {
-        if (sd->status.skill[i].id != SkillID::ZERO
-            && sd->status.skill[i].id != SkillID::NEGATIVE
-            && sd->status.skill[i].lv > 0)
-        {
-            pc_setreg(sd, add_str("@skilllist_id") + (j << 24),
-                       uint16_t(sd->status.skill[i].id));
-            pc_setreg(sd, add_str("@skilllist_lv") + (j << 24),
-                       sd->status.skill[i].lv);
-            pc_setreg(sd, add_str("@skilllist_flag") + (j << 24),
-                       sd->status.skill[i].flags);
-            j++;
-        }
-    }
-    pc_setreg(sd, add_str("@skilllist_count"), j);
 }
 
 static
@@ -5406,36 +3905,6 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
 }
 
 static
-void builtin_getpoolskilllist(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-    int i, count = 0;
-
-    if (!sd)
-        return;
-
-    for (i = 0; i < skill_pool_skills_size; i++)
-    {
-        SkillID skill_id = skill_pool_skills[i];
-
-        if (sd->status.skill[skill_id].id == skill_id)
-        {
-            pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
-                       uint16_t(sd->status.skill[skill_id].id));
-            pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
-                       sd->status.skill[skill_id].lv);
-            pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
-                       sd->status.skill[skill_id].flags);
-            pc_setregstr(sd, add_str("@skilllist_name$") + (count << 24),
-                          skill_name(skill_id));
-            ++count;
-        }
-    }
-    pc_setreg(sd, add_str("@skilllist_count"), count);
-
-}
-
-static
 void builtin_poolskill(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
@@ -5455,50 +3924,6 @@ void builtin_unpoolskill(ScriptState *st)
     skill_pool_deactivate(sd, skill_id);
     clif_skillinfoblock(sd);
 
-}
-
-static
-void builtin_checkpoolskill(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-    SkillID skill_id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-
-    push_val(st->stack, ScriptCode::INT, skill_pool_is_activated(sd, skill_id));
-
-}
-
-static
-void builtin_clearitem(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-    int i;
-    if (sd == NULL)
-        return;
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (sd->status.inventory[i].amount)
-            pc_delitem(sd, i, sd->status.inventory[i].amount, 0);
-    }
-}
-
-/*==========================================
- * NPCクラスチェンジ
- * classは変わりたいclass
- * typeは通常0なのかな？
- *------------------------------------------
- */
-static
-void builtin_classchange(ScriptState *st)
-{
-    int npc_class, type;
-    struct block_list *bl = map_id2bl(st->oid);
-
-    if (bl == NULL)
-        return;
-
-    npc_class = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    type = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    clif_npc_class_change(bl, npc_class, type);
 }
 
 /*==========================================
@@ -5553,47 +3978,6 @@ void builtin_misceffect(ScriptState *st)
 
     if (bl)
         clif_misceffect(bl, type);
-
-}
-
-/*==========================================
- * サウンドエフェクト
- *------------------------------------------
- */
-static
-void builtin_soundeffect(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-    int type = 0;
-
-    const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    type = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    if (sd)
-    {
-        if (st->oid)
-            clif_soundeffect(sd, map_id2bl(st->oid), name, type);
-        else
-        {
-            clif_soundeffect(sd, &sd->bl, name, type);
-        }
-    }
-}
-
-/*==========================================
- * NPC skill effects [Valaris]
- *------------------------------------------
- */
-static
-void builtin_npcskilleffect(ScriptState *st)
-{
-    struct npc_data *nd = (struct npc_data *) map_id2bl(st->oid);
-
-    SkillID skillid = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    int skilllv = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    int x = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    int y = conv_num(st, &(st->stack->stack_data[st->start + 5]));
-
-    clif_skill_poseffect(&nd->bl, skillid, skilllv, x, y, gettick());
 
 }
 
@@ -5772,34 +4156,6 @@ void builtin_npctalk(ScriptState *st)
 }
 
 /*==========================================
- * hasitems (checks to see if player has any
- * items on them, if so will return a 1)
- * [Valaris]
- *------------------------------------------
- */
-
-static
-void builtin_hasitems(ScriptState *st)
-{
-    int i;
-    struct map_session_data *sd;
-
-    sd = script_rid2sd(st);
-
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (sd->status.inventory[i].amount)
-        {
-            push_val(st->stack, ScriptCode::INT, 1);
-            return;
-        }
-    }
-
-    push_val(st->stack, ScriptCode::INT, 0);
-
-}
-
-/*==========================================
   * getlook char info. getlook(arg)
   *------------------------------------------
   */
@@ -5935,24 +4291,6 @@ void builtin_isin(ScriptState *st)
 
 }
 
-// Trigger the shop on a (hopefully) nearby shop NPC
-static
-void builtin_shop(ScriptState *st)
-{
-    struct map_session_data *sd = script_rid2sd(st);
-    struct npc_data *nd;
-
-    if (!sd)
-        return;
-
-    nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 2])));
-    if (!nd)
-        return;
-
-    builtin_close(st);
-    clif_npcbuysell(sd, nd->bl.id);
-}
-
 /*==========================================
  * Check whether the PC is dead
  *------------------------------------------
@@ -5963,32 +4301,6 @@ void builtin_isdead(ScriptState *st)
     struct map_session_data *sd = script_rid2sd(st);
 
     push_val(st->stack, ScriptCode::INT, pc_isdead(sd));
-}
-
-/*========================================
- * Changes a NPC name, and sprite
- *----------------------------------------
- */
-static
-void builtin_fakenpcname(ScriptState *st)
-{
-    int newsprite;
-    struct npc_data *nd;
-
-    const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    const char *newname = conv_str(st, &(st->stack->stack_data[st->start + 3]));
-    newsprite = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    nd = npc_name2id(name);
-    if (!nd)
-        return;
-    strncpy(nd->name, newname, sizeof(nd->name)-1);
-    nd->name[sizeof(nd->name)-1] = '\0';
-    nd->npc_class = newsprite;
-
-    // Refresh this npc
-    npc_enable(name, 0);
-    npc_enable(name, 1);
-
 }
 
 /*============================
@@ -6868,11 +5180,9 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(close2, ""),
     BUILTIN(menu, "sL*"),
     BUILTIN(goto, "L"),
-    BUILTIN(callsub, "L*"),
-    BUILTIN(callfunc, "F*"),
-    BUILTIN(return, "*"),
-    BUILTIN(getarg, "i"),
-    BUILTIN(jobchange, "i*"),
+    BUILTIN(callsub, "L"),
+    BUILTIN(callfunc, "F"),
+    BUILTIN(return, ""),
     BUILTIN(input, "N"),
     BUILTIN(warp, "Mxy"),
     BUILTIN(isat, "Mxy"),
@@ -6881,18 +5191,12 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(set, "Ne"),
     BUILTIN(setarray, "Ne*"),
     BUILTIN(cleararray, "Nei"),
-    BUILTIN(copyarray, "NNi"),
     BUILTIN(getarraysize, "N"),
-    BUILTIN(deletearray, "N*"),
     BUILTIN(getelementofarray, "Ni"),
     BUILTIN(if, "iF*"),
     BUILTIN(getitem, "Ii**"),
-    BUILTIN(getitem2, "iiiiiiiii*"),
     BUILTIN(makeitem, "IiMxy"),
     BUILTIN(delitem, "Ii"),
-    BUILTIN(cutin, "si"),
-    BUILTIN(cutincard, "i"),
-    BUILTIN(viewpoint, "iiiii"),
     BUILTIN(heal, "ii"),
     BUILTIN(itemheal, "ii"),
     BUILTIN(percentheal, "ii"),
@@ -6902,57 +5206,30 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(checkweight, "Ii"),
     BUILTIN(readparam, "i*"),
     BUILTIN(getcharid, "i*"),
-    BUILTIN(getpartyname, "i"),
-    BUILTIN(getpartymember, "i"),
     BUILTIN(strcharinfo, "i"),
     BUILTIN(getequipid, "i"),
     BUILTIN(getequipname, "i"),
-    BUILTIN(getbrokenid, "i"),
-    BUILTIN(repair, "i"),
-    BUILTIN(getequipisequiped, "i"),
-    BUILTIN(getequipisenableref, "i"),
-    BUILTIN(getequipisidentify, "i"),
-    BUILTIN(getequiprefinerycnt, "i"),
-    BUILTIN(getequipweaponlv, "i"),
-    BUILTIN(getequippercentrefinery, "i"),
-    BUILTIN(successrefitem, "i"),
-    BUILTIN(failedrefitem, "i"),
-    BUILTIN(statusup, "i"),
     BUILTIN(statusup2, "ii"),
     BUILTIN(bonus, "ii"),
     BUILTIN(bonus2, "iii"),
-    BUILTIN(bonus3, "iiii"),
     BUILTIN(skill, "ii*"),
     BUILTIN(setskill, "ii"),
     BUILTIN(getskilllv, "i"),
-    BUILTIN(basicskillcheck, "*"),
     BUILTIN(getgmlevel, ""),
     BUILTIN(end, ""),
     BUILTIN(getopt2, ""),
     BUILTIN(setopt2, "i"),
-    BUILTIN(checkoption, "i"),
-    BUILTIN(setoption, "i"),
-    BUILTIN(setcart, ""),
-    BUILTIN(checkcart, "*"),
-    BUILTIN(setfalcon, ""),
-    BUILTIN(checkfalcon, "*"),
-    BUILTIN(setriding, ""),
-    BUILTIN(checkriding, "*"),
     BUILTIN(savepoint, "Mxy"),
     BUILTIN(gettimetick, "i"),
     BUILTIN(gettime, "i"),
     BUILTIN(gettimestr, "si"),
     BUILTIN(openstorage, "*"),
-    BUILTIN(itemskill, "iis"),
     BUILTIN(monster, "Mxysmi*"),
     BUILTIN(areamonster, "Mxyxysmi*"),
     BUILTIN(killmonster, "ME"),
     BUILTIN(killmonsterall, "M"),
-    BUILTIN(doevent, "E"),
     BUILTIN(donpcevent, "E"),
     BUILTIN(addtimer, "tE"),
-    BUILTIN(deltimer, "E"),
-    BUILTIN(addtimercount, "si"),
     BUILTIN(initnpctimer, ""),
     BUILTIN(stopnpctimer, ""),
     BUILTIN(startnpctimer, "*"),
@@ -6960,89 +5237,54 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getnpctimer, "i"),
     BUILTIN(announce, "si"),
     BUILTIN(mapannounce, "Msi"),
-    BUILTIN(areaannounce, "Mxyxysi"),
     BUILTIN(getusers, "i"),
     BUILTIN(getmapusers, "M"),
     BUILTIN(getareausers, "Mxyxy*"),
     BUILTIN(getareadropitem, "Mxyxyi*"),
     BUILTIN(enablenpc, "s"),
     BUILTIN(disablenpc, "s"),
-    BUILTIN(enablearena, ""),
-    BUILTIN(disablearena, ""),
-    BUILTIN(hideoffnpc, "s"),
-    BUILTIN(hideonnpc, "s"),
     BUILTIN(sc_start, "iTi*"),
-    BUILTIN(sc_start2, "iTii*"),
     BUILTIN(sc_end, "i"),
     BUILTIN(sc_check, "i"),
-    BUILTIN(getscrate, "ii*"),
     BUILTIN(debugmes, "s"),
-    BUILTIN(resetlvl, "i"),
     BUILTIN(resetstatus, ""),
-    BUILTIN(resetskill, ""),
-    BUILTIN(changebase, "i"),
     BUILTIN(changesex, ""),
-    BUILTIN(waitingroom, "si*"),
-    BUILTIN(warpwaitingpc, "sii"),
-    BUILTIN(delwaitingroom, "*"),
-    BUILTIN(enablewaitingroomevent, "*"),
-    BUILTIN(disablewaitingroomevent, "*"),
-    BUILTIN(getwaitingroomstate, "i*"),
-    BUILTIN(warpwaitingpc, "sii*"),
     BUILTIN(attachrid, "i"),
     BUILTIN(detachrid, ""),
     BUILTIN(isloggedin, "i"),
-    BUILTIN(setmapflagnosave, "MMxy"),
     BUILTIN(setmapflag, "Mi"),
     BUILTIN(removemapflag, "Mi"),
     BUILTIN(getmapflag, "Mi"),
     BUILTIN(pvpon, "M"),
     BUILTIN(pvpoff, "M"),
     BUILTIN(emotion, "i"),
-    BUILTIN(getequipcardcnt, "i"),
-    BUILTIN(successremovecards, "i"),
-    BUILTIN(failedremovecards, "ii"),
     BUILTIN(marriage, "P"),
     BUILTIN(divorce, ""),
     BUILTIN(getitemname, "I"),
     BUILTIN(getspellinvocation, "s"),
-    BUILTIN(getanchorinvocation, "s"),
     BUILTIN(getpartnerid2, ""),
     BUILTIN(getexp, "ii"),
     BUILTIN(getinventorylist, ""),
-    BUILTIN(getskilllist, ""),
-    BUILTIN(getpoolskilllist, ""),
     BUILTIN(getactivatedpoolskilllist, ""),
     BUILTIN(getunactivatedpoolskilllist, ""),
     BUILTIN(poolskill, "i"),
     BUILTIN(unpoolskill, "i"),
-    BUILTIN(checkpoolskill, "i"),
-    BUILTIN(clearitem, ""),
-    BUILTIN(classchange, "ii"),
     BUILTIN(misceffect, "i*"),
-    BUILTIN(soundeffect, "si"),
-    BUILTIN(strmobinfo, "im"),
-    BUILTIN(npcskilleffect, "iiii"),
     BUILTIN(specialeffect, "i"),
     BUILTIN(specialeffect2, "i"),
     BUILTIN(nude, ""),
     BUILTIN(mapwarp, "MMxy"),
-    BUILTIN(inittimer, ""),
-    BUILTIN(stoptimer, ""),
     BUILTIN(cmdothernpc, "ss"),
     BUILTIN(gmcommand, "s"),
     BUILTIN(npcwarp, "xys"),
     BUILTIN(message, "Ps"),
     BUILTIN(npctalk, "s"),
-    BUILTIN(hasitems, ""),
     BUILTIN(mobcount, "ME"),
     BUILTIN(getlook, "i"),
     BUILTIN(getsavepoint, "i"),
     BUILTIN(areatimer, "MxyxytE"),
     BUILTIN(isin, "Mxyxy"),
-    BUILTIN(shop, "s"),
     BUILTIN(isdead, ""),
-    BUILTIN(fakenpcname, "ssi"),
     BUILTIN(unequipbyid, "i"),
     BUILTIN(getx, ""),
     BUILTIN(gety, ""),
