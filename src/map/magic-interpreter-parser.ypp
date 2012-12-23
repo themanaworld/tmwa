@@ -38,10 +38,10 @@ static
 spellguard_t *spellguard_implication(spellguard_t *a, spellguard_t *b);
 
 static
-spellguard_t *new_spellguard(int ty);
+spellguard_t *new_spellguard(SPELLGUARD ty);
 
 static
-effect_t *new_effect(int ty);
+effect_t *new_effect(EFFECT_ ty);
 
 static
 effect_t *set_effect_continuation(effect_t *src, effect_t *continuation);
@@ -78,6 +78,9 @@ val_t *find_constant(char *name);
 
 %union {
     int i;
+    SPELL_FLAG spell_flags;
+    SPELLARG spell_arg;
+    FOREACH_FILTER foreach_filter;
     char *s;
     int op;
     magic_conf_t *magic_conf;
@@ -88,7 +91,7 @@ val_t *find_constant(char *name);
     args_rec_t arg_list;
     struct { int letdefs_nr; letdef_t *letdefs; } letdefs;
     spell_t *spell;
-    struct { int id, ty; } spellarg_def;
+    struct { int id; SPELLARG ty; } spellarg_def;
     letdef_t vardef;
     spellguard_t *spellguard;
     component_t *components;
@@ -189,15 +192,15 @@ val_t *find_constant(char *name);
 %type <components> items
 %type <components> item_list
 %type <i> item_name
-%type <i> selection;
+%type <foreach_filter> selection;
 %type <effect> effect
 %type <effect> effect_list
 %type <effect> maybe_trigger
 %type <effect> maybe_end
-%type <i> spell_flags;
+%type <spell_flags> spell_flags;
 
 %type <expr> expr
-%type <i> arg_ty
+%type <spell_arg> arg_ty
 %type <proc> proc_formals_list
 %type <proc> proc_formals_list_ne
 
@@ -300,19 +303,19 @@ spellconf_option        : ID '=' expr
                           }
 
 spell_flags             : /* empty */
-                                { $$ = 0; }
+                                { $$ = SPELL_FLAG::ZERO; }
                         | LOCAL spell_flags
-                                { if ($2 & SPELL_FLAG_LOCAL)
+                                { if (bool($2 & SPELL_FLAG_LOCAL))
                                         fail(@1.first_line, @1.first_column, "`LOCAL' specified more than once");
                                    $$ = $2 | SPELL_FLAG_LOCAL;
                                 }
                         | NONMAGIC spell_flags
-                                { if ($2 & SPELL_FLAG_NONMAGIC)
+                                { if (bool($2 & SPELL_FLAG_NONMAGIC))
                                         fail(@1.first_line, @1.first_column, "`NONMAGIC' specified more than once");
                                    $$ = $2 | SPELL_FLAG_NONMAGIC;
                                 }
                         | SILENT spell_flags
-                                { if ($2 & SPELL_FLAG_SILENT)
+                                { if (bool($2 & SPELL_FLAG_SILENT))
                                         fail(@1.first_line, @1.first_column, "`SILENT' specified more than once");
                                    $$ = $2 | SPELL_FLAG_SILENT;
                                 }
@@ -841,7 +844,7 @@ spell_t *new_spell(spellguard_t *guard)
 }
 
 static
-spellguard_t *new_spellguard(int ty)
+spellguard_t *new_spellguard(SPELLGUARD ty)
 {
         spellguard_t *retval = (spellguard_t *)calloc(1, sizeof(spellguard_t));
         retval->ty = ty;
@@ -879,7 +882,7 @@ spellguard_t *spellguard_implication(spellguard_t *a, spellguard_t *b)
 }
 
 static
-effect_t *new_effect(int ty)
+effect_t *new_effect(EFFECT_ ty)
 {
         effect_t *effect = (effect_t *) calloc(1, sizeof(effect_t));
         effect->ty = ty;

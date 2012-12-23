@@ -93,6 +93,18 @@ struct underlying_type
     >::type type;
 };
 
+template<class E, bool=std::is_enum<E>::value>
+struct remove_enum
+{
+    typedef E type;
+};
+template<class E>
+struct remove_enum<E, true>
+{
+    typedef typename underlying_type<E>::type type;
+};
+
+
 #define ENUM_BITWISE_OPERATORS(E)               \
 inline                                          \
 E operator & (E l, E r)                         \
@@ -175,3 +187,15 @@ IteratorPair<EnumValueIterator<E>> erange(E b, E e)
 
 namespace std { namespace placeholders {} }
 namespace ph = std::placeholders;
+
+template<class A, class B>
+typename std::common_type<A, B>::type min(A a, B b)
+{
+    return a < b ? a : b;
+}
+
+template<class A, class B>
+typename std::common_type<A, B>::type max(A a, B b)
+{
+    return b < a ? a : b;
+}

@@ -159,21 +159,21 @@ struct item_data *itemdb_search(int nameid)
     id->view_id = 0;
 
     if (nameid > 500 && nameid < 600)
-        id->type = 0;           //heal item
+        id->type = ItemType::USE;
     else if (nameid > 600 && nameid < 700)
-        id->type = 2;           //use item
+        id->type = ItemType::_2;
     else if ((nameid > 700 && nameid < 1100) ||
              (nameid > 7000 && nameid < 8000))
-        id->type = 3;           //correction
+        id->type = ItemType::JUNK;
     else if (nameid >= 1750 && nameid < 1771)
-        id->type = 10;          //arrow
+        id->type = ItemType::ARROW;
     else if (nameid > 1100 && nameid < 2000)
-        id->type = 4;           //weapon
+        id->type = ItemType::WEAPON;
     else if ((nameid > 2100 && nameid < 3000) ||
              (nameid > 5000 && nameid < 6000))
-        id->type = 5;           //armor
+        id->type = ItemType::ARMOR;
     else if (nameid > 4000 && nameid < 5000)
-        id->type = 6;           //card
+        id->type = ItemType::_6;
 
     return id;
 }
@@ -184,10 +184,12 @@ struct item_data *itemdb_search(int nameid)
  */
 int itemdb_isequip(int nameid)
 {
-    int type = itemdb_type(nameid);
-    if (type == 0 || type == 2 || type == 3 || type == 6 || type == 10)
-        return 0;
-    return 1;
+    ItemType type = itemdb_type(nameid);
+    return !(type == ItemType::USE
+        || type == ItemType::_2
+        || type == ItemType::JUNK
+        || type == ItemType::_6
+        || type == ItemType::ARROW);
 }
 
 /*==========================================
@@ -196,15 +198,14 @@ int itemdb_isequip(int nameid)
  */
 int itemdb_isequip2(struct item_data *data)
 {
-    if (data)
-    {
-        int type = data->type;
-        if (type == 0 || type == 2 || type == 3 || type == 6 || type == 10)
-            return 0;
-        else
-            return 1;
-    }
-    return 0;
+    if (!data)
+        return false;
+    ItemType type = data->type;
+    return !(type == ItemType::USE
+        || type == ItemType::_2
+        || type == ItemType::JUNK
+        || type == ItemType::_6
+        || type == ItemType::ARROW);
 }
 
 /*==========================================
@@ -213,10 +214,10 @@ int itemdb_isequip2(struct item_data *data)
  */
 int itemdb_isequip3(int nameid)
 {
-    int type = itemdb_type(nameid);
-    if (type == 4 || type == 5 || type == 8)
-        return 1;
-    return 0;
+    ItemType type = itemdb_type(nameid);
+    return (type == ItemType::WEAPON
+        || type == ItemType::ARMOR
+        || type == ItemType::_8);
 }
 
 //
@@ -238,8 +239,9 @@ int itemdb_read_itemslottable(void)
     buf[s] = 0;
     for (p = buf; p - buf < s;)
     {
-        int nameid, equip;
-        sscanf(p, "%d#%d#", &nameid, &equip);
+        int nameid, equip_;
+        sscanf(p, "%d#%d#", &nameid, &equip_);
+        EPOS equip = EPOS(equip_);
         itemdb_search(nameid)->equip = equip;
         p = strchr(p, 10);
         if (!p)
@@ -314,7 +316,7 @@ int itemdb_readdb(void)
             id = itemdb_search(nameid);
             memcpy(id->name, str[1], 24);
             memcpy(id->jname, str[2], 24);
-            id->type = atoi(str[3]);
+            id->type = ItemType(atoi(str[3]));
             id->value_buy = atoi(str[4]);
             id->value_sell = atoi(str[5]);
             if (id->value_buy == 0 && id->value_sell == 0)
@@ -335,7 +337,7 @@ int itemdb_readdb(void)
             id->magic_bonus = atoi(str[10]);
             id->slot = atoi(str[11]);
             id->sex = atoi(str[12]);
-            id->equip = atoi(str[13]);
+            id->equip = EPOS(atoi(str[13]));
             id->wlv = atoi(str[14]);
             id->elv = atoi(str[15]);
             id->look = atoi(str[16]);

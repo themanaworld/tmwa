@@ -4,17 +4,6 @@
 #include "magic-interpreter.hpp"
 #include "magic-interpreter-aux.hpp"
 
-#ifndef MAX
-#  define MAX(x,y) (((x)>(y)) ? (x) : (y))
-#endif
-#ifndef MIN
-#  define MIN(x,y) (((x)<(y)) ? (x) : (y))
-#endif
-
-#ifndef INT_MAX
-#  define INT_MAX (1<<30)       // It's more than that, but this is quite sufficient for our purposes.
-#endif
-
 /*
  * Argument types:
  *  i : int
@@ -74,7 +63,7 @@ char *magic_eval_str(env_t *env, expr_t *expr);
 
 int map_is_solid(int m, int x, int y);
 
-expr_t *magic_new_expr(int ty);
+expr_t *magic_new_expr(EXPR ty);
 
 void magic_clear_var(val_t *v);
 

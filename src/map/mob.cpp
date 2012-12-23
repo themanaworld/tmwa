@@ -122,7 +122,8 @@ int mob_spawn_dataset(struct mob_data *md, const char *mobname, int mob_class)
 // For one 256th of change, we give out that many 1024th fractions of XP change
 // (i.e., 1024 means a 100% XP increase for a single point of adjustment, 4 means 100% XP bonus for doubling the value)
 static
-int mutation_value[MOB_XP_BONUS] = {
+earray<int, mob_stat, MOB_XP_BONUS> mutation_value =
+{
     2,                          // MOB_LV
     3,                          // MOB_MAX_HP
     1,                          // MOB_STR
@@ -142,7 +143,8 @@ int mutation_value[MOB_XP_BONUS] = {
 // The mutation scale indicates how far `up' we can go, with 256 indicating 100%  Note that this may stack with multiple
 // calls to `mutate'.
 static
-int mutation_scale[MOB_XP_BONUS] = {
+earray<int, mob_stat, MOB_XP_BONUS> mutation_scale =
+{
     16,                         // MOB_LV
     256,                        // MOB_MAX_HP
     32,                         // MOB_STR
@@ -167,7 +169,8 @@ int mutation_scale[MOB_XP_BONUS] = {
 // (3) third, compute the percentage stat change relative to mutation_base (p1)
 // (4) fourth, compute the XP mofication based on the smaller of (p0, p1).
 static
-int mutation_base[MOB_XP_BONUS] = {
+earray<int, mob_stat, MOB_XP_BONUS> mutation_base =
+{
     30,                         // MOB_LV
     -1,                         // MOB_MAX_HP
     20,                         // MOB_STR
@@ -188,8 +191,9 @@ int mutation_base[MOB_XP_BONUS] = {
  * Mutates a MOB.  For large `direction' values, calling this multiple times will give bigger XP boni.
  *----------------------------------------
  */
+// intensity: positive: strengthen, negative: weaken.  256 = 100%.
 static
-void mob_mutate(struct mob_data *md, int stat, int intensity)   // intensity: positive: strengthen, negative: weaken.  256 = 100%.
+void mob_mutate(struct mob_data *md, mob_stat stat, int intensity)
 {
     int old_stat;
     int new_stat;
@@ -197,7 +201,7 @@ void mob_mutate(struct mob_data *md, int stat, int intensity)   // intensity: po
     const int mut_base = mutation_base[stat];
     int sign = 1;
 
-    if (!md || stat < 0 || stat >= MOB_XP_BONUS || intensity == 0)
+    if (!md || stat >= MOB_XP_BONUS || intensity == 0)
         return;
 
     while (intensity > mutation_scale[stat])
@@ -273,13 +277,13 @@ int mob_gen_exp(struct mob_db *mob)
     if (100 == mob->def)
         mod_def = 1;
     double effective_hp =
-        ((50 - mob->luk) * mob->max_hp / 50.0) +
-        (2 * mob->luk * mob->max_hp / mod_def);
+        ((50 - mob->attrs[ATTR::LUK]) * mob->max_hp / 50.0) +
+        (2 * mob->attrs[ATTR::LUK] * mob->max_hp / mod_def);
     double attack_factor =
-        (mob->atk1 + mob->atk2 + mob->str / 3.0 + mob->dex / 2.0 +
-         mob->luk) * (1872.0 / mob->adelay) / 4;
+        (mob->atk1 + mob->atk2 + mob->attrs[ATTR::STR] / 3.0 + mob->attrs[ATTR::DEX] / 2.0 +
+         mob->attrs[ATTR::LUK]) * (1872.0 / mob->adelay) / 4;
     double dodge_factor =
-        pow(mob->lv + mob->agi + mob->luk / 2.0, 4.0 / 3.0);
+        pow(mob->lv + mob->attrs[ATTR::AGI] + mob->attrs[ATTR::LUK] / 2.0, 4.0 / 3.0);
     double persuit_factor =
         (3 + mob->range) * (mob->mode % 2) * 1000 / mob->speed;
     double aggression_factor = (mob->mode & 4) == 4 ? 10.0 / 9.0 : 1.0;
@@ -305,12 +309,12 @@ void mob_init(struct mob_data *md)
 
     md->stats[MOB_LV] = mob_db[mob_class].lv;
     md->stats[MOB_MAX_HP] = mob_db[mob_class].max_hp;
-    md->stats[MOB_STR] = mob_db[mob_class].str;
-    md->stats[MOB_AGI] = mob_db[mob_class].agi;
-    md->stats[MOB_VIT] = mob_db[mob_class].vit;
-    md->stats[MOB_INT] = mob_db[mob_class].int_;
-    md->stats[MOB_DEX] = mob_db[mob_class].dex;
-    md->stats[MOB_LUK] = mob_db[mob_class].luk;
+    md->stats[MOB_STR] = mob_db[mob_class].attrs[ATTR::STR];
+    md->stats[MOB_AGI] = mob_db[mob_class].attrs[ATTR::AGI];
+    md->stats[MOB_VIT] = mob_db[mob_class].attrs[ATTR::VIT];
+    md->stats[MOB_INT] = mob_db[mob_class].attrs[ATTR::INT];
+    md->stats[MOB_DEX] = mob_db[mob_class].attrs[ATTR::DEX];
+    md->stats[MOB_LUK] = mob_db[mob_class].attrs[ATTR::LUK];
     md->stats[MOB_ATK1] = mob_db[mob_class].atk1;
     md->stats[MOB_ATK2] = mob_db[mob_class].atk2;
     md->stats[MOB_ADELAY] = mob_db[mob_class].adelay;
@@ -321,10 +325,11 @@ void mob_init(struct mob_data *md)
 
     for (i = 0; i < mutations_nr; i++)
     {
-        int stat_nr = MRAND(MOB_XP_BONUS + 1);
+        mob_stat stat_nr = mob_stat(MRAND(unsigned(MOB_LAST)));
         int strength;
 
-        if (stat_nr >= MOB_XP_BONUS)
+        // double chance to modify hp
+        if (stat_nr == MOB_XP_BONUS)
             stat_nr = MOB_MAX_HP;
 
         strength =
@@ -783,7 +788,7 @@ int mob_check_attack(struct mob_data *md)
     if ((tbl = map_id2bl(md->target_id)) == NULL)
     {
         md->target_id = 0;
-        md->state.targettype = NONE_ATTACKABLE;
+        md->state.attackable = false;
         return 0;
     }
 
@@ -801,7 +806,7 @@ int mob_check_attack(struct mob_data *md)
             || distance(md->bl.x, md->bl.y, tbl->x, tbl->y) >= 13)
         {
             md->target_id = 0;
-            md->state.targettype = NONE_ATTACKABLE;
+            md->state.attackable = false;
             return 0;
         }
     }
@@ -811,7 +816,7 @@ int mob_check_attack(struct mob_data *md)
             || distance(md->bl.x, md->bl.y, tbl->x, tbl->y) >= 13)
         {
             md->target_id = 0;
-            md->state.targettype = NONE_ATTACKABLE;
+            md->state.attackable = false;
             return 0;
         }
     }
@@ -825,7 +830,7 @@ int mob_check_attack(struct mob_data *md)
     if (!(mode & 0x80))
     {
         md->target_id = 0;
-        md->state.targettype = NONE_ATTACKABLE;
+        md->state.attackable = false;
         return 0;
     }
     if (tsd && !(mode & 0x20) && (tsd->sc_data[SC_TRICKDEAD].timer != -1 ||
@@ -834,7 +839,7 @@ int mob_check_attack(struct mob_data *md)
                                    && race != 4 && race != 6)))
     {
         md->target_id = 0;
-        md->state.targettype = NONE_ATTACKABLE;
+        md->state.attackable = false;
         return 0;
     }
 
@@ -852,7 +857,7 @@ void mob_ancillary_attack(struct block_list *bl,
         struct block_list *mdbl, struct block_list *tbl, unsigned int tick)
 {
     if (bl != tbl)
-        battle_weapon_attack(mdbl, bl, tick, 0);
+        battle_weapon_attack(mdbl, bl, tick, BCT_ZERO);
 }
 
 /*==========================================
@@ -881,7 +886,7 @@ int mob_attack(struct mob_data *md, unsigned int tick, int)
     if (mobskill_use(md, tick, MSC::NEVER_EQUAL))
         return 0;
 
-    md->target_lv = battle_weapon_attack(&md->bl, tbl, tick, 0);
+    md->target_lv = battle_weapon_attack(&md->bl, tbl, tick, BCT_ZERO);
     // If you are reading this, please note:
     // it is highly platform-specific that this even works at all.
     int radius = battle_config.mob_splash_radius;
@@ -920,7 +925,7 @@ void mob_stopattacked(struct map_session_data *sd, int id)
  * The timer in which the mob's states changes
  *------------------------------------------
  */
-int mob_changestate(struct mob_data *md, int state, int type)
+int mob_changestate(struct mob_data *md, MS state, int type)
 {
     unsigned int tick;
     int i;
@@ -982,7 +987,7 @@ int mob_changestate(struct mob_data *md, int state, int type)
                 delete_timer(md->deletetimer, mob_timer_delete);
             md->deletetimer = -1;
             md->hp = md->target_id = md->attacked_id = 0;
-            md->state.targettype = NONE_ATTACKABLE;
+            md->state.attackable = false;
             break;
     }
 
@@ -1005,12 +1010,12 @@ void mob_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
         return;
     }
 
-    if (!bl || !bl->type || bl->type != BL_MOB)
+    if (!bl || bl->type == BL_NUL || bl->type != BL_MOB)
         return;
 
     nullpo_retv(md = (struct mob_data *) bl);
 
-    if (!md->bl.type || md->bl.type != BL_MOB)
+    if (md->bl.type == BL_NUL || md->bl.type != BL_MOB)
         return;
 
     if (md->timer != tid)
@@ -1038,7 +1043,8 @@ void mob_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
             break;
         default:
             if (battle_config.error_log == 1)
-                printf("mob_timer : %d ?\n", md->state.state);
+                printf("mob_timer : %d ?\n",
+                        uint8_t(md->state.state));
             break;
     }
     map_freeblock_unlock();
@@ -1122,7 +1128,7 @@ int mob_setdelayspawn(int id)
     if ((bl = map_id2bl(id)) == NULL)
         return -1;
 
-    if (!bl || !bl->type || bl->type != BL_MOB)
+    if (!bl || bl->type == BL_NUL || bl->type != BL_MOB)
         return -1;
 
     nullpo_retr(-1, md = (struct mob_data *) bl);
@@ -1177,12 +1183,12 @@ int mob_spawn(int id)
 
     nullpo_retr(-1, bl = map_id2bl(id));
 
-    if (!bl || !bl->type || bl->type != BL_MOB)
+    if (!bl || bl->type == BL_NUL || bl->type != BL_MOB)
         return -1;
 
     nullpo_retr(-1, md = (struct mob_data *) bl);
 
-    if (!md || !md->bl.type || md->bl.type != BL_MOB)
+    if (!md || md->bl.type == BL_NUL || md->bl.type != BL_MOB)
         return -1;
 
     md->last_spawntime = tick;
@@ -1314,7 +1320,7 @@ int distance(int x0, int y0, int x1, int y1)
 int mob_stopattack(struct mob_data *md)
 {
     md->target_id = 0;
-    md->state.targettype = NONE_ATTACKABLE;
+    md->state.attackable = false;
     md->attacked_id = 0;
     return 0;
 }
@@ -1456,7 +1462,7 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
         return 0;
     }
     // Nothing will be carried out if there is no mind of changing TAGE by TAGE ending.
-    if ((md->target_id > 0 && md->state.targettype == ATTACKABLE)
+    if ((md->target_id > 0 && md->state.attackable)
         && (!(mode & 0x04) || MRAND(100) > 25))
         return 0;
 
@@ -1479,9 +1485,9 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
 
         md->target_id = bl->id; // Since there was no disturbance, it locks on to target.
         if (bl->type == BL_PC || bl->type == BL_MOB)
-            md->state.targettype = ATTACKABLE;
+            md->state.attackable = true;
         else
-            md->state.targettype = NONE_ATTACKABLE;
+            md->state.attackable = false;
         md->min_chase = dist + 13;
         if (md->min_chase > 26)
             md->min_chase = 26;
@@ -1543,7 +1549,7 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
                     MRAND(1000) < 1000 / (++(*pcc)))
                 {               // 範囲内PCで等確率にする
                     smd->target_id = tsd->bl.id;
-                    smd->state.targettype = ATTACKABLE;
+                    smd->state.attackable = true;
                     smd->min_chase = 13;
                 }
             }
@@ -1558,7 +1564,7 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
                 MRAND(1000) < 1000 / (++(*pcc)))
             {                   // 範囲内で等確率にする
                 smd->target_id = bl->id;
-                smd->state.targettype = ATTACKABLE;
+                smd->state.attackable = true;
                 smd->min_chase = 13;
             }
         }
@@ -1598,7 +1604,7 @@ void mob_ai_sub_hard_lootsearch(struct block_list *bl, struct mob_data *md, int 
                 MRAND(1000) < 1000 / (++(*itc)))
             {                   // It is made a probability, such as within the limits PC.
                 md->target_id = bl->id;
-                md->state.targettype = NONE_ATTACKABLE;
+                md->state.attackable = false;
                 md->min_chase = 13;
             }
         }
@@ -1620,11 +1626,11 @@ void mob_ai_sub_hard_linksearch(struct block_list *bl, struct mob_data *md, stru
     nullpo_retv(target);
 
     // same family free in a range at a link monster -- it will be made to lock if MOB is
-/*      if ((md->target_id > 0 && md->state.targettype == ATTACKABLE) && mob_db[md->mob_class].mode&0x08){
-                if ( tmd->mob_class==md->mob_class && (!tmd->target_id || md->state.targettype == NONE_ATTACKABLE) && tmd->bl.m == md->bl.m){
+/*      if ((md->target_id > 0 && md->state.attackable) && mob_db[md->mob_class].mode&0x08){
+                if ( tmd->mob_class==md->mob_class && (!tmd->target_id || !md->state.attackable) && tmd->bl.m == md->bl.m){
                         if ( mob_can_reach(tmd,target,12) ){    // Reachability judging
                                 tmd->target_id=md->target_id;
-                                tmd->state.targettype = ATTACKABLE;
+                                tmd->state.attackable = true;
                                 tmd->min_chase=13;
                         }
                 }
@@ -1632,12 +1638,12 @@ void mob_ai_sub_hard_linksearch(struct block_list *bl, struct mob_data *md, stru
     if (md->attacked_id > 0 && mob_db[md->mob_class].mode & 0x08)
     {
         if (tmd->mob_class == md->mob_class && tmd->bl.m == md->bl.m
-            && (!tmd->target_id || md->state.targettype == NONE_ATTACKABLE))
+            && (!tmd->target_id || !md->state.attackable))
         {
             if (mob_can_reach(tmd, target, 12))
             {                   // Reachability judging
                 tmd->target_id = md->attacked_id;
-                tmd->state.targettype = ATTACKABLE;
+                tmd->state.attackable = true;
                 tmd->min_chase = 13;
             }
         }
@@ -1687,7 +1693,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
     }
 
     // Although there is the master, since it is somewhat far, it approaches.
-    if ((!md->target_id || md->state.targettype == NONE_ATTACKABLE)
+    if ((!md->target_id || !md->state.attackable)
         && mob_can_move(md)
         && (md->walkpath.path_pos >= md->walkpath.path_len
             || md->walkpath.path_len == 0) && md->master_dist < 15)
@@ -1746,8 +1752,8 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
     }
 
     // There is the master, the master locks a target and he does not lock.
-    if ((mmd->target_id > 0 && mmd->state.targettype == ATTACKABLE)
-        && (!md->target_id || md->state.targettype == NONE_ATTACKABLE))
+    if ((mmd->target_id > 0 && mmd->state.attackable)
+        && (!md->target_id || !md->state.attackable))
     {
         struct map_session_data *sd = map_id2sd(mmd->target_id);
         if (sd != NULL && !pc_isdead(sd) && sd->invincible_timer == -1
@@ -1762,7 +1768,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
             {                   // 妨害がないか判定
 
                 md->target_id = sd->bl.id;
-                md->state.targettype = ATTACKABLE;
+                md->state.attackable = true;
                 md->min_chase =
                     5 + distance(md->bl.x, md->bl.y, sd->bl.x, sd->bl.y);
                 md->state.master_check = 1;
@@ -1771,7 +1777,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
     }
 
     // There is the master, the master locks a target and he does not lock.
-/*      if ((md->target_id>0 && mmd->state.targettype == ATTACKABLE) && (!mmd->target_id || mmd->state.targettype == NONE_ATTACKABLE) ){
+/*      if ((md->target_id>0 && mmd->state.attackable) && (!mmd->target_id || !mmd->state.attackable) ){
                 struct map_session_data *sd=map_id2sd(md->target_id);
                 if (sd!=NULL && !pc_isdead(sd) && sd->invincible_timer == -1 && !pc_isinvisible(sd)){
 
@@ -1782,7 +1788,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
                                 ) ){    // It judges whether there is any disturbance.
 
                                 mmd->target_id=sd->bl.id;
-                                mmd->state.targettype = ATTACKABLE;
+                                mmd->state.attackable = true;
                                 mmd->min_chase=5+distance(mmd->bl.x,mmd->bl.y,sd->bl.x,sd->bl.y);
                         }
                 }
@@ -1801,7 +1807,7 @@ int mob_unlocktarget(struct mob_data *md, int tick)
     nullpo_ret(md);
 
     md->target_id = 0;
-    md->state.targettype = NONE_ATTACKABLE;
+    md->state.attackable = false;
     md->state.skillstate = MSS_IDLE;
     md->next_walktime = tick + MPRAND(3000, 3000);
     return 0;
@@ -1924,7 +1930,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
 
     // It checks to see it was attacked first (if active, it is target change at 25% of probability).
     if (mode > 0 && md->attacked_id > 0
-        && (!md->target_id || md->state.targettype == NONE_ATTACKABLE
+        && (!md->target_id || !md->state.attackable
             || (mode & 0x04 && MRAND(100) < 25)))
     {
         struct block_list *abl = map_id2bl(md->attacked_id);
@@ -1942,7 +1948,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
             else
             {
                 md->target_id = md->attacked_id;    // set target
-                md->state.targettype = ATTACKABLE;
+                md->state.attackable = true;
                 attack_type = 1;
                 md->attacked_id = 0;
                 md->min_chase = dist + 13;
@@ -1958,7 +1964,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
         mob_ai_sub_hard_slavemob(md, tick);
 
     // アクティヴモンスターの策敵 (?? of a bitter taste TIVU monster)
-    if ((!md->target_id || md->state.targettype == NONE_ATTACKABLE)
+    if ((!md->target_id || !md->state.attackable)
         && mode & 0x04 && !md->state.master_check
         && battle_config.monster_active_enable == 1)
     {
@@ -1967,7 +1973,8 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
                     md->bl.m, md->bl.x - AREA_SIZE * 2, md->bl.y - AREA_SIZE * 2,
-                    md->bl.x + AREA_SIZE * 2, md->bl.y + AREA_SIZE * 2, 0);
+                    md->bl.x + AREA_SIZE * 2, md->bl.y + AREA_SIZE * 2,
+                    BL_NUL);
         }
         else
         {
@@ -2247,7 +2254,7 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, unsigned int tick)
     if (md == NULL)
         return;
 
-    if (!md->bl.type || md->bl.type != BL_MOB)
+    if (md->bl.type == BL_NUL || md->bl.type != BL_MOB)
         return;
 
     if (DIFF_TICK(tick, md->last_thinktime) < MIN_MOBTHINKTIME * 10)
@@ -2334,7 +2341,7 @@ void mob_delay_item_drop(timer_id, tick_t, custom_id_t id, custom_data_t)
 {
     struct delay_item_drop *ditem;
     struct item temp_item;
-    int flag;
+    PickupFail flag;
 
     nullpo_retv(ditem = (struct delay_item_drop *) id);
 
@@ -2347,7 +2354,8 @@ void mob_delay_item_drop(timer_id, tick_t, custom_id_t id, custom_data_t)
     {
         if (ditem->first_sd
             && (flag =
-                pc_additem(ditem->first_sd, &temp_item, ditem->amount)))
+                pc_additem(ditem->first_sd, &temp_item, ditem->amount))
+            != PickupFail::OKAY)
         {
             clif_additem(ditem->first_sd, 0, 0, flag);
             map_addflooritem(&temp_item, 1, ditem->m, ditem->x, ditem->y,
@@ -2372,7 +2380,7 @@ static
 void mob_delay_item_drop2(timer_id, tick_t, custom_id_t id, custom_data_t)
 {
     struct delay_item_drop2 *ditem;
-    int flag;
+    PickupFail flag;
 
     nullpo_retv(ditem = (struct delay_item_drop2 *) id);
 
@@ -2381,7 +2389,8 @@ void mob_delay_item_drop2(timer_id, tick_t, custom_id_t id, custom_data_t)
         if (ditem->first_sd
             && (flag =
                 pc_additem(ditem->first_sd, &ditem->item_data,
-                            ditem->item_data.amount)))
+                            ditem->item_data.amount))
+            != PickupFail::OKAY)
         {
             clif_additem(ditem->first_sd, 0, 0, flag);
             map_addflooritem(&ditem->item_data, ditem->item_data.amount,
@@ -2499,7 +2508,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
         NULL;
     double tdmg, temp;
     struct item item;
-    int ret;
+    PickupFail ret;
     int skill, sp;
 
     nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
@@ -2821,7 +2830,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 if (drop_rate <= 0 && battle_config.drop_rate0item == 1)
                     drop_rate = 1;
                 if (battle_config.drops_by_luk > 0 && sd && md)
-                    drop_rate += (sd->status.luk * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
+                    drop_rate += (sd->status.attrs[ATTR::LUK] * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
                 if (sd && md && battle_config.pk_mode == 1
                     && (mob_db[md->mob_class].lv - sd->status.base_level >= 20))
                     drop_rate *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
@@ -2932,7 +2941,8 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                     map_addflooritem(&item, 1, mvp_sd->bl.m, mvp_sd->bl.x,
                                       mvp_sd->bl.y, mvp_sd, second_sd,
                                       third_sd, 1);
-                else if ((ret = pc_additem(mvp_sd, &item, 1)))
+                else if ((ret = pc_additem(mvp_sd, &item, 1))
+                        != PickupFail::OKAY)
                 {
                     clif_additem(sd, 0, 0, ret);
                     map_addflooritem(&item, 1, mvp_sd->bl.m, mvp_sd->bl.x,
@@ -3168,7 +3178,7 @@ int mob_warp(struct mob_data *md, int m, int x, int y, int type)
     }
 
     md->target_id = 0;          // タゲを解除する
-    md->state.targettype = NONE_ATTACKABLE;
+    md->state.attackable = false;
     md->attacked_id = 0;
     md->state.skillstate = MSS_IDLE;
     mob_changestate(md, MS_IDLE, 0);
@@ -3307,7 +3317,8 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
  *------------------------------------------
  */
 static
-void mob_counttargeted_sub(struct block_list *bl, int id, int *c, struct block_list *src, int target_lv)
+void mob_counttargeted_sub(struct block_list *bl,
+        int id, int *c, struct block_list *src, ATK target_lv)
 {
     nullpo_retv(bl);
     nullpo_retv(c);
@@ -3335,7 +3346,7 @@ void mob_counttargeted_sub(struct block_list *bl, int id, int *c, struct block_l
  *------------------------------------------
  */
 int mob_counttargeted(struct mob_data *md, struct block_list *src,
-                       int target_lv)
+        ATK target_lv)
 {
     int c = 0;
 
@@ -3343,7 +3354,8 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
 
     map_foreachinarea(std::bind(mob_counttargeted_sub, ph::_1, md->bl.id, &c, src, target_lv),
             md->bl.m, md->bl.x - AREA_SIZE, md->bl.y - AREA_SIZE,
-            md->bl.x + AREA_SIZE, md->bl.y + AREA_SIZE, 0);
+            md->bl.x + AREA_SIZE, md->bl.y + AREA_SIZE,
+            BL_NUL);
     return c;
 }
 
@@ -3460,7 +3472,7 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
         case 0:
         case 2:
             skill_castend_damage_id(&md->bl, bl, md->skillid, md->skilllv,
-                                     tick, 0);
+                                     tick, BCT_ZERO);
             break;
         case 1:                // 支援系
             if (!mob_db[md->mob_class].skill[md->skillidx].val[0] &&
@@ -3469,10 +3481,10 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
                 && battle_check_undead(battle_get_race(bl),
                                         battle_get_elem_type(bl)))
                 skill_castend_damage_id(&md->bl, bl, md->skillid,
-                                         md->skilllv, tick, 0);
+                                         md->skilllv, tick, BCT_ZERO);
             else
                 skill_castend_nodamage_id(&md->bl, bl, md->skillid,
-                                           md->skilllv, tick, 0);
+                                           md->skilllv, tick, BCT_ZERO);
             break;
     }
 }
@@ -3604,7 +3616,7 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
     mob_stop_walking(md, 0);
 
     skill_castend_pos2(&md->bl, md->skillx, md->skilly, md->skillid,
-                        md->skilllv, tick, 0);
+                        md->skilllv, tick, BCT_ZERO);
 
     return;
 }
@@ -3619,7 +3631,7 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     int casttime, range;
     struct mob_skill *ms;
     SkillID skill_id;
-    int skill_lv, forcecast = 0;
+    int skill_lv;
 
     nullpo_ret(md);
     nullpo_ret(ms = &mob_db[md->mob_class].skill[skill_idx]);
@@ -3677,16 +3689,10 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
                 && battle_check_undead(battle_get_race(target),
                                         battle_get_elem_type(target)))
             {                   /* 敵がアンデッドなら */
-                forcecast = 1;  /* ターンアンデットと同じ詠唱時間 */
                 casttime =
                     skill_castfix(&md->bl,
                                    skill_get_cast(PR_TURNUNDEAD, skill_lv));
             }
-            break;
-        case MO_EXTREMITYFIST: /*阿修羅覇鳳拳 */
-        case SA_MAGICROD:
-        case SA_SPELLBREAKER:
-            forcecast = 1;
             break;
     }
 
@@ -3975,13 +3981,13 @@ int mobskill_use(struct mob_data *md, unsigned int tick,
                     flag = (mob_countslave(md) < ms[ii].cond2i);
                     break;
                 case MSC_ATTACKPCGT:   // attack pc > num
-                    flag = (mob_counttargeted(md, NULL, 0) > ms[ii].cond2i);
+                    flag = (mob_counttargeted(md, NULL, ATK::ZERO) > ms[ii].cond2i);
                     break;
                 case MSC_SLAVELE:  // slave <= num
                     flag = (mob_countslave(md) <= ms[ii].cond2i);
                     break;
                 case MSC_ATTACKPCGE:   // attack pc >= num
-                    flag = (mob_counttargeted(md, NULL, 0) >= ms[ii].cond2i);
+                    flag = (mob_counttargeted(md, NULL, ATK::ZERO) >= ms[ii].cond2i);
                     break;
                 case MSC_SKILLUSED:    // specificated skill used
                     flag = (event == MSC_SKILLUSED
@@ -4109,16 +4115,16 @@ int mobskill_use(struct mob_data *md, unsigned int tick,
  * Skill use event processing
  *------------------------------------------
  */
-int mobskill_event(struct mob_data *md, int flag)
+int mobskill_event(struct mob_data *md, BF flag)
 {
     nullpo_ret(md);
 
-    if (flag == -1 && mobskill_use(md, gettick(), MSC_CASTTARGETED))
+    if (flag == BF::NEGATIVE_1 && mobskill_use(md, gettick(), MSC_CASTTARGETED))
         return 1;
-    if ((flag & BF_SHORT)
+    if (bool(flag & BF_SHORT)
         && mobskill_use(md, gettick(), MSC_CLOSEDATTACKED))
         return 1;
-    if ((flag & BF_LONG)
+    if (bool(flag & BF_LONG)
         && mobskill_use(md, gettick(), MSC_LONGRANGEATTACKED))
         return 1;
     return 0;
@@ -4148,12 +4154,12 @@ int mob_makedummymobdb(int mob_class)
     mob_db[mob_class].atk2 = 10;
     mob_db[mob_class].def = 0;
     mob_db[mob_class].mdef = 0;
-    mob_db[mob_class].str = 1;
-    mob_db[mob_class].agi = 1;
-    mob_db[mob_class].vit = 1;
-    mob_db[mob_class].int_ = 1;
-    mob_db[mob_class].dex = 6;
-    mob_db[mob_class].luk = 2;
+    mob_db[mob_class].attrs[ATTR::STR] = 1;
+    mob_db[mob_class].attrs[ATTR::AGI] = 1;
+    mob_db[mob_class].attrs[ATTR::VIT] = 1;
+    mob_db[mob_class].attrs[ATTR::INT] = 1;
+    mob_db[mob_class].attrs[ATTR::DEX] = 6;
+    mob_db[mob_class].attrs[ATTR::LUK] = 2;
     mob_db[mob_class].range2 = 10;
     mob_db[mob_class].range3 = 10;
     mob_db[mob_class].size = 0;
@@ -4270,12 +4276,12 @@ int mob_readdb(void)
             mob_db[mob_class].atk2 = atoi(str[10]);
             mob_db[mob_class].def = atoi(str[11]);
             mob_db[mob_class].mdef = atoi(str[12]);
-            mob_db[mob_class].str = atoi(str[13]);
-            mob_db[mob_class].agi = atoi(str[14]);
-            mob_db[mob_class].vit = atoi(str[15]);
-            mob_db[mob_class].int_ = atoi(str[16]);
-            mob_db[mob_class].dex = atoi(str[17]);
-            mob_db[mob_class].luk = atoi(str[18]);
+            mob_db[mob_class].attrs[ATTR::STR] = atoi(str[13]);
+            mob_db[mob_class].attrs[ATTR::AGI] = atoi(str[14]);
+            mob_db[mob_class].attrs[ATTR::VIT] = atoi(str[15]);
+            mob_db[mob_class].attrs[ATTR::INT] = atoi(str[16]);
+            mob_db[mob_class].attrs[ATTR::DEX] = atoi(str[17]);
+            mob_db[mob_class].attrs[ATTR::LUK] = atoi(str[18]);
             mob_db[mob_class].range2 = atoi(str[19]);
             mob_db[mob_class].range3 = atoi(str[20]);
             mob_db[mob_class].size = atoi(str[21]);
@@ -4289,28 +4295,30 @@ int mob_readdb(void)
 
             for (int i = 0; i < 8; i++)
             {
-                int rate = 0, type, ratemin, ratemax;
+                int rate = 0, ratemin, ratemax;
                 mob_db[mob_class].dropitem[i].nameid = atoi(str[29 + i * 2]);
-                type = itemdb_type(mob_db[mob_class].dropitem[i].nameid);
-                if (type == 0)
+                ItemType type = itemdb_type(mob_db[mob_class].dropitem[i].nameid);
+                if (type == ItemType::USE)
                 {               // Added [Valaris]
                     rate = battle_config.item_rate_heal;
                     ratemin = battle_config.item_drop_heal_min;
                     ratemax = battle_config.item_drop_heal_max;
                 }
-                else if (type == 2)
+                else if (type == ItemType::_2)
                 {
                     rate = battle_config.item_rate_use;
                     ratemin = battle_config.item_drop_use_min;
                     ratemax = battle_config.item_drop_use_max;  // End
                 }
-                else if (type == 4 || type == 5 || type == 8)
+                else if (type == ItemType::WEAPON
+                    || type == ItemType::ARMOR
+                    || type == ItemType::_8)
                 {
                     rate = battle_config.item_rate_equip;
                     ratemin = battle_config.item_drop_equip_min;
                     ratemax = battle_config.item_drop_equip_max;
                 }
-                else if (type == 6)
+                else if (type == ItemType::_6)
                 {
                     rate = battle_config.item_rate_card;
                     ratemin = battle_config.item_drop_card_min;

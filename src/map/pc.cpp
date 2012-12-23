@@ -39,7 +39,7 @@
 
 #define MAP_LOG_STATS(sd, suffix)       \
         MAP_LOG_PC(sd, "STAT %d %d %d %d %d %d " suffix,            \
-                   sd->status.str, sd->status.agi, sd->status.vit, sd->status.int_, sd->status.dex, sd->status.luk)
+                   sd->status.attrs[ATTR::STR], sd->status.attrs[ATTR::AGI], sd->status.attrs[ATTR::VIT], sd->status.attrs[ATTR::INT], sd->status.attrs[ATTR::DEX], sd->status.attrs[ATTR::LUK])
 
 #define MAP_LOG_XP(sd, suffix)  \
         MAP_LOG_PC(sd, "XP %d %d JOB %d %d %d ZENY %d + %d " suffix,            \
@@ -102,9 +102,19 @@ static
 int diry[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
 
 static
-unsigned int equip_pos[11] =
-    { 0x0080, 0x0008, 0x0040, 0x0004, 0x0001, 0x0200, 0x0100, 0x0010, 0x0020,
-    0x0002, 0x8000
+earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos =
+{
+    EPOS::MISC2,
+    EPOS::CAPE,
+    EPOS::SHOES,
+    EPOS::GLOVES,
+    EPOS::LEGS,
+    EPOS::TORSO,
+    EPOS::HAT,
+    EPOS::MISC1,
+    EPOS::SHIELD,
+    EPOS::WEAPON,
+    EPOS::ARROW,
 };
 
 //static struct dbt *gm_account_db;
@@ -409,7 +419,8 @@ int pc_setrestartvalue(struct map_session_data *sd, int type)
  *------------------------------------------
  */
 static
-void pc_counttargeted_sub(struct block_list *bl, int id, int *c, struct block_list *src, int target_lv)
+void pc_counttargeted_sub(struct block_list *bl,
+        int id, int *c, struct block_list *src, ATK target_lv)
 {
     nullpo_retv(bl);
 
@@ -434,12 +445,12 @@ void pc_counttargeted_sub(struct block_list *bl, int id, int *c, struct block_li
 }
 
 int pc_counttargeted(struct map_session_data *sd, struct block_list *src,
-                      int target_lv)
+        ATK target_lv)
 {
     int c = 0;
     map_foreachinarea(std::bind(pc_counttargeted_sub, ph::_1, sd->bl.id, &c, src, target_lv),
             sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
-            sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE, 0);
+            sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE, BL_NUL);
     return c;
 }
 
@@ -518,27 +529,27 @@ int pc_setnewpc(struct map_session_data *sd, int account_id, int char_id,
     return 0;
 }
 
-int pc_equippoint(struct map_session_data *sd, int n)
+EPOS pc_equippoint(struct map_session_data *sd, int n)
 {
-    int ep = 0;
     //転生や養子の場合の元の職業を算出する
     struct pc_base_job s_class;
 
-    nullpo_ret(sd);
+    nullpo_retr(EPOS::ZERO, sd);
 
     if (!sd->inventory_data[n])
-        return 0;
+        return EPOS::ZERO;
 
     s_class = pc_calc_base_job(sd->status.pc_class);
 
-    ep = sd->inventory_data[n]->equip;
-    if ((sd->inventory_data[n]->look == 1 || sd->inventory_data[n]->look == 2
-         || sd->inventory_data[n]->look == 6) && (ep == 2
-                                                  &&
-                                                  (pc_checkskill(sd, AS_LEFT)
-                                                   > 0 || s_class.job == 12)))
+    EPOS ep = sd->inventory_data[n]->equip;
+    if ((sd->inventory_data[n]->look == 1
+            || sd->inventory_data[n]->look == 2
+            || sd->inventory_data[n]->look == 6)
+        && (ep == EPOS::WEAPON
+            && (pc_checkskill(sd, AS_LEFT) > 0
+                || s_class.job == 12)))
     {
-        return 34;
+        return EPOS::SHIELD | EPOS::WEAPON;
     }
 
     return ep;
@@ -589,36 +600,34 @@ int pc_calcweapontype(struct map_session_data *sd)
 static
 int pc_setequipindex(struct map_session_data *sd)
 {
-    int i, j;
-
     nullpo_ret(sd);
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
         sd->equip_index[i] = -1;
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (int i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].nameid <= 0)
             continue;
-        if (sd->status.inventory[i].equip)
+        if (bool(sd->status.inventory[i].equip))
         {
-            for (j = 0; j < 11; j++)
-                if (sd->status.inventory[i].equip & equip_pos[j])
+            for (EQUIP j : EQUIPs)
+                if (bool(sd->status.inventory[i].equip & equip_pos[j]))
                     sd->equip_index[j] = i;
-            if (sd->status.inventory[i].equip & 0x0002)
+            if (bool(sd->status.inventory[i].equip & EPOS::WEAPON))
             {
                 if (sd->inventory_data[i])
                     sd->weapontype1 = sd->inventory_data[i]->look;
                 else
                     sd->weapontype1 = 0;
             }
-            if (sd->status.inventory[i].equip & 0x0020)
+            if (bool(sd->status.inventory[i].equip & EPOS::SHIELD))
             {
                 if (sd->inventory_data[i])
                 {
-                    if (sd->inventory_data[i]->type == 4)
+                    if (sd->inventory_data[i]->type == ItemType::WEAPON)
                     {
-                        if (sd->status.inventory[i].equip == 0x0020)
+                        if (sd->status.inventory[i].equip == EPOS::SHIELD)
                             sd->weapontype2 = sd->inventory_data[i]->look;
                         else
                             sd->weapontype2 = 0;
@@ -663,15 +672,21 @@ int pc_isequip(struct map_session_data *sd, int n)
     if (map[sd->bl.m].flag.pvp
         && (item->flag.no_equip == 1 || item->flag.no_equip == 3))
         return 0;
-    if (item->equip & 0x0002 && sc_data
+    if (bool(item->equip & EPOS::WEAPON)
+        && sc_data
         && sc_data[SC_STRIPWEAPON].timer != -1)
         return 0;
-    if (item->equip & 0x0020 && sc_data
+    if (bool(item->equip & EPOS::SHIELD)
+        && sc_data
         && sc_data[SC_STRIPSHIELD].timer != -1)
         return 0;
-    if (item->equip & 0x0010 && sc_data && sc_data[SC_STRIPARMOR].timer != -1)
+    if (bool(item->equip & EPOS::MISC1)
+        && sc_data
+        && sc_data[SC_STRIPARMOR].timer != -1)
         return 0;
-    if (item->equip & 0x0100 && sc_data && sc_data[SC_STRIPHELM].timer != -1)
+    if (bool(item->equip & EPOS::HAT)
+        && sc_data
+        && sc_data[SC_STRIPHELM].timer != -1)
         return 0;
     return 1;
 }
@@ -695,15 +710,15 @@ int pc_breakweapon(struct map_session_data *sd)
 
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].equip
-            && sd->status.inventory[i].equip & 0x0002
+        if (bool(sd->status.inventory[i].equip)
+            && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
             && !sd->status.inventory[i].broken)
         {
             item = sd->inventory_data[i];
             sd->status.inventory[i].broken = 1;
-            //pc_unequipitem(sd,i,0);
-            if (sd->status.inventory[i].equip
-                && sd->status.inventory[i].equip & 0x0002
+            //pc_unequipitem(sd,i,CalcStatus::NOW);
+            if (bool(sd->status.inventory[i].equip)
+                && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
                 && sd->status.inventory[i].broken == 1)
             {
                 sprintf(output, "%s has broken.", item->jname);
@@ -740,15 +755,15 @@ int pc_breakarmor(struct map_session_data *sd)
 
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].equip
-            && sd->status.inventory[i].equip & 0x0010
+        if (bool(sd->status.inventory[i].equip)
+            && bool(sd->status.inventory[i].equip & EPOS::MISC1)
             && !sd->status.inventory[i].broken)
         {
             item = sd->inventory_data[i];
             sd->status.inventory[i].broken = 1;
-            //pc_unequipitem(sd,i,0);
-            if (sd->status.inventory[i].equip
-                && sd->status.inventory[i].equip & 0x0010
+            //pc_unequipitem(sd,i,CalcStatus::NOW);
+            if (bool(sd->status.inventory[i].equip)
+                && bool(sd->status.inventory[i].equip & EPOS::MISC1)
                 && sd->status.inventory[i].broken == 1)
             {
                 sprintf(output, "%s has broken.", item->jname);
@@ -1265,7 +1280,7 @@ void pc_set_weapon_look(struct map_session_data *sd)
 int pc_calcstatus(struct map_session_data *sd, int first)
 {
     int b_speed, b_max_hp, b_max_sp, b_hp, b_sp, b_weight, b_max_weight,
-        b_paramb[6], b_parame[6], b_hit, b_flee;
+        b_hit, b_flee;
     int b_aspd, b_watk, b_def, b_watk2, b_def2, b_flee2, b_critical,
         b_attackrange, b_matk1, b_matk2, b_mdef, b_mdef2, b_class;
     int b_base_atk;
@@ -1287,8 +1302,8 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     b_sp = sd->status.sp;
     b_weight = sd->weight;
     b_max_weight = sd->max_weight;
-    memcpy(b_paramb, &sd->paramb, sizeof(b_paramb));
-    memcpy(b_parame, &sd->paramc, sizeof(b_parame));
+    earray<int, ATTR, ATTR::COUNT> b_paramb = sd->paramb;
+    earray<int, ATTR, ATTR::COUNT> b_parame = sd->paramc;
     b_skill = sd->status.skill;
     b_hit = sd->hit;
     b_flee = sd->flee;
@@ -1310,7 +1325,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     pc_calc_skilltree(sd);     // スキルツリーの計算
 
-    sd->max_weight = max_weight_base[s_class.job] + sd->status.str * 300;
+    sd->max_weight = max_weight_base[s_class.job] + sd->status.attrs[ATTR::STR] * 300;
 
     if (first & 1)
     {
@@ -1339,8 +1354,11 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         }
     }
 
-    memset(sd->paramb, 0, sizeof(sd->paramb));
-    memset(sd->parame, 0, sizeof(sd->parame));
+    for (auto& p : sd->paramb)
+        p = 0;
+    for (auto& p : sd->parame)
+        p = 0;
+
     sd->hit = 0;
     sd->flee = 0;
     sd->flee2 = 0;
@@ -1466,17 +1484,18 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     sd->spellpower_bonus_target = 0;
 
-    for (int i = 0; i < 10; i++)
+    for (EQUIP i : EQUIPs_noarrow)
     {
         index = sd->equip_index[i];
         if (index < 0)
             continue;
-        if (i == 9 && sd->equip_index[8] == index)
+        if (i == EQUIP::WEAPON && sd->equip_index[EQUIP::SHIELD] == index)
             continue;
-        if (i == 5 && sd->equip_index[4] == index)
+        if (i == EQUIP::TORSO && sd->equip_index[EQUIP::LEGS] == index)
             continue;
-        if (i == 6
-            && (sd->equip_index[5] == index || sd->equip_index[4] == index))
+        if (i == EQUIP::HAT
+            && (sd->equip_index[EQUIP::TORSO] == index
+                || sd->equip_index[EQUIP::LEGS] == index))
             continue;
 
         if (sd->inventory_data[index])
@@ -1484,7 +1503,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
             sd->spellpower_bonus_target +=
                 sd->inventory_data[index]->magic_bonus;
 
-            if (sd->inventory_data[index]->type == 4)
+            if (sd->inventory_data[index]->type == ItemType::WEAPON)
             {
                 if (sd->status.inventory[index].card[0] != 0x00ff
                     && sd->status.inventory[index].card[0] != 0x00fe
@@ -1498,11 +1517,11 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                         {
                             argrec_t arg[2];
                             arg[0].name = "@slotId";
-                            arg[0].v.i = i;
+                            arg[0].v.i = int(i);
                             arg[1].name = "@itemId";
                             arg[1].v.i = sd->inventory_data[index]->nameid;
-                            if (i == 8
-                                && sd->status.inventory[index].equip == 0x20)
+                            if (i == EQUIP::SHIELD
+                                && sd->status.inventory[index].equip == EPOS::SHIELD)
                                 sd->state.lr_flag = 1;
                             run_script_l(itemdb_equipscript(c), 0, sd->bl.id,
                                         0, 2, arg);
@@ -1511,7 +1530,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                     }
                 }
             }
-            else if (sd->inventory_data[index]->type == 5)
+            else if (sd->inventory_data[index]->type == ItemType::ARMOR)
             {                   // 防具
                 if (sd->status.inventory[index].card[0] != 0x00ff
                     && sd->status.inventory[index].card[0] != 0x00fe
@@ -1524,7 +1543,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                         if (c > 0) {
                             argrec_t arg[2];
                             arg[0].name = "@slotId";
-                            arg[0].v.i = i;
+                            arg[0].v.i = int(i);
                             arg[1].name = "@itemId";
                             arg[1].v.i = sd->inventory_data[index]->nameid;
                             run_script_l(itemdb_equipscript(c), 0, sd->bl.id,
@@ -1540,7 +1559,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (sd->spellpower_bonus_target < 0)
         sd->spellpower_bonus_target =
             (sd->spellpower_bonus_target * 256) /
-            (MIN(128 + skill_power(sd, TMW_ASTRAL_SOUL), 256));
+            (min(128 + skill_power(sd, TMW_ASTRAL_SOUL), 256));
 #endif
 
     if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
@@ -1549,28 +1568,30 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     wele = sd->atk_ele;
     wele_ = sd->atk_ele_;
     def_ele = sd->def_ele;
-    memcpy(sd->paramcard, sd->parame, sizeof(sd->paramcard));
+    sd->paramcard = sd->parame;
 
     // 装備品によるステータス変化はここで実行
-    for (int i = 0; i < 10; i++)
+    for (EQUIP i : EQUIPs_noarrow)
     {
         index = sd->equip_index[i];
         if (index < 0)
             continue;
-        if (i == 9 && sd->equip_index[8] == index)
+        if (i == EQUIP::WEAPON && sd->equip_index[EQUIP::SHIELD] == index)
             continue;
-        if (i == 5 && sd->equip_index[4] == index)
+        if (i == EQUIP::TORSO && sd->equip_index[EQUIP::LEGS] == index)
             continue;
-        if (i == 6
-            && (sd->equip_index[5] == index || sd->equip_index[4] == index))
+        if (i == EQUIP::HAT
+            && (sd->equip_index[EQUIP::TORSO] == index
+                || sd->equip_index[EQUIP::LEGS] == index))
             continue;
         if (sd->inventory_data[index])
         {
             sd->def += sd->inventory_data[index]->def;
-            if (sd->inventory_data[index]->type == 4)
+            if (sd->inventory_data[index]->type == ItemType::WEAPON)
             {
                 int r, wlv = sd->inventory_data[index]->wlv;
-                if (i == 8 && sd->status.inventory[index].equip == 0x20)
+                if (i == EQUIP::SHIELD
+                    && sd->status.inventory[index].equip == EPOS::SHIELD)
                 {
                     //二刀流用データ入力
                     sd->watk_ += sd->inventory_data[index]->atk;
@@ -1589,7 +1610,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                     {
                         argrec_t arg[2];
                         arg[0].name = "@slotId";
-                        arg[0].v.i = i;
+                        arg[0].v.i = int(i);
                         arg[1].name = "@itemId";
                         arg[1].v.i = sd->inventory_data[index]->nameid;
                         run_script_l(sd->inventory_data[index]->equip_script, 0,
@@ -1601,7 +1622,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                 {               //二刀流武器以外
                     argrec_t arg[2];
                     arg[0].name = "@slotId";
-                    arg[0].v.i = i;
+                    arg[0].v.i = int(i);
                     arg[1].name = "@itemId";
                     arg[1].v.i = sd->inventory_data[index]->nameid;
                     sd->watk += sd->inventory_data[index]->atk;
@@ -1620,11 +1641,11 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                                   sd->bl.id, 0, 2, arg);
                 }
             }
-            else if (sd->inventory_data[index]->type == 5)
+            else if (sd->inventory_data[index]->type == ItemType::ARMOR)
             {
                 argrec_t arg[2];
                 arg[0].name = "@slotId";
-                arg[0].v.i = i;
+                arg[0].v.i = int(i);
                 arg[1].name = "@itemId";
                 arg[1].v.i = sd->inventory_data[index]->nameid;
                 sd->watk += sd->inventory_data[index]->atk;
@@ -1644,14 +1665,14 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->watk_2 += skill_power(sd, TMW_BRAWLING) >> 3;  // +25 for 200
     }
 
-    if (sd->equip_index[10] >= 0)
+    if (sd->equip_index[EQUIP::ARROW] >= 0)
     {                           // 矢
-        index = sd->equip_index[10];
+        index = sd->equip_index[EQUIP::ARROW];
         if (sd->inventory_data[index])
         {                       //まだ属性が入っていない
             argrec_t arg[2];
             arg[0].name = "@slotId";
-            arg[0].v.i = 10;
+            arg[0].v.i = int(EQUIP::ARROW);
             arg[1].name = "@itemId";
             arg[1].v.i = sd->inventory_data[index]->nameid;
             sd->state.lr_flag = 2;
@@ -1712,20 +1733,20 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         if (sd->sc_data[SC_CONCENTRATE].timer != -1
             && sd->sc_data[SC_QUAGMIRE].timer == -1)
         {                       // 集中力向上
-            sd->paramb[1] +=
-                (sd->status.agi + sd->paramb[1] + sd->parame[1] -
-                 sd->paramcard[1]) * (2 +
+            sd->paramb[ATTR::AGI] +=
+                (sd->status.attrs[ATTR::AGI] + sd->paramb[ATTR::AGI] + sd->parame[ATTR::AGI] -
+                 sd->paramcard[ATTR::AGI]) * (2 +
                                       sd->sc_data[SC_CONCENTRATE].val1) / 100;
-            sd->paramb[4] +=
-                (sd->status.dex + sd->paramb[4] + sd->parame[4] -
-                 sd->paramcard[4]) * (2 +
+            sd->paramb[ATTR::DEX] +=
+                (sd->status.attrs[ATTR::DEX] + sd->paramb[ATTR::DEX] + sd->parame[ATTR::DEX] -
+                 sd->paramcard[ATTR::DEX]) * (2 +
                                       sd->sc_data[SC_CONCENTRATE].val1) / 100;
         }
         if (sd->sc_data[SC_INCREASEAGI].timer != -1
             && sd->sc_data[SC_QUAGMIRE].timer == -1
             && sd->sc_data[SC_DONTFORGETME].timer == -1)
         {                       // 速度増加
-            sd->paramb[1] += 2 + sd->sc_data[SC_INCREASEAGI].val1;
+            sd->paramb[ATTR::AGI] += 2 + sd->sc_data[SC_INCREASEAGI].val1;
             sd->speed -= sd->speed * 25 / 100;
         }
         if (sd->sc_data[SC_DECREASEAGI].timer != -1)    // 速度減少(agiはbattle.cで)
@@ -1736,30 +1757,26 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                 100;
         if (sd->sc_data[SC_BLESSING].timer != -1)
         {                       // ブレッシング
-            sd->paramb[0] += sd->sc_data[SC_BLESSING].val1;
-            sd->paramb[3] += sd->sc_data[SC_BLESSING].val1;
-            sd->paramb[4] += sd->sc_data[SC_BLESSING].val1;
+            sd->paramb[ATTR::STR] += sd->sc_data[SC_BLESSING].val1;
+            sd->paramb[ATTR::INT] += sd->sc_data[SC_BLESSING].val1;
+            sd->paramb[ATTR::DEX] += sd->sc_data[SC_BLESSING].val1;
         }
         if (sd->sc_data[SC_GLORIA].timer != -1) // グロリア
-            sd->paramb[5] += 30;
+            sd->paramb[ATTR::LUK] += 30;
         if (sd->sc_data[SC_LOUD].timer != -1 && sd->sc_data[SC_QUAGMIRE].timer == -1)   // ラウドボイス
-            sd->paramb[0] += 4;
+            sd->paramb[ATTR::STR] += 4;
         if (sd->sc_data[SC_QUAGMIRE].timer != -1)
         {                       // クァグマイア
             sd->speed = sd->speed * 3 / 2;
-            sd->paramb[1] -=
-                (sd->status.agi + sd->paramb[1] + sd->parame[1]) / 2;
-            sd->paramb[4] -=
-                (sd->status.dex + sd->paramb[4] + sd->parame[4]) / 2;
+            sd->paramb[ATTR::AGI] -=
+                (sd->status.attrs[ATTR::AGI] + sd->paramb[ATTR::AGI] + sd->parame[ATTR::AGI]) / 2;
+            sd->paramb[ATTR::DEX] -=
+                (sd->status.attrs[ATTR::DEX] + sd->paramb[ATTR::DEX] + sd->parame[ATTR::DEX]) / 2;
         }
         if (sd->sc_data[SC_TRUESIGHT].timer != -1)
         {                       // トゥルーサイト
-            sd->paramb[0] += 5;
-            sd->paramb[1] += 5;
-            sd->paramb[2] += 5;
-            sd->paramb[3] += 5;
-            sd->paramb[4] += 5;
-            sd->paramb[5] += 5;
+            for (auto& p : sd->paramb)
+                p += 5;
         }
     }
     sd->speed -= skill_power(sd, TMW_SPEED) >> 3;
@@ -1767,44 +1784,26 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (sd->aspd_rate < 20)
         sd->aspd_rate = 20;
 
-/*
-        //1度も死んでないJob70スパノビに+10
-        if (s_class.job == 23 && sd->die_counter == 0 && sd->status.job_level >= 70){
-                sd->paramb[0]+= 15;
-                sd->paramb[1]+= 15;
-                sd->paramb[2]+= 15;
-                sd->paramb[3]+= 15;
-                sd->paramb[4]+= 15;
-                sd->paramb[5]+= 15;
-        }
-*/
-    sd->paramc[0] = sd->status.str + sd->paramb[0] + sd->parame[0];
-    sd->paramc[1] = sd->status.agi + sd->paramb[1] + sd->parame[1];
-    sd->paramc[2] = sd->status.vit + sd->paramb[2] + sd->parame[2];
-    sd->paramc[3] = sd->status.int_ + sd->paramb[3] + sd->parame[3];
-    sd->paramc[4] = sd->status.dex + sd->paramb[4] + sd->parame[4];
-    sd->paramc[5] = sd->status.luk + sd->paramb[5] + sd->parame[5];
-    for (int i = 0; i < 6; i++)
-        if (sd->paramc[i] < 0)
-            sd->paramc[i] = 0;
+    for (ATTR attr : ATTRs)
+        sd->paramc[attr] = max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
 
     if (sd->status.weapon == 11 || sd->status.weapon == 13
         || sd->status.weapon == 14)
     {
-        str = sd->paramc[4];
-        dex = sd->paramc[0];
+        str = sd->paramc[ATTR::DEX];
+        dex = sd->paramc[ATTR::STR];
     }
     else
     {
-        str = sd->paramc[0];
-        dex = sd->paramc[4];
+        str = sd->paramc[ATTR::STR];
+        dex = sd->paramc[ATTR::DEX];
         sd->critical += ((dex * 3) >> 1);
     }
     dstr = str / 10;
-    sd->base_atk += str + dstr * dstr + dex / 5 + sd->paramc[5] / 5;
-//fprintf(stderr, "baseatk = %d = x + %d + %d + %d + %d\n", sd->base_atk, str, dstr*dstr, dex/5, sd->paramc[5]/5);
-    sd->matk1 += sd->paramc[3] + (sd->paramc[3] / 5) * (sd->paramc[3] / 5);
-    sd->matk2 += sd->paramc[3] + (sd->paramc[3] / 7) * (sd->paramc[3] / 7);
+    sd->base_atk += str + dstr * dstr + dex / 5 + sd->paramc[ATTR::LUK] / 5;
+//fprintf(stderr, "baseatk = %d = x + %d + %d + %d + %d\n", sd->base_atk, str, dstr*dstr, dex/5, sd->paramc[ATTR::LUK]/5);
+    sd->matk1 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 5) * (sd->paramc[ATTR::INT] / 5);
+    sd->matk2 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 7) * (sd->paramc[ATTR::INT] / 7);
     if (sd->matk1 < sd->matk2)
     {
         int temp = sd->matk2;
@@ -1826,12 +1825,12 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (sd->matk1 < 0)
         sd->matk1 = 0;
 
-    sd->hit += sd->paramc[4] + sd->status.base_level;
-    sd->flee += sd->paramc[1] + sd->status.base_level;
-    sd->def2 += sd->paramc[2];
-    sd->mdef2 += sd->paramc[3];
-    sd->flee2 += sd->paramc[5] + 10;
-    sd->critical += (sd->paramc[5] * 3) + 10;
+    sd->hit += sd->paramc[ATTR::DEX] + sd->status.base_level;
+    sd->flee += sd->paramc[ATTR::AGI] + sd->status.base_level;
+    sd->def2 += sd->paramc[ATTR::VIT];
+    sd->mdef2 += sd->paramc[ATTR::INT];
+    sd->flee2 += sd->paramc[ATTR::LUK] + 10;
+    sd->critical += (sd->paramc[ATTR::LUK] * 3) + 10;
 
     // 200 is the maximum of the skill
     // def2 is the defence gained by vit, whereas "def", which is gained by armor, stays as is
@@ -1879,20 +1878,19 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     // 二刀流 ASPD 修正
     if (sd->status.weapon <= 16)
-        sd->aspd +=
-            aspd_base[s_class.job][sd->status.weapon] - (sd->paramc[1] * 4 +
-                                                         sd->paramc[4]) *
-            aspd_base[s_class.job][sd->status.weapon] / 1000;
+        sd->aspd += aspd_base[s_class.job][sd->status.weapon]
+            - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
+            * aspd_base[s_class.job][sd->status.weapon] / 1000;
     else
-        sd->aspd += ((aspd_base[s_class.job][sd->weapontype1] -
-                      (sd->paramc[1] * 4 +
-                       sd->paramc[4]) *
-                      aspd_base[s_class.job][sd->weapontype1] / 1000) +
-                     (aspd_base[s_class.job][sd->weapontype2] -
-                      (sd->paramc[1] * 4 +
-                       sd->paramc[4]) *
-                      aspd_base[s_class.job][sd->weapontype2] / 1000)) * 140 /
-            200;
+        sd->aspd += (
+                (aspd_base[s_class.job][sd->weapontype1]
+                    - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
+                    * aspd_base[s_class.job][sd->weapontype1] / 1000)
+                + (aspd_base[s_class.job][sd->weapontype2]
+                    - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
+                    * aspd_base[s_class.job][sd->weapontype2] / 1000)
+                )
+            * 140 / 200;
 
     aspd_rate = sd->aspd_rate;
 
@@ -1907,7 +1905,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     if (sd->attackrange > 2)
     {                           // [fate] ranged weapon?
-        sd->attackrange += MIN(skill_power(sd, AC_OWL) / 60, 3);
+        sd->attackrange += min(skill_power(sd, AC_OWL) / 60, 3);
         sd->hit += skill_power(sd, AC_OWL) / 10;   // 20 for 200
     }
 
@@ -1944,12 +1942,12 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     bl = sd->status.base_level;
 
-    sd->status.max_hp +=
-        (3500 + bl * hp_coefficient2[s_class.job] +
-         hp_sigma_val[s_class.job][(bl > 0) ? bl - 1 : 0]) / 100 * (100 +
-                                                                    sd->paramc
-                                                                    [2]) /
-        100 + (sd->parame[2] - sd->paramcard[2]);
+    sd->status.max_hp += (
+            3500
+            + bl * hp_coefficient2[s_class.job]
+            + hp_sigma_val[s_class.job][(bl > 0) ? bl - 1 : 0]
+            ) / 100 * (100 + sd->paramc[ATTR::VIT]) / 100
+        + (sd->parame[ATTR::VIT] - sd->paramcard[ATTR::VIT]);
     if (s_class.upper == 1)     // [MouseJstr]
         sd->status.max_hp = sd->status.max_hp * 130 / 100;
     if (sd->hprate != 100)
@@ -1975,10 +1973,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->status.max_hp = 1;  // end
 
     // 最大SP計算
-    sd->status.max_sp +=
-        ((sp_coefficient[s_class.job] * bl) + 1000) / 100 * (100 +
-                                                             sd->paramc[3]) /
-        100 + (sd->parame[3] - sd->paramcard[3]);
+    sd->status.max_sp += ((sp_coefficient[s_class.job] * bl) + 1000)
+        / 100 * (100 + sd->paramc[ATTR::INT]) / 100
+        + (sd->parame[ATTR::INT] - sd->paramcard[ATTR::INT]);
     if (s_class.upper == 1)     // [MouseJstr]
         sd->status.max_sp = sd->status.max_sp * 130 / 100;
     if (sd->sprate != 100)
@@ -1993,7 +1990,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->status.max_sp = battle_config.max_sp;
 
     //自然回復HP
-    sd->nhealhp = 1 + (sd->paramc[2] / 5) + (sd->status.max_hp / 200);
+    sd->nhealhp = 1 + (sd->paramc[ATTR::VIT] / 5) + (sd->status.max_hp / 200);
     if ((skill = pc_checkskill(sd, SM_RECOVERY)) > 0)
     {                           // HP回復力向上
         sd->nshealhp = skill * 5 + (sd->status.max_hp * skill / 500);
@@ -2001,9 +1998,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
             sd->nshealhp = 0x7fff;
     }
     //自然回復SP
-    sd->nhealsp = 1 + (sd->paramc[3] / 6) + (sd->status.max_sp / 100);
-    if (sd->paramc[3] >= 120)
-        sd->nhealsp += ((sd->paramc[3] - 120) >> 1) + 4;
+    sd->nhealsp = 1 + (sd->paramc[ATTR::INT] / 6) + (sd->status.max_sp / 100);
+    if (sd->paramc[ATTR::INT] >= 120)
+        sd->nhealsp += ((sd->paramc[ATTR::INT] - 120) >> 1) + 4;
     if ((skill = pc_checkskill(sd, MG_SRECOVERY)) > 0)
     {                           // SP回復力向上
         sd->nshealsp = skill * 3 + (sd->status.max_sp * skill / 500);
@@ -2077,9 +2074,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         if (sd->sc_data[SC_IMPOSITIO].timer != -1)
         {                       // インポシティオマヌス
             sd->watk += sd->sc_data[SC_IMPOSITIO].val1 * 5;
-            index = sd->equip_index[8];
+            index = sd->equip_index[EQUIP::SHIELD];
             if (index >= 0 && sd->inventory_data[index]
-                && sd->inventory_data[index]->type == 4)
+                && sd->inventory_data[index]->type == ItemType::WEAPON)
                 sd->watk_ += sd->sc_data[SC_IMPOSITIO].val1 * 5;
         }
         if (sd->sc_data[SC_PROVOKE].timer != -1)
@@ -2090,9 +2087,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                 sd->base_atk * (100 + 2 * sd->sc_data[SC_PROVOKE].val1) / 100;
             sd->watk =
                 sd->watk * (100 + 2 * sd->sc_data[SC_PROVOKE].val1) / 100;
-            index = sd->equip_index[8];
+            index = sd->equip_index[EQUIP::SHIELD];
             if (index >= 0 && sd->inventory_data[index]
-                && sd->inventory_data[index]->type == 4)
+                && sd->inventory_data[index]->type == ItemType::WEAPON)
                 sd->watk_ =
                     sd->watk_ * (100 +
                                  2 * sd->sc_data[SC_PROVOKE].val1) / 100;
@@ -2117,25 +2114,25 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         {                       // 戦太鼓の響き
             sd->watk += sd->sc_data[SC_DRUMBATTLE].val2;
             sd->def += sd->sc_data[SC_DRUMBATTLE].val3;
-            index = sd->equip_index[8];
+            index = sd->equip_index[EQUIP::SHIELD];
             if (index >= 0 && sd->inventory_data[index]
-                && sd->inventory_data[index]->type == 4)
+                && sd->inventory_data[index]->type == ItemType::WEAPON)
                 sd->watk_ += sd->sc_data[SC_DRUMBATTLE].val2;
         }
         if (sd->sc_data[SC_NIBELUNGEN].timer != -1)
         {                       // ニーベルングの指輪
-            index = sd->equip_index[9];
+            index = sd->equip_index[EQUIP::WEAPON];
             if (index >= 0 && sd->inventory_data[index]
                 && sd->inventory_data[index]->wlv == 3)
                 sd->watk += sd->sc_data[SC_NIBELUNGEN].val3;
-            index = sd->equip_index[8];
+            index = sd->equip_index[EQUIP::SHIELD];
             if (index >= 0 && sd->inventory_data[index]
                 && sd->inventory_data[index]->wlv == 3)
                 sd->watk_ += sd->sc_data[SC_NIBELUNGEN].val3;
             if (index >= 0 && sd->inventory_data[index]
                 && sd->inventory_data[index]->wlv == 4)
                 sd->watk += sd->sc_data[SC_NIBELUNGEN].val2;
-            index = sd->equip_index[8];
+            index = sd->equip_index[EQUIP::SHIELD];
             if (index >= 0 && sd->inventory_data[index]
                 && sd->inventory_data[index]->wlv == 4)
                 sd->watk_ += sd->sc_data[SC_NIBELUNGEN].val2;
@@ -2157,9 +2154,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
             sd->watk =
                 sd->watk * (100 +
                             5 * sd->sc_data[SC_CONCENTRATION].val1) / 100;
-            index = sd->equip_index[8];
+            index = sd->equip_index[EQUIP::SHIELD];
             if (index >= 0 && sd->inventory_data[index]
-                && sd->inventory_data[index]->type == 4)
+                && sd->inventory_data[index]->type == ItemType::WEAPON)
                 sd->watk_ =
                     sd->watk * (100 +
                                 5 * sd->sc_data[SC_CONCENTRATION].val1) / 100;
@@ -2394,7 +2391,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (sd->aspd < battle_config.max_aspd)
         sd->aspd = battle_config.max_aspd;
     sd->amotion = sd->aspd;
-    sd->dmotion = 800 - sd->paramc[1] * 4;
+    sd->dmotion = 800 - sd->paramc[ATTR::AGI] * 4;
     if (sd->dmotion < 400)
         sd->dmotion = 400;
     if (sd->skilltimer != -1 && (skill = pc_checkskill(sd, SA_FREECAST)) > 0)
@@ -2442,9 +2439,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         clif_updatestatus(sd, SP_MAXWEIGHT);
         pc_checkweighticon(sd);
     }
-    for (int i = 0; i < 6; i++)
+    for (ATTR i : ATTRs)
         if (b_paramb[i] + b_parame[i] != sd->paramb[i] + sd->parame[i])
-            clif_updatestatus(sd, SP_STR + i);
+            clif_updatestatus(sd, attr_to_sp(i));
     if (b_hit != sd->hit)
         clif_updatestatus(sd, SP_HIT);
     if (b_flee != sd->flee)
@@ -2500,7 +2497,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
  * 装 備品による能力等のボーナス設定
  *------------------------------------------
  */
-int pc_bonus(struct map_session_data *sd, int type, int val)
+int pc_bonus(struct map_session_data *sd, SP type, int val)
 {
     nullpo_ret(sd);
 
@@ -2513,7 +2510,7 @@ int pc_bonus(struct map_session_data *sd, int type, int val)
         case SP_DEX:
         case SP_LUK:
             if (sd->state.lr_flag != 2)
-                sd->parame[type - SP_STR] += val;
+                sd->parame[sp_to_attr(type)] += val;
             break;
         case SP_ATK1:
             if (!sd->state.lr_flag)
@@ -2831,38 +2828,34 @@ int pc_bonus(struct map_session_data *sd, int type, int val)
         case SP_ALL_STATS:     // [Valaris]
             if (sd->state.lr_flag != 2)
             {
-                sd->parame[SP_STR - SP_STR] += val;
-                sd->parame[SP_AGI - SP_STR] += val;
-                sd->parame[SP_VIT - SP_STR] += val;
-                sd->parame[SP_INT - SP_STR] += val;
-                sd->parame[SP_DEX - SP_STR] += val;
-                sd->parame[SP_LUK - SP_STR] += val;
-                clif_updatestatus(sd, 13);
-                clif_updatestatus(sd, 14);
-                clif_updatestatus(sd, 15);
-                clif_updatestatus(sd, 16);
-                clif_updatestatus(sd, 17);
-                clif_updatestatus(sd, 18);
+                for (ATTR attr : ATTRs)
+                    sd->parame[attr] += val;
+                clif_updatestatus(sd, SP_STR);
+                clif_updatestatus(sd, SP_AGI);
+                clif_updatestatus(sd, SP_VIT);
+                clif_updatestatus(sd, SP_INT);
+                clif_updatestatus(sd, SP_DEX);
+                clif_updatestatus(sd, SP_LUK);
             }
             break;
         case SP_AGI_VIT:       // [Valaris]
             if (sd->state.lr_flag != 2)
             {
-                sd->parame[SP_AGI - SP_STR] += val;
-                sd->parame[SP_VIT - SP_STR] += val;
-                clif_updatestatus(sd, 14);
-                clif_updatestatus(sd, 15);
+                sd->parame[ATTR::AGI] += val;
+                sd->parame[ATTR::VIT] += val;
+                clif_updatestatus(sd, SP_AGI);
+                clif_updatestatus(sd, SP_VIT);
             }
             break;
         case SP_AGI_DEX_STR:   // [Valaris]
             if (sd->state.lr_flag != 2)
             {
-                sd->parame[SP_AGI - SP_STR] += val;
-                sd->parame[SP_DEX - SP_STR] += val;
-                sd->parame[SP_STR - SP_STR] += val;
-                clif_updatestatus(sd, 14);
-                clif_updatestatus(sd, 17);
-                clif_updatestatus(sd, 13);
+                sd->parame[ATTR::AGI] += val;
+                sd->parame[ATTR::DEX] += val;
+                sd->parame[ATTR::STR] += val;
+                clif_updatestatus(sd, SP_AGI);
+                clif_updatestatus(sd, SP_DEX);
+                clif_updatestatus(sd, SP_STR);
             }
             break;
         case SP_PERFECT_HIDE:  // [Valaris]
@@ -2896,7 +2889,8 @@ int pc_bonus(struct map_session_data *sd, int type, int val)
             break;
         default:
             if (battle_config.error_log)
-                printf("pc_bonus: unknown type %d %d !\n", type, val);
+                printf("pc_bonus: unknown type %d %d !\n",
+                        uint16_t(type), val);
             break;
     }
     return 0;
@@ -2906,7 +2900,7 @@ int pc_bonus(struct map_session_data *sd, int type, int val)
  * ｿｽｿｽ ｿｽｿｽｿｽiｿｽﾉゑｿｽｿｽｿｽｿｽ\ｿｽﾍ難ｿｽｿｽﾌボｿｽ[ｿｽiｿｽXｿｽﾝ抵ｿｽ
  *------------------------------------------
  */
-int pc_bonus2(struct map_session_data *sd, int type, int type2, int val)
+int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
 {
     int i;
 
@@ -3119,14 +3113,14 @@ int pc_bonus2(struct map_session_data *sd, int type, int type2, int val)
             }                   // end addition
         default:
             if (battle_config.error_log)
-                printf("pc_bonus2: unknown type %d %d %d!\n", type, type2,
-                        val);
+                printf("pc_bonus2: unknown type %d %d %d!\n",
+                        uint16_t(type), type2, val);
             break;
     }
     return 0;
 }
 
-int pc_bonus3(struct map_session_data *sd, int type, int type2, int type3,
+int pc_bonus3(struct map_session_data *sd, SP type, int type2, int type3,
                int val)
 {
     int i;
@@ -3168,8 +3162,8 @@ int pc_bonus3(struct map_session_data *sd, int type, int type2, int type3,
             break;
         default:
             if (battle_config.error_log)
-                printf("pc_bonus3: unknown type %d %d %d %d!\n", type, type2,
-                        type3, val);
+                printf("pc_bonus3: unknown type %d %d %d %d!\n",
+                        uint16_t(type), type2, type3, val);
             break;
     }
 
@@ -3256,11 +3250,11 @@ int pc_modifysellvalue(struct map_session_data *sd, int orig_value)
  * 3万個制限にかかるか確認
  *------------------------------------------
  */
-int pc_checkadditem(struct map_session_data *sd, int nameid, int amount)
+ADDITEM pc_checkadditem(struct map_session_data *sd, int nameid, int amount)
 {
     int i;
 
-    nullpo_ret(sd);
+    nullpo_retr(ADDITEM::ZERO, sd);
 
     if (itemdb_isequip(nameid))
         return ADDITEM_NEW;
@@ -3407,7 +3401,7 @@ int pc_remove_items(struct map_session_data *player, int item_id, int count)
  * アイテム追加。個数のみitem構造体の数字を無視
  *------------------------------------------
  */
-int pc_additem(struct map_session_data *sd, struct item *item_data,
+PickupFail pc_additem(struct map_session_data *sd, struct item *item_data,
                 int amount)
 {
     struct item_data *data;
@@ -3415,14 +3409,14 @@ int pc_additem(struct map_session_data *sd, struct item *item_data,
 
     MAP_LOG_PC(sd, "PICKUP %d %d", item_data->nameid, amount);
 
-    nullpo_retr(1, sd);
-    nullpo_retr(1, item_data);
+    nullpo_retr(PickupFail::BAD_ITEM, sd);
+    nullpo_retr(PickupFail::BAD_ITEM, item_data);
 
     if (item_data->nameid <= 0 || amount <= 0)
-        return 1;
+        return PickupFail::BAD_ITEM;
     data = itemdb_search(item_data->nameid);
     if ((w = data->weight * amount) + sd->weight > sd->max_weight)
-        return 2;
+        return PickupFail::TOO_HEAVY;
 
     i = MAX_INVENTORY;
 
@@ -3437,9 +3431,9 @@ int pc_additem(struct map_session_data *sd, struct item *item_data,
                 && sd->status.inventory[i].card[3] == item_data->card[3])
             {
                 if (sd->status.inventory[i].amount + amount > MAX_AMOUNT)
-                    return 5;
+                    return PickupFail::STACK_FULL;
                 sd->status.inventory[i].amount += amount;
-                clif_additem(sd, i, amount, 0);
+                clif_additem(sd, i, amount, PickupFail::OKAY);
                 break;
             }
     }
@@ -3452,20 +3446,20 @@ int pc_additem(struct map_session_data *sd, struct item *item_data,
             memcpy(&sd->status.inventory[i], item_data,
                     sizeof(sd->status.inventory[0]));
 
-            if (item_data->equip)
-                sd->status.inventory[i].equip = 0;
+            if (bool(item_data->equip))
+                sd->status.inventory[i].equip = EPOS::ZERO;
 
             sd->status.inventory[i].amount = amount;
             sd->inventory_data[i] = data;
-            clif_additem(sd, i, amount, 0);
+            clif_additem(sd, i, amount, PickupFail::OKAY);
         }
         else
-            return 4;
+            return PickupFail::INV_FULL;
     }
     sd->weight += w;
     clif_updatestatus(sd, SP_WEIGHT);
 
-    return 0;
+    return PickupFail::OKAY;
 }
 
 /*==========================================
@@ -3488,8 +3482,8 @@ int pc_delitem(struct map_session_data *sd, int n, int amount, int type)
     sd->weight -= sd->inventory_data[n]->weight * amount;
     if (sd->status.inventory[n].amount <= 0)
     {
-        if (sd->status.inventory[n].equip)
-            pc_unequipitem(sd, n, 0);
+        if (bool(sd->status.inventory[n].equip))
+            pc_unequipitem(sd, n, CalcStatus::NOW);
         memset(&sd->status.inventory[n], 0,
                 sizeof(sd->status.inventory[0]));
         sd->inventory_data[n] = NULL;
@@ -3519,7 +3513,7 @@ int pc_dropitem(struct map_session_data *sd, int n, int amount)
     if (amount <= 0)
         return 0;
 
-    pc_unequipinvyitem(sd, n, 0);
+    pc_unequipinvyitem(sd, n, CalcStatus::NOW);
 
     if (sd->status.inventory[n].nameid <= 0 ||
         sd->status.inventory[n].amount < amount ||
@@ -3578,7 +3572,6 @@ int can_pick_item_up_from(struct map_session_data *self, int other_id)
 
 int pc_takeitem(struct map_session_data *sd, struct flooritem_data *fitem)
 {
-    int flag;
     unsigned int tick = gettick();
     int can_take;
 
@@ -3613,8 +3606,8 @@ int pc_takeitem(struct map_session_data *sd, struct flooritem_data *fitem)
     {
         /* Can pick up */
 
-        if ((flag =
-             pc_additem(sd, &fitem->item_data, fitem->item_data.amount)))
+        PickupFail flag = pc_additem(sd, &fitem->item_data, fitem->item_data.amount);
+        if (flag != PickupFail::OKAY)
             // 重量overで取得失敗
             clif_additem(sd, 0, 0, flag);
         else
@@ -3629,7 +3622,7 @@ int pc_takeitem(struct map_session_data *sd, struct flooritem_data *fitem)
     }
 
     /* Otherwise, we can't pick up */
-    clif_additem(sd, 0, 0, 6);
+    clif_additem(sd, 0, 0, PickupFail::DROP_STEAL);
     return 0;
 }
 
@@ -3646,7 +3639,7 @@ int pc_isUseitem(struct map_session_data *sd, int n)
 
     if (item == NULL)
         return 0;
-    if (itemdb_type(nameid) != 0)
+    if (itemdb_type(nameid) != ItemType::USE)
         return 0;
     if (nameid == 601
         && (map[sd->bl.m].flag.noteleport))
@@ -3760,7 +3753,7 @@ int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
 {
     if (sd != NULL && bl != NULL && bl->type == BL_MOB)
     {
-        int i, skill, rate, itemid, flag, count;
+        int i, skill, rate, itemid, count;
         struct mob_data *md;
         md = (struct mob_data *) bl;
         if (!md->state.steal_flag && mob_db[md->mob_class].mexp <= 0 &&
@@ -3769,7 +3762,7 @@ int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
             md->sc_data[SC_FREEZE].timer == -1 &&
             (!(md->mob_class > 1324 && md->mob_class < 1364)))   // prevent stealing from treasure boxes [Valaris]
         {
-            skill = sd->paramc[4] - mob_db[md->mob_class].dex
+            skill = sd->paramc[ATTR::DEX] - mob_db[md->mob_class].attrs[ATTR::DEX]
                 + pc_checkskill(sd, TF_STEAL) + 10;
 
             if (0 < skill)
@@ -3779,7 +3772,7 @@ int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
                     i = rand() % 8;
                     itemid = mob_db[md->mob_class].dropitem[i].nameid;
 
-                    if (itemid > 0 && itemdb_type(itemid) != 6)
+                    if (itemid > 0 && itemdb_type(itemid) != ItemType::_6)
                     {
                         rate =
                             (mob_db[md->mob_class].dropitem[i].p /
@@ -3793,14 +3786,14 @@ int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
                             tmp_item.nameid = itemid;
                             tmp_item.amount = 1;
                             tmp_item.identify = 1;
-                            flag = pc_additem(sd, &tmp_item, 1);
+                            PickupFail flag = pc_additem(sd, &tmp_item, 1);
                             if (battle_config.show_steal_in_same_party)
                             {
                                 party_foreachsamemap(
                                         std::bind(pc_show_steal, ph::_1, sd, tmp_item.nameid, 0), sd, 1);
                             }
 
-                            if (flag)
+                            if (flag != PickupFail::OKAY)
                             {
                                 if (battle_config.show_steal_in_same_party)
                                 {
@@ -3838,7 +3831,7 @@ int pc_steal_coin(struct map_session_data *sd, struct block_list *bl)
             skill = pc_checkskill(sd, RG_STEALCOIN) * 10;
             rate =
                 skill + (sd->status.base_level - mob_db[md->mob_class].lv) * 3 +
-                sd->paramc[4] * 2 + sd->paramc[5] * 2;
+                sd->paramc[ATTR::DEX] * 2 + sd->paramc[ATTR::LUK] * 2;
             if (MRAND(1000) < rate)
             {
                 pc_getzeny(sd, mob_db[md->mob_class].lv * 10 + MRAND(100));
@@ -4137,7 +4130,7 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
                 sd->bl.m, x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
                 dx, dy,
-                0);
+                BL_NUL);
 
         x += dx;
         y += dy;
@@ -4158,7 +4151,7 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
                 sd->bl.m, x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
                 -dx, -dy,
-                0);
+                BL_NUL);
         sd->walktimer = -1;
 
         if (sd->status.party_id > 0)
@@ -4333,7 +4326,7 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
             sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
             sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE,
             dx, dy,
-            0);
+            BL_NUL);
 
     if (moveblock)
         map_delblock(&sd->bl);
@@ -4346,7 +4339,7 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
             sd->bl.m, sd->bl.x - AREA_SIZE, sd->bl.y - AREA_SIZE,
             sd->bl.x + AREA_SIZE, sd->bl.y + AREA_SIZE,
             -dx, -dy,
-            0);
+            BL_NUL);
 
     if (sd->status.party_id > 0)
     {                           // パーティのＨＰ情報通知検査
@@ -4470,15 +4463,13 @@ int pc_checkallowskill(struct map_session_data *sd)
  * 装 備品のチェック
  *------------------------------------------
  */
-int pc_checkequip(struct map_session_data *sd, int pos)
+int pc_checkequip(struct map_session_data *sd, EPOS pos)
 {
-    int i;
-
     nullpo_retr(-1, sd);
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
     {
-        if (pos & equip_pos[i])
+        if (bool(pos & equip_pos[i]))
             return sd->equip_index[i];
     }
 
@@ -4653,7 +4644,7 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
                 map_freeblock_lock();
                 pc_stop_walking(sd, 0);
                 sd->attacktarget_lv =
-                    battle_weapon_attack(&sd->bl, bl, tick, 0);
+                    battle_weapon_attack(&sd->bl, bl, tick, BCT_ZERO);
                 if (!(battle_config.pc_cloak_check_type & 2)
                     && sd->sc_data[SC_CLOAKING].timer != -1)
                     skill_status_change_end(&sd->bl, SC_CLOAKING, -1);
@@ -4873,7 +4864,7 @@ int pc_gainexp(struct map_session_data *sd, int base_exp, int job_exp)
 }
 
 int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
-                       int reason)
+        PC_GAINEXP_REASON reason)
 {
     char output[256];
     nullpo_ret(sd);
@@ -4884,9 +4875,13 @@ int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
     if ((battle_config.pvp_exp == 0) && map[sd->bl.m].flag.pvp) // [MouseJstr]
         return 0;               // no exp on pvp maps
 
-    MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp,
-                ((reason ==
-                  2) ? "SCRIPTXP" : ((reason == 1) ? "HEALXP" : "KILLXP")));
+    earray<const char *, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons =
+    {
+        "KILLXP",
+        "HEALXP",
+        "SCRIPTXP",
+    };
+    MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp, reasons[reason]);
 
     if (sd->sc_data[SC_RICHMANKIM].timer != -1)
     {                           // added bounds checking [Vaalris]
@@ -5078,7 +5073,7 @@ int pc_nextjobafter(struct map_session_data *sd)
  * 必要ステータスポイント計算
  *------------------------------------------
  */
-int pc_need_status_point(struct map_session_data *sd, int type)
+int pc_need_status_point(struct map_session_data *sd, SP type)
 {
     int val;
 
@@ -5086,12 +5081,7 @@ int pc_need_status_point(struct map_session_data *sd, int type)
 
     if (type < SP_STR || type > SP_LUK)
         return -1;
-    val =
-        type == SP_STR ? sd->status.str :
-        type == SP_AGI ? sd->status.agi :
-        type == SP_VIT ? sd->status.vit :
-        type == SP_INT ? sd->status.int_ :
-        type == SP_DEX ? sd->status.dex : sd->status.luk;
+    val = sd->status.attrs[sp_to_attr(type)];
 
     return (val + 9) / 10 + 1;
 }
@@ -5100,33 +5090,14 @@ int pc_need_status_point(struct map_session_data *sd, int type)
  * 能力値成長
  *------------------------------------------
  */
-int pc_statusup(struct map_session_data *sd, int type)
+int pc_statusup(struct map_session_data *sd, SP type)
 {
     int need, val = 0;
 
     nullpo_ret(sd);
 
-    switch (type)
-    {
-        case SP_STR:
-            val = sd->status.str;
-            break;
-        case SP_AGI:
-            val = sd->status.agi;
-            break;
-        case SP_VIT:
-            val = sd->status.vit;
-            break;
-        case SP_INT:
-            val = sd->status.int_;
-            break;
-        case SP_DEX:
-            val = sd->status.dex;
-            break;
-        case SP_LUK:
-            val = sd->status.luk;
-            break;
-    }
+    if (SP_STR <= type && type <= SP_LUK)
+        val = sd->status.attrs[sp_to_attr(type)];
 
     need = pc_need_status_point(sd, type);
     if (type < SP_STR || type > SP_LUK || need < 0
@@ -5137,31 +5108,11 @@ int pc_statusup(struct map_session_data *sd, int type)
         clif_updatestatus(sd, SP_STATUSPOINT);
         return 1;
     }
-    switch (type)
-    {
-        case SP_STR:
-            val = ++sd->status.str;
-            break;
-        case SP_AGI:
-            val = ++sd->status.agi;
-            break;
-        case SP_VIT:
-            val = ++sd->status.vit;
-            break;
-        case SP_INT:
-            val = ++sd->status.int_;
-            break;
-        case SP_DEX:
-            val = ++sd->status.dex;
-            break;
-        case SP_LUK:
-            val = ++sd->status.luk;
-            break;
-    }
+    val = ++sd->status.attrs[sp_to_attr(type)];
     sd->status.status_point -= need;
     if (need != pc_need_status_point(sd, type))
     {
-        clif_updatestatus(sd, type - SP_STR + SP_USTR);
+        clif_updatestatus(sd, sp_to_usp(type));
     }
     clif_updatestatus(sd, SP_STATUSPOINT);
     clif_updatestatus(sd, type);
@@ -5177,7 +5128,7 @@ int pc_statusup(struct map_session_data *sd, int type)
  * 能力値成長
  *------------------------------------------
  */
-int pc_statusup2(struct map_session_data *sd, int type, int val)
+int pc_statusup2(struct map_session_data *sd, SP type, int val)
 {
     nullpo_ret(sd);
 
@@ -5186,64 +5137,11 @@ int pc_statusup2(struct map_session_data *sd, int type, int val)
         clif_statusupack(sd, type, 0, 0);
         return 1;
     }
-    switch (type)
-    {
-        case SP_STR:
-            if (sd->status.str + val >= battle_config.max_parameter)
-                val = battle_config.max_parameter;
-            else if (sd->status.str + val < 1)
-                val = 1;
-            else
-                val += sd->status.str;
-            sd->status.str = val;
-            break;
-        case SP_AGI:
-            if (sd->status.agi + val >= battle_config.max_parameter)
-                val = battle_config.max_parameter;
-            else if (sd->status.agi + val < 1)
-                val = 1;
-            else
-                val += sd->status.agi;
-            sd->status.agi = val;
-            break;
-        case SP_VIT:
-            if (sd->status.vit + val >= battle_config.max_parameter)
-                val = battle_config.max_parameter;
-            else if (sd->status.vit + val < 1)
-                val = 1;
-            else
-                val += sd->status.vit;
-            sd->status.vit = val;
-            break;
-        case SP_INT:
-            if (sd->status.int_ + val >= battle_config.max_parameter)
-                val = battle_config.max_parameter;
-            else if (sd->status.int_ + val < 1)
-                val = 1;
-            else
-                val += sd->status.int_;
-            sd->status.int_ = val;
-            break;
-        case SP_DEX:
-            if (sd->status.dex + val >= battle_config.max_parameter)
-                val = battle_config.max_parameter;
-            else if (sd->status.dex + val < 1)
-                val = 1;
-            else
-                val += sd->status.dex;
-            sd->status.dex = val;
-            break;
-        case SP_LUK:
-            if (sd->status.luk + val >= battle_config.max_parameter)
-                val = battle_config.max_parameter;
-            else if (sd->status.luk + val < 1)
-                val = 1;
-            else
-                val = sd->status.luk + val;
-            sd->status.luk = val;
-            break;
-    }
-    clif_updatestatus(sd, type - SP_STR + SP_USTR);
+    ATTR attr = sp_to_attr(type);
+    val = sd->status.attrs[attr] + val;
+    val = std::min(val, battle_config.max_parameter);
+    val = std::max(val, 1);
+    clif_updatestatus(sd, sp_to_usp(type));
     clif_updatestatus(sd, type);
     pc_calcstatus(sd, 0);
     clif_statusupack(sd, type, 1, val);
@@ -5353,12 +5251,8 @@ int pc_resetlvl(struct map_session_data *sd, int type)
         sd->status.job_exp = 0;
         sd->status.option = Option::ZERO;
 
-        sd->status.str = 1;
-        sd->status.agi = 1;
-        sd->status.vit = 1;
-        sd->status.int_ = 1;
-        sd->status.dex = 1;
-        sd->status.luk = 1;
+        for (ATTR attr : ATTRs)
+            sd->status.attrs[attr] = 1;
         if (sd->status.pc_class == 4001)
             sd->status.status_point = 100;
     }
@@ -5403,12 +5297,13 @@ int pc_resetlvl(struct map_session_data *sd, int type)
     clif_updatestatus(sd, SP_UDEX);
     clif_updatestatus(sd, SP_ULUK);    // End Addition
 
-    for (int i = 0; i < 11; i++)
-    {                           // unequip items that can't be equipped by base 1 [Valaris]
+    for (EQUIP i : EQUIPs)
+    {
+        // unequip items that can't be equipped by base 1 [Valaris]
         if (sd->equip_index[i] >= 0)
             if (!pc_isequip(sd, sd->equip_index[i]))
             {
-                pc_unequipitem(sd, sd->equip_index[i], 1);
+                pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER);
                 sd->equip_index[i] = -1;
             }
     }
@@ -5436,26 +5331,12 @@ int pc_resetstate(struct map_session_data *sd)
 
     clif_updatestatus(sd, SP_STATUSPOINT);
 
-    sd->status.str = 1;
-    sd->status.agi = 1;
-    sd->status.vit = 1;
-    sd->status.int_ = 1;
-    sd->status.dex = 1;
-    sd->status.luk = 1;
-
-    clif_updatestatus(sd, SP_STR);
-    clif_updatestatus(sd, SP_AGI);
-    clif_updatestatus(sd, SP_VIT);
-    clif_updatestatus(sd, SP_INT);
-    clif_updatestatus(sd, SP_DEX);
-    clif_updatestatus(sd, SP_LUK);
-
-    clif_updatestatus(sd, SP_USTR);    // Updates needed stat points - Valaris
-    clif_updatestatus(sd, SP_UAGI);
-    clif_updatestatus(sd, SP_UVIT);
-    clif_updatestatus(sd, SP_UINT);
-    clif_updatestatus(sd, SP_UDEX);
-    clif_updatestatus(sd, SP_ULUK);    // End Addition
+    for (ATTR attr : ATTRs)
+        sd->status.attrs[attr] = 1;
+    for (ATTR attr : ATTRs)
+        clif_updatestatus(sd, attr_to_sp(attr));
+    for (ATTR attr : ATTRs)
+        clif_updatestatus(sd, attr_to_usp(attr));
 
     pc_calcstatus(sd, 0);
 
@@ -5478,7 +5359,7 @@ int pc_resetskill(struct map_session_data *sd)
         if ((skill = pc_checkskill(sd, i)) > 0)
         {
             sd->status.skill[i].lv = 0;
-            sd->status.skill[i].flags = 0;
+            sd->status.skill[i].flags = SkillFlags::ZERO;
         }
 
     clif_updatestatus(sd, SP_SKILLPOINT);
@@ -5679,8 +5560,8 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
                 for (i = 0; i < MAX_INVENTORY; i++)
                 {
                     int k;
-                    if ((type == 1 && !sd->status.inventory[i].equip)
-                        || (type == 2 && sd->status.inventory[i].equip)
+                    if ((type == 1 && !bool(sd->status.inventory[i].equip))
+                        || (type == 2 && bool(sd->status.inventory[i].equip))
                         || type == 3)
                     {
                         //InventoryIndexを格納
@@ -5700,8 +5581,8 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
                     int n = eq_n[MRAND(eq_num)];  //該当アイテムの中からランダム
                     if (MRAND(10000) < per)
                     {
-                        if (sd->status.inventory[n].equip)
-                            pc_unequipitem(sd, n, 0);
+                        if (bool(sd->status.inventory[n].equip))
+                            pc_unequipitem(sd, n, CalcStatus::NOW);
                         pc_dropitem(sd, n, 1);
                     }
                 }
@@ -5712,12 +5593,12 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
                 {
                     if (sd->status.inventory[i].nameid == id    //ItemIDが一致していて
                         && MRAND(10000) < per  //ドロップ率判定もOKで
-                        && ((type == 1 && !sd->status.inventory[i].equip)   //タイプ判定もOKならドロップ
-                            || (type == 2 && sd->status.inventory[i].equip)
+                        && ((type == 1 && !bool(sd->status.inventory[i].equip))   //タイプ判定もOKならドロップ
+                            || (type == 2 && bool(sd->status.inventory[i].equip))
                             || type == 3))
                     {
-                        if (sd->status.inventory[i].equip)
-                            pc_unequipitem(sd, i, 0);
+                        if (bool(sd->status.inventory[i].equip))
+                            pc_unequipitem(sd, i, CalcStatus::NOW);
                         pc_dropitem(sd, i, 1);
                         break;
                     }
@@ -5773,7 +5654,7 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
  * script用PCステータス読み出し
  *------------------------------------------
  */
-int pc_readparam(struct map_session_data *sd, int type)
+int pc_readparam(struct map_session_data *sd, SP type)
 {
     int val = 0;
     struct pc_base_job s_class;
@@ -5842,22 +5723,12 @@ int pc_readparam(struct map_session_data *sd, int type)
             val = sd->status.max_sp;
             break;
         case SP_STR:
-            val = sd->status.str;
-            break;
         case SP_AGI:
-            val = sd->status.agi;
-            break;
         case SP_VIT:
-            val = sd->status.vit;
-            break;
         case SP_INT:
-            val = sd->status.int_;
-            break;
         case SP_DEX:
-            val = sd->status.dex;
-            break;
         case SP_LUK:
-            val = sd->status.luk;
+            val = sd->status.attrs[sp_to_attr(type)];
             break;
         case SP_FAME:
             val = sd->fame;
@@ -5871,7 +5742,7 @@ int pc_readparam(struct map_session_data *sd, int type)
  * script用PCステータス設定
  *------------------------------------------
  */
-int pc_setparam(struct map_session_data *sd, int type, int val)
+int pc_setparam(struct map_session_data *sd, SP type, int val)
 {
     int i = 0, up_level = 50;
     struct pc_base_job s_class;
@@ -5978,22 +5849,12 @@ int pc_setparam(struct map_session_data *sd, int type, int val)
             sd->status.max_sp = val;
             break;
         case SP_STR:
-            sd->status.str = val;
-            break;
         case SP_AGI:
-            sd->status.agi = val;
-            break;
         case SP_VIT:
-            sd->status.vit = val;
-            break;
         case SP_INT:
-            sd->status.int_ = val;
-            break;
         case SP_DEX:
-            sd->status.dex = val;
-            break;
         case SP_LUK:
-            sd->status.luk = val;
+            sd->status.attrs[sp_to_attr(type)] = val;
             break;
         case SP_FAME:
             sd->fame = val;
@@ -6098,9 +5959,9 @@ void pc_heal_quick_accumulate(int new_amount,
     int average_speed = ((new_speed * new_amount) + (current_speed * current_amount)) / (current_amount + new_amount); // new_amount > 0, current_amount >= 0
 
     quick_regen->speed = average_speed;
-    quick_regen->amount = MIN(current_amount + new_amount, max);
+    quick_regen->amount = min(current_amount + new_amount, max);
 
-    quick_regen->tickdelay = MIN(quick_regen->speed, quick_regen->tickdelay);
+    quick_regen->tickdelay = min(quick_regen->speed, quick_regen->tickdelay);
 }
 
 int pc_itemheal(struct map_session_data *sd, int hp, int sp)
@@ -6164,7 +6025,7 @@ int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
     if (hp > 0)
     {
         bonus =
-            (sd->paramc[2] << 1) + 100 + pc_checkskill(sd, SM_RECOVERY) * 10;
+            (sd->paramc[ATTR::VIT] << 1) + 100 + pc_checkskill(sd, SM_RECOVERY) * 10;
         if (bonus != 100)
             hp = hp * bonus / 100;
         bonus = 100 + pc_checkskill(sd, AM_LEARNINGPOTION) * 5;
@@ -6174,7 +6035,7 @@ int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
     if (sp > 0)
     {
         bonus =
-            (sd->paramc[3] << 1) + 100 + pc_checkskill(sd,
+            (sd->paramc[ATTR::INT] << 1) + 100 + pc_checkskill(sd,
                                                         MG_SRECOVERY) * 10;
         if (bonus != 100)
             sp = sp * bonus / 100;
@@ -6288,7 +6149,6 @@ int pc_percentheal(struct map_session_data *sd, int hp, int sp)
  */
 int pc_jobchange(struct map_session_data *sd, int job, int upper)
 {
-    int i;
     int b_class = 0;
     //転生や養子の場合の元の職業を算出する
     struct pc_base_job s_class = pc_calc_base_job(sd->status.pc_class);
@@ -6341,11 +6201,11 @@ int pc_jobchange(struct map_session_data *sd, int job, int upper)
     clif_updatestatus(sd, SP_JOBEXP);
     clif_updatestatus(sd, SP_NEXTJOBEXP);
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
     {
         if (sd->equip_index[i] >= 0)
             if (!pc_isequip(sd, sd->equip_index[i]))
-                pc_unequipitem(sd, sd->equip_index[i], 1); // 装備外し
+                pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER); // 装備外し
     }
 
     clif_changelook(&sd->bl, LOOK_BASE, sd->view_class);   // move sprite update to prevent client crashes with incompatible equipment [Valaris]
@@ -6392,7 +6252,7 @@ int pc_equiplookall(struct map_session_data *sd)
  * 見た目変更
  *------------------------------------------
  */
-int pc_changelook(struct map_session_data *sd, int type, int val)
+int pc_changelook(struct map_session_data *sd, LOOK type, int val)
 {
     nullpo_ret(sd);
 
@@ -6977,22 +6837,22 @@ int pc_cleareventtimer(struct map_session_data *sd)
 static
 int pc_signal_advanced_equipment_change(struct map_session_data *sd, int n)
 {
-    if (sd->status.inventory[n].equip & 0x0040)
+    if (bool(sd->status.inventory[n].equip & EPOS::SHOES))
         clif_changelook(&sd->bl, LOOK_SHOES, 0);
-    if (sd->status.inventory[n].equip & 0x0004)
+    if (bool(sd->status.inventory[n].equip & EPOS::GLOVES))
         clif_changelook(&sd->bl, LOOK_GLOVES, 0);
-    if (sd->status.inventory[n].equip & 0x0008)
+    if (bool(sd->status.inventory[n].equip & EPOS::CAPE))
         clif_changelook(&sd->bl, LOOK_CAPE, 0);
-    if (sd->status.inventory[n].equip & 0x0010)
+    if (bool(sd->status.inventory[n].equip & EPOS::MISC1))
         clif_changelook(&sd->bl, LOOK_MISC1, 0);
-    if (sd->status.inventory[n].equip & 0x0080)
+    if (bool(sd->status.inventory[n].equip & EPOS::MISC2))
         clif_changelook(&sd->bl, LOOK_MISC2, 0);
     return 0;
 }
 
-int pc_equipitem(struct map_session_data *sd, int n, int pos)
+int pc_equipitem(struct map_session_data *sd, int n, EPOS)
 {
-    int i, nameid, arrow, view;
+    int nameid, arrow, view;
     struct item_data *id;
     //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ
 
@@ -7000,19 +6860,20 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
 
     if (n < 0 || n >= MAX_INVENTORY)
     {
-        clif_equipitemack(sd, 0, 0, 0);
+        clif_equipitemack(sd, 0, EPOS::ZERO, 0);
         return 0;
     }
 
     nameid = sd->status.inventory[n].nameid;
     id = sd->inventory_data[n];
-    pos = pc_equippoint(sd, n);
+    EPOS pos = pc_equippoint(sd, n);
 
     if (battle_config.battle_log)
-        printf("equip %d (%d) %x:%x\n", nameid, n, id->equip, pos);
-    if (!pc_isequip(sd, n) || !pos || sd->status.inventory[n].broken == 1)
+        printf("equip %d (%d) %x:%x\n",
+                nameid, n, uint16_t(id->equip), uint16_t(pos));
+    if (!pc_isequip(sd, n) || pos == EPOS::ZERO || sd->status.inventory[n].broken == 1)
     {                           // [Valaris]
-        clif_equipitemack(sd, n, 0, 0);    // fail
+        clif_equipitemack(sd, n, EPOS::ZERO, 0);    // fail
         return 0;
     }
 
@@ -7020,47 +6881,50 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
 //
     if (sd->sc_data[SC_BERSERK].timer != -1)
     {
-        clif_equipitemack(sd, n, 0, 0);    // fail
+        clif_equipitemack(sd, n, EPOS::ZERO, 0);    // fail
         return 0;
     }
 
-    if (pos == 0x88)
-    {                           // アクセサリ用例外処理
-        int epor = 0;
-        if (sd->equip_index[0] >= 0)
-            epor |= sd->status.inventory[sd->equip_index[0]].equip;
-        if (sd->equip_index[1] >= 0)
-            epor |= sd->status.inventory[sd->equip_index[1]].equip;
-        epor &= 0x88;
-        pos = epor == 0x08 ? 0x80 : 0x08;
+    if (bool(pos == (EPOS::MISC2 | EPOS::CAPE)))
+    {
+        // アクセサリ用例外処理
+        EPOS epor = EPOS::ZERO;
+        if (sd->equip_index[EQUIP::MISC2] >= 0)
+            epor |= sd->status.inventory[sd->equip_index[EQUIP::MISC2]].equip;
+        if (sd->equip_index[EQUIP::CAPE] >= 0)
+            epor |= sd->status.inventory[sd->equip_index[EQUIP::CAPE]].equip;
+        epor &= (EPOS::MISC2 | EPOS::CAPE);
+        pos = (epor == EPOS::CAPE ? EPOS::MISC2 : EPOS::CAPE);
     }
 
     // 二刀流処理
-    if ((pos == 0x22)           // 一応、装備要求箇所が二刀流武器かチェックする
-        && (id->equip == 2)     // 単 手武器
+    if ((pos == (EPOS::SHIELD | EPOS::WEAPON))           // 一応、装備要求箇所が二刀流武器かチェックする
+        && (id->equip == EPOS::WEAPON)     // 単 手武器
         && (pc_checkskill(sd, AS_LEFT) > 0 || sd->status.pc_class == 12)) // 左手修錬有
     {
-        int tpos = 0;
-        if (sd->equip_index[8] >= 0)
-            tpos |= sd->status.inventory[sd->equip_index[8]].equip;
-        if (sd->equip_index[9] >= 0)
-            tpos |= sd->status.inventory[sd->equip_index[9]].equip;
-        tpos &= 0x02;
-        pos = tpos == 0x02 ? 0x20 : 0x02;
+        EPOS tpos = EPOS::ZERO;
+        if (sd->equip_index[EQUIP::SHIELD] >= 0)
+            tpos |= sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].equip;
+        if (sd->equip_index[EQUIP::WEAPON] >= 0)
+            tpos |= sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].equip;
+        tpos &= EPOS::WEAPON;
+        pos = tpos == EPOS::WEAPON ? EPOS::SHIELD : EPOS::WEAPON;
     }
 
-    arrow = pc_search_inventory(sd, pc_checkequip(sd, 9));    // Added by RoVeRT
-    for (i = 0; i < 11; i++)
+    // TODO: make this code do what it's supposed to do,
+    // instead of what it does
+    arrow = pc_search_inventory(sd, pc_checkequip(sd, EPOS::LEGS | EPOS::CAPE));    // Added by RoVeRT
+    for (EQUIP i : EQUIPs)
     {
-        if (pos & equip_pos[i])
+        if (bool(pos & equip_pos[i]))
         {
             if (sd->equip_index[i] >= 0)    //Slot taken, remove item from there.
-                pc_unequipitem(sd, sd->equip_index[i], 1);
+                pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER);
             sd->equip_index[i] = n;
         }
     }
     // 弓矢装備
-    if (pos == 0x8000)
+    if (pos == EPOS::ARROW)
     {
         clif_arrowequip(sd, n);
         clif_arrow_fail(sd, 3);    // 3=矢が装備できました
@@ -7068,13 +6932,13 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
     else
     {
         /* Don't update re-equipping if we're using a spell */
-        if (!(pos == 4 && sd->attack_spell_override))
+        if (!(pos == EPOS::GLOVES && sd->attack_spell_override))
             clif_equipitemack(sd, n, pos, 1);
     }
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
     {
-        if (pos & equip_pos[i])
+        if (bool(pos & equip_pos[i]))
             sd->equip_index[i] = n;
     }
     sd->status.inventory[n].equip = pos;
@@ -7090,23 +6954,23 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
         view = 0;
     }
 
-    if (sd->status.inventory[n].equip & 0x0002)
+    if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
     {
         sd->weapontype1 = view;
         pc_calcweapontype(sd);
         pc_set_weapon_look(sd);
     }
-    if (sd->status.inventory[n].equip & 0x0020)
+    if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
     {
         if (sd->inventory_data[n])
         {
-            if (sd->inventory_data[n]->type == 4)
+            if (sd->inventory_data[n]->type == ItemType::WEAPON)
             {
                 sd->status.shield = 0;
-                if (sd->status.inventory[n].equip == 0x0020)
+                if (sd->status.inventory[n].equip == EPOS::SHIELD)
                     sd->weapontype2 = view;
             }
-            else if (sd->inventory_data[n]->type == 5)
+            else if (sd->inventory_data[n]->type == ItemType::ARMOR)
             {
                 sd->status.shield = view;
                 sd->weapontype2 = 0;
@@ -7117,17 +6981,17 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
         pc_calcweapontype(sd);
         clif_changelook(&sd->bl, LOOK_SHIELD, sd->status.shield);
     }
-    if (sd->status.inventory[n].equip & 0x0001)
+    if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
     {
         sd->status.head_bottom = view;
         clif_changelook(&sd->bl, LOOK_HEAD_BOTTOM, sd->status.head_bottom);
     }
-    if (sd->status.inventory[n].equip & 0x0100)
+    if (bool(sd->status.inventory[n].equip & EPOS::HAT))
     {
         sd->status.head_top = view;
         clif_changelook(&sd->bl, LOOK_HEAD_TOP, sd->status.head_top);
     }
-    if (sd->status.inventory[n].equip & 0x0200)
+    if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
     {
         sd->status.head_mid = view;
         clif_changelook(&sd->bl, LOOK_HEAD_MID, sd->status.head_mid);
@@ -7138,7 +7002,7 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
     if (itemdb_look(sd->status.inventory[n].nameid) == 11 && arrow)
     {                           // Added by RoVeRT
         clif_arrowequip(sd, arrow);
-        sd->status.inventory[arrow].equip = 32768;
+        sd->status.inventory[arrow].equip = EPOS::ARROW;
     }
     pc_calcstatus(sd, 0);
 
@@ -7167,7 +7031,7 @@ int pc_equipitem(struct map_session_data *sd, int n, int pos)
  * 装 備した物を外す
  *------------------------------------------
  */
-int pc_unequipitem(struct map_session_data *sd, int n, int type)
+int pc_unequipitem(struct map_session_data *sd, int n, CalcStatus type)
 {
     nullpo_ret(sd);
 
@@ -7175,46 +7039,46 @@ int pc_unequipitem(struct map_session_data *sd, int n, int type)
 //
     if (sd->sc_data[SC_BERSERK].timer != -1)
     {
-        clif_unequipitemack(sd, n, 0, 0);
+        clif_unequipitemack(sd, n, EPOS::ZERO, 0);
         return 0;
     }
 
     if (battle_config.battle_log)
-        printf("unequip %d %x:%x\n", n, pc_equippoint(sd, n),
-                sd->status.inventory[n].equip);
-    if (sd->status.inventory[n].equip)
+        printf("unequip %d %x:%x\n",
+                n, uint16_t(pc_equippoint(sd, n)),
+                uint16_t(sd->status.inventory[n].equip));
+    if (bool(sd->status.inventory[n].equip))
     {
-        int i;
-        for (i = 0; i < 11; i++)
+        for (EQUIP i : EQUIPs)
         {
-            if (sd->status.inventory[n].equip & equip_pos[i])
+            if (bool(sd->status.inventory[n].equip & equip_pos[i]))
                 sd->equip_index[i] = -1;
         }
-        if (sd->status.inventory[n].equip & 0x0002)
+        if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
         {
             sd->weapontype1 = 0;
             sd->status.weapon = sd->weapontype2;
             pc_calcweapontype(sd);
             pc_set_weapon_look(sd);
         }
-        if (sd->status.inventory[n].equip & 0x0020)
+        if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
         {
             sd->status.shield = sd->weapontype2 = 0;
             pc_calcweapontype(sd);
             clif_changelook(&sd->bl, LOOK_SHIELD, sd->status.shield);
         }
-        if (sd->status.inventory[n].equip & 0x0001)
+        if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
         {
             sd->status.head_bottom = 0;
             clif_changelook(&sd->bl, LOOK_HEAD_BOTTOM,
                              sd->status.head_bottom);
         }
-        if (sd->status.inventory[n].equip & 0x0100)
+        if (bool(sd->status.inventory[n].equip & EPOS::HAT))
         {
             sd->status.head_top = 0;
             clif_changelook(&sd->bl, LOOK_HEAD_TOP, sd->status.head_top);
         }
-        if (sd->status.inventory[n].equip & 0x0200)
+        if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
         {
             sd->status.head_mid = 0;
             clif_changelook(&sd->bl, LOOK_HEAD_MID, sd->status.head_mid);
@@ -7222,22 +7086,22 @@ int pc_unequipitem(struct map_session_data *sd, int n, int type)
         pc_signal_advanced_equipment_change(sd, n);
 
         if (sd->sc_data[SC_BROKNWEAPON].timer != -1
-            && sd->status.inventory[n].equip & 0x0002
-            && sd->status.inventory[i].broken == 1)
+            && bool(sd->status.inventory[n].equip & EPOS::WEAPON)
+            && sd->status.inventory[n].broken == 1)
             skill_status_change_end(&sd->bl, SC_BROKNWEAPON, -1);
 
         clif_unequipitemack(sd, n, sd->status.inventory[n].equip, 1);
-        sd->status.inventory[n].equip = 0;
-        if (!type)
+        sd->status.inventory[n].equip = EPOS::ZERO;
+        if (type == CalcStatus::NOW)
             pc_checkallowskill(sd);
         if (sd->weapontype1 == 0 && sd->weapontype2 == 0)
             skill_encchant_eremental_end(&sd->bl, StatusChange::NEGATIVE1);
     }
     else
     {
-        clif_unequipitemack(sd, n, 0, 0);
+        clif_unequipitemack(sd, n, EPOS::ZERO, 0);
     }
-    if (!type)
+    if (type == CalcStatus::NOW)
     {
         pc_calcstatus(sd, 0);
         if (sd->sc_data[SC_SIGNUMCRUCIS].timer != -1
@@ -7248,16 +7112,17 @@ int pc_unequipitem(struct map_session_data *sd, int n, int type)
     return 0;
 }
 
-int pc_unequipinvyitem(struct map_session_data *sd, int n, int type)
+int pc_unequipinvyitem(struct map_session_data *sd, int n, CalcStatus type)
 {
-    int i;
-
     nullpo_retr(1, sd);
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
     {
-        if (equip_pos[i] > 0 && sd->equip_index[i] == n)
-        {                       //Slot taken, remove item from there.
+        if (equip_pos[i] != EPOS::ZERO
+            && !bool(equip_pos[i] & EPOS::ARROW) // probably a bug
+            && sd->equip_index[i] == n)
+        {
+            //Slot taken, remove item from there.
             pc_unequipitem(sd, sd->equip_index[i], type);
             sd->equip_index[i] = -1;
         }
@@ -7338,16 +7203,17 @@ int pc_checkitem(struct map_session_data *sd)
 
         if (sd->status.inventory[i].nameid == 0)
             continue;
-        if (sd->status.inventory[i].equip & ~pc_equippoint(sd, i))
+        if (bool(sd->status.inventory[i].equip & ~pc_equippoint(sd, i)))
         {
-            sd->status.inventory[i].equip = 0;
+            sd->status.inventory[i].equip = EPOS::ZERO;
             calc_flag = 1;
         }
         //装備制限チェック
-        if (sd->status.inventory[i].equip && map[sd->bl.m].flag.pvp
+        if (bool(sd->status.inventory[i].equip)
+            && map[sd->bl.m].flag.pvp
             && (it->flag.no_equip == 1 || it->flag.no_equip == 3))
         {                       //PvP制限
-            sd->status.inventory[i].equip = 0;
+            sd->status.inventory[i].equip = EPOS::ZERO;
             calc_flag = 1;
         }
     }
@@ -7895,7 +7761,7 @@ int pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
     if (!(quick_regen->tickdelay--))
     {
         int bonus =
-            MIN(heal_speed * battle_config.itemheal_regeneration_factor,
+            min(heal_speed * battle_config.itemheal_regeneration_factor,
                  quick_regen->amount);
 
         quick_regen->amount -= bonus;

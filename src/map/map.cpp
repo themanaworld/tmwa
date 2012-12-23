@@ -333,7 +333,7 @@ int map_count_oncell(int m, int x, int y)
 void map_foreachinarea(std::function<void(struct block_list *)> func,
         int m,
         int x0, int y0, int x1, int y1,
-        int type)
+        BL type)
 {
     int bx, by;
     struct block_list *bl = NULL;
@@ -349,7 +349,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
         x1 = map[m].xs - 1;
     if (y1 >= map[m].ys)
         y1 = map[m].ys - 1;
-    if (type == 0 || type != BL_MOB)
+    if (type == BL_NUL || type != BL_MOB)
         for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
@@ -358,7 +358,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
                 c = map[m].block_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type && bl->type != type)
+                    if (bl && type != BL_NUL && bl->type != type)
                         continue;
                     if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                         && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
@@ -366,7 +366,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
                 }
             }
         }
-    if (type == 0 || type == BL_MOB)
+    if (type == BL_NUL || type == BL_MOB)
         for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
@@ -411,7 +411,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
         int m,
         int x0, int y0, int x1, int y1,
         int dx, int dy,
-        int type)
+        BL type)
 {
     int bx, by;
     struct block_list *bl = NULL;
@@ -458,7 +458,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type && bl->type != type)
+                    if (bl && type != BL_NUL && bl->type != type)
                         continue;
                     if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                         && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
@@ -468,7 +468,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_mob_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type && bl->type != type)
+                    if (bl && type != BL_NUL && bl->type != type)
                         continue;
                     if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                         && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
@@ -497,7 +497,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type && bl->type != type)
+                    if (bl && type != BL_NUL && bl->type != type)
                         continue;
                     if ((bl)
                         && !(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
@@ -516,7 +516,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_mob_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type && bl->type != type)
+                    if (bl && type != BL_NUL && bl->type != type)
                         continue;
                     if ((bl)
                         && !(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
@@ -560,7 +560,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
 void map_foreachincell(std::function<void(struct block_list *)> func,
         int m,
         int x, int y,
-        int type)
+        BL type)
 {
     int bx, by;
     struct block_list *bl = NULL;
@@ -569,20 +569,20 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
     by = y / BLOCK_SIZE;
     bx = x / BLOCK_SIZE;
 
-    if (type == 0 || type != BL_MOB)
+    if (type == BL_NUL || type != BL_MOB)
     {
         bl = map[m].block[bx + by * map[m].bxs];
         c = map[m].block_count[bx + by * map[m].bxs];
         for (i = 0; i < c && bl; i++, bl = bl->next)
         {
-            if (type && bl && bl->type != type)
+            if (type != BL_NUL && bl && bl->type != type)
                 continue;
             if (bl && bl->x == x && bl->y == y && bl_list_count < BL_LIST_MAX)
                 bl_list[bl_list_count++] = bl;
         }
     }
 
-    if (type == 0 || type == BL_MOB)
+    if (type == BL_NUL || type == BL_MOB)
     {
         bl = map[m].block_mob[bx + by * map[m].bxs];
         c = map[m].block_mob_count[bx + by * map[m].bxs];
@@ -649,15 +649,16 @@ int map_addobject(struct block_list *bl)
  *      map_delobjectのfreeしないバージョン
  *------------------------------------------
  */
-int map_delobjectnofree(int id, int type)
+int map_delobjectnofree(int id, BL type)
 {
     if (object[id] == NULL)
         return 0;
 
     if (object[id]->type != type)
     {
-        fprintf(stderr, "Incorrect type: expected %d, got %d\n", type,
-                 object[id]->type);
+        fprintf(stderr, "Incorrect type: expected %d, got %d\n",
+                uint8_t(type),
+                uint8_t(object[id]->type));
         abort();
     }
 
@@ -683,7 +684,7 @@ int map_delobjectnofree(int id, int type)
  * addとの対称性が無いのが気になる
  *------------------------------------------
  */
-int map_delobject(int id, int type)
+int map_delobject(int id, BL type)
 {
     struct block_list *obj = object[id];
 
@@ -705,7 +706,7 @@ int map_delobject(int id, int type)
  *------------------------------------------
  */
 void map_foreachobject(std::function<void(struct block_list *)> func,
-        int type)
+        BL type)
 {
     int i;
     int blockcount = bl_list_count;
@@ -714,7 +715,7 @@ void map_foreachobject(std::function<void(struct block_list *)> func,
     {
         if (object[i])
         {
-            if (type && object[i]->type != type)
+            if (type != BL_NUL && object[i]->type != type)
                 continue;
             if (bl_list_count >= BL_LIST_MAX)
             {
@@ -2011,8 +2012,9 @@ void term_func(void)
     for (map_id = 0; map_id < map_num; map_id++)
     {
         if (map[map_id].m)
-            map_foreachinarea(cleanup_sub, map_id, 0, 0, map[map_id].xs,
-                               map[map_id].ys, 0);
+            map_foreachinarea(cleanup_sub, map_id,
+                    0, 0, map[map_id].xs, map[map_id].ys,
+                    BL_NUL);
     }
 
     for (i = 0; i < fd_max; i++)

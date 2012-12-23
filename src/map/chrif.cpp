@@ -671,8 +671,8 @@ int chrif_changedsex(int fd)
             for (i = 0; i < MAX_INVENTORY; i++)
             {
                 if (sd->status.inventory[i].nameid
-                    && sd->status.inventory[i].equip)
-                    pc_unequipitem((struct map_session_data *) sd, i, 0);
+                    && bool(sd->status.inventory[i].equip))
+                    pc_unequipitem((struct map_session_data *) sd, i, CalcStatus::NOW);
             }
             // reset skill of some job
             if (s_class.job == 19 || s_class.job == 4020
@@ -972,7 +972,7 @@ void ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
     if (item && item->nameid == source)
     {
         item->nameid = dest;
-        item->equip = 0;
+        item->equip = EPOS::ZERO;
     }
 }
 
@@ -1013,8 +1013,8 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
                 if (item && item->nameid == source_id)
                 {
                     item->nameid = dest_id;
-                    if (item->equip)
-                        pc_unequipitem(pc, j, 0);
+                    if (bool(item->equip))
+                        pc_unequipitem(pc, j, CalcStatus::NOW);
                     item->nameid = dest_id;
                 }
             }
@@ -1056,7 +1056,7 @@ void ladmin_itemfrob(int fd)
     struct block_list *bl = (struct block_list *) map_get_first_session();
 
     // flooritems
-    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), 0 /* any object */);
+    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), BL_NUL /* any object */);
 
     // player characters (and, hopefully, mobs)
     while (bl->next)

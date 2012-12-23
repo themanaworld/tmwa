@@ -90,24 +90,41 @@ const int packet_len_table[0x220] = {
 };
 
 // local define
-enum
+enum class SendWho
 {
     ALL_CLIENT,
+#define ALL_CLIENT SendWho::ALL_CLIENT
     ALL_SAMEMAP,
+#define ALL_SAMEMAP SendWho::ALL_SAMEMAP
     AREA,
+#define AREA SendWho::AREA
     AREA_WOS,
+#define AREA_WOS SendWho::AREA_WOS
     AREA_WOC,
+#define AREA_WOC SendWho::AREA_WOC
     AREA_WOSC,
+#define AREA_WOSC SendWho::AREA_WOSC
     AREA_CHAT_WOC,
-    CHAT,
+#define AREA_CHAT_WOC SendWho::AREA_CHAT_WOC
+    // temporary rename to avoid collision with BL::CHAT_
+    CHAT_,
+#define CHAT_ SendWho::CHAT_
     CHAT_WOS,
+#define CHAT_WOS SendWho::CHAT_WOS
     PARTY,
+#define PARTY SendWho::PARTY
     PARTY_WOS,
+#define PARTY_WOS SendWho::PARTY_WOS
     PARTY_SAMEMAP,
+#define PARTY_SAMEMAP SendWho::PARTY_SAMEMAP
     PARTY_SAMEMAP_WOS,
+#define PARTY_SAMEMAP_WOS SendWho::PARTY_SAMEMAP_WOS
     PARTY_AREA,
+#define PARTY_AREA SendWho::PARTY_AREA
     PARTY_AREA_WOS,
+#define PARTY_AREA_WOS SendWho::PARTY_AREA_WOS
     SELF,
+#define SELF SendWho::SELF
 };
 
 #define WBUFPOS(p,pos,x,y) { unsigned char *__p = (p); __p+= (pos); __p[0] = (x)>>2; __p[1] = ((x)<<6) | (((y)>>4)&0x3f); __p[2] = (y)<<4; }
@@ -126,7 +143,7 @@ int map_fd;
 char talkie_mes[80];
 
 static
-int clif_changelook_towards(struct block_list *bl, int type, int val,
+int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
                              struct map_session_data *dstsd);
 
 /*==========================================
@@ -226,7 +243,7 @@ char *clif_validate_chat(struct map_session_data *sd, int type,
  */
 static
 void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
-        struct block_list *src_bl, int type)
+        struct block_list *src_bl, SendWho type)
 {
     nullpo_retv(bl);
     struct map_session_data *sd = (struct map_session_data *) bl;
@@ -285,7 +302,7 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
  *------------------------------------------
  */
 static
-int clif_send(const uint8_t *buf, int len, struct block_list *bl, int type)
+int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
 {
     int i;
     struct map_session_data *sd;
@@ -365,7 +382,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, int type)
                     bl->m, bl->x - (AREA_SIZE), bl->y - (AREA_SIZE),
                     bl->x + (AREA_SIZE), bl->y + (AREA_SIZE), BL_PC);
             break;
-        case CHAT:
+        case CHAT_:
         case CHAT_WOS:
             cd = (struct chat_data *) bl;
             if (bl->type == BL_PC)
@@ -740,26 +757,26 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
         WBUFB(buf, 18) = sd->attack_spell_look_override;
     else
     {
-        if (sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]]
+        if (sd->equip_index[EQUIP::WEAPON] >= 0 && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]
             && sd->view_class != 22)
         {
-            if (sd->inventory_data[sd->equip_index[9]]->view_id > 0)
+            if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
                 WBUFW(buf, 18) =
-                    sd->inventory_data[sd->equip_index[9]]->view_id;
+                    sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
             else
                 WBUFW(buf, 18) =
-                    sd->status.inventory[sd->equip_index[9]].nameid;
+                    sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
         }
         else
             WBUFW(buf, 18) = 0;
     }
-    if (sd->equip_index[8] >= 0 && sd->equip_index[8] != sd->equip_index[9]
-        && sd->inventory_data[sd->equip_index[8]] && sd->view_class != 22)
+    if (sd->equip_index[EQUIP::SHIELD] >= 0 && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
+        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]] && sd->view_class != 22)
     {
-        if (sd->inventory_data[sd->equip_index[8]]->view_id > 0)
-            WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[8]]->view_id;
+        if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
+            WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
         else
-            WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[8]].nameid;
+            WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
     }
     else
         WBUFW(buf, 20) = 0;
@@ -826,23 +843,23 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 12) = uint16_t(sd->status.option);
     WBUFW(buf, 14) = sd->view_class;
     WBUFW(buf, 16) = sd->status.hair;
-    if (sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]]
+    if (sd->equip_index[EQUIP::WEAPON] >= 0 && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]
         && sd->view_class != 22)
     {
-        if (sd->inventory_data[sd->equip_index[9]]->view_id > 0)
-            WBUFW(buf, 18) = sd->inventory_data[sd->equip_index[9]]->view_id;
+        if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
+            WBUFW(buf, 18) = sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
         else
-            WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[9]].nameid;
+            WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
     }
     else
         WBUFW(buf, 18) = 0;
-    if (sd->equip_index[8] >= 0 && sd->equip_index[8] != sd->equip_index[9]
-        && sd->inventory_data[sd->equip_index[8]] && sd->view_class != 22)
+    if (sd->equip_index[EQUIP::SHIELD] >= 0 && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
+        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]] && sd->view_class != 22)
     {
-        if (sd->inventory_data[sd->equip_index[8]]->view_id > 0)
-            WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[8]]->view_id;
+        if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
+            WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
         else
-            WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[8]].nameid;
+            WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
     }
     else
         WBUFW(buf, 20) = 0;
@@ -989,21 +1006,22 @@ int clif_npc0078(struct npc_data *nd, unsigned char *buf)
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
 static
-int equip_points[LOOK_LAST + 1] = {
-    -1,                         /* 0: base */
-    -1,                         /* 1: hair */
-    9,                          /* 2: weapon */
-    4,                          /* 3: head botom -- leg armour */
-    6,                          /* 4: head top -- hat */
-    5,                          /* 5: head mid -- torso armour */
-    -1,                         /* 6: hair colour */
-    -1,                         /* 6: clothes colour */
-    8,                          /* 6: shield */
-    2,                          /* 9: shoes */
-    3,                          /* gloves */
-    1,                          /* cape */
-    7,                          /* misc1 */
-    0,                          /* misc2 */
+earray<EQUIP, LOOK, LOOK::COUNT> equip_points =
+{
+    EQUIP::NONE,    // base
+    EQUIP::NONE,    // hair
+    EQUIP::WEAPON,  // weapon
+    EQUIP::LEGS,    // head botom -- leg armour
+    EQUIP::HAT,     // head top -- hat
+    EQUIP::TORSO,   // head mid -- torso armour
+    EQUIP::NONE,    // hair colour
+    EQUIP::NONE,    // clothes colour
+    EQUIP::SHIELD,  // shield
+    EQUIP::SHOES,   // shoes
+    EQUIP::GLOVES,  // gloves
+    EQUIP::CAPE,    // cape
+    EQUIP::MISC1,   // misc1
+    EQUIP::MISC2,   // misc2
 };
 
 /*==========================================
@@ -1378,7 +1396,7 @@ int clif_buylist(struct map_session_data *sd, struct npc_data *nd)
         if (!id->flag.value_notdc)
             val = pc_modifybuyvalue(sd, val);
         WFIFOL(fd, 8 + i * 11) = val;
-        WFIFOB(fd, 12 + i * 11) = id->type;
+        WFIFOB(fd, 12 + i * 11) = uint8_t(id->type);
         if (id->view_id > 0)
             WFIFOW(fd, 13 + i * 11) = id->view_id;
         else
@@ -1582,7 +1600,7 @@ int clif_cutin(struct map_session_data *sd, const char *image, int type)
  *
  *------------------------------------------
  */
-int clif_additem(struct map_session_data *sd, int n, int amount, int fail)
+int clif_additem(struct map_session_data *sd, int n, int amount, PickupFail fail)
 {
     int fd, j;
     unsigned char *buf;
@@ -1591,7 +1609,7 @@ int clif_additem(struct map_session_data *sd, int n, int amount, int fail)
 
     fd = sd->fd;
     buf = WFIFOP(fd, 0);
-    if (fail)
+    if (fail != PickupFail::OKAY)
     {
         WBUFW(buf, 0) = 0xa0;
         WBUFW(buf, 2) = n + 2;
@@ -1606,7 +1624,7 @@ int clif_additem(struct map_session_data *sd, int n, int amount, int fail)
         WBUFW(buf, 17) = 0;
         WBUFW(buf, 19) = 0;
         WBUFB(buf, 21) = 0;
-        WBUFB(buf, 22) = fail;
+        WBUFB(buf, 22) = uint8_t(fail);
     }
     else
     {
@@ -1659,11 +1677,11 @@ int clif_additem(struct map_session_data *sd, int n, int amount, int fail)
             else
                 WBUFW(buf, 17) = sd->status.inventory[n].card[3];
         }
-        WBUFW(buf, 19) = pc_equippoint(sd, n);
-        WBUFB(buf, 21) =
-            (sd->inventory_data[n]->type ==
-             7) ? 4 : sd->inventory_data[n]->type;
-        WBUFB(buf, 22) = fail;
+        WBUFW(buf, 19) = uint16_t(pc_equippoint(sd, n));
+        WBUFB(buf, 21) = uint8_t(sd->inventory_data[n]->type == ItemType::_7
+            ? ItemType::WEAPON
+            : sd->inventory_data[n]->type);
+        WBUFB(buf, 22) = uint8_t(fail);
     }
 
     WFIFOSET(fd, packet_len_table[0xa0]);
@@ -1715,17 +1733,17 @@ int clif_itemlist(struct map_session_data *sd)
             WBUFW(buf, n * 18 + 6) = sd->inventory_data[i]->view_id;
         else
             WBUFW(buf, n * 18 + 6) = sd->status.inventory[i].nameid;
-        WBUFB(buf, n * 18 + 8) = sd->inventory_data[i]->type;
+        WBUFB(buf, n * 18 + 8) = uint8_t(sd->inventory_data[i]->type);
         WBUFB(buf, n * 18 + 9) = sd->status.inventory[i].identify;
         WBUFW(buf, n * 18 + 10) = sd->status.inventory[i].amount;
-        if (sd->inventory_data[i]->equip == 0x8000)
+        if (sd->inventory_data[i]->equip == EPOS::ARROW)
         {
-            WBUFW(buf, n * 18 + 12) = 0x8000;
-            if (sd->status.inventory[i].equip)
+            WBUFW(buf, n * 18 + 12) = uint16_t(EPOS::ARROW);
+            if (bool(sd->status.inventory[i].equip))
                 arrow = i;      // ついでに矢装備チェック
         }
         else
-            WBUFW(buf, n * 18 + 12) = 0;
+            WBUFW(buf, n * 18 + 12) = uint16_t(EPOS::ZERO);
         WBUFW(buf, n * 18 + 14) = sd->status.inventory[i].card[0];
         WBUFW(buf, n * 18 + 16) = sd->status.inventory[i].card[1];
         WBUFW(buf, n * 18 + 18) = sd->status.inventory[i].card[2];
@@ -1767,12 +1785,13 @@ int clif_equiplist(struct map_session_data *sd)
             WBUFW(buf, n * 20 + 6) = sd->inventory_data[i]->view_id;
         else
             WBUFW(buf, n * 20 + 6) = sd->status.inventory[i].nameid;
-        WBUFB(buf, n * 20 + 8) =
-            (sd->inventory_data[i]->type ==
-             7) ? 4 : sd->inventory_data[i]->type;
+        WBUFB(buf, n * 20 + 8) = uint8_t(
+                sd->inventory_data[i]->type == ItemType::_7
+                ? ItemType::WEAPON
+                : sd->inventory_data[i]->type);
         WBUFB(buf, n * 20 + 9) = sd->status.inventory[i].identify;
-        WBUFW(buf, n * 20 + 10) = pc_equippoint(sd, i);
-        WBUFW(buf, n * 20 + 12) = sd->status.inventory[i].equip;
+        WBUFW(buf, n * 20 + 10) = uint16_t(pc_equippoint(sd, i));
+        WBUFW(buf, n * 20 + 12) = uint16_t(sd->status.inventory[i].equip);
         if (sd->status.inventory[i].broken == 1)
             WBUFB(buf, n * 20 + 14) = 1;   // is weapon broken [Valaris]
         else
@@ -1849,7 +1868,7 @@ int clif_storageitemlist(struct map_session_data *sd, struct storage *stor)
             WBUFW(buf, n * 18 + 6) = id->view_id;
         else
             WBUFW(buf, n * 18 + 6) = stor->storage_[i].nameid;
-        WBUFB(buf, n * 18 + 8) = id->type;;
+        WBUFB(buf, n * 18 + 8) = uint8_t(id->type);
         WBUFB(buf, n * 18 + 9) = stor->storage_[i].identify;
         WBUFW(buf, n * 18 + 10) = stor->storage_[i].amount;
         WBUFW(buf, n * 18 + 12) = 0;
@@ -1895,10 +1914,10 @@ int clif_storageequiplist(struct map_session_data *sd, struct storage *stor)
             WBUFW(buf, n * 20 + 6) = id->view_id;
         else
             WBUFW(buf, n * 20 + 6) = stor->storage_[i].nameid;
-        WBUFB(buf, n * 20 + 8) = id->type;
+        WBUFB(buf, n * 20 + 8) = uint8_t(id->type);
         WBUFB(buf, n * 20 + 9) = stor->storage_[i].identify;
-        WBUFW(buf, n * 20 + 10) = id->equip;
-        WBUFW(buf, n * 20 + 12) = stor->storage_[i].equip;
+        WBUFW(buf, n * 20 + 10) = uint16_t(id->equip);
+        WBUFW(buf, n * 20 + 12) = uint16_t(stor->storage_[i].equip);
         if (stor->storage_[i].broken == 1)
             WBUFB(buf, n * 20 + 14) = 1;   //is weapon broken [Valaris]
         else
@@ -1951,7 +1970,7 @@ int clif_storageequiplist(struct map_session_data *sd, struct storage *stor)
  * 表示専用数字はこの中で計算して送る
  *------------------------------------------
  */
-int clif_updatestatus(struct map_session_data *sd, int type)
+int clif_updatestatus(struct map_session_data *sd, SP type)
 {
     int fd, len = 8;
 
@@ -1960,14 +1979,15 @@ int clif_updatestatus(struct map_session_data *sd, int type)
     fd = sd->fd;
 
     WFIFOW(fd, 0) = 0xb0;
-    WFIFOW(fd, 2) = type;
+    WFIFOW(fd, 2) = uint16_t(type);
     switch (type)
     {
             // 00b0
         case SP_WEIGHT:
             pc_checkweighticon(sd);
+            // is this because pc_checkweighticon can send other packets?
             WFIFOW(fd, 0) = 0xb0;
-            WFIFOW(fd, 2) = type;
+            WFIFOW(fd, 2) = uint16_t(type);
             WFIFOL(fd, 4) = sd->weight;
             break;
         case SP_MAXWEIGHT:
@@ -2072,8 +2092,7 @@ int clif_updatestatus(struct map_session_data *sd, int type)
         case SP_UDEX:
         case SP_ULUK:
             WFIFOW(fd, 0) = 0xbe;
-            WFIFOB(fd, 4) =
-                pc_need_status_point(sd, type - SP_USTR + SP_STR);
+            WFIFOB(fd, 4) = pc_need_status_point(sd, usp_to_sp(type));
             len = 5;
             break;
 
@@ -2087,46 +2106,19 @@ int clif_updatestatus(struct map_session_data *sd, int type)
 
             // 0141 終了
         case SP_STR:
-            WFIFOW(fd, 0) = 0x141;
-            WFIFOL(fd, 2) = type;
-            WFIFOL(fd, 6) = sd->status.str;
-            WFIFOL(fd, 10) = sd->paramb[0] + sd->parame[0];
-            len = 14;
-            break;
         case SP_AGI:
-            WFIFOW(fd, 0) = 0x141;
-            WFIFOL(fd, 2) = type;
-            WFIFOL(fd, 6) = sd->status.agi;
-            WFIFOL(fd, 10) = sd->paramb[1] + sd->parame[1];
-            len = 14;
-            break;
         case SP_VIT:
-            WFIFOW(fd, 0) = 0x141;
-            WFIFOL(fd, 2) = type;
-            WFIFOL(fd, 6) = sd->status.vit;
-            WFIFOL(fd, 10) = sd->paramb[2] + sd->parame[2];
-            len = 14;
-            break;
         case SP_INT:
-            WFIFOW(fd, 0) = 0x141;
-            WFIFOL(fd, 2) = type;
-            WFIFOL(fd, 6) = sd->status.int_;
-            WFIFOL(fd, 10) = sd->paramb[3] + sd->parame[3];
-            len = 14;
-            break;
         case SP_DEX:
-            WFIFOW(fd, 0) = 0x141;
-            WFIFOL(fd, 2) = type;
-            WFIFOL(fd, 6) = sd->status.dex;
-            WFIFOL(fd, 10) = sd->paramb[4] + sd->parame[4];
-            len = 14;
-            break;
         case SP_LUK:
+        {
+            ATTR attr = sp_to_attr(type);
             WFIFOW(fd, 0) = 0x141;
-            WFIFOL(fd, 2) = type;
-            WFIFOL(fd, 6) = sd->status.luk;
-            WFIFOL(fd, 10) = sd->paramb[5] + sd->parame[5];
+            WFIFOL(fd, 2) = uint16_t(type);
+            WFIFOL(fd, 6) = sd->status.attrs[attr];
+            WFIFOL(fd, 10) = sd->paramb[attr] + sd->parame[attr];
             len = 14;
+        }
             break;
 
         case SP_GM:
@@ -2135,7 +2127,8 @@ int clif_updatestatus(struct map_session_data *sd, int type)
 
         default:
             if (battle_config.error_log)
-                printf("clif_updatestatus : make %d routine\n", type);
+                printf("clif_updatestatus : make %d routine\n",
+                        uint16_t(type));
             return 1;
     }
     WFIFOSET(fd, len);
@@ -2147,12 +2140,12 @@ int clif_updatestatus(struct map_session_data *sd, int type)
  *
  *------------------------------------------
  */
-int clif_changelook(struct block_list *bl, int type, int val)
+int clif_changelook(struct block_list *bl, LOOK type, int val)
 {
     return clif_changelook_towards(bl, type, val, NULL);
 }
 
-int clif_changelook_towards(struct block_list *bl, int type, int val,
+int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
                              struct map_session_data *dstsd)
 {
     unsigned char rbuf[32];
@@ -2177,9 +2170,9 @@ int clif_changelook_towards(struct block_list *bl, int type, int val,
         WBUFL(buf, 2) = bl->id;
         if (type >= LOOK_SHOES)
         {
-            int equip_point = equip_points[type];
+            EQUIP equip_point = equip_points[type];
 
-            WBUFB(buf, 6) = type;
+            WBUFB(buf, 6) = uint16_t(type);
             if (sd->equip_index[equip_point] >= 0
                 && sd->inventory_data[sd->equip_index[equip_point]])
             {
@@ -2204,31 +2197,31 @@ int clif_changelook_towards(struct block_list *bl, int type, int val,
                 WBUFW(buf, 7) = sd->attack_spell_look_override;
             else
             {
-                if (sd->equip_index[9] >= 0
-                    && sd->inventory_data[sd->equip_index[9]]
+                if (sd->equip_index[EQUIP::WEAPON] >= 0
+                    && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]
                     && sd->view_class != 22)
                 {
-                    if (sd->inventory_data[sd->equip_index[9]]->view_id > 0)
+                    if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
                         WBUFW(buf, 7) =
-                            sd->inventory_data[sd->equip_index[9]]->view_id;
+                            sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
                     else
                         WBUFW(buf, 7) =
-                            sd->status.inventory[sd->equip_index[9]].nameid;
+                            sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
                 }
                 else
                     WBUFW(buf, 7) = 0;
             }
-            if (sd->equip_index[8] >= 0
-                && sd->equip_index[8] != sd->equip_index[9]
-                && sd->inventory_data[sd->equip_index[8]]
+            if (sd->equip_index[EQUIP::SHIELD] >= 0
+                && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
+                && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]
                 && sd->view_class != 22)
             {
-                if (sd->inventory_data[sd->equip_index[8]]->view_id > 0)
+                if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
                     WBUFW(buf, 9) =
-                        sd->inventory_data[sd->equip_index[8]]->view_id;
+                        sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
                 else
                     WBUFW(buf, 9) =
-                        sd->status.inventory[sd->equip_index[8]].nameid;
+                        sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
             }
             else
                 WBUFW(buf, 9) = 0;
@@ -2242,7 +2235,7 @@ int clif_changelook_towards(struct block_list *bl, int type, int val,
     {
         WBUFW(buf, 0) = 0x1d7;
         WBUFL(buf, 2) = bl->id;
-        WBUFB(buf, 6) = type;
+        WBUFB(buf, 6) = uint8_t(type);
         WBUFW(buf, 7) = val;
         WBUFW(buf, 9) = 0;
         if (dstsd)
@@ -2270,17 +2263,18 @@ int clif_initialstatus(struct map_session_data *sd)
 
     WBUFW(buf, 0) = 0xbd;
     WBUFW(buf, 2) = sd->status.status_point;
-    WBUFB(buf, 4) = (sd->status.str > 255) ? 255 : sd->status.str;
+
+    WBUFB(buf, 4) = min(sd->status.attrs[ATTR::STR], 255);
     WBUFB(buf, 5) = pc_need_status_point(sd, SP_STR);
-    WBUFB(buf, 6) = (sd->status.agi > 255) ? 255 : sd->status.agi;
+    WBUFB(buf, 6) = min(sd->status.attrs[ATTR::AGI], 255);
     WBUFB(buf, 7) = pc_need_status_point(sd, SP_AGI);
-    WBUFB(buf, 8) = (sd->status.vit > 255) ? 255 : sd->status.vit;
+    WBUFB(buf, 8) = min(sd->status.attrs[ATTR::VIT], 255);
     WBUFB(buf, 9) = pc_need_status_point(sd, SP_VIT);
-    WBUFB(buf, 10) = (sd->status.int_ > 255) ? 255 : sd->status.int_;
+    WBUFB(buf, 10) = min(sd->status.attrs[ATTR::INT], 255);
     WBUFB(buf, 11) = pc_need_status_point(sd, SP_INT);
-    WBUFB(buf, 12) = (sd->status.dex > 255) ? 255 : sd->status.dex;
+    WBUFB(buf, 12) = min(sd->status.attrs[ATTR::DEX], 255);
     WBUFB(buf, 13) = pc_need_status_point(sd, SP_DEX);
-    WBUFB(buf, 14) = (sd->status.luk > 255) ? 255 : sd->status.luk;
+    WBUFB(buf, 14) = min(sd->status.attrs[ATTR::LUK], 255);
     WBUFB(buf, 15) = pc_need_status_point(sd, SP_LUK);
 
     WBUFW(buf, 16) = sd->base_atk + sd->watk;
@@ -2358,7 +2352,7 @@ int clif_arrow_fail(struct map_session_data *sd, int type)
  *
  *------------------------------------------
  */
-int clif_statusupack(struct map_session_data *sd, int type, int ok, int val)
+int clif_statusupack(struct map_session_data *sd, SP type, int ok, int val)
 {
     int fd;
 
@@ -2366,7 +2360,7 @@ int clif_statusupack(struct map_session_data *sd, int type, int ok, int val)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xbc;
-    WFIFOW(fd, 2) = type;
+    WFIFOW(fd, 2) = uint16_t(type);
     WFIFOB(fd, 4) = ok;
     WFIFOB(fd, 5) = val;
     WFIFOSET(fd, packet_len_table[0xbc]);
@@ -2378,7 +2372,7 @@ int clif_statusupack(struct map_session_data *sd, int type, int ok, int val)
  *
  *------------------------------------------
  */
-int clif_equipitemack(struct map_session_data *sd, int n, int pos, int ok)
+int clif_equipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
 {
     int fd;
 
@@ -2387,7 +2381,7 @@ int clif_equipitemack(struct map_session_data *sd, int n, int pos, int ok)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xaa;
     WFIFOW(fd, 2) = n + 2;
-    WFIFOW(fd, 4) = pos;
+    WFIFOW(fd, 4) = uint16_t(pos);
     WFIFOB(fd, 6) = ok;
     WFIFOSET(fd, packet_len_table[0xaa]);
 
@@ -2398,7 +2392,7 @@ int clif_equipitemack(struct map_session_data *sd, int n, int pos, int ok)
  *
  *------------------------------------------
  */
-int clif_unequipitemack(struct map_session_data *sd, int n, int pos, int ok)
+int clif_unequipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
 {
     int fd;
 
@@ -2407,7 +2401,7 @@ int clif_unequipitemack(struct map_session_data *sd, int n, int pos, int ok)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xac;
     WFIFOW(fd, 2) = n + 2;
-    WFIFOW(fd, 4) = pos;
+    WFIFOW(fd, 4) = uint16_t(pos);
     WFIFOB(fd, 6) = ok;
     WFIFOSET(fd, packet_len_table[0xac]);
 
@@ -2842,9 +2836,7 @@ int clif_storageclose(struct map_session_data *sd)
 void clif_changelook_accessories(struct block_list *bl,
                              struct map_session_data *dest)
 {
-    int i;
-
-    for (i = LOOK_SHOES; i <= LOOK_LAST; i++)
+    for (LOOK i = LOOK_SHOES; i < LOOK::COUNT; i = LOOK(uint8_t(i) + 1))
         clif_changelook_towards(bl, i, 0, dest);
 }
 
@@ -3107,7 +3099,8 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
             break;
         default:
             if (battle_config.error_log)
-                printf("get area char ??? %d\n", bl->type);
+                printf("get area char ??? %d\n",
+                        uint8_t(bl->type));
             break;
     }
 }
@@ -3279,10 +3272,9 @@ int clif_skillinfoblock(struct map_session_data *sd)
             // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
             WFIFOW(fd, len) = uint16_t(id);
             WFIFOW(fd, len + 2) = skill_get_inf(id);
-            WFIFOW(fd, len + 4) =
-                skill_db[i].poolflags | (sd->status.
-                                         skill[i].flags &
-                                         (SKILL_POOL_ACTIVATED));
+            WFIFOW(fd, len + 4) = uint16_t(
+                skill_db[i].poolflags
+                | (sd->status.skill[i].flags & SKILL_POOL_ACTIVATED));
             WFIFOW(fd, len + 6) = sd->status.skill[i].lv;
             WFIFOW(fd, len + 8) = skill_get_sp(id, sd->status.skill[i].lv);
             range = skill_get_range(id, sd->status.skill[i].lv);
@@ -4144,13 +4136,13 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
         skill_status_change_start(&sd->bl, SC_ENDURE, 10, 1, 0, 0, 0, 0);
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-        if (sd->status.inventory[i].equip
-            && sd->status.inventory[i].equip & 0x0002
+        if (bool(sd->status.inventory[i].equip)
+            && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
             && sd->status.inventory[i].broken == 1)
             skill_status_change_start(&sd->bl, SC_BROKNWEAPON, 0, 0, 0, 0, 0,
                                        0);
-        if (sd->status.inventory[i].equip
-            && sd->status.inventory[i].equip & 0x0010
+        if (bool(sd->status.inventory[i].equip)
+            && bool(sd->status.inventory[i].equip & EPOS::MISC1)
             && sd->status.inventory[i].broken == 1)
             skill_status_change_start(&sd->bl, SC_BROKNARMOR, 0, 0, 0, 0, 0,
                                        0);
@@ -4160,7 +4152,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
 
     map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd), sd->bl.m, sd->bl.x - AREA_SIZE,
                        sd->bl.y - AREA_SIZE, sd->bl.x + AREA_SIZE,
-                       sd->bl.y + AREA_SIZE, 0);
+                       sd->bl.y + AREA_SIZE, BL_NUL);
 }
 
 /*==========================================
@@ -4372,7 +4364,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
         default:
             if (battle_config.error_log)
                 printf("clif_parse_GetCharNameRequest : bad type %d (%d)\n",
-                        bl->type, account_id);
+                        uint8_t(bl->type), account_id);
             break;
     }
 }
@@ -4903,9 +4895,12 @@ void clif_parse_EquipItem(int fd, struct map_session_data *sd)
     //ペット用装備であるかないか
     if (sd->inventory_data[index])
     {
-        if (sd->inventory_data[index]->type == 10)
-            RFIFOW(fd, 4) = 0x8000;    // 矢を無理やり装備できるように（−−；
-        pc_equipitem(sd, index, RFIFOW(fd, 4));
+        if (sd->inventory_data[index]->type == ItemType::ARROW)
+            // 矢を無理やり装備できるように（−−；
+            RFIFOW(fd, 4) = uint16_t(EPOS::ARROW);
+
+        // Note: the EPOS argument to pc_equipitem is actually ignored
+        pc_equipitem(sd, index, EPOS(RFIFOW(fd, 4)));
     }
 }
 
@@ -4937,7 +4932,7 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO)
         return;
-    pc_unequipitem(sd, index, 0);
+    pc_unequipitem(sd, index, CalcStatus::NOW);
 }
 
 /*==========================================
@@ -5098,7 +5093,7 @@ void clif_parse_StopAttack(int, struct map_session_data *sd)
 static
 void clif_parse_StatusUp(int fd, struct map_session_data *sd)
 {
-    pc_statusup(sd, RFIFOW(fd, 2));
+    pc_statusup(sd, SP(RFIFOW(fd, 2)));
 }
 
 /*==========================================
@@ -5604,7 +5599,7 @@ void clif_parse_GMKick(int fd, struct map_session_data *sd)
             else if (target->type == BL_MOB)
             {
                 struct mob_data *md = (struct mob_data *) target;
-                sd->state.attack_type = 0;
+                sd->state.attack_type = BF::ZERO;
                 mob_damage(&sd->bl, md, md->hp, 2);
             }
             else

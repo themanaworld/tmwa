@@ -151,8 +151,10 @@ void trade_tradeadditem(struct map_session_data *sd, int index, int amount)
                             && target_sd->inventory_data[i] != NULL)
                         {
                             id = target_sd->inventory_data[i];
-                            if (id->type != 4 && id->type != 5
-                                && id->type != 7 && id->type != 8)
+                            if (id->type != ItemType::WEAPON
+                                && id->type != ItemType::ARMOR
+                                && id->type != ItemType::_7
+                                && id->type != ItemType::_8)
                             {
                                 free++;
                                 break;
@@ -181,7 +183,7 @@ void trade_tradeadditem(struct map_session_data *sd, int index, int amount)
                                 return;
                             }
                         }
-                        pc_unequipinvyitem(sd, index - 2, 0);
+                        pc_unequipinvyitem(sd, index - 2, CalcStatus::NOW);
                         sd->deal_item_index[trade_i] = index;
                         sd->deal_item_amount[trade_i] += amount;
                         clif_tradeitemok(sd, index, amount, 0);    //success to add item
@@ -205,8 +207,10 @@ void trade_tradeadditem(struct map_session_data *sd, int index, int amount)
                             && target_sd->inventory_data[i] != NULL)
                         {
                             id = target_sd->inventory_data[i];
-                            if (id->type != 4 && id->type != 5
-                                && id->type != 7 && id->type != 8)
+                            if (id->type != ItemType::WEAPON
+                                && id->type != ItemType::ARMOR
+                                && id->type != ItemType::_7
+                                && id->type != ItemType::_8)
                             {
                                 free++;
                                 break;
@@ -270,16 +274,19 @@ void trade_tradecancel(struct map_session_data *sd)
         {                       //give items back (only virtual)
             if (sd->deal_item_amount[trade_i] != 0)
             {
-                clif_additem(sd, sd->deal_item_index[trade_i] - 2,
-                              sd->deal_item_amount[trade_i], 0);
+                clif_additem(sd,
+                        sd->deal_item_index[trade_i] - 2,
+                        sd->deal_item_amount[trade_i],
+                        PickupFail::OKAY);
                 sd->deal_item_index[trade_i] = 0;
                 sd->deal_item_amount[trade_i] = 0;
             }
             if (target_sd->deal_item_amount[trade_i] != 0)
             {
                 clif_additem(target_sd,
-                              target_sd->deal_item_index[trade_i] - 2,
-                              target_sd->deal_item_amount[trade_i], 0);
+                        target_sd->deal_item_index[trade_i] - 2,
+                        target_sd->deal_item_amount[trade_i],
+                        PickupFail::OKAY);
                 target_sd->deal_item_index[trade_i] = 0;
                 target_sd->deal_item_amount[trade_i] = 0;
             }
@@ -350,34 +357,34 @@ void trade_tradecommit(struct map_session_data *sd)
                     if (sd->deal_item_amount[trade_i] != 0)
                     {
                         int n = sd->deal_item_index[trade_i] - 2;
-                        int flag;
-                        flag =
-                            pc_additem(target_sd, &sd->status.inventory[n],
-                                        sd->deal_item_amount[trade_i]);
-                        if (flag == 0)
+                        PickupFail flag = pc_additem(target_sd,
+                                &sd->status.inventory[n],
+                                sd->deal_item_amount[trade_i]);
+                        if (flag == PickupFail::OKAY)
                             pc_delitem(sd, n, sd->deal_item_amount[trade_i],
                                         1);
                         else
                             clif_additem(sd, n,
-                                          sd->deal_item_amount[trade_i], 0);
+                                    sd->deal_item_amount[trade_i],
+                                    PickupFail::OKAY);
                         sd->deal_item_index[trade_i] = 0;
                         sd->deal_item_amount[trade_i] = 0;
                     }
                     if (target_sd->deal_item_amount[trade_i] != 0)
                     {
                         int n = target_sd->deal_item_index[trade_i] - 2;
-                        int flag;
-                        flag =
-                            pc_additem(sd, &target_sd->status.inventory[n],
-                                        target_sd->deal_item_amount[trade_i]);
-                        if (flag == 0)
+                        PickupFail flag = pc_additem(sd,
+                                &target_sd->status.inventory[n],
+                                target_sd->deal_item_amount[trade_i]);
+                        if (flag == PickupFail::OKAY)
                             pc_delitem(target_sd, n,
                                         target_sd->deal_item_amount[trade_i],
                                         1);
                         else
                             clif_additem(target_sd, n,
-                                          target_sd->deal_item_amount
-                                          [trade_i], 0);
+
+                                    target_sd->deal_item_amount[trade_i],
+                                    PickupFail::OKAY);
                         target_sd->deal_item_index[trade_i] = 0;
                         target_sd->deal_item_amount[trade_i] = 0;
                     }

@@ -12,9 +12,9 @@ struct item_data
     char cardillustname[64];
     int value_buy;
     int value_sell;
-    int type;
+    ItemType type;
     int sex;
-    int equip;
+    EPOS equip;
     int weight;
     int atk;
     int def;

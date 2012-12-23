@@ -1,6 +1,8 @@
 #ifndef BATTLE_HPP
 #define BATTLE_HPP
 
+#include "battle.t.hpp"
+
 #include "../common/utils.hpp"
 
 #include "map.t.hpp"
@@ -13,8 +15,8 @@ struct Damage
     int type, div_;
     int amotion, dmotion;
     int blewcount;
-    int flag;
-    int dmg_lv;                //囲まれ減算計算用　0:スキル攻撃 ATK_LUCKY,ATK_FLEE,ATK_DEF
+    BF flag;
+    ATK dmg_lv;
 };
 
 // 属性表（読み込みはpc.c、battle_attr_fixで使用）
@@ -26,26 +28,12 @@ struct block_list;
 
 // ダメージ計算
 
-struct Damage battle_calc_attack(int attack_type,
+struct Damage battle_calc_attack(BF attack_type,
         struct block_list *bl, struct block_list *target,
         SkillID skill_num, int skill_lv, int flag);
 
 // 属性修正計算
 int battle_attr_fix(int damage, int atk_elem, int def_elem);
-
-enum
-{                               // 最終計算のフラグ
-    BF_WEAPON = 0x0001,
-    BF_MAGIC = 0x0002,
-    BF_MISC = 0x0004,
-    BF_SHORT = 0x0010,
-    BF_LONG = 0x0040,
-    BF_SKILL = 0x0100,
-    BF_NORMAL = 0x0200,
-    BF_WEAPONMASK = 0x000f,
-    BF_RANGEMASK = 0x00f0,
-    BF_SKILLMASK = 0x0f00,
-};
 
 // 実際にHPを増減
 int battle_damage(struct block_list *bl, struct block_list *target,
@@ -58,8 +46,8 @@ int battle_stopattack(struct block_list *bl);
 int battle_stopwalking(struct block_list *bl, int type);
 
 // 通常攻撃処理まとめ
-int battle_weapon_attack(struct block_list *bl, struct block_list *target,
-                           unsigned int tick, int flag);
+ATK battle_weapon_attack(struct block_list *bl, struct block_list *target,
+        unsigned int tick, BCT flag);
 
 int battle_is_unarmed(struct block_list *bl);
 int battle_get_class(struct block_list *bl);
@@ -88,8 +76,7 @@ int battle_get_party_id(struct block_list *bl);
 int battle_get_race(struct block_list *bl);
 int battle_get_mode(struct block_list *bl);
 int battle_get_mexp(struct block_list *bl);
-int battle_get_stat(int stat_id /* SP_VIT or similar */ ,
-                      struct block_list *bl);
+int battle_get_stat(SP stat_id, struct block_list *bl);
 
 eptr<struct status_change, StatusChange> battle_get_sc_data(struct block_list *bl);
 short *battle_get_sc_count(struct block_list *bl);
@@ -98,19 +85,9 @@ Opt2 *battle_get_opt2(struct block_list *bl);
 Opt3 *battle_get_opt3(struct block_list *bl);
 Option *battle_get_option(struct block_list *bl);
 
-enum
-{
-    BCT_NOENEMY = 0x00000,
-    BCT_PARTY = 0x10000,
-    BCT_ENEMY = 0x40000,
-    BCT_NOPARTY = 0x50000,
-    BCT_ALL = 0x20000,
-    BCT_NOONE = 0x60000,
-};
-
 int battle_check_undead(int race, int element);
 int battle_check_target(struct block_list *src, struct block_list *target,
-                          int flag);
+        BCT flag);
 int battle_check_range(struct block_list *src, struct block_list *bl,
                          int range);
 

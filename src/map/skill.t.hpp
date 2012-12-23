@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "../common/utils.hpp"
+
 // only ST_NONE is actually used - TODO remove
 enum class SkillState
 {
@@ -1416,5 +1418,24 @@ enum class SkillID : uint16_t
     MAX_SKILL_DB        = 474, // not 450
 #define MAX_SKILL_DB SkillID::MAX_SKILL_DB
 };
+
+namespace e
+{
+enum class SkillFlags : uint16_t
+{
+    ZERO        = 0x00,
+    // is a pool skill
+    FLAG        = 0x01,
+#define SKILL_POOL_FLAG SkillFlags::FLAG
+    // is an active pool skill
+    ACTIVE      = 0x02,
+#define SKILL_POOL_ACTIVE SkillFlags::ACTIVE
+    // pool skill has been activated (used for clif)
+    ACTIVATED   = 0x04,
+#define SKILL_POOL_ACTIVATED SkillFlags::ACTIVATED
+};
+ENUM_BITWISE_OPERATORS(SkillFlags)
+}
+using e::SkillFlags;
 
 #endif // SKILL_T_HPP

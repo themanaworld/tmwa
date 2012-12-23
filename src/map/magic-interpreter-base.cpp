@@ -4,7 +4,7 @@
 #include "magic-interpreter-aux.hpp"
 
 static
-void set_int_p(val_t *v, int i, int t)
+void set_int_p(val_t *v, int i, TY t)
 {
     v->ty = t;
     v->v.v_int = i;
@@ -208,7 +208,7 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
         default:
             free(param);
             fprintf(stderr, "Unexpected spellarg type %d\n",
-                     spell->spellarg_ty);
+                     uint8_t(spell->spellarg_ty));
     }
 
     set_env_entity(VAR_CASTER, &caster->bl);
@@ -328,7 +328,7 @@ int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
         unsigned int casttime = (unsigned int) check->casttime;
 
         if (VAR(VAR_MIN_CASTTIME).ty == TY_INT)
-            casttime = MAX(casttime, VAR(VAR_MIN_CASTTIME).v.v_int);
+            casttime = max(casttime, VAR(VAR_MIN_CASTTIME).v.v_int);
 
         caster->cast_tick = tick + casttime;    /* Make sure not to cast too frequently */
 
@@ -401,7 +401,8 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                 return NULL;
 
         default:
-            fprintf(stderr, "Unexpected spellguard type %d\n", guard->ty);
+            fprintf(stderr, "Unexpected spellguard type %d\n",
+                    uint8_t(guard->ty));
             return NULL;
     }
 
@@ -459,7 +460,7 @@ void spell_set_location(invocation_t *invocation, entity_t *entity)
 
 void spell_update_location(invocation_t *invocation)
 {
-    if (invocation->spell->flags & SPELL_FLAG_LOCAL)
+    if (bool(invocation->spell->flags & SPELL_FLAG_LOCAL))
         return;
     else
     {
@@ -517,7 +518,7 @@ invocation_t *spell_clone_effect(invocation_t *base)
     retval->subject = 0;
     retval->status_change_refs_nr = 0;
     retval->status_change_refs = NULL;
-    retval->flags = 0;
+    retval->flags = INVOCATION_FLAG::ZERO;
 
     retval->bl.id = 0;
     retval->bl.prev = NULL;
@@ -533,9 +534,9 @@ void spell_bind(character_t *subject, invocation_t *invocation)
 {
     /* Only bind nonlocal spells */
 
-    if (!(invocation->spell->flags & SPELL_FLAG_LOCAL))
+    if (!bool(invocation->spell->flags & SPELL_FLAG_LOCAL))
     {
-        if (invocation->flags & INVOCATION_FLAG_BOUND
+        if (bool(invocation->flags & INVOCATION_FLAG_BOUND)
             || invocation->subject || invocation->next_invocation)
         {
             int *i = NULL;

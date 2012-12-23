@@ -43,7 +43,7 @@ int skill_pool(struct map_session_data *sd, SkillID *skills)
     for (i = 0; count < MAX_SKILL_POOL && i < skill_pool_skills_size; i++)
     {
         SkillID skill_id = skill_pool_skills[i];
-        if (sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED)
+        if (bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
         {
             if (skills)
                 skills[count] = skill_id;
@@ -66,7 +66,7 @@ int skill_pool_max(struct map_session_data *sd)
 
 int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
 {
-    if (sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED)
+    if (bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
         return 0;               // Already there
     else if (sd->status.skill[skill_id].id == skill_id  // knows the skill
              && (skill_pool_size(sd) < skill_pool_max(sd)))
@@ -82,14 +82,14 @@ int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
     return 1;                   // failed
 }
 
-int skill_pool_is_activated(struct map_session_data *sd, SkillID skill_id)
+bool skill_pool_is_activated(struct map_session_data *sd, SkillID skill_id)
 {
-    return sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED;
+    return bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED);
 }
 
 int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
 {
-    if (sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED)
+    if (bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
     {
         sd->status.skill[skill_id].flags &= ~SKILL_POOL_ACTIVATED;
         MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d", uint16_t(skill_id));
@@ -103,18 +103,18 @@ int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
 // Yields the stat associated with a skill.
 // Returns zero if none, or SP_STR, SP_VIT, ... otherwise
 static
-int skill_stat(SkillID skill_id)
+SP skill_stat(SkillID skill_id)
 {
     return skill_db[skill_id].stat;
 }
 
 int skill_power(struct map_session_data *sd, SkillID skill_id)
 {
-    int stat = skill_stat(skill_id);
+    SP stat = skill_stat(skill_id);
     int stat_value, skill_value;
     int result;
 
-    if (stat == 0 || !skill_pool_is_activated(sd, skill_id))
+    if (stat == SP::ZERO || !skill_pool_is_activated(sd, skill_id))
         return 0;
 
     stat_value = battle_get_stat(stat, &(sd->bl));

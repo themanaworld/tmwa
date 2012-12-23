@@ -87,6 +87,7 @@ ATCOMMAND_FUNC(packet);
 ATCOMMAND_FUNC(statuspoint);
 ATCOMMAND_FUNC(skillpoint);
 ATCOMMAND_FUNC(zeny);
+template<ATTR attr>
 ATCOMMAND_FUNC(param);
 ATCOMMAND_FUNC(recall);
 ATCOMMAND_FUNC(recallall);
@@ -253,12 +254,12 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_StatusPoint, "@stpoint", 60, atcommand_statuspoint},
     {AtCommand_SkillPoint, "@skpoint", 60, atcommand_skillpoint},
     {AtCommand_Zeny, "@zeny", 60, atcommand_zeny},
-    {AtCommand_Strength, "@str", 60, atcommand_param},
-    {AtCommand_Agility, "@agi", 60, atcommand_param},
-    {AtCommand_Vitality, "@vit", 60, atcommand_param},
-    {AtCommand_Intelligence, "@int", 60, atcommand_param},
-    {AtCommand_Dexterity, "@dex", 60, atcommand_param},
-    {AtCommand_Luck, "@luk", 60, atcommand_param},
+    {AtCommand_Strength, "@str", 60, atcommand_param<ATTR::STR>},
+    {AtCommand_Agility, "@agi", 60, atcommand_param<ATTR::AGI>},
+    {AtCommand_Vitality, "@vit", 60, atcommand_param<ATTR::VIT>},
+    {AtCommand_Intelligence, "@int", 60, atcommand_param<ATTR::INT>},
+    {AtCommand_Dexterity, "@dex", 60, atcommand_param<ATTR::DEX>},
+    {AtCommand_Luck, "@luk", 60, atcommand_param<ATTR::LUK>},
     {AtCommand_Recall, "@recall", 60, atcommand_recall},    // + /recall
     {AtCommand_Revive, "@revive", 60, atcommand_revive},
     {AtCommand_CharacterStats, "@charstats", 40, atcommand_character_stats},
@@ -1909,7 +1910,7 @@ int atcommand_item(const int fd, struct map_session_data *sd,
                     const char *, const char *message)
 {
     char item_name[100];
-    int number = 0, item_id, flag;
+    int number = 0, item_id;
     struct item item_tmp;
     struct item_data *item_data;
     int get_count, i;
@@ -1935,8 +1936,10 @@ int atcommand_item(const int fd, struct map_session_data *sd,
     if (item_id >= 500)
     {
         get_count = number;
-        if (item_data->type == 4 || item_data->type == 5 ||
-            item_data->type == 7 || item_data->type == 8)
+        if (item_data->type == ItemType::WEAPON
+            || item_data->type == ItemType::ARMOR
+            || item_data->type == ItemType::_7
+            || item_data->type == ItemType::_8)
         {
             get_count = 1;
         }
@@ -1945,9 +1948,10 @@ int atcommand_item(const int fd, struct map_session_data *sd,
             memset(&item_tmp, 0, sizeof(item_tmp));
             item_tmp.nameid = item_id;
             item_tmp.identify = 1;
-            if ((flag =
-                 pc_additem((struct map_session_data *) sd, &item_tmp,
-                             get_count)))
+            PickupFail flag;
+            if ((flag = pc_additem((struct map_session_data *) sd,
+                            &item_tmp, get_count))
+                != PickupFail::OKAY)
                 clif_additem((struct map_session_data *) sd, 0, 0, flag);
         }
         clif_displaymessage(fd, "Item created.");
@@ -1973,7 +1977,7 @@ int atcommand_itemreset(const int fd, struct map_session_data *sd,
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (sd->status.inventory[i].amount
-            && sd->status.inventory[i].equip == 0)
+            && sd->status.inventory[i].equip == EPOS::ZERO)
             pc_delitem(sd, i, sd->status.inventory[i].amount, 0);
     }
     clif_displaymessage(fd, "All of your items have been removed.");
@@ -2909,7 +2913,6 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
 {
     char item_name[100];
     int item_id, attribute = 0, star = 0;
-    int flag = 0;
     struct item_data *item_data;
     struct item tmp_item;
     char output[200];
@@ -2947,7 +2950,8 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
         tmp_item.card[1] = ((star * 5) << 8) + attribute;
         *((unsigned long *) (&tmp_item.card[2])) = sd->char_id;
         clif_misceffect(&sd->bl, 3);   // 他人にも成功を通知
-        if ((flag = pc_additem(sd, &tmp_item, 1)))
+        PickupFail flag;
+        if ((flag = pc_additem(sd, &tmp_item, 1)) != PickupFail::OKAY)
             clif_additem(sd, 0, 0, flag);
     }
     else
@@ -3217,16 +3221,11 @@ int atcommand_zeny(const int fd, struct map_session_data *sd,
  *
  *------------------------------------------
  */
+template<ATTR attr>
 int atcommand_param(const int fd, struct map_session_data *sd,
-                     const char *command, const char *message)
+                     const char *, const char *message)
 {
-    int i, index, value = 0, new_value;
-    const char *param[] =
-        { "@str", "@agi", "@vit", "@int", "@dex", "@luk", NULL };
-    short *status[] = {
-        &sd->status.str, &sd->status.agi, &sd->status.vit,
-        &sd->status.int_, &sd->status.dex, &sd->status.luk
-    };
+    int value = 0, new_value;
     char output[200];
 
     memset(output, '\0', sizeof(output));
@@ -3240,34 +3239,17 @@ int atcommand_param(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    index = -1;
-    for (i = 0; param[i] != NULL; i++)
-    {
-        if (strcasecmp(command, param[i]) == 0)
-        {
-            index = i;
-            break;
-        }
-    }
-    if (index < 0 || index > MAX_STATUS_TYPE)
-    {                           // normaly impossible...
-        sprintf(output,
-                 "Please, enter a valid value (usage: @str,@agi,@vit,@int,@dex,@luk <+/-adjustement>).");
-        clif_displaymessage(fd, output);
-        return -1;
-    }
-
-    new_value = (int) *status[index] + value;
+    new_value = (int) sd->status.attrs[attr] + value;
     if (value > 0 && (value > battle_config.max_parameter || new_value > battle_config.max_parameter))  // fix positiv overflow
         new_value = battle_config.max_parameter;
     else if (value < 0 && (value < -battle_config.max_parameter || new_value < 1))  // fix negativ overflow
         new_value = 1;
 
-    if (new_value != (int) *status[index])
+    if (new_value != sd->status.attrs[attr])
     {
-        *status[index] = new_value;
-        clif_updatestatus(sd, SP_STR + index);
-        clif_updatestatus(sd, SP_USTR + index);
+        sd->status.attrs[attr] = new_value;
+        clif_updatestatus(sd, attr_to_sp(attr));
+        clif_updatestatus(sd, attr_to_usp(attr));
         pc_calcstatus(sd, 0);
         clif_displaymessage(fd, "Stat changed.");
     }
@@ -3291,32 +3273,26 @@ int atcommand_param(const int fd, struct map_session_data *sd,
 int atcommand_all_stats(const int fd, struct map_session_data *sd,
                          const char *, const char *message)
 {
-    int index, count, value = 0, new_value;
-    short *status[] = {
-        &sd->status.str, &sd->status.agi, &sd->status.vit,
-        &sd->status.int_, &sd->status.dex, &sd->status.luk
-    };
+    int count, value = 0, new_value;
 
     if (!message || !*message || sscanf(message, "%d", &value) < 1
         || value == 0)
         value = battle_config.max_parameter;
 
     count = 0;
-    for (index = 0; index < (int)(sizeof(status) / sizeof(status[0]));
-         index++)
+    for (ATTR attr : ATTRs)
     {
-
-        new_value = (int) *status[index] + value;
+        new_value = sd->status.attrs[attr] + value;
         if (value > 0 && (value > battle_config.max_parameter || new_value > battle_config.max_parameter))  // fix positiv overflow
             new_value = battle_config.max_parameter;
         else if (value < 0 && (value < -battle_config.max_parameter || new_value < 1))  // fix negativ overflow
             new_value = 1;
 
-        if (new_value != (int) *status[index])
+        if (new_value != sd->status.attrs[attr])
         {
-            *status[index] = new_value;
-            clif_updatestatus(sd, SP_STR + index);
-            clif_updatestatus(sd, SP_USTR + index);
+            sd->status.attrs[attr] = new_value;
+            clif_updatestatus(sd, attr_to_sp(attr));
+            clif_updatestatus(sd, attr_to_usp(attr));
             pc_calcstatus(sd, 0);
             count++;
         }
@@ -3471,17 +3447,17 @@ int atcommand_character_stats(const int fd, struct map_session_data *,
         clif_displaymessage(fd, output);
         sprintf(output, "MaxSp - %d", pl_sd->status.max_sp);
         clif_displaymessage(fd, output);
-        sprintf(output, "Str - %3d", pl_sd->status.str);
+        sprintf(output, "Str - %3d", pl_sd->status.attrs[ATTR::STR]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Agi - %3d", pl_sd->status.agi);
+        sprintf(output, "Agi - %3d", pl_sd->status.attrs[ATTR::AGI]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Vit - %3d", pl_sd->status.vit);
+        sprintf(output, "Vit - %3d", pl_sd->status.attrs[ATTR::VIT]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Int - %3d", pl_sd->status.int_);
+        sprintf(output, "Int - %3d", pl_sd->status.attrs[ATTR::INT]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Dex - %3d", pl_sd->status.dex);
+        sprintf(output, "Dex - %3d", pl_sd->status.attrs[ATTR::DEX]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Luk - %3d", pl_sd->status.luk);
+        sprintf(output, "Luk - %3d", pl_sd->status.attrs[ATTR::LUK]);
         clif_displaymessage(fd, output);
         sprintf(output, "Zeny - %d", pl_sd->status.zeny);
         clif_displaymessage(fd, output);
@@ -3532,8 +3508,8 @@ int atcommand_character_stats_all(const int fd, struct map_session_data *,
             clif_displaymessage(fd, output);
             sprintf(output,
                      "STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d | Zeny: %d %s",
-                     pl_sd->status.str, pl_sd->status.agi, pl_sd->status.vit,
-                     pl_sd->status.int_, pl_sd->status.dex, pl_sd->status.luk,
+                     pl_sd->status.attrs[ATTR::STR], pl_sd->status.attrs[ATTR::AGI], pl_sd->status.attrs[ATTR::VIT],
+                     pl_sd->status.attrs[ATTR::INT], pl_sd->status.attrs[ATTR::DEX], pl_sd->status.attrs[ATTR::LUK],
                      pl_sd->status.zeny, gmlevel);
             clif_displaymessage(fd, output);
             clif_displaymessage(fd, "--------");
@@ -4551,7 +4527,7 @@ int atcommand_lostskill(const int fd, struct map_session_data *sd,
             if (pc_checkskill(sd, skill_id) > 0)
             {
                 sd->status.skill[skill_id].lv = 0;
-                sd->status.skill[skill_id].flags = 0;
+                sd->status.skill[skill_id].flags = SkillFlags::ZERO;
                 clif_skillinfoblock(sd);
                 clif_displaymessage(fd, "You have forgotten the skill.");
             }
@@ -4609,7 +4585,7 @@ int atcommand_charlostskill(const int fd, struct map_session_data *,
                 if (pc_checkskill(pl_sd, skill_id) > 0)
                 {
                     pl_sd->status.skill[skill_id].lv = 0;
-                    pl_sd->status.skill[skill_id].flags = 0;
+                    pl_sd->status.skill[skill_id].flags = SkillFlags::ZERO;
                     clif_skillinfoblock(pl_sd);
                     clif_displaymessage(fd, "This player has forgotten the skill.");
                 }
@@ -4915,8 +4891,8 @@ int atcommand_char_wipe(const int fd, struct map_session_data *sd,
             {
                 if (sd->status.inventory[i].amount)
                 {
-                    if (sd->status.inventory[i].equip)
-                        pc_unequipitem(pl_sd, i, 0);
+                    if (bool(sd->status.inventory[i].equip))
+                        pc_unequipitem(pl_sd, i, CalcStatus::NOW);
                     pc_delitem(pl_sd, i, sd->status.inventory[i].amount, 0);
                 }
             }
@@ -6686,7 +6662,7 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
 {
     struct map_session_data *pl_sd;
     struct item_data *item_data, *item_temp;
-    int i, j, equip, count, counter, counter2;
+    int i, j, count, counter, counter2;
     char character[100], output[200], equipstr[100], outputtmp[200];
 
     memset(character, '\0', sizeof(character));
@@ -6722,36 +6698,37 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                                  pl_sd->status.name);
                         clif_displaymessage(fd, output);
                     }
-                    if ((equip = pl_sd->status.inventory[i].equip))
+                    EPOS equip;
+                    if (bool(equip = pl_sd->status.inventory[i].equip))
                     {
                         strcpy(equipstr, "| equiped: ");
-                        if (equip & 4)
+                        if (bool(equip & EPOS::GLOVES))
                             strcat(equipstr, "robe/gargment, ");
-                        if (equip & 8)
+                        if (bool(equip & EPOS::CAPE))
                             strcat(equipstr, "left accessory, ");
-                        if (equip & 16)
+                        if (bool(equip & EPOS::MISC1))
                             strcat(equipstr, "body/armor, ");
-                        if ((equip & 34) == 2)
+                        if ((equip & (EPOS::WEAPON | EPOS::SHIELD)) == EPOS::WEAPON)
                             strcat(equipstr, "right hand, ");
-                        if ((equip & 34) == 32)
+                        if ((equip & (EPOS::WEAPON | EPOS::SHIELD)) == EPOS::SHIELD)
                             strcat(equipstr, "left hand, ");
-                        if ((equip & 34) == 34)
+                        if ((equip & (EPOS::WEAPON | EPOS::SHIELD)) == (EPOS::WEAPON | EPOS::SHIELD))
                             strcat(equipstr, "both hands, ");
-                        if (equip & 64)
+                        if (bool(equip & EPOS::SHOES))
                             strcat(equipstr, "feet, ");
-                        if (equip & 128)
+                        if (bool(equip & EPOS::MISC2))
                             strcat(equipstr, "right accessory, ");
-                        if ((equip & 769) == 1)
+                        if ((equip & (EPOS::TORSO | EPOS::HAT | EPOS::LEGS)) == EPOS::LEGS)
                             strcat(equipstr, "lower head, ");
-                        if ((equip & 769) == 256)
+                        if ((equip & (EPOS::TORSO | EPOS::HAT | EPOS::LEGS)) == EPOS::HAT)
                             strcat(equipstr, "top head, ");
-                        if ((equip & 769) == 257)
+                        if ((equip & (EPOS::TORSO | EPOS::HAT | EPOS::LEGS)) == (EPOS::HAT | EPOS::LEGS))
                             strcat(equipstr, "lower/top head, ");
-                        if ((equip & 769) == 512)
+                        if ((equip & (EPOS::TORSO | EPOS::HAT | EPOS::LEGS)) == EPOS::TORSO)
                             strcat(equipstr, "mid head, ");
-                        if ((equip & 769) == 512)
+                        if ((equip & (EPOS::TORSO | EPOS::HAT | EPOS::LEGS)) == (EPOS::TORSO | EPOS::LEGS))
                             strcat(equipstr, "lower/mid head, ");
-                        if ((equip & 769) == 769)
+                        if ((equip & (EPOS::TORSO | EPOS::HAT | EPOS::LEGS)) == (EPOS::TORSO | EPOS::HAT | EPOS::LEGS))
                             strcat(equipstr, "lower/mid/top head, ");
                         // remove final ', '
                         equipstr[strlen(equipstr) - 2] = '\0';
@@ -7266,8 +7243,8 @@ int atcommand_dropall(const int, struct map_session_data *sd,
     {
         if (sd->status.inventory[i].amount)
         {
-            if (sd->status.inventory[i].equip != 0)
-                pc_unequipitem(sd, i, 0);
+            if (bool(sd->status.inventory[i].equip))
+                pc_unequipitem(sd, i, CalcStatus::NOW);
             pc_dropitem(sd, i, sd->status.inventory[i].amount);
         }
     }
@@ -7295,8 +7272,8 @@ int atcommand_chardropall(const int fd, struct map_session_data *,
     {
         if (pl_sd->status.inventory[i].amount)
         {
-            if (pl_sd->status.inventory[i].equip != 0)
-                pc_unequipitem(pl_sd, i, 0);
+            if (bool(pl_sd->status.inventory[i].equip))
+                pc_unequipitem(pl_sd, i, CalcStatus::NOW);
             pc_dropitem(pl_sd, i, pl_sd->status.inventory[i].amount);
         }
     }
@@ -7338,8 +7315,8 @@ int atcommand_storeall(const int fd, struct map_session_data *sd,
     {
         if (sd->status.inventory[i].amount)
         {
-            if (sd->status.inventory[i].equip != 0)
-                pc_unequipitem(sd, i, 0);
+            if (bool(sd->status.inventory[i].equip))
+                pc_unequipitem(sd, i, CalcStatus::NOW);
             storage_storageadd(sd, i, sd->status.inventory[i].amount);
         }
     }
@@ -7377,8 +7354,8 @@ int atcommand_charstoreall(const int fd, struct map_session_data *sd,
     {
         if (pl_sd->status.inventory[i].amount)
         {
-            if (pl_sd->status.inventory[i].equip != 0)
-                pc_unequipitem(pl_sd, i, 0);
+            if (bool(pl_sd->status.inventory[i].equip))
+                pc_unequipitem(pl_sd, i, CalcStatus::NOW);
             storage_storageadd(pl_sd, i, sd->status.inventory[i].amount);
         }
     }

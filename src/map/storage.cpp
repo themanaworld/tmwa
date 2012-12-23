@@ -232,7 +232,7 @@ int storage_storageadd(struct map_session_data *sd, int index, int amount)
     if (storage_additem(sd, stor, &sd->status.inventory[index], amount) == 0)
     {
         // remove item from inventory
-        pc_unequipinvyitem(sd, index, 0);
+        pc_unequipinvyitem(sd, index, CalcStatus::NOW);
         pc_delitem(sd, index, amount, 0);
     }
 
@@ -246,7 +246,7 @@ int storage_storageadd(struct map_session_data *sd, int index, int amount)
 int storage_storageget(struct map_session_data *sd, int index, int amount)
 {
     struct storage *stor;
-    int flag;
+    PickupFail flag;
 
     nullpo_ret(sd);
     nullpo_ret(stor = account2storage2(sd->status.account_id));
@@ -260,7 +260,7 @@ int storage_storageget(struct map_session_data *sd, int index, int amount)
     if (amount < 1 || amount > stor->storage_[index].amount)
         return 0;
 
-    if ((flag = pc_additem(sd, &stor->storage_[index], amount)) == 0)
+    if ((flag = pc_additem(sd, &stor->storage_[index], amount)) == PickupFail::OKAY)
         storage_delitem(sd, stor, index, amount);
     else
         clif_additem(sd, 0, 0, flag);

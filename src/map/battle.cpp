@@ -43,7 +43,7 @@ int distance(int x0, int y0, int x1, int y1)
  */
 static
 int battle_counttargeted(struct block_list *bl, struct block_list *src,
-                          int target_lv)
+        ATK target_lv)
 {
     nullpo_ret(bl);
     if (bl->type == BL_PC)
@@ -192,7 +192,7 @@ int battle_get_str(struct block_list *bl)
     if (bl->type == BL_MOB && ((struct mob_data *) bl))
         str = ((struct mob_data *) bl)->stats[MOB_STR];
     else if (bl->type == BL_PC && ((struct map_session_data *) bl))
-        return ((struct map_session_data *) bl)->paramc[0];
+        return ((struct map_session_data *) bl)->paramc[ATTR::STR];
 
     if (sc_data)
     {
@@ -232,7 +232,7 @@ int battle_get_agi(struct block_list *bl)
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         agi = ((struct mob_data *) bl)->stats[MOB_AGI];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        agi = ((struct map_session_data *) bl)->paramc[1];
+        agi = ((struct map_session_data *) bl)->paramc[ATTR::AGI];
 
     if (sc_data)
     {
@@ -271,7 +271,7 @@ int battle_get_vit(struct block_list *bl)
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         vit = ((struct mob_data *) bl)->stats[MOB_VIT];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        vit = ((struct map_session_data *) bl)->paramc[2];
+        vit = ((struct map_session_data *) bl)->paramc[ATTR::VIT];
     if (sc_data)
     {
         if (sc_data[SC_STRIPARMOR].timer != -1 && bl->type != BL_PC)
@@ -300,7 +300,7 @@ int battle_get_int(struct block_list *bl)
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         int_ = ((struct mob_data *) bl)->stats[MOB_INT];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        int_ = ((struct map_session_data *) bl)->paramc[3];
+        int_ = ((struct map_session_data *) bl)->paramc[ATTR::INT];
 
     if (sc_data)
     {
@@ -338,7 +338,7 @@ int battle_get_dex(struct block_list *bl)
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         dex = ((struct mob_data *) bl)->stats[MOB_DEX];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        dex = ((struct map_session_data *) bl)->paramc[4];
+        dex = ((struct map_session_data *) bl)->paramc[ATTR::DEX];
 
     if (sc_data)
     {
@@ -381,7 +381,7 @@ int battle_get_luk(struct block_list *bl)
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         luk = ((struct mob_data *) bl)->stats[MOB_LUK];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        luk = ((struct map_session_data *) bl)->paramc[5];
+        luk = ((struct map_session_data *) bl)->paramc[ATTR::LUK];
 
     if (sc_data)
     {
@@ -495,7 +495,7 @@ int battle_get_flee2(struct block_list *bl)
         flee2 = battle_get_luk(bl) + 10;
         flee2 +=
             ((struct map_session_data *) bl)->flee2 -
-            (((struct map_session_data *) bl)->paramc[5] + 10);
+            (((struct map_session_data *) bl)->paramc[ATTR::LUK] + 10);
     }
     else
         flee2 = battle_get_luk(bl) + 1;
@@ -533,7 +533,7 @@ int battle_get_critical(struct block_list *bl)
         critical = battle_get_luk(bl) * 2 + 10;
         critical +=
             ((struct map_session_data *) bl)->critical -
-            ((((struct map_session_data *) bl)->paramc[5] * 3) + 10);
+            ((((struct map_session_data *) bl)->paramc[ATTR::LUK] * 3) + 10);
     }
     else
         critical = battle_get_luk(bl) * 3 + 1;
@@ -924,7 +924,7 @@ int battle_get_mdef2(struct block_list *bl)
     else if (bl->type == BL_PC)
         mdef2 =
             ((struct map_session_data *) bl)->mdef2 +
-            (((struct map_session_data *) bl)->paramc[2] >> 1);
+            (((struct map_session_data *) bl)->paramc[ATTR::VIT] >> 1);
     if (sc_data)
     {
         if (sc_data[SC_MINDBREAKER].timer != -1 && bl->type != BL_PC)
@@ -1324,8 +1324,7 @@ int battle_get_mexp(struct block_list *bl)
         return 0;
 }
 
-int battle_get_stat(int stat_id /* SP_VIT or similar */ ,
-                     struct block_list *bl)
+int battle_get_stat(SP stat_id, struct block_list *bl)
 {
     switch (stat_id)
     {
@@ -1586,7 +1585,7 @@ int battle_attr_fix(int damage, int atk_elem, int def_elem)
 static
 int battle_calc_damage(struct block_list *src, struct block_list *bl,
                         int damage, int div_,
-                        SkillID skill_num, int, int flag)
+                        SkillID skill_num, int, BF flag)
 {
     struct map_session_data *sd = NULL;
     struct mob_data *md = NULL;
@@ -1606,8 +1605,10 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
     if (sc_count != NULL && *sc_count > 0)
     {
 
-        if (sc_data[SC_SAFETYWALL].timer != -1 && damage > 0
-            && flag & BF_WEAPON && flag & BF_SHORT
+        if (sc_data[SC_SAFETYWALL].timer != -1
+            && damage > 0
+            && bool(flag & BF_WEAPON)
+            && bool(flag & BF_SHORT)
             && skill_num != NPC_GUIDEDATTACK)
         {
             // セーフティウォール
@@ -1618,15 +1619,19 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
             skill_unit_move(bl, gettick(), 1);    // 重ね掛けチェック
             damage = 0;
         }
-        if (sc_data[SC_PNEUMA].timer != -1 && damage > 0 && flag & BF_WEAPON
-            && flag & BF_LONG && skill_num != NPC_GUIDEDATTACK)
+        if (sc_data[SC_PNEUMA].timer != -1
+            && damage > 0
+            && bool(flag & BF_WEAPON)
+            && bool(flag & BF_LONG)
+            && skill_num != NPC_GUIDEDATTACK)
         {
             // ニューマ
             damage = 0;
         }
 
-        if (sc_data[SC_ROKISWEIL].timer != -1 && damage > 0 &&
-            flag & BF_MAGIC)
+        if (sc_data[SC_ROKISWEIL].timer != -1
+            && damage > 0
+            && bool(flag & BF_MAGIC))
         {
             // ニューマ
             damage = 0;
@@ -1641,30 +1646,36 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
         //属性場のダメージ増加
         if (sc_data[SC_VOLCANO].timer != -1)
         {                       // ボルケーノ
-            if (flag & BF_SKILL && skill_get_pl(skill_num) == 3)
+            if (bool(flag & BF_SKILL)
+                && skill_get_pl(skill_num) == 3)
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
-            else if (!(flag & BF_SKILL) && (battle_get_attack_element(bl) == 3))
+            else if (!bool(flag & BF_SKILL)
+                && (battle_get_attack_element(bl) == 3))
                 damage += damage * sc_data[SC_VOLCANO].val4 / 100;
         }
 
         if (sc_data[SC_VIOLENTGALE].timer != -1)
         {                       // バイオレントゲイル
-            if (flag & BF_SKILL && skill_get_pl(skill_num) == 4)
+            if (bool(flag & BF_SKILL)
+                && skill_get_pl(skill_num) == 4)
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
-            else if (!(flag & BF_SKILL) && (battle_get_attack_element(bl) == 4))
+            else if (!bool(flag & BF_SKILL)
+                && (battle_get_attack_element(bl) == 4))
                 damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
         }
 
         if (sc_data[SC_DELUGE].timer != -1)
         {                       // デリュージ
-            if (flag & BF_SKILL && skill_get_pl(skill_num) == 1)
+            if (bool(flag & BF_SKILL)
+                && skill_get_pl(skill_num) == 1)
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
-            else if (!(flag & BF_SKILL) && (battle_get_attack_element(bl) == 1))
+            else if (!bool(flag & BF_SKILL)
+                && (battle_get_attack_element(bl) == 1))
                 damage += damage * sc_data[SC_DELUGE].val4 / 100;
         }
 
         if (sc_data[SC_ENERGYCOAT].timer != -1 && damage > 0
-            && flag & BF_WEAPON)
+            && bool(flag & BF_WEAPON))
         {                       // エナジーコート
             if (sd)
             {
@@ -1689,7 +1700,7 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
             // キリエエレイソン
             struct status_change *sc = &sc_data[SC_KYRIE];
             sc->val2 -= damage;
-            if (flag & BF_WEAPON)
+            if (bool(flag & BF_WEAPON))
             {
                 if (sc->val2 >= 0)
                     damage = 0;
@@ -1707,14 +1718,14 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
             damage = 0;
         }
         if (sc_data[SC_LANDPROTECTOR].timer != -1 && damage > 0
-            && flag & BF_MAGIC)
+            && bool(flag & BF_MAGIC))
         {
             // ニューマ
             damage = 0;
         }
 
         if (sc_data[SC_AUTOGUARD].timer != -1 && damage > 0
-            && flag & BF_WEAPON)
+            && bool(flag & BF_WEAPON))
         {
             if (MRAND(100) < sc_data[SC_AUTOGUARD].val2)
             {
@@ -1728,14 +1739,14 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
 // -- moonsoul (chance to block attacks with new Lord Knight skill parrying)
 //
         if (sc_data[SC_PARRYING].timer != -1 && damage > 0
-            && flag & BF_WEAPON)
+            && bool(flag & BF_WEAPON))
         {
             if (MRAND(100) < sc_data[SC_PARRYING].val2)
                 damage = 0;
         }
         // リジェクトソード
         if (sc_data[SC_REJECTSWORD].timer != -1 && damage > 0
-            && flag & BF_WEAPON
+            && bool(flag & BF_WEAPON)
             && // the logic was always broken, I've simplfied to what it
             // was doing, it's not like this will be sticking around long
             ((src->type == BL_PC
@@ -1752,7 +1763,8 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
         }
     }
 
-    if (battle_config.skill_min_damage || flag & BF_MISC)
+    if (battle_config.skill_min_damage
+        || bool(flag & BF_MISC))
     {
         if (div_ < 255)
         {
@@ -1943,7 +1955,9 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     struct Damage wd;
     int damage, damage2 = 0, type, div_, blewcount =
         skill_get_blewcount(skill_num, skill_lv);
-    int flag, skill, ac_flag = 0, dmg_lv = 0;
+    BF flag;
+    int skill, ac_flag = 0;
+    ATK dmg_lv = ATK::ZERO;
     int t_mode = 0, t_size = 1, s_race = 0, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
 
@@ -2009,7 +2023,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         || battle_config.vit_penaly_type > 0)
         target_count +=
             battle_counttargeted(target, src,
-                                  battle_config.agi_penaly_count_lv);
+                    ATK(battle_config.agi_penaly_count_lv)); // FIXME
     if (battle_config.agi_penaly_type > 0)
     {
         if (target_count >= battle_config.agi_penaly_count)
@@ -2349,7 +2363,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
                 int t_def;
                 target_count =
                     1 + battle_counttargeted(target, src,
-                                              battle_config.vit_penaly_count_lv);
+                            ATK(battle_config.vit_penaly_count_lv)); // FIXME
                 if (battle_config.vit_penaly_type > 0)
                 {
                     if (target_count >= battle_config.vit_penaly_count)
@@ -2464,16 +2478,17 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
                 break;
             }
         }
-        if (flag & BF_LONG)
+        if (bool(flag & BF_LONG))
             cardfix = cardfix * (100 - tsd->long_attack_def_rate) / 100;
-        if (flag & BF_SHORT)
+        if (bool(flag & BF_SHORT))
             cardfix = cardfix * (100 - tsd->near_attack_def_rate) / 100;
         damage = damage * cardfix / 100;
     }
     if (t_sc_data)
     {
         int cardfix = 100;
-        if (t_sc_data[SC_DEFENDER].timer != -1 && flag & BF_LONG)
+        if (t_sc_data[SC_DEFENDER].timer != -1
+            && bool(flag & BF_LONG))
             cardfix = cardfix * (100 - t_sc_data[SC_DEFENDER].val2) / 100;
         if (cardfix != 100)
             damage = damage * cardfix / 100;
@@ -2596,7 +2611,9 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     struct Damage wd;
     int damage, damage2, damage4 = 0, type, div_, blewcount =
         skill_get_blewcount(skill_num, skill_lv);
-    int flag, skill, dmg_lv = 0;
+    BF flag;
+    int skill;
+    ATK dmg_lv = ATK::ZERO;
     int t_mode = 0, t_race = 0, t_size = 1, s_race = 7, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
     int atkmax_ = 0, atkmin_ = 0, s_ele_;  //二刀流用
@@ -2671,7 +2688,8 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     // 回避率計算、回避判定は後で
     flee = battle_get_flee(target);
     if (battle_config.agi_penaly_type > 0 || battle_config.vit_penaly_type > 0) //AGI、VITペナルティ設定が有効
-        target_count += battle_counttargeted(target, src, battle_config.agi_penaly_count_lv);  //対象の数を算出
+        target_count += battle_counttargeted(target, src,
+                ATK(battle_config.agi_penaly_count_lv));  //対象の数を算出
     if (battle_config.agi_penaly_type > 0)
     {
         if (target_count >= battle_config.agi_penaly_count)
@@ -2699,9 +2717,9 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         int dy = abs(src->y - target->y);
         int malus_dist;
 
-        target_distance = MAX(dx, dy);
+        target_distance = max(dx, dy);
         malus_dist =
-            MAX(0, target_distance - (skill_power(sd, AC_OWL) / 75));
+            max(0, target_distance - (skill_power(sd, AC_OWL) / 75));
         hitrate -= (malus_dist * (malus_dist + 1));
     }
 
@@ -2735,14 +2753,14 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 
     atkmin = atkmin_ = dex;     //最低ATKはDEXで初期化？
     sd->state.arrow_atk = 0;    //arrow_atk初期化
-    if (sd->equip_index[9] >= 0 && sd->inventory_data[sd->equip_index[9]])
+    if (sd->equip_index[EQUIP::WEAPON] >= 0 && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
         atkmin =
             atkmin * (80 +
-                      sd->inventory_data[sd->equip_index[9]]->wlv * 20) / 100;
-    if (sd->equip_index[8] >= 0 && sd->inventory_data[sd->equip_index[8]])
+                      sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->wlv * 20) / 100;
+    if (sd->equip_index[EQUIP::SHIELD] >= 0 && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
         atkmin_ =
             atkmin_ * (80 +
-                       sd->inventory_data[sd->equip_index[8]]->wlv * 20) /
+                       sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->wlv * 20) /
             100;
     if (sd->status.weapon == 11)
     {                           //武器が弓矢の場合
@@ -3468,7 +3486,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 int t_def;
                 target_count =
                     1 + battle_counttargeted(target, src,
-                                              battle_config.vit_penaly_count_lv);
+                            ATK(battle_config.vit_penaly_count_lv)); // FIXME
                 if (battle_config.vit_penaly_type > 0)
                 {
                     if (target_count >= battle_config.vit_penaly_count)
@@ -3592,11 +3610,11 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
     if (skill_num == CR_SHIELDBOOMERANG)
     {
-        if (sd->equip_index[8] >= 0)
+        if (sd->equip_index[EQUIP::SHIELD] >= 0)
         {
-            int index = sd->equip_index[8];
+            int index = sd->equip_index[EQUIP::SHIELD];
             if (sd->inventory_data[index]
-                && sd->inventory_data[index]->type == 5)
+                && sd->inventory_data[index]->type == ItemType::ARMOR)
             {
                 damage += sd->inventory_data[index]->weight / 10;
                 damage +=
@@ -3607,11 +3625,11 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
     if (skill_num == LK_SPIRALPIERCE)
     {                           /* スパイラルピアース */
-        if (sd->equip_index[9] >= 0)
+        if (sd->equip_index[EQUIP::WEAPON] >= 0)
         {                       //重量で追加ダメージらしいのでシールドブーメランを参考に追加
-            int index = sd->equip_index[9];
+            int index = sd->equip_index[EQUIP::WEAPON];
             if (sd->inventory_data[index]
-                && sd->inventory_data[index]->type == 4)
+                && sd->inventory_data[index]->type == ItemType::WEAPON)
             {
                 damage +=
                     (int)(double)(sd->inventory_data[index]->weight *
@@ -3787,9 +3805,9 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 break;
             }
         }
-        if (flag & BF_LONG)
+        if (bool(flag & BF_LONG))
             cardfix = cardfix * (100 - tsd->long_attack_def_rate) / 100;    //遠距離攻撃はダメージ減少(ホルンCとか)
-        if (flag & BF_SHORT)
+        if (bool(flag & BF_SHORT))
             cardfix = cardfix * (100 - tsd->near_attack_def_rate) / 100;    //近距離攻撃はダメージ減少(該当無し？)
         damage = damage * cardfix / 100;    //カード補正によるダメージ減少
         damage2 = damage2 * cardfix / 100;  //カード補正による左手ダメージ減少
@@ -3800,7 +3818,8 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     if (t_sc_data)
     {
         cardfix = 100;
-        if (t_sc_data[SC_DEFENDER].timer != -1 && flag & BF_LONG)   //ディフェンダー状態で遠距離攻撃
+        if (t_sc_data[SC_DEFENDER].timer != -1
+            && bool(flag & BF_LONG))   //ディフェンダー状態で遠距離攻撃
             cardfix = cardfix * (100 - t_sc_data[SC_DEFENDER].val2) / 100;  //ディフェンダーによる減衰
         if (cardfix != 100)
         {
@@ -4096,7 +4115,6 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
     int matk1, matk2, damage = 0, div_ = 1, blewcount =
         skill_get_blewcount(skill_num, skill_lv), rdamage = 0;
     struct Damage md;
-    int aflag;
     int normalmagic_flag = 1;
     int ele = 0, race = 7, t_ele = 0, t_race = 7, t_mode =
         0, cardfix, t_class, i;
@@ -4130,7 +4148,7 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
     if (target->type == BL_PC)
         tsd = (struct map_session_data *) target;
 
-    aflag = BF_MAGIC | BF_LONG | BF_SKILL;
+    BF aflag = BF_MAGIC | BF_LONG | BF_SKILL;
 
     if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
     {
@@ -4432,7 +4450,7 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
     struct Damage md;
     int damagefix = 1;
 
-    int aflag = BF_MISC | BF_LONG | BF_SKILL;
+    BF aflag = BF_MISC | BF_LONG | BF_SKILL;
 
     //return前の処理があるので情報出力部のみ変更
     if (bl == NULL || target == NULL)
@@ -4574,7 +4592,7 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
  * ダメージ計算一括処理用
  *------------------------------------------
  */
-struct Damage battle_calc_attack(int attack_type,
+struct Damage battle_calc_attack(BF attack_type,
                                   struct block_list *bl,
                                   struct block_list *target, SkillID skill_num,
                                   int skill_lv, int flag)
@@ -4596,7 +4614,7 @@ struct Damage battle_calc_attack(int attack_type,
         default:
             if (battle_config.error_log)
                 printf("battle_calc_attack: unknwon attack type ! %d\n",
-                        attack_type);
+                        uint16_t(attack_type));
             break;
     }
     return d;
@@ -4606,8 +4624,8 @@ struct Damage battle_calc_attack(int attack_type,
  * 通常攻撃処理まとめ
  *------------------------------------------
  */
-int battle_weapon_attack(struct block_list *src, struct block_list *target,
-                          unsigned int tick, int flag)
+ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
+                          unsigned int tick, BCT flag)
 {
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(src);
@@ -4616,30 +4634,30 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
     int damage, rdamage = 0;
     struct Damage wd;
 
-    nullpo_ret(src);
-    nullpo_ret(target);
+    nullpo_retr(ATK::ZERO, src);
+    nullpo_retr(ATK::ZERO, target);
 
     if (src->type == BL_PC)
         sd = (struct map_session_data *) src;
 
     if (src->prev == NULL || target->prev == NULL)
-        return 0;
+        return ATK::ZERO;
     if (src->type == BL_PC && pc_isdead(sd))
-        return 0;
+        return ATK::ZERO;
     if (target->type == BL_PC
         && pc_isdead((struct map_session_data *) target))
-        return 0;
+        return ATK::ZERO;
 
     Opt1 *opt1 = battle_get_opt1(src);
     if (opt1 != NULL && bool(*opt1))
     {
         battle_stopattack(src);
-        return 0;
+        return ATK::ZERO;
     }
     if (sc_data && sc_data[SC_BLADESTOP].timer != -1)
     {
         battle_stopattack(src);
-        return 0;
+        return ATK::ZERO;
     }
 
     race = battle_get_race(target);
@@ -4650,18 +4668,18 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
         // 攻撃対象となりうるので攻撃
         if (sd && sd->status.weapon == 11)
         {
-            if (sd->equip_index[10] >= 0)
+            if (sd->equip_index[EQUIP::ARROW] >= 0)
             {
                 if (battle_config.arrow_decrement)
-                    pc_delitem(sd, sd->equip_index[10], 1, 0);
+                    pc_delitem(sd, sd->equip_index[EQUIP::ARROW], 1, 0);
             }
             else
             {
                 clif_arrow_fail(sd, 0);
-                return 0;
+                return ATK::ZERO;
             }
         }
-        if (flag & 0x8000)
+        if (flag & BCT_mid_x80)
         {
             if (sd && battle_config.pc_attack_direction_change)
                 sd->dir = sd->head_dir =
@@ -4671,7 +4689,7 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
                 ((struct mob_data *) src)->dir =
                     map_calc_dir(src, target->x, target->y);
             wd = battle_calc_weapon_attack(src, target, KN_AUTOCOUNTER,
-                                            flag & 0xff, 0);
+                    flag.lo, 0);
         }
         else
             wd = battle_calc_weapon_attack(src, target, SkillID::ZERO, 0, 0);
@@ -4696,7 +4714,7 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
 
         if ((damage = wd.damage + wd.damage2) > 0 && src != target)
         {
-            if (wd.flag & BF_SHORT)
+            if (bool(wd.flag & BF_SHORT))
             {
                 if (target->type == BL_PC)
                 {
@@ -4718,7 +4736,7 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
                         rdamage = 1;
                 }
             }
-            else if (wd.flag & BF_LONG)
+            else if (bool(wd.flag & BF_LONG))
             {
                 if (target->type == BL_PC)
                 {
@@ -4766,15 +4784,15 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
                              0, 1, 0, 0);
         }
         if (sd && sd->splash_range > 0 && (wd.damage > 0 || wd.damage2 > 0))
-            skill_castend_damage_id(src, target, SkillID::ZERO, -1, tick, 0);
+            skill_castend_damage_id(src, target, SkillID::ZERO, -1, tick, BCT_ZERO);
         map_freeblock_lock();
 
         if (src->type == BL_PC)
         {
-            int weapon_index = sd->equip_index[9];
+            int weapon_index = sd->equip_index[EQUIP::WEAPON];
             int weapon = 0;
             if (sd->inventory_data[weapon_index]
-                && sd->status.inventory[weapon_index].equip & 0x2)
+                && bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
             MAP_LOG("PC%d %d:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
@@ -4982,7 +5000,8 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
                         pc_heal(sd, 0, -sp);
                 }
             }
-            if (wd.flag & BF_WEAPON && src != target
+            if (bool(wd.flag & BF_WEAPON)
+                && src != target
                 && (wd.damage > 0 || wd.damage2 > 0))
             {
                 int hp = 0, sp = 0;
@@ -5018,8 +5037,8 @@ int battle_weapon_attack(struct block_list *src, struct block_list *target,
         {
             if (t_sc_data[SC_AUTOCOUNTER].val3 == src->id)
                 battle_weapon_attack(target, src, tick,
-                                      0x8000 |
-                                      t_sc_data[SC_AUTOCOUNTER].val1);
+                                      BCT_mid_x80 |
+                                      t_sc_data[SC_AUTOCOUNTER].val1_bct());
             skill_status_change_end(target, SC_AUTOCOUNTER, -1);
         }
         if (t_sc_data && t_sc_data[SC_BLADESTOP_WAIT].timer != -1)
@@ -5071,7 +5090,7 @@ int battle_check_undead(int race, int element)
  *------------------------------------------
  */
 int battle_check_target(struct block_list *src, struct block_list *target,
-                         int flag)
+        BCT flag)
 {
     int s_p, t_p;
     struct block_list *ss = src;
@@ -5079,15 +5098,15 @@ int battle_check_target(struct block_list *src, struct block_list *target,
     nullpo_ret(src);
     nullpo_ret(target);
 
-    if (flag & 0x40000)
+    if (flag & BCT_ENEMY)
     {                           // 反転フラグ
-        int ret = battle_check_target(src, target, flag & 0x30000);
+        int ret = battle_check_target(src, target, flag & (BCT_PARTY | BCT_ALL));
         if (ret != -1)
             return !ret;
         return -1;
     }
 
-    if (flag & 0x20000)
+    if (flag & BCT_ALL)
     {
         if (target->type == BL_MOB || target->type == BL_PC)
             return 1;
@@ -5110,7 +5129,6 @@ int battle_check_target(struct block_list *src, struct block_list *target,
             case 0x8f:
             case 0x98:
                 return 0;
-                break;
         }
     }
 
@@ -5187,7 +5205,7 @@ int battle_check_target(struct block_list *src, struct block_list *target,
 
     t_p = battle_get_party_id(target);
 
-    if (flag & 0x10000)
+    if (flag & BCT_PARTY)
     {
         if (s_p && t_p && s_p == t_p)   // 同じパーティなら肯定（味方）
             return 1;
@@ -5377,11 +5395,11 @@ int battle_config_read(const char *cfgName)
         battle_config.agi_penaly_type = 0;
         battle_config.agi_penaly_count = 3;
         battle_config.agi_penaly_num = 0;
-        battle_config.agi_penaly_count_lv = ATK_FLEE;
+        battle_config.agi_penaly_count_lv = int(ATK_FLEE); // FIXME
         battle_config.vit_penaly_type = 0;
         battle_config.vit_penaly_count = 3;
         battle_config.vit_penaly_num = 0;
-        battle_config.vit_penaly_count_lv = ATK_DEF;
+        battle_config.vit_penaly_count_lv = int(ATK_DEF); // FIXME
         battle_config.player_defense_type = 0;
         battle_config.monster_defense_type = 0;
         battle_config.magic_defense_type = 0;

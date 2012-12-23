@@ -12,19 +12,19 @@
 #define MAX_SKILL_ARROW_DB       150
 #define MAX_SKILL_ABRA_DB        350
 
-#define SKILL_POOL_FLAG         0x1 // is a pool skill
-#define SKILL_POOL_ACTIVE       0x2 // is an active pool skill
-#define SKILL_POOL_ACTIVATED    0x4 // pool skill has been activated (used for clif)
-
 // スキルデータベース
 struct skill_db
 {
-    int range[MAX_SKILL_LEVEL], hit, inf, pl, nk, max, stat, poolflags, max_raise; // `max' is the global max, `max_raise' is the maximum attainable via skill-ups
+    int range[MAX_SKILL_LEVEL], hit, inf, pl, nk, max;
+    SP stat;
+    SkillFlags poolflags;
+    int max_raise; // `max' is the global max, `max_raise' is the maximum attainable via skill-ups
     int num[MAX_SKILL_LEVEL];
     int cast[MAX_SKILL_LEVEL], delay[MAX_SKILL_LEVEL];
     int upkeep_time[MAX_SKILL_LEVEL], upkeep_time2[MAX_SKILL_LEVEL];
     int castcancel, cast_def_rate;
-    int inf2, maxcount, skill_type;
+    int inf2, maxcount;
+    BF skill_type;
     int blewcount[MAX_SKILL_LEVEL];
     int hp[MAX_SKILL_LEVEL], sp[MAX_SKILL_LEVEL], mhp[MAX_SKILL_LEVEL],
         hp_rate[MAX_SKILL_LEVEL], sp_rate[MAX_SKILL_LEVEL],
@@ -90,7 +90,7 @@ int skill_cleartimerskill(struct block_list *src);
 
 // 追加効果
 int skill_additional_effect(struct block_list *src, struct block_list *bl,
-                              SkillID skillid, int skilllv, int attack_type,
+                              SkillID skillid, int skilllv, BF attack_type,
                               unsigned int tick);
 
 int skill_delunit(struct skill_unit *unit);
@@ -136,13 +136,14 @@ int skill_status_change_clear(struct block_list *bl, int type);
 
 // mobスキルのため
 int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
-                                SkillID skillid, int skilllv, unsigned int tick,
-                                int flag);
+        SkillID skillid, int skilllv, unsigned int tick,
+        BCT flag);
 int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
-                              SkillID skillid, int skilllv, unsigned int tick,
-                              int flag);
-int skill_castend_pos2(struct block_list *src, int x, int y, SkillID skillid,
-                         int skilllv, unsigned int tick, int flag);
+        SkillID skillid, int skilllv, unsigned int tick,
+        BCT flag);
+int skill_castend_pos2(struct block_list *src, int x, int y,
+        SkillID skillid, int skilllv, unsigned int tick,
+        BCT flag);
 
 int skill_update_heal_animation(struct map_session_data *sd); // [Fate]  Check whether the healing flag must be updated, do so if needed
 
@@ -167,7 +168,7 @@ int skill_pool_max(struct map_session_data *sd);  // Max. number of pool skills
 // Skill into skill pool.  Return is zero iff okay.
 int skill_pool_activate(struct map_session_data *sd, SkillID skill);
 // Skill into skill pool.  Return is zero when activated.
-int skill_pool_is_activated(struct map_session_data *sd, SkillID skill);
+bool skill_pool_is_activated(struct map_session_data *sd, SkillID skill);
 // Skill out of skill pool.  Return is zero iff okay.
 int skill_pool_deactivate(struct map_session_data *sd, SkillID skill);
 // Yield configurable skill name

@@ -30,12 +30,17 @@ int storage_tostr(char *str, struct storage *p)
         if ((p->storage_[i].nameid) && (p->storage_[i].amount))
         {
             str_p += sprintf(str_p, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
-                              p->storage_[i].id, p->storage_[i].nameid,
-                              p->storage_[i].amount, p->storage_[i].equip,
-                              p->storage_[i].identify, p->storage_[i].refine,
+                              p->storage_[i].id,
+                              p->storage_[i].nameid,
+                              p->storage_[i].amount,
+                              uint16_t(p->storage_[i].equip),
+                              p->storage_[i].identify,
+                              p->storage_[i].refine,
                               p->storage_[i].attribute,
-                              p->storage_[i].card[0], p->storage_[i].card[1],
-                              p->storage_[i].card[2], p->storage_[i].card[3]);
+                              p->storage_[i].card[0],
+                              p->storage_[i].card[1],
+                              p->storage_[i].card[2],
+                              p->storage_[i].card[3]);
             f++;
         }
 
@@ -73,7 +78,7 @@ int storage_fromstr(char *str, struct storage *p)
             p->storage_[i].id = tmp_int[0];
             p->storage_[i].nameid = tmp_int[1];
             p->storage_[i].amount = tmp_int[2];
-            p->storage_[i].equip = tmp_int[3];
+            p->storage_[i].equip = EPOS(tmp_int[3] );
             p->storage_[i].identify = tmp_int[4];
             p->storage_[i].refine = tmp_int[5];
             p->storage_[i].attribute = tmp_int[6];
@@ -95,7 +100,7 @@ int storage_fromstr(char *str, struct storage *p)
             p->storage_[i].id = tmp_int[0];
             p->storage_[i].nameid = tmp_int[1];
             p->storage_[i].amount = tmp_int[2];
-            p->storage_[i].equip = tmp_int[3];
+            p->storage_[i].equip = EPOS(tmp_int[3]);
             p->storage_[i].identify = tmp_int[4];
             p->storage_[i].refine = tmp_int[5];
             p->storage_[i].attribute = tmp_int[6];

@@ -51,12 +51,35 @@ constexpr SkillID MAX_SKILL = SkillID(474); // not 450
 
 # define CHAR_CONF_NAME  "conf/char_athena.conf"
 
+namespace e
+{
+enum class EPOS : uint16_t
+{
+    ZERO    = 0x0000,
+
+    LEGS    = 0x0001,
+    WEAPON  = 0x0002,
+    GLOVES  = 0x0004,
+    CAPE    = 0x0008,
+    MISC1   = 0x0010,
+    SHIELD  = 0x0020,
+    SHOES   = 0x0040,
+    MISC2   = 0x0080,
+    HAT     = 0x0100,
+    TORSO   = 0x0200,
+
+    ARROW   = 0x8000,
+};
+ENUM_BITWISE_OPERATORS(EPOS)
+}
+using e::EPOS;
+
 struct item
 {
     int id;
     short nameid;
     short amount;
-    unsigned short equip;
+    EPOS equip;
     char identify;
     char refine;
     char attribute;
@@ -70,10 +93,17 @@ struct point
     short x, y;
 };
 
+namespace e
+{
+enum class SkillFlags : uint16_t;
+}
+using e::SkillFlags;
+
 struct skill
 {
     SkillID id;
-    unsigned short lv, flags;
+    unsigned short lv;
+    SkillFlags flags;
 };
 
 struct global_reg
@@ -83,7 +113,33 @@ struct global_reg
 };
 
 // Option and Opt1..3 in map.hpp
+namespace e
+{
 enum class Option : uint16_t;
+}
+using e::Option;
+
+enum class ATTR
+{
+    STR = 0,
+    AGI = 1,
+    VIT = 2,
+    INT = 3,
+    DEX = 4,
+    LUK = 5,
+
+    COUNT = 6,
+};
+
+constexpr ATTR ATTRs[6] =
+{
+    ATTR::STR,
+    ATTR::AGI,
+    ATTR::VIT,
+    ATTR::INT,
+    ATTR::DEX,
+    ATTR::LUK,
+};
 
 struct mmo_charstatus
 {
@@ -106,7 +162,7 @@ struct mmo_charstatus
 
     char name[24];
     unsigned char base_level, job_level;
-    short str, agi, vit, int_, dex, luk;
+    earray<short, ATTR, ATTR::COUNT> attrs;
     unsigned char char_num, sex;
 
     unsigned long mapip;

@@ -13,16 +13,10 @@
 #include "../common/mmo.hpp"
 #include "../common/timer.hpp"
 
+#include "battle.t.hpp"
 #include "mob.t.hpp"
 #include "script.hpp"   // change to script.t.hpp
 #include "skill.t.hpp"
-
-#ifndef MAX
-#  define MAX(x,y) (((x)>(y)) ? (x) : (y))
-#endif
-#ifndef MIN
-#  define MIN(x,y) (((x)<(y)) ? (x) : (y))
-#endif
 
 #define MAX_PC_CLASS (1+6+6+1+6+1+1+1+1+4023)
 #define PC_CLASS_BASE 0
@@ -57,8 +51,8 @@ struct block_list
     struct block_list *next, *prev;
     int id;
     short m, x, y;
-    unsigned char type;
-    unsigned char subtype;
+    BL type;
+    NpcSubtype subtype;
 };
 
 struct walkpath_data
@@ -81,6 +75,7 @@ struct status_change
     int timer;
     int val1, val2, val3, val4;
     SkillID val1_sk() { return SkillID(val1); }
+    BCT& val1_bct() { return reinterpret_cast<BCT&>(val1); }
     int spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
 
@@ -102,7 +97,7 @@ struct skill_unit_group
     int src_id;
     int party_id;
     int map, range;
-    int target_flag;
+    BCT target_flag;
     unsigned int tick;
     int limit, interval;
 
@@ -129,8 +124,33 @@ struct skill_timerskill
     short x, y;
     SkillID skill_id;
     short skill_lv;
-    int type;
-    int flag;
+    union sktst
+    {
+        int32_t n;
+        struct { uint16_t x, y; } xy;
+        BF bf;
+
+        static sktst from_n(int32_t n)
+        {
+            sktst r;
+            r.n = n;
+            return r;
+        }
+        static sktst from_xy(uint16_t x, uint16_t y)
+        {
+            sktst r;
+            r.xy.x = x;
+            r.xy.y = y;
+            return r;
+        }
+        static sktst from_bf(BF bf)
+        {
+            sktst r;
+            r.bf = bf;
+            return r;
+        }
+    } type;
+    BCT flag;
 };
 
 struct npc_data;
@@ -161,7 +181,7 @@ struct map_session_data
         unsigned lr_flag:2;
         unsigned connect_new:1;
         unsigned arrow_atk:1;
-        unsigned attack_type:3;
+        BF attack_type;//:3;
         unsigned skill_flag:1;
         unsigned gangsterparadise:1;
         unsigned produce_flag:1;
@@ -194,7 +214,7 @@ struct map_session_data
     unsigned char tmw_version;  // tmw client version
     struct mmo_charstatus status;
     struct item_data *inventory_data[MAX_INVENTORY];
-    short equip_index[11];
+    earray<short, EQUIP, EQUIP::COUNT> equip_index;
     int weight, max_weight;
     int cart_weight, cart_max_weight, cart_num, cart_max_num;
     char mapname[24];
@@ -225,7 +245,7 @@ struct map_session_data
 
     int attacktimer;
     int attacktarget;
-    short attacktarget_lv;
+    ATK attacktarget_lv;
     unsigned int attackabletime;
 
     int followtimer;           // [MouseJstr]
@@ -281,7 +301,7 @@ struct map_session_data
     short view_class;
     short weapontype1, weapontype2;
     short disguiseflag, disguise;   // [Valaris]
-    int paramb[6], paramc[6], parame[6], paramcard[6];
+    earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2, aspd, amotion, dmotion;
     int watk, watk2, atkmods[3];
     int def, def2, mdef, mdef2, critical, matk1, matk2;
@@ -461,20 +481,6 @@ struct npc_data
 
 #define MOB_SENSIBLE_MASK 0xf000    // fate: mob mode flags that I actually understand
 
-enum mob_stat
-{
-    MOB_LV,
-    MOB_MAX_HP,
-    MOB_STR, MOB_AGI, MOB_VIT, MOB_INT, MOB_DEX, MOB_LUK,
-    MOB_ATK1, MOB_ATK2,         // low and high attacks
-    MOB_ADELAY,                 // attack delay
-    MOB_DEF, MOB_MDEF,
-    MOB_SPEED,
-    // These must come last:
-    MOB_XP_BONUS,               /* [Fate] Encoded as base to 1024: 1024 means 100% */
-    MOB_LAST,
-};
-
 #define MOB_XP_BONUS_BASE  1024
 #define MOB_XP_BONUS_SHIFT 10
 
@@ -488,9 +494,9 @@ struct mob_data
     int spawndelay1, spawndelay2;
     struct
     {
-        unsigned state:8;
+        MS state;
         MSS skillstate;
-        unsigned targettype:1;
+        unsigned attackable:1;
         unsigned steal_flag:1;
         unsigned steal_coin_flag:1;
         unsigned skillcastcancel:1;
@@ -503,7 +509,7 @@ struct mob_data
     short to_x, to_y;
     int hp;
     int target_id, attacked_id;
-    short target_lv;
+    ATK target_lv;
     struct walkpath_data walkpath;
     unsigned int next_walktime;
     unsigned int attackabletime;
@@ -541,18 +547,10 @@ struct mob_data
     struct skill_unit_group skillunit[MAX_MOBSKILLUNITGROUP];
     struct skill_unit_group_tickset skillunittick[MAX_SKILLUNITGROUPTICKSET];
     char npc_event[50];
-    unsigned short stats[MOB_LAST]; // [Fate] mob-specific stats
+    // [Fate] mob-specific stats
+    earray<unsigned short, mob_stat, mob_stat::LAST> stats;
     short size;
 };
-
-enum
-{ MS_IDLE, MS_WALK, MS_ATTACK, MS_DEAD, MS_DELAY };
-
-enum
-{ NONE_ATTACKABLE, ATTACKABLE };
-
-enum
-{ ATK_LUCKY = 1, ATK_FLEE, ATK_DEF };   // 囲まれペナルティ計算用
 
 struct map_data
 {
@@ -619,7 +617,7 @@ extern int map_num;
 inline
 uint8_t read_gatp(struct map_data *m, int x, int y)
 {
-    return (m->gat[x + y * m->xs]);
+    return m->gat[x + y * m->xs];
 }
 inline
 uint8_t read_gat(int m, int x, int y)
@@ -637,78 +635,12 @@ struct flooritem_data
     struct item item_data;
 };
 
-enum
-{
-    SP_SPEED, SP_BASEEXP, SP_JOBEXP, SP_KARMA, _sp_manner, SP_HP, SP_MAXHP, SP_SP,   // 0-7
-    SP_MAXSP, SP_STATUSPOINT, SP_0a, SP_BASELEVEL, SP_SKILLPOINT, SP_STR, SP_AGI, SP_VIT,   // 8-15
-    SP_INT, SP_DEX, SP_LUK, SP_CLASS, SP_ZENY, SP_SEX, SP_NEXTBASEEXP, SP_NEXTJOBEXP,   // 16-23
-    SP_WEIGHT, SP_MAXWEIGHT, SP_1a, SP_1b, SP_1c, SP_1d, SP_1e, SP_1f,  // 24-31
-    SP_USTR, SP_UAGI, SP_UVIT, SP_UINT, SP_UDEX, SP_ULUK, SP_26, SP_27, // 32-39
-    SP_28, SP_ATK1, SP_ATK2, SP_MATK1, SP_MATK2, SP_DEF1, SP_DEF2, SP_MDEF1,    // 40-47
-    SP_MDEF2, SP_HIT, SP_FLEE1, SP_FLEE2, SP_CRITICAL, SP_ASPD, SP_36, SP_JOBLEVEL, // 48-55
-    SP_UPPER, SP_PARTNER, SP_CART, SP_FAME, SP_UNBREAKABLE, //56-58
-    SP_DEAF = 70,
-    SP_GM = 500,
-
-    // original 1000-
-    SP_ATTACKRANGE = 1000, SP_ATKELE, SP_DEFELE,    // 1000-1002
-    SP_CASTRATE, SP_MAXHPRATE, SP_MAXSPRATE, SP_SPRATE, // 1003-1006
-    SP_ADDELE, SP_ADDRACE, SP_ADDSIZE, SP_SUBELE, SP_SUBRACE,   // 1007-1011
-    SP_ADDEFF, SP_RESEFF,       // 1012-1013
-    SP_BASE_ATK, SP_ASPD_RATE, SP_HP_RECOV_RATE, SP_SP_RECOV_RATE, SP_SPEED_RATE,   // 1014-1018
-    SP_CRITICAL_DEF, SP_NEAR_ATK_DEF, SP_LONG_ATK_DEF,  // 1019-1021
-    SP_DOUBLE_RATE, SP_DOUBLE_ADD_RATE, SP_MATK, SP_MATK_RATE,  // 1022-1025
-    SP_IGNORE_DEF_ELE, SP_IGNORE_DEF_RACE,  // 1026-1027
-    SP_ATK_RATE, SP_SPEED_ADDRATE, SP_ASPD_ADDRATE, // 1028-1030
-    SP_MAGIC_ATK_DEF, SP_MISC_ATK_DEF,  // 1031-1032
-    SP_IGNORE_MDEF_ELE, SP_IGNORE_MDEF_RACE,    // 1033-1034
-    SP_MAGIC_ADDELE, SP_MAGIC_ADDRACE, SP_MAGIC_SUBRACE,    // 1035-1037
-    SP_PERFECT_HIT_RATE, SP_PERFECT_HIT_ADD_RATE, SP_CRITICAL_RATE, SP_GET_ZENY_NUM, SP_ADD_GET_ZENY_NUM,   // 1038-1042
-    SP_ADD_DAMAGE_CLASS, SP_ADD_MAGIC_DAMAGE_CLASS, SP_ADD_DEF_CLASS, SP_ADD_MDEF_CLASS,    // 1043-1046
-    SP_ADD_MONSTER_DROP_ITEM, SP_DEF_RATIO_ATK_ELE, SP_DEF_RATIO_ATK_RACE, SP_ADD_SPEED,    // 1047-1050
-    SP_HIT_RATE, SP_FLEE_RATE, SP_FLEE2_RATE, SP_DEF_RATE, SP_DEF2_RATE, SP_MDEF_RATE, SP_MDEF2_RATE,   // 1051-1057
-    SP_SPLASH_RANGE, SP_SPLASH_ADD_RANGE, SP_AUTOSPELL, SP_HP_DRAIN_RATE, SP_SP_DRAIN_RATE, // 1058-1062
-    SP_SHORT_WEAPON_DAMAGE_RETURN, SP_LONG_WEAPON_DAMAGE_RETURN, SP_WEAPON_COMA_ELE, SP_WEAPON_COMA_RACE,   // 1063-1066
-    SP_ADDEFF2, SP_BREAK_WEAPON_RATE, SP_BREAK_ARMOR_RATE, SP_ADD_STEAL_RATE,   // 1067-1070
-    SP_MAGIC_DAMAGE_RETURN, SP_RANDOM_ATTACK_INCREASE, SP_ALL_STATS, SP_AGI_VIT, SP_AGI_DEX_STR, SP_PERFECT_HIDE,   // 1071-1077
-    SP_DISGUISE,                // 1077
-
-    SP_RESTART_FULL_RECORVER = 2000, SP_NO_CASTCANCEL, SP_NO_SIZEFIX, SP_NO_MAGIC_DAMAGE, SP_NO_WEAPON_DAMAGE, SP_NO_GEMSTONE,  // 2000-2005
-    SP_NO_CASTCANCEL2, SP_INFINITE_ENDURE, SP_UNBREAKABLE_WEAPON, SP_UNBREAKABLE_ARMOR  // 2006-2009
-};
-
-enum
-{
-    LOOK_BASE,
-    LOOK_HAIR,
-    LOOK_WEAPON,
-    LOOK_HEAD_BOTTOM,
-    LOOK_HEAD_TOP,
-    LOOK_HEAD_MID,
-    LOOK_HAIR_COLOR,
-    LOOK_CLOTHES_COLOR,
-    LOOK_SHIELD,
-    LOOK_SHOES,                 /* 9 */
-    LOOK_GLOVES,
-    LOOK_CAPE,
-    LOOK_MISC1,
-    LOOK_MISC2,
-};
-
-enum
-{
-    EQUIP_SHIELD = 8,
-    EQUIP_WEAPON = 9
-};
-
-#define LOOK_LAST LOOK_MISC2
-
 struct chat_data
 {
     struct block_list bl;
 
     char pass[8];      /* password */
-    char title[61];    /* room title MAX 60 */
+    char title[61];    /* room title max 60 */
     unsigned char limit;        /* join limit */
     unsigned char trigger;
     unsigned char users;        /* current users */
@@ -743,25 +675,25 @@ int map_delblock(struct block_list *);
 void map_foreachinarea(std::function<void(struct block_list *)>,
         int,
         int, int, int, int,
-        int);
+        BL);
 // -- moonsoul (added map_foreachincell)
 void map_foreachincell(std::function<void(struct block_list *)>,
         int,
         int, int,
-        int);
+        BL);
 void map_foreachinmovearea(std::function<void(struct block_list *)>,
         int,
         int, int, int, int,
         int, int,
-        int);
+        BL);
 //block関連に追加
 int map_count_oncell(int m, int x, int y);
 // 一時的object関連
 int map_addobject(struct block_list *);
-int map_delobject(int, int type);
-int map_delobjectnofree(int id, int type);
+int map_delobject(int, BL type);
+int map_delobjectnofree(int id, BL type);
 void map_foreachobject(std::function<void(struct block_list *)>,
-        int);
+        BL);
 //
 int map_quit(struct map_session_data *);
 // npc

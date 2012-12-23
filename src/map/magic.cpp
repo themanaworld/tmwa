@@ -89,7 +89,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
             spell_create_env(&magic_conf, spell, caster, power, parameter);
         effect_set_t *effects;
 
-        if ((spell->flags & SPELL_FLAG_NONMAGIC) || (power >= 1))
+        if (bool(spell->flags & SPELL_FLAG_NONMAGIC) || (power >= 1))
             effects = spell_trigger(spell, caster, env, &near_miss);
         else
             effects = NULL;
@@ -111,7 +111,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
             spell_bind(caster, invocation);
             spell_execute(invocation);
 
-            return (spell->flags & SPELL_FLAG_SILENT) ? -1 : 1;
+            return bool(spell->flags & SPELL_FLAG_SILENT) ? -1 : 1;
         }
         else
             magic_free_env(env);

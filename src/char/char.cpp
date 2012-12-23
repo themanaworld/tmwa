@@ -222,7 +222,9 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
     }
 
     str_p += sprintf(str_p, "%d\t%d,%d\t%s\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d,%d\t%d,%d,%d,%d,%d,%d\t%d,%d" "\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d\t%d,%d,%d,%d,%d" "\t%s,%d,%d\t%s,%d,%d,%d\t", p->char_id, p->account_id, p->char_num, p->name,  //
-                      p->pc_class, p->base_level, p->job_level, p->base_exp, p->job_exp, p->zeny, p->hp, p->max_hp, p->sp, p->max_sp, p->str, p->agi, p->vit, p->int_, p->dex, p->luk, p->status_point, p->skill_point, uint16_t(p->option), p->karma, p->manner,    //
+                      p->pc_class, p->base_level, p->job_level, p->base_exp, p->job_exp, p->zeny, p->hp, p->max_hp, p->sp, p->max_sp,
+                      p->attrs[ATTR::STR], p->attrs[ATTR::AGI], p->attrs[ATTR::VIT], p->attrs[ATTR::INT], p->attrs[ATTR::DEX], p->attrs[ATTR::LUK],
+                      p->status_point, p->skill_point, uint16_t(p->option), p->karma, p->manner,    //
                       p->party_id, 0/*guild_id*/, 0, p->hair, p->hair_color, p->clothes_color, p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom, p->last_point.map, p->last_point.x, p->last_point.y,   //
                       p->save_point.map, p->save_point.x, p->save_point.y,
                       p->partner_id);
@@ -239,8 +241,10 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         if (p->inventory[i].nameid)
         {
             str_p += sprintf(str_p, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
-                              p->inventory[i].id, p->inventory[i].nameid,
-                              p->inventory[i].amount, p->inventory[i].equip,
+                              p->inventory[i].id,
+                              p->inventory[i].nameid,
+                              p->inventory[i].amount,
+                              uint16_t(p->inventory[i].equip),
                               p->inventory[i].identify,
                               p->inventory[i].refine,
                               p->inventory[i].attribute,
@@ -256,12 +260,18 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         if (p->cart[i].nameid)
         {
             str_p += sprintf(str_p, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
-                              p->cart[i].id, p->cart[i].nameid,
-                              p->cart[i].amount, p->cart[i].equip,
-                              p->cart[i].identify, p->cart[i].refine,
-                              p->cart[i].attribute, p->cart[i].card[0],
-                              p->cart[i].card[1], p->cart[i].card[2],
-                              p->cart[i].card[3], p->cart[i].broken);
+                              p->cart[i].id,
+                              p->cart[i].nameid,
+                              p->cart[i].amount,
+                              uint16_t(p->cart[i].equip),
+                              p->cart[i].identify,
+                              p->cart[i].refine,
+                              p->cart[i].attribute,
+                              p->cart[i].card[0],
+                              p->cart[i].card[1],
+                              p->cart[i].card[2],
+                              p->cart[i].card[3],
+                              p->cart[i].broken);
         }
     *(str_p++) = '\t';
 
@@ -271,7 +281,7 @@ int mmo_char_tostr(char *str, struct mmo_charstatus *p)
         {
             str_p +=
                 sprintf(str_p, "%d,%d ", uint16_t(p->skill[i].id),
-                         p->skill[i].lv | (p->skill[i].flags << 16));
+                         p->skill[i].lv | (uint16_t(p->skill[i].flags) << 16));
         }
     *(str_p++) = '\t';
 
@@ -352,12 +362,12 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p)
     p->max_hp = tmp_int[10];
     p->sp = tmp_int[11];
     p->max_sp = tmp_int[12];
-    p->str = tmp_int[13];
-    p->agi = tmp_int[14];
-    p->vit = tmp_int[15];
-    p->int_ = tmp_int[16];
-    p->dex = tmp_int[17];
-    p->luk = tmp_int[18];
+    p->attrs[ATTR::STR] = tmp_int[13];
+    p->attrs[ATTR::AGI] = tmp_int[14];
+    p->attrs[ATTR::VIT] = tmp_int[15];
+    p->attrs[ATTR::INT] = tmp_int[16];
+    p->attrs[ATTR::DEX] = tmp_int[17];
+    p->attrs[ATTR::LUK] = tmp_int[18];
     p->status_point = tmp_int[19];
     p->skill_point = tmp_int[20];
     p->option = Option(tmp_int[21]);
@@ -453,7 +463,7 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p)
         p->inventory[i].id = tmp_int[0];
         p->inventory[i].nameid = tmp_int[1];
         p->inventory[i].amount = tmp_int[2];
-        p->inventory[i].equip = tmp_int[3];
+        p->inventory[i].equip = EPOS(tmp_int[3]);
         p->inventory[i].identify = tmp_int[4];
         p->inventory[i].refine = tmp_int[5];
         p->inventory[i].attribute = tmp_int[6];
@@ -492,7 +502,7 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p)
         p->cart[i].id = tmp_int[0];
         p->cart[i].nameid = tmp_int[1];
         p->cart[i].amount = tmp_int[2];
-        p->cart[i].equip = tmp_int[3];
+        p->cart[i].equip = EPOS(tmp_int[3]);
         p->cart[i].identify = tmp_int[4];
         p->cart[i].refine = tmp_int[5];
         p->cart[i].attribute = tmp_int[6];
@@ -516,7 +526,7 @@ int mmo_char_fromstr(char *str, struct mmo_charstatus *p)
         SkillID skill_id = SkillID(tmp_int[0]);
         p->skill[skill_id].id = skill_id;
         p->skill[skill_id].lv = tmp_int[1] & 0xffff;
-        p->skill[skill_id].flags = ((tmp_int[1] >> 16) & 0xffff);
+        p->skill[skill_id].flags = SkillFlags(tmp_int[1] >> 16);
         next += len;
         if (str[next] == ' ')
             next++;
@@ -954,14 +964,14 @@ int make_new_char(int fd, unsigned char *dat)
     char_dat[i].base_exp = 0;
     char_dat[i].job_exp = 0;
     char_dat[i].zeny = start_zeny;
-    char_dat[i].str = dat[24];
-    char_dat[i].agi = dat[25];
-    char_dat[i].vit = dat[26];
-    char_dat[i].int_ = dat[27];
-    char_dat[i].dex = dat[28];
-    char_dat[i].luk = dat[29];
-    char_dat[i].max_hp = 40 * (100 + char_dat[i].vit) / 100;
-    char_dat[i].max_sp = 11 * (100 + char_dat[i].int_) / 100;
+    char_dat[i].attrs[ATTR::STR] = dat[24];
+    char_dat[i].attrs[ATTR::AGI] = dat[25];
+    char_dat[i].attrs[ATTR::VIT] = dat[26];
+    char_dat[i].attrs[ATTR::INT] = dat[27];
+    char_dat[i].attrs[ATTR::DEX] = dat[28];
+    char_dat[i].attrs[ATTR::LUK] = dat[29];
+    char_dat[i].max_hp = 40 * (100 + char_dat[i].attrs[ATTR::VIT]) / 100;
+    char_dat[i].max_sp = 11 * (100 + char_dat[i].attrs[ATTR::INT]) / 100;
     char_dat[i].hp = char_dat[i].max_hp;
     char_dat[i].sp = char_dat[i].max_sp;
     char_dat[i].status_point = 0;
@@ -976,12 +986,12 @@ int make_new_char(int fd, unsigned char *dat)
     char_dat[i].clothes_color = 0;
     char_dat[i].inventory[0].nameid = start_weapon; // Knife
     char_dat[i].inventory[0].amount = 1;
-    char_dat[i].inventory[0].equip = 0x02;
+    char_dat[i].inventory[0].equip = EPOS::WEAPON;
     char_dat[i].inventory[0].identify = 1;
     char_dat[i].inventory[0].broken = 0;
     char_dat[i].inventory[1].nameid = start_armor;  // Cotton Shirt
     char_dat[i].inventory[1].amount = 1;
-    char_dat[i].inventory[1].equip = 0x10;
+    char_dat[i].inventory[1].equip = EPOS::TORSO;
     char_dat[i].inventory[1].identify = 1;
     char_dat[i].inventory[1].broken = 0;
     char_dat[i].weapon = 1;
@@ -1524,12 +1534,12 @@ int count_users(void)
 // [Fate] Find inventory item based on equipment mask, return view.  ID must match view ID (!).
 //----------------------------------------
 static
-int find_equip_view(struct mmo_charstatus *p, unsigned int equipmask)
+int find_equip_view(struct mmo_charstatus *p, EPOS equipmask)
 {
     int i;
     for (i = 0; i < MAX_INVENTORY; i++)
         if (p->inventory[i].nameid && p->inventory[i].amount
-            && p->inventory[i].equip & equipmask)
+            && bool(p->inventory[i].equip & equipmask))
             return p->inventory[i].nameid;
     return 0;
 }
@@ -1573,10 +1583,10 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOL(fd, j + 12) = p->job_exp;
         WFIFOL(fd, j + 16) = 0;    //p->job_level; // [Fate] We no longer reveal this to the player, as its meaning is weird.
 
-        WFIFOW(fd, j + 20) = find_equip_view(p, 0x0040);  // 9: shoes
-        WFIFOW(fd, j + 22) = find_equip_view(p, 0x0004);  // 10: gloves
-        WFIFOW(fd, j + 24) = find_equip_view(p, 0x0008);  // 11: cape
-        WFIFOW(fd, j + 26) = find_equip_view(p, 0x0010);  // 12: misc1
+        WFIFOW(fd, j + 20) = find_equip_view(p, EPOS::SHOES);
+        WFIFOW(fd, j + 22) = find_equip_view(p, EPOS::GLOVES);
+        WFIFOW(fd, j + 24) = find_equip_view(p, EPOS::CAPE);
+        WFIFOW(fd, j + 26) = find_equip_view(p, EPOS::TORSO);
         WFIFOL(fd, j + 28) = uint16_t(p->option);
 
         WFIFOL(fd, j + 32) = p->karma;
@@ -1599,17 +1609,17 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 66) = p->head_top;
         WFIFOW(fd, j + 68) = p->head_mid;
         WFIFOW(fd, j + 70) = p->hair_color;
-        WFIFOW(fd, j + 72) = find_equip_view(p, 0x0080);  // 13: misc2
+        WFIFOW(fd, j + 72) = find_equip_view(p, EPOS::MISC2);
 //      WFIFOW(fd,j+72) = p->clothes_color;
 
         memcpy(WFIFOP(fd, j + 74), p->name, 24);
 
-        WFIFOB(fd, j + 98) = (p->str > 255) ? 255 : p->str;
-        WFIFOB(fd, j + 99) = (p->agi > 255) ? 255 : p->agi;
-        WFIFOB(fd, j + 100) = (p->vit > 255) ? 255 : p->vit;
-        WFIFOB(fd, j + 101) = (p->int_ > 255) ? 255 : p->int_;
-        WFIFOB(fd, j + 102) = (p->dex > 255) ? 255 : p->dex;
-        WFIFOB(fd, j + 103) = (p->luk > 255) ? 255 : p->luk;
+        WFIFOB(fd, j + 98) = min(p->attrs[ATTR::STR], 255);
+        WFIFOB(fd, j + 99) = min(p->attrs[ATTR::AGI], 255);
+        WFIFOB(fd, j + 100) = min(p->attrs[ATTR::VIT], 255);
+        WFIFOB(fd, j + 101) = min(p->attrs[ATTR::INT], 255);
+        WFIFOB(fd, j + 102) = min(p->attrs[ATTR::DEX], 255);
+        WFIFOB(fd, j + 103) = min(p->attrs[ATTR::LUK], 255);
         WFIFOB(fd, j + 104) = p->char_num;
     }
 
@@ -1913,8 +1923,8 @@ void parse_tologin(int fd)
                                 for (j = 0; j < MAX_INVENTORY; j++)
                                 {
                                     if (char_dat[i].inventory[j].nameid
-                                        && char_dat[i].inventory[j].equip)
-                                        char_dat[i].inventory[j].equip = 0;
+                                        && bool(char_dat[i].inventory[j].equip))
+                                        char_dat[i].inventory[j].equip = EPOS::ZERO;
                                 }
                                 char_dat[i].weapon = 0;
                                 char_dat[i].shield = 0;
@@ -3183,18 +3193,12 @@ void parse_char(int fd)
 
                 memcpy(WFIFOP(fd, 2 + 74), char_dat[i].name, 24);
 
-                WFIFOB(fd, 2 + 98) =
-                    (char_dat[i].str > 255) ? 255 : char_dat[i].str;
-                WFIFOB(fd, 2 + 99) =
-                    (char_dat[i].agi > 255) ? 255 : char_dat[i].agi;
-                WFIFOB(fd, 2 + 100) =
-                    (char_dat[i].vit > 255) ? 255 : char_dat[i].vit;
-                WFIFOB(fd, 2 + 101) =
-                    (char_dat[i].int_ > 255) ? 255 : char_dat[i].int_;
-                WFIFOB(fd, 2 + 102) =
-                    (char_dat[i].dex > 255) ? 255 : char_dat[i].dex;
-                WFIFOB(fd, 2 + 103) =
-                    (char_dat[i].luk > 255) ? 255 : char_dat[i].luk;
+                WFIFOB(fd, 2 + 98) = min(char_dat[i].attrs[ATTR::STR], 255);
+                WFIFOB(fd, 2 + 99) = min(char_dat[i].attrs[ATTR::AGI], 255);
+                WFIFOB(fd, 2 + 100) = min(char_dat[i].attrs[ATTR::VIT], 255);
+                WFIFOB(fd, 2 + 101) = min(char_dat[i].attrs[ATTR::INT], 255);
+                WFIFOB(fd, 2 + 102) = min(char_dat[i].attrs[ATTR::DEX], 255);
+                WFIFOB(fd, 2 + 103) = min(char_dat[i].attrs[ATTR::LUK], 255);
                 WFIFOB(fd, 2 + 104) = char_dat[i].char_num;
 
                 WFIFOSET(fd, 108);

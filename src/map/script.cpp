@@ -1056,7 +1056,7 @@ void get_val(ScriptState *st, struct script_data *data)
                 if (sd)
                     data->u.num =
                         pc_readparam(sd,
-                                      str_data[data->u.num & 0x00ffffff].val);
+                                      SP(str_data[data->u.num & 0x00ffffff].val));
             }
             else if (prefix == '@' || prefix == 'l')
             {
@@ -1135,7 +1135,7 @@ void set_reg(struct map_session_data *sd, int num, const char *name, struct scri
         int val = vd.u.num;
         if (str_data[num & 0x00ffffff].type == ScriptCode::PARAM)
         {
-            pc_setparam(sd, str_data[num & 0x00ffffff].val, val);
+            pc_setparam(sd, SP(str_data[num & 0x00ffffff].val), val);
         }
         else if (prefix == '@' || prefix == 'l')
         {
@@ -1967,10 +1967,8 @@ void builtin_getelementofarray(ScriptState *st)
 static
 void builtin_setlook(ScriptState *st)
 {
-    int type, val;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+    LOOK type = LOOK(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    int val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
 
     pc_changelook(script_rid2sd(st), type, val);
 
@@ -2067,7 +2065,7 @@ void builtin_checkweight(ScriptState *st)
 static
 void builtin_getitem(ScriptState *st)
 {
-    int nameid, amount, flag = 0;
+    int nameid, amount;
     struct item item_tmp;
     struct map_session_data *sd;
     struct script_data *data;
@@ -2092,18 +2090,19 @@ void builtin_getitem(ScriptState *st)
     {
         return;               //return if amount <=0, skip the useles iteration
     }
+    bool flag1 = false;
     //Violet Box, Blue Box, etc - random item pick
     if (nameid < 0)
     {                           // ランダム
         nameid = itemdb_searchrandomid(-nameid);
-        flag = 1;
+        flag1 = 1;
     }
 
     if (nameid > 0)
     {
         memset(&item_tmp, 0, sizeof(item_tmp));
         item_tmp.nameid = nameid;
-        if (!flag)
+        if (!flag1)
             item_tmp.identify = 1;
         else
             item_tmp.identify = !itemdb_isequip3(nameid);
@@ -2111,7 +2110,8 @@ void builtin_getitem(ScriptState *st)
             sd = map_id2sd(conv_num(st, &(st->stack->stack_data[st->start + 5])));
         if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
             return;
-        if ((flag = pc_additem(sd, &item_tmp, amount)))
+        PickupFail flag;
+        if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
         {
             clif_additem(sd, 0, 0, flag);
             map_addflooritem(&item_tmp, amount, sd->bl.m, sd->bl.x, sd->bl.y,
@@ -2219,7 +2219,7 @@ void builtin_delitem(ScriptState *st)
     {
         if (sd->status.inventory[i].nameid <= 0
             || sd->inventory_data[i] == NULL
-            || sd->inventory_data[i]->type != 7
+            || sd->inventory_data[i]->type != ItemType::_7
             || sd->status.inventory[i].amount <= 0)
             continue;
     }
@@ -2252,10 +2252,9 @@ void builtin_delitem(ScriptState *st)
 static
 void builtin_readparam(ScriptState *st)
 {
-    int type;
     struct map_session_data *sd;
 
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    SP type = SP(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     if (st->end > st->start + 3)
         sd = map_nick2sd(conv_str(st, &(st->stack->stack_data[st->start + 3])));
     else
@@ -2360,18 +2359,20 @@ void builtin_strcharinfo(ScriptState *st)
 
 }
 
-unsigned int equip[10] =
+// indexed by the equip_* in db/const.txt
+// TODO change to use EQUIP
+EPOS equip[10] =
 {
-    0x0100,
-    0x0010,
-    0x0020,
-    0x0002,
-    0x0004,
-    0x0040,
-    0x0008,
-    0x0080,
-    0x0200,
-    0x0001,
+    EPOS::HAT,
+    EPOS::MISC1,
+    EPOS::SHIELD,
+    EPOS::WEAPON,
+    EPOS::GLOVES,
+    EPOS::SHOES,
+    EPOS::CAPE,
+    EPOS::MISC2,
+    EPOS::TORSO,
+    EPOS::LEGS,
 };
 
 /*==========================================
@@ -2446,12 +2447,9 @@ void builtin_getequipname(ScriptState *st)
 static
 void builtin_statusup2(ScriptState *st)
 {
-    int type, val;
-    struct map_session_data *sd;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    sd = script_rid2sd(st);
+    SP type = SP(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    int val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+    struct map_session_data *sd = script_rid2sd(st);
     pc_statusup2(sd, type, val);
 
 }
@@ -2463,12 +2461,9 @@ void builtin_statusup2(ScriptState *st)
 static
 void builtin_bonus(ScriptState *st)
 {
-    int type, val;
-    struct map_session_data *sd;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    sd = script_rid2sd(st);
+    SP type = SP(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    int val = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+    struct map_session_data *sd = script_rid2sd(st);
     pc_bonus(sd, type, val);
 
 }
@@ -2480,13 +2475,10 @@ void builtin_bonus(ScriptState *st)
 static
 void builtin_bonus2(ScriptState *st)
 {
-    int type, type2, val;
-    struct map_session_data *sd;
-
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    type2 = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-    val = conv_num(st, &(st->stack->stack_data[st->start + 4]));
-    sd = script_rid2sd(st);
+    SP type = SP(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    int type2 = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+    int val = conv_num(st, &(st->stack->stack_data[st->start + 4]));
+    struct map_session_data *sd = script_rid2sd(st);
     pc_bonus2(sd, type, type2, val);
 
 }
@@ -3818,7 +3810,7 @@ void builtin_getinventorylist(ScriptState *st)
             pc_setreg(sd, add_str("@inventorylist_amount") + (j << 24),
                        sd->status.inventory[i].amount);
             pc_setreg(sd, add_str("@inventorylist_equip") + (j << 24),
-                       sd->status.inventory[i].equip);
+                       uint16_t(sd->status.inventory[i].equip));
             pc_setreg(sd, add_str("@inventorylist_refine") + (j << 24),
                        sd->status.inventory[i].refine);
             pc_setreg(sd, add_str("@inventorylist_identify") + (j << 24),
@@ -3861,7 +3853,7 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
                        sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
-                       sd->status.skill[skill_id].flags);
+                       uint16_t(sd->status.skill[skill_id].flags));
             pc_setregstr(sd, add_str("@skilllist_name$") + (count << 24),
                           skill_name(skill_id));
             ++count;
@@ -3884,14 +3876,15 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     {
         SkillID skill_id = skill_pool_skills[i];
 
-        if (sd->status.skill[skill_id].id == skill_id && !(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
+        if (sd->status.skill[skill_id].id == skill_id
+            && !bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
                        uint16_t(sd->status.skill[skill_id].id));
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
                        sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
-                       sd->status.skill[skill_id].flags);
+                       uint16_t(sd->status.skill[skill_id].flags));
             pc_setregstr(sd, add_str("@skilllist_name$") + (count << 24),
                           skill_name(skill_id));
             ++count;
@@ -4021,14 +4014,13 @@ static
 void builtin_nude(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
-    int i;
 
     if (sd == NULL)
         return;
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
         if (sd->equip_index[i] >= 0)
-            pc_unequipitem(sd, sd->equip_index[i], i);
+            pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER);
     pc_calcstatus(sd, 0);
 
 }
@@ -4045,10 +4037,11 @@ void builtin_unequipbyid(ScriptState *st)
     if (sd == NULL)
         return;
 
-    int slot_id = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    EQUIP slot_id = EQUIP(conv_num(st, &(st->stack->stack_data[st->start + 2])));
 
-    if (slot_id >= 0 && slot_id < 11 && sd->equip_index[slot_id] >= 0)
-        pc_unequipitem(sd, sd->equip_index[slot_id], slot_id);
+    if (slot_id >= EQUIP() && slot_id < EQUIP::COUNT
+        && sd->equip_index[slot_id] >= 0)
+        pc_unequipitem(sd, sd->equip_index[slot_id], CalcStatus::LATER);
 
     pc_calcstatus(sd, 0);
 
@@ -4159,12 +4152,10 @@ void builtin_npctalk(ScriptState *st)
 static
 void builtin_getlook(ScriptState *st)
 {
-    int type, val;
-    struct map_session_data *sd;
-    sd = script_rid2sd(st);
+    struct map_session_data *sd = script_rid2sd(st);
 
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-    val = -1;
+    LOOK type = LOOK(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    int val = -1;
     switch (type)
     {
         case LOOK_HAIR:        //1

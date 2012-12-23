@@ -35,7 +35,7 @@ struct mob_db
     int base_exp, job_exp;
     int atk1, atk2;
     int def, mdef;
-    int str, agi, vit, int_, dex, luk;
+    earray<int, ATTR, ATTR::COUNT> attrs;
     int range, range2, range3;
     int size, race, element, mode;
     int speed, adelay, amotion, dmotion;
@@ -75,7 +75,7 @@ int mob_stop_walking(struct mob_data *md, int type);
 int mob_stopattack(struct mob_data *);
 int mob_spawn(int);
 int mob_damage(struct block_list *, struct mob_data *, int, int);
-int mob_changestate(struct mob_data *md, int state, int type);
+int mob_changestate(struct mob_data *md, MS state, int type);
 int mob_heal(struct mob_data *, int);
 int mob_get_viewclass(int);
 int mob_get_sex(int);
@@ -97,14 +97,14 @@ void mob_timer_delete(timer_id, tick_t, custom_id_t, custom_data_t);
 int mob_deleteslave(struct mob_data *md);
 
 int mob_counttargeted(struct mob_data *md, struct block_list *src,
-                        int target_lv);
+        ATK target_lv);
 
 int mob_class_change(struct mob_data *md, int *value);
 int mob_warp(struct mob_data *md, int m, int x, int y, int type);
 
 int mobskill_use(struct mob_data *md, unsigned int tick,
         MSC event, SkillID skill=SkillID::ZERO);
-int mobskill_event(struct mob_data *md, int flag);
+int mobskill_event(struct mob_data *md, BF flag);
 void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag);

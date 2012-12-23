@@ -928,8 +928,10 @@ int npc_buylist(struct map_session_data *sd, int n,
             item_tmp.identify = 1;  // npc販売アイテムは鑑定済み
 
             if (amount > 1
-                && (item_data->type == 4 || item_data->type == 5
-                    || item_data->type == 7 || item_data->type == 8))
+                && (item_data->type == ItemType::WEAPON
+                    || item_data->type == ItemType::ARMOR
+                    || item_data->type == ItemType::_7
+                    || item_data->type == ItemType::_8))
             {
                 for (j = 0; j < amount; j++)
                 {

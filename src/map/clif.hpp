@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "pc.t.hpp"
+
 #include "map.hpp"
 #include "storage.hpp"
 
@@ -50,18 +52,18 @@ int clif_scriptinput(struct map_session_data *, int); //self
 int clif_scriptinputstr(struct map_session_data *sd, int npcid);  // self
 int clif_cutin(struct map_session_data *, const char *, int);   //self
 int clif_viewpoint(struct map_session_data *, int, int, int, int, int, int);  //self
-int clif_additem(struct map_session_data *, int, int, int);   //self
+int clif_additem(struct map_session_data *, int, int, PickupFail);   //self
 int clif_delitem(struct map_session_data *, int, int);    //self
-int clif_updatestatus(struct map_session_data *, int);    //self
+int clif_updatestatus(struct map_session_data *, SP);    //self
 int clif_damage(struct block_list *, struct block_list *, unsigned int, int, int, int, int, int, int);    // area
 #define clif_takeitem(src,dst) clif_damage(src,dst,0,0,0,0,0,1,0)
-int clif_changelook(struct block_list *, int, int);   // area
+int clif_changelook(struct block_list *, LOOK, int);   // area
 void clif_changelook_accessories(struct block_list *bl, struct map_session_data *dst); // area or target; list gloves, boots etc.
 int clif_arrowequip(struct map_session_data *sd, int val);    //self
 int clif_arrow_fail(struct map_session_data *sd, int type);   //self
-int clif_statusupack(struct map_session_data *, int, int, int);   // self
-int clif_equipitemack(struct map_session_data *, int, int, int);  // self
-int clif_unequipitemack(struct map_session_data *, int, int, int);    // self
+int clif_statusupack(struct map_session_data *, SP, int, int);   // self
+int clif_equipitemack(struct map_session_data *, int, EPOS, int);  // self
+int clif_unequipitemack(struct map_session_data *, int, EPOS, int);    // self
 int clif_misceffect(struct block_list *, int);    // area
 int clif_changeoption(struct block_list *);   // area
 int clif_useitemack(struct map_session_data *, int, int, int);    // self

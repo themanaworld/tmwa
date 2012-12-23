@@ -96,7 +96,7 @@ void spell_free_invocation(invocation_t *invocation)
         invocation->status_change_refs_nr = 0;
     }
 
-    if (invocation->flags & INVOCATION_FLAG_BOUND)
+    if (bool(invocation->flags & INVOCATION_FLAG_BOUND))
     {
         entity_t *e = map_id2bl(invocation->subject);
         if (e && e->type == BL_PC)
@@ -448,7 +448,7 @@ static
 int op_move(env_t *, int, val_t *args)
 {
     entity_t *subject = ARGENTITY(0);
-    int dir = ARGDIR(1);
+    DIR dir = ARGDIR(1);
 
     int newx = subject->x + heading_x[dir];
     int newy = subject->y + heading_y[dir];
@@ -853,7 +853,8 @@ int op_gain_exp(env_t *, int, val_t *args)
     if (!c)
         return 1;
 
-    pc_gainexp_reason(c, ARGINT(1), ARGINT(2), ARGINT(3));
+    pc_gainexp_reason(c, ARGINT(1), ARGINT(2),
+            PC_GAINEXP_REASON(ARGINT(3)));
     return 0;
 }
 
@@ -1050,8 +1051,7 @@ effect_t *return_to_stack(invocation_t *invocation)
 
 static
 cont_activation_record_t *add_stack_entry(invocation_t *invocation,
-                                                  int ty,
-                                                  effect_t *return_location)
+        CONT_STACK ty, effect_t *return_location)
 {
     cont_activation_record_t *ar =
         invocation->stack + invocation->stack_size++;
@@ -1074,7 +1074,7 @@ void find_entities_in_area_c(entity_t *target,
         int *entities_allocd_p,
         int *entities_nr_p,
         int **entities_p,
-        int filter)
+        FOREACH_FILTER filter)
 {
 /* The following macro adds an entity to the result list: */
 #define ADD_ENTITY(e)                                                   \
@@ -1121,7 +1121,7 @@ void find_entities_in_area_c(entity_t *target,
                 invocation_t *invocation = (invocation_t *) target;
 
                 /* Check whether the spell is `bound'-- if so, we'll consider it iff we see the caster(case BL_PC). */
-                if (invocation->flags & INVOCATION_FLAG_BOUND)
+                if (bool(invocation->flags & INVOCATION_FLAG_BOUND))
                     return;
                 else
                     break;      /* Add the spell */
@@ -1145,7 +1145,7 @@ void find_entities_in_area_c(entity_t *target,
 
 static
 void find_entities_in_area(area_t *area, int *entities_allocd_p,
-                       int *entities_nr_p, int **entities_p, int filter)
+        int *entities_nr_p, int **entities_p, FOREACH_FILTER filter)
 {
     switch (area->ty)
     {
@@ -1162,7 +1162,7 @@ void find_entities_in_area(area_t *area, int *entities_allocd_p,
             magic_area_rect(&m, &x, &y, &width, &height, area);
             map_foreachinarea(std::bind(find_entities_in_area_c, ph::_1, entities_allocd_p, entities_nr_p, entities_p, filter),
                                m, x, y, x + width, y + height,
-                               0 /* filter elsewhere */);
+                               BL_NUL /* filter elsewhere */);
         }
     }
 }
@@ -1172,7 +1172,7 @@ effect_t *run_foreach(invocation_t *invocation, effect_t *foreach,
                               effect_t *return_location)
 {
     val_t area;
-    int filter = foreach->e.e_foreach.filter;
+    FOREACH_FILTER filter = foreach->e.e_foreach.filter;
     int id = foreach->e.e_foreach.id;
     effect_t *body = foreach->e.e_foreach.body;
 
@@ -1526,7 +1526,7 @@ int spell_run(invocation_t *invocation, int allow_delete)
             default:
                 fprintf(stderr,
                          "[magic] INTERNAL ERROR: Unknown effect %d\n",
-                         e->ty);
+                         uint8_t(e->ty));
         }
 
         if (!next)
@@ -1592,7 +1592,7 @@ int spell_attack(int caster_id, int target_id)
 
     invocation = (invocation_t *) map_id2bl(caster->attack_spell_override);
 
-    if (invocation && invocation->flags & INVOCATION_FLAG_STOPATTACK)
+    if (invocation && bool(invocation->flags & INVOCATION_FLAG_STOPATTACK))
         stop_attack = 1;
 
     if (invocation && caster->attack_spell_charges > 0)
@@ -1610,7 +1610,7 @@ int spell_attack(int caster_id, int target_id)
         invocation =
             (invocation_t *) map_id2bl(caster->attack_spell_override);
 
-        if (invocation && !(invocation->flags & INVOCATION_FLAG_ABORTED))   // If we didn't abort:
+        if (invocation && !bool(invocation->flags & INVOCATION_FLAG_ABORTED))   // If we didn't abort:
             caster->attack_spell_charges--;
     }
 

@@ -168,7 +168,7 @@ void stringify(val_t *v, int within_op)
 
         default:
             fprintf(stderr, "[magic] INTERNAL ERROR: Cannot stringify %d\n",
-                     v->ty);
+                    uint8_t(v->ty));
             return;
     }
 
@@ -188,7 +188,7 @@ void intify(val_t *v)
 }
 
 static
-area_t *area_new(int ty)
+area_t *area_new(AREA ty)
 {
     area_t *retval;
     CREATE(retval, area_t, 1);
@@ -450,14 +450,14 @@ int fun_bitshr(env_t *, int, val_t *result, val_t *args)
 static
 int fun_max(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTINT = MAX(ARGINT(0), ARGINT(1));
+    RESULTINT = max(ARGINT(0), ARGINT(1));
     return 0;
 }
 
 static
 int fun_min(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTINT = MIN(ARGINT(0), ARGINT(1));
+    RESULTINT = min(ARGINT(0), ARGINT(1));
     return 0;
 }
 
@@ -695,9 +695,9 @@ static
 int fun_random_dir(env_t *, int, val_t *result, val_t *args)
 {
     if (ARGINT(0))
-        RESULTDIR = mt_random() & 0x7;
+        RESULTDIR = DIR(MRAND(8));
     else
-        RESULTDIR = (mt_random() & 0x3) * 2;
+        RESULTDIR = DIR(MRAND(4) * 2);
     return 0;
 }
 
@@ -724,7 +724,12 @@ magic_find_item(val_t *args, int index, struct item *item, int *stackable)
     if (!item_data)
         return 1;
 
-    must_add_sequentially = (item_data->type == 4 || item_data->type == 5 || item_data->type == 7 || item_data->type == 8); /* Very elegant. */
+    // Very elegant.
+    must_add_sequentially = (
+            item_data->type == ItemType::WEAPON
+            || item_data->type == ItemType::ARMOR
+            || item_data->type == ItemType::_7
+            || item_data->type == ItemType::_8);
 
     if (stackable)
         *stackable = !must_add_sequentially;
@@ -758,20 +763,19 @@ int fun_is_equipped(env_t *, int, val_t *result, val_t *args)
     character_t *chr = (ETY(0) == BL_PC) ? ARGPC(0) : NULL;
     int stackable;
     struct item item;
-    int i;
-    int retval = 0;
+    bool retval = false;
 
     GET_ARG_ITEM(1, item, stackable);
 
     if (!chr)
         return 1;
 
-    for (i = 0; i < 11; i++)
+    for (EQUIP i : EQUIPs)
         if (chr->equip_index[i] >= 0
             && chr->status.inventory[chr->equip_index[i]].nameid ==
             item.nameid)
         {
-            retval = i + 1;
+            retval = true;
             break;
         }
 
@@ -856,9 +860,9 @@ static
 int fun_distance(env_t *, int, val_t *result, val_t *args)
 {
     if (ARGLOCATION(0).m != ARGLOCATION(1).m)
-        RESULTINT = INT_MAX;
+        RESULTINT = 0x7fffffff;
     else
-        RESULTINT = MAX(abs(ARGLOCATION(0).x - ARGLOCATION(1).x),
+        RESULTINT = max(abs(ARGLOCATION(0).x - ARGLOCATION(1).x),
                          abs(ARGLOCATION(0).y - ARGLOCATION(1).y));
     return 0;
 }
@@ -867,7 +871,7 @@ static
 int fun_rdistance(env_t *, int, val_t *result, val_t *args)
 {
     if (ARGLOCATION(0).m != ARGLOCATION(1).m)
-        RESULTINT = INT_MAX;
+        RESULTINT = 0x7fffffff;
     else
     {
         int dx = ARGLOCATION(0).x - ARGLOCATION(1).x;
@@ -945,8 +949,8 @@ void magic_random_location(location_t *dest, area_t *area)
                 int start_x = x;
                 int start_y = y;
                 int i;
-                int initial_dir = mt_random() & 0x7;
-                int dir = initial_dir;
+                DIR initial_dir = DIR(MRAND(8));
+                DIR dir = initial_dir;
 
                 /* try all directions, up to a distance to 10, for a free slot */
                 do
@@ -960,7 +964,7 @@ void magic_random_location(location_t *dest, area_t *area)
                         y += heading_y[dir];
                     }
 
-                    dir = (dir + 1) & 0x7;
+                    dir = DIR((uint8_t(dir) + 1) % 8);
                 }
                 while (map_is_solid(m, x, y) && dir != initial_dir);
 
@@ -974,7 +978,8 @@ void magic_random_location(location_t *dest, area_t *area)
         }
 
         default:
-            fprintf(stderr, "Unknown area type %d\n", area->ty);
+            fprintf(stderr, "Unknown area type %d\n",
+                    uint8_t(area->ty));
     }
 }
 
@@ -1441,7 +1446,7 @@ area_t *eval_area(env_t *env, e_area_t *expr)
 
             area->a.a_bar.width = width.v.v_int;
             area->a.a_bar.depth = depth.v.v_int;
-            area->a.a_bar.dir = dir.v.v_int;
+            area->a.a_bar.dir = dir.v.v_dir;
 
             if (CHECK_TYPE(&width, TY_INT)
                 && CHECK_TYPE(&depth, TY_INT)
@@ -1468,14 +1473,14 @@ area_t *eval_area(env_t *env, e_area_t *expr)
 
         default:
             fprintf(stderr, "INTERNAL ERROR: Unknown area type %d\n",
-                     area->ty);
+                    uint8_t(area->ty));
             free(area);
             return NULL;
     }
 }
 
 static
-int type_key(char ty_key)
+TY type_key(char ty_key)
 {
     switch (ty_key)
     {
@@ -1496,7 +1501,7 @@ int type_key(char ty_key)
         case 'I':
             return TY_INVOCATION;
         default:
-            return -1;
+            return TY::NEGATIVE_1;
     }
 }
 
@@ -1508,8 +1513,8 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
     {
         val_t *arg = &args[i];
         char ty_key = signature[i];
-        int ty = arg->ty;
-        int desired_ty = type_key(ty_key);
+        TY ty = arg->ty;
+        TY desired_ty = type_key(ty_key);
 
         if (ty == TY_ENTITY)
         {
@@ -1536,7 +1541,7 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
         if (ty == TY_FAIL && ty_key != '_')
             return 1;           /* Fail `in a sane way':  This is a perfectly permissible error */
 
-        if (ty == desired_ty || desired_ty < 0 /* `dontcare' */ )
+        if (ty == desired_ty || desired_ty == TY::NEGATIVE_1)
             continue;
 
         if (ty == TY_UNDEF)
@@ -1575,7 +1580,8 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
             if (ty != TY_FAIL)
                 fprintf(stderr,
                          "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' of incorrect type (%d)\n",
-                         line, column, i + 1, opname, funname, ty);
+                         line, column, i + 1, opname, funname,
+                         uint8_t(ty));
             return 1;
         }
     }
@@ -1625,8 +1631,8 @@ void magic_eval(env_t *env, val_t *dest, expr_t *expr)
                 dest->ty = TY_FAIL;
             else
             {
-                int dest_ty = type_key(f->ret_ty);
-                if (dest_ty != -1)
+                TY dest_ty = type_key(f->ret_ty);
+                if (dest_ty != TY::NEGATIVE_1)
                     dest->ty = dest_ty;
 
                 /* translate entity back into persistent int */
@@ -1690,7 +1696,7 @@ void magic_eval(env_t *env, val_t *dest, expr_t *expr)
         default:
             fprintf(stderr,
                      "[magic] INTERNAL ERROR: Unknown expression type %d\n",
-                     expr->ty);
+                     uint8_t(expr->ty));
             break;
     }
 }
@@ -1724,7 +1730,7 @@ char *magic_eval_str(env_t *env, expr_t *expr)
     return result.v.v_string;
 }
 
-expr_t *magic_new_expr(int ty)
+expr_t *magic_new_expr(EXPR ty)
 {
     expr_t *expr = (expr_t *) malloc(sizeof(expr_t));
     expr->ty = ty;

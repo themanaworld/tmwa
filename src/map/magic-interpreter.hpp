@@ -1,6 +1,8 @@
 #ifndef MAGIC_INTERPRETER_HPP
 #define MAGIC_INTERPRETER_HPP
 
+#include "magic-interpreter.t.hpp"
+
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -27,34 +29,6 @@
 #include "storage.hpp"
 #include "trade.hpp"
 
-#define SPELLARG_NONE   0       /* No spell parameter */
-#define SPELLARG_PC     1           /* Spell parameter describes pc (defaults to self) */
-#define SPELLARG_STRING 2       /* Spell parameter describes pc (defaults to self) */
-
-/* ------ */
-/* Values */
-/* ------ */
-
-#define TY_UNDEF        0
-#define TY_INT          1
-#define TY_DIR          2
-#define TY_STRING       3
-#define TY_ENTITY       5
-#define TY_LOCATION     6
-#define TY_AREA         7
-#define TY_SPELL        8
-#define TY_INVOCATION   9
-#define TY_FAIL         127
-
-#define DIR_S   0
-#define DIR_SW  1
-#define DIR_W   2
-#define DIR_NW  3
-#define DIR_N   4
-#define DIR_NE  5
-#define DIR_E   6
-#define DIR_SE  7
-
 struct expr;
 struct val;
 struct location;
@@ -68,11 +42,6 @@ typedef struct location
     int x, y;
 } location_t;
 
-#define AREA_LOCATION   0
-#define AREA_UNION      1
-#define AREA_RECT       2
-#define AREA_BAR        3
-
 typedef struct area
 {
     union a
@@ -81,7 +50,8 @@ typedef struct area
         struct
         {
             location_t loc;
-            int width, depth, dir;
+            int width, depth;
+            DIR dir;
         } a_bar;
         struct
         {
@@ -91,7 +61,7 @@ typedef struct area
         struct area *a_union[2];
     } a;
     int size;
-    unsigned char ty;
+    AREA ty;
 } area_t;
 
 typedef struct val
@@ -99,6 +69,7 @@ typedef struct val
     union v
     {
         int v_int;
+        DIR v_dir;
         char *v_string;
         entity_t *v_entity;     /* Used ONLY during operation/function invocation; otherwise we use v_int */
         area_t *v_area;
@@ -106,7 +77,7 @@ typedef struct val
         struct invocation *v_invocation;    /* Used ONLY during operation/function invocation; otherwise we use v_int */
         struct spell *v_spell;
     } v;
-    unsigned char ty;
+    TY ty;
 } val_t;
 
 /* ----------- */
@@ -114,13 +85,6 @@ typedef struct val
 /* ----------- */
 
 #define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
-
-#define EXPR_VAL        0
-#define EXPR_LOCATION   1
-#define EXPR_AREA       2
-#define EXPR_FUNAPP     3
-#define EXPR_ID         4
-#define EXPR_SPELLFIELD 5
 
 typedef struct e_location
 {
@@ -144,7 +108,7 @@ typedef struct e_area
         } a_rect;
         struct e_area *a_union[2];
     } a;
-    unsigned char ty;
+    AREA ty;
 } e_area_t;
 
 typedef struct expr
@@ -167,32 +131,8 @@ typedef struct expr
             int id;
         } e_field;
     } e;
-    unsigned char ty;
+    EXPR ty;
 } expr_t;
-
-/* ------- */
-/* Effects */
-/* ------- */
-
-#define EFFECT_SKIP     0
-#define EFFECT_ABORT    1
-#define EFFECT_ASSIGN   2
-#define EFFECT_FOREACH  3
-#define EFFECT_FOR      4
-#define EFFECT_IF       5
-#define EFFECT_SLEEP    6
-#define EFFECT_SCRIPT   7
-#define EFFECT_BREAK    8
-#define EFFECT_OP       9
-#define EFFECT_END      10
-#define EFFECT_CALL     11
-
-#define FOREACH_FILTER_MOB      1
-#define FOREACH_FILTER_PC       2
-#define FOREACH_FILTER_ENTITY   3
-#define FOREACH_FILTER_TARGET   4
-#define FOREACH_FILTER_SPELL    5
-#define FOREACH_FILTER_NPC      6
 
 typedef struct effect
 {
@@ -209,7 +149,7 @@ typedef struct effect
             int id;
             expr_t *area;
             struct effect *body;
-            unsigned char filter;
+            FOREACH_FILTER filter;
         } e_foreach;
         struct
         {
@@ -238,7 +178,7 @@ typedef struct effect
             struct effect *body;
         } e_call;
     } e;
-    unsigned char ty;
+    EFFECT_ ty;
 } effect_t;
 
 /* ---------- */
@@ -252,17 +192,6 @@ typedef struct component
     int count;
 } component_t;
 
-/* ----------- */
-/* Spellguards */
-/* ----------- */
-
-#define SPELLGUARD_CONDITION    0
-#define SPELLGUARD_COMPONENTS   1
-#define SPELLGUARD_CATALYSTS    2
-#define SPELLGUARD_CHOICE       3
-#define SPELLGUARD_MANA         4
-#define SPELLGUARD_CASTTIME     5
-#define SPELLGUARD_EFFECT       6
 
 typedef struct effect_set
 {
@@ -282,7 +211,7 @@ typedef struct spellguard
         struct spellguard *s_alt;   /* either `next' or `s.s_alt' */
         effect_set_t s_effect;
     } s;
-    unsigned char ty;
+    SPELLGUARD ty;
 } spellguard_t;
 
 /* ------ */
@@ -295,18 +224,14 @@ typedef struct letdef
     expr_t *expr;
 } letdef_t;
 
-#define SPELL_FLAG_LOCAL        (1 << 0)    // spell associated not with caster but with place
-#define SPELL_FLAG_SILENT       (1 << 1)    // spell invocation never uttered
-#define SPELL_FLAG_NONMAGIC     (1 << 2)    // `magic word' only:  don't require spellcasting ability
-
 typedef struct spell
 {
     char *name;
     char *invocation;
     int index;                 // Relative location in the definitions file
-    int flags;
+    SPELL_FLAG flags;
     int arg;
-    int spellarg_ty;
+    SPELLARG spellarg_ty;
 
     int letdefs_nr;
     letdef_t *letdefs;
@@ -347,6 +272,7 @@ typedef struct
 
 /* Execution environment */
 
+// these are not an enum they're a nasty intern hack
 #define VAR_MIN_CASTTIME        0
 #define VAR_OBSCURE_CHANCE      1
 #define VAR_CASTER              2
@@ -367,10 +293,6 @@ typedef struct env
 
 #define MAX_STACK_SIZE 32
 
-#define CONT_STACK_FOREACH      0
-#define CONT_STACK_FOR          1
-#define CONT_STACK_PROC         2
-
 typedef struct cont_activation_record
 {
     effect_t *return_location;
@@ -378,7 +300,8 @@ typedef struct cont_activation_record
     {
         struct
         {
-            int id, ty;
+            int id;
+            TY ty;
             effect_t *body;
             int entities_nr;
             int *entities;
@@ -397,7 +320,7 @@ typedef struct cont_activation_record
             val_t *old_actuals;
         } c_proc;
     } c;
-    unsigned char ty;
+    CONT_STACK ty;
 } cont_activation_record_t;
 
 typedef struct status_change_ref
@@ -406,16 +329,12 @@ typedef struct status_change_ref
     int bl_id;
 } status_change_ref_t;
 
-#define INVOCATION_FLAG_BOUND           (1 << 0)    /* Bound directly to the caster (i.e., ignore its location) */
-#define INVOCATION_FLAG_ABORTED         (1 << 1)    /* Used `abort' to terminate */
-#define INVOCATION_FLAG_STOPATTACK      (1 << 2)    /* On magical attacks:  if we run out of steam, stop attacking altogether */
-
 typedef struct invocation
 {
     struct block_list bl;
 
     struct invocation *next_invocation; /* used for spells directly associated with a caster: they form a singly-linked list */
-    int flags;
+    INVOCATION_FLAG flags;
 
     env_t *env;
     spell_t *spell;
