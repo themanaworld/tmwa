@@ -1,5 +1,5 @@
-// included by utils.hpp as a porting aid.
-// Eventually it will be promoted to one or more normal headers.
+#ifndef UTILS2_HPP
+#define UTILS2_HPP
 
 #include <iterator>
 #include <type_traits>
@@ -199,3 +199,5 @@ typename std::common_type<A, B>::type max(A a, B b)
 {
     return b < a ? a : b;
 }
+
+#endif // UTILS2_HPP
