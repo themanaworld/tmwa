@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "cxxstdio.hpp"
 #include "mmo.hpp"
 #include "utils.hpp"
 
@@ -86,7 +87,7 @@ void send_from_fifo(int fd)
 static
 void null_parse(int fd)
 {
-    printf("null_parse : %d\n", fd);
+    PRINTF("null_parse : %d\n", fd);
     RFIFOSKIP(fd, RFIFOREST(fd));
 }
 
@@ -109,7 +110,7 @@ void connect_client(int listen_fd)
     }
     if (!free_fds())
     {
-        fprintf(stderr, "softlimit reached, disconnecting : %d\n", fd);
+        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n", fd);
         delete_session(fd);
         return;
     }
@@ -275,7 +276,7 @@ void delete_session(int fd)
     currentuse--;
     if (currentuse < 0)
     {
-        fprintf(stderr, "delete_session: current sessions negative!\n");
+        FPRINTF(stderr, "delete_session: current sessions negative!\n");
         currentuse = 0;
     }
     return;
@@ -302,12 +303,12 @@ void WFIFOSET(int fd, size_t len)
     if (s->wdata_size + len + 16384 > s->max_wdata)
     {
         realloc_fifo(fd, s->max_rdata, s->max_wdata << 1);
-        printf("socket: %d wdata expanded to %d bytes.\n", fd, s->max_wdata);
+        PRINTF("socket: %d wdata expanded to %d bytes.\n", fd, s->max_wdata);
     }
     if (s->wdata_size + len + 2048 < s->max_wdata)
         s->wdata_size += len;
     else
-        fprintf(stderr, "socket: %d wdata lost !!\n", fd), abort();
+        FPRINTF(stderr, "socket: %d wdata lost !!\n", fd), abort();
 }
 
 void do_sendrecv(uint32_t next)
@@ -353,7 +354,7 @@ void do_parsepacket(void)
         if (!session[i]->connected
             && time(NULL) - session[i]->created > CONNECT_TIMEOUT)
         {
-            printf("Session #%d timed out\n", i);
+            PRINTF("Session #%d timed out\n", i);
             session[i]->eof = 1;
         }
         if (!session[i]->rdata_size && !session[i]->eof)
@@ -383,7 +384,7 @@ void RFIFOSKIP(int fd, size_t len)
 
     if (s->rdata_size < s->rdata_pos)
     {
-        fprintf(stderr, "too many skip\n");
+        FPRINTF(stderr, "too many skip\n");
         abort();
     }
 }

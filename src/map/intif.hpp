@@ -1,9 +1,11 @@
 #ifndef INTIF_HPP
 #define INTIF_HPP
 
+#include "../common/const_array.hpp"
+
 int intif_parse(int fd);
 
-int intif_GMmessage(const char *mes, int len, int flag);
+void intif_GMmessage(const_string mes, int flag);
 
 int intif_wis_message(struct map_session_data *sd, const char *nick, const char *mes,
                         int mes_len);

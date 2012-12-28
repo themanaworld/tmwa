@@ -27,6 +27,8 @@
 
 #include <string>
 
+#include "const_array.hpp"
+
 namespace cxxstdio
 {
     inline __attribute__((format(printf, 2, 0)))
@@ -58,16 +60,20 @@ namespace cxxstdio
         return vfscanf(in, fmt, ap);
     }
 
+#if 0
     inline __attribute__((format(scanf, 2, 0)))
     int do_vscan(const char *in, const char *fmt, va_list ap)
     {
         return vsscanf(in, fmt, ap);
     }
+#else
+    int do_vscan(const char *in, const char *fmt, va_list ap) = delete;
+#endif
 
     inline __attribute__((format(scanf, 2, 0)))
     int do_vscan(const std::string& in, const char *fmt, va_list ap)
     {
-        return do_vscan(in.c_str(), fmt, ap);
+        return vsscanf(in.c_str(), fmt, ap);
     }
 
 
@@ -109,11 +115,63 @@ namespace cxxstdio
         return v;
     }
 
+#if 0
+    template<class E>
+    constexpr
+    E get_enum_min_value(decltype(E::min_value))
+    {
+        return E::min_value;
+    }
+    template<class E>
+    constexpr
+    E get_enum_min_value(E def)
+    {
+        return def;
+    }
+
+    template<class E>
+    constexpr
+    E get_enum_max_value(decltype(E::max_value))
+    {
+        return E::max_value;
+    }
+    template<class E>
+    constexpr
+    E get_enum_max_value(E def)
+    {
+        return def;
+    }
+#else
+    template<class E>
+    constexpr
+    E get_enum_min_value(E)
+    {
+        return E::min_value;
+    }
+    template<class E>
+    constexpr
+    E get_max_value(E)
+    {
+        return E::max_value;
+    }
+#endif
+
     template<class E>
     class EnumConverter
     {
         E& out;
         typedef typename underlying_type<E>::type U;
+#if 0
+        constexpr static
+        U min_value = U(get_enum_min_value<E>(E(std::numeric_limits<U>::min())));
+        constexpr static
+        U max_value = U(get_enum_max_value<E>(E(std::numeric_limits<U>::max())));
+#else
+        constexpr static
+        U min_value = U(get_enum_min_value(E()));
+        constexpr static
+        U max_value = U(get_enum_max_value(E()));
+#endif
         U mid;
     public:
         EnumConverter(E& e)
@@ -121,7 +179,10 @@ namespace cxxstdio
         {}
         ~EnumConverter()
         {
-            if (U(E::min_value) <= mid && mid <= U(E::max_value))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+            if (min_value <= mid && mid <= max_value)
+#pragma GCC diagnostic pop
                 out = E(mid);
         }
         U *operator &()
@@ -201,30 +262,40 @@ namespace cxxstdio
         }
     };
 
-#define FPRINTF(file, fmt, args...)                                 \
-    ({                                                              \
-        struct format_impl                                          \
-        {                                                           \
-            constexpr static                                        \
-            const char *print_format() { return fmt; }              \
-        };                                                          \
-        cxxstdio::PrintFormatter<format_impl>::print(file, args);   \
-    })
+#define FPRINTF(file, fmt, args...)                                     \
+    ([&]() -> int                                                       \
+    {                                                                   \
+        struct format_impl                                              \
+        {                                                               \
+            constexpr static                                            \
+            const char *print_format() { return fmt; }                  \
+        };                                                              \
+        return cxxstdio::PrintFormatter<format_impl>::print(file, ## args);\
+    }())
 
-#define FSCANF(file, fmt, args...)                                  \
-    ({                                                              \
-        struct format_impl                                          \
-        {                                                           \
-            constexpr static                                        \
-            const char *scan_format() { return fmt; }               \
-        };                                                          \
-        cxxstdio::ScanFormatter<format_impl>::scan(file, args);     \
-    })
+#define FSCANF(file, fmt, args...)                                      \
+    ([&]() -> int                                                       \
+    {                                                                   \
+        struct format_impl                                              \
+        {                                                               \
+            constexpr static                                            \
+            const char *scan_format() { return fmt; }                   \
+        };                                                              \
+        return cxxstdio::ScanFormatter<format_impl>::scan(file, ## args);  \
+    }())
 
-#define PRINTF(fmt, args...)            FPRINTF(stdout, fmt, args)
-#define STRPRINTF(str, fmt, args...)    FPRINTF(str, fmt, args)
-#define SCANF(fmt, args...)             FSCANF(stdin, fmt, args)
-#define SSCANF(str, fmt, args...)       FSCANF(str, fmt, args)
+#define PRINTF(fmt, args...)            FPRINTF(stdout, fmt, ## args)
+#define SPRINTF(str, fmt, args...)      FPRINTF(str, fmt, ## args)
+#define SCANF(fmt, args...)             FSCANF(stdin, fmt, ## args)
+#define SSCANF(str, fmt, args...)       FSCANF(str, fmt, ## args)
+
+#define STRPRINTF(fmt, args...)         \
+    ([&]() -> std::string               \
+    {                                   \
+        std::string _out_impl;          \
+        SPRINTF(_out_impl, fmt, ## args);  \
+        return _out_impl;               \
+    }())
 
 } // namespace cxxstdio
 

@@ -13,12 +13,14 @@
 
 #include <cctype>
 #include <csignal>
-#include <cstdarg>  // exception to "no va_list" rule
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
+#include <fstream>
+
+#include "../common/cxxstdio.hpp"
 #include "../common/core.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/mmo.hpp"
@@ -27,7 +29,7 @@
 
 
 int eathena_interactive_session; // from core.c
-#define Iprintf if (eathena_interactive_session) printf
+#define Iprintf if (eathena_interactive_session) PRINTF
 
 //-------------------------------INSTRUCTIONS------------------------------
 // Set the variables below:
@@ -43,7 +45,6 @@ int loginserverport = 6900;    // Port of login-server
 char loginserveradminpassword[24] = "admin";    // Administration password
 int passenc = 2;               // Encoding type of the password
 char ladmin_log_filename[1024] = "log/ladmin.log";
-char date_format[32] = "%Y-%m-%d %H:%M:%S";
 //-------------------------------------------------------------------------
 //  LIST of COMMANDs that you can type at the prompt:
 //    To use these commands you can only type only the first letters.
@@ -235,35 +236,16 @@ int already_exit_function = 0; // sometimes, the exit function is called twice..
 //------------------------------
 // Writing function of logs file
 //------------------------------
-static __attribute__((format(printf, 1, 2)))
-int ladmin_log(const char *fmt, ...);
-int ladmin_log(const char *fmt, ...)
+#define LADMIN_LOG(fmt, args...)    \
+    ladmin_log(static_cast<const std::string&>(STRPRINTF(fmt, ## args)))
+static
+void ladmin_log(const_string line)
 {
-    FILE *logfp;
-    va_list ap;
-    struct timeval tv;
-    char tmpstr[2048];
-
-    va_start(ap, fmt);
-
-    logfp = fopen_(ladmin_log_filename, "a");
-    if (logfp)
-    {
-        if (fmt[0] == '\0')     // jump a line if no message
-            fprintf(logfp, "\n");
-        else
-        {
-            gettimeofday(&tv, NULL);
-            strftime(tmpstr, 24, date_format, localtime(&(tv.tv_sec)));
-            sprintf(tmpstr + strlen(tmpstr), ".%03d: %s",
-                     (int) tv.tv_usec / 1000, fmt);
-            vfprintf(logfp, tmpstr, ap);
-        }
-        fclose_(logfp);
-    }
-
-    va_end(ap);
-    return 0;
+    FILE *logfp = fopen_(ladmin_log_filename, "a");
+    if (!logfp)
+        return;
+    log_with_timestamp(logfp, line);
+    fclose_(logfp);
 }
 
 //---------------------------------------------
@@ -301,9 +283,9 @@ int verify_accountname(const char *account_name)
     {
         if (account_name[i] < 32)
         {
-            printf("Illegal character found in the account name (%d%s character).\n",
+            PRINTF("Illegal character found in the account name (%d%s character).\n",
                  i + 1, makeordinal(i + 1));
-            ladmin_log("Illegal character found in the account name (%d%s character).\n",
+            LADMIN_LOG("Illegal character found in the account name (%d%s character).\n",
                   i + 1, makeordinal(i + 1));
             return 0;
         }
@@ -311,15 +293,15 @@ int verify_accountname(const char *account_name)
 
     if (strlen(account_name) < 4)
     {
-        printf("Account name is too short. Please input an account name of 4-23 bytes.\n");
-        ladmin_log("Account name is too short. Please input an account name of 4-23 bytes.\n");
+        PRINTF("Account name is too short. Please input an account name of 4-23 bytes.\n");
+        LADMIN_LOG("Account name is too short. Please input an account name of 4-23 bytes.\n");
         return 0;
     }
 
     if (strlen(account_name) > 23)
     {
-        printf("Account name is too long. Please input an account name of 4-23 bytes.\n");
-        ladmin_log("Account name is too long. Please input an account name of 4-23 bytes.\n");
+        PRINTF("Account name is too long. Please input an account name of 4-23 bytes.\n");
+        LADMIN_LOG("Account name is too long. Please input an account name of 4-23 bytes.\n");
         return 0;
     }
 
@@ -336,32 +318,32 @@ int typepasswd(char *password)
     int letter;
     int i;
 
-    ladmin_log("No password was given. Request to obtain a password.\n");
+    LADMIN_LOG("No password was given. Request to obtain a password.\n");
 
     memset(password1, '\0', sizeof(password1));
     memset(password2, '\0', sizeof(password2));
-    printf("\033[1;36m Type the password > \033[0;32;42m");
+    PRINTF("\033[1;36m Type the password > \033[0;32;42m");
     i = 0;
     while ((letter = getchar()) != '\n')
         password1[i++] = letter;
-    printf("\033[0m\033[1;36m Verify the password > \033[0;32;42m");
+    PRINTF("\033[0m\033[1;36m Verify the password > \033[0;32;42m");
     i = 0;
     while ((letter = getchar()) != '\n')
         password2[i++] = letter;
 
-    printf("\033[0m");
+    PRINTF("\033[0m");
     fflush(stdout);
     fflush(stdin);
 
     if (strcmp(password1, password2) != 0)
     {
-        printf("Password verification failed. Please input same password.\n");
-        ladmin_log("Password verification failed. Please input same password.\n");
-        ladmin_log("  First password: %s, second password: %s.\n",
+        PRINTF("Password verification failed. Please input same password.\n");
+        LADMIN_LOG("Password verification failed. Please input same password.\n");
+        LADMIN_LOG("  First password: %s, second password: %s.\n",
                     password1, password2);
         return 0;
     }
-    ladmin_log("Typed password: %s.\n", password1);
+    LADMIN_LOG("Typed password: %s.\n", password1);
     strcpy(password, password1);
     return 1;
 }
@@ -378,9 +360,9 @@ int verify_password(const char *password)
     {
         if (password[i] < 32)
         {
-            printf("Illegal character found in the password (%d%s character).\n",
+            PRINTF("Illegal character found in the password (%d%s character).\n",
                  i + 1, makeordinal(i + 1));
-            ladmin_log("Illegal character found in the password (%d%s character).\n",
+            LADMIN_LOG("Illegal character found in the password (%d%s character).\n",
                   i + 1, makeordinal(i + 1));
             return 0;
         }
@@ -388,15 +370,15 @@ int verify_password(const char *password)
 
     if (strlen(password) < 4)
     {
-        printf("Account name is too short. Please input an account name of 4-23 bytes.\n");
-        ladmin_log("Account name is too short. Please input an account name of 4-23 bytes.\n");
+        PRINTF("Account name is too short. Please input an account name of 4-23 bytes.\n");
+        LADMIN_LOG("Account name is too short. Please input an account name of 4-23 bytes.\n");
         return 0;
     }
 
     if (strlen(password) > 23)
     {
-        printf("Password is too long. Please input a password of 4-23 bytes.\n");
-        ladmin_log("Password is too long. Please input a password of 4-23 bytes.\n");
+        PRINTF("Password is too long. Please input a password of 4-23 bytes.\n");
+        LADMIN_LOG("Password is too long. Please input a password of 4-23 bytes.\n");
         return 0;
     }
 
@@ -553,320 +535,320 @@ void display_help(const char *param)
     // Analyse of the command
     check_command(command);    // give complete name to the command
 
-    ladmin_log("Displaying of the commands or a command.\n");
+    LADMIN_LOG("Displaying of the commands or a command.\n");
 
     if (strcmp(command, "help") == 0)
     {
-        printf("help/?\n");
-        printf("  Display the description of the commands\n");
-        printf("help/? [command]\n");
-        printf("  Display the description of the specified command\n");
+        PRINTF("help/?\n");
+        PRINTF("  Display the description of the commands\n");
+        PRINTF("help/? [command]\n");
+        PRINTF("  Display the description of the specified command\n");
 // general commands
     }
     else if (strcmp(command, "add") == 0)
     {
-        printf("add <account_name> <sex> <password>\n");
-        printf("  Create an account with the default email (a@a.com).\n");
-        printf("  Concerning the sex, only the first letter is used (F or M).\n");
-        printf("  The e-mail is set to a@a.com (default e-mail). It's like to have no e-mail.\n");
-        printf("  When the password is omitted,\n");
-        printf("  the input is done without displaying of the pressed keys.\n");
-        printf("  <example> add testname Male testpass\n");
+        PRINTF("add <account_name> <sex> <password>\n");
+        PRINTF("  Create an account with the default email (a@a.com).\n");
+        PRINTF("  Concerning the sex, only the first letter is used (F or M).\n");
+        PRINTF("  The e-mail is set to a@a.com (default e-mail). It's like to have no e-mail.\n");
+        PRINTF("  When the password is omitted,\n");
+        PRINTF("  the input is done without displaying of the pressed keys.\n");
+        PRINTF("  <example> add testname Male testpass\n");
     }
     else if (strcmp(command, "ban") == 0)
     {
-        printf("ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
-        printf("  Changes the final date of a banishment of an account.\n");
-        printf("  Like banset, but <account name> is at end.\n");
+        PRINTF("ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
+        PRINTF("  Changes the final date of a banishment of an account.\n");
+        PRINTF("  Like banset, but <account name> is at end.\n");
     }
     else if (strcmp(command, "banadd") == 0)
     {
-        printf("banadd <account_name> <modifier>\n");
-        printf("  Adds or substracts time from the final date of a banishment of an account.\n");
-        printf("  Modifier is done as follows:\n");
-        printf("    Adjustment value (-1, 1, +1, etc...)\n");
-        printf("    Modified element:\n");
-        printf("      a or y: year\n");
-        printf("      m:  month\n");
-        printf("      j or d: day\n");
-        printf("      h:  hour\n");
-        printf("      mn: minute\n");
-        printf("      s:  second\n");
-        printf("  <example> banadd testname +1m-2mn1s-6y\n");
-        printf("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
-        printf("            and 6 years at the same time.\n");
-        printf("NOTE: If you modify the final date of a non-banished account,\n");
-        printf("      you fix the final date to (actual time +- adjustments)\n");
+        PRINTF("banadd <account_name> <modifier>\n");
+        PRINTF("  Adds or substracts time from the final date of a banishment of an account.\n");
+        PRINTF("  Modifier is done as follows:\n");
+        PRINTF("    Adjustment value (-1, 1, +1, etc...)\n");
+        PRINTF("    Modified element:\n");
+        PRINTF("      a or y: year\n");
+        PRINTF("      m:  month\n");
+        PRINTF("      j or d: day\n");
+        PRINTF("      h:  hour\n");
+        PRINTF("      mn: minute\n");
+        PRINTF("      s:  second\n");
+        PRINTF("  <example> banadd testname +1m-2mn1s-6y\n");
+        PRINTF("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
+        PRINTF("            and 6 years at the same time.\n");
+        PRINTF("NOTE: If you modify the final date of a non-banished account,\n");
+        PRINTF("      you fix the final date to (actual time +- adjustments)\n");
     }
     else if (strcmp(command, "banset") == 0)
     {
-        printf("banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
-        printf("  Changes the final date of a banishment of an account.\n");
-        printf("  Default time [hh:mm:ss]: 23:59:59.\n");
-        printf("banset <account_name> 0\n");
-        printf("  Set a non-banished account (0 = unbanished).\n");
+        PRINTF("banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
+        PRINTF("  Changes the final date of a banishment of an account.\n");
+        PRINTF("  Default time [hh:mm:ss]: 23:59:59.\n");
+        PRINTF("banset <account_name> 0\n");
+        PRINTF("  Set a non-banished account (0 = unbanished).\n");
     }
     else if (strcmp(command, "block") == 0)
     {
-        printf("block <account name>\n");
-        printf("  Set state 5 (You have been blocked by the GM Team) to an account.\n");
-        printf("  This command works like state <account_name> 5.\n");
+        PRINTF("block <account name>\n");
+        PRINTF("  Set state 5 (You have been blocked by the GM Team) to an account.\n");
+        PRINTF("  This command works like state <account_name> 5.\n");
     }
     else if (strcmp(command, "check") == 0)
     {
-        printf("check <account_name> <password>\n");
-        printf("  Check the validity of a password for an account.\n");
-        printf("  NOTE: Server will never sends back a password.\n");
-        printf("        It's the only method you have to know if a password is correct.\n");
-        printf("        The other method is to have a ('physical') access to the accounts file.\n");
+        PRINTF("check <account_name> <password>\n");
+        PRINTF("  Check the validity of a password for an account.\n");
+        PRINTF("  NOTE: Server will never sends back a password.\n");
+        PRINTF("        It's the only method you have to know if a password is correct.\n");
+        PRINTF("        The other method is to have a ('physical') access to the accounts file.\n");
     }
     else if (strcmp(command, "create") == 0)
     {
-        printf("create <account_name> <sex> <email> <password>\n");
-        printf("  Like the 'add' command, but with e-mail moreover.\n");
-        printf("  <example> create testname Male my@mail.com testpass\n");
+        PRINTF("create <account_name> <sex> <email> <password>\n");
+        PRINTF("  Like the 'add' command, but with e-mail moreover.\n");
+        PRINTF("  <example> create testname Male my@mail.com testpass\n");
     }
     else if (strcmp(command, "delete") == 0)
     {
-        printf("del <account name>\n");
-        printf("  Remove an account.\n");
-        printf("  This order requires confirmation. After confirmation, the account is deleted.\n");
+        PRINTF("del <account name>\n");
+        PRINTF("  Remove an account.\n");
+        PRINTF("  This order requires confirmation. After confirmation, the account is deleted.\n");
     }
     else if (strcmp(command, "email") == 0)
     {
-        printf("email <account_name> <email>\n");
-        printf("  Modify the e-mail of an account.\n");
+        PRINTF("email <account_name> <email>\n");
+        PRINTF("  Modify the e-mail of an account.\n");
     }
     else if (strcmp(command, "getcount") == 0)
     {
-        printf("getcount\n");
-        printf("  Give the number of players online on all char-servers.\n");
+        PRINTF("getcount\n");
+        PRINTF("  Give the number of players online on all char-servers.\n");
     }
     else if (strcmp(command, "gm") == 0)
     {
-        printf("gm <account_name> [GM_level]\n");
-        printf("  Modify the GM level of an account.\n");
-        printf("  Default value remove GM level (GM level = 0).\n");
-        printf("  <example> gm testname 80\n");
+        PRINTF("gm <account_name> [GM_level]\n");
+        PRINTF("  Modify the GM level of an account.\n");
+        PRINTF("  Default value remove GM level (GM level = 0).\n");
+        PRINTF("  <example> gm testname 80\n");
     }
     else if (strcmp(command, "id") == 0)
     {
-        printf("id <account name>\n");
-        printf("  Give the id of an account.\n");
+        PRINTF("id <account name>\n");
+        PRINTF("  Give the id of an account.\n");
     }
     else if (strcmp(command, "info") == 0)
     {
-        printf("info <account_id>\n");
-        printf("  Display complete information of an account.\n");
+        PRINTF("info <account_id>\n");
+        PRINTF("  Display complete information of an account.\n");
     }
     else if (strcmp(command, "kami") == 0)
     {
-        printf("kami <message>\n");
-        printf("  Sends a broadcast message on all map-server (in yellow).\n");
+        PRINTF("kami <message>\n");
+        PRINTF("  Sends a broadcast message on all map-server (in yellow).\n");
     }
     else if (strcmp(command, "kamib") == 0)
     {
-        printf("kamib <message>\n");
-        printf("  Sends a broadcast message on all map-server (in blue).\n");
+        PRINTF("kamib <message>\n");
+        PRINTF("  Sends a broadcast message on all map-server (in blue).\n");
     }
     else if (strcmp(command, "list") == 0)
     {
-        printf("list/ls [start_id [end_id]]\n");
-        printf("  Display a list of accounts.\n");
-        printf("  'start_id', 'end_id': indicate end and start identifiers.\n");
-        printf("  Research by name is not possible with this command.\n");
-        printf("  <example> list 10 9999999\n");
+        PRINTF("list/ls [start_id [end_id]]\n");
+        PRINTF("  Display a list of accounts.\n");
+        PRINTF("  'start_id', 'end_id': indicate end and start identifiers.\n");
+        PRINTF("  Research by name is not possible with this command.\n");
+        PRINTF("  <example> list 10 9999999\n");
     }
     else if (strcmp(command, "itemfrob") == 0)
     {
-        printf("itemfrob <source-id> <dest-id>\n");
-        printf("  Translates item IDs for all accounts.\n");
-        printf("  Any items matching the source item ID will be mapped to the dest-id.\n");
-        printf("  <example> itemfrob 500 700\n");
+        PRINTF("itemfrob <source-id> <dest-id>\n");
+        PRINTF("  Translates item IDs for all accounts.\n");
+        PRINTF("  Any items matching the source item ID will be mapped to the dest-id.\n");
+        PRINTF("  <example> itemfrob 500 700\n");
     }
     else if (strcmp(command, "listban") == 0)
     {
-        printf("listBan/lsBan [start_id [end_id]]\n");
-        printf("  Like list/ls, but only for accounts with state or banished.\n");
+        PRINTF("listBan/lsBan [start_id [end_id]]\n");
+        PRINTF("  Like list/ls, but only for accounts with state or banished.\n");
     }
     else if (strcmp(command, "listgm") == 0)
     {
-        printf("listGM/lsGM [start_id [end_id]]\n");
-        printf("  Like list/ls, but only for GM accounts.\n");
+        PRINTF("listGM/lsGM [start_id [end_id]]\n");
+        PRINTF("  Like list/ls, but only for GM accounts.\n");
     }
     else if (strcmp(command, "listok") == 0)
     {
-        printf("listOK/lsOK [start_id [end_id]]\n");
-        printf("  Like list/ls, but only for accounts without state and not banished.\n");
+        PRINTF("listOK/lsOK [start_id [end_id]]\n");
+        PRINTF("  Like list/ls, but only for accounts without state and not banished.\n");
     }
     else if (strcmp(command, "memo") == 0)
     {
-        printf("memo <account_name> <memo>\n");
-        printf("  Modify the memo of an account.\n");
-        printf("  'memo': it can have until 253 characters (with spaces or not).\n");
+        PRINTF("memo <account_name> <memo>\n");
+        PRINTF("  Modify the memo of an account.\n");
+        PRINTF("  'memo': it can have until 253 characters (with spaces or not).\n");
     }
     else if (strcmp(command, "name") == 0)
     {
-        printf("name <account_id>\n");
-        printf("  Give the name of an account.\n");
+        PRINTF("name <account_id>\n");
+        PRINTF("  Give the name of an account.\n");
     }
     else if (strcmp(command, "password") == 0)
     {
-        printf("passwd <account_name> <new_password>\n");
-        printf("  Change the password of an account.\n");
-        printf("  When new password is omitted,\n");
-        printf("  the input is done without displaying of the pressed keys.\n");
+        PRINTF("passwd <account_name> <new_password>\n");
+        PRINTF("  Change the password of an account.\n");
+        PRINTF("  When new password is omitted,\n");
+        PRINTF("  the input is done without displaying of the pressed keys.\n");
     }
     else if (strcmp(command, "reloadgm") == 0)
     {
-        printf("reloadGM\n");
-        printf("  Reload GM configuration file\n");
+        PRINTF("reloadGM\n");
+        PRINTF("  Reload GM configuration file\n");
     }
     else if (strcmp(command, "search") == 0)
     {
-        printf("search <expression>\n");
-        printf("  Seek accounts.\n");
-        printf("  Displays the accounts whose names correspond.\n");
-//          printf("search -r/-e/--expr/--regex <expression>\n");
-//          printf("  Seek accounts by regular expression.\n");
-//          printf("  Displays the accounts whose names correspond.\n");
+        PRINTF("search <expression>\n");
+        PRINTF("  Seek accounts.\n");
+        PRINTF("  Displays the accounts whose names correspond.\n");
+//          PRINTF("search -r/-e/--expr/--regex <expression>\n");
+//          PRINTF("  Seek accounts by regular expression.\n");
+//          PRINTF("  Displays the accounts whose names correspond.\n");
     }
     else if (strcmp(command, "sex") == 0)
     {
-        printf("sex <account_name> <sex>\n");
-        printf("  Modify the sex of an account.\n");
-        printf("  <example> sex testname Male\n");
+        PRINTF("sex <account_name> <sex>\n");
+        PRINTF("  Modify the sex of an account.\n");
+        PRINTF("  <example> sex testname Male\n");
     }
     else if (strcmp(command, "state") == 0)
     {
-        printf("state <account_name> <new_state> <error_message_#7>\n");
-        printf("  Change the state of an account.\n");
-        printf("  'new_state': state is the state of the packet 0x006a + 1.\n");
-        printf("               The possibilities are:\n");
-        printf("               0 = Account ok\n");
-        printf("               1 = Unregistered ID\n");
-        printf("               2 = Incorrect Password\n");
-        printf("               3 = This ID is expired\n");
-        printf("               4 = Rejected from Server\n");
-        printf("               5 = You have been blocked by the GM Team\n");
-        printf("               6 = Your Game's EXE file is not the latest version\n");
-        printf("               7 = You are Prohibited to log in until...\n");
-        printf("               8 = Server is jammed due to over populated\n");
-        printf("               9 = No MSG\n");
-        printf("               100 = This ID has been totally erased\n");
-        printf("               all other values are 'No MSG', then use state 9 please.\n");
-        printf("  'error_message_#7': message of the code error 6\n");
-        printf("                      = Your are Prohibited to log in until... (packet 0x006a)\n");
+        PRINTF("state <account_name> <new_state> <error_message_#7>\n");
+        PRINTF("  Change the state of an account.\n");
+        PRINTF("  'new_state': state is the state of the packet 0x006a + 1.\n");
+        PRINTF("               The possibilities are:\n");
+        PRINTF("               0 = Account ok\n");
+        PRINTF("               1 = Unregistered ID\n");
+        PRINTF("               2 = Incorrect Password\n");
+        PRINTF("               3 = This ID is expired\n");
+        PRINTF("               4 = Rejected from Server\n");
+        PRINTF("               5 = You have been blocked by the GM Team\n");
+        PRINTF("               6 = Your Game's EXE file is not the latest version\n");
+        PRINTF("               7 = You are Prohibited to log in until...\n");
+        PRINTF("               8 = Server is jammed due to over populated\n");
+        PRINTF("               9 = No MSG\n");
+        PRINTF("               100 = This ID has been totally erased\n");
+        PRINTF("               all other values are 'No MSG', then use state 9 please.\n");
+        PRINTF("  'error_message_#7': message of the code error 6\n");
+        PRINTF("                      = Your are Prohibited to log in until... (packet 0x006a)\n");
     }
     else if (strcmp(command, "timeadd") == 0)
     {
-        printf("timeadd <account_name> <modifier>\n");
-        printf("  Adds or substracts time from the validity limit of an account.\n");
-        printf("  Modifier is done as follows:\n");
-        printf("    Adjustment value (-1, 1, +1, etc...)\n");
-        printf("    Modified element:\n");
-        printf("      a or y: year\n");
-        printf("      m:  month\n");
-        printf("      j or d: day\n");
-        printf("      h:  hour\n");
-        printf("      mn: minute\n");
-        printf("      s:  second\n");
-        printf("  <example> timeadd testname +1m-2mn1s-6y\n");
-        printf("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
-        printf("            and 6 years at the same time.\n");
-        printf("NOTE: You can not modify a unlimited validity limit.\n");
-        printf("      If you want modify it, you want probably create a limited validity limit.\n");
-        printf("      So, at first, you must set the validity limit to a date/time.\n");
+        PRINTF("timeadd <account_name> <modifier>\n");
+        PRINTF("  Adds or substracts time from the validity limit of an account.\n");
+        PRINTF("  Modifier is done as follows:\n");
+        PRINTF("    Adjustment value (-1, 1, +1, etc...)\n");
+        PRINTF("    Modified element:\n");
+        PRINTF("      a or y: year\n");
+        PRINTF("      m:  month\n");
+        PRINTF("      j or d: day\n");
+        PRINTF("      h:  hour\n");
+        PRINTF("      mn: minute\n");
+        PRINTF("      s:  second\n");
+        PRINTF("  <example> timeadd testname +1m-2mn1s-6y\n");
+        PRINTF("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
+        PRINTF("            and 6 years at the same time.\n");
+        PRINTF("NOTE: You can not modify a unlimited validity limit.\n");
+        PRINTF("      If you want modify it, you want probably create a limited validity limit.\n");
+        PRINTF("      So, at first, you must set the validity limit to a date/time.\n");
     }
     else if (strcmp(command, "timeadd") == 0)
     {
-        printf("timeset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
-        printf("  Changes the validity limit of an account.\n");
-        printf("  Default time [hh:mm:ss]: 23:59:59.\n");
-        printf("timeset <account_name> 0\n");
-        printf("  Gives an unlimited validity limit (0 = unlimited).\n");
+        PRINTF("timeset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
+        PRINTF("  Changes the validity limit of an account.\n");
+        PRINTF("  Default time [hh:mm:ss]: 23:59:59.\n");
+        PRINTF("timeset <account_name> 0\n");
+        PRINTF("  Gives an unlimited validity limit (0 = unlimited).\n");
     }
     else if (strcmp(command, "unban") == 0)
     {
-        printf("unban/unbanish <account name>\n");
-        printf("  Remove the banishment of an account.\n");
-        printf("  This command works like banset <account_name> 0.\n");
+        PRINTF("unban/unbanish <account name>\n");
+        PRINTF("  Remove the banishment of an account.\n");
+        PRINTF("  This command works like banset <account_name> 0.\n");
     }
     else if (strcmp(command, "unblock") == 0)
     {
-        printf("unblock <account name>\n");
-        printf("  Set state 0 (Account ok) to an account.\n");
-        printf("  This command works like state <account_name> 0.\n");
+        PRINTF("unblock <account name>\n");
+        PRINTF("  Set state 0 (Account ok) to an account.\n");
+        PRINTF("  This command works like state <account_name> 0.\n");
     }
     else if (strcmp(command, "version") == 0)
     {
-        printf("version\n");
-        printf("  Display the version of the login-server.\n");
+        PRINTF("version\n");
+        PRINTF("  Display the version of the login-server.\n");
     }
     else if (strcmp(command, "who") == 0)
     {
-        printf("who <account name>\n");
-        printf("  Displays complete information of an account.\n");
+        PRINTF("who <account name>\n");
+        PRINTF("  Displays complete information of an account.\n");
 // quit
     }
     else if (strcmp(command, "quit") == 0 ||
              strcmp(command, "exit") == 0 ||
              strcmp(command, "end") == 0)
     {
-        printf("quit/end/exit\n");
-        printf("  End of the program of administration.\n");
+        PRINTF("quit/end/exit\n");
+        PRINTF("  End of the program of administration.\n");
 // unknown command
     }
     else
     {
         if (strlen(command) > 0)
-            printf("Unknown command [%s] for help. Displaying of all commands.\n",
+            PRINTF("Unknown command [%s] for help. Displaying of all commands.\n",
                  command);
-        printf(" help/?                          -- Display this help\n");
-        printf(" help/? [command]                -- Display the help of the command\n");
-        printf(" add <account_name> <sex> <password>  -- Create an account with default email\n");
-        printf(" ban/banish yyyy/mm/dd hh:mm:ss <account name> -- Change final date of a ban\n");
-        printf(" banadd/ba <account_name> <modifier>  -- Add or substract time from the final\n");
-        printf("   example: ba apple +1m-2mn1s-2y        date of a banishment of an account\n");
-        printf(" banset/bs <account_name> yyyy/mm/dd [hh:mm:ss] -- Change final date of a ban\n");
-        printf(" banset/bs <account_name> 0           -- Un-banish an account\n");
-        printf(" block <account name>     -- Set state 5 (blocked by the GM Team) to an account\n");
-        printf(" check <account_name> <password>      -- Check the validity of a password\n");
-        printf(" create <account_name> <sex> <email> <passwrd> -- Create an account with email\n");
-        printf(" del <account name>                   -- Remove an account\n");
-        printf(" email <account_name> <email>         -- Modify an email of an account\n");
-        printf(" getcount                             -- Give the number of players online\n");
-        printf(" gm <account_name> [GM_level]         -- Modify the GM level of an account\n");
-        printf(" id <account name>                    -- Give the id of an account\n");
-        printf(" info <account_id>                    -- Display all information of an account\n");
-        printf(" itemfrob <source-id> <dest-id>       -- Map all items from one item ID to another\n");
-        printf(" kami <message>                       -- Sends a broadcast message (in yellow)\n");
-        printf(" kamib <message>                      -- Sends a broadcast message (in blue)\n");
-        printf(" list/ls [First_id [Last_id]]         -- Display a list of accounts\n");
-        printf(" listBan/lsBan [First_id [Last_id] ]  -- Display a list of accounts\n");
-        printf("                                         with state or banished\n");
-        printf(" listGM/lsGM [First_id [Last_id]]     -- Display a list of GM accounts\n");
-        printf(" listOK/lsOK [First_id [Last_id] ]    -- Display a list of accounts\n");
-        printf("                                         without state and not banished\n");
-        printf(" memo <account_name> <memo>           -- Modify the memo of an account\n");
-        printf(" name <account_id>                    -- Give the name of an account\n");
-        printf(" passwd <account_name> <new_password> -- Change the password of an account\n");
-        printf(" quit/end/exit                        -- End of the program of administation\n");
-        printf(" reloadGM                             -- Reload GM configuration file\n");
-        printf(" search <expression>                  -- Seek accounts\n");
-//          printf(" search -e/-r/--expr/--regex <expressn> -- Seek accounts by regular-expression\n");
-        printf(" sex <nomcompte> <sexe>               -- Modify the sex of an account\n");
-        printf(" state <account_name> <new_state> <error_message_#7> -- Change the state\n");
-        printf(" timeadd/ta <account_name> <modifier> -- Add or substract time from the\n");
-        printf("   example: ta apple +1m-2mn1s-2y        validity limit of an account\n");
-        printf(" timeset/ts <account_name> yyyy/mm/dd [hh:mm:ss] -- Change the validify limit\n");
-        printf(" timeset/ts <account_name> 0          -- Give a unlimited validity limit\n");
-        printf(" unban/unbanish <account name>        -- Remove the banishment of an account\n");
-        printf(" unblock <account name>               -- Set state 0 (Account ok) to an account\n");
-        printf(" version                              -- Gives the version of the login-server\n");
-        printf(" who <account name>                   -- Display all information of an account\n");
-        printf(" who <account name>                   -- Display all information of an account\n");
-        printf(" Note: To use spaces in an account name, type \"<account name>\" (or ').\n");
+        PRINTF(" help/?                          -- Display this help\n");
+        PRINTF(" help/? [command]                -- Display the help of the command\n");
+        PRINTF(" add <account_name> <sex> <password>  -- Create an account with default email\n");
+        PRINTF(" ban/banish yyyy/mm/dd hh:mm:ss <account name> -- Change final date of a ban\n");
+        PRINTF(" banadd/ba <account_name> <modifier>  -- Add or substract time from the final\n");
+        PRINTF("   example: ba apple +1m-2mn1s-2y        date of a banishment of an account\n");
+        PRINTF(" banset/bs <account_name> yyyy/mm/dd [hh:mm:ss] -- Change final date of a ban\n");
+        PRINTF(" banset/bs <account_name> 0           -- Un-banish an account\n");
+        PRINTF(" block <account name>     -- Set state 5 (blocked by the GM Team) to an account\n");
+        PRINTF(" check <account_name> <password>      -- Check the validity of a password\n");
+        PRINTF(" create <account_name> <sex> <email> <passwrd> -- Create an account with email\n");
+        PRINTF(" del <account name>                   -- Remove an account\n");
+        PRINTF(" email <account_name> <email>         -- Modify an email of an account\n");
+        PRINTF(" getcount                             -- Give the number of players online\n");
+        PRINTF(" gm <account_name> [GM_level]         -- Modify the GM level of an account\n");
+        PRINTF(" id <account name>                    -- Give the id of an account\n");
+        PRINTF(" info <account_id>                    -- Display all information of an account\n");
+        PRINTF(" itemfrob <source-id> <dest-id>       -- Map all items from one item ID to another\n");
+        PRINTF(" kami <message>                       -- Sends a broadcast message (in yellow)\n");
+        PRINTF(" kamib <message>                      -- Sends a broadcast message (in blue)\n");
+        PRINTF(" list/ls [First_id [Last_id]]         -- Display a list of accounts\n");
+        PRINTF(" listBan/lsBan [First_id [Last_id] ]  -- Display a list of accounts\n");
+        PRINTF("                                         with state or banished\n");
+        PRINTF(" listGM/lsGM [First_id [Last_id]]     -- Display a list of GM accounts\n");
+        PRINTF(" listOK/lsOK [First_id [Last_id] ]    -- Display a list of accounts\n");
+        PRINTF("                                         without state and not banished\n");
+        PRINTF(" memo <account_name> <memo>           -- Modify the memo of an account\n");
+        PRINTF(" name <account_id>                    -- Give the name of an account\n");
+        PRINTF(" passwd <account_name> <new_password> -- Change the password of an account\n");
+        PRINTF(" quit/end/exit                        -- End of the program of administation\n");
+        PRINTF(" reloadGM                             -- Reload GM configuration file\n");
+        PRINTF(" search <expression>                  -- Seek accounts\n");
+//          PRINTF(" search -e/-r/--expr/--regex <expressn> -- Seek accounts by regular-expression\n");
+        PRINTF(" sex <nomcompte> <sexe>               -- Modify the sex of an account\n");
+        PRINTF(" state <account_name> <new_state> <error_message_#7> -- Change the state\n");
+        PRINTF(" timeadd/ta <account_name> <modifier> -- Add or substract time from the\n");
+        PRINTF("   example: ta apple +1m-2mn1s-2y        validity limit of an account\n");
+        PRINTF(" timeset/ts <account_name> yyyy/mm/dd [hh:mm:ss] -- Change the validify limit\n");
+        PRINTF(" timeset/ts <account_name> 0          -- Give a unlimited validity limit\n");
+        PRINTF(" unban/unbanish <account name>        -- Remove the banishment of an account\n");
+        PRINTF(" unblock <account name>               -- Set state 0 (Account ok) to an account\n");
+        PRINTF(" version                              -- Gives the version of the login-server\n");
+        PRINTF(" who <account name>                   -- Display all information of an account\n");
+        PRINTF(" who <account name>                   -- Display all information of an account\n");
+        PRINTF(" Note: To use spaces in an account name, type \"<account name>\" (or ').\n");
     }
 }
 
@@ -890,9 +872,9 @@ int addaccount(const char *param, int emailflag)
             sscanf(param, "'%[^']' %s %[^\r\n]", name, sex, password) < 2 &&   // password can be void
             sscanf(param, "%s %s %[^\r\n]", name, sex, password) < 2)
         {                       // password can be void
-            printf("Please input an account name, a sex and a password.\n");
-            printf("<example> add testname Male testpass\n");
-            ladmin_log("Incomplete parameters to create an account ('add' command).\n");
+            PRINTF("Please input an account name, a sex and a password.\n");
+            PRINTF("<example> add testname Male testpass\n");
+            LADMIN_LOG("Incomplete parameters to create an account ('add' command).\n");
             return 136;
         }
         strcpy(email, "a@a.com");  // default email
@@ -904,9 +886,9 @@ int addaccount(const char *param, int emailflag)
             sscanf(param, "%s %s %s %[^\r\n]", name, sex, email,
                     password) < 3)
         {                       // password can be void
-            printf("Please input an account name, a sex and a password.\n");
-            printf("<example> create testname Male my@mail.com testpass\n");
-            ladmin_log("Incomplete parameters to create an account ('create' command).\n");
+            PRINTF("Please input an account name, a sex and a password.\n");
+            PRINTF("<example> create testname Male my@mail.com testpass\n");
+            LADMIN_LOG("Incomplete parameters to create an account ('create' command).\n");
             return 136;
         }
     }
@@ -918,33 +900,33 @@ int addaccount(const char *param, int emailflag)
     sex[0] = toupper(sex[0]);
     if (strchr("MF", sex[0]) == NULL)
     {
-        printf("Illegal gender [%s]. Please input M or F.\n", sex);
-        ladmin_log("Illegal gender [%s]. Please input M or F.\n",
+        PRINTF("Illegal gender [%s]. Please input M or F.\n", sex);
+        LADMIN_LOG("Illegal gender [%s]. Please input M or F.\n",
                     sex);
         return 103;
     }
 
     if (strlen(email) < 3)
     {
-        printf("Email is too short [%s]. Please input a valid e-mail.\n",
+        PRINTF("Email is too short [%s]. Please input a valid e-mail.\n",
                 email);
-        ladmin_log("Email is too short [%s]. Please input a valid e-mail.\n",
+        LADMIN_LOG("Email is too short [%s]. Please input a valid e-mail.\n",
               email);
         return 109;
     }
     if (strlen(email) > 39)
     {
-        printf("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
+        PRINTF("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
              email);
-        ladmin_log("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
+        LADMIN_LOG("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
               email);
         return 109;
     }
     if (e_mail_check(email) == 0)
     {
-        printf("Invalid email [%s]. Please input a valid e-mail.\n",
+        PRINTF("Invalid email [%s]. Please input a valid e-mail.\n",
                 email);
-        ladmin_log("Invalid email [%s]. Please input a valid e-mail.\n",
+        LADMIN_LOG("Invalid email [%s]. Please input a valid e-mail.\n",
                      email);
         return 109;
     }
@@ -957,7 +939,7 @@ int addaccount(const char *param, int emailflag)
     if (verify_password(password) == 0)
         return 104;
 
-    ladmin_log("Request to login-server to create an account.\n");
+    LADMIN_LOG("Request to login-server to create an account.\n");
 
     WFIFOW(login_fd, 0) = 0x7930;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -989,11 +971,11 @@ int banaddaccount(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, modif) < 2 &&
         sscanf(param, "%s %[^\r\n]", name, modif) < 2)
     {
-        printf("Please input an account name and a modifier.\n");
-        printf("  <example>: banadd testname +1m-2mn1s-6y\n");
-        printf("             this example adds 1 month and 1 second, and substracts 2 minutes\n");
-        printf("             and 6 years at the same time.\n");
-        ladmin_log("Incomplete parameters to modify the ban date/time of an account ('banadd' command).\n");
+        PRINTF("Please input an account name and a modifier.\n");
+        PRINTF("  <example>: banadd testname +1m-2mn1s-6y\n");
+        PRINTF("             this example adds 1 month and 1 second, and substracts 2 minutes\n");
+        PRINTF("             and 6 years at the same time.\n");
+        LADMIN_LOG("Incomplete parameters to modify the ban date/time of an account ('banadd' command).\n");
         return 136;
     }
     if (verify_accountname(name) == 0)
@@ -1058,69 +1040,69 @@ int banaddaccount(const char *param)
         }
     }
 
-    printf(" year:   %d\n", year);
-    printf(" month:  %d\n", month);
-    printf(" day:    %d\n", day);
-    printf(" hour:   %d\n", hour);
-    printf(" minute: %d\n", minute);
-    printf(" second: %d\n", second);
+    PRINTF(" year:   %d\n", year);
+    PRINTF(" month:  %d\n", month);
+    PRINTF(" day:    %d\n", day);
+    PRINTF(" hour:   %d\n", hour);
+    PRINTF(" minute: %d\n", minute);
+    PRINTF(" second: %d\n", second);
 
     if (year == 0 && month == 0 && day == 0 && hour == 0 && minute == 0
         && second == 0)
     {
-        printf("Please give an adjustment with this command:\n");
-        printf("  Adjustment value (-1, 1, +1, etc...)\n");
-        printf("  Modified element:\n");
-        printf("    a or y: year\n");
-        printf("    m: month\n");
-        printf("    j or d: day\n");
-        printf("    h: hour\n");
-        printf("    mn: minute\n");
-        printf("    s: second\n");
-        printf("  <example> banadd testname +1m-2mn1s-6y\n");
-        printf("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
-        printf("            and 6 years at the same time.\n");
-        ladmin_log("No adjustment isn't an adjustment ('banadd' command).\n");
+        PRINTF("Please give an adjustment with this command:\n");
+        PRINTF("  Adjustment value (-1, 1, +1, etc...)\n");
+        PRINTF("  Modified element:\n");
+        PRINTF("    a or y: year\n");
+        PRINTF("    m: month\n");
+        PRINTF("    j or d: day\n");
+        PRINTF("    h: hour\n");
+        PRINTF("    mn: minute\n");
+        PRINTF("    s: second\n");
+        PRINTF("  <example> banadd testname +1m-2mn1s-6y\n");
+        PRINTF("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
+        PRINTF("            and 6 years at the same time.\n");
+        LADMIN_LOG("No adjustment isn't an adjustment ('banadd' command).\n");
         return 137;
     }
     if (year > 127 || year < -127)
     {
-        printf("Please give a correct adjustment for the years (from -127 to 127).\n");
-        ladmin_log("Abnormal adjustement for the year ('banadd' command).\n");
+        PRINTF("Please give a correct adjustment for the years (from -127 to 127).\n");
+        LADMIN_LOG("Abnormal adjustement for the year ('banadd' command).\n");
         return 137;
     }
     if (month > 255 || month < -255)
     {
-        printf("Please give a correct adjustment for the months (from -255 to 255).\n");
-        ladmin_log("Abnormal adjustement for the month ('banadd' command).\n");
+        PRINTF("Please give a correct adjustment for the months (from -255 to 255).\n");
+        LADMIN_LOG("Abnormal adjustement for the month ('banadd' command).\n");
         return 137;
     }
     if (day > 32767 || day < -32767)
     {
-        printf("Please give a correct adjustment for the days (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the days ('banadd' command).\n");
+        PRINTF("Please give a correct adjustment for the days (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the days ('banadd' command).\n");
         return 137;
     }
     if (hour > 32767 || hour < -32767)
     {
-        printf("Please give a correct adjustment for the hours (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the hours ('banadd' command).\n");
+        PRINTF("Please give a correct adjustment for the hours (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the hours ('banadd' command).\n");
         return 137;
     }
     if (minute > 32767 || minute < -32767)
     {
-        printf("Please give a correct adjustment for the minutes (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the minutes ('banadd' command).\n");
+        PRINTF("Please give a correct adjustment for the minutes (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the minutes ('banadd' command).\n");
         return 137;
     }
     if (second > 32767 || second < -32767)
     {
-        printf("Please give a correct adjustment for the seconds (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the seconds ('banadd' command).\n");
+        PRINTF("Please give a correct adjustment for the seconds (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the seconds ('banadd' command).\n");
         return 137;
     }
 
-    ladmin_log("Request to login-server to modify a ban date/time.\n");
+    LADMIN_LOG("Request to login-server to modify a ban date/time.\n");
 
     WFIFOW(login_fd, 0) = 0x794c;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1162,9 +1144,9 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
           sscanf(date, "%d.%d.%d", &year, &month, &day) < 3) ||
          sscanf(time, "%d:%d:%d", &hour, &minute, &second) < 3))
     {
-        printf("Please input a date and a time (format: yyyy/mm/dd hh:mm:ss).\n");
-        printf("You can imput 0 instead of if you use 'banset' command.\n");
-        ladmin_log("Invalid format for the date/time ('banset' or 'ban' command).\n");
+        PRINTF("Please input a date and a time (format: yyyy/mm/dd hh:mm:ss).\n");
+        PRINTF("You can imput 0 instead of if you use 'banset' command.\n");
+        LADMIN_LOG("Invalid format for the date/time ('banset' or 'ban' command).\n");
         return 102;
     }
 
@@ -1184,41 +1166,41 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
         }
         if (month < 1 || month > 12)
         {
-            printf("Please give a correct value for the month (from 1 to 12).\n");
-            ladmin_log("Invalid month for the date ('banset' or 'ban' command).\n");
+            PRINTF("Please give a correct value for the month (from 1 to 12).\n");
+            LADMIN_LOG("Invalid month for the date ('banset' or 'ban' command).\n");
             return 102;
         }
         month = month - 1;
         if (day < 1 || day > 31)
         {
-            printf("Please give a correct value for the day (from 1 to 31).\n");
-            ladmin_log("Invalid day for the date ('banset' or 'ban' command).\n");
+            PRINTF("Please give a correct value for the day (from 1 to 31).\n");
+            LADMIN_LOG("Invalid day for the date ('banset' or 'ban' command).\n");
             return 102;
         }
         if (((month == 3 || month == 5 || month == 8 || month == 10)
              && day > 30) ||(month == 1 && day > 29))
         {
-            printf("Please give a correct value for a day of this month (%d).\n",
+            PRINTF("Please give a correct value for a day of this month (%d).\n",
                  month);
-            ladmin_log("Invalid day for this month ('banset' or 'ban' command).\n");
+            LADMIN_LOG("Invalid day for this month ('banset' or 'ban' command).\n");
             return 102;
         }
         if (hour < 0 || hour > 23)
         {
-            printf("Please give a correct value for the hour (from 0 to 23).\n");
-            ladmin_log("Invalid hour for the time ('banset' or 'ban' command).\n");
+            PRINTF("Please give a correct value for the hour (from 0 to 23).\n");
+            LADMIN_LOG("Invalid hour for the time ('banset' or 'ban' command).\n");
             return 102;
         }
         if (minute < 0 || minute > 59)
         {
-            printf("Please give a correct value for the minutes (from 0 to 59).\n");
-            ladmin_log("Invalid minute for the time ('banset' or 'ban' command).\n");
+            PRINTF("Please give a correct value for the minutes (from 0 to 59).\n");
+            LADMIN_LOG("Invalid minute for the time ('banset' or 'ban' command).\n");
             return 102;
         }
         if (second < 0 || second > 59)
         {
-            printf("Please give a correct value for the seconds (from 0 to 59).\n");
-            ladmin_log("Invalid second for the time ('banset' or 'ban' command).\n");
+            PRINTF("Please give a correct value for the seconds (from 0 to 59).\n");
+            LADMIN_LOG("Invalid second for the time ('banset' or 'ban' command).\n");
             return 102;
         }
         tmtime->tm_year = year;
@@ -1231,15 +1213,15 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
         ban_until_time = timegm(tmtime);
         if (ban_until_time == -1)
         {
-            printf("Invalid date.\n");
-            printf("Please input a date and a time (format: yyyy/mm/dd hh:mm:ss).\n");
-            printf("You can imput 0 instead of if you use 'banset' command.\n");
-            ladmin_log("Invalid date. ('banset' or 'ban' command).\n");
+            PRINTF("Invalid date.\n");
+            PRINTF("Please input a date and a time (format: yyyy/mm/dd hh:mm:ss).\n");
+            PRINTF("You can imput 0 instead of if you use 'banset' command.\n");
+            LADMIN_LOG("Invalid date. ('banset' or 'ban' command).\n");
             return 102;
         }
     }
 
-    ladmin_log("Request to login-server to set a ban.\n");
+    LADMIN_LOG("Request to login-server to set a ban.\n");
 
     WFIFOW(login_fd, 0) = 0x794a;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1266,13 +1248,13 @@ int banaccount(const char *param)
         sscanf(param, "%s %s '%[^']'", date, time, name) < 3 &&
         sscanf(param, "%s %s %[^\r\n]", date, time, name) < 3)
     {
-        printf("Please input an account name, a date and a hour.\n");
-        printf("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
-        printf("           banset <account_name> 0   (0 = un-banished)\n");
-        printf("           ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
-        printf("           unban/unbanish <account name>\n");
-        printf("           Default time [hh:mm:ss]: 23:59:59.\n");
-        ladmin_log("Incomplete parameters to set a ban ('banset' or 'ban' command).\n");
+        PRINTF("Please input an account name, a date and a hour.\n");
+        PRINTF("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
+        PRINTF("           banset <account_name> 0   (0 = un-banished)\n");
+        PRINTF("           ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
+        PRINTF("           unban/unbanish <account name>\n");
+        PRINTF("           Default time [hh:mm:ss]: 23:59:59.\n");
+        LADMIN_LOG("Incomplete parameters to set a ban ('banset' or 'ban' command).\n");
         return 136;
     }
 
@@ -1295,13 +1277,13 @@ int bansetaccount(const char *param)
         sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time) < 2 &&  // if date = 0, time can be void
         sscanf(param, "%s %s %[^\r\n]", name, date, time) < 2)
     {                           // if date = 0, time can be void
-        printf("Please input an account name, a date and a hour.\n");
-        printf("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
-        printf("           banset <account_name> 0   (0 = un-banished)\n");
-        printf("           ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
-        printf("           unban/unbanish <account name>\n");
-        printf("           Default time [hh:mm:ss]: 23:59:59.\n");
-        ladmin_log("Incomplete parameters to set a ban ('banset' or 'ban' command).\n");
+        PRINTF("Please input an account name, a date and a hour.\n");
+        PRINTF("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
+        PRINTF("           banset <account_name> 0   (0 = un-banished)\n");
+        PRINTF("           ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
+        PRINTF("           unban/unbanish <account name>\n");
+        PRINTF("           Default time [hh:mm:ss]: 23:59:59.\n");
+        LADMIN_LOG("Incomplete parameters to set a ban ('banset' or 'ban' command).\n");
         return 136;
     }
 
@@ -1326,13 +1308,13 @@ int unbanaccount(const char *param)
          sscanf(param, "'%[^']'", name) < 1 &&
          sscanf(param, "%[^\r\n]", name) < 1) || strlen(name) == 0)
     {
-        printf("Please input an account name.\n");
-        printf("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
-        printf("           banset <account_name> 0   (0 = un-banished)\n");
-        printf("           ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
-        printf("           unban/unbanish <account name>\n");
-        printf("           Default time [hh:mm:ss]: 23:59:59.\n");
-        ladmin_log("Incomplete parameters to set a ban ('unban' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
+        PRINTF("           banset <account_name> 0   (0 = un-banished)\n");
+        PRINTF("           ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
+        PRINTF("           unban/unbanish <account name>\n");
+        PRINTF("           Default time [hh:mm:ss]: 23:59:59.\n");
+        LADMIN_LOG("Incomplete parameters to set a ban ('unban' command).\n");
         return 136;
     }
 
@@ -1355,9 +1337,9 @@ int checkaccount(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, password) < 1 &&   // password can be void
         sscanf(param, "%s %[^\r\n]", name, password) < 1)
     {                           // password can be void
-        printf("Please input an account name.\n");
-        printf("<example> check testname password\n");
-        ladmin_log("Incomplete parameters to check the password of an account ('check' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<example> check testname password\n");
+        LADMIN_LOG("Incomplete parameters to check the password of an account ('check' command).\n");
         return 136;
     }
 
@@ -1374,7 +1356,7 @@ int checkaccount(const char *param)
     if (verify_password(password) == 0)
         return 131;
 
-    ladmin_log("Request to login-server to check a password.\n");
+    LADMIN_LOG("Request to login-server to check a password.\n");
 
     WFIFOW(login_fd, 0) = 0x793a;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1403,9 +1385,9 @@ int delaccount(const char *param)
          sscanf(param, "'%[^']'", name) < 1 &&
          sscanf(param, "%[^\r\n]", name) < 1) || strlen(name) == 0)
     {
-        printf("Please input an account name.\n");
-        printf("<example> del testnametodelete\n");
-        ladmin_log("No name given to delete an account ('delete' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<example> del testnametodelete\n");
+        LADMIN_LOG("No name given to delete an account ('delete' command).\n");
         return 136;
     }
 
@@ -1418,7 +1400,7 @@ int delaccount(const char *param)
     while (confirm[0] != 'n'
            && confirm[0] != 'y')
     {
-        printf("\033[1;36m ** Are you really sure to DELETE account [$userid]? (y/n) > \033[0m");
+        PRINTF("\033[1;36m ** Are you really sure to DELETE account [$userid]? (y/n) > \033[0m");
         fflush(stdout);
         memset(confirm, '\0', sizeof(confirm));
         i = 0;
@@ -1428,12 +1410,12 @@ int delaccount(const char *param)
 
     if (confirm[0] == 'n')
     {
-        printf("Deletion canceled.\n");
-        ladmin_log("Deletion canceled by user ('delete' command).\n");
+        PRINTF("Deletion canceled.\n");
+        LADMIN_LOG("Deletion canceled by user ('delete' command).\n");
         return 121;
     }
 
-    ladmin_log("Request to login-server to delete an acount.\n");
+    LADMIN_LOG("Request to login-server to delete an acount.\n");
 
     WFIFOW(login_fd, 0) = 0x7932;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1458,9 +1440,9 @@ int changeemail(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, email) < 2 &&
         sscanf(param, "%s %[^\r\n]", name, email) < 2)
     {
-        printf("Please input an account name and an email.\n");
-        printf("<example> email testname newemail\n");
-        ladmin_log("Incomplete parameters to change the email of an account ('email' command).\n");
+        PRINTF("Please input an account name and an email.\n");
+        PRINTF("<example> email testname newemail\n");
+        LADMIN_LOG("Incomplete parameters to change the email of an account ('email' command).\n");
         return 136;
     }
 
@@ -1471,30 +1453,30 @@ int changeemail(const char *param)
 
     if (strlen(email) < 3)
     {
-        printf("Email is too short [%s]. Please input a valid e-mail.\n",
+        PRINTF("Email is too short [%s]. Please input a valid e-mail.\n",
                 email);
-        ladmin_log("Email is too short [%s]. Please input a valid e-mail.\n",
+        LADMIN_LOG("Email is too short [%s]. Please input a valid e-mail.\n",
               email);
         return 109;
     }
     if (strlen(email) > 39)
     {
-        printf("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
+        PRINTF("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
              email);
-        ladmin_log("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
+        LADMIN_LOG("Email is too long [%s]. Please input an e-mail with 39 bytes at the most.\n",
               email);
         return 109;
     }
     if (e_mail_check(email) == 0)
     {
-        printf("Invalid email [%s]. Please input a valid e-mail.\n",
+        PRINTF("Invalid email [%s]. Please input a valid e-mail.\n",
                 email);
-        ladmin_log("Invalid email [%s]. Please input a valid e-mail.\n",
+        LADMIN_LOG("Invalid email [%s]. Please input a valid e-mail.\n",
                      email);
         return 109;
     }
 
-    ladmin_log("Request to login-server to change an email.\n");
+    LADMIN_LOG("Request to login-server to change an email.\n");
 
     WFIFOW(login_fd, 0) = 0x7940;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1511,7 +1493,7 @@ int changeemail(const char *param)
 static
 int getlogincount(void)
 {
-    ladmin_log("Request to login-server to obtain the # of online players.\n");
+    LADMIN_LOG("Request to login-server to obtain the # of online players.\n");
 
     WFIFOW(login_fd, 0) = 0x7938;
     WFIFOSET(login_fd, 2);
@@ -1536,9 +1518,9 @@ int changegmlevel(const char *param)
         sscanf(param, "'%[^']' %d", name, &GM_level) < 1 &&
         sscanf(param, "%s %d", name, &GM_level) < 1)
     {
-        printf("Please input an account name and a GM level.\n");
-        printf("<example> gm testname 80\n");
-        ladmin_log("Incomplete parameters to change the GM level of an account ('gm' command).\n");
+        PRINTF("Please input an account name and a GM level.\n");
+        PRINTF("<example> gm testname 80\n");
+        LADMIN_LOG("Incomplete parameters to change the GM level of an account ('gm' command).\n");
         return 136;
     }
 
@@ -1549,14 +1531,14 @@ int changegmlevel(const char *param)
 
     if (GM_level < 0 || GM_level > 99)
     {
-        printf("Illegal GM level [%d]. Please input a value from 0 to 99.\n",
+        PRINTF("Illegal GM level [%d]. Please input a value from 0 to 99.\n",
              GM_level);
-        ladmin_log("Illegal GM level [%d]. The value can be from 0 to 99.\n",
+        LADMIN_LOG("Illegal GM level [%d]. The value can be from 0 to 99.\n",
               GM_level);
         return 103;
     }
 
-    ladmin_log("Request to login-server to change a GM level.\n");
+    LADMIN_LOG("Request to login-server to change a GM level.\n");
 
     WFIFOW(login_fd, 0) = 0x793e;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1582,9 +1564,9 @@ int idaccount(const char *param)
          sscanf(param, "'%[^']'", name) < 1 &&
          sscanf(param, "%[^\r\n]", name) < 1) || strlen(name) == 0)
     {
-        printf("Please input an account name.\n");
-        printf("<example> id testname\n");
-        ladmin_log("No name given to search an account id ('id' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<example> id testname\n");
+        LADMIN_LOG("No name given to search an account id ('id' command).\n");
         return 136;
     }
 
@@ -1593,7 +1575,7 @@ int idaccount(const char *param)
         return 102;
     }
 
-    ladmin_log("Request to login-server to know an account id.\n");
+    LADMIN_LOG("Request to login-server to know an account id.\n");
 
     WFIFOW(login_fd, 0) = 0x7944;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1611,12 +1593,12 @@ int infoaccount(int account_id)
 {
     if (account_id < 0)
     {
-        printf("Please input a positive value for the id.\n");
-        ladmin_log("Negative value was given to found the account.\n");
+        PRINTF("Please input a positive value for the id.\n");
+        LADMIN_LOG("Negative value was given to found the account.\n");
         return 136;
     }
 
-    ladmin_log("Request to login-server to obtain information about an account (by its id).\n");
+    LADMIN_LOG("Request to login-server to obtain information about an account (by its id).\n");
 
     WFIFOW(login_fd, 0) = 0x7954;
     WFIFOL(login_fd, 2) = account_id;
@@ -1634,16 +1616,16 @@ int sendbroadcast(short type, const char *message)
 {
     if (strlen(message) == 0)
     {
-        printf("Please input a message.\n");
+        PRINTF("Please input a message.\n");
         if (type == 0)
         {
-            printf("<example> kami a message\n");
+            PRINTF("<example> kami a message\n");
         }
         else
         {
-            printf("<example> kamib a message\n");
+            PRINTF("<example> kamib a message\n");
         }
-        ladmin_log("The message is void ('kami(b)' command).\n");
+        LADMIN_LOG("The message is void ('kami(b)' command).\n");
         return 136;
     }
 
@@ -1710,7 +1692,7 @@ int listaccount(char *param, int type)
         }
     }
 
-    ladmin_log("Request to login-server to obtain the list of accounts from %d to %d.\n",
+    LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d.\n",
           list_first, list_last);
 
     WFIFOW(login_fd, 0) = 0x7920;
@@ -1737,7 +1719,7 @@ int itemfrob(const char *param)
 
     if (sscanf(param, "%d %d", &source_id, &dest_id) < 2)
     {
-        printf("You must provide the source and destination item IDs.\n");
+        PRINTF("You must provide the source and destination item IDs.\n");
         return 1;
     }
 
@@ -1765,9 +1747,9 @@ int changememo(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, memo) < 1 &&   // memo can be void
         sscanf(param, "%s %[^\r\n]", name, memo) < 1)
     {                           // memo can be void
-        printf("Please input an account name and a memo.\n");
-        printf("<example> memo testname new memo\n");
-        ladmin_log("Incomplete parameters to change the memo of an account ('email' command).\n");
+        PRINTF("Please input an account name and a memo.\n");
+        PRINTF("<example> memo testname new memo\n");
+        LADMIN_LOG("Incomplete parameters to change the memo of an account ('email' command).\n");
         return 136;
     }
 
@@ -1778,14 +1760,14 @@ int changememo(const char *param)
 
     if (strlen(memo) > 254)
     {
-        printf("Memo is too long (%d characters).\n", strlen(memo));
-        printf("Please input a memo of 254 bytes at the maximum.\n");
-        ladmin_log("Email is too long (%d characters). Please input a memo of 254 bytes at the maximum.\n",
+        PRINTF("Memo is too long (%d characters).\n", strlen(memo));
+        PRINTF("Please input a memo of 254 bytes at the maximum.\n");
+        LADMIN_LOG("Email is too long (%d characters). Please input a memo of 254 bytes at the maximum.\n",
               strlen(memo));
         return 102;
     }
 
-    ladmin_log("Request to login-server to change a memo.\n");
+    LADMIN_LOG("Request to login-server to change a memo.\n");
 
     WFIFOW(login_fd, 0) = 0x7942;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1806,12 +1788,12 @@ int nameaccount(int id)
 {
     if (id < 0)
     {
-        printf("Please input a positive value for the id.\n");
-        ladmin_log("Negativ id given to search an account name ('name' command).\n");
+        PRINTF("Please input a positive value for the id.\n");
+        LADMIN_LOG("Negativ id given to search an account name ('name' command).\n");
         return 136;
     }
 
-    ladmin_log("Request to login-server to know an account name.\n");
+    LADMIN_LOG("Request to login-server to know an account name.\n");
 
     WFIFOW(login_fd, 0) = 0x7946;
     WFIFOL(login_fd, 2) = id;
@@ -1837,9 +1819,9 @@ int changepasswd(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, password) < 1 &&
         sscanf(param, "%s %[^\r\n]", name, password) < 1)
     {
-        printf("Please input an account name.\n");
-        printf("<example> passwd testname newpassword\n");
-        ladmin_log("Incomplete parameters to change the password of an account ('password' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<example> passwd testname newpassword\n");
+        LADMIN_LOG("Incomplete parameters to change the password of an account ('password' command).\n");
         return 136;
     }
 
@@ -1856,7 +1838,7 @@ int changepasswd(const char *param)
     if (verify_password(password) == 0)
         return 131;
 
-    ladmin_log("Request to login-server to change a password.\n");
+    LADMIN_LOG("Request to login-server to change a password.\n");
 
     WFIFOW(login_fd, 0) = 0x7934;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1878,9 +1860,9 @@ int reloadGM(char *params)
     WFIFOSET(login_fd, 2);
     bytes_to_read = 0;
 
-    ladmin_log("Request to reload the GM configuration file sended.\n");
-    printf("Request to reload the GM configuration file sended.\n");
-    printf("Check the actual GM accounts (after reloading):\n");
+    LADMIN_LOG("Request to reload the GM configuration file sended.\n");
+    PRINTF("Request to reload the GM configuration file sended.\n");
+    PRINTF("Check the actual GM accounts (after reloading):\n");
     listaccount(params, 1);    // 1: to list only GM
 
     return 180;
@@ -1901,9 +1883,9 @@ int changesex(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, sex) < 2 &&
         sscanf(param, "%s %[^\r\n]", name, sex) < 2)
     {
-        printf("Please input an account name and a sex.\n");
-        printf("<example> sex testname Male\n");
-        ladmin_log("Incomplete parameters to change the sex of an account ('sex' command).\n");
+        PRINTF("Please input an account name and a sex.\n");
+        PRINTF("<example> sex testname Male\n");
+        LADMIN_LOG("Incomplete parameters to change the sex of an account ('sex' command).\n");
         return 136;
     }
 
@@ -1915,13 +1897,13 @@ int changesex(const char *param)
     sex[0] = toupper(sex[0]);
     if (strchr("MF", sex[0]) == NULL)
     {
-        printf("Illegal gender [%s]. Please input M or F.\n", sex);
-        ladmin_log("Illegal gender [%s]. Please input M or F.\n",
+        PRINTF("Illegal gender [%s]. Please input M or F.\n", sex);
+        LADMIN_LOG("Illegal gender [%s]. Please input M or F.\n",
                     sex);
         return 103;
     }
 
-    ladmin_log("Request to login-server to change a sex.\n");
+    LADMIN_LOG("Request to login-server to change a sex.\n");
 
     WFIFOW(login_fd, 0) = 0x793c;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -1946,18 +1928,18 @@ int changestatesub(const char *name, int state, const char *error_message7)
 
     if ((state < 0 || state > 9) && state != 100)
     {                           // Valid values: 0: ok, or value of the 0x006a packet + 1
-        printf("Please input one of these states:\n");
-        printf("  0 = Account ok            6 = Your Game's EXE file is not the latest version\n");
-        printf("  1 = Unregistered ID       7 = You are Prohibited to log in until + message\n");
-        printf("  2 = Incorrect Password    8 = Server is jammed due to over populated\n");
-        printf("  3 = This ID is expired    9 = No MSG\n");
-        printf("  4 = Rejected from Server  100 = This ID has been totally erased\n");
-        printf("  5 = You have been blocked by the GM Team\n");
-        printf("<examples> state testname 5\n");
-        printf("           state testname 7 end of your ban\n");
-        printf("           block <account name>\n");
-        printf("           unblock <account name>\n");
-        ladmin_log("Invalid value for the state of an account ('state', 'block' or 'unblock' command).\n");
+        PRINTF("Please input one of these states:\n");
+        PRINTF("  0 = Account ok            6 = Your Game's EXE file is not the latest version\n");
+        PRINTF("  1 = Unregistered ID       7 = You are Prohibited to log in until + message\n");
+        PRINTF("  2 = Incorrect Password    8 = Server is jammed due to over populated\n");
+        PRINTF("  3 = This ID is expired    9 = No MSG\n");
+        PRINTF("  4 = Rejected from Server  100 = This ID has been totally erased\n");
+        PRINTF("  5 = You have been blocked by the GM Team\n");
+        PRINTF("<examples> state testname 5\n");
+        PRINTF("           state testname 7 end of your ban\n");
+        PRINTF("           block <account name>\n");
+        PRINTF("           unblock <account name>\n");
+        LADMIN_LOG("Invalid value for the state of an account ('state', 'block' or 'unblock' command).\n");
         return 151;
     }
 
@@ -1974,19 +1956,19 @@ int changestatesub(const char *name, int state, const char *error_message7)
     {
         if (strlen(error_message) < 1)
         {
-            printf("Error message is too short. Please input a message of 1-19 bytes.\n");
-            ladmin_log("Error message is too short. Please input a message of 1-19 bytes.\n");
+            PRINTF("Error message is too short. Please input a message of 1-19 bytes.\n");
+            LADMIN_LOG("Error message is too short. Please input a message of 1-19 bytes.\n");
             return 102;
         }
         if (strlen(error_message) > 19)
         {
-            printf("Error message is too long. Please input a message of 1-19 bytes.\n");
-            ladmin_log("Error message is too long. Please input a message of 1-19 bytes.\n");
+            PRINTF("Error message is too long. Please input a message of 1-19 bytes.\n");
+            LADMIN_LOG("Error message is too long. Please input a message of 1-19 bytes.\n");
             return 102;
         }
     }
 
-    ladmin_log("Request to login-server to change a state.\n");
+    LADMIN_LOG("Request to login-server to change a state.\n");
 
     WFIFOW(login_fd, 0) = 0x7936;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -2016,12 +1998,12 @@ int changestate(const char *param)
                    error_message) < 2
         && sscanf(param, "%s %d %[^\r\n]", name, &state, error_message) < 2)
     {
-        printf("Please input an account name and a state.\n");
-        printf("<examples> state testname 5\n");
-        printf("           state testname 7 end of your ban\n");
-        printf("           block <account name>\n");
-        printf("           unblock <account name>\n");
-        ladmin_log("Incomplete parameters to change the state of an account ('state' command).\n");
+        PRINTF("Please input an account name and a state.\n");
+        PRINTF("<examples> state testname 5\n");
+        PRINTF("           state testname 7 end of your ban\n");
+        PRINTF("           block <account name>\n");
+        PRINTF("           unblock <account name>\n");
+        LADMIN_LOG("Incomplete parameters to change the state of an account ('state' command).\n");
         return 136;
     }
 
@@ -2043,12 +2025,12 @@ int unblockaccount(const char *param)
          sscanf(param, "'%[^']'", name) < 1 &&
          sscanf(param, "%[^\r\n]", name) < 1) || strlen(name) == 0)
     {
-        printf("Please input an account name.\n");
-        printf("<examples> state testname 5\n");
-        printf("           state testname 7 end of your ban\n");
-        printf("           block <account name>\n");
-        printf("           unblock <account name>\n");
-        ladmin_log("Incomplete parameters to change the state of an account ('unblock' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<examples> state testname 5\n");
+        PRINTF("           state testname 7 end of your ban\n");
+        PRINTF("           block <account name>\n");
+        PRINTF("           unblock <account name>\n");
+        LADMIN_LOG("Incomplete parameters to change the state of an account ('unblock' command).\n");
         return 136;
     }
 
@@ -2070,12 +2052,12 @@ int blockaccount(const char *param)
          sscanf(param, "'%[^']'", name) < 1 &&
          sscanf(param, "%[^\r\n]", name) < 1) || strlen(name) == 0)
     {
-        printf("Please input an account name.\n");
-        printf("<examples> state testname 5\n");
-        printf("           state testname 7 end of your ban\n");
-        printf("           block <account name>\n");
-        printf("           unblock <account name>\n");
-        ladmin_log("Incomplete parameters to change the state of an account ('block' command).\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<examples> state testname 5\n");
+        PRINTF("           state testname 7 end of your ban\n");
+        PRINTF("           block <account name>\n");
+        PRINTF("           unblock <account name>\n");
+        LADMIN_LOG("Incomplete parameters to change the state of an account ('block' command).\n");
         return 136;
     }
 
@@ -2101,11 +2083,11 @@ int timeaddaccount(const char *param)
         sscanf(param, "'%[^']' %[^\r\n]", name, modif) < 2 &&
         sscanf(param, "%s %[^\r\n]", name, modif) < 2)
     {
-        printf("Please input an account name and a modifier.\n");
-        printf("  <example>: timeadd testname +1m-2mn1s-6y\n");
-        printf("             this example adds 1 month and 1 second, and substracts 2 minutes\n");
-        printf("             and 6 years at the same time.\n");
-        ladmin_log("Incomplete parameters to modify a limit time ('timeadd' command).\n");
+        PRINTF("Please input an account name and a modifier.\n");
+        PRINTF("  <example>: timeadd testname +1m-2mn1s-6y\n");
+        PRINTF("             this example adds 1 month and 1 second, and substracts 2 minutes\n");
+        PRINTF("             and 6 years at the same time.\n");
+        LADMIN_LOG("Incomplete parameters to modify a limit time ('timeadd' command).\n");
         return 136;
     }
     if (verify_accountname(name) == 0)
@@ -2170,69 +2152,69 @@ int timeaddaccount(const char *param)
         }
     }
 
-    printf(" year:   %d\n", year);
-    printf(" month:  %d\n", month);
-    printf(" day:    %d\n", day);
-    printf(" hour:   %d\n", hour);
-    printf(" minute: %d\n", minute);
-    printf(" second: %d\n", second);
+    PRINTF(" year:   %d\n", year);
+    PRINTF(" month:  %d\n", month);
+    PRINTF(" day:    %d\n", day);
+    PRINTF(" hour:   %d\n", hour);
+    PRINTF(" minute: %d\n", minute);
+    PRINTF(" second: %d\n", second);
 
     if (year == 0 && month == 0 && day == 0 && hour == 0 && minute == 0
         && second == 0)
     {
-        printf("Please give an adjustment with this command:\n");
-        printf("  Adjustment value (-1, 1, +1, etc...)\n");
-        printf("  Modified element:\n");
-        printf("    a or y: year\n");
-        printf("    m:      month\n");
-        printf("    j or d: day\n");
-        printf("    h:      hour\n");
-        printf("    mn:     minute\n");
-        printf("    s:      second\n");
-        printf("  <example> timeadd testname +1m-2mn1s-6y\n");
-        printf("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
-        printf("            and 6 years at the same time.\n");
-        ladmin_log("No adjustment isn't an adjustment ('timeadd' command).\n");
+        PRINTF("Please give an adjustment with this command:\n");
+        PRINTF("  Adjustment value (-1, 1, +1, etc...)\n");
+        PRINTF("  Modified element:\n");
+        PRINTF("    a or y: year\n");
+        PRINTF("    m:      month\n");
+        PRINTF("    j or d: day\n");
+        PRINTF("    h:      hour\n");
+        PRINTF("    mn:     minute\n");
+        PRINTF("    s:      second\n");
+        PRINTF("  <example> timeadd testname +1m-2mn1s-6y\n");
+        PRINTF("            this example adds 1 month and 1 second, and substracts 2 minutes\n");
+        PRINTF("            and 6 years at the same time.\n");
+        LADMIN_LOG("No adjustment isn't an adjustment ('timeadd' command).\n");
         return 137;
     }
     if (year > 127 || year < -127)
     {
-        printf("Please give a correct adjustment for the years (from -127 to 127).\n");
-        ladmin_log("Abnormal adjustement for the year ('timeadd' command).\n");
+        PRINTF("Please give a correct adjustment for the years (from -127 to 127).\n");
+        LADMIN_LOG("Abnormal adjustement for the year ('timeadd' command).\n");
         return 137;
     }
     if (month > 255 || month < -255)
     {
-        printf("Please give a correct adjustment for the months (from -255 to 255).\n");
-        ladmin_log("Abnormal adjustement for the month ('timeadd' command).\n");
+        PRINTF("Please give a correct adjustment for the months (from -255 to 255).\n");
+        LADMIN_LOG("Abnormal adjustement for the month ('timeadd' command).\n");
         return 137;
     }
     if (day > 32767 || day < -32767)
     {
-        printf("Please give a correct adjustment for the days (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the days ('timeadd' command).\n");
+        PRINTF("Please give a correct adjustment for the days (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the days ('timeadd' command).\n");
         return 137;
     }
     if (hour > 32767 || hour < -32767)
     {
-        printf("Please give a correct adjustment for the hours (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the hours ('timeadd' command).\n");
+        PRINTF("Please give a correct adjustment for the hours (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the hours ('timeadd' command).\n");
         return 137;
     }
     if (minute > 32767 || minute < -32767)
     {
-        printf("Please give a correct adjustment for the minutes (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the minutes ('timeadd' command).\n");
+        PRINTF("Please give a correct adjustment for the minutes (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the minutes ('timeadd' command).\n");
         return 137;
     }
     if (second > 32767 || second < -32767)
     {
-        printf("Please give a correct adjustment for the seconds (from -32767 to 32767).\n");
-        ladmin_log("Abnormal adjustement for the seconds ('timeadd' command).\n");
+        PRINTF("Please give a correct adjustment for the seconds (from -32767 to 32767).\n");
+        LADMIN_LOG("Abnormal adjustement for the seconds ('timeadd' command).\n");
         return 137;
     }
 
-    ladmin_log("Request to login-server to modify a time limit.\n");
+    LADMIN_LOG("Request to login-server to modify a time limit.\n");
 
     WFIFOW(login_fd, 0) = 0x7950;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -2270,11 +2252,11 @@ int timesetaccount(const char *param)
         sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time) < 2 &&  // if date = 0, time can be void
         sscanf(param, "%s %s %[^\r\n]", name, date, time) < 2)
     {                           // if date = 0, time can be void
-        printf("Please input an account name, a date and a hour.\n");
-        printf("<example>: timeset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
-        printf("           timeset <account_name> 0   (0 = unlimited)\n");
-        printf("           Default time [hh:mm:ss]: 23:59:59.\n");
-        ladmin_log("Incomplete parameters to set a limit time ('timeset' command).\n");
+        PRINTF("Please input an account name, a date and a hour.\n");
+        PRINTF("<example>: timeset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
+        PRINTF("           timeset <account_name> 0   (0 = unlimited)\n");
+        PRINTF("           Default time [hh:mm:ss]: 23:59:59.\n");
+        LADMIN_LOG("Incomplete parameters to set a limit time ('timeset' command).\n");
         return 136;
     }
     if (verify_accountname(name) == 0)
@@ -2292,8 +2274,8 @@ int timesetaccount(const char *param)
           sscanf(date, "%d'%d'%d", &year, &month, &day) < 3) ||
          sscanf(time, "%d:%d:%d", &hour, &minute, &second) < 3))
     {
-        printf("Please input 0 or a date and a time (format: 0 or yyyy/mm/dd hh:mm:ss).\n");
-        ladmin_log("Invalid format for the date/time ('timeset' command).\n");
+        PRINTF("Please input 0 or a date and a time (format: 0 or yyyy/mm/dd hh:mm:ss).\n");
+        LADMIN_LOG("Invalid format for the date/time ('timeset' command).\n");
         return 102;
     }
 
@@ -2313,41 +2295,41 @@ int timesetaccount(const char *param)
         }
         if (month < 1 || month > 12)
         {
-            printf("Please give a correct value for the month (from 1 to 12).\n");
-            ladmin_log("Invalid month for the date ('timeset' command).\n");
+            PRINTF("Please give a correct value for the month (from 1 to 12).\n");
+            LADMIN_LOG("Invalid month for the date ('timeset' command).\n");
             return 102;
         }
         month = month - 1;
         if (day < 1 || day > 31)
         {
-            printf("Please give a correct value for the day (from 1 to 31).\n");
-            ladmin_log("Invalid day for the date ('timeset' command).\n");
+            PRINTF("Please give a correct value for the day (from 1 to 31).\n");
+            LADMIN_LOG("Invalid day for the date ('timeset' command).\n");
             return 102;
         }
         if (((month == 3 || month == 5 || month == 8 || month == 10)
              && day > 30) ||(month == 1 && day > 29))
         {
-            printf("Please give a correct value for a day of this month (%d).\n",
+            PRINTF("Please give a correct value for a day of this month (%d).\n",
                  month);
-            ladmin_log("Invalid day for this month ('timeset' command).\n");
+            LADMIN_LOG("Invalid day for this month ('timeset' command).\n");
             return 102;
         }
         if (hour < 0 || hour > 23)
         {
-            printf("Please give a correct value for the hour (from 0 to 23).\n");
-            ladmin_log("Invalid hour for the time ('timeset' command).\n");
+            PRINTF("Please give a correct value for the hour (from 0 to 23).\n");
+            LADMIN_LOG("Invalid hour for the time ('timeset' command).\n");
             return 102;
         }
         if (minute < 0 || minute > 59)
         {
-            printf("Please give a correct value for the minutes (from 0 to 59).\n");
-            ladmin_log("Invalid minute for the time ('timeset' command).\n");
+            PRINTF("Please give a correct value for the minutes (from 0 to 59).\n");
+            LADMIN_LOG("Invalid minute for the time ('timeset' command).\n");
             return 102;
         }
         if (second < 0 || second > 59)
         {
-            printf("Please give a correct value for the seconds (from 0 to 59).\n");
-            ladmin_log("Invalid second for the time ('timeset' command).\n");
+            PRINTF("Please give a correct value for the seconds (from 0 to 59).\n");
+            LADMIN_LOG("Invalid second for the time ('timeset' command).\n");
             return 102;
         }
         tmtime->tm_year = year;
@@ -2360,14 +2342,14 @@ int timesetaccount(const char *param)
         connect_until_time = timegm(tmtime);
         if (connect_until_time == -1)
         {
-            printf("Invalid date.\n");
-            printf("Please add 0 or a date and a time (format: 0 or yyyy/mm/dd hh:mm:ss).\n");
-            ladmin_log("Invalid date. ('timeset' command).\n");
+            PRINTF("Invalid date.\n");
+            PRINTF("Please add 0 or a date and a time (format: 0 or yyyy/mm/dd hh:mm:ss).\n");
+            LADMIN_LOG("Invalid date. ('timeset' command).\n");
             return 102;
         }
     }
 
-    ladmin_log("Request to login-server to set a time limit.\n");
+    LADMIN_LOG("Request to login-server to set a time limit.\n");
 
     WFIFOW(login_fd, 0) = 0x7948;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -2393,9 +2375,9 @@ int whoaccount(const char *param)
          sscanf(param, "'%[^']'", name) < 1 &&
          sscanf(param, "%[^\r\n]", name) < 1) || strlen(name) == 0)
     {
-        printf("Please input an account name.\n");
-        printf("<example> who testname\n");
-        ladmin_log("No name was given to found the account.\n");
+        PRINTF("Please input an account name.\n");
+        PRINTF("<example> who testname\n");
+        LADMIN_LOG("No name was given to found the account.\n");
         return 136;
     }
     if (verify_accountname(name) == 0)
@@ -2403,7 +2385,7 @@ int whoaccount(const char *param)
         return 102;
     }
 
-    ladmin_log("Request to login-server to obtain information about an account (by its name).\n");
+    LADMIN_LOG("Request to login-server to obtain information about an account (by its name).\n");
 
     WFIFOW(login_fd, 0) = 0x7952;
     memcpy(WFIFOP(login_fd, 2), name, 24);
@@ -2419,7 +2401,7 @@ int whoaccount(const char *param)
 static
 int checkloginversion(void)
 {
-    ladmin_log("Request to login-server to obtain its version.\n");
+    LADMIN_LOG("Request to login-server to obtain its version.\n");
 
     WFIFOW(login_fd, 0) = 0x7530;
     WFIFOSET(login_fd, 2);
@@ -2444,7 +2426,7 @@ int prompt(void)
     while (bytes_to_read == 0)
     {
         // for help with the console colors look here:
-        // http://www.edoceo.com/liberum/?doc=printf-with-color
+        // http://www.edoceo.com/liberum/?doc=PRINTF-with-color
         // some code explanation (used here):
         // \033[2J : clear screen and go up/left (0, 0 position)
         // \033[K  : clear line from actual position to end of the line
@@ -2542,12 +2524,12 @@ int prompt(void)
 
         if (strlen(parameters) == 0)
         {
-            ladmin_log("Command: '%s' (without parameters)\n",
+            LADMIN_LOG("Command: '%s' (without parameters)\n",
                         command);
         }
         else
         {
-            ladmin_log("Command: '%s', parameters: '%s'\n",
+            LADMIN_LOG("Command: '%s', parameters: '%s'\n",
                         command, parameters);
         }
 
@@ -2695,14 +2677,14 @@ int prompt(void)
                  strcmp(command, "exit") == 0 ||
                  strcmp(command, "end") == 0)
         {
-            printf("Bye.\n");
+            PRINTF("Bye.\n");
             exit(0);
 // unknown command
         }
         else
         {
-            printf("Unknown command [%s].\n", buf);
-            ladmin_log("Unknown command [%s].\n", buf);
+            PRINTF("Unknown command [%s].\n", buf);
+            LADMIN_LOG("Unknown command [%s].\n", buf);
         }
     }
 
@@ -2717,16 +2699,16 @@ void parse_fromlogin(int fd)
 {
     if (session[fd]->eof)
     {
-        printf("Impossible to have a connection with the login-server [%s:%d] !\n",
+        PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n",
              loginserverip, loginserverport);
-        ladmin_log("Impossible to have a connection with the login-server [%s:%d] !\n",
+        LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n",
               loginserverip, loginserverport);
         close(fd);
         delete_session(fd);
         exit(0);
     }
 
-//  printf("parse_fromlogin : %d %d %d\n", fd, RFIFOREST(fd), RFIFOW(fd,0));
+//  PRINTF("parse_fromlogin : %d %d %d\n", fd, RFIFOREST(fd), RFIFOW(fd,0));
 
     while (RFIFOREST(fd) >= 2)
     {
@@ -2737,20 +2719,20 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOB(fd, 2) != 0)
                 {
-                    printf("Error at login:\n");
-                    printf(" - incorrect password,\n");
-                    printf(" - administration system not activated, or\n");
-                    printf(" - unauthorised IP.\n");
-                    ladmin_log("Error at login: incorrect password, administration system not activated, or unauthorised IP.\n");
+                    PRINTF("Error at login:\n");
+                    PRINTF(" - incorrect password,\n");
+                    PRINTF(" - administration system not activated, or\n");
+                    PRINTF(" - unauthorised IP.\n");
+                    LADMIN_LOG("Error at login: incorrect password, administration system not activated, or unauthorised IP.\n");
                     session[fd]->eof = 1;
                     //bytes_to_read = 1; // not stop at prompt
                 }
                 else
                 {
                     Iprintf("Established connection.\n");
-                    ladmin_log("Established connection.\n");
+                    LADMIN_LOG("Established connection.\n");
                     Iprintf("Reading of the version of the login-server...\n");
-                    ladmin_log("Reading of the version of the login-server...\n");
+                    LADMIN_LOG("Reading of the version of the login-server...\n");
                     //bytes_to_read = 1; // unchanged
                     checkloginversion();
                 }
@@ -2782,9 +2764,9 @@ void parse_fromlogin(int fd)
                     memcpy(WFIFOP(login_fd, 4), md5bin, 16);
                     WFIFOSET(login_fd, 20);
                     Iprintf("Receiving of the MD5 key.\n");
-                    ladmin_log("Receiving of the MD5 key.\n");
+                    LADMIN_LOG("Receiving of the MD5 key.\n");
                     Iprintf("Sending of the encrypted password...\n");
-                    ladmin_log("Sending of the encrypted password...\n");
+                    LADMIN_LOG("Sending of the encrypted password...\n");
                 }
                 bytes_to_read = 1;
                 RFIFOSKIP(fd, RFIFOW(fd, 2));
@@ -2829,7 +2811,7 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOW(fd, 2) < 5)
                 {
-                    ladmin_log("  Receiving of a void accounts list.\n");
+                    LADMIN_LOG("  Receiving of a void accounts list.\n");
                     if (list_count == 0)
                     {
                         Iprintf("No account found.\n");
@@ -2845,7 +2827,7 @@ void parse_fromlogin(int fd)
                 else
                 {
                     int i;
-                    ladmin_log("  Receiving of a accounts list.\n");
+                    LADMIN_LOG("  Receiving of a accounts list.\n");
                     for (i = 4; i < RFIFOW(fd, 2); i += 38)
                     {
                         int j;
@@ -2865,63 +2847,63 @@ void parse_fromlogin(int fd)
                             ||(list_type == 3 && RFIFOL(fd, i + 34) != 0)
                             ||(list_type == 4 && RFIFOL(fd, i + 34) == 0))
                         {
-                            printf("%10d ", RFIFOL(fd, i));
+                            PRINTF("%10d ", RFIFOL(fd, i));
                             if (RFIFOB(fd, i + 4) == 0)
-                                printf("   ");
+                                PRINTF("   ");
                             else
-                                printf("%2d ", (int) RFIFOB(fd, i + 4));
-                            printf("%-24s", userid);
+                                PRINTF("%2d ", (int) RFIFOB(fd, i + 4));
+                            PRINTF("%-24s", userid);
                             if (RFIFOB(fd, i + 29) == 0)
-                                printf("%-5s ", "Femal");
+                                PRINTF("%-5s ", "Femal");
                             else if (RFIFOB(fd, i + 29) == 1)
-                                printf("%-5s ", "Male");
+                                PRINTF("%-5s ", "Male");
                             else
-                                printf("%-5s ", "Servr");
-                            printf("%6d ", RFIFOL(fd, i + 30));
+                                PRINTF("%-5s ", "Servr");
+                            PRINTF("%6d ", RFIFOL(fd, i + 30));
                             switch (RFIFOL(fd, i + 34))
                             {
                                 case 0:
-                                    printf("%-27s\n", "Account OK");
+                                    PRINTF("%-27s\n", "Account OK");
                                     break;
                                 case 1:
-                                    printf("%-27s\n", "Unregistered ID");
+                                    PRINTF("%-27s\n", "Unregistered ID");
                                     break;
                                 case 2:
-                                    printf("%-27s\n", "Incorrect Password");
+                                    PRINTF("%-27s\n", "Incorrect Password");
                                     break;
                                 case 3:
-                                    printf("%-27s\n", "This ID is expired");
+                                    PRINTF("%-27s\n", "This ID is expired");
                                     break;
                                 case 4:
-                                    printf("%-27s\n",
+                                    PRINTF("%-27s\n",
                                             "Rejected from Server");
                                     break;
                                 case 5:
-                                    printf("%-27s\n", "Blocked by the GM Team");   // You have been blocked by the GM Team
+                                    PRINTF("%-27s\n", "Blocked by the GM Team");   // You have been blocked by the GM Team
                                     break;
                                 case 6:
-                                    printf("%-27s\n", "Your EXE file is too old"); // Your Game's EXE file is not the latest version
+                                    PRINTF("%-27s\n", "Your EXE file is too old"); // Your Game's EXE file is not the latest version
                                     break;
                                 case 7:
-                                    printf("%-27s\n", "Banishement or");
-                                    printf("                                                   Prohibited to login until...\n");   // You are Prohibited to log in until %s
+                                    PRINTF("%-27s\n", "Banishement or");
+                                    PRINTF("                                                   Prohibited to login until...\n");   // You are Prohibited to log in until %s
                                     break;
                                 case 8:
-                                    printf("%-27s\n",
+                                    PRINTF("%-27s\n",
                                             "Server is over populated");
                                     break;
                                 case 9:
-                                    printf("%-27s\n", "No MSG");
+                                    PRINTF("%-27s\n", "No MSG");
                                     break;
                                 default:   // 100
-                                    printf("%-27s\n", "This ID is totally erased");    // This ID has been totally erased
+                                    PRINTF("%-27s\n", "This ID is totally erased");    // This ID has been totally erased
                                     break;
                             }
                             list_count++;
                         }
                     }
                     // asking of the following acounts
-                    ladmin_log("Request to login-server to obtain the list of accounts from %d to %d (complement).\n",
+                    LADMIN_LOG("Request to login-server to obtain the list of accounts from %d to %d (complement).\n",
                           list_first, list_last);
                     WFIFOW(login_fd, 0) = 0x7920;
                     WFIFOL(login_fd, 2) = list_first;
@@ -2937,16 +2919,16 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] creation failed. Same account already exists.\n",
+                    PRINTF("Account [%s] creation failed. Same account already exists.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] creation failed. Same account already exists.\n",
+                    LADMIN_LOG("Account [%s] creation failed. Same account already exists.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s] is successfully created [id: %d].\n",
+                    PRINTF("Account [%s] is successfully created [id: %d].\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s] is successfully created [id: %d].\n",
+                    LADMIN_LOG("Account [%s] is successfully created [id: %d].\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -2958,16 +2940,16 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] deletion failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] deletion failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] deletion failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] deletion failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s][id: %d] is successfully DELETED.\n",
+                    PRINTF("Account [%s][id: %d] is successfully DELETED.\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s][id: %d] is successfully DELETED.\n",
+                    LADMIN_LOG("Account [%s][id: %d] is successfully DELETED.\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -2979,18 +2961,18 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] password changing failed.\n",
+                    PRINTF("Account [%s] password changing failed.\n",
                             RFIFOP(fd, 6));
-                    printf("Account [%s] doesn't exist.\n",
+                    PRINTF("Account [%s] doesn't exist.\n",
                             RFIFOP(fd, 6));
-                    ladmin_log("Account password changing failed. The compte [%s] doesn't exist.\n",
+                    LADMIN_LOG("Account password changing failed. The compte [%s] doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s][id: %d] password successfully changed.\n",
+                    PRINTF("Account [%s][id: %d] password successfully changed.\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s][id: %d] password successfully changed.\n",
+                    LADMIN_LOG("Account [%s][id: %d] password successfully changed.\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3002,60 +2984,55 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] state changing failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] state changing failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] state changing failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] state changing failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    char tmpstr[256];
-                    sprintf(tmpstr,
+                    std::string tmpstr = STRPRINTF(
                              "Account [%s] state successfully changed in [",
                              RFIFOP(fd, 6));
                     switch (RFIFOL(fd, 30))
                     {
                         case 0:
-                            strcat(tmpstr, "0: Account OK");
+                            tmpstr += "0: Account OK";
                             break;
                         case 1:
-                            strcat(tmpstr, "1: Unregistered ID");
+                            tmpstr += "1: Unregistered ID";
                             break;
                         case 2:
-                            strcat(tmpstr, "2: Incorrect Password");
+                            tmpstr += "2: Incorrect Password";
                             break;
                         case 3:
-                            strcat(tmpstr, "3: This ID is expired");
+                            tmpstr += "3: This ID is expired";
                             break;
                         case 4:
-                            strcat(tmpstr, "4: Rejected from Server");
+                            tmpstr += "4: Rejected from Server";
                             break;
                         case 5:
-                            strcat(tmpstr,
-                                    "5: You have been blocked by the GM Team");
+                            tmpstr += "5: You have been blocked by the GM Team";
                             break;
                         case 6:
-                            strcat(tmpstr,
-                                    "6: [Your Game's EXE file is not the latest version");
+                            tmpstr += "6: [Your Game's EXE file is not the latest version";
                             break;
                         case 7:
-                            strcat(tmpstr,
-                                    "7: You are Prohibited to log in until...");
+                            tmpstr += "7: You are Prohibited to log in until...";
                             break;
                         case 8:
-                            strcat(tmpstr,
-                                    "8: Server is jammed due to over populated");
+                            tmpstr += "8: Server is jammed due to over populated";
                             break;
                         case 9:
-                            strcat(tmpstr, "9: No MSG");
+                            tmpstr += "9: No MSG";
                             break;
                         default:   // 100
-                            strcat(tmpstr, "100: This ID is totally erased");
+                            tmpstr += "100: This ID is totally erased";
                             break;
                     }
-                    strcat(tmpstr, "]");
-                    printf("%s\n", tmpstr);
-                    ladmin_log("%s%s", tmpstr, "\n");
+                    tmpstr += ']';
+                    PRINTF("%s\n", tmpstr);
+                    LADMIN_LOG("%s\n", tmpstr);
                 }
                 bytes_to_read = 0;
                 RFIFOSKIP(fd, 34);
@@ -3068,21 +3045,21 @@ void parse_fromlogin(int fd)
                     // Get length of the received packet
                     int i;
                     char name[20];
-                    ladmin_log("  Receiving of the number of online players.\n");
+                    LADMIN_LOG("  Receiving of the number of online players.\n");
                     // Read information of the servers
                     if (RFIFOW(fd, 2) < 5)
                     {
-                        printf("  No server is connected to the login-server.\n");
+                        PRINTF("  No server is connected to the login-server.\n");
                     }
                     else
                     {
-                        printf("  Number of online players (server: number).\n");
+                        PRINTF("  Number of online players (server: number).\n");
                         // Displaying of result
                         for (i = 4; i < RFIFOW(fd, 2); i += 32)
                         {
                             memcpy(name, RFIFOP(fd, i + 6), sizeof(name));
                             name[sizeof(name) - 1] = '\0';
-                            printf("    %-20s : %5d\n", name,
+                            PRINTF("    %-20s : %5d\n", name,
                                     RFIFOW(fd, i + 26));
                         }
                     }
@@ -3096,16 +3073,16 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("The account [%s] doesn't exist or the password is incorrect.\n",
+                    PRINTF("The account [%s] doesn't exist or the password is incorrect.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("The account [%s] doesn't exist or the password is incorrect.\n",
+                    LADMIN_LOG("The account [%s] doesn't exist or the password is incorrect.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("The proposed password is correct for the account [%s][id: %d].\n",
+                    PRINTF("The proposed password is correct for the account [%s][id: %d].\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("The proposed password is correct for the account [%s][id: %d].\n",
+                    LADMIN_LOG("The proposed password is correct for the account [%s][id: %d].\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3117,18 +3094,18 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] sex changing failed.\n",
+                    PRINTF("Account [%s] sex changing failed.\n",
                             RFIFOP(fd, 6));
-                    printf("Account [%s] doesn't exist or the sex is already the good sex.\n",
+                    PRINTF("Account [%s] doesn't exist or the sex is already the good sex.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account sex changing failed. The compte [%s] doesn't exist or the sex is already the good sex.\n",
+                    LADMIN_LOG("Account sex changing failed. The compte [%s] doesn't exist or the sex is already the good sex.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s][id: %d] sex successfully changed.\n",
+                    PRINTF("Account [%s][id: %d] sex successfully changed.\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s][id: %d] sex successfully changed.\n",
+                    LADMIN_LOG("Account [%s][id: %d] sex successfully changed.\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3140,19 +3117,19 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] GM level changing failed.\n",
+                    PRINTF("Account [%s] GM level changing failed.\n",
                             RFIFOP(fd, 6));
-                    printf("Account [%s] doesn't exist, the GM level is already the good GM level\n",
+                    PRINTF("Account [%s] doesn't exist, the GM level is already the good GM level\n",
                          RFIFOP(fd, 6));
-                    printf("or it's impossible to modify the GM accounts file.\n");
-                    ladmin_log("Account GM level changing failed. The compte [%s] doesn't exist, the GM level is already the good sex or it's impossible to modify the GM accounts file.\n",
+                    PRINTF("or it's impossible to modify the GM accounts file.\n");
+                    LADMIN_LOG("Account GM level changing failed. The compte [%s] doesn't exist, the GM level is already the good sex or it's impossible to modify the GM accounts file.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s][id: %d] GM level successfully changed.\n",
+                    PRINTF("Account [%s][id: %d] GM level successfully changed.\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s][id: %d] GM level successfully changed.\n",
+                    LADMIN_LOG("Account [%s][id: %d] GM level successfully changed.\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3164,18 +3141,18 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] e-mail changing failed.\n",
+                    PRINTF("Account [%s] e-mail changing failed.\n",
                             RFIFOP(fd, 6));
-                    printf("Account [%s] doesn't exist.\n",
+                    PRINTF("Account [%s] doesn't exist.\n",
                             RFIFOP(fd, 6));
-                    ladmin_log("Account e-mail changing failed. The compte [%s] doesn't exist.\n",
+                    LADMIN_LOG("Account e-mail changing failed. The compte [%s] doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s][id: %d] e-mail successfully changed.\n",
+                    PRINTF("Account [%s][id: %d] e-mail successfully changed.\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s][id: %d] e-mail successfully changed.\n",
+                    LADMIN_LOG("Account [%s][id: %d] e-mail successfully changed.\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3187,16 +3164,16 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] memo changing failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] memo changing failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] memo changing failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] memo changing failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("Account [%s][id: %d] memo successfully changed.\n",
+                    PRINTF("Account [%s][id: %d] memo successfully changed.\n",
                          RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("Account [%s][id: %d] memo successfully changed.\n",
+                    LADMIN_LOG("Account [%s][id: %d] memo successfully changed.\n",
                           RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3208,16 +3185,16 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Unable to find the account [%s] id. Account doesn't exist.\n",
+                    PRINTF("Unable to find the account [%s] id. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Unable to find the account [%s] id. Account doesn't exist.\n",
+                    LADMIN_LOG("Unable to find the account [%s] id. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
                 {
-                    printf("The account [%s] have the id: %d.\n",
+                    PRINTF("The account [%s] have the id: %d.\n",
                             RFIFOP(fd, 6), RFIFOL(fd, 2));
-                    ladmin_log("The account [%s] have the id: %d.\n",
+                    LADMIN_LOG("The account [%s] have the id: %d.\n",
                                  RFIFOP(fd, 6), RFIFOL(fd, 2));
                 }
                 bytes_to_read = 0;
@@ -3229,16 +3206,16 @@ void parse_fromlogin(int fd)
                     return;
                 if (strcmp((const char *)RFIFOP(fd, 6), "") == 0)
                 {
-                    printf("Unable to find the account [%d] name. Account doesn't exist.\n",
+                    PRINTF("Unable to find the account [%d] name. Account doesn't exist.\n",
                          RFIFOL(fd, 2));
-                    ladmin_log("Unable to find the account [%d] name. Account doesn't exist.\n",
+                    LADMIN_LOG("Unable to find the account [%d] name. Account doesn't exist.\n",
                           RFIFOL(fd, 2));
                 }
                 else
                 {
-                    printf("The account [id: %d] have the name: %s.\n",
+                    PRINTF("The account [id: %d] have the name: %s.\n",
                             RFIFOL(fd, 2), RFIFOP(fd, 6));
-                    ladmin_log("The account [id: %d] have the name: %s.\n",
+                    LADMIN_LOG("The account [id: %d] have the name: %s.\n",
                                  RFIFOL(fd, 2), RFIFOP(fd, 6));
                 }
                 bytes_to_read = 0;
@@ -3250,9 +3227,9 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] validity limit changing failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] validity limit changing failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] validity limit changing failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] validity limit changing failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
@@ -3260,19 +3237,18 @@ void parse_fromlogin(int fd)
                     time_t timestamp = RFIFOL(fd, 30);
                     if (timestamp == 0)
                     {
-                        printf("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
+                        PRINTF("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2));
-                        ladmin_log("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
+                        LADMIN_LOG("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2));
                     }
                     else
                     {
-                        char tmpstr[128];
-                        strftime(tmpstr, 24, date_format,
-                                  localtime(&timestamp));
-                        printf("Validity Limit of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        timestamp_seconds_buffer tmpstr;
+                        stamp_time(tmpstr, &timestamp);
+                        PRINTF("Validity Limit of the account [%s][id: %d] successfully changed to be until %s.\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2), tmpstr);
-                        ladmin_log("Validity Limit of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        LADMIN_LOG("Validity Limit of the account [%s][id: %d] successfully changed to be until %s.\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2),
                              tmpstr);
                     }
@@ -3286,9 +3262,9 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
@@ -3296,19 +3272,18 @@ void parse_fromlogin(int fd)
                     time_t timestamp = RFIFOL(fd, 30);
                     if (timestamp == 0)
                     {
-                        printf("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
+                        PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2));
-                        ladmin_log("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
+                        LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2));
                     }
                     else
                     {
-                        char tmpstr[128];
-                        strftime(tmpstr, 24, date_format,
-                                  localtime(&timestamp));
-                        printf("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        timestamp_seconds_buffer tmpstr;
+                        stamp_time(tmpstr, &timestamp);
+                        PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2), tmpstr);
-                        ladmin_log("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2),
                              tmpstr);
                     }
@@ -3322,9 +3297,9 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
@@ -3332,19 +3307,18 @@ void parse_fromlogin(int fd)
                     time_t timestamp = RFIFOL(fd, 30);
                     if (timestamp == 0)
                     {
-                        printf("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
+                        PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2));
-                        ladmin_log("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
+                        LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2));
                     }
                     else
                     {
-                        char tmpstr[128];
-                        strftime(tmpstr, 24, date_format,
-                                  localtime(&timestamp));
-                        printf("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        timestamp_seconds_buffer tmpstr;
+                        stamp_time(tmpstr, &timestamp);
+                        PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2), tmpstr);
-                        ladmin_log("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2),
                              tmpstr);
                     }
@@ -3358,13 +3332,13 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOW(fd, 2) == (unsigned short) -1)
                 {
-                    printf("Message sending failed. No online char-server.\n");
-                    ladmin_log("Message sending failed. No online char-server.\n");
+                    PRINTF("Message sending failed. No online char-server.\n");
+                    LADMIN_LOG("Message sending failed. No online char-server.\n");
                 }
                 else
                 {
-                    printf("Message successfully sended to login-server.\n");
-                    ladmin_log("Message successfully sended to login-server.\n");
+                    PRINTF("Message successfully sended to login-server.\n");
+                    LADMIN_LOG("Message successfully sended to login-server.\n");
                 }
                 bytes_to_read = 0;
                 RFIFOSKIP(fd, 4);
@@ -3375,9 +3349,9 @@ void parse_fromlogin(int fd)
                     return;
                 if (RFIFOL(fd, 2) == -1)
                 {
-                    printf("Account [%s] validity limit changing failed. Account doesn't exist.\n",
+                    PRINTF("Account [%s] validity limit changing failed. Account doesn't exist.\n",
                          RFIFOP(fd, 6));
-                    ladmin_log("Account [%s] validity limit changing failed. Account doesn't exist.\n",
+                    LADMIN_LOG("Account [%s] validity limit changing failed. Account doesn't exist.\n",
                           RFIFOP(fd, 6));
                 }
                 else
@@ -3385,21 +3359,20 @@ void parse_fromlogin(int fd)
                     time_t timestamp = RFIFOL(fd, 30);
                     if (timestamp == 0)
                     {
-                        printf("Validity limit of the account [%s][id: %d] unchanged.\n",
+                        PRINTF("Validity limit of the account [%s][id: %d] unchanged.\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2));
-                        printf("The account have an unlimited validity limit or\n");
-                        printf("the changing is impossible with the proposed adjustments.\n");
-                        ladmin_log("Validity limit of the account [%s][id: %d] unchanged. The account have an unlimited validity limit or the changing is impossible with the proposed adjustments.\n",
+                        PRINTF("The account have an unlimited validity limit or\n");
+                        PRINTF("the changing is impossible with the proposed adjustments.\n");
+                        LADMIN_LOG("Validity limit of the account [%s][id: %d] unchanged. The account have an unlimited validity limit or the changing is impossible with the proposed adjustments.\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2));
                     }
                     else
                     {
-                        char tmpstr[128];
-                        strftime(tmpstr, 24, date_format,
-                                  localtime(&timestamp));
-                        printf("Validity limit of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        timestamp_seconds_buffer tmpstr;
+                        stamp_time(tmpstr, &timestamp);
+                        PRINTF("Validity limit of the account [%s][id: %d] successfully changed to be until %s.\n",
                              RFIFOP(fd, 6), RFIFOL(fd, 2), tmpstr);
-                        ladmin_log("Validity limit of the account [%s][id: %d] successfully changed to be until %s.\n",
+                        LADMIN_LOG("Validity limit of the account [%s][id: %d] successfully changed to be until %s.\n",
                               RFIFOP(fd, 6), RFIFOL(fd, 2),
                              tmpstr);
                     }
@@ -3434,109 +3407,107 @@ void parse_fromlogin(int fd)
                     strncpy(memo, (const char *)RFIFOP(fd, 150), RFIFOW(fd, 148));
                     if (RFIFOL(fd, 2) == -1)
                     {
-                        printf("Unabled to find the account [%s]. Account doesn't exist.\n",
+                        PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n",
                              parameters);
-                        ladmin_log("Unabled to find the account [%s]. Account doesn't exist.\n",
+                        LADMIN_LOG("Unabled to find the account [%s]. Account doesn't exist.\n",
                               parameters);
                     }
                     else if (strlen(userid) == 0)
                     {
-                        printf("Unabled to find the account [id: %s]. Account doesn't exist.\n",
+                        PRINTF("Unabled to find the account [id: %s]. Account doesn't exist.\n",
                              parameters);
-                        ladmin_log("Unabled to find the account [id: %s]. Account doesn't exist.\n",
+                        LADMIN_LOG("Unabled to find the account [id: %s]. Account doesn't exist.\n",
                               parameters);
                     }
                     else
                     {
-                        ladmin_log("Receiving information about an account.\n");
-                        printf("The account is set with:\n");
+                        LADMIN_LOG("Receiving information about an account.\n");
+                        PRINTF("The account is set with:\n");
                         if (RFIFOB(fd, 6) == 0)
                         {
-                            printf(" Id:     %d (non-GM)\n", RFIFOL(fd, 2));
+                            PRINTF(" Id:     %d (non-GM)\n", RFIFOL(fd, 2));
                         }
                         else
                         {
-                            printf(" Id:     %d (GM level %d)\n",
+                            PRINTF(" Id:     %d (GM level %d)\n",
                                     RFIFOL(fd, 2), (int) RFIFOB(fd, 6));
                         }
-                        printf(" Name:   '%s'\n", userid);
+                        PRINTF(" Name:   '%s'\n", userid);
                         if (RFIFOB(fd, 31) == 0)
-                            printf(" Sex:    Female\n");
+                            PRINTF(" Sex:    Female\n");
                         else if (RFIFOB(fd, 31) == 1)
-                            printf(" Sex:    Male\n");
+                            PRINTF(" Sex:    Male\n");
                         else
-                            printf(" Sex:    Server\n");
-                        printf(" E-mail: %s\n", email);
+                            PRINTF(" Sex:    Server\n");
+                        PRINTF(" E-mail: %s\n", email);
                         switch (RFIFOL(fd, 36))
                         {
                             case 0:
-                                printf(" Statut: 0 [Account OK]\n");
+                                PRINTF(" Statut: 0 [Account OK]\n");
                                 break;
                             case 1:
-                                printf(" Statut: 1 [Unregistered ID]\n");
+                                PRINTF(" Statut: 1 [Unregistered ID]\n");
                                 break;
                             case 2:
-                                printf(" Statut: 2 [Incorrect Password]\n");
+                                PRINTF(" Statut: 2 [Incorrect Password]\n");
                                 break;
                             case 3:
-                                printf(" Statut: 3 [This ID is expired]\n");
+                                PRINTF(" Statut: 3 [This ID is expired]\n");
                                 break;
                             case 4:
-                                printf(" Statut: 4 [Rejected from Server]\n");
+                                PRINTF(" Statut: 4 [Rejected from Server]\n");
                                 break;
                             case 5:
-                                printf(" Statut: 5 [You have been blocked by the GM Team]\n");
+                                PRINTF(" Statut: 5 [You have been blocked by the GM Team]\n");
                                 break;
                             case 6:
-                                printf(" Statut: 6 [Your Game's EXE file is not the latest version]\n");
+                                PRINTF(" Statut: 6 [Your Game's EXE file is not the latest version]\n");
                                 break;
                             case 7:
-                                printf(" Statut: 7 [You are Prohibited to log in until %s]\n",
+                                PRINTF(" Statut: 7 [You are Prohibited to log in until %s]\n",
                                      error_message);
                                 break;
                             case 8:
-                                printf(" Statut: 8 [Server is jammed due to over populated]\n");
+                                PRINTF(" Statut: 8 [Server is jammed due to over populated]\n");
                                 break;
                             case 9:
-                                printf(" Statut: 9 [No MSG]\n");
+                                PRINTF(" Statut: 9 [No MSG]\n");
                                 break;
                             default:   // 100
-                                printf(" Statut: %d [This ID is totally erased]\n",
+                                PRINTF(" Statut: %d [This ID is totally erased]\n",
                                      RFIFOL(fd, 36));
                                 break;
                         }
                         if (ban_until_time == 0)
                         {
-                            printf(" Banishment: not banished.\n");
+                            PRINTF(" Banishment: not banished.\n");
                         }
                         else
                         {
-                            char tmpstr[128];
-                            strftime(tmpstr, 24, date_format,
-                                      localtime(&ban_until_time));
-                            printf(" Banishment: until %s.\n", tmpstr);
+                            timestamp_seconds_buffer tmpstr;
+                            stamp_time(tmpstr, &ban_until_time);
+                            PRINTF(" Banishment: until %s.\n", tmpstr);
                         }
                         if (RFIFOL(fd, 32) > 1)
-                            printf(" Count:  %d connections.\n",
+                            PRINTF(" Count:  %d connections.\n",
                                     RFIFOL(fd, 32));
                         else
-                            printf(" Count:  %d connection.\n",
+                            PRINTF(" Count:  %d connection.\n",
                                     RFIFOL(fd, 32));
-                        printf(" Last connection at: %s (ip: %s)\n",
+                        PRINTF(" Last connection at: %s (ip: %s)\n",
                                 lastlogin, last_ip);
                         if (connect_until_time == 0)
                         {
-                            printf(" Validity limit: unlimited.\n");
+                            PRINTF(" Validity limit: unlimited.\n");
                         }
                         else
                         {
-                            char tmpstr[128];
-                            strftime(tmpstr, 24, date_format,
-                                      localtime(&connect_until_time));
-                            printf(" Validity limit: until %s.\n",
+                            timestamp_seconds_buffer tmpstr;
+                            stamp_time(tmpstr, &connect_until_time);
+                            PRINTF(" Validity limit: until %s.\n",
                                     tmpstr);
                         }
-                        printf(" Memo:   '%s'\n", memo);
+                        PRINTF(" Memo:   '%s'\n", memo);
                     }
                 }
                 bytes_to_read = 0;
@@ -3544,8 +3515,8 @@ void parse_fromlogin(int fd)
                 break;
 
             default:
-                printf("Remote administration has been disconnected (unknown packet).\n");
-                ladmin_log("'End of connection, unknown packet.\n");
+                PRINTF("Remote administration has been disconnected (unknown packet).\n");
+                LADMIN_LOG("'End of connection, unknown packet.\n");
                 session[fd]->eof = 1;
                 return;
         }
@@ -3562,7 +3533,7 @@ static
 int Connect_login_server(void)
 {
     Iprintf("Attempt to connect to login-server...\n");
-    ladmin_log("Attempt to connect to login-server...\n");
+    LADMIN_LOG("Attempt to connect to login-server...\n");
 
     if ((login_fd = make_connection(login_ip, loginserverport)) < 0)
         return 0;
@@ -3576,7 +3547,7 @@ int Connect_login_server(void)
         bytes_to_read = 1;
 
         Iprintf("Sending of the password...\n");
-        ladmin_log("Sending of the password...\n");
+        LADMIN_LOG("Sending of the password...\n");
     }
     else
     {
@@ -3584,7 +3555,7 @@ int Connect_login_server(void)
         WFIFOSET(login_fd, 2);
         bytes_to_read = 1;
         Iprintf("Request about the MD5 key...\n");
-        ladmin_log("Request about the MD5 key...\n");
+        LADMIN_LOG("Request about the MD5 key...\n");
     }
 
     return 0;
@@ -3596,96 +3567,68 @@ int Connect_login_server(void)
 static
 int ladmin_config_read(const char *cfgName)
 {
-    char line[1024], w1[1024], w2[1024];
-    FILE *fp;
-
-    fp = fopen_(cfgName, "r");
-    if (fp == NULL)
+    std::ifstream in(cfgName);
+    if (!in.is_open())
     {
-        printf("\033[0mConfiguration file (%s) not found.\n", cfgName);
+        PRINTF("\033[0mConfiguration file (%s) not found.\n", cfgName);
         return 1;
     }
 
     Iprintf("\033[0m---Start reading of Ladmin configuration file (%s)\n",
          cfgName);
-    while (fgets(line, sizeof(line) - 1, fp))
+    std::string line;
+    while (std::getline(in, line))
     {
-        if (line[0] == '/' && line[1] == '/')
+        std::string w1, w2;
+        if (!split_key_value(line, &w1, &w2))
             continue;
 
-        line[sizeof(line) - 1] = '\0';
-        if (sscanf(line, "%[^:]: %[^\r\n]", w1, w2) == 2)
+        if (w1 == "login_ip")
         {
-            remove_control_chars(w1);
-            remove_control_chars(w2);
-
-            if (strcasecmp(w1, "login_ip") == 0)
+            struct hostent *h = gethostbyname(w2.c_str());
+            if (h != NULL)
             {
-                struct hostent *h = gethostbyname(w2);
-                if (h != NULL)
-                {
-                    Iprintf("Login server IP address: %s -> %d.%d.%d.%d\n",
-                         w2, (unsigned char) h->h_addr[0],
+                Iprintf("Login server IP address: %s -> %d.%d.%d.%d\n",
+                     w2, (unsigned char) h->h_addr[0],
+                     (unsigned char) h->h_addr[1],
+                     (unsigned char) h->h_addr[2],
+                     (unsigned char) h->h_addr[3]);
+                sprintf(loginserverip, "%d.%d.%d.%d",
+                         (unsigned char) h->h_addr[0],
                          (unsigned char) h->h_addr[1],
                          (unsigned char) h->h_addr[2],
                          (unsigned char) h->h_addr[3]);
-                    sprintf(loginserverip, "%d.%d.%d.%d",
-                             (unsigned char) h->h_addr[0],
-                             (unsigned char) h->h_addr[1],
-                             (unsigned char) h->h_addr[2],
-                             (unsigned char) h->h_addr[3]);
-                }
-                else
-                    memcpy(loginserverip, w2, 16);
             }
-            else if (strcasecmp(w1, "login_port") == 0)
-            {
-                loginserverport = atoi(w2);
-            }
-            else if (strcasecmp(w1, "admin_pass") == 0)
-            {
-                strncpy(loginserveradminpassword, w2,
-                         sizeof(loginserveradminpassword));
-                loginserveradminpassword[sizeof(loginserveradminpassword) -
-                                         1] = '\0';
-            }
-            else if (strcasecmp(w1, "passenc") == 0)
-            {
-                passenc = atoi(w2);
-                if (passenc < 0 || passenc > 2)
-                    passenc = 0;
-            }
-            else if (strcasecmp(w1, "ladmin_log_filename") == 0)
-            {
-                strncpy(ladmin_log_filename, w2,
-                         sizeof(ladmin_log_filename));
-                ladmin_log_filename[sizeof(ladmin_log_filename) - 1] = '\0';
-            }
-            else if (strcasecmp(w1, "date_format") == 0)
-            {                   // note: never have more than 19 char for the date!
-                switch (atoi(w2))
-                {
-                    case 0:
-                        strcpy(date_format, "%d-%m-%Y %H:%M:%S");  // 31-12-2004 23:59:59
-                        break;
-                    case 1:
-                        strcpy(date_format, "%m-%d-%Y %H:%M:%S");  // 12-31-2004 23:59:59
-                        break;
-                    case 2:
-                        strcpy(date_format, "%Y-%d-%m %H:%M:%S");  // 2004-31-12 23:59:59
-                        break;
-                    case 3:
-                        strcpy(date_format, "%Y-%m-%d %H:%M:%S");  // 2004-12-31 23:59:59
-                        break;
-                }
-            }
-            else if (strcasecmp(w1, "import") == 0)
-            {
-                ladmin_config_read(w2);
-            }
+            else
+                strzcpy(loginserverip, w2.c_str(), 16);
+        }
+        else if (w1 == "login_port")
+        {
+            loginserverport = atoi(w2.c_str());
+        }
+        else if (w1 == "admin_pass")
+        {
+            strzcpy(loginserveradminpassword, w2.c_str(), sizeof(loginserveradminpassword));
+        }
+        else if (w1 == "passenc")
+        {
+            passenc = atoi(w2.c_str());
+            if (passenc < 0 || passenc > 2)
+                passenc = 0;
+        }
+        else if (w1 == "ladmin_log_filename")
+        {
+            strzcpy(ladmin_log_filename, w2.c_str(), sizeof(ladmin_log_filename));
+        }
+        else if (w1 == "import")
+        {
+            ladmin_config_read(w2.c_str());
+        }
+        else
+        {
+            PRINTF("WARNING: unknown ladmin config key: %s", w1);
         }
     }
-    fclose_(fp);
 
     login_ip = inet_addr(loginserverip);
 
@@ -3705,7 +3648,7 @@ void term_func(void)
         delete_session(login_fd);
 
         Iprintf("\033[0m----End of Ladmin (normal end with closing of all files).\n");
-        ladmin_log("----End of Ladmin (normal end with closing of all files).\n");
+        LADMIN_LOG("----End of Ladmin (normal end with closing of all files).\n");
 
         already_exit_function = 1;
     }
@@ -3720,8 +3663,8 @@ int do_init(int argc, char **argv)
     // read ladmin configuration
     ladmin_config_read((argc > 1) ? argv[1] : LADMIN_CONF_NAME);
 
-    ladmin_log("");
-    ladmin_log("Configuration file readed.\n");
+    LADMIN_LOG("");
+    LADMIN_LOG("Configuration file readed.\n");
 
     srand(time(NULL));
 
@@ -3731,7 +3674,7 @@ int do_init(int argc, char **argv)
     Iprintf("(for eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION,
              ATHENA_MINOR_VERSION, ATHENA_REVISION);
 
-    ladmin_log("Ladmin is ready.\n");
+    LADMIN_LOG("Ladmin is ready.\n");
     Iprintf("Ladmin is \033[1;32mready\033[0m.\n\n");
 
     Connect_login_server();

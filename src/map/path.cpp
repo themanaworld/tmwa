@@ -28,7 +28,7 @@ void push_heap_path(int *heap, struct tmp_path *tp, int index)
 
     if (heap == NULL || tp == NULL)
     {
-        printf("push_heap_path nullpo\n");
+        PRINTF("push_heap_path nullpo\n");
         return;
     }
 
@@ -58,7 +58,7 @@ void update_heap_path(int *heap, struct tmp_path *tp, int index)
             break;
     if (h == heap[0])
     {
-        fprintf(stderr, "update_heap_path bug\n");
+        FPRINTF(stderr, "update_heap_path bug\n");
         exit(1);
     }
     for (i = (h - 1) / 2;
@@ -232,13 +232,13 @@ int path_blownpos(int m, int x0, int y0, int dx, int dy, int count)
     if (count > 15)
     {                           // 最大10マスに制限
         if (battle_config.error_log)
-            printf("path_blownpos: count too many %d !\n", count);
+            PRINTF("path_blownpos: count too many %d !\n", count);
         count = 15;
     }
     if (dx > 1 || dx < -1 || dy > 1 || dy < -1)
     {
         if (battle_config.error_log)
-            printf("path_blownpos: illeagal dx=%d or dy=%d !\n", dx, dy);
+            PRINTF("path_blownpos: illeagal dx=%d or dy=%d !\n", dx, dy);
         dx = (dx >= 0) ? 1 : ((dx < 0) ? -1 : 0);
         dy = (dy >= 0) ? 1 : ((dy < 0) ? -1 : 0);
     }

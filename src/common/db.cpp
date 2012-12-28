@@ -414,12 +414,12 @@ void db_walk_tree(bool dealloc, struct dbn* p, db_func_t func)
         return;
     if (!dealloc && !func)
     {
-        fprintf(stderr, "DEBUG: Must walk tree to either free or invoke a function.\n");
+        FPRINTF(stderr, "DEBUG: Must walk tree to either free or invoke a function.\n");
         abort();
     }
     if (p->parent)
     {
-        fprintf(stderr, "DEBUG: Root nodes must not have parents\n");
+        FPRINTF(stderr, "DEBUG: Root nodes must not have parents\n");
         abort();
     }
     while (true)

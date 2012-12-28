@@ -1,10 +1,13 @@
 #include "utils.hpp"
 
 #include <netinet/in.h>
+#include <sys/time.h>
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+#include <algorithm>
 
 //-----------------------------------------------------
 // Function to suppress control characters in a string.
@@ -94,4 +97,59 @@ const char *ip2str(struct in_addr ip, bool extra_dot)
     else
         sprintf(buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
     return buf;
+}
+
+bool split_key_value(const std::string& line, std::string *w1, std::string *w2)
+{
+    std::string::const_iterator begin = line.begin(), end = line.end();
+
+    if (line[0] == '/' && line[1] == '/')
+        return false;
+    if (line.back() == '\r')
+        --end;
+    if (line.empty())
+        return false;
+
+    if (std::find_if(begin, end,
+                [](unsigned char c) { return c < ' '; }
+                ) != line.end())
+        return false;
+    std::string::const_iterator colon = std::find(begin, end, ':');
+    if (colon == end)
+        return false;
+    w1->assign(begin, colon);
+    ++colon;
+    while (std::isspace(*colon))
+        ++colon;
+    w2->assign(colon, end);
+    return true;
+}
+
+void stamp_time(timestamp_seconds_buffer& out, time_t *t)
+{
+    time_t when = t ? *t : time(NULL);
+    strftime(out, sizeof(out), "%Y-%m-%d %H:%M:%S", gmtime(&when));
+}
+void stamp_time(timestamp_milliseconds_buffer& out)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    strftime(out, sizeof(out), "%Y-%m-%d %H:%M:%S", gmtime(&tv.tv_sec));
+    sprintf(out + 20, ".%03d", int(tv.tv_usec / 1000));
+}
+
+void log_with_timestamp(FILE *out, const_string line)
+{
+    if (!line)
+    {
+        fputc('\n', out);
+        return;
+    }
+    timestamp_milliseconds_buffer tmpstr;
+    stamp_time(tmpstr);
+    fwrite(tmpstr, 1, sizeof(tmpstr), out);
+    fputs(": ", out);
+    fwrite(line.data(), 1, line.size(), out);
+    if (line.back() != '\n')
+        fputc('\n', out);
 }

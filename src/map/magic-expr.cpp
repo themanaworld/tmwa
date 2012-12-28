@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 
 #include "itemdb.hpp"
@@ -116,63 +117,67 @@ static
 void stringify(val_t *v, int within_op)
 {
     static const char *dirs[8] =
-        { "south", "south-west", "west", "north-west", "north", "north-east",
+    {
+        "south", "south-west",
+        "west", "north-west",
+        "north", "north-east",
         "east", "south-east"
     };
-    char *buf;
+    std::string buf;
 
     switch (v->ty)
     {
         case TY_UNDEF:
-            buf = strdup("UNDEF");
+            buf = "UNDEF";
             break;
 
         case TY_INT:
-            buf = (char *)malloc(32);
-            sprintf(buf, "%i", v->v.v_int);
+            buf = STRPRINTF("%i", v->v.v_int);
             break;
 
         case TY_STRING:
             return;
 
         case TY_DIR:
-            buf = strdup(dirs[v->v.v_int]);
+            buf = dirs[v->v.v_int];
             break;
 
         case TY_ENTITY:
-            buf = strdup(show_entity(v->v.v_entity));
+            buf = show_entity(v->v.v_entity);
             break;
 
         case TY_LOCATION:
-            buf = (char *) malloc(128);
-            sprintf(buf, "<\"%s\", %d, %d>", map[v->v.v_location.m].name,
-                     v->v.v_location.x, v->v.v_location.y);
+            buf = STRPRINTF("<\"%s\", %d, %d>",
+                    map[v->v.v_location.m].name,
+                    v->v.v_location.x,
+                    v->v.v_location.y);
             break;
 
         case TY_AREA:
-            buf = strdup("%area");
+            buf = "%area";
             free_area(v->v.v_area);
             break;
 
         case TY_SPELL:
-            buf = strdup(v->v.v_spell->name);
+            buf = v->v.v_spell->name;
             break;
 
         case TY_INVOCATION:
         {
             invocation_t *invocation = within_op
-                ? v->v.v_invocation : (invocation_t *) map_id2bl(v->v.v_int);
-            buf = strdup(invocation->spell->name);
+                ? v->v.v_invocation
+                : (invocation_t *) map_id2bl(v->v.v_int);
+            buf = invocation->spell->name;
         }
             break;
 
         default:
-            fprintf(stderr, "[magic] INTERNAL ERROR: Cannot stringify %d\n",
-                    uint8_t(v->ty));
+            FPRINTF(stderr, "[magic] INTERNAL ERROR: Cannot stringify %d\n",
+                    v->ty);
             return;
     }
 
-    v->v.v_string = buf;
+    v->v.v_string = strdup(buf.c_str());
     v->ty = TY_STRING;
 }
 
@@ -534,7 +539,7 @@ void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
                     break;
 
                 default:
-                    fprintf(stderr,
+                    FPRINTF(stderr,
                              "Error: Trying to compute area of NE/SE/NW/SW-facing bar");
                     *x = tx;
                     *y = ty;
@@ -564,7 +569,7 @@ int magic_location_in_area(int m, int x, int y, area_t *area)
                     && (x < ax + awidth) && (y < ay + aheight));
         }
         default:
-            fprintf(stderr, "INTERNAL ERROR: Invalid area\n");
+            FPRINTF(stderr, "INTERNAL ERROR: Invalid area\n");
             return 0;
     }
 }
@@ -978,8 +983,8 @@ void magic_random_location(location_t *dest, area_t *area)
         }
 
         default:
-            fprintf(stderr, "Unknown area type %d\n",
-                    uint8_t(area->ty));
+            FPRINTF(stderr, "Unknown area type %d\n",
+                    area->ty);
     }
 }
 
@@ -1472,8 +1477,8 @@ area_t *eval_area(env_t *env, e_area_t *expr)
         }
 
         default:
-            fprintf(stderr, "INTERNAL ERROR: Unknown area type %d\n",
-                    uint8_t(area->ty));
+            FPRINTF(stderr, "INTERNAL ERROR: Unknown area type %d\n",
+                    area->ty);
             free(area);
             return NULL;
     }
@@ -1532,7 +1537,7 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
 
         if (!ty_key)
         {
-            fprintf(stderr,
+            FPRINTF(stderr,
                      "[magic-eval]:  L%d:%d: Too many arguments (%d) to %s `%s'\n",
                      line, column, args_nr, opname, funname);
             return 1;
@@ -1546,7 +1551,7 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
 
         if (ty == TY_UNDEF)
         {
-            fprintf(stderr,
+            FPRINTF(stderr,
                      "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' undefined\n",
                      line, column, i + 1, opname, funname);
             return 1;
@@ -1578,10 +1583,10 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
         if (ty != desired_ty)
         {                       /* Coercion failed? */
             if (ty != TY_FAIL)
-                fprintf(stderr,
+                FPRINTF(stderr,
                          "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' of incorrect type (%d)\n",
                          line, column, i + 1, opname, funname,
-                         uint8_t(ty));
+                         ty);
             return 1;
         }
     }
@@ -1593,9 +1598,7 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
 #pragma GCC diagnostic ignored "-Wshadow"
 void magic_eval(env_t *env, val_t *dest, expr_t *expr)
 {
-#ifdef RECENT_GCC
 #pragma GCC diagnostic pop
-#endif
     switch (expr->ty)
     {
         case EXPR_VAL:
@@ -1671,21 +1674,17 @@ void magic_eval(env_t *env, val_t *dest, expr_t *expr)
                     dest->ty = TY_UNDEF;
                 else
                 {
-#ifdef RECENT_GCC
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
-#endif
                     env_t *env = t->env;
-#ifdef RECENT_GCC
 #pragma GCC diagnostic pop
-#endif
                     val_t val = VAR(id);
                     magic_copy_var(dest, &val);
                 }
             }
             else
             {
-                fprintf(stderr,
+                FPRINTF(stderr,
                          "[magic] Attempt to access field %s on non-spell\n",
                          env->base_env->var_name[id]);
                 dest->ty = TY_FAIL;
@@ -1694,15 +1693,12 @@ void magic_eval(env_t *env, val_t *dest, expr_t *expr)
         }
 
         default:
-            fprintf(stderr,
+            FPRINTF(stderr,
                      "[magic] INTERNAL ERROR: Unknown expression type %d\n",
-                     uint8_t(expr->ty));
+                     expr->ty);
             break;
     }
 }
-#ifndef RECENT_GCC
-#pragma GCC diagnostic pop
-#endif
 
 int magic_eval_int(env_t *env, expr_t *expr)
 {

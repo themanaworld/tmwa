@@ -207,8 +207,8 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
 
         default:
             free(param);
-            fprintf(stderr, "Unexpected spellarg type %d\n",
-                     uint8_t(spell->spellarg_ty));
+            FPRINTF(stderr, "Unexpected spellarg type %d\n",
+                     spell->spellarg_ty);
     }
 
     set_env_entity(VAR_CASTER, &caster->bl);
@@ -307,7 +307,7 @@ int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
     int retval = check_prerequisites(caster, check->catalysts);
 
 /*
-        fprintf(stderr, "MC(%d/%s)? %d%d%d%d (%u <= %u)\n",
+        FPRINTF(stderr, "MC(%d/%s)? %d%d%d%d (%u <= %u)\n",
                 caster->bl.id, caster->status.name,
                 retval,
                 caster->cast_tick <= tick,
@@ -401,8 +401,8 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                 return NULL;
 
         default:
-            fprintf(stderr, "Unexpected spellguard type %d\n",
-                    uint8_t(guard->ty));
+            FPRINTF(stderr, "Unexpected spellguard type %d\n",
+                    guard->ty);
             return NULL;
     }
 
@@ -540,7 +540,7 @@ void spell_bind(character_t *subject, invocation_t *invocation)
             || invocation->subject || invocation->next_invocation)
         {
             int *i = NULL;
-            fprintf(stderr,
+            FPRINTF(stderr,
                      "[magic] INTERNAL ERROR: Attempt to re-bind spell invocation `%s'\n",
                      invocation->spell->name);
             *i = 1;

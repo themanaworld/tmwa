@@ -1,7 +1,6 @@
 #include "tmw.hpp"
 
 #include <cctype>
-#include <cstdarg>  // exception to "no va_list" rule
 #include <cstring>
 
 #include "../common/nullpo.hpp"
@@ -99,21 +98,22 @@ int tmw_CheckChatSpam(struct map_session_data *sd, const char *message)
 
 void tmw_AutoBan(struct map_session_data *sd, const char *reason, int length)
 {
-    char anotherbuf[512];
-
     if (length == 0 || sd->auto_ban_info.in_progress)
         return;
 
     sd->auto_ban_info.in_progress = 1;
 
-    tmw_GmHackMsg("%s has been autobanned for %s spam",
-                   sd->status.name, reason);
+    std::string hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
+            sd->status.name,
+            reason);
+    tmw_GmHackMsg(hack_msg);
 
-    gm_log("%s (%d,%d) Server : @autoban %s %dh (%s spam)",
-            map[sd->bl.m].name, sd->bl.x, sd->bl.y,
+    std::string fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
             sd->status.name, length, reason);
+    log_atcommand(sd, fake_command);
 
-    snprintf(anotherbuf, 511, "You have been banned for %s spamming. Please do not spam.", reason);
+    std::string anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
+            reason);
 
     clif_displaymessage(sd->fd, anotherbuf);
     /* type: 2 - ban(year, month, day, hour, minute, second) */
@@ -145,22 +145,11 @@ int tmw_CheckChatLameness(struct map_session_data *, const char *message)
 }
 
 // Sends a whisper to all GMs
-void tmw_GmHackMsg(const char *fmt, ...)
+void tmw_GmHackMsg(const_string line)
 {
-    char buf[512];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(buf, 511, fmt, ap);
-    va_end(ap);
-
-    char outbuf[512 + 5];
-    strcpy(outbuf, "[GM] ");
-    strcat(outbuf, buf);
-
     intif_wis_message_to_gm(wisp_server_name,
-                             battle_config.hack_info_GM_level, outbuf,
-                             strlen(outbuf) + 1);
+                             battle_config.hack_info_GM_level,
+                             line.data(), line.size() + 1);
 }
 
 /* Remove leading and trailing spaces from a string, modifying in place. */

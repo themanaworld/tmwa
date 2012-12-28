@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/lock.hpp"
 #include "../common/mmo.hpp"
@@ -28,19 +29,23 @@ int mapif_parse_PartyLeave(int fd, int party_id, int account_id);
 
 // パーティデータの文字列への変換
 static
-int inter_party_tostr(char *str, struct party *p)
+std::string inter_party_tostr(struct party *p)
 {
-    int i, len;
-
-    len =
-        sprintf(str, "%d\t%s\t%d,%d\t", p->party_id, p->name, p->exp,
-                 p->item);
-    for (i = 0; i < MAX_PARTY; i++)
+    std::string str = STRPRINTF(
+                "%d\t"
+                "%s\t"
+                "%d,%d\t",
+                p->party_id,
+                p->name,
+                p->exp, p->item);
+    for (int i = 0; i < MAX_PARTY; i++)
     {
         struct party_member *m = &p->member[i];
-        len +=
-            sprintf(str + len, "%d,%d\t%s\t", m->account_id, m->leader,
-                     ((m->account_id > 0) ? m->name : "NoMember"));
+        str += STRPRINTF(
+                "%d,%d\t"
+                "%s\t",
+                m->account_id, m->leader,
+                (m->account_id > 0) ? m->name : "NoMember");
     }
 
     return 0;
@@ -50,43 +55,34 @@ int inter_party_tostr(char *str, struct party *p)
 static
 int inter_party_fromstr(char *str, struct party *p)
 {
-    int i, j;
-    int tmp_int[16];
-    char tmp_str[256];
-
     memset(p, 0, sizeof(struct party));
 
-//  printf("sscanf party main info\n");
-    if (sscanf(str, "%d\t%[^\t]\t%d,%d\t", &tmp_int[0], tmp_str, &tmp_int[1],
-         &tmp_int[2]) != 4)
+    if (sscanf(str,
+                "%d\t"
+                "%[^\t]\t"
+                "%d,%d\t",
+                &p->party_id,
+                p->name,
+                &p->exp, &p->item) != 4)
         return 1;
 
-    p->party_id = tmp_int[0];
-    strcpy(p->name, tmp_str);
-    p->exp = tmp_int[1];
-    p->item = tmp_int[2];
-//  printf("%d [%s] %d %d\n", tmp_int[0], tmp_str[0], tmp_int[1], tmp_int[2]);
-
-    for (j = 0; j < 3 && str != NULL; j++)
+    for (int j = 0; j < 3 && str != NULL; j++)
         str = strchr(str + 1, '\t');
 
-    for (i = 0; i < MAX_PARTY; i++)
+    for (int i = 0; i < MAX_PARTY; i++)
     {
         struct party_member *m = &p->member[i];
         if (str == NULL)
             return 1;
-//      printf("sscanf party member info %d\n", i);
 
-        if (sscanf(str + 1, "%d,%d\t%[^\t]\t", &tmp_int[0], &tmp_int[1],
-             tmp_str) != 3)
+        if (sscanf(str + 1,
+                    "%d,%d\t"
+                    "%[^\t]\t",
+                    &m->account_id, &m->leader,
+                    m->name) != 3)
             return 1;
 
-        m->account_id = tmp_int[0];
-        m->leader = tmp_int[1];
-        strncpy(m->name, tmp_str, sizeof(m->name));
-//      printf(" %d %d [%s]\n", tmp_int[0], tmp_int[1], tmp_str);
-
-        for (j = 0; j < 2 && str != NULL; j++)
+        for (int j = 0; j < 2 && str != NULL; j++)
             str = strchr(str + 1, '\t');
     }
 
@@ -107,6 +103,7 @@ int inter_party_init(void)
     if ((fp = fopen_(party_txt, "r")) == NULL)
         return 1;
 
+    // TODO: convert to use char_id, and change to extract()
     while (fgets(line, sizeof(line) - 1, fp))
     {
         j = 0;
@@ -127,14 +124,14 @@ int inter_party_init(void)
         }
         else
         {
-            printf("int_party: broken data [%s] line %d\n", party_txt,
+            PRINTF("int_party: broken data [%s] line %d\n", party_txt,
                     c + 1);
             free(p);
         }
         c++;
     }
     fclose_(fp);
-//  printf("int_party: %s read done (%d parties)\n", party_txt, c);
+//  PRINTF("int_party: %s read done (%d parties)\n", party_txt, c);
 
     return 0;
 }
@@ -143,10 +140,8 @@ int inter_party_init(void)
 static
 void inter_party_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
-    char line[8192];
-
-    inter_party_tostr(line, (struct party *) data);
-    fprintf(fp, "%s\n", line);
+    std::string line = inter_party_tostr((struct party *) data);
+    FPRINTF(fp, "%s\n", line);
 }
 
 // パーティーデータのセーブ
@@ -157,14 +152,14 @@ int inter_party_save(void)
 
     if ((fp = lock_fopen(party_txt, &lock)) == NULL)
     {
-        printf("int_party: cant write [%s] !!! data is lost !!!\n",
+        PRINTF("int_party: cant write [%s] !!! data is lost !!!\n",
                 party_txt);
         return 1;
     }
     numdb_foreach(party_db, std::bind(inter_party_save_sub, ph::_1, ph::_2, fp));
-//  fprintf(fp, "%d\t%%newid%%\n", party_newid);
+//  FPRINTF(fp, "%d\t%%newid%%\n", party_newid);
     lock_fclose(fp, party_txt, &lock);
-//  printf("int_party: %s saved.\n", party_txt);
+//  PRINTF("int_party: %s saved.\n", party_txt);
 
     return 0;
 }
@@ -216,10 +211,10 @@ int party_check_empty(struct party *p)
 {
     int i;
 
-//  printf("party check empty %08X\n", (int)p);
+//  PRINTF("party check empty %08X\n", (int)p);
     for (i = 0; i < MAX_PARTY; i++)
     {
-//      printf("%d acc=%d\n", i, p->member[i].account_id);
+//      PRINTF("%d acc=%d\n", i, p->member[i].account_id);
         if (p->member[i].account_id > 0)
         {
             return 0;
@@ -250,7 +245,7 @@ void party_check_conflict_sub(db_key_t, db_val_t data,
             && strcmp(p->member[i].name, nick) == 0)
         {
             // 別のパーティに偽の所属データがあるので脱退
-            printf("int_party: party conflict! %d %d %d\n", account_id,
+            PRINTF("int_party: party conflict! %d %d %d\n", account_id,
                     party_id, p->party_id);
             mapif_parse_PartyLeave(-1, p->party_id, account_id);
         }
@@ -282,7 +277,7 @@ int mapif_party_created(int fd, int account_id, struct party *p)
         WFIFOB(fd, 6) = 0;
         WFIFOL(fd, 7) = p->party_id;
         memcpy(WFIFOP(fd, 11), p->name, 24);
-        printf("int_party: created! %d %s\n", p->party_id, p->name);
+        PRINTF("int_party: created! %d %s\n", p->party_id, p->name);
     }
     else
     {
@@ -303,7 +298,7 @@ int mapif_party_noinfo(int fd, int party_id)
     WFIFOW(fd, 2) = 8;
     WFIFOL(fd, 4) = party_id;
     WFIFOSET(fd, 8);
-    printf("int_party: info not found %d\n", party_id);
+    PRINTF("int_party: info not found %d\n", party_id);
 
     return 0;
 }
@@ -321,7 +316,7 @@ int mapif_party_info(int fd, struct party *p)
         mapif_sendall(buf, WBUFW(buf, 2));
     else
         mapif_send(fd, buf, WBUFW(buf, 2));
-//  printf("int_party: info %d %s\n", p->party_id, p->name);
+//  PRINTF("int_party: info %d %s\n", p->party_id, p->name);
 
     return 0;
 }
@@ -356,7 +351,7 @@ int mapif_party_optionchanged(int fd, struct party *p, int account_id,
         mapif_sendall(buf, 15);
     else
         mapif_send(fd, buf, 15);
-    printf("int_party: option changed %d %d %d %d %d\n", p->party_id,
+    PRINTF("int_party: option changed %d %d %d %d %d\n", p->party_id,
             account_id, p->exp, p->item, flag);
 
     return 0;
@@ -373,7 +368,7 @@ int mapif_party_leaved(int party_id, int account_id, char *name)
     WBUFL(buf, 6) = account_id;
     memcpy(WBUFP(buf, 10), name, 24);
     mapif_sendall(buf, 34);
-    printf("int_party: party leaved %d %d %s\n", party_id, account_id, name);
+    PRINTF("int_party: party leaved %d %d %s\n", party_id, account_id, name);
 
     return 0;
 }
@@ -403,7 +398,7 @@ int mapif_party_broken(int party_id, int flag)
     WBUFL(buf, 2) = party_id;
     WBUFB(buf, 6) = flag;
     mapif_sendall(buf, 7);
-    printf("int_party: broken %d\n", party_id);
+    PRINTF("int_party: broken %d\n", party_id);
 
     return 0;
 }
@@ -439,7 +434,7 @@ int mapif_parse_CreateParty(int fd, int account_id, const char *name, const char
     {
         if (!(name[i] & 0xe0) || name[i] == 0x7f)
         {
-            printf("int_party: illegal party name [%s]\n", name);
+            PRINTF("int_party: illegal party name [%s]\n", name);
             mapif_party_created(fd, account_id, NULL);
             return 0;
         }
@@ -447,7 +442,7 @@ int mapif_parse_CreateParty(int fd, int account_id, const char *name, const char
 
     if ((p = search_partyname(name)) != NULL)
     {
-        printf("int_party: same name party exists [%s]\n", name);
+        PRINTF("int_party: same name party exists [%s]\n", name);
         mapif_party_created(fd, account_id, NULL);
         return 0;
     }

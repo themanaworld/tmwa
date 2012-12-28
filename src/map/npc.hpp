@@ -38,8 +38,8 @@ struct npc_data *npc_spawn_text(int m, int x, int y, int class_, const char *nam
  */
 void npc_free(struct npc_data *npc);
 
-void npc_addsrcfile(char *);
-void npc_delsrcfile(char *);
+void npc_addsrcfile(const char *);
+void npc_delsrcfile(const char *);
 int do_init_npc(void);
 int npc_event_do_oninit(void);
 int npc_do_ontimer(int, struct map_session_data *, int);

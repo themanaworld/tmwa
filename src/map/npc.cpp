@@ -142,7 +142,7 @@ int npc_event_dequeue(struct map_session_data *sd)
     {
         if (!pc_addeventtimer(sd, 100, sd->eventqueue[0]))
         {
-            printf("npc_event_dequeue(): Event timer is full.\n");
+            PRINTF("npc_event_dequeue(): Event timer is full.\n");
             return 0;
         }
 
@@ -191,7 +191,7 @@ int npc_timer_event(const char *eventname) // Added by RoVeRT
 
     if ((ev == NULL || (nd = ev->nd) == NULL))
     {
-        printf("npc_event: event not found [%s]\n", eventname);
+        PRINTF("npc_event: event not found [%s]\n", eventname);
         return 0;
     }
 
@@ -269,30 +269,28 @@ int npc_event_do_l(const char *name, int rid, int argc, argrec_t *args)
 static
 void npc_event_do_clock(timer_id, tick_t, custom_id_t, custom_data_t)
 {
-    time_t timer;
-    struct tm *t;
-    char buf[64];
-    int c = 0;
-
-    time(&timer);
-    t = gmtime(&timer);
+    time_t timer = time(NULL);
+    struct tm *t = gmtime(&timer);
 
     if (t->tm_min != ev_tm_b.tm_min)
     {
-        sprintf(buf, "OnMinute%02d", t->tm_min);
-        c += npc_event_doall(buf);
-        sprintf(buf, "OnClock%02d%02d", t->tm_hour, t->tm_min);
-        c += npc_event_doall(buf);
+        std::string buf;
+        buf = STRPRINTF("OnMinute%02d", t->tm_min);
+        npc_event_doall(buf.c_str());
+        buf = STRPRINTF("OnClock%02d%02d", t->tm_hour, t->tm_min);
+        npc_event_doall(buf.c_str());
     }
     if (t->tm_hour != ev_tm_b.tm_hour)
     {
-        sprintf(buf, "OnHour%02d", t->tm_hour);
-        c += npc_event_doall(buf);
+        std::string buf;
+        buf = STRPRINTF("OnHour%02d", t->tm_hour);
+        npc_event_doall(buf.c_str());
     }
     if (t->tm_mday != ev_tm_b.tm_mday)
     {
-        sprintf(buf, "OnDay%02d%02d", t->tm_mon + 1, t->tm_mday);
-        c += npc_event_doall(buf);
+        std::string buf;
+        buf = STRPRINTF("OnDay%02d%02d", t->tm_mon + 1, t->tm_mday);
+        npc_event_doall(buf.c_str());
     }
     memcpy(&ev_tm_b, t, sizeof(ev_tm_b));
 }
@@ -304,7 +302,7 @@ void npc_event_do_clock(timer_id, tick_t, custom_id_t, custom_data_t)
 int npc_event_do_oninit(void)
 {
     int c = npc_event_doall("OnInit");
-    printf("npc: OnInit Event done. (%d npc)\n", c);
+    PRINTF("npc: OnInit Event done. (%d npc)\n", c);
 
     add_timer_interval(gettick() + 100, npc_event_do_clock, 0, 0, 1000);
 
@@ -332,7 +330,7 @@ int npc_addeventtimer(struct npc_data *nd, int tick, const char *name)
                                        (int) evname);
     }
     else
-        printf("npc_addtimer: event timer is full !\n");
+        PRINTF("npc_addtimer: event timer is full !\n");
 
     return 0;
 }
@@ -404,7 +402,7 @@ void npc_timerevent(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
     struct npc_timerevent_list *te;
     if (nd == NULL || nd->u.scr.nexttimer < 0)
     {
-        printf("npc_timerevent: ??\n");
+        PRINTF("npc_timerevent: ??\n");
         return;
     }
     nd->u.scr.timertick = tick;
@@ -522,7 +520,7 @@ int npc_event(struct map_session_data *sd, const char *eventname,
 
     if (sd == NULL)
     {
-        printf("npc_event nullpo?\n");
+        PRINTF("npc_event nullpo?\n");
     }
 
     if (ev == NULL && eventname
@@ -539,14 +537,14 @@ int npc_event(struct map_session_data *sd, const char *eventname,
             if (ev == NULL || (nd = ev->nd) == NULL)
             {
                 if (strncasecmp(eventname, "GM_MONSTER", 10) != 0)
-                    printf("npc_event: event not found [%s]\n", mobevent);
+                    PRINTF("npc_event: event not found [%s]\n", mobevent);
                 return 0;
             }
         }
         else
         {
             if (battle_config.error_log)
-                printf("npc_event: event not found [%s]\n", eventname);
+                PRINTF("npc_event: event not found [%s]\n", eventname);
             return 0;
         }
     }
@@ -568,7 +566,7 @@ int npc_event(struct map_session_data *sd, const char *eventname,
     if (sd->npc_id != 0)
     {
 //      if (battle_config.error_log)
-//          printf("npc_event: npc_id != 0\n");
+//          PRINTF("npc_event: npc_id != 0\n");
         int i;
         for (i = 0; i < MAX_EVENTQUEUE; i++)
             if (!sd->eventqueue[i][0])
@@ -576,12 +574,12 @@ int npc_event(struct map_session_data *sd, const char *eventname,
         if (i == MAX_EVENTQUEUE)
         {
             if (battle_config.error_log)
-                printf("npc_event: event queue is full !\n");
+                PRINTF("npc_event: event queue is full !\n");
         }
         else
         {
 //          if (battle_config.etc_log)
-//              printf("npc_event: enqueue\n");
+//              PRINTF("npc_event: enqueue\n");
             strncpy(sd->eventqueue[i], eventname, 50);
             sd->eventqueue[i][49] = '\0';
         }
@@ -670,7 +668,7 @@ int npc_touch_areanpc(struct map_session_data *sd, int m, int x, int y)
         if (f)
         {
             if (battle_config.error_log)
-                printf("npc_touch_areanpc : some bug \n");
+                PRINTF("npc_touch_areanpc : some bug \n");
         }
         return 1;
     }
@@ -714,7 +712,7 @@ int npc_checknear(struct map_session_data *sd, int id)
     if (nd == NULL || nd->bl.type != BL_NPC)
     {
         if (battle_config.error_log)
-            printf("no such npc : %d\n", id);
+            PRINTF("no such npc : %d\n", id);
         return 1;
     }
 
@@ -745,7 +743,7 @@ int npc_click(struct map_session_data *sd, int id)
     if (sd->npc_id != 0)
     {
         if (battle_config.error_log)
-            printf("npc_click: npc_id != 0\n");
+            PRINTF("npc_click: npc_id != 0\n");
         return 1;
     }
 
@@ -829,7 +827,7 @@ int npc_buysellsel(struct map_session_data *sd, int id, int type)
     if (nd->bl.subtype != SHOP)
     {
         if (battle_config.error_log)
-            printf("no such shop npc : %d\n", id);
+            PRINTF("no such shop npc : %d\n", id);
         sd->npc_id = 0;
         return 1;
     }
@@ -1060,7 +1058,7 @@ void npc_clearsrcfile(void)
  * 読み込むnpcファイルの追加
  *------------------------------------------
  */
-void npc_addsrcfile(char *name)
+void npc_addsrcfile(const char *name)
 {
     struct npc_src_list *new_src;
     size_t len;
@@ -1087,7 +1085,7 @@ void npc_addsrcfile(char *name)
  * 読み込むnpcファイルの削除
  *------------------------------------------
  */
-void npc_delsrcfile(char *name)
+void npc_delsrcfile(const char *name)
 {
     struct npc_src_list *p = npc_src_first, *pp = NULL, **lp = &npc_src_first;
 
@@ -1126,7 +1124,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
         sscanf(w4, "%d,%d,%[^,],%d,%d", &xs, &ys, to_mapname, &to_x,
                 &to_y) != 5)
     {
-        printf("bad warp line : %s\n", w3);
+        PRINTF("bad warp line : %s\n", w3);
         return 1;
     }
 
@@ -1175,7 +1173,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
         }
     }
 
-//  printf("warp npc %s %d read done\n",mapname,nd->bl.id);
+//  PRINTF("warp npc %s %d read done\n",mapname,nd->bl.id);
     npc_warp++;
     nd->bl.type = BL_NPC;
     nd->bl.subtype = WARP;
@@ -1203,7 +1201,7 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir) != 4 ||
         strchr(w4, ',') == NULL)
     {
-        printf("bad shop line : %s\n", w3);
+        PRINTF("bad shop line : %s\n", w3);
         return 1;
     }
     m = map_mapname2mapid(mapname);
@@ -1274,7 +1272,7 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     nd = (struct npc_data *)
         realloc(nd, sizeof(struct npc_data) + sizeof(nd->u.shop_item[0]) * pos);
 
-    //printf("shop npc %s %d read done\n",mapname,nd->bl.id);
+    //PRINTF("shop npc %s %d read done\n",mapname,nd->bl.id);
     npc_shop++;
     nd->bl.type = BL_NPC;
     nd->bl.subtype = SHOP;
@@ -1359,7 +1357,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir) != 4 ||
             (strcmp(w2, "script") == 0 && strchr(w4, ',') == NULL))
         {
-            printf("bad script line : %s\n", w3);
+            PRINTF("bad script line : %s\n", w3);
             return 1;
         }
         m = map_mapname2mapid(mapname);
@@ -1421,12 +1419,12 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         struct npc_data *nd2;
         if (sscanf(w2, "duplicate (%[^)])", srcname) != 1)
         {
-            printf("bad duplicate name! : %s", w2);
+            PRINTF("bad duplicate name! : %s", w2);
             return 0;
         }
         if ((nd2 = npc_name2id(srcname)) == NULL)
         {
-            printf("bad duplicate name! (not exist) : %s\n", srcname);
+            PRINTF("bad duplicate name! (not exist) : %s\n", srcname);
             return 0;
         }
         script = nd2->u.scr.script;
@@ -1518,7 +1516,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
 
-    //printf("script npc %s %d %d read done\n",mapname,nd->bl.id,nd->class);
+    //PRINTF("script npc %s %d %d read done\n",mapname,nd->bl.id,nd->class);
     npc_script++;
     nd->bl.type = BL_NPC;
     nd->bl.subtype = SCRIPT;
@@ -1583,7 +1581,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
             buf = (char *) calloc(50, sizeof(char));
             if (strlen(lname) > 24)
             {
-                printf("npc_parse_script: label name error !\n");
+                PRINTF("npc_parse_script: label name error !\n");
                 exit(1);
             }
             else
@@ -1709,7 +1707,7 @@ int npc_parse_function(char *, char *, char *w3, char *,
     // もう使わないのでバッファ解放
     free(srcbuf);
 
-//  printf("function %s => %p\n",p,script);
+//  PRINTF("function %s => %p\n",p,script);
 
     return 0;
 }
@@ -1734,7 +1732,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         sscanf(w4, "%d,%d,%d,%d,%s", &mob_class, &num, &delay1, &delay2,
                 eventname) < 2)
     {
-        printf("bad monster line : %s\n", w3);
+        PRINTF("bad monster line : %s\n", w3);
         return 1;
     }
 
@@ -1797,7 +1795,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
 
         npc_mob++;
     }
-    //printf("warp npc %s %d read done\n",mapname,nd->bl.id);
+    //PRINTF("warp npc %s %d read done\n",mapname,nd->bl.id);
 
     return 0;
 }
@@ -2088,7 +2086,7 @@ int do_init_npc(void)
         fp = fopen_(nsl->name, "r");
         if (fp == NULL)
         {
-            printf("file not found : %s\n", nsl->name);
+            PRINTF("file not found : %s\n", nsl->name);
             exit(1);
         }
         lines = 0;
@@ -2177,11 +2175,11 @@ int do_init_npc(void)
             }
         }
         fclose_(fp);
-        printf("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
+        PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
                 nsl->name);
         fflush(stdout);
     }
-    printf("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d]\n",
+    PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d]\n",
             npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob);
 
     return 0;

@@ -11,7 +11,8 @@ void nullpo_info(const char *file, int line, const char *func)
     if (!func || !*func)
         func = "unknown";
 
-    fprintf(stderr, "%s:%d: in func `%s': NULL pointer\n", file, line, func);
+    fprintf(stderr, "%s:%d: in func `%s': NULL pointer\n",
+            file, line, func);
 }
 
 bool nullpo_chk(const char *file, int line, const char *func,

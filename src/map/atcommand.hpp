@@ -190,16 +190,13 @@ typedef struct AtCommandInfo
                   const char *command, const char *message);
 } AtCommandInfo;
 
-AtCommandType is_atcommand(const int fd, struct map_session_data *sd,
-                            const char *message, int gmlvl);
+bool is_atcommand(const int fd, struct map_session_data *sd,
+        const char *message, int gmlvl);
 
 int get_atcommand_level(const AtCommandType type);
 
 int atcommand_config_read(const char *cfgName);
 
-__attribute__((format(printf, 2, 3)))
-void log_atcommand(struct map_session_data *sd, const char *fmt, ...);
-__attribute__((format(printf, 1, 2)))
-void gm_log(const char *fmt, ...);
+void log_atcommand(struct map_session_data *sd, const_string cmd);
 
 #endif // ATCOMMAND_HPP

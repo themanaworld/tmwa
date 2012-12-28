@@ -3,7 +3,11 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <fstream>
+
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
+#include "../common/extract.hpp"
 #include "../common/lock.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
@@ -72,75 +76,62 @@ int wis_dellist[WISDELLIST_MAX], wis_delnum;
 
 // アカウント変数を文字列へ変換
 static
-int inter_accreg_tostr(char *str, struct accreg *reg)
+std::string inter_accreg_tostr(struct accreg *reg)
 {
-    int j;
-    char *p = str;
-
-    p += sprintf(p, "%d\t", reg->account_id);
-    for (j = 0; j < reg->reg_num; j++)
-    {
-        p += sprintf(p, "%s,%d ", reg->reg[j].str, reg->reg[j].value);
-    }
-
-    return 0;
+    std::string str STRPRINTF("%d\t", reg->account_id);
+    for (int j = 0; j < reg->reg_num; j++)
+        str += STRPRINTF("%s,%d ", reg->reg[j].str, reg->reg[j].value);
+    return str;
 }
 
 // アカウント変数を文字列から変換
 static
-int inter_accreg_fromstr(const char *str, struct accreg *reg)
+bool extract(const_string str, struct accreg *reg)
 {
-    int j, v, n;
-    char buf[128];
-    const char *p = str;
+    std::vector<struct global_reg> vars;
+    if (!extract(str,
+                record<'\t'>(
+                    &reg->account_id,
+                    vrec<' '>(&vars))))
+        return false;
+    if (reg->account_id <= 0)
+        return false;
 
-    if (sscanf(p, "%d\t%n", &reg->account_id, &n) != 1
-        || reg->account_id <= 0)
-        return 1;
-
-    for (j = 0, p += n; j < ACCOUNT_REG_NUM; j++, p += n)
-    {
-        if (sscanf(p, "%[^,],%d %n", buf, &v, &n) != 2)
-            break;
-        memcpy(reg->reg[j].str, buf, 32);
-        reg->reg[j].value = v;
-    }
-    reg->reg_num = j;
-
-    return 0;
+    if (vars.size() > ACCOUNT_REG_NUM)
+        return false;
+    std::copy(vars.begin(), vars.end(), reg->reg);
+    reg->reg_num = vars.size();
+    return true;
 }
 
 // アカウント変数の読み込み
 static
 int inter_accreg_init(void)
 {
-    char line[8192];
-    FILE *fp;
     int c = 0;
-    struct accreg *reg;
 
     accreg_db = numdb_init();
 
-    if ((fp = fopen_(accreg_txt, "r")) == NULL)
+    std::ifstream in(accreg_txt);
+    if (!in.is_open())
         return 1;
-    while (fgets(line, sizeof(line) - 1, fp))
+    std::string line;
+    while (std::getline(in, line))
     {
-        line[sizeof(line) - 1] = '\0';
+        struct accreg *reg;
         CREATE(reg, struct accreg, 1);
-        if (inter_accreg_fromstr(line, reg) == 0 && reg->account_id > 0)
+        if (!extract(line, reg))
         {
             numdb_insert(accreg_db, reg->account_id, reg);
         }
         else
         {
-            printf("inter: accreg: broken data [%s] line %d\n", accreg_txt,
+            PRINTF("inter: accreg: broken data [%s] line %d\n", accreg_txt,
                     c);
             free(reg);
         }
         c++;
     }
-    fclose_(fp);
-//  printf("inter: %s read done (%d)\n", accreg_txt, c);
 
     return 0;
 }
@@ -149,13 +140,13 @@ int inter_accreg_init(void)
 static
 void inter_accreg_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
-    char line[8192];
     struct accreg *reg = (struct accreg *) data;
 
     if (reg->reg_num > 0)
     {
-        inter_accreg_tostr(line, reg);
-        fprintf(fp, "%s\n", line);
+        std::string line = inter_accreg_tostr(reg);
+        fwrite(line.data(), 1, line.size(), fp);
+        fputc('\n', fp);
     }
 }
 
@@ -168,13 +159,12 @@ int inter_accreg_save(void)
 
     if ((fp = lock_fopen(accreg_txt, &lock)) == NULL)
     {
-        printf("int_accreg: cant write [%s] !!! data is lost !!!\n",
+        PRINTF("int_accreg: cant write [%s] !!! data is lost !!!\n",
                 accreg_txt);
         return 1;
     }
     numdb_foreach(accreg_db, std::bind(inter_accreg_save_sub, ph::_1, ph::_2, fp));
     lock_fclose(fp, accreg_txt, &lock);
-//  printf("inter: %s saved.\n", accreg_txt);
 
     return 0;
 }
@@ -188,52 +178,51 @@ int inter_accreg_save(void)
 static
 int inter_config_read(const char *cfgName)
 {
-    char line[1024], w1[1024], w2[1024];
-    FILE *fp;
-
-    fp = fopen_(cfgName, "r");
-    if (fp == NULL)
+    std::ifstream in(cfgName);
+    if (!in.is_open())
     {
-        printf("file not found: %s\n", cfgName);
+        PRINTF("file not found: %s\n", cfgName);
         return 1;
     }
-    while (fgets(line, sizeof(line) - 1, fp))
+
+    std::string line;
+    while (std::getline(in, line))
     {
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        line[sizeof(line) - 1] = '\0';
-
-        if (sscanf(line, "%[^:]: %[^\r\n]", w1, w2) != 2)
+        std::string w1, w2;
+        if (!split_key_value(line, &w1, &w2))
             continue;
 
-        if (strcasecmp(w1, "storage_txt") == 0)
+        if (w1 == "storage_txt")
         {
-            strncpy(storage_txt, w2, sizeof(storage_txt));
+            strzcpy(storage_txt, w2.c_str(), sizeof(storage_txt));
         }
-        else if (strcasecmp(w1, "party_txt") == 0)
+        else if (w1 == "party_txt")
         {
-            strncpy(party_txt, w2, sizeof(party_txt));
+            strzcpy(party_txt, w2.c_str(), sizeof(party_txt));
         }
-        else if (strcasecmp(w1, "accreg_txt") == 0)
+        else if (w1 == "accreg_txt")
         {
-            strncpy(accreg_txt, w2, sizeof(accreg_txt));
+            strzcpy(accreg_txt, w2.c_str(), sizeof(accreg_txt));
         }
-        else if (strcasecmp(w1, "party_share_level") == 0)
+        else if (w1 == "party_share_level")
         {
-            party_share_level = atoi(w2);
+            party_share_level = atoi(w2.c_str());
             if (party_share_level < 0)
                 party_share_level = 0;
         }
-        else if (strcasecmp(w1, "inter_log_filename") == 0)
+        else if (w1 == "inter_log_filename")
         {
-            strncpy(inter_log_filename, w2, sizeof(inter_log_filename));
+            strzcpy(inter_log_filename, w2.c_str(), sizeof(inter_log_filename));
         }
-        else if (strcasecmp(w1, "import") == 0)
+        else if (w1 == "import")
         {
-            inter_config_read(w2);
+            inter_config_read(w2.c_str());
+        }
+        else
+        {
+            PRINTF("WARNING: unknown inter config key: %s", w1);
         }
     }
-    fclose_(fp);
 
     return 0;
 }
@@ -275,7 +264,6 @@ int mapif_GMmessage(unsigned char *mes, int len)
     WBUFW(buf, 2) = len;
     memcpy(WBUFP(buf, 4), mes, len - 4);
     mapif_sendall(buf, len);
-//  printf("inter server: GM:%d %s\n", len, mes);
 
     return 0;
 }
@@ -307,7 +295,6 @@ int mapif_wis_end(struct WisData *wd, int flag)
     memcpy(WBUFP(buf, 2), wd->src, 24);
     WBUFB(buf, 26) = flag;     // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     mapif_send(wd->fd, buf, 27);
-//  printf("inter server wis_end: flag: %d\n", flag);
 
     return 0;
 }
@@ -378,7 +365,7 @@ int check_ttl_wisdata(void)
         for (i = 0; i < wis_delnum; i++)
         {
             struct WisData *wd = (struct WisData *)numdb_search(wis_db, wis_dellist[i]);
-            printf("inter: wis data id=%d time out : from %s to %s\n",
+            PRINTF("inter: wis data id=%d time out : from %s to %s\n",
                     wd->id, wd->src, wd->dst);
             // removed. not send information after a timeout. Just no answer for the player
             //mapif_wis_end(wd, 1); // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
@@ -413,12 +400,12 @@ int mapif_parse_WisRequest(int fd)
 
     if (RFIFOW(fd, 2) - 52 >= sizeof(wd->msg))
     {
-        printf("inter: Wis message size too long.\n");
+        PRINTF("inter: Wis message size too long.\n");
         return 0;
     }
     else if (RFIFOW(fd, 2) - 52 <= 0)
     {                           // normaly, impossible, but who knows...
-        printf("inter: Wis message doesn't exist.\n");
+        PRINTF("inter: Wis message doesn't exist.\n");
         return 0;
     }
 
@@ -532,7 +519,6 @@ int mapif_parse_AccReg(int fd)
 static
 int mapif_parse_AccRegRequest(int fd)
 {
-//  printf("mapif: accreg request\n");
     return mapif_account_reg_reply(fd, RFIFOL(fd, 2));
 }
 

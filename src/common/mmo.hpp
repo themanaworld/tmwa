@@ -21,6 +21,10 @@
 # define MAX_CART 100
 enum class SkillID : uint16_t;
 constexpr SkillID MAX_SKILL = SkillID(474); // not 450
+constexpr SkillID get_enum_min_value(SkillID) { return SkillID(); }
+constexpr SkillID get_enum_max_value(SkillID) { return MAX_SKILL; }
+
+
 # define GLOBAL_REG_NUM 96
 # define ACCOUNT_REG_NUM 16
 # define ACCOUNT_REG2_NUM 16
@@ -71,6 +75,9 @@ enum class EPOS : uint16_t
     ARROW   = 0x8000,
 };
 ENUM_BITWISE_OPERATORS(EPOS)
+
+constexpr EPOS get_enum_min_value(EPOS) { return EPOS(0x0000); }
+constexpr EPOS get_enum_max_value(EPOS) { return EPOS(0xffff); }
 }
 using e::EPOS;
 
@@ -80,9 +87,9 @@ struct item
     short nameid;
     short amount;
     EPOS equip;
-    char identify;
-    char refine;
-    char attribute;
+    uint8_t identify;
+    uint8_t refine;
+    uint8_t attribute;
     short card[4];
     short broken;
 };
@@ -116,6 +123,8 @@ struct global_reg
 namespace e
 {
 enum class Option : uint16_t;
+constexpr Option get_enum_min_value(Option) { return Option(0x0000); }
+constexpr Option get_enum_max_value(Option) { return Option(0xffff); }
 }
 using e::Option;
 

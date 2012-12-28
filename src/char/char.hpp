@@ -1,6 +1,7 @@
 #ifndef CHAR_HPP
 #define CHAR_HPP
 
+#include "../common/const_array.hpp"
 #include "../common/mmo.hpp"
 
 #define MAX_MAP_SERVERS 30
@@ -26,8 +27,10 @@ int mapif_sendall(const uint8_t *buf, unsigned int len);
 int mapif_sendallwos(int fd, const uint8_t *buf, unsigned int len);
 int mapif_send(int fd, const uint8_t *buf, unsigned int len);
 
-__attribute__((format(printf, 1, 2)))
-int char_log(const char *fmt, ...);
+void char_log(const_string line);
+
+#define CHAR_LOG(fmt, args...) \
+    char_log(static_cast<const std::string&>(STRPRINTF(fmt, ## args)))
 
 extern int autosave_interval;
 

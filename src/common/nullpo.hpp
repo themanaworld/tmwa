@@ -8,7 +8,6 @@
 /// nullpo_ret(cond) - return 0 if given pointer is NULL
 /// nullpo_retv(cond) - just return (function returns void)
 /// nullpo_retr(rv, cond) - return given value instead
-/// the _f variants take a printf-format string and arguments
 
 # ifdef NULLPO_CHECK
 # define NLP_MARK __FILE__, __LINE__, __func__

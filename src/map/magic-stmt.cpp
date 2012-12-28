@@ -1,3 +1,5 @@
+#include "../common/cxxstdio.hpp"
+
 #include "magic-expr.hpp"
 #include "magic-expr-eval.hpp"
 #include "magic-interpreter.hpp"
@@ -14,19 +16,19 @@ void print_val(val_t *v)
     switch (v->ty)
     {
         case TY_UNDEF:
-            fprintf(stderr, "UNDEF");
+            FPRINTF(stderr, "UNDEF");
             break;
         case TY_INT:
-            fprintf(stderr, "%d", v->v.v_int);
+            FPRINTF(stderr, "%d", v->v.v_int);
             break;
         case TY_DIR:
-            fprintf(stderr, "dir%d", v->v.v_int);
+            FPRINTF(stderr, "dir%d", v->v.v_int);
             break;
         case TY_STRING:
-            fprintf(stderr, "`%s'", v->v.v_string);
+            FPRINTF(stderr, "`%s'", v->v.v_string);
             break;
         default:
-            fprintf(stderr, "ty%d", v->ty);
+            FPRINTF(stderr, "ty%d", v->ty);
             break;
     }
 }
@@ -40,11 +42,11 @@ void dump_env(env_t *env)
         val_t *v = &env->vars[i];
         val_t *bv = &env->base_env->vars[i];
 
-        fprintf(stderr, "%02x %30s ", i, env->base_env->var_name[i]);
+        FPRINTF(stderr, "%02x %30s ", i, env->base_env->var_name[i]);
         print_val(v);
-        fprintf(stderr, "\t(");
+        FPRINTF(stderr, "\t(");
         print_val(bv);
-        fprintf(stderr, ")\n");
+        FPRINTF(stderr, ")\n");
     }
 }
 #endif
@@ -950,9 +952,9 @@ void spell_effect_report_termination(int invocation_id, int bl_id,
     {
         entity_t *entity = map_id2bl(bl_id);
         if (entity->type == BL_PC)
-            fprintf(stderr,
+            FPRINTF(stderr,
                      "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n",
-                     bl_id, uint16_t(sc_id));
+                     bl_id, sc_id);
         return;
     }
 
@@ -1041,7 +1043,7 @@ effect_t *return_to_stack(invocation_t *invocation)
                 return ar->c.c_for.body;
 
             default:
-                fprintf(stderr,
+                FPRINTF(stderr,
                          "[magic] INTERNAL ERROR: While executing spell `%s':  stack corruption\n",
                          invocation->spell->name);
                 return NULL;
@@ -1057,7 +1059,7 @@ cont_activation_record_t *add_stack_entry(invocation_t *invocation,
         invocation->stack + invocation->stack_size++;
     if (invocation->stack_size >= MAX_STACK_SIZE)
     {
-        fprintf(stderr,
+        FPRINTF(stderr,
                  "[magic] Execution stack size exceeded in spell `%s'; truncating effect\n",
                  invocation->spell->name);
         invocation->stack_size--;
@@ -1181,7 +1183,7 @@ effect_t *run_foreach(invocation_t *invocation, effect_t *foreach,
     if (area.ty != TY_AREA)
     {
         magic_clear_var(&area);
-        fprintf(stderr,
+        FPRINTF(stderr,
                  "[magic] Error in spell `%s':  FOREACH loop over non-area\n",
                  invocation->spell->name);
         return return_location;
@@ -1252,7 +1254,7 @@ effect_t *run_for (invocation_t *invocation, effect_t *for_,
     {
         magic_clear_var(&start);
         magic_clear_var(&stop);
-        fprintf(stderr,
+        FPRINTF(stderr,
                  "[magic] Error in spell `%s':  FOR loop start or stop point is not an integer\n",
                  invocation->spell->name);
         return return_location;
@@ -1305,9 +1307,9 @@ void print_cfg(int i, effect_t *e)
 {
     int j;
     for (j = 0; j < i; j++)
-        printf("    ");
+        PRINTF("    ");
 
-    printf("%p: ", e);
+    PRINTF("%p: ", e);
 
     if (!e)
     {
@@ -1340,11 +1342,11 @@ void print_cfg(int i, effect_t *e)
         case EFFECT_IF:
             puts("IF");
             for (j = 0; j < i; j++)
-                printf("    ");
+                PRINTF("    ");
             puts("THEN");
             print_cfg(i + 1, e->e.e_if.true_branch);
             for (j = 0; j < i; j++)
-                printf("    ");
+                PRINTF("    ");
             puts("ELSE");
             print_cfg(i + 1, e->e.e_if.false_branch);
             break;
@@ -1381,7 +1383,7 @@ int spell_run(invocation_t *invocation, int allow_delete)
 #define REFRESH_INVOCATION invocation = (invocation_t *) map_id2bl(invocation_id); if (!invocation) return 0;
 
 #ifdef DEBUG
-    fprintf(stderr, "Resuming execution:  invocation of `%s'\n",
+    FPRINTF(stderr, "Resuming execution:  invocation of `%s'\n",
              invocation->spell->name);
     print_cfg(1, invocation->current_effect);
 #endif
@@ -1392,7 +1394,7 @@ int spell_run(invocation_t *invocation, int allow_delete)
         int i;
 
 #ifdef DEBUG
-        fprintf(stderr, "Next step of type %d\n", e->ty);
+        FPRINTF(stderr, "Next step of type %d\n", e->ty);
         dump_env(invocation->env);
 #endif
 
@@ -1524,9 +1526,9 @@ int spell_run(invocation_t *invocation, int allow_delete)
                 break;
 
             default:
-                fprintf(stderr,
+                FPRINTF(stderr,
                          "[magic] INTERNAL ERROR: Unknown effect %d\n",
-                         uint8_t(e->ty));
+                         e->ty);
         }
 
         if (!next)
@@ -1553,7 +1555,7 @@ void spell_execute_d(invocation_t *invocation, int allow_deletion)
     {
         if (invocation->timer)
         {
-            fprintf(stderr,
+            FPRINTF(stderr,
                      "[magic] FATAL ERROR: Trying to add multiple timers to the same spell! Already had timer: %d\n",
                      invocation->timer);
             /* *((int *)0x0) = 0; */

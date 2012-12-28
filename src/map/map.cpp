@@ -2,10 +2,11 @@
 
 #include <netdb.h>
 
-#include <cstdarg>  // exception to "no va_list" rule
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
+#include <fstream>
 
 #include "../common/core.hpp"
 #include "../common/db.hpp"
@@ -81,6 +82,9 @@ char help_txt[256] = "conf/help.txt";
 
 char wisp_server_name[24] = "Server";   // can be modified in char-server configuration file
 
+static
+int map_delmap(const char *mapname);
+
 /*==========================================
  * 全map鯖総計での接続数設定
  * (char鯖から送られてくる)
@@ -121,7 +125,7 @@ int map_freeblock(void *bl)
         if (block_free_count >= block_free_max)
         {
             if (battle_config.error_log)
-                printf("map_freeblock: *WARNING* too many free block! %d %d\n",
+                PRINTF("map_freeblock: *WARNING* too many free block! %d %d\n",
                      block_free_count, block_free_lock);
         }
         else
@@ -152,7 +156,7 @@ int map_freeblock_unlock(void)
         int i;
 //      if(block_free_count>0) {
 //          if(battle_config.error_log)
-//              printf("map_freeblock_unlock: free %d object\n",block_free_count);
+//              PRINTF("map_freeblock_unlock: free %d object\n",block_free_count);
 //      }
         for (i = 0; i < block_free_count; i++)
         {
@@ -164,7 +168,7 @@ int map_freeblock_unlock(void)
     else if (block_free_lock < 0)
     {
         if (battle_config.error_log)
-            printf("map_freeblock_unlock: lock count < 0 !\n");
+            PRINTF("map_freeblock_unlock: lock count < 0 !\n");
     }
     return block_free_lock;
 }
@@ -196,7 +200,7 @@ int map_addblock(struct block_list *bl)
     if (bl->prev != NULL)
     {
         if (battle_config.error_log)
-            printf("map_addblock error : bl->prev!=NULL\n");
+            PRINTF("map_addblock error : bl->prev!=NULL\n");
         return 0;
     }
 
@@ -251,7 +255,7 @@ int map_delblock(struct block_list *bl)
         {
             // prevがNULLでnextがNULLでないのは有ってはならない
             if (battle_config.error_log)
-                printf("map_delblock error : bl->next!=NULL\n");
+                PRINTF("map_delblock error : bl->next!=NULL\n");
         }
         return 0;
     }
@@ -385,7 +389,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
     if (bl_list_count >= BL_LIST_MAX)
     {
         if (battle_config.error_log)
-            printf("map_foreachinarea: *WARNING* block count too many!\n");
+            PRINTF("map_foreachinarea: *WARNING* block count too many!\n");
     }
 
     map_freeblock_lock();      // メモリからの解放を禁止する
@@ -539,7 +543,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
     if (bl_list_count >= BL_LIST_MAX)
     {
         if (battle_config.error_log)
-            printf("map_foreachinarea: *WARNING* block count too many!\n");
+            PRINTF("map_foreachinarea: *WARNING* block count too many!\n");
     }
 
     map_freeblock_lock();      // メモリからの解放を禁止する
@@ -596,7 +600,7 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
     if (bl_list_count >= BL_LIST_MAX)
     {
         if (battle_config.error_log)
-            printf("map_foreachincell: *WARNING* block count too many!\n");
+            PRINTF("map_foreachincell: *WARNING* block count too many!\n");
     }
 
     map_freeblock_lock();      // メモリからの解放を禁止する
@@ -622,7 +626,7 @@ int map_addobject(struct block_list *bl)
     int i;
     if (bl == NULL)
     {
-        printf("map_addobject nullpo?\n");
+        PRINTF("map_addobject nullpo?\n");
         return 0;
     }
     if (first_free_object_id < 2 || first_free_object_id >= MAX_FLOORITEM)
@@ -633,7 +637,7 @@ int map_addobject(struct block_list *bl)
     if (i >= MAX_FLOORITEM)
     {
         if (battle_config.error_log)
-            printf("no free object id\n");
+            PRINTF("no free object id\n");
         return 0;
     }
     first_free_object_id = i;
@@ -656,9 +660,9 @@ int map_delobjectnofree(int id, BL type)
 
     if (object[id]->type != type)
     {
-        fprintf(stderr, "Incorrect type: expected %d, got %d\n",
-                uint8_t(type),
-                uint8_t(object[id]->type));
+        FPRINTF(stderr, "Incorrect type: expected %d, got %d\n",
+                type,
+                object[id]->type);
         abort();
     }
 
@@ -720,7 +724,7 @@ void map_foreachobject(std::function<void(struct block_list *)> func,
             if (bl_list_count >= BL_LIST_MAX)
             {
                 if (battle_config.error_log)
-                    printf("map_foreachobject: too many block !\n");
+                    PRINTF("map_foreachobject: too many block !\n");
             }
             else
                 bl_list[bl_list_count++] = object[i];
@@ -757,7 +761,7 @@ void map_clearflooritem_timer(timer_id tid, tick_t, custom_id_t id, custom_data_
         || (!data && fitem->cleartimer != tid))
     {
         if (battle_config.error_log)
-            printf("map_clearflooritem_timer : error\n");
+            PRINTF("map_clearflooritem_timer : error\n");
         return;
     }
     if (data)
@@ -1305,7 +1309,7 @@ int map_addnpc(int m, struct npc_data *nd)
     if (i == MAX_NPC_PER_MAP)
     {
         if (battle_config.error_log)
-            printf("too many NPCs in one map %s\n", map[m].name);
+            PRINTF("too many NPCs in one map %s\n", map[m].name);
         return -1;
     }
     if (i == map[m].npc_num)
@@ -1347,7 +1351,7 @@ void map_removenpc(void)
             }
         }
     }
-    printf("%d NPCs removed.\n", n);
+    PRINTF("%d NPCs removed.\n", n);
 }
 
 /*==========================================
@@ -1521,7 +1525,7 @@ int map_setipport(const char *name, struct in_addr ip, int port)
         {                       // local -> check data
             if (ip.s_addr != clif_getip().s_addr || port != clif_getport())
             {
-                printf("from char server : %s -> %s:%d\n", name, ip2str(ip),
+                PRINTF("from char server : %s -> %s:%d\n", name, ip2str(ip),
                         port);
                 return 1;
             }
@@ -1548,48 +1552,12 @@ struct Waterlist
     int waterheight;
 }   *waterlist = NULL;
 
-static
-void map_readwater(char *watertxt)
-{
-    char line[1024], w1[1024];
-    FILE *fp = NULL;
-    int n = 0;
-
-    fp = fopen_(watertxt, "r");
-    if (fp == NULL)
-    {
-        printf("file not found: %s\n", watertxt);
-        return;
-    }
-    if (waterlist == NULL)
-    {
-        CREATE(waterlist, struct Waterlist, MAX_MAP_PER_SERVER);
-    }
-    while (fgets(line, 1020, fp) && n < MAX_MAP_PER_SERVER)
-    {
-        int wh, count;
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        if ((count = sscanf(line, "%s%d", w1, &wh)) < 1)
-        {
-            continue;
-        }
-        strcpy(waterlist[n].mapname, w1);
-        if (count >= 2)
-            waterlist[n].waterheight = wh;
-        else
-            waterlist[n].waterheight = 3;
-        n++;
-    }
-    fclose_(fp);
-}
-
 /*==========================================
  * マップ1枚読み込み
  *------------------------------------------
  */
 static
-int map_readmap(int m, char *fn, char *)
+int map_readmap(int m, const char *fn, char *)
 {
     int s;
     int x, y, xs, ys;
@@ -1604,17 +1572,17 @@ int map_readmap(int m, char *fn, char *)
     if (gat == NULL)
         return -1;
 
-    printf("\rLoading Maps [%d/%d]: %-50s  ", m, map_num, fn);
+    PRINTF("\rLoading Maps [%d/%d]: %-50s  ", m, map_num, fn);
     fflush(stdout);
 
     map[m].m = m;
     xs = map[m].xs = *(short *)(gat);
     ys = map[m].ys = *(short *)(gat + 2);
-    printf("\n%i %i\n", xs, ys);
+    PRINTF("\n%i %i\n", xs, ys);
     map[m].gat = (uint8_t *)calloc(s = map[m].xs * map[m].ys, 1);
     if (map[m].gat == NULL)
     {
-        printf("out of memory : map_readmap gat\n");
+        PRINTF("out of memory : map_readmap gat\n");
         exit(1);
     }
 
@@ -1653,7 +1621,7 @@ int map_readmap(int m, char *fn, char *)
 
     strdb_insert(map_db, map[m].name, &map[m]);
 
-//  printf("%s read done\n",fn);
+//  PRINTF("%s read done\n",fn);
 
     return 0;
 }
@@ -1666,16 +1634,16 @@ static
 int map_readallmap(void)
 {
     int i, maps_removed = 0;
-    char fn[256] = "";
 
     // 先に全部のャbプの存在を確認
     for (i = 0; i < map_num; i++)
     {
         if (strstr(map[i].name, ".gat") == NULL)
             continue;
-        sprintf(fn, "data\\%s", map[i].name);
+        // TODO replace this
+        std::string fn = STRPRINTF("data\\%s", map[i].name);
         // TODO - remove this, it is the last call to grfio_size, which is deprecated
-        if (!grfio_size(fn))
+        if (!grfio_size(fn.c_str()))
         {
             map_delmap(map[i].name);
             maps_removed++;
@@ -1692,8 +1660,8 @@ int map_readallmap(void)
                 *p = '\0';
                 strcpy(alias, map[i].name);
                 strcpy(map[i].name, p + 1);
-                sprintf(fn, "data\\%s", map[i].name);
-                if (map_readmap(i, fn, alias) == -1)
+                std::string fn = STRPRINTF("data\\%s", map[i].name);
+                if (map_readmap(i, fn.c_str(), alias) == -1)
                 {
                     map_delmap(map[i].name);
                     maps_removed++;
@@ -1701,8 +1669,8 @@ int map_readallmap(void)
             }
             else
             {
-                sprintf(fn, "data\\%s", map[i].name);
-                if (map_readmap(i, fn, NULL) == -1)
+                std::string fn = STRPRINTF("data\\%s", map[i].name);
+                if (map_readmap(i, fn.c_str(), NULL) == -1)
                 {
                     map_delmap(map[i].name);
                     maps_removed++;
@@ -1712,8 +1680,8 @@ int map_readallmap(void)
     }
 
     free(waterlist);
-    printf("\rMaps Loaded: %d %60s\n", map_num, "");
-    printf("\rMaps Removed: %d \n", maps_removed);
+    PRINTF("\rMaps Loaded: %d %60s\n", map_num, "");
+    PRINTF("\rMaps Removed: %d \n", maps_removed);
     return 0;
 }
 
@@ -1722,7 +1690,7 @@ int map_readallmap(void)
  *------------------------------------------
  */
 static
-int map_addmap(char *mapname)
+int map_addmap(const char *mapname)
 {
     if (strcasecmp(mapname, "clear") == 0)
     {
@@ -1732,7 +1700,7 @@ int map_addmap(char *mapname)
 
     if (map_num >= MAX_MAP_PER_SERVER - 1)
     {
-        printf("too many map\n");
+        PRINTF("too many map\n");
         return 1;
     }
     memcpy(map[map_num].name, mapname, 24);
@@ -1744,7 +1712,8 @@ int map_addmap(char *mapname)
  * 読み込むmapを削除する
  *------------------------------------------
  */
-int map_delmap(char *mapname)
+static
+int map_delmap(const char *mapname)
 {
     int i;
 
@@ -1758,7 +1727,7 @@ int map_delmap(char *mapname)
     {
         if (strcmp(map[i].name, mapname) == 0)
         {
-            printf("Removing map [ %s ] from maplist\n", map[i].name);
+            PRINTF("Removing map [ %s ] from maplist\n", map[i].name);
             memmove(map + i, map + i + 1,
                      sizeof(map[0]) * (map_num - i - 1));
             map_num--;
@@ -1781,31 +1750,30 @@ void map_close_logfile(void)
 {
     if (map_logfile)
     {
-        char *filenameop_buf = (char*)malloc(strlen(map_logfile_name) + 50);
-        sprintf(filenameop_buf, "gzip -f %s.%ld", map_logfile_name,
-                 map_logfile_index);
+        std::string filenameop_buf = STRPRINTF(
+                "gzip -f %s.%ld",
+                map_logfile_name,
+                map_logfile_index);
 
         fclose(map_logfile);
 
-        if (!system(filenameop_buf))
-            perror(filenameop_buf);
-
-        free(filenameop_buf);
+        if (!system(filenameop_buf.c_str()))
+            perror(filenameop_buf.c_str());
     }
 }
 
 static
 void map_start_logfile(long suffix)
 {
-    char *filename_buf = (char*)malloc(strlen(map_logfile_name) + 50);
     map_logfile_index = suffix >> LOGFILE_SECONDS_PER_CHUNK_SHIFT;
 
-    sprintf(filename_buf, "%s.%ld", map_logfile_name, map_logfile_index);
-    map_logfile = fopen(filename_buf, "w+");
+    std::string filename_buf = STRPRINTF(
+            "%s.%ld",
+            map_logfile_name,
+            map_logfile_index);
+    map_logfile = fopen(filename_buf.c_str(), "w+");
     if (!map_logfile)
         perror(map_logfile_name);
-
-    free(filename_buf);
 }
 
 static
@@ -1821,12 +1789,12 @@ void map_set_logfile(const char *filename)
     MAP_LOG("log-start v3");
 }
 
-void map_write_log(const char *format, ...)
+void map_log(const_string line)
 {
-    struct timeval tv;
-    va_list args;
-    va_start(args, format);
+    if (!map_logfile)
+        return;
 
+    struct timeval tv;
     gettimeofday(&tv, NULL);
 
     if ((tv.tv_sec >> LOGFILE_SECONDS_PER_CHUNK_SHIFT) != map_logfile_index)
@@ -1835,9 +1803,16 @@ void map_write_log(const char *format, ...)
         map_start_logfile(tv.tv_sec);
     }
 
-    fprintf(map_logfile, "%ld.%06ld ", (long) tv.tv_sec, (long) tv.tv_usec);
-    vfprintf(map_logfile, format, args);
-    fputc('\n', map_logfile);
+    if (!line)
+    {
+        fputc('\n', map_logfile);
+        return;
+    }
+
+    FPRINTF(map_logfile, "%ld.%06ld ", (long) tv.tv_sec, (long) tv.tv_usec);
+    fwrite(line.data(), 1, line.size(), map_logfile);
+    if (line.back() != '\n')
+        fputc('\n', map_logfile);
 }
 
 /*==========================================
@@ -1847,126 +1822,118 @@ void map_write_log(const char *format, ...)
 static
 int map_config_read(const char *cfgName)
 {
-    char line[1024], w1[1024], w2[1024];
-    FILE *fp;
     struct hostent *h = NULL;
 
-    fp = fopen_(cfgName, "r");
-    if (fp == NULL)
+    std::ifstream in(cfgName);
+    if (!in.is_open())
     {
-        printf("Map configuration file not found at: %s\n", cfgName);
+        PRINTF("Map configuration file not found at: %s\n", cfgName);
         exit(1);
     }
-    while (fgets(line, sizeof(line) - 1, fp))
+
+    std::string line;
+    while (std::getline(in, line))
     {
-        if (line[0] == '/' && line[1] == '/')
+        std::string w1, w2;
+        if (!split_key_value(line, &w1, &w2))
             continue;
-        if (sscanf(line, "%[^:]: %[^\r\n]", w1, w2) == 2)
+        if (w1 == "userid")
         {
-            if (strcasecmp(w1, "userid") == 0)
+            chrif_setuserid(w2.c_str());
+        }
+        else if (w1 == "passwd")
+        {
+            chrif_setpasswd(w2.c_str());
+        }
+        else if (w1 == "char_ip")
+        {
+            h = gethostbyname(w2.c_str());
+            if (h != NULL)
             {
-                chrif_setuserid(w2);
-            }
-            else if (strcasecmp(w1, "passwd") == 0)
-            {
-                chrif_setpasswd(w2);
-            }
-            else if (strcasecmp(w1, "char_ip") == 0)
-            {
-                h = gethostbyname(w2);
-                if (h != NULL)
-                {
-                    printf("Character server IP address : %s -> %d.%d.%d.%d\n",
-                         w2, (unsigned char) h->h_addr[0],
+                PRINTF("Character server IP address : %s -> %d.%d.%d.%d\n",
+                     w2, (unsigned char) h->h_addr[0],
+                     (unsigned char) h->h_addr[1],
+                     (unsigned char) h->h_addr[2],
+                     (unsigned char) h->h_addr[3]);
+                SPRINTF(w2, "%d.%d.%d.%d", (unsigned char) h->h_addr[0],
                          (unsigned char) h->h_addr[1],
                          (unsigned char) h->h_addr[2],
                          (unsigned char) h->h_addr[3]);
-                    sprintf(w2, "%d.%d.%d.%d", (unsigned char) h->h_addr[0],
-                             (unsigned char) h->h_addr[1],
-                             (unsigned char) h->h_addr[2],
-                             (unsigned char) h->h_addr[3]);
-                }
-                chrif_setip(w2);
             }
-            else if (strcasecmp(w1, "char_port") == 0)
+            chrif_setip(w2.c_str());
+        }
+        else if (w1 == "char_port")
+        {
+            chrif_setport(atoi(w2.c_str()));
+        }
+        else if (w1 == "map_ip")
+        {
+            h = gethostbyname(w2.c_str());
+            if (h != NULL)
             {
-                chrif_setport(atoi(w2));
+                PRINTF("Map server IP address : %s -> %d.%d.%d.%d\n", w2,
+                        (unsigned char) h->h_addr[0],
+                        (unsigned char) h->h_addr[1],
+                        (unsigned char) h->h_addr[2],
+                        (unsigned char) h->h_addr[3]);
+                SPRINTF(w2, "%d.%d.%d.%d", (unsigned char) h->h_addr[0],
+                         (unsigned char) h->h_addr[1],
+                         (unsigned char) h->h_addr[2],
+                         (unsigned char) h->h_addr[3]);
             }
-            else if (strcasecmp(w1, "map_ip") == 0)
-            {
-                h = gethostbyname(w2);
-                if (h != NULL)
-                {
-                    printf("Map server IP address : %s -> %d.%d.%d.%d\n", w2,
-                            (unsigned char) h->h_addr[0],
-                            (unsigned char) h->h_addr[1],
-                            (unsigned char) h->h_addr[2],
-                            (unsigned char) h->h_addr[3]);
-                    sprintf(w2, "%d.%d.%d.%d", (unsigned char) h->h_addr[0],
-                             (unsigned char) h->h_addr[1],
-                             (unsigned char) h->h_addr[2],
-                             (unsigned char) h->h_addr[3]);
-                }
-                clif_setip(w2);
-            }
-            else if (strcasecmp(w1, "map_port") == 0)
-            {
-                clif_setport(atoi(w2));
-                map_port = (atoi(w2));
-            }
-            else if (strcasecmp(w1, "water_height") == 0)
-            {
-                map_readwater(w2);
-            }
-            else if (strcasecmp(w1, "map") == 0)
-            {
-                map_addmap(w2);
-            }
-            else if (strcasecmp(w1, "delmap") == 0)
-            {
-                map_delmap(w2);
-            }
-            else if (strcasecmp(w1, "npc") == 0)
-            {
-                npc_addsrcfile(w2);
-            }
-            else if (strcasecmp(w1, "delnpc") == 0)
-            {
-                npc_delsrcfile(w2);
-            }
-            else if (strcasecmp(w1, "autosave_time") == 0)
-            {
-                autosave_interval = atoi(w2) * 1000;
-                if (autosave_interval <= 0)
-                    autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
-            }
-            else if (strcasecmp(w1, "motd_txt") == 0)
-            {
-                strcpy(motd_txt, w2);
-            }
-            else if (strcasecmp(w1, "help_txt") == 0)
-            {
-                strcpy(help_txt, w2);
-            }
-            else if (strcasecmp(w1, "mapreg_txt") == 0)
-            {
-                strcpy(mapreg_txt, w2);
-            }
-            else if (strcasecmp(w1, "gm_log") == 0)
-            {
-                gm_logfile_name = strdup(w2);
-            }
-            else if (strcasecmp(w1, "log_file") == 0)
-            {
-                map_set_logfile(w2);
-            }
-            else if (strcasecmp(w1, "import") == 0)
-            {
-                map_config_read(w2);
-            }
+            clif_setip(w2.c_str());
+        }
+        else if (w1 == "map_port")
+        {
+            clif_setport(atoi(w2.c_str()));
+        }
+        else if (w1 == "map")
+        {
+            map_addmap(w2.c_str());
+        }
+        else if (w1 == "delmap")
+        {
+            map_delmap(w2.c_str());
+        }
+        else if (w1 == "npc")
+        {
+            npc_addsrcfile(w2.c_str());
+        }
+        else if (w1 == "delnpc")
+        {
+            npc_delsrcfile(w2.c_str());
+        }
+        else if (w1 == "autosave_time")
+        {
+            autosave_interval = atoi(w2.c_str()) * 1000;
+            if (autosave_interval <= 0)
+                autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+        }
+        else if (w1 == "motd_txt")
+        {
+            strzcpy(motd_txt, w2.c_str(), sizeof(motd_txt));
+        }
+        else if (w1 == "help_txt")
+        {
+            strzcpy(help_txt, w2.c_str(), sizeof(help_txt));
+        }
+        else if (w1 == "mapreg_txt")
+        {
+            strzcpy(mapreg_txt, w2.c_str(), sizeof(mapreg_txt));
+        }
+        else if (w1 == "gm_log")
+        {
+            gm_logfile_name = strdup(w2.c_str());
+        }
+        else if (w1 == "log_file")
+        {
+            map_set_logfile(w2.c_str());
+        }
+        else if (w1 == "import")
+        {
+            map_config_read(w2.c_str());
         }
     }
-    fclose_(fp);
 
     return 0;
 }
@@ -2075,7 +2042,6 @@ int do_init(int argc, char *argv[])
     const char *MAP_CONF_NAME = "conf/map_athena.conf";
     const char *BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
     const char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
-    const char *SCRIPT_CONF_NAME = "conf/script_athena.conf";
 
     for (i = 1; i < argc; i++)
     {
@@ -2089,14 +2055,12 @@ int do_init(int argc, char *argv[])
             BATTLE_CONF_FILENAME = argv[i + 1];
         else if (strcmp(argv[i], "--atcommand_config") == 0)
             ATCOMMAND_CONF_FILENAME = argv[i + 1];
-        else if (strcmp(argv[i], "--script_config") == 0)
-            SCRIPT_CONF_NAME = argv[i + 1];
     }
 
     map_config_read(MAP_CONF_NAME);
     battle_config_read(BATTLE_CONF_FILENAME);
     atcommand_config_read(ATCOMMAND_CONF_FILENAME);
-    script_config_read(SCRIPT_CONF_NAME);
+    script_config_read();
 
     id_db = numdb_init();
     map_db = strdb_init(16);
@@ -2122,9 +2086,9 @@ int do_init(int argc, char *argv[])
     npc_event_do_oninit();     // npcのOnInitイベント実行
 
     if (battle_config.pk_mode == 1)
-        printf("The server is running in \033[1;31mPK Mode\033[0m.\n");
+        PRINTF("The server is running in \033[1;31mPK Mode\033[0m.\n");
 
-    printf("The map-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
+    PRINTF("The map-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
          map_port);
 
     return 0;

@@ -1,6 +1,8 @@
 #include "int_storage.hpp"
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
+#include "../common/extract.hpp"
 #include "../common/lock.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
@@ -11,6 +13,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <fstream>
+
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
 char storage_txt[1024] = "save/storage.txt";
@@ -20,106 +24,60 @@ struct dbt *storage_db;
 
 // 倉庫データを文字列に変換
 static
-int storage_tostr(char *str, struct storage *p)
+std::string storage_tostr(struct storage *p)
 {
-    int i, f = 0;
-    char *str_p = str;
-    str_p += sprintf(str_p, "%d,%d\t", p->account_id, p->storage_amount);
+    std::string str = STRPRINTF(
+            "%d,%d\t",
+            p->account_id, p->storage_amount);
 
-    for (i = 0; i < MAX_STORAGE; i++)
-        if ((p->storage_[i].nameid) && (p->storage_[i].amount))
+    int f = 0;
+    for (int i = 0; i < MAX_STORAGE; i++)
+        if (p->storage_[i].nameid && p->storage_[i].amount)
         {
-            str_p += sprintf(str_p, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
-                              p->storage_[i].id,
-                              p->storage_[i].nameid,
-                              p->storage_[i].amount,
-                              uint16_t(p->storage_[i].equip),
-                              p->storage_[i].identify,
-                              p->storage_[i].refine,
-                              p->storage_[i].attribute,
-                              p->storage_[i].card[0],
-                              p->storage_[i].card[1],
-                              p->storage_[i].card[2],
-                              p->storage_[i].card[3]);
+            str += STRPRINTF(
+                    "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
+                    p->storage_[i].id,
+                    p->storage_[i].nameid,
+                    p->storage_[i].amount,
+                    p->storage_[i].equip,
+                    p->storage_[i].identify,
+                    p->storage_[i].refine,
+                    p->storage_[i].attribute,
+                    p->storage_[i].card[0],
+                    p->storage_[i].card[1],
+                    p->storage_[i].card[2],
+                    p->storage_[i].card[3]);
             f++;
         }
 
-    *(str_p++) = '\t';
+    str += '\t';
 
-    *str_p = '\0';
     if (!f)
-        str[0] = 0;
-    return 0;
+        str.clear();
+    return str;
 }
 
 // 文字列を倉庫データに変換
 static
-int storage_fromstr(char *str, struct storage *p)
+bool extract(const_string str, struct storage *p)
 {
-    int tmp_int[256];
-    int set, next, len, i;
+    std::vector<struct item> storage_items;
+    if (!extract(str,
+                record<'\t'>(
+                    record<','>(
+                        &p->account_id,
+                        &p->storage_amount),
+                    vrec<' '>(&storage_items))))
+        return false;
 
-    set = sscanf(str, "%d,%d%n", &tmp_int[0], &tmp_int[1], &next);
-    p->storage_amount = tmp_int[1];
+    if (p->account_id <= 0)
+        return false;
 
-    if (set != 2)
-        return 1;
-    if (str[next] == '\n' || str[next] == '\r')
-        return 0;
-    next++;
-    for (i = 0; str[next] && str[next] != '\t' && i < MAX_STORAGE; i++)
-    {
-        if (sscanf(str + next, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
-                    &tmp_int[0], &tmp_int[1], &tmp_int[2], &tmp_int[3],
-                    &tmp_int[4], &tmp_int[5], &tmp_int[6],
-                    &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10],
-                    &tmp_int[10], &len) == 12)
-        {
-            p->storage_[i].id = tmp_int[0];
-            p->storage_[i].nameid = tmp_int[1];
-            p->storage_[i].amount = tmp_int[2];
-            p->storage_[i].equip = EPOS(tmp_int[3] );
-            p->storage_[i].identify = tmp_int[4];
-            p->storage_[i].refine = tmp_int[5];
-            p->storage_[i].attribute = tmp_int[6];
-            p->storage_[i].card[0] = tmp_int[7];
-            p->storage_[i].card[1] = tmp_int[8];
-            p->storage_[i].card[2] = tmp_int[9];
-            p->storage_[i].card[3] = tmp_int[10];
-            next += len;
-            if (str[next] == ' ')
-                next++;
-        }
+    if (storage_items.size() >= MAX_STORAGE)
+        return false;
+    std::copy(storage_items.begin(), storage_items.end(), p->storage_);
 
-        else if (sscanf(str + next, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d%n",
-                         &tmp_int[0], &tmp_int[1], &tmp_int[2], &tmp_int[3],
-                         &tmp_int[4], &tmp_int[5], &tmp_int[6],
-                         &tmp_int[7], &tmp_int[8], &tmp_int[9], &tmp_int[10],
-                         &len) == 11)
-        {
-            p->storage_[i].id = tmp_int[0];
-            p->storage_[i].nameid = tmp_int[1];
-            p->storage_[i].amount = tmp_int[2];
-            p->storage_[i].equip = EPOS(tmp_int[3]);
-            p->storage_[i].identify = tmp_int[4];
-            p->storage_[i].refine = tmp_int[5];
-            p->storage_[i].attribute = tmp_int[6];
-            p->storage_[i].card[0] = tmp_int[7];
-            p->storage_[i].card[1] = tmp_int[8];
-            p->storage_[i].card[2] = tmp_int[9];
-            p->storage_[i].card[3] = tmp_int[10];
-            next += len;
-            if (str[next] == ' ')
-                next++;
-        }
-
-        else
-            return 1;
-    }
-    if (i >= MAX_STORAGE && str[next] && str[next] != '\t')
-        printf("storage_fromstr: Found a storage line with more items than MAX_STORAGE (%d), remaining items have been discarded!\n",
-             MAX_STORAGE);
-    return 0;
+    return true;
 }
 
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
@@ -141,37 +99,34 @@ struct storage *account2storage(int account_id)
 // 倉庫データを読み込む
 int inter_storage_init(void)
 {
-    char line[65536];
-    int c = 0, tmp_int;
-    struct storage *s;
-    FILE *fp;
+    int c = 0;
 
     storage_db = numdb_init();
 
-    fp = fopen_(storage_txt, "r");
-    if (fp == NULL)
+    std::ifstream in(storage_txt);
+    if (!in.is_open())
     {
-        printf("cant't read : %s\n", storage_txt);
+        PRINTF("cant't read : %s\n", storage_txt);
         return 1;
     }
-    while (fgets(line, 65535, fp))
+
+    std::string line;
+    while (std::getline(in, line))
     {
-        sscanf(line, "%d", &tmp_int);
+        struct storage *s;
         CREATE(s, struct storage, 1);
-        s->account_id = tmp_int;
-        if (s->account_id > 0 && storage_fromstr(line, s) == 0)
+        if (extract(line, s))
         {
             numdb_insert(storage_db, s->account_id, s);
         }
         else
         {
-            printf("int_storage: broken data [%s] line %d\n", storage_txt,
-                    c);
+            PRINTF("int_storage: broken data [%s] line %d\n",
+                    storage_txt, c);
             free(s);
         }
         c++;
     }
-    fclose_(fp);
 
     return 0;
 }
@@ -179,10 +134,9 @@ int inter_storage_init(void)
 static
 void inter_storage_save_sub(db_key_t, db_val_t data, FILE *fp)
 {
-    char line[65536];
-    storage_tostr(line, (struct storage *) data);
-    if (*line)
-        fprintf(fp, "%s\n", line);
+    std::string line = storage_tostr((struct storage *) data);
+    if (!line.empty())
+        FPRINTF(fp, "%s\n", line);
 }
 
 //---------------------------------------------------------
@@ -197,13 +151,13 @@ int inter_storage_save(void)
 
     if ((fp = lock_fopen(storage_txt, &lock)) == NULL)
     {
-        printf("int_storage: cant write [%s] !!! data is lost !!!\n",
+        PRINTF("int_storage: cant write [%s] !!! data is lost !!!\n",
                 storage_txt);
         return 1;
     }
     numdb_foreach(storage_db, std::bind(inter_storage_save_sub, ph::_1, ph::_2, fp));
     lock_fclose(fp, storage_txt, &lock);
-//  printf("int_storage: %s saved.\n",storage_txt);
+//  PRINTF("int_storage: %s saved.\n",storage_txt);
     return 0;
 }
 
@@ -267,7 +221,7 @@ int mapif_parse_SaveStorage(int fd)
     int len = RFIFOW(fd, 2);
     if (sizeof(struct storage) != len - 8)
     {
-        printf("inter storage: data size error %d %d\n",
+        PRINTF("inter storage: data size error %d %d\n",
                 sizeof(struct storage), len - 8);
     }
     else

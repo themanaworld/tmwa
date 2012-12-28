@@ -2,9 +2,11 @@
 #include "magic-expr.hpp"
 }
 %code{
-#include <cstdarg>  // exception to "no va_list" rule
-
 #include "magic-interpreter-parser.hpp"
+
+#include <cstdarg> // exception to "no va_list" rule, even after cxxstdio
+
+#include "../common/cxxstdio.hpp"
 
 #include "magic-interpreter.hpp"
 
@@ -783,7 +785,7 @@ static __attribute__((format(printf, 3, 4)))
 void fail(int line, int column, const char *fmt, ...)
 {
         va_list ap;
-        fprintf(stderr, "[magic-init]  L%d:%d: ", line, column);
+        FPRINTF(stderr, "[magic-init]  L%d:%d: ", line, column);
         va_start(ap, fmt);
         vfprintf(stderr, fmt, ap);
         failed_flag = 1;
@@ -1034,7 +1036,7 @@ val_t *find_constant(char *name)
 
 
 
-#define INTERN_ASSERT(name, id) { int zid = intern_id(name); if (zid != id) fprintf(stderr, "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n", name, zid, id); error_flag = 1; }
+#define INTERN_ASSERT(name, id) { int zid = intern_id(name); if (zid != id) FPRINTF(stderr, "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n", name, zid, id); error_flag = 1; }
 
 extern FILE *magic_frontend_in;
 
@@ -1069,7 +1071,7 @@ int magic_init(const char *conffile)
 
         magic_frontend_in = fopen(conffile, "r");
         if (!magic_frontend_in) {
-                fprintf(stderr, "[magic-conf] Magic configuration file `%s' not found -> no magic.\n", conffile);
+                FPRINTF(stderr, "[magic-conf] Magic configuration file `%s' not found -> no magic.\n", conffile);
                 return 0;
         }
         magic_frontend_parse();
@@ -1080,7 +1082,7 @@ int magic_init(const char *conffile)
         if (magic_conf.vars[VAR_OBSCURE_CHANCE].ty == TY_INT)
                 magic_conf.obscure_chance = magic_conf.vars[VAR_OBSCURE_CHANCE].v.v_int;
 
-        printf("[magic-conf] Magic initialised; obscure at %d%%.  %d spells, %d teleport anchors.\n",
+        PRINTF("[magic-conf] Magic initialised; obscure at %d%%.  %d spells, %d teleport anchors.\n",
                magic_conf.obscure_chance, magic_conf.spells_nr, magic_conf.anchors_nr);
 
         if (procs)
@@ -1093,6 +1095,6 @@ extern int magic_frontend_lineno;
 static
 void magic_frontend_error(const char *msg)
 {
-    fprintf(stderr, "[magic-conf] Parse error: %s at line %d\n", msg, magic_frontend_lineno);
+    FPRINTF(stderr, "[magic-conf] Parse error: %s at line %d\n", msg, magic_frontend_lineno);
     failed_flag = 1;
 }

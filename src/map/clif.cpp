@@ -13,6 +13,7 @@
 #include <cstring>
 #include <ctime>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
@@ -280,10 +281,10 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
     {
         if (WFIFOP(sd->fd, 0) == buf)
         {
-            printf("WARNING: Invalid use of clif_send function\n");
-            printf("         Packet x%4x use a WFIFO of a player instead of to use a buffer.\n",
+            PRINTF("WARNING: Invalid use of clif_send function\n");
+            PRINTF("         Packet x%4x use a WFIFO of a player instead of to use a buffer.\n",
                  WBUFW(buf, 0));
-            printf("         Please correct your code.\n");
+            PRINTF("         Please correct your code.\n");
             // don't send to not move the pointer of the packet for next sessions in the loop
         }
         else
@@ -482,7 +483,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
 
         default:
             if (battle_config.error_log)
-                printf("clif_send まだ作ってないよー\n");
+                PRINTF("clif_send まだ作ってないよー\n");
             return -1;
     }
 
@@ -2127,8 +2128,8 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
 
         default:
             if (battle_config.error_log)
-                printf("clif_updatestatus : make %d routine\n",
-                        uint16_t(type));
+                PRINTF("clif_updatestatus : make %d routine\n",
+                        type);
             return 1;
     }
     WFIFOSET(fd, len);
@@ -3099,8 +3100,8 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
             break;
         default:
             if (battle_config.error_log)
-                printf("get area char ??? %d\n",
-                        uint8_t(bl->type));
+                PRINTF("get area char ??? %d\n",
+                        bl->type);
             break;
     }
 }
@@ -3432,43 +3433,39 @@ int clif_status_change(struct block_list *bl, StatusChange type, int flag)
  * Send message (modified by [Yor])
  *------------------------------------------
  */
-int clif_displaymessage(int fd, const char *mes)
+void clif_displaymessage(int fd, const_string mes)
 {
-    int len_mes = strlen(mes);
-
-    if (len_mes > 0)
-    {                           // don't send a void message (it's not displaying on the client chat). @help can send void line.
+    if (mes)
+    {
+        // don't send a void message (it's not displaying on the client chat). @help can send void line.
         WFIFOW(fd, 0) = 0x8e;
-        WFIFOW(fd, 2) = 5 + len_mes;   // 4 + len + NULL teminate
-        memcpy(WFIFOP(fd, 4), mes, len_mes + 1);
-        WFIFOSET(fd, 5 + len_mes);
+        WFIFOW(fd, 2) = 5 + mes.size();   // 4 + len + NULL teminate
+        memcpy(WFIFOP(fd, 4), mes.data(), mes.size());
+        WFIFOB(fd, 4 + mes.size()) = '\0';
+        WFIFOSET(fd, 5 + mes.size());
     }
-
-    return 0;
 }
 
 /*==========================================
  * 天の声を送信する
  *------------------------------------------
  */
-int clif_GMmessage(struct block_list *bl, const char *mes, int len, int flag)
+void clif_GMmessage(struct block_list *bl, const_string mes, int flag)
 {
-    unsigned char lbuf[255];
-    unsigned char *buf =
-        ((len + 16) >= sizeof(lbuf)) ? (unsigned char*)malloc(len + 16) : lbuf;
+    unsigned char buf[mes.size() + 16];
     int lp = (flag & 0x10) ? 8 : 4;
 
     WBUFW(buf, 0) = 0x9a;
-    WBUFW(buf, 2) = len + lp;
+    WBUFW(buf, 2) = mes.size() + 1 + lp;
     WBUFL(buf, 4) = 0x65756c62;
-    memcpy(WBUFP(buf, lp), mes, len);
+    memcpy(WBUFP(buf, lp), mes.data(), mes.size());
+    WBUFB(buf, lp + mes.size()) = '\0';
     flag &= 0x07;
     clif_send(buf, WBUFW(buf, 2), bl,
                (flag == 1) ? ALL_SAMEMAP :
-               (flag == 2) ? AREA : (flag == 3) ? SELF : ALL_CLIENT);
-    if (buf != lbuf)
-        free(buf);
-    return 0;
+               (flag == 2) ? AREA :
+               (flag == 3) ? SELF :
+               ALL_CLIENT);
 }
 
 /*==========================================
@@ -3659,7 +3656,7 @@ int clif_party_option(struct party *p, struct map_session_data *sd, int flag)
     nullpo_ret(p);
 
 //  if(battle_config.etc_log)
-//      printf("clif_party_option: %d %d %d\n",p->exp,p->item,flag);
+//      PRINTF("clif_party_option: %d %d %d\n",p->exp,p->item,flag);
     if (sd == NULL && flag == 0)
     {
         int i;
@@ -3760,7 +3757,7 @@ int clif_party_xy(struct party *, struct map_session_data *sd)
     WBUFW(buf, 8) = sd->bl.y;
     clif_send(buf, packet_len_table[0x107], &sd->bl, PARTY_SAMEMAP_WOS);
 //  if(battle_config.etc_log)
-//      printf("clif_party_xy %d\n",sd->status.account_id);
+//      PRINTF("clif_party_xy %d\n",sd->status.account_id);
     return 0;
 }
 
@@ -3781,7 +3778,7 @@ int clif_party_hp(struct party *, struct map_session_data *sd)
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
     clif_send(buf, packet_len_table[0x106], &sd->bl, PARTY_AREA_WOS);
 //  if(battle_config.etc_log)
-//      printf("clif_party_hp %d\n",sd->status.account_id);
+//      PRINTF("clif_party_hp %d\n",sd->status.account_id);
     return 0;
 }
 
@@ -3882,30 +3879,6 @@ void clif_sitting(int, struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int clif_disp_onlyself(struct map_session_data *sd, const char *mes, int len)
-{
-    unsigned char lbuf[255];
-    unsigned char *buf =
-        (len + 32 >= sizeof(lbuf)) ? (unsigned char *)malloc(len + 32) : lbuf;
-
-    nullpo_ret(sd);
-
-    WBUFW(buf, 0) = 0x17f;
-    WBUFW(buf, 2) = len + 8;
-    memcpy(WBUFP(buf, 4), mes, len + 4);
-
-    clif_send(buf, WBUFW(buf, 2), &sd->bl, SELF);
-
-    if (buf != lbuf)
-        free(buf);
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
 static
 int clif_GM_kickack(struct map_session_data *sd, int id)
 {
@@ -3988,7 +3961,7 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
     if (sd)
     {
         if (battle_config.error_log)
-            printf("clif_parse_WantToConnection : invalid request?\n");
+            PRINTF("clif_parse_WantToConnection : invalid request?\n");
         return;
     }
 
@@ -4007,7 +3980,7 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
     {
         clif_authfail_fd(fd, 2);   // same id
         clif_authfail_fd(old_sd->fd, 2);   // same id
-        printf("clif_parse_WantToConnection: Double connection for account %d (sessions: #%d (new) and #%d (old)).\n",
+        PRINTF("clif_parse_WantToConnection: Double connection for account %d (sessions: #%d (new) and #%d (old)).\n",
              account_id, fd, old_sd->fd);
     }
     else
@@ -4363,8 +4336,8 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
             break;
         default:
             if (battle_config.error_log)
-                printf("clif_parse_GetCharNameRequest : bad type %d (%d)\n",
-                        uint8_t(bl->type), account_id);
+                PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n",
+                        bl->type, account_id);
             break;
     }
 }
@@ -4393,7 +4366,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0) != AtCommand_None
+    if (is_atcommand(fd, sd, message, 0)
             || ((sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
                                 || sd->sc_data[SC_NOCHAT].timer != -1)))//チャット禁止
     {
@@ -4659,7 +4632,7 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0) != AtCommand_None
+    if (is_atcommand(fd, sd, message, 0)
             || ((sd->sc_data[SC_BERSERK].timer != -1
                                 || sd->sc_data[SC_NOCHAT].timer != -1)))
     {
@@ -4734,21 +4707,21 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
 static
 void clif_parse_GMmessage(int fd, struct map_session_data *sd)
 {
-    char m[512];
-    char output[200];
+    char m[(RFIFOW(fd, 2) - 4) + 1];
     nullpo_retv(sd);
 
     if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
         (pc_isGM(sd) >= get_atcommand_level(AtCommand_Broadcast)))
     {
         strncpy(m, (const char *)RFIFOP(fd, 4), RFIFOW(fd, 2) - 4);
-        m[RFIFOW(fd, 2) - 4] = 0;
-        log_atcommand(sd, "/announce %s", m);
+        m[RFIFOW(fd, 2) - 4] = '\0';
+        const char *m_p = m; // because VLAs can't be passed to STRPRINTF
+        std::string fake_command = STRPRINTF("/announce %s", m_p);
+        log_atcommand(sd, fake_command);
 
-        memset(output, '\0', sizeof(output));
-        snprintf(output, 199, "%s : %s", sd->status.name, m);
+        std::string output = STRPRINTF("%s : %s", sd->status.name, m_p);
 
-        intif_GMmessage(output, strlen(output) + 1, 0);
+        intif_GMmessage(output, 0);
     }
 }
 
@@ -5345,7 +5318,7 @@ void clif_parse_NpcStringInput(int fd, struct map_session_data *sd)
 
     if (len >= sizeof(sd->npc_str) - 1)
     {
-        printf("clif_parse_NpcStringInput(): Input string too long!\n");
+        PRINTF("clif_parse_NpcStringInput(): Input string too long!\n");
         len = sizeof(sd->npc_str) - 1;
     }
 
@@ -5551,7 +5524,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0) != AtCommand_None
+    if (is_atcommand(fd, sd, message, 0)
             || ((sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
                                 || sd->sc_data[SC_NOCHAT].timer != -1))) //チャット禁止
     {
@@ -5590,7 +5563,9 @@ void clif_parse_GMKick(int fd, struct map_session_data *sd)
             {
                 struct map_session_data *tsd =
                     (struct map_session_data *) target;
-                log_atcommand(sd, "@kick %s", tsd->status.name);
+                std::string fake_command = STRPRINTF("kick %s",
+                        tsd->status.name);
+                log_atcommand(sd, fake_command);
                 if (pc_isGM(sd) > pc_isGM(tsd))
                     clif_GM_kick(sd, tsd, 1);
                 else
@@ -5615,7 +5590,7 @@ void clif_parse_GMHide(int fd, struct map_session_data *sd)
 {                               // Modified by [Yor]
     nullpo_retv(sd);
 
-    //printf("%2x %2x %2x\n", RFIFOW(fd,0), RFIFOW(fd,2), RFIFOW(fd,4)); // R 019d <Option_value>.2B <flag>.2B
+    //PRINTF("%2x %2x %2x\n", RFIFOW(fd,0), RFIFOW(fd,2), RFIFOW(fd,4)); // R 019d <Option_value>.2B <flag>.2B
     if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
         (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide)))
     {
@@ -5638,7 +5613,7 @@ void clif_parse_GMHide(int fd, struct map_session_data *sd)
 static
 void clif_parse_PMIgnoreAll(int fd, struct map_session_data *sd)
 {                               // Rewritten by [Yor]
-    //printf("Ignore all: state: %d\n", RFIFOB(fd,2));
+    //PRINTF("Ignore all: state: %d\n", RFIFOB(fd,2));
     if (RFIFOB(fd, 2) == 0)
     {                           // S 00d0 <type>len.B: 00 (/exall) deny all speech, 01 (/inall) allow all speech
         WFIFOW(fd, 0) = 0x0d2; // R 00d2 <type>.B <fail>.B: type: 0: deny, 1: allow, fail: 0: success, 1: fail
@@ -6306,7 +6281,7 @@ int clif_check_packet_flood(int fd, int cmd)
 
         if (sd->packet_flood_in >= battle_config.packet_spam_flood)
         {
-            printf("packet flood detected from %s [0x%x]\n", sd->status.name, cmd);
+            PRINTF("packet flood detected from %s [0x%x]\n", sd->status.name, cmd);
             if (battle_config.packet_spam_kick)
             {
                 session[fd]->eof = 1; // Kick
@@ -6323,7 +6298,7 @@ int clif_check_packet_flood(int fd, int cmd)
 }
 
 #define WARN_MALFORMED_MSG(sd, msg)                             \
-    printf("clif_validate_chat(): %s (ID %d) sent a malformed" \
+    PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed" \
             " message: %s.\n", sd->status.name, sd->status.account_id, msg)
 /**
  * Validate message integrity (inspired by upstream source (eAthena)).
@@ -6482,13 +6457,13 @@ void clif_parse(int fd)
             pc_logout(sd);
             clif_quitsave(fd, sd);
             if (sd->status.name != NULL)
-                printf("Player [%s] has logged off your server.\n", sd->status.name);  // Player logout display [Valaris]
+                PRINTF("Player [%s] has logged off your server.\n", sd->status.name);  // Player logout display [Valaris]
             else
-                printf("Player with account [%d] has logged off your server.\n", sd->bl.id);   // Player logout display [Yor]
+                PRINTF("Player with account [%d] has logged off your server.\n", sd->bl.id);   // Player logout display [Yor]
         }
         else if (sd)
         {                       // not authentified! (refused by char-server or disconnect before to be authentified)
-            printf("Player with account [%d] has logged off your server (not auth account).\n", sd->bl.id);    // Player logout display [Yor]
+            PRINTF("Player with account [%d] has logged off your server (not auth account).\n", sd->bl.id);    // Player logout display [Yor]
             map_deliddb(&sd->bl);  // account_id has been included in the DB before auth answer
         }
         if (fd)
@@ -6571,7 +6546,7 @@ void clif_parse(int fd)
         if (battle_config.error_log)
         {
             if (fd)
-                printf("\nclif_parse: session #%d, packet 0x%x, lenght %d\n",
+                PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %d\n",
                         fd, cmd, packet_len);
 #ifdef DUMP_UNKNOWN_PACKET
             {
@@ -6579,28 +6554,28 @@ void clif_parse(int fd)
                 FILE *fp;
                 char packet_txt[256] = "save/packet.txt";
                 time_t now;
-                printf("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
+                PRINTF("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
                 for (i = 0; i < packet_len; i++)
                 {
                     if ((i & 15) == 0)
-                        printf("\n%04X ", i);
-                    printf("%02X ", RFIFOB(fd, i));
+                        PRINTF("\n%04X ", i);
+                    PRINTF("%02X ", RFIFOB(fd, i));
                 }
                 if (sd && sd->state.auth)
                 {
                     if (sd->status.name != NULL)
-                        printf("\nAccount ID %d, character ID %d, player name %s.\n",
+                        PRINTF("\nAccount ID %d, character ID %d, player name %s.\n",
                              sd->status.account_id, sd->status.char_id,
                              sd->status.name);
                     else
-                        printf("\nAccount ID %d.\n", sd->bl.id);
+                        PRINTF("\nAccount ID %d.\n", sd->bl.id);
                 }
                 else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
-                    printf("\nAccount ID %d.\n", sd->bl.id);
+                    PRINTF("\nAccount ID %d.\n", sd->bl.id);
 
                 if ((fp = fopen_(packet_txt, "a")) == NULL)
                 {
-                    printf("clif.c: cant write [%s] !!! data is lost !!!\n",
+                    PRINTF("clif.c: cant write [%s] !!! data is lost !!!\n",
                             packet_txt);
                     return;
                 }
@@ -6610,30 +6585,30 @@ void clif_parse(int fd)
                     if (sd && sd->state.auth)
                     {
                         if (sd->status.name != NULL)
-                            fprintf(fp,
+                            FPRINTF(fp,
                                      "%sPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n",
                                      asctime(gmtime(&now)),
                                      sd->status.account_id,
                                      sd->status.char_id, sd->status.name);
                         else
-                            fprintf(fp,
+                            FPRINTF(fp,
                                      "%sPlayer with account ID %d sent wrong packet:\n",
                                      asctime(gmtime(&now)), sd->bl.id);
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
-                        fprintf(fp,
+                        FPRINTF(fp,
                                  "%sPlayer with account ID %d sent wrong packet:\n",
                                  asctime(gmtime(&now)), sd->bl.id);
 
-                    fprintf(fp,
+                    FPRINTF(fp,
                              "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
                     for (i = 0; i < packet_len; i++)
                     {
                         if ((i & 15) == 0)
-                            fprintf(fp, "\n\t%04X ", i);
-                        fprintf(fp, "%02X ", RFIFOB(fd, i));
+                            FPRINTF(fp, "\n\t%04X ", i);
+                        FPRINTF(fp, "%02X ", RFIFOB(fd, i));
                     }
-                    fprintf(fp, "\n\n");
+                    FPRINTF(fp, "\n\n");
                     fclose_(fp);
                 }
             }
@@ -6664,7 +6639,7 @@ int do_init_clif (void)
     }
     if (i == 10)
     {
-        printf("cant bind game port\n");
+        PRINTF("cant bind game port\n");
         exit(1);
     }
 

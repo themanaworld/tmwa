@@ -10,7 +10,10 @@
 #include <cstring>
 #include <ctime>
 
+#include <fstream>
+
 #include "../common/db.hpp"
+#include "../common/extract.hpp"
 #include "../common/lock.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/socket.hpp"
@@ -86,9 +89,19 @@ struct dbt *script_get_userfunc_db(void)
 }
 
 static
-char pos[11][100] =
-    { "頭", "体", "左手", "右手", "ローブ", "靴", "アクセサリー1",
-    "アクセサリー2", "頭2", "頭3", "装着していない"
+const char *pos[11] =
+{
+    "Head",
+    "Body",
+    "Left hand",
+    "Right hand",
+    "Robe",
+    "Shoes",
+    "Accessory 1",
+    "Accessory 2",
+    "Head 2",
+    "Head 3",
+    "Not Equipped",
 };
 
 static
@@ -131,7 +144,6 @@ struct BuiltinFunction
 extern BuiltinFunction builtin_functions[];
 
 
-#ifdef RECENT_GCC
 enum class ScriptCode : uint8_t
 {
     // tyoes and specials
@@ -143,7 +155,6 @@ enum class ScriptCode : uint8_t
     XOR, OR, AND, ADD, SUB, MUL, DIV, MOD, NEG, LNOT,
     NOT, R_SHIFT, L_SHIFT
 };
-#endif
 
 /*==========================================
  * 文字列のハッシュを計算
@@ -446,17 +457,17 @@ void disp_error_message(const char *mes, const char *pos_)
         }
         if (lineend == NULL || pos_ < lineend)
         {
-            printf("%s line %d : ", mes, line);
+            PRINTF("%s line %d : ", mes, line);
             for (int i = 0;
                  (linestart[i] != '\r') && (linestart[i] != '\n')
                  && linestart[i]; i++)
             {
                 if (linestart + i != pos_)
-                    printf("%c", linestart[i]);
+                    PRINTF("%c", linestart[i]);
                 else
-                    printf("\'%c\'", linestart[i]);
+                    PRINTF("\'%c\'", linestart[i]);
             }
-            printf("\a\n");
+            PRINTF("\a\n");
             if (lineend)
                 *lineend = c;
             return;
@@ -478,7 +489,7 @@ const char *parse_simpleexpr(const char *p)
 
 #ifdef DEBUG_FUNCIN
     if (battle_config.etc_log)
-        printf("parse_simpleexpr %s\n", p);
+        PRINTF("parse_simpleexpr %s\n", p);
 #endif
     if (*p == ';' || *p == ',')
     {
@@ -577,7 +588,7 @@ const char *parse_simpleexpr(const char *p)
 
 #ifdef DEBUG_FUNCIN
     if (battle_config.etc_log)
-        printf("parse_simpleexpr end %s\n", p);
+        PRINTF("parse_simpleexpr end %s\n", p);
 #endif
     return p;
 }
@@ -593,7 +604,7 @@ const char *parse_subexpr(const char *p, int limit)
 
 #ifdef DEBUG_FUNCIN
     if (battle_config.etc_log)
-        printf("parse_subexpr %s\n", p);
+        PRINTF("parse_subexpr %s\n", p);
 #endif
     p = skip_space(p);
 
@@ -696,7 +707,7 @@ const char *parse_subexpr(const char *p, int limit)
     }
 #ifdef DEBUG_FUNCIN
     if (battle_config.etc_log)
-        printf("parse_subexpr end %s\n", p);
+        PRINTF("parse_subexpr end %s\n", p);
 #endif
     return p;                   /* return first untreated operator */
 }
@@ -710,7 +721,7 @@ const char *parse_expr(const char *p)
 {
 #ifdef DEBUG_FUNCIN
     if (battle_config.etc_log)
-        printf("parse_expr %s\n", p);
+        PRINTF("parse_expr %s\n", p);
 #endif
     switch (*p)
     {
@@ -726,7 +737,7 @@ const char *parse_expr(const char *p)
     p = parse_subexpr(p, -1);
 #ifdef DEBUG_FUNCIN
     if (battle_config.etc_log)
-        printf("parse_expr end %s\n", p);
+        PRINTF("parse_expr end %s\n", p);
 #endif
     return p;
 }
@@ -827,35 +838,30 @@ void add_builtin_functions(void)
 static
 void read_constdb(void)
 {
-    FILE *fp;
-    char line[1024], name[1024];
-    int val, n, i, type;
-
-    fp = fopen_("db/const.txt", "r");
-    if (fp == NULL)
+    std::ifstream in("db/const.txt");
+    if (!in.is_open())
     {
-        printf("can't read db/const.txt\n");
+        PRINTF("can't read db/const.txt\n");
         return;
     }
-    while (fgets(line, 1020, fp))
+
+    std::string line;
+    while (std::getline(in, line))
     {
         if (line[0] == '/' && line[1] == '/')
             continue;
-        type = 0;
-        if (sscanf(line, "%[A-Za-z0-9_],%d,%d", name, &val, &type) >= 2 ||
-            sscanf(line, "%[A-Za-z0-9_] %d %d", name, &val, &type) >= 2)
-        {
-            for (i = 0; name[i]; i++)
-                name[i] = tolower(name[i]);
-            n = add_str(name);
-            if (type == 0)
-                str_data[n].type = ScriptCode::INT;
-            else
-                str_data[n].type = ScriptCode::PARAM;
-            str_data[n].val = val;
-        }
+
+        std::string name;
+        int val;
+        int type = 0; // if not provided
+        if (SSCANF(line, "%m[A-Za-z0-9_] %x %x", &name, &val, &type) < 2)
+            continue;
+        for (char& c : name)
+            c = tolower(c);
+        int n = add_str(name.c_str());
+        str_data[n].type = type ? ScriptCode::PARAM : ScriptCode::INT;
+        str_data[n].val = val;
     }
-    fclose_(fp);
 }
 
 /*==========================================
@@ -968,12 +974,12 @@ const ScriptCode *parse_script(const char *src, int line)
     for (i = 0; i < script_pos; i++)
     {
         if ((i & 15) == 0)
-            printf("%04x : ", i);
-        printf("%02x ", script_buf[i]);
+            PRINTF("%04x : ", i);
+        PRINTF("%02x ", script_buf[i]);
         if ((i & 15) == 15)
-            printf("\n");
+            PRINTF("\n");
     }
-    printf("\n");
+    PRINTF("\n");
 #endif
 
     return script_buf;
@@ -995,7 +1001,7 @@ struct map_session_data *script_rid2sd(ScriptState *st)
     struct map_session_data *sd = map_id2sd(st->rid);
     if (!sd)
     {
-        printf("script_rid2sd: fatal error ! player not attached!\n");
+        PRINTF("script_rid2sd: fatal error ! player not attached!\n");
     }
     return sd;
 }
@@ -1017,7 +1023,7 @@ void get_val(ScriptState *st, struct script_data *data)
         if (prefix != '$')
         {
             if ((sd = script_rid2sd(st)) == NULL)
-                printf("get_val error name?:%s\n", name);
+                PRINTF("get_val error name?:%s\n", name);
         }
         if (postfix == '$')
         {
@@ -1035,7 +1041,7 @@ void get_val(ScriptState *st, struct script_data *data)
             }
             else
             {
-                printf("script: get_val: illegal scope string variable.\n");
+                PRINTF("script: get_val: illegal scope string variable.\n");
                 data->u.str = "!!ERROR!!";
             }
             if (data->u.str == NULL)
@@ -1126,7 +1132,7 @@ void set_reg(struct map_session_data *sd, int num, const char *name, struct scri
         }
         else
         {
-            printf("script: set_reg: illegal scope string variable !");
+            PRINTF("script: set_reg: illegal scope string variable !");
         }
     }
     else
@@ -1238,7 +1244,7 @@ void push_val(struct script_stack *stack, ScriptCode type, int val)
                 64 * sizeof(*(stack->stack_data)));
     }
 //  if(battle_config.etc_log)
-//      printf("push (%d,%d)-> %d\n",type,val,stack->sp);
+//      PRINTF("push (%d,%d)-> %d\n",type,val,stack->sp);
     stack->stack_data[stack->sp].type = type;
     stack->stack_data[stack->sp].u.num = val;
     stack->sp++;
@@ -1261,7 +1267,7 @@ void push_str(struct script_stack *stack, ScriptCode type, const char *str)
                 64 * sizeof(*(stack->stack_data)));
     }
 //  if(battle_config.etc_log)
-//      printf("push (%d,%x)-> %d\n",type,str,stack->sp);
+//      PRINTF("push (%d,%x)-> %d\n",type,str,stack->sp);
     stack->stack_data[stack->sp].type = type;
     stack->stack_data[stack->sp].u.str = str;
     stack->sp++;
@@ -1336,7 +1342,7 @@ void builtin_goto(ScriptState *st)
 {
     if (st->stack->stack_data[st->start + 2].type != ScriptCode::POS)
     {
-        printf("script: goto: not label !\n");
+        PRINTF("script: goto: not label !\n");
         st->state = END;
         return;
     }
@@ -1375,7 +1381,7 @@ void builtin_callfunc(ScriptState *st)
     }
     else
     {
-        printf("script:callfunc: function not found! [%s]\n", str);
+        PRINTF("script:callfunc: function not found! [%s]\n", str);
         st->state = END;
     }
 }
@@ -1734,7 +1740,7 @@ void builtin_input(ScriptState *st)
             }
             else
             {
-                printf("builtin_input: string discarded !!\n");
+                PRINTF("builtin_input: string discarded !!\n");
             }
         }
         else
@@ -1812,7 +1818,7 @@ void builtin_set(ScriptState *st)
 
     if (st->stack->stack_data[st->start + 2].type != ScriptCode::NAME)
     {
-        printf("script: builtin_set: not name\n");
+        PRINTF("script: builtin_set: not name\n");
         return;
     }
 
@@ -1850,7 +1856,7 @@ void builtin_setarray(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf("builtin_setarray: illegal scope !\n");
+        PRINTF("builtin_setarray: illegal scope !\n");
         return;
     }
     if (prefix != '$')
@@ -1882,7 +1888,7 @@ void builtin_cleararray(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf("builtin_cleararray: illegal scope !\n");
+        PRINTF("builtin_cleararray: illegal scope !\n");
         return;
     }
     if (prefix != '$')
@@ -1924,7 +1930,7 @@ void builtin_getarraysize(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        printf("builtin_copyarray: illegal scope !\n");
+        PRINTF("builtin_copyarray: illegal scope !\n");
         return;
     }
 
@@ -1943,7 +1949,7 @@ void builtin_getelementofarray(ScriptState *st)
         int i = conv_num(st, &(st->stack->stack_data[st->start + 3]));
         if (i > 127 || i < 0)
         {
-            printf("script: getelementofarray (operator[]): param2 illegal number %d\n",
+            PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n",
                  i);
             push_val(st->stack, ScriptCode::INT, 0);
         }
@@ -1955,7 +1961,7 @@ void builtin_getelementofarray(ScriptState *st)
     }
     else
     {
-        printf("script: getelementofarray (operator[]): param1 not name !\n");
+        PRINTF("script: getelementofarray (operator[]): param1 not name !\n");
         push_val(st->stack, ScriptCode::INT, 0);
     }
 }
@@ -2009,7 +2015,7 @@ void builtin_countitem(ScriptState *st)
     else
     {
         if (battle_config.error_log)
-            printf("wrong item ID : countitem (%i)\n", nameid);
+            PRINTF("wrong item ID : countitem (%i)\n", nameid);
     }
     push_val(st->stack, ScriptCode::INT, count);
 
@@ -2210,7 +2216,7 @@ void builtin_delitem(ScriptState *st)
 
     if (nameid < 500 || amount <= 0)
     {                           //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
-        //printf("wrong item ID or amount<=0 : delitem %i,\n",nameid,amount);
+        //PRINTF("wrong item ID or amount<=0 : delitem %i,\n",nameid,amount);
         return;
     }
     sd = script_rid2sd(st);
@@ -2389,7 +2395,7 @@ void builtin_getequipid(ScriptState *st)
     sd = script_rid2sd(st);
     if (sd == NULL)
     {
-        printf("getequipid: sd == NULL\n");
+        PRINTF("getequipid: sd == NULL\n");
         return;
     }
     num = conv_num(st, &(st->stack->stack_data[st->start + 2]));
@@ -2992,10 +2998,10 @@ void builtin_announce(ScriptState *st)
     {
         struct block_list *bl = (flag & 0x08) ? map_id2bl(st->oid) :
             (struct block_list *) script_rid2sd(st);
-        clif_GMmessage(bl, str, strlen(str) + 1, flag);
+        clif_GMmessage(bl, str, flag);
     }
     else
-        intif_GMmessage(str, strlen(str) + 1, flag);
+        intif_GMmessage(str, flag);
 }
 
 /*==========================================
@@ -3003,9 +3009,9 @@ void builtin_announce(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_mapannounce_sub(struct block_list *bl, const char *str, int len, int flag)
+void builtin_mapannounce_sub(struct block_list *bl, const char *str, int flag)
 {
-    clif_GMmessage(bl, str, len, flag | 3);
+    clif_GMmessage(bl, str, flag | 3);
 }
 
 static
@@ -3019,7 +3025,7 @@ void builtin_mapannounce(ScriptState *st)
 
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
-    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, strlen(str) + 1, flag & 0x10),
+    map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, flag & 0x10),
             m, 0, 0, map[m].xs, map[m].ys, BL_PC);
 }
 
@@ -3232,7 +3238,7 @@ void builtin_sc_end(ScriptState *st)
         bl = map_id2bl(((struct map_session_data *) bl)->skilltarget);
     skill_status_change_end(bl, type, -1);
 //  if(battle_config.etc_log)
-//      printf("sc_end : %d %d\n",st->rid,type);
+//      PRINTF("sc_end : %d %d\n",st->rid,type);
 }
 
 static
@@ -3257,7 +3263,7 @@ static
 void builtin_debugmes(ScriptState *st)
 {
     conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    printf("script debug : %d %d : %s\n", st->rid, st->oid,
+    PRINTF("script debug : %d %d : %s\n", st->rid, st->oid,
             st->stack->stack_data[st->start + 2].u.str);
 }
 
@@ -4140,7 +4146,7 @@ void builtin_npctalk(ScriptState *st)
         memcpy(message, nd->name, 24);
         strcat(message, " : ");
         strcat(message, str);
-        clif_message(&(nd->bl), message);
+        clif_message(&nd->bl, message);
     }
 
 }
@@ -4454,7 +4460,7 @@ void op_2str(ScriptState *st, ScriptCode op, int sp1, int sp2)
             a = (strcmp(s1, s2) <= 0);
             break;
         default:
-            printf("illegal string operater\n");
+            PRINTF("illegal string operater\n");
             break;
     }
 
@@ -4561,7 +4567,7 @@ void op_2(ScriptState *st, ScriptCode op)
     else
     {
         // si,is => error
-        printf("script: op_2: int&str, str&int not allow.");
+        PRINTF("script: op_2: int&str, str&int not allow.");
         push_val(st->stack, ScriptCode::INT, 0);
     }
 }
@@ -4604,7 +4610,7 @@ void run_func(ScriptState *st)
     if (i == 0)
     {
         if (battle_config.error_log)
-            printf("function not found\n");
+            PRINTF("function not found\n");
 //      st->stack->sp=0;
         st->state = END;
         return;
@@ -4617,7 +4623,7 @@ void run_func(ScriptState *st)
     if (st->stack->stack_data[st->start].type != ScriptCode::NAME
         || str_data[func].type != ScriptCode::FUNC)
     {
-        printf("run_func: not function and command! \n");
+        PRINTF("run_func: not function and command! \n");
 //      st->stack->sp=0;
         st->state = END;
         return;
@@ -4625,33 +4631,33 @@ void run_func(ScriptState *st)
 #ifdef DEBUG_RUN
     if (battle_config.etc_log)
     {
-        printf("run_func : %s? (%d(%d))\n", str_buf + str_data[func].str,
+        PRINTF("run_func : %s? (%d(%d))\n", str_buf + str_data[func].str,
                 func, str_data[func].type);
-        printf("stack dump :");
+        PRINTF("stack dump :");
         for (i = 0; i < end_sp; i++)
         {
             switch (st->stack->stack_data[i].type)
             {
                 case ScriptCode::INT:
-                    printf(" int(%d)", st->stack->stack_data[i].u.num);
+                    PRINTF(" int(%d)", st->stack->stack_data[i].u.num);
                     break;
                 case ScriptCode::NAME:
-                    printf(" name(%s)",
+                    PRINTF(" name(%s)",
                             str_buf +
                             str_data[st->stack->stack_data[i].u.num].str);
                     break;
                 case ScriptCode::ARG:
-                    printf(" arg");
+                    PRINTF(" arg");
                     break;
                 case ScriptCode::POS:
-                    printf(" pos(%d)", st->stack->stack_data[i].u.num);
+                    PRINTF(" pos(%d)", st->stack->stack_data[i].u.num);
                     break;
                 default:
-                    printf(" %d,%d", st->stack->stack_data[i].type,
+                    PRINTF(" %d,%d", st->stack->stack_data[i].type,
                             st->stack->stack_data[i].u.num);
             }
         }
-        printf("\n");
+        PRINTF("\n");
     }
 #endif
     if (str_data[func].func)
@@ -4661,8 +4667,8 @@ void run_func(ScriptState *st)
     else
     {
         if (battle_config.error_log)
-            printf("run_func : %s? (%d(%d))\n", str_buf + str_data[func].str,
-                    func, uint8_t(str_data[func].type));
+            PRINTF("run_func : %s? (%d(%d))\n", str_buf + str_data[func].str,
+                    func, str_data[func].type);
         push_val(st->stack, ScriptCode::INT, 0);
     }
 
@@ -4677,7 +4683,7 @@ void run_func(ScriptState *st)
         if (st->defsp < 4
             || st->stack->stack_data[st->defsp - 1].type != ScriptCode::RETINFO)
         {
-            printf("script:run_func (return) return without callfunc or callsub!\n");
+            PRINTF("script:run_func (return) return without callfunc or callsub!\n");
             st->state = END;
             return;
         }
@@ -4717,7 +4723,7 @@ void run_script_main(const ScriptCode *script, int pos_, int, int,
                 if (stack->sp != st->defsp)
                 {
                     if (battle_config.error_log)
-                        printf("stack.sp (%d) != default (%d)\n", stack->sp,
+                        PRINTF("stack.sp (%d) != default (%d)\n", stack->sp,
                                 st->defsp);
                     stack->sp = st->defsp;
                 }
@@ -4747,7 +4753,7 @@ void run_script_main(const ScriptCode *script, int pos_, int, int,
                     st->state = 0;
                     if (gotocount > 0 && (--gotocount) <= 0)
                     {
-                        printf("run_script: infinity loop !\n");
+                        PRINTF("run_script: infinity loop !\n");
                         st->state = END;
                     }
                 }
@@ -4789,13 +4795,13 @@ void run_script_main(const ScriptCode *script, int pos_, int, int,
 
             default:
                 if (battle_config.error_log)
-                    printf("unknown command : %d @ %d\n", uint8_t(c), pos_);
+                    PRINTF("unknown command : %d @ %d\n", c, pos_);
                 st->state = END;
                 break;
         }
         if (cmdcount > 0 && (--cmdcount) <= 0)
         {
-            printf("run_script: infinity loop !\n");
+            PRINTF("run_script: infinity loop !\n");
             st->state = END;
         }
     }
@@ -4942,43 +4948,47 @@ void mapreg_setregstr(int num, const char *str)
 static
 void script_load_mapreg(void)
 {
-    FILE *fp;
-    char line[1024];
+    std::ifstream in(mapreg_txt);
 
-    if ((fp = fopen_(mapreg_txt, "rt")) == NULL)
+    if (!in.is_open())
         return;
 
-    while (fgets(line, sizeof(line), fp))
+    std::string line;
+    while (std::getline(in, line))
     {
-        char buf1[256], buf2[1024], *p;
-        int n, v, s, i;
-        if (sscanf(line, "%255[^,],%d\t%n", buf1, &i, &n) != 2 &&
-            (i = 0, sscanf(line, "%[^\t]\t%n", buf1, &n) != 1))
-            continue;
-        if (buf1[strlen(buf1) - 1] == '$')
+        std::string buf1, buf2;
+        int index = 0;
+        if (extract(line,
+                    record<'\t'>(
+                        record<','>(&buf1, &index),
+                        &buf2))
+            || extract(line,
+                    record<'\t'>(
+                        record<','>(&buf1),
+                        &buf2)))
         {
-            if (sscanf(line + n, "%[^\n\r]", buf2) != 1)
+            int s = add_str(buf1.c_str());
+            int key = (index << 24) | s;
+            if (buf1.back() == '$')
             {
-                printf("%s: %s broken data !\n", mapreg_txt, buf1);
-                continue;
+                char *p = strdup(buf2.c_str());
+                numdb_insert(mapregstr_db, key, p);
             }
-            p = (char *) calloc(strlen(buf2) + 1, 1);
-            strcpy(p, buf2);
-            s = add_str(buf1);
-            numdb_insert(mapregstr_db, (i << 24) | s, p);
+            else
+            {
+                int v;
+                if (!extract(buf2, &v))
+                    goto borken;
+                numdb_insert(mapreg_db, key, v);
+            }
         }
         else
         {
-            if (sscanf(line + n, "%d", &v) != 1)
-            {
-                printf("%s: %s broken data !\n", mapreg_txt, buf1);
-                continue;
-            }
-            s = add_str(buf1);
-            numdb_insert(mapreg_db, (i << 24) | s, v);
+        borken:
+            PRINTF("%s: %s broken data !\n", mapreg_txt, buf1);
+            continue;
         }
     }
-    fclose_(fp);
     mapreg_dirty = 0;
 }
 
@@ -4994,9 +5004,9 @@ void script_save_mapreg_intsub(db_key_t key, db_val_t data, FILE *fp)
     if (name[1] != '@')
     {
         if (i == 0)
-            fprintf(fp, "%s\t%d\n", name, (int) data);
+            FPRINTF(fp, "%s\t%d\n", name, (int) data);
         else
-            fprintf(fp, "%s,%d\t%d\n", name, i, (int) data);
+            FPRINTF(fp, "%s,%d\t%d\n", name, i, (int) data);
     }
 }
 
@@ -5008,9 +5018,9 @@ void script_save_mapreg_strsub(db_key_t key, db_val_t data, FILE *fp)
     if (name[1] != '@')
     {
         if (i == 0)
-            fprintf(fp, "%s\t%s\n", name, (char *) data);
+            FPRINTF(fp, "%s\t%s\n", name, (char *) data);
         else
-            fprintf(fp, "%s,%d\t%s\n", name, i, (char *) data);
+            FPRINTF(fp, "%s,%d\t%s\n", name, i, (char *) data);
     }
 }
 
@@ -5035,69 +5045,14 @@ void script_autosave_mapreg(timer_id, tick_t, custom_id_t, custom_data_t)
         script_save_mapreg();
 }
 
-/*==========================================
- *
- *------------------------------------------
- */
-static
-void set_posword(char *p)
+void script_config_read()
 {
-    char *np, *str[15];
-    int i = 0;
-    for (i = 0; i < 11; i++)
-    {
-        if ((np = strchr(p, ',')) != NULL)
-        {
-            str[i] = p;
-            *np = 0;
-            p = np + 1;
-        }
-        else
-        {
-            str[i] = p;
-            p += strlen(p);
-        }
-        if (str[i])
-            strcpy(pos[i], str[i]);
-    }
-}
-
-void script_config_read(const char *cfgName)
-{
-    int i;
-    char line[1024], w1[1024], w2[1024];
-    FILE *fp;
-
     script_config.warn_func_no_comma = 1;
     script_config.warn_cmd_no_comma = 1;
     script_config.warn_func_mismatch_paramnum = 1;
     script_config.warn_cmd_mismatch_paramnum = 1;
     script_config.check_cmdcount = 8192;
     script_config.check_gotocount = 512;
-
-    fp = fopen_(cfgName, "r");
-    if (fp == NULL)
-    {
-        printf("file not found: %s\n", cfgName);
-        return;
-    }
-    while (fgets(line, 1020, fp))
-    {
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        i = sscanf(line, "%[^:]: %[^\r\n]", w1, w2);
-        if (i != 2)
-            continue;
-        if (strcasecmp(w1, "refine_posword") == 0)
-        {
-            set_posword(w2);
-        }
-        if (strcasecmp(w1, "import") == 0)
-        {
-            script_config_read(w2);
-        }
-    }
-    fclose_(fp);
 }
 
 /*==========================================

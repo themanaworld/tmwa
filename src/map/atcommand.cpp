@@ -8,7 +8,6 @@
 
 #include <cctype>
 #include <cmath>
-#include <cstdarg>  // exception to "no va_list" rule
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -17,6 +16,7 @@
 #include <array>
 
 #include "../common/core.hpp"
+#include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -76,7 +76,6 @@ ATCOMMAND_FUNC(gm);
 ATCOMMAND_FUNC(pvpoff);
 ATCOMMAND_FUNC(pvpon);
 ATCOMMAND_FUNC(model);
-ATCOMMAND_FUNC(go);
 ATCOMMAND_FUNC(spawn);
 ATCOMMAND_FUNC(killmonster);
 ATCOMMAND_FUNC(killmonster2);
@@ -243,7 +242,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_PvPOff, "@pvpoff", 40, atcommand_pvpoff},
     {AtCommand_PvPOn, "@pvpon", 40, atcommand_pvpon},
     {AtCommand_Model, "@model", 20, atcommand_model},
-    {AtCommand_Go, "@go", 10, atcommand_go},
     {AtCommand_Spawn, "@spawn", 50, atcommand_spawn},
     {AtCommand_KillMonster, "@killmonster", 60, atcommand_killmonster},
     {AtCommand_KillMonster2, "@killmonster2", 40, atcommand_killmonster2},
@@ -556,22 +554,24 @@ int get_atcommand_level(const AtCommandType type)
     return 100;                 // 100: command can not be used
 }
 
-// TODO: remove the hard limit of 512
+static
+FILE *get_gm_log();
 
 /*========================================
  * At-command logging
  */
-void log_atcommand(struct map_session_data *sd, const char *fmt, ...)
+void log_atcommand(struct map_session_data *sd, const_string cmd)
 {
-    char message[512];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(message, 511, fmt, ap);
-    va_end(ap);
-
-    gm_log("%s(%d,%d) %s(%d) : %s", map[sd->bl.m].name, sd->bl.x,
-                sd->bl.y, sd->status.name, sd->status.account_id, message);
+    FILE *fp = get_gm_log();
+    if (!fp)
+        return;
+    timestamp_seconds_buffer tmpstr;
+    stamp_time(tmpstr);
+    fprintf(fp, "[%s] %s(%d,%d) %s(%d) : ",
+            tmpstr,
+            map[sd->bl.m].name, sd->bl.x, sd->bl.y,
+            sd->status.name, sd->status.account_id);
+    fwrite(cmd.data(), 1, cmd.size(), fp);
 }
 
 char *gm_logfile_name = NULL;
@@ -579,54 +579,38 @@ char *gm_logfile_name = NULL;
  * Log a timestamped line to GM log file
  *------------------------------------------
  */
-void gm_log(const char *fmt, ...)
+FILE *get_gm_log()
 {
-    static int last_logfile_nr = 0;
-    static FILE *gm_logfile = NULL;
-    time_t time_v;
-    struct tm ctime;
-    int month, year, logfile_nr;
-    char message[512];
-    va_list ap;
-
     if (!gm_logfile_name)
-        return;
+        return NULL;
 
-    va_start(ap, fmt);
-    vsnprintf(message, 511, fmt, ap);
-    va_end(ap);
+    time_t ts = time(NULL);
+    struct tm ctime = *gmtime(&ts);
 
-    time(&time_v);
-    gmtime_r(&time_v, &ctime);
+    int year = ctime.tm_year + 1900;
+    int month = ctime.tm_mon + 1;
+    int logfile_nr = (year * 12) + month;
 
-    year = ctime.tm_year + 1900;
-    month = ctime.tm_mon + 1;
-    logfile_nr = (year * 12) + month;
+    static FILE *gm_logfile = NULL;
+    static int last_logfile_nr = 0;
+    if (logfile_nr == last_logfile_nr)
+        return gm_logfile;
+    last_logfile_nr = logfile_nr;
 
-    if (logfile_nr != last_logfile_nr)
+    std::string fullname = STRPRINTF("%s.%04d-%02d",
+            gm_logfile_name, year, month);
+
+    if (gm_logfile)
+        fclose_(gm_logfile);
+
+    gm_logfile = fopen_(fullname.c_str(), "a");
+
+    if (!gm_logfile)
     {
-        char *fullname = (char *)malloc(strlen(gm_logfile_name) + 10);
-        sprintf(fullname, "%s.%04d-%02d", gm_logfile_name, year, month);
-
-        if (gm_logfile)
-            fclose_(gm_logfile);
-
-        gm_logfile = fopen_(fullname, "a");
-        free(fullname);
-
-        if (!gm_logfile)
-        {
-            perror("GM log file");
-            gm_logfile_name = NULL;
-        }
-        last_logfile_nr = logfile_nr;
+        perror("GM log file");
+        gm_logfile_name = NULL;
     }
-
-    fprintf(gm_logfile, "[%04d-%02d-%02d %02d:%02d:%02d] %s\n",
-             year, month, ctime.tm_mday, ctime.tm_hour,
-             ctime.tm_min, ctime.tm_sec, message);
-
-    fflush(gm_logfile);
+    return gm_logfile;
 }
 
 static
@@ -636,16 +620,16 @@ AtCommandType atcommand(const int level, const char *message,
  *is_atcommand @コマンドに存在するかどうか確認する
  *------------------------------------------
  */
-AtCommandType is_atcommand(const int fd, struct map_session_data *sd, const char *message,
-              int gmlvl)
+bool is_atcommand(const int fd, struct map_session_data *sd,
+        const char *message, int gmlvl)
 {
     AtCommandInfo info;
     AtCommandType type;
 
-    nullpo_retr(AtCommand_None, sd);
+    nullpo_retr(false, sd);
 
     if (!message || !*message)
-        return AtCommand_None;
+        return false;
 
     memset(&info, 0, sizeof(info));
 
@@ -653,22 +637,21 @@ AtCommandType is_atcommand(const int fd, struct map_session_data *sd, const char
     if (type != AtCommand_None)
     {
         char command[100];
-        char output[200];
         const char *str = message;
         const char *p = message;
         memset(command, '\0', sizeof(command));
-        memset(output, '\0', sizeof(output));
         while (*p && !isspace(*p))
             p++;
         if (p - str >= sizeof(command))    // too long
-            return AtCommand_Unknown;
+            return true;
         strncpy(command, str, p - str);
         while (isspace(*p))
             p++;
 
         if (type == AtCommand_Unknown || info.proc == NULL)
         {
-            sprintf(output, "%s is Unknown Command.", command);
+            std::string output = STRPRINTF("%s is Unknown Command.",
+                    command);
             clif_displaymessage(fd, output);
         }
         else
@@ -676,20 +659,20 @@ AtCommandType is_atcommand(const int fd, struct map_session_data *sd, const char
             if (info.proc(fd, sd, command, p) != 0)
             {
                 // Command can not be executed
-                sprintf(output, "%s failed.", command);
+                std::string output = STRPRINTF("%s failed.", command);
                 clif_displaymessage(fd, output);
             }
             else
             {
                 if (get_atcommand_level(type) != 0)    // Don't log level 0 commands
-                    log_atcommand(sd, "%s %s", command, p);
+                    log_atcommand(sd, message);
             }
         }
 
-        return info.type;
+        return true;
     }
 
-    return AtCommand_None;
+    return false;
 }
 
 /*==========================================
@@ -707,7 +690,7 @@ AtCommandType atcommand(const int level, const char *message,
         return AtCommand_None;
     if (!p || !*p)
     {
-        fprintf(stderr, "at command message is empty\n");
+        FPRINTF(stderr, "at command message is empty\n");
         return AtCommand_None;
     }
 
@@ -792,7 +775,7 @@ int atcommand_config_read(const char *cfgName)
 
     if ((fp = fopen_(cfgName, "r")) == NULL)
     {
-        printf("At commands configuration file not found: %s\n", cfgName);
+        PRINTF("At commands configuration file not found: %s\n", cfgName);
         return 1;
     }
 
@@ -837,7 +820,6 @@ int atcommand_config_read(const char *cfgName)
 int atcommand_setup(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
-    char buf[256];
     char character[100];
     int level = 1;
 
@@ -851,26 +833,27 @@ int atcommand_setup(const int fd, struct map_session_data *sd,
     }
     level--;
 
-    snprintf(buf, 255, "-255 %s", character);
-    atcommand_character_baselevel(fd, sd, "@charbaselvl", buf);
+    std::string buf;
+    buf = STRPRINTF("-255 %s", character);
+    atcommand_character_baselevel(fd, sd, "@charbaselvl", buf.c_str());
 
-    snprintf(buf, 255, "%d %s", level, character);
-    atcommand_character_baselevel(fd, sd, "@charbaselvl", buf);
+    buf = STRPRINTF("%d %s", level, character);
+    atcommand_character_baselevel(fd, sd, "@charbaselvl", buf.c_str());
 
     // Emote skill
-    snprintf(buf, 255, "1 1 %s", character);
-    atcommand_skill_learn(fd, sd, "@skill-learn", buf);
+    buf = STRPRINTF("1 1 %s", character);
+    atcommand_skill_learn(fd, sd, "@skill-learn", buf.c_str());
 
     // Trade skill
-    snprintf(buf, 255, "2 1 %s", character);
-    atcommand_skill_learn(fd, sd, "@skill-learn", buf);
+    buf = STRPRINTF("2 1 %s", character);
+    atcommand_skill_learn(fd, sd, "@skill-learn", buf.c_str());
 
     // Party skill
-    snprintf(buf, 255, "2 2 %s", character);
-    atcommand_skill_learn(fd, sd, "@skill-learn", buf);
+    STRPRINTF("2 2 %s", character);
+    atcommand_skill_learn(fd, sd, "@skill-learn", buf.c_str());
 
-    snprintf(buf, 255, "018-1.gat 24 98 %s", character);
-    atcommand_charwarp(fd, sd, "@charwarp", buf);
+    STRPRINTF("018-1.gat 24 98 %s", character);
+    atcommand_charwarp(fd, sd, "@charwarp", buf.c_str());
 
     return (0);
 
@@ -1032,11 +1015,9 @@ int atcommand_where(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (sscanf(message, "%99[^\n]", character) < 1)
         strcpy(character, sd->status.name);
@@ -1046,8 +1027,9 @@ int atcommand_where(const int fd, struct map_session_data *sd,
            || bool(pl_sd->status.option & Option::HIDE))
           && (pc_isGM(pl_sd) > pc_isGM(sd))))
     {                           // you can look only lower or same level
-        sprintf(output, "%s: %s (%d,%d)", pl_sd->status.name, pl_sd->mapname,
-                 pl_sd->bl.x, pl_sd->bl.y);
+        std::string output = STRPRINTF("%s: %s (%d,%d)",
+                pl_sd->status.name,
+                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
         clif_displaymessage(fd, output);
     }
     else
@@ -1067,11 +1049,9 @@ int atcommand_goto(const int fd, struct map_session_data *sd,
                     const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -1097,7 +1077,7 @@ int atcommand_goto(const int fd, struct map_session_data *sd,
             return -1;
         }
         pc_setpos(sd, pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y, 3);
-        sprintf(output, "Jump to %s", character);
+        std::string output = STRPRINTF("Jump to %s", character);
         clif_displaymessage(fd, output);
     }
     else
@@ -1116,11 +1096,7 @@ int atcommand_goto(const int fd, struct map_session_data *sd,
 int atcommand_jump(const int fd, struct map_session_data *sd,
                     const char *, const char *message)
 {
-    char output[200];
     int x = 0, y = 0;
-
-    memset(output, '\0', sizeof(output));
-
     sscanf(message, "%d %d", &x, &y);
 
     if (x <= 0)
@@ -1144,7 +1120,7 @@ int atcommand_jump(const int fd, struct map_session_data *sd,
             return -1;
         }
         pc_setpos(sd, sd->mapname, x, y, 3);
-        sprintf(output, "Jump to %d %d", x, y);
+        std::string output = STRPRINTF("Jump to %d %d", x, y);
         clif_displaymessage(fd, output);
     }
     else
@@ -1163,14 +1139,12 @@ int atcommand_jump(const int fd, struct map_session_data *sd,
 int atcommand_who(const int fd, struct map_session_data *sd,
                    const char *, const char *message)
 {
-    char output[200];
     struct map_session_data *pl_sd;
     int i, j, count;
     int pl_GM_level, GM_level;
     char match_text[100];
     char player_name[24];
 
-    memset(output, '\0', sizeof(output));
     memset(match_text, '\0', sizeof(match_text));
     memset(player_name, '\0', sizeof(player_name));
 
@@ -1196,16 +1170,19 @@ int atcommand_who(const int fd, struct map_session_data *sd,
                 for (j = 0; player_name[j]; j++)
                     player_name[j] = tolower(player_name[j]);
                 if (strstr(player_name, match_text) != NULL)
-                {               // search with no case sensitive
+                {
+                    // search with no case sensitive
+                    std::string output;
                     if (pl_GM_level > 0)
-                        sprintf(output,
-                                 "Name: %s (GM:%d) | Location: %s %d %d",
-                                 pl_sd->status.name, pl_GM_level,
-                                 pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                        output = STRPRINTF(
+                                "Name: %s (GM:%d) | Location: %s %d %d",
+                                pl_sd->status.name, pl_GM_level,
+                                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
                     else
-                        sprintf(output, "Name: %s | Location: %s %d %d",
-                                 pl_sd->status.name, pl_sd->mapname,
-                                 pl_sd->bl.x, pl_sd->bl.y);
+                        output = STRPRINTF(
+                                "Name: %s | Location: %s %d %d",
+                                pl_sd->status.name, pl_sd->mapname,
+                                pl_sd->bl.x, pl_sd->bl.y);
                     clif_displaymessage(fd, output);
                     count++;
                 }
@@ -1219,7 +1196,7 @@ int atcommand_who(const int fd, struct map_session_data *sd,
         clif_displaymessage(fd, "1 player found.");
     else
     {
-        sprintf(output, "%d players found.", count);
+        std::string output = STRPRINTF("%d players found.", count);
         clif_displaymessage(fd, output);
     }
 
@@ -1233,9 +1210,6 @@ int atcommand_who(const int fd, struct map_session_data *sd,
 int atcommand_whogroup(const int fd, struct map_session_data *sd,
                         const char *, const char *message)
 {
-    char temp0[100];
-    char temp1[100];
-    char output[200];
     struct map_session_data *pl_sd;
     int i, j, count;
     int pl_GM_level, GM_level;
@@ -1243,9 +1217,6 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
     char player_name[24];
     struct party *p;
 
-    memset(temp0, '\0', sizeof(temp0));
-    memset(temp1, '\0', sizeof(temp1));
-    memset(output, '\0', sizeof(output));
     memset(match_text, '\0', sizeof(match_text));
     memset(player_name, '\0', sizeof(player_name));
 
@@ -1273,18 +1244,12 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
                 if (strstr(player_name, match_text) != NULL)
                 {               // search with no case sensitive
                     p = party_search(pl_sd->status.party_id);
-                    if (p == NULL)
-                        sprintf(temp0, "None");
-                    else
-                        sprintf(temp0, "%s", p->name);
+                    const char *temp0 = p ? p->name : "None";
+                    std::string output;
                     if (pl_GM_level > 0)
-                        sprintf(output,
-                                 "Name: %s (GM:%d) | Party: '%s'",
-                                 pl_sd->status.name, pl_GM_level, temp0);
-                    else
-                        sprintf(output,
-                                 "Name: %s | Party: '%s' | Guild: '%s'",
-                                 pl_sd->status.name, temp0, temp1);
+                        output = STRPRINTF(
+                                "Name: %s (GM:%d) | Party: '%s'",
+                                pl_sd->status.name, pl_GM_level, temp0);
                     clif_displaymessage(fd, output);
                     count++;
                 }
@@ -1298,7 +1263,7 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
         clif_displaymessage(fd, "1 player found.");
     else
     {
-        sprintf(output, "%d players found.", count);
+        std::string output = STRPRINTF("%d players found.", count);
         clif_displaymessage(fd, output);
     }
 
@@ -1312,14 +1277,12 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
 int atcommand_whomap(const int fd, struct map_session_data *sd,
                       const char *, const char *message)
 {
-    char output[200];
     struct map_session_data *pl_sd;
     int i, count;
     int pl_GM_level, GM_level;
     int map_id;
     char map_name[100];
 
-    memset(output, '\0', sizeof(output));
     memset(map_name, '\0', sizeof(map_name));
 
     if (!message || !*message)
@@ -1348,15 +1311,17 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
             {                   // you can look only lower or same level
                 if (pl_sd->bl.m == map_id)
                 {
+                    std::string output;
                     if (pl_GM_level > 0)
-                        sprintf(output,
-                                 "Name: %s (GM:%d) | Location: %s %d %d",
-                                 pl_sd->status.name, pl_GM_level,
-                                 pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                        output = STRPRINTF(
+                                "Name: %s (GM:%d) | Location: %s %d %d",
+                                pl_sd->status.name, pl_GM_level,
+                                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
                     else
-                        sprintf(output, "Name: %s | Location: %s %d %d",
-                                 pl_sd->status.name, pl_sd->mapname,
-                                 pl_sd->bl.x, pl_sd->bl.y);
+                        output = STRPRINTF(
+                                "Name: %s | Location: %s %d %d",
+                                pl_sd->status.name, pl_sd->mapname,
+                                pl_sd->bl.x, pl_sd->bl.y);
                     clif_displaymessage(fd, output);
                     count++;
                 }
@@ -1364,14 +1329,8 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
         }
     }
 
-    if (count == 0)
-        sprintf(output, "No player found in map '%s'.", map[map_id].name);
-    else if (count == 1)
-        sprintf(output, "1 player found in map '%s'.", map[map_id].name);
-    else
-    {
-        sprintf(output, "%d players found in map '%s'.", count, map[map_id].name);
-    }
+    std::string output = STRPRINTF("%d players found in map '%s'.",
+            count, map[map_id].name);
     clif_displaymessage(fd, output);
 
     return 0;
@@ -1384,8 +1343,6 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
 int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
                            const char *, const char *message)
 {
-    char temp0[100];
-    char output[200];
     struct map_session_data *pl_sd;
     int i, count;
     int pl_GM_level, GM_level;
@@ -1393,8 +1350,6 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
     char map_name[100];
     struct party *p;
 
-    memset(temp0, '\0', sizeof(temp0));
-    memset(output, '\0', sizeof(output));
     memset(map_name, '\0', sizeof(map_name));
 
     if (!message || !*message)
@@ -1425,18 +1380,14 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
                 if (pl_sd->bl.m == map_id)
                 {
                     p = party_search(pl_sd->status.party_id);
-                    if (p == NULL)
-                        sprintf(temp0, "None");
-                    else
-                        sprintf(temp0, "%s", p->name);
+                    const char *temp0 = p ? p->name : "None";
+                    std::string output;
                     if (pl_GM_level > 0)
-                        sprintf(output,
-                                 "Name: %s (GM:%d) | Party: '%s'",
-                                 pl_sd->status.name, pl_GM_level, temp0);
+                        output = STRPRINTF("Name: %s (GM:%d) | Party: '%s'",
+                                pl_sd->status.name, pl_GM_level, temp0);
                     else
-                        sprintf(output,
-                                 "Name: %s | Party: '%s'",
-                                 pl_sd->status.name, temp0);
+                        output = STRPRINTF("Name: %s | Party: '%s'",
+                                pl_sd->status.name, temp0);
                     clif_displaymessage(fd, output);
                     count++;
                 }
@@ -1444,13 +1395,14 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
         }
     }
 
+    std::string output;
     if (count == 0)
-        sprintf(output, "No player found in map '%s'.", map[map_id].name);
+        output = STRPRINTF("No player found in map '%s'.", map[map_id].name);
     else if (count == 1)
-        sprintf(output, "1 player found in map '%s'.", map[map_id].name);
+        output = STRPRINTF("1 player found in map '%s'.", map[map_id].name);
     else
     {
-        sprintf(output, "%d players found in map '%s'.", count, map[map_id].name);
+        output = STRPRINTF("%d players found in map '%s'.", count, map[map_id].name);
     }
     clif_displaymessage(fd, output);
 
@@ -1464,8 +1416,6 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
 int atcommand_whogm(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
-    char temp0[100];
-    char output[200];
     struct map_session_data *pl_sd;
     int i, j, count;
     int pl_GM_level, GM_level;
@@ -1473,8 +1423,6 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
     char player_name[24];
     struct party *p;
 
-    memset(temp0, '\0', sizeof(temp0));
-    memset(output, '\0', sizeof(output));
     memset(match_text, '\0', sizeof(match_text));
     memset(player_name, '\0', sizeof(player_name));
 
@@ -1497,30 +1445,31 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
                     ((battle_config.hide_GM_session
                       || bool(pl_sd->status.option & Option::HIDE))
                      && (pl_GM_level > GM_level)))
-                {               // you can look only lower or same level
+                {
+                    // you can look only lower or same level
                     memcpy(player_name, pl_sd->status.name, 24);
                     for (j = 0; player_name[j]; j++)
                         player_name[j] = tolower(player_name[j]);
                     if (strstr(player_name, match_text) != NULL)
-                    {           // search with no case sensitive
-                        sprintf(output,
-                                 "Name: %s (GM:%d) | Location: %s %d %d",
-                                 pl_sd->status.name, pl_GM_level,
-                                 pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                    {
+                        // search with no case sensitive
+                        std::string output;
+                        output = STRPRINTF(
+                                "Name: %s (GM:%d) | Location: %s %d %d",
+                                pl_sd->status.name, pl_GM_level,
+                                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
                         clif_displaymessage(fd, output);
-                        sprintf(output,
-                                 "       BLvl: %d | Job: %s (Lvl: %d)",
-                                 pl_sd->status.base_level,
-                                 job_name(pl_sd->status.pc_class),
-                                 pl_sd->status.job_level);
+                        output = STRPRINTF(
+                                "       BLvl: %d | Job: %s (Lvl: %d)",
+                                pl_sd->status.base_level,
+                                job_name(pl_sd->status.pc_class),
+                                pl_sd->status.job_level);
                         clif_displaymessage(fd, output);
                         p = party_search(pl_sd->status.party_id);
-                        if (p == NULL)
-                            sprintf(temp0, "None");
-                        else
-                            sprintf(temp0, "%s", p->name);
-                        sprintf(output, "       Party: '%s'",
-                                 temp0);
+                        const char *temp0 = p ? p->name : "None";
+                        output = STRPRINTF(
+                                "       Party: '%s'",
+                                temp0);
                         clif_displaymessage(fd, output);
                         count++;
                     }
@@ -1535,7 +1484,7 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
         clif_displaymessage(fd, "1 GM found.");
     else
     {
-        sprintf(output, "%d GMs found.", count);
+        std::string output = STRPRINTF("%d GMs found.", count);
         clif_displaymessage(fd, output);
     }
 
@@ -1598,21 +1547,16 @@ int atcommand_load(const int fd, struct map_session_data *sd,
 int atcommand_speed(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
-    char output[200];
-    int speed;
-
-    memset(output, '\0', sizeof(output));
-
     if (!message || !*message)
     {
-        sprintf(output,
-                 "Please, enter a speed value (usage: @speed <%d-%d>).",
-                 MIN_WALK_SPEED, MAX_WALK_SPEED);
+        std::string output = STRPRINTF(
+                "Please, enter a speed value (usage: @speed <%d-%d>).",
+                MIN_WALK_SPEED, MAX_WALK_SPEED);
         clif_displaymessage(fd, output);
         return -1;
     }
 
-    speed = atoi(message);
+    int speed = atoi(message);
     if (speed >= MIN_WALK_SPEED && speed <= MAX_WALK_SPEED)
     {
         sd->speed = speed;
@@ -1623,9 +1567,9 @@ int atcommand_speed(const int fd, struct map_session_data *sd,
     }
     else
     {
-        sprintf(output,
-                 "Please, enter a valid speed value (usage: @speed <%d-%d>).",
-                 MIN_WALK_SPEED, MAX_WALK_SPEED);
+        std::string output = STRPRINTF(
+                "Please, enter a valid speed value (usage: @speed <%d-%d>).",
+                MIN_WALK_SPEED, MAX_WALK_SPEED);
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -1837,10 +1781,6 @@ int atcommand_alive(const int fd, struct map_session_data *sd,
 int atcommand_kami(const int fd, struct map_session_data *,
                     const char *, const char *message)
 {
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
-
     if (!message || !*message)
     {
         clif_displaymessage(fd,
@@ -1848,8 +1788,7 @@ int atcommand_kami(const int fd, struct map_session_data *,
         return -1;
     }
 
-    sscanf(message, "%199[^\n]", output);
-    intif_GMmessage(output, strlen(output) + 1, 0);
+    intif_GMmessage(message, 0);
 
     return 0;
 }
@@ -2302,18 +2241,16 @@ int atcommand_model(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
     int hair_style = 0, hair_color = 0, cloth_color = 0;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message
         || sscanf(message, "%d %d %d", &hair_style, &hair_color,
                    &cloth_color) < 1)
     {
-        sprintf(output,
-                 "Please, enter at least a value (usage: @model <hair ID: %d-%d> <hair color: %d-%d> <clothes color: %d-%d>).",
-                 MIN_HAIR_STYLE, MAX_HAIR_STYLE, MIN_HAIR_COLOR,
-                 MAX_HAIR_COLOR, MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
+        std::string output = STRPRINTF(
+                "Please, enter at least a value (usage: @model <hair ID: %d-%d> <hair color: %d-%d> <clothes color: %d-%d>).",
+                MIN_HAIR_STYLE, MAX_HAIR_STYLE,
+                MIN_HAIR_COLOR, MAX_HAIR_COLOR,
+                MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -2355,15 +2292,12 @@ int atcommand_dye(const int fd, struct map_session_data *sd,
                    const char *, const char *message)
 {
     int cloth_color = 0;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%d", &cloth_color) < 1)
     {
-        sprintf(output,
-                 "Please, enter a clothes color (usage: @dye/@ccolor <clothes color: %d-%d>).",
-                 MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
+        std::string output = STRPRINTF(
+                "Please, enter a clothes color (usage: @dye/@ccolor <clothes color: %d-%d>).",
+                MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -2399,15 +2333,12 @@ int atcommand_hair_style(const int fd, struct map_session_data *sd,
                           const char *, const char *message)
 {
     int hair_style = 0;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%d", &hair_style) < 1)
     {
-        sprintf(output,
-                 "Please, enter a hair style (usage: @hairstyle/@hstyle <hair ID: %d-%d>).",
-                 MIN_HAIR_STYLE, MAX_HAIR_STYLE);
+        std::string output = STRPRINTF(
+                "Please, enter a hair style (usage: @hairstyle/@hstyle <hair ID: %d-%d>).",
+                MIN_HAIR_STYLE, MAX_HAIR_STYLE);
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -2443,15 +2374,12 @@ int atcommand_hair_color(const int fd, struct map_session_data *sd,
                           const char *, const char *message)
 {
     int hair_color = 0;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%d", &hair_color) < 1)
     {
-        sprintf(output,
-                 "Please, enter a hair color (usage: @haircolor/@hcolor <hair color: %d-%d>).",
-                 MIN_HAIR_COLOR, MAX_HAIR_COLOR);
+        std::string output = STRPRINTF(
+                "Please, enter a hair color (usage: @haircolor/@hcolor <hair color: %d-%d>).",
+                MIN_HAIR_COLOR, MAX_HAIR_COLOR);
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -2480,253 +2408,6 @@ int atcommand_hair_color(const int fd, struct map_session_data *sd,
 }
 
 /*==========================================
- * @go [city_number/city_name]: improved by [yor] to add city names and help
- *------------------------------------------
- */
-int atcommand_go(const int fd, struct map_session_data *sd,
-                  const char *, const char *message)
-{
-    int i;
-    int town;
-    char map_name[100];
-    char output[200];
-    int m;
-
-    struct
-    {
-        char map[16];
-        int x, y;
-    } data[] =
-    {
-        {
-        "prontera.gat", 156, 191},  //   0=Prontera
-        {
-        "morocc.gat", 156, 93}, //   1=Morroc
-        {
-        "geffen.gat", 119, 59}, //   2=Geffen
-        {
-        "payon.gat", 162, 233}, //   3=Payon
-        {
-        "alberta.gat", 192, 147},   //   4=Alberta
-        {
-        "izlude.gat", 128, 114},    //   5=Izlude
-        {
-        "aldebaran.gat", 140, 131}, //   6=Al de Baran
-        {
-        "xmas.gat", 147, 134},  //   7=Lutie
-        {
-        "comodo.gat", 209, 143},    //   8=Comodo
-        {
-        "yuno.gat", 157, 51},   //   9=Yuno
-        {
-        "amatsu.gat", 198, 84}, //  10=Amatsu
-        {
-        "gonryun.gat", 160, 120},   //  11=Gon Ryun
-        {
-        "umbala.gat", 89, 157}, //  12=Umbala
-        {
-        "niflheim.gat", 21, 153},   //  13=Niflheim
-        {
-        "louyang.gat", 217, 40},    //  14=Lou Yang
-        {
-        "new_1-1.gat", 53, 111},    //  15=Start point
-        {
-        "sec_pri.gat", 23, 61}, //  16=Prison
-    };
-
-    memset(map_name, '\0', sizeof(map_name));
-    memset(output, '\0', sizeof(output));
-
-    // get the number
-    town = atoi(message);
-
-    // if no value, display all value
-    if (!message || !*message || sscanf(message, "%99s", map_name) < 1
-        || town < -3 || town >= (int)(sizeof(data) / sizeof(data[0])))
-    {
-        clif_displaymessage(fd, "Invalid location number or name.");
-        clif_displaymessage(fd, "Please, use one of this number/name:");
-        clif_displaymessage(fd,
-                             "-3=(Memo point 2)   4=Alberta       11=Gon Ryun");
-        clif_displaymessage(fd,
-                             "-2=(Memo point 1)   5=Izlude        12=Umbala");
-        clif_displaymessage(fd,
-                             "-1=(Memo point 0)   6=Al de Baran   13=Niflheim");
-        clif_displaymessage(fd,
-                             " 0=Prontera         7=Lutie         14=Lou Yang");
-        clif_displaymessage(fd,
-                             " 1=Morroc           8=Comodo        15=Start point");
-        clif_displaymessage(fd,
-                             " 2=Geffen           9=Yuno          16=Prison");
-        clif_displaymessage(fd, " 3=Payon           10=Amatsu");
-        return -1;
-    }
-    else
-    {
-        // get possible name of the city and add .gat if not in the name
-        map_name[sizeof(map_name) - 1] = '\0';
-        for (i = 0; map_name[i]; i++)
-            map_name[i] = tolower(map_name[i]);
-        if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
-            strcat(map_name, ".gat");
-        // try to see if it's a name, and not a number (try a lot of possibilities, write errors and abbreviations too)
-        if (strncmp(map_name, "prontera.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 0;
-        }
-        else if (strncmp(map_name, "morocc.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 1;
-        }
-        else if (strncmp(map_name, "geffen.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 2;
-        }
-        else if (strncmp(map_name, "payon.gat", 3) == 0 || // 3 first characters
-                 strncmp(map_name, "paion.gat", 3) == 0)
-        {                       // writing error (3 first characters)
-            town = 3;
-        }
-        else if (strncmp(map_name, "alberta.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 4;
-        }
-        else if (strncmp(map_name, "izlude.gat", 3) == 0 ||    // 3 first characters
-                 strncmp(map_name, "islude.gat", 3) == 0)
-        {                       // writing error (3 first characters)
-            town = 5;
-        }
-        else if (strncmp(map_name, "aldebaran.gat", 3) == 0 || // 3 first characters
-                 strcmp(map_name, "al.gat") == 0)
-        {                       // al (de baran)
-            town = 6;
-        }
-        else if (strncmp(map_name, "lutie.gat", 3) == 0 || // name of the city, not name of the map (3 first characters)
-                 strcmp(map_name, "christmas.gat") == 0 || // name of the symbol
-                 strncmp(map_name, "xmas.gat", 3) == 0 ||  // 3 first characters
-                 strncmp(map_name, "x-mas.gat", 3) == 0)
-        {                       // writing error (3 first characters)
-            town = 7;
-        }
-        else if (strncmp(map_name, "comodo.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 8;
-        }
-        else if (strncmp(map_name, "yuno.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 9;
-        }
-        else if (strncmp(map_name, "amatsu.gat", 3) == 0 ||    // 3 first characters
-                 strncmp(map_name, "ammatsu.gat", 3) == 0)
-        {                       // writing error (3 first characters)
-            town = 10;
-        }
-        else if (strncmp(map_name, "gonryun.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 11;
-        }
-        else if (strncmp(map_name, "umbala.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 12;
-        }
-        else if (strncmp(map_name, "niflheim.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 13;
-        }
-        else if (strncmp(map_name, "louyang.gat", 3) == 0)
-        {                       // 3 first characters
-            town = 14;
-        }
-        else if (strncmp(map_name, "new_1-1.gat", 3) == 0 ||   // 3 first characters (or "newbies")
-                 strncmp(map_name, "startpoint.gat", 3) == 0 ||    // name of the position (3 first characters)
-                 strncmp(map_name, "begining.gat", 3) == 0)
-        {                       // name of the position (3 first characters)
-            town = 15;
-        }
-        else if (strncmp(map_name, "sec_pri.gat", 3) == 0 ||   // 3 first characters
-                 strncmp(map_name, "prison.gat", 3) == 0 ||    // name of the position (3 first characters)
-                 strncmp(map_name, "jails.gat", 3) == 0)
-        {                       // name of the position
-            town = 16;
-        }
-
-        if (town >= -3 && town <= -1)
-        {
-            if (sd->status.memo_point[-town - 1].map[0])
-            {
-                m = map_mapname2mapid(sd->status.memo_point[-town - 1].map);
-                if (m >= 0 && map[m].flag.nowarpto
-                    && battle_config.any_warp_GM_min_level > pc_isGM(sd))
-                {
-                    clif_displaymessage(fd,
-                                         "You are not authorised to warp you to this memo map.");
-                    return -1;
-                }
-                if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
-                    && battle_config.any_warp_GM_min_level > pc_isGM(sd))
-                {
-                    clif_displaymessage(fd,
-                                         "You are not authorised to warp you from your actual map.");
-                    return -1;
-                }
-                if (pc_setpos(sd, sd->status.memo_point[-town - 1].map,
-                     sd->status.memo_point[-town - 1].x,
-                     sd->status.memo_point[-town - 1].y, 3) == 0)
-                {
-                    clif_displaymessage(fd, "Warped.");
-                }
-                else
-                {
-                    clif_displaymessage(fd, "Map not found.");
-                    return -1;
-                }
-            }
-            else
-            {
-                sprintf(output, "Your memo point #%d doesn't exist.", -town - 1);
-                clif_displaymessage(fd, output);
-                return -1;
-            }
-        }
-        else if (town >= 0 && town < (int)(sizeof(data) / sizeof(data[0])))
-        {
-            m = map_mapname2mapid(data[town].map);
-            if (m >= 0 && map[m].flag.nowarpto
-                && battle_config.any_warp_GM_min_level > pc_isGM(sd))
-            {
-                clif_displaymessage(fd,
-                                     "You are not authorised to warp you to this destination map.");
-                return -1;
-            }
-            if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
-                && battle_config.any_warp_GM_min_level > pc_isGM(sd))
-            {
-                clif_displaymessage(fd,
-                                     "You are not authorised to warp you from your actual map.");
-                return -1;
-            }
-            if (pc_setpos(sd, data[town].map, data[town].x, data[town].y, 3)
-                == 0)
-            {
-                clif_displaymessage(fd, "Warped.");
-            }
-            else
-            {
-                clif_displaymessage(fd, "Map not found.");
-                return -1;
-            }
-        }
-        else
-        {                       // if you arrive here, you have an error in town variable when reading of names
-            clif_displaymessage(fd, "Invalid location number or name.");
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-/*==========================================
  *
  *------------------------------------------
  */
@@ -2734,7 +2415,6 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
                      const char *command, const char *message)
 {
     char monster[100];
-    char output[200];
     int mob_id;
     int number = 0;
     int x = 0, y = 0;
@@ -2743,7 +2423,6 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
     int mx, my, range;
 
     memset(monster, '\0', sizeof(monster));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message
         || sscanf(message, "%99s %d %d %d", monster, &number, &x, &y) < 1)
@@ -2777,7 +2456,7 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
         number = battle_config.atc_spawn_quantity_limit;
 
     if (battle_config.etc_log)
-        printf("%s monster='%s' id=%d count=%d (%d,%d)\n", command, monster,
+        PRINTF("%s monster='%s' id=%d count=%d (%d,%d)\n", command, monster,
                 mob_id, number, x, y);
 
     count = 0;
@@ -2808,7 +2487,8 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
             clif_displaymessage(fd, "All monster summoned!");
         else
         {
-            sprintf(output, "%d monster(s) summoned!", count);
+            std::string output = STRPRINTF("%d monster(s) summoned!",
+                    count);
             clif_displaymessage(fd, output);
         }
     else
@@ -2870,10 +2550,10 @@ int atcommand_killmonster(const int fd, struct map_session_data *sd,
 static
 void atlist_nearby_sub(struct block_list *bl, int fd)
 {
-    char buf[32];
     nullpo_retv(bl);
 
-    sprintf(buf, " - \"%s\"", ((struct map_session_data *) bl)->status.name);
+    std::string buf = STRPRINTF(" - \"%s\"",
+            ((struct map_session_data *) bl)->status.name);
     clif_displaymessage(fd, buf);
 }
 
@@ -2915,9 +2595,7 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
     int item_id, attribute = 0, star = 0;
     struct item_data *item_data;
     struct item tmp_item;
-    char output[200];
 
-    memset(output, '\0', sizeof(output));
     memset(item_name, '\0', sizeof(item_name));
 
     if (!message || !*message
@@ -2957,11 +2635,12 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
     else
     {
         if (battle_config.error_log)
-            printf("@produce NOT WEAPON [%d]\n", item_id);
+            PRINTF("@produce NOT WEAPON [%d]\n", item_id);
+        std::string output;
         if (item_id != 0 && itemdb_exists(item_id))
-            sprintf(output, "This item (%d: '%s') is not an equipment.", item_id, item_data->name);
+            output = STRPRINTF("This item (%d: '%s') is not an equipment.", item_id, item_data->name);
         else
-            sprintf(output, "%s", "This item is not an equipment.");
+            output = STRPRINTF("%s", "This item is not an equipment.");
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -2976,21 +2655,19 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
 static
 void atcommand_memo_sub(struct map_session_data *sd)
 {
-    int i;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
-
     clif_displaymessage(sd->fd,
                          "Your actual memo positions are (except respawn point):");
-    for (i = MIN_PORTAL_MEMO; i <= MAX_PORTAL_MEMO; i++)
+    for (int i = MIN_PORTAL_MEMO; i <= MAX_PORTAL_MEMO; i++)
     {
+        std::string output;
         if (sd->status.memo_point[i].map[0])
-            sprintf(output, "%d - %s (%d,%d)", i,
-                     sd->status.memo_point[i].map, sd->status.memo_point[i].x,
-                     sd->status.memo_point[i].y);
+            output = STRPRINTF("%d - %s (%d,%d)",
+                    i,
+                    sd->status.memo_point[i].map,
+                    sd->status.memo_point[i].x,
+                    sd->status.memo_point[i].y);
         else
-            sprintf(output, "%d - void", i);
+            output = STRPRINTF("%d - void", i);
         clif_displaymessage(sd->fd, output);
     }
 
@@ -3005,9 +2682,6 @@ int atcommand_memo(const int fd, struct map_session_data *sd,
                     const char *, const char *message)
 {
     int position = 0;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%d", &position) < 1)
         atcommand_memo_sub(sd);
@@ -3024,7 +2698,12 @@ int atcommand_memo(const int fd, struct map_session_data *sd,
             }
             if (sd->status.memo_point[position].map[0])
             {
-                sprintf(output, "You replace previous memo position %d - %s (%d,%d).", position, sd->status.memo_point[position].map, sd->status.memo_point[position].x, sd->status.memo_point[position].y);
+                std::string output = STRPRINTF(
+                        "You replace previous memo position %d - %s (%d,%d).",
+                        position,
+                        sd->status.memo_point[position].map,
+                        sd->status.memo_point[position].x,
+                        sd->status.memo_point[position].y);
                 clif_displaymessage(fd, output);
             }
             memcpy(sd->status.memo_point[position].map, map[sd->bl.m].name,
@@ -3037,9 +2716,9 @@ int atcommand_memo(const int fd, struct map_session_data *sd,
         }
         else
         {
-            sprintf(output,
-                     "Please, enter a valid position (usage: @memo <memo_position:%d-%d>).",
-                     MIN_PORTAL_MEMO, MAX_PORTAL_MEMO);
+            std::string output = STRPRINTF(
+                    "Please, enter a valid position (usage: @memo <memo_position:%d-%d>).",
+                    MIN_PORTAL_MEMO, MAX_PORTAL_MEMO);
             clif_displaymessage(fd, output);
             atcommand_memo_sub(sd);
             return -1;
@@ -3056,20 +2735,18 @@ int atcommand_memo(const int fd, struct map_session_data *sd,
 int atcommand_gat(const int fd, struct map_session_data *sd,
                    const char *, const char *)
 {
-    char output[200];
     int y;
-
-    memset(output, '\0', sizeof(output));
 
     for (y = 2; y >= -2; y--)
     {
-        sprintf(output, "%s (x= %d, y= %d) %02X %02X %02X %02X %02X",
-                 map[sd->bl.m].name, sd->bl.x - 2, sd->bl.y + y,
-                 map_getcell(sd->bl.m, sd->bl.x - 2, sd->bl.y + y),
-                 map_getcell(sd->bl.m, sd->bl.x - 1, sd->bl.y + y),
-                 map_getcell(sd->bl.m, sd->bl.x, sd->bl.y + y),
-                 map_getcell(sd->bl.m, sd->bl.x + 1, sd->bl.y + y),
-                 map_getcell(sd->bl.m, sd->bl.x + 2, sd->bl.y + y));
+        std::string output = STRPRINTF(
+                "%s (x= %d, y= %d) %02X %02X %02X %02X %02X",
+                map[sd->bl.m].name, sd->bl.x - 2, sd->bl.y + y,
+                map_getcell(sd->bl.m, sd->bl.x - 2, sd->bl.y + y),
+                map_getcell(sd->bl.m, sd->bl.x - 1, sd->bl.y + y),
+                map_getcell(sd->bl.m, sd->bl.x, sd->bl.y + y),
+                map_getcell(sd->bl.m, sd->bl.x + 1, sd->bl.y + y),
+                map_getcell(sd->bl.m, sd->bl.x + 2, sd->bl.y + y));
         clif_displaymessage(fd, output);
     }
 
@@ -3226,16 +2903,15 @@ int atcommand_param(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
     int value = 0, new_value;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%d", &value) < 1
         || value == 0)
     {
-        sprintf(output,
-                 "Please, enter a valid value (usage: @str,@agi,@vit,@int,@dex,@luk <+/-adjustement>).");
-        clif_displaymessage(fd, output);
+
+        // there was a clang bug here
+        // fortunately, STRPRINTF was not actually needed
+        clif_displaymessage(fd,
+                "Please, enter a valid value (usage: @str,@agi,@vit,@int,@dex,@luk <+/-adjustement>).");
         return -1;
     }
 
@@ -3320,11 +2996,9 @@ int atcommand_recall(const int fd, struct map_session_data *sd,
                       const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3352,7 +3026,7 @@ int atcommand_recall(const int fd, struct map_session_data *sd,
                 return -1;
             }
             pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, 2);
-            sprintf(output, "%s recalled!", character);
+            std::string output = STRPRINTF("%s recalled!", character);
             clif_displaymessage(fd, output);
         }
         else
@@ -3417,11 +3091,9 @@ int atcommand_character_stats(const int fd, struct map_session_data *,
                                const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3432,34 +3104,35 @@ int atcommand_character_stats(const int fd, struct map_session_data *,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        sprintf(output, "'%s' stats:", pl_sd->status.name);
+        std::string output;
+        output = STRPRINTF("'%s' stats:", pl_sd->status.name);
         clif_displaymessage(fd, output);
-        sprintf(output, "Base Level - %d", pl_sd->status.base_level),
+        output = STRPRINTF("Base Level - %d", pl_sd->status.base_level),
         clif_displaymessage(fd, output);
-        sprintf(output, "Job - %s (level %d)",
+        output = STRPRINTF("Job - %s (level %d)",
                 job_name(pl_sd->status.pc_class), pl_sd->status.job_level);
         clif_displaymessage(fd, output);
-        sprintf(output, "Hp - %d", pl_sd->status.hp);
+        output = STRPRINTF("Hp - %d", pl_sd->status.hp);
         clif_displaymessage(fd, output);
-        sprintf(output, "MaxHp - %d", pl_sd->status.max_hp);
+        output = STRPRINTF("MaxHp - %d", pl_sd->status.max_hp);
         clif_displaymessage(fd, output);
-        sprintf(output, "Sp - %d", pl_sd->status.sp);
+        output = STRPRINTF("Sp - %d", pl_sd->status.sp);
         clif_displaymessage(fd, output);
-        sprintf(output, "MaxSp - %d", pl_sd->status.max_sp);
+        output = STRPRINTF("MaxSp - %d", pl_sd->status.max_sp);
         clif_displaymessage(fd, output);
-        sprintf(output, "Str - %3d", pl_sd->status.attrs[ATTR::STR]);
+        output = STRPRINTF("Str - %3d", pl_sd->status.attrs[ATTR::STR]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Agi - %3d", pl_sd->status.attrs[ATTR::AGI]);
+        output = STRPRINTF("Agi - %3d", pl_sd->status.attrs[ATTR::AGI]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Vit - %3d", pl_sd->status.attrs[ATTR::VIT]);
+        output = STRPRINTF("Vit - %3d", pl_sd->status.attrs[ATTR::VIT]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Int - %3d", pl_sd->status.attrs[ATTR::INT]);
+        output = STRPRINTF("Int - %3d", pl_sd->status.attrs[ATTR::INT]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Dex - %3d", pl_sd->status.attrs[ATTR::DEX]);
+        output = STRPRINTF("Dex - %3d", pl_sd->status.attrs[ATTR::DEX]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Luk - %3d", pl_sd->status.attrs[ATTR::LUK]);
+        output = STRPRINTF("Luk - %3d", pl_sd->status.attrs[ATTR::LUK]);
         clif_displaymessage(fd, output);
-        sprintf(output, "Zeny - %d", pl_sd->status.zeny);
+        output = STRPRINTF("Zeny - %d", pl_sd->status.zeny);
         clif_displaymessage(fd, output);
     }
     else
@@ -3479,13 +3152,9 @@ int atcommand_character_stats(const int fd, struct map_session_data *,
 int atcommand_character_stats_all(const int fd, struct map_session_data *,
                                    const char *, const char *)
 {
-    char output[1024], gmlevel[1024];
     int i;
     int count;
     struct map_session_data *pl_sd;
-
-    memset(output, '\0', sizeof(output));
-    memset(gmlevel, '\0', sizeof(gmlevel));
 
     count = 0;
     for (i = 0; i < fd_max; i++)
@@ -3493,24 +3162,29 @@ int atcommand_character_stats_all(const int fd, struct map_session_data *,
         if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
             && pl_sd->state.auth)
         {
-
+            std::string gmlevel;
             if (pc_isGM(pl_sd) > 0)
-                sprintf(gmlevel, "| GM Lvl: %d", pc_isGM(pl_sd));
+                gmlevel = STRPRINTF("| GM Lvl: %d", pc_isGM(pl_sd));
             else
-                sprintf(gmlevel, " ");
+                gmlevel = " ";
 
-            sprintf(output,
-                     "Name: %s | BLvl: %d | Job: %s (Lvl: %d) | HP: %d/%d | SP: %d/%d",
-                     pl_sd->status.name, pl_sd->status.base_level,
-                     job_name(pl_sd->status.pc_class), pl_sd->status.job_level,
-                     pl_sd->status.hp, pl_sd->status.max_hp, pl_sd->status.sp,
-                     pl_sd->status.max_sp);
+            std::string output;
+            output = STRPRINTF(
+                    "Name: %s | BLvl: %d | Job: %s (Lvl: %d) | HP: %d/%d | SP: %d/%d",
+                    pl_sd->status.name, pl_sd->status.base_level,
+                    job_name(pl_sd->status.pc_class), pl_sd->status.job_level,
+                    pl_sd->status.hp, pl_sd->status.max_hp,
+                    pl_sd->status.sp, pl_sd->status.max_sp);
             clif_displaymessage(fd, output);
-            sprintf(output,
-                     "STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d | Zeny: %d %s",
-                     pl_sd->status.attrs[ATTR::STR], pl_sd->status.attrs[ATTR::AGI], pl_sd->status.attrs[ATTR::VIT],
-                     pl_sd->status.attrs[ATTR::INT], pl_sd->status.attrs[ATTR::DEX], pl_sd->status.attrs[ATTR::LUK],
-                     pl_sd->status.zeny, gmlevel);
+            output = STRPRINTF("STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d | Zeny: %d %s",
+                     pl_sd->status.attrs[ATTR::STR],
+                     pl_sd->status.attrs[ATTR::AGI],
+                     pl_sd->status.attrs[ATTR::VIT],
+                     pl_sd->status.attrs[ATTR::INT],
+                     pl_sd->status.attrs[ATTR::DEX],
+                     pl_sd->status.attrs[ATTR::LUK],
+                     pl_sd->status.zeny,
+                     gmlevel);
             clif_displaymessage(fd, output);
             clif_displaymessage(fd, "--------");
             count++;
@@ -3523,7 +3197,7 @@ int atcommand_character_stats_all(const int fd, struct map_session_data *,
         clif_displaymessage(fd, "1 player found.");
     else
     {
-        sprintf(output, "%d players found.", count);
+        std::string output = STRPRINTF("%d players found.", count);
         clif_displaymessage(fd, output);
     }
 
@@ -4673,12 +4347,10 @@ int atcommand_idsearch(const int fd, struct map_session_data *,
                         const char *, const char *message)
 {
     char item_name[100];
-    char output[200];
     int i, match;
     struct item_data *item;
 
     memset(item_name, '\0', sizeof(item_name));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99s", item_name) < 0)
     {
@@ -4687,7 +4359,7 @@ int atcommand_idsearch(const int fd, struct map_session_data *,
         return -1;
     }
 
-    sprintf(output, "The reference result of '%s' (name: id):", item_name);
+    std::string output = STRPRINTF("The reference result of '%s' (name: id):", item_name);
     clif_displaymessage(fd, output);
     match = 0;
     for (i = 0; i < 20000; i++)
@@ -4696,11 +4368,11 @@ int atcommand_idsearch(const int fd, struct map_session_data *,
             && strstr(item->jname, item_name) != NULL)
         {
             match++;
-            sprintf(output, "%s: %d", item->jname, item->nameid);
+            output = STRPRINTF("%s: %d", item->jname, item->nameid);
             clif_displaymessage(fd, output);
         }
     }
-    sprintf(output, "It is %d affair above.", match);
+    output = STRPRINTF("It is %d affair above.", match);
     clif_displaymessage(fd, output);
 
     return 0;
@@ -4714,11 +4386,9 @@ int atcommand_charskreset(const int fd, struct map_session_data *sd,
                            const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -4732,7 +4402,8 @@ int atcommand_charskreset(const int fd, struct map_session_data *sd,
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can reset skill points only lower or same gm level
             pc_resetskill(pl_sd);
-            sprintf(output, "'%s' skill points reseted!", character);
+            std::string output = STRPRINTF(
+                    "'%s' skill points reseted!", character);
             clif_displaymessage(fd, output);
         }
         else
@@ -4758,11 +4429,9 @@ int atcommand_charstreset(const int fd, struct map_session_data *sd,
                            const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -4776,7 +4445,9 @@ int atcommand_charstreset(const int fd, struct map_session_data *sd,
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can reset stats points only lower or same gm level
             pc_resetstate(pl_sd);
-            sprintf(output, "'%s' stats points reseted!", character);
+            std::string output = STRPRINTF(
+                    "'%s' stats points reseted!",
+                    character);
             clif_displaymessage(fd, output);
         }
         else
@@ -4802,11 +4473,9 @@ int atcommand_charreset(const int fd, struct map_session_data *sd,
                          const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -4823,7 +4492,8 @@ int atcommand_charreset(const int fd, struct map_session_data *sd,
             pc_resetskill(pl_sd);
             pc_setglobalreg(pl_sd, "MAGIC_FLAGS", 0);  // [Fate] Reset magic quest variables
             pc_setglobalreg(pl_sd, "MAGIC_EXP", 0);    // [Fate] Reset magic experience
-            sprintf(output, "'%s' skill and stats points reseted!", character);
+            std::string output = STRPRINTF(
+                    "'%s' skill and stats points reseted!", character);
             clif_displaymessage(fd, output);
         }
         else
@@ -4849,11 +4519,9 @@ int atcommand_char_wipe(const int fd, struct map_session_data *sd,
                          const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -4913,7 +4581,7 @@ int atcommand_char_wipe(const int fd, struct map_session_data *sd,
             pc_setglobalreg(pl_sd, "MAGIC_FLAGS", 0);  // [Fate] Reset magic quest variables
             pc_setglobalreg(pl_sd, "MAGIC_EXP", 0);    // [Fate] Reset magic experience
 
-            sprintf(output, "%s:  wiped.", character);
+            std::string output = STRPRINTF("%s:  wiped.", character);
             clif_displaymessage(fd, output);
         }
         else
@@ -4941,20 +4609,19 @@ int atcommand_charmodel(const int fd, struct map_session_data *,
     int hair_style = 0, hair_color = 0, cloth_color = 0;
     struct map_session_data *pl_sd;
     char character[100];
-    char output[200];
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message
         || sscanf(message, "%d %d %d %99[^\n]", &hair_style, &hair_color,
                    &cloth_color, character) < 4 || hair_style < 0
         || hair_color < 0 || cloth_color < 0)
     {
-        sprintf(output,
-                 "Please, enter a valid model and a player name (usage: @charmodel <hair ID: %d-%d> <hair color: %d-%d> <clothes color: %d-%d> <name>).",
-                 MIN_HAIR_STYLE, MAX_HAIR_STYLE, MIN_HAIR_COLOR,
-                 MAX_HAIR_COLOR, MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
+        std::string output = STRPRINTF(
+                "Please, enter a valid model and a player name (usage: @charmodel <hair ID: %d-%d> <hair color: %d-%d> <clothes color: %d-%d> <name>).",
+                MIN_HAIR_STYLE, MAX_HAIR_STYLE,
+                MIN_HAIR_COLOR, MAX_HAIR_COLOR,
+                MIN_CLOTH_COLOR, MAX_CLOTH_COLOR);
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -5166,9 +4833,6 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
     struct map_session_data *pl_sd;
     int i;
     int count;
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
 
     if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
@@ -5197,9 +4861,9 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
     clif_displaymessage(fd, "All characters recalled!");
     if (count)
     {
-        sprintf(output,
-                 "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
-                 count);
+        std::string output = STRPRINTF(
+                "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
+                count);
         clif_displaymessage(fd, output);
     }
 
@@ -5216,12 +4880,10 @@ int atcommand_partyrecall(const int fd, struct map_session_data *sd,
     int i;
     struct map_session_data *pl_sd;
     char party_name[100];
-    char output[200];
     struct party *p;
     int count;
 
     memset(party_name, '\0', sizeof(party_name));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", party_name) < 1)
     {
@@ -5256,13 +4918,13 @@ int atcommand_partyrecall(const int fd, struct map_session_data *sd,
                     pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, 2);
             }
         }
-        sprintf(output, "All online characters of the %s party are near you.", p->name);
+        std::string output = STRPRINTF("All online characters of the %s party are near you.", p->name);
         clif_displaymessage(fd, output);
         if (count)
         {
-            sprintf(output,
-                     "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
-                     count);
+            output = STRPRINTF(
+                    "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
+                    count);
             clif_displaymessage(fd, output);
         }
     }
@@ -5360,11 +5022,10 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
     struct map_session_data *pl_sd;
     struct npc_data *nd = NULL;
     struct chat_data *cd = NULL;
-    char output[200], map_name[100];
+    char map_name[100];
     char direction[12];
     int m_id, i, chat_num, list = 0;
 
-    memset(output, '\0', sizeof(output));
     memset(map_name, '\0', sizeof(map_name));
     memset(direction, '\0', sizeof(direction));
 
@@ -5389,11 +5050,11 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
     }
 
     clif_displaymessage(fd, "------ Map Info ------");
-    sprintf(output, "Map Name: %s", map_name);
+    std::string output = STRPRINTF("Map Name: %s", map_name);
     clif_displaymessage(fd, output);
-    sprintf(output, "Players In Map: %d", map[m_id].users);
+    output = STRPRINTF("Players In Map: %d", map[m_id].users);
     clif_displaymessage(fd, output);
-    sprintf(output, "NPCs In Map: %d", map[m_id].npc_num);
+    output = STRPRINTF("NPCs In Map: %d", map[m_id].npc_num);
     clif_displaymessage(fd, output);
     chat_num = 0;
     for (i = 0; i < fd_max; i++)
@@ -5405,35 +5066,35 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
             chat_num++;
         }
     }
-    sprintf(output, "Chats In Map: %d", chat_num);
+    output = STRPRINTF("Chats In Map: %d", chat_num);
     clif_displaymessage(fd, output);
     clif_displaymessage(fd, "------ Map Flags ------");
-    sprintf(output, "Player vs Player: %s | No Party: %s",
+    output = STRPRINTF("Player vs Player: %s | No Party: %s",
              (map[m_id].flag.pvp) ? "True" : "False",
              (map[m_id].flag.pvp_noparty) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Dead Branch: %s",
+    output = STRPRINTF("No Dead Branch: %s",
              (map[m_id].flag.nobranch) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Memo: %s",
+    output = STRPRINTF("No Memo: %s",
              (map[m_id].flag.nomemo) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Penalty: %s",
+    output = STRPRINTF("No Penalty: %s",
              (map[m_id].flag.nopenalty) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Return: %s",
+    output = STRPRINTF("No Return: %s",
              (map[m_id].flag.noreturn) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Save: %s",
+    output = STRPRINTF("No Save: %s",
              (map[m_id].flag.nosave) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Teleport: %s",
+    output = STRPRINTF("No Teleport: %s",
              (map[m_id].flag.noteleport) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Monster Teleport: %s",
+    output = STRPRINTF("No Monster Teleport: %s",
              (map[m_id].flag.monster_noteleport) ? "True" : "False");
     clif_displaymessage(fd, output);
-    sprintf(output, "No Zeny Penalty: %s",
+    output = STRPRINTF("No Zeny Penalty: %s",
              (map[m_id].flag.nozenypenalty) ? "True" : "False");
     clif_displaymessage(fd, output);
 
@@ -5450,7 +5111,7 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                     && pl_sd->state.auth
                     && strcmp(pl_sd->mapname, map_name) == 0)
                 {
-                    sprintf(output,
+                    output = STRPRINTF(
                              "Player '%s' (session #%d) | Location: %d,%d",
                              pl_sd->status.name, i, pl_sd->bl.x, pl_sd->bl.y);
                     clif_displaymessage(fd, output);
@@ -5495,7 +5156,7 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                         strcpy(direction, "Unknown");
                         break;
                 }
-                sprintf(output,
+                output = STRPRINTF(
                          "NPC %d: %s | Direction: %s | Sprite: %d | Location: %d %d",
                          ++i, nd->name, direction, nd->npc_class, nd->bl.x,
                          nd->bl.y);
@@ -5512,12 +5173,12 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                     && strcmp(pl_sd->mapname, map_name) == 0
                     && cd->usersd[0] == pl_sd)
                 {
-                    sprintf(output,
+                    output = STRPRINTF(
                              "Chat %d: %s | Player: %s | Location: %d %d", i,
                              cd->title, pl_sd->status.name, cd->bl.x,
                              cd->bl.y);
                     clif_displaymessage(fd, output);
-                    sprintf(output,
+                    output = STRPRINTF(
                              "   Users: %d/%d | Password: %s | Public: %s",
                              cd->users, cd->limit, cd->pass,
                              (cd->pub) ? "Yes" : "No");
@@ -5667,11 +5328,9 @@ int atcommand_partyspy(const int fd, struct map_session_data *sd,
                         const char *, const char *message)
 {
     char party_name[100];
-    char output[200];
     struct party *p;
 
     memset(party_name, '\0', sizeof(party_name));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", party_name) < 1)
     {
@@ -5686,13 +5345,13 @@ int atcommand_partyspy(const int fd, struct map_session_data *sd,
         if (sd->partyspy == p->party_id)
         {
             sd->partyspy = 0;
-            sprintf(output, "No longer spying on the %s party.", p->name);
+            std::string output = STRPRINTF("No longer spying on the %s party.", p->name);
             clif_displaymessage(fd, output);
         }
         else
         {
             sd->partyspy = p->party_id;
-            sprintf(output, "Spying on the %s party.", p->name);
+            std::string output = STRPRINTF("Spying on the %s party.", p->name);
             clif_displaymessage(fd, output);
         }
     }
@@ -5774,40 +5433,17 @@ int atcommand_disablenpc(const int fd, struct map_session_data *,
  *------------------------------------------
  */
 static
-const char *txt_time(unsigned int duration)
+std::string txt_time(unsigned int duration)
 {
-    int days, hours, minutes, seconds;
-    char temp[256];
-    static char temp1[256];
+    int days = duration / (60 * 60 * 24);
+    duration -= (60 * 60 * 24 * days);
+    int hours = duration / (60 * 60);
+    duration -= (60 * 60 * hours);
+    int minutes = duration / 60;
+    int seconds = duration - (60 * minutes);
 
-    memset(temp, '\0', sizeof(temp));
-    memset(temp1, '\0', sizeof(temp1));
-
-    days = duration / (60 * 60 * 24);
-    duration = duration - (60 * 60 * 24 * days);
-    hours = duration / (60 * 60);
-    duration = duration - (60 * 60 * hours);
-    minutes = duration / 60;
-    seconds = duration - (60 * minutes);
-
-    if (days < 2)
-        sprintf(temp, "%d day", days);
-    else
-        sprintf(temp, "%d days", days);
-    if (hours < 2)
-        sprintf(temp1, "%s %d hour", temp, hours);
-    else
-        sprintf(temp1, "%s %d hours", temp, hours);
-    if (minutes < 2)
-        sprintf(temp, "%s %d minute", temp1, minutes);
-    else
-        sprintf(temp, "%s %d minutes", temp1, minutes);
-    if (seconds < 2)
-        sprintf(temp1, "%s and %d second", temp, seconds);
-    else
-        sprintf(temp1, "%s and %d seconds", temp, seconds);
-
-    return temp1;
+    return STRPRINTF("%d day(s), %d hour(s), %d minute(s), %d second(s)",
+            days, hours, minutes, seconds);
 }
 
 /*==========================================
@@ -5820,16 +5456,10 @@ int atcommand_servertime(const int fd, struct map_session_data *,
 {
     struct TimerData *timer_data;
     struct TimerData *timer_data2;
-    time_t time_server;         // variable for number of seconds (used with time() function)
-    struct tm *datetime;        // variable for time in structure ->tm_mday, ->tm_sec, ...
-    char temp[256];
 
-    memset(temp, '\0', sizeof(temp));
-
-    time(&time_server);        // get time in seconds since 1/1/1970
-    datetime = gmtime(&time_server);   // convert seconds in structure
-    // like sprintf, but only for date/time (Sunday, November 02 2003 15:12:52)
-    strftime(temp, sizeof(temp) - 1, "Server time (normal time): %A, %B %d %Y %X.", datetime);
+    timestamp_seconds_buffer tsbuf;
+    stamp_time(tsbuf);
+    std::string temp = STRPRINTF("Server time: %s", tsbuf);
     clif_displaymessage(fd, temp);
 
     if (battle_config.night_duration == 0 && battle_config.day_duration == 0)
@@ -5843,7 +5473,8 @@ int atcommand_servertime(const int fd, struct map_session_data *,
         if (night_flag == 1)
         {                       // we start with night
             timer_data = get_timer(day_timer_tid);
-            sprintf(temp, "Game time: The game is actualy in night for %s.", txt_time((timer_data->tick - gettick()) / 1000));
+            temp = STRPRINTF("Game time: The game is actualy in night for %s.",
+                    txt_time((timer_data->tick - gettick()) / 1000));
             clif_displaymessage(fd, temp);
             clif_displaymessage(fd, "Game time: After, the game will be in permanent daylight.");
         }
@@ -5853,7 +5484,8 @@ int atcommand_servertime(const int fd, struct map_session_data *,
         if (night_flag == 0)
         {                       // we start with day
             timer_data = get_timer(night_timer_tid);
-            sprintf(temp, "Game time: The game is actualy in daylight for %s.", txt_time((timer_data->tick - gettick()) / 1000));
+            temp = STRPRINTF("Game time: The game is actualy in daylight for %s.",
+                    txt_time((timer_data->tick - gettick()) / 1000));
             clif_displaymessage(fd, temp);
             clif_displaymessage(fd, "Game time: After, the game will be in permanent night.");
         }
@@ -5865,28 +5497,35 @@ int atcommand_servertime(const int fd, struct map_session_data *,
         {
             timer_data = get_timer(night_timer_tid);
             timer_data2 = get_timer(day_timer_tid);
-            sprintf(temp, "Game time: The game is actualy in daylight for %s.", txt_time((timer_data->tick - gettick()) / 1000));
+            temp = STRPRINTF("Game time: The game is actualy in daylight for %s.",
+                    txt_time((timer_data->tick - gettick()) / 1000));
             clif_displaymessage(fd, temp);
             if (timer_data->tick > timer_data2->tick)
-                sprintf(temp, "Game time: After, the game will be in night for %s.", txt_time((timer_data->interval - abs(timer_data->tick - timer_data2->tick)) / 1000));
+                temp = STRPRINTF("Game time: After, the game will be in night for %s.",
+                        txt_time((timer_data->interval - abs(timer_data->tick - timer_data2->tick)) / 1000));
             else
-                sprintf(temp, "Game time: After, the game will be in night for %s.", txt_time(abs(timer_data->tick - timer_data2->tick) / 1000));
+                temp = STRPRINTF("Game time: After, the game will be in night for %s.",
+                        txt_time(abs(timer_data->tick - timer_data2->tick) / 1000));
             clif_displaymessage(fd, temp);
-            sprintf(temp, "Game time: A day cycle has a normal duration of %s.", txt_time(timer_data->interval / 1000));
+            temp = STRPRINTF("Game time: A day cycle has a normal duration of %s.",
+                    txt_time(timer_data->interval / 1000));
             clif_displaymessage(fd, temp);
         }
         else
         {
             timer_data = get_timer(day_timer_tid);
             timer_data2 = get_timer(night_timer_tid);
-            sprintf(temp, "Game time: The game is actualy in night for %s.", txt_time((timer_data->tick - gettick()) / 1000));
+            temp = STRPRINTF("Game time: The game is actualy in night for %s.",
+                    txt_time((timer_data->tick - gettick()) / 1000));
             clif_displaymessage(fd, temp);
             if (timer_data->tick > timer_data2->tick)
-                sprintf(temp, "Game time: After, the game will be in daylight for %s.", txt_time((timer_data->interval - abs(timer_data->tick - timer_data2->tick)) / 1000));
+                temp = STRPRINTF("Game time: After, the game will be in daylight for %s.",
+                        txt_time((timer_data->interval - abs(timer_data->tick - timer_data2->tick)) / 1000));
             else
-                sprintf(temp, "Game time: After, the game will be in daylight for %s.", txt_time(abs(timer_data->tick - timer_data2->tick) / 1000));
+                temp = STRPRINTF("Game time: After, the game will be in daylight for %s.", txt_time(abs(timer_data->tick - timer_data2->tick) / 1000));
             clif_displaymessage(fd, temp);
-            sprintf(temp, "Game time: A day cycle has a normal duration of %s.", txt_time(timer_data->interval / 1000));
+            temp = STRPRINTF("Game time: A day cycle has a normal duration of %s.",
+                    txt_time(timer_data->interval / 1000));
             clif_displaymessage(fd, temp);
         }
     }
@@ -5908,12 +5547,10 @@ int atcommand_chardelitem(const int fd, struct map_session_data *sd,
     char character[100];
     char item_name[100];
     int i, number = 0, item_id, item_position, count;
-    char output[200];
     struct item_data *item_data;
 
     memset(character, '\0', sizeof(character));
     memset(item_name, '\0', sizeof(item_name));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message
         || sscanf(message, "%s %d %99[^\n]", item_name, &number,
@@ -5945,12 +5582,15 @@ int atcommand_chardelitem(const int fd, struct map_session_data *sd,
                         count++;
                         item_position = pc_search_inventory(pl_sd, item_id);   // for next loop
                     }
-                    sprintf(output, "%d item(s) removed by a GM.", count);
+                    std::string output = STRPRINTF(
+                            "%d item(s) removed by a GM.",
+                            count);
                     clif_displaymessage(pl_sd->fd, output);
+
                     if (number == count)
-                        sprintf(output, "%d item(s) removed from the player.", count);
+                        output = STRPRINTF("%d item(s) removed from the player.", count);
                     else
-                        sprintf(output, "%d item(s) removed. Player had only %d on %d items.", count, count, number);
+                        output = STRPRINTF("%d item(s) removed. Player had only %d on %d items.", count, count, number);
                     clif_displaymessage(fd, output);
                 }
                 else
@@ -6172,10 +5812,6 @@ int atcommand_undisguise(const int fd, struct map_session_data *sd,
 int atcommand_broadcast(const int fd, struct map_session_data *sd,
                          const char *, const char *message)
 {
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
-
     if (!message || !*message)
     {
         clif_displaymessage(fd,
@@ -6183,8 +5819,8 @@ int atcommand_broadcast(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    snprintf(output, 199, "%s : %s", sd->status.name, message);
-    intif_GMmessage(output, strlen(output) + 1, 0);
+    std::string output = STRPRINTF("%s : %s", sd->status.name, message);
+    intif_GMmessage(output, 0);
 
     return 0;
 }
@@ -6196,10 +5832,6 @@ int atcommand_broadcast(const int fd, struct map_session_data *sd,
 int atcommand_localbroadcast(const int fd, struct map_session_data *sd,
                               const char *, const char *message)
 {
-    char output[200];
-
-    memset(output, '\0', sizeof(output));
-
     if (!message || !*message)
     {
         clif_displaymessage(fd,
@@ -6207,9 +5839,9 @@ int atcommand_localbroadcast(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    snprintf(output, 199, "%s : %s", sd->status.name, message);
+    std::string output = STRPRINTF("%s : %s", sd->status.name, message);
 
-    clif_GMmessage(&sd->bl, output, strlen(output) + 1, 1);   // 1: ALL_SAMEMAP
+    clif_GMmessage(&sd->bl, output, 1);   // 1: ALL_SAMEMAP
 
     return 0;
 }
@@ -6221,11 +5853,8 @@ int atcommand_localbroadcast(const int fd, struct map_session_data *sd,
 int atcommand_ignorelist(const int fd, struct map_session_data *sd,
                           const char *, const char *)
 {
-    char output[200];
     int count;
     int i;
-
-    memset(output, '\0', sizeof(output));
 
     count = 0;
     for (i = 0; i < (int)(sizeof(sd->ignore) / sizeof(sd->ignore[0])); i++)
@@ -6237,14 +5866,18 @@ int atcommand_ignorelist(const int fd, struct map_session_data *sd,
             clif_displaymessage(fd, "You accept any wisp (no wisper is refused).");
         else
         {
-            sprintf(output, "You accept any wisp, except thoses from %d player (s):", count);
+            std::string output = STRPRINTF(
+                    "You accept any wisp, except thoses from %d player (s):",
+                    count);
             clif_displaymessage(fd, output);
         }
     else if (count == 0)
         clif_displaymessage(fd, "You refuse all wisps (no specifical wisper is refused).");
     else
     {
-        sprintf(output, "You refuse all wisps, AND refuse wisps from %d player (s):", count);
+        std::string output = STRPRINTF(
+                "You refuse all wisps, AND refuse wisps from %d player (s):",
+                count);
         clif_displaymessage(fd, output);
     }
 
@@ -6266,17 +5899,15 @@ int atcommand_charignorelist(const int fd, struct map_session_data *,
 {
     char character[100];
     struct map_session_data *pl_sd;
-    char output[200];
     int count;
     int i;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
         clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @charignorelist <char name>).");
+                "Please, enter a player name (usage: @charignorelist <char name>).");
         return -1;
     }
 
@@ -6292,22 +5923,30 @@ int atcommand_charignorelist(const int fd, struct map_session_data *,
         if (pl_sd->ignoreAll == 0)
             if (count == 0)
             {
-                sprintf(output, "'%s' accept any wisp (no wisper is refused).", pl_sd->status.name);
+                std::string output = STRPRINTF(
+                        "'%s' accept any wisp (no wisper is refused).",
+                        pl_sd->status.name);
                 clif_displaymessage(fd, output);
             }
             else
             {
-                sprintf(output, "'%s' accept any wisp, except thoses from %d player(s):", pl_sd->status.name, count);
+                std::string output = STRPRINTF(
+                        "'%s' accept any wisp, except thoses from %d player(s):",
+                        pl_sd->status.name, count);
                 clif_displaymessage(fd, output);
             }
         else if (count == 0)
         {
-            sprintf(output, "'%s' refuse all wisps (no specifical wisper is refused).", pl_sd->status.name);
+            std::string output = STRPRINTF(
+                    "'%s' refuse all wisps (no specifical wisper is refused).",
+                    pl_sd->status.name);
             clif_displaymessage(fd, output);
         }
         else
         {
-            sprintf(output, "'%s' refuse all wisps, AND refuse wisps from %d player(s):", pl_sd->status.name, count);
+            std::string output = STRPRINTF(
+                    "'%s' refuse all wisps, AND refuse wisps from %d player(s):",
+                    pl_sd->status.name, count);
             clif_displaymessage(fd, output);
         }
 
@@ -6337,11 +5976,9 @@ int atcommand_inall(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -6356,14 +5993,18 @@ int atcommand_inall(const int fd, struct map_session_data *sd,
         {                       // you can change wisp option only to lower or same level
             if (pl_sd->ignoreAll == 0)
             {
-                sprintf(output, "'%s' already accepts all wispers.", pl_sd->status.name);
+                std::string output = STRPRINTF(
+                        "'%s' already accepts all wispers.",
+                        pl_sd->status.name);
                 clif_displaymessage(fd, output);
                 return -1;
             }
             else
             {
                 pl_sd->ignoreAll = 0;
-                sprintf(output, "'%s' now accepts all wispers.", pl_sd->status.name);
+                std::string output = STRPRINTF(
+                        "'%s' now accepts all wispers.",
+                        pl_sd->status.name);
                 clif_displaymessage(fd, output);
                 // message to player
                 clif_displaymessage(pl_sd->fd, "A GM has authorised all wispers for you.");
@@ -6396,11 +6037,9 @@ int atcommand_exall(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
     char character[100];
-    char output[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -6415,14 +6054,18 @@ int atcommand_exall(const int fd, struct map_session_data *sd,
         {                       // you can change wisp option only to lower or same level
             if (pl_sd->ignoreAll == 1)
             {
-                sprintf(output, "'%s' already blocks all wispers.", pl_sd->status.name);
+                std::string output = STRPRINTF(
+                        "'%s' already blocks all wispers.",
+                        pl_sd->status.name);
                 clif_displaymessage(fd, output);
                 return -1;
             }
             else
             {
                 pl_sd->ignoreAll = 1;
-                sprintf(output, "'%s' blocks now all wispers.", pl_sd->status.name);
+                std::string output = STRPRINTF(
+                        "'%s' blocks now all wispers.",
+                        pl_sd->status.name);
                 clif_displaymessage(fd, output);
                 // message to player
                 clif_displaymessage(pl_sd->fd, "A GM has blocked all wispers for you.");
@@ -6663,12 +6306,10 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
     struct map_session_data *pl_sd;
     struct item_data *item_data, *item_temp;
     int i, j, count, counter, counter2;
-    char character[100], output[200], equipstr[100], outputtmp[200];
+    char character[100], equipstr[100];
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
     memset(equipstr, '\0', sizeof(equipstr));
-    memset(outputtmp, '\0', sizeof(outputtmp));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -6694,8 +6335,9 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                     count++;
                     if (count == 1)
                     {
-                        sprintf(output, "------ Items list of '%s' ------",
-                                 pl_sd->status.name);
+                        std::string output = STRPRINTF(
+                                "------ Items list of '%s' ------",
+                                pl_sd->status.name);
                         clif_displaymessage(fd, output);
                     }
                     EPOS equip;
@@ -6735,8 +6377,10 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                     }
                     else
                         memset(equipstr, '\0', sizeof(equipstr));
+
+                    std::string output;
                     if (sd->status.inventory[i].refine)
-                        sprintf(output, "%d %s %+d (%s %+d, id: %d) %s",
+                        output = STRPRINTF("%d %s %+d (%s %+d, id: %d) %s",
                                  pl_sd->status.inventory[i].amount,
                                  item_data->name,
                                  pl_sd->status.inventory[i].refine,
@@ -6744,12 +6388,13 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                                  pl_sd->status.inventory[i].refine,
                                  pl_sd->status.inventory[i].nameid, equipstr);
                     else
-                        sprintf(output, "%d %s (%s, id: %d) %s",
+                        output = STRPRINTF("%d %s (%s, id: %d) %s",
                                  pl_sd->status.inventory[i].amount,
                                  item_data->name, item_data->jname,
                                  pl_sd->status.inventory[i].nameid, equipstr);
                     clif_displaymessage(fd, output);
-                    memset(output, '\0', sizeof(output));
+
+                    output.clear();
                     counter2 = 0;
                     for (j = 0; j < item_data->slot; j++)
                     {
@@ -6760,23 +6405,31 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                                                 inventory[i].card[j])) !=
                                 NULL)
                             {
-                                if (output[0] == '\0')
-                                    sprintf(outputtmp,
-                                             " -> (card(s): #%d %s (%s), ",
-                                             ++counter2, item_temp->name,
-                                             item_temp->jname);
+                                if (output.empty())
+                                    output = STRPRINTF(
+                                            " -> (card(s): #%d %s (%s), ",
+                                            ++counter2,
+                                            item_temp->name,
+                                            item_temp->jname);
                                 else
-                                    sprintf(outputtmp, "#%d %s (%s), ",
-                                             ++counter2, item_temp->name,
-                                             item_temp->jname);
-                                strcat(output, outputtmp);
+                                    output += STRPRINTF(
+                                            "#%d %s (%s), ",
+                                            ++counter2,
+                                            item_temp->name,
+                                            item_temp->jname);
                             }
                         }
                     }
-                    if (output[0] != '\0')
+                    if (!output.empty())
                     {
-                        output[strlen(output) - 2] = ')';
-                        output[strlen(output) - 1] = '\0';
+                        // replace trailing ", "
+#ifdef ANNOYING_GCC46_WORKAROUNDS
+# warning " and "
+                        output.resize(output.size() - 1);
+#else
+                        output.pop_back();
+#endif
+                        output.back() = ')';
                         clif_displaymessage(fd, output);
                     }
                 }
@@ -6785,8 +6438,9 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                 clif_displaymessage(fd, "No item found on this player.");
             else
             {
-                sprintf(output, "%d item(s) found in %d kind(s) of items.",
-                         counter, count);
+                std::string output = STRPRINTF(
+                        "%d item(s) found in %d kind(s) of items.",
+                        counter, count);
                 clif_displaymessage(fd, output);
             }
         }
@@ -6816,11 +6470,9 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
     struct map_session_data *pl_sd;
     struct item_data *item_data, *item_temp;
     int i, j, count, counter, counter2;
-    char character[100], output[200], outputtmp[200];
+    char character[100];
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
-    memset(outputtmp, '\0', sizeof(outputtmp));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -6847,13 +6499,14 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
                         count++;
                         if (count == 1)
                         {
-                            sprintf(output,
+                            std::string output = STRPRINTF(
                                      "------ Storage items list of '%s' ------",
                                      pl_sd->status.name);
                             clif_displaymessage(fd, output);
                         }
+                        std::string output;
                         if (stor->storage_[i].refine)
-                            sprintf(output, "%d %s %+d (%s %+d, id: %d)",
+                            output = STRPRINTF("%d %s %+d (%s %+d, id: %d)",
                                      stor->storage_[i].amount,
                                      item_data->name,
                                      stor->storage_[i].refine,
@@ -6861,12 +6514,13 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
                                      stor->storage_[i].refine,
                                      stor->storage_[i].nameid);
                         else
-                            sprintf(output, "%d %s (%s, id: %d)",
+                            output = STRPRINTF("%d %s (%s, id: %d)",
                                      stor->storage_[i].amount,
                                      item_data->name, item_data->jname,
                                      stor->storage_[i].nameid);
                         clif_displaymessage(fd, output);
-                        memset(output, '\0', sizeof(output));
+
+                        output.clear();
                         counter2 = 0;
                         for (j = 0; j < item_data->slot; j++)
                         {
@@ -6877,23 +6531,31 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
                                                     storage_[i].card[j])) !=
                                     NULL)
                                 {
-                                    if (output[0] == '\0')
-                                        sprintf(outputtmp,
-                                                 " -> (card(s): #%d %s (%s), ",
-                                                 ++counter2, item_temp->name,
-                                                 item_temp->jname);
+                                    if (output.empty())
+                                        output = STRPRINTF(
+                                                " -> (card(s): #%d %s (%s), ",
+                                                ++counter2,
+                                                item_temp->name,
+                                                item_temp->jname);
                                     else
-                                        sprintf(outputtmp, "#%d %s (%s), ",
-                                                 ++counter2, item_temp->name,
-                                                 item_temp->jname);
-                                    strcat(output, outputtmp);
+                                        output += STRPRINTF(
+                                                "#%d %s (%s), ",
+                                                ++counter2,
+                                                item_temp->name,
+                                                item_temp->jname);
                                 }
                             }
                         }
-                        if (output[0] != '\0')
+                        if (!output.empty())
                         {
-                            output[strlen(output) - 2] = ')';
-                            output[strlen(output) - 1] = '\0';
+                            // replace last ", "
+#ifdef ANNOYING_GCC46_WORKAROUNDS
+# warning " all of "
+                            output.resize(output.size() - 1);
+#else
+                            output.pop_back();
+#endif
+                            output.back() = ')';
                             clif_displaymessage(fd, output);
                         }
                     }
@@ -6903,7 +6565,7 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
                                          "No item found in the storage of this player.");
                 else
                 {
-                    sprintf(output,
+                    std::string output = STRPRINTF(
                              "%d item(s) found in %d kind(s) of items.",
                              counter, count);
                     clif_displaymessage(fd, output);
@@ -6940,11 +6602,9 @@ int atcommand_character_cart_list(const int fd, struct map_session_data *sd,
     struct map_session_data *pl_sd;
     struct item_data *item_data, *item_temp;
     int i, j, count, counter, counter2;
-    char character[100], output[200], outputtmp[200];
+    char character[100];
 
     memset(character, '\0', sizeof(character));
-    memset(output, '\0', sizeof(output));
-    memset(outputtmp, '\0', sizeof(outputtmp));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -6969,26 +6629,30 @@ int atcommand_character_cart_list(const int fd, struct map_session_data *sd,
                     count++;
                     if (count == 1)
                     {
-                        sprintf(output,
-                                 "------ Cart items list of '%s' ------",
-                                 pl_sd->status.name);
+                        std::string output = STRPRINTF(
+                                "------ Cart items list of '%s' ------",
+                                pl_sd->status.name);
                         clif_displaymessage(fd, output);
                     }
+
+                    std::string output;
                     if (pl_sd->status.cart[i].refine)
-                        sprintf(output, "%d %s %+d (%s %+d, id: %d)",
-                                 pl_sd->status.cart[i].amount,
-                                 item_data->name,
-                                 pl_sd->status.cart[i].refine,
-                                 item_data->jname,
-                                 pl_sd->status.cart[i].refine,
-                                 pl_sd->status.cart[i].nameid);
+                        output = STRPRINTF("%d %s %+d (%s %+d, id: %d)",
+                                pl_sd->status.cart[i].amount,
+                                item_data->name,
+                                pl_sd->status.cart[i].refine,
+                                item_data->jname,
+                                pl_sd->status.cart[i].refine,
+                                pl_sd->status.cart[i].nameid);
                     else
-                        sprintf(output, "%d %s (%s, id: %d)",
-                                 pl_sd->status.cart[i].amount,
-                                 item_data->name, item_data->jname,
-                                 pl_sd->status.cart[i].nameid);
+
+                        output = STRPRINTF("%d %s (%s, id: %d)",
+                                pl_sd->status.cart[i].amount,
+                                item_data->name, item_data->jname,
+                                pl_sd->status.cart[i].nameid);
                     clif_displaymessage(fd, output);
-                    memset(output, '\0', sizeof(output));
+
+                    output.clear();
                     counter2 = 0;
                     for (j = 0; j < item_data->slot; j++)
                     {
@@ -6998,23 +6662,30 @@ int atcommand_character_cart_list(const int fd, struct map_session_data *sd,
                                  itemdb_search(pl_sd->status.
                                                 cart[i].card[j])) != NULL)
                             {
-                                if (output[0] == '\0')
-                                    sprintf(outputtmp,
-                                             " -> (card(s): #%d %s (%s), ",
-                                             ++counter2, item_temp->name,
-                                             item_temp->jname);
+                                if (output.empty())
+                                    output = STRPRINTF(
+                                            " -> (card(s): #%d %s (%s), ",
+                                            ++counter2,
+                                            item_temp->name,
+                                            item_temp->jname);
                                 else
-                                    sprintf(outputtmp, "#%d %s (%s), ",
-                                             ++counter2, item_temp->name,
-                                             item_temp->jname);
-                                strcat(output, outputtmp);
+                                    output += STRPRINTF(
+                                            "#%d %s (%s), ",
+                                            ++counter2,
+                                            item_temp->name,
+                                            item_temp->jname);
                             }
                         }
                     }
-                    if (output[0] != '\0')
+                    if (!output.empty())
                     {
-                        output[strlen(output) - 2] = ')';
-                        output[strlen(output) - 1] = '\0';
+#ifdef ANNOYING_GCC46_WORKAROUNDS
+# warning " these ... "
+                        output.resize(output.size() - 1);
+#else
+                        output.pop_back();
+#endif
+                        output.back() = '0';
                         clif_displaymessage(fd, output);
                     }
                 }
@@ -7024,7 +6695,7 @@ int atcommand_character_cart_list(const int fd, struct map_session_data *sd,
                                      "No item found in the cart of this player.");
             else
             {
-                sprintf(output, "%d item(s) found in %d kind(s) of items.",
+                std::string output = STRPRINTF("%d item(s) found in %d kind(s) of items.",
                          counter, count);
                 clif_displaymessage(fd, output);
             }
@@ -7177,24 +6848,22 @@ int atcommand_npcmove(const int, struct map_session_data *sd,
 int atcommand_addwarp(const int fd, struct map_session_data *sd,
                    const char *, const char *message)
 {
-    char w1[64], w3[64], w4[64];
-    char mapname[30], output[200];
+    char mapname[30];
     int x, y, ret;
 
     if (!message || !*message)
         return -1;
 
-    if (sscanf(message, "%99s %d %d[^\n]", mapname, &x, &y) < 3)
+    if (sscanf(message, "%29s %d %d[^\n]", mapname, &x, &y) < 3)
         return -1;
 
-    sprintf(w1, "%s,%d,%d", sd->mapname, sd->bl.x, sd->bl.y);
-    sprintf(w3, "%s%d%d%d%d", mapname, sd->bl.x, sd->bl.y, x, y);
-    sprintf(w4, "1,1,%s.gat,%d,%d", mapname, x, y);
+    std::string w1 = STRPRINTF("%s,%d,%d", sd->mapname, sd->bl.x, sd->bl.y);
+    std::string w3 = STRPRINTF("%s%d%d%d%d", mapname, sd->bl.x, sd->bl.y, x, y);
+    std::string w4 = STRPRINTF("1,1,%s.gat,%d,%d", mapname, x, y);
 
-    ret = npc_parse_warp(w1, "warp", w3, w4);
+    ret = npc_parse_warp(w1.c_str(), "warp", w3.c_str(), w4.c_str());
 
-    sprintf(output, "New warp NPC => %s", w3);
-
+    std::string output = STRPRINTF("New warp NPC => %s", w3);
     clif_displaymessage(fd, output);
 
     return ret;
@@ -7390,9 +7059,8 @@ int atcommand_skillid(const int fd, struct map_session_data *,
         if ((strncasecmp(skill_names[idx].name, message, skillen) == 0) ||
             (strncasecmp(skill_names[idx].desc, message, skillen) == 0))
         {
-            char output[255];
-            sprintf(output, "skill %d: %s",
-                    uint16_t(skill_names[idx].id), skill_names[idx].desc);
+            std::string output = STRPRINTF("skill %d: %s",
+                    skill_names[idx].id, skill_names[idx].desc);
             clif_displaymessage(fd, output);
         }
         idx++;
@@ -7717,7 +7385,6 @@ int atcommand_magic_info(const int fd, struct map_session_data *,
                       const char *, const char *message)
 {
     char character[100];
-    char buf[200];
     struct map_session_data *pl_sd;
 
     memset(character, '\0', sizeof(character));
@@ -7730,14 +7397,18 @@ int atcommand_magic_info(const int fd, struct map_session_data *,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        sprintf(buf, "`%s' has the following magic skills:", character);
+        std::string buf = STRPRINTF(
+                "`%s' has the following magic skills:",
+                character);
         clif_displaymessage(fd, buf);
 
         for (size_t i = 0; i < magic_skills_nr; i++)
         {
             SkillID sk = magic_skills[i];
-            sprintf(buf, "%d in %s",
-                    pl_sd->status.skill[sk].lv, magic_skill_names[i]);
+            buf = STRPRINTF(
+                    "%d in %s",
+                    pl_sd->status.skill[sk].lv,
+                    magic_skill_names[i]);
             if (pl_sd->status.skill[sk].id == sk)
                 clif_displaymessage(fd, buf);
         }
@@ -7825,7 +7496,7 @@ int atcommand_log(const int, struct map_session_data *,
 int atcommand_tee(const int, struct map_session_data *sd,
                const char *, const char *message)
 {
-    char *data = (char *)malloc(strlen(message) + 28);
+    char data[strlen(message) + 28];
     strcpy(data, sd->status.name);
     strcat(data, " : ");
     strcat(data, message);
@@ -7853,10 +7524,7 @@ int atcommand_jump_iterate(const int fd, struct map_session_data *sd,
         struct map_session_data *(*get_start)(void),
         struct map_session_data *(*get_next)(struct map_session_data*))
 {
-    char output[200];
     struct map_session_data *pl_sd;
-
-    memset(output, '\0', sizeof(output));
 
     pl_sd = (struct map_session_data *) map_id2bl(sd->followtarget);
 
@@ -7888,7 +7556,7 @@ int atcommand_jump_iterate(const int fd, struct map_session_data *sd,
         return -1;
     }
     pc_setpos(sd, map[pl_sd->bl.m].name, pl_sd->bl.x, pl_sd->bl.y, 3);
-    sprintf(output, "Jump to %s", pl_sd->status.name);
+    std::string output = STRPRINTF("Jump to %s", pl_sd->status.name);
     clif_displaymessage(fd, output);
 
     sd->followtarget = pl_sd->bl.id;
@@ -7921,7 +7589,8 @@ int atcommand_wgm(const int fd, struct map_session_data *sd,
 {
     if (tmw_CheckChatSpam(sd, message))
         return 0;
-    tmw_GmHackMsg("%s: %s", sd->status.name, message);
+
+    tmw_GmHackMsg(static_cast<const std::string&>(STRPRINTF("[GM] %s: %s", sd->status.name, message)));
     if (!pc_isGM(sd))
         clif_displaymessage(fd, "Message sent.");
 
@@ -7943,25 +7612,25 @@ int atcommand_skillpool_info(const int fd, struct map_session_data *,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        char buf[200];
         SkillID pool_skills[MAX_SKILL_POOL];
         int pool_skills_nr = skill_pool(pl_sd, pool_skills);
         int i;
 
-        sprintf(buf, "Active skills %d out of %d for %s:", pool_skills_nr,
-                 skill_pool_max(pl_sd), character);
+        std::string buf = STRPRINTF(
+                "Active skills %d out of %d for %s:",
+                pool_skills_nr, skill_pool_max(pl_sd), character);
         clif_displaymessage(fd, buf);
         for (i = 0; i < pool_skills_nr; ++i)
         {
-            sprintf(buf, " - %s [%d]: power %d",
+            buf = STRPRINTF(" - %s [%d]: power %d",
                     skill_name(pool_skills[i]),
-                    uint16_t(pool_skills[i]),
+                    pool_skills[i],
                     skill_power(pl_sd, pool_skills[i]));
             clif_displaymessage(fd, buf);
         }
 
-        sprintf(buf, "Learned skills out of %d for %s:",
-                 skill_pool_skills_size, character);
+        buf = STRPRINTF("Learned skills out of %d for %s:",
+                skill_pool_skills_size, character);
         clif_displaymessage(fd, buf);
 
         for (i = 0; i < skill_pool_skills_size; ++i)
@@ -7971,8 +7640,8 @@ int atcommand_skillpool_info(const int fd, struct map_session_data *,
 
             if (lvl)
             {
-                sprintf(buf, " - %s [%d]: lvl %d",
-                        name, uint16_t(skill_pool_skills[i]), lvl);
+                buf = STRPRINTF(" - %s [%d]: lvl %d",
+                        name, skill_pool_skills[i], lvl);
                 clif_displaymessage(fd, buf);
             }
         }
@@ -8075,7 +7744,6 @@ int atcommand_ipcheck(const int fd, struct map_session_data *,
 {
     struct map_session_data *pl_sd;
     struct sockaddr_in sai;
-    char output[200];
     char character[25];
     int i;
     socklen_t sa_len = sizeof(struct sockaddr);
@@ -8118,10 +7786,10 @@ int atcommand_ipcheck(const int fd, struct map_session_data *,
             // Is checking GM levels really needed here?
             if (ip == sai.sin_addr.s_addr)
             {
-                snprintf(output, sizeof(output),
-                         "Name: %s | Location: %s %d %d",
-                         pl_sd->status.name, pl_sd->mapname,
-                         pl_sd->bl.x, pl_sd->bl.y);
+                std::string output = STRPRINTF(
+                        "Name: %s | Location: %s %d %d",
+                        pl_sd->status.name, pl_sd->mapname,
+                        pl_sd->bl.x, pl_sd->bl.y);
                 clif_displaymessage(fd, output);
             }
         }

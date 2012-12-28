@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "cxxstdio.hpp"
 #include "mmo.hpp"
 #include "socket.hpp"
 #include "utils.hpp"
@@ -73,7 +74,7 @@ FILELIST *filelist_add(FILELIST * entry)
 {
     if (filelist_entrys >= FILELIST_LIMIT)
     {
-        fprintf(stderr, "filelist limit : filelist_add\n");
+        FPRINTF(stderr, "filelist limit : filelist_add\n");
         exit(1);
     }
 
@@ -118,7 +119,7 @@ void grfio_resnametable(const char *fname, char *lfname)
     FILE *fp = fopen_(restable, "rb");
     if (fp == NULL)
     {
-        fprintf(stderr, "No resnametable, can't look for %s\n", fname);
+        FPRINTF(stderr, "No resnametable, can't look for %s\n", fname);
         strcpy(lfname, fname);
         char* ext = lfname + strlen(lfname) - 4;
         if (!strcmp(ext, ".gat"))
@@ -142,7 +143,7 @@ void grfio_resnametable(const char *fname, char *lfname)
             return;
         }
     }
-    fprintf(stderr, "Unable to find resource: %s\n", fname);
+    FPRINTF(stderr, "Unable to find resource: %s\n", fname);
     fclose_(fp);
 
     strcpy(lfname, fname);
@@ -177,7 +178,7 @@ size_t grfio_size(const char *fname)
     }
     else
     {
-        printf("%s not found\n", fname);
+        PRINTF("%s not found\n", fname);
         return 0;
     }
     return entry->declen;
@@ -195,7 +196,7 @@ void *grfio_reads(const char *fname, size_t *size)
     FILE *in = fopen_(lfname, "rb");
     if (!in)
     {
-        fprintf(stderr, "%s not found\n", fname);
+        FPRINTF(stderr, "%s not found\n", fname);
         return NULL;
     }
     FILELIST lentry;

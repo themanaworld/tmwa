@@ -1758,8 +1758,8 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
         if (MRAND(10000) < eff1 * sc_def_card1 / 100)
         {
             if (battle_config.battle_log)
-                printf("PC %d skill_addeff: cardによる異常発動 %d %d\n",
-                     sd->bl.id, uint16_t(si), eff1);
+                PRINTF("PC %d skill_addeff: cardによる異常発動 %d %d\n",
+                     sd->bl.id, si, eff1);
 
             skill_status_change_start(bl, si, 7, 0, 0, 0,
                                     (bi == BadSC::CONFUSION)
@@ -1774,8 +1774,8 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
         if (MRAND(10000) < eff2 * sc_def_card2 / 100)
         {
             if (battle_config.battle_log)
-                printf("PC %d skill_addeff: cardによる異常発動 %d %d\n",
-                     src->id, uint16_t(si), eff2);
+                PRINTF("PC %d skill_addeff: cardによる異常発動 %d %d\n",
+                     src->id, si, eff2);
             skill_status_change_start(src, si, 7, 0, 0, 0,
                                    (bi == BadSC::CONFUSION)
                                    ? 10000 + 7000
@@ -5148,7 +5148,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
             }
             break;
         default:
-            printf("Unknown skill used:%d\n", uint16_t(skillid));
+            PRINTF("Unknown skill used:%d\n", skillid);
             map_freeblock_unlock();
             return 1;
     }
@@ -5308,8 +5308,8 @@ void skill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
     }
 
     if (battle_config.pc_skill_log)
-        printf("PC %d skill castend skill=%d\n",
-                sd->bl.id, uint16_t(sd->skillid));
+        PRINTF("PC %d skill castend skill=%d\n",
+                sd->bl.id, sd->skillid);
     pc_stop_walking(sd, 0);
 
     switch (skill_get_nk(sd->skillid))
@@ -5556,8 +5556,8 @@ int skill_castend_map(struct map_session_data *sd, SkillID skill_num,
     pc_stopattack(sd);
 
     if (battle_config.pc_skill_log)
-        printf("PC %d skill castend skill =%d map=%s\n",
-                sd->bl.id, uint16_t(skill_num), mapname);
+        PRINTF("PC %d skill castend skill =%d map=%s\n",
+                sd->bl.id, skill_num, mapname);
     pc_stop_walking(sd, 0);
 
     if (strcmp(mapname, "cancel") == 0)
@@ -6674,7 +6674,7 @@ int skill_unit_onplace(struct skill_unit *src, struct block_list *bl,
 
 /*      default:
                 if (battle_config.error_log)
-                        printf("skill_unit_onplace: Unknown skill unit id=%d block=%d\n",sg->unit_id,bl->id);
+                        PRINTF("skill_unit_onplace: Unknown skill unit id=%d block=%d\n",sg->unit_id,bl->id);
                 break;*/
     }
     if (bl->type == BL_MOB && ss != bl) /* スキル使用条件のMOBスキル */
@@ -6819,7 +6819,7 @@ int skill_unit_onout(struct skill_unit *src, struct block_list *bl,
 
 /*      default:
                 if (battle_config.error_log)
-                        printf("skill_unit_onout: Unknown skill unit id=%d block=%d\n",sg->unit_id,bl->id);
+                        PRINTF("skill_unit_onout: Unknown skill unit id=%d block=%d\n",sg->unit_id,bl->id);
                 break;*/
     }
     skill_unitgrouptickset_delete(bl, sg->group_id);
@@ -6877,7 +6877,7 @@ int skill_unit_ondelete(struct skill_unit *src, struct block_list *bl,
 
 /*      default:
                 if (battle_config.error_log)
-                        printf("skill_unit_ondelete: Unknown skill unit id=%d block=%d\n",sg->unit_id,bl->id);
+                        PRINTF("skill_unit_ondelete: Unknown skill unit id=%d block=%d\n",sg->unit_id,bl->id);
                 break;*/
     }
     skill_unitgrouptickset_delete(bl, sg->group_id);
@@ -7133,8 +7133,8 @@ void skill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
     }
 
     if (battle_config.pc_skill_log)
-        printf("PC %d skill castend skill=%d\n",
-                sd->bl.id, uint16_t(sd->skillid));
+        PRINTF("PC %d skill castend skill=%d\n",
+                sd->bl.id, sd->skillid);
     pc_stop_walking(sd, 0);
 
     skill_castend_pos2(&sd->bl, sd->skillx, sd->skilly, sd->skillid,
@@ -7898,7 +7898,7 @@ int skill_use_id(struct map_session_data *sd, int target_id,
     if ((bl = map_id2bl(target_id)) == NULL)
     {
 /*              if (battle_config.error_log)
-                        printf("skill target not found %d\n",target_id); */
+                        PRINTF("skill target not found %d\n",target_id); */
         return 0;
     }
     if (sd->bl.m != bl->m || pc_isdead(sd))
@@ -7976,7 +7976,7 @@ int skill_use_id(struct map_session_data *sd, int target_id,
     if (sc_data && sc_data[SC_DANCING].timer != -1)
     {
 //      if(battle_config.pc_skill_log)
-//          printf("dancing! %d\n",skill_num);
+//          PRINTF("dancing! %d\n",skill_num);
         if (sc_data[SC_DANCING].val4 && skill_num != BD_ADAPTATION) //合奏中はアドリブ以外不可
             return 0;
         if (skill_num != BD_ADAPTATION && skill_num != BA_MUSICALSTRIKE
@@ -8176,8 +8176,8 @@ int skill_use_id(struct map_session_data *sd, int target_id,
     }
 
     if (battle_config.pc_skill_log)
-        printf("PC %d skill use target_id=%d skill=%d lv=%d cast=%d\n",
-                sd->bl.id, target_id, uint16_t(skill_num), skill_lv, casttime);
+        PRINTF("PC %d skill use target_id=%d skill=%d lv=%d cast=%d\n",
+                sd->bl.id, target_id, skill_num, skill_lv, casttime);
 
 //  if(sd->skillitem == skill_num)
 //      casttime = delay = 0;
@@ -8301,9 +8301,9 @@ int skill_use_pos(struct map_session_data *sd,
     sd->state.skillcastcancel = skill_db[skill_num].castcancel;
 
     if (battle_config.pc_skill_log)
-        printf("PC %d skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d\n",
+        PRINTF("PC %d skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d\n",
                 sd->bl.id, skill_x, skill_y,
-                uint16_t(skill_num), skill_lv, casttime);
+                skill_num, skill_lv, casttime);
 
 //  if(sd->skillitem == skill_num)
 //      casttime = delay = 0;
@@ -8962,7 +8962,7 @@ int skill_status_change_active(struct block_list *bl, StatusChange type)
     if (bl->type != BL_PC && bl->type != BL_MOB)
     {
         if (battle_config.error_log)
-            printf("skill_status_change_active: neither MOB nor PC !\n");
+            PRINTF("skill_status_change_active: neither MOB nor PC !\n");
         return 0;
     }
 
@@ -8987,7 +8987,7 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
     if (bl->type != BL_PC && bl->type != BL_MOB)
     {
         if (battle_config.error_log)
-            printf("skill_status_change_end: neither MOB nor PC !\n");
+            PRINTF("skill_status_change_end: neither MOB nor PC !\n");
         return 0;
     }
     sc_data = battle_get_sc_data(bl);
@@ -9332,7 +9332,7 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
     if (sc_data[type].timer != tid)
     {
         if (battle_config.error_log)
-            printf("skill_status_change_timer %d != %d\n", tid,
+            PRINTF("skill_status_change_timer %d != %d\n", tid,
                     sc_data[type].timer);
     }
 
@@ -9877,7 +9877,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
                 && MRAND(10000) < sd->reseff[bsc])
             {
                 if (battle_config.battle_log)
-                    printf("PC %d skill_sc_start: cardによる異常耐性発動\n",
+                    PRINTF("PC %d skill_sc_start: cardによる異常耐性発動\n",
                             sd->bl.id);
                 return 0;
             }
@@ -9889,7 +9889,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     else
     {
         if (battle_config.error_log)
-            printf("skill_status_change_start: neither MOB nor PC !\n");
+            PRINTF("skill_status_change_start: neither MOB nor PC !\n");
         return 0;
     }
 
@@ -10539,7 +10539,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             break;
         default:
             if (battle_config.error_log)
-                printf("UnknownStatusChange [%d]\n", uint16_t(type));
+                PRINTF("UnknownStatusChange [%d]\n", type);
             return 0;
     }
 
@@ -10971,7 +10971,7 @@ struct skill_unit_group *skill_initunitgroup(struct block_list *src,
 
     if (group == NULL)
     {
-        printf("skill_initunitgroup: error unit group !\n");
+        PRINTF("skill_initunitgroup: error unit group !\n");
         exit(1);
     }
 
@@ -11613,7 +11613,7 @@ SP scan_stat(char *statname)
     if (!strcasecmp(statname, "none"))
         return SP::ZERO;
 
-    fprintf(stderr, "Unknown stat `%s'\n", statname);
+    FPRINTF(stderr, "Unknown stat `%s'\n", statname);
     return SP::ZERO;
 }
 
@@ -11635,7 +11635,7 @@ int skill_readdb(void)
     fp = fopen_("db/skill_db.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/skill_db.txt\n");
+        PRINTF("can't read db/skill_db.txt\n");
         return 1;
     }
     while (fgets(line, 1020, fp))
@@ -11654,7 +11654,7 @@ int skill_readdb(void)
         }
         if (split[17] == NULL || j < 18)
         {
-            fprintf(stderr, "Incomplete skill db data online (%d entries)\n",
+            FPRINTF(stderr, "Incomplete skill db data online (%d entries)\n",
                      j);
             continue;
         }
@@ -11749,12 +11749,12 @@ int skill_readdb(void)
         skill_lookup_by_id(i).desc = tmp;
     }
     fclose_(fp);
-    printf("read db/skill_db.txt done\n");
+    PRINTF("read db/skill_db.txt done\n");
 
     fp = fopen_("db/skill_require_db.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/skill_require_db.txt\n");
+        PRINTF("can't read db/skill_require_db.txt\n");
         return 1;
     }
     while (fgets(line, 1020, fp))
@@ -11930,13 +11930,13 @@ int skill_readdb(void)
         skill_db[i].amount[9] = atoi(split[29]);
     }
     fclose_(fp);
-    printf("read db/skill_require_db.txt done\n");
+    PRINTF("read db/skill_require_db.txt done\n");
 
     /* ? */
     fp = fopen_("db/skill_cast_db.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/skill_cast_db.txt\n");
+        PRINTF("can't read db/skill_cast_db.txt\n");
         return 1;
     }
     while (fgets(line, 1020, fp))
@@ -12010,12 +12010,12 @@ int skill_readdb(void)
                 (split2[k]) ? atoi(split2[k]) : atoi(split2[0]);
     }
     fclose_(fp);
-    printf("read db/skill_cast_db.txt done\n");
+    PRINTF("read db/skill_cast_db.txt done\n");
 
     fp = fopen_("db/skill_castnodex_db.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/skill_castnodex_db.txt\n");
+        PRINTF("can't read db/skill_castnodex_db.txt\n");
         return 1;
     }
     while (fgets(line, 1020, fp))
@@ -12051,7 +12051,7 @@ int skill_readdb(void)
                 (split2[k]) ? atoi(split2[k]) : atoi(split2[0]);
     }
     fclose_(fp);
-    printf("read db/skill_castnodex_db.txt done\n");
+    PRINTF("read db/skill_castnodex_db.txt done\n");
 
     return 0;
 }

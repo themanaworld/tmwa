@@ -19,6 +19,8 @@
 #include <cstring>
 #include <ctime>
 
+#include "../common/cxxstdio.hpp"
+
 #define HOME getenv("HOME")
 #define LOGIN_SERVER "./login-server"
 #define MAP_SERVER "./map-server"
@@ -102,7 +104,7 @@ void parse_option(char *name, char *value) {
     } else if (!strcasecmp(name, "logfile")) {
         logfile = strdup(value);
     } else {
-        fprintf(stderr, "WARNING: ingnoring invalid option '%s' = '%s'\n", name, value);
+        FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' = '%s'\n", name, value);
     }
 }
 
@@ -150,7 +152,7 @@ pid_t start_process(const char *exec) {
     const char *args[2] = {exec, NULL};
     pid_t pid = fork();
     if (pid == -1) {
-        fprintf(stderr, "Failed to fork");
+        FPRINTF(stderr, "Failed to fork");
         return 0;
     }
     if (pid == 0) {
@@ -186,18 +188,18 @@ int main(int argc, char *argv[]) {
 
     if (chdir(workdir) < 0) perror("Failed to change directory"), exit(1);
 
-    printf("Starting:\n");
-    printf("* workdir: %s\n",  workdir);
-    printf("* login_server: %s\n", login_server);
-    printf("* map_server: %s\n", map_server);
-    printf("* char_server: %s\n", char_server);
+    PRINTF("Starting:\n");
+    PRINTF("* workdir: %s\n",  workdir);
+    PRINTF("* login_server: %s\n", login_server);
+    PRINTF("* map_server: %s\n", map_server);
+    PRINTF("* char_server: %s\n", char_server);
     {
         //make sure all possible file descriptors are free for use by the servers
         //if there are file descriptors higher than the max open from before the limit dropped, that's not our problem
         int fd = sysconf(_SC_OPEN_MAX);
         while (--fd > 2)
            if (close(fd) == 0)
-               fprintf(stderr, "close fd %d\n", fd);
+               FPRINTF(stderr, "close fd %d\n", fd);
         fd = open("/dev/null", O_RDWR);
         if (fd < 0) perror("open /dev/null"), exit(1);
         dup2(fd, 0);
@@ -213,15 +215,15 @@ int main(int argc, char *argv[]) {
 
         if (!pid_login) {
             pid_login = start_process(login_server);
-            fprintf(stderr, "[%s] forked login server: %lu\n", timestamp, (unsigned long)pid_login);
+            FPRINTF(stderr, "[%s] forked login server: %lu\n", timestamp, (unsigned long)pid_login);
         }
         if (!pid_char) {
             pid_char = start_process(char_server);
-            fprintf(stderr, "[%s] forked char server: %lu\n", timestamp, (unsigned long)pid_char);
+            FPRINTF(stderr, "[%s] forked char server: %lu\n", timestamp, (unsigned long)pid_char);
         }
         if (!pid_map) {
             pid_map = start_process(map_server);
-            fprintf(stderr, "[%s] forked map server: %lu\n", timestamp, (unsigned long)pid_map);
+            FPRINTF(stderr, "[%s] forked map server: %lu\n", timestamp, (unsigned long)pid_map);
         }
         pid_t dead = wait(NULL);
         if (dead < 0) perror("Failed to wait for child"), exit(1);

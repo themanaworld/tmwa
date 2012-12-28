@@ -95,7 +95,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
             effects = NULL;
 
 #ifdef DEBUG
-        fprintf(stderr, "Found spell `%s', triggered = %d\n", spell_,
+        FPRINTF(stderr, "Found spell `%s', triggered = %d\n", spell_,
                  effects != NULL);
 #endif
         if (bool(caster->status.option & Option::HIDE))

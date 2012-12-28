@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <ctime>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/mmo.hpp"
 #include "../common/timer.hpp"
@@ -699,10 +700,9 @@ int map_quit(struct map_session_data *);
 // npc
 int map_addnpc(int, struct npc_data *);
 
-extern FILE *map_logfile;
-__attribute__((format(printf, 1, 2)))
-void map_write_log(const char *format, ...);
-#define MAP_LOG(format, args...) {if (map_logfile) map_write_log(format, ##args);}
+void map_log(const_string line);
+#define MAP_LOG(format, args...) \
+    map_log(static_cast<const std::string&>(STRPRINTF(format, ##args)));
 
 #define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
 
@@ -753,8 +753,5 @@ int map_calc_dir(struct block_list *src, int x, int y);
 // path.cより
 int path_search(struct walkpath_data *, int, int, int, int, int, int);
 int path_blownpos(int m, int x0, int y0, int dx, int dy, int count);
-
-
-int map_delmap(char *mapname);
 
 #endif // MAP_HPP

@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "../common/const_array.hpp"
+
 #include "pc.t.hpp"
 
 #include "map.hpp"
@@ -140,9 +142,8 @@ int clif_party_xy(struct party *p, struct map_session_data *sd);
 int clif_party_hp(struct party *p, struct map_session_data *sd);
 
 // atcommand
-int clif_displaymessage(int fd, const char *mes);
-int clif_disp_onlyself(struct map_session_data *sd, const char *mes, int len);
-int clif_GMmessage(struct block_list *bl, const char *mes, int len, int flag);
+void clif_displaymessage(int fd, const_string mes);
+void clif_GMmessage(struct block_list *bl, const_string mes, int flag);
 int clif_resurrection(struct block_list *bl, int type);
 
 int clif_specialeffect(struct block_list *bl, int type, int flag);    // special effects [Valaris]

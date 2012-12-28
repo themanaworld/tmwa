@@ -224,7 +224,7 @@ void pc_invincible_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
     if (sd->invincible_timer != tid)
     {
         if (battle_config.error_log)
-            printf("invincible_timer %d != %d\n", sd->invincible_timer, tid);
+            PRINTF("invincible_timer %d != %d\n", sd->invincible_timer, tid);
         return;
     }
     sd->invincible_timer = -1;
@@ -266,7 +266,7 @@ void pc_spiritball_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
     if (sd->spirit_timer[0] != tid)
     {
         if (battle_config.error_log)
-            printf("spirit_timer %d != %d\n", sd->spirit_timer[0], tid);
+            PRINTF("spirit_timer %d != %d\n", sd->spirit_timer[0], tid);
         return;
     }
     sd->spirit_timer[0] = -1;
@@ -440,7 +440,7 @@ void pc_counttargeted_sub(struct block_list *bl,
             && md->state.state == MS_ATTACK && md->target_lv >= target_lv)
 
             (*c)++;
-        //printf("md->target_lv:%d, target_lv:%d\n",((struct mob_data *)bl)->target_lv,target_lv);
+        //PRINTF("md->target_lv:%d, target_lv:%d\n",((struct mob_data *)bl)->target_lv,target_lv);
     }
 }
 
@@ -698,7 +698,6 @@ int pc_isequip(struct map_session_data *sd, int n)
 int pc_breakweapon(struct map_session_data *sd)
 {
     struct item_data *item;
-    char output[255];
     int i;
 
     if (sd == NULL)
@@ -721,7 +720,7 @@ int pc_breakweapon(struct map_session_data *sd)
                 && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
                 && sd->status.inventory[i].broken == 1)
             {
-                sprintf(output, "%s has broken.", item->jname);
+                std::string output = STRPRINTF("%s has broken.", item->jname);
                 clif_emotion(&sd->bl, 23);
                 clif_displaymessage(sd->fd, output);
                 clif_equiplist(sd);
@@ -742,10 +741,6 @@ int pc_breakweapon(struct map_session_data *sd)
  */
 int pc_breakarmor(struct map_session_data *sd)
 {
-    struct item_data *item;
-    char output[255];
-    int i;
-
     if (sd == NULL)
         return -1;
     if (sd->unbreakable >= MRAND(100))
@@ -753,20 +748,20 @@ int pc_breakarmor(struct map_session_data *sd)
     if (sd->sc_data[SC_CP_ARMOR].timer != -1)
         return 0;
 
-    for (i = 0; i < MAX_INVENTORY; i++)
+    for (int i = 0; i < MAX_INVENTORY; i++)
     {
         if (bool(sd->status.inventory[i].equip)
             && bool(sd->status.inventory[i].equip & EPOS::MISC1)
             && !sd->status.inventory[i].broken)
         {
-            item = sd->inventory_data[i];
+            struct item_data *item = sd->inventory_data[i];
             sd->status.inventory[i].broken = 1;
-            //pc_unequipitem(sd,i,CalcStatus::NOW);
             if (bool(sd->status.inventory[i].equip)
                 && bool(sd->status.inventory[i].equip & EPOS::MISC1)
                 && sd->status.inventory[i].broken == 1)
             {
-                sprintf(output, "%s has broken.", item->jname);
+                std::string output = STRPRINTF("%s has broken.",
+                        item->jname);
                 clif_emotion(&sd->bl, 23);
                 clif_displaymessage(sd->fd, output);
                 clif_equiplist(sd);
@@ -949,12 +944,12 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
 
     if (pc_isGM(sd))
     {
-        printf("Connection accepted: character '%s' (account: %d; GM level %d).\n",
+        PRINTF("Connection accepted: character '%s' (account: %d; GM level %d).\n",
              sd->status.name, sd->status.account_id, pc_isGM(sd));
         clif_updatestatus(sd, SP_GM);
     }
     else
-        printf("Connection accepted: Character '%s' (account: %d).\n",
+        PRINTF("Connection accepted: Character '%s' (account: %d).\n",
                 sd->status.name, sd->status.account_id);
 
     // Message of the Dayの送信
@@ -1217,7 +1212,7 @@ int pc_calc_skilltree(struct map_session_data *sd)
         while (flag);
     }
 //  if(battle_config.etc_log)
-//      printf("calc skill_tree\n");
+//      PRINTF("calc skill_tree\n");
     return 0;
 }
 
@@ -1801,7 +1796,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     }
     dstr = str / 10;
     sd->base_atk += str + dstr * dstr + dex / 5 + sd->paramc[ATTR::LUK] / 5;
-//fprintf(stderr, "baseatk = %d = x + %d + %d + %d + %d\n", sd->base_atk, str, dstr*dstr, dex/5, sd->paramc[ATTR::LUK]/5);
+//FPRINTF(stderr, "baseatk = %d = x + %d + %d + %d + %d\n", sd->base_atk, str, dstr*dstr, dex/5, sd->paramc[ATTR::LUK]/5);
     sd->matk1 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 5) * (sd->paramc[ATTR::INT] / 5);
     sd->matk2 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 7) * (sd->paramc[ATTR::INT] / 7);
     if (sd->matk1 < sd->matk2)
@@ -2889,8 +2884,8 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
             break;
         default:
             if (battle_config.error_log)
-                printf("pc_bonus: unknown type %d %d !\n",
-                        uint16_t(type), val);
+                PRINTF("pc_bonus: unknown type %d %d !\n",
+                        type, val);
             break;
     }
     return 0;
@@ -3113,8 +3108,8 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
             }                   // end addition
         default:
             if (battle_config.error_log)
-                printf("pc_bonus2: unknown type %d %d %d!\n",
-                        uint16_t(type), type2, val);
+                PRINTF("pc_bonus2: unknown type %d %d %d!\n",
+                        type, type2, val);
             break;
     }
     return 0;
@@ -3162,8 +3157,8 @@ int pc_bonus3(struct map_session_data *sd, SP type, int type2, int type3,
             break;
         default:
             if (battle_config.error_log)
-                printf("pc_bonus3: unknown type %d %d %d %d!\n",
-                        uint16_t(type), type2, type3, val);
+                PRINTF("pc_bonus3: unknown type %d %d %d %d!\n",
+                        type, type2, type3, val);
             break;
     }
 
@@ -3181,7 +3176,7 @@ int pc_skill(struct map_session_data *sd, SkillID id, int level, int flag)
     if (level > MAX_SKILL_LEVEL)
     {
         if (battle_config.error_log)
-            printf("support card skill only!\n");
+            PRINTF("support card skill only!\n");
         return 0;
     }
     if (!flag && (sd->status.skill[id].id == id || level == 0))
@@ -3721,25 +3716,26 @@ static
 void pc_show_steal(struct block_list *bl,
         struct map_session_data *sd, int itemid, int type)
 {
-    struct item_data *item = NULL;
-    char output[100];
-
     nullpo_retv(bl);
     nullpo_retv(sd);
 
+    std::string output;
     if (!type)
     {
-        if ((item = itemdb_exists(itemid)) == NULL)
-            sprintf(output, "%s stole an Unknown_Item.", sd->status.name);
+        struct item_data *item = itemdb_exists(itemid);
+        if (item == NULL)
+            output = STRPRINTF("%s stole an Unknown_Item.",
+                    sd->status.name);
         else
-            sprintf(output, "%s stole %s.", sd->status.name, item->jname);
+            output = STRPRINTF("%s stole %s.",
+                    sd->status.name, item->jname);
         clif_displaymessage(((struct map_session_data *) bl)->fd, output);
     }
     else
     {
-        sprintf(output,
-                 "%s has not stolen the item because of being  overweight.",
-                 sd->status.name);
+        output = STRPRINTF(
+                "%s has not stolen the item because of being  overweight.",
+                sd->status.name);
         clif_displaymessage(((struct map_session_data *) bl)->fd, output);
     }
 }
@@ -3949,7 +3945,7 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
         if (x || y)
         {
             if (battle_config.error_log)
-                printf("stacked (%d,%d)\n", x, y);
+                PRINTF("stacked (%d,%d)\n", x, y);
         }
         do
         {
@@ -4077,7 +4073,7 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
     if (sd->walktimer != tid)
     {
         if (battle_config.error_log)
-            printf("pc_walk %d != %d\n", sd->walktimer, tid);
+            PRINTF("pc_walk %d != %d\n", sd->walktimer, tid);
         return;
     }
     sd->walktimer = -1;
@@ -4545,7 +4541,7 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
     if (sd->attacktimer != tid)
     {
         if (battle_config.error_log)
-            printf("pc_attack_timer %d != %d\n", sd->attacktimer, tid);
+            PRINTF("pc_attack_timer %d != %d\n", sd->attacktimer, tid);
         return;
     }
     sd->attacktimer = -1;
@@ -4866,7 +4862,6 @@ int pc_gainexp(struct map_session_data *sd, int base_exp, int job_exp)
 int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
         PC_GAINEXP_REASON reason)
 {
-    char output[256];
     nullpo_ret(sd);
 
     if (sd->bl.prev == NULL || pc_isdead(sd))
@@ -4940,9 +4935,10 @@ int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
 
     if (battle_config.disp_experience)
     {
-        sprintf(output,
-                 "Experienced Gained Base:%d Job:%d", base_exp, job_exp);
-        clif_disp_onlyself(sd, output, strlen(output));
+        std::string output = STRPRINTF(
+                "Experienced Gained Base:%d Job:%d",
+                base_exp, job_exp);
+        clif_displaymessage(sd->fd, output);
     }
 
     return 0;
@@ -5872,7 +5868,7 @@ int pc_setparam(struct map_session_data *sd, SP type, int val)
 int pc_heal(struct map_session_data *sd, int hp, int sp)
 {
 //  if(battle_config.battle_log)
-//      printf("heal %d %d\n",hp,sp);
+//      PRINTF("heal %d %d\n",hp,sp);
 
     nullpo_ret(sd);
 
@@ -5998,7 +5994,7 @@ int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
 {
     int bonus;
 //  if(battle_config.battle_log)
-//      printf("heal %d %d\n",hp,sp);
+//      PRINTF("heal %d %d\n",hp,sp);
 
     nullpo_ret(sd);
 
@@ -6451,7 +6447,7 @@ int pc_setregstr(struct map_session_data *sd, int reg, const char *str)
 
     if (strlen(str) + 1 > sizeof(sd->regstr[0].data))
     {
-        printf("pc_setregstr(): String too long!\n");
+        PRINTF("pc_setregstr(): String too long!\n");
         return 0;
     }
 
@@ -6534,7 +6530,7 @@ int pc_setglobalreg(struct map_session_data *sd, const char *reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        printf("pc_setglobalreg : couldn't set %s (GLOBAL_REG_NUM = %d)\n",
+        PRINTF("pc_setglobalreg : couldn't set %s (GLOBAL_REG_NUM = %d)\n",
                 reg, GLOBAL_REG_NUM);
 
     return 1;
@@ -6602,7 +6598,7 @@ int pc_setaccountreg(struct map_session_data *sd, const char *reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        printf("pc_setaccountreg : couldn't set %s (ACCOUNT_REG_NUM = %d)\n",
+        PRINTF("pc_setaccountreg : couldn't set %s (ACCOUNT_REG_NUM = %d)\n",
                 reg, ACCOUNT_REG_NUM);
 
     return 1;
@@ -6670,7 +6666,7 @@ int pc_setaccountreg2(struct map_session_data *sd, const char *reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        printf("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %d)\n",
+        PRINTF("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %d)\n",
              reg, ACCOUNT_REG2_NUM);
 
     return 1;
@@ -6727,7 +6723,7 @@ void pc_eventtimer(timer_id tid, tick_t, custom_id_t id, custom_data_t data)
     if (i == MAX_EVENTTIMER)
     {
         if (battle_config.error_log)
-            printf("pc_eventtimer: no such event timer\n");
+            PRINTF("pc_eventtimer: no such event timer\n");
     }
 }
 
@@ -6869,8 +6865,8 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
     EPOS pos = pc_equippoint(sd, n);
 
     if (battle_config.battle_log)
-        printf("equip %d (%d) %x:%x\n",
-                nameid, n, uint16_t(id->equip), uint16_t(pos));
+        PRINTF("equip %d (%d) %x:%x\n",
+                nameid, n, id->equip, pos);
     if (!pc_isequip(sd, n) || pos == EPOS::ZERO || sd->status.inventory[n].broken == 1)
     {                           // [Valaris]
         clif_equipitemack(sd, n, EPOS::ZERO, 0);    // fail
@@ -7044,9 +7040,9 @@ int pc_unequipitem(struct map_session_data *sd, int n, CalcStatus type)
     }
 
     if (battle_config.battle_log)
-        printf("unequip %d %x:%x\n",
-                n, uint16_t(pc_equippoint(sd, n)),
-                uint16_t(sd->status.inventory[n].equip));
+        PRINTF("unequip %d %x:%x\n",
+                n, pc_equippoint(sd, n),
+                sd->status.inventory[n].equip);
     if (bool(sd->status.inventory[n].equip))
     {
         for (EQUIP i : EQUIPs)
@@ -7151,7 +7147,7 @@ int pc_checkitem(struct map_session_data *sd)
         if (battle_config.item_check && !itemdb_available(id))
         {
             if (battle_config.error_log)
-                printf("illeagal item id %d in %d[%s] inventory.\n", id,
+                PRINTF("illeagal item id %d in %d[%s] inventory.\n", id,
                         sd->bl.id, sd->status.name);
             pc_delitem(sd, i, sd->status.inventory[i].amount, 3);
             continue;
@@ -7178,7 +7174,7 @@ int pc_checkitem(struct map_session_data *sd)
         if (battle_config.item_check && !itemdb_available(id))
         {
             if (battle_config.error_log)
-                printf("illeagal item id %d in %d[%s] cart.\n", id,
+                PRINTF("illeagal item id %d in %d[%s] cart.\n", id,
                         sd->bl.id, sd->status.name);
             pc_cart_delitem(sd, i, sd->status.cart[i].amount, 1);
             continue;
@@ -7359,7 +7355,7 @@ int pc_divorce(struct map_session_data *sd)
         if (p_sd->status.partner_id != sd->status.char_id
             || sd->status.partner_id != p_sd->status.char_id)
         {
-            printf("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n",
+            PRINTF("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n",
                     sd->status.partner_id, p_sd->status.partner_id);
             return -1;
         }
@@ -7935,7 +7931,7 @@ int pc_read_gm_account(int fd)
     {
         gm_account[GM_num].account_id = RFIFOL(fd, i);
         gm_account[GM_num].level = (int) RFIFOB(fd, i + 4);
-        //printf("GM account: %d -> level %d\n", gm_account[GM_num].account_id, gm_account[GM_num].level);
+        //PRINTF("GM account: %d -> level %d\n", gm_account[GM_num].account_id, gm_account[GM_num].level);
         GM_num++;
     }
     return GM_num;
@@ -8043,7 +8039,7 @@ int pc_readdb(void)
     fp = fopen_("db/exp.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/exp.txt\n");
+        PRINTF("can't read db/exp.txt\n");
         return 1;
     }
     i = 0;
@@ -8074,13 +8070,13 @@ int pc_readdb(void)
             break;
     }
     fclose_(fp);
-    printf("read db/exp.txt done\n");
+    PRINTF("read db/exp.txt done\n");
 
     // JOB補正数値１
     fp = fopen_("db/job_db1.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/job_db1.txt\n");
+        PRINTF("can't read db/job_db1.txt\n");
         return 1;
     }
     i = 0;
@@ -8112,13 +8108,13 @@ int pc_readdb(void)
             break;
     }
     fclose_(fp);
-    printf("read db/job_db1.txt done\n");
+    PRINTF("read db/job_db1.txt done\n");
 
     // JOBボーナス
     fp = fopen_("db/job_db2.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/job_db2.txt\n");
+        PRINTF("can't read db/job_db2.txt\n");
         return 1;
     }
     i = 0;
@@ -8144,13 +8140,13 @@ int pc_readdb(void)
             break;
     }
     fclose_(fp);
-    printf("read db/job_db2.txt done\n");
+    PRINTF("read db/job_db2.txt done\n");
 
     // JOBボーナス2 転生職用
     fp = fopen_("db/job_db2-2.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/job_db2-2.txt\n");
+        PRINTF("can't read db/job_db2-2.txt\n");
         return 1;
     }
     i = 0;
@@ -8172,14 +8168,14 @@ int pc_readdb(void)
             break;
     }
     fclose_(fp);
-    printf("read db/job_db2-2.txt done\n");
+    PRINTF("read db/job_db2-2.txt done\n");
 
     // スキルツリー
     memset(skill_tree, 0, sizeof(skill_tree));
     fp = fopen_("db/skill_tree.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/skill_tree.txt\n");
+        PRINTF("can't read db/skill_tree.txt\n");
         return 1;
     }
     while (fgets(line, sizeof(line) - 1, fp))
@@ -8211,7 +8207,7 @@ int pc_readdb(void)
         }
     }
     fclose_(fp);
-    printf("read db/skill_tree.txt done\n");
+    PRINTF("read db/skill_tree.txt done\n");
 
     // 属性修正テーブル
     for (i = 0; i < 4; i++)
@@ -8221,7 +8217,7 @@ int pc_readdb(void)
     fp = fopen_("db/attr_fix.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/attr_fix.txt\n");
+        PRINTF("can't read db/attr_fix.txt\n");
         return 1;
     }
     while (fgets(line, sizeof(line) - 1, fp))
@@ -8239,7 +8235,7 @@ int pc_readdb(void)
         }
         lv = atoi(split[0]);
         n = atoi(split[1]);
-//      printf("%d %d\n",lv,n);
+//      PRINTF("%d %d\n",lv,n);
 
         for (i = 0; i < n;)
         {
@@ -8265,7 +8261,7 @@ int pc_readdb(void)
         }
     }
     fclose_(fp);
-    printf("read db/attr_fix.txt done\n");
+    PRINTF("read db/attr_fix.txt done\n");
 
     // サイズ補正テーブル
     for (i = 0; i < 3; i++)
@@ -8274,7 +8270,7 @@ int pc_readdb(void)
     fp = fopen_("db/size_fix.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/size_fix.txt\n");
+        PRINTF("can't read db/size_fix.txt\n");
         return 1;
     }
     i = 0;
@@ -8298,7 +8294,7 @@ int pc_readdb(void)
         i++;
     }
     fclose_(fp);
-    printf("read db/size_fix.txt done\n");
+    PRINTF("read db/size_fix.txt done\n");
 
     // 精錬データテーブル
     for (i = 0; i < 5; i++)
@@ -8312,7 +8308,7 @@ int pc_readdb(void)
     fp = fopen_("db/refine_db.txt", "r");
     if (fp == NULL)
     {
-        printf("can't read db/refine_db.txt\n");
+        PRINTF("can't read db/refine_db.txt\n");
         return 1;
     }
     i = 0;
@@ -8339,7 +8335,7 @@ int pc_readdb(void)
         i++;
     }
     fclose_(fp);               //Lupus. close this file!!!
-    printf("read db/refine_db.txt done\n");
+    PRINTF("read db/refine_db.txt done\n");
 
     return 0;
 }
@@ -8374,7 +8370,7 @@ void pc_statpointdb(void)
 
     if (stp == NULL)
     {
-        printf("can't read db/statpoint.txt\n");
+        PRINTF("can't read db/statpoint.txt\n");
         return;
     }
 
@@ -8385,7 +8381,7 @@ void pc_statpointdb(void)
     buf_stat = (char *) malloc(end + 1);
     l = fread(buf_stat, 1, end, stp);
     fclose_(stp);
-    printf("read db/statpoint.txt done (size=%d)\n", l);
+    PRINTF("read db/statpoint.txt done (size=%d)\n", l);
 
     for (i = 0; i < 255; i++)
     {

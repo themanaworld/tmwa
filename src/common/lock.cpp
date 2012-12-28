@@ -4,6 +4,7 @@
 
 #include <cstdio>
 
+#include "cxxstdio.hpp"
 #include "socket.hpp"
 
 /// Protected file writing
@@ -12,28 +13,28 @@
 // Start writing a tmpfile
 FILE *lock_fopen(const char *filename, int *info)
 {
-    char newfile[512];
     FILE *fp;
     int no = getpid();
 
     // Get a filename that doesn't already exist
+    std::string newfile;
     do
     {
-        sprintf(newfile, "%s_%d.tmp", filename, no++);
+        newfile = STRPRINTF("%s_%d.tmp", filename, no++);
+        fp = fopen_(newfile.c_str(), "wx");
     }
-    while ((fp = fopen_(newfile, "r")) && (fclose_(fp), 1));
+    while (!fp);
     *info = --no;
-    return fopen_(newfile, "w");
+    return fp;
 }
 
 // Delete the old file and rename the new file
-void lock_fclose(FILE * fp, const char *filename, int *info)
+void lock_fclose(FILE *fp, const char *filename, int *info)
 {
-    char newfile[512];
     if (fp)
     {
         fclose_(fp);
-        sprintf(newfile, "%s_%d.tmp", filename, *info);
-        rename(newfile, filename);
+        std::string newfile = STRPRINTF("%s_%d.tmp", filename, *info);
+        rename(newfile.c_str(), filename);
     }
 }

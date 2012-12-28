@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "cxxstdio.hpp"
 #include "utils.hpp"
 
 static
@@ -183,12 +184,12 @@ void delete_timer(timer_id id, timer_func func)
 {
     if (id == 0 || id >= timer_data_num)
     {
-        fprintf(stderr, "delete_timer error : no such timer %d\n", id);
+        FPRINTF(stderr, "delete_timer error : no such timer %d\n", id);
         abort();
     }
     if (timer_data[id].func != func)
     {
-        fprintf(stderr, "Timer mismatch\n");
+        FPRINTF(stderr, "Timer mismatch\n");
         abort();
     }
     // "to let them disappear" - is this just in case?

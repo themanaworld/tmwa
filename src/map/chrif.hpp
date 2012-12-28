@@ -1,11 +1,11 @@
 #ifndef CHRIF_HPP
 #define CHRIF_HPP
 
-void chrif_setuserid(char *);
-void chrif_setpasswd(char *);
+void chrif_setuserid(const char *);
+void chrif_setpasswd(const char *);
 char *chrif_getpasswd(void);
 
-void chrif_setip(char *);
+void chrif_setip(const char *);
 void chrif_setport(int);
 
 int chrif_isconnect(void);
