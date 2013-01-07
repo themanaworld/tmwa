@@ -3360,7 +3360,7 @@ int lan_config_read(const char *lancfgName)
         }
         else
         {
-            PRINTF("WARNING: unknown lan config key: %s", w1);
+            PRINTF("WARNING: unknown lan config key: %s\n", w1);
         }
     }
 
@@ -3592,7 +3592,7 @@ int char_config_read(const char *cfgName)
         }
         else
         {
-            PRINTF("WARNING: unknown char config key: %s", w1);
+            PRINTF("WARNING: unknown char config key: %s\n", w1);
         }
     }
 

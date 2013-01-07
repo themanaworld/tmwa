@@ -5726,7 +5726,7 @@ int battle_config_read(const char *cfgName)
                 goto continue_outer;
             }
 
-        PRINTF("WARNING: unknown battle conf key: %s", w1);
+        PRINTF("WARNING: unknown battle conf key: %s\n", w1);
 
     continue_outer:
         ;

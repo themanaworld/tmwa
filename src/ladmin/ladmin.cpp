@@ -3626,7 +3626,7 @@ int ladmin_config_read(const char *cfgName)
         }
         else
         {
-            PRINTF("WARNING: unknown ladmin config key: %s", w1);
+            PRINTF("WARNING: unknown ladmin config key: %s\n", w1);
         }
     }
 

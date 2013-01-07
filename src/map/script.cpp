@@ -5077,8 +5077,14 @@ void do_final_script(void)
 {
     if (mapreg_dirty >= 0)
         script_save_mapreg();
+#if 0
+    // labels are allocated just out of this
+    // (so it's a leak ...)
+    // this is disabled because it leads to a crash
+    // due to double-free
     if (script_buf)
         free(script_buf);
+#endif
 
     if (mapreg_db)
         numdb_final(mapreg_db, NULL);
