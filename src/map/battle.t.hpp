@@ -62,7 +62,7 @@ BCT& operator ^= (BCT& l, BCT r) { return l = l & r; }
 // BCT operator ~(BCT r);
 
 constexpr
-bool operator == (BCT l, BCT r) { return l.lo == r.lo && l.mid == r.mid && l.classic == r.classic && l.level == r.level && l.unused == r.unused; };
+bool operator == (BCT l, BCT r) { return l.lo == r.lo && l.mid == r.mid && l.classic == r.classic && l.level == r.level && l.unused == r.unused; }
 constexpr
 bool operator != (BCT l, BCT r) { return !(l == r); }
 

@@ -1007,8 +1007,8 @@ int clif_npc0078(struct npc_data *nd, unsigned char *buf)
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
 static
-earray<EQUIP, LOOK, LOOK::COUNT> equip_points =
-{
+earray<EQUIP, LOOK, LOOK::COUNT> equip_points //=
+{{
     EQUIP::NONE,    // base
     EQUIP::NONE,    // hair
     EQUIP::WEAPON,  // weapon
@@ -1023,7 +1023,7 @@ earray<EQUIP, LOOK, LOOK::COUNT> equip_points =
     EQUIP::CAPE,    // cape
     EQUIP::MISC1,   // misc1
     EQUIP::MISC2,   // misc2
-};
+}};
 
 /*==========================================
  *

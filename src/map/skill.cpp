@@ -25,8 +25,8 @@
 
 // This table appears to be wrong
 /* スキル番号＝＞ステータス異常番号変換テーブル */
-earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable =
-{
+earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable //=
+{{
     // 0-
     StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
@@ -489,7 +489,7 @@ earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable =
     StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
-};
+}};
 
 struct skill_name_db skill_names[] =
 {
@@ -1711,8 +1711,8 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
             && skillid != MC_CARTREVOLUTION
             && bool(attack_type & BF_WEAPON)))
         return 0;
-    earray<int, BadSC, BadSC::COUNT> arr_sc_def_card1 =
-    {
+    earray<int, BadSC, BadSC::COUNT> arr_sc_def_card1 //=
+    {{
         sc_def_mdef,    // stone
         sc_def_mdef,    // freeze
         sc_def_vit,     // stan
@@ -1722,8 +1722,8 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
         sc_def_vit,     // silence
         sc_def_int,     // confusion
         sc_def_int,     // blind
-    }, arr_sc_def_card2 =
-    {
+    }}, arr_sc_def_card2 //=
+    {{
         sc_def_mdef2,   // stone
         sc_def_mdef2,   // freeze
         sc_def_vit2,    // stan
@@ -1733,10 +1733,10 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
         sc_def_vit2,    // silence
         sc_def_int2,    // confusion
         sc_def_int2,    // blind
-    };
+    }};
 
-    earray<SkillID, BadSC, BadSC::COUNT> sc2 =
-    {
+    earray<SkillID, BadSC, BadSC::COUNT> sc2 //=
+    {{
         MG_STONECURSE,      // stone
         MG_FROSTDIVER,      // freeze
         NPC_STUNATTACK,     // stan
@@ -1746,7 +1746,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
         NPC_SILENCEATTACK,  // silence
         SkillID::ZERO,      // confusion
         NPC_BLINDATTACK,    // blind
-    };
+    }};
 
     for (BadSC bi : erange(BadSC(), BadSC::COUNT))
     {

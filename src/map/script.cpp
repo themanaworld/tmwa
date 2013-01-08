@@ -851,14 +851,21 @@ void read_constdb(void)
         if (line[0] == '/' && line[1] == '/')
             continue;
 
-        std::string name;
+        char *name = nullptr;
         int val;
         int type = 0; // if not provided
-        if (SSCANF(line, "%m[A-Za-z0-9_] %x %x", &name, &val, &type) < 2)
-            continue;
-        for (char& c : name)
-            c = tolower(c);
-        int n = add_str(name.c_str());
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
+        if (sscanf(line.c_str(), "%m[A-Za-z0-9_] %i %i", &name, &val, &type) < 2)
+            {
+                free(name);
+                continue;
+            }
+#pragma GCC diagnostic pop
+        for (char *p = name; *p; ++p)
+            *p = tolower(*p);
+        int n = add_str(name);
+        free(name);
         str_data[n].type = type ? ScriptCode::PARAM : ScriptCode::INT;
         str_data[n].val = val;
     }

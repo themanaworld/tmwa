@@ -29,14 +29,9 @@ bool extract(const_string str, T *iv)
 {
     if (!str || str.size() > 20)
         return false;
-    switch (str.front())
-    {
-        case '-':
-        case '0' ... '9':
-            break;
-        default:
-            return false;
-    }
+    if (!((str.front() == '-' && std::is_signed<T>::value)
+            || ('0' <= str.front() && str.front() <= '9')))
+        return false;
     char buf[20 + 1];
     std::copy(str.begin(), str.end(), buf);
     buf[str.size()] = '\0';
@@ -53,8 +48,6 @@ bool extract(const_string str, T *iv)
     }
     else
     {
-        if (str.front() == '-')
-            return false;
         unsigned long long v = strtoull(buf, &end, 10);
         if (errno || *end)
             return false;

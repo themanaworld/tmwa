@@ -16,7 +16,7 @@ void set_int_p(val_t *v, int i, TY t)
 #define SETTER(tty, dyn_ty, field) (val_t *v, tty x) { v->ty = dyn_ty; v->v.field = x; }
 
 static
-void set_string SETTER(char *, TY_STRING, v_string);
+void set_string SETTER(char *, TY_STRING, v_string)
 
 static
 void set_entity(val_t *v, entity_t *e)
@@ -33,7 +33,7 @@ void set_invocation(val_t *v, invocation_t *i)
 }
 
 static
-void set_spell SETTER(spell_t *, TY_SPELL, v_spell);
+void set_spell SETTER(spell_t *, TY_SPELL, v_spell)
 
 #define setenv(f, v, x) f(&(env->vars[v]), x)
 

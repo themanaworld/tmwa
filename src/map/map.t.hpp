@@ -504,13 +504,13 @@ constexpr
 SP sp_to_usp(SP sp)
 {
     return attr_to_usp(sp_to_attr(sp));
-};
+}
 
 constexpr
 SP usp_to_sp(SP sp)
 {
     return attr_to_sp(usp_to_attr(sp));
-};
+}
 
 
 enum class LOOK : uint8_t

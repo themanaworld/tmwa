@@ -4,11 +4,11 @@
 /* Helper definitions for dealing with functions and operations */
 
 static
-earray<int, DIR, DIR::COUNT> heading_x =
-{ 0, -1, -1, -1, 0, 1, 1, 1 };
+earray<int, DIR, DIR::COUNT> heading_x //=
+{{ 0, -1, -1, -1, 0, 1, 1, 1 }};
 static
-earray<int, DIR, DIR::COUNT> heading_y =
-{ 1, 1, 0, -1, -1, -1, 0, 1 };
+earray<int, DIR, DIR::COUNT> heading_y //=
+{{ 1, 1, 0, -1, -1, -1, 0, 1 }};
 
 int magic_signature_check(const char *opname, const char *funname, const char *signature,
                            int args_nr, val_t *args, int line, int column);

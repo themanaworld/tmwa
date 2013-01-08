@@ -67,7 +67,7 @@ namespace cxxstdio
         return vsscanf(in, fmt, ap);
     }
 #else
-    int do_vscan(const char *in, const char *fmt, va_list ap) = delete;
+    int do_vscan(const char *, const char *, va_list) = delete;
 #endif
 
     inline __attribute__((format(scanf, 2, 0)))

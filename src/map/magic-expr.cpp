@@ -612,18 +612,18 @@ int fun_get_##name(env_t *, int, val_t *result, val_t *args)    \
     return 0;                                                   \
 }
 
-BATTLE_GETTER(str);
-BATTLE_GETTER(agi);
-BATTLE_GETTER(vit);
-BATTLE_GETTER(dex);
-BATTLE_GETTER(luk);
-BATTLE_GETTER(int);
-BATTLE_GETTER(lv);
-BATTLE_GETTER(hp);
-BATTLE_GETTER(mdef);
-BATTLE_GETTER(def);
-BATTLE_GETTER(max_hp);
-BATTLE_GETTER(dir);
+BATTLE_GETTER(str)
+BATTLE_GETTER(agi)
+BATTLE_GETTER(vit)
+BATTLE_GETTER(dex)
+BATTLE_GETTER(luk)
+BATTLE_GETTER(int)
+BATTLE_GETTER(lv)
+BATTLE_GETTER(hp)
+BATTLE_GETTER(mdef)
+BATTLE_GETTER(def)
+BATTLE_GETTER(max_hp)
+BATTLE_GETTER(dir)
 
 #define MMO_GETTER(name)                                        \
 static                                                          \
@@ -636,8 +636,8 @@ int fun_get_##name(env_t *, int, val_t *result, val_t *args)    \
     return 0;                                                   \
 }
 
-MMO_GETTER(sp);
-MMO_GETTER(max_sp);
+MMO_GETTER(sp)
+MMO_GETTER(max_sp)
 
 static
 int fun_name_of(env_t *, int, val_t *result, val_t *args)

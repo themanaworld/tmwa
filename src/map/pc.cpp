@@ -102,8 +102,8 @@ static
 int diry[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
 
 static
-earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos =
-{
+earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
+{{
     EPOS::MISC2,
     EPOS::CAPE,
     EPOS::SHOES,
@@ -115,7 +115,7 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos =
     EPOS::SHIELD,
     EPOS::WEAPON,
     EPOS::ARROW,
-};
+}};
 
 //static struct dbt *gm_account_db;
 static
@@ -4870,12 +4870,12 @@ int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
     if ((battle_config.pvp_exp == 0) && map[sd->bl.m].flag.pvp) // [MouseJstr]
         return 0;               // no exp on pvp maps
 
-    earray<const char *, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons =
-    {
+    earray<const char *, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons //=
+    {{
         "KILLXP",
         "HEALXP",
         "SCRIPTXP",
-    };
+    }};
     MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp, reasons[reason]);
 
     if (sd->sc_data[SC_RICHMANKIM].timer != -1)

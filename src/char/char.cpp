@@ -3366,13 +3366,8 @@ int lan_config_read(const char *lancfgName)
 
     // sub-network check of the map-server
     {
-        unsigned int a0, a1, a2, a3;
         unsigned char p[4];
-        sscanf(lan_map_ip, "%d.%d.%d.%d", &a0, &a1, &a2, &a3);
-        p[0] = a0;
-        p[1] = a1;
-        p[2] = a2;
-        p[3] = a3;
+        sscanf(lan_map_ip, "%hhu.%hhu.%hhu.%hhu", &p[0], &p[1], &p[2], &p[3]);
         PRINTF("LAN test of LAN IP of the map-server: ");
         if (lan_ip_check(p) == 0)
         {

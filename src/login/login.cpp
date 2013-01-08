@@ -261,25 +261,23 @@ int read_gm_account(void)
 static
 int check_ipmask(struct in_addr ip, const char *str)
 {
-    unsigned int mask = 0, i = 0, m, ip2, a0, a1, a2, a3;
-    unsigned char *p = (unsigned char *) &ip2, *p2 = (unsigned char *) &mask;
+    unsigned int mask = 0, ip2;
+    unsigned char *p = (unsigned char *) &ip2,
+                  *p2 = (unsigned char *) &mask;
+    int i = 0;
+    unsigned int m;
 
-    if (sscanf(str, "%d.%d.%d.%d/%n", &a0, &a1, &a2, &a3, &i) != 4 || i == 0)
+    if (sscanf(str, "%hhu.%hhu.%hhu.%hhu/%n",
+                &p[0], &p[1], &p[2], &p[3], &i) != 4
+            || i == 0)
         return 0;
-    p[0] = a0;
-    p[1] = a1;
-    p[2] = a2;
-    p[3] = a3;
 
-    if (sscanf(str + i, "%d.%d.%d.%d", &a0, &a1, &a2, &a3) == 4)
+    if (sscanf(str + i, "%hhu.%hhu.%hhu.%hhu",
+                &p2[0], &p2[1], &p2[2], &p2[3]) == 4)
     {
-        p2[0] = a0;
-        p2[1] = a1;
-        p2[2] = a2;
-        p2[3] = a3;
         mask = ntohl(mask);
     }
-    else if (sscanf(str + i, "%d", &m) == 1 && m <= 32)
+    else if (sscanf(str + i, "%u", &m) == 1 && m <= 32)
     {
         for (i = 0; i < m && i < 32; i++)
             mask = (mask >> 1) | 0x80000000;
@@ -3662,13 +3660,9 @@ int login_lan_config_read(const char *lancfgName)
 
     // sub-network check of the char-server
     {
-        unsigned int a0, a1, a2, a3;
         unsigned char p[4];
-        sscanf(lan_char_ip, "%d.%d.%d.%d", &a0, &a1, &a2, &a3);
-        p[0] = a0;
-        p[1] = a1;
-        p[2] = a2;
-        p[3] = a3;
+        sscanf(lan_char_ip, "%hhu.%hhu.%hhu.%hhu",
+                &p[0], &p[1], &p[2], &p[3]);
         PRINTF("LAN test of LAN IP of the char-server: ");
         if (lan_ip_check(p) == 0)
         {

@@ -3,7 +3,7 @@ CXX = g++
 
 LEX = flex
 BISON = bison
-CXXFLAGS = -pipe -g -O2 @warnings
+CXXFLAGS = -pipe -g -O2 -include src/warnings.hpp
 
 # works on both x86 and x86_64
 override CXX += -m32 -std=c++0x

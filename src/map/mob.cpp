@@ -122,8 +122,8 @@ int mob_spawn_dataset(struct mob_data *md, const char *mobname, int mob_class)
 // For one 256th of change, we give out that many 1024th fractions of XP change
 // (i.e., 1024 means a 100% XP increase for a single point of adjustment, 4 means 100% XP bonus for doubling the value)
 static
-earray<int, mob_stat, MOB_XP_BONUS> mutation_value =
-{
+earray<int, mob_stat, MOB_XP_BONUS> mutation_value //=
+{{
     2,                          // MOB_LV
     3,                          // MOB_MAX_HP
     1,                          // MOB_STR
@@ -138,13 +138,13 @@ earray<int, mob_stat, MOB_XP_BONUS> mutation_value =
     2,                          // MOB_DEF
     2,                          // MOB_MDEF
     2,                          // MOB_SPEED
-};
+}};
 
 // The mutation scale indicates how far `up' we can go, with 256 indicating 100%  Note that this may stack with multiple
 // calls to `mutate'.
 static
-earray<int, mob_stat, MOB_XP_BONUS> mutation_scale =
-{
+earray<int, mob_stat, MOB_XP_BONUS> mutation_scale //=
+{{
     16,                         // MOB_LV
     256,                        // MOB_MAX_HP
     32,                         // MOB_STR
@@ -159,7 +159,7 @@ earray<int, mob_stat, MOB_XP_BONUS> mutation_scale =
     48,                         // MOB_DEF
     48,                         // MOB_MDEF
     80,                         // MOB_SPEED
-};
+}};
 
 // The table below indicates the `average' value for each of the statistics, or -1 if there is none.
 // This average is used to determine XP modifications for mutations.  The experience point bonus is
@@ -169,8 +169,8 @@ earray<int, mob_stat, MOB_XP_BONUS> mutation_scale =
 // (3) third, compute the percentage stat change relative to mutation_base (p1)
 // (4) fourth, compute the XP mofication based on the smaller of (p0, p1).
 static
-earray<int, mob_stat, MOB_XP_BONUS> mutation_base =
-{
+earray<int, mob_stat, MOB_XP_BONUS> mutation_base //=
+{{
     30,                         // MOB_LV
     -1,                         // MOB_MAX_HP
     20,                         // MOB_STR
@@ -185,7 +185,7 @@ earray<int, mob_stat, MOB_XP_BONUS> mutation_base =
     -1,                         // MOB_DEF
     20,                         // MOB_MDEF
     -1,                         // MOB_SPEED
-};
+}};
 
 /*========================================
  * Mutates a MOB.  For large `direction' values, calling this multiple times will give bigger XP boni.
