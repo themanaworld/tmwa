@@ -4705,31 +4705,6 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_GMmessage(int fd, struct map_session_data *sd)
-{
-    char m[(RFIFOW(fd, 2) - 4) + 1];
-    nullpo_retv(sd);
-
-    if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
-        (pc_isGM(sd) >= get_atcommand_level(AtCommand_Broadcast)))
-    {
-        strncpy(m, (const char *)RFIFOP(fd, 4), RFIFOW(fd, 2) - 4);
-        m[RFIFOW(fd, 2) - 4] = '\0';
-        const char *m_p = m; // because VLAs can't be passed to STRPRINTF
-        std::string fake_command = STRPRINTF("/announce %s", m_p);
-        log_atcommand(sd, fake_command);
-
-        std::string output = STRPRINTF("%s : %s", sd->status.name, m_p);
-
-        intif_GMmessage(output, 0);
-    }
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-static
 void clif_parse_TakeItem(int fd, struct map_session_data *sd)
 {
     struct flooritem_data *fitem;
@@ -5340,27 +5315,6 @@ void clif_parse_NpcCloseClicked(int fd, struct map_session_data *sd)
 }
 
 /*==========================================
- * 019c /lb等
- *------------------------------------------
- */
-static
-void clif_parse_LGMmessage(int fd, struct map_session_data *sd)
-{
-    unsigned char buf[64];
-
-    nullpo_retv(sd);
-
-    if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
-        (pc_isGM(sd) >= get_atcommand_level(AtCommand_LocalBroadcast)))
-    {
-        WBUFW(buf, 0) = 0x9a;
-        WBUFW(buf, 2) = RFIFOW(fd, 2);
-        memcpy(WBUFP(buf, 4), RFIFOP(fd, 4), RFIFOW(fd, 2) - 4);
-        clif_send(buf, RFIFOW(fd, 2), &sd->bl, ALL_SAMEMAP);
-    }
-}
-
-/*==========================================
  * カプラ倉庫へ入れる
  *------------------------------------------
  */
@@ -5542,71 +5496,6 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
 
     party_send_message(sd, message, RFIFOW(fd, 2) - 4);
     free(buf);
-}
-
-// Kick (right click menu for GM "(name) force to quit")
-static
-void clif_parse_GMKick(int fd, struct map_session_data *sd)
-{
-    struct block_list *target;
-    int tid = RFIFOL(fd, 2);
-
-    nullpo_retv(sd);
-
-    if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
-        (pc_isGM(sd) >= get_atcommand_level(AtCommand_Kick)))
-    {
-        target = map_id2bl(tid);
-        if (target)
-        {
-            if (target->type == BL_PC)
-            {
-                struct map_session_data *tsd =
-                    (struct map_session_data *) target;
-                std::string fake_command = STRPRINTF("kick %s",
-                        tsd->status.name);
-                log_atcommand(sd, fake_command);
-                if (pc_isGM(sd) > pc_isGM(tsd))
-                    clif_GM_kick(sd, tsd, 1);
-                else
-                    clif_GM_kickack(sd, 0);
-            }
-            else if (target->type == BL_MOB)
-            {
-                struct mob_data *md = (struct mob_data *) target;
-                sd->state.attack_type = BF::ZERO;
-                mob_damage(&sd->bl, md, md->hp, 2);
-            }
-            else
-                clif_GM_kickack(sd, 0);
-        }
-        else
-            clif_GM_kickack(sd, 0);
-    }
-}
-
-static
-void clif_parse_GMHide(int fd, struct map_session_data *sd)
-{                               // Modified by [Yor]
-    nullpo_retv(sd);
-
-    //PRINTF("%2x %2x %2x\n", RFIFOW(fd,0), RFIFOW(fd,2), RFIFOW(fd,4)); // R 019d <Option_value>.2B <flag>.2B
-    if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
-        (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide)))
-    {
-        log_atcommand(sd, "@hide");
-        if (bool(sd->status.option & Option::HIDE))
-        {                       // Option::HIDE = 0x40
-            sd->status.option &= ~Option::HIDE;  // Option::HIDE = 0x40
-            clif_displaymessage(fd, "Invisible: Off.");
-        }
-        else
-        {
-            sd->status.option |= Option::HIDE;   // Option::HIDE = 0x40
-            clif_displaymessage(fd, "Invisible: On.");
-        }
-        clif_changeoption(&sd->bl);
-    }
 }
 
 // 4144 wants this, but I don't like it ...
@@ -5823,7 +5712,7 @@ func_table clif_parse_func_table[0x220] =
         { clif_parse_Wis,                       300     },      // 96
         { NULL,                                 0       },      // 97
         { NULL,                                 0       },      // 98
-        { clif_parse_GMmessage,                 300     },      // 99
+        { NULL,                                 300     },      // 99
         { NULL,                                 0       },      // 9a
         { clif_parse_ChangeDir,                 -1      },      // 9b
         { NULL,                                 0       },      // 9c
@@ -5874,7 +5763,7 @@ func_table clif_parse_func_table[0x220] =
         { clif_parse_NpcSellListSend,           -1      },      // c9 Selling multiple 1-slot items
         { NULL,                                 0       },      // ca
         { NULL,                                 0       },      // cb
-        { clif_parse_GMKick,                    0       },      // cc
+        { NULL,                                 0       },      // cc
         { NULL,                                 0       },      // cd
         { NULL,                                 0       },      // ce
         { NULL,                                 0       },      // cf
@@ -6082,8 +5971,8 @@ func_table clif_parse_func_table[0x220] =
         { NULL,                                 0       },      // 199
         { NULL,                                 0       },      // 19a
         { NULL,                                 0       },      // 19b
-        { clif_parse_LGMmessage,                0       },      // 19c
-        { clif_parse_GMHide,                    300     },      // 19d
+        { NULL,                                 0       },      // 19c
+        { NULL,                                 300     },      // 19d
         { NULL,                                 0       },      // 19e
         { NULL,                                 0       },      // 19f
         { NULL,                                 0       },      // 1a0
