@@ -45,11 +45,9 @@ script:
 # after_script: ...
 
 ### The rest of the file creates a build matrix
-### containing gcc-4.4 through gcc-4.7 and clang-3.1
+### containing gcc-4.6 through gcc-4.7 and clang-3.1
 
 ## This doesn't work - travis defaults to plain gcc if unknown
-# compiler: gcc-4.4
-# compiler: gcc-4.5
 # compiler: gcc-4.6
 # compiler: gcc-4.7
 # compiler: clang
@@ -57,8 +55,6 @@ script:
 ## Environment variables to expand the build matrix
 ## Needed because compiler: gcc overwrites CC and CXX
 env:
-  - REAL_CC=gcc-4.4 REAL_CXX=g++-4.4
-  - REAL_CC=gcc-4.5 REAL_CXX=g++-4.5
   - REAL_CC=gcc-4.6 REAL_CXX=g++-4.6
   - REAL_CC=gcc-4.7 REAL_CXX=g++-4.7
   - REAL_CC=clang   REAL_CXX=clang++
