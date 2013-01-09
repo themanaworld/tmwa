@@ -5,37 +5,6 @@
 
 #include "../common/utils.hpp"
 
-// only ST_NONE is actually used - TODO remove
-enum class SkillState
-{
-    ST_NONE,
-#define ST_NONE SkillState::ST_NONE
-    ST_HIDING,
-#define ST_HIDING SkillState::ST_HIDING
-    ST_CLOAKING,
-#define ST_CLOAKING SkillState::ST_CLOAKING
-    ST_HIDDEN,
-#define ST_HIDDEN SkillState::ST_HIDDEN
-    ST_RIDING,
-#define ST_RIDING SkillState::ST_RIDING
-    ST_FALCON,
-#define ST_FALCON SkillState::ST_FALCON
-    ST_CART,
-#define ST_CART SkillState::ST_CART
-    ST_SHIELD,
-#define ST_SHIELD SkillState::ST_SHIELD
-    ST_SIGHT,
-#define ST_SIGHT SkillState::ST_SIGHT
-    ST_EXPLOSIONSPIRITS,
-#define ST_EXPLOSIONSPIRITS SkillState::ST_EXPLOSIONSPIRITS
-    ST_RECOV_WEIGHT_RATE,
-#define ST_RECOV_WEIGHT_RATE SkillState::ST_RECOV_WEIGHT_RATE
-    ST_MOVE_ENABLE,
-#define ST_MOVE_ENABLE SkillState::ST_MOVE_ENABLE
-    ST_WATER,
-#define ST_WATER SkillState::ST_WATER
-};
-
 // TODO remove most of these as their corresponding SkillIDs get deleted.
 enum class StatusChange : uint16_t
 {
