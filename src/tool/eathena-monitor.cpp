@@ -68,15 +68,22 @@ size_t goto_newline(const char* ptr) {
 }
 
 // initialiized to $HOME/tmwserver
+static
 const char *workdir;
 //the rest are relative to workdir
+static
 const char *login_server = LOGIN_SERVER;
+static
 const char *map_server = MAP_SERVER;
+static
 const char *char_server = CHAR_SERVER;
+static
 const char *logfile = LOGFILE;
 // this variable is hard-coded, but the command-line is checked first
+static
 const char *config = CONFIG;
 
+static
 pid_t pid_login, pid_map, pid_char;
 
 static
@@ -156,7 +163,10 @@ pid_t start_process(const char *exec) {
         return 0;
     }
     if (pid == 0) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-qual"
         execv(exec, (char**)args);
+#pragma GCC diagnostic pop
         perror("Failed to exec");
         kill(getppid(), SIGABRT);
         exit(1);

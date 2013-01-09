@@ -19,7 +19,6 @@ notifications:
     on_failure: always
 
 ## Commands before installing prerequisites
-before_install: export CC=${REAL_CC} CXX=${REAL_CXX}
 # before_install: git submodule update --init --recursive
 
 ## Install prerequisites
@@ -39,7 +38,7 @@ install:
 
 ## Main test script
 script:
-  - make -k -j2 CC=${REAL_CC} CXX=${REAL_CXX}
+  - make -k -j2 CXX=${REAL_CXX} CPPFLAGS=-DQUIET
 
 ## Do something after the main test script
 # after_script: ...
@@ -53,8 +52,8 @@ script:
 # compiler: clang
 
 ## Environment variables to expand the build matrix
-## Needed because compiler: gcc overwrites CC and CXX
+## Needed because 'compiler: gcc' overwrites CXX
 env:
-  - REAL_CC=gcc-4.6 REAL_CXX=g++-4.6
-  - REAL_CC=gcc-4.7 REAL_CXX=g++-4.7
-  - REAL_CC=clang   REAL_CXX=clang++
+  - REAL_CXX=g++-4.6
+  - REAL_CXX=g++-4.7
+  - REAL_CXX=clang++

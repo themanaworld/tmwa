@@ -1310,7 +1310,7 @@ int functions_are_sorted = 0;
 static
 int compare_fun(const void *lhs, const void *rhs)
 {
-    return strcmp(((fun_t *) lhs)->name, ((fun_t *) rhs)->name);
+    return strcmp(((const fun_t *) lhs)->name, ((const fun_t *) rhs)->name);
 }
 
 fun_t *magic_get_fun(const char *name, int *index)

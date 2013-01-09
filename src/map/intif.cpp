@@ -40,7 +40,6 @@ const int packet_len_table[] = {
     11, -1, 7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-extern int char_fd;             // inter serverのfdはchar_fdを使う
 #define inter_fd char_fd        // エイリアス
 
 //-----------------------------------------------------------------

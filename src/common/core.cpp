@@ -46,7 +46,7 @@ void chld_proc(int)
 {
     wait(NULL);
 }
-static
+static __attribute__((noreturn))
 void sig_proc(int)
 {
     for (int i = 1; i < 31; ++i)

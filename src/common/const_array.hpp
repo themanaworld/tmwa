@@ -29,7 +29,6 @@
 #include <vector>
 
 #ifdef ANNOYING_GCC46_WORKAROUNDS
-# warning "like this one"
 // constexpr is buggy with templates in this version
 # define constexpr /* nothing */
 #endif

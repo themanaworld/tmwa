@@ -701,10 +701,10 @@ int map_quit(struct map_session_data *);
 int map_addnpc(int, struct npc_data *);
 
 void map_log(const_string line);
-#define MAP_LOG(format, args...) \
-    map_log(static_cast<const std::string&>(STRPRINTF(format, ##args)));
+#define MAP_LOG(format, ...) \
+    map_log(static_cast<const std::string&>(STRPRINTF(format, ## __VA_ARGS__)))
 
-#define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
+#define MAP_LOG_PC(sd, fmt, ...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(timer_id, tick_t, custom_id_t, custom_data_t);

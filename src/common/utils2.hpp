@@ -4,6 +4,12 @@
 #include <iterator>
 #include <type_traits>
 
+#ifdef __clang__
+# define FALLTHROUGH [[clang::fallthrough]]
+#else
+# define FALLTHROUGH /* fallthrough */
+#endif
+
 template<class T, class E, E max>
 struct earray
 {
@@ -109,19 +115,19 @@ struct remove_enum<E, true>
 inline                                          \
 E operator & (E l, E r)                         \
 {                                               \
-    typedef typename underlying_type<E>::type U;\
+    typedef underlying_type<E>::type U;         \
     return E(U(l) & U(r));                      \
 }                                               \
 inline                                          \
 E operator | (E l, E r)                         \
 {                                               \
-    typedef typename underlying_type<E>::type U;\
+    typedef underlying_type<E>::type U;         \
     return E(U(l) | U(r));                      \
 }                                               \
 inline                                          \
 E operator ^ (E l, E r)                         \
 {                                               \
-    typedef typename underlying_type<E>::type U;\
+    typedef underlying_type<E>::type U;         \
     return E(U(l) ^ U(r));                      \
 }                                               \
 inline                                          \

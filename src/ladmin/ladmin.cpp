@@ -28,7 +28,8 @@
 #include "../common/version.hpp"
 
 
-int eathena_interactive_session; // from core.c
+static
+int eathena_interactive_session;
 #define Iprintf if (eathena_interactive_session) PRINTF
 
 //-------------------------------INSTRUCTIONS------------------------------
@@ -40,10 +41,15 @@ int eathena_interactive_session; // from core.c
 //   Be sure that you authorize remote administration in login-server
 //   (see login_athena.conf, 'admin_state' parameter)
 //-------------------------------------------------------------------------
+static
 char loginserverip[16] = "127.0.0.1";   // IP of login-server
+static
 int loginserverport = 6900;    // Port of login-server
+static
 char loginserveradminpassword[24] = "admin";    // Administration password
+static
 int passenc = 2;               // Encoding type of the password
+static
 char ladmin_log_filename[1024] = "log/ladmin.log";
 //-------------------------------------------------------------------------
 //  LIST of COMMANDs that you can type at the prompt:
@@ -225,19 +231,25 @@ char ladmin_log_filename[1024] = "log/ladmin.log";
 //    Displays complete information of an account.
 //
 //-------------------------------------------------------------------------
+static
 int login_fd;
+static
 int login_ip;
+static
 int bytes_to_read = 0;         // flag to know if we waiting bytes from login-server
+static
 char parameters[1024]; // needs to be global since it's passed to the parse function
 // really should be added to session data
+static
 int list_first, list_last, list_type, list_count;  // parameter to display a list of accounts
+static
 int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
 
 //------------------------------
 // Writing function of logs file
 //------------------------------
-#define LADMIN_LOG(fmt, args...)    \
-    ladmin_log(static_cast<const std::string&>(STRPRINTF(fmt, ## args)))
+#define LADMIN_LOG(fmt, ...)    \
+    ladmin_log(static_cast<const std::string&>(STRPRINTF(fmt, ## __VA_ARGS__)))
 static
 void ladmin_log(const_string line)
 {
@@ -268,7 +280,6 @@ const char *makeordinal(int number)
     {
         return "th";
     }
-    return "";
 }
 
 //-----------------------------------------------------------------------------------------
@@ -1683,6 +1694,7 @@ int listaccount(char *param, int type)
             case 1:
                 list_last = 0;
                 // use tests of the following value
+                FALLTHROUGH;
             default:
                 if (list_first < 0)
                     list_first = 0;

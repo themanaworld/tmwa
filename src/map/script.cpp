@@ -46,7 +46,9 @@ ScriptCode *script_buf;
 static
 int script_pos, script_size;
 
+static
 char *str_buf;
+static
 int str_pos, str_size;
 static
 struct str_data_t
@@ -59,7 +61,9 @@ struct str_data_t
     int val;
     int next;
 }   *str_data;
+static
 int str_num = LABEL_START, str_data_size;
+static
 int str_hash[16];
 
 static
@@ -449,7 +453,8 @@ void disp_error_message(const char *mes, const char *pos_)
     {
         const char *linestart = p;
         char *lineend = const_cast<char *>(strchr(p, '\n'));
-        char c;
+        // always initialized, but clang is not smart enough
+        char c = '\0';
         if (lineend)
         {
             c = *lineend;
@@ -2374,6 +2379,7 @@ void builtin_strcharinfo(ScriptState *st)
 
 // indexed by the equip_* in db/const.txt
 // TODO change to use EQUIP
+static
 EPOS equip[10] =
 {
     EPOS::HAT,
@@ -4128,7 +4134,7 @@ void builtin_message(ScriptState *st)
     const char *player = conv_str(st, &(st->stack->stack_data[st->start + 2]));
     const char *msg = conv_str(st, &(st->stack->stack_data[st->start + 3]));
 
-    if ((pl_sd = map_nick2sd((char *) player)) == NULL)
+    if ((pl_sd = map_nick2sd(player)) == NULL)
         return;
     clif_displaymessage(pl_sd->fd, msg);
 
@@ -4741,7 +4747,7 @@ void run_script_main(const ScriptCode *script, int pos_, int, int,
                 break;
             case ScriptCode::POS:
             case ScriptCode::NAME:
-                push_val(stack, c, (*(int *)(script + st->pos)) & 0xffffff);
+                push_val(stack, c, (*(const int *)(script + st->pos)) & 0xffffff);
                 st->pos += 3;
                 break;
             case ScriptCode::ARG:

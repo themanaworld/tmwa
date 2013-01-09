@@ -59,7 +59,6 @@ int e_mail_check(const char *email)
         if (strchr(last_arobas, ch) != NULL)
         {
             return 0;
-            break;
         }
     }
 

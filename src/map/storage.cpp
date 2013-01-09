@@ -28,8 +28,8 @@ struct dbt *storage_db;
 static
 int storage_comp_item(const void *_i1, const void *_i2)
 {
-    struct item *i1 = (struct item *) _i1;
-    struct item *i2 = (struct item *) _i2;
+    const struct item *i1 = (const struct item *) _i1;
+    const struct item *i2 = (const struct item *) _i2;
 
     if (i1->nameid == i2->nameid)
         return 0;

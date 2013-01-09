@@ -10,6 +10,9 @@ void set_int_p(val_t *v, int i, TY t)
     v->v.v_int = i;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-macros"
+
 #define set_int(v, i) set_int_p(v, i, TY_INT)
 #define set_dir(v, i) set_int_p(v, i, TY_DIR)
 
@@ -46,6 +49,8 @@ void set_spell SETTER(spell_t *, TY_SPELL, v_spell)
 #define set_env_invocation(v, x) setenv(set_invocation, v, x)
 #define set_env_spell(v, x) setenv(set_spell, v, x)
 
+#pragma GCC diagnostic pop
+
 magic_conf_t magic_conf;        /* Global magic conf */
 env_t magic_default_env = { &magic_conf, NULL };
 
@@ -66,8 +71,8 @@ const char *magic_find_invocation(const char *spellname)
 static
 int spell_compare(const void *lhs, const void *rhs)
 {
-    return strcmp((*((spell_t **) lhs))->invocation,
-                   (*((spell_t **) rhs))->invocation);
+    return strcmp((*((const spell_t *const*) lhs))->invocation,
+                   (*((const spell_t *const*) rhs))->invocation);
 }
 
 spell_t *magic_find_spell(char *invocation)
@@ -103,8 +108,8 @@ spell_t *magic_find_spell(char *invocation)
 static
 int compare_teleport_anchor(const void *lhs, const void *rhs)
 {
-    return strcmp((*((teleport_anchor_t **) lhs))->invocation,
-                   (*((teleport_anchor_t **) rhs))->invocation);
+    return strcmp((*((const teleport_anchor_t *const*) lhs))->invocation,
+                   (*((const teleport_anchor_t *const*) rhs))->invocation);
 }
 
 const char *magic_find_anchor_invocation(const char *anchor_name)

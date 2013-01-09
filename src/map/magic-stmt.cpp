@@ -897,7 +897,7 @@ int operation_count;
 static
 int compare_operations(const void *lhs, const void *rhs)
 {
-    return strcmp(((op_t *) lhs)->name, ((op_t *) rhs)->name);
+    return strcmp(((const op_t *) lhs)->name, ((const op_t *) rhs)->name);
 }
 
 op_t *magic_get_op(char *name, int *index)
@@ -1406,6 +1406,7 @@ int spell_run(invocation_t *invocation, int allow_delete)
             case EFFECT_ABORT:
                 invocation->flags |= INVOCATION_FLAG_ABORTED;
                 invocation->end_effect = NULL;
+                FALLTHROUGH;
             case EFFECT_END:
                 clear_stack(invocation);
                 next = NULL;

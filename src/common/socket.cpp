@@ -18,8 +18,10 @@
 #include "mmo.hpp"
 #include "utils.hpp"
 
+static
 fd_set readfds;
 int fd_max;
+static
 int currentuse;
 
 const uint32_t RFIFO_SIZE = 65536;

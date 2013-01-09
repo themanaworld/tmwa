@@ -6,8 +6,6 @@
 
 #include "utils.hpp"
 
-#define ROOT_SIZE 4096
-
 static
 int strdb_cmp(struct dbt *table, const char *a, const char* b)
 {

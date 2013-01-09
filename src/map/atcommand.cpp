@@ -5190,7 +5190,6 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
             clif_displaymessage(fd,
                                  "Please, enter at least a valid list number (usage: @mapinfo <0-3> [map]).");
             return -1;
-            break;
     }
 
     return 0;
@@ -6424,7 +6423,6 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                     {
                         // replace trailing ", "
 #ifdef ANNOYING_GCC46_WORKAROUNDS
-# warning " and "
                         output.resize(output.size() - 1);
 #else
                         output.pop_back();
@@ -6550,7 +6548,6 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
                         {
                             // replace last ", "
 #ifdef ANNOYING_GCC46_WORKAROUNDS
-# warning " all of "
                             output.resize(output.size() - 1);
 #else
                             output.pop_back();
@@ -6680,7 +6677,6 @@ int atcommand_character_cart_list(const int fd, struct map_session_data *sd,
                     if (!output.empty())
                     {
 #ifdef ANNOYING_GCC46_WORKAROUNDS
-# warning " these ... "
                         output.resize(output.size() - 1);
 #else
                         output.pop_back();
@@ -6764,7 +6760,7 @@ int atcommand_charkillable(const int fd, struct map_session_data *,
     if (!message || !*message)
         return -1;
 
-    if ((pl_sd = map_nick2sd((char *) message)) == NULL)
+    if ((pl_sd = map_nick2sd(message)) == NULL)
         return -1;
 
     pl_sd->special_state.killable = !pl_sd->special_state.killable;
@@ -6889,7 +6885,7 @@ int atcommand_chareffect(const int fd, struct map_session_data *,
         return -1;
     }
 
-    if ((pl_sd = map_nick2sd((char *) target)) == NULL)
+    if ((pl_sd = map_nick2sd(target)) == NULL)
         return -1;
 
     clif_specialeffect(&pl_sd->bl, type, 0);
@@ -6935,7 +6931,7 @@ int atcommand_chardropall(const int fd, struct map_session_data *,
 
     if (!message || !*message)
         return -1;
-    if ((pl_sd = map_nick2sd((char *) message)) == NULL)
+    if ((pl_sd = map_nick2sd(message)) == NULL)
         return -1;
     for (i = 0; i < MAX_INVENTORY; i++)
     {
@@ -7009,7 +7005,7 @@ int atcommand_charstoreall(const int fd, struct map_session_data *sd,
 
     if (!message || !*message)
         return -1;
-    if ((pl_sd = map_nick2sd((char *) message)) == NULL)
+    if ((pl_sd = map_nick2sd(message)) == NULL)
         return -1;
 
     if (storage_storageopen(pl_sd) == 1)
@@ -7297,7 +7293,7 @@ int atcommand_adjgmlvl(const int fd, struct map_session_data *,
         return -1;
     }
 
-    if ((pl_sd = map_nick2sd((char *) user)) == NULL)
+    if ((pl_sd = map_nick2sd(user)) == NULL)
         return -1;
 
     pc_set_gm_level(pl_sd->status.account_id, newlev);
@@ -7321,7 +7317,7 @@ int atcommand_trade(const int, struct map_session_data *sd,
 
     if (!message || !*message)
         return -1;
-    if ((pl_sd = map_nick2sd((char *) message)) != NULL)
+    if ((pl_sd = map_nick2sd(message)) != NULL)
     {
         trade_traderequest(sd, pl_sd->bl.id);
         return 0;
@@ -7340,7 +7336,7 @@ int atcommand_unmute(const int, struct map_session_data *sd,
     if (!message || !*message)
         return -1;
 
-    if ((pl_sd = map_nick2sd((char *) message)) != NULL)
+    if ((pl_sd = map_nick2sd(message)) != NULL)
     {
         if (pl_sd->sc_data[SC_NOCHAT].timer != -1)
         {

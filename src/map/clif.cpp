@@ -140,7 +140,6 @@ static
 struct in_addr map_ip;
 static
 int map_port = 5121;
-int map_fd;
 char talkie_mes[80];
 
 static
@@ -264,7 +263,7 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
                 return;
             }
-            /* fall through... */
+            FALLTHROUGH;
         case AREA_WOC:
             if ((sd && sd->chatID) || (bl && bl == src_bl))
                 return;
@@ -414,6 +413,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             y0 = bl->y - AREA_SIZE;
             x1 = bl->x + AREA_SIZE;
             y1 = bl->y + AREA_SIZE;
+            FALLTHROUGH;
         case PARTY:            // 全パーティーメンバに送信
         case PARTY_WOS:        // 自分以外の全パーティーメンバに送信
         case PARTY_SAMEMAP:    // 同じマップの全パーティーメンバに送信
@@ -3719,7 +3719,8 @@ int clif_party_leaved(struct party *p, struct map_session_data *sd,
  */
 int clif_party_message(struct party *p, int account_id, const char *mes, int len)
 {
-    struct map_session_data *sd;
+    // always set, but clang is not smart enough
+    struct map_session_data *sd = nullptr;
     int i;
 
     nullpo_ret(p);
@@ -5557,6 +5558,7 @@ typedef struct func_table
         int rate;
 } func_table;
 // *INDENT-OFF*
+static
 func_table clif_parse_func_table[0x220] =
 {
         { NULL,                                 0       },      // 0

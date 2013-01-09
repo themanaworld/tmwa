@@ -36,7 +36,7 @@ void magic_unshroud(character_t *character);
  *
  * \param invocation The invocation to notify
  * \param bl_id ID of the PC for whom this happened
- * \param type sc_id ID of the status change entry that finished
+ * \param sc_id ID of the status change entry that finished
  * \param supplanted Whether the status_change finished normally (0) or was supplanted by a new status_change (1)
  */
 void spell_effect_report_termination(int invocation, int bl_id,

@@ -3106,6 +3106,7 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
                 sd->random_attack_increase_per += val;
                 break;
             }                   // end addition
+            break;
         default:
             if (battle_config.error_log)
                 PRINTF("pc_bonus2: unknown type %d %d %d!\n",
@@ -4784,7 +4785,8 @@ int pc_checkbaselevelup(struct map_session_data *sd)
         //レベルアップしたのでパーティー情報を更新する
         //(公平範囲チェック)
         party_send_movemap(sd);
-        MAP_LOG_XP(sd, "LEVELUP") return 1;
+        MAP_LOG_XP(sd, "LEVELUP");
+        return 1;
     }
 
     return 0;
@@ -8496,5 +8498,6 @@ int pc_logout(struct map_session_data *sd) // [fate] Player logs out
 #endif
         pc_setglobalreg(sd, "MAGIC_CAST_TICK", 0);
 
-    MAP_LOG_STATS(sd, "LOGOUT") return 0;
+    MAP_LOG_STATS(sd, "LOGOUT");
+    return 0;
 }

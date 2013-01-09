@@ -21,10 +21,6 @@
 #include "pc.hpp"
 #include "skill.hpp"
 
-#ifndef max
-#define max( a, b ) (((a) > (b)) ? (a) : (b) )
-#endif
-
 #define MIN_MOBTHINKTIME 100
 
 #define MOB_LAZYMOVEPERC 50     // Move probability in the negligent mode MOB (rate of 1000 minute)
@@ -4606,7 +4602,8 @@ int mob_readskilldb(void)
         {
             char *sp[20], *p;
             int mob_id;
-            struct mob_skill *ms;
+            // always initialized, but clang is not smart enough yet
+            struct mob_skill *ms = nullptr;
             int j = 0;
 
             if (line[0] == '/' && line[1] == '/')

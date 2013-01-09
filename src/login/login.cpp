@@ -38,35 +38,60 @@
 
 static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long (sorry)");
 
+static
 int account_id_count = START_ACCOUNT_NUM;
+static
 int server_num;
+static
 int new_account_flag = 0;
+static
 int login_port = 6900;
+static
 char lan_char_ip[16];
+static
 int subneti[4];
+static
 int subnetmaski[4];
+static
 char update_host[128] = "";
+static
 char main_server[20] = "";
 
+static
 char account_filename[1024] = "save/account.txt";
+static
 char GM_account_filename[1024] = "conf/GM_account.txt";
+static
 char login_log_filename[1024] = "log/login.log";
+static
 char login_log_unknown_packets_filename[1024] =
     "log/login_unknown_packets.log";
+static
 int save_unknown_packets = 0;
+static
 long creation_time_GM_account_file;
+static
 int gm_account_filename_check_timer = 15;  // Timer to check if GM_account file has been changed and reload GM account automaticaly (in seconds; default: 15)
 
+static
 int display_parse_login = 0;   // 0: no, 1: yes
+static
 int display_parse_admin = 0;   // 0: no, 1: yes
+static
 int display_parse_fromchar = 0;    // 0: no, 1: yes (without packet 0x2714), 2: all packets
 
+static
 struct mmo_char_server server[MAX_SERVERS];
+static
 int server_fd[MAX_SERVERS];
+static
 int server_freezeflag[MAX_SERVERS];    // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
+static
 int anti_freeze_enable = 0;
+static
 int ANTI_FREEZE_INTERVAL = 15;
 
+static
 int login_fd;
 
 enum
@@ -77,18 +102,29 @@ enum
     ACO_STRSIZE = 128,
 };
 
+static
 int access_order = ACO_DENY_ALLOW;
+static
 int access_allownum = 0;
+static
 int access_denynum = 0;
+static
 char *access_allow = NULL;
+static
 char *access_deny = NULL;
 
+static
 int access_ladmin_allownum = 0;
+static
 char *access_ladmin_allow = NULL;
 
+static
 int min_level_to_connect = 0;  // minimum level of player/GM (0: player, 1-99: gm) to connect on the server
+static
 int add_to_unlimited_account = 0;  // Give possibility or not to adjust (ladmin command: timeadd) the time of an unlimited account.
+static
 int start_limited_time = -1;   // Starting additional sec from now for the limited time at creation of accounts (-1: unlimited time, 0 or more: additional sec from now)
+static
 int check_ip_flag = 1;         // It's to check IP of a player between login-server and char-server (part of anti-hacking system)
 
 struct login_session_data
@@ -103,8 +139,10 @@ struct
     int account_id, login_id1, login_id2;
     int ip, sex, delflag;
 } auth_fifo[AUTH_FIFO_SIZE];
+static
 int auth_fifo_pos = 0;
 
+static
 struct auth_dat
 {
     int account_id, sex;
@@ -121,16 +159,22 @@ struct auth_dat
     struct global_reg account_reg2[ACCOUNT_REG2_NUM];
 }   *auth_dat;
 
+static
 int auth_num = 0, auth_max = 0;
 
+static
 int admin_state = 0;
+static
 char admin_pass[24] = "";
+static
 char gm_pass[64] = "";
+static
 int level_new_gm = 60;
 
 static
 struct dbt *gm_account_db;
 
+static
 pid_t pid = 0; // For forked DB writes
 
 
@@ -139,8 +183,8 @@ pid_t pid = 0; // For forked DB writes
 //------------------------------
 // Writing function of logs file
 //------------------------------
-#define LOGIN_LOG(fmt, args...) \
-    login_log(static_cast<const std::string&>(STRPRINTF(fmt, ## args)))
+#define LOGIN_LOG(fmt, ...) \
+    login_log(static_cast<const std::string&>(STRPRINTF(fmt, ## __VA_ARGS__)))
 static
 void login_log(const_string line)
 {
@@ -336,7 +380,6 @@ int check_ip(struct in_addr ip)
         {
             flag = ACF_DENY;
             return 0;           // At this point, if it's 'deny', we refuse connection.
-            break;
         }
     }
 
@@ -551,7 +594,6 @@ int mmo_auth_init(void)
         if (line.back() == '\r')
         {
 #ifdef ANNOYING_GCC46_WORKAROUNDS
-# warning " and this one!"
             line.resize(line.size() - 1);
 #else
             line.pop_back();
@@ -925,10 +967,8 @@ int mmo_auth(struct mmo_account *account, int fd)
                 case 9:        // 8 = No MSG (actually, all states after 9 except 99 are No MSG, use only this)
                 case 100:      // 99 = This ID has been totally erased
                     return auth_dat[i].state - 1;
-                    break;
                 default:
                     return 99;  // 99 = ID has been totally erased
-                    break;
             }
         }
 

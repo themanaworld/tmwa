@@ -31,7 +31,7 @@
 #ifdef __clang__
 # if __clang_major__ < 3
 #  error "your clang is way too old"
-# elif __clang_major == 3
+# elif __clang_major__ == 3
 #  if __clang_minor__ < 1
 #   error "your clang is too old"
 #  endif // __clang_minor__
@@ -167,7 +167,7 @@
 
 /// Warn about things that will change when compiling
 /// with an ABI-compliant compiler
-X(-Wabi)
+I(-Wabi)
 
 /// Warn if a subobject has an abi_tag attribute that
 /// the complete object type does not have
@@ -177,7 +177,7 @@ WG48(-Wabi-tag)
 E(-Waddress)
 
 /// Warn about returning structures, unions or arrays
-X(-Waggregate-return)
+I(-Waggregate-return)
 
 /// Warn if an array is accessed out of bounds
 E(-Warray-bounds)
@@ -198,7 +198,7 @@ E(-Wc++0x-compat)
 X(-Wcast-align)
 
 /// Warn about casts which discard qualifiers
-X(-Wcast-qual)
+W(-Wcast-qual)
 
 /// Warn about subscripts whose type is "char"
 E(-Wchar-subscripts)
@@ -217,18 +217,21 @@ X(-Wconversion)
 
 /// Warn for converting NULL from/to a non-pointer
 /// type
-X(-Wconversion-null)
+E(-Wconversion-null)
 
 /// Warn in case profiles in -fprofile-use do not
 /// match
 WG(-Wcoverage-mismatch)
 
+///
+XC(-Wcovered-switch-default)
+
 /// Warn when a #warning directive is encountered
-EG(-Wcpp)
+WG(-Wcpp)
 
 /// Warn when all constructors and destructors are
 /// private
-X(-Wctor-dtor-privacy)
+E(-Wctor-dtor-privacy)
 
 /// Warn about deleting polymorphic objects with non-
 /// virtual destructors
@@ -241,19 +244,25 @@ W(-Wdeprecated)
 /// Warn about uses of __attribute__((deprecated))
 /// declarations
 W(-Wdeprecated-declarations)
+#ifdef QUIET
+I(-Wdeprecated-declarations)
+#endif
 
 /// Warn when an optimization pass is disabled
-X(-Wdisabled-optimization)
+W(-Wdisabled-optimization)
 
 /// Warn about compile-time integer division by zero
 E(-Wdiv-by-zero)
 
+///
+WC(-Wdocumentation)
+
 /// Warn about implicit conversions from "float" to
 /// "double"
-XG(-Wdouble-promotion)
+IG(-Wdouble-promotion)
 
 /// Warn about violations of Effective C++ style rules
-X(-Weffc++)
+I(-Weffc++)
 
 /// Warn about an empty body in an if or else
 /// statement
@@ -265,9 +274,12 @@ E(-Wendif-labels)
 /// Warn about comparison of different enum types
 E(-Wenum-compare)
 
+///
+EC(-Wextra-semi)
+
 /// Warn if testing floating point numbers for
 /// equality
-X(-Wfloat-equal)
+E(-Wfloat-equal)
 
 /// Warn about printf/scanf/strftime/strfmon format
 /// string anomalies
@@ -282,13 +294,15 @@ EG(-Wformat-contains-nul)
 E(-Wformat-extra-args)
 
 /// Warn about format strings that are not literals
-// Available in clang, but not smart enough to handle constexpr.
 EG(-Wformat-nonliteral)
+// Available in clang, but not smart enough to handle constexpr.
+IC(-Wformat-nonliteral)
 
 /// Warn about possible security problems with format
 /// functions
-// Same.
 EG(-Wformat-security)
+// Same.
+IC(-Wformat-security)
 
 /// Warn about strftime formats yielding 2-digit years
 E(-Wformat-y2k)
@@ -304,13 +318,16 @@ EG47(-Wfree-nonheap-object)
 /// Warn whenever type qualifiers are ignored.
 E(-Wignored-qualifiers)
 
+///
+EC(-Wimplicit-fallthrough)
+
 /// Warn about C++11 inheriting constructors when the
 /// base has a variadic constructor
 WG48(-Winherited-variadic-ctor)
 
 /// Warn about variables which are initialized to
 /// themselves
-X(-Winit-self)
+E(-Winit-self)
 
 /// Warn when an inlined function cannot be inlined
 X(-Winline)
@@ -327,7 +344,7 @@ WG47(-Winvalid-memory-model)
 E(-Winvalid-offsetof)
 
 /// Warn about PCH files that are found but not used
-X(-Winvalid-pch)
+E(-Winvalid-pch)
 
 /// Warn when a string or character literal is
 /// followed by a ud-suffix which does not begin with
@@ -339,7 +356,7 @@ WG48(-Wliteral-suffix)
 WG(-Wlogical-op)
 
 /// Do not warn about using "long long" when -pedantic
-X(-Wlong-long)
+I(-Wlong-long)
 
 /// Warn about suspicious declarations of "main"
 E(-Wmain)
@@ -364,15 +381,19 @@ IG(-Wmissing-field-initializers)
 
 /// Warn about functions which might be candidates
 /// for format attributes
-X(-Wmissing-format-attribute)
+E(-Wmissing-format-attribute)
 
 /// Warn about user-specified include directories
 /// that do not exist
-X(-Wmissing-include-dirs)
+E(-Wmissing-include-dirs)
 
 /// Warn about functions which might be candidates
 /// for __attribute__((noreturn))
-X(-Wmissing-noreturn)
+W(-Wmissing-noreturn)
+
+///
+// like -Wmissing-declarations but for variables instead of functions
+EC(-Wmissing-variable-declarations)
 
 /// Warn about constructs not instrumented by
 /// -fmudflap
@@ -396,11 +417,14 @@ WG(-Wnoexcept)
 EG(-Wnon-template-friend)
 
 /// Warn about non-virtual destructors
-X(-Wnon-virtual-dtor)
+E(-Wnon-virtual-dtor)
 
 /// Warn about NULL being passed to argument slots
 /// marked as requiring non-NULL
 E(-Wnonnull)
+
+///
+XC(-Wnull-conversion)
 
 /// Warn if a C-style cast is used in a program
 X(-Wold-style-cast)
@@ -413,11 +437,11 @@ W(-Woverflow)
 //X(-Woverlength-strings)
 
 /// Warn about overloaded virtual function names
-X(-Woverloaded-virtual)
+E(-Woverloaded-virtual)
 
 /// Warn when the packed attribute has no effect on
 /// struct layout
-X(-Wpacked)
+E(-Wpacked)
 
 /// Warn about packed bit-fields whose offset changed
 /// in GCC 4.4
@@ -425,7 +449,7 @@ WG(-Wpacked-bitfield-compat)
 
 /// Warn when padding is required to align structure
 /// members
-X(-Wpadded)
+I(-Wpadded)
 
 /// Warn about possibly missing parentheses
 E(-Wparentheses)
@@ -433,14 +457,15 @@ E(-Wparentheses)
 /// Issue warnings needed for strict compliance to
 /// the standard
 EG48(-Wpedantic)
-WC(-Wpedantic)
+// a bit too noisy
+XC(-Wpedantic)
 
 /// Warn when converting the type of pointers to
 /// member functions
 EG(-Wpmf-conversions)
 
 /// Warn about function pointer arithmetic
-X(-Wpointer-arith)
+E(-Wpointer-arith)
 
 /// Warn about misuses of pragmas
 EG(-Wpragmas)
@@ -466,7 +491,7 @@ E(-Wreturn-type)
 E(-Wsequence-point)
 
 /// Warn when one local variable shadows another
-X(-Wshadow)
+E(-Wshadow)
 
 /// Warn about signed-unsigned comparisons
 X(-Wsign-compare)
@@ -522,13 +547,17 @@ E(-Wtype-limits)
 
 /// Warn if an undefined macro is used in an #if
 /// directive
-X(-Wundef)
+E(-Wundef)
 
 /// Warn about uninitialized automatic variables
 E(-Wuninitialized)
 
 /// Warn about unrecognized pragmas
 E(-Wunknown-pragmas)
+
+///
+// Not an error because of some remaining enum+default
+WC(-Wunreachable-code)
 
 /// Warn if the loop cannot be optimized due to
 /// nontrivial assumptions.
@@ -553,7 +582,7 @@ EG47(-Wunused-local-typedefs)
 
 /// Warn about macros defined in the main file that
 /// are not used
-X(-Wunused-macros)
+W(-Wunused-macros)
 
 /// Warn when a function parameter is unused
 E(-Wunused-parameter)
@@ -561,7 +590,7 @@ E(-Wunused-parameter)
 /// Warn if a caller of a function, marked with
 /// attribute warn_unused_result, does not use its
 /// return value
-X(-Wunused-result)
+W(-Wunused-result)
 
 /// Warn when an expression value is unused
 E(-Wunused-value)
@@ -577,7 +606,7 @@ XG48(-Wuseless-cast)
 EG48(-Wvarargs)
 
 /// Warn about using variadic macros
-X(-Wvariadic-macros)
+W(-Wvariadic-macros)
 
 /// Warn when a vector operation is compiled
 /// outside the SIMD

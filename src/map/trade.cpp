@@ -310,8 +310,6 @@ void trade_tradecancel(struct map_session_data *sd)
     }
 }
 
-#define MAP_LOG_PC(sd, fmt, args...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## args)
-
 /*==========================================
  * 取引許諾(trade押し)
  *------------------------------------------

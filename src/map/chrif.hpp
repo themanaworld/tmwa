@@ -30,4 +30,7 @@ int chrif_send_divorce(int char_id);
 
 int do_init_chrif (void);
 
+// only used by intif.cpp
+extern int char_fd;
+
 #endif // CHRIF_HPP

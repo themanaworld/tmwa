@@ -2549,7 +2549,9 @@ void skill_timer(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
             case RG_INTIMIDATE:
                 if (sd && !map[src->m].flag.noteleport)
                 {
-                    int x, y, i, j, c;
+                    // always initialized, but clang is not smart enough
+                    int x = 0, y = 0;
+                    int i, j, c;
                     pc_randomwarp(sd, 3);
                     for (i = 0; i < 16; i++)
                     {
@@ -2578,7 +2580,9 @@ void skill_timer(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
                 }
                 else if (md && !map[src->m].flag.monster_noteleport)
                 {
-                    int x, y, i, j, c;
+                    // always initialized, but clang isn't smart enough
+                    int x = 0, y = 0;
+                    int i, j, c;
                     mob_warp(md, -1, -1, -1, 3);
                     for (i = 0; i < 16; i++)
                     {
@@ -7998,6 +8002,8 @@ int skill_use_id(struct map_session_data *sd, int target_id,
                 sd->skilllv_old = sd->skilllv;
                 break;
             }
+            // TODO: determine if this was supposed to fallthrough instead
+            break;
         case BD_ENCORE:        /* アンコール */
             if (sd->skillid_dance == SkillID::ZERO)
             {                   //前回使用した踊りがないとだめ
@@ -8896,6 +8902,8 @@ void skill_trap_splash(struct block_list *bl,
                                   sg->skill_lv, tick,
                                   (sg->val2) ? BCT_mid_x05 : BCT_ZERO);
                 }
+                // TODO: determine if this was supposed to break
+                FALLTHROUGH;
             case 0x97:         /* フリージングトラップ */
                 skill_attack(BF_WEAPON, ss, src, bl, sg->skill_id,
                               sg->skill_lv, tick, (sg->val2) ? BCT_mid_x05 : BCT_ZERO);
@@ -9812,7 +9820,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     Opt3 *opt3;
     int opt_flag = 0, calc_flag = 0;
     int race, mode, elem, undead_flag;
-    SP updateflag;
+    SP updateflag = SP::ZERO;
     int scdef = 0;
 
     nullpo_ret(bl);
@@ -10044,6 +10052,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             calc_flag = 1;
             if (tick <= 0)
                 tick = 1000;    /* (オートバーサーク) */
+            break;
         case SC_GLORIA:        /* グロリア */
             calc_flag = 1;
             break;
@@ -10245,6 +10254,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
 
         case SC_SPEEDPOTION0:  /* 増速ポーション */
             *opt2 |= Opt2::_speedpotion0;
+            FALLTHROUGH;
         case SC_SPEEDPOTION1:
         case SC_SPEEDPOTION2:
             calc_flag = 1;
@@ -10255,6 +10265,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             /* atk & matk potions [Valaris] */
         case SC_ATKPOT:
             *opt2 |= Opt2::_atkpot;
+            FALLTHROUGH;
         case SC_MATKPOT:
             calc_flag = 1;
             tick = 1000 * tick;
@@ -10528,6 +10539,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             break;
         case SC_HASTE:
             calc_flag = 1;
+            break;
         case SC_SPLASHER:      /* ベナムスプラッシャー */
         case SC_PHYS_SHIELD:
         case SC_MBARRIER:
@@ -11273,7 +11285,8 @@ void skill_unit_timer_sub(struct block_list *bl, unsigned int tick)
             case 0x99:         /* トーキーボックス */
             {
                 struct block_list *src = map_id2bl(group->src_id);
-                if (group->unit_id == 0x91 && group->val2);
+                if (group->unit_id == 0x91 && group->val2)
+                    ;
                 else
                 {
                     if (src && src->type == BL_PC)
@@ -11286,6 +11299,8 @@ void skill_unit_timer_sub(struct block_list *bl, unsigned int tick)
                     }
                 }
             }
+                // TODO: determine if this was supposed to be break
+                FALLTHROUGH;
             default:
                 skill_delunit(unit);
         }

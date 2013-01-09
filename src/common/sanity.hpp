@@ -18,7 +18,6 @@
 #   error "Please upgrade to at least GCC 4.6"
 #  endif
 #  if __GNUC_MINOR__ == 6
-#   warning "Working around some annoying bugs in GCC 4.6 ..."
 #   define ANNOYING_GCC46_WORKAROUNDS
 #  endif
 # endif

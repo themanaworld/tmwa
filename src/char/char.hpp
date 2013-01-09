@@ -29,8 +29,8 @@ int mapif_send(int fd, const uint8_t *buf, unsigned int len);
 
 void char_log(const_string line);
 
-#define CHAR_LOG(fmt, args...) \
-    char_log(static_cast<const std::string&>(STRPRINTF(fmt, ## args)))
+#define CHAR_LOG(fmt, ...)  \
+    char_log(static_cast<const std::string&>(STRPRINTF(fmt, ## __VA_ARGS__)))
 
 extern int autosave_interval;
 

@@ -34,7 +34,6 @@ const int packet_len_table[0x20] = {
 };
 
 int char_fd;
-int srvinfo;
 static
 char char_ip_str[16];
 static

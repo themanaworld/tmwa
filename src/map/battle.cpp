@@ -176,7 +176,6 @@ int battle_get_max_hp(struct block_list *bl)
             max_hp = 1;
         return max_hp;
     }
-    return 1;
 }
 
 /*==========================================
@@ -685,7 +684,6 @@ int battle_get_atk2(struct block_list *bl)
             atk2 = 0;
         return atk2;
     }
-    return 0;
 }
 
 /*==========================================
@@ -993,8 +991,6 @@ int battle_get_speed(struct block_list *bl)
             speed = 1;
         return speed;
     }
-
-    return 1000;
 }
 
 /*==========================================
@@ -1075,7 +1071,6 @@ int battle_get_adelay(struct block_list *bl)
             adelay = battle_config.monster_max_aspd << 1;
         return adelay;
     }
-    return 4000;
 }
 
 int battle_get_amotion(struct block_list *bl)
@@ -1140,7 +1135,6 @@ int battle_get_amotion(struct block_list *bl)
             amotion = battle_config.monster_max_aspd;
         return amotion;
     }
-    return 2000;
 }
 
 int battle_get_dmotion(struct block_list *bl)

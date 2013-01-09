@@ -21,7 +21,7 @@ struct mob_skill
     MSC cond1;
     int cond2i;
     StatusChange cond2sc() { return StatusChange(cond2i); }
-    SkillID cond2sk() { return SkillID(cond2i); };
+    SkillID cond2sk() { return SkillID(cond2i); }
     MST target;
     int val[5];
     short emotion;

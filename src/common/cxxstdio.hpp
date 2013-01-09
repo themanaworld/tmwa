@@ -67,6 +67,7 @@ namespace cxxstdio
         return vsscanf(in, fmt, ap);
     }
 #else
+    inline
     int do_vscan(const char *, const char *, va_list) = delete;
 #endif
 
@@ -262,39 +263,39 @@ namespace cxxstdio
         }
     };
 
-#define FPRINTF(file, fmt, args...)                                     \
-    ([&]() -> int                                                       \
-    {                                                                   \
-        struct format_impl                                              \
-        {                                                               \
-            constexpr static                                            \
-            const char *print_format() { return fmt; }                  \
-        };                                                              \
-        return cxxstdio::PrintFormatter<format_impl>::print(file, ## args);\
+#define FPRINTF(file, fmt, ...)                                     \
+    ([&]() -> int                                                   \
+    {                                                               \
+        struct format_impl                                          \
+        {                                                           \
+            constexpr static                                        \
+            const char *print_format() { return fmt; }              \
+        };                                                          \
+        return cxxstdio::PrintFormatter<format_impl>::print(file, ## __VA_ARGS__);  \
     }())
 
-#define FSCANF(file, fmt, args...)                                      \
-    ([&]() -> int                                                       \
-    {                                                                   \
-        struct format_impl                                              \
-        {                                                               \
-            constexpr static                                            \
-            const char *scan_format() { return fmt; }                   \
-        };                                                              \
-        return cxxstdio::ScanFormatter<format_impl>::scan(file, ## args);  \
+#define FSCANF(file, fmt, ...)                                  \
+    ([&]() -> int                                               \
+    {                                                           \
+        struct format_impl                                      \
+        {                                                       \
+            constexpr static                                    \
+            const char *scan_format() { return fmt; }           \
+        };                                                      \
+        return cxxstdio::ScanFormatter<format_impl>::scan(file, ## __VA_ARGS__);    \
     }())
 
-#define PRINTF(fmt, args...)            FPRINTF(stdout, fmt, ## args)
-#define SPRINTF(str, fmt, args...)      FPRINTF(str, fmt, ## args)
-#define SCANF(fmt, args...)             FSCANF(stdin, fmt, ## args)
-#define SSCANF(str, fmt, args...)       FSCANF(str, fmt, ## args)
+#define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
+#define SPRINTF(str, fmt, ...)      FPRINTF(str, fmt, ## __VA_ARGS__)
+#define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
+#define SSCANF(str, fmt, ...)       FSCANF(str, fmt, ## __VA_ARGS__)
 
-#define STRPRINTF(fmt, args...)         \
-    ([&]() -> std::string               \
-    {                                   \
-        std::string _out_impl;          \
-        SPRINTF(_out_impl, fmt, ## args);  \
-        return _out_impl;               \
+#define STRPRINTF(fmt, ...)                     \
+    ([&]() -> std::string                       \
+    {                                           \
+        std::string _out_impl;                  \
+        SPRINTF(_out_impl, fmt, ## __VA_ARGS__);\
+        return _out_impl;                       \
     }())
 
 } // namespace cxxstdio

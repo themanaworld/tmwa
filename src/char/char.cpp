@@ -34,36 +34,64 @@
 #include "int_party.hpp"
 #include "int_storage.hpp"
 
+static
 struct mmo_map_server server[MAX_MAP_SERVERS];
+static
 int server_fd[MAX_MAP_SERVERS];
+static
 int server_freezeflag[MAX_MAP_SERVERS];    // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
+static
 int anti_freeze_enable = 0;
+static
 int ANTI_FREEZE_INTERVAL = 6;
 
 // TODO replace all string forms of IP addresses with class instances
+static
 int login_fd, char_fd;
+static
 char userid[24];
+static
 char passwd[24];
+static
 char server_name[20];
+static
 char wisp_server_name[24] = "Server";
+static
 char login_ip_str[16];
+static
 int login_ip;
+static
 int login_port = 6900;
+static
 char char_ip_str[16];
+static
 int char_ip;
+static
 int char_port = 6121;
+static
 int char_maintenance;
+static
 int char_new;
+static
 int email_creation = 0;        // disabled by default
+static
 char char_txt[1024];
+static
 char unknown_char_name[1024] = "Unknown";
+static
 char char_log_filename[1024] = "log/char.log";
 //Added for lan support
+static
 char lan_map_ip[128];
+static
 int subneti[4];
+static
 int subnetmaski[4];
+static
 int name_ignoring_case = 0;    // Allow or not identical name for characters but with a different case by [Yor]
+static
 int char_name_option = 0;      // Option to know which letters/symbols are authorised in the name of a character (0: all, 1: only those in char_name_letters, 2: all EXCEPT those in char_name_letters) by [Yor]
+static
 char char_name_letters[1024] = "";  // list of letters/symbols authorised (or not) in a character name. by [Yor]
 
 struct char_session_data
@@ -76,6 +104,7 @@ struct char_session_data
 };
 
 #define AUTH_FIFO_SIZE 256
+static
 struct
 {
     int account_id, char_id, login_id1, login_id2, ip, char_pos, delflag,
@@ -83,36 +112,57 @@ struct
     unsigned short packet_tmw_version;
     time_t connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 } auth_fifo[AUTH_FIFO_SIZE];
+static
 int auth_fifo_pos = 0;
 
+static
 int check_ip_flag = 1;         // It's to check IP of a player between char-server and other servers (part of anti-hacking system)
 
+static
 int char_id_count = 150000;
+static
 struct mmo_charstatus *char_dat;
+static
 int char_num, char_max;
+static
 int max_connect_user = 0;
 int autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+static
 int start_zeny = 500;
+static
 int start_weapon = 1201;
+static
 int start_armor = 1202;
 
 // Initial position (it's possible to set it in conf file)
+static
 struct point start_point = { "new_1-1.gat", 53, 111 };
 
+static
 struct gm_account *gm_account = NULL;
+static
 int GM_num = 0;
 
 // online players by [Yor]
+static
 char online_txt_filename[1024] = "online.txt";
+static
 char online_html_filename[1024] = "online.html";
+static
 int online_sorting_option = 0; // sorting option to display online players in online files
+static
 int online_display_option = 1; // display options: to know which columns must be displayed
+static
 int online_refresh_html = 20;  // refresh time (in sec) of the html file in the explorer
+static
 int online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when we want to display it
 
+static
 int *online_chars;              // same size of char_dat, and id value of current server (or -1)
+static
 time_t update_online;           // to update online files when we receiving information from a server (not less than 8 seconds)
 
+static
 pid_t pid = 0;                  // For forked DB writes
 
 //------------------------------
@@ -2955,6 +3005,7 @@ void parse_char(int fd)
                         break;
                     }
                 }
+                break;
 
             case 0x68:         // delete char //Yor's Fix
                 if (!sd || RFIFOREST(fd) < 46)

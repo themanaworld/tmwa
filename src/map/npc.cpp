@@ -2054,7 +2054,7 @@ void npc_free(struct npc_data *nd)
 static
 void ev_release(db_key_t key, db_val_t val)
 {
-    free((char*)key.s);
+    free(key.ms);
     free(val);
 }
 

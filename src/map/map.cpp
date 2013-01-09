@@ -65,6 +65,7 @@ int bl_list_count = 0;
 struct map_data map[MAX_MAP_PER_SERVER];
 int map_num = 0;
 
+static
 int map_port = 0;
 
 int autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
@@ -1736,11 +1737,11 @@ int map_delmap(const char *mapname)
     return 0;
 }
 
-extern char *gm_logfile_name;
-
 #define LOGFILE_SECONDS_PER_CHUNK_SHIFT 10
 
+static
 FILE *map_logfile = NULL;
+static
 char *map_logfile_name = NULL;
 static
 long map_logfile_index;
