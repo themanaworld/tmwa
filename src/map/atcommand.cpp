@@ -77,7 +77,6 @@ ATCOMMAND_FUNC(spawn);
 ATCOMMAND_FUNC(killmonster);
 ATCOMMAND_FUNC(killmonster2);
 ATCOMMAND_FUNC(produce);
-ATCOMMAND_FUNC(memo);
 ATCOMMAND_FUNC(gat);
 ATCOMMAND_FUNC(packet);
 ATCOMMAND_FUNC(statuspoint);
@@ -132,8 +131,6 @@ ATCOMMAND_FUNC(char_block);    // by Yor
 ATCOMMAND_FUNC(char_ban);      // by Yor
 ATCOMMAND_FUNC(char_unblock);  // by Yor
 ATCOMMAND_FUNC(char_unban);    // by Yor
-ATCOMMAND_FUNC(mount_peco);    // by Valaris
-ATCOMMAND_FUNC(char_mount_peco);   // by Yor
 ATCOMMAND_FUNC(partyspy);      // [Syrus22]
 ATCOMMAND_FUNC(partyrecall);   // by Yor
 ATCOMMAND_FUNC(enablenpc);
@@ -142,22 +139,16 @@ ATCOMMAND_FUNC(servertime);    // by Yor
 ATCOMMAND_FUNC(chardelitem);   // by Yor
 ATCOMMAND_FUNC(jail);          // by Yor
 ATCOMMAND_FUNC(unjail);        // by Yor
-ATCOMMAND_FUNC(disguise);      // [Valaris]
-ATCOMMAND_FUNC(undisguise);    // by Yor
 ATCOMMAND_FUNC(ignorelist);    // by Yor
 ATCOMMAND_FUNC(charignorelist);    // by Yor
 ATCOMMAND_FUNC(inall);         // by Yor
 ATCOMMAND_FUNC(exall);         // by Yor
-ATCOMMAND_FUNC(chardisguise);  // Kalaspuff
-ATCOMMAND_FUNC(charundisguise);    // Kalaspuff
 ATCOMMAND_FUNC(email);         // by Yor
 ATCOMMAND_FUNC(effect);        //by Apple
 ATCOMMAND_FUNC(character_item_list);   // by Yor
 ATCOMMAND_FUNC(character_storage_list);    // by Yor
 ATCOMMAND_FUNC(character_cart_list);   // by Yor
 ATCOMMAND_FUNC(addwarp);       // by MouseJstr
-ATCOMMAND_FUNC(skillon);       // by MouseJstr
-ATCOMMAND_FUNC(skilloff);      // by MouseJstr
 ATCOMMAND_FUNC(killer);        // by MouseJstr
 ATCOMMAND_FUNC(npcmove);       // by MouseJstr
 ATCOMMAND_FUNC(killable);      // by MouseJstr
@@ -167,8 +158,6 @@ ATCOMMAND_FUNC(dropall);       // by MouseJstr
 ATCOMMAND_FUNC(chardropall);   // by MouseJstr
 ATCOMMAND_FUNC(storeall);      // by MouseJstr
 ATCOMMAND_FUNC(charstoreall);  // by MouseJstr
-ATCOMMAND_FUNC(skillid);       // by MouseJstr
-ATCOMMAND_FUNC(useskill);      // by MouseJstr
 ATCOMMAND_FUNC(summon);
 ATCOMMAND_FUNC(rain);
 ATCOMMAND_FUNC(snow);
@@ -243,7 +232,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_KillMonster, "@killmonster", 60, atcommand_killmonster},
     {AtCommand_KillMonster2, "@killmonster2", 40, atcommand_killmonster2},
     {AtCommand_Produce, "@produce", 60, atcommand_produce},
-    {AtCommand_Memo, "@memo", 40, atcommand_memo},
     {AtCommand_GAT, "@gat", 99, atcommand_gat}, // debug function
     {AtCommand_Packet, "@packet", 99, atcommand_packet},    // debug function
     {AtCommand_StatusPoint, "@stpoint", 60, atcommand_statuspoint},
@@ -311,8 +299,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_CharUnBlock, "@unblock", 60, atcommand_char_unblock},    // by Yor
     {AtCommand_CharBan, "@ban", 60, atcommand_char_ban},    // by Yor
     {AtCommand_CharUnBan, "@unban", 60, atcommand_char_unban},  // by Yor
-    {AtCommand_MountPeco, "@mountpeco", 20, atcommand_mount_peco},  // by Valaris
-    {AtCommand_CharMountPeco, "@charmountpeco", 50, atcommand_char_mount_peco}, // by Yor
     {AtCommand_PartySpy, "@partyspy", 60, atcommand_partyspy},  // [Syrus22]
     {AtCommand_PartyRecall, "@partyrecall", 60, atcommand_partyrecall}, // by Yor
     {AtCommand_Enablenpc, "@enablenpc", 80, atcommand_enablenpc},   // []
@@ -322,22 +308,16 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_ListNearby, "@listnearby", 40, atcommand_list_nearby},   // by Yor
     {AtCommand_Jail, "@jail", 60, atcommand_jail},  // by Yor
     {AtCommand_UnJail, "@unjail", 60, atcommand_unjail},    // by Yor
-    {AtCommand_Disguise, "@disguise", 20, atcommand_disguise},  // [Valaris]
-    {AtCommand_UnDisguise, "@undisguise", 20, atcommand_undisguise},    // by Yor
     {AtCommand_IgnoreList, "@ignorelist", 0, atcommand_ignorelist}, // by Yor
     {AtCommand_CharIgnoreList, "@charignorelist", 20, atcommand_charignorelist},    // by Yor
     {AtCommand_IgnoreList, "@inall", 20, atcommand_inall},  // by Yor
     {AtCommand_ExAll, "@exall", 20, atcommand_exall},   // by Yor
-    {AtCommand_CharDisguise, "@chardisguise", 60, atcommand_chardisguise},  // Kalaspuff
-    {AtCommand_CharUnDisguise, "@charundisguise", 60, atcommand_charundisguise},    // Kalaspuff
     {AtCommand_EMail, "@email", 0, atcommand_email},    // by Yor
     {AtCommand_Effect, "@effect", 40, atcommand_effect},    // by Apple
     {AtCommand_Char_Item_List, "@charitemlist", 40, atcommand_character_item_list}, // by Yor
     {AtCommand_Char_Storage_List, "@charstoragelist", 40, atcommand_character_storage_list},    // by Yor
     {AtCommand_Char_Cart_List, "@charcartlist", 40, atcommand_character_cart_list}, // by Yor
     {AtCommand_AddWarp, "@addwarp", 20, atcommand_addwarp}, // by MouseJstr
-    {AtCommand_SkillOn, "@skillon", 20, atcommand_skillon}, // by MouseJstr
-    {AtCommand_SkillOff, "@skilloff", 20, atcommand_skilloff},  // by MouseJstr
     {AtCommand_Killer, "@killer", 60, atcommand_killer},    // by MouseJstr
     {AtCommand_NpcMove, "@npcmove", 20, atcommand_npcmove}, // by MouseJstr
     {AtCommand_Killable, "@killable", 40, atcommand_killable},  // by MouseJstr
@@ -347,8 +327,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_Chardropall, "@chardropall", 40, atcommand_chardropall}, // MouseJstr
     {AtCommand_Storeall, "@storeall", 40, atcommand_storeall},  // MouseJstr
     {AtCommand_Charstoreall, "@charstoreall", 40, atcommand_charstoreall},  // MouseJstr
-    {AtCommand_Skillid, "@skillid", 40, atcommand_skillid}, // MouseJstr
-    {AtCommand_Useskill, "@useskill", 40, atcommand_useskill},  // MouseJstr
     {AtCommand_Rain, "@rain", 99, atcommand_rain},
     {AtCommand_Snow, "@snow", 99, atcommand_snow},
     {AtCommand_Sakura, "@sakura", 99, atcommand_sakura},
@@ -1628,7 +1606,6 @@ int atcommand_option(const int fd, struct map_session_data *sd,
     if (sd->status.pc_class == 13 || sd->status.pc_class == 21
         || sd->status.pc_class == 4014 || sd->status.pc_class == 4022)
     {
-        if (!pc_isriding(sd))
         {                       // sd have the new value...
             if (sd->status.pc_class == 13)
                 sd->status.pc_class = sd->view_class = 7;
@@ -1638,29 +1615,6 @@ int atcommand_option(const int fd, struct map_session_data *sd,
                 sd->status.pc_class = sd->view_class = 4008;
             else if (sd->status.pc_class == 4022)
                 sd->status.pc_class = sd->view_class = 4015;
-        }
-    }
-    else
-    {
-        if (pc_isriding(sd))
-        {                       // sd have the new value...
-            if (sd->disguise > 0)
-            {                   // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris] (code added by [Yor])
-                sd->status.option &= ~Option::RIDING;
-            }
-            else
-            {
-                if (sd->status.pc_class == 7)
-                    sd->status.pc_class = sd->view_class = 13;
-                else if (sd->status.pc_class == 14)
-                    sd->status.pc_class = sd->view_class = 21;
-                else if (sd->status.pc_class == 4008)
-                    sd->status.pc_class = sd->view_class = 4014;
-                else if (sd->status.pc_class == 4015)
-                    sd->status.pc_class = sd->view_class = 4022;
-                else
-                    sd->status.option &= ~Option::RIDING;
-            }
         }
     }
 
@@ -2640,86 +2594,6 @@ int atcommand_produce(const int fd, struct map_session_data *sd,
 }
 
 /*==========================================
- * Sub-function to display actual memo points
- *------------------------------------------
- */
-static
-void atcommand_memo_sub(struct map_session_data *sd)
-{
-    clif_displaymessage(sd->fd,
-                         "Your actual memo positions are (except respawn point):");
-    for (int i = MIN_PORTAL_MEMO; i <= MAX_PORTAL_MEMO; i++)
-    {
-        std::string output;
-        if (sd->status.memo_point[i].map[0])
-            output = STRPRINTF("%d - %s (%d,%d)",
-                    i,
-                    sd->status.memo_point[i].map,
-                    sd->status.memo_point[i].x,
-                    sd->status.memo_point[i].y);
-        else
-            output = STRPRINTF("%d - void", i);
-        clif_displaymessage(sd->fd, output);
-    }
-
-    return;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int atcommand_memo(const int fd, struct map_session_data *sd,
-                    const char *, const char *message)
-{
-    int position = 0;
-
-    if (!message || !*message || sscanf(message, "%d", &position) < 1)
-        atcommand_memo_sub(sd);
-    else
-    {
-        if (position >= MIN_PORTAL_MEMO && position <= MAX_PORTAL_MEMO)
-        {
-            if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
-                && battle_config.any_warp_GM_min_level > pc_isGM(sd))
-            {
-                clif_displaymessage(fd,
-                                     "You are not authorised to memo this map.");
-                return -1;
-            }
-            if (sd->status.memo_point[position].map[0])
-            {
-                std::string output = STRPRINTF(
-                        "You replace previous memo position %d - %s (%d,%d).",
-                        position,
-                        sd->status.memo_point[position].map,
-                        sd->status.memo_point[position].x,
-                        sd->status.memo_point[position].y);
-                clif_displaymessage(fd, output);
-            }
-            memcpy(sd->status.memo_point[position].map, map[sd->bl.m].name,
-                    24);
-            sd->status.memo_point[position].x = sd->bl.x;
-            sd->status.memo_point[position].y = sd->bl.y;
-            if (pc_checkskill(sd, AL_WARP) <= (position + 1))
-                clif_displaymessage(fd, "Note: you don't have the 'Warp' skill level to use it.");
-            atcommand_memo_sub(sd);
-        }
-        else
-        {
-            std::string output = STRPRINTF(
-                    "Please, enter a valid position (usage: @memo <memo_position:%d-%d>).",
-                    MIN_PORTAL_MEMO, MAX_PORTAL_MEMO);
-            clif_displaymessage(fd, output);
-            atcommand_memo_sub(sd);
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-/*==========================================
  *
  *------------------------------------------
  */
@@ -3232,7 +3106,6 @@ int atcommand_character_option(const int fd, struct map_session_data *sd,
             if (pl_sd->status.pc_class == 13 || pl_sd->status.pc_class == 21
                 || pl_sd->status.pc_class == 4014 || pl_sd->status.pc_class == 4022)
             {
-                if (!pc_isriding(pl_sd))
                 {               // pl_sd have the new value...
                     if (pl_sd->status.pc_class == 13)
                         pl_sd->status.pc_class = pl_sd->view_class = 7;
@@ -3242,29 +3115,6 @@ int atcommand_character_option(const int fd, struct map_session_data *sd,
                         pl_sd->status.pc_class = pl_sd->view_class = 4008;
                     else if (pl_sd->status.pc_class == 4022)
                         pl_sd->status.pc_class = pl_sd->view_class = 4015;
-                }
-            }
-            else
-            {
-                if (pc_isriding(pl_sd))
-                {               // pl_sd have the new value...
-                    if (pl_sd->disguise > 0)
-                    {           // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris] (code added by [Yor])
-                        pl_sd->status.option &= ~Option::RIDING;
-                    }
-                    else
-                    {
-                        if (pl_sd->status.pc_class == 7)
-                            pl_sd->status.pc_class = pl_sd->view_class = 13;
-                        else if (pl_sd->status.pc_class == 14)
-                            pl_sd->status.pc_class = pl_sd->view_class = 21;
-                        else if (pl_sd->status.pc_class == 4008)
-                            pl_sd->status.pc_class = pl_sd->view_class = 4014;
-                        else if (pl_sd->status.pc_class == 4015)
-                            pl_sd->status.pc_class = pl_sd->view_class = 4022;
-                        else
-                            pl_sd->status.option &= ~Option::RIDING;
-                    }
                 }
             }
             clif_changeoption(&pl_sd->bl);
@@ -5187,130 +5037,6 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
 }
 
 /*==========================================
- *
- *------------------------------------------
- */
-int atcommand_mount_peco(const int fd, struct map_session_data *sd,
-                          const char *, const char *)
-{
-    if (sd->disguise > 0)
-    {                           // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris]
-        clif_displaymessage(fd, "Cannot mount a Peco while in disguise.");
-        return -1;
-    }
-
-    if (!pc_isriding(sd))
-    {                           // if actually no peco
-        if (sd->status.pc_class == 7 || sd->status.pc_class == 14
-            || sd->status.pc_class == 4008 || sd->status.pc_class == 4015)
-        {
-            if (sd->status.pc_class == 7)
-                sd->status.pc_class = sd->view_class = 13;
-            else if (sd->status.pc_class == 14)
-                sd->status.pc_class = sd->view_class = 21;
-            else if (sd->status.pc_class == 4008)
-                sd->status.pc_class = sd->view_class = 4014;
-            else if (sd->status.pc_class == 4015)
-                sd->status.pc_class = sd->view_class = 4022;
-            pc_setoption(sd, sd->status.option | Option::RIDING);
-            clif_displaymessage(fd, "Mounted Peco.");
-        }
-        else
-        {
-            clif_displaymessage(fd, "You can not mount a peco with your job.");
-            return -1;
-        }
-    }
-    else
-    {
-        if (sd->status.pc_class == 13)
-            sd->status.pc_class = sd->view_class = 7;
-        else if (sd->status.pc_class == 21)
-            sd->status.pc_class = sd->view_class = 14;
-        else if (sd->status.pc_class == 4014)
-            sd->status.pc_class = sd->view_class = 4008;
-        else if (sd->status.pc_class == 4022)
-            sd->status.pc_class = sd->view_class = 4015;
-        pc_setoption(sd, sd->status.option & ~Option::RIDING);
-        clif_displaymessage(fd, "Unmounted Peco.");
-    }
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int atcommand_char_mount_peco(const int fd, struct map_session_data *,
-                               const char *, const char *message)
-{
-    char character[100];
-    struct map_session_data *pl_sd;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @charmountpeco <char_name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pl_sd->disguise > 0)
-        {                       // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris]
-            clif_displaymessage(fd, "This player cannot mount a Peco while in disguise.");
-            return -1;
-        }
-
-        if (!pc_isriding(pl_sd))
-        {                       // if actually no peco
-            if (pl_sd->status.pc_class == 7 || pl_sd->status.pc_class == 14
-                || pl_sd->status.pc_class == 4008 || pl_sd->status.pc_class == 4015)
-            {
-                if (pl_sd->status.pc_class == 7)
-                    pl_sd->status.pc_class = pl_sd->view_class = 13;
-                else if (pl_sd->status.pc_class == 14)
-                    pl_sd->status.pc_class = pl_sd->view_class = 21;
-                else if (pl_sd->status.pc_class == 4008)
-                    pl_sd->status.pc_class = pl_sd->view_class = 4014;
-                else if (pl_sd->status.pc_class == 4015)
-                    pl_sd->status.pc_class = pl_sd->view_class = 4022;
-                pc_setoption(pl_sd, pl_sd->status.option | Option::RIDING);
-                clif_displaymessage(fd, "Now, this player mounts a peco.");
-            }
-            else
-            {
-                clif_displaymessage(fd, "This player can not mount a peco with his/her job.");
-                return -1;
-            }
-        }
-        else
-        {
-            if (pl_sd->status.pc_class == 13)
-                pl_sd->status.pc_class = pl_sd->view_class = 7;
-            else if (pl_sd->status.pc_class == 21)
-                pl_sd->status.pc_class = pl_sd->view_class = 14;
-            else if (pl_sd->status.pc_class == 4014)
-                pl_sd->status.pc_class = pl_sd->view_class = 4008;
-            else if (pl_sd->status.pc_class == 4022)
-                pl_sd->status.pc_class = pl_sd->view_class = 4015;
-            pc_setoption(pl_sd, pl_sd->status.option & ~Option::RIDING);
-            clif_displaymessage(fd, "Now, this player has not more peco.");
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
  *Spy Commands by Syrus22
  *------------------------------------------
  */
@@ -5730,72 +5456,6 @@ int atcommand_unjail(const int fd, struct map_session_data *sd,
 }
 
 /*==========================================
- * @disguise <mob_id> by [Valaris] (simplified by [Yor])
- *------------------------------------------
- */
-int atcommand_disguise(const int fd, struct map_session_data *sd,
-                        const char *, const char *message)
-{
-    int mob_id;
-
-    if (!message || !*message)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a Monster/NPC name/id (usage: @disguise <monster_name_or_monster_ID>).");
-        return -1;
-    }
-
-    if ((mob_id = mobdb_searchname(message)) == 0) // check name first (to avoid possible name begining by a number)
-        mob_id = atoi(message);
-
-    if ((mob_id >= 46 && mob_id <= 125) || (mob_id >= 700 && mob_id <= 718) ||  // NPC
-        (mob_id >= 721 && mob_id <= 755) || (mob_id >= 757 && mob_id <= 811) || // NPC
-        (mob_id >= 813 && mob_id <= 834) || // NPC
-        (mob_id > 1000 && mob_id < 1521))
-    {                           // monsters
-        if (pc_isriding(sd))
-        {                       // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris]
-            clif_displaymessage(fd, "Cannot wear disguise while riding a Peco.");
-            return -1;
-        }
-        sd->disguiseflag = 1;   // set to override items with disguise script [Valaris]
-        sd->disguise = mob_id;
-        pc_setpos(sd, sd->mapname, sd->bl.x, sd->bl.y, 3);
-        clif_displaymessage(fd, "Disguise applied.");
-    }
-    else
-    {
-        clif_displaymessage(fd, "Monster/NPC name/id hasn't been found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * @undisguise by [Yor]
- *------------------------------------------
- */
-int atcommand_undisguise(const int fd, struct map_session_data *sd,
-                          const char *, const char *)
-{
-    if (sd->disguise)
-    {
-        clif_clearchar(&sd->bl, 9);
-        sd->disguise = 0;
-        pc_setpos(sd, sd->mapname, sd->bl.x, sd->bl.y, 3);
-        clif_displaymessage(fd, "Undisguise applied.");
-    }
-    else
-    {
-        clif_displaymessage(fd, "You're not disguised.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
  * @broadcast by [Valaris]
  *------------------------------------------
  */
@@ -6063,125 +5723,6 @@ int atcommand_exall(const int fd, struct map_session_data *sd,
                 WFIFOB(pl_sd->fd, 2) = 0;
                 WFIFOB(pl_sd->fd, 3) = 0;  // success
                 WFIFOSET(pl_sd->fd, 4);    // packet_len_table[0x0d2]
-            }
-        }
-        else
-        {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
-            return -1;
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * @chardisguise <mob_id> <character> by Kalaspuff (based off Valaris' and Yor's work)
- *------------------------------------------
- */
-int atcommand_chardisguise(const int fd, struct map_session_data *sd,
-                            const char *, const char *message)
-{
-    int mob_id;
-    char character[100];
-    char mob_name[100];
-    struct map_session_data *pl_sd;
-
-    memset(character, '\0', sizeof(character));
-    memset(mob_name, '\0', sizeof(mob_name));
-
-    if (!message || !*message
-        || sscanf(message, "%s %99[^\n]", mob_name, character) < 2)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a Monster/NPC name/id and a player name (usage: @chardisguise <monster_name_or_monster_ID> <char name>).");
-        return -1;
-    }
-
-    if ((mob_id = mobdb_searchname(mob_name)) == 0)    // check name first (to avoid possible name begining by a number)
-        mob_id = atoi(mob_name);
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can disguise only lower or same level
-            if ((mob_id >= 46 && mob_id <= 125) || (mob_id >= 700 && mob_id <= 718) ||  // NPC
-                (mob_id >= 721 && mob_id <= 755) || (mob_id >= 757 && mob_id <= 811) || // NPC
-                (mob_id >= 813 && mob_id <= 834) || // NPC
-                (mob_id > 1000 && mob_id < 1521))
-            {                   // monsters
-                if (pc_isriding(pl_sd))
-                {               // temporary prevention of crash caused by peco + disguise, will look into a better solution [Valaris]
-                    clif_displaymessage(fd, "Character cannot wear disguise while riding a Peco.");
-                    return -1;
-                }
-                pl_sd->disguiseflag = 1;    // set to override items with disguise script [Valaris]
-                pl_sd->disguise = mob_id;
-                pc_setpos(pl_sd, pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y,
-                           3);
-                clif_displaymessage(fd, "Character's disguise applied.");
-            }
-            else
-            {
-                clif_displaymessage(fd, "Monster/NPC name/id hasn't been found.");
-                return -1;
-            }
-        }
-        else
-        {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
-            return -1;
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * @charundisguise <character> by Kalaspuff (based off Yor's work)
- *------------------------------------------
- */
-int atcommand_charundisguise(const int fd, struct map_session_data *sd,
-                              const char *, const char *message)
-{
-    char character[100];
-    struct map_session_data *pl_sd;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @charundisguise <char name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can undisguise only lower or same level
-            if (pl_sd->disguise)
-            {
-                clif_clearchar(&pl_sd->bl, 9);
-                pl_sd->disguise = 0;
-                pc_setpos(pl_sd, pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y,
-                           3);
-                clif_displaymessage(fd, "Character's undisguise applied.");
-            }
-            else
-            {
-                clif_displaymessage(fd, "Character is not disguised.");
-                return -1;
             }
         }
         else
@@ -6765,32 +6306,6 @@ int atcommand_charkillable(const int fd, struct map_session_data *,
 }
 
 /*==========================================
- * @skillon by MouseJstr
- * turn skills on for the map
- *------------------------------------------
- */
-int atcommand_skillon(const int fd, struct map_session_data *sd,
-                   const char *, const char *)
-{
-    map[sd->bl.m].flag.noskill = 0;
-    clif_displaymessage(fd, "Map skills are on.");
-    return 0;
-}
-
-/*==========================================
- * @skilloff by MouseJstr
- * Turn skills off on the map
- *------------------------------------------
- */
-int atcommand_skilloff(const int fd, struct map_session_data *sd,
-                    const char *, const char *)
-{
-    map[sd->bl.m].flag.noskill = 1;
-    clif_displaymessage(fd, "Map skills are off.");
-    return 0;
-}
-
-/*==========================================
  * @npcmove by MouseJstr
  *
  * move a npc
@@ -7024,72 +6539,6 @@ int atcommand_charstoreall(const int fd, struct map_session_data *sd,
     clif_displaymessage(pl_sd->fd, "   -- the management");
 
     clif_displaymessage(fd, "It is done");
-
-    return 0;
-}
-
-/*==========================================
- * @skillid by [MouseJstr]
- *
- * lookup a skill by name
- *------------------------------------------
- */
-int atcommand_skillid(const int fd, struct map_session_data *,
-                   const char *, const char *message)
-{
-    int skillen = 0, idx = 0;
-    if (!message || !*message)
-        return -1;
-    skillen = strlen(message);
-    while (skill_names[idx].id != SkillID::ZERO)
-    {
-        if ((strncasecmp(skill_names[idx].name, message, skillen) == 0) ||
-            (strncasecmp(skill_names[idx].desc, message, skillen) == 0))
-        {
-            std::string output = STRPRINTF("skill %d: %s",
-                    skill_names[idx].id, skill_names[idx].desc);
-            clif_displaymessage(fd, output);
-        }
-        idx++;
-    }
-    return 0;
-}
-
-/*==========================================
- * @useskill by [MouseJstr]
- *
- * A way of using skills without having to find them in the skills menu
- *------------------------------------------
- */
-int atcommand_useskill(const int fd, struct map_session_data *sd,
-                    const char *, const char *message)
-{
-    struct map_session_data *pl_sd = NULL;
-    int skillnum_;
-    int skilllv;
-    int inf;
-    char target[255];
-
-    if (!message || !*message)
-        return -1;
-    if (sscanf(message, "%d %d %s", &skillnum_, &skilllv, target) != 3)
-    {
-        clif_displaymessage(fd,
-                             "Usage: @useskill <skillnum> <skillv> <target>");
-        return -1;
-    }
-    if ((pl_sd = map_nick2sd(target)) == NULL)
-    {
-        return -1;
-    }
-
-    SkillID skillnum = SkillID(skillnum_);
-    inf = skill_get_inf(skillnum);
-
-    if ((inf == 2) || (inf == 1))
-        skill_use_pos(sd, pl_sd->bl.x, pl_sd->bl.y, skillnum, skilllv);
-    else
-        skill_use_id(sd, pl_sd->bl.id, skillnum, skilllv);
 
     return 0;
 }

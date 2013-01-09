@@ -16,22 +16,14 @@ enum class Option : uint16_t
     // apparently some weaker non-GM hide
     HIDE2           = 0x0002,
     CLOAK           = 0x0004,
-    CART1           = 0x0008,
-    FALCON          = 0x0010,
-    RIDING          = 0x0020,
     // [Fate] This is the GM `@hide' flag
     HIDE            = 0x0040,
-    CART2           = 0x0080,
-    CART3           = 0x0100,
-    CART4           = 0x0200,
-    CART5           = 0x0400,
     ORC_HEAD        = 0x0800,
     // [Fate] Complete invisibility to other clients
     INVISIBILITY    = 0x1000,
     _wedding        = 0x1000,
     // [Fate] Auto-logging of nearby comments
     SCRIBE          = 0x2000,
-    _ruwach         = 0x2000,
     CHASEWALK       = 0x4000,
     sign            = 0x8000,
 
@@ -39,8 +31,7 @@ enum class Option : uint16_t
     // ?
     REAL_ANY_HIDE   = HIDE | CLOAK | HIDE2,
     OLD_ANY_HIDE    = CHASEWALK | CLOAK | HIDE2,
-    CART_MASK       = CART1 | CART2 | CART3 | CART4 | CART5,
-    MASK            = sign | CHASEWALK | _wedding | CART_MASK | RIDING | FALCON,
+    MASK            = sign | CHASEWALK | _wedding,
 };
 enum class Opt1 : uint16_t
 {
@@ -72,7 +63,6 @@ enum class Opt3 : uint16_t
     _energycoat     = 0x0004,
     _explosionspirits = 0x0008,
     _steelbody      = 0x0010,
-    _bladestop      = 0x0020,
     _berserk        = 0x0080,
 
     _marionette     = 0x0400,

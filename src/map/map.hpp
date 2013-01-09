@@ -582,7 +582,6 @@ struct map_data
         unsigned pvp_nocalcrank:1;
         unsigned nozenypenalty:1;
         unsigned notrade:1;
-        unsigned noskill:1;
         unsigned nowarp:1;
         unsigned nowarpto:1;
         unsigned nopvp:1;       // [Valaris]

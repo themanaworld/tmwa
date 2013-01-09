@@ -620,8 +620,6 @@ int mob_can_move(struct mob_data *md)
         return 0;
     // アンクル中で動けないとか
     if (md->sc_data[SC_ANKLE].timer != -1 ||    //アンクルスネア
-        md->sc_data[SC_AUTOCOUNTER].timer != -1 ||  //オートカウンター
-        md->sc_data[SC_BLADESTOP].timer != -1 ||    //白刃取り
         md->sc_data[SC_SPIDERWEB].timer != -1   //スパイダーウェッブ
         )
         return 0;
@@ -773,12 +771,6 @@ int mob_check_attack(struct mob_data *md)
 
     if (bool(md->opt1)
         || bool(md->option & Option::HIDE2))
-        return 0;
-
-    if (md->sc_data[SC_AUTOCOUNTER].timer != -1)
-        return 0;
-
-    if (md->sc_data[SC_BLADESTOP].timer != -1)
         return 0;
 
     if ((tbl = map_id2bl(md->target_id)) == NULL)
@@ -1903,8 +1895,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
 
     // Abnormalities
     if ((bool(md->opt1) && md->opt1 != Opt1::_stone6)
-        || md->state.state == MS_DELAY
-        || md->sc_data[SC_BLADESTOP].timer != -1)
+        || md->state.state == MS_DELAY)
         return;
 
     if (!(mode & 0x80) && md->target_id > 0)
@@ -2505,7 +2496,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     double tdmg, temp;
     struct item item;
     PickupFail ret;
-    int skill, sp;
 
     nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
 
@@ -2681,15 +2671,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     if (src && src->type == BL_MOB)
         mob_unlocktarget((struct mob_data *) src, tick);
-
-    /* ソウルドレイン */
-    if (sd && (skill = pc_checkskill(sd, HW_SOULDRAIN)) > 0)
-    {
-        sp = (battle_get_lv(&md->bl)) * (65 + 15 * skill) / 100;
-        if (sd->status.sp + sp > sd->status.max_sp)
-            sp = sd->status.max_sp - sd->status.sp;
-        sd->status.sp += sp;
-    }
 
     // map外に消えた人は計算から除くので
     // overkill分は無いけどsumはmax_hpとは違う
@@ -3410,10 +3391,6 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return;
-    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-        return;
-    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-        return;
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return;
 
@@ -3428,23 +3405,6 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
     if (md->bl.m != bl->m)
         return;
 
-    if (md->skillid == PR_LEXAETERNA)
-    {
-        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-        if (sc_data
-            && (sc_data[SC_FREEZE].timer != -1
-                || (sc_data[SC_STONE].timer != -1
-                    && sc_data[SC_STONE].val2 == 0)))
-            return;
-    }
-    else if (md->skillid == RG_BACKSTAP)
-    {
-        int dir = map_calc_dir(&md->bl, bl->x, bl->y), t_dir =
-            battle_get_dir(bl);
-        int dist = distance(md->bl.x, md->bl.y, bl->x, bl->y);
-        if (bl->type != BL_SKILL && (dist == 0 || map_check_dir(dir, t_dir)))
-            return;
-    }
     if (((skill_get_inf(md->skillid) & 1) || (skill_get_inf2(md->skillid) & 4)) &&    // 彼我敵対関係チェック
         battle_check_target(&md->bl, bl, BCT_ENEMY) <= 0)
         return;
@@ -3472,8 +3432,7 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
             break;
         case 1:                // 支援系
             if (!mob_db[md->mob_class].skill[md->skillidx].val[0] &&
-                (md->skillid == AL_HEAL
-                 || (md->skillid == ALL_RESURRECTION && bl->type != BL_PC))
+                (md->skillid == AL_HEAL)
                 && battle_check_undead(battle_get_race(bl),
                                         battle_get_elem_type(bl)))
                 skill_castend_damage_id(&md->bl, bl, md->skillid,
@@ -3514,71 +3473,16 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return;
-    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-        return;
-    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-        return;
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return;
 
     if (battle_config.monster_skill_reiteration == 0)
     {
         range = -1;
-        switch (md->skillid)
-        {
-            case MG_SAFETYWALL:
-            case WZ_FIREPILLAR:
-            case HT_SKIDTRAP:
-            case HT_LANDMINE:
-            case HT_ANKLESNARE:
-            case HT_SHOCKWAVE:
-            case HT_SANDMAN:
-            case HT_FLASHER:
-            case HT_FREEZINGTRAP:
-            case HT_BLASTMINE:
-            case HT_CLAYMORETRAP:
-            case PF_SPIDERWEB: /* スパイダーウェッブ */
-                range = 0;
-                break;
-            case AL_PNEUMA:
-            case AL_WARP:
-                range = 1;
-                break;
-        }
-        if (range >= 0)
-        {
-            if (skill_check_unit_range(md->bl.m, md->skillx, md->skilly, range, md->skillid) > 0)
-                return;
-        }
     }
     if (battle_config.monster_skill_nofootset == 1)
     {
         range = -1;
-        switch (md->skillid)
-        {
-            case WZ_FIREPILLAR:
-            case HT_SKIDTRAP:
-            case HT_LANDMINE:
-            case HT_ANKLESNARE:
-            case HT_SHOCKWAVE:
-            case HT_SANDMAN:
-            case HT_FLASHER:
-            case HT_FREEZINGTRAP:
-            case HT_BLASTMINE:
-            case HT_CLAYMORETRAP:
-            case AM_DEMONSTRATION:
-            case PF_SPIDERWEB: /* スパイダーウェッブ */
-                range = 1;
-                break;
-            case AL_WARP:
-                range = 0;
-                break;
-        }
-        if (range >= 0)
-        {
-            if (skill_check_unit_range2(md->bl.m, md->skillx, md->skilly, range) > 0)
-                return;
-        }
     }
 
     if (battle_config.monster_land_skill_limit == 1)
@@ -3610,11 +3514,6 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
                 md->skillid, md->mob_class);
     mob_stop_walking(md, 0);
-
-    skill_castend_pos2(&md->bl, md->skillx, md->skilly, md->skillid,
-                        md->skilllv, tick, BCT_ZERO);
-
-    return;
 }
 
 /*==========================================
@@ -3646,19 +3545,10 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
         return 0;
-    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-        return 0;
-    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
-        return 0;
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return 0;
 
-    if (bool(md->option & Option::CLOAK)
-        && skill_id == TF_HIDING)
-        return 0;
-    if (bool(md->option & Option::HIDE2)
-        && skill_id != TF_HIDING && skill_id != AS_GRIMTOOTH
-        && skill_id != RG_BACKSTAP && skill_id != RG_RAID)
+    if (bool(md->option & Option::HIDE2))
         return 0;
 
     if (skill_get_inf2(skill_id) & 0x200 && md->bl.id == target->id)
@@ -3678,20 +3568,6 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     md->state.skillcastcancel = ms->cancel;
     md->skilldelay[skill_idx] = gettick();
 
-    switch (skill_id)
-    {                           /* 何か特殊な処理が必要 */
-        case ALL_RESURRECTION: /* リザレクション */
-            if (target->type != BL_PC
-                && battle_check_undead(battle_get_race(target),
-                                        battle_get_elem_type(target)))
-            {                   /* 敵がアンデッドなら */
-                casttime =
-                    skill_castfix(&md->bl,
-                                   skill_get_cast(PR_TURNUNDEAD, skill_lv));
-            }
-            break;
-    }
-
     if (battle_config.mob_skill_log == 1)
         PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n",
              target->id, skill_id, skill_lv,
@@ -3708,7 +3584,7 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     md->skillidx = skill_idx;
 
     if (!(battle_config.monster_cloak_check_type & 2)
-        && md->sc_data[SC_CLOAKING].timer != -1 && md->skillid != AS_CLOAKING)
+        && md->sc_data[SC_CLOAKING].timer != -1)
         skill_status_change_end(&md->bl, SC_CLOAKING, -1);
 
     if (casttime > 0)
@@ -3752,10 +3628,6 @@ int mobskill_use_pos(struct mob_data *md,
         || md->sc_data[SC_DIVINA].timer != -1
         || md->sc_data[SC_ROKISWEIL].timer != -1
         || md->sc_data[SC_STEELBODY].timer != -1)
-        return 0;
-    if (md->sc_data[SC_AUTOCOUNTER].timer != -1 && md->skillid != KN_AUTOCOUNTER)   //オートカウンター
-        return 0;
-    if (md->sc_data[SC_BLADESTOP].timer != -1)  //白刃取り
         return 0;
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return 0;

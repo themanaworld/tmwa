@@ -140,9 +140,6 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
 int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
         SkillID skillid, int skilllv, unsigned int tick,
         BCT flag);
-int skill_castend_pos2(struct block_list *src, int x, int y,
-        SkillID skillid, int skilllv, unsigned int tick,
-        BCT flag);
 
 int skill_update_heal_animation(struct map_session_data *sd); // [Fate]  Check whether the healing flag must be updated, do so if needed
 

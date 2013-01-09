@@ -3372,7 +3372,7 @@ enum
     //MF_GVG = 9,
     //MF_GVG_NOPARTY = 10,
     MF_NOTRADE = 11,
-    MF_NOSKILL = 12,
+    //MF_NOSKILL = 12,
     MF_NOWARP = 13,
     MF_NOPVP = 14,
     MF_NOICEWALL = 15,
@@ -3415,9 +3415,6 @@ void builtin_setmapflag(ScriptState *st)
                 break;
             case MF_NOTRADE:
                 map[m].flag.notrade = 1;
-                break;
-            case MF_NOSKILL:
-                map[m].flag.noskill = 1;
                 break;
             case MF_NOWARP:
                 map[m].flag.nowarp = 1;
@@ -3481,9 +3478,6 @@ void builtin_removemapflag(ScriptState *st)
             case MF_NOZENYPENALTY:
                 map[m].flag.nozenypenalty = 0;
                 break;
-            case MF_NOSKILL:
-                map[m].flag.noskill = 0;
-                break;
             case MF_NOWARP:
                 map[m].flag.nowarp = 0;
                 break;
@@ -3546,9 +3540,6 @@ void builtin_getmapflag(ScriptState *st)
                 break;
             case MF_NOZENYPENALTY:
                 r = map[m].flag.nozenypenalty;
-                break;
-            case MF_NOSKILL:
-                r = map[m].flag.noskill;
                 break;
             case MF_NOWARP:
                 r = map[m].flag.nowarp;

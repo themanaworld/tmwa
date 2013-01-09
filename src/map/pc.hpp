@@ -37,21 +37,6 @@ bool pc_ishiding(struct map_session_data *sd)
     return bool(sd->status.option & Option::OLD_ANY_HIDE);
 }
 inline
-bool pc_iscarton(struct map_session_data *sd)
-{
-    return bool(sd->status.option & Option::CART_MASK);
-}
-inline
-bool pc_isfalcon(struct map_session_data *sd)
-{
-    return bool(sd->status.option & Option::FALCON);
-}
-inline
-bool pc_isriding(struct map_session_data *sd)
-{
-    return bool(sd->status.option & Option::RIDING);
-}
-inline
 bool pc_isinvisible(struct map_session_data *sd)
 {
     return bool(sd->status.option & Option::HIDE);
@@ -119,9 +104,6 @@ int pc_skill(struct map_session_data *, SkillID, int, int);
 int pc_steal_item(struct map_session_data *sd, struct block_list *bl);
 int pc_steal_coin(struct map_session_data *sd, struct block_list *bl);
 
-int pc_modifybuyvalue(struct map_session_data *, int);
-int pc_modifysellvalue(struct map_session_data *, int);
-
 int pc_attack(struct map_session_data *, int, int);
 int pc_stopattack(struct map_session_data *);
 
@@ -152,9 +134,6 @@ int pc_itemheal(struct map_session_data *sd, int hp, int sp);
 int pc_percentheal(struct map_session_data *sd, int, int);
 int pc_jobchange(struct map_session_data *, int, int);
 int pc_setoption(struct map_session_data *, Option);
-int pc_setcart(struct map_session_data *sd, int type);
-int pc_setfalcon(struct map_session_data *sd);
-int pc_setriding(struct map_session_data *sd);
 int pc_changelook(struct map_session_data *, LOOK, int);
 
 int pc_readparam(struct map_session_data *, SP);

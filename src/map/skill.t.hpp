@@ -135,8 +135,7 @@ enum class StatusChange : uint16_t
 #define SC_PROVIDENCE StatusChange::SC_PROVIDENCE
     SC_DEFENDER         = 62,
 #define SC_DEFENDER StatusChange::SC_DEFENDER
-    SC_AUTOSPELL        = 65,
-#define SC_AUTOSPELL StatusChange::SC_AUTOSPELL
+
     SC_SPEARSQUICKEN    = 68,
 #define SC_SPEARSQUICKEN StatusChange::SC_SPEARSQUICKEN
 
@@ -151,8 +150,6 @@ enum class StatusChange : uint16_t
     SC_STEELBODY        = 87,
 #define SC_STEELBODY StatusChange::SC_STEELBODY
 
-    SC_COMBO            = 89,
-#define SC_COMBO StatusChange::SC_COMBO
     SC_FLAMELAUNCHER    = 90,
 #define SC_FLAMELAUNCHER StatusChange::SC_FLAMELAUNCHER
     SC_FROSTWEAPON      = 91,
@@ -225,8 +222,7 @@ enum class StatusChange : uint16_t
 #define SC_SAFETYWALL StatusChange::SC_SAFETYWALL
     SC_PNEUMA           = 141,
 #define SC_PNEUMA StatusChange::SC_PNEUMA
-    SC_WATERBALL        = 142,
-#define SC_WATERBALL StatusChange::SC_WATERBALL
+
     SC_ANKLE            = 143,
 #define SC_ANKLE StatusChange::SC_ANKLE
     SC_DANCING          = 144,
@@ -240,24 +236,17 @@ enum class StatusChange : uint16_t
 #define SC_MAGICROD StatusChange::SC_MAGICROD
     SC_SIGHT            = 150,
 #define SC_SIGHT StatusChange::SC_SIGHT
-    SC_RUWACH           = 151,
-#define SC_RUWACH StatusChange::SC_RUWACH
-    SC_AUTOCOUNTER      = 152,
-#define SC_AUTOCOUNTER StatusChange::SC_AUTOCOUNTER
+
     SC_VOLCANO          = 153,
 #define SC_VOLCANO StatusChange::SC_VOLCANO
     SC_DELUGE           = 154,
 #define SC_DELUGE StatusChange::SC_DELUGE
     SC_VIOLENTGALE      = 155,
 #define SC_VIOLENTGALE StatusChange::SC_VIOLENTGALE
-    SC_BLADESTOP_WAIT   = 156,
-#define SC_BLADESTOP_WAIT StatusChange::SC_BLADESTOP_WAIT
-    SC_BLADESTOP        = 157,
-#define SC_BLADESTOP StatusChange::SC_BLADESTOP
+
     SC_EXTREMITYFIST    = 158,
 #define SC_EXTREMITYFIST StatusChange::SC_EXTREMITYFIST
-    SC_GRAFFITI         = 159,
-#define SC_GRAFFITI StatusChange::SC_GRAFFITI
+
     SC_ENSEMBLE         = 159,
 #define SC_ENSEMBLE StatusChange::SC_ENSEMBLE
 
@@ -319,7 +308,7 @@ enum class StatusChange : uint16_t
 #define SC_WEDDING StatusChange::SC_WEDDING
     SC_NOCHAT           = 188,
 #define SC_NOCHAT StatusChange::SC_NOCHAT
-    SC_SPLASHER         = 189,
+    SC_SPLASHER         = 189,  // ?
 #define SC_SPLASHER StatusChange::SC_SPLASHER
     SC_SELFDESTRUCTION  = 190,
 #define SC_SELFDESTRUCTION StatusChange::SC_SELFDESTRUCTION
@@ -416,331 +405,18 @@ enum class SkillID : uint16_t
     NV_PARTY            = 3,    //
 #define NV_PARTY SkillID::NV_PARTY
 
-    SM_SWORD            = 4,    //
-#define SM_SWORD SkillID::SM_SWORD
-    SM_TWOHAND          = 5,
-#define SM_TWOHAND SkillID::SM_TWOHAND
-    SM_RECOVERY         = 6,    //
-#define SM_RECOVERY SkillID::SM_RECOVERY
-    SM_BASH             = 7,
-#define SM_BASH SkillID::SM_BASH
-    SM_PROVOKE          = 8,
-#define SM_PROVOKE SkillID::SM_PROVOKE
-    SM_MAGNUM           = 9,
-#define SM_MAGNUM SkillID::SM_MAGNUM
-    SM_ENDURE           = 10,
-#define SM_ENDURE SkillID::SM_ENDURE
-
-    MG_SRECOVERY        = 11,   //
-#define MG_SRECOVERY SkillID::MG_SRECOVERY
-    MG_SIGHT            = 12,
-#define MG_SIGHT SkillID::MG_SIGHT
-    MG_NAPALMBEAT       = 13,
-#define MG_NAPALMBEAT SkillID::MG_NAPALMBEAT
-    MG_SAFETYWALL       = 14,
-#define MG_SAFETYWALL SkillID::MG_SAFETYWALL
-    MG_SOULSTRIKE       = 15,
-#define MG_SOULSTRIKE SkillID::MG_SOULSTRIKE
-    MG_COLDBOLT         = 16,
-#define MG_COLDBOLT SkillID::MG_COLDBOLT
-    MG_FROSTDIVER       = 17,
-#define MG_FROSTDIVER SkillID::MG_FROSTDIVER
-    MG_STONECURSE       = 18,
-#define MG_STONECURSE SkillID::MG_STONECURSE
-    MG_FIREBALL         = 19,
-#define MG_FIREBALL SkillID::MG_FIREBALL
-    MG_FIREWALL         = 20,
-#define MG_FIREWALL SkillID::MG_FIREWALL
-    MG_FIREBOLT         = 21,
-#define MG_FIREBOLT SkillID::MG_FIREBOLT
-    MG_LIGHTNINGBOLT    = 22,
-#define MG_LIGHTNINGBOLT SkillID::MG_LIGHTNINGBOLT
-    MG_THUNDERSTORM     = 23,
-#define MG_THUNDERSTORM SkillID::MG_THUNDERSTORM
-
-    AL_DP               = 24,
-#define AL_DP SkillID::AL_DP
-    AL_DEMONBANE        = 25,
-#define AL_DEMONBANE SkillID::AL_DEMONBANE
-    AL_RUWACH           = 26,
-#define AL_RUWACH SkillID::AL_RUWACH
-    AL_PNEUMA           = 27,
-#define AL_PNEUMA SkillID::AL_PNEUMA
     AL_TELEPORT         = 28,   //
 #define AL_TELEPORT SkillID::AL_TELEPORT
-    AL_WARP             = 29,
-#define AL_WARP SkillID::AL_WARP
     AL_HEAL             = 30,   //
 #define AL_HEAL SkillID::AL_HEAL
-    AL_INCAGI           = 31,
-#define AL_INCAGI SkillID::AL_INCAGI
-    AL_DECAGI           = 32,
-#define AL_DECAGI SkillID::AL_DECAGI
-    AL_HOLYWATER        = 33,
-#define AL_HOLYWATER SkillID::AL_HOLYWATER
-    AL_CRUCIS           = 34,
-#define AL_CRUCIS SkillID::AL_CRUCIS
-    AL_ANGELUS          = 35,
-#define AL_ANGELUS SkillID::AL_ANGELUS
-    AL_BLESSING         = 36,
-#define AL_BLESSING SkillID::AL_BLESSING
-    AL_CURE             = 37,
-#define AL_CURE SkillID::AL_CURE
 
-    MC_INCCARRY         = 38,   //
-#define MC_INCCARRY SkillID::MC_INCCARRY
-    MC_DISCOUNT         = 39,   //
-#define MC_DISCOUNT SkillID::MC_DISCOUNT
-    MC_OVERCHARGE       = 40,   //
-#define MC_OVERCHARGE SkillID::MC_OVERCHARGE
-    MC_PUSHCART         = 41,
-#define MC_PUSHCART SkillID::MC_PUSHCART
-    MC_IDENTIFY         = 42,
-#define MC_IDENTIFY SkillID::MC_IDENTIFY
-    MC_VENDING          = 43,
-#define MC_VENDING SkillID::MC_VENDING
-    MC_MAMMONITE        = 44,
-#define MC_MAMMONITE SkillID::MC_MAMMONITE
-
-    AC_OWL              = 45,   //
+    AC_OWL              = 45,   // Mallard's Eye
 #define AC_OWL SkillID::AC_OWL
-    AC_VULTURE          = 46,
-#define AC_VULTURE SkillID::AC_VULTURE
-    AC_CONCENTRATION    = 47,
-#define AC_CONCENTRATION SkillID::AC_CONCENTRATION
-    AC_DOUBLE           = 48,
-#define AC_DOUBLE SkillID::AC_DOUBLE
-    AC_SHOWER           = 49,
-#define AC_SHOWER SkillID::AC_SHOWER
-
-    TF_DOUBLE           = 50,   //
-#define TF_DOUBLE SkillID::TF_DOUBLE
-    TF_MISS             = 51,   //
-#define TF_MISS SkillID::TF_MISS
-    TF_STEAL            = 52,
-#define TF_STEAL SkillID::TF_STEAL
-    TF_HIDING           = 53,
-#define TF_HIDING SkillID::TF_HIDING
-    TF_POISON           = 54,   //
-#define TF_POISON SkillID::TF_POISON
-    TF_DETOXIFY         = 55,
-#define TF_DETOXIFY SkillID::TF_DETOXIFY
-
-    ALL_RESURRECTION    = 56,
-#define ALL_RESURRECTION SkillID::ALL_RESURRECTION
-
-    KN_SPEARMASTERY     = 57,
-#define KN_SPEARMASTERY SkillID::KN_SPEARMASTERY
-    KN_PIERCE           = 58,
-#define KN_PIERCE SkillID::KN_PIERCE
-    KN_BRANDISHSPEAR    = 59,
-#define KN_BRANDISHSPEAR SkillID::KN_BRANDISHSPEAR
-    KN_SPEARSTAB        = 60,
-#define KN_SPEARSTAB SkillID::KN_SPEARSTAB
-    KN_SPEARBOOMERANG   = 61,
-#define KN_SPEARBOOMERANG SkillID::KN_SPEARBOOMERANG
-    KN_TWOHANDQUICKEN   = 62,
-#define KN_TWOHANDQUICKEN SkillID::KN_TWOHANDQUICKEN
-    KN_AUTOCOUNTER      = 63,
-#define KN_AUTOCOUNTER SkillID::KN_AUTOCOUNTER
-    KN_BOWLINGBASH      = 64,
-#define KN_BOWLINGBASH SkillID::KN_BOWLINGBASH
-    KN_RIDING           = 65,
-#define KN_RIDING SkillID::KN_RIDING
-    KN_CAVALIERMASTERY  = 66,
-#define KN_CAVALIERMASTERY SkillID::KN_CAVALIERMASTERY
-
-    PR_MACEMASTERY      = 67,
-#define PR_MACEMASTERY SkillID::PR_MACEMASTERY
-    PR_IMPOSITIO        = 68,
-#define PR_IMPOSITIO SkillID::PR_IMPOSITIO
-    PR_SUFFRAGIUM       = 69,
-#define PR_SUFFRAGIUM SkillID::PR_SUFFRAGIUM
-    PR_ASPERSIO         = 70,
-#define PR_ASPERSIO SkillID::PR_ASPERSIO
-    PR_BENEDICTIO       = 71,
-#define PR_BENEDICTIO SkillID::PR_BENEDICTIO
-    PR_SANCTUARY        = 72,
-#define PR_SANCTUARY SkillID::PR_SANCTUARY
-    PR_SLOWPOISON       = 73,
-#define PR_SLOWPOISON SkillID::PR_SLOWPOISON
-    PR_STRECOVERY       = 74,
-#define PR_STRECOVERY SkillID::PR_STRECOVERY
-    PR_KYRIE            = 75,
-#define PR_KYRIE SkillID::PR_KYRIE
-    PR_MAGNIFICAT       = 76,
-#define PR_MAGNIFICAT SkillID::PR_MAGNIFICAT
-    PR_GLORIA           = 77,
-#define PR_GLORIA SkillID::PR_GLORIA
-    PR_LEXDIVINA        = 78,
-#define PR_LEXDIVINA SkillID::PR_LEXDIVINA
-    PR_TURNUNDEAD       = 79,
-#define PR_TURNUNDEAD SkillID::PR_TURNUNDEAD
-    PR_LEXAETERNA       = 80,
-#define PR_LEXAETERNA SkillID::PR_LEXAETERNA
-    PR_MAGNUS           = 81,
-#define PR_MAGNUS SkillID::PR_MAGNUS
-
-    WZ_FIREPILLAR       = 82,
-#define WZ_FIREPILLAR SkillID::WZ_FIREPILLAR
-    WZ_SIGHTRASHER      = 83,
-#define WZ_SIGHTRASHER SkillID::WZ_SIGHTRASHER
-    WZ_FIREIVY          = 84,
-#define WZ_FIREIVY SkillID::WZ_FIREIVY
-    WZ_METEOR           = 85,
-#define WZ_METEOR SkillID::WZ_METEOR
-    WZ_JUPITEL          = 86,
-#define WZ_JUPITEL SkillID::WZ_JUPITEL
-    WZ_VERMILION        = 87,
-#define WZ_VERMILION SkillID::WZ_VERMILION
-    WZ_WATERBALL        = 88,
-#define WZ_WATERBALL SkillID::WZ_WATERBALL
-    WZ_ICEWALL          = 89,
-#define WZ_ICEWALL SkillID::WZ_ICEWALL
-    WZ_FROSTNOVA        = 90,
-#define WZ_FROSTNOVA SkillID::WZ_FROSTNOVA
-    WZ_STORMGUST        = 91,
-#define WZ_STORMGUST SkillID::WZ_STORMGUST
-    WZ_EARTHSPIKE       = 92,
-#define WZ_EARTHSPIKE SkillID::WZ_EARTHSPIKE
-    WZ_HEAVENDRIVE      = 93,
-#define WZ_HEAVENDRIVE SkillID::WZ_HEAVENDRIVE
-    WZ_QUAGMIRE         = 94,
-#define WZ_QUAGMIRE SkillID::WZ_QUAGMIRE
-    WZ_ESTIMATION       = 95,
-#define WZ_ESTIMATION SkillID::WZ_ESTIMATION
-
-    BS_IRON             = 96,
-#define BS_IRON SkillID::BS_IRON
-    BS_STEEL            = 97,
-#define BS_STEEL SkillID::BS_STEEL
-    BS_ENCHANTEDSTONE   = 98,
-#define BS_ENCHANTEDSTONE SkillID::BS_ENCHANTEDSTONE
-    BS_ORIDEOCON        = 99,
-#define BS_ORIDEOCON SkillID::BS_ORIDEOCON
-    BS_DAGGER           = 100,
-#define BS_DAGGER SkillID::BS_DAGGER
-    BS_SWORD            = 101,
-#define BS_SWORD SkillID::BS_SWORD
-    BS_TWOHANDSWORD     = 102,
-#define BS_TWOHANDSWORD SkillID::BS_TWOHANDSWORD
-    BS_AXE              = 103,
-#define BS_AXE SkillID::BS_AXE
-    BS_MACE             = 104,
-#define BS_MACE SkillID::BS_MACE
-    BS_KNUCKLE          = 105,
-#define BS_KNUCKLE SkillID::BS_KNUCKLE
-    BS_SPEAR            = 106,
-#define BS_SPEAR SkillID::BS_SPEAR
-    BS_HILTBINDING      = 107,
-#define BS_HILTBINDING SkillID::BS_HILTBINDING
-    BS_FINDINGORE       = 108,
-#define BS_FINDINGORE SkillID::BS_FINDINGORE
-    BS_WEAPONRESEARCH   = 109,
-#define BS_WEAPONRESEARCH SkillID::BS_WEAPONRESEARCH
-    BS_REPAIRWEAPON     = 110,
-#define BS_REPAIRWEAPON SkillID::BS_REPAIRWEAPON
-    BS_SKINTEMPER       = 111,
-#define BS_SKINTEMPER SkillID::BS_SKINTEMPER
-    BS_HAMMERFALL       = 112,
-#define BS_HAMMERFALL SkillID::BS_HAMMERFALL
-    BS_ADRENALINE       = 113,
-#define BS_ADRENALINE SkillID::BS_ADRENALINE
-    BS_WEAPONPERFECT    = 114,
-#define BS_WEAPONPERFECT SkillID::BS_WEAPONPERFECT
-    BS_OVERTHRUST       = 115,
-#define BS_OVERTHRUST SkillID::BS_OVERTHRUST
-    BS_MAXIMIZE         = 116,
-#define BS_MAXIMIZE SkillID::BS_MAXIMIZE
-
-    HT_SKIDTRAP         = 117,
-#define HT_SKIDTRAP SkillID::HT_SKIDTRAP
-    HT_LANDMINE         = 118,
-#define HT_LANDMINE SkillID::HT_LANDMINE
-    HT_ANKLESNARE       = 119,
-#define HT_ANKLESNARE SkillID::HT_ANKLESNARE
-    HT_SHOCKWAVE        = 120,
-#define HT_SHOCKWAVE SkillID::HT_SHOCKWAVE
-    HT_SANDMAN          = 121,
-#define HT_SANDMAN SkillID::HT_SANDMAN
-    HT_FLASHER          = 122,
-#define HT_FLASHER SkillID::HT_FLASHER
-    HT_FREEZINGTRAP     = 123,
-#define HT_FREEZINGTRAP SkillID::HT_FREEZINGTRAP
-    HT_BLASTMINE        = 124,
-#define HT_BLASTMINE SkillID::HT_BLASTMINE
-    HT_CLAYMORETRAP     = 125,
-#define HT_CLAYMORETRAP SkillID::HT_CLAYMORETRAP
-    HT_REMOVETRAP       = 126,
-#define HT_REMOVETRAP SkillID::HT_REMOVETRAP
-    HT_TALKIEBOX        = 127,
-#define HT_TALKIEBOX SkillID::HT_TALKIEBOX
-    HT_BEASTBANE        = 128,
-#define HT_BEASTBANE SkillID::HT_BEASTBANE
-    HT_FALCON           = 129,
-#define HT_FALCON SkillID::HT_FALCON
-    HT_STEELCROW        = 130,
-#define HT_STEELCROW SkillID::HT_STEELCROW
-    HT_BLITZBEAT        = 131,
-#define HT_BLITZBEAT SkillID::HT_BLITZBEAT
-    HT_DETECTING        = 132,
-#define HT_DETECTING SkillID::HT_DETECTING
-    HT_SPRINGTRAP       = 133,
-#define HT_SPRINGTRAP SkillID::HT_SPRINGTRAP
-
-    AS_RIGHT            = 134,
-#define AS_RIGHT SkillID::AS_RIGHT
-    AS_LEFT             = 135,
-#define AS_LEFT SkillID::AS_LEFT
-    AS_KATAR            = 136,
-#define AS_KATAR SkillID::AS_KATAR
-    AS_CLOAKING         = 137,
-#define AS_CLOAKING SkillID::AS_CLOAKING
-    AS_SONICBLOW        = 138,
-#define AS_SONICBLOW SkillID::AS_SONICBLOW
-    AS_GRIMTOOTH        = 139,
-#define AS_GRIMTOOTH SkillID::AS_GRIMTOOTH
-    AS_ENCHANTPOISON    = 140,
-#define AS_ENCHANTPOISON SkillID::AS_ENCHANTPOISON
-    AS_POISONREACT      = 141,
-#define AS_POISONREACT SkillID::AS_POISONREACT
-    AS_VENOMDUST        = 142,
-#define AS_VENOMDUST SkillID::AS_VENOMDUST
-    AS_SPLASHER         = 143,
-#define AS_SPLASHER SkillID::AS_SPLASHER
 
     NV_FIRSTAID         = 144,  //
 #define NV_FIRSTAID SkillID::NV_FIRSTAID
     NV_TRICKDEAD        = 145,
 #define NV_TRICKDEAD SkillID::NV_TRICKDEAD
-    SM_MOVINGRECOVERY   = 146,  //
-#define SM_MOVINGRECOVERY SkillID::SM_MOVINGRECOVERY
-    SM_FATALBLOW        = 147,
-#define SM_FATALBLOW SkillID::SM_FATALBLOW
-    SM_AUTOBERSERK      = 148,  //
-#define SM_AUTOBERSERK SkillID::SM_AUTOBERSERK
-    AC_MAKINGARROW      = 149,
-#define AC_MAKINGARROW SkillID::AC_MAKINGARROW
-    AC_CHARGEARROW      = 150,
-#define AC_CHARGEARROW SkillID::AC_CHARGEARROW
-    TF_SPRINKLESAND     = 151,
-#define TF_SPRINKLESAND SkillID::TF_SPRINKLESAND
-    TF_BACKSLIDING      = 152,  //
-#define TF_BACKSLIDING SkillID::TF_BACKSLIDING
-    TF_PICKSTONE        = 153,
-#define TF_PICKSTONE SkillID::TF_PICKSTONE
-    TF_THROWSTONE       = 154,
-#define TF_THROWSTONE SkillID::TF_THROWSTONE
-    MC_CARTREVOLUTION   = 155,
-#define MC_CARTREVOLUTION SkillID::MC_CARTREVOLUTION
-    MC_CHANGECART       = 156,
-#define MC_CHANGECART SkillID::MC_CHANGECART
-    MC_LOUD             = 157,
-#define MC_LOUD SkillID::MC_LOUD
-    AL_HOLYLIGHT        = 158,
-#define AL_HOLYLIGHT SkillID::AL_HOLYLIGHT
-    MG_ENERGYCOAT       = 159,
-#define MG_ENERGYCOAT SkillID::MG_ENERGYCOAT
 
     NPC_PIERCINGATT     = 160,
 #define NPC_PIERCINGATT SkillID::NPC_PIERCINGATT
@@ -800,7 +476,7 @@ enum class SkillID : uint16_t
 #define NPC_GROUNDATTACK SkillID::NPC_GROUNDATTACK
     NPC_FIREATTACK      = 188,
 #define NPC_FIREATTACK SkillID::NPC_FIREATTACK
-    NPC_WINDATTACK      = 189,
+    NPC_WINDATTACK      = 189,  // ?
 #define NPC_WINDATTACK SkillID::NPC_WINDATTACK
 
     NPC_POISONATTACK    = 190,  //
@@ -848,265 +524,8 @@ enum class SkillID : uint16_t
     NPC_SUMMONMONSTER   = 211,
 #define NPC_SUMMONMONSTER SkillID::NPC_SUMMONMONSTER
 
-    RG_SNATCHER         = 212,
-#define RG_SNATCHER SkillID::RG_SNATCHER
-    RG_STEALCOIN        = 213,
-#define RG_STEALCOIN SkillID::RG_STEALCOIN
-    RG_BACKSTAP         = 214,
-#define RG_BACKSTAP SkillID::RG_BACKSTAP
-    RG_TUNNELDRIVE      = 215,
-#define RG_TUNNELDRIVE SkillID::RG_TUNNELDRIVE
-    RG_RAID             = 216,
-#define RG_RAID SkillID::RG_RAID
-    RG_STRIPWEAPON      = 217,
-#define RG_STRIPWEAPON SkillID::RG_STRIPWEAPON
-    RG_STRIPSHIELD      = 218,
-#define RG_STRIPSHIELD SkillID::RG_STRIPSHIELD
-    RG_STRIPARMOR       = 219,
-#define RG_STRIPARMOR SkillID::RG_STRIPARMOR
-    RG_STRIPHELM        = 220,
-#define RG_STRIPHELM SkillID::RG_STRIPHELM
-    RG_INTIMIDATE       = 221,
-#define RG_INTIMIDATE SkillID::RG_INTIMIDATE
-    RG_GRAFFITI         = 222,
-#define RG_GRAFFITI SkillID::RG_GRAFFITI
-    RG_FLAGGRAFFITI     = 223,
-#define RG_FLAGGRAFFITI SkillID::RG_FLAGGRAFFITI
-    RG_CLEANER          = 224,
-#define RG_CLEANER SkillID::RG_CLEANER
-    RG_GANGSTER         = 225,
-#define RG_GANGSTER SkillID::RG_GANGSTER
-    RG_COMPULSION       = 226,
-#define RG_COMPULSION SkillID::RG_COMPULSION
-    RG_PLAGIARISM       = 227,
-#define RG_PLAGIARISM SkillID::RG_PLAGIARISM
-
-    AM_AXEMASTERY       = 228,
-#define AM_AXEMASTERY SkillID::AM_AXEMASTERY
-    AM_LEARNINGPOTION   = 229,
-#define AM_LEARNINGPOTION SkillID::AM_LEARNINGPOTION
-    AM_PHARMACY         = 230,
-#define AM_PHARMACY SkillID::AM_PHARMACY
-    AM_DEMONSTRATION    = 231,
-#define AM_DEMONSTRATION SkillID::AM_DEMONSTRATION
-    AM_ACIDTERROR       = 232,
-#define AM_ACIDTERROR SkillID::AM_ACIDTERROR
-    AM_POTIONPITCHER    = 233,
-#define AM_POTIONPITCHER SkillID::AM_POTIONPITCHER
-    AM_CANNIBALIZE      = 234,
-#define AM_CANNIBALIZE SkillID::AM_CANNIBALIZE
-    AM_SPHEREMINE       = 235,
-#define AM_SPHEREMINE SkillID::AM_SPHEREMINE
-    AM_CP_WEAPON        = 236,
-#define AM_CP_WEAPON SkillID::AM_CP_WEAPON
-    AM_CP_SHIELD        = 237,
-#define AM_CP_SHIELD SkillID::AM_CP_SHIELD
-    AM_CP_ARMOR         = 238,
-#define AM_CP_ARMOR SkillID::AM_CP_ARMOR
-    AM_CP_HELM          = 239,
-#define AM_CP_HELM SkillID::AM_CP_HELM
-    AM_BIOETHICS        = 240,
-#define AM_BIOETHICS SkillID::AM_BIOETHICS
-    AM_BIOTECHNOLOGY    = 241,
-#define AM_BIOTECHNOLOGY SkillID::AM_BIOTECHNOLOGY
-    AM_CREATECREATURE   = 242,
-#define AM_CREATECREATURE SkillID::AM_CREATECREATURE
-    AM_CULTIVATION      = 243,
-#define AM_CULTIVATION SkillID::AM_CULTIVATION
-    AM_FLAMECONTROL     = 244,
-#define AM_FLAMECONTROL SkillID::AM_FLAMECONTROL
-    AM_CALLHOMUN        = 245,
-#define AM_CALLHOMUN SkillID::AM_CALLHOMUN
-    AM_REST             = 246,
-#define AM_REST SkillID::AM_REST
-    AM_DRILLMASTER      = 247,
-#define AM_DRILLMASTER SkillID::AM_DRILLMASTER
-    AM_HEALHOMUN        = 248,
-#define AM_HEALHOMUN SkillID::AM_HEALHOMUN
-    AM_RESURRECTHOMUN   = 249,
-#define AM_RESURRECTHOMUN SkillID::AM_RESURRECTHOMUN
-
-    CR_TRUST            = 250,
-#define CR_TRUST SkillID::CR_TRUST
-    CR_AUTOGUARD        = 251,
-#define CR_AUTOGUARD SkillID::CR_AUTOGUARD
-    CR_SHIELDCHARGE     = 252,
-#define CR_SHIELDCHARGE SkillID::CR_SHIELDCHARGE
-    CR_SHIELDBOOMERANG  = 253,
-#define CR_SHIELDBOOMERANG SkillID::CR_SHIELDBOOMERANG
-    CR_REFLECTSHIELD    = 254,
-#define CR_REFLECTSHIELD SkillID::CR_REFLECTSHIELD
-    CR_HOLYCROSS        = 255,
-#define CR_HOLYCROSS SkillID::CR_HOLYCROSS
-    CR_GRANDCROSS       = 256,
-#define CR_GRANDCROSS SkillID::CR_GRANDCROSS
-    CR_DEVOTION         = 257,
-#define CR_DEVOTION SkillID::CR_DEVOTION
-    CR_PROVIDENCE       = 258,
-#define CR_PROVIDENCE SkillID::CR_PROVIDENCE
-    CR_DEFENDER         = 259,
-#define CR_DEFENDER SkillID::CR_DEFENDER
-    CR_SPEARQUICKEN     = 260,
-#define CR_SPEARQUICKEN SkillID::CR_SPEARQUICKEN
-
-    MO_IRONHAND         = 261,
-#define MO_IRONHAND SkillID::MO_IRONHAND
-    MO_SPIRITSRECOVERY  = 262,
-#define MO_SPIRITSRECOVERY SkillID::MO_SPIRITSRECOVERY
-    MO_CALLSPIRITS      = 263,
-#define MO_CALLSPIRITS SkillID::MO_CALLSPIRITS
-    MO_ABSORBSPIRITS    = 264,
-#define MO_ABSORBSPIRITS SkillID::MO_ABSORBSPIRITS
-    MO_TRIPLEATTACK     = 265,
-#define MO_TRIPLEATTACK SkillID::MO_TRIPLEATTACK
-    MO_BODYRELOCATION   = 266,
-#define MO_BODYRELOCATION SkillID::MO_BODYRELOCATION
-    MO_DODGE            = 267,
-#define MO_DODGE SkillID::MO_DODGE
-    MO_INVESTIGATE      = 268,
-#define MO_INVESTIGATE SkillID::MO_INVESTIGATE
-    MO_FINGEROFFENSIVE  = 269,
-#define MO_FINGEROFFENSIVE SkillID::MO_FINGEROFFENSIVE
-    MO_STEELBODY        = 270,
-#define MO_STEELBODY SkillID::MO_STEELBODY
-    MO_BLADESTOP        = 271,
-#define MO_BLADESTOP SkillID::MO_BLADESTOP
-    MO_EXPLOSIONSPIRITS = 272,
-#define MO_EXPLOSIONSPIRITS SkillID::MO_EXPLOSIONSPIRITS
-    MO_EXTREMITYFIST    = 273,
-#define MO_EXTREMITYFIST SkillID::MO_EXTREMITYFIST
-    MO_CHAINCOMBO       = 274,
-#define MO_CHAINCOMBO SkillID::MO_CHAINCOMBO
-    MO_COMBOFINISH      = 275,
-#define MO_COMBOFINISH SkillID::MO_COMBOFINISH
-
-    SA_ADVANCEDBOOK     = 276,
-#define SA_ADVANCEDBOOK SkillID::SA_ADVANCEDBOOK
-    SA_CASTCANCEL       = 277,
-#define SA_CASTCANCEL SkillID::SA_CASTCANCEL
-    SA_MAGICROD         = 278,
-#define SA_MAGICROD SkillID::SA_MAGICROD
-    SA_SPELLBREAKER     = 279,
-#define SA_SPELLBREAKER SkillID::SA_SPELLBREAKER
-    SA_FREECAST         = 280,
-#define SA_FREECAST SkillID::SA_FREECAST
-    SA_AUTOSPELL        = 281,
-#define SA_AUTOSPELL SkillID::SA_AUTOSPELL
-    SA_FLAMELAUNCHER    = 282,
-#define SA_FLAMELAUNCHER SkillID::SA_FLAMELAUNCHER
-    SA_FROSTWEAPON      = 283,
-#define SA_FROSTWEAPON SkillID::SA_FROSTWEAPON
-    SA_LIGHTNINGLOADER  = 284,
-#define SA_LIGHTNINGLOADER SkillID::SA_LIGHTNINGLOADER
-    SA_SEISMICWEAPON    = 285,
-#define SA_SEISMICWEAPON SkillID::SA_SEISMICWEAPON
-    SA_DRAGONOLOGY      = 286,
-#define SA_DRAGONOLOGY SkillID::SA_DRAGONOLOGY
-    SA_VOLCANO          = 287,
-#define SA_VOLCANO SkillID::SA_VOLCANO
-    SA_DELUGE           = 288,
-#define SA_DELUGE SkillID::SA_DELUGE
-    SA_VIOLENTGALE      = 289,
-#define SA_VIOLENTGALE SkillID::SA_VIOLENTGALE
-    SA_LANDPROTECTOR    = 290,
-#define SA_LANDPROTECTOR SkillID::SA_LANDPROTECTOR
-    SA_DISPELL          = 291,
-#define SA_DISPELL SkillID::SA_DISPELL
-    SA_ABRACADABRA      = 292,
-#define SA_ABRACADABRA SkillID::SA_ABRACADABRA
-    SA_MONOCELL         = 293,
-#define SA_MONOCELL SkillID::SA_MONOCELL
-    SA_CLASSCHANGE      = 294,
-#define SA_CLASSCHANGE SkillID::SA_CLASSCHANGE
-    SA_SUMMONMONSTER    = 295,
-#define SA_SUMMONMONSTER SkillID::SA_SUMMONMONSTER
-    SA_REVERSEORCISH    = 296,
-#define SA_REVERSEORCISH SkillID::SA_REVERSEORCISH
-    SA_DEATH            = 297,
-#define SA_DEATH SkillID::SA_DEATH
-    SA_FORTUNE          = 298,
-#define SA_FORTUNE SkillID::SA_FORTUNE
-    SA_TAMINGMONSTER    = 299,
-#define SA_TAMINGMONSTER SkillID::SA_TAMINGMONSTER
-    SA_QUESTION         = 300,
-#define SA_QUESTION SkillID::SA_QUESTION
-    SA_GRAVITY          = 301,
-#define SA_GRAVITY SkillID::SA_GRAVITY
-    SA_LEVELUP          = 302,
-#define SA_LEVELUP SkillID::SA_LEVELUP
-    SA_INSTANTDEATH     = 303,
-#define SA_INSTANTDEATH SkillID::SA_INSTANTDEATH
-    SA_FULLRECOVERY     = 304,
-#define SA_FULLRECOVERY SkillID::SA_FULLRECOVERY
-    SA_COMA             = 305,
-#define SA_COMA SkillID::SA_COMA
-
-    BD_ADAPTATION       = 306,
-#define BD_ADAPTATION SkillID::BD_ADAPTATION
-    BD_ENCORE           = 307,
-#define BD_ENCORE SkillID::BD_ENCORE
-    BD_LULLABY          = 308,
-#define BD_LULLABY SkillID::BD_LULLABY
-    BD_RICHMANKIM       = 309,
-#define BD_RICHMANKIM SkillID::BD_RICHMANKIM
-    BD_ETERNALCHAOS     = 310,
-#define BD_ETERNALCHAOS SkillID::BD_ETERNALCHAOS
-    BD_DRUMBATTLEFIELD  = 311,
-#define BD_DRUMBATTLEFIELD SkillID::BD_DRUMBATTLEFIELD
-    BD_RINGNIBELUNGEN   = 312,
-#define BD_RINGNIBELUNGEN SkillID::BD_RINGNIBELUNGEN
-    BD_ROKISWEIL        = 313,
-#define BD_ROKISWEIL SkillID::BD_ROKISWEIL
-    BD_INTOABYSS        = 314,
-#define BD_INTOABYSS SkillID::BD_INTOABYSS
-    BD_SIEGFRIED        = 315,
-#define BD_SIEGFRIED SkillID::BD_SIEGFRIED
-    BD_RAGNAROK         = 316,
-#define BD_RAGNAROK SkillID::BD_RAGNAROK
-
-    BA_MUSICALLESSON    = 317,
-#define BA_MUSICALLESSON SkillID::BA_MUSICALLESSON
-    BA_MUSICALSTRIKE    = 318,
-#define BA_MUSICALSTRIKE SkillID::BA_MUSICALSTRIKE
-    BA_DISSONANCE       = 319,
-#define BA_DISSONANCE SkillID::BA_DISSONANCE
-    BA_FROSTJOKE        = 320,
-#define BA_FROSTJOKE SkillID::BA_FROSTJOKE
-    BA_WHISTLE          = 321,
-#define BA_WHISTLE SkillID::BA_WHISTLE
-    BA_ASSASSINCROSS    = 322,
-#define BA_ASSASSINCROSS SkillID::BA_ASSASSINCROSS
-    BA_POEMBRAGI        = 323,
-#define BA_POEMBRAGI SkillID::BA_POEMBRAGI
-    BA_APPLEIDUN        = 324,
-#define BA_APPLEIDUN SkillID::BA_APPLEIDUN
-
-    DC_DANCINGLESSON    = 325,
-#define DC_DANCINGLESSON SkillID::DC_DANCINGLESSON
-    DC_THROWARROW       = 326,
-#define DC_THROWARROW SkillID::DC_THROWARROW
-    DC_UGLYDANCE        = 327,
-#define DC_UGLYDANCE SkillID::DC_UGLYDANCE
-    DC_SCREAM           = 328,
-#define DC_SCREAM SkillID::DC_SCREAM
-    DC_HUMMING          = 329,
-#define DC_HUMMING SkillID::DC_HUMMING
-    DC_DONTFORGETME     = 330,
-#define DC_DONTFORGETME SkillID::DC_DONTFORGETME
-    DC_FORTUNEKISS      = 331,
-#define DC_FORTUNEKISS SkillID::DC_FORTUNEKISS
-    DC_SERVICEFORYOU    = 332,
-#define DC_SERVICEFORYOU SkillID::DC_SERVICEFORYOU
-
     NPC_SELFDESTRUCTION2 = 333,
 #define NPC_SELFDESTRUCTION2 SkillID::NPC_SELFDESTRUCTION2
-
-    WE_MALE             = 334,
-#define WE_MALE SkillID::WE_MALE
-    WE_FEMALE           = 335,
-#define WE_FEMALE SkillID::WE_FEMALE
-    WE_CALLPARTNER      = 336,
-#define WE_CALLPARTNER SkillID::WE_CALLPARTNER
 
     NPC_DARKCROSS       = 338,
 #define NPC_DARKCROSS SkillID::NPC_DARKCROSS
@@ -1145,243 +564,6 @@ enum class SkillID : uint16_t
 #define TMW_ASTRAL_SOUL SkillID::TMW_ASTRAL_SOUL
     TMW_RAGING          = 355,  //
 #define TMW_RAGING SkillID::TMW_RAGING
-
-    LK_AURABLADE        = 356,
-#define LK_AURABLADE SkillID::LK_AURABLADE
-    LK_PARRYING         = 357,
-#define LK_PARRYING SkillID::LK_PARRYING
-    LK_CONCENTRATION    = 358,
-#define LK_CONCENTRATION SkillID::LK_CONCENTRATION
-    LK_TENSIONRELAX     = 359,
-#define LK_TENSIONRELAX SkillID::LK_TENSIONRELAX
-    LK_BERSERK          = 360,
-#define LK_BERSERK SkillID::LK_BERSERK
-    LK_FURY             = 361,
-#define LK_FURY SkillID::LK_FURY
-    HP_ASSUMPTIO        = 362,
-#define HP_ASSUMPTIO SkillID::HP_ASSUMPTIO
-    HP_BASILICA         = 363,
-#define HP_BASILICA SkillID::HP_BASILICA
-    HP_MEDITATIO        = 364,
-#define HP_MEDITATIO SkillID::HP_MEDITATIO
-    HW_SOULDRAIN        = 365,
-#define HW_SOULDRAIN SkillID::HW_SOULDRAIN
-    HW_MAGICCRASHER     = 366,
-#define HW_MAGICCRASHER SkillID::HW_MAGICCRASHER
-    HW_MAGICPOWER       = 367,
-#define HW_MAGICPOWER SkillID::HW_MAGICPOWER
-    PA_PRESSURE         = 368,
-#define PA_PRESSURE SkillID::PA_PRESSURE
-    PA_SACRIFICE        = 369,
-#define PA_SACRIFICE SkillID::PA_SACRIFICE
-    PA_GOSPEL           = 370,
-#define PA_GOSPEL SkillID::PA_GOSPEL
-    CH_PALMSTRIKE       = 371,
-#define CH_PALMSTRIKE SkillID::CH_PALMSTRIKE
-    CH_TIGERFIST        = 372,
-#define CH_TIGERFIST SkillID::CH_TIGERFIST
-    CH_CHAINCRUSH       = 373,
-#define CH_CHAINCRUSH SkillID::CH_CHAINCRUSH
-    PF_HPCONVERSION     = 374,
-#define PF_HPCONVERSION SkillID::PF_HPCONVERSION
-    PF_SOULCHANGE       = 375,
-#define PF_SOULCHANGE SkillID::PF_SOULCHANGE
-    PF_SOULBURN         = 376,
-#define PF_SOULBURN SkillID::PF_SOULBURN
-    ASC_KATAR           = 377,
-#define ASC_KATAR SkillID::ASC_KATAR
-    ASC_HALLUCINATION   = 378,
-#define ASC_HALLUCINATION SkillID::ASC_HALLUCINATION
-    ASC_EDP             = 379,
-#define ASC_EDP SkillID::ASC_EDP
-    ASC_BREAKER         = 380,
-#define ASC_BREAKER SkillID::ASC_BREAKER
-    SN_SIGHT            = 381,
-#define SN_SIGHT SkillID::SN_SIGHT
-    SN_FALCONASSAULT    = 382,
-#define SN_FALCONASSAULT SkillID::SN_FALCONASSAULT
-    SN_SHARPSHOOTING    = 383,
-#define SN_SHARPSHOOTING SkillID::SN_SHARPSHOOTING
-    SN_WINDWALK         = 384,
-#define SN_WINDWALK SkillID::SN_WINDWALK
-    WS_MELTDOWN         = 385,
-#define WS_MELTDOWN SkillID::WS_MELTDOWN
-    WS_CREATECOIN       = 386,
-#define WS_CREATECOIN SkillID::WS_CREATECOIN
-    WS_CREATENUGGET     = 387,
-#define WS_CREATENUGGET SkillID::WS_CREATENUGGET
-    WS_CARTBOOST        = 388,
-#define WS_CARTBOOST SkillID::WS_CARTBOOST
-    WS_SYSTEMCREATE     = 389,
-#define WS_SYSTEMCREATE SkillID::WS_SYSTEMCREATE
-    ST_CHASEWALK        = 390,
-#define ST_CHASEWALK SkillID::ST_CHASEWALK
-    ST_REJECTSWORD      = 391,
-#define ST_REJECTSWORD SkillID::ST_REJECTSWORD
-    ST_STEALBACKPACK    = 392,
-#define ST_STEALBACKPACK SkillID::ST_STEALBACKPACK
-    CR_ALCHEMY          = 393,
-#define CR_ALCHEMY SkillID::CR_ALCHEMY
-    CR_SYNTHESISPOTION  = 394,
-#define CR_SYNTHESISPOTION SkillID::CR_SYNTHESISPOTION
-    CG_ARROWVULCAN      = 395,
-#define CG_ARROWVULCAN SkillID::CG_ARROWVULCAN
-    CG_MOONLIT          = 396,
-#define CG_MOONLIT SkillID::CG_MOONLIT
-    CG_MARIONETTE       = 397,
-#define CG_MARIONETTE SkillID::CG_MARIONETTE
-    LK_SPIRALPIERCE     = 398,
-#define LK_SPIRALPIERCE SkillID::LK_SPIRALPIERCE
-    LK_HEADCRUSH        = 399,
-#define LK_HEADCRUSH SkillID::LK_HEADCRUSH
-    LK_JOINTBEAT        = 400,
-#define LK_JOINTBEAT SkillID::LK_JOINTBEAT
-    HW_NAPALMVULCAN     = 401,
-#define HW_NAPALMVULCAN SkillID::HW_NAPALMVULCAN
-    CH_SOULCOLLECT      = 402,
-#define CH_SOULCOLLECT SkillID::CH_SOULCOLLECT
-    PF_MINDBREAKER      = 403,
-#define PF_MINDBREAKER SkillID::PF_MINDBREAKER
-    PF_MEMORIZE         = 404,
-#define PF_MEMORIZE SkillID::PF_MEMORIZE
-    PF_FOGWALL          = 405,
-#define PF_FOGWALL SkillID::PF_FOGWALL
-    PF_SPIDERWEB        = 406,
-#define PF_SPIDERWEB SkillID::PF_SPIDERWEB
-    ASC_METEORASSAULT   = 407,
-#define ASC_METEORASSAULT SkillID::ASC_METEORASSAULT
-    ASC_CDP             = 408,
-#define ASC_CDP SkillID::ASC_CDP
-    WE_BABY             = 409,
-#define WE_BABY SkillID::WE_BABY
-    WE_CALLPARENT       = 410,
-#define WE_CALLPARENT SkillID::WE_CALLPARENT
-    WE_CALLBABY         = 411,
-#define WE_CALLBABY SkillID::WE_CALLBABY
-    TK_RUN              = 412,
-#define TK_RUN SkillID::TK_RUN
-    TK_READYSTORM       = 413,
-#define TK_READYSTORM SkillID::TK_READYSTORM
-    TK_STORMKICK        = 414,
-#define TK_STORMKICK SkillID::TK_STORMKICK
-    TK_READYDOWN        = 415,
-#define TK_READYDOWN SkillID::TK_READYDOWN
-    TK_DOWNKICK         = 416,
-#define TK_DOWNKICK SkillID::TK_DOWNKICK
-    TK_READYTURN        = 417,
-#define TK_READYTURN SkillID::TK_READYTURN
-    TK_TURNKICK         = 418,
-#define TK_TURNKICK SkillID::TK_TURNKICK
-    TK_READYCOUNTER     = 419,
-#define TK_READYCOUNTER SkillID::TK_READYCOUNTER
-    TK_COUNTER          = 420,
-#define TK_COUNTER SkillID::TK_COUNTER
-    TK_DODGE            = 421,
-#define TK_DODGE SkillID::TK_DODGE
-    TK_JUMPKICK         = 422,
-#define TK_JUMPKICK SkillID::TK_JUMPKICK
-    TK_HPTIME           = 423,
-#define TK_HPTIME SkillID::TK_HPTIME
-    TK_SPTIME           = 424,
-#define TK_SPTIME SkillID::TK_SPTIME
-    TK_POWER            = 425,
-#define TK_POWER SkillID::TK_POWER
-    TK_SEVENWIND        = 426,
-#define TK_SEVENWIND SkillID::TK_SEVENWIND
-    TK_HIGHJUMP         = 427,
-#define TK_HIGHJUMP SkillID::TK_HIGHJUMP
-    SG_FEEL             = 428,
-#define SG_FEEL SkillID::SG_FEEL
-    SG_SUN_WARM         = 429,
-#define SG_SUN_WARM SkillID::SG_SUN_WARM
-    SG_MOON_WARM        = 430,
-#define SG_MOON_WARM SkillID::SG_MOON_WARM
-    SG_STAR_WARM        = 431,
-#define SG_STAR_WARM SkillID::SG_STAR_WARM
-    SG_SUN_COMFORT      = 432,
-#define SG_SUN_COMFORT SkillID::SG_SUN_COMFORT
-    SG_MOON_COMFORT     = 433,
-#define SG_MOON_COMFORT SkillID::SG_MOON_COMFORT
-    SG_STAR_COMFORT     = 434,
-#define SG_STAR_COMFORT SkillID::SG_STAR_COMFORT
-    SG_HATE             = 435,
-#define SG_HATE SkillID::SG_HATE
-    SG_SUN_ANGER        = 436,
-#define SG_SUN_ANGER SkillID::SG_SUN_ANGER
-    SG_MOON_ANGER       = 437,
-#define SG_MOON_ANGER SkillID::SG_MOON_ANGER
-    SG_STAR_ANGER       = 438,
-#define SG_STAR_ANGER SkillID::SG_STAR_ANGER
-    SG_SUN_BLESS        = 439,
-#define SG_SUN_BLESS SkillID::SG_SUN_BLESS
-    SG_MOON_BLESS       = 440,
-#define SG_MOON_BLESS SkillID::SG_MOON_BLESS
-    SG_STAR_BLESS       = 441,
-#define SG_STAR_BLESS SkillID::SG_STAR_BLESS
-    SG_DEVIL            = 442,
-#define SG_DEVIL SkillID::SG_DEVIL
-    SG_FRIEND           = 443,
-#define SG_FRIEND SkillID::SG_FRIEND
-    SG_KNOWLEDGE        = 444,
-#define SG_KNOWLEDGE SkillID::SG_KNOWLEDGE
-    SG_FUSION           = 445,
-#define SG_FUSION SkillID::SG_FUSION
-    SL_ALCHEMIST        = 446,
-#define SL_ALCHEMIST SkillID::SL_ALCHEMIST
-    AM_BERSERKPITCHER   = 447,
-#define AM_BERSERKPITCHER SkillID::AM_BERSERKPITCHER
-    SL_MONK             = 448,
-#define SL_MONK SkillID::SL_MONK
-    SL_STAR             = 449,
-#define SL_STAR SkillID::SL_STAR
-    SL_SAGE             = 450,
-#define SL_SAGE SkillID::SL_SAGE
-    SL_CRUSADER         = 451,
-#define SL_CRUSADER SkillID::SL_CRUSADER
-    SL_SUPERNOVICE      = 452,
-#define SL_SUPERNOVICE SkillID::SL_SUPERNOVICE
-    SL_KNIGHT           = 453,
-#define SL_KNIGHT SkillID::SL_KNIGHT
-    SL_WIZARD           = 454,
-#define SL_WIZARD SkillID::SL_WIZARD
-    SL_PRIEST           = 455,
-#define SL_PRIEST SkillID::SL_PRIEST
-    SL_BARDDANCER       = 456,
-#define SL_BARDDANCER SkillID::SL_BARDDANCER
-    SL_ROGUE            = 457,
-#define SL_ROGUE SkillID::SL_ROGUE
-    SL_ASSASIN          = 458,
-#define SL_ASSASIN SkillID::SL_ASSASIN
-    SL_BLACKSMITH       = 459,
-#define SL_BLACKSMITH SkillID::SL_BLACKSMITH
-    BS_ADRENALINE2      = 460,
-#define BS_ADRENALINE2 SkillID::BS_ADRENALINE2
-    SL_HUNTER           = 461,
-#define SL_HUNTER SkillID::SL_HUNTER
-    SL_SOULLINKER       = 462,
-#define SL_SOULLINKER SkillID::SL_SOULLINKER
-    SL_KAIZEL           = 463,
-#define SL_KAIZEL SkillID::SL_KAIZEL
-    SL_KAAHI            = 464,
-#define SL_KAAHI SkillID::SL_KAAHI
-    SL_KAUPE            = 465,
-#define SL_KAUPE SkillID::SL_KAUPE
-    SL_KAITE            = 466,
-#define SL_KAITE SkillID::SL_KAITE
-    SL_KAINA            = 467,
-#define SL_KAINA SkillID::SL_KAINA
-    SL_STIN             = 468,
-#define SL_STIN SkillID::SL_STIN
-    SL_STUN             = 469,
-#define SL_STUN SkillID::SL_STUN
-    SL_SMA              = 470,
-#define SL_SMA SkillID::SL_SMA
-    SL_SWOO             = 471,
-#define SL_SWOO SkillID::SL_SWOO
-    SL_SKE              = 472,
-#define SL_SKE SkillID::SL_SKE
-    SL_SKA              = 473,
-#define SL_SKA SkillID::SL_SKA
 
     // Note: this value is also hard-coded in common/mmo.hpp
     MAX_SKILL_DB        = 474, // not 450
