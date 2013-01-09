@@ -198,7 +198,7 @@ E(-Wc++0x-compat)
 X(-Wcast-align)
 
 /// Warn about casts which discard qualifiers
-W(-Wcast-qual)
+E(-Wcast-qual)
 
 /// Warn about subscripts whose type is "char"
 E(-Wchar-subscripts)
@@ -599,7 +599,7 @@ E(-Wunused-value)
 E(-Wunused-variable)
 
 /// Warn about useless casts
-XG48(-Wuseless-cast)
+EG48(-Wuseless-cast)
 
 /// Warn about questionable usage of the macros used
 /// to retrieve variable arguments

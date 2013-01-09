@@ -941,7 +941,7 @@ const ScriptCode *parse_script(const char *src, int line)
                 exit(1);
             }
             set_label(l, script_pos);
-            strdb_insert(scriptlabel_db, (const char*)p, script_pos);   // 外部用label db登録
+            strdb_insert(scriptlabel_db, p, script_pos);   // 外部用label db登録
             *tmpp = c;
             p = tmpp + 1;
             continue;
@@ -1373,7 +1373,8 @@ void builtin_callfunc(ScriptState *st)
     const ScriptCode *scr;
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
 
-    if ((scr = (const ScriptCode *)strdb_search(script_get_userfunc_db(), str)))
+    // note: strdb_search returns a void *; but ScriptCode is really const
+    if ((scr = static_cast<const ScriptCode *>(strdb_search(script_get_userfunc_db(), str))))
     {
         int j = 0;
 #if 0
@@ -5082,7 +5083,7 @@ void mapregstr_db_final(db_key_t, db_val_t data)
 static
 void userfunc_db_final(db_key_t key, db_val_t data)
 {
-    free((char*)key.s);
+    free(key.ms);
     free(data);
 }
 

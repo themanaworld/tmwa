@@ -145,7 +145,10 @@ int party_check_member(struct party *p)
                         if (strcmp(p->member[j].name, sd->status.name) == 0)
                             f = 0;  // データがある
                         else
-                            p->member[j].sd = NULL; // 同垢別キャラだった
+                        {
+                            // I can prove it was already zeroed
+                            // p->member[j].sd = NULL; // 同垢別キャラだった
+                        }
                     }
                 }
                 if (f)
@@ -178,7 +181,7 @@ int party_recv_noinfo(int party_id)
 }
 
 // 情報所得
-int party_recv_info(struct party *sp)
+int party_recv_info(const struct party *sp)
 {
     struct party *p;
     int i;
@@ -191,9 +194,11 @@ int party_recv_info(struct party *sp)
         numdb_insert(party_db, sp->party_id, p);
 
         // 最初のロードなのでユーザーのチェックを行う
-        party_check_member(sp);
+        *p = *sp;
+        party_check_member(p);
     }
-    memcpy(p, sp, sizeof(struct party));
+    else
+        *p = *sp;
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // sdの設定

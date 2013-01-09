@@ -1795,25 +1795,15 @@ void map_log(const_string line)
     if (!map_logfile)
         return;
 
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
+    time_t t = time(NULL);
 
-    if ((tv.tv_sec >> LOGFILE_SECONDS_PER_CHUNK_SHIFT) != map_logfile_index)
+    if ((t >> LOGFILE_SECONDS_PER_CHUNK_SHIFT) != map_logfile_index)
     {
         map_close_logfile();
-        map_start_logfile(tv.tv_sec);
+        map_start_logfile(t);
     }
 
-    if (!line)
-    {
-        fputc('\n', map_logfile);
-        return;
-    }
-
-    FPRINTF(map_logfile, "%ld.%06ld ", (long) tv.tv_sec, (long) tv.tv_usec);
-    fwrite(line.data(), 1, line.size(), map_logfile);
-    if (line.back() != '\n')
-        fputc('\n', map_logfile);
+    log_with_timestamp(map_logfile, line);
 }
 
 /*==========================================

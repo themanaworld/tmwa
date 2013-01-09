@@ -24,10 +24,29 @@ int fd_max;
 static
 int currentuse;
 
+static
 const uint32_t RFIFO_SIZE = 65536;
+static
 const uint32_t WFIFO_SIZE = 65536;
 
 struct socket_data *session[FD_SETSIZE];
+
+/// clean up by discarding handled bytes
+inline
+void RFIFOFLUSH(int fd)
+{
+    memmove(session[fd]->rdata, RFIFOP(fd, 0), RFIFOREST(fd));
+    session[fd]->rdata_size = RFIFOREST(fd);
+    session[fd]->rdata_pos = 0;
+}
+
+/// how much room there is to read more data
+inline
+size_t RFIFOSPACE(int fd)
+{
+    return session[fd]->max_rdata - session[fd]->rdata_size;
+}
+
 
 /// Discard all input
 static

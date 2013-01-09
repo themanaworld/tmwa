@@ -17,8 +17,8 @@ int npc_touch_areanpc(struct map_session_data *, int, int, int);
 int npc_click(struct map_session_data *, int);
 int npc_scriptcont(struct map_session_data *, int);
 int npc_buysellsel(struct map_session_data *, int, int);
-int npc_buylist(struct map_session_data *, int, unsigned short *);
-int npc_selllist(struct map_session_data *, int, unsigned short *);
+int npc_buylist(struct map_session_data *, int, const uint16_t *);
+int npc_selllist(struct map_session_data *, int, const uint16_t *);
 int npc_parse_warp(const char *w1, const char *w2, const char *w3, const char *w4);
 
 int npc_enable(const char *name, int flag);

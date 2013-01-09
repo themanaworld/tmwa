@@ -37,9 +37,6 @@
 #include "tmw.hpp"
 #include "trade.hpp"
 
-static
-char command_symbol = '@';   // first char of the commands (by [Yor])
-
 #define ATCOMMAND_FUNC(x) static \
 int atcommand_##x(const int fd, struct map_session_data* sd, const char* command, const char* message)
 ATCOMMAND_FUNC(setup);
@@ -682,7 +679,7 @@ bool is_atcommand(const int fd, struct map_session_data *sd,
 AtCommandType atcommand(const int level, const char *message,
                          struct AtCommandInfo * info)
 {
-    char *p = (char *) message; // it's 'char' and not 'const char' to have possibility to modify the first character if necessary
+    const char *p = message;
 
     if (!info)
         return AtCommand_None;
@@ -694,7 +691,7 @@ AtCommandType atcommand(const int level, const char *message,
         return AtCommand_None;
     }
 
-    if (*p == command_symbol)
+    if (*p == '@')
     {                           // check first char.
         char command[101];
         int i = 0;
@@ -704,10 +701,9 @@ AtCommandType atcommand(const int level, const char *message,
 
         while (atcommand_info[i].type != AtCommand_Unknown)
         {
-            if (strcasecmp(command + 1, atcommand_info[i].command + 1) == 0
+            if (strcasecmp(command, atcommand_info[i].command) == 0
                 && level >= atcommand_info[i].level)
             {
-                p[0] = atcommand_info[i].command[0];    // set correct first symbol for after.
                 break;
             }
             i++;
@@ -798,9 +794,6 @@ int atcommand_config_read(const char *cfgName)
 
         if (strcasecmp(w1, "import") == 0)
             atcommand_config_read(w2);
-        else if (strcasecmp(w1, "command_symbol") == 0 && w2[0] > 31 && w2[0] != '/' &&   // symbol of standard ragnarok GM commands
-                 w2[0] != '%')  // symbol of party chat speaking
-            command_symbol = w2[0];
     }
     fclose_(fp);
 
@@ -1888,10 +1881,9 @@ int atcommand_item(const int fd, struct map_session_data *sd,
             item_tmp.nameid = item_id;
             item_tmp.identify = 1;
             PickupFail flag;
-            if ((flag = pc_additem((struct map_session_data *) sd,
-                            &item_tmp, get_count))
+            if ((flag = pc_additem(sd, &item_tmp, get_count))
                 != PickupFail::OKAY)
-                clif_additem((struct map_session_data *) sd, 0, 0, flag);
+                clif_additem(sd, 0, 0, flag);
         }
         clif_displaymessage(fd, "Item created.");
     }
@@ -2476,8 +2468,7 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
                 my = sd->bl.y + (MRAND(range) - (range / 2));
             else
                 my = y;
-            k = mob_once_spawn((struct map_session_data *) sd, "this", mx,
-                                my, "", mob_id, 1, "");
+            k = mob_once_spawn(sd, "this", mx, my, "", mob_id, 1, "");
         }
         count += (k != 0) ? 1 : 0;
     }

@@ -288,8 +288,10 @@ int intif_parse_WisMessage(int fd)
 
     if (battle_config.etc_log)
         PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s, message: '%s'\n",
-             RFIFOL(fd, 4), RFIFOP(fd, 8), RFIFOP(fd, 32), RFIFOP(fd,
-                                                                      56));
+             RFIFOL(fd, 4),
+             static_cast<const char *>(RFIFOP(fd, 8)),
+             static_cast<const char *>(RFIFOP(fd, 32)),
+             static_cast<const char *>(RFIFOP(fd, 56)));
     sd = map_nick2sd((const char *)RFIFOP(fd, 32)); // Searching destination player
     if (sd != NULL && strcmp(sd->status.name, (const char *)RFIFOP(fd, 32)) == 0)
     {                           // exactly same name (inter-server have checked the name before)
@@ -328,7 +330,9 @@ int intif_parse_WisEnd(int fd)
     struct map_session_data *sd;
 
     if (battle_config.etc_log)
-        PRINTF("intif_parse_wisend: player: %s, flag: %d\n", RFIFOP(fd, 2), RFIFOB(fd, 26)); // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+        // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+        PRINTF("intif_parse_wisend: player: %s, flag: %d\n",
+                static_cast<const char *>(RFIFOP(fd, 2)), RFIFOB(fd, 26));
     sd = map_nick2sd((const char *)RFIFOP(fd, 2));
     if (sd != NULL)
         clif_wis_end(sd->fd, RFIFOB(fd, 26));
@@ -484,7 +488,7 @@ int intif_parse_PartyInfo(int fd)
                     RFIFOL(fd, 4), RFIFOW(fd, 2),
                     sizeof(struct party) + 4);
     }
-    party_recv_info((struct party *) RFIFOP(fd, 4));
+    party_recv_info(static_cast<const struct party *>(RFIFOP(fd, 4)));
     return 0;
 }
 

@@ -217,7 +217,7 @@ void pc_invincible_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
 {
     struct map_session_data *sd;
 
-    if ((sd = (struct map_session_data *) map_id2sd(id)) == NULL
+    if ((sd = map_id2sd(id)) == NULL
         || sd->bl.type != BL_PC)
         return;
 
@@ -259,7 +259,7 @@ void pc_spiritball_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t)
     struct map_session_data *sd;
     int i;
 
-    if ((sd = (struct map_session_data *) map_id2sd(id)) == NULL
+    if ((sd = map_id2sd(id)) == NULL
         || sd->bl.type != BL_PC)
         return;
 
@@ -781,7 +781,7 @@ int pc_breakarmor(struct map_session_data *sd)
  *------------------------------------------
  */
 int pc_authok(int id, int login_id2, time_t connect_until_time,
-               short tmw_version, struct mmo_charstatus *st)
+               short tmw_version, const struct mmo_charstatus *st)
 {
     struct map_session_data *sd = NULL;
 
@@ -6883,7 +6883,7 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
         return 0;
     }
 
-    if (bool(pos == (EPOS::MISC2 | EPOS::CAPE)))
+    if (pos == (EPOS::MISC2 | EPOS::CAPE))
     {
         // アクセサリ用例外処理
         EPOS epor = EPOS::ZERO;

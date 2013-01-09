@@ -245,7 +245,7 @@ int inter_init(const char *file)
 
 // GMメッセージ送信
 static
-int mapif_GMmessage(unsigned char *mes, int len)
+void mapif_GMmessage(const uint8_t *mes, int len)
 {
     unsigned char buf[len];
 
@@ -253,8 +253,6 @@ int mapif_GMmessage(unsigned char *mes, int len)
     WBUFW(buf, 2) = len;
     memcpy(WBUFP(buf, 4), mes, len - 4);
     mapif_sendall(buf, len);
-
-    return 0;
 }
 
 // Wisp/page transmission to all map-server
@@ -290,11 +288,11 @@ int mapif_wis_end(struct WisData *wd, int flag)
 
 // アカウント変数送信
 static
-int mapif_account_reg(int fd, unsigned char *src)
+int mapif_account_reg(int fd, const uint8_t *src)
 {
-    unsigned char buf[WBUFW(src, 2)];
+    unsigned char buf[RBUFW(src, 2)];
 
-    memcpy(WBUFP(buf, 0), src, WBUFW(src, 2));
+    memcpy(WBUFP(buf, 0), src, RBUFW(src, 2));
     WBUFW(buf, 0) = 0x3804;
     mapif_sendallwos(fd, buf, WBUFW(buf, 2));
 
@@ -374,7 +372,7 @@ int check_ttl_wisdata(void)
 static
 int mapif_parse_GMmessage(int fd)
 {
-    mapif_GMmessage(RFIFOP(fd, 4), RFIFOW(fd, 2));
+    mapif_GMmessage(static_cast<const uint8_t *>(RFIFOP(fd, 4)), RFIFOW(fd, 2));
 
     return 0;
 }
@@ -411,8 +409,7 @@ int mapif_parse_WisRequest(int fd)
     else
     {
         // to be sure of the correct name, rewrite it
-        memset(RFIFOP(fd, 28), 0, 24);
-        strncpy((char *)RFIFOP(fd, 28), search_character_name(index), 24);
+        strzcpy(static_cast<char *>(const_cast<void *>(RFIFOP(fd, 28))), search_character_name(index), 24);
         // if source is destination, don't ask other servers.
         if (strcmp((const char *)RFIFOP(fd, 4), (const char *)RFIFOP(fd, 28)) == 0)
         {
@@ -499,7 +496,8 @@ int mapif_parse_AccReg(int fd)
     }
     reg->reg_num = j;
 
-    mapif_account_reg(fd, RFIFOP(fd, 0)); // 他のMAPサーバーに送信
+    // 他のMAPサーバーに送信
+    mapif_account_reg(fd, static_cast<const uint8_t *>(RFIFOP(fd, 0)));
 
     return 0;
 }

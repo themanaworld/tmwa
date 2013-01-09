@@ -3628,7 +3628,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 && sd->inventory_data[index]->type == ItemType::WEAPON)
             {
                 damage +=
-                    (int)(double)(sd->inventory_data[index]->weight *
+                    (int)(sd->inventory_data[index]->weight *
                                     (0.8 * skill_lv * 4 / 10));
                 damage +=
                     sd->status.inventory[index].refine * pc_getrefinebonus(0,

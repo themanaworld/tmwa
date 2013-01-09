@@ -10,9 +10,13 @@ enum TIMER_TYPE
     TIMER_INTERVAL,
 };
 /// This is needed to produce a signed result when 2 ticks are subtracted
-# define DIFF_TICK(a,b) ((int32_t)((a)-(b)))
+inline
+int32_t DIFF_TICK(int32_t a, int32_t b)
+{
+    return a - b;
+}
 
-// TODO replace with signed 64-bit to make code more clear and protect from the future
+// TODO replace with std::chrono::time_point and std::chrono::duration
 typedef uint32_t tick_t;
 typedef uint32_t interval_t;
 typedef uint32_t timer_id;

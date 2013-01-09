@@ -363,7 +363,7 @@ void npc_do_ontimer_sub(db_key_t key, db_val_t data, int *c, int option)
     char temp[10];
     char event[50];
 
-    if (ev->nd->bl.id == (int) *c && (p = strchr(p, ':')) && p
+    if (ev->nd->bl.id == *c && (p = strchr(p, ':')) && p
         && strncasecmp("::OnTimer", p, 8) == 0)
     {
         sscanf(&p[9], "%s", temp);
@@ -851,7 +851,7 @@ int npc_buysellsel(struct map_session_data *sd, int id, int type)
  *------------------------------------------
  */
 int npc_buylist(struct map_session_data *sd, int n,
-                 unsigned short *item_list)
+        const uint16_t *item_list)
 {
     struct npc_data *nd;
     double z;
@@ -969,7 +969,7 @@ int npc_buylist(struct map_session_data *sd, int n,
  *------------------------------------------
  */
 int npc_selllist(struct map_session_data *sd, int n,
-                  unsigned short *item_list)
+        const uint16_t *item_list)
 {
     double z;
     int i, skill, itemamount = 0;
@@ -1700,7 +1700,9 @@ int npc_parse_function(char *, char *, char *w3, char *,
     p = (char *) calloc(50, sizeof(char));
 
     strncpy(p, w3, 49);
-    strdb_insert(script_get_userfunc_db(), p, script);
+    // db_val_t takes a void *, we do restore safely ...
+    ScriptCode *script_ = const_cast<ScriptCode *>(script);
+    strdb_insert(script_get_userfunc_db(), p, script_);
 
 //  label_db=script_get_label_db();
 

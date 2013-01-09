@@ -634,10 +634,10 @@ void remove_prefix_blanks(char *name)
 // Function to create a new character
 //-----------------------------------
 static
-int make_new_char(int fd, unsigned char *dat)
+int make_new_char(int fd, const uint8_t *dat)
 {
     // ugh
-    char *cdat = (char *)dat;
+    char *cdat = reinterpret_cast<char *>(const_cast<uint8_t *>(dat));
     int i, j;
     struct char_session_data *sd = (struct char_session_data *)session[fd]->session_data;
 
@@ -2638,6 +2638,100 @@ int lan_ip_check(unsigned char *p)
 }
 
 static
+void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_t *p)
+{
+    const char *ip = ip2str(session[fd]->client_addr.sin_addr);
+
+    // if we activated email creation and email is default email
+    if (email_creation != 0 && strcmp(sd->email, "a@a.com") == 0
+        && login_fd > 0)
+    {               // to modify an e-mail, login-server must be online
+        WFIFOW(fd, 0) = 0x70;
+        WFIFOB(fd, 2) = 0; // 00 = Incorrect Email address
+        WFIFOSET(fd, 3);
+
+        // otherwise, load the character
+    }
+    else
+    {
+        int ch;
+        for (ch = 0; ch < 9; ch++)
+            if (sd->found_char[ch] >= 0
+                && char_dat[sd->found_char[ch]].char_num == rfifob_2)
+                break;
+        if (ch != 9)
+        {
+            CHAR_LOG("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n",
+                 sd->account_id, rfifob_2,
+                 char_dat[sd->found_char[ch]].name, ip);
+            // searching map server
+            int i = search_mapserver(char_dat[sd->found_char[ch]].last_point.map);
+            // if map is not found, we check major cities
+            if (i < 0)
+            {
+                int j;
+                // get first online server (with a map)
+                i = 0;
+                for (j = 0; j < MAX_MAP_SERVERS; j++)
+                    if (server_fd[j] >= 0
+                        && server[j].map[0][0])
+                    {   // change save point to one of map found on the server (the first)
+                        i = j;
+                        memcpy(char_dat[sd->found_char[ch]].last_point.map,
+                                server[j].map[0], 16);
+                        PRINTF("Map-server #%d found with a map: '%s'.\n",
+                             j, server[j].map[0]);
+                        // coordonates are unknown
+                        break;
+                    }
+                // if no map-server is connected, we send: server closed
+                if (j == MAX_MAP_SERVERS)
+                {
+                    WFIFOW(fd, 0) = 0x81;
+                    WFIFOL(fd, 2) = 1; // 01 = Server closed
+                    WFIFOSET(fd, 3);
+                    return;
+                }
+            }
+            WFIFOW(fd, 0) = 0x71;
+            WFIFOL(fd, 2) = char_dat[sd->found_char[ch]].char_id;
+            memcpy(WFIFOP(fd, 6),
+                    char_dat[sd->found_char[ch]].last_point.map,
+                    16);
+            PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n",
+                 char_dat[sd->found_char[ch]].name,
+                 sd->account_id, ch, ip);
+            PRINTF("--Send IP of map-server. ");
+            if (lan_ip_check(p))
+                WFIFOL(fd, 22) = inet_addr(lan_map_ip);
+            else
+                WFIFOL(fd, 22) = server[i].ip;
+            WFIFOW(fd, 26) = server[i].port;
+            WFIFOSET(fd, 28);
+            if (auth_fifo_pos >= AUTH_FIFO_SIZE)
+                auth_fifo_pos = 0;
+            //PRINTF("auth_fifo set #%d - account %d, char: %d, secure: %08x-%08x\n", auth_fifo_pos, sd->account_id, char_dat[sd->found_char[ch]].char_id, sd->login_id1, sd->login_id2);
+            auth_fifo[auth_fifo_pos].account_id = sd->account_id;
+            auth_fifo[auth_fifo_pos].char_id =
+                char_dat[sd->found_char[ch]].char_id;
+            auth_fifo[auth_fifo_pos].login_id1 = sd->login_id1;
+            auth_fifo[auth_fifo_pos].login_id2 = sd->login_id2;
+            auth_fifo[auth_fifo_pos].delflag = 0;
+            auth_fifo[auth_fifo_pos].char_pos =
+                sd->found_char[ch];
+            auth_fifo[auth_fifo_pos].sex = sd->sex;
+            auth_fifo[auth_fifo_pos].connect_until_time =
+                sd->connect_until_time;
+            auth_fifo[auth_fifo_pos].ip =
+                session[fd]->client_addr.sin_addr.s_addr;
+            auth_fifo[auth_fifo_pos].packet_tmw_version =
+                sd->packet_tmw_version;
+            auth_fifo_pos++;
+        }
+    }
+}
+
+static
 void parse_char(int fd)
 {
     int i, ch;
@@ -2776,171 +2870,14 @@ void parse_char(int fd)
             case 0x66:         // キャラ選択
                 if (!sd || RFIFOREST(fd) < 3)
                     return;
-            {
-                const char *ip = ip2str(session[fd]->client_addr.sin_addr);
-
-                // if we activated email creation and email is default email
-                if (email_creation != 0 && strcmp(sd->email, "a@a.com") == 0
-                    && login_fd > 0)
-                {               // to modify an e-mail, login-server must be online
-                    WFIFOW(fd, 0) = 0x70;
-                    WFIFOB(fd, 2) = 0; // 00 = Incorrect Email address
-                    WFIFOSET(fd, 3);
-
-                    // otherwise, load the character
-                }
-                else
-                {
-                    for (ch = 0; ch < 9; ch++)
-                        if (sd->found_char[ch] >= 0
-                            && char_dat[sd->found_char[ch]].char_num ==
-                            RFIFOB(fd, 2))
-                            break;
-                    if (ch != 9)
-                    {
-                        CHAR_LOG("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n",
-                             sd->account_id, RFIFOB(fd, 2),
-                             char_dat[sd->found_char[ch]].name, ip);
-                        // searching map server
-                        i = search_mapserver(char_dat
-                                              [sd->found_char[ch]].last_point.
-                                              map);
-                        // if map is not found, we check major cities
-                        if (i < 0)
-                        {
-                            if ((i = search_mapserver("prontera.gat")) >= 0)
-                            {   // check is done without 'gat'.
-                                memcpy(char_dat
-                                        [sd->found_char[ch]].last_point.map,
-                                        "prontera.gat", 16);
-                                char_dat[sd->found_char[ch]].last_point.x = 273;    // savepoint coordonates
-                                char_dat[sd->found_char[ch]].last_point.y =
-                                    354;
-                            }
-                            else if ((i =
-                                      search_mapserver("geffen.gat")) >= 0)
-                            {   // check is done without 'gat'.
-                                memcpy(char_dat
-                                        [sd->found_char[ch]].last_point.map,
-                                        "geffen.gat", 16);
-                                char_dat[sd->found_char[ch]].last_point.x = 120;    // savepoint coordonates
-                                char_dat[sd->found_char[ch]].last_point.y =
-                                    100;
-                            }
-                            else if ((i =
-                                      search_mapserver("morocc.gat")) >= 0)
-                            {   // check is done without 'gat'.
-                                memcpy(char_dat
-                                        [sd->found_char[ch]].last_point.map,
-                                        "morocc.gat", 16);
-                                char_dat[sd->found_char[ch]].last_point.x = 160;    // savepoint coordonates
-                                char_dat[sd->found_char[ch]].last_point.y =
-                                    94;
-                            }
-                            else if ((i =
-                                      search_mapserver("alberta.gat")) >= 0)
-                            {   // check is done without 'gat'.
-                                memcpy(char_dat
-                                        [sd->found_char[ch]].last_point.map,
-                                        "alberta.gat", 16);
-                                char_dat[sd->found_char[ch]].last_point.x = 116;    // savepoint coordonates
-                                char_dat[sd->found_char[ch]].last_point.y =
-                                    57;
-                            }
-                            else if ((i =
-                                      search_mapserver("payon.gat")) >= 0)
-                            {   // check is done without 'gat'.
-                                memcpy(char_dat
-                                        [sd->found_char[ch]].last_point.map,
-                                        "payon.gat", 16);
-                                char_dat[sd->found_char[ch]].last_point.x = 87; // savepoint coordonates
-                                char_dat[sd->found_char[ch]].last_point.y =
-                                    117;
-                            }
-                            else if ((i =
-                                      search_mapserver("izlude.gat")) >= 0)
-                            {   // check is done without 'gat'.
-                                memcpy(char_dat
-                                        [sd->found_char[ch]].last_point.map,
-                                        "izlude.gat", 16);
-                                char_dat[sd->found_char[ch]].last_point.x = 94; // savepoint coordonates
-                                char_dat[sd->found_char[ch]].last_point.y =
-                                    103;
-                            }
-                            else
-                            {
-                                int j;
-                                // get first online server (with a map)
-                                i = 0;
-                                for (j = 0; j < MAX_MAP_SERVERS; j++)
-                                    if (server_fd[j] >= 0
-                                        && server[j].map[0][0])
-                                    {   // change save point to one of map found on the server (the first)
-                                        i = j;
-                                        memcpy(char_dat
-                                                [sd->
-                                                 found_char[ch]].last_point.
-                                                map, server[j].map[0], 16);
-                                        PRINTF("Map-server #%d found with a map: '%s'.\n",
-                                             j, server[j].map[0]);
-                                        // coordonates are unknown
-                                        break;
-                                    }
-                                // if no map-server is connected, we send: server closed
-                                if (j == MAX_MAP_SERVERS)
-                                {
-                                    WFIFOW(fd, 0) = 0x81;
-                                    WFIFOL(fd, 2) = 1; // 01 = Server closed
-                                    WFIFOSET(fd, 3);
-                                    RFIFOSKIP(fd, 3);
-                                    break;
-                                }
-                            }
-                        }
-                        WFIFOW(fd, 0) = 0x71;
-                        WFIFOL(fd, 2) = char_dat[sd->found_char[ch]].char_id;
-                        memcpy(WFIFOP(fd, 6),
-                                char_dat[sd->found_char[ch]].last_point.map,
-                                16);
-                        PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n",
-                             char_dat[sd->found_char[ch]].name,
-                             sd->account_id, ch, ip);
-                        PRINTF("--Send IP of map-server. ");
-                        if (lan_ip_check(p))
-                            WFIFOL(fd, 22) = inet_addr(lan_map_ip);
-                        else
-                            WFIFOL(fd, 22) = server[i].ip;
-                        WFIFOW(fd, 26) = server[i].port;
-                        WFIFOSET(fd, 28);
-                        if (auth_fifo_pos >= AUTH_FIFO_SIZE)
-                            auth_fifo_pos = 0;
-                        //PRINTF("auth_fifo set #%d - account %d, char: %d, secure: %08x-%08x\n", auth_fifo_pos, sd->account_id, char_dat[sd->found_char[ch]].char_id, sd->login_id1, sd->login_id2);
-                        auth_fifo[auth_fifo_pos].account_id = sd->account_id;
-                        auth_fifo[auth_fifo_pos].char_id =
-                            char_dat[sd->found_char[ch]].char_id;
-                        auth_fifo[auth_fifo_pos].login_id1 = sd->login_id1;
-                        auth_fifo[auth_fifo_pos].login_id2 = sd->login_id2;
-                        auth_fifo[auth_fifo_pos].delflag = 0;
-                        auth_fifo[auth_fifo_pos].char_pos =
-                            sd->found_char[ch];
-                        auth_fifo[auth_fifo_pos].sex = sd->sex;
-                        auth_fifo[auth_fifo_pos].connect_until_time =
-                            sd->connect_until_time;
-                        auth_fifo[auth_fifo_pos].ip =
-                            session[fd]->client_addr.sin_addr.s_addr;
-                        auth_fifo[auth_fifo_pos].packet_tmw_version =
-                            sd->packet_tmw_version;
-                        auth_fifo_pos++;
-                    }
-                }
-            }
+                handle_x0066(fd, sd, RFIFOB(fd, 2), p);
                 RFIFOSKIP(fd, 3);
                 break;
 
             case 0x67:         // 作成
                 if (!sd || RFIFOREST(fd) < 37)
                     return;
-                i = make_new_char(fd, RFIFOP(fd, 2));
+                i = make_new_char(fd, static_cast<const uint8_t *>(RFIFOP(fd, 2)));
                 if (i < 0)
                 {
                     WFIFOW(fd, 0) = 0x6e;
@@ -3041,13 +2978,8 @@ void parse_char(int fd)
                                 WFIFOL(login_fd, 2) = sd->account_id;
                                 memcpy(WFIFOP(login_fd, 6), email, 40);
                                 WFIFOSET(login_fd, 46);
-                                // skip part of the packet! (46, but leave the size of select packet: 3)
-                                RFIFOSKIP(fd, 43);
-                                // change value to put new packet (char selection)
-                                RFIFOW(fd, 0) = 0x66;
-                                RFIFOB(fd, 2) =
-                                    char_dat[sd->found_char[i]].char_num;
-                                // not send packet, it's modify of actual packet
+                                RFIFOSKIP(fd, 46);
+                                handle_x0066(fd, sd, char_dat[sd->found_char[i]].char_num, p);
                                 break;
                             }
                         if (i == 9)

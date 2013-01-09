@@ -748,21 +748,17 @@ void check_auth_sync(timer_id, tick_t, custom_id_t, custom_data_t)
 // Packet send to all char-servers, except one (wos: without our self)
 //--------------------------------------------------------------------
 static
-int charif_sendallwos(int sfd, unsigned char *buf, unsigned int len)
+void charif_sendallwos(int sfd, const uint8_t *buf, size_t len)
 {
-    int i, c;
-
-    for (i = 0, c = 0; i < MAX_SERVERS; i++)
+    for (int i = 0; i < MAX_SERVERS; i++)
     {
-        int fd;
-        if ((fd = server_fd[i]) >= 0 && fd != sfd)
+        int fd = server_fd[i];
+        if (fd >= 0 && fd != sfd)
         {
             memcpy(WFIFOP(fd, 0), buf, len);
             WFIFOSET(fd, len);
-            c++;
         }
     }
-    return c;
 }
 
 //-----------------------------------------------------
@@ -1769,7 +1765,7 @@ static
 void parse_admin(int fd)
 {
     int i, j;
-    char *account_name;
+    char account_name[24];
 
     const char *ip = ip2str(session[fd]->client_addr.sin_addr);
 
@@ -1878,7 +1874,10 @@ void parse_admin(int fd)
             {                   // [Fate] Itemfrob package: change item IDs
                 if (RFIFOREST(fd) < 10)
                     return;
-                charif_sendallwos(-1, RFIFOP(fd, 0), 10); // forward package to char servers
+                uint8_t buf[10];
+                memcpy(buf, RFIFOP(fd, 0), 10);
+                // forward package to char servers
+                charif_sendallwos(-1, buf, 10);
                 RFIFOSKIP(fd, 10);
                 WFIFOW(fd, 0) = 0x7925;
                 WFIFOSET(fd, 2);
@@ -1890,19 +1889,14 @@ void parse_admin(int fd)
                     return;
                 {
                     struct mmo_account ma;
-                    ma.userid = (char *)RFIFOP(fd, 2);
-                    ma.passwd = (char *)RFIFOP(fd, 26);
+                    strzcpy(ma.userid, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    strzcpy(ma.passwd, static_cast<const char *>(RFIFOP(fd, 26)), 24);
                     memcpy(ma.lastlogin, "-", 2);
                     ma.sex = RFIFOB(fd, 50);
                     WFIFOW(fd, 0) = 0x7931;
                     WFIFOL(fd, 2) = -1;
-                    memcpy(WFIFOP(fd, 6), RFIFOP(fd, 2), 24);
-                    if (strlen(ma.userid) > 23 || strlen(ma.passwd) > 23)
-                    {
-                        LOGIN_LOG("'ladmin': Attempt to create an invalid account (account or pass is too long, ip: %s)\n",
-                             ip);
-                    }
-                    else if (strlen(ma.userid) < 4 || strlen(ma.passwd) < 4)
+                    memcpy(WFIFOP(fd, 6), ma.userid, 24);
+                    if (strlen(ma.userid) < 4 || strlen(ma.passwd) < 4)
                     {
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)\n",
                              ip);
@@ -1935,8 +1929,7 @@ void parse_admin(int fd)
                         {
                             int new_id;
                             char email[40];
-                            memcpy(email, RFIFOP(fd, 51), 40);
-                            email[39] = '\0';
+                            strzcpy(email, static_cast<const char *>(RFIFOP(fd, 51)), 40);
                             remove_control_chars(email);
                             new_id = mmo_auth_new(&ma, ma.sex, email);
                             LOGIN_LOG("'ladmin': Account creation (account: %s (id: %d), sex: %c, email: %s, ip: %s)\n",
@@ -1955,15 +1948,14 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7933;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 i = search_account_index(account_name);
                 if (i != -1)
                 {
                     {
                     // Char-server is notified of deletion (for characters deletion).
-                    unsigned char buf[65535];
+                    uint8_t buf[6];
                     WBUFW(buf, 0) = 0x2730;
                     WBUFL(buf, 2) = auth_dat[i].account_id;
                     charif_sendallwos(-1, buf, 6);
@@ -1999,15 +1991,13 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7935;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 i = search_account_index(account_name);
                 if (i != -1)
                 {
                     memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                    strcpy(auth_dat[i].pass, MD5_saltcrypt((char *)RFIFOP(fd, 26), make_salt()));
-                    auth_dat[i].pass[39] = '\0';
+                    strzcpy(auth_dat[i].pass, MD5_saltcrypt(static_cast<const char *>(RFIFOP(fd, 26)), make_salt()), 40);
                     WFIFOL(fd, 2) = auth_dat[i].account_id;
                     LOGIN_LOG("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)\n",
                          auth_dat[i].userid, auth_dat[i].pass, ip);
@@ -2030,12 +2020,10 @@ void parse_admin(int fd)
                     int statut;
                     WFIFOW(fd, 0) = 0x7937;
                     WFIFOL(fd, 2) = -1;
-                    account_name = (char *)RFIFOP(fd, 2);
-                    account_name[23] = '\0';
+                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
                     statut = RFIFOL(fd, 26);
-                    memcpy(error_message, RFIFOP(fd, 30), 20);
-                    error_message[19] = '\0';
+                    strzcpy(error_message, static_cast<const char *>(RFIFOP(fd, 30)), 20);
                     remove_control_chars(error_message);
                     if (statut != 7 || error_message[0] == '\0')
                     {           // 7: // 6 = Your are Prohibited to log in until %s
@@ -2120,14 +2108,15 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x793b;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 i = search_account_index(account_name);
                 if (i != -1)
                 {
                     memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                    if ( pass_ok((char *)RFIFOP(fd, 26), auth_dat[i].pass) )
+                    char pass[24];
+                    strzcpy(pass, static_cast<const char *>(RFIFOP(fd, 26)), 24);
+                    if (pass_ok(pass, auth_dat[i].pass))
                     {
                         WFIFOL(fd, 2) = auth_dat[i].account_id;
                         LOGIN_LOG("'ladmin': Check of password OK (account: %s, password: %s, ip: %s)\n",
@@ -2136,9 +2125,6 @@ void parse_admin(int fd)
                     }
                     else
                     {
-                        char pass[24];
-                        memcpy(pass, RFIFOP(fd, 26), 24);
-                        pass[23] = '\0';
                         remove_control_chars(pass);
                         LOGIN_LOG("'ladmin': Failure of password check (account: %s, proposed pass: %s, ip: %s)\n",
                              auth_dat[i].userid, pass, ip);
@@ -2159,8 +2145,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x793d;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 memcpy(WFIFOP(fd, 6), account_name, 24);
                 {
@@ -2226,8 +2211,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x793f;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 memcpy(WFIFOP(fd, 6), account_name, 24);
                 {
@@ -2373,13 +2357,12 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7941;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 memcpy(WFIFOP(fd, 6), account_name, 24);
                 {
                     char email[40];
-                    memcpy(email, RFIFOP(fd, 26), 40);
+                    strzcpy(email, static_cast<const char *>(RFIFOP(fd, 26)), 40);
                     if (e_mail_check(email) == 0)
                     {
                         LOGIN_LOG("'ladmin': Attempt to give an invalid e-mail (account: %s, ip: %s)\n",
@@ -2414,8 +2397,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7943;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 i = search_account_index(account_name);
                 if (i != -1)
@@ -2458,8 +2440,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7945;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 i = search_account_index(account_name);
                 if (i != -1)
@@ -2512,8 +2493,7 @@ void parse_admin(int fd)
                 {
                     WFIFOW(fd, 0) = 0x7949;
                     WFIFOL(fd, 2) = -1;
-                    account_name = (char *)RFIFOP(fd, 2);
-                    account_name[23] = '\0';
+                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
                     time_t timestamp = static_cast<time_t>(RFIFOL(fd, 26));
                     timestamp_seconds_buffer tmpstr;
@@ -2548,8 +2528,7 @@ void parse_admin(int fd)
                 {
                     WFIFOW(fd, 0) = 0x794b;
                     WFIFOL(fd, 2) = -1;
-                    account_name = (char *)RFIFOP(fd, 2);
-                    account_name[23] = '\0';
+                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
                     time_t timestamp = static_cast<time_t>(RFIFOL(fd, 26));
                     if (timestamp <= time(NULL))
@@ -2605,8 +2584,7 @@ void parse_admin(int fd)
                     struct tm *tmtime;
                     WFIFOW(fd, 0) = 0x794d;
                     WFIFOL(fd, 2) = -1;
-                    account_name = (char *)RFIFOP(fd, 2);
-                    account_name[23] = '\0';
+                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
                     i = search_account_index(account_name);
                     if (i != -1)
@@ -2756,8 +2734,7 @@ void parse_admin(int fd)
                     struct tm *tmtime;
                     WFIFOW(fd, 0) = 0x7951;
                     WFIFOL(fd, 2) = -1;
-                    account_name = (char *)RFIFOP(fd, 2);
-                    account_name[23] = '\0';
+                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
                     i = search_account_index(account_name);
                     if (i != -1)
@@ -2849,8 +2826,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7953;
                 WFIFOL(fd, 2) = -1;
-                account_name = (char *)RFIFOP(fd, 2);
-                account_name[23] = '\0';
+                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
                 i = search_account_index(account_name);
                 if (i != -1)
@@ -3064,13 +3040,15 @@ void parse_login(int fd)
             {
                 if (RFIFOREST(fd) >= ((RFIFOW(fd, 0) == 0x64) ? 55 : 47))
                     PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %d), account: %s.\n",
-                         fd, RFIFOW(fd, 0), RFIFOREST(fd), RFIFOP(fd, 6));
+                         fd, RFIFOW(fd, 0), RFIFOREST(fd),
+                         static_cast<const char *>(RFIFOP(fd, 6)));
             }
             else if (RFIFOW(fd, 0) == 0x2710)
             {
                 if (RFIFOREST(fd) >= 86)
                     PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %d), server: %s.\n",
-                         fd, RFIFOW(fd, 0), RFIFOREST(fd), RFIFOP(fd, 60));
+                         fd, RFIFOW(fd, 0), RFIFOREST(fd),
+                         static_cast<const char *>(RFIFOP(fd, 60)));
             }
             else
                 PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %d).\n",
@@ -3092,31 +3070,17 @@ void parse_login(int fd)
                 break;
 
             case 0x64:         // Ask connection of a client
-            case 0x01dd:       // Ask connection of a client (encryption mode)
-                if (RFIFOREST(fd) < ((RFIFOW(fd, 0) == 0x64) ? 55 : 47))
+                if (RFIFOREST(fd) < 55)
                     return;
 
-                account.userid = (char *)RFIFOP(fd, 6);
-                account.userid[23] = '\0';
+                strzcpy(account.userid, static_cast<const char *>(RFIFOP(fd, 6)), 24);
                 remove_control_chars(account.userid);
-                account.passwd = (char *)RFIFOP(fd, 30);
-                if (RFIFOW(fd, 0) == 0x64)
-                {
-                    account.passwd[23] = '\0';
-                    remove_control_chars(account.passwd);
-                }
+                strzcpy(account.passwd, static_cast<const char *>(RFIFOP(fd, 30)), 24);
+                remove_control_chars(account.passwd);
                 account.passwdenc = 0;
 
-                if (RFIFOW(fd, 0) == 0x64)
-                {
-                    LOGIN_LOG("Request for connection (non encryption mode) of %s (ip: %s).\n",
-                         account.userid, ip);
-                }
-                else
-                {
-                    LOGIN_LOG("Request for connection (encryption mode) of %s (ip: %s).\n",
-                         account.userid, ip);
-                }
+                LOGIN_LOG("Request for connection (non encryption mode) of %s (ip: %s).\n",
+                    account.userid, ip);
 
                 if (!check_ip(session[fd]->client_addr.sin_addr))
                 {
@@ -3125,11 +3089,18 @@ void parse_login(int fd)
                     WFIFOW(fd, 0) = 0x6a;
                     WFIFOB(fd, 2) = 0x03;
                     WFIFOSET(fd, 3);
-                    RFIFOSKIP(fd, (RFIFOW(fd, 0) == 0x64) ? 55 : 47);
+                    RFIFOSKIP(fd, 55);
                     break;
                 }
 
                 result = mmo_auth(&account, fd);
+                if (result == -1)
+                {
+                    int version_2 = RFIFOB(fd, 54);
+                    if (!(version_2 & VERSION_2_UPDATEHOST)
+                        || !(version_2 & VERSION_2_SERVERORDER))
+                        result = 5; // client too old
+                }
                 if (result == -1)
                 {
                     int gm_level = isGM(account.account_id);
@@ -3144,7 +3115,7 @@ void parse_login(int fd)
                     }
                     else
                     {
-                        int version_2 = RFIFOB(fd, 54);   // version 2
+                        // int version_2 = RFIFOB(fd, 54);   // version 2
 
                         if (gm_level)
                             PRINTF("Connection of the GM (level:%d) account '%s' accepted.\n",
@@ -3161,9 +3132,10 @@ void parse_login(int fd)
                          * from the incoming 0x64 packet (the byte at offset 54).  If bit 0 of this is set,
                          * then the client can safely accept the 0x63 packet.  The "version 2" value is not
                          * otherwise used by eAthena.
+                         *
+                         * All supported clients now send both, so the check is removed.
                          */
-                        if ((RFIFOW(fd, 0) == 0x64)
-                            && (version_2 & VERSION_2_UPDATEHOST))
+                        // if (version_2 & VERSION_2_UPDATEHOST)
                         {
                             host_len = (int) strlen(update_host);
                             if (host_len > 0)
@@ -3178,54 +3150,30 @@ void parse_login(int fd)
 
                         // Load list of char servers into outbound packet
                         server_num = 0;
-                        if (version_2 & VERSION_2_SERVERORDER)
-                            for (int i = 0; i < MAX_SERVERS; i++)
+                        // if (version_2 & VERSION_2_SERVERORDER)
+                        for (int i = 0; i < MAX_SERVERS; i++)
+                        {
+                            if (server_fd[i] >= 0)
                             {
-                                if (server_fd[i] >= 0)
-                                {
-                                    if (lan_ip_check(p))
-                                        WFIFOL(fd, 47 + server_num * 32) =
-                                            inet_addr(lan_char_ip);
-                                    else
-                                        WFIFOL(fd, 47 + server_num * 32) =
-                                            server[i].ip;
-                                    WFIFOW(fd, 47 + server_num * 32 + 4) =
-                                        server[i].port;
-                                    memcpy(WFIFOP(fd, 47 + server_num * 32 + 6),
-                                            server[i].name, 20);
-                                    WFIFOW(fd, 47 + server_num * 32 + 26) =
-                                        server[i].users;
-                                    WFIFOW(fd, 47 + server_num * 32 + 28) =
-                                        server[i].maintenance;
-                                    WFIFOW(fd, 47 + server_num * 32 + 30) =
-                                        server[i].is_new;
-                                    server_num++;
-                                }
+                                if (lan_ip_check(p))
+                                    WFIFOL(fd, 47 + server_num * 32) =
+                                        inet_addr(lan_char_ip);
+                                else
+                                    WFIFOL(fd, 47 + server_num * 32) =
+                                        server[i].ip;
+                                WFIFOW(fd, 47 + server_num * 32 + 4) =
+                                    server[i].port;
+                                memcpy(WFIFOP(fd, 47 + server_num * 32 + 6),
+                                        server[i].name, 20);
+                                WFIFOW(fd, 47 + server_num * 32 + 26) =
+                                    server[i].users;
+                                WFIFOW(fd, 47 + server_num * 32 + 28) =
+                                    server[i].maintenance;
+                                WFIFOW(fd, 47 + server_num * 32 + 30) =
+                                    server[i].is_new;
+                                server_num++;
                             }
-                        else    // Send them in reverse, as the client defaults to the second (!) one
-                            for (int i = MAX_SERVERS - 1; i >= 0; i--)
-                            {
-                                if (server_fd[i] >= 0)
-                                {
-                                    if (lan_ip_check(p))
-                                        WFIFOL(fd, 47 + server_num * 32) =
-                                            inet_addr(lan_char_ip);
-                                    else
-                                        WFIFOL(fd, 47 + server_num * 32) =
-                                            server[i].ip;
-                                    WFIFOW(fd, 47 + server_num * 32 + 4) =
-                                        server[i].port;
-                                    memcpy(WFIFOP(fd, 47 + server_num * 32 + 6),
-                                            server[i].name, 20);
-                                    WFIFOW(fd, 47 + server_num * 32 + 26) =
-                                        server[i].users;
-                                    WFIFOW(fd, 47 + server_num * 32 + 28) =
-                                        server[i].maintenance;
-                                    WFIFOW(fd, 47 + server_num * 32 + 30) =
-                                        server[i].is_new;
-                                    server_num++;
-                                }
-                            }
+                        }
                         // if at least 1 char-server
                         if (server_num > 0)
                         {
@@ -3340,16 +3288,13 @@ void parse_login(int fd)
                     return;
                 {
                     int GM_value, len;
-                    char *server_name;
-                    account.userid = (char *)RFIFOP(fd, 2);
-                    account.userid[23] = '\0';
+                    char server_name[20];
+                    strzcpy(account.userid, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account.userid);
-                    account.passwd = (char *)RFIFOP(fd, 26);
-                    account.passwd[23] = '\0';
+                    strzcpy(account.passwd, static_cast<const char *>(RFIFOP(fd, 26)), 24);
                     remove_control_chars(account.passwd);
                     account.passwdenc = 0;
-                    server_name = (char *)RFIFOP(fd, 60);
-                    server_name[19] = '\0';
+                    strzcpy(server_name, static_cast<const char *>(RFIFOP(fd, 60)), 20);
                     remove_control_chars(server_name);
                     LOGIN_LOG("Connection request of the char-server '%s' @ %d.%d.%d.%d:%d (ip: %s)\n",
                          server_name, RFIFOB(fd, 54), RFIFOB(fd, 55),
@@ -3470,9 +3415,8 @@ void parse_login(int fd)
                     struct login_session_data *ld = (struct login_session_data *)session[fd]->session_data;
                     if (RFIFOW(fd, 2) == 0)
                     {           // non encrypted password
-                        char *password;
-                        password = (char *)RFIFOP(fd, 4);
-                        password[23] = '\0';
+                        char password[24];
+                        strzcpy(password, static_cast<const char *>(RFIFOP(fd, 4)), 24);
                         remove_control_chars(password);
                         // If remote administration is enabled and password sent by client matches password read from login server configuration file
                         if ((admin_state == 1)
@@ -4156,7 +4100,7 @@ void save_config_in_log(void)
         LOGIN_LOG("- to accept following IP for remote administration:\n");
         for (i = 0; i < access_ladmin_allownum; i++)
             LOGIN_LOG("  %s\n",
-                       (char *)(access_ladmin_allow + i * ACO_STRSIZE));
+                    access_ladmin_allow + i * ACO_STRSIZE);
     }
 
     if (gm_pass[0] == '\0')
@@ -4249,7 +4193,7 @@ void save_config_in_log(void)
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). Refused IP are:\n");
             for (i = 0; i < access_denynum; i++)
                 LOGIN_LOG("  %s\n",
-                           (char *)(access_deny + i * ACO_STRSIZE));
+                        access_deny + i * ACO_STRSIZE);
         }
     }
     else if (access_order == ACO_ALLOW_DENY)
@@ -4267,7 +4211,7 @@ void save_config_in_log(void)
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). Authorised IP are:\n");
             for (i = 0; i < access_allownum; i++)
                 LOGIN_LOG("  %s\n",
-                           (char *)(access_allow + i * ACO_STRSIZE));
+                        access_allow + i * ACO_STRSIZE);
         }
     }
     else
@@ -4292,12 +4236,12 @@ void save_config_in_log(void)
                 LOGIN_LOG("  Authorised IP are:\n");
                 for (i = 0; i < access_allownum; i++)
                     LOGIN_LOG("    %s\n",
-                               (char *)(access_allow + i * ACO_STRSIZE));
+                            access_allow + i * ACO_STRSIZE);
             }
             LOGIN_LOG("  Refused IP are:\n");
             for (i = 0; i < access_denynum; i++)
                 LOGIN_LOG("    %s\n",
-                           (char *)(access_deny + i * ACO_STRSIZE));
+                        access_deny + i * ACO_STRSIZE);
         }
     }
 }

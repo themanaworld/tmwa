@@ -667,7 +667,7 @@ int chrif_changedsex(int fd)
             {
                 if (sd->status.inventory[i].nameid
                     && bool(sd->status.inventory[i].equip))
-                    pc_unequipitem((struct map_session_data *) sd, i, CalcStatus::NOW);
+                    pc_unequipitem(sd, i, CalcStatus::NOW);
             }
             // reset skill of some job
             if (s_class.job == 19 || s_class.job == 4020
@@ -1129,7 +1129,7 @@ void chrif_parse(int fd)
             case 0x2afd:
                 pc_authok(RFIFOL(fd, 4), RFIFOL(fd, 8),
                            (time_t) RFIFOL(fd, 12), RFIFOW(fd, 16),
-                           (struct mmo_charstatus *) RFIFOP(fd, 18));
+                           (const struct mmo_charstatus *) RFIFOP(fd, 18));
                 break;
             case 0x2afe:
                 pc_authfail(RFIFOL(fd, 2));
