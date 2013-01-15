@@ -49,7 +49,7 @@ struct mob_db
     {
         int nameid, p;
     } mvpitem[3];
-    int view_class, sex;
+    int sex;
     short hair, hair_color, weapon, shield, head_top, head_mid, head_buttom, option, clothes_color; // [Valaris]
     int equip;                 // [Valaris]
     int summonper[MAX_RANDOMMONSTER];
@@ -77,7 +77,6 @@ int mob_spawn(int);
 int mob_damage(struct block_list *, struct mob_data *, int, int);
 int mob_changestate(struct mob_data *md, MS state, int type);
 int mob_heal(struct mob_data *, int);
-int mob_get_viewclass(int);
 int mob_get_sex(int);
 short mob_get_hair(int);
 short mob_get_hair_color(int);

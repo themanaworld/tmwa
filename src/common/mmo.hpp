@@ -158,7 +158,7 @@ struct mmo_charstatus
 
     int base_exp, job_exp, zeny;
 
-    short pc_class;
+    short species;
     short status_point, skill_point;
     int hp, max_hp, sp, max_sp;
     Option option;

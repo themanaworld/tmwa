@@ -546,15 +546,6 @@ int mob_spawn_guardian(struct map_session_data *sd, const char *mapname,
     return (amount > 0) ? md->bl.id : 0;
 }
 
-/*==========================================
- * Appearance income of mob
- *------------------------------------------
- */
-int mob_get_viewclass(int mob_class)
-{
-    return mob_db[mob_class].view_class;
-}
-
 int mob_get_sex(int mob_class)
 {
     return mob_db[mob_class].sex;
@@ -2408,8 +2399,6 @@ int mob_delete(struct mob_data *md)
     mob_changestate(md, MS_DEAD, 0);
     clif_clearchar_area(&md->bl, 1);
     map_delblock(&md->bl);
-    if (mob_get_viewclass(md->mob_class) <= 1000)
-        clif_clearchar_delay(gettick() + 3000, &md->bl, 0);
     mob_deleteslave(md);
     mob_setdelayspawn(md->bl.id);
     return 0;
@@ -2963,8 +2952,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     clif_clearchar_area(&md->bl, 1);
     map_delblock(&md->bl);
-    if (mob_get_viewclass(md->mob_class) <= 1000)
-        clif_clearchar_delay(tick + 3000, &md->bl, 0);
     mob_deleteslave(md);
     mob_setdelayspawn(md->bl.id);
     map_freeblock_unlock();
@@ -4108,7 +4095,6 @@ int mob_readdb(void)
             if (mob_class <= 1000 || mob_class > 2000)
                 continue;
 
-            mob_db[mob_class].view_class = mob_class;
             memcpy(mob_db[mob_class].name, str[1], 24);
             memcpy(mob_db[mob_class].jname, str[2], 24);
             mob_db[mob_class].lv = atoi(str[3]);
@@ -4238,79 +4224,6 @@ int mob_readdb(void)
         fclose_(fp);
         PRINTF("read %s done\n", filename[j]);
     }
-    return 0;
-}
-
-/*==========================================
- * MOB display graphic change data reading
- *------------------------------------------
- */
-static
-int mob_readdb_mobavail(void)
-{
-    FILE *fp;
-    char line[1024];
-    int ln = 0;
-    int mob_class, j, k;
-    char *str[20], *p, *np;
-
-    if ((fp = fopen_("db/mob_avail.txt", "r")) == NULL)
-    {
-        PRINTF("can't read db/mob_avail.txt\n");
-        return -1;
-    }
-
-    while (fgets(line, 1020, fp))
-    {
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        memset(str, 0, sizeof(str));
-
-        for (j = 0, p = line; j < 12; j++)
-        {
-            if ((np = strchr(p, ',')) != NULL)
-            {
-                str[j] = p;
-                *np = 0;
-                p = np + 1;
-            }
-            else
-                str[j] = p;
-        }
-
-        if (str[0] == NULL)
-            continue;
-
-        mob_class = atoi(str[0]);
-
-        if (mob_class <= 1000 || mob_class > 2000)  // 値が異常なら処理しない。
-            continue;
-        k = atoi(str[1]);
-        if (k >= 0)
-            mob_db[mob_class].view_class = k;
-
-        if ((mob_db[mob_class].view_class < 24)
-            || (mob_db[mob_class].view_class > 4000))
-        {
-            mob_db[mob_class].sex = atoi(str[2]);
-            mob_db[mob_class].hair = atoi(str[3]);
-            mob_db[mob_class].hair_color = atoi(str[4]);
-            mob_db[mob_class].weapon = atoi(str[5]);
-            mob_db[mob_class].shield = atoi(str[6]);
-            mob_db[mob_class].head_top = atoi(str[7]);
-            mob_db[mob_class].head_mid = atoi(str[8]);
-            mob_db[mob_class].head_buttom = atoi(str[9]);
-            mob_db[mob_class].option = atoi(str[10]) & ~0x46;
-            mob_db[mob_class].clothes_color = atoi(str[11]);   // Monster player dye option - Valaris
-        }
-
-        else if (atoi(str[2]) > 0)
-            mob_db[mob_class].equip = atoi(str[2]);    // mob equipment [Valaris]
-
-        ln++;
-    }
-    fclose_(fp);
-    PRINTF("read db/mob_avail.txt done (count=%d)\n", ln);
     return 0;
 }
 
@@ -4581,7 +4494,6 @@ int do_init_mob(void)
 {
     mob_readdb();
 
-    mob_readdb_mobavail();
     mob_read_randommonster();
     mob_readskilldb();
 

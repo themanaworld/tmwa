@@ -742,33 +742,7 @@ int current_weapon(struct map_session_data *sd)
 static
 int clif_set0078(struct map_session_data *sd, unsigned char *buf)
 {
-    int level = 0;
-
     nullpo_ret(sd);
-
-    if (sd->disguise > 23 && sd->disguise < 4001)
-    {                           // mob disguises [Valaris]
-        WBUFW(buf, 0) = 0x78;
-        WBUFL(buf, 2) = sd->bl.id;
-        WBUFW(buf, 6) = battle_get_speed(&sd->bl);
-        WBUFW(buf, 8) = uint16_t(sd->opt1);
-        WBUFW(buf, 10) = uint16_t(sd->opt2);
-        WBUFW(buf, 12) = uint16_t(sd->status.option);
-        WBUFW(buf, 14) = sd->disguise;
-        WBUFW(buf, 42) = 0;
-        WBUFB(buf, 44) = 0;
-        WBUFPOS(buf, 46, sd->bl.x, sd->bl.y);
-        WBUFB(buf, 48) |= sd->dir & 0x0f;
-        WBUFB(buf, 49) = 5;
-        WBUFB(buf, 50) = 5;
-        WBUFB(buf, 51) = 0;
-        WBUFW(buf, 52) =
-            ((level =
-              battle_get_lv(&sd->bl)) >
-             battle_config.max_lv) ? battle_config.max_lv : level;
-
-        return packet_len_table[0x78];
-    }
 
     WBUFW(buf, 0) = 0x1d8;
     WBUFL(buf, 2) = sd->bl.id;
@@ -776,14 +750,15 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 8) = uint16_t(sd->opt1);
     WBUFW(buf, 10) = uint16_t(sd->opt2);
     WBUFW(buf, 12) = uint16_t(sd->status.option);
-    WBUFW(buf, 14) = sd->view_class;
+    WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
     if (sd->attack_spell_override)
+        // should be WBUFW ?
         WBUFB(buf, 18) = sd->attack_spell_look_override;
     else
     {
-        if (sd->equip_index[EQUIP::WEAPON] >= 0 && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]
-            && sd->view_class != 22)
+        if (sd->equip_index[EQUIP::WEAPON] >= 0
+            && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
         {
             if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
                 WBUFW(buf, 18) =
@@ -795,8 +770,9 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
         else
             WBUFW(buf, 18) = 0;
     }
-    if (sd->equip_index[EQUIP::SHIELD] >= 0 && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
-        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]] && sd->view_class != 22)
+    if (sd->equip_index[EQUIP::SHIELD] >= 0
+        && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
+        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
     {
         if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
             WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
@@ -833,32 +809,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
 static
 int clif_set007b(struct map_session_data *sd, unsigned char *buf)
 {
-    int level = 0;
     nullpo_ret(sd);
-
-    if (sd->disguise > 23 && sd->disguise < 4001)
-    {                           // mob disguises [Valaris]
-        WBUFW(buf, 0) = 0x7b;
-        WBUFL(buf, 2) = sd->bl.id;
-        WBUFW(buf, 6) = battle_get_speed(&sd->bl);
-        WBUFW(buf, 8) = uint16_t(sd->opt1);
-        WBUFW(buf, 10) = uint16_t(sd->opt2);
-        WBUFW(buf, 12) = uint16_t(sd->status.option);
-        WBUFW(buf, 14) = sd->disguise;
-        WBUFL(buf, 22) = gettick();
-        WBUFW(buf, 46) = 0;
-        WBUFB(buf, 48) = 0;
-        WBUFPOS2(buf, 50, sd->bl.x, sd->bl.y, sd->to_x, sd->to_y);
-        WBUFB(buf, 55) = 0;
-        WBUFB(buf, 56) = 5;
-        WBUFB(buf, 57) = 5;
-        WBUFW(buf, 58) =
-            ((level =
-              battle_get_lv(&sd->bl)) >
-             battle_config.max_lv) ? battle_config.max_lv : level;
-
-        return packet_len_table[0x7b];
-    }
 
     WBUFW(buf, 0) = 0x1da;
     WBUFL(buf, 2) = sd->bl.id;
@@ -866,10 +817,10 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 8) = uint16_t(sd->opt1);
     WBUFW(buf, 10) = uint16_t(sd->opt2);
     WBUFW(buf, 12) = uint16_t(sd->status.option);
-    WBUFW(buf, 14) = sd->view_class;
+    WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
-    if (sd->equip_index[EQUIP::WEAPON] >= 0 && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]
-        && sd->view_class != 22)
+    if (sd->equip_index[EQUIP::WEAPON] >= 0
+        && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
     {
         if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
             WBUFW(buf, 18) = sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
@@ -878,8 +829,9 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     }
     else
         WBUFW(buf, 18) = 0;
-    if (sd->equip_index[EQUIP::SHIELD] >= 0 && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
-        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]] && sd->view_class != 22)
+    if (sd->equip_index[EQUIP::SHIELD] >= 0
+        && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
+        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
     {
         if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
             WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
@@ -928,23 +880,8 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
     WBUFW(buf, 8) = uint16_t(md->opt1);
     WBUFW(buf, 10) = uint16_t(md->opt2);
     WBUFW(buf, 12) = uint16_t(md->option);
-    WBUFW(buf, 14) = mob_get_viewclass(md->mob_class);
-    if ((mob_get_viewclass(md->mob_class) <= 23)
-        || (mob_get_viewclass(md->mob_class) == 812)
-        || (mob_get_viewclass(md->mob_class) >= 4001))
-    {
-        WBUFW(buf, 12) |= mob_db[md->mob_class].option;
-        WBUFW(buf, 16) = mob_get_hair(md->mob_class);
-        WBUFW(buf, 18) = mob_get_weapon(md->mob_class);
-        WBUFW(buf, 20) = mob_get_head_buttom(md->mob_class);
-        WBUFW(buf, 22) = mob_get_shield(md->mob_class);
-        WBUFW(buf, 24) = mob_get_head_top(md->mob_class);
-        WBUFW(buf, 26) = mob_get_head_mid(md->mob_class);
-        WBUFW(buf, 28) = mob_get_hair_color(md->mob_class);
-        WBUFW(buf, 30) = mob_get_clothes_color(md->mob_class);    //Add for player monster dye - Valaris
-        WBUFB(buf, 45) = mob_get_sex(md->mob_class);
-    }
-
+    WBUFW(buf, 14) = md->mob_class;
+    // snip: stuff do do with disguise as a PC
     WBUFPOS(buf, 46, md->bl.x, md->bl.y);
     WBUFB(buf, 48) |= md->dir & 0x0f;
     WBUFB(buf, 49) = 5;
@@ -976,24 +913,9 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
     WBUFW(buf, 8) = uint16_t(md->opt1);
     WBUFW(buf, 10) = uint16_t(md->opt2);
     WBUFW(buf, 12) = uint16_t(md->option);
-    WBUFW(buf, 14) = mob_get_viewclass(md->mob_class);
-    if ((mob_get_viewclass(md->mob_class) < 24)
-        || (mob_get_viewclass(md->mob_class) > 4000))
-    {
-        WBUFW(buf, 12) |= mob_db[md->mob_class].option;
-        WBUFW(buf, 16) = mob_get_hair(md->mob_class);
-        WBUFW(buf, 18) = mob_get_weapon(md->mob_class);
-        WBUFW(buf, 20) = mob_get_head_buttom(md->mob_class);
-        WBUFL(buf, 22) = gettick();
-        WBUFW(buf, 26) = mob_get_shield(md->mob_class);
-        WBUFW(buf, 28) = mob_get_head_top(md->mob_class);
-        WBUFW(buf, 30) = mob_get_head_mid(md->mob_class);
-        WBUFW(buf, 32) = mob_get_hair_color(md->mob_class);
-        WBUFW(buf, 34) = mob_get_clothes_color(md->mob_class);    //Add for player monster dye - Valaris
-        WBUFB(buf, 49) = mob_get_sex(md->mob_class);
-    }
-    else
-        WBUFL(buf, 22) = gettick();
+    WBUFW(buf, 14) = md->mob_class;
+    // snip: stuff for monsters disguised as PCs
+    WBUFL(buf, 22) = gettick();
 
     WBUFPOS2(buf, 50, md->bl.x, md->bl.y, md->to_x, md->to_y);
     WBUFB(buf, 56) = 5;
@@ -1058,34 +980,6 @@ int clif_spawnpc(struct map_session_data *sd)
     unsigned char buf[128];
 
     nullpo_ret(sd);
-
-    if (sd->disguise > 23 && sd->disguise < 4001)
-    {                           // mob disguises [Valaris]
-        clif_clearchar(&sd->bl, 9);
-
-        memset(buf, 0, packet_len_table[0x119]);
-
-        WBUFW(buf, 0) = 0x119;
-        WBUFL(buf, 2) = sd->bl.id;
-        WBUFW(buf, 6) = 0;
-        WBUFW(buf, 8) = 0;
-        WBUFW(buf, 10) = 0x40;
-        WBUFB(buf, 12) = 0;
-
-        clif_send(buf, packet_len_table[0x119], &sd->bl, SELF);
-
-        memset(buf, 0, packet_len_table[0x7c]);
-
-        WBUFW(buf, 0) = 0x7c;
-        WBUFL(buf, 2) = sd->bl.id;
-        WBUFW(buf, 6) = sd->speed;
-        WBUFW(buf, 8) = uint16_t(sd->opt1);
-        WBUFW(buf, 10) = uint16_t(sd->opt2);
-        WBUFW(buf, 12) = uint16_t(sd->status.option);
-        WBUFW(buf, 20) = sd->disguise;
-        WBUFPOS(buf, 36, sd->bl.x, sd->bl.y);
-        clif_send(buf, packet_len_table[0x7c], &sd->bl, AREA);
-    }
 
     clif_set0078(sd, buf);
 
@@ -1187,7 +1081,6 @@ int clif_spawnmob(struct mob_data *md)
 
     nullpo_ret(md);
 
-    if (mob_get_viewclass(md->mob_class) > 23)
     {
         memset(buf, 0, packet_len_table[0x7c]);
 
@@ -1197,7 +1090,7 @@ int clif_spawnmob(struct mob_data *md)
         WBUFW(buf, 8) = uint16_t(md->opt1);
         WBUFW(buf, 10) = uint16_t(md->opt2);
         WBUFW(buf, 12) = uint16_t(md->option);
-        WBUFW(buf, 20) = mob_get_viewclass(md->mob_class);
+        WBUFW(buf, 20) = md->mob_class;
         WBUFPOS(buf, 36, md->bl.x, md->bl.y);
         clif_send(buf, packet_len_table[0x7c], &md->bl, AREA);
     }
@@ -1260,13 +1153,7 @@ int clif_movechar(struct map_session_data *sd)
 
     len = clif_set007b(sd, buf);
 
-    if (sd->disguise > 23 && sd->disguise < 4001)
-    {
-        clif_send(buf, len, &sd->bl, AREA);
-        return 0;
-    }
-    else
-        clif_send(buf, len, &sd->bl, AREA_WOS);
+    clif_send(buf, len, &sd->bl, AREA_WOS);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(&sd->bl, LOOK_CLOTHES_COLOR,
@@ -1322,9 +1209,6 @@ int clif_changemap(struct map_session_data *sd, const char *mapname, int x, int 
     WFIFOW(fd, 18) = x;
     WFIFOW(fd, 20) = y;
     WFIFOSET(fd, packet_len_table[0x91]);
-
-    if (sd->disguise > 23 && sd->disguise < 4001)   // mob disguises [Valaris]
-        clif_spawnpc(sd);
 
     return 0;
 }
@@ -2158,9 +2042,6 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
     if (bl->type == BL_PC)
         sd = (struct map_session_data *) bl;
 
-    if (sd && sd->disguise > 23 && sd->disguise < 4001) // mob disguises [Valaris]
-        return 0;
-
     if (sd && bool(sd->status.option & Option::INVISIBILITY))
         return 0;
 
@@ -2199,8 +2080,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
             else
             {
                 if (sd->equip_index[EQUIP::WEAPON] >= 0
-                    && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]
-                    && sd->view_class != 22)
+                    && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
                 {
                     if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
                         WBUFW(buf, 7) =
@@ -2214,8 +2094,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
             }
             if (sd->equip_index[EQUIP::SHIELD] >= 0
                 && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
-                && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]
-                && sd->view_class != 22)
+                && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
             {
                 if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
                     WBUFW(buf, 9) =
@@ -2445,19 +2324,7 @@ int clif_changeoption(struct block_list *bl)
     WBUFW(buf, 10) = uint16_t(option);
     WBUFB(buf, 12) = 0;        // ??
 
-    if (bl->type == BL_PC)
-    {                           // disguises [Valaris]
-        struct map_session_data *sd = ((struct map_session_data *) bl);
-        if (sd && sd->disguise > 23 && sd->disguise < 4001)
-        {
-            clif_send(buf, packet_len_table[0x119], bl, AREA_WOS);
-            clif_spawnpc(sd);
-        }
-        else
-            clif_send(buf, packet_len_table[0x119], bl, AREA);
-    }
-    else
-        clif_send(buf, packet_len_table[0x119], bl, AREA);
+    clif_send(buf, packet_len_table[0x119], bl, AREA);
 
     return 0;
 }
@@ -3457,13 +3324,6 @@ int clif_resurrection(struct block_list *bl, int type)
 
     nullpo_ret(bl);
 
-    if (bl->type == BL_PC)
-    {                           // disguises [Valaris]
-        struct map_session_data *sd = ((struct map_session_data *) bl);
-        if (sd && sd->disguise > 23 && sd->disguise < 4001)
-            clif_spawnpc(sd);
-    }
-
     WBUFW(buf, 0) = 0x148;
     WBUFL(buf, 2) = bl->id;
     WBUFW(buf, 6) = type;
@@ -4051,12 +3911,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
         sd->pvp_timer = -1;
     }
 
-    if (sd->state.connect_new)
-    {
-        sd->state.connect_new = 0;
-        if (sd->status.pc_class != sd->view_class)
-            clif_changelook(&sd->bl, LOOK_BASE, sd->view_class);
-    }
+    sd->state.connect_new = 0;
 
     // view equipment item
     clif_changelook(&sd->bl, LOOK_WEAPON, 0);
@@ -4415,10 +4270,8 @@ void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
     WBUFL(buf, 2) = sd->bl.id;
     WBUFW(buf, 6) = 0;
     WBUFB(buf, 8) = dir;
-    if (sd->disguise > 23 && sd->disguise < 4001)   // mob disguises [Valaris]
-        clif_send(buf, packet_len_table[0x9c], &sd->bl, AREA);
-    else
-        clif_send(buf, packet_len_table[0x9c], &sd->bl, AREA_WOS);
+
+    clif_send(buf, packet_len_table[0x9c], &sd->bl, AREA_WOS);
 
 }
 
@@ -4494,7 +4347,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
     {
         case 0x00:             // once attack
         case 0x07:             // continuous attack
-            if (sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class == 22
+            if (sd->sc_data[SC_WEDDING].timer != -1
                 || bool(sd->status.option & Option::HIDE))
                 return;
             if (!battle_config.sdelay_attack_enable)
@@ -5042,8 +4895,7 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
     if (sd->sc_data[SC_TRICKDEAD].timer != -1
         || sd->sc_data[SC_BERSERK].timer != -1
         || sd->sc_data[SC_NOCHAT].timer != -1
-        || sd->sc_data[SC_WEDDING].timer != -1
-        || sd->view_class == 22)
+        || sd->sc_data[SC_WEDDING].timer != -1)
         return;
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
@@ -5115,7 +4967,7 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
     if ((sd->sc_data[SC_TRICKDEAD].timer != -1 && skillnum != NV_TRICKDEAD) ||
         sd->sc_data[SC_BERSERK].timer != -1
         || sd->sc_data[SC_NOCHAT].timer != -1
-        || sd->sc_data[SC_WEDDING].timer != -1 || sd->view_class == 22)
+        || sd->sc_data[SC_WEDDING].timer != -1)
         return;
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
@@ -5150,12 +5002,11 @@ void clif_parse_UseSkillMap(int fd, struct map_session_data *sd)
     if (sd->chatID)
         return;
 
-    if (sd->npc_id != 0 || (
-                            (sd->sc_data[SC_TRICKDEAD].timer != -1 ||
-                             sd->sc_data[SC_BERSERK].timer != -1 ||
-                             sd->sc_data[SC_NOCHAT].timer != -1 ||
-                             sd->sc_data[SC_WEDDING].timer != -1 ||
-                             sd->view_class == 22)))
+    if (sd->npc_id != 0
+        || sd->sc_data[SC_TRICKDEAD].timer != -1
+        || sd->sc_data[SC_BERSERK].timer != -1
+        || sd->sc_data[SC_NOCHAT].timer != -1
+        || sd->sc_data[SC_WEDDING].timer != -1)
         return;
 
     if (sd->invincible_timer != -1)

@@ -151,8 +151,6 @@ char online_html_filename[1024] = "online.html";
 static
 int online_sorting_option = 0; // sorting option to display online players in online files
 static
-int online_display_option = 1; // display options: to know which columns must be displayed
-static
 int online_refresh_html = 20;  // refresh time (in sec) of the html file in the explorer
 static
 int online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when we want to display it
@@ -272,7 +270,7 @@ std::string mmo_char_tostr(struct mmo_charstatus *p)
             p->char_id,
             p->account_id, p->char_num,
             p->name,
-            p->pc_class, p->base_level, p->job_level,
+            p->species, p->base_level, p->job_level,
             p->base_exp, p->job_exp, p->zeny,
             p->hp, p->max_hp, p->sp, p->max_sp,
             p->attrs[ATTR::STR], p->attrs[ATTR::AGI], p->attrs[ATTR::VIT], p->attrs[ATTR::INT], p->attrs[ATTR::DEX], p->attrs[ATTR::LUK],
@@ -385,7 +383,7 @@ bool extract(const_string str, struct mmo_charstatus *p)
                     &p->char_id,
                     record<','>(&p->account_id, &p->char_num),
                     &p->name,
-                    record<','>(&p->pc_class, &p->base_level, &p->job_level),
+                    record<','>(&p->species, &p->base_level, &p->job_level),
                     record<','>(&p->base_exp, &p->job_exp, &p->zeny),
                     record<','>(&p->hp, &p->max_hp, &p->sp, &p->max_sp),
                     record<','>(&p->attrs[ATTR::STR], &p->attrs[ATTR::AGI], &p->attrs[ATTR::VIT], &p->attrs[ATTR::INT], &p->attrs[ATTR::DEX], &p->attrs[ATTR::LUK]),
@@ -774,7 +772,7 @@ int make_new_char(int fd, const uint8_t *dat)
     char_dat[i].account_id = sd->account_id;
     char_dat[i].char_num = dat[30];
     strcpy(char_dat[i].name, cdat);
-    char_dat[i].pc_class = 0;
+    char_dat[i].species = 0;
     char_dat[i].base_level = 1;
     char_dat[i].job_level = 1;
     char_dat[i].base_exp = 0;
@@ -822,156 +820,6 @@ int make_new_char(int fd, const uint8_t *dat)
     return i;
 }
 
-//----------------------------------------------------
-// This function return the name of the job (by [Yor])
-//----------------------------------------------------
-static
-const char *job_name(int pc_class)
-{
-    switch (pc_class)
-    {
-        case 0:
-            return "Novice";
-        case 1:
-            return "Swordsman";
-        case 2:
-            return "Mage";
-        case 3:
-            return "Archer";
-        case 4:
-            return "Acolyte";
-        case 5:
-            return "Merchant";
-        case 6:
-            return "Thief";
-        case 7:
-            return "Knight";
-        case 8:
-            return "Priest";
-        case 9:
-            return "Wizard";
-        case 10:
-            return "Blacksmith";
-        case 11:
-            return "Hunter";
-        case 12:
-            return "Assassin";
-        case 13:
-            return "Knight 2";
-        case 14:
-            return "Crusader";
-        case 15:
-            return "Monk";
-        case 16:
-            return "Sage";
-        case 17:
-            return "Rogue";
-        case 18:
-            return "Alchemist";
-        case 19:
-            return "Bard";
-        case 20:
-            return "Dancer";
-        case 21:
-            return "Crusader 2";
-        case 22:
-            return "Wedding";
-        case 23:
-            return "Super Novice";
-        case 4001:
-            return "Novice High";
-        case 4002:
-            return "Swordsman High";
-        case 4003:
-            return "Mage High";
-        case 4004:
-            return "Archer High";
-        case 4005:
-            return "Acolyte High";
-        case 4006:
-            return "Merchant High";
-        case 4007:
-            return "Thief High";
-        case 4008:
-            return "Lord Knight";
-        case 4009:
-            return "High Priest";
-        case 4010:
-            return "High Wizard";
-        case 4011:
-            return "Whitesmith";
-        case 4012:
-            return "Sniper";
-        case 4013:
-            return "Assassin Cross";
-        case 4014:
-            return "Peko Knight";
-        case 4015:
-            return "Paladin";
-        case 4016:
-            return "Champion";
-        case 4017:
-            return "Professor";
-        case 4018:
-            return "Stalker";
-        case 4019:
-            return "Creator";
-        case 4020:
-            return "Clown";
-        case 4021:
-            return "Gypsy";
-        case 4022:
-            return "Peko Paladin";
-        case 4023:
-            return "Baby Novice";
-        case 4024:
-            return "Baby Swordsman";
-        case 4025:
-            return "Baby Mage";
-        case 4026:
-            return "Baby Archer";
-        case 4027:
-            return "Baby Acolyte";
-        case 4028:
-            return "Baby Merchant";
-        case 4029:
-            return "Baby Thief";
-        case 4030:
-            return "Baby Knight";
-        case 4031:
-            return "Baby Priest";
-        case 4032:
-            return "Baby Wizard";
-        case 4033:
-            return "Baby Blacksmith";
-        case 4034:
-            return "Baby Hunter";
-        case 4035:
-            return "Baby Assassin";
-        case 4036:
-            return "Baby Peco Knight";
-        case 4037:
-            return "Baby Crusader";
-        case 4038:
-            return "Baby Monk";
-        case 4039:
-            return "Baby Sage";
-        case 4040:
-            return "Baby Rogue";
-        case 4041:
-            return "Baby Alchemist";
-        case 4042:
-            return "Baby Bard";
-        case 4043:
-            return "Baby Dancer";
-        case 4044:
-            return "Baby Peco Crusader";
-        case 4045:
-            return "Super Baby";
-    }
-    return "Unknown Job";
-}
-
 //-------------------------------------------------------------
 // Function to create the online files (txt and html). by [Yor]
 //-------------------------------------------------------------
@@ -986,9 +834,6 @@ void create_online_files(void)
     time_t time_server;         // for number of seconds
     struct tm *datetime;        // variable for time in structure ->tm_mday, ->tm_sec, ...
     int id[char_num];
-
-    if (online_display_option == 0) // we display nothing, so return
-        return;
 
     // Get number of online players, id of each online players
     players = 0;
@@ -1040,26 +885,6 @@ void create_online_files(void)
                              char_dat[id[j]].base_level
                              && char_dat[i].base_exp <
                              char_dat[id[j]].base_exp))
-                        {
-                            for (k = players; k > j; k--)
-                                id[k] = id[k - 1];
-                            id[j] = i;  // id[players]
-                            break;
-                        }
-                    break;
-                case 4:        // by job (and job level)
-                    for (j = 0; j < players; j++)
-                        if (char_dat[i].pc_class < char_dat[id[j]].pc_class ||
-                            // if same job, we sort by job level.
-                            (char_dat[i].pc_class == char_dat[id[j]].pc_class &&
-                             char_dat[i].job_level <
-                             char_dat[id[j]].job_level) ||
-                            // if same job and job level, we sort by job exp.
-                            (char_dat[i].pc_class == char_dat[id[j]].pc_class &&
-                             char_dat[i].job_level ==
-                             char_dat[id[j]].job_level
-                             && char_dat[i].job_exp <
-                             char_dat[id[j]].job_exp))
                         {
                             for (k = players; k > j; k--)
                                 id[k] = id[k - 1];
@@ -1121,59 +946,12 @@ void create_online_files(void)
                 j = 0;          // count the number of characters for the txt version and to set the separate line
                 FPRINTF(fp2, "    <table border=\"1\" cellspacing=\"1\">\n");
                 FPRINTF(fp2, "      <tr>\n");
-                if ((online_display_option & 1)
-                    || (online_display_option & 64))
                 {
                     FPRINTF(fp2, "        <td><b>Name</b></td>\n");
-                    if (online_display_option & 64)
                     {
                         FPRINTF(fp, "Name                          "); // 30
                         j += 30;
                     }
-                    else
-                    {
-                        FPRINTF(fp, "Name                     ");  // 25
-                        j += 25;
-                    }
-                }
-                if ((online_display_option & 6) == 6)
-                {
-                    FPRINTF(fp2, "        <td><b>Job (levels)</b></td>\n");
-                    FPRINTF(fp, "Job                 Levels ");    // 27
-                    j += 27;
-                }
-                else if (online_display_option & 2)
-                {
-                    FPRINTF(fp2, "        <td><b>Job</b></td>\n");
-                    FPRINTF(fp, "Job                ");    // 19
-                    j += 19;
-                }
-                else if (online_display_option & 4)
-                {
-                    FPRINTF(fp2, "        <td><b>Levels</b></td>\n");
-                    FPRINTF(fp, " Levels ");   // 8
-                    j += 8;
-                }
-                if (online_display_option & 24)
-                {               // 8 or 16
-                    FPRINTF(fp2, "        <td><b>Location</b></td>\n");
-                    if (online_display_option & 16)
-                    {
-                        FPRINTF(fp, "Location     ( x , y ) ");    // 23
-                        j += 23;
-                    }
-                    else
-                    {
-                        FPRINTF(fp, "Location     ");  // 13
-                        j += 13;
-                    }
-                }
-                if (online_display_option & 32)
-                {
-                    FPRINTF(fp2,
-                             "        <td ALIGN=CENTER><b>zenys</b></td>\n");
-                    FPRINTF(fp, "          Zenys ");   // 16
-                    j += 16;
                 }
                 FPRINTF(fp2, "      </tr>\n");
                 FPRINTF(fp, "\n");
@@ -1188,24 +966,18 @@ void create_online_files(void)
                     j = id[i];
                     FPRINTF(fp2, "      <tr>\n");
                     // displaying the character name
-                    if ((online_display_option & 1)
-                        || (online_display_option & 64))
                     {           // without/with 'GM' display
                         strcpy(temp, char_dat[j].name);
                         l = isGM(char_dat[j].account_id);
-                        if (online_display_option & 64)
                         {
                             if (l >= online_gm_display_min_level)
                                 FPRINTF(fp, "%-24s (GM) ", temp);
                             else
                                 FPRINTF(fp, "%-24s      ", temp);
                         }
-                        else
-                            FPRINTF(fp, "%-24s ", temp);
                         // name of the character in the html (no < >, because that create problem in html code)
                         FPRINTF(fp2, "        <td>");
-                        if ((online_display_option & 64)
-                            && l >= online_gm_display_min_level)
+                        if (l >= online_gm_display_min_level)
                             FPRINTF(fp2, "<b>");
                         for (k = 0; temp[k]; k++)
                         {
@@ -1222,79 +994,9 @@ void create_online_files(void)
                                     break;
                             };
                         }
-                        if ((online_display_option & 64)
-                            && l >= online_gm_display_min_level)
+                        if (l >= online_gm_display_min_level)
                             FPRINTF(fp2, "</b> (GM)");
                         FPRINTF(fp2, "</td>\n");
-                    }
-                    // displaying of the job
-                    if (online_display_option & 6)
-                    {
-                        const char *jobname = job_name(char_dat[j].pc_class);
-                        if ((online_display_option & 6) == 6)
-                        {
-                            FPRINTF(fp2, "        <td>%s %d/%d</td>\n",
-                                     jobname, char_dat[j].base_level,
-                                     char_dat[j].job_level);
-                            FPRINTF(fp, "%-18s %3d/%3d ", jobname,
-                                     char_dat[j].base_level,
-                                     char_dat[j].job_level);
-                        }
-                        else if (online_display_option & 2)
-                        {
-                            FPRINTF(fp2, "        <td>%s</td>\n", jobname);
-                            FPRINTF(fp, "%-18s ", jobname);
-                        }
-                        else if (online_display_option & 4)
-                        {
-                            FPRINTF(fp2, "        <td>%d/%d</td>\n",
-                                     char_dat[j].base_level,
-                                     char_dat[j].job_level);
-                            FPRINTF(fp, "%3d/%3d ", char_dat[j].base_level,
-                                     char_dat[j].job_level);
-                        }
-                    }
-                    // displaying of the map
-                    if (online_display_option & 24)
-                    {           // 8 or 16
-                        // prepare map name
-                        memset(temp, 0, sizeof(temp));
-                        strzcpy(temp, char_dat[j].last_point.map, 16);
-                        if (strchr(temp, '.') != NULL)
-                            temp[strchr(temp, '.') - temp] = '\0'; // suppress the '.gat'
-                        // write map name
-                        if (online_display_option & 16)
-                        {       // map-name AND coordonates
-                            FPRINTF(fp2, "        <td>%s (%d, %d)</td>\n",
-                                     temp, char_dat[j].last_point.x,
-                                     char_dat[j].last_point.y);
-                            FPRINTF(fp, "%-12s (%3d,%3d) ", temp,
-                                     char_dat[j].last_point.x,
-                                     char_dat[j].last_point.y);
-                        }
-                        else
-                        {
-                            FPRINTF(fp2, "        <td>%s</td>\n", temp);
-                            FPRINTF(fp, "%-12s ", temp);
-                        }
-                    }
-                    // displaying number of zenys
-                    if (online_display_option & 32)
-                    {
-                        // write number of zenys
-                        if (char_dat[j].zeny == 0)
-                        {       // if no zeny
-                            FPRINTF(fp2,
-                                     "        <td ALIGN=RIGHT>no zeny</td>\n");
-                            FPRINTF(fp, "        no zeny ");
-                        }
-                        else
-                        {
-                            FPRINTF(fp2,
-                                     "        <td ALIGN=RIGHT>%d z</td>\n",
-                                     char_dat[j].zeny);
-                            FPRINTF(fp, "%13d z ", char_dat[j].zeny);
-                        }
                     }
                     FPRINTF(fp, "\n");
                     FPRINTF(fp2, "      </tr>\n");
@@ -1412,7 +1114,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 46) = (p->sp > 0x7fff) ? 0x7fff : p->sp;
         WFIFOW(fd, j + 48) = (p->max_sp > 0x7fff) ? 0x7fff : p->max_sp;
         WFIFOW(fd, j + 50) = DEFAULT_WALK_SPEED;   // p->speed;
-        WFIFOW(fd, j + 52) = p->pc_class;
+        WFIFOW(fd, j + 52) = p->species;
         WFIFOW(fd, j + 54) = p->hair;
 //      WFIFOW(fd,j+56) = p->weapon; // dont send weapon since TMW does not support it
         WFIFOW(fd, j + 56) = 0;
@@ -1708,31 +1410,8 @@ void parse_tologin(int fd)
                         {
                             if (char_dat[i].account_id == acc)
                             {
-                                int jobclass = char_dat[i].pc_class;
                                 char_dat[i].sex = sex;
 //                      auth_fifo[i].sex = sex;
-                                if (jobclass == 19 || jobclass == 20 ||
-                                    jobclass == 4020 || jobclass == 4021 ||
-                                    jobclass == 4042 || jobclass == 4043)
-                                {
-                                    // job modification
-                                    if (jobclass == 19 || jobclass == 20)
-                                    {
-                                        char_dat[i].pc_class = (sex) ? 19 : 20;
-                                    }
-                                    else if (jobclass == 4020
-                                             || jobclass == 4021)
-                                    {
-                                        char_dat[i].pc_class =
-                                            (sex) ? 4020 : 4021;
-                                    }
-                                    else if (jobclass == 4042
-                                             || jobclass == 4043)
-                                    {
-                                        char_dat[i].pc_class =
-                                            (sex) ? 4042 : 4043;
-                                    }
-                                }
                                 // to avoid any problem with equipment and invalid sex, equipment is unequiped.
                                 for (j = 0; j < MAX_INVENTORY; j++)
                                 {
@@ -2911,7 +2590,7 @@ void parse_char(int fd)
                     (char_dat[i].max_sp >
                      0x7fff) ? 0x7fff : char_dat[i].max_sp;
                 WFIFOW(fd, 2 + 50) = DEFAULT_WALK_SPEED;   // char_dat[i].speed;
-                WFIFOW(fd, 2 + 52) = char_dat[i].pc_class;
+                WFIFOW(fd, 2 + 52) = char_dat[i].species;
                 WFIFOW(fd, 2 + 54) = char_dat[i].hair;
 
                 WFIFOW(fd, 2 + 58) = char_dat[i].base_level;
@@ -3537,10 +3216,6 @@ int char_config_read(const char *cfgName)
         else if (w1 == "online_sorting_option")
         {
             online_sorting_option = atoi(w2.c_str());
-        }
-        else if (w1 == "online_display_option")
-        {
-            online_display_option = atoi(w2.c_str());
         }
         else if (w1 == "online_gm_display_min_level")
         {                       // minimum GM level to display 'GM' when we want to display it

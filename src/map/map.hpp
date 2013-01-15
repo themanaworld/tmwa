@@ -299,9 +299,7 @@ struct map_session_data
     int berserkdamagetick;
     int fame;
 
-    short view_class;
     short weapontype1, weapontype2;
-    short disguiseflag, disguise;   // [Valaris]
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2, aspd, amotion, dmotion;
     int watk, watk2, atkmods[3];

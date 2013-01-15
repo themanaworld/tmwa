@@ -3307,15 +3307,11 @@ void builtin_changesex(ScriptState *st)
     {
         sd->status.sex = 1;
         sd->sex = 1;
-        if (sd->status.pc_class == 20 || sd->status.pc_class == 4021)
-            sd->status.pc_class -= 1;
     }
     else if (sd->status.sex == 1)
     {
         sd->status.sex = 0;
         sd->sex = 0;
-        if (sd->status.pc_class == 19 || sd->status.pc_class == 4020)
-            sd->status.pc_class += 1;
     }
     chrif_char_ask_name(-1, sd->status.name, 5, 0, 0, 0, 0, 0, 0); // type: 5 - changesex
     chrif_save(sd);

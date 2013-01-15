@@ -363,157 +363,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_Unknown, NULL, 1, NULL}
 };
 
-/*====================================================
- * This function return the name of the job (by [Yor])
- *----------------------------------------------------
- */
-static
-const char *job_name(int pc_class)
-{
-    switch (pc_class)
-    {
-        case 0:
-            return "Novice";
-        case 1:
-            return "Swordsman";
-        case 2:
-            return "Mage";
-        case 3:
-            return "Archer";
-        case 4:
-            return "Acolyte";
-        case 5:
-            return "Merchant";
-        case 6:
-            return "Thief";
-        case 7:
-            return "Knight";
-        case 8:
-            return "Priest";
-        case 9:
-            return "Wizard";
-        case 10:
-            return "Blacksmith";
-        case 11:
-            return "Hunter";
-        case 12:
-            return "Assassin";
-        case 13:
-            return "Knight 2";
-        case 14:
-            return "Crusader";
-        case 15:
-            return "Monk";
-        case 16:
-            return "Sage";
-        case 17:
-            return "Rogue";
-        case 18:
-            return "Alchemist";
-        case 19:
-            return "Bard";
-        case 20:
-            return "Dancer";
-        case 21:
-            return "Crusader 2";
-        case 22:
-            return "Wedding";
-        case 23:
-            return "Super Novice";
-        case 4001:
-            return "Novice High";
-        case 4002:
-            return "Swordsman High";
-        case 4003:
-            return "Mage High";
-        case 4004:
-            return "Archer High";
-        case 4005:
-            return "Acolyte High";
-        case 4006:
-            return "Merchant High";
-        case 4007:
-            return "Thief High";
-        case 4008:
-            return "Lord Knight";
-        case 4009:
-            return "High Priest";
-        case 4010:
-            return "High Wizard";
-        case 4011:
-            return "Whitesmith";
-        case 4012:
-            return "Sniper";
-        case 4013:
-            return "Assassin Cross";
-        case 4014:
-            return "Peko Knight";
-        case 4015:
-            return "Paladin";
-        case 4016:
-            return "Champion";
-        case 4017:
-            return "Professor";
-        case 4018:
-            return "Stalker";
-        case 4019:
-            return "Creator";
-        case 4020:
-            return "Clown";
-        case 4021:
-            return "Gypsy";
-        case 4022:
-            return "Peko Paladin";
-        case 4023:
-            return "Baby Novice";
-        case 4024:
-            return "Baby Swordsman";
-        case 4025:
-            return "Baby Mage";
-        case 4026:
-            return "Baby Archer";
-        case 4027:
-            return "Baby Acolyte";
-        case 4028:
-            return "Baby Merchant";
-        case 4029:
-            return "Baby Thief";
-        case 4030:
-            return "Baby Knight";
-        case 4031:
-            return "Baby Priest";
-        case 4032:
-            return "Baby Wizard";
-        case 4033:
-            return "Baby Blacksmith";
-        case 4034:
-            return "Baby Hunter";
-        case 4035:
-            return "Baby Assassin";
-        case 4036:
-            return "Baby Peco Knight";
-        case 4037:
-            return "Baby Crusader";
-        case 4038:
-            return "Baby Monk";
-        case 4039:
-            return "Baby Sage";
-        case 4040:
-            return "Baby Rogue";
-        case 4041:
-            return "Baby Alchemist";
-        case 4042:
-            return "Baby Bard";
-        case 4043:
-            return "Baby Dancer";
-        case 4044:
-            return "Baby Peco Crusader";
-        case 4045:
-            return "Super Baby";
-    }
-    return "Unknown Job";
-}
-
 /*==========================================
  * get_atcommand_level @コマンドの必要レベルを取得
  *------------------------------------------
@@ -1433,7 +1282,7 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
                         output = STRPRINTF(
                                 "       BLvl: %d | Job: %s (Lvl: %d)",
                                 pl_sd->status.base_level,
-                                job_name(pl_sd->status.pc_class),
+                                "Novice/Human",
                                 pl_sd->status.job_level);
                         clif_displaymessage(fd, output);
                         p = party_search(pl_sd->status.party_id);
@@ -1602,21 +1451,6 @@ int atcommand_option(const int fd, struct map_session_data *sd,
     sd->opt1 = param1;
     sd->opt2 = param2;
     sd->status.option = param3;
-    // fix pecopeco display
-    if (sd->status.pc_class == 13 || sd->status.pc_class == 21
-        || sd->status.pc_class == 4014 || sd->status.pc_class == 4022)
-    {
-        {                       // sd have the new value...
-            if (sd->status.pc_class == 13)
-                sd->status.pc_class = sd->view_class = 7;
-            else if (sd->status.pc_class == 21)
-                sd->status.pc_class = sd->view_class = 14;
-            else if (sd->status.pc_class == 4014)
-                sd->status.pc_class = sd->view_class = 4008;
-            else if (sd->status.pc_class == 4022)
-                sd->status.pc_class = sd->view_class = 4015;
-        }
-    }
 
     clif_changeoption(&sd->bl);
     pc_calcstatus(sd, 0);
@@ -1950,6 +1784,8 @@ int atcommand_baselevelup(const int fd, struct map_session_data *sd,
  *
  *------------------------------------------
  */
+// TODO: merge this with pc_setparam(SP_JOBLEVEL)
+// then fix the funny 50 and/or 10 limitation.
 int atcommand_joblevelup(const int fd, struct map_session_data *sd,
                           const char *, const char *message)
 {
@@ -1962,11 +1798,7 @@ int atcommand_joblevelup(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    if (sd->status.pc_class == 0 || sd->status.pc_class == 4001)
-        up_level -= 40;
-    else if ((sd->status.pc_class > 4007 && sd->status.pc_class < 4024)
-             || sd->status.pc_class == 23)
-        up_level += 20;
+    up_level -= 40;
 
     if (level > 0)
     {
@@ -2205,15 +2037,6 @@ int atcommand_model(const int fd, struct map_session_data *sd,
         hair_color >= MIN_HAIR_COLOR && hair_color <= MAX_HAIR_COLOR &&
         cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
     {
-        //服の色変更
-        if (cloth_color != 0 && sd->status.sex == 1
-            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
-        {
-            //服の色未実装職の判定
-            clif_displaymessage(fd, "You can't use this command with this class.");
-            return -1;
-        }
-        else
         {
             pc_changelook(sd, LOOK_HAIR, hair_style);
             pc_changelook(sd, LOOK_HAIR_COLOR, hair_color);
@@ -2250,13 +2073,6 @@ int atcommand_dye(const int fd, struct map_session_data *sd,
 
     if (cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
     {
-        if (cloth_color != 0 && sd->status.sex == 1
-            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
-        {
-            clif_displaymessage(fd, "You can't use this command with this class.");
-            return -1;
-        }
-        else
         {
             pc_changelook(sd, LOOK_CLOTHES_COLOR, cloth_color);
             clif_displaymessage(fd, "Appearence changed.");
@@ -2291,13 +2107,6 @@ int atcommand_hair_style(const int fd, struct map_session_data *sd,
 
     if (hair_style >= MIN_HAIR_STYLE && hair_style <= MAX_HAIR_STYLE)
     {
-        if (hair_style != 0 && sd->status.sex == 1
-            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
-        {
-            clif_displaymessage(fd, "You can't use this command with this class.");
-            return -1;
-        }
-        else
         {
             pc_changelook(sd, LOOK_HAIR, hair_style);
             clif_displaymessage(fd, "Appearence changed.");
@@ -2332,13 +2141,6 @@ int atcommand_hair_color(const int fd, struct map_session_data *sd,
 
     if (hair_color >= MIN_HAIR_COLOR && hair_color <= MAX_HAIR_COLOR)
     {
-        if (hair_color != 0 && sd->status.sex == 1
-            && (sd->status.pc_class == 12 || sd->status.pc_class == 17))
-        {
-            clif_displaymessage(fd, "You can't use this command with this class.");
-            return -1;
-        }
-        else
         {
             pc_changelook(sd, LOOK_HAIR_COLOR, hair_color);
             clif_displaymessage(fd, "Appearence changed.");
@@ -2974,8 +2776,7 @@ int atcommand_character_stats(const int fd, struct map_session_data *,
         clif_displaymessage(fd, output);
         output = STRPRINTF("Base Level - %d", pl_sd->status.base_level),
         clif_displaymessage(fd, output);
-        output = STRPRINTF("Job - %s (level %d)",
-                job_name(pl_sd->status.pc_class), pl_sd->status.job_level);
+        output = STRPRINTF("Job - Novice/Human (level %d)", pl_sd->status.job_level);
         clif_displaymessage(fd, output);
         output = STRPRINTF("Hp - %d", pl_sd->status.hp);
         clif_displaymessage(fd, output);
@@ -3035,9 +2836,9 @@ int atcommand_character_stats_all(const int fd, struct map_session_data *,
 
             std::string output;
             output = STRPRINTF(
-                    "Name: %s | BLvl: %d | Job: %s (Lvl: %d) | HP: %d/%d | SP: %d/%d",
+                    "Name: %s | BLvl: %d | Job: Novice/Human (Lvl: %d) | HP: %d/%d | SP: %d/%d",
                     pl_sd->status.name, pl_sd->status.base_level,
-                    job_name(pl_sd->status.pc_class), pl_sd->status.job_level,
+                    pl_sd->status.job_level,
                     pl_sd->status.hp, pl_sd->status.max_hp,
                     pl_sd->status.sp, pl_sd->status.max_sp);
             clif_displaymessage(fd, output);
@@ -3098,25 +2899,12 @@ int atcommand_character_option(const int fd, struct map_session_data *sd,
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can change option only to lower or same level
+        {
+            // you can change option only to lower or same level
             pl_sd->opt1 = opt1;
             pl_sd->opt2 = opt2;
             pl_sd->status.option = opt3;
-            // fix pecopeco display
-            if (pl_sd->status.pc_class == 13 || pl_sd->status.pc_class == 21
-                || pl_sd->status.pc_class == 4014 || pl_sd->status.pc_class == 4022)
-            {
-                {               // pl_sd have the new value...
-                    if (pl_sd->status.pc_class == 13)
-                        pl_sd->status.pc_class = pl_sd->view_class = 7;
-                    else if (pl_sd->status.pc_class == 21)
-                        pl_sd->status.pc_class = pl_sd->view_class = 14;
-                    else if (pl_sd->status.pc_class == 4014)
-                        pl_sd->status.pc_class = pl_sd->view_class = 4008;
-                    else if (pl_sd->status.pc_class == 4022)
-                        pl_sd->status.pc_class = pl_sd->view_class = 4015;
-                }
-            }
+
             clif_changeoption(&pl_sd->bl);
             pc_calcstatus(pl_sd, 0);
             clif_displaymessage(fd, "Character's options changed.");
@@ -3749,8 +3537,6 @@ int atcommand_character_joblevel(const int fd, struct map_session_data *sd,
     struct map_session_data *pl_sd;
     char character[100];
     int max_level = 50, level = 0;
-    //転生や養子の場合の元の職業を算出する
-    struct pc_base_job pl_s_class;
 
     memset(character, '\0', sizeof(character));
 
@@ -3765,13 +3551,10 @@ int atcommand_character_joblevel(const int fd, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        pl_s_class = pc_calc_base_job(pl_sd->status.pc_class);
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can change job level only lower or same gm level
-            if (pl_s_class.job == 0)
-                max_level -= 40;
-            if ((pl_s_class.job == 23) || (pl_s_class.upper == 1 && pl_s_class.type == 2))  //スパノビと転生職はJobレベルの最高が70
-                max_level += 20;
+        {
+            // you can change job level only lower or same gm level
+            max_level -= 40;
 
             if (level > 0)
             {
@@ -4473,15 +4256,6 @@ int atcommand_charmodel(const int fd, struct map_session_data *,
             hair_color >= MIN_HAIR_COLOR && hair_color <= MAX_HAIR_COLOR &&
             cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
         {
-
-            if (cloth_color != 0 &&
-                pl_sd->status.sex == 1 &&
-                (pl_sd->status.pc_class == 12 || pl_sd->status.pc_class == 17))
-            {
-                clif_displaymessage(fd, "You can't use this command with this class.");
-                return -1;
-            }
-            else
             {
                 pc_changelook(pl_sd, LOOK_HAIR, hair_style);
                 pc_changelook(pl_sd, LOOK_HAIR_COLOR, hair_color);

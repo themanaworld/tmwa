@@ -49,10 +49,10 @@ int battle_counttargeted(struct block_list *bl, struct block_list *src,
 int battle_get_class(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL_MOB && (struct mob_data *) bl)
+    if (bl->type == BL_MOB)
         return ((struct mob_data *) bl)->mob_class;
-    else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        return ((struct map_session_data *) bl)->status.pc_class;
+    else if (bl->type == BL_PC)
+        return 0;
     else
         return 0;
 }
@@ -2779,7 +2779,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         //特定Class用補正処理左手(少女の日記→ボンゴン用？)
         for (int i = 0; i < tsd->add_def_class_count; i++)
         {
-            if (tsd->add_def_classid[i] == sd->status.pc_class)
+            if (tsd->add_def_classid[i] == 0)
             {
                 cardfix = cardfix * (100 - tsd->add_def_classrate[i]) / 100;
                 break;
@@ -3857,10 +3857,7 @@ int battle_check_target(struct block_list *src, struct block_list *target,
         {                       // [MouseJstr]
             if (su && su->group->target_flag == BCT_NOENEMY)
                 return 1;
-            else if (battle_config.pk_mode
-                     && (((struct map_session_data *) ss)->status.pc_class == 0
-                         || ((struct map_session_data *) target)->
-                         status.pc_class == 0))
+            else if (battle_config.pk_mode)
                 return 1;       // prevent novice engagement in pk_mode [Valaris]
             else if (map[ss->m].flag.pvp_noparty && s_p > 0 && t_p > 0
                      && s_p == t_p)

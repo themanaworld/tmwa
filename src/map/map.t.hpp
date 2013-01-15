@@ -191,6 +191,7 @@ enum class SP : uint16_t
 #define SP_JOBEXP SP::JOBEXP
     KARMA                       = 3,
 #define SP_KARMA SP::KARMA
+
     HP                          = 5,
 #define SP_HP SP::HP
     MAXHP                       = 6,
@@ -201,6 +202,7 @@ enum class SP : uint16_t
 #define SP_MAXSP SP::MAXSP
     STATUSPOINT                 = 9,
 #define SP_STATUSPOINT SP::STATUSPOINT
+
     BASELEVEL                   = 11,
 #define SP_BASELEVEL SP::BASELEVEL
     SKILLPOINT                  = 12,
@@ -231,6 +233,7 @@ enum class SP : uint16_t
 #define SP_WEIGHT SP::WEIGHT
     MAXWEIGHT                   = 25,
 #define SP_MAXWEIGHT SP::MAXWEIGHT
+
     USTR                        = 32,
 #define SP_USTR SP::USTR
     UAGI                        = 33,
@@ -243,6 +246,7 @@ enum class SP : uint16_t
 #define SP_UDEX SP::UDEX
     ULUK                        = 37,
 #define SP_ULUK SP::ULUK
+
     ATK1                        = 41,
 #define SP_ATK1 SP::ATK1
     ATK2                        = 42,
@@ -269,10 +273,10 @@ enum class SP : uint16_t
 #define SP_CRITICAL SP::CRITICAL
     ASPD                        = 53,
 #define SP_ASPD SP::ASPD
+
     JOBLEVEL                    = 55,
 #define SP_JOBLEVEL SP::JOBLEVEL
-    UPPER                       = 56,
-#define SP_UPPER SP::UPPER
+
     PARTNER                     = 57,
 #define SP_PARTNER SP::PARTNER
     CART                        = 58,
@@ -281,6 +285,7 @@ enum class SP : uint16_t
 #define SP_FAME SP::FAME
     UNBREAKABLE                 = 60,
 #define SP_UNBREAKABLE SP::UNBREAKABLE
+
     DEAF                        = 70,
 #define SP_DEAF SP::DEAF
 
@@ -441,8 +446,6 @@ enum class SP : uint16_t
 #define SP_AGI_DEX_STR SP::AGI_DEX_STR
     PERFECT_HIDE                = 1076,
 #define SP_PERFECT_HIDE SP::PERFECT_HIDE
-    DISGUISE                    = 1077,
-#define SP_DISGUISE SP::DISGUISE
 
     RESTART_FULL_RECORVER       = 2000,
 #define SP_RESTART_FULL_RECORVER SP::RESTART_FULL_RECORVER

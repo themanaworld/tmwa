@@ -132,7 +132,6 @@ int pc_damage(struct block_list *, struct map_session_data *, int);
 int pc_heal(struct map_session_data *, int, int);
 int pc_itemheal(struct map_session_data *sd, int hp, int sp);
 int pc_percentheal(struct map_session_data *sd, int, int);
-int pc_jobchange(struct map_session_data *, int, int);
 int pc_setoption(struct map_session_data *, Option);
 int pc_changelook(struct map_session_data *, LOOK, int);
 
@@ -167,15 +166,6 @@ struct map_session_data *pc_get_partner(struct map_session_data *sd);
 int pc_set_gm_level(int account_id, int level);
 void pc_setstand(struct map_session_data *sd);
 void pc_cleanup(struct map_session_data *sd);  // [Fate] Clean up after a logged-out PC
-
-struct pc_base_job
-{
-    int job;                   //職業、ただし転生職や養子職の場合は元の職業を返す(廃プリ→プリ)
-    int type;                  //ノビ 0, 一次職 1, 二次職 2, スパノビ 3
-    int upper;                 //通常 0, 転生 1, 養子 2
-};
-
-struct pc_base_job pc_calc_base_job(int b_class);  //転生や養子職の元の職業を返す
 
 int pc_read_gm_account(int fd);
 int pc_setinvincibletimer(struct map_session_data *sd, int);
