@@ -27,6 +27,7 @@
 #include "../common/socket.hpp"
 #include "../common/version.hpp"
 
+#include "../poison.hpp"
 
 static
 int eathena_interactive_session;

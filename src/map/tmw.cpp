@@ -26,6 +26,8 @@
 #include "storage.hpp"
 #include "trade.hpp"
 
+#include "../poison.hpp"
+
 static
 void tmw_AutoBan(struct map_session_data *sd, const char *reason, int length);
 static

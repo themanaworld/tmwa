@@ -33,6 +33,8 @@
 #include "storage.hpp"
 #include "trade.hpp"
 
+#include "../poison.hpp"
+
 // 極力 staticでローカルに収める
 static
 struct dbt *id_db = NULL;

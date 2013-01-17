@@ -3,6 +3,8 @@
 #include "magic-interpreter.hpp"
 #include "magic-interpreter-aux.hpp"
 
+#include "../poison.hpp"
+
 static
 void set_int_p(val_t *v, int i, TY t)
 {

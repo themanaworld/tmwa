@@ -12,6 +12,8 @@
 #include "npc.hpp"
 #include "pc.hpp"
 
+#include "../poison.hpp"
+
 static
 int chat_triggerevent(struct chat_data *cd);
 static

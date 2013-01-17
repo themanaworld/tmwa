@@ -5,6 +5,8 @@
 
 #include "magic-interpreter.hpp"
 
+#include "../poison.hpp"
+
 #undef DEBUG
 
 static

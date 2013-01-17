@@ -7,6 +7,8 @@
 #include "cxxstdio.hpp"
 #include "socket.hpp"
 
+#include "../poison.hpp"
+
 /// Protected file writing
 /// (Until the file is closed, it keeps the old file)
 

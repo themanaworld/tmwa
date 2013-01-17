@@ -21,6 +21,8 @@
 #include "pc.hpp"
 #include "skill.hpp"
 
+#include "../poison.hpp"
+
 #define MIN_MOBTHINKTIME 100
 
 #define MOB_LAZYMOVEPERC 50     // Move probability in the negligent mode MOB (rate of 1000 minute)
@@ -3136,7 +3138,6 @@ int mob_warp(struct mob_data *md, int m, int x, int y, int type)
     }
     else
     {
-        m = md->bl.m;
         if (battle_config.error_log == 1)
             PRINTF("MOB %d warp failed, mob_class = %d\n", md->bl.id, md->mob_class);
     }
@@ -3462,15 +3463,6 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
         return;
     if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
         return;
-
-    if (battle_config.monster_skill_reiteration == 0)
-    {
-        range = -1;
-    }
-    if (battle_config.monster_skill_nofootset == 1)
-    {
-        range = -1;
-    }
 
     if (battle_config.monster_land_skill_limit == 1)
     {
@@ -3890,7 +3882,7 @@ int mobskill_use(struct mob_data *md, unsigned int tick,
                 // 自分の周囲
                 if (ms[ii].target >= MST_AROUND1)
                 {
-                    int bx = x, by = y, i = 0, c, m = bl->m;
+                    int bx, by, i = 0, c, m = bl->m;
                     // the enum values for radii are adjacent
                     int r = int(ms[i].target) - int(MST_AROUND1);
                     do
@@ -3911,7 +3903,7 @@ int mobskill_use(struct mob_data *md, unsigned int tick,
                 // 相手の周囲
                 if (ms[ii].target >= MST_AROUND5)
                 {
-                    int bx = x, by = y, i = 0, c, m = bl->m;
+                    int bx, by, i = 0, c, m = bl->m;
                     int r = int(ms[i].target) - int(MST_AROUND5) + 1;
                     do
                     {

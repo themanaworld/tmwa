@@ -15,6 +15,8 @@
 
 #include <fstream>
 
+#include "../poison.hpp"
+
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
 char storage_txt[1024] = "save/storage.txt";

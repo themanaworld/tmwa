@@ -36,6 +36,8 @@
 
 #include <type_traits>
 
+#include "../poison.hpp"
+
 static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long (sorry)");
 
 static

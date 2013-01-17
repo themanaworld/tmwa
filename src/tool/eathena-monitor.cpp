@@ -21,6 +21,8 @@
 
 #include "../common/cxxstdio.hpp"
 
+#include "../poison.hpp"
+
 #define HOME getenv("HOME")
 #define LOGIN_SERVER "./login-server"
 #define MAP_SERVER "./map-server"

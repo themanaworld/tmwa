@@ -34,6 +34,8 @@
 #include "int_party.hpp"
 #include "int_storage.hpp"
 
+#include "../poison.hpp"
+
 static
 struct mmo_map_server server[MAX_MAP_SERVERS];
 static

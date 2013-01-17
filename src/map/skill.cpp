@@ -21,6 +21,8 @@
 #include "pc.hpp"
 #include "script.hpp"
 
+#include "../poison.hpp"
+
 #define SKILLUNITTIMER_INVERVAL 100
 
 // This table appears to be wrong

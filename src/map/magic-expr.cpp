@@ -8,6 +8,8 @@
 #include "itemdb.hpp"
 #include "magic-expr-eval.hpp"
 
+#include "../poison.hpp"
+
 #define IS_SOLID(c) ((c) == 1 || (c) == 5)
 
 int map_is_solid(int m, int x, int y)

@@ -19,6 +19,8 @@
 #include "pc.hpp"
 #include "skill.hpp"
 
+#include "../poison.hpp"
+
 int attr_fix_table[4][10][10];
 
 struct Battle_Config battle_config;
@@ -1780,7 +1782,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     BF flag;
     int ac_flag = 0;
     ATK dmg_lv = ATK::ZERO;
-    int t_mode = 0, t_size = 1, s_race = 0, s_ele = 0;
+    int t_mode = 0, s_race = 0, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
 
     //return前の処理があるので情報出力部のみ変更
@@ -1800,7 +1802,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         tsd = (struct map_session_data *) target;
     else if (target->type == BL_MOB)
         tmd = (struct mob_data *) target;
-    t_size = battle_get_size(target);
     t_mode = battle_get_mode(target);
     t_sc_data = battle_get_sc_data(target);
 
@@ -2183,7 +2184,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     int damage, damage2, type, div_, blewcount =
         skill_get_blewcount(skill_num, skill_lv);
     BF flag;
-    int skill;
     ATK dmg_lv = ATK::ZERO;
     int t_mode = 0, t_race = 0, t_size = 1, s_race = 7, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
@@ -2338,7 +2338,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
 
     if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
-        da = bool(MRAND(100) < sd->double_rate);
+        da = MRAND(100) < sd->double_rate;
 
     // 過剰精錬ボーナス
     if (sd->overrefine > 0)
@@ -2860,12 +2860,10 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     {                           // 二刀流か?
         int dmg = damage, dmg2 = damage2;
         // 右手修練(60% 〜 100%) 右手全般
-        skill = 0;
         damage = damage * 50 / 100;
         if (dmg > 0 && damage < 1)
             damage = 1;
         // 左手修練(40% 〜 80%) 左手全般
-        skill = 0;
         damage2 = damage2 * 30 / 100;
         if (dmg2 > 0 && damage2 < 1)
             damage2 = 1;

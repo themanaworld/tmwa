@@ -49,6 +49,8 @@
 
 #include <ctime>
 
+#include "../poison.hpp"
+
 #define N              624                  // length of state vector
 #define M              397                  // a period parameter
 #define K              0x9908B0DFU          // a magic constant

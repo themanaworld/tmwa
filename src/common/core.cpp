@@ -14,6 +14,8 @@
 #include "timer.hpp"
 #include "version.hpp"
 
+#include "../poison.hpp"
+
 // Added by Gabuzomeu
 //
 // This is an implementation of signal() using sigaction() for portability.

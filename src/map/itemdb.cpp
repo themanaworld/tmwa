@@ -15,6 +15,8 @@
 #include "pc.hpp"
 #include "script.hpp"
 
+#include "../poison.hpp"
+
 #define MAX_RANDITEM    2000
 
 // ** ITEMDB_OVERRIDE_NAME_VERBOSE **

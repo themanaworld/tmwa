@@ -12,6 +12,8 @@
 #include "socket.hpp"
 #include "utils.hpp"
 
+#include "../poison.hpp"
+
 //----------------------------
 //  file entry table struct
 //----------------------------

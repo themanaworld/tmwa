@@ -11,6 +11,8 @@
 #include "cxxstdio.hpp"
 #include "utils.hpp"
 
+#include "../poison.hpp"
+
 static
 struct TimerData *timer_data;
 static

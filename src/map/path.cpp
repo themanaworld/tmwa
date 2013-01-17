@@ -7,6 +7,8 @@
 #include "battle.hpp"
 #include "map.hpp"
 
+#include "../poison.hpp"
+
 //#define PATH_STANDALONETEST
 
 #define MAX_HEAP 150

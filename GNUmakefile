@@ -74,6 +74,7 @@ deps.make: src/map/magic-interpreter-parser.cpp src/map/magic-interpreter-lexer.
 	for F in `find src/ -name '*.cpp'`; do \
 	    ${CXX} ${CPPFLAGS} -MM "$$F" -MT "$$(sed 's/src/$${BUILD_DIR}/;s/\.cpp/.o/' <<< "$$F")"; \
 	done > deps.make
+	echo '# vim: filetype=make' >> deps.make
 
 include deps.make
 

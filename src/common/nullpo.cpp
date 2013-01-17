@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <cstring>
 
+#include "../poison.hpp"
+
 /// Actual output function
 void nullpo_info(const char *file, int line, const char *func)
 {

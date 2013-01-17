@@ -5,6 +5,8 @@
 #include "magic-interpreter.hpp"
 #include "magic-interpreter-aux.hpp"
 
+#include "../poison.hpp"
+
 #define INVISIBLE_NPC 127       /* used for local spell effects */
 
 //#define DEBUG

@@ -4,6 +4,8 @@
 
 #include "mt_rand.hpp"
 
+#include "../poison.hpp"
+
 // auxilary data
 /*
 sin() constant table

@@ -34,6 +34,8 @@
 #include "skill.hpp"
 #include "storage.hpp"
 
+#include "../poison.hpp"
+
 //#define DEBUG_FUNCIN
 //#define DEBUG_DISP
 //#define DEBUG_RUN
@@ -2061,11 +2063,12 @@ void builtin_checkweight(ScriptState *st)
 
     amount = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     if (amount <= 0 || nameid < 500)
-    {                           //if get wrong item ID or amount<=0, don't count weight of non existing items
+    {
+        //if get wrong item ID or amount<=0, don't count weight of non existing items
         push_val(st->stack, ScriptCode::INT, 0);
+        return;
     }
 
-    sd = script_rid2sd(st);
     if (itemdb_weight(nameid) * amount + sd->weight > sd->max_weight)
     {
         push_val(st->stack, ScriptCode::INT, 0);
@@ -2228,11 +2231,11 @@ void builtin_delitem(ScriptState *st)
     amount = conv_num(st, &(st->stack->stack_data[st->start + 3]));
 
     if (nameid < 500 || amount <= 0)
-    {                           //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
+    {
+        //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
         //PRINTF("wrong item ID or amount<=0 : delitem %i,\n",nameid,amount);
         return;
     }
-    sd = script_rid2sd(st);
 
     for (i = 0; i < MAX_INVENTORY; i++)
     {
@@ -4833,7 +4836,7 @@ void run_script_main(const ScriptCode *script, int pos_, int, int,
         {
             if (sd->npc_stackbuf)
                 free(sd->npc_stackbuf);
-            sd->npc_stackbuf = (char *)
+            sd->npc_stackbuf = (struct script_data *)
                 calloc(sizeof(stack->stack_data[0]) * stack->sp_max, 1);
             memcpy(sd->npc_stackbuf, stack->stack_data,
                     sizeof(stack->stack_data[0]) * stack->sp_max);

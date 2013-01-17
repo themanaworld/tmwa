@@ -28,6 +28,8 @@
 #include "storage.hpp"
 #include "trade.hpp"
 
+#include "../poison.hpp"
+
 #define PVP_CALCRANK_INTERVAL 1000  // PVP順位計算の間隔
 
 //define it here, since the ifdef only occurs in this file
@@ -59,20 +61,42 @@
 timer_id day_timer_tid;
 timer_id night_timer_tid;
 
+static //const
+int max_weight_base_0 = 20000;
+static //const
+int hp_coefficient_0 = 0;
+static //const
+int hp_coefficient2_0 = 500;
 static
-int max_weight_base[MAX_PC_CLASS];
+int hp_sigma_val_0[MAX_LEVEL];
+static //const
+int sp_coefficient_0 = 100;
+
+// coefficients for each weapon type
+// (not all used)
+static //const
+int aspd_base_0[17] =
+{
+    650,
+    700,
+    750,
+    600,
+    2000,
+    2000,
+    800,
+    2000,
+    700,
+    700,
+    650,
+    900,
+    2000,
+    2000,
+    2000,
+    2000,
+    2000,
+};
 static
-int hp_coefficient[MAX_PC_CLASS];
-static
-int hp_coefficient2[MAX_PC_CLASS];
-static
-int hp_sigma_val[MAX_PC_CLASS][MAX_LEVEL];
-static
-int sp_coefficient[MAX_PC_CLASS];
-static
-int aspd_base[MAX_PC_CLASS][20];
-static
-char job_bonus[3][MAX_PC_CLASS][MAX_LEVEL];
+char job_bonus_0[3][MAX_LEVEL];
 static
 int exp_table[14][MAX_LEVEL];
 static
@@ -87,7 +111,7 @@ struct
         SkillID id;
         short lv;
     } need[6];
-} skill_tree[3][MAX_PC_CLASS][100];
+} skill_tree_0_0[100];
 
 static
 int atkmods[3][20];      // 武器ATKサイズ修正(size_fix.txt)
@@ -1011,7 +1035,7 @@ void pc_calc_skilltree(struct map_session_data *sd)
         flag = 0;
         SkillID id;
         for (int i = 0;
-                (id = skill_tree[0][0][i].id) != SkillID::ZERO
+                (id = skill_tree_0_0[i].id) != SkillID::ZERO
                     && id != SkillID::NEGATIVE;
                 i++)
         {
@@ -1020,10 +1044,9 @@ void pc_calc_skilltree(struct map_session_data *sd)
             {
                 for (j = 0; j < 5; j++)
                 {
-                    if (skill_tree[0][0][i].need[j].id != SkillID::ZERO
-                        && pc_checkskill(sd,
-                                       skill_tree[0][0][i].need[j].id) < \
-                        skill_tree[0][0][i].need[j].lv)
+                    if (skill_tree_0_0[i].need[j].id != SkillID::ZERO
+                        && pc_checkskill(sd, skill_tree_0_0[i].need[j].id)
+                            < skill_tree_0_0[i].need[j].lv)
                         f = 0;
                 }
             }
@@ -1135,7 +1158,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     pc_calc_skilltree(sd);     // スキルツリーの計算
 
-    sd->max_weight = max_weight_base[0] + sd->status.attrs[ATTR::STR] * 300;
+    sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
 
     if (first & 1)
     {
@@ -1665,17 +1688,17 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     // 二刀流 ASPD 修正
     if (sd->status.weapon <= 16)
-        sd->aspd += aspd_base[0][sd->status.weapon]
+        sd->aspd += aspd_base_0[sd->status.weapon]
             - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
-            * aspd_base[0][sd->status.weapon] / 1000;
+            * aspd_base_0[sd->status.weapon] / 1000;
     else
         sd->aspd += (
-                (aspd_base[0][sd->weapontype1]
+                (aspd_base_0[sd->weapontype1]
                     - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
-                    * aspd_base[0][sd->weapontype1] / 1000)
-                + (aspd_base[0][sd->weapontype2]
+                    * aspd_base_0[sd->weapontype1] / 1000)
+                + (aspd_base_0[sd->weapontype2]
                     - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
-                    * aspd_base[0][sd->weapontype2] / 1000)
+                    * aspd_base_0[sd->weapontype2] / 1000)
                 )
             * 140 / 200;
 
@@ -1708,8 +1731,8 @@ int pc_calcstatus(struct map_session_data *sd, int first)
 
     sd->status.max_hp += (
             3500
-            + bl * hp_coefficient2[0]
-            + hp_sigma_val[0][(bl > 0) ? bl - 1 : 0]
+            + bl * hp_coefficient2_0
+            + hp_sigma_val_0[(bl > 0) ? bl - 1 : 0]
             ) / 100 * (100 + sd->paramc[ATTR::VIT]) / 100
         + (sd->parame[ATTR::VIT] - sd->paramcard[ATTR::VIT]);
     if (sd->hprate != 100)
@@ -1731,7 +1754,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->status.max_hp = 1;  // end
 
     // 最大SP計算
-    sd->status.max_sp += ((sp_coefficient[0] * bl) + 1000)
+    sd->status.max_sp += ((sp_coefficient_0 * bl) + 1000)
         / 100 * (100 + sd->paramc[ATTR::INT]) / 100
         + (sd->parame[ATTR::INT] - sd->paramcard[ATTR::INT]);
     if (sd->sprate != 100)
@@ -3430,13 +3453,12 @@ int pc_steal_coin(struct map_session_data *sd, struct block_list *bl)
 {
     if (sd != NULL && bl != NULL && bl->type == BL_MOB)
     {
-        int rate, skill;
+        int rate;
         struct mob_data *md = (struct mob_data *) bl;
         if (md && !md->state.steal_coin_flag
             && md->sc_data[SC_STONE].timer == -1
             && md->sc_data[SC_FREEZE].timer == -1)
         {
-            skill = 0;
             rate = (sd->status.base_level - mob_db[md->mob_class].lv) * 3
                 + sd->paramc[ATTR::DEX] * 2 + sd->paramc[ATTR::LUK] * 2;
             if (MRAND(1000) < rate)
@@ -4634,7 +4656,7 @@ int pc_allskillup(struct map_session_data *sd)
     {
         SkillID id;
         for (int i = 0;
-                (id = skill_tree[0][0][i].id) != SkillID::ZERO
+                (id = skill_tree_0_0[i].id) != SkillID::ZERO
                     && id != SkillID::NEGATIVE;
                 i++)
         {
@@ -7120,44 +7142,6 @@ int pc_readdb(void)
     fclose_(fp);
     PRINTF("read db/exp.txt done\n");
 
-    // JOB補正数値１
-    fp = fopen_("db/job_db1.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/job_db1.txt\n");
-        return 1;
-    }
-    i = 0;
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        char *split[50];
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        for (j = 0, p = line; j < 21 && p; j++)
-        {
-            split[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        if (j < 21)
-            continue;
-        max_weight_base[i] = atoi(split[0]);
-        hp_coefficient[i] = atoi(split[1]);
-        hp_coefficient2[i] = atoi(split[2]);
-        sp_coefficient[i] = atoi(split[3]);
-        for (j = 0; j < 17; j++)
-            aspd_base[i][j] = atoi(split[j + 4]);
-        i++;
-// -- moonsoul (below two lines added to accommodate high numbered new class ids)
-        if (i == 24)
-            i = 4001;
-        if (i == MAX_PC_CLASS)
-            break;
-    }
-    fclose_(fp);
-    PRINTF("read db/job_db1.txt done\n");
-
     // JOBボーナス
     fp = fopen_("db/job_db2.txt", "r");
     if (fp == NULL)
@@ -7174,52 +7158,19 @@ int pc_readdb(void)
         {
             if (sscanf(p, "%d", &k) == 0)
                 break;
-            job_bonus[0][i][j] = k;
-            job_bonus[2][i][j] = k; //養子職のボーナスは分からないので仮
+            job_bonus_0[i][j] = k;
             p = strchr(p, ',');
             if (p)
                 p++;
         }
         i++;
-// -- moonsoul (below two lines added to accommodate high numbered new class ids)
-        if (i == 24)
-            i = 4001;
-        if (i == MAX_PC_CLASS)
-            break;
+        break;
     }
     fclose_(fp);
     PRINTF("read db/job_db2.txt done\n");
 
-    // JOBボーナス2 転生職用
-    fp = fopen_("db/job_db2-2.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/job_db2-2.txt\n");
-        return 1;
-    }
-    i = 0;
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        for (j = 0, p = line; j < MAX_LEVEL && p; j++)
-        {
-            if (sscanf(p, "%d", &k) == 0)
-                break;
-            job_bonus[1][i][j] = k;
-            p = strchr(p, ',');
-            if (p)
-                p++;
-        }
-        i++;
-        if (i == MAX_PC_CLASS)
-            break;
-    }
-    fclose_(fp);
-    PRINTF("read db/job_db2-2.txt done\n");
-
     // スキルツリー
-    memset(skill_tree, 0, sizeof(skill_tree));
+    memset(skill_tree_0_0, '\0', sizeof(skill_tree_0_0));
     fp = fopen_("db/skill_tree.txt", "r");
     if (fp == NULL)
     {
@@ -7241,17 +7192,16 @@ int pc_readdb(void)
         if (j < 13)
             continue;
         i = atoi(split[0]);
-        for (j = 0; skill_tree[0][i][j].id != SkillID::ZERO; j++);
-        skill_tree[0][i][j].id = SkillID(atoi(split[1]));
-        skill_tree[0][i][j].max = atoi(split[2]);
-        skill_tree[2][i][j].id = SkillID(atoi(split[1]));   //養子職は良く分からないので暫定
-        skill_tree[2][i][j].max = atoi(split[2]);  //養子職は良く分からないので暫定
+        if (i != 0)
+            continue;
+        for (j = 0; skill_tree_0_0[j].id != SkillID::ZERO; j++)
+        {}
+        skill_tree_0_0[j].id = SkillID(atoi(split[1]));
+        skill_tree_0_0[j].max = atoi(split[2]);
         for (k = 0; k < 5; k++)
         {
-            skill_tree[0][i][j].need[k].id = SkillID(atoi(split[k * 2 + 3]));
-            skill_tree[0][i][j].need[k].lv = atoi(split[k * 2 + 4]);
-            skill_tree[2][i][j].need[k].id = SkillID(atoi(split[k * 2 + 3]));   //養子職は良く分からないので暫定
-            skill_tree[2][i][j].need[k].lv = atoi(split[k * 2 + 4]);   //養子職は良く分からないので暫定
+            skill_tree_0_0[j].need[k].id = SkillID(atoi(split[k * 2 + 3]));
+            skill_tree_0_0[j].need[k].lv = atoi(split[k * 2 + 4]);
         }
     }
     fclose_(fp);
@@ -7391,16 +7341,15 @@ int pc_readdb(void)
 static
 int pc_calc_sigma(void)
 {
-    int i, j, k;
+    int j, k;
 
-    for (i = 0; i < MAX_PC_CLASS; i++)
     {
-        memset(hp_sigma_val[i], 0, sizeof(hp_sigma_val[i]));
+        memset(hp_sigma_val_0, 0, sizeof(hp_sigma_val_0));
         for (k = 0, j = 2; j <= MAX_LEVEL; j++)
         {
-            k += hp_coefficient[i] * j + 50;
+            k += hp_coefficient_0 * j + 50;
             k -= k % 100;
-            hp_sigma_val[i][j - 1] = k;
+            hp_sigma_val_0[j - 1] = k;
         }
     }
     return 0;

@@ -13,6 +13,8 @@
 #include "char.hpp"
 #include "inter.hpp"
 
+#include "../poison.hpp"
+
 char party_txt[1024] = "save/party.txt";
 
 static

@@ -17,6 +17,8 @@
 #include "skill.hpp"
 #include "tmw.hpp"
 
+#include "../poison.hpp"
+
 #define PARTY_SEND_XYHP_INVERVAL        1000    // 座標やＨＰ送信の間隔
 
 static

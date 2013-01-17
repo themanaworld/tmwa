@@ -13,6 +13,8 @@
 #include "pc.hpp"
 #include "storage.hpp"
 
+#include "../poison.hpp"
+
 /*==========================================
  * 取引要請を相手に送る
  *------------------------------------------
@@ -166,12 +168,10 @@ void trade_tradeadditem(struct map_session_data *sd, int index, int amount)
                         target_sd->max_weight)
                     {
                         clif_tradeitemok(sd, index, 0, 1); //fail to add item -- the player was over weighted.
-                        amount = 0; // [MouseJstr]
                     }
                     else if (free <= 0)
                     {
                         clif_tradeitemok(sd, index, 0, 2); //fail to add item -- no free slots at receiver
-                        amount = 0; // peavey
                     }
                     else
                     {

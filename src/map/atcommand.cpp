@@ -37,6 +37,8 @@
 #include "tmw.hpp"
 #include "trade.hpp"
 
+#include "../poison.hpp"
+
 #define ATCOMMAND_FUNC(x) static \
 int atcommand_##x(const int fd, struct map_session_data* sd, const char* command, const char* message)
 ATCOMMAND_FUNC(setup);

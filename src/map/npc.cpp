@@ -22,6 +22,8 @@
 #include "script.hpp"
 #include "skill.hpp"
 
+#include "../poison.hpp"
+
 struct npc_src_list
 {
     struct npc_src_list *next;
@@ -76,7 +78,7 @@ void npc_enable_sub(struct block_list *bl, struct npc_data *nd)
 
         memcpy(name, nd->name, sizeof(nd->name));
         if (sd->areanpc_id == nd->bl.id)
-            return;
+            return; // TODO fix leak of 'name'
         sd->areanpc_id = nd->bl.id;
         npc_event(sd, strcat(name, "::OnTouch"), 0);
     }
@@ -686,7 +688,7 @@ int npc_touch_areanpc(struct map_session_data *sd, int m, int x, int y)
 
             memcpy(name, map[m].npc[i]->name, 50);
             if (sd->areanpc_id == map[m].npc[i]->bl.id)
-                return 1;
+                return 1; // TODO fix leak of 'name'
             sd->areanpc_id = map[m].npc[i]->bl.id;
             if (npc_event(sd, strcat(name, "::OnTouch"), 0) > 0)
                 npc_click(sd, map[m].npc[i]->bl.id);

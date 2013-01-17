@@ -25,6 +25,8 @@
 #include "npc.hpp"
 #include "pc.hpp"
 
+#include "../poison.hpp"
+
 static
 const int packet_len_table[0x20] = {
     60, 3, 10, 27, 22, -1, 6, -1,   // 2af8-2aff

@@ -18,6 +18,8 @@
 #include "itemdb.hpp"
 #include "pc.hpp"
 
+#include "../poison.hpp"
+
 static
 struct dbt *storage_db;
 

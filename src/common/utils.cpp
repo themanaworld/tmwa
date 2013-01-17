@@ -9,6 +9,8 @@
 
 #include <algorithm>
 
+#include "../poison.hpp"
+
 //-----------------------------------------------------
 // Function to suppress control characters in a string.
 //-----------------------------------------------------

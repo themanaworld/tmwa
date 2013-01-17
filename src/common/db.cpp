@@ -6,6 +6,8 @@
 
 #include "utils.hpp"
 
+#include "../poison.hpp"
+
 static
 int strdb_cmp(struct dbt *table, const char *a, const char* b)
 {

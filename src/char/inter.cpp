@@ -17,6 +17,8 @@
 #include "int_party.hpp"
 #include "int_storage.hpp"
 
+#include "../poison.hpp"
+
 #define WISDATA_TTL (60*1000)   // Existence time of Wisp/page data (60 seconds)
                                 // that is the waiting time of answers of all map-servers
 #define WISDELLIST_MAX 256      // Number of elements of Wisp/page data deletion list
