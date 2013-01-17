@@ -21,8 +21,6 @@
 
 #include "../poison.hpp"
 
-int attr_fix_table[4][10][10];
-
 struct Battle_Config battle_config;
 
 /*==========================================
@@ -1542,26 +1540,6 @@ int battle_stopwalking(struct block_list *bl, int type)
 }
 
 /*==========================================
- * ダメージの属性修正
- *------------------------------------------
- */
-int battle_attr_fix(int damage, int atk_elem, int def_elem)
-{
-    int def_type = def_elem % 10, def_lv = def_elem / 10 / 2;
-
-    if (atk_elem < 0 || atk_elem > 9 || def_type < 0 || def_type > 9 ||
-        def_lv < 1 || def_lv > 4)
-    {                           // 属 性値がおかしいのでとりあえずそのまま返す
-        if (battle_config.error_log)
-            PRINTF("battle_attr_fix: unknown attr type: atk=%d def_type=%d def_lv=%d\n",
-                 atk_elem, def_type, def_lv);
-        return damage;
-    }
-
-    return damage * attr_fix_table[def_lv - 1][atk_elem][def_type] / 100;
-}
-
-/*==========================================
  * ダメージ最終計算
  *------------------------------------------
  */
@@ -2094,13 +2072,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     if (damage < 0)
         damage = 0;
 
-    // 属 性の適用
-    if (!((battle_config.mob_ghostring_fix == 1) && (battle_get_element(target) == 8) && (target->type == BL_PC))) // [MouseJstr]
-        if (skill_num != SkillID::ZERO || s_ele != 0
-            || !battle_config.mob_attack_attr_none)
-            damage =
-                battle_attr_fix(damage, s_ele, battle_get_element(target));
-
     if (sc_data && sc_data[SC_AURABLADE].timer != -1)   /* オーラブレード 必中 */
         damage += sc_data[SC_AURABLADE].val1 * 10;
 
@@ -2314,10 +2285,8 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
     else
     {
-        atkmax = (watk * sd->atkmods[t_size]) / 100;
-        atkmin = (atkmin * sd->atkmods[t_size]) / 100;
-        atkmax_ = (watk_ * sd->atkmods_[t_size]) / 100;
-        atkmin_ = (atkmin_ * sd->atkmods[t_size]) / 100;
+        atkmax = watk;
+        atkmax_ = watk_;
     }
     if ((sc_data && sc_data[SC_WEAPONPERFECTION].timer != -1)
         || (sd->special_state.no_sizefix))
@@ -2827,10 +2796,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     if (damage2 < 0)
         damage2 = 0;
 
-    // 属 性の適用
-    damage = battle_attr_fix(damage, s_ele, battle_get_element(target));
-    damage2 = battle_attr_fix(damage2, s_ele_, battle_get_element(target));
-
     // 星のかけら、気球の適用
     damage += sd->star;
     damage2 += sd->star_;
@@ -3200,8 +3165,6 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
     if (damage < 0)
         damage = 0;
 
-    damage = battle_attr_fix(damage, ele, battle_get_element(target));    // 属 性修正
-
     div_ = skill_get_num(skill_num, skill_lv);
 
     if (div_ > 1)
@@ -3336,7 +3299,6 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
         }
         if (damage < 0)
             damage = 0;
-        damage = battle_attr_fix(damage, ele, battle_get_element(target));    // 属性修正
     }
 
     div_ = skill_get_num(skill_num, skill_lv);

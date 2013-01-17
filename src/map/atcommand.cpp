@@ -103,7 +103,6 @@ ATCOMMAND_FUNC(character_baselevel);
 ATCOMMAND_FUNC(character_joblevel);
 ATCOMMAND_FUNC(kick);
 ATCOMMAND_FUNC(kickall);
-ATCOMMAND_FUNC(allskills);
 ATCOMMAND_FUNC(questskill);
 ATCOMMAND_FUNC(charquestskill);
 ATCOMMAND_FUNC(lostskill);
@@ -265,7 +264,6 @@ AtCommandInfo atcommand_info[] = {
      atcommand_character_joblevel},
     {AtCommand_Kick, "@kick", 20, atcommand_kick},  // + right click menu for GM "(name) force to quit"
     {AtCommand_KickAll, "@kickall", 99, atcommand_kickall},
-    {AtCommand_AllSkills, "@allskills", 60, atcommand_allskills},
     {AtCommand_QuestSkill, "@questskill", 40, atcommand_questskill},
     {AtCommand_CharQuestSkill, "@charquestskill", 60,
      atcommand_charquestskill},
@@ -3673,21 +3671,6 @@ int atcommand_kickall(const int fd, struct map_session_data *sd,
     }
 
     clif_displaymessage(fd, "All players have been kicked!");
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int atcommand_allskills(const int fd, struct map_session_data *sd,
-                         const char *, const char *)
-{
-    pc_allskillup(sd);         // all skills
-    sd->status.skill_point = 0; // 0 skill points
-    clif_updatestatus(sd, SP_SKILLPOINT);  // update
-    clif_displaymessage(fd, "You have received all skills.");
 
     return 0;
 }

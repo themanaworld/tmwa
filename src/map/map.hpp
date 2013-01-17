@@ -298,13 +298,13 @@ struct map_session_data
     short weapontype1, weapontype2;
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2, aspd, amotion, dmotion;
-    int watk, watk2, atkmods[3];
+    int watk, watk2;
     int def, def2, mdef, mdef2, critical, matk1, matk2;
     int atk_ele, def_ele, star, overrefine;
     int castrate, hprate, sprate, dsprate;
     int addele[10], addrace[12], addsize[3], subele[10], subrace[12];
     earray<int, BadSC, BadSC::COUNT> addeff, addeff2, reseff;
-    int watk_, watk_2, atkmods_[3], addele_[10], addrace_[12], addsize_[3];    //二刀流のために追加
+    int watk_, watk_2, addele_[10], addrace_[12], addsize_[3];    //二刀流のために追加
     int atk_ele_, star_, overrefine_;  //二刀流のために追加
     int base_atk, atk_rate;
     int arrow_atk, arrow_ele, arrow_cri, arrow_hit, arrow_range;

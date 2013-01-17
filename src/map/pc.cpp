@@ -67,6 +67,7 @@ static //const
 int hp_coefficient_0 = 0;
 static //const
 int hp_coefficient2_0 = 500;
+// TODO see if this can be turned into an "as-needed" formula
 static
 int hp_sigma_val_0[MAX_LEVEL];
 static //const
@@ -95,30 +96,103 @@ int aspd_base_0[17] =
     2000,
     2000,
 };
-static
-char job_bonus_0[3][MAX_LEVEL];
-static
-int exp_table[14][MAX_LEVEL];
-static
-char statp[255][7];
-static
-struct
+static const
+int exp_table_0[MAX_LEVEL] =
 {
-    SkillID id;
-    int max;
-    struct
-    {
-        SkillID id;
-        short lv;
-    } need[6];
-} skill_tree_0_0[100];
-
-static
-int atkmods[3][20];      // 武器ATKサイズ修正(size_fix.txt)
-static
-int refinebonus[5][3];   // 精錬ボーナステーブル(refine_db.txt)
-static
-int percentrefinery[5][10];  // 精錬成功率(refine_db.txt)
+    // 1 .. 9
+                9,          16,         25,         36,
+    77,         112,        153,        200,        253,
+    // 10 .. 19
+    320,        385,        490,        585,        700,
+    830,        970,        1120,       1260,       1420,
+    // 20 .. 29
+    1620,       1860,       1990,       2240,       2504,
+    2950,       3426,       3934,       4474,       6889,
+    // 30 .. 39
+    7995,       9174,       10425,      11748,      13967,
+    15775,      17678,      19677,      21773,      30543,
+    // 40 .. 49
+    34212,      38065,      42102,      46323,      53026,
+    58419,      64041,      69892,      75973,      102468,
+    // 50 .. 59
+    115254,     128692,     142784,     157528,     178184,
+    196300,     215198,     234879,     255341,     330188,
+    // 60 .. 69
+    365914,     403224,     442116,     482590,     536948,
+    585191,     635278,     687211,     740988,     925400,
+    // 70 .. 79
+    1473746,    1594058,    1718928,    1848355,    1982340,
+    2230113,    2386162,    2547417,    2713878,    3206160,
+    // 80 .. 89
+    3681024,    4022472,    4377024,    4744680,    5125440,
+    5767272,    6204000,    6655464,    7121664,    7602600,
+    // 90 .. 99
+    9738720,    11649960,   13643520,   18339300,   23836800,
+    35658000,   48687000,   58135000,   99999999,   0,
+};
+// is this *actually* used anywhere?
+static const
+int exp_table_7[MAX_LEVEL] =
+{
+    // 1 .. 9
+        10, 18, 28, 40, 91, 151, 205, 268, 340
+};
+// TODO generate this table instead
+static int stat_p[MAX_LEVEL] =
+{
+    // 1..9
+        48, 52, 56, 60,         64, 69, 74, 79, 84,
+    // 10..19
+    90, 96, 102,108,115,        122,129,136,144,152,
+    // 20..29
+    160,168,177,186,195,        204,214,224,234,244,
+    // 30..39
+    255,266,277,288,300,        312,324,336,349,362,
+    // 40..49
+    375,388,402,416,430,        444,459,474,489,504,
+    // 50..59
+    520,536,552,568,585,        602,619,636,654,672,
+    // 60..69
+    690,708,727,746,765,        784,804,824,844,864,
+    // 70..79
+    885,906,927,948,970,        992,1014,1036,1059,1082,
+    // 80..89
+    1105,1128,1152,1176,1200,   1224,1249,1274,1299,1324,
+    // 90..99
+    1350,1376,1402,1428,1455,   1482,1509,1536,1564,1592,
+    // 100..109
+    1620,1648,1677,1706,1735,   1764,1794,1824,1854,1884,
+    // 110..119
+    1915,1946,1977,2008,2040,   2072,2104,2136,2169,2202,
+    // 120..129
+    2235,2268,2302,2336,2370,   2404,2439,2474,2509,2544,
+    // 130..139
+    2580,2616,2652,2688,2725,   2762,2799,2836,2874,2912,
+    // 140..149
+    2950,2988,3027,3066,3105,   3144,3184,3224,3264,3304,
+    // 150..159
+    3345,3386,3427,3468,3510,   3552,3594,3636,3679,3722,
+    // 160..169
+    3765,3808,3852,3896,3940,   3984,4029,4074,4119,4164,
+    // 170..179
+    4210,4256,4302,4348,4395,   4442,4489,4536,4584,4632,
+    // 180..189
+    4680,4728,4777,4826,4875,   4924,4974,5024,5074,5124,
+    // 190..199
+    5175,5226,5277,5328,5380,   5432,5484,5536,5589,5642,
+    // 200..209
+    5695,5748,5802,5856,5910,   5964,6019,6074,6129,6184,
+    // 210..219
+    6240,6296,6352,6408,6465,   6522,6579,6636,6694,6752,
+    // 220..229
+    6810,6868,6927,6986,7045,   7104,7164,7224,7284,7344,
+    // 230..239
+    7405,7466,7527,7588,7650,   7712,7774,7836,7899,7962,
+    // 240..249
+    8025,8088,8152,8216,8280,   8344,8409,8474,8539,8604,
+    // 250..255
+    8670,8736,8802,8868,8935,   9002,
+};
 
 static
 int dirx[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
@@ -214,13 +288,6 @@ int pc_set_gm_level(int account_id, int level)
     RECREATE(gm_account, struct gm_account, GM_num);
     gm_account[GM_num - 1].account_id = account_id;
     gm_account[GM_num - 1].level = level;
-    return 0;
-}
-
-int pc_getrefinebonus(int lv, int type)
-{
-    if (lv >= 0 && lv < 5 && type >= 0 && type < 3)
-        return refinebonus[lv][type];
     return 0;
 }
 
@@ -1022,42 +1089,15 @@ int pc_calc_skillpoint(struct map_session_data *sd)
  * 覚えられるスキルの計算
  *------------------------------------------
  */
-// TODO see if this can be removed
 static
 void pc_calc_skilltree(struct map_session_data *sd)
 {
     nullpo_retv(sd);
 
-    int flag;
-    // 通常の計算
-    do
-    {
-        flag = 0;
-        SkillID id;
-        for (int i = 0;
-                (id = skill_tree_0_0[i].id) != SkillID::ZERO
-                    && id != SkillID::NEGATIVE;
-                i++)
-        {
-            int j, f = 1;
-            if (!battle_config.skillfree)
-            {
-                for (j = 0; j < 5; j++)
-                {
-                    if (skill_tree_0_0[i].need[j].id != SkillID::ZERO
-                        && pc_checkskill(sd, skill_tree_0_0[i].need[j].id)
-                            < skill_tree_0_0[i].need[j].lv)
-                        f = 0;
-                }
-            }
-            if (f && sd->status.skill[id].id == SkillID::ZERO)
-            {
-                sd->status.skill[id].id = id;
-                flag = 1;
-            }
-        }
-    }
-    while (flag);
+    // TODO - I *think* this can be removed
+    // since the skill is worthless without a level
+    if (sd->status.skill[NV_EMOTE].id == SkillID::ZERO)
+        sd->status.skill[NV_EMOTE].id = NV_EMOTE;
 }
 
 /*==========================================
@@ -1410,16 +1450,16 @@ int pc_calcstatus(struct map_session_data *sd, int first)
             sd->def += sd->inventory_data[index]->def;
             if (sd->inventory_data[index]->type == ItemType::WEAPON)
             {
-                int r, wlv = sd->inventory_data[index]->wlv;
+                int r;
                 if (i == EQUIP::SHIELD
                     && sd->status.inventory[index].equip == EPOS::SHIELD)
                 {
                     //二刀流用データ入力
                     sd->watk_ += sd->inventory_data[index]->atk;
                     sd->watk_2 = (r = sd->status.inventory[index].refine) * // 精錬攻撃力
-                        refinebonus[wlv][0];
-                    if ((r -= refinebonus[wlv][2]) > 0) // 過剰精錬ボーナス
-                        sd->overrefine_ = r * refinebonus[wlv][1];
+                        0;
+                    if ((r -= 10) > 0) // 過剰精錬ボーナス
+                        sd->overrefine_ = r * 0;
 
                     if (sd->status.inventory[index].card[0] == 0x00ff)
                     {           // 製造武器
@@ -1448,9 +1488,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                     arg[1].v.i = sd->inventory_data[index]->nameid;
                     sd->watk += sd->inventory_data[index]->atk;
                     sd->watk2 += (r = sd->status.inventory[index].refine) * // 精錬攻撃力
-                        refinebonus[wlv][0];
-                    if ((r -= refinebonus[wlv][2]) > 0) // 過剰精錬ボーナス
-                        sd->overrefine += r * refinebonus[wlv][1];
+                        0;
+                    if ((r -= 10) > 0) // 過剰精錬ボーナス
+                        sd->overrefine += r * 0;
 
                     if (sd->status.inventory[index].card[0] == 0x00ff)
                     {           // 製造武器
@@ -1471,7 +1511,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                 arg[1].v.i = sd->inventory_data[index]->nameid;
                 sd->watk += sd->inventory_data[index]->atk;
                 refinedef +=
-                    sd->status.inventory[index].refine * refinebonus[0][0];
+                    sd->status.inventory[index].refine * 0;
                 run_script_l(sd->inventory_data[index]->equip_script, 0,
                               sd->bl.id, 0, 2, arg);
             }
@@ -1527,15 +1567,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->speed_rate += sd->speed_add_rate - 100;
     if (sd->aspd_add_rate != 100)
         sd->aspd_rate += sd->aspd_add_rate - 100;
-
-    // 武器ATKサイズ補正 (右手)
-    sd->atkmods[0] = atkmods[0][sd->weapontype1];
-    sd->atkmods[1] = atkmods[1][sd->weapontype1];
-    sd->atkmods[2] = atkmods[2][sd->weapontype1];
-    //武器ATKサイズ補正 (左手)
-    sd->atkmods_[0] = atkmods[0][sd->weapontype2];
-    sd->atkmods_[1] = atkmods[1][sd->weapontype2];
-    sd->atkmods_[2] = atkmods[2][sd->weapontype2];
 
     // ステータス変化による基本パラメータ補正
     if (sd->sc_count)
@@ -2186,6 +2217,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
  * 装 備品による能力等のボーナス設定
  *------------------------------------------
  */
+// TODO: in each pc_bonus*, purge all 'type' not used by scripts
 int pc_bonus(struct map_session_data *sd, SP type, int val)
 {
     nullpo_ret(sd);
@@ -4400,7 +4432,8 @@ int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
     MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp, reasons[reason]);
 
     if (sd->sc_data[SC_RICHMANKIM].timer != -1)
-    {                           // added bounds checking [Vaalris]
+    {
+        // added bounds checking [Vaalris]
         base_exp +=
             base_exp * (25 + sd->sc_data[SC_RICHMANKIM].val1 * 25) / 100;
         job_exp +=
@@ -4489,7 +4522,7 @@ int pc_nextbaseexp(struct map_session_data *sd)
     if (sd->status.base_level >= MAX_LEVEL || sd->status.base_level <= 0)
         return 0;
 
-    return exp_table[0][sd->status.base_level - 1];
+    return exp_table_0[sd->status.base_level - 1];
 }
 
 /*==========================================
@@ -4517,7 +4550,7 @@ int pc_nextbaseafter(struct map_session_data *sd)
     if (sd->status.base_level >= MAX_LEVEL || sd->status.base_level <= 0)
         return 0;
 
-    return exp_table[0][sd->status.base_level];
+    return exp_table_0[sd->status.base_level];
 }
 
 /*==========================================
@@ -4531,7 +4564,7 @@ int pc_nextjobafter(struct map_session_data *sd)
     if (sd->status.job_level >= MAX_LEVEL || sd->status.job_level <= 0)
         return 0;
 
-    return exp_table[7][sd->status.job_level];
+    return exp_table_7[sd->status.job_level];
 }
 
 /*==========================================
@@ -4643,34 +4676,6 @@ int pc_skillup(struct map_session_data *sd, SkillID skill_num)
 }
 
 /*==========================================
- * /allskill
- *------------------------------------------
- */
-int pc_allskillup(struct map_session_data *sd)
-{
-    nullpo_ret(sd);
-
-    for (SkillID i : erange(SkillID(), MAX_SKILL))
-        sd->status.skill[i].id = SkillID::ZERO;
-
-    {
-        SkillID id;
-        for (int i = 0;
-                (id = skill_tree_0_0[i].id) != SkillID::ZERO
-                    && id != SkillID::NEGATIVE;
-                i++)
-        {
-            if (sd->status.skill[id].id == SkillID::ZERO
-                && skill_get_inf2(id) & 0x01)
-                sd->status.skill[id].lv = skill_get_max(id);
-        }
-    }
-    pc_calcstatus(sd, 0);
-
-    return 0;
-}
-
-/*==========================================
  * /resetlvl
  *------------------------------------------
  */
@@ -4764,9 +4769,7 @@ int pc_resetstate(struct map_session_data *sd)
 
     nullpo_ret(sd);
 
-//  New statpoint table used here - Dexity
-    sd->status.status_point = atoi(statp[sd->status.base_level - 1]);
-//  End addition
+    sd->status.status_point = stat_p[sd->status.base_level - 1];
 
     clif_updatestatus(sd, SP_STATUSPOINT);
 
@@ -5888,30 +5891,6 @@ int pc_setaccountreg2(struct map_session_data *sd, const char *reg, int val)
              reg, ACCOUNT_REG2_NUM);
 
     return 1;
-}
-
-/*==========================================
- * 精錬成功率
- *------------------------------------------
- */
-int pc_percentrefinery(struct map_session_data *, struct item *item)
-{
-    int percent;
-
-    nullpo_ret(item);
-    percent = percentrefinery[itemdb_wlv(item->nameid)][(int) item->refine];
-
-    // 確率の有効範囲チェック
-    if (percent > 100)
-    {
-        percent = 100;
-    }
-    if (percent < 0)
-    {
-        percent = 0;
-    }
-
-    return percent;
 }
 
 /*==========================================
@@ -7083,261 +7062,6 @@ void pc_setstand(struct map_session_data *sd)
     sd->state.dead_sit = 0;
 }
 
-//
-// 初期化物
-//
-/*==========================================
- * 設定ファイル読み込む
- * exp.txt 必要経験値
- * job_db1.txt 重量,hp,sp,攻撃速度
- * job_db2.txt job能力値ボーナス
- * skill_tree.txt 各職毎のスキルツリー
- * attr_fix.txt 属性修正テーブル
- * size_fix.txt サイズ補正テーブル
- * refine_db.txt 精錬データテーブル
- *------------------------------------------
- */
-static
-int pc_readdb(void)
-{
-    int i, j, k;
-    FILE *fp;
-    char line[1024], *p;
-
-    // 必要経験値読み込み
-
-    fp = fopen_("db/exp.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/exp.txt\n");
-        return 1;
-    }
-    i = 0;
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        int bn, b1, b2, b3, b4, b5, b6, jn, j1, j2, j3, j4, j5, j6;
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        if (sscanf(line, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", &bn, &b1, &b2,
-             &b3, &b4, &b5, &b6, &jn, &j1, &j2, &j3, &j4, &j5, &j6) != 14)
-            continue;
-        exp_table[0][i] = bn;
-        exp_table[1][i] = b1;
-        exp_table[2][i] = b2;
-        exp_table[3][i] = b3;
-        exp_table[4][i] = b4;
-        exp_table[5][i] = b5;
-        exp_table[6][i] = b6;
-        exp_table[7][i] = jn;
-        exp_table[8][i] = j1;
-        exp_table[9][i] = j2;
-        exp_table[10][i] = j3;
-        exp_table[11][i] = j4;
-        exp_table[12][i] = j5;
-        exp_table[13][i] = j6;
-        i++;
-        if (i >= battle_config.maximum_level)
-            break;
-    }
-    fclose_(fp);
-    PRINTF("read db/exp.txt done\n");
-
-    // JOBボーナス
-    fp = fopen_("db/job_db2.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/job_db2.txt\n");
-        return 1;
-    }
-    i = 0;
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        for (j = 0, p = line; j < MAX_LEVEL && p; j++)
-        {
-            if (sscanf(p, "%d", &k) == 0)
-                break;
-            job_bonus_0[i][j] = k;
-            p = strchr(p, ',');
-            if (p)
-                p++;
-        }
-        i++;
-        break;
-    }
-    fclose_(fp);
-    PRINTF("read db/job_db2.txt done\n");
-
-    // スキルツリー
-    memset(skill_tree_0_0, '\0', sizeof(skill_tree_0_0));
-    fp = fopen_("db/skill_tree.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/skill_tree.txt\n");
-        return 1;
-    }
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        char *split[50];
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        for (j = 0, p = line; j < 13 && p; j++)
-        {
-            split[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        if (j < 13)
-            continue;
-        i = atoi(split[0]);
-        if (i != 0)
-            continue;
-        for (j = 0; skill_tree_0_0[j].id != SkillID::ZERO; j++)
-        {}
-        skill_tree_0_0[j].id = SkillID(atoi(split[1]));
-        skill_tree_0_0[j].max = atoi(split[2]);
-        for (k = 0; k < 5; k++)
-        {
-            skill_tree_0_0[j].need[k].id = SkillID(atoi(split[k * 2 + 3]));
-            skill_tree_0_0[j].need[k].lv = atoi(split[k * 2 + 4]);
-        }
-    }
-    fclose_(fp);
-    PRINTF("read db/skill_tree.txt done\n");
-
-    // 属性修正テーブル
-    for (i = 0; i < 4; i++)
-        for (j = 0; j < 10; j++)
-            for (k = 0; k < 10; k++)
-                attr_fix_table[i][j][k] = 100;
-    fp = fopen_("db/attr_fix.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/attr_fix.txt\n");
-        return 1;
-    }
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        char *split[10];
-        int lv, n;
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        for (j = 0, p = line; j < 3 && p; j++)
-        {
-            split[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        lv = atoi(split[0]);
-        n = atoi(split[1]);
-//      PRINTF("%d %d\n",lv,n);
-
-        for (i = 0; i < n;)
-        {
-            if (!fgets(line, sizeof(line) - 1, fp))
-                break;
-            if (line[0] == '/' && line[1] == '/')
-                continue;
-
-            for (j = 0, p = line; j < n && p; j++)
-            {
-                while (*p == 32 && *p > 0)
-                    p++;
-                attr_fix_table[lv - 1][i][j] = atoi(p);
-                if (battle_config.attr_recover == 0
-                    && attr_fix_table[lv - 1][i][j] < 0)
-                    attr_fix_table[lv - 1][i][j] = 0;
-                p = strchr(p, ',');
-                if (p)
-                    *p++ = 0;
-            }
-
-            i++;
-        }
-    }
-    fclose_(fp);
-    PRINTF("read db/attr_fix.txt done\n");
-
-    // サイズ補正テーブル
-    for (i = 0; i < 3; i++)
-        for (j = 0; j < 20; j++)
-            atkmods[i][j] = 100;
-    fp = fopen_("db/size_fix.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/size_fix.txt\n");
-        return 1;
-    }
-    i = 0;
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        char *split[20];
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        if (atoi(line) <= 0)
-            continue;
-        memset(split, 0, sizeof(split));
-        for (j = 0, p = line; j < 20 && p; j++)
-        {
-            split[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        for (j = 0; j < 20 && split[j]; j++)
-            atkmods[i][j] = atoi(split[j]);
-        i++;
-    }
-    fclose_(fp);
-    PRINTF("read db/size_fix.txt done\n");
-
-    // 精錬データテーブル
-    for (i = 0; i < 5; i++)
-    {
-        for (j = 0; j < 10; j++)
-            percentrefinery[i][j] = 100;
-        refinebonus[i][0] = 0;
-        refinebonus[i][1] = 0;
-        refinebonus[i][2] = 10;
-    }
-    fp = fopen_("db/refine_db.txt", "r");
-    if (fp == NULL)
-    {
-        PRINTF("can't read db/refine_db.txt\n");
-        return 1;
-    }
-    i = 0;
-    while (fgets(line, sizeof(line) - 1, fp))
-    {
-        char *split[16];
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        if (atoi(line) <= 0)
-            continue;
-        memset(split, 0, sizeof(split));
-        for (j = 0, p = line; j < 16 && p; j++)
-        {
-            split[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        refinebonus[i][0] = atoi(split[0]);    // 精錬ボーナス
-        refinebonus[i][1] = atoi(split[1]);    // 過剰精錬ボーナス
-        refinebonus[i][2] = atoi(split[2]);    // 安全精錬限界
-        for (j = 0; j < 10 && split[j]; j++)
-            percentrefinery[i][j] = atoi(split[j + 3]);
-        i++;
-    }
-    fclose_(fp);               //Lupus. close this file!!!
-    PRINTF("read db/refine_db.txt done\n");
-
-    return 0;
-}
-
 static
 int pc_calc_sigma(void)
 {
@@ -7355,55 +7079,12 @@ int pc_calc_sigma(void)
     return 0;
 }
 
-static
-void pc_statpointdb(void)
-{
-    char *buf_stat;
-    int i = 0, j = 0, k = 0, l = 0, end = 0;
-
-    FILE *stp;
-
-    stp = fopen_("db/statpoint.txt", "r");
-
-    if (stp == NULL)
-    {
-        PRINTF("can't read db/statpoint.txt\n");
-        return;
-    }
-
-    fseek(stp, 0, SEEK_END);
-    end = ftell(stp);
-    rewind(stp);
-
-    buf_stat = (char *) malloc(end + 1);
-    l = fread(buf_stat, 1, end, stp);
-    fclose_(stp);
-    PRINTF("read db/statpoint.txt done (size=%d)\n", l);
-
-    for (i = 0; i < 255; i++)
-    {
-        j = 0;
-        while (*(buf_stat + k) != '\n')
-        {
-            statp[i][j] = *(buf_stat + k);
-            j++;
-            k++;
-        }
-        statp[i][j + 1] = '\0';
-        k++;
-    }
-
-    free(buf_stat);
-}
-
 /*==========================================
  * pc関 係初期化
  *------------------------------------------
  */
 int do_init_pc(void)
 {
-    pc_readdb();
-    pc_statpointdb();
     pc_calc_sigma();
 
 //  gm_account_db = numdb_init();

@@ -19,9 +19,6 @@ struct Damage
     ATK dmg_lv;
 };
 
-// 属性表（読み込みはpc.c、battle_attr_fixで使用）
-extern int attr_fix_table[4][10][10];
-
 struct map_session_data;
 struct mob_data;
 struct block_list;
@@ -31,9 +28,6 @@ struct block_list;
 struct Damage battle_calc_attack(BF attack_type,
         struct block_list *bl, struct block_list *target,
         SkillID skill_num, int skill_lv, int flag);
-
-// 属性修正計算
-int battle_attr_fix(int damage, int atk_elem, int def_elem);
 
 // 実際にHPを増減
 int battle_damage(struct block_list *bl, struct block_list *target,

@@ -52,7 +52,6 @@ void pc_touch_all_relevant_npcs(struct map_session_data *sd);  /* Checks all npc
 
 int pc_isGM(struct map_session_data *sd);
 int pc_iskiller(struct map_session_data *src, struct map_session_data *target);   // [MouseJstr]
-int pc_getrefinebonus(int lv, int type);
 
 void pc_invisibility(struct map_session_data *sd, int enabled);    // [Fate]
 int pc_counttargeted(struct map_session_data *sd, struct block_list *src,
@@ -119,7 +118,6 @@ int pc_need_status_point(struct map_session_data *, SP);
 int pc_statusup(struct map_session_data *, SP);
 int pc_statusup2(struct map_session_data *, SP, int);
 int pc_skillup(struct map_session_data *, SkillID);
-int pc_allskillup(struct map_session_data *);
 int pc_resetlvl(struct map_session_data *, int type);
 int pc_resetstate(struct map_session_data *);
 int pc_resetskill(struct map_session_data *);
@@ -147,7 +145,6 @@ int pc_readaccountreg(struct map_session_data *, const char *);
 int pc_setaccountreg(struct map_session_data *, const char *, int);
 int pc_readaccountreg2(struct map_session_data *, const char *);
 int pc_setaccountreg2(struct map_session_data *, const char *, int);
-int pc_percentrefinery(struct map_session_data *sd, struct item *item);
 
 int pc_addeventtimer(struct map_session_data *sd, int tick,
                        const char *name);
