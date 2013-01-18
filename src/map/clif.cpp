@@ -2241,7 +2241,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
                 WBUFW(buf, 9) = 0;
         }
         if (dstsd)
-            WFIFOSET(dstsd->fd, packet_len_table[0x1d7]);
+            clif_send(buf, packet_len_table[0x1d7], &dstsd->bl, SELF);
         else
             clif_send(buf, packet_len_table[0x1d7], bl, AREA);
     }
