@@ -68,7 +68,7 @@ int battle_get_element(struct block_list *bl);
 #define battle_get_elem_type(bl)        (battle_get_element(bl)%10)
 int battle_get_party_id(struct block_list *bl);
 int battle_get_race(struct block_list *bl);
-int battle_get_mode(struct block_list *bl);
+MobMode battle_get_mode(struct block_list *bl);
 int battle_get_mexp(struct block_list *bl);
 int battle_get_stat(SP stat_id, struct block_list *bl);
 

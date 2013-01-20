@@ -1719,7 +1719,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
             memcpy(md->name, w3, 24);
 
         md->n = i;
-        md->base_class = md->mob_class = mob_class;
+        md->mob_class = mob_class;
         md->bl.id = npc_get_new_npc_id();
         md->m = m;
         md->x0 = x;
@@ -1734,7 +1734,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->target_id = 0;
         md->attacked_id = 0;
 
-        if (mob_db[mob_class].mode & 0x02)
+        if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
             md->lootitem =
                 (struct item *) calloc(LOOTITEM_SIZE, sizeof(struct item));
         else

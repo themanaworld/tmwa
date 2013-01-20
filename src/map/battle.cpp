@@ -1208,36 +1208,6 @@ int battle_get_attack_element(struct block_list *bl)
     return ret;
 }
 
-static
-int battle_get_attack_element2(struct block_list *bl)
-{
-    nullpo_ret(bl);
-    if (bl->type == BL_PC && (struct map_session_data *) bl)
-    {
-        int ret = ((struct map_session_data *) bl)->atk_ele_;
-        eptr<struct status_change, StatusChange> sc_data =
-            ((struct map_session_data *) bl)->sc_data;
-
-        if (sc_data)
-        {
-            if (sc_data[SC_FROSTWEAPON].timer != -1)    // フロストウェポン
-                ret = 1;
-            if (sc_data[SC_SEISMICWEAPON].timer != -1)  // サイズミックウェポン
-                ret = 2;
-            if (sc_data[SC_FLAMELAUNCHER].timer != -1)  // フレームランチャー
-                ret = 3;
-            if (sc_data[SC_LIGHTNINGLOADER].timer != -1)    // ライトニングローダー
-                ret = 4;
-            if (sc_data[SC_ENCPOISON].timer != -1)  // エンチャントポイズン
-                ret = 5;
-            if (sc_data[SC_ASPERSIO].timer != -1)   // アスペルシオ
-                ret = 6;
-        }
-        return ret;
-    }
-    return 0;
-}
-
 int battle_get_party_id(struct block_list *bl)
 {
     nullpo_ret(bl);
@@ -1267,25 +1237,13 @@ int battle_get_race(struct block_list *bl)
         return 0;
 }
 
-static
-int battle_get_size(struct block_list *bl)
+MobMode battle_get_mode(struct block_list *bl)
 {
-    nullpo_retr(1, bl);
-    if (bl->type == BL_MOB && (struct mob_data *) bl)
-        return mob_db[((struct mob_data *) bl)->mob_class].size;
-    else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        return 1;
-    else
-        return 1;
-}
-
-int battle_get_mode(struct block_list *bl)
-{
-    nullpo_retr(0x01, bl);
+    nullpo_retr(MobMode::CAN_MOVE, bl);
     if (bl->type == BL_MOB && (struct mob_data *) bl)
         return mob_db[((struct mob_data *) bl)->mob_class].mode;
-    else
-        return 0x01;            // とりあえず動くということで1
+    // とりあえず動くということで1
+    return MobMode::CAN_MOVE;
 }
 
 int battle_get_mexp(struct block_list *bl)
@@ -1760,7 +1718,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     BF flag;
     int ac_flag = 0;
     ATK dmg_lv = ATK::ZERO;
-    int t_mode = 0, s_race = 0, s_ele = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
 
     //return前の処理があるので情報出力部のみ変更
@@ -1771,8 +1728,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         return wd;
     }
 
-    s_race = battle_get_race(src);
-    s_ele = battle_get_attack_element(src);
     sc_data = battle_get_sc_data(src);
 
     // ターゲット
@@ -1780,7 +1735,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         tsd = (struct map_session_data *) target;
     else if (target->type == BL_MOB)
         tmd = (struct mob_data *) target;
-    t_mode = battle_get_mode(target);
+    MobMode t_mode = battle_get_mode(target);
     t_sc_data = battle_get_sc_data(target);
 
     flag = BF_SHORT | BF_WEAPON | BF_NORMAL;    // 攻撃の種類の設定
@@ -1889,10 +1844,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
 
         if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
         {
-            int i;
-            if ((i = skill_get_pl(skill_num)) > 0)
-                s_ele = i;
-
             flag = (flag & ~BF_SKILLMASK) | BF_SKILL;
             switch (skill_num)
             {
@@ -2031,21 +1982,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
 
     if (tsd)
     {
-        int cardfix = 100, i;
-        cardfix = cardfix * (100 - tsd->subele[s_ele]) / 100;   // 属 性によるダメージ耐性
-        cardfix = cardfix * (100 - tsd->subrace[s_race]) / 100; // 種族によるダメージ耐性
-        if (mob_db[md->mob_class].mode & 0x20)
-            cardfix = cardfix * (100 - tsd->subrace[10]) / 100;
-        else
-            cardfix = cardfix * (100 - tsd->subrace[11]) / 100;
-        for (i = 0; i < tsd->add_def_class_count; i++)
-        {
-            if (tsd->add_def_classid[i] == md->mob_class)
-            {
-                cardfix = cardfix * (100 - tsd->add_def_classrate[i]) / 100;
-                break;
-            }
-        }
+        int cardfix = 100;
         if (bool(flag & BF_LONG))
             cardfix = cardfix * (100 - tsd->long_attack_def_rate) / 100;
         if (bool(flag & BF_SHORT))
@@ -2096,7 +2033,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     }
 
 //  if(def1 >= 1000000 && damage > 0)
-    if (t_mode & 0x40 && damage > 0)
+    if (bool(t_mode & MobMode::PLANT) && damage > 0)
         damage = 1;
 
     if (tsd && tsd->special_state.no_weapon_damage)
@@ -2156,12 +2093,12 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         skill_get_blewcount(skill_num, skill_lv);
     BF flag;
     ATK dmg_lv = ATK::ZERO;
-    int t_mode = 0, t_race = 0, t_size = 1, s_race = 7, s_ele = 0;
+    int t_race = 0;
     eptr<struct status_change, StatusChange> sc_data, t_sc_data;
-    int atkmax_ = 0, atkmin_ = 0, s_ele_;  //二刀流用
+    int atkmax_ = 0, atkmin_ = 0;  //二刀流用
     int watk, watk_, cardfix, t_ele;
     bool da = false;
-    int t_class, ac_flag = 0;
+    int ac_flag = 0;
     int idef_flag = 0, idef_flag_ = 0;
     int target_distance;
 
@@ -2174,9 +2111,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
 
     // アタッカー
-    s_race = battle_get_race(src); //種族
-    s_ele = battle_get_attack_element(src);    //属性
-    s_ele_ = battle_get_attack_element2(src);  //左手属性
     sc_data = battle_get_sc_data(src); //ステータス異常
 
     sd->state.attack_type = BF_WEAPON;  //攻撃タイプは武器攻撃
@@ -2188,8 +2122,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         tmd = (struct mob_data *) target;   //tmdに代入(tsdはNULL)
     t_race = battle_get_race(target);  //対象の種族
     t_ele = battle_get_elem_type(target);  //対象の属性
-    t_size = battle_get_size(target);  //対象のサイズ
-    t_mode = battle_get_mode(target);  //対象のMode
+    MobMode t_mode = battle_get_mode(target);  //対象のMode
     t_sc_data = battle_get_sc_data(target);    //対象のステータス異常
 
     flag = BF_SHORT | BF_WEAPON | BF_NORMAL;    // 攻撃の種類の設定
@@ -2270,8 +2203,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     {                           //武器が弓矢の場合
         atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100;    //弓用最低ATK計算
         flag = (flag & ~BF_RANGEMASK) | BF_LONG;    //遠距離攻撃フラグを有効
-        if (sd->arrow_ele > 0)  //属性矢なら属性を矢の属性に変更
-            s_ele = sd->arrow_ele;
         sd->state.arrow_atk = 1;    //arrow_atk有効化
     }
 
@@ -2388,7 +2319,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 damage2 = (damage2 * (def1 + def2)) / 100;
                 idef_flag_ = 1;
             }
-            if (t_mode & 0x20)
+            if (bool(t_mode & MobMode::BOSS))
             {
                 if (!idef_flag && sd->def_ratio_atk_race & (1 << 10))
                 {
@@ -2444,10 +2375,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 
         if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
         {
-            int i;
-            if ((i = skill_get_pl(skill_num)) > 0)
-                s_ele = s_ele_ = i;
-
             flag = (flag & ~BF_SKILLMASK) | BF_SKILL;
             switch (skill_num)
             {
@@ -2553,7 +2480,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 if (sd->ignore_def_ele_ & (1 << t_ele)
                     || sd->ignore_def_race_ & (1 << t_race))
                     idef_flag_ = 1;
-                if (t_mode & 0x20)
+                if (bool(t_mode & MobMode::BOSS))
                 {
                     if (sd->ignore_def_race & (1 << 10))
                         idef_flag = 1;
@@ -2649,111 +2576,9 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         dmg_lv = ATK_DEF;
     }
 
-//スキルによるダメージ補正ここまで
-
-//カードによるダメージ追加処理ここから
-    cardfix = 100;
-    if (!sd->state.arrow_atk)
-    {                           //弓矢以外
-        if (!battle_config.left_cardfix_to_right)
-        {                       //左手カード補正設定無し
-            cardfix = cardfix * (100 + sd->addrace[t_race]) / 100;  // 種族によるダメージ修正
-            cardfix = cardfix * (100 + sd->addele[t_ele]) / 100;    // 属性によるダメージ修正
-            cardfix = cardfix * (100 + sd->addsize[t_size]) / 100;  // サイズによるダメージ修正
-        }
-        else
-        {
-            cardfix = cardfix * (100 + sd->addrace[t_race] + sd->addrace_[t_race]) / 100;   // 種族によるダメージ修正(左手による追加あり)
-            cardfix = cardfix * (100 + sd->addele[t_ele] + sd->addele_[t_ele]) / 100;   // 属性によるダメージ修正(左手による追加あり)
-            cardfix = cardfix * (100 + sd->addsize[t_size] + sd->addsize_[t_size]) / 100;   // サイズによるダメージ修正(左手による追加あり)
-        }
-    }
-    else
-    {                           //弓矢
-        cardfix = cardfix * (100 + sd->addrace[t_race] + sd->arrow_addrace[t_race]) / 100;  // 種族によるダメージ修正(弓矢による追加あり)
-        cardfix = cardfix * (100 + sd->addele[t_ele] + sd->arrow_addele[t_ele]) / 100;  // 属性によるダメージ修正(弓矢による追加あり)
-        cardfix = cardfix * (100 + sd->addsize[t_size] + sd->arrow_addsize[t_size]) / 100;  // サイズによるダメージ修正(弓矢による追加あり)
-    }
-    if (t_mode & 0x20)
-    {                           //ボス
-        if (!sd->state.arrow_atk)
-        {                       //弓矢攻撃以外なら
-            if (!battle_config.left_cardfix_to_right)   //左手カード補正設定無し
-                cardfix = cardfix * (100 + sd->addrace[10]) / 100;  //ボスモンスターに追加ダメージ
-            else                //左手カード補正設定あり
-                cardfix = cardfix * (100 + sd->addrace[10] + sd->addrace_[10]) / 100;   //ボスモンスターに追加ダメージ(左手による追加あり)
-        }
-        else                    //弓矢攻撃
-            cardfix = cardfix * (100 + sd->addrace[10] + sd->arrow_addrace[10]) / 100;  //ボスモンスターに追加ダメージ(弓矢による追加あり)
-    }
-    else
-    {                           //ボスじゃない
-        if (!sd->state.arrow_atk)
-        {                       //弓矢攻撃以外
-            if (!battle_config.left_cardfix_to_right)   //左手カード補正設定無し
-                cardfix = cardfix * (100 + sd->addrace[11]) / 100;  //ボス以外モンスターに追加ダメージ
-            else                //左手カード補正設定あり
-                cardfix = cardfix * (100 + sd->addrace[11] + sd->addrace_[11]) / 100;   //ボス以外モンスターに追加ダメージ(左手による追加あり)
-        }
-        else
-            cardfix = cardfix * (100 + sd->addrace[11] + sd->arrow_addrace[11]) / 100;  //ボス以外モンスターに追加ダメージ(弓矢による追加あり)
-    }
-    //特定Class用補正処理(少女の日記→ボンゴン用？)
-    t_class = battle_get_class(target);
-    for (int i = 0; i < sd->add_damage_class_count; i++)
-    {
-        if (sd->add_damage_classid[i] == t_class)
-        {
-            cardfix = cardfix * (100 + sd->add_damage_classrate[i]) / 100;
-            break;
-        }
-    }
-    damage = damage * cardfix / 100;    //カード補正によるダメージ増加
-//カードによるダメージ増加処理ここまで
-
-//カードによるダメージ追加処理(左手)ここから
-    cardfix = 100;
-    if (!battle_config.left_cardfix_to_right)
-    {                           //左手カード補正設定無し
-        cardfix = cardfix * (100 + sd->addrace_[t_race]) / 100; // 種族によるダメージ修正左手
-        cardfix = cardfix * (100 + sd->addele_[t_ele]) / 100;   // 属 性によるダメージ修正左手
-        cardfix = cardfix * (100 + sd->addsize_[t_size]) / 100; // サイズによるダメージ修正左手
-        if (t_mode & 0x20)      //ボス
-            cardfix = cardfix * (100 + sd->addrace_[10]) / 100; //ボスモンスターに追加ダメージ左手
-        else
-            cardfix = cardfix * (100 + sd->addrace_[11]) / 100; //ボス以外モンスターに追加ダメージ左手
-    }
-    //特定Class用補正処理左手(少女の日記→ボンゴン用？)
-    for (int i = 0; i < sd->add_damage_class_count_; i++)
-    {
-        if (sd->add_damage_classid_[i] == t_class)
-        {
-            cardfix = cardfix * (100 + sd->add_damage_classrate_[i]) / 100;
-            break;
-        }
-    }
-    damage2 = damage2 * cardfix / 100;  //カード補正による左手ダメージ増加
-//カードによるダメージ増加処理(左手)ここまで
-
-//カードによるダメージ減衰処理ここから
     if (tsd)
     {                           //対象がPCの場合
         cardfix = 100;
-        cardfix = cardfix * (100 - tsd->subrace[s_race]) / 100; // 種族によるダメージ耐性
-        cardfix = cardfix * (100 - tsd->subele[s_ele]) / 100;   // 属性によるダメージ耐性
-        if (battle_get_mode(src) & 0x20)
-            cardfix = cardfix * (100 - tsd->subrace[10]) / 100; //ボスからの攻撃はダメージ減少
-        else
-            cardfix = cardfix * (100 - tsd->subrace[11]) / 100; //ボス以外からの攻撃はダメージ減少
-        //特定Class用補正処理左手(少女の日記→ボンゴン用？)
-        for (int i = 0; i < tsd->add_def_class_count; i++)
-        {
-            if (tsd->add_def_classid[i] == 0)
-            {
-                cardfix = cardfix * (100 - tsd->add_def_classrate[i]) / 100;
-                break;
-            }
-        }
         if (bool(flag & BF_LONG))
             cardfix = cardfix * (100 - tsd->long_attack_def_rate) / 100;    //遠距離攻撃はダメージ減少(ホルンCとか)
         if (bool(flag & BF_SHORT))
@@ -2874,7 +2699,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
 
     //MobのModeに頑強フラグが立っているときの処理
-    if (t_mode & 0x40)
+    if (bool(t_mode & MobMode::PLANT))
     {
         if (damage > 0)
             damage = 1;
@@ -3031,8 +2856,7 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
         skill_get_blewcount(skill_num, skill_lv), rdamage = 0;
     struct Damage md;
     int normalmagic_flag = 1;
-    int ele = 0, race = 7, t_ele = 0, t_race = 7, t_mode =
-        0, cardfix, t_class, i;
+    int t_ele = 0, t_race = 7, cardfix;
     struct map_session_data *sd = NULL, *tsd = NULL;
 
     //return前の処理があるので情報出力部のみ変更
@@ -3045,11 +2869,9 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
 
     matk1 = battle_get_matk1(bl);
     matk2 = battle_get_matk2(bl);
-    ele = skill_get_pl(skill_num);
-    race = battle_get_race(bl);
     t_ele = battle_get_elem_type(target);
     t_race = battle_get_race(target);
-    t_mode = battle_get_mode(target);
+    MobMode t_mode = battle_get_mode(target);
 
 #define MATK_FIX( a,b ) { matk1=matk1*(a)/(b); matk2=matk2*(a)/(b); }
 
@@ -3089,7 +2911,7 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
             if (sd->ignore_mdef_ele & (1 << t_ele)
                 || sd->ignore_mdef_race & (1 << t_race))
                 imdef_flag = 1;
-            if (t_mode & 0x20)
+            if (bool(t_mode & MobMode::BOSS))
             {
                 if (sd->ignore_mdef_race & (1 << 10))
                     imdef_flag = 1;
@@ -3118,47 +2940,9 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
             damage = 1;
     }
 
-    if (sd)
-    {
-        cardfix = 100;
-        cardfix = cardfix * (100 + sd->magic_addrace[t_race]) / 100;
-        cardfix = cardfix * (100 + sd->magic_addele[t_ele]) / 100;
-        if (t_mode & 0x20)
-            cardfix = cardfix * (100 + sd->magic_addrace[10]) / 100;
-        else
-            cardfix = cardfix * (100 + sd->magic_addrace[11]) / 100;
-        t_class = battle_get_class(target);
-        for (i = 0; i < sd->add_magic_damage_class_count; i++)
-        {
-            if (sd->add_magic_damage_classid[i] == t_class)
-            {
-                cardfix =
-                    cardfix * (100 + sd->add_magic_damage_classrate[i]) / 100;
-                break;
-            }
-        }
-        damage = damage * cardfix / 100;
-    }
-
     if (tsd)
     {
-        int s_class = battle_get_class(bl);
         cardfix = 100;
-        cardfix = cardfix * (100 - tsd->subele[ele]) / 100; // 属 性によるダメージ耐性
-        cardfix = cardfix * (100 - tsd->subrace[race]) / 100;   // 種族によるダメージ耐性
-        cardfix = cardfix * (100 - tsd->magic_subrace[race]) / 100;
-        if (battle_get_mode(bl) & 0x20)
-            cardfix = cardfix * (100 - tsd->magic_subrace[10]) / 100;
-        else
-            cardfix = cardfix * (100 - tsd->magic_subrace[11]) / 100;
-        for (i = 0; i < tsd->add_mdef_class_count; i++)
-        {
-            if (tsd->add_mdef_classid[i] == s_class)
-            {
-                cardfix = cardfix * (100 - tsd->add_mdef_classrate[i]) / 100;
-                break;
-            }
-        }
         cardfix = cardfix * (100 - tsd->magic_def_rate) / 100;
         damage = damage * cardfix / 100;
     }
@@ -3171,7 +2955,7 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
         damage *= div_;
 
 //  if(mdef1 >= 1000000 && damage > 0)
-    if (t_mode & 0x40 && damage > 0)
+    if (bool(t_mode & MobMode::PLANT) && damage > 0)
         damage = 1;
 
     if (tsd && tsd->special_state.no_magic_damage)
@@ -3220,7 +3004,7 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
                                        struct block_list *target,
                                        SkillID skill_num, int skill_lv, int)
 {
-    int ele, race, cardfix;
+    int cardfix;
     struct map_session_data *sd = NULL, *tsd = NULL;
     int damage = 0, div_ = 1, blewcount =
         skill_get_blewcount(skill_num, skill_lv);
@@ -3281,9 +3065,6 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
             break;
     }
 
-    ele = skill_get_pl(skill_num);
-    race = battle_get_race(bl);
-
     if (damagefix)
     {
         if (damage < 1 && skill_num != NPC_DARKBREATH)
@@ -3292,8 +3073,6 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
         if (tsd)
         {
             cardfix = 100;
-            cardfix = cardfix * (100 - tsd->subele[ele]) / 100; // 属性によるダメージ耐性
-            cardfix = cardfix * (100 - tsd->subrace[race]) / 100;   // 種族によるダメージ耐性
             cardfix = cardfix * (100 - tsd->misc_def_rate) / 100;
             damage = damage * cardfix / 100;
         }
@@ -3502,8 +3281,7 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
                      (target->type ==
                       BL_PC) ? ((struct map_session_data *) target)->
                      status.char_id : target->id,
-                     (target->type ==
-                      BL_PC) ? 0 : ((struct mob_data *) target)->mob_class,
+                     battle_get_class(target),
                      wd.damage + wd.damage2, weapon);
         }
 
@@ -3513,11 +3291,10 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
             MAP_LOG("PC%d %d:%d,%d WPNINJURY %s%d %d FOR %d",
                      sd2->status.char_id, target->m, target->x, target->y,
                      (src->type == BL_PC) ? "PC" : "MOB",
-                     (src->type ==
-                      BL_PC) ? ((struct map_session_data *) src)->
-                     status.char_id : src->id,
-                     (src->type ==
-                      BL_PC) ? 0 : ((struct mob_data *) src)->mob_class,
+                     (src->type == BL_PC)
+                     ? ((struct map_session_data *) src)->status.char_id
+                     : src->id,
+                     battle_get_class(src),
                      wd.damage + wd.damage2);
         }
 
@@ -3530,31 +3307,6 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
             if (wd.damage > 0 || wd.damage2 > 0)
             {
                 skill_additional_effect(src, target, SkillID::ZERO, 0, BF_WEAPON, tick);
-                if (sd)
-                {
-                    if (sd->weapon_coma_ele[ele] > 0
-                        && MRAND(10000) < sd->weapon_coma_ele[ele])
-                        battle_damage(src, target,
-                                       battle_get_max_hp(target), 1);
-                    if (sd->weapon_coma_race[race] > 0
-                        && MRAND(10000) < sd->weapon_coma_race[race])
-                        battle_damage(src, target,
-                                       battle_get_max_hp(target), 1);
-                    if (battle_get_mode(target) & 0x20)
-                    {
-                        if (sd->weapon_coma_race[10] > 0
-                            && MRAND(10000) < sd->weapon_coma_race[10])
-                            battle_damage(src, target,
-                                           battle_get_max_hp(target), 1);
-                    }
-                    else
-                    {
-                        if (sd->weapon_coma_race[11] > 0
-                            && MRAND(10000) < sd->weapon_coma_race[11])
-                            battle_damage(src, target,
-                                           battle_get_max_hp(target), 1);
-                    }
-                }
             }
         }
         if (sd)

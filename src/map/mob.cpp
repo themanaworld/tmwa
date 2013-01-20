@@ -103,7 +103,7 @@ int mob_spawn_dataset(struct mob_data *md, const char *mobname, int mob_class)
     md->bl.prev = NULL;
     md->bl.next = NULL;
     md->n = 0;
-    md->base_class = md->mob_class = mob_class;
+    md->mob_class = mob_class;
     md->bl.id = npc_get_new_npc_id();
 
     memset(&md->state, 0, sizeof(md->state));
@@ -282,9 +282,13 @@ int mob_gen_exp(struct mob_db *mob)
          mob->attrs[ATTR::LUK]) * (1872.0 / mob->adelay) / 4;
     double dodge_factor =
         pow(mob->lv + mob->attrs[ATTR::AGI] + mob->attrs[ATTR::LUK] / 2.0, 4.0 / 3.0);
+    // TODO s/persuit/pursuit/g sometime when I'm not worried about diffs
     double persuit_factor =
-        (3 + mob->range) * (mob->mode % 2) * 1000 / mob->speed;
-    double aggression_factor = (mob->mode & 4) == 4 ? 10.0 / 9.0 : 1.0;
+        (3 + mob->range) * bool(mob->mode & MobMode::CAN_MOVE) * 1000 / mob->speed;
+    double aggression_factor =
+        bool(mob->mode & MobMode::AGGRESSIVE)
+        ? 10.0 / 9.0
+        : 1.0;
     int xp =
         (int) floor(effective_hp *
                      pow(sqrt(attack_factor) + sqrt(dodge_factor) +
@@ -410,7 +414,7 @@ int mob_once_spawn(struct map_session_data *sd, const char *mapname,
     for (count = 0; count < amount; count++)
     {
         md = (struct mob_data *) calloc(1, sizeof(struct mob_data));
-        if (mob_db[mob_class].mode & 0x02)
+        if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
             md->lootitem =
                 (struct item *) calloc(LOOTITEM_SIZE, sizeof(struct item));
         else
@@ -421,7 +425,8 @@ int mob_once_spawn(struct map_session_data *sd, const char *mapname,
         md->bl.x = x;
         md->bl.y = y;
         if (r < 0 && battle_config.dead_branch_active == 1)
-            md->mode = 0x1 + 0x4 + 0x80;    //移動してアクティブで反撃する
+            //移動してアクティブで反撃する
+            md->mode = MobMode::war;
         md->m = m;
         md->x0 = x;
         md->y0 = y;
@@ -548,6 +553,7 @@ int mob_spawn_guardian(struct map_session_data *sd, const char *mapname,
     return (amount > 0) ? md->bl.id : 0;
 }
 
+// TODO: deprecate these
 int mob_get_sex(int mob_class)
 {
     return mob_db[mob_class].sex;
@@ -751,7 +757,8 @@ int mob_check_attack(struct mob_data *md)
     struct map_session_data *tsd = NULL;
     struct mob_data *tmd = NULL;
 
-    int mode, race, range;
+    MobMode mode;
+    int race, range;
 
     nullpo_ret(md);
 
@@ -802,22 +809,23 @@ int mob_check_attack(struct mob_data *md)
         }
     }
 
-    if (!md->mode)
+    if (md->mode == MobMode::ZERO)
         mode = mob_db[md->mob_class].mode;
     else
         mode = md->mode;
 
     race = mob_db[md->mob_class].race;
-    if (!(mode & 0x80))
+    if (!bool(mode & MobMode::CAN_ATTACK))
     {
         md->target_id = 0;
         md->state.attackable = false;
         return 0;
     }
-    if (tsd && !(mode & 0x20) && (tsd->sc_data[SC_TRICKDEAD].timer != -1 ||
-                                  ((pc_ishiding(tsd)
-                                    || tsd->state.gangsterparadise)
-                                   && race != 4 && race != 6)))
+    if (tsd
+        && !bool(mode & MobMode::BOSS)
+        && (tsd->sc_data[SC_TRICKDEAD].timer != -1
+            || ((pc_ishiding(tsd) || tsd->state.gangsterparadise)
+                && race != 4 && race != 6)))
     {
         md->target_id = 0;
         md->state.attackable = false;
@@ -825,7 +833,7 @@ int mob_check_attack(struct mob_data *md)
     }
 
     range = mob_db[md->mob_class].range;
-    if (mode & 1)
+    if (bool(mode & MobMode::CAN_MOVE))
         range++;
     if (distance(md->bl.x, md->bl.y, tbl->x, tbl->y) > range)
         return 0;
@@ -1179,8 +1187,6 @@ int mob_spawn(int id)
         skill_unit_out_all(&md->bl, gettick(), 1);
         map_delblock(&md->bl);
     }
-    else
-        md->mob_class = md->base_class;
 
     md->bl.m = md->m;
     {
@@ -1420,7 +1426,8 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
 {
     struct map_session_data *sd;
     eptr<struct status_change, StatusChange> sc_data;
-    int mode, race;
+    MobMode mode;
+    int race;
 
     nullpo_ret(md);
     nullpo_ret(bl);
@@ -1429,7 +1436,7 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
     Option *option = battle_get_option(bl);
     race = mob_db[md->mob_class].race;
 
-    if (!md->mode)
+    if (md->mode == MobMode::ZERO)
     {
         mode = mob_db[md->mob_class].mode;
     }
@@ -1437,18 +1444,18 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
     {
         mode = md->mode;
     }
-    if (!(mode & 0x80))
+    if (!bool(mode & MobMode::CAN_ATTACK))
     {
         md->target_id = 0;
         return 0;
     }
     // Nothing will be carried out if there is no mind of changing TAGE by TAGE ending.
     if ((md->target_id > 0 && md->state.attackable)
-        && (!(mode & 0x04) || MRAND(100) > 25))
+        && (!bool(mode & MobMode::AGGRESSIVE) || MRAND(100) > 25))
         return 0;
 
     // Coercion is exerted if it is MVPMOB.
-    if (mode & 0x20
+    if (bool(mode & MobMode::BOSS)
         || (sc_data && sc_data[SC_TRICKDEAD].timer == -1
             && ((option != NULL && !bool(*option & (Option::CLOAK | Option::HIDE2)))
                 || race == 4
@@ -1459,7 +1466,7 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
             nullpo_ret(sd = (struct map_session_data *) bl);
             if (sd->invincible_timer != -1 || pc_isinvisible(sd))
                 return 0;
-            if (!(mode & 0x20) && race != 4 && race != 6
+            if (!bool(mode & MobMode::BOSS) && race != 4 && race != 6
                 && sd->state.gangsterparadise)
                 return 0;
         }
@@ -1486,7 +1493,8 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
 {
     struct map_session_data *tsd = NULL;
     struct mob_data *tmd = NULL;
-    int mode, race, dist;
+    MobMode mode;
+    int race, dist;
 
     nullpo_retv(bl);
     nullpo_retv(smd);
@@ -1503,13 +1511,13 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
     if (battle_check_target(&smd->bl, bl, BCT_ENEMY) == 0)
         return;
 
-    if (!smd->mode)
+    if (smd->mode == MobMode::ZERO)
         mode = mob_db[smd->mob_class].mode;
     else
         mode = smd->mode;
 
     // アクティブでターゲット射程内にいるなら、ロックする
-    if (mode & 0x04)
+    if (bool(mode & MobMode::AGGRESSIVE))
     {
         race = mob_db[smd->mob_class].race;
         //対象がPCの場合
@@ -1521,10 +1529,11 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
             (dist =
              distance(smd->bl.x, smd->bl.y, tsd->bl.x, tsd->bl.y)) < 9)
         {
-            if (mode & 0x20 ||
-                (tsd->sc_data[SC_TRICKDEAD].timer == -1 &&
-                 ((!pc_ishiding(tsd) && !tsd->state.gangsterparadise)
-                  || race == 4 || race == 6)))
+            if (bool(mode & MobMode::BOSS)
+                || (tsd->sc_data[SC_TRICKDEAD].timer == -1
+                    && ((!pc_ishiding(tsd)
+                            && !tsd->state.gangsterparadise)
+                        || race == 4 || race == 6)))
             {                   // 妨害がないか判定
                 if (mob_can_reach(smd, bl, 12) &&  // 到達可能性判定
                     MRAND(1000) < 1000 / (++(*pcc)))
@@ -1559,11 +1568,12 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
 static
 void mob_ai_sub_hard_lootsearch(struct block_list *bl, struct mob_data *md, int *itc)
 {
-    int mode, dist;
+    MobMode mode;
+    int dist;
 
     nullpo_retv(bl);
 
-    if (!md->mode)
+    if (md->mode == MobMode::ZERO)
     {
         mode = mob_db[md->mob_class].mode;
     }
@@ -1572,7 +1582,7 @@ void mob_ai_sub_hard_lootsearch(struct block_list *bl, struct mob_data *md, int 
         mode = md->mode;
     }
 
-    if (!md->target_id && mode & 0x02)
+    if (!md->target_id && bool(mode & MobMode::LOOTER))
     {
         if (!md->lootitem
             || (battle_config.monster_loot_type == 1
@@ -1606,23 +1616,16 @@ void mob_ai_sub_hard_linksearch(struct block_list *bl, struct mob_data *md, stru
     nullpo_retv(md);
     nullpo_retv(target);
 
-    // same family free in a range at a link monster -- it will be made to lock if MOB is
-/*      if ((md->target_id > 0 && md->state.attackable) && mob_db[md->mob_class].mode&0x08){
-                if ( tmd->mob_class==md->mob_class && (!tmd->target_id || !md->state.attackable) && tmd->bl.m == md->bl.m){
-                        if ( mob_can_reach(tmd,target,12) ){    // Reachability judging
-                                tmd->target_id=md->target_id;
-                                tmd->state.attackable = true;
-                                tmd->min_chase=13;
-                        }
-                }
-        }*/
-    if (md->attacked_id > 0 && mob_db[md->mob_class].mode & 0x08)
+    if (md->attacked_id > 0
+        && bool(mob_db[md->mob_class].mode & MobMode::ASSIST))
     {
-        if (tmd->mob_class == md->mob_class && tmd->bl.m == md->bl.m
+        if (tmd->mob_class == md->mob_class
+            && tmd->bl.m == md->bl.m
             && (!tmd->target_id || !md->state.attackable))
         {
             if (mob_can_reach(tmd, target, 12))
-            {                   // Reachability judging
+            {
+                // Reachability judging
                 tmd->target_id = md->attacked_id;
                 tmd->state.attackable = true;
                 tmd->min_chase = 13;
@@ -1640,7 +1643,8 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
 {
     struct mob_data *mmd = NULL;
     struct block_list *bl;
-    int mode, race, old_dist;
+    MobMode mode;
+    int race, old_dist;
 
     nullpo_ret(md);
 
@@ -1742,7 +1746,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
         {
 
             race = mob_db[md->mob_class].race;
-            if (mode & 0x20 ||
+            if (bool(mode & MobMode::BOSS) ||
                 (sd->sc_data[SC_TRICKDEAD].timer == -1 &&
                  ((!pc_ishiding(sd) && !sd->state.gangsterparadise)
                   || race == 4 || race == 6)))
@@ -1863,7 +1867,8 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
     struct flooritem_data *fitem;
     int i, dx, dy, ret, dist;
     int attack_type = 0;
-    int mode, race;
+    MobMode mode;
+    int race;
 
     nullpo_retv(bl);
     md = (struct mob_data *) bl;
@@ -1879,7 +1884,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
         return;
     }
 
-    if (!md->mode)
+    if (md->mode == MobMode::ZERO)
         mode = mob_db[md->mob_class].mode;
     else
         mode = md->mode;
@@ -1891,10 +1896,10 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
         || md->state.state == MS_DELAY)
         return;
 
-    if (!(mode & 0x80) && md->target_id > 0)
+    if (!bool(mode & MobMode::CAN_ATTACK) && md->target_id > 0)
         md->target_id = 0;
 
-    if (md->attacked_id > 0 && mode & 0x08)
+    if (md->attacked_id > 0 && bool(mode & MobMode::ASSIST))
     {                           // Link monster
         struct map_session_data *asd = map_id2sd(md->attacked_id);
         if (asd)
@@ -1909,9 +1914,9 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
     }
 
     // It checks to see it was attacked first (if active, it is target change at 25% of probability).
-    if (mode > 0 && md->attacked_id > 0
+    if (mode != MobMode::ZERO && md->attacked_id > 0
         && (!md->target_id || !md->state.attackable
-            || (mode & 0x04 && MRAND(100) < 25)))
+            || (bool(mode & MobMode::AGGRESSIVE) && MRAND(100) < 25)))
     {
         struct block_list *abl = map_id2bl(md->attacked_id);
         struct map_session_data *asd = NULL;
@@ -1945,7 +1950,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
 
     // アクティヴモンスターの策敵 (?? of a bitter taste TIVU monster)
     if ((!md->target_id || !md->state.attackable)
-        && mode & 0x04 && !md->state.master_check
+        && bool(mode & MobMode::AGGRESSIVE) && !md->state.master_check
         && battle_config.monster_active_enable == 1)
     {
         i = 0;
@@ -1965,7 +1970,9 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
     }
 
     // The item search of a route monster
-    if (!md->target_id && mode & 0x02 && !md->state.master_check)
+    if (!md->target_id
+        && bool(mode & MobMode::LOOTER)
+        && !md->state.master_check)
     {
         i = 0;
         map_foreachinarea(std::bind(mob_ai_sub_hard_lootsearch, ph::_1, md, &i),
@@ -1989,7 +1996,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
                         distance(md->bl.x, md->bl.y, tbl->x,
                                   tbl->y)) >= md->min_chase)
                     mob_unlocktarget(md, tick);    // 別マップか、視界外
-                else if (tsd && !(mode & 0x20)
+                else if (tsd && !bool(mode & MobMode::BOSS)
                          && (tsd->sc_data[SC_TRICKDEAD].timer != -1
                              ||
                              ((pc_ishiding(tsd)
@@ -1999,7 +2006,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
                 else if (!battle_check_range(&md->bl, tbl, mob_db[md->mob_class].range))
                 {
                     // 攻撃範囲外なので移動
-                    if (!(mode & 1))
+                    if (!bool(mode & MobMode::CAN_MOVE))
                     {           // 移動しないモード
                         mob_unlocktarget(md, tick);
                         return;
@@ -2103,7 +2110,7 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
                 }
                 else if (dist)
                 {
-                    if (!(mode & 1))
+                    if (!bool(mode & MobMode::CAN_MOVE))
                     {           // 移動しないモード
                         mob_unlocktarget(md, tick);
                         return;
@@ -2173,9 +2180,10 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
         return;
 
     // 歩行処理
-    if (mode & 1 && mob_can_move(md) &&    // 移動可能MOB&動ける状態にある
-        (md->master_id == 0 || md->state.special_mob_ai
-         || md->master_dist > 10))
+    if (bool(mode & MobMode::CAN_MOVE)
+        && mob_can_move(md)
+        && (md->master_id == 0 || md->state.special_mob_ai
+            || md->master_dist > 10))
     {                           //取り巻きMOBじゃない
 
         if (DIFF_TICK(md->next_walktime, tick) > +7000 &&
@@ -2248,8 +2256,9 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, unsigned int tick)
         return;
     }
 
-    if (DIFF_TICK(md->next_walktime, tick) < 0 &&
-        (mob_db[md->mob_class].mode & 1) && mob_can_move(md))
+    if (DIFF_TICK(md->next_walktime, tick) < 0
+        && bool(mob_db[md->mob_class].mode & MobMode::CAN_MOVE)
+        && mob_can_move(md))
     {
 
         if (map[md->bl.m].users > 0)
@@ -2263,7 +2272,7 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, unsigned int tick)
             // MOB which is not not the summons MOB but BOSS, either sometimes reboils.
             else if (MRAND(1000) < MOB_LAZYWARPPERC && md->x0 <= 0
                      && md->master_id != 0 && mob_db[md->mob_class].mexp <= 0
-                     && !(mob_db[md->mob_class].mode & 0x20))
+                     && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
                 mob_spawn(md->bl.id);
 
         }
@@ -2274,7 +2283,7 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, unsigned int tick)
             // MOB which is not BOSS which is not Summons MOB, either -- a case -- sometimes -- leaping
             if (MRAND(1000) < MOB_LAZYWARPPERC && md->x0 <= 0
                 && md->master_id != 0 && mob_db[md->mob_class].mexp <= 0
-                && !(mob_db[md->mob_class].mode & 0x20))
+                && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
                 mob_warp(md, -1, -1, -1, -1);
         }
 
@@ -2491,11 +2500,11 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
 
     if (src && src->id == md->master_id
-        && md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER)
+        && bool(md->mode & MOB_MODE_TURNS_AGAINST_BAD_MASTER))
     {
         /* If the master hits a monster, have the monster turn against him */
         md->master_id = 0;
-        md->mode = 0x85;        /* Regular war mode */
+        md->mode = MobMode::war;        /* Regular war mode */
         md->target_id = src->id;
         md->attacked_id = src->id;
     }
@@ -2635,7 +2644,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
         if ((skillidx =
              mob_skillid2skillidx(md->mob_class, NPC_SELFDESTRUCTION2)) >= 0)
         {
-            md->mode |= 0x1;
+            md->mode |= MobMode::CAN_MOVE;
             md->next_walktime = tick;
             mobskill_use_id(md, &md->bl, skillidx);    //自爆詠唱開始
             md->state.special_mob_ai++;
@@ -2826,9 +2835,9 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                     if (sd->monster_drop_itemid[i] <= 0)
                         continue;
                     if (sd->monster_drop_race[i] & (1 << race) ||
-                        (mob_db[md->mob_class].mode & 0x20
+                        (bool(mob_db[md->mob_class].mode & MobMode::BOSS)
                          && sd->monster_drop_race[i] & 1 << 10)
-                        || (!(mob_db[md->mob_class].mode & 0x20)
+                        || (!bool(mob_db[md->mob_class].mode & MobMode::BOSS)
                             && sd->monster_drop_race[i] & 1 << 11))
                     {
                         if (sd->monster_drop_itemrate[i] <= MRAND(10000))
@@ -3026,7 +3035,8 @@ int mob_class_change(struct mob_data *md, int *value)
     md->skillid = SkillID();
     md->skilllv = 0;
 
-    if (md->lootitem == NULL && mob_db[mob_class].mode & 0x02)
+    if (md->lootitem == NULL
+        && bool(mob_db[mob_class].mode & MobMode::LOOTER))
         md->lootitem = (struct item *)
             calloc(LOOTITEM_SIZE, sizeof(struct item));
 
@@ -3231,7 +3241,7 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
         {
             int x = 0, y = 0, c = 0, i = 0;
             md = (struct mob_data *) calloc(1, sizeof(struct mob_data));
-            if (mob_db[mob_class].mode & 0x02)
+            if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
                 md->lootitem = (struct item *)
                     calloc(LOOTITEM_SIZE, sizeof(struct item));
             else
@@ -4012,7 +4022,7 @@ int mob_makedummymobdb(int mob_class)
     mob_db[mob_class].size = 0;
     mob_db[mob_class].race = 0;
     mob_db[mob_class].element = 0;
-    mob_db[mob_class].mode = 0;
+    mob_db[mob_class].mode = MobMode::ZERO;
     mob_db[mob_class].speed = 300;
     mob_db[mob_class].adelay = 1000;
     mob_db[mob_class].amotion = 500;
@@ -4133,7 +4143,7 @@ int mob_readdb(void)
             mob_db[mob_class].size = atoi(str[21]);
             mob_db[mob_class].race = atoi(str[22]);
             mob_db[mob_class].element = atoi(str[23]);
-            mob_db[mob_class].mode = atoi(str[24]);
+            mob_db[mob_class].mode = static_cast<MobMode>(atoi(str[24]));
             mob_db[mob_class].speed = atoi(str[25]);
             mob_db[mob_class].adelay = atoi(str[26]);
             mob_db[mob_class].amotion = atoi(str[27]);

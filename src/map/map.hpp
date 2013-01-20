@@ -302,13 +302,11 @@ struct map_session_data
     int def, def2, mdef, mdef2, critical, matk1, matk2;
     int atk_ele, def_ele, star, overrefine;
     int castrate, hprate, sprate, dsprate;
-    int addele[10], addrace[12], addsize[3], subele[10], subrace[12];
     earray<int, BadSC, BadSC::COUNT> addeff, addeff2, reseff;
-    int watk_, watk_2, addele_[10], addrace_[12], addsize_[3];    //二刀流のために追加
+    int watk_, watk_2;
     int atk_ele_, star_, overrefine_;  //二刀流のために追加
     int base_atk, atk_rate;
     int arrow_atk, arrow_ele, arrow_cri, arrow_hit, arrow_range;
-    int arrow_addele[10], arrow_addrace[12], arrow_addsize[3];
     earray<int, BadSC, BadSC::COUNT> arrow_addeff, arrow_addeff2;
     int nhealhp, nhealsp, nshealhp, nshealsp, nsshealhp, nsshealsp;
     int aspd_rate, speed_rate, hprecov_rate, sprecov_rate, critical_def,
@@ -318,21 +316,11 @@ struct map_session_data
     int matk_rate, ignore_def_ele, ignore_def_race, ignore_def_ele_,
         ignore_def_race_;
     int ignore_mdef_ele, ignore_mdef_race;
-    int magic_addele[10], magic_addrace[12], magic_subrace[12];
     int perfect_hit, get_zeny_num;
     int critical_rate, hit_rate, flee_rate, flee2_rate, def_rate, def2_rate,
         mdef_rate, mdef2_rate;
     int def_ratio_atk_ele, def_ratio_atk_ele_, def_ratio_atk_race,
         def_ratio_atk_race_;
-    int add_damage_class_count, add_damage_class_count_,
-        add_magic_damage_class_count;
-    short add_damage_classid[10], add_damage_classid_[10],
-        add_magic_damage_classid[10];
-    int add_damage_classrate[10], add_damage_classrate_[10],
-        add_magic_damage_classrate[10];
-    short add_def_class_count, add_mdef_class_count;
-    short add_def_classid[10], add_mdef_classid[10];
-    int add_def_classrate[10], add_mdef_classrate[10];
     short monster_drop_item_count;
     short monster_drop_itemid[10];
     int monster_drop_race[10], monster_drop_itemrate[10];
@@ -344,7 +332,6 @@ struct map_session_data
     short hp_drain_rate, hp_drain_per, sp_drain_rate, sp_drain_per;
     short hp_drain_rate_, hp_drain_per_, sp_drain_rate_, sp_drain_per_;
     int short_weapon_damage_return, long_weapon_damage_return;
-    int weapon_coma_ele[10], weapon_coma_race[12];
     short break_weapon_rate, break_armor_rate;
     short add_steal_rate;
 
@@ -471,11 +458,6 @@ struct npc_data
     short arenaflag;
 };
 
-#define MOB_MODE_SUMMONED                       0x1000
-#define MOB_MODE_TURNS_AGAINST_BAD_MASTER       0x2000
-
-#define MOB_SENSIBLE_MASK 0xf000    // fate: mob mode flags that I actually understand
-
 #define MOB_XP_BONUS_BASE  1024
 #define MOB_XP_BONUS_SHIFT 10
 
@@ -483,7 +465,8 @@ struct mob_data
 {
     struct block_list bl;
     short n;
-    short base_class, mob_class, dir, mode;
+    short mob_class, dir;
+    MobMode mode;
     short m, x0, y0, xs, ys;
     char name[24];
     int spawndelay1, spawndelay2;

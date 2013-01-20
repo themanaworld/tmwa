@@ -131,8 +131,7 @@ enum class StatusChange : uint16_t
 #define SC_REFLECTSHIELD StatusChange::SC_REFLECTSHIELD
     SC_DEVOTION         = 60,
 #define SC_DEVOTION StatusChange::SC_DEVOTION
-    SC_PROVIDENCE       = 61,
-#define SC_PROVIDENCE StatusChange::SC_PROVIDENCE
+
     SC_DEFENDER         = 62,
 #define SC_DEFENDER StatusChange::SC_DEFENDER
 
@@ -264,8 +263,7 @@ enum class StatusChange : uint16_t
 #define SC_ROKISWEIL StatusChange::SC_ROKISWEIL
     SC_INTOABYSS        = 166,
 #define SC_INTOABYSS StatusChange::SC_INTOABYSS
-    SC_SIEGFRIED        = 167,
-#define SC_SIEGFRIED StatusChange::SC_SIEGFRIED
+
     SC_DISSONANCE       = 168,
 #define SC_DISSONANCE StatusChange::SC_DISSONANCE
     SC_WHISTLE          = 169,

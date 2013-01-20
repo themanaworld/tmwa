@@ -6428,7 +6428,7 @@ int atcommand_summon(const int, struct map_session_data *sd,
     {
         md->master_id = sd->bl.id;
         md->state.special_mob_ai = 1;
-        md->mode = mob_db[md->mob_class].mode | 0x04;
+        md->mode = mob_db[md->mob_class].mode | MobMode::AGGRESSIVE;
         md->deletetimer = add_timer(tick + 60000, mob_timer_delete, id, 0);
         clif_misceffect(&md->bl, 344);
     }

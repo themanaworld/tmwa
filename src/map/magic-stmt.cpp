@@ -483,7 +483,7 @@ int op_banish(env_t *, int, val_t *args)
     {
         struct mob_data *mob = (struct mob_data *) subject;
 
-        if (mob->mode & MOB_MODE_SUMMONED)
+        if (bool(mob->mode & MOB_MODE_SUMMONED))
             mob_catch_delete(mob, 3);
     }
 
@@ -623,7 +623,7 @@ int op_aggravate(env_t *, int, val_t *args)
     mob_target(other, victim, battle_get_range(victim));
 
     if (AGGRAVATION_MODE_MAKES_AGGRESSIVE(mode))
-        other->mode = 0x85 | (other->mode & MOB_SENSIBLE_MASK); /* war */
+        other->mode = MobMode::war | (other->mode & MOB_SENSIBLE_MASK);
 
     if (AGGRAVATION_MODE_ATTACKS_CASTER(mode))
     {
@@ -676,15 +676,15 @@ int op_spawn(env_t *, int, val_t *args)
 
                 case MONSTER_ATTITUDE_SERVANT:
                     mob->state.special_mob_ai = 1;
-                    mob->mode |= 0x04;
+                    mob->mode |= MobMode::AGGRESSIVE;
                     break;
 
                 case MONSTER_ATTITUDE_FRIENDLY:
-                    mob->mode = 0x80 | (mob->mode & 1);
+                    mob->mode = MobMode::CAN_ATTACK | (mob->mode & MobMode::CAN_MOVE);
                     break;
 
                 case MONSTER_ATTITUDE_HOSTILE:
-                    mob->mode = 0x84 | (mob->mode & 1);
+                    mob->mode = MobMode::CAN_ATTACK | MobMode::AGGRESSIVE | (mob->mode & MobMode::CAN_MOVE);
                     if (owner)
                     {
                         mob->target_id = owner->bl.id;
@@ -693,7 +693,7 @@ int op_spawn(env_t *, int, val_t *args)
                     break;
 
                 case MONSTER_ATTITUDE_FROZEN:
-                    mob->mode = 0;
+                    mob->mode = MobMode::ZERO;
                     break;
             }
 

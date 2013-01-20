@@ -306,16 +306,7 @@ enum class SP : uint16_t
 #define SP_MAXSPRATE SP::MAXSPRATE
     SPRATE                      = 1006,
 #define SP_SPRATE SP::SPRATE
-    ADDELE                      = 1007,
-#define SP_ADDELE SP::ADDELE
-    ADDRACE                     = 1008,
-#define SP_ADDRACE SP::ADDRACE
-    ADDSIZE                     = 1009,
-#define SP_ADDSIZE SP::ADDSIZE
-    SUBELE                      = 1010,
-#define SP_SUBELE SP::SUBELE
-    SUBRACE                     = 1011,
-#define SP_SUBRACE SP::SUBRACE
+
     ADDEFF                      = 1012,
 #define SP_ADDEFF SP::ADDEFF
     RESEFF                      = 1013,
@@ -362,12 +353,7 @@ enum class SP : uint16_t
 #define SP_IGNORE_MDEF_ELE SP::IGNORE_MDEF_ELE
     IGNORE_MDEF_RACE            = 1034,
 #define SP_IGNORE_MDEF_RACE SP::IGNORE_MDEF_RACE
-    MAGIC_ADDELE                = 1035,
-#define SP_MAGIC_ADDELE SP::MAGIC_ADDELE
-    MAGIC_ADDRACE               = 1036,
-#define SP_MAGIC_ADDRACE SP::MAGIC_ADDRACE
-    MAGIC_SUBRACE               = 1037,
-#define SP_MAGIC_SUBRACE SP::MAGIC_SUBRACE
+
     PERFECT_HIT_RATE            = 1038,
 #define SP_PERFECT_HIT_RATE SP::PERFECT_HIT_RATE
     PERFECT_HIT_ADD_RATE        = 1039,
@@ -378,14 +364,7 @@ enum class SP : uint16_t
 #define SP_GET_ZENY_NUM SP::GET_ZENY_NUM
     ADD_GET_ZENY_NUM            = 1042,
 #define SP_ADD_GET_ZENY_NUM SP::ADD_GET_ZENY_NUM
-    ADD_DAMAGE_CLASS            = 1043,
-#define SP_ADD_DAMAGE_CLASS SP::ADD_DAMAGE_CLASS
-    ADD_MAGIC_DAMAGE_CLASS      = 1044,
-#define SP_ADD_MAGIC_DAMAGE_CLASS SP::ADD_MAGIC_DAMAGE_CLASS
-    ADD_DEF_CLASS               = 1045,
-#define SP_ADD_DEF_CLASS SP::ADD_DEF_CLASS
-    ADD_MDEF_CLASS              = 1046,
-#define SP_ADD_MDEF_CLASS SP::ADD_MDEF_CLASS
+
     ADD_MONSTER_DROP_ITEM       = 1047,
 #define SP_ADD_MONSTER_DROP_ITEM SP::ADD_MONSTER_DROP_ITEM
     DEF_RATIO_ATK_ELE           = 1048,
@@ -422,10 +401,7 @@ enum class SP : uint16_t
 #define SP_SHORT_WEAPON_DAMAGE_RETURN SP::SHORT_WEAPON_DAMAGE_RETURN
     LONG_WEAPON_DAMAGE_RETURN   = 1064,
 #define SP_LONG_WEAPON_DAMAGE_RETURN SP::LONG_WEAPON_DAMAGE_RETURN
-    WEAPON_COMA_ELE             = 1065,
-#define SP_WEAPON_COMA_ELE SP::WEAPON_COMA_ELE
-    WEAPON_COMA_RACE            = 1066,
-#define SP_WEAPON_COMA_RACE SP::WEAPON_COMA_RACE
+
     ADDEFF2                     = 1067,
 #define SP_ADDEFF2 SP::ADDEFF2
     BREAK_WEAPON_RATE           = 1068,
@@ -605,5 +581,41 @@ enum class ItemType : uint8_t
     ARROW   = 10,   // ammo
     _11     = 11,   // in eA, delayed use (special script)
 };
+
+namespace e
+{
+enum class MobMode : uint16_t
+{
+    ZERO                        = 0x0000,
+
+    CAN_MOVE                    = 0x0001,
+    LOOTER                      = 0x0002,
+    AGGRESSIVE                  = 0x0004,
+    ASSIST                      = 0x0008,
+
+    CAST_SENSOR                 = 0x0010,
+    BOSS                        = 0x0020,
+    // sometimes also called "robust"
+    PLANT                       = 0x0040,
+    CAN_ATTACK                  = 0x0080,
+
+    DETECTOR                    = 0x0100,
+    CHANGE_TARGET               = 0x0200,
+
+    war                         = CAN_MOVE | AGGRESSIVE | CAN_ATTACK,
+
+    SUMMONED                    = 0x1000,
+#define MOB_MODE_SUMMONED MobMode::SUMMONED
+    TURNS_AGAINST_BAD_MASTER    = 0x2000,
+#define MOB_MODE_TURNS_AGAINST_BAD_MASTER MobMode::TURNS_AGAINST_BAD_MASTER
+
+    // mob mode flags that Fate actually understood
+    SENSIBLE_MASK               = 0xf000,
+#define MOB_SENSIBLE_MASK MobMode::SENSIBLE_MASK
+};
+
+ENUM_BITWISE_OPERATORS(MobMode)
+}
+using e::MobMode;
 
 #endif // MAP_T_HPP

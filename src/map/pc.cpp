@@ -1265,14 +1265,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->arrow_range = 0;
     sd->nhealhp = sd->nhealsp = sd->nshealhp = sd->nshealsp = sd->nsshealhp =
         sd->nsshealsp = 0;
-    memset(sd->addele, 0, sizeof(sd->addele));
-    memset(sd->addrace, 0, sizeof(sd->addrace));
-    memset(sd->addsize, 0, sizeof(sd->addsize));
-    memset(sd->addele_, 0, sizeof(sd->addele_));
-    memset(sd->addrace_, 0, sizeof(sd->addrace_));
-    memset(sd->addsize_, 0, sizeof(sd->addsize_));
-    memset(sd->subele, 0, sizeof(sd->subele));
-    memset(sd->subrace, 0, sizeof(sd->subrace));
     for (int& ire : sd->addeff)
         ire = 0;
     for (int& ire : sd->addeff2)
@@ -1280,8 +1272,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     for (int& ire : sd->reseff)
         ire = 0;
     memset(&sd->special_state, 0, sizeof(sd->special_state));
-    memset(sd->weapon_coma_ele, 0, sizeof(sd->weapon_coma_ele));
-    memset(sd->weapon_coma_race, 0, sizeof(sd->weapon_coma_race));
 
     sd->watk_ = 0;              //二刀流用(仮)
     sd->watk_2 = 0;
@@ -1302,32 +1292,17 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->ignore_mdef_ele = sd->ignore_mdef_race = 0;
     sd->arrow_cri = 0;
     sd->magic_def_rate = sd->misc_def_rate = 0;
-    memset(sd->arrow_addele, 0, sizeof(sd->arrow_addele));
-    memset(sd->arrow_addrace, 0, sizeof(sd->arrow_addrace));
-    memset(sd->arrow_addsize, 0, sizeof(sd->arrow_addsize));
     for (int& ire : sd->arrow_addeff)
         ire = 0;
     for (int& ire : sd->arrow_addeff2)
         ire = 0;
-    memset(sd->magic_addele, 0, sizeof(sd->magic_addele));
-    memset(sd->magic_addrace, 0, sizeof(sd->magic_addrace));
-    memset(sd->magic_subrace, 0, sizeof(sd->magic_subrace));
     sd->perfect_hit = 0;
     sd->critical_rate = sd->hit_rate = sd->flee_rate = sd->flee2_rate = 100;
     sd->def_rate = sd->def2_rate = sd->mdef_rate = sd->mdef2_rate = 100;
     sd->def_ratio_atk_ele = sd->def_ratio_atk_ele_ = 0;
     sd->def_ratio_atk_race = sd->def_ratio_atk_race_ = 0;
     sd->get_zeny_num = 0;
-    sd->add_damage_class_count = sd->add_damage_class_count_ =
-        sd->add_magic_damage_class_count = 0;
-    sd->add_def_class_count = sd->add_mdef_class_count = 0;
     sd->monster_drop_item_count = 0;
-    memset(sd->add_damage_classrate, 0, sizeof(sd->add_damage_classrate));
-    memset(sd->add_damage_classrate_, 0, sizeof(sd->add_damage_classrate_));
-    memset(sd->add_magic_damage_classrate, 0,
-            sizeof(sd->add_magic_damage_classrate));
-    memset(sd->add_def_classrate, 0, sizeof(sd->add_def_classrate));
-    memset(sd->add_mdef_classrate, 0, sizeof(sd->add_mdef_classrate));
     memset(sd->monster_drop_race, 0, sizeof(sd->monster_drop_race));
     memset(sd->monster_drop_itemrate, 0, sizeof(sd->monster_drop_itemrate));
     sd->speed_add_rate = sd->aspd_add_rate = 100;
@@ -2016,25 +1991,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         if (sd->sc_data[SC_CONCENTRATION].timer != -1)  //コンセントレーション
             sd->hit += (10 * (sd->sc_data[SC_CONCENTRATION].val1));
 
-        // 耐性
-        if (sd->sc_data[SC_SIEGFRIED].timer != -1)
-        {                       // 不死身のジークフリード
-            sd->subele[1] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[2] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[3] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[4] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[5] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[6] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[7] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[8] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-            sd->subele[9] += sd->sc_data[SC_SIEGFRIED].val2;    // 水
-        }
-        if (sd->sc_data[SC_PROVIDENCE].timer != -1)
-        {                       // プロヴィデンス
-            sd->subele[6] += sd->sc_data[SC_PROVIDENCE].val2;   // 対 聖属性
-            sd->subrace[6] += sd->sc_data[SC_PROVIDENCE].val2;  // 対 悪魔
-        }
-
         // その他
         if (sd->sc_data[SC_APPLEIDUN].timer != -1)
         {                       // イドゥンの林檎
@@ -2609,44 +2565,10 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
  */
 int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
 {
-    int i;
-
     nullpo_ret(sd);
 
     switch (type)
     {
-        case SP_ADDELE:
-            if (!sd->state.lr_flag)
-                sd->addele[type2] += val;
-            else if (sd->state.lr_flag == 1)
-                sd->addele_[type2] += val;
-            else if (sd->state.lr_flag == 2)
-                sd->arrow_addele[type2] += val;
-            break;
-        case SP_ADDRACE:
-            if (!sd->state.lr_flag)
-                sd->addrace[type2] += val;
-            else if (sd->state.lr_flag == 1)
-                sd->addrace_[type2] += val;
-            else if (sd->state.lr_flag == 2)
-                sd->arrow_addrace[type2] += val;
-            break;
-        case SP_ADDSIZE:
-            if (!sd->state.lr_flag)
-                sd->addsize[type2] += val;
-            else if (sd->state.lr_flag == 1)
-                sd->addsize_[type2] += val;
-            else if (sd->state.lr_flag == 2)
-                sd->arrow_addsize[type2] += val;
-            break;
-        case SP_SUBELE:
-            if (sd->state.lr_flag != 2)
-                sd->subele[type2] += val;
-            break;
-        case SP_SUBRACE:
-            if (sd->state.lr_flag != 2)
-                sd->subrace[type2] += val;
-            break;
         case SP_ADDEFF:
             if (sd->state.lr_flag != 2)
                 sd->addeff[BadSC(type2)] += val;
@@ -2662,122 +2584,6 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
         case SP_RESEFF:
             if (sd->state.lr_flag != 2)
                 sd->reseff[BadSC(type2)] += val;
-            break;
-        case SP_MAGIC_ADDELE:
-            if (sd->state.lr_flag != 2)
-                sd->magic_addele[type2] += val;
-            break;
-        case SP_MAGIC_ADDRACE:
-            if (sd->state.lr_flag != 2)
-                sd->magic_addrace[type2] += val;
-            break;
-        case SP_MAGIC_SUBRACE:
-            if (sd->state.lr_flag != 2)
-                sd->magic_subrace[type2] += val;
-            break;
-        case SP_ADD_DAMAGE_CLASS:
-            if (!sd->state.lr_flag)
-            {
-                for (i = 0; i < sd->add_damage_class_count; i++)
-                {
-                    if (sd->add_damage_classid[i] == type2)
-                    {
-                        sd->add_damage_classrate[i] += val;
-                        break;
-                    }
-                }
-                if (i >= sd->add_damage_class_count
-                    && sd->add_damage_class_count < 10)
-                {
-                    sd->add_damage_classid[sd->add_damage_class_count] =
-                        type2;
-                    sd->add_damage_classrate[sd->add_damage_class_count] +=
-                        val;
-                    sd->add_damage_class_count++;
-                }
-            }
-            else if (sd->state.lr_flag == 1)
-            {
-                for (i = 0; i < sd->add_damage_class_count_; i++)
-                {
-                    if (sd->add_damage_classid_[i] == type2)
-                    {
-                        sd->add_damage_classrate_[i] += val;
-                        break;
-                    }
-                }
-                if (i >= sd->add_damage_class_count_
-                    && sd->add_damage_class_count_ < 10)
-                {
-                    sd->add_damage_classid_[sd->add_damage_class_count_] =
-                        type2;
-                    sd->add_damage_classrate_[sd->add_damage_class_count_] +=
-                        val;
-                    sd->add_damage_class_count_++;
-                }
-            }
-            break;
-        case SP_ADD_MAGIC_DAMAGE_CLASS:
-            if (sd->state.lr_flag != 2)
-            {
-                for (i = 0; i < sd->add_magic_damage_class_count; i++)
-                {
-                    if (sd->add_magic_damage_classid[i] == type2)
-                    {
-                        sd->add_magic_damage_classrate[i] += val;
-                        break;
-                    }
-                }
-                if (i >= sd->add_magic_damage_class_count
-                    && sd->add_magic_damage_class_count < 10)
-                {
-                    sd->add_magic_damage_classid
-                        [sd->add_magic_damage_class_count] = type2;
-                    sd->add_magic_damage_classrate
-                        [sd->add_magic_damage_class_count] += val;
-                    sd->add_magic_damage_class_count++;
-                }
-            }
-            break;
-        case SP_ADD_DEF_CLASS:
-            if (sd->state.lr_flag != 2)
-            {
-                for (i = 0; i < sd->add_def_class_count; i++)
-                {
-                    if (sd->add_def_classid[i] == type2)
-                    {
-                        sd->add_def_classrate[i] += val;
-                        break;
-                    }
-                }
-                if (i >= sd->add_def_class_count
-                    && sd->add_def_class_count < 10)
-                {
-                    sd->add_def_classid[sd->add_def_class_count] = type2;
-                    sd->add_def_classrate[sd->add_def_class_count] += val;
-                    sd->add_def_class_count++;
-                }
-            }
-            break;
-        case SP_ADD_MDEF_CLASS:
-            if (sd->state.lr_flag != 2)
-            {
-                for (i = 0; i < sd->add_mdef_class_count; i++)
-                {
-                    if (sd->add_mdef_classid[i] == type2)
-                    {
-                        sd->add_mdef_classrate[i] += val;
-                        break;
-                    }
-                }
-                if (i >= sd->add_mdef_class_count
-                    && sd->add_mdef_class_count < 10)
-                {
-                    sd->add_mdef_classid[sd->add_mdef_class_count] = type2;
-                    sd->add_mdef_classrate[sd->add_mdef_class_count] += val;
-                    sd->add_mdef_class_count++;
-                }
-            }
             break;
         case SP_HP_DRAIN_RATE:
             if (!sd->state.lr_flag)
@@ -2802,14 +2608,6 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
                 sd->sp_drain_rate_ += type2;
                 sd->sp_drain_per_ += val;
             }
-            break;
-        case SP_WEAPON_COMA_ELE:
-            if (sd->state.lr_flag != 2)
-                sd->weapon_coma_ele[type2] += val;
-            break;
-        case SP_WEAPON_COMA_RACE:
-            if (sd->state.lr_flag != 2)
-                sd->weapon_coma_race[type2] += val;
             break;
         case SP_RANDOM_ATTACK_INCREASE:    // [Valaris]
             if (sd->state.lr_flag != 2)
@@ -3420,11 +3218,11 @@ int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
         int i, skill, rate, itemid, count;
         struct mob_data *md;
         md = (struct mob_data *) bl;
-        if (!md->state.steal_flag && mob_db[md->mob_class].mexp <= 0 &&
-            !(mob_db[md->mob_class].mode & 0x20) &&
-            md->sc_data[SC_STONE].timer == -1 &&
-            md->sc_data[SC_FREEZE].timer == -1 &&
-            (!(md->mob_class > 1324 && md->mob_class < 1364)))   // prevent stealing from treasure boxes [Valaris]
+        if (!md->state.steal_flag
+            && mob_db[md->mob_class].mexp <= 0
+            && !bool(mob_db[md->mob_class].mode & MobMode::BOSS)
+            && md->sc_data[SC_STONE].timer == -1
+            && md->sc_data[SC_FREEZE].timer == -1)
         {
             skill = sd->paramc[ATTR::DEX] - mob_db[md->mob_class].attrs[ATTR::DEX] + 10;
 

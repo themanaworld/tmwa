@@ -311,7 +311,7 @@ earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable //=
     StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
     SC_DEVOTION,
-    SC_PROVIDENCE,
+    StatusChange::NEGATIVE1,
     SC_DEFENDER,
     SC_SPEARSQUICKEN,
     StatusChange::NEGATIVE1,
@@ -374,7 +374,7 @@ earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable //=
     SC_NIBELUNGEN,
     SC_ROKISWEIL,
     SC_INTOABYSS,
-    SC_SIEGFRIED,
+    StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
     StatusChange::NEGATIVE1,
@@ -1732,8 +1732,6 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
         return 1;
     if (dstsd && pc_isdead(dstsd))
         return 1;
-    if (battle_get_class(bl) == 1288)
-        return 1;
 
     map_freeblock_lock();
     switch (skillid)
@@ -2314,11 +2312,12 @@ int skill_unit_onplace(struct skill_unit *src, struct block_list *bl,
                 int sec = skill_get_time2(sg->skill_id,
                                             sg->skill_lv) -
                     (double) battle_get_agi(bl) * 0.1;
-                if (battle_get_mode(bl) & 0x20)
+                if (bool(battle_get_mode(bl) & MobMode::BOSS))
                     sec = sec / 5;
                 battle_stopwalking(bl, 1);
-                skill_status_change_start(bl, SC_ANKLE, sg->skill_lv, 0, 0,
-                                           0, sec, 0);
+                skill_status_change_start(bl, SC_ANKLE,
+                        sg->skill_lv, 0, 0, 0,
+                        sec, 0);
 
                 if (moveblock)
                     map_delblock(bl);
@@ -3296,7 +3295,8 @@ int skill_use_id(struct map_session_data *sd, int target_id,
 
         /* 詠唱反応モンスター */
         if (bl->type == BL_MOB && (md = (struct mob_data *) bl)
-            && mob_db[md->mob_class].mode & 0x10 && md->state.state != MS_ATTACK
+            && bool(mob_db[md->mob_class].mode & MobMode::CAST_SENSOR)
+            && md->state.state != MS_ATTACK
             && sd->invincible_timer == -1)
         {
             md->target_id = sd->bl.id;
@@ -3787,7 +3787,6 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
             case SC_GLORIA:    /* グロリア */
             case SC_LOUD:      /* ラウドボイス */
             case SC_QUAGMIRE:  /* クァグマイア */
-            case SC_PROVIDENCE:    /* プロヴィデンス */
             case SC_SPEARSQUICKEN: /* スピアクイッケン */
             case SC_VOLCANO:
             case SC_DELUGE:
@@ -3795,7 +3794,6 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
             case SC_ETERNALCHAOS:  /* エターナルカオス */
             case SC_DRUMBATTLE:    /* 戦太鼓の響き */
             case SC_NIBELUNGEN:    /* ニーベルングの指輪 */
-            case SC_SIEGFRIED: /* 不死身のジークフリード */
             case SC_WHISTLE:   /* 口笛 */
             case SC_ASSNCROS:  /* 夕陽のアサシンクロス */
             case SC_HUMMING:   /* ハミング */
@@ -4477,7 +4475,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     Opt2 *opt2;
     Opt3 *opt3;
     int opt_flag = 0, calc_flag = 0;
-    int race, mode, elem, undead_flag;
+    int race, elem, undead_flag;
     SP updateflag = SP::ZERO;
     int scdef = 0;
 
@@ -4494,7 +4492,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     nullpo_ret(opt3 = battle_get_opt3(bl));
 
     race = battle_get_race(bl);
-    mode = battle_get_mode(bl);
+    MobMode mode = battle_get_mode(bl);
     elem = battle_get_elem_type(bl);
     undead_flag = battle_check_undead(race, elem);
 
@@ -4565,13 +4563,17 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         && sc_data[type].val2 && !val2)
         return 0;
 
-    if (mode & 0x20 && (type == SC_STONE || type == SC_FREEZE ||
-                        type == SC_STAN || type == SC_SLEEP
-                        || type == SC_SILENCE || type == SC_QUAGMIRE
-                        || type == SC_DECREASEAGI || type == SC_SIGNUMCRUCIS
-                        || type == SC_PROVOKE || (type == SC_BLESSING
-                                                  && (undead_flag
-                                                      || race == 6)))
+    if (bool(mode & MobMode::BOSS)
+        && (type == SC_STONE
+            || type == SC_FREEZE
+            || type == SC_STAN
+            || type == SC_SLEEP
+            || type == SC_SILENCE
+            || type == SC_QUAGMIRE
+            || type == SC_DECREASEAGI
+            || type == SC_SIGNUMCRUCIS
+            || type == SC_PROVOKE
+            || (type == SC_BLESSING && (undead_flag || race == 6)))
         && !(flag & 1))
     {
         /* ボスには効かない(ただしカードによる効果は適用される) */
@@ -4755,10 +4757,6 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         case SC_DEVOTION:      /* ディボーション */
             calc_flag = 1;
             break;
-        case SC_PROVIDENCE:    /* プロヴィデンス */
-            calc_flag = 1;
-            val2 = val1 * 5;
-            break;
         case SC_REFLECTSHIELD:
             val2 = 10 + val1 * 3;
             break;
@@ -4827,11 +4825,6 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         case SC_ROKISWEIL:     /* ロキの叫び */
             break;
         case SC_INTOABYSS:     /* 深淵の中に */
-            break;
-        case SC_SIEGFRIED:     /* 不死身のジークフリード */
-            calc_flag = 1;
-            val2 = 40 + val1 * 5;
-            val3 = val1 * 10;
             break;
         case SC_DISSONANCE:    /* 不協和音 */
             val2 = 10;

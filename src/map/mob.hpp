@@ -37,7 +37,8 @@ struct mob_db
     int def, mdef;
     earray<int, ATTR, ATTR::COUNT> attrs;
     int range, range2, range3;
-    int size, race, element, mode;
+    int size, race, element;
+    MobMode mode;
     int speed, adelay, amotion, dmotion;
     int mexp, mexpper;
     int mutations_nr, mutation_power;
