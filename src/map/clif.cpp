@@ -4955,7 +4955,7 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
         return;
     }
 
-    if ((sd->sc_data[SC_TRICKDEAD].timer != -1 && skillnum != NV_TRICKDEAD) ||
+    if (sd->sc_data[SC_TRICKDEAD].timer != -1 ||
         sd->sc_data[SC_BERSERK].timer != -1
         || sd->sc_data[SC_NOCHAT].timer != -1
         || sd->sc_data[SC_WEDDING].timer != -1)

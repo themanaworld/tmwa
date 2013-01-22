@@ -20,533 +20,484 @@
 
 #define SKILLUNITTIMER_INVERVAL 100
 
-// This table appears to be wrong
-/* スキル番号＝＞ステータス異常番号変換テーブル */
+// This table is wrong.
+// The only used skill with a status effect is NPC_SELFDESTRUCT,
+// and due to the misnumber, it wasn't active anyway.
+static __attribute__((deprecated))
 earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable //=
 {{
     // 0-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_PROVOKE,                 /* プロボック */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // NV_BASIC
+    StatusChange::NEGATIVE1,    // SM_SWORD
+    StatusChange::NEGATIVE1,    // SM_TWOHAND
+    StatusChange::NEGATIVE1,    // SM_RECOVERY
+    StatusChange::NEGATIVE1,    // SM_BASH
+    StatusChange::NEGATIVE1,    // SM_PROVOKE
+    StatusChange::NEGATIVE1,    // SM_MAGNUM
+    StatusChange::NEGATIVE1,    // SM_ENDURE
+    StatusChange::NEGATIVE1,    // MG_SRECOVERY
     // 10-
-    SC_SIGHT,                   /* サイト */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_FREEZE,                  /* フロストダイバー */
-    SC_STONE,                   /* ストーンカース */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // MG_SIGHT
+    StatusChange::NEGATIVE1,    // MG_NAPALMBEAT
+    StatusChange::NEGATIVE1,    // MG_SAFETYWALL
+    StatusChange::NEGATIVE1,    // MG_SOULSTRIKE
+    StatusChange::NEGATIVE1,    // MG_COLDBOLT
+    StatusChange::NEGATIVE1,    // MG_FROSTDIVER
+    StatusChange::NEGATIVE1,    // MG_STONECURSE
+    StatusChange::NEGATIVE1,    // MG_FIREBALL
+    StatusChange::NEGATIVE1,    // MG_FIREWALL
+    StatusChange::NEGATIVE1,    // MG_FIREBOLT
     // 20-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,                  /* ルアフ */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_INCREASEAGI,             /* 速度増加 */
+    StatusChange::NEGATIVE1,    // MG_LIGHTNINGBOLT
+    StatusChange::NEGATIVE1,    // MG_THUNDERSTORM
+    StatusChange::NEGATIVE1,    // AL_DP
+    StatusChange::NEGATIVE1,    // AL_DEMONBANE
+    StatusChange::NEGATIVE1,    // AL_RUWACH
+    StatusChange::NEGATIVE1,    // AL_PNEUMA
+    StatusChange::NEGATIVE1,    // AL_TELEPORT
+    StatusChange::NEGATIVE1,    // AL_WARP
+    StatusChange::NEGATIVE1,    // AL_HEAL
+    StatusChange::NEGATIVE1,    // AL_INCAGI
     // 30-
-    SC_DECREASEAGI,             /* 速度減少 */
-    StatusChange::NEGATIVE1,
-    SC_SIGNUMCRUCIS,            /* シグナムクルシス */
-    SC_ANGELUS,                 /* エンジェラス */
-    SC_BLESSING,                /* ブレッシング */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // AL_DECAGI
+    StatusChange::NEGATIVE1,    // AL_HOLYWATER
+    StatusChange::NEGATIVE1,    // AL_CRUCIS
+    StatusChange::NEGATIVE1,    // AL_ANGELUS
+    StatusChange::NEGATIVE1,    // AL_BLESSING
+    StatusChange::NEGATIVE1,    // AL_CURE
+    StatusChange::NEGATIVE1,    // MC_INCCARRY
+    StatusChange::NEGATIVE1,    // MC_DISCOUNT
+    StatusChange::NEGATIVE1,    // MC_OVERCHARGE
+    StatusChange::NEGATIVE1,    // MC_PUSHCART
     // 40-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_CONCENTRATE,             /* 集中力向上 */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // MC_IDENTIFY
+    StatusChange::NEGATIVE1,    // MC_VENDING
+    StatusChange::NEGATIVE1,    // MC_MAMMONITE
+    StatusChange::NEGATIVE1,    // AC_OWL
+    StatusChange::NEGATIVE1,    // AC_VULTURE
+    StatusChange::NEGATIVE1,    // AC_CONCENTRATION
+    StatusChange::NEGATIVE1,    // AC_DOUBLE
+    StatusChange::NEGATIVE1,    // AC_SHOWER
+    StatusChange::NEGATIVE1,    // TF_DOUBLE
+    StatusChange::NEGATIVE1,    // TF_MISS
     // 50-
-    StatusChange::NEGATIVE1,
-    SC_HIDING,                  /* ハイディング */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // TF_STEAL
+    StatusChange::NEGATIVE1,    // TF_HIDING
+    StatusChange::NEGATIVE1,    // TF_POISON
+    StatusChange::NEGATIVE1,    // TF_DETOXIFY
+    StatusChange::NEGATIVE1,    // ALL_RESURRECTION
+    StatusChange::NEGATIVE1,    // KN_SPEARMASTERY
+    StatusChange::NEGATIVE1,    // KN_PIERCE
+    StatusChange::NEGATIVE1,    // KN_BRANDISHSPEAR
+    StatusChange::NEGATIVE1,    // KN_SPEARSTAB
+    StatusChange::NEGATIVE1,    // KN_SPEARBOOMERANG
     // 60-
-    SC_TWOHANDQUICKEN,          /* 2HQ */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_IMPOSITIO,               /* インポシティオマヌス */
-    SC_SUFFRAGIUM,              /* サフラギウム */
-    SC_ASPERSIO,                /* アスペルシオ */
-    SC_BENEDICTIO,              /* 聖体降福 */
+    StatusChange::NEGATIVE1,    // KN_TWOHANDQUICKEN
+    StatusChange::NEGATIVE1,    // KN_AUTOCOUNTER
+    StatusChange::NEGATIVE1,    // KN_BOWLINGBASH
+    StatusChange::NEGATIVE1,    // KN_RIDING
+    StatusChange::NEGATIVE1,    // KN_CAVALIERMASTERY
+    StatusChange::NEGATIVE1,    // PR_MACEMASTERY
+    StatusChange::NEGATIVE1,    // PR_IMPOSITIO
+    StatusChange::NEGATIVE1,    // PR_SUFFRAGIUM
+    StatusChange::NEGATIVE1,    // PR_ASPERSIO
+    StatusChange::NEGATIVE1,    // PR_BENEDICTIO
     // 70-
-    StatusChange::NEGATIVE1,
-    SC_SLOWPOISON,
-    StatusChange::NEGATIVE1,
-    SC_KYRIE,                   /* キリエエレイソン */
-    SC_MAGNIFICAT,              /* マグニフィカート */
-    SC_GLORIA,                  /* グロリア */
-    SC_DIVINA,                  /* レックスディビーナ */
-    StatusChange::NEGATIVE1,
-    SC_AETERNA,                 /* レックスエーテルナ */
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // PR_SANCTUARY
+    StatusChange::NEGATIVE1,    // PR_SLOWPOISON
+    StatusChange::NEGATIVE1,    // PR_STRECOVERY
+    StatusChange::NEGATIVE1,    // PR_KYRIE
+    StatusChange::NEGATIVE1,    // PR_MAGNIFICAT
+    StatusChange::NEGATIVE1,    // PR_GLORIA
+    StatusChange::NEGATIVE1,    // PR_LEXDIVINA
+    StatusChange::NEGATIVE1,    // PR_TURNUNDEAD
+    StatusChange::NEGATIVE1,    // PR_LEXAETERNA
+    StatusChange::NEGATIVE1,    // PR_MAGNUS
     // 80-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // WZ_FIREPILLAR
+    StatusChange::NEGATIVE1,    // WZ_SIGHTRASHER
+    StatusChange::NEGATIVE1,    // WZ_FIREIVY
+    StatusChange::NEGATIVE1,    // WZ_METEOR
+    StatusChange::NEGATIVE1,    // WZ_JUPITEL
+    StatusChange::NEGATIVE1,    // WZ_VERMILION
+    StatusChange::NEGATIVE1,    // WZ_WATERBALL
+    StatusChange::NEGATIVE1,    // WZ_ICEWALL
+    StatusChange::NEGATIVE1,    // WZ_FROSTNOVA
+    StatusChange::NEGATIVE1,    // WZ_STORMGUST
     // 90-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_QUAGMIRE,                /* クァグマイア */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // WZ_EARTHSPIKE
+    StatusChange::NEGATIVE1,    // WZ_HEAVENDRIVE
+    StatusChange::NEGATIVE1,    // WZ_QUAGMIRE
+    StatusChange::NEGATIVE1,    // WZ_ESTIMATION
+    StatusChange::NEGATIVE1,    // BS_IRON
+    StatusChange::NEGATIVE1,    // BS_STEEL
+    StatusChange::NEGATIVE1,    // BS_ENCHANTEDSTONE
+    StatusChange::NEGATIVE1,    // BS_ORIDEOCON
+    StatusChange::NEGATIVE1,    // BS_DAGGER
+    StatusChange::NEGATIVE1,    // BS_SWORD
     // 100-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // BS_TWOHANDSWORD
+    StatusChange::NEGATIVE1,    // BS_AXE
+    StatusChange::NEGATIVE1,    // BS_MACE
+    StatusChange::NEGATIVE1,    // BS_KNUCKLE
+    StatusChange::NEGATIVE1,    // BS_SPEAR
+    StatusChange::NEGATIVE1,    // BS_HILTBINDING
+    StatusChange::NEGATIVE1,    // BS_FINDINGORE
+    StatusChange::NEGATIVE1,    // BS_WEAPONRESEARCH
+    StatusChange::NEGATIVE1,    // BS_REPAIRWEAPON
+    StatusChange::NEGATIVE1,    // BS_SKINTEMPER
     // 110-
-    StatusChange::NEGATIVE1,
-    SC_ADRENALINE,              /* アドレナリンラッシュ */
-    SC_WEAPONPERFECTION,        /* ウェポンパーフェクション */
-    SC_OVERTHRUST,              /* オーバートラスト */
-    SC_MAXIMIZEPOWER,           /* マキシマイズパワー */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // BS_HAMMERFALL
+    StatusChange::NEGATIVE1,    // BS_ADRENALINE
+    StatusChange::NEGATIVE1,    // BS_WEAPONPERFECT
+    StatusChange::NEGATIVE1,    // BS_OVERTHRUST
+    StatusChange::NEGATIVE1,    // BS_MAXIMIZE
+    StatusChange::NEGATIVE1,    // HT_SKIDTRAP
+    StatusChange::NEGATIVE1,    // HT_LANDMINE
+    StatusChange::NEGATIVE1,    // HT_ANKLESNARE
+    StatusChange::NEGATIVE1,    // HT_SHOCKWAVE
+    StatusChange::NEGATIVE1,    // HT_SANDMAN
     // 120-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // HT_FLASHER
+    StatusChange::NEGATIVE1,    // HT_FREEZINGTRAP
+    StatusChange::NEGATIVE1,    // HT_BLASTMINE
+    StatusChange::NEGATIVE1,    // HT_CLAYMORETRAP
+    StatusChange::NEGATIVE1,    // HT_REMOVETRAP
+    StatusChange::NEGATIVE1,    // HT_TALKIEBOX
+    StatusChange::NEGATIVE1,    // HT_BEASTBANE
+    StatusChange::NEGATIVE1,    // HT_FALCON
+    StatusChange::NEGATIVE1,    // HT_STEELCROW
+    StatusChange::NEGATIVE1,    // HT_BLITZBEAT
     // 130-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_CLOAKING,                /* クローキング */
-    SC_STAN,                    /* ソニックブロー */
-    StatusChange::NEGATIVE1,
-    SC_ENCPOISON,               /* エンチャントポイズン */
-    SC_POISONREACT,             /* ポイズンリアクト */
+    StatusChange::NEGATIVE1,    // HT_DETECTING
+    StatusChange::NEGATIVE1,    // HT_SPRINGTRAP
+    StatusChange::NEGATIVE1,    // AS_RIGHT
+    StatusChange::NEGATIVE1,    // AS_LEFT
+    StatusChange::NEGATIVE1,    // AS_KATAR
+    StatusChange::NEGATIVE1,    // AS_CLOAKING
+    StatusChange::NEGATIVE1,    // AS_SONICBLOW
+    StatusChange::NEGATIVE1,    // AS_GRIMTOOTH
+    StatusChange::NEGATIVE1,    // AS_ENCHANTPOISON
+    StatusChange::NEGATIVE1,    // AS_POISONREACT
     // 140-
-    SC_POISON,                  /* ベノムダスト */
-    SC_SPLASHER,                /* ベナムスプラッシャー */
-    StatusChange::NEGATIVE1,
-    SC_TRICKDEAD,               /* 死んだふり */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // AS_VENOMDUST
+    StatusChange::NEGATIVE1,    // AS_SPLASHER
+    StatusChange::NEGATIVE1,    // NV_FIRSTAID
+    StatusChange::NEGATIVE1,    // NV_TRICKDEAD
+    StatusChange::NEGATIVE1,    // SM_MOVINGRECOVERY
+    StatusChange::NEGATIVE1,    // SM_FATALBLOW
+    StatusChange::NEGATIVE1,    // SM_AUTOBERSERK
+    StatusChange::NEGATIVE1,    // AC_MAKINGARROW
+    StatusChange::NEGATIVE1,    // AC_CHARGEARROW
+    StatusChange::NEGATIVE1,    // TF_SPRINKLESAND
     // 150-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_LOUD,                    /* ラウドボイス */
-    StatusChange::NEGATIVE1,
-    SC_ENERGYCOAT,              /* エナジーコート */
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // TF_BACKSLIDING
+    StatusChange::NEGATIVE1,    // TF_PICKSTONE
+    StatusChange::NEGATIVE1,    // TF_THROWSTONE
+    StatusChange::NEGATIVE1,    // MC_CARTREVOLUTION
+    StatusChange::NEGATIVE1,    // MC_CHANGECART
+    StatusChange::NEGATIVE1,    // MC_LOUD
+    StatusChange::NEGATIVE1,    // AL_HOLYLIGHT
+    StatusChange::NEGATIVE1,    // MG_ENERGYCOAT
+    StatusChange::NEGATIVE1,    // NPC_PIERCINGATT
+    StatusChange::NEGATIVE1,    // NPC_MENTALBREAKER
     // 160-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // NPC_RANGEATTACK
+    StatusChange::NEGATIVE1,    // NPC_ATTRICHANGE
+    StatusChange::NEGATIVE1,    // NPC_CHANGEWATER
+    StatusChange::NEGATIVE1,    // NPC_CHANGEGROUND
+    StatusChange::NEGATIVE1,    // NPC_CHANGEFIRE
+    StatusChange::NEGATIVE1,    // NPC_CHANGEWIND
+    StatusChange::NEGATIVE1,    // NPC_CHANGEPOISON
+    StatusChange::NEGATIVE1,    // NPC_CHANGEHOLY
+    StatusChange::NEGATIVE1,    // NPC_CHANGEDARKNESS
+    StatusChange::NEGATIVE1,    // NPC_CHANGETELEKINESIS
     // 170-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_SELFDESTRUCTION,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // NPC_CRITICALSLASH
+    StatusChange::NEGATIVE1,    // NPC_COMBOATTACK
+    StatusChange::NEGATIVE1,    // NPC_GUIDEDATTACK
+    SC_SELFDESTRUCTION,         // NPC_SELFDESTRUCTION
+    StatusChange::NEGATIVE1,    // NPC_SPLASHATTACK
+    StatusChange::NEGATIVE1,    // NPC_SUICIDE
+    StatusChange::NEGATIVE1,    // NPC_POISON
+    StatusChange::NEGATIVE1,    // NPC_BLINDATTACK
+    StatusChange::NEGATIVE1,    // NPC_SILENCEATTACK
+    StatusChange::NEGATIVE1,    // NPC_STUNATTACK
     // 180-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // NPC_PETRIFYATTACK
+    StatusChange::NEGATIVE1,    // NPC_CURSEATTACK
+    StatusChange::NEGATIVE1,    // NPC_SLEEPATTACK
+    StatusChange::NEGATIVE1,    // NPC_RANDOMATTACK
+    StatusChange::NEGATIVE1,    // NPC_WATERATTACK
+    StatusChange::NEGATIVE1,    // NPC_GROUNDATTACK
+    StatusChange::NEGATIVE1,    // NPC_FIREATTACK
+    StatusChange::NEGATIVE1,    // NPC_WINDATTACK
+    StatusChange::NEGATIVE1,    // NPC_POISONATTACK
+    StatusChange::NEGATIVE1,    // NPC_HOLYATTACK
     // 190-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // NPC_DARKNESSATTACK
+    StatusChange::NEGATIVE1,    // NPC_TELEKINESISATTACK
+    StatusChange::NEGATIVE1,    // NPC_MAGICALATTACK
+    StatusChange::NEGATIVE1,    // NPC_METAMORPHOSIS
+    StatusChange::NEGATIVE1,    // NPC_PROVOCATION
+    StatusChange::NEGATIVE1,    // NPC_SMOKING
+    StatusChange::NEGATIVE1,    // NPC_SUMMONSLAVE
+    StatusChange::NEGATIVE1,    // NPC_EMOTION
+    StatusChange::NEGATIVE1,    // NPC_TRANSFORMATION
+    StatusChange::NEGATIVE1,    // NPC_BLOODDRAIN
     // 200-
-    StatusChange::NEGATIVE1,
-    SC_KEEPING,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_BARRIER,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_HALLUCINATION,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // NPC_ENERGYDRAIN
+    StatusChange::NEGATIVE1,    // NPC_KEEPING
+    StatusChange::NEGATIVE1,    // NPC_DARKBREATH
+    StatusChange::NEGATIVE1,    // NPC_DARKBLESSING
+    StatusChange::NEGATIVE1,    // NPC_BARRIER
+    StatusChange::NEGATIVE1,    // NPC_DEFENDER
+    StatusChange::NEGATIVE1,    // NPC_LICK
+    StatusChange::NEGATIVE1,    // NPC_HALLUCINATION
+    StatusChange::NEGATIVE1,    // NPC_REBIRTH
+    StatusChange::NEGATIVE1,    // NPC_SUMMONMONSTER
     // 210-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_STRIPWEAPON,
-    SC_STRIPSHIELD,
-    SC_STRIPARMOR,
-    SC_STRIPHELM,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // RG_SNATCHER
+    StatusChange::NEGATIVE1,    // RG_STEALCOIN
+    StatusChange::NEGATIVE1,    // RG_BACKSTAP
+    StatusChange::NEGATIVE1,    // RG_TUNNELDRIVE
+    StatusChange::NEGATIVE1,    // RG_RAID
+    StatusChange::NEGATIVE1,    // RG_STRIPWEAPON
+    StatusChange::NEGATIVE1,    // RG_STRIPSHIELD
+    StatusChange::NEGATIVE1,    // RG_STRIPARMOR
+    StatusChange::NEGATIVE1,    // RG_STRIPHELM
+    StatusChange::NEGATIVE1,    // RG_INTIMIDATE
     // 220-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // RG_GRAFFITI
+    StatusChange::NEGATIVE1,    // RG_FLAGGRAFFITI
+    StatusChange::NEGATIVE1,    // RG_CLEANER
+    StatusChange::NEGATIVE1,    // RG_GANGSTER
+    StatusChange::NEGATIVE1,    // RG_COMPULSION
+    StatusChange::NEGATIVE1,    // RG_PLAGIARISM
+    StatusChange::NEGATIVE1,    // AM_AXEMASTERY
+    StatusChange::NEGATIVE1,    // AM_LEARNINGPOTION
+    StatusChange::NEGATIVE1,    // AM_PHARMACY
+    StatusChange::NEGATIVE1,    // AM_DEMONSTRATION
     // 230-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_CP_WEAPON,
-    SC_CP_SHIELD,
-    SC_CP_ARMOR,
-    SC_CP_HELM,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // AM_ACIDTERROR
+    StatusChange::NEGATIVE1,    // AM_POTIONPITCHER
+    StatusChange::NEGATIVE1,    // AM_CANNIBALIZE
+    StatusChange::NEGATIVE1,    // AM_SPHEREMINE
+    StatusChange::NEGATIVE1,    // AM_CP_WEAPON
+    StatusChange::NEGATIVE1,    // AM_CP_SHIELD
+    StatusChange::NEGATIVE1,    // AM_CP_ARMOR
+    StatusChange::NEGATIVE1,    // AM_CP_HELM
+    StatusChange::NEGATIVE1,    // AM_BIOETHICS
+    StatusChange::NEGATIVE1,    // AM_BIOTECHNOLOGY
     // 240-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_AUTOGUARD,
+    StatusChange::NEGATIVE1,    // AM_CREATECREATURE
+    StatusChange::NEGATIVE1,    // AM_CULTIVATION
+    StatusChange::NEGATIVE1,    // AM_FLAMECONTROL
+    StatusChange::NEGATIVE1,    // AM_CALLHOMUN
+    StatusChange::NEGATIVE1,    // AM_REST
+    StatusChange::NEGATIVE1,    // AM_DRILLMASTER
+    StatusChange::NEGATIVE1,    // AM_HEALHOMUN
+    StatusChange::NEGATIVE1,    // AM_RESURRECTHOMUN
+    StatusChange::NEGATIVE1,    // CR_TRUST
+    StatusChange::NEGATIVE1,    // CR_AUTOGUARD
     // 250-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_REFLECTSHIELD,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_DEVOTION,
-    StatusChange::NEGATIVE1,
-    SC_DEFENDER,
-    SC_SPEARSQUICKEN,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // CR_SHIELDCHARGE
+    StatusChange::NEGATIVE1,    // CR_SHIELDBOOMERANG
+    StatusChange::NEGATIVE1,    // CR_REFLECTSHIELD
+    StatusChange::NEGATIVE1,    // CR_HOLYCROSS
+    StatusChange::NEGATIVE1,    // CR_GRANDCROSS
+    StatusChange::NEGATIVE1,    // CR_DEVOTION
+    StatusChange::NEGATIVE1,    // CR_PROVIDENCE
+    StatusChange::NEGATIVE1,    // CR_DEFENDER
+    StatusChange::NEGATIVE1,    // CR_SPEARQUICKEN
+    StatusChange::NEGATIVE1,    // MO_IRONHAND
     // 260-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_STEELBODY,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // MO_SPIRITSRECOVERY
+    StatusChange::NEGATIVE1,    // MO_CALLSPIRITS
+    StatusChange::NEGATIVE1,    // MO_ABSORBSPIRITS
+    StatusChange::NEGATIVE1,    // MO_TRIPLEATTACK
+    StatusChange::NEGATIVE1,    // MO_BODYRELOCATION
+    StatusChange::NEGATIVE1,    // MO_DODGE
+    StatusChange::NEGATIVE1,    // MO_INVESTIGATE
+    StatusChange::NEGATIVE1,    // MO_FINGEROFFENSIVE
+    StatusChange::NEGATIVE1,    // MO_STEELBODY
+    StatusChange::NEGATIVE1,    // MO_BLADESTOP
     // 270-
-    SC_EXPLOSIONSPIRITS,
-    SC_EXTREMITYFIST,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_MAGICROD,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // MO_EXPLOSIONSPIRITS
+    StatusChange::NEGATIVE1,    // MO_EXTREMITYFIST
+    StatusChange::NEGATIVE1,    // MO_CHAINCOMBO
+    StatusChange::NEGATIVE1,    // MO_COMBOFINISH
+    StatusChange::NEGATIVE1,    // SA_ADVANCEDBOOK
+    StatusChange::NEGATIVE1,    // SA_CASTCANCEL
+    StatusChange::NEGATIVE1,    // SA_MAGICROD
+    StatusChange::NEGATIVE1,    // SA_SPELLBREAKER
+    StatusChange::NEGATIVE1,    // SA_FREECAST
+    StatusChange::NEGATIVE1,    // SA_AUTOSPELL
     // 280-
-    SC_FLAMELAUNCHER,
-    SC_FROSTWEAPON,
-    SC_LIGHTNINGLOADER,
-    SC_SEISMICWEAPON,
-    StatusChange::NEGATIVE1,
-    SC_VOLCANO,
-    SC_DELUGE,
-    SC_VIOLENTGALE,
-    SC_LANDPROTECTOR,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // SA_FLAMELAUNCHER
+    StatusChange::NEGATIVE1,    // SA_FROSTWEAPON
+    StatusChange::NEGATIVE1,    // SA_LIGHTNINGLOADER
+    StatusChange::NEGATIVE1,    // SA_SEISMICWEAPON
+    StatusChange::NEGATIVE1,    // SA_DRAGONOLOGY
+    StatusChange::NEGATIVE1,    // SA_VOLCANO
+    StatusChange::NEGATIVE1,    // SA_DELUGE
+    StatusChange::NEGATIVE1,    // SA_VIOLENTGALE
+    StatusChange::NEGATIVE1,    // SA_LANDPROTECTOR
+    StatusChange::NEGATIVE1,    // SA_DISPELL
     // 290-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // SA_ABRACADABRA
+    StatusChange::NEGATIVE1,    // SA_MONOCELL
+    StatusChange::NEGATIVE1,    // SA_CLASSCHANGE
+    StatusChange::NEGATIVE1,    // SA_SUMMONMONSTER
+    StatusChange::NEGATIVE1,    // SA_REVERSEORCISH
+    StatusChange::NEGATIVE1,    // SA_DEATH
+    StatusChange::NEGATIVE1,    // SA_FORTUNE
+    StatusChange::NEGATIVE1,    // SA_TAMINGMONSTER
+    StatusChange::NEGATIVE1,    // SA_QUESTION
+    StatusChange::NEGATIVE1,    // SA_GRAVITY
     // 300-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_LULLABY,
-    SC_RICHMANKIM,
-    SC_ETERNALCHAOS,
-    SC_DRUMBATTLE,
+    StatusChange::NEGATIVE1,    // SA_LEVELUP
+    StatusChange::NEGATIVE1,    // SA_INSTANTDEATH
+    StatusChange::NEGATIVE1,    // SA_FULLRECOVERY
+    StatusChange::NEGATIVE1,    // SA_COMA
+    StatusChange::NEGATIVE1,    // BD_ADAPTATION
+    StatusChange::NEGATIVE1,    // BD_ENCORE
+    StatusChange::NEGATIVE1,    // BD_LULLABY
+    StatusChange::NEGATIVE1,    // BD_RICHMANKIM
+    StatusChange::NEGATIVE1,    // BD_ETERNALCHAOS
+    StatusChange::NEGATIVE1,    // BD_DRUMBATTLEFIELD
     // 310-
-    SC_NIBELUNGEN,
-    SC_ROKISWEIL,
-    SC_INTOABYSS,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_DISSONANCE,
-    StatusChange::NEGATIVE1,
-    SC_WHISTLE,
+    StatusChange::NEGATIVE1,    // BD_RINGNIBELUNGEN
+    StatusChange::NEGATIVE1,    // BD_ROKISWEIL
+    StatusChange::NEGATIVE1,    // BD_INTOABYSS
+    StatusChange::NEGATIVE1,    // BD_SIEGFRIED
+    StatusChange::NEGATIVE1,    // BD_RAGNAROK
+    StatusChange::NEGATIVE1,    // BA_MUSICALLESSON
+    StatusChange::NEGATIVE1,    // BA_MUSICALSTRIKE
+    StatusChange::NEGATIVE1,    // BA_DISSONANCE
+    StatusChange::NEGATIVE1,    // BA_FROSTJOKE
+    StatusChange::NEGATIVE1,    // BA_WHISTLE
     // 320-
-    SC_ASSNCROS,
-    SC_POEMBRAGI,
-    SC_APPLEIDUN,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_UGLYDANCE,
-    StatusChange::NEGATIVE1,
-    SC_HUMMING,
-    SC_DONTFORGETME,
-    SC_FORTUNE,
+    StatusChange::NEGATIVE1,    // BA_ASSASSINCROSS
+    StatusChange::NEGATIVE1,    // BA_POEMBRAGI
+    StatusChange::NEGATIVE1,    // BA_APPLEIDUN
+    StatusChange::NEGATIVE1,    // DC_DANCINGLESSON
+    StatusChange::NEGATIVE1,    // DC_THROWARROW
+    StatusChange::NEGATIVE1,    // DC_UGLYDANCE
+    StatusChange::NEGATIVE1,    // DC_SCREAM
+    StatusChange::NEGATIVE1,    // DC_HUMMING
+    StatusChange::NEGATIVE1,    // DC_DONTFORGETME
+    StatusChange::NEGATIVE1,    // DC_FORTUNEKISS
     // 330-
-    SC_SERVICE4U,
-    SC_SELFDESTRUCTION,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // DC_SERVICEFORYOU
+    StatusChange::NEGATIVE1,    // NPC_SELFDESTRUCTION2
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // WE_MALE
+    StatusChange::NEGATIVE1,    // WE_FEMALE
+    StatusChange::NEGATIVE1,    // WE_CALLPARTNER
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // NPC_DARKCROSS
+    StatusChange::NEGATIVE1,    // (none)
     // 340-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
     // 350-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_AURABLADE,
-    SC_PARRYING,
-    SC_CONCENTRATION,
-    SC_TENSIONRELAX,
-    SC_BERSERK,
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // (none)
+    StatusChange::NEGATIVE1,    // LK_AURABLADE
+    StatusChange::NEGATIVE1,    // LK_PARRYING
+    StatusChange::NEGATIVE1,    // LK_CONCENTRATION
+    StatusChange::NEGATIVE1,    // LK_TENSIONRELAX
+    StatusChange::NEGATIVE1,    // LK_BERSERK
     // 360-
-    SC_BERSERK,
-    SC_ASSUMPTIO,
-    SC_BASILICA,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_MAGICPOWER,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_GOSPEL,
+    StatusChange::NEGATIVE1,    // LK_FURY
+    StatusChange::NEGATIVE1,    // HP_ASSUMPTIO
+    StatusChange::NEGATIVE1,    // HP_BASILICA
+    StatusChange::NEGATIVE1,    // HP_MEDITATIO
+    StatusChange::NEGATIVE1,    // HW_SOULDRAIN
+    StatusChange::NEGATIVE1,    // HW_MAGICCRASHER
+    StatusChange::NEGATIVE1,    // HW_MAGICPOWER
+    StatusChange::NEGATIVE1,    // PA_PRESSURE
+    StatusChange::NEGATIVE1,    // PA_SACRIFICE
+    StatusChange::NEGATIVE1,    // PA_GOSPEL
     // 370-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // CH_PALMSTRIKE
+    StatusChange::NEGATIVE1,    // CH_TIGERFIST
+    StatusChange::NEGATIVE1,    // CH_CHAINCRUSH
+    StatusChange::NEGATIVE1,    // PF_HPCONVERSION
+    StatusChange::NEGATIVE1,    // PF_SOULCHANGE
+    StatusChange::NEGATIVE1,    // PF_SOULBURN
+    StatusChange::NEGATIVE1,    // ASC_KATAR
+    StatusChange::NEGATIVE1,    // ASC_HALLUCINATION
+    StatusChange::NEGATIVE1,    // ASC_EDP
+    StatusChange::NEGATIVE1,    // ASC_BREAKER
     // 380-
-    SC_TRUESIGHT,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_WINDWALK,
-    SC_MELTDOWN,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_CARTBOOST,
-    StatusChange::NEGATIVE1,
-    SC_CHASEWALK,
+    StatusChange::NEGATIVE1,    // SN_SIGHT
+    StatusChange::NEGATIVE1,    // SN_FALCONASSAULT
+    StatusChange::NEGATIVE1,    // SN_SHARPSHOOTING
+    StatusChange::NEGATIVE1,    // SN_WINDWALK
+    StatusChange::NEGATIVE1,    // WS_MELTDOWN
+    StatusChange::NEGATIVE1,    // WS_CREATECOIN
+    StatusChange::NEGATIVE1,    // WS_CREATENUGGET
+    StatusChange::NEGATIVE1,    // WS_CARTBOOST
+    StatusChange::NEGATIVE1,    // WS_SYSTEMCREATE
+    StatusChange::NEGATIVE1,    // ST_CHASEWALK
     // 390-
-    SC_REJECTSWORD,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_MARIONETTE,
-    StatusChange::NEGATIVE1,
-    SC_HEADCRUSH,
-    SC_JOINTBEAT,
+    StatusChange::NEGATIVE1,    // ST_REJECTSWORD
+    StatusChange::NEGATIVE1,    // ST_STEALBACKPACK
+    StatusChange::NEGATIVE1,    // CR_ALCHEMY
+    StatusChange::NEGATIVE1,    // CR_SYNTHESISPOTION
+    StatusChange::NEGATIVE1,    // CG_ARROWVULCAN
+    StatusChange::NEGATIVE1,    // CG_MOONLIT
+    StatusChange::NEGATIVE1,    // CG_MARIONETTE
+    StatusChange::NEGATIVE1,    // LK_SPIRALPIERCE
+    StatusChange::NEGATIVE1,    // LK_HEADCRUSH
+    StatusChange::NEGATIVE1,    // LK_JOINTBEAT
     // 400-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    SC_MINDBREAKER,
-    SC_MEMORIZE,
-    SC_FOGWALL,
-    SC_SPIDERWEB,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // HW_NAPALMVULCAN
+    StatusChange::NEGATIVE1,    // CH_SOULCOLLECT
+    StatusChange::NEGATIVE1,    // PF_MINDBREAKER
+    StatusChange::NEGATIVE1,    // PF_MEMORIZE
+    StatusChange::NEGATIVE1,    // PF_FOGWALL
+    StatusChange::NEGATIVE1,    // PF_SPIDERWEB
+    StatusChange::NEGATIVE1,    // ASC_METEORASSAULT
+    StatusChange::NEGATIVE1,    // ASC_CDP
+    StatusChange::NEGATIVE1,    // WE_BABY
+    StatusChange::NEGATIVE1,    // WE_CALLPARENT
     // 410-
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
-    StatusChange::NEGATIVE1,
+    StatusChange::NEGATIVE1,    // WE_CALLBABY
+    StatusChange::NEGATIVE1,    // TK_RUN
+    StatusChange::NEGATIVE1,    // TK_READYSTORM
+    StatusChange::NEGATIVE1,    // TK_STORMKICK
+    StatusChange::NEGATIVE1,    // TK_READYDOWN
+    StatusChange::NEGATIVE1,    // TK_DOWNKICK
+    StatusChange::NEGATIVE1,    // TK_READYTURN
+    StatusChange::NEGATIVE1,    // TK_TURNKICK
+    StatusChange::NEGATIVE1,    // TK_READYCOUNTER
+    StatusChange::NEGATIVE1,    // TK_COUNTER
 }};
 
 struct skill_name_db skill_names[] =
 {
     {AC_OWL, "OWL", "Owl's_Eye"},
-    {AL_HEAL, "HEAL", "Heal"},
-    {AL_TELEPORT, "TELEPORT", "Teleport"},
 
-    {NPC_ATTRICHANGE, "ATTRICHANGE", "NPC_ATTRICHANGE"},
-    {NPC_BARRIER, "BARRIER", "NPC_BARRIER"},
-    {NPC_BLINDATTACK, "BLINDATTACK", "NPC_BLINDATTACK"},
-    {NPC_BLOODDRAIN, "BLOODDRAIN", "NPC_BLOODDRAIN"},
-    {NPC_CHANGEDARKNESS, "CHANGEDARKNESS", "NPC_CHANGEDARKNESS"},
-    {NPC_CHANGEFIRE, "CHANGEFIRE", "NPC_CHANGEFIRE"},
-    {NPC_CHANGEGROUND, "CHANGEGROUND", "NPC_CHANGEGROUND"},
-    {NPC_CHANGEHOLY, "CHANGEHOLY", "NPC_CHANGEHOLY"},
-    {NPC_CHANGEPOISON, "CHANGEPOISON", "NPC_CHANGEPOISON"},
-    {NPC_CHANGETELEKINESIS, "CHANGETELEKINESIS", "NPC_CHANGETELEKINESIS"},
-    {NPC_CHANGEWATER, "CHANGEWATER", "NPC_CHANGEWATER"},
-    {NPC_CHANGEWIND, "CHANGEWIND", "NPC_CHANGEWIND"},
-    {NPC_COMBOATTACK, "COMBOATTACK", "NPC_COMBOATTACK"},
-    {NPC_CRITICALSLASH, "CRITICALSLASH", "NPC_CRITICALSLASH"},
-    {NPC_CURSEATTACK, "CURSEATTACK", "NPC_CURSEATTACK"},
-    {NPC_DARKBLESSING, "DARKBLESSING", "NPC_DARKBLESSING"},
-    {NPC_DARKBREATH, "DARKBREATH", "NPC_DARKBREATH"},
-    {NPC_DARKCROSS, "DARKCROSS", "NPC_DARKCROSS"},
-    {NPC_DARKNESSATTACK, "DARKNESSATTACK", "NPC_DARKNESSATTACK"},
-    {NPC_DEFENDER, "DEFENDER", "NPC_DEFENDER"},
     {NPC_EMOTION, "EMOTION", "NPC_EMOTION"},
-    {NPC_ENERGYDRAIN, "ENERGYDRAIN", "NPC_ENERGYDRAIN"},
-    {NPC_FIREATTACK, "FIREATTACK", "NPC_FIREATTACK"},
-    {NPC_GROUNDATTACK, "GROUNDATTACK", "NPC_GROUNDATTACK"},
-    {NPC_GUIDEDATTACK, "GUIDEDATTACK", "NPC_GUIDEDATTACK"},
-    {NPC_HALLUCINATION, "HALLUCINATION", "NPC_HALLUCINATION"},
-    {NPC_HOLYATTACK, "HOLYATTACK", "NPC_HOLYATTACK"},
-    {NPC_KEEPING, "KEEPING", "NPC_KEEPING"},
-    {NPC_LICK, "LICK", "NPC_LICK"},
-    {NPC_MAGICALATTACK, "MAGICALATTACK", "NPC_MAGICALATTACK"},
-    {NPC_MENTALBREAKER, "MENTALBREAKER", "NPC_MENTALBREAKER"},
-    {NPC_METAMORPHOSIS, "METAMORPHOSIS", "NPC_METAMORPHOSIS"},
-    {NPC_PETRIFYATTACK, "PETRIFYATTACK", "NPC_PETRIFYATTACK"},
-    {NPC_PIERCINGATT, "PIERCINGATT", "NPC_PIERCINGATT"},
     {NPC_POISON, "POISON", "NPC_POISON"},
-    {NPC_POISONATTACK, "POISONATTACK", "NPC_POISONATTACK"},
-    {NPC_RANDOMATTACK, "RANDOMATTACK", "NPC_RANDOMATTACK"},
-    {NPC_RANGEATTACK, "RANGEATTACK", "NPC_RANGEATTACK"},
-    {NPC_REBIRTH, "REBIRTH", "NPC_REBIRTH"},
     {NPC_SELFDESTRUCTION, "SELFDESTRUCTION", "Kabooooom!"},
-    {NPC_SELFDESTRUCTION2, "SELFDESTRUCTION2", "NPC_SELFDESTRUCTION2"},
-    {NPC_SILENCEATTACK, "SILENCEATTACK", "NPC_SILENCEATTACK"},
-    {NPC_SLEEPATTACK, "SLEEPATTACK", "NPC_SLEEPATTACK"},
-    {NPC_SMOKING, "SMOKING", "NPC_SMOKING"},
-    {NPC_SPLASHATTACK, "SPLASHATTACK", "NPC_SPLASHATTACK"},
-    {NPC_STUNATTACK, "STUNATTACK", "NPC_STUNATTACK"},
-    {NPC_SUICIDE, "SUICIDE", "NPC_SUICIDE"},
-    {NPC_SUMMONMONSTER, "SUMMONMONSTER", "NPC_SUMMONMONSTER"},
     {NPC_SUMMONSLAVE, "SUMMONSLAVE", "NPC_SUMMONSLAVE"},
-    {NPC_TELEKINESISATTACK, "TELEKINESISATTACK", "NPC_TELEKINESISATTACK"},
-    {NPC_TRANSFORMATION, "TRANSFORMATION", "NPC_TRANSFORMATION"},
-    {NPC_WATERATTACK, "WATERATTACK", "NPC_WATERATTACK"},
-    {NPC_WINDATTACK, "WINDATTACK", "NPC_WINDATTACK"},
 
     {NV_EMOTE, "EMOTE", "Emote_Skill"},
     {NV_TRADE, "TRADE", "Trade_Skill"},
@@ -759,7 +710,6 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
                              unsigned int)
 {
     struct map_session_data *sd = NULL;
-    struct map_session_data *dstsd = NULL;
     struct mob_data *md = NULL;
 
     int luk;
@@ -800,9 +750,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     sc_def_vit2 = 100 - (3 + battle_get_vit(src) + luk / 3);
     sc_def_int2 = 100 - (3 + battle_get_int(src) + luk / 3);
     sc_def_luk2 = 100 - (3 + luk);
-    if (bl->type == BL_PC)
-        dstsd = (struct map_session_data *) bl;
-    else if (bl->type == BL_MOB)
+    if (bl->type == BL_MOB)
     {
         if (sc_def_mdef > 50)
             sc_def_mdef = 50;
@@ -822,65 +770,12 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
 
     switch (skillid)
     {
-            /* MOBの追加効果付きスキル */
-
-        case NPC_PETRIFYATTACK:
-            if (MRAND(100) < sc_def_mdef)
-                skill_status_change_start(bl, SC_STONE,
-                                           skilllv, 0, 0, 0,
-                                           skill_get_time2(skillid, skilllv),
-                                           0);
-            break;
         case NPC_POISON:
             if (MRAND(100) <
                 50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) +
                 (skilllv >> 2))
                 skill_status_change_start(bl, SC_POISON,
                                            skilllv, 0, 0, 0, skilllv, 0);
-            break;
-        case NPC_SILENCEATTACK:
-            if (MRAND(100) <
-                50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) +
-                (skilllv >> 2))
-                skill_status_change_start(bl, SC_SILENCE,
-                                           skilllv, 0, 0, 0, skilllv, 0);
-            break;
-        case NPC_STUNATTACK:
-            if (MRAND(100) <
-                50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) +
-                (skilllv >> 2))
-                skill_status_change_start(bl, SC_STAN,
-                                           skilllv, 0, 0, 0, skilllv, 0);
-            break;
-        case NPC_CURSEATTACK:
-            if (MRAND(100) < sc_def_luk)
-                skill_status_change_start(bl, SC_CURSE,
-                                           skilllv, 0, 0, 0,
-                                           skill_get_time2(skillid, skilllv),
-                                           0);
-            break;
-        case NPC_SLEEPATTACK:
-            if (MRAND(100) < sc_def_int)
-                skill_status_change_start(bl, SC_SLEEP,
-                                           skilllv, 0, 0, 0,
-                                           skill_get_time2(skillid, skilllv),
-                                           0);
-            break;
-        case NPC_BLINDATTACK:
-            if (MRAND(100) < sc_def_int)
-                skill_status_change_start(bl, SC_BLIND,
-                                           skilllv, 0, 0, 0,
-                                           skill_get_time2(skillid, skilllv),
-                                           0);
-            break;
-        case NPC_MENTALBREAKER:
-            if (dstsd)
-            {
-                int sp = dstsd->status.max_sp * (10 + skilllv) / 100;
-                if (sp < 1)
-                    sp = 1;
-                pc_heal(dstsd, 0, -sp);
-            }
             break;
     }
 
@@ -1248,7 +1143,6 @@ int skill_attack(BF attack_type, struct block_list *src,
     switch (skillid)
     {
         case NPC_SELFDESTRUCTION:
-        case NPC_SELFDESTRUCTION2:
             break;
         default:
             clif_skill_damage(dsrc, bl, tick, dmg.amotion, dmg.dmotion,
@@ -1493,7 +1387,7 @@ int skill_cleartimerskill(struct block_list *src)
 
 // these variables are set in the 'else' branches,
 // and used in the (recursive) 'if' branch
-static int skill_area_temp_id, skill_area_temp_x, skill_area_temp_y, skill_area_temp_hp;
+static int skill_area_temp_id, skill_area_temp_hp;
 
 
 /*==========================================
@@ -1522,87 +1416,12 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
     map_freeblock_lock();
     switch (skillid)
     {
-            /* 以下MOB専用 */
-            /* 単体攻撃、SP減少攻撃、遠距離攻撃、防御無視攻撃、多段攻撃 */
-        case NPC_PIERCINGATT:
-        case NPC_MENTALBREAKER:
-        case NPC_RANGEATTACK:
-        case NPC_CRITICALSLASH:
-        case NPC_COMBOATTACK:
-            /* 必中攻撃、毒攻撃、暗黒攻撃、沈黙攻撃、スタン攻撃 */
-        case NPC_GUIDEDATTACK:
         case NPC_POISON:
-        case NPC_BLINDATTACK:
-        case NPC_SILENCEATTACK:
-        case NPC_STUNATTACK:
-            /* 石化攻撃、呪い攻撃、睡眠攻撃、ランダムATK攻撃 */
-        case NPC_PETRIFYATTACK:
-        case NPC_CURSEATTACK:
-        case NPC_SLEEPATTACK:
-        case NPC_RANDOMATTACK:
-            /* 水属性攻撃、地属性攻撃、火属性攻撃、風属性攻撃 */
-        case NPC_WATERATTACK:
-        case NPC_GROUNDATTACK:
-        case NPC_FIREATTACK:
-        case NPC_WINDATTACK:
-            /* 毒属性攻撃、聖属性攻撃、闇属性攻撃、念属性攻撃、SP減少攻撃 */
-        case NPC_POISONATTACK:
-        case NPC_HOLYATTACK:
-        case NPC_DARKNESSATTACK:
-        case NPC_TELEKINESISATTACK:
             skill_attack(BF_WEAPON, src, src, bl, skillid, skilllv, tick,
                           flag);
             break;
-        case NPC_DARKBREATH:
-            clif_emotion(src, 7);
-            skill_attack(BF_MISC, src, src, bl, skillid, skilllv, tick,
-                          flag);
-            break;
-        case NPC_SPLASHATTACK: /* スプラッシュアタック */
-        {
-            if (flag & BCT_lo_x01)
-            {
-                /* 個別にダメージを与える */
-                if (bl->id != skill_area_temp_id)
-                {
-                    BCT dist = BCT_ZERO;
-                    skill_attack(BF_WEAPON, src, src, bl, skillid, skilllv,
-                                  tick, BCT_mid_x05 | dist);
-                }
-            }
-            else
-            {
-                int ar = 1;
-                int x = bl->x, y = bl->y;
-                if (skillid == NPC_SPLASHATTACK)   /* スプラッシュアタックは範囲7*7 */
-                    ar = 3;
-                skill_area_temp_id = bl->id;
-                skill_area_temp_x = x;
-                skill_area_temp_y = y;
-                /* まずターゲットに攻撃を加える */
-                skill_attack(BF_WEAPON, src, src, bl, skillid, skilllv, tick,
-                              BCT_ZERO);
-                /* その後ターゲット以外の範囲内の敵全体に処理を行う */
-                // the BCT_lo_x01 is the important thing
-                map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv, tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
-                                   bl->m, x - ar, y - ar,
-                                   x + ar, y + ar, BL_NUL);
-            }
-        }
-            break;
-
-        case AL_HEAL:          /* ヒール */
-        case NPC_MAGICALATTACK:    /* MOB:魔法打撃攻撃 */
-            skill_attack(BF_MAGIC, src, src, bl, skillid, skilllv, tick,
-                          flag);
-            break;
-
-        case NPC_SMOKING:      /* スモーキング */
-            skill_attack(BF_MISC, src, src, bl, skillid, skilllv, tick, BCT_ZERO);
-            break;
 
         case NPC_SELFDESTRUCTION:  /* 自爆 */
-        case NPC_SELFDESTRUCTION2: /* 自爆2 */
             if (flag & 1)
             {
                 /* 個別にダメージを与える */
@@ -1634,18 +1453,6 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
             break;
 
             /* HP吸収/HP吸収魔法 */
-        case NPC_BLOODDRAIN:
-        case NPC_ENERGYDRAIN:
-        {
-            int heal;
-            heal =
-                skill_attack((skillid ==
-                               NPC_BLOODDRAIN) ? BF_WEAPON : BF_MAGIC, src,
-                              src, bl, skillid, skilllv, tick, flag);
-            if (heal > 0)
-                battle_heal(NULL, src, heal, 0, 0);
-        }
-            break;
         case SkillID::ZERO:
             if (sd)
             {
@@ -1731,146 +1538,26 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
     map_freeblock_lock();
     switch (skillid)
     {
-        case AL_HEAL:          /* ヒール */
-        {
-            int heal = skill_calc_heal(src, skilllv);
-            int heal_get_jobexp;
-
-            if (dstsd && dstsd->special_state.no_magic_damage)
-                heal = 0;       /* 黄金蟲カード（ヒール量０） */
-
-            heal_get_jobexp = battle_heal(NULL, bl, heal, 0, 0);
-
-            // JOB経験値獲得
-            if (src->type == BL_PC && bl->type == BL_PC && heal > 0
-                && src != bl && battle_config.heal_exp > 0)
-            {
-                heal_get_jobexp =
-                    heal_get_jobexp * battle_config.heal_exp / 100;
-                if (heal_get_jobexp <= 0)
-                    heal_get_jobexp = 1;
-                pc_gainexp((struct map_session_data *) src, 0,
-                            heal_get_jobexp);
-            }
-        }
-            break;
-
-        case AL_TELEPORT:      /* テレポート */
-            if (bl->type == BL_MOB)
-                mob_warp((struct mob_data *) bl, -1, -1, -1, 3);
-            break;
-
-            /* ランダム属性変化、水属性変化、地、火、風 */
-        case NPC_ATTRICHANGE:
-        case NPC_CHANGEWATER:
-        case NPC_CHANGEGROUND:
-        case NPC_CHANGEFIRE:
-        case NPC_CHANGEWIND:
-            /* 毒、聖、念、闇 */
-        case NPC_CHANGEPOISON:
-        case NPC_CHANGEHOLY:
-        case NPC_CHANGEDARKNESS:
-        case NPC_CHANGETELEKINESIS:
-            if (md)
-            {
-                md->def_ele = skill_get_pl(skillid);
-                if (md->def_ele == 0)   /* ランダム変化、ただし、 */
-                    md->def_ele = MRAND(10);   /* 不死属性は除く */
-                md->def_ele += (1 + MRAND(4)) * 20;    /* 属性レベルはランダム */
-            }
-            break;
-
-        case NPC_HALLUCINATION:
-            if (bl->type == BL_PC
-                && ((struct map_session_data *) bl)->
-                special_state.no_magic_damage)
-                break;
-            skill_status_change_start(bl, SkillStatusChangeTable[skillid],
-                                       skilllv, 0, 0, 0,
-                                       skill_get_time(skillid, skilllv), 0);
-            break;
-
-        case NPC_KEEPING:
-        case NPC_BARRIER:
-        {
-            int skill_time = skill_get_time(skillid, skilllv);
-            skill_status_change_start(bl, SkillStatusChangeTable[skillid],
-                                       skilllv, 0, 0, 0, skill_time, 0);
-            mob_changestate((struct mob_data *) src, MS_DELAY, skill_time);
-        }
-            break;
-
-        case NPC_DARKBLESSING:
-        {
-            int sc_def = 100 - battle_get_mdef(bl);
-            if (bl->type == BL_PC
-                && ((struct map_session_data *) bl)->
-                special_state.no_magic_damage)
-                break;
-            if (battle_get_elem_type(bl) == 7 || battle_get_race(bl) == 6)
-                break;
-            if (MRAND(100) < sc_def * (50 + skilllv * 5) / 100)
-            {
-                if (dstsd)
-                {
-                    int hp = battle_get_hp(bl) - 1;
-                    pc_heal(dstsd, -hp, 0);
-                }
-                else if (dstmd)
-                    dstmd->hp = 1;
-            }
-        }
-            break;
-
         case NPC_SELFDESTRUCTION:  /* 自爆 */
-        case NPC_SELFDESTRUCTION2: /* 自爆2 */
             skill_status_change_start(bl, SkillStatusChangeTable[skillid],
                                        skilllv, uint16_t(skillid), 0, 0,
                                        skill_get_time(skillid, skilllv), 0);
             break;
-        case NPC_LICK:
-            if (bl->type == BL_PC
-                && ((struct map_session_data *) bl)->
-                special_state.no_weapon_damage)
-                break;
-            if (dstsd)
-                pc_heal(dstsd, 0, -100);
-            if (MRAND(100) < (skilllv * 5) * sc_def_vit / 100)
-                skill_status_change_start(bl, SC_STAN, skilllv, 0, 0, 0,
-                                           skill_get_time2(skillid, skilllv),
-                                           0);
-            break;
-
-        case NPC_SUICIDE:      /* 自決 */
-            if (src && bl && md)
-                mob_damage(NULL, md, md->hp, 0);
-            break;
 
         case NPC_SUMMONSLAVE:  /* 手下召喚 */
-        case NPC_SUMMONMONSTER:    /* MOB召喚 */
             if (md && !md->master_id)
             {
                 mob_summonslave(md,
                                  mob_db[md->mob_class].skill[md->skillidx].val,
                                  skilllv,
-                                 (skillid == NPC_SUMMONSLAVE) ? 1 : 0);
+                                 (true) ? 1 : 0);
             }
-            break;
-
-        case NPC_TRANSFORMATION:
-        case NPC_METAMORPHOSIS:
-            if (md)
-                mob_class_change(md,
-                                  mob_db[md->mob_class].skill[md->skillidx].val);
             break;
 
         case NPC_EMOTION:      /* エモーション */
             if (md)
                 clif_emotion(&md->bl,
                               mob_db[md->mob_class].skill[md->skillidx].val[0]);
-            break;
-
-        case NPC_DEFENDER:
             break;
 
         default:
@@ -1994,18 +1681,14 @@ void skill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
             /* 攻撃系/吹き飛ばし系 */
         case 0:
         case 2:
-            skill_castend_damage_id(&sd->bl, bl, sd->skillid, sd->skilllv,
-                                     tick, BCT_ZERO);
+            skill_castend_damage_id(&sd->bl, bl,
+                    sd->skillid, sd->skilllv,
+                    tick, BCT_ZERO);
             break;
         case 1:                /* 支援系 */
-            if (sd->skillid == AL_HEAL
-                && battle_check_undead(battle_get_race(bl),
-                                        battle_get_elem_type(bl)))
-                skill_castend_damage_id(&sd->bl, bl, sd->skillid,
-                                         sd->skilllv, tick, BCT_ZERO);
-            else
-                skill_castend_nodamage_id(&sd->bl, bl, sd->skillid,
-                                           sd->skilllv, tick, BCT_ZERO);
+            skill_castend_nodamage_id(&sd->bl, bl,
+                    sd->skillid, sd->skilllv,
+                    tick, BCT_ZERO);
             break;
     }
 }
@@ -2044,19 +1727,6 @@ int skill_castend_map(struct map_session_data *sd, SkillID skill_num,
 
     if (strcmp(mapname, "cancel") == 0)
         return 0;
-
-    switch (skill_num)
-    {
-        case AL_TELEPORT:      /* テレポート */
-            if (strcmp(mapname, "Random") == 0)
-                pc_randomwarp(sd, 3);
-            else
-                pc_setpos(sd, sd->status.save_point.map,
-                           sd->status.save_point.x, sd->status.save_point.y,
-                           3);
-            break;
-
-    }
 
     return 0;
 }
@@ -3002,14 +2672,6 @@ int skill_check_condition(struct map_session_data *sd, int type)
         sp += (sd->status.max_sp * abs(sp_rate)) / 100;
     if (sd->dsprate != 100)
         sp = sp * sd->dsprate / 100;    /* 消費SP修正 */
-
-    switch (skill)
-    {
-        case AL_TELEPORT:
-            if (map[sd->bl.m].flag.noteleport)
-                return 0;
-            break;
-    }
 
     if (!(type & 2))
     {

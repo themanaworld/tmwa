@@ -38,8 +38,6 @@ int mob_makedummymobdb(int);
 static
 void mob_timer(timer_id, tick_t, custom_id_t, custom_data_t);
 static
-int mob_skillid2skillidx(int mob_class, SkillID skillid);
-static
 int mobskill_use_id(struct mob_data *md, struct block_list *target,
                       int skill_idx);
 static
@@ -2634,20 +2632,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     if (bool(md->option & Option::CLOAK))
         skill_status_change_end(&md->bl, SC_CLOAKING, -1);
 
-    if (md->state.special_mob_ai == 2)
-    {                           //スフィアーマイン
-        int skillidx = 0;
-
-        if ((skillidx =
-             mob_skillid2skillidx(md->mob_class, NPC_SELFDESTRUCTION2)) >= 0)
-        {
-            md->mode |= MobMode::CAN_MOVE;
-            md->next_walktime = tick;
-            mobskill_use_id(md, &md->bl, skillidx);    //自爆詠唱開始
-            md->state.special_mob_ai++;
-        }
-    }
-
     if (md->hp > 0)
     {
         return 0;
@@ -3331,27 +3315,6 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
     return c;
 }
 
-/*==========================================
- *MOBskillから該当skillidのskillidxを返す
- *------------------------------------------
- */
-int mob_skillid2skillidx(int mob_class, SkillID skillid)
-{
-    int i;
-    struct mob_skill *ms = mob_db[mob_class].skill;
-
-    if (ms == NULL)
-        return -1;
-
-    for (i = 0; i < mob_db[mob_class].maxskill; i++)
-    {
-        if (ms[i].skill_id == skillid)
-            return i;
-    }
-    return -1;
-
-}
-
 //
 // MOBスキル
 //
@@ -3422,19 +3385,14 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
             // 攻撃系/吹き飛ばし系
         case 0:
         case 2:
-            skill_castend_damage_id(&md->bl, bl, md->skillid, md->skilllv,
-                                     tick, BCT_ZERO);
+            skill_castend_damage_id(&md->bl, bl,
+                    md->skillid, md->skilllv,
+                    tick, BCT_ZERO);
             break;
         case 1:                // 支援系
-            if (!mob_db[md->mob_class].skill[md->skillidx].val[0] &&
-                (md->skillid == AL_HEAL)
-                && battle_check_undead(battle_get_race(bl),
-                                        battle_get_elem_type(bl)))
-                skill_castend_damage_id(&md->bl, bl, md->skillid,
-                                         md->skilllv, tick, BCT_ZERO);
-            else
-                skill_castend_nodamage_id(&md->bl, bl, md->skillid,
-                                           md->skilllv, tick, BCT_ZERO);
+            skill_castend_nodamage_id(&md->bl, bl,
+                    md->skillid, md->skilllv,
+                    tick, BCT_ZERO);
             break;
     }
 }

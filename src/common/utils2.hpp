@@ -3,6 +3,7 @@
 
 #include "sanity.hpp"
 
+#include <functional>
 #include <iterator>
 #include <type_traits>
 
@@ -193,7 +194,6 @@ IteratorPair<EnumValueIterator<E>> erange(E b, E e)
     return {b, e};
 }
 
-namespace std { namespace placeholders {} }
 namespace ph = std::placeholders;
 
 template<class A, class B>

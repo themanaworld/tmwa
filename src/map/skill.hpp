@@ -142,8 +142,6 @@ int skill_update_heal_animation(struct map_session_data *sd); // [Fate]  Check w
 
 void skill_reload(void);
 
-extern earray<StatusChange, SkillID, MAX_SKILL_DB> SkillStatusChangeTable;
-
 // [Fate] Skill pools API
 
 // Max. # of active entries in the skill pool

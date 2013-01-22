@@ -1523,8 +1523,7 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
         if (sc_data[SC_SAFETYWALL].timer != -1
             && damage > 0
             && bool(flag & BF_WEAPON)
-            && bool(flag & BF_SHORT)
-            && skill_num != NPC_GUIDEDATTACK)
+            && bool(flag & BF_SHORT))
         {
             // セーフティウォール
             struct skill_unit *unit =
@@ -1537,8 +1536,7 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
         if (sc_data[SC_PNEUMA].timer != -1
             && damage > 0
             && bool(flag & BF_WEAPON)
-            && bool(flag & BF_LONG)
-            && skill_num != NPC_GUIDEDATTACK)
+            && bool(flag & BF_LONG))
         {
             // ニューマ
             damage = 0;
@@ -1841,39 +1839,8 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
         {
             flag = (flag & ~BF_SKILLMASK) | BF_SKILL;
-            switch (skill_num)
-            {
-                case NPC_COMBOATTACK:  // 多段攻撃
-                    div_ = skill_get_num(skill_num, skill_lv);
-                    damage *= div_;
-                    break;
-                case NPC_RANDOMATTACK: // ランダムATK攻撃
-                    damage = damage * (MPRAND(50, 150)) / 100;
-                    break;
-                    // 属性攻撃（適当）
-                case NPC_WATERATTACK:
-                case NPC_GROUNDATTACK:
-                case NPC_FIREATTACK:
-                case NPC_WINDATTACK:
-                case NPC_POISONATTACK:
-                case NPC_HOLYATTACK:
-                case NPC_DARKNESSATTACK:
-                case NPC_TELEKINESISATTACK:
-                    damage = damage * (100 + 25 * (skill_lv - 1)) / 100;
-                    break;
-                case NPC_GUIDEDATTACK:
-                    hitrate = 1000000;
-                    break;
-                case NPC_RANGEATTACK:
-                    flag = (flag & ~BF_RANGEMASK) | BF_LONG;
-                    break;
-                case NPC_PIERCINGATT:
-                    flag = (flag & ~BF_RANGEMASK) | BF_SHORT;
-                    break;
-            }
         }
 
-        if (skill_num != NPC_CRITICALSLASH)
         {
             // 対 象の防御力によるダメージの減少
             // ディバインプロテクション（ここでいいのかな？）
@@ -2372,42 +2339,8 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
         {
             flag = (flag & ~BF_SKILLMASK) | BF_SKILL;
-            switch (skill_num)
-            {
-                case NPC_COMBOATTACK:  // 多段攻撃
-                    div_ = skill_get_num(skill_num, skill_lv);
-                    damage *= div_;
-                    damage2 *= div_;
-                    break;
-                case NPC_RANDOMATTACK: // ランダムATK攻撃
-                    damage = damage * (MPRAND(50, 150)) / 100;
-                    damage2 = damage2 * (MPRAND(50, 150)) / 100;
-                    break;
-                    // 属性攻撃（適当）
-                case NPC_WATERATTACK:
-                case NPC_GROUNDATTACK:
-                case NPC_FIREATTACK:
-                case NPC_WINDATTACK:
-                case NPC_POISONATTACK:
-                case NPC_HOLYATTACK:
-                case NPC_DARKNESSATTACK:
-                case NPC_TELEKINESISATTACK:
-                    damage = damage * (100 + 25 * skill_lv) / 100;
-                    damage2 = damage2 * (100 + 25 * skill_lv) / 100;
-                    break;
-                case NPC_GUIDEDATTACK:
-                    hitrate = 1000000;
-                    break;
-                case NPC_RANGEATTACK:
-                    flag = (flag & ~BF_RANGEMASK) | BF_LONG;
-                    break;
-                case NPC_PIERCINGATT:
-                    flag = (flag & ~BF_RANGEMASK) | BF_SHORT;
-                    break;
-            }
         }
 
-        if (skill_num != NPC_CRITICALSLASH)
         {
             // 対 象の防御力によるダメージの減少
             // ディバインプロテクション（ここでいいのかな？）
@@ -2883,18 +2816,6 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
 
     BF aflag = BF_MAGIC | BF_LONG | BF_SKILL;
 
-    if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
-    {
-        switch (skill_num)
-        {                       // 基本ダメージ計算(スキルごとに処理)
-                // ヒールor聖体
-            case AL_HEAL:
-                damage = skill_calc_heal(bl, skill_lv) / 2;
-                normalmagic_flag = 0;
-                break;
-        }
-    }
-
     if (normalmagic_flag)
     {                           // 一般魔法ダメージ計算
         int imdef_flag = 0;
@@ -3032,38 +2953,11 @@ struct Damage battle_calc_misc_attack(struct block_list *bl,
             damage = battle_get_hp(bl) - (bl == target ? 1 : 0);
             damagefix = 0;
             break;
-
-        case NPC_SMOKING:      // タバコを吸う
-            damage = 3;
-            damagefix = 0;
-            break;
-
-        case NPC_DARKBREATH:
-        {
-            eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(target);
-            int hitrate =
-                battle_get_hit(bl) - battle_get_flee(target) + 80;
-            hitrate = ((hitrate > 95) ? 95 : ((hitrate < 5) ? 5 : hitrate));
-            if (sc_data
-                && (sc_data[SC_SLEEP].timer != -1
-                    || sc_data[SC_STAN].timer != -1
-                    || sc_data[SC_FREEZE].timer != -1
-                    || (sc_data[SC_STONE].timer != -1
-                        && sc_data[SC_STONE].val2 == 0)))
-                hitrate = 1000000;
-            if (MRAND(100) < hitrate)
-            {
-                damage = 500 + (skill_lv - 1) * 1000 + MRAND(1000);
-                if (damage > 9999)
-                    damage = 9999;
-            }
-        }
-            break;
     }
 
     if (damagefix)
     {
-        if (damage < 1 && skill_num != NPC_DARKBREATH)
+        if (damage < 1)
             damage = 1;
 
         if (tsd)
@@ -3143,7 +3037,6 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
 {
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> t_sc_data = battle_get_sc_data(target);
-    int race = 7, ele = 0;
     int damage, rdamage = 0;
     struct Damage wd;
 
@@ -3168,8 +3061,6 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
         return ATK::ZERO;
     }
 
-    race = battle_get_race(target);
-    ele = battle_get_elem_type(target);
     if (battle_check_target(src, target, BCT_ENEMY) > 0 &&
         battle_check_range(src, target, 0))
     {
@@ -3333,24 +3224,13 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
                             case 0:
                             case 2:
                                 f = skill_castend_damage_id(src, target,
-                                                             sd->autospell_id,
-                                                             skilllv, tick,
-                                                             flag);
+                                        sd->autospell_id, skilllv,
+                                        tick, flag);
                                 break;
                             case 1:    /* 支援系 */
-                                if (sd->autospell_id == AL_HEAL
-                                    && battle_check_undead(race, ele))
-                                    f = skill_castend_damage_id(src, target,
-                                                                 sd->autospell_id,
-                                                                 skilllv,
-                                                                 tick, flag);
-                                else
-                                    f = skill_castend_nodamage_id(src,
-                                                                   target,
-                                                                   sd->autospell_id,
-                                                                   skilllv,
-                                                                   tick,
-                                                                   flag);
+                                f = skill_castend_nodamage_id(src, target,
+                                        sd->autospell_id, skilllv,
+                                        tick, flag);
                                 break;
                         }
                     }
