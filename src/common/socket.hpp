@@ -4,11 +4,8 @@
 # include "sanity.hpp"
 
 # include <netinet/in.h>
-# include <sys/socket.h>
-# include <sys/types.h>
 
 # include <cstdio>
-# include <ctime>
 
 // Struct declaration
 

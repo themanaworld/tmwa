@@ -1,26 +1,18 @@
-#include "login.hpp"
-
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
 
-#include <csignal>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
 #include <algorithm>
 #include <fstream>
+#include <type_traits>
 
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
@@ -33,12 +25,43 @@
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 #include "../common/version.hpp"
-
-#include <type_traits>
+#include "../common/utils.hpp"
 
 #include "../poison.hpp"
 
 static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long (sorry)");
+
+#define MAX_SERVERS 30
+
+#define LOGIN_CONF_NAME "conf/login_athena.conf"
+#define LAN_CONF_NAME "conf/lan_support.conf"
+
+#define START_ACCOUNT_NUM 2000000
+#define END_ACCOUNT_NUM 100000000
+
+struct mmo_account
+{
+    char userid[24];
+    char passwd[24];
+    int passwdenc;
+
+    long account_id;
+    long login_id1;
+    long login_id2;
+    long char_id;
+    char lastlogin[24];
+    int sex;
+};
+
+struct mmo_char_server
+{
+    char name[20];
+    long ip;
+    short port;
+    int users;
+    int maintenance;
+    int is_new;
+};
 
 static
 int account_id_count = START_ACCOUNT_NUM;
@@ -1084,7 +1107,6 @@ void parse_fromchar(int fd)
             server_fd[id] = -1;
             memset(&server[id], 0, sizeof(struct mmo_char_server));
         }
-        close(fd);
         delete_session(fd);
         return;
     }
@@ -1773,7 +1795,6 @@ void parse_admin(int fd)
 
     if (session[fd]->eof)
     {
-        close(fd);
         delete_session(fd);
         PRINTF("Remote administration has disconnected (session #%d).\n",
                 fd);
@@ -3029,7 +3050,6 @@ void parse_login(int fd)
 
     if (session[fd]->eof)
     {
-        close(fd);
         delete_session(fd);
         return;
     }

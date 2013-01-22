@@ -1,31 +1,28 @@
 #include "script.hpp"
 
-#include <sys/time.h>
-
-#include <cassert>
 #include <cctype>
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
 #include <fstream>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/lock.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
+#include "../common/utils.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
+#include "magic.hpp"
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
@@ -211,6 +208,7 @@ int add_str(const char *p)
     int i;
     char *lowcase;
 
+    // TODO remove lowcase
     lowcase = strdup(p);
     for (i = 0; lowcase[i]; i++)
         lowcase[i] = tolower(lowcase[i]);

@@ -2,7 +2,7 @@
 #define CXXSTDIO_HPP
 //    cxxstdio.hpp - pass C++ types through scanf/printf
 //
-//    Copyright © 2011-2012 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2011-2013 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -19,15 +19,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "utils2.hpp"
+#include "sanity.hpp"
 
 #include <cstdarg>
 #include <cstdio>
-#include <cstdlib>
 
 #include <string>
 
 #include "const_array.hpp"
+#include "utils2.hpp"
+
 
 namespace cxxstdio
 {
@@ -213,14 +214,7 @@ namespace cxxstdio
         StringConverter(std::string& s)
         : out(s), mid(nullptr)
         {}
-        ~StringConverter()
-        {
-            if (mid)
-            {
-                out = mid;
-                free(mid);
-            }
-        }
+        ~StringConverter();
         char **operator &()
         {
             return &mid;

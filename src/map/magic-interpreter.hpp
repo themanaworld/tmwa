@@ -3,31 +3,10 @@
 
 #include "magic-interpreter.t.hpp"
 
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-
-#include "battle.hpp"
-#include "chat.hpp"
-#include "chrif.hpp"
-#include "clif.hpp"
-#include "intif.hpp"
-#include "itemdb.hpp"
 #include "magic.hpp"
 #include "map.hpp"
-#include "mob.hpp"
-#include "npc.hpp"
-#include "party.hpp"
-#include "pc.hpp"
 #include "script.hpp"
-#include "skill.hpp"
-#include "storage.hpp"
-#include "trade.hpp"
+#include "skill.t.hpp"
 
 struct expr;
 struct val;
@@ -371,7 +350,7 @@ teleport_anchor_t *magic_find_anchor(char *name);
  * The parameter `param' must have been dynamically allocated; ownership is transferred to the resultant env_t.
  */
 env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
-                         character_t *caster, int spellpower, char *param);
+        character_t *caster, int spellpower, char *param);
 
 void magic_free_env(env_t *env);
 
@@ -379,7 +358,7 @@ void magic_free_env(env_t *env);
  * near_miss is set to nonzero iff the spell only failed due to ephemereal issues (spell delay in effect, out of mana, out of components)
  */
 effect_set_t *spell_trigger(spell_t *spell, character_t *caster,
-                             env_t *env, int *near_miss);
+        env_t *env, int *near_miss);
 
 invocation_t *spell_instantiate(effect_set_t *effect, env_t *env);
 

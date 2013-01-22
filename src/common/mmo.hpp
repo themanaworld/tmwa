@@ -2,7 +2,7 @@
 #ifndef MMO_HPP
 #define MMO_HPP
 
-# include <ctime>
+# include "sanity.hpp"
 
 # include "utils.hpp"
 

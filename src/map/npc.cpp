@@ -1,20 +1,16 @@
 #include "npc.hpp"
 
-#include <cctype>
-#include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
-#include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "mob.hpp"

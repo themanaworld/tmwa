@@ -1,11 +1,7 @@
 #include "timer.hpp"
 
-#include <sys/socket.h>
 #include <sys/time.h>
-#include <sys/types.h>
 
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 #include "cxxstdio.hpp"

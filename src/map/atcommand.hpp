@@ -1,7 +1,7 @@
 #ifndef ATCOMMAND_HPP
 #define ATCOMMAND_HPP
 
-#include "map.hpp"
+#include "../common/const_array.hpp"
 
 enum AtCommandType
 {
@@ -187,7 +187,7 @@ typedef struct AtCommandInfo
     const char *command;
     int level;
     int(*proc)(const int, struct map_session_data *,
-                  const char *command, const char *message);
+            const char *command, const char *message);
 } AtCommandInfo;
 
 bool is_atcommand(const int fd, struct map_session_data *sd,

@@ -1,9 +1,8 @@
 #include "party.hpp"
 
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -14,7 +13,6 @@
 #include "intif.hpp"
 #include "map.hpp"
 #include "pc.hpp"
-#include "skill.hpp"
 #include "tmw.hpp"
 
 #include "../poison.hpp"

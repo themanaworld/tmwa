@@ -4,14 +4,15 @@
 #include <cstring>
 
 #include <fstream>
+#include <vector>
 
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/lock.hpp"
-#include "../common/mmo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
+#include "../common/utils.hpp"
 
 #include "char.hpp"
 #include "int_party.hpp"

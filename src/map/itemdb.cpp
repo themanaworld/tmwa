@@ -1,19 +1,13 @@
 #include "itemdb.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
-#include "../common/grfio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-
-#include "battle.hpp"
-#include "map.hpp"
-#include "pc.hpp"
-#include "script.hpp"
 
 #include "../poison.hpp"
 

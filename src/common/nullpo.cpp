@@ -1,7 +1,6 @@
 #include "nullpo.hpp"
 
 #include <cstdio>
-#include <cstring>
 
 #include "../poison.hpp"
 

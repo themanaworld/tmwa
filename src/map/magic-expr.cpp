@@ -1,12 +1,16 @@
+#include "magic-expr-eval.hpp"
 #include "magic-expr.hpp"
+#include "magic-interpreter-aux.hpp"
 
 #include <cmath>
 
 #include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 
+#include "battle.hpp"
+#include "npc.hpp"
+#include "pc.hpp"
 #include "itemdb.hpp"
-#include "magic-expr-eval.hpp"
 
 #include "../poison.hpp"
 

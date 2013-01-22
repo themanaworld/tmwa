@@ -1,19 +1,17 @@
 #include "int_storage.hpp"
 
+#include <cstdlib>
+#include <cstring>
+
+#include <functional>
+#include <fstream>
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/lock.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
-
-#include "char.hpp"
-#include "inter.hpp"
-
-#include <cstdlib>
-#include <cstring>
-
-#include <fstream>
 
 #include "../poison.hpp"
 

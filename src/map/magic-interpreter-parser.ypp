@@ -1,5 +1,5 @@
 %code requires {
-#include "magic-expr.hpp"
+#include "magic-interpreter.hpp"
 }
 %code{
 #include "magic-interpreter-parser.hpp"
@@ -8,7 +8,8 @@
 
 #include "../common/cxxstdio.hpp"
 
-#include "magic-interpreter.hpp"
+#include "itemdb.hpp"
+#include "magic-expr.hpp"
 
 #define YYLEX_PARAM 0, 0
 

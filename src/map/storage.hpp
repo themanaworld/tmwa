@@ -4,8 +4,6 @@
 #ifndef STORAGE_HPP
 #define STORAGE_HPP
 
-#include "../common/mmo.hpp"
-
 int storage_storageopen(struct map_session_data *sd);
 int storage_storageadd(struct map_session_data *sd, int index, int amount);
 int storage_storageget(struct map_session_data *sd, int index, int amount);

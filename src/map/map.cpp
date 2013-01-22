@@ -1,27 +1,27 @@
 #include "map.hpp"
 
+#include <sys/time.h>
+
 #include <netdb.h>
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
 #include <fstream>
 
 #include "../common/core.hpp"
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/grfio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
 #include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
-#include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
 #include "mob.hpp"

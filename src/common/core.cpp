@@ -5,14 +5,12 @@
 #include <unistd.h>
 
 #include <csignal>
-#include <cstdio>
 #include <cstdlib>
+#include <ctime>
 
 #include "mt_rand.hpp"
-#include "nullpo.hpp"
 #include "socket.hpp"
 #include "timer.hpp"
-#include "version.hpp"
 
 #include "../poison.hpp"
 

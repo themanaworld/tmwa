@@ -1,16 +1,12 @@
 #include "battle.hpp"
 
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 #include <fstream>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "clif.hpp"
 #include "itemdb.hpp"

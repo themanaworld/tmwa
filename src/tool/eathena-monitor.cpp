@@ -7,14 +7,12 @@
  * gcc -o eathena-monitor eathena-monitor.c
  */
 
-#include <sys/types.h>
 #include <sys/wait.h>
 
 #include <fcntl.h>
 #include <unistd.h>
 
 #include <csignal>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>

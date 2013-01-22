@@ -1,7 +1,7 @@
 #ifndef NPC_HPP
 #define NPC_HPP
 
-#include "../common/timer.hpp"
+#include <cstdint>
 
 #define START_NPC_NUM 110000000
 
@@ -45,10 +45,10 @@ int npc_event_do_oninit(void);
 int npc_do_ontimer(int, struct map_session_data *, int);
 
 struct argrec;
-int npc_event_doall_l(const char *name, int rid, int argc,
-                        struct argrec *argv);
-int npc_event_do_l(const char *name, int rid, int argc,
-                     struct argrec *argv);
+int npc_event_doall_l(const char *name, int rid,
+        int argc, struct argrec *argv);
+int npc_event_do_l(const char *name, int rid,
+        int argc, struct argrec *argv);
 #define npc_event_doall(name) npc_event_doall_l(name, 0, 0, NULL)
 #define npc_event_do(name) npc_event_do_l(name, 0, 0, NULL)
 

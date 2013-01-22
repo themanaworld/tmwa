@@ -1,8 +1,7 @@
 #ifndef MAGIC_HPP
 #define MAGIC_HPP
 
-#include "clif.hpp"
-#include "intif.hpp"
+#include "skill.t.hpp"
 
 #define MAGIC_CONFIG_FILE "conf/magic.conf"
 

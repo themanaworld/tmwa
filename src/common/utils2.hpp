@@ -1,6 +1,8 @@
 #ifndef UTILS2_HPP
 #define UTILS2_HPP
 
+#include "sanity.hpp"
+
 #include <iterator>
 #include <type_traits>
 

@@ -1,9 +1,9 @@
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
+#include "../common/cxxstdio.hpp"
+
 #include "magic-interpreter.hpp"
+#include "pc.hpp"
 
 #include "../poison.hpp"
 

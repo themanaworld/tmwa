@@ -1,25 +1,20 @@
 #include "skill.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
-#include "intif.hpp"
-#include "itemdb.hpp"
 #include "magic.hpp"
 #include "map.hpp"
 #include "mob.hpp"
-#include "party.hpp"
 #include "pc.hpp"
-#include "script.hpp"
 
 #include "../poison.hpp"
 

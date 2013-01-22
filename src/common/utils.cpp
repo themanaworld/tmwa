@@ -3,10 +3,6 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
 #include <algorithm>
 
 #include "../poison.hpp"

@@ -1,6 +1,5 @@
 #include "int_party.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 

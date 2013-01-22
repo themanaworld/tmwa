@@ -1,9 +1,10 @@
 %{
-#include "magic-interpreter.hpp"
 #include "magic-interpreter-parser.hpp"
 
+#include "../common/cxxstdio.hpp"
+
 #ifdef HEADING
-#  undef HEADING
+# error "what platform is this? please tell me who #defined HEADING"
 #endif
 
 #define FIXLOC magic_frontend_lloc.first_line = magic_frontend_lineno

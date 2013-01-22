@@ -4,14 +4,10 @@
 #include "map.t.hpp"
 
 #include <netinet/in.h>
-#include <sys/time.h>
 
-#include <cstdio>
-#include <ctime>
+#include <functional>
 
-#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
-#include "../common/mmo.hpp"
 #include "../common/timer.hpp"
 
 #include "battle.t.hpp"
@@ -686,12 +682,11 @@ void map_log(const_string line);
 void map_clearflooritem_timer(timer_id, tick_t, custom_id_t, custom_data_t);
 #define map_clearflooritem(id) map_clearflooritem_timer(0,0,id,1)
 int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
-                           struct map_session_data **owners,
-                           int *owner_protection,
-                           int lifetime, int dispersal);
+        struct map_session_data **owners, int *owner_protection,
+        int lifetime, int dispersal);
 int map_addflooritem(struct item *, int, int, int, int,
-                       struct map_session_data *, struct map_session_data *,
-                       struct map_session_data *, int);
+        struct map_session_data *, struct map_session_data *,
+        struct map_session_data *, int);
 
 // キャラid＝＞キャラ名 変換関連
 void map_addchariddb(int charid, const char *name);
@@ -713,10 +708,10 @@ int compare_item(struct item *a, struct item *b);
 
 struct map_session_data *map_get_first_session(void);
 struct map_session_data *map_get_last_session(void);
-struct map_session_data *map_get_next_session(struct map_session_data
-                                               *current);
-struct map_session_data *map_get_prev_session(struct map_session_data
-                                               *current);
+struct map_session_data *map_get_next_session(
+        struct map_session_data *current);
+struct map_session_data *map_get_prev_session(
+        struct map_session_data *current);
 
 // gat関連
 int map_getcell(int, int, int);

@@ -1,31 +1,23 @@
 #include "char.hpp"
 
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 
-#include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
 
-#include <cstdio>
 #include <cstdlib>
-#include <csignal>
 #include <cstring>
 #include <ctime>
 
 #include <fstream>
-#include <algorithm>
 
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
+#include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/lock.hpp"
-#include "../common/mmo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 #include "../common/version.hpp"
@@ -1279,7 +1271,6 @@ void parse_tologin(int fd)
                  fd);
             login_fd = -1;
         }
-        close(fd);
         delete_session(fd);
         return;
     }
@@ -1762,7 +1753,6 @@ void parse_frommap(int fd)
                     online_chars[j] = -1;
             create_online_files(); // update online players files (to remove all online players of this server)
         }
-        close(fd);
         delete_session(fd);
         return;
     }
@@ -2424,7 +2414,6 @@ void parse_char(int fd)
     {                           // disconnect any player (already connected to char-server or coming back from map-server) if login-server is diconnected.
         if (fd == login_fd)
             login_fd = -1;
-        close(fd);
         delete_session(fd);
         return;
     }

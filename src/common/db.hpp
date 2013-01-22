@@ -1,6 +1,7 @@
 // WARNING: there is a system header by this name
 #ifndef DB_HPP
 #define DB_HPP
+
 # include "sanity.hpp"
 
 # include <functional>

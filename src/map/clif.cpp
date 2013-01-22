@@ -1,14 +1,7 @@
 #include "clif.hpp"
 
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 
-#include <unistd.h>
-
-#include <cctype>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -18,22 +11,18 @@
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 #include "../common/version.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "chat.hpp"
 #include "chrif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
 #include "map.hpp"
-#include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
 #include "pc.hpp"
-#include "script.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
 #include "tmw.hpp"
@@ -6140,8 +6129,6 @@ void clif_parse(int fd)
             map_deliddb(&sd->bl);  // account_id has been included in the DB before auth answer
         }
         if (fd)
-            close(fd);
-        if (fd)
             delete_session(fd);
         return;
     }
@@ -6297,24 +6284,8 @@ void clif_parse(int fd)
  */
 int do_init_clif (void)
 {
-    int i;
-
     set_defaultparse(clif_parse);
-    for (i = 0; i < 10; i++)
-    {
-        if (make_listen_port(map_port))
-            break;
-#ifdef LCCWIN32
-        Sleep(20000);
-#else
-        sleep(20);
-#endif
-    }
-    if (i == 10)
-    {
-        PRINTF("cant bind game port\n");
-        exit(1);
-    }
+    make_listen_port(map_port);
 
     return 0;
 }

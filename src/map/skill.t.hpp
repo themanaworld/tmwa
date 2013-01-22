@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-#include "../common/utils.hpp"
+#include "../common/utils2.hpp"
 
 // TODO remove most of these as their corresponding SkillIDs get deleted.
 enum class StatusChange : uint16_t

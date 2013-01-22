@@ -1,17 +1,13 @@
 #ifndef CLIF_HPP
 #define CLIF_HPP
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <functional>
 
 #include "../common/const_array.hpp"
 
+#include "map.t.hpp"
 #include "pc.t.hpp"
-
-#include "map.hpp"
-#include "storage.hpp"
+#include "skill.t.hpp"
 
 void clif_setip(const char *);
 void clif_setport(int);
@@ -33,7 +29,7 @@ int clif_clearchar_id(int, int, int);
 int clif_spawnpc(struct map_session_data *);  //area
 int clif_spawnnpc(struct npc_data *); // area
 int clif_spawn_fake_npc_for_player(struct map_session_data *sd,
-                                     int fake_npc_id);
+        int fake_npc_id);
 int clif_spawnmob(struct mob_data *); // area
 int clif_walkok(struct map_session_data *);   // self
 int clif_movechar(struct map_session_data *); // area
@@ -77,9 +73,9 @@ void clif_sitting(int fd, struct map_session_data *sd);
 int clif_traderequest(struct map_session_data *sd, const char *name);
 int clif_tradestart(struct map_session_data *sd, int type);
 int clif_tradeadditem(struct map_session_data *sd,
-                        struct map_session_data *tsd, int index, int amount);
+        struct map_session_data *tsd, int index, int amount);
 int clif_tradeitemok(struct map_session_data *sd, int index, int amount,
-                       int fail);
+        int fail);
 int clif_tradedeal_lock(struct map_session_data *sd, int fail);
 int clif_tradecancelled(struct map_session_data *sd);
 int clif_tradecompleted(struct map_session_data *sd, int fail);
@@ -87,13 +83,13 @@ int clif_tradecompleted(struct map_session_data *sd, int fail);
 // storage
 int clif_storageitemlist(struct map_session_data *sd, struct storage *stor);
 int clif_storageequiplist(struct map_session_data *sd,
-                            struct storage *stor);
+        struct storage *stor);
 int clif_updatestorageamount(struct map_session_data *sd,
-                               struct storage *stor);
+        struct storage *stor);
 int clif_storageitemadded(struct map_session_data *sd, struct storage *stor,
-                            int index, int amount);
+        int index, int amount);
 int clif_storageitemremoved(struct map_session_data *sd, int index,
-                              int amount);
+        int amount);
 int clif_storageclose(struct map_session_data *sd);
 
 // map_forallinmovearea callbacks
@@ -103,16 +99,16 @@ void clif_mobinsight(struct block_list *, struct mob_data *);
 void clif_moboutsight(struct block_list *, struct mob_data *);
 
 int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
-                     int range);
+        int range);
 int clif_skillinfoblock(struct map_session_data *sd);
 int clif_skillup(struct map_session_data *sd, SkillID skill_num);
 
 int clif_skillcastcancel(struct block_list *bl);
 int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
-                      int btype);
+        int btype);
 int clif_skill_damage(struct block_list *src, struct block_list *dst,
-                        unsigned int tick, int sdelay, int ddelay, int damage,
-                        int div, SkillID skill_id, int skill_lv, int type);
+        unsigned int tick, int sdelay, int ddelay, int damage,
+        int div, SkillID skill_id, int skill_lv, int type);
 
 int clif_status_change(struct block_list *bl,
         StatusChange type, int flag);
@@ -131,12 +127,12 @@ int clif_movetoattack(struct map_session_data *sd, struct block_list *bl);
 int clif_party_created(struct map_session_data *sd, int flag);
 int clif_party_info(struct party *p, int fd);
 int clif_party_invite(struct map_session_data *sd,
-                        struct map_session_data *tsd);
+        struct map_session_data *tsd);
 int clif_party_inviteack(struct map_session_data *sd, const char *nick, int flag);
 int clif_party_option(struct party *p, struct map_session_data *sd,
-                        int flag);
+        int flag);
 int clif_party_leaved(struct party *p, struct map_session_data *sd,
-                        int account_id, const char *name, int flag);
+        int account_id, const char *name, int flag);
 int clif_party_message(struct party *p, int account_id, const char *mes, int len);
 int clif_party_xy(struct party *p, struct map_session_data *sd);
 int clif_party_hp(struct party *p, struct map_session_data *sd);
@@ -150,7 +146,7 @@ int clif_specialeffect(struct block_list *bl, int type, int flag);    // special
 int clif_message(struct block_list *bl, const char *msg);   // messages (from mobs/npcs) [Valaris]
 
 int clif_GM_kick(struct map_session_data *sd, struct map_session_data *tsd,
-                   int type);
+        int type);
 
 int clif_foreachclient(std::function<void(struct map_session_data *)>);
 

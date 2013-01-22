@@ -1,6 +1,10 @@
 #ifndef MAGIC_EXPR_EVAL_HPP
 #define MAGIC_EXPR_EVAL_HPP
 
+#include "../common/utils2.hpp"
+
+#include "magic-interpreter.hpp"
+
 /* Helper definitions for dealing with functions and operations */
 
 static
@@ -11,10 +15,10 @@ earray<int, DIR, DIR::COUNT> heading_y //=
 {{ 1, 1, 0, -1, -1, -1, 0, 1 }};
 
 int magic_signature_check(const char *opname, const char *funname, const char *signature,
-                           int args_nr, val_t *args, int line, int column);
+        int args_nr, val_t *args, int line, int column);
 
 void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
-                 area_t *area);
+        area_t *area);
 
 #define ARGINT(x) args[x].v.v_int
 #define ARGDIR(x) args[x].v.v_dir

@@ -33,6 +33,7 @@
 # define constexpr /* nothing */
 #endif
 
+// TODO see if I ever actually use this, and not the subclass
 template<class T>
 class const_array
 {

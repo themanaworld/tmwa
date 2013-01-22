@@ -3,19 +3,17 @@
 
 #include "storage.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
 
-#include "atcommand.hpp"
-#include "battle.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
+#include "map.hpp"
 #include "pc.hpp"
 
 #include "../poison.hpp"

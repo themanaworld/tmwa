@@ -3,10 +3,7 @@
 
 #include "skill.t.hpp"
 
-#include "../common/timer.hpp"
-
 #include "map.hpp"
-#include "magic.hpp"
 
 #define MAX_SKILL_PRODUCE_DB     150
 #define MAX_SKILL_ARROW_DB       150
@@ -80,23 +77,23 @@ int skill_get_blewcount(SkillID id, int lv);
 int skill_use_id(struct map_session_data *sd, int target_id,
         SkillID skill_num, int skill_lv);
 int skill_use_pos(struct map_session_data *sd,
-                    int skill_x, int skill_y, SkillID skill_num, int skill_lv);
+        int skill_x, int skill_y, SkillID skill_num, int skill_lv);
 
 int skill_castend_map(struct map_session_data *sd, SkillID skill_num,
-                        const char *map);
+        const char *map);
 
 int skill_cleartimerskill(struct block_list *src);
 
 // 追加効果
 int skill_additional_effect(struct block_list *src, struct block_list *bl,
-                              SkillID skillid, int skilllv, BF attack_type,
-                              unsigned int tick);
+        SkillID skillid, int skilllv, BF attack_type,
+        unsigned int tick);
 
 int skill_delunit(struct skill_unit *unit);
 int skill_clear_unitgroup(struct block_list *src);
 
 int skill_unit_ondamaged(struct skill_unit *src, struct block_list *bl,
-                           int damage, unsigned int tick);
+        int damage, unsigned int tick);
 
 int skill_castfix(struct block_list *bl, int time);
 int skill_delayfix(struct block_list *bl, int time);
@@ -104,8 +101,8 @@ int skill_check_unit_range(int m, int x, int y, int range, SkillID skillid);
 int skill_check_unit_range2(int m, int x, int y, int range);
 int skill_unit_out_all(struct block_list *bl, unsigned int tick, int range);
 int skill_unit_move(struct block_list *bl, unsigned int tick, int range);
-int skill_unit_move_unit_group(struct skill_unit_group *group, int m,
-                                 int dx, int dy);
+int skill_unit_move_unit_group(struct skill_unit_group *group,
+        int m, int dx, int dy);
 
 void skill_stop_dancing(struct block_list *src, int flag);
 

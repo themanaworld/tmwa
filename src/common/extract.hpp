@@ -1,8 +1,8 @@
 #ifndef EXTRACT_HPP
 #define EXTRACT_HPP
-//    extract.hpp - a simple, heirarchail, tokenizer
+//    extract.hpp - a simple, hierarchical, tokenizer
 //
-//    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2012-2013 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -18,6 +18,8 @@
 //
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+#include "sanity.hpp"
 
 #include <algorithm>
 
@@ -70,19 +72,9 @@ bool extract(const_string str, T *iv)
     return true;
 }
 
-inline
-bool extract(const_string str, const_string *rv)
-{
-    *rv = str;
-    return true;
-}
+bool extract(const_string str, const_string *rv);
 
-inline
-bool extract(const_string str, std::string *rv)
-{
-    *rv = std::string(str.begin(), str.end());
-    return true;
-}
+bool extract(const_string str, std::string *rv);
 
 template<size_t N>
 __attribute__((deprecated))
@@ -160,42 +152,8 @@ bool extract(const_string str, VRecord<split, T> rec)
         && extract(const_string(s + 1, str.end()), rec);
 }
 
-inline
-bool extract(const_string str, struct global_reg *var)
-{
-    return extract(str,
-            record<','>(&var->str, &var->value));
-}
+bool extract(const_string str, struct global_reg *var);
 
-inline
-bool extract(const_string str, struct item *it)
-{
-    return extract(str,
-            record<','>(
-                &it->id,
-                &it->nameid,
-                &it->amount,
-                &it->equip,
-                &it->identify,
-                &it->refine,
-                &it->attribute,
-                &it->card[0],
-                &it->card[1],
-                &it->card[2],
-                &it->card[3],
-                &it->broken))
-        || extract(str,
-            record<','>(
-                &it->id,
-                &it->nameid,
-                &it->amount,
-                &it->equip,
-                &it->identify,
-                &it->refine,
-                &it->attribute,
-                &it->card[0],
-                &it->card[1],
-                &it->card[2],
-                &it->card[3]));
-}
+bool extract(const_string str, struct item *it);
+
 #endif // EXTRACT_HPP

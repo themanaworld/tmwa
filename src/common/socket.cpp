@@ -1,21 +1,19 @@
 #include "socket.hpp"
 
-#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
+//#include <sys/types.h>
 
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <cerrno>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 
 #include "cxxstdio.hpp"
-#include "mmo.hpp"
+//#include "mmo.hpp"
 #include "utils.hpp"
 
 #include "../poison.hpp"

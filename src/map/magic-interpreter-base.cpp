@@ -1,7 +1,11 @@
-#include "magic.hpp"
-#include "magic-expr.hpp"
-#include "magic-interpreter.hpp"
 #include "magic-interpreter-aux.hpp"
+#include "magic-interpreter.hpp"
+
+#include "../common/cxxstdio.hpp"
+
+#include "magic-expr.hpp"
+
+#include "pc.hpp"
 
 #include "../poison.hpp"
 

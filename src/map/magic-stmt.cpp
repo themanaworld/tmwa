@@ -5,6 +5,13 @@
 #include "magic-interpreter.hpp"
 #include "magic-interpreter-aux.hpp"
 
+#include "battle.hpp"
+#include "clif.hpp"
+#include "mob.hpp"
+#include "npc.hpp"
+#include "pc.hpp"
+#include "skill.hpp"
+
 #include "../poison.hpp"
 
 #define INVISIBLE_NPC 127       /* used for local spell effects */

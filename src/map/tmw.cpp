@@ -3,28 +3,16 @@
 #include <cctype>
 #include <cstring>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/version.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
-#include "itemdb.hpp"
-#include "magic.hpp"
 #include "map.hpp"
-#include "mob.hpp"
-#include "npc.hpp"
-#include "party.hpp"
 #include "pc.hpp"
-#include "script.hpp"
-#include "skill.hpp"
-#include "storage.hpp"
-#include "trade.hpp"
 
 #include "../poison.hpp"
 

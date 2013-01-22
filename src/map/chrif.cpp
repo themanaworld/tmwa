@@ -1,21 +1,13 @@
 #include "chrif.hpp"
 
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 
-#include <unistd.h>
-
-#include <cstdio>
-#include <cstdlib>
 #include <cstring>
-#include <ctime>
 
 #include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
+#include "../common/utils.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
@@ -24,6 +16,7 @@
 #include "map.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
+#include "storage.hpp"
 
 #include "../poison.hpp"
 
@@ -1056,7 +1049,6 @@ void chrif_parse(int fd)
                  fd);
             char_fd = -1;
         }
-        close(fd);
         delete_session(fd);
         return;
     }

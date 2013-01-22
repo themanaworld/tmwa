@@ -4,11 +4,9 @@
 #include <sys/stat.h>
 
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 
 #include "cxxstdio.hpp"
-#include "mmo.hpp"
 #include "socket.hpp"
 #include "utils.hpp"
 

@@ -1,7 +1,4 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
+#include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
 
 #include "battle.hpp"

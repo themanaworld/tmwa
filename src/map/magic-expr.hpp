@@ -2,7 +2,6 @@
 #define MAGIC_EXPR_HPP
 
 #include "magic-interpreter.hpp"
-#include "magic-interpreter-aux.hpp"
 
 /*
  * Argument types:

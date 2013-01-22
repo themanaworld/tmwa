@@ -47,8 +47,9 @@ bool pc_is90overweight(struct map_session_data *sd)
     return sd->weight*10 >= sd->max_weight*9;
 }
 
-void pc_touch_all_relevant_npcs(struct map_session_data *sd);  /* Checks all npcs/warps at the same location to see whether they
-                                                                 ** should do something with the specified player. */
+// Checks all npcs/warps at the same location to see whether they
+// should do something with the specified player.
+void pc_touch_all_relevant_npcs(struct map_session_data *sd);
 
 int pc_isGM(struct map_session_data *sd);
 int pc_iskiller(struct map_session_data *src, struct map_session_data *target);   // [MouseJstr]
@@ -86,8 +87,8 @@ int pc_getzeny(struct map_session_data *, int);
 int pc_delitem(struct map_session_data *, int, int, int);
 int pc_checkitem(struct map_session_data *);
 int pc_count_all_items(struct map_session_data *player, int item_id);
-int pc_remove_items(struct map_session_data *player, int item_id,
-                      int count);
+int pc_remove_items(struct map_session_data *player,
+        int item_id, int count);
 
 int pc_takeitem(struct map_session_data *, struct flooritem_data *);
 int pc_dropitem(struct map_session_data *, int, int);
@@ -147,17 +148,17 @@ int pc_readaccountreg2(struct map_session_data *, const char *);
 int pc_setaccountreg2(struct map_session_data *, const char *, int);
 
 int pc_addeventtimer(struct map_session_data *sd, int tick,
-                       const char *name);
+        const char *name);
 int pc_deleventtimer(struct map_session_data *sd, const char *name);
 int pc_cleareventtimer(struct map_session_data *sd);
 int pc_addeventtimercount(struct map_session_data *sd, const char *name,
-                            int tick);
+        int tick);
 
 int pc_calc_pvprank(struct map_session_data *sd);
 void pc_calc_pvprank_timer(timer_id, tick_t, custom_id_t, custom_data_t);
 
 int pc_marriage(struct map_session_data *sd,
-                  struct map_session_data *dstsd);
+        struct map_session_data *dstsd);
 int pc_divorce(struct map_session_data *sd);
 struct map_session_data *pc_get_partner(struct map_session_data *sd);
 int pc_set_gm_level(int account_id, int level);

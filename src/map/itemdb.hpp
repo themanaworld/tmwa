@@ -1,7 +1,9 @@
 #ifndef ITEMDB_HPP
 #define ITEMDB_HPP
 
-#include "map.hpp"
+#include "../common/mmo.hpp"
+
+#include "map.t.hpp"
 #include "script.hpp"
 
 struct item_data

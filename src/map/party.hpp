@@ -18,17 +18,17 @@ int party_invite(struct map_session_data *sd, int account_id);
 int party_member_added(int party_id, int account_id, int flag);
 int party_leave(struct map_session_data *sd);
 int party_removemember(struct map_session_data *sd, int account_id,
-                         const char *name);
+        const char *name);
 int party_member_leaved(int party_id, int account_id, const char *name);
 int party_reply_invite(struct map_session_data *sd, int account_id,
-                         int flag);
+        int flag);
 int party_recv_noinfo(int party_id);
 int party_recv_info(const struct party *sp);
-int party_recv_movemap(int party_id, int account_id, const char *map, int online,
-                         int lv);
+int party_recv_movemap(int party_id, int account_id, const char *map,
+        int online, int lv);
 int party_broken(int party_id);
 int party_optionchanged(int party_id, int account_id, int exp, int item,
-                          int flag);
+        int flag);
 int party_changeoption(struct map_session_data *sd, int exp, int item);
 
 int party_send_movemap(struct map_session_data *sd);
@@ -43,6 +43,6 @@ void party_send_hp_check(struct block_list *bl, int party_id, int *flag);
 int party_exp_share(struct party *p, int map, int base_exp, int job_exp);
 
 void party_foreachsamemap(std::function<void(struct block_list *)> func,
-                           struct map_session_data *sd, int type);
+        struct map_session_data *sd, int type);
 
 #endif // PARTY_HPP

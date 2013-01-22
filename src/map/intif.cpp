@@ -1,23 +1,11 @@
 #include "intif.hpp"
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
-
-#include <fcntl.h>
-#include <unistd.h>
-
-#include <csignal>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"

@@ -1,7 +1,7 @@
 #ifndef MAGIC_INTERPRETER_T_HPP
 #define MAGIC_INTERPRETER_T_HPP
 
-#include "../common/utils.hpp"
+#include "../common/utils2.hpp"
 
 enum class SPELLARG : uint8_t
 {

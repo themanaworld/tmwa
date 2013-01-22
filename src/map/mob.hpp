@@ -3,6 +3,7 @@
 
 #include "mob.t.hpp"
 
+#include "../common/mmo.hpp"
 #include "../common/timer.hpp"
 
 #include "map.hpp"
@@ -61,15 +62,17 @@ extern struct mob_db mob_db[];
 
 int mobdb_searchname(const char *str);
 int mobdb_checkid(const int id);
-int mob_once_spawn(struct map_session_data *sd, const char *mapname,
-                     int x, int y, const char *mobname, int class_, int amount,
-                     const char *event);
-int mob_once_spawn_area(struct map_session_data *sd, const char *mapname, int x0,
-                          int y0, int x1, int y1, const char *mobname,
-                          int class_, int amount, const char *event);
+int mob_once_spawn(struct map_session_data *sd,
+        const char *mapname, int x, int y,
+        const char *mobname, int class_, int amount, const char *event);
+int mob_once_spawn_area(struct map_session_data *sd,
+        const char *mapname, int x0, int y0, int x1, int y1,
+        const char *mobname, int class_, int amount, const char *event);
 
-int mob_spawn_guardian(struct map_session_data *sd, const char *mapname,    // Spawning Guardians [Valaris]
-                         int x, int y, const char *mobname, int class_, int amount, const char *event, int guardian);    // Spawning Guardians [Valaris]
+int mob_spawn_guardian(struct map_session_data *sd,
+        const char *mapname, int x, int y,
+        const char *mobname, int class_, int amount,
+        const char *event, int guardian);    // Spawning Guardians [Valaris]
 
 int mob_target(struct mob_data *md, struct block_list *bl, int dist);
 int mob_stop_walking(struct mob_data *md, int type);

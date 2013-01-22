@@ -1,33 +1,20 @@
-#include "ladmin.hpp"
-
 #include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <sys/types.h>
 
-#include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
-
-#include <cctype>
-#include <csignal>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
 
 #include <fstream>
 
 #include "../common/cxxstdio.hpp"
 #include "../common/core.hpp"
 #include "../common/md5calc.hpp"
-#include "../common/mmo.hpp"
 #include "../common/socket.hpp"
 #include "../common/version.hpp"
+#include "../common/utils.hpp"
 
 #include "../poison.hpp"
+
+#define LADMIN_CONF_NAME        "conf/ladmin_athena.conf"
 
 static
 int eathena_interactive_session;
@@ -2716,7 +2703,6 @@ void parse_fromlogin(int fd)
              loginserverip, loginserverport);
         LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n",
               loginserverip, loginserverport);
-        close(fd);
         delete_session(fd);
         exit(0);
     }

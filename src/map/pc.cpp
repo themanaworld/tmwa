@@ -1,16 +1,12 @@
 #include "pc.hpp"
 
-#include <cctype>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 
-#include "../common/db.hpp"
+#include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -19,6 +15,7 @@
 #include "clif.hpp"
 #include "intif.hpp"
 #include "itemdb.hpp"
+#include "magic.hpp"
 #include "map.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
@@ -215,7 +212,6 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
     EPOS::ARROW,
 }};
 
-//static struct dbt *gm_account_db;
 static
 struct gm_account *gm_account = NULL;
 static
@@ -237,15 +233,9 @@ void pc_setdead(struct map_session_data *sd)
 
 int pc_isGM(struct map_session_data *sd)
 {
-//  struct gm_account *p;
     int i;
 
     nullpo_ret(sd);
-
-/*      p = numdb_search(gm_account_db, sd->status.account_id);
-        if (p == NULL)
-                return 0;
-        return p->level;*/
 
     for (i = 0; i < GM_num; i++)
         if (gm_account[i].account_id == sd->status.account_id)
@@ -6884,8 +6874,6 @@ int pc_calc_sigma(void)
 int do_init_pc(void)
 {
     pc_calc_sigma();
-
-//  gm_account_db = numdb_init();
 
     add_timer_interval((natural_heal_prev_tick =
                          gettick() + NATURAL_HEAL_INTERVAL), pc_natural_heal,

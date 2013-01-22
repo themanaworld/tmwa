@@ -25,7 +25,7 @@
 
 /// Used by macros in this header
 bool nullpo_chk(const char *file, int line, const char *func,
-                 const void *target);
+        const void *target);
 
 /// Used only by map/battle.c
 void nullpo_info(const char *file, int line, const char *func);

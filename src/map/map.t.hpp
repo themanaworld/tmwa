@@ -2,7 +2,7 @@
 #define MAP_T_HPP
 
 #include "../common/mmo.hpp"
-#include "../common/utils.hpp"
+#include "../common/utils2.hpp"
 
 namespace e
 {

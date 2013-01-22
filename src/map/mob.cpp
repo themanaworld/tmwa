@@ -1,19 +1,16 @@
 #include "mob.hpp"
 
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#include "../common/db.hpp"
+#include "../common/cxxstdio.hpp"
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
-#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
-#include "intif.hpp"
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "npc.hpp"

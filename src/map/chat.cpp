@@ -1,13 +1,10 @@
 #include "chat.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#include "../common/db.hpp"
 #include "../common/nullpo.hpp"
 
-#include "clif.hpp"
 #include "map.hpp"
 #include "npc.hpp"
 #include "pc.hpp"
