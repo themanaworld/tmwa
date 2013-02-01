@@ -5713,7 +5713,7 @@ int atcommand_character_item_list(const int fd, struct map_session_data *sd,
                     if (!output.empty())
                     {
                         // replace trailing ", "
-#ifdef ANNOYING_GCC46_WORKAROUNDS
+#ifdef WORKAROUND_GCC46_LIBRARY
                         output.resize(output.size() - 1);
 #else
                         output.pop_back();
@@ -5838,7 +5838,7 @@ int atcommand_character_storage_list(const int fd, struct map_session_data *sd,
                         if (!output.empty())
                         {
                             // replace last ", "
-#ifdef ANNOYING_GCC46_WORKAROUNDS
+#ifdef WORKAROUND_GCC46_LIBRARY
                             output.resize(output.size() - 1);
 #else
                             output.pop_back();
@@ -5967,7 +5967,7 @@ int atcommand_character_cart_list(const int fd, struct map_session_data *sd,
                     }
                     if (!output.empty())
                     {
-#ifdef ANNOYING_GCC46_WORKAROUNDS
+#ifdef WORKAROUND_GCC46_LIBRARY
                         output.resize(output.size() - 1);
 #else
                         output.pop_back();

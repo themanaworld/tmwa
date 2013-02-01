@@ -595,7 +595,7 @@ int mmo_auth_init(void)
             continue;
         if (line.back() == '\r')
         {
-#ifdef ANNOYING_GCC46_WORKAROUNDS
+#ifdef WORKAROUND_GCC46_LIBRARY
             line.resize(line.size() - 1);
 #else
             line.pop_back();

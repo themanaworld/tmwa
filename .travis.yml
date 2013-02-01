@@ -14,7 +14,7 @@ notifications:
   irc:
     # TMW irc doesn't work for some reason; freenode does ...
     # I'm leaving it like this because it's what I'd like to use.
-    channels:   "irc.themanaworld.org#tmw-dev"
+    channels:   "chat.freenode.net#tmwa"
     on_success: always
     on_failure: always
 

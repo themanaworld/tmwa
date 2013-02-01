@@ -28,7 +28,7 @@
 #include <string>
 #include <vector>
 
-#ifdef ANNOYING_GCC46_WORKAROUNDS
+#ifdef WORKAROUND_GCC46_COMPILER
 // constexpr is buggy with templates in this version
 # define constexpr /* nothing */
 #endif
@@ -161,7 +161,7 @@ public:
     : const_array<char>(a)
     {}
 };
-#ifdef ANNOYING_GCC46_WORKAROUNDS
+#ifdef WORKAROUND_GCC46_COMPILER
 # undef constexpr
 #endif
 
