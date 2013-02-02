@@ -613,9 +613,7 @@ int mob_can_move(struct mob_data *md)
         || bool(md->option & Option::HIDE2))
         return 0;
     // アンクル中で動けないとか
-    if (md->sc_data[SC_ANKLE].timer != -1 ||    //アンクルスネア
-        md->sc_data[SC_SPIDERWEB].timer != -1   //スパイダーウェッブ
-        )
+    if (md->sc_data[SC_ANKLE].timer != -1)
         return 0;
 
     return 1;
@@ -818,9 +816,9 @@ int mob_check_attack(struct mob_data *md)
     }
     if (tsd
         && !bool(mode & MobMode::BOSS)
-        && (tsd->sc_data[SC_TRICKDEAD].timer != -1
-            || ((pc_ishiding(tsd) || tsd->state.gangsterparadise)
-                && race != 4 && race != 6)))
+        && ((pc_ishiding(tsd) || tsd->state.gangsterparadise)
+            && race != 4
+            && race != 6))
     {
         md->target_id = 0;
         md->state.attackable = false;
@@ -878,10 +876,6 @@ int mob_attack(struct mob_data *md, unsigned int tick, int)
         map_foreachinarea(std::bind(mob_ancillary_attack, ph::_1, &md->bl, tbl, tick),
             tbl->m, tbl->x - radius, tbl->y - radius,
             tbl->x + radius, tbl->y + radius, BL_PC);
-
-    if (!(battle_config.monster_cloak_check_type & 2)
-        && md->sc_data[SC_CLOAKING].timer != -1)
-        skill_status_change_end(&md->bl, SC_CLOAKING, -1);
 
     md->attackabletime = tick + battle_get_adelay(&md->bl);
 
@@ -1451,10 +1445,9 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
 
     // Coercion is exerted if it is MVPMOB.
     if (bool(mode & MobMode::BOSS)
-        || (sc_data && sc_data[SC_TRICKDEAD].timer == -1
-            && ((option != NULL && !bool(*option & (Option::CLOAK | Option::HIDE2)))
-                || race == 4
-                || race == 6)))
+        || ((option != NULL && !bool(*option & (Option::CLOAK | Option::HIDE2)))
+            || race == 4
+            || race == 6))
     {
         if (bl->type == BL_PC)
         {
@@ -1525,10 +1518,10 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
              distance(smd->bl.x, smd->bl.y, tsd->bl.x, tsd->bl.y)) < 9)
         {
             if (bool(mode & MobMode::BOSS)
-                || (tsd->sc_data[SC_TRICKDEAD].timer == -1
-                    && ((!pc_ishiding(tsd)
-                            && !tsd->state.gangsterparadise)
-                        || race == 4 || race == 6)))
+                || ((!pc_ishiding(tsd)
+                        && !tsd->state.gangsterparadise)
+                    || race == 4
+                    || race == 6))
             {                   // 妨害がないか判定
                 if (mob_can_reach(smd, bl, 12) &&  // 到達可能性判定
                     MRAND(1000) < 1000 / (++(*pcc)))
@@ -1741,10 +1734,10 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
         {
 
             race = mob_db[md->mob_class].race;
-            if (bool(mode & MobMode::BOSS) ||
-                (sd->sc_data[SC_TRICKDEAD].timer == -1 &&
-                 ((!pc_ishiding(sd) && !sd->state.gangsterparadise)
-                  || race == 4 || race == 6)))
+            if (bool(mode & MobMode::BOSS)
+                || ((!pc_ishiding(sd) && !sd->state.gangsterparadise)
+                    || race == 4
+                    || race == 6))
             {                   // 妨害がないか判定
 
                 md->target_id = sd->bl.id;
@@ -1755,24 +1748,6 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, unsigned int tick)
             }
         }
     }
-
-    // There is the master, the master locks a target and he does not lock.
-/*      if ((md->target_id>0 && mmd->state.attackable) && (!mmd->target_id || !mmd->state.attackable) ){
-                struct map_session_data *sd=map_id2sd(md->target_id);
-                if (sd!=NULL && !pc_isdead(sd) && sd->invincible_timer == -1 && !pc_isinvisible(sd)){
-
-                        race=mob_db[mmd->mob_class].race;
-                        if (mode&0x20 ||
-                                (sd->sc_data[SC_TRICKDEAD].timer == -1 &&
-                                (!(sd->status.option&0x06) || race==4 || race==6)
-                                ) ){    // It judges whether there is any disturbance.
-
-                                mmd->target_id=sd->bl.id;
-                                mmd->state.attackable = true;
-                                mmd->min_chase=5+distance(mmd->bl.x,mmd->bl.y,sd->bl.x,sd->bl.y);
-                        }
-                }
-        }*/
 
     return 0;
 }
@@ -1992,11 +1967,9 @@ void mob_ai_sub_hard(struct block_list *bl, unsigned int tick)
                                   tbl->y)) >= md->min_chase)
                     mob_unlocktarget(md, tick);    // 別マップか、視界外
                 else if (tsd && !bool(mode & MobMode::BOSS)
-                         && (tsd->sc_data[SC_TRICKDEAD].timer != -1
-                             ||
-                             ((pc_ishiding(tsd)
+                         && ((pc_ishiding(tsd)
                                || tsd->state.gangsterparadise) && race != 4
-                              && race != 6)))
+                              && race != 6))
                     mob_unlocktarget(md, tick);    // スキルなどによる策敵妨害
                 else if (!battle_check_range(&md->bl, tbl, mob_db[md->mob_class].range))
                 {
@@ -2536,8 +2509,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
         return 0;
     }
 
-    if (md->sc_data[SC_ENDURE].timer == -1)
-        mob_stop_walking(md, 3);
+    mob_stop_walking(md, 3);
     if (damage > max_hp >> 2)
         skill_stop_dancing(&md->bl, 0);
 
@@ -2629,8 +2601,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     if (bool(md->option & Option::HIDE2))
         skill_status_change_end(&md->bl, SC_HIDING, -1);
-    if (bool(md->option & Option::CLOAK))
-        skill_status_change_end(&md->bl, SC_CLOAKING, -1);
 
     if (md->hp > 0)
     {
@@ -3344,12 +3314,7 @@ void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_
 
     md->skilltimer = -1;
 
-    if (bool(md->opt1)
-        || md->sc_data[SC_DIVINA].timer != -1
-        || md->sc_data[SC_ROKISWEIL].timer != -1
-        || md->sc_data[SC_STEELBODY].timer != -1)
-        return;
-    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+    if (bool(md->opt1))
         return;
 
     if (md->skillid != NPC_EMOTION)
@@ -3421,12 +3386,7 @@ void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data
 
     md->skilltimer = -1;
 
-    if (bool(md->opt1)
-        || md->sc_data[SC_DIVINA].timer != -1
-        || md->sc_data[SC_ROKISWEIL].timer != -1
-        || md->sc_data[SC_STEELBODY].timer != -1)
-        return;
-    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+    if (bool(md->opt1))
         return;
 
     if (battle_config.monster_land_skill_limit == 1)
@@ -3484,12 +3444,7 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    if (bool(md->opt1)
-        || md->sc_data[SC_DIVINA].timer != -1
-        || md->sc_data[SC_ROKISWEIL].timer != -1
-        || md->sc_data[SC_STEELBODY].timer != -1)
-        return 0;
-    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+    if (bool(md->opt1))
         return 0;
 
     if (bool(md->option & Option::HIDE2))
@@ -3526,10 +3481,6 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
     md->skillid = skill_id;
     md->skilllv = skill_lv;
     md->skillidx = skill_idx;
-
-    if (!(battle_config.monster_cloak_check_type & 2)
-        && md->sc_data[SC_CLOAKING].timer != -1)
-        skill_status_change_end(&md->bl, SC_CLOAKING, -1);
 
     if (casttime > 0)
     {
@@ -3568,12 +3519,7 @@ int mobskill_use_pos(struct mob_data *md,
     SkillID skill_id = ms->skill_id;
     skill_lv = ms->skill_lv;
 
-    if (bool(md->opt1)
-        || md->sc_data[SC_DIVINA].timer != -1
-        || md->sc_data[SC_ROKISWEIL].timer != -1
-        || md->sc_data[SC_STEELBODY].timer != -1)
-        return 0;
-    if (md->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+    if (bool(md->opt1))
         return 0;
 
     if (bool(md->option & Option::HIDE2))
@@ -3609,9 +3555,6 @@ int mobskill_use_pos(struct mob_data *md,
     md->skillid = skill_id;
     md->skilllv = skill_lv;
     md->skillidx = skill_idx;
-    if (!(battle_config.monster_cloak_check_type & 2)
-        && md->sc_data[SC_CLOAKING].timer != -1)
-        skill_status_change_end(&md->bl, SC_CLOAKING, -1);
     if (casttime > 0)
     {
         md->skilltimer =

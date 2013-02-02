@@ -126,7 +126,6 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
 int skill_status_change_start(struct block_list *bl, StatusChange type,
         int val1, int val2, int val3, int val4, int tick, int flag);
 int skill_status_change_active(struct block_list *bl, StatusChange type);  // [fate]
-int skill_encchant_eremental_end(struct block_list *bl, StatusChange type);
 int skill_status_change_end(struct block_list *bl, StatusChange type, int tid);
 int skill_status_change_clear(struct block_list *bl, int type);
 

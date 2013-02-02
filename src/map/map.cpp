@@ -1083,9 +1083,6 @@ int map_quit(struct map_session_data *sd)
     skill_castcancel(&sd->bl, 0);  // 詠唱を中断する
     skill_stop_dancing(&sd->bl, 1);    // ダンス/演奏中断
 
-    if (sd->sc_data[SC_BERSERK].timer != -1) //バーサーク中の終了はHPを100に
-        sd->status.hp = 100;
-
     skill_status_change_clear(&sd->bl, 1); // ステータス異常を解除する
     skill_clear_unitgroup(&sd->bl);    // スキルユニットグループの削除
     skill_cleartimerskill(&sd->bl);

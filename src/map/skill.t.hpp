@@ -28,292 +28,67 @@ enum class StatusChange : uint16_t
 #define CLIF_OPTION_SC_SCRIBE StatusChange::CLIF_OPTION_SC_SCRIBE
 
     // the rest are the normal effects
-    SC_PROVOKE          = 0,
-#define SC_PROVOKE StatusChange::SC_PROVOKE
-    SC_ENDURE           = 1,
-#define SC_ENDURE StatusChange::SC_ENDURE
-    SC_TWOHANDQUICKEN   = 2,
-#define SC_TWOHANDQUICKEN StatusChange::SC_TWOHANDQUICKEN
-    SC_CONCENTRATE      = 3,
-#define SC_CONCENTRATE StatusChange::SC_CONCENTRATE
-    SC_HIDING           = 4,
+    SC_HIDING           = 4,    // ? (opt) ?bad
 #define SC_HIDING StatusChange::SC_HIDING
-    SC_CLOAKING         = 5,
-#define SC_CLOAKING StatusChange::SC_CLOAKING
-    SC_ENCPOISON        = 6,
-#define SC_ENCPOISON StatusChange::SC_ENCPOISON
-    SC_POISONREACT      = 7,
-#define SC_POISONREACT StatusChange::SC_POISONREACT
-    SC_QUAGMIRE         = 8,
-#define SC_QUAGMIRE StatusChange::SC_QUAGMIRE
-    SC_ANGELUS          = 9,
-#define SC_ANGELUS StatusChange::SC_ANGELUS
-    SC_BLESSING         = 10,
-#define SC_BLESSING StatusChange::SC_BLESSING
-    SC_SIGNUMCRUCIS     = 11,
-#define SC_SIGNUMCRUCIS StatusChange::SC_SIGNUMCRUCIS
-    SC_INCREASEAGI      = 12,
-#define SC_INCREASEAGI StatusChange::SC_INCREASEAGI
-    SC_DECREASEAGI      = 13,
-#define SC_DECREASEAGI StatusChange::SC_DECREASEAGI
-    SC_SLOWPOISON       = 14,   //
+
+    SC_SLOWPOISON       = 14,   // item script
 #define SC_SLOWPOISON StatusChange::SC_SLOWPOISON
-    SC_IMPOSITIO        = 15,
-#define SC_IMPOSITIO StatusChange::SC_IMPOSITIO
-    SC_SUFFRAGIUM       = 16,
-#define SC_SUFFRAGIUM StatusChange::SC_SUFFRAGIUM
-    SC_ASPERSIO         = 17,
-#define SC_ASPERSIO StatusChange::SC_ASPERSIO
-    SC_BENEDICTIO       = 18,
-#define SC_BENEDICTIO StatusChange::SC_BENEDICTIO
-    SC_KYRIE            = 19,
-#define SC_KYRIE StatusChange::SC_KYRIE
-    SC_MAGNIFICAT       = 20,
-#define SC_MAGNIFICAT StatusChange::SC_MAGNIFICAT
-    SC_GLORIA           = 21,
-#define SC_GLORIA StatusChange::SC_GLORIA
-    SC_AETERNA          = 22,
-#define SC_AETERNA StatusChange::SC_AETERNA
-    SC_ADRENALINE       = 23,
-#define SC_ADRENALINE StatusChange::SC_ADRENALINE
-    SC_WEAPONPERFECTION = 24,
-#define SC_WEAPONPERFECTION StatusChange::SC_WEAPONPERFECTION
-    SC_OVERTHRUST       = 25,
-#define SC_OVERTHRUST StatusChange::SC_OVERTHRUST
-    SC_MAXIMIZEPOWER    = 26,
-#define SC_MAXIMIZEPOWER StatusChange::SC_MAXIMIZEPOWER
-    SC_RIDING           = 27,
-#define SC_RIDING StatusChange::SC_RIDING
-    SC_FALCON           = 28,
-#define SC_FALCON StatusChange::SC_FALCON
-    SC_TRICKDEAD        = 29,
-#define SC_TRICKDEAD StatusChange::SC_TRICKDEAD
-    SC_LOUD             = 30,
-#define SC_LOUD StatusChange::SC_LOUD
-    SC_ENERGYCOAT       = 31,
-#define SC_ENERGYCOAT StatusChange::SC_ENERGYCOAT
-    SC_BROKNARMOR       = 32,
+
+    SC_BROKNARMOR       = 32,   // ?
 #define SC_BROKNARMOR StatusChange::SC_BROKNARMOR
-    SC_BROKNWEAPON      = 33,
+    SC_BROKNWEAPON      = 33,   // ?
 #define SC_BROKNWEAPON StatusChange::SC_BROKNWEAPON
-    SC_HALLUCINATION    = 34,
-#define SC_HALLUCINATION StatusChange::SC_HALLUCINATION
-    SC_WEIGHT50         = 35,
+
+    SC_WEIGHT50         = 35,   // ? sort of used
 #define SC_WEIGHT50 StatusChange::SC_WEIGHT50
-    SC_WEIGHT90         = 36,
+    SC_WEIGHT90         = 36,   // definitely used
 #define SC_WEIGHT90 StatusChange::SC_WEIGHT90
-    SC_SPEEDPOTION0     = 37,   //
+    SC_SPEEDPOTION0     = 37,   // item script
 #define SC_SPEEDPOTION0 StatusChange::SC_SPEEDPOTION0
-    SC_SPEEDPOTION1     = 38,
-#define SC_SPEEDPOTION1 StatusChange::SC_SPEEDPOTION1
-    SC_SPEEDPOTION2     = 39,
-#define SC_SPEEDPOTION2 StatusChange::SC_SPEEDPOTION2
 
-    SC_STRIPWEAPON      = 50,
-#define SC_STRIPWEAPON StatusChange::SC_STRIPWEAPON
-    SC_STRIPSHIELD      = 51,
-#define SC_STRIPSHIELD StatusChange::SC_STRIPSHIELD
-    SC_STRIPARMOR       = 52,
-#define SC_STRIPARMOR StatusChange::SC_STRIPARMOR
-    SC_STRIPHELM        = 53,
-#define SC_STRIPHELM StatusChange::SC_STRIPHELM
-    SC_CP_WEAPON        = 54,
-#define SC_CP_WEAPON StatusChange::SC_CP_WEAPON
-    SC_CP_SHIELD        = 55,
-#define SC_CP_SHIELD StatusChange::SC_CP_SHIELD
-    SC_CP_ARMOR         = 56,
-#define SC_CP_ARMOR StatusChange::SC_CP_ARMOR
-    SC_CP_HELM          = 57,
-#define SC_CP_HELM StatusChange::SC_CP_HELM
-    SC_AUTOGUARD        = 58,
-#define SC_AUTOGUARD StatusChange::SC_AUTOGUARD
-    SC_REFLECTSHIELD    = 59,
-#define SC_REFLECTSHIELD StatusChange::SC_REFLECTSHIELD
-    SC_DEVOTION         = 60,
-#define SC_DEVOTION StatusChange::SC_DEVOTION
-
-    SC_DEFENDER         = 62,
-#define SC_DEFENDER StatusChange::SC_DEFENDER
-
-    SC_SPEARSQUICKEN    = 68,
-#define SC_SPEARSQUICKEN StatusChange::SC_SPEARSQUICKEN
-
-    SC_HEALING          = 70,   //
+    SC_HEALING          = 70,   // item script
 #define SC_HEALING StatusChange::SC_HEALING
 
-    SC_SIGHTTRASHER     = 73,
-#define SC_SIGHTTRASHER StatusChange::SC_SIGHTTRASHER
-
-    SC_EXPLOSIONSPIRITS = 86,
-#define SC_EXPLOSIONSPIRITS StatusChange::SC_EXPLOSIONSPIRITS
-    SC_STEELBODY        = 87,
-#define SC_STEELBODY StatusChange::SC_STEELBODY
-
-    SC_FLAMELAUNCHER    = 90,
-#define SC_FLAMELAUNCHER StatusChange::SC_FLAMELAUNCHER
-    SC_FROSTWEAPON      = 91,
-#define SC_FROSTWEAPON StatusChange::SC_FROSTWEAPON
-    SC_LIGHTNINGLOADER  = 92,
-#define SC_LIGHTNINGLOADER StatusChange::SC_LIGHTNINGLOADER
-    SC_SEISMICWEAPON    = 93,
-#define SC_SEISMICWEAPON StatusChange::SC_SEISMICWEAPON
-
-    SC_AURABLADE        = 103,
-#define SC_AURABLADE StatusChange::SC_AURABLADE
-    SC_PARRYING         = 104,
-#define SC_PARRYING StatusChange::SC_PARRYING
-    SC_CONCENTRATION    = 105,
-#define SC_CONCENTRATION StatusChange::SC_CONCENTRATION
-    SC_TENSIONRELAX     = 106,
-#define SC_TENSIONRELAX StatusChange::SC_TENSIONRELAX
-    SC_BERSERK          = 107,
-#define SC_BERSERK StatusChange::SC_BERSERK
-
-    SC_ASSUMPTIO        = 110,
-#define SC_ASSUMPTIO StatusChange::SC_ASSUMPTIO
-
-    SC_MAGICPOWER       = 113,
-#define SC_MAGICPOWER StatusChange::SC_MAGICPOWER
-
-    SC_TRUESIGHT        = 115,
-#define SC_TRUESIGHT StatusChange::SC_TRUESIGHT
-    SC_WINDWALK         = 116,
-#define SC_WINDWALK StatusChange::SC_WINDWALK
-    SC_MELTDOWN         = 117,
-#define SC_MELTDOWN StatusChange::SC_MELTDOWN
-    SC_CARTBOOST        = 118,
-#define SC_CARTBOOST StatusChange::SC_CARTBOOST
-
-    SC_REJECTSWORD      = 120,
-#define SC_REJECTSWORD StatusChange::SC_REJECTSWORD
-    SC_MARIONETTE       = 121,
-#define SC_MARIONETTE StatusChange::SC_MARIONETTE
-
-    SC_HEADCRUSH        = 124,
-#define SC_HEADCRUSH StatusChange::SC_HEADCRUSH
-    SC_JOINTBEAT        = 125,
-#define SC_JOINTBEAT StatusChange::SC_JOINTBEAT
-    SC_BASILICA         = SC_JOINTBEAT,
-#define SC_BASILICA StatusChange::SC_BASILICA
-
-    SC_STONE            = 128,
+    SC_STONE            = 128,  // ?bad
 #define SC_STONE StatusChange::SC_STONE
-    SC_FREEZE           = 129,
+    SC_FREEZE           = 129,  // ?bad
 #define SC_FREEZE StatusChange::SC_FREEZE
-    SC_STAN             = 130,
+    SC_STAN             = 130,  // ?bad
 #define SC_STAN StatusChange::SC_STAN
-    SC_SLEEP            = 131,
+    SC_SLEEP            = 131,  // ?bad
 #define SC_SLEEP StatusChange::SC_SLEEP
-    SC_POISON           = 132,  //
+    SC_POISON           = 132,  // bad; actually used
 #define SC_POISON StatusChange::SC_POISON
-    SC_CURSE            = 133,
+    SC_CURSE            = 133,  // ?bad
 #define SC_CURSE StatusChange::SC_CURSE
-    SC_SILENCE          = 134,
+    SC_SILENCE          = 134,  // ?bad
 #define SC_SILENCE StatusChange::SC_SILENCE
-    SC_DIVINA           = SC_SILENCE,
-#define SC_DIVINA StatusChange::SC_DIVINA
-    SC_CONFUSION        = 135,
+    SC_CONFUSION        = 135,  // ?bad
 #define SC_CONFUSION StatusChange::SC_CONFUSION
-    SC_BLIND            = 136,
+    SC_BLIND            = 136,  // ?bad
 #define SC_BLIND StatusChange::SC_BLIND
 
-    SC_SAFETYWALL       = 140,
+    SC_SAFETYWALL       = 140,  // ?skill.cpp skill_unit thingies
 #define SC_SAFETYWALL StatusChange::SC_SAFETYWALL
-    SC_PNEUMA           = 141,
+    SC_PNEUMA           = 141,  // ?skill.cpp skill_unit thingies
 #define SC_PNEUMA StatusChange::SC_PNEUMA
 
-    SC_ANKLE            = 143,
+    SC_ANKLE            = 143,  // ?skill.cpp skill_unit thingies
 #define SC_ANKLE StatusChange::SC_ANKLE
-    SC_DANCING          = 144,
-#define SC_DANCING StatusChange::SC_DANCING
-    SC_KEEPING          = 145,
-#define SC_KEEPING StatusChange::SC_KEEPING
-    SC_BARRIER          = 146,
-#define SC_BARRIER StatusChange::SC_BARRIER
 
-    SC_MAGICROD         = 149,
-#define SC_MAGICROD StatusChange::SC_MAGICROD
-    SC_SIGHT            = 150,
+    SC_SIGHT            = 150,  // ?unbad
 #define SC_SIGHT StatusChange::SC_SIGHT
 
-    SC_VOLCANO          = 153,
-#define SC_VOLCANO StatusChange::SC_VOLCANO
-    SC_DELUGE           = 154,
-#define SC_DELUGE StatusChange::SC_DELUGE
-    SC_VIOLENTGALE      = 155,
-#define SC_VIOLENTGALE StatusChange::SC_VIOLENTGALE
-
-    SC_EXTREMITYFIST    = 158,
-#define SC_EXTREMITYFIST StatusChange::SC_EXTREMITYFIST
-
-    SC_ENSEMBLE         = 159,
-#define SC_ENSEMBLE StatusChange::SC_ENSEMBLE
-
-    SC_LULLABY          = 160,
-#define SC_LULLABY StatusChange::SC_LULLABY
-    SC_RICHMANKIM       = 161,
-#define SC_RICHMANKIM StatusChange::SC_RICHMANKIM
-    SC_ETERNALCHAOS     = 162,
-#define SC_ETERNALCHAOS StatusChange::SC_ETERNALCHAOS
-    SC_DRUMBATTLE       = 163,
-#define SC_DRUMBATTLE StatusChange::SC_DRUMBATTLE
-    SC_NIBELUNGEN       = 164,
-#define SC_NIBELUNGEN StatusChange::SC_NIBELUNGEN
-    SC_ROKISWEIL        = 165,
-#define SC_ROKISWEIL StatusChange::SC_ROKISWEIL
-    SC_INTOABYSS        = 166,
-#define SC_INTOABYSS StatusChange::SC_INTOABYSS
-
-    SC_DISSONANCE       = 168,
-#define SC_DISSONANCE StatusChange::SC_DISSONANCE
-    SC_WHISTLE          = 169,
-#define SC_WHISTLE StatusChange::SC_WHISTLE
-    SC_ASSNCROS         = 170,
-#define SC_ASSNCROS StatusChange::SC_ASSNCROS
-    SC_POEMBRAGI        = 171,
-#define SC_POEMBRAGI StatusChange::SC_POEMBRAGI
-    SC_APPLEIDUN        = 172,
-#define SC_APPLEIDUN StatusChange::SC_APPLEIDUN
-    SC_UGLYDANCE        = 173,
-#define SC_UGLYDANCE StatusChange::SC_UGLYDANCE
-    SC_HUMMING          = 174,
-#define SC_HUMMING StatusChange::SC_HUMMING
-    SC_DONTFORGETME     = 175,
-#define SC_DONTFORGETME StatusChange::SC_DONTFORGETME
-    SC_FORTUNE          = 176,
-#define SC_FORTUNE StatusChange::SC_FORTUNE
-    SC_SERVICE4U        = 177,
-#define SC_SERVICE4U StatusChange::SC_SERVICE4U
-    SC_FOGWALL          = 178,
-#define SC_FOGWALL StatusChange::SC_FOGWALL
-    SC_GOSPEL           = 179,
-#define SC_GOSPEL StatusChange::SC_GOSPEL
-    SC_SPIDERWEB        = 180,
-#define SC_SPIDERWEB StatusChange::SC_SPIDERWEB
-    SC_MEMORIZE         = 181,
-#define SC_MEMORIZE StatusChange::SC_MEMORIZE
-    SC_LANDPROTECTOR    = 182,
-#define SC_LANDPROTECTOR StatusChange::SC_LANDPROTECTOR
-    SC_ADAPTATION       = 183,
-#define SC_ADAPTATION StatusChange::SC_ADAPTATION
-    SC_CHASEWALK        = 184,
-#define SC_CHASEWALK StatusChange::SC_CHASEWALK
-    SC_ATKPOT           = 185,  //
+    SC_ATKPOT           = 185,  // item script
 #define SC_ATKPOT StatusChange::SC_ATKPOT
-    SC_MATKPOT          = 186,
+    SC_MATKPOT          = 186,  // unused, but kept for parallel
 #define SC_MATKPOT StatusChange::SC_MATKPOT
-    SC_WEDDING          = 187,
-#define SC_WEDDING StatusChange::SC_WEDDING
-    SC_NOCHAT           = 188,
+
+    SC_NOCHAT           = 188,  // ? something with manner
 #define SC_NOCHAT StatusChange::SC_NOCHAT
-    SC_SPLASHER         = 189,  // ?
-#define SC_SPLASHER StatusChange::SC_SPLASHER
-    SC_SELFDESTRUCTION  = 190,
+
+    SC_SELFDESTRUCTION  = 190,  // see table - maybe used, maybe not
 #define SC_SELFDESTRUCTION StatusChange::SC_SELFDESTRUCTION
-    SC_MINDBREAKER      = 191,
-#define SC_MINDBREAKER StatusChange::SC_MINDBREAKER
-    SC_SPELLBREAKER     = 192,
-#define SC_SPELLBREAKER StatusChange::SC_SPELLBREAKER
 
 // Added for Fate's spells
     SC_HIDE             = 194,  // Hide from `detect' magic (PCs only)

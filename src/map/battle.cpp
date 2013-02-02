@@ -129,7 +129,6 @@ int battle_get_max_hp(struct block_list *bl)
         return ((struct map_session_data *) bl)->status.max_hp;
     else
     {
-        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
         int max_hp = 1;
         if (bl->type == BL_MOB && ((struct mob_data *) bl))
         {
@@ -144,14 +143,6 @@ int battle_get_max_hp(struct block_list *bl)
                 if (battle_config.monster_hp_rate != 100)
                     max_hp = (max_hp * battle_config.monster_hp_rate) / 100;
             }
-        }
-        if (sc_data)
-        {
-            if (sc_data[SC_APPLEIDUN].timer != -1)
-                max_hp +=
-                    ((5 + sc_data[SC_APPLEIDUN].val1 * 2 +
-                      ((sc_data[SC_APPLEIDUN].val2 + 1) >> 1) +
-                      sc_data[SC_APPLEIDUN].val3 / 10) * max_hp) / 100;
         }
         if (max_hp < 1)
             max_hp = 1;
@@ -176,23 +167,6 @@ int battle_get_str(struct block_list *bl)
     else if (bl->type == BL_PC && ((struct map_session_data *) bl))
         return ((struct map_session_data *) bl)->paramc[ATTR::STR];
 
-    if (sc_data)
-    {
-        if (sc_data[SC_LOUD].timer != -1 && sc_data[SC_QUAGMIRE].timer == -1
-            && bl->type != BL_PC)
-            str += 4;
-        if (sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC)
-        {                       // ブレッシング
-            int race = battle_get_race(bl);
-            if (battle_check_undead(race, battle_get_elem_type(bl))
-                || race == 6)
-                str >>= 1;      // 悪 魔/不死
-            else
-                str += sc_data[SC_BLESSING].val1;   // その他
-        }
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            str += 5;
-    }
     if (str < 0)
         str = 0;
     return str;
@@ -216,23 +190,6 @@ int battle_get_agi(struct block_list *bl)
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         agi = ((struct map_session_data *) bl)->paramc[ATTR::AGI];
 
-    if (sc_data)
-    {
-        if (sc_data[SC_INCREASEAGI].timer != -1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1 && bl->type != BL_PC)   // 速度増加(PCはpc.cで)
-            agi += 2 + sc_data[SC_INCREASEAGI].val1;
-
-        if (sc_data[SC_CONCENTRATE].timer != -1
-            && sc_data[SC_QUAGMIRE].timer == -1 && bl->type != BL_PC)
-            agi += agi * (2 + sc_data[SC_CONCENTRATE].val1) / 100;
-
-        if (sc_data[SC_DECREASEAGI].timer != -1)    // 速度減少
-            agi -= 2 + sc_data[SC_DECREASEAGI].val1;
-
-        if (sc_data[SC_QUAGMIRE].timer != -1)   // クァグマイア
-            agi >>= 1;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            agi += 5;
-    }
     if (agi < 0)
         agi = 0;
     return agi;
@@ -254,13 +211,6 @@ int battle_get_vit(struct block_list *bl)
         vit = ((struct mob_data *) bl)->stats[MOB_VIT];
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         vit = ((struct map_session_data *) bl)->paramc[ATTR::VIT];
-    if (sc_data)
-    {
-        if (sc_data[SC_STRIPARMOR].timer != -1 && bl->type != BL_PC)
-            vit = vit * 60 / 100;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            vit += 5;
-    }
 
     if (vit < 0)
         vit = 0;
@@ -284,22 +234,6 @@ int battle_get_int(struct block_list *bl)
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         int_ = ((struct map_session_data *) bl)->paramc[ATTR::INT];
 
-    if (sc_data)
-    {
-        if (sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC)
-        {                       // ブレッシング
-            int race = battle_get_race(bl);
-            if (battle_check_undead(race, battle_get_elem_type(bl))
-                || race == 6)
-                int_ >>= 1;     // 悪 魔/不死
-            else
-                int_ += sc_data[SC_BLESSING].val1;  // その他
-        }
-        if (sc_data[SC_STRIPHELM].timer != -1 && bl->type != BL_PC)
-            int_ = int_ * 60 / 100;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            int_ += 5;
-    }
     if (int_ < 0)
         int_ = 0;
     return int_;
@@ -322,27 +256,6 @@ int battle_get_dex(struct block_list *bl)
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
         dex = ((struct map_session_data *) bl)->paramc[ATTR::DEX];
 
-    if (sc_data)
-    {
-        if (sc_data[SC_CONCENTRATE].timer != -1
-            && sc_data[SC_QUAGMIRE].timer == -1 && bl->type != BL_PC)
-            dex += dex * (2 + sc_data[SC_CONCENTRATE].val1) / 100;
-
-        if (sc_data[SC_BLESSING].timer != -1 && bl->type != BL_PC)
-        {                       // ブレッシング
-            int race = battle_get_race(bl);
-            if (battle_check_undead(race, battle_get_elem_type(bl))
-                || race == 6)
-                dex >>= 1;      // 悪 魔/不死
-            else
-                dex += sc_data[SC_BLESSING].val1;   // その他
-        }
-
-        if (sc_data[SC_QUAGMIRE].timer != -1)   // クァグマイア
-            dex >>= 1;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            dex += 5;
-    }
     if (dex < 0)
         dex = 0;
     return dex;
@@ -367,12 +280,8 @@ int battle_get_luk(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[SC_GLORIA].timer != -1 && bl->type != BL_PC)    // グロリア(PCはpc.cで)
-            luk += 30;
         if (sc_data[SC_CURSE].timer != -1)  // 呪い
             luk = 0;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            luk += 5;
     }
     if (luk < 0)
         luk = 0;
@@ -399,16 +308,8 @@ int battle_get_flee(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[SC_WHISTLE].timer != -1 && bl->type != BL_PC)
-            flee +=
-                flee * (sc_data[SC_WHISTLE].val1 + sc_data[SC_WHISTLE].val2 +
-                        (sc_data[SC_WHISTLE].val3 >> 16)) / 100;
         if (sc_data[SC_BLIND].timer != -1 && bl->type != BL_PC)
             flee -= flee * 25 / 100;
-        if (sc_data[SC_WINDWALK].timer != -1 && bl->type != BL_PC)  // ウィンドウォーク
-            flee += flee * (sc_data[SC_WINDWALK].val2) / 100;
-        if (sc_data[SC_SPIDERWEB].timer != -1 && bl->type != BL_PC) //スパイダーウェブ
-            flee -= flee * 50 / 100;
 
         if (battle_is_unarmed(bl))
             flee += (skill_power_bl(bl, TMW_BRAWLING) >> 3);   // +25 for 200
@@ -439,17 +340,8 @@ int battle_get_hit(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[SC_HUMMING].timer != -1 && bl->type != BL_PC)   //
-            hit +=
-                hit * (sc_data[SC_HUMMING].val1 * 2 +
-                       sc_data[SC_HUMMING].val2 +
-                       sc_data[SC_HUMMING].val3) / 100;
         if (sc_data[SC_BLIND].timer != -1 && bl->type != BL_PC) // 呪い
             hit -= hit * 25 / 100;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) // トゥルーサイト
-            hit += 3 * (sc_data[SC_TRUESIGHT].val1);
-        if (sc_data[SC_CONCENTRATION].timer != -1 && bl->type != BL_PC) //コンセントレーション
-            hit += (hit * (10 * (sc_data[SC_CONCENTRATION].val1))) / 100;
 
         if (battle_is_unarmed(bl))
             hit += (skill_power_bl(bl, TMW_BRAWLING) >> 4);    // +12 for 200
@@ -482,12 +374,7 @@ int battle_get_flee2(struct block_list *bl)
     else
         flee2 = battle_get_luk(bl) + 1;
 
-    if (sc_data)
     {
-        if (sc_data[SC_WHISTLE].timer != -1 && bl->type != BL_PC)
-            flee2 += (sc_data[SC_WHISTLE].val1 + sc_data[SC_WHISTLE].val2
-                      + (sc_data[SC_WHISTLE].val3 & 0xffff)) * 10;
-
         if (battle_is_unarmed(bl))
             flee2 += (skill_power_bl(bl, TMW_BRAWLING) >> 3);  // +25 for 200
         flee2 += skill_power_bl(bl, TMW_SPEED) >> 3;
@@ -520,17 +407,6 @@ int battle_get_critical(struct block_list *bl)
     else
         critical = battle_get_luk(bl) * 3 + 1;
 
-    if (sc_data)
-    {
-        if (sc_data[SC_FORTUNE].timer != -1 && bl->type != BL_PC)
-            critical +=
-                (10 + sc_data[SC_FORTUNE].val1 + sc_data[SC_FORTUNE].val2 +
-                 sc_data[SC_FORTUNE].val3) * 10;
-        if (sc_data[SC_EXPLOSIONSPIRITS].timer != -1 && bl->type != BL_PC)
-            critical += sc_data[SC_EXPLOSIONSPIRITS].val2;
-        if (sc_data[SC_TRUESIGHT].timer != -1 && bl->type != BL_PC) //トゥルーサイト
-            critical += critical * sc_data[SC_TRUESIGHT].val1 / 100;
-    }
     if (critical < 1)
         critical = 1;
     return critical;
@@ -560,12 +436,8 @@ int battle_get_baseatk(struct block_list *bl)
     }
     if (sc_data)
     {                           //状態異常あり
-        if (sc_data[SC_PROVOKE].timer != -1 && bl->type != BL_PC)   //PCでプロボック(SM_PROVOKE)状態
-            batk = batk * (100 + 2 * sc_data[SC_PROVOKE].val1) / 100;   //base_atk増加
         if (sc_data[SC_CURSE].timer != -1)  //呪われていたら
             batk -= batk * 25 / 100;    //base_atkが25%減少
-        if (sc_data[SC_CONCENTRATION].timer != -1 && bl->type != BL_PC) //コンセントレーション
-            batk += batk * (5 * sc_data[SC_CONCENTRATION].val1) / 100;
     }
     if (batk < 1)
         batk = 1;               //base_atkは最低でも1
@@ -592,12 +464,8 @@ int battle_get_atk(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[SC_PROVOKE].timer != -1 && bl->type != BL_PC)
-            atk = atk * (100 + 2 * sc_data[SC_PROVOKE].val1) / 100;
         if (sc_data[SC_CURSE].timer != -1)
             atk -= atk * 25 / 100;
-        if (sc_data[SC_CONCENTRATION].timer != -1 && bl->type != BL_PC) //コンセントレーション
-            atk += atk * (5 * sc_data[SC_CONCENTRATION].val1) / 100;
     }
     if (atk < 0)
         atk = 0;
@@ -644,21 +512,8 @@ int battle_get_atk2(struct block_list *bl)
             atk2 = ((struct mob_data *) bl)->stats[MOB_ATK2];
         if (sc_data)
         {
-            if (sc_data[SC_IMPOSITIO].timer != -1)
-                atk2 += sc_data[SC_IMPOSITIO].val1 * 5;
-            if (sc_data[SC_PROVOKE].timer != -1)
-                atk2 = atk2 * (100 + 2 * sc_data[SC_PROVOKE].val1) / 100;
             if (sc_data[SC_CURSE].timer != -1)
                 atk2 -= atk2 * 25 / 100;
-            if (sc_data[SC_DRUMBATTLE].timer != -1)
-                atk2 += sc_data[SC_DRUMBATTLE].val2;
-            if (sc_data[SC_NIBELUNGEN].timer != -1
-                && (battle_get_element(bl) / 10) >= 8)
-                atk2 += sc_data[SC_NIBELUNGEN].val2;
-            if (sc_data[SC_STRIPWEAPON].timer != -1)
-                atk2 = atk2 * 90 / 100;
-            if (sc_data[SC_CONCENTRATION].timer != -1)  //コンセントレーション
-                atk2 += atk2 * (5 * sc_data[SC_CONCENTRATION].val1) / 100;
         }
 
         if (atk2 < 0)
@@ -698,9 +553,6 @@ int battle_get_matk1(struct block_list *bl)
         int matk, int_ = battle_get_int(bl);
         matk = int_ + (int_ / 5) * (int_ / 5);
 
-        if (sc_data)
-            if (sc_data[SC_MINDBREAKER].timer != -1 && bl->type != BL_PC)
-                matk = matk * (100 + 2 * sc_data[SC_MINDBREAKER].val1) / 100;
         return matk;
     }
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -717,16 +569,12 @@ int battle_get_matk1(struct block_list *bl)
 static
 int battle_get_matk2(struct block_list *bl)
 {
-    eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
     nullpo_ret(bl);
     if (bl->type == BL_MOB)
     {
         int matk, int_ = battle_get_int(bl);
         matk = int_ + (int_ / 7) * (int_ / 7);
 
-        if (sc_data)
-            if (sc_data[SC_MINDBREAKER].timer != -1 && bl->type != BL_PC)
-                matk = matk * (100 + 2 * sc_data[SC_MINDBREAKER].val1) / 100;
         return matk;
     }
     else if (bl->type == BL_PC && (struct map_session_data *) bl)
@@ -765,36 +613,14 @@ int battle_get_def(struct block_list *bl)
     {
         if (sc_data)
         {
-            //キーピング時はDEF100
-            if (sc_data[SC_KEEPING].timer != -1)
-                def = 100;
-            //プロボック時は減算
-            if (sc_data[SC_PROVOKE].timer != -1 && bl->type != BL_PC)
-                def = (def * (100 - 6 * sc_data[SC_PROVOKE].val1) + 50) / 100;
-            //戦太鼓の響き時は加算
-            if (sc_data[SC_DRUMBATTLE].timer != -1 && bl->type != BL_PC)
-                def += sc_data[SC_DRUMBATTLE].val3;
             //毒にかかっている時は減算
             if (sc_data[SC_POISON].timer != -1 && bl->type != BL_PC)
                 def = def * 75 / 100;
-            //ストリップシールド時は減算
-            if (sc_data[SC_STRIPSHIELD].timer != -1 && bl->type != BL_PC)
-                def = def * 85 / 100;
-            //シグナムクルシス時は減算
-            if (sc_data[SC_SIGNUMCRUCIS].timer != -1 && bl->type != BL_PC)
-                def = def * (100 - sc_data[SC_SIGNUMCRUCIS].val2) / 100;
-            //永遠の混沌時はDEF0になる
-            if (sc_data[SC_ETERNALCHAOS].timer != -1 && bl->type != BL_PC)
-                def = 0;
             //凍結、石化時は右シフト
             if (sc_data[SC_FREEZE].timer != -1
                 || (sc_data[SC_STONE].timer != -1
                     && sc_data[SC_STONE].val2 == 0))
                 def >>= 1;
-            //コンセントレーション時は減算
-            if (sc_data[SC_CONCENTRATION].timer != -1 && bl->type != BL_PC)
-                def =
-                    (def * (100 - 5 * sc_data[SC_CONCENTRATION].val1)) / 100;
         }
         //詠唱中は詠唱時減算率に基づいて減算
         if (skilltimer != -1)
@@ -837,15 +663,11 @@ int battle_get_mdef(struct block_list *bl)
                 if (mdef > 90)
                     mdef = 90;
             }
-            if (sc_data[SC_BARRIER].timer != -1)
-                mdef = 100;
             //凍結、石化時は1.25倍
             if (sc_data[SC_FREEZE].timer != -1
                 || (sc_data[SC_STONE].timer != -1
                     && sc_data[SC_STONE].val2 == 0))
                 mdef = mdef * 125 / 100;
-            if (sc_data[SC_MINDBREAKER].timer != -1 && bl->type != BL_PC)
-                mdef -= (mdef * 6 * sc_data[SC_MINDBREAKER].val1) / 100;
         }
     }
     if (mdef < 0)
@@ -872,15 +694,8 @@ int battle_get_def2(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[SC_ANGELUS].timer != -1 && bl->type != BL_PC)
-            def2 = def2 * (110 + 5 * sc_data[SC_ANGELUS].val1) / 100;
-        if (sc_data[SC_PROVOKE].timer != -1 && bl->type != BL_PC)
-            def2 = (def2 * (100 - 6 * sc_data[SC_PROVOKE].val1) + 50) / 100;
         if (sc_data[SC_POISON].timer != -1 && bl->type != BL_PC)
             def2 = def2 * 75 / 100;
-        //コンセントレーション時は減算
-        if (sc_data[SC_CONCENTRATION].timer != -1 && bl->type != BL_PC)
-            def2 = def2 * (100 - 5 * sc_data[SC_CONCENTRATION].val1) / 100;
     }
     if (def2 < 1)
         def2 = 1;
@@ -895,7 +710,6 @@ int battle_get_def2(struct block_list *bl)
 int battle_get_mdef2(struct block_list *bl)
 {
     int mdef2 = 0;
-    eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
 
     nullpo_ret(bl);
     if (bl->type == BL_MOB)
@@ -906,11 +720,7 @@ int battle_get_mdef2(struct block_list *bl)
         mdef2 =
             ((struct map_session_data *) bl)->mdef2 +
             (((struct map_session_data *) bl)->paramc[ATTR::VIT] >> 1);
-    if (sc_data)
-    {
-        if (sc_data[SC_MINDBREAKER].timer != -1 && bl->type != BL_PC)
-            mdef2 -= (mdef2 * 6 * sc_data[SC_MINDBREAKER].val1) / 100;
-    }
+
     if (mdef2 < 0)
         mdef2 = 0;
     return mdef2;
@@ -936,37 +746,8 @@ int battle_get_speed(struct block_list *bl)
 
         if (sc_data)
         {
-            //速度増加時は25%減算
-            if (sc_data[SC_INCREASEAGI].timer != -1
-                && sc_data[SC_DONTFORGETME].timer == -1)
-                speed -= speed * 25 / 100;
-            //速度減少時は25%加算
-            if (sc_data[SC_DECREASEAGI].timer != -1)
-                speed = speed * 125 / 100;
-            //クァグマイア時は50%加算
-            if (sc_data[SC_QUAGMIRE].timer != -1)
-                speed = speed * 3 / 2;
-            //私を忘れないで…時は加算
-            if (sc_data[SC_DONTFORGETME].timer != -1)
-                speed =
-                    speed * (100 + sc_data[SC_DONTFORGETME].val1 * 2 +
-                             sc_data[SC_DONTFORGETME].val2 +
-                             (sc_data[SC_DONTFORGETME].val3 & 0xffff)) / 100;
-            //金剛時は25%加算
-            if (sc_data[SC_STEELBODY].timer != -1)
-                speed = speed * 125 / 100;
-            //ディフェンダー時は加算
-            if (sc_data[SC_DEFENDER].timer != -1)
-                speed = (speed * (155 - sc_data[SC_DEFENDER].val1 * 5)) / 100;
-            //踊り状態は4倍遅い
-            if (sc_data[SC_DANCING].timer != -1)
-                speed *= 4;
-            //呪い時は450加算
             if (sc_data[SC_CURSE].timer != -1)
                 speed = speed + 450;
-            //ウィンドウォーク時はLv*2%減算
-            if (sc_data[SC_WINDWALK].timer != -1)
-                speed -= (speed * (sc_data[SC_WINDWALK].val1 * 2)) / 100;
         }
         if (speed < 1)
             speed = 1;
@@ -993,57 +774,11 @@ int battle_get_adelay(struct block_list *bl)
 
         if (sc_data)
         {
-            //ツーハンドクイッケン使用時でクァグマイアでも私を忘れないで…でもない時は3割減算
-            if (sc_data[SC_TWOHANDQUICKEN].timer != -1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1) // 2HQ
-                aspd_rate -= 30;
-            //アドレナリンラッシュ使用時でツーハンドクイッケンでもクァグマイアでも私を忘れないで…でもない時は
-            if (sc_data[SC_ADRENALINE].timer != -1
-                && sc_data[SC_TWOHANDQUICKEN].timer == -1
-                && sc_data[SC_QUAGMIRE].timer == -1
-                && sc_data[SC_DONTFORGETME].timer == -1)
-            {                   // アドレナリンラッシュ
-                //使用者とパーティメンバーで格差が出る設定でなければ3割減算
-                if (sc_data[SC_ADRENALINE].val2
-                    || !battle_config.party_skill_penaly)
-                    aspd_rate -= 30;
-                //そうでなければ2.5割減算
-                else
-                    aspd_rate -= 25;
-            }
-            //スピアクィッケン時は減算
-            if (sc_data[SC_SPEARSQUICKEN].timer != -1 && sc_data[SC_ADRENALINE].timer == -1 && sc_data[SC_TWOHANDQUICKEN].timer == -1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1)  // スピアクィッケン
-                aspd_rate -= sc_data[SC_SPEARSQUICKEN].val2;
-            //夕日のアサシンクロス時は減算
-            if (sc_data[SC_ASSNCROS].timer != -1 && // 夕陽のアサシンクロス
-                sc_data[SC_TWOHANDQUICKEN].timer == -1
-                && sc_data[SC_ADRENALINE].timer == -1
-                && sc_data[SC_SPEARSQUICKEN].timer == -1
-                && sc_data[SC_DONTFORGETME].timer == -1)
-                aspd_rate -=
-                    5 + sc_data[SC_ASSNCROS].val1 +
-                    sc_data[SC_ASSNCROS].val2 + sc_data[SC_ASSNCROS].val3;
-            //私を忘れないで…時は加算
-            if (sc_data[SC_DONTFORGETME].timer != -1)   // 私を忘れないで
-                aspd_rate +=
-                    sc_data[SC_DONTFORGETME].val1 * 3 +
-                    sc_data[SC_DONTFORGETME].val2 +
-                    (sc_data[SC_DONTFORGETME].val3 >> 16);
-            //金剛時25%加算
-            if (sc_data[SC_STEELBODY].timer != -1)  // 金剛
-                aspd_rate += 25;
-            //増速ポーション使用時は減算
-            if (sc_data[SC_SPEEDPOTION2].timer != -1)
-                aspd_rate -= sc_data[SC_SPEEDPOTION2].val1;
-            else if (sc_data[SC_SPEEDPOTION1].timer != -1)
-                aspd_rate -= sc_data[SC_SPEEDPOTION2].val1;
-            else if (sc_data[SC_SPEEDPOTION0].timer != -1)
-                aspd_rate -= sc_data[SC_SPEEDPOTION2].val1;
+            if (sc_data[SC_SPEEDPOTION0].timer != -1)
+                aspd_rate -= sc_data[SC_SPEEDPOTION0].val1;
             // Fate's `haste' spell works the same as the above
             if (sc_data[SC_HASTE].timer != -1)
                 aspd_rate -= sc_data[SC_HASTE].val1;
-            //ディフェンダー時は加算
-            if (sc_data[SC_DEFENDER].timer != -1)
-                adelay += (1100 - sc_data[SC_DEFENDER].val1 * 100);
         }
 
         if (aspd_rate != 100)
@@ -1068,46 +803,10 @@ int battle_get_amotion(struct block_list *bl)
 
         if (sc_data)
         {
-            if (sc_data[SC_TWOHANDQUICKEN].timer != -1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1) // 2HQ
-                aspd_rate -= 30;
-            if (sc_data[SC_ADRENALINE].timer != -1
-                && sc_data[SC_TWOHANDQUICKEN].timer == -1
-                && sc_data[SC_QUAGMIRE].timer == -1
-                && sc_data[SC_DONTFORGETME].timer == -1)
-            {                   // アドレナリンラッシュ
-                if (sc_data[SC_ADRENALINE].val2
-                    || !battle_config.party_skill_penaly)
-                    aspd_rate -= 30;
-                else
-                    aspd_rate -= 25;
-            }
-            if (sc_data[SC_SPEARSQUICKEN].timer != -1 && sc_data[SC_ADRENALINE].timer == -1 && sc_data[SC_TWOHANDQUICKEN].timer == -1 && sc_data[SC_QUAGMIRE].timer == -1 && sc_data[SC_DONTFORGETME].timer == -1)  // スピアクィッケン
-                aspd_rate -= sc_data[SC_SPEARSQUICKEN].val2;
-            if (sc_data[SC_ASSNCROS].timer != -1 && // 夕陽のアサシンクロス
-                sc_data[SC_TWOHANDQUICKEN].timer == -1
-                && sc_data[SC_ADRENALINE].timer == -1
-                && sc_data[SC_SPEARSQUICKEN].timer == -1
-                && sc_data[SC_DONTFORGETME].timer == -1)
-                aspd_rate -=
-                    5 + sc_data[SC_ASSNCROS].val1 +
-                    sc_data[SC_ASSNCROS].val2 + sc_data[SC_ASSNCROS].val3;
-            if (sc_data[SC_DONTFORGETME].timer != -1)   // 私を忘れないで
-                aspd_rate +=
-                    sc_data[SC_DONTFORGETME].val1 * 3 +
-                    sc_data[SC_DONTFORGETME].val2 +
-                    (sc_data[SC_DONTFORGETME].val3 >> 16);
-            if (sc_data[SC_STEELBODY].timer != -1)  // 金剛
-                aspd_rate += 25;
-            if (sc_data[SC_SPEEDPOTION2].timer != -1)
-                aspd_rate -= sc_data[SC_SPEEDPOTION2].val1;
-            else if (sc_data[SC_SPEEDPOTION1].timer != -1)
-                aspd_rate -= sc_data[SC_SPEEDPOTION1].val1;
-            else if (sc_data[SC_SPEEDPOTION0].timer != -1)
+            if (sc_data[SC_SPEEDPOTION0].timer != -1)
                 aspd_rate -= sc_data[SC_SPEEDPOTION0].val1;
             if (sc_data[SC_HASTE].timer != -1)
                 aspd_rate -= sc_data[SC_HASTE].val1;
-            if (sc_data[SC_DEFENDER].timer != -1)
-                amotion += (550 - sc_data[SC_DEFENDER].val1 * 50);
         }
 
         if (aspd_rate != 100)
@@ -1140,11 +839,6 @@ int battle_get_dmotion(struct block_list *bl)
     else
         return 2000;
 
-    if ((sc_data && sc_data[SC_ENDURE].timer != -1) ||
-        (bl->type == BL_PC
-         && ((struct map_session_data *) bl)->special_state.infinite_endure))
-        ret = 0;
-
     return ret;
 }
 
@@ -1162,43 +856,10 @@ int battle_get_element(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[SC_BENEDICTIO].timer != -1) // 聖体降福
-            ret = 26;
         if (sc_data[SC_FREEZE].timer != -1) // 凍結
             ret = 21;
         if (sc_data[SC_STONE].timer != -1 && sc_data[SC_STONE].val2 == 0)
             ret = 22;
-    }
-
-    return ret;
-}
-
-static
-int battle_get_attack_element(struct block_list *bl)
-{
-    int ret = 0;
-    eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-
-    nullpo_ret(bl);
-    if (bl->type == BL_MOB && (struct mob_data *) bl)
-        ret = 0;
-    else if (bl->type == BL_PC && (struct map_session_data *) bl)
-        ret = ((struct map_session_data *) bl)->atk_ele;
-
-    if (sc_data)
-    {
-        if (sc_data[SC_FROSTWEAPON].timer != -1)    // フロストウェポン
-            ret = 1;
-        if (sc_data[SC_SEISMICWEAPON].timer != -1)  // サイズミックウェポン
-            ret = 2;
-        if (sc_data[SC_FLAMELAUNCHER].timer != -1)  // フレームランチャー
-            ret = 3;
-        if (sc_data[SC_LIGHTNINGLOADER].timer != -1)    // ライトニングローダー
-            ret = 4;
-        if (sc_data[SC_ENCPOISON].timer != -1)  // エンチャントポイズン
-            ret = 5;
-        if (sc_data[SC_ASPERSIO].timer != -1)   // アスペルシオ
-            ret = 6;
     }
 
     return ret;
@@ -1369,7 +1030,6 @@ int battle_damage(struct block_list *bl, struct block_list *target,
 {
     eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(target);
     short *sc_count;
-    int i;
 
     nullpo_ret(target);    //blはNULLで呼ばれることがあるので他でチェック
 
@@ -1411,26 +1071,6 @@ int battle_damage(struct block_list *bl, struct block_list *target,
     {                           // PC
 
         struct map_session_data *tsd = (struct map_session_data *) target;
-
-        if (tsd && tsd->sc_data[SC_DEVOTION].val1)
-        {                       // ディボーションをかけられている
-            struct map_session_data *md =
-                map_id2sd(tsd->sc_data[SC_DEVOTION].val1);
-            if (md && skill_devotion3(&md->bl, target->id))
-            {
-                skill_devotion(md, target->id);
-            }
-            else if (md && bl)
-                for (i = 0; i < 5; i++)
-                    if (md->dev.val1[i] == target->id)
-                    {
-                        clif_damage(bl, &md->bl, gettick(), 0, 0,
-                                     damage, 0, 0, 0);
-                        pc_damage(&md->bl, md, damage);
-
-                        return 0;
-                    }
-        }
 
         if (tsd && tsd->skilltimer != -1)
         {                       // 詠唱妨害
@@ -1498,11 +1138,10 @@ int battle_stopwalking(struct block_list *bl, int type)
  *------------------------------------------
  */
 static
-int battle_calc_damage(struct block_list *src, struct block_list *bl,
+int battle_calc_damage(struct block_list *, struct block_list *bl,
                         int damage, int div_,
-                        SkillID skill_num, int, BF flag)
+                        SkillID, int, BF flag)
 {
-    struct map_session_data *sd = NULL;
     struct mob_data *md = NULL;
     eptr<struct status_change, StatusChange> sc_data;
     short *sc_count;
@@ -1511,8 +1150,6 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
 
     if (bl->type == BL_MOB)
         md = (struct mob_data *) bl;
-    else
-        sd = (struct map_session_data *) bl;
 
     sc_data = battle_get_sc_data(bl);
     sc_count = battle_get_sc_count(bl);
@@ -1540,138 +1177,6 @@ int battle_calc_damage(struct block_list *src, struct block_list *bl,
         {
             // ニューマ
             damage = 0;
-        }
-
-        if (sc_data[SC_ROKISWEIL].timer != -1
-            && damage > 0
-            && bool(flag & BF_MAGIC))
-        {
-            // ニューマ
-            damage = 0;
-        }
-
-        if (sc_data[SC_AETERNA].timer != -1 && damage > 0)
-        {                       // レックスエーテルナ
-            damage <<= 1;
-            skill_status_change_end(bl, SC_AETERNA, -1);
-        }
-
-        //属性場のダメージ増加
-        if (sc_data[SC_VOLCANO].timer != -1)
-        {                       // ボルケーノ
-            if (bool(flag & BF_SKILL)
-                && skill_get_pl(skill_num) == 3)
-                damage += damage * sc_data[SC_VOLCANO].val4 / 100;
-            else if (!bool(flag & BF_SKILL)
-                && (battle_get_attack_element(bl) == 3))
-                damage += damage * sc_data[SC_VOLCANO].val4 / 100;
-        }
-
-        if (sc_data[SC_VIOLENTGALE].timer != -1)
-        {                       // バイオレントゲイル
-            if (bool(flag & BF_SKILL)
-                && skill_get_pl(skill_num) == 4)
-                damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
-            else if (!bool(flag & BF_SKILL)
-                && (battle_get_attack_element(bl) == 4))
-                damage += damage * sc_data[SC_VIOLENTGALE].val4 / 100;
-        }
-
-        if (sc_data[SC_DELUGE].timer != -1)
-        {                       // デリュージ
-            if (bool(flag & BF_SKILL)
-                && skill_get_pl(skill_num) == 1)
-                damage += damage * sc_data[SC_DELUGE].val4 / 100;
-            else if (!bool(flag & BF_SKILL)
-                && (battle_get_attack_element(bl) == 1))
-                damage += damage * sc_data[SC_DELUGE].val4 / 100;
-        }
-
-        if (sc_data[SC_ENERGYCOAT].timer != -1 && damage > 0
-            && bool(flag & BF_WEAPON))
-        {                       // エナジーコート
-            if (sd)
-            {
-                if (sd->status.sp > 0)
-                {
-                    int per = sd->status.sp * 5 / (sd->status.max_sp + 1);
-                    sd->status.sp -= sd->status.sp * (per * 5 + 10) / 1000;
-                    if (sd->status.sp < 0)
-                        sd->status.sp = 0;
-                    damage -= damage * ((per + 1) * 6) / 100;
-                    clif_updatestatus(sd, SP_SP);
-                }
-                if (sd->status.sp <= 0)
-                    skill_status_change_end(bl, SC_ENERGYCOAT, -1);
-            }
-            else
-                damage -= damage * (sc_data[SC_ENERGYCOAT].val1 * 6) / 100;
-        }
-
-        if (sc_data[SC_KYRIE].timer != -1 && damage > 0)
-        {
-            // キリエエレイソン
-            struct status_change *sc = &sc_data[SC_KYRIE];
-            sc->val2 -= damage;
-            if (bool(flag & BF_WEAPON))
-            {
-                if (sc->val2 >= 0)
-                    damage = 0;
-                else
-                    damage = -sc->val2;
-            }
-            if ((--sc->val3) <= 0 || (sc->val2 <= 0))
-                skill_status_change_end(bl, SC_KYRIE, -1);
-        }
-
-        if (sc_data[SC_BASILICA].timer != -1 && damage > 0)
-        {
-            // ニューマ
-            damage = 0;
-        }
-        if (sc_data[SC_LANDPROTECTOR].timer != -1 && damage > 0
-            && bool(flag & BF_MAGIC))
-        {
-            // ニューマ
-            damage = 0;
-        }
-
-        if (sc_data[SC_AUTOGUARD].timer != -1 && damage > 0
-            && bool(flag & BF_WEAPON))
-        {
-            if (MRAND(100) < sc_data[SC_AUTOGUARD].val2)
-            {
-                damage = 0;
-                if (sd)
-                    sd->canmove_tick = gettick() + 300;
-                else if (md)
-                    md->canmove_tick = gettick() + 300;
-            }
-        }
-// -- moonsoul (chance to block attacks with new Lord Knight skill parrying)
-//
-        if (sc_data[SC_PARRYING].timer != -1 && damage > 0
-            && bool(flag & BF_WEAPON))
-        {
-            if (MRAND(100) < sc_data[SC_PARRYING].val2)
-                damage = 0;
-        }
-        // リジェクトソード
-        if (sc_data[SC_REJECTSWORD].timer != -1 && damage > 0
-            && bool(flag & BF_WEAPON)
-            && // the logic was always broken, I've simplfied to what it
-            // was doing, it's not like this will be sticking around long
-            ((src->type == BL_PC
-              && ((struct map_session_data *) src)->status.weapon == 1)
-             || src->type == BL_MOB))
-        {
-            if (MRAND(100) < (10 + 5 * sc_data[SC_REJECTSWORD].val1))
-            {                   //反射確率は10+5*Lv
-                damage = damage * 50 / 100;
-                battle_damage(bl, src, damage, 0);
-                if ((--sc_data[SC_REJECTSWORD].val2) <= 0)
-                    skill_status_change_end(bl, SC_REJECTSWORD, -1);
-            }
         }
     }
 
@@ -1780,11 +1285,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     if (atkmin > atkmax)
         atkmin = atkmax;
 
-    if (sc_data && sc_data[SC_MAXIMIZEPOWER].timer != -1)
-    {                           // マキシマイズパワー
-        atkmin = atkmax;
-    }
-
     cri = battle_get_critical(src);
     cri -= battle_get_luk(target) * 3;
     if (battle_config.enemy_critical_rate != 100)
@@ -1819,22 +1319,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
             damage += atkmin + MRAND((atkmax - atkmin + 1));
         else
             damage += atkmin;
-        // スキル修正１（攻撃力倍化系）
-        // オーバートラスト(+5% 〜 +25%),他攻撃系スキルの場合ここで補正
-        // バッシュ,マグナムブレイク,
-        // ボーリングバッシュ,スピアブーメラン,ブランディッシュスピア,スピアスタッブ,
-        // メマーナイト,カートレボリューション
-        // ダブルストレイフィング,アローシャワー,チャージアロー,
-        // ソニックブロー
-        if (sc_data)
-        {                       //状態異常中のダメージ追加
-            if (sc_data[SC_OVERTHRUST].timer != -1) // オーバートラスト
-                damage += damage * (5 * sc_data[SC_OVERTHRUST].val1) / 100;
-            if (sc_data[SC_TRUESIGHT].timer != -1)  // トゥルーサイト
-                damage += damage * (2 * sc_data[SC_TRUESIGHT].val1) / 100;
-            if (sc_data[SC_BERSERK].timer != -1)    // バーサーク
-                damage += damage * 50 / 100;
-        }
 
         if (skill_num != SkillID::ZERO && skill_num != SkillID::NEGATIVE)
         {
@@ -1952,28 +1436,9 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
             cardfix = cardfix * (100 - tsd->near_attack_def_rate) / 100;
         damage = damage * cardfix / 100;
     }
-    if (t_sc_data)
-    {
-        int cardfix = 100;
-        if (t_sc_data[SC_DEFENDER].timer != -1
-            && bool(flag & BF_LONG))
-            cardfix = cardfix * (100 - t_sc_data[SC_DEFENDER].val2) / 100;
-        if (cardfix != 100)
-            damage = damage * cardfix / 100;
-    }
-    if (t_sc_data && t_sc_data[SC_ASSUMPTIO].timer != -1)
-    {                           //アシャンプティオ
-        if (!map[target->m].flag.pvp)
-            damage = damage / 3;
-        else
-            damage = damage / 2;
-    }
 
     if (damage < 0)
         damage = 0;
-
-    if (sc_data && sc_data[SC_AURABLADE].timer != -1)   /* オーラブレード 必中 */
-        damage += sc_data[SC_AURABLADE].val1 * 10;
 
     // 完全回避の判定
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != NULL
@@ -2182,8 +1647,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         atkmax = watk;
         atkmax_ = watk_;
     }
-    if ((sc_data && sc_data[SC_WEAPONPERFECTION].timer != -1)
-        || (sd->special_state.no_sizefix))
+    if (sd->special_state.no_sizefix)
     {                           // ウェポンパーフェクション || ドレイクカード
         atkmax = watk;
         atkmax_ = watk_;
@@ -2193,12 +1657,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         atkmin = atkmax;        //弓は最低が上回る場合あり
     if (atkmin_ > atkmax_)
         atkmin_ = atkmax_;
-
-    if (sc_data && sc_data[SC_MAXIMIZEPOWER].timer != -1)
-    {                           // マキシマイズパワー
-        atkmin = atkmax;
-        atkmin_ = atkmax_;
-    }
 
     if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
         da = MRAND(100) < sd->double_rate;
@@ -2307,32 +1765,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                     damage2 = (damage2 * (def1 + def2)) / 100;
                     idef_flag_ = 1;
                 }
-            }
-        }
-
-        // スキル修正１（攻撃力倍化系）
-        // オーバートラスト(+5% 〜 +25%),他攻撃系スキルの場合ここで補正
-        // バッシュ,マグナムブレイク,
-        // ボーリングバッシュ,スピアブーメラン,ブランディッシュスピア,スピアスタッブ,
-        // メマーナイト,カートレボリューション
-        // ダブルストレイフィング,アローシャワー,チャージアロー,
-        // ソニックブロー
-        if (sc_data)
-        {                       //状態異常中のダメージ追加
-            if (sc_data[SC_OVERTHRUST].timer != -1)
-            {                   // オーバートラスト
-                damage += damage * (5 * sc_data[SC_OVERTHRUST].val1) / 100;
-                damage2 += damage2 * (5 * sc_data[SC_OVERTHRUST].val1) / 100;
-            }
-            if (sc_data[SC_TRUESIGHT].timer != -1)
-            {                   // トゥルーサイト
-                damage += damage * (2 * sc_data[SC_TRUESIGHT].val1) / 100;
-                damage2 += damage2 * (2 * sc_data[SC_TRUESIGHT].val1) / 100;
-            }
-            if (sc_data[SC_BERSERK].timer != -1)
-            {                   // バーサーク
-                damage += damage * 50 / 100;
-                damage2 += damage2 * 50 / 100;
             }
         }
 
@@ -2517,34 +1949,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     }
 //カードによるダメージ減衰処理ここまで
 
-//対象にステータス異常がある場合のダメージ減算処理ここから
-    if (t_sc_data)
-    {
-        cardfix = 100;
-        if (t_sc_data[SC_DEFENDER].timer != -1
-            && bool(flag & BF_LONG))   //ディフェンダー状態で遠距離攻撃
-            cardfix = cardfix * (100 - t_sc_data[SC_DEFENDER].val2) / 100;  //ディフェンダーによる減衰
-        if (cardfix != 100)
-        {
-            damage = damage * cardfix / 100;    //ディフェンダー補正によるダメージ減少
-            damage2 = damage2 * cardfix / 100;  //ディフェンダー補正による左手ダメージ減少
-        }
-        if (t_sc_data[SC_ASSUMPTIO].timer != -1)
-        {                       //アスムプティオ
-            if (!map[target->m].flag.pvp)
-            {
-                damage = damage / 3;
-                damage2 = damage2 / 3;
-            }
-            else
-            {
-                damage = damage / 2;
-                damage2 = damage2 / 2;
-            }
-        }
-    }
-//対象にステータス異常がある場合のダメージ減算処理ここまで
-
     if (damage < 0)
         damage = 0;
     if (damage2 < 0)
@@ -2555,12 +1959,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     damage2 += sd->star_;
     damage += sd->spiritball * 3;
     damage2 += sd->spiritball * 3;
-
-    if (sc_data && sc_data[SC_AURABLADE].timer != -1)
-    {                           /* オーラブレード 必中 */
-        damage += sc_data[SC_AURABLADE].val1 * 10;
-        damage2 += sc_data[SC_AURABLADE].val1 * 10;
-    }
 
     // >二刀流の左右ダメージ計算誰かやってくれぇぇぇぇえええ！
     // >map_session_data に左手ダメージ(atk,atk2)追加して
@@ -2725,16 +2123,6 @@ struct Damage battle_calc_weapon_attack(struct block_list *src,
         if (sd->status.weapon && sd->status.weapon != 11)
         {
             int breakrate = 1;
-            if (target->type == BL_PC && sd->sc_data[SC_MELTDOWN].timer != -1)
-            {
-                breakrate += 100 * sd->sc_data[SC_MELTDOWN].val1;
-                if (MRAND(10000) <
-                    breakrate * battle_config.equipment_break_rate / 100
-                    || breakrate >= 10000)
-                    pc_breakweapon((struct map_session_data *) target);
-            }
-            if (sd->sc_data[SC_OVERTHRUST].timer != -1)
-                breakrate += 20 * sd->sc_data[SC_OVERTHRUST].val1;
             if (wd.type == 0x0a)
                 breakrate *= 2;
             if (MRAND(10000) <
@@ -2751,12 +2139,6 @@ struct Damage battle_calc_weapon_attack(struct block_list *src,
         && (wd.damage > 0 || wd.damage2 > 0))
     {
         int breakrate = 1;
-        if (src->type == BL_PC
-            && ((struct map_session_data *) src)->
-            sc_data[SC_MELTDOWN].timer != -1)
-            breakrate +=
-                70 *
-                ((struct map_session_data *) src)->sc_data[SC_MELTDOWN].val1;
         if (wd.type == 0x0a)
             breakrate *= 2;
         if (MRAND(10000) <
@@ -3114,13 +2496,6 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
                             rdamage = 1;
                     }
                 }
-                if (t_sc_data && t_sc_data[SC_REFLECTSHIELD].timer != -1)
-                {
-                    rdamage +=
-                        damage * t_sc_data[SC_REFLECTSHIELD].val2 / 100;
-                    if (rdamage < 1)
-                        rdamage = 1;
-                }
             }
             else if (bool(wd.flag & BF_LONG))
             {
@@ -3270,8 +2645,6 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
 
         if (rdamage > 0)
             battle_damage(target, src, rdamage, 0);
-        if (t_sc_data && t_sc_data[SC_SPLASHER].timer != -1)    //殴ったので対象のベナムスプラッシャー状態を解除
-            skill_status_change_end(target, SC_SPLASHER, -1);
 
         map_freeblock_unlock();
     }

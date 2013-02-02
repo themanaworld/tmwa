@@ -2819,26 +2819,6 @@ int clif_damage(struct block_list *src, struct block_list *dst,
 
     sc_data = battle_get_sc_data(dst);
 
-    if (type != 4 && dst->type == BL_PC
-        && ((struct map_session_data *) dst)->special_state.infinite_endure)
-        type = 9;
-    if (sc_data)
-    {
-        if (type != 4 && sc_data[SC_ENDURE].timer != -1)
-            type = 9;
-        if (sc_data[SC_HALLUCINATION].timer != -1)
-        {
-            if (damage > 0)
-                damage =
-                    damage * (5 + sc_data[SC_HALLUCINATION].val1) +
-                    MRAND(100);
-            if (damage2 > 0)
-                damage2 =
-                    damage2 * (5 + sc_data[SC_HALLUCINATION].val1) +
-                    MRAND(100);
-        }
-    }
-
     WBUFW(buf, 0) = 0x8a;
     WBUFL(buf, 2) = src->id;
     WBUFL(buf, 6) = dst->id;
@@ -3219,18 +3199,6 @@ int clif_skill_damage(struct block_list *src, struct block_list *dst,
     nullpo_ret(dst);
 
     sc_data = battle_get_sc_data(dst);
-
-    if (type != 5 && dst->type == BL_PC
-        && ((struct map_session_data *) dst)->special_state.infinite_endure)
-        type = 9;
-    if (sc_data)
-    {
-        if (type != 5 && sc_data[SC_ENDURE].timer != -1)
-            type = 9;
-        if (sc_data[SC_HALLUCINATION].timer != -1 && damage > 0)
-            damage =
-                damage * (5 + sc_data[SC_HALLUCINATION].val1) + MRAND(100);
-    }
 
     WBUFW(buf, 0) = 0x1de;
     WBUFW(buf, 2) = uint16_t(skill_id);
@@ -3915,14 +3883,6 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
 
     // option
     clif_changeoption(&sd->bl);
-    if (sd->sc_data[SC_TRICKDEAD].timer != -1)
-        skill_status_change_end(&sd->bl, SC_TRICKDEAD, -1);
-    if (sd->sc_data[SC_SIGNUMCRUCIS].timer != -1
-        && !battle_check_undead(7, sd->def_ele))
-        skill_status_change_end(&sd->bl, SC_SIGNUMCRUCIS, -1);
-    if (sd->special_state.infinite_endure
-        && sd->sc_data[SC_ENDURE].timer == -1)
-        skill_status_change_start(&sd->bl, SC_ENDURE, 10, 1, 0, 0, 0, 0);
     for (i = 0; i < MAX_INVENTORY; i++)
     {
         if (bool(sd->status.inventory[i].equip)
@@ -3988,11 +3948,9 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
         return;
 
     // ステータス異常やハイディング中(トンネルドライブ無)で動けない
-    if ((bool(sd->opt1) && sd->opt1 != (Opt1::_stone6)) ||
-        sd->sc_data[SC_ANKLE].timer != -1 || //アンクルスネア
-        sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
-        sd->sc_data[SC_SPIDERWEB].timer != -1 ||    //スパイダーウェッブ
-        (sd->sc_data[SC_DANCING].timer != -1 && sd->sc_data[SC_DANCING].val4))  //合奏スキル演奏中は動けない
+    if ((bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
+        || sd->sc_data[SC_ANKLE].timer != -1 //アンクルスネア
+        )
         return;
     if (bool(sd->status.option & Option::HIDE2))
         return;
@@ -4015,7 +3973,6 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
 void clif_parse_QuitGame(int fd, struct map_session_data *sd)
 {
     unsigned int tick = gettick();
-    struct skill_unit_group *sg;
 
     nullpo_retv(sd);
 
@@ -4025,10 +3982,7 @@ void clif_parse_QuitGame(int fd, struct map_session_data *sd)
              || (sd->opt2 != Opt2::ZERO
                  && !(night_flag == 1 && sd->opt2 == Opt2::BLIND))))
         || sd->skilltimer != -1 || (DIFF_TICK(tick, sd->canact_tick) < 0)
-        || (sd->sc_data[SC_DANCING].timer != -1
-            && sd->sc_data[SC_DANCING].val4
-            && (sg = (struct skill_unit_group *) sd->sc_data[SC_DANCING].val2)
-            && sg->src_id == sd->bl.id))
+        )
     {
         WFIFOW(fd, 2) = 1;
         WFIFOSET(fd, packet_len_table[0x18b]);
@@ -4181,8 +4135,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0)
-            || ((sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
-                                || sd->sc_data[SC_NOCHAT].timer != -1)))//チャット禁止
+            || (sd->sc_data[SC_NOCHAT].timer != -1)) //チャット禁止
     {
         free(buf);
         return;
@@ -4322,8 +4275,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
     if (sd->npc_id != 0
         || bool(sd->opt1)
         || bool(sd->status.option & Option::HIDE2)
-        || sd->state.storage_open
-        || sd->sc_data[SC_DANCING].timer != -1)
+        || sd->state.storage_open)
         return;
 
     tick = gettick();
@@ -4338,8 +4290,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
     {
         case 0x00:             // once attack
         case 0x07:             // continuous attack
-            if (sd->sc_data[SC_WEDDING].timer != -1
-                || bool(sd->status.option & Option::HIDE))
+            if (bool(sd->status.option & Option::HIDE))
                 return;
             if (!battle_config.sdelay_attack_enable)
             {
@@ -4442,8 +4393,7 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0)
-            || ((sd->sc_data[SC_BERSERK].timer != -1
-                                || sd->sc_data[SC_NOCHAT].timer != -1)))
+            || (sd->sc_data[SC_NOCHAT].timer != -1))
     {
         free(buf);
         return;
@@ -4532,10 +4482,7 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
 
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO
-        || (
-            (sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
-            sd->sc_data[SC_BERSERK].timer != -1 ||  //バーサーク
-            sd->sc_data[SC_NOCHAT].timer != -1)))   //会話禁止
+        || sd->sc_data[SC_NOCHAT].timer != -1)   //会話禁止
         return;
 
     if (fitem == NULL || fitem->bl.m != sd->bl.m)
@@ -4573,8 +4520,7 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd)
         return;
     }
     if (sd->npc_id != 0
-        || sd->opt1 != Opt1::ZERO
-        || sd->sc_data[SC_BERSERK].timer != -1)    //バーサーク
+        || sd->opt1 != Opt1::ZERO)
     {
         clif_displaymessage(sd->fd, "Can't drop items right now.");
         return;
@@ -4602,10 +4548,7 @@ void clif_parse_UseItem(int fd, struct map_session_data *sd)
     }
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO
-        || (
-            (sd->sc_data[SC_TRICKDEAD].timer != -1 ||    //死んだふり
-            sd->sc_data[SC_BERSERK].timer != -1 ||  //バーサーク
-            sd->sc_data[SC_NOCHAT].timer != -1)))   //会話禁止
+        || sd->sc_data[SC_NOCHAT].timer != -1)   //会話禁止
         return;
 
     if (sd->invincible_timer != -1)
@@ -4632,8 +4575,6 @@ void clif_parse_EquipItem(int fd, struct map_session_data *sd)
     }
     index = RFIFOW(fd, 2) - 2;
     if (sd->npc_id != 0)
-        return;
-    if (sd->sc_data[SC_BERSERK].timer != -1)
         return;
 
     if (sd->status.inventory[index].identify != 1)
@@ -4678,8 +4619,6 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
         skill_status_change_end(&sd->bl, SC_BROKNWEAPON, -1);
     if (sd->status.inventory[index].broken == 1 && sd->sc_data[SC_BROKNARMOR].timer != -1)
         skill_status_change_end(&sd->bl, SC_BROKNARMOR, -1);
-    if (sd->sc_data[SC_BERSERK].timer != -1)
-        return;
 
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO)
@@ -4883,10 +4822,7 @@ void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (sd->sc_data[SC_TRICKDEAD].timer != -1
-        || sd->sc_data[SC_BERSERK].timer != -1
-        || sd->sc_data[SC_NOCHAT].timer != -1
-        || sd->sc_data[SC_WEDDING].timer != -1)
+    if (sd->sc_data[SC_NOCHAT].timer != -1)
         return;
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
@@ -4955,10 +4891,7 @@ void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (sd->sc_data[SC_TRICKDEAD].timer != -1 ||
-        sd->sc_data[SC_BERSERK].timer != -1
-        || sd->sc_data[SC_NOCHAT].timer != -1
-        || sd->sc_data[SC_WEDDING].timer != -1)
+    if (sd->sc_data[SC_NOCHAT].timer != -1)
         return;
     if (sd->invincible_timer != -1)
         pc_delinvincibletimer(sd);
@@ -4994,10 +4927,7 @@ void clif_parse_UseSkillMap(int fd, struct map_session_data *sd)
         return;
 
     if (sd->npc_id != 0
-        || sd->sc_data[SC_TRICKDEAD].timer != -1
-        || sd->sc_data[SC_BERSERK].timer != -1
-        || sd->sc_data[SC_NOCHAT].timer != -1
-        || sd->sc_data[SC_WEDDING].timer != -1)
+        || sd->sc_data[SC_NOCHAT].timer != -1)
         return;
 
     if (sd->invincible_timer != -1)
@@ -5252,8 +5182,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0)
-            || ((sd->sc_data[SC_BERSERK].timer != -1 //バーサーク時は会話も不可
-                                || sd->sc_data[SC_NOCHAT].timer != -1))) //チャット禁止
+            || (sd->sc_data[SC_NOCHAT].timer != -1)) //チャット禁止
     {
         free(buf);
         return;

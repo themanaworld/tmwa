@@ -197,7 +197,6 @@ struct map_session_data
         unsigned no_magic_damage:1;
         unsigned no_weapon_damage:1;
         unsigned no_gemstone:1;
-        unsigned infinite_endure:1;
         unsigned unbreakable_weapon:1;
         unsigned unbreakable_armor:1;
         unsigned infinite_autospell:1;
