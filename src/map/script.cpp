@@ -3232,9 +3232,6 @@ void builtin_sc_start(ScriptState *st)
         bl = map_id2bl(conv_num(st, &(st->stack->stack_data[st->start + 5])));
     else
         bl = map_id2bl(st->rid);
-    if (bl->type == BL_PC
-        && ((struct map_session_data *) bl)->state.potionpitcher_flag)
-        bl = map_id2bl(((struct map_session_data *) bl)->skilltarget);
     skill_status_change_start(bl, type, val1, 0, 0, 0, tick, 0);
 }
 
@@ -3248,9 +3245,6 @@ void builtin_sc_end(ScriptState *st)
     struct block_list *bl;
     StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     bl = map_id2bl(st->rid);
-    if (bl->type == BL_PC
-        && ((struct map_session_data *) bl)->state.potionpitcher_flag)
-        bl = map_id2bl(((struct map_session_data *) bl)->skilltarget);
     skill_status_change_end(bl, type, -1);
 //  if(battle_config.etc_log)
 //      PRINTF("sc_end : %d %d\n",st->rid,type);
@@ -3262,9 +3256,6 @@ void builtin_sc_check(ScriptState *st)
     struct block_list *bl;
     StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     bl = map_id2bl(st->rid);
-    if (bl->type == BL_PC
-        && ((struct map_session_data *) bl)->state.potionpitcher_flag)
-        bl = map_id2bl(((struct map_session_data *) bl)->skilltarget);
 
     push_val(st->stack, ScriptCode::INT, skill_status_change_active(bl, type));
 

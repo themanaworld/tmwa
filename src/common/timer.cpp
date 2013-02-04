@@ -185,11 +185,13 @@ void delete_timer(timer_id id, timer_func func)
         FPRINTF(stderr, "delete_timer error : no such timer %d\n", id);
         abort();
     }
+#ifndef delete_timer
     if (timer_data[id].func != func)
     {
         FPRINTF(stderr, "Timer mismatch\n");
         abort();
     }
+#endif
     // "to let them disappear" - is this just in case?
     timer_data[id].func = NULL;
     timer_data[id].type = TIMER_ONCE_AUTODEL;

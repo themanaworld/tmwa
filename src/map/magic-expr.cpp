@@ -110,8 +110,6 @@ const char *show_entity(entity_t *entity)
             return ((struct item_data
                      *) (&((struct flooritem_data *) entity)->
                          item_data))->name;
-        case BL_SKILL:
-            return "%skill";
         case BL_SPELL:
             return "%invocation(ERROR:this-should-not-be-an-entity)";
         default:
@@ -629,7 +627,12 @@ BATTLE_GETTER(hp)
 BATTLE_GETTER(mdef)
 BATTLE_GETTER(def)
 BATTLE_GETTER(max_hp)
-BATTLE_GETTER(dir)
+static
+int fun_get_dir(env_t *, int, val_t *result, val_t *args)
+{
+    RESULTDIR = battle_get_dir(ARGENTITY(0));
+    return 0;
+}
 
 #define MMO_GETTER(name)                                        \
 static                                                          \
@@ -833,8 +836,8 @@ static
 int fun_awayfrom(env_t *, int, val_t *result, val_t *args)
 {
     location_t *loc = &ARGLOCATION(0);
-    int dx = heading_x[ARGDIR(1)];
-    int dy = heading_y[ARGDIR(1)];
+    int dx = dirx[ARGDIR(1)];
+    int dy = diry[ARGDIR(1)];
     int distance = ARGINT(2);
     while (distance-- && !map_is_solid(loc->m, loc->x + dx, loc->y + dy))
     {
@@ -971,8 +974,8 @@ void magic_random_location(location_t *dest, area_t *area)
 
                     for (i = 0; i < 10 && map_is_solid(m, x, y); i++)
                     {
-                        x += heading_x[dir];
-                        y += heading_y[dir];
+                        x += dirx[dir];
+                        y += diry[dir];
                     }
 
                     dir = DIR((uint8_t(dir) + 1) % 8);
@@ -1054,14 +1057,14 @@ int fun_status_option(env_t *, int, val_t *result, val_t *args)
 static
 int fun_element(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTINT = battle_get_element(ARGENTITY(0)) % 10;
+    RESULTINT = static_cast<int>(battle_get_element(ARGENTITY(0)).element);
     return 0;
 }
 
 static
 int fun_element_level(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTINT = battle_get_element(ARGENTITY(0)) / 10;
+    RESULTINT = battle_get_element(ARGENTITY(0)).level;
     return 0;
 }
 

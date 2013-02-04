@@ -5,6 +5,7 @@
 #include "../poison.hpp"
 
 /// Actual output function
+static
 void nullpo_info(const char *file, int line, const char *func)
 {
     if (!file)

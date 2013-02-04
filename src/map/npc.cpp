@@ -81,35 +81,23 @@ void npc_enable_sub(struct block_list *bl, struct npc_data *nd)
     free(name);
 }
 
-int npc_enable(const char *name, int flag)
+int npc_enable(const char *name, bool flag)
 {
     struct npc_data *nd = (struct npc_data *)strdb_search(npcname_db, name);
     if (nd == NULL)
         return 0;
 
-    if (flag & 1)
+    if (flag)
     {                           // 有効化
         nd->flag &= ~1;
         clif_spawnnpc(nd);
-    }
-    else if (flag & 2)
-    {
-        nd->flag &= ~1;
-        nd->option = Option::ZERO;
-        clif_changeoption(&nd->bl);
-    }
-    else if (flag & 4)
-    {
-        nd->flag |= 1;
-        nd->option = Option::HIDE2;
-        clif_changeoption(&nd->bl);
     }
     else
     {                           // 無効化
         nd->flag |= 1;
         clif_clearchar(&nd->bl, 0);
     }
-    if (flag & 3 && (nd->u.scr.xs > 0 || nd->u.scr.ys > 0))
+    if (flag && (nd->u.scr.xs > 0 || nd->u.scr.ys > 0))
         map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
                 nd->bl.m, nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
                 nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL_PC);
@@ -209,7 +197,8 @@ void npc_event_doall_sub(db_key_t key, db_val_t data,
     const char *p = key.s;
     struct event_data *ev;
 
-    nullpo_retv(ev = (struct event_data *) data);
+    ev = (struct event_data *) data;
+    nullpo_retv(ev);
 
     if ((p = strchr(p, ':')) && p && strcasecmp(name, p) == 0)
     {
@@ -237,7 +226,8 @@ void npc_event_do_sub(db_key_t key, db_val_t data,
     const char *p = key.s;
     struct event_data *ev;
 
-    nullpo_retv(ev = (struct event_data *) data);
+    ev = (struct event_data *) data;
+    nullpo_retv(ev);
 
     if (p && strcasecmp(name, p) == 0)
     {
@@ -1090,7 +1080,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     nd->bl.m = m;
     nd->bl.x = x;
     nd->bl.y = y;
-    nd->dir = 0;
+    nd->dir = DIR_S;
     nd->flag = 0;
     memcpy(nd->name, w3, 24);
     memcpy(nd->exname, w3, 24);
@@ -1144,18 +1134,23 @@ static
 int npc_parse_shop(char *w1, char *, char *w3, char *w4)
 {
     char *p;
-    int x, y, dir, m;
+    int x, y;
+    DIR dir;
+    int m;
     int max = 100, pos = 0;
     char mapname[24];
     struct npc_data *nd;
 
     // 引数の個数チェック
-    if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir) != 4 ||
-        strchr(w4, ',') == NULL)
+    int dir_; // TODO use SSCANF or extract
+    if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir_) != 4
+        || dir_ < 0 || dir_ >= 8
+        || strchr(w4, ',') == NULL)
     {
         PRINTF("bad shop line : %s\n", w3);
         return 1;
     }
+    dir = static_cast<DIR>(dir_);
     m = map_mapname2mapid(mapname);
 
     nd = (struct npc_data *) calloc(1, sizeof(struct npc_data) +
@@ -1282,7 +1277,9 @@ static
 int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
                       const char *first_line, FILE * fp, int *lines)
 {
-    int x, y, dir = 0, m, xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
+    int x, y;
+    DIR dir = DIR_S;
+    int m, xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
     char mapname[24];
     char *srcbuf = NULL;
     const ScriptCode *script = NULL;
@@ -1306,12 +1303,15 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     else
     {
         // 引数の個数チェック
-        if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir) != 4 ||
-            (strcmp(w2, "script") == 0 && strchr(w4, ',') == NULL))
+        int dir_; // TODO use SSCANF or extract
+        if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir_) != 4
+            || dir_ < 0 || dir_ >= 8
+            || (strcmp(w2, "script") == 0 && strchr(w4, ',') == NULL))
         {
             PRINTF("bad script line : %s\n", w3);
             return 1;
         }
+        dir = static_cast<DIR>(dir_);
         m = map_mapname2mapid(mapname);
     }
 

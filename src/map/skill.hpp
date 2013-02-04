@@ -21,8 +21,6 @@ struct skill_db
     int upkeep_time[MAX_SKILL_LEVEL], upkeep_time2[MAX_SKILL_LEVEL];
     int castcancel, cast_def_rate;
     int inf2, maxcount;
-    BF skill_type;
-    int blewcount[MAX_SKILL_LEVEL];
     int hp[MAX_SKILL_LEVEL], sp[MAX_SKILL_LEVEL], mhp[MAX_SKILL_LEVEL],
         hp_rate[MAX_SKILL_LEVEL], sp_rate[MAX_SKILL_LEVEL],
         zeny[MAX_SKILL_LEVEL];
@@ -48,15 +46,12 @@ skill_name_db& skill_lookup_by_name(const char *name);
 
 struct block_list;
 struct map_session_data;
-struct skill_unit;
-struct skill_unit_group;
 
 int do_init_skill(void);
 
 // スキルデータベースへのアクセサ
 int skill_get_hit(SkillID id);
 int skill_get_inf(SkillID id);
-int skill_get_pl(SkillID id);
 int skill_get_nk(SkillID id);
 int skill_get_max(SkillID id);
 int skill_get_max_raise(SkillID id);
@@ -65,44 +60,16 @@ int skill_get_sp(SkillID id, int lv);
 int skill_get_num(SkillID id, int lv);
 int skill_get_cast(SkillID id, int lv);
 int skill_get_delay(SkillID id, int lv);
-int skill_get_time(SkillID id, int lv);
-int skill_get_time2(SkillID id, int lv);
-int skill_get_castdef(SkillID id);
-int skill_get_weapontype(SkillID id);
 int skill_get_inf2(SkillID id);
 int skill_get_maxcount(SkillID id);
-int skill_get_blewcount(SkillID id, int lv);
-
-// スキルの使用
-int skill_use_id(struct map_session_data *sd, int target_id,
-        SkillID skill_num, int skill_lv);
-int skill_use_pos(struct map_session_data *sd,
-        int skill_x, int skill_y, SkillID skill_num, int skill_lv);
-
-int skill_castend_map(struct map_session_data *sd, SkillID skill_num,
-        const char *map);
-
-int skill_cleartimerskill(struct block_list *src);
 
 // 追加効果
 int skill_additional_effect(struct block_list *src, struct block_list *bl,
         SkillID skillid, int skilllv, BF attack_type,
         unsigned int tick);
 
-int skill_delunit(struct skill_unit *unit);
-int skill_clear_unitgroup(struct block_list *src);
-
-int skill_unit_ondamaged(struct skill_unit *src, struct block_list *bl,
-        int damage, unsigned int tick);
-
 int skill_castfix(struct block_list *bl, int time);
 int skill_delayfix(struct block_list *bl, int time);
-int skill_check_unit_range(int m, int x, int y, int range, SkillID skillid);
-int skill_check_unit_range2(int m, int x, int y, int range);
-int skill_unit_out_all(struct block_list *bl, unsigned int tick, int range);
-int skill_unit_move(struct block_list *bl, unsigned int tick, int range);
-int skill_unit_move_unit_group(struct skill_unit_group *group,
-        int m, int dx, int dy);
 
 void skill_stop_dancing(struct block_list *src, int flag);
 
@@ -111,13 +78,7 @@ int skill_castcancel(struct block_list *bl, int type);
 
 int skill_gangsterparadise(struct map_session_data *sd, int type);
 void skill_devotion(struct map_session_data *md, int target);
-void skill_devotion2(struct block_list *bl, int crusader);
 int skill_devotion3(struct block_list *bl, int target);
-
-#define skill_calc_heal(bl,skill_lv) (( battle_get_lv(bl)+battle_get_int(bl) )/8 *(4+ skill_lv*8))
-
-// その他
-int skill_check_cloaking(struct block_list *bl);
 
 // ステータス異常
 int skill_status_effect(struct block_list *bl, StatusChange type,

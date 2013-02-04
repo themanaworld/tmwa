@@ -12,26 +12,13 @@ enum class Option : uint16_t
 {
     ZERO            = 0x0000,
 
-    SIGHT           = 0x0001,
-    // apparently some weaker non-GM hide
-    HIDE2           = 0x0002,
-    CLOAK           = 0x0004,
     // [Fate] This is the GM `@hide' flag
     HIDE            = 0x0040,
-    ORC_HEAD        = 0x0800,
     // [Fate] Complete invisibility to other clients
     INVISIBILITY    = 0x1000,
-    _wedding        = 0x1000,
-    // [Fate] Auto-logging of nearby comments
-    SCRIBE          = 0x2000,
-    CHASEWALK       = 0x4000,
-    sign            = 0x8000,
-
 
     // ?
-    REAL_ANY_HIDE   = HIDE | CLOAK | HIDE2,
-    OLD_ANY_HIDE    = CHASEWALK | CLOAK | HIDE2,
-    MASK            = sign | CHASEWALK | _wedding,
+    REAL_ANY_HIDE   = HIDE,
 };
 enum class Opt1 : uint16_t
 {
@@ -92,8 +79,6 @@ enum class BL : uint8_t
 #define BL_ITEM BL::ITEM
     CHAT,
 #define BL_CHAT BL::CHAT
-    SKILL,
-#define BL_SKILL BL::SKILL
     SPELL,
 #define BL_SPELL BL::SPELL
 };
@@ -179,104 +164,148 @@ enum class ATK
 
 enum class SP : uint16_t
 {
+    // sent to client
     SPEED                       = 0,
 #define SP_SPEED SP::SPEED
 
     // when used as "no stat"
     ZERO = 0,
 
+    // sent to client
     BASEEXP                     = 1,
 #define SP_BASEEXP SP::BASEEXP
+    // sent to client
     JOBEXP                      = 2,
 #define SP_JOBEXP SP::JOBEXP
+#if 0
     KARMA                       = 3,
 #define SP_KARMA SP::KARMA
+#endif
 
+    // sent to client
     HP                          = 5,
 #define SP_HP SP::HP
+    // sent to client
     MAXHP                       = 6,
 #define SP_MAXHP SP::MAXHP
+    // sent to client
     SP                          = 7,
 #define SP_SP SP::SP
+    // sent to client
     MAXSP                       = 8,
 #define SP_MAXSP SP::MAXSP
+    // sent to client
     STATUSPOINT                 = 9,
 #define SP_STATUSPOINT SP::STATUSPOINT
 
+    // sent to client
     BASELEVEL                   = 11,
 #define SP_BASELEVEL SP::BASELEVEL
+    // sent to client
     SKILLPOINT                  = 12,
 #define SP_SKILLPOINT SP::SKILLPOINT
+    // sent to client
     STR                         = 13,
 #define SP_STR SP::STR
+    // sent to client
     AGI                         = 14,
 #define SP_AGI SP::AGI
+    // sent to client
     VIT                         = 15,
 #define SP_VIT SP::VIT
+    // sent to client
     INT                         = 16,
 #define SP_INT SP::INT
+    // sent to client
     DEX                         = 17,
 #define SP_DEX SP::DEX
+    // sent to client
     LUK                         = 18,
 #define SP_LUK SP::LUK
     CLASS                       = 19,
 #define SP_CLASS SP::CLASS
+    // sent to client
     ZENY                        = 20,
 #define SP_ZENY SP::ZENY
     SEX                         = 21,
 #define SP_SEX SP::SEX
+    // sent to client
     NEXTBASEEXP                 = 22,
 #define SP_NEXTBASEEXP SP::NEXTBASEEXP
+    // sent to client
     NEXTJOBEXP                  = 23,
 #define SP_NEXTJOBEXP SP::NEXTJOBEXP
+    // sent to client
     WEIGHT                      = 24,
 #define SP_WEIGHT SP::WEIGHT
+    // sent to client
     MAXWEIGHT                   = 25,
 #define SP_MAXWEIGHT SP::MAXWEIGHT
 
+    // sent to client
     USTR                        = 32,
 #define SP_USTR SP::USTR
+    // sent to client
     UAGI                        = 33,
 #define SP_UAGI SP::UAGI
+    // sent to client
     UVIT                        = 34,
 #define SP_UVIT SP::UVIT
+    // sent to client
     UINT                        = 35,
 #define SP_UINT SP::UINT
+    // sent to client
     UDEX                        = 36,
 #define SP_UDEX SP::UDEX
+    // sent to client
     ULUK                        = 37,
 #define SP_ULUK SP::ULUK
 
+    // sent to client
     ATK1                        = 41,
 #define SP_ATK1 SP::ATK1
+    // sent to client
     ATK2                        = 42,
 #define SP_ATK2 SP::ATK2
+    // sent to client
     MATK1                       = 43,
 #define SP_MATK1 SP::MATK1
+    // sent to client
     MATK2                       = 44,
 #define SP_MATK2 SP::MATK2
+    // sent to client
     DEF1                        = 45,
 #define SP_DEF1 SP::DEF1
+    // sent to client
     DEF2                        = 46,
 #define SP_DEF2 SP::DEF2
+    // sent to client
     MDEF1                       = 47,
 #define SP_MDEF1 SP::MDEF1
+    // sent to client
     MDEF2                       = 48,
 #define SP_MDEF2 SP::MDEF2
+    // sent to client
     HIT                         = 49,
 #define SP_HIT SP::HIT
+    // sent to client
     FLEE1                       = 50,
 #define SP_FLEE1 SP::FLEE1
+    // sent to client
     FLEE2                       = 51,
 #define SP_FLEE2 SP::FLEE2
+    // sent to client
     CRITICAL                    = 52,
 #define SP_CRITICAL SP::CRITICAL
+    // sent to client
     ASPD                        = 53,
 #define SP_ASPD SP::ASPD
 
+    // sent to client
     JOBLEVEL                    = 55,
 #define SP_JOBLEVEL SP::JOBLEVEL
 
+#if 0
     PARTNER                     = 57,
 #define SP_PARTNER SP::PARTNER
     CART                        = 58,
@@ -285,125 +314,213 @@ enum class SP : uint16_t
 #define SP_FAME SP::FAME
     UNBREAKABLE                 = 60,
 #define SP_UNBREAKABLE SP::UNBREAKABLE
+#endif
 
     DEAF                        = 70,
 #define SP_DEAF SP::DEAF
 
+    // sent to client
     GM                          = 500,
 #define SP_GM SP::GM
 
+    // sent to client
     ATTACKRANGE                 = 1000,
 #define SP_ATTACKRANGE SP::ATTACKRANGE
+#if 0
     ATKELE                      = 1001,
 #define SP_ATKELE SP::ATKELE
+#endif
+#if 0
     DEFELE                      = 1002,
 #define SP_DEFELE SP::DEFELE
+#endif
+#if 0
     CASTRATE                    = 1003,
 #define SP_CASTRATE SP::CASTRATE
+#endif
     MAXHPRATE                   = 1004,
 #define SP_MAXHPRATE SP::MAXHPRATE
+#if 0
     MAXSPRATE                   = 1005,
 #define SP_MAXSPRATE SP::MAXSPRATE
+#endif
+#if 0
     SPRATE                      = 1006,
 #define SP_SPRATE SP::SPRATE
+#endif
 
+#if 0
     ADDEFF                      = 1012,
 #define SP_ADDEFF SP::ADDEFF
+#endif
+#if 0
     RESEFF                      = 1013,
 #define SP_RESEFF SP::RESEFF
+#endif
     BASE_ATK                    = 1014,
 #define SP_BASE_ATK SP::BASE_ATK
     ASPD_RATE                   = 1015,
 #define SP_ASPD_RATE SP::ASPD_RATE
     HP_RECOV_RATE               = 1016,
 #define SP_HP_RECOV_RATE SP::HP_RECOV_RATE
+#if 0
     SP_RECOV_RATE               = 1017,
 #define SP_SP_RECOV_RATE SP::SP_RECOV_RATE
+#endif
+#if 0
     SPEED_RATE                  = 1018,
 #define SP_SPEED_RATE SP::SPEED_RATE
+#endif
+#if 0
     CRITICAL_DEF                = 1019,
 #define SP_CRITICAL_DEF SP::CRITICAL_DEF
+#endif
+#if 0
     NEAR_ATK_DEF                = 1020,
 #define SP_NEAR_ATK_DEF SP::NEAR_ATK_DEF
+#endif
+#if 0
     LONG_ATK_DEF                = 1021,
 #define SP_LONG_ATK_DEF SP::LONG_ATK_DEF
+#endif
+#if 0
     DOUBLE_RATE                 = 1022,
 #define SP_DOUBLE_RATE SP::DOUBLE_RATE
+#endif
     DOUBLE_ADD_RATE             = 1023,
 #define SP_DOUBLE_ADD_RATE SP::DOUBLE_ADD_RATE
+#if 0
     MATK                        = 1024,
 #define SP_MATK SP::MATK
+#endif
+#if 0
     MATK_RATE                   = 1025,
 #define SP_MATK_RATE SP::MATK_RATE
+#endif
+#if 0
     IGNORE_DEF_ELE              = 1026,
 #define SP_IGNORE_DEF_ELE SP::IGNORE_DEF_ELE
+#endif
+#if 0
     IGNORE_DEF_RACE             = 1027,
 #define SP_IGNORE_DEF_RACE SP::IGNORE_DEF_RACE
+#endif
+#if 0
     ATK_RATE                    = 1028,
 #define SP_ATK_RATE SP::ATK_RATE
+#endif
     SPEED_ADDRATE               = 1029,
 #define SP_SPEED_ADDRATE SP::SPEED_ADDRATE
+#if 0
     ASPD_ADDRATE                = 1030,
 #define SP_ASPD_ADDRATE SP::ASPD_ADDRATE
+#endif
+#if 0
     MAGIC_ATK_DEF               = 1031,
 #define SP_MAGIC_ATK_DEF SP::MAGIC_ATK_DEF
+#endif
+#if 0
     MISC_ATK_DEF                = 1032,
 #define SP_MISC_ATK_DEF SP::MISC_ATK_DEF
+#endif
+#if 0
     IGNORE_MDEF_ELE             = 1033,
 #define SP_IGNORE_MDEF_ELE SP::IGNORE_MDEF_ELE
+#endif
+#if 0
     IGNORE_MDEF_RACE            = 1034,
 #define SP_IGNORE_MDEF_RACE SP::IGNORE_MDEF_RACE
+#endif
 
+#if 0
     PERFECT_HIT_RATE            = 1038,
 #define SP_PERFECT_HIT_RATE SP::PERFECT_HIT_RATE
+#endif
+#if 0
     PERFECT_HIT_ADD_RATE        = 1039,
 #define SP_PERFECT_HIT_ADD_RATE SP::PERFECT_HIT_ADD_RATE
+#endif
+#if 0
     CRITICAL_RATE               = 1040,
 #define SP_CRITICAL_RATE SP::CRITICAL_RATE
+#endif
+#if 0
     GET_ZENY_NUM                = 1041,
 #define SP_GET_ZENY_NUM SP::GET_ZENY_NUM
+#endif
+#if 0
     ADD_GET_ZENY_NUM            = 1042,
 #define SP_ADD_GET_ZENY_NUM SP::ADD_GET_ZENY_NUM
+#endif
 
+#if 0
     ADD_MONSTER_DROP_ITEM       = 1047,
 #define SP_ADD_MONSTER_DROP_ITEM SP::ADD_MONSTER_DROP_ITEM
+#endif
+#if 0
     DEF_RATIO_ATK_ELE           = 1048,
 #define SP_DEF_RATIO_ATK_ELE SP::DEF_RATIO_ATK_ELE
+#endif
+#if 0
     DEF_RATIO_ATK_RACE          = 1049,
 #define SP_DEF_RATIO_ATK_RACE SP::DEF_RATIO_ATK_RACE
+#endif
+#if 0
     ADD_SPEED                   = 1050,
 #define SP_ADD_SPEED SP::ADD_SPEED
+#endif
+#if 0
     HIT_RATE                    = 1051,
 #define SP_HIT_RATE SP::HIT_RATE
+#endif
+#if 0
     FLEE_RATE                   = 1052,
 #define SP_FLEE_RATE SP::FLEE_RATE
+#endif
+#if 0
     FLEE2_RATE                  = 1053,
 #define SP_FLEE2_RATE SP::FLEE2_RATE
+#endif
     DEF_RATE                    = 1054,
 #define SP_DEF_RATE SP::DEF_RATE
     DEF2_RATE                   = 1055,
 #define SP_DEF2_RATE SP::DEF2_RATE
+#if 0
     MDEF_RATE                   = 1056,
 #define SP_MDEF_RATE SP::MDEF_RATE
+#endif
+#if 0
     MDEF2_RATE                  = 1057,
 #define SP_MDEF2_RATE SP::MDEF2_RATE
+#endif
+#if 0
     SPLASH_RANGE                = 1058,
 #define SP_SPLASH_RANGE SP::SPLASH_RANGE
+#endif
+#if 0
     SPLASH_ADD_RANGE            = 1059,
 #define SP_SPLASH_ADD_RANGE SP::SPLASH_ADD_RANGE
-    AUTOSPELL                   = 1060,
-#define SP_AUTOSPELL SP::AUTOSPELL
+#endif
+
     HP_DRAIN_RATE               = 1061,
 #define SP_HP_DRAIN_RATE SP::HP_DRAIN_RATE
+#if 0
     SP_DRAIN_RATE               = 1062,
 #define SP_SP_DRAIN_RATE SP::SP_DRAIN_RATE
+#endif
+#if 0
     SHORT_WEAPON_DAMAGE_RETURN  = 1063,
 #define SP_SHORT_WEAPON_DAMAGE_RETURN SP::SHORT_WEAPON_DAMAGE_RETURN
+#endif
+#if 0
     LONG_WEAPON_DAMAGE_RETURN   = 1064,
 #define SP_LONG_WEAPON_DAMAGE_RETURN SP::LONG_WEAPON_DAMAGE_RETURN
+#endif
 
+#if 0
     ADDEFF2                     = 1067,
 #define SP_ADDEFF2 SP::ADDEFF2
+#endif
     BREAK_WEAPON_RATE           = 1068,
 #define SP_BREAK_WEAPON_RATE SP::BREAK_WEAPON_RATE
     BREAK_ARMOR_RATE            = 1069,
@@ -412,36 +529,10 @@ enum class SP : uint16_t
 #define SP_ADD_STEAL_RATE SP::ADD_STEAL_RATE
     MAGIC_DAMAGE_RETURN         = 1071,
 #define SP_MAGIC_DAMAGE_RETURN SP::MAGIC_DAMAGE_RETURN
+#if 0
     RANDOM_ATTACK_INCREASE      = 1072,
 #define SP_RANDOM_ATTACK_INCREASE SP::RANDOM_ATTACK_INCREASE
-    ALL_STATS                   = 1073,
-#define SP_ALL_STATS SP::ALL_STATS
-    AGI_VIT                     = 1074,
-#define SP_AGI_VIT SP::AGI_VIT
-    AGI_DEX_STR                 = 1075,
-#define SP_AGI_DEX_STR SP::AGI_DEX_STR
-    PERFECT_HIDE                = 1076,
-#define SP_PERFECT_HIDE SP::PERFECT_HIDE
-
-    RESTART_FULL_RECORVER       = 2000,
-#define SP_RESTART_FULL_RECORVER SP::RESTART_FULL_RECORVER
-    NO_CASTCANCEL               = 2001,
-#define SP_NO_CASTCANCEL SP::NO_CASTCANCEL
-    NO_SIZEFIX                  = 2002,
-#define SP_NO_SIZEFIX SP::NO_SIZEFIX
-    NO_MAGIC_DAMAGE             = 2003,
-#define SP_NO_MAGIC_DAMAGE SP::NO_MAGIC_DAMAGE
-    NO_WEAPON_DAMAGE            = 2004,
-#define SP_NO_WEAPON_DAMAGE SP::NO_WEAPON_DAMAGE
-    NO_GEMSTONE                 = 2005,
-#define SP_NO_GEMSTONE SP::NO_GEMSTONE
-    NO_CASTCANCEL2              = 2006,
-#define SP_NO_CASTCANCEL2 SP::NO_CASTCANCEL2
-
-    UNBREAKABLE_WEAPON          = 2008,
-#define SP_UNBREAKABLE_WEAPON SP::UNBREAKABLE_WEAPON
-    SP_UNBREAKABLE_ARMOR        = 2009,
-#define SP_UNBREAKABLE_ARMOR SP::UNBREAKABLE_ARMOR
+#endif
 };
 
 constexpr

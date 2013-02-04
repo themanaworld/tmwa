@@ -22,7 +22,7 @@ bool pc_issit(struct map_session_data *sd)
     return sd->state.dead_sit == 2;
 }
 inline
-void pc_setdir(struct map_session_data *sd, int b)
+void pc_setdir(struct map_session_data *sd, DIR b)
 {
     sd->dir = (b);
 }
@@ -30,11 +30,6 @@ inline
 void pc_setchatid(struct map_session_data *sd, int n)
 {
     sd->chatID = n;
-}
-inline
-bool pc_ishiding(struct map_session_data *sd)
-{
-    return bool(sd->status.option & Option::OLD_ANY_HIDE);
 }
 inline
 bool pc_isinvisible(struct map_session_data *sd)
@@ -98,7 +93,6 @@ int pc_checkweighticon(struct map_session_data *sd);
 int pc_calcstatus(struct map_session_data *, int);
 int pc_bonus(struct map_session_data *, SP, int);
 int pc_bonus2(struct map_session_data *sd, SP, int, int);
-int pc_bonus3(struct map_session_data *sd, SP, int, int, int);
 int pc_skill(struct map_session_data *, SkillID, int, int);
 
 int pc_steal_item(struct map_session_data *sd, struct block_list *bl);

@@ -21,7 +21,7 @@ int npc_buylist(struct map_session_data *, int, const uint16_t *);
 int npc_selllist(struct map_session_data *, int, const uint16_t *);
 int npc_parse_warp(const char *w1, const char *w2, const char *w3, const char *w4);
 
-int npc_enable(const char *name, int flag);
+int npc_enable(const char *name, bool flag);
 struct npc_data *npc_name2id(const char *name);
 
 int npc_get_new_npc_id(void);

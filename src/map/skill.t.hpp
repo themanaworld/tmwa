@@ -28,9 +28,6 @@ enum class StatusChange : uint16_t
 #define CLIF_OPTION_SC_SCRIBE StatusChange::CLIF_OPTION_SC_SCRIBE
 
     // the rest are the normal effects
-    SC_HIDING           = 4,    // ? (opt) ?bad
-#define SC_HIDING StatusChange::SC_HIDING
-
     SC_SLOWPOISON       = 14,   // item script
 #define SC_SLOWPOISON StatusChange::SC_SLOWPOISON
 
@@ -75,9 +72,6 @@ enum class StatusChange : uint16_t
 
     SC_ANKLE            = 143,  // ?skill.cpp skill_unit thingies
 #define SC_ANKLE StatusChange::SC_ANKLE
-
-    SC_SIGHT            = 150,  // ?unbad
-#define SC_SIGHT StatusChange::SC_SIGHT
 
     SC_ATKPOT           = 185,  // item script
 #define SC_ATKPOT StatusChange::SC_ATKPOT
@@ -147,6 +141,7 @@ enum class BadSC
     BLIND       = 8,
 
     COUNT       = 9, // formerly 10,
+    // there is apocryphal evidence of a "bleeding" effect
 };
 
 constexpr

@@ -192,11 +192,6 @@ static int stat_p[MAX_LEVEL] =
 };
 
 static
-int dirx[8] = { 0, -1, -1, -1, 0, 1, 1, 1 };
-static
-int diry[8] = { 1, 1, 0, -1, -1, -1, 0, 1 };
-
-static
 earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
 {{
     EPOS::MISC2,
@@ -431,14 +426,6 @@ int pc_setrestartvalue(struct map_session_data *sd, int type)
 {
     nullpo_ret(sd);
 
-    //-----------------------
-    // 死亡した
-    if (sd->special_state.restart_full_recover)
-    {                           // オシリスカード
-        sd->status.hp = sd->status.max_hp;
-        sd->status.sp = sd->status.max_sp;
-    }
-    else
     {
         if (battle_config.restart_hp_rate < 50)
             sd->status.hp = (sd->status.max_hp) / 2;
@@ -728,7 +715,7 @@ int pc_breakweapon(struct map_session_data *sd)
 
     if (sd == NULL)
         return -1;
-    if (sd->unbreakable >= MRAND(100))
+    if (!MRAND(100))
         return 0;
 
     for (i = 0; i < MAX_INVENTORY; i++)
@@ -767,7 +754,7 @@ int pc_breakarmor(struct map_session_data *sd)
 {
     if (sd == NULL)
         return -1;
-    if (sd->unbreakable >= MRAND(100))
+    if (!MRAND(100))
         return 0;
 
     for (int i = 0; i < MAX_INVENTORY; i++)
@@ -839,15 +826,12 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     sd->weapontype1 = sd->weapontype2 = 0;
     sd->speed = DEFAULT_WALK_SPEED;
     sd->state.dead_sit = 0;
-    sd->dir = 0;
-    sd->head_dir = 0;
+    sd->dir = DIR_S;
+    sd->head_dir = DIR_S;
     sd->state.auth = 1;
     sd->walktimer = -1;
     sd->attacktimer = -1;
     sd->followtimer = -1;       // [MouseJstr]
-    sd->skilltimer = -1;
-    sd->skillitem = SkillID::NEGATIVE;
-    sd->skillitemlv = -1;
     sd->invincible_timer = -1;
     sd->sg_count = 0;
 
@@ -877,8 +861,6 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     sd->spiritball = 0;
     for (int i = 0; i < MAX_SKILL_LEVEL; i++)
         sd->spirit_timer[i] = -1;
-    for (int i = 0; i < MAX_SKILLTIMERSKILL; i++)
-        sd->skilltimerskill[i].timer = -1;
 
     memset(&sd->dev, 0, sizeof(struct square));
     for (int i = 0; i < 5; i++)
@@ -904,13 +886,9 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     sd->sc_count = 0;
     if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
         (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide)))
-        sd->status.option &= (Option::MASK | Option::HIDE);
+        sd->status.option &= Option::HIDE;
     else
-        sd->status.option &= Option::MASK;
-
-    // スキルユニット関係の初期化
-    memset(sd->skillunit, 0, sizeof(sd->skillunit));
-    memset(sd->skillunittick, 0, sizeof(sd->skillunittick));
+        sd->status.option = Option::ZERO;
 
     // init ignore list
     memset(sd->ignore, 0, sizeof(sd->ignore));
@@ -1135,7 +1113,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     int b_base_atk;
     earray<struct skill, SkillID, MAX_SKILL> b_skill;
     int bl, index;
-    int aspd_rate, wele, wele_, def_ele, refinedef = 0;
+    int aspd_rate, refinedef = 0;
     int str, dstr, dex;
 
     nullpo_ret(sd);
@@ -1217,8 +1195,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->status.max_sp = 0;
     sd->attackrange = 0;
     sd->attackrange_ = 0;
-    sd->atk_ele = 0;
-    sd->def_ele = 0;
     sd->star = 0;
     sd->overrefine = 0;
     sd->matk1 = 0;
@@ -1226,26 +1202,17 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->speed = DEFAULT_WALK_SPEED;
     sd->hprate = 100;
     sd->sprate = 100;
-    sd->castrate = 100;
     sd->dsprate = 100;
     sd->base_atk = 0;
     sd->arrow_atk = 0;
-    sd->arrow_ele = 0;
     sd->arrow_hit = 0;
     sd->arrow_range = 0;
     sd->nhealhp = sd->nhealsp = sd->nshealhp = sd->nshealsp = sd->nsshealhp =
         sd->nsshealsp = 0;
-    for (int& ire : sd->addeff)
-        ire = 0;
-    for (int& ire : sd->addeff2)
-        ire = 0;
-    for (int& ire : sd->reseff)
-        ire = 0;
     memset(&sd->special_state, 0, sizeof(sd->special_state));
 
     sd->watk_ = 0;              //二刀流用(仮)
     sd->watk_2 = 0;
-    sd->atk_ele_ = 0;
     sd->star_ = 0;
     sd->overrefine_ = 0;
 
@@ -1255,38 +1222,17 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     sd->sprecov_rate = 100;
     sd->critical_def = 0;
     sd->double_rate = 0;
-    sd->near_attack_def_rate = sd->long_attack_def_rate = 0;
     sd->atk_rate = sd->matk_rate = 100;
-    sd->ignore_def_ele = sd->ignore_def_race = 0;
-    sd->ignore_def_ele_ = sd->ignore_def_race_ = 0;
-    sd->ignore_mdef_ele = sd->ignore_mdef_race = 0;
     sd->arrow_cri = 0;
-    sd->magic_def_rate = sd->misc_def_rate = 0;
-    for (int& ire : sd->arrow_addeff)
-        ire = 0;
-    for (int& ire : sd->arrow_addeff2)
-        ire = 0;
     sd->perfect_hit = 0;
     sd->critical_rate = sd->hit_rate = sd->flee_rate = sd->flee2_rate = 100;
     sd->def_rate = sd->def2_rate = sd->mdef_rate = sd->mdef2_rate = 100;
-    sd->def_ratio_atk_ele = sd->def_ratio_atk_ele_ = 0;
-    sd->def_ratio_atk_race = sd->def_ratio_atk_race_ = 0;
-    sd->get_zeny_num = 0;
-    sd->monster_drop_item_count = 0;
-    memset(sd->monster_drop_race, 0, sizeof(sd->monster_drop_race));
-    memset(sd->monster_drop_itemrate, 0, sizeof(sd->monster_drop_itemrate));
     sd->speed_add_rate = sd->aspd_add_rate = 100;
-    sd->double_add_rate = sd->perfect_hit_add = sd->get_zeny_add_num = 0;
-    sd->splash_range = sd->splash_add_range = 0;
-    sd->autospell_id = SkillID::ZERO;
-    sd->autospell_lv = sd->autospell_rate = 0;
+    sd->double_add_rate = sd->perfect_hit_add = 0;
     sd->hp_drain_rate = sd->hp_drain_per = sd->sp_drain_rate =
         sd->sp_drain_per = 0;
     sd->hp_drain_rate_ = sd->hp_drain_per_ = sd->sp_drain_rate_ =
         sd->sp_drain_per_ = 0;
-    sd->short_weapon_damage_return = sd->long_weapon_damage_return = 0;
-    sd->magic_damage_return = 0;    //AppleGirl Was Here
-    sd->random_attack_increase_add = sd->random_attack_increase_per = 0;
 
     sd->spellpower_bonus_target = 0;
 
@@ -1371,9 +1317,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
         sd->spellpower_bonus_current = sd->spellpower_bonus_target;
 
-    wele = sd->atk_ele;
-    wele_ = sd->atk_ele_;
-    def_ele = sd->def_ele;
     sd->paramcard = sd->parame;
 
     // 装備品によるステータス変化はここで実行
@@ -1409,7 +1352,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                     if (sd->status.inventory[index].card[0] == 0x00ff)
                     {           // 製造武器
                         sd->star_ = (sd->status.inventory[index].card[1] >> 8); // 星のかけら
-                        wele_ = (sd->status.inventory[index].card[1] & 0x0f);   // 属 性
                     }
                     sd->attackrange_ += sd->inventory_data[index]->range;
                     sd->state.lr_flag = 1;
@@ -1440,7 +1382,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                     if (sd->status.inventory[index].card[0] == 0x00ff)
                     {           // 製造武器
                         sd->star += (sd->status.inventory[index].card[1] >> 8); // 星のかけら
-                        wele = (sd->status.inventory[index].card[1] & 0x0f);    // 属 性
                     }
                     sd->attackrange += sd->inventory_data[index]->range;
                     run_script_l(sd->inventory_data[index]->equip_script, 0,
@@ -1498,16 +1439,8 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->attackrange = sd->attackrange_;
     if (sd->status.weapon == 11)
         sd->attackrange += sd->arrow_range;
-    if (wele > 0)
-        sd->atk_ele = wele;
-    if (wele_ > 0)
-        sd->atk_ele_ = wele_;
-    if (def_ele > 0)
-        sd->def_ele = def_ele;
     sd->double_rate += sd->double_add_rate;
     sd->perfect_hit += sd->perfect_hit_add;
-    sd->get_zeny_num += sd->get_zeny_add_num;
-    sd->splash_range += sd->splash_add_range;
     if (sd->speed_add_rate != 100)
         sd->speed_rate += sd->speed_add_rate - 100;
     if (sd->aspd_add_rate != 100)
@@ -1821,7 +1754,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
  * 装 備品による能力等のボーナス設定
  *------------------------------------------
  */
-// TODO: in each pc_bonus*, purge all 'type' not used by scripts
 int pc_bonus(struct map_session_data *sd, SP type, int val)
 {
     nullpo_ret(sd);
@@ -1837,49 +1769,56 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
             if (sd->state.lr_flag != 2)
                 sd->parame[sp_to_attr(type)] += val;
             break;
+#if 0
         case SP_ATK1:
             if (!sd->state.lr_flag)
                 sd->watk += val;
             else if (sd->state.lr_flag == 1)
                 sd->watk_ += val;
             break;
+#endif
+#if 0
         case SP_ATK2:
             if (!sd->state.lr_flag)
                 sd->watk2 += val;
             else if (sd->state.lr_flag == 1)
                 sd->watk_2 += val;
             break;
+#endif
+#if 0
         case SP_BASE_ATK:
             if (sd->state.lr_flag != 2)
                 sd->base_atk += val;
             break;
+#endif
+#if 0
         case SP_MATK1:
             if (sd->state.lr_flag != 2)
                 sd->matk1 += val;
             break;
+#endif
+#if 0
         case SP_MATK2:
             if (sd->state.lr_flag != 2)
                 sd->matk2 += val;
             break;
-        case SP_MATK:
-            if (sd->state.lr_flag != 2)
-            {
-                sd->matk1 += val;
-                sd->matk2 += val;
-            }
-            break;
+#endif
+#if 0
         case SP_DEF1:
             if (sd->state.lr_flag != 2)
                 sd->def += val;
             break;
+#endif
         case SP_MDEF1:
             if (sd->state.lr_flag != 2)
                 sd->mdef += val;
             break;
+#if 0
         case SP_MDEF2:
             if (sd->state.lr_flag != 2)
                 sd->mdef += val;
             break;
+#endif
         case SP_HIT:
             if (sd->state.lr_flag != 2)
                 sd->hit += val;
@@ -1890,27 +1829,17 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
             if (sd->state.lr_flag != 2)
                 sd->flee += val;
             break;
+#if 0
         case SP_FLEE2:
             if (sd->state.lr_flag != 2)
                 sd->flee2 += val * 10;
             break;
+#endif
         case SP_CRITICAL:
             if (sd->state.lr_flag != 2)
                 sd->critical += val * 10;
             else
                 sd->arrow_cri += val * 10;
-            break;
-        case SP_ATKELE:
-            if (!sd->state.lr_flag)
-                sd->atk_ele = val;
-            else if (sd->state.lr_flag == 1)
-                sd->atk_ele_ = val;
-            else if (sd->state.lr_flag == 2)
-                sd->arrow_ele = val;
-            break;
-        case SP_DEFELE:
-            if (sd->state.lr_flag != 2)
-                sd->def_ele = val;
             break;
         case SP_MAXHP:
             if (sd->state.lr_flag != 2)
@@ -1920,22 +1849,22 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
             if (sd->state.lr_flag != 2)
                 sd->status.max_sp += val;
             break;
-        case SP_CASTRATE:
-            if (sd->state.lr_flag != 2)
-                sd->castrate += val;
-            break;
         case SP_MAXHPRATE:
             if (sd->state.lr_flag != 2)
                 sd->hprate += val;
             break;
+#if 0
         case SP_MAXSPRATE:
             if (sd->state.lr_flag != 2)
                 sd->sprate += val;
             break;
+#endif
+#if 0
         case SP_SPRATE:
             if (sd->state.lr_flag != 2)
                 sd->dsprate += val;
             break;
+#endif
         case SP_ATTACKRANGE:
             if (!sd->state.lr_flag)
                 sd->attackrange += val;
@@ -1944,10 +1873,13 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
             else if (sd->state.lr_flag == 2)
                 sd->arrow_range += val;
             break;
+#if 0
         case SP_ADD_SPEED:
             if (sd->state.lr_flag != 2)
                 sd->speed -= val;
             break;
+#endif
+#if 0
         case SP_SPEED_RATE:
             if (sd->state.lr_flag != 2)
             {
@@ -1955,14 +1887,17 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
                     sd->speed_rate = 100 - val;
             }
             break;
+#endif
         case SP_SPEED_ADDRATE:
             if (sd->state.lr_flag != 2)
                 sd->speed_add_rate = sd->speed_add_rate * (100 - val) / 100;
             break;
+#if 0
         case SP_ASPD:
             if (sd->state.lr_flag != 2)
                 sd->aspd -= val * 10;
             break;
+#endif
         case SP_ASPD_RATE:
             if (sd->state.lr_flag != 2)
             {
@@ -1970,118 +1905,86 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
                     sd->aspd_rate = 100 - val;
             }
             break;
+#if 0
         case SP_ASPD_ADDRATE:
             if (sd->state.lr_flag != 2)
                 sd->aspd_add_rate = sd->aspd_add_rate * (100 - val) / 100;
             break;
+#endif
         case SP_HP_RECOV_RATE:
             if (sd->state.lr_flag != 2)
                 sd->hprecov_rate += val;
             break;
+#if 0
         case SP_SP_RECOV_RATE:
             if (sd->state.lr_flag != 2)
                 sd->sprecov_rate += val;
             break;
+#endif
+#if 0
         case SP_CRITICAL_DEF:
             if (sd->state.lr_flag != 2)
                 sd->critical_def += val;
             break;
-        case SP_NEAR_ATK_DEF:
-            if (sd->state.lr_flag != 2)
-                sd->near_attack_def_rate += val;
-            break;
-        case SP_LONG_ATK_DEF:
-            if (sd->state.lr_flag != 2)
-                sd->long_attack_def_rate += val;
-            break;
+#endif
+#if 0
         case SP_DOUBLE_RATE:
             if (sd->state.lr_flag == 0 && sd->double_rate < val)
                 sd->double_rate = val;
             break;
+#endif
         case SP_DOUBLE_ADD_RATE:
             if (sd->state.lr_flag == 0)
                 sd->double_add_rate += val;
             break;
+#if 0
         case SP_MATK_RATE:
             if (sd->state.lr_flag != 2)
                 sd->matk_rate += val;
             break;
-        case SP_IGNORE_DEF_ELE:
-            if (!sd->state.lr_flag)
-                sd->ignore_def_ele |= 1 << val;
-            else if (sd->state.lr_flag == 1)
-                sd->ignore_def_ele_ |= 1 << val;
-            break;
-        case SP_IGNORE_DEF_RACE:
-            if (!sd->state.lr_flag)
-                sd->ignore_def_race |= 1 << val;
-            else if (sd->state.lr_flag == 1)
-                sd->ignore_def_race_ |= 1 << val;
-            break;
+#endif
+#if 0
         case SP_ATK_RATE:
             if (sd->state.lr_flag != 2)
                 sd->atk_rate += val;
             break;
-        case SP_MAGIC_ATK_DEF:
-            if (sd->state.lr_flag != 2)
-                sd->magic_def_rate += val;
-            break;
-        case SP_MISC_ATK_DEF:
-            if (sd->state.lr_flag != 2)
-                sd->misc_def_rate += val;
-            break;
-        case SP_IGNORE_MDEF_ELE:
-            if (sd->state.lr_flag != 2)
-                sd->ignore_mdef_ele |= 1 << val;
-            break;
-        case SP_IGNORE_MDEF_RACE:
-            if (sd->state.lr_flag != 2)
-                sd->ignore_mdef_race |= 1 << val;
-            break;
+#endif
+#if 0
         case SP_PERFECT_HIT_RATE:
             if (sd->state.lr_flag != 2 && sd->perfect_hit < val)
                 sd->perfect_hit = val;
             break;
+#endif
+#if 0
         case SP_PERFECT_HIT_ADD_RATE:
             if (sd->state.lr_flag != 2)
                 sd->perfect_hit_add += val;
             break;
+#endif
+#if 0
         case SP_CRITICAL_RATE:
             if (sd->state.lr_flag != 2)
                 sd->critical_rate += val;
             break;
-        case SP_GET_ZENY_NUM:
-            if (sd->state.lr_flag != 2 && sd->get_zeny_num < val)
-                sd->get_zeny_num = val;
-            break;
-        case SP_ADD_GET_ZENY_NUM:
-            if (sd->state.lr_flag != 2)
-                sd->get_zeny_add_num += val;
-            break;
-        case SP_DEF_RATIO_ATK_ELE:
-            if (!sd->state.lr_flag)
-                sd->def_ratio_atk_ele |= 1 << val;
-            else if (sd->state.lr_flag == 1)
-                sd->def_ratio_atk_ele_ |= 1 << val;
-            break;
-        case SP_DEF_RATIO_ATK_RACE:
-            if (!sd->state.lr_flag)
-                sd->def_ratio_atk_race |= 1 << val;
-            else if (sd->state.lr_flag == 1)
-                sd->def_ratio_atk_race_ |= 1 << val;
-            break;
+#endif
+#if 0
         case SP_HIT_RATE:
             if (sd->state.lr_flag != 2)
                 sd->hit_rate += val;
             break;
+#endif
+#if 0
         case SP_FLEE_RATE:
             if (sd->state.lr_flag != 2)
                 sd->flee_rate += val;
             break;
+#endif
+#if 0
         case SP_FLEE2_RATE:
             if (sd->state.lr_flag != 2)
                 sd->flee2_rate += val;
             break;
+#endif
         case SP_DEF_RATE:
             if (sd->state.lr_flag != 2)
                 sd->def_rate += val;
@@ -2090,107 +1993,18 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
             if (sd->state.lr_flag != 2)
                 sd->def2_rate += val;
             break;
+#if 0
         case SP_MDEF_RATE:
             if (sd->state.lr_flag != 2)
                 sd->mdef_rate += val;
             break;
+#endif
+#if 0
         case SP_MDEF2_RATE:
             if (sd->state.lr_flag != 2)
                 sd->mdef2_rate += val;
             break;
-        case SP_RESTART_FULL_RECORVER:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.restart_full_recover = 1;
-            break;
-        case SP_NO_CASTCANCEL:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.no_castcancel = 1;
-            break;
-        case SP_NO_CASTCANCEL2:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.no_castcancel2 = 1;
-            break;
-        case SP_NO_SIZEFIX:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.no_sizefix = 1;
-            break;
-        case SP_NO_MAGIC_DAMAGE:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.no_magic_damage = 1;
-            break;
-        case SP_NO_WEAPON_DAMAGE:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.no_weapon_damage = 1;
-            break;
-        case SP_NO_GEMSTONE:
-            if (sd->state.lr_flag != 2)
-                sd->special_state.no_gemstone = 1;
-            break;
-        case SP_SPLASH_RANGE:
-            if (sd->state.lr_flag != 2 && sd->splash_range < val)
-                sd->splash_range = val;
-            break;
-        case SP_SPLASH_ADD_RANGE:
-            if (sd->state.lr_flag != 2)
-                sd->splash_add_range += val;
-            break;
-        case SP_SHORT_WEAPON_DAMAGE_RETURN:
-            if (sd->state.lr_flag != 2)
-                sd->short_weapon_damage_return += val;
-            break;
-        case SP_LONG_WEAPON_DAMAGE_RETURN:
-            if (sd->state.lr_flag != 2)
-                sd->long_weapon_damage_return += val;
-            break;
-        case SP_MAGIC_DAMAGE_RETURN:   //AppleGirl Was Here
-            if (sd->state.lr_flag != 2)
-                sd->magic_damage_return += val;
-            break;
-        case SP_ALL_STATS:     // [Valaris]
-            if (sd->state.lr_flag != 2)
-            {
-                for (ATTR attr : ATTRs)
-                    sd->parame[attr] += val;
-                clif_updatestatus(sd, SP_STR);
-                clif_updatestatus(sd, SP_AGI);
-                clif_updatestatus(sd, SP_VIT);
-                clif_updatestatus(sd, SP_INT);
-                clif_updatestatus(sd, SP_DEX);
-                clif_updatestatus(sd, SP_LUK);
-            }
-            break;
-        case SP_AGI_VIT:       // [Valaris]
-            if (sd->state.lr_flag != 2)
-            {
-                sd->parame[ATTR::AGI] += val;
-                sd->parame[ATTR::VIT] += val;
-                clif_updatestatus(sd, SP_AGI);
-                clif_updatestatus(sd, SP_VIT);
-            }
-            break;
-        case SP_AGI_DEX_STR:   // [Valaris]
-            if (sd->state.lr_flag != 2)
-            {
-                sd->parame[ATTR::AGI] += val;
-                sd->parame[ATTR::DEX] += val;
-                sd->parame[ATTR::STR] += val;
-                clif_updatestatus(sd, SP_AGI);
-                clif_updatestatus(sd, SP_DEX);
-                clif_updatestatus(sd, SP_STR);
-            }
-            break;
-        case SP_PERFECT_HIDE:  // [Valaris]
-            if (sd->state.lr_flag != 2)
-            {
-                sd->perfect_hiding = 1;
-            }
-            break;
-        case SP_UNBREAKABLE:
-            if (sd->state.lr_flag != 2)
-            {
-                sd->unbreakable += val;
-            }
-            break;
+#endif
         case SP_DEAF:
             sd->special_state.deaf = 1;
             break;
@@ -2213,22 +2027,6 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
 
     switch (type)
     {
-        case SP_ADDEFF:
-            if (sd->state.lr_flag != 2)
-                sd->addeff[BadSC(type2)] += val;
-            else
-                sd->arrow_addeff[BadSC(type2)] += val;
-            break;
-        case SP_ADDEFF2:
-            if (sd->state.lr_flag != 2)
-                sd->addeff2[BadSC(type2)] += val;
-            else
-                sd->arrow_addeff2[BadSC(type2)] += val;
-            break;
-        case SP_RESEFF:
-            if (sd->state.lr_flag != 2)
-                sd->reseff[BadSC(type2)] += val;
-            break;
         case SP_HP_DRAIN_RATE:
             if (!sd->state.lr_flag)
             {
@@ -2241,6 +2039,7 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
                 sd->hp_drain_per_ += val;
             }
             break;
+#if 0
         case SP_SP_DRAIN_RATE:
             if (!sd->state.lr_flag)
             {
@@ -2253,70 +2052,13 @@ int pc_bonus2(struct map_session_data *sd, SP type, int type2, int val)
                 sd->sp_drain_per_ += val;
             }
             break;
-        case SP_RANDOM_ATTACK_INCREASE:    // [Valaris]
-            if (sd->state.lr_flag != 2)
-            {
-                sd->random_attack_increase_add = type2;
-                sd->random_attack_increase_per += val;
-                break;
-            }                   // end addition
-            break;
+#endif
         default:
             if (battle_config.error_log)
                 PRINTF("pc_bonus2: unknown type %d %d %d!\n",
                         type, type2, val);
             break;
     }
-    return 0;
-}
-
-int pc_bonus3(struct map_session_data *sd, SP type, int type2, int type3,
-               int val)
-{
-    int i;
-    switch (type)
-    {
-        case SP_ADD_MONSTER_DROP_ITEM:
-            if (sd->state.lr_flag != 2)
-            {
-                for (i = 0; i < sd->monster_drop_item_count; i++)
-                {
-                    if (sd->monster_drop_itemid[i] == type2)
-                    {
-                        sd->monster_drop_race[i] |= 1 << type3;
-                        if (sd->monster_drop_itemrate[i] < val)
-                            sd->monster_drop_itemrate[i] = val;
-                        break;
-                    }
-                }
-                if (i >= sd->monster_drop_item_count
-                    && sd->monster_drop_item_count < 10)
-                {
-                    sd->monster_drop_itemid[sd->monster_drop_item_count] =
-                        type2;
-                    sd->monster_drop_race[sd->monster_drop_item_count] |=
-                        1 << type3;
-                    sd->monster_drop_itemrate[sd->monster_drop_item_count] =
-                        val;
-                    sd->monster_drop_item_count++;
-                }
-            }
-            break;
-        case SP_AUTOSPELL:
-            if (sd->state.lr_flag != 2)
-            {
-                sd->autospell_id = SkillID(type2);
-                sd->autospell_lv = type3;
-                sd->autospell_rate = val;
-            }
-            break;
-        default:
-            if (battle_config.error_log)
-                PRINTF("pc_bonus3: unknown type %d %d %d %d!\n",
-                        type, type2, type3, val);
-            break;
-    }
-
     return 0;
 }
 
@@ -2982,9 +2724,6 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
         skill_gangsterparadise(sd, 0);
     }
 
-    if (bool(sd->status.option & Option::HIDE2))
-        skill_status_change_end(&sd->bl, SC_HIDING, -1);
-
     memcpy(mapname, mapname_org, 24);
     mapname[16] = 0;
     if (strstr(mapname, ".gat") == NULL && strlen(mapname) < 16)
@@ -3002,7 +2741,6 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
             if (map_mapname2ipport(mapname, &ip, &port) == 0)
             {
                 skill_stop_dancing(&sd->bl, 1);
-                skill_unit_out_all(&sd->bl, gettick(), 1);
                 clif_clearchar_area(&sd->bl, clrtype & 0xffff);
                 skill_gangsterparadise(sd, 0);
                 map_delblock(&sd->bl);
@@ -3047,7 +2785,6 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
 
     if (sd->mapname[0] && sd->bl.prev != NULL)
     {
-        skill_unit_out_all(&sd->bl, gettick(), 1);
         clif_clearchar_area(&sd->bl, clrtype & 0xffff);
         skill_gangsterparadise(sd, 0);
         map_delblock(&sd->bl);
@@ -3135,7 +2872,7 @@ int calc_next_walk_step(struct map_session_data *sd)
 
     if (sd->walkpath.path_pos >= sd->walkpath.path_len)
         return -1;
-    if (sd->walkpath.path[sd->walkpath.path_pos] & 1)
+    if (dir_is_diagonal(sd->walkpath.path[sd->walkpath.path_pos]))
         return sd->speed * 14 / 10;
 
     return sd->speed;
@@ -3184,7 +2921,7 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
     }
     else
     {                           // マス目境界へ到着
-        if (sd->walkpath.path[sd->walkpath.path_pos] >= 8)
+        if (sd->walkpath.path[sd->walkpath.path_pos] >= DIR::COUNT)
             return;
 
         x = sd->bl.x;
@@ -3196,8 +2933,8 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
             return;
         }
         sd->dir = sd->head_dir = sd->walkpath.path[sd->walkpath.path_pos];
-        dx = dirx[(int) sd->dir];
-        dy = diry[(int) sd->dir];
+        dx = dirx[sd->dir];
+        dy = diry[sd->dir];
         ctype = map_getcell(sd->bl.m, x + dx, y + dy);
         if (ctype == 1 || ctype == 5)
         {
@@ -3247,9 +2984,7 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
                     sd->party_hp = -1;
             }
         }
-        // クローキングの消滅検査
-        if (bool(sd->status.option & Option::CLOAK))
-            skill_check_cloaking(&sd->bl);
+
         // ディボーション検査
         for (i = 0; i < 5; i++)
             if (sd->dev.val1[i])
@@ -3257,8 +2992,6 @@ void pc_walk(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
                 skill_devotion3(&sd->bl, sd->dev.val1[i]);
                 break;
             }
-
-        skill_unit_move(&sd->bl, tick, 1); // スキルユニットの検査
 
         if (map_getcell(sd->bl.m, x, y) & 0x80)
             npc_touch_areanpc(sd, sd->bl.m, x, y);
@@ -3377,7 +3110,7 @@ void pc_touch_all_relevant_npcs(struct map_session_data *sd)
 int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
 {
     int moveblock;
-    int dx, dy, dist;
+    int dx, dy;
 
     struct walkpath_data wpd;
 
@@ -3390,7 +3123,6 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
 
     dx = dst_x - sd->bl.x;
     dy = dst_y - sd->bl.y;
-    dist = distance(sd->bl.x, sd->bl.y, dst_x, dst_y);
 
     moveblock = (sd->bl.x / BLOCK_SIZE != dst_x / BLOCK_SIZE
                  || sd->bl.y / BLOCK_SIZE != dst_y / BLOCK_SIZE);
@@ -3429,12 +3161,6 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
                 sd->party_hp = -1;
         }
     }
-
-    // クローキングの消滅検査
-    if (bool(sd->status.option & Option::CLOAK))
-        skill_check_cloaking(&sd->bl);
-
-    skill_unit_move(&sd->bl, gettick(), dist + 7);    // スキルユニットの検査
 
     pc_touch_all_relevant_npcs(sd);
     return 0;
@@ -3515,15 +3241,11 @@ void pc_attack_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t)
         return;
 
     // 異常などで攻撃できない
-    if (sd->opt1 != Opt1::ZERO
-        || bool(sd->status.option & (Option::OLD_ANY_HIDE)))
+    if (sd->opt1 != Opt1::ZERO)
         return;
 
     Option *opt = battle_get_option(bl);
     if (opt != NULL && bool(*opt & Option::REAL_ANY_HIDE))
-        return;
-
-    if (sd->skilltimer != -1)
         return;
 
     if (!battle_config.sdelay_attack_enable)
@@ -4192,9 +3914,6 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
 
     sd->status.hp -= damage;
 
-    if (bool(sd->status.option & Option::HIDE2))
-        skill_status_change_end(&sd->bl, SC_HIDING, -1);
-
     if (sd->status.hp > 0)
     {
         // まだ生きているならHP更新
@@ -4227,7 +3946,6 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
     pc_stop_walking(sd, 0);
     skill_castcancel(&sd->bl, 0);  // 詠唱の中止
     clif_clearchar_area(&sd->bl, 1);
-    skill_unit_out_all(&sd->bl, gettick(), 1);
     pc_setglobalreg(sd, "PC_DIE_COUNTER", ++sd->die_counter);  //死にカウンター書き込み
     skill_status_change_clear(&sd->bl, 0); // ステータス異常を解除する
     clif_updatestatus(sd, SP_HP);
@@ -4476,9 +4194,6 @@ int pc_readparam(struct map_session_data *sd, SP type)
         case SP_LUK:
             val = sd->status.attrs[sp_to_attr(type)];
             break;
-        case SP_FAME:
-            val = sd->fame;
-            break;
     }
 
     return val;
@@ -4594,9 +4309,6 @@ int pc_setparam(struct map_session_data *sd, SP type, int val)
         case SP_DEX:
         case SP_LUK:
             sd->status.attrs[sp_to_attr(type)] = val;
-            break;
-        case SP_FAME:
-            sd->fame = val;
             break;
     }
     clif_updatestatus(sd, type);
@@ -4734,13 +4446,6 @@ int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
 {
     nullpo_ret(sd);
 
-    if (sd->state.potionpitcher_flag)
-    {
-        sd->potion_hp = hp;
-        sd->potion_sp = sp;
-        return 0;
-    }
-
     if (pc_checkoverhp(sd))
     {
         if (hp > 0)
@@ -4790,13 +4495,6 @@ int pc_itemheal_effect(struct map_session_data *sd, int hp, int sp)
 int pc_percentheal(struct map_session_data *sd, int hp, int sp)
 {
     nullpo_ret(sd);
-
-    if (sd->state.potionpitcher_flag)
-    {
-        sd->potion_per_hp = hp;
-        sd->potion_per_sp = sp;
-        return 0;
-    }
 
     if (pc_checkoverhp(sd))
     {
@@ -5742,7 +5440,8 @@ int pc_calc_pvprank(struct map_session_data *sd)
     struct map_data *m;
 
     nullpo_ret(sd);
-    nullpo_ret(m = &map[sd->bl.m]);
+    m = &map[sd->bl.m];
+    nullpo_ret(m);
 
     if (!(m->flag.pvp))
         return 0;
@@ -6117,7 +5816,7 @@ void pc_natural_heal_sub(struct map_session_data *sd)
          || battle_config.natural_heal_weight_rate > 100
          || sd->weight * 100 / sd->max_weight <
          battle_config.natural_heal_weight_rate) && !pc_isdead(sd)
-        && !pc_ishiding(sd) && sd->sc_data[SC_POISON].timer == -1)
+        && sd->sc_data[SC_POISON].timer == -1)
     {
         pc_natural_heal_hp(sd);
         pc_natural_heal_sp(sd);

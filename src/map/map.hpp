@@ -11,6 +11,7 @@
 #include "../common/timer.hpp"
 
 #include "battle.t.hpp"
+#include "magic-interpreter.t.hpp"
 #include "mob.t.hpp"
 #include "script.hpp"   // change to script.t.hpp
 #include "skill.t.hpp"
@@ -26,8 +27,6 @@
 #define MAX_SKILLUNITGROUP 32
 #define MAX_MOBSKILLUNITGROUP 8
 #define MAX_SKILLUNITGROUPTICKSET 128
-#define MAX_SKILLTIMERSKILL 32
-#define MAX_MOBSKILLTIMERSKILL 10
 #define MAX_MOBSKILL 32
 #define MAX_EVENTQUEUE 2
 #define MAX_EVENTTIMER 32
@@ -51,7 +50,7 @@ struct block_list
 struct walkpath_data
 {
     unsigned char path_len, path_pos, path_half;
-    unsigned char path[MAX_WALKPATH];
+    DIR path[MAX_WALKPATH];
 };
 struct script_reg
 {
@@ -73,78 +72,6 @@ struct status_change
 };
 
 struct invocation;
-
-struct skill_unit_group;
-struct skill_unit
-{
-    struct block_list bl;
-
-    struct skill_unit_group *group;
-
-    int limit;
-    int val1, val2;
-    short alive, range;
-};
-struct skill_unit_group
-{
-    int src_id;
-    int party_id;
-    int map, range;
-    BCT target_flag;
-    unsigned int tick;
-    int limit, interval;
-
-    SkillID skill_id;
-    int skill_lv;
-    int val1, val2;
-    char *valstr;
-    int unit_id;
-    int group_id;
-    int unit_count, alive_count;
-    struct skill_unit *unit;
-};
-struct skill_unit_group_tickset
-{
-    unsigned int tick;
-    int group_id;
-};
-struct skill_timerskill
-{
-    int timer;
-    int src_id;
-    int target_id;
-    int map;
-    short x, y;
-    SkillID skill_id;
-    short skill_lv;
-    union sktst
-    {
-        int32_t n;
-        struct { uint16_t x, y; } xy;
-        BF bf;
-
-        static sktst from_n(int32_t n)
-        {
-            sktst r;
-            r.n = n;
-            return r;
-        }
-        static sktst from_xy(uint16_t x, uint16_t y)
-        {
-            sktst r;
-            r.xy.x = x;
-            r.xy.y = y;
-            return r;
-        }
-        static sktst from_bf(BF bf)
-        {
-            sktst r;
-            r.bf = bf;
-            return r;
-        }
-    } type;
-    BCT flag;
-};
 
 struct npc_data;
 struct item_data;
@@ -179,7 +106,6 @@ struct map_session_data
         unsigned gangsterparadise:1;
         unsigned produce_flag:1;
         unsigned make_arrow_flag:1;
-        unsigned potionpitcher_flag:1;
         unsigned storage_open:1;
         unsigned shroud_active:1;
         unsigned shroud_hides_name_talking:1;
@@ -190,16 +116,8 @@ struct map_session_data
     {
         unsigned killer:1;
         unsigned killable:1;
-        unsigned restart_full_recover:1;
-        unsigned no_castcancel:1;
-        unsigned no_castcancel2:1;
-        unsigned no_sizefix:1;
-        unsigned no_magic_damage:1;
-        unsigned no_weapon_damage:1;
-        unsigned no_gemstone:1;
         unsigned unbreakable_weapon:1;
         unsigned unbreakable_armor:1;
-        unsigned infinite_autospell:1;
         unsigned deaf:1;
     } special_state;
     int char_id, login_id1, login_id2, sex;
@@ -216,7 +134,7 @@ struct map_session_data
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
-    char dir, head_dir;
+    DIR dir, head_dir;
     unsigned int client_tick, server_tick;
     struct walkpath_data walkpath;
     int walktimer;
@@ -257,22 +175,6 @@ struct map_session_data
     //_current slowly approximates _target, and _target is determined by equipment.
 
     short attackrange, attackrange_;
-    int skilltimer;
-    int skilltarget;
-    short skillx, skilly;
-    SkillID skillid;
-    short skilllv;
-    SkillID skillitem;
-    short skillitemlv;
-    SkillID skillid_old;
-    short skilllv_old;
-    SkillID skillid_dance;
-    short skilllv_dance;
-    struct skill_unit_group skillunit[MAX_SKILLUNITGROUP];
-    struct skill_unit_group_tickset skillunittick[MAX_SKILLUNITGROUPTICKSET];
-    struct skill_timerskill skilltimerskill[MAX_SKILLTIMERSKILL];
-    int cloneskill_id, cloneskill_lv;
-    int potion_hp, potion_sp, potion_per_hp, potion_per_sp;
 
     // [Fate] Used for gradual healing; amount of enqueued regeneration
     struct quick_regeneration quick_regeneration_hp, quick_regeneration_sp;
@@ -288,54 +190,34 @@ struct map_session_data
         inchealspiritsptick;
 // -- moonsoul (new tick for berserk self-damage)
     int berserkdamagetick;
-    int fame;
 
     short weapontype1, weapontype2;
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2, aspd, amotion, dmotion;
     int watk, watk2;
     int def, def2, mdef, mdef2, critical, matk1, matk2;
-    int atk_ele, def_ele, star, overrefine;
-    int castrate, hprate, sprate, dsprate;
-    earray<int, BadSC, BadSC::COUNT> addeff, addeff2, reseff;
+    int star, overrefine;
+    int hprate, sprate, dsprate;
     int watk_, watk_2;
-    int atk_ele_, star_, overrefine_;  //二刀流のために追加
+    int star_, overrefine_;  //二刀流のために追加
     int base_atk, atk_rate;
-    int arrow_atk, arrow_ele, arrow_cri, arrow_hit, arrow_range;
-    earray<int, BadSC, BadSC::COUNT> arrow_addeff, arrow_addeff2;
+    int arrow_atk;
+    int arrow_cri, arrow_hit, arrow_range;
     int nhealhp, nhealsp, nshealhp, nshealsp, nsshealhp, nsshealsp;
     int aspd_rate, speed_rate, hprecov_rate, sprecov_rate, critical_def,
         double_rate;
-    int near_attack_def_rate, long_attack_def_rate, magic_def_rate,
-        misc_def_rate;
-    int matk_rate, ignore_def_ele, ignore_def_race, ignore_def_ele_,
-        ignore_def_race_;
-    int ignore_mdef_ele, ignore_mdef_race;
-    int perfect_hit, get_zeny_num;
+    int matk_rate;
+    int perfect_hit;
     int critical_rate, hit_rate, flee_rate, flee2_rate, def_rate, def2_rate,
         mdef_rate, mdef2_rate;
-    int def_ratio_atk_ele, def_ratio_atk_ele_, def_ratio_atk_race,
-        def_ratio_atk_race_;
-    short monster_drop_item_count;
-    short monster_drop_itemid[10];
-    int monster_drop_race[10], monster_drop_itemrate[10];
-    int double_add_rate, speed_add_rate, aspd_add_rate, perfect_hit_add,
-        get_zeny_add_num;
-    short splash_range, splash_add_range;
-    SkillID autospell_id;
-    short autospell_lv, autospell_rate;
+    int double_add_rate, speed_add_rate, aspd_add_rate, perfect_hit_add;
     short hp_drain_rate, hp_drain_per, sp_drain_rate, sp_drain_per;
     short hp_drain_rate_, hp_drain_per_, sp_drain_rate_, sp_drain_per_;
-    int short_weapon_damage_return, long_weapon_damage_return;
     short break_weapon_rate, break_armor_rate;
     short add_steal_rate;
 
     short spiritball, spiritball_old;
     int spirit_timer[MAX_SKILL_LEVEL];
-    int magic_damage_return;   // AppleGirl Was Here
-    int random_attack_increase_add, random_attack_increase_per;    // [Valaris]
-    int perfect_hiding;        // [Valaris]
-    int unbreakable;
 
     int die_counter;
     short doridori_counter;
@@ -368,9 +250,6 @@ struct map_session_data
 
     char eventqueue[MAX_EVENTQUEUE][50];
     int eventtimer[MAX_EVENTTIMER];
-
-    SkillID last_skillid;
-    int last_skilllv;
 
     struct
     {
@@ -414,7 +293,8 @@ struct npc_data
 {
     struct block_list bl;
     short n;
-    short npc_class, dir;
+    short npc_class;
+    DIR dir;
     short speed;
     char name[24];
     char exname[24];
@@ -460,7 +340,8 @@ struct mob_data
 {
     struct block_list bl;
     short n;
-    short mob_class, dir;
+    short mob_class;
+    DIR dir;
     MobMode mode;
     short m, x0, y0, xs, ys;
     char name[24];
@@ -468,7 +349,7 @@ struct mob_data
     struct
     {
         MS state;
-        MSS skillstate;
+        MobSkillState skillstate;
         unsigned attackable:1;
         unsigned steal_flag:1;
         unsigned steal_coin_flag:1;
@@ -513,12 +394,9 @@ struct mob_data
     SkillID skillid;
     short skilllv, skillidx;
     unsigned int skilldelay[MAX_MOBSKILL];
-    int def_ele;
+    LevelElement def_ele;
     int master_id, master_dist;
     int exclusion_src, exclusion_party;
-    struct skill_timerskill skilltimerskill[MAX_MOBSKILLTIMERSKILL];
-    struct skill_unit_group skillunit[MAX_MOBSKILLUNITGROUP];
-    struct skill_unit_group_tickset skillunittick[MAX_SKILLUNITGROUPTICKSET];
     char npc_event[50];
     // [Fate] mob-specific stats
     earray<unsigned short, mob_stat, mob_stat::LAST> stats;
@@ -630,8 +508,6 @@ extern int night_flag;          // 0=day, 1=night [Yor]
 extern char motd_txt[];
 extern char help_txt[];
 
-extern char talkie_mes[];
-
 extern char wisp_server_name[];
 
 // 鯖全体情報
@@ -717,8 +593,8 @@ int map_getcell(int, int, int);
 int map_setcell(int, int, int, int);
 
 // その他
-int map_check_dir(int s_dir, int t_dir);
-int map_calc_dir(struct block_list *src, int x, int y);
+bool map_check_dir(DIR s_dir, DIR t_dir);
+DIR map_calc_dir(struct block_list *src, int x, int y);
 
 // path.cより
 int path_search(struct walkpath_data *, int, int, int, int, int, int);

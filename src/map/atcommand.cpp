@@ -1594,7 +1594,7 @@ int atcommand_heal(const int fd, struct map_session_data *sd,
     }
 
     if (hp < 0)            // display like damage
-        clif_damage(&sd->bl, &sd->bl, gettick(), 0, 0, -hp, 0, 4, 0);
+        clif_damage(&sd->bl, &sd->bl, gettick(), 0, 0, -hp, 0, DamageType::RETURNED, 0);
 
     if (hp != 0 || sp != 0)
     {
@@ -4614,11 +4614,10 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
     struct npc_data *nd = NULL;
     struct chat_data *cd = NULL;
     char map_name[100];
-    char direction[12];
+    const char *direction = NULL;
     int m_id, i, chat_num, list = 0;
 
     memset(map_name, '\0', sizeof(map_name));
-    memset(direction, '\0', sizeof(direction));
 
     sscanf(message, "%d %99[^\n]", &list, map_name);
 
@@ -4716,35 +4715,37 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                 nd = map[m_id].npc[i];
                 switch (nd->dir)
                 {
-                    case 0:
-                        strcpy(direction, "North");
+                    case DIR_S:
+                        direction = "North";
                         break;
-                    case 1:
-                        strcpy(direction, "North West");
+                    case DIR_SW:
+                        direction = "North West";
                         break;
-                    case 2:
-                        strcpy(direction, "West");
+                    case DIR_W:
+                        direction = "West";
                         break;
-                    case 3:
-                        strcpy(direction, "South West");
+                    case DIR_NW:
+                        direction = "South West";
                         break;
-                    case 4:
-                        strcpy(direction, "South");
+                    case DIR_N:
+                        direction = "South";
                         break;
-                    case 5:
-                        strcpy(direction, "South East");
+                    case DIR_NE:
+                        direction = "South East";
                         break;
-                    case 6:
-                        strcpy(direction, "East");
+                    case DIR_E:
+                        direction = "East";
                         break;
-                    case 7:
-                        strcpy(direction, "North East");
+                    case DIR_SE:
+                        direction = "North East";
                         break;
+#if 0
                     case 9:
-                        strcpy(direction, "North");
+                        direction = "North";
                         break;
+#endif
                     default:
-                        strcpy(direction, "Unknown");
+                        direction = "Unknown";
                         break;
                 }
                 output = STRPRINTF(

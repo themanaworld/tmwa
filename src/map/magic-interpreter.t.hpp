@@ -64,6 +64,21 @@ enum class DIR : uint8_t
     COUNT,
 };
 
+constexpr
+earray<int, DIR, DIR::COUNT> dirx //=
+{{
+    0, -1, -1, -1, 0, 1, 1, 1,
+}}, diry //=
+{{
+    1, 1, 0, -1, -1, -1, 0, 1,
+}};
+
+constexpr
+bool dir_is_diagonal(DIR d)
+{
+    return static_cast<uint8_t>(d) & 1;
+}
+
 enum class AREA : uint8_t
 {
     LOCATION,

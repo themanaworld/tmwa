@@ -13,17 +13,16 @@
 
 struct mob_skill
 {
-    MSS state;
+    MobSkillState state;
     SkillID skill_id;
     short skill_lv;
     short permillage;
     int casttime, delay;
     short cancel;
-    MSC cond1;
+    MobSkillCondition cond1;
     int cond2i;
-    StatusChange cond2sc() { return StatusChange(cond2i); }
     SkillID cond2sk() { return SkillID(cond2i); }
-    MST target;
+    MobSkillTarget target;
     int val[5];
     short emotion;
 };
@@ -38,7 +37,10 @@ struct mob_db
     int def, mdef;
     earray<int, ATTR, ATTR::COUNT> attrs;
     int range, range2, range3;
-    int size, race, element;
+    // always 1
+    int size;
+    Race race;
+    LevelElement element;
     MobMode mode;
     int speed, adelay, amotion, dmotion;
     int mexp, mexpper;
@@ -106,7 +108,7 @@ int mob_class_change(struct mob_data *md, int *value);
 int mob_warp(struct mob_data *md, int m, int x, int y, int type);
 
 int mobskill_use(struct mob_data *md, unsigned int tick,
-        MSC event, SkillID skill=SkillID::ZERO);
+        MobSkillCondition event, SkillID skill=SkillID::ZERO);
 int mobskill_event(struct mob_data *md, BF flag);
 void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
 void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);

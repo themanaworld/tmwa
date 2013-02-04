@@ -52,6 +52,7 @@ tick_t gettick(void);
 
 timer_id add_timer(tick_t, timer_func, custom_id_t, custom_data_t);
 timer_id add_timer_interval(tick_t, timer_func, custom_id_t, custom_data_t, interval_t);
+//#define delete_timer(tid, func) delete_timer(tid)
 void delete_timer(timer_id, timer_func);
 
 tick_t addtick_timer(timer_id, interval_t);

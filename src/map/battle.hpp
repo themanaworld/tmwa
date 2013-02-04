@@ -3,6 +3,7 @@
 
 #include "battle.t.hpp"
 
+#include "magic-interpreter.t.hpp"
 #include "map.t.hpp"
 #include "skill.t.hpp"
 
@@ -10,9 +11,9 @@
 struct Damage
 {
     int damage, damage2;
-    int type, div_;
+    DamageType type;
+    int div_;
     int amotion, dmotion;
-    int blewcount;
     BF flag;
     ATK dmg_lv;
 };
@@ -43,7 +44,7 @@ ATK battle_weapon_attack(struct block_list *bl, struct block_list *target,
 
 int battle_is_unarmed(struct block_list *bl);
 int battle_get_class(struct block_list *bl);
-int battle_get_dir(struct block_list *bl);
+DIR battle_get_dir(struct block_list *bl);
 int battle_get_lv(struct block_list *bl);
 int battle_get_range(struct block_list *bl);
 int battle_get_hp(struct block_list *bl);
@@ -62,10 +63,14 @@ int battle_get_speed(struct block_list *bl);
 int battle_get_adelay(struct block_list *bl);
 int battle_get_amotion(struct block_list *bl);
 int battle_get_dmotion(struct block_list *bl);
-int battle_get_element(struct block_list *bl);
-#define battle_get_elem_type(bl)        (battle_get_element(bl)%10)
+LevelElement battle_get_element(struct block_list *bl);
+inline
+Element battle_get_elem_type(struct block_list *bl)
+{
+    return battle_get_element(bl).element;
+}
 int battle_get_party_id(struct block_list *bl);
-int battle_get_race(struct block_list *bl);
+Race battle_get_race(struct block_list *bl);
 MobMode battle_get_mode(struct block_list *bl);
 int battle_get_mexp(struct block_list *bl);
 int battle_get_stat(SP stat_id, struct block_list *bl);
@@ -77,7 +82,7 @@ Opt2 *battle_get_opt2(struct block_list *bl);
 Opt3 *battle_get_opt3(struct block_list *bl);
 Option *battle_get_option(struct block_list *bl);
 
-int battle_check_undead(int race, int element);
+bool battle_check_undead(Race race, Element element);
 int battle_check_target(struct block_list *src, struct block_list *target,
         BCT flag);
 int battle_check_range(struct block_list *src, struct block_list *bl,

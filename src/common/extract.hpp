@@ -67,7 +67,7 @@ bool extract(const_string str, T *iv)
     // defer to integer version
     if (!extract(str, &v))
         return false;
-    // TODO check bounds ...
+    // TODO check bounds using enum min/max as in SSCANF
     *iv = static_cast<T>(v);
     return true;
 }

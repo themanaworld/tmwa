@@ -1084,8 +1084,6 @@ int map_quit(struct map_session_data *sd)
     skill_stop_dancing(&sd->bl, 1);    // ダンス/演奏中断
 
     skill_status_change_clear(&sd->bl, 1); // ステータス異常を解除する
-    skill_clear_unitgroup(&sd->bl);    // スキルユニットグループの削除
-    skill_cleartimerskill(&sd->bl);
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
     pc_delinvincibletimer(sd);
@@ -1380,100 +1378,73 @@ int map_mapname2ipport(const char *name, struct in_addr *ip, int *port)
     return 0;
 }
 
-/*==========================================
- *
- *------------------------------------------
- */
-int map_check_dir(int s_dir, int t_dir)
+/// Check compatibility of directions.
+/// Directions are compatible if they are at most 45° apart.
+///
+/// @return false if compatible, true if incompatible.
+bool map_check_dir(const DIR s_dir, const DIR t_dir)
 {
     if (s_dir == t_dir)
-        return 0;
-    switch (s_dir)
-    {
-        case 0:
-            if (t_dir == 7 || t_dir == 1 || t_dir == 0)
-                return 0;
-            break;
-        case 1:
-            if (t_dir == 0 || t_dir == 2 || t_dir == 1)
-                return 0;
-            break;
-        case 2:
-            if (t_dir == 1 || t_dir == 3 || t_dir == 2)
-                return 0;
-            break;
-        case 3:
-            if (t_dir == 2 || t_dir == 4 || t_dir == 3)
-                return 0;
-            break;
-        case 4:
-            if (t_dir == 3 || t_dir == 5 || t_dir == 4)
-                return 0;
-            break;
-        case 5:
-            if (t_dir == 4 || t_dir == 6 || t_dir == 5)
-                return 0;
-            break;
-        case 6:
-            if (t_dir == 5 || t_dir == 7 || t_dir == 6)
-                return 0;
-            break;
-        case 7:
-            if (t_dir == 6 || t_dir == 0 || t_dir == 7)
-                return 0;
-            break;
-    }
-    return 1;
+        return false;
+
+    const uint8_t sdir = static_cast<uint8_t>(s_dir);
+    const uint8_t tdir = static_cast<uint8_t>(t_dir);
+    if ((sdir + 1) % 8 == tdir)
+        return false;
+    if (sdir == (tdir + 1) % 8)
+        return false;
+
+    return true;
 }
 
 /*==========================================
  * 彼我の方向を計算
  *------------------------------------------
  */
-int map_calc_dir(struct block_list *src, int x, int y)
+DIR map_calc_dir(struct block_list *src, int x, int y)
 {
-    int dir = 0;
+    DIR dir = DIR_S;
     int dx, dy;
 
-    nullpo_ret(src);
+    nullpo_retr(DIR_S, src);
 
     dx = x - src->x;
     dy = y - src->y;
     if (dx == 0 && dy == 0)
-    {                           // 彼我の場所一致
-        dir = 0;                // 上
+    {
+        dir = DIR_S;
     }
     else if (dx >= 0 && dy >= 0)
-    {                           // 方向的に右上
-        dir = 7;                // 右上
+    {
+        dir = DIR_SE;
         if (dx * 3 - 1 < dy)
-            dir = 0;            // 上
+            dir = DIR_S;
         if (dx > dy * 3)
-            dir = 6;            // 右
+            dir = DIR_E;
     }
     else if (dx >= 0 && dy <= 0)
-    {                           // 方向的に右下
-        dir = 5;                // 右下
+    {
+        dir = DIR_NE;
         if (dx * 3 - 1 < -dy)
-            dir = 4;            // 下
+            dir = DIR_N;
         if (dx > -dy * 3)
-            dir = 6;            // 右
+            dir = DIR_E;
     }
     else if (dx <= 0 && dy <= 0)
-    {                           // 方向的に左下
-        dir = 3;                // 左下
+    {
+        dir = DIR_NW;
         if (dx * 3 + 1 > dy)
-            dir = 4;            // 下
+            dir = DIR_N;
         if (dx < dy * 3)
-            dir = 2;            // 左
+            dir = DIR_W;
     }
     else
-    {                           // 方向的に左上
-        dir = 1;                // 左上
+    {
+        dir = DIR_SW;
         if (-dx * 3 - 1 < dy)
-            dir = 0;            // 上
+            dir = DIR_S;
         if (-dx > dy * 3)
-            dir = 2;            // 左
+            dir = DIR_W;
     }
     return dir;
 }
@@ -1946,9 +1917,6 @@ void cleanup_sub(struct block_list *bl)
             break;
         case BL_ITEM:
             map_clearflooritem(bl->id);
-            break;
-        case BL_SKILL:
-            skill_delunit((struct skill_unit *) bl);
             break;
         case BL_SPELL:
             spell_free_invocation((struct invocation *) bl);

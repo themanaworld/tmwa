@@ -461,8 +461,8 @@ int op_move(env_t *, int, val_t *args)
     entity_t *subject = ARGENTITY(0);
     DIR dir = ARGDIR(1);
 
-    int newx = subject->x + heading_x[dir];
-    int newy = subject->y + heading_y[dir];
+    int newx = subject->x + dirx[dir];
+    int newy = subject->y + diry[dir];
 
     if (!map_is_solid(subject->m, newx, newy))
         entity_warp(subject, subject->m, newx, newy);
@@ -762,7 +762,7 @@ int op_injure(env_t *env, int, val_t *args)
         damage_caused = 0;
 
     // display damage first, because dealing damage may deallocate the target.
-    clif_damage(caster, target, gettick(), 0, 0, damage_caused, 0, 0, 0);
+    clif_damage(caster, target, gettick(), 0, 0, damage_caused, 0, DamageType::NORMAL, 0);
 
     if (caster->type == BL_PC)
     {

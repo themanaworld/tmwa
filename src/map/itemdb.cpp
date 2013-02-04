@@ -525,7 +525,8 @@ void itemdb_final(db_key_t, db_val_t data)
 {
     struct item_data *id;
 
-    nullpo_retv(id = (struct item_data *)data);
+    id = (struct item_data *)data;
+    nullpo_retv(id);
 
     if (id->use_script)
         free(const_cast<ScriptCode *>(id->use_script));

@@ -155,7 +155,6 @@ static
 struct in_addr map_ip;
 static
 int map_port = 5121;
-char talkie_mes[80];
 
 static
 int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
@@ -777,7 +776,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 26) = sd->status.head_mid;
     WBUFW(buf, 28) = sd->status.hair_color;
     WBUFW(buf, 30) = sd->status.clothes_color;
-    WBUFW(buf, 32) = sd->head_dir;
+    WBUFW(buf, 32) = static_cast<uint8_t>(sd->head_dir);
     WBUFL(buf, 34) = 0 /*guild_id*/;
     WBUFW(buf, 38) = 0 /*guild_emblem_id*/;
     WBUFW(buf, 40) = sd->status.manner;
@@ -785,7 +784,9 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFB(buf, 44) = sd->status.karma;
     WBUFB(buf, 45) = sd->sex;
     WBUFPOS(buf, 46, sd->bl.x, sd->bl.y);
-    WBUFB(buf, 48) |= sd->dir & 0x0f;
+    // work around ICE in gcc 4.6
+    uint8_t dir = static_cast<uint8_t>(sd->dir);
+    WBUFB(buf, 48) |= dir;
     WBUFW(buf, 49) = (pc_isGM(sd) == 60 || pc_isGM(sd) == 99) ? 0x80 : 0;
     WBUFB(buf, 51) = sd->state.dead_sit;
     WBUFW(buf, 52) = 0;
@@ -837,7 +838,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 30) = sd->status.head_mid;
     WBUFW(buf, 32) = sd->status.hair_color;
     WBUFW(buf, 34) = sd->status.clothes_color;
-    WBUFW(buf, 36) = sd->head_dir;
+    WBUFW(buf, 36) = static_cast<uint8_t>(sd->head_dir);
     WBUFL(buf, 38) = 0/*guild_id*/;
     WBUFW(buf, 42) = 0/*guild_emblem_id*/;
     WBUFW(buf, 44) = sd->status.manner;
@@ -874,7 +875,9 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
     WBUFW(buf, 14) = md->mob_class;
     // snip: stuff do do with disguise as a PC
     WBUFPOS(buf, 46, md->bl.x, md->bl.y);
-    WBUFB(buf, 48) |= md->dir & 0x0f;
+    // work around ICE in gcc 4.6
+    uint8_t dir = static_cast<uint8_t>(md->dir);
+    WBUFB(buf, 48) |= dir;
     WBUFB(buf, 49) = 5;
     WBUFB(buf, 50) = 5;
     WBUFW(buf, 52) =
@@ -935,7 +938,9 @@ int clif_npc0078(struct npc_data *nd, unsigned char *buf)
     WBUFW(buf, 6) = nd->speed;
     WBUFW(buf, 14) = nd->npc_class;
     WBUFPOS(buf, 46, nd->bl.x, nd->bl.y);
-    WBUFB(buf, 48) |= nd->dir & 0x0f;
+    // work around ICE in gcc 4.6
+    uint8_t dir = static_cast<uint8_t>(nd->dir);
+    WBUFB(buf, 48) |= dir;
     WBUFB(buf, 49) = 5;
     WBUFB(buf, 50) = 5;
 
@@ -1737,7 +1742,8 @@ int clif_storageitemlist(struct map_session_data *sd, struct storage *stor)
             continue;
 
         struct item_data *id;
-        nullpo_ret(id = itemdb_search(stor->storage_[i].nameid));
+        id = itemdb_search(stor->storage_[i].nameid);
+        nullpo_ret(id);
         if (itemdb_isequip2(id))
             continue;
 
@@ -1782,7 +1788,8 @@ int clif_storageequiplist(struct map_session_data *sd, struct storage *stor)
             continue;
 
         struct item_data *id;
-        nullpo_ret(id = itemdb_search(stor->storage_[i].nameid));
+        id = itemdb_search(stor->storage_[i].nameid);
+        nullpo_ret(id);
         if (!itemdb_isequip2(id))
             continue;
         WFIFOW(fd, n * 20 + 4) = i + 1;
@@ -2809,7 +2816,7 @@ int clif_fixpcpos(struct map_session_data *sd)
  */
 int clif_damage(struct block_list *src, struct block_list *dst,
                  unsigned int tick, int sdelay, int ddelay, int damage,
-                 int div, int type, int damage2)
+                 int div, DamageType type, int damage2)
 {
     unsigned char buf[256];
     eptr<struct status_change, StatusChange> sc_data;
@@ -2827,7 +2834,7 @@ int clif_damage(struct block_list *src, struct block_list *dst,
     WBUFL(buf, 18) = ddelay;
     WBUFW(buf, 22) = (damage > 0x7fff) ? 0x7fff : damage;
     WBUFW(buf, 24) = div;
-    WBUFB(buf, 26) = type;
+    WBUFB(buf, 26) = static_cast<uint8_t>(type);
     WBUFW(buf, 27) = damage2;
     clif_send(buf, packet_len_table[0x8a], src, AREA);
 
@@ -2913,8 +2920,6 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
         case BL_ITEM:
             clif_getareachar_item(sd, (struct flooritem_data *) bl);
             break;
-        case BL_SKILL:
-            break;
         default:
             if (battle_config.error_log)
                 PRINTF("get area char ??? %d\n",
@@ -2954,8 +2959,6 @@ void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
         case BL_ITEM:
             clif_clearflooritem((struct flooritem_data *) bl, sd->fd);
             break;
-        case BL_SKILL:
-            break;
     }
 }
 
@@ -2988,8 +2991,6 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
             break;
         case BL_ITEM:
             clif_getareachar_item(sd, (struct flooritem_data *) bl);
-            break;
-        case BL_SKILL:
             break;
     }
 }
@@ -3938,9 +3939,6 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
     if (sd->npc_id != 0 || sd->state.storage_open)
         return;
 
-    if (sd->skilltimer != -1)
-        return;
-
     if (sd->chatID)
         return;
 
@@ -3951,8 +3949,6 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
     if ((bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
         || sd->sc_data[SC_ANKLE].timer != -1 //アンクルスネア
         )
-        return;
-    if (bool(sd->status.option & Option::HIDE2))
         return;
 
     if (sd->invincible_timer != -1)
@@ -3981,7 +3977,7 @@ void clif_parse_QuitGame(int fd, struct map_session_data *sd)
          && (sd->opt1 != Opt1::ZERO
              || (sd->opt2 != Opt2::ZERO
                  && !(night_flag == 1 && sd->opt2 == Opt2::BLIND))))
-        || sd->skilltimer != -1 || (DIFF_TICK(tick, sd->canact_tick) < 0)
+        || (DIFF_TICK(tick, sd->canact_tick) < 0)
         )
     {
         WFIFOW(fd, 2) = 1;
@@ -4198,12 +4194,13 @@ static
 void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
 {
     unsigned char buf[64];
-    short dir;
 
     nullpo_retv(sd);
 
-//  RFIFOW(fd,2); // Apparently does nothing?
-    dir = RFIFOB(fd, 4);
+    // RFIFOW(fd, 2) is always 0
+    DIR dir = static_cast<DIR>(RFIFOB(fd, 4));
+    if (dir >= DIR::COUNT)
+        return;
 
     if (dir == sd->dir)
         return;
@@ -4213,7 +4210,7 @@ void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
     WBUFW(buf, 0) = 0x9c;
     WBUFL(buf, 2) = sd->bl.id;
     WBUFW(buf, 6) = 0;
-    WBUFB(buf, 8) = dir;
+    WBUFB(buf, 8) = static_cast<uint8_t>(dir);
 
     clif_send(buf, packet_len_table[0x9c], &sd->bl, AREA_WOS);
 
@@ -4274,7 +4271,6 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
     }
     if (sd->npc_id != 0
         || bool(sd->opt1)
-        || bool(sd->status.option & Option::HIDE2)
         || sd->state.storage_open)
         return;
 
@@ -4791,150 +4787,6 @@ static
 void clif_parse_SkillUp(int fd, struct map_session_data *sd)
 {
     pc_skillup(sd, SkillID(RFIFOW(fd, 2)));
-}
-
-/*==========================================
- * スキル使用（ID指定）
- *------------------------------------------
- */
-static
-void clif_parse_UseSkillToId(int fd, struct map_session_data *sd)
-{
-    int skilllv, lv, target_id;
-    unsigned int tick = gettick();
-
-    nullpo_retv(sd);
-
-    if (sd->chatID || sd->npc_id != 0 || sd->state.storage_open)
-        return;
-
-    skilllv = RFIFOW(fd, 2);
-    SkillID skillnum = SkillID(RFIFOW(fd, 4));
-    target_id = RFIFOL(fd, 6);
-
-    if (sd->skilltimer != -1)
-    {
-        return;
-    }
-    else if (DIFF_TICK(tick, sd->canact_tick) < 0)
-    {
-        clif_skill_fail(sd, skillnum, 4, 0);
-        return;
-    }
-
-    if (sd->sc_data[SC_NOCHAT].timer != -1)
-        return;
-    if (sd->invincible_timer != -1)
-        pc_delinvincibletimer(sd);
-    if (sd->skillitem != SkillID::NEGATIVE && sd->skillitem == skillnum)
-    {
-        if (skilllv != sd->skillitemlv)
-            skilllv = sd->skillitemlv;
-        skill_use_id(sd, target_id, skillnum, skilllv);
-    }
-    else
-    {
-        sd->skillitem = SkillID::NEGATIVE;
-        sd->skillitemlv = -1;
-        if ((lv = pc_checkskill(sd, skillnum)) > 0)
-        {
-            if (skilllv > lv)
-                skilllv = lv;
-            skill_use_id(sd, target_id, skillnum, skilllv);
-            if (sd->state.skill_flag)
-                sd->state.skill_flag = 0;
-        }
-    }
-}
-
-/*==========================================
- * スキル使用（場所指定）
- *------------------------------------------
- */
-static
-void clif_parse_UseSkillToPos(int fd, struct map_session_data *sd)
-{
-    int skilllv, lv, x, y;
-    unsigned int tick = gettick();
-    int skillmoreinfo;
-
-    nullpo_retv(sd);
-
-    if (sd->npc_id != 0 || sd->state.storage_open)
-        return;
-    if (sd->chatID)
-        return;
-
-    skillmoreinfo = -1;
-    skilllv = RFIFOW(fd, 2);
-    SkillID skillnum = SkillID(RFIFOW(fd, 4));
-    x = RFIFOW(fd, 6);
-    y = RFIFOW(fd, 8);
-    if (RFIFOW(fd, 0) == 0x190)
-        skillmoreinfo = 10;
-
-    if (skillmoreinfo != -1)
-    {
-        if (pc_issit(sd))
-        {
-            clif_skill_fail(sd, skillnum, 0, 0);
-            return;
-        }
-        memcpy(talkie_mes, RFIFOP(fd, skillmoreinfo), 80);
-    }
-
-    if (sd->skilltimer != -1)
-        return;
-    else if (DIFF_TICK(tick, sd->canact_tick) < 0)
-    {
-        clif_skill_fail(sd, skillnum, 4, 0);
-        return;
-    }
-
-    if (sd->sc_data[SC_NOCHAT].timer != -1)
-        return;
-    if (sd->invincible_timer != -1)
-        pc_delinvincibletimer(sd);
-    if (sd->skillitem != SkillID::NEGATIVE && sd->skillitem == skillnum)
-    {
-        if (skilllv != sd->skillitemlv)
-            skilllv = sd->skillitemlv;
-        skill_use_pos(sd, x, y, skillnum, skilllv);
-    }
-    else
-    {
-        sd->skillitem = SkillID::NEGATIVE;
-        sd->skillitemlv = -1;
-        if ((lv = pc_checkskill(sd, skillnum)) > 0)
-        {
-            if (skilllv > lv)
-                skilllv = lv;
-            skill_use_pos(sd, x, y, skillnum, skilllv);
-        }
-    }
-}
-
-/*==========================================
- * スキル使用（map指定）
- *------------------------------------------
- */
-static
-void clif_parse_UseSkillMap(int fd, struct map_session_data *sd)
-{
-    nullpo_retv(sd);
-
-    if (sd->chatID)
-        return;
-
-    if (sd->npc_id != 0
-        || sd->sc_data[SC_NOCHAT].timer != -1)
-        return;
-
-    if (sd->invincible_timer != -1)
-        pc_delinvincibletimer(sd);
-
-    SkillID skill_id = SkillID(RFIFOW(fd, 2));
-    skill_castend_map(sd, skill_id, (const char *)RFIFOP(fd, 4));
 }
 
 /*==========================================
@@ -5537,15 +5389,15 @@ func_table clif_parse_func_table[0x220] =
         { NULL,                                 0       },      // 110
         { NULL,                                 0       },      // 111
         { clif_parse_SkillUp,                   -1      },      // 112
-        { clif_parse_UseSkillToId,              0       },      // 113
+        { NULL,                                 0       },      // 113
         { NULL,                                 0       },      // 114
         { NULL,                                 0       },      // 115
-        { clif_parse_UseSkillToPos,             0       },      // 116
+        { NULL,                                 0       },      // 116
         { NULL,                                 0       },      // 117
         { clif_parse_StopAttack,                0       },      // 118
         { NULL,                                 0       },      // 119
         { NULL,                                 0       },      // 11a
-        { clif_parse_UseSkillMap,               0       },      // 11b
+        { NULL,                                 0       },      // 11b
         { NULL,                                 0       },      // 11c
         { NULL,                                 0       },      // 11d
         { NULL,                                 0       },      // 11e
@@ -5662,7 +5514,7 @@ func_table clif_parse_func_table[0x220] =
         { NULL,                                 0       },      // 18d
         { NULL,                                 0       },      // 18e
         { NULL,                                 0       },      // 18f
-        { clif_parse_UseSkillToPos,             0       },      // 190
+        { NULL,                                 0       },      // 190
         { NULL,                                 0       },      // 191
         { NULL,                                 0       },      // 192
         { NULL,                                 0       },      // 193

@@ -44,6 +44,7 @@ struct BCT
     uint8_t level:4;    // 0x 00 f0 00 00
     uint8_t unused;     // 0x ff 00 00 00
 
+    explicit
     operator bool() { return lo || mid || classic || level || unused; }
 };
 
@@ -92,5 +93,141 @@ BCT BCT_mid_x80 = {0x00, 0x80, 0x0, 0x0, 0x00};
 
 constexpr
 BCT BCT_highnib = {0x00, 0x00, 0x0, 0xf, 0x00};
+
+enum class Element : uint8_t
+{
+    neutral = 0,
+    water   = 1,
+    earth   = 2,
+    fire    = 3,
+    wind    = 4,
+    poison  = 5,
+    _holy   = 6,
+    dark    = 7,
+    _spirit = 8,
+    undead  = 9,
+
+    COUNT   = 10,
+};
+
+enum class Race : uint8_t
+{
+    formless    = 0,
+    undead      = 1,
+    _brute      = 2,
+    plant       = 3,
+    _insect     = 4,
+    _fish       = 5,
+    _demon      = 6,
+    demihuman   = 7,
+    _angel      = 8,
+    _dragon     = 9,
+    // special - one of these is applied in addition
+    boss        = 10,
+    other       = 11,
+
+    COUNT       = 12,
+};
+
+struct LevelElement
+{
+    uint8_t level;
+    Element element;
+
+    static
+    LevelElement unpack(int packed)
+    {
+        LevelElement le;
+        le.element = static_cast<Element>(packed % 10);
+        le.level = packed / 10;
+        return le;
+    }
+    int pack() const
+    {
+        return level * 10 + static_cast<uint8_t>(element);
+    }
+};
+
+namespace e
+{
+enum class Elements : uint16_t
+{
+    ZERO    = 0x0000,
+    neutral = 1 << 0,
+    water   = 1 << 1,
+    earth   = 1 << 2,
+    fire    = 1 << 3,
+    wind    = 1 << 4,
+    poison  = 1 << 5,
+    _holy   = 1 << 6,
+    dark    = 1 << 7,
+    _spirit = 1 << 8,
+    undead  = 1 << 9,
+};
+ENUM_BITWISE_OPERATORS(Elements)
+
+enum class Races : uint16_t
+{
+    ZERO        = 0x0000,
+    formless    = 1 << 0,
+    undead      = 1 << 1,
+    _brute      = 1 << 2,
+    plant       = 1 << 3,
+    _insect     = 1 << 4,
+    _fish       = 1 << 5,
+    _demon      = 1 << 6,
+    demihuman   = 1 << 7,
+    _angel      = 1 << 8,
+    _dragon     = 1 << 9,
+    // special - one of these is applied in addition
+    boss        = 1 << 10,
+    other       = 1 << 11,
+};
+ENUM_BITWISE_OPERATORS(Races)
+}
+using e::Elements;
+using e::Races;
+
+constexpr
+earray<Elements, Element, Element::COUNT> element_shift //=
+{{
+    Elements::neutral,
+    Elements::water,
+    Elements::earth,
+    Elements::fire,
+    Elements::wind,
+    Elements::poison,
+    Elements::_holy,
+    Elements::dark,
+    Elements::_spirit,
+    Elements::undead,
+}};
+
+constexpr
+earray<Races, Race, Race::COUNT> race_shift //=
+{{
+    Races::formless,
+    Races::undead,
+    Races::_brute,
+    Races::plant,
+    Races::_insect,
+    Races::_fish,
+    Races::_demon,
+    Races::demihuman,
+    Races::_angel,
+    Races::_dragon,
+    Races::boss,
+    Races::other,
+}};
+
+enum class DamageType : uint8_t
+{
+    NORMAL      = 0x00,
+    TAKEITEM    = 0x01,
+    RETURNED    = 0x04,
+    DOUBLED     = 0x08,
+    CRITICAL    = 0x0a,
+    FLEE2       = 0x0b,
+};
 
 #endif // BATTLE_T_HPP

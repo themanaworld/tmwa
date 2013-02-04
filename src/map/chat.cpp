@@ -117,7 +117,8 @@ int chat_deletenpcchat(struct npc_data *nd)
     struct chat_data *cd;
 
     nullpo_ret(nd);
-    nullpo_ret(cd = (struct chat_data *) map_id2bl(nd->chat_id));
+    cd = (struct chat_data *) map_id2bl(nd->chat_id);
+    nullpo_ret(cd);
 
     chat_npckickall(cd);
     map_delobject(cd->bl.id, BL_CHAT); // freeまでしてくれる

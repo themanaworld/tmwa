@@ -214,7 +214,8 @@ int storage_storageadd(struct map_session_data *sd, int index, int amount)
     struct storage *stor;
 
     nullpo_ret(sd);
-    nullpo_ret(stor = account2storage2(sd->status.account_id));
+    stor = account2storage2(sd->status.account_id);
+    nullpo_ret(stor);
 
     if ((stor->storage_amount > MAX_STORAGE) || !stor->storage_status)
         return 0;               // storage full / storage closed
@@ -249,7 +250,8 @@ int storage_storageget(struct map_session_data *sd, int index, int amount)
     PickupFail flag;
 
     nullpo_ret(sd);
-    nullpo_ret(stor = account2storage2(sd->status.account_id));
+    stor = account2storage2(sd->status.account_id);
+    nullpo_ret(stor);
 
     if (index < 0 || index >= MAX_STORAGE)
         return 0;
@@ -277,7 +279,8 @@ int storage_storageclose(struct map_session_data *sd)
     struct storage *stor;
 
     nullpo_ret(sd);
-    nullpo_ret(stor = account2storage2(sd->status.account_id));
+    stor = account2storage2(sd->status.account_id);
+    nullpo_ret(stor);
 
     clif_storageclose(sd);
     if (stor->storage_status)
