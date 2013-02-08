@@ -32,7 +32,7 @@
 
 #define DUMP_UNKNOWN_PACKET     1
 
-#define EMOTE_IGNORED 0x0e
+constexpr int EMOTE_IGNORED = 0x0e;
 
 static
 const int packet_len_table[0x220] = {
@@ -238,7 +238,7 @@ static
 int is_deaf(struct block_list *bl)
 {
     struct map_session_data *sd = (struct map_session_data *) bl;
-    if (!bl || bl->type != BL_PC)
+    if (!bl || bl->type != BL::PC)
         return 0;
     return sd->special_state.deaf;
 }
@@ -271,7 +271,7 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
 
         case AREA_CHAT_WOC:
             if (is_deaf(bl)
-                && !(bl->type == BL_PC
+                && !(bl->type == BL::PC
                      && pc_isGM((struct map_session_data *) src_bl)))
             {
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
@@ -328,7 +328,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
     {
         nullpo_ret(bl);
 
-        if (bl->type == BL_PC)
+        if (bl->type == BL::PC)
         {
             struct map_session_data *sd2 = (struct map_session_data *) bl;
             if (bool(sd2->status.option & Option::INVISIBILITY))
@@ -389,22 +389,22 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
         case AREA_WOSC:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, type),
                     bl->m, bl->x - AREA_SIZE, bl->y - AREA_SIZE,
-                    bl->x + AREA_SIZE, bl->y + AREA_SIZE, BL_PC);
+                    bl->x + AREA_SIZE, bl->y + AREA_SIZE, BL::PC);
             break;
         case AREA_CHAT_WOC:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, AREA_CHAT_WOC),
                     bl->m, bl->x - (AREA_SIZE), bl->y - (AREA_SIZE),
-                    bl->x + (AREA_SIZE), bl->y + (AREA_SIZE), BL_PC);
+                    bl->x + (AREA_SIZE), bl->y + (AREA_SIZE), BL::PC);
             break;
         case CHAT_:
         case CHAT_WOS:
             cd = (struct chat_data *) bl;
-            if (bl->type == BL_PC)
+            if (bl->type == BL::PC)
             {
                 sd = (struct map_session_data *) bl;
                 cd = (struct chat_data *) map_id2bl(sd->chatID);
             }
-            else if (bl->type != BL_CHAT)
+            else if (bl->type != BL::CHAT)
                 break;
             if (cd == NULL)
                 break;
@@ -432,7 +432,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
         case PARTY_WOS:        // 自分以外の全パーティーメンバに送信
         case PARTY_SAMEMAP:    // 同じマップの全パーティーメンバに送信
         case PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
-            if (bl->type == BL_PC)
+            if (bl->type == BL::PC)
             {
                 sd = (struct map_session_data *) bl;
                 if (sd->partyspy > 0)
@@ -652,7 +652,7 @@ int clif_clearflooritem(struct flooritem_data *fitem, int fd)
  *
  *------------------------------------------
  */
-int clif_clearchar(struct block_list *bl, int type)
+int clif_clearchar(struct block_list *bl, BeingRemoveWhy type)
 {
     unsigned char buf[16];
 
@@ -660,16 +660,16 @@ int clif_clearchar(struct block_list *bl, int type)
 
     WBUFW(buf, 0) = 0x80;
     WBUFL(buf, 2) = bl->id;
-    if (type == 9)
+    if (type == BeingRemoveWhy::DISGUISE)
     {
-        WBUFB(buf, 6) = 0;
+        WBUFB(buf, 6) = static_cast<uint8_t>(BeingRemoveWhy::GONE);
         clif_send(buf, packet_len_table[0x80], bl, AREA);
     }
     else
     {
-        WBUFB(buf, 6) = type;
+        WBUFB(buf, 6) = static_cast<uint8_t>(type);
         clif_send(buf, packet_len_table[0x80], bl,
-                   type == 1 ? AREA : AREA_WOS);
+                   type == BeingRemoveWhy::DEAD ? AREA : AREA_WOS);
     }
 
     return 0;
@@ -681,17 +681,17 @@ void clif_clearchar_delay_sub(timer_id, tick_t, custom_id_t id,
 {
     struct block_list *bl = (struct block_list *) id;
 
-    clif_clearchar(bl, data);
+    clif_clearchar(bl, static_cast<BeingRemoveWhy>(data));
     map_freeblock(bl);
 }
 
-int clif_clearchar_delay(unsigned int tick, struct block_list *bl, int type)
+int clif_clearchar_delay(unsigned int tick, struct block_list *bl, BeingRemoveWhy type)
 {
     struct block_list *tmpbl;
     CREATE(tmpbl, struct block_list, 1);
 
     memcpy(tmpbl, bl, sizeof(struct block_list));
-    add_timer(tick, clif_clearchar_delay_sub, (custom_id_t) tmpbl, type);
+    add_timer(tick, clif_clearchar_delay_sub, (custom_id_t) tmpbl, static_cast<uint8_t>(type));
 
     return 0;
 }
@@ -700,13 +700,13 @@ int clif_clearchar_delay(unsigned int tick, struct block_list *bl, int type)
  *
  *------------------------------------------
  */
-int clif_clearchar_id(int id, int type, int fd)
+int clif_clearchar_id(int id, BeingRemoveWhy type, int fd)
 {
     unsigned char buf[16];
 
     WBUFW(buf, 0) = 0x80;
     WBUFL(buf, 2) = id;
-    WBUFB(buf, 6) = type;
+    WBUFB(buf, 6) = static_cast<uint8_t>(type);
     memcpy(WFIFOP(fd, 0), buf, 7);
     WFIFOSET(fd, packet_len_table[0x80]);
 
@@ -1082,7 +1082,7 @@ int clif_spawnmob(struct mob_data *md)
 
         WBUFW(buf, 0) = 0x7c;
         WBUFL(buf, 2) = md->bl.id;
-        WBUFW(buf, 6) = md->stats[MOB_SPEED];
+        WBUFW(buf, 6) = md->stats[mob_stat::SPEED];
         WBUFW(buf, 8) = uint16_t(md->opt1);
         WBUFW(buf, 10) = uint16_t(md->opt2);
         WBUFW(buf, 12) = uint16_t(md->option);
@@ -1152,7 +1152,7 @@ int clif_movechar(struct map_session_data *sd)
     clif_send(buf, len, &sd->bl, AREA_WOS);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
-        clif_changelook(&sd->bl, LOOK_CLOTHES_COLOR,
+        clif_changelook(&sd->bl, LOOK::CLOTHES_COLOR,
                          sd->status.clothes_color);
 
     return 0;
@@ -1867,121 +1867,121 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
     switch (type)
     {
             // 00b0
-        case SP_WEIGHT:
+        case SP::WEIGHT:
             pc_checkweighticon(sd);
             // is this because pc_checkweighticon can send other packets?
             WFIFOW(fd, 0) = 0xb0;
             WFIFOW(fd, 2) = uint16_t(type);
             WFIFOL(fd, 4) = sd->weight;
             break;
-        case SP_MAXWEIGHT:
+        case SP::MAXWEIGHT:
             WFIFOL(fd, 4) = sd->max_weight;
             break;
-        case SP_SPEED:
+        case SP::SPEED:
             WFIFOL(fd, 4) = sd->speed;
             break;
-        case SP_BASELEVEL:
+        case SP::BASELEVEL:
             WFIFOL(fd, 4) = sd->status.base_level;
             break;
-        case SP_JOBLEVEL:
+        case SP::JOBLEVEL:
             WFIFOL(fd, 4) = 0;
             break;
-        case SP_STATUSPOINT:
+        case SP::STATUSPOINT:
             WFIFOL(fd, 4) = sd->status.status_point;
             break;
-        case SP_SKILLPOINT:
+        case SP::SKILLPOINT:
             WFIFOL(fd, 4) = sd->status.skill_point;
             break;
-        case SP_HIT:
+        case SP::HIT:
             WFIFOL(fd, 4) = sd->hit;
             break;
-        case SP_FLEE1:
+        case SP::FLEE1:
             WFIFOL(fd, 4) = sd->flee;
             break;
-        case SP_FLEE2:
+        case SP::FLEE2:
             WFIFOL(fd, 4) = sd->flee2 / 10;
             break;
-        case SP_MAXHP:
+        case SP::MAXHP:
             WFIFOL(fd, 4) = sd->status.max_hp;
             break;
-        case SP_MAXSP:
+        case SP::MAXSP:
             WFIFOL(fd, 4) = sd->status.max_sp;
             break;
-        case SP_HP:
+        case SP::HP:
             WFIFOL(fd, 4) = sd->status.hp;
             break;
-        case SP_SP:
+        case SP::SP:
             WFIFOL(fd, 4) = sd->status.sp;
             break;
-        case SP_ASPD:
+        case SP::ASPD:
             WFIFOL(fd, 4) = sd->aspd;
             break;
-        case SP_ATK1:
+        case SP::ATK1:
             WFIFOL(fd, 4) = sd->base_atk + sd->watk;
             break;
-        case SP_DEF1:
+        case SP::DEF1:
             WFIFOL(fd, 4) = sd->def;
             break;
-        case SP_MDEF1:
+        case SP::MDEF1:
             WFIFOL(fd, 4) = sd->mdef;
             break;
-        case SP_ATK2:
+        case SP::ATK2:
             WFIFOL(fd, 4) = sd->watk2;
             break;
-        case SP_DEF2:
+        case SP::DEF2:
             WFIFOL(fd, 4) = sd->def2;
             break;
-        case SP_MDEF2:
+        case SP::MDEF2:
             WFIFOL(fd, 4) = sd->mdef2;
             break;
-        case SP_CRITICAL:
+        case SP::CRITICAL:
             WFIFOL(fd, 4) = sd->critical / 10;
             break;
-        case SP_MATK1:
+        case SP::MATK1:
             WFIFOL(fd, 4) = sd->matk1;
             break;
-        case SP_MATK2:
+        case SP::MATK2:
             WFIFOL(fd, 4) = sd->matk2;
             break;
 
-        case SP_ZENY:
+        case SP::ZENY:
             trade_verifyzeny(sd);
             WFIFOW(fd, 0) = 0xb1;
             if (sd->status.zeny < 0)
                 sd->status.zeny = 0;
             WFIFOL(fd, 4) = sd->status.zeny;
             break;
-        case SP_BASEEXP:
+        case SP::BASEEXP:
             WFIFOW(fd, 0) = 0xb1;
             WFIFOL(fd, 4) = sd->status.base_exp;
             break;
-        case SP_JOBEXP:
+        case SP::JOBEXP:
             WFIFOW(fd, 0) = 0xb1;
             WFIFOL(fd, 4) = sd->status.job_exp;
             break;
-        case SP_NEXTBASEEXP:
+        case SP::NEXTBASEEXP:
             WFIFOW(fd, 0) = 0xb1;
             WFIFOL(fd, 4) = pc_nextbaseexp(sd);
             break;
-        case SP_NEXTJOBEXP:
+        case SP::NEXTJOBEXP:
             WFIFOW(fd, 0) = 0xb1;
             WFIFOL(fd, 4) = pc_nextjobexp(sd);
             break;
 
             // 00be 終了
-        case SP_USTR:
-        case SP_UAGI:
-        case SP_UVIT:
-        case SP_UINT:
-        case SP_UDEX:
-        case SP_ULUK:
+        case SP::USTR:
+        case SP::UAGI:
+        case SP::UVIT:
+        case SP::UINT:
+        case SP::UDEX:
+        case SP::ULUK:
             WFIFOW(fd, 0) = 0xbe;
             WFIFOB(fd, 4) = pc_need_status_point(sd, usp_to_sp(type));
             len = 5;
             break;
 
             // 013a 終了
-        case SP_ATTACKRANGE:
+        case SP::ATTACKRANGE:
             WFIFOW(fd, 0) = 0x13a;
             WFIFOW(fd, 2) = (sd->attack_spell_override)
                 ? sd->attack_spell_range : sd->attackrange;
@@ -1989,12 +1989,12 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
             break;
 
             // 0141 終了
-        case SP_STR:
-        case SP_AGI:
-        case SP_VIT:
-        case SP_INT:
-        case SP_DEX:
-        case SP_LUK:
+        case SP::STR:
+        case SP::AGI:
+        case SP::VIT:
+        case SP::INT:
+        case SP::DEX:
+        case SP::LUK:
         {
             ATTR attr = sp_to_attr(type);
             WFIFOW(fd, 0) = 0x141;
@@ -2005,7 +2005,7 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
         }
             break;
 
-        case SP_GM:
+        case SP::GM:
             WFIFOL(fd, 4) = pc_isGM(sd);
             break;
 
@@ -2037,18 +2037,18 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
 
     nullpo_ret(bl);
 
-    if (bl->type == BL_PC)
+    if (bl->type == BL::PC)
         sd = (struct map_session_data *) bl;
 
     if (sd && bool(sd->status.option & Option::INVISIBILITY))
         return 0;
 
     if (sd
-        && (type == LOOK_WEAPON || type == LOOK_SHIELD || type >= LOOK_SHOES))
+        && (type == LOOK::WEAPON || type == LOOK::SHIELD || type >= LOOK::SHOES))
     {
         WBUFW(buf, 0) = 0x1d7;
         WBUFL(buf, 2) = bl->id;
-        if (type >= LOOK_SHOES)
+        if (type >= LOOK::SHOES)
         {
             EQUIP equip_point = equip_points[type];
 
@@ -2139,17 +2139,17 @@ int clif_initialstatus(struct map_session_data *sd)
     WFIFOW(fd, 2) = sd->status.status_point;
 
     WFIFOB(fd, 4) = min(sd->status.attrs[ATTR::STR], 255);
-    WFIFOB(fd, 5) = pc_need_status_point(sd, SP_STR);
+    WFIFOB(fd, 5) = pc_need_status_point(sd, SP::STR);
     WFIFOB(fd, 6) = min(sd->status.attrs[ATTR::AGI], 255);
-    WFIFOB(fd, 7) = pc_need_status_point(sd, SP_AGI);
+    WFIFOB(fd, 7) = pc_need_status_point(sd, SP::AGI);
     WFIFOB(fd, 8) = min(sd->status.attrs[ATTR::VIT], 255);
-    WFIFOB(fd, 9) = pc_need_status_point(sd, SP_VIT);
+    WFIFOB(fd, 9) = pc_need_status_point(sd, SP::VIT);
     WFIFOB(fd, 10) = min(sd->status.attrs[ATTR::INT], 255);
-    WFIFOB(fd, 11) = pc_need_status_point(sd, SP_INT);
+    WFIFOB(fd, 11) = pc_need_status_point(sd, SP::INT);
     WFIFOB(fd, 12) = min(sd->status.attrs[ATTR::DEX], 255);
-    WFIFOB(fd, 13) = pc_need_status_point(sd, SP_DEX);
+    WFIFOB(fd, 13) = pc_need_status_point(sd, SP::DEX);
     WFIFOB(fd, 14) = min(sd->status.attrs[ATTR::LUK], 255);
-    WFIFOB(fd, 15) = pc_need_status_point(sd, SP_LUK);
+    WFIFOB(fd, 15) = pc_need_status_point(sd, SP::LUK);
 
     WFIFOW(fd, 16) = sd->base_atk + sd->watk;
     WFIFOW(fd, 18) = sd->watk2;    //atk bonus
@@ -2168,15 +2168,15 @@ int clif_initialstatus(struct map_session_data *sd)
 
     WFIFOSET(fd, packet_len_table[0xbd]);
 
-    clif_updatestatus(sd, SP_STR);
-    clif_updatestatus(sd, SP_AGI);
-    clif_updatestatus(sd, SP_VIT);
-    clif_updatestatus(sd, SP_INT);
-    clif_updatestatus(sd, SP_DEX);
-    clif_updatestatus(sd, SP_LUK);
+    clif_updatestatus(sd, SP::STR);
+    clif_updatestatus(sd, SP::AGI);
+    clif_updatestatus(sd, SP::VIT);
+    clif_updatestatus(sd, SP::INT);
+    clif_updatestatus(sd, SP::DEX);
+    clif_updatestatus(sd, SP::LUK);
 
-    clif_updatestatus(sd, SP_ATTACKRANGE);
-    clif_updatestatus(sd, SP_ASPD);
+    clif_updatestatus(sd, SP::ATTACKRANGE);
+    clif_updatestatus(sd, SP::ASPD);
 
     return 0;
 }
@@ -2681,7 +2681,7 @@ int clif_storageclose(struct map_session_data *sd)
 void clif_changelook_accessories(struct block_list *bl,
                              struct map_session_data *dest)
 {
-    for (LOOK i = LOOK_SHOES; i < LOOK::COUNT; i = LOOK(uint8_t(i) + 1))
+    for (LOOK i = LOOK::SHOES; i < LOOK::COUNT; i = LOOK(uint8_t(i) + 1))
         clif_changelook_towards(bl, i, 0, dest);
 }
 
@@ -2716,7 +2716,7 @@ void clif_getareachar_pc(struct map_session_data *sd,
     }
 
     if (battle_config.save_clothcolor == 1 && dstsd->status.clothes_color > 0)
-        clif_changelook(&dstsd->bl, LOOK_CLOTHES_COLOR,
+        clif_changelook(&dstsd->bl, LOOK::CLOTHES_COLOR,
                          dstsd->status.clothes_color);
 
     clif_changelook_accessories(&sd->bl, dstsd);
@@ -2770,7 +2770,7 @@ int clif_fixmobpos(struct mob_data *md)
 
     nullpo_ret(md);
 
-    if (md->state.state == MS_WALK)
+    if (md->state.state == MS::WALK)
     {
         len = clif_mob007b(md, buf);
         clif_send(buf, len, &md->bl, AREA);
@@ -2852,7 +2852,7 @@ void clif_getareachar_mob(struct map_session_data *sd, struct mob_data *md)
     nullpo_retv(sd);
     nullpo_retv(md);
 
-    if (md->state.state == MS_WALK)
+    if (md->state.state == MS::WALK)
     {
         len = clif_mob007b(md, static_cast<uint8_t *>(WFIFOP(sd->fd, 0)));
         WFIFOSET(sd->fd, len);
@@ -2906,18 +2906,18 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
 
     switch (bl->type)
     {
-        case BL_PC:
+        case BL::PC:
             if (sd == (struct map_session_data *) bl)
                 break;
             clif_getareachar_pc(sd, (struct map_session_data *) bl);
             break;
-        case BL_NPC:
+        case BL::NPC:
             clif_getareachar_npc(sd, (struct npc_data *) bl);
             break;
-        case BL_MOB:
+        case BL::MOB:
             clif_getareachar_mob(sd, (struct mob_data *) bl);
             break;
-        case BL_ITEM:
+        case BL::ITEM:
             clif_getareachar_item(sd, (struct flooritem_data *) bl);
             break;
         default:
@@ -2941,22 +2941,22 @@ void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
 
     switch (bl->type)
     {
-        case BL_PC:
+        case BL::PC:
             dstsd = (struct map_session_data *) bl;
             if (sd != dstsd)
             {
-                clif_clearchar_id(dstsd->bl.id, 0, sd->fd);
-                clif_clearchar_id(sd->bl.id, 0, dstsd->fd);
+                clif_clearchar_id(dstsd->bl.id, BeingRemoveWhy::GONE, sd->fd);
+                clif_clearchar_id(sd->bl.id, BeingRemoveWhy::GONE, dstsd->fd);
             }
             break;
-        case BL_NPC:
+        case BL::NPC:
             if (((struct npc_data *) bl)->npc_class != INVISIBLE_CLASS)
-                clif_clearchar_id(bl->id, 0, sd->fd);
+                clif_clearchar_id(bl->id, BeingRemoveWhy::GONE, sd->fd);
             break;
-        case BL_MOB:
-            clif_clearchar_id(bl->id, 0, sd->fd);
+        case BL::MOB:
+            clif_clearchar_id(bl->id, BeingRemoveWhy::GONE, sd->fd);
             break;
-        case BL_ITEM:
+        case BL::ITEM:
             clif_clearflooritem((struct flooritem_data *) bl, sd->fd);
             break;
     }
@@ -2975,7 +2975,7 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
 
     switch (bl->type)
     {
-        case BL_PC:
+        case BL::PC:
             dstsd = (struct map_session_data *) bl;
             if (sd != dstsd)
             {
@@ -2983,13 +2983,13 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
                 clif_getareachar_pc(dstsd, sd);
             }
             break;
-        case BL_NPC:
+        case BL::NPC:
             clif_getareachar_npc(sd, (struct npc_data *) bl);
             break;
-        case BL_MOB:
+        case BL::MOB:
             clif_getareachar_mob(sd, (struct mob_data *) bl);
             break;
-        case BL_ITEM:
+        case BL::ITEM:
             clif_getareachar_item(sd, (struct flooritem_data *) bl);
             break;
     }
@@ -3006,9 +3006,9 @@ void clif_moboutsight(struct block_list *bl, struct mob_data *md)
     nullpo_retv(bl);
     nullpo_retv(md);
 
-    if (bl->type == BL_PC && (sd = (struct map_session_data *) bl))
+    if (bl->type == BL::PC && (sd = (struct map_session_data *) bl))
     {
-        clif_clearchar_id(md->bl.id, 0, sd->fd);
+        clif_clearchar_id(md->bl.id, BeingRemoveWhy::GONE, sd->fd);
     }
 }
 
@@ -3023,7 +3023,7 @@ void clif_mobinsight(struct block_list *bl, struct mob_data *md)
     nullpo_retv(bl);
     nullpo_retv(md);
 
-    if (bl->type == BL_PC && (sd = (struct map_session_data *) bl))
+    if (bl->type == BL::PC && (sd = (struct map_session_data *) bl))
     {
         clif_getareachar_mob(sd, md);
     }
@@ -3093,7 +3093,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
             WFIFOW(fd, len + 2) = skill_get_inf(id);
             WFIFOW(fd, len + 4) = uint16_t(
                 skill_db[i].poolflags
-                | (sd->status.skill[i].flags & SKILL_POOL_ACTIVATED));
+                | (sd->status.skill[i].flags & SkillFlags::POOL_ACTIVATED));
             WFIFOW(fd, len + 6) = sd->status.skill[i].lv;
             WFIFOW(fd, len + 8) = skill_get_sp(id, sd->status.skill[i].lv);
             range = skill_get_range(id, sd->status.skill[i].lv);
@@ -3648,7 +3648,7 @@ void clif_emotion_towards(struct block_list *bl,
     nullpo_retv(bl);
     nullpo_retv(target);
 
-    if (target->type != BL_PC)
+    if (target->type != BL::PC)
         return;
 
     WBUFW(buf, 0) = 0xc0;
@@ -3825,10 +3825,10 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
 
     // loadendack時
     // next exp
-    clif_updatestatus(sd, SP_NEXTBASEEXP);
-    clif_updatestatus(sd, SP_NEXTJOBEXP);
+    clif_updatestatus(sd, SP::NEXTBASEEXP);
+    clif_updatestatus(sd, SP::NEXTJOBEXP);
     // skill point
-    clif_updatestatus(sd, SP_SKILLPOINT);
+    clif_updatestatus(sd, SP::SKILLPOINT);
     // item
     clif_itemlist(sd);
     clif_equiplist(sd);
@@ -3848,8 +3848,8 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     clif_spawnpc(sd);          // spawn
 
     // weight max , now
-    clif_updatestatus(sd, SP_MAXWEIGHT);
-    clif_updatestatus(sd, SP_WEIGHT);
+    clif_updatestatus(sd, SP::MAXWEIGHT);
+    clif_updatestatus(sd, SP::WEIGHT);
 
     // pvp
     if (sd->pvp_timer != -1 && !battle_config.pk_mode)
@@ -3874,13 +3874,13 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     sd->state.connect_new = 0;
 
     // view equipment item
-    clif_changelook(&sd->bl, LOOK_WEAPON, 0);
+    clif_changelook(&sd->bl, LOOK::WEAPON, 0);
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
-        clif_changelook(&sd->bl, LOOK_CLOTHES_COLOR,
+        clif_changelook(&sd->bl, LOOK::CLOTHES_COLOR,
                          sd->status.clothes_color);
 
     if (battle_config.muting_players && sd->status.manner < 0)
-        skill_status_change_start(&sd->bl, SC_NOCHAT, 0, 0, 0, 0, 0, 0);
+        skill_status_change_start(&sd->bl, StatusChange::SC_NOCHAT, 0, 0, 0, 0, 0, 0);
 
     // option
     clif_changeoption(&sd->bl);
@@ -3889,12 +3889,12 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
         if (bool(sd->status.inventory[i].equip)
             && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
             && sd->status.inventory[i].broken == 1)
-            skill_status_change_start(&sd->bl, SC_BROKNWEAPON, 0, 0, 0, 0, 0,
+            skill_status_change_start(&sd->bl, StatusChange::SC_BROKNWEAPON, 0, 0, 0, 0, 0,
                                        0);
         if (bool(sd->status.inventory[i].equip)
             && bool(sd->status.inventory[i].equip & EPOS::MISC1)
             && sd->status.inventory[i].broken == 1)
-            skill_status_change_start(&sd->bl, SC_BROKNARMOR, 0, 0, 0, 0, 0,
+            skill_status_change_start(&sd->bl, StatusChange::SC_BROKNARMOR, 0, 0, 0, 0, 0,
                                        0);
     }
 
@@ -3902,7 +3902,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
 
     map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd), sd->bl.m, sd->bl.x - AREA_SIZE,
                        sd->bl.y - AREA_SIZE, sd->bl.x + AREA_SIZE,
-                       sd->bl.y + AREA_SIZE, BL_NUL);
+                       sd->bl.y + AREA_SIZE, BL::NUL);
 }
 
 /*==========================================
@@ -3932,7 +3932,7 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
 
@@ -3946,9 +3946,7 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
         return;
 
     // ステータス異常やハイディング中(トンネルドライブ無)で動けない
-    if ((bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
-        || sd->sc_data[SC_ANKLE].timer != -1 //アンクルスネア
-        )
+    if (bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
         return;
 
     if (sd->invincible_timer != -1)
@@ -4021,7 +4019,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
 
     switch (bl->type)
     {
-        case BL_PC:
+        case BL::PC:
         {
             struct map_session_data *ssd = (struct map_session_data *) bl;
 
@@ -4073,7 +4071,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
 
         }
             break;
-        case BL_NPC:
+        case BL::NPC:
             memcpy(WFIFOP(fd, 6), ((struct npc_data *) bl)->name, 24);
             {
                 char *start = (char *)WFIFOP(fd, 6);
@@ -4088,7 +4086,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
             }
             WFIFOSET(fd, packet_len_table[0x95]);
             break;
-        case BL_MOB:
+        case BL::MOB:
         {
             struct mob_data *md = (struct mob_data *) bl;
 
@@ -4131,7 +4129,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0)
-            || (sd->sc_data[SC_NOCHAT].timer != -1)) //チャット禁止
+            || (sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)) //チャット禁止
     {
         free(buf);
         return;
@@ -4228,7 +4226,7 @@ void clif_parse_Emotion(int fd, struct map_session_data *sd)
     nullpo_retv(sd);
 
     if (battle_config.basic_skill_check == 0
-        || pc_checkskill(sd, NV_EMOTE) >= 1)
+        || pc_checkskill(sd, SkillID::NV_EMOTE) >= 1)
     {
         WBUFW(buf, 0) = 0xc0;
         WBUFL(buf, 2) = sd->bl.id;
@@ -4266,7 +4264,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
     if (sd->npc_id != 0
@@ -4337,13 +4335,10 @@ void clif_parse_Restart(int fd, struct map_session_data *sd)
                 pc_setrestartvalue(sd, 3);
                 pc_setpos(sd, sd->status.save_point.map,
                            sd->status.save_point.x, sd->status.save_point.y,
-                           2);
+                           BeingRemoveWhy::QUIT);
             }
             break;
         case 0x01:
-            /*if (!pc_isdead(sd) && (sd->opt1 || (sd->opt2 && !(night_flag == 1 && sd->opt2 == Opt2::BLIND))))
-             * return; */
-
             /*  Rovert's Prevent logout option - Fixed [Valaris]    */
             if ((battle_config.prevent_logout
                  && (gettick() - sd->canlog_tick) >= 10000)
@@ -4389,7 +4384,7 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0)
-            || (sd->sc_data[SC_NOCHAT].timer != -1))
+            || (sd->sc_data[StatusChange::SC_NOCHAT].timer != -1))
     {
         free(buf);
         return;
@@ -4472,13 +4467,13 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
 
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO
-        || sd->sc_data[SC_NOCHAT].timer != -1)   //会話禁止
+        || sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)   //会話禁止
         return;
 
     if (fitem == NULL || fitem->bl.m != sd->bl.m)
@@ -4507,7 +4502,7 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
     if (map[sd->bl.m].flag.no_player_drops)
@@ -4539,12 +4534,12 @@ void clif_parse_UseItem(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO
-        || sd->sc_data[SC_NOCHAT].timer != -1)   //会話禁止
+        || sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)   //会話禁止
         return;
 
     if (sd->invincible_timer != -1)
@@ -4566,7 +4561,7 @@ void clif_parse_EquipItem(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
     index = RFIFOW(fd, 2) - 2;
@@ -4607,14 +4602,14 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
     index = RFIFOW(fd, 2) - 2;
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data[SC_BROKNWEAPON].timer != -1)
-        skill_status_change_end(&sd->bl, SC_BROKNWEAPON, -1);
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data[SC_BROKNARMOR].timer != -1)
-        skill_status_change_end(&sd->bl, SC_BROKNARMOR, -1);
+    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNWEAPON].timer != -1)
+        skill_status_change_end(&sd->bl, StatusChange::SC_BROKNWEAPON, -1);
+    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNARMOR].timer != -1)
+        skill_status_change_end(&sd->bl, StatusChange::SC_BROKNARMOR, -1);
 
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO)
@@ -4633,7 +4628,7 @@ void clif_parse_NpcClicked(int fd, struct map_session_data *sd)
 
     if (pc_isdead(sd))
     {
-        clif_clearchar_area(&sd->bl, 1);
+        clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
     if (sd->npc_id != 0)
@@ -4697,7 +4692,7 @@ void clif_parse_TradeRequest(int, struct map_session_data *sd)
     nullpo_retv(sd);
 
     if (battle_config.basic_skill_check == 0
-        || pc_checkskill(sd, NV_TRADE) >= 1)
+        || pc_checkskill(sd, SkillID::NV_TRADE) >= 1)
     {
         trade_traderequest(sd, RFIFOL(sd->fd, 2));
     }
@@ -4937,7 +4932,7 @@ static
 void clif_parse_CreateParty(int fd, struct map_session_data *sd)
 {
     if (battle_config.basic_skill_check == 0
-        || pc_checkskill(sd, NV_PARTY) >= 2)
+        || pc_checkskill(sd, SkillID::NV_PARTY) >= 2)
     {
         party_create(sd, (const char *)RFIFOP(fd, 2));
     }
@@ -4969,7 +4964,7 @@ static
 void clif_parse_ReplyPartyInvite(int fd, struct map_session_data *sd)
 {
     if (battle_config.basic_skill_check == 0
-        || pc_checkskill(sd, NV_PARTY) >= 1)
+        || pc_checkskill(sd, SkillID::NV_PARTY) >= 1)
     {
         party_reply_invite(sd, RFIFOL(fd, 2), RFIFOL(fd, 6));
     }
@@ -5034,7 +5029,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
     }
 
     if (is_atcommand(fd, sd, message, 0)
-            || (sd->sc_data[SC_NOCHAT].timer != -1)) //チャット禁止
+            || (sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)) //チャット禁止
     {
         free(buf);
         return;
@@ -5741,9 +5736,12 @@ int clif_check_packet_flood(int fd, int cmd)
     return 0;
 }
 
-#define WARN_MALFORMED_MSG(sd, msg)                             \
-    PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed" \
-            " message: %s.\n", sd->status.name, sd->status.account_id, msg)
+inline
+void WARN_MALFORMED_MSG(struct map_session_data *sd, const char *msg)
+{
+    PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed message: %s.\n",
+            sd->status.name, sd->status.account_id, msg);
+}
 /**
  * Validate message integrity (inspired by upstream source (eAthena)).
  *

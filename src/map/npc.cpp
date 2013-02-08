@@ -66,7 +66,7 @@ void npc_enable_sub(struct block_list *bl, struct npc_data *nd)
 
     nullpo_retv(bl);
 
-    if (bl->type == BL_PC && (sd = (struct map_session_data *) bl))
+    if (bl->type == BL::PC && (sd = (struct map_session_data *) bl))
     {
 
         if (nd->flag & 1)       // 無効化されている
@@ -95,12 +95,12 @@ int npc_enable(const char *name, bool flag)
     else
     {                           // 無効化
         nd->flag |= 1;
-        clif_clearchar(&nd->bl, 0);
+        clif_clearchar(&nd->bl, BeingRemoveWhy::GONE);
     }
     if (flag && (nd->u.scr.xs > 0 || nd->u.scr.ys > 0))
         map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
                 nd->bl.m, nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
-                nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL_PC);
+                nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL::PC);
 
     return 0;
 }
@@ -149,7 +149,7 @@ int npc_delete(struct npc_data *nd)
     if (nd->bl.prev == NULL)
         return 1;
 
-    clif_clearchar_area(&nd->bl, 1);
+    clif_clearchar(&nd->bl, BeingRemoveWhy::DEAD);
     map_delblock(&nd->bl);
     return 0;
 }
@@ -633,12 +633,12 @@ int npc_touch_areanpc(struct map_session_data *sd, int m, int x, int y)
 
         switch (map[m].npc[i]->bl.subtype)
         {
-            case WARP:
+            case NpcSubtype::WARP:
                 xs = map[m].npc[i]->u.warp.xs;
                 ys = map[m].npc[i]->u.warp.ys;
                 break;
-            case MESSAGE:
-            case SCRIPT:
+            case NpcSubtype::MESSAGE:
+            case NpcSubtype::SCRIPT:
                 xs = map[m].npc[i]->u.scr.xs;
                 ys = map[m].npc[i]->u.scr.ys;
                 break;
@@ -662,13 +662,13 @@ int npc_touch_areanpc(struct map_session_data *sd, int m, int x, int y)
     }
     switch (map[m].npc[i]->bl.subtype)
     {
-        case WARP:
+        case NpcSubtype::WARP:
             skill_stop_dancing(&sd->bl, 0);
             pc_setpos(sd, map[m].npc[i]->u.warp.name,
-                       map[m].npc[i]->u.warp.x, map[m].npc[i]->u.warp.y, 0);
+                       map[m].npc[i]->u.warp.x, map[m].npc[i]->u.warp.y, BeingRemoveWhy::GONE);
             break;
-        case MESSAGE:
-        case SCRIPT:
+        case NpcSubtype::MESSAGE:
+        case NpcSubtype::SCRIPT:
         {
             char *name = (char *)malloc(50);
 
@@ -697,7 +697,7 @@ int npc_checknear(struct map_session_data *sd, int id)
     nullpo_ret(sd);
 
     nd = (struct npc_data *) map_id2bl(id);
-    if (nd == NULL || nd->bl.type != BL_NPC)
+    if (nd == NULL || nd->bl.type != BL::NPC)
     {
         if (battle_config.error_log)
             PRINTF("no such npc : %d\n", id);
@@ -748,14 +748,14 @@ int npc_click(struct map_session_data *sd, int id)
     sd->npc_id = id;
     switch (nd->bl.subtype)
     {
-        case SHOP:
+        case NpcSubtype::SHOP:
             clif_npcbuysell(sd, id);
             npc_event_dequeue(sd);
             break;
-        case SCRIPT:
+        case NpcSubtype::SCRIPT:
             sd->npc_pos = run_script(nd->u.scr.script, 0, sd->bl.id, id);
             break;
-        case MESSAGE:
+        case NpcSubtype::MESSAGE:
             if (nd->u.message)
             {
                 clif_scriptmes(sd, id, nd->u.message);
@@ -786,7 +786,7 @@ int npc_scriptcont(struct map_session_data *sd, int id)
 
     nd = (struct npc_data *) map_id2bl(id);
 
-    if (!nd /* NPC was disposed? */  || nd->bl.subtype == MESSAGE)
+    if (!nd /* NPC was disposed? */  || nd->bl.subtype == NpcSubtype::MESSAGE)
     {
         clif_scriptclose(sd, id);
         npc_event_dequeue(sd);
@@ -812,7 +812,7 @@ int npc_buysellsel(struct map_session_data *sd, int id, int type)
         return 1;
 
     nd = (struct npc_data *) map_id2bl(id);
-    if (nd->bl.subtype != SHOP)
+    if (nd->bl.subtype != NpcSubtype::SHOP)
     {
         if (battle_config.error_log)
             PRINTF("no such shop npc : %d\n", id);
@@ -852,7 +852,7 @@ int npc_buylist(struct map_session_data *sd, int n,
         return 3;
 
     nd = (struct npc_data *) map_id2bl(sd->npc_shopid);
-    if (nd->bl.subtype != SHOP)
+    if (nd->bl.subtype != NpcSubtype::SHOP)
         return 3;
 
     for (i = 0, w = 0, z = 0; i < n; i++)
@@ -870,15 +870,15 @@ int npc_buylist(struct map_session_data *sd, int n,
 
         switch (pc_checkadditem(sd, item_list[i * 2 + 1], item_list[i * 2]))
         {
-            case ADDITEM_EXIST:
+            case ADDITEM::EXIST:
                 break;
-            case ADDITEM_NEW:
+            case ADDITEM::NEW:
                 if (itemdb_isequip(item_list[i * 2 + 1]))
                     new_stacks += item_list[i * 2];
                 else
                     new_stacks++;
                 break;
-            case ADDITEM_OVERAMOUNT:
+            case ADDITEM::OVERAMOUNT:
                 return 2;
         }
 
@@ -1080,7 +1080,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     nd->bl.m = m;
     nd->bl.x = x;
     nd->bl.y = y;
-    nd->dir = DIR_S;
+    nd->dir = DIR::S;
     nd->flag = 0;
     memcpy(nd->name, w3, 24);
     memcpy(nd->exname, w3, 24);
@@ -1117,8 +1117,8 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
 
 //  PRINTF("warp npc %s %d read done\n",mapname,nd->bl.id);
     npc_warp++;
-    nd->bl.type = BL_NPC;
-    nd->bl.subtype = WARP;
+    nd->bl.type = BL::NPC;
+    nd->bl.subtype = NpcSubtype::WARP;
     map_addblock(&nd->bl);
     clif_spawnnpc(nd);
     strdb_insert(npcname_db, nd->name, nd);
@@ -1221,8 +1221,8 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
 
     //PRINTF("shop npc %s %d read done\n",mapname,nd->bl.id);
     npc_shop++;
-    nd->bl.type = BL_NPC;
-    nd->bl.subtype = SHOP;
+    nd->bl.type = BL::NPC;
+    nd->bl.subtype = NpcSubtype::SHOP;
     nd->n = map_addnpc(m, nd);
     map_addblock(&nd->bl);
     clif_spawnnpc(nd);
@@ -1278,7 +1278,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
                       const char *first_line, FILE * fp, int *lines)
 {
     int x, y;
-    DIR dir = DIR_S;
+    DIR dir = DIR::S;
     int m, xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
     char mapname[24];
     char *srcbuf = NULL;
@@ -1470,8 +1470,8 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
 
     //PRINTF("script npc %s %d %d read done\n",mapname,nd->bl.id,nd->class);
     npc_script++;
-    nd->bl.type = BL_NPC;
-    nd->bl.subtype = SCRIPT;
+    nd->bl.type = BL::NPC;
+    nd->bl.subtype = NpcSubtype::SCRIPT;
     if (m >= 0)
     {
         nd->n = map_addnpc(m, nd);
@@ -1743,7 +1743,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         else
             memset(md->npc_event, 0, 24);
 
-        md->bl.type = BL_MOB;
+        md->bl.type = BL::MOB;
         map_addiddb(&md->bl);
         mob_spawn(md->bl.id);
 
@@ -1928,8 +1928,8 @@ struct npc_data *npc_spawn_text(int m, int x, int y,
     retval->bl.x = x;
     retval->bl.y = y;
     retval->bl.m = m;
-    retval->bl.type = BL_NPC;
-    retval->bl.subtype = MESSAGE;
+    retval->bl.type = BL::NPC;
+    retval->bl.subtype = NpcSubtype::MESSAGE;
 
     strncpy(retval->name, name, 23);
     strncpy(retval->exname, name, 23);
@@ -1959,7 +1959,7 @@ void npc_free_internal(struct npc_data *nd)
         free(cd);
         cd = NULL;
     }
-    if (nd->bl.subtype == SCRIPT)
+    if (nd->bl.subtype == NpcSubtype::SCRIPT)
     {
         if (nd->u.scr.timer_event)
             free(nd->u.scr.timer_event);
@@ -1977,7 +1977,7 @@ void npc_free_internal(struct npc_data *nd)
             }
         }
     }
-    else if (nd->bl.subtype == MESSAGE && nd->u.message)
+    else if (nd->bl.subtype == NpcSubtype::MESSAGE && nd->u.message)
     {
         free(nd->u.message);
     }
@@ -1989,12 +1989,12 @@ void npc_propagate_update(struct npc_data *nd)
 {
     map_foreachinarea(std::bind(npc_enable_sub, ph::_1, nd),
             nd->bl.m, nd->bl.x - nd->u.scr.xs, nd->bl.y - nd->u.scr.ys,
-            nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL_PC);
+            nd->bl.x + nd->u.scr.xs, nd->bl.y + nd->u.scr.ys, BL::PC);
 }
 
 void npc_free(struct npc_data *nd)
 {
-    clif_clearchar(&nd->bl, 0);
+    clif_clearchar(&nd->bl, BeingRemoveWhy::GONE);
     npc_propagate_update(nd);
     map_deliddb(&nd->bl);
     map_delblock(&nd->bl);

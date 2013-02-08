@@ -23,7 +23,14 @@ expr_t *fun_expr(const char *name, int args_nr, expr_t **args, int line, int col
 static
 expr_t *dot_expr(expr_t *lhs, int id);
 
-#define BIN_EXPR(x, name, arg1, arg2, line, column) { expr_t *e[2]; e[0] = arg1; e[1] = arg2; x = fun_expr(name, 2, e, line, column); }
+static
+void BIN_EXPR(expr_t *& x, const char *name, expr_t *arg1, expr_t *arg2, int line, int column)
+{
+    expr_t *e[2];
+    e[0] = arg1;
+    e[1] = arg2;
+    x = fun_expr(name, 2, e, line, column);
+}
 
 static
 int failed_flag = 0;
@@ -44,7 +51,7 @@ static
 spellguard_t *new_spellguard(SPELLGUARD ty);
 
 static
-effect_t *new_effect(EFFECT_ ty);
+effect_t *new_effect(EFFECT ty);
 
 static
 effect_t *set_effect_continuation(effect_t *src, effect_t *continuation);
@@ -161,7 +168,7 @@ val_t *find_constant(char *name);
 %token SKIP
 %token ABORT
 %token BREAK
-%token EFFECT
+%token EFFECT_
 %token ATEND
 %token ATTRIGGER
 %token PC_F
@@ -308,24 +315,24 @@ spellconf_option        : ID '=' expr
 spell_flags             : /* empty */
                                 { $$ = SPELL_FLAG::ZERO; }
                         | LOCAL spell_flags
-                                { if (bool($2 & SPELL_FLAG_LOCAL))
+                                { if (bool($2 & SPELL_FLAG::LOCAL))
                                         fail(@1.first_line, @1.first_column, "`LOCAL' specified more than once");
-                                   $$ = $2 | SPELL_FLAG_LOCAL;
+                                   $$ = $2 | SPELL_FLAG::LOCAL;
                                 }
                         | NONMAGIC spell_flags
-                                { if (bool($2 & SPELL_FLAG_NONMAGIC))
+                                { if (bool($2 & SPELL_FLAG::NONMAGIC))
                                         fail(@1.first_line, @1.first_column, "`NONMAGIC' specified more than once");
-                                   $$ = $2 | SPELL_FLAG_NONMAGIC;
+                                   $$ = $2 | SPELL_FLAG::NONMAGIC;
                                 }
                         | SILENT spell_flags
-                                { if (bool($2 & SPELL_FLAG_SILENT))
+                                { if (bool($2 & SPELL_FLAG::SILENT))
                                         fail(@1.first_line, @1.first_column, "`SILENT' specified more than once");
-                                   $$ = $2 | SPELL_FLAG_SILENT;
+                                   $$ = $2 | SPELL_FLAG::SILENT;
                                 }
 
 
 argopt                  : /* empty */
-                          { $$.ty = SPELLARG_NONE; }
+                          { $$.ty = SPELLARG::NONE; }
                         | '(' ID ':' arg_ty ')'
                           { $$.id = intern_id($2);
                             $$.ty = $4; }
@@ -333,40 +340,40 @@ argopt                  : /* empty */
 
 
 arg_ty                  : PC_F
-                          { $$ = SPELLARG_PC; }
+                          { $$ = SPELLARG::PC; }
                         | STRING_TY
-                          { $$ = SPELLARG_STRING; }
+                          { $$ = SPELLARG::STRING; }
                         ;
 
 
 value                   : DIR
-                                { $$.ty = TY_DIR;
+                                { $$.ty = TYPE::DIR;
                                   $$.v.v_int = $1; }
                         | INT
-                                { $$.ty = TY_INT;
+                                { $$.ty = TYPE::INT;
                                   $$.v.v_int = $1; }
                         | STRING
-                                { $$.ty = TY_STRING;
+                                { $$.ty = TYPE::STRING;
                                   $$.v.v_string = $1; }
                         ;
 
 
 expr                    : value
-                                { $$ = magic_new_expr(EXPR_VAL);
+                                { $$ = magic_new_expr(EXPR::VAL);
                                   $$->e.e_val = $1; }
                         | ID
                                 {
                                         val_t *val;
                                         if ((val = find_constant($1))) {
-                                                $$ = magic_new_expr(EXPR_VAL);
+                                                $$ = magic_new_expr(EXPR::VAL);
                                                 $$->e.e_val = *val;
                                         } else {
-                                                $$ = magic_new_expr(EXPR_ID);
+                                                $$ = magic_new_expr(EXPR::ID);
                                                 $$->e.e_id = intern_id($1);
                                         }
                                 }
                         | area
-                                { $$ = magic_new_expr(EXPR_AREA);
+                                { $$ = magic_new_expr(EXPR::AREA);
                                   $$->e.e_area = $1; }
                         | expr '+' expr
                                 { BIN_EXPR($$, "+", $1, $3, @1.first_line, @1.first_column); }
@@ -442,17 +449,17 @@ location                : '@' '(' expr ',' expr ',' expr ')'
                         ;
 
 area                    : location
-                                { $$.ty = AREA_LOCATION;
+                                { $$.ty = AREA::LOCATION;
                                   $$.a.a_loc = $1;
                                 }
                         | location '@' '+' '(' expr ',' expr ')'
-                                { $$.ty = AREA_RECT;
+                                { $$.ty = AREA::RECT;
                                   $$.a.a_rect.loc = $1;
                                   $$.a.a_rect.width = $5;
                                   $$.a.a_rect.height = $7;
                                 }
                         | location TOWARDS expr ':' '(' expr ',' expr ')'
-                                { $$.ty = AREA_BAR;
+                                { $$.ty = AREA::BAR;
                                   $$.a.a_bar.loc = $1;
                                   $$.a.a_bar.width = $6;
                                   $$.a.a_bar.depth = $8;
@@ -501,7 +508,7 @@ def                     : ID '=' expr
 spellbody_list          : spellbody
                                 { $$ = $1; }
                         | spellbody '|' spellbody_list
-                                { spellguard_t *sg = new_spellguard(SPELLGUARD_CHOICE);
+                                { spellguard_t *sg = new_spellguard(SPELLGUARD::CHOICE);
                                   sg->next = $1;
                                   sg->s.s_alt = $3;
                                   $$ = sg;
@@ -513,8 +520,8 @@ spellbody               : spellguard DARROW spellbody
                                 { $$ = spellguard_implication($1, $3); }
                         | '(' spellbody_list ')'
                                 { $$ = $2; }
-                        | EFFECT effect_list maybe_trigger maybe_end
-                                { spellguard_t *sg = new_spellguard(SPELLGUARD_EFFECT);
+                        | EFFECT_ effect_list maybe_trigger maybe_end
+                                { spellguard_t *sg = new_spellguard(SPELLGUARD::EFFECT);
                                   sg->s.s_effect.effect = $2;
                                   sg->s.s_effect.at_trigger = $3;
                                   sg->s.s_effect.at_end = $4;
@@ -540,7 +547,7 @@ maybe_end               : /* empty */
 spellguard              : prereq
                                 { $$ = $1; }
                         | spellguard OR spellguard
-                                { spellguard_t *sg = new_spellguard(SPELLGUARD_CHOICE);
+                                { spellguard_t *sg = new_spellguard(SPELLGUARD::CHOICE);
                                   sg->next = $1;
                                   sg->s.s_alt = $3;
                                   $$ = sg;
@@ -558,23 +565,23 @@ spellguard_list         : spellguard
 
 
 prereq                  : REQUIRE expr
-                                { $$ = new_spellguard(SPELLGUARD_CONDITION);
+                                { $$ = new_spellguard(SPELLGUARD::CONDITION);
                                   $$->s.s_condition = $2;
                                 }
                         | CATALYSTS items
-                                { $$ = new_spellguard(SPELLGUARD_CATALYSTS);
+                                { $$ = new_spellguard(SPELLGUARD::CATALYSTS);
                                   $$->s.s_catalysts = $2;
                                 }
                         | COMPONENTS items
-                                { $$ = new_spellguard(SPELLGUARD_COMPONENTS);
+                                { $$ = new_spellguard(SPELLGUARD::COMPONENTS);
                                   $$->s.s_components = $2;
                                 }
                         | MANA expr
-                                { $$ = new_spellguard(SPELLGUARD_MANA);
+                                { $$ = new_spellguard(SPELLGUARD::MANA);
                                   $$->s.s_mana = $2;
                                 }
                         | CASTTIME expr
-                                { $$ = new_spellguard(SPELLGUARD_CASTTIME);
+                                { $$ = new_spellguard(SPELLGUARD::CASTTIME);
                                   $$->s.s_casttime = $2;
                                 }
                         ;
@@ -618,69 +625,69 @@ item_name               : STRING
 
 
 selection               : PC_F
-                                { $$ = FOREACH_FILTER_PC; }
+                                { $$ = FOREACH_FILTER::PC; }
                         | MOB_F
-                                { $$ = FOREACH_FILTER_MOB; }
+                                { $$ = FOREACH_FILTER::MOB; }
                         | ENTITY_F
-                                { $$ = FOREACH_FILTER_ENTITY; }
+                                { $$ = FOREACH_FILTER::ENTITY; }
                         | SPELL
-                                { $$ = FOREACH_FILTER_SPELL; }
+                                { $$ = FOREACH_FILTER::SPELL; }
                         | TARGET_F
-                                { $$ = FOREACH_FILTER_TARGET; }
+                                { $$ = FOREACH_FILTER::TARGET; }
                         | NPC_F
-                                { $$ = FOREACH_FILTER_NPC; }
+                                { $$ = FOREACH_FILTER::NPC; }
                         ;
 
 
 effect                  : '(' effect_list ')'
                                 { $$ = $2; }
                         | SKIP ';'
-                                { $$ = new_effect(EFFECT_SKIP); }
+                                { $$ = new_effect(EFFECT::SKIP); }
                         | ABORT ';'
-                                { $$ = new_effect(EFFECT_ABORT); }
+                                { $$ = new_effect(EFFECT::ABORT); }
                         | END ';'
-                                { $$ = new_effect(EFFECT_END); }
+                                { $$ = new_effect(EFFECT::END); }
                         | BREAK ';'
-                                { $$ = new_effect(EFFECT_BREAK); }
+                                { $$ = new_effect(EFFECT::BREAK); }
                         | ID '=' expr ';'
                                 {
                                         if (find_constant($1)) {
                                                 fail(@1.first_line, @1.first_column, "Attempt to re-define constant `%s' in assignment.", $1);
                                                 free($1);
                                         } else {
-                                                $$ = new_effect(EFFECT_ASSIGN);
+                                                $$ = new_effect(EFFECT::ASSIGN);
                                                 $$->e.e_assign.id = intern_id($1);
                                                 $$->e.e_assign.expr = $3;
                                         }
                                 }
                         | FOREACH selection ID IN expr DO effect
-                                { $$ = new_effect(EFFECT_FOREACH);
+                                { $$ = new_effect(EFFECT::FOREACH);
                                   $$->e.e_foreach.id = intern_id($3);
                                   $$->e.e_foreach.area = $5;
                                   $$->e.e_foreach.body = $7;
                                   $$->e.e_foreach.filter = $2;
                                 }
                         | FOR ID '=' expr TO expr DO effect
-                                { $$ = new_effect(EFFECT_FOR);
+                                { $$ = new_effect(EFFECT::FOR);
                                   $$->e.e_for.id = intern_id($2);
                                   $$->e.e_for.start = $4;
                                   $$->e.e_for.stop = $6;
                                   $$->e.e_for.body = $8;
                                 }
                         | IF expr THEN effect ELSE effect
-                                { $$ = new_effect(EFFECT_IF);
+                                { $$ = new_effect(EFFECT::IF);
                                   $$->e.e_if.cond = $2;
                                   $$->e.e_if.true_branch = $4;
                                   $$->e.e_if.false_branch = $6;
                                 }
                         | IF expr THEN effect
-                                { $$ = new_effect(EFFECT_IF);
+                                { $$ = new_effect(EFFECT::IF);
                                   $$->e.e_if.cond = $2;
                                   $$->e.e_if.true_branch = $4;
-                                  $$->e.e_if.false_branch = new_effect(EFFECT_SKIP);
+                                  $$->e.e_if.false_branch = new_effect(EFFECT::SKIP);
                                 }
                         | SLEEP expr ';'
-                                { $$ = new_effect(EFFECT_SLEEP);
+                                { $$ = new_effect(EFFECT::SLEEP);
                                   $$->e.e_sleep = $2;
                                 }
                         | ID '(' arg_list ')' ';'
@@ -688,7 +695,7 @@ effect                  : '(' effect_list ')'
                                   free($1);
                                 }
                         | SCRIPT_DATA
-                                { $$ = new_effect(EFFECT_SCRIPT);
+                                { $$ = new_effect(EFFECT::SCRIPT);
                                   $$->e.e_script = parse_script($1, @1.first_line);
                                   free($1);
                                   if ($$->e.e_script == NULL)
@@ -701,7 +708,7 @@ effect                  : '(' effect_list ')'
                         ;
 
 effect_list             : /* empty */
-                                { $$ = new_effect(EFFECT_SKIP); }
+                                { $$ = new_effect(EFFECT::SKIP); }
                         | effect semicolons effect_list
                                 { $$ = set_effect_continuation($1, $3); }
                         ;
@@ -728,7 +735,7 @@ int intern_id(const char *id_name)
         RECREATE(magic_conf.var_name, const char *, magic_conf.vars_nr);
         magic_conf.var_name[i] = id_name;
         RECREATE(magic_conf.vars, val_t, magic_conf.vars_nr);
-        magic_conf.vars[i].ty = TY_UNDEF;
+        magic_conf.vars[i].ty = TYPE::UNDEF;
 
         return i;
 }
@@ -795,7 +802,7 @@ void fail(int line, int column, const char *fmt, ...)
 static
 expr_t *dot_expr(expr_t *expr, int id)
 {
-        expr_t *retval = magic_new_expr(EXPR_SPELLFIELD);
+        expr_t *retval = magic_new_expr(EXPR::SPELLFIELD);
         retval->e.e_field.id = id;
         retval->e.e_field.expr = expr;
 
@@ -819,7 +826,7 @@ expr_t *fun_expr(const char *name, int args_nr, expr_t **args, int line, int col
         if (fun) {
                 int i;
 
-                expr = magic_new_expr(EXPR_FUNAPP);
+                expr = magic_new_expr(EXPR::FUNAPP);
                 expr->e.e_funapp.line_nr = line;
                 expr->e.e_funapp.column = column;
                 expr->e.e_funapp.id = id;
@@ -828,8 +835,8 @@ expr_t *fun_expr(const char *name, int args_nr, expr_t **args, int line, int col
                 for (i = 0; i < args_nr; i++)
                         expr->e.e_funapp.args[i] = args[i];
         } else { /* failure */
-                expr = magic_new_expr(EXPR_VAL);
-                expr->e.e_val.ty = TY_FAIL;
+                expr = magic_new_expr(EXPR::VAL);
+                expr->e.e_val.ty = TYPE::FAIL;
         }
 
         return expr;
@@ -873,7 +880,7 @@ spellguard_t *spellguard_implication(spellguard_t *a, spellguard_t *b)
                 return retval;
 
                 /* If the premise is a disjunction, b is the continuation of _all_ branches */
-        if (a->ty == SPELLGUARD_CHOICE)
+        if (a->ty == SPELLGUARD::CHOICE)
                 spellguard_implication(a->s.s_alt, b);
         if (a->next)
                 spellguard_implication(a->next, b);
@@ -885,7 +892,7 @@ spellguard_t *spellguard_implication(spellguard_t *a, spellguard_t *b)
 }
 
 static
-effect_t *new_effect(EFFECT_ ty)
+effect_t *new_effect(EFFECT ty)
 {
         effect_t *effect = (effect_t *) calloc(1, sizeof(effect_t));
         effect->ty = ty;
@@ -903,7 +910,7 @@ effect_t *set_effect_continuation(effect_t *src, effect_t *continuation)
 
         /* For FOR and FOREACH, we use special stack handlers and thus don't have to set
          * the continuation.  It's only IF that we need to handle in this fashion. */
-        if (src->ty == EFFECT_IF) {
+        if (src->ty == EFFECT::IF) {
                 set_effect_continuation(src->e.e_if.true_branch, continuation);
                 set_effect_continuation(src->e.e_if.false_branch, continuation);
         }
@@ -932,7 +939,7 @@ effect_t *op_effect(char *name, int args_nr, expr_t **args, int line, int column
         if (op) {
                 int i;
 
-                effect = new_effect(EFFECT_OP);
+                effect = new_effect(EFFECT::OP);
                 effect->e.e_op.line_nr = line;
                 effect->e.e_op.column = column;
                 effect->e.e_op.id = id;
@@ -941,7 +948,7 @@ effect_t *op_effect(char *name, int args_nr, expr_t **args, int line, int column
                 for (i = 0; i < args_nr; i++)
                         effect->e.e_op.args[i] = args[i];
         } else /* failure */
-                effect = new_effect(EFFECT_SKIP);
+                effect = new_effect(EFFECT::SKIP);
 
         return effect;
 }
@@ -978,15 +985,15 @@ effect_t *call_proc(char *name, int args_nr, expr_t **args, int line_nr, int col
 
         if (!p) {
                 fail(line_nr, column, "Unknown procedure `%s'\n", name);
-                return new_effect(EFFECT_SKIP);
+                return new_effect(EFFECT::SKIP);
         }
 
         if (p->args_nr != args_nr) {
                 fail(line_nr, column, "Procedure %s/%d invoked with %d parameters\n", name, p->args_nr, args_nr);
-                return new_effect(EFFECT_SKIP);
+                return new_effect(EFFECT::SKIP);
         }
 
-        retval = new_effect(EFFECT_CALL);
+        retval = new_effect(EFFECT::CALL);
         retval->e.e_call.body = p->body;
         retval->e.e_call.args_nr = args_nr;
         retval->e.e_call.formals = p->args;
@@ -1036,8 +1043,16 @@ val_t *find_constant(char *name)
 
 
 
-
-#define INTERN_ASSERT(name, id) { int zid = intern_id(name); if (zid != id) FPRINTF(stderr, "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n", name, zid, id); error_flag = 1; }
+// FIXME: macro capture
+#define INTERN_ASSERT(name, id) \
+{                               \
+    int zid = intern_id(name);  \
+    if (zid != id)              \
+        FPRINTF(stderr,         \
+            "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n",    \
+            name, zid, id);     \
+    error_flag = 1;             \
+}
 
 extern FILE *magic_frontend_in;
 
@@ -1077,10 +1092,10 @@ int magic_init(const char *conffile)
         }
         magic_frontend_parse();
 
-        if (magic_conf.vars[VAR_MIN_CASTTIME].ty == TY_INT)
+        if (magic_conf.vars[VAR_MIN_CASTTIME].ty == TYPE::INT)
                 magic_conf.min_casttime = magic_conf.vars[VAR_MIN_CASTTIME].v.v_int;
 
-        if (magic_conf.vars[VAR_OBSCURE_CHANCE].ty == TY_INT)
+        if (magic_conf.vars[VAR_OBSCURE_CHANCE].ty == TYPE::INT)
                 magic_conf.obscure_chance = magic_conf.vars[VAR_OBSCURE_CHANCE].v.v_int;
 
         PRINTF("[magic-conf] Magic initialised; obscure at %d%%.  %d spells, %d teleport anchors.\n",

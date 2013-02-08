@@ -10,7 +10,7 @@
 #include "../poison.hpp"
 
 static
-void set_int_p(val_t *v, int i, TY t)
+void set_int_p(val_t *v, int i, TYPE t)
 {
     v->ty = t;
     v->v.v_int = i;
@@ -19,30 +19,30 @@ void set_int_p(val_t *v, int i, TY t)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-macros"
 
-#define set_int(v, i) set_int_p(v, i, TY_INT)
-#define set_dir(v, i) set_int_p(v, i, TY_DIR)
+#define set_int(v, i) set_int_p(v, i, TYPE::INT)
+#define set_dir(v, i) set_int_p(v, i, TYPE::DIR)
 
 #define SETTER(tty, dyn_ty, field) (val_t *v, tty x) { v->ty = dyn_ty; v->v.field = x; }
 
 static
-void set_string SETTER(char *, TY_STRING, v_string)
+void set_string SETTER(char *, TYPE::STRING, v_string)
 
 static
 void set_entity(val_t *v, entity_t *e)
 {
-    v->ty = TY_ENTITY;
+    v->ty = TYPE::ENTITY;
     v->v.v_int = e->id;
 }
 
 static
 void set_invocation(val_t *v, invocation_t *i)
 {
-    v->ty = TY_INVOCATION;
+    v->ty = TYPE::INVOCATION;
     v->v.v_int = i->bl.id;
 }
 
 static
-void set_spell SETTER(spell_t *, TY_SPELL, v_spell)
+void set_spell SETTER(spell_t *, TYPE::SPELL, v_spell)
 
 #define setenv(f, v, x) f(&(env->vars[v]), x)
 
@@ -198,11 +198,11 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
     switch (spell->spellarg_ty)
     {
 
-        case SPELLARG_STRING:
+        case SPELLARG::STRING:
             set_env_string(spell->arg, param);
             break;
 
-        case SPELLARG_PC:
+        case SPELLARG::PC:
         {
             character_t *subject = map_nick2sd(param);
             if (!subject)
@@ -212,7 +212,7 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
             break;
         }
 
-        case SPELLARG_NONE:
+        case SPELLARG::NONE:
             free(param);
             break;
 
@@ -338,7 +338,7 @@ int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
     {
         unsigned int casttime = (unsigned int) check->casttime;
 
-        if (VAR(VAR_MIN_CASTTIME).ty == TY_INT)
+        if (VAR(VAR_MIN_CASTTIME).ty == TYPE::INT)
             casttime = max(casttime, VAR(VAR_MIN_CASTTIME).v.v_int);
 
         caster->cast_tick = tick + casttime;    /* Make sure not to cast too frequently */
@@ -361,20 +361,20 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
 
     switch (guard->ty)
     {
-        case SPELLGUARD_CONDITION:
+        case SPELLGUARD::CONDITION:
             if (!magic_eval_int(env, guard->s.s_condition))
                 return NULL;
             break;
 
-        case SPELLGUARD_COMPONENTS:
+        case SPELLGUARD::COMPONENTS:
             copy_components(&check->components, guard->s.s_components);
             break;
 
-        case SPELLGUARD_CATALYSTS:
+        case SPELLGUARD::CATALYSTS:
             copy_components(&check->catalysts, guard->s.s_catalysts);
             break;
 
-        case SPELLGUARD_CHOICE:
+        case SPELLGUARD::CHOICE:
         {
             spellguard_check_t altcheck = *check;
             effect_set_t *retval;
@@ -397,15 +397,15 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                                              env, near_miss);
         }
 
-        case SPELLGUARD_MANA:
+        case SPELLGUARD::MANA:
             check->mana += magic_eval_int(env, guard->s.s_mana);
             break;
 
-        case SPELLGUARD_CASTTIME:
+        case SPELLGUARD::CASTTIME:
             check->casttime += magic_eval_int(env, guard->s.s_mana);
             break;
 
-        case SPELLGUARD_EFFECT:
+        case SPELLGUARD::EFFECT:
             if (spellguard_can_satisfy(check, caster, env, near_miss))
                 return &guard->s.s_effect;
             else
@@ -463,7 +463,7 @@ static
 void spell_set_location(invocation_t *invocation, entity_t *entity)
 {
     magic_clear_var(&invocation->env->vars[VAR_LOCATION]);
-    invocation->env->vars[VAR_LOCATION].ty = TY_LOCATION;
+    invocation->env->vars[VAR_LOCATION].ty = TYPE::LOCATION;
     invocation->env->vars[VAR_LOCATION].v.v_location.m = entity->m;
     invocation->env->vars[VAR_LOCATION].v.v_location.x = entity->x;
     invocation->env->vars[VAR_LOCATION].v.v_location.y = entity->y;
@@ -471,7 +471,7 @@ void spell_set_location(invocation_t *invocation, entity_t *entity)
 
 void spell_update_location(invocation_t *invocation)
 {
-    if (bool(invocation->spell->flags & SPELL_FLAG_LOCAL))
+    if (bool(invocation->spell->flags & SPELL_FLAG::LOCAL))
         return;
     else
     {
@@ -500,7 +500,7 @@ invocation_t *spell_instantiate(effect_set_t *effect_set, env_t *env)
 
     caster = map_id2bl(retval->caster);    // must still exist
     retval->bl.id = map_addobject(&retval->bl);
-    retval->bl.type = BL_SPELL;
+    retval->bl.type = BL::SPELL;
     retval->bl.m = caster->m;
     retval->bl.x = caster->x;
     retval->bl.y = caster->y;
@@ -545,9 +545,9 @@ void spell_bind(character_t *subject, invocation_t *invocation)
 {
     /* Only bind nonlocal spells */
 
-    if (!bool(invocation->spell->flags & SPELL_FLAG_LOCAL))
+    if (!bool(invocation->spell->flags & SPELL_FLAG::LOCAL))
     {
-        if (bool(invocation->flags & INVOCATION_FLAG_BOUND)
+        if (bool(invocation->flags & INVOCATION_FLAG::BOUND)
             || invocation->subject || invocation->next_invocation)
         {
             int *i = NULL;
@@ -560,7 +560,7 @@ void spell_bind(character_t *subject, invocation_t *invocation)
 
         invocation->next_invocation = subject->active_spells;
         subject->active_spells = invocation;
-        invocation->flags |= INVOCATION_FLAG_BOUND;
+        invocation->flags |= INVOCATION_FLAG::BOUND;
         invocation->subject = subject->bl.id;
     }
 
@@ -577,7 +577,7 @@ int spell_unbind(character_t *subject, invocation_t *invocation)
         {
             *seeker = invocation->next_invocation;
 
-            invocation->flags &= ~INVOCATION_FLAG_BOUND;
+            invocation->flags &= ~INVOCATION_FLAG::BOUND;
             invocation->next_invocation = NULL;
             invocation->subject = 0;
 

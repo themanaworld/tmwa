@@ -69,7 +69,6 @@ ATCOMMAND_FUNC(model);
 ATCOMMAND_FUNC(spawn);
 ATCOMMAND_FUNC(killmonster);
 ATCOMMAND_FUNC(killmonster2);
-ATCOMMAND_FUNC(produce);
 ATCOMMAND_FUNC(gat);
 ATCOMMAND_FUNC(packet);
 ATCOMMAND_FUNC(statuspoint);
@@ -223,7 +222,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_Spawn, "@spawn", 50, atcommand_spawn},
     {AtCommand_KillMonster, "@killmonster", 60, atcommand_killmonster},
     {AtCommand_KillMonster2, "@killmonster2", 40, atcommand_killmonster2},
-    {AtCommand_Produce, "@produce", 60, atcommand_produce},
     {AtCommand_GAT, "@gat", 99, atcommand_gat}, // debug function
     {AtCommand_Packet, "@packet", 99, atcommand_packet},    // debug function
     {AtCommand_StatusPoint, "@stpoint", 60, atcommand_statuspoint},
@@ -723,7 +721,7 @@ int atcommand_charwarp(const int fd, struct map_session_data *sd,
                                          "You are not authorised to warp this player from its actual map.");
                     return -1;
                 }
-                if (pc_setpos(pl_sd, map_name, x, y, 3) == 0)
+                if (pc_setpos(pl_sd, map_name, x, y, BeingRemoveWhy::WARPED) == 0)
                 {
                     clif_displaymessage(pl_sd->fd, "Warped.");
                     clif_displaymessage(fd, "Player warped (message sends to player too).");
@@ -801,7 +799,7 @@ int atcommand_warp(const int fd, struct map_session_data *sd,
                                  "You are not authorised to warp you from your actual map.");
             return -1;
         }
-        if (pc_setpos(sd, map_name, x, y, 3) == 0)
+        if (pc_setpos(sd, map_name, x, y, BeingRemoveWhy::WARPED) == 0)
             clif_displaymessage(fd, "Warped.");
         else
         {
@@ -887,7 +885,7 @@ int atcommand_goto(const int fd, struct map_session_data *sd,
                                  "You are not authorised to warp you from your actual map.");
             return -1;
         }
-        pc_setpos(sd, pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y, 3);
+        pc_setpos(sd, pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y, BeingRemoveWhy::WARPED);
         std::string output = STRPRINTF("Jump to %s", character);
         clif_displaymessage(fd, output);
     }
@@ -930,7 +928,7 @@ int atcommand_jump(const int fd, struct map_session_data *sd,
                                  "You are not authorised to warp you from your actual map.");
             return -1;
         }
-        pc_setpos(sd, sd->mapname, x, y, 3);
+        pc_setpos(sd, sd->mapname, x, y, BeingRemoveWhy::WARPED);
         std::string output = STRPRINTF("Jump to %d %d", x, y);
         clif_displaymessage(fd, output);
     }
@@ -1345,7 +1343,7 @@ int atcommand_load(const int fd, struct map_session_data *sd,
     }
 
     pc_setpos(sd, sd->status.save_point.map, sd->status.save_point.x,
-               sd->status.save_point.y, 0);
+               sd->status.save_point.y, BeingRemoveWhy::GONE);
     clif_displaymessage(fd, "Warping to respawn point.");
 
     return 0;
@@ -1373,7 +1371,7 @@ int atcommand_speed(const int fd, struct map_session_data *sd,
         sd->speed = speed;
         //sd->walktimer = x;
         //この文を追加 by れ
-        clif_updatestatus(sd, SP_SPEED);
+        clif_updatestatus(sd, SP::SPEED);
         clif_displaymessage(fd, "Speed changed.");
     }
     else
@@ -1538,8 +1536,8 @@ int atcommand_alive(const int fd, struct map_session_data *sd,
     pc_setstand(sd);
     if (battle_config.pc_invincible_time > 0)
         pc_setinvincibletimer(sd, battle_config.pc_invincible_time);
-    clif_updatestatus(sd, SP_HP);
-    clif_updatestatus(sd, SP_SP);
+    clif_updatestatus(sd, SP::HP);
+    clif_updatestatus(sd, SP::SP);
     clif_resurrection(&sd->bl, 1);
     clif_displaymessage(fd, "You've been revived! It's a miracle!");
 
@@ -1735,9 +1733,9 @@ int atcommand_baselevelup(const int fd, struct map_session_data *sd,
         for (i = 1; i <= level; i++)
             sd->status.status_point += (sd->status.base_level + i + 14) / 4;
         sd->status.base_level += level;
-        clif_updatestatus(sd, SP_BASELEVEL);
-        clif_updatestatus(sd, SP_NEXTBASEEXP);
-        clif_updatestatus(sd, SP_STATUSPOINT);
+        clif_updatestatus(sd, SP::BASELEVEL);
+        clif_updatestatus(sd, SP::NEXTBASEEXP);
+        clif_updatestatus(sd, SP::STATUSPOINT);
         pc_calcstatus(sd, 0);
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
         clif_misceffect(&sd->bl, 0);
@@ -1759,11 +1757,11 @@ int atcommand_baselevelup(const int fd, struct map_session_data *sd,
                     (sd->status.base_level + i + 14) / 4;
             if (sd->status.status_point < 0)
                 sd->status.status_point = 0;
-            clif_updatestatus(sd, SP_STATUSPOINT);
+            clif_updatestatus(sd, SP::STATUSPOINT);
         }                       // to add: remove status points from stats
         sd->status.base_level += level;
-        clif_updatestatus(sd, SP_BASELEVEL);
-        clif_updatestatus(sd, SP_NEXTBASEEXP);
+        clif_updatestatus(sd, SP::BASELEVEL);
+        clif_updatestatus(sd, SP::NEXTBASEEXP);
         pc_calcstatus(sd, 0);
         clif_displaymessage(fd, "Base level lowered.");
     }
@@ -1775,7 +1773,7 @@ int atcommand_baselevelup(const int fd, struct map_session_data *sd,
  *
  *------------------------------------------
  */
-// TODO: merge this with pc_setparam(SP_JOBLEVEL)
+// TODO: merge this with pc_setparam(SP::JOBLEVEL)
 // then fix the funny 50 and/or 10 limitation.
 int atcommand_joblevelup(const int fd, struct map_session_data *sd,
                           const char *, const char *message)
@@ -1801,10 +1799,10 @@ int atcommand_joblevelup(const int fd, struct map_session_data *sd,
         if (level > up_level || level > (up_level - sd->status.job_level))  // fix positiv overflow
             level = up_level - sd->status.job_level;
         sd->status.job_level += level;
-        clif_updatestatus(sd, SP_JOBLEVEL);
-        clif_updatestatus(sd, SP_NEXTJOBEXP);
+        clif_updatestatus(sd, SP::JOBLEVEL);
+        clif_updatestatus(sd, SP::NEXTJOBEXP);
         sd->status.skill_point += level;
-        clif_updatestatus(sd, SP_SKILLPOINT);
+        clif_updatestatus(sd, SP::SKILLPOINT);
         pc_calcstatus(sd, 0);
         clif_misceffect(&sd->bl, 1);
         clif_displaymessage(fd, "Job level raised.");
@@ -1819,14 +1817,14 @@ int atcommand_joblevelup(const int fd, struct map_session_data *sd,
         if (level < -up_level || level < (1 - sd->status.job_level))    // fix negativ overflow
             level = 1 - sd->status.job_level;
         sd->status.job_level += level;
-        clif_updatestatus(sd, SP_JOBLEVEL);
-        clif_updatestatus(sd, SP_NEXTJOBEXP);
+        clif_updatestatus(sd, SP::JOBLEVEL);
+        clif_updatestatus(sd, SP::NEXTJOBEXP);
         if (sd->status.skill_point > 0)
         {
             sd->status.skill_point += level;
             if (sd->status.skill_point < 0)
                 sd->status.skill_point = 0;
-            clif_updatestatus(sd, SP_SKILLPOINT);
+            clif_updatestatus(sd, SP::SKILLPOINT);
         }                       // to add: remove status points from skills
         pc_calcstatus(sd, 0);
         clif_displaymessage(fd, "Job level lowered.");
@@ -2029,9 +2027,9 @@ int atcommand_model(const int fd, struct map_session_data *sd,
         cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
     {
         {
-            pc_changelook(sd, LOOK_HAIR, hair_style);
-            pc_changelook(sd, LOOK_HAIR_COLOR, hair_color);
-            pc_changelook(sd, LOOK_CLOTHES_COLOR, cloth_color);
+            pc_changelook(sd, LOOK::HAIR, hair_style);
+            pc_changelook(sd, LOOK::HAIR_COLOR, hair_color);
+            pc_changelook(sd, LOOK::CLOTHES_COLOR, cloth_color);
             clif_displaymessage(fd, "Appearence changed.");
         }
     }
@@ -2065,7 +2063,7 @@ int atcommand_dye(const int fd, struct map_session_data *sd,
     if (cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
     {
         {
-            pc_changelook(sd, LOOK_CLOTHES_COLOR, cloth_color);
+            pc_changelook(sd, LOOK::CLOTHES_COLOR, cloth_color);
             clif_displaymessage(fd, "Appearence changed.");
         }
     }
@@ -2099,7 +2097,7 @@ int atcommand_hair_style(const int fd, struct map_session_data *sd,
     if (hair_style >= MIN_HAIR_STYLE && hair_style <= MAX_HAIR_STYLE)
     {
         {
-            pc_changelook(sd, LOOK_HAIR, hair_style);
+            pc_changelook(sd, LOOK::HAIR, hair_style);
             clif_displaymessage(fd, "Appearence changed.");
         }
     }
@@ -2133,7 +2131,7 @@ int atcommand_hair_color(const int fd, struct map_session_data *sd,
     if (hair_color >= MIN_HAIR_COLOR && hair_color <= MAX_HAIR_COLOR)
     {
         {
-            pc_changelook(sd, LOOK_HAIR_COLOR, hair_color);
+            pc_changelook(sd, LOOK::HAIR_COLOR, hair_color);
             clif_displaymessage(fd, "Appearence changed.");
         }
     }
@@ -2262,7 +2260,7 @@ void atcommand_killmonster_sub(const int fd, struct map_session_data *sd,
     }
 
     map_foreachinarea(std::bind(atkillmonster_sub, ph::_1, drop), map_id, 0, 0, map[map_id].xs,
-                       map[map_id].ys, BL_MOB);
+                       map[map_id].ys, BL::MOB);
 
     clif_displaymessage(fd, "All monsters killed!");
 
@@ -2305,7 +2303,7 @@ int atcommand_list_nearby(const int fd, struct map_session_data *sd,
     clif_displaymessage(fd, "Nearby players:");
     map_foreachinarea(std::bind(atlist_nearby_sub, ph::_1, fd),
             sd->bl.m, sd->bl.x - 1, sd->bl.y - 1,
-            sd->bl.x + 1, sd->bl.x + 1, BL_PC);
+            sd->bl.x + 1, sd->bl.x + 1, BL::PC);
 
     return 0;
 }
@@ -2318,70 +2316,6 @@ int atcommand_killmonster2(const int fd, struct map_session_data *sd,
                             const char *, const char *message)
 {
     atcommand_killmonster_sub(fd, sd, message, 0);
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int atcommand_produce(const int fd, struct map_session_data *sd,
-                       const char *, const char *message)
-{
-    char item_name[100];
-    int item_id, attribute = 0, star = 0;
-    struct item_data *item_data;
-    struct item tmp_item;
-
-    memset(item_name, '\0', sizeof(item_name));
-
-    if (!message || !*message
-        || sscanf(message, "%99s %d %d", item_name, &attribute, &star) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter at least an item name/id (usage: @produce <equip name or equip ID> <element> <# of very's>).");
-        return -1;
-    }
-
-    item_id = 0;
-    if ((item_data = itemdb_searchname(item_name)) != NULL ||
-        (item_data = itemdb_exists(atoi(item_name))) != NULL)
-        item_id = item_data->nameid;
-
-    if (itemdb_exists(item_id) &&
-        (item_id <= 500 || item_id > 1099) &&
-        (item_id < 4001 || item_id > 4148) &&
-        (item_id < 7001 || item_id > 10019) && itemdb_isequip(item_id))
-    {
-        if (attribute < MIN_ATTRIBUTE || attribute > MAX_ATTRIBUTE)
-            attribute = ATTRIBUTE_NORMAL;
-        if (star < MIN_STAR || star > MAX_STAR)
-            star = 0;
-        memset(&tmp_item, 0, sizeof tmp_item);
-        tmp_item.nameid = item_id;
-        tmp_item.amount = 1;
-        tmp_item.identify = 1;
-        tmp_item.card[0] = 0x00ff;
-        tmp_item.card[1] = ((star * 5) << 8) + attribute;
-        *((unsigned long *) (&tmp_item.card[2])) = sd->char_id;
-        clif_misceffect(&sd->bl, 3);   // 他人にも成功を通知
-        PickupFail flag;
-        if ((flag = pc_additem(sd, &tmp_item, 1)) != PickupFail::OKAY)
-            clif_additem(sd, 0, 0, flag);
-    }
-    else
-    {
-        if (battle_config.error_log)
-            PRINTF("@produce NOT WEAPON [%d]\n", item_id);
-        std::string output;
-        if (item_id != 0 && itemdb_exists(item_id))
-            output = STRPRINTF("This item (%d: '%s') is not an equipment.", item_id, item_data->name);
-        else
-            output = STRPRINTF("%s", "This item is not an equipment.");
-        clif_displaymessage(fd, output);
-        return -1;
-    }
 
     return 0;
 }
@@ -2457,7 +2391,7 @@ int atcommand_statuspoint(const int fd, struct map_session_data *sd,
     if (new_status_point != (int) sd->status.status_point)
     {
         sd->status.status_point = (short) new_status_point;
-        clif_updatestatus(sd, SP_STATUSPOINT);
+        clif_updatestatus(sd, SP::STATUSPOINT);
         clif_displaymessage(fd, "Number of status points changed!");
     }
     else
@@ -2497,7 +2431,7 @@ int atcommand_skillpoint(const int fd, struct map_session_data *sd,
     if (new_skill_point != (int) sd->status.skill_point)
     {
         sd->status.skill_point = (short) new_skill_point;
-        clif_updatestatus(sd, SP_SKILLPOINT);
+        clif_updatestatus(sd, SP::SKILLPOINT);
         clif_displaymessage(fd, "Number of skill points changed!");
     }
     else
@@ -2537,7 +2471,7 @@ int atcommand_zeny(const int fd, struct map_session_data *sd,
     if (new_zeny != sd->status.zeny)
     {
         sd->status.zeny = new_zeny;
-        clif_updatestatus(sd, SP_ZENY);
+        clif_updatestatus(sd, SP::ZENY);
         clif_displaymessage(fd, "Number of zenys changed!");
     }
     else
@@ -2683,7 +2617,7 @@ int atcommand_recall(const int fd, struct map_session_data *sd,
                                      "You are not authorised to warp this player from its actual map.");
                 return -1;
             }
-            pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, 2);
+            pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, BeingRemoveWhy::QUIT);
             std::string output = STRPRINTF("%s recalled!", character);
             clif_displaymessage(fd, output);
         }
@@ -2727,8 +2661,8 @@ int atcommand_revive(const int fd, struct map_session_data *sd,
         pc_setstand(pl_sd);
         if (battle_config.pc_invincible_time > 0)
             pc_setinvincibletimer(sd, battle_config.pc_invincible_time);
-        clif_updatestatus(pl_sd, SP_HP);
-        clif_updatestatus(pl_sd, SP_SP);
+        clif_updatestatus(pl_sd, SP::HP);
+        clif_updatestatus(pl_sd, SP::SP);
         clif_resurrection(&pl_sd->bl, 1);
         clif_displaymessage(fd, "Character revived.");
     }
@@ -3377,8 +3311,8 @@ void atcommand_raise_sub(struct map_session_data *sd)
         sd->status.hp = sd->status.max_hp;
         sd->status.sp = sd->status.max_sp;
         pc_setstand(sd);
-        clif_updatestatus(sd, SP_HP);
-        clif_updatestatus(sd, SP_SP);
+        clif_updatestatus(sd, SP::HP);
+        clif_updatestatus(sd, SP::SP);
         clif_resurrection(&sd->bl, 1);
         clif_displaymessage(sd->fd, "Mercy has been shown.");
     }
@@ -3466,9 +3400,9 @@ int atcommand_character_baselevel(const int fd, struct map_session_data *sd,
                     pl_sd->status.status_point +=
                         (pl_sd->status.base_level + i + 14) / 4;
                 pl_sd->status.base_level += level;
-                clif_updatestatus(pl_sd, SP_BASELEVEL);
-                clif_updatestatus(pl_sd, SP_NEXTBASEEXP);
-                clif_updatestatus(pl_sd, SP_STATUSPOINT);
+                clif_updatestatus(pl_sd, SP::BASELEVEL);
+                clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
+                clif_updatestatus(pl_sd, SP::STATUSPOINT);
                 pc_calcstatus(pl_sd, 0);
                 pc_heal(pl_sd, pl_sd->status.max_hp, pl_sd->status.max_sp);
                 clif_misceffect(&pl_sd->bl, 0);
@@ -3490,13 +3424,13 @@ int atcommand_character_baselevel(const int fd, struct map_session_data *sd,
                             (pl_sd->status.base_level + i + 14) / 4;
                     if (pl_sd->status.status_point < 0)
                         pl_sd->status.status_point = 0;
-                    clif_updatestatus(pl_sd, SP_STATUSPOINT);
+                    clif_updatestatus(pl_sd, SP::STATUSPOINT);
                 }               // to add: remove status points from stats
                 pl_sd->status.base_level += level;
                 pl_sd->status.base_exp = 0;
-                clif_updatestatus(pl_sd, SP_BASELEVEL);
-                clif_updatestatus(pl_sd, SP_NEXTBASEEXP);
-                clif_updatestatus(pl_sd, SP_BASEEXP);
+                clif_updatestatus(pl_sd, SP::BASELEVEL);
+                clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
+                clif_updatestatus(pl_sd, SP::BASEEXP);
                 pc_calcstatus(pl_sd, 0);
                 clif_displaymessage(fd, "Character's base level lowered.");
             }
@@ -3557,10 +3491,10 @@ int atcommand_character_joblevel(const int fd, struct map_session_data *sd,
                 if (pl_sd->status.job_level + level > max_level)
                     level = max_level - pl_sd->status.job_level;
                 pl_sd->status.job_level += level;
-                clif_updatestatus(pl_sd, SP_JOBLEVEL);
-                clif_updatestatus(pl_sd, SP_NEXTJOBEXP);
+                clif_updatestatus(pl_sd, SP::JOBLEVEL);
+                clif_updatestatus(pl_sd, SP::NEXTJOBEXP);
                 pl_sd->status.skill_point += level;
-                clif_updatestatus(pl_sd, SP_SKILLPOINT);
+                clif_updatestatus(pl_sd, SP::SKILLPOINT);
                 pc_calcstatus(pl_sd, 0);
                 clif_misceffect(&pl_sd->bl, 1);
                 clif_displaymessage(fd, "character's job level raised.");
@@ -3575,14 +3509,14 @@ int atcommand_character_joblevel(const int fd, struct map_session_data *sd,
                 if (pl_sd->status.job_level + level < 1)
                     level = 1 - pl_sd->status.job_level;
                 pl_sd->status.job_level += level;
-                clif_updatestatus(pl_sd, SP_JOBLEVEL);
-                clif_updatestatus(pl_sd, SP_NEXTJOBEXP);
+                clif_updatestatus(pl_sd, SP::JOBLEVEL);
+                clif_updatestatus(pl_sd, SP::NEXTJOBEXP);
                 if (pl_sd->status.skill_point > 0)
                 {
                     pl_sd->status.skill_point += level;
                     if (pl_sd->status.skill_point < 0)
                         pl_sd->status.skill_point = 0;
-                    clif_updatestatus(pl_sd, SP_SKILLPOINT);
+                    clif_updatestatus(pl_sd, SP::SKILLPOINT);
                 }               // to add: remove status points from skills
                 pc_calcstatus(pl_sd, 0);
                 clif_displaymessage(fd, "Character's job level lowered.");
@@ -3684,7 +3618,7 @@ int atcommand_questskill(const int fd, struct map_session_data *sd,
 
     SkillID skill_id = SkillID(skill_id_);
 
-    if (/*skill_id >= SkillID() &&*/ skill_id < MAX_SKILL_DB)
+    if (/*skill_id >= SkillID() &&*/ skill_id < SkillID::MAX_SKILL_DB)
     {
         if (skill_get_inf2(skill_id) & 0x01)
         {
@@ -3738,7 +3672,7 @@ int atcommand_charquestskill(const int fd, struct map_session_data *,
 
     SkillID skill_id = SkillID(skill_id_);
 
-    if (/*skill_id >= SkillID() &&*/ skill_id < MAX_SKILL_DB)
+    if (/*skill_id >= SkillID() &&*/ skill_id < SkillID::MAX_SKILL_DB)
     {
         if (skill_get_inf2(skill_id) & 0x01)
         {
@@ -4139,20 +4073,20 @@ int atcommand_char_wipe(const int fd, struct map_session_data *sd,
             // Reset base level
             pl_sd->status.base_level = 1;
             pl_sd->status.base_exp = 0;
-            clif_updatestatus(pl_sd, SP_BASELEVEL);
-            clif_updatestatus(pl_sd, SP_NEXTBASEEXP);
-            clif_updatestatus(pl_sd, SP_BASEEXP);
+            clif_updatestatus(pl_sd, SP::BASELEVEL);
+            clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
+            clif_updatestatus(pl_sd, SP::BASEEXP);
 
             // Reset job level
             pl_sd->status.job_level = 1;
             pl_sd->status.job_exp = 0;
-            clif_updatestatus(pl_sd, SP_JOBLEVEL);
-            clif_updatestatus(pl_sd, SP_NEXTJOBEXP);
-            clif_updatestatus(pl_sd, SP_JOBEXP);
+            clif_updatestatus(pl_sd, SP::JOBLEVEL);
+            clif_updatestatus(pl_sd, SP::NEXTJOBEXP);
+            clif_updatestatus(pl_sd, SP::JOBEXP);
 
             // Zeny to 50
             pl_sd->status.zeny = 50;
-            clif_updatestatus(pl_sd, SP_ZENY);
+            clif_updatestatus(pl_sd, SP::ZENY);
 
             // Clear inventory
             for (i = 0; i < MAX_INVENTORY; i++)
@@ -4233,9 +4167,9 @@ int atcommand_charmodel(const int fd, struct map_session_data *,
             cloth_color >= MIN_CLOTH_COLOR && cloth_color <= MAX_CLOTH_COLOR)
         {
             {
-                pc_changelook(pl_sd, LOOK_HAIR, hair_style);
-                pc_changelook(pl_sd, LOOK_HAIR_COLOR, hair_color);
-                pc_changelook(pl_sd, LOOK_CLOTHES_COLOR, cloth_color);
+                pc_changelook(pl_sd, LOOK::HAIR, hair_style);
+                pc_changelook(pl_sd, LOOK::HAIR_COLOR, hair_color);
+                pc_changelook(pl_sd, LOOK::CLOTHES_COLOR, cloth_color);
                 clif_displaymessage(fd, "Appearence changed.");
             }
         }
@@ -4287,7 +4221,7 @@ int atcommand_charskpoint(const int fd, struct map_session_data *,
         if (new_skill_point != (int) pl_sd->status.skill_point)
         {
             pl_sd->status.skill_point = new_skill_point;
-            clif_updatestatus(pl_sd, SP_SKILLPOINT);
+            clif_updatestatus(pl_sd, SP::SKILLPOINT);
             clif_displaymessage(fd, "Character's number of skill points changed!");
         }
         else
@@ -4341,7 +4275,7 @@ int atcommand_charstpoint(const int fd, struct map_session_data *,
         if (new_status_point != (int) pl_sd->status.status_point)
         {
             pl_sd->status.status_point = new_status_point;
-            clif_updatestatus(pl_sd, SP_STATUSPOINT);
+            clif_updatestatus(pl_sd, SP::STATUSPOINT);
             clif_displaymessage(fd, "Character's number of status points changed!");
         }
         else
@@ -4393,7 +4327,7 @@ int atcommand_charzeny(const int fd, struct map_session_data *,
         if (new_zeny != pl_sd->status.zeny)
         {
             pl_sd->status.zeny = new_zeny;
-            clif_updatestatus(pl_sd, SP_ZENY);
+            clif_updatestatus(pl_sd, SP::ZENY);
             clif_displaymessage(fd, "Character's number of zenys changed!");
         }
         else
@@ -4445,7 +4379,7 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 count++;
             else
-                pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, 2);
+                pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, BeingRemoveWhy::QUIT);
         }
     }
 
@@ -4506,7 +4440,7 @@ int atcommand_partyrecall(const int fd, struct map_session_data *sd,
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                     count++;
                 else
-                    pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, 2);
+                    pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, BeingRemoveWhy::QUIT);
             }
         }
         std::string output = STRPRINTF("All online characters of the %s party are near you.", p->name);
@@ -4715,28 +4649,28 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                 nd = map[m_id].npc[i];
                 switch (nd->dir)
                 {
-                    case DIR_S:
+                    case DIR::S:
                         direction = "North";
                         break;
-                    case DIR_SW:
+                    case DIR::SW:
                         direction = "North West";
                         break;
-                    case DIR_W:
+                    case DIR::W:
                         direction = "West";
                         break;
-                    case DIR_NW:
+                    case DIR::NW:
                         direction = "South West";
                         break;
-                    case DIR_N:
+                    case DIR::N:
                         direction = "South";
                         break;
-                    case DIR_NE:
+                    case DIR::NE:
                         direction = "South East";
                         break;
-                    case DIR_E:
+                    case DIR::E:
                         direction = "East";
                         break;
-                    case DIR_SE:
+                    case DIR::SE:
                         direction = "North East";
                         break;
 #if 0
@@ -5123,7 +5057,7 @@ int atcommand_jail(const int fd, struct map_session_data *sd,
                     y = 75;
                     break;
             }
-            if (pc_setpos(pl_sd, "sec_pri.gat", x, y, 3) == 0)
+            if (pc_setpos(pl_sd, "sec_pri.gat", x, y, BeingRemoveWhy::WARPED) == 0)
             {
                 pc_setsavepoint(pl_sd, "sec_pri.gat", x, y);   // Save Char Respawn Point in the jail room [Lupus]
                 clif_displaymessage(pl_sd->fd, "GM has send you in jails.");
@@ -5179,7 +5113,7 @@ int atcommand_unjail(const int fd, struct map_session_data *sd,
                 clif_displaymessage(fd, "This player is not in jails.");
                 return -1;
             }
-            else if (pc_setpos(pl_sd, "prontera.gat", 156, 191, 3) == 0)
+            else if (pc_setpos(pl_sd, "prontera.gat", 156, 191, BeingRemoveWhy::WARPED) == 0)
             {
                 pc_setsavepoint(pl_sd, "prontera.gat", 156, 191);  // Save char respawn point in Prontera
                 clif_displaymessage(pl_sd->fd, "GM has discharge you.");
@@ -6529,9 +6463,9 @@ int atcommand_unmute(const int, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd(message)) != NULL)
     {
-        if (pl_sd->sc_data[SC_NOCHAT].timer != -1)
+        if (pl_sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)
         {
-            skill_status_change_end(&pl_sd->bl, SC_NOCHAT, -1);
+            skill_status_change_end(&pl_sd->bl, StatusChange::SC_NOCHAT, -1);
             clif_displaymessage(sd->fd, "Player unmuted");
         }
         else
@@ -6546,12 +6480,12 @@ int atcommand_unmute(const int, struct map_session_data *sd,
 static
 SkillID magic_skills[] =
 {
-    TMW_MAGIC,
-    TMW_MAGIC_LIFE,
-    TMW_MAGIC_WAR,
-    TMW_MAGIC_TRANSMUTE,
-    TMW_MAGIC_NATURE,
-    TMW_MAGIC_ETHER,
+    SkillID::TMW_MAGIC,
+    SkillID::TMW_MAGIC_LIFE,
+    SkillID::TMW_MAGIC_WAR,
+    SkillID::TMW_MAGIC_TRANSMUTE,
+    SkillID::TMW_MAGIC_NATURE,
+    SkillID::TMW_MAGIC_ETHER,
 };
 
 constexpr
@@ -6742,7 +6676,7 @@ int atcommand_jump_iterate(const int fd, struct map_session_data *sd,
                              "You are not authorised to warp you from your actual map.");
         return -1;
     }
-    pc_setpos(sd, map[pl_sd->bl.m].name, pl_sd->bl.x, pl_sd->bl.y, 3);
+    pc_setpos(sd, map[pl_sd->bl.m].name, pl_sd->bl.x, pl_sd->bl.y, BeingRemoveWhy::WARPED);
     std::string output = STRPRINTF("Jump to %s", pl_sd->status.name);
     clif_displaymessage(fd, output);
 

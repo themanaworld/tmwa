@@ -11,7 +11,7 @@
 
 #include "../poison.hpp"
 
-#define MAX_RANDITEM    2000
+constexpr int MAX_RANDITEM = 2000;
 
 // ** ITEMDB_OVERRIDE_NAME_VERBOSE **
 //   定義すると、itemdb.txtとgrfで名前が異なる場合、表示します.

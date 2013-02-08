@@ -952,7 +952,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
 
     switch (bl->type)
     {
-        case BL_PC:
+        case BL::PC:
         {
             struct map_session_data *pc = (struct map_session_data *) bl;
             struct storage *stor = account2storage2(pc->status.account_id);
@@ -987,7 +987,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
             break;
         }
 
-        case BL_MOB:
+        case BL::MOB:
         {
             struct mob_data *mob = (struct mob_data *) bl;
             int i;
@@ -996,7 +996,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
             break;
         }
 
-        case BL_ITEM:
+        case BL::ITEM:
         {
             struct flooritem_data *item = (struct flooritem_data *) bl;
             FIX(item->item_data);
@@ -1021,7 +1021,7 @@ void ladmin_itemfrob(int fd)
     struct block_list *bl = (struct block_list *) map_get_first_session();
 
     // flooritems
-    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), BL_NUL /* any object */);
+    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), BL::NUL /* any object */);
 
     // player characters (and, hopefully, mobs)
     while (bl->next)

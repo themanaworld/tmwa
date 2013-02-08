@@ -1,8 +1,18 @@
 #ifndef MAGIC_INTERPRETER_AUX_HPP
 #define MAGIC_INTERPRETER_AUX_HPP
 
-#define CHECK_TYPE(v, t) ((v)->ty == t)
+#include "magic-interpreter.t.hpp"
 
-#define VAR(i) ((!env->vars || env->vars[i].ty == TY_UNDEF)? env->base_env->vars[i] : env->vars[i])
+template<class T>
+bool CHECK_TYPE(T *v, TYPE t)
+{
+    return v->ty == t;
+}
+
+// FIXME: macro capture!
+#define VAR(i)  \
+    ((!env->vars || env->vars[i].ty == TYPE::UNDEF)   \
+            ? env->base_env->vars[i]                \
+            : env->vars[i])
 
 #endif // MAGIC_INTERPRETER_AUX_HPP

@@ -56,7 +56,7 @@ typedef struct val
         struct invocation *v_invocation;    /* Used ONLY during operation/function invocation; otherwise we use v_int */
         struct spell *v_spell;
     } v;
-    TY ty;
+    TYPE ty;
 } val_t;
 
 /* ----------- */
@@ -157,7 +157,7 @@ typedef struct effect
             struct effect *body;
         } e_call;
     } e;
-    EFFECT_ ty;
+    EFFECT ty;
 } effect_t;
 
 /* ---------- */
@@ -280,7 +280,7 @@ typedef struct cont_activation_record
         struct
         {
             int id;
-            TY ty;
+            TYPE ty;
             effect_t *body;
             int entities_nr;
             int *entities;

@@ -22,7 +22,7 @@ future calls should either use this or depend on the coming segfault.
    if (!((result) = (type *) calloc((number), sizeof(type))))   \
       { perror("SYSERR: malloc failure"); abort(); } else (void)0
 
-# define RECREATE(result,type,number) \
+# define RECREATE(result, type, number) \
   if (!((result) = (type *) realloc((result), sizeof(type) * (number))))\
       { perror("SYSERR: realloc failure"); abort(); } else (void)0
 

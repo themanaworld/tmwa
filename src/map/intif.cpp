@@ -30,7 +30,6 @@ const int packet_len_table[] = {
     11, -1, 7, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-#define inter_fd char_fd        // エイリアス
 
 //-----------------------------------------------------------------
 // inter serverへの送信
@@ -39,12 +38,12 @@ const int packet_len_table[] = {
 void intif_GMmessage(const_string mes, int flag)
 {
     int lp = (flag & 0x10) ? 8 : 4;
-    WFIFOW(inter_fd, 0) = 0x3000;
-    WFIFOW(inter_fd, 2) = lp + mes.size() + 1;
-    WFIFOL(inter_fd, 4) = 0x65756c62;
-    memcpy(WFIFOP(inter_fd, lp), mes.data(), mes.size());
-    WFIFOB(inter_fd, lp + mes.size()) = '\0';
-    WFIFOSET(inter_fd, WFIFOW(inter_fd, 2));
+    WFIFOW(char_fd, 0) = 0x3000;
+    WFIFOW(char_fd, 2) = lp + mes.size() + 1;
+    WFIFOL(char_fd, 4) = 0x65756c62;
+    memcpy(WFIFOP(char_fd, lp), mes.data(), mes.size());
+    WFIFOB(char_fd, lp + mes.size()) = '\0';
+    WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 }
 
 // The transmission of Wisp/Page to inter-server (player not found on this server)
@@ -53,12 +52,12 @@ int intif_wis_message(struct map_session_data *sd, const char *nick, const char 
 {
     nullpo_ret(sd);
 
-    WFIFOW(inter_fd, 0) = 0x3001;
-    WFIFOW(inter_fd, 2) = mes_len + 52;
-    memcpy(WFIFOP(inter_fd, 4), sd->status.name, 24);
-    memcpy(WFIFOP(inter_fd, 28), nick, 24);
-    memcpy(WFIFOP(inter_fd, 52), mes, mes_len);
-    WFIFOSET(inter_fd, WFIFOW(inter_fd, 2));
+    WFIFOW(char_fd, 0) = 0x3001;
+    WFIFOW(char_fd, 2) = mes_len + 52;
+    memcpy(WFIFOP(char_fd, 4), sd->status.name, 24);
+    memcpy(WFIFOP(char_fd, 28), nick, 24);
+    memcpy(WFIFOP(char_fd, 52), mes, mes_len);
+    WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_message from %s to %s (message: '%s')\n",
@@ -71,10 +70,10 @@ int intif_wis_message(struct map_session_data *sd, const char *nick, const char 
 static
 int intif_wis_replay(int id, int flag)
 {
-    WFIFOW(inter_fd, 0) = 0x3002;
-    WFIFOL(inter_fd, 2) = id;
-    WFIFOB(inter_fd, 6) = flag;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-    WFIFOSET(inter_fd, 7);
+    WFIFOW(char_fd, 0) = 0x3002;
+    WFIFOL(char_fd, 2) = id;
+    WFIFOB(char_fd, 6) = flag;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+    WFIFOSET(char_fd, 7);
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_replay: id: %d, flag:%d\n", id, flag);
@@ -86,12 +85,12 @@ int intif_wis_replay(int id, int flag)
 int intif_wis_message_to_gm(const char *Wisp_name, int min_gm_level, const char *mes,
                              int mes_len)
 {
-    WFIFOW(inter_fd, 0) = 0x3003;
-    WFIFOW(inter_fd, 2) = mes_len + 30;
-    memcpy(WFIFOP(inter_fd, 4), Wisp_name, 24);
-    WFIFOW(inter_fd, 28) = (short) min_gm_level;
-    memcpy(WFIFOP(inter_fd, 30), mes, mes_len);
-    WFIFOSET(inter_fd, WFIFOW(inter_fd, 2));
+    WFIFOW(char_fd, 0) = 0x3003;
+    WFIFOW(char_fd, 2) = mes_len + 30;
+    memcpy(WFIFOP(char_fd, 4), Wisp_name, 24);
+    WFIFOW(char_fd, 28) = (short) min_gm_level;
+    memcpy(WFIFOP(char_fd, 30), mes, mes_len);
+    WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_message_to_gm: from: '%s', min level: %d, message: '%s'.\n",
@@ -107,15 +106,15 @@ int intif_saveaccountreg(struct map_session_data *sd)
 
     nullpo_ret(sd);
 
-    WFIFOW(inter_fd, 0) = 0x3004;
-    WFIFOL(inter_fd, 4) = sd->bl.id;
+    WFIFOW(char_fd, 0) = 0x3004;
+    WFIFOL(char_fd, 4) = sd->bl.id;
     for (j = 0, p = 8; j < sd->status.account_reg_num; j++, p += 36)
     {
-        memcpy(WFIFOP(inter_fd, p), sd->status.account_reg[j].str, 32);
-        WFIFOL(inter_fd, p + 32) = sd->status.account_reg[j].value;
+        memcpy(WFIFOP(char_fd, p), sd->status.account_reg[j].str, 32);
+        WFIFOL(char_fd, p + 32) = sd->status.account_reg[j].value;
     }
-    WFIFOW(inter_fd, 2) = p;
-    WFIFOSET(inter_fd, p);
+    WFIFOW(char_fd, 2) = p;
+    WFIFOSET(char_fd, p);
     return 0;
 }
 
@@ -124,18 +123,18 @@ int intif_request_accountreg(struct map_session_data *sd)
 {
     nullpo_ret(sd);
 
-    WFIFOW(inter_fd, 0) = 0x3005;
-    WFIFOL(inter_fd, 2) = sd->bl.id;
-    WFIFOSET(inter_fd, 6);
+    WFIFOW(char_fd, 0) = 0x3005;
+    WFIFOL(char_fd, 2) = sd->bl.id;
+    WFIFOSET(char_fd, 6);
     return 0;
 }
 
 // 倉庫データ要求
 int intif_request_storage(int account_id)
 {
-    WFIFOW(inter_fd, 0) = 0x3010;
-    WFIFOL(inter_fd, 2) = account_id;
-    WFIFOSET(inter_fd, 6);
+    WFIFOW(char_fd, 0) = 0x3010;
+    WFIFOL(char_fd, 2) = account_id;
+    WFIFOSET(char_fd, 6);
     return 0;
 }
 
@@ -143,11 +142,11 @@ int intif_request_storage(int account_id)
 int intif_send_storage(struct storage *stor)
 {
     nullpo_ret(stor);
-    WFIFOW(inter_fd, 0) = 0x3011;
-    WFIFOW(inter_fd, 2) = sizeof(struct storage) + 8;
-    WFIFOL(inter_fd, 4) = stor->account_id;
-    memcpy(WFIFOP(inter_fd, 8), stor, sizeof(struct storage));
-    WFIFOSET(inter_fd, WFIFOW(inter_fd, 2));
+    WFIFOW(char_fd, 0) = 0x3011;
+    WFIFOW(char_fd, 2) = sizeof(struct storage) + 8;
+    WFIFOL(char_fd, 4) = stor->account_id;
+    memcpy(WFIFOP(char_fd, 8), stor, sizeof(struct storage));
+    WFIFOSET(char_fd, WFIFOW(char_fd, 2));
     return 0;
 }
 
@@ -156,13 +155,13 @@ int intif_create_party(struct map_session_data *sd, const char *name)
 {
     nullpo_ret(sd);
 
-    WFIFOW(inter_fd, 0) = 0x3020;
-    WFIFOL(inter_fd, 2) = sd->status.account_id;
-    memcpy(WFIFOP(inter_fd, 6), name, 24);
-    memcpy(WFIFOP(inter_fd, 30), sd->status.name, 24);
-    memcpy(WFIFOP(inter_fd, 54), map[sd->bl.m].name, 16);
-    WFIFOW(inter_fd, 70) = sd->status.base_level;
-    WFIFOSET(inter_fd, 72);
+    WFIFOW(char_fd, 0) = 0x3020;
+    WFIFOL(char_fd, 2) = sd->status.account_id;
+    memcpy(WFIFOP(char_fd, 6), name, 24);
+    memcpy(WFIFOP(char_fd, 30), sd->status.name, 24);
+    memcpy(WFIFOP(char_fd, 54), map[sd->bl.m].name, 16);
+    WFIFOW(char_fd, 70) = sd->status.base_level;
+    WFIFOSET(char_fd, 72);
 //  if(battle_config.etc_log)
 //      PRINTF("intif: create party\n");
     return 0;
@@ -171,9 +170,9 @@ int intif_create_party(struct map_session_data *sd, const char *name)
 // パーティ情報要求
 int intif_request_partyinfo(int party_id)
 {
-    WFIFOW(inter_fd, 0) = 0x3021;
-    WFIFOL(inter_fd, 2) = party_id;
-    WFIFOSET(inter_fd, 6);
+    WFIFOW(char_fd, 0) = 0x3021;
+    WFIFOL(char_fd, 2) = party_id;
+    WFIFOSET(char_fd, 6);
 //  if(battle_config.etc_log)
 //      PRINTF("intif: request party info\n");
     return 0;
@@ -188,13 +187,13 @@ int intif_party_addmember(int party_id, int account_id)
 //      PRINTF("intif: party add member %d %d\n",party_id,account_id);
     if (sd != NULL)
     {
-        WFIFOW(inter_fd, 0) = 0x3022;
-        WFIFOL(inter_fd, 2) = party_id;
-        WFIFOL(inter_fd, 6) = account_id;
-        memcpy(WFIFOP(inter_fd, 10), sd->status.name, 24);
-        memcpy(WFIFOP(inter_fd, 34), map[sd->bl.m].name, 16);
-        WFIFOW(inter_fd, 50) = sd->status.base_level;
-        WFIFOSET(inter_fd, 52);
+        WFIFOW(char_fd, 0) = 0x3022;
+        WFIFOL(char_fd, 2) = party_id;
+        WFIFOL(char_fd, 6) = account_id;
+        memcpy(WFIFOP(char_fd, 10), sd->status.name, 24);
+        memcpy(WFIFOP(char_fd, 34), map[sd->bl.m].name, 16);
+        WFIFOW(char_fd, 50) = sd->status.base_level;
+        WFIFOSET(char_fd, 52);
     }
     return 0;
 }
@@ -202,12 +201,12 @@ int intif_party_addmember(int party_id, int account_id)
 // パーティ設定変更
 int intif_party_changeoption(int party_id, int account_id, int exp, int item)
 {
-    WFIFOW(inter_fd, 0) = 0x3023;
-    WFIFOL(inter_fd, 2) = party_id;
-    WFIFOL(inter_fd, 6) = account_id;
-    WFIFOW(inter_fd, 10) = exp;
-    WFIFOW(inter_fd, 12) = item;
-    WFIFOSET(inter_fd, 14);
+    WFIFOW(char_fd, 0) = 0x3023;
+    WFIFOL(char_fd, 2) = party_id;
+    WFIFOL(char_fd, 6) = account_id;
+    WFIFOW(char_fd, 10) = exp;
+    WFIFOW(char_fd, 12) = item;
+    WFIFOSET(char_fd, 14);
     return 0;
 }
 
@@ -216,10 +215,10 @@ int intif_party_leave(int party_id, int account_id)
 {
 //  if(battle_config.etc_log)
 //      PRINTF("intif: party leave %d %d\n",party_id,account_id);
-    WFIFOW(inter_fd, 0) = 0x3024;
-    WFIFOL(inter_fd, 2) = party_id;
-    WFIFOL(inter_fd, 6) = account_id;
-    WFIFOSET(inter_fd, 10);
+    WFIFOW(char_fd, 0) = 0x3024;
+    WFIFOL(char_fd, 2) = party_id;
+    WFIFOL(char_fd, 6) = account_id;
+    WFIFOSET(char_fd, 10);
     return 0;
 }
 
@@ -228,13 +227,13 @@ int intif_party_changemap(struct map_session_data *sd, int online)
 {
     if (sd != NULL)
     {
-        WFIFOW(inter_fd, 0) = 0x3025;
-        WFIFOL(inter_fd, 2) = sd->status.party_id;
-        WFIFOL(inter_fd, 6) = sd->status.account_id;
-        memcpy(WFIFOP(inter_fd, 10), map[sd->bl.m].name, 16);
-        WFIFOB(inter_fd, 26) = online;
-        WFIFOW(inter_fd, 27) = sd->status.base_level;
-        WFIFOSET(inter_fd, 29);
+        WFIFOW(char_fd, 0) = 0x3025;
+        WFIFOL(char_fd, 2) = sd->status.party_id;
+        WFIFOL(char_fd, 6) = sd->status.account_id;
+        memcpy(WFIFOP(char_fd, 10), map[sd->bl.m].name, 16);
+        WFIFOB(char_fd, 26) = online;
+        WFIFOW(char_fd, 27) = sd->status.base_level;
+        WFIFOSET(char_fd, 29);
     }
 //  if(battle_config.etc_log)
 //      PRINTF("party: change map\n");
@@ -246,23 +245,23 @@ int intif_party_message(int party_id, int account_id, const char *mes, int len)
 {
 //  if(battle_config.etc_log)
 //      PRINTF("intif_party_message: %s\n",mes);
-    WFIFOW(inter_fd, 0) = 0x3027;
-    WFIFOW(inter_fd, 2) = len + 12;
-    WFIFOL(inter_fd, 4) = party_id;
-    WFIFOL(inter_fd, 8) = account_id;
-    memcpy(WFIFOP(inter_fd, 12), mes, len);
-    WFIFOSET(inter_fd, len + 12);
+    WFIFOW(char_fd, 0) = 0x3027;
+    WFIFOW(char_fd, 2) = len + 12;
+    WFIFOL(char_fd, 4) = party_id;
+    WFIFOL(char_fd, 8) = account_id;
+    memcpy(WFIFOP(char_fd, 12), mes, len);
+    WFIFOSET(char_fd, len + 12);
     return 0;
 }
 
 // パーティ競合チェック要求
 int intif_party_checkconflict(int party_id, int account_id, const char *nick)
 {
-    WFIFOW(inter_fd, 0) = 0x3028;
-    WFIFOL(inter_fd, 2) = party_id;
-    WFIFOL(inter_fd, 6) = account_id;
-    memcpy(WFIFOP(inter_fd, 10), nick, 24);
-    WFIFOSET(inter_fd, 34);
+    WFIFOW(char_fd, 0) = 0x3028;
+    WFIFOL(char_fd, 2) = party_id;
+    WFIFOL(char_fd, 6) = account_id;
+    memcpy(WFIFOP(char_fd, 10), nick, 24);
+    WFIFOSET(char_fd, 34);
     return 0;
 }
 

@@ -6,33 +6,27 @@
 
 # include "utils.hpp"
 
-# define FIFOSIZE_SERVERLINK    256*1024
+constexpr int FIFOSIZE_SERVERLINK = 256 * 1024;
 
-// set to 0 to not check IP of player between each server.
-// set to another value if you want to check (1)
-# define CMP_AUTHFIFO_IP 1
+constexpr int MAX_MAP_PER_SERVER = 512;
+constexpr int MAX_INVENTORY = 100;
+constexpr int MAX_AMOUNT = 30000;
+constexpr int MAX_ZENY = 1000000000;     // 1G zeny
+constexpr int MAX_CART = 100;
 
-# define CMP_AUTHFIFO_LOGIN2 1
-
-# define MAX_MAP_PER_SERVER 512
-# define MAX_INVENTORY 100
-# define MAX_AMOUNT 30000
-# define MAX_ZENY 1000000000     // 1G zeny
-# define MAX_CART 100
 enum class SkillID : uint16_t;
 constexpr SkillID MAX_SKILL = SkillID(474); // not 450
 constexpr SkillID get_enum_min_value(SkillID) { return SkillID(); }
 constexpr SkillID get_enum_max_value(SkillID) { return MAX_SKILL; }
 
-
-# define GLOBAL_REG_NUM 96
-# define ACCOUNT_REG_NUM 16
-# define ACCOUNT_REG2_NUM 16
-# define DEFAULT_WALK_SPEED 150
-# define MIN_WALK_SPEED 0
-# define MAX_WALK_SPEED 1000
-# define MAX_STORAGE 300
-# define MAX_PARTY 12
+constexpr int GLOBAL_REG_NUM = 96;
+constexpr int ACCOUNT_REG_NUM = 16;
+constexpr int ACCOUNT_REG2_NUM = 16;
+constexpr int DEFAULT_WALK_SPEED = 150;
+constexpr int MIN_WALK_SPEED = 0;
+constexpr int MAX_WALK_SPEED = 1000;
+constexpr int MAX_STORAGE = 300;
+constexpr int MAX_PARTY = 12;
 
 # define MIN_HAIR_STYLE battle_config.min_hair_style
 # define MAX_HAIR_STYLE battle_config.max_hair_style
@@ -40,18 +34,6 @@ constexpr SkillID get_enum_max_value(SkillID) { return MAX_SKILL; }
 # define MAX_HAIR_COLOR battle_config.max_hair_color
 # define MIN_CLOTH_COLOR battle_config.min_cloth_color
 # define MAX_CLOTH_COLOR battle_config.max_cloth_color
-
-// for produce
-# define MIN_ATTRIBUTE 0
-# define MAX_ATTRIBUTE 4
-# define ATTRIBUTE_NORMAL 0
-# define MIN_STAR 0
-# define MAX_STAR 3
-
-# define MIN_PORTAL_MEMO 0
-# define MAX_PORTAL_MEMO 2
-
-# define MAX_STATUS_TYPE 5
 
 # define CHAR_CONF_NAME  "conf/char_athena.conf"
 

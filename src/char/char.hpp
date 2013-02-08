@@ -4,13 +4,13 @@
 #include "../common/const_array.hpp"
 #include "../common/mmo.hpp"
 
-#define MAX_MAP_SERVERS 30
+constexpr int MAX_MAP_SERVERS = 30;
 
 #define CHAR_CONF_NAME  "conf/char_athena.conf"
 
 #define LOGIN_LAN_CONF_NAME     "conf/lan_support.conf"
 
-#define DEFAULT_AUTOSAVE_INTERVAL 300*1000
+constexpr int DEFAULT_AUTOSAVE_INTERVAL = 300 * 1000;
 
 struct mmo_map_server
 {

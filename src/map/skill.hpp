@@ -5,9 +5,9 @@
 
 #include "map.hpp"
 
-#define MAX_SKILL_PRODUCE_DB     150
-#define MAX_SKILL_ARROW_DB       150
-#define MAX_SKILL_ABRA_DB        350
+constexpr int MAX_SKILL_PRODUCE_DB = 150;
+constexpr int MAX_SKILL_ARROW_DB = 150;
+constexpr int MAX_SKILL_ABRA_DB = 350;
 
 // スキルデータベース
 struct skill_db
@@ -29,7 +29,7 @@ struct skill_db
     int itemid[10], amount[10];
     int castnodex[MAX_SKILL_LEVEL];
 };
-extern earray<struct skill_db, SkillID, MAX_SKILL_DB> skill_db;
+extern earray<struct skill_db, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 
 struct skill_name_db
 {
@@ -105,9 +105,9 @@ void skill_reload(void);
 // [Fate] Skill pools API
 
 // Max. # of active entries in the skill pool
-#define MAX_SKILL_POOL 3
+constexpr int MAX_SKILL_POOL = 3;
 // Max. # of skills that may be classified as pool skills in db/skill_db.txt
-#define MAX_POOL_SKILLS 128
+constexpr int MAX_POOL_SKILLS = 128;
 
 extern SkillID skill_pool_skills[MAX_POOL_SKILLS];  // All pool skills
 extern int skill_pool_skills_size;  // Number of entries in skill_pool_skills

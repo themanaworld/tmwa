@@ -52,13 +52,13 @@ struct block_list *object[MAX_FLOORITEM];
 static
 int first_free_object_id = 0, last_object_id = 0;
 
-#define block_free_max 1048576
+constexpr int block_free_max = 1048576;
 static
 void *block_free[block_free_max];
 static
 int block_free_count = 0, block_free_lock = 0;
 
-#define BL_LIST_MAX 1048576
+constexpr int BL_LIST_MAX = 1048576;
 static
 struct block_list *bl_list[BL_LIST_MAX];
 static
@@ -214,7 +214,7 @@ int map_addblock(struct block_list *bl)
         x < 0 || x >= map[m].xs || y < 0 || y >= map[m].ys)
         return 1;
 
-    if (bl->type == BL_MOB)
+    if (bl->type == BL::MOB)
     {
         bl->next =
             map[m].block_mob[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs];
@@ -234,7 +234,7 @@ int map_addblock(struct block_list *bl)
             bl->next->prev = bl;
         map[m].block[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs] = bl;
         map[m].block_count[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs]++;
-        if (bl->type == BL_PC)
+        if (bl->type == BL::PC)
             map[m].users++;
     }
 
@@ -265,7 +265,7 @@ int map_delblock(struct block_list *bl)
 
     b = bl->x / BLOCK_SIZE + (bl->y / BLOCK_SIZE) * map[bl->m].bxs;
 
-    if (bl->type == BL_PC)
+    if (bl->type == BL::PC)
         map[bl->m].users--;
 
     if (bl->next)
@@ -273,7 +273,7 @@ int map_delblock(struct block_list *bl)
     if (bl->prev == &bl_head)
     {
         // リストの頭なので、map[]のblock_listを更新する
-        if (bl->type == BL_MOB)
+        if (bl->type == BL::MOB)
         {
             map[bl->m].block_mob[b] = bl->next;
             if ((map[bl->m].block_mob_count[b]--) < 0)
@@ -316,7 +316,7 @@ int map_count_oncell(int m, int x, int y)
     c = map[m].block_count[bx + by * map[m].bxs];
     for (i = 0; i < c && bl; i++, bl = bl->next)
     {
-        if (bl->x == x && bl->y == y && bl->type == BL_PC)
+        if (bl->x == x && bl->y == y && bl->type == BL::PC)
             count++;
     }
     bl = map[m].block_mob[bx + by * map[m].bxs];
@@ -356,7 +356,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
         x1 = map[m].xs - 1;
     if (y1 >= map[m].ys)
         y1 = map[m].ys - 1;
-    if (type == BL_NUL || type != BL_MOB)
+    if (type == BL::NUL || type != BL::MOB)
         for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
@@ -365,7 +365,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
                 c = map[m].block_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL_NUL && bl->type != type)
+                    if (bl && type != BL::NUL && bl->type != type)
                         continue;
                     if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                         && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
@@ -373,7 +373,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
                 }
             }
         }
-    if (type == BL_NUL || type == BL_MOB)
+    if (type == BL::NUL || type == BL::MOB)
         for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
@@ -465,7 +465,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL_NUL && bl->type != type)
+                    if (bl && type != BL::NUL && bl->type != type)
                         continue;
                     if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                         && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
@@ -475,7 +475,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_mob_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL_NUL && bl->type != type)
+                    if (bl && type != BL::NUL && bl->type != type)
                         continue;
                     if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                         && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
@@ -504,7 +504,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL_NUL && bl->type != type)
+                    if (bl && type != BL::NUL && bl->type != type)
                         continue;
                     if ((bl)
                         && !(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
@@ -523,7 +523,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                 c = map[m].block_mob_count[bx + by * map[m].bxs];
                 for (i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL_NUL && bl->type != type)
+                    if (bl && type != BL::NUL && bl->type != type)
                         continue;
                     if ((bl)
                         && !(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
@@ -576,20 +576,20 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
     by = y / BLOCK_SIZE;
     bx = x / BLOCK_SIZE;
 
-    if (type == BL_NUL || type != BL_MOB)
+    if (type == BL::NUL || type != BL::MOB)
     {
         bl = map[m].block[bx + by * map[m].bxs];
         c = map[m].block_count[bx + by * map[m].bxs];
         for (i = 0; i < c && bl; i++, bl = bl->next)
         {
-            if (type != BL_NUL && bl && bl->type != type)
+            if (type != BL::NUL && bl && bl->type != type)
                 continue;
             if (bl && bl->x == x && bl->y == y && bl_list_count < BL_LIST_MAX)
                 bl_list[bl_list_count++] = bl;
         }
     }
 
-    if (type == BL_NUL || type == BL_MOB)
+    if (type == BL::NUL || type == BL::MOB)
     {
         bl = map[m].block_mob[bx + by * map[m].bxs];
         c = map[m].block_mob_count[bx + by * map[m].bxs];
@@ -699,7 +699,7 @@ int map_delobject(int id, BL type)
         return 0;
 
     map_delobjectnofree(id, type);
-    if (obj->type == BL_PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
+    if (obj->type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
         pc_cleanup((struct map_session_data *) obj);
 
     map_freeblock(obj);
@@ -722,7 +722,7 @@ void map_foreachobject(std::function<void(struct block_list *)> func,
     {
         if (object[i])
         {
-            if (type != BL_NUL && object[i]->type != type)
+            if (type != BL::NUL && object[i]->type != type)
                 continue;
             if (bl_list_count >= BL_LIST_MAX)
             {
@@ -760,7 +760,7 @@ void map_clearflooritem_timer(timer_id tid, tick_t, custom_id_t id, custom_data_
     struct flooritem_data *fitem = NULL;
 
     fitem = (struct flooritem_data *) object[id];
-    if (fitem == NULL || fitem->bl.type != BL_ITEM
+    if (fitem == NULL || fitem->bl.type != BL::ITEM
         || (!data && fitem->cleartimer != tid))
     {
         if (battle_config.error_log)
@@ -770,7 +770,7 @@ void map_clearflooritem_timer(timer_id tid, tick_t, custom_id_t id, custom_data_
     if (data)
         delete_timer(fitem->cleartimer, map_clearflooritem_timer);
     clif_clearflooritem(fitem, 0);
-    map_delobject(fitem->bl.id, BL_ITEM);
+    map_delobject(fitem->bl.id, BL::ITEM);
 }
 
 /*==========================================
@@ -846,7 +846,7 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
     r = mt_random();
 
     CREATE(fitem, struct flooritem_data, 1);
-    fitem->bl.type = BL_ITEM;
+    fitem->bl.type = BL::ITEM;
     fitem->bl.prev = fitem->bl.next = NULL;
     fitem->bl.m = m;
     fitem->bl.x = xy & 0xffff;
@@ -934,7 +934,7 @@ int map_addflooritem(struct item *item_data, int amount, int m, int x, int y,
 /*      r=rand(); */
 
 /*      fitem = (struct flooritem_data *)aCalloc(1,sizeof(*fitem)); */
-/*      fitem->bl.type=BL_ITEM; */
+/*      fitem->bl.type=BL::ITEM; */
 /*      fitem->bl.prev = fitem->bl.next = NULL; */
 /*      fitem->bl.m=m; */
 /*      fitem->bl.x=xy&0xffff; */
@@ -1092,7 +1092,7 @@ int map_quit(struct map_session_data *sd)
 
     pc_calcstatus(sd, 4);
 
-    clif_clearchar_area(&sd->bl, 2);
+    clif_clearchar(&sd->bl, BeingRemoveWhy::QUIT);
 
     if (pc_isdead(sd))
         pc_setrestartvalue(sd, 2);
@@ -1133,7 +1133,7 @@ struct map_session_data *map_id2sd(int id)
         struct block_list *bl;
 
         bl=numdb_search(id_db,id);
-        if (bl && bl->type==BL_PC)
+        if (bl && bl->type==BL::PC)
                 return (struct map_session_data*)bl;
         return NULL;
 */
@@ -1335,10 +1335,10 @@ void map_removenpc(void)
         {
             if (map[m].npc[i] != NULL)
             {
-                clif_clearchar_area(&map[m].npc[i]->bl, 2);
+                clif_clearchar(&map[m].npc[i]->bl, BeingRemoveWhy::QUIT);
                 map_delblock(&map[m].npc[i]->bl);
                 numdb_erase(id_db, map[m].npc[i]->bl.id);
-                if (map[m].npc[i]->bl.subtype == SCRIPT)
+                if (map[m].npc[i]->bl.subtype == NpcSubtype::SCRIPT)
                 {
 //                    free(map[m].npc[i]->u.scr.script);
 //                    free(map[m].npc[i]->u.scr.label_list);
@@ -1403,48 +1403,48 @@ bool map_check_dir(const DIR s_dir, const DIR t_dir)
  */
 DIR map_calc_dir(struct block_list *src, int x, int y)
 {
-    DIR dir = DIR_S;
+    DIR dir = DIR::S;
     int dx, dy;
 
-    nullpo_retr(DIR_S, src);
+    nullpo_retr(DIR::S, src);
 
     dx = x - src->x;
     dy = y - src->y;
     if (dx == 0 && dy == 0)
     {
-        dir = DIR_S;
+        dir = DIR::S;
     }
     else if (dx >= 0 && dy >= 0)
     {
-        dir = DIR_SE;
+        dir = DIR::SE;
         if (dx * 3 - 1 < dy)
-            dir = DIR_S;
+            dir = DIR::S;
         if (dx > dy * 3)
-            dir = DIR_E;
+            dir = DIR::E;
     }
     else if (dx >= 0 && dy <= 0)
     {
-        dir = DIR_NE;
+        dir = DIR::NE;
         if (dx * 3 - 1 < -dy)
-            dir = DIR_N;
+            dir = DIR::N;
         if (dx > -dy * 3)
-            dir = DIR_E;
+            dir = DIR::E;
     }
     else if (dx <= 0 && dy <= 0)
     {
-        dir = DIR_NW;
+        dir = DIR::NW;
         if (dx * 3 + 1 > dy)
-            dir = DIR_N;
+            dir = DIR::N;
         if (dx < dy * 3)
-            dir = DIR_W;
+            dir = DIR::W;
     }
     else
     {
-        dir = DIR_SW;
+        dir = DIR::SW;
         if (-dx * 3 - 1 < dy)
-            dir = DIR_S;
+            dir = DIR::S;
         if (-dx > dy * 3)
-            dir = DIR_W;
+            dir = DIR::W;
     }
     return dir;
 }
@@ -1707,7 +1707,7 @@ int map_delmap(const char *mapname)
     return 0;
 }
 
-#define LOGFILE_SECONDS_PER_CHUNK_SHIFT 10
+constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
 
 static
 FILE *map_logfile = NULL;
@@ -1906,19 +1906,19 @@ void cleanup_sub(struct block_list *bl)
 
     switch (bl->type)
     {
-        case BL_PC:
+        case BL::PC:
             map_delblock(bl);  // There is something better...
             break;
-        case BL_NPC:
+        case BL::NPC:
             npc_delete((struct npc_data *) bl);
             break;
-        case BL_MOB:
+        case BL::MOB:
             mob_delete((struct mob_data *) bl);
             break;
-        case BL_ITEM:
+        case BL::ITEM:
             map_clearflooritem(bl->id);
             break;
-        case BL_SPELL:
+        case BL::SPELL:
             spell_free_invocation((struct invocation *) bl);
             break;
     }
@@ -1939,7 +1939,7 @@ void term_func(void)
         if (map[map_id].m)
             map_foreachinarea(cleanup_sub, map_id,
                     0, 0, map[map_id].xs, map[map_id].ys,
-                    BL_NUL);
+                    BL::NUL);
     }
 
     for (i = 0; i < fd_max; i++)
@@ -2061,9 +2061,9 @@ int map_scriptcont(struct map_session_data *sd, int id)
 
     switch (bl->type)
     {
-        case BL_NPC:
+        case BL::NPC:
             return npc_scriptcont(sd, id);
-        case BL_SPELL:
+        case BL::SPELL:
             spell_execute_script((struct invocation *) bl);
             break;
     }

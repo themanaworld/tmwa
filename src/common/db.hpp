@@ -9,7 +9,7 @@
 /// Number of tree roots
 // Somewhat arbitrary - larger wastes more space but is faster for large trees
 // num % HASH_SIZE minimize collisions even for similar num
-# define HASH_SIZE (256+27)
+constexpr int HASH_SIZE = 256 + 27;
 
 typedef enum dbn_color
 {

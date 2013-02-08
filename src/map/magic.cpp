@@ -29,8 +29,6 @@ char *magic_preprocess_message(character_t *character, char *start,
         return end + 2;         /* step past blank */
 }
 
-#define ISBLANK(c) ((c) == ' ')
-
 /* Returns a dynamically allocated copy of `src'.
  * `*parameter' may point within that copy or be NULL. */
 static
@@ -39,7 +37,7 @@ char *magic_tokenise(char *src, char **parameter)
     char *retval = strdup(src);
     char *seeker = retval;
 
-    while (*seeker && !ISBLANK(*seeker))
+    while (*seeker && *seeker != ' ')
         ++seeker;
 
     if (!*seeker)
@@ -49,7 +47,7 @@ char *magic_tokenise(char *src, char **parameter)
         *seeker = 0;            /* Terminate invocation */
         ++seeker;
 
-        while (ISBLANK(*seeker))
+        while (*seeker == ' ')
             ++seeker;
 
         *parameter = seeker;
@@ -91,7 +89,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
             spell_create_env(&magic_conf, spell, caster, power, parameter);
         effect_set_t *effects;
 
-        if (bool(spell->flags & SPELL_FLAG_NONMAGIC) || (power >= 1))
+        if (bool(spell->flags & SPELL_FLAG::NONMAGIC) || (power >= 1))
             effects = spell_trigger(spell, caster, env, &near_miss);
         else
             effects = NULL;
@@ -113,7 +111,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
             spell_bind(caster, invocation);
             spell_execute(invocation);
 
-            return bool(spell->flags & SPELL_FLAG_SILENT) ? -1 : 1;
+            return bool(spell->flags & SPELL_FLAG::SILENT) ? -1 : 1;
         }
         else
             magic_free_env(env);

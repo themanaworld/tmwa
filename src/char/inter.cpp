@@ -20,9 +20,11 @@
 
 #include "../poison.hpp"
 
-#define WISDATA_TTL (60*1000)   // Existence time of Wisp/page data (60 seconds)
-                                // that is the waiting time of answers of all map-servers
-#define WISDELLIST_MAX 256      // Number of elements of Wisp/page data deletion list
+// Existence time of Wisp/page data (60 seconds)
+// that is the waiting time of answers of all map-servers
+constexpr int WISDATA_TTL = 60 * 1000;
+// Number of elements of Wisp/page data deletion list
+constexpr int WISDELLIST_MAX = 256;
 
 char inter_log_filename[1024] = "log/inter.log";
 

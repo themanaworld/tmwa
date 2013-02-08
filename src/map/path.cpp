@@ -8,14 +8,19 @@
 
 //#define PATH_STANDALONETEST
 
-#define MAX_HEAP 150
+constexpr int MAX_HEAP = 150;
 struct tmp_path
 {
     short x, y, dist, before, cost;
     DIR dir;
     char flag;
 };
-#define calc_index(x,y) (((x)+(y)*MAX_WALKPATH) & (MAX_WALKPATH*MAX_WALKPATH-1))
+
+static
+int calc_index(int x, int y)
+{
+    return (x + y * MAX_WALKPATH) & (MAX_WALKPATH * MAX_WALKPATH - 1);
+}
 
 /*==========================================
  * 経路探索補助heap push
@@ -301,22 +306,22 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
             x += dx;
             y += dy;
             wpd->path[i++] = (dx < 0)
-                ? ((dy > 0) ? DIR_SW : DIR_NW)
-                : ((dy < 0) ? DIR_NE : DIR_SE);
+                ? ((dy > 0) ? DIR::SW : DIR::NW)
+                : ((dy < 0) ? DIR::NE : DIR::SE);
         }
         else if (x != x1)
         {
             if (!can_move(md, x, y, x + dx, y, flag))
                 break;
             x += dx;
-            wpd->path[i++] = (dx < 0) ? DIR_W : DIR_E;
+            wpd->path[i++] = (dx < 0) ? DIR::W : DIR::E;
         }
         else
         {                       // y!=y1
             if (!can_move(md, x, y, x, y + dy, flag))
                 break;
             y += dy;
-            wpd->path[i++] = (dy > 0) ? DIR_S : DIR_N;
+            wpd->path[i++] = (dy > 0) ? DIR::S : DIR::N;
         }
         if (x == x1 && y == y1)
         {
@@ -335,7 +340,7 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
     tp[i].x = x0;
     tp[i].y = y0;
     tp[i].dist = 0;
-    tp[i].dir = DIR_S;
+    tp[i].dir = DIR::S;
     tp[i].before = 0;
     tp[i].cost = calc_cost(&tp[i], x1, y1);
     tp[i].flag = 0;
@@ -367,24 +372,23 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
             return 0;
         }
         if (can_move(md, x, y, x + 1, y - 1, flag))
-            e += add_path(heap, tp, x + 1, y - 1, tp[rp].dist + 14, DIR_NE, rp, x1, y1);
+            e += add_path(heap, tp, x + 1, y - 1, tp[rp].dist + 14, DIR::NE, rp, x1, y1);
         if (can_move(md, x, y, x + 1, y, flag))
-            e += add_path(heap, tp, x + 1, y, tp[rp].dist + 10, DIR_E, rp, x1, y1);
+            e += add_path(heap, tp, x + 1, y, tp[rp].dist + 10, DIR::E, rp, x1, y1);
         if (can_move(md, x, y, x + 1, y + 1, flag))
-            e += add_path(heap, tp, x + 1, y + 1, tp[rp].dist + 14, DIR_SE, rp, x1, y1);
+            e += add_path(heap, tp, x + 1, y + 1, tp[rp].dist + 14, DIR::SE, rp, x1, y1);
         if (can_move(md, x, y, x, y + 1, flag))
-            e += add_path(heap, tp, x, y + 1, tp[rp].dist + 10, DIR_S, rp, x1, y1);
+            e += add_path(heap, tp, x, y + 1, tp[rp].dist + 10, DIR::S, rp, x1, y1);
         if (can_move(md, x, y, x - 1, y + 1, flag))
-            e += add_path(heap, tp, x - 1, y + 1, tp[rp].dist + 14, DIR_SW, rp, x1, y1);
+            e += add_path(heap, tp, x - 1, y + 1, tp[rp].dist + 14, DIR::SW, rp, x1, y1);
         if (can_move(md, x, y, x - 1, y, flag))
-            e += add_path(heap, tp, x - 1, y, tp[rp].dist + 10, DIR_W, rp, x1, y1);
+            e += add_path(heap, tp, x - 1, y, tp[rp].dist + 10, DIR::W, rp, x1, y1);
         if (can_move(md, x, y, x - 1, y - 1, flag))
-            e += add_path(heap, tp, x - 1, y - 1, tp[rp].dist + 14, DIR_NW, rp, x1, y1);
+            e += add_path(heap, tp, x - 1, y - 1, tp[rp].dist + 14, DIR::NW, rp, x1, y1);
         if (can_move(md, x, y, x, y - 1, flag))
-            e += add_path(heap, tp, x, y - 1, tp[rp].dist + 10, DIR_N, rp, x1, y1);
+            e += add_path(heap, tp, x, y - 1, tp[rp].dist + 10, DIR::N, rp, x1, y1);
         tp[rp].flag = 1;
         if (e || heap[0] >= MAX_HEAP - 5)
             return -1;
     }
-    return -1;
 }

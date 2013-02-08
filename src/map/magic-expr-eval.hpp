@@ -31,13 +31,13 @@ void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
 #define RESULTSPELL result->v.v_spell
 #define RESULTINVOCATION result->v.v_invocation
 
-#define TY(x) args[x].ty
-#define ETY(x) ARGENTITY(x)->type
+#define ARG_TYPE(x) args[x].ty
+#define ENTITY_TYPE(x) ARGENTITY(x)->type
 
 #define ARGPC(x)  ((struct map_session_data *)ARGENTITY(x))
 #define ARGNPC(x)  ((struct map_session_data *)ARGENTITY(x))
 #define ARGMOB(x)  ((struct map_session_data *)ARGENTITY(x))
 
-#define ARG_MAY_BE_AREA(x) (TY(x) == TY_AREA || TY(x) == TY_LOCATION)
+#define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
 
 #endif // MAGIC_EXPR_EVAL_HPP

@@ -16,27 +16,23 @@
 #include "script.hpp"   // change to script.t.hpp
 #include "skill.t.hpp"
 
-#define MAX_NPC_PER_MAP 512
-#define BLOCK_SIZE 8
+constexpr int MAX_NPC_PER_MAP = 512;
+constexpr int BLOCK_SIZE = 8;
 #define AREA_SIZE battle_config.area_size
-#define LOCAL_REG_NUM 16
-#define LIFETIME_FLOORITEM 60
-#define DAMAGELOG_SIZE 30
-#define LOOTITEM_SIZE 10
-#define MAX_SKILL_LEVEL 100
-#define MAX_SKILLUNITGROUP 32
-#define MAX_MOBSKILLUNITGROUP 8
-#define MAX_SKILLUNITGROUPTICKSET 128
-#define MAX_MOBSKILL 32
-#define MAX_EVENTQUEUE 2
-#define MAX_EVENTTIMER 32
-#define NATURAL_HEAL_INTERVAL 500
-#define MAX_FLOORITEM 500000
-#define MAX_LEVEL 255
-#define MAX_WALKPATH 48
-#define MAX_DROP_PER_MAP 48
+constexpr int LIFETIME_FLOORITEM = 60;
+constexpr int DAMAGELOG_SIZE = 30;
+constexpr int LOOTITEM_SIZE = 10;
+constexpr int MAX_SKILL_LEVEL = 100;
+constexpr int MAX_MOBSKILL = 32;
+constexpr int MAX_EVENTQUEUE = 2;
+constexpr int MAX_EVENTTIMER = 32;
+constexpr int NATURAL_HEAL_INTERVAL = 500;
+constexpr int MAX_FLOORITEM = 500000;
+constexpr int MAX_LEVEL = 255;
+constexpr int MAX_WALKPATH = 48;
+constexpr int MAX_DROP_PER_MAP = 48;
 
-#define DEFAULT_AUTOSAVE_INTERVAL 60*1000
+constexpr int DEFAULT_AUTOSAVE_INTERVAL = 60 * 1000;
 
 struct block_list
 {
@@ -83,8 +79,6 @@ struct quick_regeneration
     unsigned char speed;        // less is faster (number of half-second ticks to wait between updates)
     unsigned char tickdelay;    // number of ticks to next update
 };
-
-#define VERSION_2_SKILLINFO  0x02   // client supports full skillinfo blocks
 
 struct map_session_data
 {
@@ -227,7 +221,7 @@ struct map_session_data
     int regstr_num;
     struct script_regstr *regstr;
 
-    earray<struct status_change, StatusChange, MAX_STATUSCHANGE> sc_data;
+    earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
     struct square dev;
 
@@ -324,7 +318,7 @@ struct npc_data
             short x, y;
             char name[16];
         } warp;
-        char *message;          // for MESSAGE: only send this message
+        char *message;          // for NpcSubtype::MESSAGE: only send this message
     } u;
     // ここにメンバを追加してはならない(shop_itemが可変長の為)
 
@@ -333,8 +327,8 @@ struct npc_data
     short arenaflag;
 };
 
-#define MOB_XP_BONUS_BASE  1024
-#define MOB_XP_BONUS_SHIFT 10
+constexpr int MOB_XP_BONUS_BASE = 1024;
+constexpr int MOB_XP_BONUS_SHIFT = 10;
 
 struct mob_data
 {
@@ -378,7 +372,7 @@ struct mob_data
     struct item *lootitem;
     short lootitem_count;
 
-    earray<struct status_change, StatusChange, MAX_STATUSCHANGE> sc_data;
+    earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
     Opt1 opt1;
     Opt2 opt2;
@@ -551,11 +545,17 @@ void map_log(const_string line);
 #define MAP_LOG(format, ...) \
     map_log(static_cast<const std::string&>(STRPRINTF(format, ## __VA_ARGS__)))
 
-#define MAP_LOG_PC(sd, fmt, ...) MAP_LOG("PC%d %d:%d,%d " fmt, sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## __VA_ARGS__)
+#define MAP_LOG_PC(sd, fmt, ...)    \
+    MAP_LOG("PC%d %d:%d,%d " fmt,   \
+            sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(timer_id, tick_t, custom_id_t, custom_data_t);
-#define map_clearflooritem(id) map_clearflooritem_timer(0,0,id,1)
+inline
+void map_clearflooritem(custom_id_t id)
+{
+    map_clearflooritem_timer(0, 0, id, 1);
+}
 int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
         struct map_session_data **owners, int *owner_protection,
         int lifetime, int dispersal);

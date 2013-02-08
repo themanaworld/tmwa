@@ -11,25 +11,15 @@ enum class BF : uint16_t
     NEGATIVE_1  = 0xffff,
 
     WEAPON      = 0x0001,
-#define BF_WEAPON BF::WEAPON
     MAGIC       = 0x0002,
-#define BF_MAGIC BF::MAGIC
     MISC        = 0x0004,
-#define BF_MISC BF::MISC
     SHORT       = 0x0010,
-#define BF_SHORT BF::SHORT
     LONG        = 0x0040,
-#define BF_LONG BF::LONG
     SKILL       = 0x0100,
-#define BF_SKILL BF::SKILL
     NORMAL      = 0x0200,
-#define BF_NORMAL BF::NORMAL
     WEAPONMASK  = 0x000f,
-#define BF_WEAPONMASK BF::WEAPONMASK
     RANGEMASK   = 0x00f0,
-#define BF_RANGEMASK BF::RANGEMASK
     SKILLMASK   = 0x0f00,
-#define BF_SKILLMASK BF::SKILLMASK
 };
 ENUM_BITWISE_OPERATORS(BF)
 }

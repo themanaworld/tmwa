@@ -46,10 +46,10 @@ struct socket_data
 };
 
 // save file descriptors for important stuff
-# define SOFT_LIMIT (FD_SETSIZE - 50)
+constexpr int SOFT_LIMIT = FD_SETSIZE - 50;
 
 // socket timeout to establish a full connection in seconds
-# define CONNECT_TIMEOUT 15
+constexpr int CONNECT_TIMEOUT = 15;
 
 /// Everyone who has connected
 // note: call delete_session(i) to null out an element

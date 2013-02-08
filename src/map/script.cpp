@@ -37,7 +37,7 @@
 //#define DEBUG_DISP
 //#define DEBUG_RUN
 
-#define SCRIPT_BLOCK_SIZE 256
+constexpr int SCRIPT_BLOCK_SIZE = 256;
 enum
 { LABEL_NEXTLINE = 1, LABEL_START };
 static
@@ -72,7 +72,7 @@ struct dbt *mapregstr_db = NULL;
 static
 int mapreg_dirty = -1;
 char mapreg_txt[256] = "save/mapreg.txt";
-#define MAPREG_AUTOSAVE_INTERVAL        (10*1000)
+constexpr int MAPREG_AUTOSAVE_INTERVAL = 10 * 1000;
 
 static
 struct dbt *scriptlabel_db = NULL;
@@ -1625,14 +1625,14 @@ void builtin_warp(ScriptState *st)
     x = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     y = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     if (strcmp(str, "Random") == 0)
-        pc_randomwarp(sd, 3);
+        pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else if (strcmp(str, "SavePoint") == 0)
     {
         if (map[sd->bl.m].flag.noreturn)    // 蝶禁止
             return;
 
         pc_setpos(sd, sd->status.save_point.map,
-                   sd->status.save_point.x, sd->status.save_point.y, 3);
+                   sd->status.save_point.x, sd->status.save_point.y, BeingRemoveWhy::WARPED);
     }
     else if (strcmp(str, "Save") == 0)
     {
@@ -1640,10 +1640,10 @@ void builtin_warp(ScriptState *st)
             return;
 
         pc_setpos(sd, sd->status.save_point.map,
-                   sd->status.save_point.x, sd->status.save_point.y, 3);
+                   sd->status.save_point.x, sd->status.save_point.y, BeingRemoveWhy::WARPED);
     }
     else
-        pc_setpos(sd, str, x, y, 0);
+        pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
 }
 
 /*==========================================
@@ -1654,9 +1654,9 @@ static
 void builtin_areawarp_sub(struct block_list *bl, const char *mapname, int x, int y)
 {
     if (strcmp(mapname, "Random") == 0)
-        pc_randomwarp((struct map_session_data *) bl, 3);
+        pc_randomwarp((struct map_session_data *) bl, BeingRemoveWhy::WARPED);
     else
-        pc_setpos((struct map_session_data *) bl, mapname, x, y, 0);
+        pc_setpos((struct map_session_data *) bl, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
 static
@@ -1678,7 +1678,7 @@ void builtin_areawarp(ScriptState *st)
         return;
 
     map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
-                       m, x0, y0, x1, y1, BL_PC);
+                       m, x0, y0, x1, y1, BL::PC);
 }
 
 /*==========================================
@@ -2770,7 +2770,7 @@ void builtin_getexp(ScriptState *st)
     if (base < 0 || job < 0)
         return;
     if (sd)
-        pc_gainexp_reason(sd, base, job, PC_GAINEXP_REASON_SCRIPT);
+        pc_gainexp_reason(sd, base, job, PC_GAINEXP_REASON::SCRIPT);
 
 }
 
@@ -2856,7 +2856,7 @@ void builtin_killmonster(ScriptState *st)
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
     map_foreachinarea(std::bind(builtin_killmonster_sub, ph::_1, event, allflag),
-                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB);
+                       m, 0, 0, map[m].xs, map[m].ys, BL::MOB);
 }
 
 static
@@ -2874,7 +2874,7 @@ void builtin_killmonsterall(ScriptState *st)
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
     map_foreachinarea(builtin_killmonsterall_sub,
-                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB);
+                       m, 0, 0, map[m].xs, map[m].ys, BL::MOB);
 }
 
 /*==========================================
@@ -3041,7 +3041,7 @@ void builtin_mapannounce(ScriptState *st)
     if ((m = map_mapname2mapid(mapname)) < 0)
         return;
     map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, flag & 0x10),
-            m, 0, 0, map[m].xs, map[m].ys, BL_PC);
+            m, 0, 0, map[m].xs, map[m].ys, BL::PC);
 }
 
 /*==========================================
@@ -3121,7 +3121,7 @@ void builtin_getareausers(ScriptState *st)
         return;
     }
     map_foreachinarea(std::bind(living ? builtin_getareausers_living_sub: builtin_getareausers_sub, ph::_1, &users),
-                       m, x0, y0, x1, y1, BL_PC);
+                       m, x0, y0, x1, y1, BL::PC);
     push_val(st->stack, ScriptCode::INT, users);
 }
 
@@ -3186,10 +3186,10 @@ void builtin_getareadropitem(ScriptState *st)
     }
     if (delitems)
         map_foreachinarea(std::bind(builtin_getareadropitem_sub_anddelete, ph::_1, item, &amount),
-                m, x0, y0, x1, y1, BL_ITEM);
+                m, x0, y0, x1, y1, BL::ITEM);
     else
         map_foreachinarea(std::bind(builtin_getareadropitem_sub, ph::_1, item, &amount),
-                m, x0, y0, x1, y1, BL_ITEM);
+                m, x0, y0, x1, y1, BL::ITEM);
 
     push_val(st->stack, ScriptCode::INT, amount);
 }
@@ -3663,7 +3663,7 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
         return;
 
     map_foreachinarea(std::bind(builtin_areawarp_sub, ph::_1, str, x, y),
-            m, x0, y0, x1, y1, BL_PC);
+            m, x0, y0, x1, y1, BL::PC);
 }
 
 static
@@ -3695,7 +3695,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
         return;
     }
     map_foreachinarea(std::bind(builtin_mobcount_sub, ph::_1, event, &c),
-                       m, 0, 0, map[m].xs, map[m].ys, BL_MOB);
+                       m, 0, 0, map[m].xs, map[m].ys, BL::MOB);
 
     push_val(st->stack, ScriptCode::INT, (c - 1));
 
@@ -3876,7 +3876,7 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
         SkillID skill_id = skill_pool_skills[i];
 
         if (sd->status.skill[skill_id].id == skill_id
-            && !bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
+            && !bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
                        uint16_t(sd->status.skill[skill_id].id));
@@ -4157,31 +4157,31 @@ void builtin_getlook(ScriptState *st)
     int val = -1;
     switch (type)
     {
-        case LOOK_HAIR:        //1
+        case LOOK::HAIR:        //1
             val = sd->status.hair;
             break;
-        case LOOK_WEAPON:      //2
+        case LOOK::WEAPON:      //2
             val = sd->status.weapon;
             break;
-        case LOOK_HEAD_BOTTOM: //3
+        case LOOK::HEAD_BOTTOM: //3
             val = sd->status.head_bottom;
             break;
-        case LOOK_HEAD_TOP:    //4
+        case LOOK::HEAD_TOP:    //4
             val = sd->status.head_top;
             break;
-        case LOOK_HEAD_MID:    //5
+        case LOOK::HEAD_MID:    //5
             val = sd->status.head_mid;
             break;
-        case LOOK_HAIR_COLOR:  //6
+        case LOOK::HAIR_COLOR:  //6
             val = sd->status.hair_color;
             break;
-        case LOOK_CLOTHES_COLOR:   //7
+        case LOOK::CLOTHES_COLOR:   //7
             val = sd->status.clothes_color;
             break;
-        case LOOK_SHIELD:      //8
+        case LOOK::SHIELD:      //8
             val = sd->status.shield;
             break;
-        case LOOK_SHOES:       //9
+        case LOOK::SHOES:       //9
             break;
     }
 
@@ -4249,7 +4249,7 @@ void builtin_areatimer(ScriptState *st)
         return;
 
     map_foreachinarea(std::bind(builtin_areatimer_sub, ph::_1, tick, event),
-                       m, x0, y0, x1, y1, BL_PC);
+                       m, x0, y0, x1, y1, BL::PC);
 }
 
 /*==========================================
@@ -4379,7 +4379,12 @@ int pop_val(ScriptState *st)
     return 0;
 }
 
-#define isstr(c) ((c).type==ScriptCode::STR || (c).type==ScriptCode::CONSTSTR)
+static
+bool isstr(struct script_data& c)
+{
+    return c.type == ScriptCode::STR
+        || c.type == ScriptCode::CONSTSTR;
+}
 
 /*==========================================
  * 加算演算子

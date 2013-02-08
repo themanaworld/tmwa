@@ -6,12 +6,8 @@
 enum class PC_GAINEXP_REASON
 {
     KILLING = 0,
-#define PC_GAINEXP_REASON_KILLING PC_GAINEXP_REASON::KILLING
     HEALING = 1,
-#define PC_GAINEXP_REASON_HEALING PC_GAINEXP_REASON::HEALING
-    // temporary rename to avoid collision with npc subtypes
-    SCRIPT_  = 2,
-#define PC_GAINEXP_REASON_SCRIPT PC_GAINEXP_REASON::SCRIPT_
+    SCRIPT  = 2,
 
     COUNT,
 };
@@ -19,11 +15,8 @@ enum class PC_GAINEXP_REASON
 enum class ADDITEM
 {
     EXIST,
-#define ADDITEM_EXIST ADDITEM::EXIST
     NEW,
-#define ADDITEM_NEW ADDITEM::NEW
     OVERAMOUNT,
-#define ADDITEM_OVERAMOUNT ADDITEM::OVERAMOUNT
 
     // when used as error in nullpo_retr
     ZERO = 0,

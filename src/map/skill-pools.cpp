@@ -29,7 +29,7 @@ int skill_pool(struct map_session_data *sd, SkillID *skills)
     for (i = 0; count < MAX_SKILL_POOL && i < skill_pool_skills_size; i++)
     {
         SkillID skill_id = skill_pool_skills[i];
-        if (bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
+        if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         {
             if (skills)
                 skills[count] = skill_id;
@@ -47,17 +47,17 @@ int skill_pool_size(struct map_session_data *sd)
 
 int skill_pool_max(struct map_session_data *sd)
 {
-    return sd->status.skill[TMW_SKILLPOOL].lv;
+    return sd->status.skill[SkillID::TMW_SKILLPOOL].lv;
 }
 
 int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
 {
-    if (bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
+    if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         return 0;               // Already there
     else if (sd->status.skill[skill_id].id == skill_id  // knows the skill
              && (skill_pool_size(sd) < skill_pool_max(sd)))
     {
-        sd->status.skill[skill_id].flags |= SKILL_POOL_ACTIVATED;
+        sd->status.skill[skill_id].flags |= SkillFlags::POOL_ACTIVATED;
         pc_calcstatus(sd, 0);
         MAP_LOG_PC(sd, "SKILL-ACTIVATE %d %d %d",
                 uint16_t(skill_id), sd->status.skill[skill_id].lv,
@@ -70,14 +70,14 @@ int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
 
 bool skill_pool_is_activated(struct map_session_data *sd, SkillID skill_id)
 {
-    return bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED);
+    return bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED);
 }
 
 int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
 {
-    if (bool(sd->status.skill[skill_id].flags & SKILL_POOL_ACTIVATED))
+    if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
     {
-        sd->status.skill[skill_id].flags &= ~SKILL_POOL_ACTIVATED;
+        sd->status.skill[skill_id].flags &= ~SkillFlags::POOL_ACTIVATED;
         MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d", uint16_t(skill_id));
         pc_calcstatus(sd, 0);
         return 0;
@@ -87,7 +87,7 @@ int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
 }
 
 // Yields the stat associated with a skill.
-// Returns zero if none, or SP_STR, SP_VIT, ... otherwise
+// Returns zero if none, or SP::STR, SP::VIT, ... otherwise
 static
 SP skill_stat(SkillID skill_id)
 {
@@ -118,7 +118,7 @@ int skill_power(struct map_session_data *sd, SkillID skill_id)
 
 int skill_power_bl(struct block_list *bl, SkillID skill)
 {
-    if (bl->type == BL_PC)
+    if (bl->type == BL::PC)
         return skill_power((struct map_session_data *) bl, skill);
     else
         return 0;

@@ -50,19 +50,60 @@ struct random_item_data
 struct item_data *itemdb_searchname(const char *name);
 struct item_data *itemdb_search(int nameid);
 struct item_data *itemdb_exists(int nameid);
-#define itemdb_type(n) itemdb_search(n)->type
-#define itemdb_look(n) itemdb_search(n)->look
-#define itemdb_weight(n) itemdb_search(n)->weight
-#define itemdb_equipscript(n) itemdb_search(n)->equip_script
-#define itemdb_wlv(n) itemdb_search(n)->wlv
-#define itemdb_available(n) (itemdb_exists(n) && itemdb_search(n)->flag.available)
-#define itemdb_viewid(n) (itemdb_search(n)->view_id)
+
+inline
+ItemType itemdb_type(int n)
+{
+    return itemdb_search(n)->type;
+}
+inline
+int itemdb_look(int n)
+{
+    return itemdb_search(n)->look;
+}
+inline
+int itemdb_weight(int n)
+{
+    return itemdb_search(n)->weight;
+}
+inline
+const ScriptCode *itemdb_equipscript(int n)
+{
+    return itemdb_search(n)->equip_script;
+}
+inline
+int itemdb_wlv(int n)
+{
+    return itemdb_search(n)->wlv;
+}
+inline
+bool itemdb_available(int n)
+{
+    return itemdb_exists(n) && itemdb_search(n)->flag.available;
+}
+inline
+int itemdb_viewid(int n)
+{
+    return itemdb_search(n)->view_id;
+}
 
 int itemdb_searchrandomid(int flags);
 
-#define itemdb_value_sell(n) itemdb_search(n)->value_sell
-#define itemdb_value_notdc(n) itemdb_search(n)->flag.value_notdc
-#define itemdb_value_notoc(n) itemdb_search(n)->flag.value_notoc
+inline
+int itemdb_value_sell(int n)
+{
+    return itemdb_search(n)->value_sell;
+}
+inline
+int itemdb_value_notdc(int n)
+{
+    return itemdb_search(n)->flag.value_notdc;
+}
+inline
+int itemdb_value_notoc(int n)
+{
+    return itemdb_search(n)->flag.value_notoc;
+}
 
 int itemdb_isequip(int);
 int itemdb_isequip2(struct item_data *);

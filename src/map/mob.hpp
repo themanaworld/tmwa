@@ -6,10 +6,11 @@
 #include "../common/mmo.hpp"
 #include "../common/timer.hpp"
 
+#include "clif.t.hpp"
 #include "map.hpp"
 #include "skill.t.hpp"
 
-#define MAX_RANDOMMONSTER 3
+constexpr int MAX_RANDOMMONSTER = 3;
 
 struct mob_skill
 {
@@ -96,7 +97,7 @@ int mob_get_equip(int);       // mob equip [Valaris]
 int do_init_mob(void);
 
 int mob_delete(struct mob_data *md);
-int mob_catch_delete(struct mob_data *md, int type);
+int mob_catch_delete(struct mob_data *md, BeingRemoveWhy type);
 void mob_timer_delete(timer_id, tick_t, custom_id_t, custom_data_t);
 
 int mob_deleteslave(struct mob_data *md);
@@ -105,7 +106,7 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
         ATK target_lv);
 
 int mob_class_change(struct mob_data *md, int *value);
-int mob_warp(struct mob_data *md, int m, int x, int y, int type);
+int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type);
 
 int mobskill_use(struct mob_data *md, unsigned int tick,
         MobSkillCondition event, SkillID skill=SkillID::ZERO);

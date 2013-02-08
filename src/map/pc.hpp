@@ -3,6 +3,7 @@
 
 #include "pc.t.hpp"
 
+#include "clif.t.hpp"
 #include "map.hpp"
 
 inline
@@ -69,9 +70,9 @@ int pc_checkequip(struct map_session_data *sd, EPOS pos);
 int pc_walktoxy(struct map_session_data *, int, int);
 int pc_stop_walking(struct map_session_data *, int);
 int pc_movepos(struct map_session_data *, int, int);
-int pc_setpos(struct map_session_data *, const char *, int, int, int);
+int pc_setpos(struct map_session_data *, const char *, int, int, BeingRemoveWhy);
 int pc_setsavepoint(struct map_session_data *, const char *, int, int);
-int pc_randomwarp(struct map_session_data *sd, int type);
+int pc_randomwarp(struct map_session_data *sd, BeingRemoveWhy type);
 
 ADDITEM pc_checkadditem(struct map_session_data *, int, int);
 int pc_inventoryblank(struct map_session_data *);

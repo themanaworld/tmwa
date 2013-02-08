@@ -31,13 +31,13 @@
 
 static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long (sorry)");
 
-#define MAX_SERVERS 30
+constexpr int MAX_SERVERS = 30;
 
 #define LOGIN_CONF_NAME "conf/login_athena.conf"
 #define LAN_CONF_NAME "conf/lan_support.conf"
 
-#define START_ACCOUNT_NUM 2000000
-#define END_ACCOUNT_NUM 100000000
+constexpr int START_ACCOUNT_NUM = 2000000;
+constexpr int END_ACCOUNT_NUM = 100000000;
 
 struct mmo_account
 {
@@ -158,7 +158,7 @@ struct login_session_data
     char md5key[20];
 };
 
-#define AUTH_FIFO_SIZE 256
+constexpr int AUTH_FIFO_SIZE = 256;
 struct
 {
     int account_id, login_id1, login_id2;
@@ -203,8 +203,19 @@ static
 pid_t pid = 0; // For forked DB writes
 
 
-#define VERSION_2_UPDATEHOST 0x01   // client supports updatehost
-#define VERSION_2_SERVERORDER 0x02  // send servers in forward order
+namespace e
+{
+enum class VERSION_2 : uint8_t
+{
+    /// client supports updatehost
+    UPDATEHOST = 0x01,
+    /// send servers in forward order
+    SERVERORDER = 0x02,
+};
+ENUM_BITWISE_OPERATORS(VERSION_2)
+}
+using e::VERSION_2;
+
 //------------------------------
 // Writing function of logs file
 //------------------------------
@@ -1139,9 +1150,7 @@ void parse_fromchar(int fd)
                     {
                         if (auth_fifo[i].account_id == acc &&
                             auth_fifo[i].login_id1 == RFIFOL(fd, 6) &&
-#if CMP_AUTHFIFO_LOGIN2 != 0
                             auth_fifo[i].login_id2 == RFIFOL(fd, 10) &&    // relate to the versions higher than 18
-#endif
                             auth_fifo[i].sex == RFIFOB(fd, 14) &&
                             (!check_ip_flag
                              || auth_fifo[i].ip == RFIFOL(fd, 15))
@@ -3118,9 +3127,9 @@ void parse_login(int fd)
                 result = mmo_auth(&account, fd);
                 if (result == -1)
                 {
-                    int version_2 = RFIFOB(fd, 54);
-                    if (!(version_2 & VERSION_2_UPDATEHOST)
-                        || !(version_2 & VERSION_2_SERVERORDER))
+                    VERSION_2 version_2 = static_cast<VERSION_2>(RFIFOB(fd, 54));
+                    if (!bool(version_2 & VERSION_2::UPDATEHOST)
+                        || !bool(version_2 & VERSION_2::SERVERORDER))
                         result = 5; // client too old
                 }
                 if (result == -1)

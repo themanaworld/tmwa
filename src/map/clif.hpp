@@ -1,6 +1,8 @@
 #ifndef CLIF_HPP
 #define CLIF_HPP
 
+#include "clif.t.hpp"
+
 #include <functional>
 
 #include "../common/const_array.hpp"
@@ -23,10 +25,9 @@ int clif_authfail_fd(int, int);
 int clif_charselectok(int);
 int clif_dropflooritem(struct flooritem_data *);
 int clif_clearflooritem(struct flooritem_data *, int);
-int clif_clearchar(struct block_list *, int); // area or fd
-int clif_clearchar_delay(unsigned int, struct block_list *, int);
-#define clif_clearchar_area(bl,type) clif_clearchar(bl,type)
-int clif_clearchar_id(int, int, int);
+int clif_clearchar(struct block_list *, BeingRemoveWhy); // area or fd
+int clif_clearchar_delay(unsigned int, struct block_list *, BeingRemoveWhy);
+int clif_clearchar_id(int, BeingRemoveWhy, int);
 int clif_spawnpc(struct map_session_data *);  //area
 int clif_spawnnpc(struct npc_data *); // area
 int clif_spawn_fake_npc_for_player(struct map_session_data *sd,
@@ -55,7 +56,11 @@ int clif_additem(struct map_session_data *, int, int, PickupFail);   //self
 int clif_delitem(struct map_session_data *, int, int);    //self
 int clif_updatestatus(struct map_session_data *, SP);    //self
 int clif_damage(struct block_list *, struct block_list *, unsigned int, int, int, int, int, DamageType, int);    // area
-#define clif_takeitem(src,dst) clif_damage(src,dst,0,0,0,0,0,DamageType::TAKEITEM,0)
+inline
+int clif_takeitem(struct block_list *src, struct block_list *dst)
+{
+    return clif_damage(src, dst, 0, 0, 0, 0, 0, DamageType::TAKEITEM, 0);
+}
 int clif_changelook(struct block_list *, LOOK, int);   // area
 void clif_changelook_accessories(struct block_list *bl, struct map_session_data *dst); // area or target; list gloves, boots etc.
 int clif_arrowequip(struct map_session_data *sd, int val);    //self

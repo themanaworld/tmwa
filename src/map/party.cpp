@@ -17,7 +17,8 @@
 
 #include "../poison.hpp"
 
-#define PARTY_SEND_XYHP_INVERVAL        1000    // 座標やＨＰ送信の間隔
+// 座標やＨＰ送信の間隔
+constexpr int PARTY_SEND_XYHP_INVERVAL = 1000;
 
 static
 struct dbt *party_db;
@@ -240,7 +241,7 @@ int party_invite(struct map_session_data *sd, int account_id)
     {
         /* Disallow the invitation under these conditions. */
         if (tsd->trade_partner || tsd->npc_id
-            || tsd->npc_shopid || pc_checkskill(tsd, NV_PARTY) < 1)
+            || tsd->npc_shopid || pc_checkskill(tsd, SkillID::NV_PARTY) < 1)
         {
             clif_party_inviteack(sd, tsd->status.name, 1);
             return 0;

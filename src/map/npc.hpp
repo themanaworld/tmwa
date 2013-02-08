@@ -1,13 +1,14 @@
 #ifndef NPC_HPP
 #define NPC_HPP
 
+#include <cstddef>
 #include <cstdint>
 
-#define START_NPC_NUM 110000000
+constexpr int START_NPC_NUM = 110000000;
 
-#define WARP_CLASS 45
-#define WARP_DEBUG_CLASS 722
-#define INVISIBLE_CLASS 32767
+constexpr int WARP_CLASS = 45;
+constexpr int WARP_DEBUG_CLASS = 722;
+constexpr int INVISIBLE_CLASS = 32767;
 
 int npc_event_dequeue(struct map_session_data *sd);
 int npc_event(struct map_session_data *sd, const char *npcname, int);
@@ -49,8 +50,16 @@ int npc_event_doall_l(const char *name, int rid,
         int argc, struct argrec *argv);
 int npc_event_do_l(const char *name, int rid,
         int argc, struct argrec *argv);
-#define npc_event_doall(name) npc_event_doall_l(name, 0, 0, NULL)
-#define npc_event_do(name) npc_event_do_l(name, 0, 0, NULL)
+inline
+int npc_event_doall(const char *name)
+{
+    return npc_event_doall_l(name, 0, 0, NULL);
+}
+inline
+int npc_event_do(const char *name)
+{
+    return npc_event_do_l(name, 0, 0, NULL);
+}
 
 int npc_timerevent_start(struct npc_data *nd);
 int npc_timerevent_stop(struct npc_data *nd);

@@ -1852,10 +1852,8 @@ void parse_frommap(int fd)
                     if (auth_fifo[i].account_id == RFIFOL(fd, 2) &&
                         auth_fifo[i].char_id == RFIFOL(fd, 6) &&
                         auth_fifo[i].login_id1 == RFIFOL(fd, 10) &&
-#if CMP_AUTHFIFO_LOGIN2 != 0
                         // here, it's the only area where it's possible that we doesn't know login_id2 (map-server asks just after 0x72 packet, that doesn't given the value)
                         (auth_fifo[i].login_id2 == RFIFOL(fd, 14) || RFIFOL(fd, 14) == 0) &&  // relate to the versions higher than 18
-#endif
                         (!check_ip_flag || auth_fifo[i].ip == RFIFOL(fd, 18))
                         && !auth_fifo[i].delflag)
                     {
@@ -2477,9 +2475,7 @@ void parse_char(int fd)
                     {
                         if (auth_fifo[i].account_id == sd->account_id &&
                             auth_fifo[i].login_id1 == sd->login_id1 &&
-#if CMP_AUTHFIFO_LOGIN2 != 0
                             auth_fifo[i].login_id2 == sd->login_id2 &&  // relate to the versions higher than 18
-#endif
                             (!check_ip_flag
                              || auth_fifo[i].ip ==
                              session[fd]->client_addr.sin_addr.s_addr)

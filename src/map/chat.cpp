@@ -45,16 +45,16 @@ int chat_leavechat(struct map_session_data *sd)
     cd->users--;
     pc_setchatid(sd, 0);
 
-    if (cd->users == 0 && (*cd->owner)->type == BL_PC)
+    if (cd->users == 0 && (*cd->owner)->type == BL::PC)
     {
         // 全員居なくなった&PCのチャットなので消す
-        map_delobject(cd->bl.id, BL_CHAT); // freeまでしてくれる
+        map_delobject(cd->bl.id, BL::CHAT); // freeまでしてくれる
     }
     else
     {
         for (i = leavechar; i < cd->users; i++)
             cd->usersd[i] = cd->usersd[i + 1];
-        if (leavechar == 0 && (*cd->owner)->type == BL_PC)
+        if (leavechar == 0 && (*cd->owner)->type == BL::PC)
         {
             // PCのチャットなので所有者が抜けたので位置変更
             cd->bl.x = cd->usersd[0]->bl.x;
@@ -92,7 +92,7 @@ int chat_createnpcchat(struct npc_data *nd, int limit, int pub, int trigger,
     cd->bl.m = nd->bl.m;
     cd->bl.x = nd->bl.x;
     cd->bl.y = nd->bl.y;
-    cd->bl.type = BL_CHAT;
+    cd->bl.type = BL::CHAT;
     cd->owner_ = (struct block_list *) nd;
     cd->owner = &cd->owner_;
     memcpy(cd->npc_event, ev, sizeof(cd->npc_event));
@@ -121,7 +121,7 @@ int chat_deletenpcchat(struct npc_data *nd)
     nullpo_ret(cd);
 
     chat_npckickall(cd);
-    map_delobject(cd->bl.id, BL_CHAT); // freeまでしてくれる
+    map_delobject(cd->bl.id, BL::CHAT); // freeまでしてくれる
     nd->chat_id = 0;
 
     return 0;

@@ -21,7 +21,6 @@
 
 #include "../poison.hpp"
 
-#define HOME getenv("HOME")
 #define LOGIN_SERVER "./login-server"
 #define MAP_SERVER "./map-server"
 #define CHAR_SERVER "./char-server"
@@ -29,42 +28,37 @@
 #define LOGFILE "log/eathena-monitor.log"
 
 
-#define SKIP_BLANK(ptr) ptr += skip_blank(ptr)
 static
-size_t skip_blank(const char* ptr) {
-    size_t i = 0;
+void SKIP_BLANK(char *& ptr)
+{
     while (
-        (ptr[i] == ' ') ||
-        (ptr[i] == '\b') ||
-        (ptr[i] == '\n') ||
-        (ptr[i] == '\r')
-    ) ptr++;
-    return i;
+        (*ptr == ' ') ||
+        (*ptr == '\b') ||
+        (*ptr == '\n') ||
+        (*ptr == '\r')
+    )
+        ptr++;
 }
 
-#define GOTO_EQL(ptr) ptr += goto_eql(ptr)
 static
-size_t goto_eql(const char* ptr) {
-    size_t i = 0;
+void GOTO_EQL(char *& ptr) {
     while (
-        (ptr[i] != '\0') &&
-        (ptr[i] != '=') &&
-        (ptr[i] != '\n') &&
-        (ptr[i] != '\r')
-    ) ptr++;
-    return i;
+        (*ptr != '\0') &&
+        (*ptr != '=') &&
+        (*ptr != '\n') &&
+        (*ptr != '\r')
+    )
+        ptr++;
 }
 
-#define GOTO_EOL(ptr) ptr += goto_newline(ptr)
 static
-size_t goto_newline(const char* ptr) {
-    size_t i = 0;
+void GOTO_EOL(char *& ptr) {
     while (
-        (ptr[i] != '\0') &&
-        (ptr[i] != '\n') &&
-        (ptr[i] != '\r')
-    ) ptr++;
-    return i;
+        (*ptr != '\0') &&
+        (*ptr != '\n') &&
+        (*ptr != '\r')
+    )
+        ptr++;
 }
 
 // initialiized to $HOME/tmwserver
@@ -192,7 +186,7 @@ int main(int argc, char *argv[]) {
     signal(SIGQUIT, stop_process);
     signal(SIGABRT, stop_process);
 
-    workdir = make_path(HOME, "tmwserver");
+    workdir = make_path(getenv("HOME"), "tmwserver");
 
     read_config(argc>1 ? argv[1] : NULL);
 
