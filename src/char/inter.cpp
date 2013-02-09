@@ -22,7 +22,7 @@
 
 // Existence time of Wisp/page data (60 seconds)
 // that is the waiting time of answers of all map-servers
-constexpr int WISDATA_TTL = 60 * 1000;
+constexpr std::chrono::minutes WISDATA_TTL = std::chrono::minutes(1);
 // Number of elements of Wisp/page data deletion list
 constexpr int WISDELLIST_MAX = 256;
 
@@ -58,7 +58,7 @@ int inter_recv_packet_length[] = {
 struct WisData
 {
     int id, fd, count, len;
-    unsigned long tick;
+    tick_t tick;
     unsigned char src[24], dst[24], msg[1024];
 };
 static
@@ -335,11 +335,11 @@ int mapif_account_reg_reply(int fd, int account_id)
 
 // Existence check of WISP data
 static
-void check_ttl_wisdata_sub(db_key_t, db_val_t data, unsigned long tick)
+void check_ttl_wisdata_sub(db_key_t, db_val_t data, tick_t tick)
 {
     struct WisData *wd = (struct WisData *) data;
 
-    if (DIFF_TICK(tick, wd->tick) > WISDATA_TTL
+    if (tick > wd->tick + WISDATA_TTL
         && wis_delnum < WISDELLIST_MAX)
         wis_dellist[wis_delnum++] = wd->id;
 }
@@ -347,7 +347,7 @@ void check_ttl_wisdata_sub(db_key_t, db_val_t data, unsigned long tick)
 static
 int check_ttl_wisdata(void)
 {
-    unsigned long tick = gettick();
+    tick_t tick = gettick();
     int i;
 
     do

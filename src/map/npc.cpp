@@ -8,6 +8,7 @@
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
@@ -126,7 +127,7 @@ int npc_event_dequeue(struct map_session_data *sd)
 
     if (sd->eventqueue[0][0]) // キューのイベント処理
     {
-        if (!pc_addeventtimer(sd, 100, sd->eventqueue[0]))
+        if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueue[0]))
         {
             PRINTF("npc_event_dequeue(): Event timer is full.\n");
             return 0;
@@ -152,21 +153,6 @@ int npc_delete(struct npc_data *nd)
     clif_clearchar(&nd->bl, BeingRemoveWhy::DEAD);
     map_delblock(&nd->bl);
     return 0;
-}
-
-/*==========================================
- * イベントの遅延実行
- *------------------------------------------
- */
-static
-void npc_event_timer(timer_id, tick_t, custom_id_t id, custom_data_t data)
-{
-    struct map_session_data *sd = map_id2sd(id);
-    if (sd == NULL)
-        return;
-
-    npc_event(sd, (const char *) data, 0);
-    free((void *) data);
 }
 
 int npc_timer_event(const char *eventname) // Added by RoVeRT
@@ -255,7 +241,7 @@ int npc_event_do_l(const char *name, int rid, int argc, argrec_t *args)
  *------------------------------------------
  */
 static
-void npc_event_do_clock(timer_id, tick_t, custom_id_t, custom_data_t)
+void npc_event_do_clock(TimerData *, tick_t)
 {
     time_t timer = time(NULL);
     struct tm *t = gmtime(&timer);
@@ -292,100 +278,20 @@ int npc_event_do_oninit(void)
     int c = npc_event_doall("OnInit");
     PRINTF("npc: OnInit Event done. (%d npc)\n", c);
 
-    add_timer_interval(gettick() + 100, npc_event_do_clock, 0, 0, 1000);
+    add_timer_interval(gettick() + std::chrono::milliseconds(100),
+            npc_event_do_clock,
+            std::chrono::seconds(1));
 
     return 0;
 }
-
-/*==========================================
- * OnTimer NPC event - by RoVeRT
- *------------------------------------------
- */
-static
-int npc_addeventtimer(struct npc_data *nd, int tick, const char *name)
-{
-    int i;
-    for (i = 0; i < MAX_EVENTTIMER; i++)
-        if (nd->eventtimer[i] == -1)
-            break;
-    if (i < MAX_EVENTTIMER)
-    {
-        char *evname;
-        CREATE(evname, char, 24);
-        memcpy(evname, name, 24);
-        nd->eventtimer[i] = add_timer(gettick() + tick,
-                                       npc_event_timer, nd->bl.id,
-                                       (int) evname);
-    }
-    else
-        PRINTF("npc_addtimer: event timer is full !\n");
-
-    return 0;
-}
-
-static
-int npc_deleventtimer(struct npc_data *nd, const char *name)
-{
-    int i;
-    for (i = 0; i < MAX_EVENTTIMER; i++)
-        if (nd->eventtimer[i] != -1 && strcmp((char
-                                                *) (get_timer(nd->eventtimer
-                                                               [i])->data),
-                                               name) == 0)
-        {
-            delete_timer(nd->eventtimer[i], npc_event_timer);
-            nd->eventtimer[i] = -1;
-            break;
-        }
-
-    return 0;
-}
-
-
-static
-void npc_do_ontimer_sub(db_key_t key, db_val_t data, int *c, int option)
-{
-    const char *p = key.s;
-    struct event_data *ev = (struct event_data *) data;
-    int tick = 0;
-    char temp[10];
-    char event[50];
-
-    if (ev->nd->bl.id == *c && (p = strchr(p, ':')) && p
-        && strncasecmp("::OnTimer", p, 8) == 0)
-    {
-        sscanf(&p[9], "%s", temp);
-        tick = atoi(temp);
-
-        strcpy(event, ev->nd->name);
-        strcat(event, p);
-
-        if (option != 0)
-        {
-            npc_addeventtimer(ev->nd, tick, event);
-        }
-        else
-        {
-            npc_deleventtimer(ev->nd, event);
-        }
-    }
-}
-
-int npc_do_ontimer(int id, struct map_session_data *, int option)
-{
-    strdb_foreach(ev_db, std::bind(npc_do_ontimer_sub, ph::_1, ph::_2, &id, option));
-    return 0;
-}
-
 
 /*==========================================
  * タイマーイベント実行
  *------------------------------------------
  */
 static
-void npc_timerevent(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
+void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
 {
-    int next, t;
     struct npc_data *nd = (struct npc_data *) map_id2bl(id);
     struct npc_timerevent_list *te;
     if (nd == NULL || nd->u.scr.nexttimer < 0)
@@ -395,14 +301,16 @@ void npc_timerevent(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
     }
     nd->u.scr.timertick = tick;
     te = nd->u.scr.timer_event + nd->u.scr.nexttimer;
-    nd->u.scr.timerid = -1;
+    nd->u.scr.timerid = nullptr;
 
-    t = nd->u.scr.timer += data;
+    interval_t t = nd->u.scr.timer += data;
     nd->u.scr.nexttimer++;
     if (nd->u.scr.timeramount > nd->u.scr.nexttimer)
     {
-        next = nd->u.scr.timer_event[nd->u.scr.nexttimer].timer - t;
-        nd->u.scr.timerid = add_timer(tick + next, npc_timerevent, id, next);
+        interval_t next = nd->u.scr.timer_event[nd->u.scr.nexttimer].timer - t;
+        nd->u.scr.timerid = add_timer(tick + next,
+                std::bind(npc_timerevent, ph::_1, ph::_2,
+                    id, next));
     }
 
     run_script(nd->u.scr.script, te->pos, 0, nd->bl.id);
@@ -414,7 +322,7 @@ void npc_timerevent(timer_id, tick_t tick, custom_id_t id, custom_data_t data)
  */
 int npc_timerevent_start(struct npc_data *nd)
 {
-    int j, n, next;
+    int j, n;
 
     nullpo_ret(nd);
 
@@ -433,9 +341,10 @@ int npc_timerevent_start(struct npc_data *nd)
     if (j >= n)
         return 0;
 
-    next = nd->u.scr.timer_event[j].timer - nd->u.scr.timer;
-    nd->u.scr.timerid =
-        add_timer(gettick() + next, npc_timerevent, nd->bl.id, next);
+    interval_t next = nd->u.scr.timer_event[j].timer - nd->u.scr.timer;
+    nd->u.scr.timerid = add_timer(gettick() + next,
+            std::bind(npc_timerevent, ph::_1, ph::_2,
+                nd->bl.id, next));
     return 0;
 }
 
@@ -450,10 +359,10 @@ int npc_timerevent_stop(struct npc_data *nd)
     if (nd->u.scr.nexttimer >= 0)
     {
         nd->u.scr.nexttimer = -1;
-        nd->u.scr.timer += (int)(gettick() - nd->u.scr.timertick);
-        if (nd->u.scr.timerid != -1)
-            delete_timer(nd->u.scr.timerid, npc_timerevent);
-        nd->u.scr.timerid = -1;
+        nd->u.scr.timer += gettick() - nd->u.scr.timertick;
+        if (nd->u.scr.timerid)
+            delete_timer(nd->u.scr.timerid);
+        nd->u.scr.timerid = nullptr;
     }
     return 0;
 }
@@ -462,16 +371,14 @@ int npc_timerevent_stop(struct npc_data *nd)
  * タイマー値の所得
  *------------------------------------------
  */
-int npc_gettimerevent_tick(struct npc_data *nd)
+interval_t npc_gettimerevent_tick(struct npc_data *nd)
 {
-    int tick;
+    nullpo_retr(interval_t::zero(), nd);
 
-    nullpo_ret(nd);
-
-    tick = nd->u.scr.timer;
+    interval_t tick = nd->u.scr.timer;
 
     if (nd->u.scr.nexttimer >= 0)
-        tick += (int)(gettick() - nd->u.scr.timertick);
+        tick += gettick() - nd->u.scr.timertick;
     return tick;
 }
 
@@ -479,7 +386,7 @@ int npc_gettimerevent_tick(struct npc_data *nd)
  * タイマー値の設定
  *------------------------------------------
  */
-int npc_settimerevent_tick(struct npc_data *nd, int newtimer)
+int npc_settimerevent_tick(struct npc_data *nd, interval_t newtimer)
 {
     int flag;
 
@@ -1090,7 +997,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
         nd->npc_class = WARP_CLASS;
     else
         nd->npc_class = WARP_DEBUG_CLASS;
-    nd->speed = 200;
+    nd->speed = std::chrono::milliseconds(200);
     nd->option = Option::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
@@ -1209,7 +1116,7 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     nd->flag = 0;
     memcpy(nd->name, w3, 24);
     nd->npc_class = atoi(w4);
-    nd->speed = 200;
+    nd->speed = std::chrono::milliseconds(200);
     nd->chat_id = 0;
     nd->option = Option::ZERO;
     nd->opt1 = Opt1::ZERO;
@@ -1459,7 +1366,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     nd->dir = dir;
     nd->flag = 0;
     nd->npc_class = npc_class;
-    nd->speed = 200;
+    nd->speed = std::chrono::milliseconds(200);
     nd->u.scr.script = script;
     nd->u.scr.src_id = src_id;
     nd->chat_id = 0;
@@ -1550,11 +1457,12 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     // ラベルデータからタイマーイベント取り込み
     for (int i = 0; i < nd->u.scr.label_list_num; i++)
     {
-        int t = 0, n = 0;
+        int t_ = 0, n = 0;
         char *lname = nd->u.scr.label_list[i].name;
         int pos = nd->u.scr.label_list[i].pos;
-        if (sscanf(lname, "OnTimer%d%n", &t, &n) == 1 && lname[n] == '\0')
+        if (sscanf(lname, "OnTimer%d%n", &t_, &n) == 1 && lname[n] == '\0')
         {
+            interval_t t = static_cast<interval_t>(t_);
             // タイマーイベント
             struct npc_timerevent_list *te = nd->u.scr.timer_event;
             int j, k = nd->u.scr.timeramount;
@@ -1583,7 +1491,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         }
     }
     nd->u.scr.nexttimer = -1;
-    nd->u.scr.timerid = -1;
+    nd->u.scr.timerid = nullptr;
 
     return 0;
 }
@@ -1673,22 +1581,24 @@ int npc_parse_function(char *, char *, char *w3, char *,
 static
 int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
 {
-    int m, x, y, xs, ys, mob_class, num, delay1, delay2;
+    int m, x, y, xs, ys, mob_class, num;
     int i;
     char mapname[24];
     char eventname[24] = "";
     struct mob_data *md;
 
     xs = ys = 0;
-    delay1 = delay2 = 0;
+    int delay1_ = 0, delay2_ = 0;
     // 引数の個数チェック
     if (sscanf(w1, "%[^,],%d,%d,%d,%d", mapname, &x, &y, &xs, &ys) < 3 ||
-        sscanf(w4, "%d,%d,%d,%d,%s", &mob_class, &num, &delay1, &delay2,
+        sscanf(w4, "%d,%d,%d,%d,%s", &mob_class, &num, &delay1_, &delay2_,
                 eventname) < 2)
     {
         PRINTF("bad monster line : %s\n", w3);
         return 1;
     }
+    interval_t delay1 = std::chrono::milliseconds(delay1_);
+    interval_t delay2 = std::chrono::milliseconds(delay2_);
 
     m = map_mapname2mapid(mapname);
 
@@ -1726,7 +1636,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->spawndelay2 = delay2;
 
         memset(&md->state, 0, sizeof(md->state));
-        md->timer = -1;
+        md->timer = nullptr;
         md->target_id = 0;
         md->attacked_id = 0;
 
@@ -1938,7 +1848,7 @@ struct npc_data *npc_spawn_text(int m, int x, int y,
     retval->u.message = message ? strdup(message) : NULL;
 
     retval->npc_class = npc_class;
-    retval->speed = 200;
+    retval->speed = std::chrono::milliseconds(200);
 
     clif_spawnnpc(retval);
     map_addblock(&retval->bl);

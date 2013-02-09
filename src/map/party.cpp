@@ -18,7 +18,7 @@
 #include "../poison.hpp"
 
 // 座標やＨＰ送信の間隔
-constexpr int PARTY_SEND_XYHP_INVERVAL = 1000;
+constexpr interval_t PARTY_SEND_XYHP_INVERVAL = std::chrono::seconds(1);
 
 static
 struct dbt *party_db;
@@ -26,15 +26,15 @@ struct dbt *party_db;
 static
 int party_check_conflict(struct map_session_data *sd);
 static
-void party_send_xyhp_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
+void party_send_xyhp_timer(TimerData *tid, tick_t tick);
 
 // 初期化
 void do_init_party(void)
 {
     party_db = numdb_init();
     add_timer_interval(gettick() + PARTY_SEND_XYHP_INVERVAL,
-                        party_send_xyhp_timer, 0, 0,
-                        PARTY_SEND_XYHP_INVERVAL);
+            party_send_xyhp_timer,
+            PARTY_SEND_XYHP_INVERVAL);
 }
 
 // 検索
@@ -664,7 +664,7 @@ void party_send_xyhp_timer_sub(db_key_t, db_val_t data)
 }
 
 // 位置やＨＰ通知
-void party_send_xyhp_timer(timer_id, tick_t, custom_id_t, custom_data_t)
+void party_send_xyhp_timer(TimerData *, tick_t)
 {
     numdb_foreach(party_db, party_send_xyhp_timer_sub);
 }

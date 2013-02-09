@@ -8,7 +8,7 @@
 #include <functional>
 
 #include "../common/db.hpp"
-#include "../common/timer.hpp"
+#include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"
 #include "magic-interpreter.t.hpp"
@@ -19,20 +19,20 @@
 constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
 #define AREA_SIZE battle_config.area_size
-constexpr int LIFETIME_FLOORITEM = 60;
+constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
 constexpr int DAMAGELOG_SIZE = 30;
 constexpr int LOOTITEM_SIZE = 10;
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_MOBSKILL = 32;
 constexpr int MAX_EVENTQUEUE = 2;
 constexpr int MAX_EVENTTIMER = 32;
-constexpr int NATURAL_HEAL_INTERVAL = 500;
+constexpr interval_t NATURAL_HEAL_INTERVAL = std::chrono::milliseconds(500);
 constexpr int MAX_FLOORITEM = 500000;
 constexpr int MAX_LEVEL = 255;
 constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
 
-constexpr int DEFAULT_AUTOSAVE_INTERVAL = 60 * 1000;
+constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = std::chrono::minutes(1);
 
 struct block_list
 {
@@ -60,10 +60,8 @@ struct script_regstr
 };
 struct status_change
 {
-    int timer;
-    int val1, val2, val3, val4;
-    SkillID val1_sk() { return SkillID(val1); }
-    BCT& val1_bct() { return reinterpret_cast<BCT&>(val1); }
+    TimerData *timer;
+    int val1;
     int spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
 
@@ -124,14 +122,14 @@ struct map_session_data
     char mapname[24];
     int fd, new_fd;
     short to_x, to_y;
-    short speed, prev_speed;
+    interval_t speed;
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
     DIR dir, head_dir;
-    unsigned int client_tick, server_tick;
+    tick_t client_tick, server_tick;
     struct walkpath_data walkpath;
-    int walktimer;
+    TimerData *walktimer;
     int npc_id, areanpc_id, npc_shopid;
     int npc_pos;
     int npc_menu;
@@ -147,15 +145,15 @@ struct map_session_data
     } npc_flags;
     unsigned int chatID;
 
-    int attacktimer;
+    TimerData *attacktimer;
     int attacktarget;
     ATK attacktarget_lv;
-    unsigned int attackabletime;
+    tick_t attackabletime;
 
-    int followtimer;           // [MouseJstr]
+    // used by @hugo and @linus
     int followtarget;
 
-    unsigned int cast_tick;     // [Fate] Next tick at which spellcasting is allowed
+    tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
     struct invocation *active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
     int attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
     // like a weapon.  Check pc_attack_timer() for details.
@@ -163,7 +161,7 @@ struct map_session_data
     StatusChange attack_spell_icon_override;
     short attack_spell_look_override;   // Weapon `look' (attack animation) override
     short attack_spell_charges; // [Fate] Remaining number of charges for the attack spell
-    short attack_spell_delay;   // [Fate] ms delay after spell attack
+    interval_t attack_spell_delay;   // [Fate] ms delay after spell attack
     short attack_spell_range;   // [Fate] spell range
     short spellpower_bonus_target, spellpower_bonus_current;    // [Fate] Spellpower boni.  _current is the active one.
     //_current slowly approximates _target, and _target is determined by equipment.
@@ -175,19 +173,17 @@ struct map_session_data
     // [Fate] XP that can be extracted from this player by healing
     int heal_xp;               // i.e., OTHER players (healers) can partake in this player's XP
 
-    int invincible_timer;
-    unsigned int canact_tick;
-    unsigned int canmove_tick;
-    unsigned int canlog_tick;
-    int hp_sub, sp_sub;
-    int inchealhptick, inchealsptick, inchealspirithptick,
-        inchealspiritsptick;
-// -- moonsoul (new tick for berserk self-damage)
-    int berserkdamagetick;
+    TimerData *invincible_timer;
+    tick_t canact_tick;
+    tick_t canmove_tick;
+    tick_t canlog_tick;
+    interval_t hp_sub, sp_sub;
+    interval_t inchealhptick, inchealsptick;
 
     short weapontype1, weapontype2;
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
-    int hit, flee, flee2, aspd, amotion, dmotion;
+    int hit, flee, flee2;
+    interval_t aspd, amotion, dmotion;
     int watk, watk2;
     int def, def2, mdef, mdef2, critical, matk1, matk2;
     int star, overrefine;
@@ -210,11 +206,7 @@ struct map_session_data
     short break_weapon_rate, break_armor_rate;
     short add_steal_rate;
 
-    short spiritball, spiritball_old;
-    int spirit_timer[MAX_SKILL_LEVEL];
-
     int die_counter;
-    short doridori_counter;
 
     int reg_num;
     struct script_reg *reg;
@@ -240,10 +232,12 @@ struct map_session_data
 
     int catch_target_class;
 
-    int pvp_point, pvp_rank, pvp_timer, pvp_lastusers;
+    int pvp_point, pvp_rank;
+    TimerData *pvp_timer;
+    int pvp_lastusers;
 
     char eventqueue[MAX_EVENTQUEUE][50];
-    int eventtimer[MAX_EVENTTIMER];
+    TimerData *eventtimer[MAX_EVENTTIMER];
 
     struct
     {
@@ -263,7 +257,7 @@ struct map_session_data
     int chat_total_repeats;
     char chat_lastmsg[513];
 
-    unsigned int flood_rates[0x220];
+    tick_t flood_rates[0x220];
     time_t packet_flood_reset_due;
     int packet_flood_in;
 
@@ -272,7 +266,8 @@ struct map_session_data
 
 struct npc_timerevent_list
 {
-    int timer, pos;
+    interval_t timer;
+    int pos;
 };
 struct npc_label_list
 {
@@ -289,7 +284,7 @@ struct npc_data
     short n;
     short npc_class;
     DIR dir;
-    short speed;
+    interval_t speed;
     char name[24];
     char exname[24];
     int chat_id;
@@ -304,8 +299,10 @@ struct npc_data
         {
             const ScriptCode *script;
             short xs, ys;
-            int timer, timerid, timeramount, nexttimer;
-            unsigned int timertick;
+            interval_t timer;
+            TimerData *timerid;
+            int timeramount, nexttimer;
+            tick_t timertick;
             struct npc_timerevent_list *timer_event;
             int label_list_num;
             struct npc_label_list *label_list;
@@ -323,7 +320,7 @@ struct npc_data
     // ここにメンバを追加してはならない(shop_itemが可変長の為)
 
     char eventqueue[MAX_EVENTQUEUE][50];
-    int eventtimer[MAX_EVENTTIMER];
+    TimerData *eventtimer[MAX_EVENTTIMER];
     short arenaflag;
 };
 
@@ -339,7 +336,7 @@ struct mob_data
     MobMode mode;
     short m, x0, y0, xs, ys;
     char name[24];
-    int spawndelay1, spawndelay2;
+    interval_t spawndelay1, spawndelay2;
     struct
     {
         MS state;
@@ -353,16 +350,16 @@ struct mob_data
         unsigned walk_easy:1;
         unsigned special_mob_ai:3;
     } state;
-    int timer;
+    TimerData *timer;
     short to_x, to_y;
     int hp;
     int target_id, attacked_id;
     ATK target_lv;
     struct walkpath_data walkpath;
-    unsigned int next_walktime;
-    unsigned int attackabletime;
-    unsigned int last_deadtime, last_spawntime, last_thinktime;
-    unsigned int canmove_tick;
+    tick_t next_walktime;
+    tick_t attackabletime;
+    tick_t last_deadtime, last_spawntime, last_thinktime;
+    tick_t canmove_tick;
     short move_fail_count;
     struct
     {
@@ -380,14 +377,14 @@ struct mob_data
     Option option;
     short min_chase;
     short sg_count;
-    int deletetimer;
+    TimerData *deletetimer;
 
-    int skilltimer;
+    TimerData *skilltimer;
     int skilltarget;
     short skillx, skilly;
     SkillID skillid;
     short skilllv, skillidx;
-    unsigned int skilldelay[MAX_MOBSKILL];
+    tick_t skilldelay[MAX_MOBSKILL];
     LevelElement def_ele;
     int master_id, master_dist;
     int exclusion_src, exclusion_party;
@@ -473,9 +470,9 @@ struct flooritem_data
 {
     struct block_list bl;
     short subx, suby;
-    int cleartimer;
+    TimerData *cleartimer;
     int first_get_id, second_get_id, third_get_id;
-    unsigned int first_get_tick, second_get_tick, third_get_tick;
+    tick_t first_get_tick, second_get_tick, third_get_tick;
     struct item item_data;
 };
 
@@ -495,9 +492,8 @@ struct chat_data
     char npc_event[50];
 };
 
-extern int autosave_interval;
+extern interval_t autosave_interval;
 extern int save_settings;
-extern int night_flag;          // 0=day, 1=night [Yor]
 
 extern char motd_txt[];
 extern char help_txt[];
@@ -550,18 +546,18 @@ void map_log(const_string line);
             sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## __VA_ARGS__)
 
 // 床アイテム関連
-void map_clearflooritem_timer(timer_id, tick_t, custom_id_t, custom_data_t);
+void map_clearflooritem_timer(TimerData *, tick_t, int);
 inline
-void map_clearflooritem(custom_id_t id)
+void map_clearflooritem(int id)
 {
-    map_clearflooritem_timer(0, 0, id, 1);
+    map_clearflooritem_timer(nullptr, tick_t(), id);
 }
 int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
-        struct map_session_data **owners, int *owner_protection,
-        int lifetime, int dispersal);
+        struct map_session_data **owners, interval_t *owner_protection,
+        interval_t lifetime, int dispersal);
 int map_addflooritem(struct item *, int, int, int, int,
         struct map_session_data *, struct map_session_data *,
-        struct map_session_data *, int);
+        struct map_session_data *, bool);
 
 // キャラid＝＞キャラ名 変換関連
 void map_addchariddb(int charid, const char *name);

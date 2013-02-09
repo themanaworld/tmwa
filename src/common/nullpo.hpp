@@ -12,7 +12,7 @@
 
 # ifndef BUG_FREE
 #  define nullpo_retr(ret, t) \
-    if (nullpo_chk(__FILE__, __LINE__, __func__, t)) \
+    if (nullpo_chk(__FILE__, __LINE__, __PRETTY_FUNCTION__, t)) \
         return ret;
 # else // BUG_FREE
 #  define nullpo_retr(ret, t) /*t*/

@@ -1,5 +1,4 @@
 #include <arpa/inet.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -94,9 +93,9 @@ char login_log_unknown_packets_filename[1024] =
 static
 int save_unknown_packets = 0;
 static
-long creation_time_GM_account_file;
+tick_t creation_time_GM_account_file;
 static
-int gm_account_filename_check_timer = 15;  // Timer to check if GM_account file has been changed and reload GM account automaticaly (in seconds; default: 15)
+std::chrono::seconds gm_account_filename_check_timer = std::chrono::seconds(15);
 
 static
 int display_parse_login = 0;   // 0: no, 1: yes
@@ -114,7 +113,7 @@ int server_freezeflag[MAX_SERVERS];    // Char-server anti-freeze system. Counte
 static
 int anti_freeze_enable = 0;
 static
-int ANTI_FREEZE_INTERVAL = 15;
+std::chrono::seconds ANTI_FREEZE_INTERVAL = std::chrono::seconds(15);
 
 static
 int login_fd;
@@ -255,16 +254,11 @@ int read_gm_account(void)
     FILE *fp;
     int c = 0;
     int GM_level;
-    struct stat file_stat;
 
     free(gm_account_db);
     gm_account_db = numdb_init();
 
-    // get last modify time/date
-    if (stat(GM_account_filename, &file_stat))
-        creation_time_GM_account_file = 0;  // error
-    else
-        creation_time_GM_account_file = file_stat.st_mtime;
+    creation_time_GM_account_file = file_modified(GM_account_filename);
 
     if ((fp = fopen_(GM_account_filename, "r")) == NULL)
     {
@@ -672,7 +666,7 @@ int mmo_auth_init(void)
 
     std::string str = STRPRINTF("%s has %d accounts (%d GMs, %d servers)\n",
             account_filename, auth_num, GM_count, server_count);
-    PRINTF("%s: %s\n", __FUNCTION__, str);
+    PRINTF("%s: %s\n", __PRETTY_FUNCTION__, str);
     LOGIN_LOG("%s\n", line);
 
     return 0;
@@ -752,7 +746,7 @@ void mmo_auth_sync(void)
 // we save periodicly on a timer.
 //-----------------------------------------------------
 static
-void check_auth_sync(timer_id, tick_t, custom_id_t, custom_data_t)
+void check_auth_sync(TimerData *, tick_t)
 {
     if (pid != 0)
     {
@@ -828,20 +822,14 @@ void send_GM_accounts(void)
 // Check if GM file account have been changed
 //-----------------------------------------------------
 static
-void check_GM_file(timer_id, tick_t, custom_id_t, custom_data_t)
+void check_GM_file(TimerData *, tick_t)
 {
-    struct stat file_stat;
-    long new_time;
-
     // if we would not check
-    if (gm_account_filename_check_timer < 1)
+    if (gm_account_filename_check_timer == interval_t::zero())
         return;
 
     // get last modify time/date
-    if (stat(GM_account_filename, &file_stat))
-        new_time = 0;           // error
-    else
-        new_time = file_stat.st_mtime;
+    tick_t new_time = file_modified(GM_account_filename);
 
     if (new_time != creation_time_GM_account_file)
     {
@@ -1073,7 +1061,7 @@ int mmo_auth(struct mmo_account *account, int fd)
 // Char-server anti-freeze system
 //-------------------------------
 static
-void char_anti_freeze_system(timer_id, tick_t, custom_id_t, custom_data_t)
+void char_anti_freeze_system(TimerData *, tick_t)
 {
     int i;
 
@@ -3300,11 +3288,12 @@ void parse_login(int fd)
                     LOGIN_LOG("'ladmin': Sending request of the coding key (ip: %s)\n",
                          ip);
                 }
+                // TODO fix or get rid of this
                 // Creation of the coding key
                 memset(ld->md5key, '\0', sizeof(ld->md5key));
-                ld->md5keylen = rand() % 4 + 12;
+                ld->md5keylen = MRAND(4) + 12;
                 for (int i = 0; i < ld->md5keylen; i++)
-                    ld->md5key[i] = rand() % 255 + 1;
+                    ld->md5key[i] = MRAND(255) + 1;
 
                 RFIFOSKIP(fd, 2);
                 WFIFOW(fd, 0) = 0x01dc;
@@ -3780,7 +3769,7 @@ int login_config_read(const char *cfgName)
         }
         else if (w1 == "gm_account_filename_check_timer")
         {
-            gm_account_filename_check_timer = atoi(w2.c_str());
+            gm_account_filename_check_timer = std::chrono::seconds(atoi(w2.c_str()));
         }
         else if (w1 == "login_log_filename")
         {
@@ -3905,9 +3894,9 @@ int login_config_read(const char *cfgName)
         }
         else if (w1 == "anti_freeze_interval")
         {
-            ANTI_FREEZE_INTERVAL = atoi(w2.c_str());
-            if (ANTI_FREEZE_INTERVAL < 5)
-                ANTI_FREEZE_INTERVAL = 5;   // minimum 5 seconds
+            ANTI_FREEZE_INTERVAL = std::max(
+                    std::chrono::seconds(atoi(w2.c_str())),
+                    std::chrono::seconds(5));
         }
         else if (w1 == "import")
         {
@@ -3986,17 +3975,17 @@ void display_conf_warnings(void)
         login_port = 6900;
     }
 
-    if (gm_account_filename_check_timer < 0)
+    if (gm_account_filename_check_timer.count() < 0)
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n");
         PRINTF("            -> set to 15 sec (default).\n");
-        gm_account_filename_check_timer = 15;
+        gm_account_filename_check_timer = std::chrono::seconds(15);
     }
-    else if (gm_account_filename_check_timer == 1)
+    else if (gm_account_filename_check_timer == std::chrono::seconds(1))
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n");
         PRINTF("            -> set to 2 sec (minimum value).\n");
-        gm_account_filename_check_timer = 2;
+        gm_account_filename_check_timer = std::chrono::seconds(2);
     }
 
     if (save_unknown_packets != 0 && save_unknown_packets != 1)
@@ -4156,11 +4145,11 @@ void save_config_in_log(void)
                account_filename);
     LOGIN_LOG("- with the GM accounts file name: '%s'.\n",
                GM_account_filename);
-    if (gm_account_filename_check_timer == 0)
+    if (gm_account_filename_check_timer == interval_t::zero())
         LOGIN_LOG("- to NOT check GM accounts file modifications.\n");
     else
         LOGIN_LOG("- to check GM accounts file modifications every %d seconds.\n",
-             gm_account_filename_check_timer);
+             (int)gm_account_filename_check_timer.count());
 
     // not necessary to log the 'login_log_filename', we are inside :)
 
@@ -4303,17 +4292,15 @@ void term_func(void)
 //------------------------------
 int do_init(int argc, char **argv)
 {
-    int i, j;
-
     // read login-server configuration
     login_config_read((argc > 1) ? argv[1] : LOGIN_CONF_NAME);
     display_conf_warnings();   // not in login_config_read, because we can use 'import' option, and display same message twice or more
     save_config_in_log();      // not before, because log file name can be changed
     login_lan_config_read((argc > 1) ? argv[1] : LAN_CONF_NAME);
 
-    for (i = 0; i < AUTH_FIFO_SIZE; i++)
+    for (int i = 0; i < AUTH_FIFO_SIZE; i++)
         auth_fifo[i].delflag = 1;
-    for (i = 0; i < MAX_SERVERS; i++)
+    for (int i = 0; i < MAX_SERVERS; i++)
         server_fd[i] = -1;
 
     gm_account_db = numdb_init();
@@ -4324,24 +4311,19 @@ int do_init(int argc, char **argv)
     set_defaultparse(parse_login);
     login_fd = make_listen_port(login_port);
 
-//    add_timer_func_list (check_auth_sync, "check_auth_sync");
 
-    // Trigger auth sync every 5 minutes
-    i = add_timer_interval(gettick() + 300000, check_auth_sync, 0, 0, 300000);
+    add_timer_interval(gettick() + std::chrono::minutes(5), check_auth_sync, std::chrono::minutes(5));
 
     if (anti_freeze_enable > 0)
     {
-//        add_timer_func_list (char_anti_freeze_system, "char_anti_freeze_system");
-        i = add_timer_interval(gettick() + 1000, char_anti_freeze_system, 0,
-                                0, ANTI_FREEZE_INTERVAL * 1000);
+        add_timer_interval(gettick() + std::chrono::seconds(1), char_anti_freeze_system, ANTI_FREEZE_INTERVAL);
     }
 
     // add timer to check GM accounts file modification
-    j = gm_account_filename_check_timer;
-    if (j == 0)                 // if we would not to check, we check every 60 sec, just to have timer (if we change timer, is was not necessary to check if timer already exists)
-        j = 60;
-//    add_timer_func_list (check_GM_file, "check_GM_file");
-    i = add_timer_interval(gettick() + j * 1000, check_GM_file, 0, 0, j * 1000);  // every x sec we check if gm file has been changed
+    std::chrono::seconds j = gm_account_filename_check_timer;
+    if (j == interval_t::zero())
+        j = std::chrono::minutes(1);
+    add_timer_interval(gettick() + j, check_GM_file, j);
 
     LOGIN_LOG("The login-server is ready (Server is listening on the port %d).\n",
          login_port);

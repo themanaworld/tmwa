@@ -7,6 +7,8 @@
 
 # include <cstdio>
 
+# include "timer.t.hpp"
+
 // Struct declaration
 
 struct socket_data
@@ -69,7 +71,7 @@ void delete_session(int);
 /// Make a the internal queues bigger
 void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size);
 /// Update all sockets that can be read/written from the queues
-void do_sendrecv(uint32_t next);
+void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
 void do_parsepacket(void);
 

@@ -1,4 +1,8 @@
+#include <cassert>
+
 #include "../common/cxxstdio.hpp"
+#include "../common/mt_rand.hpp"
+#include "../common/timer.hpp"
 
 #include "magic-expr.hpp"
 #include "magic-expr-eval.hpp"
@@ -76,7 +80,7 @@ void clear_activation_record(cont_activation_record_t *ar)
 }
 
 static
-void invocation_timer_callback(timer_id, tick_t, custom_id_t id, custom_data_t)
+void invocation_timer_callback(TimerData *, tick_t, int id)
 {
     invocation_t *invocation = (invocation_t *) map_id2bl(id);
 
@@ -118,7 +122,7 @@ void spell_free_invocation(invocation_t *invocation)
     clear_stack(invocation);
 
     if (invocation->timer)
-        delete_timer(invocation->timer, invocation_timer_callback);
+        delete_timer(invocation->timer);
 
     magic_free_env(invocation->env);
 
@@ -154,12 +158,12 @@ void char_set_weapon_icon(character_t *subject, int count,
 }
 
 static
-void char_set_attack_info(character_t *subject, int speed, int range)
+void char_set_attack_info(character_t *subject, interval_t speed, int range)
 {
     subject->attack_spell_delay = speed;
     subject->attack_spell_range = range;
 
-    if (speed == 0)
+    if (speed == interval_t::zero())
     {
         pc_calcstatus(subject, 1);
         clif_updatestatus(subject, SP::ASPD);
@@ -190,7 +194,7 @@ void magic_stop_completely(character_t *c)
             spell_free_invocation(attack_spell);
         c->attack_spell_override = 0;
         char_set_weapon_icon(c, 0, StatusChange::ZERO, 0);
-        char_set_attack_info(c, 0, 0);
+        char_set_attack_info(c, interval_t::zero(), 0);
     }
 }
 
@@ -241,7 +245,7 @@ void char_update(character_t *character)
 }
 
 static
-void timer_callback_effect(timer_id, tick_t, custom_id_t id, custom_data_t data)
+void timer_callback_effect(TimerData *, tick_t, int id, int data)
 {
     entity_t *target = map_id2bl(id);
     if (target)
@@ -249,10 +253,11 @@ void timer_callback_effect(timer_id, tick_t, custom_id_t id, custom_data_t data)
 }
 
 static
-void entity_effect(entity_t *entity, int effect_nr, int delay)
+void entity_effect(entity_t *entity, int effect_nr, interval_t delay)
 {
     add_timer(gettick() + delay,
-               &timer_callback_effect, entity->id, effect_nr);
+            std::bind(&timer_callback_effect, ph::_1, ph::_2,
+                entity->id, effect_nr));
 }
 
 void magic_unshroud(character_t *other_char)
@@ -265,8 +270,7 @@ void magic_unshroud(character_t *other_char)
 }
 
 static
-void timer_callback_effect_npc_delete(timer_id, tick_t,
-                                  custom_id_t npc_id, custom_data_t)
+void timer_callback_effect_npc_delete(TimerData *, tick_t, int npc_id)
 {
     struct npc_data *effect_npc = (struct npc_data *) map_id2bl(npc_id);
     npc_free(effect_npc);
@@ -274,16 +278,18 @@ void timer_callback_effect_npc_delete(timer_id, tick_t,
 
 static
 struct npc_data *local_spell_effect(int m, int x, int y, int effect,
-                                            int tdelay)
+        interval_t tdelay)
 {
-    int delay = 30000;         /* 1 minute should be enough for all interesting spell effects, I hope */
+    /* 1 minute should be enough for all interesting spell effects, I hope */
+    std::chrono::seconds delay = std::chrono::seconds(30);
     struct npc_data *effect_npc = npc_spawn_text(m, x, y,
-                                                  INVISIBLE_NPC, "", "?");
+            INVISIBLE_NPC, "", "?");
     int effect_npc_id = effect_npc->bl.id;
 
     entity_effect(&effect_npc->bl, effect, tdelay);
     add_timer(gettick() + delay,
-               timer_callback_effect_npc_delete, effect_npc_id, 0);
+            std::bind(timer_callback_effect_npc_delete, ph::_1, ph::_2,
+                effect_npc_id));
 
     return effect_npc;
 }
@@ -291,7 +297,7 @@ struct npc_data *local_spell_effect(int m, int x, int y, int effect,
 static
 int op_sfx(env_t *, int, val_t *args)
 {
-    int delay = ARGINT(2);
+    interval_t delay = static_cast<interval_t>(ARGINT(2));
 
     if (ARG_TYPE(0) == TYPE::ENTITY)
     {
@@ -402,8 +408,7 @@ int op_message(env_t *, int, val_t *args)
 }
 
 static
-void timer_callback_kill_npc(timer_id, tick_t, custom_id_t npc_id,
-                         custom_data_t)
+void timer_callback_kill_npc(TimerData *, tick_t, int npc_id)
 {
     struct npc_data *npc = (struct npc_data *) map_id2bl(npc_id);
     if (npc)
@@ -417,10 +422,11 @@ int op_messenger_npc(env_t *, int, val_t *args)
     location_t *loc = &ARGLOCATION(0);
 
     npc = npc_spawn_text(loc->m, loc->x, loc->y,
-                          ARGINT(1), ARGSTR(2), ARGSTR(3));
+            ARGINT(1), ARGSTR(2), ARGSTR(3));
 
-    add_timer(gettick() + ARGINT(4),
-               &timer_callback_kill_npc, npc->bl.id, 0);
+    add_timer(gettick() + static_cast<interval_t>(ARGINT(4)),
+            std::bind(timer_callback_kill_npc, ph::_1, ph::_2,
+                npc->bl.id));
 
     return 0;
 }
@@ -530,9 +536,12 @@ int op_status_change(env_t *env, int, val_t *args)
         ? VAR(VAR_INVOCATION).v.v_int : 0;
     invocation_t *invocation = (invocation_t *) map_id2bl(invocation_id);
 
-    skill_status_effect(subject, StatusChange(ARGINT(1)),
-            ARGINT(2), ARGINT(3), ARGINT(4), ARGINT(5),
-            ARGINT(6), 0, invocation_id);
+    assert (!ARGINT(3));
+    assert (!ARGINT(4));
+    assert (!ARGINT(5));
+    skill_status_effect(subject, static_cast<StatusChange>(ARGINT(1)),
+            ARGINT(2),
+            static_cast<interval_t>(ARGINT(6)), invocation_id);
 
     if (invocation && subject->type == BL::PC)
         record_status_change(invocation, subject->id, StatusChange(ARGINT(1)));
@@ -545,8 +554,8 @@ int op_stop_status_change(env_t *, int, val_t *args)
 {
     entity_t *subject = ARGENTITY(0);
 
-    StatusChange sc = StatusChange(ARGINT(1));
-    skill_status_change_end(subject, sc, -1);
+    StatusChange sc = static_cast<StatusChange>(ARGINT(1));
+    skill_status_change_end(subject, sc, nullptr);
 
     return 0;
 }
@@ -556,7 +565,7 @@ int op_override_attack(env_t *env, int, val_t *args)
 {
     entity_t *psubject = ARGENTITY(0);
     int charges = ARGINT(1);
-    int attack_delay = ARGINT(2);
+    interval_t attack_delay = static_cast<interval_t>(ARGINT(2));
     int attack_range = ARGINT(3);
     StatusChange icon = StatusChange(ARGINT(4));
     int look = ARGINT(5);
@@ -675,7 +684,7 @@ int op_spawn(env_t *, int, val_t *args)
     int monster_id = ARGINT(2);
     MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(ARGINT(3));
     int monster_count = ARGINT(4);
-    int monster_lifetime = ARGINT(5);
+    interval_t monster_lifetime = static_cast<interval_t>(ARGINT(5));
     int i;
 
     character_t *owner = NULL;
@@ -729,7 +738,8 @@ int op_spawn(env_t *, int, val_t *args)
                 MobMode::SUMMONED | MobMode::TURNS_AGAINST_BAD_MASTER;
 
             mob->deletetimer = add_timer(gettick() + monster_lifetime,
-                                          mob_timer_delete, mob_id, 0);
+                    std::bind(mob_timer_delete, ph::_1, ph::_2,
+                        mob_id));
 
             if (owner)
             {
@@ -783,7 +793,9 @@ int op_injure(env_t *env, int, val_t *args)
         damage_caused = 0;
 
     // display damage first, because dealing damage may deallocate the target.
-    clif_damage(caster, target, gettick(), 0, 0, damage_caused, 0, DamageType::NORMAL, 0);
+    clif_damage(caster, target,
+            gettick(), interval_t::zero(), interval_t::zero(),
+            damage_caused, 0, DamageType::NORMAL, 0);
 
     if (caster->type == BL::PC)
     {
@@ -858,21 +870,21 @@ int op_drop_item_for (env_t *, int args_nr, val_t *args)
     int stackable;
     location_t *loc = &ARGLOCATION(0);
     int count = ARGINT(2);
-    int time = ARGINT(3);
+    interval_t time = static_cast<interval_t>(ARGINT(3));
     character_t *c = ((args_nr > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : NULL;
-    int delay = (args_nr > 5) ? ARGINT(5) : 0;
-    int delaytime[3] = { delay, delay, delay };
+    interval_t delay = (args_nr > 5) ? static_cast<interval_t>(ARGINT(5)) : interval_t::zero();
+    interval_t delaytime[3] = { delay, delay, delay };
     character_t *owners[3] = { c, NULL, NULL };
 
     GET_ARG_ITEM(1, item, stackable);
 
     if (stackable)
         map_addflooritem_any(&item, count, loc->m, loc->x, loc->y,
-                              owners, delaytime, time, 0);
+                owners, delaytime, time, 0);
     else
         while (count-- > 0)
             map_addflooritem_any(&item, 1, loc->m, loc->x, loc->y,
-                                  owners, delaytime, time, 0);
+                    owners, delaytime, time, 0);
 
     return 0;
 }
@@ -1245,7 +1257,7 @@ effect_t *run_foreach(invocation_t *invocation, effect_t *foreach,
 
         for (i = entities_nr - 1; i >= 0; i--)
         {
-            int random_index = rand() % (i + 1);
+            int random_index = MRAND(i + 1);
             entities[i] = entities_collect[shuffle_board[random_index]];
             shuffle_board[random_index] = shuffle_board[i]; // thus, we are guaranteed only to use unused indices
         }
@@ -1407,10 +1419,10 @@ void print_cfg(int i, effect_t *e)
  *          -1 if we paused to wait for a user action (via script interaction)
  */
 static
-int spell_run(invocation_t *invocation, int allow_delete)
+interval_t spell_run(invocation_t *invocation, int allow_delete)
 {
     const int invocation_id = invocation->bl.id;
-#define REFRESH_INVOCATION invocation = (invocation_t *) map_id2bl(invocation_id); if (!invocation) return 0;
+#define REFRESH_INVOCATION invocation = (invocation_t *) map_id2bl(invocation_id); if (!invocation) return interval_t::zero();
 
 #ifdef DEBUG
     FPRINTF(stderr, "Resuming execution:  invocation of `%s'\n",
@@ -1465,10 +1477,10 @@ int spell_run(invocation_t *invocation, int allow_delete)
 
             case EFFECT::SLEEP:
             {
-                int sleeptime =
-                    magic_eval_int(invocation->env, e->e.e_sleep);
+                interval_t sleeptime = static_cast<interval_t>(
+                        magic_eval_int(invocation->env, e->e.e_sleep));
                 invocation->current_effect = next;
-                if (sleeptime > 0)
+                if (sleeptime > interval_t::zero())
                     return sleeptime;
                 break;
             }
@@ -1517,7 +1529,7 @@ int spell_run(invocation_t *invocation, int allow_delete)
                         /* Must set up for continuation */
                         recipient->npc_id = invocation->bl.id;
                         recipient->npc_pos = invocation->script_pos = newpos;
-                        return -1;  /* Signal `wait for script' */
+                        return static_cast<interval_t>(-1);  /* Signal `wait for script' */
                     }
                     else
                         invocation->script_pos = 0;
@@ -1570,30 +1582,22 @@ int spell_run(invocation_t *invocation, int allow_delete)
 
     if (allow_delete)
         try_to_finish_invocation(invocation);
-    return 0;
+    return interval_t::zero();
 #undef REFRESH_INVOCATION
 }
 
 static
 void spell_execute_d(invocation_t *invocation, int allow_deletion)
 {
-    int delta;
-
     spell_update_location(invocation);
-    delta = spell_run(invocation, allow_deletion);
+    interval_t delta = spell_run(invocation, allow_deletion);
 
-    if (delta > 0)
+    if (delta > interval_t::zero())
     {
-        if (invocation->timer)
-        {
-            FPRINTF(stderr,
-                     "[magic] FATAL ERROR: Trying to add multiple timers to the same spell! Already had timer: %d\n",
-                     invocation->timer);
-            /* *((int *)0x0) = 0; */
-        }
+        assert (invocation->timer == nullptr);
         invocation->timer = add_timer(gettick() + delta,
-                                       &invocation_timer_callback,
-                                       invocation->bl.id, 0);
+                std::bind(invocation_timer_callback, ph::_1, ph::_2,
+                    invocation->bl.id));
     }
 
     /* If 0, the script cleaned itself.  If -1(wait-for-script), we must wait for the user. */
@@ -1656,7 +1660,7 @@ int spell_attack(int caster_id, int target_id)
     {
         caster->attack_spell_override = 0;
         char_set_weapon_icon(caster, 0, StatusChange::ZERO, 0);
-        char_set_attack_info(caster, 0, 0);
+        char_set_attack_info(caster, interval_t::zero(), 0);
 
         if (stop_attack)
             pc_stopattack(caster);

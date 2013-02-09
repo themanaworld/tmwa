@@ -1,66 +1,46 @@
 #ifndef TIMER_HPP
 #define TIMER_HPP
 
+# include "timer.t.hpp"
+
 # include "sanity.hpp"
 
-enum TIMER_TYPE
-{
-    TIMER_NONE,
-    TIMER_ONCE_AUTODEL,
-    TIMER_INTERVAL,
-};
-/// This is needed to produce a signed result when 2 ticks are subtracted
+# include <chrono>
+# include <functional>
+
+/// (to get additional arguments, use std::bind or a lambda).
+typedef std::function<void (TimerData *, tick_t)> timer_func;
+
+// updated automatically when using milli_clock::now()
+// which is done only by core.cpp
+extern tick_t gettick_cache;
+
 inline
-int32_t DIFF_TICK(int32_t a, int32_t b)
+tick_t gettick(void)
 {
-    return a - b;
+    return gettick_cache;
 }
 
-// TODO replace with std::chrono::time_point and std::chrono::duration
-typedef uint32_t tick_t;
-typedef uint32_t interval_t;
-typedef uint32_t timer_id;
-// BUG: pointers are stored in here
-typedef int32_t custom_id_t;
-typedef int32_t custom_data_t;
-typedef void(*timer_func)(timer_id, tick_t, custom_id_t, custom_data_t);
+/// Schedule a one-shot timer at the given tick.
+/// The timer will automatically be freed after it is called
+/// (during a do_timer).
+TimerData *add_timer(tick_t t, timer_func f);
 
-struct TimerData
-{
-    /// When it will be triggered
-    tick_t tick;
-    /// What will be done
-    timer_func func;
-    /// Arbitrary data. WARNING, callers are stupid and put pointers in here
-    // Should we change to void* or intptr_t ?
-    custom_id_t  id;
-    custom_data_t  data;
-    /// Type of timer - 0 initially
-    enum TIMER_TYPE type;
-    /// Repeat rate
-    interval_t interval;
-};
+/// Schedule a recurring timer initially at the given tick.
+/// The timer will automatically reregister itself, with the same
+/// opaque handle, every interval after the tick.
+/// It will never be freed unless you use delete_timer.
+TimerData *add_timer_interval(tick_t, timer_func, interval_t);
 
-/// Server time, in milliseconds, since the epoch,
-/// but use of 32-bit integers means it wraps every 49 days.
-// The only external caller of this function is the core.c main loop, but that makes sense
-// in fact, it might make more sense if gettick() ALWAYS returned that cached value
-tick_t gettick_nocache(void);
-/// This function is called enough that it's worth caching the result for
-/// the next 255 times
-tick_t gettick(void);
-
-timer_id add_timer(tick_t, timer_func, custom_id_t, custom_data_t);
-timer_id add_timer_interval(tick_t, timer_func, custom_id_t, custom_data_t, interval_t);
-//#define delete_timer(tid, func) delete_timer(tid)
-void delete_timer(timer_id, timer_func);
-
-tick_t addtick_timer(timer_id, interval_t);
-struct TimerData *get_timer(timer_id tid);
+/// Cancel the given timer.
+/// This doesn't actually remove it, it just resets the functor.
+/// and waits for the the tick to arrive in do_timer.
+void delete_timer(TimerData *);
 
 /// Do all timers scheduled before tick, and return the number of milliseconds until the next timer happens
 interval_t do_timer(tick_t tick);
 
-
+/// Stat a file, and return its modification time, truncated to seconds.
+tick_t file_modified(const char *name);
 
 #endif // TIMER_HPP

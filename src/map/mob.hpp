@@ -4,7 +4,7 @@
 #include "mob.t.hpp"
 
 #include "../common/mmo.hpp"
-#include "../common/timer.hpp"
+#include "../common/timer.t.hpp"
 
 #include "clif.t.hpp"
 #include "map.hpp"
@@ -18,7 +18,7 @@ struct mob_skill
     SkillID skill_id;
     short skill_lv;
     short permillage;
-    int casttime, delay;
+    interval_t casttime, delay;
     short cancel;
     MobSkillCondition cond1;
     int cond2i;
@@ -82,7 +82,6 @@ int mob_stop_walking(struct mob_data *md, int type);
 int mob_stopattack(struct mob_data *);
 int mob_spawn(int);
 int mob_damage(struct block_list *, struct mob_data *, int, int);
-int mob_changestate(struct mob_data *md, MS state, int type);
 int mob_heal(struct mob_data *, int);
 int mob_get_sex(int);
 short mob_get_hair(int);
@@ -98,7 +97,7 @@ int do_init_mob(void);
 
 int mob_delete(struct mob_data *md);
 int mob_catch_delete(struct mob_data *md, BeingRemoveWhy type);
-void mob_timer_delete(timer_id, tick_t, custom_id_t, custom_data_t);
+void mob_timer_delete(TimerData *, tick_t, int);
 
 int mob_deleteslave(struct mob_data *md);
 
@@ -108,11 +107,10 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
 int mob_class_change(struct mob_data *md, int *value);
 int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type);
 
-int mobskill_use(struct mob_data *md, unsigned int tick,
-        MobSkillCondition event, SkillID skill=SkillID::ZERO);
+int mobskill_use(struct mob_data *md, tick_t tick, MobSkillCondition event);
 int mobskill_event(struct mob_data *md, BF flag);
-void mobskill_castend_id(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
-void mobskill_castend_pos(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data);
+void mobskill_castend_id(TimerData *tid, tick_t tick, int id);
+void mobskill_castend_pos(TimerData *tid, tick_t tick, int id);
 int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag);
 
 void mob_reload(void);

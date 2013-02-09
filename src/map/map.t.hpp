@@ -114,7 +114,6 @@ enum class MS : uint8_t
     WALK,
     ATTACK,
     DEAD,
-    DELAY,
 };
 
 enum class ATK

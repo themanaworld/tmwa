@@ -25,7 +25,6 @@ struct skill_db
         hp_rate[MAX_SKILL_LEVEL], sp_rate[MAX_SKILL_LEVEL],
         zeny[MAX_SKILL_LEVEL];
     int weapon;
-    int spiritball[MAX_SKILL_LEVEL];
     int itemid[10], amount[10];
     int castnodex[MAX_SKILL_LEVEL];
 };
@@ -65,11 +64,10 @@ int skill_get_maxcount(SkillID id);
 
 // 追加効果
 int skill_additional_effect(struct block_list *src, struct block_list *bl,
-        SkillID skillid, int skilllv, BF attack_type,
-        unsigned int tick);
+        SkillID skillid, int skilllv);
 
-int skill_castfix(struct block_list *bl, int time);
-int skill_delayfix(struct block_list *bl, int time);
+interval_t skill_castfix(struct block_list *bl, interval_t time);
+interval_t skill_delayfix(struct block_list *bl, interval_t time);
 
 void skill_stop_dancing(struct block_list *src, int flag);
 
@@ -82,20 +80,20 @@ int skill_devotion3(struct block_list *bl, int target);
 
 // ステータス異常
 int skill_status_effect(struct block_list *bl, StatusChange type,
-        int val1, int val2, int val3, int val4,
-        int tick, int flag, int spell_invocation);
+        int val1,
+        interval_t tick, int spell_invocation);
 int skill_status_change_start(struct block_list *bl, StatusChange type,
-        int val1, int val2, int val3, int val4, int tick, int flag);
+        int val1,
+        interval_t tick);
 int skill_status_change_active(struct block_list *bl, StatusChange type);  // [fate]
-int skill_status_change_end(struct block_list *bl, StatusChange type, int tid);
+int skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid);
 int skill_status_change_clear(struct block_list *bl, int type);
 
 // mobスキルのため
 int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
-        SkillID skillid, int skilllv, unsigned int tick,
-        BCT flag);
+        SkillID skillid, int skilllv);
 int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
-        SkillID skillid, int skilllv, unsigned int tick,
+        SkillID skillid, int skilllv, tick_t tick,
         BCT flag);
 
 int skill_update_heal_animation(struct map_session_data *sd); // [Fate]  Check whether the healing flag must be updated, do so if needed

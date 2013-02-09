@@ -1052,7 +1052,7 @@ int fun_running_status_update(env_t *, int, val_t *result,
         return 1;
 
     StatusChange sc = StatusChange(ARGINT(1));
-    RESULTINT = battle_get_sc_data(ARGENTITY(0))[sc].timer != -1;
+    RESULTINT = battle_get_sc_data(ARGENTITY(0))[sc].timer != nullptr;
     return 0;
 }
 

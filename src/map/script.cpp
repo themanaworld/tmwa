@@ -15,6 +15,7 @@
 #include "../common/mt_rand.hpp"
 #include "../common/socket.hpp"
 #include "../common/utils.hpp"
+#include "../common/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -72,7 +73,7 @@ struct dbt *mapregstr_db = NULL;
 static
 int mapreg_dirty = -1;
 char mapreg_txt[256] = "save/mapreg.txt";
-constexpr int MAPREG_AUTOSAVE_INTERVAL = 10 * 1000;
+constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
 static
 struct dbt *scriptlabel_db = NULL;
@@ -2662,7 +2663,7 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
         /* System tick(unsigned int, and yes, it will wrap). */
         case 0:
         default:
-            push_val(st->stack, ScriptCode::INT, gettick());
+            push_val(st->stack, ScriptCode::INT, (int) gettick().time_since_epoch().count());
             break;
     }
 }
@@ -2837,8 +2838,8 @@ void builtin_killmonster_sub(struct block_list *bl, const char *event, int allfl
     }
     else if (allflag)
     {
-        if (((struct mob_data *) bl)->spawndelay1 == -1
-            && ((struct mob_data *) bl)->spawndelay2 == -1)
+        if (((struct mob_data *) bl)->spawndelay1 == static_cast<interval_t>(-1)
+            && ((struct mob_data *) bl)->spawndelay2 == static_cast<interval_t>(-1))
             mob_delete((struct mob_data *) bl);
         return;
     }
@@ -2895,8 +2896,7 @@ void builtin_donpcevent(ScriptState *st)
 static
 void builtin_addtimer(ScriptState *st)
 {
-    int tick;
-    tick = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     const char *event = conv_str(st, &(st->stack->stack_data[st->start + 3]));
     pc_addeventtimer(script_rid2sd(st), tick, event);
 }
@@ -2914,7 +2914,7 @@ void builtin_initnpctimer(ScriptState *st)
     else
         nd = (struct npc_data *) map_id2bl(st->oid);
 
-    npc_settimerevent_tick(nd, 0);
+    npc_settimerevent_tick(nd, interval_t::zero());
     npc_timerevent_start(nd);
 }
 
@@ -2968,7 +2968,7 @@ void builtin_getnpctimer(ScriptState *st)
     switch (type)
     {
         case 0:
-            val = npc_gettimerevent_tick(nd);
+            val = (int) npc_gettimerevent_tick(nd).count();
             break;
         case 1:
             val = (nd->u.scr.nexttimer >= 0);
@@ -2987,9 +2987,8 @@ void builtin_getnpctimer(ScriptState *st)
 static
 void builtin_setnpctimer(ScriptState *st)
 {
-    int tick;
     struct npc_data *nd;
-    tick = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     if (st->end > st->start + 3)
         nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 3])));
     else
@@ -3224,15 +3223,24 @@ static
 void builtin_sc_start(ScriptState *st)
 {
     struct block_list *bl;
-    int tick, val1;
-    StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
-    tick = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+    int val1;
+    StatusChange type = static_cast<StatusChange>(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &(st->stack->stack_data[st->start + 3])));
+    if (tick < std::chrono::seconds(1))
+        // work around old behaviour of:
+        // speed potion
+        // atk potion
+        // matk potion
+        //
+        // which used to use seconds
+        // all others used milliseconds
+        tick *= 1000;
     val1 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     if (st->end > st->start + 5)    //指定したキャラを状態異常にする
         bl = map_id2bl(conv_num(st, &(st->stack->stack_data[st->start + 5])));
     else
         bl = map_id2bl(st->rid);
-    skill_status_change_start(bl, type, val1, 0, 0, 0, tick, 0);
+    skill_status_change_start(bl, type, val1, tick);
 }
 
 /*==========================================
@@ -3245,9 +3253,7 @@ void builtin_sc_end(ScriptState *st)
     struct block_list *bl;
     StatusChange type = StatusChange(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     bl = map_id2bl(st->rid);
-    skill_status_change_end(bl, type, -1);
-//  if(battle_config.etc_log)
-//      PRINTF("sc_end : %d %d\n",st->rid,type);
+    skill_status_change_end(bl, type, nullptr);
 }
 
 static
@@ -3579,11 +3585,11 @@ void builtin_pvpon(ScriptState *st)
             if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
-                if (m == pl_sd->bl.m && pl_sd->pvp_timer == -1)
+                if (m == pl_sd->bl.m && !pl_sd->pvp_timer)
                 {
-                    pl_sd->pvp_timer =
-                        add_timer(gettick() + 200, pc_calc_pvprank_timer,
-                                   pl_sd->bl.id, 0);
+                    pl_sd->pvp_timer = add_timer(gettick() + std::chrono::milliseconds(200),
+                            std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
+                                pl_sd->bl.id));
                     pl_sd->pvp_rank = 0;
                     pl_sd->pvp_lastusers = 0;
                     pl_sd->pvp_point = 5;
@@ -3616,11 +3622,10 @@ void builtin_pvpoff(ScriptState *st)
             {
                 if (m == pl_sd->bl.m)
                 {
-                    if (pl_sd->pvp_timer != -1)
+                    if (pl_sd->pvp_timer)
                     {
-                        delete_timer(pl_sd->pvp_timer,
-                                      pc_calc_pvprank_timer);
-                        pl_sd->pvp_timer = -1;
+                        delete_timer(pl_sd->pvp_timer);
+                        pl_sd->pvp_timer = nullptr;
                     }
                 }
             }
@@ -4226,7 +4231,7 @@ void builtin_getsavepoint(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_areatimer_sub(struct block_list *bl, int tick, const char *event)
+void builtin_areatimer_sub(struct block_list *bl, interval_t tick, const char *event)
 {
     pc_addeventtimer((struct map_session_data *) bl, tick, event);
 }
@@ -4234,7 +4239,7 @@ void builtin_areatimer_sub(struct block_list *bl, int tick, const char *event)
 static
 void builtin_areatimer(ScriptState *st)
 {
-    int tick, m;
+    int m;
     int x0, y0, x1, y1;
 
     const char *mapname = conv_str(st, &(st->stack->stack_data[st->start + 2]));
@@ -4242,7 +4247,7 @@ void builtin_areatimer(ScriptState *st)
     y0 = conv_num(st, &(st->stack->stack_data[st->start + 4]));
     x1 = conv_num(st, &(st->stack->stack_data[st->start + 5]));
     y1 = conv_num(st, &(st->stack->stack_data[st->start + 6]));
-    tick = conv_num(st, &(st->stack->stack_data[st->start + 7]));
+    interval_t tick = static_cast<interval_t>(conv_num(st, &(st->stack->stack_data[st->start + 7])));
     const char *event = conv_str(st, &(st->stack->stack_data[st->start + 8]));
 
     if ((m = map_mapname2mapid(mapname)) < 0)
@@ -5037,7 +5042,7 @@ void script_save_mapreg(void)
 }
 
 static
-void script_autosave_mapreg(timer_id, tick_t, custom_id_t, custom_data_t)
+void script_autosave_mapreg(TimerData *, tick_t)
 {
     if (mapreg_dirty)
         script_save_mapreg();
@@ -5110,8 +5115,8 @@ void do_init_script(void)
     script_load_mapreg();
 
     add_timer_interval(gettick() + MAPREG_AUTOSAVE_INTERVAL,
-                        script_autosave_mapreg, 0, 0,
-                        MAPREG_AUTOSAVE_INTERVAL);
+            script_autosave_mapreg,
+            MAPREG_AUTOSAVE_INTERVAL);
 
     scriptlabel_db = strdb_init(50);
 }

@@ -1,5 +1,6 @@
 #include "skill.hpp"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -8,6 +9,7 @@
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"
@@ -56,13 +58,13 @@ earray<struct skill_db, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 static
 int skill_attack(BF attack_type, struct block_list *src,
         struct block_list *dsrc, struct block_list *bl,
-        SkillID skillid, int skilllv, unsigned int tick, BCT flag);
+        SkillID skillid, int skilllv, tick_t tick, BCT flag);
 static
 void skill_devotion_end(struct map_session_data *md,
         struct map_session_data *sd, int target);
 static
-void skill_status_change_timer(timer_id tid, tick_t tick,
-        custom_id_t id, custom_data_t data);
+void skill_status_change_timer(TimerData *tid, tick_t tick,
+        int id, StatusChange type);
 
 int skill_get_hit(SkillID id)
 {
@@ -145,8 +147,7 @@ int distance(int x0, int y0, int x1, int y1)
  *------------------------------------------
  */
 int skill_additional_effect(struct block_list *src, struct block_list *bl,
-                             SkillID skillid, int skilllv, BF,
-                             unsigned int)
+        SkillID skillid, int skilllv)
 {
     struct map_session_data *sd = NULL;
     struct mob_data *md = NULL;
@@ -174,7 +175,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     }
 
     sc_def_phys_shield_spell = 0;
-    if (battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].timer != -1)
+    if (battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].timer)
         sc_def_phys_shield_spell =
             battle_get_sc_data(bl)[StatusChange::SC_PHYS_SHIELD].val1;
 
@@ -208,11 +209,9 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     switch (skillid)
     {
         case SkillID::NPC_POISON:
-            if (MRAND(100) <
-                50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) +
-                (skilllv >> 2))
-                skill_status_change_start(bl, StatusChange::SC_POISON,
-                                           skilllv, 0, 0, 0, skilllv, 0);
+            // blame Fate for this
+            if (MRAND(100) < 50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) + (skilllv >> 2))
+                skill_status_change_start(bl, StatusChange::SC_POISON, skilllv, static_cast<interval_t>(skilllv));
             break;
     }
 
@@ -233,7 +232,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
 
 int skill_attack(BF attack_type, struct block_list *src,
         struct block_list *dsrc, struct block_list *bl,
-        SkillID skillid, int skilllv, unsigned int tick, BCT flag)
+        SkillID skillid, int skilllv, tick_t tick, BCT flag)
 {
     struct Damage dmg;
     eptr<struct status_change, StatusChange> sc_data;
@@ -298,8 +297,7 @@ int skill_attack(BF attack_type, struct block_list *src,
         if (bl->type != BL::PC || (sd && !pc_isdead(sd)))
         {
             if (damage > 0)
-                skill_additional_effect(src, bl, skillid, skilllv,
-                                         attack_type, tick);
+                skill_additional_effect(src, bl, skillid, skilllv);
             if (bl->type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
             {
                 struct mob_data *md = (struct mob_data *) bl;
@@ -310,11 +308,11 @@ int skill_attack(BF attack_type, struct block_list *src,
                     target = md->target_id;
                     if (src->type == BL::PC)
                         md->target_id = src->id;
-                    mobskill_use(md, tick, MobSkillCondition::ANY, skillid);
+                    mobskill_use(md, tick, MobSkillCondition::ANY);
                     md->target_id = target;
                 }
                 else
-                    mobskill_use(md, tick, MobSkillCondition::ANY, skillid);
+                    mobskill_use(md, tick, MobSkillCondition::ANY);
             }
         }
     }
@@ -359,12 +357,12 @@ int skill_attack(BF attack_type, struct block_list *src,
 
 typedef int(*SkillFunc)(struct block_list *, struct block_list *,
         SkillID, int,
-        unsigned int, BCT);
+        tick_t, BCT);
 
 static
 void skill_area_sub(struct block_list *bl,
         struct block_list *src, SkillID skill_id, int skill_lv,
-        unsigned int tick, BCT flag, SkillFunc func)
+        tick_t tick, BCT flag, SkillFunc func)
 {
     nullpo_retv(bl);
 
@@ -374,6 +372,7 @@ void skill_area_sub(struct block_list *bl,
     if (battle_check_target(src, bl, flag) > 0)
         func(src, bl, skill_id, skill_lv, tick, flag);
 }
+
 
 /* 範囲スキル使用処理小分けここまで
  * -------------------------------------------------------------------------
@@ -391,7 +390,7 @@ static int skill_area_temp_id, skill_area_temp_hp;
  */
 int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
         SkillID skillid, int skilllv,
-        unsigned int tick, BCT flag)
+        tick_t tick, BCT flag)
 {
     struct map_session_data *sd = NULL;
 
@@ -438,7 +437,8 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
                 {
                     skill_area_temp_id = bl->id;
                     skill_area_temp_hp = battle_get_hp(src);
-                    map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv, tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
+                    map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv,
+                                tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
                             bl->m, bl->x - 5, bl->y - 5,
                             bl->x + 5, bl->y + 5, BL::NUL);
                     battle_damage(src, src, md->hp, 0);
@@ -460,7 +460,8 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
                 {
                     // TODO does this happen?
                     skill_area_temp_id = bl->id;
-                    map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv, tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
+                    map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv,
+                                tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
                             bl->m, bl->x - 0, bl->y - 0,
                             bl->x + 0, bl->y + 0, BL::NUL);
                 }
@@ -483,8 +484,7 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
 // skillid.nk == 1
 // so skillid in (SkillID::NPC_SUMMONSLAVE, SkillID::NPC_EMOTION)
 int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
-        SkillID skillid, int skilllv,
-        unsigned int, BCT)
+        SkillID skillid, int skilllv)
 {
     struct map_session_data *sd = NULL;
     struct map_session_data *dstsd = NULL;
@@ -561,7 +561,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
  * 詠唱時間計算
  *------------------------------------------
  */
-int skill_castfix(struct block_list *bl, int time)
+interval_t skill_castfix(struct block_list *bl, interval_t time)
 {
     struct mob_data *md;        // [Valaris]
     eptr<struct status_change, StatusChange> sc_data;
@@ -570,7 +570,7 @@ int skill_castfix(struct block_list *bl, int time)
     SkillID skill;
     int lv, castnodex;
 
-    nullpo_ret(bl);
+    nullpo_retr(interval_t::zero(), bl);
 
     if (bl->type == BL::MOB)
     {                           // Crash fix [Valaris]
@@ -588,12 +588,12 @@ int skill_castfix(struct block_list *bl, int time)
     dex = battle_get_dex(bl);
 
     if (skill > SkillID::MAX_SKILL_DB /*|| skill < SkillID()*/)
-        return 0;
+        return interval_t::zero();
 
     castnodex = skill_get_castnodex(skill, lv);
 
-    if (time == 0)
-        return 0;
+    if (time == interval_t::zero())
+        return interval_t::zero();
     if (castnodex > 0 && bl->type == BL::PC)
         castrate = 100;
     else if (castnodex <= 0 && bl->type == BL::PC)
@@ -606,22 +606,22 @@ int skill_castfix(struct block_list *bl, int time)
         time = time * battle_config.cast_rate / 100;
     }
 
-    return (time > 0) ? time : 0;
+    return std::max(time, interval_t::zero());
 }
 
 /*==========================================
  * ディレイ計算
  *------------------------------------------
  */
-int skill_delayfix(struct block_list *bl, int time)
+interval_t skill_delayfix(struct block_list *bl, interval_t time)
 {
     eptr<struct status_change, StatusChange> sc_data;
 
-    nullpo_ret(bl);
+    nullpo_retr(interval_t::zero(), bl);
 
     sc_data = battle_get_sc_data(bl);
-    if (time <= 0)
-        return 0;
+    if (time <= interval_t::zero())
+        return interval_t::zero();
 
     if (bl->type == BL::PC)
     {
@@ -633,7 +633,7 @@ int skill_delayfix(struct block_list *bl, int time)
         time = time * battle_config.delay_rate / 100;
     }
 
-    return (time > 0) ? time : 0;
+    return std::max(time, interval_t::zero());
 }
 
 /*==========================================
@@ -642,15 +642,12 @@ int skill_delayfix(struct block_list *bl, int time)
  */
 int skill_castcancel(struct block_list *bl, int)
 {
-    int inf;
-
     nullpo_ret(bl);
 
     if (bl->type == BL::PC)
     {
         struct map_session_data *sd = (struct map_session_data *) bl;
-        unsigned long tick = gettick();
-        nullpo_ret(sd);
+        tick_t tick = gettick();
         sd->canact_tick = tick;
         sd->canmove_tick = tick;
 
@@ -659,14 +656,10 @@ int skill_castcancel(struct block_list *bl, int)
     else if (bl->type == BL::MOB)
     {
         struct mob_data *md = (struct mob_data *) bl;
-        nullpo_ret(md);
-        if (md->skilltimer != -1)
+        if (md->skilltimer)
         {
-            if ((inf = skill_get_inf(md->skillid)) == 2 || inf == 32)
-                delete_timer(md->skilltimer, mobskill_castend_pos);
-            else
-                delete_timer(md->skilltimer, mobskill_castend_id);
-            md->skilltimer = -1;
+            delete_timer(md->skilltimer);
+            md->skilltimer = nullptr;
             clif_skillcastcancel(bl);
         }
         return 0;
@@ -765,10 +758,10 @@ int skill_status_change_active(struct block_list *bl, StatusChange type)
     if (not sc_data)
         return 0;
 
-    return sc_data[type].timer != -1;
+    return sc_data[type].timer != nullptr;
 }
 
-int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
+int skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid)
 {
     eptr<struct status_change, StatusChange> sc_data;
     int opt_flag = 0, calc_flag = 0;
@@ -799,15 +792,16 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
     opt3 = battle_get_opt3(bl);
     nullpo_ret(opt3);
 
-    if ((*sc_count) > 0 && sc_data[type].timer != -1
-        && (sc_data[type].timer == tid || tid == -1))
+    if ((*sc_count) > 0 && sc_data[type].timer
+        && (sc_data[type].timer == tid || !tid))
     {
 
-        if (tid == -1)          // タイマから呼ばれていないならタイマ削除をする
-            delete_timer(sc_data[type].timer, skill_status_change_timer);
+        if (!tid)
+            // タイマから呼ばれていないならタイマ削除をする
+            delete_timer(sc_data[type].timer);
 
         /* 該当の異常を正常に戻す */
-        sc_data[type].timer = -1;
+        sc_data[type].timer = nullptr;
         (*sc_count)--;
 
         switch (type)
@@ -819,27 +813,9 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
             case StatusChange::SC_HASTE:
                 calc_flag = 1;
                 break;
-            case StatusChange::SC_NOCHAT:    //チャット禁止状態
-                break;
-            case StatusChange::SC_SELFDESTRUCTION:   /* 自爆 */
-            {
-                //自分のダメージは0にして
-                struct mob_data *md = NULL;
-                if (bl->type == BL::MOB && (md = (struct mob_data *) bl))
-                    skill_castend_damage_id(bl, bl,
-                           static_cast<SkillID>(sc_data[type].val2), sc_data[type].val1,
-                           gettick(), BCT_ZERO);
-            }
-                break;
-                /* option1 */
-            case StatusChange::SC_FREEZE:
-                sc_data[type].val3 = 0;
-                break;
 
                 /* option2 */
             case StatusChange::SC_POISON:    /* 毒 */
-            case StatusChange::SC_BLIND:     /* 暗黒 */
-            case StatusChange::SC_CURSE:
                 calc_flag = 1;
                 break;
         }
@@ -848,37 +824,14 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
             clif_status_change(bl, type, 0);   /* アイコン消去 */
 
         switch (type)
-        {                       /* 正常に戻るときなにか処理が必要 */
-            case StatusChange::SC_STONE:
-            case StatusChange::SC_FREEZE:
-            case StatusChange::SC_STAN:
-            case StatusChange::SC_SLEEP:
-                *opt1 = Opt1::ZERO;
-                opt_flag = 1;
-                break;
-
+        {
             case StatusChange::SC_POISON:
                 *opt2 &= ~Opt2::_poison;
                 opt_flag = 1;
                 break;
 
-            case StatusChange::SC_CURSE:
-                *opt2 &= ~Opt2::_curse;
-                opt_flag = 1;
-                break;
-
-            case StatusChange::SC_SILENCE:
-                *opt2 &= ~Opt2::_silence;
-                opt_flag = 1;
-                break;
-
-            case StatusChange::SC_BLIND:
-                *opt2 &= ~Opt2::BLIND;
-                opt_flag = 1;
-                break;
-
             case StatusChange::SC_SLOWPOISON:
-                if (sc_data[StatusChange::SC_POISON].timer != -1)
+                if (sc_data[StatusChange::SC_POISON].timer)
                     *opt2 |= Opt2::_poison;
                 *opt2 &= ~Opt2::_slowpoison;
                 opt_flag = 1;
@@ -893,14 +846,6 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, int tid)
                 *opt2 &= ~Opt2::_atkpot;
                 opt_flag = 1;
                 break;
-        }
-
-        if (night_flag == 1
-            && !bool(*opt2 & Opt2::BLIND)
-            && bl->type == BL::PC)
-        {                       // by [Yor]
-            *opt2 |= Opt2::BLIND;
-            opt_flag = 1;
         }
 
         if (opt_flag)           /* optionの変更を伝える */
@@ -936,9 +881,8 @@ int skill_update_heal_animation(struct map_session_data *sd)
  * ステータス異常終了タイマー
  *------------------------------------------
  */
-void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom_data_t data)
+void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange type)
 {
-    StatusChange type = static_cast<StatusChange>(data);
     struct block_list *bl;
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> sc_data;
@@ -956,12 +900,7 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
 
     //sc_count=battle_get_sc_count(bl); //使ってない？
 
-    if (sc_data[type].timer != tid)
-    {
-        if (battle_config.error_log)
-            PRINTF("skill_status_change_timer %d != %d\n", tid,
-                    sc_data[type].timer);
-    }
+    assert (sc_data[type].timer == tid);
 
     if (sc_data[type].spell_invocation)
     {                           // Must report termination
@@ -971,51 +910,9 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
     }
 
     switch (type)
-    {                           /* 特殊な処理になる場合 */
-        case StatusChange::SC_STONE:
-            if (sc_data[type].val2 != 0)
-            {
-                Opt1 *opt1 = battle_get_opt1(bl);
-                sc_data[type].val2 = 0;
-                sc_data[type].val4 = 0;
-                battle_stopwalking(bl, 1);
-                if (opt1)
-                {
-                    *opt1 = Opt1::_stone1;
-                    clif_changeoption(bl);
-                }
-                sc_data[type].timer =
-                    add_timer(1000 + tick, skill_status_change_timer, bl->id,
-                               data);
-                return;
-            }
-            else if ((--sc_data[type].val3) > 0)
-            {
-                int hp = battle_get_max_hp(bl);
-                if ((++sc_data[type].val4) % 5 == 0
-                    && battle_get_hp(bl) > hp >> 2)
-                {
-                    hp = hp / 100;
-                    if (hp < 1)
-                        hp = 1;
-                    if (bl->type == BL::PC)
-                        pc_heal((struct map_session_data *) bl, -hp, 0);
-                    else if (bl->type == BL::MOB)
-                    {
-                        struct mob_data *md;
-                        if ((md = ((struct mob_data *) bl)) == NULL)
-                            break;
-                        md->hp -= hp;
-                    }
-                }
-                sc_data[type].timer =
-                    add_timer(1000 + tick, skill_status_change_timer, bl->id,
-                               data);
-                return;
-            }
-            break;
+    {
         case StatusChange::SC_POISON:
-            if (sc_data[StatusChange::SC_SLOWPOISON].timer == -1)
+            if (!sc_data[StatusChange::SC_SLOWPOISON].timer)
             {
                 const int resist_poison =
                     skill_power_bl(bl, SkillID::TMW_RESIST_POISON) >> 3;
@@ -1042,15 +939,15 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
                             md->hp -= hp;
                         }
                     }
-                    sc_data[type].timer =
-                        add_timer(1000 + tick, skill_status_change_timer,
-                                   bl->id, data);
+                    sc_data[type].timer = add_timer(tick + std::chrono::seconds(1),
+                            std::bind(skill_status_change_timer, ph::_1, ph::_2,
+                                bl->id, type));
                 }
             }
             else
-                sc_data[type].timer =
-                    add_timer(2000 + tick, skill_status_change_timer, bl->id,
-                               data);
+                sc_data[type].timer = add_timer(tick + std::chrono::seconds(2),
+                        std::bind(skill_status_change_timer, ph::_1, ph::_2,
+                            bl->id, type));
             break;
 
             /* 時間切れ無し？？ */
@@ -1059,44 +956,10 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
         case StatusChange::SC_BROKNWEAPON:
         case StatusChange::SC_BROKNARMOR:
             if (sc_data[type].timer == tid)
-                sc_data[type].timer =
-                    add_timer(1000 * 600 + tick, skill_status_change_timer,
-                               bl->id, data);
+                sc_data[type].timer = add_timer(tick + std::chrono::minutes(10),
+                        std::bind(skill_status_change_timer, ph::_1, ph::_2,
+                            bl->id, type));
             return;
-
-        case StatusChange::SC_NOCHAT:        //チャット禁止状態
-            if (sd && battle_config.muting_players)
-            {
-                time_t timer;
-                if ((++sd->status.manner)
-                    && time(&timer) <
-                    ((sc_data[type].val2) + 60 * (0 - sd->status.manner)))
-                {               //開始からstatus.manner分経ってないので継続
-                    sc_data[type].timer = add_timer(   /* タイマー再設定(60秒) */
-                                                        60000 + tick,
-                                                        skill_status_change_timer,
-                                                        bl->id, data);
-                    return;
-                }
-            }
-            break;
-        case StatusChange::SC_SELFDESTRUCTION:   /* 自爆 */
-            if (--sc_data[type].val3 > 0)
-            {
-                struct mob_data *md;
-                if (bl->type == BL::MOB && (md = (struct mob_data *) bl)
-                    && md->stats[mob_stat::SPEED] > 250)
-                {
-                    md->stats[mob_stat::SPEED] -= 250;
-                    md->next_walktime = tick;
-                }
-                sc_data[type].timer = add_timer(   /* タイマー再設定 */
-                                                    1000 + tick,
-                                                    skill_status_change_timer,
-                                                    bl->id, data);
-                return;
-            }
-            break;
 
         case StatusChange::SC_FLYING_BACKPACK:
             clif_updatestatus(sd, SP::WEIGHT);
@@ -1112,16 +975,15 @@ void skill_status_change_timer(timer_id tid, tick_t tick, custom_id_t id, custom
  *------------------------------------------
  */
 int skill_status_change_start(struct block_list *bl, StatusChange type,
-        int val1, int val2, int val3, int val4,
-        int tick, int flag)
+        int val1,
+        interval_t tick)
 {
-    return skill_status_effect(bl, type, val1, val2, val3, val4, tick, flag,
-                                0);
+    return skill_status_effect(bl, type, val1, tick, 0);
 }
 
 int skill_status_effect(struct block_list *bl, StatusChange type,
-        int val1, int val2, int val3, int val4,
-        int tick, int flag, int spell_invocation)
+        int val1,
+        interval_t tick, int spell_invocation)
 {
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> sc_data;
@@ -1131,7 +993,6 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     Opt2 *opt2;
     Opt3 *opt3;
     int opt_flag = 0, calc_flag = 0;
-    int undead_flag;
     SP updateflag = SP::ZERO;
     int scdef = 0;
 
@@ -1150,33 +1011,11 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     opt3 = battle_get_opt3(bl);
     nullpo_ret(opt3);
 
-    Race race = battle_get_race(bl);
-    MobMode mode = battle_get_mode(bl);
-    Element elem = battle_get_elem_type(bl);
-    undead_flag = battle_check_undead(race, elem);
-
     switch (type)
     {
-        case StatusChange::SC_STONE:
-        case StatusChange::SC_FREEZE:
-            scdef = 3 + battle_get_mdef(bl) + battle_get_luk(bl) / 3;
-            break;
-        case StatusChange::SC_STAN:
-        case StatusChange::SC_SILENCE:
         case StatusChange::SC_POISON:
             scdef = 3 + battle_get_vit(bl) + battle_get_luk(bl) / 3;
             break;
-        case StatusChange::SC_SLEEP:
-        case StatusChange::SC_BLIND:
-            scdef = 3 + battle_get_int(bl) + battle_get_luk(bl) / 3;
-            break;
-        case StatusChange::SC_CURSE:
-            scdef = 3 + battle_get_luk(bl);
-            break;
-
-//      case StatusChange::SC_CONFUSION:
-        default:
-            scdef = 0;
     }
     if (scdef >= 100)
         return 0;
@@ -1194,51 +1033,35 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         return 0;
     }
 
-    if (type == StatusChange::SC_FREEZE && undead_flag && !(flag & 1))
-        return 0;
-
-    if (bool(mode & MobMode::BOSS)
-        && (type == StatusChange::SC_STONE
-            || type == StatusChange::SC_FREEZE
-            || type == StatusChange::SC_STAN
-            || type == StatusChange::SC_SLEEP
-            || type == StatusChange::SC_SILENCE
-        )
-        && !(flag & 1))
-    {
-        /* ボスには効かない(ただしカードによる効果は適用される) */
-        return 0;
-    }
-    if (type == StatusChange::SC_FREEZE || type == StatusChange::SC_STAN || type == StatusChange::SC_SLEEP)
-        battle_stopwalking(bl, 1);
-
-    if (sc_data[type].timer != -1)
+    if (sc_data[type].timer)
     {                           /* すでに同じ異常になっている場合タイマ解除 */
         if (sc_data[type].val1 > val1
             && type != StatusChange::SC_SPEEDPOTION0
             && type != StatusChange::SC_ATKPOT
             && type != StatusChange::SC_MATKPOT) // added atk and matk potions [Valaris]
             return 0;
-        if (type >= StatusChange::SC_STAN && type <= StatusChange::SC_BLIND)
-            return 0;           /* 継ぎ足しができない状態異常である時は状態異常を行わない */
+        if (type == StatusChange::SC_POISON)
+            return 0;
+
+        /* 継ぎ足しができない状態異常である時は状態異常を行わない */
         {
             (*sc_count)--;
-            delete_timer(sc_data[type].timer, skill_status_change_timer);
-            sc_data[type].timer = -1;
+            delete_timer(sc_data[type].timer);
+            sc_data[type].timer = nullptr;
         }
     }
 
     switch (type)
-    {                           /* 異常の種類ごとの処理 */
+    {
+        /* 異常の種類ごとの処理 */
         case StatusChange::SC_SLOWPOISON:
-            if (sc_data[StatusChange::SC_POISON].timer == -1)
+            if (!sc_data[StatusChange::SC_POISON].timer)
                 return 0;
             break;
 
         case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション */
             *opt2 |= Opt2::_speedpotion0;
             calc_flag = 1;
-            tick = 1000 * tick;
 //          val2 = 5*(2+type-StatusChange::SC_SPEEDPOTION0);
             break;
 
@@ -1248,109 +1071,26 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             FALLTHROUGH;
         case StatusChange::SC_MATKPOT:
             calc_flag = 1;
-            tick = 1000 * tick;
-            break;
-
-        case StatusChange::SC_NOCHAT:        //チャット禁止状態
-        {
-            time_t timer;
-
-            if (!battle_config.muting_players)
-                break;
-
-            tick = 60000;
-            if (!val2)
-                val2 = time(&timer);
-            // updateflag = SP_MANNER;
-        }
-            break;
-        case StatusChange::SC_SELFDESTRUCTION:   //自爆
-            val3 = tick / 1000;
-            tick = 1000;
-            break;
-
-            /* option1 */
-        case StatusChange::SC_STONE:         /* 石化 */
-            if (!(flag & 2))
-            {
-                int sc_def = battle_get_mdef(bl) * 200;
-                tick = tick - sc_def;
-            }
-            val3 = tick / 1000;
-            if (val3 < 1)
-                val3 = 1;
-            tick = 5000;
-            val2 = 1;
-            break;
-        case StatusChange::SC_SLEEP:         /* 睡眠 */
-            if (!(flag & 2))
-            {
-//              int sc_def = 100 - (battle_get_int(bl) + battle_get_luk(bl)/3);
-//              tick = tick * sc_def / 100;
-//              if(tick < 1000) tick = 1000;
-                tick = 30000;   //睡眠はステータス耐性に関わらず30秒
-            }
-            break;
-        case StatusChange::SC_FREEZE:        /* 凍結 */
-            if (!(flag & 2))
-            {
-                int sc_def = 100 - battle_get_mdef(bl);
-                tick = tick * sc_def / 100;
-            }
-            break;
-        case StatusChange::SC_STAN:          /* スタン（val2にミリ秒セット） */
-            if (!(flag & 2))
-            {
-                int sc_def =
-                    100 - (battle_get_vit(bl) + battle_get_luk(bl) / 3);
-                tick = tick * sc_def / 100;
-            }
             break;
 
             /* option2 */
         case StatusChange::SC_POISON:        /* 毒 */
             calc_flag = 1;
-            if (!(flag & 2))
             {
                 int sc_def =
                     100 - (battle_get_vit(bl) + battle_get_luk(bl) / 5);
                 tick = tick * sc_def / 100;
             }
-            val3 = tick / 1000;
-            if (val3 < 1)
-                val3 = 1;
-            tick = 1000;
-            break;
-        case StatusChange::SC_SILENCE:       /* 沈黙（レックスデビーナ） */
-            if (!(flag & 2))
-            {
-                int sc_def = 100 - battle_get_vit(bl);
-                tick = tick * sc_def / 100;
-            }
-            break;
-        case StatusChange::SC_BLIND:         /* 暗黒 */
-            calc_flag = 1;
-            if (!(flag & 2))
-            {
-                int sc_def =
-                    battle_get_lv(bl) / 10 + battle_get_int(bl) / 15;
-                tick = 30000 - sc_def;
-            }
-            break;
-        case StatusChange::SC_CURSE:
-            calc_flag = 1;
-            if (!(flag & 2))
-            {
-                int sc_def = 100 - battle_get_vit(bl);
-                tick = tick * sc_def / 100;
-            }
+
+            // huh?
+            tick = std::chrono::seconds(1);
             break;
 
         case StatusChange::SC_WEIGHT50:
         case StatusChange::SC_WEIGHT90:
         case StatusChange::SC_BROKNWEAPON:
         case StatusChange::SC_BROKNARMOR:
-            tick = 600 * 1000;
+            tick = std::chrono::minutes(10);
             break;
 
         case StatusChange::SC_HASTE:
@@ -1376,51 +1116,12 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     /* optionの変更 */
     switch (type)
     {
-        case StatusChange::SC_STONE:
-        case StatusChange::SC_FREEZE:
-        case StatusChange::SC_STAN:
-        case StatusChange::SC_SLEEP:
-            battle_stopattack(bl); /* 攻撃停止 */
-            skill_stop_dancing(bl, 0); /* 演奏/ダンスの中断 */
-            /* 同時に掛からないステータス異常を解除 */
-            for (StatusChange i : MAJOR_STATUS_EFFECTS_1)
-            {
-                if (sc_data[i].timer != -1)
-                {
-                    (*sc_count)--;
-                    delete_timer(sc_data[i].timer,
-                                  skill_status_change_timer);
-                    sc_data[i].timer = -1;
-                }
-            }
-            switch (type)
-            {
-            case StatusChange::SC_STONE:  *opt1 = Opt1::_stone6; break;
-            case StatusChange::SC_FREEZE: *opt1 = Opt1::_freeze; break;
-            case StatusChange::SC_STAN:   *opt1 = Opt1::_stan; break;
-            case StatusChange::SC_SLEEP:  *opt1 = Opt1::_sleep; break;
-            }
-            opt_flag = 1;
-            break;
         case StatusChange::SC_POISON:
-            if (sc_data[StatusChange::SC_SLOWPOISON].timer == -1)
+            if (!sc_data[StatusChange::SC_SLOWPOISON].timer)
             {
                 *opt2 |= Opt2::_poison;
                 opt_flag = 1;
             }
-            break;
-
-        case StatusChange::SC_CURSE:
-            *opt2 |= Opt2::_curse;
-            opt_flag = 1;
-            break;
-        case StatusChange::SC_SILENCE:
-            *opt2 |= Opt2::_silence;
-            opt_flag = 1;
-            break;
-        case StatusChange::SC_BLIND:
-            *opt2 |= Opt2::BLIND;
-            opt_flag = 1;
             break;
 
         case StatusChange::SC_SLOWPOISON:
@@ -1436,9 +1137,6 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     (*sc_count)++;              /* ステータス異常の数 */
 
     sc_data[type].val1 = val1;
-    sc_data[type].val2 = val2;
-    sc_data[type].val3 = val3;
-    sc_data[type].val4 = val4;
     if (sc_data[type].spell_invocation) // Supplant by newer spell
         spell_effect_report_termination(sc_data[type].spell_invocation,
                                          bl->id, type, 1);
@@ -1446,9 +1144,9 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     sc_data[type].spell_invocation = spell_invocation;
 
     /* タイマー設定 */
-    sc_data[type].timer =
-        add_timer(gettick() + tick, skill_status_change_timer, bl->id,
-                   custom_data_t(type));
+    sc_data[type].timer = add_timer(gettick() + tick,
+            std::bind(skill_status_change_timer, ph::_1, ph::_2,
+                bl->id, type));
 
     if (bl->type == BL::PC && calc_flag)
         pc_calcstatus(sd, 0);  /* ステータス再計算 */
@@ -1491,19 +1189,14 @@ int skill_status_change_clear(struct block_list *bl, int type)
         return 0;
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
     {
-        if (sc_data[i].timer != -1)
-        {
-            skill_status_change_end(bl, i, -1);
-        }
+        if (sc_data[i].timer)
+            skill_status_change_end(bl, i, nullptr);
     }
     *sc_count = 0;
     *opt1 = Opt1::ZERO;
     *opt2 = Opt2::ZERO;
     *opt3 = Opt3::ZERO;
     *option = Option::ZERO;
-
-    if (night_flag == 1 && type == 1)   // by [Yor]
-        *opt2 |= Opt2::BLIND;
 
     if (type == 0 || type & 2)
         clif_changeoption(bl);

@@ -3,7 +3,7 @@
 #define MMO_HPP
 
 # include "sanity.hpp"
-
+# include "timer.t.hpp"
 # include "utils.hpp"
 
 constexpr int FIFOSIZE_SERVERLINK = 256 * 1024;
@@ -22,9 +22,9 @@ constexpr SkillID get_enum_max_value(SkillID) { return MAX_SKILL; }
 constexpr int GLOBAL_REG_NUM = 96;
 constexpr int ACCOUNT_REG_NUM = 16;
 constexpr int ACCOUNT_REG2_NUM = 16;
-constexpr int DEFAULT_WALK_SPEED = 150;
-constexpr int MIN_WALK_SPEED = 0;
-constexpr int MAX_WALK_SPEED = 1000;
+constexpr interval_t DEFAULT_WALK_SPEED = std::chrono::milliseconds(150);
+constexpr interval_t MIN_WALK_SPEED = interval_t::zero();
+constexpr interval_t MAX_WALK_SPEED = std::chrono::seconds(1);
 constexpr int MAX_STORAGE = 300;
 constexpr int MAX_PARTY = 12;
 

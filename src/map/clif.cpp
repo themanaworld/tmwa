@@ -11,6 +11,7 @@
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
+#include "../common/timer.hpp"
 #include "../common/version.hpp"
 
 #include "atcommand.hpp"
@@ -34,89 +35,49 @@
 
 constexpr int EMOTE_IGNORED = 0x0e;
 
-static
-const int packet_len_table[0x220] = {
-    10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//#0x0040
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, -1, 55, 17, 3, 37, 46, -1, 23, -1, 3, 108, 3, 2,
-    3, 28, 19, 11, 3, -1, 9, 5, 54, 53, 58, 60, 41, 2, 6, 6,
-//#0x0080
-    7, 3, 2, 2, 2, 5, 16, 12, 10, 7, 29, 23, -1, -1, -1, 0, // 0x8b unknown... size 2 or 23?
-    7, 22, 28, 2, 6, 30, -1, -1, 3, -1, -1, 5, 9, 17, 17, 6,
-    23, 6, 6, -1, -1, -1, -1, 8, 7, 6, 7, 4, 7, 0, -1, 6,
-    8, 8, 3, 3, -1, 6, 6, -1, 7, 6, 2, 5, 6, 44, 5, 3,
-//#0x00C0
-    7, 2, 6, 8, 6, 7, -1, -1, -1, -1, 3, 3, 6, 6, 2, 27,
-    3, 4, 4, 2, -1, -1, 3, -1, 6, 14, 3, -1, 28, 29, -1, -1,
-    30, 30, 26, 2, 6, 26, 3, 3, 8, 19, 5, 2, 3, 2, 2, 2,
-    3, 2, 6, 8, 21, 8, 8, 2, 2, 26, 3, -1, 6, 27, 30, 10,
+// functions list. Rate is how many milliseconds are required between
+// calls. Packets exceeding this rate will be dropped. flood_rates in
+// map.h must be the same length as this table. rate 0 is default
+// rate -1 is unlimited
 
-//#0x0100
-    2, 6, 6, 30, 79, 31, 10, 10, -1, -1, 4, 6, 6, 2, 11, -1,
-    10, 39, 4, 10, 31, 35, 10, 18, 2, 13, 15, 20, 68, 2, 3, 16,
-    6, 14, -1, -1, 21, 8, 8, 8, 8, 8, 2, 2, 3, 4, 2, -1,
-    6, 86, 6, -1, -1, 7, -1, 6, 3, 16, 4, 4, 4, 6, 24, 26,
-//#0x0140
-    22, 14, 6, 10, 23, 19, 6, 39, 8, 9, 6, 27, -1, 2, 6, 6,
-    110, 6, -1, -1, -1, -1, -1, 6, -1, 54, 66, 54, 90, 42, 6, 42,
-    -1, -1, -1, -1, -1, 30, -1, 3, 14, 3, 30, 10, 43, 14, 186, 182,
-    14, 30, 10, 3, -1, 6, 106, -1, 4, 5, 4, -1, 6, 7, -1, -1,
-//#0x0180
-    6, 3, 106, 10, 10, 34, 0, 6, 8, 4, 4, 4, 29, -1, 10, 6,
-    90, 86, 24, 6, 30, 102, 9, 4, 8, 4, 14, 10, -1, 6, 2, 6,
-    3, 3, 35, 5, 11, 26, -1, 4, 4, 6, 10, 12, 6, -1, 4, 4,
-    11, 7, -1, 67, 12, 18, 114, 6, 3, 6, 26, 26, 26, 26, 2, 3,
-//#0x01C0,   Set 0x1d5=-1
-    2, 14, 10, -1, 22, 22, 4, 2, 13, 97, 0, 9, 9, 30, 6, 28,
-    8, 14, 10, 35, 6, -1, 4, 11, 54, 53, 60, 2, -1, 47, 33, 6,
-    30, 8, 34, 14, 2, 6, 26, 2, 28, 81, 6, 10, 26, 2, -1, -1,
-    -1, -1, 20, 10, 32, 9, 34, 14, 2, 6, 48, 56, -1, 4, 5, 10,
-//#0x200
-    26, -1, 26, 10, 18, 26, 11, 34, 14, 36, 10, 19, 10, -1, 24, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+typedef void (*clif_func)(int fd, struct map_session_data *sd);
+struct func_table
+{
+    interval_t rate;
+    int len;
+    clif_func func;
+
+    // ctor exists because interval_t must be explicit
+    func_table(int r, int l, clif_func f)
+    : rate(r), len(l), func(f)
+    {}
 };
+
+constexpr int VAR = -1;
+
+extern // not really - defined below
+func_table clif_parse_func_table[0x0220];
+
 
 // local define
 enum class SendWho
 {
     ALL_CLIENT,
-#define ALL_CLIENT SendWho::ALL_CLIENT
     ALL_SAMEMAP,
-#define ALL_SAMEMAP SendWho::ALL_SAMEMAP
     AREA,
-#define AREA SendWho::AREA
     AREA_WOS,
-#define AREA_WOS SendWho::AREA_WOS
     AREA_WOC,
-#define AREA_WOC SendWho::AREA_WOC
     AREA_WOSC,
-#define AREA_WOSC SendWho::AREA_WOSC
     AREA_CHAT_WOC,
-#define AREA_CHAT_WOC SendWho::AREA_CHAT_WOC
-    // temporary rename to avoid collision with BL::CHAT_
-    CHAT_,
-#define CHAT_ SendWho::CHAT_
+    CHAT,
     CHAT_WOS,
-#define CHAT_WOS SendWho::CHAT_WOS
     PARTY,
-#define PARTY SendWho::PARTY
     PARTY_WOS,
-#define PARTY_WOS SendWho::PARTY_WOS
     PARTY_SAMEMAP,
-#define PARTY_SAMEMAP SendWho::PARTY_SAMEMAP
     PARTY_SAMEMAP_WOS,
-#define PARTY_SAMEMAP_WOS SendWho::PARTY_SAMEMAP_WOS
     PARTY_AREA,
-#define PARTY_AREA SendWho::PARTY_AREA
     PARTY_AREA_WOS,
-#define PARTY_AREA_WOS SendWho::PARTY_AREA_WOS
     SELF,
-#define SELF SendWho::SELF
 };
 
 inline
@@ -252,7 +213,7 @@ char *clif_validate_chat(struct map_session_data *sd, int type,
         const char **message, size_t *message_len);
 
 /*==========================================
- * clif_sendでAREA*指定時用
+ * clif_sendでSendWho::AREA*指定時用
  *------------------------------------------
  */
 static
@@ -264,12 +225,12 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
 
     switch (type)
     {
-        case AREA_WOS:
+        case SendWho::AREA_WOS:
             if (bl && bl == src_bl)
                 return;
             break;
 
-        case AREA_CHAT_WOC:
+        case SendWho::AREA_CHAT_WOC:
             if (is_deaf(bl)
                 && !(bl->type == BL::PC
                      && pc_isGM((struct map_session_data *) src_bl)))
@@ -278,12 +239,12 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
                 return;
             }
             FALLTHROUGH;
-        case AREA_WOC:
+        case SendWho::AREA_WOC:
             if ((sd && sd->chatID) || (bl && bl == src_bl))
                 return;
 
             break;
-        case AREA_WOSC:
+        case SendWho::AREA_WOSC:
             if ((sd) && sd->chatID
                 && sd->chatID == ((struct map_session_data *) src_bl)->chatID)
                 return;
@@ -302,8 +263,9 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
         }
         else
         {
-            if (packet_len_table[RBUFW(buf, 0)])
-            {                   // packet must exist
+            if (clif_parse_func_table[RBUFW(buf, 0)].len)
+            {
+                // packet must exist
                 memcpy(WFIFOP(sd->fd, 0), buf, len);
                 WFIFOSET(sd->fd, len);
             }
@@ -324,7 +286,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
     struct party *p = NULL;
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 
-    if (type != ALL_CLIENT)
+    if (type != SendWho::ALL_CLIENT)
     {
         nullpo_ret(bl);
 
@@ -337,13 +299,13 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
 
                 switch (type)
                 {
-                    case AREA:
-                    case AREA_WOC:
-                        type = SELF;
+                    case SendWho::AREA:
+                    case SendWho::AREA_WOC:
+                        type = SendWho::SELF;
                         break;
 
-                    case AREA_WOS:
-                    case AREA_WOSC:
+                    case SendWho::AREA_WOS:
+                    case SendWho::AREA_WOSC:
                         return 1;
 
                     default:
@@ -355,13 +317,13 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
 
     switch (type)
     {
-        case ALL_CLIENT:       // 全クライアントに送信
+        case SendWho::ALL_CLIENT:       // 全クライアントに送信
             for (i = 0; i < fd_max; i++)
             {
                 if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                     && sd->state.auth)
                 {
-                    if (packet_len_table[RBUFW(buf, 0)])
+                    if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {           // packet must exist
                         memcpy(WFIFOP(i, 0), buf, len);
                         WFIFOSET(i, len);
@@ -369,13 +331,13 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 }
             }
             break;
-        case ALL_SAMEMAP:      // 同じマップの全クライアントに送信
+        case SendWho::ALL_SAMEMAP:      // 同じマップの全クライアントに送信
             for (i = 0; i < fd_max; i++)
             {
                 if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
                     && sd->state.auth && sd->bl.m == bl->m)
                 {
-                    if (packet_len_table[RBUFW(buf, 0)])
+                    if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {           // packet must exist
                         memcpy(WFIFOP(i, 0), buf, len);
                         WFIFOSET(i, len);
@@ -383,21 +345,21 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 }
             }
             break;
-        case AREA:
-        case AREA_WOS:
-        case AREA_WOC:
-        case AREA_WOSC:
+        case SendWho::AREA:
+        case SendWho::AREA_WOS:
+        case SendWho::AREA_WOC:
+        case SendWho::AREA_WOSC:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, type),
                     bl->m, bl->x - AREA_SIZE, bl->y - AREA_SIZE,
                     bl->x + AREA_SIZE, bl->y + AREA_SIZE, BL::PC);
             break;
-        case AREA_CHAT_WOC:
-            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, AREA_CHAT_WOC),
+        case SendWho::AREA_CHAT_WOC:
+            map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, SendWho::AREA_CHAT_WOC),
                     bl->m, bl->x - (AREA_SIZE), bl->y - (AREA_SIZE),
                     bl->x + (AREA_SIZE), bl->y + (AREA_SIZE), BL::PC);
             break;
-        case CHAT_:
-        case CHAT_WOS:
+        case SendWho::CHAT:
+        case SendWho::CHAT_WOS:
             cd = (struct chat_data *) bl;
             if (bl->type == BL::PC)
             {
@@ -410,10 +372,10 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 break;
             for (i = 0; i < cd->users; i++)
             {
-                if (type == CHAT_WOS
+                if (type == SendWho::CHAT_WOS
                     && cd->usersd[i] == (struct map_session_data *) bl)
                     continue;
-                if (packet_len_table[RBUFW(buf, 0)])
+                if (clif_parse_func_table[RBUFW(buf, 0)].len)
                 {               // packet must exist
                     memcpy(WFIFOP(cd->usersd[i]->fd, 0), buf, len);
                     WFIFOSET(cd->usersd[i]->fd, len);
@@ -421,17 +383,17 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             }
             break;
 
-        case PARTY_AREA:       // 同じ画面内の全パーティーメンバに送信
-        case PARTY_AREA_WOS:   // 自分以外の同じ画面内の全パーティーメンバに送信
+        case SendWho::PARTY_AREA:       // 同じ画面内の全パーティーメンバに送信
+        case SendWho::PARTY_AREA_WOS:   // 自分以外の同じ画面内の全パーティーメンバに送信
             x0 = bl->x - AREA_SIZE;
             y0 = bl->y - AREA_SIZE;
             x1 = bl->x + AREA_SIZE;
             y1 = bl->y + AREA_SIZE;
             FALLTHROUGH;
-        case PARTY:            // 全パーティーメンバに送信
-        case PARTY_WOS:        // 自分以外の全パーティーメンバに送信
-        case PARTY_SAMEMAP:    // 同じマップの全パーティーメンバに送信
-        case PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
+        case SendWho::PARTY:            // 全パーティーメンバに送信
+        case SendWho::PARTY_WOS:        // 自分以外の全パーティーメンバに送信
+        case SendWho::PARTY_SAMEMAP:    // 同じマップの全パーティーメンバに送信
+        case SendWho::PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
             if (bl->type == BL::PC)
             {
                 sd = (struct map_session_data *) bl;
@@ -451,18 +413,18 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 {
                     if ((sd = p->member[i].sd) != NULL)
                     {
-                        if (sd->bl.id == bl->id && (type == PARTY_WOS ||
-                                                    type == PARTY_SAMEMAP_WOS
+                        if (sd->bl.id == bl->id && (type == SendWho::PARTY_WOS ||
+                                                    type == SendWho::PARTY_SAMEMAP_WOS
                                                     || type ==
-                                                    PARTY_AREA_WOS))
+                                                    SendWho::PARTY_AREA_WOS))
                             continue;
-                        if (type != PARTY && type != PARTY_WOS && bl->m != sd->bl.m)    // マップチェック
+                        if (type != SendWho::PARTY && type != SendWho::PARTY_WOS && bl->m != sd->bl.m)    // マップチェック
                             continue;
-                        if ((type == PARTY_AREA || type == PARTY_AREA_WOS) &&
+                        if ((type == SendWho::PARTY_AREA || type == SendWho::PARTY_AREA_WOS) &&
                             (sd->bl.x < x0 || sd->bl.y < y0 ||
                              sd->bl.x > x1 || sd->bl.y > y1))
                             continue;
-                        if (packet_len_table[RBUFW(buf, 0)])
+                        if (clif_parse_func_table[RBUFW(buf, 0)].len)
                         {       // packet must exist
                             memcpy(WFIFOP(sd->fd, 0), buf, len);
                             WFIFOSET(sd->fd, len);
@@ -476,7 +438,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                     {
                         if (sd->partyspy == p->party_id)
                         {
-                            if (packet_len_table[RBUFW(buf, 0)])
+                            if (clif_parse_func_table[RBUFW(buf, 0)].len)
                             {   // packet must exist
                                 memcpy(WFIFOP(sd->fd, 0), buf, len);
                                 WFIFOSET(sd->fd, len);
@@ -486,9 +448,9 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 }
             }
             break;
-        case SELF:
+        case SendWho::SELF:
             sd = (struct map_session_data *) bl;
-            if (packet_len_table[RBUFW(buf, 0)])
+            if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {                   // packet must exist
                 memcpy(WFIFOP(sd->fd, 0), buf, len);
                 WFIFOSET(sd->fd, len);
@@ -526,11 +488,11 @@ int clif_authok(struct map_session_data *sd)
     fd = sd->fd;
 
     WFIFOW(fd, 0) = 0x73;
-    WFIFOL(fd, 2) = gettick();
+    WFIFOL(fd, 2) = gettick().time_since_epoch().count();
     WFIFOPOS(fd, 6, sd->bl.x, sd->bl.y);
     WFIFOB(fd, 9) = 5;
     WFIFOB(fd, 10) = 5;
-    WFIFOSET(fd, packet_len_table[0x73]);
+    WFIFOSET(fd, clif_parse_func_table[0x73].len);
 
     return 0;
 }
@@ -546,7 +508,7 @@ int clif_authfail_fd(int fd, int type)
 
     WFIFOW(fd, 0) = 0x81;
     WFIFOL(fd, 2) = type;
-    WFIFOSET(fd, packet_len_table[0x81]);
+    WFIFOSET(fd, clif_parse_func_table[0x81].len);
 
     clif_setwaitclose(fd);
 
@@ -571,7 +533,7 @@ int clif_charselectok(int id)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xb3;
     WFIFOB(fd, 2) = 1;
-    WFIFOSET(fd, packet_len_table[0xb3]);
+    WFIFOSET(fd, clif_parse_func_table[0xb3].len);
 
     return 0;
 }
@@ -601,7 +563,7 @@ int clif_set009e(struct flooritem_data *fitem, uint8_t *buf)
     WBUFB(buf, 14) = fitem->suby;
     WBUFW(buf, 15) = fitem->item_data.amount;
 
-    return packet_len_table[0x9e];
+    return clif_parse_func_table[0x9e].len;
 }
 
 /*==========================================
@@ -617,7 +579,7 @@ int clif_dropflooritem(struct flooritem_data *fitem)
     if (fitem->item_data.nameid <= 0)
         return 0;
     clif_set009e(fitem, buf);
-    clif_send(buf, packet_len_table[0x9e], &fitem->bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x9e].len, &fitem->bl, SendWho::AREA);
 
     return 0;
 }
@@ -637,12 +599,12 @@ int clif_clearflooritem(struct flooritem_data *fitem, int fd)
 
     if (fd == 0)
     {
-        clif_send(buf, packet_len_table[0xa1], &fitem->bl, AREA);
+        clif_send(buf, clif_parse_func_table[0xa1].len, &fitem->bl, SendWho::AREA);
     }
     else
     {
         memcpy(WFIFOP(fd, 0), buf, 6);
-        WFIFOSET(fd, packet_len_table[0xa1]);
+        WFIFOSET(fd, clif_parse_func_table[0xa1].len);
     }
 
     return 0;
@@ -663,35 +625,36 @@ int clif_clearchar(struct block_list *bl, BeingRemoveWhy type)
     if (type == BeingRemoveWhy::DISGUISE)
     {
         WBUFB(buf, 6) = static_cast<uint8_t>(BeingRemoveWhy::GONE);
-        clif_send(buf, packet_len_table[0x80], bl, AREA);
+        clif_send(buf, clif_parse_func_table[0x80].len, bl, SendWho::AREA);
     }
     else
     {
         WBUFB(buf, 6) = static_cast<uint8_t>(type);
-        clif_send(buf, packet_len_table[0x80], bl,
-                   type == BeingRemoveWhy::DEAD ? AREA : AREA_WOS);
+        clif_send(buf, clif_parse_func_table[0x80].len, bl,
+                   type == BeingRemoveWhy::DEAD ? SendWho::AREA : SendWho::AREA_WOS);
     }
 
     return 0;
 }
 
 static
-void clif_clearchar_delay_sub(timer_id, tick_t, custom_id_t id,
-                                     custom_data_t data)
+void clif_clearchar_delay_sub(TimerData *, tick_t,
+        struct block_list *bl, BeingRemoveWhy type)
 {
-    struct block_list *bl = (struct block_list *) id;
-
-    clif_clearchar(bl, static_cast<BeingRemoveWhy>(data));
+    clif_clearchar(bl, type);
     map_freeblock(bl);
 }
 
-int clif_clearchar_delay(unsigned int tick, struct block_list *bl, BeingRemoveWhy type)
+int clif_clearchar_delay(tick_t tick,
+        struct block_list *bl, BeingRemoveWhy type)
 {
     struct block_list *tmpbl;
     CREATE(tmpbl, struct block_list, 1);
 
     memcpy(tmpbl, bl, sizeof(struct block_list));
-    add_timer(tick, clif_clearchar_delay_sub, (custom_id_t) tmpbl, static_cast<uint8_t>(type));
+    add_timer(tick,
+            std::bind(clif_clearchar_delay_sub, ph::_1, ph::_2,
+                tmpbl, type));
 
     return 0;
 }
@@ -708,22 +671,10 @@ int clif_clearchar_id(int id, BeingRemoveWhy type, int fd)
     WBUFL(buf, 2) = id;
     WBUFB(buf, 6) = static_cast<uint8_t>(type);
     memcpy(WFIFOP(fd, 0), buf, 7);
-    WFIFOSET(fd, packet_len_table[0x80]);
+    WFIFOSET(fd, clif_parse_func_table[0x80].len);
 
     return 0;
 }
-
-/*
-static
-int current_weapon(struct map_session_data *sd)
-{
-        if (sd->attack_spell_override)
-                return sd->attack_spell_look_override;
-        else {
-                return sd->status.weapon;
-        }
-}
-*/
 
 /*==========================================
  *
@@ -736,10 +687,10 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
 
     WBUFW(buf, 0) = 0x1d8;
     WBUFL(buf, 2) = sd->bl.id;
-    WBUFW(buf, 6) = sd->speed;
-    WBUFW(buf, 8) = uint16_t(sd->opt1);
-    WBUFW(buf, 10) = uint16_t(sd->opt2);
-    WBUFW(buf, 12) = uint16_t(sd->status.option);
+    WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
+    WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
+    WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
+    WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
     WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
     if (sd->attack_spell_override)
@@ -791,7 +742,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFB(buf, 51) = sd->state.dead_sit;
     WBUFW(buf, 52) = 0;
 
-    return packet_len_table[0x1d8];
+    return clif_parse_func_table[0x1d8].len;
 }
 
 /*==========================================
@@ -805,10 +756,10 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
 
     WBUFW(buf, 0) = 0x1da;
     WBUFL(buf, 2) = sd->bl.id;
-    WBUFW(buf, 6) = sd->speed;
-    WBUFW(buf, 8) = uint16_t(sd->opt1);
-    WBUFW(buf, 10) = uint16_t(sd->opt2);
-    WBUFW(buf, 12) = uint16_t(sd->status.option);
+    WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
+    WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
+    WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
+    WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
     WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
     if (sd->equip_index[EQUIP::WEAPON] >= 0
@@ -833,7 +784,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     else
         WBUFW(buf, 20) = 0;
     WBUFW(buf, 22) = sd->status.head_bottom;
-    WBUFL(buf, 24) = gettick();
+    WBUFL(buf, 24) = gettick().time_since_epoch().count();
     WBUFW(buf, 28) = sd->status.head_top;
     WBUFW(buf, 30) = sd->status.head_mid;
     WBUFW(buf, 32) = sd->status.hair_color;
@@ -850,7 +801,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFB(buf, 57) = 5;
     WBUFW(buf, 58) = 0;
 
-    return packet_len_table[0x1da];
+    return clif_parse_func_table[0x1da].len;
 }
 
 /*==========================================
@@ -862,16 +813,16 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
 {
     int level;
 
-    memset(buf, 0, packet_len_table[0x78]);
+    memset(buf, 0, clif_parse_func_table[0x78].len);
 
     nullpo_ret(md);
 
     WBUFW(buf, 0) = 0x78;
     WBUFL(buf, 2) = md->bl.id;
-    WBUFW(buf, 6) = battle_get_speed(&md->bl);
-    WBUFW(buf, 8) = uint16_t(md->opt1);
-    WBUFW(buf, 10) = uint16_t(md->opt2);
-    WBUFW(buf, 12) = uint16_t(md->option);
+    WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(&md->bl).count());
+    WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
+    WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
+    WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
     WBUFW(buf, 14) = md->mob_class;
     // snip: stuff do do with disguise as a PC
     WBUFPOS(buf, 46, md->bl.x, md->bl.y);
@@ -885,7 +836,7 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
           battle_get_lv(&md->bl)) >
          battle_config.max_lv) ? battle_config.max_lv : level;
 
-    return packet_len_table[0x78];
+    return clif_parse_func_table[0x78].len;
 }
 
 /*==========================================
@@ -897,19 +848,19 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
 {
     int level;
 
-    memset(buf, 0, packet_len_table[0x7b]);
+    memset(buf, 0, clif_parse_func_table[0x7b].len);
 
     nullpo_ret(md);
 
     WBUFW(buf, 0) = 0x7b;
     WBUFL(buf, 2) = md->bl.id;
-    WBUFW(buf, 6) = battle_get_speed(&md->bl);
-    WBUFW(buf, 8) = uint16_t(md->opt1);
-    WBUFW(buf, 10) = uint16_t(md->opt2);
-    WBUFW(buf, 12) = uint16_t(md->option);
+    WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(&md->bl).count());
+    WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
+    WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
+    WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
     WBUFW(buf, 14) = md->mob_class;
     // snip: stuff for monsters disguised as PCs
-    WBUFL(buf, 22) = gettick();
+    WBUFL(buf, 22) = gettick().time_since_epoch().count();
 
     WBUFPOS2(buf, 50, md->bl.x, md->bl.y, md->to_x, md->to_y);
     WBUFB(buf, 56) = 5;
@@ -919,7 +870,7 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
           battle_get_lv(&md->bl)) >
          battle_config.max_lv) ? battle_config.max_lv : level;
 
-    return packet_len_table[0x7b];
+    return clif_parse_func_table[0x7b].len;
 }
 
 /*==========================================
@@ -931,11 +882,11 @@ int clif_npc0078(struct npc_data *nd, unsigned char *buf)
 {
     nullpo_ret(nd);
 
-    memset(buf, 0, packet_len_table[0x78]);
+    memset(buf, 0, clif_parse_func_table[0x78].len);
 
     WBUFW(buf, 0) = 0x78;
     WBUFL(buf, 2) = nd->bl.id;
-    WBUFW(buf, 6) = nd->speed;
+    WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
     WBUFW(buf, 14) = nd->npc_class;
     WBUFPOS(buf, 46, nd->bl.x, nd->bl.y);
     // work around ICE in gcc 4.6
@@ -944,7 +895,7 @@ int clif_npc0078(struct npc_data *nd, unsigned char *buf)
     WBUFB(buf, 49) = 5;
     WBUFB(buf, 50) = 5;
 
-    return packet_len_table[0x78];
+    return clif_parse_func_table[0x78].len;
 }
 
 /* These indices are derived from equip_pos in pc.c and some guesswork */
@@ -981,7 +932,7 @@ int clif_spawnpc(struct map_session_data *sd)
 
     WBUFW(buf, 0) = 0x1d9;
     WBUFW(buf, 51) = 0;
-    clif_send(buf, packet_len_table[0x1d9], &sd->bl, AREA_WOS);
+    clif_send(buf, clif_parse_func_table[0x1d9].len, &sd->bl, SendWho::AREA_WOS);
 
     if (map[sd->bl.m].flag.snow)
         clif_specialeffect(&sd->bl, 162, 1);
@@ -1013,18 +964,18 @@ int clif_spawnnpc(struct npc_data *nd)
     if (nd->npc_class < 0 || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
 
-    memset(buf, 0, packet_len_table[0x7c]);
+    memset(buf, 0, clif_parse_func_table[0x7c].len);
 
     WBUFW(buf, 0) = 0x7c;
     WBUFL(buf, 2) = nd->bl.id;
-    WBUFW(buf, 6) = nd->speed;
+    WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
     WBUFW(buf, 20) = nd->npc_class;
     WBUFPOS(buf, 36, nd->bl.x, nd->bl.y);
 
-    clif_send(buf, packet_len_table[0x7c], &nd->bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x7c].len, &nd->bl, SendWho::AREA);
 
     len = clif_npc0078(nd, buf);
-    clif_send(buf, len, &nd->bl, AREA);
+    clif_send(buf, len, &nd->bl, SendWho::AREA);
 
     return 0;
 }
@@ -1047,7 +998,7 @@ int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
     WFIFOW(fd, 12) = 0;
     WFIFOW(fd, 20) = 127;
     WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
-    WFIFOSET(fd, packet_len_table[0x7c]);
+    WFIFOSET(fd, clif_parse_func_table[0x7c].len);
 
     WFIFOW(fd, 0) = 0x78;
     WFIFOL(fd, 2) = fake_npc_id;
@@ -1061,7 +1012,7 @@ int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
     WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
     WFIFOB(fd, 49) = 5;
     WFIFOB(fd, 50) = 5;
-    WFIFOSET(fd, packet_len_table[0x78]);
+    WFIFOSET(fd, clif_parse_func_table[0x78].len);
 
     return 0;
 }
@@ -1078,7 +1029,7 @@ int clif_spawnmob(struct mob_data *md)
     nullpo_ret(md);
 
     {
-        memset(buf, 0, packet_len_table[0x7c]);
+        memset(buf, 0, clif_parse_func_table[0x7c].len);
 
         WBUFW(buf, 0) = 0x7c;
         WBUFL(buf, 2) = md->bl.id;
@@ -1088,11 +1039,11 @@ int clif_spawnmob(struct mob_data *md)
         WBUFW(buf, 12) = uint16_t(md->option);
         WBUFW(buf, 20) = md->mob_class;
         WBUFPOS(buf, 36, md->bl.x, md->bl.y);
-        clif_send(buf, packet_len_table[0x7c], &md->bl, AREA);
+        clif_send(buf, clif_parse_func_table[0x7c].len, &md->bl, SendWho::AREA);
     }
 
     len = clif_mob0078(md, buf);
-    clif_send(buf, len, &md->bl, AREA);
+    clif_send(buf, len, &md->bl, SendWho::AREA);
 
     return 0;
 }
@@ -1110,8 +1061,8 @@ int clif_servertick(struct map_session_data *sd)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x7f;
-    WFIFOL(fd, 2) = sd->server_tick;
-    WFIFOSET(fd, packet_len_table[0x7f]);
+    WFIFOL(fd, 2) = sd->server_tick.time_since_epoch().count();
+    WFIFOSET(fd, clif_parse_func_table[0x7f].len);
 
     return 0;
 }
@@ -1128,10 +1079,10 @@ int clif_walkok(struct map_session_data *sd)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x87;
-    WFIFOL(fd, 2) = gettick();;
+    WFIFOL(fd, 2) = gettick().time_since_epoch().count();
     WFIFOPOS2(fd, 6, sd->bl.x, sd->bl.y, sd->to_x, sd->to_y);
     WFIFOB(fd, 11) = 0;
-    WFIFOSET(fd, packet_len_table[0x87]);
+    WFIFOSET(fd, clif_parse_func_table[0x87].len);
 
     return 0;
 }
@@ -1149,7 +1100,7 @@ int clif_movechar(struct map_session_data *sd)
 
     len = clif_set007b(sd, buf);
 
-    clif_send(buf, len, &sd->bl, AREA_WOS);
+    clif_send(buf, len, &sd->bl, SendWho::AREA_WOS);
 
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(&sd->bl, LOOK::CLOTHES_COLOR,
@@ -1173,8 +1124,10 @@ void clif_quitsave(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_waitclose(timer_id, tick_t, custom_id_t id, custom_data_t)
+void clif_waitclose(TimerData *, tick_t, int id)
 {
+    // TODO: what happens if the player disconnects
+    // and someone else connects?
     if (session[id])
         session[id]->eof = 1;
 }
@@ -1185,7 +1138,9 @@ void clif_waitclose(timer_id, tick_t, custom_id_t id, custom_data_t)
  */
 void clif_setwaitclose(int fd)
 {
-    add_timer(gettick() + 5000, clif_waitclose, fd, 0);
+    add_timer(gettick() + std::chrono::seconds(5),
+            std::bind(clif_waitclose, ph::_1, ph::_2,
+                fd));
 }
 
 /*==========================================
@@ -1204,7 +1159,7 @@ int clif_changemap(struct map_session_data *sd, const char *mapname, int x, int 
     memcpy(WFIFOP(fd, 2), mapname, 16);
     WFIFOW(fd, 18) = x;
     WFIFOW(fd, 20) = y;
-    WFIFOSET(fd, packet_len_table[0x91]);
+    WFIFOSET(fd, clif_parse_func_table[0x91].len);
 
     return 0;
 }
@@ -1227,7 +1182,7 @@ int clif_changemapserver(struct map_session_data *sd, const char *mapname, int x
     WFIFOW(fd, 20) = y;
     WFIFOL(fd, 22) = ip.s_addr;
     WFIFOW(fd, 26) = port;
-    WFIFOSET(fd, packet_len_table[0x92]);
+    WFIFOSET(fd, clif_parse_func_table[0x92].len);
 
     return 0;
 }
@@ -1247,7 +1202,7 @@ int clif_fixpos(struct block_list *bl)
     WBUFW(buf, 6) = bl->x;
     WBUFW(buf, 8) = bl->y;
 
-    clif_send(buf, packet_len_table[0x88], bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x88].len, bl, SendWho::AREA);
 
     return 0;
 }
@@ -1265,7 +1220,7 @@ int clif_npcbuysell(struct map_session_data *sd, int id)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xc4;
     WFIFOL(fd, 2) = id;
-    WFIFOSET(fd, packet_len_table[0xc4]);
+    WFIFOSET(fd, clif_parse_func_table[0xc4].len);
 
     return 0;
 }
@@ -1366,7 +1321,7 @@ int clif_scriptnext(struct map_session_data *sd, int npcid)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xb5;
     WFIFOL(fd, 2) = npcid;
-    WFIFOSET(fd, packet_len_table[0xb5]);
+    WFIFOSET(fd, clif_parse_func_table[0xb5].len);
 
     return 0;
 }
@@ -1384,7 +1339,7 @@ int clif_scriptclose(struct map_session_data *sd, int npcid)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xb6;
     WFIFOL(fd, 2) = npcid;
-    WFIFOSET(fd, packet_len_table[0xb6]);
+    WFIFOSET(fd, clif_parse_func_table[0xb6].len);
 
     return 0;
 }
@@ -1422,7 +1377,7 @@ int clif_scriptinput(struct map_session_data *sd, int npcid)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x142;
     WFIFOL(fd, 2) = npcid;
-    WFIFOSET(fd, packet_len_table[0x142]);
+    WFIFOSET(fd, clif_parse_func_table[0x142].len);
 
     return 0;
 }
@@ -1440,7 +1395,7 @@ int clif_scriptinputstr(struct map_session_data *sd, int npcid)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x1d4;
     WFIFOL(fd, 2) = npcid;
-    WFIFOSET(fd, packet_len_table[0x1d4]);
+    WFIFOSET(fd, clif_parse_func_table[0x1d4].len);
 
     return 0;
 }
@@ -1464,7 +1419,7 @@ int clif_viewpoint(struct map_session_data *sd, int npc_id, int type, int x,
     WFIFOL(fd, 14) = y;
     WFIFOB(fd, 18) = id;
     WFIFOL(fd, 19) = color;
-    WFIFOSET(fd, packet_len_table[0x144]);
+    WFIFOSET(fd, clif_parse_func_table[0x144].len);
 
     return 0;
 }
@@ -1483,7 +1438,7 @@ int clif_cutin(struct map_session_data *sd, const char *image, int type)
     WFIFOW(fd, 0) = 0x1b3;
     memcpy(WFIFOP(fd, 2), image, 64);
     WFIFOB(fd, 66) = type;
-    WFIFOSET(fd, packet_len_table[0x1b3]);
+    WFIFOSET(fd, clif_parse_func_table[0x1b3].len);
 
     return 0;
 }
@@ -1573,7 +1528,7 @@ int clif_additem(struct map_session_data *sd, int n, int amount, PickupFail fail
         WFIFOB(fd, 22) = uint8_t(fail);
     }
 
-    WFIFOSET(fd, packet_len_table[0xa0]);
+    WFIFOSET(fd, clif_parse_func_table[0xa0].len);
     return 0;
 }
 
@@ -1592,7 +1547,7 @@ int clif_delitem(struct map_session_data *sd, int n, int amount)
     WFIFOW(fd, 2) = n + 2;
     WFIFOW(fd, 4) = amount;
 
-    WFIFOSET(fd, packet_len_table[0xaf]);
+    WFIFOSET(fd, clif_parse_func_table[0xaf].len);
 
     return 0;
 }
@@ -1863,7 +1818,7 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
     fd = sd->fd;
 
     WFIFOW(fd, 0) = 0xb0;
-    WFIFOW(fd, 2) = uint16_t(type);
+    WFIFOW(fd, 2) = static_cast<uint16_t>(type);
     switch (type)
     {
             // 00b0
@@ -1871,14 +1826,15 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
             pc_checkweighticon(sd);
             // is this because pc_checkweighticon can send other packets?
             WFIFOW(fd, 0) = 0xb0;
-            WFIFOW(fd, 2) = uint16_t(type);
+            WFIFOW(fd, 2) = static_cast<uint16_t>(type);
             WFIFOL(fd, 4) = sd->weight;
             break;
         case SP::MAXWEIGHT:
             WFIFOL(fd, 4) = sd->max_weight;
             break;
         case SP::SPEED:
-            WFIFOL(fd, 4) = sd->speed;
+            // ...
+            WFIFOL(fd, 4) = static_cast<uint16_t>(sd->speed.count());
             break;
         case SP::BASELEVEL:
             WFIFOL(fd, 4) = sd->status.base_level;
@@ -1914,7 +1870,7 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
             WFIFOL(fd, 4) = sd->status.sp;
             break;
         case SP::ASPD:
-            WFIFOL(fd, 4) = sd->aspd;
+            WFIFOL(fd, 4) = static_cast<uint16_t>(sd->aspd.count());
             break;
         case SP::ATK1:
             WFIFOL(fd, 4) = sd->base_atk + sd->watk;
@@ -2105,9 +2061,9 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
                 WBUFW(buf, 9) = 0;
         }
         if (dstsd)
-            clif_send(buf, packet_len_table[0x1d7], &dstsd->bl, SELF);
+            clif_send(buf, clif_parse_func_table[0x1d7].len, &dstsd->bl, SendWho::SELF);
         else
-            clif_send(buf, packet_len_table[0x1d7], bl, AREA);
+            clif_send(buf, clif_parse_func_table[0x1d7].len, bl, SendWho::AREA);
     }
     else
     {
@@ -2117,9 +2073,9 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
         WBUFW(buf, 7) = val;
         WBUFW(buf, 9) = 0;
         if (dstsd)
-            clif_send(buf, packet_len_table[0x1d7], &dstsd->bl, SELF);
+            clif_send(buf, clif_parse_func_table[0x1d7].len, &dstsd->bl, SendWho::SELF);
         else
-            clif_send(buf, packet_len_table[0x1d7], bl, AREA);
+            clif_send(buf, clif_parse_func_table[0x1d7].len, bl, SendWho::AREA);
     }
     return 0;
 }
@@ -2166,7 +2122,7 @@ int clif_initialstatus(struct map_session_data *sd)
     WFIFOW(fd, 40) = sd->status.karma;
     WFIFOW(fd, 42) = sd->status.manner;
 
-    WFIFOSET(fd, packet_len_table[0xbd]);
+    WFIFOSET(fd, clif_parse_func_table[0xbd].len);
 
     clif_updatestatus(sd, SP::STR);
     clif_updatestatus(sd, SP::AGI);
@@ -2198,7 +2154,7 @@ int clif_arrowequip(struct map_session_data *sd, int val)
     WFIFOW(fd, 0) = 0x013c;
     WFIFOW(fd, 2) = val + 2;   //矢のアイテムID
 
-    WFIFOSET(fd, packet_len_table[0x013c]);
+    WFIFOSET(fd, clif_parse_func_table[0x013c].len);
 
     return 0;
 }
@@ -2217,7 +2173,7 @@ int clif_arrow_fail(struct map_session_data *sd, int type)
     WFIFOW(fd, 0) = 0x013b;
     WFIFOW(fd, 2) = type;
 
-    WFIFOSET(fd, packet_len_table[0x013b]);
+    WFIFOSET(fd, clif_parse_func_table[0x013b].len);
 
     return 0;
 }
@@ -2237,7 +2193,7 @@ int clif_statusupack(struct map_session_data *sd, SP type, int ok, int val)
     WFIFOW(fd, 2) = uint16_t(type);
     WFIFOB(fd, 4) = ok;
     WFIFOB(fd, 5) = val;
-    WFIFOSET(fd, packet_len_table[0xbc]);
+    WFIFOSET(fd, clif_parse_func_table[0xbc].len);
 
     return 0;
 }
@@ -2257,7 +2213,7 @@ int clif_equipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
     WFIFOW(fd, 2) = n + 2;
     WFIFOW(fd, 4) = uint16_t(pos);
     WFIFOB(fd, 6) = ok;
-    WFIFOSET(fd, packet_len_table[0xaa]);
+    WFIFOSET(fd, clif_parse_func_table[0xaa].len);
 
     return 0;
 }
@@ -2277,7 +2233,7 @@ int clif_unequipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
     WFIFOW(fd, 2) = n + 2;
     WFIFOW(fd, 4) = uint16_t(pos);
     WFIFOB(fd, 6) = ok;
-    WFIFOSET(fd, packet_len_table[0xac]);
+    WFIFOSET(fd, clif_parse_func_table[0xac].len);
 
     return 0;
 }
@@ -2296,7 +2252,7 @@ int clif_misceffect(struct block_list *bl, int type)
     WBUFL(buf, 2) = bl->id;
     WBUFL(buf, 6) = type;
 
-    clif_send(buf, packet_len_table[0x19b], bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::AREA);
 
     return 0;
 }
@@ -2322,7 +2278,7 @@ int clif_changeoption(struct block_list *bl)
     WBUFW(buf, 10) = uint16_t(option);
     WBUFB(buf, 12) = 0;        // ??
 
-    clif_send(buf, packet_len_table[0x119], bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x119].len, bl, SendWho::AREA);
 
     return 0;
 }
@@ -2343,7 +2299,7 @@ int clif_useitemack(struct map_session_data *sd, int index, int amount,
         WFIFOW(fd, 2) = index + 2;
         WFIFOW(fd, 4) = amount;
         WFIFOB(fd, 6) = ok;
-        WFIFOSET(fd, packet_len_table[0xa8]);
+        WFIFOSET(fd, clif_parse_func_table[0xa8].len);
     }
     else
     {
@@ -2359,7 +2315,7 @@ int clif_useitemack(struct map_session_data *sd, int index, int amount,
         WBUFL(buf, 6) = sd->bl.id;
         WBUFW(buf, 10) = amount;
         WBUFB(buf, 12) = ok;
-        clif_send(buf, packet_len_table[0x1c8], &sd->bl, SELF);
+        clif_send(buf, clif_parse_func_table[0x1c8].len, &sd->bl, SendWho::SELF);
     }
 
     return 0;
@@ -2378,7 +2334,7 @@ int clif_traderequest(struct map_session_data *sd, const char *name)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xe5;
     strcpy((char *)WFIFOP(fd, 2), name);
-    WFIFOSET(fd, packet_len_table[0xe5]);
+    WFIFOSET(fd, clif_parse_func_table[0xe5].len);
 
     return 0;
 }
@@ -2396,7 +2352,7 @@ int clif_tradestart(struct map_session_data *sd, int type)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xe7;
     WFIFOB(fd, 2) = type;
-    WFIFOSET(fd, packet_len_table[0xe7]);
+    WFIFOSET(fd, clif_parse_func_table[0xe7].len);
 
     return 0;
 }
@@ -2478,7 +2434,7 @@ int clif_tradeadditem(struct map_session_data *sd,
                 WFIFOW(fd, 17) = sd->status.inventory[index].card[3];
         }
     }
-    WFIFOSET(fd, packet_len_table[0xe9]);
+    WFIFOSET(fd, clif_parse_func_table[0xe9].len);
 
     return 0;
 }
@@ -2499,7 +2455,7 @@ int clif_tradeitemok(struct map_session_data *sd, int index, int amount,
     WFIFOW(fd, 2) = index;
     WFIFOW(fd, 4) = amount;
     WFIFOB(fd, 6) = fail;
-    WFIFOSET(fd, packet_len_table[0x1b1]);
+    WFIFOSET(fd, clif_parse_func_table[0x1b1].len);
 
     return 0;
 }
@@ -2517,7 +2473,7 @@ int clif_tradedeal_lock(struct map_session_data *sd, int fail)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xec;
     WFIFOB(fd, 2) = fail;      // 0=you 1=the other person
-    WFIFOSET(fd, packet_len_table[0xec]);
+    WFIFOSET(fd, clif_parse_func_table[0xec].len);
 
     return 0;
 }
@@ -2534,7 +2490,7 @@ int clif_tradecancelled(struct map_session_data *sd)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xee;
-    WFIFOSET(fd, packet_len_table[0xee]);
+    WFIFOSET(fd, clif_parse_func_table[0xee].len);
 
     return 0;
 }
@@ -2552,7 +2508,7 @@ int clif_tradecompleted(struct map_session_data *sd, int fail)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xf0;
     WFIFOB(fd, 2) = fail;
-    WFIFOSET(fd, packet_len_table[0xf0]);
+    WFIFOSET(fd, clif_parse_func_table[0xf0].len);
 
     return 0;
 }
@@ -2573,7 +2529,7 @@ int clif_updatestorageamount(struct map_session_data *sd,
     WFIFOW(fd, 0) = 0xf2;      // update storage amount
     WFIFOW(fd, 2) = stor->storage_amount;  //items
     WFIFOW(fd, 4) = MAX_STORAGE;   //items max
-    WFIFOSET(fd, packet_len_table[0xf2]);
+    WFIFOSET(fd, clif_parse_func_table[0xf2].len);
 
     return 0;
 }
@@ -2636,7 +2592,7 @@ int clif_storageitemadded(struct map_session_data *sd, struct storage *stor,
         else
             WFIFOW(fd, 19) = stor->storage_[index].card[3];
     }
-    WFIFOSET(fd, packet_len_table[0xf4]);
+    WFIFOSET(fd, clif_parse_func_table[0xf4].len);
 
     return 0;
 }
@@ -2656,7 +2612,7 @@ int clif_storageitemremoved(struct map_session_data *sd, int index,
     WFIFOW(fd, 0) = 0xf6;      // Storage item removed
     WFIFOW(fd, 2) = index + 1;
     WFIFOL(fd, 4) = amount;
-    WFIFOSET(fd, packet_len_table[0xf6]);
+    WFIFOSET(fd, clif_parse_func_table[0xf6].len);
 
     return 0;
 }
@@ -2673,7 +2629,7 @@ int clif_storageclose(struct map_session_data *sd)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xf8;      // Storage Closed
-    WFIFOSET(fd, packet_len_table[0xf8]);
+    WFIFOSET(fd, clif_parse_func_table[0xf8].len);
 
     return 0;
 }
@@ -2704,7 +2660,7 @@ void clif_getareachar_pc(struct map_session_data *sd,
     nullpo_retv(sd);
     nullpo_retv(dstsd);
 
-    if (dstsd->walktimer != -1)
+    if (dstsd->walktimer)
     {
         len = clif_set007b(dstsd, static_cast<uint8_t *>(WFIFOP(sd->fd, 0)));
         WFIFOSET(sd->fd, len);
@@ -2754,7 +2710,7 @@ int clif_movemob(struct mob_data *md)
     nullpo_ret(md);
 
     len = clif_mob007b(md, buf);
-    clif_send(buf, len, &md->bl, AREA);
+    clif_send(buf, len, &md->bl, SendWho::AREA);
 
     return 0;
 }
@@ -2773,12 +2729,12 @@ int clif_fixmobpos(struct mob_data *md)
     if (md->state.state == MS::WALK)
     {
         len = clif_mob007b(md, buf);
-        clif_send(buf, len, &md->bl, AREA);
+        clif_send(buf, len, &md->bl, SendWho::AREA);
     }
     else
     {
         len = clif_mob0078(md, buf);
-        clif_send(buf, len, &md->bl, AREA);
+        clif_send(buf, len, &md->bl, SendWho::AREA);
     }
 
     return 0;
@@ -2795,15 +2751,15 @@ int clif_fixpcpos(struct map_session_data *sd)
 
     nullpo_ret(sd);
 
-    if (sd->walktimer != -1)
+    if (sd->walktimer)
     {
         len = clif_set007b(sd, buf);
-        clif_send(buf, len, &sd->bl, AREA);
+        clif_send(buf, len, &sd->bl, SendWho::AREA);
     }
     else
     {
         len = clif_set0078(sd, buf);
-        clif_send(buf, len, &sd->bl, AREA);
+        clif_send(buf, len, &sd->bl, SendWho::AREA);
     }
     clif_changelook_accessories(&sd->bl, NULL);
 
@@ -2815,8 +2771,8 @@ int clif_fixpcpos(struct map_session_data *sd)
  *------------------------------------------
  */
 int clif_damage(struct block_list *src, struct block_list *dst,
-                 unsigned int tick, int sdelay, int ddelay, int damage,
-                 int div, DamageType type, int damage2)
+        tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
+        int div, DamageType type, int damage2)
 {
     unsigned char buf[256];
     eptr<struct status_change, StatusChange> sc_data;
@@ -2829,14 +2785,14 @@ int clif_damage(struct block_list *src, struct block_list *dst,
     WBUFW(buf, 0) = 0x8a;
     WBUFL(buf, 2) = src->id;
     WBUFL(buf, 6) = dst->id;
-    WBUFL(buf, 10) = tick;
-    WBUFL(buf, 14) = sdelay;
-    WBUFL(buf, 18) = ddelay;
+    WBUFL(buf, 10) = tick.time_since_epoch().count();
+    WBUFL(buf, 14) = sdelay.count();
+    WBUFL(buf, 18) = ddelay.count();
     WBUFW(buf, 22) = (damage > 0x7fff) ? 0x7fff : damage;
     WBUFW(buf, 24) = div;
     WBUFB(buf, 26) = static_cast<uint8_t>(type);
     WBUFW(buf, 27) = damage2;
-    clif_send(buf, packet_len_table[0x8a], src, AREA);
+    clif_send(buf, clif_parse_func_table[0x8a].len, src, SendWho::AREA);
 
     return 0;
 }
@@ -2892,7 +2848,7 @@ void clif_getareachar_item(struct map_session_data *sd,
     WFIFOB(fd, 15) = fitem->subx;
     WFIFOB(fd, 16) = fitem->suby;
 
-    WFIFOSET(fd, packet_len_table[0x9d]);
+    WFIFOSET(fd, clif_parse_func_table[0x9d].len);
 }
 
 /*==========================================
@@ -3065,7 +3021,7 @@ int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
     memset(WFIFOP(fd, 14), 0, 24);
     WFIFOB(fd, 38) =
         (sd->status.skill[skillid].lv < skill_get_max_raise(id)) ? 1 : 0;
-    WFIFOSET(fd, packet_len_table[0x147]);
+    WFIFOSET(fd, clif_parse_func_table[0x147].len);
 
     return 0;
 }
@@ -3134,7 +3090,7 @@ int clif_skillup(struct map_session_data *sd, SkillID skill_num)
     WFIFOB(fd, 10) =
         (sd->status.skill[skill_num].lv <
          skill_get_max_raise(sd->status.skill[skill_num].id)) ? 1 : 0;
-    WFIFOSET(fd, packet_len_table[0x10e]);
+    WFIFOSET(fd, clif_parse_func_table[0x10e].len);
 
     return 0;
 }
@@ -3151,7 +3107,7 @@ int clif_skillcastcancel(struct block_list *bl)
 
     WBUFW(buf, 0) = 0x1b9;
     WBUFL(buf, 2) = bl->id;
-    clif_send(buf, packet_len_table[0x1b9], bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x1b9].len, bl, SendWho::AREA);
 
     return 0;
 }
@@ -3180,7 +3136,7 @@ int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
     WFIFOW(fd, 6) = 0;
     WFIFOB(fd, 8) = 0;
     WFIFOB(fd, 9) = type;
-    WFIFOSET(fd, packet_len_table[0x110]);
+    WFIFOSET(fd, clif_parse_func_table[0x110].len);
 
     return 0;
 }
@@ -3190,8 +3146,8 @@ int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
  *------------------------------------------
  */
 int clif_skill_damage(struct block_list *src, struct block_list *dst,
-                       unsigned int tick, int sdelay, int ddelay, int damage,
-                       int div, SkillID skill_id, int skill_lv, int type)
+        tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
+        int div, SkillID skill_id, int skill_lv, int type)
 {
     unsigned char buf[64];
     eptr<struct status_change, StatusChange> sc_data;
@@ -3205,14 +3161,14 @@ int clif_skill_damage(struct block_list *src, struct block_list *dst,
     WBUFW(buf, 2) = uint16_t(skill_id);
     WBUFL(buf, 4) = src->id;
     WBUFL(buf, 8) = dst->id;
-    WBUFL(buf, 12) = tick;
-    WBUFL(buf, 16) = sdelay;
-    WBUFL(buf, 20) = ddelay;
+    WBUFL(buf, 12) = static_cast<uint32_t>(tick.time_since_epoch().count());
+    WBUFL(buf, 16) = static_cast<uint32_t>(sdelay.count());
+    WBUFL(buf, 20) = static_cast<uint32_t>(ddelay.count());
     WBUFL(buf, 24) = damage;
     WBUFW(buf, 28) = skill_lv;
     WBUFW(buf, 30) = div;
     WBUFB(buf, 32) = (type > 0) ? type : skill_get_hit(skill_id);
-    clif_send(buf, packet_len_table[0x1de], src, AREA);
+    clif_send(buf, clif_parse_func_table[0x1de].len, src, SendWho::AREA);
 
     return 0;
 }
@@ -3231,7 +3187,7 @@ int clif_status_change(struct block_list *bl, StatusChange type, int flag)
     WBUFW(buf, 2) = uint16_t(type);
     WBUFL(buf, 4) = bl->id;
     WBUFB(buf, 8) = flag;
-    clif_send(buf, packet_len_table[0x196], bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x196].len, bl, SendWho::AREA);
     return 0;
 }
 
@@ -3268,10 +3224,10 @@ void clif_GMmessage(struct block_list *bl, const_string mes, int flag)
     WBUFB(buf, lp + mes.size()) = '\0';
     flag &= 0x07;
     clif_send(buf, WBUFW(buf, 2), bl,
-               (flag == 1) ? ALL_SAMEMAP :
-               (flag == 2) ? AREA :
-               (flag == 3) ? SELF :
-               ALL_CLIENT);
+               (flag == 1) ? SendWho::ALL_SAMEMAP :
+               (flag == 2) ? SendWho::AREA :
+               (flag == 3) ? SendWho::SELF :
+               SendWho::ALL_CLIENT);
 }
 
 /*==========================================
@@ -3288,7 +3244,7 @@ int clif_resurrection(struct block_list *bl, int type)
     WBUFL(buf, 2) = bl->id;
     WBUFW(buf, 6) = type;
 
-    clif_send(buf, packet_len_table[0x148], bl, type == 1 ? AREA : AREA_WOS);
+    clif_send(buf, clif_parse_func_table[0x148].len, bl, type == 1 ? SendWho::AREA : SendWho::AREA_WOS);
 
     return 0;
 }
@@ -3315,7 +3271,7 @@ int clif_wis_end(int fd, int flag) // R 0098 <type>.B: 0: success to send wisper
 {
     WFIFOW(fd, 0) = 0x98;
     WFIFOW(fd, 2) = flag;
-    WFIFOSET(fd, packet_len_table[0x98]);
+    WFIFOSET(fd, clif_parse_func_table[0x98].len);
     return 0;
 }
 
@@ -3340,7 +3296,7 @@ int clif_party_created(struct map_session_data *sd, int flag)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xfa;
     WFIFOB(fd, 2) = flag;
-    WFIFOSET(fd, packet_len_table[0xfa]);
+    WFIFOSET(fd, clif_parse_func_table[0xfa].len);
     return 0;
 }
 
@@ -3381,7 +3337,7 @@ int clif_party_info(struct party *p, int fd)
         return 9;
     }
     if (sd != NULL)
-        clif_send(buf, WBUFW(buf, 2), &sd->bl, PARTY);
+        clif_send(buf, WBUFW(buf, 2), &sd->bl, SendWho::PARTY);
     return 0;
 }
 
@@ -3409,7 +3365,7 @@ int clif_party_invite(struct map_session_data *sd,
     WFIFOW(fd, 0) = 0xfe;
     WFIFOL(fd, 2) = sd->status.account_id;
     memcpy(WFIFOP(fd, 6), p->name, 24);
-    WFIFOSET(fd, packet_len_table[0xfe]);
+    WFIFOSET(fd, clif_parse_func_table[0xfe].len);
     return 0;
 }
 
@@ -3437,7 +3393,7 @@ int clif_party_inviteack(struct map_session_data *sd, const char *nick, int flag
     WFIFOW(fd, 0) = 0xfd;
     memcpy(WFIFOP(fd, 2), nick, 24);
     WFIFOB(fd, 26) = flag;
-    WFIFOSET(fd, packet_len_table[0xfd]);
+    WFIFOSET(fd, clif_parse_func_table[0xfd].len);
     return 0;
 }
 
@@ -3469,11 +3425,11 @@ int clif_party_option(struct party *p, struct map_session_data *sd, int flag)
     WBUFW(buf, 2) = ((flag & 0x01) ? 2 : p->exp);
     WBUFW(buf, 4) = ((flag & 0x10) ? 2 : p->item);
     if (flag == 0)
-        clif_send(buf, packet_len_table[0x101], &sd->bl, PARTY);
+        clif_send(buf, clif_parse_func_table[0x101].len, &sd->bl, SendWho::PARTY);
     else
     {
-        memcpy(WFIFOP(sd->fd, 0), buf, packet_len_table[0x101]);
-        WFIFOSET(sd->fd, packet_len_table[0x101]);
+        memcpy(WFIFOP(sd->fd, 0), buf, clif_parse_func_table[0x101].len);
+        WFIFOSET(sd->fd, clif_parse_func_table[0x101].len);
     }
     return 0;
 }
@@ -3502,12 +3458,12 @@ int clif_party_leaved(struct party *p, struct map_session_data *sd,
                 if ((sd = p->member[i].sd) != NULL)
                     break;
         if (sd != NULL)
-            clif_send(buf, packet_len_table[0x105], &sd->bl, PARTY);
+            clif_send(buf, clif_parse_func_table[0x105].len, &sd->bl, SendWho::PARTY);
     }
     else if (sd != NULL)
     {
-        memcpy(WFIFOP(sd->fd, 0), buf, packet_len_table[0x105]);
-        WFIFOSET(sd->fd, packet_len_table[0x105]);
+        memcpy(WFIFOP(sd->fd, 0), buf, clif_parse_func_table[0x105].len);
+        WFIFOSET(sd->fd, clif_parse_func_table[0x105].len);
     }
     return 0;
 }
@@ -3536,7 +3492,7 @@ int clif_party_message(struct party *p, int account_id, const char *mes, int len
         WBUFW(buf, 2) = len + 8;
         WBUFL(buf, 4) = account_id;
         memcpy(WBUFP(buf, 8), mes, len);
-        clif_send(buf, len + 8, &sd->bl, PARTY);
+        clif_send(buf, len + 8, &sd->bl, SendWho::PARTY);
     }
     return 0;
 }
@@ -3555,7 +3511,7 @@ int clif_party_xy(struct party *, struct map_session_data *sd)
     WBUFL(buf, 2) = sd->status.account_id;
     WBUFW(buf, 6) = sd->bl.x;
     WBUFW(buf, 8) = sd->bl.y;
-    clif_send(buf, packet_len_table[0x107], &sd->bl, PARTY_SAMEMAP_WOS);
+    clif_send(buf, clif_parse_func_table[0x107].len, &sd->bl, SendWho::PARTY_SAMEMAP_WOS);
 //  if(battle_config.etc_log)
 //      PRINTF("clif_party_xy %d\n",sd->status.account_id);
     return 0;
@@ -3576,7 +3532,7 @@ int clif_party_hp(struct party *, struct map_session_data *sd)
     WBUFW(buf, 6) = (sd->status.hp > 0x7fff) ? 0x7fff : sd->status.hp;
     WBUFW(buf, 8) =
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
-    clif_send(buf, packet_len_table[0x106], &sd->bl, PARTY_AREA_WOS);
+    clif_send(buf, clif_parse_func_table[0x106].len, &sd->bl, SendWho::PARTY_AREA_WOS);
 //  if(battle_config.etc_log)
 //      PRINTF("clif_party_hp %d\n",sd->status.account_id);
     return 0;
@@ -3601,7 +3557,7 @@ int clif_movetoattack(struct map_session_data *sd, struct block_list *bl)
     WFIFOW(fd, 10) = sd->bl.x;
     WFIFOW(fd, 12) = sd->bl.y;
     WFIFOW(fd, 14) = sd->attackrange;
-    WFIFOSET(fd, packet_len_table[0x139]);
+    WFIFOSET(fd, clif_parse_func_table[0x139].len);
     return 0;
 }
 
@@ -3617,7 +3573,7 @@ int clif_mvp_effect(struct map_session_data *sd)
 
     WBUFW(buf, 0) = 0x10c;
     WBUFL(buf, 2) = sd->bl.id;
-    clif_send(buf, packet_len_table[0x10c], &sd->bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x10c].len, &sd->bl, SendWho::AREA);
     return 0;
 }
 
@@ -3634,7 +3590,7 @@ void clif_emotion(struct block_list *bl, int type)
     WBUFW(buf, 0) = 0xc0;
     WBUFL(buf, 2) = bl->id;
     WBUFB(buf, 6) = type;
-    clif_send(buf, packet_len_table[0xc0], bl, AREA);
+    clif_send(buf, clif_parse_func_table[0xc0].len, bl, SendWho::AREA);
 }
 
 static
@@ -3642,7 +3598,7 @@ void clif_emotion_towards(struct block_list *bl,
                                   struct block_list *target, int type)
 {
     unsigned char buf[8];
-    int len = packet_len_table[0xc0];
+    int len = clif_parse_func_table[0xc0].len;
     struct map_session_data *sd = (struct map_session_data *) target;
 
     nullpo_retv(bl);
@@ -3672,7 +3628,7 @@ void clif_sitting(int, struct map_session_data *sd)
     WBUFW(buf, 0) = 0x8a;
     WBUFL(buf, 2) = sd->bl.id;
     WBUFB(buf, 26) = 2;
-    clif_send(buf, packet_len_table[0x8a], &sd->bl, AREA);
+    clif_send(buf, clif_parse_func_table[0x8a].len, &sd->bl, SendWho::AREA);
 }
 
 /*==========================================
@@ -3689,7 +3645,7 @@ int clif_GM_kickack(struct map_session_data *sd, int id)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xcd;
     WFIFOL(fd, 2) = id;
-    WFIFOSET(fd, packet_len_table[0xcd]);
+    WFIFOSET(fd, clif_parse_func_table[0xcd].len);
     return 0;
 }
 
@@ -3717,7 +3673,7 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
 
     nullpo_ret(bl);
 
-    memset(buf, 0, packet_len_table[0x19b]);
+    memset(buf, 0, clif_parse_func_table[0x19b].len);
 
     WBUFW(buf, 0) = 0x19b;
     WBUFL(buf, 2) = bl->id;
@@ -3736,9 +3692,9 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
     }
 
     else if (flag == 1)
-        clif_send(buf, packet_len_table[0x19b], bl, SELF);
+        clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::SELF);
     else if (!flag)
-        clif_send(buf, packet_len_table[0x19b], bl, AREA);
+        clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::AREA);
 
     return 0;
 
@@ -3790,7 +3746,8 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
         sd->fd = fd;
 
         pc_setnewpc(sd, account_id, RFIFOL(fd, 6), RFIFOL(fd, 10),
-                     RFIFOL(fd, 14), RFIFOB(fd, 18), fd);
+                tick_t(static_cast<interval_t>(RFIFOL(fd, 14))),
+                RFIFOB(fd, 18));
 
         map_addiddb(&sd->bl);
 
@@ -3841,7 +3798,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
 
     if (battle_config.pc_invincible_time > 0)
     {
-        pc_setinvincibletimer(sd, battle_config.pc_invincible_time);
+        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.pc_invincible_time));
     }
 
     map_addblock(&sd->bl);     // ブロック登録
@@ -3852,15 +3809,16 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     clif_updatestatus(sd, SP::WEIGHT);
 
     // pvp
-    if (sd->pvp_timer != -1 && !battle_config.pk_mode)
-        delete_timer(sd->pvp_timer, pc_calc_pvprank_timer);
+    if (sd->pvp_timer && !battle_config.pk_mode)
+        delete_timer(sd->pvp_timer);
     if (map[sd->bl.m].flag.pvp)
     {
         if (!battle_config.pk_mode)
-        {                       // remove pvp stuff for pk_mode [Valaris]
-            sd->pvp_timer =
-                add_timer(gettick() + 200, pc_calc_pvprank_timer, sd->bl.id,
-                           0);
+        {
+            // remove pvp stuff for pk_mode [Valaris]
+            sd->pvp_timer = add_timer(gettick() + std::chrono::milliseconds(200),
+                    std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
+                        sd->bl.id));
             sd->pvp_rank = 0;
             sd->pvp_lastusers = 0;
             sd->pvp_point = 5;
@@ -3868,7 +3826,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     }
     else
     {
-        sd->pvp_timer = -1;
+        sd->pvp_timer = nullptr;
     }
 
     sd->state.connect_new = 0;
@@ -3879,9 +3837,6 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
         clif_changelook(&sd->bl, LOOK::CLOTHES_COLOR,
                          sd->status.clothes_color);
 
-    if (battle_config.muting_players && sd->status.manner < 0)
-        skill_status_change_start(&sd->bl, StatusChange::SC_NOCHAT, 0, 0, 0, 0, 0, 0);
-
     // option
     clif_changeoption(&sd->bl);
     for (i = 0; i < MAX_INVENTORY; i++)
@@ -3889,13 +3844,11 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
         if (bool(sd->status.inventory[i].equip)
             && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
             && sd->status.inventory[i].broken == 1)
-            skill_status_change_start(&sd->bl, StatusChange::SC_BROKNWEAPON, 0, 0, 0, 0, 0,
-                                       0);
+            skill_status_change_start(&sd->bl, StatusChange::SC_BROKNWEAPON, 0, interval_t::zero());
         if (bool(sd->status.inventory[i].equip)
             && bool(sd->status.inventory[i].equip & EPOS::MISC1)
             && sd->status.inventory[i].broken == 1)
-            skill_status_change_start(&sd->bl, StatusChange::SC_BROKNARMOR, 0, 0, 0, 0, 0,
-                                       0);
+            skill_status_change_start(&sd->bl, StatusChange::SC_BROKNARMOR, 0, interval_t::zero());
     }
 
 //        clif_changelook_accessories(sd, NULL);
@@ -3914,7 +3867,7 @@ void clif_parse_TickSend(int fd, struct map_session_data *sd)
 {
     nullpo_retv(sd);
 
-    sd->client_tick = RFIFOL(fd, 2);
+    sd->client_tick = tick_t(static_cast<interval_t>(RFIFOL(fd, 2)));
     sd->server_tick = gettick();
     clif_servertick(sd);
 }
@@ -3949,7 +3902,7 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
     if (bool(sd->opt1) && sd->opt1 != (Opt1::_stone6))
         return;
 
-    if (sd->invincible_timer != -1)
+    if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
 
     pc_stopattack(sd);
@@ -3966,27 +3919,22 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
  */
 void clif_parse_QuitGame(int fd, struct map_session_data *sd)
 {
-    unsigned int tick = gettick();
+    tick_t tick = gettick();
 
     nullpo_retv(sd);
 
     WFIFOW(fd, 0) = 0x18b;
-    if ((!pc_isdead(sd)
-         && (sd->opt1 != Opt1::ZERO
-             || (sd->opt2 != Opt2::ZERO
-                 && !(night_flag == 1 && sd->opt2 == Opt2::BLIND))))
-        || (DIFF_TICK(tick, sd->canact_tick) < 0)
-        )
+    if ((!pc_isdead(sd) && (sd->opt1 != Opt1::ZERO || sd->opt2 != Opt2::ZERO))
+        || (tick < sd->canact_tick))
     {
         WFIFOW(fd, 2) = 1;
-        WFIFOSET(fd, packet_len_table[0x18b]);
+        WFIFOSET(fd, clif_parse_func_table[0x18b].len);
         return;
     }
 
     /*  Rovert's prevent logout option fixed [Valaris]  */
-    if ((battle_config.prevent_logout
-         && (gettick() - sd->canlog_tick) >= 10000)
-        || (!battle_config.prevent_logout))
+    if (!battle_config.prevent_logout
+        || tick >= sd->canlog_tick + std::chrono::seconds(10))
     {
         clif_setwaitclose(fd);
         WFIFOW(fd, 2) = 0;
@@ -3995,7 +3943,7 @@ void clif_parse_QuitGame(int fd, struct map_session_data *sd)
     {
         WFIFOW(fd, 2) = 1;
     }
-    WFIFOSET(fd, packet_len_table[0x18b]);
+    WFIFOSET(fd, clif_parse_func_table[0x18b].len);
 
 }
 
@@ -4029,7 +3977,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
                 memset(WFIFOP(fd, 6), 0, 24);
             else
                 memcpy(WFIFOP(fd, 6), ssd->status.name, 24);
-            WFIFOSET(fd, packet_len_table[0x95]);
+            WFIFOSET(fd, clif_parse_func_table[0x95].len);
 
             struct party *p = NULL;
 
@@ -4051,7 +3999,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
                 memcpy(WFIFOP(fd, 30), "", 24);
                 memcpy(WFIFOP(fd, 54), "", 24);
                 memcpy(WFIFOP(fd, 78), "", 24); // We send this value twice because the client expects it
-                WFIFOSET(fd, packet_len_table[0x195]);
+                WFIFOSET(fd, clif_parse_func_table[0x195].len);
 
             }
 
@@ -4066,7 +4014,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
 
                 WFIFOL(fd, 2) = account_id;
                 WFIFOL(fd, 6) = ip.s_addr;
-                WFIFOSET(fd, packet_len_table[0x20C]);
+                WFIFOSET(fd, clif_parse_func_table[0x20C].len);
              }
 
         }
@@ -4084,7 +4032,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
                 while (*start == '_')
                     *start++ = ' ';
             }
-            WFIFOSET(fd, packet_len_table[0x95]);
+            WFIFOSET(fd, clif_parse_func_table[0x95].len);
             break;
         case BL::MOB:
         {
@@ -4093,7 +4041,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
             nullpo_retv(md);
 
             memcpy(WFIFOP(fd, 6), md->name, 24);
-            WFIFOSET(fd, packet_len_table[0x95]);
+            WFIFOSET(fd, clif_parse_func_table[0x95].len);
         }
             break;
         default:
@@ -4128,8 +4076,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0)
-            || (sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)) //チャット禁止
+    if (is_atcommand(fd, sd, message, 0)) //チャット禁止
     {
         free(buf);
         return;
@@ -4152,7 +4099,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
 
         // evil multiuse buffer!
         clif_send((const uint8_t *)buf, msg_len + 8, &sd->bl,
-                   sd->chatID ? CHAT_WOS : AREA_CHAT_WOC);
+                   sd->chatID ? SendWho::CHAT_WOS : SendWho::AREA_CHAT_WOC);
     }
 
     /* Send the message back to the speaker. */
@@ -4179,7 +4126,7 @@ int clif_message(struct block_list *bl, const char *msg)
     WBUFL(buf, 4) = bl->id;
     memcpy(WBUFP(buf, 8), msg, msg_len);
 
-    clif_send(buf, WBUFW(buf, 2), bl, AREA);
+    clif_send(buf, WBUFW(buf, 2), bl, SendWho::AREA);
 
     return 0;
 }
@@ -4210,7 +4157,7 @@ void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
     WBUFW(buf, 6) = 0;
     WBUFB(buf, 8) = static_cast<uint8_t>(dir);
 
-    clif_send(buf, packet_len_table[0x9c], &sd->bl, AREA_WOS);
+    clif_send(buf, clif_parse_func_table[0x9c].len, &sd->bl, SendWho::AREA_WOS);
 
 }
 
@@ -4231,7 +4178,7 @@ void clif_parse_Emotion(int fd, struct map_session_data *sd)
         WBUFW(buf, 0) = 0xc0;
         WBUFL(buf, 2) = sd->bl.id;
         WBUFB(buf, 6) = RFIFOB(fd, 2);
-        clif_send(buf, packet_len_table[0xc0], &sd->bl, AREA);
+        clif_send(buf, clif_parse_func_table[0xc0].len, &sd->bl, SendWho::AREA);
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 1);
@@ -4246,7 +4193,7 @@ void clif_parse_HowManyConnections(int fd, struct map_session_data *)
 {
     WFIFOW(fd, 0) = 0xc2;
     WFIFOL(fd, 2) = map_getusers();
-    WFIFOSET(fd, packet_len_table[0xc2]);
+    WFIFOSET(fd, clif_parse_func_table[0xc2].len);
 }
 
 /*==========================================
@@ -4256,7 +4203,6 @@ void clif_parse_HowManyConnections(int fd, struct map_session_data *)
 static
 void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
 {
-    unsigned int tick;
     unsigned char buf[64];
     int action_type, target_id;
 
@@ -4272,7 +4218,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
         || sd->state.storage_open)
         return;
 
-    tick = gettick();
+    tick_t tick = gettick();
 
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
@@ -4288,13 +4234,13 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
                 return;
             if (!battle_config.sdelay_attack_enable)
             {
-                if (DIFF_TICK(tick, sd->canact_tick) < 0)
+                if (tick < sd->canact_tick)
                 {
                     clif_skill_fail(sd, SkillID::ONE, 4, 0);
                     return;
                 }
             }
-            if (sd->invincible_timer != -1)
+            if (sd->invincible_timer)
                 pc_delinvincibletimer(sd);
             if (sd->attacktarget > 0)   // [Valaris]
                 sd->attacktarget = 0;
@@ -4312,7 +4258,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
             WBUFW(buf, 0) = 0x8a;
             WBUFL(buf, 2) = sd->bl.id;
             WBUFB(buf, 26) = 3;
-            clif_send(buf, packet_len_table[0x8a], &sd->bl, AREA);
+            clif_send(buf, clif_parse_func_table[0x8a].len, &sd->bl, SendWho::AREA);
             break;
     }
 }
@@ -4340,9 +4286,8 @@ void clif_parse_Restart(int fd, struct map_session_data *sd)
             break;
         case 0x01:
             /*  Rovert's Prevent logout option - Fixed [Valaris]    */
-            if ((battle_config.prevent_logout
-                 && (gettick() - sd->canlog_tick) >= 10000)
-                || (!battle_config.prevent_logout))
+            if (!battle_config.prevent_logout
+                || gettick() >= sd->canlog_tick + std::chrono::seconds(10))
             {
                 chrif_charselectreq(sd);
             }
@@ -4351,7 +4296,7 @@ void clif_parse_Restart(int fd, struct map_session_data *sd)
                 WFIFOW(fd, 0) = 0x18b;
                 WFIFOW(fd, 2) = 1;
 
-                WFIFOSET(fd, packet_len_table[0x018b]);
+                WFIFOSET(fd, clif_parse_func_table[0x018b].len);
             }
             break;
     }
@@ -4383,8 +4328,7 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0)
-            || (sd->sc_data[StatusChange::SC_NOCHAT].timer != -1))
+    if (is_atcommand(fd, sd, message, 0))
     {
         free(buf);
         return;
@@ -4472,8 +4416,7 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
     }
 
     if (sd->npc_id != 0
-        || sd->opt1 != Opt1::ZERO
-        || sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)   //会話禁止
+        || sd->opt1 != Opt1::ZERO)   //会話禁止
         return;
 
     if (fitem == NULL || fitem->bl.m != sd->bl.m)
@@ -4538,11 +4481,10 @@ void clif_parse_UseItem(int fd, struct map_session_data *sd)
         return;
     }
     if (sd->npc_id != 0
-        || sd->opt1 != Opt1::ZERO
-        || sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)   //会話禁止
+        || sd->opt1 != Opt1::ZERO)   //会話禁止
         return;
 
-    if (sd->invincible_timer != -1)
+    if (sd->invincible_timer)
         pc_delinvincibletimer(sd);
 
     pc_useitem(sd, RFIFOW(fd, 2) - 2);
@@ -4606,10 +4548,10 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
         return;
     }
     index = RFIFOW(fd, 2) - 2;
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNWEAPON].timer != -1)
-        skill_status_change_end(&sd->bl, StatusChange::SC_BROKNWEAPON, -1);
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNARMOR].timer != -1)
-        skill_status_change_end(&sd->bl, StatusChange::SC_BROKNARMOR, -1);
+    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNWEAPON].timer)
+        skill_status_change_end(&sd->bl, StatusChange::SC_BROKNWEAPON, nullptr);
+    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNARMOR].timer)
+        skill_status_change_end(&sd->bl, StatusChange::SC_BROKNARMOR, nullptr);
 
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO)
@@ -4661,7 +4603,7 @@ void clif_parse_NpcBuyListSend(int fd, struct map_session_data *sd)
 
     WFIFOW(fd, 0) = 0xca;
     WFIFOB(fd, 2) = fail;
-    WFIFOSET(fd, packet_len_table[0xca]);
+    WFIFOSET(fd, clif_parse_func_table[0xca].len);
 }
 
 /*==========================================
@@ -4679,7 +4621,7 @@ void clif_parse_NpcSellListSend(int fd, struct map_session_data *sd)
 
     WFIFOW(fd, 0) = 0xcb;
     WFIFOB(fd, 2) = fail;
-    WFIFOSET(fd, packet_len_table[0xcb]);
+    WFIFOSET(fd, clif_parse_func_table[0xcb].len);
 }
 
 /*==========================================
@@ -5028,8 +4970,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0)
-            || (sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)) //チャット禁止
+    if (is_atcommand(fd, sd, message, 0)) //チャット禁止
     {
         free(buf);
         return;
@@ -5060,12 +5001,12 @@ void clif_parse_PMIgnoreAll(int fd, struct map_session_data *sd)
         {
             sd->ignoreAll = 1;
             WFIFOB(fd, 3) = 0; // success
-            WFIFOSET(fd, packet_len_table[0x0d2]);
+            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
         }
         else
         {
             WFIFOB(fd, 3) = 1; // fail
-            WFIFOSET(fd, packet_len_table[0x0d2]);
+            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
             clif_wis_message(fd, wisp_server_name,
                               "You already block everyone.",
                               strlen("You already block everyone.") + 1);
@@ -5079,12 +5020,12 @@ void clif_parse_PMIgnoreAll(int fd, struct map_session_data *sd)
         {
             sd->ignoreAll = 0;
             WFIFOB(fd, 3) = 0; // success
-            WFIFOSET(fd, packet_len_table[0x0d2]);
+            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
         }
         else
         {
             WFIFOB(fd, 3) = 1; // fail
-            WFIFOSET(fd, packet_len_table[0x0d2]);
+            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
             clif_wis_message(fd, wisp_server_name,
                               "You already allow everyone.",
                               strlen("You already allow everyone.") + 1);
@@ -5094,580 +5035,566 @@ void clif_parse_PMIgnoreAll(int fd, struct map_session_data *sd)
     return;
 }
 
-// functions list. Rate is how many milliseconds are required between
-// calls. Packets exceeding this rate will be dropped. flood_rates in
-// map.h must be the same length as this table. rate 0 is default
-// rate -1 is unlimited
-
-// TODO: merge this with the packet length table, and put the pointer last
-typedef struct func_table
+func_table clif_parse_func_table[0x0220] =
 {
-        void(*func)(int fd, struct map_session_data *sd);
-        int rate;
-} func_table;
-// *INDENT-OFF*
-static
-func_table clif_parse_func_table[0x220] =
-{
-        { NULL,                                 0       },      // 0
-        { NULL,                                 0       },      // 1
-        { NULL,                                 0       },      // 2
-        { NULL,                                 0       },      // 3
-        { NULL,                                 0       },      // 4
-        { NULL,                                 0       },      // 5
-        { NULL,                                 0       },      // 6
-        { NULL,                                 0       },      // 7
-        { NULL,                                 0       },      // 8
-        { NULL,                                 0       },      // 9
-        { NULL,                                 0       },      // a
-        { NULL,                                 0       },      // b
-        { NULL,                                 0       },      // c
-        { NULL,                                 0       },      // d
-        { NULL,                                 0       },      // e
-        { NULL,                                 0       },      // f
-        { NULL,                                 0       },      // 10
-        { NULL,                                 0       },      // 11
-        { NULL,                                 0       },      // 12
-        { NULL,                                 0       },      // 13
-        { NULL,                                 0       },      // 14
-        { NULL,                                 0       },      // 15
-        { NULL,                                 0       },      // 16
-        { NULL,                                 0       },      // 17
-        { NULL,                                 0       },      // 18
-        { NULL,                                 0       },      // 19
-        { NULL,                                 0       },      // 1a
-        { NULL,                                 0       },      // 1b
-        { NULL,                                 0       },      // 1c
-        { NULL,                                 0       },      // 1d
-        { NULL,                                 0       },      // 1e
-        { NULL,                                 0       },      // 1f
-        { NULL,                                 0       },      // 20
-        { NULL,                                 0       },      // 21
-        { NULL,                                 0       },      // 22
-        { NULL,                                 0       },      // 23
-        { NULL,                                 0       },      // 24
-        { NULL,                                 0       },      // 25
-        { NULL,                                 0       },      // 26
-        { NULL,                                 0       },      // 27
-        { NULL,                                 0       },      // 28
-        { NULL,                                 0       },      // 29
-        { NULL,                                 0       },      // 2a
-        { NULL,                                 0       },      // 2b
-        { NULL,                                 0       },      // 2c
-        { NULL,                                 0       },      // 2d
-        { NULL,                                 0       },      // 2e
-        { NULL,                                 0       },      // 2f
-        { NULL,                                 0       },      // 30
-        { NULL,                                 0       },      // 31
-        { NULL,                                 0       },      // 32
-        { NULL,                                 0       },      // 33
-        { NULL,                                 0       },      // 34
-        { NULL,                                 0       },      // 35
-        { NULL,                                 0       },      // 36
-        { NULL,                                 0       },      // 37
-        { NULL,                                 0       },      // 38
-        { NULL,                                 0       },      // 39
-        { NULL,                                 0       },      // 3a
-        { NULL,                                 0       },      // 3b
-        { NULL,                                 0       },      // 3c
-        { NULL,                                 0       },      // 3d
-        { NULL,                                 0       },      // 3e
-        { NULL,                                 0       },      // 3f
-        { NULL,                                 0       },      // 40
-        { NULL,                                 0       },      // 41
-        { NULL,                                 0       },      // 42
-        { NULL,                                 0       },      // 43
-        { NULL,                                 0       },      // 44
-        { NULL,                                 0       },      // 45
-        { NULL,                                 0       },      // 46
-        { NULL,                                 0       },      // 47
-        { NULL,                                 0       },      // 48
-        { NULL,                                 0       },      // 49
-        { NULL,                                 0       },      // 4a
-        { NULL,                                 0       },      // 4b
-        { NULL,                                 0       },      // 4c
-        { NULL,                                 0       },      // 4d
-        { NULL,                                 0       },      // 4e
-        { NULL,                                 0       },      // 4f
-        { NULL,                                 0       },      // 50
-        { NULL,                                 0       },      // 51
-        { NULL,                                 0       },      // 52
-        { NULL,                                 0       },      // 53
-        { NULL,                                 0       },      // 54
-        { NULL,                                 0       },      // 55
-        { NULL,                                 0       },      // 56
-        { NULL,                                 0       },      // 57
-        { NULL,                                 0       },      // 58
-        { NULL,                                 0       },      // 59
-        { NULL,                                 0       },      // 5a
-        { NULL,                                 0       },      // 5b
-        { NULL,                                 0       },      // 5c
-        { NULL,                                 0       },      // 5d
-        { NULL,                                 0       },      // 5e
-        { NULL,                                 0       },      // 5f
-        { NULL,                                 0       },      // 60
-        { NULL,                                 0       },      // 61
-        { NULL,                                 0       },      // 62
-        { NULL,                                 0       },      // 63
-        { NULL,                                 0       },      // 64
-        { NULL,                                 0       },      // 65
-        { NULL,                                 0       },      // 66
-        { NULL,                                 0       },      // 67
-        { NULL,                                 0       },      // 68
-        { NULL,                                 0       },      // 69
-        { NULL,                                 0       },      // 6a
-        { NULL,                                 0       },      // 6b
-        { NULL,                                 0       },      // 6c
-        { NULL,                                 0       },      // 6d
-        { NULL,                                 0       },      // 6e
-        { NULL,                                 0       },      // 6f
-        { NULL,                                 0       },      // 70
-        { NULL,                                 0       },      // 71
-        { clif_parse_WantToConnection,          0       },      // 72
-        { NULL,                                 0       },      // 73
-        { NULL,                                 0       },      // 74
-        { NULL,                                 0       },      // 75
-        { NULL,                                 0       },      // 76
-        { NULL,                                 0       },      // 77
-        { NULL,                                 0       },      // 78
-        { NULL,                                 0       },      // 79
-        { NULL,                                 0       },      // 7a
-        { NULL,                                 0       },      // 7b
-        { NULL,                                 0       },      // 7c
-        { clif_parse_LoadEndAck,                -1      },      // 7d
-        { clif_parse_TickSend,                  0       },      // 7e
-        { NULL,                                 0       },      // 7f
-        { NULL,                                 0       },      // 80
-        { NULL,                                 0       },      // 81
-        { NULL,                                 0       },      // 82
-        { NULL,                                 0       },      // 83
-        { NULL,                                 0       },      // 84
-        { clif_parse_WalkToXY,                  -1      },      // 85 Walk code limits this on it's own
-        { NULL,                                 0       },      // 86
-        { NULL,                                 0       },      // 87
-        { NULL,                                 0       },      // 88
-        { clif_parse_ActionRequest,             1000    },      // 89 Special case - see below
-        { NULL,                                 0       },      // 8a
-        { NULL,                                 0       },      // 8b
-        { clif_parse_GlobalMessage,             300     },      // 8c
-        { NULL,                                 0       },      // 8d
-        { NULL,                                 0       },      // 8e
-        { NULL,                                 0       },      // 8f
-        { clif_parse_NpcClicked,                500     },      // 90
-        { NULL,                                 0       },      // 91
-        { NULL,                                 0       },      // 92
-        { NULL,                                 0       },      // 93
-        { clif_parse_GetCharNameRequest,        -1      },      // 94
-        { NULL,                                 0       },      // 95
-        { clif_parse_Wis,                       300     },      // 96
-        { NULL,                                 0       },      // 97
-        { NULL,                                 0       },      // 98
-        { NULL,                                 300     },      // 99
-        { NULL,                                 0       },      // 9a
-        { clif_parse_ChangeDir,                 -1      },      // 9b
-        { NULL,                                 0       },      // 9c
-        { NULL,                                 0       },      // 9d
-        { NULL,                                 0       },      // 9e
-        { clif_parse_TakeItem,                  400     },      // 9f
-        { NULL,                                 0       },      // a0
-        { NULL,                                 0       },      // a1
-        { clif_parse_DropItem,                  50      },      // a2
-        { NULL,                                 0       },      // a3
-        { NULL,                                 0       },      // a4
-        { NULL,                                 0       },      // a5
-        { NULL,                                 0       },      // a6
-        { clif_parse_UseItem,                   0       },      // a7
-        { NULL,                                 0       },      // a8
-        { clif_parse_EquipItem,                 -1      },      // a9 Special case - outfit window (not implemented yet - needs to allow bursts)
-        { NULL,                                 0       },      // aa
-        { clif_parse_UnequipItem,               -1      },      // ab Special case - outfit window (not implemented yet - needs to allow bursts)
-        { NULL,                                 0       },      // ac
-        { NULL,                                 0       },      // ad
-        { NULL,                                 0       },      // ae
-        { NULL,                                 0       },      // af
-        { NULL,                                 0       },      // b0
-        { NULL,                                 0       },      // b1
-        { clif_parse_Restart,                   0       },      // b2
-        { NULL,                                 0       },      // b3
-        { NULL,                                 0       },      // b4
-        { NULL,                                 0       },      // b5
-        { NULL,                                 0       },      // b6
-        { NULL,                                 0       },      // b7
-        { clif_parse_NpcSelectMenu,             0       },      // b8
-        { clif_parse_NpcNextClicked,            -1      },      // b9
-        { NULL,                                 0       },      // ba
-        { clif_parse_StatusUp,                  -1      },      // bb People click this very quickly
-        { NULL,                                 0       },      // bc
-        { NULL,                                 0       },      // bd
-        { NULL,                                 0       },      // be
-        { clif_parse_Emotion,                   1000    },      // bf
-        { NULL,                                 0       },      // c0
-        { clif_parse_HowManyConnections,        0       },      // c1
-        { NULL,                                 0       },      // c2
-        { NULL,                                 0       },      // c3
-        { NULL,                                 0       },      // c4
-        { clif_parse_NpcBuySellSelected,        0       },      // c5
-        { NULL,                                 0       },      // c6
-        { NULL,                                 0       },      // c7
-        { clif_parse_NpcBuyListSend,            -1      },      // c8
-        { clif_parse_NpcSellListSend,           -1      },      // c9 Selling multiple 1-slot items
-        { NULL,                                 0       },      // ca
-        { NULL,                                 0       },      // cb
-        { NULL,                                 0       },      // cc
-        { NULL,                                 0       },      // cd
-        { NULL,                                 0       },      // ce
-        { NULL,                                 0       },      // cf
-        { clif_parse_PMIgnoreAll,               0       },      // d0
-        { NULL,                                 0       },      // d1
-        { NULL,                                 0       },      // d2
-        { NULL,                                 0       },      // d3
-        { NULL,                                 0       },      // d4
-        { NULL,                                 0       },      // d5
-        { NULL,                                 0       },      // d6
-        { NULL,                                 0       },      // d7
-        { NULL,                                 0       },      // d8
-        { NULL,                                 0       },      // d9
-        { NULL,                                 0       },      // da
-        { NULL,                                 0       },      // db
-        { NULL,                                 0       },      // dc
-        { NULL,                                 0       },      // dd
-        { NULL,                                 0       },      // de
-        { NULL,                                 0       },      // df
-        { NULL,                                 0       },      // e0
-        { NULL,                                 0       },      // e1
-        { NULL,                                 0       },      // e2
-        { NULL,                                 0       },      // e3
-        { clif_parse_TradeRequest,              2000    },      // e4
-        { NULL,                                 0       },      // e5
-        { clif_parse_TradeAck,                  0       },      // e6
-        { NULL,                                 0       },      // e7
-        { clif_parse_TradeAddItem,              0       },      // e8
-        { NULL,                                 0       },      // e9
-        { NULL,                                 0       },      // ea
-        { clif_parse_TradeOk,                   0       },      // eb
-        { NULL,                                 0       },      // ec
-        { clif_parse_TradeCansel,               0       },      // ed
-        { NULL,                                 0       },      // ee
-        { clif_parse_TradeCommit,               0       },      // ef
-        { NULL,                                 0       },      // f0
-        { NULL,                                 0       },      // f1
-        { NULL,                                 0       },      // f2
-        { clif_parse_MoveToKafra,               -1      },      // f3
-        { NULL,                                 0       },      // f4
-        { clif_parse_MoveFromKafra,             -1      },      // f5
-        { NULL,                                 0       },      // f6
-        { clif_parse_CloseKafra,                0       },      // f7
-        { NULL,                                 0       },      // f8
-        { clif_parse_CreateParty,               2000    },      // f9
-        { NULL,                                 0       },      // fa
-        { NULL,                                 0       },      // fb
-        { clif_parse_PartyInvite,               2000    },      // fc
-        { NULL,                                 0       },      // fd
-        { NULL,                                 0       },      // fe
-        { clif_parse_ReplyPartyInvite,          0       },      // ff
-        { clif_parse_LeaveParty,                0       },      // 100
-        { NULL,                                 0       },      // 101
-        { clif_parse_PartyChangeOption,         0       },      // 102
-        { clif_parse_RemovePartyMember,         0       },      // 103
-        { NULL,                                 0       },      // 104
-        { NULL,                                 0       },      // 105
-        { NULL,                                 0       },      // 106
-        { NULL,                                 0       },      // 107
-        { clif_parse_PartyMessage,              300     },      // 108
-        { NULL,                                 0       },      // 109
-        { NULL,                                 0       },      // 10a
-        { NULL,                                 0       },      // 10b
-        { NULL,                                 0       },      // 10c
-        { NULL,                                 0       },      // 10d
-        { NULL,                                 0       },      // 10e
-        { NULL,                                 0       },      // 10f
-        { NULL,                                 0       },      // 110
-        { NULL,                                 0       },      // 111
-        { clif_parse_SkillUp,                   -1      },      // 112
-        { NULL,                                 0       },      // 113
-        { NULL,                                 0       },      // 114
-        { NULL,                                 0       },      // 115
-        { NULL,                                 0       },      // 116
-        { NULL,                                 0       },      // 117
-        { clif_parse_StopAttack,                0       },      // 118
-        { NULL,                                 0       },      // 119
-        { NULL,                                 0       },      // 11a
-        { NULL,                                 0       },      // 11b
-        { NULL,                                 0       },      // 11c
-        { NULL,                                 0       },      // 11d
-        { NULL,                                 0       },      // 11e
-        { NULL,                                 0       },      // 11f
-        { NULL,                                 0       },      // 120
-        { NULL,                                 0       },      // 121
-        { NULL,                                 0       },      // 122
-        { NULL,                                 0       },      // 123
-        { NULL,                                 0       },      // 124
-        { NULL,                                 0       },      // 125
-        { NULL,                                 0       },      // 126
-        { NULL,                                 0       },      // 127
-        { NULL,                                 0       },      // 128
-        { NULL,                                 0       },      // 129
-        { NULL,                                 0       },      // 12a
-        { NULL,                                 0       },      // 12b
-        { NULL,                                 0       },      // 12c
-        { NULL,                                 0       },      // 12d
-        { NULL,                                 0       },      // 12e
-        { NULL,                                 0       },      // 12f
-        { NULL,                                 0       },      // 130
-        { NULL,                                 0       },      // 131
-        { NULL,                                 0       },      // 132
-        { NULL,                                 0       },      // 133
-        { NULL,                                 0       },      // 134
-        { NULL,                                 0       },      // 135
-        { NULL,                                 0       },      // 136
-        { NULL,                                 0       },      // 137
-        { NULL,                                 0       },      // 138
-        { NULL,                                 0       },      // 139
-        { NULL,                                 0       },      // 13a
-        { NULL,                                 0       },      // 13b
-        { NULL,                                 0       },      // 13c
-        { NULL,                                 0       },      // 13d
-        { NULL,                                 0       },      // 13e
-        { NULL,                                 0       },      // 13f
-        { NULL,                                 0       },      // 140
-        { NULL,                                 0       },      // 141
-        { NULL,                                 0       },      // 142
-        { clif_parse_NpcAmountInput,            300     },      // 143
-        { NULL,                                 0       },      // 144
-        { NULL,                                 0       },      // 145
-        { clif_parse_NpcCloseClicked,           300     },      // 146
-        { NULL,                                 0       },      // 147
-        { NULL,                                 0       },      // 148
-        { NULL,                                 0       },      // 149
-        { NULL,                                 0       },      // 14a
-        { NULL,                                 0       },      // 14b
-        { NULL,                                 0       },      // 14c
-        { NULL,                                 0       },      // 14d
-        { NULL,                                 0       },      // 14e
-        { NULL,                                 0       },      // 14f
-        { NULL,                                 0       },      // 150
-        { NULL,                                 0       },      // 151
-        { NULL,                                 0       },      // 152
-        { NULL,                                 0       },      // 153
-        { NULL,                                 0       },      // 154
-        { NULL,                                 0       },      // 155
-        { NULL,                                 0       },      // 156
-        { NULL,                                 0       },      // 157
-        { NULL,                                 0       },      // 158
-        { NULL,                                 0       },      // 159
-        { NULL,                                 0       },      // 15a
-        { NULL,                                 0       },      // 15b
-        { NULL,                                 0       },      // 15c
-        { NULL,                                 0       },      // 15d
-        { NULL,                                 0       },      // 15e
-        { NULL,                                 0       },      // 15f
-        { NULL,                                 0       },      // 160
-        { NULL,                                 0       },      // 161
-        { NULL,                                 0       },      // 162
-        { NULL,                                 0       },      // 163
-        { NULL,                                 0       },      // 164
-        { NULL,                                 0       },      // 165
-        { NULL,                                 0       },      // 166
-        { NULL,                                 0       },      // 167
-        { NULL,                                 0       },      // 168
-        { NULL,                                 0       },      // 169
-        { NULL,                                 0       },      // 16a
-        { NULL,                                 0       },      // 16b
-        { NULL,                                 0       },      // 16c
-        { NULL,                                 0       },      // 16d
-        { NULL,                                 0       },      // 16e
-        { NULL,                                 0       },      // 16f
-        { NULL,                                 0       },      // 170
-        { NULL,                                 0       },      // 171
-        { NULL,                                 0       },      // 172
-        { NULL,                                 0       },      // 173
-        { NULL,                                 0       },      // 174
-        { NULL,                                 0       },      // 175
-        { NULL,                                 0       },      // 176
-        { NULL,                                 0       },      // 177
-        { NULL,                                 0       },      // 178
-        { NULL,                                 0       },      // 179
-        { NULL,                                 0       },      // 17a
-        { NULL,                                 0       },      // 17b
-        { NULL,                                 0       },      // 17c
-        { NULL,                                 0       },      // 17d
-        { NULL,                                 0       },      // 17e
-        { NULL,                                 0       },      // 17f
-        { NULL,                                 0       },      // 180
-        { NULL,                                 0       },      // 181
-        { NULL,                                 0       },      // 182
-        { NULL,                                 0       },      // 183
-        { NULL,                                 0       },      // 184
-        { NULL,                                 0       },      // 185
-        { NULL,                                 0       },      // 186
-        { NULL,                                 0       },      // 187
-        { NULL,                                 0       },      // 188
-        { NULL,                                 0       },      // 189
-        { clif_parse_QuitGame,                  0       },      // 18a
-        { NULL,                                 0       },      // 18b
-        { NULL,                                 0       },      // 18c
-        { NULL,                                 0       },      // 18d
-        { NULL,                                 0       },      // 18e
-        { NULL,                                 0       },      // 18f
-        { NULL,                                 0       },      // 190
-        { NULL,                                 0       },      // 191
-        { NULL,                                 0       },      // 192
-        { NULL,                                 0       },      // 193
-        { NULL,                                 0       },      // 194
-        { NULL,                                 0       },      // 195
-        { NULL,                                 0       },      // 196
-        { NULL,                                 0       },      // 197
-        { NULL,                                 0       },      // 198
-        { NULL,                                 0       },      // 199
-        { NULL,                                 0       },      // 19a
-        { NULL,                                 0       },      // 19b
-        { NULL,                                 0       },      // 19c
-        { NULL,                                 300     },      // 19d
-        { NULL,                                 0       },      // 19e
-        { NULL,                                 0       },      // 19f
-        { NULL,                                 0       },      // 1a0
-        { NULL,                                 0       },      // 1a1
-        { NULL,                                 0       },      // 1a2
-        { NULL,                                 0       },      // 1a3
-        { NULL,                                 0       },      // 1a4
-        { NULL,                                 0       },      // 1a5
-        { NULL,                                 0       },      // 1a6
-        { NULL,                                 0       },      // 1a7
-        { NULL,                                 0       },      // 1a8
-        { NULL,                                 0       },      // 1a9
-        { NULL,                                 0       },      // 1aa
-        { NULL,                                 0       },      // 1ab
-        { NULL,                                 0       },      // 1ac
-        { NULL,                                 0       },      // 1ad
-        { NULL,                                 0       },      // 1ae
-        { NULL,                                 0       },      // 1af
-        { NULL,                                 0       },      // 1b0
-        { NULL,                                 0       },      // 1b1
-        { NULL,                                 0       },      // 1b2
-        { NULL,                                 0       },      // 1b3
-        { NULL,                                 0       },      // 1b4
-        { NULL,                                 0       },      // 1b5
-        { NULL,                                 0       },      // 1b6
-        { NULL,                                 0       },      // 1b7
-        { NULL,                                 0       },      // 1b8
-        { NULL,                                 0       },      // 1b9
-        { NULL,                                 0       },      // 1ba
-        { NULL,                                 0       },      // 1bb
-        { NULL,                                 0       },      // 1bc
-        { NULL,                                 0       },      // 1bd
-        { NULL,                                 0       },      // 1be
-        { NULL,                                 0       },      // 1bf
-        { NULL,                                 0       },      // 1c0
-        { NULL,                                 0       },      // 1c1
-        { NULL,                                 0       },      // 1c2
-        { NULL,                                 0       },      // 1c3
-        { NULL,                                 0       },      // 1c4
-        { NULL,                                 0       },      // 1c5
-        { NULL,                                 0       },      // 1c6
-        { NULL,                                 0       },      // 1c7
-        { NULL,                                 0       },      // 1c8
-        { NULL,                                 0       },      // 1c9
-        { NULL,                                 0       },      // 1ca
-        { NULL,                                 0       },      // 1cb
-        { NULL,                                 0       },      // 1cc
-        { NULL,                                 0       },      // 1cd
-        { NULL,                                 0       },      // 1ce
-        { NULL,                                 0       },      // 1cf
-        { NULL,                                 0       },      // 1d0
-        { NULL,                                 0       },      // 1d1
-        { NULL,                                 0       },      // 1d2
-        { NULL,                                 0       },      // 1d3
-        { NULL,                                 0       },      // 1d4
-        { clif_parse_NpcStringInput,            300     },      // 1d5
-        { NULL,                                 0       },      // 1d6
-        { NULL,                                 0       },      // 1d7
-        { NULL,                                 0       },      // 1d8
-        { NULL,                                 0       },      // 1d9
-        { NULL,                                 0       },      // 1da
-        { NULL,                                 0       },      // 1db
-        { NULL,                                 0       },      // 1dc
-        { NULL,                                 0       },      // 1dd
-        { NULL,                                 0       },      // 1de
-        { NULL,                                 0       },      // 1df
-        { NULL,                                 0       },      // 1e0
-        { NULL,                                 0       },      // 1e1
-        { NULL,                                 0       },      // 1e2
-        { NULL,                                 0       },      // 1e3
-        { NULL,                                 0       },      // 1e4
-        { NULL,                                 0       },      // 1e5
-        { NULL,                                 0       },      // 1e6
-        { NULL,                                 0       },      // 1e7
-        { NULL,                                 0       },      // 1e8
-        { NULL,                                 0       },      // 1e9
-        { NULL,                                 0       },      // 1ea
-        { NULL,                                 0       },      // 1eb
-        { NULL,                                 0       },      // 1ec
-        { NULL,                                 0       },      // 1ed
-        { NULL,                                 0       },      // 1ee
-        { NULL,                                 0       },      // 1ef
-        { NULL,                                 0       },      // 1f0
-        { NULL,                                 0       },      // 1f1
-        { NULL,                                 0       },      // 1f2
-        { NULL,                                 0       },      // 1f3
-        { NULL,                                 0       },      // 1f4
-        { NULL,                                 0       },      // 1f5
-        { NULL,                                 0       },      // 1f6
-        { NULL,                                 0       },      // 1f7
-        { NULL,                                 0       },      // 1f8
-        { NULL,                                 0       },      // 1f9
-        { NULL,                                 0       },      // 1fa
-        { NULL,                                 0       },      // 1fb
-        { NULL,                                 0       },      // 1fc
-        { NULL,                                 0       },      // 1fd
-        { NULL,                                 0       },      // 1fe
-        { NULL,                                 0       },      // 1ff
-        { NULL,                                 0       },      // 200
-        { NULL,                                 0       },      // 201
-        { NULL,                                 0       },      // 202
-        { NULL,                                 0       },      // 203
-        { NULL,                                 0       },      // 204
-        { NULL,                                 0       },      // 205
-        { NULL,                                 0       },      // 206
-        { NULL,                                 0       },      // 207
-        { NULL,                                 0       },      // 208
-        { NULL,                                 0       },      // 209
-        { NULL,                                 0       },      // 20a
-        { NULL,                                 0       },      // 20b
-        { NULL,                                 0       },      // 20c
-        { NULL,                                 0       },      // 20d
-        { NULL,                                 0       },      // 20e
-        { NULL,                                 0       },      // 20f
-        { NULL,                                 0       },      // 210
-        { NULL,                                 0       },      // 211
-        { NULL,                                 0       },      // 212
-        { NULL,                                 0       },      // 213
-        { NULL,                                 0       },      // 214
-        { NULL,                                 0       },      // 215
-        { NULL,                                 0       },      // 216
-        { NULL,                                 0       },      // 217
-        { NULL,                                 0       },      // 218
-        { NULL,                                 0       },      // 219
-        { NULL,                                 0       },      // 21a
-        { NULL,                                 0       },      // 21b
-        { NULL,                                 0       },      // 21c
-        { NULL,                                 0       },      // 21d
-        { NULL,                                 0       },      // 21e
-        { NULL,                                 0       },      // 21f
+    {0,     10, NULL,                           },  // 0x0000
+    {0,     0,  NULL,                           },  // 0x0001
+    {0,     0,  NULL,                           },  // 0x0002
+    {0,     0,  NULL,                           },  // 0x0003
+    {0,     0,  NULL,                           },  // 0x0004
+    {0,     0,  NULL,                           },  // 0x0005
+    {0,     0,  NULL,                           },  // 0x0006
+    {0,     0,  NULL,                           },  // 0x0007
+    {0,     0,  NULL,                           },  // 0x0008
+    {0,     0,  NULL,                           },  // 0x0009
+    {0,     0,  NULL,                           },  // 0x000a
+    {0,     0,  NULL,                           },  // 0x000b
+    {0,     0,  NULL,                           },  // 0x000c
+    {0,     0,  NULL,                           },  // 0x000d
+    {0,     0,  NULL,                           },  // 0x000e
+    {0,     0,  NULL,                           },  // 0x000f
+    {0,     0,  NULL,                           },  // 0x0010
+    {0,     0,  NULL,                           },  // 0x0011
+    {0,     0,  NULL,                           },  // 0x0012
+    {0,     0,  NULL,                           },  // 0x0013
+    {0,     0,  NULL,                           },  // 0x0014
+    {0,     0,  NULL,                           },  // 0x0015
+    {0,     0,  NULL,                           },  // 0x0016
+    {0,     0,  NULL,                           },  // 0x0017
+    {0,     0,  NULL,                           },  // 0x0018
+    {0,     0,  NULL,                           },  // 0x0019
+    {0,     0,  NULL,                           },  // 0x001a
+    {0,     0,  NULL,                           },  // 0x001b
+    {0,     0,  NULL,                           },  // 0x001c
+    {0,     0,  NULL,                           },  // 0x001d
+    {0,     0,  NULL,                           },  // 0x001e
+    {0,     0,  NULL,                           },  // 0x001f
+    {0,     0,  NULL,                           },  // 0x0020
+    {0,     0,  NULL,                           },  // 0x0021
+    {0,     0,  NULL,                           },  // 0x0022
+    {0,     0,  NULL,                           },  // 0x0023
+    {0,     0,  NULL,                           },  // 0x0024
+    {0,     0,  NULL,                           },  // 0x0025
+    {0,     0,  NULL,                           },  // 0x0026
+    {0,     0,  NULL,                           },  // 0x0027
+    {0,     0,  NULL,                           },  // 0x0028
+    {0,     0,  NULL,                           },  // 0x0029
+    {0,     0,  NULL,                           },  // 0x002a
+    {0,     0,  NULL,                           },  // 0x002b
+    {0,     0,  NULL,                           },  // 0x002c
+    {0,     0,  NULL,                           },  // 0x002d
+    {0,     0,  NULL,                           },  // 0x002e
+    {0,     0,  NULL,                           },  // 0x002f
+    {0,     0,  NULL,                           },  // 0x0030
+    {0,     0,  NULL,                           },  // 0x0031
+    {0,     0,  NULL,                           },  // 0x0032
+    {0,     0,  NULL,                           },  // 0x0033
+    {0,     0,  NULL,                           },  // 0x0034
+    {0,     0,  NULL,                           },  // 0x0035
+    {0,     0,  NULL,                           },  // 0x0036
+    {0,     0,  NULL,                           },  // 0x0037
+    {0,     0,  NULL,                           },  // 0x0038
+    {0,     0,  NULL,                           },  // 0x0039
+    {0,     0,  NULL,                           },  // 0x003a
+    {0,     0,  NULL,                           },  // 0x003b
+    {0,     0,  NULL,                           },  // 0x003c
+    {0,     0,  NULL,                           },  // 0x003d
+    {0,     0,  NULL,                           },  // 0x003e
+    {0,     0,  NULL,                           },  // 0x003f
+    {0,     0,  NULL,                           },  // 0x0040
+    {0,     0,  NULL,                           },  // 0x0041
+    {0,     0,  NULL,                           },  // 0x0042
+    {0,     0,  NULL,                           },  // 0x0043
+    {0,     0,  NULL,                           },  // 0x0044
+    {0,     0,  NULL,                           },  // 0x0045
+    {0,     0,  NULL,                           },  // 0x0046
+    {0,     0,  NULL,                           },  // 0x0047
+    {0,     0,  NULL,                           },  // 0x0048
+    {0,     0,  NULL,                           },  // 0x0049
+    {0,     0,  NULL,                           },  // 0x004a
+    {0,     0,  NULL,                           },  // 0x004b
+    {0,     0,  NULL,                           },  // 0x004c
+    {0,     0,  NULL,                           },  // 0x004d
+    {0,     0,  NULL,                           },  // 0x004e
+    {0,     0,  NULL,                           },  // 0x004f
+    {0,     0,  NULL,                           },  // 0x0050
+    {0,     0,  NULL,                           },  // 0x0051
+    {0,     0,  NULL,                           },  // 0x0052
+    {0,     0,  NULL,                           },  // 0x0053
+    {0,     0,  NULL,                           },  // 0x0054
+    {0,     0,  NULL,                           },  // 0x0055
+    {0,     0,  NULL,                           },  // 0x0056
+    {0,     0,  NULL,                           },  // 0x0057
+    {0,     0,  NULL,                           },  // 0x0058
+    {0,     0,  NULL,                           },  // 0x0059
+    {0,     0,  NULL,                           },  // 0x005a
+    {0,     0,  NULL,                           },  // 0x005b
+    {0,     0,  NULL,                           },  // 0x005c
+    {0,     0,  NULL,                           },  // 0x005d
+    {0,     0,  NULL,                           },  // 0x005e
+    {0,     0,  NULL,                           },  // 0x005f
+    {0,     0,  NULL,                           },  // 0x0060
+    {0,     0,  NULL,                           },  // 0x0061
+    {0,     0,  NULL,                           },  // 0x0062
+    {0,     VAR,NULL,                           },  // 0x0063
+    {0,     55, NULL,                           },  // 0x0064
+    {0,     17, NULL,                           },  // 0x0065
+    {0,     3,  NULL,                           },  // 0x0066
+    {0,     37, NULL,                           },  // 0x0067
+    {0,     46, NULL,                           },  // 0x0068
+    {0,     VAR,NULL,                           },  // 0x0069
+    {0,     23, NULL,                           },  // 0x006a
+    {0,     VAR,NULL,                           },  // 0x006b
+    {0,     3,  NULL,                           },  // 0x006c
+    {0,     108,NULL,                           },  // 0x006d
+    {0,     3,  NULL,                           },  // 0x006e
+    {0,     2,  NULL,                           },  // 0x006f
+    {0,     3,  NULL,                           },  // 0x0070
+    {0,     28, NULL,                           },  // 0x0071
+    {0,     19, clif_parse_WantToConnection,    },  // 0x0072
+    {0,     11, NULL,                           },  // 0x0073
+    {0,     3,  NULL,                           },  // 0x0074
+    {0,     VAR,NULL,                           },  // 0x0075
+    {0,     9,  NULL,                           },  // 0x0076
+    {0,     5,  NULL,                           },  // 0x0077
+    {0,     54, NULL,                           },  // 0x0078
+    {0,     53, NULL,                           },  // 0x0079
+    {0,     58, NULL,                           },  // 0x007a
+    {0,     60, NULL,                           },  // 0x007b
+    {0,     41, NULL,                           },  // 0x007c
+    {-1,    2,  clif_parse_LoadEndAck,          },  // 0x007d
+    {0,     6,  clif_parse_TickSend,            },  // 0x007e
+    {0,     6,  NULL,                           },  // 0x007f
+    {0,     7,  NULL,                           },  // 0x0080
+    {0,     3,  NULL,                           },  // 0x0081
+    {0,     2,  NULL,                           },  // 0x0082
+    {0,     2,  NULL,                           },  // 0x0083
+    {0,     2,  NULL,                           },  // 0x0084
+    {-1,    5,  clif_parse_WalkToXY,            },  // 0x0085 Walk code limits this on it's own
+    {0,     16, NULL,                           },  // 0x0086
+    {0,     12, NULL,                           },  // 0x0087
+    {0,     10, NULL,                           },  // 0x0088
+    {1000,  7,  clif_parse_ActionRequest,       },  // 0x0089 Special case - see below
+    {0,     29, NULL,                           },  // 0x008a
+    {0,     23, NULL,                           },  // 0x008b unknown... size 2 or 23?
+    {300,   VAR,clif_parse_GlobalMessage,       },  // 0x008c
+    {0,     VAR,NULL,                           },  // 0x008d
+    {0,     VAR,NULL,                           },  // 0x008e
+    {0,     0,  NULL,                           },  // 0x008f
+    {500,   7,  clif_parse_NpcClicked,          },  // 0x0090
+    {0,     22, NULL,                           },  // 0x0091
+    {0,     28, NULL,                           },  // 0x0092
+    {0,     2,  NULL,                           },  // 0x0093
+    {-1,    6,  clif_parse_GetCharNameRequest,  },  // 0x0094
+    {0,     30, NULL,                           },  // 0x0095
+    {300,   VAR,clif_parse_Wis,                 },  // 0x0096
+    {0,     VAR,NULL,                           },  // 0x0097
+    {0,     3,  NULL,                           },  // 0x0098
+    {300,   VAR,NULL,                           },  // 0x0099
+    {0,     VAR,NULL,                           },  // 0x009a
+    {-1,    5,  clif_parse_ChangeDir,           },  // 0x009b
+    {0,     9,  NULL,                           },  // 0x009c
+    {0,     17, NULL,                           },  // 0x009d
+    {0,     17, NULL,                           },  // 0x009e
+    {400,   6,  clif_parse_TakeItem,            },  // 0x009f
+    {0,     23, NULL,                           },  // 0x00a0
+    {0,     6,  NULL,                           },  // 0x00a1
+    {50,    6,  clif_parse_DropItem,            },  // 0x00a2
+    {0,     VAR,NULL,                           },  // 0x00a3
+    {0,     VAR,NULL,                           },  // 0x00a4
+    {0,     VAR,NULL,                           },  // 0x00a5
+    {0,     VAR,NULL,                           },  // 0x00a6
+    {0,     8,  clif_parse_UseItem,             },  // 0x00a7
+    {0,     7,  NULL,                           },  // 0x00a8
+    {-1,    6,  clif_parse_EquipItem,           },  // 0x00a9 Special case - outfit window (not implemented yet - needs to allow bursts)
+    {0,     7,  NULL,                           },  // 0x00aa
+    {-1,    4,  clif_parse_UnequipItem,         },  // 0x00ab Special case - outfit window (not implemented yet - needs to allow bursts)
+    {0,     7,  NULL,                           },  // 0x00ac
+    {0,     0,  NULL,                           },  // 0x00ad
+    {0,     VAR,NULL,                           },  // 0x00ae
+    {0,     6,  NULL,                           },  // 0x00af
+    {0,     8,  NULL,                           },  // 0x00b0
+    {0,     8,  NULL,                           },  // 0x00b1
+    {0,     3,  clif_parse_Restart,             },  // 0x00b2
+    {0,     3,  NULL,                           },  // 0x00b3
+    {0,     VAR,NULL,                           },  // 0x00b4
+    {0,     6,  NULL,                           },  // 0x00b5
+    {0,     6,  NULL,                           },  // 0x00b6
+    {0,     VAR,NULL,                           },  // 0x00b7
+    {0,     7,  clif_parse_NpcSelectMenu,       },  // 0x00b8
+    {-1,    6,  clif_parse_NpcNextClicked,      },  // 0x00b9
+    {0,     2,  NULL,                           },  // 0x00ba
+    {-1,    5,  clif_parse_StatusUp,            },  // 0x00bb People click this very quickly
+    {0,     6,  NULL,                           },  // 0x00bc
+    {0,     44, NULL,                           },  // 0x00bd
+    {0,     5,  NULL,                           },  // 0x00be
+    {1000,  3,  clif_parse_Emotion,             },  // 0x00bf
+    {0,     7,  NULL,                           },  // 0x00c0
+    {0,     2,  clif_parse_HowManyConnections,  },  // 0x00c1
+    {0,     6,  NULL,                           },  // 0x00c2
+    {0,     8,  NULL,                           },  // 0x00c3
+    {0,     6,  NULL,                           },  // 0x00c4
+    {0,     7,  clif_parse_NpcBuySellSelected,  },  // 0x00c5
+    {0,     VAR,NULL,                           },  // 0x00c6
+    {0,     VAR,NULL,                           },  // 0x00c7
+    {-1,    VAR,clif_parse_NpcBuyListSend,      },  // 0x00c8
+    {-1,    VAR,clif_parse_NpcSellListSend,     },  // 0x00c9 Selling multiple 1-slot items
+    {0,     3,  NULL,                           },  // 0x00ca
+    {0,     3,  NULL,                           },  // 0x00cb
+    {0,     6,  NULL,                           },  // 0x00cc
+    {0,     6,  NULL,                           },  // 0x00cd
+    {0,     2,  NULL,                           },  // 0x00ce
+    {0,     27, NULL,                           },  // 0x00cf
+    {0,     3,  clif_parse_PMIgnoreAll,         },  // 0x00d0
+    {0,     4,  NULL,                           },  // 0x00d1
+    {0,     4,  NULL,                           },  // 0x00d2
+    {0,     2,  NULL,                           },  // 0x00d3
+    {0,     VAR,NULL,                           },  // 0x00d4
+    {0,     VAR,NULL,                           },  // 0x00d5
+    {0,     3,  NULL,                           },  // 0x00d6
+    {0,     VAR,NULL,                           },  // 0x00d7
+    {0,     6,  NULL,                           },  // 0x00d8
+    {0,     14, NULL,                           },  // 0x00d9
+    {0,     3,  NULL,                           },  // 0x00da
+    {0,     VAR,NULL,                           },  // 0x00db
+    {0,     28, NULL,                           },  // 0x00dc
+    {0,     29, NULL,                           },  // 0x00dd
+    {0,     VAR,NULL,                           },  // 0x00de
+    {0,     VAR,NULL,                           },  // 0x00df
+    {0,     30, NULL,                           },  // 0x00e0
+    {0,     30, NULL,                           },  // 0x00e1
+    {0,     26, NULL,                           },  // 0x00e2
+    {0,     2,  NULL,                           },  // 0x00e3
+    {2000,  6,  clif_parse_TradeRequest,        },  // 0x00e4
+    {0,     26, NULL,                           },  // 0x00e5
+    {0,     3,  clif_parse_TradeAck,            },  // 0x00e6
+    {0,     3,  NULL,                           },  // 0x00e7
+    {0,     8,  clif_parse_TradeAddItem,        },  // 0x00e8
+    {0,     19, NULL,                           },  // 0x00e9
+    {0,     5,  NULL,                           },  // 0x00ea
+    {0,     2,  clif_parse_TradeOk,             },  // 0x00eb
+    {0,     3,  NULL,                           },  // 0x00ec
+    {0,     2,  clif_parse_TradeCansel,         },  // 0x00ed
+    {0,     2,  NULL,                           },  // 0x00ee
+    {0,     2,  clif_parse_TradeCommit,         },  // 0x00ef
+    {0,     3,  NULL,                           },  // 0x00f0
+    {0,     2,  NULL,                           },  // 0x00f1
+    {0,     6,  NULL,                           },  // 0x00f2
+    {-1,    8,  clif_parse_MoveToKafra,         },  // 0x00f3
+    {0,     21, NULL,                           },  // 0x00f4
+    {-1,    8,  clif_parse_MoveFromKafra,       },  // 0x00f5
+    {0,     8,  NULL,                           },  // 0x00f6
+    {0,     2,  clif_parse_CloseKafra,          },  // 0x00f7
+    {0,     2,  NULL,                           },  // 0x00f8
+    {2000,  26, clif_parse_CreateParty,         },  // 0x00f9
+    {0,     3,  NULL,                           },  // 0x00fa
+    {0,     VAR,NULL,                           },  // 0x00fb
+    {2000,  6,  clif_parse_PartyInvite,         },  // 0x00fc
+    {0,     27, NULL,                           },  // 0x00fd
+    {0,     30, NULL,                           },  // 0x00fe
+    {0,     10, clif_parse_ReplyPartyInvite,    },  // 0x00ff
+    {0,     2,  clif_parse_LeaveParty,          },  // 0x0100
+    {0,     6,  NULL,                           },  // 0x0101
+    {0,     6,  clif_parse_PartyChangeOption,   },  // 0x0102
+    {0,     30, clif_parse_RemovePartyMember,   },  // 0x0103
+    {0,     79, NULL,                           },  // 0x0104
+    {0,     31, NULL,                           },  // 0x0105
+    {0,     10, NULL,                           },  // 0x0106
+    {0,     10, NULL,                           },  // 0x0107
+    {300,   VAR,clif_parse_PartyMessage,        },  // 0x0108
+    {0,     VAR,NULL,                           },  // 0x0109
+    {0,     4,  NULL,                           },  // 0x010a
+    {0,     6,  NULL,                           },  // 0x010b
+    {0,     6,  NULL,                           },  // 0x010c
+    {0,     2,  NULL,                           },  // 0x010d
+    {0,     11, NULL,                           },  // 0x010e
+    {0,     VAR,NULL,                           },  // 0x010f
+    {0,     10, NULL,                           },  // 0x0110
+    {0,     39, NULL,                           },  // 0x0111
+    {-1,    4,  clif_parse_SkillUp,             },  // 0x0112
+    {0,     10, NULL,                           },  // 0x0113
+    {0,     31, NULL,                           },  // 0x0114
+    {0,     35, NULL,                           },  // 0x0115
+    {0,     10, NULL,                           },  // 0x0116
+    {0,     18, NULL,                           },  // 0x0117
+    {0,     2,  clif_parse_StopAttack,          },  // 0x0118
+    {0,     13, NULL,                           },  // 0x0119
+    {0,     15, NULL,                           },  // 0x011a
+    {0,     20, NULL,                           },  // 0x011b
+    {0,     68, NULL,                           },  // 0x011c
+    {0,     2,  NULL,                           },  // 0x011d
+    {0,     3,  NULL,                           },  // 0x011e
+    {0,     16, NULL,                           },  // 0x011f
+    {0,     6,  NULL,                           },  // 0x0120
+    {0,     14, NULL,                           },  // 0x0121
+    {0,     VAR,NULL,                           },  // 0x0122
+    {0,     VAR,NULL,                           },  // 0x0123
+    {0,     21, NULL,                           },  // 0x0124
+    {0,     8,  NULL,                           },  // 0x0125
+    {0,     8,  NULL,                           },  // 0x0126
+    {0,     8,  NULL,                           },  // 0x0127
+    {0,     8,  NULL,                           },  // 0x0128
+    {0,     8,  NULL,                           },  // 0x0129
+    {0,     2,  NULL,                           },  // 0x012a
+    {0,     2,  NULL,                           },  // 0x012b
+    {0,     3,  NULL,                           },  // 0x012c
+    {0,     4,  NULL,                           },  // 0x012d
+    {0,     2,  NULL,                           },  // 0x012e
+    {0,     VAR,NULL,                           },  // 0x012f
+    {0,     6,  NULL,                           },  // 0x0130
+    {0,     86, NULL,                           },  // 0x0131
+    {0,     6,  NULL,                           },  // 0x0132
+    {0,     VAR,NULL,                           },  // 0x0133
+    {0,     VAR,NULL,                           },  // 0x0134
+    {0,     7,  NULL,                           },  // 0x0135
+    {0,     VAR,NULL,                           },  // 0x0136
+    {0,     6,  NULL,                           },  // 0x0137
+    {0,     3,  NULL,                           },  // 0x0138
+    {0,     16, NULL,                           },  // 0x0139
+    {0,     4,  NULL,                           },  // 0x013a
+    {0,     4,  NULL,                           },  // 0x013b
+    {0,     4,  NULL,                           },  // 0x013c
+    {0,     6,  NULL,                           },  // 0x013d
+    {0,     24, NULL,                           },  // 0x013e
+    {0,     26, NULL,                           },  // 0x013f
+    {0,     22, NULL,                           },  // 0x0140
+    {0,     14, NULL,                           },  // 0x0141
+    {0,     6,  NULL,                           },  // 0x0142
+    {300,   10, clif_parse_NpcAmountInput,      },  // 0x0143
+    {0,     23, NULL,                           },  // 0x0144
+    {0,     19, NULL,                           },  // 0x0145
+    {300,   6,  clif_parse_NpcCloseClicked,     },  // 0x0146
+    {0,     39, NULL,                           },  // 0x0147
+    {0,     8,  NULL,                           },  // 0x0148
+    {0,     9,  NULL,                           },  // 0x0149
+    {0,     6,  NULL,                           },  // 0x014a
+    {0,     27, NULL,                           },  // 0x014b
+    {0,     VAR,NULL,                           },  // 0x014c
+    {0,     2,  NULL,                           },  // 0x014d
+    {0,     6,  NULL,                           },  // 0x014e
+    {0,     6,  NULL,                           },  // 0x014f
+    {0,     110,NULL,                           },  // 0x0150
+    {0,     6,  NULL,                           },  // 0x0151
+    {0,     VAR,NULL,                           },  // 0x0152
+    {0,     VAR,NULL,                           },  // 0x0153
+    {0,     VAR,NULL,                           },  // 0x0154
+    {0,     VAR,NULL,                           },  // 0x0155
+    {0,     VAR,NULL,                           },  // 0x0156
+    {0,     6,  NULL,                           },  // 0x0157
+    {0,     VAR,NULL,                           },  // 0x0158
+    {0,     54, NULL,                           },  // 0x0159
+    {0,     66, NULL,                           },  // 0x015a
+    {0,     54, NULL,                           },  // 0x015b
+    {0,     90, NULL,                           },  // 0x015c
+    {0,     42, NULL,                           },  // 0x015d
+    {0,     6,  NULL,                           },  // 0x015e
+    {0,     42, NULL,                           },  // 0x015f
+    {0,     VAR,NULL,                           },  // 0x0160
+    {0,     VAR,NULL,                           },  // 0x0161
+    {0,     VAR,NULL,                           },  // 0x0162
+    {0,     VAR,NULL,                           },  // 0x0163
+    {0,     VAR,NULL,                           },  // 0x0164
+    {0,     30, NULL,                           },  // 0x0165
+    {0,     VAR,NULL,                           },  // 0x0166
+    {0,     3,  NULL,                           },  // 0x0167
+    {0,     14, NULL,                           },  // 0x0168
+    {0,     3,  NULL,                           },  // 0x0169
+    {0,     30, NULL,                           },  // 0x016a
+    {0,     10, NULL,                           },  // 0x016b
+    {0,     43, NULL,                           },  // 0x016c
+    {0,     14, NULL,                           },  // 0x016d
+    {0,     186,NULL,                           },  // 0x016e
+    {0,     182,NULL,                           },  // 0x016f
+    {0,     14, NULL,                           },  // 0x0170
+    {0,     30, NULL,                           },  // 0x0171
+    {0,     10, NULL,                           },  // 0x0172
+    {0,     3,  NULL,                           },  // 0x0173
+    {0,     VAR,NULL,                           },  // 0x0174
+    {0,     6,  NULL,                           },  // 0x0175
+    {0,     106,NULL,                           },  // 0x0176
+    {0,     VAR,NULL,                           },  // 0x0177
+    {0,     4,  NULL,                           },  // 0x0178
+    {0,     5,  NULL,                           },  // 0x0179
+    {0,     4,  NULL,                           },  // 0x017a
+    {0,     VAR,NULL,                           },  // 0x017b
+    {0,     6,  NULL,                           },  // 0x017c
+    {0,     7,  NULL,                           },  // 0x017d
+    {0,     VAR,NULL,                           },  // 0x017e
+    {0,     VAR,NULL,                           },  // 0x017f
+    {0,     6,  NULL,                           },  // 0x0180
+    {0,     3,  NULL,                           },  // 0x0181
+    {0,     106,NULL,                           },  // 0x0182
+    {0,     10, NULL,                           },  // 0x0183
+    {0,     10, NULL,                           },  // 0x0184
+    {0,     34, NULL,                           },  // 0x0185
+    {0,     0,  NULL,                           },  // 0x0186
+    {0,     6,  NULL,                           },  // 0x0187
+    {0,     8,  NULL,                           },  // 0x0188
+    {0,     4,  NULL,                           },  // 0x0189
+    {0,     4,  clif_parse_QuitGame,            },  // 0x018a
+    {0,     4,  NULL,                           },  // 0x018b
+    {0,     29, NULL,                           },  // 0x018c
+    {0,     VAR,NULL,                           },  // 0x018d
+    {0,     10, NULL,                           },  // 0x018e
+    {0,     6,  NULL,                           },  // 0x018f
+    {0,     90, NULL,                           },  // 0x0190
+    {0,     86, NULL,                           },  // 0x0191
+    {0,     24, NULL,                           },  // 0x0192
+    {0,     6,  NULL,                           },  // 0x0193
+    {0,     30, NULL,                           },  // 0x0194
+    {0,     102,NULL,                           },  // 0x0195
+    {0,     9,  NULL,                           },  // 0x0196
+    {0,     4,  NULL,                           },  // 0x0197
+    {0,     8,  NULL,                           },  // 0x0198
+    {0,     4,  NULL,                           },  // 0x0199
+    {0,     14, NULL,                           },  // 0x019a
+    {0,     10, NULL,                           },  // 0x019b
+    {0,     VAR,NULL,                           },  // 0x019c
+    {300,   6,  NULL,                           },  // 0x019d
+    {0,     2,  NULL,                           },  // 0x019e
+    {0,     6,  NULL,                           },  // 0x019f
+    {0,     3,  NULL,                           },  // 0x01a0
+    {0,     3,  NULL,                           },  // 0x01a1
+    {0,     35, NULL,                           },  // 0x01a2
+    {0,     5,  NULL,                           },  // 0x01a3
+    {0,     11, NULL,                           },  // 0x01a4
+    {0,     26, NULL,                           },  // 0x01a5
+    {0,     VAR,NULL,                           },  // 0x01a6
+    {0,     4,  NULL,                           },  // 0x01a7
+    {0,     4,  NULL,                           },  // 0x01a8
+    {0,     6,  NULL,                           },  // 0x01a9
+    {0,     10, NULL,                           },  // 0x01aa
+    {0,     12, NULL,                           },  // 0x01ab
+    {0,     6,  NULL,                           },  // 0x01ac
+    {0,     VAR,NULL,                           },  // 0x01ad
+    {0,     4,  NULL,                           },  // 0x01ae
+    {0,     4,  NULL,                           },  // 0x01af
+    {0,     11, NULL,                           },  // 0x01b0
+    {0,     7,  NULL,                           },  // 0x01b1
+    {0,     VAR,NULL,                           },  // 0x01b2
+    {0,     67, NULL,                           },  // 0x01b3
+    {0,     12, NULL,                           },  // 0x01b4
+    {0,     18, NULL,                           },  // 0x01b5
+    {0,     114,NULL,                           },  // 0x01b6
+    {0,     6,  NULL,                           },  // 0x01b7
+    {0,     3,  NULL,                           },  // 0x01b8
+    {0,     6,  NULL,                           },  // 0x01b9
+    {0,     26, NULL,                           },  // 0x01ba
+    {0,     26, NULL,                           },  // 0x01bb
+    {0,     26, NULL,                           },  // 0x01bc
+    {0,     26, NULL,                           },  // 0x01bd
+    {0,     2,  NULL,                           },  // 0x01be
+    {0,     3,  NULL,                           },  // 0x01bf
+    {0,     2,  NULL,                           },  // 0x01c0
+    {0,     14, NULL,                           },  // 0x01c1
+    {0,     10, NULL,                           },  // 0x01c2
+    {0,     VAR,NULL,                           },  // 0x01c3
+    {0,     22, NULL,                           },  // 0x01c4
+    {0,     22, NULL,                           },  // 0x01c5
+    {0,     4,  NULL,                           },  // 0x01c6
+    {0,     2,  NULL,                           },  // 0x01c7
+    {0,     13, NULL,                           },  // 0x01c8
+    {0,     97, NULL,                           },  // 0x01c9
+    {0,     0,  NULL,                           },  // 0x01ca
+    {0,     9,  NULL,                           },  // 0x01cb
+    {0,     9,  NULL,                           },  // 0x01cc
+    {0,     30, NULL,                           },  // 0x01cd
+    {0,     6,  NULL,                           },  // 0x01ce
+    {0,     28, NULL,                           },  // 0x01cf
+    {0,     8,  NULL,                           },  // 0x01d0
+    {0,     14, NULL,                           },  // 0x01d1
+    {0,     10, NULL,                           },  // 0x01d2
+    {0,     35, NULL,                           },  // 0x01d3
+    {0,     6,  NULL,                           },  // 0x01d4
+    {300,   VAR,clif_parse_NpcStringInput,      },  // 0x01d5 - set to -1
+    {0,     4,  NULL,                           },  // 0x01d6
+    {0,     11, NULL,                           },  // 0x01d7
+    {0,     54, NULL,                           },  // 0x01d8
+    {0,     53, NULL,                           },  // 0x01d9
+    {0,     60, NULL,                           },  // 0x01da
+    {0,     2,  NULL,                           },  // 0x01db
+    {0,     VAR,NULL,                           },  // 0x01dc
+    {0,     47, NULL,                           },  // 0x01dd
+    {0,     33, NULL,                           },  // 0x01de
+    {0,     6,  NULL,                           },  // 0x01df
+    {0,     30, NULL,                           },  // 0x01e0
+    {0,     8,  NULL,                           },  // 0x01e1
+    {0,     34, NULL,                           },  // 0x01e2
+    {0,     14, NULL,                           },  // 0x01e3
+    {0,     2,  NULL,                           },  // 0x01e4
+    {0,     6,  NULL,                           },  // 0x01e5
+    {0,     26, NULL,                           },  // 0x01e6
+    {0,     2,  NULL,                           },  // 0x01e7
+    {0,     28, NULL,                           },  // 0x01e8
+    {0,     81, NULL,                           },  // 0x01e9
+    {0,     6,  NULL,                           },  // 0x01ea
+    {0,     10, NULL,                           },  // 0x01eb
+    {0,     26, NULL,                           },  // 0x01ec
+    {0,     2,  NULL,                           },  // 0x01ed
+    {0,     VAR,NULL,                           },  // 0x01ee
+    {0,     VAR,NULL,                           },  // 0x01ef
+    {0,     VAR,NULL,                           },  // 0x01f0
+    {0,     VAR,NULL,                           },  // 0x01f1
+    {0,     20, NULL,                           },  // 0x01f2
+    {0,     10, NULL,                           },  // 0x01f3
+    {0,     32, NULL,                           },  // 0x01f4
+    {0,     9,  NULL,                           },  // 0x01f5
+    {0,     34, NULL,                           },  // 0x01f6
+    {0,     14, NULL,                           },  // 0x01f7
+    {0,     2,  NULL,                           },  // 0x01f8
+    {0,     6,  NULL,                           },  // 0x01f9
+    {0,     48, NULL,                           },  // 0x01fa
+    {0,     56, NULL,                           },  // 0x01fb
+    {0,     VAR,NULL,                           },  // 0x01fc
+    {0,     4,  NULL,                           },  // 0x01fd
+    {0,     5,  NULL,                           },  // 0x01fe
+    {0,     10, NULL,                           },  // 0x01ff
+    {0,     26, NULL,                           },  // 0x0200
+    {0,     VAR,NULL,                           },  // 0x0201
+    {0,     26, NULL,                           },  // 0x0202
+    {0,     10, NULL,                           },  // 0x0203
+    {0,     18, NULL,                           },  // 0x0204
+    {0,     26, NULL,                           },  // 0x0205
+    {0,     11, NULL,                           },  // 0x0206
+    {0,     34, NULL,                           },  // 0x0207
+    {0,     14, NULL,                           },  // 0x0208
+    {0,     36, NULL,                           },  // 0x0209
+    {0,     10, NULL,                           },  // 0x020a
+    {0,     19, NULL,                           },  // 0x020b
+    {0,     10, NULL,                           },  // 0x020c
+    {0,     VAR,NULL,                           },  // 0x020d
+    {0,     24, NULL,                           },  // 0x020e
+    {0,     0,  NULL,                           },  // 0x020f
+    {0,     0,  NULL,                           },  // 0x0210
+    {0,     0,  NULL,                           },  // 0x0211
+    {0,     0,  NULL,                           },  // 0x0212
+    {0,     0,  NULL,                           },  // 0x0213
+    {0,     0,  NULL,                           },  // 0x0214
+    {0,     0,  NULL,                           },  // 0x0215
+    {0,     0,  NULL,                           },  // 0x0216
+    {0,     0,  NULL,                           },  // 0x0217
+    {0,     0,  NULL,                           },  // 0x0218
+    {0,     0,  NULL,                           },  // 0x0219
+    {0,     0,  NULL,                           },  // 0x021a
+    {0,     0,  NULL,                           },  // 0x021b
+    {0,     0,  NULL,                           },  // 0x021c
+    {0,     0,  NULL,                           },  // 0x021d
+    {0,     0,  NULL,                           },  // 0x021e
+    {0,     0,  NULL,                           },  // 0x021f
 };
-// *INDENT-ON*
 
 // Checks for packet flooding
 static
 int clif_check_packet_flood(int fd, int cmd)
 {
     struct map_session_data *sd = (struct map_session_data *)session[fd]->session_data;
-    unsigned int rate, tick = gettick();
+    tick_t tick = gettick();
 
     // sd will not be set if the client hasn't requested
     // WantToConnection yet. Do not apply flood logic to GMs
     // as approved bots (GMlvl1) should not have to work around
     // flood logic.
-    if (!sd || pc_isGM(sd) || clif_parse_func_table[cmd].rate == -1)
+    if (!sd || pc_isGM(sd) || clif_parse_func_table[cmd].rate == static_cast<interval_t>(-1))
         return 0;
 
     // Timer has wrapped
@@ -5678,17 +5605,18 @@ int clif_check_packet_flood(int fd, int cmd)
     }
 
     // Default rate is 100ms
-    if ((rate = clif_parse_func_table[cmd].rate) == 0)
-        rate = 100;
+    interval_t rate = clif_parse_func_table[cmd].rate;
+    if (rate == interval_t::zero())
+        rate = std::chrono::milliseconds(100);
 
     // ActionRequest - attacks are allowed a faster rate than sit/stand
     if (cmd == 0x89)
     {
         int action_type = RFIFOB(fd, 6);
         if (action_type == 0x00 || action_type == 0x07)
-            rate = 20;
+            rate = std::chrono::milliseconds(20);
         else
-            rate = 1000;
+            rate = std::chrono::seconds(1);
     }
 
 // Restore this code when mana1.0 is released
@@ -5944,8 +5872,8 @@ void clif_parse(int fd)
         return;
 
     // パケット長を計算
-    packet_len = packet_len_table[cmd];
-    if (packet_len == -1)
+    packet_len = clif_parse_func_table[cmd].len;
+    if (packet_len == VAR)
     {
         if (RFIFOREST(fd) < 4)
         {

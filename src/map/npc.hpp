@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "../common/timer.t.hpp"
+
 constexpr int START_NPC_NUM = 110000000;
 
 constexpr int WARP_CLASS = 45;
@@ -43,7 +45,6 @@ void npc_addsrcfile(const char *);
 void npc_delsrcfile(const char *);
 int do_init_npc(void);
 int npc_event_do_oninit(void);
-int npc_do_ontimer(int, struct map_session_data *, int);
 
 struct argrec;
 int npc_event_doall_l(const char *name, int rid,
@@ -63,8 +64,8 @@ int npc_event_do(const char *name)
 
 int npc_timerevent_start(struct npc_data *nd);
 int npc_timerevent_stop(struct npc_data *nd);
-int npc_gettimerevent_tick(struct npc_data *nd);
-int npc_settimerevent_tick(struct npc_data *nd, int newtimer);
+interval_t npc_gettimerevent_tick(struct npc_data *nd);
+int npc_settimerevent_tick(struct npc_data *nd, interval_t newtimer);
 int npc_delete(struct npc_data *nd);
 
 #endif // NPC_HPP

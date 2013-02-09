@@ -332,7 +332,7 @@ void WFIFOSET(int fd, size_t len)
         FPRINTF(stderr, "socket: %d wdata lost !!\n", fd), abort();
 }
 
-void do_sendrecv(uint32_t next)
+void do_sendrecv(interval_t next_ms)
 {
     fd_set rfd = readfds, wfd;
     FD_ZERO(&wfd);
@@ -342,8 +342,12 @@ void do_sendrecv(uint32_t next)
             FD_SET(i, &wfd);
     }
     struct timeval timeout;
-    timeout.tv_sec = next / 1000;
-    timeout.tv_usec = next % 1000 * 1000;
+    {
+        std::chrono::seconds next_s = std::chrono::duration_cast<std::chrono::seconds>(next_ms);
+        std::chrono::microseconds next_us = next_ms - next_s;
+        timeout.tv_sec = next_s.count();
+        timeout.tv_usec = next_us.count();
+    }
     if (select(fd_max, &rfd, &wfd, NULL, &timeout) <= 0)
         return;
     for (int i = 0; i < fd_max; i++)

@@ -55,7 +55,7 @@ int pc_counttargeted(struct map_session_data *sd, struct block_list *src,
         ATK target_lv);
 int pc_setrestartvalue(struct map_session_data *sd, int type);
 int pc_makesavestatus(struct map_session_data *);
-int pc_setnewpc(struct map_session_data *, int, int, int, int, int, int);
+int pc_setnewpc(struct map_session_data *, int, int, int, tick_t, int);
 int pc_authok(int, int, time_t, short tmw_version, const struct mmo_charstatus *);
 int pc_authfail(int);
 
@@ -142,15 +142,12 @@ int pc_setaccountreg(struct map_session_data *, const char *, int);
 int pc_readaccountreg2(struct map_session_data *, const char *);
 int pc_setaccountreg2(struct map_session_data *, const char *, int);
 
-int pc_addeventtimer(struct map_session_data *sd, int tick,
+int pc_addeventtimer(struct map_session_data *sd, interval_t tick,
         const char *name);
-int pc_deleventtimer(struct map_session_data *sd, const char *name);
 int pc_cleareventtimer(struct map_session_data *sd);
-int pc_addeventtimercount(struct map_session_data *sd, const char *name,
-        int tick);
 
 int pc_calc_pvprank(struct map_session_data *sd);
-void pc_calc_pvprank_timer(timer_id, tick_t, custom_id_t, custom_data_t);
+void pc_calc_pvprank_timer(TimerData *, tick_t, int);
 
 int pc_marriage(struct map_session_data *sd,
         struct map_session_data *dstsd);
@@ -161,16 +158,10 @@ void pc_setstand(struct map_session_data *sd);
 void pc_cleanup(struct map_session_data *sd);  // [Fate] Clean up after a logged-out PC
 
 int pc_read_gm_account(int fd);
-int pc_setinvincibletimer(struct map_session_data *sd, int);
+int pc_setinvincibletimer(struct map_session_data *sd, interval_t);
 int pc_delinvincibletimer(struct map_session_data *sd);
-int pc_addspiritball(struct map_session_data *sd, int, int);
-int pc_delspiritball(struct map_session_data *sd, int, int);
 int pc_logout(struct map_session_data *sd);   // [fate] Player logs out
 
 int do_init_pc(void);
-
-// timer for night.day
-extern timer_id day_timer_tid;
-extern timer_id night_timer_tid;
 
 #endif // PC_HPP

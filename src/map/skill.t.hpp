@@ -13,7 +13,6 @@ enum class StatusChange : uint16_t
 
     // sometimes means "none", sometimes not
     NEGATIVE1           = 0xffff,
-    ANY_BAD             = NEGATIVE1,
 
     // these ones are used by clif_status_change,
     // e.g. by the magic system
@@ -36,22 +35,10 @@ enum class StatusChange : uint16_t
 
     SC_HEALING          = 70,   // item script
 
-    SC_STONE            = 128,  // ?bad
-    SC_FREEZE           = 129,  // ?bad
-    SC_STAN             = 130,  // ?bad
-    SC_SLEEP            = 131,  // ?bad
     SC_POISON           = 132,  // bad; actually used
-    SC_CURSE            = 133,  // ?bad
-    SC_SILENCE          = 134,  // ?bad
-    SC_CONFUSION        = 135,  // ?bad
-    SC_BLIND            = 136,  // ?bad
 
     SC_ATKPOT           = 185,  // item script
     SC_MATKPOT          = 186,  // unused, but kept for parallel
-
-    SC_NOCHAT           = 188,  // ? something with manner
-
-    SC_SELFDESTRUCTION  = 190,  // see table - maybe used, maybe not
 
 // Added for Fate's spells
     SC_HIDE             = 194,  // Hide from `detect' magic (PCs only)
@@ -64,60 +51,6 @@ enum class StatusChange : uint16_t
     MAX_STATUSCHANGE    = 200,
 };
 
-constexpr
-StatusChange MAJOR_STATUS_EFFECTS[] =
-{
-    StatusChange::SC_STONE,
-    StatusChange::SC_FREEZE,
-    StatusChange::SC_STAN,
-    StatusChange::SC_SLEEP,
-    StatusChange::SC_POISON,
-    StatusChange::SC_CURSE,
-    StatusChange::SC_SILENCE,
-    StatusChange::SC_CONFUSION,
-    StatusChange::SC_BLIND,
-};
-
-constexpr
-StatusChange MAJOR_STATUS_EFFECTS_1[] =
-{
-    StatusChange::SC_STONE,
-    StatusChange::SC_FREEZE,
-    StatusChange::SC_STAN,
-    StatusChange::SC_SLEEP,
-};
-
-// needed to work around some subtractative indexing
-// I think it *might* be able to be totally removed.
-enum class BadSC
-{
-    STONE       = 0,
-    FREEZE      = 1,
-    STAN        = 2,
-    SLEEP       = 3,
-    POISON      = 4,
-    CURSE       = 5,
-    SILENCE     = 6,
-    CONFUSION   = 7,
-    BLIND       = 8,
-
-    COUNT       = 9, // formerly 10,
-    // there is apocryphal evidence of a "bleeding" effect
-};
-
-constexpr
-StatusChange BadSC_to_SC(BadSC bsc)
-{
-    return StatusChange(uint16_t(StatusChange::SC_STONE) + int(bsc));
-}
-
-constexpr
-BadSC BadSC_from_SC(StatusChange sc)
-{
-    return BadSC(uint16_t(sc) - uint16_t(StatusChange::SC_STONE));
-}
-
-// TODO remove most of these
 enum class SkillID : uint16_t
 {
     // TODO: Remove these!

@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "../common/const_array.hpp"
+#include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"
 #include "map.t.hpp"
@@ -26,7 +27,7 @@ int clif_charselectok(int);
 int clif_dropflooritem(struct flooritem_data *);
 int clif_clearflooritem(struct flooritem_data *, int);
 int clif_clearchar(struct block_list *, BeingRemoveWhy); // area or fd
-int clif_clearchar_delay(unsigned int, struct block_list *, BeingRemoveWhy);
+int clif_clearchar_delay(tick_t, struct block_list *, BeingRemoveWhy);
 int clif_clearchar_id(int, BeingRemoveWhy, int);
 int clif_spawnpc(struct map_session_data *);  //area
 int clif_spawnnpc(struct npc_data *); // area
@@ -55,11 +56,13 @@ int clif_viewpoint(struct map_session_data *, int, int, int, int, int, int);  //
 int clif_additem(struct map_session_data *, int, int, PickupFail);   //self
 int clif_delitem(struct map_session_data *, int, int);    //self
 int clif_updatestatus(struct map_session_data *, SP);    //self
-int clif_damage(struct block_list *, struct block_list *, unsigned int, int, int, int, int, DamageType, int);    // area
+int clif_damage(struct block_list *, struct block_list *,
+        tick_t, interval_t, interval_t,
+        int, int, DamageType, int);    // area
 inline
 int clif_takeitem(struct block_list *src, struct block_list *dst)
 {
-    return clif_damage(src, dst, 0, 0, 0, 0, 0, DamageType::TAKEITEM, 0);
+    return clif_damage(src, dst, tick_t(), interval_t::zero(), interval_t::zero(), 0, 0, DamageType::TAKEITEM, 0);
 }
 int clif_changelook(struct block_list *, LOOK, int);   // area
 void clif_changelook_accessories(struct block_list *bl, struct map_session_data *dst); // area or target; list gloves, boots etc.
@@ -113,7 +116,7 @@ int clif_skillcastcancel(struct block_list *bl);
 int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
         int btype);
 int clif_skill_damage(struct block_list *src, struct block_list *dst,
-        unsigned int tick, int sdelay, int ddelay, int damage,
+        tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, SkillID skill_id, int skill_lv, int type);
 
 int clif_status_change(struct block_list *bl,

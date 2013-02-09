@@ -93,7 +93,11 @@ int main(int argc, char **argv)
 
     while (runflag)
     {
-        do_sendrecv(do_timer(gettick_nocache()));
+        // TODO - if timers take a long time to run, this
+        // may wait too long in sendrecv
+        tick_t now = milli_clock::now();
+        interval_t next = do_timer(now);
+        do_sendrecv(next);
         do_parsepacket();
     }
 }

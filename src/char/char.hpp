@@ -10,8 +10,6 @@ constexpr int MAX_MAP_SERVERS = 30;
 
 #define LOGIN_LAN_CONF_NAME     "conf/lan_support.conf"
 
-constexpr int DEFAULT_AUTOSAVE_INTERVAL = 300 * 1000;
-
 struct mmo_map_server
 {
     long ip;
@@ -31,7 +29,5 @@ void char_log(const_string line);
 
 #define CHAR_LOG(fmt, ...)  \
     char_log(static_cast<const std::string&>(STRPRINTF(fmt, ## __VA_ARGS__)))
-
-extern int autosave_interval;
 
 #endif // CHAR_HPP

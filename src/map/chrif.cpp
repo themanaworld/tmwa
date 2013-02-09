@@ -7,6 +7,7 @@
 #include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
+#include "../common/timer.hpp"
 #include "../common/utils.hpp"
 
 #include "battle.hpp"
@@ -1160,7 +1161,7 @@ void chrif_parse(int fd)
  *------------------------------------------
  */
 static
-void send_users_tochar(timer_id, tick_t, custom_id_t, custom_data_t)
+void send_users_tochar(TimerData *, tick_t)
 {
     int users = 0, i;
     struct map_session_data *sd;
@@ -1191,7 +1192,7 @@ void send_users_tochar(timer_id, tick_t, custom_id_t, custom_data_t)
  *------------------------------------------
  */
 static
-void check_connect_char_server(timer_id, tick_t, custom_id_t, custom_data_t)
+void check_connect_char_server(TimerData *, tick_t)
 {
     if (char_fd <= 0 || session[char_fd] == NULL)
     {
@@ -1212,11 +1213,10 @@ void check_connect_char_server(timer_id, tick_t, custom_id_t, custom_data_t)
  */
 int do_init_chrif (void)
 {
-//    add_timer_func_list (check_connect_char_server, "check_connect_char_server");
-//    add_timer_func_list (send_users_tochar, "send_users_tochar");
-    add_timer_interval(gettick() + 1000, check_connect_char_server, 0, 0,
-                        10 * 1000);
-    add_timer_interval(gettick() + 1000, send_users_tochar, 0, 0, 5 * 1000);
+    add_timer_interval(gettick() + std::chrono::seconds(1),
+            check_connect_char_server,
+            std::chrono::seconds(10));
+    add_timer_interval(gettick() + std::chrono::seconds(1), send_users_tochar, std::chrono::seconds(5));
 
     return 0;
 }

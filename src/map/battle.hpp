@@ -3,6 +3,8 @@
 
 #include "battle.t.hpp"
 
+#include "../common/timer.t.hpp"
+
 #include "magic-interpreter.t.hpp"
 #include "map.t.hpp"
 #include "skill.t.hpp"
@@ -13,7 +15,7 @@ struct Damage
     int damage, damage2;
     DamageType type;
     int div_;
-    int amotion, dmotion;
+    interval_t amotion, dmotion;
     BF flag;
     ATK dmg_lv;
 };
@@ -40,7 +42,7 @@ int battle_stopwalking(struct block_list *bl, int type);
 
 // 通常攻撃処理まとめ
 ATK battle_weapon_attack(struct block_list *bl, struct block_list *target,
-        unsigned int tick, BCT flag);
+        tick_t tick);
 
 int battle_is_unarmed(struct block_list *bl);
 int battle_get_class(struct block_list *bl);
@@ -59,10 +61,10 @@ int battle_get_def(struct block_list *bl);
 int battle_get_mdef(struct block_list *bl);
 int battle_get_def2(struct block_list *bl);
 int battle_get_mdef2(struct block_list *bl);
-int battle_get_speed(struct block_list *bl);
-int battle_get_adelay(struct block_list *bl);
-int battle_get_amotion(struct block_list *bl);
-int battle_get_dmotion(struct block_list *bl);
+interval_t battle_get_speed(struct block_list *bl);
+interval_t battle_get_adelay(struct block_list *bl);
+interval_t battle_get_amotion(struct block_list *bl);
+interval_t battle_get_dmotion(struct block_list *bl);
 LevelElement battle_get_element(struct block_list *bl);
 inline
 Element battle_get_elem_type(struct block_list *bl)
@@ -102,7 +104,6 @@ extern struct Battle_Config
     int skill_out_range_consume;
     int mob_skill_add_range;
     int pc_damage_delay;
-    int pc_damage_delay_rate;
     int defnotenemy;
     int random_monster_checklv;
     int attr_recover;
@@ -138,7 +139,6 @@ extern struct Battle_Config
     int wp_rate;
     int pp_rate;
     int monster_active_enable;
-    int monster_damage_delay_rate;
     int monster_loot_type;
     int mob_skill_use;
     int mob_count_rate;
@@ -248,13 +248,9 @@ extern struct Battle_Config
     int riding_weight;
     int backstab_bow_penalty;
 
-    int night_at_start;        // added by [Yor]
-    int day_duration;          // added by [Yor]
-    int night_duration;        // added by [Yor]
     int hack_info_GM_level;    // added by [Yor]
     int any_warp_GM_min_level; // added by [Yor]
     int packet_ver_flag;       // added by [Yor]
-    int muting_players;        // added by [Apple]
 
     int min_hair_style;        // added by [MouseJstr]
     int max_hair_style;        // added by [MouseJstr]

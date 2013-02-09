@@ -1,4 +1,5 @@
 #include "../common/cxxstdio.hpp"
+#include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 
 #include "battle.hpp"
@@ -255,7 +256,7 @@ int path_blownpos(int m, int x0, int y0, int dx, int dy, int count)
             int fy = (dy != 0 && can_move(md, x0, y0, x0, y0 + dy, 0));
             if (fx && fy)
             {
-                if (rand() & 1)
+                if (MRAND(2))
                     dx = 0;
                 else
                     dy = 0;

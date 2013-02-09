@@ -2,6 +2,7 @@
 #include "magic-interpreter.hpp"
 
 #include "../common/cxxstdio.hpp"
+#include "../common/timer.hpp"
 
 #include "magic-expr.hpp"
 
@@ -281,7 +282,8 @@ void copy_components(component_t ** component_holder, component_t *component)
 typedef struct spellguard_check
 {
     component_t *catalysts, *components;
-    int mana, casttime;
+    int mana;
+    interval_t casttime;
 } spellguard_check_t;
 
 static
@@ -313,19 +315,9 @@ static
 int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
                         env_t *env, int *near_miss)
 {
-    unsigned int tick = gettick();
+    tick_t tick = gettick();
 
     int retval = check_prerequisites(caster, check->catalysts);
-
-/*
-        FPRINTF(stderr, "MC(%d/%s)? %d%d%d%d (%u <= %u)\n",
-                caster->bl.id, caster->status.name,
-                retval,
-                caster->cast_tick <= tick,
-                check->mana <= caster->status.sp,
-                check_prerequisites(caster, check->components),
-                caster->cast_tick, tick);
-*/
 
     if (retval && near_miss)
         *near_miss = 1;         // close enough!
@@ -336,10 +328,10 @@ int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
 
     if (retval)
     {
-        unsigned int casttime = (unsigned int) check->casttime;
+        interval_t casttime = check->casttime;
 
         if (VAR(VAR_MIN_CASTTIME).ty == TYPE::INT)
-            casttime = max(casttime, VAR(VAR_MIN_CASTTIME).v.v_int);
+            casttime = max(casttime, static_cast<interval_t>(VAR(VAR_MIN_CASTTIME).v.v_int));
 
         caster->cast_tick = tick + casttime;    /* Make sure not to cast too frequently */
 
@@ -402,7 +394,7 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
             break;
 
         case SPELLGUARD::CASTTIME:
-            check->casttime += magic_eval_int(env, guard->s.s_mana);
+            check->casttime += static_cast<interval_t>(magic_eval_int(env, guard->s.s_mana));
             break;
 
         case SPELLGUARD::EFFECT:
@@ -429,7 +421,8 @@ effect_set_t *check_spellguard(spellguard_t *guard,
     effect_set_t *retval;
     check.catalysts = NULL;
     check.components = NULL;
-    check.mana = check.casttime = 0;
+    check.mana = 0;
+    check.casttime = interval_t::zero();
 
     retval = spellguard_check_sub(&check, guard, caster, env, near_miss);
 

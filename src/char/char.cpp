@@ -37,7 +37,11 @@ int server_freezeflag[MAX_MAP_SERVERS];    // Map-server anti-freeze system. Cou
 static
 int anti_freeze_enable = 0;
 static
-int ANTI_FREEZE_INTERVAL = 6;
+std::chrono::seconds ANTI_FREEZE_INTERVAL = std::chrono::seconds(6);
+
+constexpr
+std::chrono::milliseconds DEFAULT_AUTOSAVE_INTERVAL =
+        std::chrono::minutes(5);
 
 // TODO replace all string forms of IP addresses with class instances
 static
@@ -120,7 +124,8 @@ static
 int char_num, char_max;
 static
 int max_connect_user = 0;
-int autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+static
+std::chrono::milliseconds autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 static
 int start_zeny = 500;
 static
@@ -569,7 +574,7 @@ void mmo_char_sync(void)
 // Function to save (in a periodic way) datas in files
 //----------------------------------------------------
 static
-void mmo_char_sync_timer(timer_id, tick_t, custom_id_t, custom_data_t)
+void mmo_char_sync_timer(TimerData *, tick_t)
 {
     if (pid != 0)
     {
@@ -784,7 +789,7 @@ int make_new_char(int fd, const uint8_t *dat)
     char_dat[i].sp = char_dat[i].max_sp;
     char_dat[i].status_point = 0;
     char_dat[i].skill_point = 0;
-    char_dat[i].option = Option(0x0000);
+    char_dat[i].option = static_cast<Option>(0x0000); // Option is only declared
     char_dat[i].karma = 0;
     char_dat[i].manner = 0;
     char_dat[i].party_id = 0;
@@ -1097,7 +1102,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 22) = find_equip_view(p, EPOS::GLOVES);
         WFIFOW(fd, j + 24) = find_equip_view(p, EPOS::CAPE);
         WFIFOW(fd, j + 26) = find_equip_view(p, EPOS::TORSO);
-        WFIFOL(fd, j + 28) = uint16_t(p->option);
+        WFIFOL(fd, j + 28) = static_cast<uint16_t>(p->option);
 
         WFIFOL(fd, j + 32) = p->karma;
         WFIFOL(fd, j + 36) = p->manner;
@@ -1107,7 +1112,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 44) = (p->max_hp > 0x7fff) ? 0x7fff : p->max_hp;
         WFIFOW(fd, j + 46) = (p->sp > 0x7fff) ? 0x7fff : p->sp;
         WFIFOW(fd, j + 48) = (p->max_sp > 0x7fff) ? 0x7fff : p->max_sp;
-        WFIFOW(fd, j + 50) = DEFAULT_WALK_SPEED;   // p->speed;
+        WFIFOW(fd, j + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // p->speed;
         WFIFOW(fd, j + 52) = p->species;
         WFIFOW(fd, j + 54) = p->hair;
 //      WFIFOW(fd,j+56) = p->weapon; // dont send weapon since TMW does not support it
@@ -1709,7 +1714,7 @@ void parse_tologin(int fd)
 // Map-server anti-freeze system
 //--------------------------------
 static
-void map_anti_freeze_system(timer_id, tick_t, custom_id_t, custom_data_t)
+void map_anti_freeze_system(TimerData *, tick_t)
 {
     int i;
 
@@ -2576,7 +2581,7 @@ void parse_char(int fd)
                 WFIFOW(fd, 2 + 48) =
                     (char_dat[i].max_sp >
                      0x7fff) ? 0x7fff : char_dat[i].max_sp;
-                WFIFOW(fd, 2 + 50) = DEFAULT_WALK_SPEED;   // char_dat[i].speed;
+                WFIFOW(fd, 2 + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // char_dat[i].speed;
                 WFIFOW(fd, 2 + 52) = char_dat[i].species;
                 WFIFOW(fd, 2 + 54) = char_dat[i].hair;
 
@@ -2868,7 +2873,7 @@ int mapif_send(int fd, const uint8_t *buf, unsigned int len)
 }
 
 static
-void send_users_tologin(timer_id, tick_t, custom_id_t, custom_data_t)
+void send_users_tologin(TimerData *, tick_t)
 {
     int users = count_users();
     uint8_t buf[16];
@@ -2887,7 +2892,7 @@ void send_users_tologin(timer_id, tick_t, custom_id_t, custom_data_t)
 }
 
 static
-void check_connect_login_server(timer_id, tick_t, custom_id_t, custom_data_t)
+void check_connect_login_server(TimerData *, tick_t)
 {
     if (login_fd <= 0 || session[login_fd] == NULL)
     {
@@ -3137,8 +3142,8 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "autosave_time")
         {
-            autosave_interval = atoi(w2.c_str()) * 1000;
-            if (autosave_interval <= 0)
+            autosave_interval = std::chrono::seconds(atoi(w2.c_str()));
+            if (autosave_interval <= std::chrono::seconds::zero())
                 autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
         }
         else if (w1 == "start_point")
@@ -3222,9 +3227,9 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "anti_freeze_interval")
         {
-            ANTI_FREEZE_INTERVAL = atoi(w2.c_str());
-            if (ANTI_FREEZE_INTERVAL < 5)
-                ANTI_FREEZE_INTERVAL = 5;   // minimum 5 seconds
+            ANTI_FREEZE_INTERVAL = std::max(
+                    std::chrono::seconds(atoi(w2.c_str())),
+                    std::chrono::seconds(5));
         }
         else if (w1 == "import")
         {
@@ -3294,21 +3299,17 @@ int do_init(int argc, char **argv)
 
     char_fd = make_listen_port(char_port);
 
-//    add_timer_func_list (check_connect_login_server, "check_connect_login_server");
-//    add_timer_func_list (send_users_tologin, "send_users_tologin");
-//    add_timer_func_list (mmo_char_sync_timer, "mmo_char_sync_timer");
-
-    i = add_timer_interval(gettick() + 1000, check_connect_login_server, 0,
-                            0, 10 * 1000);
-    i = add_timer_interval(gettick() + 1000, send_users_tologin, 0, 0,
-                            5 * 1000);
-    i = add_timer_interval(gettick() + autosave_interval,
-                            mmo_char_sync_timer, 0, 0, autosave_interval);
+    add_timer_interval(gettick() + std::chrono::seconds(1),
+            check_connect_login_server, std::chrono::seconds(10));
+    add_timer_interval(gettick() + std::chrono::seconds(1),
+            send_users_tologin, std::chrono::seconds(5));
+    add_timer_interval(gettick() + autosave_interval,
+            mmo_char_sync_timer, autosave_interval);
 
     if (anti_freeze_enable > 0)
     {
-//        add_timer_func_list (map_anti_freeze_system, "map_anti_freeze_system");
-        i = add_timer_interval(gettick() + 1000, map_anti_freeze_system, 0, 0, ANTI_FREEZE_INTERVAL * 1000);  // checks every X seconds user specifies
+        add_timer_interval(gettick() + std::chrono::seconds(1),
+                map_anti_freeze_system, ANTI_FREEZE_INTERVAL);
     }
 
     CHAR_LOG("The char-server is ready (Server is listening on the port %d).\n",

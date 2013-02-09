@@ -10,6 +10,7 @@
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
+#include "../common/timer.hpp"
 #include "../common/utils2.hpp"
 
 #include "battle.hpp"
@@ -83,8 +84,6 @@ ATCOMMAND_FUNC(character_stats);
 ATCOMMAND_FUNC(character_stats_all);
 ATCOMMAND_FUNC(character_option);
 ATCOMMAND_FUNC(character_save);
-ATCOMMAND_FUNC(night);
-ATCOMMAND_FUNC(day);
 ATCOMMAND_FUNC(doom);
 ATCOMMAND_FUNC(doommap);
 ATCOMMAND_FUNC(raise);
@@ -158,7 +157,6 @@ ATCOMMAND_FUNC(leaves);
 ATCOMMAND_FUNC(adjgmlvl);      // by MouseJstr
 ATCOMMAND_FUNC(adjcmdlvl);     // by MouseJstr
 ATCOMMAND_FUNC(trade);         // by MouseJstr
-ATCOMMAND_FUNC(unmute);        // [Valaris]
 ATCOMMAND_FUNC(char_wipe);     // [Fate]
 ATCOMMAND_FUNC(set_magic);     // [Fate]
 ATCOMMAND_FUNC(magic_info);    // [Fate]
@@ -241,8 +239,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_CharacterOption, "@charoption", 60,
      atcommand_character_option},
     {AtCommand_CharacterSave, "@charsave", 60, atcommand_character_save},
-    {AtCommand_Night, "@night", 80, atcommand_night},
-    {AtCommand_Day, "@day", 80, atcommand_day},
     {AtCommand_Doom, "@doom", 80, atcommand_doom},
     {AtCommand_DoomMap, "@doommap", 80, atcommand_doommap},
     {AtCommand_Raise, "@raise", 80, atcommand_raise},
@@ -328,7 +324,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_AdjGmLvl, "@adjgmlvl", 99, atcommand_adjgmlvl},
     {AtCommand_AdjCmdLvl, "@adjcmdlvl", 99, atcommand_adjcmdlvl},
     {AtCommand_Trade, "@trade", 60, atcommand_trade},
-    {AtCommand_UnMute, "@unmute", 60, atcommand_unmute},    // [Valaris]
     {AtCommand_UnMute, "@charwipe", 60, atcommand_char_wipe},   // [Fate]
     {AtCommand_SetMagic, "@setmagic", 99, atcommand_set_magic}, // [Fate]
     {AtCommand_MagicInfo, "@magicinfo", 60, atcommand_magic_info},  // [Fate]
@@ -1360,12 +1355,13 @@ int atcommand_speed(const int fd, struct map_session_data *sd,
     {
         std::string output = STRPRINTF(
                 "Please, enter a speed value (usage: @speed <%d-%d>).",
-                MIN_WALK_SPEED, MAX_WALK_SPEED);
+                static_cast<uint32_t>(MIN_WALK_SPEED.count()),
+                static_cast<uint32_t>(MAX_WALK_SPEED.count()));
         clif_displaymessage(fd, output);
         return -1;
     }
 
-    int speed = atoi(message);
+    interval_t speed = static_cast<interval_t>(atoi(message));
     if (speed >= MIN_WALK_SPEED && speed <= MAX_WALK_SPEED)
     {
         sd->speed = speed;
@@ -1378,7 +1374,8 @@ int atcommand_speed(const int fd, struct map_session_data *sd,
     {
         std::string output = STRPRINTF(
                 "Please, enter a valid speed value (usage: @speed <%d-%d>).",
-                MIN_WALK_SPEED, MAX_WALK_SPEED);
+                static_cast<uint32_t>(MIN_WALK_SPEED.count()),
+                static_cast<uint32_t>(MAX_WALK_SPEED.count()));
         clif_displaymessage(fd, output);
         return -1;
     }
@@ -1534,8 +1531,8 @@ int atcommand_alive(const int fd, struct map_session_data *sd,
     sd->status.hp = sd->status.max_hp;
     sd->status.sp = sd->status.max_sp;
     pc_setstand(sd);
-    if (battle_config.pc_invincible_time > 0)
-        pc_setinvincibletimer(sd, battle_config.pc_invincible_time);
+    if (static_cast<interval_t>(battle_config.pc_invincible_time) > interval_t::zero())
+        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.pc_invincible_time));
     clif_updatestatus(sd, SP::HP);
     clif_updatestatus(sd, SP::SP);
     clif_resurrection(&sd->bl, 1);
@@ -1592,7 +1589,7 @@ int atcommand_heal(const int fd, struct map_session_data *sd,
     }
 
     if (hp < 0)            // display like damage
-        clif_damage(&sd->bl, &sd->bl, gettick(), 0, 0, -hp, 0, DamageType::RETURNED, 0);
+        clif_damage(&sd->bl, &sd->bl, gettick(), interval_t::zero(), interval_t::zero(), -hp, 0, DamageType::RETURNED, 0);
 
     if (hp != 0 || sp != 0)
     {
@@ -1934,11 +1931,10 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
             {
                 if (sd->bl.m == pl_sd->bl.m)
                 {
-                    if (pl_sd->pvp_timer != -1)
+                    if (pl_sd->pvp_timer)
                     {
-                        delete_timer(pl_sd->pvp_timer,
-                                      pc_calc_pvprank_timer);
-                        pl_sd->pvp_timer = -1;
+                        delete_timer(pl_sd->pvp_timer);
+                        pl_sd->pvp_timer = nullptr;
                     }
                 }
             }
@@ -1978,11 +1974,10 @@ int atcommand_pvpon(const int fd, struct map_session_data *sd,
             if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
                 && pl_sd->state.auth)
             {
-                if (sd->bl.m == pl_sd->bl.m && pl_sd->pvp_timer == -1)
+                if (sd->bl.m == pl_sd->bl.m && !pl_sd->pvp_timer)
                 {
-                    pl_sd->pvp_timer = add_timer(gettick() + 200,
-                                                  pc_calc_pvprank_timer,
-                                                  pl_sd->bl.id, 0);
+                    pl_sd->pvp_timer = add_timer(gettick() + std::chrono::milliseconds(200),
+                            std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl.id));
                     pl_sd->pvp_rank = 0;
                     pl_sd->pvp_lastusers = 0;
                     pl_sd->pvp_point = 5;
@@ -2659,8 +2654,8 @@ int atcommand_revive(const int fd, struct map_session_data *sd,
     {
         pl_sd->status.hp = pl_sd->status.max_hp;
         pc_setstand(pl_sd);
-        if (battle_config.pc_invincible_time > 0)
-            pc_setinvincibletimer(sd, battle_config.pc_invincible_time);
+        if (static_cast<interval_t>(battle_config.pc_invincible_time) > interval_t::zero())
+            pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.pc_invincible_time));
         clif_updatestatus(pl_sd, SP::HP);
         clif_updatestatus(pl_sd, SP::SP);
         clif_resurrection(&pl_sd->bl, 1);
@@ -3177,72 +3172,6 @@ int atcommand_character_save(const int fd, struct map_session_data *sd,
     else
     {
         clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int atcommand_night(const int fd, struct map_session_data *,
-                     const char *, const char *)
-{
-    struct map_session_data *pl_sd;
-    int i;
-
-    if (night_flag != 1)
-    {
-        night_flag = 1;         // 0=day, 1=night [Yor]
-        for (i = 0; i < fd_max; i++)
-        {
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
-            {
-                pl_sd->opt2 |= Opt2::BLIND;
-                clif_changeoption(&pl_sd->bl);
-                clif_displaymessage(pl_sd->fd, "Night has fallen.");
-            }
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Sorry, it's already the night. Impossible to execute the command.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int atcommand_day(const int fd, struct map_session_data *,
-                   const char *, const char *)
-{
-    struct map_session_data *pl_sd;
-    int i;
-
-    if (night_flag != 0)
-    {
-        night_flag = 0;         // 0=day, 1=night [Yor]
-        for (i = 0; i < fd_max; i++)
-        {
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
-            {
-                pl_sd->opt2 &= ~Opt2::BLIND;
-                clif_changeoption(&pl_sd->bl);
-                clif_displaymessage(pl_sd->fd, "Day has arrived.");
-            }
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Sorry, it's already the day. Impossible to execute the command.");
         return -1;
     }
 
@@ -4830,24 +4759,6 @@ int atcommand_disablenpc(const int fd, struct map_session_data *,
 }
 
 /*==========================================
- * time in txt for time command (by [Yor])
- *------------------------------------------
- */
-static
-std::string txt_time(unsigned int duration)
-{
-    int days = duration / (60 * 60 * 24);
-    duration -= (60 * 60 * 24 * days);
-    int hours = duration / (60 * 60);
-    duration -= (60 * 60 * hours);
-    int minutes = duration / 60;
-    int seconds = duration - (60 * minutes);
-
-    return STRPRINTF("%d day(s), %d hour(s), %d minute(s), %d second(s)",
-            days, hours, minutes, seconds);
-}
-
-/*==========================================
  * @time/@date/@server_date/@serverdate/@server_time/@servertime: Display the date/time of the server (by [Yor]
  * Calculation management of GM modification (@day/@night GM commands) is done
  *------------------------------------------
@@ -4855,80 +4766,14 @@ std::string txt_time(unsigned int duration)
 int atcommand_servertime(const int fd, struct map_session_data *,
                           const char *, const char *)
 {
-    struct TimerData *timer_data;
-    struct TimerData *timer_data2;
-
     timestamp_seconds_buffer tsbuf;
     stamp_time(tsbuf);
     std::string temp = STRPRINTF("Server time: %s", tsbuf);
     clif_displaymessage(fd, temp);
 
-    if (battle_config.night_duration == 0 && battle_config.day_duration == 0)
     {
-        if (night_flag == 0)
+        if (0 == 0)
             clif_displaymessage(fd, "Game time: The game is in permanent daylight.");
-        else
-            clif_displaymessage(fd, "Game time: The game is in permanent night.");
-    }
-    else if (battle_config.night_duration == 0)
-        if (night_flag == 1)
-        {                       // we start with night
-            timer_data = get_timer(day_timer_tid);
-            temp = STRPRINTF("Game time: The game is actualy in night for %s.",
-                    txt_time((timer_data->tick - gettick()) / 1000));
-            clif_displaymessage(fd, temp);
-            clif_displaymessage(fd, "Game time: After, the game will be in permanent daylight.");
-        }
-        else
-            clif_displaymessage(fd, "Game time: The game is in permanent daylight.");
-    else if (battle_config.day_duration == 0)
-        if (night_flag == 0)
-        {                       // we start with day
-            timer_data = get_timer(night_timer_tid);
-            temp = STRPRINTF("Game time: The game is actualy in daylight for %s.",
-                    txt_time((timer_data->tick - gettick()) / 1000));
-            clif_displaymessage(fd, temp);
-            clif_displaymessage(fd, "Game time: After, the game will be in permanent night.");
-        }
-        else
-            clif_displaymessage(fd, "Game time: The game is in permanent night.");
-    else
-    {
-        if (night_flag == 0)
-        {
-            timer_data = get_timer(night_timer_tid);
-            timer_data2 = get_timer(day_timer_tid);
-            temp = STRPRINTF("Game time: The game is actualy in daylight for %s.",
-                    txt_time((timer_data->tick - gettick()) / 1000));
-            clif_displaymessage(fd, temp);
-            if (timer_data->tick > timer_data2->tick)
-                temp = STRPRINTF("Game time: After, the game will be in night for %s.",
-                        txt_time((timer_data->interval - abs(timer_data->tick - timer_data2->tick)) / 1000));
-            else
-                temp = STRPRINTF("Game time: After, the game will be in night for %s.",
-                        txt_time(abs(timer_data->tick - timer_data2->tick) / 1000));
-            clif_displaymessage(fd, temp);
-            temp = STRPRINTF("Game time: A day cycle has a normal duration of %s.",
-                    txt_time(timer_data->interval / 1000));
-            clif_displaymessage(fd, temp);
-        }
-        else
-        {
-            timer_data = get_timer(day_timer_tid);
-            timer_data2 = get_timer(night_timer_tid);
-            temp = STRPRINTF("Game time: The game is actualy in night for %s.",
-                    txt_time((timer_data->tick - gettick()) / 1000));
-            clif_displaymessage(fd, temp);
-            if (timer_data->tick > timer_data2->tick)
-                temp = STRPRINTF("Game time: After, the game will be in daylight for %s.",
-                        txt_time((timer_data->interval - abs(timer_data->tick - timer_data2->tick)) / 1000));
-            else
-                temp = STRPRINTF("Game time: After, the game will be in daylight for %s.", txt_time(abs(timer_data->tick - timer_data2->tick) / 1000));
-            clif_displaymessage(fd, temp);
-            temp = STRPRINTF("Game time: A day cycle has a normal duration of %s.",
-                    txt_time(timer_data->interval / 1000));
-            clif_displaymessage(fd, temp);
-        }
     }
 
     return 0;
@@ -6332,7 +6177,7 @@ int atcommand_summon(const int, struct map_session_data *sd,
     int y = 0;
     int id = 0;
     struct mob_data *md;
-    unsigned int tick = gettick();
+    tick_t tick = gettick();
 
     nullpo_retr(-1, sd);
 
@@ -6355,7 +6200,9 @@ int atcommand_summon(const int, struct map_session_data *sd,
         md->master_id = sd->bl.id;
         md->state.special_mob_ai = 1;
         md->mode = mob_db[md->mob_class].mode | MobMode::AGGRESSIVE;
-        md->deletetimer = add_timer(tick + 60000, mob_timer_delete, id, 0);
+        md->deletetimer = add_timer(tick + std::chrono::minutes(1),
+                std::bind(mob_timer_delete, ph::_1, ph::_2,
+                    id));
         clif_misceffect(&md->bl, 344);
     }
 
@@ -6448,31 +6295,6 @@ int atcommand_trade(const int, struct map_session_data *sd,
         return 0;
     }
     return -1;
-}
-
-/*===========================
- * @unmute [Valaris]
- *===========================
-*/
-int atcommand_unmute(const int, struct map_session_data *sd,
-                      const char *, const char *message)
-{
-    struct map_session_data *pl_sd = NULL;
-    if (!message || !*message)
-        return -1;
-
-    if ((pl_sd = map_nick2sd(message)) != NULL)
-    {
-        if (pl_sd->sc_data[StatusChange::SC_NOCHAT].timer != -1)
-        {
-            skill_status_change_end(&pl_sd->bl, StatusChange::SC_NOCHAT, -1);
-            clif_displaymessage(sd->fd, "Player unmuted");
-        }
-        else
-            clif_displaymessage(sd->fd, "Player is not muted");
-    }
-
-    return 0;
 }
 
 /* Magic atcommands by Fate */

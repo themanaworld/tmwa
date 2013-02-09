@@ -16,6 +16,7 @@
 #include "../common/mt_rand.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
+#include "../common/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -70,9 +71,8 @@ int map_num = 0;
 static
 int map_port = 0;
 
-int autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+interval_t autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
-int night_flag = 0;            // 0=day, 1=night [Yor]
 
 struct charid2nick
 {
@@ -176,14 +176,9 @@ int map_freeblock_unlock(void)
     return block_free_lock;
 }
 
-//
-// block化処理
-//
-/*==========================================
- * map[]のblock_listから繋がっている場合に
- * bl->prevにbl_headのアドレスを入れておく
- *------------------------------------------
- */
+/// This is a dummy entry that is shared by all the linked lists,
+/// so that any entry can unlink itself without worrying about
+/// whether it was the the head of the list.
 static
 struct block_list bl_head;
 
@@ -755,20 +750,20 @@ void map_foreachobject(std::function<void(struct block_list *)> func,
  * map.h内で#defineしてある
  *------------------------------------------
  */
-void map_clearflooritem_timer(timer_id tid, tick_t, custom_id_t id, custom_data_t data)
+void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
 {
     struct flooritem_data *fitem = NULL;
 
     fitem = (struct flooritem_data *) object[id];
     if (fitem == NULL || fitem->bl.type != BL::ITEM
-        || (!data && fitem->cleartimer != tid))
+        || (tid && fitem->cleartimer != tid))
     {
         if (battle_config.error_log)
             PRINTF("map_clearflooritem_timer : error\n");
         return;
     }
-    if (data)
-        delete_timer(fitem->cleartimer, map_clearflooritem_timer);
+    if (!tid)
+        delete_timer(fitem->cleartimer);
     clif_clearflooritem(fitem, 0);
     map_delobject(fitem->bl.id, BL::ITEM);
 }
@@ -831,12 +826,12 @@ int map_searchrandfreecell(int m, int x, int y, int range)
  * item_dataはamount以外をcopyする
  *------------------------------------------
  */
-int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
-                          int y, struct map_session_data **owners,
-                          int *owner_protection, int lifetime, int dispersal)
+int map_addflooritem_any(struct item *item_data, int amount,
+        int m, int x, int y,
+        struct map_session_data **owners, interval_t *owner_protection,
+        interval_t lifetime, int dispersal)
 {
     int xy, r;
-    unsigned int tick;
     struct flooritem_data *fitem = NULL;
 
     nullpo_ret(item_data);
@@ -852,11 +847,11 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
     fitem->bl.x = xy & 0xffff;
     fitem->bl.y = (xy >> 16) & 0xffff;
     fitem->first_get_id = 0;
-    fitem->first_get_tick = 0;
+    fitem->first_get_tick = tick_t();
     fitem->second_get_id = 0;
-    fitem->second_get_tick = 0;
+    fitem->second_get_tick = tick_t();
     fitem->third_get_id = 0;
-    fitem->third_get_tick = 0;
+    fitem->third_get_tick = tick_t();
 
     fitem->bl.id = map_addobject(&fitem->bl);
     if (fitem->bl.id == 0)
@@ -865,7 +860,7 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
         return 0;
     }
 
-    tick = gettick();
+    tick_t tick = gettick();
 
     if (owners[0])
         fitem->first_get_id = owners[0]->bl.id;
@@ -883,9 +878,9 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
     fitem->item_data.amount = amount;
     fitem->subx = (r & 3) * 3 + 3;
     fitem->suby = ((r >> 2) & 3) * 3 + 3;
-    fitem->cleartimer =
-        add_timer(gettick() + lifetime, map_clearflooritem_timer,
-                   fitem->bl.id, 0);
+    fitem->cleartimer = add_timer(gettick() + lifetime,
+            std::bind(map_clearflooritem_timer, ph::_1, ph::_2,
+                fitem->bl.id));
 
     map_addblock(&fitem->bl);
     clif_dropflooritem(fitem);
@@ -893,99 +888,32 @@ int map_addflooritem_any(struct item *item_data, int amount, int m, int x,
     return fitem->bl.id;
 }
 
-int map_addflooritem(struct item *item_data, int amount, int m, int x, int y,
-                      struct map_session_data *first_sd,
-                      struct map_session_data *second_sd,
-                      struct map_session_data *third_sd, int type)
+int map_addflooritem(struct item *item_data, int amount,
+        int m, int x, int y,
+        struct map_session_data *first_sd,
+        struct map_session_data *second_sd,
+        struct map_session_data *third_sd, bool type)
 {
     struct map_session_data *owners[3] = { first_sd, second_sd, third_sd };
-    int owner_protection[3];
+    interval_t owner_protection[3];
 
     if (type)
     {
-        owner_protection[0] = battle_config.mvp_item_first_get_time;
-        owner_protection[1] =
-            owner_protection[0] + battle_config.mvp_item_second_get_time;
-        owner_protection[2] =
-            owner_protection[1] + battle_config.mvp_item_third_get_time;
+        owner_protection[0] = static_cast<interval_t>(battle_config.mvp_item_first_get_time);
+        owner_protection[1] = owner_protection[0] + static_cast<interval_t>(battle_config.mvp_item_second_get_time);
+        owner_protection[2] = owner_protection[1] + static_cast<interval_t>(battle_config.mvp_item_third_get_time);
     }
     else
     {
-        owner_protection[0] = battle_config.item_first_get_time;
-        owner_protection[1] =
-            owner_protection[0] + battle_config.item_second_get_time;
-        owner_protection[2] =
-            owner_protection[1] + battle_config.item_third_get_time;
+        owner_protection[0] = static_cast<interval_t>(battle_config.item_first_get_time);
+        owner_protection[1] = owner_protection[0] + static_cast<interval_t>(battle_config.item_second_get_time);
+        owner_protection[2] = owner_protection[1] + static_cast<interval_t>(battle_config.item_third_get_time);
     }
 
     return map_addflooritem_any(item_data, amount, m, x, y,
-                                 owners, owner_protection,
-                                 battle_config.flooritem_lifetime, 1);
+            owners, owner_protection,
+            static_cast<interval_t>(battle_config.flooritem_lifetime), 1);
 }
-
-/*      int xy,r; */
-/*      unsigned int tick; */
-/*      struct flooritem_data *fitem=NULL; */
-
-/*      nullpo_ret(item_data); */
-
-/*      if ((xy=map_searchrandfreecell(m,x,y,1))<0) */
-/*              return 0; */
-/*      r=rand(); */
-
-/*      fitem = (struct flooritem_data *)aCalloc(1,sizeof(*fitem)); */
-/*      fitem->bl.type=BL::ITEM; */
-/*      fitem->bl.prev = fitem->bl.next = NULL; */
-/*      fitem->bl.m=m; */
-/*      fitem->bl.x=xy&0xffff; */
-/*      fitem->bl.y= (xy>>16)&0xffff; */
-/*      fitem->first_get_id = 0; */
-/*      fitem->first_get_tick = 0; */
-/*      fitem->second_get_id = 0; */
-/*      fitem->second_get_tick = 0; */
-/*      fitem->third_get_id = 0; */
-/*      fitem->third_get_tick = 0; */
-
-/*      fitem->bl.id = map_addobject(&fitem->bl); */
-/*      if (fitem->bl.id==0){ */
-/*              free(fitem); */
-/*              return 0; */
-/*      } */
-
-/*      tick = gettick(); */
-/*      if (first_sd) { */
-/*              fitem->first_get_id = first_sd->bl.id; */
-/*              if (type) */
-/*                      fitem->first_get_tick = tick + battle_config.mvp_item_first_get_time; */
-/*              else */
-/*                      fitem->first_get_tick = tick + battle_config.item_first_get_time; */
-/*      } */
-/*      if (second_sd) { */
-/*              fitem->second_get_id = second_sd->bl.id; */
-/*              if (type) */
-/*                      fitem->second_get_tick = tick + battle_config.mvp_item_first_get_time + battle_config.mvp_item_second_get_time; */
-/*              else */
-/*                      fitem->second_get_tick = tick + battle_config.item_first_get_time + battle_config.item_second_get_time; */
-/*      } */
-/*      if (third_sd) { */
-/*              fitem->third_get_id = third_sd->bl.id; */
-/*              if (type) */
-/*                      fitem->third_get_tick = tick + battle_config.mvp_item_first_get_time + battle_config.mvp_item_second_get_time + battle_config.mvp_item_third_get_time; */
-/*              else */
-/*                      fitem->third_get_tick = tick + battle_config.item_first_get_time + battle_config.item_second_get_time + battle_config.item_third_get_time; */
-/*      } */
-
-/*      memcpy(&fitem->item_data,item_data,sizeof(*item_data)); */
-/*      fitem->item_data.amount=amount; */
-/*      fitem->subx= (r&3)*3+3; */
-/*      fitem->suby= ((r>>2)&3)*3+3; */
-/*      fitem->cleartimer=add_timer(gettick()+battle_config.flooritem_lifetime,map_clearflooritem_timer,fitem->bl.id,0); */
-
-/*      map_addblock(&fitem->bl); */
-/*      clif_dropflooritem(fitem); */
-
-/*      return fitem->bl.id; */
-/* } */
 
 /*==========================================
  * charid_dbへ追加(返信待ちがあれば返信)
@@ -1087,7 +1015,6 @@ int map_quit(struct map_session_data *sd)
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
     pc_delinvincibletimer(sd);
-    pc_delspiritball(sd, sd->spiritball, 1);
     skill_gangsterparadise(sd, 0);
 
     pc_calcstatus(sd, 4);
@@ -1866,8 +1793,8 @@ int map_config_read(const char *cfgName)
         }
         else if (w1 == "autosave_time")
         {
-            autosave_interval = atoi(w2.c_str()) * 1000;
-            if (autosave_interval <= 0)
+            autosave_interval = std::chrono::seconds(atoi(w2.c_str()));
+            if (autosave_interval <= interval_t::zero())
                 autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
         }
         else if (w1 == "motd_txt")
@@ -2026,8 +1953,6 @@ int do_init(int argc, char *argv[])
     charid_db = numdb_init();
 
     map_readallmap();
-
-//    add_timer_func_list (map_clearflooritem_timer, "map_clearflooritem_timer");
 
     do_init_chrif ();
     do_init_clif ();

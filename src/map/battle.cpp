@@ -61,9 +61,9 @@ int battle_get_class(struct block_list *bl)
 DIR battle_get_dir(struct block_list *bl)
 {
     nullpo_retr(DIR::S, bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return ((struct mob_data *) bl)->dir;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->dir;
     else
         return DIR::S;
@@ -77,9 +77,9 @@ DIR battle_get_dir(struct block_list *bl)
 int battle_get_lv(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return ((struct mob_data *) bl)->stats[mob_stat::LV];
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->status.base_level;
     else
         return 0;
@@ -93,9 +93,9 @@ int battle_get_lv(struct block_list *bl)
 int battle_get_range(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return mob_db[((struct mob_data *) bl)->mob_class].range;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->attackrange;
     else
         return 0;
@@ -109,9 +109,9 @@ int battle_get_range(struct block_list *bl)
 int battle_get_hp(struct block_list *bl)
 {
     nullpo_retr(1, bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return ((struct mob_data *) bl)->hp;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->status.hp;
     else
         return 1;
@@ -185,9 +185,9 @@ int battle_get_agi(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         agi = ((struct mob_data *) bl)->stats[mob_stat::AGI];
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         agi = ((struct map_session_data *) bl)->paramc[ATTR::AGI];
 
     if (agi < 0)
@@ -207,9 +207,9 @@ int battle_get_vit(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         vit = ((struct mob_data *) bl)->stats[mob_stat::VIT];
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         vit = ((struct map_session_data *) bl)->paramc[ATTR::VIT];
 
     if (vit < 0)
@@ -229,9 +229,9 @@ int battle_get_int(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         int_ = ((struct mob_data *) bl)->stats[mob_stat::INT];
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         int_ = ((struct map_session_data *) bl)->paramc[ATTR::INT];
 
     if (int_ < 0)
@@ -251,9 +251,9 @@ int battle_get_dex(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         dex = ((struct mob_data *) bl)->stats[mob_stat::DEX];
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         dex = ((struct map_session_data *) bl)->paramc[ATTR::DEX];
 
     if (dex < 0)
@@ -273,16 +273,11 @@ int battle_get_luk(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         luk = ((struct mob_data *) bl)->stats[mob_stat::LUK];
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         luk = ((struct map_session_data *) bl)->paramc[ATTR::LUK];
 
-    if (sc_data)
-    {
-        if (sc_data[StatusChange::SC_CURSE].timer != -1)  // 呪い
-            luk = 0;
-    }
     if (luk < 0)
         luk = 0;
     return luk;
@@ -301,16 +296,13 @@ int battle_get_flee(struct block_list *bl)
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         flee = ((struct map_session_data *) bl)->flee;
     else
         flee = battle_get_agi(bl) + battle_get_lv(bl);
 
     if (sc_data)
     {
-        if (sc_data[StatusChange::SC_BLIND].timer != -1 && bl->type != BL::PC)
-            flee -= flee * 25 / 100;
-
         if (battle_is_unarmed(bl))
             flee += (skill_power_bl(bl, SkillID::TMW_BRAWLING) >> 3);   // +25 for 200
         flee += skill_power_bl(bl, SkillID::TMW_SPEED) >> 3;
@@ -333,16 +325,13 @@ int battle_get_hit(struct block_list *bl)
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         hit = ((struct map_session_data *) bl)->hit;
     else
         hit = battle_get_dex(bl) + battle_get_lv(bl);
 
     if (sc_data)
     {
-        if (sc_data[StatusChange::SC_BLIND].timer != -1 && bl->type != BL::PC) // 呪い
-            hit -= hit * 25 / 100;
-
         if (battle_is_unarmed(bl))
             hit += (skill_power_bl(bl, SkillID::TMW_BRAWLING) >> 4);    // +12 for 200
     }
@@ -364,7 +353,7 @@ int battle_get_flee2(struct block_list *bl)
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
     {
         flee2 = battle_get_luk(bl) + 10;
         flee2 +=
@@ -397,7 +386,7 @@ int battle_get_critical(struct block_list *bl)
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
     {
         critical = battle_get_luk(bl) * 2 + 10;
         critical +=
@@ -425,7 +414,7 @@ int battle_get_baseatk(struct block_list *bl)
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         batk = ((struct map_session_data *) bl)->base_atk;  //設定されているbase_atk
     else
     {                           //それ以外なら
@@ -433,11 +422,6 @@ int battle_get_baseatk(struct block_list *bl)
         str = battle_get_str(bl);  //STR
         dstr = str / 10;
         batk = dstr * dstr + str;   //base_atkを計算する
-    }
-    if (sc_data)
-    {                           //状態異常あり
-        if (sc_data[StatusChange::SC_CURSE].timer != -1)  //呪われていたら
-            batk -= batk * 25 / 100;    //base_atkが25%減少
     }
     if (batk < 1)
         batk = 1;               //base_atkは最低でも1
@@ -457,16 +441,11 @@ int battle_get_atk(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         atk = ((struct map_session_data *) bl)->watk;
-    else if (bl->type == BL::MOB && (struct mob_data *) bl)
+    else if (bl->type == BL::MOB)
         atk = ((struct mob_data *) bl)->stats[mob_stat::ATK1];
 
-    if (sc_data)
-    {
-        if (sc_data[StatusChange::SC_CURSE].timer != -1)
-            atk -= atk * 25 / 100;
-    }
     if (atk < 0)
         atk = 0;
     return atk;
@@ -481,14 +460,8 @@ static
 int battle_get_atk_(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
-    {
-        int atk = ((struct map_session_data *) bl)->watk_;
-
-        if (((struct map_session_data *) bl)->sc_data[StatusChange::SC_CURSE].timer != -1)
-            atk -= atk * 25 / 100;
-        return atk;
-    }
+    if (bl->type == BL::PC)
+        return ((struct map_session_data *) bl)->watk_;
     else
         return 0;
 }
@@ -502,19 +475,13 @@ static
 int battle_get_atk2(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->watk2;
     else
     {
-        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
         int atk2 = 0;
-        if (bl->type == BL::MOB && (struct mob_data *) bl)
+        if (bl->type == BL::MOB)
             atk2 = ((struct mob_data *) bl)->stats[mob_stat::ATK2];
-        if (sc_data)
-        {
-            if (sc_data[StatusChange::SC_CURSE].timer != -1)
-                atk2 -= atk2 * 25 / 100;
-        }
 
         if (atk2 < 0)
             atk2 = 0;
@@ -555,7 +522,7 @@ int battle_get_matk1(struct block_list *bl)
 
         return matk;
     }
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->matk1;
     else
         return 0;
@@ -577,7 +544,7 @@ int battle_get_matk2(struct block_list *bl)
 
         return matk;
     }
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->matk2;
     else
         return 0;
@@ -595,11 +562,11 @@ int battle_get_def(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
     {
         def = ((struct map_session_data *) bl)->def;
     }
-    else if (bl->type == BL::MOB && (struct mob_data *) bl)
+    else if (bl->type == BL::MOB)
     {
         def = ((struct mob_data *) bl)->stats[mob_stat::DEF];
     }
@@ -609,13 +576,9 @@ int battle_get_def(struct block_list *bl)
         if (sc_data)
         {
             //毒にかかっている時は減算
-            if (sc_data[StatusChange::SC_POISON].timer != -1 && bl->type != BL::PC)
+            if (sc_data[StatusChange::SC_POISON].timer
+                && bl->type != BL::PC)
                 def = def * 75 / 100;
-            //凍結、石化時は右シフト
-            if (sc_data[StatusChange::SC_FREEZE].timer != -1
-                || (sc_data[StatusChange::SC_STONE].timer != -1
-                    && sc_data[StatusChange::SC_STONE].val2 == 0))
-                def >>= 1;
         }
     }
     if (def < 0)
@@ -635,9 +598,9 @@ int battle_get_mdef(struct block_list *bl)
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         mdef = ((struct map_session_data *) bl)->mdef;
-    else if (bl->type == BL::MOB && (struct mob_data *) bl)
+    else if (bl->type == BL::MOB)
         mdef = ((struct mob_data *) bl)->stats[mob_stat::MDEF];
 
     if (mdef < 1000000)
@@ -645,17 +608,12 @@ int battle_get_mdef(struct block_list *bl)
         if (sc_data)
         {
             //バリアー状態時はMDEF100
-            if (mdef < 90 && sc_data[StatusChange::SC_MBARRIER].timer != -1)
+            if (mdef < 90 && sc_data[StatusChange::SC_MBARRIER].timer)
             {
                 mdef += sc_data[StatusChange::SC_MBARRIER].val1;
                 if (mdef > 90)
                     mdef = 90;
             }
-            //凍結、石化時は1.25倍
-            if (sc_data[StatusChange::SC_FREEZE].timer != -1
-                || (sc_data[StatusChange::SC_STONE].timer != -1
-                    && sc_data[StatusChange::SC_STONE].val2 == 0))
-                mdef = mdef * 125 / 100;
         }
     }
     if (mdef < 0)
@@ -682,7 +640,8 @@ int battle_get_def2(struct block_list *bl)
 
     if (sc_data)
     {
-        if (sc_data[StatusChange::SC_POISON].timer != -1 && bl->type != BL::PC)
+        if (sc_data[StatusChange::SC_POISON].timer
+            && bl->type != BL::PC)
             def2 = def2 * 75 / 100;
     }
     if (def2 < 1)
@@ -720,26 +679,18 @@ int battle_get_mdef2(struct block_list *bl)
  * Speedは小さいほうが移動速度が速い
  *------------------------------------------
  */
-int battle_get_speed(struct block_list *bl)
+interval_t battle_get_speed(struct block_list *bl)
 {
-    nullpo_retr(1000, bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    nullpo_retr(std::chrono::seconds(1), bl);
+    if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->speed;
     else
     {
-        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-        int speed = 1000;
-        if (bl->type == BL::MOB && (struct mob_data *) bl)
-            speed = ((struct mob_data *) bl)->stats[mob_stat::SPEED];
+        interval_t speed = std::chrono::seconds(1);
+        if (bl->type == BL::MOB)
+            speed = static_cast<interval_t>(((struct mob_data *) bl)->stats[mob_stat::SPEED]);
 
-        if (sc_data)
-        {
-            if (sc_data[StatusChange::SC_CURSE].timer != -1)
-                speed = speed + 450;
-        }
-        if (speed < 1)
-            speed = 1;
-        return speed;
+        return std::max(speed, std::chrono::milliseconds(1));
     }
 }
 
@@ -748,105 +699,84 @@ int battle_get_speed(struct block_list *bl)
  * aDelayは小さいほうが攻撃速度が速い
  *------------------------------------------
  */
-int battle_get_adelay(struct block_list *bl)
+// TODO figure out what all the doubling is about
+interval_t battle_get_adelay(struct block_list *bl)
 {
-    nullpo_retr(4000, bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
-        return (((struct map_session_data *) bl)->aspd << 1);
+    nullpo_retr(std::chrono::seconds(4), bl);
+    if (bl->type == BL::PC)
+        return ((struct map_session_data *) bl)->aspd * 2;
     else
     {
         eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-        int adelay = 4000, aspd_rate = 100;
-        if (bl->type == BL::MOB && (struct mob_data *) bl)
-            adelay = ((struct mob_data *) bl)->stats[mob_stat::ADELAY];
+        interval_t adelay = std::chrono::seconds(4);
+        int aspd_rate = 100;
+        if (bl->type == BL::MOB)
+            adelay = static_cast<interval_t>(((struct mob_data *) bl)->stats[mob_stat::ADELAY]);
 
         if (sc_data)
         {
-            if (sc_data[StatusChange::SC_SPEEDPOTION0].timer != -1)
+            if (sc_data[StatusChange::SC_SPEEDPOTION0].timer)
                 aspd_rate -= sc_data[StatusChange::SC_SPEEDPOTION0].val1;
             // Fate's `haste' spell works the same as the above
-            if (sc_data[StatusChange::SC_HASTE].timer != -1)
+            if (sc_data[StatusChange::SC_HASTE].timer)
                 aspd_rate -= sc_data[StatusChange::SC_HASTE].val1;
         }
 
         if (aspd_rate != 100)
             adelay = adelay * aspd_rate / 100;
-        if (adelay < battle_config.monster_max_aspd << 1)
-            adelay = battle_config.monster_max_aspd << 1;
-        return adelay;
+        return std::max(adelay, static_cast<interval_t>(battle_config.monster_max_aspd) * 2);
     }
 }
 
-int battle_get_amotion(struct block_list *bl)
+interval_t battle_get_amotion(struct block_list *bl)
 {
-    nullpo_retr(2000, bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    nullpo_retr(std::chrono::seconds(2), bl);
+    if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->amotion;
     else
     {
         eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
-        int amotion = 2000, aspd_rate = 100;
-        if (bl->type == BL::MOB && (struct mob_data *) bl)
-            amotion = mob_db[((struct mob_data *) bl)->mob_class].amotion;
+        interval_t amotion = std::chrono::seconds(2);
+        int aspd_rate = 100;
+        if (bl->type == BL::MOB)
+            amotion = static_cast<interval_t>(mob_db[((struct mob_data *) bl)->mob_class].amotion);
 
         if (sc_data)
         {
-            if (sc_data[StatusChange::SC_SPEEDPOTION0].timer != -1)
+            if (sc_data[StatusChange::SC_SPEEDPOTION0].timer)
                 aspd_rate -= sc_data[StatusChange::SC_SPEEDPOTION0].val1;
-            if (sc_data[StatusChange::SC_HASTE].timer != -1)
+            if (sc_data[StatusChange::SC_HASTE].timer)
                 aspd_rate -= sc_data[StatusChange::SC_HASTE].val1;
         }
 
         if (aspd_rate != 100)
             amotion = amotion * aspd_rate / 100;
-        if (amotion < battle_config.monster_max_aspd)
-            amotion = battle_config.monster_max_aspd;
-        return amotion;
+        return std::max(amotion, static_cast<interval_t>(battle_config.monster_max_aspd));
     }
 }
 
-int battle_get_dmotion(struct block_list *bl)
+interval_t battle_get_dmotion(struct block_list *bl)
 {
-    int ret;
-    eptr<struct status_change, StatusChange> sc_data;
-
-    nullpo_ret(bl);
-    sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    nullpo_retr(interval_t::zero(), bl);
+    if (bl->type == BL::MOB)
     {
-        ret = mob_db[((struct mob_data *) bl)->mob_class].dmotion;
-        if (battle_config.monster_damage_delay_rate != 100)
-            ret = ret * battle_config.monster_damage_delay_rate / 400;
+        return static_cast<interval_t>(mob_db[((struct mob_data *) bl)->mob_class].dmotion);
     }
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
     {
-        ret = ((struct map_session_data *) bl)->dmotion;
-        if (battle_config.pc_damage_delay_rate != 100)
-            ret = ret * battle_config.pc_damage_delay_rate / 400;
+        return ((struct map_session_data *) bl)->dmotion;
     }
     else
-        return 2000;
-
-    return ret;
+        return std::chrono::seconds(2);
 }
 
 LevelElement battle_get_element(struct block_list *bl)
 {
     LevelElement ret = {2, Element::neutral};
-    eptr<struct status_change, StatusChange> sc_data;
 
     nullpo_retr(ret, bl);
-    sc_data = battle_get_sc_data(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)   // 10の位＝Lv*2、１の位＝属性
+    if (bl->type == BL::MOB)   // 10の位＝Lv*2、１の位＝属性
         ret = ((struct mob_data *) bl)->def_ele;
-
-    if (sc_data)
-    {
-        if (sc_data[StatusChange::SC_FREEZE].timer != -1) // 凍結
-            ret = LevelElement{2, Element::water};
-        if (sc_data[StatusChange::SC_STONE].timer != -1 && sc_data[StatusChange::SC_STONE].val2 == 0)
-            ret = LevelElement{2, Element::earth};
-    }
 
     return ret;
 }
@@ -854,9 +784,9 @@ LevelElement battle_get_element(struct block_list *bl)
 int battle_get_party_id(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::PC && (struct map_session_data *) bl)
+    if (bl->type == BL::PC)
         return ((struct map_session_data *) bl)->status.party_id;
-    else if (bl->type == BL::MOB && (struct mob_data *) bl)
+    else if (bl->type == BL::MOB)
     {
         struct mob_data *md = (struct mob_data *) bl;
         if (md->master_id > 0)
@@ -869,9 +799,9 @@ int battle_get_party_id(struct block_list *bl)
 Race battle_get_race(struct block_list *bl)
 {
     nullpo_retr(Race::formless, bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return mob_db[((struct mob_data *) bl)->mob_class].race;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return Race::demihuman;
     else
         return Race::formless;
@@ -880,7 +810,7 @@ Race battle_get_race(struct block_list *bl)
 MobMode battle_get_mode(struct block_list *bl)
 {
     nullpo_retr(MobMode::CAN_MOVE, bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return mob_db[((struct mob_data *) bl)->mob_class].mode;
     // とりあえず動くということで1
     return MobMode::CAN_MOVE;
@@ -889,7 +819,7 @@ MobMode battle_get_mode(struct block_list *bl)
 int battle_get_mexp(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
     {
         const struct mob_data *mob = (struct mob_data *) bl;
         const int retval =
@@ -942,9 +872,9 @@ eptr<struct status_change, StatusChange> battle_get_sc_data(struct block_list *b
 short *battle_get_sc_count(struct block_list *bl)
 {
     nullpo_retr(NULL, bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return &((struct mob_data *) bl)->sc_count;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return &((struct map_session_data *) bl)->sc_count;
     return NULL;
 }
@@ -952,9 +882,9 @@ short *battle_get_sc_count(struct block_list *bl)
 Opt1 *battle_get_opt1(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return &((struct mob_data *) bl)->opt1;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return &((struct map_session_data *) bl)->opt1;
     else if (bl->type == BL::NPC && (struct npc_data *) bl)
         return &((struct npc_data *) bl)->opt1;
@@ -964,9 +894,9 @@ Opt1 *battle_get_opt1(struct block_list *bl)
 Opt2 *battle_get_opt2(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return &((struct mob_data *) bl)->opt2;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return &((struct map_session_data *) bl)->opt2;
     else if (bl->type == BL::NPC && (struct npc_data *) bl)
         return &((struct npc_data *) bl)->opt2;
@@ -976,9 +906,9 @@ Opt2 *battle_get_opt2(struct block_list *bl)
 Opt3 *battle_get_opt3(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return &((struct mob_data *) bl)->opt3;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return &((struct map_session_data *) bl)->opt3;
     else if (bl->type == BL::NPC && (struct npc_data *) bl)
         return &((struct npc_data *) bl)->opt3;
@@ -988,9 +918,9 @@ Opt3 *battle_get_opt3(struct block_list *bl)
 Option *battle_get_option(struct block_list *bl)
 {
     nullpo_ret(bl);
-    if (bl->type == BL::MOB && (struct mob_data *) bl)
+    if (bl->type == BL::MOB)
         return &((struct mob_data *) bl)->option;
-    else if (bl->type == BL::PC && (struct map_session_data *) bl)
+    else if (bl->type == BL::PC)
         return &((struct map_session_data *) bl)->status.option;
     else if (bl->type == BL::NPC && (struct npc_data *) bl)
         return &((struct npc_data *) bl)->option;
@@ -1011,9 +941,6 @@ struct battle_delay_damage_
 int battle_damage(struct block_list *bl, struct block_list *target,
                    int damage, int flag)
 {
-    eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(target);
-    short *sc_count;
-
     nullpo_ret(target);    //blはNULLで呼ばれることがあるので他でチェック
 
     if (damage == 0)
@@ -1031,22 +958,10 @@ int battle_damage(struct block_list *bl, struct block_list *target,
     if (damage < 0)
         return battle_heal(bl, target, -damage, 0, flag);
 
-    if (!flag && (sc_count = battle_get_sc_count(target)) != NULL
-        && *sc_count > 0)
-    {
-        // 凍結、石化、睡眠を消去
-        if (sc_data[StatusChange::SC_FREEZE].timer != -1)
-            skill_status_change_end(target, StatusChange::SC_FREEZE, -1);
-        if (sc_data[StatusChange::SC_STONE].timer != -1 && sc_data[StatusChange::SC_STONE].val2 == 0)
-            skill_status_change_end(target, StatusChange::SC_STONE, -1);
-        if (sc_data[StatusChange::SC_SLEEP].timer != -1)
-            skill_status_change_end(target, StatusChange::SC_SLEEP, -1);
-    }
-
     if (target->type == BL::MOB)
     {                           // MOB
         struct mob_data *md = (struct mob_data *) target;
-        if (md && md->skilltimer != -1 && md->state.skillcastcancel)    // 詠唱妨害
+        if (md && md->skilltimer && md->state.skillcastcancel)    // 詠唱妨害
             skill_castcancel(target, 0);
         return mob_damage(bl, md, damage, 0);
     }
@@ -1230,8 +1145,6 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         if (cri < 1)
             cri = 1;
     }
-    if (t_sc_data && t_sc_data[StatusChange::SC_SLEEP].timer != -1)   // 睡眠中はクリティカルが倍に
-        cri <<= 1;
 
     if (ac_flag)
         cri = 1000;
@@ -1349,11 +1262,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     // 回避修正
     if (hitrate < 1000000)
         hitrate = ((hitrate > 95) ? 95 : ((hitrate < 5) ? 5 : hitrate));
-    if (hitrate < 1000000 &&    // 必中攻撃
-        (t_sc_data && (t_sc_data[StatusChange::SC_SLEEP].timer != -1 ||   // 睡眠は必中
-                               t_sc_data[StatusChange::SC_STAN].timer != -1 ||    // スタンは必中
-                               t_sc_data[StatusChange::SC_FREEZE].timer != -1 || (t_sc_data[StatusChange::SC_STONE].timer != -1 && t_sc_data[StatusChange::SC_STONE].val2 == 0))))    // 凍結は必中
-        hitrate = 1000000;
+
     if (type == DamageType::NORMAL && MRAND(100) >= hitrate)
     {
         damage = damage2 = 0;
@@ -1581,8 +1490,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
             // カタールの場合、クリティカルを倍に
             cri <<= 1;
         cri -= battle_get_luk(target) * 3;
-        if (t_sc_data && t_sc_data[StatusChange::SC_SLEEP].timer != -1)   // 睡眠中はクリティカルが倍に
-            cri <<= 1;
         if (ac_flag)
             cri = 1000;
     }
@@ -1763,11 +1670,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 
     // 回避修正
     hitrate = (hitrate < 5) ? 5 : hitrate;
-    if (hitrate < 1000000 &&    // 必中攻撃
-        (t_sc_data && (t_sc_data[StatusChange::SC_SLEEP].timer != -1 ||   // 睡眠は必中
-                               t_sc_data[StatusChange::SC_STAN].timer != -1 ||    // スタンは必中
-                               t_sc_data[StatusChange::SC_FREEZE].timer != -1 || (t_sc_data[StatusChange::SC_STONE].timer != -1 && t_sc_data[StatusChange::SC_STONE].val2 == 0))))    // 凍結は必中
-        hitrate = 1000000;
     if (type == DamageType::NORMAL && MRAND(100) >= hitrate)
     {
         damage = damage2 = 0;
@@ -1786,8 +1688,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     // 星のかけら、気球の適用
     damage += sd->star;
     damage2 += sd->star_;
-    damage += sd->spiritball * 3;
-    damage2 += sd->spiritball * 3;
 
     // >二刀流の左右ダメージ計算誰かやってくれぇぇぇぇえええ！
     // >map_session_data に左手ダメージ(atk,atk2)追加して
@@ -2145,7 +2045,7 @@ struct Damage battle_calc_attack(BF attack_type,
  *------------------------------------------
  */
 ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
-                          unsigned int tick, BCT)
+        tick_t tick)
 {
     struct map_session_data *sd = NULL;
     eptr<struct status_change, StatusChange> t_sc_data = battle_get_sc_data(target);
@@ -2192,13 +2092,14 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
         wd = battle_calc_weapon_attack(src, target, SkillID::ZERO, 0, 0);
 
         // significantly increase injuries for hasted characters
-        if (wd.damage > 0 && (t_sc_data[StatusChange::SC_HASTE].timer != -1))
+        if (wd.damage > 0 && t_sc_data[StatusChange::SC_HASTE].timer)
         {
             wd.damage = (wd.damage * (16 + t_sc_data[StatusChange::SC_HASTE].val1)) >> 4;
         }
 
         if (wd.damage > 0
-            && t_sc_data[StatusChange::SC_PHYS_SHIELD].timer != -1 && target->type == BL::PC)
+            && t_sc_data[StatusChange::SC_PHYS_SHIELD].timer
+            && target->type == BL::PC)
         {
             int reduction = t_sc_data[StatusChange::SC_PHYS_SHIELD].val1;
             if (reduction > wd.damage)
@@ -2214,8 +2115,8 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
                          wd.damage, wd.div_, wd.type, wd.damage2);
             //二刀流左手とカタール追撃のミス表示(無理やり〜)
             if (sd && sd->status.weapon >= 16 && wd.damage2 == 0)
-                clif_damage(src, target, tick + 10, wd.amotion, wd.dmotion,
-                             0, 1, DamageType::NORMAL, 0);
+                clif_damage(src, target, tick + std::chrono::milliseconds(10),
+                        wd.amotion, wd.dmotion, 0, 1, DamageType::NORMAL, 0);
         }
 
         map_freeblock_lock();
@@ -2259,7 +2160,7 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
         {
             if (wd.damage > 0 || wd.damage2 > 0)
             {
-                skill_additional_effect(src, target, SkillID::ZERO, 0, BF::WEAPON, tick);
+                skill_additional_effect(src, target, SkillID::ZERO, 0);
             }
         }
         if (sd)
@@ -2350,7 +2251,7 @@ int battle_check_target(struct block_list *src, struct block_list *target,
     }
 
     if (target->type == BL::PC
-        && ((struct map_session_data *) target)->invincible_timer != -1)
+        && ((struct map_session_data *) target)->invincible_timer)
         return -1;
 
     // Mobでmaster_idがあってspecial_mob_aiなら、召喚主を求める
@@ -2502,11 +2403,10 @@ int battle_config_read(const char *cfgName)
         battle_config.skill_out_range_consume = 1;
         battle_config.mob_skill_add_range = 0;
         battle_config.pc_damage_delay = 1;
-        battle_config.pc_damage_delay_rate = 100;
         battle_config.defnotenemy = 1;
         battle_config.random_monster_checklv = 1;
         battle_config.attr_recover = 1;
-        battle_config.flooritem_lifetime = LIFETIME_FLOORITEM * 1000;
+        battle_config.flooritem_lifetime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
         battle_config.item_auto_get = 0;
         battle_config.drop_pickup_safety_zone = 20;
         battle_config.item_first_get_time = 3000;
@@ -2541,7 +2441,6 @@ int battle_config_read(const char *cfgName)
         battle_config.wp_rate = 100;
         battle_config.pp_rate = 100;
         battle_config.monster_active_enable = 1;
-        battle_config.monster_damage_delay_rate = 100;
         battle_config.monster_loot_type = 0;
         battle_config.mob_skill_use = 1;
         battle_config.mob_count_rate = 100;
@@ -2653,9 +2552,6 @@ int battle_config_read(const char *cfgName)
         battle_config.pk_mode = 0;  // [Valaris]
         battle_config.multi_level_up = 0;   // [Valaris]
         battle_config.backstab_bow_penalty = 0; // Akaru
-        battle_config.night_at_start = 0;   // added by [Yor]
-        battle_config.day_duration = 2 * 60 * 60 * 1000;    // added by [Yor] (2 hours)
-        battle_config.night_duration = 30 * 60 * 1000;  // added by [Yor] (30 minutes)
         battle_config.show_mob_hp = 0;  // [Valaris]
         battle_config.hack_info_GM_level = 60;  // added by [Yor] (default: 60, GM level)
         battle_config.any_warp_GM_min_level = 20;   // added by [Yor]
@@ -2718,7 +2614,6 @@ int battle_config_read(const char *cfgName)
             {"skill_out_range_consume", &battle_config.skill_out_range_consume},
             {"monster_skill_add_range", &battle_config.mob_skill_add_range},
             {"player_damage_delay", &battle_config.pc_damage_delay},
-            {"player_damage_delay_rate", &battle_config.pc_damage_delay_rate},
             {"defunit_not_enemy", &battle_config.defnotenemy},
             {"random_monster_checklv", &battle_config.random_monster_checklv},
             {"attribute_recover", &battle_config.attr_recover},
@@ -2759,7 +2654,6 @@ int battle_config_read(const char *cfgName)
             {"weapon_produce_rate", &battle_config.wp_rate},
             {"potion_produce_rate", &battle_config.pp_rate},
             {"monster_active_enable", &battle_config.monster_active_enable},
-            {"monster_damage_delay_rate", &battle_config.monster_damage_delay_rate},
             {"monster_loot_type", &battle_config.monster_loot_type},
             {"mob_skill_use", &battle_config.mob_skill_use},
             {"mob_count_rate", &battle_config.mob_count_rate},
@@ -2869,9 +2763,6 @@ int battle_config_read(const char *cfgName)
             {"pk_mode", &battle_config.pk_mode}, // [Valaris]
             {"multi_level_up", &battle_config.multi_level_up},   // [Valaris]
             {"backstab_bow_penalty", &battle_config.backstab_bow_penalty},
-            {"night_at_start", &battle_config.night_at_start},   // added by [Yor]
-            {"day_duration", &battle_config.day_duration},   // added by [Yor]
-            {"night_duration", &battle_config.night_duration},   // added by [Yor]
             {"show_mob_hp", &battle_config.show_mob_hp}, // [Valaris]
             {"hack_info_GM_level", &battle_config.hack_info_GM_level},   // added by [Yor]
             {"any_warp_GM_min_level", &battle_config.any_warp_GM_min_level}, // added by [Yor]
@@ -2884,7 +2775,6 @@ int battle_config_read(const char *cfgName)
             {"max_cloth_color", &battle_config.max_cloth_color}, // added by [MouseJstr]
             {"castrate_dex_scale", &battle_config.castrate_dex_scale},   // added by [MouseJstr]
             {"area_size", &battle_config.area_size}, // added by [MouseJstr]
-            {"muting_players", &battle_config.muting_players},   // added by [Apple]
             {"chat_lame_penalty", &battle_config.chat_lame_penalty},
             {"chat_spam_threshold", &battle_config.chat_spam_threshold},
             {"chat_spam_flood", &battle_config.chat_spam_flood},
@@ -2923,8 +2813,8 @@ int battle_config_read(const char *cfgName)
 
     if (--count == 0)
     {
-        if (battle_config.flooritem_lifetime < 1000)
-            battle_config.flooritem_lifetime = LIFETIME_FLOORITEM * 1000;
+        if (static_cast<interval_t>(battle_config.flooritem_lifetime) < std::chrono::seconds(1))
+            battle_config.flooritem_lifetime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
         if (battle_config.restart_hp_rate < 0)
             battle_config.restart_hp_rate = 0;
         else if (battle_config.restart_hp_rate > 100)
@@ -2933,12 +2823,12 @@ int battle_config_read(const char *cfgName)
             battle_config.restart_sp_rate = 0;
         else if (battle_config.restart_sp_rate > 100)
             battle_config.restart_sp_rate = 100;
-        if (battle_config.natural_healhp_interval < NATURAL_HEAL_INTERVAL)
-            battle_config.natural_healhp_interval = NATURAL_HEAL_INTERVAL;
-        if (battle_config.natural_healsp_interval < NATURAL_HEAL_INTERVAL)
-            battle_config.natural_healsp_interval = NATURAL_HEAL_INTERVAL;
-        if (battle_config.natural_heal_skill_interval < NATURAL_HEAL_INTERVAL)
-            battle_config.natural_heal_skill_interval = NATURAL_HEAL_INTERVAL;
+        if (battle_config.natural_healhp_interval < NATURAL_HEAL_INTERVAL.count())
+            battle_config.natural_healhp_interval = NATURAL_HEAL_INTERVAL.count();
+        if (battle_config.natural_healsp_interval < NATURAL_HEAL_INTERVAL.count())
+            battle_config.natural_healsp_interval = NATURAL_HEAL_INTERVAL.count();
+        if (battle_config.natural_heal_skill_interval < NATURAL_HEAL_INTERVAL.count())
+            battle_config.natural_heal_skill_interval = NATURAL_HEAL_INTERVAL.count();
         if (battle_config.natural_heal_weight_rate < 50)
             battle_config.natural_heal_weight_rate = 50;
         if (battle_config.natural_heal_weight_rate > 101)
@@ -2993,15 +2883,6 @@ int battle_config_read(const char *cfgName)
             battle_config.item_drop_mvp_min = 1;
         if (battle_config.item_drop_mvp_max > 10000)
             battle_config.item_drop_mvp_max = 10000;    // End Addition
-
-        if (battle_config.night_at_start < 0)   // added by [Yor]
-            battle_config.night_at_start = 0;
-        else if (battle_config.night_at_start > 1)  // added by [Yor]
-            battle_config.night_at_start = 1;
-        if (battle_config.day_duration < 0) // added by [Yor]
-            battle_config.day_duration = 0;
-        if (battle_config.night_duration < 0)   // added by [Yor]
-            battle_config.night_duration = 0;
 
         if (battle_config.hack_info_GM_level < 0)   // added by [Yor]
             battle_config.hack_info_GM_level = 0;
