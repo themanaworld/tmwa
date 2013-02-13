@@ -74,7 +74,6 @@ Element battle_get_elem_type(struct block_list *bl)
 int battle_get_party_id(struct block_list *bl);
 Race battle_get_race(struct block_list *bl);
 MobMode battle_get_mode(struct block_list *bl);
-int battle_get_mexp(struct block_list *bl);
 int battle_get_stat(SP stat_id, struct block_list *bl);
 
 eptr<struct status_change, StatusChange> battle_get_sc_data(struct block_list *bl);
@@ -112,11 +111,7 @@ extern struct Battle_Config
     int item_first_get_time;
     int item_second_get_time;
     int item_third_get_time;
-    int mvp_item_first_get_time;
-    int mvp_item_second_get_time;
-    int mvp_item_third_get_time;
-    int item_rate, base_exp_rate, job_exp_rate;    // removed item rate, depreciated
-    int drop_rate0item;
+    int base_exp_rate, job_exp_rate;
     int death_penalty_type;
     int death_penalty_base, death_penalty_job;
     int pvp_exp;               // [MouseJstr]
@@ -124,8 +119,6 @@ extern struct Battle_Config
     int zeny_penalty;
     int restart_hp_rate;
     int restart_sp_rate;
-    int mvp_item_rate, mvp_exp_rate;
-    int mvp_hp_rate;
     int monster_hp_rate;
     int monster_max_aspd;
     int atc_gmonly;
@@ -182,9 +175,6 @@ extern struct Battle_Config
     int vit_penaly_type;
     int vit_penaly_count;
     int vit_penaly_num;
-    int player_defense_type;
-    int monster_defense_type;
-    int magic_defense_type;
     int pc_skill_reiteration;
     int monster_skill_reiteration;
     int pc_skill_nofootset;
@@ -212,13 +202,6 @@ extern struct Battle_Config
     int mob_attack_attr_none;
     int mob_ghostring_fix;
     int pc_attack_attr_none;
-    int item_rate_common, item_rate_card, item_rate_equip, item_rate_heal, item_rate_use;  // Added by RoVeRT, Additional Heal and Usable item rate by Val
-    int item_drop_common_min, item_drop_common_max;    // Added by TyrNemesis^
-    int item_drop_card_min, item_drop_card_max;
-    int item_drop_equip_min, item_drop_equip_max;
-    int item_drop_mvp_min, item_drop_mvp_max;  // End Addition
-    int item_drop_heal_min, item_drop_heal_max;    // Added by Valatris
-    int item_drop_use_min, item_drop_use_max;  //End
 
     int prevent_logout;        // Added by RoVeRT
 
@@ -226,8 +209,6 @@ extern struct Battle_Config
     int maximum_level;
     int drops_by_luk;
     int monsters_ignore_gm;
-    int equipment_breaking;
-    int equipment_break_rate;
     int multi_level_up;
     int pk_mode;
     int show_mob_hp;           // end additions [Valaris]

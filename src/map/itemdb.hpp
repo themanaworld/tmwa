@@ -87,8 +87,6 @@ int itemdb_viewid(int n)
     return itemdb_search(n)->view_id;
 }
 
-int itemdb_searchrandomid(int flags);
-
 inline
 int itemdb_value_sell(int n)
 {

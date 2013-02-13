@@ -12,7 +12,7 @@
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/lock.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/socket.hpp"
 #include "../common/utils.hpp"
 #include "../common/timer.hpp"
@@ -1550,26 +1550,18 @@ void builtin_menu(ScriptState *st)
 static
 void builtin_rand(ScriptState *st)
 {
-    int range, min, max;
-
     if (st->end > st->start + 3)
     {
-        min = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-        max = conv_num(st, &(st->stack->stack_data[st->start + 3]));
-        if (max < min)
-        {
-            int tmp;
-            tmp = min;
-            min = max;
-            max = tmp;
-        }
-        range = max - min + 1;
-        push_val(st->stack, ScriptCode::INT, (range <= 0 ? 0 : MRAND(range)) + min);
+        int min = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+        int max = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+        if (min > max)
+            std::swap(max, min);
+        push_val(st->stack, ScriptCode::INT, random_::in(min, max));
     }
     else
     {
-        range = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-        push_val(st->stack, ScriptCode::INT, range <= 0 ? 0 : MRAND(range));
+        int range = conv_num(st, &(st->stack->stack_data[st->start + 2]));
+        push_val(st->stack, ScriptCode::INT, range <= 0 ? 0 : random_::to(range));
     }
 }
 
@@ -2111,22 +2103,12 @@ void builtin_getitem(ScriptState *st)
     {
         return;               //return if amount <=0, skip the useles iteration
     }
-    bool flag1 = false;
-    //Violet Box, Blue Box, etc - random item pick
-    if (nameid < 0)
-    {                           // ランダム
-        nameid = itemdb_searchrandomid(-nameid);
-        flag1 = 1;
-    }
 
     if (nameid > 0)
     {
         memset(&item_tmp, 0, sizeof(item_tmp));
         item_tmp.nameid = nameid;
-        if (!flag1)
-            item_tmp.identify = 1;
-        else
-            item_tmp.identify = !itemdb_isequip3(nameid);
+        item_tmp.identify = 1;
         if (st->end > st->start + 5)    //アイテムを指定したIDに渡す
             sd = map_id2sd(conv_num(st, &(st->stack->stack_data[st->start + 5])));
         if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
@@ -2135,8 +2117,9 @@ void builtin_getitem(ScriptState *st)
         if ((flag = pc_additem(sd, &item_tmp, amount)) != PickupFail::OKAY)
         {
             clif_additem(sd, 0, 0, flag);
-            map_addflooritem(&item_tmp, amount, sd->bl.m, sd->bl.x, sd->bl.y,
-                              NULL, NULL, NULL, 0);
+            map_addflooritem(&item_tmp, amount,
+                    sd->bl.m, sd->bl.x, sd->bl.y,
+                    NULL, NULL, NULL);
         }
     }
 
@@ -2180,12 +2163,6 @@ void builtin_makeitem(ScriptState *st)
     else
         m = map_mapname2mapid(mapname);
 
-    if (nameid < 0)
-    {                           // ランダム
-        nameid = itemdb_searchrandomid(-nameid);
-        flag = 1;
-    }
-
     if (nameid > 0)
     {
         memset(&item_tmp, 0, sizeof(item_tmp));
@@ -2195,8 +2172,7 @@ void builtin_makeitem(ScriptState *st)
         else
             item_tmp.identify = !itemdb_isequip3(nameid);
 
-//      clif_additem(sd,0,0,flag);
-        map_addflooritem(&item_tmp, amount, m, x, y, NULL, NULL, NULL, 0);
+        map_addflooritem(&item_tmp, amount, m, x, y, NULL, NULL, NULL);
     }
 
 }

@@ -1,5 +1,5 @@
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 
 #include "battle.hpp"
@@ -219,57 +219,6 @@ int can_move(struct map_data *m, int x0, int y0, int x1, int y1, int flag)
     if (!can_place(m, x0, y1, flag) || !can_place(m, x1, y0, flag))
         return 0;
     return 1;
-}
-
-/*==========================================
- * (x0,y0)から(dx,dy)方向へcountセル分
- * 吹き飛ばしたあとの座標を所得
- *------------------------------------------
- */
-int path_blownpos(int m, int x0, int y0, int dx, int dy, int count)
-{
-    struct map_data *md;
-
-    if (!map[m].gat)
-        return -1;
-    md = &map[m];
-
-    if (count > 15)
-    {                           // 最大10マスに制限
-        if (battle_config.error_log)
-            PRINTF("path_blownpos: count too many %d !\n", count);
-        count = 15;
-    }
-    if (dx > 1 || dx < -1 || dy > 1 || dy < -1)
-    {
-        if (battle_config.error_log)
-            PRINTF("path_blownpos: illeagal dx=%d or dy=%d !\n", dx, dy);
-        dx = (dx >= 0) ? 1 : ((dx < 0) ? -1 : 0);
-        dy = (dy >= 0) ? 1 : ((dy < 0) ? -1 : 0);
-    }
-
-    while ((count--) > 0 && (dx != 0 || dy != 0))
-    {
-        if (!can_move(md, x0, y0, x0 + dx, y0 + dy, 0))
-        {
-            int fx = (dx != 0 && can_move(md, x0, y0, x0 + dx, y0, 0));
-            int fy = (dy != 0 && can_move(md, x0, y0, x0, y0 + dy, 0));
-            if (fx && fy)
-            {
-                if (MRAND(2))
-                    dx = 0;
-                else
-                    dy = 0;
-            }
-            if (!fx)
-                dx = 0;
-            if (!fy)
-                dy = 0;
-        }
-        x0 += dx;
-        y0 += dy;
-    }
-    return (x0 << 16) | y0;
 }
 
 /*==========================================

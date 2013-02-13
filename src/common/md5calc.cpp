@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "mt_rand.hpp"
+#include "random.hpp"
 
 #include "../poison.hpp"
 
@@ -305,8 +305,9 @@ const char *MD5_saltcrypt(const char *key, const char *salt)
 
 const char *make_salt(void) {
     static char salt[6];
-    for (int i=0; i<5; i++)
-        salt[i] = MPRAND(48, 78);
+    for (int i = 0; i < 5; i++)
+        // 126 would probably actually be okay
+        salt[i] = random_::in(48, 125);
     return salt;
 }
 

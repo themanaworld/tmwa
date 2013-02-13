@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <ctime>
 
-#include "mt_rand.hpp"
+#include "random.hpp"
 #include "socket.hpp"
 #include "timer.hpp"
 
@@ -68,9 +68,6 @@ bool runflag = true;
  */
 int main(int argc, char **argv)
 {
-    /// Note that getpid() and getppid() may be very close
-    mt_seed(time(NULL) ^ (getpid() << 16) ^ (getppid() << 8));
-
     do_socket();
 
     do_init(argc, argv);

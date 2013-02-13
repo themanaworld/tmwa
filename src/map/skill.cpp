@@ -6,7 +6,7 @@
 #include <ctime>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -210,7 +210,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     {
         case SkillID::NPC_POISON:
             // blame Fate for this
-            if (MRAND(100) < 50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) + (skilllv >> 2))
+            if (random_::chance({50 - (sc_def_vit >> 2) - (sc_def_phys_shield_spell) + (skilllv >> 2), 100}))
                 skill_status_change_start(bl, StatusChange::SC_POISON, skilllv, static_cast<interval_t>(skilllv));
             break;
     }
@@ -327,22 +327,22 @@ int skill_attack(BF attack_type, struct block_list *src,
         int hp = 0, sp = 0;
         nullpo_ret(sd);
         if (sd->hp_drain_rate && dmg.damage > 0
-            && MRAND(100) < sd->hp_drain_rate)
+            && random_::chance({sd->hp_drain_rate, 100}))
         {
             hp += (dmg.damage * sd->hp_drain_per) / 100;
         }
         if (sd->hp_drain_rate_ && dmg.damage2 > 0
-            && MRAND(100) < sd->hp_drain_rate_)
+            && random_::chance({sd->hp_drain_rate_, 100}))
         {
             hp += (dmg.damage2 * sd->hp_drain_per_) / 100;
         }
         if (sd->sp_drain_rate > 0 && dmg.damage > 0
-            && MRAND(100) < sd->sp_drain_rate)
+            && random_::chance({sd->sp_drain_rate, 100}))
         {
             sp += (dmg.damage * sd->sp_drain_per) / 100;
         }
         if (sd->sp_drain_rate_ > 0 && dmg.damage2 > 0
-            && MRAND(100) < sd->sp_drain_rate_)
+            && random_::chance({sd->sp_drain_rate_, 100}))
         {
             sp += (dmg.damage2 * sd->sp_drain_per_) / 100;
         }
@@ -917,7 +917,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
                 const int resist_poison =
                     skill_power_bl(bl, SkillID::TMW_RESIST_POISON) >> 3;
                 if (resist_poison)
-                    sc_data[type].val1 -= MRAND(resist_poison + 1);
+                    sc_data[type].val1 -= random_::in(0, resist_poison);
 
                 if ((--sc_data[type].val1) > 0)
                 {

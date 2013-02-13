@@ -1,7 +1,7 @@
 #include <cassert>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random2.hpp"
 #include "../common/timer.hpp"
 
 #include "magic-expr.hpp"
@@ -1235,36 +1235,18 @@ effect_t *run_foreach(invocation_t *invocation, effect_t *foreach,
         cont_activation_record_t *ar =
             add_stack_entry(invocation, CONT_STACK::FOREACH, return_location);
         int entities_allocd = 64;
-        int *entities_collect;
         int *entities;
-        int *shuffle_board;
         int entities_nr = 0;
-        int i;
 
         if (!ar)
             return return_location;
 
-        CREATE(entities_collect, int, entities_allocd);
-
+        CREATE(entities, int, entities_allocd);
         find_entities_in_area(area.v.v_area, &entities_allocd, &entities_nr,
-                               &entities_collect, filter);
-
-        /* Now shuffle */
-        CREATE(shuffle_board, int, entities_nr);
-        CREATE(entities, int, entities_nr);
-        for (i = 0; i < entities_nr; i++)
-            shuffle_board[i] = i;
-
-        for (i = entities_nr - 1; i >= 0; i--)
-        {
-            int random_index = MRAND(i + 1);
-            entities[i] = entities_collect[shuffle_board[random_index]];
-            shuffle_board[random_index] = shuffle_board[i]; // thus, we are guaranteed only to use unused indices
-        }
-
-        free(entities_collect);
-        free(shuffle_board);
-        /* Done shuffling */
+                &entities, filter);
+        RECREATE(entities, int, entities_nr);
+        // iterator_pair will go away when this gets properly containerized.
+        random_::shuffle(iterator_pair(entities, entities + entities_nr));
 
         ar->c.c_foreach.id = id;
         ar->c.c_foreach.body = body;

@@ -20,7 +20,7 @@
 #include "../common/lock.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/mmo.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 #include "../common/version.hpp"
@@ -1046,8 +1046,8 @@ int mmo_auth(struct mmo_account *account, int fd)
     stamp_time(tmpstr);
 
     account->account_id = auth_dat[i].account_id;
-    account->login_id1 = mt_random();
-    account->login_id2 = mt_random();
+    account->login_id1 = random_::generate();
+    account->login_id2 = random_::generate();
     memcpy(account->lastlogin, auth_dat[i].lastlogin, 24);
     memcpy(auth_dat[i].lastlogin, tmpstr, 24);
     account->sex = auth_dat[i].sex;
@@ -3291,9 +3291,9 @@ void parse_login(int fd)
                 // TODO fix or get rid of this
                 // Creation of the coding key
                 memset(ld->md5key, '\0', sizeof(ld->md5key));
-                ld->md5keylen = MRAND(4) + 12;
+                ld->md5keylen = random_::in(12, 15);
                 for (int i = 0; i < ld->md5keylen; i++)
-                    ld->md5key[i] = MRAND(255) + 1;
+                    ld->md5key[i] = random_::in(1, 255);
 
                 RFIFOSKIP(fd, 2);
                 WFIFOW(fd, 0) = 0x01dc;

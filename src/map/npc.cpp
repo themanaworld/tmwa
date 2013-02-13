@@ -1674,8 +1674,6 @@ int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
     int m;
     char mapname[24], savemap[16];
     int savex, savey;
-    char drop_arg1[16], drop_arg2[16];
-    int drop_id = 0, drop_type = 0, drop_per = 0;
 
     // 引数の個数チェック
 //  if (    sscanf(w1,"%[^,],%d,%d,%d",mapname,&x,&y,&dir) != 4 )
@@ -1742,39 +1740,6 @@ int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
     else if (strcasecmp(w3, "pvp_noparty") == 0)
     {
         map[m].flag.pvp_noparty = 1;
-    }
-    else if (strcasecmp(w3, "pvp_nightmaredrop") == 0)
-    {
-        if (sscanf(w4, "%[^,],%[^,],%d", drop_arg1, drop_arg2, &drop_per) ==
-            3)
-        {
-            int i;
-            if (strcmp(drop_arg1, "random") == 0)
-                drop_id = -1;
-            else if (itemdb_exists((drop_id = atoi(drop_arg1))) == NULL)
-                drop_id = 0;
-            if (strcmp(drop_arg2, "inventory") == 0)
-                drop_type = 1;
-            else if (strcmp(drop_arg2, "equip") == 0)
-                drop_type = 2;
-            else if (strcmp(drop_arg2, "all") == 0)
-                drop_type = 3;
-
-            if (drop_id != 0)
-            {
-                for (i = 0; i < MAX_DROP_PER_MAP; i++)
-                {
-                    if (map[m].drop_list[i].drop_id == 0)
-                    {
-                        map[m].drop_list[i].drop_id = drop_id;
-                        map[m].drop_list[i].drop_type = drop_type;
-                        map[m].drop_list[i].drop_per = drop_per;
-                        break;
-                    }
-                }
-                map[m].flag.pvp_nightmaredrop = 1;
-            }
-        }
     }
     else if (strcasecmp(w3, "pvp_nocalcrank") == 0)
     {

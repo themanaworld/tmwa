@@ -5,12 +5,11 @@
 
 #include "../common/mmo.hpp"
 #include "../common/timer.t.hpp"
+#include "../common/random.t.hpp"
 
 #include "clif.t.hpp"
 #include "map.hpp"
 #include "skill.t.hpp"
-
-constexpr int MAX_RANDOMMONSTER = 3;
 
 struct mob_skill
 {
@@ -22,7 +21,6 @@ struct mob_skill
     short cancel;
     MobSkillCondition cond1;
     int cond2i;
-    SkillID cond2sk() { return SkillID(cond2i); }
     MobSkillTarget target;
     int val[5];
     short emotion;
@@ -44,20 +42,15 @@ struct mob_db
     LevelElement element;
     MobMode mode;
     int speed, adelay, amotion, dmotion;
-    int mexp, mexpper;
     int mutations_nr, mutation_power;
     struct
     {
-        int nameid, p;
+        int nameid;
+        random_::Fixed<int, 10000> p;
     } dropitem[8];
-    struct
-    {
-        int nameid, p;
-    } mvpitem[3];
     int sex;
     short hair, hair_color, weapon, shield, head_top, head_mid, head_buttom, option, clothes_color; // [Valaris]
     int equip;                 // [Valaris]
-    int summonper[MAX_RANDOMMONSTER];
     int maxskill;
     struct mob_skill skill[MAX_MOBSKILL];
 };
@@ -71,11 +64,6 @@ int mob_once_spawn(struct map_session_data *sd,
 int mob_once_spawn_area(struct map_session_data *sd,
         const char *mapname, int x0, int y0, int x1, int y1,
         const char *mobname, int class_, int amount, const char *event);
-
-int mob_spawn_guardian(struct map_session_data *sd,
-        const char *mapname, int x, int y,
-        const char *mobname, int class_, int amount,
-        const char *event, int guardian);    // Spawning Guardians [Valaris]
 
 int mob_target(struct mob_data *md, struct block_list *bl, int dist);
 int mob_stop_walking(struct mob_data *md, int type);
@@ -104,7 +92,6 @@ int mob_deleteslave(struct mob_data *md);
 int mob_counttargeted(struct mob_data *md, struct block_list *src,
         ATK target_lv);
 
-int mob_class_change(struct mob_data *md, int *value);
 int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type);
 
 int mobskill_use(struct mob_data *md, tick_t tick, MobSkillCondition event);

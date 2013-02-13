@@ -8,7 +8,7 @@
 
 #include "../common/cxxstdio.hpp"
 #include "../common/md5calc.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"

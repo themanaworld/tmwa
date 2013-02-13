@@ -61,9 +61,6 @@ int pc_authfail(int);
 
 EPOS pc_equippoint(struct map_session_data *sd, int n);
 
-int pc_breakweapon(struct map_session_data *sd);  // weapon breaking [Valaris]
-int pc_breakarmor(struct map_session_data *sd);   // armor breaking [Valaris]
-
 int pc_checkskill(struct map_session_data *sd, SkillID skill_id);
 int pc_checkequip(struct map_session_data *sd, EPOS pos);
 
@@ -95,9 +92,6 @@ int pc_calcstatus(struct map_session_data *, int);
 int pc_bonus(struct map_session_data *, SP, int);
 int pc_bonus2(struct map_session_data *sd, SP, int, int);
 int pc_skill(struct map_session_data *, SkillID, int, int);
-
-int pc_steal_item(struct map_session_data *sd, struct block_list *bl);
-int pc_steal_coin(struct map_session_data *sd, struct block_list *bl);
 
 int pc_attack(struct map_session_data *, int, int);
 int pc_stopattack(struct map_session_data *);

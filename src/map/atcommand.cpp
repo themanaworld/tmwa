@@ -7,7 +7,7 @@
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/mmo.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -127,8 +127,6 @@ ATCOMMAND_FUNC(enablenpc);
 ATCOMMAND_FUNC(disablenpc);
 ATCOMMAND_FUNC(servertime);    // by Yor
 ATCOMMAND_FUNC(chardelitem);   // by Yor
-ATCOMMAND_FUNC(jail);          // by Yor
-ATCOMMAND_FUNC(unjail);        // by Yor
 ATCOMMAND_FUNC(ignorelist);    // by Yor
 ATCOMMAND_FUNC(charignorelist);    // by Yor
 ATCOMMAND_FUNC(inall);         // by Yor
@@ -291,8 +289,6 @@ AtCommandInfo atcommand_info[] = {
     {AtCommand_ServerTime, "@servertime", 0, atcommand_servertime}, // by Yor
     {AtCommand_CharDelItem, "@chardelitem", 60, atcommand_chardelitem}, // by Yor
     {AtCommand_ListNearby, "@listnearby", 40, atcommand_list_nearby},   // by Yor
-    {AtCommand_Jail, "@jail", 60, atcommand_jail},  // by Yor
-    {AtCommand_UnJail, "@unjail", 60, atcommand_unjail},    // by Yor
     {AtCommand_IgnoreList, "@ignorelist", 0, atcommand_ignorelist}, // by Yor
     {AtCommand_CharIgnoreList, "@charignorelist", 20, atcommand_charignorelist},    // by Yor
     {AtCommand_IgnoreList, "@inall", 20, atcommand_inall},  // by Yor
@@ -689,9 +685,9 @@ int atcommand_charwarp(const int fd, struct map_session_data *sd,
     }
 
     if (x <= 0)
-        x = MRAND(399) + 1;
+        x = random_::in(1, 399);
     if (y <= 0)
-        y = MRAND(399) + 1;
+        y = random_::in(1, 399);
     if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
         strcat(map_name, ".gat");
 
@@ -770,9 +766,9 @@ int atcommand_warp(const int fd, struct map_session_data *sd,
     }
 
     if (x <= 0)
-        x = MRAND(399) + 1;
+        x = random_::in(1, 399);
     if (y <= 0)
-        y = MRAND(399) + 1;
+        y = random_::in(1, 399);
 
     if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
         strcat(map_name, ".gat");
@@ -904,9 +900,9 @@ int atcommand_jump(const int fd, struct map_session_data *sd,
     sscanf(message, "%d %d", &x, &y);
 
     if (x <= 0)
-        x = MRAND(399) + 1;
+        x = random_::in(1, 399);
     if (y <= 0)
-        y = MRAND(399) + 1;
+        y = random_::in(1, 399);
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
         if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
@@ -2199,13 +2195,14 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
         j = 0;
         k = 0;
         while (j++ < 8 && k == 0)
-        {                       // try 8 times to spawn the monster (needed for close area)
+        {
+            // try 8 times to spawn the monster (needed for close area)
             if (x <= 0)
-                mx = sd->bl.x + (MRAND(range) - (range / 2));
+                mx = sd->bl.x + random_::in(-range / 2, range / 2 );
             else
                 mx = x;
             if (y <= 0)
-                my = sd->bl.y + (MRAND(range) - (range / 2));
+                my = sd->bl.y + random_::in(-range / 2, range / 2);
             else
                 my = y;
             k = mob_once_spawn(sd, "this", mx, my, "", mob_id, 1, "");
@@ -4867,125 +4864,6 @@ int atcommand_chardelitem(const int fd, struct map_session_data *sd,
 }
 
 /*==========================================
- * @jail <char_name> by [Yor]
- * Special warp! No check with nowarp and nowarpto flag
- *------------------------------------------
- */
-int atcommand_jail(const int fd, struct map_session_data *sd,
-                    const char *, const char *message)
-{
-    char character[100];
-    struct map_session_data *pl_sd;
-    int x, y;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @jail <char_name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can jail only lower or same GM
-            switch (MRAND(2))
-            {
-                case 0:
-                    x = 24;
-                    y = 75;
-                    break;
-                default:
-                    x = 49;
-                    y = 75;
-                    break;
-            }
-            if (pc_setpos(pl_sd, "sec_pri.gat", x, y, BeingRemoveWhy::WARPED) == 0)
-            {
-                pc_setsavepoint(pl_sd, "sec_pri.gat", x, y);   // Save Char Respawn Point in the jail room [Lupus]
-                clif_displaymessage(pl_sd->fd, "GM has send you in jails.");
-                clif_displaymessage(fd, "Player warped in jails.");
-            }
-            else
-            {
-                clif_displaymessage(fd, "Map not found.");
-                return -1;
-            }
-        }
-        else
-        {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
-            return -1;
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * @unjail/@discharge <char_name> by [Yor]
- * Special warp! No check with nowarp and nowarpto flag
- *------------------------------------------
- */
-int atcommand_unjail(const int fd, struct map_session_data *sd,
-                      const char *, const char *message)
-{
-    char character[100];
-    struct map_session_data *pl_sd;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @unjail/@discharge <char_name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can jail only lower or same GM
-            if (pl_sd->bl.m != map_mapname2mapid("sec_pri.gat"))
-            {
-                clif_displaymessage(fd, "This player is not in jails.");
-                return -1;
-            }
-            else if (pc_setpos(pl_sd, "prontera.gat", 156, 191, BeingRemoveWhy::WARPED) == 0)
-            {
-                pc_setsavepoint(pl_sd, "prontera.gat", 156, 191);  // Save char respawn point in Prontera
-                clif_displaymessage(pl_sd->fd, "GM has discharge you.");
-                clif_displaymessage(fd, "Player warped to Prontera.");
-            }
-            else
-            {
-                clif_displaymessage(fd, "Map not found.");
-                return -1;
-            }
-        }
-        else
-        {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
-            return -1;
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
  * @broadcast by [Valaris]
  *------------------------------------------
  */
@@ -6191,8 +6069,8 @@ int atcommand_summon(const int, struct map_session_data *sd,
     if (mob_id == 0)
         return -1;
 
-    x = sd->bl.x + (MRAND(10) - 5);
-    y = sd->bl.y + (MRAND(10) - 5);
+    x = sd->bl.x + random_::in(-5, 4);
+    y = sd->bl.y + random_::in(-5, 4);
 
     id = mob_once_spawn(sd, "this", x, y, "--ja--", mob_id, 1, "");
     if ((md = (struct mob_data *) map_id2bl(id)))

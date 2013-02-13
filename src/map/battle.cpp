@@ -5,7 +5,7 @@
 #include <fstream>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 
 #include "clif.hpp"
@@ -133,12 +133,6 @@ int battle_get_max_hp(struct block_list *bl)
         if (bl->type == BL::MOB && ((struct mob_data *) bl))
         {
             max_hp = ((struct mob_data *) bl)->stats[mob_stat::MAX_HP];
-            if (mob_db[((struct mob_data *) bl)->mob_class].mexp > 0)
-            {
-                if (battle_config.mvp_hp_rate != 100)
-                    max_hp = (max_hp * battle_config.mvp_hp_rate) / 100;
-            }
-            else
             {
                 if (battle_config.monster_hp_rate != 100)
                     max_hp = (max_hp * battle_config.monster_hp_rate) / 100;
@@ -816,23 +810,6 @@ MobMode battle_get_mode(struct block_list *bl)
     return MobMode::CAN_MOVE;
 }
 
-int battle_get_mexp(struct block_list *bl)
-{
-    nullpo_ret(bl);
-    if (bl->type == BL::MOB)
-    {
-        const struct mob_data *mob = (struct mob_data *) bl;
-        const int retval =
-            (mob_db[mob->mob_class].mexp *
-             (int)(mob->stats[mob_stat::XP_BONUS])) >> MOB_XP_BONUS_SHIFT;
-        FPRINTF(stderr, "Modifier of %x: -> %d\n", mob->stats[mob_stat::XP_BONUS],
-                 retval);
-        return retval;
-    }
-    else
-        return 0;
-}
-
 int battle_get_stat(SP stat_id, struct block_list *bl)
 {
     switch (stat_id)
@@ -1154,7 +1131,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
 
     if ((skill_num == SkillID::ZERO)
         && skill_lv >= 0 && battle_config.enemy_critical
-        && (MRAND(1000)) < cri)
+        && random_::chance({cri, 1000}))
         // 判定（スキルの場合は無視）
         // 敵の判定
     {
@@ -1166,7 +1143,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
         int vitbonusmax;
 
         if (atkmax > atkmin)
-            damage += atkmin + MRAND((atkmax - atkmin + 1));
+            damage += random_::in(atkmin, atkmax);
         else
             damage += atkmin;
 
@@ -1238,18 +1215,11 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
                 t_def = def2 * 8 / 10;
 
                 vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
-                if (battle_config.monster_defense_type)
                 {
-                    damage =
-                        damage - (def1 * battle_config.monster_defense_type) -
-                        t_def -
-                        ((vitbonusmax < 1) ? 0 : MRAND((vitbonusmax + 1)));
-                }
-                else
-                {
-                    damage =
-                        damage * (100 - def1) / 100 - t_def -
-                        ((vitbonusmax < 1) ? 0 : MRAND((vitbonusmax + 1)));
+                    damage = damage * (100 - def1) / 100;
+                    damage -= t_def;
+                    if (vitbonusmax > 0)
+                       damage -= random_::in(0, vitbonusmax);
                 }
             }
         }
@@ -1263,7 +1233,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     if (hitrate < 1000000)
         hitrate = ((hitrate > 95) ? 95 : ((hitrate < 5) ? 5 : hitrate));
 
-    if (type == DamageType::NORMAL && MRAND(100) >= hitrate)
+    if (type == DamageType::NORMAL && !random_::chance({hitrate, 100}))
     {
         damage = damage2 = 0;
         dmg_lv = ATK::FLEE;
@@ -1278,7 +1248,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
 
     // 完全回避の判定
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != NULL
-        && MRAND(1000) < battle_get_flee2(target))
+        && random_::chance({battle_get_flee2(target), 1000}))
     {
         damage = 0;
         type = DamageType::FLEE2;
@@ -1288,7 +1258,7 @@ struct Damage battle_calc_mob_weapon_attack(struct block_list *src,
     if (battle_config.enemy_perfect_flee)
     {
         if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != NULL
-            && MRAND(1000) < battle_get_flee2(target))
+            && random_::chance({battle_get_flee2(target), 1000}))
         {
             damage = 0;
             type = DamageType::FLEE2;
@@ -1359,7 +1329,6 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     int watk, watk_;
     bool da = false;
     int ac_flag = 0;
-    int idef_flag = 0, idef_flag_ = 0;
     int target_distance;
 
     nullpo_retr(wd, src);
@@ -1471,13 +1440,13 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         atkmin_ = atkmax_;
 
     if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
-        da = MRAND(100) < sd->double_rate;
+        da = random_::chance({sd->double_rate, 100});
 
     // 過剰精錬ボーナス
     if (sd->overrefine > 0)
-        damage += MPRAND(1, sd->overrefine);
+        damage += random_::in(1, sd->overrefine);
     if (sd->overrefine_ > 0)
-        damage2 += MPRAND(1, sd->overrefine_);
+        damage2 += random_::in(1, sd->overrefine_);
 
     if (!da)
     {                           //ダブルアタックが発動していない
@@ -1497,8 +1466,10 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     if (tsd && tsd->critical_def)
         cri = cri * (100 - tsd->critical_def) / 100;
 
-    if (!da && skill_num == SkillID::ZERO && skill_lv >= 0 && //ダブルアタックが発動していない
-        (MRAND(1000)) < cri)   // 判定（スキルの場合は無視）
+    //ダブルアタックが発動していない
+    // 判定（スキルの場合は無視）
+    if (!da && skill_num == SkillID::ZERO && skill_lv >= 0
+        && random_::chance({cri, 1000}))
     {
         damage += atkmax;
         damage2 += atkmax_;
@@ -1516,11 +1487,11 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         int vitbonusmax;
 
         if (atkmax > atkmin)
-            damage += atkmin + MRAND((atkmax - atkmin + 1));
+            damage += random_::in(atkmin, atkmax);
         else
             damage += atkmin;
         if (atkmax_ > atkmin_)
-            damage2 += atkmin_ + MRAND((atkmax_ - atkmin_ + 1));
+            damage2 += random_::in(atkmin_, atkmax_);
         else
             damage2 += atkmin_;
         if (sd->atk_rate != 100)
@@ -1532,7 +1503,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         if (sd->state.arrow_atk)
         {
             if (sd->arrow_atk > 0)
-                damage += MRAND((sd->arrow_atk + 1));
+                damage += random_::in(0, sd->arrow_atk);
             hitrate += sd->arrow_hit;
         }
 
@@ -1604,42 +1575,20 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
                 t_def = def2 * 8 / 10;
                 vitbonusmax = (t_vit / 20) * (t_vit / 20) - 1;
 
-                if (!idef_flag)
                 {
-                    if (battle_config.player_defense_type)
                     {
-                        damage =
-                            damage -
-                            (def1 * battle_config.player_defense_type) -
-                            t_def -
-                            ((vitbonusmax <
-                              1) ? 0 : MRAND((vitbonusmax + 1)));
-                    }
-                    else
-                    {
-                        damage =
-                            damage * (100 - def1) / 100 - t_def -
-                            ((vitbonusmax <
-                              1) ? 0 : MRAND((vitbonusmax + 1)));
+                        damage = damage * (100 - def1) / 100;
+                        damage -= t_def;
+                        if (vitbonusmax > 0)
+                            damage -= random_::in(0, vitbonusmax);
                     }
                 }
-                if (!idef_flag_)
                 {
-                    if (battle_config.player_defense_type)
                     {
-                        damage2 =
-                            damage2 -
-                            (def1 * battle_config.player_defense_type) -
-                            t_def -
-                            ((vitbonusmax <
-                              1) ? 0 : MRAND((vitbonusmax + 1)));
-                    }
-                    else
-                    {
-                        damage2 =
-                            damage2 * (100 - def1) / 100 - t_def -
-                            ((vitbonusmax <
-                              1) ? 0 : MRAND((vitbonusmax + 1)));
+                        damage2 = damage2 * (100 - def1) / 100;
+                        damage2 -= t_def;
+                        if (vitbonusmax > 0)
+                            damage2 -= random_::in(0, vitbonusmax);
                     }
                 }
             }
@@ -1664,13 +1613,13 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 
     if (sd->perfect_hit > 0)
     {
-        if (MRAND(100) < sd->perfect_hit)
+        if (random_::chance({sd->perfect_hit, 100}))
             hitrate = 1000000;
     }
 
     // 回避修正
     hitrate = (hitrate < 5) ? 5 : hitrate;
-    if (type == DamageType::NORMAL && MRAND(100) >= hitrate)
+    if (type == DamageType::NORMAL && !random_::chance({hitrate, 100}))
     {
         damage = damage2 = 0;
         dmg_lv = ATK::FLEE;
@@ -1735,7 +1684,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 
     // 完全回避の判定
     if (skill_num == SkillID::ZERO && skill_lv >= 0 && tsd != NULL && div_ < 255
-        && MRAND(1000) < battle_get_flee2(target))
+        && random_::chance({battle_get_flee2(target), 1000}))
     {
         damage = damage2 = 0;
         type = DamageType::FLEE2;
@@ -1746,7 +1695,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     if (battle_config.enemy_perfect_flee)
     {
         if (skill_num == SkillID::ZERO && skill_lv >= 0 && tmd != NULL && div_ < 255
-            && MRAND(1000) < battle_get_flee2(target))
+            && random_::chance({battle_get_flee2(target), 1000}))
         {
             damage = damage2 = 0;
             type = DamageType::FLEE2;
@@ -1818,39 +1767,6 @@ struct Damage battle_calc_weapon_attack(struct block_list *src,
     else if (src->type == BL::MOB)
         wd = battle_calc_mob_weapon_attack(src, target, skill_num, skill_lv, wflag);
 
-    if (battle_config.equipment_breaking && src->type == BL::PC
-        && (wd.damage > 0 || wd.damage2 > 0))
-    {
-        struct map_session_data *sd = (struct map_session_data *) src;
-        if (sd->status.weapon && sd->status.weapon != 11)
-        {
-            int breakrate = 1;
-            if (wd.type == DamageType::CRITICAL)
-                breakrate *= 2;
-            if (MRAND(10000) <
-                breakrate * battle_config.equipment_break_rate / 100
-                || breakrate >= 10000)
-            {
-                pc_breakweapon(sd);
-                memset(&wd, 0, sizeof(wd));
-            }
-        }
-    }
-
-    if (battle_config.equipment_breaking && target->type == BL::PC
-        && (wd.damage > 0 || wd.damage2 > 0))
-    {
-        int breakrate = 1;
-        if (wd.type == DamageType::CRITICAL)
-            breakrate *= 2;
-        if (MRAND(10000) <
-            breakrate * battle_config.equipment_break_rate / 100
-            || breakrate >= 10000)
-        {
-            pc_breakarmor((struct map_session_data *) target);
-        }
-    }
-
     return wd;
 }
 
@@ -1877,41 +1793,31 @@ struct Damage battle_calc_magic_attack(struct block_list *bl,
     matk2 = battle_get_matk2(bl);
     MobMode t_mode = battle_get_mode(target);
 
-#define MATK_FIX(a, b)          \
-{                               \
-    matk1 = matk1 * (a) / (b);  \
-    matk2 = matk2 * (a) / (b);  \
-}
-
     if (bl->type == BL::PC && (sd = (struct map_session_data *) bl))
     {
         sd->state.attack_type = BF::MAGIC;
         if (sd->matk_rate != 100)
-            MATK_FIX(sd->matk_rate, 100);
+        {
+            matk1 = matk1 * sd->matk_rate / 100;
+            matk2 = matk2 * sd->matk_rate / 100;
+        }
         sd->state.arrow_atk = 0;
     }
 
     BF aflag = BF::MAGIC | BF::LONG | BF::SKILL;
 
     if (normalmagic_flag)
-    {                           // 一般魔法ダメージ計算
-        int imdef_flag = 0;
+    {
+        // 一般魔法ダメージ計算
         if (matk1 > matk2)
-            damage = matk2 + MRAND((matk1 - matk2 + 1));
+            damage = random_::in(matk2, matk1);
         else
             damage = matk2;
 
-        if (!imdef_flag)
         {
-            if (battle_config.magic_defense_type)
             {
-                damage =
-                    damage - (mdef1 * battle_config.magic_defense_type) -
-                    mdef2;
-            }
-            else
-            {
-                damage = (damage * (100 - mdef1)) / 100 - mdef2;
+                damage = (damage * (100 - mdef1)) / 100;
+                damage -= mdef2;
             }
         }
 
@@ -2171,22 +2077,22 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
             {
                 int hp = 0, sp = 0;
                 if (sd->hp_drain_rate && wd.damage > 0
-                    && MRAND(100) < sd->hp_drain_rate)
+                    && random_::chance({sd->hp_drain_rate, 100}))
                 {
                     hp += (wd.damage * sd->hp_drain_per) / 100;
                 }
                 if (sd->hp_drain_rate_ && wd.damage2 > 0
-                    && MRAND(100) < sd->hp_drain_rate_)
+                    && random_::chance({sd->hp_drain_rate_, 100}))
                 {
                     hp += (wd.damage2 * sd->hp_drain_per_) / 100;
                 }
                 if (sd->sp_drain_rate && wd.damage > 0
-                    && MRAND(100) < sd->sp_drain_rate)
+                    && random_::chance({sd->sp_drain_rate, 100}))
                 {
                     sp += (wd.damage * sd->sp_drain_per) / 100;
                 }
                 if (sd->sp_drain_rate_ && wd.damage2 > 0
-                    && MRAND(100) < sd->sp_drain_rate_)
+                    && random_::chance({sd->sp_drain_rate_, 100}))
                 {
                     sp += (wd.damage2 * sd->sp_drain_per_) / 100;
                 }
@@ -2412,11 +2318,7 @@ int battle_config_read(const char *cfgName)
         battle_config.item_first_get_time = 3000;
         battle_config.item_second_get_time = 1000;
         battle_config.item_third_get_time = 1000;
-        battle_config.mvp_item_first_get_time = 10000;
-        battle_config.mvp_item_second_get_time = 10000;
-        battle_config.mvp_item_third_get_time = 2000;
 
-        battle_config.drop_rate0item = 0;
         battle_config.base_exp_rate = 100;
         battle_config.job_exp_rate = 100;
         battle_config.pvp_exp = 1;
@@ -2427,9 +2329,6 @@ int battle_config_read(const char *cfgName)
         battle_config.zeny_penalty = 0;
         battle_config.restart_hp_rate = 0;
         battle_config.restart_sp_rate = 0;
-        battle_config.mvp_item_rate = 100;
-        battle_config.mvp_exp_rate = 100;
-        battle_config.mvp_hp_rate = 100;
         battle_config.monster_hp_rate = 100;
         battle_config.monster_max_aspd = 199;
         battle_config.atc_gmonly = 0;
@@ -2482,14 +2381,11 @@ int battle_config_read(const char *cfgName)
         battle_config.agi_penaly_type = 0;
         battle_config.agi_penaly_count = 3;
         battle_config.agi_penaly_num = 0;
-        battle_config.agi_penaly_count_lv = int(ATK::FLEE); // FIXME
+        battle_config.agi_penaly_count_lv = static_cast<int>(ATK::FLEE); // FIXME
         battle_config.vit_penaly_type = 0;
         battle_config.vit_penaly_count = 3;
         battle_config.vit_penaly_num = 0;
-        battle_config.vit_penaly_count_lv = int(ATK::DEF); // FIXME
-        battle_config.player_defense_type = 0;
-        battle_config.monster_defense_type = 0;
-        battle_config.magic_defense_type = 0;
+        battle_config.vit_penaly_count_lv = static_cast<int>(ATK::DEF); // FIXME
         battle_config.pc_skill_reiteration = 0;
         battle_config.monster_skill_reiteration = 0;
         battle_config.pc_skill_nofootset = 0;
@@ -2527,28 +2423,9 @@ int battle_config_read(const char *cfgName)
         battle_config.invite_request_check = 1;
         battle_config.skill_removetrap_type = 0;
         battle_config.disp_experience = 0;
-        battle_config.item_rate_common = 100;
-        battle_config.item_rate_equip = 100;
-        battle_config.item_rate_card = 100;
-        battle_config.item_rate_heal = 100; // Added by Valaris
-        battle_config.item_rate_use = 100;  // End
-        battle_config.item_drop_common_min = 1; // Added by TyrNemesis^
-        battle_config.item_drop_common_max = 10000;
-        battle_config.item_drop_equip_min = 1;
-        battle_config.item_drop_equip_max = 10000;
-        battle_config.item_drop_card_min = 1;
-        battle_config.item_drop_card_max = 10000;
-        battle_config.item_drop_mvp_min = 1;
-        battle_config.item_drop_mvp_max = 10000;    // End Addition
-        battle_config.item_drop_heal_min = 1;   // Added by Valaris
-        battle_config.item_drop_heal_max = 10000;
-        battle_config.item_drop_use_min = 1;
-        battle_config.item_drop_use_max = 10000;    // End
         battle_config.prevent_logout = 1;   // Added by RoVeRT
         battle_config.maximum_level = 255;  // Added by Valaris
         battle_config.drops_by_luk = 0; // [Valaris]
-        battle_config.equipment_breaking = 0;   // [Valaris]
-        battle_config.equipment_break_rate = 100;   // [Valaris]
         battle_config.pk_mode = 0;  // [Valaris]
         battle_config.multi_level_up = 0;   // [Valaris]
         battle_config.backstab_bow_penalty = 0; // Akaru
@@ -2623,11 +2500,6 @@ int battle_config_read(const char *cfgName)
             {"item_first_get_time", &battle_config.item_first_get_time},
             {"item_second_get_time", &battle_config.item_second_get_time},
             {"item_third_get_time", &battle_config.item_third_get_time},
-            {"mvp_item_first_get_time", &battle_config.mvp_item_first_get_time},
-            {"mvp_item_second_get_time", &battle_config.mvp_item_second_get_time},
-            {"mvp_item_third_get_time", &battle_config.mvp_item_third_get_time},
-            {"item_rate", &battle_config.item_rate},
-            {"drop_rate0item", &battle_config.drop_rate0item},
             {"base_exp_rate", &battle_config.base_exp_rate},
             {"job_exp_rate", &battle_config.job_exp_rate},
             {"pvp_exp", &battle_config.pvp_exp},
@@ -2638,9 +2510,6 @@ int battle_config_read(const char *cfgName)
             {"zeny_penalty", &battle_config.zeny_penalty},
             {"restart_hp_rate", &battle_config.restart_hp_rate},
             {"restart_sp_rate", &battle_config.restart_sp_rate},
-            {"mvp_hp_rate", &battle_config.mvp_hp_rate},
-            {"mvp_item_rate", &battle_config.mvp_item_rate},
-            {"mvp_exp_rate", &battle_config.mvp_exp_rate},
             {"monster_hp_rate", &battle_config.monster_hp_rate},
             {"monster_max_aspd", &battle_config.monster_max_aspd},
             {"atcommand_gm_only", &battle_config.atc_gmonly},
@@ -2700,9 +2569,6 @@ int battle_config_read(const char *cfgName)
             {"vit_penaly_count", &battle_config.vit_penaly_count},
             {"vit_penaly_num", &battle_config.vit_penaly_num},
             {"vit_penaly_count_lv", &battle_config.vit_penaly_count_lv},
-            {"player_defense_type", &battle_config.player_defense_type},
-            {"monster_defense_type", &battle_config.monster_defense_type},
-            {"magic_defense_type", &battle_config.magic_defense_type},
             {"player_skill_reiteration", &battle_config.pc_skill_reiteration},
             {"monster_skill_reiteration", &battle_config.monster_skill_reiteration},
             {"player_skill_nofootset", &battle_config.pc_skill_nofootset},
@@ -2740,26 +2606,11 @@ int battle_config_read(const char *cfgName)
             {"skill_removetrap_type", &battle_config.skill_removetrap_type},
             {"disp_experience", &battle_config.disp_experience},
             {"riding_weight", &battle_config.riding_weight},
-            {"item_rate_common", &battle_config.item_rate_common},   // Added by RoVeRT
-            {"item_rate_equip", &battle_config.item_rate_equip},
-            {"item_rate_card", &battle_config.item_rate_card},   // End Addition
-            {"item_rate_heal", &battle_config.item_rate_heal},   // Added by Valaris
-            {"item_rate_use", &battle_config.item_rate_use}, // End
-            {"item_drop_common_min", &battle_config.item_drop_common_min},   // Added by TyrNemesis^
-            {"item_drop_common_max", &battle_config.item_drop_common_max},
-            {"item_drop_equip_min", &battle_config.item_drop_equip_min},
-            {"item_drop_equip_max", &battle_config.item_drop_equip_max},
-            {"item_drop_card_min", &battle_config.item_drop_card_min},
-            {"item_drop_card_max", &battle_config.item_drop_card_max},
-            {"item_drop_mvp_min", &battle_config.item_drop_mvp_min},
-            {"item_drop_mvp_max", &battle_config.item_drop_mvp_max}, // End Addition
             {"prevent_logout", &battle_config.prevent_logout},   // Added by RoVeRT
             {"alchemist_summon_reward", &battle_config.alchemist_summon_reward}, // [Valaris]
             {"maximum_level", &battle_config.maximum_level}, // [Valaris]
             {"drops_by_luk", &battle_config.drops_by_luk},   // [Valaris]
             {"monsters_ignore_gm", &battle_config.monsters_ignore_gm},   // [Valaris]
-            {"equipment_breaking", &battle_config.equipment_breaking},   // [Valaris]
-            {"equipment_break_rate", &battle_config.equipment_break_rate},   // [Valaris]
             {"pk_mode", &battle_config.pk_mode}, // [Valaris]
             {"multi_level_up", &battle_config.multi_level_up},   // [Valaris]
             {"backstab_bow_penalty", &battle_config.backstab_bow_penalty},
@@ -2866,23 +2717,6 @@ int battle_config_read(const char *cfgName)
             battle_config.agi_penaly_count = 2;
         if (battle_config.vit_penaly_count < 2)
             battle_config.vit_penaly_count = 2;
-
-        if (battle_config.item_drop_common_min < 1) // Added by TyrNemesis^
-            battle_config.item_drop_common_min = 1;
-        if (battle_config.item_drop_common_max > 10000)
-            battle_config.item_drop_common_max = 10000;
-        if (battle_config.item_drop_equip_min < 1)
-            battle_config.item_drop_equip_min = 1;
-        if (battle_config.item_drop_equip_max > 10000)
-            battle_config.item_drop_equip_max = 10000;
-        if (battle_config.item_drop_card_min < 1)
-            battle_config.item_drop_card_min = 1;
-        if (battle_config.item_drop_card_max > 10000)
-            battle_config.item_drop_card_max = 10000;
-        if (battle_config.item_drop_mvp_min < 1)
-            battle_config.item_drop_mvp_min = 1;
-        if (battle_config.item_drop_mvp_max > 10000)
-            battle_config.item_drop_mvp_max = 10000;    // End Addition
 
         if (battle_config.hack_info_GM_level < 0)   // added by [Yor]
             battle_config.hack_info_GM_level = 0;

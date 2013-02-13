@@ -5,7 +5,7 @@
 #include <cmath>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 
 #include "battle.hpp"
 #include "npc.hpp"
@@ -709,7 +709,7 @@ int fun_random(env_t *, int, val_t *result, val_t *args)
         RESULTINT = 0;
         return 0;
     }
-    RESULTINT = MRAND(delta);
+    RESULTINT = random_::to(delta);
 
     if (ARGINT(0) < 0)
         RESULTINT = -RESULTINT;
@@ -720,9 +720,9 @@ static
 int fun_random_dir(env_t *, int, val_t *result, val_t *args)
 {
     if (ARGINT(0))
-        RESULTDIR = DIR(MRAND(8));
+        RESULTDIR = random_::choice({DIR::S, DIR::SW, DIR::W, DIR::NW, DIR::N, DIR::NE, DIR::E, DIR::SE});
     else
-        RESULTDIR = DIR(MRAND(4) * 2);
+        RESULTDIR = random_::choice({DIR::S, DIR::W, DIR::N, DIR::E});
     return 0;
 }
 
@@ -945,8 +945,7 @@ void magic_random_location(location_t *dest, area_t *area)
     {
         case AREA::UNION:
         {
-            int rv = MRAND(area->size);
-            if (rv < area->a.a_union[0]->size)
+            if (random_::chance({area->a.a_union[0]->size, area->size}))
                 magic_random_location(dest, area->a.a_union[0]);
             else
                 magic_random_location(dest, area->a.a_union[1]);
@@ -966,39 +965,13 @@ void magic_random_location(location_t *dest, area_t *area)
             if (h <= 1)
                 h = 1;
 
-            x += MRAND(w);
-            y += MRAND(h);
-
-            if (!map_is_solid(m, x, y))
-            {
-                int start_x = x;
-                int start_y = y;
-                int i;
-                DIR initial_dir = DIR(MRAND(8));
-                DIR dir = initial_dir;
-
-                /* try all directions, up to a distance to 10, for a free slot */
-                do
-                {
-                    x = start_x;
-                    y = start_y;
-
-                    for (i = 0; i < 10 && map_is_solid(m, x, y); i++)
-                    {
-                        x += dirx[dir];
-                        y += diry[dir];
-                    }
-
-                    dir = DIR((uint8_t(dir) + 1) % 8);
-                }
-                while (map_is_solid(m, x, y) && dir != initial_dir);
-
-            }
-            /* We've tried our best.  If the map is still solid, the engine will automatically randomise the target location if we try to warp. */
+            // This is not exactly the same as the old logic,
+            // but it's better.
+            auto pair = map_randfreecell(m, x, y, w, h);
 
             dest->m = m;
-            dest->x = x;
-            dest->y = y;
+            dest->x = pair.first;
+            dest->y = pair.second;
             break;
         }
 

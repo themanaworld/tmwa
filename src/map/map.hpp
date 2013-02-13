@@ -419,7 +419,6 @@ struct map_data
         unsigned nopenalty:1;
         unsigned pvp:1;
         unsigned pvp_noparty:1;
-        unsigned pvp_nightmaredrop:1;
         unsigned pvp_nocalcrank:1;
         unsigned nozenypenalty:1;
         unsigned notrade:1;
@@ -557,7 +556,7 @@ int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
         interval_t lifetime, int dispersal);
 int map_addflooritem(struct item *, int, int, int, int,
         struct map_session_data *, struct map_session_data *,
-        struct map_session_data *, bool);
+        struct map_session_data *);
 
 // キャラid＝＞キャラ名 変換関連
 void map_addchariddb(int charid, const char *name);
@@ -594,6 +593,7 @@ DIR map_calc_dir(struct block_list *src, int x, int y);
 
 // path.cより
 int path_search(struct walkpath_data *, int, int, int, int, int, int);
-int path_blownpos(int m, int x0, int y0, int dx, int dy, int count);
+
+std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 #endif // MAP_HPP

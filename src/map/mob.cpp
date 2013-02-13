@@ -1,3 +1,4 @@
+
 #include "mob.hpp"
 
 #include <cassert>
@@ -8,7 +9,7 @@
 #include <algorithm>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -27,9 +28,9 @@
 constexpr interval_t MIN_MOBTHINKTIME = std::chrono::milliseconds(100);
 
 // Move probability in the negligent mode MOB (rate of 1000 minute)
-constexpr int MOB_LAZYMOVEPERC = 50;
+constexpr random_::Fraction MOB_LAZYMOVEPERC {50, 1000};
 // Warp probability in the negligent mode MOB (rate of 1000 minute)
-constexpr int MOB_LAZYWARPPERC = 20;
+constexpr random_::Fraction MOB_LAZYWARPPERC {20, 1000};
 
 struct mob_db mob_db[2001];
 
@@ -326,19 +327,33 @@ void mob_init(struct mob_data *md)
 
     for (i = 0; i < mutations_nr; i++)
     {
-        mob_stat stat_nr = mob_stat(MRAND(unsigned(mob_stat::LAST)));
-        int strength;
+        mob_stat stat_nr = random_::choice({
+            mob_stat::LV,
+            mob_stat::MAX_HP,
+            mob_stat::STR,
+            mob_stat::AGI,
+            mob_stat::VIT,
+            mob_stat::INT,
+            mob_stat::DEX,
+            mob_stat::LUK,
+            mob_stat::ATK1,
+            mob_stat::ATK2,
+            mob_stat::ADELAY,
+            mob_stat::DEF,
+            mob_stat::MDEF,
+            mob_stat::SPEED,
+            // double chance to modify hp
+            mob_stat::MAX_HP,
+        });
+        // TODO: if I don't remove this entirely, look into
+        // normal distributions.
+        int strength = (random_::to(mutation_power / 2)
+                + random_::to(mutation_power / 2)
+                + 2)
+            * mutation_scale[stat_nr] / 100;
 
-        // double chance to modify hp
-        if (stat_nr == mob_stat::XP_BONUS)
-            stat_nr = mob_stat::MAX_HP;
-
-        strength =
-            ((MRAND((mutation_power >> 1)) +
-              (MRAND((mutation_power >> 1))) +
-              2) * mutation_scale[stat_nr]) / 100;
-
-        strength = MRAND(2) ? strength : -strength;
+        if (random_::coin())
+            strength = -strength;
 
         if (strength < -240)
             strength = -240;    /* Don't go too close to zero */
@@ -356,10 +371,7 @@ int mob_once_spawn(struct map_session_data *sd, const char *mapname,
                     const char *event)
 {
     struct mob_data *md = NULL;
-    int m, count, lv = 255, r = mob_class;
-
-    if (sd)
-        lv = sd->status.base_level;
+    int m, count, r = mob_class;
 
     if (sd && strcmp(mapname, "this") == 0)
         m = sd->bl.m;
@@ -369,35 +381,6 @@ int mob_once_spawn(struct map_session_data *sd, const char *mapname,
     if (m < 0 || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // 値が異常なら召喚を止める
         return 0;
 
-    if (mob_class < 0)
-    {                           // ランダムに召喚
-        int i = 0;
-        int j = -mob_class - 1;
-        int k;
-        if (j >= 0 && j < MAX_RANDOMMONSTER)
-        {
-            do
-            {
-                mob_class = MPRAND(1001, 1000);
-                k = MRAND(1000000);
-            }
-            while ((mob_db[mob_class].max_hp <= 0
-                    || mob_db[mob_class].summonper[j] <= k
-                    || (lv < mob_db[mob_class].lv
-                        && battle_config.random_monster_checklv == 1))
-                   && (i++) < 2000);
-            if (i >= 2000)
-            {
-                mob_class = mob_db[0].summonper[j];
-            }
-        }
-        else
-        {
-            return 0;
-        }
-//      if(battle_config.etc_log==1)
-//          PRINTF("mobmob_class=%d try=%d\n",mob_class,i);
-    }
     if (sd)
     {
         if (x <= 0)
@@ -472,8 +455,8 @@ int mob_once_spawn_area(struct map_session_data *sd, const char *mapname,
         int j = 0;
         do
         {
-            x = MPRAND(x0, (x1 - x0 + 1));
-            y = MPRAND(y0, (y1 - y0 + 1));
+            x = random_::in(x0, x1);
+            y = random_::in(y0, y1);
         }
         while (((c = map_getcell(m, x, y)) == 1 || c == 5) && (++j) < max);
         if (j >= max)
@@ -491,65 +474,6 @@ int mob_once_spawn_area(struct map_session_data *sd, const char *mapname,
         ly = y;
     }
     return id;
-}
-
-/*==========================================
- * Summoning Guardians [Valaris]
- *------------------------------------------
- */
-int mob_spawn_guardian(struct map_session_data *sd, const char *mapname,
-                        int x, int y, const char *mobname, int mob_class,
-                        int amount, const char *event, int)
-{
-    struct mob_data *md = NULL;
-    int m, count = 1;
-
-    if (sd && strcmp(mapname, "this") == 0)
-        m = sd->bl.m;
-    else
-        m = map_mapname2mapid(mapname);
-
-    if (m < 0 || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // 値が異常なら召喚を止める
-        return 0;
-
-    if (mob_class < 0)
-        return 0;
-
-    if (sd)
-    {
-        if (x <= 0)
-            x = sd->bl.x;
-        if (y <= 0)
-            y = sd->bl.y;
-    }
-
-    else if (x <= 0 || y <= 0)
-        PRINTF("mob_spawn_guardian: ??\n");
-
-    for (count = 0; count < amount; count++)
-    {
-        CREATE(md, struct mob_data, 1);
-
-        mob_spawn_dataset(md, mobname, mob_class);
-        md->bl.m = m;
-        md->bl.x = x;
-        md->bl.y = y;
-        md->m = m;
-        md->x0 = x;
-        md->y0 = y;
-        md->xs = 0;
-        md->ys = 0;
-        md->spawndelay1 = static_cast<interval_t>(-1);   // Only once is a flag.
-        md->spawndelay2 = static_cast<interval_t>(-1);   // Only once is a flag.
-
-        memcpy(md->npc_event, event, sizeof(md->npc_event));
-
-        md->bl.type = BL::MOB;
-        map_addiddb(&md->bl);
-        mob_spawn(md->bl.id);
-    }
-
-    return (amount > 0) ? md->bl.id : 0;
 }
 
 // TODO: deprecate these
@@ -1162,13 +1086,15 @@ int mob_spawn(int id)
         {
             if (md->x0 == 0 && md->y0 == 0)
             {
-                x = MPRAND(1, (map[md->bl.m].xs - 2));
-                y = MPRAND(1, (map[md->bl.m].ys - 2));
+                x = random_::in(1, map[md->bl.m].xs - 2);
+                y = random_::in(1, map[md->bl.m].ys - 2);
             }
             else
             {
-                x = MPRAND(md->x0, (md->xs + 1)) - md->xs / 2;
-                y = MPRAND(md->y0, (md->ys + 1)) - md->ys / 2;
+                // TODO: move this logic earlier - possibly all the way
+                // into the data files
+                x = md->x0 - md->xs / 2 + random_::in(0, md->xs);
+                y = md->y0 - md->ys / 2 + random_::in(0, md->ys);
             }
             i++;
         }
@@ -1207,7 +1133,7 @@ int mob_spawn(int id)
     md->state.skillstate = MobSkillState::MSS_IDLE;
     md->timer = nullptr;
     md->last_thinktime = tick;
-    md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(MRAND(50));
+    md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(random_::to(50));
     md->attackabletime = tick;
     md->canmove_tick = tick;
 
@@ -1412,7 +1338,8 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
     }
     // Nothing will be carried out if there is no mind of changing TAGE by TAGE ending.
     if ((md->target_id > 0 && md->state.attackable)
-        && (!bool(mode & MobMode::AGGRESSIVE) || MRAND(100) > 25))
+        && (!bool(mode & MobMode::AGGRESSIVE)
+            || !random_::chance({25 + 1, 100})))
         return 0;
 
     // Coercion is exerted if it is MVPMOB.
@@ -1494,10 +1421,13 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
                 || (!tsd->state.gangsterparadise
                     || race == Race::_insect
                     || race == Race::_demon))
-            {                   // 妨害がないか判定
-                if (mob_can_reach(smd, bl, 12) &&  // 到達可能性判定
-                    MRAND(1000) < 1000 / (++(*pcc)))
-                {               // 範囲内PCで等確率にする
+            {
+                // 妨害がないか判定
+                // 到達可能性判定
+                if (mob_can_reach(smd, bl, 12)
+                    && random_::chance({1, ++*pcc}))
+                {
+                    // 範囲内PCで等確率にする
                     smd->target_id = tsd->bl.id;
                     smd->state.attackable = true;
                     smd->min_chase = 13;
@@ -1510,9 +1440,11 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
                  (dist =
                   distance(smd->bl.x, smd->bl.y, tmd->bl.x, tmd->bl.y)) < 9)
         {
-            if (mob_can_reach(smd, bl, 12) &&  // 到達可能性判定
-                MRAND(1000) < 1000 / (++(*pcc)))
-            {                   // 範囲内で等確率にする
+            // 到達可能性判定
+            if (mob_can_reach(smd, bl, 12)
+                && random_::chance({1, ++*pcc}))
+            {
+                // 範囲内で等確率にする
                 smd->target_id = bl->id;
                 smd->state.attackable = true;
                 smd->min_chase = 13;
@@ -1551,9 +1483,11 @@ void mob_ai_sub_hard_lootsearch(struct block_list *bl, struct mob_data *md, int 
         if (bl->m == md->bl.m
             && (dist = distance(md->bl.x, md->bl.y, bl->x, bl->y)) < 9)
         {
-            if (mob_can_reach(md, bl, 12) &&   // Reachability judging
-                MRAND(1000) < 1000 / (++(*itc)))
-            {                   // It is made a probability, such as within the limits PC.
+            // Reachability judging
+            if (mob_can_reach(md, bl, 12)
+                && random_::chance({1, ++*itc}))
+            {
+                // It is made a probability, such as within the limits PC.
                 md->target_id = bl->id;
                 md->state.attackable = false;
                 md->min_chase = 13;
@@ -1653,18 +1587,18 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, tick_t tick)
                     dx = mmd->bl.x - md->bl.x;
                     dy = mmd->bl.y - md->bl.y;
                     if (dx < 0)
-                        dx += (MPRAND(1, ((dx < -3) ? 3 : -dx)));
+                        dx += random_::in(1, std::min(3, -dx));
                     else if (dx > 0)
-                        dx -= (MPRAND(1, ((dx > 3) ? 3 : dx)));
+                        dx -= random_::in(1, std::min(3, dx));
                     if (dy < 0)
-                        dy += (MPRAND(1, ((dy < -3) ? 3 : -dy)));
+                        dy += random_::in(1, std::min(3, -dy));
                     else if (dy > 0)
-                        dy -= (MPRAND(1, ((dy > 3) ? 3 : dy)));
+                        dy -= random_::in(1, std::min(3, dy));
                 }
                 else
                 {
-                    dx = mmd->bl.x - md->bl.x + MRAND(7) - 3;
-                    dy = mmd->bl.y - md->bl.y + MRAND(7) - 3;
+                    dx = mmd->bl.x - md->bl.x + random_::in(-3, 3);
+                    dy = mmd->bl.y - md->bl.y + random_::in(-3, 3);
                 }
 
                 ret = mob_walktoxy(md, md->bl.x + dx, md->bl.y + dy, 0);
@@ -1676,12 +1610,14 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, tick_t tick)
         {
             do
             {
-                dx = MRAND(9) - 5;
-                dy = MRAND(9) - 5;
+                // changed to do what it was obviously supposed to do,
+                // instead of what it was doing ...
+                dx = random_::in(-4, 4);
+                dy = random_::in(-4, 4);
                 if (dx == 0 && dy == 0)
                 {
-                    dx = (MRAND(1)) ? 1 : -1;
-                    dy = (MRAND(1)) ? 1 : -1;
+                    dx = random_::coin() ? 1 : -1;
+                    dy = random_::coin() ? 1 : -1;
                 }
                 dx += mmd->bl.x;
                 dy += mmd->bl.y;
@@ -1736,7 +1672,7 @@ int mob_unlocktarget(struct mob_data *md, tick_t tick)
     md->target_id = 0;
     md->state.attackable = false;
     md->state.skillstate = MobSkillState::MSS_IDLE;
-    md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(MRAND(3000));
+    md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(random_::to(3000));
     return 0;
 }
 
@@ -1760,9 +1696,8 @@ int mob_randomwalk(struct mob_data *md, tick_t tick)
         for (i = 0; i < retrycount; i++)
         {
             // Search of a movable place
-            int r = mt_random();
-            x = md->bl.x + r % (d * 2 + 1) - d;
-            y = md->bl.y + r / (d * 2 + 1) % (d * 2 + 1) - d;
+            x = md->bl.x + random_::in(-d, d);
+            y = md->bl.y + random_::in(-d, d);
             uint8_t c = map_getcell(md->bl.m, x, y);
             if (c != 1 && c != 5
                 && mob_walktoxy(md, x, y, 1) == 0)
@@ -1792,7 +1727,7 @@ int mob_randomwalk(struct mob_data *md, tick_t tick)
             else
                 c += speed;
         }
-        md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(MRAND(3000)) + c;
+        md->next_walktime = tick + std::chrono::seconds(3) + std::chrono::milliseconds(random_::to(3000)) + c;
         md->state.skillstate = MobSkillState::MSS_WALK;
         return 1;
     }
@@ -1860,7 +1795,7 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
     // It checks to see it was attacked first (if active, it is target change at 25% of probability).
     if (mode != MobMode::ZERO && md->attacked_id > 0
         && (!md->target_id || !md->state.attackable
-            || (bool(mode & MobMode::AGGRESSIVE) && MRAND(100) < 25)))
+            || (bool(mode & MobMode::AGGRESSIVE) && random_::chance({25, 100}))))
     {
         struct block_list *abl = map_id2bl(md->attacked_id);
         struct map_session_data *asd = NULL;
@@ -1971,7 +1906,8 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
                         do
                         {
                             if (i == 0)
-                            {   // 最初はAEGISと同じ方法で検索
+                            {
+                                // 最初はAEGISと同じ方法で検索
                                 dx = tbl->x - md->bl.x;
                                 dy = tbl->y - md->bl.y;
                                 if (dx < 0)
@@ -1984,9 +1920,11 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
                                     dy--;
                             }
                             else
-                            {   // だめならAthena式(ランダム)
-                                dx = tbl->x - md->bl.x + MRAND(3) - 1;
-                                dy = tbl->y - md->bl.y + MRAND(3) - 1;
+                            {
+                                // だめならAthena式(ランダム)
+                                // {0 1 2}
+                                dx = tbl->x - md->bl.x + random_::in(-1, 1);
+                                dy = tbl->y - md->bl.y + random_::in(-1, 1);
                             }
                             ret = mob_walktoxy(md, md->bl.x + dx, md->bl.y + dy, 0);
                             i++;
@@ -2114,7 +2052,7 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
             //      yields 3000 * {0 3000 6000 9000 ... 5991000 5994000 5997000}
             //  I have reverted to the original logic, but I don't understand.
 #warning "I don't understand this code! It is either wrong now or was wrong before."
-            md->next_walktime = tick + std::chrono::seconds(MRAND(2));
+            md->next_walktime = tick + std::chrono::seconds(random_::to(2));
         }
 
         // Random movement
@@ -2190,13 +2128,14 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, tick_t tick)
             // Since PC is in the same map, somewhat better negligent processing is carried out.
 
             // It sometimes moves.
-            if (MRAND(1000) < MOB_LAZYMOVEPERC)
+            if (random_::chance(MOB_LAZYMOVEPERC))
                 mob_randomwalk(md, tick);
 
             // MOB which is not not the summons MOB but BOSS, either sometimes reboils.
-            else if (MRAND(1000) < MOB_LAZYWARPPERC && md->x0 <= 0
-                     && md->master_id != 0 && mob_db[md->mob_class].mexp <= 0
-                     && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
+            else if (random_::chance(MOB_LAZYWARPPERC)
+                    && md->x0 <= 0
+                    && md->master_id != 0
+                    && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
                 mob_spawn(md->bl.id);
 
         }
@@ -2205,13 +2144,14 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, tick_t tick)
             // Since PC is not even in the same map, suitable processing is carried out even if it takes.
 
             // MOB which is not BOSS which is not Summons MOB, either -- a case -- sometimes -- leaping
-            if (MRAND(1000) < MOB_LAZYWARPPERC && md->x0 <= 0
-                && md->master_id != 0 && mob_db[md->mob_class].mexp <= 0
+            if (random_::chance(MOB_LAZYWARPPERC)
+                && md->x0 <= 0
+                && md->master_id != 0
                 && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
                 mob_warp(md, -1, -1, -1, BeingRemoveWhy::NEGATIVE1);
         }
 
-        md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(MRAND(10 * 1000));
+        md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(random_::to(10 * 1000));
     }
 }
 
@@ -2270,16 +2210,17 @@ void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop *ditem)
             != PickupFail::OKAY)
         {
             clif_additem(ditem->first_sd, 0, 0, flag);
-            map_addflooritem(&temp_item, 1, ditem->m, ditem->x, ditem->y,
-                              ditem->first_sd, ditem->second_sd,
-                              ditem->third_sd, 0);
+            map_addflooritem(&temp_item, 1,
+                    ditem->m, ditem->x, ditem->y,
+                    ditem->first_sd, ditem->second_sd, ditem->third_sd);
         }
         free(ditem);
         return;
     }
 
-    map_addflooritem(&temp_item, 1, ditem->m, ditem->x, ditem->y,
-                      ditem->first_sd, ditem->second_sd, ditem->third_sd, 0);
+    map_addflooritem(&temp_item, 1,
+            ditem->m, ditem->x, ditem->y,
+            ditem->first_sd, ditem->second_sd, ditem->third_sd);
 
     free(ditem);
 }
@@ -2305,16 +2246,16 @@ void mob_delay_item_drop2(TimerData *, tick_t, struct delay_item_drop2 *ditem)
         {
             clif_additem(ditem->first_sd, 0, 0, flag);
             map_addflooritem(&ditem->item_data, ditem->item_data.amount,
-                              ditem->m, ditem->x, ditem->y, ditem->first_sd,
-                              ditem->second_sd, ditem->third_sd, 0);
+                    ditem->m, ditem->x, ditem->y,
+                    ditem->first_sd, ditem->second_sd, ditem->third_sd);
         }
         free(ditem);
         return;
     }
 
-    map_addflooritem(&ditem->item_data, ditem->item_data.amount, ditem->m,
-                      ditem->x, ditem->y, ditem->first_sd, ditem->second_sd,
-                      ditem->third_sd, 0);
+    map_addflooritem(&ditem->item_data, ditem->item_data.amount,
+            ditem->m, ditem->x, ditem->y,
+            ditem->first_sd, ditem->second_sd, ditem->third_sd);
 
     free(ditem);
 }
@@ -2418,9 +2359,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     tick_t tick = gettick();
     struct map_session_data *mvp_sd = NULL, *second_sd = NULL, *third_sd =
         NULL;
-    double tdmg, temp;
-    struct item item;
-    PickupFail ret;
+    double tdmg;
 
     nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
 
@@ -2701,22 +2640,19 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
             for (int i = 0; i < 8; i++)
             {
                 struct delay_item_drop *ditem;
-                int drop_rate;
 
                 if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
                     break;      // End
 
                 if (mob_db[md->mob_class].dropitem[i].nameid <= 0)
                     continue;
-                drop_rate = mob_db[md->mob_class].dropitem[i].p;
-                if (drop_rate <= 0 && battle_config.drop_rate0item == 1)
-                    drop_rate = 1;
+                random_::Fixed<int, 10000> drop_rate = mob_db[md->mob_class].dropitem[i].p;
                 if (battle_config.drops_by_luk > 0 && sd && md)
-                    drop_rate += (sd->status.attrs[ATTR::LUK] * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
+                    drop_rate.num += (sd->status.attrs[ATTR::LUK] * battle_config.drops_by_luk) / 100;   // drops affected by luk [Valaris]
                 if (sd && md && battle_config.pk_mode == 1
                     && (mob_db[md->mob_class].lv - sd->status.base_level >= 20))
-                    drop_rate *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
-                if (drop_rate <= MRAND(10000))
+                    drop_rate.num *= 1.25;  // pk_mode increase drops if 20 level difference [Valaris]
+                if (!random_::chance(drop_rate))
                     continue;
 
                 ditem = (struct delay_item_drop *)
@@ -2756,53 +2692,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 }
             }
         }
-
-        // mvp処理
-        if (mvp_sd && mob_db[md->mob_class].mexp > 0)
-        {
-            int j;
-            int mexp = battle_get_mexp(&md->bl);
-            temp =
-                ((double) mexp * (double) battle_config.mvp_exp_rate *
-                 (9. + (double) count) / 1000.);
-            mexp = (temp > 2147483647.) ? 0x7fffffff : (int) temp;
-            if (mexp < 1)
-                mexp = 1;
-            clif_mvp_effect(mvp_sd);   // エフェクト
-            pc_gainexp(mvp_sd, mexp, 0);
-            for (j = 0; j < 3; j++)
-            {
-                int i = MRAND(3);
-                if (mob_db[md->mob_class].mvpitem[i].nameid <= 0)
-                    continue;
-                int drop_rate = mob_db[md->mob_class].mvpitem[i].p;
-                if (drop_rate <= 0 && battle_config.drop_rate0item == 1)
-                    drop_rate = 1;
-                if (drop_rate < battle_config.item_drop_mvp_min)
-                    drop_rate = battle_config.item_drop_mvp_min;
-                if (drop_rate > battle_config.item_drop_mvp_max)
-                    drop_rate = battle_config.item_drop_mvp_max;
-                if (drop_rate <= MRAND(10000))
-                    continue;
-                memset(&item, 0, sizeof(item));
-                item.nameid = mob_db[md->mob_class].mvpitem[i].nameid;
-                item.identify = !itemdb_isequip3(item.nameid);
-                if (mvp_sd->weight * 2 > mvp_sd->max_weight)
-                    map_addflooritem(&item, 1, mvp_sd->bl.m, mvp_sd->bl.x,
-                                      mvp_sd->bl.y, mvp_sd, second_sd,
-                                      third_sd, 1);
-                else if ((ret = pc_additem(mvp_sd, &item, 1))
-                        != PickupFail::OKAY)
-                {
-                    clif_additem(sd, 0, 0, ret);
-                    map_addflooritem(&item, 1, mvp_sd->bl.m, mvp_sd->bl.x,
-                                      mvp_sd->bl.y, mvp_sd, second_sd,
-                                      third_sd, 1);
-                }
-                break;
-            }
-        }
-
     }                           // [MouseJstr]
 
     // SCRIPT実行
@@ -2839,83 +2728,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     mob_deleteslave(md);
     mob_setdelayspawn(md->bl.id);
     map_freeblock_unlock();
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int mob_class_change(struct mob_data *md, int *value)
-{
-    tick_t tick = gettick();
-    int i, hp_rate, max_hp, mob_class, count = 0;
-
-    nullpo_ret(md);
-    nullpo_ret(value);
-
-    if (value[0] <= 1000 || value[0] > 2000)
-        return 0;
-    if (md->bl.prev == NULL)
-        return 0;
-
-    while (count < 5 && value[count] > 1000 && value[count] <= 2000)
-        count++;
-    if (count < 1)
-        return 0;
-
-    mob_class = value[MRAND(count)];
-    if (mob_class <= 1000 || mob_class > 2000)
-        return 0;
-
-    max_hp = battle_get_max_hp(&md->bl);
-    hp_rate = md->hp * 100 / max_hp;
-    md->mob_class = mob_class;
-    max_hp = battle_get_max_hp(&md->bl);
-    if (battle_config.monster_class_change_full_recover == 1)
-    {
-        md->hp = max_hp;
-        memset(md->dmglog, 0, sizeof(md->dmglog));
-    }
-    else
-        md->hp = max_hp * hp_rate / 100;
-    if (md->hp > max_hp)
-        md->hp = max_hp;
-    else if (md->hp < 1)
-        md->hp = 1;
-
-    memcpy(md->name, mob_db[mob_class].jname, 24);
-    memset(&md->state, 0, sizeof(md->state));
-    md->attacked_id = 0;
-    md->target_id = 0;
-    md->move_fail_count = 0;
-
-    md->stats[mob_stat::SPEED] = mob_db[md->mob_class].speed;
-    md->def_ele = mob_db[md->mob_class].element;
-
-    mob_changestate(md, MS::IDLE, 0);
-    skill_castcancel(&md->bl, 0);
-    md->state.skillstate = MobSkillState::MSS_IDLE;
-    md->last_thinktime = tick;
-    md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(MRAND(50));
-    md->attackabletime = tick;
-    md->canmove_tick = tick;
-    md->sg_count = 0;
-
-    tick_t c = tick - std::chrono::hours(10);
-    for (i = 0; i < MAX_MOBSKILL; i++)
-        md->skilldelay[i] = c;
-    md->skillid = SkillID();
-    md->skilllv = 0;
-
-    if (md->lootitem == NULL
-        && bool(mob_db[mob_class].mode & MobMode::LOOTER))
-        md->lootitem = (struct item *)
-            calloc(LOOTITEM_SIZE, sizeof(struct item));
-
-    clif_clearchar(&md->bl, BeingRemoveWhy::GONE);
-    clif_spawnmob(md);
 
     return 0;
 }
@@ -2999,14 +2811,16 @@ int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type)
            && (i++) < 1000)
     {
         if (xs > 0 && ys > 0 && i < 250)
-        {                       // 指定位置付近の探索
-            x = MPRAND(bx, xs) - xs / 2;
-            y = MPRAND(by, ys) - ys / 2;
+        {
+            // 指定位置付近の探索
+            x = bx + random_::to(xs) - xs / 2;
+            y = by + random_::to(ys) - ys / 2;
         }
         else
-        {                       // 完全ランダム探索
-            x = MPRAND(1, (map[m].xs - 2));
-            y = MPRAND(1, (map[m].ys - 2));
+        {
+            // 完全ランダム探索
+            x = random_::in(1, map[m].xs - 2);
+            y = random_::in(1, map[m].ys - 2);
         }
     }
     md->dir = DIR::S;
@@ -3121,8 +2935,8 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
             while ((x <= 0 || y <= 0 || (c = map_getcell(m, x, y)) == 1
                     || c == 5) && (i++) < 100)
             {
-                x = MPRAND(bx, 9) - 4;
-                y = MPRAND(by, 9) - 4;
+                x = bx + random_::in(-4, 4);
+                y = by + random_::in(-4, 4);
             }
             if (i >= 100)
             {
@@ -3530,7 +3344,7 @@ int mobskill_use(struct mob_data *md, tick_t tick,
         }
 
         // 確率判定
-        if (flag && MRAND(10000) < ms[ii].permillage)
+        if (flag && random_::chance({ms[ii].permillage, 10000}))
         {
 
             if (skill_get_inf(ms[ii].skill_id) & 2)
@@ -3636,23 +3450,11 @@ int mob_makedummymobdb(int mob_class)
     mob_db[mob_class].adelay = 1000;
     mob_db[mob_class].amotion = 500;
     mob_db[mob_class].dmotion = 500;
-    mob_db[mob_class].dropitem[0].nameid = 909; // Jellopy
-    mob_db[mob_class].dropitem[0].p = 1000;
-    for (i = 1; i < 8; i++)
+    for (i = 0; i < 8; i++)
     {
         mob_db[mob_class].dropitem[i].nameid = 0;
-        mob_db[mob_class].dropitem[i].p = 0;
+        mob_db[mob_class].dropitem[i].p.num = 0;
     }
-    // Item1,Item2
-    mob_db[mob_class].mexp = 0;
-    mob_db[mob_class].mexpper = 0;
-    for (i = 0; i < 3; i++)
-    {
-        mob_db[mob_class].mvpitem[i].nameid = 0;
-        mob_db[mob_class].mvpitem[i].p = 0;
-    }
-    for (i = 0; i < MAX_RANDOMMONSTER; i++)
-        mob_db[mob_class].summonper[i] = 0;
     return 0;
 }
 
@@ -3760,63 +3562,15 @@ int mob_readdb(void)
 
             for (int i = 0; i < 8; i++)
             {
-                int rate = 0, ratemin, ratemax;
                 mob_db[mob_class].dropitem[i].nameid = atoi(str[29 + i * 2]);
-                ItemType type = itemdb_type(mob_db[mob_class].dropitem[i].nameid);
-                if (type == ItemType::USE)
-                {               // Added [Valaris]
-                    rate = battle_config.item_rate_heal;
-                    ratemin = battle_config.item_drop_heal_min;
-                    ratemax = battle_config.item_drop_heal_max;
-                }
-                else if (type == ItemType::_2)
-                {
-                    rate = battle_config.item_rate_use;
-                    ratemin = battle_config.item_drop_use_min;
-                    ratemax = battle_config.item_drop_use_max;  // End
-                }
-                else if (type == ItemType::WEAPON
-                    || type == ItemType::ARMOR
-                    || type == ItemType::_8)
-                {
-                    rate = battle_config.item_rate_equip;
-                    ratemin = battle_config.item_drop_equip_min;
-                    ratemax = battle_config.item_drop_equip_max;
-                }
-                else if (type == ItemType::_6)
-                {
-                    rate = battle_config.item_rate_card;
-                    ratemin = battle_config.item_drop_card_min;
-                    ratemax = battle_config.item_drop_card_max;
-                }
-                else
-                {
-                    rate = battle_config.item_rate_common;
-                    ratemin = battle_config.item_drop_common_min;
-                    ratemax = battle_config.item_drop_common_max;
-                }
-                rate = (rate / 100) * atoi(str[30 + i * 2]);
-                rate =
-                    (rate < ratemin) ? ratemin : (rate >
-                                                  ratemax) ? ratemax : rate;
-                mob_db[mob_class].dropitem[i].p = rate;
-            }
-            // Item1,Item2
-            mob_db[mob_class].mexp =
-                atoi(str[45]) * battle_config.mvp_exp_rate / 100;
-            mob_db[mob_class].mexpper = atoi(str[46]);
-            for (int i = 0; i < 3; i++)
-            {
-                mob_db[mob_class].mvpitem[i].nameid = atoi(str[47 + i * 2]);
-                mob_db[mob_class].mvpitem[i].p =
-                    atoi(str[48 + i * 2]) * battle_config.mvp_item_rate /
-                    100;
+                int rate = atoi(str[30 + i * 2]);
+                if (rate < 1) rate = 1;
+                if (rate > 10000) rate = 10000;
+                mob_db[mob_class].dropitem[i].p.num = rate;
             }
             mob_db[mob_class].mutations_nr = atoi(str[55]);
             mob_db[mob_class].mutation_power = atoi(str[56]);
 
-            for (int i = 0; i < MAX_RANDOMMONSTER; i++)
-                mob_db[mob_class].summonper[i] = 0;
             mob_db[mob_class].maxskill = 0;
 
             mob_db[mob_class].sex = 0;
@@ -3834,61 +3588,6 @@ int mob_readdb(void)
         }
         fclose_(fp);
         PRINTF("read %s done\n", filename[j]);
-    }
-    return 0;
-}
-
-/*==========================================
- * Reading of random monster data
- *------------------------------------------
- */
-static
-int mob_read_randommonster(void)
-{
-    FILE *fp;
-    char line[1024];
-    char *str[10], *p;
-    int i, j;
-
-    const char *mobfile[] = {
-        "db/mob_branch.txt",
-        "db/mob_poring.txt",
-        "db/mob_boss.txt"
-    };
-
-    for (i = 0; i < MAX_RANDOMMONSTER; i++)
-    {
-        mob_db[0].summonper[i] = 1002;  // 設定し忘れた場合はポリンが出るようにしておく
-        fp = fopen_(mobfile[i], "r");
-        if (fp == NULL)
-        {
-            PRINTF("can't read %s\n", mobfile[i]);
-            return -1;
-        }
-        while (fgets(line, 1020, fp))
-        {
-            int mob_class, per;
-            if (line[0] == '/' && line[1] == '/')
-                continue;
-            memset(str, 0, sizeof(str));
-            for (j = 0, p = line; j < 3 && p; j++)
-            {
-                str[j] = p;
-                p = strchr(p, ',');
-                if (p)
-                    *p++ = 0;
-            }
-
-            if (str[0] == NULL || str[2] == NULL)
-                continue;
-
-            mob_class = atoi(str[0]);
-            per = atoi(str[2]);
-            if ((mob_class > 1000 && mob_class <= 2000) || mob_class == 0)
-                mob_db[mob_class].summonper[i] = per;
-        }
-        fclose_(fp);
-        PRINTF("read %s done\n", mobfile[i]);
     }
     return 0;
 }
@@ -4054,7 +3753,6 @@ int do_init_mob(void)
 {
     mob_readdb();
 
-    mob_read_randommonster();
     mob_readskilldb();
 
     add_timer_interval(gettick() + MIN_MOBTHINKTIME,

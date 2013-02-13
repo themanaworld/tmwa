@@ -13,7 +13,7 @@
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/grfio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random2.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -768,56 +768,24 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
     map_delobject(fitem->bl.id, BL::ITEM);
 }
 
-/*==========================================
- * (m,x,y)の周囲rangeマス内の空き(=侵入可能)cellの
- * 内から適当なマス目の座標をx+(y<<16)で返す
- *
- * 現状range=1でアイテムドロップ用途のみ
- *------------------------------------------
- */
-static
-int map_searchrandfreecell(int m, int x, int y, int range)
+std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
-    int free_cell, i, j, c;
-
-    for (free_cell = 0, i = -range; i <= range; i++)
+    for (int itr : random_::iterator(w * h))
     {
-        if (i + y < 0 || i + y >= map[m].ys)
-            continue;
-        for (j = -range; j <= range; j++)
-        {
-            if (j + x < 0 || j + x >= map[m].xs)
-                continue;
-            if ((c = read_gat(m, j + x, i + y)) == 1 || c == 5)
-                continue;
-            free_cell++;
-        }
+        int dx = itr % w;
+        int dy = itr / w;
+        if (read_gat(m, x + dx, y + dy) == 1)
+            return {static_cast<uint16_t>(x + dx), static_cast<uint16_t>(y + dy)};
     }
-    if (free_cell == 0)
-        return -1;
-    free_cell = MRAND(free_cell);
-    for (i = -range; i <= range; i++)
-    {
-        if (i + y < 0 || i + y >= map[m].ys)
-            continue;
-        for (j = -range; j <= range; j++)
-        {
-            if (j + x < 0 || j + x >= map[m].xs)
-                continue;
-            if ((c = read_gat(m, j + x, i + y)) == 1 || c == 5)
-                continue;
-            if (free_cell == 0)
-            {
-                x += j;
-                y += i;
-                i = range + 1;
-                break;
-            }
-            free_cell--;
-        }
-    }
+    return {static_cast<uint16_t>(0), static_cast<uint16_t>(0)};
+}
 
-    return x + (y << 16);
+/// Return a randomly selected passable cell within a given range.
+static
+std::pair<uint16_t, uint16_t> map_searchrandfreecell(int m, int x, int y, int range)
+{
+    int whole_range = 2 * range + 1;
+    return map_randfreecell(m, x - range, y - range, whole_range, whole_range);
 }
 
 /*==========================================
@@ -831,21 +799,19 @@ int map_addflooritem_any(struct item *item_data, int amount,
         struct map_session_data **owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
 {
-    int xy, r;
     struct flooritem_data *fitem = NULL;
 
     nullpo_ret(item_data);
-
-    if ((xy = map_searchrandfreecell(m, x, y, dispersal)) < 0)
+    auto xy = map_searchrandfreecell(m, x, y, dispersal);
+    if (xy.first == 0 && xy.second == 0)
         return 0;
-    r = mt_random();
 
     CREATE(fitem, struct flooritem_data, 1);
     fitem->bl.type = BL::ITEM;
     fitem->bl.prev = fitem->bl.next = NULL;
     fitem->bl.m = m;
-    fitem->bl.x = xy & 0xffff;
-    fitem->bl.y = (xy >> 16) & 0xffff;
+    fitem->bl.x = xy.first;
+    fitem->bl.y = xy.second;
     fitem->first_get_id = 0;
     fitem->first_get_tick = tick_t();
     fitem->second_get_id = 0;
@@ -876,8 +842,13 @@ int map_addflooritem_any(struct item *item_data, int amount,
 
     memcpy(&fitem->item_data, item_data, sizeof(*item_data));
     fitem->item_data.amount = amount;
-    fitem->subx = (r & 3) * 3 + 3;
-    fitem->suby = ((r >> 2) & 3) * 3 + 3;
+    // TODO - talk to 4144 about maybe removing this.
+    // It has no effect on the server itself, it is visual only.
+    // If it is desirable to prevent items from visibly stacking
+    // on the ground, that can be done with client-side randomness.
+    // Currently, it yields the numbers {3 6 9 12}.
+    fitem->subx = random_::in(1, 4) * 3;
+    fitem->suby = random_::in(1, 4) * 3;
     fitem->cleartimer = add_timer(gettick() + lifetime,
             std::bind(map_clearflooritem_timer, ph::_1, ph::_2,
                 fitem->bl.id));
@@ -892,18 +863,11 @@ int map_addflooritem(struct item *item_data, int amount,
         int m, int x, int y,
         struct map_session_data *first_sd,
         struct map_session_data *second_sd,
-        struct map_session_data *third_sd, bool type)
+        struct map_session_data *third_sd)
 {
     struct map_session_data *owners[3] = { first_sd, second_sd, third_sd };
     interval_t owner_protection[3];
 
-    if (type)
-    {
-        owner_protection[0] = static_cast<interval_t>(battle_config.mvp_item_first_get_time);
-        owner_protection[1] = owner_protection[0] + static_cast<interval_t>(battle_config.mvp_item_second_get_time);
-        owner_protection[2] = owner_protection[1] + static_cast<interval_t>(battle_config.mvp_item_third_get_time);
-    }
-    else
     {
         owner_protection[0] = static_cast<interval_t>(battle_config.item_first_get_time);
         owner_protection[1] = owner_protection[0] + static_cast<interval_t>(battle_config.item_second_get_time);

@@ -5,7 +5,7 @@
 #include <cstring>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/mt_rand.hpp"
+#include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -608,84 +608,6 @@ int pc_isequip(struct map_session_data *sd, int n)
         && (item->flag.no_equip == 1 || item->flag.no_equip == 3))
         return 0;
     return 1;
-}
-
-/*==========================================
- * Weapon Breaking [Valaris]
- *------------------------------------------
- */
-int pc_breakweapon(struct map_session_data *sd)
-{
-    struct item_data *item;
-    int i;
-
-    if (sd == NULL)
-        return -1;
-    if (!MRAND(100))
-        return 0;
-
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (bool(sd->status.inventory[i].equip)
-            && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
-            && !sd->status.inventory[i].broken)
-        {
-            item = sd->inventory_data[i];
-            sd->status.inventory[i].broken = 1;
-            //pc_unequipitem(sd,i,CalcStatus::NOW);
-            if (bool(sd->status.inventory[i].equip)
-                && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
-                && sd->status.inventory[i].broken == 1)
-            {
-                std::string output = STRPRINTF("%s has broken.", item->jname);
-                clif_emotion(&sd->bl, 23);
-                clif_displaymessage(sd->fd, output);
-                clif_equiplist(sd);
-                skill_status_change_start(&sd->bl, StatusChange::SC_BROKNWEAPON, 0, interval_t::zero());
-            }
-        }
-        if (sd->status.inventory[i].broken == 1)
-            return 0;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * Armor Breaking [Valaris]
- *------------------------------------------
- */
-int pc_breakarmor(struct map_session_data *sd)
-{
-    if (sd == NULL)
-        return -1;
-    if (!MRAND(100))
-        return 0;
-
-    for (int i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (bool(sd->status.inventory[i].equip)
-            && bool(sd->status.inventory[i].equip & EPOS::MISC1)
-            && !sd->status.inventory[i].broken)
-        {
-            struct item_data *item = sd->inventory_data[i];
-            sd->status.inventory[i].broken = 1;
-            if (bool(sd->status.inventory[i].equip)
-                && bool(sd->status.inventory[i].equip & EPOS::MISC1)
-                && sd->status.inventory[i].broken == 1)
-            {
-                std::string output = STRPRINTF("%s has broken.",
-                        item->jname);
-                clif_emotion(&sd->bl, 23);
-                clif_displaymessage(sd->fd, output);
-                clif_equiplist(sd);
-                skill_status_change_start(&sd->bl, StatusChange::SC_BROKNARMOR, 0, interval_t::zero());
-            }
-        }
-        if (sd->status.inventory[i].broken == 1)
-            return 0;
-    }
-    return 0;
 }
 
 /*==========================================
@@ -2238,8 +2160,9 @@ int pc_dropitem(struct map_session_data *sd, int n, int amount)
         sd->status.inventory[n].amount < amount ||
         sd->trade_partner != 0 || sd->status.inventory[n].amount <= 0)
         return 1;
-    map_addflooritem(&sd->status.inventory[n], amount, sd->bl.m, sd->bl.x,
-                      sd->bl.y, NULL, NULL, NULL, 0);
+    map_addflooritem(&sd->status.inventory[n], amount,
+            sd->bl.m, sd->bl.x, sd->bl.y,
+            NULL, NULL, NULL);
     pc_delitem(sd, n, amount, 0);
 
     return 0;
@@ -2432,131 +2355,6 @@ int pc_cart_delitem(struct map_session_data *sd, int n, int amount, int)
     return 0;
 }
 
-/*==========================================
- * スティル品公開
- *------------------------------------------
- */
-static
-void pc_show_steal(struct block_list *bl,
-        struct map_session_data *sd, int itemid, int type)
-{
-    nullpo_retv(bl);
-    nullpo_retv(sd);
-
-    std::string output;
-    if (!type)
-    {
-        struct item_data *item = itemdb_exists(itemid);
-        if (item == NULL)
-            output = STRPRINTF("%s stole an Unknown_Item.",
-                    sd->status.name);
-        else
-            output = STRPRINTF("%s stole %s.",
-                    sd->status.name, item->jname);
-        clif_displaymessage(((struct map_session_data *) bl)->fd, output);
-    }
-    else
-    {
-        output = STRPRINTF(
-                "%s has not stolen the item because of being  overweight.",
-                sd->status.name);
-        clif_displaymessage(((struct map_session_data *) bl)->fd, output);
-    }
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-//** pc.c: Small Steal Item fix by fritz
-int pc_steal_item(struct map_session_data *sd, struct block_list *bl)
-{
-    if (sd != NULL && bl != NULL && bl->type == BL::MOB)
-    {
-        int i, skill, rate, itemid, count;
-        struct mob_data *md;
-        md = (struct mob_data *) bl;
-        if (!md->state.steal_flag
-            && mob_db[md->mob_class].mexp <= 0
-            && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
-        {
-            skill = sd->paramc[ATTR::DEX] - mob_db[md->mob_class].attrs[ATTR::DEX] + 10;
-
-            if (0 < skill)
-            {
-                for (count = 8; count <= 8 && count != 0; count--)
-                {
-                    i = MRAND(8);
-                    itemid = mob_db[md->mob_class].dropitem[i].nameid;
-
-                    if (itemid > 0 && itemdb_type(itemid) != ItemType::_6)
-                    {
-                        rate =
-                            (mob_db[md->mob_class].dropitem[i].p /
-                             battle_config.item_rate_common * 100 * skill) /
-                            100;
-
-                        if (MRAND(10000) < rate)
-                        {
-                            struct item tmp_item;
-                            memset(&tmp_item, 0, sizeof(tmp_item));
-                            tmp_item.nameid = itemid;
-                            tmp_item.amount = 1;
-                            tmp_item.identify = 1;
-                            PickupFail flag = pc_additem(sd, &tmp_item, 1);
-                            if (battle_config.show_steal_in_same_party)
-                            {
-                                party_foreachsamemap(
-                                        std::bind(pc_show_steal, ph::_1, sd, tmp_item.nameid, 0), sd, 1);
-                            }
-
-                            if (flag != PickupFail::OKAY)
-                            {
-                                if (battle_config.show_steal_in_same_party)
-                                {
-                                    party_foreachsamemap(
-                                            std::bind(pc_show_steal, ph::_1, sd, tmp_item.nameid, 1), sd, 1);
-                                }
-
-                                clif_additem(sd, 0, 0, flag);
-                            }
-                            md->state.steal_flag = 1;
-                            return 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int pc_steal_coin(struct map_session_data *sd, struct block_list *bl)
-{
-    if (sd != NULL && bl != NULL && bl->type == BL::MOB)
-    {
-        int rate;
-        struct mob_data *md = (struct mob_data *) bl;
-        if (md && !md->state.steal_coin_flag)
-        {
-            rate = (sd->status.base_level - mob_db[md->mob_class].lv) * 3
-                + sd->paramc[ATTR::DEX] * 2 + sd->paramc[ATTR::LUK] * 2;
-            if (MRAND(1000) < rate)
-            {
-                pc_getzeny(sd, mob_db[md->mob_class].lv * 10 + MRAND(100));
-                md->state.steal_coin_flag = 1;
-                return 1;
-            }
-        }
-    }
-
-    return 0;
-}
-
 //
 //
 //
@@ -2645,8 +2443,8 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
         }
         do
         {
-            x = MRAND(map[m].xs - 2) + 1;
-            y = MRAND(map[m].ys - 2) + 1;
+            x = random_::in(1, map[m].xs - 2);
+            y = random_::in(1, map[m].ys - 2);
         }
         while ((c = read_gat(m, x, y)) == 1 || c == 5);
     }
@@ -2693,8 +2491,8 @@ int pc_randomwarp(struct map_session_data *sd, BeingRemoveWhy type)
 
     do
     {
-        x = MRAND(map[m].xs - 2) + 1;
-        y = MRAND(map[m].ys - 2) + 1;
+        x = random_::in(1, map[m].xs - 2);
+        y = random_::in(1, map[m].ys - 2);
     }
     while (((c = read_gat(m, x, y)) == 1 || c == 5) && (i++) < 1000);
 
@@ -3738,7 +3536,7 @@ int pc_resetskill(struct map_session_data *sd)
 int pc_damage(struct block_list *src, struct map_session_data *sd,
                int damage)
 {
-    int i = 0, j = 0;
+    int i = 0;
 
     nullpo_ret(sd);
 
@@ -3876,70 +3674,7 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
             clif_updatestatus(sd, SP::JOBEXP);
         }
     }
-    //ナイトメアモードアイテムドロップ
-    if (map[sd->bl.m].flag.pvp_nightmaredrop)
-    {                           // Moved this outside so it works when PVP isnt enabled and during pk mode [Ancyker]
-        for (j = 0; j < MAX_DROP_PER_MAP; j++)
-        {
-            int id = map[sd->bl.m].drop_list[j].drop_id;
-            int type = map[sd->bl.m].drop_list[j].drop_type;
-            int per = map[sd->bl.m].drop_list[j].drop_per;
-            if (id == 0)
-                continue;
-            if (id == -1)
-            {                   //ランダムドロップ
-                int eq_num = 0, eq_n[MAX_INVENTORY];
-                memset(eq_n, 0, sizeof(eq_n));
-                //先ず装備しているアイテム数をカウント
-                for (i = 0; i < MAX_INVENTORY; i++)
-                {
-                    int k;
-                    if ((type == 1 && !bool(sd->status.inventory[i].equip))
-                        || (type == 2 && bool(sd->status.inventory[i].equip))
-                        || type == 3)
-                    {
-                        //InventoryIndexを格納
-                        for (k = 0; k < MAX_INVENTORY; k++)
-                        {
-                            if (eq_n[k] <= 0)
-                            {
-                                eq_n[k] = i;
-                                break;
-                            }
-                        }
-                        eq_num++;
-                    }
-                }
-                if (eq_num > 0)
-                {
-                    int n = eq_n[MRAND(eq_num)];  //該当アイテムの中からランダム
-                    if (MRAND(10000) < per)
-                    {
-                        if (bool(sd->status.inventory[n].equip))
-                            pc_unequipitem(sd, n, CalcStatus::NOW);
-                        pc_dropitem(sd, n, 1);
-                    }
-                }
-            }
-            else if (id > 0)
-            {
-                for (i = 0; i < MAX_INVENTORY; i++)
-                {
-                    if (sd->status.inventory[i].nameid == id    //ItemIDが一致していて
-                        && MRAND(10000) < per  //ドロップ率判定もOKで
-                        && ((type == 1 && !bool(sd->status.inventory[i].equip))   //タイプ判定もOKならドロップ
-                            || (type == 2 && bool(sd->status.inventory[i].equip))
-                            || type == 3))
-                    {
-                        if (bool(sd->status.inventory[i].equip))
-                            pc_unequipitem(sd, i, CalcStatus::NOW);
-                        pc_dropitem(sd, i, 1);
-                        break;
-                    }
-                }
-            }
-        }
-    }
+
     // pvp
     if (map[sd->bl.m].flag.pvp && !battle_config.pk_mode)
     {                           // disable certain pvp functions on pk_mode [Valaris]
