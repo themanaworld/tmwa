@@ -1,8 +1,10 @@
 #include "map.hpp"
 
 #include <sys/time.h>
+#include <sys/wait.h>
 
 #include <netdb.h>
+#include <unistd.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -1612,15 +1614,24 @@ void map_close_logfile(void)
 {
     if (map_logfile)
     {
-        std::string filenameop_buf = STRPRINTF(
-                "gzip -f %s.%ld",
-                map_logfile_name,
-                map_logfile_index);
+        std::string filename = STRPRINTF("%s.%ld", map_logfile_name, map_logfile_index);
+        const char *args[] =
+        {
+            "gzip",
+            "-f",
+            filename.c_str(),
+            NULL
+        };
+        char **argv = const_cast<char **>(args);
 
         fclose(map_logfile);
 
-        if (!system(filenameop_buf.c_str()))
-            perror(filenameop_buf.c_str());
+        if (!fork())
+        {
+            execvp("gzip", argv);
+            _exit(1);
+        }
+        wait(NULL);
     }
 }
 

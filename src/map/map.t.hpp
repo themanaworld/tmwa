@@ -270,9 +270,7 @@ enum class SP : uint16_t
 #if 0
     SPEED_RATE                  = 1018,
 #endif
-#if 0
     CRITICAL_DEF                = 1019,
-#endif
 #if 0
     NEAR_ATK_DEF                = 1020,
 #endif

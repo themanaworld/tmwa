@@ -1715,12 +1715,10 @@ int pc_bonus(struct map_session_data *sd, SP type, int val)
                 sd->sprecov_rate += val;
             break;
 #endif
-#if 0
         case SP::CRITICAL_DEF:
             if (sd->state.lr_flag != 2)
                 sd->critical_def += val;
             break;
-#endif
 #if 0
         case SP::DOUBLE_RATE:
             if (sd->state.lr_flag == 0 && sd->double_rate < val)
