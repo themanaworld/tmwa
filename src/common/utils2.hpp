@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <iterator>
+#include <memory>
 #include <type_traits>
 
 #ifdef __clang__
@@ -206,6 +207,24 @@ template<class A, class B>
 typename std::common_type<A, B>::type max(A a, B b)
 {
     return b < a ? a : b;
+}
+
+template<class T>
+struct is_array_of_unknown_bound
+: std::is_same<T, typename std::remove_extent<T>::type[]>
+{};
+
+template<class T, class... A>
+typename std::enable_if<!is_array_of_unknown_bound<T>::value, std::unique_ptr<T>>::type make_unique(A&&... a)
+{
+    return std::unique_ptr<T>(new T(a...));
+}
+
+template<class T>
+typename std::enable_if<is_array_of_unknown_bound<T>::value, std::unique_ptr<T>>::type make_unique(size_t sz)
+{
+    typedef typename std::remove_extent<T>::type E;
+    return std::unique_ptr<E[]>(new E[sz]);
 }
 
 #endif // UTILS2_HPP

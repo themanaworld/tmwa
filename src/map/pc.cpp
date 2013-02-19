@@ -2364,7 +2364,7 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
        BeingRemoveWhy clrtype)
 {
     char mapname[24];
-    int m = 0, c = 0;
+    int m = 0;
 
     nullpo_ret(sd);
 
@@ -2432,7 +2432,8 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
 
     if (x < 0 || x >= map[m].xs || y < 0 || y >= map[m].ys)
         x = y = 0;
-    if ((x == 0 && y == 0) || (c = read_gat(m, x, y)) == 1 || c == 5)
+    if ((x == 0 && y == 0)
+        || bool(read_gat(m, x, y) & MapCell::UNWALKABLE))
     {
         if (x || y)
         {
@@ -2444,7 +2445,7 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
             x = random_::in(1, map[m].xs - 2);
             y = random_::in(1, map[m].ys - 2);
         }
-        while ((c = read_gat(m, x, y)) == 1 || c == 5);
+        while (bool(read_gat(m, x, y) & MapCell::UNWALKABLE));
     }
 
     if (sd->mapname[0] && sd->bl.prev != NULL)
@@ -2477,7 +2478,7 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
  */
 int pc_randomwarp(struct map_session_data *sd, BeingRemoveWhy type)
 {
-    int x, y, c, i = 0;
+    int x, y, i = 0;
     int m;
 
     nullpo_ret(sd);
@@ -2492,7 +2493,8 @@ int pc_randomwarp(struct map_session_data *sd, BeingRemoveWhy type)
         x = random_::in(1, map[m].xs - 2);
         y = random_::in(1, map[m].ys - 2);
     }
-    while (((c = read_gat(m, x, y)) == 1 || c == 5) && (i++) < 1000);
+    while (bool(read_gat(m, x, y) & MapCell::UNWALKABLE)
+        && (i++) < 1000);
 
     if (i < 1000)
         pc_setpos(sd, map[m].name, x, y, type);
@@ -2550,7 +2552,6 @@ static
 void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
 {
     struct map_session_data *sd;
-    int ctype;
     int moveblock;
     int x, y, dx, dy;
 
@@ -2581,8 +2582,7 @@ void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
 
         x = sd->bl.x;
         y = sd->bl.y;
-        ctype = map_getcell(sd->bl.m, x, y);
-        if (ctype == 1 || ctype == 5)
+        if (bool(map_getcell(sd->bl.m, x, y) & MapCell::UNWALKABLE))
         {
             pc_stop_walking(sd, 1);
             return;
@@ -2590,8 +2590,8 @@ void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
         sd->dir = sd->head_dir = sd->walkpath.path[sd->walkpath.path_pos];
         dx = dirx[sd->dir];
         dy = diry[sd->dir];
-        ctype = map_getcell(sd->bl.m, x + dx, y + dy);
-        if (ctype == 1 || ctype == 5)
+        if (bool(map_getcell(sd->bl.m, x + dx, y + dy)
+                & MapCell::UNWALKABLE))
         {
             pc_walktoxy_sub(sd);
             return;
@@ -2648,7 +2648,7 @@ void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
                 break;
             }
 
-        if (map_getcell(sd->bl.m, x, y) & 0x80)
+        if (bool(map_getcell(sd->bl.m, x, y) & MapCell::NPC_NEAR))
             npc_touch_areanpc(sd, sd->bl.m, x, y);
         else
             sd->areanpc_id = 0;
@@ -2756,7 +2756,7 @@ int pc_stop_walking(struct map_session_data *sd, int type)
 
 void pc_touch_all_relevant_npcs(struct map_session_data *sd)
 {
-    if (map_getcell(sd->bl.m, sd->bl.x, sd->bl.y) & 0x80)
+    if (bool(map_getcell(sd->bl.m, sd->bl.x, sd->bl.y) & MapCell::NPC_NEAR))
         npc_touch_areanpc(sd, sd->bl.m, sd->bl.x, sd->bl.y);
     else
         sd->areanpc_id = 0;

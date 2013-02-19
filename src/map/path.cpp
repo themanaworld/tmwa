@@ -182,19 +182,11 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
  *------------------------------------------
  */
 static
-int can_place(struct map_data *m, int x, int y, int flag)
+bool can_place(struct map_data *m, int x, int y)
 {
-    int c;
-
     nullpo_ret(m);
 
-    c = read_gatp(m, x, y);
-
-    if (c == 1)
-        return 0;
-    if (!(flag & 0x10000) && c == 5)
-        return 0;
-    return 1;
+    return !bool(read_gatp(m, x, y) & MapCell::UNWALKABLE);
 }
 
 /*==========================================
@@ -202,7 +194,7 @@ int can_place(struct map_data *m, int x, int y, int flag)
  *------------------------------------------
  */
 static
-int can_move(struct map_data *m, int x0, int y0, int x1, int y1, int flag)
+int can_move(struct map_data *m, int x0, int y0, int x1, int y1)
 {
     nullpo_ret(m);
 
@@ -210,13 +202,13 @@ int can_move(struct map_data *m, int x0, int y0, int x1, int y1, int flag)
         return 0;
     if (x1 < 0 || y1 < 0 || x1 >= m->xs || y1 >= m->ys)
         return 0;
-    if (!can_place(m, x0, y0, flag))
+    if (!can_place(m, x0, y0))
         return 0;
-    if (!can_place(m, x1, y1, flag))
+    if (!can_place(m, x1, y1))
         return 0;
     if (x0 == x1 || y0 == y1)
         return 1;
-    if (!can_place(m, x0, y1, flag) || !can_place(m, x1, y0, flag))
+    if (!can_place(m, x0, y1) || !can_place(m, x1, y0))
         return 0;
     return 1;
 }
@@ -239,7 +231,7 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
         return -1;
     md = &map[m];
     if (x1 < 0 || x1 >= md->xs || y1 < 0 || y1 >= md->ys
-        || (i = read_gatp(md, x1, y1)) == 1 || i == 5)
+        || bool(read_gatp(md, x1, y1) & MapCell::UNWALKABLE))
         return -1;
 
     // easy
@@ -251,7 +243,7 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
             return -1;
         if (x != x1 && y != y1)
         {
-            if (!can_move(md, x, y, x + dx, y + dy, flag))
+            if (!can_move(md, x, y, x + dx, y + dy))
                 break;
             x += dx;
             y += dy;
@@ -261,14 +253,14 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
         }
         else if (x != x1)
         {
-            if (!can_move(md, x, y, x + dx, y, flag))
+            if (!can_move(md, x, y, x + dx, y))
                 break;
             x += dx;
             wpd->path[i++] = (dx < 0) ? DIR::W : DIR::E;
         }
         else
         {                       // y!=y1
-            if (!can_move(md, x, y, x, y + dy, flag))
+            if (!can_move(md, x, y, x, y + dy))
                 break;
             y += dy;
             wpd->path[i++] = (dy > 0) ? DIR::S : DIR::N;
@@ -321,21 +313,21 @@ int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1
 
             return 0;
         }
-        if (can_move(md, x, y, x + 1, y - 1, flag))
+        if (can_move(md, x, y, x + 1, y - 1))
             e += add_path(heap, tp, x + 1, y - 1, tp[rp].dist + 14, DIR::NE, rp, x1, y1);
-        if (can_move(md, x, y, x + 1, y, flag))
+        if (can_move(md, x, y, x + 1, y))
             e += add_path(heap, tp, x + 1, y, tp[rp].dist + 10, DIR::E, rp, x1, y1);
-        if (can_move(md, x, y, x + 1, y + 1, flag))
+        if (can_move(md, x, y, x + 1, y + 1))
             e += add_path(heap, tp, x + 1, y + 1, tp[rp].dist + 14, DIR::SE, rp, x1, y1);
-        if (can_move(md, x, y, x, y + 1, flag))
+        if (can_move(md, x, y, x, y + 1))
             e += add_path(heap, tp, x, y + 1, tp[rp].dist + 10, DIR::S, rp, x1, y1);
-        if (can_move(md, x, y, x - 1, y + 1, flag))
+        if (can_move(md, x, y, x - 1, y + 1))
             e += add_path(heap, tp, x - 1, y + 1, tp[rp].dist + 14, DIR::SW, rp, x1, y1);
-        if (can_move(md, x, y, x - 1, y, flag))
+        if (can_move(md, x, y, x - 1, y))
             e += add_path(heap, tp, x - 1, y, tp[rp].dist + 10, DIR::W, rp, x1, y1);
-        if (can_move(md, x, y, x - 1, y - 1, flag))
+        if (can_move(md, x, y, x - 1, y - 1))
             e += add_path(heap, tp, x - 1, y - 1, tp[rp].dist + 14, DIR::NW, rp, x1, y1);
-        if (can_move(md, x, y, x, y - 1, flag))
+        if (can_move(md, x, y, x, y - 1))
             e += add_path(heap, tp, x, y - 1, tp[rp].dist + 10, DIR::N, rp, x1, y1);
         tp[rp].flag = 1;
         if (e || heap[0] >= MAX_HEAP - 5)

@@ -398,7 +398,8 @@ struct map_data
 {
     char name[24];
     char alias[24];             // [MouseJstr]
-    unsigned char *gat;         // NULLなら下のmap_data_other_serverとして扱う
+    // if NULL, actually a map_data_other_server
+    std::unique_ptr<MapCell[]> gat;
     struct block_list **block;
     struct block_list **block_mob;
     int *block_count, *block_mob_count;
@@ -455,12 +456,12 @@ extern struct map_data map[];
 extern int map_num;
 
 inline
-uint8_t read_gatp(struct map_data *m, int x, int y)
+MapCell read_gatp(struct map_data *m, int x, int y)
 {
     return m->gat[x + y * m->xs];
 }
 inline
-uint8_t read_gat(int m, int x, int y)
+MapCell read_gat(int m, int x, int y)
 {
     return read_gatp(&map[m], x, y);
 }
@@ -584,8 +585,8 @@ struct map_session_data *map_get_prev_session(
         struct map_session_data *current);
 
 // gat関連
-int map_getcell(int, int, int);
-int map_setcell(int, int, int, int);
+MapCell map_getcell(int, int, int);
+void map_setcell(int, int, int, MapCell);
 
 // その他
 bool map_check_dir(DIR s_dir, DIR t_dir);

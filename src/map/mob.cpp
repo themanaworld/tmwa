@@ -435,7 +435,7 @@ int mob_once_spawn_area(struct map_session_data *sd, const char *mapname,
                          const char *mobname, int mob_class, int amount,
                          const char *event)
 {
-    int x, y, i, c, max, lx = -1, ly = -1, id = 0;
+    int x, y, i, max, lx = -1, ly = -1, id = 0;
     int m;
 
     if (strcmp(mapname, "this") == 0)
@@ -458,7 +458,8 @@ int mob_once_spawn_area(struct map_session_data *sd, const char *mapname,
             x = random_::in(x0, x1);
             y = random_::in(y0, y1);
         }
-        while (((c = map_getcell(m, x, y)) == 1 || c == 5) && (++j) < max);
+        while (bool(map_getcell(m, x, y) & MapCell::UNWALKABLE)
+             && (++j) < max);
         if (j >= max)
         {
             if (lx >= 0)
@@ -570,7 +571,6 @@ static
 int mob_walk(struct mob_data *md, tick_t tick, unsigned char data)
 {
     int moveblock;
-    int ctype;
     int x, y, dx, dy;
 
     nullpo_ret(md);
@@ -597,8 +597,7 @@ int mob_walk(struct mob_data *md, tick_t tick, unsigned char data)
 
         x = md->bl.x;
         y = md->bl.y;
-        ctype = map_getcell(md->bl.m, x, y);
-        if (ctype == 1 || ctype == 5)
+        if (bool(map_getcell(md->bl.m, x, y) & MapCell::UNWALKABLE))
         {
             mob_stop_walking(md, 1);
             return 0;
@@ -607,8 +606,8 @@ int mob_walk(struct mob_data *md, tick_t tick, unsigned char data)
         dx = dirx[md->dir];
         dy = diry[md->dir];
 
-        ctype = map_getcell(md->bl.m, x + dx, y + dy);
-        if (ctype == 1 || ctype == 5)
+        if (bool(map_getcell(md->bl.m, x + dx, y + dy)
+                & MapCell::UNWALKABLE))
         {
             mob_walktoxy_sub(md);
             return 0;
@@ -1056,7 +1055,7 @@ int mob_setdelayspawn(int id)
  */
 int mob_spawn(int id)
 {
-    int x = 0, y = 0, c;
+    int x = 0, y = 0;
     tick_t tick = gettick();
     struct mob_data *md;
     struct block_list *bl;
@@ -1098,7 +1097,8 @@ int mob_spawn(int id)
             }
             i++;
         }
-        while (((c = map_getcell(md->bl.m, x, y)) == 1 || c == 5) && i < 50);
+        while (bool(map_getcell(md->bl.m, x, y) & MapCell::UNWALKABLE)
+            && i < 50);
 
         if (i >= 50)
         {
@@ -1698,8 +1698,7 @@ int mob_randomwalk(struct mob_data *md, tick_t tick)
             // Search of a movable place
             x = md->bl.x + random_::in(-d, d);
             y = md->bl.y + random_::in(-d, d);
-            uint8_t c = map_getcell(md->bl.m, x, y);
-            if (c != 1 && c != 5
+            if (!bool(map_getcell(md->bl.m, x, y) & MapCell::UNWALKABLE)
                 && mob_walktoxy(md, x, y, 1) == 0)
             {
                 md->move_fail_count = 0;
@@ -2784,7 +2783,7 @@ int mob_warpslave(struct mob_data *md, int x, int y)
  */
 int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type)
 {
-    int i = 0, c, xs = 0, ys = 0, bx = x, by = y;
+    int i = 0, xs = 0, ys = 0, bx = x, by = y;
 
     nullpo_ret(md);
 
@@ -2807,8 +2806,10 @@ int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type)
         xs = ys = 9;
     }
 
-    while ((x < 0 || y < 0 || ((c = read_gat(m, x, y)) == 1 || c == 5))
-           && (i++) < 1000)
+    while ((x < 0
+            || y < 0
+            || bool(read_gat(m, x, y) & MapCell::UNWALKABLE))
+       && (i++) < 1000)
     {
         if (xs > 0 && ys > 0 && i < 250)
         {
@@ -2924,7 +2925,7 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
             continue;
         for (; amount > 0; amount--)
         {
-            int x = 0, y = 0, c = 0, i = 0;
+            int x = 0, y = 0, i = 0;
             md = (struct mob_data *) calloc(1, sizeof(struct mob_data));
             if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
                 md->lootitem = (struct item *)
@@ -2932,8 +2933,10 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
             else
                 md->lootitem = NULL;
 
-            while ((x <= 0 || y <= 0 || (c = map_getcell(m, x, y)) == 1
-                    || c == 5) && (i++) < 100)
+            while ((x <= 0
+                    || y <= 0
+                    || bool(map_getcell(m, x, y) & MapCell::UNWALKABLE))
+                && (i++) < 100)
             {
                 x = bx + random_::in(-4, 4);
                 y = by + random_::in(-4, 4);

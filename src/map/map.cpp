@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 
@@ -14,7 +15,6 @@
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
-#include "../common/grfio.hpp"
 #include "../common/random2.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -25,6 +25,7 @@
 #include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
+#include "grfio.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
 #include "mob.hpp"
@@ -776,7 +777,7 @@ std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, ui
     {
         int dx = itr % w;
         int dy = itr / w;
-        if (read_gat(m, x + dx, y + dy) == 1)
+        if (!bool(read_gat(m, x + dx, y + dy) & MapCell::UNWALKABLE))
             return {static_cast<uint16_t>(x + dx), static_cast<uint16_t>(y + dy)};
     }
     return {static_cast<uint16_t>(0), static_cast<uint16_t>(0)};
@@ -1347,10 +1348,10 @@ DIR map_calc_dir(struct block_list *src, int x, int y)
  * (m,x,y)の状態を調べる
  *------------------------------------------
  */
-int map_getcell(int m, int x, int y)
+MapCell map_getcell(int m, int x, int y)
 {
     if (x < 0 || x >= map[m].xs - 1 || y < 0 || y >= map[m].ys - 1)
-        return 1;
+        return MapCell::UNWALKABLE;
     return map[m].gat[x + y * map[m].xs];
 }
 
@@ -1358,11 +1359,11 @@ int map_getcell(int m, int x, int y)
  * (m,x,y)の状態をtにする
  *------------------------------------------
  */
-int map_setcell(int m, int x, int y, int t)
+void map_setcell(int m, int x, int y, MapCell t)
 {
     if (x < 0 || x >= map[m].xs || y < 0 || y >= map[m].ys)
-        return t;
-    return map[m].gat[x + y * map[m].xs] = t;
+        return;
+    map[m].gat[x + y * map[m].xs] = t;
 }
 
 /*==========================================
@@ -1404,46 +1405,28 @@ int map_setipport(const char *name, struct in_addr ip, int port)
     return 0;
 }
 
-// 初期化周り
-/*==========================================
- * 水場高さ設定
- *------------------------------------------
- */
-static
-struct Waterlist
-{
-    char mapname[24];
-    int waterheight;
-}   *waterlist = NULL;
-
 /*==========================================
  * マップ1枚読み込み
  *------------------------------------------
  */
 static
-int map_readmap(int m, const char *fn, char *)
+bool map_readmap(int m, const_string fn)
 {
-    int s;
-    int x, y, xs, ys;
-    struct gat_1cell
-    {
-        char type;
-    }   *p;
-    size_t size;
-
     // read & convert fn
-    uint8_t *gat = (uint8_t *)grfio_read(fn);
-    if (gat == NULL)
-        return -1;
-
-    PRINTF("\rLoading Maps [%d/%d]: %-50s  ", m, map_num, fn);
-    fflush(stdout);
+    std::vector<uint8_t> gat_v = grfio_reads(fn);
+    if (gat_v.empty())
+        return false;
+    size_t s = gat_v.size() - 4;
 
     map[m].m = m;
-    xs = map[m].xs = *(short *)(gat);
-    ys = map[m].ys = *(short *)(gat + 2);
-    PRINTF("\n%i %i\n", xs, ys);
-    map[m].gat = (uint8_t *)calloc(s = map[m].xs * map[m].ys, 1);
+    int xs = map[m].xs = gat_v[0] | gat_v[1] << 8;
+    int ys = map[m].ys = gat_v[2] | gat_v[3] << 8;
+    PRINTF("\rLoading Maps [%d/%d]: %-30s  (%i, %i)",
+            m, map_num, std::string(fn.begin(), fn.end()), xs, ys);
+    fflush(stdout);
+
+    assert (s == xs * ys);
+    map[m].gat = make_unique<MapCell[]>(s);
     if (map[m].gat == NULL)
     {
         PRINTF("out of memory : map_readmap gat\n");
@@ -1455,39 +1438,21 @@ int map_readmap(int m, const char *fn, char *)
     memset(&map[m].flag, 0, sizeof(map[m].flag));
     if (battle_config.pk_mode)
         map[m].flag.pvp = 1;    // make all maps pvp for pk_mode [Valaris]
-    for (y = 0; y < ys; y++)
-    {
-        p = (struct gat_1cell *)(gat + y * xs + 4);
-        for (x = 0; x < xs; x++)
-        {
-            /*if (wh!=NO_WATER && p->type==0){
-             * // 水場判定
-             * map[m].gat[x+y*xs]= (p->high[0]>wh || p->high[1]>wh || p->high[2]>wh || p->high[3]>wh) ? 3 : 0;
-             * } else { */
-            map[m].gat[x + y * xs] = p->type;
-            //}
-            p++;
-        }
-    }
-    free(gat);
+    MapCell *gat_m = reinterpret_cast<MapCell *>(&gat_v[4]);
+    std::copy(gat_m, gat_m + s, &map[m].gat[0]);
 
     map[m].bxs = (xs + BLOCK_SIZE - 1) / BLOCK_SIZE;
     map[m].bys = (ys + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    size = map[m].bxs * map[m].bys;
+    size_t size = map[m].bxs * map[m].bys;
 
     CREATE(map[m].block, struct block_list *, size);
-
     CREATE(map[m].block_mob, struct block_list *, size);
-
     CREATE(map[m].block_count, int, size);
-
     CREATE(map[m].block_mob_count, int, size);
 
     strdb_insert(map_db, map[m].name, &map[m]);
 
-//  PRINTF("%s read done\n",fn);
-
-    return 0;
+    return true;
 }
 
 /*==========================================
@@ -1499,42 +1464,12 @@ int map_readallmap(void)
 {
     int i, maps_removed = 0;
 
-    // 先に全部のャbプの存在を確認
     for (i = 0; i < map_num; i++)
     {
-        if (strstr(map[i].name, ".gat") == NULL)
-            continue;
-        // TODO replace this
-        std::string fn = STRPRINTF("data\\%s", map[i].name);
-        // TODO - remove this, it is the last call to grfio_size, which is deprecated
-        if (!grfio_size(fn.c_str()))
+        assert (strstr(map[i].name, ".gat") != NULL);
         {
-            map_delmap(map[i].name);
-            maps_removed++;
-        }
-    }
-    for (i = 0; i < map_num; i++)
-    {
-        if (strstr(map[i].name, ".gat") != NULL)
-        {
-            char *p = strstr(map[i].name, ">");    // [MouseJstr]
-            if (p != NULL)
             {
-                char alias[64];
-                *p = '\0';
-                strcpy(alias, map[i].name);
-                strcpy(map[i].name, p + 1);
-                std::string fn = STRPRINTF("data\\%s", map[i].name);
-                if (map_readmap(i, fn.c_str(), alias) == -1)
-                {
-                    map_delmap(map[i].name);
-                    maps_removed++;
-                }
-            }
-            else
-            {
-                std::string fn = STRPRINTF("data\\%s", map[i].name);
-                if (map_readmap(i, fn.c_str(), NULL) == -1)
+                if (!map_readmap(i, map[i].name))
                 {
                     map_delmap(map[i].name);
                     maps_removed++;
@@ -1543,7 +1478,6 @@ int map_readallmap(void)
         }
     }
 
-    free(waterlist);
     PRINTF("\rMaps Loaded: %d %60s\n", map_num, "");
     PRINTF("\rMaps Removed: %d \n", maps_removed);
     return 0;
@@ -1856,8 +1790,7 @@ void term_func(void)
 
     for (i = 0; i <= map_num; i++)
     {
-        if (map[i].gat)
-            free(map[i].gat);
+        map[i].gat = nullptr;
         if (map[i].block)
             free(map[i].block);
         if (map[i].block_mob)

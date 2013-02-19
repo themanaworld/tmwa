@@ -480,7 +480,7 @@ int op_move(env_t *, int, val_t *args)
     int newx = subject->x + dirx[dir];
     int newy = subject->y + diry[dir];
 
-    if (!map_is_solid(subject->m, newx, newy))
+    if (!bool(map_getcell(subject->m, newx, newy) & MapCell::UNWALKABLE))
         entity_warp(subject, subject->m, newx, newy);
 
     return 0;

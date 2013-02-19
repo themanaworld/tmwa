@@ -1014,11 +1014,14 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     {
         for (j = 0; j < xs; j++)
         {
-            int t;
-            t = map_getcell(m, x - xs / 2 + j, y - ys / 2 + i);
-            if (t == 1 || t == 5)
+            int x_lo = x - xs / 2;
+            int y_lo = y - ys / 2;
+            int xc = x_lo + j;
+            int yc = y_lo + i;
+            MapCell t = map_getcell(m, xc, yc);
+            if (bool(t & MapCell::UNWALKABLE))
                 continue;
-            map_setcell(m, x - xs / 2 + j, y - ys / 2 + i, t | 0x80);
+            map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
         }
     }
 
@@ -1317,11 +1320,14 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
             {
                 for (j = 0; j < xs; j++)
                 {
-                    int t;
-                    t = map_getcell(m, x - xs / 2 + j, y - ys / 2 + i);
-                    if (t == 1 || t == 5)
+                    int x_lo = x - xs / 2;
+                    int y_lo = y - ys / 2;
+                    int xc = x_lo + j;
+                    int yc = y_lo + i;
+                    MapCell t = map_getcell(m, xc, yc);
+                    if (bool(t & MapCell::UNWALKABLE))
                         continue;
-                    map_setcell(m, x - xs / 2 + j, y - ys / 2 + i, t | 0x80);
+                    map_setcell(m, xc, yc, t | MapCell::NPC_NEAR);
                 }
             }
         }

@@ -60,8 +60,6 @@ int magic_eval_int(env_t *env, expr_t *expr);
  */
 char *magic_eval_str(env_t *env, expr_t *expr);
 
-bool map_is_solid(int m, int x, int y);
-
 expr_t *magic_new_expr(EXPR ty);
 
 void magic_clear_var(val_t *v);

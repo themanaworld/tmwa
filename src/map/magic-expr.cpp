@@ -14,11 +14,6 @@
 
 #include "../poison.hpp"
 
-bool map_is_solid(int m, int x, int y)
-{
-    return map_getcell(m, x, y) == 1;
-}
-
 static
 void free_area(area_t *area)
 {
@@ -850,7 +845,9 @@ int fun_awayfrom(env_t *, int, val_t *result, val_t *args)
     int dx = dirx[ARGDIR(1)];
     int dy = diry[ARGDIR(1)];
     int distance = ARGINT(2);
-    while (distance-- && !map_is_solid(loc->m, loc->x + dx, loc->y + dy))
+    while (distance--
+        && !bool(read_gat(loc->m, loc->x + dx, loc->y + dy)
+            & MapCell::UNWALKABLE))
     {
         loc->x += dx;
         loc->y += dy;
