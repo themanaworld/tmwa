@@ -1,91 +1,119 @@
-// WARNING: there is a system header by this name
 #ifndef DB_HPP
 #define DB_HPP
+//    db.hpp - convenience wrappers over std::map<K, V>
+//
+//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//
+//    This file is part of The Mana World (Athena server)
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # include "sanity.hpp"
 
-# include <functional>
+# include <map>
 
-/// Number of tree roots
-// Somewhat arbitrary - larger wastes more space but is faster for large trees
-// num % HASH_SIZE minimize collisions even for similar num
-constexpr int HASH_SIZE = 256 + 27;
-
-typedef enum dbn_color
+template<class K, class V>
+class Map
 {
-    RED,
-    BLACK,
-} dbn_color;
+    typedef std::map<K, V> Impl;
 
-typedef intptr_t numdb_key_t;
-typedef union db_key_t
-{
-    char *ms __attribute__((deprecated));
-    const char* s;
-    numdb_key_t i;
+    Impl impl;
+public:
+    typedef typename Impl::iterator iterator;
+    typedef typename Impl::const_iterator const_iterator;
 
-    db_key_t(numdb_key_t n) : i(n) {}
-    db_key_t(const char * z) : s(z) {}
-} db_key_t;
-typedef void* db_val_t;
-typedef uint32_t hash_t;
-typedef std::function<void(db_key_t, db_val_t)> db_func_t;
+    iterator begin() { return impl.begin(); }
+    iterator end() { return impl.end(); }
+    const_iterator begin() const { return impl.begin(); }
+    const_iterator end() const { return impl.end(); }
 
-/// DataBase Node
-struct dbn
-{
-    struct dbn *parent, *left, *right;
-    dbn_color color;
-    db_key_t key;
-    db_val_t data;
+    V *search(const K& k)
+    {
+        iterator it = impl.find(k);
+        if (it == impl.end())
+            return nullptr;
+        return &it->second;
+    }
+    const V *search(const K& k) const
+    {
+        const_iterator it = impl.find(k);
+        if (it == impl.end())
+            return nullptr;
+        return &it->second;
+    }
+    void insert(K k, V v)
+    {
+        // As far as I can tell, this is the simplest way to
+        // implement move-only insert-with-replacement.
+        iterator it = impl.lower_bound(k);
+        // invariant: if it is valid, it->first >= k
+        if (it != impl.end() && it->first == k)
+            it->second = std::move(v);
+        else
+            it = impl.insert(std::pair<K, V>(std::move(k), std::move(v))).first;
+        return (void)&it->second;
+
+    }
+    V *init(K k)
+    {
+        return &impl[k];
+    }
+    void erase(const K& k)
+    {
+        impl.erase(k);
+    }
+    void clear()
+    {
+        impl.clear();
+    }
+    bool empty()
+    {
+        return impl.empty();
+    }
 };
 
-typedef enum dbt_type
+template<class K, class V>
+class DMap
 {
-    DB_NUMBER,
-    DB_STRING,
-} dbt_type;
+    typedef Map<K, V> Impl;
 
-/// DataBase Table
-struct dbt
-{
-    dbt_type type;
-    /// Note, before replacement, key/values to be replaced
-    // TODO refactor to decrease/eliminate the uses of this?
-    void(*release)(db_key_t, db_val_t) __attribute__((deprecated));
-    /// Maximum length of a string key - TODO refactor to ensure all strings are NUL-terminated
-    size_t maxlen __attribute__((deprecated));
-    /// The root trees
-    struct dbn *ht[HASH_SIZE];
+    Impl impl;
+public:
+    typedef typename Impl::iterator iterator;
+    typedef typename Impl::const_iterator const_iterator;
+
+    iterator begin() { return impl.begin(); }
+    iterator end() { return impl.end(); }
+    const_iterator begin() const { return impl.begin(); }
+    const_iterator end() const { return impl.end(); }
+
+    V get(K k)
+    {
+        V *vp = impl.search(k);
+        return vp ? *vp : V();
+    }
+    void put(K k, V v)
+    {
+        if (v == V())
+            impl.erase(k);
+        else
+            impl.insert(k, v);
+    }
+    void clear()
+    {
+        impl.clear();
+    }
 };
-
-# define strdb_search(t,k)   db_search((t), (db_key_t)(k))
-# define strdb_insert(t,k,d) db_insert((t), (db_key_t)(k), (db_val_t)(d))
-# define strdb_erase(t,k)    db_erase((t), (db_key_t)(k))
-# define strdb_foreach       db_foreach
-# define strdb_final         db_final
-# define numdb_search(t,k)   db_search((t), (db_key_t)(k))
-# define numdb_insert(t,k,d) db_insert((t), (db_key_t)(k), (db_val_t)(d))
-# define numdb_erase(t,k)    db_erase((t), (db_key_t)(k))
-# define numdb_foreach       db_foreach
-# define numdb_final         db_final
-
-/// Create a map from char* to void*, with strings possibly not null-terminated
-struct dbt *strdb_init(size_t maxlen);
-/// Create a map from int to void*
-struct dbt *numdb_init(void);
-/// Return the value corresponding to the key, or NULL if not found
-db_val_t db_search(struct dbt *table, db_key_t key);
-/// Add or replace table[key] = data
-// if it was already there, call release
-struct dbn *db_insert(struct dbt *table, db_key_t key, db_val_t data);
-/// Remove a key from the table, returning the data
-db_val_t db_erase(struct dbt *table, db_key_t key);
-
-/// Execute a function for every element, in unspecified order
-void db_foreach(struct dbt *, db_func_t);
-// opposite of init? Calls release for every element and frees memory
-// This probably isn't really needed: we don't have to free memory while exiting
-void db_final(struct dbt *, db_func_t) __attribute__((deprecated));
 
 #endif // DB_HPP

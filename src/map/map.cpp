@@ -39,15 +39,22 @@
 
 #include "../poison.hpp"
 
-// 極力 staticでローカルに収める
+DMap<int, struct block_list *> id_db;
+
 static
-struct dbt *id_db = NULL;
+DMap<std::string, struct map_data *> map_db;
+
 static
-struct dbt *map_db = NULL;
+DMap<std::string, struct map_session_data *> nick_db;
+
+struct charid2nick
+{
+    char nick[24];
+    int req_id;
+};
+
 static
-struct dbt *nick_db = NULL;
-static
-struct dbt *charid_db = NULL;
+Map<int, struct charid2nick> charid_db;
 
 static
 int users = 0;
@@ -76,12 +83,6 @@ int map_port = 0;
 
 interval_t autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
-
-struct charid2nick
-{
-    char nick[24];
-    int req_id;
-};
 
 char motd_txt[256] = "conf/motd.txt";
 char help_txt[256] = "conf/help.txt";
@@ -645,7 +646,7 @@ int map_addobject(struct block_list *bl)
     if (last_object_id < i)
         last_object_id = i;
     object[i] = bl;
-    numdb_insert(id_db, i, bl);
+    id_db.put(i, bl);
     return i;
 }
 
@@ -668,7 +669,7 @@ int map_delobjectnofree(int id, BL type)
     }
 
     map_delblock(object[id]);
-    numdb_erase(id_db, id);
+    id_db.put(id, nullptr);
 //  map_freeblock(object[id]);
     object[id] = NULL;
 
@@ -888,35 +889,12 @@ int map_addflooritem(struct item *item_data, int amount,
  */
 void map_addchariddb(int charid, const char *name)
 {
-    struct charid2nick *p = (struct charid2nick *)numdb_search(charid_db, charid);
+    struct charid2nick *p = charid_db.search(charid);
     if (p == NULL)
-    {                           // データベースにない
-        CREATE(p, struct charid2nick, 1);
-        p->req_id = 0;
-    }
-    else
-        numdb_erase(charid_db, charid);
+        p = charid_db.init(charid);
 
     memcpy(p->nick, name, 24);
     p->req_id = 0;
-    numdb_insert(charid_db, charid, p);
-}
-
-/*==========================================
- * charid_dbへ追加（返信要求のみ）
- *------------------------------------------
- */
-int map_reqchariddb(struct map_session_data *sd, int charid)
-{
-    nullpo_ret(sd);
-
-    struct charid2nick *p = (struct charid2nick *)numdb_search(charid_db, charid);
-    if (p != NULL)              // データベースにすでにある
-        return 0;
-    CREATE(p, struct charid2nick, 1);
-    p->req_id = sd->bl.id;
-    numdb_insert(charid_db, charid, p);
-    return 0;
 }
 
 /*==========================================
@@ -927,7 +905,7 @@ void map_addiddb(struct block_list *bl)
 {
     nullpo_retv(bl);
 
-    numdb_insert(id_db, bl->id, bl);
+    id_db.put(bl->id, bl);
 }
 
 /*==========================================
@@ -938,7 +916,7 @@ void map_deliddb(struct block_list *bl)
 {
     nullpo_retv(bl);
 
-    numdb_erase(id_db, bl->id);
+    id_db.put(bl->id, nullptr);
 }
 
 /*==========================================
@@ -949,7 +927,7 @@ void map_addnickdb(struct map_session_data *sd)
 {
     nullpo_retv(sd);
 
-    strdb_insert(nick_db, sd->status.name, sd);
+    nick_db.put(sd->status.name, sd);
 }
 
 /*==========================================
@@ -958,9 +936,9 @@ void map_addnickdb(struct map_session_data *sd)
  * quit処理の主体が違うような気もしてきた
  *------------------------------------------
  */
-int map_quit(struct map_session_data *sd)
+void map_quit(struct map_session_data *sd)
 {
-    nullpo_ret(sd);
+    nullpo_retv(sd);
 
     if (sd->chatID)             // チャットから出る
         chat_leavechat(sd);
@@ -1004,11 +982,9 @@ int map_quit(struct map_session_data *sd)
 
     map_delblock(&sd->bl);
 
-    numdb_erase(id_db, sd->bl.id);
-    strdb_erase(nick_db, sd->status.name);
-    numdb_erase(charid_db, sd->status.char_id);
-
-    return 0;
+    id_db.put(sd->bl.id, nullptr);
+    nick_db.put(sd->status.name, nullptr);
+    charid_db.erase(sd->status.char_id);
 }
 
 /*==========================================
@@ -1047,7 +1023,7 @@ struct map_session_data *map_id2sd(int id)
  */
 char *map_charid2nick(int id)
 {
-    struct charid2nick *p = (struct charid2nick *)numdb_search(charid_db, id);
+    struct charid2nick *p = charid_db.search(id);
 
     if (p == NULL)
         return NULL;
@@ -1172,18 +1148,9 @@ struct block_list *map_id2bl(int id)
     if (id < sizeof(object) / sizeof(object[0]))
         bl = object[id];
     else
-        bl = (struct block_list *)numdb_search(id_db, id);
+        bl = id_db.get(id);
 
     return bl;
-}
-
-/*==========================================
- * id_db内の全てにfuncを実行
- *------------------------------------------
- */
-void map_foreachiddb(db_func_t func)
-{
-    numdb_foreach(id_db, func);
 }
 
 /*==========================================
@@ -1213,7 +1180,7 @@ int map_addnpc(int m, struct npc_data *nd)
 
     map[m].npc[i] = nd;
     nd->n = i;
-    numdb_insert(id_db, nd->bl.id, nd);
+    id_db.put(nd->bl.id, (struct block_list *)nd);
 
     return i;
 }
@@ -1231,7 +1198,7 @@ void map_removenpc(void)
             {
                 clif_clearchar(&map[m].npc[i]->bl, BeingRemoveWhy::QUIT);
                 map_delblock(&map[m].npc[i]->bl);
-                numdb_erase(id_db, map[m].npc[i]->bl.id);
+                id_db.put(map[m].npc[i]->bl.id, nullptr);
                 if (map[m].npc[i]->bl.subtype == NpcSubtype::SCRIPT)
                 {
 //                    free(map[m].npc[i]->u.scr.script);
@@ -1252,7 +1219,7 @@ void map_removenpc(void)
  */
 int map_mapname2mapid(const char *name)
 {
-    struct map_data *md = (struct map_data *)strdb_search(map_db, name);
+    struct map_data *md = map_db.get(name);
     if (md == NULL || md->gat == NULL)
         return -1;
     return md->m;
@@ -1264,7 +1231,7 @@ int map_mapname2mapid(const char *name)
  */
 int map_mapname2ipport(const char *name, struct in_addr *ip, int *port)
 {
-    struct map_data_other_server *mdos = (struct map_data_other_server *)strdb_search(map_db, name);
+    struct map_data_other_server *mdos = (struct map_data_other_server *)map_db.get(name);
     if (mdos == NULL || mdos->gat)
         return -1;
     *ip = mdos->ip;
@@ -1372,22 +1339,23 @@ void map_setcell(int m, int x, int y, MapCell t)
  */
 int map_setipport(const char *name, struct in_addr ip, int port)
 {
-    struct map_data_other_server *mdos = NULL;
-
-    struct map_data *md = (struct map_data *)strdb_search(map_db, name);
+    struct map_data *md = map_db.get(name);
     if (md == NULL)
-    {                           // not exist -> add new data
+    {
+        struct map_data_other_server *mdos = NULL;
+        // not exist -> add new data
         CREATE(mdos, struct map_data_other_server, 1);
         memcpy(mdos->name, name, 24);
         mdos->gat = NULL;
         mdos->ip = ip;
         mdos->port = port;
-        strdb_insert(map_db, mdos->name, mdos);
+        map_db.put(mdos->name, (struct map_data *)mdos);
     }
     else
     {
         if (md->gat)
-        {                       // local -> check data
+        {
+            // local -> check data
             if (ip.s_addr != clif_getip().s_addr || port != clif_getport())
             {
                 PRINTF("from char server : %s -> %s:%d\n", name, ip2str(ip),
@@ -1396,7 +1364,9 @@ int map_setipport(const char *name, struct in_addr ip, int port)
             }
         }
         else
-        {                       // update
+        {
+            // update
+            struct map_data_other_server *mdos = NULL;
             mdos = (struct map_data_other_server *) md;
             mdos->ip = ip;
             mdos->port = port;
@@ -1450,7 +1420,7 @@ bool map_readmap(int m, const_string fn)
     CREATE(map[m].block_count, int, size);
     CREATE(map[m].block_mob_count, int, size);
 
-    strdb_insert(map_db, map[m].name, &map[m]);
+    map_db.put(map[m].name, &map[m]);
 
     return true;
 }
@@ -1783,11 +1753,6 @@ void term_func(void)
 
     map_removenpc();
 
-    numdb_final(id_db, NULL);
-    strdb_final(map_db, NULL);
-    strdb_final(nick_db, NULL);
-    numdb_final(charid_db, NULL);
-
     for (i = 0; i <= map_num; i++)
     {
         map[i].gat = nullptr;
@@ -1854,11 +1819,6 @@ int do_init(int argc, char *argv[])
     battle_config_read(BATTLE_CONF_FILENAME);
     atcommand_config_read(ATCOMMAND_CONF_FILENAME);
     script_config_read();
-
-    id_db = numdb_init();
-    map_db = strdb_init(16);
-    nick_db = strdb_init(24);
-    charid_db = numdb_init();
 
     map_readallmap();
 

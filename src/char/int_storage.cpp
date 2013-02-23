@@ -20,7 +20,7 @@
 char storage_txt[1024] = "save/storage.txt";
 
 static
-struct dbt *storage_db;
+Map<int, struct storage> storage_db;
 
 // 倉庫データを文字列に変換
 static
@@ -83,14 +83,11 @@ bool extract(const_string str, struct storage *p)
 // アカウントから倉庫データインデックスを得る（新規倉庫追加可能）
 struct storage *account2storage(int account_id)
 {
-    struct storage *s;
-    s = (struct storage *) numdb_search(storage_db, account_id);
+    struct storage *s = storage_db.search(account_id);
     if (s == NULL)
     {
-        CREATE(s, struct storage, 1);
-        memset(s, 0, sizeof(struct storage));
+        s = storage_db.init(account_id);
         s->account_id = account_id;
-        numdb_insert(storage_db, s->account_id, s);
     }
     return s;
 }
@@ -100,8 +97,6 @@ struct storage *account2storage(int account_id)
 int inter_storage_init(void)
 {
     int c = 0;
-
-    storage_db = numdb_init();
 
     std::ifstream in(storage_txt);
     if (!in.is_open())
@@ -113,17 +108,15 @@ int inter_storage_init(void)
     std::string line;
     while (std::getline(in, line))
     {
-        struct storage *s;
-        CREATE(s, struct storage, 1);
-        if (extract(line, s))
+        struct storage s {};
+        if (extract(line, &s))
         {
-            numdb_insert(storage_db, s->account_id, s);
+            storage_db.insert(s.account_id, s);
         }
         else
         {
             PRINTF("int_storage: broken data [%s] line %d\n",
                     storage_txt, c);
-            free(s);
         }
         c++;
     }
@@ -132,9 +125,9 @@ int inter_storage_init(void)
 }
 
 static
-void inter_storage_save_sub(db_key_t, db_val_t data, FILE *fp)
+void inter_storage_save_sub(struct storage *data, FILE *fp)
 {
-    std::string line = storage_tostr((struct storage *) data);
+    std::string line = storage_tostr(data);
     if (!line.empty())
         FPRINTF(fp, "%s\n", line);
 }
@@ -146,32 +139,23 @@ int inter_storage_save(void)
     FILE *fp;
     int lock;
 
-    if (!storage_db)
-        return 1;
-
     if ((fp = lock_fopen(storage_txt, &lock)) == NULL)
     {
         PRINTF("int_storage: cant write [%s] !!! data is lost !!!\n",
                 storage_txt);
         return 1;
     }
-    numdb_foreach(storage_db, std::bind(inter_storage_save_sub, ph::_1, ph::_2, fp));
+    for (auto& pair : storage_db)
+        inter_storage_save_sub(&pair.second, fp);
     lock_fclose(fp, storage_txt, &lock);
 //  PRINTF("int_storage: %s saved.\n",storage_txt);
     return 0;
 }
 
 // 倉庫データ削除
-int inter_storage_delete(int account_id)
+void inter_storage_delete(int account_id)
 {
-    struct storage *s =
-        (struct storage *) numdb_search(storage_db, account_id);
-    if (s)
-    {
-        numdb_erase(storage_db, account_id);
-        free(s);
-    }
-    return 0;
+    storage_db.erase(account_id);
 }
 
 //---------------------------------------------------------

@@ -19,7 +19,7 @@
 #include "../poison.hpp"
 
 static
-struct dbt *storage_db;
+Map<int, struct storage> storage_db;
 
 /*==========================================
  * 倉庫内アイテムソート
@@ -41,13 +41,6 @@ int storage_comp_item(const void *_i1, const void *_i2)
 }
 
 static
-void storage_db_final(db_key_t, db_val_t data)
-{
-    struct storage *stor = (struct storage *) data;
-    free(stor);
-}
-
-static
 void sortage_sortitem(struct storage *stor)
 {
     nullpo_retv(stor);
@@ -55,31 +48,22 @@ void sortage_sortitem(struct storage *stor)
            storage_comp_item);
 }
 
-/*==========================================
- * 初期化とか
- *------------------------------------------
- */
-int do_init_storage(void)      // map.c::do_init()から呼ばれる
+void do_init_storage(void)
 {
-    storage_db = numdb_init();
-    return 1;
 }
 
-void do_final_storage(void)    // by [MC Cameri]
+void do_final_storage(void)
 {
-    if (storage_db)
-        numdb_final(storage_db, storage_db_final);
+    storage_db.clear();
 }
 
 struct storage *account2storage(int account_id)
 {
-    struct storage *stor =
-        (struct storage *) numdb_search(storage_db, account_id);
+    struct storage *stor = storage_db.search(account_id);
     if (stor == NULL)
     {
-        CREATE(stor, struct storage, 1);
+        stor = storage_db.init(account_id);
         stor->account_id = account_id;
-        numdb_insert(storage_db, stor->account_id, stor);
     }
     return stor;
 }
@@ -87,20 +71,13 @@ struct storage *account2storage(int account_id)
 // Just to ask storage, without creation
 struct storage *account2storage2(int account_id)
 {
-    return (struct storage *) numdb_search(storage_db, account_id);
+    return storage_db.search(account_id);
 }
 
 static
-int storage_delete(int account_id)
+void storage_delete(int account_id)
 {
-    struct storage *stor =
-        (struct storage *) numdb_search(storage_db, account_id);
-    if (stor)
-    {
-        numdb_erase(storage_db, account_id);
-        free(stor);
-    }
-    return 0;
+    storage_db.erase(account_id);
 }
 
 /*==========================================
@@ -109,15 +86,13 @@ int storage_delete(int account_id)
  */
 int storage_storageopen(struct map_session_data *sd)
 {
-    struct storage *stor;
     nullpo_ret(sd);
 
     if (sd->state.storage_open)
         return 1;               //Already open?
 
-    if ((stor =
-         (struct storage *) numdb_search(storage_db,
-                                          sd->status.account_id)) == NULL)
+    struct storage *stor = storage_db.search(sd->status.account_id);
+    if (stor == NULL)
     {                           //Request storage.
         intif_request_storage(sd->status.account_id);
         return 1;

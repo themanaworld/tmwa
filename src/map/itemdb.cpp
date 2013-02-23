@@ -18,7 +18,7 @@ constexpr int MAX_RANDITEM = 2000;
 //#define ITEMDB_OVERRIDE_NAME_VERBOSE  1
 
 static
-struct dbt *item_db;
+Map<int, struct item_data> item_db;
 
 // Function declarations
 
@@ -37,9 +37,8 @@ int itemdb_read_noequip(void);
  */
 // name = item alias, so we should find items aliases first. if not found then look for "jname" (full name)
 static
-void itemdb_searchname_sub(db_key_t, db_val_t data, const char *str, struct item_data **dst)
+void itemdb_searchname_sub(struct item_data *item, const char *str, struct item_data **dst)
 {
-    struct item_data *item = (struct item_data *) data;
     if (strcasecmp(item->name, str) == 0) //by lupus
         *dst = item;
 }
@@ -51,7 +50,8 @@ void itemdb_searchname_sub(db_key_t, db_val_t data, const char *str, struct item
 struct item_data *itemdb_searchname(const char *str)
 {
     struct item_data *item = NULL;
-    numdb_foreach(item_db, std::bind(itemdb_searchname_sub, ph::_1, ph::_2, str, &item));
+    for (auto& pair : item_db)
+        itemdb_searchname_sub(&pair.second, str, &item);
     return item;
 }
 
@@ -61,7 +61,7 @@ struct item_data *itemdb_searchname(const char *str)
  */
 struct item_data *itemdb_exists(int nameid)
 {
-    return (struct item_data *)numdb_search(item_db, nameid);
+    return item_db.search(nameid);
 }
 
 /*==========================================
@@ -70,12 +70,11 @@ struct item_data *itemdb_exists(int nameid)
  */
 struct item_data *itemdb_search(int nameid)
 {
-    struct item_data *id = (struct item_data *)numdb_search(item_db, nameid);
+    struct item_data *id = item_db.search(nameid);
     if (id)
         return id;
 
-    id = (struct item_data *) calloc(1, sizeof(struct item_data));
-    numdb_insert(item_db, nameid, id);
+    id = item_db.init(nameid);
 
     id->nameid = nameid;
     id->value_buy = 10;
@@ -366,18 +365,12 @@ int itemdb_read_noequip(void)
  *------------------------------------------
  */
 static
-void itemdb_final(db_key_t, db_val_t data)
+void itemdb_final(struct item_data *id)
 {
-    struct item_data *id;
-
-    id = (struct item_data *)data;
-    nullpo_retv(id);
-
     if (id->use_script)
         free(const_cast<ScriptCode *>(id->use_script));
     if (id->equip_script)
         free(const_cast<ScriptCode *>(id->equip_script));
-    free(id);
 }
 
 void itemdb_reload(void)
@@ -398,11 +391,9 @@ void itemdb_reload(void)
  */
 void do_final_itemdb(void)
 {
-    if (item_db)
-    {
-        numdb_final(item_db, itemdb_final);
-        item_db = NULL;
-    }
+    for (auto& pair : item_db)
+        itemdb_final(&pair.second);
+    item_db.clear();
 }
 
 /*
@@ -438,11 +429,7 @@ void itemdb_read(void)
  *
  *------------------------------------------
  */
-int do_init_itemdb(void)
+void do_init_itemdb(void)
 {
-    item_db = numdb_init();
-
     itemdb_read();
-
-    return 0;
 }

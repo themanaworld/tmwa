@@ -67,30 +67,16 @@ static
 int str_hash[16];
 
 static
-struct dbt *mapreg_db = NULL;
+DMap<int, int> mapreg_db;
 static
-struct dbt *mapregstr_db = NULL;
+DMap<int, char *> mapregstr_db;
 static
 int mapreg_dirty = -1;
 char mapreg_txt[256] = "save/mapreg.txt";
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
-static
-struct dbt *scriptlabel_db = NULL;
-static
-struct dbt *userfunc_db = NULL;
-
-struct dbt *script_get_label_db(void)
-{
-    return scriptlabel_db;
-}
-
-struct dbt *script_get_userfunc_db(void)
-{
-    if (!userfunc_db)
-        userfunc_db = strdb_init(50);
-    return userfunc_db;
-}
+Map<std::string, int> scriptlabel_db;
+DMap<std::string, const ScriptCode *> userfunc_db;
 
 static
 const char *pos[11] =
@@ -910,9 +896,7 @@ const ScriptCode *parse_script(const char *src, int line)
     }
 
     // 外部用label dbの初期化
-    if (scriptlabel_db != NULL)
-        strdb_final(scriptlabel_db, NULL);
-    scriptlabel_db = strdb_init(50);
+    scriptlabel_db.clear();
 
     // for error message
     startptr = src;
@@ -942,7 +926,8 @@ const ScriptCode *parse_script(const char *src, int line)
                 exit(1);
             }
             set_label(l, script_pos);
-            strdb_insert(scriptlabel_db, p, script_pos);   // 外部用label db登録
+            std::string str(p, skip_word(p));
+            scriptlabel_db.insert(str, script_pos);
             *tmpp = c;
             p = tmpp + 1;
             continue;
@@ -1049,8 +1034,7 @@ void get_val(ScriptState *st, struct script_data *data)
             }
             else if (prefix == '$')
             {
-                data->u.str =
-                    (char *) numdb_search(mapregstr_db, data->u.num);
+                data->u.str = mapregstr_db.get(data->u.num);
             }
             else
             {
@@ -1084,7 +1068,7 @@ void get_val(ScriptState *st, struct script_data *data)
             }
             else if (prefix == '$')
             {
-                data->u.num = (int) numdb_search(mapreg_db, data->u.num);
+                data->u.num = mapreg_db.get(data->u.num);
             }
             else if (prefix == '#')
             {
@@ -1374,8 +1358,7 @@ void builtin_callfunc(ScriptState *st)
     const ScriptCode *scr;
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
 
-    // note: strdb_search returns a void *; but ScriptCode is really const
-    if ((scr = static_cast<const ScriptCode *>(strdb_search(script_get_userfunc_db(), str))))
+    if ((scr = userfunc_db.get(str)))
     {
         int j = 0;
 #if 0
@@ -4889,10 +4872,7 @@ int run_script_l(const ScriptCode *script, int pos_, int rid, int oid,
  */
 void mapreg_setreg(int num, int val)
 {
-    if (val != 0)
-        numdb_insert(mapreg_db, num, val);
-    else
-        numdb_erase(mapreg_db, num);
+    mapreg_db.put(num, val);
 
     mapreg_dirty = 1;
 }
@@ -4903,20 +4883,16 @@ void mapreg_setreg(int num, int val)
  */
 void mapreg_setregstr(int num, const char *str)
 {
-    char *p;
-
-    if ((p = (char *)numdb_search(mapregstr_db, num)) != NULL)
+    char *p = mapregstr_db.get(num);
+    if (p)
         free(p);
 
-    if (str == NULL || *str == 0)
-    {
-        numdb_erase(mapregstr_db, num);
-        mapreg_dirty = 1;
-        return;
-    }
-    p = (char *) calloc(strlen(str) + 1, 1);
-    strcpy(p, str);
-    numdb_insert(mapregstr_db, num, p);
+    if (!str || !*str)
+        p = NULL;
+    else
+        p = strdup(str);
+
+    mapregstr_db.put(num, p);
     mapreg_dirty = 1;
 }
 
@@ -4951,14 +4927,14 @@ void script_load_mapreg(void)
             if (buf1.back() == '$')
             {
                 char *p = strdup(buf2.c_str());
-                numdb_insert(mapregstr_db, key, p);
+                mapregstr_db.put(key, p);
             }
             else
             {
                 int v;
                 if (!extract(buf2, &v))
                     goto borken;
-                numdb_insert(mapreg_db, key, v);
+                mapreg_db.put(key, v);
             }
         }
         else
@@ -4976,30 +4952,30 @@ void script_load_mapreg(void)
  *------------------------------------------
  */
 static
-void script_save_mapreg_intsub(db_key_t key, db_val_t data, FILE *fp)
+void script_save_mapreg_intsub(int key, int data, FILE *fp)
 {
-    int num = key.i & 0x00ffffff, i = key.i >> 24;
+    int num = key & 0x00ffffff, i = key >> 24;
     char *name = str_buf + str_data[num].str;
     if (name[1] != '@')
     {
         if (i == 0)
-            FPRINTF(fp, "%s\t%d\n", name, (int) data);
+            FPRINTF(fp, "%s\t%d\n", name, data);
         else
-            FPRINTF(fp, "%s,%d\t%d\n", name, i, (int) data);
+            FPRINTF(fp, "%s,%d\t%d\n", name, i, data);
     }
 }
 
 static
-void script_save_mapreg_strsub(db_key_t key, db_val_t data, FILE *fp)
+void script_save_mapreg_strsub(int key, char *data, FILE *fp)
 {
-    int num = key.i & 0x00ffffff, i = key.i >> 24;
+    int num = key & 0x00ffffff, i = key >> 24;
     char *name = str_buf + str_data[num].str;
     if (name[1] != '@')
     {
         if (i == 0)
-            FPRINTF(fp, "%s\t%s\n", name, (char *) data);
+            FPRINTF(fp, "%s\t%s\n", name, data);
         else
-            FPRINTF(fp, "%s,%d\t%s\n", name, i, (char *) data);
+            FPRINTF(fp, "%s,%d\t%s\n", name, i, data);
     }
 }
 
@@ -5011,8 +4987,10 @@ void script_save_mapreg(void)
 
     if ((fp = lock_fopen(mapreg_txt, &lock)) == NULL)
         return;
-    numdb_foreach(mapreg_db, std::bind(script_save_mapreg_intsub, ph::_1, ph::_2, fp));
-    numdb_foreach(mapregstr_db, std::bind(script_save_mapreg_strsub, ph::_1, ph::_2, fp));
+    for (auto& pair : mapreg_db)
+        script_save_mapreg_intsub(pair.first, pair.second, fp);
+    for (auto& pair : mapregstr_db)
+        script_save_mapreg_strsub(pair.first, pair.second, fp);
     lock_fclose(fp, mapreg_txt, &lock);
     mapreg_dirty = 0;
 }
@@ -5040,16 +5018,15 @@ void script_config_read()
  */
 
 static
-void mapregstr_db_final(db_key_t, db_val_t data)
+void mapregstr_db_final(char *data)
 {
     free(data);
 }
 
 static
-void userfunc_db_final(db_key_t key, db_val_t data)
+void userfunc_db_final(const ScriptCode *data)
 {
-    free(key.ms);
-    free(data);
+    free(const_cast<ScriptCode *>(data));
 }
 
 void do_final_script(void)
@@ -5065,14 +5042,14 @@ void do_final_script(void)
         free(script_buf);
 #endif
 
-    if (mapreg_db)
-        numdb_final(mapreg_db, NULL);
-    if (mapregstr_db)
-        strdb_final(mapregstr_db, mapregstr_db_final);
-    if (scriptlabel_db)
-        strdb_final(scriptlabel_db, NULL);
-    if (userfunc_db)
-        strdb_final(userfunc_db, userfunc_db_final);
+    mapreg_db.clear();
+    for (auto& pair : mapregstr_db)
+        mapregstr_db_final(pair.second);
+    mapregstr_db.clear();
+    scriptlabel_db.clear();
+    for (auto& pair : userfunc_db)
+        userfunc_db_final(pair.second);
+    userfunc_db.clear();
 
     if (str_data)
         free(str_data);
@@ -5086,15 +5063,11 @@ void do_final_script(void)
  */
 void do_init_script(void)
 {
-    mapreg_db = numdb_init();
-    mapregstr_db = numdb_init();
     script_load_mapreg();
 
     add_timer_interval(gettick() + MAPREG_AUTOSAVE_INTERVAL,
             script_autosave_mapreg,
             MAPREG_AUTOSAVE_INTERVAL);
-
-    scriptlabel_db = strdb_init(50);
 }
 
 #define BUILTIN(func, args) \

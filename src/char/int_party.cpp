@@ -17,7 +17,7 @@
 char party_txt[1024] = "save/party.txt";
 
 static
-struct dbt *party_db;
+Map<int, struct party> party_db;
 static
 int party_newid = 100;
 
@@ -26,7 +26,7 @@ int mapif_party_broken(int party_id, int flag);
 static
 int party_check_empty(struct party *p);
 static
-int mapif_parse_PartyLeave(int fd, int party_id, int account_id);
+void mapif_parse_PartyLeave(int fd, int party_id, int account_id);
 
 // パーティデータの文字列への変換
 static
@@ -94,12 +94,9 @@ int inter_party_fromstr(char *str, struct party *p)
 int inter_party_init(void)
 {
     char line[8192];
-    struct party *p;
     FILE *fp;
     int c = 0;
     int i, j;
-
-    party_db = numdb_init();
 
     if ((fp = fopen_(party_txt, "r")) == NULL)
         return 1;
@@ -115,19 +112,18 @@ int inter_party_init(void)
             continue;
         }
 
-        CREATE(p, struct party, 1);
-        if (inter_party_fromstr(line, p) == 0 && p->party_id > 0)
+        struct party p {};
+        if (inter_party_fromstr(line, &p) == 0 && p.party_id > 0)
         {
-            if (p->party_id >= party_newid)
-                party_newid = p->party_id + 1;
-            numdb_insert(party_db, p->party_id, p);
-            party_check_empty(p);
+            if (p.party_id >= party_newid)
+                party_newid = p.party_id + 1;
+            party_db.insert(p.party_id, p);
+            party_check_empty(&p);
         }
         else
         {
             PRINTF("int_party: broken data [%s] line %d\n", party_txt,
                     c + 1);
-            free(p);
         }
         c++;
     }
@@ -139,9 +135,9 @@ int inter_party_init(void)
 
 // パーティーデータのセーブ用
 static
-void inter_party_save_sub(db_key_t, db_val_t data, FILE *fp)
+void inter_party_save_sub(struct party *data, FILE *fp)
 {
-    std::string line = inter_party_tostr((struct party *) data);
+    std::string line = inter_party_tostr(data);
     FPRINTF(fp, "%s\n", line);
 }
 
@@ -157,7 +153,8 @@ int inter_party_save(void)
                 party_txt);
         return 1;
     }
-    numdb_foreach(party_db, std::bind(inter_party_save_sub, ph::_1, ph::_2, fp));
+    for (auto& pair : party_db)
+        inter_party_save_sub(&pair.second, fp);
 //  FPRINTF(fp, "%d\t%%newid%%\n", party_newid);
     lock_fclose(fp, party_txt, &lock);
 //  PRINTF("int_party: %s saved.\n", party_txt);
@@ -167,10 +164,8 @@ int inter_party_save(void)
 
 // パーティ名検索用
 static
-void search_partyname_sub(db_key_t, db_val_t data, const char *str, struct party **dst)
+void search_partyname_sub(struct party *p, const char *str, struct party **dst)
 {
-    struct party *p = (struct party *) data;
-
     if (strcasecmp(p->name, str) == 0)
         *dst = p;
 }
@@ -180,7 +175,8 @@ static
 struct party *search_partyname(const char *str)
 {
     struct party *p = NULL;
-    numdb_foreach(party_db, std::bind(search_partyname_sub, ph::_1, ph::_2, str, &p));
+    for (auto& pair : party_db)
+        search_partyname_sub(&pair.second, str, &p);
 
     return p;
 }
@@ -223,18 +219,16 @@ int party_check_empty(struct party *p)
     }
     // 誰もいないので解散
     mapif_party_broken(p->party_id, 0);
-    numdb_erase(party_db, p->party_id);
-    free(p);
+    party_db.erase(p->party_id);
 
     return 1;
 }
 
 // キャラの競合がないかチェック用
 static
-void party_check_conflict_sub(db_key_t, db_val_t data,
+void party_check_conflict_sub(struct party *p,
         int party_id, int account_id, const char *nick)
 {
-    struct party *p = (struct party *) data;
     int i;
 
     if (p->party_id == party_id)    // 本来の所属なので問題なし
@@ -257,9 +251,9 @@ void party_check_conflict_sub(db_key_t, db_val_t data,
 static
 int party_check_conflict(int party_id, int account_id, const char *nick)
 {
-    numdb_foreach(party_db,
-            std::bind(party_check_conflict_sub, ph::_1, ph::_2,
-                party_id, account_id, nick));
+    for (auto& pair : party_db)
+        party_check_conflict_sub(&pair.second,
+                party_id, account_id, nick);
 
     return 0;
 }
@@ -428,7 +422,6 @@ static
 int mapif_parse_CreateParty(int fd, int account_id, const char *name, const char *nick,
                              const char *map, int lv)
 {
-    struct party *p;
     int i;
 
     for (i = 0; i < 24 && name[i]; i++)
@@ -441,28 +434,28 @@ int mapif_parse_CreateParty(int fd, int account_id, const char *name, const char
         }
     }
 
-    if ((p = search_partyname(name)) != NULL)
+    if (search_partyname(name) != NULL)
     {
         PRINTF("int_party: same name party exists [%s]\n", name);
         mapif_party_created(fd, account_id, NULL);
         return 0;
     }
-    CREATE(p, struct party, 1);
-    p->party_id = party_newid++;
-    memcpy(p->name, name, 24);
-    p->exp = 0;
-    p->item = 0;
-    p->member[0].account_id = account_id;
-    memcpy(p->member[0].name, nick, 24);
-    memcpy(p->member[0].map, map, 16);
-    p->member[0].leader = 1;
-    p->member[0].online = 1;
-    p->member[0].lv = lv;
+    struct party p {};
+    p.party_id = party_newid++;
+    memcpy(p.name, name, 24);
+    p.exp = 0;
+    p.item = 0;
+    p.member[0].account_id = account_id;
+    memcpy(p.member[0].name, nick, 24);
+    memcpy(p.member[0].map, map, 16);
+    p.member[0].leader = 1;
+    p.member[0].online = 1;
+    p.member[0].lv = lv;
 
-    numdb_insert(party_db, p->party_id, p);
+    party_db.insert(p.party_id, p);
 
-    mapif_party_created(fd, account_id, p);
-    mapif_party_info(fd, p);
+    mapif_party_created(fd, account_id, &p);
+    mapif_party_info(fd, &p);
 
     return 0;
 }
@@ -471,7 +464,7 @@ int mapif_parse_CreateParty(int fd, int account_id, const char *name, const char
 static
 int mapif_parse_PartyInfo(int fd, int party_id)
 {
-    struct party *p = (struct party *)numdb_search(party_db, party_id);
+    struct party *p = party_db.search(party_id);
     if (p != NULL)
         mapif_party_info(fd, p);
     else
@@ -485,7 +478,7 @@ static
 int mapif_parse_PartyAddMember(int fd, int party_id, int account_id,
                                 const char *nick, const char *map, int lv)
 {
-    struct party *p = (struct party *)numdb_search(party_db, party_id);
+    struct party *p = party_db.search(party_id);
     if (p == NULL)
     {
         mapif_party_memberadded(fd, party_id, account_id, 1);
@@ -527,7 +520,7 @@ static
 int mapif_parse_PartyChangeOption(int fd, int party_id, int account_id,
                                    int exp, int item)
 {
-    struct party *p = (struct party *)numdb_search(party_db, party_id);
+    struct party *p = party_db.search(party_id);
     if (p == NULL)
         return 0;
 
@@ -546,74 +539,65 @@ int mapif_parse_PartyChangeOption(int fd, int party_id, int account_id,
 }
 
 // パーティ脱退要求
-int mapif_parse_PartyLeave(int, int party_id, int account_id)
+void mapif_parse_PartyLeave(int, int party_id, int account_id)
 {
-    struct party *p = (struct party *)numdb_search(party_db, party_id);
-    if (p != NULL)
+    struct party *p = party_db.search(party_id);
+    if (!p)
+        return;
+    for (int i = 0; i < MAX_PARTY; i++)
     {
-        for (int i = 0; i < MAX_PARTY; i++)
-        {
-            if (p->member[i].account_id == account_id)
-            {
-                mapif_party_leaved(party_id, account_id, p->member[i].name);
+        if (p->member[i].account_id != account_id)
+            continue;
+        mapif_party_leaved(party_id, account_id, p->member[i].name);
 
-                memset(&p->member[i], 0, sizeof(struct party_member));
-                if (party_check_empty(p) == 0)
-                    mapif_party_info(-1, p);   // まだ人がいるのでデータ送信
-                return 0;
-            }
-        }
+        memset(&p->member[i], 0, sizeof(struct party_member));
+        if (party_check_empty(p) == 0)
+            mapif_party_info(-1, p);   // まだ人がいるのでデータ送信
+        return;
     }
-
-    return 0;
 }
 
 // パーティマップ更新要求
 static
-int mapif_parse_PartyChangeMap(int fd, int party_id, int account_id,
+void mapif_parse_PartyChangeMap(int fd, int party_id, int account_id,
                                 const char *map, int online, int lv)
 {
-    struct party *p = (struct party *)numdb_search(party_db, party_id);
+    struct party *p = party_db.search(party_id);
     if (p == NULL)
-        return 0;
+        return;
 
     for (int i = 0; i < MAX_PARTY; i++)
     {
-        if (p->member[i].account_id == account_id)
+        if (p->member[i].account_id != account_id)
+            continue;
+        int flag = 0;
+
+        memcpy(p->member[i].map, map, 16);
+        p->member[i].online = online;
+        p->member[i].lv = lv;
+        mapif_party_membermoved(p, i);
+
+        if (p->exp > 0 && !party_check_exp_share(p))
         {
-            int flag = 0;
-
-            memcpy(p->member[i].map, map, 16);
-            p->member[i].online = online;
-            p->member[i].lv = lv;
-            mapif_party_membermoved(p, i);
-
-            if (p->exp > 0 && !party_check_exp_share(p))
-            {
-                p->exp = 0;
-                flag = 1;
-            }
-            if (flag)
-                mapif_party_optionchanged(fd, p, 0, 0);
-            break;
+            p->exp = 0;
+            flag = 1;
         }
+        if (flag)
+            mapif_party_optionchanged(fd, p, 0, 0);
+        return;
     }
-
-    return 0;
 }
 
 // パーティ解散要求
 static
-int mapif_parse_BreakParty(int fd, int party_id)
+void mapif_parse_BreakParty(int fd, int party_id)
 {
-    struct party *p = (struct party *)numdb_search(party_db, party_id);
+    struct party *p = party_db.search(party_id);
     if (p == NULL)
-        return 0;
+        return;
 
-    numdb_erase(party_db, party_id);
+    party_db.erase(party_id);
     mapif_party_broken(fd, party_id);
-
-    return 0;
 }
 
 // パーティメッセージ送信
@@ -684,7 +668,7 @@ int inter_party_parse_frommap(int fd)
 }
 
 // サーバーから脱退要求（キャラ削除用）
-int inter_party_leave(int party_id, int account_id)
+void inter_party_leave(int party_id, int account_id)
 {
-    return mapif_parse_PartyLeave(-1, party_id, account_id);
+    mapif_parse_PartyLeave(-1, party_id, account_id);
 }

@@ -3,6 +3,10 @@
 
 #include <cstdint>
 
+#include <string>
+
+#include "../common/db.hpp"
+
 enum class ScriptCode : uint8_t;
 
 struct script_data
@@ -50,8 +54,10 @@ typedef struct argrec
 int run_script_l(const ScriptCode *, int, int, int, int, argrec_t *args);
 int run_script(const ScriptCode *, int, int, int);
 
-struct dbt *script_get_label_db(void);
-struct dbt *script_get_userfunc_db(void);
+extern
+Map<std::string, int> scriptlabel_db;
+extern
+DMap<std::string, const ScriptCode *> userfunc_db;
 
 void script_config_read();
 void do_init_script(void);

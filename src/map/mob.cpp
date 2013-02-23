@@ -2094,17 +2094,14 @@ void mob_ai_hard(TimerData *, tick_t tick)
  *------------------------------------------
  */
 static
-void mob_ai_sub_lazy(db_key_t, db_val_t data, tick_t tick)
+void mob_ai_sub_lazy(struct block_list *bl, tick_t tick)
 {
-    struct mob_data *md = (struct mob_data *)data;
+    nullpo_retv(bl);
 
-    nullpo_retv(md);
-
-    if (md == NULL)
+    if (bl->type != BL::MOB)
         return;
 
-    if (md->bl.type == BL::NUL || md->bl.type != BL::MOB)
-        return;
+    struct mob_data *md = (struct mob_data *)bl;
 
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME * 10)
         return;
@@ -2161,7 +2158,8 @@ void mob_ai_sub_lazy(db_key_t, db_val_t data, tick_t tick)
 static
 void mob_ai_lazy(TimerData *, tick_t tick)
 {
-    map_foreachiddb(std::bind(mob_ai_sub_lazy, ph::_1, ph::_2, tick));
+    for (auto& pair : id_db)
+        mob_ai_sub_lazy(pair.second, tick);
 }
 
 /*==========================================

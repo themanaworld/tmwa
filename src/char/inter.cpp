@@ -1,5 +1,6 @@
 #include "inter.hpp"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 
@@ -30,14 +31,14 @@ char inter_log_filename[1024] = "log/inter.log";
 
 static
 char accreg_txt[1024] = "save/accreg.txt";
-static
-struct dbt *accreg_db = NULL;
 
 struct accreg
 {
     int account_id, reg_num;
     struct global_reg reg[ACCOUNT_REG_NUM];
 };
+static
+Map<int, struct accreg> accreg_db;
 
 int party_share_level = 10;
 
@@ -57,12 +58,13 @@ int inter_recv_packet_length[] = {
 
 struct WisData
 {
-    int id, fd, count, len;
+    int id, fd, count;
     tick_t tick;
-    unsigned char src[24], dst[24], msg[1024];
+    unsigned char src[24], dst[24];
+    std::string msg;
 };
 static
-struct dbt *wis_db = NULL;
+Map<int, struct WisData> wis_db;
 static
 int wis_dellist[WISDELLIST_MAX], wis_delnum;
 
@@ -104,25 +106,21 @@ int inter_accreg_init(void)
 {
     int c = 0;
 
-    accreg_db = numdb_init();
-
     std::ifstream in(accreg_txt);
     if (!in.is_open())
         return 1;
     std::string line;
     while (std::getline(in, line))
     {
-        struct accreg *reg;
-        CREATE(reg, struct accreg, 1);
-        if (!extract(line, reg))
+        struct accreg reg {};
+        if (extract(line, &reg))
         {
-            numdb_insert(accreg_db, reg->account_id, reg);
+            accreg_db.insert(reg.account_id, reg);
         }
         else
         {
             PRINTF("inter: accreg: broken data [%s] line %d\n", accreg_txt,
                     c);
-            free(reg);
         }
         c++;
     }
@@ -132,10 +130,8 @@ int inter_accreg_init(void)
 
 // アカウント変数のセーブ用
 static
-void inter_accreg_save_sub(db_key_t, db_val_t data, FILE *fp)
+void inter_accreg_save_sub(struct accreg *reg, FILE *fp)
 {
-    struct accreg *reg = (struct accreg *) data;
-
     if (reg->reg_num > 0)
     {
         std::string line = inter_accreg_tostr(reg);
@@ -157,7 +153,8 @@ int inter_accreg_save(void)
                 accreg_txt);
         return 1;
     }
-    numdb_foreach(accreg_db, std::bind(inter_accreg_save_sub, ph::_1, ph::_2, fp));
+    for (auto& pair : accreg_db)
+        inter_accreg_save_sub(&pair.second, fp);
     lock_fclose(fp, accreg_txt, &lock);
 
     return 0;
@@ -236,8 +233,6 @@ int inter_init(const char *file)
 {
     inter_config_read(file);
 
-    wis_db = numdb_init();
-
     inter_party_init();
     inter_storage_init();
     inter_accreg_init();
@@ -264,14 +259,14 @@ void mapif_GMmessage(const uint8_t *mes, int len)
 static
 int mapif_wis_message(struct WisData *wd)
 {
-    unsigned char buf[56 + wd->len];
+    unsigned char buf[56 + wd->msg.size()];
 
     WBUFW(buf, 0) = 0x3801;
-    WBUFW(buf, 2) = 56 + wd->len;
+    WBUFW(buf, 2) = 56 + wd->msg.size();
     WBUFL(buf, 4) = wd->id;
     memcpy(WBUFP(buf, 8), wd->src, 24);
     memcpy(WBUFP(buf, 32), wd->dst, 24);
-    memcpy(WBUFP(buf, 56), wd->msg, wd->len);
+    memcpy(WBUFP(buf, 56), wd->msg.data(), wd->msg.size());
     wd->count = mapif_sendall(buf, WBUFW(buf, 2));
 
     return 0;
@@ -308,7 +303,7 @@ int mapif_account_reg(int fd, const uint8_t *src)
 static
 int mapif_account_reg_reply(int fd, int account_id)
 {
-    struct accreg *reg = (struct accreg *)numdb_search(accreg_db, account_id);
+    struct accreg *reg = accreg_db.search(account_id);
 
     WFIFOW(fd, 0) = 0x3804;
     WFIFOL(fd, 4) = account_id;
@@ -335,10 +330,8 @@ int mapif_account_reg_reply(int fd, int account_id)
 
 // Existence check of WISP data
 static
-void check_ttl_wisdata_sub(db_key_t, db_val_t data, tick_t tick)
+void check_ttl_wisdata_sub(struct WisData *wd, tick_t tick)
 {
-    struct WisData *wd = (struct WisData *) data;
-
     if (tick > wd->tick + WISDATA_TTL
         && wis_delnum < WISDELLIST_MAX)
         wis_dellist[wis_delnum++] = wd->id;
@@ -353,16 +346,17 @@ int check_ttl_wisdata(void)
     do
     {
         wis_delnum = 0;
-        numdb_foreach(wis_db, std::bind(check_ttl_wisdata_sub, ph::_1, ph::_2, tick));
+        for (auto& pair : wis_db)
+            check_ttl_wisdata_sub(&pair.second, tick);
         for (i = 0; i < wis_delnum; i++)
         {
-            struct WisData *wd = (struct WisData *)numdb_search(wis_db, wis_dellist[i]);
+            struct WisData *wd = wis_db.search(wis_dellist[i]);
+            assert (wd);
             PRINTF("inter: wis data id=%d time out : from %s to %s\n",
                     wd->id, wd->src, wd->dst);
             // removed. not send information after a timeout. Just no answer for the player
             //mapif_wis_end(wd, 1); // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-            numdb_erase(wis_db, wd->id);
-            free(wd);
+            wis_db.erase(wd->id);
         }
     }
     while (wis_delnum >= WISDELLIST_MAX);
@@ -386,16 +380,10 @@ int mapif_parse_GMmessage(int fd)
 static
 int mapif_parse_WisRequest(int fd)
 {
-    struct WisData *wd;
     static int wisid = 0;
     int index;
 
-    if (RFIFOW(fd, 2) - 52 >= sizeof(wd->msg))
-    {
-        PRINTF("inter: Wis message size too long.\n");
-        return 0;
-    }
-    else if (RFIFOW(fd, 2) - 52 <= 0)
+    if (RFIFOW(fd, 2) - 52 <= 0)
     {                           // normaly, impossible, but who knows...
         PRINTF("inter: Wis message doesn't exist.\n");
         return 0;
@@ -426,20 +414,20 @@ int mapif_parse_WisRequest(int fd)
         }
         else
         {
-            CREATE(wd, struct WisData, 1);
+            struct WisData wd;
 
             // Whether the failure of previous wisp/page transmission (timeout)
             check_ttl_wisdata();
 
-            wd->id = ++wisid;
-            wd->fd = fd;
-            wd->len = RFIFOW(fd, 2) - 52;
-            memcpy(wd->src, RFIFOP(fd, 4), 24);
-            memcpy(wd->dst, RFIFOP(fd, 28), 24);
-            memcpy(wd->msg, RFIFOP(fd, 52), wd->len);
-            wd->tick = gettick();
-            numdb_insert(wis_db, wd->id, wd);
-            mapif_wis_message(wd);
+            wd.id = ++wisid;
+            wd.fd = fd;
+            size_t len = RFIFOW(fd, 2) - 52;
+            memcpy(wd.src, RFIFOP(fd, 4), 24);
+            memcpy(wd.dst, RFIFOP(fd, 28), 24);
+            wd.msg = std::string(static_cast<const char *>(RFIFOP(fd, 52)), len);
+            wd.tick = gettick();
+            wis_db.insert(wd.id, wd);
+            mapif_wis_message(&wd);
         }
     }
 
@@ -451,7 +439,7 @@ static
 int mapif_parse_WisReply(int fd)
 {
     int id = RFIFOL(fd, 2), flag = RFIFOB(fd, 6);
-    struct WisData *wd = (struct WisData *)numdb_search(wis_db, id);
+    struct WisData *wd = wis_db.search(id);
 
     if (wd == NULL)
         return 0;               // This wisp was probably suppress before, because it was timeout of because of target was found on another map-server
@@ -459,8 +447,7 @@ int mapif_parse_WisReply(int fd)
     if ((--wd->count) <= 0 || flag != 1)
     {
         mapif_wis_end(wd, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-        numdb_erase(wis_db, id);
-        free(wd);
+        wis_db.erase(id);
     }
 
     return 0;
@@ -484,13 +471,13 @@ static
 int mapif_parse_AccReg(int fd)
 {
     int j, p;
-    struct accreg *reg = (struct accreg*)numdb_search(accreg_db, (numdb_key_t)RFIFOL(fd, 4));
+    struct accreg *reg = accreg_db.search(RFIFOL(fd, 4));
 
     if (reg == NULL)
     {
-        CREATE(reg, struct accreg, 1);
-        reg->account_id = RFIFOL(fd, 4);
-        numdb_insert(accreg_db, (numdb_key_t)RFIFOL(fd, 4), reg);
+        int account_id = RFIFOL(fd, 4);
+        reg = accreg_db.init(account_id);
+        reg->account_id = account_id;
     }
 
     for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW(fd, 2);

@@ -21,7 +21,7 @@
 constexpr interval_t PARTY_SEND_XYHP_INVERVAL = std::chrono::seconds(1);
 
 static
-struct dbt *party_db;
+Map<int, struct party> party_db;
 
 static
 int party_check_conflict(struct map_session_data *sd);
@@ -31,7 +31,6 @@ void party_send_xyhp_timer(TimerData *tid, tick_t tick);
 // 初期化
 void do_init_party(void)
 {
-    party_db = numdb_init();
     add_timer_interval(gettick() + PARTY_SEND_XYHP_INVERVAL,
             party_send_xyhp_timer,
             PARTY_SEND_XYHP_INVERVAL);
@@ -40,13 +39,12 @@ void do_init_party(void)
 // 検索
 struct party *party_search(int party_id)
 {
-    return (struct party *)numdb_search(party_db, party_id);
+    return party_db.search(party_id);
 }
 
 static
-void party_searchname_sub(db_key_t, db_val_t data, const char *str, struct party **dst)
+void party_searchname_sub(struct party *p, const char *str, struct party **dst)
 {
-    struct party *p = (struct party *) data;
     if (strcasecmp(p->name, str) == 0)
         *dst = p;
 }
@@ -55,7 +53,8 @@ void party_searchname_sub(db_key_t, db_val_t data, const char *str, struct party
 struct party *party_searchname(const char *str)
 {
     struct party *p = NULL;
-    numdb_foreach(party_db, std::bind(party_searchname_sub, ph::_1, ph::_2, str, &p));
+    for (auto& pair : party_db)
+        party_searchname_sub(&pair.second, str, &p);
     return p;
 }
 
@@ -93,19 +92,18 @@ int party_created(int account_id, int fail, int party_id, const char *name)
     /* The party name is valid and not already taken. */
     if (!fail)
     {
-        struct party *p;
         sd->status.party_id = party_id;
 
-        if ((p = (struct party *)numdb_search(party_db, party_id)) != NULL)
+        struct party *p = party_db.search(party_id);
+        if (p != NULL)
         {
             PRINTF("party_created(): ID already exists!\n");
             exit(1);
         }
 
-        CREATE(p, struct party, 1);
+        p = party_db.init(party_id);
         p->party_id = party_id;
         memcpy(p->name, name, 24);
-        numdb_insert(party_db, party_id, p);
 
         /* The party was created successfully. */
         clif_party_created(sd, 0);
@@ -184,15 +182,14 @@ int party_recv_noinfo(int party_id)
 // 情報所得
 int party_recv_info(const struct party *sp)
 {
-    struct party *p;
     int i;
 
     nullpo_ret(sp);
 
-    if ((p = (struct party *)numdb_search(party_db, sp->party_id)) == NULL)
+    struct party *p = party_db.search(sp->party_id);
+    if (p == NULL)
     {
-        CREATE(p, struct party, 1);
-        numdb_insert(party_db, sp->party_id, p);
+        p = party_db.init(sp->party_id);
 
         // 最初のロードなのでユーザーのチェックを行う
         *p = *sp;
@@ -466,7 +463,7 @@ int party_broken(int party_id)
             p->member[i].sd->party_sended = 0;
         }
     }
-    numdb_erase(party_db, party_id);
+    party_db.erase(party_id);
     return 0;
 }
 
@@ -633,9 +630,8 @@ int party_check_conflict(struct map_session_data *sd)
 
 // 位置やＨＰ通知用
 static
-void party_send_xyhp_timer_sub(db_key_t, db_val_t data)
+void party_send_xyhp_timer_sub(struct party *p)
 {
-    struct party *p = (struct party *) data;
     int i;
 
     nullpo_retv(p);
@@ -666,7 +662,8 @@ void party_send_xyhp_timer_sub(db_key_t, db_val_t data)
 // 位置やＨＰ通知
 void party_send_xyhp_timer(TimerData *, tick_t)
 {
-    numdb_foreach(party_db, party_send_xyhp_timer_sub);
+    for (auto& pair : party_db)
+        party_send_xyhp_timer_sub(&pair.second);
 }
 
 // 位置通知クリア

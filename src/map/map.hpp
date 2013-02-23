@@ -533,7 +533,7 @@ int map_delobjectnofree(int id, BL type);
 void map_foreachobject(std::function<void(struct block_list *)>,
         BL);
 //
-int map_quit(struct map_session_data *);
+void map_quit(struct map_session_data *);
 // npc
 int map_addnpc(int, struct npc_data *);
 
@@ -560,8 +560,9 @@ int map_addflooritem(struct item *, int, int, int, int,
         struct map_session_data *);
 
 // キャラid＝＞キャラ名 変換関連
+extern
+DMap<int, struct block_list *> id_db;
 void map_addchariddb(int charid, const char *name);
-int map_reqchariddb(struct map_session_data *sd, int charid);
 char *map_charid2nick(int);
 
 struct map_session_data *map_id2sd(int);
@@ -571,7 +572,6 @@ int map_mapname2ipport(const char *, struct in_addr *, int *);
 int map_setipport(const char *name, struct in_addr ip, int port);
 void map_addiddb(struct block_list *);
 void map_deliddb(struct block_list *bl);
-void map_foreachiddb(db_func_t);
 void map_addnickdb(struct map_session_data *);
 int map_scriptcont(struct map_session_data *sd, int id);  /* Continues a script either on a spell or on an NPC */
 struct map_session_data *map_nick2sd(const char *);

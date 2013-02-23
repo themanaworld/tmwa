@@ -196,7 +196,7 @@ static
 int level_new_gm = 60;
 
 static
-struct dbt *gm_account_db;
+Map<int, struct gm_account> gm_account_db;
 
 static
 pid_t pid = 0; // For forked DB writes
@@ -237,7 +237,7 @@ void login_log(const_string line)
 static
 int isGM(int account_id)
 {
-    struct gm_account *p = (struct gm_account*) numdb_search(gm_account_db, account_id);
+    struct gm_account *p = gm_account_db.search(account_id);
     if (p == NULL)
         return 0;
     return p->level;
@@ -250,13 +250,11 @@ static
 int read_gm_account(void)
 {
     char line[512];
-    struct gm_account *p;
     FILE *fp;
     int c = 0;
     int GM_level;
 
-    free(gm_account_db);
-    gm_account_db = numdb_init();
+    gm_account_db.clear();
 
     creation_time_GM_account_file = file_modified(GM_account_filename);
 
@@ -277,35 +275,35 @@ int read_gm_account(void)
         if ((line[0] == '/' && line[1] == '/') || line[0] == '\0'
             || line[0] == '\n' || line[0] == '\r')
             continue;
-        CREATE(p, struct gm_account, 1);
-        if (sscanf(line, "%d %d", &p->account_id, &p->level) != 2
-            && sscanf(line, "%d: %d", &p->account_id, &p->level) != 2)
+        struct gm_account p {};
+        if (sscanf(line, "%d %d", &p.account_id, &p.level) != 2
+            && sscanf(line, "%d: %d", &p.account_id, &p.level) != 2)
             PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format.\n",
                  GM_account_filename);
-        else if (p->level <= 0)
+        else if (p.level <= 0)
             PRINTF("read_gm_account: file [%s] %dth account (invalid level [0 or negative]: %d).\n",
-                 GM_account_filename, c + 1, p->level);
+                 GM_account_filename, c + 1, p.level);
         else
         {
-            if (p->level > 99)
+            if (p.level > 99)
             {
                 PRINTF("read_gm_account: file [%s] %dth account (invalid level, but corrected: %d->99).\n",
-                     GM_account_filename, c + 1, p->level);
-                p->level = 99;
+                     GM_account_filename, c + 1, p.level);
+                p.level = 99;
             }
-            if ((GM_level = isGM(p->account_id)) > 0)
+            if ((GM_level = isGM(p.account_id)) > 0)
             {                   // if it's not a new account
-                if (GM_level == p->level)
+                if (GM_level == p.level)
                     PRINTF("read_gm_account: GM account %d defined twice (same level: %d).\n",
-                         p->account_id, p->level);
+                         p.account_id, p.level);
                 else
                     PRINTF("read_gm_account: GM account %d defined twice (levels: %d and %d).\n",
-                         p->account_id, GM_level, p->level);
+                         p.account_id, GM_level, p.level);
             }
-            if (GM_level != p->level)
+            if (GM_level != p.level)
             {                   // if new account or new level
-                numdb_insert(gm_account_db, p->account_id, p);
-                //PRINTF("GM account:%d, level: %d->%d\n", p->account_id, GM_level, p->level);
+                gm_account_db.insert(p.account_id, p);
+                //PRINTF("GM account:%d, level: %d->%d\n", p.account_id, GM_level, p.level);
                 if (GM_level == 0)
                 {               // if new account
                     c++;
@@ -4276,7 +4274,7 @@ void term_func(void)
     mmo_auth_sync();
 
     free(auth_dat);
-    free(gm_account_db);
+    gm_account_db.clear();
     for (i = 0; i < MAX_SERVERS; i++)
     {
         if ((fd = server_fd[i]) >= 0)
@@ -4302,8 +4300,6 @@ int do_init(int argc, char **argv)
         auth_fifo[i].delflag = 1;
     for (int i = 0; i < MAX_SERVERS; i++)
         server_fd[i] = -1;
-
-    gm_account_db = numdb_init();
 
     read_gm_account();
     mmo_auth_init();
