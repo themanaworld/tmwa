@@ -122,17 +122,20 @@ bool split_key_value(const std::string& line, std::string *w1, std::string *w2)
     return true;
 }
 
+static_assert(sizeof(timestamp_seconds_buffer) == 20, "seconds buffer");
+static_assert(sizeof(timestamp_milliseconds_buffer) == 24, "millis buffer");
+
 void stamp_time(timestamp_seconds_buffer& out, time_t *t)
 {
     time_t when = t ? *t : time(NULL);
-    strftime(out, sizeof(out), "%Y-%m-%d %H:%M:%S", gmtime(&when));
+    strftime(out, 20, "%Y-%m-%d %H:%M:%S", gmtime(&when));
 }
 void stamp_time(timestamp_milliseconds_buffer& out)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    strftime(out, sizeof(out), "%Y-%m-%d %H:%M:%S", gmtime(&tv.tv_sec));
-    sprintf(out + 20, ".%03d", int(tv.tv_usec / 1000));
+    strftime(out, 20, "%Y-%m-%d %H:%M:%S", gmtime(&tv.tv_sec));
+    sprintf(out + 19, ".%03d", int(tv.tv_usec / 1000));
 }
 
 void log_with_timestamp(FILE *out, const_string line)
