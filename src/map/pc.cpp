@@ -2659,6 +2659,7 @@ void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
         i = i / 2;
         if (sd->walkpath.path_half == 0)
             i = std::max(i, std::chrono::milliseconds(1));
+        assert (!sd->walktimer);
         sd->walktimer = add_timer(tick + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
                     id, sd->walkpath.path_pos));
@@ -2687,6 +2688,8 @@ int pc_walktoxy_sub(struct map_session_data *sd)
     if (i > interval_t::zero())
     {
         i = i / 4;
+        if (sd->walktimer)
+            delete_timer(sd->walktimer);
         sd->walktimer = add_timer(gettick() + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
                     sd->bl.id, 0));
