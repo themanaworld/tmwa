@@ -49,7 +49,7 @@ std::string inter_party_tostr(struct party *p)
                 (m->account_id > 0) ? m->name : "NoMember");
     }
 
-    return 0;
+    return str;
 }
 
 // パーティデータの文字列からの変換
