@@ -845,21 +845,6 @@ int pc_calc_skillpoint(struct map_session_data *sd)
 }
 
 /*==========================================
- * 覚えられるスキルの計算
- *------------------------------------------
- */
-static
-void pc_calc_skilltree(struct map_session_data *sd)
-{
-    nullpo_retv(sd);
-
-    // TODO - I *think* this can be removed
-    // since the skill is worthless without a level
-    if (sd->status.skill[SkillID::NV_EMOTE].id == SkillID::ZERO)
-        sd->status.skill[SkillID::NV_EMOTE].id = SkillID::NV_EMOTE;
-}
-
-/*==========================================
  * 重量アイコンの確認
  *------------------------------------------
  */
@@ -920,7 +905,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     int b_watk, b_def, b_watk2, b_def2, b_flee2, b_critical,
         b_attackrange, b_matk1, b_matk2, b_mdef, b_mdef2;
     int b_base_atk;
-    earray<struct skill, SkillID, MAX_SKILL> b_skill;
     int bl, index;
     int aspd_rate, refinedef = 0;
     int str, dstr, dex;
@@ -936,7 +920,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     b_max_weight = sd->max_weight;
     earray<int, ATTR, ATTR::COUNT> b_paramb = sd->paramb;
     earray<int, ATTR, ATTR::COUNT> b_parame = sd->paramc;
-    b_skill = sd->status.skill;
+    earray<skill_value, SkillID, MAX_SKILL> b_skill = sd->status.skill;
     b_hit = sd->hit;
     b_flee = sd->flee;
     interval_t b_aspd = sd->aspd;
@@ -952,8 +936,6 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     b_mdef = sd->mdef;
     b_mdef2 = sd->mdef2;
     b_base_atk = sd->base_atk;
-
-    pc_calc_skilltree(sd);     // スキルツリーの計算
 
     sd->max_weight = max_weight_base_0 + sd->status.attrs[ATTR::STR] * 300;
 
@@ -1868,15 +1850,14 @@ int pc_skill(struct map_session_data *sd, SkillID id, int level, int flag)
             PRINTF("support card skill only!\n");
         return 0;
     }
-    if (!flag && (sd->status.skill[id].id == id || level == 0))
-    {                           // クエスト所得ならここで条件を確認して送信する
+    if (!flag && (sd->status.skill[id].lv || level == 0))
+    {
         sd->status.skill[id].lv = level;
         pc_calcstatus(sd, 0);
         clif_skillinfoblock(sd);
     }
     else if (sd->status.skill[id].lv < level)
-    {                           // 覚えられるがlvが小さいなら
-        sd->status.skill[id].id = id;
+    {
         sd->status.skill[id].lv = level;
     }
 
@@ -2840,10 +2821,7 @@ int pc_checkskill(struct map_session_data *sd, SkillID skill_id)
     if (sd == NULL)
         return 0;
 
-    if (sd->status.skill[skill_id].id == skill_id)
-        return (sd->status.skill[skill_id].lv);
-
-    return 0;
+    return sd->status.skill[skill_id].lv;
 }
 
 /*==========================================
@@ -3085,7 +3063,7 @@ int pc_skillpt_potential(struct map_session_data *sd)
 
     for (SkillID skill_id = SkillID(); skill_id < MAX_SKILL;
             skill_id = SkillID(uint16_t(skill_id) + 1))
-        if (sd->status.skill[skill_id].id != SkillID::ZERO
+        if (sd->status.skill[skill_id].lv
             && sd->status.skill[skill_id].lv < skill_db[skill_id].max_raise)
             potential += RAISE_COST(skill_db[skill_id].max_raise)
                 - RAISE_COST(sd->status.skill[skill_id].lv);
@@ -3376,7 +3354,7 @@ int pc_skillup(struct map_session_data *sd, SkillID skill_num)
 {
     nullpo_ret(sd);
 
-    if (sd->status.skill[skill_num].id != SkillID::ZERO
+    if (sd->status.skill[skill_num].lv
         && sd->status.skill_point >= sd->status.skill[skill_num].lv
         && sd->status.skill[skill_num].lv < skill_db[skill_num].max_raise)
     {
@@ -3388,7 +3366,8 @@ int pc_skillup(struct map_session_data *sd, SkillID skill_num)
         clif_updatestatus(sd, SP::SKILLPOINT);
         clif_skillinfoblock(sd);
         MAP_LOG_PC(sd, "SKILLUP %d %d %d",
-                   uint16_t(skill_num), sd->status.skill[skill_num].lv, skill_power(sd, skill_num));
+                skill_num, sd->status.skill[skill_num].lv,
+                skill_power(sd, skill_num));
     }
 
     return 0;

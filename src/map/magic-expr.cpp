@@ -582,13 +582,17 @@ static
 int fun_skill(env_t *, int, val_t *result, val_t *args)
 {
     if (ENTITY_TYPE(0) != BL::PC
-            // don't convert to enum until after the range check
+        // don't convert to enum until after the range check
         || ARGINT(1) < 0
-        || ARGINT(1) >= uint16_t(MAX_SKILL)
-        || ARGPC(0)->status.skill[SkillID(ARGINT(1))].id != SkillID(ARGINT(1)))
+        || ARGINT(1) >= uint16_t(MAX_SKILL))
+    {
         RESULTINT = 0;
+    }
     else
-        RESULTINT = ARGPC(0)->status.skill[SkillID(ARGINT(1))].lv;
+    {
+        SkillID id = static_cast<SkillID>(ARGINT(1));
+        RESULTINT = ARGPC(0)->status.skill[id].lv;
+    }
     return 0;
 }
 

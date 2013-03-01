@@ -2997,21 +2997,20 @@ int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
     nullpo_ret(sd);
 
     fd = sd->fd;
-    SkillID id = sd->status.skill[skillid].id;
-    if (id == SkillID::ZERO || id == SkillID::NEGATIVE)
+    if (!sd->status.skill[skillid].lv)
         return 0;
     WFIFOW(fd, 0) = 0x147;
-    WFIFOW(fd, 2) = uint16_t(id);
+    WFIFOW(fd, 2) = static_cast<uint16_t>(skillid);
     if (type < 0)
-        WFIFOW(fd, 4) = skill_get_inf(id);
+        WFIFOW(fd, 4) = skill_get_inf(skillid);
     else
         WFIFOW(fd, 4) = type;
     WFIFOW(fd, 6) = 0;
     WFIFOW(fd, 8) = sd->status.skill[skillid].lv;
-    WFIFOW(fd, 10) = skill_get_sp(id, sd->status.skill[skillid].lv);
+    WFIFOW(fd, 10) = skill_get_sp(skillid, sd->status.skill[skillid].lv);
     if (range < 0)
     {
-        range = skill_get_range(id, sd->status.skill[skillid].lv);
+        range = skill_get_range(skillid, sd->status.skill[skillid].lv);
         if (range < 0)
             range = battle_get_range(&sd->bl) - (range + 1);
         WFIFOW(fd, 12) = range;
@@ -3019,8 +3018,7 @@ int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
     else
         WFIFOW(fd, 12) = range;
     memset(WFIFOP(fd, 14), 0, 24);
-    WFIFOB(fd, 38) =
-        (sd->status.skill[skillid].lv < skill_get_max_raise(id)) ? 1 : 0;
+    WFIFOB(fd, 38) = bool(sd->status.skill[skillid].lv < skill_get_max_raise(skillid));
     WFIFOSET(fd, clif_parse_func_table[0x147].len);
 
     return 0;
@@ -3041,24 +3039,22 @@ int clif_skillinfoblock(struct map_session_data *sd)
     WFIFOW(fd, 0) = 0x10f;
     for (SkillID i : erange(SkillID(), MAX_SKILL))
     {
-        SkillID id = sd->status.skill[i].id;
-        if (id != SkillID::ZERO && sd->tmw_version >= 1)
+        if (sd->status.skill[i].lv && sd->tmw_version >= 1)
         {
             // [Fate] Version 1 and later don't crash because of bad skill IDs anymore
-            WFIFOW(fd, len) = uint16_t(id);
-            WFIFOW(fd, len + 2) = skill_get_inf(id);
-            WFIFOW(fd, len + 4) = uint16_t(
+            WFIFOW(fd, len) = static_cast<uint16_t>(i);
+            WFIFOW(fd, len + 2) = skill_get_inf(i);
+            WFIFOW(fd, len + 4) = static_cast<uint16_t>(
                 skill_db[i].poolflags
                 | (sd->status.skill[i].flags & SkillFlags::POOL_ACTIVATED));
             WFIFOW(fd, len + 6) = sd->status.skill[i].lv;
-            WFIFOW(fd, len + 8) = skill_get_sp(id, sd->status.skill[i].lv);
-            range = skill_get_range(id, sd->status.skill[i].lv);
+            WFIFOW(fd, len + 8) = skill_get_sp(i, sd->status.skill[i].lv);
+            range = skill_get_range(i, sd->status.skill[i].lv);
             if (range < 0)
                 range = battle_get_range(&sd->bl) - (range + 1);
             WFIFOW(fd, len + 10) = range;
             memset(WFIFOP(fd, len + 12), 0, 24);
-            WFIFOB(fd, len + 36) =
-                (sd->status.skill[i].lv < skill_get_max_raise(id)) ? 1 : 0;
+            WFIFOB(fd, len + 36) = bool(sd->status.skill[i].lv < skill_get_max_raise(i));
             len += 37;
         }
     }
@@ -3087,9 +3083,7 @@ int clif_skillup(struct map_session_data *sd, SkillID skill_num)
     if (range < 0)
         range = battle_get_range(&sd->bl) - (range + 1);
     WFIFOW(fd, 8) = range;
-    WFIFOB(fd, 10) =
-        (sd->status.skill[skill_num].lv <
-         skill_get_max_raise(sd->status.skill[skill_num].id)) ? 1 : 0;
+    WFIFOB(fd, 10) = bool(sd->status.skill[skill_num].lv < skill_get_max_raise(skill_num));
     WFIFOSET(fd, clif_parse_func_table[0x10e].len);
 
     return 0;

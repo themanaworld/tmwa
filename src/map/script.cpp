@@ -2494,11 +2494,10 @@ void builtin_setskill(ScriptState *st)
     int level;
     struct map_session_data *sd;
 
-    SkillID id = SkillID(conv_num(st, &(st->stack->stack_data[st->start + 2])));
+    SkillID id = static_cast<SkillID>(conv_num(st, &(st->stack->stack_data[st->start + 2])));
     level = conv_num(st, &(st->stack->stack_data[st->start + 3]));
     sd = script_rid2sd(st);
 
-    sd->status.skill[id].id = level ? id : SkillID();
     sd->status.skill[id].lv = level;
     clif_skillinfoblock(sd);
 }
@@ -3809,16 +3808,16 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
     {
         SkillID skill_id = pool_skills[i];
 
-        if (sd->status.skill[skill_id].id == skill_id)
+        if (sd->status.skill[skill_id].lv)
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
-                       uint16_t(sd->status.skill[skill_id].id));
+                    static_cast<uint16_t>(skill_id));
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
-                       sd->status.skill[skill_id].lv);
+                    sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
-                       uint16_t(sd->status.skill[skill_id].flags));
+                    static_cast<uint16_t>(sd->status.skill[skill_id].flags));
             pc_setregstr(sd, add_str("@skilllist_name$") + (count << 24),
-                          skill_name(skill_id));
+                    skill_name(skill_id));
             ++count;
         }
     }
@@ -3839,22 +3838,21 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
     {
         SkillID skill_id = skill_pool_skills[i];
 
-        if (sd->status.skill[skill_id].id == skill_id
+        if (sd->status.skill[skill_id].lv
             && !bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         {
             pc_setreg(sd, add_str("@skilllist_id") + (count << 24),
-                       uint16_t(sd->status.skill[skill_id].id));
+                    static_cast<uint16_t>(skill_id));
             pc_setreg(sd, add_str("@skilllist_lv") + (count << 24),
-                       sd->status.skill[skill_id].lv);
+                    sd->status.skill[skill_id].lv);
             pc_setreg(sd, add_str("@skilllist_flag") + (count << 24),
-                       uint16_t(sd->status.skill[skill_id].flags));
+                    static_cast<uint16_t>(sd->status.skill[skill_id].flags));
             pc_setregstr(sd, add_str("@skilllist_name$") + (count << 24),
-                          skill_name(skill_id));
+                    skill_name(skill_id));
             ++count;
         }
     }
     pc_setreg(sd, add_str("@skilllist_count"), count);
-
 }
 
 static

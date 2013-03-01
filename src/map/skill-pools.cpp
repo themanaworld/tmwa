@@ -54,13 +54,13 @@ int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
 {
     if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         return 0;               // Already there
-    else if (sd->status.skill[skill_id].id == skill_id  // knows the skill
+    else if (sd->status.skill[skill_id].lv
              && (skill_pool_size(sd) < skill_pool_max(sd)))
     {
         sd->status.skill[skill_id].flags |= SkillFlags::POOL_ACTIVATED;
         pc_calcstatus(sd, 0);
         MAP_LOG_PC(sd, "SKILL-ACTIVATE %d %d %d",
-                uint16_t(skill_id), sd->status.skill[skill_id].lv,
+                skill_id, sd->status.skill[skill_id].lv,
                 skill_power(sd, skill_id));
         return 0;
     }
@@ -78,7 +78,7 @@ int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
     if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
     {
         sd->status.skill[skill_id].flags &= ~SkillFlags::POOL_ACTIVATED;
-        MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d", uint16_t(skill_id));
+        MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d", skill_id);
         pc_calcstatus(sd, 0);
         return 0;
     }

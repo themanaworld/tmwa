@@ -6230,7 +6230,7 @@ int atcommand_magic_info(const int fd, struct map_session_data *,
                     "%d in %s",
                     pl_sd->status.skill[sk].lv,
                     magic_skill_names[i]);
-            if (pl_sd->status.skill[sk].id == sk)
+            if (pl_sd->status.skill[sk].lv)
                 clif_displaymessage(fd, buf);
         }
 
@@ -6245,7 +6245,6 @@ int atcommand_magic_info(const int fd, struct map_session_data *,
 static
 void set_skill(struct map_session_data *sd, SkillID i, int level)
 {
-    sd->status.skill[i].id = level ? i : SkillID();
     sd->status.skill[i].lv = level;
 }
 

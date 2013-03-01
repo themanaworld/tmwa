@@ -327,10 +327,10 @@ std::string mmo_char_tostr(struct mmo_charstatus *p)
     str_p += '\t';
 
     for (SkillID i : erange(SkillID(), MAX_SKILL))
-        if (p->skill[i].id != SkillID()/*SkillID::ZERO*/)
+        if (p->skill[i].lv)
         {
             str_p += STRPRINTF("%d,%d ",
-                    p->skill[i].id,
+                    i,
                     p->skill[i].lv | (uint16_t(p->skill[i].flags) << 16));
         }
     str_p += '\t';
@@ -351,14 +351,21 @@ bool extract(const_string str, struct point *p)
     return extract(str, record<','>(&p->map, &p->x, &p->y));
 }
 
+struct skill_loader
+{
+    SkillID id;
+    uint16_t level;
+    SkillFlags flags;
+};
+
 static
-bool extract(const_string str, struct skill *s)
+bool extract(const_string str, struct skill_loader *s)
 {
     uint32_t flags_and_level;
     if (!extract(str,
                 record<','>(&s->id, &flags_and_level)))
         return false;
-    s->lv = flags_and_level & 0xffff;
+    s->level = flags_and_level & 0xffff;
     s->flags = SkillFlags(flags_and_level >> 16);
     return true;
 }
@@ -375,7 +382,7 @@ bool extract(const_string str, struct mmo_charstatus *p)
     uint32_t unused_guild_id, unused_pet_id;
     std::vector<struct point> memos;
     std::vector<struct item> inventory, cart;
-    std::vector<struct skill> skills;
+    std::vector<struct skill_loader> skills;
     std::vector<struct global_reg> vars;
     if (!extract(str,
                 record<'\t'>(
@@ -429,10 +436,13 @@ bool extract(const_string str, struct mmo_charstatus *p)
     std::copy(cart.begin(), cart.end(), p->cart);
     // number of cart items is not saved - it just detects nameid 0
 
-    if (skills.size() > uint16_t(MAX_SKILL))
-        return false;
-    std::copy(skills.begin(), skills.end(), &p->skill[SkillID()]);
-    // number of skills is not saved - it just detects skill.id 0
+    for (struct skill_loader& sk : skills)
+    {
+        if (sk.id > MAX_SKILL)
+            return false;
+        p->skill[sk.id].lv = sk.level;
+        p->skill[sk.id].flags = sk.flags;
+    }
 
     if (vars.size() > GLOBAL_REG_NUM)
         return false;

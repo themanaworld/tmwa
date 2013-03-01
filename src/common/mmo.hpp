@@ -88,9 +88,8 @@ enum class SkillFlags : uint16_t;
 }
 using e::SkillFlags;
 
-struct skill
+struct skill_value
 {
-    SkillID id;
     unsigned short lv;
     SkillFlags flags;
 };
@@ -161,7 +160,7 @@ struct mmo_charstatus
 
     struct point last_point, save_point, memo_point[10];
     struct item inventory[MAX_INVENTORY], cart[MAX_CART];
-    earray<struct skill, SkillID, MAX_SKILL> skill;
+    earray<skill_value, SkillID, MAX_SKILL> skill;
     int global_reg_num;
     struct global_reg global_reg[GLOBAL_REG_NUM];
     int account_reg_num;
