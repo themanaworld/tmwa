@@ -704,11 +704,7 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
         sd->sc_data[i].val1 = 0;
     }
     sd->sc_count = 0;
-    if ((battle_config.atc_gmonly == 0 || pc_isGM(sd)) &&
-        (pc_isGM(sd) >= get_atcommand_level(AtCommand_Hide)))
-        sd->status.option &= Option::HIDE;
-    else
-        sd->status.option = Option::ZERO;
+    sd->status.option = Option::ZERO;
 
     // init ignore list
     memset(sd->ignore, 0, sizeof(sd->ignore));
