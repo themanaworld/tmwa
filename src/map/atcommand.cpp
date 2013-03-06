@@ -434,7 +434,7 @@ bool is_atcommand(const int fd, struct map_session_data *sd,
     if (!info)
     {
         std::string output = STRPRINTF("GM command not found: %s",
-                info->command);
+                message);
         clif_displaymessage(fd, output);
         return true; // don't show in chat
     }
