@@ -12,8 +12,6 @@ notifications:
     on_failure: always
   ## Are we going to want this on or off?
   irc:
-    # TMW irc doesn't work for some reason; freenode does ...
-    # I'm leaving it like this because it's what I'd like to use.
     channels:   "chat.freenode.net#tmwa"
     on_success: always
     on_failure: always
@@ -31,7 +29,13 @@ install:
         sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test &&
         sudo apt-get update -qq;
     fi
-  - sudo apt-get install -qq ${REAL_CXX}
+  -
+    if [ "${REAL_CXX}" = "clang++" ];
+    then
+        sudo apt-get install -qq ${REAL_CXX} g++-multilib;
+    else
+        sudo apt-get install -qq ${REAL_CXX}-multilib;
+    fi
 
 ## Do something before the main test script
 # before_script: ...
