@@ -5321,7 +5321,7 @@ void pc_natural_heal_sub(struct map_session_data *sd)
     if (sd->quick_regeneration_hp.amount || sd->quick_regeneration_sp.amount)
     {
         int hp_bonus = pc_quickregenerate_effect(&sd->quick_regeneration_hp,
-                (!sd->sc_data[StatusChange::SC_POISON].timer == -1
+                (!sd->sc_data[StatusChange::SC_POISON].timer
                     || sd->sc_data[StatusChange::SC_SLOWPOISON].timer)
                 ? sd->nhealhp
                 : 1);   // [fate] slow down when poisoned
