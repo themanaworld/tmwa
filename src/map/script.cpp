@@ -4240,6 +4240,24 @@ void builtin_isin(ScriptState *st)
 
 }
 
+// Trigger the shop on a (hopefully) nearby shop NPC
+static
+void builtin_shop(ScriptState *st)
+{
+    struct map_session_data *sd = script_rid2sd(st);
+    struct npc_data *nd;
+
+    if (!sd)
+        return;
+
+    nd = npc_name2id(conv_str(st, &(st->stack->stack_data[st->start + 2])));
+    if (!nd)
+        return;
+
+    builtin_close(st);
+    clif_npcbuysell(sd, nd->bl.id);
+}
+
 /*==========================================
  * Check whether the PC is dead
  *------------------------------------------
@@ -5183,6 +5201,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getsavepoint, "i"),
     BUILTIN(areatimer, "MxyxytE"),
     BUILTIN(isin, "Mxyxy"),
+    BUILTIN(shop, "s"),
     BUILTIN(isdead, ""),
     BUILTIN(unequipbyid, "i"),
     BUILTIN(getx, ""),
@@ -5190,4 +5209,3 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getmap, ""),
     {NULL, NULL, NULL},
 };
-
