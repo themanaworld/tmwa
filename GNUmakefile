@@ -81,4 +81,4 @@ include deps.make
 prefix=/usr/local
 install:
 	install -d ${prefix}/bin/
-	install -t ${prefix}/bin/ $(wildcard ${PROGS})
+	install --backup=numbered -t ${prefix}/bin/ $(wildcard ${PROGS})
