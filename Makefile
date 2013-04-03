@@ -79,6 +79,7 @@ deps.make: src/map/magic-interpreter-parser.cpp src/map/magic-interpreter-lexer.
 include deps.make
 
 prefix=/usr/local
+BACKUPS=numbered
 install:
 	install -d ${prefix}/bin/
-	install --backup=numbered -t ${prefix}/bin/ $(wildcard ${PROGS})
+	install --backup=${BACKUPS} -t ${prefix}/bin/ $(wildcard ${PROGS})
