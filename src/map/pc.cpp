@@ -856,6 +856,7 @@ int pc_checkweighticon(struct map_session_data *sd)
     if (sd->weight * 10 >= sd->max_weight * 9)
         flag = 2;
 
+    // this is horribly hackish and may have caused crashes
     if (flag == 1)
     {
         if (!sd->sc_data[StatusChange::SC_WEIGHT50].timer)

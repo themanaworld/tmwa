@@ -86,7 +86,7 @@ int skill_status_change_start(struct block_list *bl, StatusChange type,
         int val1,
         interval_t tick);
 int skill_status_change_active(struct block_list *bl, StatusChange type);  // [fate]
-int skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid);
+void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid);
 int skill_status_change_clear(struct block_list *bl, int type);
 
 // mobスキルのため

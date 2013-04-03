@@ -3018,7 +3018,7 @@ int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
     else
         WFIFOW(fd, 12) = range;
     memset(WFIFOP(fd, 14), 0, 24);
-    WFIFOB(fd, 38) = bool(sd->status.skill[skillid].lv < skill_get_max_raise(skillid));
+    WFIFOB(fd, 38) = sd->status.skill[skillid].lv < skill_get_max_raise(skillid);
     WFIFOSET(fd, clif_parse_func_table[0x147].len);
 
     return 0;
@@ -3054,7 +3054,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
                 range = battle_get_range(&sd->bl) - (range + 1);
             WFIFOW(fd, len + 10) = range;
             memset(WFIFOP(fd, len + 12), 0, 24);
-            WFIFOB(fd, len + 36) = bool(sd->status.skill[i].lv < skill_get_max_raise(i));
+            WFIFOB(fd, len + 36) = sd->status.skill[i].lv < skill_get_max_raise(i);
             len += 37;
         }
     }
@@ -3083,7 +3083,7 @@ int clif_skillup(struct map_session_data *sd, SkillID skill_num)
     if (range < 0)
         range = battle_get_range(&sd->bl) - (range + 1);
     WFIFOW(fd, 8) = range;
-    WFIFOB(fd, 10) = bool(sd->status.skill[skill_num].lv < skill_get_max_raise(skill_num));
+    WFIFOB(fd, 10) = sd->status.skill[skill_num].lv < skill_get_max_raise(skill_num);
     WFIFOSET(fd, clif_parse_func_table[0x10e].len);
 
     return 0;

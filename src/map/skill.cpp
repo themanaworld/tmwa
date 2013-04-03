@@ -761,7 +761,7 @@ int skill_status_change_active(struct block_list *bl, StatusChange type)
     return sc_data[type].timer != nullptr;
 }
 
-int skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid)
+void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid)
 {
     eptr<struct status_change, StatusChange> sc_data;
     int opt_flag = 0, calc_flag = 0;
@@ -771,29 +771,32 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, TimerData 
     Opt2 *opt2;
     Opt3 *opt3;
 
-    nullpo_ret(bl);
+    nullpo_retv(bl);
     if (bl->type != BL::PC && bl->type != BL::MOB)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_end: neither MOB nor PC !\n");
-        return 0;
+        return;
     }
     sc_data = battle_get_sc_data(bl);
     if (not sc_data)
-        return 0;
+        return;
     sc_count = battle_get_sc_count(bl);
-    nullpo_ret(sc_count);
+    nullpo_retv(sc_count);
     option = battle_get_option(bl);
-    nullpo_ret(option);
+    nullpo_retv(option);
     opt1 = battle_get_opt1(bl);
-    nullpo_ret(opt1);
+    nullpo_retv(opt1);
     opt2 = battle_get_opt2(bl);
-    nullpo_ret(opt2);
+    nullpo_retv(opt2);
     opt3 = battle_get_opt3(bl);
-    nullpo_ret(opt3);
+    nullpo_retv(opt3);
 
-    if ((*sc_count) > 0 && sc_data[type].timer
-        && (sc_data[type].timer == tid || !tid))
+    if (!sc_data[type].timer)
+        return;
+    assert ((*sc_count) > 0);
+    assert (sc_data[type].timer == tid || !tid);
+
     {
 
         if (!tid)
@@ -854,8 +857,6 @@ int skill_status_change_end(struct block_list *bl, StatusChange type, TimerData 
         if (bl->type == BL::PC && calc_flag)
             pc_calcstatus((struct map_session_data *) bl, 0);  /* ステータス再計算 */
     }
-
-    return 0;
 }
 
 int skill_update_heal_animation(struct map_session_data *sd)
