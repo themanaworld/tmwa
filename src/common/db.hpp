@@ -30,6 +30,10 @@ class Map
 
     Impl impl;
 public:
+    Map() = default;
+    Map(std::initializer_list<std::pair<const K, V>> il)
+    : impl(il)
+    {}
     typedef typename Impl::iterator iterator;
     typedef typename Impl::const_iterator const_iterator;
 
