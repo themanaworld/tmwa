@@ -2033,25 +2033,20 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
     if (mobskill_use(md, tick, MobSkillCondition::ANY))
         return;
 
-    // 歩行処理
+    // mobs that are not slaves can random-walk
     if (bool(mode & MobMode::CAN_MOVE)
         && mob_can_move(md)
         && (md->master_id == 0 || md->state.special_mob_ai
             || md->master_dist > 10))
     {
-        //取り巻きMOBじゃない
+        // if walktime is more than 7 seconds in the future,
+        // set it to somewhere between 3 and 5 seconds
         if (md->next_walktime > tick + std::chrono::seconds(7)
             && (md->walkpath.path_len == 0
                 || md->walkpath.path_pos >= md->walkpath.path_len))
         {
-            // Original: (3000 * rand()) % 2000
-            //      yields ({0 3000 6000 9000 12000 15000 ...} * 3000)  % 2000
-            //      = {0 1000 0 1000 0 1000 ...}
-            // Recent: 3000 * MRAND(2000)
-            //      yields 3000 * {0 3000 6000 9000 ... 5991000 5994000 5997000}
-            //  I have reverted to the original logic, but I don't understand.
-#warning "I don't understand this code! It is either wrong now or was wrong before."
-            md->next_walktime = tick + std::chrono::seconds(random_::to(2));
+            md->next_walktime = tick + std::chrono::seconds(3)
+                + std::chrono::milliseconds(random_::to(2000));
         }
 
         // Random movement
