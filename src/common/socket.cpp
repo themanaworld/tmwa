@@ -117,9 +117,18 @@ static void connect_client (int listen_fd)
     setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
-    // I'm not convinced this is a good idea; although in minimizes the
-    // latency for an individual write, it increases traffic in general.
+    /// Testing shows this is indeed a good idea.
     setsockopt (fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
+
+    // Linux-ism: Set socket options to optimize for thin streams
+    // See http://lwn.net/Articles/308919/ and
+    // Documentation/networking/tcp-thin.txt .. Kernel 3.2+
+#ifdef TCP_THIN_LINEAR_TIMEOUTS
+    setsockopt(fd, IPPROTO_TCP, TCP_THIN_LINEAR_TIMEOUTS, &yes, sizeof yes);
+#endif
+#ifdef TCP_THIN_DUPACK
+    setsockopt(fd, IPPROTO_TCP, TCP_THIN_DUPACK, &yes, sizeof yes);
+#endif
 
     FD_SET (fd, &readfds);
 
