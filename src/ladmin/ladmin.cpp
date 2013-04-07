@@ -1760,9 +1760,9 @@ int changememo(const char *param)
 
     if (strlen(memo) > 254)
     {
-        PRINTF("Memo is too long (%d characters).\n", strlen(memo));
+        PRINTF("Memo is too long (%zu characters).\n", strlen(memo));
         PRINTF("Please input a memo of 254 bytes at the maximum.\n");
-        LADMIN_LOG("Email is too long (%d characters). Please input a memo of 254 bytes at the maximum.\n",
+        LADMIN_LOG("Email is too long (%zu characters). Please input a memo of 254 bytes at the maximum.\n",
               strlen(memo));
         return 102;
     }

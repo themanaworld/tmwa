@@ -819,7 +819,7 @@ expr_t *fun_expr(const char *name, int args_nr, expr_t **args, int line, int col
         if (!fun) {
                 fail(line, column, "Unknown function `%s'\n", name);
         } else if (strlen(fun->signature) != args_nr) {
-                fail(line, column, "Incorrect number of arguments to function `%s': Expected %d, found %d\n", name, strlen(fun->signature), args_nr);
+                fail(line, column, "Incorrect number of arguments to function `%s': Expected %zu, found %d\n", name, strlen(fun->signature), args_nr);
                 fun = NULL;
         }
 
@@ -932,7 +932,7 @@ effect_t *op_effect(char *name, int args_nr, expr_t **args, int line, int column
         if (!op)
                 fail(line, column, "Unknown operation `%s'\n", name);
         else if (strlen(op->signature) != args_nr) {
-                fail(line, column, "Incorrect number of arguments to operation `%s': Expected %d, found %d\n", name, strlen(op->signature), args_nr);
+                fail(line, column, "Incorrect number of arguments to operation `%s': Expected %zu, found %d\n", name, strlen(op->signature), args_nr);
                 op = NULL;
         }
 

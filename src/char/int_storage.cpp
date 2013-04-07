@@ -205,7 +205,7 @@ int mapif_parse_SaveStorage(int fd)
     int len = RFIFOW(fd, 2);
     if (sizeof(struct storage) != len - 8)
     {
-        PRINTF("inter storage: data size error %d %d\n",
+        PRINTF("inter storage: data size error %zu %d\n",
                 sizeof(struct storage), len - 8);
     }
     else

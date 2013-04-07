@@ -418,7 +418,7 @@ int intif_parse_LoadStorage(int fd)
     if (RFIFOW(fd, 2) - 8 != sizeof(struct storage))
     {
         if (battle_config.error_log)
-            PRINTF("intif_parse_LoadStorage: data size error %d %d\n",
+            PRINTF("intif_parse_LoadStorage: data size error %d %zu\n",
                     RFIFOW(fd, 2) - 8, sizeof(struct storage));
         return 1;
     }
@@ -473,7 +473,7 @@ int intif_parse_PartyInfo(int fd)
     if (RFIFOW(fd, 2) != sizeof(struct party) + 4)
     {
         if (battle_config.error_log)
-            PRINTF("intif: party info : data size error %d %d %d\n",
+            PRINTF("intif: party info : data size error %d %d %zu\n",
                     RFIFOL(fd, 4), RFIFOW(fd, 2),
                     sizeof(struct party) + 4);
     }

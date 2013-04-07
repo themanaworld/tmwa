@@ -9,7 +9,7 @@ CXXFLAGS = -pipe -g -O2 ${WARNINGS}
 WARNINGS = -include src/warnings.hpp
 
 # works on both x86 and x86_64
-override CXX += -m32 -std=c++0x
+override CXX += -std=c++0x
 # for linking
 override CC = ${CXX}
 

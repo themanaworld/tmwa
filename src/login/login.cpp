@@ -1111,7 +1111,7 @@ void parse_fromchar(int fd)
     while (RFIFOREST(fd) >= 2)
     {
         if (display_parse_fromchar == 2 || (display_parse_fromchar == 1 && RFIFOW(fd, 0) != 0x2714))   // 0x2714 is done very often (number of players)
-            PRINTF("parse_fromchar: connection #%d, packet: 0x%x (with being read: %d bytes).\n",
+            PRINTF("parse_fromchar: connection #%d, packet: 0x%x (with being read: %zu bytes).\n",
                  fd, RFIFOW(fd, 0), RFIFOREST(fd));
 
         switch (RFIFOW(fd, 0))
@@ -1730,7 +1730,7 @@ void parse_fromchar(int fd)
                              "%s: receiving of an unknown packet -> disconnection\n",
                              tmpstr);
                     FPRINTF(logfp,
-                             "parse_fromchar: connection #%d (ip: %s), packet: 0x%x (with being read: %d).\n",
+                             "parse_fromchar: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n",
                              fd, ip, RFIFOW(fd, 0), RFIFOREST(fd));
                     FPRINTF(logfp, "Detail (in hex):\n");
                     FPRINTF(logfp,
@@ -1799,7 +1799,7 @@ void parse_admin(int fd)
     while (RFIFOREST(fd) >= 2)
     {
         if (display_parse_admin == 1)
-            PRINTF("parse_admin: connection #%d, packet: 0x%x (with being read: %d).\n",
+            PRINTF("parse_admin: connection #%d, packet: 0x%x (with being read: %zu).\n",
                  fd, RFIFOW(fd, 0), RFIFOREST(fd));
 
         switch (RFIFOW(fd, 0))
@@ -2954,7 +2954,7 @@ void parse_admin(int fd)
                              "%s: receiving of an unknown packet -> disconnection\n",
                              tmpstr);
                     FPRINTF(logfp,
-                             "parse_admin: connection #%d (ip: %s), packet: 0x%x (with being read: %d).\n",
+                             "parse_admin: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n",
                              fd, ip, RFIFOW(fd, 0), RFIFOREST(fd));
                     FPRINTF(logfp, "Detail (in hex):\n");
                     FPRINTF(logfp,
@@ -3056,19 +3056,19 @@ void parse_login(int fd)
             if (RFIFOW(fd, 0) == 0x64 || RFIFOW(fd, 0) == 0x01dd)
             {
                 if (RFIFOREST(fd) >= ((RFIFOW(fd, 0) == 0x64) ? 55 : 47))
-                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %d), account: %s.\n",
+                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), account: %s.\n",
                          fd, RFIFOW(fd, 0), RFIFOREST(fd),
                          static_cast<const char *>(RFIFOP(fd, 6)));
             }
             else if (RFIFOW(fd, 0) == 0x2710)
             {
                 if (RFIFOREST(fd) >= 86)
-                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %d), server: %s.\n",
+                    PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), server: %s.\n",
                          fd, RFIFOW(fd, 0), RFIFOREST(fd),
                          static_cast<const char *>(RFIFOP(fd, 60)));
             }
             else
-                PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %d).\n",
+                PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu).\n",
                      fd, RFIFOW(fd, 0), RFIFOREST(fd));
         }
 
@@ -3508,7 +3508,7 @@ void parse_login(int fd)
                                  "%s: receiving of an unknown packet -> disconnection\n",
                                  tmpstr);
                         FPRINTF(logfp,
-                                 "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %d).\n",
+                                 "parse_login: connection #%d (ip: %s), packet: 0x%x (with being read: %zu).\n",
                                  fd, ip, RFIFOW(fd, 0),
                                  RFIFOREST(fd));
                         FPRINTF(logfp, "Detail (in hex):\n");
@@ -4106,7 +4106,7 @@ void save_config_in_log(void)
     else if (strcmp(admin_pass, "admin") == 0)
         LOGIN_LOG("- with a remote administration with the DEFAULT password.\n");
     else
-        LOGIN_LOG("- with a remote administration with the password of %d character(s).\n",
+        LOGIN_LOG("- with a remote administration with the password of %zu character(s).\n",
              strlen(admin_pass));
     if (access_ladmin_allownum == 0
         || (access_ladmin_allownum == 1 && access_ladmin_allow[0] == '\0'))
@@ -4126,7 +4126,7 @@ void save_config_in_log(void)
     else if (strcmp(gm_pass, "gm") == 0)
         LOGIN_LOG("- with the DEFAULT 'To GM become' password (gm_pass).\n");
     else
-        LOGIN_LOG("- with a 'To GM become' password (gm_pass) of %d character(s).\n",
+        LOGIN_LOG("- with a 'To GM become' password (gm_pass) of %zu character(s).\n",
              strlen(gm_pass));
     if (level_new_gm == 0)
         LOGIN_LOG("- to refuse any creation of GM with @gm.\n");

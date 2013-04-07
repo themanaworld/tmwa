@@ -324,7 +324,7 @@ void WFIFOSET(int fd, size_t len)
     if (s->wdata_size + len + 16384 > s->max_wdata)
     {
         realloc_fifo(fd, s->max_rdata, s->max_wdata << 1);
-        PRINTF("socket: %d wdata expanded to %d bytes.\n", fd, s->max_wdata);
+        PRINTF("socket: %d wdata expanded to %zu bytes.\n", fd, s->max_wdata);
     }
     if (s->wdata_size + len + 2048 < s->max_wdata)
         s->wdata_size += len;

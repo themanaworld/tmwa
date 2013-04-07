@@ -2260,7 +2260,7 @@ void parse_frommap(int fd)
                     return;
             }
                 // inter server処理でもない場合は切断
-                PRINTF("char: unknown packet 0x%04x (%d bytes to read in buffer)! (from map).\n",
+                PRINTF("char: unknown packet 0x%04x (%zu bytes to read in buffer)! (from map).\n",
                      RFIFOW(fd, 0), RFIFOREST(fd));
                 session[fd]->eof = 1;
                 return;

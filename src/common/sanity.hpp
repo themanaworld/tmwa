@@ -44,17 +44,11 @@
 #  endif // compiler and not library
 # endif // __GNUC__ == 4
 
-# ifndef __i386__
+# if not defined(__i386__) and not defined(__x86_64__)
 // Known platform dependencies:
 // endianness for the [RW]FIFO.* macros
 // possibly, some signal-handling
-#  error "Unsupported platform"
+#  error "Unsupported platform use x86 / amd64 only"
 # endif // not __i386__
-
-# ifdef __x86_64__
-// I'm working on it - I know there are some pointer-size assumptions.
-#  error "Sorry, this code is believed not to be 64-bit safe"
-#  error "please compile with -m32"
-# endif // __x86_64__
 
 #endif // SANITY_HPP
