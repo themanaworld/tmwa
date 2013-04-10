@@ -98,7 +98,7 @@ struct char_session_data
     unsigned short packet_tmw_version;
     int found_char[9];
     char email[40];             // e-mail (default: a@a.com) by [Yor]
-    time_t connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
+    TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 };
 
 #define AUTH_FIFO_SIZE 256
@@ -108,7 +108,7 @@ struct
     int account_id, char_id, login_id1, login_id2, ip, char_pos, delflag,
         sex;
     unsigned short packet_tmw_version;
-    time_t connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
+    TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 } auth_fifo[AUTH_FIFO_SIZE];
 static
 int auth_fifo_pos = 0;
@@ -157,7 +157,7 @@ int online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when 
 static
 int *online_chars;              // same size of char_dat, and id value of current server (or -1)
 static
-time_t update_online;           // to update online files when we receiving information from a server (not less than 8 seconds)
+TimeT update_online;           // to update online files when we receiving information from a server (not less than 8 seconds)
 
 static
 pid_t pid = 0;                  // For forked DB writes
@@ -840,8 +840,6 @@ void create_online_files(void)
     FILE *fp;                   // for the txt file
     FILE *fp2;                  // for the html file
     char temp[256];             // to prepare what we must display
-    time_t time_server;         // for number of seconds
-    struct tm *datetime;        // variable for time in structure ->tm_mday, ->tm_sec, ...
     int id[char_num];
 
     // Get number of online players, id of each online players
@@ -933,9 +931,9 @@ void create_online_files(void)
         if (fp2 != NULL)
         {
             // get time
-            time(&time_server);    // get time in seconds since 1/1/1970
-            datetime = localtime(&time_server);    // convert seconds in structure
-            strftime(temp, sizeof(temp), "%d %b %Y %X", datetime);    // like SPRINTF, but only for date/time (05 dec 2003 15:12:52)
+#warning "Need to convert/check the PHP code"
+            timestamp_seconds_buffer timetemp;
+            stamp_time(timetemp);
             // write heading
             FPRINTF(fp2, "<HTML>\n");
             FPRINTF(fp2, "  <META http-equiv=\"Refresh\" content=\"%d\">\n", online_refresh_html); // update on client explorer every x seconds
@@ -945,8 +943,8 @@ void create_online_files(void)
             FPRINTF(fp2, "  </HEAD>\n");
             FPRINTF(fp2, "  <BODY>\n");
             FPRINTF(fp2, "    <H3>Online Players on %s (%s):</H3>\n",
-                     server_name, temp);
-            FPRINTF(fp, "Online Players on %s (%s):\n", server_name, temp);
+                     server_name, timetemp);
+            FPRINTF(fp, "Online Players on %s (%s):\n", server_name, timetemp);
             FPRINTF(fp, "\n");
 
             // If we display at least 1 player
@@ -1350,7 +1348,7 @@ void parse_tologin(int fd)
                             memcpy(sd->email, RFIFOP(fd, 7), 40);
                             if (e_mail_check(sd->email) == 0)
                                 strzcpy(sd->email, "a@a.com", 40); // default e-mail
-                            sd->connect_until_time = (time_t) RFIFOL(fd, 47);
+                            sd->connect_until_time = static_cast<time_t>(RFIFOL(fd, 47));
                             // send characters to player
                             mmo_char_send006b(i, sd);
                         }
@@ -1381,7 +1379,7 @@ void parse_tologin(int fd)
                             memcpy(sd->email, RFIFOP(fd, 6), 40);
                             if (e_mail_check(sd->email) == 0)
                                 strzcpy(sd->email, "a@a.com", 40); // default e-mail
-                            sd->connect_until_time = (time_t) RFIFOL(fd, 46);
+                            sd->connect_until_time = static_cast<time_t>(RFIFOL(fd, 46));
                             break;
                         }
                     }
@@ -1877,8 +1875,7 @@ void parse_frommap(int fd)
                         WFIFOW(fd, 2) = 18 + sizeof(struct mmo_charstatus);
                         WFIFOL(fd, 4) = RFIFOL(fd, 2);
                         WFIFOL(fd, 8) = auth_fifo[i].login_id2;
-                        WFIFOL(fd, 12) =
-                            (unsigned long) auth_fifo[i].connect_until_time;
+                        WFIFOL(fd, 12) = static_cast<time_t>(auth_fifo[i].connect_until_time);
                         char_dat[auth_fifo[i].char_pos].sex =
                             auth_fifo[i].sex;
                         WFIFOW(fd, 16) = auth_fifo[i].packet_tmw_version;
@@ -1927,10 +1924,12 @@ void parse_frommap(int fd)
                             break;
                         }
                 }
-                if (update_online < time(NULL))
-                {               // Time is done
-                    update_online = time(NULL) + 8;
-                    create_online_files(); // only every 8 sec. (normally, 1 server send users every 5 sec.) Don't update every time, because that takes time, but only every 2 connection.
+                if (update_online < TimeT::now())
+                {
+                    // Time is done
+                    update_online = static_cast<time_t>(TimeT::now()) + 8;
+                    create_online_files();
+                    // only every 8 sec. (normally, 1 server send users every 5 sec.) Don't update every time, because that takes time, but only every 2 connection.
                     // it set to 8 sec because is more than 5 (sec) and if we have more than 1 map-server, informations can be received in shifted.
                 }
                 RFIFOSKIP(fd, 6 + i * 4);
@@ -1965,7 +1964,7 @@ void parse_frommap(int fd)
                 auth_fifo[auth_fifo_pos].login_id2 = RFIFOL(fd, 10);
                 auth_fifo[auth_fifo_pos].delflag = 2;
                 auth_fifo[auth_fifo_pos].char_pos = 0;
-                auth_fifo[auth_fifo_pos].connect_until_time = 0;    // unlimited/unknown time by default (not display in map-server)
+                auth_fifo[auth_fifo_pos].connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
                 auth_fifo[auth_fifo_pos].ip = RFIFOL(fd, 14);
                 auth_fifo_pos++;
                 WFIFOW(fd, 0) = 0x2b03;
@@ -1990,7 +1989,7 @@ void parse_frommap(int fd)
                 auth_fifo[auth_fifo_pos].login_id2 = RFIFOL(fd, 10);
                 auth_fifo[auth_fifo_pos].delflag = 0;
                 auth_fifo[auth_fifo_pos].sex = RFIFOB(fd, 44);
-                auth_fifo[auth_fifo_pos].connect_until_time = 0;    // unlimited/unknown time by default (not display in map-server)
+                auth_fifo[auth_fifo_pos].connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
                 auth_fifo[auth_fifo_pos].ip = RFIFOL(fd, 45);
                 for (i = 0; i < char_num; i++)
                     if (char_dat[i].account_id == RFIFOL(fd, 2) &&
@@ -2475,7 +2474,7 @@ void parse_char(int fd)
                         CREATE(sd, struct char_session_data, 1);
                         session[fd]->session_data = sd;
                         memcpy(sd->email, "no mail", 40);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
-                        sd->connect_until_time = 0; // unknow or illimited (not displaying on map-server)
+                        sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
                     sd->account_id = RFIFOL(fd, 2);
                     sd->login_id1 = RFIFOL(fd, 6);
@@ -3299,7 +3298,7 @@ int do_init(int argc, char **argv)
 
     mmo_char_init();
 
-    update_online = time(NULL);
+    update_online = TimeT::now();
     create_online_files();     // update online players files at start of the server
 
     inter_init((argc > 2) ? argv[2] : inter_cfgName);  // inter server 初期化

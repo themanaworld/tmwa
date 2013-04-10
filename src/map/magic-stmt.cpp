@@ -870,7 +870,7 @@ int op_drop_item_for (env_t *, int args_nr, val_t *args)
     int stackable;
     location_t *loc = &ARGLOCATION(0);
     int count = ARGINT(2);
-    interval_t time = static_cast<interval_t>(ARGINT(3));
+    interval_t interval = static_cast<interval_t>(ARGINT(3));
     character_t *c = ((args_nr > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : NULL;
     interval_t delay = (args_nr > 5) ? static_cast<interval_t>(ARGINT(5)) : interval_t::zero();
     interval_t delaytime[3] = { delay, delay, delay };
@@ -880,11 +880,11 @@ int op_drop_item_for (env_t *, int args_nr, val_t *args)
 
     if (stackable)
         map_addflooritem_any(&item, count, loc->m, loc->x, loc->y,
-                owners, delaytime, time, 0);
+                owners, delaytime, interval, 0);
     else
         while (count-- > 0)
             map_addflooritem_any(&item, 1, loc->m, loc->x, loc->y,
-                    owners, delaytime, time, 0);
+                    owners, delaytime, interval, 0);
 
     return 0;
 }

@@ -161,7 +161,7 @@ void connect_client(int listen_fd)
     session[fd]->func_send = send_from_fifo;
     session[fd]->func_parse = default_func_parse;
     session[fd]->client_addr = client_address;
-    session[fd]->created = time(NULL);
+    session[fd]->created = TimeT::now();
     session[fd]->connected = 0;
 
     currentuse++;
@@ -213,7 +213,7 @@ int make_listen_port(uint16_t port)
     CREATE(session[fd], struct socket_data, 1);
 
     session[fd]->func_recv = connect_client;
-    session[fd]->created = time(NULL);
+    session[fd]->created = TimeT::now();
     session[fd]->connected = 1;
 
     currentuse++;
@@ -265,7 +265,7 @@ int make_connection(uint32_t ip, uint16_t port)
     session[fd]->func_recv = recv_to_fifo;
     session[fd]->func_send = send_from_fifo;
     session[fd]->func_parse = default_func_parse;
-    session[fd]->created = time(NULL);
+    session[fd]->created = TimeT::now();
     session[fd]->connected = 1;
 
     currentuse++;
@@ -377,7 +377,7 @@ void do_parsepacket(void)
         if (!session[i])
             continue;
         if (!session[i]->connected
-            && time(NULL) - session[i]->created > CONNECT_TIMEOUT)
+            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(session[i]->created) > CONNECT_TIMEOUT)
         {
             PRINTF("Session #%d timed out\n", i);
             session[i]->eof = 1;

@@ -1122,15 +1122,14 @@ int banaddaccount(const char *param)
 // Set the final date of a banishment of an account
 //-----------------------------------------------------------------------
 static
-int bansetaccountsub(const char *name, const char *date, const char *time)
+int bansetaccountsub(const char *name, const char *date, const char *time_)
 {
     int year, month, day, hour, minute, second;
-    time_t ban_until_time;      // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
-    struct tm *tmtime;
-
     year = month = day = hour = minute = second = 0;
-    ban_until_time = 0;
-    tmtime = localtime(&ban_until_time);   // initialize
+
+    // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
+    TimeT ban_until_time = TimeT();
+    struct tm tmtime = ban_until_time;   // initialize
 
     if (verify_accountname(name) == 0)
     {
@@ -1141,7 +1140,7 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
         ((sscanf(date, "%d/%d/%d", &year, &month, &day) < 3 &&
           sscanf(date, "%d-%d-%d", &year, &month, &day) < 3 &&
           sscanf(date, "%d.%d.%d", &year, &month, &day) < 3) ||
-         sscanf(time, "%d:%d:%d", &hour, &minute, &second) < 3))
+         sscanf(time_, "%d:%d:%d", &hour, &minute, &second) < 3))
     {
         PRINTF("Please input a date and a time (format: yyyy/mm/dd hh:mm:ss).\n");
         PRINTF("You can imput 0 instead of if you use 'banset' command.\n");
@@ -1151,7 +1150,7 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
 
     if (atoi(date) == 0)
     {
-        ban_until_time = 0;
+        ban_until_time = TimeT();
     }
     else
     {
@@ -1202,15 +1201,15 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
             LADMIN_LOG("Invalid second for the time ('banset' or 'ban' command).\n");
             return 102;
         }
-        tmtime->tm_year = year;
-        tmtime->tm_mon = month;
-        tmtime->tm_mday = day;
-        tmtime->tm_hour = hour;
-        tmtime->tm_min = minute;
-        tmtime->tm_sec = second;
-        tmtime->tm_isdst = -1;  // -1: no winter/summer time modification
-        ban_until_time = timegm(tmtime);
-        if (ban_until_time == -1)
+        tmtime.tm_year = year;
+        tmtime.tm_mon = month;
+        tmtime.tm_mday = day;
+        tmtime.tm_hour = hour;
+        tmtime.tm_min = minute;
+        tmtime.tm_sec = second;
+        tmtime.tm_isdst = -1;  // -1: no winter/summer time modification
+        ban_until_time = tmtime;
+        if (ban_until_time.error())
         {
             PRINTF("Invalid date.\n");
             PRINTF("Please input a date and a time (format: yyyy/mm/dd hh:mm:ss).\n");
@@ -1224,7 +1223,7 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
 
     WFIFOW(login_fd, 0) = 0x794a;
     memcpy(WFIFOP(login_fd, 2), name, 24);
-    WFIFOL(login_fd, 26) = (int) ban_until_time;
+    WFIFOL(login_fd, 26) = static_cast<time_t>(ban_until_time);
     WFIFOSET(login_fd, 30);
     bytes_to_read = 1;
 
@@ -1237,15 +1236,15 @@ int bansetaccountsub(const char *name, const char *date, const char *time)
 static
 int banaccount(const char *param)
 {
-    char name[1023], date[1023], time[1023];
+    char name[1023], date[1023], time_[1023];
 
     memset(name, '\0', sizeof(name));
     memset(date, '\0', sizeof(date));
-    memset(time, '\0', sizeof(time));
+    memset(time_, '\0', sizeof(time_));
 
-    if (sscanf(param, "%s %s \"%[^\"]\"", date, time, name) < 3 &&
-        sscanf(param, "%s %s '%[^']'", date, time, name) < 3 &&
-        sscanf(param, "%s %s %[^\r\n]", date, time, name) < 3)
+    if (sscanf(param, "%s %s \"%[^\"]\"", date, time_, name) < 3 &&
+        sscanf(param, "%s %s '%[^']'", date, time_, name) < 3 &&
+        sscanf(param, "%s %s %[^\r\n]", date, time_, name) < 3)
     {
         PRINTF("Please input an account name, a date and a hour.\n");
         PRINTF("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
@@ -1257,7 +1256,7 @@ int banaccount(const char *param)
         return 136;
     }
 
-    return bansetaccountsub(name, date, time);
+    return bansetaccountsub(name, date, time_);
 }
 
 //------------------------------------------------------------------------
@@ -1266,16 +1265,16 @@ int banaccount(const char *param)
 static
 int bansetaccount(const char *param)
 {
-    char name[1023], date[1023], time[1023];
+    char name[1023], date[1023], time_[1023];
 
     memset(name, '\0', sizeof(name));
     memset(date, '\0', sizeof(date));
-    memset(time, '\0', sizeof(time));
+    memset(time_, '\0', sizeof(time_));
 
-    if (sscanf(param, "\"%[^\"]\" %s %[^\r\n]", name, date, time) < 2 &&   // if date = 0, time can be void
-        sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time) < 2 &&  // if date = 0, time can be void
-        sscanf(param, "%s %s %[^\r\n]", name, date, time) < 2)
-    {                           // if date = 0, time can be void
+    if (sscanf(param, "\"%[^\"]\" %s %[^\r\n]", name, date, time_) < 2 &&   // if date = 0, time_ can be void
+        sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time_) < 2 &&  // if date = 0, time_ can be void
+        sscanf(param, "%s %s %[^\r\n]", name, date, time_) < 2)
+    {                           // if date = 0, time_ can be void
         PRINTF("Please input an account name, a date and a hour.\n");
         PRINTF("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
         PRINTF("           banset <account_name> 0   (0 = un-banished)\n");
@@ -1286,10 +1285,10 @@ int bansetaccount(const char *param)
         return 136;
     }
 
-    if (time[0] == '\0')
-        strcpy(time, "23:59:59");
+    if (time_[0] == '\0')
+        strcpy(time_, "23:59:59");
 
-    return bansetaccountsub(name, date, time);
+    return bansetaccountsub(name, date, time_);
 }
 
 //-------------------------------------------------
@@ -2236,22 +2235,22 @@ int timeaddaccount(const char *param)
 static
 int timesetaccount(const char *param)
 {
-    char name[1023], date[1023], time[1023];
+    char name[1023], date[1023], time_[1023];
     int year, month, day, hour, minute, second;
-    time_t connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
-    struct tm *tmtime;
 
     memset(name, '\0', sizeof(name));
     memset(date, '\0', sizeof(date));
-    memset(time, '\0', sizeof(time));
+    memset(time_, '\0', sizeof(time_));
     year = month = day = hour = minute = second = 0;
-    connect_until_time = 0;
-    tmtime = localtime(&connect_until_time);   // initialize
 
-    if (sscanf(param, "\"%[^\"]\" %s %[^\r\n]", name, date, time) < 2 &&   // if date = 0, time can be void
-        sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time) < 2 &&  // if date = 0, time can be void
-        sscanf(param, "%s %s %[^\r\n]", name, date, time) < 2)
-    {                           // if date = 0, time can be void
+    // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
+    TimeT connect_until_time = TimeT();
+    struct tm tmtime = connect_until_time;   // initialize
+
+    if (sscanf(param, "\"%[^\"]\" %s %[^\r\n]", name, date, time_) < 2 &&   // if date = 0, time_ can be void
+        sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time_) < 2 &&  // if date = 0, time_ can be void
+        sscanf(param, "%s %s %[^\r\n]", name, date, time_) < 2)
+    {                           // if date = 0, time_ can be void
         PRINTF("Please input an account name, a date and a hour.\n");
         PRINTF("<example>: timeset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
         PRINTF("           timeset <account_name> 0   (0 = unlimited)\n");
@@ -2264,15 +2263,15 @@ int timesetaccount(const char *param)
         return 102;
     }
 
-    if (time[0] == '\0')
-        strcpy(time, "23:59:59");
+    if (time_[0] == '\0')
+        strcpy(time_, "23:59:59");
 
     if (atoi(date) != 0 &&
         ((sscanf(date, "%d/%d/%d", &year, &month, &day) < 3 &&
           sscanf(date, "%d-%d-%d", &year, &month, &day) < 3 &&
           sscanf(date, "%d.%d.%d", &year, &month, &day) < 3 &&
           sscanf(date, "%d'%d'%d", &year, &month, &day) < 3) ||
-         sscanf(time, "%d:%d:%d", &hour, &minute, &second) < 3))
+         sscanf(time_, "%d:%d:%d", &hour, &minute, &second) < 3))
     {
         PRINTF("Please input 0 or a date and a time (format: 0 or yyyy/mm/dd hh:mm:ss).\n");
         LADMIN_LOG("Invalid format for the date/time ('timeset' command).\n");
@@ -2281,7 +2280,7 @@ int timesetaccount(const char *param)
 
     if (atoi(date) == 0)
     {
-        connect_until_time = 0;
+        connect_until_time = TimeT();
     }
     else
     {
@@ -2332,15 +2331,15 @@ int timesetaccount(const char *param)
             LADMIN_LOG("Invalid second for the time ('timeset' command).\n");
             return 102;
         }
-        tmtime->tm_year = year;
-        tmtime->tm_mon = month;
-        tmtime->tm_mday = day;
-        tmtime->tm_hour = hour;
-        tmtime->tm_min = minute;
-        tmtime->tm_sec = second;
-        tmtime->tm_isdst = -1;  // -1: no winter/summer time modification
-        connect_until_time = timegm(tmtime);
-        if (connect_until_time == -1)
+        tmtime.tm_year = year;
+        tmtime.tm_mon = month;
+        tmtime.tm_mday = day;
+        tmtime.tm_hour = hour;
+        tmtime.tm_min = minute;
+        tmtime.tm_sec = second;
+        tmtime.tm_isdst = -1;  // -1: no winter/summer time modification
+        connect_until_time = tmtime;
+        if (connect_until_time.error())
         {
             PRINTF("Invalid date.\n");
             PRINTF("Please add 0 or a date and a time (format: 0 or yyyy/mm/dd hh:mm:ss).\n");
@@ -2353,7 +2352,7 @@ int timesetaccount(const char *param)
 
     WFIFOW(login_fd, 0) = 0x7948;
     memcpy(WFIFOP(login_fd, 2), name, 24);
-    WFIFOL(login_fd, 26) = (int) connect_until_time;
+    WFIFOL(login_fd, 26) = static_cast<time_t>(connect_until_time);
     WFIFOSET(login_fd, 30);
     bytes_to_read = 1;
 
@@ -3234,8 +3233,8 @@ void parse_fromlogin(int fd)
                 }
                 else
                 {
-                    time_t timestamp = RFIFOL(fd, 30);
-                    if (timestamp == 0)
+                    TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 30));
+                    if (!timestamp)
                     {
                         PRINTF("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
                                 static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
@@ -3269,8 +3268,8 @@ void parse_fromlogin(int fd)
                 }
                 else
                 {
-                    time_t timestamp = RFIFOL(fd, 30);
-                    if (timestamp == 0)
+                    TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 30));
+                    if (!timestamp)
                     {
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
                                 static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
@@ -3304,8 +3303,8 @@ void parse_fromlogin(int fd)
                 }
                 else
                 {
-                    time_t timestamp = RFIFOL(fd, 30);
-                    if (timestamp == 0)
+                    TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 30));
+                    if (!timestamp)
                     {
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
                                 static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
@@ -3357,8 +3356,8 @@ void parse_fromlogin(int fd)
                 }
                 else
                 {
-                    time_t timestamp = RFIFOL(fd, 30);
-                    if (timestamp == 0)
+                    TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 30));
+                    if (!timestamp)
                     {
                         PRINTF("Validity limit of the account [%s][id: %d] unchanged.\n",
                                 static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
@@ -3390,8 +3389,8 @@ void parse_fromlogin(int fd)
                 {
                     char userid[24], error_message[20], lastlogin[24],
                         last_ip[16], email[40], memo[255];
-                    time_t ban_until_time;  // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
-                    time_t connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
+                    TimeT ban_until_time;  // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
+                    TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
                     memcpy(userid, RFIFOP(fd, 7), sizeof(userid));
                     userid[sizeof(userid) - 1] = '\0';
                     memcpy(error_message, RFIFOP(fd, 40),
@@ -3403,8 +3402,8 @@ void parse_fromlogin(int fd)
                     last_ip[sizeof(last_ip) - 1] = '\0';
                     memcpy(email, RFIFOP(fd, 100), sizeof(email));
                     email[sizeof(email) - 1] = '\0';
-                    connect_until_time = (time_t) RFIFOL(fd, 140);
-                    ban_until_time = (time_t) RFIFOL(fd, 144);
+                    connect_until_time = static_cast<time_t>(RFIFOL(fd, 140));
+                    ban_until_time = static_cast<time_t>(RFIFOL(fd, 144));
                     memset(memo, '\0', sizeof(memo));
                     strncpy(memo, (const char *)RFIFOP(fd, 150), RFIFOW(fd, 148));
                     if (RFIFOL(fd, 2) == -1)
@@ -3480,7 +3479,7 @@ void parse_fromlogin(int fd)
                                      RFIFOL(fd, 36));
                                 break;
                         }
-                        if (ban_until_time == 0)
+                        if (!ban_until_time)
                         {
                             PRINTF(" Banishment: not banished.\n");
                         }
@@ -3498,7 +3497,7 @@ void parse_fromlogin(int fd)
                                     RFIFOL(fd, 32));
                         PRINTF(" Last connection at: %s (ip: %s)\n",
                                 lastlogin, last_ip);
-                        if (connect_until_time == 0)
+                        if (!connect_until_time)
                         {
                             PRINTF(" Validity limit: unlimited.\n");
                         }
@@ -3667,8 +3666,6 @@ int do_init(int argc, char **argv)
 
     LADMIN_LOG("");
     LADMIN_LOG("Configuration file readed.\n");
-
-    srand(time(NULL));
 
     set_defaultparse(parse_fromlogin);
 

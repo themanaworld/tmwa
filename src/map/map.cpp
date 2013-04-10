@@ -1540,9 +1540,9 @@ void map_close_logfile(void)
 }
 
 static
-void map_start_logfile(long suffix)
+void map_start_logfile(long index)
 {
-    map_logfile_index = suffix >> LOGFILE_SECONDS_PER_CHUNK_SHIFT;
+    map_logfile_index = index;
 
     std::string filename_buf = STRPRINTF(
             "%s.%ld",
@@ -1571,12 +1571,13 @@ void map_log(const_string line)
     if (!map_logfile)
         return;
 
-    time_t t = time(NULL);
+    time_t t = TimeT::now();
+    long i = t >> LOGFILE_SECONDS_PER_CHUNK_SHIFT;
 
-    if ((t >> LOGFILE_SECONDS_PER_CHUNK_SHIFT) != map_logfile_index)
+    if (i != map_logfile_index)
     {
         map_close_logfile();
-        map_start_logfile(t);
+        map_start_logfile(i);
     }
 
     log_with_timestamp(map_logfile, line);

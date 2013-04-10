@@ -386,8 +386,7 @@ FILE *get_gm_log()
     if (!gm_logfile_name)
         return NULL;
 
-    time_t ts = time(NULL);
-    struct tm ctime = *gmtime(&ts);
+    struct tm ctime = TimeT::now();
 
     int year = ctime.tm_year + 1900;
     int month = ctime.tm_mon + 1;

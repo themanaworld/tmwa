@@ -125,16 +125,17 @@ bool split_key_value(const std::string& line, std::string *w1, std::string *w2)
 static_assert(sizeof(timestamp_seconds_buffer) == 20, "seconds buffer");
 static_assert(sizeof(timestamp_milliseconds_buffer) == 24, "millis buffer");
 
-void stamp_time(timestamp_seconds_buffer& out, time_t *t)
+void stamp_time(timestamp_seconds_buffer& out, TimeT *t)
 {
-    time_t when = t ? *t : time(NULL);
-    strftime(out, 20, "%Y-%m-%d %H:%M:%S", gmtime(&when));
+    struct tm when = t ? *t : TimeT::now();
+    strftime(out, 20, "%Y-%m-%d %H:%M:%S", &when);
 }
 void stamp_time(timestamp_milliseconds_buffer& out)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    strftime(out, 20, "%Y-%m-%d %H:%M:%S", gmtime(&tv.tv_sec));
+    struct tm when = TimeT(tv.tv_sec);
+    strftime(out, 20, "%Y-%m-%d %H:%M:%S", &when);
     sprintf(out + 19, ".%03d", int(tv.tv_usec / 1000));
 }
 

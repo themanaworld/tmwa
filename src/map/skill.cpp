@@ -561,7 +561,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
  * 詠唱時間計算
  *------------------------------------------
  */
-interval_t skill_castfix(struct block_list *bl, interval_t time)
+interval_t skill_castfix(struct block_list *bl, interval_t interval)
 {
     struct mob_data *md;        // [Valaris]
     eptr<struct status_change, StatusChange> sc_data;
@@ -592,48 +592,48 @@ interval_t skill_castfix(struct block_list *bl, interval_t time)
 
     castnodex = skill_get_castnodex(skill, lv);
 
-    if (time == interval_t::zero())
+    if (interval == interval_t::zero())
         return interval_t::zero();
     if (castnodex > 0 && bl->type == BL::PC)
         castrate = 100;
     else if (castnodex <= 0 && bl->type == BL::PC)
     {
         castrate = 100;
-        time =
-            time * castrate * (battle_config.castrate_dex_scale -
+        interval =
+            interval * castrate * (battle_config.castrate_dex_scale -
                                dex) / (battle_config.castrate_dex_scale *
                                        100);
-        time = time * battle_config.cast_rate / 100;
+        interval = interval * battle_config.cast_rate / 100;
     }
 
-    return std::max(time, interval_t::zero());
+    return std::max(interval, interval_t::zero());
 }
 
 /*==========================================
  * ディレイ計算
  *------------------------------------------
  */
-interval_t skill_delayfix(struct block_list *bl, interval_t time)
+interval_t skill_delayfix(struct block_list *bl, interval_t interval)
 {
     eptr<struct status_change, StatusChange> sc_data;
 
     nullpo_retr(interval_t::zero(), bl);
 
     sc_data = battle_get_sc_data(bl);
-    if (time <= interval_t::zero())
+    if (interval <= interval_t::zero())
         return interval_t::zero();
 
     if (bl->type == BL::PC)
     {
         if (battle_config.delay_dependon_dex)   /* dexの影響を計算する */
-            time =
-                time * (battle_config.castrate_dex_scale -
+            interval =
+                interval * (battle_config.castrate_dex_scale -
                         battle_get_dex(bl)) /
                 battle_config.castrate_dex_scale;
-        time = time * battle_config.delay_rate / 100;
+        interval = interval * battle_config.delay_rate / 100;
     }
 
-    return std::max(time, interval_t::zero());
+    return std::max(interval, interval_t::zero());
 }
 
 /*==========================================

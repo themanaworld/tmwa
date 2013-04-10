@@ -28,8 +28,6 @@
 
 #include "../poison.hpp"
 
-static_assert(std::is_same<time_t, long>::value, "much code assumes time_t is a long (sorry)");
-
 constexpr int MAX_SERVERS = 30;
 
 #define LOGIN_CONF_NAME "conf/login_athena.conf"
@@ -175,8 +173,8 @@ struct auth_dat
     int state;                 // packet 0x006a value + 1 (0: compte OK)
     char email[40];             // e-mail (by default: a@a.com)
     char error_message[20];     // Message of error code #6 = Your are Prohibited to log in until %s (packet 0x006a)
-    time_t ban_until_time;      // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
-    time_t connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
+    TimeT ban_until_time;      // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
+    TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
     char last_ip[16];           // save of last IP of connection
     char memo[255];             // a memo field
     int account_reg2_num;
@@ -504,10 +502,10 @@ std::string mmo_auth_tostr(struct auth_dat *p)
             "%d\t"
             "%s\t"
             "%s\t"
-            "%ld\t"
+            "%lld\t"
             "%s\t"
             "%s\t"
-            "%ld\t",
+            "%lld\t",
             p->account_id,
             p->userid,
             p->pass,
@@ -842,8 +840,6 @@ void check_GM_file(TimerData *, tick_t)
 static
 int mmo_auth_new(struct mmo_account *account, char sex, const char *email)
 {
-    time_t timestamp, timestamp_temp;
-    struct tm *tmtime;
     int i = auth_num;
 
     if (auth_num >= auth_max)
@@ -880,20 +876,17 @@ int mmo_auth_new(struct mmo_account *account, char sex, const char *email)
 
     strncpy(auth_dat[i].error_message, "-", 20);
 
-    auth_dat[i].ban_until_time = 0;
+    auth_dat[i].ban_until_time = TimeT();
 
     if (start_limited_time < 0)
-        auth_dat[i].connect_until_time = 0; // unlimited
+        auth_dat[i].connect_until_time = TimeT(); // unlimited
     else
-    {                           // limited time
-        timestamp = time(NULL) + start_limited_time;
-        // double conversion to be sure that it is possible
-        tmtime = gmtime(&timestamp);
-        timestamp_temp = mktime(tmtime);
-        if (timestamp_temp != -1 && (timestamp_temp + 3600) >= timestamp)   // check possible value and overflow (and avoid summer/winter hour)
-            auth_dat[i].connect_until_time = timestamp_temp;
-        else
-            auth_dat[i].connect_until_time = 0; // unlimited
+    {
+        // limited time
+        TimeT timestamp = static_cast<time_t>(TimeT::now()) + start_limited_time;
+        // there used to be a silly overflow check here, but it wasn't
+        // correct, and we don't support time-limited accounts.
+        auth_dat[i].connect_until_time = timestamp;
     }
 
     strncpy(auth_dat[i].last_ip, "-", 16);
@@ -990,12 +983,12 @@ int mmo_auth(struct mmo_account *account, int fd)
             }
         }
 
-        if (auth_dat[i].ban_until_time != 0)
+        if (auth_dat[i].ban_until_time)
         {
             // if account is banned
             timestamp_seconds_buffer tmpstr;
             stamp_time(tmpstr, &auth_dat[i].ban_until_time);
-            if (auth_dat[i].ban_until_time > time(NULL))
+            if (auth_dat[i].ban_until_time > TimeT::now())
             {
                 // always banned
                 LOGIN_LOG("Connection refused (account: %s, banned until %s, ip: %s)\n",
@@ -1007,12 +1000,12 @@ int mmo_auth(struct mmo_account *account, int fd)
                 // ban is finished
                 LOGIN_LOG("End of ban (account: %s, previously banned until %s -> not more banned, ip: %s)\n",
                      account->userid, tmpstr, ip);
-                auth_dat[i].ban_until_time = 0; // reset the ban time
+                auth_dat[i].ban_until_time = TimeT(); // reset the ban time
             }
         }
 
-        if (auth_dat[i].connect_until_time != 0
-            && auth_dat[i].connect_until_time < time(NULL))
+        if (auth_dat[i].connect_until_time
+            && auth_dat[i].connect_until_time < TimeT::now())
         {
             LOGIN_LOG("Connection refused (account: %s, expired ID, ip: %s)\n",
                  account->userid, ip);
@@ -1171,9 +1164,7 @@ void parse_fromchar(int fd)
                                     WFIFOB(fd, 6) = 0;
                                     memcpy(WFIFOP(fd, 7), auth_dat[k].email,
                                             40);
-                                    WFIFOL(fd, 47) =
-                                        (unsigned long)
-                                        auth_dat[k].connect_until_time;
+                                    WFIFOL(fd, 47) = static_cast<time_t>(auth_dat[k].connect_until_time);
                                     WFIFOSET(fd, 51);
                                     break;
                                 }
@@ -1258,8 +1249,7 @@ void parse_fromchar(int fd)
                         WFIFOW(fd, 0) = 0x2717;
                         WFIFOL(fd, 2) = RFIFOL(fd, 2);
                         memcpy(WFIFOP(fd, 6), auth_dat[i].email, 40);
-                        WFIFOL(fd, 46) =
-                            (unsigned long) auth_dat[i].connect_until_time;
+                        WFIFOL(fd, 46) = static_cast<time_t>(auth_dat[i].connect_until_time);
                         WFIFOSET(fd, 50);
                         break;
                     }
@@ -1459,50 +1449,43 @@ void parse_fromchar(int fd)
                     {
                         if (auth_dat[i].account_id == acc)
                         {
-                            time_t timestamp;
-                            struct tm *tmtime;
-                            if (auth_dat[i].ban_until_time == 0
-                                || auth_dat[i].ban_until_time < time(NULL))
-                                timestamp = time(NULL);
+                            TimeT now = TimeT::now();
+                            TimeT timestamp;
+                            if (!auth_dat[i].ban_until_time
+                                || auth_dat[i].ban_until_time < now)
+                                timestamp = now;
                             else
                                 timestamp = auth_dat[i].ban_until_time;
-                            tmtime = gmtime(&timestamp);
-                            tmtime->tm_year =
-                                tmtime->tm_year + (short) RFIFOW(fd, 6);
-                            tmtime->tm_mon =
-                                tmtime->tm_mon + (short) RFIFOW(fd, 8);
-                            tmtime->tm_mday =
-                                tmtime->tm_mday + (short) RFIFOW(fd, 10);
-                            tmtime->tm_hour =
-                                tmtime->tm_hour + (short) RFIFOW(fd, 12);
-                            tmtime->tm_min =
-                                tmtime->tm_min + (short) RFIFOW(fd, 14);
-                            tmtime->tm_sec =
-                                tmtime->tm_sec + (short) RFIFOW(fd, 16);
-                            timestamp = timegm(tmtime);
-                            if (timestamp != -1)
+                            struct tm tmtime = timestamp;
+                            tmtime.tm_year += (short) RFIFOW(fd, 6);
+                            tmtime.tm_mon += (short) RFIFOW(fd, 8);
+                            tmtime.tm_mday += (short) RFIFOW(fd, 10);
+                            tmtime.tm_hour += (short) RFIFOW(fd, 12);
+                            tmtime.tm_min += (short) RFIFOW(fd, 14);
+                            tmtime.tm_sec += (short) RFIFOW(fd, 16);
+                            timestamp = tmtime;
+                            if (timestamp.okay())
                             {
-                                if (timestamp <= time(NULL))
-                                    timestamp = 0;
+                                if (timestamp <= now)
+                                    timestamp = TimeT();
                                 if (auth_dat[i].ban_until_time != timestamp)
                                 {
-                                    if (timestamp != 0)
+                                    if (timestamp)
                                     {
                                         unsigned char buf[16];
                                         timestamp_seconds_buffer tmpstr;
-                                        stamp_time(tmpstr, &timestamp);
-                                        LOGIN_LOG("Char-server '%s': Ban request (account: %d, new final date of banishment: %ld (%s), ip: %s).\n",
-                                             server[id].name, acc,
-                                             timestamp,
-                                             timestamp
-                                             ? tmpstr
-                                             : "no banishment",
-                                             ip);
+                                        if (timestamp)
+                                            stamp_time(tmpstr, &timestamp);
+                                        LOGIN_LOG("Char-server '%s': Ban request (account: %d, new final date of banishment: %lld (%s), ip: %s).\n",
+                                                server[id].name, acc,
+                                                timestamp,
+                                                tmpstr,
+                                                ip);
                                         WBUFW(buf, 0) = 0x2731;
                                         WBUFL(buf, 2) =
                                             auth_dat[i].account_id;
                                         WBUFB(buf, 6) = 1; // 0: change of statut, 1: ban
-                                        WBUFL(buf, 7) = timestamp; // status or final date of a banishment
+                                        WBUFL(buf, 7) = static_cast<time_t>(timestamp); // status or final date of a banishment
                                         charif_sendallwos(-1, buf, 11);
                                         for (j = 0; j < AUTH_FIFO_SIZE; j++)
                                             if (auth_fifo[j].account_id ==
@@ -1642,9 +1625,9 @@ void parse_fromchar(int fd)
                     {
                         if (auth_dat[i].account_id == acc)
                         {
-                            if (auth_dat[i].ban_until_time != 0)
+                            if (auth_dat[i].ban_until_time)
                             {
-                                auth_dat[i].ban_until_time = 0;
+                                auth_dat[i].ban_until_time = TimeT();
                                 LOGIN_LOG("Char-server '%s': UnBan request (account: %d, ip: %s).\n",
                                      server[id].name, acc, ip);
                             }
@@ -1876,7 +1859,7 @@ void parse_admin(int fd)
                                     24);
                             WFIFOB(fd, len + 29) = auth_dat[j].sex;
                             WFIFOL(fd, len + 30) = auth_dat[j].logincount;
-                            if (auth_dat[j].state == 0 && auth_dat[j].ban_until_time != 0)  // if no state and banished
+                            if (auth_dat[j].state == 0 && auth_dat[j].ban_until_time)  // if no state and banished
                                 WFIFOL(fd, len + 34) = 7;  // 6 = Your are Prohibited to log in until %s
                             else
                                 WFIFOL(fd, len + 34) = auth_dat[j].state;
@@ -2466,14 +2449,14 @@ void parse_admin(int fd)
                     memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
                     WFIFOL(fd, 2) = auth_dat[i].account_id;
                     LOGIN_LOG("'ladmin': Request (by the name) of an account id (account: %s, id: %d, ip: %s)\n",
-                         auth_dat[i].userid, auth_dat[i].account_id,
-                         ip);
+                            auth_dat[i].userid, auth_dat[i].account_id,
+                            ip);
                 }
                 else
                 {
                     memcpy(WFIFOP(fd, 6), account_name, 24);
                     LOGIN_LOG("'ladmin': ID request (by the name) of an unknown account (account: %s, ip: %s)\n",
-                         account_name, ip);
+                            account_name, ip);
                 }
                 WFIFOSET(fd, 30);
                 RFIFOSKIP(fd, 26);
@@ -2513,28 +2496,32 @@ void parse_admin(int fd)
                     WFIFOL(fd, 2) = -1;
                     strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
-                    time_t timestamp = static_cast<time_t>(RFIFOL(fd, 26));
-                    timestamp_seconds_buffer tmpstr;
-                    stamp_time(tmpstr, &timestamp);
+                    TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 26));
+                    timestamp_seconds_buffer tmpstr = "unlimited";
+                    if (timestamp)
+                        stamp_time(tmpstr, &timestamp);
                     i = search_account_index(account_name);
                     if (i != -1)
                     {
                         memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                        LOGIN_LOG("'ladmin': Change of a validity limit (account: %s, new validity: %ld (%s), ip: %s)\n",
-                             auth_dat[i].userid, timestamp,
-                             timestamp ? tmpstr : "unlimited",
-                             ip);
+                        LOGIN_LOG("'ladmin': Change of a validity limit (account: %s, new validity: %lld (%s), ip: %s)\n",
+                                auth_dat[i].userid,
+                                timestamp,
+                                tmpstr,
+                                ip);
                         auth_dat[i].connect_until_time = timestamp;
                         WFIFOL(fd, 2) = auth_dat[i].account_id;
                     }
                     else
                     {
                         memcpy(WFIFOP(fd, 6), account_name, 24);
-                        LOGIN_LOG("'ladmin': Attempt to change the validity limit of an unknown account (account: %s, received validity: %ld (%s), ip: %s)\n", account_name, timestamp,
-                             timestamp ? tmpstr : "unlimited",
-                             ip);
+                        LOGIN_LOG("'ladmin': Attempt to change the validity limit of an unknown account (account: %s, received validity: %lld (%s), ip: %s)\n",
+                                account_name,
+                                timestamp,
+                                tmpstr,
+                                ip);
                     }
-                    WFIFOL(fd, 30) = timestamp;
+                    WFIFOL(fd, 30) = static_cast<time_t>(timestamp);
                 }
                 WFIFOSET(fd, 34);
                 RFIFOSKIP(fd, 30);
@@ -2548,29 +2535,30 @@ void parse_admin(int fd)
                     WFIFOL(fd, 2) = -1;
                     strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
-                    time_t timestamp = static_cast<time_t>(RFIFOL(fd, 26));
-                    if (timestamp <= time(NULL))
-                        timestamp = 0;
-                    timestamp_seconds_buffer tmpstr;
-                    stamp_time(tmpstr, &timestamp);
+                    TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 26));
+                    if (timestamp <= TimeT::now())
+                        timestamp = TimeT();
+                    timestamp_seconds_buffer tmpstr = "no banishment";
+                    if (timestamp)
+                        stamp_time(tmpstr, &timestamp);
                     i = search_account_index(account_name);
                     if (i != -1)
                     {
                         memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
                         WFIFOL(fd, 2) = auth_dat[i].account_id;
-                        LOGIN_LOG("'ladmin': Change of the final date of a banishment (account: %s, new final date of banishment: %ld (%s), ip: %s)\n",
-                             auth_dat[i].userid, timestamp,
-                             timestamp ? tmpstr : "no banishment",
-                             ip);
+                        LOGIN_LOG("'ladmin': Change of the final date of a banishment (account: %s, new final date of banishment: %lld (%s), ip: %s)\n",
+                                auth_dat[i].userid, timestamp,
+                                tmpstr,
+                                ip);
                         if (auth_dat[i].ban_until_time != timestamp)
                         {
-                            if (timestamp != 0)
+                            if (timestamp)
                             {
                                 unsigned char buf[16];
                                 WBUFW(buf, 0) = 0x2731;
                                 WBUFL(buf, 2) = auth_dat[i].account_id;
                                 WBUFB(buf, 6) = 1; // 0: change of statut, 1: ban
-                                WBUFL(buf, 7) = timestamp; // status or final date of a banishment
+                                WBUFL(buf, 7) = static_cast<time_t>(timestamp); // status or final date of a banishment
                                 charif_sendallwos(-1, buf, 11);
                                 for (j = 0; j < AUTH_FIFO_SIZE; j++)
                                     if (auth_fifo[j].account_id ==
@@ -2583,12 +2571,12 @@ void parse_admin(int fd)
                     else
                     {
                         memcpy(WFIFOP(fd, 6), account_name, 24);
-                        LOGIN_LOG("'ladmin': Attempt to change the final date of a banishment of an unknown account (account: %s, received final date of banishment: %ld (%s), ip: %s)\n",
-                             account_name, timestamp,
-                             timestamp ? tmpstr : "no banishment",
-                             ip);
+                        LOGIN_LOG("'ladmin': Attempt to change the final date of a banishment of an unknown account (account: %s, received final date of banishment: %lld (%s), ip: %s)\n",
+                                account_name, timestamp,
+                                tmpstr,
+                                ip);
                     }
-                    WFIFOL(fd, 30) = timestamp;
+                    WFIFOL(fd, 30) = static_cast<time_t>(timestamp);
                 }
                 WFIFOSET(fd, 34);
                 RFIFOSKIP(fd, 30);
@@ -2598,8 +2586,6 @@ void parse_admin(int fd)
                 if (RFIFOREST(fd) < 38)
                     return;
                 {
-                    time_t timestamp;
-                    struct tm *tmtime;
                     WFIFOW(fd, 0) = 0x794d;
                     WFIFOL(fd, 2) = -1;
                     strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
@@ -2609,51 +2595,45 @@ void parse_admin(int fd)
                     {
                         WFIFOL(fd, 2) = auth_dat[i].account_id;
                         memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                        if (auth_dat[i].ban_until_time == 0
-                            || auth_dat[i].ban_until_time < time(NULL))
-                            timestamp = time(NULL);
+                        TimeT timestamp;
+                        TimeT now = TimeT::now();
+                        if (!auth_dat[i].ban_until_time
+                            || auth_dat[i].ban_until_time < now)
+                            timestamp = now;
                         else
                             timestamp = auth_dat[i].ban_until_time;
-                        tmtime = gmtime(&timestamp);
-                        tmtime->tm_year =
-                            tmtime->tm_year + (short) RFIFOW(fd, 26);
-                        tmtime->tm_mon =
-                            tmtime->tm_mon + (short) RFIFOW(fd, 28);
-                        tmtime->tm_mday =
-                            tmtime->tm_mday + (short) RFIFOW(fd, 30);
-                        tmtime->tm_hour =
-                            tmtime->tm_hour + (short) RFIFOW(fd, 32);
-                        tmtime->tm_min =
-                            tmtime->tm_min + (short) RFIFOW(fd, 34);
-                        tmtime->tm_sec =
-                            tmtime->tm_sec + (short) RFIFOW(fd, 36);
-                        timestamp = mktime(tmtime);
-                        if (timestamp != -1)
+                        struct tm tmtime = timestamp;
+                        tmtime.tm_year += (short) RFIFOW(fd, 26);
+                        tmtime.tm_mon += (short) RFIFOW(fd, 28);
+                        tmtime.tm_mday += (short) RFIFOW(fd, 30);
+                        tmtime.tm_hour += (short) RFIFOW(fd, 32);
+                        tmtime.tm_min += (short) RFIFOW(fd, 34);
+                        tmtime.tm_sec += (short) RFIFOW(fd, 36);
+                        timestamp = tmtime;
+                        if (timestamp.okay())
                         {
-                            if (timestamp <= time(NULL))
-                                timestamp = 0;
-                            timestamp_seconds_buffer tmpstr;
-                            stamp_time(tmpstr, &timestamp);
-                            LOGIN_LOG("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %ld (%s), ip: %s)\n",
-                                 auth_dat[i].userid,
-                                 (short) RFIFOW(fd, 26), (short) RFIFOW(fd,
-                                                                          28),
-                                 (short) RFIFOW(fd, 30), (short) RFIFOW(fd,
-                                                                          32),
-                                 (short) RFIFOW(fd, 34), (short) RFIFOW(fd,
-                                                                          36),
-                                 timestamp,
-                                 timestamp ? tmpstr : "no banishment",
-                                 ip);
+                            if (timestamp <= now)
+                                timestamp = TimeT();
+                            timestamp_seconds_buffer tmpstr = "no banishment";
+                            if (timestamp)
+                                stamp_time(tmpstr, &timestamp);
+                            LOGIN_LOG("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %lld (%s), ip: %s)\n",
+                                    auth_dat[i].userid,
+                                    (short) RFIFOW(fd, 26), (short) RFIFOW(fd, 28),
+                                    (short) RFIFOW(fd, 30), (short) RFIFOW(fd, 32),
+                                    (short) RFIFOW(fd, 34), (short) RFIFOW(fd, 36),
+                                    timestamp,
+                                    tmpstr,
+                                    ip);
                             if (auth_dat[i].ban_until_time != timestamp)
                             {
-                                if (timestamp != 0)
+                                if (timestamp)
                                 {
                                     unsigned char buf[16];
                                     WBUFW(buf, 0) = 0x2731;
                                     WBUFL(buf, 2) = auth_dat[i].account_id;
                                     WBUFB(buf, 6) = 1; // 0: change of statut, 1: ban
-                                    WBUFL(buf, 7) = timestamp; // status or final date of a banishment
+                                    WBUFL(buf, 7) = static_cast<time_t>(timestamp); // status or final date of a banishment
                                     charif_sendallwos(-1, buf, 11);
                                     for (j = 0; j < AUTH_FIFO_SIZE; j++)
                                         if (auth_fifo[j].account_id ==
@@ -2665,30 +2645,25 @@ void parse_admin(int fd)
                         }
                         else
                         {
-                            timestamp_seconds_buffer tmpstr;
-                            stamp_time(tmpstr, &auth_dat[i].ban_until_time);
-                            LOGIN_LOG("'ladmin': Impossible to adjust the final date of a banishment (account: %s, %ld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
-                                 auth_dat[i].userid,
-                                 auth_dat[i].ban_until_time,
-                                 auth_dat[i].ban_until_time
-                                 ? tmpstr
-                                 : "no banishment",
-                                 (short) RFIFOW(fd, 26), (short) RFIFOW(fd,
-                                                                          28),
-                                 (short) RFIFOW(fd, 30), (short) RFIFOW(fd,
-                                                                          32),
-                                 (short) RFIFOW(fd, 34), (short) RFIFOW(fd,
-                                                                          36),
-                                 ip);
+                            timestamp_seconds_buffer tmpstr = "no banishment";
+                            if (auth_dat[i].ban_until_time)
+                                stamp_time(tmpstr, &auth_dat[i].ban_until_time);
+                            LOGIN_LOG("'ladmin': Impossible to adjust the final date of a banishment (account: %s, %lld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
+                                    auth_dat[i].userid,
+                                    auth_dat[i].ban_until_time,
+                                    tmpstr,
+                                    (short) RFIFOW(fd, 26), (short) RFIFOW(fd, 28),
+                                    (short) RFIFOW(fd, 30), (short) RFIFOW(fd, 32),
+                                    (short) RFIFOW(fd, 34), (short) RFIFOW(fd, 36),
+                                    ip);
                         }
-                        WFIFOL(fd, 30) =
-                            (unsigned long) auth_dat[i].ban_until_time;
+                        WFIFOL(fd, 30) = static_cast<time_t>(auth_dat[i].ban_until_time);
                     }
                     else
                     {
                         memcpy(WFIFOP(fd, 6), account_name, 24);
                         LOGIN_LOG("'ladmin': Attempt to adjust the final date of a banishment of an unknown account (account: %s, ip: %s)\n",
-                             account_name, ip);
+                                account_name, ip);
                         WFIFOL(fd, 30) = 0;
                     }
                 }
@@ -2748,8 +2723,6 @@ void parse_admin(int fd)
                 if (RFIFOREST(fd) < 38)
                     return;
                 {
-                    time_t timestamp;
-                    struct tm *tmtime;
                     WFIFOW(fd, 0) = 0x7951;
                     WFIFOL(fd, 2) = -1;
                     strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
@@ -2759,8 +2732,7 @@ void parse_admin(int fd)
                     {
                         WFIFOL(fd, 2) = auth_dat[i].account_id;
                         memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                        timestamp = auth_dat[i].connect_until_time;
-                        if (add_to_unlimited_account == 0 && timestamp == 0)
+                        if (add_to_unlimited_account == 0 && !auth_dat[i].connect_until_time)
                         {
                             LOGIN_LOG("'ladmin': Attempt to adjust the validity limit of an unlimited account (account: %s, ip: %s)\n",
                                  auth_dat[i].userid, ip);
@@ -2768,61 +2740,58 @@ void parse_admin(int fd)
                         }
                         else
                         {
-                            if (timestamp == 0 || timestamp < time(NULL))
-                                timestamp = time(NULL);
-                            tmtime = gmtime(&timestamp);
-                            tmtime->tm_year =
-                                tmtime->tm_year + (short) RFIFOW(fd, 26);
-                            tmtime->tm_mon =
-                                tmtime->tm_mon + (short) RFIFOW(fd, 28);
-                            tmtime->tm_mday =
-                                tmtime->tm_mday + (short) RFIFOW(fd, 30);
-                            tmtime->tm_hour =
-                                tmtime->tm_hour + (short) RFIFOW(fd, 32);
-                            tmtime->tm_min =
-                                tmtime->tm_min + (short) RFIFOW(fd, 34);
-                            tmtime->tm_sec =
-                                tmtime->tm_sec + (short) RFIFOW(fd, 36);
-                            timestamp = mktime(tmtime);
-                            if (timestamp != -1)
+                            TimeT now = TimeT::now();
+                            TimeT timestamp;
+                            if (!timestamp || timestamp < now)
+                                timestamp = now;
+                            struct tm tmtime = timestamp;
+                            tmtime.tm_year += (short) RFIFOW(fd, 26);
+                            tmtime.tm_mon += (short) RFIFOW(fd, 28);
+                            tmtime.tm_mday += (short) RFIFOW(fd, 30);
+                            tmtime.tm_hour += (short) RFIFOW(fd, 32);
+                            tmtime.tm_min += (short) RFIFOW(fd, 34);
+                            tmtime.tm_sec += (short) RFIFOW(fd, 36);
+                            timestamp = tmtime;
+                            if (timestamp.okay())
                             {
-                                timestamp_seconds_buffer tmpstr;
-                                timestamp_seconds_buffer tmpstr2;
-                                stamp_time(tmpstr, &auth_dat[i].connect_until_time);
-                                stamp_time(tmpstr2, &timestamp);
-                                LOGIN_LOG("'ladmin': Adjustment of a validity limit (account: %s, %ld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %ld (%s), ip: %s)\n",
-                                     auth_dat[i].userid,
-                                     auth_dat[i].connect_until_time,
-                                     (auth_dat[i].connect_until_time ==
-                                      0 ? "unlimited" : tmpstr),
-                                     (short) RFIFOW(fd, 26),
-                                     (short) RFIFOW(fd, 28),
-                                     (short) RFIFOW(fd, 30),
-                                     (short) RFIFOW(fd, 32),
-                                     (short) RFIFOW(fd, 34),
-                                     (short) RFIFOW(fd, 36), timestamp,
-                                     timestamp ? tmpstr2 : "unlimited",
-                                     ip);
+                                timestamp_seconds_buffer tmpstr = "unlimited";
+                                timestamp_seconds_buffer tmpstr2 = "unlimited";
+                                if (auth_dat[i].connect_until_time)
+                                    stamp_time(tmpstr, &auth_dat[i].connect_until_time);
+                                if (timestamp)
+                                    stamp_time(tmpstr2, &timestamp);
+                                LOGIN_LOG("'ladmin': Adjustment of a validity limit (account: %s, %lld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %lld (%s), ip: %s)\n",
+                                        auth_dat[i].userid,
+                                        auth_dat[i].connect_until_time,
+                                        tmpstr,
+                                        (short) RFIFOW(fd, 26),
+                                        (short) RFIFOW(fd, 28),
+                                        (short) RFIFOW(fd, 30),
+                                        (short) RFIFOW(fd, 32),
+                                        (short) RFIFOW(fd, 34),
+                                        (short) RFIFOW(fd, 36),
+                                        timestamp,
+                                        tmpstr2,
+                                        ip);
                                 auth_dat[i].connect_until_time = timestamp;
-                                WFIFOL(fd, 30) =
-                                    (unsigned long)
-                                    auth_dat[i].connect_until_time;
+                                WFIFOL(fd, 30) = static_cast<time_t>(timestamp);
                             }
                             else
                             {
-                                timestamp_seconds_buffer tmpstr;
-                                stamp_time(tmpstr, &auth_dat[i].connect_until_time);
-                                LOGIN_LOG("'ladmin': Impossible to adjust a validity limit (account: %s, %ld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
-                                     auth_dat[i].userid,
-                                     auth_dat[i].connect_until_time,
-                                     (auth_dat[i].connect_until_time ==
-                                      0 ? "unlimited" : tmpstr),
-                                     (short) RFIFOW(fd, 26),
-                                     (short) RFIFOW(fd, 28),
-                                     (short) RFIFOW(fd, 30),
-                                     (short) RFIFOW(fd, 32),
-                                     (short) RFIFOW(fd, 34),
-                                     (short) RFIFOW(fd, 36), ip);
+                                timestamp_seconds_buffer tmpstr = "unlimited";
+                                if (auth_dat[i].connect_until_time)
+                                    stamp_time(tmpstr, &auth_dat[i].connect_until_time);
+                                LOGIN_LOG("'ladmin': Impossible to adjust a validity limit (account: %s, %lld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
+                                        auth_dat[i].userid,
+                                        auth_dat[i].connect_until_time,
+                                        tmpstr,
+                                        (short) RFIFOW(fd, 26),
+                                        (short) RFIFOW(fd, 28),
+                                        (short) RFIFOW(fd, 30),
+                                        (short) RFIFOW(fd, 32),
+                                        (short) RFIFOW(fd, 34),
+                                        (short) RFIFOW(fd, 36),
+                                        ip);
                                 WFIFOL(fd, 30) = 0;
                             }
                         }
@@ -2860,10 +2829,8 @@ void parse_admin(int fd)
                     memcpy(WFIFOP(fd, 60), auth_dat[i].lastlogin, 24);
                     memcpy(WFIFOP(fd, 84), auth_dat[i].last_ip, 16);
                     memcpy(WFIFOP(fd, 100), auth_dat[i].email, 40);
-                    WFIFOL(fd, 140) =
-                        (unsigned long) auth_dat[i].connect_until_time;
-                    WFIFOL(fd, 144) =
-                        (unsigned long) auth_dat[i].ban_until_time;
+                    WFIFOL(fd, 140) = static_cast<time_t>(auth_dat[i].connect_until_time);
+                    WFIFOL(fd, 144) = static_cast<time_t>(auth_dat[i].ban_until_time);
                     WFIFOW(fd, 148) = strlen(auth_dat[i].memo);
                     if (auth_dat[i].memo[0])
                     {
@@ -2909,10 +2876,8 @@ void parse_admin(int fd)
                         memcpy(WFIFOP(fd, 60), auth_dat[i].lastlogin, 24);
                         memcpy(WFIFOP(fd, 84), auth_dat[i].last_ip, 16);
                         memcpy(WFIFOP(fd, 100), auth_dat[i].email, 40);
-                        WFIFOL(fd, 140) =
-                            (unsigned long) auth_dat[i].connect_until_time;
-                        WFIFOL(fd, 144) =
-                            (unsigned long) auth_dat[i].ban_until_time;
+                        WFIFOL(fd, 140) = static_cast<time_t>(auth_dat[i].connect_until_time);
+                        WFIFOL(fd, 144) = static_cast<time_t>(auth_dat[i].ban_until_time);
                         WFIFOW(fd, 148) = strlen(auth_dat[i].memo);
                         if (auth_dat[i].memo[0])
                         {
@@ -3239,7 +3204,7 @@ void parse_login(int fd)
                         int i = search_account_index(account.userid);
                         if (i != -1)
                         {
-                            if (auth_dat[i].ban_until_time != 0)
+                            if (auth_dat[i].ban_until_time)
                             {
                                 // if account is banned, we send ban timestamp
                                 timestamp_seconds_buffer tmpstr;

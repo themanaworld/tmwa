@@ -27,21 +27,21 @@ int tmw_ShorterStrlen(const char *s1, const char *s2);
 int tmw_CheckChatSpam(struct map_session_data *sd, const char *message)
 {
     nullpo_retr(1, sd);
-    time_t now = time(NULL);
+    TimeT now = TimeT::now();
 
     if (pc_isGM(sd))
         return 0;
 
     if (now > sd->chat_reset_due)
     {
-        sd->chat_reset_due = now + battle_config.chat_spam_threshold;
+        sd->chat_reset_due = static_cast<time_t>(now) + battle_config.chat_spam_threshold;
         sd->chat_lines_in = 0;
     }
 
     if (now > sd->chat_repeat_reset_due)
     {
         sd->chat_repeat_reset_due =
-            now + (battle_config.chat_spam_threshold * 60);
+            static_cast<time_t>(now) + (battle_config.chat_spam_threshold * 60);
         sd->chat_total_repeats = 0;
     }
 

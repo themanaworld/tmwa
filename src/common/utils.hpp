@@ -9,6 +9,7 @@
 #include <string>
 
 #include "const_array.hpp"
+#include "operators.hpp"
 #include "utils2.hpp"
 
 /*
@@ -62,11 +63,78 @@ void strzcpy(char *dest, const char *src, size_t n)
     }
 }
 
+// Exists in place of time_t, to give it a predictable printf-format.
+// (on x86 and amd64, time_t == long, but not on x32)
+static_assert(sizeof(long long) >= sizeof(time_t), "long long >= time_t");
+struct TimeT : Comparable
+{
+    long long value;
+
+    // conversion
+    TimeT(time_t t=0) : value(t) {}
+    TimeT(struct tm t) : value(timegm(&t)) {}
+    operator time_t() { return value; }
+    operator struct tm() { return *gmtime(&value); }
+
+    explicit operator bool() { return value; }
+    bool operator !() { return !value; }
+
+    // prevent surprises
+    template<class T>
+    TimeT(T) = delete;
+    template<class T>
+    operator T() = delete;
+
+    static
+    TimeT now()
+    {
+        // poisoned, but this is still in header-land
+        return time(NULL);
+    }
+
+    bool error()
+    {
+        return value == -1;
+    }
+    bool okay()
+    {
+        return !error();
+    }
+};
+
+inline
+long long convert_for_printf(TimeT t)
+{
+    return t.value;
+}
+
+inline
+long long& convert_for_scanf(TimeT& t)
+{
+    return t.value;
+}
+
 typedef char timestamp_seconds_buffer[20];
 typedef char timestamp_milliseconds_buffer[24];
-void stamp_time(timestamp_seconds_buffer&, time_t *t=nullptr);
+void stamp_time(timestamp_seconds_buffer&, TimeT *t=nullptr);
 void stamp_time(timestamp_milliseconds_buffer&);
 
 void log_with_timestamp(FILE *out, const_string line);
+
+#define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"
+static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
+        "timestamp size");
+#define WITH_TIMESTAMP(str) str TIMESTAMP_DUMMY
+//  str:            prefix: YYYY-MM-DD HH:MM:SS
+//  sizeof:        01234567890123456789012345678
+//  str + sizeof:                               ^
+//  -1:                     ^
+#define REPLACE_TIMESTAMP(str, t)                           \
+    stamp_time(                                             \
+            reinterpret_cast<timestamp_seconds_buffer *>(   \
+                str + sizeof(str)                           \
+            )[-1],                                          \
+            &t                                              \
+    )
 
 #endif //UTILS_HPP

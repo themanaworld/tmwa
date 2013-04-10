@@ -241,30 +241,29 @@ int npc_event_do_l(const char *name, int rid, int argc, argrec_t *args)
 static
 void npc_event_do_clock(TimerData *, tick_t)
 {
-    time_t timer = time(NULL);
-    struct tm *t = gmtime(&timer);
+    struct tm t = TimeT::now();
 
-    if (t->tm_min != ev_tm_b.tm_min)
+    if (t.tm_min != ev_tm_b.tm_min)
     {
         std::string buf;
-        buf = STRPRINTF("OnMinute%02d", t->tm_min);
+        buf = STRPRINTF("OnMinute%02d", t.tm_min);
         npc_event_doall(buf.c_str());
-        buf = STRPRINTF("OnClock%02d%02d", t->tm_hour, t->tm_min);
+        buf = STRPRINTF("OnClock%02d%02d", t.tm_hour, t.tm_min);
         npc_event_doall(buf.c_str());
     }
-    if (t->tm_hour != ev_tm_b.tm_hour)
+    if (t.tm_hour != ev_tm_b.tm_hour)
     {
         std::string buf;
-        buf = STRPRINTF("OnHour%02d", t->tm_hour);
+        buf = STRPRINTF("OnHour%02d", t.tm_hour);
         npc_event_doall(buf.c_str());
     }
-    if (t->tm_mday != ev_tm_b.tm_mday)
+    if (t.tm_mday != ev_tm_b.tm_mday)
     {
         std::string buf;
-        buf = STRPRINTF("OnDay%02d%02d", t->tm_mon + 1, t->tm_mday);
+        buf = STRPRINTF("OnDay%02d%02d", t.tm_mon + 1, t.tm_mday);
         npc_event_doall(buf.c_str());
     }
-    memcpy(&ev_tm_b, t, sizeof(ev_tm_b));
+    ev_tm_b = t;
 }
 
 /*==========================================

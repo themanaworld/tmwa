@@ -18,6 +18,7 @@
 #include <ctime>
 
 #include "../common/cxxstdio.hpp"
+#include "../common/utils.hpp"
 
 #include "../poison.hpp"
 
@@ -212,10 +213,8 @@ int main(int argc, char *argv[]) {
     }
     while (1) {
         // write stuff to stderr
-        time_t t = time(NULL);
-        struct tm *tmp = localtime(&t);
-        char timestamp[256];
-        strftime(timestamp, sizeof(timestamp), "%F %T", tmp);
+        timestamp_seconds_buffer timestamp;
+        stamp_time(timestamp);
 
         if (!pid_login) {
             pid_login = start_process(login_server);

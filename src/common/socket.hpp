@@ -7,6 +7,7 @@
 
 # include <cstdio>
 
+# include "utils.hpp"
 # include "timer.t.hpp"
 
 // Struct declaration
@@ -14,7 +15,7 @@
 struct socket_data
 {
     /// Checks whether a newly-connected socket actually does anything
-    time_t created;
+    TimeT created;
     bool connected;
 
     /// Flag needed since structure must be freed in a server-dependent manner

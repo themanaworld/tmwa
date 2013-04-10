@@ -880,13 +880,11 @@ int chrif_accountban(int fd)
                 }
             }
             else if (RFIFOB(fd, 6) == 1)
-            {                   // 0: change of statut, 1: ban
-                time_t timestamp;
-                char tmpstr[2048];
-                timestamp = (time_t) RFIFOL(fd, 7);    // status or final date of a banishment
-                strcpy(tmpstr, "Your account has been banished until ");
-                strftime(tmpstr + strlen(tmpstr), 24, "%d-%m-%Y %H:%M:%S",
-                          gmtime(&timestamp));
+            {
+                // 0: change of statut, 1: ban
+                TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 7));    // status or final date of a banishment
+                char tmpstr[] = WITH_TIMESTAMP("Your account has been banished until ");
+                REPLACE_TIMESTAMP(tmpstr, timestamp);
                 clif_displaymessage(sd->fd, tmpstr);
             }
             clif_setwaitclose(sd->fd); // forced to disconnect for the change
@@ -1098,7 +1096,7 @@ void chrif_parse(int fd)
                 break;
             case 0x2afd:
                 pc_authok(RFIFOL(fd, 4), RFIFOL(fd, 8),
-                           (time_t) RFIFOL(fd, 12), RFIFOW(fd, 16),
+                           static_cast<time_t>(RFIFOL(fd, 12)), RFIFOW(fd, 16),
                            (const struct mmo_charstatus *) RFIFOP(fd, 18));
                 break;
             case 0x2afe:

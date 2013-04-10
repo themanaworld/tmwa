@@ -2640,23 +2640,19 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
         /* Number of seconds elapsed today(0-86399, 00:00:00-23:59:59). */
         case 1:
         {
-            time_t timer;
-            struct tm *t;
-
-            time(&timer);
-            t = gmtime(&timer);
+            struct tm t = TimeT::now();
             push_val(st->stack, ScriptCode::INT,
-                      ((t->tm_hour) * 3600 + (t->tm_min) * 60 + t->tm_sec));
+                    t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec);
             break;
         }
         /* Seconds since Unix epoch. */
         case 2:
-            push_val(st->stack, ScriptCode::INT, (int) time(NULL));
+            push_val(st->stack, ScriptCode::INT, static_cast<time_t>(TimeT::now()));
             break;
         /* System tick(unsigned int, and yes, it will wrap). */
         case 0:
         default:
-            push_val(st->stack, ScriptCode::INT, (int) gettick().time_since_epoch().count());
+            push_val(st->stack, ScriptCode::INT, gettick().time_since_epoch().count());
             break;
     }
 }
@@ -2671,37 +2667,32 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
 static
 void builtin_gettime(ScriptState *st)   /* Asgard Version */
 {
-    int type;
-    time_t timer;
-    struct tm *t;
+    int type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
 
-    type = conv_num(st, &(st->stack->stack_data[st->start + 2]));
-
-    time(&timer);
-    t = gmtime(&timer);
+    struct tm t = TimeT::now();
 
     switch (type)
     {
         case 1:                //Sec(0~59)
-            push_val(st->stack, ScriptCode::INT, t->tm_sec);
+            push_val(st->stack, ScriptCode::INT, t.tm_sec);
             break;
         case 2:                //Min(0~59)
-            push_val(st->stack, ScriptCode::INT, t->tm_min);
+            push_val(st->stack, ScriptCode::INT, t.tm_min);
             break;
         case 3:                //Hour(0~23)
-            push_val(st->stack, ScriptCode::INT, t->tm_hour);
+            push_val(st->stack, ScriptCode::INT, t.tm_hour);
             break;
         case 4:                //WeekDay(0~6)
-            push_val(st->stack, ScriptCode::INT, t->tm_wday);
+            push_val(st->stack, ScriptCode::INT, t.tm_wday);
             break;
         case 5:                //MonthDay(01~31)
-            push_val(st->stack, ScriptCode::INT, t->tm_mday);
+            push_val(st->stack, ScriptCode::INT, t.tm_mday);
             break;
         case 6:                //Month(01~12)
-            push_val(st->stack, ScriptCode::INT, t->tm_mon + 1);
+            push_val(st->stack, ScriptCode::INT, t.tm_mon + 1);
             break;
         case 7:                //Year(20xx)
-            push_val(st->stack, ScriptCode::INT, t->tm_year + 1900);
+            push_val(st->stack, ScriptCode::INT, t.tm_year + 1900);
             break;
         default:               //(format error)
             push_val(st->stack, ScriptCode::INT, -1);
@@ -2716,16 +2707,13 @@ void builtin_gettime(ScriptState *st)   /* Asgard Version */
 static
 void builtin_gettimestr(ScriptState *st)
 {
-    char *tmpstr;
-    int maxlen;
-    time_t now = time(NULL);
+    struct tm now = TimeT::now();
 
     const char *fmtstr = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    maxlen = conv_num(st, &(st->stack->stack_data[st->start + 3]));
+    int maxlen = conv_num(st, &(st->stack->stack_data[st->start + 3]));
 
-    tmpstr = (char *) calloc(maxlen + 1, 1);
-    strftime(tmpstr, maxlen, fmtstr, gmtime(&now));
-    tmpstr[maxlen] = '\0';
+    char *tmpstr = (char *) calloc(maxlen + 1, 1);
+    strftime(tmpstr, maxlen, fmtstr, &now);
 
     push_str(st->stack, ScriptCode::STR, tmpstr);
 }

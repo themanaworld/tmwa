@@ -615,7 +615,7 @@ int pc_isequip(struct map_session_data *sd, int n)
  * char鯖から送られてきたステータスを設定
  *------------------------------------------
  */
-int pc_authok(int id, int login_id2, time_t connect_until_time,
+int pc_authok(int id, int login_id2, TimeT connect_until_time,
                short tmw_version, const struct mmo_charstatus *st)
 {
     struct map_session_data *sd = NULL;
@@ -783,24 +783,27 @@ int pc_authok(int id, int login_id2, time_t connect_until_time,
     sd->auto_ban_info.in_progress = 0;
 
     // Initialize antispam vars
-    sd->chat_reset_due = sd->chat_lines_in = sd->chat_total_repeats =
-        sd->chat_repeat_reset_due = 0;
+    sd->chat_reset_due = TimeT();
+    sd->chat_lines_in = sd->chat_total_repeats = 0;
+    sd->chat_repeat_reset_due = TimeT();
     sd->chat_lastmsg[0] = '\0';
 
     memset(sd->flood_rates, 0, sizeof(sd->flood_rates));
-    sd->packet_flood_reset_due = sd->packet_flood_in = 0;
+    sd->packet_flood_reset_due = TimeT();
+    sd->packet_flood_in = 0;
 
     // Obtain IP address (if they are still connected)
     if (!getpeername(sd->fd, (struct sockaddr *)&sai, &sa_len))
         sd->ip = sai.sin_addr;
 
     // message of the limited time of the account
-    if (connect_until_time != 0)
-    {                           // don't display if it's unlimited or unknow value
-        char tmpstr[1024];
-        strftime(tmpstr, sizeof(tmpstr) - 1, "Your account time limit is: %d-%m-%Y %H:%M:%S.", gmtime(&connect_until_time));
-        clif_wis_message(sd->fd, wisp_server_name, tmpstr,
-                          strlen(tmpstr) + 1);
+    if (connect_until_time)
+    {
+        // don't display if it's unlimited or unknow value
+        char tmpstr[] = WITH_TIMESTAMP("Your account time limit is: ");
+        REPLACE_TIMESTAMP(tmpstr, connect_until_time);
+
+        clif_wis_message(sd->fd, wisp_server_name, tmpstr, sizeof(tmpstr));
     }
     pc_calcstatus(sd, 1);
 

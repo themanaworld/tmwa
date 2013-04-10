@@ -251,14 +251,14 @@ struct map_session_data
         unsigned in_progress:1;
     } auto_ban_info;
 
-    time_t chat_reset_due;
-    time_t chat_repeat_reset_due;
+    TimeT chat_reset_due;
+    TimeT chat_repeat_reset_due;
     int chat_lines_in;
     int chat_total_repeats;
     char chat_lastmsg[513];
 
     tick_t flood_rates[0x220];
-    time_t packet_flood_reset_due;
+    TimeT packet_flood_reset_due;
     int packet_flood_in;
 
     struct in_addr ip;

@@ -25,6 +25,7 @@
 
 #include "const_array.hpp"
 #include "mmo.hpp"
+#include "utils.hpp"
 
 template<class T, typename=typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, char>::value>::type>
 bool extract(const_string str, T *iv)
@@ -56,6 +57,12 @@ bool extract(const_string str, T *iv)
         *iv = v;
         return *iv == v;
     }
+}
+
+inline
+bool extract(const_string str, TimeT *tv)
+{
+    return extract(str, &tv->value);
 }
 
 // extra typename=void to workaround some duplicate overload rule

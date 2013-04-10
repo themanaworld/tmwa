@@ -5629,12 +5629,12 @@ int clif_check_packet_flood(int fd, int cmd)
     // They are flooding
     if (tick < sd->flood_rates[cmd] + rate)
     {
-        time_t now = time(NULL);
+        TimeT now = TimeT::now();
 
         // If it's a nasty flood we log and possibly kick
         if (now > sd->packet_flood_reset_due)
         {
-            sd->packet_flood_reset_due = now + battle_config.packet_spam_threshold;
+            sd->packet_flood_reset_due = static_cast<time_t>(now) + battle_config.packet_spam_threshold;
             sd->packet_flood_in = 0;
         }
 
@@ -5914,7 +5914,6 @@ void clif_parse(int fd)
                 int i;
                 FILE *fp;
                 char packet_txt[256] = "save/packet.txt";
-                time_t now;
                 PRINTF("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
                 for (i = 0; i < packet_len; i++)
                 {
@@ -5942,24 +5941,25 @@ void clif_parse(int fd)
                 }
                 else
                 {
-                    time(&now);
+                    timestamp_seconds_buffer now;
+                    stamp_time(now);
                     if (sd && sd->state.auth)
                     {
                         if (sd->status.name != NULL)
                             FPRINTF(fp,
-                                     "%sPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n",
-                                     asctime(gmtime(&now)),
-                                     sd->status.account_id,
-                                     sd->status.char_id, sd->status.name);
+                                    "%s\nPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n",
+                                    now,
+                                    sd->status.account_id,
+                                    sd->status.char_id, sd->status.name);
                         else
                             FPRINTF(fp,
-                                     "%sPlayer with account ID %d sent wrong packet:\n",
-                                     asctime(gmtime(&now)), sd->bl.id);
+                                    "%s\nPlayer with account ID %d sent wrong packet:\n",
+                                    now, sd->bl.id);
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                         FPRINTF(fp,
-                                 "%sPlayer with account ID %d sent wrong packet:\n",
-                                 asctime(gmtime(&now)), sd->bl.id);
+                                "%s\nPlayer with account ID %d sent wrong packet:\n",
+                                now, sd->bl.id);
 
                     FPRINTF(fp,
                              "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
