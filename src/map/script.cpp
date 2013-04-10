@@ -1,5 +1,6 @@
 #include "script.hpp"
 
+#include <cassert>
 #include <cctype>
 #include <cmath>
 #include <cstdlib>
@@ -136,7 +137,7 @@ extern BuiltinFunction builtin_functions[];
 
 enum class ScriptCode : uint8_t
 {
-    // tyoes and specials
+    // types and specials
     NOP, POS, INT, PARAM, FUNC, STR, CONSTSTR, ARG,
     NAME, EOL, RETINFO,
 
@@ -1186,6 +1187,7 @@ static
 const char *conv_str(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
+    assert (data->type != ScriptCode::RETINFO);
     if (data->type == ScriptCode::INT)
     {
         char *buf;
@@ -1213,6 +1215,7 @@ static
 int conv_num(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
+    assert (data->type != ScriptCode::RETINFO);
     if (data->type == ScriptCode::STR || data->type == ScriptCode::CONSTSTR)
     {
         const char *p = data->u.str;
@@ -1224,6 +1227,14 @@ int conv_num(ScriptState *st, struct script_data *data)
     return data->u.num;
 }
 
+static
+const ScriptCode *conv_script(ScriptState *st, struct script_data *data)
+{
+    get_val(st, data);
+    assert (data->type == ScriptCode::RETINFO);
+    return data->u.script;
+}
+
 /*==========================================
  * スタックへ数値をプッシュ
  *------------------------------------------
@@ -1231,6 +1242,9 @@ int conv_num(ScriptState *st, struct script_data *data)
 static
 void push_val(struct script_stack *stack, ScriptCode type, int val)
 {
+    assert (type != ScriptCode::RETINFO);
+    assert (type != ScriptCode::STR);
+    assert (type != ScriptCode::CONSTSTR);
     if (stack->sp >= stack->sp_max)
     {
         stack->sp_max += 64;
@@ -1247,6 +1261,26 @@ void push_val(struct script_stack *stack, ScriptCode type, int val)
     stack->sp++;
 }
 
+static
+void push_script(struct script_stack *stack, ScriptCode type, const ScriptCode *code)
+{
+    assert (type == ScriptCode::RETINFO);
+    if (stack->sp >= stack->sp_max)
+    {
+        stack->sp_max += 64;
+        stack->stack_data = (struct script_data *)
+            realloc(stack->stack_data, sizeof(stack->stack_data[0]) *
+                                        stack->sp_max);
+        memset(stack->stack_data + (stack->sp_max - 64), 0,
+                64 * sizeof(*(stack->stack_data)));
+    }
+//  if(battle_config.etc_log)
+//      PRINTF("push (%d,%d)-> %d\n",type,val,stack->sp);
+    stack->stack_data[stack->sp].type = type;
+    stack->stack_data[stack->sp].u.script = code;
+    stack->sp++;
+}
+
 /*==========================================
  * スタックへ文字列をプッシュ
  *------------------------------------------
@@ -1254,6 +1288,7 @@ void push_val(struct script_stack *stack, ScriptCode type, int val)
 static
 void push_str(struct script_stack *stack, ScriptCode type, const char *str)
 {
+    assert (type == ScriptCode::STR || type == ScriptCode::CONSTSTR);
     if (stack->sp >= stack->sp_max)
     {
         stack->sp_max += 64;
@@ -1368,8 +1403,8 @@ void builtin_callfunc(ScriptState *st)
 
         push_val(st->stack, ScriptCode::INT, j); // 引数の数をプッシュ
         push_val(st->stack, ScriptCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
-        push_val(st->stack, ScriptCode::INT, (int) st->script);  // 現在のスクリプトをプッシュ
-        push_val(st->stack, ScriptCode::RETINFO, st->pos);   // 現在のスクリプト位置をプッシュ
+        push_val(st->stack, ScriptCode::INT, st->pos);   // 現在のスクリプト位置をプッシュ
+        push_script(st->stack, ScriptCode::RETINFO, st->script);  // 現在のスクリプトをプッシュ
 
         st->pos = 0;
         st->script = scr;
@@ -1399,8 +1434,8 @@ void builtin_callsub(ScriptState *st)
 
     push_val(st->stack, ScriptCode::INT, j); // 引数の数をプッシュ
     push_val(st->stack, ScriptCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
-    push_val(st->stack, ScriptCode::INT, (int) st->script);  // 現在のスクリプトをプッシュ
-    push_val(st->stack, ScriptCode::RETINFO, st->pos);   // 現在のスクリプト位置をプッシュ
+    push_val(st->stack, ScriptCode::INT, st->pos);   // 現在のスクリプト位置をプッシュ
+    push_script(st->stack, ScriptCode::RETINFO, st->script);  // 現在のスクリプトをプッシュ
 
     st->pos = pos_;
     st->defsp = st->start + 4 + j;
@@ -4665,10 +4700,12 @@ void run_func(ScriptState *st)
             st->state = END;
             return;
         }
-        i = conv_num(st, &(st->stack->stack_data[st->defsp - 4])); // 引数の数所得
-        st->pos = conv_num(st, &(st->stack->stack_data[st->defsp - 1]));   // スクリプト位置の復元
-        st->script = (ScriptCode *) conv_num(st, &(st->stack->stack_data[st->defsp - 2]));   // スクリプトを復元
+        st->script = conv_script(st, &(st->stack->stack_data[st->defsp - 1]));   // スクリプトを復元
+        st->pos = conv_num(st, &(st->stack->stack_data[st->defsp - 2]));   // スクリプト位置の復元
         st->defsp = conv_num(st, &(st->stack->stack_data[st->defsp - 3])); // 基準スタックポインタを復元
+        // Number of arguments.
+        i = conv_num(st, &(st->stack->stack_data[st->defsp - 4])); // 引数の数所得
+        assert (i == 0);
 
         pop_stack(st->stack, olddefsp - 4 - i, olddefsp);  // 要らなくなったスタック(引数と復帰用データ)削除
 

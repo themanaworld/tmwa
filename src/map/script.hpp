@@ -16,6 +16,7 @@ struct script_data
     {
         int num;
         const char *str;
+        const ScriptCode *script;
     } u;
 };
 
