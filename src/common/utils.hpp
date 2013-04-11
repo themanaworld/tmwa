@@ -74,7 +74,7 @@ struct TimeT : Comparable
     TimeT(time_t t=0) : value(t) {}
     TimeT(struct tm t) : value(timegm(&t)) {}
     operator time_t() { return value; }
-    operator struct tm() { return *gmtime(&value); }
+    operator struct tm() { time_t v = value; return *gmtime(&v); }
 
     explicit operator bool() { return value; }
     bool operator !() { return !value; }
