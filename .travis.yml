@@ -29,13 +29,7 @@ install:
         sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test &&
         sudo apt-get update -qq;
     fi
-  -
-    if [ "${REAL_CXX}" = "clang++" ];
-    then
-        sudo apt-get install -qq ${REAL_CXX} g++-multilib;
-    else
-        sudo apt-get install -qq ${REAL_CXX}-multilib;
-    fi
+  - sudo apt-get install -qq ${REAL_CXX}
 
 ## Do something before the main test script
 # before_script: ...
