@@ -1396,6 +1396,7 @@ void builtin_callfunc(ScriptState *st)
     if ((scr = userfunc_db.get(str)))
     {
         int j = 0;
+        assert (st->start + 3 == st->end);
 #if 0
         for (int i = st->start + 3; i < st->end; i++, j++)
             push_copy(st->stack, i);
@@ -1427,6 +1428,7 @@ void builtin_callsub(ScriptState *st)
 {
     int pos_ = conv_num(st, &(st->stack->stack_data[st->start + 2]));
     int j = 0;
+    assert (st->start + 3 == st->end);
 #if 0
     for (int i = st->start + 3; i < st->end; i++, j++)
         push_copy(st->stack, i);
@@ -4688,11 +4690,12 @@ void run_func(ScriptState *st)
             st->state = END;
             return;
         }
-        st->script = conv_script(st, &(st->stack->stack_data[st->defsp - 1]));   // スクリプトを復元
-        st->pos = conv_num(st, &(st->stack->stack_data[st->defsp - 2]));   // スクリプト位置の復元
-        st->defsp = conv_num(st, &(st->stack->stack_data[st->defsp - 3])); // 基準スタックポインタを復元
+        assert (olddefsp == st->defsp); // pretty sure it hasn't changed yet
+        st->script = conv_script(st, &(st->stack->stack_data[olddefsp - 1]));   // スクリプトを復元
+        st->pos = conv_num(st, &(st->stack->stack_data[olddefsp - 2]));   // スクリプト位置の復元
+        st->defsp = conv_num(st, &(st->stack->stack_data[olddefsp - 3])); // 基準スタックポインタを復元
         // Number of arguments.
-        i = conv_num(st, &(st->stack->stack_data[st->defsp - 4])); // 引数の数所得
+        i = conv_num(st, &(st->stack->stack_data[olddefsp - 4])); // 引数の数所得
         assert (i == 0);
 
         pop_stack(st->stack, olddefsp - 4 - i, olddefsp);  // 要らなくなったスタック(引数と復帰用データ)削除
