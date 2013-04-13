@@ -4628,8 +4628,7 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
         pos = (epor == EPOS::CAPE ? EPOS::MISC2 : EPOS::CAPE);
     }
 
-    // TODO: make this code do what it's supposed to do,
-    // instead of what it does
+#warning "TODO: make this code do what it's supposed to do, instead of what it does"
     arrow = pc_search_inventory(sd, pc_checkequip(sd, EPOS::LEGS | EPOS::CAPE));    // Added by RoVeRT
     for (EQUIP i : EQUIPs)
     {

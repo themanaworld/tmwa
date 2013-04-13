@@ -814,7 +814,7 @@ int make_new_char(int fd, const uint8_t *dat)
     char_dat[i].inventory[0].broken = 0;
     char_dat[i].inventory[1].nameid = start_armor;  // Cotton Shirt
     char_dat[i].inventory[1].amount = 1;
-    char_dat[i].inventory[1].equip = EPOS::TORSO;
+    char_dat[i].inventory[1].equip = EPOS::MISC1;
     char_dat[i].inventory[1].identify = 1;
     char_dat[i].inventory[1].broken = 0;
     char_dat[i].weapon = 1;
@@ -1109,7 +1109,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 20) = find_equip_view(p, EPOS::SHOES);
         WFIFOW(fd, j + 22) = find_equip_view(p, EPOS::GLOVES);
         WFIFOW(fd, j + 24) = find_equip_view(p, EPOS::CAPE);
-        WFIFOW(fd, j + 26) = find_equip_view(p, EPOS::TORSO);
+        WFIFOW(fd, j + 26) = find_equip_view(p, EPOS::MISC1);
         WFIFOL(fd, j + 28) = static_cast<uint16_t>(p->option);
 
         WFIFOL(fd, j + 32) = p->karma;
