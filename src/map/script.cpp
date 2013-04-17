@@ -3570,7 +3570,7 @@ void builtin_pvpon(ScriptState *st)
             {
                 if (m == pl_sd->bl.m && !pl_sd->pvp_timer)
                 {
-                    pl_sd->pvp_timer = add_timer(gettick() + std::chrono::milliseconds(200),
+                    pl_sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                                 pl_sd->bl.id));
                     pl_sd->pvp_rank = 0;
@@ -3605,11 +3605,7 @@ void builtin_pvpoff(ScriptState *st)
             {
                 if (m == pl_sd->bl.m)
                 {
-                    if (pl_sd->pvp_timer)
-                    {
-                        delete_timer(pl_sd->pvp_timer);
-                        pl_sd->pvp_timer = nullptr;
-                    }
+                    pl_sd->pvp_timer.cancel();
                 }
             }
         }
@@ -5109,9 +5105,10 @@ void do_init_script(void)
 {
     script_load_mapreg();
 
-    add_timer_interval(gettick() + MAPREG_AUTOSAVE_INTERVAL,
+    Timer(gettick() + MAPREG_AUTOSAVE_INTERVAL,
             script_autosave_mapreg,
-            MAPREG_AUTOSAVE_INTERVAL);
+            MAPREG_AUTOSAVE_INTERVAL
+    ).detach();
 }
 
 #define BUILTIN(func, args) \

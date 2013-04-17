@@ -1019,14 +1019,13 @@ int fun_rbox(env_t *, int, val_t *result, val_t *args)
 }
 
 static
-int fun_running_status_update(env_t *, int, val_t *result,
-                           val_t *args)
+int fun_running_status_update(env_t *, int, val_t *result, val_t *args)
 {
     if (ENTITY_TYPE(0) != BL::PC && ENTITY_TYPE(0) != BL::MOB)
         return 1;
 
     StatusChange sc = StatusChange(ARGINT(1));
-    RESULTINT = battle_get_sc_data(ARGENTITY(0))[sc].timer != nullptr;
+    RESULTINT = bool(battle_get_sc_data(ARGENTITY(0))[sc].timer);
     return 0;
 }
 

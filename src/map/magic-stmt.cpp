@@ -84,9 +84,8 @@ void invocation_timer_callback(TimerData *, tick_t, int id)
 {
     invocation_t *invocation = (invocation_t *) map_id2bl(id);
 
-    if (invocation)
+    assert (invocation != NULL);
     {
-        invocation->timer = 0;
         spell_execute(invocation);
     }
 }
@@ -121,8 +120,7 @@ void spell_free_invocation(invocation_t *invocation)
 
     clear_stack(invocation);
 
-    if (invocation->timer)
-        delete_timer(invocation->timer);
+    invocation->timer.cancel();
 
     magic_free_env(invocation->env);
 
@@ -255,9 +253,10 @@ void timer_callback_effect(TimerData *, tick_t, int id, int data)
 static
 void entity_effect(entity_t *entity, int effect_nr, interval_t delay)
 {
-    add_timer(gettick() + delay,
+    Timer(gettick() + delay,
             std::bind(&timer_callback_effect, ph::_1, ph::_2,
-                entity->id, effect_nr));
+                entity->id, effect_nr)
+    ).detach();
 }
 
 void magic_unshroud(character_t *other_char)
@@ -287,9 +286,10 @@ struct npc_data *local_spell_effect(int m, int x, int y, int effect,
     int effect_npc_id = effect_npc->bl.id;
 
     entity_effect(&effect_npc->bl, effect, tdelay);
-    add_timer(gettick() + delay,
+    Timer(gettick() + delay,
             std::bind(timer_callback_effect_npc_delete, ph::_1, ph::_2,
-                effect_npc_id));
+                effect_npc_id)
+    ).detach();
 
     return effect_npc;
 }
@@ -424,9 +424,10 @@ int op_messenger_npc(env_t *, int, val_t *args)
     npc = npc_spawn_text(loc->m, loc->x, loc->y,
             ARGINT(1), ARGSTR(2), ARGSTR(3));
 
-    add_timer(gettick() + static_cast<interval_t>(ARGINT(4)),
+    Timer(gettick() + static_cast<interval_t>(ARGINT(4)),
             std::bind(timer_callback_kill_npc, ph::_1, ph::_2,
-                npc->bl.id));
+                npc->bl.id)
+    ).detach();
 
     return 0;
 }
@@ -737,7 +738,7 @@ int op_spawn(env_t *, int, val_t *args)
             mob->mode |=
                 MobMode::SUMMONED | MobMode::TURNS_AGAINST_BAD_MASTER;
 
-            mob->deletetimer = add_timer(gettick() + monster_lifetime,
+            mob->deletetimer = Timer(gettick() + monster_lifetime,
                     std::bind(mob_timer_delete, ph::_1, ph::_2,
                         mob_id));
 
@@ -1576,8 +1577,8 @@ void spell_execute_d(invocation_t *invocation, int allow_deletion)
 
     if (delta > interval_t::zero())
     {
-        assert (invocation->timer == nullptr);
-        invocation->timer = add_timer(gettick() + delta,
+        assert (!invocation->timer);
+        invocation->timer = Timer(gettick() + delta,
                 std::bind(invocation_timer_callback, ph::_1, ph::_2,
                     invocation->bl.id));
     }

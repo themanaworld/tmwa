@@ -658,8 +658,7 @@ int skill_castcancel(struct block_list *bl, int)
         struct mob_data *md = (struct mob_data *) bl;
         if (md->skilltimer)
         {
-            delete_timer(md->skilltimer);
-            md->skilltimer = nullptr;
+            md->skilltimer.cancel();
             clif_skillcastcancel(bl);
         }
         return 0;
@@ -758,7 +757,7 @@ int skill_status_change_active(struct block_list *bl, StatusChange type)
     if (not sc_data)
         return 0;
 
-    return sc_data[type].timer != nullptr;
+    return bool(sc_data[type].timer);
 }
 
 void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData *tid)
@@ -792,19 +791,14 @@ void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData
     opt3 = battle_get_opt3(bl);
     nullpo_retv(opt3);
 
-    if (!sc_data[type].timer)
-        return;
     assert ((*sc_count) > 0);
-    assert (sc_data[type].timer == tid || !tid);
 
     {
 
         if (!tid)
-            // タイマから呼ばれていないならタイマ削除をする
-            delete_timer(sc_data[type].timer);
+            sc_data[type].timer.cancel();
 
-        /* 該当の異常を正常に戻す */
-        sc_data[type].timer = nullptr;
+        assert (!sc_data[type].timer);
         (*sc_count)--;
 
         switch (type)
@@ -901,8 +895,6 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
 
     //sc_count=battle_get_sc_count(bl); //使ってない？
 
-    assert (sc_data[type].timer == tid);
-
     if (sc_data[type].spell_invocation)
     {                           // Must report termination
         spell_effect_report_termination(sc_data[type].spell_invocation,
@@ -940,13 +932,13 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
                             md->hp -= hp;
                         }
                     }
-                    sc_data[type].timer = add_timer(tick + std::chrono::seconds(1),
+                    sc_data[type].timer = Timer(tick + std::chrono::seconds(1),
                             std::bind(skill_status_change_timer, ph::_1, ph::_2,
                                 bl->id, type));
                 }
             }
             else
-                sc_data[type].timer = add_timer(tick + std::chrono::seconds(2),
+                sc_data[type].timer = Timer(tick + std::chrono::seconds(2),
                         std::bind(skill_status_change_timer, ph::_1, ph::_2,
                             bl->id, type));
             break;
@@ -956,10 +948,9 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
         case StatusChange::SC_WEIGHT90:
         case StatusChange::SC_BROKNWEAPON:
         case StatusChange::SC_BROKNARMOR:
-            if (sc_data[type].timer == tid)
-                sc_data[type].timer = add_timer(tick + std::chrono::minutes(10),
-                        std::bind(skill_status_change_timer, ph::_1, ph::_2,
-                            bl->id, type));
+            sc_data[type].timer = Timer(tick + std::chrono::minutes(10),
+                    std::bind(skill_status_change_timer, ph::_1, ph::_2,
+                        bl->id, type));
             return;
 
         case StatusChange::SC_FLYING_BACKPACK:
@@ -1047,8 +1038,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
         /* 継ぎ足しができない状態異常である時は状態異常を行わない */
         {
             (*sc_count)--;
-            delete_timer(sc_data[type].timer);
-            sc_data[type].timer = nullptr;
+            sc_data[type].timer.cancel();
         }
     }
 
@@ -1145,7 +1135,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     sc_data[type].spell_invocation = spell_invocation;
 
     /* タイマー設定 */
-    sc_data[type].timer = add_timer(gettick() + tick,
+    sc_data[type].timer = Timer(gettick() + tick,
             std::bind(skill_status_change_timer, ph::_1, ph::_2,
                 bl->id, type));
 

@@ -320,7 +320,7 @@ typedef struct invocation
     int caster;                /* this is the person who originally invoked the spell */
     int subject;               /* when this person dies, the spell dies with it */
 
-    TimerData *timer;                 /* spell timer, if any */
+    Timer timer;                 /* spell timer, if any */
 
     int stack_size;
     cont_activation_record_t stack[MAX_STACK_SIZE];

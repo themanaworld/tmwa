@@ -107,7 +107,7 @@ int mob_spawn_dataset(struct mob_data *md, const char *mobname, int mob_class)
     md->bl.id = npc_get_new_npc_id();
 
     memset(&md->state, 0, sizeof(md->state));
-    md->timer = nullptr;
+    // md->timer = nullptr;
     md->target_id = 0;
     md->attacked_id = 0;
 
@@ -646,7 +646,7 @@ int mob_walk(struct mob_data *md, tick_t tick, unsigned char data)
         i = i / 2;
         if (md->walkpath.path_half == 0)
             i = std::max(i, std::chrono::milliseconds(1));
-        md->timer = add_timer(tick + i,
+        md->timer = Timer(tick + i,
                 std::bind(mob_timer, ph::_1, ph::_2,
                     md->bl.id, md->walkpath.path_pos));
         md->state.state = MS::WALK;
@@ -796,7 +796,7 @@ int mob_attack(struct mob_data *md, tick_t tick)
 
     md->attackabletime = tick + battle_get_adelay(&md->bl);
 
-    md->timer = add_timer(md->attackabletime,
+    md->timer = Timer(md->attackabletime,
             std::bind(mob_timer, ph::_1, ph::_2,
                 md->bl.id, 0));
     md->state.state = MS::ATTACK;
@@ -827,9 +827,7 @@ int mob_changestate(struct mob_data *md, MS state, bool type)
 {
     nullpo_ret(md);
 
-    if (md->timer)
-        delete_timer(md->timer);
-    md->timer = nullptr;
+    md->timer.cancel();
     md->state.state = state;
 
     switch (state)
@@ -840,7 +838,7 @@ int mob_changestate(struct mob_data *md, MS state, bool type)
             if (i > interval_t::zero())
             {
                 i = i / 4;
-                md->timer = add_timer(gettick() + i,
+                md->timer = Timer(gettick() + i,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl.id, 0));
             }
@@ -853,20 +851,20 @@ int mob_changestate(struct mob_data *md, MS state, bool type)
             tick_t tick = gettick();
             interval_t i = md->attackabletime - tick;
             if (i > interval_t::zero() && i < std::chrono::seconds(2))
-                md->timer = add_timer(md->attackabletime,
+                md->timer = Timer(md->attackabletime,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl.id, 0));
             else if (type)
             {
                 md->attackabletime = tick + battle_get_amotion(&md->bl);
-                md->timer = add_timer(md->attackabletime,
+                md->timer = Timer(md->attackabletime,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl.id, 0));
             }
             else
             {
                 md->attackabletime = tick + std::chrono::milliseconds(1);
-                md->timer = add_timer(md->attackabletime,
+                md->timer = Timer(md->attackabletime,
                         std::bind(mob_timer, ph::_1, ph::_2,
                             md->bl.id, 0));
             }
@@ -880,9 +878,7 @@ int mob_changestate(struct mob_data *md, MS state, bool type)
             // Since it died, all aggressors' attack to this mob is stopped.
             clif_foreachclient(std::bind(mob_stopattacked, ph::_1, md->bl.id));
             skill_status_change_clear(&md->bl, 2); // The abnormalities in status are canceled.
-            if (md->deletetimer)
-                delete_timer(md->deletetimer);
-            md->deletetimer = nullptr;
+            md->deletetimer.cancel();
             md->hp = md->target_id = md->attacked_id = 0;
             md->state.attackable = false;
         }
@@ -898,7 +894,7 @@ int mob_changestate(struct mob_data *md, MS state, bool type)
  *------------------------------------------
  */
 static
-void mob_timer(TimerData *tid, tick_t tick, int id, unsigned char data)
+void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
 {
     struct mob_data *md;
     struct block_list *bl;
@@ -913,8 +909,6 @@ void mob_timer(TimerData *tid, tick_t tick, int id, unsigned char data)
 
     md = (struct mob_data *) bl;
 
-    assert (md->timer == tid);
-    md->timer = nullptr;
     if (md->bl.prev == NULL || md->state.state == MS::DEAD)
         return;
 
@@ -1043,9 +1037,10 @@ int mob_setdelayspawn(int id)
     tick_t spawntime3 = gettick() + std::chrono::seconds(5);
     tick_t spawntime = std::max({spawntime1, spawntime2, spawntime3});
 
-    add_timer(spawntime,
+    Timer(spawntime,
             std::bind(mob_delayspawn, ph::_1, ph::_2,
-                id));
+                id)
+    ).detach();
     return 0;
 }
 
@@ -1104,9 +1099,10 @@ int mob_spawn(int id)
         {
     //      if(battle_config.error_log==1)
     //          PRINTF("MOB spawn error %d @ %s\n",id,map[md->bl.m].name);
-            add_timer(tick + std::chrono::seconds(5),
+            Timer(tick + std::chrono::seconds(5),
                     std::bind(mob_delayspawn, ph::_1, ph::_2,
-                        id));
+                        id)
+            ).detach();
             return 1;
         }
     }
@@ -1131,16 +1127,16 @@ int mob_spawn(int id)
 
     md->state.state = MS::IDLE;
     md->state.skillstate = MobSkillState::MSS_IDLE;
-    md->timer = nullptr;
+    assert (!md->timer);
     md->last_thinktime = tick;
     md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(random_::to(50));
     md->attackabletime = tick;
     md->canmove_tick = tick;
 
     md->sg_count = 0;
-    md->deletetimer = nullptr;
+    // md->deletetimer = nullptr;
 
-    md->skilltimer = nullptr;
+    // md->skilltimer = nullptr;
     for (int i = 0; i < MAX_MOBSKILL; i++)
         md->skilldelay[i] = tick - std::chrono::hours(10);
     md->skillid = SkillID();
@@ -1153,7 +1149,7 @@ int mob_spawn(int id)
 
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
     {
-        md->sc_data[i].timer = nullptr;
+        assert (!md->sc_data[i].timer);
         md->sc_data[i].val1 = 0;
     }
     md->sc_count = 0;
@@ -2497,6 +2493,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     // ----- ここから死亡処理 -----
 
     map_freeblock_lock();
+    // cancels timers
     mob_changestate(md, MS::DEAD, 0);
     mobskill_use(md, tick, MobSkillCondition::ANY);
 
@@ -2657,9 +2654,10 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 ditem->first_sd = mvp_sd;
                 ditem->second_sd = second_sd;
                 ditem->third_sd = third_sd;
-                add_timer(tick + std::chrono::milliseconds(500) + static_cast<interval_t>(i),
+                Timer(tick + std::chrono::milliseconds(500) + static_cast<interval_t>(i),
                         std::bind(mob_delay_item_drop, ph::_1, ph::_2,
-                            ditem));
+                            ditem)
+                ).detach();
             }
             if (md->lootitem)
             {
@@ -2678,9 +2676,10 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                     ditem->second_sd = second_sd;
                     ditem->third_sd = third_sd;
                     // ?
-                    add_timer(tick + std::chrono::milliseconds(540) + static_cast<interval_t>(i),
+                    Timer(tick + std::chrono::milliseconds(540) + static_cast<interval_t>(i),
                             std::bind(mob_delay_item_drop2, ph::_1, ph::_2,
-                                ditem));
+                                ditem)
+                    ).detach();
                 }
             }
         }
@@ -3023,7 +3022,7 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
  * スキル使用（詠唱完了、ID指定）
  *------------------------------------------
  */
-void mobskill_castend_id(TimerData *tid, tick_t tick, int id)
+void mobskill_castend_id(TimerData *, tick_t tick, int id)
 {
     struct mob_data *md = NULL;
     struct block_list *bl;
@@ -3039,10 +3038,6 @@ void mobskill_castend_id(TimerData *tid, tick_t tick, int id)
     }
     if (md->bl.type != BL::MOB || md->bl.prev == NULL)
         return;
-    if (md->skilltimer != tid)  // タイマIDの確認
-        return;
-
-    md->skilltimer = nullptr;
 
     if (bool(md->opt1))
         return;
@@ -3095,7 +3090,7 @@ void mobskill_castend_id(TimerData *tid, tick_t tick, int id)
  * スキル使用（詠唱完了、場所指定）
  *------------------------------------------
  */
-void mobskill_castend_pos(TimerData *tid, tick_t tick, int id)
+void mobskill_castend_pos(TimerData *, tick_t tick, int id)
 {
     struct mob_data *md = NULL;
     struct block_list *bl;
@@ -3110,11 +3105,6 @@ void mobskill_castend_pos(TimerData *tid, tick_t tick, int id)
 
     if (md->bl.type != BL::MOB || md->bl.prev == NULL)
         return;
-
-    if (md->skilltimer != tid)  // タイマIDの確認
-        return;
-
-    md->skilltimer = nullptr;
 
     if (bool(md->opt1))
         return;
@@ -3195,14 +3185,14 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
 
     if (casttime > interval_t::zero())
     {
-        md->skilltimer = add_timer(gettick() + casttime,
+        md->skilltimer = Timer(gettick() + casttime,
                 std::bind(mobskill_castend_id, ph::_1, ph::_2,
                     md->bl.id));
     }
     else
     {
-        md->skilltimer = nullptr;
-        mobskill_castend_id(md->skilltimer, gettick(), md->bl.id);
+        assert (!md->skilltimer);
+        mobskill_castend_id(nullptr, gettick(), md->bl.id);
     }
 
     return 1;
@@ -3267,14 +3257,14 @@ int mobskill_use_pos(struct mob_data *md,
     md->skillidx = skill_idx;
     if (casttime > interval_t::zero())
     {
-        md->skilltimer = add_timer(gettick() + casttime,
+        md->skilltimer = Timer(gettick() + casttime,
                 std::bind(mobskill_castend_pos, ph::_1, ph::_2,
                     md->bl.id));
     }
     else
     {
-        md->skilltimer = nullptr;
-        mobskill_castend_pos(md->skilltimer, gettick(), md->bl.id);
+        assert (!md->skilltimer);
+        mobskill_castend_pos(nullptr, gettick(), md->bl.id);
     }
 
     return 1;
@@ -3751,12 +3741,14 @@ int do_init_mob(void)
 
     mob_readskilldb();
 
-    add_timer_interval(gettick() + MIN_MOBTHINKTIME,
+    Timer(gettick() + MIN_MOBTHINKTIME,
             mob_ai_hard,
-            MIN_MOBTHINKTIME);
-    add_timer_interval(gettick() + MIN_MOBTHINKTIME * 10,
+            MIN_MOBTHINKTIME
+    ).detach();
+    Timer(gettick() + MIN_MOBTHINKTIME * 10,
             mob_ai_lazy,
-            MIN_MOBTHINKTIME * 10);
+            MIN_MOBTHINKTIME * 10
+    ).detach();
 
     return 0;
 }

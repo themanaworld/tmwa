@@ -4273,18 +4273,26 @@ int do_init(int argc, char **argv)
     login_fd = make_listen_port(login_port);
 
 
-    add_timer_interval(gettick() + std::chrono::minutes(5), check_auth_sync, std::chrono::minutes(5));
+    Timer(gettick() + std::chrono::minutes(5),
+            check_auth_sync,
+            std::chrono::minutes(5)
+    ).detach();
 
     if (anti_freeze_enable > 0)
     {
-        add_timer_interval(gettick() + std::chrono::seconds(1), char_anti_freeze_system, ANTI_FREEZE_INTERVAL);
+        Timer(gettick() + std::chrono::seconds(1),
+                char_anti_freeze_system,
+                ANTI_FREEZE_INTERVAL
+        ).detach();
     }
 
     // add timer to check GM accounts file modification
     std::chrono::seconds j = gm_account_filename_check_timer;
     if (j == interval_t::zero())
         j = std::chrono::minutes(1);
-    add_timer_interval(gettick() + j, check_GM_file, j);
+    Timer(gettick() + j,
+            check_GM_file,
+            j).detach();
 
     LOGIN_LOG("The login-server is ready (Server is listening on the port %d).\n",
          login_port);

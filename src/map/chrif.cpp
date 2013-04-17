@@ -1211,10 +1211,14 @@ void check_connect_char_server(TimerData *, tick_t)
  */
 int do_init_chrif (void)
 {
-    add_timer_interval(gettick() + std::chrono::seconds(1),
+    Timer(gettick() + std::chrono::seconds(1),
             check_connect_char_server,
-            std::chrono::seconds(10));
-    add_timer_interval(gettick() + std::chrono::seconds(1), send_users_tochar, std::chrono::seconds(5));
+            std::chrono::seconds(10)
+    ).detach();
+    Timer(gettick() + std::chrono::seconds(1),
+            send_users_tochar,
+            std::chrono::seconds(5)
+    ).detach();
 
     return 0;
 }

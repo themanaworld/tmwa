@@ -60,7 +60,7 @@ struct script_regstr
 };
 struct status_change
 {
-    TimerData *timer;
+    Timer timer;
     int val1;
     int spell_invocation;      /* [Fate] If triggered by a spell, record here */
 };
@@ -129,7 +129,7 @@ struct map_session_data
     DIR dir, head_dir;
     tick_t client_tick, server_tick;
     struct walkpath_data walkpath;
-    TimerData *walktimer;
+    Timer walktimer;
     int npc_id, areanpc_id, npc_shopid;
     int npc_pos;
     int npc_menu;
@@ -145,7 +145,7 @@ struct map_session_data
     } npc_flags;
     unsigned int chatID;
 
-    TimerData *attacktimer;
+    Timer attacktimer;
     int attacktarget;
     ATK attacktarget_lv;
     tick_t attackabletime;
@@ -173,7 +173,7 @@ struct map_session_data
     // [Fate] XP that can be extracted from this player by healing
     int heal_xp;               // i.e., OTHER players (healers) can partake in this player's XP
 
-    TimerData *invincible_timer;
+    Timer invincible_timer;
     tick_t canact_tick;
     tick_t canmove_tick;
     tick_t canlog_tick;
@@ -233,11 +233,11 @@ struct map_session_data
     int catch_target_class;
 
     int pvp_point, pvp_rank;
-    TimerData *pvp_timer;
+    Timer pvp_timer;
     int pvp_lastusers;
 
     char eventqueue[MAX_EVENTQUEUE][50];
-    TimerData *eventtimer[MAX_EVENTTIMER];
+    Timer eventtimer[MAX_EVENTTIMER];
 
     struct
     {
@@ -300,7 +300,7 @@ struct npc_data
             const ScriptCode *script;
             short xs, ys;
             interval_t timer;
-            TimerData *timerid;
+            Timer timerid;
             int timeramount, nexttimer;
             tick_t timertick;
             struct npc_timerevent_list *timer_event;
@@ -320,7 +320,7 @@ struct npc_data
     // ここにメンバを追加してはならない(shop_itemが可変長の為)
 
     char eventqueue[MAX_EVENTQUEUE][50];
-    TimerData *eventtimer[MAX_EVENTTIMER];
+    Timer eventtimer[MAX_EVENTTIMER];
     short arenaflag;
 };
 
@@ -350,7 +350,7 @@ struct mob_data
         unsigned walk_easy:1;
         unsigned special_mob_ai:3;
     } state;
-    TimerData *timer;
+    Timer timer;
     short to_x, to_y;
     int hp;
     int target_id, attacked_id;
@@ -377,9 +377,9 @@ struct mob_data
     Option option;
     short min_chase;
     short sg_count;
-    TimerData *deletetimer;
+    Timer deletetimer;
 
-    TimerData *skilltimer;
+    Timer skilltimer;
     int skilltarget;
     short skillx, skilly;
     SkillID skillid;
@@ -470,7 +470,7 @@ struct flooritem_data
 {
     struct block_list bl;
     short subx, suby;
-    TimerData *cleartimer;
+    Timer cleartimer;
     int first_get_id, second_get_id, third_get_id;
     tick_t first_get_tick, second_get_tick, third_get_tick;
     struct item item_data;

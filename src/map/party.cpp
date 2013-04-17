@@ -31,9 +31,10 @@ void party_send_xyhp_timer(TimerData *tid, tick_t tick);
 // 初期化
 void do_init_party(void)
 {
-    add_timer_interval(gettick() + PARTY_SEND_XYHP_INVERVAL,
+    Timer(gettick() + PARTY_SEND_XYHP_INVERVAL,
             party_send_xyhp_timer,
-            PARTY_SEND_XYHP_INVERVAL);
+            PARTY_SEND_XYHP_INVERVAL
+    ).detach();
 }
 
 // 検索

@@ -296,25 +296,19 @@ int distance(int x0, int y0, int x1, int y1)
 }
 
 static
-void pc_invincible_timer(TimerData *tid, tick_t, int id)
+void pc_invincible_timer(TimerData *, tick_t, int id)
 {
-    struct map_session_data *sd;
+    struct map_session_data *sd = map_id2sd(id);
 
-    if ((sd = map_id2sd(id)) == NULL
-        || sd->bl.type != BL::PC)
-        return;
-
-    assert (sd->invincible_timer == tid);
-    sd->invincible_timer = nullptr;
+    assert (sd != NULL);
+    assert (sd->bl.type == BL::PC);
 }
 
 int pc_setinvincibletimer(struct map_session_data *sd, interval_t val)
 {
     nullpo_ret(sd);
 
-    if (sd->invincible_timer != nullptr)
-        delete_timer(sd->invincible_timer);
-    sd->invincible_timer = add_timer(gettick() + val,
+    sd->invincible_timer = Timer(gettick() + val,
             std::bind(pc_invincible_timer, ph::_1, ph::_2,
                 sd->bl.id));
     return 0;
@@ -324,11 +318,7 @@ int pc_delinvincibletimer(struct map_session_data *sd)
 {
     nullpo_ret(sd);
 
-    if (sd->invincible_timer)
-    {
-        delete_timer(sd->invincible_timer);
-        sd->invincible_timer = nullptr;
-    }
+    sd->invincible_timer.cancel();
     return 0;
 }
 
@@ -655,9 +645,9 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     sd->dir = DIR::S;
     sd->head_dir = DIR::S;
     sd->state.auth = 1;
-    sd->walktimer = nullptr;
-    sd->attacktimer = nullptr;
-    sd->invincible_timer = nullptr;
+    // sd->walktimer = nullptr;
+    // sd->attacktimer = nullptr;
+    // sd->invincible_timer = nullptr;
     sd->sg_count = 0;
 
     sd->deal_locked = 0;
@@ -700,7 +690,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // ステータス異常の初期化
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
     {
-        sd->sc_data[i].timer = nullptr;
+        // sd->sc_data[i].timer = nullptr;
         sd->sc_data[i].val1 = 0;
     }
     sd->sc_count = 0;
@@ -719,7 +709,10 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // イベント関係の初期化
     memset(sd->eventqueue, 0, sizeof(sd->eventqueue));
     for (int i = 0; i < MAX_EVENTTIMER; i++)
-        sd->eventtimer[i] = nullptr;
+    {
+        // sd->eventtimer[i] = nullptr;
+    }
+
 
     // 位置の設定
     pc_setpos(sd, sd->status.last_point.map, sd->status.last_point.x,
@@ -733,7 +726,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // pvpの設定
     sd->pvp_rank = 0;
     sd->pvp_point = 0;
-    sd->pvp_timer = nullptr;
+    // sd->pvp_timer = nullptr;
 
     // 通知
 
@@ -2530,7 +2523,7 @@ interval_t calc_next_walk_step(struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
+void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
 {
     struct map_session_data *sd;
     int moveblock;
@@ -2540,8 +2533,6 @@ void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
     if (sd == NULL)
         return;
 
-    assert (sd->walktimer == tid);
-    sd->walktimer = nullptr;
     if (sd->walkpath.path_pos >= sd->walkpath.path_len
         || sd->walkpath.path_pos != data)
         return;
@@ -2640,8 +2631,8 @@ void pc_walk(TimerData *tid, tick_t tick, int id, unsigned char data)
         i = i / 2;
         if (sd->walkpath.path_half == 0)
             i = std::max(i, std::chrono::milliseconds(1));
-        assert (!sd->walktimer);
-        sd->walktimer = add_timer(tick + i,
+
+        sd->walktimer = Timer(tick + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
                     id, sd->walkpath.path_pos));
     }
@@ -2669,9 +2660,7 @@ int pc_walktoxy_sub(struct map_session_data *sd)
     if (i > interval_t::zero())
     {
         i = i / 4;
-        if (sd->walktimer)
-            delete_timer(sd->walktimer);
-        sd->walktimer = add_timer(gettick() + i,
+        sd->walktimer = Timer(gettick() + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
                     sd->bl.id, 0));
     }
@@ -2717,11 +2706,8 @@ int pc_stop_walking(struct map_session_data *sd, int type)
 {
     nullpo_ret(sd);
 
-    if (sd->walktimer)
-    {
-        delete_timer(sd->walktimer);
-        sd->walktimer = nullptr;
-    }
+    sd->walktimer.cancel();
+
     sd->walkpath.path_len = 0;
     sd->to_x = sd->bl.x;
     sd->to_y = sd->bl.y;
@@ -2846,7 +2832,7 @@ int pc_checkequip(struct map_session_data *sd, EPOS pos)
  *------------------------------------------
  */
 static
-void pc_attack_timer(TimerData *tid, tick_t tick, int id)
+void pc_attack_timer(TimerData *, tick_t tick, int id)
 {
     struct map_session_data *sd;
     struct block_list *bl;
@@ -2856,8 +2842,6 @@ void pc_attack_timer(TimerData *tid, tick_t tick, int id)
     sd = map_id2sd(id);
     if (sd == NULL)
         return;
-    assert (sd->attacktimer == tid);
-    sd->attacktimer = nullptr;
 
     if (sd->bl.prev == NULL)
         return;
@@ -2946,7 +2930,7 @@ void pc_attack_timer(TimerData *tid, tick_t tick, int id)
 
     if (sd->state.attack_continue)
     {
-        sd->attacktimer = add_timer(sd->attackabletime,
+        sd->attacktimer = Timer(sd->attackabletime,
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
                     sd->bl.id));
     }
@@ -2983,7 +2967,7 @@ int pc_attack(struct map_session_data *sd, int target_id, int type)
     interval_t d = sd->attackabletime - gettick();
     if (d > interval_t::zero() && d < std::chrono::seconds(2))
     {                           // 攻撃delay中
-        sd->attacktimer = add_timer(sd->attackabletime,
+        sd->attacktimer = Timer(sd->attackabletime,
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
                     sd->bl.id));
     }
@@ -3004,11 +2988,8 @@ int pc_stopattack(struct map_session_data *sd)
 {
     nullpo_ret(sd);
 
-    if (sd->attacktimer)
-    {
-        delete_timer(sd->attacktimer);
-        sd->attacktimer = nullptr;
-    }
+    sd->attacktimer.cancel();
+
     sd->attacktarget = 0;
     sd->state.attack_continue = 0;
 
@@ -4492,28 +4473,14 @@ int pc_setaccountreg2(struct map_session_data *sd, const char *reg, int val)
  *------------------------------------------
  */
 static
-void pc_eventtimer(TimerData *tid, tick_t, int id, const char *data)
+void pc_eventtimer(TimerData *, tick_t, int id, const char *data)
 {
     struct map_session_data *sd = map_id2sd(id);
-    int i;
-    if (sd == NULL)
-        return;
+    assert (sd != NULL);
 
-    for (i = 0; i < MAX_EVENTTIMER; i++)
-    {
-        if (sd->eventtimer[i] == tid)
-        {
-            sd->eventtimer[i] = nullptr;
-            npc_event(sd, data, 0);
-            break;
-        }
-    }
+    npc_event(sd, data, 0);
+
     free(const_cast<char *>(data));
-    if (i == MAX_EVENTTIMER)
-    {
-        if (battle_config.error_log)
-            PRINTF("pc_eventtimer: no such event timer\n");
-    }
 }
 
 /*==========================================
@@ -4533,9 +4500,8 @@ int pc_addeventtimer(struct map_session_data *sd, interval_t tick, const char *n
     if (i < MAX_EVENTTIMER)
     {
         char *evname = (char *) calloc(24, 1);
-        strncpy(evname, name, 24);
-        evname[23] = '\0';
-        sd->eventtimer[i] = add_timer(gettick() + tick,
+        strzcpy(evname, name, 24);
+        sd->eventtimer[i] = Timer(gettick() + tick,
                 std::bind(pc_eventtimer, ph::_1, ph::_2,
                     sd->bl.id, evname));
         return 1;
@@ -4550,16 +4516,10 @@ int pc_addeventtimer(struct map_session_data *sd, interval_t tick, const char *n
  */
 int pc_cleareventtimer(struct map_session_data *sd)
 {
-    int i;
-
     nullpo_ret(sd);
 
-    for (i = 0; i < MAX_EVENTTIMER; i++)
-        if (sd->eventtimer[i])
-        {
-            delete_timer(sd->eventtimer[i]);
-            sd->eventtimer[i] = nullptr;
-        }
+    for (int i = 0; i < MAX_EVENTTIMER; i++)
+        sd->eventtimer[i].cancel();
 
     return 0;
 }
@@ -4629,6 +4589,7 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
     }
 
 #warning "TODO: make this code do what it's supposed to do, instead of what it does"
+    // https://trac.paradoxsystems.net/changeset/7550/trunk/src/map/pc.c
     arrow = pc_search_inventory(sd, pc_checkequip(sd, EPOS::LEGS | EPOS::CAPE));    // Added by RoVeRT
     for (EQUIP i : EQUIPs)
     {
@@ -4992,9 +4953,9 @@ void pc_calc_pvprank_timer(TimerData *, tick_t, int id)
     sd = map_id2sd(id);
     if (sd == NULL)
         return;
-    sd->pvp_timer = nullptr;
+    sd->pvp_timer.cancel();
     if (pc_calc_pvprank(sd) > 0)
-        sd->pvp_timer = add_timer(gettick() + PVP_CALCRANK_INTERVAL,
+        sd->pvp_timer = Timer(gettick() + PVP_CALCRANK_INTERVAL,
                 std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                     id));
 }
@@ -5417,7 +5378,9 @@ void pc_autosave(TimerData *, tick_t)
     interval_t interval = autosave_interval / (clif_countusers() + 1);
     if (interval <= interval_t::zero())
         interval = std::chrono::milliseconds(1);
-    add_timer(gettick() + interval, pc_autosave);
+    Timer(gettick() + interval,
+            pc_autosave
+    ).detach();
 }
 
 int pc_read_gm_account(int fd)
@@ -5470,11 +5433,13 @@ int do_init_pc(void)
 {
     pc_calc_sigma();
     natural_heal_prev_tick = gettick() + NATURAL_HEAL_INTERVAL;
-    add_timer_interval(natural_heal_prev_tick,
+    Timer(natural_heal_prev_tick,
             pc_natural_heal,
-            NATURAL_HEAL_INTERVAL);
-    add_timer(gettick() + autosave_interval,
-            pc_autosave);
+            NATURAL_HEAL_INTERVAL
+    ).detach();
+    Timer(gettick() + autosave_interval,
+            pc_autosave
+    ).detach();
 
     return 0;
 }

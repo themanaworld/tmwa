@@ -1,5 +1,6 @@
 #include "npc.hpp"
 
+#include <cassert>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -275,9 +276,10 @@ int npc_event_do_oninit(void)
     int c = npc_event_doall("OnInit");
     PRINTF("npc: OnInit Event done. (%d npc)\n", c);
 
-    add_timer_interval(gettick() + std::chrono::milliseconds(100),
+    Timer(gettick() + std::chrono::milliseconds(100),
             npc_event_do_clock,
-            std::chrono::seconds(1));
+            std::chrono::seconds(1)
+    ).detach();
 
     return 0;
 }
@@ -291,21 +293,19 @@ void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
 {
     struct npc_data *nd = (struct npc_data *) map_id2bl(id);
     struct npc_timerevent_list *te;
-    if (nd == NULL || nd->u.scr.nexttimer < 0)
-    {
-        PRINTF("npc_timerevent: ??\n");
-        return;
-    }
+    assert (nd != NULL);
+    assert (nd->u.scr.nexttimer >= 0);
+
     nd->u.scr.timertick = tick;
     te = nd->u.scr.timer_event + nd->u.scr.nexttimer;
-    nd->u.scr.timerid = nullptr;
+    // nd->u.scr.timerid = nullptr;
 
     interval_t t = nd->u.scr.timer += data;
     nd->u.scr.nexttimer++;
     if (nd->u.scr.timeramount > nd->u.scr.nexttimer)
     {
         interval_t next = nd->u.scr.timer_event[nd->u.scr.nexttimer].timer - t;
-        nd->u.scr.timerid = add_timer(tick + next,
+        nd->u.scr.timerid = Timer(tick + next,
                 std::bind(npc_timerevent, ph::_1, ph::_2,
                     id, next));
     }
@@ -339,7 +339,7 @@ int npc_timerevent_start(struct npc_data *nd)
         return 0;
 
     interval_t next = nd->u.scr.timer_event[j].timer - nd->u.scr.timer;
-    nd->u.scr.timerid = add_timer(gettick() + next,
+    nd->u.scr.timerid = Timer(gettick() + next,
             std::bind(npc_timerevent, ph::_1, ph::_2,
                 nd->bl.id, next));
     return 0;
@@ -357,9 +357,7 @@ int npc_timerevent_stop(struct npc_data *nd)
     {
         nd->u.scr.nexttimer = -1;
         nd->u.scr.timer += gettick() - nd->u.scr.timertick;
-        if (nd->u.scr.timerid)
-            delete_timer(nd->u.scr.timerid);
-        nd->u.scr.timerid = nullptr;
+        nd->u.scr.timerid.cancel();
     }
     return 0;
 }
@@ -1476,7 +1474,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         }
     }
     nd->u.scr.nexttimer = -1;
-    nd->u.scr.timerid = nullptr;
+    // nd->u.scr.timerid = nullptr;
 
     return 0;
 }
@@ -1611,7 +1609,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->spawndelay2 = delay2;
 
         memset(&md->state, 0, sizeof(md->state));
-        md->timer = nullptr;
+        // md->timer = nullptr;
         md->target_id = 0;
         md->attacked_id = 0;
 

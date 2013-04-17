@@ -15,12 +15,22 @@
 
 struct TimerData
 {
+    /// This will be reset on call, to avoid problems.
+    Timer *owner;
+
     /// When it will be triggered
     tick_t tick;
     /// What will be done
     timer_func func;
     /// Repeat rate - 0 for oneshot
     interval_t interval;
+
+    TimerData(Timer *o, tick_t t, timer_func f, interval_t i)
+    : owner(o)
+    , tick(t)
+    , func(std::move(f))
+    , interval(i)
+    {}
 };
 
 struct TimerCompare
@@ -52,6 +62,30 @@ tick_t milli_clock::now(void) noexcept
 }
 
 static
+void do_nothing(TimerData *, tick_t)
+{
+}
+
+void Timer::cancel()
+{
+    if (!td)
+        return;
+
+    assert (this == td->owner);
+    td->owner = nullptr;
+    td->func = do_nothing;
+    td->interval = interval_t::zero();
+    td = nullptr;
+}
+
+void Timer::detach()
+{
+    assert (this == td->owner);
+    td->owner = nullptr;
+    td = nullptr;
+}
+
+static
 void push_timer_heap(TimerData *td)
 {
     timer_heap.push(td);
@@ -71,34 +105,39 @@ void pop_timer_heap(void)
     timer_heap.pop();
 }
 
-TimerData *add_timer(tick_t tick, timer_func func)
-{
-    return add_timer_interval(tick, std::move(func), interval_t::zero());
-}
-
-TimerData *add_timer_interval(tick_t tick, timer_func func, interval_t interval)
+Timer::Timer(tick_t tick, timer_func func, interval_t interval)
+: td(new TimerData(this, tick, std::move(func), interval))
 {
     assert (interval >= interval_t::zero());
 
-    TimerData *td = new TimerData();
-    td->tick = tick;
-    td->func = std::move(func);
-    td->interval = interval;
     push_timer_heap(td);
-    return td;
 }
 
-static
-void do_nothing(TimerData *, tick_t)
+Timer::Timer(Timer&& t)
+: td(t.td)
 {
+    t.td = nullptr;
+    if (td)
+    {
+        assert (td->owner == &t);
+        td->owner = this;
+    }
 }
 
-void delete_timer(TimerData *td)
+Timer& Timer::operator = (Timer&& t)
 {
-    assert (td != nullptr);
-
-    td->func = do_nothing;
-    td->interval = interval_t::zero();
+    std::swap(td, t.td);
+    if (td)
+    {
+        assert (td->owner == &t);
+        td->owner = this;
+    }
+    if (t.td)
+    {
+        assert (t.td->owner == this);
+        t.td->owner = &t;
+    }
+    return *this;
 }
 
 interval_t do_timer(tick_t tick)
@@ -118,7 +157,13 @@ interval_t do_timer(tick_t tick)
         }
         pop_timer_heap();
 
-        // If we are too far past the requested tick, call with the current tick instead to fix reregistering problems
+        // Prevent destroying the object we're in.
+        // Note: this would be surprising in an interval timer,
+        // but all interval timers do an immediate explicit detach().
+        if (td->owner)
+            td->owner->detach();
+        // If we are too far past the requested tick, call with
+        // the current tick instead to fix reregistration problems
         if (td->tick + std::chrono::seconds(1) < tick)
             td->func(td, tick);
         else

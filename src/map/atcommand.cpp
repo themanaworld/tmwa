@@ -1898,11 +1898,7 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
             {
                 if (sd->bl.m == pl_sd->bl.m)
                 {
-                    if (pl_sd->pvp_timer)
-                    {
-                        delete_timer(pl_sd->pvp_timer);
-                        pl_sd->pvp_timer = nullptr;
-                    }
+                    pl_sd->pvp_timer.cancel();
                 }
             }
         }
@@ -1943,7 +1939,7 @@ int atcommand_pvpon(const int fd, struct map_session_data *sd,
             {
                 if (sd->bl.m == pl_sd->bl.m && !pl_sd->pvp_timer)
                 {
-                    pl_sd->pvp_timer = add_timer(gettick() + std::chrono::milliseconds(200),
+                    pl_sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl.id));
                     pl_sd->pvp_rank = 0;
                     pl_sd->pvp_lastusers = 0;
@@ -6049,7 +6045,7 @@ int atcommand_summon(const int, struct map_session_data *sd,
         md->master_id = sd->bl.id;
         md->state.special_mob_ai = 1;
         md->mode = mob_db[md->mob_class].mode | MobMode::AGGRESSIVE;
-        md->deletetimer = add_timer(tick + std::chrono::minutes(1),
+        md->deletetimer = Timer(tick + std::chrono::minutes(1),
                 std::bind(mob_timer_delete, ph::_1, ph::_2,
                     id));
         clif_misceffect(&md->bl, 344);

@@ -652,9 +652,10 @@ int clif_clearchar_delay(tick_t tick,
     CREATE(tmpbl, struct block_list, 1);
 
     memcpy(tmpbl, bl, sizeof(struct block_list));
-    add_timer(tick,
+    Timer(tick,
             std::bind(clif_clearchar_delay_sub, ph::_1, ph::_2,
-                tmpbl, type));
+                tmpbl, type)
+    ).detach();
 
     return 0;
 }
@@ -1138,9 +1139,10 @@ void clif_waitclose(TimerData *, tick_t, int id)
  */
 void clif_setwaitclose(int fd)
 {
-    add_timer(gettick() + std::chrono::seconds(5),
+    Timer(gettick() + std::chrono::seconds(5),
             std::bind(clif_waitclose, ph::_1, ph::_2,
-                fd));
+                fd)
+    ).detach();
 }
 
 /*==========================================
@@ -3803,14 +3805,15 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     clif_updatestatus(sd, SP::WEIGHT);
 
     // pvp
-    if (sd->pvp_timer && !battle_config.pk_mode)
-        delete_timer(sd->pvp_timer);
+    if (!battle_config.pk_mode)
+        sd->pvp_timer.cancel();
+
     if (map[sd->bl.m].flag.pvp)
     {
         if (!battle_config.pk_mode)
         {
             // remove pvp stuff for pk_mode [Valaris]
-            sd->pvp_timer = add_timer(gettick() + std::chrono::milliseconds(200),
+            sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
                     std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
                         sd->bl.id));
             sd->pvp_rank = 0;
@@ -3820,7 +3823,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     }
     else
     {
-        sd->pvp_timer = nullptr;
+        // sd->pvp_timer = nullptr;
     }
 
     sd->state.connect_new = 0;

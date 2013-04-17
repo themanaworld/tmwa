@@ -759,15 +759,14 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
     struct flooritem_data *fitem = NULL;
 
     fitem = (struct flooritem_data *) object[id];
-    if (fitem == NULL || fitem->bl.type != BL::ITEM
-        || (tid && fitem->cleartimer != tid))
+    if (fitem == NULL || fitem->bl.type != BL::ITEM)
     {
         if (battle_config.error_log)
             PRINTF("map_clearflooritem_timer : error\n");
         return;
     }
     if (!tid)
-        delete_timer(fitem->cleartimer);
+        fitem->cleartimer.cancel();
     clif_clearflooritem(fitem, 0);
     map_delobject(fitem->bl.id, BL::ITEM);
 }
@@ -853,7 +852,7 @@ int map_addflooritem_any(struct item *item_data, int amount,
     // Currently, it yields the numbers {3 6 9 12}.
     fitem->subx = random_::in(1, 4) * 3;
     fitem->suby = random_::in(1, 4) * 3;
-    fitem->cleartimer = add_timer(gettick() + lifetime,
+    fitem->cleartimer = Timer(gettick() + lifetime,
             std::bind(map_clearflooritem_timer, ph::_1, ph::_2,
                 fitem->bl.id));
 

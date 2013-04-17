@@ -3308,17 +3308,25 @@ int do_init(int argc, char **argv)
 
     char_fd = make_listen_port(char_port);
 
-    add_timer_interval(gettick() + std::chrono::seconds(1),
-            check_connect_login_server, std::chrono::seconds(10));
-    add_timer_interval(gettick() + std::chrono::seconds(1),
-            send_users_tologin, std::chrono::seconds(5));
-    add_timer_interval(gettick() + autosave_interval,
-            mmo_char_sync_timer, autosave_interval);
+    Timer(gettick() + std::chrono::seconds(1),
+            check_connect_login_server,
+            std::chrono::seconds(10)
+    ).detach();
+    Timer(gettick() + std::chrono::seconds(1),
+            send_users_tologin,
+            std::chrono::seconds(5)
+    ).detach();
+    Timer(gettick() + autosave_interval,
+            mmo_char_sync_timer,
+            autosave_interval
+    ).detach();
 
     if (anti_freeze_enable > 0)
     {
-        add_timer_interval(gettick() + std::chrono::seconds(1),
-                map_anti_freeze_system, ANTI_FREEZE_INTERVAL);
+        Timer(gettick() + std::chrono::seconds(1),
+                map_anti_freeze_system,
+                ANTI_FREEZE_INTERVAL
+        ).detach();
     }
 
     CHAR_LOG("The char-server is ready (Server is listening on the port %d).\n",

@@ -506,7 +506,7 @@ invocation_t *spell_instantiate(effect_set_t *effect_set, env_t *env)
 
 invocation_t *spell_clone_effect(invocation_t *base)
 {
-    invocation_t *retval = (invocation_t *) malloc(sizeof(invocation_t));
+    invocation_t *retval = (invocation_t *) calloc(1, sizeof(invocation_t));
     env_t *env;
 
     memcpy(retval, base, sizeof(invocation_t));
@@ -518,7 +518,7 @@ invocation_t *spell_clone_effect(invocation_t *base)
     retval->end_effect = NULL;
     retval->script_pos = 0;
     retval->stack_size = 0;
-    retval->timer = 0;
+    // retval->timer = 0;
     retval->subject = 0;
     retval->status_change_refs_nr = 0;
     retval->status_change_refs = NULL;
