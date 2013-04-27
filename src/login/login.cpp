@@ -3070,7 +3070,8 @@ void parse_login(int fd)
                          ip);
                     WFIFOW(fd, 0) = 0x6a;
                     WFIFOB(fd, 2) = 0x03;
-                    WFIFOSET(fd, 3);
+                    memset(WFIFOP(fd, 3), '\0', 20);
+                    WFIFOSET(fd, 23);
                     RFIFOSKIP(fd, 55);
                     break;
                 }
