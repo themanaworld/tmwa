@@ -1422,7 +1422,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
             atkmin_ * (80 +
                        sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->wlv * 20) /
             100;
-    if (sd->status.weapon == 11)
+    if (sd->status.weapon == ItemLook::BOW)
     {                           //武器が弓矢の場合
         atkmin = watk * ((atkmin < watk) ? atkmin : watk) / 100;    //弓用最低ATK計算
         flag = (flag & ~BF::RANGEMASK) | BF::LONG;    //遠距離攻撃フラグを有効
@@ -1455,7 +1455,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
 
         if (sd->state.arrow_atk)
             cri += sd->arrow_cri;
-        if (sd->status.weapon == 16)
+        if (sd->status.weapon == ItemLook::_16)
             // カタールの場合、クリティカルを倍に
             cri <<= 1;
         cri -= battle_get_luk(target) * 3;
@@ -1645,13 +1645,14 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     // pc_calcstatus()でデータを入力しています
 
     //左手のみ武器装備
-    if (sd->weapontype1 == 0 && sd->weapontype2 > 0)
+    if (sd->weapontype1 == ItemLook::NONE
+        && sd->weapontype2 != ItemLook::NONE)
     {
         damage = damage2;
         damage2 = 0;
     }
     // 右手、左手修練の適用
-    if (sd->status.weapon > 16)
+    if (sd->status.weapon >= ItemLook::SINGLE_HANDED_COUNT)
     {                           // 二刀流か?
         int dmg = damage, dmg2 = damage2;
         // 右手修練(60% 〜 100%) 右手全般
@@ -1674,7 +1675,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
         type = DamageType::DOUBLED;
     }
 
-    if (sd->status.weapon == 16)
+    if (sd->status.weapon == ItemLook::_16)
     {
         // カタール追撃ダメージ
         damage2 = damage * 1 / 100;
@@ -1982,7 +1983,7 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
         battle_check_range(src, target, 0))
     {
         // 攻撃対象となりうるので攻撃
-        if (sd && sd->status.weapon == 11)
+        if (sd && sd->status.weapon == ItemLook::BOW)
         {
             if (sd->equip_index[EQUIP::ARROW] >= 0)
             {
@@ -2019,8 +2020,10 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
         {
             clif_damage(src, target, tick, wd.amotion, wd.dmotion,
                          wd.damage, wd.div_, wd.type, wd.damage2);
-            //二刀流左手とカタール追撃のミス表示(無理やり〜)
-            if (sd && sd->status.weapon >= 16 && wd.damage2 == 0)
+            if (sd
+                    && (sd->status.weapon == ItemLook::_16
+                        || sd->status.weapon >= ItemLook::SINGLE_HANDED_COUNT)
+                    && wd.damage2 == 0)
                 clif_damage(src, target, tick + std::chrono::milliseconds(10),
                         wd.amotion, wd.dmotion, 0, 1, DamageType::NORMAL, 0);
         }

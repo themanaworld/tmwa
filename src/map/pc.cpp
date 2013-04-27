@@ -82,8 +82,8 @@ int sp_coefficient_0 = 100;
 // coefficients for each weapon type
 // (not all used)
 static //const
-interval_t aspd_base_0[17] =
-{
+earray<interval_t, ItemLook, ItemLook::SINGLE_HANDED_COUNT> aspd_base_0 //=
+{{
 std::chrono::milliseconds(650),
 std::chrono::milliseconds(700),
 std::chrono::milliseconds(750),
@@ -101,7 +101,7 @@ std::chrono::milliseconds(2000),
 std::chrono::milliseconds(2000),
 std::chrono::milliseconds(2000),
 std::chrono::milliseconds(2000),
-};
+}};
 static const
 int exp_table_0[MAX_LEVEL] =
 {
@@ -501,22 +501,38 @@ int pc_calcweapontype(struct map_session_data *sd)
 {
     nullpo_ret(sd);
 
-    if (sd->weapontype1 != 0 && sd->weapontype2 == 0)
+    if (sd->weapontype1 != ItemLook::NONE
+            && sd->weapontype2 == ItemLook::NONE)
         sd->status.weapon = sd->weapontype1;
-    if (sd->weapontype1 == 0 && sd->weapontype2 != 0)   // 左手武器 Only
+    if (sd->weapontype1 == ItemLook::NONE
+            && sd->weapontype2 != ItemLook::NONE)
         sd->status.weapon = sd->weapontype2;
-    else if (sd->weapontype1 == 1 && sd->weapontype2 == 1)  // 双短剣
-        sd->status.weapon = 0x11;
-    else if (sd->weapontype1 == 2 && sd->weapontype2 == 2)  // 双単手剣
-        sd->status.weapon = 0x12;
-    else if (sd->weapontype1 == 6 && sd->weapontype2 == 6)  // 双単手斧
-        sd->status.weapon = 0x13;
-    else if ((sd->weapontype1 == 1 && sd->weapontype2 == 2) || (sd->weapontype1 == 2 && sd->weapontype2 == 1))  // 短剣 - 単手剣
-        sd->status.weapon = 0x14;
-    else if ((sd->weapontype1 == 1 && sd->weapontype2 == 6) || (sd->weapontype1 == 6 && sd->weapontype2 == 1))  // 短剣 - 斧
-        sd->status.weapon = 0x15;
-    else if ((sd->weapontype1 == 2 && sd->weapontype2 == 6) || (sd->weapontype1 == 6 && sd->weapontype2 == 2))  // 単手剣 - 斧
-        sd->status.weapon = 0x16;
+    else if (sd->weapontype1 == ItemLook::BLADE
+            && sd->weapontype2 == ItemLook::BLADE)
+        sd->status.weapon = ItemLook::DUAL_BLADE;
+    else if (sd->weapontype1 == ItemLook::_2
+            && sd->weapontype2 == ItemLook::_2)
+        sd->status.weapon = ItemLook::DUAL_2;
+    else if (sd->weapontype1 == ItemLook::_6
+            && sd->weapontype2 == ItemLook::_6)
+        sd->status.weapon = ItemLook::DUAL_6;
+    else if ((sd->weapontype1 == ItemLook::BLADE
+                && sd->weapontype2 == ItemLook::_2)
+            || (sd->weapontype1 == ItemLook::_2
+                && sd->weapontype2 == ItemLook::BLADE))
+        sd->status.weapon = ItemLook::DUAL_12;
+    else if (
+            (sd->weapontype1 == ItemLook::BLADE
+                && sd->weapontype2 == ItemLook::_6)
+            || (sd->weapontype1 == ItemLook::_6
+                && sd->weapontype2 == ItemLook::BLADE))
+        sd->status.weapon = ItemLook::DUAL_16;
+    else if (
+            (sd->weapontype1 == ItemLook::_2
+                && sd->weapontype2 == ItemLook::_6)
+            || (sd->weapontype1 == ItemLook::_6
+                && sd->weapontype2 == ItemLook::_2))
+        sd->status.weapon = ItemLook::DUAL_26;
     else
         sd->status.weapon = sd->weapontype1;
 
@@ -545,7 +561,7 @@ int pc_setequipindex(struct map_session_data *sd)
                 if (sd->inventory_data[i])
                     sd->weapontype1 = sd->inventory_data[i]->look;
                 else
-                    sd->weapontype1 = 0;
+                    sd->weapontype1 = ItemLook::NONE;
             }
             if (bool(sd->status.inventory[i].equip & EPOS::SHIELD))
             {
@@ -556,13 +572,13 @@ int pc_setequipindex(struct map_session_data *sd)
                         if (sd->status.inventory[i].equip == EPOS::SHIELD)
                             sd->weapontype2 = sd->inventory_data[i]->look;
                         else
-                            sd->weapontype2 = 0;
+                            sd->weapontype2 = ItemLook::NONE;
                     }
                     else
-                        sd->weapontype2 = 0;
+                        sd->weapontype2 = ItemLook::NONE;
                 }
                 else
-                    sd->weapontype2 = 0;
+                    sd->weapontype2 = ItemLook::NONE;
             }
         }
     }
@@ -639,7 +655,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     sd->state.connect_new = 1;
     sd->bl.prev = sd->bl.next = NULL;
 
-    sd->weapontype1 = sd->weapontype2 = 0;
+    sd->weapontype1 = sd->weapontype2 = ItemLook::NONE;
     sd->speed = DEFAULT_WALK_SPEED;
     sd->state.dead_sit = 0;
     sd->dir = DIR::S;
@@ -879,9 +895,10 @@ void pc_set_weapon_look(struct map_session_data *sd)
 {
     if (sd->attack_spell_override)
         clif_changelook(&sd->bl, LOOK::WEAPON,
-                         sd->attack_spell_look_override);
+                sd->attack_spell_look_override);
     else
-        clif_changelook(&sd->bl, LOOK::WEAPON, sd->status.weapon);
+        clif_changelook(&sd->bl, LOOK::WEAPON,
+                static_cast<uint16_t>(sd->status.weapon));
 }
 
 /*==========================================
@@ -1221,7 +1238,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->attackrange_ = 1;
     if (sd->attackrange < sd->attackrange_)
         sd->attackrange = sd->attackrange_;
-    if (sd->status.weapon == 11)
+    if (sd->status.weapon == ItemLook::BOW)
         sd->attackrange += sd->arrow_range;
     sd->double_rate += sd->double_add_rate;
     sd->perfect_hit += sd->perfect_hit_add;
@@ -1238,8 +1255,9 @@ int pc_calcstatus(struct map_session_data *sd, int first)
     for (ATTR attr : ATTRs)
         sd->paramc[attr] = max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
 
-    if (sd->status.weapon == 11 || sd->status.weapon == 13
-        || sd->status.weapon == 14)
+    if (sd->status.weapon == ItemLook::BOW
+            || sd->status.weapon == ItemLook::_13
+            || sd->status.weapon == ItemLook::_14)
     {
         str = sd->paramc[ATTR::DEX];
         dex = sd->paramc[ATTR::STR];
@@ -1328,7 +1346,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
         sd->mdef2 = 1;
 
     // 二刀流 ASPD 修正
-    if (sd->status.weapon <= 16)
+    if (sd->status.weapon < ItemLook::SINGLE_HANDED_COUNT)
         sd->aspd += aspd_base_0[sd->status.weapon]
             - (sd->paramc[ATTR::AGI] * 4 + sd->paramc[ATTR::DEX])
             * aspd_base_0[sd->status.weapon] / 1000;
@@ -2890,7 +2908,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     {
         dist = distance(sd->bl.x, sd->bl.y, bl->x, bl->y);
         range = sd->attackrange;
-        if (sd->status.weapon != 11)
+        if (sd->status.weapon != ItemLook::BOW)
             range++;
         if (dist > range)
         {                       // 届 かないので移動
@@ -4128,7 +4146,7 @@ int pc_changelook(struct map_session_data *sd, LOOK type, int val)
             sd->status.hair = val;
             break;
         case LOOK::WEAPON:
-            sd->status.weapon = val;
+            sd->status.weapon = static_cast<ItemLook>(static_cast<uint16_t>(val));
             break;
         case LOOK::HEAD_BOTTOM:
             sd->status.head_bottom = val;
@@ -4549,7 +4567,7 @@ int pc_signal_advanced_equipment_change(struct map_session_data *sd, int n)
 
 int pc_equipitem(struct map_session_data *sd, int n, EPOS)
 {
-    int nameid, arrow, view;
+    int nameid;
     struct item_data *id;
     //ｿｽ]ｿｽｿｽｿｽｿｽｿｽ{ｿｽqｿｽﾌ場合ｿｽﾌ鯉ｿｽｿｽﾌ職ｿｽﾆゑｿｽｿｽZｿｽoｿｽｿｽｿｽｿｽ
 
@@ -4563,6 +4581,8 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
 
     nameid = sd->status.inventory[n].nameid;
     id = sd->inventory_data[n];
+    if (!id) // can't actually happen - the only caller checks this.
+        return 0;
     EPOS pos = pc_equippoint(sd, n);
 
     if (battle_config.battle_log)
@@ -4588,9 +4608,6 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
         pos = (epor == EPOS::CAPE ? EPOS::MISC2 : EPOS::CAPE);
     }
 
-#warning "TODO: make this code do what it's supposed to do, instead of what it does"
-    // https://trac.paradoxsystems.net/changeset/7550/trunk/src/map/pc.c
-    arrow = pc_search_inventory(sd, pc_checkequip(sd, EPOS::LEGS | EPOS::CAPE));    // Added by RoVeRT
     for (EQUIP i : EQUIPs)
     {
         if (bool(pos & equip_pos[i]))
@@ -4620,20 +4637,24 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
     }
     sd->status.inventory[n].equip = pos;
 
+    int view_i = 0;
+    ItemLook view_l = ItemLook::NONE;
+    // TODO: This is ugly.
     if (sd->inventory_data[n])
     {
-        view = sd->inventory_data[n]->look;
-        if (view == 0)
-            view = sd->inventory_data[n]->nameid;
-    }
-    else
-    {
-        view = 0;
+        bool look_not_weapon = sd->inventory_data[n]->look == ItemLook::NONE;
+        bool equip_is_weapon = bool(sd->status.inventory[n].equip & EPOS::WEAPON);
+        assert (look_not_weapon != equip_is_weapon);
+
+        if (look_not_weapon)
+            view_i = sd->inventory_data[n]->nameid;
+        else
+            view_l = sd->inventory_data[n]->look;
     }
 
     if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
     {
-        sd->weapontype1 = view;
+        sd->weapontype1 = view_l;
         pc_calcweapontype(sd);
         pc_set_weapon_look(sd);
     }
@@ -4645,41 +4666,39 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
             {
                 sd->status.shield = 0;
                 if (sd->status.inventory[n].equip == EPOS::SHIELD)
-                    sd->weapontype2 = view;
+                    sd->weapontype2 = view_l;
             }
             else if (sd->inventory_data[n]->type == ItemType::ARMOR)
             {
-                sd->status.shield = view;
-                sd->weapontype2 = 0;
+                sd->status.shield = view_i;
+                sd->weapontype2 = ItemLook::NONE;
             }
         }
         else
-            sd->status.shield = sd->weapontype2 = 0;
+        {
+            sd->status.shield = 0;
+            sd->weapontype2 = ItemLook::NONE;
+        }
         pc_calcweapontype(sd);
         clif_changelook(&sd->bl, LOOK::SHIELD, sd->status.shield);
     }
     if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
     {
-        sd->status.head_bottom = view;
+        sd->status.head_bottom = view_i;
         clif_changelook(&sd->bl, LOOK::HEAD_BOTTOM, sd->status.head_bottom);
     }
     if (bool(sd->status.inventory[n].equip & EPOS::HAT))
     {
-        sd->status.head_top = view;
+        sd->status.head_top = view_i;
         clif_changelook(&sd->bl, LOOK::HEAD_TOP, sd->status.head_top);
     }
     if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
     {
-        sd->status.head_mid = view;
+        sd->status.head_mid = view_i;
         clif_changelook(&sd->bl, LOOK::HEAD_MID, sd->status.head_mid);
     }
     pc_signal_advanced_equipment_change(sd, n);
 
-    if (itemdb_look(sd->status.inventory[n].nameid) == 11 && arrow)
-    {                           // Added by RoVeRT
-        clif_arrowequip(sd, arrow);
-        sd->status.inventory[arrow].equip = EPOS::ARROW;
-    }
     pc_calcstatus(sd, 0);
 
     return 0;
@@ -4708,14 +4727,15 @@ int pc_unequipitem(struct map_session_data *sd, int n, CalcStatus type)
         }
         if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
         {
-            sd->weapontype1 = 0;
+            sd->weapontype1 = ItemLook::NONE;
             sd->status.weapon = sd->weapontype2;
             pc_calcweapontype(sd);
             pc_set_weapon_look(sd);
         }
         if (bool(sd->status.inventory[n].equip & EPOS::SHIELD))
         {
-            sd->status.shield = sd->weapontype2 = 0;
+            sd->status.shield = 0;
+            sd->weapontype2 = ItemLook::NONE;
             pc_calcweapontype(sd);
             clif_changelook(&sd->bl, LOOK::SHIELD, sd->status.shield);
         }

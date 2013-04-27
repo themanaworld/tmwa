@@ -23,7 +23,7 @@ struct item_data
     int range;
     int magic_bonus;
     int slot;
-    int look;
+    ItemLook look;
     int elv;
     int wlv;
     int refine;
@@ -57,7 +57,7 @@ ItemType itemdb_type(int n)
     return itemdb_search(n)->type;
 }
 inline
-int itemdb_look(int n)
+ItemLook itemdb_look(int n)
 {
     return itemdb_search(n)->look;
 }

@@ -817,7 +817,7 @@ int make_new_char(int fd, const uint8_t *dat)
     char_dat[i].inventory[1].equip = EPOS::MISC1;
     char_dat[i].inventory[1].identify = 1;
     char_dat[i].inventory[1].broken = 0;
-    char_dat[i].weapon = 1;
+    char_dat[i].weapon = ItemLook::BLADE;
     char_dat[i].shield = 0;
     char_dat[i].head_top = 0;
     char_dat[i].head_mid = 0;
@@ -1425,7 +1425,7 @@ void parse_tologin(int fd)
                                         && bool(char_dat[i].inventory[j].equip))
                                         char_dat[i].inventory[j].equip = EPOS::ZERO;
                                 }
-                                char_dat[i].weapon = 0;
+                                char_dat[i].weapon = ItemLook::NONE;
                                 char_dat[i].shield = 0;
                                 char_dat[i].head_top = 0;
                                 char_dat[i].head_mid = 0;
@@ -1553,7 +1553,7 @@ void parse_tologin(int fd)
                         FIX(c->inventory[j].nameid);
                     for (j = 0; j < MAX_CART; j++)
                         FIX(c->cart[j].nameid);
-                    FIX(c->weapon);
+                    // FIX(c->weapon);
                     FIX(c->shield);
                     FIX(c->head_top);
                     FIX(c->head_mid);

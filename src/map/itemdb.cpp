@@ -233,7 +233,7 @@ int itemdb_readdb(void)
             id->equip = EPOS(atoi(str[13]));
             id->wlv = atoi(str[14]);
             id->elv = atoi(str[15]);
-            id->look = atoi(str[16]);
+            id->look = static_cast<ItemLook>(atoi(str[16]));
             id->flag.available = 1;
             id->flag.value_notdc = 0;
             id->flag.value_notoc = 0;

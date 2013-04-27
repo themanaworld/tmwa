@@ -180,7 +180,7 @@ struct map_session_data
     interval_t hp_sub, sp_sub;
     interval_t inchealhptick, inchealsptick;
 
-    short weapontype1, weapontype2;
+    ItemLook weapontype1, weapontype2;
     earray<int, ATTR, ATTR::COUNT> paramb, paramc, parame, paramcard;
     int hit, flee, flee2;
     interval_t aspd, amotion, dmotion;

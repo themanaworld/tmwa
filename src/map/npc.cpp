@@ -740,6 +740,7 @@ int npc_buysellsel(struct map_session_data *sd, int id, int type)
  *
  *------------------------------------------
  */
+// TODO enumify return type
 int npc_buylist(struct map_session_data *sd, int n,
         const uint16_t *item_list)
 {

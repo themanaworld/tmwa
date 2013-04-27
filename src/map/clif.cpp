@@ -3829,7 +3829,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     sd->state.connect_new = 0;
 
     // view equipment item
-    clif_changelook(&sd->bl, LOOK::WEAPON, 0);
+    clif_changelook(&sd->bl, LOOK::WEAPON, static_cast<uint16_t>(ItemLook::NONE));
     if (battle_config.save_clothcolor == 1 && sd->status.clothes_color > 0)
         clif_changelook(&sd->bl, LOOK::CLOTHES_COLOR,
                          sd->status.clothes_color);

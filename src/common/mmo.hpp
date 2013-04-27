@@ -131,6 +131,28 @@ constexpr ATTR ATTRs[6] =
     ATTR::LUK,
 };
 
+enum class ItemLook : uint16_t
+{
+    NONE = 0,
+    BLADE = 1, // or some other common weapons
+    _2,
+    SETZER_AND_SCYTHE = 3,
+    _6,
+    STAFF = 10,
+    BOW = 11,
+    _13 = 13,
+    _14 = 14,
+    _16 = 16,
+    SINGLE_HANDED_COUNT = 17,
+
+    DUAL_BLADE = 0x11,
+    DUAL_2 = 0x12,
+    DUAL_6 = 0x13,
+    DUAL_12 = 0x14,
+    DUAL_16 = 0x15,
+    DUAL_26 = 0x16,
+};
+
 struct mmo_charstatus
 {
     int char_id;
@@ -147,7 +169,8 @@ struct mmo_charstatus
     short hair, hair_color, clothes_color;
     int party_id;
 
-    short weapon, shield;
+    ItemLook weapon;
+    short shield;
     short head_top, head_mid, head_bottom;
 
     char name[24];

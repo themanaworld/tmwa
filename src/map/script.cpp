@@ -4144,7 +4144,7 @@ void builtin_getlook(ScriptState *st)
             val = sd->status.hair;
             break;
         case LOOK::WEAPON:      //2
-            val = sd->status.weapon;
+            val = static_cast<uint16_t>(sd->status.weapon);
             break;
         case LOOK::HEAD_BOTTOM: //3
             val = sd->status.head_bottom;

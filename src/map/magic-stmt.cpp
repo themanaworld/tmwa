@@ -151,7 +151,8 @@ void char_set_weapon_icon(character_t *subject, int count,
     else
     {
         /* Set it to `normal' */
-        clif_changelook(&subject->bl, LOOK::WEAPON, subject->status.weapon);
+        clif_changelook(&subject->bl, LOOK::WEAPON,
+                static_cast<uint16_t>(subject->status.weapon));
     }
 }
 

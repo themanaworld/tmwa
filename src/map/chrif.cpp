@@ -961,7 +961,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
                 IFIX(pc->status.inventory[j].nameid);
             for (j = 0; j < MAX_CART; j++)
                 IFIX(pc->status.cart[j].nameid);
-            IFIX(pc->status.weapon);
+            // IFIX(pc->status.weapon);
             IFIX(pc->status.shield);
             IFIX(pc->status.head_top);
             IFIX(pc->status.head_mid);
