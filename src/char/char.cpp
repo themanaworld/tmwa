@@ -239,13 +239,13 @@ char *search_character_name(int index)
 //-------------------------------------------------
 // Function to create the character line (for save)
 //-------------------------------------------------
-static
+__inline__ static
 std::string mmo_char_tostr(struct mmo_charstatus *p)
 {
     // on multi-map server, sometimes it's posssible that last_point become void. (reason???) We check that to not lost character at restart.
     if (p->last_point.map[0] == '\0')
     {
-        memcpy(p->last_point.map, "prontera.gat", 16);
+        memcpy(p->last_point.map, "001-1.gat", 10);
         p->last_point.x = 273;
         p->last_point.y = 354;
     }
@@ -538,26 +538,6 @@ void mmo_char_sync(void)
     int i, j, k;
     int lock;
     FILE *fp;
-    int id[char_num];
-
-    // Sorting before save (by [Yor])
-    for (i = 0; i < char_num; i++)
-    {
-        id[i] = i;
-        for (j = 0; j < i; j++)
-        {
-            if ((char_dat[i].account_id < char_dat[id[j]].account_id) ||
-                // if same account id, we sort by slot.
-                (char_dat[i].account_id == char_dat[id[j]].account_id &&
-                 char_dat[i].char_num < char_dat[id[j]].char_num))
-            {
-                for (k = i; k > j; k--)
-                    id[k] = id[k - 1];
-                id[j] = i;      // id[i]
-                break;
-            }
-        }
-    }
 
     // Data save
     fp = lock_fopen(char_txt, &lock);
@@ -571,7 +551,7 @@ void mmo_char_sync(void)
         for (i = 0; i < char_num; i++)
         {
             // use of sorted index
-            std::string line = mmo_char_tostr(&char_dat[id[i]]);
+            std::string line = mmo_char_tostr(&char_dat[i]);
             fwrite(line.data(), 1, line.size(), fp);
             fputc('\n', fp);
         }
