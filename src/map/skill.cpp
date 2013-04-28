@@ -791,66 +791,72 @@ void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData
     opt3 = battle_get_opt3(bl);
     nullpo_retv(opt3);
 
-    assert ((*sc_count) > 0);
-
+    // status_change_end can be called 2 ways: automatically by a timer,
+    // or manually to cancel it.
+    if (!tid) // if this is a cancel
     {
-
-        if (!tid)
-            sc_data[type].timer.cancel();
-
-        assert (!sc_data[type].timer);
-        (*sc_count)--;
-
-        switch (type)
-        {                       /* 異常の種類ごとの処理 */
-            case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション */
-            case StatusChange::SC_ATKPOT:    /* attack potion [Valaris] */
-            case StatusChange::SC_MATKPOT:   /* magic attack potion [Valaris] */
-            case StatusChange::SC_PHYS_SHIELD:
-            case StatusChange::SC_HASTE:
-                calc_flag = 1;
-                break;
-
-                /* option2 */
-            case StatusChange::SC_POISON:    /* 毒 */
-                calc_flag = 1;
-                break;
-        }
-
-        if (bl->type == BL::PC && type < StatusChange::SC_SENDMAX)
-            clif_status_change(bl, type, 0);   /* アイコン消去 */
-
-        switch (type)
-        {
-            case StatusChange::SC_POISON:
-                *opt2 &= ~Opt2::_poison;
-                opt_flag = 1;
-                break;
-
-            case StatusChange::SC_SLOWPOISON:
-                if (sc_data[StatusChange::SC_POISON].timer)
-                    *opt2 |= Opt2::_poison;
-                *opt2 &= ~Opt2::_slowpoison;
-                opt_flag = 1;
-                break;
-
-            case StatusChange::SC_SPEEDPOTION0:
-                *opt2 &= ~Opt2::_speedpotion0;
-                opt_flag = 1;
-                break;
-
-            case StatusChange::SC_ATKPOT:
-                *opt2 &= ~Opt2::_atkpot;
-                opt_flag = 1;
-                break;
-        }
-
-        if (opt_flag)           /* optionの変更を伝える */
-            clif_changeoption(bl);
-
-        if (bl->type == BL::PC && calc_flag)
-            pc_calcstatus((struct map_session_data *) bl, 0);  /* ステータス再計算 */
+        // and it was not active
+        if (!sc_data[type].timer)
+            // there's nothing to do
+            return;
+        // if it was active, cancel it
+        sc_data[type].timer.cancel();
     }
+    // whether we are the timer or a cancel no longer matters
+
+    assert (!sc_data[type].timer);
+    assert ((*sc_count) > 0);
+    (*sc_count)--;
+
+    switch (type)
+    {                       /* 異常の種類ごとの処理 */
+        case StatusChange::SC_SPEEDPOTION0:  /* 増速ポーション */
+        case StatusChange::SC_ATKPOT:    /* attack potion [Valaris] */
+        case StatusChange::SC_MATKPOT:   /* magic attack potion [Valaris] */
+        case StatusChange::SC_PHYS_SHIELD:
+        case StatusChange::SC_HASTE:
+            calc_flag = 1;
+            break;
+
+            /* option2 */
+        case StatusChange::SC_POISON:    /* 毒 */
+            calc_flag = 1;
+            break;
+    }
+
+    if (bl->type == BL::PC && type < StatusChange::SC_SENDMAX)
+        clif_status_change(bl, type, 0);   /* アイコン消去 */
+
+    switch (type)
+    {
+    case StatusChange::SC_POISON:
+        *opt2 &= ~Opt2::_poison;
+        opt_flag = 1;
+        break;
+
+    case StatusChange::SC_SLOWPOISON:
+        if (sc_data[StatusChange::SC_POISON].timer)
+            *opt2 |= Opt2::_poison;
+        *opt2 &= ~Opt2::_slowpoison;
+        opt_flag = 1;
+        break;
+
+    case StatusChange::SC_SPEEDPOTION0:
+        *opt2 &= ~Opt2::_speedpotion0;
+        opt_flag = 1;
+        break;
+
+    case StatusChange::SC_ATKPOT:
+        *opt2 &= ~Opt2::_atkpot;
+        opt_flag = 1;
+        break;
+    }
+
+    if (opt_flag)           /* optionの変更を伝える */
+        clif_changeoption(bl);
+
+    if (bl->type == BL::PC && calc_flag)
+        pc_calcstatus((struct map_session_data *) bl, 0);  /* ステータス再計算 */
 }
 
 int skill_update_heal_animation(struct map_session_data *sd)
