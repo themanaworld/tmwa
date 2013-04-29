@@ -3093,7 +3093,7 @@ void parse_login(int fd)
                              min_level_to_connect, account.userid,
                              gm_level, ip);
                         WFIFOW(fd, 0) = 0x81;
-                        WFIFOL(fd, 2) = 1; // 01 = Server closed
+                        WFIFOB(fd, 2) = 1; // 01 = Server closed
                         WFIFOSET(fd, 3);
                     }
                     else
@@ -3189,7 +3189,7 @@ void parse_login(int fd)
                             LOGIN_LOG("Connection refused: there is no char-server online (account: %s, ip: %s).\n",
                                  account.userid, ip);
                             WFIFOW(fd, 0) = 0x81;
-                            WFIFOL(fd, 2) = 1; // 01 = Server closed
+                            WFIFOB(fd, 2) = 1; // 01 = Server closed
                             WFIFOSET(fd, 3);
                         }
                     }

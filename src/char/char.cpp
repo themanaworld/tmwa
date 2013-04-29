@@ -1337,7 +1337,7 @@ void parse_tologin(int fd)
                             // refuse connection: too much online players
 //                      PRINTF("count_users(): %d < max_connect_use (%d) -> fail...\n", count_users(), max_connect_user);
                             WFIFOW(i, 0) = 0x6c;
-                            WFIFOW(i, 2) = 0;
+                            WFIFOB(i, 2) = 0;
                             WFIFOSET(i, 3);
                         }
                         break;
@@ -2351,7 +2351,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                 if (j == MAX_MAP_SERVERS)
                 {
                     WFIFOW(fd, 0) = 0x81;
-                    WFIFOL(fd, 2) = 1; // 01 = Server closed
+                    WFIFOB(fd, 2) = 1; // 01 = Server closed
                     WFIFOSET(fd, 3);
                     return;
                 }
@@ -2496,7 +2496,7 @@ void parse_char(int fd)
                             {
                                 // refuse connection (over populated)
                                 WFIFOW(fd, 0) = 0x6c;
-                                WFIFOW(fd, 2) = 0;
+                                WFIFOB(fd, 2) = 0;
                                 WFIFOSET(fd, 3);
                             }
                             break;
@@ -2519,7 +2519,7 @@ void parse_char(int fd)
                         else
                         {       // if no login-server, we must refuse connection
                             WFIFOW(fd, 0) = 0x6c;
-                            WFIFOW(fd, 2) = 0;
+                            WFIFOB(fd, 2) = 0;
                             WFIFOSET(fd, 3);
                         }
                     }
