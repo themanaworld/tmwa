@@ -535,7 +535,7 @@ int mmo_char_init(void)
 static
 void mmo_char_sync(void)
 {
-    int i, j, k;
+    int i;
     int lock;
     FILE *fp;
 

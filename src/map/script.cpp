@@ -4291,11 +4291,32 @@ void builtin_isdead(ScriptState *st)
     push_val(st->stack, ScriptCode::INT, pc_isdead(sd));
 }
 
+/*========================================
+ * Changes a NPC name, and sprite
+ *----------------------------------------
+ */
+static
+void builtin_fakenpcname(ScriptState *st)
+{
+    const char *name = conv_str(st, &(st->stack->stack_data[st->start + 2]));
+    const char *newname = conv_str(st, &(st->stack->stack_data[st->start + 3]));
+    int newsprite = conv_num(st, &(st->stack->stack_data[st->start + 4]));
+    struct npc_data *nd = npc_name2id(name);
+    if (!nd)
+        return;
+    strzcpy(nd->name, newname, sizeof(nd->name));
+    nd->npc_class = newsprite;
+
+    // Refresh this npc
+    npc_enable(name, 0);
+    npc_enable(name, 1);
+
+}
+
 /*============================
  * Gets the PC's x pos
  *----------------------------
  */
-
 static
 void builtin_getx(ScriptState *st)
 {
@@ -5229,6 +5250,7 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(shop, "s"),
     BUILTIN(isdead, ""),
     BUILTIN(unequipbyid, "i"),
+    BUILTIN(fakenpcname, "ssi"),
     BUILTIN(getx, ""),
     BUILTIN(gety, ""),
     BUILTIN(getmap, ""),
