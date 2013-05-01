@@ -941,13 +941,19 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
                     sc_data[type].timer = Timer(tick + std::chrono::seconds(1),
                             std::bind(skill_status_change_timer, ph::_1, ph::_2,
                                 bl->id, type));
+                    return;
                 }
             }
             else
+            {
                 sc_data[type].timer = Timer(tick + std::chrono::seconds(2),
                         std::bind(skill_status_change_timer, ph::_1, ph::_2,
                             bl->id, type));
+                return;
+            }
             break;
+            // If you manually reschedule the timer, you MUST skip the
+            // call to skill_status_change_end below.
 
             /* 時間切れ無し？？ */
         case StatusChange::SC_WEIGHT50:
