@@ -2616,7 +2616,8 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 }
             }
             if (flag)           // 各自所得
-                pc_gainexp(tmpsd[i], base_exp, job_exp);
+                pc_gainexp_reason(tmpsd[i], base_exp, job_exp,
+                                  PC_GAINEXP_REASON::KILLING);
         }
         // 公平分配
         for (int i = 0; i < pnum; i++)

@@ -8,7 +8,9 @@ enum class PC_GAINEXP_REASON
     KILLING = 0,
     HEALING = 1,
     SCRIPT  = 2,
+    SHARING = 3,
 
+    UNKNOWN,
     COUNT,
 };
 
