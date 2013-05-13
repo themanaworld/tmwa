@@ -3114,7 +3114,7 @@ int pc_checkjoblevelup(struct map_session_data *sd)
 int pc_gainexp(struct map_session_data *sd, int base_exp, int job_exp)
 {
     return pc_gainexp_reason(sd, base_exp, job_exp,
-                              PC_GAINEXP_REASON::KILLING);
+                              PC_GAINEXP_REASON::UNKNOWN);
 }
 
 int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
@@ -3133,6 +3133,9 @@ int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
         "KILLXP",
         "HEALXP",
         "SCRIPTXP",
+        "SHAREXP",
+        /* Insert new types here */
+        "UNKNOWNXP"
     }};
     MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp, reasons[reason]);
 

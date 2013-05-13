@@ -5,6 +5,7 @@ LOGLINE ::= int'.'int <MESSAGE>
 MESSAGE ::= 'log-start'
           | 'log-start v2'
           | 'log-start v3'
+          | 'log-start v4'
           | <PC> <COORD> <PC-MESSAGE>
           | <MOB> <MOB-MESSAGE>
 
@@ -22,14 +23,14 @@ STATPLACE ::= 'LOGIN' | 'STATUP' | 'STATUP2' | 'STATRESET'
 
 XPPLACE ::= 'LOGIN' | 'LEVELUP'
 
-XPREASON ::= 'SCRIPTXP' 'HEALXP' 'KILLXP'
+XPREASON ::= 'SCRIPTXP' | 'HEALXP' | 'KILLXP' | 'SHAREXP' | 'UNKNOWNXP'
 
 ZEROTARGET ::= 'null' | <TARGET>
 
 MOB-MESSAGE ::= 'DEAD'
 
 PC-MESSAGE ::= 'WPNDMG' <TARGET> int 'FOR' int WPN int				# "WPNDMG MOB01 type FOR damage WPN weapon-item" 
-	     | 'WPNINJURY' <TARGET> int 'FOR' int
+             | 'WPNINJURY' <TARGET> int 'FOR' int
              | 'MOB-TO-MOB-DMG' 'FROM' <MOB> int 'TO' <MOB> int 'FOR' int	# Summoned monster damage
              | 'SPELLHEAL-INSTA' <PC> FOR int
              | 'SPELLDMG' <MOB> FOR int BY spell-id
@@ -52,7 +53,7 @@ PC-MESSAGE ::= 'WPNDMG' <TARGET> int 'FOR' int WPN int				# "WPNDMG MOB01 type F
              | 'TRADEOK'
              | 'STATUP'
              | 'STATRESET'
-             | 'STATUP'
+             | 'STATUP2'
 
 NOTES:
 ------

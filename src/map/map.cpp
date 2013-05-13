@@ -1562,7 +1562,7 @@ void map_set_logfile(const char *filename)
 
     map_start_logfile(tv.tv_sec);
 
-    MAP_LOG("log-start v3");
+    MAP_LOG("log-start v4");
 }
 
 void map_log(const_string line)
