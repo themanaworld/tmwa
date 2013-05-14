@@ -36,7 +36,7 @@ struct TimerData
 struct TimerCompare
 {
     /// implement "less than"
-    bool operator() (TimerData *l, TimerData *r)
+    bool operator() (dumb_ptr<TimerData> l, dumb_ptr<TimerData> r)
     {
         // C++ provides a max-heap, but we want
         // the smallest tick to be the head (a min-heap).
@@ -45,7 +45,7 @@ struct TimerCompare
 };
 
 static
-std::priority_queue<TimerData *, std::vector<TimerData *>, TimerCompare> timer_heap;
+std::priority_queue<dumb_ptr<TimerData>, std::vector<dumb_ptr<TimerData>>, TimerCompare> timer_heap;
 
 
 tick_t gettick_cache;
@@ -75,27 +75,27 @@ void Timer::cancel()
     td->owner = nullptr;
     td->func = do_nothing;
     td->interval = interval_t::zero();
-    td = nullptr;
+    td.forget();
 }
 
 void Timer::detach()
 {
     assert (this == td->owner);
     td->owner = nullptr;
-    td = nullptr;
+    td.forget();
 }
 
 static
-void push_timer_heap(TimerData *td)
+void push_timer_heap(dumb_ptr<TimerData> td)
 {
     timer_heap.push(td);
 }
 
 static
-TimerData *top_timer_heap(void)
+dumb_ptr<TimerData> top_timer_heap(void)
 {
     if (timer_heap.empty())
-        return nullptr;
+        return dumb_ptr<TimerData>();
     return timer_heap.top();
 }
 
@@ -106,7 +106,7 @@ void pop_timer_heap(void)
 }
 
 Timer::Timer(tick_t tick, timer_func func, interval_t interval)
-: td(new TimerData(this, tick, std::move(func), interval))
+: td(dumb_ptr<TimerData>::make(this, tick, std::move(func), interval))
 {
     assert (interval >= interval_t::zero());
 
@@ -116,7 +116,7 @@ Timer::Timer(tick_t tick, timer_func func, interval_t interval)
 Timer::Timer(Timer&& t)
 : td(t.td)
 {
-    t.td = nullptr;
+    t.td.forget();
     if (td)
     {
         assert (td->owner == &t);
@@ -146,7 +146,7 @@ interval_t do_timer(tick_t tick)
     // this says to wait 1 sec if all timers get popped
     interval_t nextmin = std::chrono::seconds(1);
 
-    while (TimerData *td = top_timer_heap())
+    while (dumb_ptr<TimerData> td = top_timer_heap())
     {
         // while the heap is not empty and
         if (td->tick > tick)
@@ -165,13 +165,13 @@ interval_t do_timer(tick_t tick)
         // If we are too far past the requested tick, call with
         // the current tick instead to fix reregistration problems
         if (td->tick + std::chrono::seconds(1) < tick)
-            td->func(td, tick);
+            td->func(td.operator->(), tick);
         else
-            td->func(td, td->tick);
+            td->func(td.operator->(), td->tick);
 
         if (td->interval == interval_t::zero())
         {
-            delete td;
+            td.delete_();
             continue;
         }
         if (td->tick + std::chrono::seconds(1) < tick)

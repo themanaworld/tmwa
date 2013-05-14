@@ -4,6 +4,8 @@
 # include <chrono>
 # include <functional>
 
+# include "dumb_ptr.hpp"
+
 struct TimerData;
 
 /// An implementation of the C++ "clock" concept, exposing
@@ -30,13 +32,13 @@ typedef std::function<void (TimerData *, tick_t)> timer_func;
 class Timer
 {
     friend struct TimerData;
-    TimerData *td;
+    dumb_ptr<TimerData> td;
 
     Timer(const Timer&) = delete;
     Timer& operator = (const Timer&) = delete;
 public:
     /// Don't own anything yet.
-    Timer() : td(nullptr) {}
+    Timer() = default;
     /// Schedule a timer for the given tick.
     /// If you do not wish to keep track of it, call disconnect().
     /// Otherwise, you may cancel() or replace (operator =) it later.
@@ -58,7 +60,7 @@ public:
     void detach();
 
     /// Check if there is a timer connected.
-    explicit operator bool() { return td; }
+    explicit operator bool() { return bool(td); }
     /// Check if there is no connected timer.
     bool operator !() { return !td; }
 };
