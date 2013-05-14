@@ -96,8 +96,6 @@ int pc_skill(struct map_session_data *, SkillID, int, int);
 int pc_attack(struct map_session_data *, int, int);
 int pc_stopattack(struct map_session_data *);
 
-int pc_gainexp(struct map_session_data *, int, int);
-
 int pc_gainexp_reason(struct map_session_data *, int, int,
         PC_GAINEXP_REASON reason);
 int pc_extract_healer_exp(struct map_session_data *, int max);    // [Fate] Used by healers: extract healer-xp from the target, return result (up to max)
