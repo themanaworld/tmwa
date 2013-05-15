@@ -695,8 +695,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
     if (sd->attack_spell_override)
-        // should be WBUFW ?
-        WBUFB(buf, 18) = sd->attack_spell_look_override;
+        WBUFW(buf, 18) = sd->attack_spell_look_override;
     else
     {
         if (sd->equip_index[EQUIP::WEAPON] >= 0
