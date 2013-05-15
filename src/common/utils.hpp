@@ -73,17 +73,17 @@ struct TimeT : Comparable
     // conversion
     TimeT(time_t t=0) : value(t) {}
     TimeT(struct tm t) : value(timegm(&t)) {}
-    operator time_t() { return value; }
-    operator struct tm() { time_t v = value; return *gmtime(&v); }
+    operator time_t() const { return value; }
+    operator struct tm() const { time_t v = value; return *gmtime(&v); }
 
-    explicit operator bool() { return value; }
-    bool operator !() { return !value; }
+    explicit operator bool() const { return value; }
+    bool operator !() const { return !value; }
 
     // prevent surprises
     template<class T>
     TimeT(T) = delete;
     template<class T>
-    operator T() = delete;
+    operator T() const = delete;
 
     static
     TimeT now()
@@ -92,11 +92,11 @@ struct TimeT : Comparable
         return time(NULL);
     }
 
-    bool error()
+    bool error() const
     {
         return value == -1;
     }
-    bool okay()
+    bool okay() const
     {
         return !error();
     }
@@ -116,7 +116,7 @@ long long& convert_for_scanf(TimeT& t)
 
 typedef char timestamp_seconds_buffer[20];
 typedef char timestamp_milliseconds_buffer[24];
-void stamp_time(timestamp_seconds_buffer&, TimeT *t=nullptr);
+void stamp_time(timestamp_seconds_buffer&, const TimeT *t=nullptr);
 void stamp_time(timestamp_milliseconds_buffer&);
 
 void log_with_timestamp(FILE *out, const_string line);

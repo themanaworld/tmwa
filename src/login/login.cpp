@@ -10,6 +10,7 @@
 #include <ctime>
 
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <type_traits>
 
@@ -116,29 +117,21 @@ std::chrono::seconds ANTI_FREEZE_INTERVAL = std::chrono::seconds(15);
 static
 int login_fd;
 
-enum
+enum class ACO
 {
-    ACO_DENY_ALLOW = 0,
-    ACO_ALLOW_DENY,
-    ACO_MUTUAL_FAILTURE,
-    ACO_STRSIZE = 128,
+    DENY_ALLOW,
+    ALLOW_DENY,
+    MUTUAL_FAILTURE,
 };
 
-static
-int access_order = ACO_DENY_ALLOW;
-static
-int access_allownum = 0;
-static
-int access_denynum = 0;
-static
-char *access_allow = NULL;
-static
-char *access_deny = NULL;
+// TODO: port the new code for this
+typedef std::array<char, 128> AccessEntry;
 
 static
-int access_ladmin_allownum = 0;
+ACO access_order = ACO::DENY_ALLOW;
 static
-char *access_ladmin_allow = NULL;
+std::vector<AccessEntry>
+access_allow, access_deny, access_ladmin;
 
 static
 int min_level_to_connect = 0;  // minimum level of player/GM (0: player, 1-99: gm) to connect on the server
@@ -164,8 +157,7 @@ struct
 static
 int auth_fifo_pos = 0;
 
-static
-struct auth_dat
+struct AuthData
 {
     int account_id, sex;
     char userid[24], pass[40], lastlogin[24];
@@ -179,10 +171,8 @@ struct auth_dat
     char memo[255];             // a memo field
     int account_reg2_num;
     struct global_reg account_reg2[ACCOUNT_REG2_NUM];
-}   *auth_dat;
-
-static
-int auth_num = 0, auth_max = 0;
+};
+std::vector<AuthData> auth_data;
 
 static
 int admin_state = 0;
@@ -367,14 +357,19 @@ int check_ipmask(struct in_addr ip, const char *str)
 // Access control by IP
 //---------------------
 static
-int check_ip(struct in_addr ip)
+bool check_ip(struct in_addr ip)
 {
-    int i;
-    enum
-    { ACF_DEF, ACF_ALLOW, ACF_DENY } flag = ACF_DEF;
+    enum class ACF
+    {
+        DEF,
+        ALLOW,
+        DENY
+    };
+    ACF flag = ACF::DEF;
 
-    if (access_allownum == 0 && access_denynum == 0)
-        return 1;               // When there is no restriction, all IP are authorised.
+    if (access_allow.empty() && access_deny.empty())
+        return 1;
+    // When there is no restriction, all IP are authorised.
 
 //  +   012.345.: front match form, or
 //      all: all IP are matched, or
@@ -387,29 +382,31 @@ int check_ip(struct in_addr ip)
 //      So, DNS notation isn't authorised for ip checking.
     const char *buf = ip2str(ip, true);
 
-    for (i = 0; i < access_allownum; i++)
+    for (const AccessEntry& ae : access_allow)
     {
-        const char *p = access_allow + i * ACO_STRSIZE;
+        const char *p = ae.data();
         if (memcmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
         {
-            flag = ACF_ALLOW;
-            if (access_order == ACO_ALLOW_DENY)
-                return 1;       // With 'allow, deny' (deny if not allow), allow has priority
+            flag = ACF::ALLOW;
+            if (access_order == ACO::ALLOW_DENY)
+                // With 'allow, deny' (deny if not allow), allow has priority
+                return 1;
             break;
         }
     }
 
-    for (i = 0; i < access_denynum; i++)
+    for (const AccessEntry& ae : access_deny)
     {
-        const char *p = access_deny + i * ACO_STRSIZE;
+        const char *p = ae.data();
         if (memcmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
         {
-            flag = ACF_DENY;
-            return 0;           // At this point, if it's 'deny', we refuse connection.
+            flag = ACF::DENY;
+            return 0;
+            // At this point, if it's 'deny', we refuse connection.
         }
     }
 
-    return (flag == ACF_ALLOW || access_order == ACO_DENY_ALLOW) ? 1 : 0;
+    return flag == ACF::ALLOW || access_order == ACO::DENY_ALLOW;
     // With 'mutual-failture', only 'allow' and non 'deny' IP are authorised.
     //   A non 'allow' (even non 'deny') IP is not authorised. It's like: if allowed and not denied, it's authorised.
     //   So, it's disapproval if you have no description at the time of 'mutual-failture'.
@@ -420,12 +417,11 @@ int check_ip(struct in_addr ip)
 // Access control by IP for ladmin
 //--------------------------------
 static
-int check_ladminip(struct in_addr ip)
+bool check_ladminip(struct in_addr ip)
 {
-    int i;
-
-    if (access_ladmin_allownum == 0)
-        return 1;               // When there is no restriction, all IP are authorised.
+    if (access_ladmin.empty())
+        // When there is no restriction, all IP are authorised.
+        return true;
 
 //  +   012.345.: front match form, or
 //      all: all IP are matched, or
@@ -438,43 +434,39 @@ int check_ladminip(struct in_addr ip)
 //      So, DNS notation isn't authorised for ip checking.
     const char *buf = ip2str(ip, true);
 
-    for (i = 0; i < access_ladmin_allownum; i++)
+    for (const AccessEntry& ae : access_ladmin)
     {
-        const char *p = access_ladmin_allow + i * ACO_STRSIZE;
+        const char *p = ae.data();
         if (memcmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
-        {
-            return 1;
-        }
+            return true;
     }
 
-    return 0;
+    return false;
 }
 
 //-----------------------------------------------
 // Search an account id
-//   (return account index or -1 (if not found))
+//   (return account pointer or nullptr (if not found))
 //   If exact account name is not found,
 //   the function checks without case sensitive
 //   and returns index if only 1 account is found
 //   and similar to the searched name.
 //-----------------------------------------------
 static
-int search_account_index(char *account_name)
+AuthData *search_account(const char *account_name)
 {
-    int i, quantity, index;
-
-    quantity = 0;
-    index = -1;
-    for (i = 0; i < auth_num; i++)
+    int quantity = 0;
+    AuthData *index = nullptr;
+    for (AuthData& ad : auth_data)
     {
         // Without case sensitive check (increase the number of similar account names found)
-        if (strcasecmp(auth_dat[i].userid, account_name) == 0)
+        if (strcasecmp(ad.userid, account_name) == 0)
         {
             // Strict comparison (if found, we finish the function immediatly with correct value)
-            if (strcmp(auth_dat[i].userid, account_name) == 0)
-                return i;
+            if (strcmp(ad.userid, account_name) == 0)
+                return &ad;
             quantity++;
-            index = i;
+            index = &ad;
         }
     }
     // Here, the exact account name is not found
@@ -483,14 +475,14 @@ int search_account_index(char *account_name)
         return index;
 
     // Exact account name is not found and 0 or more than 1 similar accounts have been found ==> we say not found
-    return -1;
+    return nullptr;
 }
 
 //--------------------------------------------------------
 // Create a string to save the account in the account file
 //--------------------------------------------------------
 static
-std::string mmo_auth_tostr(struct auth_dat *p)
+std::string mmo_auth_tostr(const AuthData *p)
 {
     std::string str = STRPRINTF(
             "%d\t"
@@ -529,7 +521,7 @@ std::string mmo_auth_tostr(struct auth_dat *p)
 }
 
 static
-bool extract(const_string line, struct auth_dat *ad)
+bool extract(const_string line, AuthData *ad)
 {
     std::vector<struct global_reg> vars;
     const_string sex = nullptr; // really only 1 char
@@ -552,11 +544,11 @@ bool extract(const_string line, struct auth_dat *ad)
         return false;
     if (ad->account_id > END_ACCOUNT_NUM)
         return false;
-    for (int j = 0; j < auth_num; j++)
+    for (const AuthData& adi : auth_data)
     {
-        if (auth_dat[j].account_id == ad->account_id)
+        if (adi.account_id == ad->account_id)
             return false;
-        else if (strcmp(auth_dat[j].userid, ad->userid) == 0)
+        if (strcmp(adi.userid, ad->userid) == 0)
             return false;
     }
     // If a password is not encrypted, we encrypt it now.
@@ -600,9 +592,6 @@ int mmo_auth_init(void)
     int GM_count = 0;
     int server_count = 0;
 
-    CREATE(auth_dat, struct auth_dat, 256);
-    auth_max = 256;
-
     std::ifstream in(account_filename);
     if (!in.is_open())
     {
@@ -630,7 +619,7 @@ int mmo_auth_init(void)
                     ) != line.end())
             continue;
 
-        struct auth_dat ad {};
+        AuthData ad {};
         if (!extract(line, &ad))
         {
             int i = 0;
@@ -642,26 +631,19 @@ int mmo_auth_init(void)
             continue;
         }
 
-        if (auth_num >= auth_max)
-        {
-            auth_max += 256;
-            RECREATE(auth_dat, struct auth_dat, auth_max);
-        }
-
-        auth_dat[auth_num] = ad;
+        auth_data.push_back(ad);
 
         if (isGM(ad.account_id) > 0)
             GM_count++;
-        if (auth_dat[auth_num].sex == 2)
+        if (ad.sex == 2)
             server_count++;
 
-        auth_num++;
         if (ad.account_id >= account_id_count)
             account_id_count = ad.account_id + 1;
     }
 
-    std::string str = STRPRINTF("%s has %d accounts (%d GMs, %d servers)\n",
-            account_filename, auth_num, GM_count, server_count);
+    std::string str = STRPRINTF("%s has %zu accounts (%d GMs, %d servers)\n",
+            account_filename, auth_data.size(), GM_count, server_count);
     PRINTF("%s: %s\n", __PRETTY_FUNCTION__, str);
     LOGIN_LOG("%s\n", line);
 
@@ -670,30 +652,12 @@ int mmo_auth_init(void)
 
 //------------------------------------------
 // Writing of the accounts database file
-//   (accounts are sorted by id before save)
 //------------------------------------------
 static
 void mmo_auth_sync(void)
 {
     FILE *fp;
-    int i, j, k, lock;
-    int id[auth_num];
-
-    // Sorting before save
-    for (i = 0; i < auth_num; i++)
-    {
-        id[i] = i;
-        for (j = 0; j < i; j++)
-        {
-            if (auth_dat[i].account_id < auth_dat[id[j]].account_id)
-            {
-                for (k = i; k > j; k--)
-                    id[k] = id[k - 1];
-                id[j] = i;      // id[i]
-                break;
-            }
-        }
-    }
+    int lock;
 
     // Data save
     fp = lock_fopen(account_filename, &lock);
@@ -720,13 +684,12 @@ void mmo_auth_sync(void)
     FPRINTF(fp, "//   memo field      : max 254 char\n");
     FPRINTF(fp,
              "//   ban time        : 0: no ban, <other value>: banned until the date: date calculated by addition of 1/1/1970 + value (number of seconds since the 1/1/1970)\n");
-    for (i = 0; i < auth_num; i++)
+    for (const AuthData& ad : auth_data)
     {
-        k = id[i];              // use of sorted index
-        if (auth_dat[k].account_id < 0)
+        if (ad.account_id < 0)
             continue;
 
-        std::string line = mmo_auth_tostr(&auth_dat[k]);
+        std::string line = mmo_auth_tostr(&ad);
         FPRINTF(fp, "%s\n", line);
     }
     FPRINTF(fp, "%d\t%%newid%%\n", account_id_count);
@@ -793,25 +756,21 @@ void charif_sendallwos(int sfd, const uint8_t *buf, size_t len)
 static
 void send_GM_accounts(void)
 {
-    int i;
     uint8_t buf[32000];
-    int GM_value;
     int len;
 
     len = 4;
     WBUFW(buf, 0) = 0x2732;
-    for (i = 0; i < auth_num; i++)
+    for (const AuthData& ad : auth_data)
         // send only existing accounts. We can not create a GM account when server is online.
-        if ((GM_value = isGM(auth_dat[i].account_id)) > 0)
+        if (uint8_t GM_value = isGM(ad.account_id))
         {
-            WBUFL(buf, len) = auth_dat[i].account_id;
-            WBUFB(buf, len + 4) = (unsigned char) GM_value;
+            WBUFL(buf, len) = ad.account_id;
+            WBUFB(buf, len + 4) = GM_value;
             len += 5;
         }
     WBUFW(buf, 2) = len;
     charif_sendallwos(-1, buf, len);
-
-    return;
 }
 
 //-----------------------------------------------------
@@ -840,64 +799,44 @@ void check_GM_file(TimerData *, tick_t)
 static
 int mmo_auth_new(struct mmo_account *account, char sex, const char *email)
 {
-    int i = auth_num;
-
-    if (auth_num >= auth_max)
-    {
-        auth_max += 256;
-        RECREATE(auth_dat, struct auth_dat, auth_max);
-    }
-
-    memset(&auth_dat[i], '\0', sizeof(struct auth_dat));
-
     while (isGM(account_id_count) > 0)
         account_id_count++;
 
-    auth_dat[i].account_id = account_id_count++;
+    struct AuthData ad {};
+    ad.account_id = account_id_count++;
 
-    strncpy(auth_dat[i].userid, account->userid, 24);
-    auth_dat[i].userid[23] = '\0';
-
-    strcpy(auth_dat[i].pass, MD5_saltcrypt(account->passwd, make_salt()));
-    auth_dat[i].pass[39] = '\0';
-
-    memcpy(auth_dat[i].lastlogin, "-", 2);
-
-    auth_dat[i].sex = (sex == 'M');
-
-    auth_dat[i].logincount = 0;
-
-    auth_dat[i].state = 0;
+    strzcpy(ad.userid, account->userid, 24);
+    strzcpy(ad.pass, MD5_saltcrypt(account->passwd, make_salt()), 40);
+    strcpy(ad.lastlogin, "-");
+    ad.sex = (sex == 'M');
+    ad.logincount = 0;
+    ad.state = 0;
 
     if (e_mail_check(email) == 0)
-        strncpy(auth_dat[i].email, "a@a.com", 40);
+        strzcpy(ad.email, "a@a.com", 40);
     else
-        strncpy(auth_dat[i].email, email, 40);
+        strzcpy(ad.email, email, 40);
 
-    strncpy(auth_dat[i].error_message, "-", 20);
-
-    auth_dat[i].ban_until_time = TimeT();
+    strcpy(ad.error_message, "-");
+    ad.ban_until_time = TimeT();
 
     if (start_limited_time < 0)
-        auth_dat[i].connect_until_time = TimeT(); // unlimited
+        ad.connect_until_time = TimeT(); // unlimited
     else
     {
         // limited time
         TimeT timestamp = static_cast<time_t>(TimeT::now()) + start_limited_time;
         // there used to be a silly overflow check here, but it wasn't
         // correct, and we don't support time-limited accounts.
-        auth_dat[i].connect_until_time = timestamp;
+        ad.connect_until_time = timestamp;
     }
 
-    strncpy(auth_dat[i].last_ip, "-", 16);
+    strcpy(ad.last_ip, "-");
+    strcpy(ad.memo, "!");
+    ad.account_reg2_num = 0;
+    auth_data.push_back(ad);
 
-    strncpy(auth_dat[i].memo, "!", 255);
-
-    auth_dat[i].account_reg2_num = 0;
-
-    auth_num++;
-
-    return(account_id_count - 1);
+    return ad.account_id;
 }
 
 //---------------------------------------
@@ -906,7 +845,6 @@ int mmo_auth_new(struct mmo_account *account, char sex, const char *email)
 static
 int mmo_auth(struct mmo_account *account, int fd)
 {
-    int i;
     int len, newaccount = 0;
 #ifdef PASSWDENC
     char md5str[64], md5bin[32];
@@ -927,22 +865,25 @@ int mmo_auth(struct mmo_account *account, int fd)
     }
 
     // Strict account search
-    for (i = 0; i < auth_num; i++)
+    AuthData *ad = nullptr;
+    for (AuthData& adi : auth_data)
     {
-        if (strcmp(account->userid, auth_dat[i].userid) == 0)
+        if (strcmp(account->userid, adi.userid) == 0)
+        {
+            ad = &adi;
             break;
+        }
     }
     // if there is no creation request and strict account search fails, we do a no sensitive case research for index
-    if (newaccount == 0 && i == auth_num)
+    if (newaccount == 0 && !ad)
     {
-        i = search_account_index(account->userid);
-        if (i == -1)
-            i = auth_num;
-        else
-            memcpy(account->userid, auth_dat[i].userid, 24);   // for the possible tests/checks afterwards (copy correcte sensitive case).
+        ad = search_account(account->userid);
+        if (ad)
+            strzcpy(account->userid, ad->userid, 24);
+        // for the possible tests/checks afterwards (copy correcte sensitive case).
     }
 
-    if (i != auth_num)
+    if (ad)
     {
         int encpasswdok = 0;
         if (newaccount)
@@ -951,7 +892,7 @@ int mmo_auth(struct mmo_account *account, int fd)
                  account->userid, account->userid[len + 1], ip);
             return 9;           // 9 = Account already exists
         }
-        if ((!pass_ok(account->passwd, auth_dat[i].pass)) && !encpasswdok)
+        if ((!pass_ok(account->passwd, ad->pass)) && !encpasswdok)
         {
             if (account->passwdenc == 0)
                 LOGIN_LOG("Invalid password (account: %s, ip: %s)\n",
@@ -960,12 +901,12 @@ int mmo_auth(struct mmo_account *account, int fd)
             return 1;           // 1 = Incorrect Password
         }
 
-        if (auth_dat[i].state)
+        if (ad->state)
         {
             LOGIN_LOG("Connection refused (account: %s, state: %d, ip: %s)\n",
-                 account->userid, auth_dat[i].state,
+                 account->userid, ad->state,
                  ip);
-            switch (auth_dat[i].state)
+            switch (ad->state)
             {                   // packet 0x006a value + 1
                 case 1:        // 0 = Unregistered ID
                 case 2:        // 1 = Incorrect Password
@@ -977,18 +918,18 @@ int mmo_auth(struct mmo_account *account, int fd)
                 case 8:        // 7 = Server is jammed due to over populated
                 case 9:        // 8 = No MSG (actually, all states after 9 except 99 are No MSG, use only this)
                 case 100:      // 99 = This ID has been totally erased
-                    return auth_dat[i].state - 1;
+                    return ad->state - 1;
                 default:
                     return 99;  // 99 = ID has been totally erased
             }
         }
 
-        if (auth_dat[i].ban_until_time)
+        if (ad->ban_until_time)
         {
             // if account is banned
             timestamp_seconds_buffer tmpstr;
-            stamp_time(tmpstr, &auth_dat[i].ban_until_time);
-            if (auth_dat[i].ban_until_time > TimeT::now())
+            stamp_time(tmpstr, &ad->ban_until_time);
+            if (ad->ban_until_time > TimeT::now())
             {
                 // always banned
                 LOGIN_LOG("Connection refused (account: %s, banned until %s, ip: %s)\n",
@@ -1000,12 +941,12 @@ int mmo_auth(struct mmo_account *account, int fd)
                 // ban is finished
                 LOGIN_LOG("End of ban (account: %s, previously banned until %s -> not more banned, ip: %s)\n",
                      account->userid, tmpstr, ip);
-                auth_dat[i].ban_until_time = TimeT(); // reset the ban time
+                ad->ban_until_time = TimeT(); // reset the ban time
             }
         }
 
-        if (auth_dat[i].connect_until_time
-            && auth_dat[i].connect_until_time < TimeT::now())
+        if (ad->connect_until_time
+            && ad->connect_until_time < TimeT::now())
         {
             LOGIN_LOG("Connection refused (account: %s, expired ID, ip: %s)\n",
                  account->userid, ip);
@@ -1013,7 +954,7 @@ int mmo_auth(struct mmo_account *account, int fd)
         }
 
         LOGIN_LOG("Authentification accepted (account: %s (id: %d), ip: %s)\n",
-                   account->userid, auth_dat[i].account_id, ip);
+                   account->userid, ad->account_id, ip);
     }
     else
     {
@@ -1036,14 +977,14 @@ int mmo_auth(struct mmo_account *account, int fd)
     timestamp_milliseconds_buffer tmpstr;
     stamp_time(tmpstr);
 
-    account->account_id = auth_dat[i].account_id;
+    account->account_id = ad->account_id;
     account->login_id1 = random_::generate();
     account->login_id2 = random_::generate();
-    memcpy(account->lastlogin, auth_dat[i].lastlogin, 24);
-    memcpy(auth_dat[i].lastlogin, tmpstr, 24);
-    account->sex = auth_dat[i].sex;
-    strncpy(auth_dat[i].last_ip, ip, 16);
-    auth_dat[i].logincount++;
+    strzcpy(account->lastlogin, ad->lastlogin, 24);
+    strzcpy(ad->lastlogin, tmpstr, 24);
+    account->sex = ad->sex;
+    strzcpy(ad->last_ip, ip, 16);
+    ad->logincount++;
 
     return -1;                  // account OK
 }
@@ -1080,10 +1021,9 @@ void char_anti_freeze_system(TimerData *, tick_t)
 static
 void parse_fromchar(int fd)
 {
-    int i, j, id;
-
     const char *ip = ip2str(session[fd]->client_addr.sin_addr);
 
+    int id;
     for (id = 0; id < MAX_SERVERS; id++)
         if (server_fd[id] == fd)
             break;
@@ -1123,8 +1063,8 @@ void parse_fromchar(int fd)
                 if (RFIFOREST(fd) < 19)
                     return;
                 {
-                    int acc;
-                    acc = RFIFOL(fd, 2);   // speed up
+                    int acc = RFIFOL(fd, 2);
+                    int i;
                     for (i = 0; i < AUTH_FIFO_SIZE; i++)
                     {
                         if (auth_fifo[i].account_id == acc &&
@@ -1135,26 +1075,23 @@ void parse_fromchar(int fd)
                              || auth_fifo[i].ip == RFIFOL(fd, 15))
                             && !auth_fifo[i].delflag)
                         {
-                            int p, k;
+                            int p;
                             auth_fifo[i].delflag = 1;
                             LOGIN_LOG("Char-server '%s': authentification of the account %d accepted (ip: %s).\n",
                                  server[id].name, acc, ip);
-//                  PRINTF("%d\n", i);
-                            for (k = 0; k < auth_num; k++)
+                            for (const AuthData& ad : auth_data)
                             {
-                                if (auth_dat[k].account_id == acc)
+                                if (ad.account_id == acc)
                                 {
                                     WFIFOW(fd, 0) = 0x2729;    // Sending of the account_reg2
                                     WFIFOL(fd, 4) = acc;
+                                    int j;
                                     for (p = 8, j = 0;
-                                         j < auth_dat[k].account_reg2_num;
+                                         j < ad.account_reg2_num;
                                          p += 36, j++)
                                     {
-                                        memcpy(WFIFOP(fd, p),
-                                                auth_dat[k].
-                                                account_reg2[j].str, 32);
-                                        WFIFOL(fd, p + 32) =
-                                            auth_dat[k].account_reg2[j].value;
+                                        memcpy(WFIFOP(fd, p), ad.account_reg2[j].str, 32);
+                                        WFIFOL(fd, p + 32) = ad.account_reg2[j].value;
                                     }
                                     WFIFOW(fd, 2) = p;
                                     WFIFOSET(fd, p);
@@ -1162,9 +1099,8 @@ void parse_fromchar(int fd)
                                     WFIFOW(fd, 0) = 0x2713;
                                     WFIFOL(fd, 2) = acc;
                                     WFIFOB(fd, 6) = 0;
-                                    memcpy(WFIFOP(fd, 7), auth_dat[k].email,
-                                            40);
-                                    WFIFOL(fd, 47) = static_cast<time_t>(auth_dat[k].connect_until_time);
+                                    memcpy(WFIFOP(fd, 7), ad.email, 40);
+                                    WFIFOL(fd, 47) = static_cast<time_t>(ad.connect_until_time);
                                     WFIFOSET(fd, 51);
                                     break;
                                 }
@@ -1215,22 +1151,22 @@ void parse_fromchar(int fd)
                          server[id].name, acc, ip);
                 else
                 {
-                    for (i = 0; i < auth_num; i++)
+                    for (AuthData& ad : auth_data)
                     {
-                        if (auth_dat[i].account_id == acc
-                            && (strcmp(auth_dat[i].email, "a@a.com") == 0
-                                || auth_dat[i].email[0] == '\0'))
+                        if (ad.account_id == acc
+                            && (strcmp(ad.email, "a@a.com") == 0
+                                || ad.email[0] == '\0'))
                         {
-                            memcpy(auth_dat[i].email, email, 40);
+                            memcpy(ad.email, email, 40);
                             LOGIN_LOG("Char-server '%s': Create an e-mail on an account with a default e-mail (account: %d, new e-mail: %s, ip: %s).\n",
                                  server[id].name, acc, email, ip);
-                            break;
+                            goto x2715_out;
                         }
                     }
-                    if (i == auth_num)
-                        LOGIN_LOG("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - account doesn't exist or e-mail of account isn't default e-mail (account: %d, ip: %s).\n",
-                             server[id].name, acc, ip);
+                    LOGIN_LOG("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - account doesn't exist or e-mail of account isn't default e-mail (account: %d, ip: %s).\n",
+                            server[id].name, acc, ip);
                 }
+            x2715_out:
                 RFIFOSKIP(fd, 46);
                 break;
 
@@ -1240,25 +1176,23 @@ void parse_fromchar(int fd)
                 if (RFIFOREST(fd) < 6)
                     return;
                 //PRINTF("parse_fromchar: E-mail/limited time request from '%s' server (concerned account: %d)\n", server[id].name, RFIFOL(fd,2));
-                for (i = 0; i < auth_num; i++)
+                for (const AuthData& ad : auth_data)
                 {
-                    if (auth_dat[i].account_id == RFIFOL(fd, 2))
+                    if (ad.account_id == RFIFOL(fd, 2))
                     {
                         LOGIN_LOG("Char-server '%s': e-mail of the account %d found (ip: %s).\n",
                              server[id].name, RFIFOL(fd, 2), ip);
                         WFIFOW(fd, 0) = 0x2717;
                         WFIFOL(fd, 2) = RFIFOL(fd, 2);
-                        memcpy(WFIFOP(fd, 6), auth_dat[i].email, 40);
-                        WFIFOL(fd, 46) = static_cast<time_t>(auth_dat[i].connect_until_time);
+                        memcpy(WFIFOP(fd, 6), ad.email, 40);
+                        WFIFOL(fd, 46) = static_cast<time_t>(ad.connect_until_time);
                         WFIFOSET(fd, 50);
-                        break;
+                        goto x2716_end;
                     }
                 }
-                if (i == auth_num)
-                {
-                    LOGIN_LOG("Char-server '%s': e-mail of the account %d NOT found (ip: %s).\n",
-                         server[id].name, RFIFOL(fd, 2), ip);
-                }
+                LOGIN_LOG("Char-server '%s': e-mail of the account %d NOT found (ip: %s).\n",
+                        server[id].name, RFIFOL(fd, 2), ip);
+            x2716_end:
                 RFIFOSKIP(fd, 6);
                 break;
 
@@ -1364,31 +1298,30 @@ void parse_fromchar(int fd)
                              server[id].name, acc, ip);
                     else
                     {
-                        for (i = 0; i < auth_num; i++)
+                        for (AuthData& ad : auth_data)
                         {
-                            if (auth_dat[i].account_id == acc)
+                            if (ad.account_id == acc)
                             {
-                                if (strcasecmp(auth_dat[i].email, actual_email)
-                                    == 0)
+                                if (strcasecmp(ad.email, actual_email) == 0)
                                 {
-                                    memcpy(auth_dat[i].email, new_email, 40);
+                                    memcpy(ad.email, new_email, 40);
                                     LOGIN_LOG("Char-server '%s': Modify an e-mail on an account (@email GM command) (account: %d (%s), new e-mail: %s, ip: %s).\n",
                                          server[id].name, acc,
-                                         auth_dat[i].userid, new_email, ip);
+                                         ad.userid, new_email, ip);
                                 }
                                 else
                                     LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but actual e-mail is incorrect (account: %d (%s), actual e-mail: %s, proposed e-mail: %s, ip: %s).\n",
                                          server[id].name, acc,
-                                         auth_dat[i].userid,
-                                         auth_dat[i].email, actual_email, ip);
-                                break;
+                                         ad.userid,
+                                         ad.email, actual_email, ip);
+                                goto x2722_out;
                             }
                         }
-                        if (i == auth_num)
-                            LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but account doesn't exist (account: %d, ip: %s).\n",
-                                 server[id].name, acc, ip);
+                        LOGIN_LOG("Char-server '%s': Attempt to modify an e-mail on an account (@email GM command), but account doesn't exist (account: %d, ip: %s).\n",
+                                server[id].name, acc, ip);
                     }
                 }
+            x2722_out:
                 RFIFOSKIP(fd, 86);
                 break;
 
@@ -1400,11 +1333,11 @@ void parse_fromchar(int fd)
                     int acc, statut;
                     acc = RFIFOL(fd, 2);
                     statut = RFIFOL(fd, 6);
-                    for (i = 0; i < auth_num; i++)
+                    for (AuthData& ad : auth_data)
                     {
-                        if (auth_dat[i].account_id == acc)
+                        if (ad.account_id == acc)
                         {
-                            if (auth_dat[i].state != statut)
+                            if (ad.state != statut)
                             {
                                 LOGIN_LOG("Char-server '%s': Status change (account: %d, new status %d, ip: %s).\n",
                                      server[id].name, acc, statut,
@@ -1417,24 +1350,22 @@ void parse_fromchar(int fd)
                                     WBUFB(buf, 6) = 0; // 0: change of statut, 1: ban
                                     WBUFL(buf, 7) = statut;    // status or final date of a banishment
                                     charif_sendallwos(-1, buf, 11);
-                                    for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                    for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                         if (auth_fifo[j].account_id == acc)
                                             auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                                 }
-                                auth_dat[i].state = statut;
+                                ad.state = statut;
                             }
                             else
                                 LOGIN_LOG("Char-server '%s':  Error of Status change - actual status is already the good status (account: %d, status %d, ip: %s).\n",
                                      server[id].name, acc, statut,
                                      ip);
-                            break;
+                            goto x2724_out;
                         }
                     }
-                    if (i == auth_num)
-                    {
-                        LOGIN_LOG("Char-server '%s': Error of Status change (account: %d not found, suggested status %d, ip: %s).\n",
-                             server[id].name, acc, statut, ip);
-                    }
+                    LOGIN_LOG("Char-server '%s': Error of Status change (account: %d not found, suggested status %d, ip: %s).\n",
+                            server[id].name, acc, statut, ip);
+                x2724_out:
                     RFIFOSKIP(fd, 10);
                 }
                 return;
@@ -1445,17 +1376,17 @@ void parse_fromchar(int fd)
                 {
                     int acc;
                     acc = RFIFOL(fd, 2);
-                    for (i = 0; i < auth_num; i++)
+                    for (AuthData& ad : auth_data)
                     {
-                        if (auth_dat[i].account_id == acc)
+                        if (ad.account_id == acc)
                         {
                             TimeT now = TimeT::now();
                             TimeT timestamp;
-                            if (!auth_dat[i].ban_until_time
-                                || auth_dat[i].ban_until_time < now)
+                            if (!ad.ban_until_time
+                                || ad.ban_until_time < now)
                                 timestamp = now;
                             else
-                                timestamp = auth_dat[i].ban_until_time;
+                                timestamp = ad.ban_until_time;
                             struct tm tmtime = timestamp;
                             tmtime.tm_year += (short) RFIFOW(fd, 6);
                             tmtime.tm_mon += (short) RFIFOW(fd, 8);
@@ -1468,7 +1399,7 @@ void parse_fromchar(int fd)
                             {
                                 if (timestamp <= now)
                                     timestamp = TimeT();
-                                if (auth_dat[i].ban_until_time != timestamp)
+                                if (ad.ban_until_time != timestamp)
                                 {
                                     if (timestamp)
                                     {
@@ -1482,12 +1413,11 @@ void parse_fromchar(int fd)
                                                 tmpstr,
                                                 ip);
                                         WBUFW(buf, 0) = 0x2731;
-                                        WBUFL(buf, 2) =
-                                            auth_dat[i].account_id;
+                                        WBUFL(buf, 2) = ad.account_id;
                                         WBUFB(buf, 6) = 1; // 0: change of statut, 1: ban
                                         WBUFL(buf, 7) = static_cast<time_t>(timestamp); // status or final date of a banishment
                                         charif_sendallwos(-1, buf, 11);
-                                        for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                        for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                             if (auth_fifo[j].account_id ==
                                                 acc)
                                                 auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
@@ -1498,7 +1428,7 @@ void parse_fromchar(int fd)
                                              server[id].name, acc,
                                              ip);
                                     }
-                                    auth_dat[i].ban_until_time = timestamp;
+                                    ad.ban_until_time = timestamp;
                                 }
                                 else
                                 {
@@ -1511,14 +1441,12 @@ void parse_fromchar(int fd)
                                 LOGIN_LOG("Char-server '%s': Error of ban request (account: %d, invalid date, ip: %s).\n",
                                      server[id].name, acc, ip);
                             }
-                            break;
+                            goto x2725_out;
                         }
                     }
-                    if (i == auth_num)
-                    {
-                        LOGIN_LOG("Char-server '%s': Error of ban request (account: %d not found, ip: %s).\n",
-                             server[id].name, acc, ip);
-                    }
+                    LOGIN_LOG("Char-server '%s': Error of ban request (account: %d not found, ip: %s).\n",
+                            server[id].name, acc, ip);
+                x2725_out:
                     RFIFOSKIP(fd, 18);
                 }
                 return;
@@ -1529,19 +1457,18 @@ void parse_fromchar(int fd)
                 {
                     int acc, sex;
                     acc = RFIFOL(fd, 2);
-                    for (i = 0; i < auth_num; i++)
+                    for (AuthData& ad : auth_data)
                     {
-//                  PRINTF("%d,", auth_dat[i].account_id);
-                        if (auth_dat[i].account_id == acc)
+                        if (ad.account_id == acc)
                         {
-                            if (auth_dat[i].sex == 2)
+                            if (ad.sex == 2)
                                 LOGIN_LOG("Char-server '%s': Error of sex change - Server account (suggested account: %d, actual sex %d (Server), ip: %s).\n",
                                      server[id].name, acc,
-                                     auth_dat[i].sex, ip);
+                                     ad.sex, ip);
                             else
                             {
                                 unsigned char buf[16];
-                                if (auth_dat[i].sex == 0)
+                                if (ad.sex == 0)
                                     sex = 1;
                                 else
                                     sex = 0;
@@ -1549,23 +1476,21 @@ void parse_fromchar(int fd)
                                      server[id].name, acc,
                                      (sex == 2) ? 'S' : (sex ? 'M' : 'F'),
                                      ip);
-                                for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                     if (auth_fifo[j].account_id == acc)
                                         auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                auth_dat[i].sex = sex;
+                                ad.sex = sex;
                                 WBUFW(buf, 0) = 0x2723;
                                 WBUFL(buf, 2) = acc;
                                 WBUFB(buf, 6) = sex;
                                 charif_sendallwos(-1, buf, 7);
                             }
-                            break;
+                            goto x2727_out;
                         }
                     }
-                    if (i == auth_num)
-                    {
-                        LOGIN_LOG("Char-server '%s': Error of sex change (account: %d not found, sex would be reversed, ip: %s).\n",
-                             server[id].name, acc, ip);
-                    }
+                    LOGIN_LOG("Char-server '%s': Error of sex change (account: %d not found, sex would be reversed, ip: %s).\n",
+                            server[id].name, acc, ip);
+                x2727_out:
                     RFIFOSKIP(fd, 6);
                 }
                 return;
@@ -1576,42 +1501,39 @@ void parse_fromchar(int fd)
                 {
                     int acc, p;
                     acc = RFIFOL(fd, 4);
-                    for (i = 0; i < auth_num; i++)
+                    for (AuthData& ad : auth_data)
                     {
-                        if (auth_dat[i].account_id == acc)
+                        if (ad.account_id == acc)
                         {
                             unsigned char buf[RFIFOW(fd, 2) + 1];
                             LOGIN_LOG("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d, ip: %s).\n",
                                  server[id].name, acc, ip);
+                            int j;
                             for (p = 8, j = 0;
                                  p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
                                  p += 36, j++)
                             {
-                                memcpy(auth_dat[i].account_reg2[j].str,
+                                memcpy(ad.account_reg2[j].str,
                                         RFIFOP(fd, p), 32);
-                                auth_dat[i].account_reg2[j].str[31] = '\0';
-                                remove_control_chars(auth_dat[i].account_reg2
+                                ad.account_reg2[j].str[31] = '\0';
+                                remove_control_chars(ad.account_reg2
                                                       [j].str);
-                                auth_dat[i].account_reg2[j].value =
+                                ad.account_reg2[j].value =
                                     RFIFOL(fd, p + 32);
                             }
-                            auth_dat[i].account_reg2_num = j;
+                            ad.account_reg2_num = j;
                             // Sending information towards the other char-servers.
-                            memcpy(WBUFP(buf, 0), RFIFOP(fd, 0),
-                                    RFIFOW(fd, 2));
+                            memcpy(WBUFP(buf, 0), RFIFOP(fd, 0), RFIFOW(fd, 2));
                             WBUFW(buf, 0) = 0x2729;
                             charif_sendallwos(fd, buf, WBUFW(buf, 2));
 //                      PRINTF("parse_fromchar: receiving (from the char-server) of account_reg2 (account id: %d).\n", acc);
-                            break;
+                            goto x2728_out;
                         }
                     }
-                    if (i == auth_num)
-                    {
-//                  PRINTF("parse_fromchar: receiving (from the char-server) of account_reg2 (unknwon account id: %d).\n", acc);
-                        LOGIN_LOG("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d not found, ip: %s).\n",
-                             server[id].name, acc, ip);
-                    }
+                    LOGIN_LOG("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d not found, ip: %s).\n",
+                            server[id].name, acc, ip);
                 }
+            x2728_out:
                 RFIFOSKIP(fd, RFIFOW(fd, 2));
                 break;
 
@@ -1619,15 +1541,14 @@ void parse_fromchar(int fd)
                 if (RFIFOREST(fd) < 6)
                     return;
                 {
-                    int acc;
-                    acc = RFIFOL(fd, 2);
-                    for (i = 0; i < auth_num; i++)
+                    int acc = RFIFOL(fd, 2);
+                    for (AuthData& ad : auth_data)
                     {
-                        if (auth_dat[i].account_id == acc)
+                        if (ad.account_id == acc)
                         {
-                            if (auth_dat[i].ban_until_time)
+                            if (ad.ban_until_time)
                             {
-                                auth_dat[i].ban_until_time = TimeT();
+                                ad.ban_until_time = TimeT();
                                 LOGIN_LOG("Char-server '%s': UnBan request (account: %d, ip: %s).\n",
                                      server[id].name, acc, ip);
                             }
@@ -1636,14 +1557,12 @@ void parse_fromchar(int fd)
                                 LOGIN_LOG("Char-server '%s': Error of UnBan request (account: %d, no change for unban date, ip: %s).\n",
                                      server[id].name, acc, ip);
                             }
-                            break;
+                            goto x272a_out;
                         }
                     }
-                    if (i == auth_num)
-                    {
-                        LOGIN_LOG("Char-server '%s': Error of UnBan request (account: %d not found, ip: %s).\n",
-                             server[id].name, acc, ip);
-                    }
+                    LOGIN_LOG("Char-server '%s': Error of UnBan request (account: %d not found, ip: %s).\n",
+                            server[id].name, acc, ip);
+                x272a_out:
                     RFIFOSKIP(fd, 6);
                 }
                 return;
@@ -1665,21 +1584,21 @@ void parse_fromchar(int fd)
 
                     int status = 0;
 
-                    for (i = 0; i < auth_num; i++)
+                    for (AuthData& ad : auth_data)
                     {
-                        if (auth_dat[i].account_id == acc)
+                        if (ad.account_id == acc)
                         {
-                            if (pass_ok(actual_pass, auth_dat[i].pass))
+                            if (pass_ok(actual_pass, ad.pass))
                             {
                                 if (strlen(new_pass) < 4)
                                     status = 3;
                                 else
                                 {
                                     status = 1;
-                                    strcpy(auth_dat[i].pass, MD5_saltcrypt(new_pass, make_salt()));
+                                    strcpy(ad.pass, MD5_saltcrypt(new_pass, make_salt()));
                                     LOGIN_LOG("Char-server '%s': Change pass success (account: %d (%s), ip: %s.\n",
                                          server[id].name, acc,
-                                         auth_dat[i].userid, ip);
+                                         ad.userid, ip);
                                 }
                             }
                             else
@@ -1687,11 +1606,12 @@ void parse_fromchar(int fd)
                                 status = 2;
                                 LOGIN_LOG("Char-server '%s': Attempt to modify a pass failed, wrong password. (account: %d (%s), ip: %s).\n",
                                      server[id].name, acc,
-                                     auth_dat[i].userid, ip);
+                                     ad.userid, ip);
                             }
-                            break;
+                            goto x2740_out;
                         }
                     }
+                x2740_out:
                     WFIFOW(fd, 0) = 0x2741;
                     WFIFOL(fd, 2) = acc;
                     WFIFOB(fd, 6) = status;    // 0: acc not found, 1: success, 2: password mismatch, 3: pass too short
@@ -1719,6 +1639,7 @@ void parse_fromchar(int fd)
                     FPRINTF(logfp,
                              "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
                     memset(tmpstr, '\0', sizeof(tmpstr));
+                    int i;
                     for (i = 0; i < RFIFOREST(fd); i++)
                     {
                         if ((i & 15) == 0)
@@ -1738,7 +1659,7 @@ void parse_fromchar(int fd)
                     }
                     if (i % 16 != 0)
                     {
-                        for (j = i; j % 16 != 0; j++)
+                        for (int j = i; j % 16 != 0; j++)
                         {
                             FPRINTF(logfp, "   ");
                             if ((j - 7) % 16 == 0)  // -8 + 1
@@ -1766,7 +1687,6 @@ void parse_fromchar(int fd)
 static
 void parse_admin(int fd)
 {
-    int i, j;
     char account_name[24];
 
     const char *ip = ip2str(session[fd]->client_addr.sin_addr);
@@ -1814,7 +1734,6 @@ void parse_admin(int fd)
                     return;
                 {
                     int st, ed, len;
-                    int id[auth_num];
                     st = RFIFOL(fd, 2);
                     ed = RFIFOL(fd, 6);
                     RFIFOSKIP(fd, 10);
@@ -1825,44 +1744,24 @@ void parse_admin(int fd)
                         ed = END_ACCOUNT_NUM;
                     LOGIN_LOG("'ladmin': Sending an accounts list (ask: from %d to %d, ip: %s)\n",
                          st, ed, ip);
-                    // Sort before send
-                    for (i = 0; i < auth_num; i++)
-                    {
-                        int k;
-                        id[i] = i;
-                        for (j = 0; j < i; j++)
-                        {
-                            if (auth_dat[id[i]].account_id <
-                                auth_dat[id[j]].account_id)
-                            {
-                                for (k = i; k > j; k--)
-                                {
-                                    id[k] = id[k - 1];
-                                }
-                                id[j] = i;  // id[i]
-                                break;
-                            }
-                        }
-                    }
                     // Sending accounts information
                     len = 4;
-                    for (i = 0; i < auth_num && len < 30000; i++)
+                    for (const AuthData& ad : auth_data)
                     {
-                        int account_id = auth_dat[id[i]].account_id;   // use sorted index
+                        if (len >= 30000)
+                            break;
+                        int account_id = ad.account_id;
                         if (account_id >= st && account_id <= ed)
                         {
-                            j = id[i];
                             WFIFOL(fd, len) = account_id;
-                            WFIFOB(fd, len + 4) =
-                                (unsigned char) isGM(account_id);
-                            memcpy(WFIFOP(fd, len + 5), auth_dat[j].userid,
-                                    24);
-                            WFIFOB(fd, len + 29) = auth_dat[j].sex;
-                            WFIFOL(fd, len + 30) = auth_dat[j].logincount;
-                            if (auth_dat[j].state == 0 && auth_dat[j].ban_until_time)  // if no state and banished
+                            WFIFOB(fd, len + 4) = (unsigned char) isGM(account_id);
+                            memcpy(WFIFOP(fd, len + 5), ad.userid, 24);
+                            WFIFOB(fd, len + 29) = ad.sex;
+                            WFIFOL(fd, len + 30) = ad.logincount;
+                            if (ad.state == 0 && ad.ban_until_time)  // if no state and banished
                                 WFIFOL(fd, len + 34) = 7;  // 6 = Your are Prohibited to log in until %s
                             else
-                                WFIFOL(fd, len + 34) = auth_dat[j].state;
+                                WFIFOL(fd, len + 34) = ad.state;
                             len += 38;
                         }
                     }
@@ -1916,17 +1815,15 @@ void parse_admin(int fd)
                     {
                         remove_control_chars(ma.userid);
                         remove_control_chars(ma.passwd);
-                        for (i = 0; i < auth_num; i++)
+                        for (const AuthData& ad : auth_data)
                         {
-                            if (strncmp(auth_dat[i].userid, ma.userid, 24) ==
-                                0)
+                            if (strncmp(ad.userid, ma.userid, 24) == 0)
                             {
                                 LOGIN_LOG("'ladmin': Attempt to create an already existing account (account: %s ip: %s)\n",
-                                     auth_dat[i].userid, ip);
-                                break;
+                                     ad.userid, ip);
+                                goto x7930_out;
                             }
                         }
-                        if (i == auth_num)
                         {
                             int new_id;
                             char email[40];
@@ -1935,10 +1832,11 @@ void parse_admin(int fd)
                             new_id = mmo_auth_new(&ma, ma.sex, email);
                             LOGIN_LOG("'ladmin': Account creation (account: %s (id: %d), sex: %c, email: %s, ip: %s)\n",
                                  ma.userid, new_id,
-                                 ma.sex, auth_dat[i].email, ip);
+                                 ma.sex, auth_data.back().email, ip);
                             WFIFOL(fd, 2) = new_id;
                         }
                     }
+                x7930_out:
                     WFIFOSET(fd, 30);
                     RFIFOSKIP(fd, 91);
                 }
@@ -1947,35 +1845,36 @@ void parse_admin(int fd)
             case 0x7932:       // Request for an account deletion
                 if (RFIFOREST(fd) < 26)
                     return;
+            {
                 WFIFOW(fd, 0) = 0x7933;
                 WFIFOL(fd, 2) = -1;
                 strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
-                i = search_account_index(account_name);
-                if (i != -1)
+                AuthData *ad = search_account(account_name);
+                if (ad)
                 {
+                    // TODO rename so I don't need anti-shadow braces
                     {
                     // Char-server is notified of deletion (for characters deletion).
                     uint8_t buf[6];
                     WBUFW(buf, 0) = 0x2730;
-                    WBUFL(buf, 2) = auth_dat[i].account_id;
+                    WBUFL(buf, 2) = ad->account_id;
                     charif_sendallwos(-1, buf, 6);
                     // send answer
-                    memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                    WFIFOL(fd, 2) = auth_dat[i].account_id;
+                    memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                    WFIFOL(fd, 2) = ad->account_id;
                     // save deleted account in log file
                     LOGIN_LOG("'ladmin': Account deletion (account: %s, id: %d, ip: %s) - saved in next line:\n",
-                         auth_dat[i].userid, auth_dat[i].account_id,
+                         ad->userid, ad->account_id,
                          ip);
                     }
                     {
-                        std::string buf = mmo_auth_tostr(&auth_dat[i]);
+                        std::string buf = mmo_auth_tostr(ad);
                         LOGIN_LOG("%s\n", buf);
                     }
                     // delete account
-                    memset(auth_dat[i].userid, '\0',
-                            sizeof(auth_dat[i].userid));
-                    auth_dat[i].account_id = -1;
+                    memset(ad->userid, '\0', sizeof(ad->userid));
+                    ad->account_id = -1;
                 }
                 else
                 {
@@ -1984,24 +1883,26 @@ void parse_admin(int fd)
                          account_name, ip);
                 }
                 WFIFOSET(fd, 30);
+            }
                 RFIFOSKIP(fd, 26);
                 break;
 
             case 0x7934:       // Request to change a password
                 if (RFIFOREST(fd) < 50)
                     return;
+            {
                 WFIFOW(fd, 0) = 0x7935;
                 WFIFOL(fd, 2) = -1;
                 strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
-                i = search_account_index(account_name);
-                if (i != -1)
+                AuthData *ad = search_account(account_name);
+                if (ad)
                 {
-                    memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                    strzcpy(auth_dat[i].pass, MD5_saltcrypt(static_cast<const char *>(RFIFOP(fd, 26)), make_salt()), 40);
-                    WFIFOL(fd, 2) = auth_dat[i].account_id;
+                    memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                    strzcpy(ad->pass, MD5_saltcrypt(static_cast<const char *>(RFIFOP(fd, 26)), make_salt()), 40);
+                    WFIFOL(fd, 2) = ad->account_id;
                     LOGIN_LOG("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)\n",
-                         auth_dat[i].userid, auth_dat[i].pass, ip);
+                         ad->userid, ad->pass, ip);
                 }
                 else
                 {
@@ -2010,6 +1911,7 @@ void parse_admin(int fd)
                          account_name, ip);
                 }
                 WFIFOSET(fd, 30);
+            }
                 RFIFOSKIP(fd, 50);
                 break;
 
@@ -2030,41 +1932,39 @@ void parse_admin(int fd)
                     {           // 7: // 6 = Your are Prohibited to log in until %s
                         strcpy(error_message, "-");
                     }
-                    i = search_account_index(account_name);
-                    if (i != -1)
+                    AuthData *ad = search_account(account_name);
+                    if (ad)
                     {
-                        memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                        WFIFOL(fd, 2) = auth_dat[i].account_id;
-                        if (auth_dat[i].state == statut
-                            && strcmp(auth_dat[i].error_message,
-                                       error_message) == 0)
+                        memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                        WFIFOL(fd, 2) = ad->account_id;
+                        if (ad->state == statut
+                            && strcmp(ad->error_message, error_message) == 0)
                             LOGIN_LOG("'ladmin': Modification of a state, but the state of the account is already the good state (account: %s, received state: %d, ip: %s)\n",
                                  account_name, statut, ip);
                         else
                         {
                             if (statut == 7)
                                 LOGIN_LOG("'ladmin': Modification of a state (account: %s, new state: %d - prohibited to login until '%s', ip: %s)\n",
-                                     auth_dat[i].userid, statut,
+                                     ad->userid, statut,
                                      error_message, ip);
                             else
                                 LOGIN_LOG("'ladmin': Modification of a state (account: %s, new state: %d, ip: %s)\n",
-                                     auth_dat[i].userid, statut, ip);
-                            if (auth_dat[i].state == 0)
+                                     ad->userid, statut, ip);
+                            if (ad->state == 0)
                             {
                                 unsigned char buf[16];
                                 WBUFW(buf, 0) = 0x2731;
-                                WBUFL(buf, 2) = auth_dat[i].account_id;
+                                WBUFL(buf, 2) = ad->account_id;
                                 WBUFB(buf, 6) = 0; // 0: change of statut, 1: ban
                                 WBUFL(buf, 7) = statut;    // status or final date of a banishment
                                 charif_sendallwos(-1, buf, 11);
-                                for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                     if (auth_fifo[j].account_id ==
-                                        auth_dat[i].account_id)
+                                        ad->account_id)
                                         auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                             }
-                            auth_dat[i].state = statut;
-                            memcpy(auth_dat[i].error_message, error_message,
-                                    20);
+                            ad->state = statut;
+                            strzcpy(ad->error_message, error_message, 20);
                         }
                     }
                     else
@@ -2082,7 +1982,7 @@ void parse_admin(int fd)
             case 0x7938:       // Request for servers list and # of online players
                 LOGIN_LOG("'ladmin': Sending of servers list (ip: %s)\n", ip);
                 server_num = 0;
-                for (i = 0; i < MAX_SERVERS; i++)
+                for (int i = 0; i < MAX_SERVERS; i++)
                 {
                     if (server_fd[i] >= 0)
                     {
@@ -2107,28 +2007,29 @@ void parse_admin(int fd)
             case 0x793a:       // Request to password check
                 if (RFIFOREST(fd) < 50)
                     return;
+            {
                 WFIFOW(fd, 0) = 0x793b;
                 WFIFOL(fd, 2) = -1;
                 strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
-                i = search_account_index(account_name);
-                if (i != -1)
+                const AuthData *ad = search_account(account_name);
+                if (ad)
                 {
-                    memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
+                    memcpy(WFIFOP(fd, 6), ad->userid, 24);
                     char pass[24];
                     strzcpy(pass, static_cast<const char *>(RFIFOP(fd, 26)), 24);
-                    if (pass_ok(pass, auth_dat[i].pass))
+                    if (pass_ok(pass, ad->pass))
                     {
-                        WFIFOL(fd, 2) = auth_dat[i].account_id;
+                        WFIFOL(fd, 2) = ad->account_id;
                         LOGIN_LOG("'ladmin': Check of password OK (account: %s, password: %s, ip: %s)\n",
-                             auth_dat[i].userid, auth_dat[i].pass,
+                             ad->userid, ad->pass,
                              ip);
                     }
                     else
                     {
                         remove_control_chars(pass);
                         LOGIN_LOG("'ladmin': Failure of password check (account: %s, proposed pass: %s, ip: %s)\n",
-                             auth_dat[i].userid, pass, ip);
+                             ad->userid, pass, ip);
                     }
                 }
                 else
@@ -2138,6 +2039,7 @@ void parse_admin(int fd)
                          account_name, ip);
                 }
                 WFIFOSET(fd, 30);
+            }
                 RFIFOSKIP(fd, 50);
                 break;
 
@@ -2163,37 +2065,34 @@ void parse_admin(int fd)
                     }
                     else
                     {
-                        i = search_account_index(account_name);
-                        if (i != -1)
+                        AuthData *ad = search_account(account_name);
+                        if (ad)
                         {
-                            memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                            if (auth_dat[i].sex !=
-                                ((sex == 'S' || sex == 's') ? 2 : (sex == 'M'
-                                                                   || sex ==
-                                                                   'm')))
+                            memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                            if (ad->sex !=
+                                ((sex == 'S' || sex == 's') ? 2
+                                    : (sex == 'M' || sex == 'm')))
                             {
                                 unsigned char buf[16];
-                                WFIFOL(fd, 2) = auth_dat[i].account_id;
-                                for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                WFIFOL(fd, 2) = ad->account_id;
+                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                     if (auth_fifo[j].account_id ==
-                                        auth_dat[i].account_id)
+                                        ad->account_id)
                                         auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                auth_dat[i].sex = (sex == 'S'
-                                                   || sex ==
-                                                   's') ? 2 : (sex == 'M'
-                                                               || sex == 'm');
+                                ad->sex = (sex == 'S' || sex == 's') ? 2
+                                    : (sex == 'M' || sex == 'm');
                                 LOGIN_LOG("'ladmin': Modification of a sex (account: %s, new sex: %c, ip: %s)\n",
-                                     auth_dat[i].userid, sex, ip);
+                                     ad->userid, sex, ip);
                                 // send to all char-server the change
                                 WBUFW(buf, 0) = 0x2723;
-                                WBUFL(buf, 2) = auth_dat[i].account_id;
-                                WBUFB(buf, 6) = auth_dat[i].sex;
+                                WBUFL(buf, 2) = ad->account_id;
+                                WBUFB(buf, 6) = ad->sex;
                                 charif_sendallwos(-1, buf, 7);
                             }
                             else
                             {
                                 LOGIN_LOG("'ladmin': Modification of a sex, but the sex is already the good sex (account: %s, sex: %c, ip: %s)\n",
-                                     auth_dat[i].userid, sex, ip);
+                                     ad->userid, sex, ip);
                             }
                         }
                         else
@@ -2225,11 +2124,11 @@ void parse_admin(int fd)
                     }
                     else
                     {
-                        i = search_account_index(account_name);
-                        if (i != -1)
+                        const AuthData *ad = search_account(account_name);
+                        if (ad)
                         {
-                            int acc = auth_dat[i].account_id;
-                            memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
+                            int acc = ad->account_id;
+                            memcpy(WFIFOP(fd, 6), ad->userid, 24);
                             if (isGM(acc) != new_gm_level)
                             {
                                 // modification of the file
@@ -2286,7 +2185,7 @@ void parse_admin(int fd)
                                                              "// %s: 'ladmin' GM level removed on account %d '%s' (previous level: %d)\n//%d %d\n",
                                                              tmpstr,
                                                              acc,
-                                                             auth_dat[i].userid,
+                                                             ad->userid,
                                                              GM_level, acc,
                                                              new_gm_level);
                                                     modify_flag = 1;
@@ -2297,7 +2196,7 @@ void parse_admin(int fd)
                                                              "// %s: 'ladmin' GM level on account %d '%s' (previous level: %d)\n%d %d\n",
                                                              tmpstr,
                                                              acc,
-                                                             auth_dat[i].userid,
+                                                             ad->userid,
                                                              GM_level, acc,
                                                              new_gm_level);
                                                     modify_flag = 1;
@@ -2308,20 +2207,20 @@ void parse_admin(int fd)
                                             FPRINTF(fp2,
                                                      "// %s: 'ladmin' GM level on account %d '%s' (previous level: 0)\n%d %d\n",
                                                      tmpstr, acc,
-                                                     auth_dat[i].userid, acc,
+                                                     ad->userid, acc,
                                                      new_gm_level);
                                         fclose_(fp);
                                     }
                                     else
                                     {
                                         LOGIN_LOG("'ladmin': Attempt to modify of a GM level - impossible to read GM accounts file (account: %s (%d), received GM level: %d, ip: %s)\n",
-                                             auth_dat[i].userid, acc,
+                                             ad->userid, acc,
                                              (int) new_gm_level, ip);
                                     }
                                     lock_fclose(fp2, GM_account_filename, &lock);
                                     WFIFOL(fd, 2) = acc;
                                     LOGIN_LOG("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)\n",
-                                         auth_dat[i].userid, acc,
+                                         ad->userid, acc,
                                             (int) new_gm_level, ip);
                                     // read and send new GM informations
                                     read_gm_account();
@@ -2330,14 +2229,14 @@ void parse_admin(int fd)
                                 else
                                 {
                                     LOGIN_LOG("'ladmin': Attempt to modify of a GM level - impossible to write GM accounts file (account: %s (%d), received GM level: %d, ip: %s)\n",
-                                         auth_dat[i].userid, acc,
+                                         ad->userid, acc,
                                          (int) new_gm_level, ip);
                                 }
                             }
                             else
                             {
                                 LOGIN_LOG("'ladmin': Attempt to modify of a GM level, but the GM level is already the good GM level (account: %s (%d), GM level: %d, ip: %s)\n",
-                                     auth_dat[i].userid, acc,
+                                     ad->userid, acc,
                                      (int) new_gm_level, ip);
                             }
                         }
@@ -2372,14 +2271,14 @@ void parse_admin(int fd)
                     else
                     {
                         remove_control_chars(email);
-                        i = search_account_index(account_name);
-                        if (i != -1)
+                        AuthData *ad = search_account(account_name);
+                        if (ad)
                         {
-                            memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                            memcpy(auth_dat[i].email, email, 40);
-                            WFIFOL(fd, 2) = auth_dat[i].account_id;
+                            memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                            memcpy(ad->email, email, 40);
+                            WFIFOL(fd, 2) = ad->account_id;
                             LOGIN_LOG("'ladmin': Modification of an email (account: %s, new e-mail: %s, ip: %s)\n",
-                                 auth_dat[i].userid, email, ip);
+                                 ad->userid, email, ip);
                         }
                         else
                         {
@@ -2396,35 +2295,36 @@ void parse_admin(int fd)
                 if (RFIFOREST(fd) < 28
                     || RFIFOREST(fd) < (28 + RFIFOW(fd, 26)))
                     return;
+            {
                 WFIFOW(fd, 0) = 0x7943;
                 WFIFOL(fd, 2) = -1;
                 strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
-                i = search_account_index(account_name);
-                if (i != -1)
+                AuthData *ad = search_account(account_name);
+                if (ad)
                 {
-                    int size_of_memo = sizeof(auth_dat[i].memo);
-                    memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                    memset(auth_dat[i].memo, '\0', size_of_memo);
+                    int size_of_memo = sizeof(ad->memo);
+                    memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                    memset(ad->memo, '\0', size_of_memo);
                     if (RFIFOW(fd, 26) == 0)
                     {
-                        strncpy(auth_dat[i].memo, "!", size_of_memo);
+                        strncpy(ad->memo, "!", size_of_memo);
                     }
                     else if (RFIFOW(fd, 26) > size_of_memo - 1)
                     {
-                        memcpy(auth_dat[i].memo, RFIFOP(fd, 28),
+                        memcpy(ad->memo, RFIFOP(fd, 28),
                                 size_of_memo - 1);
                     }
                     else
                     {
-                        memcpy(auth_dat[i].memo, RFIFOP(fd, 28),
+                        memcpy(ad->memo, RFIFOP(fd, 28),
                                 RFIFOW(fd, 26));
                     }
-                    auth_dat[i].memo[size_of_memo - 1] = '\0';
-                    remove_control_chars(auth_dat[i].memo);
-                    WFIFOL(fd, 2) = auth_dat[i].account_id;
+                    ad->memo[size_of_memo - 1] = '\0';
+                    remove_control_chars(ad->memo);
+                    WFIFOL(fd, 2) = ad->account_id;
                     LOGIN_LOG("'ladmin': Modification of a memo field (account: %s, new memo: %s, ip: %s)\n",
-                         auth_dat[i].userid, auth_dat[i].memo, ip);
+                         ad->userid, ad->memo, ip);
                 }
                 else
                 {
@@ -2433,23 +2333,25 @@ void parse_admin(int fd)
                          account_name, ip);
                 }
                 WFIFOSET(fd, 30);
+            }
                 RFIFOSKIP(fd, 28 + RFIFOW(fd, 26));
                 break;
 
             case 0x7944:       // Request to found an account id
                 if (RFIFOREST(fd) < 26)
                     return;
+            {
                 WFIFOW(fd, 0) = 0x7945;
                 WFIFOL(fd, 2) = -1;
                 strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
-                i = search_account_index(account_name);
-                if (i != -1)
+                const AuthData *ad = search_account(account_name);
+                if (ad)
                 {
-                    memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                    WFIFOL(fd, 2) = auth_dat[i].account_id;
+                    memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                    WFIFOL(fd, 2) = ad->account_id;
                     LOGIN_LOG("'ladmin': Request (by the name) of an account id (account: %s, id: %d, ip: %s)\n",
-                            auth_dat[i].userid, auth_dat[i].account_id,
+                            ad->userid, ad->account_id,
                             ip);
                 }
                 else
@@ -2459,6 +2361,7 @@ void parse_admin(int fd)
                             account_name, ip);
                 }
                 WFIFOSET(fd, 30);
+            }
                 RFIFOSKIP(fd, 26);
                 break;
 
@@ -2468,22 +2371,20 @@ void parse_admin(int fd)
                 WFIFOW(fd, 0) = 0x7947;
                 WFIFOL(fd, 2) = RFIFOL(fd, 2);
                 memset(WFIFOP(fd, 6), '\0', 24);
-                for (i = 0; i < auth_num; i++)
+                for (const AuthData& ad : auth_data)
                 {
-                    if (auth_dat[i].account_id == RFIFOL(fd, 2))
+                    if (ad.account_id == RFIFOL(fd, 2))
                     {
-                        strncpy((char *)WFIFOP(fd, 6), auth_dat[i].userid, 24);
+                        strncpy((char *)WFIFOP(fd, 6), ad.userid, 24);
                         LOGIN_LOG("'ladmin': Request (by id) of an account name (account: %s, id: %d, ip: %s)\n",
-                             auth_dat[i].userid, RFIFOL(fd, 2), ip);
-                        break;
+                             ad.userid, RFIFOL(fd, 2), ip);
+                        goto x7946_out;
                     }
                 }
-                if (i == auth_num)
-                {
-                    LOGIN_LOG("'ladmin': Name request (by id) of an unknown account (id: %d, ip: %s)\n",
-                         RFIFOL(fd, 2), ip);
-                    strncpy((char *)WFIFOP(fd, 6), "", 24);
-                }
+                LOGIN_LOG("'ladmin': Name request (by id) of an unknown account (id: %d, ip: %s)\n",
+                        RFIFOL(fd, 2), ip);
+                strncpy((char *)WFIFOP(fd, 6), "", 24);
+            x7946_out:
                 WFIFOSET(fd, 30);
                 RFIFOSKIP(fd, 6);
                 break;
@@ -2500,17 +2401,17 @@ void parse_admin(int fd)
                     timestamp_seconds_buffer tmpstr = "unlimited";
                     if (timestamp)
                         stamp_time(tmpstr, &timestamp);
-                    i = search_account_index(account_name);
-                    if (i != -1)
+                    AuthData *ad = search_account(account_name);
+                    if (ad)
                     {
-                        memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
+                        memcpy(WFIFOP(fd, 6), ad->userid, 24);
                         LOGIN_LOG("'ladmin': Change of a validity limit (account: %s, new validity: %lld (%s), ip: %s)\n",
-                                auth_dat[i].userid,
+                                ad->userid,
                                 timestamp,
                                 tmpstr,
                                 ip);
-                        auth_dat[i].connect_until_time = timestamp;
-                        WFIFOL(fd, 2) = auth_dat[i].account_id;
+                        ad->connect_until_time = timestamp;
+                        WFIFOL(fd, 2) = ad->account_id;
                     }
                     else
                     {
@@ -2541,31 +2442,31 @@ void parse_admin(int fd)
                     timestamp_seconds_buffer tmpstr = "no banishment";
                     if (timestamp)
                         stamp_time(tmpstr, &timestamp);
-                    i = search_account_index(account_name);
-                    if (i != -1)
+                    AuthData *ad = search_account(account_name);
+                    if (ad)
                     {
-                        memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                        WFIFOL(fd, 2) = auth_dat[i].account_id;
+                        memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                        WFIFOL(fd, 2) = ad->account_id;
                         LOGIN_LOG("'ladmin': Change of the final date of a banishment (account: %s, new final date of banishment: %lld (%s), ip: %s)\n",
-                                auth_dat[i].userid, timestamp,
+                                ad->userid, timestamp,
                                 tmpstr,
                                 ip);
-                        if (auth_dat[i].ban_until_time != timestamp)
+                        if (ad->ban_until_time != timestamp)
                         {
                             if (timestamp)
                             {
                                 unsigned char buf[16];
                                 WBUFW(buf, 0) = 0x2731;
-                                WBUFL(buf, 2) = auth_dat[i].account_id;
+                                WBUFL(buf, 2) = ad->account_id;
                                 WBUFB(buf, 6) = 1; // 0: change of statut, 1: ban
                                 WBUFL(buf, 7) = static_cast<time_t>(timestamp); // status or final date of a banishment
                                 charif_sendallwos(-1, buf, 11);
-                                for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                     if (auth_fifo[j].account_id ==
-                                        auth_dat[i].account_id)
+                                        ad->account_id)
                                         auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                             }
-                            auth_dat[i].ban_until_time = timestamp;
+                            ad->ban_until_time = timestamp;
                         }
                     }
                     else
@@ -2590,18 +2491,18 @@ void parse_admin(int fd)
                     WFIFOL(fd, 2) = -1;
                     strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
-                    i = search_account_index(account_name);
-                    if (i != -1)
+                    AuthData *ad = search_account(account_name);
+                    if (ad)
                     {
-                        WFIFOL(fd, 2) = auth_dat[i].account_id;
-                        memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
+                        WFIFOL(fd, 2) = ad->account_id;
+                        memcpy(WFIFOP(fd, 6), ad->userid, 24);
                         TimeT timestamp;
                         TimeT now = TimeT::now();
-                        if (!auth_dat[i].ban_until_time
-                            || auth_dat[i].ban_until_time < now)
+                        if (!ad->ban_until_time
+                            || ad->ban_until_time < now)
                             timestamp = now;
                         else
-                            timestamp = auth_dat[i].ban_until_time;
+                            timestamp = ad->ban_until_time;
                         struct tm tmtime = timestamp;
                         tmtime.tm_year += (short) RFIFOW(fd, 26);
                         tmtime.tm_mon += (short) RFIFOW(fd, 28);
@@ -2618,46 +2519,46 @@ void parse_admin(int fd)
                             if (timestamp)
                                 stamp_time(tmpstr, &timestamp);
                             LOGIN_LOG("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %lld (%s), ip: %s)\n",
-                                    auth_dat[i].userid,
+                                    ad->userid,
                                     (short) RFIFOW(fd, 26), (short) RFIFOW(fd, 28),
                                     (short) RFIFOW(fd, 30), (short) RFIFOW(fd, 32),
                                     (short) RFIFOW(fd, 34), (short) RFIFOW(fd, 36),
                                     timestamp,
                                     tmpstr,
                                     ip);
-                            if (auth_dat[i].ban_until_time != timestamp)
+                            if (ad->ban_until_time != timestamp)
                             {
                                 if (timestamp)
                                 {
                                     unsigned char buf[16];
                                     WBUFW(buf, 0) = 0x2731;
-                                    WBUFL(buf, 2) = auth_dat[i].account_id;
+                                    WBUFL(buf, 2) = ad->account_id;
                                     WBUFB(buf, 6) = 1; // 0: change of statut, 1: ban
                                     WBUFL(buf, 7) = static_cast<time_t>(timestamp); // status or final date of a banishment
                                     charif_sendallwos(-1, buf, 11);
-                                    for (j = 0; j < AUTH_FIFO_SIZE; j++)
+                                    for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                         if (auth_fifo[j].account_id ==
-                                            auth_dat[i].account_id)
+                                            ad->account_id)
                                             auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
                                 }
-                                auth_dat[i].ban_until_time = timestamp;
+                                ad->ban_until_time = timestamp;
                             }
                         }
                         else
                         {
                             timestamp_seconds_buffer tmpstr = "no banishment";
-                            if (auth_dat[i].ban_until_time)
-                                stamp_time(tmpstr, &auth_dat[i].ban_until_time);
+                            if (ad->ban_until_time)
+                                stamp_time(tmpstr, &ad->ban_until_time);
                             LOGIN_LOG("'ladmin': Impossible to adjust the final date of a banishment (account: %s, %lld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
-                                    auth_dat[i].userid,
-                                    auth_dat[i].ban_until_time,
+                                    ad->userid,
+                                    ad->ban_until_time,
                                     tmpstr,
                                     (short) RFIFOW(fd, 26), (short) RFIFOW(fd, 28),
                                     (short) RFIFOW(fd, 30), (short) RFIFOW(fd, 32),
                                     (short) RFIFOW(fd, 34), (short) RFIFOW(fd, 36),
                                     ip);
                         }
-                        WFIFOL(fd, 30) = static_cast<time_t>(auth_dat[i].ban_until_time);
+                        WFIFOL(fd, 30) = static_cast<time_t>(ad->ban_until_time);
                     }
                     else
                     {
@@ -2685,16 +2586,14 @@ void parse_admin(int fd)
                 else
                 {
                     // at least 1 char-server
-                    for (i = 0; i < MAX_SERVERS; i++)
+                    for (int i = 0; i < MAX_SERVERS; i++)
                         if (server_fd[i] >= 0)
-                            break;
-                    if (i == MAX_SERVERS)
+                            goto x794e_have_server;
+                    LOGIN_LOG("'ladmin': Receiving a message for broadcast, but no char-server is online (ip: %s)\n",
+                            ip);
+                    goto x794e_have_no_server;
                     {
-                        LOGIN_LOG("'ladmin': Receiving a message for broadcast, but no char-server is online (ip: %s)\n",
-                             ip);
-                    }
-                    else
-                    {
+                    x794e_have_server:
                         uint8_t buf[32000];
                         char message[32000];
                         WFIFOW(fd, 2) = 0;
@@ -2715,6 +2614,7 @@ void parse_admin(int fd)
                         charif_sendallwos(-1, buf, 8 + RFIFOL(fd, 4));
                     }
                 }
+            x794e_have_no_server:
                 WFIFOSET(fd, 4);
                 RFIFOSKIP(fd, 8 + RFIFOL(fd, 4));
                 break;
@@ -2727,15 +2627,15 @@ void parse_admin(int fd)
                     WFIFOL(fd, 2) = -1;
                     strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account_name);
-                    i = search_account_index(account_name);
-                    if (i != -1)
+                    AuthData *ad = search_account(account_name);
+                    if (ad)
                     {
-                        WFIFOL(fd, 2) = auth_dat[i].account_id;
-                        memcpy(WFIFOP(fd, 6), auth_dat[i].userid, 24);
-                        if (add_to_unlimited_account == 0 && !auth_dat[i].connect_until_time)
+                        WFIFOL(fd, 2) = ad->account_id;
+                        memcpy(WFIFOP(fd, 6), ad->userid, 24);
+                        if (add_to_unlimited_account == 0 && !ad->connect_until_time)
                         {
                             LOGIN_LOG("'ladmin': Attempt to adjust the validity limit of an unlimited account (account: %s, ip: %s)\n",
-                                 auth_dat[i].userid, ip);
+                                 ad->userid, ip);
                             WFIFOL(fd, 30) = 0;
                         }
                         else
@@ -2756,13 +2656,13 @@ void parse_admin(int fd)
                             {
                                 timestamp_seconds_buffer tmpstr = "unlimited";
                                 timestamp_seconds_buffer tmpstr2 = "unlimited";
-                                if (auth_dat[i].connect_until_time)
-                                    stamp_time(tmpstr, &auth_dat[i].connect_until_time);
+                                if (ad->connect_until_time)
+                                    stamp_time(tmpstr, &ad->connect_until_time);
                                 if (timestamp)
                                     stamp_time(tmpstr2, &timestamp);
                                 LOGIN_LOG("'ladmin': Adjustment of a validity limit (account: %s, %lld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %lld (%s), ip: %s)\n",
-                                        auth_dat[i].userid,
-                                        auth_dat[i].connect_until_time,
+                                        ad->userid,
+                                        ad->connect_until_time,
                                         tmpstr,
                                         (short) RFIFOW(fd, 26),
                                         (short) RFIFOW(fd, 28),
@@ -2773,17 +2673,17 @@ void parse_admin(int fd)
                                         timestamp,
                                         tmpstr2,
                                         ip);
-                                auth_dat[i].connect_until_time = timestamp;
+                                ad->connect_until_time = timestamp;
                                 WFIFOL(fd, 30) = static_cast<time_t>(timestamp);
                             }
                             else
                             {
                                 timestamp_seconds_buffer tmpstr = "unlimited";
-                                if (auth_dat[i].connect_until_time)
-                                    stamp_time(tmpstr, &auth_dat[i].connect_until_time);
+                                if (ad->connect_until_time)
+                                    stamp_time(tmpstr, &ad->connect_until_time);
                                 LOGIN_LOG("'ladmin': Impossible to adjust a validity limit (account: %s, %lld (%s) + (%+d y %+d m %+d d %+d h %+d mn %+d s) -> ???, ip: %s)\n",
-                                        auth_dat[i].userid,
-                                        auth_dat[i].connect_until_time,
+                                        ad->userid,
+                                        ad->connect_until_time,
                                         tmpstr,
                                         (short) RFIFOW(fd, 26),
                                         (short) RFIFOW(fd, 28),
@@ -2811,36 +2711,36 @@ void parse_admin(int fd)
             case 0x7952:       // Request about informations of an account (by account name)
                 if (RFIFOREST(fd) < 26)
                     return;
+            {
                 WFIFOW(fd, 0) = 0x7953;
                 WFIFOL(fd, 2) = -1;
                 strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                 remove_control_chars(account_name);
-                i = search_account_index(account_name);
-                if (i != -1)
+                const AuthData *ad = search_account(account_name);
+                if (ad)
                 {
-                    WFIFOL(fd, 2) = auth_dat[i].account_id;
-                    WFIFOB(fd, 6) =
-                        (unsigned char) isGM(auth_dat[i].account_id);
-                    memcpy(WFIFOP(fd, 7), auth_dat[i].userid, 24);
-                    WFIFOB(fd, 31) = auth_dat[i].sex;
-                    WFIFOL(fd, 32) = auth_dat[i].logincount;
-                    WFIFOL(fd, 36) = auth_dat[i].state;
-                    memcpy(WFIFOP(fd, 40), auth_dat[i].error_message, 20);
-                    memcpy(WFIFOP(fd, 60), auth_dat[i].lastlogin, 24);
-                    memcpy(WFIFOP(fd, 84), auth_dat[i].last_ip, 16);
-                    memcpy(WFIFOP(fd, 100), auth_dat[i].email, 40);
-                    WFIFOL(fd, 140) = static_cast<time_t>(auth_dat[i].connect_until_time);
-                    WFIFOL(fd, 144) = static_cast<time_t>(auth_dat[i].ban_until_time);
-                    WFIFOW(fd, 148) = strlen(auth_dat[i].memo);
-                    if (auth_dat[i].memo[0])
+                    WFIFOL(fd, 2) = ad->account_id;
+                    WFIFOB(fd, 6) = (unsigned char) isGM(ad->account_id);
+                    memcpy(WFIFOP(fd, 7), ad->userid, 24);
+                    WFIFOB(fd, 31) = ad->sex;
+                    WFIFOL(fd, 32) = ad->logincount;
+                    WFIFOL(fd, 36) = ad->state;
+                    memcpy(WFIFOP(fd, 40), ad->error_message, 20);
+                    memcpy(WFIFOP(fd, 60), ad->lastlogin, 24);
+                    memcpy(WFIFOP(fd, 84), ad->last_ip, 16);
+                    memcpy(WFIFOP(fd, 100), ad->email, 40);
+                    WFIFOL(fd, 140) = static_cast<time_t>(ad->connect_until_time);
+                    WFIFOL(fd, 144) = static_cast<time_t>(ad->ban_until_time);
+                    WFIFOW(fd, 148) = strlen(ad->memo);
+                    if (ad->memo[0])
                     {
-                        memcpy(WFIFOP(fd, 150), auth_dat[i].memo,
-                                strlen(auth_dat[i].memo));
+                        memcpy(WFIFOP(fd, 150), ad->memo,
+                                strlen(ad->memo));
                     }
                     LOGIN_LOG("'ladmin': Sending information of an account (request by the name; account: %s, id: %d, ip: %s)\n",
-                         auth_dat[i].userid, auth_dat[i].account_id,
+                         ad->userid, ad->account_id,
                          ip);
-                    WFIFOSET(fd, 150 + strlen(auth_dat[i].memo));
+                    WFIFOSET(fd, 150 + strlen(ad->memo));
                 }
                 else
                 {
@@ -2850,6 +2750,7 @@ void parse_admin(int fd)
                          account_name, ip);
                     WFIFOSET(fd, 150);
                 }
+            }
                 RFIFOSKIP(fd, 26);
                 break;
 
@@ -2859,36 +2760,34 @@ void parse_admin(int fd)
                 WFIFOW(fd, 0) = 0x7953;
                 WFIFOL(fd, 2) = RFIFOL(fd, 2);
                 memset(WFIFOP(fd, 7), '\0', 24);
-                for (i = 0; i < auth_num; i++)
+                for (const AuthData& ad : auth_data)
                 {
-                    if (auth_dat[i].account_id == RFIFOL(fd, 2))
+                    if (ad.account_id == RFIFOL(fd, 2))
                     {
                         LOGIN_LOG("'ladmin': Sending information of an account (request by the id; account: %s, id: %d, ip: %s)\n",
-                             auth_dat[i].userid, RFIFOL(fd, 2), ip);
+                             ad.userid, RFIFOL(fd, 2), ip);
                         WFIFOB(fd, 6) =
-                            (unsigned char) isGM(auth_dat[i].account_id);
-                        memcpy(WFIFOP(fd, 7), auth_dat[i].userid, 24);
-                        WFIFOB(fd, 31) = auth_dat[i].sex;
-                        WFIFOL(fd, 32) = auth_dat[i].logincount;
-                        WFIFOL(fd, 36) = auth_dat[i].state;
-                        memcpy(WFIFOP(fd, 40), auth_dat[i].error_message,
-                                20);
-                        memcpy(WFIFOP(fd, 60), auth_dat[i].lastlogin, 24);
-                        memcpy(WFIFOP(fd, 84), auth_dat[i].last_ip, 16);
-                        memcpy(WFIFOP(fd, 100), auth_dat[i].email, 40);
-                        WFIFOL(fd, 140) = static_cast<time_t>(auth_dat[i].connect_until_time);
-                        WFIFOL(fd, 144) = static_cast<time_t>(auth_dat[i].ban_until_time);
-                        WFIFOW(fd, 148) = strlen(auth_dat[i].memo);
-                        if (auth_dat[i].memo[0])
+                            (unsigned char) isGM(ad.account_id);
+                        memcpy(WFIFOP(fd, 7), ad.userid, 24);
+                        WFIFOB(fd, 31) = ad.sex;
+                        WFIFOL(fd, 32) = ad.logincount;
+                        WFIFOL(fd, 36) = ad.state;
+                        memcpy(WFIFOP(fd, 40), ad.error_message, 20);
+                        memcpy(WFIFOP(fd, 60), ad.lastlogin, 24);
+                        memcpy(WFIFOP(fd, 84), ad.last_ip, 16);
+                        memcpy(WFIFOP(fd, 100), ad.email, 40);
+                        WFIFOL(fd, 140) = static_cast<time_t>(ad.connect_until_time);
+                        WFIFOL(fd, 144) = static_cast<time_t>(ad.ban_until_time);
+                        WFIFOW(fd, 148) = strlen(ad.memo);
+                        if (ad.memo[0])
                         {
-                            memcpy(WFIFOP(fd, 150), auth_dat[i].memo,
-                                    strlen(auth_dat[i].memo));
+                            memcpy(WFIFOP(fd, 150), ad.memo,
+                                    strlen(ad.memo));
                         }
-                        WFIFOSET(fd, 150 + strlen(auth_dat[i].memo));
-                        break;
+                        WFIFOSET(fd, 150 + strlen(ad.memo));
+                        goto x7954_out;
                     }
                 }
-                if (i == auth_num)
                 {
                     LOGIN_LOG("'ladmin': Attempt to obtain information (by the id) of an unknown account (id: %d, ip: %s)\n",
                          RFIFOL(fd, 2), ip);
@@ -2896,6 +2795,7 @@ void parse_admin(int fd)
                     WFIFOW(fd, 148) = 0;
                     WFIFOSET(fd, 150);
                 }
+            x7954_out:
                 RFIFOSKIP(fd, 6);
                 break;
 
@@ -2925,6 +2825,7 @@ void parse_admin(int fd)
                     FPRINTF(logfp,
                              "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
                     memset(tmpstr, '\0', sizeof(tmpstr));
+                    int i;
                     for (i = 0; i < RFIFOREST(fd); i++)
                     {
                         if ((i & 15) == 0)
@@ -2944,7 +2845,7 @@ void parse_admin(int fd)
                     }
                     if (i % 16 != 0)
                     {
-                        for (j = i; j % 16 != 0; j++)
+                        for (int j = i; j % 16 != 0; j++)
                         {
                             FPRINTF(logfp, "   ");
                             if ((j - 7) % 16 == 0)  // -8 + 1
@@ -3202,20 +3103,20 @@ void parse_login(int fd)
                     if (result == 6)
                     {
                         // 6 = Your are Prohibited to log in until %s
-                        int i = search_account_index(account.userid);
-                        if (i != -1)
+                        const AuthData *ad = search_account(account.userid);
+                        if (ad)
                         {
-                            if (auth_dat[i].ban_until_time)
+                            if (ad->ban_until_time)
                             {
                                 // if account is banned, we send ban timestamp
                                 timestamp_seconds_buffer tmpstr;
-                                stamp_time(tmpstr, &auth_dat[i].ban_until_time);
+                                stamp_time(tmpstr, &ad->ban_until_time);
                                 memcpy(WFIFOP(fd, 3), tmpstr, 20);
                             }
                             else
                             {   // we send error message
                                 memcpy(WFIFOP(fd, 3),
-                                        auth_dat[i].error_message, 20);
+                                        ad->error_message, 20);
                             }
                         }
                     }
@@ -3271,7 +3172,7 @@ void parse_login(int fd)
                 if (RFIFOREST(fd) < 86)
                     return;
                 {
-                    int GM_value, len;
+                    int len;
                     char server_name[20];
                     strzcpy(account.userid, static_cast<const char *>(RFIFOP(fd, 2)), 24);
                     remove_control_chars(account.userid);
@@ -3339,14 +3240,12 @@ void parse_login(int fd)
                         // send GM account to char-server
                         len = 4;
                         WFIFOW(fd, 0) = 0x2732;
-                        for (int i = 0; i < auth_num; i++)
+                        for (const AuthData& ad : auth_data)
                             // send only existing accounts. We can not create a GM account when server is online.
-                            if ((GM_value =
-                                 isGM(auth_dat[i].account_id)) > 0)
+                            if (uint8_t GM_value = isGM(ad.account_id))
                             {
-                                WFIFOL(fd, len) = auth_dat[i].account_id;
-                                WFIFOB(fd, len + 4) =
-                                    (unsigned char) GM_value;
+                                WFIFOL(fd, len) = ad.account_id;
+                                WFIFOB(fd, len + 4) = GM_value;
                                 len += 5;
                             }
                         WFIFOW(fd, 2) = len;
@@ -3678,32 +3577,25 @@ int login_config_read(const char *cfgName)
         {
             if (w2 == "clear")
             {
-                if (access_ladmin_allow)
-                    free(access_ladmin_allow);
-                access_ladmin_allow = NULL;
-                access_ladmin_allownum = 0;
+                access_ladmin.clear();
             }
             else
             {
                 if (w2 == "all")
                 {
                     // reset all previous values
-                    if (access_ladmin_allow)
-                        free(access_ladmin_allow);
+                    access_ladmin.clear();
                     // set to all
-                    CREATE(access_ladmin_allow, char, ACO_STRSIZE);
-                    access_ladmin_allownum = 1;
+                    access_ladmin.push_back(AccessEntry());
                 }
-                else if (w2[0]
-                         && !(access_ladmin_allownum == 1
-                              && access_ladmin_allow[0] == '\0'))
-                {           // don't add IP if already 'all'
-                    if (access_ladmin_allow)
-                        RECREATE(access_ladmin_allow, char, (access_ladmin_allownum + 1) * ACO_STRSIZE);
-                    else
-                        CREATE(access_ladmin_allow, char, ACO_STRSIZE);
-                    strzcpy(access_ladmin_allow + (access_ladmin_allownum++) * ACO_STRSIZE,
-                            w2.c_str(), ACO_STRSIZE);
+                else if (!w2.empty()
+                         && !(access_ladmin.size() == 1
+                              && access_ladmin.front() == AccessEntry()))
+                {
+                    // don't add IP if already 'all'
+                    AccessEntry n;
+                    strzcpy(n.data(), w2.c_str(), sizeof(n));
+                    access_ladmin.push_back(n);
                 }
             }
         }
@@ -3778,44 +3670,38 @@ int login_config_read(const char *cfgName)
         }
         else if (w1 == "order")
         {
-            access_order = atoi(w2.c_str());
             if (w2 == "deny,allow" || w2 == "deny, allow")
-                access_order = ACO_DENY_ALLOW;
-            if (w2 == "allow,deny" || w2 == "allow, deny")
-                access_order = ACO_ALLOW_DENY;
-            if (w2 == "mutual-failture" || w2 == "mutual-failure")
-                access_order = ACO_MUTUAL_FAILTURE;
+                access_order = ACO::DENY_ALLOW;
+            else if (w2 == "allow,deny" || w2 == "allow, deny")
+                access_order = ACO::ALLOW_DENY;
+            else if (w2 == "mutual-failture" || w2 == "mutual-failure")
+                access_order = ACO::MUTUAL_FAILTURE;
+            else
+                PRINTF("Bad order: %s\n", w2);
         }
         else if (w1 == "allow")
         {
             if (w2 == "clear")
             {
-                if (access_allow)
-                    free(access_allow);
-                access_allow = NULL;
-                access_allownum = 0;
+                access_allow.clear();
             }
             else
             {
                 if (w2 == "all")
                 {
                     // reset all previous values
-                    if (access_allow)
-                        free(access_allow);
+                    access_allow.clear();
                     // set to all
-                    CREATE(access_allow, char, ACO_STRSIZE);
-                    access_allownum = 1;
+                    access_allow.push_back(AccessEntry());
                 }
-                else if (w2[0]
-                         && !(access_allownum == 1
-                              && access_allow[0] == '\0'))
-                {           // don't add IP if already 'all'
-                    if (access_allow)
-                        RECREATE(access_allow, char, (access_allownum + 1) * ACO_STRSIZE);
-                    else
-                        CREATE(access_allow, char, ACO_STRSIZE);
-                    strzcpy(access_allow + (access_allownum++) * ACO_STRSIZE,
-                            w2.c_str(), ACO_STRSIZE);
+                else if (!w2.empty()
+                         && !(access_allow.size() == 1
+                              && access_allow.front() == AccessEntry()))
+                {
+                    // don't add IP if already 'all'
+                    AccessEntry n;
+                    strzcpy(n.data(), w2.c_str(), sizeof(n));
+                    access_allow.push_back(n);
                 }
             }
         }
@@ -3823,32 +3709,25 @@ int login_config_read(const char *cfgName)
         {
             if (w2 == "clear")
             {
-                if (access_deny)
-                    free(access_deny);
-                access_deny = NULL;
-                access_denynum = 0;
+                access_deny.clear();
             }
             else
             {
                 if (w2 == "all")
                 {
                     // reset all previous values
-                    if (access_deny)
-                        free(access_deny);
+                    access_deny.clear();
                     // set to all
-                    CREATE(access_deny, char, ACO_STRSIZE);
-                    access_denynum = 1;
+                    access_deny.push_back(AccessEntry());
                 }
                 else if (!w2.empty()
-                         && !(access_denynum == 1
-                              && access_deny[0] == '\0'))
-                {           // don't add IP if already 'all'
-                    if (access_deny)
-                        RECREATE(access_deny, char, (access_denynum + 1) * ACO_STRSIZE);
-                    else
-                        CREATE(access_deny, char, ACO_STRSIZE);
-                    strzcpy(access_deny + (access_denynum++) * ACO_STRSIZE,
-                            w2.c_str(), ACO_STRSIZE);
+                         && !(access_deny.size() == 1
+                              && access_deny.front() == AccessEntry()))
+                {
+                    // don't add IP if already 'all'
+                    AccessEntry n;
+                    strzcpy(n.data(), w2.c_str(), sizeof(n));
+                    access_deny.push_back(n);
                 }
             }
         }
@@ -4015,17 +3894,17 @@ void display_conf_warnings(void)
         check_ip_flag = 1;
     }
 
-    if (access_order == ACO_DENY_ALLOW)
+    if (access_order == ACO::DENY_ALLOW)
     {
-        if (access_denynum == 1 && access_deny[0] == '\0')
+        if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
         {
             PRINTF("***WARNING: The IP security order is 'deny,allow' (allow if not deny).\n");
             PRINTF("            And you refuse ALL IP.\n");
         }
     }
-    else if (access_order == ACO_ALLOW_DENY)
+    else if (access_order == ACO::ALLOW_DENY)
     {
-        if (access_allownum == 0)
+        if (access_allow.empty())
         {
             PRINTF("***WARNING: The IP security order is 'allow,deny' (deny if not allow).\n");
             PRINTF("            But, NO IP IS AUTHORISED!\n");
@@ -4033,13 +3912,13 @@ void display_conf_warnings(void)
     }
     else
     {                           // ACO_MUTUAL_FAILTURE
-        if (access_allownum == 0)
+        if (access_allow.empty())
         {
             PRINTF("***WARNING: The IP security order is 'mutual-failture'\n");
             PRINTF("            (allow if in the allow list and not in the deny list).\n");
             PRINTF("            But, NO IP IS AUTHORISED!\n");
         }
-        else if (access_denynum == 1 && access_deny[0] == '\0')
+        else if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
         {
             PRINTF("***WARNING: The IP security order is mutual-failture\n");
             PRINTF("            (allow if in the allow list and not in the deny list).\n");
@@ -4056,8 +3935,6 @@ void display_conf_warnings(void)
 static
 void save_config_in_log(void)
 {
-    int i;
-
     // a newline in the log...
     LOGIN_LOG("");
     LOGIN_LOG("The login-server starting...\n");
@@ -4074,17 +3951,16 @@ void save_config_in_log(void)
     else
         LOGIN_LOG("- with a remote administration with the password of %zu character(s).\n",
              strlen(admin_pass));
-    if (access_ladmin_allownum == 0
-        || (access_ladmin_allownum == 1 && access_ladmin_allow[0] == '\0'))
+    if (access_ladmin.empty()
+        || (access_ladmin.size() == 1 && access_ladmin.front() == AccessEntry()))
     {
         LOGIN_LOG("- to accept any IP for remote administration\n");
     }
     else
     {
         LOGIN_LOG("- to accept following IP for remote administration:\n");
-        for (i = 0; i < access_ladmin_allownum; i++)
-            LOGIN_LOG("  %s\n",
-                    access_ladmin_allow + i * ACO_STRSIZE);
+        for (const AccessEntry& ae : access_ladmin)
+            LOGIN_LOG("  %s\n", ae.data());
     }
 
     if (gm_pass[0] == '\0')
@@ -4162,70 +4038,66 @@ void save_config_in_log(void)
     else
         LOGIN_LOG("- to not check players IP between login-server and char-server.\n");
 
-    if (access_order == ACO_DENY_ALLOW)
+    if (access_order == ACO::DENY_ALLOW)
     {
-        if (access_denynum == 0)
+        if (access_deny.empty())
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). You refuse no IP.\n");
         }
-        else if (access_denynum == 1 && access_deny[0] == '\0')
+        else if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). You refuse ALL IP.\n");
         }
         else
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). Refused IP are:\n");
-            for (i = 0; i < access_denynum; i++)
-                LOGIN_LOG("  %s\n",
-                        access_deny + i * ACO_STRSIZE);
+            for (const AccessEntry& ae : access_deny)
+                LOGIN_LOG("  %s\n", ae.data());
         }
     }
-    else if (access_order == ACO_ALLOW_DENY)
+    else if (access_order == ACO::ALLOW_DENY)
     {
-        if (access_allownum == 0)
+        if (access_allow.empty())
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). But, NO IP IS AUTHORISED!\n");
         }
-        else if (access_allownum == 1 && access_allow[0] == '\0')
+        else if (access_allow.size() == 1 && access_allow.front() == AccessEntry())
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). You authorise ALL IP.\n");
         }
         else
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). Authorised IP are:\n");
-            for (i = 0; i < access_allownum; i++)
-                LOGIN_LOG("  %s\n",
-                        access_allow + i * ACO_STRSIZE);
+            for (const AccessEntry& ae : access_allow)
+                LOGIN_LOG("  %s\n", ae.data());
         }
     }
     else
     {                           // ACO_MUTUAL_FAILTURE
         LOGIN_LOG("- with the IP security order: 'mutual-failture' (allow if in the allow list and not in the deny list).\n");
-        if (access_allownum == 0)
+        if (access_allow.empty())
         {
             LOGIN_LOG("  But, NO IP IS AUTHORISED!\n");
         }
-        else if (access_denynum == 1 && access_deny[0] == '\0')
+        else if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
         {
             LOGIN_LOG("  But, you refuse ALL IP!\n");
         }
         else
         {
-            if (access_allownum == 1 && access_allow[0] == '\0')
+            if (access_allow.size() == 1 && access_allow.front() == AccessEntry())
             {
                 LOGIN_LOG("  You authorise ALL IP.\n");
             }
             else
             {
                 LOGIN_LOG("  Authorised IP are:\n");
-                for (i = 0; i < access_allownum; i++)
-                    LOGIN_LOG("    %s\n",
-                            access_allow + i * ACO_STRSIZE);
+                for (const AccessEntry& ae : access_allow)
+                    LOGIN_LOG("    %s\n", ae.data());
             }
             LOGIN_LOG("  Refused IP are:\n");
-            for (i = 0; i < access_denynum; i++)
-                LOGIN_LOG("    %s\n",
-                        access_deny + i * ACO_STRSIZE);
+            for (const AccessEntry& ae : access_deny)
+                LOGIN_LOG("    %s\n", ae.data());
         }
     }
 }
@@ -4239,7 +4111,7 @@ void term_func(void)
 
     mmo_auth_sync();
 
-    free(auth_dat);
+    auth_data.clear();
     gm_account_db.clear();
     for (i = 0; i < MAX_SERVERS; i++)
     {

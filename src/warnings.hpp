@@ -191,7 +191,8 @@ E(-Wbuiltin-macro-redefined)
 
 /// Warn about C++ constructs whose meaning differs
 /// between ISO C++ 1998 and ISO C++ 2011
-E(-Wc++0x-compat)
+// This has gone funky lately. It probably doesn't do anything anyway.
+//E(-Wc++0x-compat)
 //W(-Wc++11-compat)
 
 /// Warn about pointer casts which increase alignment

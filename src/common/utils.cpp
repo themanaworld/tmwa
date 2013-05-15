@@ -125,7 +125,7 @@ bool split_key_value(const std::string& line, std::string *w1, std::string *w2)
 static_assert(sizeof(timestamp_seconds_buffer) == 20, "seconds buffer");
 static_assert(sizeof(timestamp_milliseconds_buffer) == 24, "millis buffer");
 
-void stamp_time(timestamp_seconds_buffer& out, TimeT *t)
+void stamp_time(timestamp_seconds_buffer& out, const TimeT *t)
 {
     struct tm when = t ? *t : TimeT::now();
     strftime(out, 20, "%Y-%m-%d %H:%M:%S", &when);

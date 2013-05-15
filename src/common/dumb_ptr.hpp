@@ -21,6 +21,8 @@
 
 #include "sanity.hpp"
 
+#include <algorithm>
+
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
 template<class T>
@@ -64,11 +66,11 @@ public:
     }
 
     explicit
-    operator bool()
+    operator bool() const
     {
         return impl;
     }
-    bool operator !()
+    bool operator !() const
     {
         return !impl;
     }
@@ -95,17 +97,35 @@ public:
     }
     void new_(size_t z)
     {
-        impl = new T[z];
+        impl = new T[z]();
     }
     static
     dumb_ptr<T[]> make(size_t z)
     {
-        return dumb_ptr<T[]>(new T[z], z);
+        return dumb_ptr<T[]>(new T[z](), z);
     }
     void forget()
     {
         impl = nullptr;
         sz = 0;
+    }
+
+    size_t size() const
+    {
+        return sz;
+    }
+    void resize(size_t z)
+    {
+        if (z == sz)
+            return;
+        T *np = new T[z]();
+        // not exception-safe, but we don't have a dtor anyway
+        size_t i = std::min(z, sz);
+        while (i-->0)
+            np[i] = std::move(impl[i]);
+        delete[] impl;
+        impl = np;
+        sz = z;
     }
 
     T& operator[](size_t i) const
@@ -114,11 +134,11 @@ public:
     }
 
     explicit
-    operator bool()
+    operator bool() const
     {
         return impl;
     }
-    bool operator !()
+    bool operator !() const
     {
         return !impl;
     }
