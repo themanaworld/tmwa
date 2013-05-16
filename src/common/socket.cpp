@@ -68,7 +68,7 @@ static void send_from_fifo (int fd)
     if (len > 0)
     {
         session[fd]->wdata_size -= len;
-        if (len < (ssize_t)session[fd]->wdata_size)
+        if (session[fd]->wdata_size)
         {
             memmove (session[fd]->wdata, session[fd]->wdata + len,
                      session[fd]->wdata_size);
