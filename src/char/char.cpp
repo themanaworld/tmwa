@@ -1707,7 +1707,10 @@ void parse_frommap(int fd)
                         for (mmo_charstatus& cdi : char_data)
                         {
                             if (cdi.char_id == afi.char_id)
+                            {
+                                cd = &cdi;
                                 break;
+                            }
                         }
                         assert (cd && "uh-oh - deleted while in queue?");
                         afi.delflag = 1;
