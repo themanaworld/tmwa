@@ -29,13 +29,13 @@ const uint32_t RFIFO_SIZE = 65536;
 static
 const uint32_t WFIFO_SIZE = 65536;
 
-struct socket_data *session[FD_SETSIZE];
+std::array<std::unique_ptr<struct socket_data>, FD_SETSIZE> session;
 
 /// clean up by discarding handled bytes
 inline
 void RFIFOFLUSH(int fd)
 {
-    memmove(session[fd]->rdata, RFIFOP(fd, 0), RFIFOREST(fd));
+    memmove(&session[fd]->rdata[0], RFIFOP(fd, 0), RFIFOREST(fd));
     session[fd]->rdata_size = RFIFOREST(fd);
     session[fd]->rdata_pos = 0;
 }
@@ -53,9 +53,9 @@ static
 void null_parse(int fd);
 /// Default parser for new connections
 static
-void(*default_func_parse)(int) = null_parse;
+void (*default_func_parse)(int) = null_parse;
 
-void set_defaultparse(void(*defaultparse)(int))
+void set_defaultparse(void (*defaultparse)(int))
 {
     default_func_parse = defaultparse;
 }
@@ -67,7 +67,7 @@ void recv_to_fifo(int fd)
     if (session[fd]->eof)
         return;
 
-    ssize_t len = read(fd, session[fd]->rdata + session[fd]->rdata_size,
+    ssize_t len = read(fd, &session[fd]->rdata[session[fd]->rdata_size],
                         RFIFOSPACE(fd));
 
     if (len > 0)
@@ -87,14 +87,14 @@ void send_from_fifo(int fd)
     if (session[fd]->eof)
         return;
 
-    ssize_t len = write(fd, session[fd]->wdata, session[fd]->wdata_size);
+    ssize_t len = write(fd, &session[fd]->wdata[0], session[fd]->wdata_size);
 
     if (len > 0)
     {
         session[fd]->wdata_size -= len;
         if (session[fd]->wdata_size)
         {
-            memmove(session[fd]->wdata, session[fd]->wdata + len,
+            memmove(&session[fd]->wdata[0], &session[fd]->wdata[len],
                      session[fd]->wdata_size);
         }
         session[fd]->connected = 1;
@@ -160,9 +160,9 @@ void connect_client(int listen_fd)
 
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
-    CREATE(session[fd], struct socket_data, 1);
-    CREATE(session[fd]->rdata, uint8_t, RFIFO_SIZE);
-    CREATE(session[fd]->wdata, uint8_t, WFIFO_SIZE);
+    session[fd].reset(new socket_data());
+    session[fd]->rdata.new_(RFIFO_SIZE);
+    session[fd]->wdata.new_(WFIFO_SIZE);
 
     session[fd]->max_rdata = RFIFO_SIZE;
     session[fd]->max_wdata = WFIFO_SIZE;
@@ -219,7 +219,7 @@ int make_listen_port(uint16_t port)
 
     FD_SET(fd, &readfds);
 
-    CREATE(session[fd], struct socket_data, 1);
+    session[fd].reset(new socket_data());
 
     session[fd]->func_recv = connect_client;
     session[fd]->created = TimeT::now();
@@ -265,9 +265,9 @@ int make_connection(uint32_t ip, uint16_t port)
 
     FD_SET(fd, &readfds);
 
-    CREATE(session[fd], struct socket_data, 1);
-    CREATE(session[fd]->rdata, uint8_t, RFIFO_SIZE);
-    CREATE(session[fd]->wdata, uint8_t, WFIFO_SIZE);
+    session[fd].reset(new socket_data());
+    session[fd]->rdata.new_(RFIFO_SIZE);
+    session[fd]->wdata.new_(WFIFO_SIZE);
 
     session[fd]->max_rdata = RFIFO_SIZE;
     session[fd]->max_wdata = WFIFO_SIZE;
@@ -293,12 +293,11 @@ void delete_session(int fd)
     FD_CLR(fd, &readfds);
     if (session[fd])
     {
-        free(session[fd]->rdata);
-        free(session[fd]->wdata);
-        free(session[fd]->session_data);
-        free(session[fd]);
+        session[fd]->rdata.delete_();
+        session[fd]->wdata.delete_();
+        session[fd]->session_data.reset();
+        session[fd].reset();
     }
-    session[fd] = NULL;
 
     // just close() would try to keep sending buffers
     shutdown(fd, SHUT_RDWR);
@@ -314,22 +313,22 @@ void delete_session(int fd)
 
 void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size)
 {
-    struct socket_data *s = session[fd];
+    const std::unique_ptr<socket_data>& s = session[fd];
     if (s->max_rdata != rfifo_size && s->rdata_size < rfifo_size)
     {
-        RECREATE(s->rdata, uint8_t, rfifo_size);
+        s->rdata.resize(rfifo_size);
         s->max_rdata = rfifo_size;
     }
     if (s->max_wdata != wfifo_size && s->wdata_size < wfifo_size)
     {
-        RECREATE(s->wdata, uint8_t, wfifo_size);
+        s->wdata.resize(wfifo_size);
         s->max_wdata = wfifo_size;
     }
 }
 
 void WFIFOSET(int fd, size_t len)
 {
-    struct socket_data *s = session[fd];
+    std::unique_ptr<socket_data>& s = session[fd];
     if (s->wdata_size + len + 16384 > s->max_wdata)
     {
         realloc_fifo(fd, s->max_rdata, s->max_wdata << 1);
@@ -413,7 +412,7 @@ void do_socket(void)
 
 void RFIFOSKIP(int fd, size_t len)
 {
-    struct socket_data *s = session[fd];
+    std::unique_ptr<socket_data>& s = session[fd];
     s->rdata_pos += len;
 
     if (s->rdata_size < s->rdata_pos)

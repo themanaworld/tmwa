@@ -18,8 +18,7 @@ struct mmo_map_server
     char map[MAX_MAP_PER_SERVER][16];
 };
 
-int search_character_index(const char *character_name);
-char *search_character_name(int index);
+const mmo_charstatus *search_character(const char *character_name);
 
 int mapif_sendall(const uint8_t *buf, unsigned int len);
 int mapif_sendallwos(int fd, const uint8_t *buf, unsigned int len);

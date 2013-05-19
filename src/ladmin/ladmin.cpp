@@ -3,6 +3,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <cassert>
+
 #include <fstream>
 
 #include "../common/cxxstdio.hpp"
@@ -232,6 +234,14 @@ static
 int list_first, list_last, list_type, list_count;  // parameter to display a list of accounts
 static
 int already_exit_function = 0; // sometimes, the exit function is called twice... so, don't log twice the message
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
+void SessionDeleter::operator()(SessionData *)
+{
+    assert(false && "ladmin does not have sessions");
+}
+#pragma GCC diagnostic pop
 
 //------------------------------
 // Writing function of logs file

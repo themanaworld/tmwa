@@ -29,12 +29,15 @@
 #  endif // __GNUC_MINOR__ == 6
 #  ifdef __GLIBCXX__
 // versions of libstdc++ from gcc
-// 4.6.0, 4.6.1, 4.6.2, 4.6.3
+// 4.6.0, 4.6.1, 4.6.2, 4.6.3, 4.6.4
 #   if __GLIBCXX__ == 20110325  \
     || __GLIBCXX__ == 20110627  \
     || __GLIBCXX__ == 20111026  \
     || __GLIBCXX__ == 20120301  \
-    || __GLIBCXX__ == 20121127  // prerelease in Debian wheezy
+    || __GLIBCXX__ == 20130412  \
+    /* various Debian snapshots */  \
+    || __GLIBCXX__ == 20121127  \
+    || __GLIBCXX__ == 20130114
 #    define WORKAROUND_GCC46_LIBRARY
 #   endif // __GLIBCXX__ == ...
 #  endif // defined __GLIBCXX__

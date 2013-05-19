@@ -28,11 +28,6 @@ void pc_setdir(struct map_session_data *sd, DIR b)
     sd->dir = (b);
 }
 inline
-void pc_setchatid(struct map_session_data *sd, int n)
-{
-    sd->chatID = n;
-}
-inline
 bool pc_isinvisible(struct map_session_data *sd)
 {
     return bool(sd->status.option & Option::HIDE);

@@ -910,8 +910,7 @@ int atcommand_jump(const int fd, struct map_session_data *sd,
 int atcommand_who(const int fd, struct map_session_data *sd,
                    const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
-    int i, j, count;
+    int count;
     int pl_GM_level, GM_level;
     char match_text[100];
     char player_name[24];
@@ -921,24 +920,27 @@ int atcommand_who(const int fd, struct map_session_data *sd,
 
     if (sscanf(message, "%99[^\n]", match_text) < 1)
         strcpy(match_text, "");
-    for (j = 0; match_text[j]; j++)
+    for (int j = 0; match_text[j]; j++)
         match_text[j] = tolower(match_text[j]);
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
                   || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
-            {                   // you can look only lower or same level
+            {
+                // you can look only lower or same level
                 memcpy(player_name, pl_sd->status.name, 24);
-                for (j = 0; player_name[j]; j++)
+                for (int j = 0; player_name[j]; j++)
                     player_name[j] = tolower(player_name[j]);
                 if (strstr(player_name, match_text) != NULL)
                 {
@@ -981,8 +983,7 @@ int atcommand_who(const int fd, struct map_session_data *sd,
 int atcommand_whogroup(const int fd, struct map_session_data *sd,
                         const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
-    int i, j, count;
+    int count;
     int pl_GM_level, GM_level;
     char match_text[100];
     char player_name[24];
@@ -993,27 +994,31 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
 
     if (sscanf(message, "%99[^\n]", match_text) < 1)
         strcpy(match_text, "");
-    for (j = 0; match_text[j]; j++)
+    for (int j = 0; match_text[j]; j++)
         match_text[j] = tolower(match_text[j]);
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
             if (!
                 ((battle_config.hide_GM_session
                   || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
-            {                   // you can look only lower or same level
+            {
+                // you can look only lower or same level
                 memcpy(player_name, pl_sd->status.name, 24);
-                for (j = 0; player_name[j]; j++)
+                for (int j = 0; player_name[j]; j++)
                     player_name[j] = tolower(player_name[j]);
                 if (strstr(player_name, match_text) != NULL)
-                {               // search with no case sensitive
+                {
+                    // search with no case sensitive
                     p = party_search(pl_sd->status.party_id);
                     const char *temp0 = p ? p->name : "None";
                     std::string output;
@@ -1048,8 +1053,7 @@ int atcommand_whogroup(const int fd, struct map_session_data *sd,
 int atcommand_whomap(const int fd, struct map_session_data *sd,
                       const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
-    int i, count;
+    int count;
     int pl_GM_level, GM_level;
     int map_id;
     char map_name[100];
@@ -1069,10 +1073,12 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
             if (!
@@ -1114,8 +1120,7 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
 int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
                            const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
-    int i, count;
+    int count;
     int pl_GM_level, GM_level;
     int map_id = 0;
     char map_name[100];
@@ -1136,10 +1141,12 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
             if (!
@@ -1187,8 +1194,7 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
 int atcommand_whogm(const int fd, struct map_session_data *sd,
                      const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
-    int i, j, count;
+    int count;
     int pl_GM_level, GM_level;
     char match_text[100];
     char player_name[24];
@@ -1199,15 +1205,17 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
 
     if (sscanf(message, "%99[^\n]", match_text) < 1)
         strcpy(match_text, "");
-    for (j = 0; match_text[j]; j++)
+    for (int j = 0; match_text[j]; j++)
         match_text[j] = tolower(match_text[j]);
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
             if (pl_GM_level > 0)
@@ -1219,7 +1227,7 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
                 {
                     // you can look only lower or same level
                     memcpy(player_name, pl_sd->status.name, 24);
-                    for (j = 0; player_name[j]; j++)
+                    for (int j = 0; player_name[j]; j++)
                         player_name[j] = tolower(player_name[j]);
                     if (strstr(player_name, match_text) != NULL)
                     {
@@ -1879,9 +1887,6 @@ int atcommand_gm(const int fd, struct map_session_data *sd,
 int atcommand_pvpoff(const int fd, struct map_session_data *sd,
                       const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
     if (battle_config.pk_mode)
     {                           //disable command if server is in PK mode [Valaris]
         clif_displaymessage(fd, "This option cannot be used in PK Mode.");
@@ -1891,10 +1896,12 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
     if (map[sd->bl.m].flag.pvp)
     {
         map[sd->bl.m].flag.pvp = 0;
-        for (i = 0; i < fd_max; i++)
-        {                       //人数分ループ
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
+        for (int i = 0; i < fd_max; i++)
+        {
+            if (!session[i])
+                continue;
+            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (pl_sd && pl_sd->state.auth)
             {
                 if (sd->bl.m == pl_sd->bl.m)
                 {
@@ -1920,9 +1927,6 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
 int atcommand_pvpon(const int fd, struct map_session_data *sd,
                      const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
     if (battle_config.pk_mode)
     {                           //disable command if server is in PK mode [Valaris]
         clif_displaymessage(fd, "This option cannot be used in PK Mode.");
@@ -1932,10 +1936,12 @@ int atcommand_pvpon(const int fd, struct map_session_data *sd,
     if (!map[sd->bl.m].flag.pvp && !map[sd->bl.m].flag.nopvp)
     {
         map[sd->bl.m].flag.pvp = 1;
-        for (i = 0; i < fd_max; i++)
+        for (int i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
+            if (!session[i])
+                continue;
+            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (pl_sd && pl_sd->state.auth)
             {
                 if (sd->bl.m == pl_sd->bl.m && !pl_sd->pvp_timer)
                 {
@@ -2702,15 +2708,15 @@ int atcommand_character_stats(const int fd, struct map_session_data *,
 int atcommand_character_stats_all(const int fd, struct map_session_data *,
                                    const char *, const char *)
 {
-    int i;
     int count;
-    struct map_session_data *pl_sd;
 
     count = 0;
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             std::string gmlevel;
             if (pc_isGM(pl_sd) > 0)
@@ -3149,12 +3155,12 @@ int atcommand_character_save(const int fd, struct map_session_data *sd,
 int atcommand_doom(const int fd, struct map_session_data *sd,
                     const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd
             && pl_sd->state.auth && i != fd
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can doom only lower or same gm level
@@ -3174,12 +3180,12 @@ int atcommand_doom(const int fd, struct map_session_data *sd,
 int atcommand_doommap(const int fd, struct map_session_data *sd,
                        const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd
             && pl_sd->state.auth && i != fd && sd->bl.m == pl_sd->bl.m
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can doom only lower or same gm level
@@ -3218,12 +3224,12 @@ void atcommand_raise_sub(struct map_session_data *sd)
 int atcommand_raise(const int fd, struct map_session_data *,
                      const char *, const char *)
 {
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i])
-            atcommand_raise_sub((struct map_session_data *)session[i]->session_data);
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        atcommand_raise_sub(pl_sd);
     }
     clif_displaymessage(fd, "Mercy has been granted.");
 
@@ -3237,12 +3243,12 @@ int atcommand_raise(const int fd, struct map_session_data *,
 int atcommand_raisemap(const int fd, struct map_session_data *sd,
                         const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd
             && pl_sd->state.auth && sd->bl.m == pl_sd->bl.m)
             atcommand_raise_sub(pl_sd);
     }
@@ -3475,14 +3481,15 @@ int atcommand_kick(const int fd, struct map_session_data *sd,
 int atcommand_kickall(const int fd, struct map_session_data *sd,
                        const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd
             && pl_sd->state.auth && pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can kick only lower or same gm level
+        {
+            // you can kick only lower or same gm level
             if (sd->status.account_id != pl_sd->status.account_id)
                 clif_GM_kick(sd, pl_sd, 0);
         }
@@ -3747,13 +3754,12 @@ int atcommand_party(const int fd, struct map_session_data *sd,
 int atcommand_mapexit(const int, struct map_session_data *sd,
                        const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             if (sd->status.account_id != pl_sd->status.account_id)
                 clif_GM_kick(sd, pl_sd, 0);
@@ -4248,8 +4254,6 @@ int atcommand_charzeny(const int fd, struct map_session_data *,
 int atcommand_recallall(const int fd, struct map_session_data *sd,
                          const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
     int count;
 
     if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
@@ -4261,13 +4265,17 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
     }
 
     count = 0;
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd
             && pl_sd->state.auth
             && sd->status.account_id != pl_sd->status.account_id
             && pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can recall only lower or same level
+        {
+            // you can recall only lower or same level
             if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 count++;
@@ -4295,8 +4303,6 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
 int atcommand_partyrecall(const int fd, struct map_session_data *sd,
                            const char *, const char *message)
 {
-    int i;
-    struct map_session_data *pl_sd;
     char party_name[100];
     struct party *p;
     int count;
@@ -4322,10 +4328,12 @@ int atcommand_partyrecall(const int fd, struct map_session_data *sd,
         (p = party_search(atoi(message))) != NULL)
     {
         count = 0;
-        for (i = 0; i < fd_max; i++)
+        for (int i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth
+            if (!session[i])
+                continue;
+            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (pl_sd && pl_sd->state.auth
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.party_id == p->party_id)
             {
@@ -4431,18 +4439,15 @@ int atcommand_reloadgmdb(const int fd, struct map_session_data *,
  * 0 = no additional information
  * 1 = Show users in that map and their location
  * 2 = Shows NPCs in that map
- * 3 = Shows the shops/chats in that map (not implemented)
  *------------------------------------------
  */
 int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                        const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
     struct npc_data *nd = NULL;
-    struct chat_data *cd = NULL;
     char map_name[100];
     const char *direction = NULL;
-    int m_id, i, chat_num, list = 0;
+    int m_id, list = 0;
 
     memset(map_name, '\0', sizeof(map_name));
 
@@ -4472,18 +4477,6 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
     output = STRPRINTF("Players In Map: %d", map[m_id].users);
     clif_displaymessage(fd, output);
     output = STRPRINTF("NPCs In Map: %d", map[m_id].npc_num);
-    clif_displaymessage(fd, output);
-    chat_num = 0;
-    for (i = 0; i < fd_max; i++)
-    {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth
-            && (cd = (struct chat_data *) map_id2bl(pl_sd->chatID)))
-        {
-            chat_num++;
-        }
-    }
-    output = STRPRINTF("Chats In Map: %d", chat_num);
     clif_displaymessage(fd, output);
     clif_displaymessage(fd, "------ Map Flags ------");
     output = STRPRINTF("Player vs Player: %s | No Party: %s",
@@ -4522,10 +4515,12 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
             break;
         case 1:
             clif_displaymessage(fd, "----- Players in Map -----");
-            for (i = 0; i < fd_max; i++)
+            for (int i = 0; i < fd_max; i++)
             {
-                if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                    && pl_sd->state.auth
+                if (!session[i])
+                    continue;
+                map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                if (pl_sd && pl_sd->state.auth
                     && strcmp(pl_sd->mapname, map_name) == 0)
                 {
                     output = STRPRINTF(
@@ -4537,7 +4532,7 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
             break;
         case 2:
             clif_displaymessage(fd, "----- NPCs in Map -----");
-            for (i = 0; i < map[m_id].npc_num;)
+            for (int i = 0; i < map[m_id].npc_num;)
             {
                 nd = map[m_id].npc[i];
                 switch (nd->dir)
@@ -4582,32 +4577,9 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                 clif_displaymessage(fd, output);
             }
             break;
-        case 3:
-            clif_displaymessage(fd, "----- Chats in Map -----");
-            for (i = 0; i < fd_max; i++)
-            {
-                if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                    && pl_sd->state.auth
-                    && (cd = (struct chat_data *) map_id2bl(pl_sd->chatID))
-                    && strcmp(pl_sd->mapname, map_name) == 0
-                    && cd->usersd[0] == pl_sd)
-                {
-                    output = STRPRINTF(
-                             "Chat %d: %s | Player: %s | Location: %d %d", i,
-                             cd->title, pl_sd->status.name, cd->bl.x,
-                             cd->bl.y);
-                    clif_displaymessage(fd, output);
-                    output = STRPRINTF(
-                             "   Users: %d/%d | Password: %s | Public: %s",
-                             cd->users, cd->limit, cd->pass,
-                             (cd->pub) ? "Yes" : "No");
-                    clif_displaymessage(fd, output);
-                }
-            }
-            break;
         default:               // normally impossible to arrive here
             clif_displaymessage(fd,
-                                 "Please, enter at least a valid list number (usage: @mapinfo <0-3> [map]).");
+                                 "Please, enter at least a valid list number (usage: @mapinfo <0-2> [map]).");
             return -1;
     }
 
@@ -4977,8 +4949,7 @@ int atcommand_charignorelist(const int fd, struct map_session_data *,
 
         if (count > 0)
             for (i = 0;
-                 i <
-                 (int)(sizeof(pl_sd->ignore) / sizeof(pl_sd->ignore[0]));
+                 i < (int)(sizeof(pl_sd->ignore) / sizeof(pl_sd->ignore[0]));
                  i++)
                 if (pl_sd->ignore[i].name[0])
                     clif_displaymessage(fd, pl_sd->ignore[i].name);
@@ -5172,8 +5143,7 @@ int atcommand_email(const int fd, struct map_session_data *sd,
 int atcommand_effect(const int fd, struct map_session_data *sd,
                       const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
-    int type = 0, flag = 0, i;
+    int type = 0, flag = 0;
 
     if (!message || !*message || sscanf(message, "%d %d", &type, &flag) < 2)
     {
@@ -5188,10 +5158,12 @@ int atcommand_effect(const int fd, struct map_session_data *sd,
     }
     else
     {
-        for (i = 0; i < fd_max; i++)
+        for (int i = 0; i < fd_max; i++)
         {
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
+            if (!session[i])
+                continue;
+            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (pl_sd && pl_sd->state.auth)
             {
                 clif_specialeffect(&pl_sd->bl, type, flag);
                 clif_displaymessage(pl_sd->fd, "Your Effect Has Changed.");    // Your effect has changed.
@@ -6529,10 +6501,8 @@ int atcommand_skill_learn(const int fd, struct map_session_data *,
 int atcommand_ipcheck(const int fd, struct map_session_data *,
                    const char *, const char *message)
 {
-    struct map_session_data *pl_sd;
     struct sockaddr_in sai;
     char character[25];
-    int i;
     socklen_t sa_len = sizeof(struct sockaddr);
     unsigned long ip;
 
@@ -6544,6 +6514,7 @@ int atcommand_ipcheck(const int fd, struct map_session_data *,
         return -1;
     }
 
+    map_session_data *pl_sd;
     if ((pl_sd = map_nick2sd(character)) == NULL)
     {
         clif_displaymessage(fd, "Character not found.");
@@ -6562,10 +6533,12 @@ int atcommand_ipcheck(const int fd, struct map_session_data *,
     // We now have the IP address of a character.
     // Loop over all logged in sessions looking for matches.
 
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             if (getpeername(pl_sd->fd, (struct sockaddr *)&sai, &sa_len))
                 continue;
@@ -6589,12 +6562,12 @@ int atcommand_ipcheck(const int fd, struct map_session_data *,
 int atcommand_doomspot(const int fd, struct map_session_data *sd,
                        const char *, const char *)
 {
-    struct map_session_data *pl_sd;
-    int i;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd
             && pl_sd->state.auth && i != fd && sd->bl.m == pl_sd->bl.m
             && sd->bl.x == pl_sd->bl.x && sd->bl.y == pl_sd->bl.y
             && pc_isGM(sd) >= pc_isGM(pl_sd))

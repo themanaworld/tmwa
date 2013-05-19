@@ -255,10 +255,6 @@ int skill_attack(BF attack_type, struct block_list *src,
         return 0;
     if (bl->type == BL::PC && pc_isdead((struct map_session_data *) bl))    //対象がPCですでに死んでいたら何もしない
         return 0;
-    if (src->type == BL::PC && ((struct map_session_data *) src)->chatID)    //術者がPCでチャット中なら何もしない
-        return 0;
-    if (dsrc->type == BL::PC && ((struct map_session_data *) dsrc)->chatID)  //術者がPCでチャット中なら何もしない
-        return 0;
 
 //何もしない判定ここまで
 

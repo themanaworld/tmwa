@@ -12,7 +12,6 @@
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "intif.hpp"
@@ -217,7 +216,7 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
 }};
 
 static
-struct gm_account *gm_account = NULL;
+struct GM_Account *gm_accounts = NULL;
 static
 int GM_num = 0;
 
@@ -242,8 +241,8 @@ int pc_isGM(struct map_session_data *sd)
     nullpo_ret(sd);
 
     for (i = 0; i < GM_num; i++)
-        if (gm_account[i].account_id == sd->status.account_id)
-            return gm_account[i].level;
+        if (gm_accounts[i].account_id == sd->status.account_id)
+            return gm_accounts[i].level;
     return 0;
 
 }
@@ -271,17 +270,17 @@ int pc_set_gm_level(int account_id, int level)
     int i;
     for (i = 0; i < GM_num; i++)
     {
-        if (account_id == gm_account[i].account_id)
+        if (account_id == gm_accounts[i].account_id)
         {
-            gm_account[i].level = level;
+            gm_accounts[i].level = level;
             return 0;
         }
     }
 
     GM_num++;
-    RECREATE(gm_account, struct gm_account, GM_num);
-    gm_account[GM_num - 1].account_id = account_id;
-    gm_account[GM_num - 1].level = level;
+    RECREATE(gm_accounts, struct GM_Account, GM_num);
+    gm_accounts[GM_num - 1].account_id = account_id;
+    gm_accounts[GM_num - 1].level = level;
     return 0;
 }
 
@@ -2360,8 +2359,6 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
 
     nullpo_ret(sd);
 
-    if (sd->chatID)             // チャットから出る
-        chat_leavechat(sd);
     if (sd->trade_partner)      // 取引を中断する
         trade_tradecancel(sd);
     if (sd->state.storage_open)
@@ -5399,16 +5396,15 @@ void pc_autosave(TimerData *, tick_t)
 int pc_read_gm_account(int fd)
 {
     int i = 0;
-    if (gm_account != NULL)
-        free(gm_account);
+    if (gm_accounts != NULL)
+        free(gm_accounts);
     GM_num = 0;
 
-    CREATE(gm_account, struct gm_account, (RFIFOW(fd, 2) - 4) / 5);
+    CREATE(gm_accounts, struct GM_Account, (RFIFOW(fd, 2) - 4) / 5);
     for (i = 4; i < RFIFOW(fd, 2); i = i + 5)
     {
-        gm_account[GM_num].account_id = RFIFOL(fd, i);
-        gm_account[GM_num].level = (int) RFIFOB(fd, i + 4);
-        //PRINTF("GM account: %d -> level %d\n", gm_account[GM_num].account_id, gm_account[GM_num].level);
+        gm_accounts[GM_num].account_id = RFIFOL(fd, i);
+        gm_accounts[GM_num].level = (int) RFIFOB(fd, i + 4);
         GM_num++;
     }
     return GM_num;

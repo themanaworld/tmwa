@@ -66,11 +66,7 @@ enum class SendWho
     ALL_SAMEMAP,
     AREA,
     AREA_WOS,
-    AREA_WOC,
-    AREA_WOSC,
     AREA_CHAT_WOC,
-    CHAT,
-    CHAT_WOS,
     PARTY,
     PARTY_WOS,
     PARTY_SAMEMAP,
@@ -164,14 +160,14 @@ int clif_getport(void)
  */
 int clif_countusers(void)
 {
-    int users = 0, i;
-    struct map_session_data *sd;
+    int users = 0;
 
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd
-            && sd->state.auth && !(battle_config.hide_GM_session
-                                   && pc_isGM(sd)))
+        if (!session[i])
+            continue;
+        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (sd && sd->state.auth && !(battle_config.hide_GM_session && pc_isGM(sd)))
             users++;
     }
     return users;
@@ -181,15 +177,14 @@ int clif_countusers(void)
  * 全てのclientに対してfunc()実行
  *------------------------------------------
  */
-int clif_foreachclient(std::function<void(struct map_session_data *)> func)
+int clif_foreachclient(std::function<void (struct map_session_data *)> func)
 {
-    int i;
-    struct map_session_data *sd;
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd
-            && sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (sd && sd->state.auth)
             func(sd);
     }
     return 0;
@@ -238,16 +233,9 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
                 return;
             }
-            FALLTHROUGH;
-        case SendWho::AREA_WOC:
-            if ((sd && sd->chatID) || (bl && bl == src_bl))
+            if (bl && bl == src_bl)
                 return;
 
-            break;
-        case SendWho::AREA_WOSC:
-            if ((sd) && sd->chatID
-                && sd->chatID == ((struct map_session_data *) src_bl)->chatID)
-                return;
             break;
     }
 
@@ -280,9 +268,6 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
 static
 int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
 {
-    int i;
-    struct map_session_data *sd;
-    struct chat_data *cd;
     struct party *p = NULL;
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
 
@@ -300,12 +285,10 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 switch (type)
                 {
                     case SendWho::AREA:
-                    case SendWho::AREA_WOC:
                         type = SendWho::SELF;
                         break;
 
                     case SendWho::AREA_WOS:
-                    case SendWho::AREA_WOSC:
                         return 1;
 
                     default:
@@ -318,13 +301,16 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
     switch (type)
     {
         case SendWho::ALL_CLIENT:       // 全クライアントに送信
-            for (i = 0; i < fd_max; i++)
+            for (int i = 0; i < fd_max; i++)
             {
-                if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
-                    && sd->state.auth)
+                if (!session[i])
+                    continue;
+                map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                if (sd && sd->state.auth)
                 {
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
-                    {           // packet must exist
+                    {
+                        // packet must exist
                         memcpy(WFIFOP(i, 0), buf, len);
                         WFIFOSET(i, len);
                     }
@@ -332,13 +318,16 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             }
             break;
         case SendWho::ALL_SAMEMAP:      // 同じマップの全クライアントに送信
-            for (i = 0; i < fd_max; i++)
+            for (int i = 0; i < fd_max; i++)
             {
-                if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
-                    && sd->state.auth && sd->bl.m == bl->m)
+                if (!session[i])
+                    continue;
+                map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                if (sd && sd->state.auth && sd->bl.m == bl->m)
                 {
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
-                    {           // packet must exist
+                    {
+                        // packet must exist
                         memcpy(WFIFOP(i, 0), buf, len);
                         WFIFOSET(i, len);
                     }
@@ -347,8 +336,6 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             break;
         case SendWho::AREA:
         case SendWho::AREA_WOS:
-        case SendWho::AREA_WOC:
-        case SendWho::AREA_WOSC:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, type),
                     bl->m, bl->x - AREA_SIZE, bl->y - AREA_SIZE,
                     bl->x + AREA_SIZE, bl->y + AREA_SIZE, BL::PC);
@@ -357,30 +344,6 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, SendWho::AREA_CHAT_WOC),
                     bl->m, bl->x - (AREA_SIZE), bl->y - (AREA_SIZE),
                     bl->x + (AREA_SIZE), bl->y + (AREA_SIZE), BL::PC);
-            break;
-        case SendWho::CHAT:
-        case SendWho::CHAT_WOS:
-            cd = (struct chat_data *) bl;
-            if (bl->type == BL::PC)
-            {
-                sd = (struct map_session_data *) bl;
-                cd = (struct chat_data *) map_id2bl(sd->chatID);
-            }
-            else if (bl->type != BL::CHAT)
-                break;
-            if (cd == NULL)
-                break;
-            for (i = 0; i < cd->users; i++)
-            {
-                if (type == SendWho::CHAT_WOS
-                    && cd->usersd[i] == (struct map_session_data *) bl)
-                    continue;
-                if (clif_parse_func_table[RBUFW(buf, 0)].len)
-                {               // packet must exist
-                    memcpy(WFIFOP(cd->usersd[i]->fd, 0), buf, len);
-                    WFIFOSET(cd->usersd[i]->fd, len);
-                }
-            }
             break;
 
         case SendWho::PARTY_AREA:       // 同じ画面内の全パーティーメンバに送信
@@ -396,7 +359,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
         case SendWho::PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
             if (bl->type == BL::PC)
             {
-                sd = (struct map_session_data *) bl;
+                struct map_session_data *sd = (struct map_session_data *) bl;
                 if (sd->partyspy > 0)
                 {
                     p = party_search(sd->partyspy);
@@ -409,14 +372,14 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             }
             if (p)
             {
-                for (i = 0; i < MAX_PARTY; i++)
+                for (int i = 0; i < MAX_PARTY; i++)
                 {
-                    if ((sd = p->member[i].sd) != NULL)
+                    struct map_session_data *sd =  p->member[i].sd;
+                    if (sd)
                     {
                         if (sd->bl.id == bl->id && (type == SendWho::PARTY_WOS ||
                                                     type == SendWho::PARTY_SAMEMAP_WOS
-                                                    || type ==
-                                                    SendWho::PARTY_AREA_WOS))
+                                                    || type == SendWho::PARTY_AREA_WOS))
                             continue;
                         if (type != SendWho::PARTY && type != SendWho::PARTY_WOS && bl->m != sd->bl.m)    // マップチェック
                             continue;
@@ -425,21 +388,25 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                              sd->bl.x > x1 || sd->bl.y > y1))
                             continue;
                         if (clif_parse_func_table[RBUFW(buf, 0)].len)
-                        {       // packet must exist
+                        {
+                            // packet must exist
                             memcpy(WFIFOP(sd->fd, 0), buf, len);
                             WFIFOSET(sd->fd, len);
                         }
                     }
                 }
-                for (i = 0; i < fd_max; i++)
+                for (int i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
-                        && sd->state.auth)
+                    if (!session[i])
+                        continue;
+                    map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                    if (sd && sd->state.auth)
                     {
                         if (sd->partyspy == p->party_id)
                         {
                             if (clif_parse_func_table[RBUFW(buf, 0)].len)
-                            {   // packet must exist
+                            {
+                                // packet must exist
                                 memcpy(WFIFOP(sd->fd, 0), buf, len);
                                 WFIFOSET(sd->fd, len);
                             }
@@ -449,12 +416,15 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             }
             break;
         case SendWho::SELF:
-            sd = (struct map_session_data *) bl;
+        {
+            map_session_data *sd = (struct map_session_data *) bl;
             if (clif_parse_func_table[RBUFW(buf, 0)].len)
-            {                   // packet must exist
+            {
+                // packet must exist
                 memcpy(WFIFOP(sd->fd, 0), buf, len);
                 WFIFOSET(sd->fd, len);
             }
+        }
             break;
 
         default:
@@ -3676,16 +3646,15 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
 
     if (flag == 2)
     {
-        struct map_session_data *sd = NULL;
-        int i;
-        for (i = 0; i < fd_max; i++)
+        for (int i = 0; i < fd_max; i++)
         {
-            if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) != NULL
-                && sd->state.auth && sd->bl.m == bl->m)
+            if (!session[i])
+                continue;
+            struct map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (sd && sd->state.auth && sd->bl.m == bl->m)
                 clif_specialeffect(&sd->bl, type, 1);
         }
     }
-
     else if (flag == 1)
         clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::SELF);
     else if (!flag)
@@ -3706,7 +3675,6 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
 static
 void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
 {
-    struct map_session_data *old_sd;
     int account_id;            // account_id in the packet
 
     if (sd)
@@ -3727,7 +3695,8 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
     WFIFOSET(fd, 4);
 
     // if same account already connected, we disconnect the 2 sessions
-    if ((old_sd = map_id2sd(account_id)) != NULL)
+    struct map_session_data *old_sd = map_id2sd(account_id);
+    if (old_sd)
     {
         clif_authfail_fd(fd, 2);   // same id
         clif_authfail_fd(old_sd->fd, 2);   // same id
@@ -3736,8 +3705,8 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
     }
     else
     {
-        CREATE(sd, struct map_session_data, 1);
-        session[fd]->session_data = sd;
+        sd = new map_session_data();
+        session[fd]->session_data.reset(sd);
         sd->fd = fd;
 
         pc_setnewpc(sd, account_id, RFIFOL(fd, 6), RFIFOL(fd, 10),
@@ -3886,9 +3855,6 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
     }
 
     if (sd->npc_id != 0 || sd->state.storage_open)
-        return;
-
-    if (sd->chatID)
         return;
 
     if (sd->canmove_tick > gettick())
@@ -4094,8 +4060,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
         WBUFL(reinterpret_cast<uint8_t *>(buf), 4) = sd->bl.id;
 
         // evil multiuse buffer!
-        clif_send((const uint8_t *)buf, msg_len + 8, &sd->bl,
-                   sd->chatID ? SendWho::CHAT_WOS : SendWho::AREA_CHAT_WOC);
+        clif_send((const uint8_t *)buf, msg_len + 8, &sd->bl, SendWho::AREA_CHAT_WOC);
     }
 
     /* Send the message back to the speaker. */
@@ -5583,7 +5548,7 @@ func_table clif_parse_func_table[0x0220] =
 static
 int clif_check_packet_flood(int fd, int cmd)
 {
-    struct map_session_data *sd = (struct map_session_data *)session[fd]->session_data;
+    map_session_data *sd = static_cast<map_session_data *>(session[fd]->session_data.get());
     tick_t tick = gettick();
 
     // sd will not be set if the client hasn't requested
@@ -5800,7 +5765,7 @@ static
 void clif_parse(int fd)
 {
     int packet_len = 0, cmd = 0;
-    struct map_session_data *sd = (struct map_session_data *)session[fd]->session_data;
+    map_session_data *sd = static_cast<map_session_data *>(session[fd]->session_data.get());
 
     if (!sd || (sd && !sd->state.auth))
     {

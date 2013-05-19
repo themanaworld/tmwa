@@ -72,7 +72,6 @@ enum class BL : uint8_t
     NPC,
     MOB,
     ITEM,
-    CHAT,
     SPELL,
 };
 enum class NpcSubtype : uint8_t

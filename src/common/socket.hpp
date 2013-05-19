@@ -7,8 +7,20 @@
 
 # include <cstdio>
 
+# include <array>
+
+# include "dumb_ptr.hpp"
 # include "utils.hpp"
 # include "timer.t.hpp"
+
+struct SessionData
+{
+};
+struct SessionDeleter
+{
+    // defined per-server
+    void operator()(SessionData *sd);
+};
 
 // Struct declaration
 
@@ -23,7 +35,7 @@ struct socket_data
 
     /// Since this is a single-threaded application, it can't block
     /// These are the read/write queues
-    uint8_t *rdata, *wdata;
+    dumb_ptr<uint8_t[]> rdata, wdata;
     size_t max_rdata, max_wdata;
     /// How much is actually in the queue
     size_t rdata_size, wdata_size;
@@ -37,15 +49,15 @@ struct socket_data
     /// Only called when select() indicates the socket is ready
     /// If, after that, nothing is read, it sets eof
     // These could probably be hard-coded with a little work
-    void(*func_recv)(int);
-    void(*func_send)(int);
+    void (*func_recv)(int);
+    void (*func_send)(int);
     /// This is the important one
     /// Set to different functions depending on whether the connection
     /// is a player or a server/ladmin
     /// Can be set explicitly or via set_defaultparse
-    void(*func_parse)(int);
+    void (*func_parse)(int);
     /// Server-specific data type
-    void *session_data;
+    std::unique_ptr<SessionData, SessionDeleter> session_data;
 };
 
 // save file descriptors for important stuff
@@ -56,7 +68,7 @@ constexpr int CONNECT_TIMEOUT = 15;
 
 /// Everyone who has connected
 // note: call delete_session(i) to null out an element
-extern struct socket_data *session[FD_SETSIZE];
+extern std::array<std::unique_ptr<socket_data>, FD_SETSIZE> session;
 
 /// Maximum used FD, +1
 extern int fd_max;
@@ -102,7 +114,7 @@ size_t RFIFOREST(int fd)
 inline
 const void *RFIFOP(int fd, size_t pos)
 {
-    return session[fd]->rdata + session[fd]->rdata_pos + pos;
+    return &session[fd]->rdata[session[fd]->rdata_pos + pos];
 }
 inline
 uint8_t RFIFOB(int fd, size_t pos)
@@ -156,7 +168,7 @@ size_t WFIFOSPACE(int fd)
 inline
 void *WFIFOP(int fd, size_t pos)
 {
-    return session[fd]->wdata + session[fd]->wdata_size + pos;
+    return &session[fd]->wdata[session[fd]->wdata_size + pos];
 }
 inline
 uint8_t& WFIFOB(int fd, size_t pos)

@@ -381,7 +381,6 @@ static
 int mapif_parse_WisRequest(int fd)
 {
     static int wisid = 0;
-    int index;
 
     if (RFIFOW(fd, 2) - 52 <= 0)
     {                           // normaly, impossible, but who knows...
@@ -390,7 +389,8 @@ int mapif_parse_WisRequest(int fd)
     }
 
     // search if character exists before to ask all map-servers
-    if ((index = search_character_index((const char *)RFIFOP(fd, 28))) == -1)
+    const mmo_charstatus *mcs = search_character(static_cast<const char *>(RFIFOP(fd, 28)));
+    if (!mcs)
     {
         unsigned char buf[27];
         WBUFW(buf, 0) = 0x3802;
@@ -402,7 +402,7 @@ int mapif_parse_WisRequest(int fd)
     else
     {
         // to be sure of the correct name, rewrite it
-        strzcpy(static_cast<char *>(const_cast<void *>(RFIFOP(fd, 28))), search_character_name(index), 24);
+        strzcpy(static_cast<char *>(const_cast<void *>(RFIFOP(fd, 28))), mcs->name, 24);
         // if source is destination, don't ask other servers.
         if (strcmp((const char *)RFIFOP(fd, 4), (const char *)RFIFOP(fd, 28)) == 0)
         {

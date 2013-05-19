@@ -3551,11 +3551,8 @@ void builtin_getmapflag(ScriptState *st)
 static
 void builtin_pvpon(ScriptState *st)
 {
-    int m, i;
-    struct map_session_data *pl_sd = NULL;
-
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    m = map_mapname2mapid(str);
+    int m = map_mapname2mapid(str);
     if (m >= 0 && !map[m].flag.pvp && !map[m].flag.nopvp)
     {
         map[m].flag.pvp = 1;
@@ -3563,10 +3560,12 @@ void builtin_pvpon(ScriptState *st)
         if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
             return;
 
-        for (i = 0; i < fd_max; i++)
-        {                       //人数分ループ
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
+        for (int i = 0; i < fd_max; i++)
+        {
+            if (!session[i])
+                continue;
+            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (pl_sd && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl.m && !pl_sd->pvp_timer)
                 {
@@ -3586,11 +3585,8 @@ void builtin_pvpon(ScriptState *st)
 static
 void builtin_pvpoff(ScriptState *st)
 {
-    int m, i;
-    struct map_session_data *pl_sd = NULL;
-
     const char *str = conv_str(st, &(st->stack->stack_data[st->start + 2]));
-    m = map_mapname2mapid(str);
+    int m = map_mapname2mapid(str);
     if (m >= 0 && map[m].flag.pvp && map[m].flag.nopvp)
     {
         map[m].flag.pvp = 0;
@@ -3598,10 +3594,12 @@ void builtin_pvpoff(ScriptState *st)
         if (battle_config.pk_mode)  // disable ranking options if pk_mode is on [Valaris]
             return;
 
-        for (i = 0; i < fd_max; i++)
-        {                       //人数分ループ
-            if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-                && pl_sd->state.auth)
+        for (int i = 0; i < fd_max; i++)
+        {
+            if (!session[i])
+                continue;
+            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (pl_sd && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl.m)
                 {

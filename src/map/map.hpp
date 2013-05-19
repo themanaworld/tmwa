@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "../common/db.hpp"
+#include "../common/socket.hpp"
 #include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"
@@ -78,7 +79,7 @@ struct quick_regeneration
     unsigned char tickdelay;    // number of ticks to next update
 };
 
-struct map_session_data
+struct map_session_data : SessionData
 {
     struct block_list bl;
     struct
@@ -143,7 +144,6 @@ struct map_session_data
         unsigned storage:1;
         unsigned divorce:1;
     } npc_flags;
-    unsigned int chatID;
 
     Timer attacktimer;
     int attacktarget;
@@ -474,22 +474,6 @@ struct flooritem_data
     int first_get_id, second_get_id, third_get_id;
     tick_t first_get_tick, second_get_tick, third_get_tick;
     struct item item_data;
-};
-
-struct chat_data
-{
-    struct block_list bl;
-
-    char pass[8];      /* password */
-    char title[61];    /* room title max 60 */
-    unsigned char limit;        /* join limit */
-    unsigned char trigger;
-    unsigned char users;        /* current users */
-    unsigned char pub;          /* room attribute */
-    struct map_session_data *usersd[20];
-    struct block_list *owner_;
-    struct block_list **owner;
-    char npc_event[50];
 };
 
 extern interval_t autosave_interval;

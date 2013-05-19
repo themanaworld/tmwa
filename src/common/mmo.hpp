@@ -203,7 +203,7 @@ struct storage
 
 struct map_session_data;
 
-struct gm_account
+struct GM_Account
 {
     int account_id;
     int level;

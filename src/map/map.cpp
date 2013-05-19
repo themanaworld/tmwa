@@ -22,7 +22,6 @@
 
 #include "atcommand.hpp"
 #include "battle.hpp"
-#include "chat.hpp"
 #include "chrif.hpp"
 #include "clif.hpp"
 #include "grfio.hpp"
@@ -91,6 +90,11 @@ char wisp_server_name[24] = "Server";   // can be modified in char-server config
 
 static
 int map_delmap(const char *mapname);
+
+void SessionDeleter::operator()(SessionData *sd)
+{
+    delete static_cast<map_session_data *>(sd);
+}
 
 /*==========================================
  * 全map鯖総計での接続数設定
@@ -511,9 +515,8 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                         continue;
                     if ((bl)
                         && ((dx > 0 && bl->x < x0 + dx)
-                            || (dx < 0 && bl->x > x1 + dx) || (dy > 0
-                                                               && bl->y <
-                                                               y0 + dy)
+                            || (dx < 0 && bl->x > x1 + dx)
+                            || (dy > 0 && bl->y < y0 + dy)
                             || (dy < 0 && bl->y > y1 + dy))
                         && bl_list_count < BL_LIST_MAX)
                         bl_list[bl_list_count++] = bl;
@@ -530,9 +533,8 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
                         continue;
                     if ((bl)
                         && ((dx > 0 && bl->x < x0 + dx)
-                            || (dx < 0 && bl->x > x1 + dx) || (dy > 0
-                                                               && bl->y <
-                                                               y0 + dy)
+                            || (dx < 0 && bl->x > x1 + dx)
+                            || (dy > 0 && bl->y < y0 + dy)
                             || (dy < 0 && bl->y > y1 + dy))
                         && bl_list_count < BL_LIST_MAX)
                         bl_list[bl_list_count++] = bl;
@@ -939,9 +941,6 @@ void map_quit(struct map_session_data *sd)
 {
     nullpo_retv(sd);
 
-    if (sd->chatID)             // チャットから出る
-        chat_leavechat(sd);
-
     if (sd->trade_partner)      // 取引を中断する
         trade_tradecancel(sd);
 
@@ -992,6 +991,8 @@ void map_quit(struct map_session_data *sd)
  */
 struct map_session_data *map_id2sd(int id)
 {
+    // This is bogus.
+    // However, there might be differences for de-auth'ed accounts.
 // remove search from db, because:
 // 1 - all players, npc, items and mob are in this db (to search, it's not speed, and search in session is more sure)
 // 2 - DB seems not always correct. Sometimes, when a player disconnects, its id (account value) is not removed and structure
@@ -1006,12 +1007,17 @@ struct map_session_data *map_id2sd(int id)
                 return (struct map_session_data*)bl;
         return NULL;
 */
-    int i;
-    struct map_session_data *sd = NULL;
-
-    for (i = 0; i < fd_max; i++)
-        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->bl.id == id)
-            return sd;
+    for (int i = 0; i < fd_max; i++)
+    {
+        if (!session[i])
+            continue;
+        if (session[i]->session_data)
+        {
+            map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            if (sd->bl.id == id)
+                return sd;
+        }
+    }
 
     return NULL;
 }
@@ -1037,11 +1043,14 @@ char *map_charid2nick(int id)
 static
 struct map_session_data *map_get_session(int i)
 {
-    struct map_session_data *d;
-
-    if (i >= 0 && i < fd_max
-        && session[i] && (d = (struct map_session_data *)session[i]->session_data) && d->state.auth)
-        return d;
+    if (i >= 0 && i < fd_max)
+    {
+        if (!session[i])
+            return nullptr;
+        map_session_data *d = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (d && d->state.auth)
+            return d;
+    }
 
     return NULL;
 }
@@ -1049,8 +1058,7 @@ struct map_session_data *map_get_session(int i)
 static
 struct map_session_data *map_get_session_forward(int start)
 {
-    int i;
-    for (i = start; i < fd_max; i++)
+    for (int i = start; i < fd_max; i++)
     {
         struct map_session_data *d = map_get_session(i);
         if (d)
@@ -1104,7 +1112,6 @@ struct map_session_data *map_nick2sd(const char *nick)
 {
     int i, quantity = 0, nicklen;
     struct map_session_data *sd = NULL;
-    struct map_session_data *pl_sd = NULL;
 
     if (nick == NULL)
         return NULL;
@@ -1113,8 +1120,10 @@ struct map_session_data *map_nick2sd(const char *nick)
 
     for (i = 0; i < fd_max; i++)
     {
-        if (session[i] && (pl_sd = (struct map_session_data *)session[i]->session_data)
-            && pl_sd->state.auth)
+        if (!session[i])
+            continue;
+        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (pl_sd && pl_sd->state.auth)
         {
             // Without case sensitive check (increase the number of similar character names found)
             if (strncasecmp(pl_sd->status.name, nick, nicklen) == 0)

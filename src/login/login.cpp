@@ -142,11 +142,17 @@ int start_limited_time = -1;   // Starting additional sec from now for the limit
 static
 int check_ip_flag = 1;         // It's to check IP of a player between login-server and char-server (part of anti-hacking system)
 
-struct login_session_data
+
+struct login_session_data : SessionData
 {
     int md5keylen;
     char md5key[20];
 };
+
+void SessionDeleter::operator()(SessionData *sd)
+{
+    delete static_cast<login_session_data *>(sd);
+}
 
 constexpr int AUTH_FIFO_SIZE = 256;
 struct
@@ -172,6 +178,7 @@ struct AuthData
     int account_reg2_num;
     struct global_reg account_reg2[ACCOUNT_REG2_NUM];
 };
+static
 std::vector<AuthData> auth_data;
 
 static
@@ -184,7 +191,7 @@ static
 int level_new_gm = 60;
 
 static
-Map<int, struct gm_account> gm_account_db;
+Map<int, GM_Account> gm_account_db;
 
 static
 pid_t pid = 0; // For forked DB writes
@@ -225,7 +232,7 @@ void login_log(const_string line)
 static
 int isGM(int account_id)
 {
-    struct gm_account *p = gm_account_db.search(account_id);
+    GM_Account *p = gm_account_db.search(account_id);
     if (p == NULL)
         return 0;
     return p->level;
@@ -263,7 +270,7 @@ int read_gm_account(void)
         if ((line[0] == '/' && line[1] == '/') || line[0] == '\0'
             || line[0] == '\n' || line[0] == '\r')
             continue;
-        struct gm_account p {};
+        GM_Account p {};
         if (sscanf(line, "%d %d", &p.account_id, &p.level) != 2
             && sscanf(line, "%d: %d", &p.account_id, &p.level) != 2)
             PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format.\n",
@@ -3128,21 +3135,13 @@ void parse_login(int fd)
             case 0x01db:       // Sending request of the coding key
             case 0x791a:       // Sending request of the coding key (administration packet)
             {
-                struct login_session_data *ld;
                 if (session[fd]->session_data)
                 {
                     PRINTF("login: abnormal request of MD5 key (already opened session).\n");
                     session[fd]->eof = 1;
                     return;
                 }
-                CREATE(ld, struct login_session_data, 1);
-                session[fd]->session_data = ld;
-                if (!ld)
-                {
-                    PRINTF("login: Request for md5 key: memory allocation failure (malloc)!\n");
-                    session[fd]->eof = 1;
-                    return;
-                }
+                std::unique_ptr<login_session_data, SessionDeleter> ld{new login_session_data()};
                 if (RFIFOW(fd, 0) == 0x01db)
                 {
                     LOGIN_LOG("Sending request of the coding key (ip: %s)\n",
@@ -3165,6 +3164,7 @@ void parse_login(int fd)
                 WFIFOW(fd, 2) = 4 + ld->md5keylen;
                 memcpy(WFIFOP(fd, 4), ld->md5key, ld->md5keylen);
                 WFIFOSET(fd, WFIFOW(fd, 2));
+                session[fd]->session_data = std::move(ld);
             }
                 break;
 
@@ -3295,9 +3295,10 @@ void parse_login(int fd)
                 }
                 else
                 {
-                    struct login_session_data *ld = (struct login_session_data *)session[fd]->session_data;
+                    struct login_session_data *ld = static_cast<login_session_data *>(session[fd]->session_data.get());
                     if (RFIFOW(fd, 2) == 0)
-                    {           // non encrypted password
+                    {
+                        // non encrypted password
                         char password[24];
                         strzcpy(password, static_cast<const char *>(RFIFOP(fd, 4)), 24);
                         remove_control_chars(password);

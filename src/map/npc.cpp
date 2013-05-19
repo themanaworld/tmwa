@@ -854,8 +854,7 @@ int npc_selllist(struct map_session_data *sd, int n,
             return 1;
         nameid = sd->status.inventory[item_list[i * 2] - 2].nameid;
         if (nameid == 0 ||
-            sd->status.inventory[item_list[i * 2] - 2].amount <
-            item_list[i * 2 + 1])
+            sd->status.inventory[item_list[i * 2] - 2].amount < item_list[i * 2 + 1])
             return 1;
         if (sd->trade_partner != 0)
             return 2;           // cant sell while trading

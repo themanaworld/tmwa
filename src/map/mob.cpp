@@ -2695,12 +2695,12 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 sd = mvp_sd;
             else
             {
-                struct map_session_data *tmp_sd;
-                int i;
-                for (i = 0; i < fd_max; i++)
+                for (int i = 0; i < fd_max; i++)
                 {
-                    if (session[i] && (tmp_sd = (struct map_session_data *)session[i]->session_data)
-                        && tmp_sd->state.auth)
+                    if (!session[i])
+                        continue;
+                    map_session_data *tmp_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                    if (tmp_sd && tmp_sd->state.auth)
                     {
                         if (md->bl.m == tmp_sd->bl.m)
                         {
@@ -3060,8 +3060,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
     range = skill_get_range(md->skillid, md->skilllv);
     if (range < 0)
         range = battle_get_range(&md->bl) - (range + 1);
-    if (range + battle_config.mob_skill_add_range <
-        distance(md->bl.x, md->bl.y, bl->x, bl->y))
+    if (range + battle_config.mob_skill_add_range < distance(md->bl.x, md->bl.y, bl->x, bl->y))
         return;
 
     md->skilldelay[md->skillidx] = tick;
@@ -3113,8 +3112,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
     range = skill_get_range(md->skillid, md->skilllv);
     if (range < 0)
         range = battle_get_range(&md->bl) - (range + 1);
-    if (range + battle_config.mob_skill_add_range <
-        distance(md->bl.x, md->bl.y, md->skillx, md->skilly))
+    if (range + battle_config.mob_skill_add_range < distance(md->bl.x, md->bl.y, md->skillx, md->skilly))
         return;
     md->skilldelay[md->skillidx] = tick;
 

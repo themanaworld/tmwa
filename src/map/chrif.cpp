@@ -199,7 +199,7 @@ int chrif_changemapserver(struct map_session_data *sd, char *name, int x,
 
     s_ip = 0;
     for (i = 0; i < fd_max; i++)
-        if (session[i] && session[i]->session_data == sd)
+        if (session[i] && session[i]->session_data.get() == sd)
         {
             s_ip = session[i]->client_addr.sin_addr.s_addr;
             break;
@@ -310,7 +310,7 @@ int chrif_authreq(struct map_session_data *sd)
         return -1;
 
     for (i = 0; i < fd_max; i++)
-        if (session[i] && session[i]->session_data == sd)
+        if (session[i] && session[i]->session_data.get() == sd)
         {
             WFIFOW(char_fd, 0) = 0x2afc;
             WFIFOL(char_fd, 2) = sd->bl.id;
@@ -340,7 +340,7 @@ int chrif_charselectreq(struct map_session_data *sd)
 
     s_ip = 0;
     for (i = 0; i < fd_max; i++)
-        if (session[i] && session[i]->session_data == sd)
+        if (session[i] && session[i]->session_data.get() == sd)
         {
             s_ip = session[i]->client_addr.sin_addr.s_addr;
             break;
@@ -1161,16 +1161,18 @@ void chrif_parse(int fd)
 static
 void send_users_tochar(TimerData *, tick_t)
 {
-    int users = 0, i;
-    struct map_session_data *sd;
+    int users = 0;
 
     if (char_fd <= 0 || session[char_fd] == NULL)
         return;
 
     WFIFOW(char_fd, 0) = 0x2aff;
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
-        if (session[i] && (sd = (struct map_session_data *)session[i]->session_data) && sd->state.auth &&
+        if (!session[i])
+            continue;
+        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        if (sd && sd->state.auth &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active
                || bool(sd->status.option & Option::HIDE)) && pc_isGM(sd)))
