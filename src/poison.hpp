@@ -21,4 +21,5 @@
 #pragma GCC poison calloc
 #pragma GCC poison realloc
 #pragma GCC poison free
+#pragma GCC poison strdup
 #endif
