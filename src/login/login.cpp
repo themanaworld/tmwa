@@ -978,6 +978,7 @@ int mmo_auth(struct mmo_account *account, int fd)
             LOGIN_LOG("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n",
                  account->userid, new_id,
                  account->userid[len + 1], ip);
+            ad = &auth_data.back();
         }
     }
 
