@@ -45,11 +45,11 @@ void trade_traderequest(struct map_session_data *sd, int target_id)
         }
         else
         {
-            if (sd->bl.m != target_sd->bl.m
-                || (sd->bl.x - target_sd->bl.x <= -5
-                    || sd->bl.x - target_sd->bl.x >= 5)
-                || (sd->bl.y - target_sd->bl.y <= -5
-                    || sd->bl.y - target_sd->bl.y >= 5))
+            if (sd->bl.bl_m != target_sd->bl.bl_m
+                || (sd->bl.bl_x - target_sd->bl.bl_x <= -5
+                    || sd->bl.bl_x - target_sd->bl.bl_x >= 5)
+                || (sd->bl.bl_y - target_sd->bl.bl_y <= -5
+                    || sd->bl.bl_y - target_sd->bl.bl_y >= 5))
             {
                 clif_tradestart(sd, 0);    //too far
             }

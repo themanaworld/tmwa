@@ -644,11 +644,11 @@ void party_send_xyhp_timer_sub(struct party *p)
         if ((sd = p->member[i].sd) != NULL)
         {
             // 座標通知
-            if (sd->party_x != sd->bl.x || sd->party_y != sd->bl.y)
+            if (sd->party_x != sd->bl.bl_x || sd->party_y != sd->bl.bl_y)
             {
                 clif_party_xy(p, sd);
-                sd->party_x = sd->bl.x;
-                sd->party_y = sd->bl.y;
+                sd->party_x = sd->bl.bl_x;
+                sd->party_y = sd->bl.bl_y;
             }
             // ＨＰ通知
             if (sd->party_hp != sd->status.hp)
@@ -712,12 +712,12 @@ int party_exp_share(struct party *p, int mapid, int base_exp, int job_exp)
     nullpo_ret(p);
 
     for (i = c = 0; i < MAX_PARTY; i++)
-        if ((sd = p->member[i].sd) != NULL && sd->bl.m == mapid)
+        if ((sd = p->member[i].sd) != NULL && sd->bl.bl_m == mapid)
             c++;
     if (c == 0)
         return 0;
     for (i = 0; i < MAX_PARTY; i++)
-        if ((sd = p->member[i].sd) != NULL && sd->bl.m == mapid)
+        if ((sd = p->member[i].sd) != NULL && sd->bl.bl_m == mapid)
             pc_gainexp_reason(sd, base_exp / c + 1, job_exp / c + 1,
             PC_GAINEXP_REASON::SHARING);
     return 0;
@@ -740,21 +740,21 @@ void party_foreachsamemap(std::function<void(struct block_list *)> func,
     if ((p = party_search(sd->status.party_id)) == NULL)
         return;
 
-    x0 = sd->bl.x - AREA_SIZE;
-    y0 = sd->bl.y - AREA_SIZE;
-    x1 = sd->bl.x + AREA_SIZE;
-    y1 = sd->bl.y + AREA_SIZE;
+    x0 = sd->bl.bl_x - AREA_SIZE;
+    y0 = sd->bl.bl_y - AREA_SIZE;
+    x1 = sd->bl.bl_x + AREA_SIZE;
+    y1 = sd->bl.bl_y + AREA_SIZE;
 
     for (i = 0; i < MAX_PARTY; i++)
     {
         struct party_member *m = &p->member[i];
         if (m->sd != NULL)
         {
-            if (sd->bl.m != m->sd->bl.m)
+            if (sd->bl.bl_m != m->sd->bl.bl_m)
                 continue;
             if (type != 0 &&
-                (m->sd->bl.x < x0 || m->sd->bl.y < y0 ||
-                 m->sd->bl.x > x1 || m->sd->bl.y > y1))
+                (m->sd->bl.bl_x < x0 || m->sd->bl.bl_y < y0 ||
+                 m->sd->bl.bl_x > x1 || m->sd->bl.bl_y > y1))
                 continue;
             list[blockcount++] = &m->sd->bl;
         }
@@ -763,6 +763,6 @@ void party_foreachsamemap(std::function<void(struct block_list *)> func,
     MapBlockLock lock;
 
     for (i = 0; i < blockcount; i++)
-        if (list[i]->prev)      // 有効かどうかチェック
+        if (list[i]->bl_prev)      // 有効かどうかチェック
             func(list[i]);
 }

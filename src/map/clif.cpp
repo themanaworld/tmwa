@@ -194,7 +194,7 @@ static
 int is_deaf(struct block_list *bl)
 {
     struct map_session_data *sd = (struct map_session_data *) bl;
-    if (!bl || bl->type != BL::PC)
+    if (!bl || bl->bl_type != BL::PC)
         return 0;
     return sd->special_state.deaf;
 }
@@ -227,7 +227,7 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
 
         case SendWho::AREA_CHAT_WOC:
             if (is_deaf(bl)
-                && !(bl->type == BL::PC
+                && !(bl->bl_type == BL::PC
                      && pc_isGM((struct map_session_data *) src_bl)))
             {
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
@@ -275,7 +275,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
     {
         nullpo_ret(bl);
 
-        if (bl->type == BL::PC)
+        if (bl->bl_type == BL::PC)
         {
             struct map_session_data *sd2 = (struct map_session_data *) bl;
             if (bool(sd2->status.option & Option::INVISIBILITY))
@@ -323,7 +323,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 if (!session[i])
                     continue;
                 map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
-                if (sd && sd->state.auth && sd->bl.m == bl->m)
+                if (sd && sd->state.auth && sd->bl.bl_m == bl->bl_m)
                 {
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {
@@ -337,27 +337,27 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
         case SendWho::AREA:
         case SendWho::AREA_WOS:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, type),
-                    bl->m, bl->x - AREA_SIZE, bl->y - AREA_SIZE,
-                    bl->x + AREA_SIZE, bl->y + AREA_SIZE, BL::PC);
+                    bl->bl_m, bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
+                    bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE, BL::PC);
             break;
         case SendWho::AREA_CHAT_WOC:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, SendWho::AREA_CHAT_WOC),
-                    bl->m, bl->x - (AREA_SIZE), bl->y - (AREA_SIZE),
-                    bl->x + (AREA_SIZE), bl->y + (AREA_SIZE), BL::PC);
+                    bl->bl_m, bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
+                    bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE), BL::PC);
             break;
 
         case SendWho::PARTY_AREA:       // 同じ画面内の全パーティーメンバに送信
         case SendWho::PARTY_AREA_WOS:   // 自分以外の同じ画面内の全パーティーメンバに送信
-            x0 = bl->x - AREA_SIZE;
-            y0 = bl->y - AREA_SIZE;
-            x1 = bl->x + AREA_SIZE;
-            y1 = bl->y + AREA_SIZE;
+            x0 = bl->bl_x - AREA_SIZE;
+            y0 = bl->bl_y - AREA_SIZE;
+            x1 = bl->bl_x + AREA_SIZE;
+            y1 = bl->bl_y + AREA_SIZE;
             FALLTHROUGH;
         case SendWho::PARTY:            // 全パーティーメンバに送信
         case SendWho::PARTY_WOS:        // 自分以外の全パーティーメンバに送信
         case SendWho::PARTY_SAMEMAP:    // 同じマップの全パーティーメンバに送信
         case SendWho::PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
-            if (bl->type == BL::PC)
+            if (bl->bl_type == BL::PC)
             {
                 struct map_session_data *sd = (struct map_session_data *) bl;
                 if (sd->partyspy > 0)
@@ -377,15 +377,15 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                     struct map_session_data *sd =  p->member[i].sd;
                     if (sd)
                     {
-                        if (sd->bl.id == bl->id && (type == SendWho::PARTY_WOS ||
+                        if (sd->bl.bl_id == bl->bl_id && (type == SendWho::PARTY_WOS ||
                                                     type == SendWho::PARTY_SAMEMAP_WOS
                                                     || type == SendWho::PARTY_AREA_WOS))
                             continue;
-                        if (type != SendWho::PARTY && type != SendWho::PARTY_WOS && bl->m != sd->bl.m)    // マップチェック
+                        if (type != SendWho::PARTY && type != SendWho::PARTY_WOS && bl->bl_m != sd->bl.bl_m)    // マップチェック
                             continue;
                         if ((type == SendWho::PARTY_AREA || type == SendWho::PARTY_AREA_WOS) &&
-                            (sd->bl.x < x0 || sd->bl.y < y0 ||
-                             sd->bl.x > x1 || sd->bl.y > y1))
+                            (sd->bl.bl_x < x0 || sd->bl.bl_y < y0 ||
+                             sd->bl.bl_x > x1 || sd->bl.bl_y > y1))
                             continue;
                         if (clif_parse_func_table[RBUFW(buf, 0)].len)
                         {
@@ -459,7 +459,7 @@ int clif_authok(struct map_session_data *sd)
 
     WFIFOW(fd, 0) = 0x73;
     WFIFOL(fd, 2) = gettick().time_since_epoch().count();
-    WFIFOPOS(fd, 6, sd->bl.x, sd->bl.y);
+    WFIFOPOS(fd, 6, sd->bl.bl_x, sd->bl.bl_y);
     WFIFOB(fd, 9) = 5;
     WFIFOB(fd, 10) = 5;
     WFIFOSET(fd, clif_parse_func_table[0x73].len);
@@ -521,14 +521,14 @@ int clif_set009e(struct flooritem_data *fitem, uint8_t *buf)
 
     //009e <ID>.l <name ID>.w <identify flag>.B <X>.w <Y>.w <subX>.B <subY>.B <amount>.w
     WBUFW(buf, 0) = 0x9e;
-    WBUFL(buf, 2) = fitem->bl.id;
+    WBUFL(buf, 2) = fitem->bl.bl_id;
     if ((view = itemdb_viewid(fitem->item_data.nameid)) > 0)
         WBUFW(buf, 6) = view;
     else
         WBUFW(buf, 6) = fitem->item_data.nameid;
     WBUFB(buf, 8) = fitem->item_data.identify;
-    WBUFW(buf, 9) = fitem->bl.x;
-    WBUFW(buf, 11) = fitem->bl.y;
+    WBUFW(buf, 9) = fitem->bl.bl_x;
+    WBUFW(buf, 11) = fitem->bl.bl_y;
     WBUFB(buf, 13) = fitem->subx;
     WBUFB(buf, 14) = fitem->suby;
     WBUFW(buf, 15) = fitem->item_data.amount;
@@ -565,7 +565,7 @@ int clif_clearflooritem(struct flooritem_data *fitem, int fd)
     nullpo_ret(fitem);
 
     WBUFW(buf, 0) = 0xa1;
-    WBUFL(buf, 2) = fitem->bl.id;
+    WBUFL(buf, 2) = fitem->bl.bl_id;
 
     if (fd == 0)
     {
@@ -591,7 +591,7 @@ int clif_clearchar(struct block_list *bl, BeingRemoveWhy type)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x80;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     if (type == BeingRemoveWhy::DISGUISE)
     {
         WBUFB(buf, 6) = static_cast<uint8_t>(BeingRemoveWhy::GONE);
@@ -657,7 +657,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x1d8;
-    WBUFL(buf, 2) = sd->bl.id;
+    WBUFL(buf, 2) = sd->bl.bl_id;
     WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
     WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
@@ -704,7 +704,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 42) = uint16_t(sd->opt3);
     WBUFB(buf, 44) = sd->status.karma;
     WBUFB(buf, 45) = sd->sex;
-    WBUFPOS(buf, 46, sd->bl.x, sd->bl.y);
+    WBUFPOS(buf, 46, sd->bl.bl_x, sd->bl.bl_y);
     // work around ICE in gcc 4.6
     uint8_t dir = static_cast<uint8_t>(sd->dir);
     WBUFB(buf, 48) |= dir;
@@ -725,7 +725,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x1da;
-    WBUFL(buf, 2) = sd->bl.id;
+    WBUFL(buf, 2) = sd->bl.bl_id;
     WBUFW(buf, 6) = static_cast<uint16_t>(sd->speed.count());
     WBUFW(buf, 8) = static_cast<uint16_t>(sd->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(sd->opt2);
@@ -766,7 +766,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
     WBUFW(buf, 46) = uint16_t(sd->opt3);
     WBUFB(buf, 48) = sd->status.karma;
     WBUFB(buf, 49) = sd->sex;
-    WBUFPOS2(buf, 50, sd->bl.x, sd->bl.y, sd->to_x, sd->to_y);
+    WBUFPOS2(buf, 50, sd->bl.bl_x, sd->bl.bl_y, sd->to_x, sd->to_y);
     WBUFW(buf, 55) = pc_isGM(sd) == 60 ? 0x80 : 0;
     WBUFB(buf, 57) = 5;
     WBUFW(buf, 58) = 0;
@@ -788,14 +788,14 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
     nullpo_ret(md);
 
     WBUFW(buf, 0) = 0x78;
-    WBUFL(buf, 2) = md->bl.id;
+    WBUFL(buf, 2) = md->bl.bl_id;
     WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(&md->bl).count());
     WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
     WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
     WBUFW(buf, 14) = md->mob_class;
     // snip: stuff do do with disguise as a PC
-    WBUFPOS(buf, 46, md->bl.x, md->bl.y);
+    WBUFPOS(buf, 46, md->bl.bl_x, md->bl.bl_y);
     // work around ICE in gcc 4.6
     uint8_t dir = static_cast<uint8_t>(md->dir);
     WBUFB(buf, 48) |= dir;
@@ -823,7 +823,7 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
     nullpo_ret(md);
 
     WBUFW(buf, 0) = 0x7b;
-    WBUFL(buf, 2) = md->bl.id;
+    WBUFL(buf, 2) = md->bl.bl_id;
     WBUFW(buf, 6) = static_cast<uint16_t>(battle_get_speed(&md->bl).count());
     WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
     WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
@@ -832,7 +832,7 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
     // snip: stuff for monsters disguised as PCs
     WBUFL(buf, 22) = gettick().time_since_epoch().count();
 
-    WBUFPOS2(buf, 50, md->bl.x, md->bl.y, md->to_x, md->to_y);
+    WBUFPOS2(buf, 50, md->bl.bl_x, md->bl.bl_y, md->to_x, md->to_y);
     WBUFB(buf, 56) = 5;
     WBUFB(buf, 57) = 5;
     WBUFW(buf, 58) =
@@ -855,10 +855,10 @@ int clif_npc0078(struct npc_data *nd, unsigned char *buf)
     memset(buf, 0, clif_parse_func_table[0x78].len);
 
     WBUFW(buf, 0) = 0x78;
-    WBUFL(buf, 2) = nd->bl.id;
+    WBUFL(buf, 2) = nd->bl.bl_id;
     WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
     WBUFW(buf, 14) = nd->npc_class;
-    WBUFPOS(buf, 46, nd->bl.x, nd->bl.y);
+    WBUFPOS(buf, 46, nd->bl.bl_x, nd->bl.bl_y);
     // work around ICE in gcc 4.6
     uint8_t dir = static_cast<uint8_t>(nd->dir);
     WBUFB(buf, 48) |= dir;
@@ -904,15 +904,15 @@ int clif_spawnpc(struct map_session_data *sd)
     WBUFW(buf, 51) = 0;
     clif_send(buf, clif_parse_func_table[0x1d9].len, &sd->bl, SendWho::AREA_WOS);
 
-    if (map[sd->bl.m].flag.snow)
+    if (map[sd->bl.bl_m].flag.snow)
         clif_specialeffect(&sd->bl, 162, 1);
-    if (map[sd->bl.m].flag.fog)
+    if (map[sd->bl.bl_m].flag.fog)
         clif_specialeffect(&sd->bl, 233, 1);
-    if (map[sd->bl.m].flag.sakura)
+    if (map[sd->bl.bl_m].flag.sakura)
         clif_specialeffect(&sd->bl, 163, 1);
-    if (map[sd->bl.m].flag.leaves)
+    if (map[sd->bl.bl_m].flag.leaves)
         clif_specialeffect(&sd->bl, 333, 1);
-    if (map[sd->bl.m].flag.rain)
+    if (map[sd->bl.bl_m].flag.rain)
         clif_specialeffect(&sd->bl, 161, 1);
 
 //        clif_changelook_accessories(&sd->bl, NULL);
@@ -937,10 +937,10 @@ int clif_spawnnpc(struct npc_data *nd)
     memset(buf, 0, clif_parse_func_table[0x7c].len);
 
     WBUFW(buf, 0) = 0x7c;
-    WBUFL(buf, 2) = nd->bl.id;
+    WBUFL(buf, 2) = nd->bl.bl_id;
     WBUFW(buf, 6) = static_cast<uint16_t>(nd->speed.count());
     WBUFW(buf, 20) = nd->npc_class;
-    WBUFPOS(buf, 36, nd->bl.x, nd->bl.y);
+    WBUFPOS(buf, 36, nd->bl.bl_x, nd->bl.bl_y);
 
     clif_send(buf, clif_parse_func_table[0x7c].len, &nd->bl, SendWho::AREA);
 
@@ -967,7 +967,7 @@ int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
     WFIFOW(fd, 10) = 0;
     WFIFOW(fd, 12) = 0;
     WFIFOW(fd, 20) = 127;
-    WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
+    WFIFOPOS(fd, 36, sd->bl.bl_x, sd->bl.bl_y);
     WFIFOSET(fd, clif_parse_func_table[0x7c].len);
 
     WFIFOW(fd, 0) = 0x78;
@@ -978,8 +978,8 @@ int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
     WFIFOW(fd, 12) = 0;
     WFIFOW(fd, 14) = 127;      // identifies as NPC
     WFIFOW(fd, 20) = 127;
-    WFIFOPOS(fd, 46, sd->bl.x, sd->bl.y);
-    WFIFOPOS(fd, 36, sd->bl.x, sd->bl.y);
+    WFIFOPOS(fd, 46, sd->bl.bl_x, sd->bl.bl_y);
+    WFIFOPOS(fd, 36, sd->bl.bl_x, sd->bl.bl_y);
     WFIFOB(fd, 49) = 5;
     WFIFOB(fd, 50) = 5;
     WFIFOSET(fd, clif_parse_func_table[0x78].len);
@@ -1002,13 +1002,13 @@ int clif_spawnmob(struct mob_data *md)
         memset(buf, 0, clif_parse_func_table[0x7c].len);
 
         WBUFW(buf, 0) = 0x7c;
-        WBUFL(buf, 2) = md->bl.id;
+        WBUFL(buf, 2) = md->bl.bl_id;
         WBUFW(buf, 6) = md->stats[mob_stat::SPEED];
         WBUFW(buf, 8) = uint16_t(md->opt1);
         WBUFW(buf, 10) = uint16_t(md->opt2);
         WBUFW(buf, 12) = uint16_t(md->option);
         WBUFW(buf, 20) = md->mob_class;
-        WBUFPOS(buf, 36, md->bl.x, md->bl.y);
+        WBUFPOS(buf, 36, md->bl.bl_x, md->bl.bl_y);
         clif_send(buf, clif_parse_func_table[0x7c].len, &md->bl, SendWho::AREA);
     }
 
@@ -1050,7 +1050,7 @@ int clif_walkok(struct map_session_data *sd)
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x87;
     WFIFOL(fd, 2) = gettick().time_since_epoch().count();
-    WFIFOPOS2(fd, 6, sd->bl.x, sd->bl.y, sd->to_x, sd->to_y);
+    WFIFOPOS2(fd, 6, sd->bl.bl_x, sd->bl.bl_y, sd->to_x, sd->to_y);
     WFIFOB(fd, 11) = 0;
     WFIFOSET(fd, clif_parse_func_table[0x87].len);
 
@@ -1169,9 +1169,9 @@ int clif_fixpos(struct block_list *bl)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x88;
-    WBUFL(buf, 2) = bl->id;
-    WBUFW(buf, 6) = bl->x;
-    WBUFW(buf, 8) = bl->y;
+    WBUFL(buf, 2) = bl->bl_id;
+    WBUFW(buf, 6) = bl->bl_x;
+    WBUFW(buf, 8) = bl->bl_y;
 
     clif_send(buf, clif_parse_func_table[0x88].len, bl, SendWho::AREA);
 
@@ -1964,7 +1964,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
 
     nullpo_ret(bl);
 
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
         sd = (struct map_session_data *) bl;
 
     if (sd && bool(sd->status.option & Option::INVISIBILITY))
@@ -1974,7 +1974,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
         && (type == LOOK::WEAPON || type == LOOK::SHIELD || type >= LOOK::SHOES))
     {
         WBUFW(buf, 0) = 0x1d7;
-        WBUFL(buf, 2) = bl->id;
+        WBUFL(buf, 2) = bl->bl_id;
         if (type >= LOOK::SHOES)
         {
             EQUIP equip_point = equip_points[type];
@@ -2039,7 +2039,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
     else
     {
         WBUFW(buf, 0) = 0x1d7;
-        WBUFL(buf, 2) = bl->id;
+        WBUFL(buf, 2) = bl->bl_id;
         WBUFB(buf, 6) = uint8_t(type);
         WBUFW(buf, 7) = val;
         WBUFW(buf, 9) = 0;
@@ -2220,7 +2220,7 @@ int clif_misceffect(struct block_list *bl, int type)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x19b;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     WBUFL(buf, 6) = type;
 
     clif_send(buf, clif_parse_func_table[0x19b].len, bl, SendWho::AREA);
@@ -2243,7 +2243,7 @@ int clif_changeoption(struct block_list *bl)
     sc_data = battle_get_sc_data(bl);
 
     WBUFW(buf, 0) = 0x119;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     WBUFW(buf, 6) = uint16_t(*battle_get_opt1(bl));
     WBUFW(buf, 8) = uint16_t(*battle_get_opt2(bl));
     WBUFW(buf, 10) = uint16_t(option);
@@ -2283,7 +2283,7 @@ int clif_useitemack(struct map_session_data *sd, int index, int amount,
             WBUFW(buf, 4) = sd->inventory_data[index]->view_id;
         else
             WBUFW(buf, 4) = sd->status.inventory[index].nameid;
-        WBUFL(buf, 6) = sd->bl.id;
+        WBUFL(buf, 6) = sd->bl.bl_id;
         WBUFW(buf, 10) = amount;
         WBUFB(buf, 12) = ok;
         clif_send(buf, clif_parse_func_table[0x1c8].len, &sd->bl, SendWho::SELF);
@@ -2754,8 +2754,8 @@ int clif_damage(struct block_list *src, struct block_list *dst,
     sc_data = battle_get_sc_data(dst);
 
     WBUFW(buf, 0) = 0x8a;
-    WBUFL(buf, 2) = src->id;
-    WBUFL(buf, 6) = dst->id;
+    WBUFL(buf, 2) = src->bl_id;
+    WBUFL(buf, 6) = dst->bl_id;
     WBUFL(buf, 10) = tick.time_since_epoch().count();
     WBUFL(buf, 14) = sdelay.count();
     WBUFL(buf, 18) = ddelay.count();
@@ -2807,14 +2807,14 @@ void clif_getareachar_item(struct map_session_data *sd,
     fd = sd->fd;
     //009d <ID>.l <item ID>.w <identify flag>.B <X>.w <Y>.w <amount>.w <subX>.B <subY>.B
     WFIFOW(fd, 0) = 0x9d;
-    WFIFOL(fd, 2) = fitem->bl.id;
+    WFIFOL(fd, 2) = fitem->bl.bl_id;
     if ((view = itemdb_viewid(fitem->item_data.nameid)) > 0)
         WFIFOW(fd, 6) = view;
     else
         WFIFOW(fd, 6) = fitem->item_data.nameid;
     WFIFOB(fd, 8) = fitem->item_data.identify;
-    WFIFOW(fd, 9) = fitem->bl.x;
-    WFIFOW(fd, 11) = fitem->bl.y;
+    WFIFOW(fd, 9) = fitem->bl.bl_x;
+    WFIFOW(fd, 11) = fitem->bl.bl_y;
     WFIFOW(fd, 13) = fitem->item_data.amount;
     WFIFOB(fd, 15) = fitem->subx;
     WFIFOB(fd, 16) = fitem->suby;
@@ -2831,7 +2831,7 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
 {
     nullpo_retv(bl);
 
-    switch (bl->type)
+    switch (bl->bl_type)
     {
         case BL::PC:
             if (sd == (struct map_session_data *) bl)
@@ -2850,7 +2850,7 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
         default:
             if (battle_config.error_log)
                 PRINTF("get area char ??? %d\n",
-                        bl->type);
+                        bl->bl_type);
             break;
     }
 }
@@ -2866,22 +2866,22 @@ void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
     nullpo_retv(bl);
     nullpo_retv(sd);
 
-    switch (bl->type)
+    switch (bl->bl_type)
     {
         case BL::PC:
             dstsd = (struct map_session_data *) bl;
             if (sd != dstsd)
             {
-                clif_clearchar_id(dstsd->bl.id, BeingRemoveWhy::GONE, sd->fd);
-                clif_clearchar_id(sd->bl.id, BeingRemoveWhy::GONE, dstsd->fd);
+                clif_clearchar_id(dstsd->bl.bl_id, BeingRemoveWhy::GONE, sd->fd);
+                clif_clearchar_id(sd->bl.bl_id, BeingRemoveWhy::GONE, dstsd->fd);
             }
             break;
         case BL::NPC:
             if (((struct npc_data *) bl)->npc_class != INVISIBLE_CLASS)
-                clif_clearchar_id(bl->id, BeingRemoveWhy::GONE, sd->fd);
+                clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->fd);
             break;
         case BL::MOB:
-            clif_clearchar_id(bl->id, BeingRemoveWhy::GONE, sd->fd);
+            clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->fd);
             break;
         case BL::ITEM:
             clif_clearflooritem((struct flooritem_data *) bl, sd->fd);
@@ -2900,7 +2900,7 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
     nullpo_retv(bl);
     nullpo_retv(sd);
 
-    switch (bl->type)
+    switch (bl->bl_type)
     {
         case BL::PC:
             dstsd = (struct map_session_data *) bl;
@@ -2933,9 +2933,9 @@ void clif_moboutsight(struct block_list *bl, struct mob_data *md)
     nullpo_retv(bl);
     nullpo_retv(md);
 
-    if (bl->type == BL::PC && (sd = (struct map_session_data *) bl))
+    if (bl->bl_type == BL::PC && (sd = (struct map_session_data *) bl))
     {
-        clif_clearchar_id(md->bl.id, BeingRemoveWhy::GONE, sd->fd);
+        clif_clearchar_id(md->bl.bl_id, BeingRemoveWhy::GONE, sd->fd);
     }
 }
 
@@ -2950,7 +2950,7 @@ void clif_mobinsight(struct block_list *bl, struct mob_data *md)
     nullpo_retv(bl);
     nullpo_retv(md);
 
-    if (bl->type == BL::PC && (sd = (struct map_session_data *) bl))
+    if (bl->bl_type == BL::PC && (sd = (struct map_session_data *) bl))
     {
         clif_getareachar_mob(sd, md);
     }
@@ -3071,7 +3071,7 @@ int clif_skillcastcancel(struct block_list *bl)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x1b9;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     clif_send(buf, clif_parse_func_table[0x1b9].len, bl, SendWho::AREA);
 
     return 0;
@@ -3124,8 +3124,8 @@ int clif_skill_damage(struct block_list *src, struct block_list *dst,
 
     WBUFW(buf, 0) = 0x1de;
     WBUFW(buf, 2) = uint16_t(skill_id);
-    WBUFL(buf, 4) = src->id;
-    WBUFL(buf, 8) = dst->id;
+    WBUFL(buf, 4) = src->bl_id;
+    WBUFL(buf, 8) = dst->bl_id;
     WBUFL(buf, 12) = static_cast<uint32_t>(tick.time_since_epoch().count());
     WBUFL(buf, 16) = static_cast<uint32_t>(sdelay.count());
     WBUFL(buf, 20) = static_cast<uint32_t>(ddelay.count());
@@ -3150,7 +3150,7 @@ int clif_status_change(struct block_list *bl, StatusChange type, int flag)
 
     WBUFW(buf, 0) = 0x0196;
     WBUFW(buf, 2) = uint16_t(type);
-    WBUFL(buf, 4) = bl->id;
+    WBUFL(buf, 4) = bl->bl_id;
     WBUFB(buf, 8) = flag;
     clif_send(buf, clif_parse_func_table[0x196].len, bl, SendWho::AREA);
     return 0;
@@ -3206,7 +3206,7 @@ int clif_resurrection(struct block_list *bl, int type)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x148;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     WBUFW(buf, 6) = type;
 
     clif_send(buf, clif_parse_func_table[0x148].len, bl, type == 1 ? SendWho::AREA : SendWho::AREA_WOS);
@@ -3474,8 +3474,8 @@ int clif_party_xy(struct party *, struct map_session_data *sd)
 
     WBUFW(buf, 0) = 0x107;
     WBUFL(buf, 2) = sd->status.account_id;
-    WBUFW(buf, 6) = sd->bl.x;
-    WBUFW(buf, 8) = sd->bl.y;
+    WBUFW(buf, 6) = sd->bl.bl_x;
+    WBUFW(buf, 8) = sd->bl.bl_y;
     clif_send(buf, clif_parse_func_table[0x107].len, &sd->bl, SendWho::PARTY_SAMEMAP_WOS);
 //  if(battle_config.etc_log)
 //      PRINTF("clif_party_xy %d\n",sd->status.account_id);
@@ -3516,11 +3516,11 @@ int clif_movetoattack(struct map_session_data *sd, struct block_list *bl)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x139;
-    WFIFOL(fd, 2) = bl->id;
-    WFIFOW(fd, 6) = bl->x;
-    WFIFOW(fd, 8) = bl->y;
-    WFIFOW(fd, 10) = sd->bl.x;
-    WFIFOW(fd, 12) = sd->bl.y;
+    WFIFOL(fd, 2) = bl->bl_id;
+    WFIFOW(fd, 6) = bl->bl_x;
+    WFIFOW(fd, 8) = bl->bl_y;
+    WFIFOW(fd, 10) = sd->bl.bl_x;
+    WFIFOW(fd, 12) = sd->bl.bl_y;
     WFIFOW(fd, 14) = sd->attackrange;
     WFIFOSET(fd, clif_parse_func_table[0x139].len);
     return 0;
@@ -3537,7 +3537,7 @@ int clif_mvp_effect(struct map_session_data *sd)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x10c;
-    WBUFL(buf, 2) = sd->bl.id;
+    WBUFL(buf, 2) = sd->bl.bl_id;
     clif_send(buf, clif_parse_func_table[0x10c].len, &sd->bl, SendWho::AREA);
     return 0;
 }
@@ -3553,7 +3553,7 @@ void clif_emotion(struct block_list *bl, int type)
     nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0xc0;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     WBUFB(buf, 6) = type;
     clif_send(buf, clif_parse_func_table[0xc0].len, bl, SendWho::AREA);
 }
@@ -3569,11 +3569,11 @@ void clif_emotion_towards(struct block_list *bl,
     nullpo_retv(bl);
     nullpo_retv(target);
 
-    if (target->type != BL::PC)
+    if (target->bl_type != BL::PC)
         return;
 
     WBUFW(buf, 0) = 0xc0;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     WBUFB(buf, 6) = type;
 
     memcpy(WFIFOP(sd->fd, 0), buf, len);
@@ -3591,7 +3591,7 @@ void clif_sitting(int, struct map_session_data *sd)
     nullpo_retv(sd);
 
     WBUFW(buf, 0) = 0x8a;
-    WBUFL(buf, 2) = sd->bl.id;
+    WBUFL(buf, 2) = sd->bl.bl_id;
     WBUFB(buf, 26) = 2;
     clif_send(buf, clif_parse_func_table[0x8a].len, &sd->bl, SendWho::AREA);
 }
@@ -3641,7 +3641,7 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
     memset(buf, 0, clif_parse_func_table[0x19b].len);
 
     WBUFW(buf, 0) = 0x19b;
-    WBUFL(buf, 2) = bl->id;
+    WBUFL(buf, 2) = bl->bl_id;
     WBUFL(buf, 6) = type;
 
     if (flag == 2)
@@ -3651,7 +3651,7 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
             if (!session[i])
                 continue;
             struct map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
-            if (sd && sd->state.auth && sd->bl.m == bl->m)
+            if (sd && sd->state.auth && sd->bl.bl_m == bl->bl_m)
                 clif_specialeffect(&sd->bl, type, 1);
         }
     }
@@ -3733,7 +3733,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     int i;
     nullpo_retv(sd);
 
-    if (sd->bl.prev != NULL)
+    if (sd->bl.bl_prev != NULL)
         return;
 
     // 接続ok時
@@ -3776,14 +3776,14 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
     if (!battle_config.pk_mode)
         sd->pvp_timer.cancel();
 
-    if (map[sd->bl.m].flag.pvp)
+    if (map[sd->bl.bl_m].flag.pvp)
     {
         if (!battle_config.pk_mode)
         {
             // remove pvp stuff for pk_mode [Valaris]
             sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
                     std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
-                        sd->bl.id));
+                        sd->bl.bl_id));
             sd->pvp_rank = 0;
             sd->pvp_lastusers = 0;
             sd->pvp_point = 5;
@@ -3818,9 +3818,9 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
 
 //        clif_changelook_accessories(sd, NULL);
 
-    map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd), sd->bl.m, sd->bl.x - AREA_SIZE,
-                       sd->bl.y - AREA_SIZE, sd->bl.x + AREA_SIZE,
-                       sd->bl.y + AREA_SIZE, BL::NUL);
+    map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd), sd->bl.bl_m, sd->bl.bl_x - AREA_SIZE,
+                       sd->bl.bl_y - AREA_SIZE, sd->bl.bl_x + AREA_SIZE,
+                       sd->bl.bl_y + AREA_SIZE, BL::NUL);
 }
 
 /*==========================================
@@ -3927,7 +3927,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
     WFIFOW(fd, 0) = 0x95;
     WFIFOL(fd, 2) = account_id;
 
-    switch (bl->type)
+    switch (bl->bl_type)
     {
         case BL::PC:
         {
@@ -4009,7 +4009,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
         default:
             if (battle_config.error_log)
                 PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n",
-                        bl->type, account_id);
+                        bl->bl_type, account_id);
             break;
     }
 }
@@ -4057,7 +4057,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
         /* It's not a spell/magic message, so send the message to others. */
         WBUFW(reinterpret_cast<uint8_t *>(buf), 0) = 0x8d;
         WBUFW(reinterpret_cast<uint8_t *>(buf), 2) = msg_len + 8;   /* Header(2) + length(2) + ID(4). */
-        WBUFL(reinterpret_cast<uint8_t *>(buf), 4) = sd->bl.id;
+        WBUFL(reinterpret_cast<uint8_t *>(buf), 4) = sd->bl.bl_id;
 
         // evil multiuse buffer!
         clif_send((const uint8_t *)buf, msg_len + 8, &sd->bl, SendWho::AREA_CHAT_WOC);
@@ -4084,7 +4084,7 @@ int clif_message(struct block_list *bl, const char *msg)
 
     WBUFW(buf, 0) = 0x8d;
     WBUFW(buf, 2) = msg_len + 8;
-    WBUFL(buf, 4) = bl->id;
+    WBUFL(buf, 4) = bl->bl_id;
     memcpy(WBUFP(buf, 8), msg, msg_len);
 
     clif_send(buf, WBUFW(buf, 2), bl, SendWho::AREA);
@@ -4114,7 +4114,7 @@ void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
     pc_setdir(sd, dir);
 
     WBUFW(buf, 0) = 0x9c;
-    WBUFL(buf, 2) = sd->bl.id;
+    WBUFL(buf, 2) = sd->bl.bl_id;
     WBUFW(buf, 6) = 0;
     WBUFB(buf, 8) = static_cast<uint8_t>(dir);
 
@@ -4137,7 +4137,7 @@ void clif_parse_Emotion(int fd, struct map_session_data *sd)
         || pc_checkskill(sd, SkillID::NV_EMOTE) >= 1)
     {
         WBUFW(buf, 0) = 0xc0;
-        WBUFL(buf, 2) = sd->bl.id;
+        WBUFL(buf, 2) = sd->bl.bl_id;
         WBUFB(buf, 6) = RFIFOB(fd, 2);
         clif_send(buf, clif_parse_func_table[0xc0].len, &sd->bl, SendWho::AREA);
     }
@@ -4217,7 +4217,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
             skill_gangsterparadise(sd, 0); // ギャングスターパラダイス解除
             pc_setstand(sd);
             WBUFW(buf, 0) = 0x8a;
-            WBUFL(buf, 2) = sd->bl.id;
+            WBUFL(buf, 2) = sd->bl.bl_id;
             WBUFB(buf, 26) = 3;
             clif_send(buf, clif_parse_func_table[0x8a].len, &sd->bl, SendWho::AREA);
             break;
@@ -4380,11 +4380,11 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
         || sd->opt1 != Opt1::ZERO)   //会話禁止
         return;
 
-    if (fitem == NULL || fitem->bl.m != sd->bl.m)
+    if (fitem == NULL || fitem->bl.bl_m != sd->bl.bl_m)
         return;
 
-    if (abs(sd->bl.x - fitem->bl.x) >= 2
-        || abs(sd->bl.y - fitem->bl.y) >= 2)
+    if (abs(sd->bl.bl_x - fitem->bl.bl_x) >= 2
+        || abs(sd->bl.bl_y - fitem->bl.bl_y) >= 2)
         return;                 // too far away to pick up
 
     if (sd->state.shroud_active && sd->state.shroud_disappears_on_pickup)
@@ -4409,7 +4409,7 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd)
         clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
         return;
     }
-    if (map[sd->bl.m].flag.no_player_drops)
+    if (map[sd->bl.bl_m].flag.no_player_drops)
     {
         clif_displaymessage(sd->fd, "Can't drop items here.");
         return;
@@ -5789,11 +5789,11 @@ void clif_parse(int fd)
             if (sd->status.name != NULL)
                 PRINTF("Player [%s] has logged off your server.\n", sd->status.name);  // Player logout display [Valaris]
             else
-                PRINTF("Player with account [%d] has logged off your server.\n", sd->bl.id);   // Player logout display [Yor]
+                PRINTF("Player with account [%d] has logged off your server.\n", sd->bl.bl_id);   // Player logout display [Yor]
         }
         else if (sd)
         {                       // not authentified! (refused by char-server or disconnect before to be authentified)
-            PRINTF("Player with account [%d] has logged off your server (not auth account).\n", sd->bl.id);    // Player logout display [Yor]
+            PRINTF("Player with account [%d] has logged off your server (not auth account).\n", sd->bl.bl_id);    // Player logout display [Yor]
             map_deliddb(&sd->bl);  // account_id has been included in the DB before auth answer
         }
         if (fd)
@@ -5895,10 +5895,10 @@ void clif_parse(int fd)
                              sd->status.account_id, sd->status.char_id,
                              sd->status.name);
                     else
-                        PRINTF("\nAccount ID %d.\n", sd->bl.id);
+                        PRINTF("\nAccount ID %d.\n", sd->bl.bl_id);
                 }
                 else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
-                    PRINTF("\nAccount ID %d.\n", sd->bl.id);
+                    PRINTF("\nAccount ID %d.\n", sd->bl.bl_id);
 
                 if ((fp = fopen_(packet_txt, "a")) == NULL)
                 {
@@ -5921,12 +5921,12 @@ void clif_parse(int fd)
                         else
                             FPRINTF(fp,
                                     "%s\nPlayer with account ID %d sent wrong packet:\n",
-                                    now, sd->bl.id);
+                                    now, sd->bl.bl_id);
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                         FPRINTF(fp,
                                 "%s\nPlayer with account ID %d sent wrong packet:\n",
-                                now, sd->bl.id);
+                                now, sd->bl.bl_id);
 
                     FPRINTF(fp,
                              "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");

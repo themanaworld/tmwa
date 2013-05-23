@@ -118,7 +118,7 @@ int skill_power(struct map_session_data *sd, SkillID skill_id)
 
 int skill_power_bl(struct block_list *bl, SkillID skill)
 {
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
         return skill_power((struct map_session_data *) bl, skill);
     else
         return 0;

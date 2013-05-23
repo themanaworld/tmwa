@@ -108,7 +108,7 @@ int chrif_save(struct map_session_data *sd)
 
     WFIFOW(char_fd, 0) = 0x2b01;
     WFIFOW(char_fd, 2) = sizeof(sd->status) + 12;
-    WFIFOL(char_fd, 4) = sd->bl.id;
+    WFIFOL(char_fd, 4) = sd->bl.bl_id;
     WFIFOL(char_fd, 8) = sd->char_id;
     memcpy(WFIFOP(char_fd, 12), &sd->status, sizeof(sd->status));
     WFIFOSET(char_fd, WFIFOW(char_fd, 2));
@@ -206,7 +206,7 @@ int chrif_changemapserver(struct map_session_data *sd, char *name, int x,
         }
 
     WFIFOW(char_fd, 0) = 0x2b05;
-    WFIFOL(char_fd, 2) = sd->bl.id;
+    WFIFOL(char_fd, 2) = sd->bl.bl_id;
     WFIFOL(char_fd, 6) = sd->login_id1;
     WFIFOL(char_fd, 10) = sd->login_id2;
     WFIFOL(char_fd, 14) = sd->status.char_id;
@@ -306,14 +306,14 @@ int chrif_authreq(struct map_session_data *sd)
 
     nullpo_retr(-1, sd);
 
-    if (!sd || !char_fd || !sd->bl.id || !sd->login_id1)
+    if (!sd || !char_fd || !sd->bl.bl_id || !sd->login_id1)
         return -1;
 
     for (i = 0; i < fd_max; i++)
         if (session[i] && session[i]->session_data.get() == sd)
         {
             WFIFOW(char_fd, 0) = 0x2afc;
-            WFIFOL(char_fd, 2) = sd->bl.id;
+            WFIFOL(char_fd, 2) = sd->bl.bl_id;
             WFIFOL(char_fd, 6) = sd->char_id;
             WFIFOL(char_fd, 10) = sd->login_id1;
             WFIFOL(char_fd, 14) = sd->login_id2;
@@ -335,7 +335,7 @@ int chrif_charselectreq(struct map_session_data *sd)
 
     nullpo_retr(-1, sd);
 
-    if (!sd || !char_fd || !sd->bl.id || !sd->login_id1)
+    if (!sd || !char_fd || !sd->bl.bl_id || !sd->login_id1)
         return -1;
 
     s_ip = 0;
@@ -347,7 +347,7 @@ int chrif_charselectreq(struct map_session_data *sd)
         }
 
     WFIFOW(char_fd, 0) = 0x2b02;
-    WFIFOL(char_fd, 2) = sd->bl.id;
+    WFIFOL(char_fd, 2) = sd->bl.bl_id;
     WFIFOL(char_fd, 6) = sd->login_id1;
     WFIFOL(char_fd, 10) = sd->login_id2;
     WFIFOL(char_fd, 14) = s_ip;
@@ -696,7 +696,7 @@ int chrif_saveaccountreg2(struct map_session_data *sd)
     }
     WFIFOW(char_fd, 0) = 0x2b10;
     WFIFOW(char_fd, 2) = p;
-    WFIFOL(char_fd, 4) = sd->bl.id;
+    WFIFOL(char_fd, 4) = sd->bl.bl_id;
     WFIFOSET(char_fd, p);
 
     return 0;
@@ -949,7 +949,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
     if (!bl)
         return;
 
-    switch (bl->type)
+    switch (bl->bl_type)
     {
         case BL::PC:
         {
@@ -1023,10 +1023,10 @@ void ladmin_itemfrob(int fd)
     map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), BL::NUL /* any object */);
 
     // player characters (and, hopefully, mobs)
-    while (bl->next)
+    while (bl->bl_next)
     {
         ladmin_itemfrob_c2(bl, source_id, dest_id);
-        bl = bl->next;
+        bl = bl->bl_next;
     }
 }
 

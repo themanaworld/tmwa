@@ -37,11 +37,10 @@ constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = std::chrono::minutes(1);
 
 struct block_list
 {
-    struct block_list *next, *prev;
-    int id;
-    short m, x, y;
-    BL type;
-    NpcSubtype subtype;
+    struct block_list *bl_next, *bl_prev;
+    int bl_id;
+    short bl_m, bl_x, bl_y;
+    BL bl_type;
 };
 
 struct walkpath_data
@@ -281,6 +280,7 @@ struct npc_item_list
 struct npc_data
 {
     struct block_list bl;
+    NpcSubtype npc_subtype;
     short n;
     short npc_class;
     DIR dir;
@@ -535,7 +535,7 @@ void map_log(const_string line);
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %d:%d,%d " fmt,   \
-            sd->status.char_id, sd->bl.m, sd->bl.x, sd->bl.y, ## __VA_ARGS__)
+            sd->status.char_id, sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);

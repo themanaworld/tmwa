@@ -371,7 +371,7 @@ void log_atcommand(struct map_session_data *sd, const_string cmd)
     stamp_time(tmpstr);
     fprintf(fp, "[%s] %s(%d,%d) %s(%d) : ",
             tmpstr,
-            map[sd->bl.m].name, sd->bl.x, sd->bl.y,
+            map[sd->bl.bl_m].name, sd->bl.bl_x, sd->bl.bl_y,
             sd->status.name, sd->status.account_id);
     fwrite(cmd.data(), 1, cmd.size(), fp);
 }
@@ -676,7 +676,7 @@ int atcommand_charwarp(const int fd, struct map_session_data *sd,
                                          "You are not authorised to warp someone to this map.");
                     return -1;
                 }
-                if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarp
+                if (pl_sd->bl.bl_m >= 0 && map[pl_sd->bl.bl_m].flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
                     clif_displaymessage(fd,
@@ -754,7 +754,7 @@ int atcommand_warp(const int fd, struct map_session_data *sd,
                                  "You are not authorised to warp you to this map.");
             return -1;
         }
-        if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
+        if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -800,7 +800,7 @@ int atcommand_where(const int fd, struct map_session_data *sd,
     {                           // you can look only lower or same level
         std::string output = STRPRINTF("%s: %s (%d,%d)",
                 pl_sd->status.name,
-                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                pl_sd->mapname, pl_sd->bl.bl_x, pl_sd->bl.bl_y);
         clif_displaymessage(fd, output);
     }
     else
@@ -833,21 +833,21 @@ int atcommand_goto(const int fd, struct map_session_data *sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarpto
+        if (pl_sd->bl.bl_m >= 0 && map[pl_sd->bl.bl_m].flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to the map of this player.");
             return -1;
         }
-        if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
+        if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you from your actual map.");
             return -1;
         }
-        pc_setpos(sd, pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y, BeingRemoveWhy::WARPED);
+        pc_setpos(sd, pl_sd->mapname, pl_sd->bl.bl_x, pl_sd->bl.bl_y, BeingRemoveWhy::WARPED);
         std::string output = STRPRINTF("Jump to %s", character);
         clif_displaymessage(fd, output);
     }
@@ -876,14 +876,14 @@ int atcommand_jump(const int fd, struct map_session_data *sd,
         y = random_::in(1, 399);
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
-        if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
+        if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to your actual map.");
             return -1;
         }
-        if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
+        if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -950,12 +950,12 @@ int atcommand_who(const int fd, struct map_session_data *sd,
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
-                                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                                pl_sd->mapname, pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                     else
                         output = STRPRINTF(
                                 "Name: %s | Location: %s %d %d",
                                 pl_sd->status.name, pl_sd->mapname,
-                                pl_sd->bl.x, pl_sd->bl.y);
+                                pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                     clif_displaymessage(fd, output);
                     count++;
                 }
@@ -1061,14 +1061,14 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
     memset(map_name, '\0', sizeof(map_name));
 
     if (!message || !*message)
-        map_id = sd->bl.m;
+        map_id = sd->bl.bl_m;
     else
     {
         sscanf(message, "%99s", map_name);
         if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
             strcat(map_name, ".gat");
         if ((map_id = map_mapname2mapid(map_name)) < 0)
-            map_id = sd->bl.m;
+            map_id = sd->bl.bl_m;
     }
 
     count = 0;
@@ -1086,19 +1086,19 @@ int atcommand_whomap(const int fd, struct map_session_data *sd,
                   || bool(pl_sd->status.option & Option::HIDE))
                  && (pl_GM_level > GM_level)))
             {                   // you can look only lower or same level
-                if (pl_sd->bl.m == map_id)
+                if (pl_sd->bl.bl_m == map_id)
                 {
                     std::string output;
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
-                                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                                pl_sd->mapname, pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                     else
                         output = STRPRINTF(
                                 "Name: %s | Location: %s %d %d",
                                 pl_sd->status.name, pl_sd->mapname,
-                                pl_sd->bl.x, pl_sd->bl.y);
+                                pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                     clif_displaymessage(fd, output);
                     count++;
                 }
@@ -1129,14 +1129,14 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
     memset(map_name, '\0', sizeof(map_name));
 
     if (!message || !*message)
-        map_id = sd->bl.m;
+        map_id = sd->bl.bl_m;
     else
     {
         sscanf(message, "%99s", map_name);
         if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
             strcat(map_name, ".gat");
         if ((map_id = map_mapname2mapid(map_name)) < 0)
-            map_id = sd->bl.m;
+            map_id = sd->bl.bl_m;
     }
 
     count = 0;
@@ -1155,7 +1155,7 @@ int atcommand_whomapgroup(const int fd, struct map_session_data *sd,
                  && (pl_GM_level > GM_level)))
             {
                 // you can look only lower or same level
-                if (pl_sd->bl.m == map_id)
+                if (pl_sd->bl.bl_m == map_id)
                 {
                     p = party_search(pl_sd->status.party_id);
                     const char *temp0 = p ? p->name : "None";
@@ -1236,7 +1236,7 @@ int atcommand_whogm(const int fd, struct map_session_data *sd,
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
-                                pl_sd->mapname, pl_sd->bl.x, pl_sd->bl.y);
+                                pl_sd->mapname, pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                         clif_displaymessage(fd, output);
                         output = STRPRINTF(
                                 "       BLvl: %d | Job: %s (Lvl: %d)",
@@ -1279,7 +1279,7 @@ int atcommand_save(const int fd, struct map_session_data *sd,
 {
     nullpo_retr(-1, sd);
 
-    pc_setsavepoint(sd, sd->mapname, sd->bl.x, sd->bl.y);
+    pc_setsavepoint(sd, sd->mapname, sd->bl.bl_x, sd->bl.bl_y);
     pc_makesavestatus(sd);
     chrif_save(sd);
     clif_displaymessage(fd, "Character data respawn point saved.");
@@ -1304,7 +1304,7 @@ int atcommand_load(const int fd, struct map_session_data *sd,
                              "You are not authorised to warp you to your save map.");
         return -1;
     }
-    if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
+    if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -1893,9 +1893,9 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    if (map[sd->bl.m].flag.pvp)
+    if (map[sd->bl.bl_m].flag.pvp)
     {
-        map[sd->bl.m].flag.pvp = 0;
+        map[sd->bl.bl_m].flag.pvp = 0;
         for (int i = 0; i < fd_max; i++)
         {
             if (!session[i])
@@ -1903,7 +1903,7 @@ int atcommand_pvpoff(const int fd, struct map_session_data *sd,
             map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
             if (pl_sd && pl_sd->state.auth)
             {
-                if (sd->bl.m == pl_sd->bl.m)
+                if (sd->bl.bl_m == pl_sd->bl.bl_m)
                 {
                     pl_sd->pvp_timer.cancel();
                 }
@@ -1933,9 +1933,9 @@ int atcommand_pvpon(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    if (!map[sd->bl.m].flag.pvp && !map[sd->bl.m].flag.nopvp)
+    if (!map[sd->bl.bl_m].flag.pvp && !map[sd->bl.bl_m].flag.nopvp)
     {
-        map[sd->bl.m].flag.pvp = 1;
+        map[sd->bl.bl_m].flag.pvp = 1;
         for (int i = 0; i < fd_max; i++)
         {
             if (!session[i])
@@ -1943,10 +1943,10 @@ int atcommand_pvpon(const int fd, struct map_session_data *sd,
             map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
             if (pl_sd && pl_sd->state.auth)
             {
-                if (sd->bl.m == pl_sd->bl.m && !pl_sd->pvp_timer)
+                if (sd->bl.bl_m == pl_sd->bl.bl_m && !pl_sd->pvp_timer)
                 {
                     pl_sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
-                            std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl.id));
+                            std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2, pl_sd->bl.bl_id));
                     pl_sd->pvp_rank = 0;
                     pl_sd->pvp_lastusers = 0;
                     pl_sd->pvp_point = 5;
@@ -2171,11 +2171,11 @@ int atcommand_spawn(const int fd, struct map_session_data *sd,
         {
             // try 8 times to spawn the monster (needed for close area)
             if (x <= 0)
-                mx = sd->bl.x + random_::in(-range / 2, range / 2 );
+                mx = sd->bl.bl_x + random_::in(-range / 2, range / 2 );
             else
                 mx = x;
             if (y <= 0)
-                my = sd->bl.y + random_::in(-range / 2, range / 2);
+                my = sd->bl.bl_y + random_::in(-range / 2, range / 2);
             else
                 my = y;
             k = mob_once_spawn(sd, "this", mx, my, "", mob_id, 1, "");
@@ -2215,13 +2215,13 @@ void atcommand_killmonster_sub(const int fd, struct map_session_data *sd,
     memset(map_name, '\0', sizeof(map_name));
 
     if (!message || !*message || sscanf(message, "%99s", map_name) < 1)
-        map_id = sd->bl.m;
+        map_id = sd->bl.bl_m;
     else
     {
         if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
             strcat(map_name, ".gat");
         if ((map_id = map_mapname2mapid(map_name)) < 0)
-            map_id = sd->bl.m;
+            map_id = sd->bl.bl_m;
     }
 
     map_foreachinarea(std::bind(atkillmonster_sub, ph::_1, drop), map_id, 0, 0, map[map_id].xs,
@@ -2267,8 +2267,8 @@ int atcommand_list_nearby(const int fd, struct map_session_data *sd,
 {
     clif_displaymessage(fd, "Nearby players:");
     map_foreachinarea(std::bind(atlist_nearby_sub, ph::_1, fd),
-            sd->bl.m, sd->bl.x - 1, sd->bl.y - 1,
-            sd->bl.x + 1, sd->bl.x + 1, BL::PC);
+            sd->bl.bl_m, sd->bl.bl_x - 1, sd->bl.bl_y - 1,
+            sd->bl.bl_x + 1, sd->bl.bl_x + 1, BL::PC);
 
     return 0;
 }
@@ -2298,12 +2298,12 @@ int atcommand_gat(const int fd, struct map_session_data *sd,
     {
         std::string output = STRPRINTF(
                 "%s (x= %d, y= %d) %02X %02X %02X %02X %02X",
-                map[sd->bl.m].name, sd->bl.x - 2, sd->bl.y + y,
-                map_getcell(sd->bl.m, sd->bl.x - 2, sd->bl.y + y),
-                map_getcell(sd->bl.m, sd->bl.x - 1, sd->bl.y + y),
-                map_getcell(sd->bl.m, sd->bl.x, sd->bl.y + y),
-                map_getcell(sd->bl.m, sd->bl.x + 1, sd->bl.y + y),
-                map_getcell(sd->bl.m, sd->bl.x + 2, sd->bl.y + y));
+                map[sd->bl.bl_m].name, sd->bl.bl_x - 2, sd->bl.bl_y + y,
+                map_getcell(sd->bl.bl_m, sd->bl.bl_x - 2, sd->bl.bl_y + y),
+                map_getcell(sd->bl.bl_m, sd->bl.bl_x - 1, sd->bl.bl_y + y),
+                map_getcell(sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y + y),
+                map_getcell(sd->bl.bl_m, sd->bl.bl_x + 1, sd->bl.bl_y + y),
+                map_getcell(sd->bl.bl_m, sd->bl.bl_x + 2, sd->bl.bl_y + y));
         clif_displaymessage(fd, output);
     }
 
@@ -2568,21 +2568,21 @@ int atcommand_recall(const int fd, struct map_session_data *sd,
     {
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can recall only lower or same level
-            if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
+            if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarpto
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
                 clif_displaymessage(fd,
                                      "You are not authorised to warp somenone to your actual map.");
                 return -1;
             }
-            if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarp
+            if (pl_sd->bl.bl_m >= 0 && map[pl_sd->bl.bl_m].flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
                 clif_displaymessage(fd,
                                      "You are not authorised to warp this player from its actual map.");
                 return -1;
             }
-            pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, BeingRemoveWhy::QUIT);
+            pc_setpos(pl_sd, sd->mapname, sd->bl.bl_x, sd->bl.bl_y, BeingRemoveWhy::QUIT);
             std::string output = STRPRINTF("%s recalled!", character);
             clif_displaymessage(fd, output);
         }
@@ -3186,7 +3186,7 @@ int atcommand_doommap(const int fd, struct map_session_data *sd,
             continue;
         map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
         if (pl_sd
-            && pl_sd->state.auth && i != fd && sd->bl.m == pl_sd->bl.m
+            && pl_sd->state.auth && i != fd && sd->bl.bl_m == pl_sd->bl.bl_m
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
@@ -3249,7 +3249,7 @@ int atcommand_raisemap(const int fd, struct map_session_data *sd,
             continue;
         map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
         if (pl_sd
-            && pl_sd->state.auth && sd->bl.m == pl_sd->bl.m)
+            && pl_sd->state.auth && sd->bl.bl_m == pl_sd->bl.bl_m)
             atcommand_raise_sub(pl_sd);
     }
     clif_displaymessage(fd, "Mercy has been granted.");
@@ -4256,7 +4256,7 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
 {
     int count;
 
-    if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
+    if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -4276,11 +4276,11 @@ int atcommand_recallall(const int fd, struct map_session_data *sd,
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can recall only lower or same level
-            if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarp
+            if (pl_sd->bl.bl_m >= 0 && map[pl_sd->bl.bl_m].flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 count++;
             else
-                pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, BeingRemoveWhy::QUIT);
+                pc_setpos(pl_sd, sd->mapname, sd->bl.bl_x, sd->bl.bl_y, BeingRemoveWhy::QUIT);
         }
     }
 
@@ -4316,7 +4316,7 @@ int atcommand_partyrecall(const int fd, struct map_session_data *sd,
         return -1;
     }
 
-    if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarpto
+    if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -4337,11 +4337,11 @@ int atcommand_partyrecall(const int fd, struct map_session_data *sd,
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.party_id == p->party_id)
             {
-                if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarp
+                if (pl_sd->bl.bl_m >= 0 && map[pl_sd->bl.bl_m].flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                     count++;
                 else
-                    pc_setpos(pl_sd, sd->mapname, sd->bl.x, sd->bl.y, BeingRemoveWhy::QUIT);
+                    pc_setpos(pl_sd, sd->mapname, sd->bl.bl_x, sd->bl.bl_y, BeingRemoveWhy::QUIT);
             }
         }
         std::string output = STRPRINTF("All online characters of the %s party are near you.", p->name);
@@ -4525,7 +4525,7 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                 {
                     output = STRPRINTF(
                              "Player '%s' (session #%d) | Location: %d,%d",
-                             pl_sd->status.name, i, pl_sd->bl.x, pl_sd->bl.y);
+                             pl_sd->status.name, i, pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                     clif_displaymessage(fd, output);
                 }
             }
@@ -4572,8 +4572,8 @@ int atcommand_mapinfo(const int fd, struct map_session_data *sd,
                 }
                 output = STRPRINTF(
                          "NPC %d: %s | Direction: %s | Sprite: %d | Location: %d %d",
-                         ++i, nd->name, direction, nd->npc_class, nd->bl.x,
-                         nd->bl.y);
+                         ++i, nd->name, direction, nd->npc_class, nd->bl.bl_x,
+                         nd->bl.bl_y);
                 clif_displaymessage(fd, output);
             }
             break;
@@ -5681,8 +5681,8 @@ int atcommand_npcmove(const int, struct map_session_data *sd,
         return -1;
 
     npc_enable(character, 0);
-    nd->bl.x = x;
-    nd->bl.y = y;
+    nd->bl.bl_x = x;
+    nd->bl.bl_y = y;
     npc_enable(character, 1);
 
     return 0;
@@ -5706,8 +5706,8 @@ int atcommand_addwarp(const int fd, struct map_session_data *sd,
     if (sscanf(message, "%29s %d %d[^\n]", mapname, &x, &y) < 3)
         return -1;
 
-    std::string w1 = STRPRINTF("%s,%d,%d", sd->mapname, sd->bl.x, sd->bl.y);
-    std::string w3 = STRPRINTF("%s%d%d%d%d", mapname, sd->bl.x, sd->bl.y, x, y);
+    std::string w1 = STRPRINTF("%s,%d,%d", sd->mapname, sd->bl.bl_x, sd->bl.bl_y);
+    std::string w3 = STRPRINTF("%s%d%d%d%d", mapname, sd->bl.bl_x, sd->bl.bl_y, x, y);
     std::string w4 = STRPRINTF("1,1,%s.gat,%d,%d", mapname, x, y);
 
     ret = npc_parse_warp(w1.c_str(), "warp", w3.c_str(), w4.c_str());
@@ -5900,10 +5900,10 @@ int atcommand_rain(const int, struct map_session_data *sd,
     int effno = 0;
     effno = 161;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl.m].flag.rain)
+    if (effno < 0 || map[sd->bl.bl_m].flag.rain)
         return -1;
 
-    map[sd->bl.m].flag.rain = 1;
+    map[sd->bl.bl_m].flag.rain = 1;
     clif_specialeffect(&sd->bl, effno, 2);
     return 0;
 }
@@ -5918,10 +5918,10 @@ int atcommand_snow(const int, struct map_session_data *sd,
     int effno = 0;
     effno = 162;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl.m].flag.snow)
+    if (effno < 0 || map[sd->bl.bl_m].flag.snow)
         return -1;
 
-    map[sd->bl.m].flag.snow = 1;
+    map[sd->bl.bl_m].flag.snow = 1;
     clif_specialeffect(&sd->bl, effno, 2);
     return 0;
 }
@@ -5936,10 +5936,10 @@ int atcommand_sakura(const int, struct map_session_data *sd,
     int effno = 0;
     effno = 163;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl.m].flag.sakura)
+    if (effno < 0 || map[sd->bl.bl_m].flag.sakura)
         return -1;
 
-    map[sd->bl.m].flag.sakura = 1;
+    map[sd->bl.bl_m].flag.sakura = 1;
     clif_specialeffect(&sd->bl, effno, 2);
     return 0;
 }
@@ -5954,10 +5954,10 @@ int atcommand_fog(const int, struct map_session_data *sd,
     int effno = 0;
     effno = 233;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl.m].flag.fog)
+    if (effno < 0 || map[sd->bl.bl_m].flag.fog)
         return -1;
 
-    map[sd->bl.m].flag.fog = 1;
+    map[sd->bl.bl_m].flag.fog = 1;
     clif_specialeffect(&sd->bl, effno, 2);
 
     return 0;
@@ -5973,10 +5973,10 @@ int atcommand_leaves(const int, struct map_session_data *sd,
     int effno = 0;
     effno = 333;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl.m].flag.leaves)
+    if (effno < 0 || map[sd->bl.bl_m].flag.leaves)
         return -1;
 
-    map[sd->bl.m].flag.leaves = 1;
+    map[sd->bl.bl_m].flag.leaves = 1;
     clif_specialeffect(&sd->bl, effno, 2);
     return 0;
 }
@@ -6008,13 +6008,13 @@ int atcommand_summon(const int, struct map_session_data *sd,
     if (mob_id == 0)
         return -1;
 
-    x = sd->bl.x + random_::in(-5, 4);
-    y = sd->bl.y + random_::in(-5, 4);
+    x = sd->bl.bl_x + random_::in(-5, 4);
+    y = sd->bl.bl_y + random_::in(-5, 4);
 
     id = mob_once_spawn(sd, "this", x, y, "--ja--", mob_id, 1, "");
     if ((md = (struct mob_data *) map_id2bl(id)))
     {
-        md->master_id = sd->bl.id;
+        md->master_id = sd->bl.bl_id;
         md->state.special_mob_ai = 1;
         md->mode = mob_db[md->mob_class].mode | MobMode::AGGRESSIVE;
         md->deletetimer = Timer(tick + std::chrono::minutes(1),
@@ -6108,7 +6108,7 @@ int atcommand_trade(const int, struct map_session_data *sd,
         return -1;
     if ((pl_sd = map_nick2sd(message)) != NULL)
     {
-        trade_traderequest(sd, pl_sd->bl.id);
+        trade_traderequest(sd, pl_sd->bl.bl_id);
         return 0;
     }
     return -1;
@@ -6300,25 +6300,25 @@ int atcommand_jump_iterate(const int fd, struct map_session_data *sd,
             pl_sd = get_start();
     }
 
-    if (pl_sd->bl.m >= 0 && map[pl_sd->bl.m].flag.nowarpto
+    if (pl_sd->bl.bl_m >= 0 && map[pl_sd->bl.bl_m].flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
                              "You are not authorised to warp you to the map of this player.");
         return -1;
     }
-    if (sd->bl.m >= 0 && map[sd->bl.m].flag.nowarp
+    if (sd->bl.bl_m >= 0 && map[sd->bl.bl_m].flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
                              "You are not authorised to warp you from your actual map.");
         return -1;
     }
-    pc_setpos(sd, map[pl_sd->bl.m].name, pl_sd->bl.x, pl_sd->bl.y, BeingRemoveWhy::WARPED);
+    pc_setpos(sd, map[pl_sd->bl.bl_m].name, pl_sd->bl.bl_x, pl_sd->bl.bl_y, BeingRemoveWhy::WARPED);
     std::string output = STRPRINTF("Jump to %s", pl_sd->status.name);
     clif_displaymessage(fd, output);
 
-    sd->followtarget = pl_sd->bl.id;
+    sd->followtarget = pl_sd->bl.bl_id;
 
     return 0;
 }
@@ -6549,7 +6549,7 @@ int atcommand_ipcheck(const int fd, struct map_session_data *,
                 std::string output = STRPRINTF(
                         "Name: %s | Location: %s %d %d",
                         pl_sd->status.name, pl_sd->mapname,
-                        pl_sd->bl.x, pl_sd->bl.y);
+                        pl_sd->bl.bl_x, pl_sd->bl.bl_y);
                 clif_displaymessage(fd, output);
             }
         }
@@ -6568,8 +6568,8 @@ int atcommand_doomspot(const int fd, struct map_session_data *sd,
             continue;
         map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
         if (pl_sd
-            && pl_sd->state.auth && i != fd && sd->bl.m == pl_sd->bl.m
-            && sd->bl.x == pl_sd->bl.x && sd->bl.y == pl_sd->bl.y
+            && pl_sd->state.auth && i != fd && sd->bl.bl_m == pl_sd->bl.bl_m
+            && sd->bl.bl_x == pl_sd->bl.bl_x && sd->bl.bl_y == pl_sd->bl.bl_y
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);

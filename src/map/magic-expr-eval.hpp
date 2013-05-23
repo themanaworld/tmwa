@@ -32,7 +32,7 @@ void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
 #define RESULTINVOCATION result->v.v_invocation
 
 #define ARG_TYPE(x) args[x].ty
-#define ENTITY_TYPE(x) ARGENTITY(x)->type
+#define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
 
 #define ARGPC(x)  ((struct map_session_data *)ARGENTITY(x))
 #define ARGNPC(x)  ((struct map_session_data *)ARGENTITY(x))

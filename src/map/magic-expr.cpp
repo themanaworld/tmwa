@@ -88,7 +88,7 @@ void magic_clear_var(val_t *v)
 static
 const char *show_entity(entity_t *entity)
 {
-    switch (entity->type)
+    switch (entity->bl_type)
     {
         case BL::PC:
             return ((struct map_session_data *) entity)->status.name;
@@ -677,17 +677,17 @@ int fun_mob_id(env_t *, int, val_t *result, val_t *args)
 inline
 void COPY_LOCATION(entity_t& dest, location_t& src)
 {
-    dest.x = src.x;
-    dest.y = src.y;
-    dest.m = src.m;
+    dest.bl_x = src.x;
+    dest.bl_y = src.y;
+    dest.bl_m = src.m;
 }
 
 inline
 void COPY_LOCATION(location_t& dest, entity_t& src)
 {
-    dest.x = src.x;
-    dest.y = src.y;
-    dest.m = src.m;
+    dest.x = src.bl_x;
+    dest.y = src.bl_y;
+    dest.m = src.bl_m;
 }
 
 static
@@ -728,7 +728,7 @@ int fun_random_dir(env_t *, int, val_t *result, val_t *args)
 static
 int fun_hash_entity(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTINT = ARGENTITY(0)->id;
+    RESULTINT = ARGENTITY(0)->bl_id;
     return 0;
 }
 
@@ -995,7 +995,7 @@ int fun_read_script_int(env_t *, int, val_t *result, val_t *args)
     entity_t *subject_p = ARGENTITY(0);
     char *var_name = ARGSTR(1);
 
-    if (subject_p->type != BL::PC)
+    if (subject_p->bl_type != BL::PC)
         return 1;
 
     RESULTINT = pc_readglobalreg((character_t *) subject_p, var_name);
@@ -1633,7 +1633,7 @@ void magic_eval(env_t *env, val_t *dest, expr_t *expr)
                 if (dest->ty == TYPE::ENTITY)
                 {
                     if (dest->v.v_entity)
-                        dest->v.v_int = dest->v.v_entity->id;
+                        dest->v.v_int = dest->v.v_entity->bl_id;
                     else
                         dest->ty = TYPE::FAIL;
                 }

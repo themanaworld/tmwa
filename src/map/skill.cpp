@@ -163,12 +163,12 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     if (skilllv < 0)
         return 0;
 
-    if (src->type == BL::PC)
+    if (src->bl_type == BL::PC)
     {
         sd = (struct map_session_data *) src;
         nullpo_ret(sd);
     }
-    else if (src->type == BL::MOB)
+    else if (src->bl_type == BL::MOB)
     {
         md = (struct mob_data *) src;
         nullpo_ret(md);  //未使用？
@@ -188,7 +188,7 @@ int skill_additional_effect(struct block_list *src, struct block_list *bl,
     //自分の耐性
     luk = battle_get_luk(src);
 
-    if (bl->type == BL::MOB)
+    if (bl->bl_type == BL::MOB)
     {
         if (sc_def_mdef > 50)
             sc_def_mdef = 50;
@@ -245,15 +245,15 @@ int skill_attack(BF attack_type, struct block_list *src,
     sc_data = battle_get_sc_data(bl);
 
 //何もしない判定ここから
-    if (dsrc->m != bl->m)       //対象が同じマップにいなければ何もしない
+    if (dsrc->bl_m != bl->bl_m)       //対象が同じマップにいなければ何もしない
         return 0;
-    if (src->prev == NULL || dsrc->prev == NULL || bl->prev == NULL)    //prevよくわからない※
+    if (src->bl_prev == NULL || dsrc->bl_prev == NULL || bl->bl_prev == NULL)    //prevよくわからない※
         return 0;
-    if (src->type == BL::PC && pc_isdead((struct map_session_data *) src))  //術者？がPCですでに死んでいたら何もしない
+    if (src->bl_type == BL::PC && pc_isdead((struct map_session_data *) src))  //術者？がPCですでに死んでいたら何もしない
         return 0;
-    if (dsrc->type == BL::PC && pc_isdead((struct map_session_data *) dsrc))    //術者？がPCですでに死んでいたら何もしない
+    if (dsrc->bl_type == BL::PC && pc_isdead((struct map_session_data *) dsrc))    //術者？がPCですでに死んでいたら何もしない
         return 0;
-    if (bl->type == BL::PC && pc_isdead((struct map_session_data *) bl))    //対象がPCですでに死んでいたら何もしない
+    if (bl->bl_type == BL::PC && pc_isdead((struct map_session_data *) bl))    //対象がPCですでに死んでいたら何もしない
         return 0;
 
 //何もしない判定ここまで
@@ -286,15 +286,15 @@ int skill_attack(BF attack_type, struct block_list *src,
     battle_damage(src, bl, damage, 0);
 
     /* ダメージがあるなら追加効果判定 */
-    if (bl->prev != NULL)
+    if (bl->bl_prev != NULL)
     {
         struct map_session_data *sd = (struct map_session_data *) bl;
         nullpo_ret(sd);
-        if (bl->type != BL::PC || (sd && !pc_isdead(sd)))
+        if (bl->bl_type != BL::PC || (sd && !pc_isdead(sd)))
         {
             if (damage > 0)
                 skill_additional_effect(src, bl, skillid, skilllv);
-            if (bl->type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
+            if (bl->bl_type == BL::MOB && src != bl)    /* スキル使用条件のMOBスキル */
             {
                 struct mob_data *md = (struct mob_data *) bl;
                 nullpo_ret(md);
@@ -302,8 +302,8 @@ int skill_attack(BF attack_type, struct block_list *src,
                 {
                     int target;
                     target = md->target_id;
-                    if (src->type == BL::PC)
-                        md->target_id = src->id;
+                    if (src->bl_type == BL::PC)
+                        md->target_id = src->bl_id;
                     mobskill_use(md, tick, MobSkillCondition::ANY);
                     md->target_id = target;
                 }
@@ -313,7 +313,7 @@ int skill_attack(BF attack_type, struct block_list *src,
         }
     }
 
-    if (src->type == BL::PC
+    if (src->bl_type == BL::PC
         && bool(dmg.flag & BF::WEAPON)
         && src != bl
         && src == dsrc
@@ -360,7 +360,7 @@ void skill_area_sub(struct block_list *bl,
 {
     nullpo_retv(bl);
 
-    if (bl->type != BL::PC && bl->type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
         return;
 
     if (battle_check_target(src, bl, flag) > 0)
@@ -391,14 +391,14 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
     nullpo_retr(1, src);
     nullpo_retr(1, bl);
 
-    if (src->type == BL::PC)
+    if (src->bl_type == BL::PC)
         sd = (struct map_session_data *) src;
     if (sd && pc_isdead(sd))
         return 1;
 
-    if (bl->prev == NULL)
+    if (bl->bl_prev == NULL)
         return 1;
-    if (bl->type == BL::PC && pc_isdead((struct map_session_data *) bl))
+    if (bl->bl_type == BL::PC && pc_isdead((struct map_session_data *) bl))
         return 1;
 
     MapBlockLock lock;
@@ -413,12 +413,12 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
             if (flag.lo & 1)
             {
                 /* 個別にダメージを与える */
-                if (src->type == BL::MOB)
+                if (src->bl_type == BL::MOB)
                 {
                     struct mob_data *mb = (struct mob_data *) src;
                     nullpo_retr(1, mb);
                     mb->hp = skill_area_temp_hp;
-                    if (bl->id != skill_area_temp_id)
+                    if (bl->bl_id != skill_area_temp_id)
                         skill_attack(BF::MISC, src, src, bl,
                                       SkillID::NPC_SELFDESTRUCTION, skilllv, tick,
                                       flag);
@@ -430,12 +430,12 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
                 struct mob_data *md;
                 if ((md = (struct mob_data *) src))
                 {
-                    skill_area_temp_id = bl->id;
+                    skill_area_temp_id = bl->bl_id;
                     skill_area_temp_hp = battle_get_hp(src);
                     map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv,
                                 tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
-                            bl->m, bl->x - 5, bl->y - 5,
-                            bl->x + 5, bl->y + 5, BL::NUL);
+                            bl->bl_m, bl->bl_x - 5, bl->bl_y - 5,
+                            bl->bl_x + 5, bl->bl_y + 5, BL::NUL);
                     battle_damage(src, src, md->hp, 0);
                 }
             }
@@ -447,18 +447,18 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
             {
                 if (flag.lo & 3)
                 {
-                    if (bl->id != skill_area_temp_id)
+                    if (bl->bl_id != skill_area_temp_id)
                         skill_attack(BF::WEAPON, src, src, bl, skillid,
                                       skilllv, tick, BCT_mid_x05);
                 }
                 else
                 {
                     // TODO does this happen?
-                    skill_area_temp_id = bl->id;
+                    skill_area_temp_id = bl->bl_id;
                     map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv,
                                 tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
-                            bl->m, bl->x - 0, bl->y - 0,
-                            bl->x + 0, bl->y + 0, BL::NUL);
+                            bl->bl_m, bl->bl_x - 0, bl->bl_y - 0,
+                            bl->bl_x + 0, bl->bl_y + 0, BL::NUL);
                 }
             }
             break;
@@ -488,9 +488,9 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
     nullpo_retr(1, src);
     nullpo_retr(1, bl);
 
-    if (src->type == BL::PC)
+    if (src->bl_type == BL::PC)
         sd = (struct map_session_data *) src;
-    else if (src->type == BL::MOB)
+    else if (src->bl_type == BL::MOB)
         md = (struct mob_data *) src;
 
     sc_def_vit = 100 - (3 + battle_get_vit(bl) + battle_get_luk(bl) / 3);
@@ -498,12 +498,12 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
     sc_def_mdef = 100 - (3 + battle_get_mdef(bl) + battle_get_luk(bl) / 3);
     strip_fix = battle_get_dex(src) - battle_get_dex(bl);
 
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
     {
         dstsd = (struct map_session_data *) bl;
         nullpo_retr(1, dstsd);
     }
-    else if (bl->type == BL::MOB)
+    else if (bl->bl_type == BL::MOB)
     {
         dstmd = (struct mob_data *) bl;
         nullpo_retr(1, dstmd);
@@ -519,7 +519,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
     if (strip_fix < 0)
         strip_fix = 0;
 
-    if (bl == NULL || bl->prev == NULL)
+    if (bl == NULL || bl->bl_prev == NULL)
         return 1;
     if (sd && pc_isdead(sd))
         return 1;
@@ -564,7 +564,7 @@ interval_t skill_castfix(struct block_list *bl, interval_t interval)
 
     nullpo_retr(interval_t::zero(), bl);
 
-    if (bl->type == BL::MOB)
+    if (bl->bl_type == BL::MOB)
     {                           // Crash fix [Valaris]
         md = (struct mob_data *) bl;
         skill = md->skillid;
@@ -586,9 +586,9 @@ interval_t skill_castfix(struct block_list *bl, interval_t interval)
 
     if (interval == interval_t::zero())
         return interval_t::zero();
-    if (castnodex > 0 && bl->type == BL::PC)
+    if (castnodex > 0 && bl->bl_type == BL::PC)
         castrate = 100;
-    else if (castnodex <= 0 && bl->type == BL::PC)
+    else if (castnodex <= 0 && bl->bl_type == BL::PC)
     {
         castrate = 100;
         interval =
@@ -615,7 +615,7 @@ interval_t skill_delayfix(struct block_list *bl, interval_t interval)
     if (interval <= interval_t::zero())
         return interval_t::zero();
 
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
     {
         if (battle_config.delay_dependon_dex)   /* dexの影響を計算する */
             interval =
@@ -636,7 +636,7 @@ int skill_castcancel(struct block_list *bl, int)
 {
     nullpo_ret(bl);
 
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
     {
         struct map_session_data *sd = (struct map_session_data *) bl;
         tick_t tick = gettick();
@@ -645,7 +645,7 @@ int skill_castcancel(struct block_list *bl, int)
 
         return 0;
     }
-    else if (bl->type == BL::MOB)
+    else if (bl->bl_type == BL::MOB)
     {
         struct mob_data *md = (struct mob_data *) bl;
         if (md->skilltimer)
@@ -676,7 +676,7 @@ void skill_devotion(struct map_session_data *md, int)
             struct map_session_data *sd = map_id2sd(md->dev.val1[n]);
             // 相手が見つからない // 相手をディボしてるのが自分じゃない // 距離が離れてる
             if (sd == NULL
-                || (md->bl.id != 0/* was something else - TODO remove this */)
+                || (md->bl.bl_id != 0/* was something else - TODO remove this */)
                 || skill_devotion3(&md->bl, md->dev.val1[n]))
             {
                 skill_devotion_end(md, sd, n);
@@ -698,7 +698,7 @@ int skill_devotion3(struct block_list *bl, int target)
         || (sd = map_id2sd(target)) == NULL)
         return 1;
     else
-        r = distance(bl->x, bl->y, sd->bl.x, sd->bl.y);
+        r = distance(bl->bl_x, bl->bl_y, sd->bl.bl_x, sd->bl.bl_y);
 
     if ( + 6 < r)
     {                           // 許容範囲を超えてた
@@ -738,7 +738,7 @@ int skill_status_change_active(struct block_list *bl, StatusChange type)
     eptr<struct status_change, StatusChange> sc_data;
 
     nullpo_ret(bl);
-    if (bl->type != BL::PC && bl->type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_active: neither MOB nor PC !\n");
@@ -763,7 +763,7 @@ void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData
     Opt3 *opt3;
 
     nullpo_retv(bl);
-    if (bl->type != BL::PC && bl->type != BL::MOB)
+    if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
     {
         if (battle_config.error_log)
             PRINTF("skill_status_change_end: neither MOB nor PC !\n");
@@ -816,7 +816,7 @@ void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData
             break;
     }
 
-    if (bl->type == BL::PC && type < StatusChange::SC_SENDMAX)
+    if (bl->bl_type == BL::PC && type < StatusChange::SC_SENDMAX)
         clif_status_change(bl, type, 0);   /* アイコン消去 */
 
     switch (type)
@@ -847,7 +847,7 @@ void skill_status_change_end(struct block_list *bl, StatusChange type, TimerData
     if (opt_flag)           /* optionの変更を伝える */
         clif_changeoption(bl);
 
-    if (bl->type == BL::PC && calc_flag)
+    if (bl->bl_type == BL::PC && calc_flag)
         pc_calcstatus((struct map_session_data *) bl, 0);  /* ステータス再計算 */
 }
 
@@ -888,7 +888,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
     if (not sc_data)
         return;
 
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
         sd = (struct map_session_data *) bl;
 
     //sc_count=battle_get_sc_count(bl); //使ってない？
@@ -896,7 +896,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
     if (sc_data[type].spell_invocation)
     {                           // Must report termination
         spell_effect_report_termination(sc_data[type].spell_invocation,
-                                         bl->id, type, 0);
+                                         bl->bl_id, type, 0);
         sc_data[type].spell_invocation = 0;
     }
 
@@ -916,12 +916,12 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
                     int hp = battle_get_max_hp(bl);
                     if (battle_get_hp(bl) > hp >> 4)
                     {
-                        if (bl->type == BL::PC)
+                        if (bl->bl_type == BL::PC)
                         {
                             hp = 3 + hp * 3 / 200;
                             pc_heal((struct map_session_data *) bl, -hp, 0);
                         }
-                        else if (bl->type == BL::MOB)
+                        else if (bl->bl_type == BL::MOB)
                         {
                             struct mob_data *md;
                             if ((md = ((struct mob_data *) bl)) == NULL)
@@ -932,7 +932,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
                     }
                     sc_data[type].timer = Timer(tick + std::chrono::seconds(1),
                             std::bind(skill_status_change_timer, ph::_1, ph::_2,
-                                bl->id, type));
+                                bl->bl_id, type));
                     return;
                 }
             }
@@ -940,7 +940,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
             {
                 sc_data[type].timer = Timer(tick + std::chrono::seconds(2),
                         std::bind(skill_status_change_timer, ph::_1, ph::_2,
-                            bl->id, type));
+                            bl->bl_id, type));
                 return;
             }
             break;
@@ -954,7 +954,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
         case StatusChange::SC_BROKNARMOR:
             sc_data[type].timer = Timer(tick + std::chrono::minutes(10),
                     std::bind(skill_status_change_timer, ph::_1, ph::_2,
-                        bl->id, type));
+                        bl->bl_id, type));
             return;
 
         case StatusChange::SC_FLYING_BACKPACK:
@@ -1015,11 +1015,11 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     }
     if (scdef >= 100)
         return 0;
-    if (bl->type == BL::PC)
+    if (bl->bl_type == BL::PC)
     {
         sd = (struct map_session_data *) bl;
     }
-    else if (bl->type == BL::MOB)
+    else if (bl->bl_type == BL::MOB)
     {
     }
     else
@@ -1105,7 +1105,7 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
             return 0;
     }
 
-    if (bl->type == BL::PC && type < StatusChange::SC_SENDMAX)
+    if (bl->bl_type == BL::PC && type < StatusChange::SC_SENDMAX)
         clif_status_change(bl, type, 1);   /* アイコン表示 */
 
     /* optionの変更 */
@@ -1134,19 +1134,19 @@ int skill_status_effect(struct block_list *bl, StatusChange type,
     sc_data[type].val1 = val1;
     if (sc_data[type].spell_invocation) // Supplant by newer spell
         spell_effect_report_termination(sc_data[type].spell_invocation,
-                                         bl->id, type, 1);
+                                         bl->bl_id, type, 1);
 
     sc_data[type].spell_invocation = spell_invocation;
 
     /* タイマー設定 */
     sc_data[type].timer = Timer(gettick() + tick,
             std::bind(skill_status_change_timer, ph::_1, ph::_2,
-                bl->id, type));
+                bl->bl_id, type));
 
-    if (bl->type == BL::PC && calc_flag)
+    if (bl->bl_type == BL::PC && calc_flag)
         pc_calcstatus(sd, 0);  /* ステータス再計算 */
 
-    if (bl->type == BL::PC && updateflag != SP::ZERO)
+    if (bl->bl_type == BL::PC && updateflag != SP::ZERO)
         clif_updatestatus(sd, updateflag); /* ステータスをクライアントに送る */
 
     return 0;
