@@ -760,11 +760,9 @@ void party_foreachsamemap(std::function<void(struct block_list *)> func,
         }
     }
 
-    map_freeblock_lock();      // メモリからの解放を禁止する
+    MapBlockLock lock;
 
     for (i = 0; i < blockcount; i++)
         if (list[i]->prev)      // 有効かどうかチェック
             func(list[i]);
-
-    map_freeblock_unlock();    // 解放を許可する
 }

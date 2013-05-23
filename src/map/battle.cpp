@@ -2028,7 +2028,7 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
                         wd.amotion, wd.dmotion, 0, 1, DamageType::NORMAL, 0);
         }
 
-        map_freeblock_lock();
+        MapBlockLock lock;
 
         if (src->type == BL::PC)
         {
@@ -2103,8 +2103,6 @@ ATK battle_weapon_attack(struct block_list *src, struct block_list *target,
                     pc_heal(sd, hp, sp);
             }
         }
-
-        map_freeblock_unlock();
     }
     return wd.dmg_lv;
 }

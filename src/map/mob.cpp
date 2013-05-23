@@ -912,7 +912,7 @@ void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
     if (md->bl.prev == NULL || md->state.state == MS::DEAD)
         return;
 
-    map_freeblock_lock();
+    MapBlockLock lock;
     switch (md->state.state)
     {
         case MS::WALK:
@@ -928,8 +928,6 @@ void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
                         md->state.state);
             break;
     }
-    map_freeblock_unlock();
-    return;
 }
 
 /*==========================================
@@ -1025,10 +1023,10 @@ int mob_setdelayspawn(int id)
         map_deliddb(&md->bl);
         if (md->lootitem)
         {
-            map_freeblock(md->lootitem);
+            free(md->lootitem);
             md->lootitem = NULL;
         }
-        map_freeblock(md);     // Instead of [ of free ]
+        MapBlockLock::freeblock(&md->bl);
         return 0;
     }
 
@@ -2492,7 +2490,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     // ----- ここから死亡処理 -----
 
-    map_freeblock_lock();
+    MapBlockLock lock;
     // cancels timers
     mob_changestate(md, MS::DEAD, 0);
     mobskill_use(md, tick, MobSkillCondition::ANY);
@@ -2719,7 +2717,6 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     map_delblock(&md->bl);
     mob_deleteslave(md);
     mob_setdelayspawn(md->bl.id);
-    map_freeblock_unlock();
 
     return 0;
 }

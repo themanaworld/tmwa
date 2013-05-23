@@ -62,18 +62,6 @@ struct block_list *object[MAX_FLOORITEM];
 static
 int first_free_object_id = 0, last_object_id = 0;
 
-constexpr int block_free_max = 1048576;
-static
-void *block_free[block_free_max];
-static
-int block_free_count = 0, block_free_lock = 0;
-
-constexpr int BL_LIST_MAX = 1048576;
-static
-struct block_list *bl_list[BL_LIST_MAX];
-static
-int bl_list_count = 0;
-
 struct map_data map[MAX_MAP_PER_SERVER];
 int map_num = 0;
 
@@ -115,73 +103,33 @@ int map_getusers(void)
     return users;
 }
 
-//
-// block削除の安全性確保処理
-//
+static
+int block_free_lock = 0;
+static
+std::vector<struct block_list *> block_free;
 
-/*==========================================
- * blockをfreeするときfreeの変わりに呼ぶ
- * ロックされているときはバッファにためる
- *------------------------------------------
- */
-int map_freeblock(void *bl)
+void MapBlockLock::freeblock(struct block_list *bl)
 {
     if (block_free_lock == 0)
-    {
         free(bl);
-        bl = NULL;
-    }
     else
-    {
-        if (block_free_count >= block_free_max)
-        {
-            if (battle_config.error_log)
-                PRINTF("map_freeblock: *WARNING* too many free block! %d %d\n",
-                     block_free_count, block_free_lock);
-        }
-        else
-            block_free[block_free_count++] = bl;
-    }
-    return block_free_lock;
+        block_free.push_back(bl);
 }
 
-/*==========================================
- * blockのfreeを一時的に禁止する
- *------------------------------------------
- */
-int map_freeblock_lock(void)
+MapBlockLock::MapBlockLock()
 {
-    return ++block_free_lock;
+    ++block_free_lock;
 }
 
-/*==========================================
- * blockのfreeのロックを解除する
- * このとき、ロックが完全になくなると
- * バッファにたまっていたblockを全部削除
- *------------------------------------------
- */
-int map_freeblock_unlock(void)
+MapBlockLock::~MapBlockLock()
 {
+    assert (block_free_lock > 0);
     if ((--block_free_lock) == 0)
     {
-        int i;
-//      if(block_free_count>0) {
-//          if(battle_config.error_log)
-//              PRINTF("map_freeblock_unlock: free %d object\n",block_free_count);
-//      }
-        for (i = 0; i < block_free_count; i++)
-        {
-            free(block_free[i]);
-            block_free[i] = NULL;
-        }
-        block_free_count = 0;
+        for (struct block_list *bl : block_free)
+            free(bl);
+        block_free.clear();
     }
-    else if (block_free_lock < 0)
-    {
-        if (battle_config.error_log)
-            PRINTF("map_freeblock_unlock: lock count < 0 !\n");
-    }
-    return block_free_lock;
 }
 
 /// This is a dummy entry that is shared by all the linked lists,
@@ -345,9 +293,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
         int x0, int y0, int x1, int y1,
         BL type)
 {
-    int bx, by;
-    struct block_list *bl = NULL;
-    int blockcount = bl_list_count, i, c;
+    std::vector<struct block_list *> bl_list;
 
     if (m < 0)
         return;
@@ -360,53 +306,47 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
     if (y1 >= map[m].ys)
         y1 = map[m].ys - 1;
     if (type == BL::NUL || type != BL::MOB)
-        for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
+        for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
-            for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
+            for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                bl = map[m].block[bx + by * map[m].bxs];
-                c = map[m].block_count[bx + by * map[m].bxs];
-                for (i = 0; i < c && bl; i++, bl = bl->next)
+                struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+                int c = map[m].block_count[bx + by * map[m].bxs];
+                for (int i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL::NUL && bl->type != type)
+                    if (!bl)
                         continue;
-                    if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
-                        && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
-                        bl_list[bl_list_count++] = bl;
+                    if (type != BL::NUL && bl->type != type)
+                        continue;
+                    if (bl->x >= x0 && bl->x <= x1
+                        && bl->y >= y0 && bl->y <= y1)
+                        bl_list.push_back(bl);
                 }
             }
         }
     if (type == BL::NUL || type == BL::MOB)
-        for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
+        for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
-            for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
+            for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                bl = map[m].block_mob[bx + by * map[m].bxs];
-                c = map[m].block_mob_count[bx + by * map[m].bxs];
-                for (i = 0; i < c && bl; i++, bl = bl->next)
+                struct block_list *bl = map[m].block_mob[bx + by * map[m].bxs];
+                int c = map[m].block_mob_count[bx + by * map[m].bxs];
+                for (int i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
-                        && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
-                        bl_list[bl_list_count++] = bl;
+                    if (!bl)
+                        continue;
+                    if (bl->x >= x0 && bl->x <= x1
+                        && bl->y >= y0 && bl->y <= y1)
+                        bl_list.push_back(bl);
                 }
             }
         }
 
-    if (bl_list_count >= BL_LIST_MAX)
-    {
-        if (battle_config.error_log)
-            PRINTF("map_foreachinarea: *WARNING* block count too many!\n");
-    }
+    MapBlockLock lock;
 
-    map_freeblock_lock();      // メモリからの解放を禁止する
-
-    for (i = blockcount; i < bl_list_count; i++)
-        if (bl_list[i]->prev)   // 有効かどうかチェック
-            func(bl_list[i]);
-
-    map_freeblock_unlock();    // 解放を許可する
-
-    bl_list_count = blockcount;
+    for (struct block_list *bl : bl_list)
+        if (bl->prev)
+            func(bl);
 }
 
 /*==========================================
@@ -423,34 +363,26 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
         int dx, int dy,
         BL type)
 {
-    int bx, by;
-    struct block_list *bl = NULL;
-    int blockcount = bl_list_count, i, c;
-
+    std::vector<struct block_list *> bl_list;
+    // Note: the x0, y0, x1, y1 are bl.x, bl.y ± AREA_SIZE,
+    // but only a small subset actually needs to be done.
     if (dx == 0 || dy == 0)
     {
-        // 矩形領域の場合
+        assert (dx || dy);
+        // for aligned movement, only needs to check a rectangular area
         if (dx == 0)
         {
             if (dy < 0)
-            {
                 y0 = y1 + dy + 1;
-            }
             else
-            {
                 y1 = y0 + dy - 1;
-            }
         }
         else if (dy == 0)
         {
             if (dx < 0)
-            {
                 x0 = x1 + dx + 1;
-            }
             else
-            {
                 x1 = x0 + dx - 1;
-            }
         }
         if (x0 < 0)
             x0 = 0;
@@ -460,29 +392,33 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
             x1 = map[m].xs - 1;
         if (y1 >= map[m].ys)
             y1 = map[m].ys - 1;
-        for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
+        for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
-            for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
+            for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                bl = map[m].block[bx + by * map[m].bxs];
-                c = map[m].block_count[bx + by * map[m].bxs];
-                for (i = 0; i < c && bl; i++, bl = bl->next)
+                struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+                int c = map[m].block_count[bx + by * map[m].bxs];
+                for (int i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL::NUL && bl->type != type)
+                    if (!bl)
                         continue;
-                    if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
-                        && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
-                        bl_list[bl_list_count++] = bl;
+                    if (type != BL::NUL && bl->type != type)
+                        continue;
+                    if (bl->x >= x0 && bl->x <= x1
+                        && bl->y >= y0 && bl->y <= y1)
+                        bl_list.push_back(bl);
                 }
                 bl = map[m].block_mob[bx + by * map[m].bxs];
                 c = map[m].block_mob_count[bx + by * map[m].bxs];
-                for (i = 0; i < c && bl; i++, bl = bl->next)
+                for (int i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL::NUL && bl->type != type)
+                    if (!bl)
                         continue;
-                    if (bl && bl->x >= x0 && bl->x <= x1 && bl->y >= y0
-                        && bl->y <= y1 && bl_list_count < BL_LIST_MAX)
-                        bl_list[bl_list_count++] = bl;
+                    if (type != BL::NUL && bl->type != type)
+                        continue;
+                    if (bl->x >= x0 && bl->x <= x1
+                        && bl->y >= y0 && bl->y <= y1)
+                        bl_list.push_back(bl);
                 }
             }
         }
@@ -499,66 +435,52 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
             x1 = map[m].xs - 1;
         if (y1 >= map[m].ys)
             y1 = map[m].ys - 1;
-        for (by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
+        for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
-            for (bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
+            for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                bl = map[m].block[bx + by * map[m].bxs];
-                c = map[m].block_count[bx + by * map[m].bxs];
-                for (i = 0; i < c && bl; i++, bl = bl->next)
+                struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+                int c = map[m].block_count[bx + by * map[m].bxs];
+                for (int i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL::NUL && bl->type != type)
+                    if (!bl)
                         continue;
-                    if ((bl)
-                        && !(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
-                             && bl->y <= y1))
+                    if (type != BL::NUL && bl->type != type)
                         continue;
-                    if ((bl)
-                        && ((dx > 0 && bl->x < x0 + dx)
-                            || (dx < 0 && bl->x > x1 + dx)
-                            || (dy > 0 && bl->y < y0 + dy)
-                            || (dy < 0 && bl->y > y1 + dy))
-                        && bl_list_count < BL_LIST_MAX)
-                        bl_list[bl_list_count++] = bl;
+                    if (!(bl->x >= x0 && bl->x <= x1
+                            && bl->y >= y0 && bl->y <= y1))
+                        continue;
+                    if ((dx > 0 && bl->x < x0 + dx)
+                        || (dx < 0 && bl->x > x1 + dx)
+                        || (dy > 0 && bl->y < y0 + dy)
+                        || (dy < 0 && bl->y > y1 + dy))
+                        bl_list.push_back(bl);
                 }
                 bl = map[m].block_mob[bx + by * map[m].bxs];
                 c = map[m].block_mob_count[bx + by * map[m].bxs];
-                for (i = 0; i < c && bl; i++, bl = bl->next)
+                for (int i = 0; i < c && bl; i++, bl = bl->next)
                 {
-                    if (bl && type != BL::NUL && bl->type != type)
+                    if (type != BL::NUL && bl->type != type)
                         continue;
-                    if ((bl)
-                        && !(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
+                    if (!(bl->x >= x0 && bl->x <= x1 && bl->y >= y0
                              && bl->y <= y1))
                         continue;
-                    if ((bl)
-                        && ((dx > 0 && bl->x < x0 + dx)
-                            || (dx < 0 && bl->x > x1 + dx)
-                            || (dy > 0 && bl->y < y0 + dy)
-                            || (dy < 0 && bl->y > y1 + dy))
-                        && bl_list_count < BL_LIST_MAX)
-                        bl_list[bl_list_count++] = bl;
+                    if ((dx > 0 && bl->x < x0 + dx)
+                        || (dx < 0 && bl->x > x1 + dx)
+                        || (dy > 0 && bl->y < y0 + dy)
+                        || (dy < 0 && bl->y > y1 + dy))
+                        bl_list.push_back(bl);
                 }
             }
         }
 
     }
 
-    if (bl_list_count >= BL_LIST_MAX)
-    {
-        if (battle_config.error_log)
-            PRINTF("map_foreachinarea: *WARNING* block count too many!\n");
-    }
+    MapBlockLock lock;
 
-    map_freeblock_lock();      // メモリからの解放を禁止する
-
-    for (i = blockcount; i < bl_list_count; i++)
-        if (bl_list[i]->prev)   // 有効かどうかチェック
-            func(bl_list[i]);
-
-    map_freeblock_unlock();    // 解放を許可する
-
-    bl_list_count = blockcount;
+    for (struct block_list *bl : bl_list)
+        if (bl->prev)
+            func(bl);
 }
 
 // -- moonsoul  (added map_foreachincell which is a rework of map_foreachinarea but
@@ -570,52 +492,43 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
         int x, int y,
         BL type)
 {
-    int bx, by;
-    struct block_list *bl = NULL;
-    int blockcount = bl_list_count, i, c;
-
-    by = y / BLOCK_SIZE;
-    bx = x / BLOCK_SIZE;
+    std::vector<struct block_list *> bl_list;
+    int by = y / BLOCK_SIZE;
+    int bx = x / BLOCK_SIZE;
 
     if (type == BL::NUL || type != BL::MOB)
     {
-        bl = map[m].block[bx + by * map[m].bxs];
-        c = map[m].block_count[bx + by * map[m].bxs];
-        for (i = 0; i < c && bl; i++, bl = bl->next)
+        struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+        int c = map[m].block_count[bx + by * map[m].bxs];
+        for (int i = 0; i < c && bl; i++, bl = bl->next)
         {
-            if (type != BL::NUL && bl && bl->type != type)
+            if (!bl)
                 continue;
-            if (bl && bl->x == x && bl->y == y && bl_list_count < BL_LIST_MAX)
-                bl_list[bl_list_count++] = bl;
+            if (type != BL::NUL && bl->type != type)
+                continue;
+            if (bl->x == x && bl->y == y)
+                bl_list.push_back(bl);
         }
     }
 
     if (type == BL::NUL || type == BL::MOB)
     {
-        bl = map[m].block_mob[bx + by * map[m].bxs];
-        c = map[m].block_mob_count[bx + by * map[m].bxs];
-        for (i = 0; i < c && bl; i++, bl = bl->next)
+        struct block_list *bl = map[m].block_mob[bx + by * map[m].bxs];
+        int c = map[m].block_mob_count[bx + by * map[m].bxs];
+        for (int i = 0; i < c && bl; i++, bl = bl->next)
         {
-            if (bl && bl->x == x && bl->y == y && bl_list_count < BL_LIST_MAX)
-                bl_list[bl_list_count++] = bl;
+            if (!bl)
+                continue;
+            if (bl->x == x && bl->y == y)
+                bl_list.push_back(bl);
         }
     }
 
-    if (bl_list_count >= BL_LIST_MAX)
-    {
-        if (battle_config.error_log)
-            PRINTF("map_foreachincell: *WARNING* block count too many!\n");
-    }
+    MapBlockLock lock;
 
-    map_freeblock_lock();      // メモリからの解放を禁止する
-
-    for (i = blockcount; i < bl_list_count; i++)
-        if (bl_list[i]->prev)   // 有効かどうかチェック
-            func(bl_list[i]);
-
-    map_freeblock_unlock();    // 解放を許可する
-
-    bl_list_count = blockcount;
+    for (struct block_list *bl : bl_list)
+        if (bl->prev)
+            func(bl);
 }
 
 /*==========================================
@@ -703,7 +616,7 @@ int map_delobject(int id, BL type)
     if (obj->type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
         pc_cleanup((struct map_session_data *) obj);
 
-    map_freeblock(obj);
+    MapBlockLock::freeblock(obj);
 
     return 0;
 }
@@ -716,34 +629,23 @@ int map_delobject(int id, BL type)
 void map_foreachobject(std::function<void(struct block_list *)> func,
         BL type)
 {
-    int i;
-    int blockcount = bl_list_count;
-
-    for (i = 2; i <= last_object_id; i++)
+    std::vector<struct block_list *> bl_list;
+    for (int i = 2; i <= last_object_id; i++)
     {
-        if (object[i])
+        if (!object[i])
+            continue;
         {
             if (type != BL::NUL && object[i]->type != type)
                 continue;
-            if (bl_list_count >= BL_LIST_MAX)
-            {
-                if (battle_config.error_log)
-                    PRINTF("map_foreachobject: too many block !\n");
-            }
-            else
-                bl_list[bl_list_count++] = object[i];
+            bl_list.push_back(object[i]);
         }
     }
 
-    map_freeblock_lock();
+    MapBlockLock lock;
 
-    for (i = blockcount; i < bl_list_count; i++)
-        if (bl_list[i]->prev || bl_list[i]->next)
-            func(bl_list[i]);
-
-    map_freeblock_unlock();
-
-    bl_list_count = blockcount;
+    for (struct block_list *bl : bl_list)
+        if (bl->prev || bl->next)
+            func(bl);
 }
 
 /*==========================================

@@ -25,7 +25,6 @@
 #define MAP_SERVER "./map-server"
 #define CHAR_SERVER "./char-server"
 #define CONFIG "conf/eathena-monitor.conf"
-#define LOGFILE "log/eathena-monitor.log"
 
 
 // initialiized to $HOME/tmwserver

@@ -281,7 +281,7 @@ int skill_attack(BF attack_type, struct block_list *src,
                                (skillid == SkillID::ZERO) ? 5 : type);
     }
 
-    map_freeblock_lock();
+    MapBlockLock lock;
     /* 実際にダメージ処理を行う */
     battle_damage(src, bl, damage, 0);
 
@@ -346,8 +346,6 @@ int skill_attack(BF attack_type, struct block_list *src,
             pc_heal(sd, hp, sp);
     }
 
-    map_freeblock_unlock();
-
     return (dmg.damage + dmg.damage2);  /* 与ダメを返す */
 }
 
@@ -402,7 +400,8 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
         return 1;
     if (bl->type == BL::PC && pc_isdead((struct map_session_data *) bl))
         return 1;
-    map_freeblock_lock();
+
+    MapBlockLock lock;
     switch (skillid)
     {
         case SkillID::NPC_POISON:
@@ -465,10 +464,8 @@ int skill_castend_damage_id(struct block_list *src, struct block_list *bl,
             break;
 
         default:
-            map_freeblock_unlock();
             return 1;
     }
-    map_freeblock_unlock();
 
     return 0;
 }
@@ -529,7 +526,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
     if (dstsd && pc_isdead(dstsd))
         return 1;
 
-    map_freeblock_lock();
+    MapBlockLock lock;
     switch (skillid)
     {
         case SkillID::NPC_SUMMONSLAVE:
@@ -549,7 +546,6 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
             break;
     }
 
-    map_freeblock_unlock();
     return 0;
 }
 

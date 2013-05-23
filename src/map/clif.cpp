@@ -612,7 +612,7 @@ void clif_clearchar_delay_sub(TimerData *, tick_t,
         struct block_list *bl, BeingRemoveWhy type)
 {
     clif_clearchar(bl, type);
-    map_freeblock(bl);
+    MapBlockLock::freeblock(bl);
 }
 
 int clif_clearchar_delay(tick_t tick,

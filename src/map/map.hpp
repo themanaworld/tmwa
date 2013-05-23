@@ -487,11 +487,19 @@ extern char wisp_server_name[];
 // 鯖全体情報
 void map_setusers(int);
 int map_getusers(void);
-// block削除関連
-int map_freeblock(void *bl);
-int map_freeblock_lock(void);
-int map_freeblock_unlock(void);
-// block関連
+
+class MapBlockLock
+{
+    MapBlockLock(const MapBlockLock&) = delete;
+    MapBlockLock& operator = (const MapBlockLock&) = delete;
+public:
+    MapBlockLock();
+    ~MapBlockLock();
+
+    static
+    void freeblock(struct block_list *);
+};
+
 int map_addblock(struct block_list *);
 int map_delblock(struct block_list *);
 void map_foreachinarea(std::function<void(struct block_list *)>,

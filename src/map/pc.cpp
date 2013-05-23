@@ -2931,11 +2931,9 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
                 pc_stop_walking(sd, 1);
 
             {
-                map_freeblock_lock();
+                MapBlockLock lock;
                 pc_stop_walking(sd, 0);
-                sd->attacktarget_lv =
-                    battle_weapon_attack(&sd->bl, bl, tick);
-                map_freeblock_unlock();
+                sd->attacktarget_lv = battle_weapon_attack(&sd->bl, bl, tick);
                 sd->attackabletime = tick + (sd->aspd * 2);
             }
             if (sd->attackabletime <= tick)
