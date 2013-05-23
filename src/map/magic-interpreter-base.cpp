@@ -39,7 +39,7 @@ static
 void set_invocation(val_t *v, invocation_t *i)
 {
     v->ty = TYPE::INVOCATION;
-    v->v.v_int = i->bl.bl_id;
+    v->v.v_int = i->bl_id;
 }
 
 static
@@ -208,7 +208,7 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
             character_t *subject = map_nick2sd(param);
             if (!subject)
                 subject = caster;
-            set_env_entity(spell->arg, &subject->bl);
+            set_env_entity(spell->arg, subject);
             free(param);
             break;
         }
@@ -223,7 +223,7 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
                      spell->spellarg_ty);
     }
 
-    set_env_entity(VAR_CASTER, &caster->bl);
+    set_env_entity(VAR_CASTER, caster);
     set_env_int(VAR_SPELLPOWER, spellpower);
     set_env_spell(VAR_SPELL, spell);
 
@@ -492,13 +492,13 @@ invocation_t *spell_instantiate(effect_set_t *effect_set, env_t *env)
     retval->end_effect = effect_set->at_end;
 
     caster = map_id2bl(retval->caster);    // must still exist
-    retval->bl.bl_id = map_addobject(&retval->bl);
-    retval->bl.bl_type = BL::SPELL;
-    retval->bl.bl_m = caster->bl_m;
-    retval->bl.bl_x = caster->bl_x;
-    retval->bl.bl_y = caster->bl_y;
+    retval->bl_id = map_addobject(retval);
+    retval->bl_type = BL::SPELL;
+    retval->bl_m = caster->bl_m;
+    retval->bl_x = caster->bl_x;
+    retval->bl_y = caster->bl_y;
 
-    map_addblock(&retval->bl);
+    map_addblock(retval);
     set_env_invocation(VAR_INVOCATION, retval);
 
     return retval;
@@ -524,11 +524,11 @@ invocation_t *spell_clone_effect(invocation_t *base)
     retval->status_change_refs = NULL;
     retval->flags = INVOCATION_FLAG::ZERO;
 
-    retval->bl.bl_id = 0;
-    retval->bl.bl_prev = NULL;
-    retval->bl.bl_next = NULL;
+    retval->bl_id = 0;
+    retval->bl_prev = NULL;
+    retval->bl_next = NULL;
 
-    retval->bl.bl_id = map_addobject(&retval->bl);
+    retval->bl_id = map_addobject(retval);
     set_env_invocation(VAR_INVOCATION, retval);
 
     return retval;
@@ -554,7 +554,7 @@ void spell_bind(character_t *subject, invocation_t *invocation)
         invocation->next_invocation = subject->active_spells;
         subject->active_spells = invocation;
         invocation->flags |= INVOCATION_FLAG::BOUND;
-        invocation->subject = subject->bl.bl_id;
+        invocation->subject = subject->bl_id;
     }
 
     spell_set_location(invocation, (entity_t *) subject);

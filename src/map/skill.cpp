@@ -541,7 +541,7 @@ int skill_castend_nodamage_id(struct block_list *src, struct block_list *bl,
 
         case SkillID::NPC_EMOTION:
             if (md)
-                clif_emotion(&md->bl,
+                clif_emotion(md,
                         mob_db[md->mob_class].skill[md->skillidx].val[0]);
             break;
     }
@@ -676,8 +676,8 @@ void skill_devotion(struct map_session_data *md, int)
             struct map_session_data *sd = map_id2sd(md->dev.val1[n]);
             // 相手が見つからない // 相手をディボしてるのが自分じゃない // 距離が離れてる
             if (sd == NULL
-                || (md->bl.bl_id != 0/* was something else - TODO remove this */)
-                || skill_devotion3(&md->bl, md->dev.val1[n]))
+                || (md->bl_id != 0/* was something else - TODO remove this */)
+                || skill_devotion3(md, md->dev.val1[n]))
             {
                 skill_devotion_end(md, sd, n);
             }
@@ -698,7 +698,7 @@ int skill_devotion3(struct block_list *bl, int target)
         || (sd = map_id2sd(target)) == NULL)
         return 1;
     else
-        r = distance(bl->bl_x, bl->bl_y, sd->bl.bl_x, sd->bl.bl_y);
+        r = distance(bl->bl_x, bl->bl_y, sd->bl_x, sd->bl_y);
 
     if ( + 6 < r)
     {                           // 許容範囲を超えてた
@@ -867,7 +867,7 @@ int skill_update_heal_animation(struct map_session_data *sd)
     else
         sd->opt2 &= ~mask;
 
-    return clif_changeoption(&sd->bl);
+    return clif_changeoption(sd);
 }
 
 /*==========================================

@@ -124,8 +124,8 @@ void spell_free_invocation(invocation_t *invocation)
 
     magic_free_env(invocation->env);
 
-    map_delblock(&invocation->bl);
-    map_delobject(invocation->bl.bl_id, BL::SPELL);    // also frees the object
+    map_delblock(invocation);
+    map_delobject(invocation->bl_id, BL::SPELL);    // also frees the object
 //        free(invocation);
 }
 
@@ -139,19 +139,19 @@ void char_set_weapon_icon(character_t *subject, int count,
     subject->attack_spell_look_override = look;
 
     if (old_icon != StatusChange::ZERO && old_icon != icon)
-        clif_status_change(&subject->bl, old_icon, 0);
+        clif_status_change(subject, old_icon, 0);
 
     clif_fixpcpos(subject);
     if (count)
     {
-        clif_changelook(&subject->bl, LOOK::WEAPON, look);
+        clif_changelook(subject, LOOK::WEAPON, look);
         if (icon != StatusChange::ZERO)
-            clif_status_change(&subject->bl, icon, 1);
+            clif_status_change(subject, icon, 1);
     }
     else
     {
         /* Set it to `normal' */
-        clif_changelook(&subject->bl, LOOK::WEAPON,
+        clif_changelook(subject, LOOK::WEAPON,
                 static_cast<uint16_t>(subject->status.weapon));
     }
 }
@@ -230,7 +230,7 @@ int trigger_spell(int subject, int spell)
     invocation->env->vars[VAR_CASTER].ty = TYPE::ENTITY;
     invocation->env->vars[VAR_CASTER].v.v_int = subject;
 
-    return invocation->bl.bl_id;
+    return invocation->bl_id;
 }
 
 static
@@ -239,8 +239,8 @@ void entity_warp(entity_t *target, int destm, int destx, int desty);
 static
 void char_update(character_t *character)
 {
-    entity_warp((entity_t *) character, character->bl.bl_m, character->bl.bl_x,
-                 character->bl.bl_y);
+    entity_warp((entity_t *) character, character->bl_m, character->bl_x,
+                 character->bl_y);
 }
 
 static
@@ -266,7 +266,7 @@ void magic_unshroud(character_t *other_char)
     // Now warp the caster out of and back into here to refresh everyone's display
     char_update(other_char);
     clif_displaymessage(other_char->fd, "Your shroud has been dispelled!");
-//        entity_effect(&other_char->bl, MAGIC_EFFECT_REVEAL);
+//        entity_effect(other_char, MAGIC_EFFECT_REVEAL);
 }
 
 static
@@ -284,9 +284,9 @@ struct npc_data *local_spell_effect(int m, int x, int y, int effect,
     std::chrono::seconds delay = std::chrono::seconds(30);
     struct npc_data *effect_npc = npc_spawn_text(m, x, y,
             INVISIBLE_NPC, "", "?");
-    int effect_npc_id = effect_npc->bl.bl_id;
+    int effect_npc_id = effect_npc->bl_id;
 
-    entity_effect(&effect_npc->bl, effect, tdelay);
+    entity_effect(effect_npc, effect, tdelay);
     Timer(gettick() + delay,
             std::bind(timer_callback_effect_npc_delete, ph::_1, ph::_2,
                 effect_npc_id)
@@ -427,7 +427,7 @@ int op_messenger_npc(env_t *, int, val_t *args)
 
     Timer(gettick() + static_cast<interval_t>(ARGINT(4)),
             std::bind(timer_callback_kill_npc, ph::_1, ph::_2,
-                npc->bl.bl_id)
+                npc->bl_id)
     ).detach();
 
     return 0;
@@ -445,22 +445,22 @@ void entity_warp(entity_t *target, int destm, int destx, int desty)
             {
                 character_t *character = (character_t *) target;
                 char *map_name;
-                clif_clearchar(&character->bl, BeingRemoveWhy::WARPED);
-                map_delblock(&character->bl);
-                character->bl.bl_x = destx;
-                character->bl.bl_y = desty;
-                character->bl.bl_m = destm;
+                clif_clearchar(character, BeingRemoveWhy::WARPED);
+                map_delblock(character);
+                character->bl_x = destx;
+                character->bl_y = desty;
+                character->bl_m = destm;
 
                 pc_touch_all_relevant_npcs(character);
 
                 // Note that touching NPCs may have triggered warping and thereby updated x and y:
-                map_name = map[character->bl.bl_m].name;
+                map_name = map[character->bl_m].name;
 
                 // Warp part #1: update relevant data, interrupt trading etc.:
-                pc_setpos(character, map_name, character->bl.bl_x, character->bl.bl_y, BeingRemoveWhy::GONE);
+                pc_setpos(character, map_name, character->bl_x, character->bl_y, BeingRemoveWhy::GONE);
                 // Warp part #2: now notify the client
                 clif_changemap(character, map_name,
-                                character->bl.bl_x, character->bl.bl_y);
+                                character->bl_x, character->bl_y);
                 break;
             }
             case BL::MOB:
@@ -588,7 +588,7 @@ int op_override_attack(env_t *env, int, val_t *args)
     }
 
     subject->attack_spell_override =
-        trigger_spell(subject->bl.bl_id, VAR(VAR_INVOCATION).v.v_int);
+        trigger_spell(subject->bl_id, VAR(VAR_INVOCATION).v.v_int);
     subject->attack_spell_charges = charges;
 
     if (subject->attack_spell_override)
@@ -726,8 +726,8 @@ int op_spawn(env_t *, int, val_t *args)
                     mob->mode = MobMode::CAN_ATTACK | MobMode::AGGRESSIVE | (mob->mode & MobMode::CAN_MOVE);
                     if (owner)
                     {
-                        mob->target_id = owner->bl.bl_id;
-                        mob->attacked_id = owner->bl.bl_id;
+                        mob->target_id = owner->bl_id;
+                        mob->attacked_id = owner->bl_id;
                     }
                     break;
 
@@ -745,7 +745,7 @@ int op_spawn(env_t *, int, val_t *args)
 
             if (owner)
             {
-                mob->master_id = owner->bl.bl_id;
+                mob->master_id = owner->bl_id;
                 mob->master_dist = 6;
             }
         }
@@ -810,7 +810,7 @@ int op_injure(env_t *env, int, val_t *args)
             struct mob_data *mob = (struct mob_data *) target;
 
             MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s",
-                        mob->bl.bl_id, mob->mob_class, damage_caused,
+                        mob->bl_id, mob->mob_class, damage_caused,
                         get_invocation_name(env));
         }
     }
@@ -982,7 +982,7 @@ void spell_effect_report_termination(int invocation_id, int bl_id,
     int index = -1;
     invocation_t *invocation = (invocation_t *) map_id2bl(invocation_id);
 
-    if (!invocation || invocation->bl.bl_type != BL::SPELL)
+    if (!invocation || invocation->bl_type != BL::SPELL)
         return;
 
     for (i = 0; i < invocation->status_change_refs_nr; i++)
@@ -1150,7 +1150,7 @@ void find_entities_in_area_c(entity_t *target,
 
                 while (invoc)
                 {
-                    ADD_ENTITY(invoc->bl.bl_id);
+                    ADD_ENTITY(invoc->bl_id);
                     invoc = invoc->next_invocation;
                 }
             }
@@ -1408,7 +1408,7 @@ void print_cfg(int i, effect_t *e)
 static
 interval_t spell_run(invocation_t *invocation, int allow_delete)
 {
-    const int invocation_id = invocation->bl.bl_id;
+    const int invocation_id = invocation->bl_id;
 #define REFRESH_INVOCATION invocation = (invocation_t *) map_id2bl(invocation_id); if (!invocation) return interval_t::zero();
 
 #ifdef DEBUG
@@ -1496,31 +1496,31 @@ interval_t spell_run(invocation_t *invocation, int allow_delete)
                         (character_t *) map_id2bl(message_recipient);
 
                     if (recipient->npc_id
-                        && recipient->npc_id != invocation->bl.bl_id)
+                        && recipient->npc_id != invocation->bl_id)
                         break;  /* Don't send multiple message boxes at once */
 
                     if (!invocation->script_pos)    // first time running this script?
                         clif_spawn_fake_npc_for_player(recipient,
-                                                        invocation->bl.bl_id);
+                                                        invocation->bl_id);
                     // We have to do this or otherwise the client won't think that it's
                     // dealing with an NPC
 
                     int newpos = run_script_l(e->e.e_script,
                                                 invocation->script_pos,
                                                 message_recipient,
-                                                invocation->bl.bl_id,
+                                                invocation->bl_id,
                                                 3, arg);
                     /* Returns the new script position, or -1 once the script is finished */
                     if (newpos != -1)
                     {
                         /* Must set up for continuation */
-                        recipient->npc_id = invocation->bl.bl_id;
+                        recipient->npc_id = invocation->bl_id;
                         recipient->npc_pos = invocation->script_pos = newpos;
                         return static_cast<interval_t>(-1);  /* Signal `wait for script' */
                     }
                     else
                         invocation->script_pos = 0;
-                    clif_clearchar_id(invocation->bl.bl_id, BeingRemoveWhy::DEAD, caster->fd);
+                    clif_clearchar_id(invocation->bl_id, BeingRemoveWhy::DEAD, caster->fd);
                 }
                 REFRESH_INVOCATION; // Script may have killed the caster
                 break;
@@ -1584,7 +1584,7 @@ void spell_execute_d(invocation_t *invocation, int allow_deletion)
         assert (!invocation->timer);
         invocation->timer = Timer(gettick() + delta,
                 std::bind(invocation_timer_callback, ph::_1, ph::_2,
-                    invocation->bl.bl_id));
+                    invocation->bl_id));
     }
 
     /* If 0, the script cleaned itself.  If -1(wait-for-script), we must wait for the user. */
@@ -1638,7 +1638,7 @@ int spell_attack(int caster_id, int target_id)
             caster->attack_spell_charges--;
     }
 
-    if (invocation && caster->attack_spell_override != invocation->bl.bl_id)
+    if (invocation && caster->attack_spell_override != invocation->bl_id)
     {
         /* Attack spell changed / was refreshed */
         // spell_free_invocation(invocation); // [Fate] This would be a double free.

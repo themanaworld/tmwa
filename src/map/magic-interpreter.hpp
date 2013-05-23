@@ -308,10 +308,9 @@ typedef struct status_change_ref
     int bl_id;
 } status_change_ref_t;
 
-typedef struct invocation
+typedef struct invocation invocation_t;
+struct invocation : block_list
 {
-    struct block_list bl;
-
     struct invocation *next_invocation; /* used for spells directly associated with a caster: they form a singly-linked list */
     INVOCATION_FLAG flags;
 
@@ -334,7 +333,7 @@ typedef struct invocation
     int status_change_refs_nr;
     status_change_ref_t *status_change_refs;
 
-} invocation_t;
+};
 
 extern magic_conf_t magic_conf; /* Global magic conf */
 extern env_t magic_default_env; /* Fake default environment */

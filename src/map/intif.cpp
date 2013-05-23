@@ -107,7 +107,7 @@ int intif_saveaccountreg(struct map_session_data *sd)
     nullpo_ret(sd);
 
     WFIFOW(char_fd, 0) = 0x3004;
-    WFIFOL(char_fd, 4) = sd->bl.bl_id;
+    WFIFOL(char_fd, 4) = sd->bl_id;
     for (j = 0, p = 8; j < sd->status.account_reg_num; j++, p += 36)
     {
         memcpy(WFIFOP(char_fd, p), sd->status.account_reg[j].str, 32);
@@ -124,7 +124,7 @@ int intif_request_accountreg(struct map_session_data *sd)
     nullpo_ret(sd);
 
     WFIFOW(char_fd, 0) = 0x3005;
-    WFIFOL(char_fd, 2) = sd->bl.bl_id;
+    WFIFOL(char_fd, 2) = sd->bl_id;
     WFIFOSET(char_fd, 6);
     return 0;
 }
@@ -159,7 +159,7 @@ int intif_create_party(struct map_session_data *sd, const char *name)
     WFIFOL(char_fd, 2) = sd->status.account_id;
     memcpy(WFIFOP(char_fd, 6), name, 24);
     memcpy(WFIFOP(char_fd, 30), sd->status.name, 24);
-    memcpy(WFIFOP(char_fd, 54), map[sd->bl.bl_m].name, 16);
+    memcpy(WFIFOP(char_fd, 54), map[sd->bl_m].name, 16);
     WFIFOW(char_fd, 70) = sd->status.base_level;
     WFIFOSET(char_fd, 72);
 //  if(battle_config.etc_log)
@@ -191,7 +191,7 @@ int intif_party_addmember(int party_id, int account_id)
         WFIFOL(char_fd, 2) = party_id;
         WFIFOL(char_fd, 6) = account_id;
         memcpy(WFIFOP(char_fd, 10), sd->status.name, 24);
-        memcpy(WFIFOP(char_fd, 34), map[sd->bl.bl_m].name, 16);
+        memcpy(WFIFOP(char_fd, 34), map[sd->bl_m].name, 16);
         WFIFOW(char_fd, 50) = sd->status.base_level;
         WFIFOSET(char_fd, 52);
     }
@@ -230,7 +230,7 @@ int intif_party_changemap(struct map_session_data *sd, int online)
         WFIFOW(char_fd, 0) = 0x3025;
         WFIFOL(char_fd, 2) = sd->status.party_id;
         WFIFOL(char_fd, 6) = sd->status.account_id;
-        memcpy(WFIFOP(char_fd, 10), map[sd->bl.bl_m].name, 16);
+        memcpy(WFIFOP(char_fd, 10), map[sd->bl_m].name, 16);
         WFIFOB(char_fd, 26) = online;
         WFIFOW(char_fd, 27) = sd->status.base_level;
         WFIFOSET(char_fd, 29);

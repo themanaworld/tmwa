@@ -103,7 +103,7 @@ int skill_power(struct map_session_data *sd, SkillID skill_id)
     if (stat == SP::ZERO || !skill_pool_is_activated(sd, skill_id))
         return 0;
 
-    stat_value = battle_get_stat(stat, &(sd->bl));
+    stat_value = battle_get_stat(stat, sd);
     skill_value = sd->status.skill[skill_id].lv;
 
     if ((skill_value * 10) - 1 > stat_value)

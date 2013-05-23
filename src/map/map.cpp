@@ -663,7 +663,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
     struct flooritem_data *fitem = NULL;
 
     fitem = (struct flooritem_data *) object[id];
-    if (fitem == NULL || fitem->bl.bl_type != BL::ITEM)
+    if (fitem == NULL || fitem->bl_type != BL::ITEM)
     {
         if (battle_config.error_log)
             PRINTF("map_clearflooritem_timer : error\n");
@@ -672,7 +672,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
     if (!tid)
         fitem->cleartimer.cancel();
     clif_clearflooritem(fitem, 0);
-    map_delobject(fitem->bl.bl_id, BL::ITEM);
+    map_delobject(fitem->bl_id, BL::ITEM);
 }
 
 std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
@@ -714,11 +714,11 @@ int map_addflooritem_any(struct item *item_data, int amount,
         return 0;
 
     CREATE(fitem, struct flooritem_data, 1);
-    fitem->bl.bl_type = BL::ITEM;
-    fitem->bl.bl_prev = fitem->bl.bl_next = NULL;
-    fitem->bl.bl_m = m;
-    fitem->bl.bl_x = xy.first;
-    fitem->bl.bl_y = xy.second;
+    fitem->bl_type = BL::ITEM;
+    fitem->bl_prev = fitem->bl_next = NULL;
+    fitem->bl_m = m;
+    fitem->bl_x = xy.first;
+    fitem->bl_y = xy.second;
     fitem->first_get_id = 0;
     fitem->first_get_tick = tick_t();
     fitem->second_get_id = 0;
@@ -726,8 +726,8 @@ int map_addflooritem_any(struct item *item_data, int amount,
     fitem->third_get_id = 0;
     fitem->third_get_tick = tick_t();
 
-    fitem->bl.bl_id = map_addobject(&fitem->bl);
-    if (fitem->bl.bl_id == 0)
+    fitem->bl_id = map_addobject(fitem);
+    if (fitem->bl_id == 0)
     {
         free(fitem);
         return 0;
@@ -736,15 +736,15 @@ int map_addflooritem_any(struct item *item_data, int amount,
     tick_t tick = gettick();
 
     if (owners[0])
-        fitem->first_get_id = owners[0]->bl.bl_id;
+        fitem->first_get_id = owners[0]->bl_id;
     fitem->first_get_tick = tick + owner_protection[0];
 
     if (owners[1])
-        fitem->second_get_id = owners[1]->bl.bl_id;
+        fitem->second_get_id = owners[1]->bl_id;
     fitem->second_get_tick = tick + owner_protection[1];
 
     if (owners[2])
-        fitem->third_get_id = owners[2]->bl.bl_id;
+        fitem->third_get_id = owners[2]->bl_id;
     fitem->third_get_tick = tick + owner_protection[2];
 
     memcpy(&fitem->item_data, item_data, sizeof(*item_data));
@@ -758,12 +758,12 @@ int map_addflooritem_any(struct item *item_data, int amount,
     fitem->suby = random_::in(1, 4) * 3;
     fitem->cleartimer = Timer(gettick() + lifetime,
             std::bind(map_clearflooritem_timer, ph::_1, ph::_2,
-                fitem->bl.bl_id));
+                fitem->bl_id));
 
-    map_addblock(&fitem->bl);
+    map_addblock(fitem);
     clif_dropflooritem(fitem);
 
-    return fitem->bl.bl_id;
+    return fitem->bl_id;
 }
 
 int map_addflooritem(struct item *item_data, int amount,
@@ -853,10 +853,10 @@ void map_quit(struct map_session_data *sd)
 
     pc_cleareventtimer(sd);    // イベントタイマを破棄する
 
-    skill_castcancel(&sd->bl, 0);  // 詠唱を中断する
-    skill_stop_dancing(&sd->bl, 1);    // ダンス/演奏中断
+    skill_castcancel(sd, 0);  // 詠唱を中断する
+    skill_stop_dancing(sd, 1);    // ダンス/演奏中断
 
-    skill_status_change_clear(&sd->bl, 1); // ステータス異常を解除する
+    skill_status_change_clear(sd, 1); // ステータス異常を解除する
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
     pc_delinvincibletimer(sd);
@@ -864,7 +864,7 @@ void map_quit(struct map_session_data *sd)
 
     pc_calcstatus(sd, 4);
 
-    clif_clearchar(&sd->bl, BeingRemoveWhy::QUIT);
+    clif_clearchar(sd, BeingRemoveWhy::QUIT);
 
     if (pc_isdead(sd))
         pc_setrestartvalue(sd, 2);
@@ -880,9 +880,9 @@ void map_quit(struct map_session_data *sd)
     if (sd->npc_stackbuf && sd->npc_stackbuf != NULL)
         free(sd->npc_stackbuf);
 
-    map_delblock(&sd->bl);
+    map_delblock(sd);
 
-    id_db.put(sd->bl.bl_id, nullptr);
+    id_db.put(sd->bl_id, nullptr);
     nick_db.put(sd->status.name, nullptr);
     charid_db.erase(sd->status.char_id);
 }
@@ -916,7 +916,7 @@ struct map_session_data *map_id2sd(int id)
         if (session[i]->session_data)
         {
             map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
-            if (sd->bl.bl_id == id)
+            if (sd->bl_id == id)
                 return sd;
         }
     }
@@ -1090,7 +1090,7 @@ int map_addnpc(int m, struct npc_data *nd)
 
     map[m].npc[i] = nd;
     nd->n = i;
-    id_db.put(nd->bl.bl_id, (struct block_list *)nd);
+    id_db.put(nd->bl_id, (struct block_list *)nd);
 
     return i;
 }
@@ -1106,9 +1106,9 @@ void map_removenpc(void)
         {
             if (map[m].npc[i] != NULL)
             {
-                clif_clearchar(&map[m].npc[i]->bl, BeingRemoveWhy::QUIT);
-                map_delblock(&map[m].npc[i]->bl);
-                id_db.put(map[m].npc[i]->bl.bl_id, nullptr);
+                clif_clearchar(map[m].npc[i], BeingRemoveWhy::QUIT);
+                map_delblock(map[m].npc[i]);
+                id_db.put(map[m].npc[i]->bl_id, nullptr);
                 if (map[m].npc[i]->npc_subtype == NpcSubtype::SCRIPT)
                 {
 //                    free(map[m].npc[i]->u.scr.script);

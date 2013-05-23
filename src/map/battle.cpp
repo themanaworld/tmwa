@@ -785,7 +785,7 @@ int battle_get_party_id(struct block_list *bl)
         struct mob_data *md = (struct mob_data *) bl;
         if (md->master_id > 0)
             return -md->master_id;
-        return -md->bl.bl_id;
+        return -md->bl_id;
     }
     return 0;
 }
@@ -1396,7 +1396,7 @@ struct Damage battle_calc_pc_weapon_attack(struct block_list *src,
     div_ = 1;                   // single attack
 
     {
-        damage = damage2 = battle_get_baseatk(&sd->bl);    //damega,damega2初登場、base_atkの取得
+        damage = damage2 = battle_get_baseatk(sd);    //damega,damega2初登場、base_atkの取得
     }
     if (sd->attackrange > 2)
     {                           // [fate] ranged weapon?

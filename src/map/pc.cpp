@@ -252,12 +252,12 @@ int pc_iskiller(struct map_session_data *src,
 {
     nullpo_ret(src);
 
-    if (src->bl.bl_type != BL::PC)
+    if (src->bl_type != BL::PC)
         return 0;
     if (src->special_state.killer)
         return 1;
 
-    if (target->bl.bl_type != BL::PC)
+    if (target->bl_type != BL::PC)
         return 0;
     if (target->special_state.killable)
         return 1;
@@ -300,7 +300,7 @@ void pc_invincible_timer(TimerData *, tick_t, int id)
     struct map_session_data *sd = map_id2sd(id);
 
     assert (sd != NULL);
-    assert (sd->bl.bl_type == BL::PC);
+    assert (sd->bl_type == BL::PC);
 }
 
 int pc_setinvincibletimer(struct map_session_data *sd, interval_t val)
@@ -309,7 +309,7 @@ int pc_setinvincibletimer(struct map_session_data *sd, interval_t val)
 
     sd->invincible_timer = Timer(gettick() + val,
             std::bind(pc_invincible_timer, ph::_1, ph::_2,
-                sd->bl.bl_id));
+                sd->bl_id));
     return 0;
 }
 
@@ -390,9 +390,9 @@ int pc_counttargeted(struct map_session_data *sd, struct block_list *src,
         ATK target_lv)
 {
     int c = 0;
-    map_foreachinarea(std::bind(pc_counttargeted_sub, ph::_1, sd->bl.bl_id, &c, src, target_lv),
-            sd->bl.bl_m, sd->bl.bl_x - AREA_SIZE, sd->bl.bl_y - AREA_SIZE,
-            sd->bl.bl_x + AREA_SIZE, sd->bl.bl_y + AREA_SIZE, BL::NUL);
+    map_foreachinarea(std::bind(pc_counttargeted_sub, ph::_1, sd->bl_id, &c, src, target_lv),
+            sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE, BL::NUL);
     return c;
 }
 
@@ -425,14 +425,14 @@ int pc_makesavestatus(struct map_session_data *sd)
     else
     {
         memcpy(sd->status.last_point.map, sd->mapname, 24);
-        sd->status.last_point.x = sd->bl.bl_x;
-        sd->status.last_point.y = sd->bl.bl_y;
+        sd->status.last_point.x = sd->bl_x;
+        sd->status.last_point.y = sd->bl_y;
     }
 
     // セーブ禁止マップだったので指定位置に移動
-    if (map[sd->bl.bl_m].flag.nosave)
+    if (map[sd->bl_m].flag.nosave)
     {
-        struct map_data *m = &map[sd->bl.bl_m];
+        struct map_data *m = &map[sd->bl_m];
         if (strcmp(m->save.map, "SavePoint") == 0)
             memcpy(&sd->status.last_point, &sd->status.save_point,
                     sizeof(sd->status.last_point));
@@ -453,14 +453,14 @@ int pc_setnewpc(struct map_session_data *sd, int account_id, int char_id,
 {
     nullpo_ret(sd);
 
-    sd->bl.bl_id = account_id;
+    sd->bl_id = account_id;
     sd->char_id = char_id;
     sd->login_id1 = login_id1;
     sd->login_id2 = 0;          // at this point, we can not know the value :(
     sd->client_tick = client_tick;
     sd->sex = sex;
     sd->state.auth = 0;
-    sd->bl.bl_type = BL::PC;
+    sd->bl_type = BL::PC;
     sd->canact_tick = sd->canmove_tick = gettick();
     sd->canlog_tick = gettick();
     sd->state.waitingdisconnect = 0;
@@ -596,7 +596,7 @@ int pc_isequip(struct map_session_data *sd, int n)
     nullpo_ret(sd);
 
     item = sd->inventory_data[n];
-    sc_data = battle_get_sc_data(&sd->bl);
+    sc_data = battle_get_sc_data(sd);
 
     if (battle_config.gm_allequip > 0
         && pc_isGM(sd) >= battle_config.gm_allequip)
@@ -609,7 +609,7 @@ int pc_isequip(struct map_session_data *sd, int n)
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
 
-    if (map[sd->bl.bl_m].flag.pvp
+    if (map[sd->bl_m].flag.pvp
         && (item->flag.no_equip == 1 || item->flag.no_equip == 3))
         return 0;
     return 1;
@@ -652,7 +652,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     memset(&sd->state, 0, sizeof(sd->state));
     // 基本的な初期化
     sd->state.connect_new = 1;
-    sd->bl.bl_prev = sd->bl.bl_next = NULL;
+    sd->bl_prev = sd->bl_next = NULL;
 
     sd->weapontype1 = sd->weapontype2 = ItemLook::NONE;
     sd->speed = DEFAULT_WALK_SPEED;
@@ -871,20 +871,20 @@ int pc_checkweighticon(struct map_session_data *sd)
     if (flag == 1)
     {
         if (!sd->sc_data[StatusChange::SC_WEIGHT50].timer)
-            skill_status_change_start(&sd->bl, StatusChange::SC_WEIGHT50, 0, interval_t::zero());
+            skill_status_change_start(sd, StatusChange::SC_WEIGHT50, 0, interval_t::zero());
     }
     else
     {
-        skill_status_change_end(&sd->bl, StatusChange::SC_WEIGHT50, nullptr);
+        skill_status_change_end(sd, StatusChange::SC_WEIGHT50, nullptr);
     }
     if (flag == 2)
     {
         if (!sd->sc_data[StatusChange::SC_WEIGHT90].timer)
-            skill_status_change_start(&sd->bl, StatusChange::SC_WEIGHT90, 0, interval_t::zero());
+            skill_status_change_start(sd, StatusChange::SC_WEIGHT90, 0, interval_t::zero());
     }
     else
     {
-        skill_status_change_end(&sd->bl, StatusChange::SC_WEIGHT90, nullptr);
+        skill_status_change_end(sd, StatusChange::SC_WEIGHT90, nullptr);
     }
     return 0;
 }
@@ -893,10 +893,10 @@ static
 void pc_set_weapon_look(struct map_session_data *sd)
 {
     if (sd->attack_spell_override)
-        clif_changelook(&sd->bl, LOOK::WEAPON,
+        clif_changelook(sd, LOOK::WEAPON,
                 sd->attack_spell_look_override);
     else
-        clif_changelook(&sd->bl, LOOK::WEAPON,
+        clif_changelook(sd, LOOK::WEAPON,
                 static_cast<uint16_t>(sd->status.weapon));
 }
 
@@ -1075,7 +1075,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                             if (i == EQUIP::SHIELD
                                 && sd->status.inventory[index].equip == EPOS::SHIELD)
                                 sd->state.lr_flag = 1;
-                            run_script_l(itemdb_equipscript(c), 0, sd->bl.bl_id,
+                            run_script_l(itemdb_equipscript(c), 0, sd->bl_id,
                                         0, 2, arg);
                             sd->state.lr_flag = 0;
                         }
@@ -1098,7 +1098,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                             arg[0].v.i = int(i);
                             arg[1].name = "@itemId";
                             arg[1].v.i = sd->inventory_data[index]->nameid;
-                            run_script_l(itemdb_equipscript(c), 0, sd->bl.bl_id,
+                            run_script_l(itemdb_equipscript(c), 0, sd->bl_id,
                                         0, 2, arg);
                         }
                     }
@@ -1162,7 +1162,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                         arg[1].name = "@itemId";
                         arg[1].v.i = sd->inventory_data[index]->nameid;
                         run_script_l(sd->inventory_data[index]->equip_script, 0,
-                                      sd->bl.bl_id, 0, 2, arg);
+                                      sd->bl_id, 0, 2, arg);
                     }
                     sd->state.lr_flag = 0;
                 }
@@ -1185,7 +1185,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                     }
                     sd->attackrange += sd->inventory_data[index]->range;
                     run_script_l(sd->inventory_data[index]->equip_script, 0,
-                                  sd->bl.bl_id, 0, 2, arg);
+                                  sd->bl_id, 0, 2, arg);
                 }
             }
             else if (sd->inventory_data[index]->type == ItemType::ARMOR)
@@ -1199,12 +1199,12 @@ int pc_calcstatus(struct map_session_data *sd, int first)
                 refinedef +=
                     sd->status.inventory[index].refine * 0;
                 run_script_l(sd->inventory_data[index]->equip_script, 0,
-                              sd->bl.bl_id, 0, 2, arg);
+                              sd->bl_id, 0, 2, arg);
             }
         }
     }
 
-    if (battle_is_unarmed(&sd->bl))
+    if (battle_is_unarmed(sd))
     {
         sd->watk += skill_power(sd, SkillID::TMW_BRAWLING) / 3; // +66 for 200
         sd->watk2 += skill_power(sd, SkillID::TMW_BRAWLING) >> 3;   // +25 for 200
@@ -1223,7 +1223,7 @@ int pc_calcstatus(struct map_session_data *sd, int first)
             arg[1].name = "@itemId";
             arg[1].v.i = sd->inventory_data[index]->nameid;
             sd->state.lr_flag = 2;
-            run_script_l(sd->inventory_data[index]->equip_script, 0, sd->bl.bl_id,
+            run_script_l(sd->inventory_data[index]->equip_script, 0, sd->bl_id,
                         0, 2, arg);
             sd->state.lr_flag = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
@@ -2150,7 +2150,7 @@ int pc_dropitem(struct map_session_data *sd, int n, int amount)
         sd->trade_partner != 0 || sd->status.inventory[n].amount <= 0)
         return 1;
     map_addflooritem(&sd->status.inventory[n], amount,
-            sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y,
+            sd->bl_m, sd->bl_x, sd->bl_y,
             NULL, NULL, NULL);
     pc_delitem(sd, n, amount, 0);
 
@@ -2168,7 +2168,7 @@ int can_pick_item_up_from(struct map_session_data *self, int other_id)
     struct party *p = party_search(self->status.party_id);
 
     /* From ourselves or from no-one? */
-    if (!self || self->bl.bl_id == other_id || !other_id)
+    if (!self || self->bl_id == other_id || !other_id)
         return 1;
 
     struct map_session_data *other = map_id2sd(other_id);
@@ -2189,12 +2189,12 @@ int can_pick_item_up_from(struct map_session_data *self, int other_id)
 
     /* From someone who is far away? */
     /* On another map? */
-    if (other->bl.bl_m != self->bl.bl_m)
+    if (other->bl_m != self->bl_m)
         return 1;
     else
     {
-        int distance_x = abs(other->bl.bl_x - self->bl.bl_x);
-        int distance_y = abs(other->bl.bl_y - self->bl.bl_y);
+        int distance_x = abs(other->bl_x - self->bl_x);
+        int distance_y = abs(other->bl_y - self->bl_y);
         int distance = (distance_x > distance_y) ? distance_x : distance_y;
 
         return distance > battle_config.drop_pickup_safety_zone;
@@ -2246,8 +2246,8 @@ int pc_takeitem(struct map_session_data *sd, struct flooritem_data *fitem)
             // 取得成功
             if (sd->attacktimer)
                 pc_stopattack(sd);
-            clif_takeitem(&sd->bl, &fitem->bl);
-            map_clearflooritem(fitem->bl.bl_id);
+            clif_takeitem(sd, fitem);
+            map_clearflooritem(fitem->bl_id);
         }
         return 0;
     }
@@ -2273,15 +2273,15 @@ int pc_isUseitem(struct map_session_data *sd, int n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
     if (nameid == 601
-        && (map[sd->bl.bl_m].flag.noteleport))
+        && (map[sd->bl_m].flag.noteleport))
     {
         return 0;
     }
 
-    if (nameid == 602 && map[sd->bl.bl_m].flag.noreturn)
+    if (nameid == 602 && map[sd->bl_m].flag.noreturn)
         return 0;
     if (nameid == 604
-        && (map[sd->bl.bl_m].flag.nobranch))
+        && (map[sd->bl_m].flag.nobranch))
         return 0;
     if (item->sex != 2 && sd->status.sex != item->sex)
         return 0;
@@ -2312,7 +2312,7 @@ int pc_useitem(struct map_session_data *sd, int n)
             return 1;
         }
 
-        run_script(sd->inventory_data[n]->use_script, 0, sd->bl.bl_id, 0);
+        run_script(sd->inventory_data[n]->use_script, 0, sd->bl_id, 0);
 
         clif_useitemack(sd, n, amount - 1, 1);
         pc_delitem(sd, n, 1, 1);
@@ -2367,7 +2367,7 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
     if (sd->party_invite > 0)   // パーティ勧誘を拒否する
         party_reply_invite(sd, sd->party_invite_account, 0);
 
-    skill_castcancel(&sd->bl, 0);  // 詠唱中断
+    skill_castcancel(sd, 0);  // 詠唱中断
     pc_stop_walking(sd, 0);    // 歩行中断
     pc_stopattack(sd);         // 攻撃中断
 
@@ -2393,13 +2393,13 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
             int port;
             if (map_mapname2ipport(mapname, &ip, &port) == 0)
             {
-                skill_stop_dancing(&sd->bl, 1);
-                clif_clearchar(&sd->bl, clrtype);
+                skill_stop_dancing(sd, 1);
+                clif_clearchar(sd, clrtype);
                 skill_gangsterparadise(sd, 0);
-                map_delblock(&sd->bl);
+                map_delblock(sd);
                 memcpy(sd->mapname, mapname, 24);
-                sd->bl.bl_x = x;
-                sd->bl.bl_y = y;
+                sd->bl_x = x;
+                sd->bl_y = y;
                 sd->state.waitingdisconnect = 1;
                 pc_makesavestatus(sd);
                 //The storage close routines save the char data. [Skotlex]
@@ -2437,25 +2437,25 @@ int pc_setpos(struct map_session_data *sd, const char *mapname_org, int x, int y
         while (bool(read_gat(m, x, y) & MapCell::UNWALKABLE));
     }
 
-    if (sd->mapname[0] && sd->bl.bl_prev != NULL)
+    if (sd->mapname[0] && sd->bl_prev != NULL)
     {
-        clif_clearchar(&sd->bl, clrtype);
+        clif_clearchar(sd, clrtype);
         skill_gangsterparadise(sd, 0);
-        map_delblock(&sd->bl);
+        map_delblock(sd);
         clif_changemap(sd, map[m].name, x, y); // [MouseJstr]
     }
 
     memcpy(sd->mapname, mapname, 24);
-    sd->bl.bl_m = m;
+    sd->bl_m = m;
     sd->to_x = x;
     sd->to_y = y;
 
     // moved and changed dance effect stopping
 
-    sd->bl.bl_x = x;
-    sd->bl.bl_y = y;
+    sd->bl_x = x;
+    sd->bl_y = y;
 
-//  map_addblock(&sd->bl);  // ブロック登録とspawnは
+//  map_addblock(sd);  // ブロック登録とspawnは
 //  clif_spawnpc(sd);
 
     return 0;
@@ -2472,9 +2472,9 @@ int pc_randomwarp(struct map_session_data *sd, BeingRemoveWhy type)
 
     nullpo_ret(sd);
 
-    m = sd->bl.bl_m;
+    m = sd->bl_m;
 
-    if (map[sd->bl.bl_m].flag.noteleport)  // テレポート禁止
+    if (map[sd->bl_m].flag.noteleport)  // テレポート禁止
         return 0;
 
     do
@@ -2502,14 +2502,14 @@ int pc_can_reach(struct map_session_data *sd, int x, int y)
 
     nullpo_ret(sd);
 
-    if (sd->bl.bl_x == x && sd->bl.bl_y == y) // 同じマス
+    if (sd->bl_x == x && sd->bl_y == y) // 同じマス
         return 1;
 
     // 障害物判定
     wpd.path_len = 0;
     wpd.path_pos = 0;
     wpd.path_half = 0;
-    return (path_search(&wpd, sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y, x, y, 0) !=
+    return (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, x, y, 0) !=
             -1) ? 1 : 0;
 }
 
@@ -2567,9 +2567,9 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
         if (sd->walkpath.path[sd->walkpath.path_pos] >= DIR::COUNT)
             return;
 
-        x = sd->bl.bl_x;
-        y = sd->bl.bl_y;
-        if (bool(map_getcell(sd->bl.bl_m, x, y) & MapCell::UNWALKABLE))
+        x = sd->bl_x;
+        y = sd->bl_y;
+        if (bool(map_getcell(sd->bl_m, x, y) & MapCell::UNWALKABLE))
         {
             pc_stop_walking(sd, 1);
             return;
@@ -2577,7 +2577,7 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
         sd->dir = sd->head_dir = sd->walkpath.path[sd->walkpath.path_pos];
         dx = dirx[sd->dir];
         dy = diry[sd->dir];
-        if (bool(map_getcell(sd->bl.bl_m, x + dx, y + dy)
+        if (bool(map_getcell(sd->bl_m, x + dx, y + dy)
                 & MapCell::UNWALKABLE))
         {
             pc_walktoxy_sub(sd);
@@ -2589,7 +2589,7 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
 
         // sd->walktimer = dummy value that is not nullptr;
         map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
-                sd->bl.bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                sd->bl_m, x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
                 dx, dy,
                 BL::NUL);
@@ -2598,14 +2598,14 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
         y += dy;
 
         if (moveblock)
-            map_delblock(&sd->bl);
-        sd->bl.bl_x = x;
-        sd->bl.bl_y = y;
+            map_delblock(sd);
+        sd->bl_x = x;
+        sd->bl_y = y;
         if (moveblock)
-            map_addblock(&sd->bl);
+            map_addblock(sd);
 
         map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
-                sd->bl.bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                sd->bl_m, x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
                 -dx, -dy,
                 BL::NUL);
@@ -2618,7 +2618,7 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
             {
                 int p_flag = 0;
                 map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &p_flag),
-                        sd->bl.bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                        sd->bl_m, x - AREA_SIZE, y - AREA_SIZE,
                         x + AREA_SIZE, y + AREA_SIZE,
                         -dx, -dy,
                         BL::PC);
@@ -2631,12 +2631,12 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
         for (int i = 0; i < 5; i++)
             if (sd->dev.val1[i])
             {
-                skill_devotion3(&sd->bl, sd->dev.val1[i]);
+                skill_devotion3(sd, sd->dev.val1[i]);
                 break;
             }
 
-        if (bool(map_getcell(sd->bl.bl_m, x, y) & MapCell::NPC_NEAR))
-            npc_touch_areanpc(sd, sd->bl.bl_m, x, y);
+        if (bool(map_getcell(sd->bl_m, x, y) & MapCell::NPC_NEAR))
+            npc_touch_areanpc(sd, sd->bl_m, x, y);
         else
             sd->areanpc_id = 0;
     }
@@ -2664,7 +2664,7 @@ int pc_walktoxy_sub(struct map_session_data *sd)
 
     nullpo_retr(1, sd);
 
-    if (path_search(&wpd, sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y, sd->to_x, sd->to_y, 0))
+    if (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, sd->to_x, sd->to_y, 0))
         return 1;
     memcpy(&sd->walkpath, &wpd, sizeof(wpd));
 
@@ -2677,7 +2677,7 @@ int pc_walktoxy_sub(struct map_session_data *sd)
         i = i / 4;
         sd->walktimer = Timer(gettick() + i,
                 std::bind(pc_walk, ph::_1, ph::_2,
-                    sd->bl.bl_id, 0));
+                    sd->bl_id, 0));
     }
     clif_movechar(sd);
 
@@ -2724,14 +2724,14 @@ int pc_stop_walking(struct map_session_data *sd, int type)
     sd->walktimer.cancel();
 
     sd->walkpath.path_len = 0;
-    sd->to_x = sd->bl.bl_x;
-    sd->to_y = sd->bl.bl_y;
+    sd->to_x = sd->bl_x;
+    sd->to_y = sd->bl_y;
     if (type & 0x01)
-        clif_fixpos(&sd->bl);
+        clif_fixpos(sd);
     if (type & 0x02 && battle_config.pc_damage_delay)
     {
         tick_t tick = gettick();
-        interval_t delay = battle_get_dmotion(&sd->bl);
+        interval_t delay = battle_get_dmotion(sd);
         if (sd->canmove_tick < tick)
             sd->canmove_tick = tick + delay;
     }
@@ -2741,8 +2741,8 @@ int pc_stop_walking(struct map_session_data *sd, int type)
 
 void pc_touch_all_relevant_npcs(struct map_session_data *sd)
 {
-    if (bool(map_getcell(sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y) & MapCell::NPC_NEAR))
-        npc_touch_areanpc(sd, sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y);
+    if (bool(map_getcell(sd->bl_m, sd->bl_x, sd->bl_y) & MapCell::NPC_NEAR))
+        npc_touch_areanpc(sd, sd->bl_m, sd->bl_x, sd->bl_y);
     else
         sd->areanpc_id = 0;
 }
@@ -2760,33 +2760,33 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
 
     nullpo_ret(sd);
 
-    if (path_search(&wpd, sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y, dst_x, dst_y, 0))
+    if (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, dst_x, dst_y, 0))
         return 1;
 
-    sd->dir = sd->head_dir = map_calc_dir(&sd->bl, dst_x, dst_y);
+    sd->dir = sd->head_dir = map_calc_dir(sd, dst_x, dst_y);
 
-    dx = dst_x - sd->bl.bl_x;
-    dy = dst_y - sd->bl.bl_y;
+    dx = dst_x - sd->bl_x;
+    dy = dst_y - sd->bl_y;
 
-    moveblock = (sd->bl.bl_x / BLOCK_SIZE != dst_x / BLOCK_SIZE
-                 || sd->bl.bl_y / BLOCK_SIZE != dst_y / BLOCK_SIZE);
+    moveblock = (sd->bl_x / BLOCK_SIZE != dst_x / BLOCK_SIZE
+                 || sd->bl_y / BLOCK_SIZE != dst_y / BLOCK_SIZE);
 
     map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
-            sd->bl.bl_m, sd->bl.bl_x - AREA_SIZE, sd->bl.bl_y - AREA_SIZE,
-            sd->bl.bl_x + AREA_SIZE, sd->bl.bl_y + AREA_SIZE,
+            sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             dx, dy,
             BL::NUL);
 
     if (moveblock)
-        map_delblock(&sd->bl);
-    sd->bl.bl_x = dst_x;
-    sd->bl.bl_y = dst_y;
+        map_delblock(sd);
+    sd->bl_x = dst_x;
+    sd->bl_y = dst_y;
     if (moveblock)
-        map_addblock(&sd->bl);
+        map_addblock(sd);
 
     map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
-            sd->bl.bl_m, sd->bl.bl_x - AREA_SIZE, sd->bl.bl_y - AREA_SIZE,
-            sd->bl.bl_x + AREA_SIZE, sd->bl.bl_y + AREA_SIZE,
+            sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             -dx, -dy,
             BL::NUL);
 
@@ -2797,8 +2797,8 @@ int pc_movepos(struct map_session_data *sd, int dst_x, int dst_y)
         {
             int flag = 0;
             map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &flag),
-                    sd->bl.bl_m, sd->bl.bl_x - AREA_SIZE, sd->bl.bl_y - AREA_SIZE,
-                    sd->bl.bl_x + AREA_SIZE, sd->bl.bl_y + AREA_SIZE,
+                    sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+                    sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
                     -dx, -dy,
                     BL::PC);
             if (flag)
@@ -2858,7 +2858,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     if (sd == NULL)
         return;
 
-    if (sd->bl.bl_prev == NULL)
+    if (sd->bl_prev == NULL)
         return;
 
     bl = map_id2bl(sd->attacktarget);
@@ -2870,7 +2870,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
 
     // 同じmapでないなら攻撃しない
     // PCが死んでても攻撃しない
-    if (sd->bl.bl_m != bl->bl_m || pc_isdead(sd))
+    if (sd->bl_m != bl->bl_m || pc_isdead(sd))
         return;
 
     // 異常などで攻撃できない
@@ -2903,7 +2903,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     }
     else
     {
-        dist = distance(sd->bl.bl_x, sd->bl.bl_y, bl->bl_x, bl->bl_y);
+        dist = distance(sd->bl_x, sd->bl_y, bl->bl_x, bl->bl_y);
         range = sd->attackrange;
         if (sd->status.weapon != ItemLook::BOW)
             range++;
@@ -2914,7 +2914,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
             return;
         }
 
-        if (dist <= range && !battle_check_range(&sd->bl, bl, range))
+        if (dist <= range && !battle_check_range(sd, bl, range))
         {
             if (pc_can_reach(sd, bl->bl_x, bl->bl_y) && sd->canmove_tick < tick)
                 // TMW client doesn't support this
@@ -2925,7 +2925,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
         else
         {
             if (battle_config.pc_attack_direction_change)
-                sd->dir = sd->head_dir = map_calc_dir(&sd->bl, bl->bl_x, bl->bl_y);  // 向き設定
+                sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);  // 向き設定
 
             if (sd->walktimer)
                 pc_stop_walking(sd, 1);
@@ -2933,7 +2933,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
             {
                 MapBlockLock lock;
                 pc_stop_walking(sd, 0);
-                sd->attacktarget_lv = battle_weapon_attack(&sd->bl, bl, tick);
+                sd->attacktarget_lv = battle_weapon_attack(sd, bl, tick);
                 sd->attackabletime = tick + (sd->aspd * 2);
             }
             if (sd->attackabletime <= tick)
@@ -2945,7 +2945,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     {
         sd->attacktimer = Timer(sd->attackabletime,
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
-                    sd->bl.bl_id));
+                    sd->bl_id));
     }
 }
 
@@ -2970,7 +2970,7 @@ int pc_attack(struct map_session_data *sd, int target_id, int type)
         return 0;
     }
 
-    if (!battle_check_target(&sd->bl, bl, BCT_ENEMY))
+    if (!battle_check_target(sd, bl, BCT_ENEMY))
         return 1;
     if (sd->attacktimer)
         pc_stopattack(sd);
@@ -2982,12 +2982,12 @@ int pc_attack(struct map_session_data *sd, int target_id, int type)
     {                           // 攻撃delay中
         sd->attacktimer = Timer(sd->attackabletime,
                 std::bind(pc_attack_timer, ph::_1, ph::_2,
-                    sd->bl.bl_id));
+                    sd->bl_id));
     }
     else
     {
         // 本来timer関数なので引数を合わせる
-        pc_attack_timer(nullptr, gettick(), sd->bl.bl_id);
+        pc_attack_timer(nullptr, gettick(), sd->bl_id);
     }
 
     return 0;
@@ -3029,7 +3029,7 @@ int pc_checkbaselevelup(struct map_session_data *sd)
         pc_calcstatus(sd, 0);
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
 
-        clif_misceffect(&sd->bl, 0);
+        clif_misceffect(sd, 0);
         //レベルアップしたのでパーティー情報を更新する
         //(公平範囲チェック)
         party_send_movemap(sd);
@@ -3095,7 +3095,7 @@ int pc_checkjoblevelup(struct map_session_data *sd)
             && sd->status.job_level < sd->status.base_level * 2)
             sd->status.job_level++; // Make levelling up a little harder
 
-        clif_misceffect(&sd->bl, 1);
+        clif_misceffect(sd, 1);
         return 1;
     }
 
@@ -3107,10 +3107,10 @@ int pc_gainexp_reason(struct map_session_data *sd, int base_exp, int job_exp,
 {
     nullpo_ret(sd);
 
-    if (sd->bl.bl_prev == NULL || pc_isdead(sd))
+    if (sd->bl_prev == NULL || pc_isdead(sd))
         return 0;
 
-    if ((battle_config.pvp_exp == 0) && map[sd->bl.bl_m].flag.pvp) // [MouseJstr]
+    if ((battle_config.pvp_exp == 0) && map[sd->bl_m].flag.pvp) // [MouseJstr]
         return 0;               // no exp on pvp maps
 
     earray<const char *, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons //=
@@ -3536,7 +3536,7 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
     pc_stop_walking(sd, 3);
     // 演奏/ダンスの中断
     if (damage > sd->status.max_hp >> 2)
-        skill_stop_dancing(&sd->bl, 0);
+        skill_stop_dancing(sd, 0);
 
     sd->status.hp -= damage;
 
@@ -3570,10 +3570,10 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
     pc_setdead(sd);
 
     pc_stop_walking(sd, 0);
-    skill_castcancel(&sd->bl, 0);  // 詠唱の中止
-    clif_clearchar(&sd->bl, BeingRemoveWhy::DEAD);
+    skill_castcancel(sd, 0);  // 詠唱の中止
+    clif_clearchar(sd, BeingRemoveWhy::DEAD);
     pc_setglobalreg(sd, "PC_DIE_COUNTER", ++sd->die_counter);  //死にカウンター書き込み
-    skill_status_change_clear(&sd->bl, 0); // ステータス異常を解除する
+    skill_status_change_clear(sd, 0); // ステータス異常を解除する
     clif_updatestatus(sd, SP::HP);
     pc_calcstatus(sd, 0);
     // [Fate] Reset magic
@@ -3588,7 +3588,7 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {                           // changed penalty options, added death by player if pk_mode [Valaris]
-        if (!map[sd->bl.bl_m].flag.nopenalty)
+        if (!map[sd->bl_m].flag.nopenalty)
         {
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_base > 0)
@@ -3643,10 +3643,10 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
     }
 
     // pvp
-    if (map[sd->bl.bl_m].flag.pvp && !battle_config.pk_mode)
+    if (map[sd->bl_m].flag.pvp && !battle_config.pk_mode)
     {                           // disable certain pvp functions on pk_mode [Valaris]
         //ランキング計算
-        if (!map[sd->bl.bl_m].flag.pvp_nocalcrank)
+        if (!map[sd->bl_m].flag.pvp_nocalcrank)
         {
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
@@ -3672,13 +3672,13 @@ int pc_damage(struct block_list *src, struct map_session_data *sd,
         arg[0].name = "@killerrid";
         arg[0].v.i = src->bl_id;
         arg[1].name = "@victimrid";
-        arg[1].v.i = sd->bl.bl_id;
+        arg[1].v.i = sd->bl_id;
         arg[2].name = "@victimlvl";
         arg[2].v.i = sd->status.base_level;
-        npc_event_doall_l("OnPCKilledEvent", sd->bl.bl_id, 3, arg);
+        npc_event_doall_l("OnPCKilledEvent", sd->bl_id, 3, arg);
         npc_event_doall_l("OnPCKillEvent", src->bl_id, 3, arg);
     }
-    npc_event_doall_l("OnPCDieEvent", sd->bl.bl_id, 0, NULL);
+    npc_event_doall_l("OnPCDieEvent", sd->bl_id, 0, NULL);
 
     return 0;
 }
@@ -3804,7 +3804,7 @@ int pc_setparam(struct map_session_data *sd, SP type, int val)
                 clif_updatestatus(sd, SP::JOBEXP);
                 clif_updatestatus(sd, SP::SKILLPOINT);
                 pc_calcstatus(sd, 0);
-                clif_misceffect(&sd->bl, 1);
+                clif_misceffect(sd, 1);
             }
             else
             {
@@ -4157,7 +4157,7 @@ int pc_changelook(struct map_session_data *sd, LOOK type, int val)
         case LOOK::SHOES:
             break;
     }
-    clif_changelook(&sd->bl, type, val);
+    clif_changelook(sd, type, val);
 
     return 0;
 }
@@ -4171,7 +4171,7 @@ int pc_setoption(struct map_session_data *sd, Option type)
     nullpo_ret(sd);
 
     sd->status.option = type;
-    clif_changeoption(&sd->bl);
+    clif_changeoption(sd);
     pc_calcstatus(sd, 0);
 
     return 0;
@@ -4509,7 +4509,7 @@ int pc_addeventtimer(struct map_session_data *sd, interval_t tick, const char *n
         strzcpy(evname, name, 24);
         sd->eventtimer[i] = Timer(gettick() + tick,
                 std::bind(pc_eventtimer, ph::_1, ph::_2,
-                    sd->bl.bl_id, evname));
+                    sd->bl_id, evname));
         return 1;
     }
 
@@ -4541,15 +4541,15 @@ static
 int pc_signal_advanced_equipment_change(struct map_session_data *sd, int n)
 {
     if (bool(sd->status.inventory[n].equip & EPOS::SHOES))
-        clif_changelook(&sd->bl, LOOK::SHOES, 0);
+        clif_changelook(sd, LOOK::SHOES, 0);
     if (bool(sd->status.inventory[n].equip & EPOS::GLOVES))
-        clif_changelook(&sd->bl, LOOK::GLOVES, 0);
+        clif_changelook(sd, LOOK::GLOVES, 0);
     if (bool(sd->status.inventory[n].equip & EPOS::CAPE))
-        clif_changelook(&sd->bl, LOOK::CAPE, 0);
+        clif_changelook(sd, LOOK::CAPE, 0);
     if (bool(sd->status.inventory[n].equip & EPOS::MISC1))
-        clif_changelook(&sd->bl, LOOK::MISC1, 0);
+        clif_changelook(sd, LOOK::MISC1, 0);
     if (bool(sd->status.inventory[n].equip & EPOS::MISC2))
-        clif_changelook(&sd->bl, LOOK::MISC2, 0);
+        clif_changelook(sd, LOOK::MISC2, 0);
     return 0;
 }
 
@@ -4668,22 +4668,22 @@ int pc_equipitem(struct map_session_data *sd, int n, EPOS)
             sd->weapontype2 = ItemLook::NONE;
         }
         pc_calcweapontype(sd);
-        clif_changelook(&sd->bl, LOOK::SHIELD, sd->status.shield);
+        clif_changelook(sd, LOOK::SHIELD, sd->status.shield);
     }
     if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
     {
         sd->status.head_bottom = view_i;
-        clif_changelook(&sd->bl, LOOK::HEAD_BOTTOM, sd->status.head_bottom);
+        clif_changelook(sd, LOOK::HEAD_BOTTOM, sd->status.head_bottom);
     }
     if (bool(sd->status.inventory[n].equip & EPOS::HAT))
     {
         sd->status.head_top = view_i;
-        clif_changelook(&sd->bl, LOOK::HEAD_TOP, sd->status.head_top);
+        clif_changelook(sd, LOOK::HEAD_TOP, sd->status.head_top);
     }
     if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
     {
         sd->status.head_mid = view_i;
-        clif_changelook(&sd->bl, LOOK::HEAD_MID, sd->status.head_mid);
+        clif_changelook(sd, LOOK::HEAD_MID, sd->status.head_mid);
     }
     pc_signal_advanced_equipment_change(sd, n);
 
@@ -4725,30 +4725,30 @@ int pc_unequipitem(struct map_session_data *sd, int n, CalcStatus type)
             sd->status.shield = 0;
             sd->weapontype2 = ItemLook::NONE;
             pc_calcweapontype(sd);
-            clif_changelook(&sd->bl, LOOK::SHIELD, sd->status.shield);
+            clif_changelook(sd, LOOK::SHIELD, sd->status.shield);
         }
         if (bool(sd->status.inventory[n].equip & EPOS::LEGS))
         {
             sd->status.head_bottom = 0;
-            clif_changelook(&sd->bl, LOOK::HEAD_BOTTOM,
+            clif_changelook(sd, LOOK::HEAD_BOTTOM,
                              sd->status.head_bottom);
         }
         if (bool(sd->status.inventory[n].equip & EPOS::HAT))
         {
             sd->status.head_top = 0;
-            clif_changelook(&sd->bl, LOOK::HEAD_TOP, sd->status.head_top);
+            clif_changelook(sd, LOOK::HEAD_TOP, sd->status.head_top);
         }
         if (bool(sd->status.inventory[n].equip & EPOS::TORSO))
         {
             sd->status.head_mid = 0;
-            clif_changelook(&sd->bl, LOOK::HEAD_MID, sd->status.head_mid);
+            clif_changelook(sd, LOOK::HEAD_MID, sd->status.head_mid);
         }
         pc_signal_advanced_equipment_change(sd, n);
 
         if (sd->sc_data[StatusChange::SC_BROKNWEAPON].timer
             && bool(sd->status.inventory[n].equip & EPOS::WEAPON)
             && sd->status.inventory[n].broken == 1)
-            skill_status_change_end(&sd->bl, StatusChange::SC_BROKNWEAPON, nullptr);
+            skill_status_change_end(sd, StatusChange::SC_BROKNWEAPON, nullptr);
 
         clif_unequipitemack(sd, n, sd->status.inventory[n].equip, 1);
         sd->status.inventory[n].equip = EPOS::ZERO;
@@ -4805,7 +4805,7 @@ int pc_checkitem(struct map_session_data *sd)
         {
             if (battle_config.error_log)
                 PRINTF("illeagal item id %d in %d[%s] inventory.\n", id,
-                        sd->bl.bl_id, sd->status.name);
+                        sd->bl_id, sd->status.name);
             pc_delitem(sd, i, sd->status.inventory[i].amount, 3);
             continue;
         }
@@ -4832,7 +4832,7 @@ int pc_checkitem(struct map_session_data *sd)
         {
             if (battle_config.error_log)
                 PRINTF("illeagal item id %d in %d[%s] cart.\n", id,
-                        sd->bl.bl_id, sd->status.name);
+                        sd->bl_id, sd->status.name);
             pc_cart_delitem(sd, i, sd->status.cart[i].amount, 1);
             continue;
         }
@@ -4863,7 +4863,7 @@ int pc_checkitem(struct map_session_data *sd)
         }
         //装備制限チェック
         if (bool(sd->status.inventory[i].equip)
-            && map[sd->bl.bl_m].flag.pvp
+            && map[sd->bl_m].flag.pvp
             && (it->flag.no_equip == 1 || it->flag.no_equip == 3))
         {                       //PvP制限
             sd->status.inventory[i].equip = EPOS::ZERO;
@@ -4936,14 +4936,14 @@ int pc_calc_pvprank(struct map_session_data *sd)
     struct map_data *m;
 
     nullpo_ret(sd);
-    m = &map[sd->bl.bl_m];
+    m = &map[sd->bl_m];
     nullpo_ret(m);
 
     if (!(m->flag.pvp))
         return 0;
     sd->pvp_rank = 1;
     map_foreachinarea(std::bind(pc_calc_pvprank_sub, ph::_1, sd),
-            sd->bl.bl_m, 0, 0, m->xs, m->ys,
+            sd->bl_m, 0, 0, m->xs, m->ys,
             BL::PC);
     return sd->pvp_rank;
 }
@@ -5460,15 +5460,15 @@ void pc_invisibility(struct map_session_data *sd, int enabled)
 {
     if (enabled && !bool(sd->status.option & Option::INVISIBILITY))
     {
-        clif_clearchar(&sd->bl, BeingRemoveWhy::WARPED);
+        clif_clearchar(sd, BeingRemoveWhy::WARPED);
         sd->status.option |= Option::INVISIBILITY;
-        clif_status_change(&sd->bl, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 1);
+        clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 1);
     }
     else if (!enabled)
     {
         sd->status.option &= ~Option::INVISIBILITY;
-        clif_status_change(&sd->bl, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 0);
-        pc_setpos(sd, map[sd->bl.bl_m].name, sd->bl.bl_x, sd->bl.bl_y, BeingRemoveWhy::WARPED);
+        clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 0);
+        pc_setpos(sd, map[sd->bl_m].name, sd->bl_x, sd->bl_y, BeingRemoveWhy::WARPED);
     }
 }
 

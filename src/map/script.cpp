@@ -1619,8 +1619,8 @@ void builtin_isat(ScriptState *st)
         return;
 
     push_val(st->stack, ScriptCode::INT,
-              (x == sd->bl.bl_x)
-              && (y == sd->bl.bl_y) && (!strcmp(str, map[sd->bl.bl_m].name)));
+              (x == sd->bl_x)
+              && (y == sd->bl_y) && (!strcmp(str, map[sd->bl_m].name)));
 
 }
 
@@ -1641,7 +1641,7 @@ void builtin_warp(ScriptState *st)
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else if (strcmp(str, "SavePoint") == 0)
     {
-        if (map[sd->bl.bl_m].flag.noreturn)    // 蝶禁止
+        if (map[sd->bl_m].flag.noreturn)    // 蝶禁止
             return;
 
         pc_setpos(sd, sd->status.save_point.map,
@@ -1649,7 +1649,7 @@ void builtin_warp(ScriptState *st)
     }
     else if (strcmp(str, "Save") == 0)
     {
-        if (map[sd->bl.bl_m].flag.noreturn)    // 蝶禁止
+        if (map[sd->bl_m].flag.noreturn)    // 蝶禁止
             return;
 
         pc_setpos(sd, sd->status.save_point.map,
@@ -2138,7 +2138,7 @@ void builtin_getitem(ScriptState *st)
         {
             clif_additem(sd, 0, 0, flag);
             map_addflooritem(&item_tmp, amount,
-                    sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y,
+                    sd->bl_m, sd->bl_x, sd->bl_y,
                     NULL, NULL, NULL);
         }
     }
@@ -2179,7 +2179,7 @@ void builtin_makeitem(ScriptState *st)
     y = conv_num(st, &(st->stack->stack_data[st->start + 6]));
 
     if (sd && strcmp(mapname, "this") == 0)
-        m = sd->bl.bl_m;
+        m = sd->bl_m;
     else
         m = map_mapname2mapid(mapname);
 
@@ -2601,7 +2601,7 @@ void builtin_setopt2(ScriptState *st)
     if (new_opt2 == sd->opt2)
         return;
     sd->opt2 = new_opt2;
-    clif_changeoption(&sd->bl);
+    clif_changeoption(sd);
     pc_calcstatus(sd, 0);
 
 }
@@ -3129,7 +3129,7 @@ void builtin_getareadropitem_sub_anddelete(struct block_list *bl, int item, int 
     if (drop->item_data.nameid == item) {
         (*amount) += drop->item_data.amount;
         clif_clearflooritem(drop, 0);
-        map_delobject(drop->bl.bl_id, drop->bl.bl_type);
+        map_delobject(drop->bl_id, drop->bl_type);
     }
 }
 
@@ -3567,11 +3567,11 @@ void builtin_pvpon(ScriptState *st)
             map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
             if (pl_sd && pl_sd->state.auth)
             {
-                if (m == pl_sd->bl.bl_m && !pl_sd->pvp_timer)
+                if (m == pl_sd->bl_m && !pl_sd->pvp_timer)
                 {
                     pl_sd->pvp_timer = Timer(gettick() + std::chrono::milliseconds(200),
                             std::bind(pc_calc_pvprank_timer, ph::_1, ph::_2,
-                                pl_sd->bl.bl_id));
+                                pl_sd->bl_id));
                     pl_sd->pvp_rank = 0;
                     pl_sd->pvp_lastusers = 0;
                     pl_sd->pvp_point = 5;
@@ -3601,7 +3601,7 @@ void builtin_pvpoff(ScriptState *st)
             map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
             if (pl_sd && pl_sd->state.auth)
             {
-                if (m == pl_sd->bl.bl_m)
+                if (m == pl_sd->bl_m)
                 {
                     pl_sd->pvp_timer.cancel();
                 }
@@ -3933,7 +3933,7 @@ void builtin_misceffect(ScriptState *st)
     {
         struct map_session_data *sd = map_nick2sd(name);
         if (sd)
-            bl = &sd->bl;
+            bl = sd;
     }
     else if (id)
         bl = map_id2bl(id);
@@ -3943,7 +3943,7 @@ void builtin_misceffect(ScriptState *st)
     {
         struct map_session_data *sd = script_rid2sd(st);
         if (sd)
-            bl = &sd->bl;
+            bl = sd;
     }
 
     if (bl)
@@ -3978,7 +3978,7 @@ void builtin_specialeffect2(ScriptState *st)
     if (sd == NULL)
         return;
 
-    clif_specialeffect(&sd->bl,
+    clif_specialeffect(sd,
                         conv_num(st,
                                   &(st->stack->stack_data[st->start + 2])),
                         0);
@@ -4065,19 +4065,19 @@ void builtin_npcwarp(ScriptState *st)
     if (!nd)
         return;
 
-    short m = nd->bl.bl_m;
+    short m = nd->bl_m;
 
     /* Crude sanity checks. */
-    if (m < 0 || !nd->bl.bl_prev
+    if (m < 0 || !nd->bl_prev
             || x < 0 || x > map[m].xs -1
             || y < 0 || y > map[m].ys - 1)
         return;
 
     npc_enable(npc, 0);
-    map_delblock(&nd->bl); /* [Freeyorp] */
-    nd->bl.bl_x = x;
-    nd->bl.bl_y = y;
-    map_addblock(&nd->bl);
+    map_delblock(nd); /* [Freeyorp] */
+    nd->bl_x = x;
+    nd->bl_y = y;
+    map_addblock(nd);
     npc_enable(npc, 1);
 
 }
@@ -4120,7 +4120,7 @@ void builtin_npctalk(ScriptState *st)
         memcpy(message, nd->name, 24);
         strcat(message, " : ");
         strcat(message, str);
-        clif_message(&nd->bl, message);
+        clif_message(nd, message);
     }
 
 }
@@ -4253,9 +4253,9 @@ void builtin_isin(ScriptState *st)
         return;
 
     push_val(st->stack, ScriptCode::INT,
-              (sd->bl.bl_x >= x1 && sd->bl.bl_x <= x2)
-              && (sd->bl.bl_y >= y1 && sd->bl.bl_y <= y2)
-              && (!strcmp(str, map[sd->bl.bl_m].name)));
+              (sd->bl_x >= x1 && sd->bl_x <= x2)
+              && (sd->bl_y >= y1 && sd->bl_y <= y2)
+              && (!strcmp(str, map[sd->bl_m].name)));
 
 }
 
@@ -4274,7 +4274,7 @@ void builtin_shop(ScriptState *st)
         return;
 
     builtin_close(st);
-    clif_npcbuysell(sd, nd->bl.bl_id);
+    clif_npcbuysell(sd, nd->bl_id);
 }
 
 /*==========================================
@@ -4320,7 +4320,7 @@ void builtin_getx(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
 
-    push_val(st->stack, ScriptCode::INT, sd->bl.bl_x);
+    push_val(st->stack, ScriptCode::INT, sd->bl_x);
 }
 
 /*============================
@@ -4332,7 +4332,7 @@ void builtin_gety(ScriptState *st)
 {
     struct map_session_data *sd = script_rid2sd(st);
 
-    push_val(st->stack, ScriptCode::INT, sd->bl.bl_y);
+    push_val(st->stack, ScriptCode::INT, sd->bl_y);
 }
 
 /*
@@ -4344,7 +4344,7 @@ void builtin_getmap(ScriptState *st)
     struct map_session_data *sd = script_rid2sd(st);
 
     // A map_data lives essentially forever.
-    push_str(st->stack, ScriptCode::CONSTSTR, map[sd->bl.bl_m].name);
+    push_str(st->stack, ScriptCode::CONSTSTR, map[sd->bl_m].name);
 }
 
 //

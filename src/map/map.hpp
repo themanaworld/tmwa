@@ -41,6 +41,9 @@ struct block_list
     int bl_id;
     short bl_m, bl_x, bl_y;
     BL bl_type;
+
+#warning "This is important!"
+    // virtual ~block_list() {}
 };
 
 struct walkpath_data
@@ -78,9 +81,8 @@ struct quick_regeneration
     unsigned char tickdelay;    // number of ticks to next update
 };
 
-struct map_session_data : SessionData
+struct map_session_data : block_list, SessionData
 {
-    struct block_list bl;
     struct
     {
         unsigned auth:1;
@@ -277,9 +279,8 @@ struct npc_item_list
 {
     int nameid, value;
 };
-struct npc_data
+struct npc_data : block_list
 {
-    struct block_list bl;
     NpcSubtype npc_subtype;
     short n;
     short npc_class;
@@ -327,9 +328,8 @@ struct npc_data
 constexpr int MOB_XP_BONUS_BASE = 1024;
 constexpr int MOB_XP_BONUS_SHIFT = 10;
 
-struct mob_data
+struct mob_data : block_list
 {
-    struct block_list bl;
     short n;
     short mob_class;
     DIR dir;
@@ -466,9 +466,8 @@ MapCell read_gat(int m, int x, int y)
     return read_gatp(&map[m], x, y);
 }
 
-struct flooritem_data
+struct flooritem_data : block_list
 {
-    struct block_list bl;
     short subx, suby;
     Timer cleartimer;
     int first_get_id, second_get_id, third_get_id;
@@ -535,7 +534,7 @@ void map_log(const_string line);
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %d:%d,%d " fmt,   \
-            sd->status.char_id, sd->bl.bl_m, sd->bl.bl_x, sd->bl.bl_y, ## __VA_ARGS__)
+            sd->status.char_id, sd->bl_m, sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);
