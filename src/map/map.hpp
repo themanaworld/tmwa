@@ -35,15 +35,35 @@ constexpr int MAX_DROP_PER_MAP = 48;
 
 constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = std::chrono::minutes(1);
 
+struct map_session_data;
+struct npc_data;
+struct mob_data;
+struct flooritem_data;
+struct invocation;
+
 struct block_list
 {
-    struct block_list *bl_next, *bl_prev;
+    dumb_ptr<block_list> bl_next, bl_prev;
     int bl_id;
     short bl_m, bl_x, bl_y;
     BL bl_type;
 
-#warning "This is important!"
-    // virtual ~block_list() {}
+    // This deletes the copy-ctor also
+    // TODO give proper ctors.
+    block_list& operator = (block_list&&) = delete;
+    virtual ~block_list() {}
+
+    dumb_ptr<map_session_data> as_player();
+    dumb_ptr<npc_data> as_npc();
+    dumb_ptr<mob_data> as_mob();
+    dumb_ptr<flooritem_data> as_item();
+    dumb_ptr<invocation> as_spell();
+
+    dumb_ptr<map_session_data> is_player();
+    dumb_ptr<npc_data> is_npc();
+    dumb_ptr<mob_data> is_mob();
+    dumb_ptr<flooritem_data> is_item();
+    dumb_ptr<invocation> is_spell();
 };
 
 struct walkpath_data
@@ -155,7 +175,7 @@ struct map_session_data : block_list, SessionData
     int followtarget;
 
     tick_t cast_tick;     // [Fate] Next tick at which spellcasting is allowed
-    struct invocation *active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
+    dumb_ptr<invocation> active_spells;   // [Fate] Singly-linked list of active spells linked to this PC
     int attack_spell_override; // [Fate] When an attack spell is active for this player, they trigger it
     // like a weapon.  Check pc_attack_timer() for details.
     // Weapon equipment slot (slot 4) item override
@@ -279,6 +299,11 @@ struct npc_item_list
 {
     int nameid, value;
 };
+
+class npc_data_script;
+class npc_data_shop;
+class npc_data_warp;
+class npc_data_message;
 struct npc_data : block_list
 {
     NpcSubtype npc_subtype;
@@ -288,41 +313,66 @@ struct npc_data : block_list
     interval_t speed;
     char name[24];
     char exname[24];
-    int chat_id;
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
     Option option;
     short flag;
-    union
-    {
-        struct
-        {
-            const ScriptCode *script;
-            short xs, ys;
-            interval_t timer;
-            Timer timerid;
-            int timeramount, nexttimer;
-            tick_t timertick;
-            struct npc_timerevent_list *timer_event;
-            int label_list_num;
-            struct npc_label_list *label_list;
-            int src_id;
-        } scr;
-        struct npc_item_list shop_item[1];
-        struct
-        {
-            short xs, ys;
-            short x, y;
-            char name[16];
-        } warp;
-        char *message;          // for NpcSubtype::MESSAGE: only send this message
-    } u;
-    // ここにメンバを追加してはならない(shop_itemが可変長の為)
 
     char eventqueue[MAX_EVENTQUEUE][50];
     Timer eventtimer[MAX_EVENTTIMER];
     short arenaflag;
+
+    dumb_ptr<npc_data_script> as_script();
+    dumb_ptr<npc_data_shop> as_shop();
+    dumb_ptr<npc_data_warp> as_warp();
+    dumb_ptr<npc_data_message> as_message();
+
+    dumb_ptr<npc_data_script> is_script();
+    dumb_ptr<npc_data_shop> is_shop();
+    dumb_ptr<npc_data_warp> is_warp();
+    dumb_ptr<npc_data_message> is_message();
+};
+
+class npc_data_script : public npc_data
+{
+public:
+    struct
+    {
+        const ScriptCode *script;
+        short xs, ys;
+        interval_t timer;
+        Timer timerid;
+        int timeramount, nexttimer;
+        tick_t timertick;
+        struct npc_timerevent_list *timer_event;
+        int label_list_num;
+        struct npc_label_list *label_list;
+        int src_id;
+    } scr;
+};
+
+class npc_data_shop : public npc_data
+{
+public:
+    std::vector<npc_item_list> shop_items;
+};
+
+class npc_data_warp : public npc_data
+{
+public:
+    struct
+    {
+        short xs, ys;
+        short x, y;
+        char name[16];
+    } warp;
+};
+
+class npc_data_message : public npc_data
+{
+public:
+    char *message;
 };
 
 constexpr int MOB_XP_BONUS_BASE = 1024;
@@ -400,8 +450,8 @@ struct map_data
     char alias[24];             // [MouseJstr]
     // if NULL, actually a map_data_other_server
     std::unique_ptr<MapCell[]> gat;
-    struct block_list **block;
-    struct block_list **block_mob;
+    dumb_ptr<block_list> *block;
+    dumb_ptr<block_list> *block_mob;
     int *block_count, *block_mob_count;
     int m;
     short xs, ys;
@@ -436,7 +486,7 @@ struct map_data
         unsigned town:1;        // [remoitnane]
     } flag;
     struct point save;
-    struct npc_data *npc[MAX_NPC_PER_MAP];
+    dumb_ptr<npc_data> npc[MAX_NPC_PER_MAP];
     struct
     {
         int drop_id;
@@ -496,21 +546,21 @@ public:
     ~MapBlockLock();
 
     static
-    void freeblock(struct block_list *);
+    void freeblock(dumb_ptr<block_list>);
 };
 
-int map_addblock(struct block_list *);
-int map_delblock(struct block_list *);
-void map_foreachinarea(std::function<void(struct block_list *)>,
+int map_addblock(dumb_ptr<block_list>);
+int map_delblock(dumb_ptr<block_list>);
+void map_foreachinarea(std::function<void(dumb_ptr<block_list>)>,
         int,
         int, int, int, int,
         BL);
 // -- moonsoul (added map_foreachincell)
-void map_foreachincell(std::function<void(struct block_list *)>,
+void map_foreachincell(std::function<void(dumb_ptr<block_list>)>,
         int,
         int, int,
         BL);
-void map_foreachinmovearea(std::function<void(struct block_list *)>,
+void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)>,
         int,
         int, int, int, int,
         int, int,
@@ -518,15 +568,15 @@ void map_foreachinmovearea(std::function<void(struct block_list *)>,
 //block関連に追加
 int map_count_oncell(int m, int x, int y);
 // 一時的object関連
-int map_addobject(struct block_list *);
+int map_addobject(dumb_ptr<block_list>);
 int map_delobject(int, BL type);
 int map_delobjectnofree(int id, BL type);
-void map_foreachobject(std::function<void(struct block_list *)>,
+void map_foreachobject(std::function<void(dumb_ptr<block_list>)>,
         BL);
 //
-void map_quit(struct map_session_data *);
+void map_quit(dumb_ptr<map_session_data>);
 // npc
-int map_addnpc(int, struct npc_data *);
+int map_addnpc(int, dumb_ptr<npc_data>);
 
 void map_log(const_string line);
 #define MAP_LOG(format, ...) \
@@ -544,36 +594,100 @@ void map_clearflooritem(int id)
     map_clearflooritem_timer(nullptr, tick_t(), id);
 }
 int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
-        struct map_session_data **owners, interval_t *owner_protection,
+        dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal);
 int map_addflooritem(struct item *, int, int, int, int,
-        struct map_session_data *, struct map_session_data *,
-        struct map_session_data *);
+        dumb_ptr<map_session_data>, dumb_ptr<map_session_data>,
+        dumb_ptr<map_session_data>);
 
 // キャラid＝＞キャラ名 変換関連
 extern
-DMap<int, struct block_list *> id_db;
+DMap<int, dumb_ptr<block_list>> id_db;
 void map_addchariddb(int charid, const char *name);
 char *map_charid2nick(int);
 
-struct map_session_data *map_id2sd(int);
-struct block_list *map_id2bl(int);
+dumb_ptr<map_session_data> map_id2sd(int);
+dumb_ptr<block_list> map_id2bl(int);
+
+inline
+dumb_ptr<map_session_data> map_id_as_player(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->as_player() : nullptr;
+}
+inline
+dumb_ptr<npc_data> map_id_as_npc(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->as_npc() : nullptr;
+}
+inline
+dumb_ptr<mob_data> map_id_as_mob(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->as_mob() : nullptr;
+}
+inline
+dumb_ptr<flooritem_data> map_id_as_item(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->as_item() : nullptr;
+}
+inline
+dumb_ptr<invocation> map_id_as_spell(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->as_spell() : nullptr;
+}
+
+inline
+dumb_ptr<map_session_data> map_id_is_player(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->is_player() : nullptr;
+}
+inline
+dumb_ptr<npc_data> map_id_is_npc(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->is_npc() : nullptr;
+}
+inline
+dumb_ptr<mob_data> map_id_is_mob(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->is_mob() : nullptr;
+}
+inline
+dumb_ptr<flooritem_data> map_id_is_item(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->is_item() : nullptr;
+}
+inline
+dumb_ptr<invocation> map_id_is_spell(int id)
+{
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    return bl ? bl->is_spell() : nullptr;
+}
+
+
 int map_mapname2mapid(const char *);
 int map_mapname2ipport(const char *, struct in_addr *, int *);
 int map_setipport(const char *name, struct in_addr ip, int port);
-void map_addiddb(struct block_list *);
-void map_deliddb(struct block_list *bl);
-void map_addnickdb(struct map_session_data *);
-int map_scriptcont(struct map_session_data *sd, int id);  /* Continues a script either on a spell or on an NPC */
-struct map_session_data *map_nick2sd(const char *);
+void map_addiddb(dumb_ptr<block_list>);
+void map_deliddb(dumb_ptr<block_list> bl);
+void map_addnickdb(dumb_ptr<map_session_data>);
+int map_scriptcont(dumb_ptr<map_session_data> sd, int id);  /* Continues a script either on a spell or on an NPC */
+dumb_ptr<map_session_data> map_nick2sd(const char *);
 int compare_item(struct item *a, struct item *b);
 
-struct map_session_data *map_get_first_session(void);
-struct map_session_data *map_get_last_session(void);
-struct map_session_data *map_get_next_session(
-        struct map_session_data *current);
-struct map_session_data *map_get_prev_session(
-        struct map_session_data *current);
+dumb_ptr<map_session_data> map_get_first_session(void);
+dumb_ptr<map_session_data> map_get_last_session(void);
+dumb_ptr<map_session_data> map_get_next_session(
+        dumb_ptr<map_session_data> current);
+dumb_ptr<map_session_data> map_get_prev_session(
+        dumb_ptr<map_session_data> current);
 
 // gat関連
 MapCell map_getcell(int, int, int);
@@ -581,11 +695,35 @@ void map_setcell(int, int, int, MapCell);
 
 // その他
 bool map_check_dir(DIR s_dir, DIR t_dir);
-DIR map_calc_dir(struct block_list *src, int x, int y);
+DIR map_calc_dir(dumb_ptr<block_list> src, int x, int y);
 
 // path.cより
 int path_search(struct walkpath_data *, int, int, int, int, int, int);
 
 std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+
+inline dumb_ptr<map_session_data> block_list::as_player() { return dumb_ptr<map_session_data>(static_cast<map_session_data *>(this)) ; }
+inline dumb_ptr<npc_data> block_list::as_npc() { return dumb_ptr<npc_data>(static_cast<npc_data *>(this)) ; }
+inline dumb_ptr<mob_data> block_list::as_mob() { return dumb_ptr<mob_data>(static_cast<mob_data *>(this)) ; }
+inline dumb_ptr<flooritem_data> block_list::as_item() { return dumb_ptr<flooritem_data>(static_cast<flooritem_data *>(this)) ; }
+//inline dumb_ptr<invocation> block_list::as_spell() { return dumb_ptr<invocation>(static_cast<invocation *>(this)) ; }
+
+inline dumb_ptr<map_session_data> block_list::is_player() { return bl_type == BL::PC ? as_player() : nullptr; }
+inline dumb_ptr<npc_data> block_list::is_npc() { return bl_type == BL::NPC ? as_npc() : nullptr; }
+inline dumb_ptr<mob_data> block_list::is_mob() { return bl_type == BL::MOB ? as_mob() : nullptr; }
+inline dumb_ptr<flooritem_data> block_list::is_item() { return bl_type == BL::ITEM ? as_item() : nullptr; }
+//inline dumb_ptr<invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
+
+// struct invocation is defined in another header
+
+inline dumb_ptr<npc_data_script> npc_data::as_script() { return dumb_ptr<npc_data_script>(static_cast<npc_data_script *>(this)) ; }
+inline dumb_ptr<npc_data_shop> npc_data::as_shop() { return dumb_ptr<npc_data_shop>(static_cast<npc_data_shop *>(this)) ; }
+inline dumb_ptr<npc_data_warp> npc_data::as_warp() { return dumb_ptr<npc_data_warp>(static_cast<npc_data_warp *>(this)) ; }
+inline dumb_ptr<npc_data_message> npc_data::as_message() { return dumb_ptr<npc_data_message>(static_cast<npc_data_message *>(this)) ; }
+
+inline dumb_ptr<npc_data_script> npc_data::is_script() { return npc_subtype == NpcSubtype::SCRIPT ? as_script() : nullptr ; }
+inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSubtype::SHOP ? as_shop() : nullptr ; }
+inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
+inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
 
 #endif // MAP_HPP

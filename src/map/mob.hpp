@@ -58,19 +58,19 @@ extern struct mob_db mob_db[];
 
 int mobdb_searchname(const char *str);
 int mobdb_checkid(const int id);
-int mob_once_spawn(struct map_session_data *sd,
+int mob_once_spawn(dumb_ptr<map_session_data> sd,
         const char *mapname, int x, int y,
         const char *mobname, int class_, int amount, const char *event);
-int mob_once_spawn_area(struct map_session_data *sd,
+int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
         const char *mapname, int x0, int y0, int x1, int y1,
         const char *mobname, int class_, int amount, const char *event);
 
-int mob_target(struct mob_data *md, struct block_list *bl, int dist);
-int mob_stop_walking(struct mob_data *md, int type);
-int mob_stopattack(struct mob_data *);
+int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist);
+int mob_stop_walking(dumb_ptr<mob_data> md, int type);
+int mob_stopattack(dumb_ptr<mob_data>);
 int mob_spawn(int);
-int mob_damage(struct block_list *, struct mob_data *, int, int);
-int mob_heal(struct mob_data *, int);
+int mob_damage(dumb_ptr<block_list>, dumb_ptr<mob_data>, int, int);
+int mob_heal(dumb_ptr<mob_data>, int);
 int mob_get_sex(int);
 short mob_get_hair(int);
 short mob_get_hair_color(int);
@@ -83,22 +83,22 @@ short mob_get_clothes_color(int);  //player mob dye [Valaris]
 int mob_get_equip(int);       // mob equip [Valaris]
 int do_init_mob(void);
 
-int mob_delete(struct mob_data *md);
-int mob_catch_delete(struct mob_data *md, BeingRemoveWhy type);
+int mob_delete(dumb_ptr<mob_data> md);
+int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type);
 void mob_timer_delete(TimerData *, tick_t, int);
 
-int mob_deleteslave(struct mob_data *md);
+int mob_deleteslave(dumb_ptr<mob_data> md);
 
-int mob_counttargeted(struct mob_data *md, struct block_list *src,
+int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
         ATK target_lv);
 
-int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type);
+int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type);
 
-int mobskill_use(struct mob_data *md, tick_t tick, MobSkillCondition event);
-int mobskill_event(struct mob_data *md, BF flag);
+int mobskill_use(dumb_ptr<mob_data> md, tick_t tick, MobSkillCondition event);
+int mobskill_event(dumb_ptr<mob_data> md, BF flag);
 void mobskill_castend_id(TimerData *tid, tick_t tick, int id);
 void mobskill_castend_pos(TimerData *tid, tick_t tick, int id);
-int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag);
+int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);
 

@@ -27,6 +27,7 @@
 #include "grfio.hpp"
 #include "itemdb.hpp"
 #include "magic.hpp"
+#include "magic-interpreter.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
@@ -38,13 +39,13 @@
 
 #include "../poison.hpp"
 
-DMap<int, struct block_list *> id_db;
+DMap<int, dumb_ptr<block_list>> id_db;
 
 static
 DMap<std::string, struct map_data *> map_db;
 
 static
-DMap<std::string, struct map_session_data *> nick_db;
+DMap<std::string, dumb_ptr<map_session_data>> nick_db;
 
 struct charid2nick
 {
@@ -58,7 +59,7 @@ Map<int, struct charid2nick> charid_db;
 static
 int users = 0;
 static
-struct block_list *object[MAX_FLOORITEM];
+dumb_ptr<block_list> object[MAX_FLOORITEM];
 static
 int first_free_object_id = 0, last_object_id = 0;
 
@@ -106,12 +107,12 @@ int map_getusers(void)
 static
 int block_free_lock = 0;
 static
-std::vector<struct block_list *> block_free;
+std::vector<dumb_ptr<block_list>> block_free;
 
-void MapBlockLock::freeblock(struct block_list *bl)
+void MapBlockLock::freeblock(dumb_ptr<block_list> bl)
 {
     if (block_free_lock == 0)
-        free(bl);
+        bl.delete_();
     else
         block_free.push_back(bl);
 }
@@ -126,8 +127,8 @@ MapBlockLock::~MapBlockLock()
     assert (block_free_lock > 0);
     if ((--block_free_lock) == 0)
     {
-        for (struct block_list *bl : block_free)
-            free(bl);
+        for (dumb_ptr<block_list> bl : block_free)
+            bl.delete_();
         block_free.clear();
     }
 }
@@ -145,13 +146,13 @@ struct block_list bl_head;
  * 既にlink済みかの確認が無い。危険かも
  *------------------------------------------
  */
-int map_addblock(struct block_list *bl)
+int map_addblock(dumb_ptr<block_list> bl)
 {
     int m, x, y;
 
     nullpo_ret(bl);
 
-    if (bl->bl_prev != NULL)
+    if (bl->bl_prev)
     {
         if (battle_config.error_log)
             PRINTF("map_addblock error : bl->bl_prev!=NULL\n");
@@ -169,7 +170,7 @@ int map_addblock(struct block_list *bl)
     {
         bl->bl_next =
             map[m].block_mob[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs];
-        bl->bl_prev = &bl_head;
+        bl->bl_prev = dumb_ptr<block_list>(&bl_head);
         if (bl->bl_next)
             bl->bl_next->bl_prev = bl;
         map[m].block_mob[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs] = bl;
@@ -180,7 +181,7 @@ int map_addblock(struct block_list *bl)
     {
         bl->bl_next =
             map[m].block[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs];
-        bl->bl_prev = &bl_head;
+        bl->bl_prev = dumb_ptr<block_list>(&bl_head);
         if (bl->bl_next)
             bl->bl_next->bl_prev = bl;
         map[m].block[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs] = bl;
@@ -197,15 +198,15 @@ int map_addblock(struct block_list *bl)
  * prevがNULLの場合listに繋がってない
  *------------------------------------------
  */
-int map_delblock(struct block_list *bl)
+int map_delblock(dumb_ptr<block_list> bl)
 {
     int b;
     nullpo_ret(bl);
 
     // 既にblocklistから抜けている
-    if (bl->bl_prev == NULL)
+    if (!bl->bl_prev)
     {
-        if (bl->bl_next != NULL)
+        if (bl->bl_next)
         {
             // prevがNULLでnextがNULLでないのは有ってはならない
             if (battle_config.error_log)
@@ -221,7 +222,7 @@ int map_delblock(struct block_list *bl)
 
     if (bl->bl_next)
         bl->bl_next->bl_prev = bl->bl_prev;
-    if (bl->bl_prev == &bl_head)
+    if (bl->bl_prev == dumb_ptr<block_list>(&bl_head))
     {
         // リストの頭なので、map[]のblock_listを更新する
         if (bl->bl_type == BL::MOB)
@@ -254,7 +255,7 @@ int map_delblock(struct block_list *bl)
 int map_count_oncell(int m, int x, int y)
 {
     int bx, by;
-    struct block_list *bl = NULL;
+    dumb_ptr<block_list> bl = NULL;
     int i, c;
     int count = 0;
 
@@ -288,12 +289,12 @@ int map_count_oncell(int m, int x, int y)
  * type!=0 ならその種類のみ
  *------------------------------------------
  */
-void map_foreachinarea(std::function<void(struct block_list *)> func,
+void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
         int m,
         int x0, int y0, int x1, int y1,
         BL type)
 {
-    std::vector<struct block_list *> bl_list;
+    std::vector<dumb_ptr<block_list>> bl_list;
 
     if (m < 0)
         return;
@@ -310,7 +311,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+                dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
                 int c = map[m].block_count[bx + by * map[m].bxs];
                 for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
                 {
@@ -329,7 +330,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                struct block_list *bl = map[m].block_mob[bx + by * map[m].bxs];
+                dumb_ptr<block_list> bl = map[m].block_mob[bx + by * map[m].bxs];
                 int c = map[m].block_mob_count[bx + by * map[m].bxs];
                 for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
                 {
@@ -344,7 +345,7 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
 
     MapBlockLock lock;
 
-    for (struct block_list *bl : bl_list)
+    for (dumb_ptr<block_list> bl : bl_list)
         if (bl->bl_prev)
             func(bl);
 }
@@ -357,13 +358,13 @@ void map_foreachinarea(std::function<void(struct block_list *)> func,
  * dx,dyは-1,0,1のみとする（どんな値でもいいっぽい？）
  *------------------------------------------
  */
-void map_foreachinmovearea(std::function<void(struct block_list *)> func,
+void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
         int m,
         int x0, int y0, int x1, int y1,
         int dx, int dy,
         BL type)
 {
-    std::vector<struct block_list *> bl_list;
+    std::vector<dumb_ptr<block_list>> bl_list;
     // Note: the x0, y0, x1, y1 are bl.bl_x, bl.bl_y ± AREA_SIZE,
     // but only a small subset actually needs to be done.
     if (dx == 0 || dy == 0)
@@ -396,7 +397,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+                dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
                 int c = map[m].block_count[bx + by * map[m].bxs];
                 for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
                 {
@@ -439,7 +440,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+                dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
                 int c = map[m].block_count[bx + by * map[m].bxs];
                 for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
                 {
@@ -478,7 +479,7 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
 
     MapBlockLock lock;
 
-    for (struct block_list *bl : bl_list)
+    for (dumb_ptr<block_list> bl : bl_list)
         if (bl->bl_prev)
             func(bl);
 }
@@ -487,18 +488,18 @@ void map_foreachinmovearea(std::function<void(struct block_list *)> func,
 //           which only checks the exact single x/y passed to it rather than an
 //           area radius - may be more useful in some instances)
 //
-void map_foreachincell(std::function<void(struct block_list *)> func,
+void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
         int m,
         int x, int y,
         BL type)
 {
-    std::vector<struct block_list *> bl_list;
+    std::vector<dumb_ptr<block_list>> bl_list;
     int by = y / BLOCK_SIZE;
     int bx = x / BLOCK_SIZE;
 
     if (type == BL::NUL || type != BL::MOB)
     {
-        struct block_list *bl = map[m].block[bx + by * map[m].bxs];
+        dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
         int c = map[m].block_count[bx + by * map[m].bxs];
         for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
         {
@@ -513,7 +514,7 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
 
     if (type == BL::NUL || type == BL::MOB)
     {
-        struct block_list *bl = map[m].block_mob[bx + by * map[m].bxs];
+        dumb_ptr<block_list> bl = map[m].block_mob[bx + by * map[m].bxs];
         int c = map[m].block_mob_count[bx + by * map[m].bxs];
         for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
         {
@@ -526,7 +527,7 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
 
     MapBlockLock lock;
 
-    for (struct block_list *bl : bl_list)
+    for (dumb_ptr<block_list> bl : bl_list)
         if (bl->bl_prev)
             func(bl);
 }
@@ -538,10 +539,10 @@ void map_foreachincell(std::function<void(struct block_list *)> func,
  * bl->bl_idもこの中で設定して問題無い?
  *------------------------------------------
  */
-int map_addobject(struct block_list *bl)
+int map_addobject(dumb_ptr<block_list> bl)
 {
     int i;
-    if (bl == NULL)
+    if (!bl)
     {
         PRINTF("map_addobject nullpo?\n");
         return 0;
@@ -549,7 +550,7 @@ int map_addobject(struct block_list *bl)
     if (first_free_object_id < 2 || first_free_object_id >= MAX_FLOORITEM)
         first_free_object_id = 2;
     for (i = first_free_object_id; i < MAX_FLOORITEM; i++)
-        if (object[i] == NULL)
+        if (!object[i])
             break;
     if (i >= MAX_FLOORITEM)
     {
@@ -572,7 +573,7 @@ int map_addobject(struct block_list *bl)
  */
 int map_delobjectnofree(int id, BL type)
 {
-    if (object[id] == NULL)
+    if (!object[id])
         return 0;
 
     if (object[id]->bl_type != type)
@@ -584,9 +585,9 @@ int map_delobjectnofree(int id, BL type)
     }
 
     map_delblock(object[id]);
-    id_db.put(id, nullptr);
+    id_db.put(id, dumb_ptr<block_list>());
 //  map_freeblock(object[id]);
-    object[id] = NULL;
+    object[id] = nullptr;
 
     if (first_free_object_id > id)
         first_free_object_id = id;
@@ -607,14 +608,14 @@ int map_delobjectnofree(int id, BL type)
  */
 int map_delobject(int id, BL type)
 {
-    struct block_list *obj = object[id];
+    dumb_ptr<block_list> obj = object[id];
 
     if (obj == NULL)
         return 0;
 
     map_delobjectnofree(id, type);
     if (obj->bl_type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
-        pc_cleanup((struct map_session_data *) obj);
+        pc_cleanup(obj->as_player());
 
     MapBlockLock::freeblock(obj);
 
@@ -626,10 +627,10 @@ int map_delobject(int id, BL type)
  *
  *------------------------------------------
  */
-void map_foreachobject(std::function<void(struct block_list *)> func,
+void map_foreachobject(std::function<void(dumb_ptr<block_list>)> func,
         BL type)
 {
-    std::vector<struct block_list *> bl_list;
+    std::vector<dumb_ptr<block_list>> bl_list;
     for (int i = 2; i <= last_object_id; i++)
     {
         if (!object[i])
@@ -643,7 +644,7 @@ void map_foreachobject(std::function<void(struct block_list *)> func,
 
     MapBlockLock lock;
 
-    for (struct block_list *bl : bl_list)
+    for (dumb_ptr<block_list> bl : bl_list)
         if (bl->bl_prev || bl->bl_next)
             func(bl);
 }
@@ -660,15 +661,9 @@ void map_foreachobject(std::function<void(struct block_list *)> func,
  */
 void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
 {
-    struct flooritem_data *fitem = NULL;
-
-    fitem = (struct flooritem_data *) object[id];
-    if (fitem == NULL || fitem->bl_type != BL::ITEM)
-    {
-        if (battle_config.error_log)
-            PRINTF("map_clearflooritem_timer : error\n");
-        return;
-    }
+    dumb_ptr<block_list> obj = object[id];
+    assert (obj && obj->bl_type == BL::ITEM);
+    dumb_ptr<flooritem_data> fitem = obj->as_item();
     if (!tid)
         fitem->cleartimer.cancel();
     clif_clearflooritem(fitem, 0);
@@ -703,17 +698,17 @@ std::pair<uint16_t, uint16_t> map_searchrandfreecell(int m, int x, int y, int ra
  */
 int map_addflooritem_any(struct item *item_data, int amount,
         int m, int x, int y,
-        struct map_session_data **owners, interval_t *owner_protection,
+        dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
 {
-    struct flooritem_data *fitem = NULL;
+    dumb_ptr<flooritem_data> fitem = NULL;
 
     nullpo_ret(item_data);
     auto xy = map_searchrandfreecell(m, x, y, dispersal);
     if (xy.first == 0 && xy.second == 0)
         return 0;
 
-    CREATE(fitem, struct flooritem_data, 1);
+    fitem.new_();
     fitem->bl_type = BL::ITEM;
     fitem->bl_prev = fitem->bl_next = NULL;
     fitem->bl_m = m;
@@ -729,7 +724,7 @@ int map_addflooritem_any(struct item *item_data, int amount,
     fitem->bl_id = map_addobject(fitem);
     if (fitem->bl_id == 0)
     {
-        free(fitem);
+        fitem.delete_();
         return 0;
     }
 
@@ -768,11 +763,11 @@ int map_addflooritem_any(struct item *item_data, int amount,
 
 int map_addflooritem(struct item *item_data, int amount,
         int m, int x, int y,
-        struct map_session_data *first_sd,
-        struct map_session_data *second_sd,
-        struct map_session_data *third_sd)
+        dumb_ptr<map_session_data> first_sd,
+        dumb_ptr<map_session_data> second_sd,
+        dumb_ptr<map_session_data> third_sd)
 {
-    struct map_session_data *owners[3] = { first_sd, second_sd, third_sd };
+    dumb_ptr<map_session_data> owners[3] = { first_sd, second_sd, third_sd };
     interval_t owner_protection[3];
 
     {
@@ -804,7 +799,7 @@ void map_addchariddb(int charid, const char *name)
  * id_dbへblを追加
  *------------------------------------------
  */
-void map_addiddb(struct block_list *bl)
+void map_addiddb(dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
 
@@ -815,7 +810,7 @@ void map_addiddb(struct block_list *bl)
  * id_dbからblを削除
  *------------------------------------------
  */
-void map_deliddb(struct block_list *bl)
+void map_deliddb(dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
 
@@ -826,7 +821,7 @@ void map_deliddb(struct block_list *bl)
  * nick_dbへsdを追加
  *------------------------------------------
  */
-void map_addnickdb(struct map_session_data *sd)
+void map_addnickdb(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -839,7 +834,7 @@ void map_addnickdb(struct map_session_data *sd)
  * quit処理の主体が違うような気もしてきた
  *------------------------------------------
  */
-void map_quit(struct map_session_data *sd)
+void map_quit(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -891,7 +886,7 @@ void map_quit(struct map_session_data *sd)
  * id番号のPCを探す。居なければNULL
  *------------------------------------------
  */
-struct map_session_data *map_id2sd(int id)
+dumb_ptr<map_session_data> map_id2sd(int id)
 {
     // This is bogus.
     // However, there might be differences for de-auth'ed accounts.
@@ -902,7 +897,7 @@ struct map_session_data *map_id2sd(int id)
 // replaced by searching in all session.
 // by searching in session, we are sure that fd, session, and account exist.
 /*
-        struct block_list *bl;
+        dumb_ptr<block_list> bl;
 
         bl=numdb_search(id_db,id);
         if (bl && bl->bl_type==BL::PC)
@@ -917,7 +912,7 @@ struct map_session_data *map_id2sd(int id)
         {
             map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
             if (sd->bl_id == id)
-                return sd;
+                return dumb_ptr<map_session_data>(sd);
         }
     }
 
@@ -943,7 +938,7 @@ char *map_charid2nick(int id)
 /* [Fate] Operations to iterate over active map sessions */
 
 static
-struct map_session_data *map_get_session(int i)
+dumb_ptr<map_session_data> map_get_session(int i)
 {
     if (i >= 0 && i < fd_max)
     {
@@ -951,18 +946,18 @@ struct map_session_data *map_get_session(int i)
             return nullptr;
         map_session_data *d = static_cast<map_session_data *>(session[i]->session_data.get());
         if (d && d->state.auth)
-            return d;
+            return dumb_ptr<map_session_data>(d);
     }
 
     return NULL;
 }
 
 static
-struct map_session_data *map_get_session_forward(int start)
+dumb_ptr<map_session_data> map_get_session_forward(int start)
 {
     for (int i = start; i < fd_max; i++)
     {
-        struct map_session_data *d = map_get_session(i);
+        dumb_ptr<map_session_data> d = map_get_session(i);
         if (d)
             return d;
     }
@@ -971,12 +966,12 @@ struct map_session_data *map_get_session_forward(int start)
 }
 
 static
-struct map_session_data *map_get_session_backward(int start)
+dumb_ptr<map_session_data> map_get_session_backward(int start)
 {
     int i;
     for (i = start; i >= 0; i--)
     {
-        struct map_session_data *d = map_get_session(i);
+        dumb_ptr<map_session_data> d = map_get_session(i);
         if (d)
             return d;
     }
@@ -984,22 +979,22 @@ struct map_session_data *map_get_session_backward(int start)
     return NULL;
 }
 
-struct map_session_data *map_get_first_session(void)
+dumb_ptr<map_session_data> map_get_first_session(void)
 {
     return map_get_session_forward(0);
 }
 
-struct map_session_data *map_get_next_session(struct map_session_data *d)
+dumb_ptr<map_session_data> map_get_next_session(dumb_ptr<map_session_data> d)
 {
     return map_get_session_forward(d->fd + 1);
 }
 
-struct map_session_data *map_get_last_session(void)
+dumb_ptr<map_session_data> map_get_last_session(void)
 {
     return map_get_session_backward(fd_max);
 }
 
-struct map_session_data *map_get_prev_session(struct map_session_data *d)
+dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
 {
     return map_get_session_backward(d->fd - 1);
 }
@@ -1010,10 +1005,10 @@ struct map_session_data *map_get_prev_session(struct map_session_data *d)
  * return map_session_data pointer or NULL
  *------------------------------------------
  */
-struct map_session_data *map_nick2sd(const char *nick)
+dumb_ptr<map_session_data> map_nick2sd(const char *nick)
 {
     int i, quantity = 0, nicklen;
-    struct map_session_data *sd = NULL;
+    dumb_ptr<map_session_data> sd = NULL;
 
     if (nick == NULL)
         return NULL;
@@ -1032,9 +1027,9 @@ struct map_session_data *map_nick2sd(const char *nick)
             {
                 // Strict comparison (if found, we finish the function immediatly with correct value)
                 if (strcmp(pl_sd->status.name, nick) == 0)
-                    return pl_sd;
+                    return dumb_ptr<map_session_data>(pl_sd);
                 quantity++;
-                sd = pl_sd;
+                sd = dumb_ptr<map_session_data>(pl_sd);
             }
         }
     }
@@ -1052,9 +1047,9 @@ struct map_session_data *map_nick2sd(const char *nick)
  * 一時objectの場合は配列を引くのみ
  *------------------------------------------
  */
-struct block_list *map_id2bl(int id)
+dumb_ptr<block_list> map_id2bl(int id)
 {
-    struct block_list *bl = NULL;
+    dumb_ptr<block_list> bl = NULL;
     if (id < sizeof(object) / sizeof(object[0]))
         bl = object[id];
     else
@@ -1067,7 +1062,7 @@ struct block_list *map_id2bl(int id)
  * map.npcへ追加 (warp等の領域持ちのみ)
  *------------------------------------------
  */
-int map_addnpc(int m, struct npc_data *nd)
+int map_addnpc(int m, dumb_ptr<npc_data> nd)
 {
     int i;
     if (m < 0 || m >= map_num)
@@ -1090,7 +1085,7 @@ int map_addnpc(int m, struct npc_data *nd)
 
     map[m].npc[i] = nd;
     nd->n = i;
-    id_db.put(nd->bl_id, (struct block_list *)nd);
+    id_db.put(nd->bl_id, (dumb_ptr<block_list>)nd);
 
     return i;
 }
@@ -1114,8 +1109,7 @@ void map_removenpc(void)
 //                    free(map[m].npc[i]->u.scr.script);
 //                    free(map[m].npc[i]->u.scr.label_list);
                 }
-                free(map[m].npc[i]);
-                map[m].npc[i] = NULL;
+                map[m].npc[i].delete_();
                 n++;
             }
         }
@@ -1172,7 +1166,7 @@ bool map_check_dir(const DIR s_dir, const DIR t_dir)
  * 彼我の方向を計算
  *------------------------------------------
  */
-DIR map_calc_dir(struct block_list *src, int x, int y)
+DIR map_calc_dir(dumb_ptr<block_list> src, int x, int y)
 {
     DIR dir = DIR::S;
     int dx, dy;
@@ -1325,8 +1319,8 @@ bool map_readmap(int m, const_string fn)
     map[m].bys = (ys + BLOCK_SIZE - 1) / BLOCK_SIZE;
     size_t size = map[m].bxs * map[m].bys;
 
-    CREATE(map[m].block, struct block_list *, size);
-    CREATE(map[m].block_mob, struct block_list *, size);
+    CREATE(map[m].block, dumb_ptr<block_list>, size);
+    CREATE(map[m].block_mob, dumb_ptr<block_list>, size);
     CREATE(map[m].block_count, int, size);
     CREATE(map[m].block_mob_count, int, size);
 
@@ -1617,7 +1611,7 @@ int map_config_read(const char *cfgName)
 }
 
 static
-void cleanup_sub(struct block_list *bl)
+void cleanup_sub(dumb_ptr<block_list> bl)
 {
     nullpo_retv(bl);
 
@@ -1627,16 +1621,16 @@ void cleanup_sub(struct block_list *bl)
             map_delblock(bl);  // There is something better...
             break;
         case BL::NPC:
-            npc_delete((struct npc_data *) bl);
+            npc_delete(bl->as_npc());
             break;
         case BL::MOB:
-            mob_delete((struct mob_data *) bl);
+            mob_delete(bl->as_mob());
             break;
         case BL::ITEM:
             map_clearflooritem(bl->bl_id);
             break;
         case BL::SPELL:
-            spell_free_invocation((struct invocation *) bl);
+            spell_free_invocation(bl->as_spell());
             break;
     }
 }
@@ -1756,9 +1750,9 @@ int do_init(int argc, char *argv[])
     return 0;
 }
 
-int map_scriptcont(struct map_session_data *sd, int id)
+int map_scriptcont(dumb_ptr<map_session_data> sd, int id)
 {
-    struct block_list *bl = map_id2bl(id);
+    dumb_ptr<block_list> bl = map_id2bl(id);
 
     if (!bl)
         return 0;
@@ -1768,7 +1762,7 @@ int map_scriptcont(struct map_session_data *sd, int id)
         case BL::NPC:
             return npc_scriptcont(sd, id);
         case BL::SPELL:
-            spell_execute_script((struct invocation *) bl);
+            spell_execute_script(bl->as_spell());
             break;
     }
 

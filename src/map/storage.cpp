@@ -84,7 +84,7 @@ void storage_delete(int account_id)
  * カプラ倉庫を開く
  *------------------------------------------
  */
-int storage_storageopen(struct map_session_data *sd)
+int storage_storageopen(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
@@ -114,7 +114,7 @@ int storage_storageopen(struct map_session_data *sd)
  *------------------------------------------
  */
 static
-int storage_additem(struct map_session_data *sd, struct storage *stor,
+int storage_additem(dumb_ptr<map_session_data> sd, struct storage *stor,
                             struct item *item_data, int amount)
 {
     struct item_data *data;
@@ -160,7 +160,7 @@ int storage_additem(struct map_session_data *sd, struct storage *stor,
  *------------------------------------------
  */
 static
-int storage_delitem(struct map_session_data *sd, struct storage *stor,
+int storage_delitem(dumb_ptr<map_session_data> sd, struct storage *stor,
                             int n, int amount)
 {
 
@@ -184,7 +184,7 @@ int storage_delitem(struct map_session_data *sd, struct storage *stor,
  * Add an item to the storage from the inventory.
  *------------------------------------------
  */
-int storage_storageadd(struct map_session_data *sd, int index, int amount)
+int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
 {
     struct storage *stor;
 
@@ -219,7 +219,7 @@ int storage_storageadd(struct map_session_data *sd, int index, int amount)
  * Retrieve an item from the storage.
  *------------------------------------------
  */
-int storage_storageget(struct map_session_data *sd, int index, int amount)
+int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
 {
     struct storage *stor;
     PickupFail flag;
@@ -249,7 +249,7 @@ int storage_storageget(struct map_session_data *sd, int index, int amount)
  * Modified By Valaris to save upon closing [massdriller]
  *------------------------------------------
  */
-int storage_storageclose(struct map_session_data *sd)
+int storage_storageclose(dumb_ptr<map_session_data> sd)
 {
     struct storage *stor;
 
@@ -281,7 +281,7 @@ int storage_storageclose(struct map_session_data *sd)
  * When quitting the game.
  *------------------------------------------
  */
-int storage_storage_quit(struct map_session_data *sd)
+int storage_storage_quit(dumb_ptr<map_session_data> sd)
 {
     struct storage *stor;
 

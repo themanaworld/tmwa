@@ -79,7 +79,6 @@ enum class NpcSubtype : uint8_t
     WARP,
     SHOP,
     SCRIPT,
-    MONS,
     MESSAGE,
 };
 

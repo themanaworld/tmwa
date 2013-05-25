@@ -45,7 +45,7 @@ int mob_makedummymobdb(int);
 static
 void mob_timer(TimerData *, tick_t, int, unsigned char);
 static
-int mobskill_use_id(struct mob_data *md, struct block_list *target,
+int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
         int skill_idx);
 
 /*==========================================
@@ -82,14 +82,14 @@ int mobdb_checkid(const int id)
 }
 
 static
-void mob_init(struct mob_data *md);
+void mob_init(dumb_ptr<mob_data> md);
 
 /*==========================================
  * The minimum data set for MOB spawning
  *------------------------------------------
  */
 static
-int mob_spawn_dataset(struct mob_data *md, const char *mobname, int mob_class)
+int mob_spawn_dataset(dumb_ptr<mob_data> md, const char *mobname, int mob_class)
 {
     nullpo_ret(md);
 
@@ -191,7 +191,7 @@ earray<int, mob_stat, mob_stat::XP_BONUS> mutation_base //=
  */
 // intensity: positive: strengthen, negative: weaken.  256 = 100%.
 static
-void mob_mutate(struct mob_data *md, mob_stat stat, int intensity)
+void mob_mutate(dumb_ptr<mob_data> md, mob_stat stat, int intensity)
 {
     int old_stat;
     int new_stat;
@@ -302,7 +302,7 @@ int mob_gen_exp(struct mob_db *mob)
 }
 
 static
-void mob_init(struct mob_data *md)
+void mob_init(dumb_ptr<mob_data> md)
 {
     int i;
     const int mob_class = md->mob_class;
@@ -366,11 +366,11 @@ void mob_init(struct mob_data *md)
  * The MOB appearance for one time (for scripts)
  *------------------------------------------
  */
-int mob_once_spawn(struct map_session_data *sd, const char *mapname,
+int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
                     int x, int y, const char *mobname, int mob_class, int amount,
                     const char *event)
 {
-    struct mob_data *md = NULL;
+    dumb_ptr<mob_data> md = NULL;
     int m, count, r = mob_class;
 
     if (sd && strcmp(mapname, "this") == 0)
@@ -395,7 +395,7 @@ int mob_once_spawn(struct map_session_data *sd, const char *mapname,
 
     for (count = 0; count < amount; count++)
     {
-        md = (struct mob_data *) calloc(1, sizeof(struct mob_data));
+        md.new_();
         if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
             md->lootitem =
                 (struct item *) calloc(LOOTITEM_SIZE, sizeof(struct item));
@@ -430,7 +430,7 @@ int mob_once_spawn(struct map_session_data *sd, const char *mapname,
  * The MOB appearance for one time (& area specification for scripts)
  *------------------------------------------
  */
-int mob_once_spawn_area(struct map_session_data *sd, const char *mapname,
+int mob_once_spawn_area(dumb_ptr<map_session_data> sd, const char *mapname,
                          int x0, int y0, int x1, int y1,
                          const char *mobname, int mob_class, int amount,
                          const char *event)
@@ -533,7 +533,7 @@ int mob_get_equip(int mob_class)   // mob equip [Valaris]
  *------------------------------------------
  */
 static
-int mob_can_move(struct mob_data *md)
+int mob_can_move(dumb_ptr<mob_data> md)
 {
     nullpo_ret(md);
 
@@ -549,7 +549,7 @@ int mob_can_move(struct mob_data *md)
  *------------------------------------------
  */
 static
-interval_t calc_next_walk_step(struct mob_data *md)
+interval_t calc_next_walk_step(dumb_ptr<mob_data> md)
 {
     nullpo_retr(interval_t::zero(), md);
 
@@ -561,14 +561,14 @@ interval_t calc_next_walk_step(struct mob_data *md)
 }
 
 static
-int mob_walktoxy_sub(struct mob_data *md);
+int mob_walktoxy_sub(dumb_ptr<mob_data> md);
 
 /*==========================================
  * Mob Walk processing
  *------------------------------------------
  */
 static
-int mob_walk(struct mob_data *md, tick_t tick, unsigned char data)
+int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
 {
     int moveblock;
     int x, y, dx, dy;
@@ -662,11 +662,11 @@ int mob_walk(struct mob_data *md, tick_t tick, unsigned char data)
  *------------------------------------------
  */
 static
-int mob_check_attack(struct mob_data *md)
+int mob_check_attack(dumb_ptr<mob_data> md)
 {
-    struct block_list *tbl = NULL;
-    struct map_session_data *tsd = NULL;
-    struct mob_data *tmd = NULL;
+    dumb_ptr<block_list> tbl = NULL;
+    dumb_ptr<map_session_data> tsd = NULL;
+    dumb_ptr<mob_data> tmd = NULL;
 
     MobMode mode;
     int range;
@@ -691,9 +691,9 @@ int mob_check_attack(struct mob_data *md)
     }
 
     if (tbl->bl_type == BL::PC)
-        tsd = (struct map_session_data *) tbl;
+        tsd = tbl->as_player();
     else if (tbl->bl_type == BL::MOB)
-        tmd = (struct mob_data *) tbl;
+        tmd = tbl->as_mob();
     else
         return 0;
 
@@ -752,8 +752,8 @@ int mob_check_attack(struct mob_data *md)
 }
 
 static
-void mob_ancillary_attack(struct block_list *bl,
-        struct block_list *mdbl, struct block_list *tbl, tick_t tick)
+void mob_ancillary_attack(dumb_ptr<block_list> bl,
+        dumb_ptr<block_list> mdbl, dumb_ptr<block_list> tbl, tick_t tick)
 {
     if (bl != tbl)
         battle_weapon_attack(mdbl, bl, tick);
@@ -764,9 +764,9 @@ void mob_ancillary_attack(struct block_list *bl,
  *------------------------------------------
  */
 static
-int mob_attack(struct mob_data *md, tick_t tick)
+int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
 {
-    struct block_list *tbl = NULL;
+    dumb_ptr<block_list> tbl = NULL;
 
     nullpo_ret(md);
 
@@ -810,7 +810,7 @@ int mob_attack(struct mob_data *md, tick_t tick)
  *------------------------------------------
  */
 static
-void mob_stopattacked(struct map_session_data *sd, int id)
+void mob_stopattacked(dumb_ptr<map_session_data> sd, int id)
 {
     nullpo_retv(sd);
 
@@ -823,7 +823,7 @@ void mob_stopattacked(struct map_session_data *sd, int id)
  *------------------------------------------
  */
 static
-int mob_changestate(struct mob_data *md, MS state, bool type)
+int mob_changestate(dumb_ptr<mob_data> md, MS state, bool type)
 {
     nullpo_ret(md);
 
@@ -896,8 +896,8 @@ int mob_changestate(struct mob_data *md, MS state, bool type)
 static
 void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
 {
-    struct mob_data *md;
-    struct block_list *bl;
+    dumb_ptr<mob_data> md;
+    dumb_ptr<block_list> bl;
     bl = map_id2bl(id);
     if (bl == NULL)
     {                           //攻撃してきた敵がもういないのは正常のようだ
@@ -907,7 +907,7 @@ void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
     if (bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
         return;
 
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
 
     if (md->bl_prev == NULL || md->state.state == MS::DEAD)
         return;
@@ -935,7 +935,7 @@ void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
  *------------------------------------------
  */
 static
-int mob_walktoxy_sub(struct mob_data *md)
+int mob_walktoxy_sub(dumb_ptr<mob_data> md)
 {
     struct walkpath_data wpd;
 
@@ -958,7 +958,7 @@ int mob_walktoxy_sub(struct mob_data *md)
  *------------------------------------------
  */
 static
-int mob_walktoxy(struct mob_data *md, int x, int y, int easy)
+int mob_walktoxy(dumb_ptr<mob_data> md, int x, int y, int easy)
 {
     struct walkpath_data wpd;
 
@@ -1000,8 +1000,8 @@ void mob_delayspawn(TimerData *, tick_t, int m)
 static
 int mob_setdelayspawn(int id)
 {
-    struct mob_data *md;
-    struct block_list *bl;
+    dumb_ptr<mob_data> md;
+    dumb_ptr<block_list> bl;
 
     if ((bl = map_id2bl(id)) == NULL)
         return -1;
@@ -1009,7 +1009,7 @@ int mob_setdelayspawn(int id)
     if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
         return -1;
 
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
     nullpo_retr(-1, md);
 
     if (!md || md->bl_type != BL::MOB)
@@ -1050,8 +1050,8 @@ int mob_spawn(int id)
 {
     int x = 0, y = 0;
     tick_t tick = gettick();
-    struct mob_data *md;
-    struct block_list *bl;
+    dumb_ptr<mob_data> md;
+    dumb_ptr<block_list> bl;
 
     bl = map_id2bl(id);
     nullpo_retr(-1, bl);
@@ -1059,7 +1059,7 @@ int mob_spawn(int id)
     if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
         return -1;
 
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
     nullpo_retr(-1, md);
 
     if (!md || md->bl_type == BL::NUL || md->bl_type != BL::MOB)
@@ -1186,7 +1186,7 @@ int distance(int x0, int y0, int x1, int y1)
  * The stop of MOB's attack
  *------------------------------------------
  */
-int mob_stopattack(struct mob_data *md)
+int mob_stopattack(dumb_ptr<mob_data> md)
 {
     md->target_id = 0;
     md->state.attackable = false;
@@ -1198,7 +1198,7 @@ int mob_stopattack(struct mob_data *md)
  * The stop of MOB's walking
  *------------------------------------------
  */
-int mob_stop_walking(struct mob_data *md, int type)
+int mob_stop_walking(dumb_ptr<mob_data> md, int type)
 {
     nullpo_ret(md);
 
@@ -1247,7 +1247,7 @@ int mob_stop_walking(struct mob_data *md, int type)
  *------------------------------------------
  */
 static
-int mob_can_reach(struct mob_data *md, struct block_list *bl, int range)
+int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
 {
     int dx, dy;
     struct walkpath_data wpd;
@@ -1259,10 +1259,10 @@ int mob_can_reach(struct mob_data *md, struct block_list *bl, int range)
     dx = abs(bl->bl_x - md->bl_x);
     dy = abs(bl->bl_y - md->bl_y);
 
-    if (bl && bl->bl_type == BL::PC && battle_config.monsters_ignore_gm == 1)
+    if (bl->bl_type == BL::PC && battle_config.monsters_ignore_gm == 1)
     {                           // option to have monsters ignore GMs [Valaris]
-        struct map_session_data *sd;
-        if ((sd = (struct map_session_data *) bl) != NULL && pc_isGM(sd))
+        dumb_ptr<map_session_data> sd = bl->as_player();
+        if (pc_isGM(sd))
             return 0;
     }
 
@@ -1304,9 +1304,9 @@ int mob_can_reach(struct mob_data *md, struct block_list *bl, int range)
  * Determination for an attack of a monster
  *------------------------------------------
  */
-int mob_target(struct mob_data *md, struct block_list *bl, int dist)
+int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
 {
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
     eptr<struct status_change, StatusChange> sc_data;
     MobMode mode;
 
@@ -1344,7 +1344,7 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
     {
         if (bl->bl_type == BL::PC)
         {
-            sd = (struct map_session_data *) bl;
+            sd = bl->as_player();
             nullpo_ret(sd);
             if (sd->invincible_timer || pc_isinvisible(sd))
                 return 0;
@@ -1370,11 +1370,11 @@ int mob_target(struct mob_data *md, struct block_list *bl, int dist)
  *------------------------------------------
  */
 static
-void mob_ai_sub_hard_activesearch(struct block_list *bl,
-        struct mob_data *smd, int *pcc)
+void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
+        dumb_ptr<mob_data> smd, int *pcc)
 {
-    struct map_session_data *tsd = NULL;
-    struct mob_data *tmd = NULL;
+    dumb_ptr<map_session_data> tsd = NULL;
+    dumb_ptr<mob_data> tmd = NULL;
     MobMode mode;
     int dist;
 
@@ -1383,9 +1383,9 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
     nullpo_retv(pcc);
 
     if (bl->bl_type == BL::PC)
-        tsd = (struct map_session_data *) bl;
+        tsd = bl->as_player();
     else if (bl->bl_type == BL::MOB)
-        tmd = (struct mob_data *) bl;
+        tmd = bl->as_mob();
     else
         return;
 
@@ -1452,7 +1452,7 @@ void mob_ai_sub_hard_activesearch(struct block_list *bl,
  *------------------------------------------
  */
 static
-void mob_ai_sub_hard_lootsearch(struct block_list *bl, struct mob_data *md, int *itc)
+void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, int *itc)
 {
     MobMode mode;
     int dist;
@@ -1495,12 +1495,12 @@ void mob_ai_sub_hard_lootsearch(struct block_list *bl, struct mob_data *md, int 
  *------------------------------------------
  */
 static
-void mob_ai_sub_hard_linksearch(struct block_list *bl, struct mob_data *md, struct block_list *target)
+void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, dumb_ptr<block_list> target)
 {
-    struct mob_data *tmd;
+    dumb_ptr<mob_data> tmd;
 
     nullpo_retv(bl);
-    tmd = (struct mob_data *) bl;
+    tmd = bl->as_mob();
     nullpo_retv(md);
     nullpo_retv(target);
 
@@ -1527,17 +1527,17 @@ void mob_ai_sub_hard_linksearch(struct block_list *bl, struct mob_data *md, stru
  *------------------------------------------
  */
 static
-int mob_ai_sub_hard_slavemob(struct mob_data *md, tick_t tick)
+int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
 {
-    struct mob_data *mmd = NULL;
-    struct block_list *bl;
+    dumb_ptr<mob_data> mmd = NULL;
+    dumb_ptr<block_list> bl;
     MobMode mode;
     int old_dist;
 
     nullpo_ret(md);
 
     if ((bl = map_id2bl(md->master_id)) != NULL)
-        mmd = (struct mob_data *) bl;
+        mmd = bl->as_mob();
 
     mode = mob_db[md->mob_class].mode;
 
@@ -1630,7 +1630,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, tick_t tick)
     if ((mmd->target_id > 0 && mmd->state.attackable)
         && (!md->target_id || !md->state.attackable))
     {
-        struct map_session_data *sd = map_id2sd(mmd->target_id);
+        dumb_ptr<map_session_data> sd = map_id2sd(mmd->target_id);
         if (sd != NULL && !pc_isdead(sd) && !sd->invincible_timer
             && !pc_isinvisible(sd))
         {
@@ -1659,7 +1659,7 @@ int mob_ai_sub_hard_slavemob(struct mob_data *md, tick_t tick)
  *------------------------------------------
  */
 static
-int mob_unlocktarget(struct mob_data *md, tick_t tick)
+int mob_unlocktarget(dumb_ptr<mob_data> md, tick_t tick)
 {
     nullpo_ret(md);
 
@@ -1675,7 +1675,7 @@ int mob_unlocktarget(struct mob_data *md, tick_t tick)
  *------------------------------------------
  */
 static
-int mob_randomwalk(struct mob_data *md, tick_t tick)
+int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
 {
     const int retrycount = 20;
 
@@ -1732,18 +1732,18 @@ int mob_randomwalk(struct mob_data *md, tick_t tick)
  *------------------------------------------
  */
 static
-void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
+void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
 {
-    struct mob_data *md, *tmd = NULL;
-    struct map_session_data *tsd = NULL;
-    struct block_list *tbl = NULL;
-    struct flooritem_data *fitem;
+    dumb_ptr<mob_data> md, tmd = NULL;
+    dumb_ptr<map_session_data> tsd = NULL;
+    dumb_ptr<block_list> tbl = NULL;
+    dumb_ptr<flooritem_data> fitem;
     int i, dx, dy, ret, dist;
     int attack_type = 0;
     MobMode mode;
 
     nullpo_retv(bl);
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
 
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME)
         return;
@@ -1773,7 +1773,7 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
 
     if (md->attacked_id > 0 && bool(mode & MobMode::ASSIST))
     {                           // Link monster
-        struct map_session_data *asd = map_id2sd(md->attacked_id);
+        dumb_ptr<map_session_data> asd = map_id2sd(md->attacked_id);
         if (asd)
         {
             if (!asd->invincible_timer && !pc_isinvisible(asd))
@@ -1790,12 +1790,12 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
         && (!md->target_id || !md->state.attackable
             || (bool(mode & MobMode::AGGRESSIVE) && random_::chance({25, 100}))))
     {
-        struct block_list *abl = map_id2bl(md->attacked_id);
-        struct map_session_data *asd = NULL;
+        dumb_ptr<block_list> abl = map_id2bl(md->attacked_id);
+        dumb_ptr<map_session_data> asd = NULL;
         if (abl)
         {
             if (abl->bl_type == BL::PC)
-                asd = (struct map_session_data *) abl;
+                asd = abl->as_player();
             if (asd == NULL || md->bl_m != abl->bl_m || abl->bl_prev == NULL
                 || asd->invincible_timer || pc_isinvisible(asd)
                 || (dist =
@@ -1858,9 +1858,9 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
         if ((tbl = map_id2bl(md->target_id)))
         {
             if (tbl->bl_type == BL::PC)
-                tsd = (struct map_session_data *) tbl;
+                tsd = tbl->as_player();
             else if (tbl->bl_type == BL::MOB)
-                tmd = (struct mob_data *) tbl;
+                tmd = tbl->as_mob();
             if (tsd || tmd)
             {
                 if (tbl->bl_m != md->bl_m || tbl->bl_prev == NULL
@@ -1990,7 +1990,7 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
                         return;   // 攻撃中
                     if (md->state.state == MS::WALK)
                         mob_stop_walking(md, 1);   // 歩行中なら停止
-                    fitem = (struct flooritem_data *) tbl;
+                    fitem = tbl->as_item();
                     if (md->lootitem_count < LOOTITEM_SIZE)
                         memcpy(&md->lootitem[md->lootitem_count++],
                                 &fitem->item_data, sizeof(md->lootitem[0]));
@@ -2059,7 +2059,7 @@ void mob_ai_sub_hard(struct block_list *bl, tick_t tick)
  *------------------------------------------
  */
 static
-void mob_ai_sub_foreachclient(struct map_session_data *sd, tick_t tick)
+void mob_ai_sub_foreachclient(dumb_ptr<map_session_data> sd, tick_t tick)
 {
     nullpo_retv(sd);
 
@@ -2083,14 +2083,14 @@ void mob_ai_hard(TimerData *, tick_t tick)
  *------------------------------------------
  */
 static
-void mob_ai_sub_lazy(struct block_list *bl, tick_t tick)
+void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
 {
     nullpo_retv(bl);
 
     if (bl->bl_type != BL::MOB)
         return;
 
-    struct mob_data *md = (struct mob_data *)bl;
+    dumb_ptr<mob_data> md = bl->as_mob();
 
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME * 10)
         return;
@@ -2161,14 +2161,14 @@ struct delay_item_drop
 {
     int m, x, y;
     int nameid, amount;
-    struct map_session_data *first_sd, *second_sd, *third_sd;
+    dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
 };
 
 struct delay_item_drop2
 {
     int m, x, y;
     struct item item_data;
-    struct map_session_data *first_sd, *second_sd, *third_sd;
+    dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
 };
 
 /*==========================================
@@ -2250,7 +2250,7 @@ void mob_delay_item_drop2(TimerData *, tick_t, struct delay_item_drop2 *ditem)
  * mob data is erased.
  *------------------------------------------
  */
-int mob_delete(struct mob_data *md)
+int mob_delete(dumb_ptr<mob_data> md)
 {
     nullpo_retr(1, md);
 
@@ -2264,7 +2264,7 @@ int mob_delete(struct mob_data *md)
     return 0;
 }
 
-int mob_catch_delete(struct mob_data *md, BeingRemoveWhy type)
+int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type)
 {
     nullpo_retr(1, md);
 
@@ -2279,12 +2279,12 @@ int mob_catch_delete(struct mob_data *md, BeingRemoveWhy type)
 
 void mob_timer_delete(TimerData *, tick_t, int id)
 {
-    struct block_list *bl = map_id2bl(id);
-    struct mob_data *md;
+    dumb_ptr<block_list> bl = map_id2bl(id);
+    dumb_ptr<mob_data> md;
 
     nullpo_retv(bl);
 
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
     mob_catch_delete(md, BeingRemoveWhy::WARPED);
 }
 
@@ -2293,12 +2293,12 @@ void mob_timer_delete(TimerData *, tick_t, int id)
  *------------------------------------------
  */
 static
-void mob_deleteslave_sub(struct block_list *bl, int id)
+void mob_deleteslave_sub(dumb_ptr<block_list> bl, int id)
 {
-    struct mob_data *md;
+    dumb_ptr<mob_data> md;
 
     nullpo_retv(bl);
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
 
     if (md->master_id > 0 && md->master_id == id)
         mob_damage(NULL, md, md->hp, 1);
@@ -2308,7 +2308,7 @@ void mob_deleteslave_sub(struct block_list *bl, int id)
  *
  *------------------------------------------
  */
-int mob_deleteslave(struct mob_data *md)
+int mob_deleteslave(dumb_ptr<mob_data> md)
 {
     nullpo_ret(md);
 
@@ -2330,11 +2330,11 @@ double damage_bonus_factor[DAMAGE_BONUS_COUNT + 1] =
  * It is the damage of sd to damage to md.
  *------------------------------------------
  */
-int mob_damage(struct block_list *src, struct mob_data *md, int damage,
+int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 int type)
 {
     int count, minpos, mindmg;
-    struct map_session_data *sd = NULL, *tmpsd[DAMAGELOG_SIZE];
+    dumb_ptr<map_session_data> sd = NULL, tmpsd[DAMAGELOG_SIZE];
     struct
     {
         struct party *p;
@@ -2343,8 +2343,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     int pnum = 0;
     int mvp_damage, max_hp;
     tick_t tick = gettick();
-    struct map_session_data *mvp_sd = NULL, *second_sd = NULL, *third_sd =
-        NULL;
+    dumb_ptr<map_session_data> mvp_sd = NULL, second_sd = NULL, third_sd = NULL;
     double tdmg;
 
     nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
@@ -2363,7 +2362,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
 
     if (src && src->bl_type == BL::PC)
     {
-        sd = (struct map_session_data *) src;
+        sd = src->as_player();
         mvp_sd = sd;
     }
 
@@ -2435,13 +2434,13 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 md->attacked_id = sd->bl_id;
         }
         if (src && src->bl_type == BL::MOB
-            && ((struct mob_data *) src)->state.special_mob_ai)
+            && src->as_mob()->state.special_mob_ai)
         {
-            struct mob_data *md2 = (struct mob_data *) src;
-            struct block_list *master_bl = map_id2bl(md2->master_id);
+            dumb_ptr<mob_data> md2 = src->as_mob();
+            dumb_ptr<block_list> master_bl = map_id2bl(md2->master_id);
             if (master_bl && master_bl->bl_type == BL::PC)
             {
-                MAP_LOG_PC(((struct map_session_data *) master_bl),
+                MAP_LOG_PC(master_bl->as_player(),
                             "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d",
                             md2->bl_id, md2->mob_class, md->bl_id, md->mob_class,
                             damage);
@@ -2501,7 +2500,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
     max_hp = battle_get_max_hp(md);
 
     if (src && src->bl_type == BL::MOB)
-        mob_unlocktarget((struct mob_data *) src, tick);
+        mob_unlocktarget(src->as_mob(), tick);
 
     // map外に消えた人は計算から除くので
     // overkill分は無いけどsumはmax_hpとは違う
@@ -2697,7 +2696,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
                 {
                     if (!session[i])
                         continue;
-                    map_session_data *tmp_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                    dumb_ptr<map_session_data> tmp_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
                     if (tmp_sd && tmp_sd->state.auth)
                     {
                         if (md->bl_m == tmp_sd->bl_m)
@@ -2725,7 +2724,7 @@ int mob_damage(struct block_list *src, struct mob_data *md, int damage,
  * mob回復
  *------------------------------------------
  */
-int mob_heal(struct mob_data *md, int heal)
+int mob_heal(dumb_ptr<mob_data> md, int heal)
 {
     int max_hp = battle_get_max_hp(md);
 
@@ -2743,9 +2742,9 @@ int mob_heal(struct mob_data *md, int heal)
  *------------------------------------------
  */
 static
-void mob_warpslave_sub(struct block_list *bl, int id, int x, int y)
+void mob_warpslave_sub(dumb_ptr<block_list> bl, int id, int x, int y)
 {
-    struct mob_data *md = (struct mob_data *) bl;
+    dumb_ptr<mob_data> md = bl->as_mob();
 
     if (md->master_id == id)
     {
@@ -2758,7 +2757,7 @@ void mob_warpslave_sub(struct block_list *bl, int id, int x, int y)
  *------------------------------------------
  */
 static
-int mob_warpslave(struct mob_data *md, int x, int y)
+int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
 {
 //PRINTF("warp slave\n");
     map_foreachinarea(std::bind(mob_warpslave_sub, ph::_1, md->bl_id, md->bl_x, md->bl_y),
@@ -2771,7 +2770,7 @@ int mob_warpslave(struct mob_data *md, int x, int y)
  * mobワープ
  *------------------------------------------
  */
-int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type)
+int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type)
 {
     int i = 0, xs = 0, ys = 0, bx = x, by = y;
 
@@ -2856,12 +2855,12 @@ int mob_warp(struct mob_data *md, int m, int x, int y, BeingRemoveWhy type)
  *------------------------------------------
  */
 static
-void mob_countslave_sub(struct block_list *bl, int id, int *c)
+void mob_countslave_sub(dumb_ptr<block_list> bl, int id, int *c)
 {
-    struct mob_data *md;
+    dumb_ptr<mob_data> md;
 
     nullpo_retv(bl);
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
 
     if (md->master_id == id)
         (*c)++;
@@ -2872,7 +2871,7 @@ void mob_countslave_sub(struct block_list *bl, int id, int *c)
  *------------------------------------------
  */
 static
-int mob_countslave(struct mob_data *md)
+int mob_countslave(dumb_ptr<mob_data> md)
 {
     int c = 0;
 
@@ -2888,9 +2887,9 @@ int mob_countslave(struct mob_data *md)
  * 手下MOB召喚
  *------------------------------------------
  */
-int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
+int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
 {
-    struct mob_data *md;
+    dumb_ptr<mob_data> md;
     int bx, by, m, count = 0, mob_class, k, a = amount;
 
     nullpo_ret(md2);
@@ -2916,7 +2915,7 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
         for (; amount > 0; amount--)
         {
             int x = 0, y = 0, i = 0;
-            md = (struct mob_data *) calloc(1, sizeof(struct mob_data));
+            md.new_();
             if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
                 md->lootitem = (struct item *)
                     calloc(LOOTITEM_SIZE, sizeof(struct item));
@@ -2970,8 +2969,8 @@ int mob_summonslave(struct mob_data *md2, int *value, int amount, int flag)
  *------------------------------------------
  */
 static
-void mob_counttargeted_sub(struct block_list *bl,
-        int id, int *c, struct block_list *src, ATK target_lv)
+void mob_counttargeted_sub(dumb_ptr<block_list> bl,
+        int id, int *c, dumb_ptr<block_list> src, ATK target_lv)
 {
     nullpo_retv(bl);
     nullpo_retv(c);
@@ -2980,14 +2979,14 @@ void mob_counttargeted_sub(struct block_list *bl,
         return;
     if (bl->bl_type == BL::PC)
     {
-        struct map_session_data *sd = (struct map_session_data *) bl;
+        dumb_ptr<map_session_data> sd = bl->as_player();
         if (sd && sd->attacktarget == id && sd->attacktimer
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
     else if (bl->bl_type == BL::MOB)
     {
-        struct mob_data *md = (struct mob_data *) bl;
+        dumb_ptr<mob_data> md = bl->as_mob();
         if (md && md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
             (*c)++;
@@ -2998,7 +2997,7 @@ void mob_counttargeted_sub(struct block_list *bl,
  * 自分をロックしているPCの数を数える
  *------------------------------------------
  */
-int mob_counttargeted(struct mob_data *md, struct block_list *src,
+int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
         ATK target_lv)
 {
     int c = 0;
@@ -3022,14 +3021,14 @@ int mob_counttargeted(struct mob_data *md, struct block_list *src,
  */
 void mobskill_castend_id(TimerData *, tick_t tick, int id)
 {
-    struct mob_data *md = NULL;
-    struct block_list *bl;
-    struct block_list *mbl;
+    dumb_ptr<mob_data> md = NULL;
+    dumb_ptr<block_list> bl;
+    dumb_ptr<block_list> mbl;
     int range;
 
     if ((mbl = map_id2bl(id)) == NULL) //詠唱したMobがもういないというのは良くある正常処理
         return;
-    if ((md = (struct mob_data *) mbl) == NULL)
+    if ((md = mbl->as_mob()) == NULL)
     {
         PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n", mbl->bl_id);
         return;
@@ -3089,15 +3088,15 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
  */
 void mobskill_castend_pos(TimerData *, tick_t tick, int id)
 {
-    struct mob_data *md = NULL;
-    struct block_list *bl;
+    dumb_ptr<mob_data> md = NULL;
+    dumb_ptr<block_list> bl;
     int range;
 
     //mobskill_castend_id同様詠唱したMobが詠唱完了時にもういないというのはありそうなのでnullpoから除外
     if ((bl = map_id2bl(id)) == NULL)
         return;
 
-    md = (struct mob_data *) bl;
+    md = bl->as_mob();
     nullpo_retv(md);
 
     if (md->bl_type != BL::MOB || md->bl_prev == NULL)
@@ -3123,7 +3122,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
  * Skill use (an aria start, ID specification)
  *------------------------------------------
  */
-int mobskill_use_id(struct mob_data *md, struct block_list *target,
+int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
                      int skill_idx)
 {
     int range;
@@ -3199,7 +3198,7 @@ int mobskill_use_id(struct mob_data *md, struct block_list *target,
  *------------------------------------------
  */
 static
-int mobskill_use_pos(struct mob_data *md,
+int mobskill_use_pos(dumb_ptr<mob_data> md,
                       int skill_x, int skill_y, int skill_idx)
 {
     int range;
@@ -3228,7 +3227,7 @@ int mobskill_use_pos(struct mob_data *md,
     range = skill_get_range(skill_id, skill_lv);
     if (range < 0)
         range = battle_get_range(md) - (range + 1);
-    if (!battle_check_range(md, &bl, range))
+    if (!battle_check_range(md, dumb_ptr<block_list>(&bl), range))
         return 0;
 
 //  delay=skill_delayfix(sd, skill_get_delay( skill_id,skill_lv) );
@@ -3270,11 +3269,11 @@ int mobskill_use_pos(struct mob_data *md,
  * Skill use judging
  *------------------------------------------
  */
-int mobskill_use(struct mob_data *md, tick_t tick,
+int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
         MobSkillCondition event)
 {
     struct mob_skill *ms;
-//  struct block_list *target=NULL;
+//  dumb_ptr<block_list> target=NULL;
     int max_hp;
 
     nullpo_ret(md);
@@ -3332,14 +3331,13 @@ int mobskill_use(struct mob_data *md, tick_t tick,
             if (skill_get_inf(ms[ii].skill_id) & 2)
             {
                 // 場所指定
-                struct block_list *bl = NULL;
+                dumb_ptr<block_list> bl = NULL;
                 int x = 0, y = 0;
                 {
-                    {
-                        bl = ms[ii].target == MobSkillTarget::MST_TARGET
-                            ? map_id2bl(md->target_id)
-                            : md;
-                    }
+                    if (ms[ii].target == MobSkillTarget::MST_TARGET)
+                        bl = map_id2bl(md->target_id);
+                    else
+                        bl = md;
 
                     if (bl)
                     {
@@ -3355,10 +3353,11 @@ int mobskill_use(struct mob_data *md, tick_t tick,
             else
             {
                 {
-                    struct block_list *bl = NULL;
-                    bl = (ms[ii].target == MobSkillTarget::MST_TARGET)
-                        ? map_id2bl(md->target_id)
-                        : md;
+                    dumb_ptr<block_list> bl = NULL;
+                    if (ms[ii].target == MobSkillTarget::MST_TARGET)
+                        bl = map_id2bl(md->target_id);
+                    else
+                        bl = md;
                     if (bl && !mobskill_use_id(md, bl, ii))
                         return 0;
                 }
@@ -3376,7 +3375,7 @@ int mobskill_use(struct mob_data *md, tick_t tick,
  * Skill use event processing
  *------------------------------------------
  */
-int mobskill_event(struct mob_data *md, BF flag)
+int mobskill_event(dumb_ptr<mob_data> md, BF flag)
 {
     nullpo_ret(md);
 

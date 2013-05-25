@@ -29,14 +29,14 @@ static
 void set_string SETTER(char *, TYPE::STRING, v_string)
 
 static
-void set_entity(val_t *v, entity_t *e)
+void set_entity(val_t *v, dumb_ptr<block_list> e)
 {
     v->ty = TYPE::ENTITY;
     v->v.v_int = e->bl_id;
 }
 
 static
-void set_invocation(val_t *v, invocation_t *i)
+void set_invocation(val_t *v, dumb_ptr<invocation> i)
 {
     v->ty = TYPE::INVOCATION;
     v->v.v_int = i->bl_id;
@@ -192,7 +192,7 @@ void magic_free_env(env_t *env)
 }
 
 env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
-                         character_t *caster, int spellpower, char *param)
+                         dumb_ptr<map_session_data> caster, int spellpower, char *param)
 {
     env_t *env = alloc_env(conf);
 
@@ -205,7 +205,7 @@ env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
 
         case SPELLARG::PC:
         {
-            character_t *subject = map_nick2sd(param);
+            dumb_ptr<map_session_data> subject = map_nick2sd(param);
             if (!subject)
                 subject = caster;
             set_env_entity(spell->arg, subject);
@@ -287,7 +287,7 @@ typedef struct spellguard_check
 } spellguard_check_t;
 
 static
-int check_prerequisites(character_t *caster, component_t *component)
+int check_prerequisites(dumb_ptr<map_session_data> caster, component_t *component)
 {
     while (component)
     {
@@ -302,7 +302,7 @@ int check_prerequisites(character_t *caster, component_t *component)
 }
 
 static
-void consume_components(character_t *caster, component_t *component)
+void consume_components(dumb_ptr<map_session_data> caster, component_t *component)
 {
     while (component)
     {
@@ -312,7 +312,7 @@ void consume_components(character_t *caster, component_t *component)
 }
 
 static
-int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
+int spellguard_can_satisfy(spellguard_check_t *check, dumb_ptr<map_session_data> caster,
                         env_t *env, int *near_miss)
 {
     tick_t tick = gettick();
@@ -345,7 +345,7 @@ int spellguard_can_satisfy(spellguard_check_t *check, character_t *caster,
 static
 effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                                            spellguard_t *guard,
-                                           character_t *caster, env_t *env,
+                                           dumb_ptr<map_session_data> caster, env_t *env,
                                            int *near_miss)
 {
     if (guard == NULL)
@@ -414,7 +414,7 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
 
 static
 effect_set_t *check_spellguard(spellguard_t *guard,
-                                       character_t *caster, env_t *env,
+                                       dumb_ptr<map_session_data> caster, env_t *env,
                                        int *near_miss)
 {
     spellguard_check_t check;
@@ -436,7 +436,7 @@ effect_set_t *check_spellguard(spellguard_t *guard,
 /* Public API */
 /* -------------------------------------------------------------------------------- */
 
-effect_set_t *spell_trigger(spell_t *spell, character_t *caster,
+effect_set_t *spell_trigger(spell_t *spell, dumb_ptr<map_session_data> caster,
                              env_t *env, int *near_miss)
 {
     int i;
@@ -453,7 +453,7 @@ effect_set_t *spell_trigger(spell_t *spell, character_t *caster,
 }
 
 static
-void spell_set_location(invocation_t *invocation, entity_t *entity)
+void spell_set_location(dumb_ptr<invocation> invocation, dumb_ptr<block_list> entity)
 {
     magic_clear_var(&invocation->env->vars[VAR_LOCATION]);
     invocation->env->vars[VAR_LOCATION].ty = TYPE::LOCATION;
@@ -462,25 +462,26 @@ void spell_set_location(invocation_t *invocation, entity_t *entity)
     invocation->env->vars[VAR_LOCATION].v.v_location.y = entity->bl_y;
 }
 
-void spell_update_location(invocation_t *invocation)
+void spell_update_location(dumb_ptr<invocation> invocation)
 {
     if (bool(invocation->spell->flags & SPELL_FLAG::LOCAL))
         return;
     else
     {
-        character_t *owner = (character_t *) map_id2bl(invocation->subject);
-        if (!owner)
+        dumb_ptr<block_list> owner_bl = map_id2bl(invocation->subject);
+        if (!owner_bl)
             return;
+        dumb_ptr<map_session_data> owner = owner_bl->as_player();
 
-        spell_set_location(invocation, (entity_t *) owner);
+        spell_set_location(invocation, owner);
     }
 }
 
-invocation_t *spell_instantiate(effect_set_t *effect_set, env_t *env)
+dumb_ptr<invocation> spell_instantiate(effect_set_t *effect_set, env_t *env)
 {
-    invocation_t *retval;
-    CREATE(retval, invocation_t, 1);
-    entity_t *caster;
+    dumb_ptr<invocation> retval;
+    retval.new_();
+    dumb_ptr<block_list> caster;
 
     retval->env = env;
 
@@ -504,29 +505,39 @@ invocation_t *spell_instantiate(effect_set_t *effect_set, env_t *env)
     return retval;
 }
 
-invocation_t *spell_clone_effect(invocation_t *base)
+dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> base)
 {
-    invocation_t *retval = (invocation_t *) calloc(1, sizeof(invocation_t));
-    env_t *env;
+    dumb_ptr<invocation> retval;
+    retval.new_();
 
-    memcpy(retval, base, sizeof(invocation_t));
+    // block_list in general is not copyable
+    // since this is the only call site, it is expanded here
+    //*retval = *base;
 
-    retval->env = clone_env(retval->env);
-    env = retval->env;
-    retval->current_effect = retval->trigger_effect;
     retval->next_invocation = NULL;
-    retval->end_effect = NULL;
-    retval->script_pos = 0;
-    retval->stack_size = 0;
-    // retval->timer = 0;
+    retval->flags = INVOCATION_FLAG::ZERO;
+    env_t *env = retval->env = clone_env(base->env);
+    retval->spell = base->spell;
+    retval->caster = base->caster;
     retval->subject = 0;
+    // retval->timer = 0;
+    retval->stack_size = 0;
+    // retval->stack = undef;
+    retval->script_pos = 0;
+    // huh?
+    retval->current_effect = base->trigger_effect;
+    retval->trigger_effect = base->trigger_effect;
+    retval->end_effect = NULL;
     retval->status_change_refs_nr = 0;
     retval->status_change_refs = NULL;
-    retval->flags = INVOCATION_FLAG::ZERO;
 
     retval->bl_id = 0;
     retval->bl_prev = NULL;
     retval->bl_next = NULL;
+    retval->bl_m = base->bl_m;
+    retval->bl_x = base->bl_x;
+    retval->bl_y = base->bl_y;
+    retval->bl_type = base->bl_type;
 
     retval->bl_id = map_addobject(retval);
     set_env_invocation(VAR_INVOCATION, retval);
@@ -534,7 +545,7 @@ invocation_t *spell_clone_effect(invocation_t *base)
     return retval;
 }
 
-void spell_bind(character_t *subject, invocation_t *invocation)
+void spell_bind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocation)
 {
     /* Only bind nonlocal spells */
 
@@ -557,22 +568,22 @@ void spell_bind(character_t *subject, invocation_t *invocation)
         invocation->subject = subject->bl_id;
     }
 
-    spell_set_location(invocation, (entity_t *) subject);
+    spell_set_location(invocation, (dumb_ptr<block_list> ) subject);
 }
 
-int spell_unbind(character_t *subject, invocation_t *invocation)
+int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocation_)
 {
-    invocation_t **seeker = &subject->active_spells;
+    dumb_ptr<invocation> *seeker = &subject->active_spells;
 
     while (*seeker)
     {
-        if (*seeker == invocation)
+        if (*seeker == invocation_)
         {
-            *seeker = invocation->next_invocation;
+            *seeker = invocation_->next_invocation;
 
-            invocation->flags &= ~INVOCATION_FLAG::BOUND;
-            invocation->next_invocation = NULL;
-            invocation->subject = 0;
+            invocation_->flags &= ~INVOCATION_FLAG::BOUND;
+            invocation_->next_invocation = NULL;
+            invocation_->subject = 0;
 
             return 0;
         }

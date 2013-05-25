@@ -27,66 +27,66 @@ struct block_list;
 // ダメージ計算
 
 struct Damage battle_calc_attack(BF attack_type,
-        struct block_list *bl, struct block_list *target,
+        dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         SkillID skill_num, int skill_lv, int flag);
 
 // 実際にHPを増減
-int battle_damage(struct block_list *bl, struct block_list *target,
+int battle_damage(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         int damage, int flag);
-int battle_heal(struct block_list *bl, struct block_list *target, int hp,
+int battle_heal(dumb_ptr<block_list> bl, dumb_ptr<block_list> target, int hp,
         int sp, int flag);
 
 // 攻撃や移動を止める
-int battle_stopattack(struct block_list *bl);
-int battle_stopwalking(struct block_list *bl, int type);
+int battle_stopattack(dumb_ptr<block_list> bl);
+int battle_stopwalking(dumb_ptr<block_list> bl, int type);
 
 // 通常攻撃処理まとめ
-ATK battle_weapon_attack(struct block_list *bl, struct block_list *target,
+ATK battle_weapon_attack(dumb_ptr<block_list> bl, dumb_ptr<block_list> target,
         tick_t tick);
 
-int battle_is_unarmed(struct block_list *bl);
-int battle_get_class(struct block_list *bl);
-DIR battle_get_dir(struct block_list *bl);
-int battle_get_lv(struct block_list *bl);
-int battle_get_range(struct block_list *bl);
-int battle_get_hp(struct block_list *bl);
-int battle_get_max_hp(struct block_list *bl);
-int battle_get_str(struct block_list *bl);
-int battle_get_agi(struct block_list *bl);
-int battle_get_vit(struct block_list *bl);
-int battle_get_int(struct block_list *bl);
-int battle_get_dex(struct block_list *bl);
-int battle_get_luk(struct block_list *bl);
-int battle_get_def(struct block_list *bl);
-int battle_get_mdef(struct block_list *bl);
-int battle_get_def2(struct block_list *bl);
-int battle_get_mdef2(struct block_list *bl);
-interval_t battle_get_speed(struct block_list *bl);
-interval_t battle_get_adelay(struct block_list *bl);
-interval_t battle_get_amotion(struct block_list *bl);
-interval_t battle_get_dmotion(struct block_list *bl);
-LevelElement battle_get_element(struct block_list *bl);
+int battle_is_unarmed(dumb_ptr<block_list> bl);
+int battle_get_class(dumb_ptr<block_list> bl);
+DIR battle_get_dir(dumb_ptr<block_list> bl);
+int battle_get_lv(dumb_ptr<block_list> bl);
+int battle_get_range(dumb_ptr<block_list> bl);
+int battle_get_hp(dumb_ptr<block_list> bl);
+int battle_get_max_hp(dumb_ptr<block_list> bl);
+int battle_get_str(dumb_ptr<block_list> bl);
+int battle_get_agi(dumb_ptr<block_list> bl);
+int battle_get_vit(dumb_ptr<block_list> bl);
+int battle_get_int(dumb_ptr<block_list> bl);
+int battle_get_dex(dumb_ptr<block_list> bl);
+int battle_get_luk(dumb_ptr<block_list> bl);
+int battle_get_def(dumb_ptr<block_list> bl);
+int battle_get_mdef(dumb_ptr<block_list> bl);
+int battle_get_def2(dumb_ptr<block_list> bl);
+int battle_get_mdef2(dumb_ptr<block_list> bl);
+interval_t battle_get_speed(dumb_ptr<block_list> bl);
+interval_t battle_get_adelay(dumb_ptr<block_list> bl);
+interval_t battle_get_amotion(dumb_ptr<block_list> bl);
+interval_t battle_get_dmotion(dumb_ptr<block_list> bl);
+LevelElement battle_get_element(dumb_ptr<block_list> bl);
 inline
-Element battle_get_elem_type(struct block_list *bl)
+Element battle_get_elem_type(dumb_ptr<block_list> bl)
 {
     return battle_get_element(bl).element;
 }
-int battle_get_party_id(struct block_list *bl);
-Race battle_get_race(struct block_list *bl);
-MobMode battle_get_mode(struct block_list *bl);
-int battle_get_stat(SP stat_id, struct block_list *bl);
+int battle_get_party_id(dumb_ptr<block_list> bl);
+Race battle_get_race(dumb_ptr<block_list> bl);
+MobMode battle_get_mode(dumb_ptr<block_list> bl);
+int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl);
 
-eptr<struct status_change, StatusChange> battle_get_sc_data(struct block_list *bl);
-short *battle_get_sc_count(struct block_list *bl);
-Opt1 *battle_get_opt1(struct block_list *bl);
-Opt2 *battle_get_opt2(struct block_list *bl);
-Opt3 *battle_get_opt3(struct block_list *bl);
-Option *battle_get_option(struct block_list *bl);
+eptr<struct status_change, StatusChange> battle_get_sc_data(dumb_ptr<block_list> bl);
+short *battle_get_sc_count(dumb_ptr<block_list> bl);
+Opt1 *battle_get_opt1(dumb_ptr<block_list> bl);
+Opt2 *battle_get_opt2(dumb_ptr<block_list> bl);
+Opt3 *battle_get_opt3(dumb_ptr<block_list> bl);
+Option *battle_get_option(dumb_ptr<block_list> bl);
 
 bool battle_check_undead(Race race, Element element);
-int battle_check_target(struct block_list *src, struct block_list *target,
+int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         BCT flag);
-int battle_check_range(struct block_list *src, struct block_list *bl,
+int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         int range);
 
 extern struct Battle_Config

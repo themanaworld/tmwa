@@ -47,7 +47,7 @@ void intif_GMmessage(const_string mes, int flag)
 }
 
 // The transmission of Wisp/Page to inter-server (player not found on this server)
-int intif_wis_message(struct map_session_data *sd, const char *nick, const char *mes,
+int intif_wis_message(dumb_ptr<map_session_data> sd, const char *nick, const char *mes,
                        int mes_len)
 {
     nullpo_ret(sd);
@@ -100,7 +100,7 @@ int intif_wis_message_to_gm(const char *Wisp_name, int min_gm_level, const char 
 }
 
 // アカウント変数送信
-int intif_saveaccountreg(struct map_session_data *sd)
+int intif_saveaccountreg(dumb_ptr<map_session_data> sd)
 {
     int j, p;
 
@@ -119,7 +119,7 @@ int intif_saveaccountreg(struct map_session_data *sd)
 }
 
 // アカウント変数要求
-int intif_request_accountreg(struct map_session_data *sd)
+int intif_request_accountreg(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
@@ -151,7 +151,7 @@ int intif_send_storage(struct storage *stor)
 }
 
 // パーティ作成要求
-int intif_create_party(struct map_session_data *sd, const char *name)
+int intif_create_party(dumb_ptr<map_session_data> sd, const char *name)
 {
     nullpo_ret(sd);
 
@@ -181,7 +181,7 @@ int intif_request_partyinfo(int party_id)
 // パーティ追加要求
 int intif_party_addmember(int party_id, int account_id)
 {
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
     sd = map_id2sd(account_id);
 //  if(battle_config.etc_log)
 //      PRINTF("intif: party add member %d %d\n",party_id,account_id);
@@ -223,7 +223,7 @@ int intif_party_leave(int party_id, int account_id)
 }
 
 // パーティ移動要求
-int intif_party_changemap(struct map_session_data *sd, int online)
+int intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
 {
     if (sd != NULL)
     {
@@ -272,7 +272,7 @@ int intif_party_checkconflict(int party_id, int account_id, const char *nick)
 static
 int intif_parse_WisMessage(int fd)
 {                               // rewritten by [Yor]
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
     int i;
 
     if (battle_config.etc_log)
@@ -316,7 +316,7 @@ int intif_parse_WisMessage(int fd)
 static
 int intif_parse_WisEnd(int fd)
 {
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     if (battle_config.etc_log)
         // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
@@ -354,7 +354,7 @@ int mapif_parse_WisToGM(int fd)
     {
         if (!session[i])
             continue;
-        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
             if (pc_isGM(pl_sd) >= min_gm_level)
                 clif_wis_message(i, Wisp_name, message,
@@ -372,7 +372,7 @@ static
 int intif_parse_AccountReg(int fd)
 {
     int j, p;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     if ((sd = map_id2sd(RFIFOL(fd, 4))) == NULL)
         return 1;
@@ -393,7 +393,7 @@ static
 int intif_parse_LoadStorage(int fd)
 {
     struct storage *stor;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     sd = map_id2sd(RFIFOL(fd, 4));
     if (sd == NULL)

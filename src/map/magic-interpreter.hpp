@@ -50,10 +50,12 @@ typedef struct val
         int v_int;
         DIR v_dir;
         char *v_string;
-        entity_t *v_entity;     /* Used ONLY during operation/function invocation; otherwise we use v_int */
+        // can't be dumb_ptr<block_list>
+        block_list *v_entity;     /* Used ONLY during operation/function invocation; otherwise we use v_int */
         area_t *v_area;
         location_t v_location;
-        struct invocation *v_invocation;    /* Used ONLY during operation/function invocation; otherwise we use v_int */
+        // can't be dumb_ptr<invocation>
+        invocation *v_invocation;    /* Used ONLY during operation/function invocation; otherwise we use v_int */
         struct spell *v_spell;
     } v;
     TYPE ty;
@@ -308,10 +310,9 @@ typedef struct status_change_ref
     int bl_id;
 } status_change_ref_t;
 
-typedef struct invocation invocation_t;
 struct invocation : block_list
 {
-    struct invocation *next_invocation; /* used for spells directly associated with a caster: they form a singly-linked list */
+    dumb_ptr<invocation> next_invocation; /* used for spells directly associated with a caster: they form a singly-linked list */
     INVOCATION_FLAG flags;
 
     env_t *env;
@@ -335,6 +336,9 @@ struct invocation : block_list
 
 };
 
+inline dumb_ptr<invocation> block_list::as_spell() { return dumb_ptr<invocation>(static_cast<invocation *>(this)); }
+inline dumb_ptr<invocation> block_list::is_spell() { return bl_type == BL::SPELL ? as_spell() : nullptr; }
+
 extern magic_conf_t magic_conf; /* Global magic conf */
 extern env_t magic_default_env; /* Fake default environment */
 
@@ -349,30 +353,30 @@ teleport_anchor_t *magic_find_anchor(char *name);
  * The parameter `param' must have been dynamically allocated; ownership is transferred to the resultant env_t.
  */
 env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
-        character_t *caster, int spellpower, char *param);
+        dumb_ptr<map_session_data> caster, int spellpower, char *param);
 
 void magic_free_env(env_t *env);
 
 /**
  * near_miss is set to nonzero iff the spell only failed due to ephemereal issues (spell delay in effect, out of mana, out of components)
  */
-effect_set_t *spell_trigger(spell_t *spell, character_t *caster,
+effect_set_t *spell_trigger(spell_t *spell, dumb_ptr<map_session_data> caster,
         env_t *env, int *near_miss);
 
-invocation_t *spell_instantiate(effect_set_t *effect, env_t *env);
+dumb_ptr<invocation> spell_instantiate(effect_set_t *effect, env_t *env);
 
 /**
  * Bind a spell to a subject (this is a no-op for `local' spells).
  */
-void spell_bind(character_t *subject, invocation_t *invocation);
+void spell_bind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocation);
 
 // 1 on failure
-int spell_unbind(character_t *subject, invocation_t *invocation);
+int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocation);
 
 /**
  * Clones a spell to run the at_effect field
  */
-invocation_t *spell_clone_effect(invocation_t *source);
+dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> source);
 
 spell_t *magic_find_spell(char *invocation);
 
@@ -393,6 +397,6 @@ typedef struct
 
 // must be called after itemdb initialisation
 int magic_init(const char *);
-void spell_update_location(invocation_t *invocation);
+void spell_update_location(dumb_ptr<invocation> invocation);
 
 #endif // MAGIC_INTERPRETER_HPP

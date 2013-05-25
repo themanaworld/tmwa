@@ -1,12 +1,12 @@
 #ifndef MAGIC_HPP
 #define MAGIC_HPP
 
+#include "../common/dumb_ptr.hpp"
+
+#include "map.hpp"
 #include "skill.t.hpp"
 
 #define MAGIC_CONFIG_FILE "conf/magic.conf"
-
-typedef struct map_session_data character_t;
-typedef struct block_list entity_t;
 
 struct invocation;              /* Spell invocation */
 
@@ -21,14 +21,14 @@ struct invocation;              /* Spell invocation */
  * \return 1 or -1 if the input message was magic and was handled by this function, 0 otherwise.  -1 is returned when the
  *         message should not be repeated.
  */
-int magic_message(character_t *caster, char *spell, size_t spell_len);
+int magic_message(dumb_ptr<map_session_data> caster, char *spell, size_t spell_len);
 
 /**
  * Removes the shroud from a character
  *
  * \param character The character to remove the shroud from
  */
-void magic_unshroud(character_t *character);
+void magic_unshroud(dumb_ptr<map_session_data> character);
 
 /**
  * Notifies a running spell that a status_change timer triggered by the spell has expired
@@ -63,18 +63,18 @@ const char *magic_find_anchor_invocation(const char *teleport_location);
 /**
  * Execute a spell invocation and sets up timers to finish
  */
-void spell_execute(struct invocation *invocation);
+void spell_execute(dumb_ptr<invocation> invocation);
 
 /**
  * Continue an NPC script embedded in a spell
  */
-void spell_execute_script(struct invocation *invocation);
+void spell_execute_script(dumb_ptr<invocation> invocation);
 
 /**
  * Stops all magic bound to the specified character
  *
  */
-void magic_stop_completely(character_t *c);
+void magic_stop_completely(dumb_ptr<map_session_data> c);
 
 /**
  * Attacks with a magical spell charged to the character
@@ -83,6 +83,6 @@ void magic_stop_completely(character_t *c);
  */
 int spell_attack(int caster, int target);
 
-void spell_free_invocation(struct invocation *invocation);
+void spell_free_invocation(dumb_ptr<invocation> invocation);
 
 #endif // MAGIC_HPP

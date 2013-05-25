@@ -10,7 +10,7 @@
 #undef DEBUG
 
 static
-char *magic_preprocess_message(character_t *character, char *start,
+char *magic_preprocess_message(dumb_ptr<map_session_data> character, char *start,
                                        char *end)
 {
     if (character->state.shroud_active
@@ -56,7 +56,7 @@ char *magic_tokenise(char *src, char **parameter)
     return retval;
 }
 
-int magic_message(character_t *caster, char *spell_, size_t)
+int magic_message(dumb_ptr<map_session_data> caster, char *spell_, size_t)
 {
     if (pc_isdead(caster))
         return 0;
@@ -106,7 +106,7 @@ int magic_message(character_t *caster, char *spell_, size_t)
 
         if (effects)
         {
-            invocation_t *invocation = spell_instantiate(effects, env);
+            dumb_ptr<invocation> invocation = spell_instantiate(effects, env);
 
             spell_bind(caster, invocation);
             spell_execute(invocation);

@@ -75,14 +75,14 @@ void Timer::cancel()
     td->owner = nullptr;
     td->func = do_nothing;
     td->interval = interval_t::zero();
-    td.forget();
+    td = nullptr;
 }
 
 void Timer::detach()
 {
     assert (this == td->owner);
     td->owner = nullptr;
-    td.forget();
+    td = nullptr;
 }
 
 static
@@ -116,7 +116,7 @@ Timer::Timer(tick_t tick, timer_func func, interval_t interval)
 Timer::Timer(Timer&& t)
 : td(t.td)
 {
-    t.td.forget();
+    t.td = nullptr;
     if (td)
     {
         assert (td->owner == &t);

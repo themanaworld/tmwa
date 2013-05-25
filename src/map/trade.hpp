@@ -1,12 +1,14 @@
 #ifndef TRADE_HPP
 #define TRADE_HPP
 
-void trade_traderequest(struct map_session_data *sd, int target_id);
-void trade_tradeack(struct map_session_data *sd, int type);
-void trade_tradeadditem(struct map_session_data *sd, int index, int amount);
-void trade_tradeok(struct map_session_data *sd);
-void trade_tradecancel(struct map_session_data *sd);
-void trade_tradecommit(struct map_session_data *sd);
-void trade_verifyzeny(struct map_session_data *sd);
+#include "map.hpp"
+
+void trade_traderequest(dumb_ptr<map_session_data> sd, int target_id);
+void trade_tradeack(dumb_ptr<map_session_data> sd, int type);
+void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount);
+void trade_tradeok(dumb_ptr<map_session_data> sd);
+void trade_tradecancel(dumb_ptr<map_session_data> sd);
+void trade_tradecommit(dumb_ptr<map_session_data> sd);
+void trade_verifyzeny(dumb_ptr<map_session_data> sd);
 
 #endif // TRADE_HPP

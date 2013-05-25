@@ -40,7 +40,7 @@ constexpr int EMOTE_IGNORED = 0x0e;
 // map.h must be the same length as this table. rate 0 is default
 // rate -1 is unlimited
 
-typedef void (*clif_func)(int fd, struct map_session_data *sd);
+typedef void (*clif_func)(int fd, dumb_ptr<map_session_data> sd);
 struct func_table
 {
     interval_t rate;
@@ -114,8 +114,8 @@ static
 int map_port = 5121;
 
 static
-int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
-                             struct map_session_data *dstsd);
+int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
+                             dumb_ptr<map_session_data> dstsd);
 
 /*==========================================
  * map鯖のip設定
@@ -166,7 +166,7 @@ int clif_countusers(void)
     {
         if (!session[i])
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
         if (sd && sd->state.auth && !(battle_config.hide_GM_session && pc_isGM(sd)))
             users++;
     }
@@ -177,13 +177,13 @@ int clif_countusers(void)
  * 全てのclientに対してfunc()実行
  *------------------------------------------
  */
-int clif_foreachclient(std::function<void (struct map_session_data *)> func)
+int clif_foreachclient(std::function<void (dumb_ptr<map_session_data>)> func)
 {
     for (int i = 0; i < fd_max; i++)
     {
         if (!session[i])
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
         if (sd && sd->state.auth)
             func(sd);
     }
@@ -191,20 +191,20 @@ int clif_foreachclient(std::function<void (struct map_session_data *)> func)
 }
 
 static
-int is_deaf(struct block_list *bl)
+int is_deaf(dumb_ptr<block_list> bl)
 {
-    struct map_session_data *sd = (struct map_session_data *) bl;
     if (!bl || bl->bl_type != BL::PC)
         return 0;
+    dumb_ptr<map_session_data> sd = bl->as_player();
     return sd->special_state.deaf;
 }
 
 static
-void clif_emotion_towards(struct block_list *bl,
-                                  struct block_list *target, int type);
+void clif_emotion_towards(dumb_ptr<block_list> bl,
+                                  dumb_ptr<block_list> target, int type);
 
 static
-char *clif_validate_chat(struct map_session_data *sd, int type,
+char *clif_validate_chat(dumb_ptr<map_session_data> sd, int type,
         const char **message, size_t *message_len);
 
 /*==========================================
@@ -212,11 +212,11 @@ char *clif_validate_chat(struct map_session_data *sd, int type,
  *------------------------------------------
  */
 static
-void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
-        struct block_list *src_bl, SendWho type)
+void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
+        dumb_ptr<block_list> src_bl, SendWho type)
 {
     nullpo_retv(bl);
-    struct map_session_data *sd = (struct map_session_data *) bl;
+    dumb_ptr<map_session_data> sd = bl->as_player();
 
     switch (type)
     {
@@ -228,7 +228,7 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
         case SendWho::AREA_CHAT_WOC:
             if (is_deaf(bl)
                 && !(bl->bl_type == BL::PC
-                     && pc_isGM((struct map_session_data *) src_bl)))
+                     && pc_isGM(src_bl->as_player())))
             {
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
                 return;
@@ -266,7 +266,7 @@ void clif_send_sub(struct block_list *bl, const unsigned char *buf, int len,
  *------------------------------------------
  */
 static
-int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
+int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type)
 {
     struct party *p = NULL;
     int x0 = 0, x1 = 0, y0 = 0, y1 = 0;
@@ -277,7 +277,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
 
         if (bl->bl_type == BL::PC)
         {
-            struct map_session_data *sd2 = (struct map_session_data *) bl;
+            dumb_ptr<map_session_data> sd2 = bl->as_player();
             if (bool(sd2->status.option & Option::INVISIBILITY))
             {
                 // Obscure hidden GMs
@@ -305,7 +305,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             {
                 if (!session[i])
                     continue;
-                map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
                 if (sd && sd->state.auth)
                 {
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
@@ -322,7 +322,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             {
                 if (!session[i])
                     continue;
-                map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
                 if (sd && sd->state.auth && sd->bl_m == bl->bl_m)
                 {
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
@@ -359,7 +359,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
         case SendWho::PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
             if (bl->bl_type == BL::PC)
             {
-                struct map_session_data *sd = (struct map_session_data *) bl;
+                dumb_ptr<map_session_data> sd = bl->as_player();
                 if (sd->partyspy > 0)
                 {
                     p = party_search(sd->partyspy);
@@ -374,7 +374,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             {
                 for (int i = 0; i < MAX_PARTY; i++)
                 {
-                    struct map_session_data *sd =  p->member[i].sd;
+                    dumb_ptr<map_session_data> sd =  dumb_ptr<map_session_data>(p->member[i].sd);
                     if (sd)
                     {
                         if (sd->bl_id == bl->bl_id && (type == SendWho::PARTY_WOS ||
@@ -399,7 +399,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
                 {
                     if (!session[i])
                         continue;
-                    map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+                    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
                     if (sd && sd->state.auth)
                     {
                         if (sd->partyspy == p->party_id)
@@ -417,7 +417,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
             break;
         case SendWho::SELF:
         {
-            map_session_data *sd = (struct map_session_data *) bl;
+            dumb_ptr<map_session_data> sd = bl->as_player();
             if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {
                 // packet must exist
@@ -443,7 +443,7 @@ int clif_send(const uint8_t *buf, int len, struct block_list *bl, SendWho type)
  *
  *------------------------------------------
  */
-int clif_authok(struct map_session_data *sd)
+int clif_authok(dumb_ptr<map_session_data> sd)
 {
     int fd;
 
@@ -491,7 +491,7 @@ int clif_authfail_fd(int fd, int type)
  */
 int clif_charselectok(int id)
 {
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
     int fd;
 
     if ((sd = map_id2sd(id)) == NULL)
@@ -513,7 +513,7 @@ int clif_charselectok(int id)
  *------------------------------------------
  */
 static
-int clif_set009e(struct flooritem_data *fitem, uint8_t *buf)
+int clif_set009e(dumb_ptr<flooritem_data> fitem, uint8_t *buf)
 {
     int view;
 
@@ -540,7 +540,7 @@ int clif_set009e(struct flooritem_data *fitem, uint8_t *buf)
  *
  *------------------------------------------
  */
-int clif_dropflooritem(struct flooritem_data *fitem)
+int clif_dropflooritem(dumb_ptr<flooritem_data> fitem)
 {
     uint8_t buf[64];
 
@@ -558,7 +558,7 @@ int clif_dropflooritem(struct flooritem_data *fitem)
  *
  *------------------------------------------
  */
-int clif_clearflooritem(struct flooritem_data *fitem, int fd)
+int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, int fd)
 {
     unsigned char buf[16];
 
@@ -584,7 +584,7 @@ int clif_clearflooritem(struct flooritem_data *fitem, int fd)
  *
  *------------------------------------------
  */
-int clif_clearchar(struct block_list *bl, BeingRemoveWhy type)
+int clif_clearchar(dumb_ptr<block_list> bl, BeingRemoveWhy type)
 {
     unsigned char buf[16];
 
@@ -609,19 +609,27 @@ int clif_clearchar(struct block_list *bl, BeingRemoveWhy type)
 
 static
 void clif_clearchar_delay_sub(TimerData *, tick_t,
-        struct block_list *bl, BeingRemoveWhy type)
+        dumb_ptr<block_list> bl, BeingRemoveWhy type)
 {
     clif_clearchar(bl, type);
     MapBlockLock::freeblock(bl);
 }
 
 int clif_clearchar_delay(tick_t tick,
-        struct block_list *bl, BeingRemoveWhy type)
+        dumb_ptr<block_list> bl, BeingRemoveWhy type)
 {
-    struct block_list *tmpbl;
-    CREATE(tmpbl, struct block_list, 1);
+    dumb_ptr<block_list> tmpbl;
+    tmpbl.new_();
 
-    memcpy(tmpbl, bl, sizeof(struct block_list));
+    // yikes!
+    tmpbl->bl_next = bl->bl_next;
+    tmpbl->bl_prev = bl->bl_prev;
+    tmpbl->bl_id = bl->bl_id;
+    tmpbl->bl_m = bl->bl_m;
+    tmpbl->bl_x = bl->bl_x;
+    tmpbl->bl_y = bl->bl_y;
+    tmpbl->bl_type = bl->bl_type;
+
     Timer(tick,
             std::bind(clif_clearchar_delay_sub, ph::_1, ph::_2,
                 tmpbl, type)
@@ -652,7 +660,7 @@ int clif_clearchar_id(int id, BeingRemoveWhy type, int fd)
  *------------------------------------------
  */
 static
-int clif_set0078(struct map_session_data *sd, unsigned char *buf)
+int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
 {
     nullpo_ret(sd);
 
@@ -720,7 +728,7 @@ int clif_set0078(struct map_session_data *sd, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_set007b(struct map_session_data *sd, unsigned char *buf)
+int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
 {
     nullpo_ret(sd);
 
@@ -779,7 +787,7 @@ int clif_set007b(struct map_session_data *sd, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_mob0078(struct mob_data *md, unsigned char *buf)
+int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
 {
     int level;
 
@@ -814,7 +822,7 @@ int clif_mob0078(struct mob_data *md, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_mob007b(struct mob_data *md, unsigned char *buf)
+int clif_mob007b(dumb_ptr<mob_data> md, unsigned char *buf)
 {
     int level;
 
@@ -848,7 +856,7 @@ int clif_mob007b(struct mob_data *md, unsigned char *buf)
  *------------------------------------------
  */
 static
-int clif_npc0078(struct npc_data *nd, unsigned char *buf)
+int clif_npc0078(dumb_ptr<npc_data> nd, unsigned char *buf)
 {
     nullpo_ret(nd);
 
@@ -892,7 +900,7 @@ earray<EQUIP, LOOK, LOOK::COUNT> equip_points //=
  *
  *------------------------------------------
  */
-int clif_spawnpc(struct map_session_data *sd)
+int clif_spawnpc(dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[128];
 
@@ -924,7 +932,7 @@ int clif_spawnpc(struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int clif_spawnnpc(struct npc_data *nd)
+int clif_spawnnpc(dumb_ptr<npc_data> nd)
 {
     unsigned char buf[64];
     int len;
@@ -950,7 +958,7 @@ int clif_spawnnpc(struct npc_data *nd)
     return 0;
 }
 
-int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
+int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd, int fake_npc_id)
 {
     int fd;
 
@@ -991,7 +999,7 @@ int clif_spawn_fake_npc_for_player(struct map_session_data *sd, int fake_npc_id)
  *
  *------------------------------------------
  */
-int clif_spawnmob(struct mob_data *md)
+int clif_spawnmob(dumb_ptr<mob_data> md)
 {
     unsigned char buf[64];
     int len;
@@ -1023,7 +1031,7 @@ int clif_spawnmob(struct mob_data *md)
  *------------------------------------------
  */
 static
-int clif_servertick(struct map_session_data *sd)
+int clif_servertick(dumb_ptr<map_session_data> sd)
 {
     int fd;
 
@@ -1041,7 +1049,7 @@ int clif_servertick(struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int clif_walkok(struct map_session_data *sd)
+int clif_walkok(dumb_ptr<map_session_data> sd)
 {
     int fd;
 
@@ -1061,7 +1069,7 @@ int clif_walkok(struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int clif_movechar(struct map_session_data *sd)
+int clif_movechar(dumb_ptr<map_session_data> sd)
 {
     int len;
     unsigned char buf[256];
@@ -1084,7 +1092,7 @@ int clif_movechar(struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_quitsave(int, struct map_session_data *sd)
+void clif_quitsave(int, dumb_ptr<map_session_data> sd)
 {
     map_quit(sd);
 }
@@ -1118,7 +1126,7 @@ void clif_setwaitclose(int fd)
  *
  *------------------------------------------
  */
-int clif_changemap(struct map_session_data *sd, const char *mapname, int x, int y)
+int clif_changemap(dumb_ptr<map_session_data> sd, const char *mapname, int x, int y)
 {
     int fd;
 
@@ -1139,7 +1147,7 @@ int clif_changemap(struct map_session_data *sd, const char *mapname, int x, int 
  *
  *------------------------------------------
  */
-int clif_changemapserver(struct map_session_data *sd, const char *mapname, int x,
+int clif_changemapserver(dumb_ptr<map_session_data> sd, const char *mapname, int x,
                           int y, struct in_addr ip, int port)
 {
     int fd;
@@ -1162,7 +1170,7 @@ int clif_changemapserver(struct map_session_data *sd, const char *mapname, int x
  *
  *------------------------------------------
  */
-int clif_fixpos(struct block_list *bl)
+int clif_fixpos(dumb_ptr<block_list> bl)
 {
     uint8_t buf[16];
 
@@ -1182,7 +1190,7 @@ int clif_fixpos(struct block_list *bl)
  *
  *------------------------------------------
  */
-int clif_npcbuysell(struct map_session_data *sd, int id)
+int clif_npcbuysell(dumb_ptr<map_session_data> sd, int id)
 {
     int fd;
 
@@ -1200,7 +1208,7 @@ int clif_npcbuysell(struct map_session_data *sd, int id)
  *
  *------------------------------------------
  */
-int clif_buylist(struct map_session_data *sd, struct npc_data *nd)
+int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
 {
     struct item_data *id;
     int fd, i, val;
@@ -1210,17 +1218,17 @@ int clif_buylist(struct map_session_data *sd, struct npc_data *nd)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xc6;
-    for (i = 0; nd->u.shop_item[i].nameid > 0; i++)
+    for (i = 0; i < nd->shop_items.size(); i++)
     {
-        id = itemdb_search(nd->u.shop_item[i].nameid);
-        val = nd->u.shop_item[i].value;
+        id = itemdb_search(nd->shop_items[i].nameid);
+        val = nd->shop_items[i].value;
         WFIFOL(fd, 4 + i * 11) = val; // base price
         WFIFOL(fd, 8 + i * 11) = val; // actual price
         WFIFOB(fd, 12 + i * 11) = uint8_t(id->type);
         if (id->view_id > 0)
             WFIFOW(fd, 13 + i * 11) = id->view_id;
         else
-            WFIFOW(fd, 13 + i * 11) = nd->u.shop_item[i].nameid;
+            WFIFOW(fd, 13 + i * 11) = nd->shop_items[i].nameid;
     }
     WFIFOW(fd, 2) = i * 11 + 4;
     WFIFOSET(fd, WFIFOW(fd, 2));
@@ -1232,7 +1240,7 @@ int clif_buylist(struct map_session_data *sd, struct npc_data *nd)
  *
  *------------------------------------------
  */
-int clif_selllist(struct map_session_data *sd)
+int clif_selllist(dumb_ptr<map_session_data> sd)
 {
     int fd, i, c = 0, val;
 
@@ -1263,7 +1271,7 @@ int clif_selllist(struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int clif_scriptmes(struct map_session_data *sd, int npcid, const char *mes)
+int clif_scriptmes(dumb_ptr<map_session_data> sd, int npcid, const char *mes)
 {
     int fd;
 
@@ -1283,7 +1291,7 @@ int clif_scriptmes(struct map_session_data *sd, int npcid, const char *mes)
  *
  *------------------------------------------
  */
-int clif_scriptnext(struct map_session_data *sd, int npcid)
+int clif_scriptnext(dumb_ptr<map_session_data> sd, int npcid)
 {
     int fd;
 
@@ -1301,7 +1309,7 @@ int clif_scriptnext(struct map_session_data *sd, int npcid)
  *
  *------------------------------------------
  */
-int clif_scriptclose(struct map_session_data *sd, int npcid)
+int clif_scriptclose(dumb_ptr<map_session_data> sd, int npcid)
 {
     int fd;
 
@@ -1319,7 +1327,7 @@ int clif_scriptclose(struct map_session_data *sd, int npcid)
  *
  *------------------------------------------
  */
-int clif_scriptmenu(struct map_session_data *sd, int npcid, const char *mes)
+int clif_scriptmenu(dumb_ptr<map_session_data> sd, int npcid, const char *mes)
 {
     int fd;
 
@@ -1339,7 +1347,7 @@ int clif_scriptmenu(struct map_session_data *sd, int npcid, const char *mes)
  *
  *------------------------------------------
  */
-int clif_scriptinput(struct map_session_data *sd, int npcid)
+int clif_scriptinput(dumb_ptr<map_session_data> sd, int npcid)
 {
     int fd;
 
@@ -1357,7 +1365,7 @@ int clif_scriptinput(struct map_session_data *sd, int npcid)
  *
  *------------------------------------------
  */
-int clif_scriptinputstr(struct map_session_data *sd, int npcid)
+int clif_scriptinputstr(dumb_ptr<map_session_data> sd, int npcid)
 {
     int fd;
 
@@ -1375,7 +1383,7 @@ int clif_scriptinputstr(struct map_session_data *sd, int npcid)
  *
  *------------------------------------------
  */
-int clif_viewpoint(struct map_session_data *sd, int npc_id, int type, int x,
+int clif_viewpoint(dumb_ptr<map_session_data> sd, int npc_id, int type, int x,
                     int y, int id, int color)
 {
     int fd;
@@ -1399,7 +1407,7 @@ int clif_viewpoint(struct map_session_data *sd, int npc_id, int type, int x,
  *
  *------------------------------------------
  */
-int clif_cutin(struct map_session_data *sd, const char *image, int type)
+int clif_cutin(dumb_ptr<map_session_data> sd, const char *image, int type)
 {
     int fd;
 
@@ -1418,7 +1426,7 @@ int clif_cutin(struct map_session_data *sd, const char *image, int type)
  *
  *------------------------------------------
  */
-int clif_additem(struct map_session_data *sd, int n, int amount, PickupFail fail)
+int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fail)
 {
     nullpo_ret(sd);
 
@@ -1507,7 +1515,7 @@ int clif_additem(struct map_session_data *sd, int n, int amount, PickupFail fail
  *
  *------------------------------------------
  */
-int clif_delitem(struct map_session_data *sd, int n, int amount)
+int clif_delitem(dumb_ptr<map_session_data> sd, int n, int amount)
 {
     int fd;
 
@@ -1527,7 +1535,7 @@ int clif_delitem(struct map_session_data *sd, int n, int amount)
  *
  *------------------------------------------
  */
-int clif_itemlist(struct map_session_data *sd)
+int clif_itemlist(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
@@ -1577,7 +1585,7 @@ int clif_itemlist(struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int clif_equiplist(struct map_session_data *sd)
+int clif_equiplist(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
@@ -1654,7 +1662,7 @@ int clif_equiplist(struct map_session_data *sd)
  * カプラさんに預けてある消耗品&収集品リスト
  *------------------------------------------
  */
-int clif_storageitemlist(struct map_session_data *sd, struct storage *stor)
+int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
 {
     nullpo_ret(sd);
     nullpo_ret(stor);
@@ -1700,7 +1708,7 @@ int clif_storageitemlist(struct map_session_data *sd, struct storage *stor)
  * カプラさんに預けてある装備リスト
  *------------------------------------------
  */
-int clif_storageequiplist(struct map_session_data *sd, struct storage *stor)
+int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
 {
     nullpo_ret(sd);
     nullpo_ret(stor);
@@ -1780,7 +1788,7 @@ int clif_storageequiplist(struct map_session_data *sd, struct storage *stor)
  * 表示専用数字はこの中で計算して送る
  *------------------------------------------
  */
-int clif_updatestatus(struct map_session_data *sd, SP type)
+int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
 {
     int fd, len = 8;
 
@@ -1951,21 +1959,21 @@ int clif_updatestatus(struct map_session_data *sd, SP type)
  *
  *------------------------------------------
  */
-int clif_changelook(struct block_list *bl, LOOK type, int val)
+int clif_changelook(dumb_ptr<block_list> bl, LOOK type, int val)
 {
     return clif_changelook_towards(bl, type, val, NULL);
 }
 
-int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
-                             struct map_session_data *dstsd)
+int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
+                             dumb_ptr<map_session_data> dstsd)
 {
     unsigned char buf[32];
-    struct map_session_data *sd = NULL;
+    dumb_ptr<map_session_data> sd = NULL;
 
     nullpo_ret(bl);
 
     if (bl->bl_type == BL::PC)
-        sd = (struct map_session_data *) bl;
+        sd = bl->as_player();
 
     if (sd && bool(sd->status.option & Option::INVISIBILITY))
         return 0;
@@ -2056,7 +2064,7 @@ int clif_changelook_towards(struct block_list *bl, LOOK type, int val,
  *------------------------------------------
  */
 static
-int clif_initialstatus(struct map_session_data *sd)
+int clif_initialstatus(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
@@ -2112,7 +2120,7 @@ int clif_initialstatus(struct map_session_data *sd)
  *矢装備
  *------------------------------------------
  */
-int clif_arrowequip(struct map_session_data *sd, int val)
+int clif_arrowequip(dumb_ptr<map_session_data> sd, int val)
 {
     int fd;
 
@@ -2134,7 +2142,7 @@ int clif_arrowequip(struct map_session_data *sd, int val)
  *
  *------------------------------------------
  */
-int clif_arrow_fail(struct map_session_data *sd, int type)
+int clif_arrow_fail(dumb_ptr<map_session_data> sd, int type)
 {
     int fd;
 
@@ -2153,7 +2161,7 @@ int clif_arrow_fail(struct map_session_data *sd, int type)
  *
  *------------------------------------------
  */
-int clif_statusupack(struct map_session_data *sd, SP type, int ok, int val)
+int clif_statusupack(dumb_ptr<map_session_data> sd, SP type, int ok, int val)
 {
     int fd;
 
@@ -2173,7 +2181,7 @@ int clif_statusupack(struct map_session_data *sd, SP type, int ok, int val)
  *
  *------------------------------------------
  */
-int clif_equipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
+int clif_equipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
 {
     int fd;
 
@@ -2193,7 +2201,7 @@ int clif_equipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
  *
  *------------------------------------------
  */
-int clif_unequipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
+int clif_unequipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
 {
     int fd;
 
@@ -2213,7 +2221,7 @@ int clif_unequipitemack(struct map_session_data *sd, int n, EPOS pos, int ok)
  *
  *------------------------------------------
  */
-int clif_misceffect(struct block_list *bl, int type)
+int clif_misceffect(dumb_ptr<block_list> bl, int type)
 {
     uint8_t buf[32];
 
@@ -2232,7 +2240,7 @@ int clif_misceffect(struct block_list *bl, int type)
  * 表示オプション変更
  *------------------------------------------
  */
-int clif_changeoption(struct block_list *bl)
+int clif_changeoption(dumb_ptr<block_list> bl)
 {
     uint8_t buf[32];
     eptr<struct status_change, StatusChange> sc_data;
@@ -2258,7 +2266,7 @@ int clif_changeoption(struct block_list *bl)
  *
  *------------------------------------------
  */
-int clif_useitemack(struct map_session_data *sd, int index, int amount,
+int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
                      int ok)
 {
     nullpo_ret(sd);
@@ -2296,7 +2304,7 @@ int clif_useitemack(struct map_session_data *sd, int index, int amount,
  * 取り引き要請受け
  *------------------------------------------
  */
-int clif_traderequest(struct map_session_data *sd, const char *name)
+int clif_traderequest(dumb_ptr<map_session_data> sd, const char *name)
 {
     int fd;
 
@@ -2314,7 +2322,7 @@ int clif_traderequest(struct map_session_data *sd, const char *name)
  * 取り引き要求応答
  *------------------------------------------
  */
-int clif_tradestart(struct map_session_data *sd, int type)
+int clif_tradestart(dumb_ptr<map_session_data> sd, int type)
 {
     int fd;
 
@@ -2332,8 +2340,8 @@ int clif_tradestart(struct map_session_data *sd, int type)
  * 相手方からのアイテム追加
  *------------------------------------------
  */
-int clif_tradeadditem(struct map_session_data *sd,
-                       struct map_session_data *tsd, int index, int amount)
+int clif_tradeadditem(dumb_ptr<map_session_data> sd,
+                       dumb_ptr<map_session_data> tsd, int index, int amount)
 {
     int fd, j;
 
@@ -2414,7 +2422,7 @@ int clif_tradeadditem(struct map_session_data *sd,
  * アイテム追加成功/失敗
  *------------------------------------------
  */
-int clif_tradeitemok(struct map_session_data *sd, int index, int amount,
+int clif_tradeitemok(dumb_ptr<map_session_data> sd, int index, int amount,
                       int fail)
 {
     int fd;
@@ -2435,7 +2443,7 @@ int clif_tradeitemok(struct map_session_data *sd, int index, int amount,
  * 取り引きok押し
  *------------------------------------------
  */
-int clif_tradedeal_lock(struct map_session_data *sd, int fail)
+int clif_tradedeal_lock(dumb_ptr<map_session_data> sd, int fail)
 {
     int fd;
 
@@ -2453,7 +2461,7 @@ int clif_tradedeal_lock(struct map_session_data *sd, int fail)
  * 取り引きがキャンセルされました
  *------------------------------------------
  */
-int clif_tradecancelled(struct map_session_data *sd)
+int clif_tradecancelled(dumb_ptr<map_session_data> sd)
 {
     int fd;
 
@@ -2470,7 +2478,7 @@ int clif_tradecancelled(struct map_session_data *sd)
  * 取り引き完了
  *------------------------------------------
  */
-int clif_tradecompleted(struct map_session_data *sd, int fail)
+int clif_tradecompleted(dumb_ptr<map_session_data> sd, int fail)
 {
     int fd;
 
@@ -2488,7 +2496,7 @@ int clif_tradecompleted(struct map_session_data *sd, int fail)
  * カプラ倉庫のアイテム数を更新
  *------------------------------------------
  */
-int clif_updatestorageamount(struct map_session_data *sd,
+int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
                               struct storage *stor)
 {
     int fd;
@@ -2509,7 +2517,7 @@ int clif_updatestorageamount(struct map_session_data *sd,
  * カプラ倉庫にアイテムを追加する
  *------------------------------------------
  */
-int clif_storageitemadded(struct map_session_data *sd, struct storage *stor,
+int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
                            int index, int amount)
 {
     int fd, j;
@@ -2572,7 +2580,7 @@ int clif_storageitemadded(struct map_session_data *sd, struct storage *stor,
  * カプラ倉庫からアイテムを取り去る
  *------------------------------------------
  */
-int clif_storageitemremoved(struct map_session_data *sd, int index,
+int clif_storageitemremoved(dumb_ptr<map_session_data> sd, int index,
                              int amount)
 {
     int fd;
@@ -2592,7 +2600,7 @@ int clif_storageitemremoved(struct map_session_data *sd, int index,
  * カプラ倉庫を閉じる
  *------------------------------------------
  */
-int clif_storageclose(struct map_session_data *sd)
+int clif_storageclose(dumb_ptr<map_session_data> sd)
 {
     int fd;
 
@@ -2605,8 +2613,8 @@ int clif_storageclose(struct map_session_data *sd)
     return 0;
 }
 
-void clif_changelook_accessories(struct block_list *bl,
-                             struct map_session_data *dest)
+void clif_changelook_accessories(dumb_ptr<block_list> bl,
+                             dumb_ptr<map_session_data> dest)
 {
     for (LOOK i = LOOK::SHOES; i < LOOK::COUNT; i = LOOK(uint8_t(i) + 1))
         clif_changelook_towards(bl, i, 0, dest);
@@ -2620,8 +2628,8 @@ void clif_changelook_accessories(struct block_list *bl,
  *------------------------------------------
  */
 static
-void clif_getareachar_pc(struct map_session_data *sd,
-                          struct map_session_data *dstsd)
+void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
+                          dumb_ptr<map_session_data> dstsd)
 {
     int len;
 
@@ -2655,7 +2663,7 @@ void clif_getareachar_pc(struct map_session_data *sd,
  *------------------------------------------
  */
 static
-void clif_getareachar_npc(struct map_session_data *sd, struct npc_data *nd)
+void clif_getareachar_npc(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data> nd)
 {
     int len;
 
@@ -2673,7 +2681,7 @@ void clif_getareachar_npc(struct map_session_data *sd, struct npc_data *nd)
  * 移動停止
  *------------------------------------------
  */
-int clif_movemob(struct mob_data *md)
+int clif_movemob(dumb_ptr<mob_data> md)
 {
     unsigned char buf[256];
     int len;
@@ -2690,7 +2698,7 @@ int clif_movemob(struct mob_data *md)
  * モンスターの位置修正
  *------------------------------------------
  */
-int clif_fixmobpos(struct mob_data *md)
+int clif_fixmobpos(dumb_ptr<mob_data> md)
 {
     unsigned char buf[256];
     int len;
@@ -2715,7 +2723,7 @@ int clif_fixmobpos(struct mob_data *md)
  * PCの位置修正
  *------------------------------------------
  */
-int clif_fixpcpos(struct map_session_data *sd)
+int clif_fixpcpos(dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[256];
     int len;
@@ -2741,7 +2749,7 @@ int clif_fixpcpos(struct map_session_data *sd)
  * 通常攻撃エフェクト＆ダメージ
  *------------------------------------------
  */
-int clif_damage(struct block_list *src, struct block_list *dst,
+int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, DamageType type, int damage2)
 {
@@ -2773,7 +2781,7 @@ int clif_damage(struct block_list *src, struct block_list *dst,
  *------------------------------------------
  */
 static
-void clif_getareachar_mob(struct map_session_data *sd, struct mob_data *md)
+void clif_getareachar_mob(dumb_ptr<map_session_data> sd, dumb_ptr<mob_data> md)
 {
     int len;
     nullpo_retv(sd);
@@ -2796,8 +2804,8 @@ void clif_getareachar_mob(struct map_session_data *sd, struct mob_data *md)
  *------------------------------------------
  */
 static
-void clif_getareachar_item(struct map_session_data *sd,
-                            struct flooritem_data *fitem)
+void clif_getareachar_item(dumb_ptr<map_session_data> sd,
+                            dumb_ptr<flooritem_data> fitem)
 {
     int view, fd;
 
@@ -2827,25 +2835,25 @@ void clif_getareachar_item(struct map_session_data *sd,
  *------------------------------------------
  */
 static
-void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
+void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(bl);
 
     switch (bl->bl_type)
     {
         case BL::PC:
-            if (sd == (struct map_session_data *) bl)
+            if (sd == bl->as_player())
                 break;
-            clif_getareachar_pc(sd, (struct map_session_data *) bl);
+            clif_getareachar_pc(sd, bl->as_player());
             break;
         case BL::NPC:
-            clif_getareachar_npc(sd, (struct npc_data *) bl);
+            clif_getareachar_npc(sd, bl->as_npc());
             break;
         case BL::MOB:
-            clif_getareachar_mob(sd, (struct mob_data *) bl);
+            clif_getareachar_mob(sd, bl->as_mob());
             break;
         case BL::ITEM:
-            clif_getareachar_item(sd, (struct flooritem_data *) bl);
+            clif_getareachar_item(sd, bl->as_item());
             break;
         default:
             if (battle_config.error_log)
@@ -2859,9 +2867,9 @@ void clif_getareachar(struct block_list *bl, struct map_session_data *sd)
  *
  *------------------------------------------
  */
-void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
+void clif_pcoutsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
 {
-    struct map_session_data *dstsd;
+    dumb_ptr<map_session_data> dstsd;
 
     nullpo_retv(bl);
     nullpo_retv(sd);
@@ -2869,7 +2877,7 @@ void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
     switch (bl->bl_type)
     {
         case BL::PC:
-            dstsd = (struct map_session_data *) bl;
+            dstsd = bl->as_player();
             if (sd != dstsd)
             {
                 clif_clearchar_id(dstsd->bl_id, BeingRemoveWhy::GONE, sd->fd);
@@ -2877,14 +2885,14 @@ void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
             }
             break;
         case BL::NPC:
-            if (((struct npc_data *) bl)->npc_class != INVISIBLE_CLASS)
+            if (bl->as_npc()->npc_class != INVISIBLE_CLASS)
                 clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->fd);
             break;
         case BL::MOB:
             clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->fd);
             break;
         case BL::ITEM:
-            clif_clearflooritem((struct flooritem_data *) bl, sd->fd);
+            clif_clearflooritem(bl->as_item(), sd->fd);
             break;
     }
 }
@@ -2893,9 +2901,9 @@ void clif_pcoutsight(struct block_list *bl, struct map_session_data *sd)
  *
  *------------------------------------------
  */
-void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
+void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
 {
-    struct map_session_data *dstsd;
+    dumb_ptr<map_session_data> dstsd;
 
     nullpo_retv(bl);
     nullpo_retv(sd);
@@ -2903,7 +2911,7 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
     switch (bl->bl_type)
     {
         case BL::PC:
-            dstsd = (struct map_session_data *) bl;
+            dstsd = bl->as_player();
             if (sd != dstsd)
             {
                 clif_getareachar_pc(sd, dstsd);
@@ -2911,13 +2919,13 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
             }
             break;
         case BL::NPC:
-            clif_getareachar_npc(sd, (struct npc_data *) bl);
+            clif_getareachar_npc(sd, bl->as_npc());
             break;
         case BL::MOB:
-            clif_getareachar_mob(sd, (struct mob_data *) bl);
+            clif_getareachar_mob(sd, bl->as_mob());
             break;
         case BL::ITEM:
-            clif_getareachar_item(sd, (struct flooritem_data *) bl);
+            clif_getareachar_item(sd, bl->as_item());
             break;
     }
 }
@@ -2926,15 +2934,16 @@ void clif_pcinsight(struct block_list *bl, struct map_session_data *sd)
  *
  *------------------------------------------
  */
-void clif_moboutsight(struct block_list *bl, struct mob_data *md)
+void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
 {
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     nullpo_retv(bl);
     nullpo_retv(md);
 
-    if (bl->bl_type == BL::PC && (sd = (struct map_session_data *) bl))
+    if (bl->bl_type == BL::PC)
     {
+        sd = bl->as_player();
         clif_clearchar_id(md->bl_id, BeingRemoveWhy::GONE, sd->fd);
     }
 }
@@ -2943,15 +2952,16 @@ void clif_moboutsight(struct block_list *bl, struct mob_data *md)
  *
  *------------------------------------------
  */
-void clif_mobinsight(struct block_list *bl, struct mob_data *md)
+void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
 {
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     nullpo_retv(bl);
     nullpo_retv(md);
 
-    if (bl->bl_type == BL::PC && (sd = (struct map_session_data *) bl))
+    if (bl->bl_type == BL::PC)
     {
+        sd = bl->as_player();
         clif_getareachar_mob(sd, md);
     }
 }
@@ -2960,7 +2970,7 @@ void clif_mobinsight(struct block_list *bl, struct mob_data *md)
  *
  *------------------------------------------
  */
-int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
+int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
                     int range)
 {
     int fd;
@@ -2999,7 +3009,7 @@ int clif_skillinfo(struct map_session_data *sd, SkillID skillid, int type,
  * スキルリストを送信する
  *------------------------------------------
  */
-int clif_skillinfoblock(struct map_session_data *sd)
+int clif_skillinfoblock(dumb_ptr<map_session_data> sd)
 {
     int fd;
     int len = 4, range;
@@ -3039,7 +3049,7 @@ int clif_skillinfoblock(struct map_session_data *sd)
  * スキル割り振り通知
  *------------------------------------------
  */
-int clif_skillup(struct map_session_data *sd, SkillID skill_num)
+int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
 {
     int range, fd;
 
@@ -3064,7 +3074,7 @@ int clif_skillup(struct map_session_data *sd, SkillID skill_num)
  *
  *------------------------------------------
  */
-int clif_skillcastcancel(struct block_list *bl)
+int clif_skillcastcancel(dumb_ptr<block_list> bl)
 {
     unsigned char buf[16];
 
@@ -3081,7 +3091,7 @@ int clif_skillcastcancel(struct block_list *bl)
  * スキル詠唱失敗
  *------------------------------------------
  */
-int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
+int clif_skill_fail(dumb_ptr<map_session_data> sd, SkillID skill_id, int type,
                      int btype)
 {
     int fd;
@@ -3110,7 +3120,7 @@ int clif_skill_fail(struct map_session_data *sd, SkillID skill_id, int type,
  * スキル攻撃エフェクト＆ダメージ
  *------------------------------------------
  */
-int clif_skill_damage(struct block_list *src, struct block_list *dst,
+int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         tick_t tick, interval_t sdelay, interval_t ddelay, int damage,
         int div, SkillID skill_id, int skill_lv, int type)
 {
@@ -3142,7 +3152,7 @@ int clif_skill_damage(struct block_list *src, struct block_list *dst,
  * 状態異常アイコン/メッセージ表示
  *------------------------------------------
  */
-int clif_status_change(struct block_list *bl, StatusChange type, int flag)
+int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
 {
     unsigned char buf[16];
 
@@ -3177,7 +3187,7 @@ void clif_displaymessage(int fd, const_string mes)
  * 天の声を送信する
  *------------------------------------------
  */
-void clif_GMmessage(struct block_list *bl, const_string mes, int flag)
+void clif_GMmessage(dumb_ptr<block_list> bl, const_string mes, int flag)
 {
     unsigned char buf[mes.size() + 16];
     int lp = (flag & 0x10) ? 8 : 4;
@@ -3199,7 +3209,7 @@ void clif_GMmessage(struct block_list *bl, const_string mes, int flag)
  * 復活する
  *------------------------------------------
  */
-int clif_resurrection(struct block_list *bl, int type)
+int clif_resurrection(dumb_ptr<block_list> bl, int type)
 {
     unsigned char buf[16];
 
@@ -3252,7 +3262,7 @@ int clif_wis_end(int fd, int flag) // R 0098 <type>.B: 0: success to send wisper
  *  2 The character is already in a party.
  *------------------------------------------
  */
-int clif_party_created(struct map_session_data *sd, int flag)
+int clif_party_created(dumb_ptr<map_session_data> sd, int flag)
 {
     int fd;
 
@@ -3273,7 +3283,7 @@ int clif_party_info(struct party *p, int fd)
 {
     unsigned char buf[1024];
     int i, c;
-    struct map_session_data *sd = NULL;
+    dumb_ptr<map_session_data> sd = NULL;
 
     nullpo_ret(p);
 
@@ -3285,7 +3295,7 @@ int clif_party_info(struct party *p, int fd)
         if (m->account_id > 0)
         {
             if (sd == NULL)
-                sd = m->sd;
+                sd = dumb_ptr<map_session_data>(m->sd);
             WBUFL(buf, 28 + c * 46) = m->account_id;
             memcpy(WBUFP(buf, 28 + c * 46 + 4), m->name, 24);
             memcpy(WBUFP(buf, 28 + c * 46 + 28), m->map, 16);
@@ -3313,8 +3323,8 @@ int clif_party_info(struct party *p, int fd)
  * (R 00fe <sender_ID>.l <party_name>.24B)
  *------------------------------------------
  */
-int clif_party_invite(struct map_session_data *sd,
-                       struct map_session_data *tsd)
+int clif_party_invite(dumb_ptr<map_session_data> sd,
+                       dumb_ptr<map_session_data> tsd)
 {
     int fd;
     struct party *p;
@@ -3348,7 +3358,7 @@ int clif_party_invite(struct map_session_data *sd,
  *  4 The character is in the same party.
  *------------------------------------------
  */
-int clif_party_inviteack(struct map_session_data *sd, const char *nick, int flag)
+int clif_party_inviteack(dumb_ptr<map_session_data> sd, const char *nick, int flag)
 {
     int fd;
 
@@ -3369,7 +3379,7 @@ int clif_party_inviteack(struct map_session_data *sd, const char *nick, int flag
  *        0x100=一人にのみ送信
  *------------------------------------------
  */
-int clif_party_option(struct party *p, struct map_session_data *sd, int flag)
+int clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
 {
     unsigned char buf[16];
 
@@ -3403,7 +3413,7 @@ int clif_party_option(struct party *p, struct map_session_data *sd, int flag)
  * パーティ脱退（脱退前に呼ぶこと）
  *------------------------------------------
  */
-int clif_party_leaved(struct party *p, struct map_session_data *sd,
+int clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
                        int account_id, const char *name, int flag)
 {
     unsigned char buf[64];
@@ -3420,8 +3430,11 @@ int clif_party_leaved(struct party *p, struct map_session_data *sd,
     {
         if (sd == NULL)
             for (i = 0; i < MAX_PARTY; i++)
-                if ((sd = p->member[i].sd) != NULL)
+            {
+                sd = dumb_ptr<map_session_data>(p->member[i].sd);
+                if (sd != NULL)
                     break;
+            }
         if (sd != NULL)
             clif_send(buf, clif_parse_func_table[0x105].len, sd, SendWho::PARTY);
     }
@@ -3440,14 +3453,15 @@ int clif_party_leaved(struct party *p, struct map_session_data *sd,
 int clif_party_message(struct party *p, int account_id, const char *mes, int len)
 {
     // always set, but clang is not smart enough
-    struct map_session_data *sd = nullptr;
+    dumb_ptr<map_session_data> sd = nullptr;
     int i;
 
     nullpo_ret(p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
-        if ((sd = p->member[i].sd) != NULL)
+        sd = dumb_ptr<map_session_data>(p->member[i].sd);
+        if (sd != NULL)
             break;
     }
     if (sd != NULL)
@@ -3466,7 +3480,7 @@ int clif_party_message(struct party *p, int account_id, const char *mes, int len
  * パーティ座標通知
  *------------------------------------------
  */
-int clif_party_xy(struct party *, struct map_session_data *sd)
+int clif_party_xy(struct party *, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[16];
 
@@ -3486,7 +3500,7 @@ int clif_party_xy(struct party *, struct map_session_data *sd)
  * パーティHP通知
  *------------------------------------------
  */
-int clif_party_hp(struct party *, struct map_session_data *sd)
+int clif_party_hp(struct party *, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[16];
 
@@ -3507,7 +3521,7 @@ int clif_party_hp(struct party *, struct map_session_data *sd)
  * 攻撃するために移動が必要
  *------------------------------------------
  */
-int clif_movetoattack(struct map_session_data *sd, struct block_list *bl)
+int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl)
 {
     int fd;
 
@@ -3530,7 +3544,7 @@ int clif_movetoattack(struct map_session_data *sd, struct block_list *bl)
  * MVPエフェクト
  *------------------------------------------
  */
-int clif_mvp_effect(struct map_session_data *sd)
+int clif_mvp_effect(dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[16];
 
@@ -3546,7 +3560,7 @@ int clif_mvp_effect(struct map_session_data *sd)
  * エモーション
  *------------------------------------------
  */
-void clif_emotion(struct block_list *bl, int type)
+void clif_emotion(dumb_ptr<block_list> bl, int type)
 {
     unsigned char buf[8];
 
@@ -3559,12 +3573,12 @@ void clif_emotion(struct block_list *bl, int type)
 }
 
 static
-void clif_emotion_towards(struct block_list *bl,
-                                  struct block_list *target, int type)
+void clif_emotion_towards(dumb_ptr<block_list> bl,
+                                  dumb_ptr<block_list> target, int type)
 {
     unsigned char buf[8];
     int len = clif_parse_func_table[0xc0].len;
-    struct map_session_data *sd = (struct map_session_data *) target;
+    dumb_ptr<map_session_data> sd = target->as_player();
 
     nullpo_retv(bl);
     nullpo_retv(target);
@@ -3584,7 +3598,7 @@ void clif_emotion_towards(struct block_list *bl,
  * 座る
  *------------------------------------------
  */
-void clif_sitting(int, struct map_session_data *sd)
+void clif_sitting(int, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[64];
 
@@ -3601,7 +3615,7 @@ void clif_sitting(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-int clif_GM_kickack(struct map_session_data *sd, int id)
+int clif_GM_kickack(dumb_ptr<map_session_data> sd, int id)
 {
     int fd;
 
@@ -3615,9 +3629,9 @@ int clif_GM_kickack(struct map_session_data *sd, int id)
 }
 
 static
-void clif_parse_QuitGame(int fd, struct map_session_data *sd);
+void clif_parse_QuitGame(int fd, dumb_ptr<map_session_data> sd);
 
-int clif_GM_kick(struct map_session_data *sd, struct map_session_data *tsd,
+int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
                   int type)
 {
     nullpo_ret(tsd);
@@ -3632,7 +3646,7 @@ int clif_GM_kick(struct map_session_data *sd, struct map_session_data *tsd,
 }
 
 // displaying special effects (npcs, weather, etc) [Valaris]
-int clif_specialeffect(struct block_list *bl, int type, int flag)
+int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
 {
     unsigned char buf[24];
 
@@ -3650,7 +3664,7 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
         {
             if (!session[i])
                 continue;
-            struct map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
             if (sd && sd->state.auth && sd->bl_m == bl->bl_m)
                 clif_specialeffect(sd, type, 1);
         }
@@ -3673,7 +3687,7 @@ int clif_specialeffect(struct block_list *bl, int type, int flag)
  *------------------------------------------
  */
 static
-void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
+void clif_parse_WantToConnection(int fd, dumb_ptr<map_session_data> sd)
 {
     int account_id;            // account_id in the packet
 
@@ -3695,7 +3709,7 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
     WFIFOSET(fd, 4);
 
     // if same account already connected, we disconnect the 2 sessions
-    struct map_session_data *old_sd = map_id2sd(account_id);
+    dumb_ptr<map_session_data> old_sd = map_id2sd(account_id);
     if (old_sd)
     {
         clif_authfail_fd(fd, 2);   // same id
@@ -3705,8 +3719,8 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
     }
     else
     {
-        sd = new map_session_data();
-        session[fd]->session_data.reset(sd);
+        sd.new_();
+        session[fd]->session_data.reset(sd.operator->());
         sd->fd = fd;
 
         pc_setnewpc(sd, account_id, RFIFOL(fd, 6), RFIFOL(fd, 10),
@@ -3727,7 +3741,7 @@ void clif_parse_WantToConnection(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_LoadEndAck(int, struct map_session_data *sd)
+void clif_parse_LoadEndAck(int, dumb_ptr<map_session_data> sd)
 {
 //  struct item_data* item;
     int i;
@@ -3828,7 +3842,7 @@ void clif_parse_LoadEndAck(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TickSend(int fd, struct map_session_data *sd)
+void clif_parse_TickSend(int fd, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -3842,7 +3856,7 @@ void clif_parse_TickSend(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
+void clif_parse_WalkToXY(int fd, dumb_ptr<map_session_data> sd)
 {
     int x, y;
 
@@ -3879,7 +3893,7 @@ void clif_parse_WalkToXY(int fd, struct map_session_data *sd)
  *
  *------------------------------------------
  */
-void clif_parse_QuitGame(int fd, struct map_session_data *sd)
+void clif_parse_QuitGame(int fd, dumb_ptr<map_session_data> sd)
 {
     tick_t tick = gettick();
 
@@ -3914,9 +3928,9 @@ void clif_parse_QuitGame(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
+void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
 {
-    struct block_list *bl;
+    dumb_ptr<block_list> bl;
     int account_id;
 
     account_id = RFIFOL(fd, 2);
@@ -3931,7 +3945,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
     {
         case BL::PC:
         {
-            struct map_session_data *ssd = (struct map_session_data *) bl;
+            dumb_ptr<map_session_data> ssd = bl->as_player();
 
             nullpo_retv(ssd);
 
@@ -3982,7 +3996,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
         }
             break;
         case BL::NPC:
-            memcpy(WFIFOP(fd, 6), ((struct npc_data *) bl)->name, 24);
+            memcpy(WFIFOP(fd, 6), bl->as_npc()->name, 24);
             {
                 char *start = (char *)WFIFOP(fd, 6);
                 char *end = strchr(start, '#');    // [fate] elim hashed out/invisible names for the client
@@ -3998,7 +4012,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
             break;
         case BL::MOB:
         {
-            struct mob_data *md = (struct mob_data *) bl;
+            dumb_ptr<mob_data> md = bl->as_mob();
 
             nullpo_retv(md);
 
@@ -4022,7 +4036,7 @@ void clif_parse_GetCharNameRequest(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
+void clif_parse_GlobalMessage(int fd, dumb_ptr<map_session_data> sd)
 {
     int msg_len = RFIFOW(fd, 2) - 4; /* Header(2) + length(2). */
     size_t message_len = 0;
@@ -4072,7 +4086,7 @@ void clif_parse_GlobalMessage(int fd, struct map_session_data *sd)
     return;
 }
 
-int clif_message(struct block_list *bl, const char *msg)
+int clif_message(dumb_ptr<block_list> bl, const char *msg)
 {
     unsigned short msg_len = strlen(msg) + 1;
     unsigned char buf[512];
@@ -4097,7 +4111,7 @@ int clif_message(struct block_list *bl, const char *msg)
  *------------------------------------------
  */
 static
-void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
+void clif_parse_ChangeDir(int fd, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[64];
 
@@ -4127,7 +4141,7 @@ void clif_parse_ChangeDir(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_Emotion(int fd, struct map_session_data *sd)
+void clif_parse_Emotion(int fd, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[64];
 
@@ -4150,7 +4164,7 @@ void clif_parse_Emotion(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_HowManyConnections(int fd, struct map_session_data *)
+void clif_parse_HowManyConnections(int fd, dumb_ptr<map_session_data>)
 {
     WFIFOW(fd, 0) = 0xc2;
     WFIFOL(fd, 2) = map_getusers();
@@ -4162,7 +4176,7 @@ void clif_parse_HowManyConnections(int fd, struct map_session_data *)
  *------------------------------------------
  */
 static
-void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
+void clif_parse_ActionRequest(int fd, dumb_ptr<map_session_data> sd)
 {
     unsigned char buf[64];
     int action_type, target_id;
@@ -4229,7 +4243,7 @@ void clif_parse_ActionRequest(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_Restart(int fd, struct map_session_data *sd)
+void clif_parse_Restart(int fd, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4274,12 +4288,12 @@ void clif_parse_Restart(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_Wis(int fd, struct map_session_data *sd)
+void clif_parse_Wis(int fd, dumb_ptr<map_session_data> sd)
 {
     size_t message_len = 0;
     char *buf = NULL;
     const char *message = NULL;   /* The message text only. */
-    struct map_session_data *dstsd = NULL;
+    dumb_ptr<map_session_data> dstsd = NULL;
 
     nullpo_retv(sd);
 
@@ -4360,15 +4374,15 @@ void clif_parse_Wis(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TakeItem(int fd, struct map_session_data *sd)
+void clif_parse_TakeItem(int fd, dumb_ptr<map_session_data> sd)
 {
-    struct flooritem_data *fitem;
+    dumb_ptr<flooritem_data> fitem;
     int map_object_id;
 
     nullpo_retv(sd);
 
     map_object_id = RFIFOL(fd, 2);
-    fitem = (struct flooritem_data *) map_id2bl(map_object_id);
+    fitem = map_id_is_item(map_object_id);
 
     if (pc_isdead(sd))
     {
@@ -4398,7 +4412,7 @@ void clif_parse_TakeItem(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_DropItem(int fd, struct map_session_data *sd)
+void clif_parse_DropItem(int fd, dumb_ptr<map_session_data> sd)
 {
     int item_index, item_amount;
 
@@ -4432,7 +4446,7 @@ void clif_parse_DropItem(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_UseItem(int fd, struct map_session_data *sd)
+void clif_parse_UseItem(int fd, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4456,7 +4470,7 @@ void clif_parse_UseItem(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_EquipItem(int fd, struct map_session_data *sd)
+void clif_parse_EquipItem(int fd, dumb_ptr<map_session_data> sd)
 {
     int index;
 
@@ -4497,7 +4511,7 @@ void clif_parse_EquipItem(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
+void clif_parse_UnequipItem(int fd, dumb_ptr<map_session_data> sd)
 {
     int index;
 
@@ -4525,7 +4539,7 @@ void clif_parse_UnequipItem(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcClicked(int fd, struct map_session_data *sd)
+void clif_parse_NpcClicked(int fd, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4544,7 +4558,7 @@ void clif_parse_NpcClicked(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcBuySellSelected(int fd, struct map_session_data *sd)
+void clif_parse_NpcBuySellSelected(int fd, dumb_ptr<map_session_data> sd)
 {
     npc_buysellsel(sd, RFIFOL(fd, 2), RFIFOB(fd, 6));
 }
@@ -4554,7 +4568,7 @@ void clif_parse_NpcBuySellSelected(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcBuyListSend(int fd, struct map_session_data *sd)
+void clif_parse_NpcBuyListSend(int fd, dumb_ptr<map_session_data> sd)
 {
     int n = (RFIFOW(fd, 2) - 4) / 4;
     // really an array of pairs of uint16_t
@@ -4572,7 +4586,7 @@ void clif_parse_NpcBuyListSend(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcSellListSend(int fd, struct map_session_data *sd)
+void clif_parse_NpcSellListSend(int fd, dumb_ptr<map_session_data> sd)
 {
     int n = (RFIFOW(fd, 2) - 4) / 4;
     // really an array of pairs of uint16_t
@@ -4590,7 +4604,7 @@ void clif_parse_NpcSellListSend(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeRequest(int, struct map_session_data *sd)
+void clif_parse_TradeRequest(int, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4608,7 +4622,7 @@ void clif_parse_TradeRequest(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeAck(int, struct map_session_data *sd)
+void clif_parse_TradeAck(int, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4620,7 +4634,7 @@ void clif_parse_TradeAck(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeAddItem(int, struct map_session_data *sd)
+void clif_parse_TradeAddItem(int, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4632,7 +4646,7 @@ void clif_parse_TradeAddItem(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeOk(int, struct map_session_data *sd)
+void clif_parse_TradeOk(int, dumb_ptr<map_session_data> sd)
 {
     trade_tradeok(sd);
 }
@@ -4642,7 +4656,7 @@ void clif_parse_TradeOk(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeCansel(int, struct map_session_data *sd)
+void clif_parse_TradeCansel(int, dumb_ptr<map_session_data> sd)
 {
     trade_tradecancel(sd);
 }
@@ -4652,7 +4666,7 @@ void clif_parse_TradeCansel(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_TradeCommit(int, struct map_session_data *sd)
+void clif_parse_TradeCommit(int, dumb_ptr<map_session_data> sd)
 {
     trade_tradecommit(sd);
 }
@@ -4662,7 +4676,7 @@ void clif_parse_TradeCommit(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_StopAttack(int, struct map_session_data *sd)
+void clif_parse_StopAttack(int, dumb_ptr<map_session_data> sd)
 {
     pc_stopattack(sd);
 }
@@ -4672,7 +4686,7 @@ void clif_parse_StopAttack(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_StatusUp(int fd, struct map_session_data *sd)
+void clif_parse_StatusUp(int fd, dumb_ptr<map_session_data> sd)
 {
     pc_statusup(sd, SP(RFIFOW(fd, 2)));
 }
@@ -4682,7 +4696,7 @@ void clif_parse_StatusUp(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_SkillUp(int fd, struct map_session_data *sd)
+void clif_parse_SkillUp(int fd, dumb_ptr<map_session_data> sd)
 {
     pc_skillup(sd, SkillID(RFIFOW(fd, 2)));
 }
@@ -4692,7 +4706,7 @@ void clif_parse_SkillUp(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcSelectMenu(int fd, struct map_session_data *sd)
+void clif_parse_NpcSelectMenu(int fd, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4705,7 +4719,7 @@ void clif_parse_NpcSelectMenu(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcNextClicked(int fd, struct map_session_data *sd)
+void clif_parse_NpcNextClicked(int fd, dumb_ptr<map_session_data> sd)
 {
     map_scriptcont(sd, RFIFOL(fd, 2));
 }
@@ -4715,7 +4729,7 @@ void clif_parse_NpcNextClicked(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcAmountInput(int fd, struct map_session_data *sd)
+void clif_parse_NpcAmountInput(int fd, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4730,7 +4744,7 @@ void clif_parse_NpcAmountInput(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcStringInput(int fd, struct map_session_data *sd)
+void clif_parse_NpcStringInput(int fd, dumb_ptr<map_session_data> sd)
 {
     int len;
     nullpo_retv(sd);
@@ -4762,7 +4776,7 @@ void clif_parse_NpcStringInput(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_NpcCloseClicked(int fd, struct map_session_data *sd)
+void clif_parse_NpcCloseClicked(int fd, dumb_ptr<map_session_data> sd)
 {
     map_scriptcont(sd, RFIFOL(fd, 2));
 }
@@ -4772,7 +4786,7 @@ void clif_parse_NpcCloseClicked(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_MoveToKafra(int fd, struct map_session_data *sd)
+void clif_parse_MoveToKafra(int fd, dumb_ptr<map_session_data> sd)
 {
     int item_index, item_amount;
 
@@ -4794,7 +4808,7 @@ void clif_parse_MoveToKafra(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_MoveFromKafra(int fd, struct map_session_data *sd)
+void clif_parse_MoveFromKafra(int fd, dumb_ptr<map_session_data> sd)
 {
     int item_index, item_amount;
 
@@ -4816,7 +4830,7 @@ void clif_parse_MoveFromKafra(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_CloseKafra(int, struct map_session_data *sd)
+void clif_parse_CloseKafra(int, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
@@ -4832,7 +4846,7 @@ void clif_parse_CloseKafra(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_CreateParty(int fd, struct map_session_data *sd)
+void clif_parse_CreateParty(int fd, dumb_ptr<map_session_data> sd)
 {
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 2)
@@ -4851,7 +4865,7 @@ void clif_parse_CreateParty(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_PartyInvite(int fd, struct map_session_data *sd)
+void clif_parse_PartyInvite(int fd, dumb_ptr<map_session_data> sd)
 {
     party_invite(sd, RFIFOL(fd, 2));
 }
@@ -4864,7 +4878,7 @@ void clif_parse_PartyInvite(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_ReplyPartyInvite(int fd, struct map_session_data *sd)
+void clif_parse_ReplyPartyInvite(int fd, dumb_ptr<map_session_data> sd)
 {
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 1)
@@ -4883,7 +4897,7 @@ void clif_parse_ReplyPartyInvite(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_LeaveParty(int, struct map_session_data *sd)
+void clif_parse_LeaveParty(int, dumb_ptr<map_session_data> sd)
 {
     party_leave(sd);
 }
@@ -4893,7 +4907,7 @@ void clif_parse_LeaveParty(int, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_RemovePartyMember(int fd, struct map_session_data *sd)
+void clif_parse_RemovePartyMember(int fd, dumb_ptr<map_session_data> sd)
 {
     party_removemember(sd, RFIFOL(fd, 2), (const char *)RFIFOP(fd, 6));
 }
@@ -4903,7 +4917,7 @@ void clif_parse_RemovePartyMember(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_PartyChangeOption(int fd, struct map_session_data *sd)
+void clif_parse_PartyChangeOption(int fd, dumb_ptr<map_session_data> sd)
 {
     party_changeoption(sd, RFIFOW(fd, 2), RFIFOW(fd, 4));
 }
@@ -4917,7 +4931,7 @@ void clif_parse_PartyChangeOption(int fd, struct map_session_data *sd)
  *------------------------------------------
  */
 static
-void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
+void clif_parse_PartyMessage(int fd, dumb_ptr<map_session_data> sd)
 {
     size_t message_len = 0;
     char *buf = NULL;
@@ -4951,7 +4965,7 @@ void clif_parse_PartyMessage(int fd, struct map_session_data *sd)
 
 // 4144 wants this, but I don't like it ...
 static
-void clif_parse_PMIgnoreAll(int fd, struct map_session_data *sd)
+void clif_parse_PMIgnoreAll(int fd, dumb_ptr<map_session_data> sd)
 {                               // Rewritten by [Yor]
     //PRINTF("Ignore all: state: %d\n", RFIFOB(fd,2));
     if (RFIFOB(fd, 2) == 0)
@@ -5548,7 +5562,7 @@ func_table clif_parse_func_table[0x0220] =
 static
 int clif_check_packet_flood(int fd, int cmd)
 {
-    map_session_data *sd = static_cast<map_session_data *>(session[fd]->session_data.get());
+    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[fd]->session_data.get()));
     tick_t tick = gettick();
 
     // sd will not be set if the client hasn't requested
@@ -5626,7 +5640,7 @@ int clif_check_packet_flood(int fd, int cmd)
 }
 
 inline
-void WARN_MALFORMED_MSG(struct map_session_data *sd, const char *msg)
+void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, const char *msg)
 {
     PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed message: %s.\n",
             sd->status.name, sd->status.account_id, msg);
@@ -5644,7 +5658,7 @@ void WARN_MALFORMED_MSG(struct map_session_data *sd, const char *msg)
  * @return a dynamically allocated copy of the message, or NULL upon failure
  */
 static
-char *clif_validate_chat(struct map_session_data *sd, int type,
+char *clif_validate_chat(dumb_ptr<map_session_data> sd, int type,
         const char **message, size_t *message_len)
 {
     int fd;
@@ -5765,7 +5779,7 @@ static
 void clif_parse(int fd)
 {
     int packet_len = 0, cmd = 0;
-    map_session_data *sd = static_cast<map_session_data *>(session[fd]->session_data.get());
+    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[fd]->session_data.get()));
 
     if (!sd || (sd && !sd->state.auth))
     {

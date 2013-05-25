@@ -2,6 +2,7 @@
 #include "magic-expr.hpp"
 #include "magic-interpreter-aux.hpp"
 
+#include <cassert>
 #include <cmath>
 
 #include "../common/cxxstdio.hpp"
@@ -86,21 +87,21 @@ void magic_clear_var(val_t *v)
 }
 
 static
-const char *show_entity(entity_t *entity)
+const char *show_entity(dumb_ptr<block_list> entity)
 {
     switch (entity->bl_type)
     {
         case BL::PC:
-            return ((struct map_session_data *) entity)->status.name;
+            return entity->as_player()->status.name;
         case BL::NPC:
-            return ((struct npc_data *) entity)->name;
+            return entity->as_npc()->name;
         case BL::MOB:
-            return ((struct mob_data *) entity)->name;
+            return entity->as_mob()->name;
         case BL::ITEM:
+            assert (0 && "There is no way this code did what it was supposed to do!");
             /* Sorry about this one... */
-            return ((struct item_data
-                     *) (&((struct flooritem_data *) entity)->
-                         item_data))->name;
+            // WTF? item_data is a struct item, not a struct item_data
+            // return ((struct item_data *) (&entity->as_item()->item_data))->name;
         case BL::SPELL:
             return "%invocation(ERROR:this-should-not-be-an-entity)";
         default:
@@ -138,7 +139,7 @@ void stringify(val_t *v, int within_op)
             break;
 
         case TYPE::ENTITY:
-            buf = show_entity(v->v.v_entity);
+            buf = show_entity(dumb_ptr<block_list>(v->v.v_entity));
             break;
 
         case TYPE::LOCATION:
@@ -159,10 +160,10 @@ void stringify(val_t *v, int within_op)
 
         case TYPE::INVOCATION:
         {
-            invocation_t *invocation = within_op
-                ? v->v.v_invocation
-                : (invocation_t *) map_id2bl(v->v.v_int);
-            buf = invocation->spell->name;
+            dumb_ptr<invocation> invocation_ = within_op
+                ? dumb_ptr<invocation>(v->v.v_invocation)
+                : map_id2bl(v->v.v_int)->as_spell();
+            buf = invocation_->spell->name;
         }
             break;
 
@@ -239,7 +240,8 @@ void make_spell(val_t *v)
 {
     if (v->ty == TYPE::INVOCATION)
     {
-        invocation_t *invoc = v->v.v_invocation;    //(invocation_t *) map_id2bl(v->v.v_int);
+        dumb_ptr<invocation> invoc = dumb_ptr<invocation>(v->v.v_invocation);
+        //invoc = (dumb_ptr<invocation>) map_id2bl(v->v.v_int);
         if (!invoc)
             v->ty = TYPE::FAIL;
         else
@@ -670,12 +672,12 @@ int fun_mob_id(env_t *, int, val_t *result, val_t *args)
 {
     if (ENTITY_TYPE(0) != BL::MOB)
         return 1;
-    RESULTINT = ((struct mob_data *)(ARGENTITY(0)))->mob_class;
+    RESULTINT = ARGMOB(0)->mob_class;
     return 0;
 }
 
 inline
-void COPY_LOCATION(entity_t& dest, location_t& src)
+void COPY_LOCATION(block_list& dest, location_t& src)
 {
     dest.bl_x = src.x;
     dest.bl_y = src.y;
@@ -683,7 +685,7 @@ void COPY_LOCATION(entity_t& dest, location_t& src)
 }
 
 inline
-void COPY_LOCATION(location_t& dest, entity_t& src)
+void COPY_LOCATION(location_t& dest, block_list& src)
 {
     dest.x = src.bl_x;
     dest.y = src.bl_y;
@@ -768,7 +770,7 @@ magic_find_item(val_t *args, int index, struct item *item, int *stackable)
 static
 int fun_count_item(env_t *, int, val_t *result, val_t *args)
 {
-    character_t *chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     int stackable;
     struct item item;
 
@@ -784,7 +786,7 @@ int fun_count_item(env_t *, int, val_t *result, val_t *args)
 static
 int fun_is_equipped(env_t *, int, val_t *result, val_t *args)
 {
-    character_t *chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     int stackable;
     struct item item;
     bool retval = false;
@@ -834,8 +836,7 @@ int fun_partner(env_t *, int, val_t *result, val_t *args)
     if (ENTITY_TYPE(0) == BL::PC && ARGPC(0)->status.partner_id)
     {
         RESULTENTITY =
-            (entity_t *)
-            map_nick2sd(map_charid2nick(ARGPC(0)->status.partner_id));
+            map_nick2sd(map_charid2nick(ARGPC(0)->status.partner_id)).operator->();
         return 0;
     }
     else
@@ -871,14 +872,14 @@ int fun_failed(env_t *, int, val_t *result, val_t *args)
 static
 int fun_npc(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTENTITY = (entity_t *) npc_name2id(ARGSTR(0));
+    RESULTENTITY = npc_name2id(ARGSTR(0)).operator->();
     return RESULTENTITY == NULL;
 }
 
 static
 int fun_pc(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTENTITY = (entity_t *) map_nick2sd(ARGSTR(0));
+    RESULTENTITY = map_nick2sd(ARGSTR(0)).operator->();
     return RESULTENTITY == NULL;
 }
 
@@ -930,12 +931,12 @@ int fun_anchor(env_t *env, int, val_t *result, val_t *args)
 static
 int fun_line_of_sight(env_t *, int, val_t *result, val_t *args)
 {
-    entity_t e1, e2;
+    block_list e1, e2;
 
     COPY_LOCATION(e1, ARGLOCATION(0));
     COPY_LOCATION(e2, ARGLOCATION(1));
 
-    RESULTINT = battle_check_range(&e1, &e2, 0);
+    RESULTINT = battle_check_range(dumb_ptr<block_list>(&e1), dumb_ptr<block_list>(&e2), 0);
 
     return 0;
 }
@@ -992,13 +993,13 @@ int fun_pick_location(env_t *, int, val_t *result, val_t *args)
 static
 int fun_read_script_int(env_t *, int, val_t *result, val_t *args)
 {
-    entity_t *subject_p = ARGENTITY(0);
+    dumb_ptr<block_list> subject_p = ARGENTITY(0);
     char *var_name = ARGSTR(1);
 
     if (subject_p->bl_type != BL::PC)
         return 1;
 
-    RESULTINT = pc_readglobalreg((character_t *) subject_p, var_name);
+    RESULTINT = pc_readglobalreg(subject_p->as_player(), var_name);
     return 0;
 }
 
@@ -1024,7 +1025,7 @@ int fun_running_status_update(env_t *, int, val_t *result, val_t *args)
     if (ENTITY_TYPE(0) != BL::PC && ENTITY_TYPE(0) != BL::MOB)
         return 1;
 
-    StatusChange sc = StatusChange(ARGINT(1));
+    StatusChange sc = static_cast<StatusChange>(ARGINT(1));
     RESULTINT = bool(battle_get_sc_data(ARGENTITY(0))[sc].timer);
     return 0;
 }
@@ -1032,9 +1033,7 @@ int fun_running_status_update(env_t *, int, val_t *result, val_t *args)
 static
 int fun_status_option(env_t *, int, val_t *result, val_t *args)
 {
-    RESULTINT =
-        (bool(((struct map_session_data *) ARGENTITY(0))->
-          status.option & Option(ARGINT(0))));
+    RESULTINT = (bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(0))));
     return 0;
 }
 
@@ -1206,7 +1205,7 @@ int fun_dir_towards(env_t *, int, val_t *result, val_t *args)
 static
 int fun_extract_healer_xp(env_t *, int, val_t *result, val_t *args)
 {
-    character_t *sd = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    dumb_ptr<map_session_data> sd = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
     if (!sd)
         RESULTINT = 0;
@@ -1515,13 +1514,13 @@ int magic_signature_check(const char *opname, const char *funname, const char *s
         if (ty == TYPE::ENTITY)
         {
             /* Dereference entities in preparation for calling function */
-            arg->v.v_entity = map_id2bl(arg->v.v_int);
+            arg->v.v_entity = map_id2bl(arg->v.v_int).operator->();
             if (!arg->v.v_entity)
                 ty = arg->ty = TYPE::FAIL;
         }
         else if (ty == TYPE::INVOCATION)
         {
-            arg->v.v_invocation = (invocation_t *) map_id2bl(arg->v.v_int);
+            arg->v.v_invocation = map_id2bl(arg->v.v_int)->as_spell().operator->();
             if (!arg->v.v_entity)
                 ty = arg->ty = TYPE::FAIL;
         }
@@ -1659,7 +1658,7 @@ void magic_eval(env_t *env, val_t *dest, expr_t *expr)
 
             if (v.ty == TYPE::INVOCATION)
             {
-                invocation_t *t = (invocation_t *) map_id2bl(v.v.v_int);
+                dumb_ptr<invocation> t = map_id2bl(v.v.v_int)->as_spell();
 
                 if (!t)
                     dest->ty = TYPE::UNDEF;

@@ -17,14 +17,14 @@
 #include "../poison.hpp"
 
 static
-void tmw_AutoBan(struct map_session_data *sd, const char *reason, int length);
+void tmw_AutoBan(dumb_ptr<map_session_data> sd, const char *reason, int length);
 static
-int tmw_CheckChatLameness(struct map_session_data *sd, const char *message);
+int tmw_CheckChatLameness(dumb_ptr<map_session_data> sd, const char *message);
 static
 int tmw_ShorterStrlen(const char *s1, const char *s2);
 
 
-int tmw_CheckChatSpam(struct map_session_data *sd, const char *message)
+int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message)
 {
     nullpo_retr(1, sd);
     TimeT now = TimeT::now();
@@ -86,7 +86,7 @@ int tmw_CheckChatSpam(struct map_session_data *sd, const char *message)
     return 0;
 }
 
-void tmw_AutoBan(struct map_session_data *sd, const char *reason, int length)
+void tmw_AutoBan(dumb_ptr<map_session_data> sd, const char *reason, int length)
 {
     if (length == 0 || sd->auto_ban_info.in_progress)
         return;
@@ -120,7 +120,7 @@ int tmw_ShorterStrlen(const char *s1, const char *s2)
 }
 
 // Returns true if more than 50% of input message is caps or punctuation
-int tmw_CheckChatLameness(struct map_session_data *, const char *message)
+int tmw_CheckChatLameness(dumb_ptr<map_session_data>, const char *message)
 {
     int count, lame;
 

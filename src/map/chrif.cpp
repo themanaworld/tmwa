@@ -97,7 +97,7 @@ int chrif_isconnect(void)
  *
  *------------------------------------------
  */
-int chrif_save(struct map_session_data *sd)
+int chrif_save(dumb_ptr<map_session_data> sd)
 {
     nullpo_retr(-1, sd);
 
@@ -190,7 +190,7 @@ int chrif_recvmap(int fd)
  * マップ鯖間移動のためのデータ準備要求
  *------------------------------------------
  */
-int chrif_changemapserver(struct map_session_data *sd, char *name, int x,
+int chrif_changemapserver(dumb_ptr<map_session_data> sd, char *name, int x,
                            int y, struct in_addr ip, short port)
 {
     int i, s_ip;
@@ -199,7 +199,7 @@ int chrif_changemapserver(struct map_session_data *sd, char *name, int x,
 
     s_ip = 0;
     for (i = 0; i < fd_max; i++)
-        if (session[i] && session[i]->session_data.get() == sd)
+        if (session[i] && dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
         {
             s_ip = session[i]->client_addr.sin_addr.s_addr;
             break;
@@ -229,7 +229,7 @@ int chrif_changemapserver(struct map_session_data *sd, char *name, int x,
 static
 int chrif_changemapserverack(int fd)
 {
-    struct map_session_data *sd = map_id2sd(RFIFOL(fd, 2));
+    dumb_ptr<map_session_data> sd = map_id2sd(RFIFOL(fd, 2));
 
     if (sd == NULL || sd->status.char_id != RFIFOL(fd, 14))
         return -1;
@@ -300,7 +300,7 @@ int chrif_sendmapack(int fd)
  *
  *------------------------------------------
  */
-int chrif_authreq(struct map_session_data *sd)
+int chrif_authreq(dumb_ptr<map_session_data> sd)
 {
     int i;
 
@@ -310,7 +310,7 @@ int chrif_authreq(struct map_session_data *sd)
         return -1;
 
     for (i = 0; i < fd_max; i++)
-        if (session[i] && session[i]->session_data.get() == sd)
+        if (session[i] && dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
         {
             WFIFOW(char_fd, 0) = 0x2afc;
             WFIFOL(char_fd, 2) = sd->bl_id;
@@ -329,7 +329,7 @@ int chrif_authreq(struct map_session_data *sd)
  *
  *------------------------------------------
  */
-int chrif_charselectreq(struct map_session_data *sd)
+int chrif_charselectreq(dumb_ptr<map_session_data> sd)
 {
     int i, s_ip;
 
@@ -340,7 +340,7 @@ int chrif_charselectreq(struct map_session_data *sd)
 
     s_ip = 0;
     for (i = 0; i < fd_max; i++)
-        if (session[i] && session[i]->session_data.get() == sd)
+        if (session[i] && dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
         {
             s_ip = session[i]->client_addr.sin_addr.s_addr;
             break;
@@ -464,7 +464,7 @@ static
 int chrif_char_ask_name_answer(int fd)
 {
     int acc;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
     char player_name[24];
 
     acc = RFIFOL(fd, 2);       // account_id of who has asked (-1 if nobody)
@@ -606,7 +606,7 @@ static
 int chrif_changedgm(int fd)
 {
     int acc, level;
-    struct map_session_data *sd = NULL;
+    dumb_ptr<map_session_data> sd = NULL;
 
     acc = RFIFOL(fd, 2);
     level = RFIFOL(fd, 6);
@@ -635,7 +635,7 @@ static
 int chrif_changedsex(int fd)
 {
     int acc, sex, i;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     acc = RFIFOL(fd, 2);
     sex = RFIFOL(fd, 6);
@@ -678,7 +678,7 @@ int chrif_changedsex(int fd)
  * アカウント変数保存要求
  *------------------------------------------
  */
-int chrif_saveaccountreg2(struct map_session_data *sd)
+int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
 {
     int p, j;
     nullpo_retr(-1, sd);
@@ -710,7 +710,7 @@ static
 int chrif_accountreg2(int fd)
 {
     int j, p;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     if ((sd = map_id2sd(RFIFOL(fd, 4))) == NULL)
         return 1;
@@ -736,7 +736,7 @@ int chrif_accountreg2(int fd)
 static
 int chrif_divorce(int char_id, int partner_id)
 {
-    struct map_session_data *sd = NULL;
+    dumb_ptr<map_session_data> sd = NULL;
 
     if (!char_id || !partner_id)
         return 0;
@@ -785,7 +785,7 @@ static
 int chrif_accountdeletion(int fd)
 {
     int acc;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     acc = RFIFOL(fd, 2);
     if (battle_config.etc_log)
@@ -818,7 +818,7 @@ static
 int chrif_accountban(int fd)
 {
     int acc;
-    struct map_session_data *sd;
+    dumb_ptr<map_session_data> sd;
 
     acc = RFIFOL(fd, 2);
     if (battle_config.etc_log)
@@ -941,7 +941,7 @@ void ladmin_itemfrob_fix_item(int source, int dest, struct item *item)
 }
 
 static
-void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
+void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
 {
 #define IFIX(v) if (v == source_id) {v = dest_id; }
 #define FIX(item) ladmin_itemfrob_fix_item(source_id, dest_id, &item)
@@ -953,7 +953,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
     {
         case BL::PC:
         {
-            struct map_session_data *pc = (struct map_session_data *) bl;
+            dumb_ptr<map_session_data> pc = bl->as_player();
             struct storage *stor = account2storage2(pc->status.account_id);
             int j;
 
@@ -988,7 +988,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
 
         case BL::MOB:
         {
-            struct mob_data *mob = (struct mob_data *) bl;
+            dumb_ptr<mob_data> mob = bl->as_mob();
             int i;
             for (i = 0; i < mob->lootitem_count; i++)
                 FIX(mob->lootitem[i]);
@@ -997,7 +997,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
 
         case BL::ITEM:
         {
-            struct flooritem_data *item = (struct flooritem_data *) bl;
+            dumb_ptr<flooritem_data> item = bl->as_item();
             FIX(item->item_data);
             break;
         }
@@ -1007,7 +1007,7 @@ void ladmin_itemfrob_c2(struct block_list *bl, int source_id, int dest_id)
 }
 
 static
-void ladmin_itemfrob_c(struct block_list *bl, int source_id, int dest_id)
+void ladmin_itemfrob_c(dumb_ptr<block_list> bl, int source_id, int dest_id)
 {
     ladmin_itemfrob_c2(bl, source_id, dest_id);
 }
@@ -1017,7 +1017,7 @@ void ladmin_itemfrob(int fd)
 {
     int source_id = RFIFOL(fd, 2);
     int dest_id = RFIFOL(fd, 6);
-    struct block_list *bl = (struct block_list *) map_get_first_session();
+    dumb_ptr<block_list> bl = (dumb_ptr<block_list>) map_get_first_session();
 
     // flooritems
     map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), BL::NUL /* any object */);
@@ -1171,7 +1171,7 @@ void send_users_tochar(TimerData *, tick_t)
     {
         if (!session[i])
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
         if (sd && sd->state.auth &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active

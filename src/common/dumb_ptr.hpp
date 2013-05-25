@@ -28,17 +28,26 @@
 template<class T>
 class dumb_ptr
 {
+    template<class U>
+    friend class dumb_ptr;
     T *impl;
 public:
     explicit
     dumb_ptr(T *p=nullptr)
     : impl(p)
     {}
+    template<class U>
+    dumb_ptr(dumb_ptr<U> p)
+    : impl(p.impl)
+    {}
+    dumb_ptr(std::nullptr_t)
+    : impl(nullptr)
+    {}
 
     void delete_()
     {
         delete impl;
-        forget();
+        *this = nullptr;
     }
     template<class... A>
     void new_(A&&... a)
@@ -51,9 +60,10 @@ public:
     {
         return dumb_ptr<T>(new T(std::forward<A>(a)...));
     }
-    void forget()
+    dumb_ptr& operator = (std::nullptr_t)
     {
         impl = nullptr;
+        return *this;
     }
 
     T& operator *() const
@@ -74,6 +84,15 @@ public:
     {
         return !impl;
     }
+
+    friend bool operator == (dumb_ptr l, dumb_ptr r)
+    {
+        return l.impl == r.impl;
+    }
+    friend bool operator != (dumb_ptr l, dumb_ptr r)
+    {
+        return !(l == r);
+    }
 };
 
 // unmanaged new/delete-able pointer
@@ -85,6 +104,8 @@ class dumb_ptr<T[]>
     size_t sz;
 public:
     dumb_ptr() : impl(), sz() {}
+    dumb_ptr(std::nullptr_t)
+    : impl(nullptr), sz(0) {}
     dumb_ptr(T *p, size_t z)
     : impl(p)
     , sz(z)
@@ -93,7 +114,7 @@ public:
     void delete_()
     {
         delete[] impl;
-        forget();
+        *this = nullptr;
     }
     void new_(size_t z)
     {
@@ -105,10 +126,11 @@ public:
     {
         return dumb_ptr<T[]>(new T[z](), z);
     }
-    void forget()
+    dumb_ptr& operator = (std::nullptr_t)
     {
         impl = nullptr;
         sz = 0;
+        return *this;
     }
 
     size_t size() const
@@ -142,6 +164,15 @@ public:
     bool operator !() const
     {
         return !impl;
+    }
+
+    friend bool operator == (dumb_ptr l, dumb_ptr r)
+    {
+        return l.impl == r.impl;
+    }
+    friend bool operator != (dumb_ptr l, dumb_ptr r)
+    {
+        return !(l == r);
     }
 };
 

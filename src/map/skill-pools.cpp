@@ -22,7 +22,7 @@ void skill_pool_register(SkillID id)
     skill_pool_skills[skill_pool_skills_size++] = id;
 }
 
-int skill_pool(struct map_session_data *sd, SkillID *skills)
+int skill_pool(dumb_ptr<map_session_data> sd, SkillID *skills)
 {
     int i, count = 0;
 
@@ -40,17 +40,17 @@ int skill_pool(struct map_session_data *sd, SkillID *skills)
     return count;
 }
 
-int skill_pool_size(struct map_session_data *sd)
+int skill_pool_size(dumb_ptr<map_session_data> sd)
 {
     return skill_pool(sd, NULL);
 }
 
-int skill_pool_max(struct map_session_data *sd)
+int skill_pool_max(dumb_ptr<map_session_data> sd)
 {
     return sd->status.skill[SkillID::TMW_SKILLPOOL].lv;
 }
 
-int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
+int skill_pool_activate(dumb_ptr<map_session_data> sd, SkillID skill_id)
 {
     if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         return 0;               // Already there
@@ -68,12 +68,12 @@ int skill_pool_activate(struct map_session_data *sd, SkillID skill_id)
     return 1;                   // failed
 }
 
-bool skill_pool_is_activated(struct map_session_data *sd, SkillID skill_id)
+bool skill_pool_is_activated(dumb_ptr<map_session_data> sd, SkillID skill_id)
 {
     return bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED);
 }
 
-int skill_pool_deactivate(struct map_session_data *sd, SkillID skill_id)
+int skill_pool_deactivate(dumb_ptr<map_session_data> sd, SkillID skill_id)
 {
     if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
     {
@@ -94,7 +94,7 @@ SP skill_stat(SkillID skill_id)
     return skill_db[skill_id].stat;
 }
 
-int skill_power(struct map_session_data *sd, SkillID skill_id)
+int skill_power(dumb_ptr<map_session_data> sd, SkillID skill_id)
 {
     SP stat = skill_stat(skill_id);
     int stat_value, skill_value;
@@ -116,10 +116,10 @@ int skill_power(struct map_session_data *sd, SkillID skill_id)
     return result;
 }
 
-int skill_power_bl(struct block_list *bl, SkillID skill)
+int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill)
 {
     if (bl->bl_type == BL::PC)
-        return skill_power((struct map_session_data *) bl, skill);
+        return skill_power(bl->as_player(), skill);
     else
         return 0;
 }

@@ -16,7 +16,7 @@ void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
 #define ARGINT(x) args[x].v.v_int
 #define ARGDIR(x) args[x].v.v_dir
 #define ARGSTR(x) args[x].v.v_string
-#define ARGENTITY(x) args[x].v.v_entity
+#define ARGENTITY(x) dumb_ptr<block_list>(args[x].v.v_entity)
 #define ARGLOCATION(x) args[x].v.v_location
 #define ARGAREA(x) args[x].v.v_area
 #define ARGSPELL(x) args[x].v.v_spell
@@ -34,9 +34,9 @@ void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
 #define ARG_TYPE(x) args[x].ty
 #define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
 
-#define ARGPC(x)  ((struct map_session_data *)ARGENTITY(x))
-#define ARGNPC(x)  ((struct map_session_data *)ARGENTITY(x))
-#define ARGMOB(x)  ((struct map_session_data *)ARGENTITY(x))
+#define ARGPC(x)  (ARGENTITY(x)->as_player())
+#define ARGNPC(x)  (ARGENTITY(x)->as_npc())
+#define ARGMOB(x)  (ARGENTITY(x)->as_mob())
 
 #define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
 
