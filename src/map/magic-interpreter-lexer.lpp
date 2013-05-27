@@ -101,43 +101,52 @@
 "DO"                    {FIXLOC; return DO;}
 "WAIT"                  {FIXLOC; return SLEEP;}
 
-\{([^\}]|\\.)*\} { char *string = strdup(yytext);
-                   magic_frontend_lval.s = string;
-                   FIXLOC;
-                   return SCRIPT_DATA;
-                   }
+\{([^\}]|\\.)*\}        {
+    char *string = strdup(yytext);
+    magic_frontend_lval.s = string;
+    FIXLOC;
+    return SCRIPT_DATA;
+}
 
-\"([^\"]|\\.)*\" { char *string = strdup(yytext + 1);
-                   char *src = string;
-                   char *dst = string;
-                   while (*src && *src != '"')
-                       if (*src == '\\') {
-                           *dst++ = src[1];
-                           src += 2;
-                       } else
-                           *dst++ = *src++;
-                   *dst = '\0'; /* terminate */
-                   magic_frontend_lval.s = string;
-                   FIXLOC;
-                   return STRING;
-                   }
+\"([^\"]|\\.)*\"        {
+    char *string = strdup(yytext + 1);
+    char *src = string;
+    char *dst = string;
+    while (*src && *src != '"')
+    if (*src == '\\')
+    {
+        *dst++ = src[1];
+        src += 2;
+    }
+    else
+        *dst++ = *src++;
+    *dst = '\0'; /* terminate */
+    magic_frontend_lval.s = string;
+    FIXLOC;
+    return STRING;
+}
 
-"-"?[0-9]+          { magic_frontend_lval.i = atoi(yytext);
-                      FIXLOC;
-                      return INT; }
+"-"?[0-9]+              {
+    magic_frontend_lval.i = atoi(yytext);
+    FIXLOC;
+    return INT;
+ }
 
-"0x"[0-9a-fA-F]+    { magic_frontend_lval.i = strtol(yytext + 2, NULL, 16);
-                      FIXLOC;
-                      return INT; }
+"0x"[0-9a-fA-F]+        {
+    magic_frontend_lval.i = strtol(yytext + 2, NULL, 16);
+    FIXLOC;
+    return INT;
+ }
 
-[a-zA-Z][-_a-zA-Z0-9?!]*  { magic_frontend_lval.s = strdup(yytext);
-                            FIXLOC;
-                            return ID; }
+[a-zA-Z][-_a-zA-Z0-9]*  {
+    magic_frontend_lval.s = strdup(yytext);
+    FIXLOC;
+    return ID;
+}
 
-"#".*$          /* Ignore comments */
-"//".*$         /* Ignore comments */
-[ \n\t\r]       /* ignore whitespace */
-.               FPRINTF(stderr, "%s: Unexpected character in line %d\n", MAGIC_CONFIG_FILE, magic_frontend_lineno);
-
+"#".*$                  /* Ignore comments */
+"//".*$                 /* Ignore comments */
+[ \n\t\r]               /* ignore whitespace */
+.                       FPRINTF(stderr, "%s: Unexpected character in line %d\n", MAGIC_CONFIG_FILE, magic_frontend_lineno);
 
 %%
