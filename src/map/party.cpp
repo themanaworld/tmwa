@@ -704,7 +704,7 @@ void party_send_hp_check(dumb_ptr<block_list> bl, int party_id, int *flag)
 }
 
 // 経験値公平分配
-int party_exp_share(struct party *p, int mapid, int base_exp, int job_exp)
+int party_exp_share(struct party *p, map_local *mapid, int base_exp, int job_exp)
 {
     dumb_ptr<map_session_data> sd;
     int i, c;

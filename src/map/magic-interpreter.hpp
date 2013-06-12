@@ -3,27 +3,29 @@
 
 #include "magic-interpreter.t.hpp"
 
+#include <cassert>
+
 #include "magic.hpp"
 #include "map.hpp"
 #include "script.hpp"
 #include "skill.t.hpp"
 
-struct expr;
-struct val;
-struct location;
-struct area;
-struct spell;
+struct expr_t;
+struct val_t;
+struct location_t;
+struct area_t;
+struct spell_t;
 struct invocation;
 
-typedef struct location
+struct location_t
 {
-    int m;
+    map_local *m;
     int x, y;
-} location_t;
+};
 
-typedef struct area
+struct area_t
 {
-    union a
+    union au
     {
         location_t a_loc;
         struct
@@ -37,29 +39,39 @@ typedef struct area
             location_t loc;
             int width, height;
         } a_rect;
-        struct area *a_union[2];
+        dumb_ptr<area_t> a_union[2];
+
+        au() { memset(this, '\0', sizeof(*this)); }
+        ~au() = default;
+        au(const au&) = default;
+        au& operator = (const au&) = default;
     } a;
     int size;
     AREA ty;
-} area_t;
+};
 
-typedef struct val
+struct val_t
 {
     union v
     {
         int v_int;
         DIR v_dir;
-        char *v_string;
-        // can't be dumb_ptr<block_list>
-        block_list *v_entity;     /* Used ONLY during operation/function invocation; otherwise we use v_int */
-        area_t *v_area;
+        dumb_string v_string;
+        /* Used ONLY during operation/function invocation; otherwise we use v_int */
+        dumb_ptr<block_list> v_entity;
+        dumb_ptr<area_t> v_area;
         location_t v_location;
-        // can't be dumb_ptr<invocation>
-        invocation *v_invocation;    /* Used ONLY during operation/function invocation; otherwise we use v_int */
-        struct spell *v_spell;
+        /* Used ONLY during operation/function invocation; otherwise we use v_int */
+        dumb_ptr<invocation> v_invocation;
+        dumb_ptr<spell_t> v_spell;
+
+        v() { memset(this, '\0', sizeof(*this)); }
+        ~v() = default;
+        v(const v&) = default;
+        v& operator = (const v&) = default;
     } v;
     TYPE ty;
-} val_t;
+};
 
 /* ----------- */
 /* Expressions */
@@ -67,12 +79,12 @@ typedef struct val
 
 #define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
 
-typedef struct e_location
+struct e_location_t
 {
-    struct expr *m, *x, *y;
-} e_location_t;
+    dumb_ptr<expr_t> m, x, y;
+};
 
-typedef struct e_area
+struct e_area_t
 {
     union a0
     {
@@ -80,21 +92,26 @@ typedef struct e_area
         struct
         {
             e_location_t loc;
-            struct expr *width, *depth, *dir;
+            dumb_ptr<expr_t> width, depth, dir;
         } a_bar;
         struct
         {
             e_location_t loc;
-            struct expr *width, *height;
+            dumb_ptr<expr_t> width, height;
         } a_rect;
-        struct e_area *a_union[2];
+        dumb_ptr<e_area_t> a_union[2];
+
+        a0() { memset(this, '\0', sizeof(*this)); }
+        ~a0() = default;
+        a0(const a0&) = default;
+        a0& operator = (const a0&) = default;
     } a;
     AREA ty;
-} e_area_t;
+};
 
-typedef struct expr
+struct expr_t
 {
-    union e
+    union eu
     {
         val_t e_val;
         e_location_t e_location;
@@ -103,153 +120,165 @@ typedef struct expr
         {
             int id, line_nr, column;
             int args_nr;
-            struct expr *args[MAX_ARGS];
+            dumb_ptr<expr_t> args[MAX_ARGS];
         } e_funapp;
         int e_id;
         struct
         {
-            struct expr *expr;
+            dumb_ptr<expr_t> expr;
             int id;
         } e_field;
+
+        eu() { memset(this, '\0', sizeof(*this)); }
+        ~eu() = default;
+        eu(const eu&) = default;
+        eu& operator = (const eu&) = default;
     } e;
     EXPR ty;
-} expr_t;
+};
 
-typedef struct effect
+struct effect_t
 {
-    struct effect *next;
+    dumb_ptr<effect_t> next;
     union e0
     {
         struct
         {
             int id;
-            expr_t *expr;
+            dumb_ptr<expr_t> expr;
         } e_assign;
         struct
         {
             int id;
-            expr_t *area;
-            struct effect *body;
+            dumb_ptr<expr_t> area;
+            dumb_ptr<effect_t> body;
             FOREACH_FILTER filter;
         } e_foreach;
         struct
         {
             int id;
-            expr_t *start, *stop;
-            struct effect *body;
+            dumb_ptr<expr_t> start, stop;
+            dumb_ptr<effect_t> body;
         } e_for;
         struct
         {
-            expr_t *cond;
-            struct effect *true_branch, *false_branch;
+            dumb_ptr<expr_t> cond;
+            dumb_ptr<effect_t> true_branch, false_branch;
         } e_if;
-        expr_t *e_sleep;        /* sleep time */
-        const ScriptCode *e_script;
+        dumb_ptr<expr_t> e_sleep;        /* sleep time */
+        dumb_ptr<const ScriptBuffer> e_script;
         struct
         {
             int id;
             int args_nr;
             int line_nr, column;
-            expr_t *args[MAX_ARGS];
+            dumb_ptr<expr_t> args[MAX_ARGS];
         } e_op;
         struct
         {
-            int args_nr, *formals;
-            expr_t **actuals;
-            struct effect *body;
+            std::vector<int> *formalv;
+            dumb_ptr<std::vector<dumb_ptr<expr_t>>> actualvp;
+            dumb_ptr<effect_t> body;
         } e_call;
+
+        e0() { memset(this, '\0', sizeof(*this)); }
+        ~e0() = default;
+        e0(const e0&) = default;
+        e0& operator = (const e0&) = default;
     } e;
     EFFECT ty;
-} effect_t;
+};
 
 /* ---------- */
 /* Components */
 /* ---------- */
 
-typedef struct component
+struct component_t
 {
-    struct component *next;
+    dumb_ptr<component_t> next;
     int item_id;
     int count;
-} component_t;
+};
 
 
-typedef struct effect_set
+struct effect_set_t
 {
-    effect_t *effect, *at_trigger, *at_end;
-} effect_set_t;
+    dumb_ptr<effect_t> effect, at_trigger, at_end;
+};
 
-typedef struct spellguard
+struct spellguard_t
 {
-    struct spellguard *next;
-    union s
+    dumb_ptr<spellguard_t> next;
+    union su
     {
-        expr_t *s_condition;
-        expr_t *s_mana;
-        expr_t *s_casttime;
-        component_t *s_components;
-        component_t *s_catalysts;
-        struct spellguard *s_alt;   /* either `next' or `s.s_alt' */
+        dumb_ptr<expr_t> s_condition;
+        dumb_ptr<expr_t> s_mana;
+        dumb_ptr<expr_t> s_casttime;
+        dumb_ptr<component_t> s_components;
+        dumb_ptr<component_t> s_catalysts;
+        dumb_ptr<spellguard_t> s_alt;   /* either `next' or `s.s_alt' */
         effect_set_t s_effect;
+        su() { memset(this, '\0', sizeof(*this)); }
+        ~su() = default;
+        su(const su&) = default;
+        su& operator = (const su&) = default;
     } s;
     SPELLGUARD ty;
-} spellguard_t;
+};
 
 /* ------ */
 /* Spells */
 /* ------ */
 
-typedef struct letdef
+struct letdef_t
 {
     int id;
-    expr_t *expr;
-} letdef_t;
+    dumb_ptr<expr_t> expr;
+};
 
-typedef struct spell
+struct spell_t
 {
-    char *name;
-    char *invocation;
-    int index;                 // Relative location in the definitions file
+    std::string name;
+    std::string invocation;
+    int index_;                 // Relative location in the definitions file
     SPELL_FLAG flags;
     int arg;
     SPELLARG spellarg_ty;
 
-    int letdefs_nr;
-    letdef_t *letdefs;
+    std::vector<letdef_t> letdefv;
 
-    spellguard_t *spellguard;
-} spell_t;
+    dumb_ptr<spellguard_t> spellguard;
+};
 
 /* ------- */
 /* Anchors */
 /* ------- */
 
-typedef struct teleport_anchor
+struct teleport_anchor_t
 {
-    char *name;
-    char *invocation;
-    expr_t *location;
-} teleport_anchor_t;
+    std::string name;
+    std::string invocation;
+    dumb_ptr<expr_t> location;
+};
 
 /* ------------------- */
 /* The big config blob */
 /* ------------------- */
 
-typedef struct
+struct magic_conf_t
 {
-    int vars_nr;
-    const char **var_name;
-    val_t *vars;                /* Initial assignments, if any, or NULL */
+    struct mcvar
+    {
+        std::string name;
+        val_t val;
+    };
+    // This should probably be done by a dedicated "intern pool" class
+    std::vector<mcvar> varv;
 
-    int obscure_chance;
-    int min_casttime;
+    std::map<std::string, dumb_ptr<spell_t>> spells_by_name, spells_by_invocation;
 
-    int spells_nr;
-    spell_t **spells;
-
-    int anchors_nr;            /* NEGATIVE iff we have sorted the anchors */
-    teleport_anchor_t **anchors;
-} magic_conf_t;
+    std::map<std::string, dumb_ptr<teleport_anchor_t>> anchors_by_name, anchors_by_invocation;
+};
 
 /* Execution environment */
 
@@ -266,57 +295,72 @@ typedef struct
 
 struct magic_config;
 
-typedef struct env
+struct env_t
 {
     magic_conf_t *base_env;
-    val_t *vars;
-} env_t;
+    std::unique_ptr<val_t[]> varu;
+
+    val_t& VAR(size_t i)
+    {
+        assert (varu);
+        if (varu[i].ty == TYPE::UNDEF)
+            return base_env->varv[i].val;
+        else
+            return varu[i];
+    }
+
+};
 
 #define MAX_STACK_SIZE 32
 
-typedef struct cont_activation_record
+struct cont_activation_record_t
 {
-    effect_t *return_location;
-    union c
+    dumb_ptr<effect_t> return_location;
+    union cu
     {
         struct
         {
             int id;
             TYPE ty;
-            effect_t *body;
-            int entities_nr;
-            int *entities;
+            dumb_ptr<effect_t> body;
+            dumb_ptr<std::vector<int>> entities_vp;
             int index;
         } c_foreach;
         struct
         {
             int id;
-            effect_t *body;
+            dumb_ptr<effect_t> body;
             int current;
             int stop;
         } c_for;
         struct
         {
-            int args_nr, *formals;
-            val_t *old_actuals;
+            int args_nr;
+            int *formalap;
+            dumb_ptr<val_t[]> old_actualpa;
         } c_proc;
+
+        cu() { memset(this, '\0', sizeof(*this)); }
+        ~cu() {}
+        cu(const cu&) = delete;
+        cu& operator = (const cu&) = delete;
     } c;
     CONT_STACK ty;
-} cont_activation_record_t;
+};
 
-typedef struct status_change_ref
+struct status_change_ref_t
 {
     StatusChange sc_type;
     int bl_id;
-} status_change_ref_t;
+};
 
 struct invocation : block_list
 {
     dumb_ptr<invocation> next_invocation; /* used for spells directly associated with a caster: they form a singly-linked list */
     INVOCATION_FLAG flags;
 
-    env_t *env;
-    spell_t *spell;
+    dumb_ptr<env_t> env;
+    dumb_ptr<spell_t> spell;
     int caster;                /* this is the person who originally invoked the spell */
     int subject;               /* when this person dies, the spell dies with it */
 
@@ -326,13 +370,12 @@ struct invocation : block_list
     cont_activation_record_t stack[MAX_STACK_SIZE];
 
     int script_pos;            /* Script position; if nonzero, resume the script we were running. */
-    effect_t *current_effect;
-    effect_t *trigger_effect;   /* If non-NULL, this is used to spawn a cloned effect based on the same environment */
-    effect_t *end_effect;       /* If non-NULL, this is executed when the spell terminates naturally, e.g. when all status changes have run out or all delays are over. */
+    dumb_ptr<effect_t> current_effect;
+    dumb_ptr<effect_t> trigger_effect;   /* If non-NULL, this is used to spawn a cloned effect based on the same environment */
+    dumb_ptr<effect_t> end_effect;       /* If non-NULL, this is executed when the spell terminates naturally, e.g. when all status changes have run out or all delays are over. */
 
     /* Status change references:  for status change updates, keep track of whom we updated where */
-    int status_change_refs_nr;
-    status_change_ref_t *status_change_refs;
+    std::vector<status_change_ref_t> status_change_refv;
 
 };
 
@@ -345,25 +388,23 @@ extern env_t magic_default_env; /* Fake default environment */
 /**
  * Adds a component selection to a component holder (which may initially be NULL)
  */
-void magic_add_component(component_t ** component_holder, int id, int count);
+void magic_add_component(dumb_ptr<component_t> *component_holder, int id, int count);
 
-teleport_anchor_t *magic_find_anchor(char *name);
+dumb_ptr<teleport_anchor_t> magic_find_anchor(const std::string& name);
 
-/**
- * The parameter `param' must have been dynamically allocated; ownership is transferred to the resultant env_t.
- */
-env_t *spell_create_env(magic_conf_t *conf, spell_t *spell,
-        dumb_ptr<map_session_data> caster, int spellpower, char *param);
+dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
+        dumb_ptr<map_session_data> caster, int spellpower, const_string param);
 
-void magic_free_env(env_t *env);
+void magic_free_env(dumb_ptr<env_t> env);
 
 /**
  * near_miss is set to nonzero iff the spell only failed due to ephemereal issues (spell delay in effect, out of mana, out of components)
  */
-effect_set_t *spell_trigger(spell_t *spell, dumb_ptr<map_session_data> caster,
-        env_t *env, int *near_miss);
+effect_set_t *spell_trigger(dumb_ptr<spell_t> spell,
+        dumb_ptr<map_session_data> caster,
+        dumb_ptr<env_t> env, int *near_miss);
 
-dumb_ptr<invocation> spell_instantiate(effect_set_t *effect, env_t *env);
+dumb_ptr<invocation> spell_instantiate(effect_set_t *effect, dumb_ptr<env_t> env);
 
 /**
  * Bind a spell to a subject (this is a no-op for `local' spells).
@@ -378,22 +419,26 @@ int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invoca
  */
 dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> source);
 
-spell_t *magic_find_spell(char *invocation);
+dumb_ptr<spell_t> magic_find_spell(const std::string& invocation);
 
 /* The following is used only by the parser: */
-typedef struct args_rec
+struct args_rec_t
 {
-    int args_nr;
-    expr_t **args;
-} args_rec_t;
+    dumb_ptr<std::vector<dumb_ptr<expr_t>>> argvp;
+};
 
-typedef struct
+struct proc_t
 {
-    char *name;
-    int args_nr;
-    int *args;
-    effect_t *body;
-} proc_t;
+    std::string name;
+    std::vector<int> argv;
+    dumb_ptr<effect_t> body;
+
+    proc_t()
+    : name()
+    , argv()
+    , body()
+    {}
+};
 
 // must be called after itemdb initialisation
 int magic_init(const char *);

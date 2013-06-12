@@ -367,10 +367,8 @@ int itemdb_read_noequip(void)
 static
 void itemdb_final(struct item_data *id)
 {
-    if (id->use_script)
-        free(const_cast<ScriptCode *>(id->use_script));
-    if (id->equip_script)
-        free(const_cast<ScriptCode *>(id->equip_script));
+    id->use_script.reset();
+    id->equip_script.reset();
 }
 
 void itemdb_reload(void)

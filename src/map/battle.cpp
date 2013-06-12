@@ -12,6 +12,7 @@
 #include "itemdb.hpp"
 #include "map.hpp"
 #include "mob.hpp"
+#include "path.hpp"
 #include "pc.hpp"
 #include "skill.hpp"
 
@@ -2039,8 +2040,8 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                 && bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
-            MAP_LOG("PC%d %d:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
-                     sd->status.char_id, src->bl_m, src->bl_x, src->bl_y,
+            MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
+                     sd->status.char_id, src->bl_m->name, src->bl_x, src->bl_y,
                      (target->bl_type == BL::PC) ? "PC" : "MOB",
                      (target->bl_type == BL::PC)
                      ? target->as_player()-> status.char_id
@@ -2052,8 +2053,8 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         if (target->bl_type == BL::PC)
         {
             dumb_ptr<map_session_data> sd2 = target->as_player();
-            MAP_LOG("PC%d %d:%d,%d WPNINJURY %s%d %d FOR %d",
-                     sd2->status.char_id, target->bl_m, target->bl_x, target->bl_y,
+            MAP_LOG("PC%d %s:%d,%d WPNINJURY %s%d %d FOR %d",
+                     sd2->status.char_id, target->bl_m->name, target->bl_x, target->bl_y,
                      (src->bl_type == BL::PC) ? "PC" : "MOB",
                      (src->bl_type == BL::PC)
                      ? src->as_player()->status.char_id
@@ -2226,12 +2227,12 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
     if (ss->bl_type == BL::PC && target->bl_type == BL::PC)
     {                           // 両方PVPモードなら否定（敵）
-        if (map[ss->bl_m].flag.pvp
+        if (ss->bl_m->flag.pvp
             || pc_iskiller(ss->as_player(), target->as_player()))
         {                       // [MouseJstr]
             if (battle_config.pk_mode)
                 return 1;       // prevent novice engagement in pk_mode [Valaris]
-            else if (map[ss->bl_m].flag.pvp_noparty && s_p > 0 && t_p > 0
+            else if (ss->bl_m->flag.pvp_noparty && s_p > 0 && t_p > 0
                      && s_p == t_p)
                 return 1;
             return 0;
@@ -2313,7 +2314,7 @@ int battle_config_read(const char *cfgName)
         battle_config.defnotenemy = 1;
         battle_config.random_monster_checklv = 1;
         battle_config.attr_recover = 1;
-        battle_config.flooritem_lifetime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
+        battle_config.flooritem_lifetime = std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
         battle_config.item_auto_get = 0;
         battle_config.drop_pickup_safety_zone = 20;
         battle_config.item_first_get_time = 3000;
@@ -2341,7 +2342,6 @@ int battle_config_read(const char *cfgName)
         battle_config.wp_rate = 100;
         battle_config.pp_rate = 100;
         battle_config.monster_active_enable = 1;
-        battle_config.monster_loot_type = 0;
         battle_config.mob_skill_use = 1;
         battle_config.mob_count_rate = 100;
         battle_config.quest_skill_learn = 0;
@@ -2524,7 +2524,6 @@ int battle_config_read(const char *cfgName)
             {"weapon_produce_rate", &battle_config.wp_rate},
             {"potion_produce_rate", &battle_config.pp_rate},
             {"monster_active_enable", &battle_config.monster_active_enable},
-            {"monster_loot_type", &battle_config.monster_loot_type},
             {"mob_skill_use", &battle_config.mob_skill_use},
             {"mob_count_rate", &battle_config.mob_count_rate},
             {"quest_skill_learn", &battle_config.quest_skill_learn},
@@ -2666,7 +2665,7 @@ int battle_config_read(const char *cfgName)
     if (--count == 0)
     {
         if (static_cast<interval_t>(battle_config.flooritem_lifetime) < std::chrono::seconds(1))
-            battle_config.flooritem_lifetime = (int)std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
+            battle_config.flooritem_lifetime = std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
         if (battle_config.restart_hp_rate < 0)
             battle_config.restart_hp_rate = 0;
         else if (battle_config.restart_hp_rate > 100)

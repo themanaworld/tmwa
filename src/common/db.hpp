@@ -22,6 +22,7 @@
 # include "sanity.hpp"
 
 # include <map>
+# include <memory>
 
 template<class K, class V>
 class Map
@@ -56,7 +57,7 @@ public:
             return nullptr;
         return &it->second;
     }
-    void insert(K k, V v)
+    void insert(const K& k, V v)
     {
         // As far as I can tell, this is the simplest way to
         // implement move-only insert-with-replacement.
@@ -69,7 +70,7 @@ public:
         return (void)&it->second;
 
     }
-    V *init(K k)
+    V *init(const K& k)
     {
         return &impl[k];
     }
@@ -81,9 +82,13 @@ public:
     {
         impl.clear();
     }
-    bool empty()
+    bool empty() const
     {
         return impl.empty();
+    }
+    size_t size() const
+    {
+        return impl.size();
     }
 };
 
@@ -102,21 +107,73 @@ public:
     const_iterator begin() const { return impl.begin(); }
     const_iterator end() const { return impl.end(); }
 
-    V get(K k)
+    // const V& ? with a static default V?
+    V get(const K& k)
     {
         V *vp = impl.search(k);
         return vp ? *vp : V();
     }
-    void put(K k, V v)
+    void put(const K& k, V v)
     {
         if (v == V())
             impl.erase(k);
         else
-            impl.insert(k, v);
+            impl.insert(k, std::move(v));
     }
     void clear()
     {
         impl.clear();
+    }
+    bool empty() const
+    {
+        return impl.empty();
+    }
+    size_t size() const
+    {
+        return impl.size();
+    }
+};
+
+template<class K, class V>
+class UPMap
+{
+    typedef std::unique_ptr<V> U;
+    typedef Map<K, U> Impl;
+
+    Impl impl;
+public:
+    typedef typename Impl::iterator iterator;
+    typedef typename Impl::const_iterator const_iterator;
+
+    iterator begin() { return impl.begin(); }
+    iterator end() { return impl.end(); }
+    const_iterator begin() const { return impl.begin(); }
+    const_iterator end() const { return impl.end(); }
+
+    // const V& ? with a static default V?
+    V *get(const K& k)
+    {
+        U *up = impl.search(k);
+        return up ? up->get() : nullptr;
+    }
+    void put(const K& k, U v)
+    {
+        if (!v)
+            impl.erase(k);
+        else
+            impl.insert(k, std::move(v));
+    }
+    void clear()
+    {
+        impl.clear();
+    }
+    bool empty() const
+    {
+        return impl.empty();
+    }
+    size_t size() const
+    {
+        return impl.size();
     }
 };
 

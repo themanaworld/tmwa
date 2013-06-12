@@ -212,6 +212,9 @@ EG(-Wclobbered)
 /// C++ comments spanning more than one physical line
 E(-Wcomment)
 
+// A fixable difference between c++11 and c++14
+EC(-Wconstexpr-not-const)
+
 /// Warn for implicit type conversions that may
 /// change a value
 X(-Wconversion)
@@ -286,6 +289,8 @@ E(-Wfloat-equal)
 /// string anomalies
 // see below
 EG(-Wformat)
+// but gcc 4.8 warns on %ms, since we enabled -Wpedantic.
+WG48(-Wformat)
 
 /// Warn about format strings that contain NUL bytes
 EG(-Wformat-contains-nul)
@@ -372,6 +377,7 @@ E(-Wmissing-braces)
 
 /// Warn about global functions without previous
 /// declarations
+// This doesn't work for clang, it wants -Wmissing-prototypes instead.
 E(-Wmissing-declarations)
 
 /// Warn about missing fields in struct initializers
@@ -391,6 +397,9 @@ E(-Wmissing-include-dirs)
 /// Warn about functions which might be candidates
 /// for __attribute__((noreturn))
 W(-Wmissing-noreturn)
+
+// clang uses this instead of -Wmissing-declarations
+EC(-Wmissing-prototypes)
 
 ///
 // like -Wmissing-declarations but for variables instead of functions
@@ -428,7 +437,7 @@ E(-Wnonnull)
 XC(-Wnull-conversion)
 
 /// Warn if a C-style cast is used in a program
-X(-Wold-style-cast)
+E(-Wold-style-cast)
 
 /// Warn about overflow in arithmetic expressions
 W(-Woverflow)

@@ -206,7 +206,7 @@ struct map_session_data;
 struct GM_Account
 {
     int account_id;
-    int level;
+    uint8_t level;
 };
 
 struct party_member

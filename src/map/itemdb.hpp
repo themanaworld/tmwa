@@ -27,8 +27,8 @@ struct item_data
     int elv;
     int wlv;
     int refine;
-    const ScriptCode *use_script;
-    const ScriptCode *equip_script;
+    std::unique_ptr<const ScriptBuffer> use_script;
+    std::unique_ptr<const ScriptBuffer> equip_script;
     struct
     {
         unsigned available:1;
@@ -67,9 +67,9 @@ int itemdb_weight(int n)
     return itemdb_search(n)->weight;
 }
 inline
-const ScriptCode *itemdb_equipscript(int n)
+const ScriptBuffer *itemdb_equipscript(int n)
 {
-    return itemdb_search(n)->equip_script;
+    return itemdb_search(n)->equip_script.get();
 }
 inline
 int itemdb_wlv(int n)

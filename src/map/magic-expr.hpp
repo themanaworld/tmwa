@@ -21,14 +21,14 @@ typedef struct fun
     const char *name;
     const char *signature;
     char ret_ty;
-    int(*fun)(env_t *env, int args_nr, val_t *result, val_t *args);
+    int (*fun)(dumb_ptr<env_t> env, val_t *result, const_array<val_t> arga);
 } fun_t;
 
 typedef struct op
 {
     const char *name;
     const char *signature;
-    int(*op)(env_t *env, int args_nr, val_t *args);
+    int (*op)(dumb_ptr<env_t> env, const_array<val_t> arga);
 } op_t;
 
 /**
@@ -36,40 +36,40 @@ typedef struct op
  * @param name The name to look up
  * @return A function of that name, or NULL, and a function index
  */
-fun_t *magic_get_fun(const char *name, int *index);
+fun_t *magic_get_fun(const std::string& name, int *index);
 
 /**
  * Retrieves an operation by name
  * @param name The name to look up
  * @return An operation of that name, or NULL, and a function index
  */
-op_t *magic_get_op(char *name, int *index);
+op_t *magic_get_op(const std::string& name, int *index);
 
 /**
  * Evaluates an expression and stores the result in `dest'
  */
-void magic_eval(env_t *env, val_t *dest, expr_t *expr);
+void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr);
 
 /**
  * Evaluates an expression and coerces the result into an integer
  */
-int magic_eval_int(env_t *env, expr_t *expr);
+int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 
 /**
  * Evaluates an expression and coerces the result into a string
  */
-char *magic_eval_str(env_t *env, expr_t *expr);
+std::string magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 
-expr_t *magic_new_expr(EXPR ty);
+dumb_ptr<expr_t> magic_new_expr(EXPR ty);
 
 void magic_clear_var(val_t *v);
 
 void magic_copy_var(val_t *dest, val_t *src);
 
-void magic_random_location(location_t *dest, area_t *area);
+void magic_random_location(location_t *dest, dumb_ptr<area_t> area);
 
 // ret -1: not a string, ret 1: no such item, ret 0: OK
-int magic_find_item(val_t *args, int index, struct item *item, int *stackable);
+int magic_find_item(const_array<val_t> args, int index, struct item *item, int *stackable);
 
 #define GET_ARG_ITEM(index, dest, stackable)                    \
      switch (magic_find_item(args, index, &dest, &stackable))   \
@@ -79,6 +79,6 @@ int magic_find_item(val_t *args, int index, struct item *item, int *stackable);
         default: break;                                         \
     }
 
-int magic_location_in_area(int m, int x, int y, area_t *area);
+int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area);
 
 #endif // MAGIC_EXPR_HPP

@@ -72,9 +72,9 @@ int login_port = 6900;
 static
 char lan_char_ip[16];
 static
-int subneti[4];
+uint8_t subneti[4];
 static
-int subnetmaski[4];
+uint8_t subnetmaski[4];
 static
 char update_host[128] = "";
 static
@@ -87,8 +87,7 @@ char GM_account_filename[1024] = "conf/GM_account.txt";
 static
 char login_log_filename[1024] = "log/login.log";
 static
-char login_log_unknown_packets_filename[1024] =
-    "log/login_unknown_packets.log";
+char login_log_unknown_packets_filename[1024] = "log/login_unknown_packets.log";
 static
 int save_unknown_packets = 0;
 static
@@ -151,7 +150,7 @@ struct login_session_data : SessionData
 
 void SessionDeleter::operator()(SessionData *sd)
 {
-    delete static_cast<login_session_data *>(sd);
+    really_delete1 static_cast<login_session_data *>(sd);
 }
 
 constexpr int AUTH_FIFO_SIZE = 256;
@@ -230,7 +229,7 @@ void login_log(const_string line)
 // and returns its level (or 0 if it isn't a GM account or if not found)
 //----------------------------------------------------------------------
 static
-int isGM(int account_id)
+uint8_t isGM(int account_id)
 {
     GM_Account *p = gm_account_db.search(account_id);
     if (p == NULL)
@@ -271,8 +270,8 @@ int read_gm_account(void)
             || line[0] == '\n' || line[0] == '\r')
             continue;
         GM_Account p {};
-        if (sscanf(line, "%d %d", &p.account_id, &p.level) != 2
-            && sscanf(line, "%d: %d", &p.account_id, &p.level) != 2)
+        if (sscanf(line, "%d %hhu", &p.account_id, &p.level) != 2
+            && sscanf(line, "%d: %hhu", &p.account_id, &p.level) != 2)
             PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format.\n",
                  GM_account_filename);
         else if (p.level <= 0)
@@ -329,8 +328,8 @@ static
 int check_ipmask(struct in_addr ip, const char *str)
 {
     unsigned int mask = 0, ip2;
-    unsigned char *p = (unsigned char *) &ip2,
-                  *p2 = (unsigned char *) &mask;
+    uint8_t *p = reinterpret_cast<uint8_t *>(&ip2),
+                  *p2 = reinterpret_cast<uint8_t *>(&mask);
     int i = 0;
     unsigned int m;
 
@@ -1216,7 +1215,7 @@ void parse_fromchar(int fd)
                     WBUFW(buf, 0) = 0x2721;
                     WBUFL(buf, 2) = acc;
                     WBUFL(buf, 6) = 0;
-                    if (strcmp((const char *)RFIFOP(fd, 8), gm_pass) == 0)
+                    if (strcmp(static_cast<const char *>(RFIFOP(fd, 8)), gm_pass) == 0)
                     {
                         // only non-GM can become GM
                         if (isGM(acc) == 0)
@@ -1396,12 +1395,12 @@ void parse_fromchar(int fd)
                             else
                                 timestamp = ad.ban_until_time;
                             struct tm tmtime = timestamp;
-                            tmtime.tm_year += (short) RFIFOW(fd, 6);
-                            tmtime.tm_mon += (short) RFIFOW(fd, 8);
-                            tmtime.tm_mday += (short) RFIFOW(fd, 10);
-                            tmtime.tm_hour += (short) RFIFOW(fd, 12);
-                            tmtime.tm_min += (short) RFIFOW(fd, 14);
-                            tmtime.tm_sec += (short) RFIFOW(fd, 16);
+                            tmtime.tm_year += static_cast<short>(RFIFOW(fd, 6));
+                            tmtime.tm_mon += static_cast<short>(RFIFOW(fd, 8));
+                            tmtime.tm_mday += static_cast<short>(RFIFOW(fd, 10));
+                            tmtime.tm_hour += static_cast<short>(RFIFOW(fd, 12));
+                            tmtime.tm_min += static_cast<short>(RFIFOW(fd, 14));
+                            tmtime.tm_sec += static_cast<short>(RFIFOW(fd, 16));
                             timestamp = tmtime;
                             if (timestamp.okay())
                             {
@@ -1762,7 +1761,7 @@ void parse_admin(int fd)
                         if (account_id >= st && account_id <= ed)
                         {
                             WFIFOL(fd, len) = account_id;
-                            WFIFOB(fd, len + 4) = (unsigned char) isGM(account_id);
+                            WFIFOB(fd, len + 4) = isGM(account_id);
                             memcpy(WFIFOP(fd, len + 5), ad.userid, 24);
                             WFIFOB(fd, len + 29) = ad.sex;
                             WFIFOL(fd, len + 30) = ad.logincount;
@@ -2128,7 +2127,7 @@ void parse_admin(int fd)
                     if (new_gm_level < 0 || new_gm_level > 99)
                     {
                         LOGIN_LOG("'ladmin': Attempt to give an invalid GM level (account: %s, received GM level: %d, ip: %s)\n",
-                             account_name, (int) new_gm_level, ip);
+                             account_name, new_gm_level, ip);
                     }
                     else
                     {
@@ -2223,13 +2222,13 @@ void parse_admin(int fd)
                                     {
                                         LOGIN_LOG("'ladmin': Attempt to modify of a GM level - impossible to read GM accounts file (account: %s (%d), received GM level: %d, ip: %s)\n",
                                              ad->userid, acc,
-                                             (int) new_gm_level, ip);
+                                             new_gm_level, ip);
                                     }
                                     lock_fclose(fp2, GM_account_filename, &lock);
                                     WFIFOL(fd, 2) = acc;
                                     LOGIN_LOG("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)\n",
                                          ad->userid, acc,
-                                            (int) new_gm_level, ip);
+                                         new_gm_level, ip);
                                     // read and send new GM informations
                                     read_gm_account();
                                     send_GM_accounts();
@@ -2238,20 +2237,20 @@ void parse_admin(int fd)
                                 {
                                     LOGIN_LOG("'ladmin': Attempt to modify of a GM level - impossible to write GM accounts file (account: %s (%d), received GM level: %d, ip: %s)\n",
                                          ad->userid, acc,
-                                         (int) new_gm_level, ip);
+                                         new_gm_level, ip);
                                 }
                             }
                             else
                             {
                                 LOGIN_LOG("'ladmin': Attempt to modify of a GM level, but the GM level is already the good GM level (account: %s (%d), GM level: %d, ip: %s)\n",
                                      ad->userid, acc,
-                                     (int) new_gm_level, ip);
+                                     new_gm_level, ip);
                             }
                         }
                         else
                         {
                             LOGIN_LOG("'ladmin': Attempt to modify the GM level of an unknown account (account: %s, received GM level: %d, ip: %s)\n",
-                                 account_name, (int) new_gm_level,
+                                 account_name, new_gm_level,
                                  ip);
                         }
                     }
@@ -2383,7 +2382,7 @@ void parse_admin(int fd)
                 {
                     if (ad.account_id == RFIFOL(fd, 2))
                     {
-                        strncpy((char *)WFIFOP(fd, 6), ad.userid, 24);
+                        strncpy(static_cast<char *>(WFIFOP(fd, 6)), ad.userid, 24);
                         LOGIN_LOG("'ladmin': Request (by id) of an account name (account: %s, id: %d, ip: %s)\n",
                              ad.userid, RFIFOL(fd, 2), ip);
                         goto x7946_out;
@@ -2391,7 +2390,7 @@ void parse_admin(int fd)
                 }
                 LOGIN_LOG("'ladmin': Name request (by id) of an unknown account (id: %d, ip: %s)\n",
                         RFIFOL(fd, 2), ip);
-                strncpy((char *)WFIFOP(fd, 6), "", 24);
+                strncpy(static_cast<char *>(WFIFOP(fd, 6)), "", 24);
             x7946_out:
                 WFIFOSET(fd, 30);
                 RFIFOSKIP(fd, 6);
@@ -2512,12 +2511,12 @@ void parse_admin(int fd)
                         else
                             timestamp = ad->ban_until_time;
                         struct tm tmtime = timestamp;
-                        tmtime.tm_year += (short) RFIFOW(fd, 26);
-                        tmtime.tm_mon += (short) RFIFOW(fd, 28);
-                        tmtime.tm_mday += (short) RFIFOW(fd, 30);
-                        tmtime.tm_hour += (short) RFIFOW(fd, 32);
-                        tmtime.tm_min += (short) RFIFOW(fd, 34);
-                        tmtime.tm_sec += (short) RFIFOW(fd, 36);
+                        tmtime.tm_year += static_cast<short>(RFIFOW(fd, 26));
+                        tmtime.tm_mon += static_cast<short>(RFIFOW(fd, 28));
+                        tmtime.tm_mday += static_cast<short>(RFIFOW(fd, 30));
+                        tmtime.tm_hour += static_cast<short>(RFIFOW(fd, 32));
+                        tmtime.tm_min += static_cast<short>(RFIFOW(fd, 34));
+                        tmtime.tm_sec += static_cast<short>(RFIFOW(fd, 36));
                         timestamp = tmtime;
                         if (timestamp.okay())
                         {
@@ -2528,9 +2527,9 @@ void parse_admin(int fd)
                                 stamp_time(tmpstr, &timestamp);
                             LOGIN_LOG("'ladmin': Adjustment of a final date of a banishment (account: %s, (%+d y %+d m %+d d %+d h %+d mn %+d s) -> new validity: %lld (%s), ip: %s)\n",
                                     ad->userid,
-                                    (short) RFIFOW(fd, 26), (short) RFIFOW(fd, 28),
-                                    (short) RFIFOW(fd, 30), (short) RFIFOW(fd, 32),
-                                    (short) RFIFOW(fd, 34), (short) RFIFOW(fd, 36),
+                                    static_cast<short>(RFIFOW(fd, 26)), static_cast<short>(RFIFOW(fd, 28)),
+                                    static_cast<short>(RFIFOW(fd, 30)), static_cast<short>(RFIFOW(fd, 32)),
+                                    static_cast<short>(RFIFOW(fd, 34)), static_cast<short>(RFIFOW(fd, 36)),
                                     timestamp,
                                     tmpstr,
                                     ip);
@@ -2561,9 +2560,9 @@ void parse_admin(int fd)
                                     ad->userid,
                                     ad->ban_until_time,
                                     tmpstr,
-                                    (short) RFIFOW(fd, 26), (short) RFIFOW(fd, 28),
-                                    (short) RFIFOW(fd, 30), (short) RFIFOW(fd, 32),
-                                    (short) RFIFOW(fd, 34), (short) RFIFOW(fd, 36),
+                                    static_cast<short>(RFIFOW(fd, 26)), static_cast<short>(RFIFOW(fd, 28)),
+                                    static_cast<short>(RFIFOW(fd, 30)), static_cast<short>(RFIFOW(fd, 32)),
+                                    static_cast<short>(RFIFOW(fd, 34)), static_cast<short>(RFIFOW(fd, 36)),
                                     ip);
                         }
                         WFIFOL(fd, 30) = static_cast<time_t>(ad->ban_until_time);
@@ -2653,12 +2652,12 @@ void parse_admin(int fd)
                             if (!timestamp || timestamp < now)
                                 timestamp = now;
                             struct tm tmtime = timestamp;
-                            tmtime.tm_year += (short) RFIFOW(fd, 26);
-                            tmtime.tm_mon += (short) RFIFOW(fd, 28);
-                            tmtime.tm_mday += (short) RFIFOW(fd, 30);
-                            tmtime.tm_hour += (short) RFIFOW(fd, 32);
-                            tmtime.tm_min += (short) RFIFOW(fd, 34);
-                            tmtime.tm_sec += (short) RFIFOW(fd, 36);
+                            tmtime.tm_year += static_cast<short>(RFIFOW(fd, 26));
+                            tmtime.tm_mon += static_cast<short>(RFIFOW(fd, 28));
+                            tmtime.tm_mday += static_cast<short>(RFIFOW(fd, 30));
+                            tmtime.tm_hour += static_cast<short>(RFIFOW(fd, 32));
+                            tmtime.tm_min += static_cast<short>(RFIFOW(fd, 34));
+                            tmtime.tm_sec += static_cast<short>(RFIFOW(fd, 36));
                             timestamp = tmtime;
                             if (timestamp.okay())
                             {
@@ -2672,12 +2671,12 @@ void parse_admin(int fd)
                                         ad->userid,
                                         ad->connect_until_time,
                                         tmpstr,
-                                        (short) RFIFOW(fd, 26),
-                                        (short) RFIFOW(fd, 28),
-                                        (short) RFIFOW(fd, 30),
-                                        (short) RFIFOW(fd, 32),
-                                        (short) RFIFOW(fd, 34),
-                                        (short) RFIFOW(fd, 36),
+                                        static_cast<short>(RFIFOW(fd, 26)),
+                                        static_cast<short>(RFIFOW(fd, 28)),
+                                        static_cast<short>(RFIFOW(fd, 30)),
+                                        static_cast<short>(RFIFOW(fd, 32)),
+                                        static_cast<short>(RFIFOW(fd, 34)),
+                                        static_cast<short>(RFIFOW(fd, 36)),
                                         timestamp,
                                         tmpstr2,
                                         ip);
@@ -2693,12 +2692,12 @@ void parse_admin(int fd)
                                         ad->userid,
                                         ad->connect_until_time,
                                         tmpstr,
-                                        (short) RFIFOW(fd, 26),
-                                        (short) RFIFOW(fd, 28),
-                                        (short) RFIFOW(fd, 30),
-                                        (short) RFIFOW(fd, 32),
-                                        (short) RFIFOW(fd, 34),
-                                        (short) RFIFOW(fd, 36),
+                                        static_cast<short>(RFIFOW(fd, 26)),
+                                        static_cast<short>(RFIFOW(fd, 28)),
+                                        static_cast<short>(RFIFOW(fd, 30)),
+                                        static_cast<short>(RFIFOW(fd, 32)),
+                                        static_cast<short>(RFIFOW(fd, 34)),
+                                        static_cast<short>(RFIFOW(fd, 36)),
                                         ip);
                                 WFIFOL(fd, 30) = 0;
                             }
@@ -2728,7 +2727,7 @@ void parse_admin(int fd)
                 if (ad)
                 {
                     WFIFOL(fd, 2) = ad->account_id;
-                    WFIFOB(fd, 6) = (unsigned char) isGM(ad->account_id);
+                    WFIFOB(fd, 6) = isGM(ad->account_id);
                     memcpy(WFIFOP(fd, 7), ad->userid, 24);
                     WFIFOB(fd, 31) = ad->sex;
                     WFIFOL(fd, 32) = ad->logincount;
@@ -2774,8 +2773,7 @@ void parse_admin(int fd)
                     {
                         LOGIN_LOG("'ladmin': Sending information of an account (request by the id; account: %s, id: %d, ip: %s)\n",
                              ad.userid, RFIFOL(fd, 2), ip);
-                        WFIFOB(fd, 6) =
-                            (unsigned char) isGM(ad.account_id);
+                        WFIFOB(fd, 6) = isGM(ad.account_id);
                         memcpy(WFIFOP(fd, 7), ad.userid, 24);
                         WFIFOB(fd, 31) = ad.sex;
                         WFIFOL(fd, 32) = ad.logincount;
@@ -2799,7 +2797,7 @@ void parse_admin(int fd)
                 {
                     LOGIN_LOG("'ladmin': Attempt to obtain information (by the id) of an unknown account (id: %d, ip: %s)\n",
                          RFIFOL(fd, 2), ip);
-                    strncpy((char *)WFIFOP(fd, 7), "", 24);
+                    strncpy(static_cast<char *>(WFIFOP(fd, 7)), "", 24);
                     WFIFOW(fd, 148) = 0;
                     WFIFOSET(fd, 150);
                 }
@@ -2912,7 +2910,7 @@ void parse_login(int fd)
 {
     struct mmo_account account;
     int result, j;
-    unsigned char *p = (unsigned char *) &session[fd]->client_addr.sin_addr;
+    uint8_t *p = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
     int host_len;
 
     const char *ip = ip2str(session[fd]->client_addr.sin_addr);
@@ -3029,7 +3027,7 @@ void parse_login(int fd)
                          */
                         // if (version_2 & VERSION_2_UPDATEHOST)
                         {
-                            host_len = (int) strlen(update_host);
+                            host_len = strlen(update_host);
                             if (host_len > 0)
                             {
                                 WFIFOW(fd, 0) = 0x63;
@@ -3142,7 +3140,8 @@ void parse_login(int fd)
                     session[fd]->eof = 1;
                     return;
                 }
-                std::unique_ptr<login_session_data, SessionDeleter> ld{new login_session_data()};
+                std::unique_ptr<login_session_data, SessionDeleter> ld;
+                ld = make_unique<login_session_data, SessionDeleter>();
                 if (RFIFOW(fd, 0) == 0x01db)
                 {
                     LOGIN_LOG("Sending request of the coding key (ip: %s)\n",
@@ -3465,10 +3464,10 @@ int login_lan_config_read(const char *lancfgName)
             if (h != NULL)
             {
                 sprintf(lan_char_ip, "%d.%d.%d.%d",
-                         (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                         static_cast<uint8_t>(h->h_addr[0]),
+                         static_cast<uint8_t>(h->h_addr[1]),
+                         static_cast<uint8_t>(h->h_addr[2]),
+                         static_cast<uint8_t>(h->h_addr[3]));
             }
             else
             {
@@ -3485,11 +3484,11 @@ int login_lan_config_read(const char *lancfgName)
             if (h != NULL)
             {
                 for (int j = 0; j < 4; j++)
-                    subneti[j] = (unsigned char) h->h_addr[j];
+                    subneti[j] = h->h_addr[j];
             }
             else
             {
-                SSCANF(w2, "%d.%d.%d.%d", &subneti[0], &subneti[1],
+                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subneti[0], &subneti[1],
                         &subneti[2], &subneti[3]);
             }
             PRINTF("Sub-network of the char-server: %d.%d.%d.%d.\n",
@@ -3503,11 +3502,11 @@ int login_lan_config_read(const char *lancfgName)
             if (h != NULL)
             {
                 for (int j = 0; j < 4; j++)
-                    subnetmaski[j] = (unsigned char) h->h_addr[j];
+                    subnetmaski[j] = h->h_addr[j];
             }
             else
             {
-                SSCANF(w2, "%d.%d.%d.%d", &subnetmaski[0], &subnetmaski[1],
+                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subnetmaski[0], &subnetmaski[1],
                         &subnetmaski[2], &subnetmaski[3]);
             }
             PRINTF("Sub-network mask of the char-server: %d.%d.%d.%d.\n",
@@ -3990,8 +3989,8 @@ void save_config_in_log(void)
     if (gm_account_filename_check_timer == interval_t::zero())
         LOGIN_LOG("- to NOT check GM accounts file modifications.\n");
     else
-        LOGIN_LOG("- to check GM accounts file modifications every %d seconds.\n",
-             (int)gm_account_filename_check_timer.count());
+        LOGIN_LOG("- to check GM accounts file modifications every %lld seconds.\n",
+             static_cast<long long>(gm_account_filename_check_timer.count()));
 
     // not necessary to log the 'login_log_filename', we are inside :)
 

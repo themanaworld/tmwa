@@ -41,8 +41,7 @@
 
 DMap<int, dumb_ptr<block_list>> id_db;
 
-static
-DMap<std::string, struct map_data *> map_db;
+UPMap<std::string, map_abstract> maps_db;
 
 static
 DMap<std::string, dumb_ptr<map_session_data>> nick_db;
@@ -63,9 +62,6 @@ dumb_ptr<block_list> object[MAX_FLOORITEM];
 static
 int first_free_object_id = 0, last_object_id = 0;
 
-struct map_data map[MAX_MAP_PER_SERVER];
-int map_num = 0;
-
 static
 int map_port = 0;
 
@@ -78,11 +74,11 @@ char help_txt[256] = "conf/help.txt";
 char wisp_server_name[24] = "Server";   // can be modified in char-server configuration file
 
 static
-int map_delmap(const char *mapname);
+void map_delmap(const std::string& mapname);
 
 void SessionDeleter::operator()(SessionData *sd)
 {
-    delete static_cast<map_session_data *>(sd);
+    really_delete1 static_cast<map_session_data *>(sd);
 }
 
 /*==========================================
@@ -148,8 +144,6 @@ struct block_list bl_head;
  */
 int map_addblock(dumb_ptr<block_list> bl)
 {
-    int m, x, y;
-
     nullpo_ret(bl);
 
     if (bl->bl_prev)
@@ -159,35 +153,30 @@ int map_addblock(dumb_ptr<block_list> bl)
         return 0;
     }
 
-    m = bl->bl_m;
-    x = bl->bl_x;
-    y = bl->bl_y;
-    if (m < 0 || m >= map_num ||
-        x < 0 || x >= map[m].xs || y < 0 || y >= map[m].ys)
+    map_local *m = bl->bl_m;
+    int x = bl->bl_x;
+    int y = bl->bl_y;
+    if (!m ||
+        x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         return 1;
 
     if (bl->bl_type == BL::MOB)
     {
-        bl->bl_next =
-            map[m].block_mob[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs];
+        bl->bl_next = m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).mobs_only;
         bl->bl_prev = dumb_ptr<block_list>(&bl_head);
         if (bl->bl_next)
             bl->bl_next->bl_prev = bl;
-        map[m].block_mob[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs] = bl;
-        map[m].block_mob_count[x / BLOCK_SIZE +
-                               (y / BLOCK_SIZE) * map[m].bxs]++;
+        m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).mobs_only = bl;
     }
     else
     {
-        bl->bl_next =
-            map[m].block[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs];
+        bl->bl_next = m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal;
         bl->bl_prev = dumb_ptr<block_list>(&bl_head);
         if (bl->bl_next)
             bl->bl_next->bl_prev = bl;
-        map[m].block[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs] = bl;
-        map[m].block_count[x / BLOCK_SIZE + (y / BLOCK_SIZE) * map[m].bxs]++;
+        m->blocks.ref(x / BLOCK_SIZE, y / BLOCK_SIZE).normal = bl;
         if (bl->bl_type == BL::PC)
-            map[m].users++;
+            m->users++;
     }
 
     return 0;
@@ -200,7 +189,6 @@ int map_addblock(dumb_ptr<block_list> bl)
  */
 int map_delblock(dumb_ptr<block_list> bl)
 {
-    int b;
     nullpo_ret(bl);
 
     // 既にblocklistから抜けている
@@ -215,10 +203,8 @@ int map_delblock(dumb_ptr<block_list> bl)
         return 0;
     }
 
-    b = bl->bl_x / BLOCK_SIZE + (bl->bl_y / BLOCK_SIZE) * map[bl->bl_m].bxs;
-
     if (bl->bl_type == BL::PC)
-        map[bl->bl_m].users--;
+        bl->bl_m->users--;
 
     if (bl->bl_next)
         bl->bl_next->bl_prev = bl->bl_prev;
@@ -227,15 +213,11 @@ int map_delblock(dumb_ptr<block_list> bl)
         // リストの頭なので、map[]のblock_listを更新する
         if (bl->bl_type == BL::MOB)
         {
-            map[bl->bl_m].block_mob[b] = bl->bl_next;
-            if ((map[bl->bl_m].block_mob_count[b]--) < 0)
-                map[bl->bl_m].block_mob_count[b] = 0;
+            bl->bl_m->blocks.ref(bl->bl_x / BLOCK_SIZE, bl->bl_y / BLOCK_SIZE).mobs_only = bl->bl_next;
         }
         else
         {
-            map[bl->bl_m].block[b] = bl->bl_next;
-            if ((map[bl->bl_m].block_count[b]--) < 0)
-                map[bl->bl_m].block_count[b] = 0;
+            bl->bl_m->blocks.ref(bl->bl_x / BLOCK_SIZE, bl->bl_y / BLOCK_SIZE).normal = bl->bl_next;
         }
     }
     else
@@ -252,28 +234,25 @@ int map_delblock(dumb_ptr<block_list> bl)
  * セル上のPCとMOBの数を数える (グランドクロス用)
  *------------------------------------------
  */
-int map_count_oncell(int m, int x, int y)
+int map_count_oncell(map_local *m, int x, int y)
 {
     int bx, by;
     dumb_ptr<block_list> bl = NULL;
-    int i, c;
     int count = 0;
 
-    if (x < 0 || y < 0 || (x >= map[m].xs) || (y >= map[m].ys))
+    if (x < 0 || y < 0 || (x >= m->xs) || (y >= m->ys))
         return 1;
     bx = x / BLOCK_SIZE;
     by = y / BLOCK_SIZE;
 
-    bl = map[m].block[bx + by * map[m].bxs];
-    c = map[m].block_count[bx + by * map[m].bxs];
-    for (i = 0; i < c && bl; i++, bl = bl->bl_next)
+    bl = m->blocks.ref(bx, by).normal;
+    for (; bl; bl = bl->bl_next)
     {
         if (bl->bl_x == x && bl->bl_y == y && bl->bl_type == BL::PC)
             count++;
     }
-    bl = map[m].block_mob[bx + by * map[m].bxs];
-    c = map[m].block_mob_count[bx + by * map[m].bxs];
-    for (i = 0; i < c && bl; i++, bl = bl->bl_next)
+    bl = m->blocks.ref(bx, by).mobs_only;
+    for (; bl; bl = bl->bl_next)
     {
         if (bl->bl_x == x && bl->bl_y == y)
             count++;
@@ -290,33 +269,30 @@ int map_count_oncell(int m, int x, int y)
  *------------------------------------------
  */
 void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
-        int m,
+        map_local *m,
         int x0, int y0, int x1, int y1,
         BL type)
 {
     std::vector<dumb_ptr<block_list>> bl_list;
 
-    if (m < 0)
+    if (!m)
         return;
     if (x0 < 0)
         x0 = 0;
     if (y0 < 0)
         y0 = 0;
-    if (x1 >= map[m].xs)
-        x1 = map[m].xs - 1;
-    if (y1 >= map[m].ys)
-        y1 = map[m].ys - 1;
+    if (x1 >= m->xs)
+        x1 = m->xs - 1;
+    if (y1 >= m->ys)
+        y1 = m->ys - 1;
     if (type == BL::NUL || type != BL::MOB)
         for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
-                int c = map[m].block_count[bx + by * map[m].bxs];
-                for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+                dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
+                for (; bl; bl = bl->bl_next)
                 {
-                    if (!bl)
-                        continue;
                     if (type != BL::NUL && bl->bl_type != type)
                         continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
@@ -330,12 +306,9 @@ void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                dumb_ptr<block_list> bl = map[m].block_mob[bx + by * map[m].bxs];
-                int c = map[m].block_mob_count[bx + by * map[m].bxs];
-                for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+                dumb_ptr<block_list> bl = m->blocks.ref(bx, by).mobs_only;
+                for (; bl; bl = bl->bl_next)
                 {
-                    if (!bl)
-                        continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
                         && bl->bl_y >= y0 && bl->bl_y <= y1)
                         bl_list.push_back(bl);
@@ -359,7 +332,7 @@ void map_foreachinarea(std::function<void(dumb_ptr<block_list>)> func,
  *------------------------------------------
  */
 void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
-        int m,
+        map_local *m,
         int x0, int y0, int x1, int y1,
         int dx, int dy,
         BL type)
@@ -389,32 +362,26 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
             x0 = 0;
         if (y0 < 0)
             y0 = 0;
-        if (x1 >= map[m].xs)
-            x1 = map[m].xs - 1;
-        if (y1 >= map[m].ys)
-            y1 = map[m].ys - 1;
+        if (x1 >= m->xs)
+            x1 = m->xs - 1;
+        if (y1 >= m->ys)
+            y1 = m->ys - 1;
         for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
-                int c = map[m].block_count[bx + by * map[m].bxs];
-                for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+                dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
+                for (; bl; bl = bl->bl_next)
                 {
-                    if (!bl)
-                        continue;
                     if (type != BL::NUL && bl->bl_type != type)
                         continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
                         && bl->bl_y >= y0 && bl->bl_y <= y1)
                         bl_list.push_back(bl);
                 }
-                bl = map[m].block_mob[bx + by * map[m].bxs];
-                c = map[m].block_mob_count[bx + by * map[m].bxs];
-                for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+                bl = m->blocks.ref(bx, by).mobs_only;
+                for (; bl; bl = bl->bl_next)
                 {
-                    if (!bl)
-                        continue;
                     if (type != BL::NUL && bl->bl_type != type)
                         continue;
                     if (bl->bl_x >= x0 && bl->bl_x <= x1
@@ -432,20 +399,17 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
             x0 = 0;
         if (y0 < 0)
             y0 = 0;
-        if (x1 >= map[m].xs)
-            x1 = map[m].xs - 1;
-        if (y1 >= map[m].ys)
-            y1 = map[m].ys - 1;
+        if (x1 >= m->xs)
+            x1 = m->xs - 1;
+        if (y1 >= m->ys)
+            y1 = m->ys - 1;
         for (int by = y0 / BLOCK_SIZE; by <= y1 / BLOCK_SIZE; by++)
         {
             for (int bx = x0 / BLOCK_SIZE; bx <= x1 / BLOCK_SIZE; bx++)
             {
-                dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
-                int c = map[m].block_count[bx + by * map[m].bxs];
-                for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+                dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
+                for (; bl; bl = bl->bl_next)
                 {
-                    if (!bl)
-                        continue;
                     if (type != BL::NUL && bl->bl_type != type)
                         continue;
                     if (!(bl->bl_x >= x0 && bl->bl_x <= x1
@@ -457,14 +421,13 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
                         || (dy < 0 && bl->bl_y > y1 + dy))
                         bl_list.push_back(bl);
                 }
-                bl = map[m].block_mob[bx + by * map[m].bxs];
-                c = map[m].block_mob_count[bx + by * map[m].bxs];
-                for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+                bl = m->blocks.ref(bx, by).mobs_only;
+                for (; bl; bl = bl->bl_next)
                 {
                     if (type != BL::NUL && bl->bl_type != type)
                         continue;
-                    if (!(bl->bl_x >= x0 && bl->bl_x <= x1 && bl->bl_y >= y0
-                             && bl->bl_y <= y1))
+                    if (!(bl->bl_x >= x0 && bl->bl_x <= x1
+                             && bl->bl_y >= y0 && bl->bl_y <= y1))
                         continue;
                     if ((dx > 0 && bl->bl_x < x0 + dx)
                         || (dx < 0 && bl->bl_x > x1 + dx)
@@ -489,7 +452,7 @@ void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)> func,
 //           area radius - may be more useful in some instances)
 //
 void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
-        int m,
+        map_local *m,
         int x, int y,
         BL type)
 {
@@ -499,12 +462,9 @@ void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
 
     if (type == BL::NUL || type != BL::MOB)
     {
-        dumb_ptr<block_list> bl = map[m].block[bx + by * map[m].bxs];
-        int c = map[m].block_count[bx + by * map[m].bxs];
-        for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+        dumb_ptr<block_list> bl = m->blocks.ref(bx, by).normal;
+        for (; bl; bl = bl->bl_next)
         {
-            if (!bl)
-                continue;
             if (type != BL::NUL && bl->bl_type != type)
                 continue;
             if (bl->bl_x == x && bl->bl_y == y)
@@ -514,12 +474,9 @@ void map_foreachincell(std::function<void(dumb_ptr<block_list>)> func,
 
     if (type == BL::NUL || type == BL::MOB)
     {
-        dumb_ptr<block_list> bl = map[m].block_mob[bx + by * map[m].bxs];
-        int c = map[m].block_mob_count[bx + by * map[m].bxs];
-        for (int i = 0; i < c && bl; i++, bl = bl->bl_next)
+        dumb_ptr<block_list> bl = m->blocks.ref(bx, by).mobs_only;
+        for (; bl; bl = bl->bl_next)
         {
-            if (!bl)
-                continue;
             if (bl->bl_x == x && bl->bl_y == y)
                 bl_list.push_back(bl);
         }
@@ -670,13 +627,14 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
     map_delobject(fitem->bl_id, BL::ITEM);
 }
 
-std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, uint16_t w, uint16_t h)
+std::pair<uint16_t, uint16_t> map_randfreecell(map_local *m,
+        uint16_t x, uint16_t y, uint16_t w, uint16_t h)
 {
     for (int itr : random_::iterator(w * h))
     {
         int dx = itr % w;
         int dy = itr / w;
-        if (!bool(read_gat(m, x + dx, y + dy) & MapCell::UNWALKABLE))
+        if (!bool(read_gatp(m, x + dx, y + dy) & MapCell::UNWALKABLE))
             return {static_cast<uint16_t>(x + dx), static_cast<uint16_t>(y + dy)};
     }
     return {static_cast<uint16_t>(0), static_cast<uint16_t>(0)};
@@ -684,7 +642,7 @@ std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, ui
 
 /// Return a randomly selected passable cell within a given range.
 static
-std::pair<uint16_t, uint16_t> map_searchrandfreecell(int m, int x, int y, int range)
+std::pair<uint16_t, uint16_t> map_searchrandfreecell(map_local *m, int x, int y, int range)
 {
     int whole_range = 2 * range + 1;
     return map_randfreecell(m, x - range, y - range, whole_range, whole_range);
@@ -697,7 +655,7 @@ std::pair<uint16_t, uint16_t> map_searchrandfreecell(int m, int x, int y, int ra
  *------------------------------------------
  */
 int map_addflooritem_any(struct item *item_data, int amount,
-        int m, int x, int y,
+        map_local *m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal)
 {
@@ -762,7 +720,7 @@ int map_addflooritem_any(struct item *item_data, int amount,
 }
 
 int map_addflooritem(struct item *item_data, int amount,
-        int m, int x, int y,
+        map_local *m, int x, int y,
         dumb_ptr<map_session_data> first_sd,
         dumb_ptr<map_session_data> second_sd,
         dumb_ptr<map_session_data> third_sd)
@@ -872,8 +830,7 @@ void map_quit(dumb_ptr<map_session_data> sd)
     else if (sd->state.storage_open)
         storage_storage_quit(sd);
 
-    if (sd->npc_stackbuf && sd->npc_stackbuf != NULL)
-        free(sd->npc_stackbuf);
+    sd->npc_stackbuf.clear();
 
     map_delblock(sd);
 
@@ -1062,30 +1019,30 @@ dumb_ptr<block_list> map_id2bl(int id)
  * map.npcへ追加 (warp等の領域持ちのみ)
  *------------------------------------------
  */
-int map_addnpc(int m, dumb_ptr<npc_data> nd)
+int map_addnpc(map_local *m, dumb_ptr<npc_data> nd)
 {
     int i;
-    if (m < 0 || m >= map_num)
+    if (!m)
         return -1;
-    for (i = 0; i < map[m].npc_num && i < MAX_NPC_PER_MAP; i++)
-        if (map[m].npc[i] == NULL)
+    for (i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
+        if (m->npc[i] == NULL)
             break;
     if (i == MAX_NPC_PER_MAP)
     {
         if (battle_config.error_log)
-            PRINTF("too many NPCs in one map %s\n", map[m].name);
+            PRINTF("too many NPCs in one map %s\n", m->name);
         return -1;
     }
-    if (i == map[m].npc_num)
+    if (i == m->npc_num)
     {
-        map[m].npc_num++;
+        m->npc_num++;
     }
 
     nullpo_ret(nd);
 
-    map[m].npc[i] = nd;
+    m->npc[i] = nd;
     nd->n = i;
-    id_db.put(nd->bl_id, (dumb_ptr<block_list>)nd);
+    id_db.put(nd->bl_id, nd);
 
     return i;
 }
@@ -1093,23 +1050,26 @@ int map_addnpc(int m, dumb_ptr<npc_data> nd)
 static
 void map_removenpc(void)
 {
-    int i, m, n = 0;
+    int n = 0;
 
-    for (m = 0; m < map_num; m++)
+    for (auto& mitp : maps_db)
     {
-        for (i = 0; i < map[m].npc_num && i < MAX_NPC_PER_MAP; i++)
+        if (!mitp.second->gat)
+            continue;
+        map_local *m = static_cast<map_local *>(mitp.second.get());
+        for (int i = 0; i < m->npc_num && i < MAX_NPC_PER_MAP; i++)
         {
-            if (map[m].npc[i] != NULL)
+            if (m->npc[i] != NULL)
             {
-                clif_clearchar(map[m].npc[i], BeingRemoveWhy::QUIT);
-                map_delblock(map[m].npc[i]);
-                id_db.put(map[m].npc[i]->bl_id, nullptr);
-                if (map[m].npc[i]->npc_subtype == NpcSubtype::SCRIPT)
+                clif_clearchar(m->npc[i], BeingRemoveWhy::QUIT);
+                map_delblock(m->npc[i]);
+                id_db.put(m->npc[i]->bl_id, nullptr);
+                if (m->npc[i]->npc_subtype == NpcSubtype::SCRIPT)
                 {
-//                    free(map[m].npc[i]->u.scr.script);
-//                    free(map[m].npc[i]->u.scr.label_list);
+//                    free(m->npc[i]->u.scr.script);
+//                    free(m->npc[i]->u.scr.label_list);
                 }
-                map[m].npc[i].delete_();
+                m->npc[i].delete_();
                 n++;
             }
         }
@@ -1121,12 +1081,12 @@ void map_removenpc(void)
  * map名からmap番号へ変換
  *------------------------------------------
  */
-int map_mapname2mapid(const char *name)
+map_local *map_mapname2mapid(const char *name)
 {
-    struct map_data *md = map_db.get(name);
+    map_abstract *md = maps_db.get(name);
     if (md == NULL || md->gat == NULL)
-        return -1;
-    return md->m;
+        return nullptr;
+    return static_cast<map_local *>(md);
 }
 
 /*==========================================
@@ -1135,9 +1095,10 @@ int map_mapname2mapid(const char *name)
  */
 int map_mapname2ipport(const char *name, struct in_addr *ip, int *port)
 {
-    struct map_data_other_server *mdos = (struct map_data_other_server *)map_db.get(name);
-    if (mdos == NULL || mdos->gat)
+    map_abstract *md = maps_db.get(name);
+    if (md == NULL || md->gat)
         return -1;
+    map_remote *mdos = static_cast<map_remote *>(md);
     *ip = mdos->ip;
     *port = mdos->port;
     return 0;
@@ -1219,22 +1180,22 @@ DIR map_calc_dir(dumb_ptr<block_list> src, int x, int y)
  * (m,x,y)の状態を調べる
  *------------------------------------------
  */
-MapCell map_getcell(int m, int x, int y)
+MapCell map_getcell(map_local *m, int x, int y)
 {
-    if (x < 0 || x >= map[m].xs - 1 || y < 0 || y >= map[m].ys - 1)
+    if (x < 0 || x >= m->xs - 1 || y < 0 || y >= m->ys - 1)
         return MapCell::UNWALKABLE;
-    return map[m].gat[x + y * map[m].xs];
+    return m->gat[x + y * m->xs];
 }
 
 /*==========================================
  * (m,x,y)の状態をtにする
  *------------------------------------------
  */
-void map_setcell(int m, int x, int y, MapCell t)
+void map_setcell(map_local *m, int x, int y, MapCell t)
 {
-    if (x < 0 || x >= map[m].xs || y < 0 || y >= map[m].ys)
+    if (x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         return;
-    map[m].gat[x + y * map[m].xs] = t;
+    m->gat[x + y * m->xs] = t;
 }
 
 /*==========================================
@@ -1243,17 +1204,16 @@ void map_setcell(int m, int x, int y, MapCell t)
  */
 int map_setipport(const char *name, struct in_addr ip, int port)
 {
-    struct map_data *md = map_db.get(name);
+    map_abstract *md = maps_db.get(name);
     if (md == NULL)
     {
-        struct map_data_other_server *mdos = NULL;
         // not exist -> add new data
-        CREATE(mdos, struct map_data_other_server, 1);
+        auto mdos = make_unique<map_remote>();
         memcpy(mdos->name, name, 24);
         mdos->gat = NULL;
         mdos->ip = ip;
         mdos->port = port;
-        map_db.put(mdos->name, (struct map_data *)mdos);
+        maps_db.put(mdos->name, std::move(mdos));
     }
     else
     {
@@ -1270,8 +1230,7 @@ int map_setipport(const char *name, struct in_addr ip, int port)
         else
         {
             // update
-            struct map_data_other_server *mdos = NULL;
-            mdos = (struct map_data_other_server *) md;
+            map_remote *mdos = static_cast<map_remote *>(md);
             mdos->ip = ip;
             mdos->port = port;
         }
@@ -1284,7 +1243,7 @@ int map_setipport(const char *name, struct in_addr ip, int port)
  *------------------------------------------
  */
 static
-bool map_readmap(int m, const_string fn)
+bool map_readmap(map_local *m, size_t num, const std::string& fn)
 {
     // read & convert fn
     std::vector<uint8_t> gat_v = grfio_reads(fn);
@@ -1292,39 +1251,27 @@ bool map_readmap(int m, const_string fn)
         return false;
     size_t s = gat_v.size() - 4;
 
-    map[m].m = m;
-    int xs = map[m].xs = gat_v[0] | gat_v[1] << 8;
-    int ys = map[m].ys = gat_v[2] | gat_v[3] << 8;
-    PRINTF("\rLoading Maps [%d/%d]: %-30s  (%i, %i)",
-            m, map_num, std::string(fn.begin(), fn.end()), xs, ys);
+    int xs = m->xs = gat_v[0] | gat_v[1] << 8;
+    int ys = m->ys = gat_v[2] | gat_v[3] << 8;
+    PRINTF("\rLoading Maps [%zu/%zu]: %-30s  (%i, %i)",
+            num, maps_db.size(),
+            std::string(fn.begin(), fn.end()), xs, ys);
     fflush(stdout);
 
     assert (s == xs * ys);
-    map[m].gat = make_unique<MapCell[]>(s);
-    if (map[m].gat == NULL)
-    {
-        PRINTF("out of memory : map_readmap gat\n");
-        exit(1);
-    }
+    m->gat = make_unique<MapCell[]>(s);
 
-    map[m].npc_num = 0;
-    map[m].users = 0;
-    memset(&map[m].flag, 0, sizeof(map[m].flag));
+    m->npc_num = 0;
+    m->users = 0;
+    memset(&m->flag, 0, sizeof(m->flag));
     if (battle_config.pk_mode)
-        map[m].flag.pvp = 1;    // make all maps pvp for pk_mode [Valaris]
+        m->flag.pvp = 1;    // make all maps pvp for pk_mode [Valaris]
     MapCell *gat_m = reinterpret_cast<MapCell *>(&gat_v[4]);
-    std::copy(gat_m, gat_m + s, &map[m].gat[0]);
+    std::copy(gat_m, gat_m + s, &m->gat[0]);
 
-    map[m].bxs = (xs + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    map[m].bys = (ys + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    size_t size = map[m].bxs * map[m].bys;
-
-    CREATE(map[m].block, dumb_ptr<block_list>, size);
-    CREATE(map[m].block_mob, dumb_ptr<block_list>, size);
-    CREATE(map[m].block_count, int, size);
-    CREATE(map[m].block_mob_count, int, size);
-
-    map_db.put(map[m].name, &map[m]);
+    size_t bxs = (xs + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    size_t bys = (ys + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    m->blocks.reset(bxs, bys);
 
     return true;
 }
@@ -1336,24 +1283,35 @@ bool map_readmap(int m, const_string fn)
 static
 int map_readallmap(void)
 {
-    int i, maps_removed = 0;
+    int maps_removed = 0;
+    int num = 0;
 
-    for (i = 0; i < map_num; i++)
+    for (auto& mit : maps_db)
     {
-        assert (strstr(map[i].name, ".gat") != NULL);
+        assert (strstr(mit.second->name, ".gat") != NULL);
         {
             {
-                if (!map_readmap(i, map[i].name))
+                map_local *ml = static_cast<map_local *>(mit.second.get());
+                if (!map_readmap(ml, num, mit.first))
                 {
-                    map_delmap(map[i].name);
+                    // Can't remove while implicitly iterating,
+                    // and I don't feel like explicitly iterating.
+                    //map_delmap(map[i].name);
                     maps_removed++;
                 }
+                else
+                    num++;
             }
         }
     }
 
-    PRINTF("\rMaps Loaded: %d %60s\n", map_num, "");
-    PRINTF("\rMaps Removed: %d \n", maps_removed);
+    PRINTF("\rMaps Loaded: %-65zu\n", maps_db.size());
+    if (maps_removed)
+    {
+        PRINTF("Cowardly refusing to keep going after removing %d maps.\n",
+                maps_removed);
+        exit(1);
+    }
     return 0;
 }
 
@@ -1362,50 +1320,31 @@ int map_readallmap(void)
  *------------------------------------------
  */
 static
-int map_addmap(const char *mapname)
+void map_addmap(const std::string& mapname)
 {
-    if (strcasecmp(mapname, "clear") == 0)
+    if (mapname == "clear")
     {
-        map_num = 0;
-        return 0;
+        maps_db.clear();
+        return;
     }
 
-    if (map_num >= MAX_MAP_PER_SERVER - 1)
-    {
-        PRINTF("too many map\n");
-        return 1;
-    }
-    memcpy(map[map_num].name, mapname, 24);
-    map_num++;
-    return 0;
+    auto newmap = make_unique<map_local>();
+    strzcpy(newmap->name, mapname.c_str(), sizeof(newmap->name));
 }
 
 /*==========================================
  * 読み込むmapを削除する
  *------------------------------------------
  */
-static
-int map_delmap(const char *mapname)
+void map_delmap(const std::string& mapname)
 {
-    int i;
-
-    if (strcasecmp(mapname, "all") == 0)
+    if (mapname == "all")
     {
-        map_num = 0;
-        return 0;
+        maps_db.clear();
+        return;
     }
 
-    for (i = 0; i < map_num; i++)
-    {
-        if (strcmp(map[i].name, mapname) == 0)
-        {
-            PRINTF("Removing map [ %s ] from maplist\n", map[i].name);
-            memmove(map + i, map + i + 1,
-                     sizeof(map[0]) * (map_num - i - 1));
-            map_num--;
-        }
-    }
-    return 0;
+    maps_db.put(mapname, nullptr);
 }
 
 constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
@@ -1413,7 +1352,7 @@ constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
 static
 FILE *map_logfile = NULL;
 static
-char *map_logfile_name = NULL;
+std::string map_logfile_name;
 static
 long map_logfile_index;
 
@@ -1454,20 +1393,20 @@ void map_start_logfile(long index)
             map_logfile_index);
     map_logfile = fopen(filename_buf.c_str(), "w+");
     if (!map_logfile)
-        perror(map_logfile_name);
+        perror(map_logfile_name.c_str());
 }
 
 static
-void map_set_logfile(const char *filename)
+void map_set_logfile(std::string filename)
 {
     struct timeval tv;
 
-    map_logfile_name = strdup(filename);
+    map_logfile_name = std::move(filename);
     gettimeofday(&tv, NULL);
 
     map_start_logfile(tv.tv_sec);
 
-    MAP_LOG("log-start v4");
+    MAP_LOG("log-start v5");
 }
 
 void map_log(const_string line)
@@ -1523,14 +1462,16 @@ int map_config_read(const char *cfgName)
             if (h != NULL)
             {
                 PRINTF("Character server IP address : %s -> %d.%d.%d.%d\n",
-                     w2, (unsigned char) h->h_addr[0],
-                     (unsigned char) h->h_addr[1],
-                     (unsigned char) h->h_addr[2],
-                     (unsigned char) h->h_addr[3]);
-                SPRINTF(w2, "%d.%d.%d.%d", (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                     w2,
+                     static_cast<uint8_t>(h->h_addr[0]),
+                     static_cast<uint8_t>(h->h_addr[1]),
+                     static_cast<uint8_t>(h->h_addr[2]),
+                     static_cast<uint8_t>(h->h_addr[3]));
+                SPRINTF(w2, "%d.%d.%d.%d",
+                         static_cast<uint8_t>(h->h_addr[0]),
+                         static_cast<uint8_t>(h->h_addr[1]),
+                         static_cast<uint8_t>(h->h_addr[2]),
+                         static_cast<uint8_t>(h->h_addr[3]));
             }
             chrif_setip(w2.c_str());
         }
@@ -1544,14 +1485,15 @@ int map_config_read(const char *cfgName)
             if (h != NULL)
             {
                 PRINTF("Map server IP address : %s -> %d.%d.%d.%d\n", w2,
-                        (unsigned char) h->h_addr[0],
-                        (unsigned char) h->h_addr[1],
-                        (unsigned char) h->h_addr[2],
-                        (unsigned char) h->h_addr[3]);
-                SPRINTF(w2, "%d.%d.%d.%d", (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]));
+                SPRINTF(w2, "%d.%d.%d.%d",
+                         static_cast<uint8_t>(h->h_addr[0]),
+                         static_cast<uint8_t>(h->h_addr[1]),
+                         static_cast<uint8_t>(h->h_addr[2]),
+                         static_cast<uint8_t>(h->h_addr[3]));
             }
             clif_setip(w2.c_str());
         }
@@ -1595,7 +1537,7 @@ int map_config_read(const char *cfgName)
         }
         else if (w1 == "gm_log")
         {
-            gm_logfile_name = strdup(w2.c_str());
+            gm_logfile_name = std::move(w2);
         }
         else if (w1 == "log_file")
         {
@@ -1643,33 +1585,26 @@ void term_func(void)
 {
     map_close_logfile();
 
-    int map_id, i;
-
-    for (map_id = 0; map_id < map_num; map_id++)
+    for (auto& mit : maps_db)
     {
-        if (map[map_id].m)
-            map_foreachinarea(cleanup_sub, map_id,
-                    0, 0, map[map_id].xs, map[map_id].ys,
-                    BL::NUL);
+        if (!mit.second->gat)
+            continue;
+        map_local *map_id = static_cast<map_local *>(mit.second.get());
+
+        map_foreachinarea(cleanup_sub,
+                map_id,
+                0, 0,
+                map_id->xs, map_id->ys,
+                BL::NUL);
     }
 
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
         delete_session(i);
 
     map_removenpc();
 
-    for (i = 0; i <= map_num; i++)
-    {
-        map[i].gat = nullptr;
-        if (map[i].block)
-            free(map[i].block);
-        if (map[i].block_mob)
-            free(map[i].block_mob);
-        if (map[i].block_count)
-            free(map[i].block_count);
-        if (map[i].block_mob_count)
-            free(map[i].block_mob_count);
-    }
+    maps_db.clear();
+
     do_final_script();
     do_final_itemdb();
     do_final_storage();

@@ -42,7 +42,7 @@ int party_recv_message(int party_id, int account_id, const char *mes, int len);
 int party_send_xy_clear(struct party *p);
 void party_send_hp_check(dumb_ptr<block_list> bl, int party_id, int *flag);
 
-int party_exp_share(struct party *p, int map, int base_exp, int job_exp);
+int party_exp_share(struct party *p, map_local *map, int base_exp, int job_exp);
 
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);

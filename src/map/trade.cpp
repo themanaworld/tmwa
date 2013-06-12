@@ -108,7 +108,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
     struct item_data *id;
     int trade_i;
     int trade_weight = 0;
-    int free = 0;
+    int free_ = 0;
     int c;
     int i;
 
@@ -133,7 +133,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
             {
                 if (target_sd->status.inventory[i].nameid == 0
                     && target_sd->inventory_data[i] == NULL)
-                    free++;
+                    free_++;
             }
             for (trade_i = 0; trade_i < 10; trade_i++)
             {
@@ -156,7 +156,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                                 && id->type != ItemType::_7
                                 && id->type != ItemType::_8)
                             {
-                                free++;
+                                free_++;
                                 break;
                             }
                         }
@@ -167,7 +167,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                     {
                         clif_tradeitemok(sd, index, 0, 1); //fail to add item -- the player was over weighted.
                     }
-                    else if (free <= 0)
+                    else if (free_ <= 0)
                     {
                         clif_tradeitemok(sd, index, 0, 2); //fail to add item -- no free slots at receiver
                     }
@@ -210,14 +210,14 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                                 && id->type != ItemType::_7
                                 && id->type != ItemType::_8)
                             {
-                                free++;
+                                free_++;
                                 break;
                             }
                         }
                     }
                 }
                 // used a slot, but might be cancelled out by stackable checks above
-                free--;
+                free_--;
             }
         }
     }

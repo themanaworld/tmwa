@@ -10,13 +10,13 @@
 int magic_signature_check(const char *opname, const char *funname, const char *signature,
         int args_nr, val_t *args, int line, int column);
 
-void magic_area_rect(int *m, int *x, int *y, int *width, int *height,
-        area_t *area);
+void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
+        area_t& area);
 
 #define ARGINT(x) args[x].v.v_int
 #define ARGDIR(x) args[x].v.v_dir
 #define ARGSTR(x) args[x].v.v_string
-#define ARGENTITY(x) dumb_ptr<block_list>(args[x].v.v_entity)
+#define ARGENTITY(x) args[x].v.v_entity
 #define ARGLOCATION(x) args[x].v.v_location
 #define ARGAREA(x) args[x].v.v_area
 #define ARGSPELL(x) args[x].v.v_spell

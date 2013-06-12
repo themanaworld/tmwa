@@ -21,33 +21,6 @@
 static
 Map<int, struct storage> storage_db;
 
-/*==========================================
- * 倉庫内アイテムソート
- *------------------------------------------
- */
-static
-int storage_comp_item(const void *_i1, const void *_i2)
-{
-    const struct item *i1 = (const struct item *) _i1;
-    const struct item *i2 = (const struct item *) _i2;
-
-    if (i1->nameid == i2->nameid)
-        return 0;
-    else if (!(i1->nameid) || !(i1->amount))
-        return 1;
-    else if (!(i2->nameid) || !(i2->amount))
-        return -1;
-    return i1->nameid - i2->nameid;
-}
-
-static
-void sortage_sortitem(struct storage *stor)
-{
-    nullpo_retv(stor);
-    qsort(stor->storage_, MAX_STORAGE, sizeof(struct item),
-           storage_comp_item);
-}
-
 void do_init_storage(void)
 {
 }
@@ -328,14 +301,15 @@ int storage_storage_save(int account_id, int final)
 //Ack from Char-server indicating the storage was saved. [Skotlex]
 int storage_storage_saved(int account_id)
 {
-    struct storage *stor;
+    struct storage *stor = account2storage2(account_id);
 
-    if ((stor = account2storage2(account_id)) != NULL)
-    {                           //Only mark it clean if it's not in use. [Skotlex]
+    if (stor)
+    {
+        //Only mark it clean if it's not in use. [Skotlex]
         if (stor->dirty && stor->storage_status == 0)
         {
             stor->dirty = 0;
-            sortage_sortitem(stor);
+            // sortage_sortitem(stor);
         }
         return 1;
     }

@@ -404,7 +404,7 @@ int mapif_parse_WisRequest(int fd)
         // to be sure of the correct name, rewrite it
         strzcpy(static_cast<char *>(const_cast<void *>(RFIFOP(fd, 28))), mcs->name, 24);
         // if source is destination, don't ask other servers.
-        if (strcmp((const char *)RFIFOP(fd, 4), (const char *)RFIFOP(fd, 28)) == 0)
+        if (strcmp(static_cast<const char *>(RFIFOP(fd, 4)), static_cast<const char *>(RFIFOP(fd, 28))) == 0)
         {
             unsigned char buf[27];
             WBUFW(buf, 0) = 0x3802;

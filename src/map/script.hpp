@@ -2,43 +2,105 @@
 #define SCRIPT_HPP
 
 #include <cstdint>
+#include <cstring> // for inlined get_str - TODO remove
 
 #include <string>
+#include <vector>
 
 #include "../common/db.hpp"
+#include "../common/dumb_ptr.hpp"
 
-enum class ScriptCode : uint8_t;
+enum class ByteCode : uint8_t;
+struct str_data_t;
+
+class ScriptBuffer
+{
+    std::vector<ByteCode> script_buf;
+public:
+    // construction methods used only by script.cpp
+    void add_scriptc(ByteCode a);
+    void add_scriptb(uint8_t a);
+    void add_scripti(uint32_t a);
+    void add_scriptl(str_data_t *a);
+    void set_label(str_data_t *ld, int pos_);
+    const char *parse_simpleexpr(const char *p);
+    const char *parse_subexpr(const char *p, int limit);
+    const char *parse_expr(const char *p);
+    const char *parse_line(const char *p);
+    void parse_script(const char *src, int line);
+
+    // consumption methods used only by script.cpp
+    ByteCode operator[](size_t i) const { return script_buf[i]; }
+    const char *get_str(size_t i) const
+    {
+        return reinterpret_cast<const char *>(&script_buf[i]);
+    }
+
+    // method used elsewhere
+};
+
+struct ScriptPointer
+{
+    const ScriptBuffer *code;
+    size_t pos;
+
+    ScriptPointer()
+    : code()
+    , pos()
+    {}
+
+    ScriptPointer(const ScriptBuffer *c, size_t p)
+    : code(c)
+    , pos(p)
+    {}
+
+    ByteCode peek() const { return (*code)[pos]; }
+    ByteCode pop() { return (*code)[pos++]; }
+    const char *pops()
+    {
+        const char *rv = code->get_str(pos);
+        pos += strlen(rv);
+        return rv;
+    }
+};
 
 struct script_data
 {
-    ScriptCode type;
-    union
+    ByteCode type;
+    union uu
     {
         int num;
-        const char *str;
-        const ScriptCode *script;
+        dumb_string str;
+        // Not a ScriptPointer - pos is stored in a separate slot,
+        // to avoid exploding the struct for everyone.
+        const ScriptBuffer *script;
+
+        uu() { memset(this, '\0', sizeof(*this)); }
+        ~uu() = default;
+        uu(const uu&) = default;
+        uu& operator = (const uu&) = default;
     } u;
 };
 
 struct script_stack
 {
-    int sp, sp_max;
-    struct script_data *stack_data;
+    std::vector<struct script_data> stack_datav;
 };
 
+enum class ScriptEndState;
 // future improvements coming!
 class ScriptState
 {
 public:
     struct script_stack *stack;
     int start, end;
-    int pos, state;
+    ScriptEndState state;
     int rid, oid;
-    const ScriptCode *script, *new_script;
-    int defsp, new_pos, new_defsp;
+    ScriptPointer scriptp, new_scriptp;
+    int defsp, new_defsp;
 };
 
-const ScriptCode *parse_script(const char *, int);
+std::unique_ptr<const ScriptBuffer> parse_script(const char *, int);
 typedef struct argrec
 {
     const char *name;
@@ -52,13 +114,13 @@ typedef struct argrec
         _aru(const char *z) : s(z) {}
     } v;
 } argrec_t;
-int run_script_l(const ScriptCode *, int, int, int, int, argrec_t *args);
-int run_script(const ScriptCode *, int, int, int);
+int run_script_l(ScriptPointer, int, int, int, argrec_t *args);
+int run_script(ScriptPointer, int, int);
 
 extern
 Map<std::string, int> scriptlabel_db;
 extern
-DMap<std::string, const ScriptCode *> userfunc_db;
+UPMap<std::string, const ScriptBuffer> userfunc_db;
 
 void script_config_read();
 void do_init_script(void);

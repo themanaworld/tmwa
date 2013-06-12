@@ -87,7 +87,7 @@ int config_switch (const char *str)
 
 const char *ip2str(struct in_addr ip, bool extra_dot)
 {
-    const uint8_t *p = (const uint8_t *)(&ip);
+    const uint8_t *p = reinterpret_cast<const uint8_t *>(&ip);
     static char buf[17];
     if (extra_dot)
         sprintf(buf, "%d.%d.%d.%d.", p[0], p[1], p[2], p[3]);

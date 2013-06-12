@@ -14,14 +14,14 @@ struct invocation;              /* Spell invocation */
  * Try to cast magic.
  *
  * As an intended side effect, the magic message may be distorted (text only).
+ * No, it can't. Thank God.
  *
  * \param caster Player attempting to cast magic
- * \param spell The prospective incantation
- * \param spell_len Number of characters in the incantation
+ * \param source_invocation The prospective incantation
  * \return 1 or -1 if the input message was magic and was handled by this function, 0 otherwise.  -1 is returned when the
  *         message should not be repeated.
  */
-int magic_message(dumb_ptr<map_session_data> caster, char *spell, size_t spell_len);
+int magic_message(dumb_ptr<map_session_data> caster, const std::string& source_invocation);
 
 /**
  * Removes the shroud from a character
@@ -51,14 +51,14 @@ void do_init_magic(void);
  *
  * Returns NULL if not found
  */
-const char *magic_find_invocation(const char *spellame);
+const char *magic_find_invocation(const std::string& spellame);
 
 /**
  * Identifies the invocation used to denote a teleport location
  *
  * Returns NULL if not found
  */
-const char *magic_find_anchor_invocation(const char *teleport_location);
+const char *magic_find_anchor_invocation(const std::string& teleport_location);
 
 /**
  * Execute a spell invocation and sets up timers to finish

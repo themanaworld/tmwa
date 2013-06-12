@@ -9,83 +9,58 @@
 
 #undef DEBUG
 
+/// Return a pair of strings, {spellname, parameter}
+/// Parameter may be empty.
 static
-char *magic_preprocess_message(dumb_ptr<map_session_data> character, char *start,
-                                       char *end)
+std::pair<std::string, std::string> magic_tokenise(std::string src)
 {
-    if (character->state.shroud_active
-        && character->state.shroud_disappears_on_talk)
-        magic_unshroud(character);
+    std::string retval = std::move(src);
+    const std::string::iterator rvb = retval.begin(), rve = retval.end();
+    std::string::iterator seeker = std::find(rvb, rve, ' ');
 
-    if (character->state.shroud_active
-        && character->state.shroud_hides_name_talking)
+    if (seeker == retval.end())
     {
-        int len = strlen(end);
-        strcpy(start, "? ");
-        memmove(start + 2, end, len + 1);
-        return start + 4;
+        return {retval, std::string()};
     }
     else
-        return end + 2;         /* step past blank */
-}
-
-/* Returns a dynamically allocated copy of `src'.
- * `*parameter' may point within that copy or be NULL. */
-static
-char *magic_tokenise(char *src, char **parameter)
-{
-    char *retval = strdup(src);
-    char *seeker = retval;
-
-    while (*seeker && *seeker != ' ')
-        ++seeker;
-
-    if (!*seeker)
-        *parameter = NULL;
-    else
     {
-        *seeker = 0;            /* Terminate invocation */
+        std::string rv1(rvb, seeker);
         ++seeker;
 
-        while (*seeker == ' ')
+        while (seeker != rve && *seeker == ' ')
             ++seeker;
 
-        *parameter = seeker;
+        // Note: this very well could be empty
+        std::string rv2(seeker, rve);
+        return {rv1, rv2};
     }
-
-    return retval;
 }
 
-int magic_message(dumb_ptr<map_session_data> caster, char *spell_, size_t)
+int magic_message(dumb_ptr<map_session_data> caster, const std::string& source_invocation)
 {
     if (pc_isdead(caster))
         return 0;
 
     int power = caster->matk1;
-    char *invocation_base = spell_ + 8;
-    char *source_invocation =
-        1 + invocation_base + strlen(caster->status.name);
-    spell_t *spell;
-    char *parameter;
-    char *spell_invocation;
 
-    if (!source_invocation)
-        return 0;
+    // This was the only thing worth saving from magic_preprocess_message.
+    // May it rest only, and never rise again.
+    // For more information on how this code worked, travel through time
+    // and watch all the comments I wrote for myself while trying to figure
+    // out if it was safe to delete.
+    if (caster->state.shroud_active && caster->state.shroud_disappears_on_talk)
+        magic_unshroud(caster);
 
-    /* Pre-message filter in case some spell alters output */
-    source_invocation =
-        magic_preprocess_message(caster, invocation_base, source_invocation);
+    auto pair = magic_tokenise(source_invocation);
+    std::string spell_invocation = std::move(pair.first);
+    std::string parameter = std::move(pair.second);
 
-    spell_invocation = magic_tokenise(source_invocation, &parameter);
-    parameter = parameter ? strdup(parameter) : strdup("");
-
-    spell = magic_find_spell(spell_invocation);
-    free(spell_invocation);
+    dumb_ptr<spell_t> spell = magic_find_spell(spell_invocation);
 
     if (spell)
     {
         int near_miss;
-        env_t *env =
+        dumb_ptr<env_t> env =
             spell_create_env(&magic_conf, spell, caster, power, parameter);
         effect_set_t *effects;
 
@@ -118,8 +93,6 @@ int magic_message(dumb_ptr<map_session_data> caster, char *spell_, size_t)
 
         return 1;
     }
-    else
-        free(parameter);
 
     return 0;                   /* Not a spell */
 }

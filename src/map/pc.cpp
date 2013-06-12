@@ -21,6 +21,7 @@
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
+#include "path.hpp"
 #include "script.hpp"
 #include "skill.hpp"
 #include "storage.hpp"
@@ -216,9 +217,7 @@ earray<EPOS, EQUIP, EQUIP::COUNT> equip_pos //=
 }};
 
 static
-struct GM_Account *gm_accounts = NULL;
-static
-int GM_num = 0;
+std::map<int, uint8_t> gm_accountm;
 
 static
 int pc_checkoverhp(dumb_ptr<map_session_data> sd);
@@ -234,17 +233,14 @@ void pc_setdead(dumb_ptr<map_session_data> sd)
     sd->state.dead_sit = 1;
 }
 
-int pc_isGM(dumb_ptr<map_session_data> sd)
+uint8_t pc_isGM(dumb_ptr<map_session_data> sd)
 {
-    int i;
-
     nullpo_ret(sd);
 
-    for (i = 0; i < GM_num; i++)
-        if (gm_accounts[i].account_id == sd->status.account_id)
-            return gm_accounts[i].level;
+    auto it = gm_accountm.find(sd->status.account_id);
+    if (it != gm_accountm.end())
+        return it->second;
     return 0;
-
 }
 
 int pc_iskiller(dumb_ptr<map_session_data> src,
@@ -265,23 +261,12 @@ int pc_iskiller(dumb_ptr<map_session_data> src,
     return 0;
 }
 
-int pc_set_gm_level(int account_id, int level)
+void pc_set_gm_level(int account_id, uint8_t level)
 {
-    int i;
-    for (i = 0; i < GM_num; i++)
-    {
-        if (account_id == gm_accounts[i].account_id)
-        {
-            gm_accounts[i].level = level;
-            return 0;
-        }
-    }
-
-    GM_num++;
-    RECREATE(gm_accounts, struct GM_Account, GM_num);
-    gm_accounts[GM_num - 1].account_id = account_id;
-    gm_accounts[GM_num - 1].level = level;
-    return 0;
+    if (level)
+        gm_accountm[account_id] = level;
+    else
+        gm_accountm.erase(account_id);
 }
 
 static
@@ -391,8 +376,10 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
 {
     int c = 0;
     map_foreachinarea(std::bind(pc_counttargeted_sub, ph::_1, sd->bl_id, &c, src, target_lv),
-            sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
-            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE, BL::NUL);
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
+            BL::NUL);
     return c;
 }
 
@@ -430,9 +417,9 @@ int pc_makesavestatus(dumb_ptr<map_session_data> sd)
     }
 
     // セーブ禁止マップだったので指定位置に移動
-    if (map[sd->bl_m].flag.nosave)
+    if (sd->bl_m->flag.nosave)
     {
-        struct map_data *m = &map[sd->bl_m];
+        map_local *m = sd->bl_m;
         if (strcmp(m->save.map, "SavePoint") == 0)
             memcpy(&sd->status.last_point, &sd->status.save_point,
                     sizeof(sd->status.last_point));
@@ -609,7 +596,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
 
-    if (map[sd->bl_m].flag.pvp
+    if (sd->bl_m->flag.pvp
         && (item->flag.no_equip == 1 || item->flag.no_equip == 3))
         return 0;
     return 1;
@@ -663,7 +650,6 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // sd->walktimer = nullptr;
     // sd->attacktimer = nullptr;
     // sd->invincible_timer = nullptr;
-    sd->sg_count = 0;
 
     sd->deal_locked = 0;
     sd->trade_partner = 0;
@@ -710,9 +696,6 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     }
     sd->sc_count = 0;
     sd->status.option = Option::ZERO;
-
-    // init ignore list
-    memset(sd->ignore, 0, sizeof(sd->ignore));
 
     // パーティー関係の初期化
     sd->party_sended = 0;
@@ -801,7 +784,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     sd->packet_flood_in = 0;
 
     // Obtain IP address (if they are still connected)
-    if (!getpeername(sd->fd, (struct sockaddr *)&sai, &sa_len))
+    if (!getpeername(sd->fd, reinterpret_cast<struct sockaddr *>(&sai), &sa_len))
         sd->ip = sai.sin_addr;
 
     // message of the limited time of the account
@@ -1059,7 +1042,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             {
                 if (sd->status.inventory[index].card[0] != 0x00ff
                     && sd->status.inventory[index].card[0] != 0x00fe
-                    && sd->status.inventory[index].card[0] != (short) 0xff00)
+                    && sd->status.inventory[index].card[0] != static_cast<short>(0xff00))
                 {
                     int j;
                     for (j = 0; j < sd->inventory_data[index]->slot; j++)
@@ -1075,7 +1058,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                             if (i == EQUIP::SHIELD
                                 && sd->status.inventory[index].equip == EPOS::SHIELD)
                                 sd->state.lr_flag = 1;
-                            run_script_l(itemdb_equipscript(c), 0, sd->bl_id,
+                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id,
                                         0, 2, arg);
                             sd->state.lr_flag = 0;
                         }
@@ -1086,7 +1069,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             {                   // 防具
                 if (sd->status.inventory[index].card[0] != 0x00ff
                     && sd->status.inventory[index].card[0] != 0x00fe
-                    && sd->status.inventory[index].card[0] != (short) 0xff00)
+                    && sd->status.inventory[index].card[0] != static_cast<short>(0xff00))
                 {
                     int j;
                     for (j = 0; j < sd->inventory_data[index]->slot; j++)
@@ -1098,7 +1081,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                             arg[0].v.i = int(i);
                             arg[1].name = "@itemId";
                             arg[1].v.i = sd->inventory_data[index]->nameid;
-                            run_script_l(itemdb_equipscript(c), 0, sd->bl_id,
+                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id,
                                         0, 2, arg);
                         }
                     }
@@ -1161,7 +1144,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                         arg[0].v.i = int(i);
                         arg[1].name = "@itemId";
                         arg[1].v.i = sd->inventory_data[index]->nameid;
-                        run_script_l(sd->inventory_data[index]->equip_script, 0,
+                        run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                                       sd->bl_id, 0, 2, arg);
                     }
                     sd->state.lr_flag = 0;
@@ -1184,7 +1167,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                         sd->star += (sd->status.inventory[index].card[1] >> 8); // 星のかけら
                     }
                     sd->attackrange += sd->inventory_data[index]->range;
-                    run_script_l(sd->inventory_data[index]->equip_script, 0,
+                    run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                                   sd->bl_id, 0, 2, arg);
                 }
             }
@@ -1198,7 +1181,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 sd->watk += sd->inventory_data[index]->atk;
                 refinedef +=
                     sd->status.inventory[index].refine * 0;
-                run_script_l(sd->inventory_data[index]->equip_script, 0,
+                run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                               sd->bl_id, 0, 2, arg);
             }
         }
@@ -1223,7 +1206,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             arg[1].name = "@itemId";
             arg[1].v.i = sd->inventory_data[index]->nameid;
             sd->state.lr_flag = 2;
-            run_script_l(sd->inventory_data[index]->equip_script, 0, sd->bl_id,
+            run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0), sd->bl_id,
                         0, 2, arg);
             sd->state.lr_flag = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
@@ -1929,12 +1912,11 @@ int pc_inventoryblank(dumb_ptr<map_session_data> sd)
  */
 int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
 {
-    double z;
-
     nullpo_ret(sd);
 
-    z = (double) sd->status.zeny;
-    if (sd->status.zeny < zeny || z - (double) zeny > MAX_ZENY)
+#warning "Why is this a double?"
+    double z = sd->status.zeny;
+    if (sd->status.zeny < zeny || z - zeny > MAX_ZENY)
         return 1;
     sd->status.zeny -= zeny;
     clif_updatestatus(sd, SP::ZENY);
@@ -1948,12 +1930,10 @@ int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
  */
 int pc_getzeny(dumb_ptr<map_session_data> sd, int zeny)
 {
-    double z;
-
     nullpo_ret(sd);
 
-    z = (double) sd->status.zeny;
-    if (z + (double) zeny > MAX_ZENY)
+    double z = sd->status.zeny;
+    if (z + zeny > MAX_ZENY)
     {
         zeny = 0;
         sd->status.zeny = MAX_ZENY;
@@ -2273,16 +2253,11 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
     if (nameid == 601
-        && (map[sd->bl_m].flag.noteleport))
+        && (sd->bl_m->flag.noteleport))
     {
         return 0;
     }
 
-    if (nameid == 602 && map[sd->bl_m].flag.noreturn)
-        return 0;
-    if (nameid == 604
-        && (map[sd->bl_m].flag.nobranch))
-        return 0;
     if (item->sex != 2 && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
@@ -2312,7 +2287,7 @@ int pc_useitem(dumb_ptr<map_session_data> sd, int n)
             return 1;
         }
 
-        run_script(sd->inventory_data[n]->use_script, 0, sd->bl_id, 0);
+        run_script(ScriptPointer(sd->inventory_data[n]->use_script.get(), 0), sd->bl_id, 0);
 
         clif_useitemack(sd, n, amount - 1, 1);
         pc_delitem(sd, n, 1, 1);
@@ -2355,7 +2330,6 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
        BeingRemoveWhy clrtype)
 {
     char mapname[24];
-    int m = 0;
 
     nullpo_ret(sd);
 
@@ -2384,8 +2358,8 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
         strcat(mapname, ".gat");
     }
 
-    m = map_mapname2mapid(mapname);
-    if (m < 0)
+    map_local *m = map_mapname2mapid(mapname);
+    if (!m)
     {
         if (sd->mapname[0])
         {
@@ -2419,10 +2393,10 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
         return 1;
     }
 
-    if (x < 0 || x >= map[m].xs || y < 0 || y >= map[m].ys)
+    if (x < 0 || x >= m->xs || y < 0 || y >= m->ys)
         x = y = 0;
     if ((x == 0 && y == 0)
-        || bool(read_gat(m, x, y) & MapCell::UNWALKABLE))
+        || bool(read_gatp(m, x, y) & MapCell::UNWALKABLE))
     {
         if (x || y)
         {
@@ -2431,10 +2405,10 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
         }
         do
         {
-            x = random_::in(1, map[m].xs - 2);
-            y = random_::in(1, map[m].ys - 2);
+            x = random_::in(1, m->xs - 2);
+            y = random_::in(1, m->ys - 2);
         }
-        while (bool(read_gat(m, x, y) & MapCell::UNWALKABLE));
+        while (bool(read_gatp(m, x, y) & MapCell::UNWALKABLE));
     }
 
     if (sd->mapname[0] && sd->bl_prev != NULL)
@@ -2442,7 +2416,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
         clif_clearchar(sd, clrtype);
         skill_gangsterparadise(sd, 0);
         map_delblock(sd);
-        clif_changemap(sd, map[m].name, x, y); // [MouseJstr]
+        clif_changemap(sd, m->name, x, y); // [MouseJstr]
     }
 
     memcpy(sd->mapname, mapname, 24);
@@ -2468,25 +2442,24 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
 int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type)
 {
     int x, y, i = 0;
-    int m;
 
     nullpo_ret(sd);
 
-    m = sd->bl_m;
+    map_local *m = sd->bl_m;
 
-    if (map[sd->bl_m].flag.noteleport)  // テレポート禁止
+    if (sd->bl_m->flag.noteleport)  // テレポート禁止
         return 0;
 
     do
     {
-        x = random_::in(1, map[m].xs - 2);
-        y = random_::in(1, map[m].ys - 2);
+        x = random_::in(1, m->xs - 2);
+        y = random_::in(1, m->ys - 2);
     }
-    while (bool(read_gat(m, x, y) & MapCell::UNWALKABLE)
+    while (bool(read_gatp(m, x, y) & MapCell::UNWALKABLE)
         && (i++) < 1000);
 
     if (i < 1000)
-        pc_setpos(sd, map[m].name, x, y, type);
+        pc_setpos(sd, m->name, x, y, type);
 
     return 0;
 }
@@ -2589,7 +2562,8 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
 
         // sd->walktimer = dummy value that is not nullptr;
         map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
-                sd->bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                sd->bl_m,
+                x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
                 dx, dy,
                 BL::NUL);
@@ -2605,7 +2579,8 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
             map_addblock(sd);
 
         map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
-                sd->bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                sd->bl_m,
+                x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
                 -dx, -dy,
                 BL::NUL);
@@ -2618,7 +2593,8 @@ void pc_walk(TimerData *, tick_t tick, int id, unsigned char data)
             {
                 int p_flag = 0;
                 map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &p_flag),
-                        sd->bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                        sd->bl_m,
+                        x - AREA_SIZE, y - AREA_SIZE,
                         x + AREA_SIZE, y + AREA_SIZE,
                         -dx, -dy,
                         BL::PC);
@@ -2772,7 +2748,8 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
                  || sd->bl_y / BLOCK_SIZE != dst_y / BLOCK_SIZE);
 
     map_foreachinmovearea(std::bind(clif_pcoutsight, ph::_1, sd),
-            sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
             sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             dx, dy,
             BL::NUL);
@@ -2785,7 +2762,8 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
         map_addblock(sd);
 
     map_foreachinmovearea(std::bind(clif_pcinsight, ph::_1, sd),
-            sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
             sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             -dx, -dy,
             BL::NUL);
@@ -2797,7 +2775,8 @@ int pc_movepos(dumb_ptr<map_session_data> sd, int dst_x, int dst_y)
         {
             int flag = 0;
             map_foreachinmovearea(std::bind(party_send_hp_check, ph::_1, sd->status.party_id, &flag),
-                    sd->bl_m, sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+                    sd->bl_m,
+                    sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
                     sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
                     -dx, -dy,
                     BL::PC);
@@ -3110,7 +3089,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
     if (sd->bl_prev == NULL || pc_isdead(sd))
         return 0;
 
-    if ((battle_config.pvp_exp == 0) && map[sd->bl_m].flag.pvp) // [MouseJstr]
+    if ((battle_config.pvp_exp == 0) && sd->bl_m->flag.pvp) // [MouseJstr]
         return 0;               // no exp on pvp maps
 
     earray<const char *, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons //=
@@ -3588,28 +3567,28 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
 
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {                           // changed penalty options, added death by player if pk_mode [Valaris]
-        if (!map[sd->bl_m].flag.nopenalty)
+        if (!sd->bl_m->flag.nopenalty)
         {
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_base > 0)
                 sd->status.base_exp -=
-                    (double) pc_nextbaseexp(sd) *
-                    (double) battle_config.death_penalty_base / 10000;
+                    static_cast<double>(pc_nextbaseexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_base) / 10000;
             if (battle_config.pk_mode && src && src->bl_type == BL::PC)
                 sd->status.base_exp -=
-                    (double) pc_nextbaseexp(sd) *
-                    (double) battle_config.death_penalty_base / 10000;
+                    static_cast<double>(pc_nextbaseexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_base) / 10000;
             else if (battle_config.death_penalty_type == 2
                      && battle_config.death_penalty_base > 0)
             {
                 if (pc_nextbaseexp(sd) > 0)
                     sd->status.base_exp -=
-                        (double) sd->status.base_exp *
-                        (double) battle_config.death_penalty_base / 10000;
+                        static_cast<double>(sd->status.base_exp) *
+                        static_cast<double>(battle_config.death_penalty_base) / 10000;
                 if (battle_config.pk_mode && src && src->bl_type == BL::PC)
                     sd->status.base_exp -=
-                        (double) sd->status.base_exp *
-                        (double) battle_config.death_penalty_base / 10000;
+                        static_cast<double>(sd->status.base_exp) *
+                        static_cast<double>(battle_config.death_penalty_base) / 10000;
             }
             if (sd->status.base_exp < 0)
                 sd->status.base_exp = 0;
@@ -3618,23 +3597,23 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_job > 0)
                 sd->status.job_exp -=
-                    (double) pc_nextjobexp(sd) *
-                    (double) battle_config.death_penalty_job / 10000;
+                    static_cast<double>(pc_nextjobexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_job) / 10000;
             if (battle_config.pk_mode && src && src->bl_type == BL::PC)
                 sd->status.job_exp -=
-                    (double) pc_nextjobexp(sd) *
-                    (double) battle_config.death_penalty_job / 10000;
+                    static_cast<double>(pc_nextjobexp(sd)) *
+                    static_cast<double>(battle_config.death_penalty_job) / 10000;
             else if (battle_config.death_penalty_type == 2
                      && battle_config.death_penalty_job > 0)
             {
                 if (pc_nextjobexp(sd) > 0)
                     sd->status.job_exp -=
-                        (double) sd->status.job_exp *
-                        (double) battle_config.death_penalty_job / 10000;
+                        static_cast<double>(sd->status.job_exp) *
+                        static_cast<double>(battle_config.death_penalty_job) / 10000;
                 if (battle_config.pk_mode && src && src->bl_type == BL::PC)
                     sd->status.job_exp -=
-                        (double) sd->status.job_exp *
-                        (double) battle_config.death_penalty_job / 10000;
+                        static_cast<double>(sd->status.job_exp) *
+                        static_cast<double>(battle_config.death_penalty_job) / 10000;
             }
             if (sd->status.job_exp < 0)
                 sd->status.job_exp = 0;
@@ -3643,10 +3622,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     }
 
     // pvp
-    if (map[sd->bl_m].flag.pvp && !battle_config.pk_mode)
+    if (sd->bl_m->flag.pvp && !battle_config.pk_mode)
     {                           // disable certain pvp functions on pk_mode [Valaris]
         //ランキング計算
-        if (!map[sd->bl_m].flag.pvp_nocalcrank)
+        if (!sd->bl_m->flag.pvp_nocalcrank)
         {
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
@@ -4182,56 +4161,33 @@ int pc_setoption(dumb_ptr<map_session_data> sd, Option type)
  */
 int pc_readreg(dumb_ptr<map_session_data> sd, int reg)
 {
-    int i;
-
     nullpo_ret(sd);
 
-    for (i = 0; i < sd->reg_num; i++)
-        if (sd->reg[i].index == reg)
-            return sd->reg[i].data;
-
-    return 0;
+    return sd->regm.get(reg);
 }
 
 /*==========================================
  * script用変数の値を設定
  *------------------------------------------
  */
-int pc_setreg(dumb_ptr<map_session_data> sd, int reg, int val)
+void pc_setreg(dumb_ptr<map_session_data> sd, int reg, int val)
 {
-    int i;
+    nullpo_retv(sd);
 
-    nullpo_ret(sd);
-
-    for (i = 0; i < sd->reg_num; i++)
-    {
-        if (sd->reg[i].index == reg)
-        {
-            sd->reg[i].data = val;
-            return 0;
-        }
-    }
-    sd->reg_num++;
-    RECREATE(sd->reg, struct script_reg, sd->reg_num);
-    sd->reg[i].index = reg;
-    sd->reg[i].data = val;
-
-    return 0;
+    sd->regm.put(reg, val);
 }
 
 /*==========================================
  * script用文字列変数の値を読む
  *------------------------------------------
  */
-char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg)
+const char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg)
 {
-    int i;
-
     nullpo_ret(sd);
 
-    for (i = 0; i < sd->regstr_num; i++)
-        if (sd->regstr[i].index == reg)
-            return sd->regstr[i].data;
+    std::string *s = sd->regstrm.search(reg);
+    if (s)
+        return s->c_str();
 
     return NULL;
 }
@@ -4240,30 +4196,18 @@ char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg)
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-int pc_setregstr(dumb_ptr<map_session_data> sd, int reg, const char *str)
+void pc_setregstr(dumb_ptr<map_session_data> sd, int reg, const char *str)
 {
-    int i;
+    nullpo_retv(sd);
 
-    nullpo_ret(sd);
 
-    if (strlen(str) + 1 > sizeof(sd->regstr[0].data))
+    if (!*str)
     {
-        PRINTF("pc_setregstr(): String too long!\n");
-        return 0;
+        sd->regstrm.erase(reg);
+        return;
     }
 
-    for (i = 0; i < sd->regstr_num; i++)
-        if (sd->regstr[i].index == reg)
-        {
-            strcpy(sd->regstr[i].data, str);
-            return 0;
-        }
-    sd->regstr_num++;
-    RECREATE(sd->regstr, struct script_regstr, sd->regstr_num);
-    sd->regstr[i].index = reg;
-    strcpy(sd->regstr[i].data, str);
-
-    return 0;
+    sd->regstrm.insert(reg, str);
 }
 
 /*==========================================
@@ -4478,14 +4422,14 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, const char *reg, int val)
  *------------------------------------------
  */
 static
-void pc_eventtimer(TimerData *, tick_t, int id, const char *data)
+void pc_eventtimer(TimerData *, tick_t, int id, dumb_string data)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(id);
     assert (sd != NULL);
 
-    npc_event(sd, data, 0);
+    npc_event(sd, data.c_str(), 0);
 
-    free(const_cast<char *>(data));
+    data.delete_();
 }
 
 /*==========================================
@@ -4504,8 +4448,7 @@ int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, const char 
 
     if (i < MAX_EVENTTIMER)
     {
-        char *evname = (char *) calloc(24, 1);
-        strzcpy(evname, name, 24);
+        dumb_string evname = dumb_string::copyn(name, 24);
         sd->eventtimer[i] = Timer(gettick() + tick,
                 std::bind(pc_eventtimer, ph::_1, ph::_2,
                     sd->bl_id, evname));
@@ -4862,7 +4805,7 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
         }
         //装備制限チェック
         if (bool(sd->status.inventory[i].equip)
-            && map[sd->bl_m].flag.pvp
+            && sd->bl_m->flag.pvp
             && (it->flag.no_equip == 1 || it->flag.no_equip == 3))
         {                       //PvP制限
             sd->status.inventory[i].equip = EPOS::ZERO;
@@ -4932,17 +4875,17 @@ void pc_calc_pvprank_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd2
  */
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
 {
-    struct map_data *m;
-
     nullpo_ret(sd);
-    m = &map[sd->bl_m];
+    map_local *m = sd->bl_m;
     nullpo_ret(m);
 
     if (!(m->flag.pvp))
         return 0;
     sd->pvp_rank = 1;
     map_foreachinarea(std::bind(pc_calc_pvprank_sub, ph::_1, sd),
-            sd->bl_m, 0, 0, m->xs, m->ys,
+            sd->bl_m,
+            0, 0,
+            m->xs, m->ys,
             BL::PC);
     return sd->pvp_rank;
 }
@@ -5392,19 +5335,16 @@ void pc_autosave(TimerData *, tick_t)
 
 int pc_read_gm_account(int fd)
 {
-    int i = 0;
-    if (gm_accounts != NULL)
-        free(gm_accounts);
-    GM_num = 0;
+    gm_accountm.clear();
 
-    CREATE(gm_accounts, struct GM_Account, (RFIFOW(fd, 2) - 4) / 5);
-    for (i = 4; i < RFIFOW(fd, 2); i = i + 5)
+    // (RFIFOW(fd, 2) - 4) / 5
+    for (int i = 4; i < RFIFOW(fd, 2); i += 5)
     {
-        gm_accounts[GM_num].account_id = RFIFOL(fd, i);
-        gm_accounts[GM_num].level = (int) RFIFOB(fd, i + 4);
-        GM_num++;
+        int account_id = RFIFOL(fd, i);
+        uint8_t level = RFIFOB(fd, i + 4);
+        gm_accountm[account_id] = level;
     }
-    return GM_num;
+    return gm_accountm.size();
 }
 
 void pc_setstand(dumb_ptr<map_session_data> sd)
@@ -5467,7 +5407,7 @@ void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled)
     {
         sd->status.option &= ~Option::INVISIBILITY;
         clif_status_change(sd, StatusChange::CLIF_OPTION_SC_INVISIBILITY, 0);
-        pc_setpos(sd, map[sd->bl_m].name, sd->bl_x, sd->bl_y, BeingRemoveWhy::WARPED);
+        pc_setpos(sd, sd->bl_m->name, sd->bl_x, sd->bl_y, BeingRemoveWhy::WARPED);
     }
 }
 

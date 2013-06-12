@@ -203,9 +203,16 @@ static
 void clif_emotion_towards(dumb_ptr<block_list> bl,
                                   dumb_ptr<block_list> target, int type);
 
+
+enum class ChatType
+{
+    Party,
+    Whisper,
+    Global,
+};
+
 static
-char *clif_validate_chat(dumb_ptr<map_session_data> sd, int type,
-        const char **message, size_t *message_len);
+std::string clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type);
 
 /*==========================================
  * clif_sendでSendWho::AREA*指定時用
@@ -337,13 +344,17 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
         case SendWho::AREA:
         case SendWho::AREA_WOS:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, type),
-                    bl->bl_m, bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
-                    bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE, BL::PC);
+                    bl->bl_m,
+                    bl->bl_x - AREA_SIZE, bl->bl_y - AREA_SIZE,
+                    bl->bl_x + AREA_SIZE, bl->bl_y + AREA_SIZE,
+                    BL::PC);
             break;
         case SendWho::AREA_CHAT_WOC:
             map_foreachinarea(std::bind(clif_send_sub, ph::_1, buf, len, bl, SendWho::AREA_CHAT_WOC),
-                    bl->bl_m, bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
-                    bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE), BL::PC);
+                    bl->bl_m,
+                    bl->bl_x - (AREA_SIZE), bl->bl_y - (AREA_SIZE),
+                    bl->bl_x + (AREA_SIZE), bl->bl_y + (AREA_SIZE),
+                    BL::PC);
             break;
 
         case SendWho::PARTY_AREA:       // 同じ画面内の全パーティーメンバに送信
@@ -912,15 +923,15 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
     WBUFW(buf, 51) = 0;
     clif_send(buf, clif_parse_func_table[0x1d9].len, sd, SendWho::AREA_WOS);
 
-    if (map[sd->bl_m].flag.snow)
+    if (sd->bl_m->flag.snow)
         clif_specialeffect(sd, 162, 1);
-    if (map[sd->bl_m].flag.fog)
+    if (sd->bl_m->flag.fog)
         clif_specialeffect(sd, 233, 1);
-    if (map[sd->bl_m].flag.sakura)
+    if (sd->bl_m->flag.sakura)
         clif_specialeffect(sd, 163, 1);
-    if (map[sd->bl_m].flag.leaves)
+    if (sd->bl_m->flag.leaves)
         clif_specialeffect(sd, 333, 1);
-    if (map[sd->bl_m].flag.rain)
+    if (sd->bl_m->flag.rain)
         clif_specialeffect(sd, 161, 1);
 
 //        clif_changelook_accessories(sd, NULL);
@@ -1281,7 +1292,7 @@ int clif_scriptmes(dumb_ptr<map_session_data> sd, int npcid, const char *mes)
     WFIFOW(fd, 0) = 0xb4;
     WFIFOW(fd, 2) = strlen(mes) + 9;
     WFIFOL(fd, 4) = npcid;
-    strcpy((char *)WFIFOP(fd, 8), mes);
+    strcpy(static_cast<char *>(WFIFOP(fd, 8)), mes);
     WFIFOSET(fd, WFIFOW(fd, 2));
 
     return 0;
@@ -1337,7 +1348,7 @@ int clif_scriptmenu(dumb_ptr<map_session_data> sd, int npcid, const char *mes)
     WFIFOW(fd, 0) = 0xb7;
     WFIFOW(fd, 2) = strlen(mes) + 8;
     WFIFOL(fd, 4) = npcid;
-    strcpy((char *)WFIFOP(fd, 8), mes);
+    strcpy(static_cast<char *>(WFIFOP(fd, 8)), mes);
     WFIFOSET(fd, WFIFOW(fd, 2));
 
     return 0;
@@ -1469,7 +1480,7 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
         WFIFOB(fd, 10) = sd->status.inventory[n].refine;
         if (sd->status.inventory[n].card[0] == 0x00ff
             || sd->status.inventory[n].card[0] == 0x00fe
-            || sd->status.inventory[n].card[0] == (short) 0xff00)
+            || sd->status.inventory[n].card[0] == static_cast<short>(0xff00))
         {
             WFIFOW(fd, 11) = sd->status.inventory[n].card[0];
             WFIFOW(fd, 13) = sd->status.inventory[n].card[1];
@@ -1617,7 +1628,7 @@ int clif_equiplist(dumb_ptr<map_session_data> sd)
         WFIFOB(fd, n * 20 + 15) = sd->status.inventory[i].refine;
         if (sd->status.inventory[i].card[0] == 0x00ff
             || sd->status.inventory[i].card[0] == 0x00fe
-            || sd->status.inventory[i].card[0] == (short) 0xff00)
+            || sd->status.inventory[i].card[0] == static_cast<short>(0xff00))
         {
             WFIFOW(fd, n * 20 + 16) = sd->status.inventory[i].card[0];
             WFIFOW(fd, n * 20 + 18) = sd->status.inventory[i].card[1];
@@ -1742,7 +1753,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
         WFIFOB(fd, n * 20 + 15) = stor->storage_[i].refine;
         if (stor->storage_[i].card[0] == 0x00ff
             || stor->storage_[i].card[0] == 0x00fe
-            || stor->storage_[i].card[0] == (short) 0xff00)
+            || stor->storage_[i].card[0] == static_cast<short>(0xff00))
         {
             WFIFOW(fd, n * 20 + 16) = stor->storage_[i].card[0];
             WFIFOW(fd, n * 20 + 18) = stor->storage_[i].card[1];
@@ -2312,7 +2323,7 @@ int clif_traderequest(dumb_ptr<map_session_data> sd, const char *name)
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xe5;
-    strcpy((char *)WFIFOP(fd, 2), name);
+    strcpy(static_cast<char *>(WFIFOP(fd, 2)), name);
     WFIFOSET(fd, clif_parse_func_table[0xe5].len);
 
     return 0;
@@ -2378,7 +2389,7 @@ int clif_tradeadditem(dumb_ptr<map_session_data> sd,
         WFIFOB(fd, 10) = sd->status.inventory[index].refine;   //refine
         if (sd->status.inventory[index].card[0] == 0x00ff
             || sd->status.inventory[index].card[0] == 0x00fe
-            || sd->status.inventory[index].card[0] == (short) 0xff00)
+            || sd->status.inventory[index].card[0] == static_cast<short>(0xff00))
         {
             WFIFOW(fd, 11) = sd->status.inventory[index].card[0];  //card (4w)
             WFIFOW(fd, 13) = sd->status.inventory[index].card[1];  //card (4w)
@@ -2541,7 +2552,7 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
     WFIFOB(fd, 12) = stor->storage_[index].refine; //refine
     if (stor->storage_[index].card[0] == 0x00ff
         || stor->storage_[index].card[0] == 0x00fe
-        || stor->storage_[index].card[0] == (short) 0xff00)
+        || stor->storage_[index].card[0] == static_cast<short>(0xff00))
     {
         WFIFOW(fd, 13) = stor->storage_[index].card[0];    //card (4w)
         WFIFOW(fd, 15) = stor->storage_[index].card[1];    //card (4w)
@@ -3790,7 +3801,7 @@ void clif_parse_LoadEndAck(int, dumb_ptr<map_session_data> sd)
     if (!battle_config.pk_mode)
         sd->pvp_timer.cancel();
 
-    if (map[sd->bl_m].flag.pvp)
+    if (sd->bl_m->flag.pvp)
     {
         if (!battle_config.pk_mode)
         {
@@ -3832,9 +3843,11 @@ void clif_parse_LoadEndAck(int, dumb_ptr<map_session_data> sd)
 
 //        clif_changelook_accessories(sd, NULL);
 
-    map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd), sd->bl_m, sd->bl_x - AREA_SIZE,
-                       sd->bl_y - AREA_SIZE, sd->bl_x + AREA_SIZE,
-                       sd->bl_y + AREA_SIZE, BL::NUL);
+    map_foreachinarea(std::bind(clif_getareachar, ph::_1, sd),
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
+            sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
+            BL::NUL);
 }
 
 /*==========================================
@@ -3998,7 +4011,7 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
         case BL::NPC:
             memcpy(WFIFOP(fd, 6), bl->as_npc()->name, 24);
             {
-                char *start = (char *)WFIFOP(fd, 6);
+                char *start = static_cast<char *>(WFIFOP(fd, 6));
                 char *end = strchr(start, '#');    // [fate] elim hashed out/invisible names for the client
                 if (end)
                     while (*end)
@@ -4038,52 +4051,41 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_GlobalMessage(int fd, dumb_ptr<map_session_data> sd)
 {
-    int msg_len = RFIFOW(fd, 2) - 4; /* Header(2) + length(2). */
-    size_t message_len = 0;
-    // sometimes uint8_t
-    char *buf = NULL;
-    const char *message = NULL;   /* The message text only. */
-
     nullpo_retv(sd);
 
-    if (!(buf = clif_validate_chat(sd, 2, &message, &message_len)))
+    std::string mbuf = clif_validate_chat(sd, ChatType::Global);
+    if (mbuf.empty())
     {
         clif_displaymessage(fd, "Your message could not be sent.");
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0)) //チャット禁止
-    {
-        free(buf);
+    if (is_atcommand(fd, sd, mbuf.c_str(), 0))
         return;
-    }
 
-    if (!magic_message(sd, buf, msg_len))
+    if (!magic_message(sd, mbuf))
     {
         /* Don't send chat that results in an automatic ban. */
-        if (tmw_CheckChatSpam(sd, message))
+        if (tmw_CheckChatSpam(sd, mbuf.c_str()))
         {
-            free(buf);
             clif_displaymessage(fd, "Your message could not be sent.");
             return;
         }
 
         /* It's not a spell/magic message, so send the message to others. */
-        WBUFW(reinterpret_cast<uint8_t *>(buf), 0) = 0x8d;
-        WBUFW(reinterpret_cast<uint8_t *>(buf), 2) = msg_len + 8;   /* Header(2) + length(2) + ID(4). */
-        WBUFL(reinterpret_cast<uint8_t *>(buf), 4) = sd->bl_id;
+        uint8_t sendbuf[mbuf.size() + 8];
+        WBUFW(sendbuf, 0) = 0x8d;
+        WBUFW(sendbuf, 2) = mbuf.size() + 8;   /* Header(2) + length(2) + ID(4). */
+        WBUFL(sendbuf, 4) = sd->bl_id;
+        memcpy(WBUFP(sendbuf, 8), mbuf.data(), mbuf.size());
 
-        // evil multiuse buffer!
-        clif_send((const uint8_t *)buf, msg_len + 8, sd, SendWho::AREA_CHAT_WOC);
+        clif_send(sendbuf, mbuf.size() + 8, sd, SendWho::AREA_CHAT_WOC);
     }
 
     /* Send the message back to the speaker. */
     memcpy(WFIFOP(fd, 0), RFIFOP(fd, 0), RFIFOW(fd, 2));
     WFIFOW(fd, 0) = 0x8e;
     WFIFOSET(fd, WFIFOW(fd, 2));
-
-    free(buf);
-    return;
 }
 
 int clif_message(dumb_ptr<block_list> bl, const char *msg)
@@ -4290,29 +4292,25 @@ void clif_parse_Restart(int fd, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_Wis(int fd, dumb_ptr<map_session_data> sd)
 {
-    size_t message_len = 0;
-    char *buf = NULL;
-    const char *message = NULL;   /* The message text only. */
     dumb_ptr<map_session_data> dstsd = NULL;
 
     nullpo_retv(sd);
 
-    if (!(buf = clif_validate_chat(sd, 1, &message, &message_len)))
+    std::string mbuf = clif_validate_chat(sd, ChatType::Whisper);
+    if (mbuf.empty())
     {
         clif_displaymessage(fd, "Your message could not be sent.");
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0))
+    if (is_atcommand(fd, sd, mbuf.c_str(), 0))
     {
-        free(buf);
         return;
     }
 
     /* Don't send chat that results in an automatic ban. */
-    if (tmw_CheckChatSpam(sd, message))
+    if (tmw_CheckChatSpam(sd, mbuf.c_str()))
     {
-        free(buf);
         clif_displaymessage(fd, "Your message could not be sent.");
         return;
     }
@@ -4323,9 +4321,10 @@ void clif_parse_Wis(int fd, dumb_ptr<map_session_data> sd)
      * conflict (for instance, "Test" versus "test"), the char-server must
      * settle the discrepancy.
      */
-    if (!(dstsd = map_nick2sd((const char *)RFIFOP(fd, 4)))
-            || strcmp(dstsd->status.name, (const char *)RFIFOP(fd, 4)) != 0)
-        intif_wis_message(sd, (const char *)RFIFOP(fd, 4), message,  RFIFOW(fd, 2) - 28);
+    const char *tname = static_cast<const char *>(RFIFOP(fd, 4));
+    if (!(dstsd = map_nick2sd(tname))
+            || strcmp(dstsd->status.name, tname) != 0)
+        intif_wis_message(sd, tname, mbuf.c_str(),  RFIFOW(fd, 2) - 28);
     else
     {
         /* Refuse messages addressed to self. */
@@ -4336,28 +4335,10 @@ void clif_parse_Wis(int fd, dumb_ptr<map_session_data> sd)
         }
         else
         {
-            /* The target is ignoring all whispers. */
-            if (dstsd->ignoreAll == 1)
-                /* Ignored by target. */
-                clif_wis_end(fd, 2);
-            else
             {
-                int i;
-                size_t end = sizeof(dstsd->ignore) / sizeof(dstsd->ignore[0]);
-
-                /* See if the source player is being ignored. */
-                for (i = 0; i < end; ++i)
-                    if (strcmp(dstsd->ignore[i].name, sd->status.name) == 0)
-                    {
-                        /* Ignored by target. */
-                        clif_wis_end(fd, 2);
-                        break;
-                    }
-
                 /* The player is not being ignored. */
-                if (i == end)
                 {
-                    clif_wis_message(dstsd->fd, sd->status.name, message,
+                    clif_wis_message(dstsd->fd, sd->status.name, mbuf.c_str(),
                                       RFIFOW(fd, 2) - 28);
                     /* The whisper was sent successfully. */
                     clif_wis_end(fd, 0);
@@ -4365,8 +4346,6 @@ void clif_parse_Wis(int fd, dumb_ptr<map_session_data> sd)
             }
         }
     }
-
-    free(buf);
 }
 
 /*==========================================
@@ -4423,7 +4402,7 @@ void clif_parse_DropItem(int fd, dumb_ptr<map_session_data> sd)
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return;
     }
-    if (map[sd->bl_m].flag.no_player_drops)
+    if (sd->bl_m->flag.no_player_drops)
     {
         clif_displaymessage(sd->fd, "Can't drop items here.");
         return;
@@ -4765,7 +4744,7 @@ void clif_parse_NpcStringInput(int fd, dumb_ptr<map_session_data> sd)
     }
 
     if (len > 0)
-        strncpy(sd->npc_str, (const char *)RFIFOP(fd, 8), len);
+        strncpy(sd->npc_str, static_cast<const char *>(RFIFOP(fd, 8)), len);
     sd->npc_str[len] = '\0';
 
     map_scriptcont(sd, RFIFOL(fd, 4));
@@ -4851,7 +4830,7 @@ void clif_parse_CreateParty(int fd, dumb_ptr<map_session_data> sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 2)
     {
-        party_create(sd, (const char *)RFIFOP(fd, 2));
+        party_create(sd, static_cast<const char *>(RFIFOP(fd, 2)));
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 4);
@@ -4909,7 +4888,7 @@ void clif_parse_LeaveParty(int, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_RemovePartyMember(int fd, dumb_ptr<map_session_data> sd)
 {
-    party_removemember(sd, RFIFOL(fd, 2), (const char *)RFIFOP(fd, 6));
+    party_removemember(sd, RFIFOL(fd, 2), static_cast<const char *>(RFIFOP(fd, 6)));
 }
 
 /*==========================================
@@ -4933,81 +4912,26 @@ void clif_parse_PartyChangeOption(int fd, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_PartyMessage(int fd, dumb_ptr<map_session_data> sd)
 {
-    size_t message_len = 0;
-    char *buf = NULL;
-    const char *message = NULL;   /* The message text only. */
-
     nullpo_retv(sd);
 
-    if (!(buf = clif_validate_chat(sd, 0, &message, &message_len)))
+    std::string mbuf = clif_validate_chat(sd, ChatType::Party);
+    if (mbuf.empty())
     {
         clif_displaymessage(fd, "Your message could not be sent.");
         return;
     }
 
-    if (is_atcommand(fd, sd, message, 0)) //チャット禁止
-    {
-        free(buf);
+    if (is_atcommand(fd, sd, mbuf.c_str(), 0))
         return;
-    }
 
     /* Don't send chat that results in an automatic ban. */
-    if (tmw_CheckChatSpam(sd, message))
+    if (tmw_CheckChatSpam(sd, mbuf.c_str()))
     {
-        free(buf);
         clif_displaymessage(fd, "Your message could not be sent.");
         return;
     }
 
-    party_send_message(sd, message, RFIFOW(fd, 2) - 4);
-    free(buf);
-}
-
-// 4144 wants this, but I don't like it ...
-static
-void clif_parse_PMIgnoreAll(int fd, dumb_ptr<map_session_data> sd)
-{                               // Rewritten by [Yor]
-    //PRINTF("Ignore all: state: %d\n", RFIFOB(fd,2));
-    if (RFIFOB(fd, 2) == 0)
-    {                           // S 00d0 <type>len.B: 00 (/exall) deny all speech, 01 (/inall) allow all speech
-        WFIFOW(fd, 0) = 0x0d2; // R 00d2 <type>.B <fail>.B: type: 0: deny, 1: allow, fail: 0: success, 1: fail
-        WFIFOB(fd, 2) = 0;
-        if (sd->ignoreAll == 0)
-        {
-            sd->ignoreAll = 1;
-            WFIFOB(fd, 3) = 0; // success
-            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
-        }
-        else
-        {
-            WFIFOB(fd, 3) = 1; // fail
-            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
-            clif_wis_message(fd, wisp_server_name,
-                              "You already block everyone.",
-                              strlen("You already block everyone.") + 1);
-        }
-    }
-    else
-    {
-        WFIFOW(fd, 0) = 0x0d2; // R 00d2 <type>.B <fail>.B: type: 0: deny, 1: allow, fail: 0: success, 1: fail
-        WFIFOB(fd, 2) = 1;
-        if (sd->ignoreAll == 1)
-        {
-            sd->ignoreAll = 0;
-            WFIFOB(fd, 3) = 0; // success
-            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
-        }
-        else
-        {
-            WFIFOB(fd, 3) = 1; // fail
-            WFIFOSET(fd, clif_parse_func_table[0x0d2].len);
-            clif_wis_message(fd, wisp_server_name,
-                              "You already allow everyone.",
-                              strlen("You already allow everyone.") + 1);
-        }
-    }
-
-    return;
+    party_send_message(sd, mbuf.c_str(), RFIFOW(fd, 2) - 4);
 }
 
 func_table clif_parse_func_table[0x0220] =
@@ -5220,7 +5144,7 @@ func_table clif_parse_func_table[0x0220] =
     {0,     6,  NULL,                           },  // 0x00cd
     {0,     2,  NULL,                           },  // 0x00ce
     {0,     27, NULL,                           },  // 0x00cf
-    {0,     3,  clif_parse_PMIgnoreAll,         },  // 0x00d0
+    {0,     3,  NULL,                           },  // 0x00d0
     {0,     4,  NULL,                           },  // 0x00d1
     {0,     4,  NULL,                           },  // 0x00d2
     {0,     2,  NULL,                           },  // 0x00d3
@@ -5653,35 +5577,22 @@ void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, const char *msg)
  *  0 for when the sender's name is not included (party chat)
  *  1 for when the target's name is included (whisper chat)
  *  2 for when the sender's name is given ("sender : text", public/guild chat)
- * @param[out] message the message text (pointing within return value, or NULL)
- * @param[out] message_len the length of the actual text, excluding NUL
- * @return a dynamically allocated copy of the message, or NULL upon failure
+ * @return a dynamically allocated copy of the message, or empty string upon failure
  */
 static
-char *clif_validate_chat(dumb_ptr<map_session_data> sd, int type,
-        const char **message, size_t *message_len)
+std::string clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
 {
-    int fd;
-    unsigned int buf_len;       /* Actual message length. */
-    unsigned int msg_len;       /* Reported message length. */
-    unsigned int min_len;       /* Minimum message length. */
-    size_t name_len;            /* Sender's name length. */
-    char *buf = NULL;           /* Copy of actual message data. */
-
-    *message = NULL;
-    *message_len = 0;
-
-    nullpo_retr(NULL, sd);
+    nullpo_retr(std::string(), sd);
     /*
      * Don't send chat in the period between the ban and the connection's
      * closure.
      */
-    if (type < 0 || type > 2 || sd->auto_ban_info.in_progress)
-        return NULL;
+    if (sd->auto_ban_info.in_progress)
+        return std::string();
 
-    fd = sd->fd;
-    msg_len = RFIFOW(fd, 2) - 4;
-    name_len = strlen(sd->status.name);
+    int fd = sd->fd;
+    size_t msg_len = RFIFOW(fd, 2) - 4;
+    size_t name_len = strlen(sd->status.name);
     /*
      * At least one character is required in all instances.
      * Notes for length checks:
@@ -5692,33 +5603,42 @@ char *clif_validate_chat(dumb_ptr<map_session_data> sd, int type,
      * For type 2, the message must be longer than the sender's name length
      *      plus the length of the separator (" : ").
      */
-    min_len = (type == 1) ? 24 : (type == 2) ? name_len + 3 : 0;
+    size_t min_len =
+        (type == ChatType::Whisper) ? 24
+        : (type == ChatType::Global) ? name_len + 3
+        : 0;
 
     /* The player just sent the header (2) and length (2) words. */
     if (!msg_len)
     {
         WARN_MALFORMED_MSG(sd, "no message sent");
-        return NULL;
+        return std::string();
     }
 
     /* The client sent (or claims to have sent) an empty message. */
     if (msg_len == min_len)
     {
         WARN_MALFORMED_MSG(sd, "empty message");
-        return NULL;
+        return std::string();
     }
 
     /* The protocol specifies that the target must be 24 bytes long. */
-    if (type == 1 && msg_len < min_len)
+    if (type == ChatType::Whisper && msg_len < min_len)
     {
         /* Disallow malformed messages. */
         clif_setwaitclose(fd);
         WARN_MALFORMED_MSG(sd, "illegal target name");
-        return NULL;
+        return std::string();
     }
 
-    const char *p = static_cast<const char *>((type != 1) ? RFIFOP(fd, 4) : RFIFOP(fd, 28));
-    buf_len = (type == 1) ? msg_len - min_len: msg_len;
+    const char *p = static_cast<const char *>(RFIFOP(fd, 4));
+    size_t buf_len = msg_len;
+    if (type == ChatType::Whisper)
+    {
+        p += 24;
+        buf_len -= 24;
+    }
+    const char *pend = p + buf_len;
 
     /*
      * The client attempted to exceed the maximum message length.
@@ -5730,42 +5650,24 @@ char *clif_validate_chat(dumb_ptr<map_session_data> sd, int type,
     if (buf_len >= battle_config.chat_maxline)
     {
         WARN_MALFORMED_MSG(sd, "exceeded maximum message length");
-        return NULL;
+        return std::string();
     }
 
-    /* We're leaving an extra eight bytes for public/global chat, 1 for NUL. */
-    buf_len += (type == 2) ? 8 + 1 : 1;
-
-    buf = (char *) malloc(buf_len);
-    memcpy((type != 2) ? buf : buf + 8, p,
-            (type != 2) ? buf_len - 1 : buf_len - 8 - 1);
-    buf[buf_len - 1] = '\0';
-    p = (type != 2) ? buf : buf + 8;
-
-    if (type != 2)
+    if (type == ChatType::Global)
     {
-        *message = buf;
-        /* Don't count the NUL. */
-        *message_len = buf_len - 1;
-    }
-    else
-    {
-        const char *pos = NULL;
-        if (!(pos = strstr(p, " : "))
-                || strncmp(p, sd->status.name, name_len)
-                || pos - p != name_len)
+        const char *pos = strstr(p, " : ");
+        if (!pos || pos != p + name_len || memcmp(p, sd->status.name, name_len))
         {
-            free(buf);
             /* Disallow malformed/spoofed messages. */
             clif_setwaitclose(fd);
             WARN_MALFORMED_MSG(sd, "spoofed name/invalid format");
-            return NULL;
+            return std::string();
         }
         /* Step beyond the separator. */
-        *message = pos + 3;
-        /* Don't count the sender's name, the extra eight bytes, or the NUL. */
-        *message_len = buf_len - min_len - 8 - 1;
+        p = pos + 3;
     }
+
+    std::string buf(p, pend);
 
     return buf;
 }

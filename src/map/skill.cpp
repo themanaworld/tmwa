@@ -427,8 +427,10 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
                     skill_area_temp_hp = battle_get_hp(src);
                     map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv,
                                 tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
-                            bl->bl_m, bl->bl_x - 5, bl->bl_y - 5,
-                            bl->bl_x + 5, bl->bl_y + 5, BL::NUL);
+                            bl->bl_m,
+                            bl->bl_x - 5, bl->bl_y - 5,
+                            bl->bl_x + 5, bl->bl_y + 5,
+                            BL::NUL);
                     battle_damage(src, src, md->hp, 0);
                 }
             }
@@ -450,8 +452,10 @@ int skill_castend_damage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
                     skill_area_temp_id = bl->bl_id;
                     map_foreachinarea(std::bind(skill_area_sub, ph::_1, src, skillid, skilllv,
                                 tick, flag | BCT_ENEMY | BCT_lo_x01, skill_castend_damage_id),
-                            bl->bl_m, bl->bl_x - 0, bl->bl_y - 0,
-                            bl->bl_x + 0, bl->bl_y + 0, BL::NUL);
+                            bl->bl_m,
+                            bl->bl_x - 0, bl->bl_y - 0,
+                            bl->bl_x + 0, bl->bl_y + 0,
+                            BL::NUL);
                 }
             }
             break;
@@ -1342,18 +1346,14 @@ int skill_readdb(void)
 
         skill_db[i].stat = scan_stat(split[16]);
 
-        char *tmp = strdup(split[17]);
-        {
-            // replace "_" by " "
-            char *s = tmp;
-            while ((s = strchr(s, '_')))
-                *s = ' ';
-            if ((s = strchr(tmp, '\t'))
-                || (s = strchr(tmp, ' '))
-                || (s = strchr(tmp, '\n')))
-                *s = '\000';
-        }
-        skill_lookup_by_id(i).desc = tmp;
+        std::string tmp = split[17];
+        size_t space = tmp.find_first_of(" \t\n");
+        if (space != std::string::npos)
+            tmp.resize(space);
+        for (char& c : tmp)
+            if (c == '_')
+                c = ' ';
+        skill_lookup_by_id(i).desc = std::move(tmp);
     }
     fclose_(fp);
     PRINTF("read db/skill_db.txt done\n");
@@ -1397,7 +1397,7 @@ skill_name_db& skill_lookup_by_id(SkillID id)
 skill_name_db& skill_lookup_by_name(const char *name)
 {
     for (skill_name_db& ner : skill_names)
-        if (!strcasecmp(name, ner.name) || !strcasecmp(name, ner.desc))
+        if (!strcasecmp(name, ner.name.c_str()) || !strcasecmp(name, ner.desc.c_str()))
             return ner;
     return skill_names[num_names - 1];
 }

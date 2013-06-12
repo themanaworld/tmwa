@@ -1,9 +1,12 @@
+#include "path.hpp"
+
+#include <cassert>
+
 #include "../common/cxxstdio.hpp"
 #include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 
 #include "battle.hpp"
-#include "map.hpp"
 
 #include "../poison.hpp"
 
@@ -182,7 +185,7 @@ int add_path(int *heap, struct tmp_path *tp, int x, int y, int dist,
  *------------------------------------------
  */
 static
-bool can_place(struct map_data *m, int x, int y)
+bool can_place(struct map_local *m, int x, int y)
 {
     nullpo_ret(m);
 
@@ -194,7 +197,7 @@ bool can_place(struct map_data *m, int x, int y)
  *------------------------------------------
  */
 static
-int can_move(struct map_data *m, int x0, int y0, int x1, int y1)
+int can_move(struct map_local *m, int x0, int y0, int x1, int y1)
 {
     nullpo_ret(m);
 
@@ -217,19 +220,17 @@ int can_move(struct map_data *m, int x0, int y0, int x1, int y1)
  * path探索 (x0,y0)->(x1,y1)
  *------------------------------------------
  */
-int path_search(struct walkpath_data *wpd, int m, int x0, int y0, int x1, int y1, int flag)
+int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1, int y1, int flag)
 {
     int heap[MAX_HEAP + 1];
     struct tmp_path tp[MAX_WALKPATH * MAX_WALKPATH];
     int i, rp, x, y;
-    struct map_data *md;
     int dx, dy;
 
     nullpo_ret(wpd);
 
-    if (!map[m].gat)
-        return -1;
-    md = &map[m];
+    assert (m->gat);
+    map_local *md = m;
     if (x1 < 0 || x1 >= md->xs || y1 < 0 || y1 >= md->ys
         || bool(read_gatp(md, x1, y1) & MapCell::UNWALKABLE))
         return -1;

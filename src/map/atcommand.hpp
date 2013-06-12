@@ -13,6 +13,6 @@ int atcommand_config_read(const char *cfgName);
 void log_atcommand(dumb_ptr<map_session_data> sd, const_string cmd);
 
 // only used by map.cpp
-extern char *gm_logfile_name;
+extern std::string gm_logfile_name;
 
 #endif // ATCOMMAND_HPP

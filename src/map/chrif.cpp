@@ -145,14 +145,17 @@ int chrif_connect(int fd)
 static
 int chrif_sendmap(int fd)
 {
-    int i;
+    int i = 0;
 
     WFIFOW(fd, 0) = 0x2afa;
-    for (i = 0; i < map_num; i++)
-        if (map[i].alias[0] != '\0')    // [MouseJstr] map aliasing
-            memcpy(WFIFOP(fd, 4 + i * 16), map[i].alias, 16);
-        else
-            memcpy(WFIFOP(fd, 4 + i * 16), map[i].name, 16);
+    for (auto& pair : maps_db)
+    {
+        map_abstract *ma = pair.second.get();
+        if (!ma->gat)
+            continue;
+        memcpy(WFIFOP(fd, 4 + i * 16), ma->name, 16);
+        i++;
+    }
     WFIFOW(fd, 2) = 4 + i * 16;
     WFIFOSET(fd, WFIFOW(fd, 2));
 
@@ -176,7 +179,7 @@ int chrif_recvmap(int fd)
     port = RFIFOW(fd, 8);
     for (i = 10, j = 0; i < RFIFOW(fd, 2); i += 16, j++)
     {
-        map_setipport((const char *)RFIFOP(fd, i), ip, port);
+        map_setipport(static_cast<const char *>(RFIFOP(fd, i)), ip, port);
 //      if (battle_config.etc_log)
 //          PRINTF("recv map %d %s\n", j, RFIFOP(fd,i));
     }
@@ -241,7 +244,7 @@ int chrif_changemapserverack(int fd)
         pc_authfail(sd->fd);
         return 0;
     }
-    clif_changemapserver(sd, (const char *)RFIFOP(fd, 18), RFIFOW(fd, 34),
+    clif_changemapserver(sd, static_cast<const char *>(RFIFOP(fd, 18)), RFIFOW(fd, 34),
                           RFIFOW(fd, 36), in_addr{RFIFOL(fd, 38)}, RFIFOW(fd, 42));
 
     return 0;
@@ -989,9 +992,8 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
         case BL::MOB:
         {
             dumb_ptr<mob_data> mob = bl->as_mob();
-            int i;
-            for (i = 0; i < mob->lootitem_count; i++)
-                FIX(mob->lootitem[i]);
+            for (struct item& itm : mob->lootitemv)
+                FIX(itm);
             break;
         }
 
@@ -1017,10 +1019,11 @@ void ladmin_itemfrob(int fd)
 {
     int source_id = RFIFOL(fd, 2);
     int dest_id = RFIFOL(fd, 6);
-    dumb_ptr<block_list> bl = (dumb_ptr<block_list>) map_get_first_session();
+    dumb_ptr<block_list> bl = map_get_first_session();
 
     // flooritems
-    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id), BL::NUL /* any object */);
+    map_foreachobject(std::bind(ladmin_itemfrob_c, ph::_1, source_id, dest_id),
+            BL::NUL /* any object */);
 
     // player characters (and, hopefully, mobs)
     while (bl->bl_next)
@@ -1097,7 +1100,7 @@ void chrif_parse(int fd)
             case 0x2afd:
                 pc_authok(RFIFOL(fd, 4), RFIFOL(fd, 8),
                            static_cast<time_t>(RFIFOL(fd, 12)), RFIFOW(fd, 16),
-                           (const struct mmo_charstatus *) RFIFOP(fd, 18));
+                           static_cast<const struct mmo_charstatus *>(RFIFOP(fd, 18)));
                 break;
             case 0x2afe:
                 pc_authfail(RFIFOL(fd, 2));
@@ -1115,7 +1118,7 @@ void chrif_parse(int fd)
                 chrif_changemapserverack(fd);
                 break;
             case 0x2b09:
-                map_addchariddb(RFIFOL(fd, 2), (const char *)RFIFOP(fd, 6));
+                map_addchariddb(RFIFOL(fd, 2), static_cast<const char *>(RFIFOP(fd, 6)));
                 break;
             case 0x2b0b:
                 chrif_changedgm(fd);

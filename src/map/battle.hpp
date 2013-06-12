@@ -132,7 +132,6 @@ extern struct Battle_Config
     int wp_rate;
     int pp_rate;
     int monster_active_enable;
-    int monster_loot_type;
     int mob_skill_use;
     int mob_count_rate;
     int quest_skill_learn;

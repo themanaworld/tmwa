@@ -100,7 +100,7 @@ pid_t start_process(const std::string& exec) {
     {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-qual"
-        execv(exec.c_str(), (char**)args);
+        execv(exec.c_str(), const_cast<char **>(args));
 #pragma GCC diagnostic pop
         perror("Failed to exec");
         kill(getppid(), SIGABRT);
@@ -119,7 +119,10 @@ void stop_process(int sig)
         kill(pid_login, sig);
     if (pid_char)
         kill(pid_char, sig);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     signal(sig, SIG_DFL);
+#pragma GCC diagnostic pop
     raise(sig);
 }
 
@@ -176,17 +179,20 @@ int main(int argc, char *argv[])
         if (!pid_login)
         {
             pid_login = start_process(login_server);
-            FPRINTF(stderr, "[%s] forked login server: %lu\n", timestamp, (unsigned long)pid_login);
+            FPRINTF(stderr, "[%s] forked login server: %lu\n",
+                    timestamp, static_cast<unsigned long>(pid_login));
         }
         if (!pid_char)
         {
             pid_char = start_process(char_server);
-            FPRINTF(stderr, "[%s] forked char server: %lu\n", timestamp, (unsigned long)pid_char);
+            FPRINTF(stderr, "[%s] forked char server: %lu\n",
+                    timestamp, static_cast<unsigned long>(pid_char));
         }
         if (!pid_map)
         {
             pid_map = start_process(map_server);
-            FPRINTF(stderr, "[%s] forked map server: %lu\n", timestamp, (unsigned long)pid_map);
+            FPRINTF(stderr, "[%s] forked map server: %lu\n",
+                    timestamp, static_cast<unsigned long>(pid_map));
         }
         pid_t dead = wait(NULL);
         if (dead == -1)

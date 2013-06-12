@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "../common/db.hpp"
+#include "../common/matrix.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.t.hpp"
 
@@ -22,7 +23,6 @@ constexpr int BLOCK_SIZE = 8;
 #define AREA_SIZE battle_config.area_size
 constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
 constexpr int DAMAGELOG_SIZE = 30;
-constexpr int LOOTITEM_SIZE = 10;
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_MOBSKILL = 32;
 constexpr int MAX_EVENTQUEUE = 2;
@@ -40,12 +40,14 @@ struct npc_data;
 struct mob_data;
 struct flooritem_data;
 struct invocation;
+struct map_local;
 
 struct block_list
 {
     dumb_ptr<block_list> bl_next, bl_prev;
     int bl_id;
-    short bl_m, bl_x, bl_y;
+    map_local *bl_m;
+    short bl_x, bl_y;
     BL bl_type;
 
     // This deletes the copy-ctor also
@@ -153,12 +155,14 @@ struct map_session_data : block_list, SessionData
     struct walkpath_data walkpath;
     Timer walktimer;
     int npc_id, areanpc_id, npc_shopid;
+    // this is important
     int npc_pos;
     int npc_menu;
     int npc_amount;
-    int npc_stack, npc_stackmax;
-    const ScriptCode *npc_script, *npc_scriptroot;
-    struct script_data *npc_stackbuf;
+    // I have no idea exactly what these are doing ...
+    // but one should probably be replaced with a ScriptPointer ???
+    const ScriptBuffer *npc_script, *npc_scriptroot;
+    std::vector<struct script_data> npc_stackbuf;
     char npc_str[256];
     struct
     {
@@ -229,10 +233,10 @@ struct map_session_data : block_list, SessionData
 
     int die_counter;
 
-    int reg_num;
-    struct script_reg *reg;
-    int regstr_num;
-    struct script_regstr *regstr;
+    // register keys are ints (interned)
+    DMap<int, int> regm;
+    // can't be DMap because we want predictable .c_str()s
+    Map<int, std::string> regstrm;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
@@ -259,13 +263,6 @@ struct map_session_data : block_list, SessionData
 
     char eventqueue[MAX_EVENTQUEUE][50];
     Timer eventtimer[MAX_EVENTTIMER];
-
-    struct
-    {
-        char name[24];
-    } ignore[80];
-    int ignoreAll;
-    short sg_count;
 
     struct
     {
@@ -339,16 +336,25 @@ class npc_data_script : public npc_data
 public:
     struct
     {
-        const ScriptCode *script;
+        // The bytecode unique to this NPC.
+        std::unique_ptr<const ScriptBuffer> script;
+        // Diameter.
         short xs, ys;
+        // Tick counter through the timers.
+        // It is actually updated when frobbing the thing in any way.
+        // If this is timer_eventv().back().timer, it is expired
+        // rather than blank. It's probably a bad idea to rely on this.
         interval_t timer;
+        // Actual timer that fires the event.
         Timer timerid;
-        int timeramount, nexttimer;
+        // Event to be fired, or .end() if no timer.
+        std::vector<npc_timerevent_list>::iterator nexttimer;
+        // When the timer started. Needed to get the true diff, or to stop.
         tick_t timertick;
-        struct npc_timerevent_list *timer_event;
-        int label_list_num;
-        struct npc_label_list *label_list;
-        int src_id;
+        // List of label events to call.
+        std::vector<npc_timerevent_list> timer_eventv;
+        // List of (name, offset) label locations in the bytecode
+        std::vector<npc_label_list> label_listv;
     } scr;
 };
 
@@ -372,7 +378,7 @@ public:
 class npc_data_message : public npc_data
 {
 public:
-    char *message;
+    std::string message;
 };
 
 constexpr int MOB_XP_BONUS_BASE = 1024;
@@ -384,9 +390,13 @@ struct mob_data : block_list
     short mob_class;
     DIR dir;
     MobMode mode;
-    short m, x0, y0, xs, ys;
+    struct
+    {
+        map_local *m;
+        short x0, y0, xs, ys;
+        interval_t delay1, delay2;
+    } spawn;
     char name[24];
-    interval_t spawndelay1, spawndelay2;
     struct
     {
         MS state;
@@ -416,8 +426,7 @@ struct mob_data : block_list
         int id;
         int dmg;
     } dmglog[DAMAGELOG_SIZE];
-    struct item *lootitem;
-    short lootitem_count;
+    std::vector<struct item> lootitemv;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
@@ -426,7 +435,6 @@ struct mob_data : block_list
     Opt3 opt3;
     Option option;
     short min_chase;
-    short sg_count;
     Timer deletetimer;
 
     Timer skilltimer;
@@ -444,18 +452,28 @@ struct mob_data : block_list
     short size;
 };
 
-struct map_data
+struct BlockLists
 {
+    dumb_ptr<block_list> normal, mobs_only;
+};
+
+struct map_abstract
+{
+    // shouldn't this be 16?
+    // but beware of hard-coded memcpys
     char name[24];
-    char alias[24];             // [MouseJstr]
-    // if NULL, actually a map_data_other_server
+    // gat is NULL for map_remote and non-NULL or map_local
     std::unique_ptr<MapCell[]> gat;
-    dumb_ptr<block_list> *block;
-    dumb_ptr<block_list> *block_mob;
-    int *block_count, *block_mob_count;
-    int m;
+
+    virtual ~map_abstract() {};
+};
+extern
+UPMap<std::string, map_abstract> maps_db;
+
+struct map_local : map_abstract
+{
+    Matrix<BlockLists> blocks;
     short xs, ys;
-    short bxs, bys;
     int npc_num;
     int users;
     struct
@@ -494,26 +512,17 @@ struct map_data
         int drop_per;
     } drop_list[MAX_DROP_PER_MAP];
 };
-struct map_data_other_server
+
+struct map_remote : map_abstract
 {
-    char name[24];
-    unsigned char *gat;         // NULL固定にして判断
     struct in_addr ip;
     unsigned int port;
 };
 
-extern struct map_data map[];
-extern int map_num;
-
 inline
-MapCell read_gatp(struct map_data *m, int x, int y)
+MapCell read_gatp(map_local *m, int x, int y)
 {
     return m->gat[x + y * m->xs];
-}
-inline
-MapCell read_gat(int m, int x, int y)
-{
-    return read_gatp(&map[m], x, y);
 }
 
 struct flooritem_data : block_list
@@ -552,21 +561,21 @@ public:
 int map_addblock(dumb_ptr<block_list>);
 int map_delblock(dumb_ptr<block_list>);
 void map_foreachinarea(std::function<void(dumb_ptr<block_list>)>,
-        int,
+        map_local *,
         int, int, int, int,
         BL);
 // -- moonsoul (added map_foreachincell)
 void map_foreachincell(std::function<void(dumb_ptr<block_list>)>,
-        int,
+        map_local *,
         int, int,
         BL);
 void map_foreachinmovearea(std::function<void(dumb_ptr<block_list>)>,
-        int,
+        map_local *,
         int, int, int, int,
         int, int,
         BL);
 //block関連に追加
-int map_count_oncell(int m, int x, int y);
+int map_count_oncell(map_local *m, int x, int y);
 // 一時的object関連
 int map_addobject(dumb_ptr<block_list>);
 int map_delobject(int, BL type);
@@ -576,15 +585,15 @@ void map_foreachobject(std::function<void(dumb_ptr<block_list>)>,
 //
 void map_quit(dumb_ptr<map_session_data>);
 // npc
-int map_addnpc(int, dumb_ptr<npc_data>);
+int map_addnpc(map_local *, dumb_ptr<npc_data>);
 
 void map_log(const_string line);
 #define MAP_LOG(format, ...) \
     map_log(static_cast<const std::string&>(STRPRINTF(format, ## __VA_ARGS__)))
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
-    MAP_LOG("PC%d %d:%d,%d " fmt,   \
-            sd->status.char_id, sd->bl_m, sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+    MAP_LOG("PC%d %s:%d,%d " fmt,   \
+            sd->status.char_id, sd->bl_m->name, sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);
@@ -593,10 +602,12 @@ void map_clearflooritem(int id)
 {
     map_clearflooritem_timer(nullptr, tick_t(), id);
 }
-int map_addflooritem_any(struct item *, int amount, int m, int x, int y,
+int map_addflooritem_any(struct item *, int amount,
+        map_local *m, int x, int y,
         dumb_ptr<map_session_data> *owners, interval_t *owner_protection,
         interval_t lifetime, int dispersal);
-int map_addflooritem(struct item *, int, int, int, int,
+int map_addflooritem(struct item *, int,
+        map_local *, int, int,
         dumb_ptr<map_session_data>, dumb_ptr<map_session_data>,
         dumb_ptr<map_session_data>);
 
@@ -672,7 +683,7 @@ dumb_ptr<invocation> map_id_is_spell(int id)
 }
 
 
-int map_mapname2mapid(const char *);
+map_local *map_mapname2mapid(const char *);
 int map_mapname2ipport(const char *, struct in_addr *, int *);
 int map_setipport(const char *name, struct in_addr ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
@@ -690,17 +701,15 @@ dumb_ptr<map_session_data> map_get_prev_session(
         dumb_ptr<map_session_data> current);
 
 // gat関連
-MapCell map_getcell(int, int, int);
-void map_setcell(int, int, int, MapCell);
+MapCell map_getcell(map_local *, int, int);
+void map_setcell(map_local *, int, int, MapCell);
 
 // その他
 bool map_check_dir(DIR s_dir, DIR t_dir);
 DIR map_calc_dir(dumb_ptr<block_list> src, int x, int y);
 
-// path.cより
-int path_search(struct walkpath_data *, int, int, int, int, int, int);
-
-std::pair<uint16_t, uint16_t> map_randfreecell(int m, uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+std::pair<uint16_t, uint16_t> map_randfreecell(map_local *m,
+        uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 inline dumb_ptr<map_session_data> block_list::as_player() { return dumb_ptr<map_session_data>(static_cast<map_session_data *>(this)) ; }
 inline dumb_ptr<npc_data> block_list::as_npc() { return dumb_ptr<npc_data>(static_cast<npc_data *>(this)) ; }

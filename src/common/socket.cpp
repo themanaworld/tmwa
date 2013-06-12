@@ -29,7 +29,10 @@ const uint32_t RFIFO_SIZE = 65536;
 static
 const uint32_t WFIFO_SIZE = 65536;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
 std::array<std::unique_ptr<struct socket_data>, FD_SETSIZE> session;
+#pragma GCC diagnostic pop
 
 /// clean up by discarding handled bytes
 inline
@@ -119,7 +122,7 @@ void connect_client(int listen_fd)
     struct sockaddr_in client_address;
     socklen_t len = sizeof(client_address);
 
-    int fd = accept(listen_fd, (struct sockaddr *) &client_address, &len);
+    int fd = accept(listen_fd, reinterpret_cast<struct sockaddr *>(&client_address), &len);
     if (fd == -1)
     {
         perror("accept");
@@ -156,11 +159,14 @@ void connect_client(int listen_fd)
     setsockopt(fd, IPPROTO_TCP, TCP_THIN_DUPACK, &yes, sizeof yes);
 #endif
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_SET(fd, &readfds);
+#pragma GCC diagnostic pop
 
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
-    session[fd].reset(new socket_data());
+    session[fd] = make_unique<socket_data>();
     session[fd]->rdata.new_(RFIFO_SIZE);
     session[fd]->wdata.new_(WFIFO_SIZE);
 
@@ -202,10 +208,13 @@ int make_listen_port(uint16_t port)
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 
     server_address.sin_family = AF_INET;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
     server_address.sin_port = htons(port);
+#pragma GCC diagnostic pop
 
-    if (bind(fd, (struct sockaddr *) &server_address,
+    if (bind(fd, reinterpret_cast<struct sockaddr *>(&server_address),
               sizeof(server_address)) == -1)
     {
         perror("bind");
@@ -217,9 +226,12 @@ int make_listen_port(uint16_t port)
         exit(1);
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_SET(fd, &readfds);
+#pragma GCC diagnostic pop
 
-    session[fd].reset(new socket_data());
+    session[fd] = make_unique<socket_data>();
 
     session[fd]->func_recv = connect_client;
     session[fd]->created = TimeT::now();
@@ -254,18 +266,24 @@ int make_connection(uint32_t ip, uint16_t port)
 
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = ip;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     server_address.sin_port = htons(port);
+#pragma GCC diagnostic pop
 
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
     /// Errors not caught - we must not block
     /// Let the main select() loop detect when we know the state
-    connect(fd, (struct sockaddr *) &server_address,
+    connect(fd, reinterpret_cast<struct sockaddr *>(&server_address),
              sizeof(struct sockaddr_in));
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_SET(fd, &readfds);
+#pragma GCC diagnostic pop
 
-    session[fd].reset(new socket_data());
+    session[fd] = make_unique<socket_data>();
     session[fd]->rdata.new_(RFIFO_SIZE);
     session[fd]->wdata.new_(WFIFO_SIZE);
 
@@ -283,14 +301,20 @@ int make_connection(uint32_t ip, uint16_t port)
 
 void delete_session(int fd)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     if (fd < 0 || fd >= FD_SETSIZE)
+#pragma GCC diagnostic pop
         return;
     // If this was the highest fd, decrease it
     // We could add a loop to decrement fd_max further for every null session,
     // but this is cheap and good enough for the typical case
     if (fd == fd_max - 1)
         fd_max--;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_CLR(fd, &readfds);
+#pragma GCC diagnostic pop
     if (session[fd])
     {
         session[fd]->rdata.delete_();
@@ -343,11 +367,17 @@ void WFIFOSET(int fd, size_t len)
 void do_sendrecv(interval_t next_ms)
 {
     fd_set rfd = readfds, wfd;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_ZERO(&wfd);
+#pragma GCC diagnostic pop
     for (int i = 0; i < fd_max; i++)
     {
         if (session[i] && session[i]->wdata_size)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
             FD_SET(i, &wfd);
+#pragma GCC diagnostic pop
     }
     struct timeval timeout;
     {
@@ -362,13 +392,19 @@ void do_sendrecv(interval_t next_ms)
     {
         if (!session[i])
             continue;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
         if (FD_ISSET(i, &wfd))
+#pragma GCC diagnostic pop
         {
             if (session[i]->func_send)
                 //send_from_fifo(i);
                 session[i]->func_send(i);
         }
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
         if (FD_ISSET(i, &rfd))
+#pragma GCC diagnostic pop
         {
             if (session[i]->func_recv)
                 //recv_to_fifo(i);
@@ -406,7 +442,10 @@ void do_parsepacket(void)
 
 void do_socket(void)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_ZERO(&readfds);
+#pragma GCC diagnostic pop
     currentuse = 3;
 }
 

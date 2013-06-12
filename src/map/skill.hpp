@@ -33,8 +33,8 @@ extern earray<struct skill_db, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 struct skill_name_db
 {
     SkillID id;                    // skill id
-    const char *name;                 // search strings
-    const char *desc;                 // description that shows up for search's
+    std::string name;                 // search strings
+    std::string desc;                 // description that shows up for searches
 };
 
 // used only by @skillid for iteration - should be depublicized
@@ -122,7 +122,7 @@ bool skill_pool_is_activated(dumb_ptr<map_session_data> sd, SkillID skill);
 int skill_pool_deactivate(dumb_ptr<map_session_data> sd, SkillID skill);
 // Yield configurable skill name
 inline
-const char *skill_name(SkillID skill)
+const std::string& skill_name(SkillID skill)
 {
     return skill_lookup_by_id(skill).desc;
 }

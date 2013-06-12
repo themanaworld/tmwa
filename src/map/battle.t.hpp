@@ -25,6 +25,10 @@ ENUM_BITWISE_OPERATORS(BF)
 }
 using e::BF;
 
+namespace e
+{
+// not actually an enum, but put in the namespace to hide the operators
+// from non-ADL.
 struct BCT
 {
                         // former representation:
@@ -56,6 +60,8 @@ constexpr
 bool operator == (BCT l, BCT r) { return l.lo == r.lo && l.mid == r.mid && l.classic == r.classic && l.level == r.level && l.unused == r.unused; }
 constexpr
 bool operator != (BCT l, BCT r) { return !(l == r); }
+} // namespace e
+using e::BCT;
 
 constexpr
 BCT BCT_NOENEMY = {0x00, 0x00, 0x0, 0x0, 0x00};

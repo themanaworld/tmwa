@@ -18,7 +18,7 @@ int npc_event_dequeue(dumb_ptr<map_session_data> sd);
 int npc_event(dumb_ptr<map_session_data> sd, const char *npcname, int);
 int npc_timer_event(const char *eventname);   // Added by RoVeRT
 int npc_command(dumb_ptr<map_session_data> sd, const char *npcname, const char *command);
-int npc_touch_areanpc(dumb_ptr<map_session_data>, int, int, int);
+int npc_touch_areanpc(dumb_ptr<map_session_data>, map_local *, int, int);
 int npc_click(dumb_ptr<map_session_data>, int);
 int npc_scriptcont(dumb_ptr<map_session_data>, int);
 int npc_buysellsel(dumb_ptr<map_session_data>, int, int);
@@ -36,7 +36,8 @@ int npc_get_new_npc_id(void);
  *
  * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
  */
-dumb_ptr<npc_data> npc_spawn_text(int m, int x, int y, int class_, const char *name, const char *message);    // message is strdup'd within
+dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
+        int class_, const char *name, const char *message);    // message is strdup'd within
 
 /**
  * Uninstalls and frees an NPC
@@ -64,10 +65,10 @@ int npc_event_do(const char *name)
     return npc_event_do_l(name, 0, 0, NULL);
 }
 
-int npc_timerevent_start(dumb_ptr<npc_data_script> nd);
-int npc_timerevent_stop(dumb_ptr<npc_data_script> nd);
+void npc_timerevent_start(dumb_ptr<npc_data_script> nd);
+void npc_timerevent_stop(dumb_ptr<npc_data_script> nd);
 interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd);
-int npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer);
+void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer);
 int npc_delete(dumb_ptr<npc_data> nd);
 
 #endif // NPC_HPP

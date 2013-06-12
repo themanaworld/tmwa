@@ -102,24 +102,25 @@
 "WAIT"                  {FIXLOC; return SLEEP;}
 
 \{([^\}]|\\.)*\}        {
-    char *string = strdup(yytext);
-    magic_frontend_lval.s = string;
+    magic_frontend_lval.s = dumb_string::copy(yytext);
     FIXLOC;
     return SCRIPT_DATA;
 }
 
 \"([^\"]|\\.)*\"        {
-    char *string = strdup(yytext + 1);
-    char *src = string;
-    char *dst = string;
+    dumb_string string = dumb_string::copy(yytext + 1);
+    const char *src = string.c_str();
+    char *dst = &string[0];
     while (*src && *src != '"')
-    if (*src == '\\')
     {
-        *dst++ = src[1];
-        src += 2;
+	if (*src == '\\')
+	{
+	    *dst++ = src[1];
+	    src += 2;
+	}
+	else
+	    *dst++ = *src++;
     }
-    else
-        *dst++ = *src++;
     *dst = '\0'; /* terminate */
     magic_frontend_lval.s = string;
     FIXLOC;
@@ -139,7 +140,7 @@
  }
 
 [a-zA-Z][-_a-zA-Z0-9]*  {
-    magic_frontend_lval.s = strdup(yytext);
+    magic_frontend_lval.s = dumb_string::copy(yytext);
     FIXLOC;
     return ID;
 }

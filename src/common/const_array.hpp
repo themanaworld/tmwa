@@ -70,55 +70,59 @@ public:
     // but disallow conversion from a temporary
     const_array(std::vector<T>&&) = delete;
 
-    // All methods are non-const to "encourage" you
-    // to always pass a const_array by value.
-    // After all, "const const_array" looks funny.
+    // Oops. see src/warnings.hpp
     constexpr
-    const T *data() { return d; }
+    const T *data() const { return d; }
     constexpr
-    size_t size() { return n; }
+    size_t size() const { return n; }
     constexpr
-    bool empty() { return not n; }
+    bool empty() const { return not n; }
     constexpr explicit
-    operator bool() { return n; }
+    operator bool() const { return n; }
 
     constexpr
-    std::pair<const_array, const_array> cut(size_t o)
+    std::pair<const_array, const_array> cut(size_t o) const
     {
         return {const_array(d, o), const_array(d + o, n - o)};
     }
 
     constexpr
-    const_array first(size_t o)
+    const_array first(size_t o) const
     {
         return cut(o).first;
     }
 
     constexpr
-    const_array last(size_t l)
+    const_array last(size_t l) const
     {
         return cut(size() - l).second;
     }
 
     constexpr
-    const_array after(size_t o)
+    const_array after(size_t o) const
     {
         return cut(o).second;
     }
 
     constexpr
-    iterator begin() { return d; }
+    iterator begin() const { return d; }
     constexpr
-    iterator end() { return d + n; }
+    iterator end() const { return d + n; }
     constexpr
-    reverse_iterator rbegin() { return reverse_iterator(end()); }
+    reverse_iterator rbegin() const { return reverse_iterator(end()); }
     constexpr
-    reverse_iterator rend() { return reverse_iterator(begin()); }
+    reverse_iterator rend() const { return reverse_iterator(begin()); }
 
     constexpr
-    const T& front() { return *begin(); }
+    const T& front() const { return *begin(); }
     constexpr
-    const T& back() { return *rbegin(); }
+    const T& back() const { return *rbegin(); }
+
+    // This probably shouldn't be used, but I'm adding it for porting.
+    T& operator[](size_t i)
+    {
+        return const_cast<T&>(d[i]);
+    }
 };
 
 // subclass just provides a simpler name and some conversions

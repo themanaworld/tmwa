@@ -81,9 +81,9 @@ char char_log_filename[1024] = "log/char.log";
 static
 char lan_map_ip[128];
 static
-int subneti[4];
+uint8_t subneti[4];
 static
-int subnetmaski[4];
+uint8_t subnetmaski[4];
 static
 int name_ignoring_case = 0;    // Allow or not identical name for characters but with a different case by [Yor]
 static
@@ -101,7 +101,7 @@ struct char_session_data : SessionData
 
 void SessionDeleter::operator()(SessionData *sd)
 {
-    delete static_cast<char_session_data *>(sd);
+    really_delete1 static_cast<char_session_data *>(sd);
 }
 
 struct AuthFifoEntry
@@ -710,8 +710,7 @@ mmo_charstatus *make_new_char(int fd, const uint8_t *dat)
     }
 
     char ip[16];
-    unsigned char *sin_addr =
-        (unsigned char *) &session[fd]->client_addr.sin_addr;
+    uint8_t *sin_addr = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
     sprintf(ip, "%d.%d.%d.%d", sin_addr[0], sin_addr[1], sin_addr[2],
              sin_addr[3]);
 
@@ -1502,7 +1501,7 @@ void parse_tologin(int fd)
                     gm_accounts.resize((RFIFOW(fd, 2) - 4) / 5);
                     for (int i = 4; i < RFIFOW(fd, 2); i = i + 5)
                     {
-                        gm_accounts.push_back({(int) RFIFOL(fd, i), (int) RFIFOB(fd, i + 4)});
+                        gm_accounts.push_back({static_cast<int>(RFIFOL(fd, i)), RFIFOB(fd, i + 4)});
                     }
                     PRINTF("From login-server: receiving of %zu GM accounts information.\n",
                          gm_accounts.size());
@@ -1633,7 +1632,7 @@ void parse_frommap(int fd)
                     j++;
                 }
                 {
-                    unsigned char *p = (unsigned char *) &server[id].ip;
+                    uint8_t *p = reinterpret_cast<uint8_t *>(&server[id].ip);
                     PRINTF("Map-Server %d connected: %d maps, from IP %d.%d.%d.%d port %d.\n",
                          id, j, p[0], p[1], p[2], p[3], server[id].port);
                     PRINTF("Map-server %d loading complete.\n", id);
@@ -2239,7 +2238,7 @@ static
 void parse_char(int fd)
 {
     char email[40];
-    unsigned char *p = (unsigned char *) &session[fd]->client_addr.sin_addr;
+    uint8_t *p = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
 
     if (login_fd < 0 || session[fd]->eof)
     {                           // disconnect any player (already connected to char-server or coming back from map-server) if login-server is diconnected.
@@ -2290,8 +2289,8 @@ void parse_char(int fd)
                                 RFIFOL(fd, 2));
                     if (sd == NULL)
                     {
-                        sd = new char_session_data();
-                        session[fd]->session_data.reset(sd);
+                        session[fd]->session_data = make_unique<char_session_data, SessionDeleter>();
+                        sd = static_cast<char_session_data *>(session[fd]->session_data.get());
                         memcpy(sd->email, "no mail", 40);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
                         sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
@@ -2487,8 +2486,8 @@ void parse_char(int fd)
                     if (server_fd[i] < 0)
                         break;
                 }
-                if (i == MAX_MAP_SERVERS || strcmp((const char *)RFIFOP(fd, 2), userid)
-                    || strcmp((const char *)RFIFOP(fd, 26), passwd))
+                if (i == MAX_MAP_SERVERS || strcmp(static_cast<const char *>(RFIFOP(fd, 2)), userid)
+                    || strcmp(static_cast<const char *>(RFIFOP(fd, 26)), passwd))
                 {
                     WFIFOB(fd, 2) = 3;
                     WFIFOSET(fd, 3);
@@ -2516,7 +2515,7 @@ void parse_char(int fd)
                     for (const GM_Account& gma : gm_accounts)
                     {
                         WFIFOL(fd, len) = gma.account_id;
-                        WFIFOB(fd, len + 4) = (unsigned char) gma.level;
+                        WFIFOB(fd, len + 4) = gma.level;
                         len += 5;
                     }
                     WFIFOW(fd, 2) = len;
@@ -2704,10 +2703,10 @@ int lan_config_read(const char *lancfgName)
             if (h != NULL)
             {
                 sprintf(lan_map_ip, "%d.%d.%d.%d",
-                         (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                         static_cast<uint8_t>(h->h_addr[0]),
+                         static_cast<uint8_t>(h->h_addr[1]),
+                         static_cast<uint8_t>(h->h_addr[2]),
+                         static_cast<uint8_t>(h->h_addr[3]));
             }
             else
             {
@@ -2724,11 +2723,11 @@ int lan_config_read(const char *lancfgName)
             if (h != NULL)
             {
                 for (int j = 0; j < 4; j++)
-                    subneti[j] = (unsigned char) h->h_addr[j];
+                    subneti[j] = h->h_addr[j];
             }
             else
             {
-                SSCANF(w2, "%d.%d.%d.%d", &subneti[0], &subneti[1],
+                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subneti[0], &subneti[1],
                         &subneti[2], &subneti[3]);
             }
             PRINTF("Sub-network of the map-server: %d.%d.%d.%d.\n",
@@ -2743,11 +2742,11 @@ int lan_config_read(const char *lancfgName)
             if (h != NULL)
             {
                 for (int j = 0; j < 4; j++)
-                    subnetmaski[j] = (unsigned char) h->h_addr[j];
+                    subnetmaski[j] = h->h_addr[j];
             }
             else
             {
-                SSCANF(w2, "%d.%d.%d.%d", &subnetmaski[0], &subnetmaski[1],
+                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subnetmaski[0], &subnetmaski[1],
                         &subnetmaski[2], &subnetmaski[3]);
             }
             PRINTF("Sub-network mask of the map-server: %d.%d.%d.%d.\n",
@@ -2816,15 +2815,15 @@ int char_config_read(const char *cfgName)
             if (h != NULL)
             {
                 PRINTF("Login server IP address : %s -> %d.%d.%d.%d\n", w2,
-                        (unsigned char) h->h_addr[0],
-                        (unsigned char) h->h_addr[1],
-                        (unsigned char) h->h_addr[2],
-                        (unsigned char) h->h_addr[3]);
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]));
                 sprintf(login_ip_str, "%d.%d.%d.%d",
-                         (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                         static_cast<uint8_t>(h->h_addr[0]),
+                         static_cast<uint8_t>(h->h_addr[1]),
+                         static_cast<uint8_t>(h->h_addr[2]),
+                         static_cast<uint8_t>(h->h_addr[3]));
             }
             else
                 strzcpy(login_ip_str, w2.c_str(), 16);
@@ -2839,15 +2838,16 @@ int char_config_read(const char *cfgName)
             if (h != NULL)
             {
                 PRINTF("Character server IP address : %s -> %d.%d.%d.%d\n",
-                        w2, (unsigned char) h->h_addr[0],
-                        (unsigned char) h->h_addr[1],
-                        (unsigned char) h->h_addr[2],
-                        (unsigned char) h->h_addr[3]);
+                        w2,
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]));
                 sprintf(char_ip_str, "%d.%d.%d.%d",
-                         (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                         static_cast<uint8_t>(h->h_addr[0]),
+                         static_cast<uint8_t>(h->h_addr[1]),
+                         static_cast<uint8_t>(h->h_addr[2]),
+                         static_cast<uint8_t>(h->h_addr[3]));
             }
             else
                 strzcpy(char_ip_str, w2.c_str(), 16);

@@ -36,7 +36,10 @@ sigfunc compat_signal(int signo, sigfunc func)
     sact.sa_flags = 0;
 
     if (sigaction(signo, &sact, &oact) < 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
         return SIG_ERR;
+#pragma GCC diagnostic pop
 
     return oact.sa_handler;
 }
@@ -50,7 +53,10 @@ static __attribute__((noreturn))
 void sig_proc(int)
 {
     for (int i = 1; i < 31; ++i)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
         compat_signal(i, SIG_IGN);
+#pragma GCC diagnostic pop
     term_func();
     _exit(0);
 }
@@ -74,17 +80,23 @@ int main(int argc, char **argv)
     // set up exit handlers *after* the initialization has happened.
     // This is because term_func is likely to depend on successful init.
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     compat_signal(SIGPIPE, SIG_IGN);
+#pragma GCC diagnostic pop
     compat_signal(SIGTERM, sig_proc);
     compat_signal(SIGINT, sig_proc);
     compat_signal(SIGCHLD, chld_proc);
 
     // Signal to create coredumps by system when necessary (crash)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wold-style-cast"
     compat_signal(SIGSEGV, SIG_DFL);
     compat_signal(SIGBUS, SIG_DFL);
     compat_signal(SIGTRAP, SIG_DFL);
     compat_signal(SIGILL, SIG_DFL);
     compat_signal(SIGFPE, SIG_DFL);
+#pragma GCC diagnostic pop
 
     atexit(term_func);
 

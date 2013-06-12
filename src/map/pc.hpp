@@ -42,7 +42,7 @@ bool pc_is90overweight(dumb_ptr<map_session_data> sd)
 // should do something with the specified player.
 void pc_touch_all_relevant_npcs(dumb_ptr<map_session_data> sd);
 
-int pc_isGM(dumb_ptr<map_session_data> sd);
+uint8_t pc_isGM(dumb_ptr<map_session_data> sd);
 int pc_iskiller(dumb_ptr<map_session_data> src, dumb_ptr<map_session_data> target);   // [MouseJstr]
 
 void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled);    // [Fate]
@@ -119,9 +119,9 @@ int pc_changelook(dumb_ptr<map_session_data>, LOOK, int);
 int pc_readparam(dumb_ptr<map_session_data>, SP);
 int pc_setparam(dumb_ptr<map_session_data>, SP, int);
 int pc_readreg(dumb_ptr<map_session_data>, int);
-int pc_setreg(dumb_ptr<map_session_data>, int, int);
-char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg);
-int pc_setregstr(dumb_ptr<map_session_data> sd, int reg, const char *str);
+void pc_setreg(dumb_ptr<map_session_data>, int, int);
+const char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg);
+void pc_setregstr(dumb_ptr<map_session_data> sd, int reg, const char *str);
 int pc_readglobalreg(dumb_ptr<map_session_data>, const char *);
 int pc_setglobalreg(dumb_ptr<map_session_data>, const char *, int);
 int pc_readaccountreg(dumb_ptr<map_session_data>, const char *);
@@ -140,7 +140,7 @@ int pc_marriage(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> dstsd);
 int pc_divorce(dumb_ptr<map_session_data> sd);
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd);
-int pc_set_gm_level(int account_id, int level);
+void pc_set_gm_level(int account_id, uint8_t level);
 void pc_setstand(dumb_ptr<map_session_data> sd);
 void pc_cleanup(dumb_ptr<map_session_data> sd);  // [Fate] Clean up after a logged-out PC
 

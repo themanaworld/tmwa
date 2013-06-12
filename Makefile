@@ -45,6 +45,7 @@ most: ${MOSTPROGS}
 clean:
 	rm -rf ${PROGS} ${BUILD_DIR}/
 common: ${BUILD_DIR}/common/core.o ${BUILD_DIR}/common/db.o ${BUILD_DIR}/common/lock.o ${BUILD_DIR}/common/md5calc.o ${BUILD_DIR}/common/random.o ${BUILD_DIR}/common/nullpo.o ${BUILD_DIR}/common/socket.o ${BUILD_DIR}/common/timer.o ${BUILD_DIR}/common/utils.o ${BUILD_DIR}/common/cxxstdio.o ${BUILD_DIR}/common/extract.o
+magic: ${BUILD_DIR}/map/magic-interpreter-lexer.o ${BUILD_DIR}/map/magic-interpreter-parser.o ${BUILD_DIR}/map/magic-expr.o ${BUILD_DIR}/map/magic-interpreter-base.o ${BUILD_DIR}/map/magic-stmt.o ${BUILD_DIR}/map/magic.o
 
 # Top level programs
 login-server: ${BUILD_DIR}/login/login

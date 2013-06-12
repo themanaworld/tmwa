@@ -127,10 +127,6 @@ ATCOMMAND_FUNC(enablenpc);
 ATCOMMAND_FUNC(disablenpc);
 ATCOMMAND_FUNC(servertime);    // by Yor
 ATCOMMAND_FUNC(chardelitem);   // by Yor
-ATCOMMAND_FUNC(ignorelist);    // by Yor
-ATCOMMAND_FUNC(charignorelist);    // by Yor
-ATCOMMAND_FUNC(inall);         // by Yor
-ATCOMMAND_FUNC(exall);         // by Yor
 ATCOMMAND_FUNC(email);         // by Yor
 ATCOMMAND_FUNC(effect);        //by Apple
 ATCOMMAND_FUNC(character_item_list);   // by Yor
@@ -293,10 +289,6 @@ AtCommandInfo atcommand_info[] =
     {"@servertime", 0, atcommand_servertime}, // by Yor
     {"@chardelitem", 60, atcommand_chardelitem}, // by Yor
     {"@listnearby", 40, atcommand_list_nearby},   // by Yor
-    {"@ignorelist", 0, atcommand_ignorelist}, // by Yor
-    {"@charignorelist", 20, atcommand_charignorelist},    // by Yor
-    {"@inall", 20, atcommand_inall},  // by Yor
-    {"@exall", 20, atcommand_exall},   // by Yor
     {"@email", 0, atcommand_email},    // by Yor
     {"@effect", 40, atcommand_effect},    // by Apple
     {"@charitemlist", 40, atcommand_character_item_list}, // by Yor
@@ -372,19 +364,19 @@ void log_atcommand(dumb_ptr<map_session_data> sd, const_string cmd)
     stamp_time(tmpstr);
     fprintf(fp, "[%s] %s(%d,%d) %s(%d) : ",
             tmpstr,
-            map[sd->bl_m].name, sd->bl_x, sd->bl_y,
+            sd->bl_m->name, sd->bl_x, sd->bl_y,
             sd->status.name, sd->status.account_id);
     fwrite(cmd.data(), 1, cmd.size(), fp);
 }
 
-char *gm_logfile_name = NULL;
+std::string gm_logfile_name;
 /*==========================================
  * Log a timestamped line to GM log file
  *------------------------------------------
  */
 FILE *get_gm_log()
 {
-    if (!gm_logfile_name)
+    if (gm_logfile_name.empty())
         return NULL;
 
     struct tm ctime = TimeT::now();
@@ -410,7 +402,7 @@ FILE *get_gm_log()
     if (!gm_logfile)
     {
         perror("GM log file");
-        gm_logfile_name = NULL;
+        gm_logfile_name.clear();
     }
     return gm_logfile;
 }
@@ -642,7 +634,6 @@ int atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
     char character[100];
     int x = 0, y = 0;
     dumb_ptr<map_session_data> pl_sd;
-    int m;
 
     memset(map_name, '\0', sizeof(map_name));
     memset(character, '\0', sizeof(character));
@@ -669,15 +660,15 @@ int atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
         {                       // you can rura+ only lower or same GM level
             if (x > 0 && x < 800 && y > 0 && y < 800)
             {
-                m = map_mapname2mapid(map_name);
-                if (m >= 0 && map[m].flag.nowarpto
+                map_local *m = map_mapname2mapid(map_name);
+                if (m != nullptr && m->flag.nowarpto
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
                     clif_displaymessage(fd,
                                          "You are not authorised to warp someone to this map.");
                     return -1;
                 }
-                if (pl_sd->bl_m >= 0 && map[pl_sd->bl_m].flag.nowarp
+                if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
                     clif_displaymessage(fd,
@@ -725,7 +716,6 @@ int atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
 {
     char map_name[100];
     int x = 0, y = 0;
-    int m;
 
     memset(map_name, '\0', sizeof(map_name));
 
@@ -747,15 +737,15 @@ int atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
 
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
-        m = map_mapname2mapid(map_name);
-        if (m >= 0 && map[m].flag.nowarpto
+        map_local *m = map_mapname2mapid(map_name);
+        if (m != nullptr && m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to this map.");
             return -1;
         }
-        if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarp
+        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -834,14 +824,14 @@ int atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        if (pl_sd->bl_m >= 0 && map[pl_sd->bl_m].flag.nowarpto
+        if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to the map of this player.");
             return -1;
         }
-        if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarp
+        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -877,14 +867,14 @@ int atcommand_jump(const int fd, dumb_ptr<map_session_data> sd,
         y = random_::in(1, 399);
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
-        if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarpto
+        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to your actual map.");
             return -1;
         }
-        if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarp
+        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -1056,7 +1046,7 @@ int atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
     int pl_GM_level, GM_level;
-    int map_id;
+    map_local *map_id;
     char map_name[100];
 
     memset(map_name, '\0', sizeof(map_name));
@@ -1068,7 +1058,8 @@ int atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
         sscanf(message, "%99s", map_name);
         if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
             strcat(map_name, ".gat");
-        if ((map_id = map_mapname2mapid(map_name)) < 0)
+        map_id = map_mapname2mapid(map_name);
+        if (map_id == nullptr)
             map_id = sd->bl_m;
     }
 
@@ -1108,7 +1099,7 @@ int atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     std::string output = STRPRINTF("%d players found in map '%s'.",
-            count, map[map_id].name);
+            count, map_id->name);
     clif_displaymessage(fd, output);
 
     return 0;
@@ -1123,12 +1114,12 @@ int atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
     int pl_GM_level, GM_level;
-    int map_id = 0;
     char map_name[100];
     struct party *p;
 
     memset(map_name, '\0', sizeof(map_name));
 
+    map_local *map_id;
     if (!message || !*message)
         map_id = sd->bl_m;
     else
@@ -1136,7 +1127,8 @@ int atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
         sscanf(message, "%99s", map_name);
         if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
             strcat(map_name, ".gat");
-        if ((map_id = map_mapname2mapid(map_name)) < 0)
+        map_id = map_mapname2mapid(map_name);
+        if (map_id == nullptr)
             map_id = sd->bl_m;
     }
 
@@ -1176,12 +1168,12 @@ int atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
 
     std::string output;
     if (count == 0)
-        output = STRPRINTF("No player found in map '%s'.", map[map_id].name);
+        output = STRPRINTF("No player found in map '%s'.", map_id->name);
     else if (count == 1)
-        output = STRPRINTF("1 player found in map '%s'.", map[map_id].name);
+        output = STRPRINTF("1 player found in map '%s'.", map_id->name);
     else
     {
-        output = STRPRINTF("%d players found in map '%s'.", count, map[map_id].name);
+        output = STRPRINTF("%d players found in map '%s'.", count, map_id->name);
     }
     clif_displaymessage(fd, output);
 
@@ -1295,17 +1287,15 @@ int atcommand_save(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_load(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *)
 {
-    int m;
-
-    m = map_mapname2mapid(sd->status.save_point.map);
-    if (m >= 0 && map[m].flag.nowarpto
+    map_local *m = map_mapname2mapid(sd->status.save_point.map);
+    if (m != nullptr && m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
                              "You are not authorised to warp you to your save map.");
         return -1;
     }
-    if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarp
+    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -1894,9 +1884,9 @@ int atcommand_pvpoff(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    if (map[sd->bl_m].flag.pvp)
+    if (sd->bl_m->flag.pvp)
     {
-        map[sd->bl_m].flag.pvp = 0;
+        sd->bl_m->flag.pvp = 0;
         for (int i = 0; i < fd_max; i++)
         {
             if (!session[i])
@@ -1934,9 +1924,9 @@ int atcommand_pvpon(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    if (!map[sd->bl_m].flag.pvp && !map[sd->bl_m].flag.nopvp)
+    if (!sd->bl_m->flag.pvp && !sd->bl_m->flag.nopvp)
     {
-        map[sd->bl_m].flag.pvp = 1;
+        sd->bl_m->flag.pvp = 1;
         for (int i = 0; i < fd_max; i++)
         {
             if (!session[i])
@@ -2210,23 +2200,27 @@ static
 void atcommand_killmonster_sub(const int fd, dumb_ptr<map_session_data> sd,
                                 const char *message, const int drop)
 {
-    int map_id;
     char map_name[100];
 
     memset(map_name, '\0', sizeof(map_name));
 
+    map_local *map_id;
     if (!message || !*message || sscanf(message, "%99s", map_name) < 1)
         map_id = sd->bl_m;
     else
     {
         if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
             strcat(map_name, ".gat");
-        if ((map_id = map_mapname2mapid(map_name)) < 0)
+        map_id = map_mapname2mapid(map_name);
+        if (map_id == nullptr)
             map_id = sd->bl_m;
     }
 
-    map_foreachinarea(std::bind(atkillmonster_sub, ph::_1, drop), map_id, 0, 0, map[map_id].xs,
-                       map[map_id].ys, BL::MOB);
+    map_foreachinarea(std::bind(atkillmonster_sub, ph::_1, drop),
+            map_id,
+            0, 0,
+            map_id->xs, map_id->ys,
+            BL::MOB);
 
     clif_displaymessage(fd, "All monsters killed!");
 
@@ -2268,8 +2262,10 @@ int atcommand_list_nearby(const int fd, dumb_ptr<map_session_data> sd,
 {
     clif_displaymessage(fd, "Nearby players:");
     map_foreachinarea(std::bind(atlist_nearby_sub, ph::_1, fd),
-            sd->bl_m, sd->bl_x - 1, sd->bl_y - 1,
-            sd->bl_x + 1, sd->bl_x + 1, BL::PC);
+            sd->bl_m,
+            sd->bl_x - 1, sd->bl_y - 1,
+            sd->bl_x + 1, sd->bl_x + 1,
+            BL::PC);
 
     return 0;
 }
@@ -2299,7 +2295,7 @@ int atcommand_gat(const int fd, dumb_ptr<map_session_data> sd,
     {
         std::string output = STRPRINTF(
                 "%s (x= %d, y= %d) %02X %02X %02X %02X %02X",
-                map[sd->bl_m].name, sd->bl_x - 2, sd->bl_y + y,
+                sd->bl_m->name, sd->bl_x - 2, sd->bl_y + y,
                 map_getcell(sd->bl_m, sd->bl_x - 2, sd->bl_y + y),
                 map_getcell(sd->bl_m, sd->bl_x - 1, sd->bl_y + y),
                 map_getcell(sd->bl_m, sd->bl_x, sd->bl_y + y),
@@ -2348,15 +2344,15 @@ int atcommand_statuspoint(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    new_status_point = (int) sd->status.status_point + point;
+    new_status_point = sd->status.status_point + point;
     if (point > 0 && (point > 0x7FFF || new_status_point > 0x7FFF)) // fix positiv overflow
         new_status_point = 0x7FFF;
     else if (point < 0 && (point < -0x7FFF || new_status_point < 0))    // fix negativ overflow
         new_status_point = 0;
 
-    if (new_status_point != (int) sd->status.status_point)
+    if (new_status_point != sd->status.status_point)
     {
-        sd->status.status_point = (short) new_status_point;
+        sd->status.status_point = new_status_point;
         clif_updatestatus(sd, SP::STATUSPOINT);
         clif_displaymessage(fd, "Number of status points changed!");
     }
@@ -2388,15 +2384,15 @@ int atcommand_skillpoint(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    new_skill_point = (int) sd->status.skill_point + point;
+    new_skill_point = sd->status.skill_point + point;
     if (point > 0 && (point > 0x7FFF || new_skill_point > 0x7FFF))  // fix positiv overflow
         new_skill_point = 0x7FFF;
     else if (point < 0 && (point < -0x7FFF || new_skill_point < 0)) // fix negativ overflow
         new_skill_point = 0;
 
-    if (new_skill_point != (int) sd->status.skill_point)
+    if (new_skill_point != sd->status.skill_point)
     {
-        sd->status.skill_point = (short) new_skill_point;
+        sd->status.skill_point = new_skill_point;
         clif_updatestatus(sd, SP::SKILLPOINT);
         clif_displaymessage(fd, "Number of skill points changed!");
     }
@@ -2473,7 +2469,7 @@ int atcommand_param(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    new_value = (int) sd->status.attrs[attr] + value;
+    new_value = sd->status.attrs[attr] + value;
     if (value > 0 && (value > battle_config.max_parameter || new_value > battle_config.max_parameter))  // fix positiv overflow
         new_value = battle_config.max_parameter;
     else if (value < 0 && (value < -battle_config.max_parameter || new_value < 1))  // fix negativ overflow
@@ -2569,14 +2565,14 @@ int atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
     {
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can recall only lower or same level
-            if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarpto
+            if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
                 clif_displaymessage(fd,
                                      "You are not authorised to warp somenone to your actual map.");
                 return -1;
             }
-            if (pl_sd->bl_m >= 0 && map[pl_sd->bl_m].flag.nowarp
+            if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
                 clif_displaymessage(fd,
@@ -3094,7 +3090,6 @@ int atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
     char character[100];
     dumb_ptr<map_session_data> pl_sd;
     int x = 0, y = 0;
-    int m;
 
     memset(map_name, '\0', sizeof(map_name));
     memset(character, '\0', sizeof(character));
@@ -3114,16 +3109,17 @@ int atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can change save point only to lower or same gm level
-            m = map_mapname2mapid(map_name);
-            if (m < 0)
+        {
+            // you can change save point only to lower or same gm level
+            map_local *m = map_mapname2mapid(map_name);
+            if (m == nullptr)
             {
                 clif_displaymessage(fd, "Map not found.");
                 return -1;
             }
             else
             {
-                if (m >= 0 && map[m].flag.nowarpto
+                if (m != nullptr && m->flag.nowarpto
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
                     clif_displaymessage(fd,
@@ -4113,12 +4109,12 @@ int atcommand_charskpoint(const int fd, dumb_ptr<map_session_data>,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        new_skill_point = (int) pl_sd->status.skill_point + point;
+        new_skill_point = pl_sd->status.skill_point + point;
         if (point > 0 && (point > 0x7FFF || new_skill_point > 0x7FFF))  // fix positiv overflow
             new_skill_point = 0x7FFF;
         else if (point < 0 && (point < -0x7FFF || new_skill_point < 0)) // fix negativ overflow
             new_skill_point = 0;
-        if (new_skill_point != (int) pl_sd->status.skill_point)
+        if (new_skill_point != pl_sd->status.skill_point)
         {
             pl_sd->status.skill_point = new_skill_point;
             clif_updatestatus(pl_sd, SP::SKILLPOINT);
@@ -4167,12 +4163,12 @@ int atcommand_charstpoint(const int fd, dumb_ptr<map_session_data>,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        new_status_point = (int) pl_sd->status.status_point + point;
+        new_status_point = pl_sd->status.status_point + point;
         if (point > 0 && (point > 0x7FFF || new_status_point > 0x7FFF)) // fix positiv overflow
             new_status_point = 0x7FFF;
         else if (point < 0 && (point < -0x7FFF || new_status_point < 0))    // fix negativ overflow
             new_status_point = 0;
-        if (new_status_point != (int) pl_sd->status.status_point)
+        if (new_status_point != pl_sd->status.status_point)
         {
             pl_sd->status.status_point = new_status_point;
             clif_updatestatus(pl_sd, SP::STATUSPOINT);
@@ -4257,7 +4253,7 @@ int atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
 
-    if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarpto
+    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -4277,7 +4273,7 @@ int atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can recall only lower or same level
-            if (pl_sd->bl_m >= 0 && map[pl_sd->bl_m].flag.nowarp
+            if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 count++;
             else
@@ -4317,7 +4313,7 @@ int atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarpto
+    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -4338,7 +4334,7 @@ int atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.party_id == p->party_id)
             {
-                if (pl_sd->bl_m >= 0 && map[pl_sd->bl_m].flag.nowarp
+                if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                     count++;
                 else
@@ -4448,7 +4444,7 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
     dumb_ptr<npc_data> nd = NULL;
     char map_name[100];
     const char *direction = NULL;
-    int m_id, list = 0;
+    int list = 0;
 
     memset(map_name, '\0', sizeof(map_name));
 
@@ -4466,7 +4462,8 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
     if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
         strcat(map_name, ".gat");
 
-    if ((m_id = map_mapname2mapid(map_name)) < 0)
+    map_local *m_id = map_mapname2mapid(map_name);
+    if (m_id != nullptr)
     {
         clif_displaymessage(fd, "Map not found.");
         return -1;
@@ -4475,38 +4472,38 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
     clif_displaymessage(fd, "------ Map Info ------");
     std::string output = STRPRINTF("Map Name: %s", map_name);
     clif_displaymessage(fd, output);
-    output = STRPRINTF("Players In Map: %d", map[m_id].users);
+    output = STRPRINTF("Players In Map: %d", m_id->users);
     clif_displaymessage(fd, output);
-    output = STRPRINTF("NPCs In Map: %d", map[m_id].npc_num);
+    output = STRPRINTF("NPCs In Map: %d", m_id->npc_num);
     clif_displaymessage(fd, output);
     clif_displaymessage(fd, "------ Map Flags ------");
     output = STRPRINTF("Player vs Player: %s | No Party: %s",
-             (map[m_id].flag.pvp) ? "True" : "False",
-             (map[m_id].flag.pvp_noparty) ? "True" : "False");
+             (m_id->flag.pvp) ? "True" : "False",
+             (m_id->flag.pvp_noparty) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Dead Branch: %s",
-             (map[m_id].flag.nobranch) ? "True" : "False");
+             (m_id->flag.nobranch) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Memo: %s",
-             (map[m_id].flag.nomemo) ? "True" : "False");
+             (m_id->flag.nomemo) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Penalty: %s",
-             (map[m_id].flag.nopenalty) ? "True" : "False");
+             (m_id->flag.nopenalty) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Return: %s",
-             (map[m_id].flag.noreturn) ? "True" : "False");
+             (m_id->flag.noreturn) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Save: %s",
-             (map[m_id].flag.nosave) ? "True" : "False");
+             (m_id->flag.nosave) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Teleport: %s",
-             (map[m_id].flag.noteleport) ? "True" : "False");
+             (m_id->flag.noteleport) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Monster Teleport: %s",
-             (map[m_id].flag.monster_noteleport) ? "True" : "False");
+             (m_id->flag.monster_noteleport) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Zeny Penalty: %s",
-             (map[m_id].flag.nozenypenalty) ? "True" : "False");
+             (m_id->flag.nozenypenalty) ? "True" : "False");
     clif_displaymessage(fd, output);
 
     switch (list)
@@ -4533,9 +4530,9 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
             break;
         case 2:
             clif_displaymessage(fd, "----- NPCs in Map -----");
-            for (int i = 0; i < map[m_id].npc_num;)
+            for (int i = 0; i < m_id->npc_num;)
             {
-                nd = map[m_id].npc[i];
+                nd = m_id->npc[i];
                 switch (nd->dir)
                 {
                     case DIR::S:
@@ -4840,249 +4837,6 @@ int atcommand_localbroadcast(const int fd, dumb_ptr<map_session_data> sd,
     std::string output = STRPRINTF("%s : %s", sd->status.name, message);
 
     clif_GMmessage(sd, output, 1);   // 1: ALL_SAMEMAP
-
-    return 0;
-}
-
-/*==========================================
- * @ignorelist by [Yor]
- *------------------------------------------
- */
-int atcommand_ignorelist(const int fd, dumb_ptr<map_session_data> sd,
-                          const char *, const char *)
-{
-    int count;
-    int i;
-
-    count = 0;
-    for (i = 0; i < (int)(sizeof(sd->ignore) / sizeof(sd->ignore[0])); i++)
-        if (sd->ignore[i].name[0])
-            count++;
-
-    if (sd->ignoreAll == 0)
-        if (count == 0)
-            clif_displaymessage(fd, "You accept any wisp (no wisper is refused).");
-        else
-        {
-            std::string output = STRPRINTF(
-                    "You accept any wisp, except thoses from %d player (s):",
-                    count);
-            clif_displaymessage(fd, output);
-        }
-    else if (count == 0)
-        clif_displaymessage(fd, "You refuse all wisps (no specifical wisper is refused).");
-    else
-    {
-        std::string output = STRPRINTF(
-                "You refuse all wisps, AND refuse wisps from %d player (s):",
-                count);
-        clif_displaymessage(fd, output);
-    }
-
-    if (count > 0)
-        for (i = 0; i < (int)(sizeof(sd->ignore) / sizeof(sd->ignore[0]));
-             i++)
-            if (sd->ignore[i].name[0])
-                clif_displaymessage(fd, sd->ignore[i].name);
-
-    return 0;
-}
-
-/*==========================================
- * @charignorelist <player_name> by [Yor]
- *------------------------------------------
- */
-int atcommand_charignorelist(const int fd, dumb_ptr<map_session_data>,
-                              const char *, const char *message)
-{
-    char character[100];
-    dumb_ptr<map_session_data> pl_sd;
-    int count;
-    int i;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                "Please, enter a player name (usage: @charignorelist <char name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        count = 0;
-        for (i = 0;
-             i < (int)(sizeof(pl_sd->ignore) / sizeof(pl_sd->ignore[0]));
-             i++)
-            if (pl_sd->ignore[i].name[0])
-                count++;
-
-        if (pl_sd->ignoreAll == 0)
-            if (count == 0)
-            {
-                std::string output = STRPRINTF(
-                        "'%s' accept any wisp (no wisper is refused).",
-                        pl_sd->status.name);
-                clif_displaymessage(fd, output);
-            }
-            else
-            {
-                std::string output = STRPRINTF(
-                        "'%s' accept any wisp, except thoses from %d player(s):",
-                        pl_sd->status.name, count);
-                clif_displaymessage(fd, output);
-            }
-        else if (count == 0)
-        {
-            std::string output = STRPRINTF(
-                    "'%s' refuse all wisps (no specifical wisper is refused).",
-                    pl_sd->status.name);
-            clif_displaymessage(fd, output);
-        }
-        else
-        {
-            std::string output = STRPRINTF(
-                    "'%s' refuse all wisps, AND refuse wisps from %d player(s):",
-                    pl_sd->status.name, count);
-            clif_displaymessage(fd, output);
-        }
-
-        if (count > 0)
-            for (i = 0;
-                 i < (int)(sizeof(pl_sd->ignore) / sizeof(pl_sd->ignore[0]));
-                 i++)
-                if (pl_sd->ignore[i].name[0])
-                    clif_displaymessage(fd, pl_sd->ignore[i].name);
-
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * @inall <player_name> by [Yor]
- *------------------------------------------
- */
-int atcommand_inall(const int fd, dumb_ptr<map_session_data> sd,
-                     const char *, const char *message)
-{
-    char character[100];
-    dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @inall <char name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can change wisp option only to lower or same level
-            if (pl_sd->ignoreAll == 0)
-            {
-                std::string output = STRPRINTF(
-                        "'%s' already accepts all wispers.",
-                        pl_sd->status.name);
-                clif_displaymessage(fd, output);
-                return -1;
-            }
-            else
-            {
-                pl_sd->ignoreAll = 0;
-                std::string output = STRPRINTF(
-                        "'%s' now accepts all wispers.",
-                        pl_sd->status.name);
-                clif_displaymessage(fd, output);
-                // message to player
-                clif_displaymessage(pl_sd->fd, "A GM has authorised all wispers for you.");
-                WFIFOW(pl_sd->fd, 0) = 0x0d2;  // R 00d2 <type>.B <fail>.B: type: 0: deny, 1: allow, fail: 0: success, 1: fail
-                WFIFOB(pl_sd->fd, 2) = 1;
-                WFIFOB(pl_sd->fd, 3) = 0;  // success
-                WFIFOSET(pl_sd->fd, 4);    // packet_len_table[0x0d2]
-            }
-        }
-        else
-        {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
-            return -1;
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
-
-    return 0;
-}
-
-/*==========================================
- * @exall <player_name> by [Yor]
- *------------------------------------------
- */
-int atcommand_exall(const int fd, dumb_ptr<map_session_data> sd,
-                     const char *, const char *message)
-{
-    char character[100];
-    dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
-
-    if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
-    {
-        clif_displaymessage(fd,
-                             "Please, enter a player name (usage: @exall <char name>).");
-        return -1;
-    }
-
-    if ((pl_sd = map_nick2sd(character)) != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {                       // you can change wisp option only to lower or same level
-            if (pl_sd->ignoreAll == 1)
-            {
-                std::string output = STRPRINTF(
-                        "'%s' already blocks all wispers.",
-                        pl_sd->status.name);
-                clif_displaymessage(fd, output);
-                return -1;
-            }
-            else
-            {
-                pl_sd->ignoreAll = 1;
-                std::string output = STRPRINTF(
-                        "'%s' blocks now all wispers.",
-                        pl_sd->status.name);
-                clif_displaymessage(fd, output);
-                // message to player
-                clif_displaymessage(pl_sd->fd, "A GM has blocked all wispers for you.");
-                WFIFOW(pl_sd->fd, 0) = 0x0d2;  // R 00d2 <type>.B <fail>.B: type: 0: deny, 1: allow, fail: 0: success, 1: fail
-                WFIFOB(pl_sd->fd, 2) = 0;
-                WFIFOB(pl_sd->fd, 3) = 0;  // success
-                WFIFOSET(pl_sd->fd, 4);    // packet_len_table[0x0d2]
-            }
-        }
-        else
-        {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
-            return -1;
-        }
-    }
-    else
-    {
-        clif_displaymessage(fd, "Character not found.");
-        return -1;
-    }
 
     return 0;
 }
@@ -5901,10 +5655,10 @@ int atcommand_rain(const int, dumb_ptr<map_session_data> sd,
     int effno = 0;
     effno = 161;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl_m].flag.rain)
+    if (effno < 0 || sd->bl_m->flag.rain)
         return -1;
 
-    map[sd->bl_m].flag.rain = 1;
+    sd->bl_m->flag.rain = 1;
     clif_specialeffect(sd, effno, 2);
     return 0;
 }
@@ -5919,10 +5673,10 @@ int atcommand_snow(const int, dumb_ptr<map_session_data> sd,
     int effno = 0;
     effno = 162;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl_m].flag.snow)
+    if (effno < 0 || sd->bl_m->flag.snow)
         return -1;
 
-    map[sd->bl_m].flag.snow = 1;
+    sd->bl_m->flag.snow = 1;
     clif_specialeffect(sd, effno, 2);
     return 0;
 }
@@ -5937,10 +5691,10 @@ int atcommand_sakura(const int, dumb_ptr<map_session_data> sd,
     int effno = 0;
     effno = 163;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl_m].flag.sakura)
+    if (effno < 0 || sd->bl_m->flag.sakura)
         return -1;
 
-    map[sd->bl_m].flag.sakura = 1;
+    sd->bl_m->flag.sakura = 1;
     clif_specialeffect(sd, effno, 2);
     return 0;
 }
@@ -5955,10 +5709,10 @@ int atcommand_fog(const int, dumb_ptr<map_session_data> sd,
     int effno = 0;
     effno = 233;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl_m].flag.fog)
+    if (effno < 0 || sd->bl_m->flag.fog)
         return -1;
 
-    map[sd->bl_m].flag.fog = 1;
+    sd->bl_m->flag.fog = 1;
     clif_specialeffect(sd, effno, 2);
 
     return 0;
@@ -5974,10 +5728,10 @@ int atcommand_leaves(const int, dumb_ptr<map_session_data> sd,
     int effno = 0;
     effno = 333;
     nullpo_retr(-1, sd);
-    if (effno < 0 || map[sd->bl_m].flag.leaves)
+    if (effno < 0 || sd->bl_m->flag.leaves)
         return -1;
 
-    map[sd->bl_m].flag.leaves = 1;
+    sd->bl_m->flag.leaves = 1;
     clif_specialeffect(sd, effno, 2);
     return 0;
 }
@@ -6077,7 +5831,8 @@ int atcommand_adjgmlvl(const int fd, dumb_ptr<map_session_data>,
     dumb_ptr<map_session_data> pl_sd;
 
     if (!message || !*message
-        || sscanf(message, "%d %s", &newlev, user) != 2)
+        || sscanf(message, "%d %s", &newlev, user) != 2
+        || newlev < 0 || newlev > 99)
     {
         clif_displaymessage(fd, "usage: @adjgmlvl <lvl> <user>.");
         return -1;
@@ -6301,21 +6056,21 @@ int atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
             pl_sd = get_start();
     }
 
-    if (pl_sd->bl_m >= 0 && map[pl_sd->bl_m].flag.nowarpto
+    if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
                              "You are not authorised to warp you to the map of this player.");
         return -1;
     }
-    if (sd->bl_m >= 0 && map[sd->bl_m].flag.nowarp
+    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
                              "You are not authorised to warp you from your actual map.");
         return -1;
     }
-    pc_setpos(sd, map[pl_sd->bl_m].name, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
+    pc_setpos(sd, pl_sd->bl_m->name, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
     std::string output = STRPRINTF("Jump to %s", pl_sd->status.name);
     clif_displaymessage(fd, output);
 
@@ -6395,7 +6150,7 @@ int atcommand_skillpool_info(const int fd, dumb_ptr<map_session_data>,
 
         for (i = 0; i < skill_pool_skills_size; ++i)
         {
-            const char *name = skill_name(skill_pool_skills[i]);
+            const std::string& name = skill_name(skill_pool_skills[i]);
             int lvl = pl_sd->status.skill[skill_pool_skills[i]].lv;
 
             if (lvl)
@@ -6522,7 +6277,7 @@ int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
         return -1;
     }
 
-    if (getpeername(pl_sd->fd, (struct sockaddr *)&sai, &sa_len))
+    if (getpeername(pl_sd->fd, reinterpret_cast<struct sockaddr *>(&sai), &sa_len))
     {
         clif_displaymessage(fd,
                              "Guru Meditation Error: getpeername() failed");
@@ -6541,7 +6296,7 @@ int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
         pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            if (getpeername(pl_sd->fd, (struct sockaddr *)&sai, &sa_len))
+            if (getpeername(pl_sd->fd, reinterpret_cast<struct sockaddr *>(&sai), &sa_len))
                 continue;
 
             // Is checking GM levels really needed here?

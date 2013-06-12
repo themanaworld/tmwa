@@ -1115,12 +1115,12 @@ int banaddaccount(const char *param)
 
     WFIFOW(login_fd, 0) = 0x794c;
     memcpy(WFIFOP(login_fd, 2), name, 24);
-    WFIFOW(login_fd, 26) = (short) year;
-    WFIFOW(login_fd, 28) = (short) month;
-    WFIFOW(login_fd, 30) = (short) day;
-    WFIFOW(login_fd, 32) = (short) hour;
-    WFIFOW(login_fd, 34) = (short) minute;
-    WFIFOW(login_fd, 36) = (short) second;
+    WFIFOW(login_fd, 26) = year;
+    WFIFOW(login_fd, 28) = month;
+    WFIFOW(login_fd, 30) = day;
+    WFIFOW(login_fd, 32) = hour;
+    WFIFOW(login_fd, 34) = minute;
+    WFIFOW(login_fd, 36) = second;
     WFIFOSET(login_fd, 38);
     bytes_to_read = 1;
 
@@ -2227,12 +2227,12 @@ int timeaddaccount(const char *param)
 
     WFIFOW(login_fd, 0) = 0x7950;
     memcpy(WFIFOP(login_fd, 2), name, 24);
-    WFIFOW(login_fd, 26) = (short) year;
-    WFIFOW(login_fd, 28) = (short) month;
-    WFIFOW(login_fd, 30) = (short) day;
-    WFIFOW(login_fd, 32) = (short) hour;
-    WFIFOW(login_fd, 34) = (short) minute;
-    WFIFOW(login_fd, 36) = (short) second;
+    WFIFOW(login_fd, 26) = year;
+    WFIFOW(login_fd, 28) = month;
+    WFIFOW(login_fd, 30) = day;
+    WFIFOW(login_fd, 32) = hour;
+    WFIFOW(login_fd, 34) = minute;
+    WFIFOW(login_fd, 36) = second;
     WFIFOSET(login_fd, 38);
     bytes_to_read = 1;
 
@@ -2757,14 +2757,14 @@ void parse_fromlogin(int fd)
                     md5key[sizeof(md5key) - 1] = '0';
                     if (passenc == 1)
                     {
-                        strncpy(md5str, (const char *)RFIFOP(fd, 4), RFIFOW(fd, 2) - 4);
+                        strncpy(md5str, static_cast<const char *>(RFIFOP(fd, 4)), RFIFOW(fd, 2) - 4);
                         strcat(md5str, loginserveradminpassword);
                     }
                     else if (passenc == 2)
                     {
                         strncpy(md5str, loginserveradminpassword,
                                  sizeof(loginserveradminpassword));
-                        strcat(md5str, (const char *)RFIFOP(fd, 4));
+                        strcat(md5str, static_cast<const char *>(RFIFOP(fd, 4)));
                     }
                     MD5_to_bin(MD5_from_cstring(md5str), md5bin);
                     WFIFOW(login_fd, 0) = 0x7918;  // Request for administation login (encrypted password)
@@ -2785,21 +2785,21 @@ void parse_fromlogin(int fd)
                     return;
                 Iprintf("  Login-Server [%s:%d]\n", loginserverip,
                          loginserverport);
-                if (((int) RFIFOB(login_fd, 5)) == 0)
+                if (RFIFOB(login_fd, 5) == 0)
                 {
                     Iprintf("  eAthena version stable-%d.%d",
-                             (int) RFIFOB(login_fd, 2),
-                             (int) RFIFOB(login_fd, 3));
+                            RFIFOB(login_fd, 2),
+                            RFIFOB(login_fd, 3));
                 }
                 else
                 {
                     Iprintf("  eAthena version dev-%d.%d",
-                             (int) RFIFOB(login_fd, 2),
-                             (int) RFIFOB(login_fd, 3));
+                            RFIFOB(login_fd, 2),
+                            RFIFOB(login_fd, 3));
                 }
-                if (((int) RFIFOB(login_fd, 4)) == 0)
-                    Iprintf(" revision %d", (int) RFIFOB(login_fd, 4));
-                if (((int) RFIFOB(login_fd, 6)) == 0)
+                if (RFIFOB(login_fd, 4) == 0)
+                    Iprintf(" revision %d", RFIFOB(login_fd, 4));
+                if (RFIFOB(login_fd, 6) == 0)
                 {
                     Iprintf("%d.\n", RFIFOW(login_fd, 8));
                 }
@@ -2859,7 +2859,7 @@ void parse_fromlogin(int fd)
                             if (RFIFOB(fd, i + 4) == 0)
                                 PRINTF("   ");
                             else
-                                PRINTF("%2d ", (int) RFIFOB(fd, i + 4));
+                                PRINTF("%2d ", RFIFOB(fd, i + 4));
                             PRINTF("%-24s", userid);
                             if (RFIFOB(fd, i + 29) == 0)
                                 PRINTF("%-5s ", "Femal");
@@ -3213,7 +3213,7 @@ void parse_fromlogin(int fd)
             case 0x7947:       // answer of an account name search
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (strcmp((const char *)RFIFOP(fd, 6), "") == 0)
+                if (strcmp(static_cast<const char *>(RFIFOP(fd, 6)), "") == 0)
                 {
                     PRINTF("Unable to find the account [%d] name. Account doesn't exist.\n",
                          RFIFOL(fd, 2));
@@ -3340,7 +3340,7 @@ void parse_fromlogin(int fd)
             case 0x794f:       // answer of a broadcast
                 if (RFIFOREST(fd) < 4)
                     return;
-                if (RFIFOW(fd, 2) == (unsigned short) -1)
+                if (RFIFOW(fd, 2) == static_cast<uint16_t>(-1))
                 {
                     PRINTF("Message sending failed. No online char-server.\n");
                     LADMIN_LOG("Message sending failed. No online char-server.\n");
@@ -3415,7 +3415,7 @@ void parse_fromlogin(int fd)
                     connect_until_time = static_cast<time_t>(RFIFOL(fd, 140));
                     ban_until_time = static_cast<time_t>(RFIFOL(fd, 144));
                     memset(memo, '\0', sizeof(memo));
-                    strncpy(memo, (const char *)RFIFOP(fd, 150), RFIFOW(fd, 148));
+                    strncpy(memo, static_cast<const char *>(RFIFOP(fd, 150)), RFIFOW(fd, 148));
                     if (RFIFOL(fd, 2) == -1)
                     {
                         PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n",
@@ -3441,7 +3441,7 @@ void parse_fromlogin(int fd)
                         else
                         {
                             PRINTF(" Id:     %d (GM level %d)\n",
-                                    RFIFOL(fd, 2), (int) RFIFOB(fd, 6));
+                                    RFIFOL(fd, 2), RFIFOB(fd, 6));
                         }
                         PRINTF(" Name:   '%s'\n", userid);
                         if (RFIFOB(fd, 31) == 0)
@@ -3600,15 +3600,16 @@ int ladmin_config_read(const char *cfgName)
             if (h != NULL)
             {
                 Iprintf("Login server IP address: %s -> %d.%d.%d.%d\n",
-                     w2, (unsigned char) h->h_addr[0],
-                     (unsigned char) h->h_addr[1],
-                     (unsigned char) h->h_addr[2],
-                     (unsigned char) h->h_addr[3]);
+                        w2,
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]));
                 sprintf(loginserverip, "%d.%d.%d.%d",
-                         (unsigned char) h->h_addr[0],
-                         (unsigned char) h->h_addr[1],
-                         (unsigned char) h->h_addr[2],
-                         (unsigned char) h->h_addr[3]);
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]));
             }
             else
                 strzcpy(loginserverip, w2.c_str(), 16);

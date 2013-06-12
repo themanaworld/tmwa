@@ -71,10 +71,10 @@ void clear_activation_record(cont_activation_record_t *ar)
     switch (ar->ty)
     {
         case CONT_STACK::FOREACH:
-            free(ar->c.c_foreach.entities);
+            ar->c.c_foreach.entities_vp.delete_();
             break;
         case CONT_STACK::PROC:
-            free(ar->c.c_proc.old_actuals);
+            ar->c.c_proc.old_actualpa.delete_();
             break;
     }
 }
@@ -103,13 +103,7 @@ void clear_stack(dumb_ptr<invocation> invocation_)
 
 void spell_free_invocation(dumb_ptr<invocation> invocation_)
 {
-    if (invocation_->status_change_refs)
-    {
-        free(invocation_->status_change_refs);
-        /* The following cleanup shouldn't be necessary, but I've added it to help tracking a certain bug */
-        invocation_->status_change_refs = NULL;
-        invocation_->status_change_refs_nr = 0;
-    }
+    invocation_->status_change_refv.clear();
 
     if (bool(invocation_->flags & INVOCATION_FLAG::BOUND))
     {
@@ -200,7 +194,7 @@ void magic_stop_completely(dumb_ptr<map_session_data> c)
 static
 void try_to_finish_invocation(dumb_ptr<invocation> invocation)
 {
-    if (invocation->status_change_refs_nr == 0 && !invocation->current_effect)
+    if (invocation->status_change_refv.empty() && !invocation->current_effect)
     {
         if (invocation->end_effect)
         {
@@ -225,20 +219,20 @@ int trigger_spell(int subject, int spell)
     invocation_ = spell_clone_effect(invocation_);
 
     spell_bind(map_id_as_player(subject), invocation_);
-    magic_clear_var(&invocation_->env->vars[VAR_CASTER]);
-    invocation_->env->vars[VAR_CASTER].ty = TYPE::ENTITY;
-    invocation_->env->vars[VAR_CASTER].v.v_int = subject;
+    magic_clear_var(&invocation_->env->varu[VAR_CASTER]);
+    invocation_->env->varu[VAR_CASTER].ty = TYPE::ENTITY;
+    invocation_->env->varu[VAR_CASTER].v.v_int = subject;
 
     return invocation_->bl_id;
 }
 
 static
-void entity_warp(dumb_ptr<block_list> target, int destm, int destx, int desty);
+void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int desty);
 
 static
 void char_update(dumb_ptr<map_session_data> character)
 {
-    entity_warp((dumb_ptr<block_list> ) character, character->bl_m, character->bl_x,
+    entity_warp(character, character->bl_m, character->bl_x,
                  character->bl_y);
 }
 
@@ -276,7 +270,7 @@ void timer_callback_effect_npc_delete(TimerData *, tick_t, int npc_id)
 }
 
 static
-dumb_ptr<npc_data> local_spell_effect(int m, int x, int y, int effect,
+dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
         interval_t tdelay)
 {
     /* 1 minute should be enough for all interesting spell effects, I hope */
@@ -295,7 +289,7 @@ dumb_ptr<npc_data> local_spell_effect(int m, int x, int y, int effect,
 }
 
 static
-int op_sfx(env_t *, int, val_t *args)
+int op_sfx(dumb_ptr<env_t>, const_array<val_t> args)
 {
     interval_t delay = static_cast<interval_t>(ARGINT(2));
 
@@ -316,10 +310,10 @@ int op_sfx(env_t *, int, val_t *args)
 }
 
 static
-int op_instaheal(env_t *env, int, val_t *args)
+int op_instaheal(dumb_ptr<env_t> env, const_array<val_t> args)
 {
-    dumb_ptr<block_list> caster = (VAR(VAR_CASTER).ty == TYPE::ENTITY)
-        ? map_id2bl(VAR(VAR_CASTER).v.v_int) : NULL;
+    dumb_ptr<block_list> caster = (env->VAR(VAR_CASTER).ty == TYPE::ENTITY)
+        ? map_id2bl(env->VAR(VAR_CASTER).v.v_int) : NULL;
     dumb_ptr<block_list> subject = ARGENTITY(0);
     if (!caster)
         caster = subject;
@@ -337,7 +331,7 @@ int op_instaheal(env_t *env, int, val_t *args)
 }
 
 static
-int op_itemheal(env_t *env, int args_nr, val_t *args)
+int op_itemheal(dumb_ptr<env_t> env, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     if (subject->bl_type == BL::PC)
@@ -346,7 +340,7 @@ int op_itemheal(env_t *env, int args_nr, val_t *args)
                      ARGINT(1), ARGINT(2));
     }
     else
-        return op_instaheal(env, args_nr, args);
+        return op_instaheal(env, args);
 
     return 0;
 }
@@ -367,7 +361,7 @@ using e::Shroud;
 #define ARGCHAR(n) (ARGENTITY(n)->is_player())
 
 static
-int op_shroud(env_t *, int, val_t *args)
+int op_shroud(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
     Shroud arg = static_cast<Shroud>(ARGINT(1));
@@ -386,7 +380,7 @@ int op_shroud(env_t *, int, val_t *args)
 }
 
 static
-int op_reveal(env_t *, int, val_t *args)
+int op_reveal(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
 
@@ -397,7 +391,7 @@ int op_reveal(env_t *, int, val_t *args)
 }
 
 static
-int op_message(env_t *, int, val_t *args)
+int op_message(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
 
@@ -416,13 +410,13 @@ void timer_callback_kill_npc(TimerData *, tick_t, int npc_id)
 }
 
 static
-int op_messenger_npc(env_t *, int, val_t *args)
+int op_messenger_npc(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<npc_data> npc;
     location_t *loc = &ARGLOCATION(0);
 
     npc = npc_spawn_text(loc->m, loc->x, loc->y,
-            ARGINT(1), ARGSTR(2), ARGSTR(3));
+            ARGINT(1), ARGSTR(2).c_str(), ARGSTR(3).c_str());
 
     Timer(gettick() + static_cast<interval_t>(ARGINT(4)),
             std::bind(timer_callback_kill_npc, ph::_1, ph::_2,
@@ -433,7 +427,7 @@ int op_messenger_npc(env_t *, int, val_t *args)
 }
 
 static
-void entity_warp(dumb_ptr<block_list> target, int destm, int destx, int desty)
+void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int desty)
 {
     if (target->bl_type == BL::PC || target->bl_type == BL::MOB)
     {
@@ -453,7 +447,7 @@ void entity_warp(dumb_ptr<block_list> target, int destm, int destx, int desty)
                 pc_touch_all_relevant_npcs(character);
 
                 // Note that touching NPCs may have triggered warping and thereby updated x and y:
-                map_name = map[character->bl_m].name;
+                map_name = character->bl_m->name;
 
                 // Warp part #1: update relevant data, interrupt trading etc.:
                 pc_setpos(character, map_name, character->bl_x, character->bl_y, BeingRemoveWhy::GONE);
@@ -473,7 +467,7 @@ void entity_warp(dumb_ptr<block_list> target, int destm, int destx, int desty)
 }
 
 static
-int op_move(env_t *, int, val_t *args)
+int op_move(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     DIR dir = ARGDIR(1);
@@ -488,7 +482,7 @@ int op_move(env_t *, int, val_t *args)
 }
 
 static
-int op_warp(env_t *, int, val_t *args)
+int op_warp(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     location_t *loc = &ARGLOCATION(1);
@@ -499,7 +493,7 @@ int op_warp(env_t *, int, val_t *args)
 }
 
 static
-int op_banish(env_t *, int, val_t *args)
+int op_banish(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
@@ -515,26 +509,22 @@ int op_banish(env_t *, int, val_t *args)
 }
 
 static
-void record_status_change(dumb_ptr<invocation> invocation, int bl_id,
+void record_status_change(dumb_ptr<invocation> invocation_, int bl_id,
         StatusChange sc_id)
 {
-    int index = invocation->status_change_refs_nr++;
-    status_change_ref_t *cr;
+    status_change_ref_t cr {};
+    cr.sc_type = sc_id;
+    cr.bl_id = bl_id;
 
-    RECREATE(invocation->status_change_refs, status_change_ref_t, invocation->status_change_refs_nr);
-
-    cr = &invocation->status_change_refs[index];
-
-    cr->sc_type = sc_id;
-    cr->bl_id = bl_id;
+    invocation_->status_change_refv.push_back(cr);
 }
 
 static
-int op_status_change(env_t *env, int, val_t *args)
+int op_status_change(dumb_ptr<env_t> env, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
-    int invocation_id = VAR(VAR_INVOCATION).ty == TYPE::INVOCATION
-        ? VAR(VAR_INVOCATION).v.v_int : 0;
+    int invocation_id = env->VAR(VAR_INVOCATION).ty == TYPE::INVOCATION
+        ? env->VAR(VAR_INVOCATION).v.v_int : 0;
     dumb_ptr<invocation> invocation_ = map_id_as_spell(invocation_id);
 
     assert (!ARGINT(3));
@@ -551,7 +541,7 @@ int op_status_change(env_t *env, int, val_t *args)
 }
 
 static
-int op_stop_status_change(env_t *, int, val_t *args)
+int op_stop_status_change(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
@@ -562,7 +552,7 @@ int op_stop_status_change(env_t *, int, val_t *args)
 }
 
 static
-int op_override_attack(env_t *env, int, val_t *args)
+int op_override_attack(dumb_ptr<env_t> env, const_array<val_t> args)
 {
     dumb_ptr<block_list> psubject = ARGENTITY(0);
     int charges = ARGINT(1);
@@ -586,7 +576,7 @@ int op_override_attack(env_t *env, int, val_t *args)
     }
 
     subject->attack_spell_override =
-        trigger_spell(subject->bl_id, VAR(VAR_INVOCATION).v.v_int);
+        trigger_spell(subject->bl_id, env->VAR(VAR_INVOCATION).v.v_int);
     subject->attack_spell_charges = charges;
 
     if (subject->attack_spell_override)
@@ -603,7 +593,7 @@ int op_override_attack(env_t *env, int, val_t *args)
 }
 
 static
-int op_create_item(env_t *, int, val_t *args)
+int op_create_item(dumb_ptr<env_t>, const_array<val_t> args)
 {
     struct item item;
     dumb_ptr<block_list> entity = ARGENTITY(0);
@@ -641,7 +631,7 @@ bool AGGRAVATION_MODE_MAKES_AGGRESSIVE(int n)
 }
 
 static
-int op_aggravate(env_t *, int, val_t *args)
+int op_aggravate(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<block_list> victim = ARGENTITY(2);
     int mode = ARGINT(1);
@@ -676,9 +666,9 @@ enum class MonsterAttitude
 };
 
 static
-int op_spawn(env_t *, int, val_t *args)
+int op_spawn(dumb_ptr<env_t>, const_array<val_t> args)
 {
-    area_t *area = ARGAREA(0);
+    dumb_ptr<area_t> area = ARGAREA(0);
     dumb_ptr<block_list> owner_e = ARGENTITY(1);
     int monster_id = ARGINT(2);
     MonsterAttitude monster_attitude = static_cast<MonsterAttitude>(ARGINT(3));
@@ -699,7 +689,7 @@ int op_spawn(env_t *, int, val_t *args)
         int mob_id;
         dumb_ptr<mob_data> mob;
 
-        mob_id = mob_once_spawn(owner, map[loc.m].name, loc.x, loc.y, "--ja--",    // Is that needed?
+        mob_id = mob_once_spawn(owner, loc.m->name, loc.x, loc.y, "--ja--",    // Is that needed?
                                  monster_id, 1, "");
 
         mob = map_id_as_mob(mob_id);
@@ -752,22 +742,22 @@ int op_spawn(env_t *, int, val_t *args)
 }
 
 static
-const char *get_invocation_name(env_t *env)
+const char *get_invocation_name(dumb_ptr<env_t> env)
 {
     dumb_ptr<invocation> invocation_;
 
-    if (VAR(VAR_INVOCATION).ty != TYPE::INVOCATION)
+    if (env->VAR(VAR_INVOCATION).ty != TYPE::INVOCATION)
         return "?";
-    invocation_ = map_id_as_spell(VAR(VAR_INVOCATION).v.v_int);
+    invocation_ = map_id_as_spell(env->VAR(VAR_INVOCATION).v.v_int);
 
     if (invocation_)
-        return invocation_->spell->name;
+        return invocation_->spell->name.c_str();
     else
         return "??";
 }
 
 static
-int op_injure(env_t *env, int, val_t *args)
+int op_injure(dumb_ptr<env_t> env, const_array<val_t> args)
 {
     dumb_ptr<block_list> caster = ARGENTITY(0);
     dumb_ptr<block_list> target = ARGENTITY(1);
@@ -777,7 +767,7 @@ int op_injure(env_t *env, int, val_t *args)
     int mdef = battle_get_mdef(target);
 
     if (target->bl_type == BL::PC
-        && !map[target->bl_m].flag.pvp
+        && !target->bl_m->flag.pvp
         && !target->as_player()->special_state.killable
         && (caster->bl_type != BL::PC || !caster->as_player()->special_state.killer))
         return 0;               /* Cannot damage other players outside of pvp */
@@ -817,7 +807,7 @@ int op_injure(env_t *env, int, val_t *args)
 }
 
 static
-int op_emote(env_t *, int, val_t *args)
+int op_emote(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<block_list> victim = ARGENTITY(0);
     int emotion = ARGINT(1);
@@ -827,20 +817,20 @@ int op_emote(env_t *, int, val_t *args)
 }
 
 static
-int op_set_script_variable(env_t *, int, val_t *args)
+int op_set_script_variable(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
     if (!c)
         return 1;
 
-    pc_setglobalreg(c, ARGSTR(1), ARGINT(2));
+    pc_setglobalreg(c, ARGSTR(1).c_str(), ARGINT(2));
 
     return 0;
 }
 
 static
-int op_set_hair_colour(env_t *, int, val_t *args)
+int op_set_hair_colour(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -853,7 +843,7 @@ int op_set_hair_colour(env_t *, int, val_t *args)
 }
 
 static
-int op_set_hair_style(env_t *, int, val_t *args)
+int op_set_hair_style(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -866,15 +856,15 @@ int op_set_hair_style(env_t *, int, val_t *args)
 }
 
 static
-int op_drop_item_for (env_t *, int args_nr, val_t *args)
+int op_drop_item_for (dumb_ptr<env_t>, const_array<val_t> args)
 {
     struct item item;
     int stackable;
     location_t *loc = &ARGLOCATION(0);
     int count = ARGINT(2);
     interval_t interval = static_cast<interval_t>(ARGINT(3));
-    dumb_ptr<map_session_data> c = ((args_nr > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : NULL;
-    interval_t delay = (args_nr > 5) ? static_cast<interval_t>(ARGINT(5)) : interval_t::zero();
+    dumb_ptr<map_session_data> c = ((args.size() > 4) && (ENTITY_TYPE(4) == BL::PC)) ? ARGPC(4) : NULL;
+    interval_t delay = (args.size() > 5) ? static_cast<interval_t>(ARGINT(5)) : interval_t::zero();
     interval_t delaytime[3] = { delay, delay, delay };
     dumb_ptr<map_session_data> owners[3] = { c, NULL, NULL };
 
@@ -892,7 +882,7 @@ int op_drop_item_for (env_t *, int args_nr, val_t *args)
 }
 
 static
-int op_gain_exp(env_t *, int, val_t *args)
+int op_gain_exp(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -905,7 +895,8 @@ int op_gain_exp(env_t *, int, val_t *args)
 }
 
 static
-op_t operations[] = {
+op_t operations[] =
+{
     {"sfx", ".ii", op_sfx},
     {"instaheal", "eii", op_instaheal},
     {"itemheal", "eii", op_itemheal},
@@ -938,13 +929,13 @@ int operations_sorted = 0;
 static
 int operation_count;
 
-static
+static __attribute__((deprecated))
 int compare_operations(const void *lhs, const void *rhs)
 {
-    return strcmp(((const op_t *) lhs)->name, ((const op_t *) rhs)->name);
+    return strcmp(static_cast<const op_t *>(lhs)->name, static_cast<const op_t *>(rhs)->name);
 }
 
-op_t *magic_get_op(char *name, int *index)
+op_t *magic_get_op(const std::string& name, int *index)
 {
     op_t key;
 
@@ -962,9 +953,9 @@ op_t *magic_get_op(char *name, int *index)
         operations_sorted = 1;
     }
 
-    key.name = name;
-    op_t *op = (op_t *)bsearch(&key, operations, operation_count, sizeof(op_t),
-                        compare_operations);
+    key.name = name.c_str();
+    op_t *op = static_cast<op_t *>(bsearch(&key, operations, operation_count, sizeof(op_t),
+                        compare_operations));
 
     if (op && index)
         *index = op - operations;
@@ -975,24 +966,23 @@ op_t *magic_get_op(char *name, int *index)
 void spell_effect_report_termination(int invocation_id, int bl_id,
         StatusChange sc_id, int)
 {
-    int i;
-    int index = -1;
     dumb_ptr<invocation> invocation_ = map_id_as_spell(invocation_id);
 
     if (!invocation_ || invocation_->bl_type != BL::SPELL)
         return;
 
-    for (i = 0; i < invocation_->status_change_refs_nr; i++)
+    for (status_change_ref_t& cr : invocation_->status_change_refv)
     {
-        status_change_ref_t *cr = &invocation_->status_change_refs[i];
-        if (cr->sc_type == sc_id && cr->bl_id == bl_id)
+        if (cr.sc_type == sc_id && cr.bl_id == bl_id)
         {
-            index = i;
-            break;
+            if (&cr != &invocation_->status_change_refv.back())
+                std::swap(cr, invocation_->status_change_refv.back());
+            invocation_->status_change_refv.pop_back();
+
+            try_to_finish_invocation(invocation_);
         }
     }
 
-    if (index == -1)
     {
         dumb_ptr<block_list> entity = map_id2bl(bl_id);
         if (entity->bl_type == BL::PC)
@@ -1002,17 +992,10 @@ void spell_effect_report_termination(int invocation_id, int bl_id,
         return;
     }
 
-    if (index == invocation_->status_change_refs_nr - 1)
-        invocation_->status_change_refs_nr--;
-    else                        /* Copy last change ref to the one we are deleting */
-        invocation_->status_change_refs[index] =
-            invocation_->status_change_refs[--invocation_->status_change_refs_nr];
-
-    try_to_finish_invocation(invocation_);
 }
 
 static
-effect_t *return_to_stack(dumb_ptr<invocation> invocation_)
+dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 {
     if (!invocation_->stack_size)
         return NULL;
@@ -1022,20 +1005,18 @@ effect_t *return_to_stack(dumb_ptr<invocation> invocation_)
             invocation_->stack + (invocation_->stack_size - 1);
         switch (ar->ty)
         {
-
             case CONT_STACK::PROC:
             {
-                effect_t *ret = ar->return_location;
-                int i;
-
-                for (i = 0; i < ar->c.c_proc.args_nr; i++)
+                dumb_ptr<effect_t> ret = ar->return_location;
+                for (int i = 0; i < ar->c.c_proc.args_nr; i++)
                 {
                     val_t *var =
-                        &invocation_->env->vars[ar->c.c_proc.formals[i]];
+                        &invocation_->env->varu[ar->c.c_proc.formalap[i]];
                     magic_clear_var(var);
-                    *var = ar->c.c_proc.old_actuals[i];
+                    *var = ar->c.c_proc.old_actualpa[i];
                 }
 
+                // pop the stack
                 clear_activation_record(ar);
                 --invocation_->stack_size;
 
@@ -1045,20 +1026,23 @@ effect_t *return_to_stack(dumb_ptr<invocation> invocation_)
             case CONT_STACK::FOREACH:
             {
                 int entity_id;
-                val_t *var = &invocation_->env->vars[ar->c.c_foreach.id];
+                val_t *var = &invocation_->env->varu[ar->c.c_foreach.id];
 
                 do
                 {
-                    if (ar->c.c_foreach.index >= ar->c.c_foreach.entities_nr)
+                    // This >= is really supposed to be a ==, but
+                    // I have no clue if it's actually safe to change it.
+                    if (ar->c.c_foreach.index >= ar->c.c_foreach.entities_vp->size())
                     {
-                        effect_t *ret = ar->return_location;
+                        // pop the stack
+                        dumb_ptr<effect_t> ret = ar->return_location;
                         clear_activation_record(ar);
                         --invocation_->stack_size;
                         return ret;
                     }
 
                     entity_id =
-                        ar->c.c_foreach.entities[ar->c.c_foreach.index++];
+                        (*ar->c.c_foreach.entities_vp)[ar->c.c_foreach.index++];
                 }
                 while (!entity_id || !map_id2bl(entity_id));
 
@@ -1072,15 +1056,16 @@ effect_t *return_to_stack(dumb_ptr<invocation> invocation_)
             case CONT_STACK::FOR:
                 if (ar->c.c_for.current > ar->c.c_for.stop)
                 {
-                    effect_t *ret = ar->return_location;
+                    dumb_ptr<effect_t> ret = ar->return_location;
+                    // pop the stack
                     clear_activation_record(ar);
                     --invocation_->stack_size;
                     return ret;
                 }
 
-                magic_clear_var(&invocation_->env->vars[ar->c.c_for.id]);
-                invocation_->env->vars[ar->c.c_for.id].ty = TYPE::INT;
-                invocation_->env->vars[ar->c.c_for.id].v.v_int =
+                magic_clear_var(&invocation_->env->varu[ar->c.c_for.id]);
+                invocation_->env->varu[ar->c.c_for.id].ty = TYPE::INT;
+                invocation_->env->varu[ar->c.c_for.id].v.v_int =
                     ar->c.c_for.current++;
 
                 return ar->c.c_for.body;
@@ -1096,7 +1081,7 @@ effect_t *return_to_stack(dumb_ptr<invocation> invocation_)
 
 static
 cont_activation_record_t *add_stack_entry(dumb_ptr<invocation> invocation_,
-        CONT_STACK ty, effect_t *return_location)
+        CONT_STACK ty, dumb_ptr<effect_t> return_location)
 {
     cont_activation_record_t *ar =
         invocation_->stack + invocation_->stack_size++;
@@ -1116,20 +1101,9 @@ cont_activation_record_t *add_stack_entry(dumb_ptr<invocation> invocation_,
 
 static
 void find_entities_in_area_c(dumb_ptr<block_list> target,
-        int *entities_allocd_p,
-        int *entities_nr_p,
-        int **entities_p,
+        std::vector<int> *entities_vp,
         FOREACH_FILTER filter)
 {
-/* The following macro adds an entity to the result list: */
-#define ADD_ENTITY(e)                                                   \
-        if (*entities_nr_p == *entities_allocd_p) {                     \
-                /* Need more space */                                   \
-                (*entities_allocd_p) += 32;                             \
-                RECREATE(*entities_p, int, *entities_allocd_p); \
-        }                                                               \
-        (*entities_p)[(*entities_nr_p)++] = e;
-
     switch (target->bl_type)
     {
 
@@ -1137,7 +1111,7 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
             if (filter == FOREACH_FILTER::PC
                 || filter == FOREACH_FILTER::ENTITY
                 || (filter == FOREACH_FILTER::TARGET
-                    && map[target->bl_m].flag.pvp))
+                    && target->bl_m->flag.pvp))
                 break;
             else if (filter == FOREACH_FILTER::SPELL)
             {                   /* Check all spells bound to the caster */
@@ -1146,7 +1120,7 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
 
                 while (invoc)
                 {
-                    ADD_ENTITY(invoc->bl_id);
+                    entities_vp->push_back(invoc->bl_id);
                     invoc = invoc->next_invocation;
                 }
             }
@@ -1184,42 +1158,45 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
             return;
     }
 
-    ADD_ENTITY(target->bl_id);
-#undef ADD_ENTITY
+    entities_vp->push_back(target->bl_id);
 }
 
 static
-void find_entities_in_area(area_t *area, int *entities_allocd_p,
-        int *entities_nr_p, int **entities_p, FOREACH_FILTER filter)
+void find_entities_in_area(area_t& area_,
+        std::vector<int> *entities_vp,
+        FOREACH_FILTER filter)
 {
+    area_t *area = &area_; // temporary hack to "keep diff small". Heh.
     switch (area->ty)
     {
         case AREA::UNION:
-            find_entities_in_area(area->a.a_union[0], entities_allocd_p,
-                                   entities_nr_p, entities_p, filter);
-            find_entities_in_area(area->a.a_union[1], entities_allocd_p,
-                                   entities_nr_p, entities_p, filter);
+            find_entities_in_area(*area->a.a_union[0], entities_vp, filter);
+            find_entities_in_area(*area->a.a_union[1], entities_vp, filter);
             break;
 
         default:
         {
-            int m, x, y, width, height;
-            magic_area_rect(&m, &x, &y, &width, &height, area);
-            map_foreachinarea(std::bind(find_entities_in_area_c, ph::_1, entities_allocd_p, entities_nr_p, entities_p, filter),
-                               m, x, y, x + width, y + height,
-                               BL::NUL /* filter elsewhere */);
+            map_local *m;
+            int x, y, width, height;
+            magic_area_rect(&m, &x, &y, &width, &height, *area);
+            map_foreachinarea(std::bind(find_entities_in_area_c, ph::_1, entities_vp, filter),
+                    m,
+                    x, y,
+                    x + width, y + height,
+                    BL::NUL /* filter elsewhere */);
         }
     }
 }
 
 static
-effect_t *run_foreach(dumb_ptr<invocation> invocation, effect_t *foreach,
-                              effect_t *return_location)
+dumb_ptr<effect_t> run_foreach(dumb_ptr<invocation> invocation,
+        dumb_ptr<effect_t> foreach,
+        dumb_ptr<effect_t> return_location)
 {
     val_t area;
     FOREACH_FILTER filter = foreach->e.e_foreach.filter;
     int id = foreach->e.e_foreach.id;
-    effect_t *body = foreach->e.e_foreach.body;
+    dumb_ptr<effect_t> body = foreach->e.e_foreach.body;
 
     magic_eval(invocation->env, &area, foreach->e.e_foreach.area);
 
@@ -1228,32 +1205,28 @@ effect_t *run_foreach(dumb_ptr<invocation> invocation, effect_t *foreach,
         magic_clear_var(&area);
         FPRINTF(stderr,
                  "[magic] Error in spell `%s':  FOREACH loop over non-area\n",
-                 invocation->spell->name);
+                 invocation->spell->name.c_str());
         return return_location;
     }
     else
     {
         cont_activation_record_t *ar =
             add_stack_entry(invocation, CONT_STACK::FOREACH, return_location);
-        int entities_allocd = 64;
-        int *entities;
-        int entities_nr = 0;
 
         if (!ar)
             return return_location;
 
-        CREATE(entities, int, entities_allocd);
-        find_entities_in_area(area.v.v_area, &entities_allocd, &entities_nr,
-                &entities, filter);
-        RECREATE(entities, int, entities_nr);
+        std::vector<int> entities_v;
+        find_entities_in_area(*area.v.v_area,
+                &entities_v, filter);
+        entities_v.shrink_to_fit();
         // iterator_pair will go away when this gets properly containerized.
-        random_::shuffle(iterator_pair(entities, entities + entities_nr));
+        random_::shuffle(entities_v);
 
         ar->c.c_foreach.id = id;
         ar->c.c_foreach.body = body;
         ar->c.c_foreach.index = 0;
-        ar->c.c_foreach.entities_nr = entities_nr;
-        ar->c.c_foreach.entities = entities;
+        ar->c.c_foreach.entities_vp.new_(std::move(entities_v));
         ar->c.c_foreach.ty =
             (filter == FOREACH_FILTER::SPELL) ? TYPE::INVOCATION : TYPE::ENTITY;
 
@@ -1264,8 +1237,9 @@ effect_t *run_foreach(dumb_ptr<invocation> invocation, effect_t *foreach,
 }
 
 static
-effect_t *run_for (dumb_ptr<invocation> invocation, effect_t *for_,
-                          effect_t *return_location)
+dumb_ptr<effect_t> run_for (dumb_ptr<invocation> invocation,
+        dumb_ptr<effect_t> for_,
+        dumb_ptr<effect_t> return_location)
 {
     cont_activation_record_t *ar;
     int id = for_->e.e_for.id;
@@ -1299,28 +1273,24 @@ effect_t *run_for (dumb_ptr<invocation> invocation, effect_t *for_,
 }
 
 static
-effect_t *run_call(dumb_ptr<invocation> invocation,
-                           effect_t *return_location)
+dumb_ptr<effect_t> run_call(dumb_ptr<invocation> invocation,
+        dumb_ptr<effect_t> return_location)
 {
-    effect_t *current = invocation->current_effect;
+    dumb_ptr<effect_t> current = invocation->current_effect;
     cont_activation_record_t *ar;
-    int args_nr = current->e.e_call.args_nr;
-    int *formals = current->e.e_call.formals;
-    val_t *old_actuals;
-    CREATE(old_actuals, val_t, args_nr);
-    int i;
+    int args_nr = current->e.e_call.formalv->size();
+    int *formals = current->e.e_call.formalv->data();
+    auto old_actuals = dumb_ptr<val_t[]>::make(args_nr);
 
     ar = add_stack_entry(invocation, CONT_STACK::PROC, return_location);
     ar->c.c_proc.args_nr = args_nr;
-    ar->c.c_proc.formals = formals;
-    ar->c.c_proc.old_actuals = old_actuals;
-    for (i = 0; i < args_nr; i++)
+    ar->c.c_proc.formalap = formals;
+    ar->c.c_proc.old_actualpa = old_actuals;
+    for (int i = 0; i < args_nr; i++)
     {
-        val_t *env_val = &invocation->env->vars[formals[i]];
-        val_t result;
+        val_t *env_val = &invocation->env->varu[formals[i]];
         magic_copy_var(&old_actuals[i], env_val);
-        magic_eval(invocation->env, &result, current->e.e_call.actuals[i]);
-        *env_val = result;
+        magic_eval(invocation->env, env_val, (*current->e.e_call.actualvp)[i]);
     }
 
     return current->e.e_call.body;
@@ -1414,8 +1384,8 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 #endif
     while (invocation_->current_effect)
     {
-        effect_t *e = invocation_->current_effect;
-        effect_t *next = e->next;
+        dumb_ptr<effect_t> e = invocation_->current_effect;
+        dumb_ptr<effect_t> next = e->next;
         int i;
 
 #ifdef DEBUG
@@ -1439,7 +1409,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
             case EFFECT::ASSIGN:
                 magic_eval(invocation_->env,
-                            &invocation_->env->vars[e->e.e_assign.id],
+                            &invocation_->env->varu[e->e.e_assign.id],
                             e->e.e_assign.expr);
                 break;
 
@@ -1473,19 +1443,16 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 dumb_ptr<map_session_data> caster = map_id_as_player(invocation_->caster);
                 if (caster)
                 {
-                    env_t *env = invocation_->env;
-                    argrec_t arg[] = { {"@target",
-                                        VAR(VAR_TARGET).ty ==
-                                        TYPE::ENTITY ? 0 : VAR(VAR_TARGET).
-                                        v.v_int}
-                    ,
-                    {"@caster", invocation_->caster}
-                    ,
-                    {"@caster_name$", caster ? caster->status.name : ""}
+                    dumb_ptr<env_t> env = invocation_->env;
+                    argrec_t arg[] =
+                    {
+                        {"@target", env->VAR(VAR_TARGET).ty == TYPE::ENTITY ? 0 : env->VAR(VAR_TARGET).v.v_int},
+                        {"@caster", invocation_->caster},
+                        {"@caster_name$", caster ? caster->status.name : ""},
                     };
                     int message_recipient =
-                        VAR(VAR_SCRIPTTARGET).ty ==
-                        TYPE::ENTITY ? VAR(VAR_SCRIPTTARGET).
+                        env->VAR(VAR_SCRIPTTARGET).ty ==
+                        TYPE::ENTITY ? env->VAR(VAR_SCRIPTTARGET).
                         v.v_int : invocation_->caster;
                     dumb_ptr<map_session_data> recipient = map_id_as_player(message_recipient);
 
@@ -1499,11 +1466,11 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     // We have to do this or otherwise the client won't think that it's
                     // dealing with an NPC
 
-                    int newpos = run_script_l(e->e.e_script,
-                                                invocation_->script_pos,
-                                                message_recipient,
-                                                invocation_->bl_id,
-                                                3, arg);
+                    int newpos = run_script_l(
+                            ScriptPointer(&*e->e.e_script, invocation_->script_pos),
+                            message_recipient,
+                            invocation_->bl_id,
+                            3, arg);
                     /* Returns the new script position, or -1 once the script is finished */
                     if (newpos != -1)
                     {
@@ -1536,7 +1503,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                                             e->e.e_op.args_nr, args,
                                             e->e.e_op.line_nr,
                                             e->e.e_op.column))
-                    op->op(invocation_->env, e->e.e_op.args_nr, args);
+                    op->op(invocation_->env, const_array<val_t>(args, e->e.e_op.args_nr));
 
                 for (i = 0; i < e->e.e_op.args_nr; i++)
                     magic_clear_var(&args[i]);
@@ -1615,9 +1582,9 @@ int spell_attack(int caster_id, int target_id)
 
     if (invocation_ && caster->attack_spell_charges > 0)
     {
-        magic_clear_var(&invocation_->env->vars[VAR_TARGET]);
-        invocation_->env->vars[VAR_TARGET].ty = TYPE::ENTITY;
-        invocation_->env->vars[VAR_TARGET].v.v_int = target_id;
+        magic_clear_var(&invocation_->env->varu[VAR_TARGET]);
+        invocation_->env->varu[VAR_TARGET].ty = TYPE::ENTITY;
+        invocation_->env->varu[VAR_TARGET].v.v_int = target_id;
 
         invocation_->current_effect = invocation_->trigger_effect;
         invocation_->flags &= ~INVOCATION_FLAG::ABORTED;

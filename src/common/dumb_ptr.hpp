@@ -21,7 +21,11 @@
 
 #include "sanity.hpp"
 
+#include <cstring>
+
 #include <algorithm>
+
+#include "const_array.hpp"
 
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
@@ -175,5 +179,200 @@ public:
         return !(l == r);
     }
 };
+
+struct dumb_string
+{
+    dumb_ptr<char[]> impl;
+
+    dumb_string()
+    : impl()
+    {}
+    dumb_string(char *) = delete;
+    // copy ctor, copy assign, and dtor are all default
+
+    static dumb_string copy(const char *b, const char *e)
+    {
+        dumb_string rv;
+        rv.impl.new_((e - b) + 1);
+        std::copy(b, e, &rv.impl[0]);
+        return rv;
+    }
+    static dumb_string copy(const char *sz)
+    {
+        return dumb_string::copy(sz, sz + strlen(sz));
+    }
+    static dumb_string copys(const std::string& s)
+    {
+        return dumb_string::copy(&*s.begin(), &*s.end());
+    }
+    static dumb_string copyn(const char *sn, size_t n)
+    {
+        return dumb_string::copy(sn, sn + strnlen(sn, n));
+    }
+    static dumb_string copyc(const_string s)
+    {
+        return dumb_string::copy(s.begin(), s.end());
+    }
+
+    static
+    dumb_string fake(const char *p)
+    {
+        dumb_string rv;
+        rv.impl = dumb_ptr<char[]>(const_cast<char *>(p), strlen(p));
+        return rv;
+    }
+
+    dumb_string dup() const
+    {
+        return dumb_string::copy(&impl[0]);
+    }
+    void delete_()
+    {
+        impl.delete_();
+    }
+
+    const char *c_str() const
+    {
+        return &impl[0];
+    }
+
+    std::string str() const
+    {
+        return c_str();
+    }
+
+    operator const_string() const
+    {
+        return const_string(c_str());
+    }
+
+    char& operator[](size_t i) const
+    {
+        return impl[i];
+    }
+
+    explicit
+    operator bool() const
+    {
+        return bool(impl);
+    }
+    bool operator !() const
+    {
+        return !impl;
+    }
+
+#if 0
+    friend bool operator == (dumb_string l, dumb_string r)
+    {
+        return l.impl == r.impl;
+    }
+    friend bool operator != (dumb_string l, dumb_string r)
+    {
+        return !(l == r);
+    }
+#endif
+};
+
+namespace operators
+{
+    inline
+    bool operator == (dumb_string l, dumb_string r)
+    {
+        return strcmp(l.c_str(), r.c_str()) == 0;
+    }
+    inline
+    bool operator != (dumb_string l, dumb_string r)
+    {
+        return strcmp(l.c_str(), r.c_str()) != 0;
+    }
+    inline
+    bool operator < (dumb_string l, dumb_string r)
+    {
+        return strcmp(l.c_str(), r.c_str()) < 0;
+    }
+    inline
+    bool operator <= (dumb_string l, dumb_string r)
+    {
+        return strcmp(l.c_str(), r.c_str()) <= 0;
+    }
+    inline
+    bool operator > (dumb_string l, dumb_string r)
+    {
+        return strcmp(l.c_str(), r.c_str()) > 0;
+    }
+    inline
+    bool operator >= (dumb_string l, dumb_string r)
+    {
+        return strcmp(l.c_str(), r.c_str()) >= 0;
+    }
+
+    inline
+    bool operator == (const char *l, dumb_string r)
+    {
+        return strcmp(l, r.c_str()) == 0;
+    }
+    inline
+    bool operator != (const char *l, dumb_string r)
+    {
+        return strcmp(l, r.c_str()) != 0;
+    }
+    inline
+    bool operator < (const char *l, dumb_string r)
+    {
+        return strcmp(l, r.c_str()) < 0;
+    }
+    inline
+    bool operator <= (const char *l, dumb_string r)
+    {
+        return strcmp(l, r.c_str()) <= 0;
+    }
+    inline
+    bool operator > (const char *l, dumb_string r)
+    {
+        return strcmp(l, r.c_str()) > 0;
+    }
+    inline
+    bool operator >= (const char *l, dumb_string r)
+    {
+        return strcmp(l, r.c_str()) >= 0;
+    }
+
+    inline
+    bool operator == (dumb_string l, const char *r)
+    {
+        return strcmp(l.c_str(), r) == 0;
+    }
+    inline
+    bool operator != (dumb_string l, const char *r)
+    {
+        return strcmp(l.c_str(), r) != 0;
+    }
+    inline
+    bool operator < (dumb_string l, const char *r)
+    {
+        return strcmp(l.c_str(), r) < 0;
+    }
+    inline
+    bool operator <= (dumb_string l, const char *r)
+    {
+        return strcmp(l.c_str(), r) <= 0;
+    }
+    inline
+    bool operator > (dumb_string l, const char *r)
+    {
+        return strcmp(l.c_str(), r) > 0;
+    }
+    inline
+    bool operator >= (dumb_string l, const char *r)
+    {
+        return strcmp(l.c_str(), r) >= 0;
+    }
+}
+
+inline
+const char *convert_for_printf(dumb_string ds)
+{
+    return ds.c_str();
+}
 
 #endif // TMWA_COMMON_DUMB_PTR_HPP

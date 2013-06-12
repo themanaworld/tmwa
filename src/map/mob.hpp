@@ -92,7 +92,7 @@ int mob_deleteslave(dumb_ptr<mob_data> md);
 int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
         ATK target_lv);
 
-int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type);
+int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy type);
 
 int mobskill_use(dumb_ptr<mob_data> md, tick_t tick, MobSkillCondition event);
 int mobskill_event(dumb_ptr<mob_data> md, BF flag);

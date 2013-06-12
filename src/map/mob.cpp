@@ -20,6 +20,7 @@
 #include "map.hpp"
 #include "npc.hpp"
 #include "party.hpp"
+#include "path.hpp"
 #include "pc.hpp"
 #include "skill.hpp"
 
@@ -289,12 +290,11 @@ int mob_gen_exp(struct mob_db *mob)
         bool(mob->mode & MobMode::AGGRESSIVE)
         ? 10.0 / 9.0
         : 1.0;
-    int xp =
-        (int) floor(effective_hp *
-                     pow(sqrt(attack_factor) + sqrt(dodge_factor) +
-                          sqrt(persuit_factor) + 55,
-                          3) * aggression_factor / 2000000.0 *
-                     (double) battle_config.base_exp_rate / 100.);
+    int xp = floor(effective_hp * pow(sqrt(attack_factor)
+            + sqrt(dodge_factor)
+            + sqrt(persuit_factor) + 55, 3)
+        * aggression_factor / 2000000.0
+        * static_cast<double>(battle_config.base_exp_rate) / 100.);
     if (xp < 1)
         xp = 1;
     PRINTF("Exp for mob '%s' generated: %d\n", mob->name, xp);
@@ -371,14 +371,15 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
                     const char *event)
 {
     dumb_ptr<mob_data> md = NULL;
-    int m, count, r = mob_class;
+    map_local *m;
+    int count, r = mob_class;
 
     if (sd && strcmp(mapname, "this") == 0)
         m = sd->bl_m;
     else
         m = map_mapname2mapid(mapname);
 
-    if (m < 0 || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // 値が異常なら召喚を止める
+    if (m == nullptr || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // 値が異常なら召喚を止める
         return 0;
 
     if (sd)
@@ -396,11 +397,7 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
     for (count = 0; count < amount; count++)
     {
         md.new_();
-        if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
-            md->lootitem =
-                (struct item *) calloc(LOOTITEM_SIZE, sizeof(struct item));
-        else
-            md->lootitem = NULL;
+        md->lootitemv.clear();
 
         mob_spawn_dataset(md, mobname, mob_class);
         md->bl_m = m;
@@ -409,13 +406,13 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
         if (r < 0 && battle_config.dead_branch_active == 1)
             //移動してアクティブで反撃する
             md->mode = MobMode::war;
-        md->m = m;
-        md->x0 = x;
-        md->y0 = y;
-        md->xs = 0;
-        md->ys = 0;
-        md->spawndelay1 = static_cast<interval_t>(-1);   // Only once is a flag.
-        md->spawndelay2 = static_cast<interval_t>(-1);   // Only once is a flag.
+        md->spawn.m = m;
+        md->spawn.x0 = x;
+        md->spawn.y0 = y;
+        md->spawn.xs = 0;
+        md->spawn.ys = 0;
+        md->spawn.delay1 = static_cast<interval_t>(-1);   // Only once is a flag.
+        md->spawn.delay2 = static_cast<interval_t>(-1);   // Only once is a flag.
 
         memcpy(md->npc_event, event, sizeof(md->npc_event));
 
@@ -436,7 +433,7 @@ int mob_once_spawn_area(dumb_ptr<map_session_data> sd, const char *mapname,
                          const char *event)
 {
     int x, y, i, max, lx = -1, ly = -1, id = 0;
-    int m;
+    map_local *m;
 
     if (strcmp(mapname, "this") == 0)
         m = sd->bl_m;
@@ -447,7 +444,7 @@ int mob_once_spawn_area(dumb_ptr<map_session_data> sd, const char *mapname,
     if (max > 1000)
         max = 1000;
 
-    if (m < 0 || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // A summon is stopped if a value is unusual
+    if (m == nullptr || amount <= 0 || (mob_class >= 0 && mob_class <= 1000) || mob_class > 2000)  // A summon is stopped if a value is unusual
         return 0;
 
     for (i = 0; i < amount; i++)
@@ -618,9 +615,11 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
 
         md->state.state = MS::WALK;
         map_foreachinmovearea(std::bind(clif_moboutsight, ph::_1, md),
-                md->bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                md->bl_m,
+                x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
-                dx, dy, BL::PC);
+                dx, dy,
+                BL::PC);
 
         x += dx;
         y += dy;
@@ -635,9 +634,11 @@ int mob_walk(dumb_ptr<mob_data> md, tick_t tick, unsigned char data)
             map_addblock(md);
 
         map_foreachinmovearea(std::bind(clif_mobinsight, ph::_1, md),
-                md->bl_m, x - AREA_SIZE, y - AREA_SIZE,
+                md->bl_m,
+                x - AREA_SIZE, y - AREA_SIZE,
                 x + AREA_SIZE, y + AREA_SIZE,
-                -dx, -dy, BL::PC);
+                -dx, -dy,
+                BL::PC);
         md->state.state = MS::IDLE;
     }
     interval_t i = calc_next_walk_step(md);
@@ -789,10 +790,12 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
     // If you are reading this, please note:
     // it is highly platform-specific that this even works at all.
     int radius = battle_config.mob_splash_radius;
-    if (radius >= 0 && tbl->bl_type == BL::PC && !map[tbl->bl_m].flag.town)
+    if (radius >= 0 && tbl->bl_type == BL::PC && !tbl->bl_m->flag.town)
         map_foreachinarea(std::bind(mob_ancillary_attack, ph::_1, md, tbl, tick),
-            tbl->bl_m, tbl->bl_x - radius, tbl->bl_y - radius,
-            tbl->bl_x + radius, tbl->bl_y + radius, BL::PC);
+                tbl->bl_m,
+                tbl->bl_x - radius, tbl->bl_y - radius,
+                tbl->bl_x + radius, tbl->bl_y + radius,
+                BL::PC);
 
     md->attackabletime = tick + battle_get_adelay(md);
 
@@ -1016,22 +1019,18 @@ int mob_setdelayspawn(int id)
         return -1;
 
     // Processing of MOB which is not revitalized
-    if (md->spawndelay1 == static_cast<interval_t>(-1)
-        && md->spawndelay2 == static_cast<interval_t>(-1)
+    if (md->spawn.delay1 == static_cast<interval_t>(-1)
+        && md->spawn.delay2 == static_cast<interval_t>(-1)
         && md->n == 0)
     {
         map_deliddb(md);
-        if (md->lootitem)
-        {
-            free(md->lootitem);
-            md->lootitem = NULL;
-        }
+        md->lootitemv.clear();
         MapBlockLock::freeblock(md);
         return 0;
     }
 
-    tick_t spawntime1 = md->last_spawntime + md->spawndelay1;
-    tick_t spawntime2 = md->last_deadtime + md->spawndelay2;
+    tick_t spawntime1 = md->last_spawntime + md->spawn.delay1;
+    tick_t spawntime2 = md->last_deadtime + md->spawn.delay2;
     tick_t spawntime3 = gettick() + std::chrono::seconds(5);
     tick_t spawntime = std::max({spawntime1, spawntime2, spawntime3});
 
@@ -1071,22 +1070,22 @@ int mob_spawn(int id)
         map_delblock(md);
     }
 
-    md->bl_m = md->m;
+    md->bl_m = md->spawn.m;
     {
         int i = 0;
         do
         {
-            if (md->x0 == 0 && md->y0 == 0)
+            if (md->spawn.x0 == 0 && md->spawn.y0 == 0)
             {
-                x = random_::in(1, map[md->bl_m].xs - 2);
-                y = random_::in(1, map[md->bl_m].ys - 2);
+                x = random_::in(1, md->bl_m->xs - 2);
+                y = random_::in(1, md->bl_m->ys - 2);
             }
             else
             {
                 // TODO: move this logic earlier - possibly all the way
                 // into the data files
-                x = md->x0 - md->xs / 2 + random_::in(0, md->xs);
-                y = md->y0 - md->ys / 2 + random_::in(0, md->ys);
+                x = md->spawn.x0 - md->spawn.xs / 2 + random_::in(0, md->spawn.xs);
+                y = md->spawn.y0 - md->spawn.ys / 2 + random_::in(0, md->spawn.ys);
             }
             i++;
         }
@@ -1131,7 +1130,6 @@ int mob_spawn(int id)
     md->attackabletime = tick;
     md->canmove_tick = tick;
 
-    md->sg_count = 0;
     // md->deletetimer = nullptr;
 
     // md->skilltimer = nullptr;
@@ -1141,9 +1139,7 @@ int mob_spawn(int id)
     md->skilllv = 0;
 
     memset(md->dmglog, 0, sizeof(md->dmglog));
-    if (md->lootitem)
-        memset(md->lootitem, 0, sizeof(*md->lootitem));
-    md->lootitem_count = 0;
+    md->lootitemv.clear();
 
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
     {
@@ -1470,10 +1466,6 @@ void mob_ai_sub_hard_lootsearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
 
     if (!md->target_id && bool(mode & MobMode::LOOTER))
     {
-        if (!md->lootitem
-            || (battle_config.monster_loot_type == 1
-                && md->lootitem_count >= LOOTITEM_SIZE))
-            return;
         if (bl->bl_m == md->bl_m
             && (dist = distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y)) < 9)
         {
@@ -1560,7 +1552,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     // Since the master was in near immediately before, teleport is carried out and it pursues.
     if (old_dist < 10 && md->master_dist > 18)
     {
-        mob_warp(md, -1, mmd->bl_x, mmd->bl_y, BeingRemoveWhy::WARPED);
+        mob_warp(md, nullptr, mmd->bl_x, mmd->bl_y, BeingRemoveWhy::WARPED);
         md->state.master_check = 1;
         return 0;
     }
@@ -1779,8 +1771,10 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
             if (!asd->invincible_timer && !pc_isinvisible(asd))
             {
                 map_foreachinarea(std::bind(mob_ai_sub_hard_linksearch, ph::_1, md, asd),
-                        md->bl_m, md->bl_x - 13, md->bl_y - 13,
-                        md->bl_x + 13, md->bl_y + 13, BL::MOB);
+                        md->bl_m,
+                        md->bl_x - 13, md->bl_y - 13,
+                        md->bl_x + 13, md->bl_y + 13,
+                        BL::MOB);
             }
         }
     }
@@ -1829,15 +1823,18 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         if (md->state.special_mob_ai)
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
-                    md->bl_m, md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
+                    md->bl_m,
+                    md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
                     md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2,
                     BL::NUL);
         }
         else
         {
             map_foreachinarea(std::bind(mob_ai_sub_hard_activesearch, ph::_1, md, &i),
-                    md->bl_m, md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
-                    md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2, BL::PC);
+                    md->bl_m,
+                    md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
+                    md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2,
+                    BL::PC);
         }
     }
 
@@ -1848,8 +1845,10 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     {
         i = 0;
         map_foreachinarea(std::bind(mob_ai_sub_hard_lootsearch, ph::_1, md, &i),
-                md->bl_m, md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
-                md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2, BL::ITEM);
+                md->bl_m,
+                md->bl_x - AREA_SIZE * 2, md->bl_y - AREA_SIZE * 2,
+                md->bl_x + AREA_SIZE * 2, md->bl_y + AREA_SIZE * 2,
+                BL::ITEM);
     }
 
     // It will attack, if the candidate for an attack is.
@@ -1955,7 +1954,8 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                 if (tbl == NULL || tbl->bl_type != BL::ITEM || tbl->bl_m != md->bl_m
                     || (dist =
                         distance(md->bl_x, md->bl_y, tbl->bl_x,
-                                  tbl->bl_y)) >= md->min_chase || !md->lootitem)
+                                  tbl->bl_y)) >= md->min_chase
+                    || !bool(mob_db[md->mob_class].mode & MobMode::LOOTER))
                 {
                     // 遠すぎるかアイテムがなくなった
                     mob_unlocktarget(md, tick);
@@ -1991,23 +1991,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                     if (md->state.state == MS::WALK)
                         mob_stop_walking(md, 1);   // 歩行中なら停止
                     fitem = tbl->as_item();
-                    if (md->lootitem_count < LOOTITEM_SIZE)
-                        memcpy(&md->lootitem[md->lootitem_count++],
-                                &fitem->item_data, sizeof(md->lootitem[0]));
-                    else if (battle_config.monster_loot_type == 1
-                             && md->lootitem_count >= LOOTITEM_SIZE)
-                    {
-                        mob_unlocktarget(md, tick);
-                        return;
-                    }
-                    else
-                    {
-                        for (i = 0; i < LOOTITEM_SIZE - 1; i++)
-                            memcpy(&md->lootitem[i], &md->lootitem[i + 1],
-                                    sizeof(md->lootitem[0]));
-                        memcpy(&md->lootitem[LOOTITEM_SIZE - 1],
-                                &fitem->item_data, sizeof(md->lootitem[0]));
-                    }
+                    md->lootitemv.push_back(fitem->item_data);
                     map_clearflooritem(tbl->bl_id);
                     mob_unlocktarget(md, tick);
                 }
@@ -2064,8 +2048,10 @@ void mob_ai_sub_foreachclient(dumb_ptr<map_session_data> sd, tick_t tick)
     nullpo_retv(sd);
 
     map_foreachinarea(std::bind(mob_ai_sub_hard, ph::_1, tick),
-            sd->bl_m, sd->bl_x - AREA_SIZE * 2, sd->bl_y - AREA_SIZE * 2,
-            sd->bl_x + AREA_SIZE * 2, sd->bl_y + AREA_SIZE * 2, BL::MOB);
+            sd->bl_m,
+            sd->bl_x - AREA_SIZE * 2, sd->bl_y - AREA_SIZE * 2,
+            sd->bl_x + AREA_SIZE * 2, sd->bl_y + AREA_SIZE * 2,
+            BL::MOB);
 }
 
 /*==========================================
@@ -2108,7 +2094,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
         && mob_can_move(md))
     {
 
-        if (map[md->bl_m].users > 0)
+        if (md->bl_m->users > 0)
         {
             // Since PC is in the same map, somewhat better negligent processing is carried out.
 
@@ -2118,7 +2104,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
 
             // MOB which is not not the summons MOB but BOSS, either sometimes reboils.
             else if (random_::chance(MOB_LAZYWARPPERC)
-                    && md->x0 <= 0
+                    && md->spawn.x0 <= 0
                     && md->master_id != 0
                     && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
                 mob_spawn(md->bl_id);
@@ -2130,10 +2116,10 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
 
             // MOB which is not BOSS which is not Summons MOB, either -- a case -- sometimes -- leaping
             if (random_::chance(MOB_LAZYWARPPERC)
-                && md->x0 <= 0
+                && md->spawn.x0 <= 0
                 && md->master_id != 0
                 && !bool(mob_db[md->mob_class].mode & MobMode::BOSS))
-                mob_warp(md, -1, -1, -1, BeingRemoveWhy::NEGATIVE1);
+                mob_warp(md, nullptr, -1, -1, BeingRemoveWhy::NEGATIVE1);
         }
 
         md->next_walktime = tick + std::chrono::seconds(5) + std::chrono::milliseconds(random_::to(10 * 1000));
@@ -2159,14 +2145,16 @@ void mob_ai_lazy(TimerData *, tick_t tick)
  */
 struct delay_item_drop
 {
-    int m, x, y;
+    map_local *m;
+    int x, y;
     int nameid, amount;
     dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
 };
 
 struct delay_item_drop2
 {
-    int m, x, y;
+    map_local *m;
+    int x, y;
     struct item item_data;
     dumb_ptr<map_session_data> first_sd, second_sd, third_sd;
 };
@@ -2176,39 +2164,33 @@ struct delay_item_drop2
  *------------------------------------------
  */
 static
-void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop *ditem)
+void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop ditem)
 {
-    struct item temp_item;
+    struct item temp_item {};
     PickupFail flag;
 
-    nullpo_retv(ditem);
-
-    memset(&temp_item, 0, sizeof(temp_item));
-    temp_item.nameid = ditem->nameid;
-    temp_item.amount = ditem->amount;
+    temp_item.nameid = ditem.nameid;
+    temp_item.amount = ditem.amount;
     temp_item.identify = !itemdb_isequip3(temp_item.nameid);
 
     if (battle_config.item_auto_get == 1)
     {
-        if (ditem->first_sd
+        if (ditem.first_sd
             && (flag =
-                pc_additem(ditem->first_sd, &temp_item, ditem->amount))
+                pc_additem(ditem.first_sd, &temp_item, ditem.amount))
             != PickupFail::OKAY)
         {
-            clif_additem(ditem->first_sd, 0, 0, flag);
+            clif_additem(ditem.first_sd, 0, 0, flag);
             map_addflooritem(&temp_item, 1,
-                    ditem->m, ditem->x, ditem->y,
-                    ditem->first_sd, ditem->second_sd, ditem->third_sd);
+                    ditem.m, ditem.x, ditem.y,
+                    ditem.first_sd, ditem.second_sd, ditem.third_sd);
         }
-        free(ditem);
         return;
     }
 
     map_addflooritem(&temp_item, 1,
-            ditem->m, ditem->x, ditem->y,
-            ditem->first_sd, ditem->second_sd, ditem->third_sd);
-
-    free(ditem);
+            ditem.m, ditem.x, ditem.y,
+            ditem.first_sd, ditem.second_sd, ditem.third_sd);
 }
 
 /*==========================================
@@ -2216,34 +2198,29 @@ void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop *ditem)
  *------------------------------------------
  */
 static
-void mob_delay_item_drop2(TimerData *, tick_t, struct delay_item_drop2 *ditem)
+void mob_delay_item_drop2(TimerData *, tick_t, struct delay_item_drop2 ditem)
 {
     PickupFail flag;
 
-    nullpo_retv(ditem);
-
     if (battle_config.item_auto_get == 1)
     {
-        if (ditem->first_sd
+        if (ditem.first_sd
             && (flag =
-                pc_additem(ditem->first_sd, &ditem->item_data,
-                            ditem->item_data.amount))
+                pc_additem(ditem.first_sd, &ditem.item_data,
+                            ditem.item_data.amount))
             != PickupFail::OKAY)
         {
-            clif_additem(ditem->first_sd, 0, 0, flag);
-            map_addflooritem(&ditem->item_data, ditem->item_data.amount,
-                    ditem->m, ditem->x, ditem->y,
-                    ditem->first_sd, ditem->second_sd, ditem->third_sd);
+            clif_additem(ditem.first_sd, 0, 0, flag);
+            map_addflooritem(&ditem.item_data, ditem.item_data.amount,
+                    ditem.m, ditem.x, ditem.y,
+                    ditem.first_sd, ditem.second_sd, ditem.third_sd);
         }
-        free(ditem);
         return;
     }
 
-    map_addflooritem(&ditem->item_data, ditem->item_data.amount,
-            ditem->m, ditem->x, ditem->y,
-            ditem->first_sd, ditem->second_sd, ditem->third_sd);
-
-    free(ditem);
+    map_addflooritem(&ditem.item_data, ditem.item_data.amount,
+            ditem.m, ditem.x, ditem.y,
+            ditem.first_sd, ditem.second_sd, ditem.third_sd);
 }
 
 /*==========================================
@@ -2313,8 +2290,10 @@ int mob_deleteslave(dumb_ptr<mob_data> md)
     nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_deleteslave_sub, ph::_1, md->bl_id),
-            md->bl_m, 0, 0,
-            map[md->bl_m].xs, map[md->bl_m].ys, BL::MOB);
+            md->bl_m,
+            0, 0,
+            md->bl_m->xs, md->bl_m->ys,
+            BL::MOB);
     return 0;
 }
 
@@ -2519,7 +2498,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         if (tmpsd[i]->bl_m != md->bl_m || pc_isdead(tmpsd[i]))
             continue;
 
-        tdmg += (double) md->dmglog[i].dmg;
+        tdmg += md->dmglog[i].dmg;
         if (mvp_damage < md->dmglog[i].dmg)
         {
             third_sd = second_sd;
@@ -2530,7 +2509,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     }
 
     // [MouseJstr]
-    if ((map[md->bl_m].flag.pvp == 0) || (battle_config.pvp_exp == 1))
+    if ((md->bl_m->flag.pvp == 0) || (battle_config.pvp_exp == 1))
     {
         // 経験値の分配
         for (int i = 0; i < DAMAGELOG_SIZE; i++)
@@ -2541,21 +2520,10 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             struct party *p;
             if (tmpsd[i] == NULL || tmpsd[i]->bl_m != md->bl_m)
                 continue;
-/* jAthena's exp formula
-                per = ((double)md->dmglog[i].dmg)* (9.+(double)((count > 6)? 6:count))/10./((double)max_hp) * dmg_rate;
-                temp = ((double)mob_db[md->mob_class].base_exp * (double)battle_config.base_exp_rate / 100. * per);
-                base_exp = (temp > 2147483647.)? 0x7fffffff:(int)temp;
-                if (mob_db[md->mob_class].base_exp > 0 && base_exp < 1) base_exp = 1;
-                if (base_exp < 0) base_exp = 0;
-                temp = ((double)mob_db[md->mob_class].job_exp * (double)battle_config.job_exp_rate / 100. * per);
-                job_exp = (temp > 2147483647.)? 0x7fffffff:(int)temp;
-                if (mob_db[md->mob_class].job_exp > 0 && job_exp < 1) job_exp = 1;
-                if (job_exp < 0) job_exp = 0;
-*/
-//eAthena's exp formula rather than jAthena's
-//      per=(double)md->dmglog[i].dmg*256*(9+(double)((count > 6)? 6:count))/10/(double)max_hp;
             // [Fate] The above is the old formula.  We do a more involved computation below.
-            per = (double) md->dmglog[i].dmg * 256 / (double) max_hp;   // 256 = 100% of the score
+            // [o11c] Look in git history for old code, you idiot!
+            // 256 = 100% of the score
+            per = static_cast<double>(md->dmglog[i].dmg) * 256 / static_cast<double>(max_hp);
             per *= damage_bonus_factor[count > DAMAGE_BONUS_COUNT ? DAMAGE_BONUS_COUNT : count];    // Bonus for party attack
             if (per > 512)
                 per = 512;      // [Fate] Retained from before.  The maximum a single individual can get is double the original value.
@@ -2626,8 +2594,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         {
             for (int i = 0; i < 8; i++)
             {
-                struct delay_item_drop *ditem;
-
                 if (md->state.special_mob_ai >= 1 && battle_config.alchemist_summon_reward != 1)    // Added [Valaris]
                     break;      // End
 
@@ -2642,42 +2608,38 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 if (!random_::chance(drop_rate))
                     continue;
 
-                ditem = (struct delay_item_drop *)
-                    calloc(1, sizeof(struct delay_item_drop));
-                ditem->nameid = mob_db[md->mob_class].dropitem[i].nameid;
-                ditem->amount = 1;
-                ditem->m = md->bl_m;
-                ditem->x = md->bl_x;
-                ditem->y = md->bl_y;
-                ditem->first_sd = mvp_sd;
-                ditem->second_sd = second_sd;
-                ditem->third_sd = third_sd;
+                struct delay_item_drop ditem {};
+                ditem.nameid = mob_db[md->mob_class].dropitem[i].nameid;
+                ditem.amount = 1;
+                ditem.m = md->bl_m;
+                ditem.x = md->bl_x;
+                ditem.y = md->bl_y;
+                ditem.first_sd = mvp_sd;
+                ditem.second_sd = second_sd;
+                ditem.third_sd = third_sd;
                 Timer(tick + std::chrono::milliseconds(500) + static_cast<interval_t>(i),
                         std::bind(mob_delay_item_drop, ph::_1, ph::_2,
                             ditem)
                 ).detach();
             }
-            if (md->lootitem)
             {
-                for (int i = 0; i < md->lootitem_count; i++)
+                int i = 0;
+                for (struct item lit : md->lootitemv)
                 {
-                    struct delay_item_drop2 *ditem;
-
-                    ditem = (struct delay_item_drop2 *)
-                        calloc(1, sizeof(struct delay_item_drop2));
-                    memcpy(&ditem->item_data, &md->lootitem[i],
-                            sizeof(md->lootitem[0]));
-                    ditem->m = md->bl_m;
-                    ditem->x = md->bl_x;
-                    ditem->y = md->bl_y;
-                    ditem->first_sd = mvp_sd;
-                    ditem->second_sd = second_sd;
-                    ditem->third_sd = third_sd;
+                    struct delay_item_drop2 ditem {};
+                    ditem.item_data = lit;
+                    ditem.m = md->bl_m;
+                    ditem.x = md->bl_x;
+                    ditem.y = md->bl_y;
+                    ditem.first_sd = mvp_sd;
+                    ditem.second_sd = second_sd;
+                    ditem.third_sd = third_sd;
                     // ?
                     Timer(tick + std::chrono::milliseconds(540) + static_cast<interval_t>(i),
                             std::bind(mob_delay_item_drop2, ph::_1, ph::_2,
                                 ditem)
                     ).detach();
+                    i++;
                 }
             }
         }
@@ -2748,7 +2710,7 @@ void mob_warpslave_sub(dumb_ptr<block_list> bl, int id, int x, int y)
 
     if (md->master_id == id)
     {
-        mob_warp(md, -1, x, y, BeingRemoveWhy::QUIT);
+        mob_warp(md, nullptr, x, y, BeingRemoveWhy::QUIT);
     }
 }
 
@@ -2761,8 +2723,10 @@ int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
 {
 //PRINTF("warp slave\n");
     map_foreachinarea(std::bind(mob_warpslave_sub, ph::_1, md->bl_id, md->bl_x, md->bl_y),
-            md->bl_m, x - AREA_SIZE, y - AREA_SIZE,
-            x + AREA_SIZE, y + AREA_SIZE, BL::MOB);
+            md->bl_m,
+            x - AREA_SIZE, y - AREA_SIZE,
+            x + AREA_SIZE, y + AREA_SIZE,
+            BL::MOB);
     return 0;
 }
 
@@ -2770,7 +2734,7 @@ int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
  * mobワープ
  *------------------------------------------
  */
-int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type)
+int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy type)
 {
     int i = 0, xs = 0, ys = 0, bx = x, by = y;
 
@@ -2779,12 +2743,12 @@ int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type)
     if (md->bl_prev == NULL)
         return 0;
 
-    if (m < 0)
+    if (m == nullptr)
         m = md->bl_m;
 
     if (type != BeingRemoveWhy::NEGATIVE1)
     {
-        if (map[md->bl_m].flag.monster_noteleport)
+        if (md->bl_m->flag.monster_noteleport)
             return 0;
         clif_clearchar(md, type);
     }
@@ -2797,7 +2761,7 @@ int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type)
 
     while ((x < 0
             || y < 0
-            || bool(read_gat(m, x, y) & MapCell::UNWALKABLE))
+            || bool(read_gatp(m, x, y) & MapCell::UNWALKABLE))
        && (i++) < 1000)
     {
         if (xs > 0 && ys > 0 && i < 250)
@@ -2809,8 +2773,8 @@ int mob_warp(dumb_ptr<mob_data> md, int m, int x, int y, BeingRemoveWhy type)
         else
         {
             // 完全ランダム探索
-            x = random_::in(1, map[m].xs - 2);
-            y = random_::in(1, map[m].ys - 2);
+            x = random_::in(1, m->xs - 2);
+            y = random_::in(1, m->ys - 2);
         }
     }
     md->dir = DIR::S;
@@ -2878,8 +2842,10 @@ int mob_countslave(dumb_ptr<mob_data> md)
     nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_countslave_sub, ph::_1, md->bl_id, &c),
-            md->bl_m, 0, 0,
-            map[md->bl_m].xs - 1, map[md->bl_m].ys - 1, BL::MOB);
+            md->bl_m,
+            0, 0,
+            md->bl_m->xs - 1, md->bl_m->ys - 1,
+            BL::MOB);
     return c;
 }
 
@@ -2890,14 +2856,14 @@ int mob_countslave(dumb_ptr<mob_data> md)
 int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
 {
     dumb_ptr<mob_data> md;
-    int bx, by, m, count = 0, mob_class, k, a = amount;
+    int bx, by, count = 0, mob_class, k, a = amount;
 
     nullpo_ret(md2);
     nullpo_ret(value);
 
     bx = md2->bl_x;
     by = md2->bl_y;
-    m = md2->bl_m;
+    map_local *m = md2->bl_m;
 
     if (value[0] <= 1000 || value[0] > 2000)    // 値が異常なら召喚を止める
         return 0;
@@ -2917,10 +2883,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
             int x = 0, y = 0, i = 0;
             md.new_();
             if (bool(mob_db[mob_class].mode & MobMode::LOOTER))
-                md->lootitem = (struct item *)
-                    calloc(LOOTITEM_SIZE, sizeof(struct item));
-            else
-                md->lootitem = NULL;
+                md->lootitemv.clear();
 
             while ((x <= 0
                     || y <= 0
@@ -2943,14 +2906,14 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
             md->bl_x = x;
             md->bl_y = y;
 
-            md->m = m;
-            md->x0 = x;
-            md->y0 = y;
-            md->xs = 0;
-            md->ys = 0;
+            md->spawn.m = m;
+            md->spawn.x0 = x;
+            md->spawn.y0 = y;
+            md->spawn.xs = 0;
+            md->spawn.ys = 0;
             md->stats[mob_stat::SPEED] = md2->stats[mob_stat::SPEED];
-            md->spawndelay1 = static_cast<interval_t>(-1);   // 一度のみフラグ
-            md->spawndelay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
+            md->spawn.delay1 = static_cast<interval_t>(-1);   // 一度のみフラグ
+            md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
 
             memset(md->npc_event, 0, sizeof(md->npc_event));
             md->bl_type = BL::MOB;
@@ -3005,7 +2968,8 @@ int mob_counttargeted(dumb_ptr<mob_data> md, dumb_ptr<block_list> src,
     nullpo_ret(md);
 
     map_foreachinarea(std::bind(mob_counttargeted_sub, ph::_1, md->bl_id, &c, src, target_lv),
-            md->bl_m, md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
+            md->bl_m,
+            md->bl_x - AREA_SIZE, md->bl_y - AREA_SIZE,
             md->bl_x + AREA_SIZE, md->bl_y + AREA_SIZE,
             BL::NUL);
     return c;
@@ -3313,7 +3277,7 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
                     flag = (md->hp < max_hp * ms[ii].cond2i / 100);
                     break;
                 case MobSkillCondition::MSC_NOTINTOWN:     // Only outside of towns.
-                    flag = !map[md->bl_m].flag.town;
+                    flag = !md->bl_m->flag.town;
                     break;
                 case MobSkillCondition::MSC_SLAVELT:  // slave < num
                     flag = (mob_countslave(md) < ms[ii].cond2i);
