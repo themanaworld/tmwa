@@ -110,7 +110,7 @@ int chrif_save(dumb_ptr<map_session_data> sd)
     WFIFOW(char_fd, 2) = sizeof(sd->status) + 12;
     WFIFOL(char_fd, 4) = sd->bl_id;
     WFIFOL(char_fd, 8) = sd->char_id;
-    memcpy(WFIFOP(char_fd, 12), &sd->status, sizeof(sd->status));
+    WFIFO_STRUCT(char_fd, 12, sd->status);
     WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 
     //For data sync
@@ -128,8 +128,8 @@ static
 int chrif_connect(int fd)
 {
     WFIFOW(fd, 0) = 0x2af8;
-    memcpy(WFIFOP(fd, 2), userid, 24);
-    memcpy(WFIFOP(fd, 26), passwd, 24);
+    WFIFO_STRING(fd, 2, userid, 24);
+    WFIFO_STRING(fd, 26, passwd, 24);
     WFIFOL(fd, 50) = 0;
     WFIFOL(fd, 54) = clif_getip().s_addr;
     WFIFOW(fd, 58) = clif_getport();  // [Valaris] thanks to fov
@@ -153,7 +153,7 @@ int chrif_sendmap(int fd)
         map_abstract *ma = pair.second.get();
         if (!ma->gat)
             continue;
-        memcpy(WFIFOP(fd, 4 + i * 16), ma->name, 16);
+        WFIFO_STRING(fd, 4 + i * 16, ma->name_, 16);
         i++;
     }
     WFIFOW(fd, 2) = 4 + i * 16;
@@ -213,7 +213,7 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd, char *name, int x,
     WFIFOL(char_fd, 6) = sd->login_id1;
     WFIFOL(char_fd, 10) = sd->login_id2;
     WFIFOL(char_fd, 14) = sd->status.char_id;
-    memcpy(WFIFOP(char_fd, 18), name, 16);
+    WFIFO_STRING(char_fd, 18, name, 16);
     WFIFOW(char_fd, 34) = x;
     WFIFOW(char_fd, 36) = y;
     WFIFOL(char_fd, 38) = ip.s_addr;
@@ -292,7 +292,7 @@ int chrif_sendmapack(int fd)
         exit(1);
     }
 
-    memcpy(wisp_server_name, RFIFOP(fd, 3), 24);
+    RFIFO_STRING(fd, 3, wisp_server_name, 24);
 
     chrif_state = 2;
 
@@ -387,7 +387,7 @@ int chrif_changegm(int id, const char *pass, int len)
     WFIFOW(char_fd, 0) = 0x2b0a;
     WFIFOW(char_fd, 2) = len + 8;
     WFIFOL(char_fd, 4) = id;
-    memcpy(WFIFOP(char_fd, 8), pass, len);
+    WFIFO_STRING(char_fd, 8, pass, len);
     WFIFOSET(char_fd, len + 8);
 
     return 0;
@@ -406,8 +406,8 @@ int chrif_changeemail(int id, const char *actual_email,
 
     WFIFOW(char_fd, 0) = 0x2b0c;
     WFIFOL(char_fd, 2) = id;
-    memcpy(WFIFOP(char_fd, 6), actual_email, 40);
-    memcpy(WFIFOP(char_fd, 46), new_email, 40);
+    WFIFO_STRING(char_fd, 6, actual_email, 40);
+    WFIFO_STRING(char_fd, 46, new_email, 40);
     WFIFOSET(char_fd, 86);
 
     return 0;
@@ -430,7 +430,7 @@ int chrif_char_ask_name(int id, char *character_name, short operation_type,
 {
     WFIFOW(char_fd, 0) = 0x2b0e;
     WFIFOL(char_fd, 2) = id;   // account_id of who ask (for answer) -1 if nobody
-    memcpy(WFIFOP(char_fd, 6), character_name, 24);
+    WFIFO_STRING(char_fd, 6, character_name, 24);
     WFIFOW(char_fd, 30) = operation_type;  // type of operation
     if (operation_type == 2)
     {
@@ -471,8 +471,7 @@ int chrif_char_ask_name_answer(int fd)
     char player_name[24];
 
     acc = RFIFOL(fd, 2);       // account_id of who has asked (-1 if nobody)
-    memcpy(player_name, RFIFOP(fd, 6), sizeof(player_name));
-    player_name[sizeof(player_name) - 1] = '\0';
+    RFIFO_STRING(fd, 6, player_name, 24);
 
     sd = map_id2sd(acc);
     if (acc >= 0 && sd != NULL)
@@ -692,7 +691,7 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
         struct global_reg *reg = &sd->status.account_reg2[j];
         if (reg->str[0] && reg->value != 0)
         {
-            memcpy(WFIFOP(char_fd, p), reg->str, 32);
+            WFIFO_STRING(char_fd, p, reg->str, 32);
             WFIFOL(char_fd, p + 32) = reg->value;
             p += 36;
         }
@@ -721,7 +720,7 @@ int chrif_accountreg2(int fd)
     for (p = 8, j = 0; p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
          p += 36, j++)
     {
-        memcpy(sd->status.account_reg2[j].str, RFIFOP(fd, p), 32);
+        RFIFO_STRING(fd, p, sd->status.account_reg2[j].str, 32);
         sd->status.account_reg2[j].value = RFIFOL(fd, p + 32);
     }
     sd->status.account_reg2_num = j;

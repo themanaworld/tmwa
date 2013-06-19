@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "random.hpp"
+#include "utils.hpp"
 
 #include "../poison.hpp"
 
@@ -43,7 +44,7 @@ const uint32_t T[64] =
 static
 uint32_t rotate_left(uint32_t val, unsigned shift)
 {
-    return val << shift | val >> (32-shift);
+    return val << shift | val >> (32 - shift);
 }
 
 static
@@ -117,45 +118,45 @@ void MD5_init(MD5_state* state)
 void MD5_do_block(MD5_state* state, MD5_block block)
 {
 #define X block.data
-#define a state->val[(16-i)%4]
-#define b state->val[(17-i)%4]
-#define c state->val[(18-i)%4]
-#define d state->val[(19-i)%4]
+#define a state->val[(16 - i) % 4]
+#define b state->val[(17 - i) % 4]
+#define c state->val[(18 - i) % 4]
+#define d state->val[(19 - i) % 4]
     // save the values
     const MD5_state saved = *state;
     // round 1
-    for (int i=0; i<16; i++)
+    for (int i = 0; i < 16; i++)
     {
 #define k MD5_round1[i].k
 #define s MD5_round1[i].s
-        a = b + rotate_left(a + F(b,c,d) + X[k] + T[i+0x0], s);
+        a = b + rotate_left(a + F(b, c, d) + X[k] + T[i + 0x0], s);
 #undef k
 #undef s
     }
     // round 2
-    for (int i=0; i<16; i++)
+    for (int i = 0; i < 16; i++)
     {
 #define k MD5_round2[i].k
 #define s MD5_round2[i].s
-        a = b + rotate_left(a + G(b,c,d) + X[k] + T[i+0x10], s);
+        a = b + rotate_left(a + G(b, c, d) + X[k] + T[i + 0x10], s);
 #undef k
 #undef s
     }
     // round 3
-    for (int i=0; i<16; i++)
+    for (int i = 0; i < 16; i++)
     {
 #define k MD5_round3[i].k
 #define s MD5_round3[i].s
-        a = b + rotate_left(a + H(b,c,d) + X[k] + T[i+0x20], s);
+        a = b + rotate_left(a + H(b, c, d) + X[k] + T[i + 0x20], s);
 #undef k
 #undef s
     }
     // round 4
-    for (int i=0; i<16; i++)
+    for (int i = 0; i < 16; i++)
     {
 #define k MD5_round4[i].k
 #define s MD5_round4[i].s
-        a = b + rotate_left(a + I(b,c,d) + X[k] + T[i+0x30], s);
+        a = b + rotate_left(a + I(b, c, d) + X[k] + T[i + 0x30], s);
 #undef k
 #undef s
     }
@@ -172,8 +173,8 @@ void MD5_do_block(MD5_state* state, MD5_block block)
 
 void MD5_to_bin(MD5_state state, uint8_t out[0x10])
 {
-    for (int i=0; i<0x10; i++)
-        out[i] = state.val[i/4] >> 8*(i%4);
+    for (int i = 0; i < 0x10; i++)
+        out[i] = state.val[i / 4] >> 8 * (i % 4);
 }
 
 static
@@ -183,9 +184,9 @@ void MD5_to_str(MD5_state state, char out[0x21])
 {
     uint8_t bin[16];
     MD5_to_bin(state, bin);
-    for (int i=0; i<0x10; i++)
-        out[2*i] = hex[bin[i] >> 4],
-        out[2*i+1] = hex[bin[i] & 0xf];
+    for (int i = 0; i < 0x10; i++)
+        out[2 * i] = hex[bin[i] >> 4],
+        out[2 * i + 1] = hex[bin[i] & 0xf];
     out[0x20] = '\0';
 }
 
@@ -197,31 +198,31 @@ MD5_state MD5_from_string(const char* msg, const size_t msglen)
     size_t rem = msglen;
     while (rem >= 64)
     {
-        for (int i=0; i<0x10; i++)
-            X[i] = msg[4*i+0] | msg[4*i+1]<<8 | msg[4*i+2]<<16 | msg[4*i+3]<<24;
+        for (int i = 0; i < 0x10; i++)
+            X[i] = msg[4 * i + 0] | msg[4 * i + 1] << 8 | msg[4 * i + 2] << 16 | msg[4 * i + 3] << 24;
         MD5_do_block(&state, block);
         msg += 64;
         rem -= 64;
     }
     // now pad 1-512 bits + the 64-bit length - may be two blocks
     uint8_t buf[0x40] = {};
-    memcpy(buf, msg, rem);
+    really_memcpy(buf, reinterpret_cast<const uint8_t *>(msg), rem);
     buf[rem] = 0x80; // a single one bit
     if (64 - rem > 8)
     {
-        for (int i=0; i<8; i++)
-            buf[0x38+i] = (static_cast<uint64_t>(msglen)*8) >> (i*8);
+        for (int i = 0; i < 8; i++)
+            buf[0x38 + i] = (static_cast<uint64_t>(msglen) * 8) >> (i * 8);
     }
-    for (int i=0; i<0x10; i++)
-        X[i] = buf[4*i+0] | buf[4*i+1]<<8 | buf[4*i+2]<<16 | buf[4*i+3]<<24;
+    for (int i = 0; i < 0x10; i++)
+        X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
     MD5_do_block(&state, block);
     if (64 - rem <= 8)
     {
-        memset(buf,'\0', 0x38);
-        for (int i=0; i<8; i++)
-            buf[0x38+i] = (static_cast<uint64_t>(msglen)*8) >> (i*8);
-        for (int i=0; i<0x10; i++)
-            X[i] = buf[4*i+0] | buf[4*i+1]<<8 | buf[4*i+2]<<16 | buf[4*i+3]<<24;
+        really_memset0(buf, 0x38);
+        for (int i = 0; i < 8; i++)
+            buf[0x38 + i] = (static_cast<uint64_t>(msglen) * 8) >> (i * 8);
+        for (int i = 0; i < 0x10; i++)
+            X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
         MD5_do_block(&state, block);
     }
     return state;
@@ -233,7 +234,8 @@ MD5_state MD5_from_cstring(const char* msg)
     return MD5_from_string(msg, strlen(msg));
 }
 
-MD5_state MD5_from_FILE(FILE* in) {
+MD5_state MD5_from_FILE(FILE* in)
+{
     uint64_t total_len = 0;
 
     uint8_t buf[0x40];
@@ -249,33 +251,33 @@ MD5_state MD5_from_FILE(FILE* in) {
         size_t rv = fread(buf + block_len, 1, 0x40 - block_len, in);
         if (!rv)
             break;
-        total_len += 8*rv; // in bits
+        total_len += 8 * rv; // in bits
         block_len += rv;
         if (block_len != 0x40)
             continue;
-        for (int i=0; i<0x10; i++)
-            X[i] = buf[4*i+0] | buf[4*i+1]<<8 | buf[4*i+2]<<16 | buf[4*i+3]<<24;
+        for (int i = 0; i < 0x10; i++)
+            X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
         MD5_do_block(&state, block);
         block_len = 0;
     }
     // no more input, just pad and append the length
     buf[block_len] = 0x80;
-    memset(buf + block_len + 1, '\0', 0x40 - block_len - 1);
+    really_memset0(buf + block_len + 1, 0x40 - block_len - 1);
     if (block_len < 0x38)
     {
-        for (int i=0; i<8; i++)
-            buf[0x38+i] = total_len >> i*8;
+        for (int i = 0; i < 8; i++)
+            buf[0x38 + i] = total_len >> i * 8;
     }
-    for (int i=0; i<0x10; i++)
-        X[i] = buf[4*i+0] | buf[4*i+1]<<8 | buf[4*i+2]<<16 | buf[4*i+3]<<24;
+    for (int i = 0; i < 0x10; i++)
+        X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
     MD5_do_block(&state, block);
     if (0x38 <= block_len)
     {
-        memset(buf, '\0', 0x38);
-        for (int i=0; i<8; i++)
-            buf[0x38+i] = total_len >> i*8;
-        for (int i=0; i<0x10; i++)
-            X[i] = buf[4*i+0] | buf[4*i+1]<<8 | buf[4*i+2]<<16 | buf[4*i+3]<<24;
+        really_memset0(buf, 0x38);
+        for (int i = 0; i < 8; i++)
+            buf[0x38 + i] = total_len >> i * 8;
+        for (int i = 0; i < 0x10; i++)
+            X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
         MD5_do_block(&state, block);
     }
     return state;
@@ -291,19 +293,20 @@ const char *MD5_saltcrypt(const char *key, const char *salt)
     // hash the key then the salt
     // buf ends up as a 64-char NUL-terminated string
     MD5_to_str(MD5_from_cstring(key), buf);
-    MD5_to_str(MD5_from_cstring(salt), buf+32);
+    MD5_to_str(MD5_from_cstring(salt), buf + 32);
 
     // Hash the buffer back into sbuf - this is stupid
     // (luckily, putting the result into itself is safe)
-    MD5_to_str(MD5_from_cstring(buf), buf+32);
+    MD5_to_str(MD5_from_cstring(buf), buf + 32);
 
     static char obuf[33];
     // This truncates the string, but we have to keep it like that for compatibility
-    snprintf(obuf, 32, "!%s$%s", salt, buf+32);
+    snprintf(obuf, 32, "!%s$%s", salt, buf + 32);
     return obuf;
 }
 
-const char *make_salt(void) {
+const char *make_salt(void)
+{
     static char salt[6];
     for (int i = 0; i < 5; i++)
         // 126 would probably actually be okay
@@ -311,7 +314,8 @@ const char *make_salt(void) {
     return salt;
 }
 
-bool pass_ok(const char *password, const char *crypted) {
+bool pass_ok(const char *password, const char *crypted)
+{
     char buf[40];
     strncpy(buf, crypted, 40);
     char *salt = buf + 1;
@@ -324,15 +328,15 @@ bool pass_ok(const char *password, const char *crypted) {
 // to return a hopefully unique masked IP.
 struct in_addr MD5_ip(char *secret, struct in_addr ip)
 {
-    char ipbuf[32];
     uint8_t obuf[16];
-    union {
+    union
+    {
         uint8_t bytes[4];
         struct in_addr ip;
     } conv;
 
     // MD5sum a secret + the IP address
-    memset(&ipbuf, 0, sizeof(ipbuf));
+    char ipbuf[32] {};
     snprintf(ipbuf, sizeof(ipbuf), "%u%s", ip.s_addr, secret);
     /// TODO stop it from being a cstring
     MD5_to_bin(MD5_from_cstring(ipbuf), obuf);

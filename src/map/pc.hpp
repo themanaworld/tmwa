@@ -49,7 +49,7 @@ void pc_invisibility(dumb_ptr<map_session_data> sd, int enabled);    // [Fate]
 int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
         ATK target_lv);
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
-int pc_makesavestatus(dumb_ptr<map_session_data>);
+void pc_makesavestatus(dumb_ptr<map_session_data>);
 int pc_setnewpc(dumb_ptr<map_session_data>, int, int, int, tick_t, int);
 int pc_authok(int, int, TimeT, short tmw_version, const struct mmo_charstatus *);
 int pc_authfail(int);
@@ -63,7 +63,7 @@ int pc_walktoxy(dumb_ptr<map_session_data>, int, int);
 int pc_stop_walking(dumb_ptr<map_session_data>, int);
 int pc_movepos(dumb_ptr<map_session_data>, int, int);
 int pc_setpos(dumb_ptr<map_session_data>, const char *, int, int, BeingRemoveWhy);
-int pc_setsavepoint(dumb_ptr<map_session_data>, const char *, int, int);
+void pc_setsavepoint(dumb_ptr<map_session_data>, const char *, int, int);
 int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type);
 
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, int, int);

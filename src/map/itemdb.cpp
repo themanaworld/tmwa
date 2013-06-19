@@ -161,7 +161,6 @@ int itemdb_readdb(void)
     char line[1024];
     int ln = 0, lines = 0;
     int nameid, j;
-    char *str[32], *p, *np;
     struct item_data *id;
     int i = 0;
     const char *filename[] = { "db/item_db.txt", "db/item_db2.txt" };
@@ -184,7 +183,9 @@ int itemdb_readdb(void)
             lines++;
             if (line[0] == '/' && line[1] == '/')
                 continue;
-            memset(str, 0, sizeof(str));
+            char *str[32] {};
+            char *p;
+            char *np;
             for (j = 0, np = p = line; j < 17 && p; j++)
             {
                 while (*p == '\t' || *p == ' ')
@@ -207,8 +208,8 @@ int itemdb_readdb(void)
 
             //ID,Name,Jname,Type,Price,Sell,Weight,ATK,DEF,Range,Slot,Job,Gender,Loc,wLV,eLV,View
             id = itemdb_search(nameid);
-            memcpy(id->name, str[1], 24);
-            memcpy(id->jname, str[2], 24);
+            strzcpy(id->name, str[1], 24);
+            strzcpy(id->jname, str[2], 24);
             id->type = ItemType(atoi(str[3]));
             id->value_buy = atoi(str[4]);
             id->value_sell = atoi(str[5]);
@@ -269,7 +270,6 @@ int itemdb_read_itemavail(void)
     char line[1024];
     int ln = 0;
     int nameid, j, k;
-    char *str[10], *p;
 
     if ((fp = fopen_("db/item_avail.txt", "r")) == NULL)
     {
@@ -282,7 +282,8 @@ int itemdb_read_itemavail(void)
         struct item_data *id;
         if (line[0] == '/' && line[1] == '/')
             continue;
-        memset(str, 0, sizeof(str));
+        char *str[10] {};
+        char *p;
         for (j = 0, p = line; j < 2 && p; j++)
         {
             str[j] = p;
@@ -323,7 +324,6 @@ int itemdb_read_noequip(void)
     char line[1024];
     int ln = 0;
     int nameid, j;
-    char *str[32], *p;
     struct item_data *id;
 
     if ((fp = fopen_("db/item_noequip.txt", "r")) == NULL)
@@ -335,7 +335,8 @@ int itemdb_read_noequip(void)
     {
         if (line[0] == '/' && line[1] == '/')
             continue;
-        memset(str, 0, sizeof(str));
+        char *str[32] {};
+        char *p;
         for (j = 0, p = line; j < 2 && p; j++)
         {
             str[j] = p;

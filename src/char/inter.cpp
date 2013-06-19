@@ -24,8 +24,6 @@
 // Existence time of Wisp/page data (60 seconds)
 // that is the waiting time of answers of all map-servers
 constexpr std::chrono::minutes WISDATA_TTL = std::chrono::minutes(1);
-// Number of elements of Wisp/page data deletion list
-constexpr int WISDELLIST_MAX = 256;
 
 char inter_log_filename[1024] = "log/inter.log";
 
@@ -44,7 +42,8 @@ int party_share_level = 10;
 
 // 受信パケット長リスト
 static
-int inter_recv_packet_length[] = {
+int inter_recv_packet_length[] =
+{
     -1, -1, 7, -1, -1, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     6, -1, 0, 0, 0, 0, 0, 0, 10, -1, 0, 0, 0, 0, 0, 0,
     72, 6, 52, 14, 10, 29, 6, -1, 34, 0, 0, 0, 0, 0, 0, 0,
@@ -60,13 +59,13 @@ struct WisData
 {
     int id, fd, count;
     tick_t tick;
-    unsigned char src[24], dst[24];
+    char src[24], dst[24];
     std::string msg;
 };
 static
 Map<int, struct WisData> wis_db;
 static
-int wis_dellist[WISDELLIST_MAX], wis_delnum;
+std::vector<int> wis_dellistv;
 
 //--------------------------------------------------------
 
@@ -245,63 +244,60 @@ int inter_init(const char *file)
 
 // GMメッセージ送信
 static
-void mapif_GMmessage(const uint8_t *mes, int len)
+void mapif_GMmessage(const char *mes)
 {
-    unsigned char buf[len];
+    size_t str_len = strlen(mes) + 1;
+    size_t msg_len = str_len + 4;
+    uint8_t buf[msg_len];
 
     WBUFW(buf, 0) = 0x3800;
-    WBUFW(buf, 2) = len;
-    memcpy(WBUFP(buf, 4), mes, len - 4);
-    mapif_sendall(buf, len);
+    WBUFW(buf, 2) = msg_len;
+    WBUF_STRING(buf, 4, mes, str_len);
+    mapif_sendall(buf, msg_len);
 }
 
 // Wisp/page transmission to all map-server
 static
-int mapif_wis_message(struct WisData *wd)
+void mapif_wis_message(struct WisData *wd)
 {
-    unsigned char buf[56 + wd->msg.size()];
+    size_t str_size = wd->msg.size() + 1;
+    uint8_t buf[56 + str_size];
 
     WBUFW(buf, 0) = 0x3801;
-    WBUFW(buf, 2) = 56 + wd->msg.size();
+    WBUFW(buf, 2) = 56 + str_size;
     WBUFL(buf, 4) = wd->id;
-    memcpy(WBUFP(buf, 8), wd->src, 24);
-    memcpy(WBUFP(buf, 32), wd->dst, 24);
-    memcpy(WBUFP(buf, 56), wd->msg.data(), wd->msg.size());
+    WBUF_STRING(buf, 8, wd->src, 24);
+    WBUF_STRING(buf, 32, wd->dst, 24);
+    WBUF_STRING(buf, 56, wd->msg.c_str(), str_size);
     wd->count = mapif_sendall(buf, WBUFW(buf, 2));
-
-    return 0;
 }
 
 // Wisp/page transmission result to map-server
 static
-int mapif_wis_end(struct WisData *wd, int flag)
+void mapif_wis_end(struct WisData *wd, int flag)
 {
-    unsigned char buf[27];
+    uint8_t buf[27];
 
     WBUFW(buf, 0) = 0x3802;
-    memcpy(WBUFP(buf, 2), wd->src, 24);
+    WBUF_STRING(buf, 2, wd->src, 24);
     WBUFB(buf, 26) = flag;     // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     mapif_send(wd->fd, buf, 27);
-
-    return 0;
 }
 
 // アカウント変数送信
 static
-int mapif_account_reg(int fd, const uint8_t *src)
+void mapif_account_reg(int fd)
 {
-    unsigned char buf[RBUFW(src, 2)];
-
-    memcpy(WBUFP(buf, 0), src, RBUFW(src, 2));
+    size_t len = RFIFOW(fd, 2);
+    uint8_t buf[len];
+    RFIFO_BUF_CLONE(fd, buf, len);
     WBUFW(buf, 0) = 0x3804;
     mapif_sendallwos(fd, buf, WBUFW(buf, 2));
-
-    return 0;
 }
 
 // アカウント変数要求返信
 static
-int mapif_account_reg_reply(int fd, int account_id)
+void mapif_account_reg_reply(int fd, int account_id)
 {
     struct accreg *reg = accreg_db.search(account_id);
 
@@ -316,14 +312,12 @@ int mapif_account_reg_reply(int fd, int account_id)
         int j, p;
         for (j = 0, p = 8; j < reg->reg_num; j++, p += 36)
         {
-            memcpy(WFIFOP(fd, p), reg->reg[j].str, 32);
+            WFIFO_STRING(fd, p, reg->reg[j].str, 32);
             WFIFOL(fd, p + 32) = reg->reg[j].value;
         }
         WFIFOW(fd, 2) = p;
     }
     WFIFOSET(fd, WFIFOW(fd, 2));
-
-    return 0;
 }
 
 //--------------------------------------------------------
@@ -332,25 +326,23 @@ int mapif_account_reg_reply(int fd, int account_id)
 static
 void check_ttl_wisdata_sub(struct WisData *wd, tick_t tick)
 {
-    if (tick > wd->tick + WISDATA_TTL
-        && wis_delnum < WISDELLIST_MAX)
-        wis_dellist[wis_delnum++] = wd->id;
+    if (tick > wd->tick + WISDATA_TTL)
+        wis_dellistv.push_back(wd->id);
 }
 
 static
-int check_ttl_wisdata(void)
+void check_ttl_wisdata(void)
 {
     tick_t tick = gettick();
-    int i;
 
-    do
+    // this code looks silly now, but let's wait a bit to refactor properly
     {
-        wis_delnum = 0;
+        wis_dellistv.clear();
         for (auto& pair : wis_db)
             check_ttl_wisdata_sub(&pair.second, tick);
-        for (i = 0; i < wis_delnum; i++)
+        for (int it : wis_dellistv)
         {
-            struct WisData *wd = wis_db.search(wis_dellist[i]);
+            struct WisData *wd = wis_db.search(it);
             assert (wd);
             PRINTF("inter: wis data id=%d time out : from %s to %s\n",
                     wd->id, wd->src, wd->dst);
@@ -359,9 +351,6 @@ int check_ttl_wisdata(void)
             wis_db.erase(wd->id);
         }
     }
-    while (wis_delnum >= WISDELLIST_MAX);
-
-    return 0;
 }
 
 //--------------------------------------------------------
@@ -369,32 +358,40 @@ int check_ttl_wisdata(void)
 
 // GMメッセージ送信
 static
-int mapif_parse_GMmessage(int fd)
+void mapif_parse_GMmessage(int fd)
 {
-    mapif_GMmessage(static_cast<const uint8_t *>(RFIFOP(fd, 4)), RFIFOW(fd, 2));
+    size_t msg_len = RFIFOW(fd, 2);
+    size_t str_len = msg_len - 4;
+    char buf[str_len];
+    RFIFO_STRING(fd, 4, buf, str_len);
 
-    return 0;
+    mapif_GMmessage(buf);
 }
 
 // Wisp/page request to send
 static
-int mapif_parse_WisRequest(int fd)
+void mapif_parse_WisRequest(int fd)
 {
     static int wisid = 0;
 
     if (RFIFOW(fd, 2) - 52 <= 0)
     {                           // normaly, impossible, but who knows...
         PRINTF("inter: Wis message doesn't exist.\n");
-        return 0;
+        return;
     }
 
+    char from[24];
+    char to[24];
+    RFIFO_STRING(fd, 4, from, 24);
+    RFIFO_STRING(fd, 28, to, 24);
+
     // search if character exists before to ask all map-servers
-    const mmo_charstatus *mcs = search_character(static_cast<const char *>(RFIFOP(fd, 28)));
+    const mmo_charstatus *mcs = search_character(to);
     if (!mcs)
     {
-        unsigned char buf[27];
+        uint8_t buf[27];
         WBUFW(buf, 0) = 0x3802;
-        memcpy(WBUFP(buf, 2), RFIFOP(fd, 4), 24);
+        WBUF_STRING(buf, 2, from, 24);
         WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
         mapif_send(fd, buf, 27);
         // Character exists. So, ask all map-servers
@@ -402,13 +399,13 @@ int mapif_parse_WisRequest(int fd)
     else
     {
         // to be sure of the correct name, rewrite it
-        strzcpy(static_cast<char *>(const_cast<void *>(RFIFOP(fd, 28))), mcs->name, 24);
+        strzcpy(to, mcs->name, 24);
         // if source is destination, don't ask other servers.
-        if (strcmp(static_cast<const char *>(RFIFOP(fd, 4)), static_cast<const char *>(RFIFOP(fd, 28))) == 0)
+        if (strcmp(from, to) == 0)
         {
-            unsigned char buf[27];
+            uint8_t buf[27];
             WBUFW(buf, 0) = 0x3802;
-            memcpy(WBUFP(buf, 2), RFIFOP(fd, 4), 24);
+            WBUF_STRING(buf, 2, from, 24);
             WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
             mapif_send(fd, buf, 27);
         }
@@ -422,16 +419,16 @@ int mapif_parse_WisRequest(int fd)
             wd.id = ++wisid;
             wd.fd = fd;
             size_t len = RFIFOW(fd, 2) - 52;
-            memcpy(wd.src, RFIFOP(fd, 4), 24);
-            memcpy(wd.dst, RFIFOP(fd, 28), 24);
-            wd.msg = std::string(static_cast<const char *>(RFIFOP(fd, 52)), len);
+            RFIFO_STRING(fd, 4, wd.src, 24);
+            RFIFO_STRING(fd, 28, wd.dst, 24);
+	    char tmpbuf[len];
+	    RFIFO_STRING(fd, 52, tmpbuf, len);
+            wd.msg = std::string(tmpbuf);
             wd.tick = gettick();
             wis_db.insert(wd.id, wd);
             mapif_wis_message(&wd);
         }
     }
-
-    return 0;
 }
 
 // Wisp/page transmission result
@@ -455,20 +452,20 @@ int mapif_parse_WisReply(int fd)
 
 // Received wisp message from map-server for ALL gm (just copy the message and resends it to ALL map-servers)
 static
-int mapif_parse_WisToGM(int fd)
+void mapif_parse_WisToGM(int fd)
 {
-    unsigned char buf[RFIFOW(fd, 2)];  // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
+    size_t len = RFIFOW(fd, 2);
+    uint8_t buf[len];
+    // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
 
-    memcpy(WBUFP(buf, 0), RFIFOP(fd, 0), RFIFOW(fd, 2));
+    RFIFO_BUF_CLONE(fd, buf, len);
     WBUFW(buf, 0) = 0x3803;
-    mapif_sendall(buf, RFIFOW(fd, 2));
-
-    return 0;
+    mapif_sendall(buf, len);
 }
 
 // アカウント変数保存要求
 static
-int mapif_parse_AccReg(int fd)
+void mapif_parse_AccReg(int fd)
 {
     int j, p;
     struct accreg *reg = accreg_db.search(RFIFOL(fd, 4));
@@ -483,22 +480,20 @@ int mapif_parse_AccReg(int fd)
     for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW(fd, 2);
          j++, p += 36)
     {
-        memcpy(reg->reg[j].str, RFIFOP(fd, p), 32);
+        RFIFO_STRING(fd, p, reg->reg[j].str, 32);
         reg->reg[j].value = RFIFOL(fd, p + 32);
     }
     reg->reg_num = j;
 
     // 他のMAPサーバーに送信
-    mapif_account_reg(fd, static_cast<const uint8_t *>(RFIFOP(fd, 0)));
-
-    return 0;
+    mapif_account_reg(fd);
 }
 
 // アカウント変数送信要求
 static
-int mapif_parse_AccRegRequest(int fd)
+void mapif_parse_AccRegRequest(int fd)
 {
-    return mapif_account_reg_reply(fd, RFIFOL(fd, 2));
+    mapif_account_reg_reply(fd, RFIFOL(fd, 2));
 }
 
 //--------------------------------------------------------

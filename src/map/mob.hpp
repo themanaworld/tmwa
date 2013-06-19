@@ -26,7 +26,7 @@ struct mob_skill
     short emotion;
 };
 
-struct mob_db
+struct mob_db_
 {
     char name[24], jname[24];
     int lv;
@@ -51,10 +51,9 @@ struct mob_db
     int sex;
     short hair, hair_color, weapon, shield, head_top, head_mid, head_buttom, option, clothes_color; // [Valaris]
     int equip;                 // [Valaris]
-    int maxskill;
-    struct mob_skill skill[MAX_MOBSKILL];
+    std::vector<struct mob_skill> skills;
 };
-extern struct mob_db mob_db[];
+extern struct mob_db_ mob_db[];
 
 int mobdb_searchname(const char *str);
 int mobdb_checkid(const int id);

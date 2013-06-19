@@ -120,7 +120,7 @@ val_t *find_constant(const std::string& name);
     dumb_ptr<proc_t> proc;
 
     // evil hackery
-    YYSTYPE() { memset(this, '\0', sizeof(*this)); }
+    YYSTYPE() { really_memzero_this(this); }
     ~YYSTYPE() = default;
     YYSTYPE(const YYSTYPE& rhs) = default;
     YYSTYPE& operator = (const YYSTYPE& rhs) = default;

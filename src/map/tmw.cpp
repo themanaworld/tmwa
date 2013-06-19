@@ -96,7 +96,7 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, const char *reason, int length)
     std::string hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
             sd->status.name,
             reason);
-    tmw_GmHackMsg(hack_msg);
+    tmw_GmHackMsg(hack_msg.c_str());
 
     std::string fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
             sd->status.name, length, reason);
@@ -135,33 +135,24 @@ int tmw_CheckChatLameness(dumb_ptr<map_session_data>, const char *message)
 }
 
 // Sends a whisper to all GMs
-void tmw_GmHackMsg(const_string line)
+void tmw_GmHackMsg(const char *line)
 {
     intif_wis_message_to_gm(wisp_server_name,
                              battle_config.hack_info_GM_level,
-                             line.data(), line.size() + 1);
+                             line);
 }
 
 /* Remove leading and trailing spaces from a string, modifying in place. */
-void tmw_TrimStr(char *str)
+void tmw_TrimStr(char *const ob)
 {
-    char *l;
-    char *a;
-    char *e;
-
-    if (!*str)
-        return;
-
-    e = str + strlen(str) - 1;
-
-    /* Skip all leading spaces. */
-    for (l = str; *l && isspace(*l); ++l)
-        ;
-
-    /* Find the end of the string, or the start of trailing spaces. */
-    for (a = e; *a && a > l && isspace(*a); --a)
-        ;
-
-    memmove(str, l, a - l + 1);
-    str[a - l + 1] = '\0';
+    char *const oe = ob + strlen(ob);
+    char *nb = ob;
+    while (*nb && isspace(*nb))
+        nb++;
+    char *ne = oe;
+    while (ne != nb && isspace(ne[-1]))
+        ne--;
+    // not like memcpy - allowed to overlap one way
+    char *zb = std::copy(nb, ne, ob);
+    std::fill(zb, oe, '\0');
 }

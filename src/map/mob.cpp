@@ -33,7 +33,7 @@ constexpr random_::Fraction MOB_LAZYMOVEPERC {50, 1000};
 // Warp probability in the negligent mode MOB (rate of 1000 minute)
 constexpr random_::Fraction MOB_LAZYWARPPERC {20, 1000};
 
-struct mob_db mob_db[2001];
+struct mob_db_ mob_db[2001];
 
 /*==========================================
  * Local prototype declaration   (only required thing)
@@ -47,7 +47,7 @@ static
 void mob_timer(TimerData *, tick_t, int, unsigned char);
 static
 int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
-        int skill_idx);
+        mob_skill& skill_idx);
 
 /*==========================================
  * Mob is searched with a name.
@@ -60,9 +60,7 @@ int mobdb_searchname(const char *str)
     for (i = 0; i < sizeof(mob_db) / sizeof(mob_db[0]); i++)
     {
         if (strcasecmp(mob_db[i].name, str) == 0
-            || strcmp(mob_db[i].jname, str) == 0
-            || memcmp(mob_db[i].name, str, 24) == 0
-            || memcmp(mob_db[i].jname, str, 24) == 0)
+            || strcmp(mob_db[i].jname, str) == 0)
             return i;
     }
 
@@ -90,16 +88,16 @@ void mob_init(dumb_ptr<mob_data> md);
  *------------------------------------------
  */
 static
-int mob_spawn_dataset(dumb_ptr<mob_data> md, const char *mobname, int mob_class)
+void mob_spawn_dataset(dumb_ptr<mob_data> md, const char *mobname, int mob_class)
 {
-    nullpo_ret(md);
+    nullpo_retv(md);
 
     if (strcmp(mobname, "--en--") == 0)
-        memcpy(md->name, mob_db[mob_class].name, 24);
+        strzcpy(md->name, mob_db[mob_class].name, 24);
     else if (strcmp(mobname, "--ja--") == 0)
-        memcpy(md->name, mob_db[mob_class].jname, 24);
+        strzcpy(md->name, mob_db[mob_class].jname, 24);
     else
-        memcpy(md->name, mobname, 24);
+        strzcpy(md->name, mobname, 24);
 
     md->bl_prev = NULL;
     md->bl_next = NULL;
@@ -107,14 +105,12 @@ int mob_spawn_dataset(dumb_ptr<mob_data> md, const char *mobname, int mob_class)
     md->mob_class = mob_class;
     md->bl_id = npc_get_new_npc_id();
 
-    memset(&md->state, 0, sizeof(md->state));
+    really_memzero_this(&md->state);
     // md->timer = nullptr;
     md->target_id = 0;
     md->attacked_id = 0;
 
     mob_init(md);
-
-    return 0;
 }
 
 // Mutation values indicate how `valuable' a change to each stat is, XP wise.
@@ -268,7 +264,7 @@ void mob_mutate(dumb_ptr<mob_data> md, mob_stat stat, int intensity)
 
 // This calculates the exp of a given mob
 static
-int mob_gen_exp(struct mob_db *mob)
+int mob_gen_exp(mob_db_ *mob)
 {
     if (mob->max_hp <= 1)
         return 1;
@@ -414,7 +410,7 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
         md->spawn.delay1 = static_cast<interval_t>(-1);   // Only once is a flag.
         md->spawn.delay2 = static_cast<interval_t>(-1);   // Only once is a flag.
 
-        memcpy(md->npc_event, event, sizeof(md->npc_event));
+        strzcpy(md->npc_event, event, 50);
 
         md->bl_type = BL::MOB;
         map_addiddb(md);
@@ -947,7 +943,7 @@ int mob_walktoxy_sub(dumb_ptr<mob_data> md)
     if (path_search(&wpd, md->bl_m, md->bl_x, md->bl_y, md->to_x, md->to_y,
          md->state.walk_easy))
         return 1;
-    memcpy(&md->walkpath, &wpd, sizeof(wpd));
+    md->walkpath = wpd;
 
     md->state.change_walk_target = 0;
     mob_changestate(md, MS::WALK, 0);
@@ -1110,7 +1106,7 @@ int mob_spawn(int id)
 
     map_addblock(md);
 
-    memset(&md->state, 0, sizeof(md->state));
+    really_memzero_this(&md->state);
     md->attacked_id = 0;
     md->target_id = 0;
     md->move_fail_count = 0;
@@ -1133,12 +1129,13 @@ int mob_spawn(int id)
     // md->deletetimer = nullptr;
 
     // md->skilltimer = nullptr;
-    for (int i = 0; i < MAX_MOBSKILL; i++)
-        md->skilldelay[i] = tick - std::chrono::hours(10);
+    md->skilldelayup = make_unique<tick_t[]>(mob_db[md->mob_class].skills.size());
+    for (size_t i = 0; i < mob_db[md->mob_class].skills.size(); i++)
+        md->skilldelayup[i] = tick - std::chrono::hours(10);
     md->skillid = SkillID();
     md->skilllv = 0;
 
-    memset(md->dmglog, 0, sizeof(md->dmglog));
+    md->dmglogv.clear();
     md->lootitemv.clear();
 
     for (StatusChange i : erange(StatusChange(), StatusChange::MAX_STATUSCHANGE))
@@ -2312,15 +2309,8 @@ double damage_bonus_factor[DAMAGE_BONUS_COUNT + 1] =
 int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 int type)
 {
-    int count, minpos, mindmg;
-    dumb_ptr<map_session_data> sd = NULL, tmpsd[DAMAGELOG_SIZE];
-    struct
-    {
-        struct party *p;
-        int id, base_exp, job_exp;
-    } pt[DAMAGELOG_SIZE];
-    int pnum = 0;
-    int mvp_damage, max_hp;
+    dumb_ptr<map_session_data> sd = NULL;
+    int max_hp;
     tick_t tick = gettick();
     dumb_ptr<map_session_data> mvp_sd = NULL, second_sd = NULL, third_sd = NULL;
     double tdmg;
@@ -2384,30 +2374,22 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     {
         if (sd != NULL)
         {
-            int i;
-            for (i = 0, minpos = 0, mindmg = 0x7fffffff; i < DAMAGELOG_SIZE;
-                 i++)
+            for (mob_data::DmgLogEntry& dle : md->dmglogv)
             {
-                if (md->dmglog[i].id == sd->bl_id)
-                    break;
-                if (md->dmglog[i].id == 0)
+                if (dle.id == sd->bl_id)
                 {
-                    minpos = i;
-                    mindmg = 0;
-                }
-                else if (md->dmglog[i].dmg < mindmg)
-                {
-                    minpos = i;
-                    mindmg = md->dmglog[i].dmg;
+                    dle.dmg += damage;
+                    goto damage_logged_pc;
                 }
             }
-            if (i < DAMAGELOG_SIZE)
-                md->dmglog[i].dmg += damage;
-            else
+            //else
             {
-                md->dmglog[minpos].id = sd->bl_id;
-                md->dmglog[minpos].dmg = damage;
+                mob_data::DmgLogEntry app;
+                app.id = sd->bl_id;
+                app.dmg = damage;
+                md->dmglogv.push_back(app);
             }
+        damage_logged_pc:
 
             if (md->attacked_id <= 0 && md->state.special_mob_ai == 0)
                 md->attacked_id = sd->bl_id;
@@ -2426,35 +2408,27 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             }
 
             nullpo_ret(md2);
-            int i;
-            for (i = 0, minpos = 0, mindmg = 0x7fffffff; i < DAMAGELOG_SIZE;
-                 i++)
+            for (mob_data::DmgLogEntry& dle : md->dmglogv)
             {
-                if (md->dmglog[i].id == md2->master_id)
-                    break;
-                if (md->dmglog[i].id == 0)
+                if (dle.id == md2->master_id)
                 {
-                    minpos = i;
-                    mindmg = 0;
-                }
-                else if (md->dmglog[i].dmg < mindmg)
-                {
-                    minpos = i;
-                    mindmg = md->dmglog[i].dmg;
+                    dle.dmg += damage;
+                    goto damage_logged_slave;
                 }
             }
-            if (i < DAMAGELOG_SIZE)
-                md->dmglog[i].dmg += damage;
-            else
+            //else
             {
-                md->dmglog[minpos].id = md2->master_id;
-                md->dmglog[minpos].dmg = damage;
+                mob_data::DmgLogEntry app;
+                app.id = md2->master_id;
+                app.dmg = damage;
+                md->dmglogv.push_back(app);
 
                 if (md->attacked_id <= 0 && md->state.special_mob_ai == 0)
                     md->attacked_id = md2->master_id;
             }
+        damage_logged_slave:
+            ;
         }
-
     }
 
     md->hp -= damage;
@@ -2473,9 +2447,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     mob_changestate(md, MS::DEAD, 0);
     mobskill_use(md, tick, MobSkillCondition::ANY);
 
-    memset(tmpsd, 0, sizeof(tmpsd));
-    memset(pt, 0, sizeof(pt));
-
     max_hp = battle_get_max_hp(md);
 
     if (src && src->bl_type == BL::MOB)
@@ -2485,46 +2456,53 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     // overkill分は無いけどsumはmax_hpとは違う
 
     tdmg = 0;
-    count = 0;
-    mvp_damage = 0;
-    for (int i = 0; i < DAMAGELOG_SIZE; i++)
+
+    // snip a prelude loop, now merged
+
+    std::sort(md->dmglogv.begin(), md->dmglogv.end(),
+            [](const mob_data::DmgLogEntry& l, const mob_data::DmgLogEntry& r) -> bool
+            {
+                // reversed
+                return l.dmg > r.dmg;
+            }
+    );
+
     {
-        if (md->dmglog[i].id == 0)
-            continue;
-        tmpsd[i] = map_id2sd(md->dmglog[i].id);
-        if (tmpsd[i] == NULL)
-            continue;
-        count++;
-        if (tmpsd[i]->bl_m != md->bl_m || pc_isdead(tmpsd[i]))
-            continue;
-
-        tdmg += md->dmglog[i].dmg;
-        if (mvp_damage < md->dmglog[i].dmg)
+        struct DmgLogParty
         {
-            third_sd = second_sd;
-            second_sd = mvp_sd;
-            mvp_sd = tmpsd[i];
-            mvp_damage = md->dmglog[i].dmg;
-        }
-    }
+            struct party *p;
+            int base_exp, job_exp;
+        };
+        std::vector<DmgLogParty> ptv;
 
-    // [MouseJstr]
-    if ((md->bl_m->flag.pvp == 0) || (battle_config.pvp_exp == 1))
-    {
-        // 経験値の分配
-        for (int i = 0; i < DAMAGELOG_SIZE; i++)
+        for (mob_data::DmgLogEntry& dle : md->dmglogv)
         {
+            dumb_ptr<map_session_data> tmpsdi = map_id2sd(dle.id);
+            if (tmpsdi == NULL)
+                continue;
+            if (tmpsdi->bl_m != md->bl_m || pc_isdead(tmpsdi))
+                continue;
 
-            int pid, base_exp, job_exp, flag = 1;
+            // this way is actually fair, unlike the old way
+            if (!mvp_sd)
+                mvp_sd = tmpsdi;
+            else if (!second_sd)
+                second_sd = tmpsdi;
+            else if (!third_sd)
+                third_sd = tmpsdi;
+
+            int base_exp, job_exp, flag = 1;
             double per;
             struct party *p;
-            if (tmpsd[i] == NULL || tmpsd[i]->bl_m != md->bl_m)
-                continue;
+
             // [Fate] The above is the old formula.  We do a more involved computation below.
             // [o11c] Look in git history for old code, you idiot!
             // 256 = 100% of the score
-            per = static_cast<double>(md->dmglog[i].dmg) * 256 / static_cast<double>(max_hp);
-            per *= damage_bonus_factor[count > DAMAGE_BONUS_COUNT ? DAMAGE_BONUS_COUNT : count];    // Bonus for party attack
+            per = static_cast<double>(dle.dmg) * 256 / static_cast<double>(max_hp);
+            size_t count = md->dmglogv.size();
+            if (count > DAMAGE_BONUS_COUNT)
+                count = DAMAGE_BONUS_COUNT;
+            per *= damage_bonus_factor[count];    // Bonus for party attack
             if (per > 512)
                 per = 512;      // [Fate] Retained from before.  The maximum a single individual can get is double the original value.
             if (per < 1)
@@ -2555,39 +2533,42 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 && battle_config.alchemist_summon_reward != 1)
                 job_exp = 0;    // Added [Valaris]
 
-            if ((pid = tmpsd[i]->status.party_id) > 0)
-            {                   // パーティに入っている
-                int j = 0;
-                for (j = 0; j < pnum; j++)  // 公平パーティリストにいるかどうか
-                    if (pt[j].id == pid)
-                        break;
-                if (j == pnum)
-                {               // いないときは公平かどうか確認
-                    if ((p = party_search(pid)) != NULL && p->exp != 0)
+            int pid = tmpsdi->status.party_id;
+            if (pid > 0)
+            {
+                std::vector<DmgLogParty>::iterator it = std::find_if(ptv.begin(), ptv.end(),
+                        [pid](const DmgLogParty& dlp)
+                        {
+                            return dlp.p->party_id == pid;
+                        }
+                );
+                if (it == ptv.end())
+                {
+                    p = party_search(pid);
+                    if (p != NULL && p->exp != 0)
                     {
-                        pt[pnum].id = pid;
-                        pt[pnum].p = p;
-                        pt[pnum].base_exp = base_exp;
-                        pt[pnum].job_exp = job_exp;
-                        pnum++;
+                        DmgLogParty pn {};
+                        pn.p = p;
+                        pn.base_exp = base_exp;
+                        pn.job_exp = job_exp;
+                        ptv.push_back(pn);
                         flag = 0;
                     }
                 }
                 else
-                {               // いるときは公平
-                    pt[j].base_exp += base_exp;
-                    pt[j].job_exp += job_exp;
+                {
+                    it->base_exp += base_exp;
+                    it->job_exp += job_exp;
                     flag = 0;
                 }
             }
-            if (flag)           // 各自所得
-                pc_gainexp_reason(tmpsd[i], base_exp, job_exp,
+            if (flag)
+                // not sharing
+                pc_gainexp_reason(tmpsdi, base_exp, job_exp,
                                   PC_GAINEXP_REASON::KILLING);
         }
-        // 公平分配
-        for (int i = 0; i < pnum; i++)
-            party_exp_share(pt[i].p, md->bl_m, pt[i].base_exp,
-                             pt[i].job_exp);
+        for (DmgLogParty& pti : ptv)
+            party_exp_share(pti.p, md->bl_m, pti.base_exp, pti.job_exp);
 
         // item drop
         if (!(type & 1))
@@ -2915,7 +2896,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
             md->spawn.delay1 = static_cast<interval_t>(-1);   // 一度のみフラグ
             md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
 
-            memset(md->npc_event, 0, sizeof(md->npc_event));
+            strzcpy(md->npc_event, "", 50);
             md->bl_type = BL::MOB;
             map_addiddb(md);
             mob_spawn(md->bl_id);
@@ -3023,7 +3004,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
     if (range + battle_config.mob_skill_add_range < distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y))
         return;
 
-    md->skilldelay[md->skillidx] = tick;
+    md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
 
     if (battle_config.mob_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
@@ -3074,7 +3055,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
         range = battle_get_range(md) - (range + 1);
     if (range + battle_config.mob_skill_add_range < distance(md->bl_x, md->bl_y, md->skillx, md->skilly))
         return;
-    md->skilldelay[md->skillidx] = tick;
+    md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
 
     if (battle_config.mob_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
@@ -3087,7 +3068,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
  *------------------------------------------
  */
 int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
-                     int skill_idx)
+        mob_skill& skill_idx)
 {
     int range;
     struct mob_skill *ms;
@@ -3095,8 +3076,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
     int skill_lv;
 
     nullpo_ret(md);
-    ms = &mob_db[md->mob_class].skill[skill_idx];
-    nullpo_ret(ms);
+    ms = &skill_idx;
 
     if (target == NULL && (target = map_id2bl(md->target_id)) == NULL)
         return 0;
@@ -3125,7 +3105,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
 
     interval_t casttime = skill_castfix(md, ms->casttime);
     md->state.skillcastcancel = ms->cancel;
-    md->skilldelay[skill_idx] = gettick();
+    md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
 
     if (battle_config.mob_skill_log == 1)
         PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n",
@@ -3140,7 +3120,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
     md->skilly = 0;
     md->skillid = skill_id;
     md->skilllv = skill_lv;
-    md->skillidx = skill_idx;
+    md->skillidx = &skill_idx;
 
     if (casttime > interval_t::zero())
     {
@@ -3163,7 +3143,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
  */
 static
 int mobskill_use_pos(dumb_ptr<mob_data> md,
-                      int skill_x, int skill_y, int skill_idx)
+        int skill_x, int skill_y, mob_skill& skill_idx)
 {
     int range;
     struct mob_skill *ms;
@@ -3171,8 +3151,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
     int skill_lv;
 
     nullpo_ret(md);
-    ms = &mob_db[md->mob_class].skill[skill_idx];
-    nullpo_ret(ms);
+    ms = &skill_idx;
 
     if (md->bl_prev == NULL)
         return 0;
@@ -3196,7 +3175,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
 
 //  delay=skill_delayfix(sd, skill_get_delay( skill_id,skill_lv) );
     interval_t casttime = skill_castfix(md, ms->casttime);
-    md->skilldelay[skill_idx] = gettick();
+    md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
     md->state.skillcastcancel = ms->cancel;
 
     if (battle_config.mob_skill_log == 1)
@@ -3213,7 +3192,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
     md->skilltarget = 0;
     md->skillid = skill_id;
     md->skilllv = skill_lv;
-    md->skillidx = skill_idx;
+    md->skillidx = &skill_idx;
     if (casttime > interval_t::zero())
     {
         md->skilltimer = Timer(gettick() + casttime,
@@ -3236,13 +3215,10 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
 int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
         MobSkillCondition event)
 {
-    struct mob_skill *ms;
-//  dumb_ptr<block_list> target=NULL;
     int max_hp;
 
     nullpo_ret(md);
-    ms = mob_db[md->mob_class].skill;
-    nullpo_ret(ms);
+    std::vector<mob_skill>& ms = mob_db[md->mob_class].skills;
 
     max_hp = battle_get_max_hp(md);
 
@@ -3252,53 +3228,54 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
     if (md->state.special_mob_ai)
         return 0;
 
-    for (int ii = 0; ii < mob_db[md->mob_class].maxskill; ii++)
+    for (mob_skill& msii : ms)
     {
+        tick_t& sdii = md->skilldelayup[&msii - &ms.front()];
         int flag = 0;
 
         // ディレイ中
-        if (tick < md->skilldelay[ii] + ms[ii].delay)
+        if (tick < sdii + msii.delay)
             continue;
 
         // 状態判定
-        if (ms[ii].state != MobSkillState::ANY && ms[ii].state != md->state.skillstate)
+        if (msii.state != MobSkillState::ANY && msii.state != md->state.skillstate)
             continue;
 
         // Note: these *may* both be MobSkillCondition::ANY
-        flag = (event == ms[ii].cond1);
+        flag = (event == msii.cond1);
         if (!flag)
         {
-            switch (ms[ii].cond1)
+            switch (msii.cond1)
             {
                 case MobSkillCondition::MSC_ALWAYS:
                     flag = 1;
                     break;
                 case MobSkillCondition::MSC_MYHPLTMAXRATE:    // HP< maxhp%
-                    flag = (md->hp < max_hp * ms[ii].cond2i / 100);
+                    flag = (md->hp < max_hp * msii.cond2i / 100);
                     break;
                 case MobSkillCondition::MSC_NOTINTOWN:     // Only outside of towns.
                     flag = !md->bl_m->flag.town;
                     break;
                 case MobSkillCondition::MSC_SLAVELT:  // slave < num
-                    flag = (mob_countslave(md) < ms[ii].cond2i);
+                    flag = (mob_countslave(md) < msii.cond2i);
                     break;
                 case MobSkillCondition::MSC_SLAVELE:  // slave <= num
-                    flag = (mob_countslave(md) <= ms[ii].cond2i);
+                    flag = (mob_countslave(md) <= msii.cond2i);
                     break;
             }
         }
 
         // 確率判定
-        if (flag && random_::chance({ms[ii].permillage, 10000}))
+        if (flag && random_::chance({msii.permillage, 10000}))
         {
 
-            if (skill_get_inf(ms[ii].skill_id) & 2)
+            if (skill_get_inf(msii.skill_id) & 2)
             {
                 // 場所指定
                 dumb_ptr<block_list> bl = NULL;
                 int x = 0, y = 0;
                 {
-                    if (ms[ii].target == MobSkillTarget::MST_TARGET)
+                    if (msii.target == MobSkillTarget::MST_TARGET)
                         bl = map_id2bl(md->target_id);
                     else
                         bl = md;
@@ -3311,23 +3288,23 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
                 }
                 if (x <= 0 || y <= 0)
                     continue;
-                if (!mobskill_use_pos(md, x, y, ii))
+                if (!mobskill_use_pos(md, x, y, msii))
                     return 0;
             }
             else
             {
                 {
                     dumb_ptr<block_list> bl = NULL;
-                    if (ms[ii].target == MobSkillTarget::MST_TARGET)
+                    if (msii.target == MobSkillTarget::MST_TARGET)
                         bl = map_id2bl(md->target_id);
                     else
                         bl = md;
-                    if (bl && !mobskill_use_id(md, bl, ii))
+                    if (bl && !mobskill_use_id(md, bl, msii))
                         return 0;
                 }
             }
-            if (ms[ii].emotion >= 0)
-                clif_emotion(md, ms[ii].emotion);
+            if (msii.emotion >= 0)
+                clif_emotion(md, msii.emotion);
             return 1;
         }
     }
@@ -3414,7 +3391,8 @@ int mob_readdb(void)
     char line[1024];
     const char *filename[] = { "db/mob_db.txt", "db/mob_db2.txt" };
 
-    memset(mob_db, 0, sizeof(mob_db));
+    for (mob_db_& e : mob_db)
+        e = mob_db_{};
 
     for (int j = 0; j < 2; j++)
     {
@@ -3453,8 +3431,8 @@ int mob_readdb(void)
             if (mob_class <= 1000 || mob_class > 2000)
                 continue;
 
-            memcpy(mob_db[mob_class].name, str[1], 24);
-            memcpy(mob_db[mob_class].jname, str[2], 24);
+            strzcpy(mob_db[mob_class].name, str[1], 24);
+            strzcpy(mob_db[mob_class].jname, str[2], 24);
             mob_db[mob_class].lv = atoi(str[3]);
             mob_db[mob_class].max_hp = atoi(str[4]);
             mob_db[mob_class].max_sp = atoi(str[5]);
@@ -3516,7 +3494,7 @@ int mob_readdb(void)
             mob_db[mob_class].mutations_nr = atoi(str[55]);
             mob_db[mob_class].mutation_power = atoi(str[56]);
 
-            mob_db[mob_class].maxskill = 0;
+            mob_db[mob_class].skills.clear();
 
             mob_db[mob_class].sex = 0;
             mob_db[mob_class].hair = 0;
@@ -3546,7 +3524,6 @@ int mob_readskilldb(void)
 {
     FILE *fp;
     char line[1024];
-    int i;
 
     const struct
     {
@@ -3596,20 +3573,20 @@ int mob_readskilldb(void)
         }
         while (fgets(line, 1020, fp))
         {
-            char *sp[20], *p;
             int mob_id;
-            // always initialized, but clang is not smart enough yet
-            struct mob_skill *ms = nullptr;
             int j = 0;
 
             if (line[0] == '/' && line[1] == '/')
                 continue;
 
-            memset(sp, 0, sizeof(sp));
+            char *sp[20] {};
+            char *p;
+            int i;
             for (i = 0, p = line; i < 18 && p; i++)
             {
                 sp[i] = p;
-                if ((p = strchr(p, ',')) != NULL)
+                p = strchr(p, ',');
+                if (p != NULL)
                     *p++ = 0;
             }
             if ((mob_id = atoi(sp[0])) <= 0)
@@ -3617,21 +3594,12 @@ int mob_readskilldb(void)
 
             if (strcmp(sp[1], "clear") == 0)
             {
-                memset(mob_db[mob_id].skill, 0,
-                        sizeof(mob_db[mob_id].skill));
-                mob_db[mob_id].maxskill = 0;
+                mob_db[mob_id].skills.clear();
                 continue;
             }
 
-            for (i = 0; i < MAX_MOBSKILL; i++)
-                if ((ms = &mob_db[mob_id].skill[i])->skill_id == SkillID::ZERO)
-                    break;
-            if (i == MAX_MOBSKILL)
-            {
-                PRINTF("mob_skill: readdb: too many skill ! [%s] in %d[%s]\n",
-                     sp[1], mob_id, mob_db[mob_id].jname);
-                continue;
-            }
+            mob_db[mob_id].skills.push_back(mob_skill{});
+            struct mob_skill *ms = &mob_db[mob_id].skills.back();
 
             ms->state = static_cast<MobSkillState>(atoi(sp[2]));
             for (j = 0; j < sizeof(state) / sizeof(state[0]); j++)
@@ -3670,7 +3638,6 @@ int mob_readskilldb(void)
                 ms->emotion = atoi(sp[17]);
             else
                 ms->emotion = -1;
-            mob_db[mob_id].maxskill = i + 1;
         }
         fclose_(fp);
         PRINTF("read %s done\n", filename[x]);

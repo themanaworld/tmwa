@@ -163,26 +163,24 @@ void inter_storage_delete(int account_id)
 
 // 倉庫データの送信
 static
-int mapif_load_storage(int fd, int account_id)
+void mapif_load_storage(int fd, int account_id)
 {
     struct storage *s = account2storage(account_id);
     WFIFOW(fd, 0) = 0x3810;
     WFIFOW(fd, 2) = sizeof(struct storage) + 8;
     WFIFOL(fd, 4) = account_id;
-    memcpy(WFIFOP(fd, 8), s, sizeof(struct storage));
+    WFIFO_STRUCT(fd, 8, *s);
     WFIFOSET(fd, WFIFOW(fd, 2));
-    return 0;
 }
 
 // 倉庫データ保存完了送信
 static
-int mapif_save_storage_ack(int fd, int account_id)
+void mapif_save_storage_ack(int fd, int account_id)
 {
     WFIFOW(fd, 0) = 0x3811;
     WFIFOL(fd, 2) = account_id;
     WFIFOB(fd, 6) = 0;
     WFIFOSET(fd, 7);
-    return 0;
 }
 
 //---------------------------------------------------------
@@ -190,15 +188,14 @@ int mapif_save_storage_ack(int fd, int account_id)
 
 // 倉庫データ要求受信
 static
-int mapif_parse_LoadStorage(int fd)
+void mapif_parse_LoadStorage(int fd)
 {
     mapif_load_storage(fd, RFIFOL(fd, 2));
-    return 0;
 }
 
 // 倉庫データ受信＆保存
 static
-int mapif_parse_SaveStorage(int fd)
+void mapif_parse_SaveStorage(int fd)
 {
     struct storage *s;
     int account_id = RFIFOL(fd, 4);
@@ -211,10 +208,9 @@ int mapif_parse_SaveStorage(int fd)
     else
     {
         s = account2storage(account_id);
-        memcpy(s, RFIFOP(fd, 8), sizeof(struct storage));
+	RFIFO_STRUCT(fd, 8, *s);
         mapif_save_storage_ack(fd, account_id);
     }
-    return 0;
 }
 
 // map server からの通信

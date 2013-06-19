@@ -323,14 +323,13 @@ int verify_accountname(const char *account_name)
 static
 int typepasswd(char *password)
 {
-    char password1[1023], password2[1023];
+    char password1[1023] {};
+    char password2[1023] {};
     int letter;
     int i;
 
     LADMIN_LOG("No password was given. Request to obtain a password.\n");
 
-    memset(password1, '\0', sizeof(password1));
-    memset(password2, '\0', sizeof(password2));
     PRINTF("\033[1;36m Type the password > \033[0;32;42m");
     i = 0;
     while ((letter = getchar()) != '\n')
@@ -524,10 +523,8 @@ int check_command(char *command)
 static
 void display_help(const char *param)
 {
-    char command[1023];
+    char command[1023] {};
     int i;
-
-    memset(command, '\0', sizeof(command));
 
     if (sscanf(param, "%s ", command) < 1 || strlen(command) == 0)
         strcpy(command, "");   // any value that is not a command
@@ -867,13 +864,10 @@ void display_help(const char *param)
 static
 int addaccount(const char *param, int emailflag)
 {
-    char name[1023], sex[1023], email[1023], password[1023];
-//  int i;
-
-    memset(name, '\0', sizeof(name));
-    memset(sex, '\0', sizeof(sex));
-    memset(email, '\0', sizeof(email));
-    memset(password, '\0', sizeof(password));
+    char name[1023] {};
+    char sex[1023] {};
+    char email[1023] {};
+    char password[1023] {};
 
     if (emailflag == 0)
     {                           // add command
@@ -951,10 +945,10 @@ int addaccount(const char *param, int emailflag)
     LADMIN_LOG("Request to login-server to create an account.\n");
 
     WFIFOW(login_fd, 0) = 0x7930;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
-    memcpy(WFIFOP(login_fd, 26), password, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
+    WFIFO_STRING(login_fd, 26, password, 24);
     WFIFOB(login_fd, 50) = sex[0];
-    memcpy(WFIFOP(login_fd, 51), email, 40);
+    WFIFO_STRING(login_fd, 51, email, 40);
     WFIFOSET(login_fd, 91);
     bytes_to_read = 1;
 
@@ -967,13 +961,12 @@ int addaccount(const char *param, int emailflag)
 static
 int banaddaccount(const char *param)
 {
-    char name[1023], modif[1023];
+    char name[1023] {};
+    char modif[1023] {};
     int year, month, day, hour, minute, second;
     const char *p_modif;
     int value, i;
 
-    memset(name, '\0', sizeof(name));
-    memset(modif, '\0', sizeof(modif));
     year = month = day = hour = minute = second = 0;
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, modif) < 2 &&
@@ -1114,7 +1107,7 @@ int banaddaccount(const char *param)
     LADMIN_LOG("Request to login-server to modify a ban date/time.\n");
 
     WFIFOW(login_fd, 0) = 0x794c;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOW(login_fd, 26) = year;
     WFIFOW(login_fd, 28) = month;
     WFIFOW(login_fd, 30) = day;
@@ -1232,7 +1225,7 @@ int bansetaccountsub(const char *name, const char *date, const char *time_)
     LADMIN_LOG("Request to login-server to set a ban.\n");
 
     WFIFOW(login_fd, 0) = 0x794a;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOL(login_fd, 26) = static_cast<time_t>(ban_until_time);
     WFIFOSET(login_fd, 30);
     bytes_to_read = 1;
@@ -1246,11 +1239,9 @@ int bansetaccountsub(const char *name, const char *date, const char *time_)
 static
 int banaccount(const char *param)
 {
-    char name[1023], date[1023], time_[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(date, '\0', sizeof(date));
-    memset(time_, '\0', sizeof(time_));
+    char name[1023] {};
+    char date[1023] {};
+    char time_[1023] {};
 
     if (sscanf(param, "%s %s \"%[^\"]\"", date, time_, name) < 3 &&
         sscanf(param, "%s %s '%[^']'", date, time_, name) < 3 &&
@@ -1275,11 +1266,9 @@ int banaccount(const char *param)
 static
 int bansetaccount(const char *param)
 {
-    char name[1023], date[1023], time_[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(date, '\0', sizeof(date));
-    memset(time_, '\0', sizeof(time_));
+    char name[1023] {};
+    char date[1023] {};
+    char time_[1023] {};
 
     if (sscanf(param, "\"%[^\"]\" %s %[^\r\n]", name, date, time_) < 2 &&   // if date = 0, time_ can be void
         sscanf(param, "'%[^']' %s %[^\r\n]", name, date, time_) < 2 &&  // if date = 0, time_ can be void
@@ -1307,9 +1296,7 @@ int bansetaccount(const char *param)
 static
 int unbanaccount(const char *param)
 {
-    char name[1023];
-
-    memset(name, '\0', sizeof(name));
+    char name[1023] {};
 
     if (strlen(param) == 0 ||
         (sscanf(param, "\"%[^\"]\"", name) < 1 &&
@@ -1336,10 +1323,8 @@ int unbanaccount(const char *param)
 static
 int checkaccount(const char *param)
 {
-    char name[1023], password[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(password, '\0', sizeof(password));
+    char name[1023] {};
+    char password[1023] {};
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, password) < 1 &&    // password can be void
         sscanf(param, "'%[^']' %[^\r\n]", name, password) < 1 &&   // password can be void
@@ -1367,8 +1352,8 @@ int checkaccount(const char *param)
     LADMIN_LOG("Request to login-server to check a password.\n");
 
     WFIFOW(login_fd, 0) = 0x793a;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
-    memcpy(WFIFOP(login_fd, 26), password, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
+    WFIFO_STRING(login_fd, 26, password, 24);
     WFIFOSET(login_fd, 50);
     bytes_to_read = 1;
 
@@ -1381,12 +1366,9 @@ int checkaccount(const char *param)
 static
 int delaccount(const char *param)
 {
-    char name[1023];
+    char name[1023] {};
     char letter;
-    char confirm[1023];
     int i;
-
-    memset(name, '\0', sizeof(name));
 
     if (strlen(param) == 0 ||
         (sscanf(param, "\"%[^\"]\"", name) < 1 &&
@@ -1404,13 +1386,13 @@ int delaccount(const char *param)
         return 102;
     }
 
-    memset(confirm, '\0', sizeof(confirm));
+    char confirm[1023] {};
     while (confirm[0] != 'n'
            && confirm[0] != 'y')
     {
-        PRINTF("\033[1;36m ** Are you really sure to DELETE account [$userid]? (y/n) > \033[0m");
+        PRINTF("\033[1;36m ** Are you really sure to DELETE account [%s]? (y/n) > \033[0m", name);
         fflush(stdout);
-        memset(confirm, '\0', sizeof(confirm));
+	strzcpy(confirm, "", sizeof(confirm));
         i = 0;
         while ((letter = getchar()) != '\n')
             confirm[i++] = letter;
@@ -1426,7 +1408,7 @@ int delaccount(const char *param)
     LADMIN_LOG("Request to login-server to delete an acount.\n");
 
     WFIFOW(login_fd, 0) = 0x7932;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOSET(login_fd, 26);
     bytes_to_read = 1;
 
@@ -1439,10 +1421,8 @@ int delaccount(const char *param)
 static
 int changeemail(const char *param)
 {
-    char name[1023], email[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(email, '\0', sizeof(email));
+    char name[1023] {};
+    char email[1023] {};
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, email) < 2 &&
         sscanf(param, "'%[^']' %[^\r\n]", name, email) < 2 &&
@@ -1487,8 +1467,8 @@ int changeemail(const char *param)
     LADMIN_LOG("Request to login-server to change an email.\n");
 
     WFIFOW(login_fd, 0) = 0x7940;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
-    memcpy(WFIFOP(login_fd, 26), email, 40);
+    WFIFO_STRING(login_fd, 2, name, 24);
+    WFIFO_STRING(login_fd, 26, email, 40);
     WFIFOSET(login_fd, 66);
     bytes_to_read = 1;
 
@@ -1516,11 +1496,8 @@ int getlogincount(void)
 static
 int changegmlevel(const char *param)
 {
-    char name[1023];
-    int GM_level;
-
-    memset(name, '\0', sizeof(name));
-    GM_level = 0;
+    char name[1023] {};
+    int GM_level = 0;
 
     if (sscanf(param, "\"%[^\"]\" %d", name, &GM_level) < 1 &&
         sscanf(param, "'%[^']' %d", name, &GM_level) < 1 &&
@@ -1549,7 +1526,7 @@ int changegmlevel(const char *param)
     LADMIN_LOG("Request to login-server to change a GM level.\n");
 
     WFIFOW(login_fd, 0) = 0x793e;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOB(login_fd, 26) = GM_level;
     WFIFOSET(login_fd, 27);
     bytes_to_read = 1;
@@ -1563,9 +1540,7 @@ int changegmlevel(const char *param)
 static
 int idaccount(const char *param)
 {
-    char name[1023];
-
-    memset(name, '\0', sizeof(name));
+    char name[1023] {};
 
     if (strlen(param) == 0 ||
         (sscanf(param, "\"%[^\"]\"", name) < 1 &&
@@ -1586,7 +1561,7 @@ int idaccount(const char *param)
     LADMIN_LOG("Request to login-server to know an account id.\n");
 
     WFIFOW(login_fd, 0) = 0x7944;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOSET(login_fd, 26);
     bytes_to_read = 1;
 
@@ -1639,9 +1614,10 @@ int sendbroadcast(short type, const char *message)
 
     WFIFOW(login_fd, 0) = 0x794e;
     WFIFOW(login_fd, 2) = type;
-    WFIFOL(login_fd, 4) = strlen(message) + 1;
-    memcpy(WFIFOP(login_fd, 8), message, strlen(message) + 1);
-    WFIFOSET(login_fd, 8 + strlen(message) + 1);
+    size_t len = strlen(message) + 1;
+    WFIFOL(login_fd, 4) = len;
+    WFIFO_STRING(login_fd, 8, message, len);
+    WFIFOSET(login_fd, 8 + len);
     bytes_to_read = 1;
 
     return 0;
@@ -1747,10 +1723,8 @@ int itemfrob(const char *param)
 static
 int changememo(const char *param)
 {
-    char name[1023], memo[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(memo, '\0', sizeof(memo));
+    char name[1023] {};
+    char memo[1023] {};
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, memo) < 1 &&    // memo can be void
         sscanf(param, "'%[^']' %[^\r\n]", name, memo) < 1 &&   // memo can be void
@@ -1767,23 +1741,24 @@ int changememo(const char *param)
         return 102;
     }
 
-    if (strlen(memo) > 254)
+    size_t len = strlen(memo);
+    size_t len1 = len + 1;
+    if (len > 254)
     {
-        PRINTF("Memo is too long (%zu characters).\n", strlen(memo));
+        PRINTF("Memo is too long (%zu characters).\n", len);
         PRINTF("Please input a memo of 254 bytes at the maximum.\n");
         LADMIN_LOG("Email is too long (%zu characters). Please input a memo of 254 bytes at the maximum.\n",
-              strlen(memo));
+              len);
         return 102;
     }
 
     LADMIN_LOG("Request to login-server to change a memo.\n");
 
     WFIFOW(login_fd, 0) = 0x7942;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
-    WFIFOW(login_fd, 26) = strlen(memo);
-    if (strlen(memo) > 0)
-        memcpy(WFIFOP(login_fd, 28), memo, strlen(memo));
-    WFIFOSET(login_fd, 28 + strlen(memo));
+    WFIFO_STRING(login_fd, 2, name, 24);
+    WFIFOW(login_fd, 26) = len1;
+    WFIFO_STRING(login_fd, 28, memo, len);
+    WFIFOSET(login_fd, 28 + len1);
     bytes_to_read = 1;
 
     return 0;
@@ -1819,10 +1794,8 @@ int nameaccount(int id)
 static
 int changepasswd(const char *param)
 {
-    char name[1023], password[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(password, '\0', sizeof(password));
+    char name[1023] {};
+    char password[1023] {};
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, password) < 1 &&
         sscanf(param, "'%[^']' %[^\r\n]", name, password) < 1 &&
@@ -1850,8 +1823,8 @@ int changepasswd(const char *param)
     LADMIN_LOG("Request to login-server to change a password.\n");
 
     WFIFOW(login_fd, 0) = 0x7934;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
-    memcpy(WFIFOP(login_fd, 26), password, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
+    WFIFO_STRING(login_fd, 26, password, 24);
     WFIFOSET(login_fd, 50);
     bytes_to_read = 1;
 
@@ -1883,10 +1856,8 @@ int reloadGM(char *params)
 static
 int changesex(const char *param)
 {
-    char name[1023], sex[1023];
-
-    memset(name, '\0', sizeof(name));
-    memset(sex, '\0', sizeof(sex));
+    char name[1023] {};
+    char sex[1023] {};
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, sex) < 2 &&
         sscanf(param, "'%[^']' %[^\r\n]", name, sex) < 2 &&
@@ -1915,7 +1886,7 @@ int changesex(const char *param)
     LADMIN_LOG("Request to login-server to change a sex.\n");
 
     WFIFOW(login_fd, 0) = 0x793c;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOB(login_fd, 26) = sex[0];
     WFIFOSET(login_fd, 27);
     bytes_to_read = 1;
@@ -1930,10 +1901,7 @@ int changesex(const char *param)
 static
 int changestatesub(const char *name, int state, const char *error_message7)
 {
-    char error_message[1023];   // need to use, because we can modify error_message7
-
-    memset(error_message, '\0', sizeof(error_message));
-    strncpy(error_message, error_message7, sizeof(error_message) - 1);
+    const char *error_message = error_message7;
 
     if ((state < 0 || state > 9) && state != 100)
     {                           // Valid values: 0: ok, or value of the 0x006a packet + 1
@@ -1959,7 +1927,7 @@ int changestatesub(const char *name, int state, const char *error_message7)
 
     if (state != 7)
     {
-        strcpy(error_message, "-");
+        error_message = "-";
     }
     else
     {
@@ -1980,9 +1948,9 @@ int changestatesub(const char *name, int state, const char *error_message7)
     LADMIN_LOG("Request to login-server to change a state.\n");
 
     WFIFOW(login_fd, 0) = 0x7936;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOL(login_fd, 26) = state;
-    memcpy(WFIFOP(login_fd, 30), error_message, 20);
+    WFIFO_STRING(login_fd, 30, error_message, 20);
     WFIFOSET(login_fd, 50);
     bytes_to_read = 1;
 
@@ -1995,16 +1963,12 @@ int changestatesub(const char *name, int state, const char *error_message7)
 static
 int changestate(const char *param)
 {
-    char name[1023], error_message[1023];
+    char name[1023] {};
+    char error_message[1023] {};
     int state;
 
-    memset(name, '\0', sizeof(name));
-    memset(error_message, '\0', sizeof(error_message));
-
-    if (sscanf(param, "\"%[^\"]\" %d %[^\r\n]", name, &state, error_message)
-        < 2
-        && sscanf(param, "'%[^']' %d %[^\r\n]", name, &state,
-                   error_message) < 2
+    if (sscanf(param, "\"%[^\"]\" %d %[^\r\n]", name, &state, error_message) < 2
+        && sscanf(param, "'%[^']' %d %[^\r\n]", name, &state, error_message) < 2
         && sscanf(param, "%s %d %[^\r\n]", name, &state, error_message) < 2)
     {
         PRINTF("Please input an account name and a state.\n");
@@ -2025,9 +1989,7 @@ int changestate(const char *param)
 static
 int unblockaccount(const char *param)
 {
-    char name[1023];
-
-    memset(name, '\0', sizeof(name));
+    char name[1023] {};
 
     if (strlen(param) == 0 ||
         (sscanf(param, "\"%[^\"]\"", name) < 1 &&
@@ -2052,9 +2014,7 @@ int unblockaccount(const char *param)
 static
 int blockaccount(const char *param)
 {
-    char name[1023];
-
-    memset(name, '\0', sizeof(name));
+    char name[1023] {};
 
     if (strlen(param) == 0 ||
         (sscanf(param, "\"%[^\"]\"", name) < 1 &&
@@ -2079,13 +2039,12 @@ int blockaccount(const char *param)
 static
 int timeaddaccount(const char *param)
 {
-    char name[1023], modif[1023];
+    char name[1023] {};
+    char modif[1023] {};
     int year, month, day, hour, minute, second;
     const char *p_modif;
     int value, i;
 
-    memset(name, '\0', sizeof(name));
-    memset(modif, '\0', sizeof(modif));
     year = month = day = hour = minute = second = 0;
 
     if (sscanf(param, "\"%[^\"]\" %[^\r\n]", name, modif) < 2 &&
@@ -2226,7 +2185,7 @@ int timeaddaccount(const char *param)
     LADMIN_LOG("Request to login-server to modify a time limit.\n");
 
     WFIFOW(login_fd, 0) = 0x7950;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOW(login_fd, 26) = year;
     WFIFOW(login_fd, 28) = month;
     WFIFOW(login_fd, 30) = day;
@@ -2245,12 +2204,11 @@ int timeaddaccount(const char *param)
 static
 int timesetaccount(const char *param)
 {
-    char name[1023], date[1023], time_[1023];
+    char name[1023] {};
+    char date[1023] {};
+    char time_[1023] {};
     int year, month, day, hour, minute, second;
 
-    memset(name, '\0', sizeof(name));
-    memset(date, '\0', sizeof(date));
-    memset(time_, '\0', sizeof(time_));
     year = month = day = hour = minute = second = 0;
 
     // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
@@ -2361,7 +2319,7 @@ int timesetaccount(const char *param)
     LADMIN_LOG("Request to login-server to set a time limit.\n");
 
     WFIFOW(login_fd, 0) = 0x7948;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOL(login_fd, 26) = static_cast<time_t>(connect_until_time);
     WFIFOSET(login_fd, 30);
     bytes_to_read = 1;
@@ -2375,9 +2333,7 @@ int timesetaccount(const char *param)
 static
 int whoaccount(const char *param)
 {
-    char name[1023];
-
-    memset(name, '\0', sizeof(name));
+    char name[1023] {};
 
     if (strlen(param) == 0 ||
         (sscanf(param, "\"%[^\"]\"", name) < 1 &&
@@ -2397,7 +2353,7 @@ int whoaccount(const char *param)
     LADMIN_LOG("Request to login-server to obtain information about an account (by its name).\n");
 
     WFIFOW(login_fd, 0) = 0x7952;
-    memcpy(WFIFOP(login_fd, 2), name, 24);
+    WFIFO_STRING(login_fd, 2, name, 24);
     WFIFOSET(login_fd, 26);
     bytes_to_read = 1;
 
@@ -2448,7 +2404,7 @@ int prompt(void)
         fflush(stdout);
 
         // get command and parameter
-        memset(buf, '\0', sizeof(buf));
+        strzcpy(buf, "", sizeof(buf));
         fflush(stdin);
         if (!fgets(buf, 1023, stdin))
             exit(0);
@@ -2510,10 +2466,9 @@ int prompt(void)
                 i--;
             }
 
-        char command[1024];
+        char command[1024] {};
         // extract command name and parameters
-        memset(command, '\0', sizeof(command));
-        memset(parameters, '\0', sizeof(parameters));
+        strzcpy(parameters, "", sizeof(parameters));
         sscanf(buf, "%1023s %[^\n]", command, parameters);
         command[1023] = '\0';
         parameters[1023] = '\0';
@@ -2752,24 +2707,24 @@ void parse_fromlogin(int fd)
                     return;
                 {
                     char md5str[64] = "";
-                    uint8_t md5bin[32], md5key[RFIFOW(fd, 2) - 4 + 1];
-                    memcpy(md5key, RFIFOP(fd, 4), RFIFOW(fd, 2) - 4);
-                    md5key[sizeof(md5key) - 1] = '0';
+                    size_t key_len = RFIFOW(fd, 2) - 4;
+                    uint8_t md5bin[32];
+		    char md5key[key_len];
+                    RFIFO_STRING(fd, 4, md5key, key_len);
                     if (passenc == 1)
                     {
-                        strncpy(md5str, static_cast<const char *>(RFIFOP(fd, 4)), RFIFOW(fd, 2) - 4);
+                        strcpy(md5str, md5key);
                         strcat(md5str, loginserveradminpassword);
                     }
                     else if (passenc == 2)
                     {
-                        strncpy(md5str, loginserveradminpassword,
-                                 sizeof(loginserveradminpassword));
-                        strcat(md5str, static_cast<const char *>(RFIFOP(fd, 4)));
+                        strcpy(md5str, loginserveradminpassword);
+                        strcat(md5str, md5key);
                     }
                     MD5_to_bin(MD5_from_cstring(md5str), md5bin);
                     WFIFOW(login_fd, 0) = 0x7918;  // Request for administation login (encrypted password)
                     WFIFOW(login_fd, 2) = passenc; // Encrypted type
-                    memcpy(WFIFOP(login_fd, 4), md5bin, 16);
+                    really_memcpy(static_cast<uint8_t *>(WFIFOP(login_fd, 4)), md5bin, 16);
                     WFIFOSET(login_fd, 20);
                     Iprintf("Receiving of the MD5 key.\n");
                     LADMIN_LOG("Receiving of the MD5 key.\n");
@@ -2840,10 +2795,8 @@ void parse_fromlogin(int fd)
                     {
                         int j;
                         char userid[24];
-                        char lower_userid[24];
-                        memcpy(userid, RFIFOP(fd, i + 5), sizeof(userid));
-                        userid[sizeof(userid) - 1] = '\0';
-                        memset(lower_userid, '\0', sizeof(lower_userid));
+                        char lower_userid[24] {};
+                        RFIFO_STRING(fd, i + 5, userid, 24);
                         for (j = 0; userid[j]; j++)
                             lower_userid[j] = tolower(userid[j]);
                         list_first = RFIFOL(fd, i) + 1;
@@ -3051,8 +3004,6 @@ void parse_fromlogin(int fd)
                     return;
                 {
                     // Get length of the received packet
-                    int i;
-                    char name[20];
                     LADMIN_LOG("  Receiving of the number of online players.\n");
                     // Read information of the servers
                     if (RFIFOW(fd, 2) < 5)
@@ -3063,10 +3014,10 @@ void parse_fromlogin(int fd)
                     {
                         PRINTF("  Number of online players (server: number).\n");
                         // Displaying of result
-                        for (i = 4; i < RFIFOW(fd, 2); i += 32)
+                        for (int i = 4; i < RFIFOW(fd, 2); i += 32)
                         {
-                            memcpy(name, RFIFOP(fd, i + 6), sizeof(name));
-                            name[sizeof(name) - 1] = '\0';
+			    char name[20];
+                            RFIFO_STRING(fd, i + 6, name, 20);
                             PRINTF("    %-20s : %5d\n", name,
                                     RFIFOW(fd, i + 26));
                         }
@@ -3401,21 +3352,14 @@ void parse_fromlogin(int fd)
                         last_ip[16], email[40], memo[255];
                     TimeT ban_until_time;  // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
                     TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
-                    memcpy(userid, RFIFOP(fd, 7), sizeof(userid));
-                    userid[sizeof(userid) - 1] = '\0';
-                    memcpy(error_message, RFIFOP(fd, 40),
-                            sizeof(error_message));
-                    error_message[sizeof(error_message) - 1] = '\0';
-                    memcpy(lastlogin, RFIFOP(fd, 60), sizeof(lastlogin));
-                    lastlogin[sizeof(lastlogin) - 1] = '\0';
-                    memcpy(last_ip, RFIFOP(fd, 84), sizeof(last_ip));
-                    last_ip[sizeof(last_ip) - 1] = '\0';
-                    memcpy(email, RFIFOP(fd, 100), sizeof(email));
-                    email[sizeof(email) - 1] = '\0';
+                    RFIFO_STRING(fd, 7, userid, 24);
+                    RFIFO_STRING(fd, 40, error_message, 20);
+                    RFIFO_STRING(fd, 60, lastlogin, 24);
+                    RFIFO_STRING(fd, 84, last_ip, 16);
+                    RFIFO_STRING(fd, 100, email, 40);
                     connect_until_time = static_cast<time_t>(RFIFOL(fd, 140));
                     ban_until_time = static_cast<time_t>(RFIFOL(fd, 144));
-                    memset(memo, '\0', sizeof(memo));
-                    strncpy(memo, static_cast<const char *>(RFIFOP(fd, 150)), RFIFOW(fd, 148));
+                    RFIFO_STRING(fd, 150, memo, RFIFOW(fd, 148));
                     if (RFIFOL(fd, 2) == -1)
                     {
                         PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n",
@@ -3553,7 +3497,7 @@ int Connect_login_server(void)
     {
         WFIFOW(login_fd, 0) = 0x7918;  // Request for administation login
         WFIFOW(login_fd, 2) = 0;   // no encrypted
-        memcpy(WFIFOP(login_fd, 4), loginserveradminpassword, 24);
+        WFIFO_STRING(login_fd, 4, loginserveradminpassword, 24);
         WFIFOSET(login_fd, 28);
         bytes_to_read = 1;
 

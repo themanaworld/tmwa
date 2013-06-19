@@ -78,7 +78,7 @@ struct item
 
 struct point
 {
-    char map[24];
+    char map_[16];
     short x, y;
 };
 

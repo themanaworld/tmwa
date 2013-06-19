@@ -1926,8 +1926,7 @@ struct Damage battle_calc_attack(BF attack_type,
                                   dumb_ptr<block_list> target, SkillID skill_num,
                                   int skill_lv, int flag)
 {
-    struct Damage d;
-    memset(&d, 0, sizeof(d));
+    struct Damage d {};
 
     switch (attack_type)
     {
@@ -2041,7 +2040,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
             MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
-                     sd->status.char_id, src->bl_m->name, src->bl_x, src->bl_y,
+                     sd->status.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
                      (target->bl_type == BL::PC) ? "PC" : "MOB",
                      (target->bl_type == BL::PC)
                      ? target->as_player()-> status.char_id
@@ -2054,7 +2053,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         {
             dumb_ptr<map_session_data> sd2 = target->as_player();
             MAP_LOG("PC%d %s:%d,%d WPNINJURY %s%d %d FOR %d",
-                     sd2->status.char_id, target->bl_m->name, target->bl_x, target->bl_y,
+                     sd2->status.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
                      (src->bl_type == BL::PC) ? "PC" : "MOB",
                      (src->bl_type == BL::PC)
                      ? src->as_player()->status.char_id
@@ -2323,7 +2322,6 @@ int battle_config_read(const char *cfgName)
 
         battle_config.base_exp_rate = 100;
         battle_config.job_exp_rate = 100;
-        battle_config.pvp_exp = 1;
         battle_config.gtb_pvp_only = 0;
         battle_config.death_penalty_type = 0;
         battle_config.death_penalty_base = 0;
@@ -2503,7 +2501,6 @@ int battle_config_read(const char *cfgName)
             {"item_third_get_time", &battle_config.item_third_get_time},
             {"base_exp_rate", &battle_config.base_exp_rate},
             {"job_exp_rate", &battle_config.job_exp_rate},
-            {"pvp_exp", &battle_config.pvp_exp},
             {"gtb_pvp_only", &battle_config.gtb_pvp_only},
             {"death_penalty_type", &battle_config.death_penalty_type},
             {"death_penalty_base", &battle_config.death_penalty_base},

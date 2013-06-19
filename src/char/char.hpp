@@ -15,7 +15,7 @@ struct mmo_map_server
     long ip;
     short port;
     int users;
-    char map[MAX_MAP_PER_SERVER][16];
+    char maps[MAX_MAP_PER_SERVER][16];
 };
 
 const mmo_charstatus *search_character(const char *character_name);

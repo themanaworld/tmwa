@@ -364,7 +364,7 @@ void log_atcommand(dumb_ptr<map_session_data> sd, const_string cmd)
     stamp_time(tmpstr);
     fprintf(fp, "[%s] %s(%d,%d) %s(%d) : ",
             tmpstr,
-            sd->bl_m->name, sd->bl_x, sd->bl_y,
+            sd->bl_m->name_, sd->bl_x, sd->bl_y,
             sd->status.name, sd->status.account_id);
     fwrite(cmd.data(), 1, cmd.size(), fp);
 }
@@ -432,10 +432,9 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     {
-        char command[100];
+        char command[100] {};
         const char *str = message;
         const char *p = message;
-        memset(command, '\0', sizeof(command));
         while (*p && !isspace(*p))
             p++;
         if (p - str >= sizeof(command))    // too long
@@ -584,10 +583,8 @@ int atcommand_config_read(const char *cfgName)
 int atcommand_setup(const int fd, dumb_ptr<map_session_data> sd,
                      const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     int level = 1;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &level, character) < 2)
@@ -630,13 +627,10 @@ int atcommand_setup(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
                         const char *, const char *message)
 {
-    char map_name[100];
-    char character[100];
+    char map_name[100] {};
+    char character[100] {};
     int x = 0, y = 0;
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(map_name, '\0', sizeof(map_name));
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%99s %d %d %99[^\n]", map_name, &x, &y,
@@ -714,10 +708,8 @@ int atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *message)
 {
-    char map_name[100];
+    char map_name[100] {};
     int x = 0, y = 0;
-
-    memset(map_name, '\0', sizeof(map_name));
 
     if (!message || !*message
         || sscanf(message, "%99s %d %d", map_name, &x, &y) < 1)
@@ -776,10 +768,8 @@ int atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_where(const int fd, dumb_ptr<map_session_data> sd,
                      const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (sscanf(message, "%99[^\n]", character) < 1)
         strcpy(character, sd->status.name);
@@ -791,7 +781,7 @@ int atcommand_where(const int fd, dumb_ptr<map_session_data> sd,
     {                           // you can look only lower or same level
         std::string output = STRPRINTF("%s: %s (%d,%d)",
                 pl_sd->status.name,
-                pl_sd->mapname, pl_sd->bl_x, pl_sd->bl_y);
+                pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
         clif_displaymessage(fd, output);
     }
     else
@@ -810,10 +800,8 @@ int atcommand_where(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -838,7 +826,7 @@ int atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
                                  "You are not authorised to warp you from your actual map.");
             return -1;
         }
-        pc_setpos(sd, pl_sd->mapname, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
+        pc_setpos(sd, pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
         std::string output = STRPRINTF("Jump to %s", character);
         clif_displaymessage(fd, output);
     }
@@ -881,7 +869,7 @@ int atcommand_jump(const int fd, dumb_ptr<map_session_data> sd,
                                  "You are not authorised to warp you from your actual map.");
             return -1;
         }
-        pc_setpos(sd, sd->mapname, x, y, BeingRemoveWhy::WARPED);
+        pc_setpos(sd, sd->mapname_, x, y, BeingRemoveWhy::WARPED);
         std::string output = STRPRINTF("Jump to %d %d", x, y);
         clif_displaymessage(fd, output);
     }
@@ -903,11 +891,8 @@ int atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
     int pl_GM_level, GM_level;
-    char match_text[100];
-    char player_name[24];
-
-    memset(match_text, '\0', sizeof(match_text));
-    memset(player_name, '\0', sizeof(player_name));
+    char match_text[100] {};
+    char player_name[24] {};
 
     if (sscanf(message, "%99[^\n]", match_text) < 1)
         strcpy(match_text, "");
@@ -930,7 +915,7 @@ int atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
                  && (pl_GM_level > GM_level)))
             {
                 // you can look only lower or same level
-                memcpy(player_name, pl_sd->status.name, 24);
+                strzcpy(player_name, pl_sd->status.name, 24);
                 for (int j = 0; player_name[j]; j++)
                     player_name[j] = tolower(player_name[j]);
                 if (strstr(player_name, match_text) != NULL)
@@ -941,11 +926,11 @@ int atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
-                                pl_sd->mapname, pl_sd->bl_x, pl_sd->bl_y);
+                                pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                     else
                         output = STRPRINTF(
                                 "Name: %s | Location: %s %d %d",
-                                pl_sd->status.name, pl_sd->mapname,
+                                pl_sd->status.name, pl_sd->mapname_,
                                 pl_sd->bl_x, pl_sd->bl_y);
                     clif_displaymessage(fd, output);
                     count++;
@@ -976,12 +961,9 @@ int atcommand_whogroup(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
     int pl_GM_level, GM_level;
-    char match_text[100];
-    char player_name[24];
+    char match_text[100] {};
+    char player_name[24] {};
     struct party *p;
-
-    memset(match_text, '\0', sizeof(match_text));
-    memset(player_name, '\0', sizeof(player_name));
 
     if (sscanf(message, "%99[^\n]", match_text) < 1)
         strcpy(match_text, "");
@@ -1004,7 +986,7 @@ int atcommand_whogroup(const int fd, dumb_ptr<map_session_data> sd,
                  && (pl_GM_level > GM_level)))
             {
                 // you can look only lower or same level
-                memcpy(player_name, pl_sd->status.name, 24);
+                strzcpy(player_name, pl_sd->status.name, 24);
                 for (int j = 0; player_name[j]; j++)
                     player_name[j] = tolower(player_name[j]);
                 if (strstr(player_name, match_text) != NULL)
@@ -1047,9 +1029,7 @@ int atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
     int count;
     int pl_GM_level, GM_level;
     map_local *map_id;
-    char map_name[100];
-
-    memset(map_name, '\0', sizeof(map_name));
+    char map_name[100] {};
 
     if (!message || !*message)
         map_id = sd->bl_m;
@@ -1085,11 +1065,11 @@ int atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
-                                pl_sd->mapname, pl_sd->bl_x, pl_sd->bl_y);
+                                pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                     else
                         output = STRPRINTF(
                                 "Name: %s | Location: %s %d %d",
-                                pl_sd->status.name, pl_sd->mapname,
+                                pl_sd->status.name, pl_sd->mapname_,
                                 pl_sd->bl_x, pl_sd->bl_y);
                     clif_displaymessage(fd, output);
                     count++;
@@ -1099,7 +1079,7 @@ int atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     std::string output = STRPRINTF("%d players found in map '%s'.",
-            count, map_id->name);
+            count, map_id->name_);
     clif_displaymessage(fd, output);
 
     return 0;
@@ -1114,10 +1094,8 @@ int atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
     int pl_GM_level, GM_level;
-    char map_name[100];
+    char map_name[100] {};
     struct party *p;
-
-    memset(map_name, '\0', sizeof(map_name));
 
     map_local *map_id;
     if (!message || !*message)
@@ -1168,12 +1146,12 @@ int atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
 
     std::string output;
     if (count == 0)
-        output = STRPRINTF("No player found in map '%s'.", map_id->name);
+        output = STRPRINTF("No player found in map '%s'.", map_id->name_);
     else if (count == 1)
-        output = STRPRINTF("1 player found in map '%s'.", map_id->name);
+        output = STRPRINTF("1 player found in map '%s'.", map_id->name_);
     else
     {
-        output = STRPRINTF("%d players found in map '%s'.", count, map_id->name);
+        output = STRPRINTF("%d players found in map '%s'.", count, map_id->name_);
     }
     clif_displaymessage(fd, output);
 
@@ -1189,12 +1167,9 @@ int atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
     int pl_GM_level, GM_level;
-    char match_text[100];
-    char player_name[24];
+    char match_text[100] {};
+    char player_name[24] {};
     struct party *p;
-
-    memset(match_text, '\0', sizeof(match_text));
-    memset(player_name, '\0', sizeof(player_name));
 
     if (sscanf(message, "%99[^\n]", match_text) < 1)
         strcpy(match_text, "");
@@ -1219,7 +1194,7 @@ int atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
                      && (pl_GM_level > GM_level)))
                 {
                     // you can look only lower or same level
-                    memcpy(player_name, pl_sd->status.name, 24);
+                    strzcpy(player_name, pl_sd->status.name, 24);
                     for (int j = 0; player_name[j]; j++)
                         player_name[j] = tolower(player_name[j]);
                     if (strstr(player_name, match_text) != NULL)
@@ -1229,7 +1204,7 @@ int atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
-                                pl_sd->mapname, pl_sd->bl_x, pl_sd->bl_y);
+                                pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                         clif_displaymessage(fd, output);
                         output = STRPRINTF(
                                 "       BLvl: %d | Job: %s (Lvl: %d)",
@@ -1272,7 +1247,7 @@ int atcommand_save(const int fd, dumb_ptr<map_session_data> sd,
 {
     nullpo_retr(-1, sd);
 
-    pc_setsavepoint(sd, sd->mapname, sd->bl_x, sd->bl_y);
+    pc_setsavepoint(sd, sd->mapname_, sd->bl_x, sd->bl_y);
     pc_makesavestatus(sd);
     chrif_save(sd);
     clif_displaymessage(fd, "Character data respawn point saved.");
@@ -1287,7 +1262,7 @@ int atcommand_save(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_load(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *)
 {
-    map_local *m = map_mapname2mapid(sd->status.save_point.map);
+    map_local *m = map_mapname2mapid(sd->status.save_point.map_);
     if (m != nullptr && m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
@@ -1303,7 +1278,7 @@ int atcommand_load(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    pc_setpos(sd, sd->status.save_point.map, sd->status.save_point.x,
+    pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
                sd->status.save_point.y, BeingRemoveWhy::GONE);
     clif_displaymessage(fd, "Warping to respawn point.");
 
@@ -1453,10 +1428,8 @@ int atcommand_die(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_kill(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -1521,7 +1494,7 @@ int atcommand_kami(const int fd, dumb_ptr<map_session_data>,
         return -1;
     }
 
-    intif_GMmessage(message, 0);
+    intif_GMmessage(message);
 
     return 0;
 }
@@ -1581,13 +1554,10 @@ int atcommand_heal(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *message)
 {
-    char item_name[100];
+    char item_name[100] {};
     int number = 0, item_id;
-    struct item item_tmp;
     struct item_data *item_data;
     int get_count, i;
-
-    memset(item_name, '\0', sizeof(item_name));
 
     if (!message || !*message
         || sscanf(message, "%99s %d", item_name, &number) < 1)
@@ -1617,7 +1587,7 @@ int atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
         }
         for (i = 0; i < number; i += get_count)
         {
-            memset(&item_tmp, 0, sizeof(item_tmp));
+            struct item item_tmp {};
             item_tmp.nameid = item_id;
             item_tmp.identify = 1;
             PickupFail flag;
@@ -1803,11 +1773,9 @@ int atcommand_joblevelup(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_help(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *)
 {
-    char buf[2048], w1[2048], w2[2048];
+    char buf[2048] {};
     int i, gm_level;
     FILE *fp;
-
-    memset(buf, '\0', sizeof(buf));
 
     if ((fp = fopen_(help_txt, "r")) != NULL)
     {
@@ -1825,6 +1793,7 @@ int atcommand_help(const int fd, dumb_ptr<map_session_data> sd,
                     break;
                 }
             }
+            char w1[2048], w2[2048];
             if (sscanf(buf, "%2047[^:]:%2047[^\n]", w1, w2) < 2)
                 clif_displaymessage(fd, buf);
             else if (gm_level >= atoi(w1))
@@ -1848,9 +1817,7 @@ int atcommand_help(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_gm(const int fd, dumb_ptr<map_session_data> sd,
                   const char *, const char *message)
 {
-    char password[100];
-
-    memset(password, '\0', sizeof(password));
+    char password[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", password) < 1)
     {
@@ -2106,15 +2073,13 @@ int atcommand_hair_color(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_spawn(const int fd, dumb_ptr<map_session_data> sd,
                      const char *command, const char *message)
 {
-    char monster[100];
+    char monster[100] {};
     int mob_id;
     int number = 0;
     int x = 0, y = 0;
     int count;
     int i, j, k;
     int mx, my, range;
-
-    memset(monster, '\0', sizeof(monster));
 
     if (!message || !*message
         || sscanf(message, "%99s %d %d %d", monster, &number, &x, &y) < 1)
@@ -2200,9 +2165,7 @@ static
 void atcommand_killmonster_sub(const int fd, dumb_ptr<map_session_data> sd,
                                 const char *message, const int drop)
 {
-    char map_name[100];
-
-    memset(map_name, '\0', sizeof(map_name));
+    char map_name[100] {};
 
     map_local *map_id;
     if (!message || !*message || sscanf(message, "%99s", map_name) < 1)
@@ -2295,7 +2258,7 @@ int atcommand_gat(const int fd, dumb_ptr<map_session_data> sd,
     {
         std::string output = STRPRINTF(
                 "%s (x= %d, y= %d) %02X %02X %02X %02X %02X",
-                sd->bl_m->name, sd->bl_x - 2, sd->bl_y + y,
+                sd->bl_m->name_, sd->bl_x - 2, sd->bl_y + y,
                 map_getcell(sd->bl_m, sd->bl_x - 2, sd->bl_y + y),
                 map_getcell(sd->bl_m, sd->bl_x - 1, sd->bl_y + y),
                 map_getcell(sd->bl_m, sd->bl_x, sd->bl_y + y),
@@ -2549,10 +2512,8 @@ int atcommand_all_stats(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
                       const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -2579,7 +2540,7 @@ int atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
                                      "You are not authorised to warp this player from its actual map.");
                 return -1;
             }
-            pc_setpos(pl_sd, sd->mapname, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
+            pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
             std::string output = STRPRINTF("%s recalled!", character);
             clif_displaymessage(fd, output);
         }
@@ -2605,10 +2566,8 @@ int atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_revive(const int fd, dumb_ptr<map_session_data> sd,
                       const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -2644,10 +2603,8 @@ int atcommand_revive(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_character_stats(const int fd, dumb_ptr<map_session_data>,
                                const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -2764,11 +2721,9 @@ int atcommand_character_stats_all(const int fd, dumb_ptr<map_session_data>,
 int atcommand_character_option(const int fd, dumb_ptr<map_session_data> sd,
                                 const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     int opt1_ = 0, opt2_ = 0, opt3_ = 0;
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %d %d %99[^\n]", &opt1_, &opt2_, &opt3_,
@@ -2818,9 +2773,7 @@ int atcommand_character_option(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_char_change_sex(const int fd, dumb_ptr<map_session_data> sd,
                                const char *, const char *message)
 {
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -2857,9 +2810,7 @@ int atcommand_char_change_sex(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_char_block(const int fd, dumb_ptr<map_session_data> sd,
                           const char *, const char *message)
 {
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -2907,12 +2858,10 @@ int atcommand_char_block(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_char_ban(const int fd, dumb_ptr<map_session_data> sd,
                         const char *, const char *message)
 {
-    char modif[100], character[100];
+    char modif[100] {};
+    char character[100] {};
     char *modif_p;
     int year, month, day, hour, minute, second, value;
-
-    memset(modif, '\0', sizeof(modif));
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%s %99[^\n]", modif, character) < 2)
@@ -3008,9 +2957,7 @@ int atcommand_char_ban(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_char_unblock(const int fd, dumb_ptr<map_session_data> sd,
                             const char *, const char *message)
 {
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3047,9 +2994,7 @@ int atcommand_char_unblock(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_char_unban(const int fd, dumb_ptr<map_session_data> sd,
                           const char *, const char *message)
 {
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3086,13 +3031,10 @@ int atcommand_char_unban(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
                               const char *, const char *message)
 {
-    char map_name[100];
-    char character[100];
+    char map_name[100] {};
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
     int x = 0, y = 0;
-
-    memset(map_name, '\0', sizeof(map_name));
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%99s %d %d %99[^\n]", map_name, &x, &y,
@@ -3262,10 +3204,8 @@ int atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
                                    const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
+    char character[100] {};
     int level = 0, i;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &level, character) < 2
@@ -3356,10 +3296,8 @@ int atcommand_character_joblevel(const int fd, dumb_ptr<map_session_data> sd,
                                   const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
+    char character[100] {};
     int max_level = 50, level = 0;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &level, character) < 2
@@ -3441,9 +3379,7 @@ int atcommand_kick(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3552,11 +3488,9 @@ int atcommand_questskill(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_charquestskill(const int fd, dumb_ptr<map_session_data>,
                               const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
     int skill_id_ = 0;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &skill_id_, character) < 2
@@ -3664,11 +3598,9 @@ int atcommand_lostskill(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_charlostskill(const int fd, dumb_ptr<map_session_data>,
                              const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
     int skill_id_ = 0;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &skill_id_, character) < 2
@@ -3728,9 +3660,7 @@ int atcommand_charlostskill(const int fd, dumb_ptr<map_session_data>,
 int atcommand_party(const int fd, dumb_ptr<map_session_data> sd,
                      const char *, const char *message)
 {
-    char party[100];
-
-    memset(party, '\0', sizeof(party));
+    char party[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", party) < 1)
     {
@@ -3776,11 +3706,9 @@ int atcommand_mapexit(const int, dumb_ptr<map_session_data> sd,
 int atcommand_idsearch(const int fd, dumb_ptr<map_session_data>,
                         const char *, const char *message)
 {
-    char item_name[100];
+    char item_name[100] {};
     int i, match;
     struct item_data *item;
-
-    memset(item_name, '\0', sizeof(item_name));
 
     if (!message || !*message || sscanf(message, "%99s", item_name) < 0)
     {
@@ -3815,10 +3743,8 @@ int atcommand_idsearch(const int fd, dumb_ptr<map_session_data>,
 int atcommand_charskreset(const int fd, dumb_ptr<map_session_data> sd,
                            const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3858,10 +3784,8 @@ int atcommand_charskreset(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
                            const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3902,10 +3826,8 @@ int atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_charreset(const int fd, dumb_ptr<map_session_data> sd,
                          const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -3948,10 +3870,8 @@ int atcommand_charreset(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_char_wipe(const int fd, dumb_ptr<map_session_data> sd,
                          const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -4038,9 +3958,7 @@ int atcommand_charmodel(const int fd, dumb_ptr<map_session_data>,
 {
     int hair_style = 0, hair_color = 0, cloth_color = 0;
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message
         || sscanf(message, "%d %d %d %99[^\n]", &hair_style, &hair_color,
@@ -4092,11 +4010,9 @@ int atcommand_charskpoint(const int fd, dumb_ptr<map_session_data>,
                            const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
+    char character[100] {};
     int new_skill_point;
     int point = 0;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &point, character) < 2
@@ -4146,11 +4062,9 @@ int atcommand_charstpoint(const int fd, dumb_ptr<map_session_data>,
                            const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
+    char character[100] {};
     int new_status_point;
     int point = 0;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &point, character) < 2
@@ -4200,10 +4114,8 @@ int atcommand_charzeny(const int fd, dumb_ptr<map_session_data>,
                         const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
+    char character[100] {};
     int zeny = 0, new_zeny;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%d %99[^\n]", &zeny, character) < 2 || zeny == 0)
@@ -4277,7 +4189,7 @@ int atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 count++;
             else
-                pc_setpos(pl_sd, sd->mapname, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
+                pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
         }
     }
 
@@ -4300,11 +4212,9 @@ int atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
                            const char *, const char *message)
 {
-    char party_name[100];
+    char party_name[100] {};
     struct party *p;
     int count;
-
-    memset(party_name, '\0', sizeof(party_name));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", party_name) < 1)
     {
@@ -4338,7 +4248,7 @@ int atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                     count++;
                 else
-                    pc_setpos(pl_sd, sd->mapname, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
+                    pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
             }
         }
         std::string output = STRPRINTF("All online characters of the %s party are near you.", p->name);
@@ -4442,11 +4352,9 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
                        const char *, const char *message)
 {
     dumb_ptr<npc_data> nd = NULL;
-    char map_name[100];
+    char map_name[100] {};
     const char *direction = NULL;
     int list = 0;
-
-    memset(map_name, '\0', sizeof(map_name));
 
     sscanf(message, "%d %99[^\n]", &list, map_name);
 
@@ -4458,7 +4366,7 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     if (map_name[0] == '\0')
-        strcpy(map_name, sd->mapname);
+        strcpy(map_name, sd->mapname_);
     if (strstr(map_name, ".gat") == NULL && strstr(map_name, ".afm") == NULL && strlen(map_name) < 13)   // 16 - 4 (.gat)
         strcat(map_name, ".gat");
 
@@ -4519,7 +4427,7 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
                     continue;
                 dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
                 if (pl_sd && pl_sd->state.auth
-                    && strcmp(pl_sd->mapname, map_name) == 0)
+                    && strcmp(pl_sd->mapname_, map_name) == 0)
                 {
                     output = STRPRINTF(
                              "Player '%s' (session #%d) | Location: %d,%d",
@@ -4591,10 +4499,8 @@ int atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_partyspy(const int fd, dumb_ptr<map_session_data> sd,
                         const char *, const char *message)
 {
-    char party_name[100];
+    char party_name[100] {};
     struct party *p;
-
-    memset(party_name, '\0', sizeof(party_name));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", party_name) < 1)
     {
@@ -4635,9 +4541,7 @@ int atcommand_partyspy(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_enablenpc(const int fd, dumb_ptr<map_session_data>,
                          const char *, const char *message)
 {
-    char NPCname[100];
-
-    memset(NPCname, '\0', sizeof(NPCname));
+    char NPCname[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", NPCname) < 1)
     {
@@ -4667,9 +4571,7 @@ int atcommand_enablenpc(const int fd, dumb_ptr<map_session_data>,
 int atcommand_disablenpc(const int fd, dumb_ptr<map_session_data>,
                           const char *, const char *message)
 {
-    char NPCname[100];
-
-    memset(NPCname, '\0', sizeof(NPCname));
+    char NPCname[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", NPCname) < 1)
     {
@@ -4724,13 +4626,10 @@ int atcommand_chardelitem(const int fd, dumb_ptr<map_session_data> sd,
                            const char *, const char *message)
 {
     dumb_ptr<map_session_data> pl_sd;
-    char character[100];
-    char item_name[100];
+    char character[100] {};
+    char item_name[100] {};
     int i, number = 0, item_id, item_position, count;
     struct item_data *item_data;
-
-    memset(character, '\0', sizeof(character));
-    memset(item_name, '\0', sizeof(item_name));
 
     if (!message || !*message
         || sscanf(message, "%s %d %99[^\n]", item_name, &number,
@@ -4815,7 +4714,7 @@ int atcommand_broadcast(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     std::string output = STRPRINTF("%s : %s", sd->status.name, message);
-    intif_GMmessage(output, 0);
+    intif_GMmessage(output);
 
     return 0;
 }
@@ -4848,11 +4747,8 @@ int atcommand_localbroadcast(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_email(const int fd, dumb_ptr<map_session_data> sd,
                      const char *, const char *message)
 {
-    char actual_email[100];
-    char new_email[100];
-
-    memset(actual_email, '\0', sizeof(actual_email));
-    memset(new_email, '\0', sizeof(new_email));
+    char actual_email[100] {};
+    char new_email[100] {};
 
     if (!message || !*message
         || sscanf(message, "%99s %99s", actual_email, new_email) < 2)
@@ -4939,10 +4835,8 @@ int atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd;
     struct item_data *item_data, *item_temp;
     int i, j, count, counter, counter2;
-    char character[100], equipstr[100];
-
-    memset(character, '\0', sizeof(character));
-    memset(equipstr, '\0', sizeof(equipstr));
+    char character[100] {};
+    char equipstr[100];
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -5009,7 +4903,7 @@ int atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
                         equipstr[strlen(equipstr) - 2] = '\0';
                     }
                     else
-                        memset(equipstr, '\0', sizeof(equipstr));
+                        strzcpy(equipstr, "", sizeof(equipstr));
 
                     std::string output;
                     if (sd->status.inventory[i].refine)
@@ -5102,9 +4996,7 @@ int atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> sd
     dumb_ptr<map_session_data> pl_sd;
     struct item_data *item_data, *item_temp;
     int i, j, count, counter, counter2;
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -5233,9 +5125,7 @@ int atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
     dumb_ptr<map_session_data> pl_sd;
     struct item_data *item_data, *item_temp;
     int i, j, count, counter, counter2;
-    char character[100];
-
-    memset(character, '\0', sizeof(character));
+    char character[100] {};
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -5416,7 +5306,7 @@ int atcommand_charkillable(const int fd, dumb_ptr<map_session_data>,
 int atcommand_npcmove(const int, dumb_ptr<map_session_data> sd,
                    const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     int x = 0, y = 0;
     dumb_ptr<npc_data> nd = 0;
 
@@ -5425,8 +5315,6 @@ int atcommand_npcmove(const int, dumb_ptr<map_session_data> sd,
 
     if (!message || !*message)
         return -1;
-
-    memset(character, '\0', sizeof character);
 
     if (sscanf(message, "%d %d %99[^\n]", &x, &y, character) < 3)
         return -1;
@@ -5461,7 +5349,7 @@ int atcommand_addwarp(const int fd, dumb_ptr<map_session_data> sd,
     if (sscanf(message, "%29s %d %d[^\n]", mapname, &x, &y) < 3)
         return -1;
 
-    std::string w1 = STRPRINTF("%s,%d,%d", sd->mapname, sd->bl_x, sd->bl_y);
+    std::string w1 = STRPRINTF("%s,%d,%d", sd->mapname_, sd->bl_x, sd->bl_y);
     std::string w3 = STRPRINTF("%s%d%d%d%d", mapname, sd->bl_x, sd->bl_y, x, y);
     std::string w4 = STRPRINTF("1,1,%s.gat,%d,%d", mapname, x, y);
 
@@ -5900,10 +5788,8 @@ const char *magic_skill_names[magic_skills_nr] =
 int atcommand_magic_info(const int fd, dumb_ptr<map_session_data>,
                       const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message || sscanf(message, "%99[^\n]", character) < 1)
     {
@@ -5946,12 +5832,10 @@ void set_skill(dumb_ptr<map_session_data> sd, SkillID i, int level)
 int atcommand_set_magic(const int fd, dumb_ptr<map_session_data>,
                      const char *, const char *message)
 {
-    char character[100];
+    char character[100] {};
     char magic_type[20];
     int value;
     dumb_ptr<map_session_data> pl_sd;
-
-    memset(character, '\0', sizeof(character));
 
     if (!message || !*message
         || sscanf(message, "%19s %i %99[^\n]", magic_type, &value,
@@ -6070,7 +5954,7 @@ int atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
                              "You are not authorised to warp you from your actual map.");
         return -1;
     }
-    pc_setpos(sd, pl_sd->bl_m->name, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
+    pc_setpos(sd, pl_sd->bl_m->name_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
     std::string output = STRPRINTF("Jump to %s", pl_sd->status.name);
     clif_displaymessage(fd, output);
 
@@ -6105,7 +5989,7 @@ int atcommand_wgm(const int fd, dumb_ptr<map_session_data> sd,
     if (tmw_CheckChatSpam(sd, message))
         return 0;
 
-    tmw_GmHackMsg(static_cast<const std::string&>(STRPRINTF("[GM] %s: %s", sd->status.name, message)));
+    tmw_GmHackMsg(STRPRINTF("[GM] %s: %s", sd->status.name, message).c_str());
     if (!pc_isGM(sd))
         clif_displaymessage(fd, "Message sent.");
 
@@ -6258,11 +6142,9 @@ int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
                    const char *, const char *message)
 {
     struct sockaddr_in sai;
-    char character[25];
+    char character[25] {};
     socklen_t sa_len = sizeof(struct sockaddr);
     unsigned long ip;
-
-    memset(character, '\0', sizeof(character));
 
     if (sscanf(message, "%24[^\n]", character) < 1)
     {
@@ -6304,7 +6186,7 @@ int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
             {
                 std::string output = STRPRINTF(
                         "Name: %s | Location: %s %d %d",
-                        pl_sd->status.name, pl_sd->mapname,
+                        pl_sd->status.name, pl_sd->mapname_,
                         pl_sd->bl_x, pl_sd->bl_y);
                 clif_displaymessage(fd, output);
             }

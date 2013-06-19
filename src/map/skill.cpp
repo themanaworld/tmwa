@@ -52,16 +52,14 @@ struct skill_name_db skill_names[] =
     {SkillID::ZERO, nullptr, nullptr}
 };
 
-earray<struct skill_db, SkillID, SkillID::MAX_SKILL_DB> skill_db;
+earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 
 
 static
 int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         dumb_ptr<block_list> dsrc, dumb_ptr<block_list> bl,
         SkillID skillid, int skilllv, tick_t tick, BCT flag);
-static
-void skill_devotion_end(dumb_ptr<map_session_data> md,
-        dumb_ptr<map_session_data> sd, int target);
+
 static
 void skill_status_change_timer(TimerData *tid, tick_t tick,
         int id, StatusChange type);
@@ -93,7 +91,7 @@ int skill_get_max_raise(SkillID id)
 
 int skill_get_range(SkillID id, int lv)
 {
-    return (lv <= 0) ? 0 : skill_db[id].range[lv - 1];
+    return (lv <= 0) ? 0 : skill_db[id].range_k;
 }
 
 int skill_get_sp(SkillID id, int lv)
@@ -103,7 +101,7 @@ int skill_get_sp(SkillID id, int lv)
 
 int skill_get_num(SkillID id, int lv)
 {
-    return (lv <= 0) ? 0 : skill_db[id].num[lv - 1];
+    return (lv <= 0) ? 0 : skill_db[id].num_k;
 }
 
 int skill_get_cast(SkillID id, int lv)
@@ -130,16 +128,6 @@ static
 int skill_get_castnodex(SkillID id, int lv)
 {
     return (lv <= 0) ? 0 : skill_db[id].castnodex[lv - 1];
-}
-
-static
-int distance(int x0, int y0, int x1, int y1)
-{
-    int dx, dy;
-
-    dx = abs(x0 - x1);
-    dy = abs(y0 - y1);
-    return dx > dy ? dx : dy;
 }
 
 /*==========================================
@@ -528,7 +516,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
             if (md && !md->master_id)
             {
                 mob_summonslave(md,
-                        mob_db[md->mob_class].skill[md->skillidx].val,
+                        md->skillidx->val,
                         skilllv,
                         1);
             }
@@ -537,7 +525,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
         case SkillID::NPC_EMOTION:
             if (md)
                 clif_emotion(md,
-                        mob_db[md->mob_class].skill[md->skillidx].val[0]);
+                        md->skillidx->val[0]);
             break;
     }
 
@@ -651,73 +639,6 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
         return 0;
     }
     return 1;
-}
-
-/*==========================================
- * ディボーション 有効確認
- *------------------------------------------
- */
-void skill_devotion(dumb_ptr<map_session_data> md, int)
-{
-    // 総確認
-    int n;
-
-    nullpo_retv(md);
-
-    for (n = 0; n < 5; n++)
-    {
-        if (md->dev.val1[n])
-        {
-            dumb_ptr<map_session_data> sd = map_id2sd(md->dev.val1[n]);
-            // 相手が見つからない // 相手をディボしてるのが自分じゃない // 距離が離れてる
-            if (sd == NULL
-                || (md->bl_id != 0/* was something else - TODO remove this */)
-                || skill_devotion3(md, md->dev.val1[n]))
-            {
-                skill_devotion_end(md, sd, n);
-            }
-        }
-    }
-}
-
-int skill_devotion3(dumb_ptr<block_list> bl, int target)
-{
-    // クルセが歩いた時の距離チェック
-    dumb_ptr<map_session_data> md;
-    dumb_ptr<map_session_data> sd;
-    int n, r = 0;
-
-    nullpo_retr(1, bl);
-
-    md = bl->as_player();
-    sd = map_id2sd(target);
-    if (sd == NULL)
-        return 1;
-    else
-        r = distance(bl->bl_x, bl->bl_y, sd->bl_x, sd->bl_y);
-
-    if ( + 6 < r)
-    {                           // 許容範囲を超えてた
-        for (n = 0; n < 5; n++)
-            if (md->dev.val1[n] == target)
-                md->dev.val2[n] = 0;    // 離れた時は、糸を切るだけ
-        return 1;
-    }
-    return 0;
-}
-
-void skill_devotion_end(dumb_ptr<map_session_data> md,
-                         dumb_ptr<map_session_data>, int target)
-{
-    // クルセと被ディボキャラのリセット
-    nullpo_retv(md);
-
-    md->dev.val1[target] = md->dev.val2[target] = 0;
-}
-
-int skill_gangsterparadise(dumb_ptr<map_session_data>, int)
-{
-    return 0;
 }
 
 /*----------------------------------------------------------------------------
@@ -1253,12 +1174,14 @@ SP scan_stat(char *statname)
 static
 int skill_readdb(void)
 {
-    int j, k;
+    int j;
     FILE *fp;
     char line[1024], *p;
 
     /* The main skill database */
-    memset(&skill_db, 0, sizeof(skill_db));
+    for (skill_db_& skdb : skill_db)
+        skdb = skill_db_{};
+
     fp = fopen_("db/skill_db.txt", "r");
     if (fp == NULL)
     {
@@ -1267,7 +1190,7 @@ int skill_readdb(void)
     }
     while (fgets(line, 1020, fp))
     {
-        char *split[50], *split2[MAX_SKILL_LEVEL];
+        char *split[50];
         if (line[0] == '/' && line[1] == '/')
             continue;
         for (j = 0, p = line; j < 18 && p; j++)
@@ -1290,17 +1213,9 @@ int skill_readdb(void)
         if (/*i < SkillID() ||*/ i > SkillID::MAX_SKILL_DB)
             continue;
 
-        memset(split2, 0, sizeof(split2));
-        for (j = 0, p = split[1]; j < MAX_SKILL_LEVEL && p; j++)
-        {
-            split2[j] = p;
-            p = strchr(p, ':');
-            if (p)
-                *p++ = 0;
-        }
-        for (k = 0; k < MAX_SKILL_LEVEL; k++)
-            skill_db[i].range[k] =
-                (split2[k]) ? atoi(split2[k]) : atoi(split2[0]);
+        char *split2_0;
+        split2_0 = split[1];
+        skill_db[i].range_k = atoi(split2_0);
         skill_db[i].hit = atoi(split[2]);
         skill_db[i].inf = atoi(split[3]);
         skill_db[i].pl = atoi(split[4]);
@@ -1308,17 +1223,8 @@ int skill_readdb(void)
         skill_db[i].max_raise = atoi(split[6]);
         skill_db[i].max = atoi(split[7]);
 
-        memset(split2, 0, sizeof(split2));
-        for (j = 0, p = split[8]; j < MAX_SKILL_LEVEL && p; j++)
-        {
-            split2[j] = p;
-            p = strchr(p, ':');
-            if (p)
-                *p++ = 0;
-        }
-        for (k = 0; k < MAX_SKILL_LEVEL; k++)
-            skill_db[i].num[k] =
-                (split2[k]) ? atoi(split2[k]) : atoi(split2[0]);
+        split2_0 = split[8];
+        skill_db[i].num_k = atoi(split2_0);
 
         if (strcasecmp(split[9], "yes") == 0)
             skill_db[i].castcancel = 1;
@@ -1328,7 +1234,6 @@ int skill_readdb(void)
         skill_db[i].inf2 = atoi(split[11]);
         skill_db[i].maxcount = atoi(split[12]);
         // split[13] was one of: BF::WEAPON, BF::MAGIC, BF::MISC, BF::ZERO
-        memset(split2, 0, sizeof(split2));
         // split[14] was colon-separated blow counts.
 
         if (!strcasecmp(split[15], "passive"))

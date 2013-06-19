@@ -223,7 +223,6 @@ int can_move(struct map_local *m, int x0, int y0, int x1, int y1)
 int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1, int y1, int flag)
 {
     int heap[MAX_HEAP + 1];
-    struct tmp_path tp[MAX_WALKPATH * MAX_WALKPATH];
     int i, rp, x, y;
     int dx, dy;
 
@@ -277,7 +276,7 @@ int path_search(struct walkpath_data *wpd, map_local *m, int x0, int y0, int x1,
     if (flag & 1)
         return -1;
 
-    memset(tp, 0, sizeof(tp));
+    struct tmp_path tp[MAX_WALKPATH * MAX_WALKPATH] {};
 
     i = calc_index(x0, y0);
     tp[i].x = x0;

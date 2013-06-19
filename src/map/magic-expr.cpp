@@ -144,7 +144,7 @@ void stringify(val_t *v, int within_op)
 
         case TYPE::LOCATION:
             buf = STRPRINTF("<\"%s\", %d, %d>",
-                    v->v.v_location.m->name,
+                    v->v.v_location.m->name_,
                     v->v.v_location.x,
                     v->v.v_location.y);
             break;
@@ -736,7 +736,7 @@ int fun_hash_entity(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 int                            // ret -1: not a string, ret 1: no such item, ret 0: OK
-magic_find_item(const_array<val_t> args, int index, struct item *item, int *stackable)
+magic_find_item(const_array<val_t> args, int index, struct item *item_, int *stackable)
 {
     struct item_data *item_data;
     int must_add_sequentially;
@@ -761,9 +761,9 @@ magic_find_item(const_array<val_t> args, int index, struct item *item, int *stac
     if (stackable)
         *stackable = !must_add_sequentially;
 
-    memset(item, 0, sizeof(struct item));
-    item->nameid = item_data->nameid;
-    item->identify = 1;
+    *item_ = item();
+    item_->nameid = item_data->nameid;
+    item_->identify = 1;
 
     return 0;
 }
@@ -1064,7 +1064,7 @@ static
 int fun_is_exterior(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
 #warning "Evil assumptions!"
-    RESULTINT = ARGLOCATION(0).m->name[4] == '1';
+    RESULTINT = ARGLOCATION(0).m->name_[4] == '1';
     return 0;
 }
 
@@ -1127,7 +1127,7 @@ static
 int fun_map_level(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
 #warning "Evil assumptions!"
-    RESULTINT = ARGLOCATION(0).m->name[4] - '0';
+    RESULTINT = ARGLOCATION(0).m->name_[4] - '0';
     return 0;
 }
 
@@ -1135,7 +1135,7 @@ static
 int fun_map_nr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
 #warning "Evil assumptions!"
-    const char *mapname = ARGLOCATION(0).m->name;
+    const char *mapname = ARGLOCATION(0).m->name_;
 
     RESULTINT = ((mapname[0] - '0') * 100)
         + ((mapname[1] - '0') * 10) + ((mapname[2] - '0'));

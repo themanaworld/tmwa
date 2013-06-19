@@ -28,7 +28,7 @@ int clif_dropflooritem(dumb_ptr<flooritem_data>);
 int clif_clearflooritem(dumb_ptr<flooritem_data>, int);
 int clif_clearchar(dumb_ptr<block_list>, BeingRemoveWhy); // area or fd
 int clif_clearchar_delay(tick_t, dumb_ptr<block_list>, BeingRemoveWhy);
-int clif_clearchar_id(int, BeingRemoveWhy, int);
+void clif_clearchar_id(int, BeingRemoveWhy, int);
 int clif_spawnpc(dumb_ptr<map_session_data>);  //area
 int clif_spawnnpc(dumb_ptr<npc_data>); // area
 int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd,
@@ -37,9 +37,9 @@ int clif_spawnmob(dumb_ptr<mob_data>); // area
 int clif_walkok(dumb_ptr<map_session_data>);   // self
 int clif_movechar(dumb_ptr<map_session_data>); // area
 int clif_movemob(dumb_ptr<mob_data>);  //area
-int clif_changemap(dumb_ptr<map_session_data>, const char *, int, int);  //self
-int clif_changemapserver(dumb_ptr<map_session_data>, const char *, int, int, struct in_addr, int);  //self
-int clif_fixpos(dumb_ptr<block_list>); // area
+void clif_changemap(dumb_ptr<map_session_data>, const char *, int, int);  //self
+void clif_changemapserver(dumb_ptr<map_session_data>, const char *, int, int, struct in_addr, int);  //self
+void clif_fixpos(dumb_ptr<block_list>); // area
 int clif_fixmobpos(dumb_ptr<mob_data> md);
 int clif_fixpcpos(dumb_ptr<map_session_data> sd);
 int clif_npcbuysell(dumb_ptr<map_session_data>, int);  //self
@@ -51,7 +51,6 @@ int clif_scriptclose(dumb_ptr<map_session_data>, int); //self
 int clif_scriptmenu(dumb_ptr<map_session_data>, int, const char *);  //self
 int clif_scriptinput(dumb_ptr<map_session_data>, int); //self
 int clif_scriptinputstr(dumb_ptr<map_session_data> sd, int npcid);  // self
-int clif_cutin(dumb_ptr<map_session_data>, const char *, int);   //self
 int clif_viewpoint(dumb_ptr<map_session_data>, int, int, int, int, int, int);  //self
 int clif_additem(dumb_ptr<map_session_data>, int, int, PickupFail);   //self
 int clif_delitem(dumb_ptr<map_session_data>, int, int);    //self
@@ -109,7 +108,7 @@ void clif_moboutsight(dumb_ptr<block_list>, dumb_ptr<mob_data>);
 
 int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
         int range);
-int clif_skillinfoblock(dumb_ptr<map_session_data> sd);
+void clif_skillinfoblock(dumb_ptr<map_session_data> sd);
 int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num);
 
 int clif_skillcastcancel(dumb_ptr<block_list> bl);
@@ -122,8 +121,8 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 int clif_status_change(dumb_ptr<block_list> bl,
         StatusChange type, int flag);
 
-int clif_wis_message(int fd, const char *nick, const char *mes, int mes_len);
-int clif_wis_end(int fd, int flag);
+void clif_wis_message(int fd, const char *nick, const char *mes);
+void clif_wis_end(int fd, int flag);
 
 int clif_itemlist(dumb_ptr<map_session_data> sd);
 int clif_equiplist(dumb_ptr<map_session_data> sd);
@@ -135,24 +134,24 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl);
 // party
 int clif_party_created(dumb_ptr<map_session_data> sd, int flag);
 int clif_party_info(struct party *p, int fd);
-int clif_party_invite(dumb_ptr<map_session_data> sd,
+void clif_party_invite(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> tsd);
 int clif_party_inviteack(dumb_ptr<map_session_data> sd, const char *nick, int flag);
-int clif_party_option(struct party *p, dumb_ptr<map_session_data> sd,
+void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd,
         int flag);
 int clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
         int account_id, const char *name, int flag);
-int clif_party_message(struct party *p, int account_id, const char *mes, int len);
+void clif_party_message(struct party *p, int account_id, const char *mes);
 int clif_party_xy(struct party *p, dumb_ptr<map_session_data> sd);
 int clif_party_hp(struct party *p, dumb_ptr<map_session_data> sd);
 
 // atcommand
 void clif_displaymessage(int fd, const_string mes);
 void clif_GMmessage(dumb_ptr<block_list> bl, const_string mes, int flag);
-int clif_resurrection(dumb_ptr<block_list> bl, int type);
+void clif_resurrection(dumb_ptr<block_list> bl, int type);
 
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag);    // special effects [Valaris]
-int clif_message(dumb_ptr<block_list> bl, const char *msg);   // messages (from mobs/npcs) [Valaris]
+void clif_message(dumb_ptr<block_list> bl, const char *msg);   // messages (from mobs/npcs) [Valaris]
 
 int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
         int type);

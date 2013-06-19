@@ -437,7 +437,6 @@ void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int d
             case BL::PC:
             {
                 dumb_ptr<map_session_data> character = target->as_player();
-                char *map_name;
                 clif_clearchar(character, BeingRemoveWhy::WARPED);
                 map_delblock(character);
                 character->bl_x = destx;
@@ -447,7 +446,7 @@ void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int d
                 pc_touch_all_relevant_npcs(character);
 
                 // Note that touching NPCs may have triggered warping and thereby updated x and y:
-                map_name = character->bl_m->name;
+                const char *map_name = character->bl_m->name_;
 
                 // Warp part #1: update relevant data, interrupt trading etc.:
                 pc_setpos(character, map_name, character->bl_x, character->bl_y, BeingRemoveWhy::GONE);
@@ -689,7 +688,7 @@ int op_spawn(dumb_ptr<env_t>, const_array<val_t> args)
         int mob_id;
         dumb_ptr<mob_data> mob;
 
-        mob_id = mob_once_spawn(owner, loc.m->name, loc.x, loc.y, "--ja--",    // Is that needed?
+        mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, "--ja--",    // Is that needed?
                                  monster_id, 1, "");
 
         mob = map_id_as_mob(mob_id);

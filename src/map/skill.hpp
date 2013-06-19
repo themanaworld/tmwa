@@ -10,13 +10,13 @@ constexpr int MAX_SKILL_ARROW_DB = 150;
 constexpr int MAX_SKILL_ABRA_DB = 350;
 
 // スキルデータベース
-struct skill_db
+struct skill_db_
 {
-    int range[MAX_SKILL_LEVEL], hit, inf, pl, nk, max;
+    int range_k, hit, inf, pl, nk, max;
     SP stat;
     SkillFlags poolflags;
     int max_raise; // `max' is the global max, `max_raise' is the maximum attainable via skill-ups
-    int num[MAX_SKILL_LEVEL];
+    int num_k;
     int cast[MAX_SKILL_LEVEL], delay[MAX_SKILL_LEVEL];
     int upkeep_time[MAX_SKILL_LEVEL], upkeep_time2[MAX_SKILL_LEVEL];
     int castcancel, cast_def_rate;
@@ -28,7 +28,8 @@ struct skill_db
     int itemid[10], amount[10];
     int castnodex[MAX_SKILL_LEVEL];
 };
-extern earray<struct skill_db, SkillID, SkillID::MAX_SKILL_DB> skill_db;
+extern
+earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 
 struct skill_name_db
 {
@@ -73,10 +74,6 @@ void skill_stop_dancing(dumb_ptr<block_list> src, int flag);
 
 // 詠唱キャンセル
 int skill_castcancel(dumb_ptr<block_list> bl, int type);
-
-int skill_gangsterparadise(dumb_ptr<map_session_data> sd, int type);
-void skill_devotion(dumb_ptr<map_session_data> md, int target);
-int skill_devotion3(dumb_ptr<block_list> bl, int target);
 
 // ステータス異常
 int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,

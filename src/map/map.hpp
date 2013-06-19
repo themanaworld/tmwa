@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 
 #include <functional>
+#include <list>
 
 #include "../common/db.hpp"
 #include "../common/matrix.hpp"
@@ -22,10 +23,7 @@ constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
 #define AREA_SIZE battle_config.area_size
 constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
-constexpr int DAMAGELOG_SIZE = 30;
 constexpr int MAX_SKILL_LEVEL = 100;
-constexpr int MAX_MOBSKILL = 32;
-constexpr int MAX_EVENTQUEUE = 2;
 constexpr int MAX_EVENTTIMER = 32;
 constexpr interval_t NATURAL_HEAL_INTERVAL = std::chrono::milliseconds(500);
 constexpr int MAX_FLOORITEM = 500000;
@@ -143,7 +141,7 @@ struct map_session_data : block_list, SessionData
     earray<short, EQUIP, EQUIP::COUNT> equip_index;
     int weight, max_weight;
     int cart_weight, cart_max_weight, cart_num, cart_max_num;
-    char mapname[24];
+    char mapname_[16];
     int fd, new_fd;
     short to_x, to_y;
     interval_t speed;
@@ -240,7 +238,6 @@ struct map_session_data : block_list, SessionData
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
-    struct square dev;
 
     int trade_partner;
     int deal_item_index[10];
@@ -261,7 +258,7 @@ struct map_session_data : block_list, SessionData
     Timer pvp_timer;
     int pvp_lastusers;
 
-    char eventqueue[MAX_EVENTQUEUE][50];
+    std::list<std::string> eventqueuel;
     Timer eventtimer[MAX_EVENTTIMER];
 
     struct
@@ -316,7 +313,7 @@ struct npc_data : block_list
     Option option;
     short flag;
 
-    char eventqueue[MAX_EVENTQUEUE][50];
+    std::list<std::string> eventqueuel;
     Timer eventtimer[MAX_EVENTTIMER];
     short arenaflag;
 
@@ -421,11 +418,13 @@ struct mob_data : block_list
     tick_t last_deadtime, last_spawntime, last_thinktime;
     tick_t canmove_tick;
     short move_fail_count;
-    struct
+    struct DmgLogEntry
     {
         int id;
         int dmg;
-    } dmglog[DAMAGELOG_SIZE];
+    };
+    // logically a map ...
+    std::vector<DmgLogEntry> dmglogv;
     std::vector<struct item> lootitemv;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
@@ -441,8 +440,9 @@ struct mob_data : block_list
     int skilltarget;
     short skillx, skilly;
     SkillID skillid;
-    short skilllv, skillidx;
-    tick_t skilldelay[MAX_MOBSKILL];
+    short skilllv;
+    struct mob_skill *skillidx;
+    std::unique_ptr<tick_t[]> skilldelayup; // [MAX_MOBSKILL];
     LevelElement def_ele;
     int master_id, master_dist;
     int exclusion_src, exclusion_party;
@@ -459,13 +459,11 @@ struct BlockLists
 
 struct map_abstract
 {
-    // shouldn't this be 16?
-    // but beware of hard-coded memcpys
-    char name[24];
+    char name_[16];
     // gat is NULL for map_remote and non-NULL or map_local
     std::unique_ptr<MapCell[]> gat;
 
-    virtual ~map_abstract() {};
+    virtual ~map_abstract() {}
 };
 extern
 UPMap<std::string, map_abstract> maps_db;
@@ -593,7 +591,7 @@ void map_log(const_string line);
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status.char_id, sd->bl_m->name, sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status.char_id, sd->bl_m->name_, sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);

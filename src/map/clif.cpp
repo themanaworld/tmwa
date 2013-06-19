@@ -123,7 +123,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
  */
 void clif_setip(const char *ip)
 {
-    memcpy(map_ip_str, ip, 16);
+    strzcpy(map_ip_str, ip, 16);
     map_ip.s_addr = inet_addr(map_ip_str);
 }
 
@@ -261,7 +261,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
             if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {
                 // packet must exist
-                memcpy(WFIFOP(sd->fd, 0), buf, len);
+                WFIFO_BUF_CLONE(sd->fd, buf, len);
                 WFIFOSET(sd->fd, len);
             }
         }
@@ -318,7 +318,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {
                         // packet must exist
-                        memcpy(WFIFOP(i, 0), buf, len);
+                        WFIFO_BUF_CLONE(i, buf, len);
                         WFIFOSET(i, len);
                     }
                 }
@@ -335,7 +335,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                     if (clif_parse_func_table[RBUFW(buf, 0)].len)
                     {
                         // packet must exist
-                        memcpy(WFIFOP(i, 0), buf, len);
+                        WFIFO_BUF_CLONE(i, buf, len);
                         WFIFOSET(i, len);
                     }
                 }
@@ -401,7 +401,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                         if (clif_parse_func_table[RBUFW(buf, 0)].len)
                         {
                             // packet must exist
-                            memcpy(WFIFOP(sd->fd, 0), buf, len);
+                            WFIFO_BUF_CLONE(sd->fd, buf, len);
                             WFIFOSET(sd->fd, len);
                         }
                     }
@@ -418,7 +418,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                             if (clif_parse_func_table[RBUFW(buf, 0)].len)
                             {
                                 // packet must exist
-                                memcpy(WFIFOP(sd->fd, 0), buf, len);
+                                WFIFO_BUF_CLONE(sd->fd, buf, len);
                                 WFIFOSET(sd->fd, len);
                             }
                         }
@@ -432,7 +432,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
             if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {
                 // packet must exist
-                memcpy(WFIFOP(sd->fd, 0), buf, len);
+                WFIFO_BUF_CLONE(sd->fd, buf, len);
                 WFIFOSET(sd->fd, len);
             }
         }
@@ -584,7 +584,7 @@ int clif_clearflooritem(dumb_ptr<flooritem_data> fitem, int fd)
     }
     else
     {
-        memcpy(WFIFOP(fd, 0), buf, 6);
+        WFIFO_BUF_CLONE(fd, buf, 6);
         WFIFOSET(fd, clif_parse_func_table[0xa1].len);
     }
 
@@ -653,17 +653,12 @@ int clif_clearchar_delay(tick_t tick,
  *
  *------------------------------------------
  */
-int clif_clearchar_id(int id, BeingRemoveWhy type, int fd)
+void clif_clearchar_id(int id, BeingRemoveWhy type, int fd)
 {
-    unsigned char buf[16];
-
-    WBUFW(buf, 0) = 0x80;
-    WBUFL(buf, 2) = id;
-    WBUFB(buf, 6) = static_cast<uint8_t>(type);
-    memcpy(WFIFOP(fd, 0), buf, 7);
+    WFIFOW(fd, 0) = 0x80;
+    WFIFOL(fd, 2) = id;
+    WFIFOB(fd, 6) = static_cast<uint8_t>(type);
     WFIFOSET(fd, clif_parse_func_table[0x80].len);
-
-    return 0;
 }
 
 /*==========================================
@@ -800,9 +795,7 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
 static
 int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
 {
-    int level;
-
-    memset(buf, 0, clif_parse_func_table[0x78].len);
+    really_memset0(buf, clif_parse_func_table[0x78].len);
 
     nullpo_ret(md);
 
@@ -820,10 +813,8 @@ int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
     WBUFB(buf, 48) |= dir;
     WBUFB(buf, 49) = 5;
     WBUFB(buf, 50) = 5;
-    WBUFW(buf, 52) =
-        ((level =
-          battle_get_lv(md)) >
-         battle_config.max_lv) ? battle_config.max_lv : level;
+    int level = battle_get_lv(md);
+    WBUFW(buf, 52) = (level > battle_config.max_lv) ? battle_config.max_lv : level;
 
     return clif_parse_func_table[0x78].len;
 }
@@ -835,9 +826,7 @@ int clif_mob0078(dumb_ptr<mob_data> md, unsigned char *buf)
 static
 int clif_mob007b(dumb_ptr<mob_data> md, unsigned char *buf)
 {
-    int level;
-
-    memset(buf, 0, clif_parse_func_table[0x7b].len);
+    really_memset0(buf, clif_parse_func_table[0x7b].len);
 
     nullpo_ret(md);
 
@@ -854,10 +843,8 @@ int clif_mob007b(dumb_ptr<mob_data> md, unsigned char *buf)
     WBUFPOS2(buf, 50, md->bl_x, md->bl_y, md->to_x, md->to_y);
     WBUFB(buf, 56) = 5;
     WBUFB(buf, 57) = 5;
-    WBUFW(buf, 58) =
-        ((level =
-          battle_get_lv(md)) >
-         battle_config.max_lv) ? battle_config.max_lv : level;
+    int level = battle_get_lv(md);
+    WBUFW(buf, 58) = (level > battle_config.max_lv) ? battle_config.max_lv : level;
 
     return clif_parse_func_table[0x7b].len;
 }
@@ -871,7 +858,7 @@ int clif_npc0078(dumb_ptr<npc_data> nd, unsigned char *buf)
 {
     nullpo_ret(nd);
 
-    memset(buf, 0, clif_parse_func_table[0x78].len);
+    really_memset0(buf, clif_parse_func_table[0x78].len);
 
     WBUFW(buf, 0) = 0x78;
     WBUFL(buf, 2) = nd->bl_id;
@@ -953,7 +940,7 @@ int clif_spawnnpc(dumb_ptr<npc_data> nd)
     if (nd->npc_class < 0 || nd->flag & 1 || nd->npc_class == INVISIBLE_CLASS)
         return 0;
 
-    memset(buf, 0, clif_parse_func_table[0x7c].len);
+    really_memset0(buf, clif_parse_func_table[0x7c].len);
 
     WBUFW(buf, 0) = 0x7c;
     WBUFL(buf, 2) = nd->bl_id;
@@ -1018,7 +1005,7 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
     nullpo_ret(md);
 
     {
-        memset(buf, 0, clif_parse_func_table[0x7c].len);
+        really_memset0(buf, clif_parse_func_table[0x7c].len);
 
         WBUFW(buf, 0) = 0x7c;
         WBUFL(buf, 2) = md->bl_id;
@@ -1137,55 +1124,47 @@ void clif_setwaitclose(int fd)
  *
  *------------------------------------------
  */
-int clif_changemap(dumb_ptr<map_session_data> sd, const char *mapname, int x, int y)
+void clif_changemap(dumb_ptr<map_session_data> sd, const char *mapname, int x, int y)
 {
-    int fd;
+    nullpo_retv(sd);
 
-    nullpo_ret(sd);
-
-    fd = sd->fd;
+    int fd = sd->fd;
 
     WFIFOW(fd, 0) = 0x91;
-    memcpy(WFIFOP(fd, 2), mapname, 16);
+    WFIFO_STRING(fd, 2, mapname, 16);
     WFIFOW(fd, 18) = x;
     WFIFOW(fd, 20) = y;
     WFIFOSET(fd, clif_parse_func_table[0x91].len);
-
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int clif_changemapserver(dumb_ptr<map_session_data> sd, const char *mapname, int x,
+void clif_changemapserver(dumb_ptr<map_session_data> sd, const char *mapname, int x,
                           int y, struct in_addr ip, int port)
 {
-    int fd;
+    nullpo_retv(sd);
 
-    nullpo_ret(sd);
-
-    fd = sd->fd;
+    int fd = sd->fd;
     WFIFOW(fd, 0) = 0x92;
-    memcpy(WFIFOP(fd, 2), mapname, 16);
+    WFIFO_STRING(fd, 2, mapname, 16);
     WFIFOW(fd, 18) = x;
     WFIFOW(fd, 20) = y;
     WFIFOL(fd, 22) = ip.s_addr;
     WFIFOW(fd, 26) = port;
     WFIFOSET(fd, clif_parse_func_table[0x92].len);
-
-    return 0;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-int clif_fixpos(dumb_ptr<block_list> bl)
+void clif_fixpos(dumb_ptr<block_list> bl)
 {
     uint8_t buf[16];
 
-    nullpo_ret(bl);
+    nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0x88;
     WBUFL(buf, 2) = bl->bl_id;
@@ -1193,8 +1172,6 @@ int clif_fixpos(dumb_ptr<block_list> bl)
     WBUFW(buf, 8) = bl->bl_y;
 
     clif_send(buf, clif_parse_func_table[0x88].len, bl, SendWho::AREA);
-
-    return 0;
 }
 
 /*==========================================
@@ -1410,25 +1387,6 @@ int clif_viewpoint(dumb_ptr<map_session_data> sd, int npc_id, int type, int x,
     WFIFOB(fd, 18) = id;
     WFIFOL(fd, 19) = color;
     WFIFOSET(fd, clif_parse_func_table[0x144].len);
-
-    return 0;
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-int clif_cutin(dumb_ptr<map_session_data> sd, const char *image, int type)
-{
-    int fd;
-
-    nullpo_ret(sd);
-
-    fd = sd->fd;
-    WFIFOW(fd, 0) = 0x1b3;
-    memcpy(WFIFOP(fd, 2), image, 64);
-    WFIFOB(fd, 66) = type;
-    WFIFOSET(fd, clif_parse_func_table[0x1b3].len);
 
     return 0;
 }
@@ -3009,7 +2967,7 @@ int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
     }
     else
         WFIFOW(fd, 12) = range;
-    memset(WFIFOP(fd, 14), 0, 24);
+    WFIFO_ZERO(fd, 14, 24);
     WFIFOB(fd, 38) = sd->status.skill[skillid].lv < skill_get_max_raise(skillid);
     WFIFOSET(fd, clif_parse_func_table[0x147].len);
 
@@ -3020,12 +2978,12 @@ int clif_skillinfo(dumb_ptr<map_session_data> sd, SkillID skillid, int type,
  * スキルリストを送信する
  *------------------------------------------
  */
-int clif_skillinfoblock(dumb_ptr<map_session_data> sd)
+void clif_skillinfoblock(dumb_ptr<map_session_data> sd)
 {
     int fd;
     int len = 4, range;
 
-    nullpo_ret(sd);
+    nullpo_retv(sd);
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0x10f;
@@ -3045,15 +3003,13 @@ int clif_skillinfoblock(dumb_ptr<map_session_data> sd)
             if (range < 0)
                 range = battle_get_range(sd) - (range + 1);
             WFIFOW(fd, len + 10) = range;
-            memset(WFIFOP(fd, len + 12), 0, 24);
+            WFIFO_ZERO(fd, len + 12, 24);
             WFIFOB(fd, len + 36) = sd->status.skill[i].lv < skill_get_max_raise(i);
             len += 37;
         }
     }
     WFIFOW(fd, 2) = len;
     WFIFOSET(fd, len);
-
-    return 0;
 }
 
 /*==========================================
@@ -3187,10 +3143,10 @@ void clif_displaymessage(int fd, const_string mes)
     {
         // don't send a void message (it's not displaying on the client chat). @help can send void line.
         WFIFOW(fd, 0) = 0x8e;
-        WFIFOW(fd, 2) = 5 + mes.size();   // 4 + len + NULL teminate
-        memcpy(WFIFOP(fd, 4), mes.data(), mes.size());
-        WFIFOB(fd, 4 + mes.size()) = '\0';
-        WFIFOSET(fd, 5 + mes.size());
+        size_t str_len = mes.size() + 1; // NUL (might not be NUL yet)
+        WFIFOW(fd, 2) = 4 + str_len;
+        WFIFO_STRING(fd, 4, mes.data(), str_len);
+        WFIFOSET(fd, 4 + str_len);
     }
 }
 
@@ -3200,14 +3156,12 @@ void clif_displaymessage(int fd, const_string mes)
  */
 void clif_GMmessage(dumb_ptr<block_list> bl, const_string mes, int flag)
 {
-    unsigned char buf[mes.size() + 16];
-    int lp = (flag & 0x10) ? 8 : 4;
+    size_t str_len = mes.size() + 1;
+    unsigned char buf[str_len + 4];
 
     WBUFW(buf, 0) = 0x9a;
-    WBUFW(buf, 2) = mes.size() + 1 + lp;
-    WBUFL(buf, 4) = 0x65756c62;
-    memcpy(WBUFP(buf, lp), mes.data(), mes.size());
-    WBUFB(buf, lp + mes.size()) = '\0';
+    WBUFW(buf, 2) = str_len + 4;
+    WBUF_STRING(buf, 4, mes.data(), str_len);
     flag &= 0x07;
     clif_send(buf, WBUFW(buf, 2), bl,
                (flag == 1) ? SendWho::ALL_SAMEMAP :
@@ -3220,45 +3174,43 @@ void clif_GMmessage(dumb_ptr<block_list> bl, const_string mes, int flag)
  * 復活する
  *------------------------------------------
  */
-int clif_resurrection(dumb_ptr<block_list> bl, int type)
+void clif_resurrection(dumb_ptr<block_list> bl, int type)
 {
-    unsigned char buf[16];
+    uint8_t buf[16];
 
-    nullpo_ret(bl);
+    nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0x148;
     WBUFL(buf, 2) = bl->bl_id;
     WBUFW(buf, 6) = type;
 
-    clif_send(buf, clif_parse_func_table[0x148].len, bl, type == 1 ? SendWho::AREA : SendWho::AREA_WOS);
-
-    return 0;
+    clif_send(buf, clif_parse_func_table[0x148].len, bl,
+            type == 1 ? SendWho::AREA : SendWho::AREA_WOS);
 }
 
 /*==========================================
  * Wisp/page is transmitted to the destination player
  *------------------------------------------
  */
-int clif_wis_message(int fd, const char *nick, const char *mes, int mes_len)   // R 0097 <len>.w <nick>.24B <message>.?B
+void clif_wis_message(int fd, const char *nick, const char *mes)   // R 0097 <len>.w <nick>.24B <message>.?B
 {
+    size_t mes_len = strlen(mes) + 1;
     WFIFOW(fd, 0) = 0x97;
     WFIFOW(fd, 2) = mes_len + 24 + 4;
-    memcpy(WFIFOP(fd, 4), nick, 24);
-    memcpy(WFIFOP(fd, 28), mes, mes_len);
+    WFIFO_STRING(fd, 4, nick, 24);
+    WFIFO_STRING(fd, 28, mes, mes_len);
     WFIFOSET(fd, WFIFOW(fd, 2));
-    return 0;
 }
 
 /*==========================================
  * The transmission result of Wisp/page is transmitted to the source player
  *------------------------------------------
  */
-int clif_wis_end(int fd, int flag) // R 0098 <type>.B: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
+void clif_wis_end(int fd, int flag) // R 0098 <type>.B: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
 {
     WFIFOW(fd, 0) = 0x98;
     WFIFOW(fd, 2) = flag;
     WFIFOSET(fd, clif_parse_func_table[0x98].len);
-    return 0;
 }
 
 /*==========================================
@@ -3299,7 +3251,7 @@ int clif_party_info(struct party *p, int fd)
     nullpo_ret(p);
 
     WBUFW(buf, 0) = 0xfb;
-    memcpy(WBUFP(buf, 4), p->name, 24);
+    WBUF_STRING(buf, 4, p->name, 24);
     for (i = c = 0; i < MAX_PARTY; i++)
     {
         struct party_member *m = &p->member[i];
@@ -3308,22 +3260,25 @@ int clif_party_info(struct party *p, int fd)
             if (sd == NULL)
                 sd = dumb_ptr<map_session_data>(m->sd);
             WBUFL(buf, 28 + c * 46) = m->account_id;
-            memcpy(WBUFP(buf, 28 + c * 46 + 4), m->name, 24);
-            memcpy(WBUFP(buf, 28 + c * 46 + 28), m->map, 16);
+            WBUF_STRING(buf, 28 + c * 46 + 4, m->name, 24);
+            WBUF_STRING(buf, 28 + c * 46 + 28, m->map, 16);
             WBUFB(buf, 28 + c * 46 + 44) = (m->leader) ? 0 : 1;
             WBUFB(buf, 28 + c * 46 + 45) = (m->online) ? 0 : 1;
             c++;
         }
     }
-    WBUFW(buf, 2) = 28 + c * 46;
+    size_t len = 28 + c * 46;
+    WBUFW(buf, 2) = len;
     if (fd >= 0)
-    {                           // fdが設定されてるならそれに送る
-        memcpy(WFIFOP(fd, 0), buf, WBUFW(buf, 2));
-        WFIFOSET(fd, WFIFOW(fd, 2));
+    {
+        // If set, send only to fd.
+        WFIFO_BUF_CLONE(fd, buf, len);
+        WFIFOSET(fd, len);
         return 9;
     }
+    // else, send it to all the party, if they exist.
     if (sd != NULL)
-        clif_send(buf, WBUFW(buf, 2), sd, SendWho::PARTY);
+        clif_send(buf, len, sd, SendWho::PARTY);
     return 0;
 }
 
@@ -3334,25 +3289,24 @@ int clif_party_info(struct party *p, int fd)
  * (R 00fe <sender_ID>.l <party_name>.24B)
  *------------------------------------------
  */
-int clif_party_invite(dumb_ptr<map_session_data> sd,
+void clif_party_invite(dumb_ptr<map_session_data> sd,
                        dumb_ptr<map_session_data> tsd)
 {
     int fd;
     struct party *p;
 
-    nullpo_ret(sd);
-    nullpo_ret(tsd);
+    nullpo_retv(sd);
+    nullpo_retv(tsd);
 
     fd = tsd->fd;
 
     if (!(p = party_search(sd->status.party_id)))
-        return 0;
+        return;
 
     WFIFOW(fd, 0) = 0xfe;
     WFIFOL(fd, 2) = sd->status.account_id;
-    memcpy(WFIFOP(fd, 6), p->name, 24);
+    WFIFO_STRING(fd, 6, p->name, 24);
     WFIFOSET(fd, clif_parse_func_table[0xfe].len);
-    return 0;
 }
 
 /*==========================================
@@ -3377,7 +3331,7 @@ int clif_party_inviteack(dumb_ptr<map_session_data> sd, const char *nick, int fl
 
     fd = sd->fd;
     WFIFOW(fd, 0) = 0xfd;
-    memcpy(WFIFOP(fd, 2), nick, 24);
+    WFIFO_STRING(fd, 2, nick, 24);
     WFIFOB(fd, 26) = flag;
     WFIFOSET(fd, clif_parse_func_table[0xfd].len);
     return 0;
@@ -3390,11 +3344,11 @@ int clif_party_inviteack(dumb_ptr<map_session_data> sd, const char *nick, int fl
  *        0x100=一人にのみ送信
  *------------------------------------------
  */
-int clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
+void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
 {
     unsigned char buf[16];
 
-    nullpo_ret(p);
+    nullpo_retv(p);
 
 //  if(battle_config.etc_log)
 //      PRINTF("clif_party_option: %d %d %d\n",p->exp,p->item,flag);
@@ -3406,7 +3360,7 @@ int clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
                 break;
     }
     if (sd == NULL)
-        return 0;
+        return;
     WBUFW(buf, 0) = 0x101;
     WBUFW(buf, 2) = ((flag & 0x01) ? 2 : p->exp);
     WBUFW(buf, 4) = ((flag & 0x10) ? 2 : p->item);
@@ -3414,10 +3368,9 @@ int clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
         clif_send(buf, clif_parse_func_table[0x101].len, sd, SendWho::PARTY);
     else
     {
-        memcpy(WFIFOP(sd->fd, 0), buf, clif_parse_func_table[0x101].len);
+        WFIFO_BUF_CLONE(sd->fd, buf, clif_parse_func_table[0x101].len);
         WFIFOSET(sd->fd, clif_parse_func_table[0x101].len);
     }
-    return 0;
 }
 
 /*==========================================
@@ -3434,7 +3387,7 @@ int clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
 
     WBUFW(buf, 0) = 0x105;
     WBUFL(buf, 2) = account_id;
-    memcpy(WBUFP(buf, 6), name, 24);
+    WBUF_STRING(buf, 6, name, 24);
     WBUFB(buf, 30) = flag & 0x0f;
 
     if ((flag & 0xf0) == 0)
@@ -3451,7 +3404,7 @@ int clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
     }
     else if (sd != NULL)
     {
-        memcpy(WFIFOP(sd->fd, 0), buf, clif_parse_func_table[0x105].len);
+        WFIFO_BUF_CLONE(sd->fd, buf, clif_parse_func_table[0x105].len);
         WFIFOSET(sd->fd, clif_parse_func_table[0x105].len);
     }
     return 0;
@@ -3461,13 +3414,13 @@ int clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
  * パーティメッセージ送信
  *------------------------------------------
  */
-int clif_party_message(struct party *p, int account_id, const char *mes, int len)
+void clif_party_message(struct party *p, int account_id, const char *mes)
 {
     // always set, but clang is not smart enough
     dumb_ptr<map_session_data> sd = nullptr;
     int i;
 
-    nullpo_ret(p);
+    nullpo_retv(p);
 
     for (i = 0; i < MAX_PARTY; i++)
     {
@@ -3477,14 +3430,14 @@ int clif_party_message(struct party *p, int account_id, const char *mes, int len
     }
     if (sd != NULL)
     {
-        unsigned char buf[1024];
+        size_t len = strlen(mes) + 1;
+        unsigned char buf[len + 8];
         WBUFW(buf, 0) = 0x109;
         WBUFW(buf, 2) = len + 8;
         WBUFL(buf, 4) = account_id;
-        memcpy(WBUFP(buf, 8), mes, len);
+        WBUF_STRING(buf, 8, mes, len);
         clif_send(buf, len + 8, sd, SendWho::PARTY);
     }
-    return 0;
 }
 
 /*==========================================
@@ -3601,7 +3554,7 @@ void clif_emotion_towards(dumb_ptr<block_list> bl,
     WBUFL(buf, 2) = bl->bl_id;
     WBUFB(buf, 6) = type;
 
-    memcpy(WFIFOP(sd->fd, 0), buf, len);
+    WFIFO_BUF_CLONE(sd->fd, buf, len);
     WFIFOSET(sd->fd, len);
 }
 
@@ -3663,7 +3616,7 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
 
     nullpo_ret(bl);
 
-    memset(buf, 0, clif_parse_func_table[0x19b].len);
+    WBUF_ZERO(buf, 0, clif_parse_func_table[0x19b].len);
 
     WBUFW(buf, 0) = 0x19b;
     WBUFL(buf, 2) = bl->bl_id;
@@ -3963,9 +3916,9 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
             nullpo_retv(ssd);
 
             if (ssd->state.shroud_active)
-                memset(WFIFOP(fd, 6), 0, 24);
+                WFIFO_STRING(fd, 6, "", 24);
             else
-                memcpy(WFIFOP(fd, 6), ssd->status.name, 24);
+                WFIFO_STRING(fd, 6, ssd->status.name, 24);
             WFIFOSET(fd, clif_parse_func_table[0x95].len);
 
             struct party *p = NULL;
@@ -3984,10 +3937,10 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
             {
                 WFIFOW(fd, 0) = 0x195;
                 WFIFOL(fd, 2) = account_id;
-                memcpy(WFIFOP(fd, 6), party_name, 24);
-                memcpy(WFIFOP(fd, 30), "", 24);
-                memcpy(WFIFOP(fd, 54), "", 24);
-                memcpy(WFIFOP(fd, 78), "", 24); // We send this value twice because the client expects it
+                WFIFO_STRING(fd, 6, party_name, 24);
+                WFIFO_STRING(fd, 30, "", 24);
+                WFIFO_STRING(fd, 54, "", 24);
+                WFIFO_STRING(fd, 78, "", 24); // We send this value twice because the client expects it
                 WFIFOSET(fd, clif_parse_func_table[0x195].len);
 
             }
@@ -4009,19 +3962,21 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
         }
             break;
         case BL::NPC:
-            memcpy(WFIFOP(fd, 6), bl->as_npc()->name, 24);
+        {
+            char name[24];
+            strzcpy(name, bl->as_npc()->name, 24);
+            // [fate] elim hashed out/invisible names for the client
+            *strchrnul(name, '#') = '\0';
+            for (char& c : name)
             {
-                char *start = static_cast<char *>(WFIFOP(fd, 6));
-                char *end = strchr(start, '#');    // [fate] elim hashed out/invisible names for the client
-                if (end)
-                    while (*end)
-                        *end++ = 0;
-
                 // [fate] Elim preceding underscores for (hackish) name position fine-tuning
-                while (*start == '_')
-                    *start++ = ' ';
+                if (c != '_')
+                    break;
+                c = ' ';
             }
+            WFIFO_STRING(fd, 6, name, 24);
             WFIFOSET(fd, clif_parse_func_table[0x95].len);
+        }
             break;
         case BL::MOB:
         {
@@ -4029,7 +3984,7 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
 
             nullpo_retv(md);
 
-            memcpy(WFIFOP(fd, 6), md->name, 24);
+            WFIFO_STRING(fd, 6, md->name, 24);
             WFIFOSET(fd, clif_parse_func_table[0x95].len);
         }
             break;
@@ -4073,39 +4028,39 @@ void clif_parse_GlobalMessage(int fd, dumb_ptr<map_session_data> sd)
         }
 
         /* It's not a spell/magic message, so send the message to others. */
-        uint8_t sendbuf[mbuf.size() + 8];
+        size_t mbuf_size = mbuf.size() + 1;
+        uint8_t sendbuf[mbuf_size + 8];
         WBUFW(sendbuf, 0) = 0x8d;
-        WBUFW(sendbuf, 2) = mbuf.size() + 8;   /* Header(2) + length(2) + ID(4). */
+        WBUFW(sendbuf, 2) = mbuf_size + 8;   /* Header(2) + length(2) + ID(4). */
         WBUFL(sendbuf, 4) = sd->bl_id;
-        memcpy(WBUFP(sendbuf, 8), mbuf.data(), mbuf.size());
+        WBUF_STRING(sendbuf, 8, mbuf.c_str(), mbuf_size);
 
-        clif_send(sendbuf, mbuf.size() + 8, sd, SendWho::AREA_CHAT_WOC);
+        clif_send(sendbuf, mbuf_size + 8, sd, SendWho::AREA_CHAT_WOC);
     }
 
     /* Send the message back to the speaker. */
-    memcpy(WFIFOP(fd, 0), RFIFOP(fd, 0), RFIFOW(fd, 2));
+    size_t len = RFIFOW(fd, 2);
+    RFIFO_WFIFO_CLONE(fd, fd, len);
     WFIFOW(fd, 0) = 0x8e;
-    WFIFOSET(fd, WFIFOW(fd, 2));
+    WFIFOSET(fd, len);
 }
 
-int clif_message(dumb_ptr<block_list> bl, const char *msg)
+void clif_message(dumb_ptr<block_list> bl, const char *msg)
 {
-    unsigned short msg_len = strlen(msg) + 1;
-    unsigned char buf[512];
+    size_t msg_len = strlen(msg) + 1;
+    uint8_t buf[512];
 
     if (msg_len + 16 > 512)
-        return 0;
+        return;
 
-    nullpo_ret(bl);
+    nullpo_retv(bl);
 
     WBUFW(buf, 0) = 0x8d;
     WBUFW(buf, 2) = msg_len + 8;
     WBUFL(buf, 4) = bl->bl_id;
-    memcpy(WBUFP(buf, 8), msg, msg_len);
+    WBUF_STRING(buf, 8, msg, msg_len);
 
     clif_send(buf, WBUFW(buf, 2), bl, SendWho::AREA);
-
-    return 0;
 }
 
 /*==========================================
@@ -4225,12 +4180,10 @@ void clif_parse_ActionRequest(int fd, dumb_ptr<map_session_data> sd)
             break;
         case 0x02:             // sitdown
             pc_stop_walking(sd, 1);
-            skill_gangsterparadise(sd, 1); // ギャングスターパラダイス設定
             pc_setsit(sd);
             clif_sitting(fd, sd);
             break;
         case 0x03:             // standup
-            skill_gangsterparadise(sd, 0); // ギャングスターパラダイス解除
             pc_setstand(sd);
             WBUFW(buf, 0) = 0x8a;
             WBUFL(buf, 2) = sd->bl_id;
@@ -4256,7 +4209,7 @@ void clif_parse_Restart(int fd, dumb_ptr<map_session_data> sd)
             {
                 pc_setstand(sd);
                 pc_setrestartvalue(sd, 3);
-                pc_setpos(sd, sd->status.save_point.map,
+                pc_setpos(sd, sd->status.save_point.map_,
                            sd->status.save_point.x, sd->status.save_point.y,
                            BeingRemoveWhy::QUIT);
             }
@@ -4321,25 +4274,25 @@ void clif_parse_Wis(int fd, dumb_ptr<map_session_data> sd)
      * conflict (for instance, "Test" versus "test"), the char-server must
      * settle the discrepancy.
      */
-    const char *tname = static_cast<const char *>(RFIFOP(fd, 4));
+    char tname[24];
+    RFIFO_STRING(fd, 4, tname, 24);
     if (!(dstsd = map_nick2sd(tname))
             || strcmp(dstsd->status.name, tname) != 0)
-        intif_wis_message(sd, tname, mbuf.c_str(),  RFIFOW(fd, 2) - 28);
+        intif_wis_message(sd, tname, mbuf.c_str());
     else
     {
         /* Refuse messages addressed to self. */
         if (dstsd->fd == fd)
         {
             const char *mes = "You cannot page yourself.";
-            clif_wis_message(fd, wisp_server_name, mes, strlen(mes) + 1);
+            clif_wis_message(fd, wisp_server_name, mes);
         }
         else
         {
             {
                 /* The player is not being ignored. */
                 {
-                    clif_wis_message(dstsd->fd, sd->status.name, mbuf.c_str(),
-                                      RFIFOW(fd, 2) - 28);
+                    clif_wis_message(dstsd->fd, sd->status.name, mbuf.c_str());
                     /* The whisper was sent successfully. */
                     clif_wis_end(fd, 0);
                 }
@@ -4931,7 +4884,7 @@ void clif_parse_PartyMessage(int fd, dumb_ptr<map_session_data> sd)
         return;
     }
 
-    party_send_message(sd, mbuf.c_str(), RFIFOW(fd, 2) - 4);
+    party_send_message(sd, mbuf.c_str());
 }
 
 func_table clif_parse_func_table[0x0220] =

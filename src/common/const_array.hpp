@@ -126,6 +126,8 @@ public:
 };
 
 // subclass just provides a simpler name and some conversions
+// Important note: it must be safe to dereference end, though
+// the value is unspecified.
 class const_string : public const_array<char>
 {
 public:

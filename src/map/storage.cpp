@@ -119,7 +119,7 @@ int storage_additem(dumb_ptr<map_session_data> sd, struct storage *stor,
     if (i >= MAX_STORAGE)
         return 1;
 
-    memcpy(&stor->storage_[i], item_data, sizeof(stor->storage_[0]));
+    stor->storage_[i] = *item_data;
     stor->storage_[i].amount = amount;
     stor->storage_amount++;
     clif_storageitemadded(sd, stor, i, amount);
@@ -143,7 +143,7 @@ int storage_delitem(dumb_ptr<map_session_data> sd, struct storage *stor,
     stor->storage_[n].amount -= amount;
     if (stor->storage_[n].amount == 0)
     {
-        memset(&stor->storage_[n], 0, sizeof(stor->storage_[0]));
+        stor->storage_[n] = item{};
         stor->storage_amount--;
         clif_updatestorageamount(sd, stor);
     }

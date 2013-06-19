@@ -102,6 +102,13 @@ FILE *fopen_(const char *path, const char *mode);
 
 bool free_fds(void);
 
+template<class T>
+uint8_t *pod_addressof(T& structure)
+{
+    static_assert(is_trivially_copyable<T>::value, "Can only byte-copy POD-ish structs");
+    return &reinterpret_cast<uint8_t&>(structure);
+}
+
 
 
 /// Check how much can be read
@@ -131,6 +138,21 @@ uint32_t RFIFOL(int fd, size_t pos)
 {
     return *static_cast<const uint32_t *>(RFIFOP(fd, pos));
 }
+template<class T>
+void RFIFO_STRUCT(int fd, size_t pos, T& structure)
+{
+    really_memcpy(pod_addressof(structure), static_cast<const uint8_t *>(RFIFOP(fd, pos)), sizeof(T));
+}
+inline
+void RFIFO_STRING(int fd, size_t pos, char *out, size_t len)
+{
+    strzcpy(out, static_cast<const char *>(RFIFOP(fd, pos)), len);
+}
+inline
+void RFIFO_BUF_CLONE(int fd, uint8_t *buf, size_t len)
+{
+    really_memcpy(buf, static_cast<const uint8_t *>(RFIFOP(fd, 0)), len);
+}
 
 /// Done reading
 void RFIFOSKIP(int fd, size_t len);
@@ -155,6 +177,16 @@ inline
 uint32_t RBUFL(const uint8_t *p, size_t pos)
 {
     return *static_cast<const uint32_t *>(RBUFP(p, pos));
+}
+template<class T>
+void RBUF_STRUCT(const uint8_t *p, size_t pos, T& structure)
+{
+    really_memcpy(pod_addressof(structure), p + pos, sizeof(T));
+}
+inline
+void RBUF_STRING(const uint8_t *p, size_t pos, char *out, size_t len)
+{
+    strzcpy(out, static_cast<const char *>(RBUFP(p, pos)), len);
 }
 
 
@@ -185,6 +217,29 @@ uint32_t& WFIFOL(int fd, size_t pos)
 {
     return *static_cast<uint32_t *>(WFIFOP(fd, pos));
 }
+template<class T>
+void WFIFO_STRUCT(int fd, size_t pos, T& structure)
+{
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, pos)), pod_addressof(structure), sizeof(T));
+}
+inline
+void WFIFO_STRING(int fd, size_t pos, const char *s, size_t len)
+{
+    strzcpy(static_cast<char *>(WFIFOP(fd, pos)), s, len);
+}
+inline
+void WFIFO_ZERO(int fd, size_t pos, size_t len)
+{
+    uint8_t *b = static_cast<uint8_t *>(WFIFOP(fd, pos));
+    uint8_t *e = b + len;
+    std::fill(b, e, '\0');
+}
+inline
+void WFIFO_BUF_CLONE(int fd, const uint8_t *buf, size_t len)
+{
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, 0)), buf, len);
+}
+
 /// Finish writing
 void WFIFOSET(int fd, size_t len);
 
@@ -208,6 +263,30 @@ inline
 uint32_t& WBUFL(uint8_t *p, size_t pos)
 {
     return *static_cast<uint32_t *>(WBUFP(p, pos));
+}
+template<class T>
+void WBUF_STRUCT(uint8_t *p, size_t pos, T& structure)
+{
+    really_memcpy(p + pos, pod_addressof(structure), sizeof(T));
+}
+inline
+void WBUF_STRING(uint8_t *p, size_t pos, const char *s, size_t len)
+{
+    strzcpy(static_cast<char *>(WBUFP(p, pos)), s, len);
+}
+inline
+void WBUF_ZERO(uint8_t *p, size_t pos, size_t len)
+{
+    uint8_t *b = static_cast<uint8_t *>(WBUFP(p, pos));
+    uint8_t *e = b + len;
+    std::fill(b, e, '\0');
+}
+
+inline
+void RFIFO_WFIFO_CLONE(int rfd, int wfd, size_t len)
+{
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(wfd, 0)),
+            static_cast<const uint8_t *>(RFIFOP(rfd, 0)), len);
 }
 
 #endif // SOCKET_HPP

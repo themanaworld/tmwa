@@ -230,9 +230,9 @@ __inline__ static
 std::string mmo_char_tostr(struct mmo_charstatus *p)
 {
     // on multi-map server, sometimes it's posssible that last_point become void. (reason???) We check that to not lost character at restart.
-    if (p->last_point.map[0] == '\0')
+    if (p->last_point.map_[0] == '\0')
     {
-        memcpy(p->last_point.map, "001-1.gat", 10);
+        strzcpy(p->last_point.map_, "001-1.gat", 16);
         p->last_point.x = 273;
         p->last_point.y = 354;
     }
@@ -265,13 +265,13 @@ std::string mmo_char_tostr(struct mmo_charstatus *p)
             p->party_id, 0/*guild_id*/, 0/*pet_id*/,
             p->hair, p->hair_color, p->clothes_color,
             p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom,
-            p->last_point.map, p->last_point.x, p->last_point.y,
-            p->save_point.map, p->save_point.x, p->save_point.y, p->partner_id);
+            p->last_point.map_, p->last_point.x, p->last_point.y,
+            p->save_point.map_, p->save_point.x, p->save_point.y, p->partner_id);
     for (int i = 0; i < 10; i++)
-        if (p->memo_point[i].map[0])
+        if (p->memo_point[i].map_[0])
         {
             str_p += STRPRINTF("%s,%d,%d ",
-                    p->memo_point[i].map, p->memo_point[i].x, p->memo_point[i].y);
+                    p->memo_point[i].map_, p->memo_point[i].x, p->memo_point[i].y);
         }
     str_p += '\t';
 
@@ -335,7 +335,7 @@ std::string mmo_char_tostr(struct mmo_charstatus *p)
 static
 bool extract(const_string str, struct point *p)
 {
-    return extract(str, record<','>(&p->map, &p->x, &p->y));
+    return extract(str, record<','>(&p->map_, &p->x, &p->y));
 }
 
 struct skill_loader
@@ -364,7 +364,7 @@ static
 bool extract(const_string str, struct mmo_charstatus *p)
 {
     // initilialise character
-    memset(p, '\0', sizeof(struct mmo_charstatus));
+    *p = mmo_charstatus{};
 
     uint32_t unused_guild_id, unused_pet_id;
     std::vector<struct point> memos;
@@ -389,7 +389,7 @@ bool extract(const_string str, struct mmo_charstatus *p)
                     // somebody was silly and stuck partner id as a field
                     // of this, instead of adding a new \t
                     // or putting it elsewhere, like by pet/guild
-                    record<','>(&p->save_point.map, &p->save_point.x, &p->save_point.y, &p->partner_id),
+                    record<','>(&p->save_point.map_, &p->save_point.x, &p->save_point.y, &p->partner_id),
                     vrec<' '>(&memos),
                     vrec<' '>(&inventory),
                     vrec<' '>(&cart),
@@ -768,8 +768,8 @@ mmo_charstatus *make_new_char(int fd, const uint8_t *dat)
     cd.head_top = 0;
     cd.head_mid = 0;
     cd.head_bottom = 0;
-    memcpy(&cd.last_point, &start_point, sizeof(start_point));
-    memcpy(&cd.save_point, &start_point, sizeof(start_point));
+    cd.last_point = start_point;
+    cd.save_point = start_point;
     char_data.push_back(std::move(cd));
     online_chars.push_back(-1);
 
@@ -950,7 +950,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
     }
 
     const int offset = 24;
-    memset(WFIFOP(fd, 0), 0, offset + found_num * 106);
+    WFIFO_ZERO(fd, 0, offset + found_num * 106);
     WFIFOW(fd, 0) = 0x6b;
     WFIFOW(fd, 2) = offset + found_num * 106;
 
@@ -994,7 +994,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 72) = find_equip_view(p, EPOS::MISC2);
 //      WFIFOW(fd,j+72) = p->clothes_color;
 
-        memcpy(WFIFOP(fd, j + 74), p->name, 24);
+        WFIFO_STRING(fd, j + 74, p->name, 24);
 
         WFIFOB(fd, j + 98) = min(p->attrs[ATTR::STR], 255);
         WFIFOB(fd, j + 99) = min(p->attrs[ATTR::AGI], 255);
@@ -1018,8 +1018,11 @@ int set_account_reg2(int acc, int num, struct global_reg *reg)
     {
         if (cd.account_id == acc)
         {
-            memcpy(cd.account_reg2, reg, sizeof(cd.account_reg2));
+	    for (int i = 0; i < num; ++i)
+		cd.account_reg2[i] = reg[i];
             cd.account_reg2_num = num;
+	    for (int i = num; i < ACCOUNT_REG2_NUM; ++i)
+		cd.account_reg2[i] = global_reg{};
             c++;
         }
     }
@@ -1168,7 +1171,7 @@ void parse_tologin(int fd)
                     // if no map-server already connected, display a message...
                     int i;
                     for (i = 0; i < MAX_MAP_SERVERS; i++)
-                        if (server_fd[i] >= 0 && server[i].map[0][0])   // if map-server online and at least 1 map
+                        if (server_fd[i] >= 0 && server[i].maps[0][0])   // if map-server online and at least 1 map
                             break;
                     if (i == MAX_MAP_SERVERS)
                         PRINTF("Awaiting maps from map-server.\n");
@@ -1200,7 +1203,7 @@ void parse_tologin(int fd)
 //                          PRINTF("max_connect_user (unlimited) -> accepted.\n");
 //                      else
 //                          PRINTF("count_users(): %d < max_connect_user (%d) -> accepted.\n", count_users(), max_connect_user);
-                            memcpy(sd->email, RFIFOP(fd, 7), 40);
+                            RFIFO_STRING(fd, 7, sd->email, 40);
                             if (e_mail_check(sd->email) == 0)
                                 strzcpy(sd->email, "a@a.com", 40); // default e-mail
                             sd->connect_until_time = static_cast<time_t>(RFIFOL(fd, 47));
@@ -1234,7 +1237,7 @@ void parse_tologin(int fd)
                     {
                         if (sd->account_id == RFIFOL(fd, 2))
                         {
-                            memcpy(sd->email, RFIFOP(fd, 6), 40);
+			    RFIFO_STRING(fd, 6, sd->email, 40);
                             if (e_mail_check(sd->email) == 0)
                                 strzcpy(sd->email, "a@a.com", 40); // default e-mail
                             sd->connect_until_time = static_cast<time_t>(RFIFOL(fd, 46));
@@ -1316,16 +1319,12 @@ void parse_tologin(int fd)
                         CHAR_LOG("'ladmin': Receiving a message for broadcast, but no map-server is online.\n");
                     else
                     {
-                        uint8_t buf[128];
-                        char message[RFIFOL(fd, 4) + 1];   // +1 to add a null terminated if not exist in the packet
-                        int lp;
-                        char *p;
-                        memset(message, '\0', sizeof(message));
-                        memcpy(message, RFIFOP(fd, 8), RFIFOL(fd, 4));
-                        message[sizeof(message) - 1] = '\0';
+			size_t len = RFIFOL(fd, 4);
+                        char message[len];
+			RFIFO_STRING(fd, 8, message, len);
                         remove_control_chars(message);
                         // remove all first spaces
-                        p = message;
+                        char *p = message;
                         while (p[0] == ' ')
                             p++;
                         // if message is only composed of spaces
@@ -1334,25 +1333,16 @@ void parse_tologin(int fd)
                         // else send message to all map-servers
                         else
                         {
-                            if (RFIFOW(fd, 2) == 0)
                             {
                                 const char *message_ptr = message;
                                 CHAR_LOG("'ladmin': Receiving a message for broadcast (message (in yellow): %s)\n",
                                      message_ptr);
-                                lp = 4;
-                            }
-                            else
-                            {
-                                const char *message_ptr = message;
-                                CHAR_LOG("'ladmin': Receiving a message for broadcast (message (in blue): %s)\n",
-                                     message_ptr);
-                                lp = 8;
                             }
                             // send broadcast to all map-servers
+			    uint8_t buf[4 + len];
                             WBUFW(buf, 0) = 0x3800;
-                            WBUFW(buf, 2) = lp + sizeof(message);
-                            WBUFL(buf, 4) = 0x65756c62;    // only write if in blue (lp = 8)
-                            memcpy(WBUFP(buf, lp), message, sizeof(message));
+                            WBUFW(buf, 2) = 4 + sizeof(message);
+			    WBUF_STRING(buf, 4, message, sizeof(message));
                             mapif_sendall(buf, WBUFW(buf, 2));
                         }
                     }
@@ -1366,24 +1356,25 @@ void parse_tologin(int fd)
                     return;
                 {
                     struct global_reg reg[ACCOUNT_REG2_NUM];
-                    unsigned char buf[4096];
                     int j, p, acc;
                     acc = RFIFOL(fd, 4);
                     for (p = 8, j = 0;
                          p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
                          p += 36, j++)
                     {
-                        memcpy(reg[j].str, RFIFOP(fd, p), 32);
+                        RFIFO_STRING(fd, p, reg[j].str, 32);
                         reg[j].value = RFIFOL(fd, p + 32);
                     }
                     set_account_reg2(acc, j, reg);
-                    // 同垢ログインを禁止していれば送る必要は無い
-                    memcpy(buf, RFIFOP(fd, 0), RFIFOW(fd, 2));
+
+		    size_t len = RFIFOW(fd, 2);
+                    uint8_t buf[len];
+                    RFIFO_BUF_CLONE(fd, buf, len);
                     WBUFW(buf, 0) = 0x2b11;
-                    mapif_sendall(buf, WBUFW(buf, 2));
-                    RFIFOSKIP(fd, RFIFOW(fd, 2));
+                    mapif_sendall(buf, len);
 //          PRINTF("char: save_account_reg_reply\n");
                 }
+		RFIFOSKIP(fd, RFIFOW(fd, 2));
                 break;
 
             case 0x7924:
@@ -1496,10 +1487,11 @@ void parse_tologin(int fd)
                 if (RFIFOREST(fd) < 4 || RFIFOREST(fd) < RFIFOW(fd, 2))
                     return;
                 {
-                    uint8_t buf[32000];
+		    size_t len = RFIFOW(fd, 2);
+                    uint8_t buf[len];
                     gm_accounts.clear();
-                    gm_accounts.resize((RFIFOW(fd, 2) - 4) / 5);
-                    for (int i = 4; i < RFIFOW(fd, 2); i = i + 5)
+                    gm_accounts.reserve((len - 4) / 5);
+                    for (int i = 4; i < len; i += 5)
                     {
                         gm_accounts.push_back({static_cast<int>(RFIFOL(fd, i)), RFIFOB(fd, i + 4)});
                     }
@@ -1509,9 +1501,9 @@ void parse_tologin(int fd)
                          gm_accounts.size());
                     create_online_files(); // update online players files (perhaps some online players change of GM level)
                     // send new gm acccounts level to map-servers
-                    memcpy(buf, RFIFOP(fd, 0), RFIFOW(fd, 2));
+		    RFIFO_BUF_CLONE(fd, buf, len);
                     WBUFW(buf, 0) = 0x2b15;
-                    mapif_sendall(buf, RFIFOW(fd, 2));
+                    mapif_sendall(buf, len);
                 }
                 RFIFOSKIP(fd, RFIFOW(fd, 2));
                 break;
@@ -1590,7 +1582,7 @@ void parse_frommap(int fd)
         {
             PRINTF("Map-server %d (session #%d) has disconnected.\n", id,
                     fd);
-            memset(&server[id], 0, sizeof(struct mmo_map_server));
+            server[id] = mmo_map_server{};
             server_fd[id] = -1;
             for (int& oci : online_chars)
                 if (oci == fd)
@@ -1623,11 +1615,12 @@ void parse_frommap(int fd)
                 if (RFIFOREST(fd) < 4 || RFIFOREST(fd) < RFIFOW(fd, 2))
                     return;
             {
-                memset(server[id].map, 0, sizeof(server[id].map));
+		for (char (&foo)[16] : server[id].maps)
+		    strzcpy(foo, "", 16);
                 int j = 0;
                 for (int i = 4; i < RFIFOW(fd, 2); i += 16)
                 {
-                    memcpy(server[id].map[j], RFIFOP(fd, i), 16);
+                    RFIFO_STRING(fd, i, server[id].maps[j], 16);
 //              PRINTF("set map %d.%d : %s\n", id, j, server[id].map[j]);
                     j++;
                 }
@@ -1642,7 +1635,7 @@ void parse_frommap(int fd)
                 }
                 WFIFOW(fd, 0) = 0x2afb;
                 WFIFOB(fd, 2) = 0;
-                memcpy(WFIFOP(fd, 3), wisp_server_name, 24);  // name for wisp to player
+                WFIFO_STRING(fd, 3, wisp_server_name, 24);
                 WFIFOSET(fd, 27);
                 {
                     unsigned char buf[16384];
@@ -1659,7 +1652,9 @@ void parse_frommap(int fd)
                         WBUFW(buf, 2) = j * 16 + 10;
                         WBUFL(buf, 4) = server[id].ip;
                         WBUFW(buf, 8) = server[id].port;
-                        memcpy(WBUFP(buf, 10), RFIFOP(fd, 4), j * 16);
+			// server[id].maps[i] = RFIFO_STRING(fd, 4 + i * 16)
+			for (int i = 0; i < j; ++i)
+			    WBUF_STRING(buf, 10, server[id].maps[i], 16);
                         mapif_sendallwos(fd, buf, WBUFW(buf, 2));
                     }
                     // Transmitting the maps of the other map-servers to the new map-server
@@ -1672,9 +1667,8 @@ void parse_frommap(int fd)
                             WFIFOW(fd, 8) = server[x].port;
                             j = 0;
                             for (int i = 0; i < MAX_MAP_PER_SERVER; i++)
-                                if (server[x].map[i][0])
-                                    memcpy(WFIFOP(fd, 10 + (j++) * 16),
-                                            server[x].map[i], 16);
+                                if (server[x].maps[i][0])
+                                    WFIFO_STRING(fd, 10 + (j++) * 16, server[x].maps[i], 16);
                             if (j > 0)
                             {
                                 WFIFOW(fd, 2) = j * 16 + 10;
@@ -1714,7 +1708,7 @@ void parse_frommap(int fd)
                         assert (cd && "uh-oh - deleted while in queue?");
                         afi.delflag = 1;
                         WFIFOW(fd, 0) = 0x2afd;
-                        WFIFOW(fd, 2) = 18 + sizeof(struct mmo_charstatus);
+                        WFIFOW(fd, 2) = 18 + sizeof(*cd);
                         WFIFOL(fd, 4) = RFIFOL(fd, 2);
                         WFIFOL(fd, 8) = afi.login_id2;
                         WFIFOL(fd, 12) = static_cast<time_t>(afi.connect_until_time);
@@ -1723,9 +1717,7 @@ void parse_frommap(int fd)
                         FPRINTF(stderr,
                                  "From queue index %zd: recalling packet version %d\n",
                                  (&afi - &auth_fifo.front()), afi.packet_tmw_version);
-                        memcpy(WFIFOP(fd, 18),
-                                cd,
-                                sizeof(struct mmo_charstatus));
+			WFIFO_STRUCT(fd, 18, *cd);
                         WFIFOSET(fd, WFIFOW(fd, 2));
                         //PRINTF("auth_fifo search success (auth #%d, account %d, character: %d).\n", i, RFIFOL(fd,2), RFIFOL(fd,6));
                         goto x2afc_out;
@@ -1784,7 +1776,7 @@ void parse_frommap(int fd)
                     if (cd.account_id == RFIFOL(fd, 4) &&
                         cd.char_id == RFIFOL(fd, 8))
                     {
-                        memcpy(&cd, RFIFOP(fd, 12), sizeof(struct mmo_charstatus));
+			RFIFO_STRUCT(fd, 12, cd);
                         break;
                     }
                 }
@@ -1818,8 +1810,10 @@ void parse_frommap(int fd)
                     return;
                 if (auth_fifo_iter == auth_fifo.end())
                     auth_fifo_iter = auth_fifo.begin();
+
+		RFIFO_WFIFO_CLONE(fd, fd, 44);
+		// overwrite
                 WFIFOW(fd, 0) = 0x2b06;
-                memcpy(WFIFOP(fd, 2), RFIFOP(fd, 2), 42);
                 auth_fifo_iter->account_id = RFIFOL(fd, 2);
                 auth_fifo_iter->char_id = RFIFOL(fd, 14);
                 auth_fifo_iter->login_id1 = RFIFOL(fd, 6);
@@ -1859,7 +1853,7 @@ void parse_frommap(int fd)
                 }
                 WFIFOW(fd, 0) = 0x2b09;
                 WFIFOL(fd, 2) = RFIFOL(fd, 2);
-                memcpy(WFIFOP(fd, 6), *name, 24);
+                WFIFO_STRING(fd, 6, *name, 24);
                 WFIFOSET(fd, 30);
             }
                 RFIFOSKIP(fd, 6);
@@ -1872,10 +1866,10 @@ void parse_frommap(int fd)
 //          PRINTF("parse_frommap: change gm -> login, account: %d, pass: '%s'.\n", RFIFOL(fd,4), RFIFOP(fd,8));
                 if (login_fd > 0)
                 {               // don't send request if no login-server
+		    size_t len = RFIFOW(fd, 2);
+                    RFIFO_WFIFO_CLONE(fd, login_fd, len);
                     WFIFOW(login_fd, 0) = 0x2720;
-                    memcpy(WFIFOP(login_fd, 2), RFIFOP(fd, 2),
-                            RFIFOW(fd, 2) - 2);
-                    WFIFOSET(login_fd, RFIFOW(fd, 2));
+                    WFIFOSET(login_fd, len);
                 }
                 else
                 {
@@ -1893,7 +1887,7 @@ void parse_frommap(int fd)
                     return;
                 if (login_fd > 0)
                 {               // don't send request if no login-server
-                    memcpy(WFIFOP(login_fd, 0), RFIFOP(fd, 0), 86);  // 0x2722 <account_id>.L <actual_e-mail>.40B <new_e-mail>.40B
+                    RFIFO_WFIFO_CLONE(fd, login_fd, 86); // 0x2722 <account_id>.L <actual_e-mail>.40B <new_e-mail>.40B
                     WFIFOW(login_fd, 0) = 0x2722;
                     WFIFOSET(login_fd, 86);
                 }
@@ -1916,7 +1910,7 @@ void parse_frommap(int fd)
                     const mmo_charstatus *cd = search_character(character_name);
                     if (cd)
                     {
-                        memcpy(WFIFOP(fd, 6), cd->name, 24); // put correct name if found
+                        WFIFO_STRING(fd, 6, cd->name, 24); // put correct name if found
                         WFIFOW(fd, 32) = 0;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                         switch (RFIFOW(fd, 30))
                         {
@@ -2019,7 +2013,7 @@ void parse_frommap(int fd)
                     else
                     {
                         // character name not found
-                        memcpy(WFIFOP(fd, 6), character_name, 24);
+                        WFIFO_STRING(fd, 6, character_name, 24);
                         WFIFOW(fd, 32) = 1;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                     }
                     // send answer if a player ask, not if the server ask
@@ -2045,15 +2039,14 @@ void parse_frommap(int fd)
                          p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
                          p += 36, j++)
                     {
-                        memcpy(reg[j].str, RFIFOP(fd, p), 32);
+                        RFIFO_STRING(fd, p, reg[j].str, 32);
                         reg[j].value = RFIFOL(fd, p + 32);
                     }
                     set_account_reg2(acc, j, reg);
                     // loginサーバーへ送る
                     if (login_fd > 0)
                     {           // don't send request if no login-server
-                        memcpy(WFIFOP(login_fd, 0), RFIFOP(fd, 0),
-                                RFIFOW(fd, 2));
+			RFIFO_WFIFO_CLONE(fd, login_fd, RFIFOW(fd, 2));
                         WFIFOW(login_fd, 0) = 0x2728;
                         WFIFOSET(login_fd, WFIFOW(login_fd, 2));
                     }
@@ -2116,9 +2109,9 @@ int search_mapserver(const char *map)
     temp_map_len = strlen(temp_map);
     for (i = 0; i < MAX_MAP_SERVERS; i++)
         if (server_fd[i] >= 0)
-            for (j = 0; server[i].map[j][0]; j++)
+            for (j = 0; server[i].maps[j][0]; j++)
                 //PRINTF("%s : %s = %d\n", server[i].map[j], map, strncmp(server[i].map[j], temp_map, temp_map_len));
-                if (strncmp(server[i].map[j], temp_map, temp_map_len) == 0)
+                if (strncmp(server[i].maps[j], temp_map, temp_map_len) == 0)
                 {
 //                  PRINTF("found -> server #%d.\n", i);
                     return i;
@@ -2175,7 +2168,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                  sd->account_id, rfifob_2,
                  cd->name, ip);
             // searching map server
-            int i = search_mapserver(cd->last_point.map);
+            int i = search_mapserver(cd->last_point.map_);
             // if map is not found, we check major cities
             if (i < 0)
             {
@@ -2184,13 +2177,12 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                 i = 0;
                 for (j = 0; j < MAX_MAP_SERVERS; j++)
                     if (server_fd[j] >= 0
-                        && server[j].map[0][0])
+                        && server[j].maps[0][0])
                     {   // change save point to one of map found on the server (the first)
                         i = j;
-                        memcpy(cd->last_point.map,
-                                server[j].map[0], 16);
+                        strzcpy(cd->last_point.map_, server[j].maps[0], 16);
                         PRINTF("Map-server #%d found with a map: '%s'.\n",
-                             j, server[j].map[0]);
+                             j, server[j].maps[0]);
                         // coordonates are unknown
                         break;
                     }
@@ -2205,9 +2197,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
             }
             WFIFOW(fd, 0) = 0x71;
             WFIFOL(fd, 2) = cd->char_id;
-            memcpy(WFIFOP(fd, 6),
-                    cd->last_point.map,
-                    16);
+            WFIFO_STRING(fd, 6, cd->last_point.map_, 16);
             PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n",
                  cd->name,
                  sd->account_id, cd->char_num, ip);
@@ -2269,8 +2259,12 @@ void parse_char(int fd)
                 {
                     WFIFOW(login_fd, 0) = 0x2740;
                     WFIFOL(login_fd, 2) = sd->account_id;
-                    memcpy(WFIFOP(login_fd, 6), RFIFOP(fd, 2), 24);
-                    memcpy(WFIFOP(login_fd, 30), RFIFOP(fd, 26), 24);
+		    char old_pass[24];
+		    RFIFO_STRING(fd, 2, old_pass, 24);
+		    WFIFO_STRING(login_fd, 6, old_pass, 24);
+		    char new_pass[24];
+		    RFIFO_STRING(fd, 26, new_pass, 24);
+		    WFIFO_STRING(login_fd, 30, new_pass, 24);
                     WFIFOSET(login_fd, 54);
                 }
                 RFIFOSKIP(fd, 50);
@@ -2291,7 +2285,7 @@ void parse_char(int fd)
                     {
                         session[fd]->session_data = make_unique<char_session_data, SessionDeleter>();
                         sd = static_cast<char_session_data *>(session[fd]->session_data.get());
-                        memcpy(sd->email, "no mail", 40);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
+                        strzcpy(sd->email, "no mail", 40);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
                         sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
                     sd->account_id = RFIFOL(fd, 2);
@@ -2387,7 +2381,7 @@ void parse_char(int fd)
                 }
 
                 WFIFOW(fd, 0) = 0x6d;
-                memset(WFIFOP(fd, 2), 0, 106);
+		WFIFO_ZERO(fd, 2, 106);
 
                 WFIFOL(fd, 2) = cd->char_id;
                 WFIFOL(fd, 2 + 4) = cd->base_exp;
@@ -2415,7 +2409,7 @@ void parse_char(int fd)
                 WFIFOW(fd, 2 + 68) = cd->head_mid;
                 WFIFOW(fd, 2 + 70) = cd->hair_color;
 
-                memcpy(WFIFOP(fd, 2 + 74), cd->name, 24);
+		WFIFO_STRING(fd, 2 + 74, cd->name, 24);
 
                 WFIFOB(fd, 2 + 98) = min(cd->attrs[ATTR::STR], 255);
                 WFIFOB(fd, 2 + 99) = min(cd->attrs[ATTR::AGI], 255);
@@ -2433,7 +2427,7 @@ void parse_char(int fd)
             case 0x68:         // delete char //Yor's Fix
                 if (!sd || RFIFOREST(fd) < 46)
                     return;
-                memcpy(email, RFIFOP(fd, 6), 40);
+		RFIFO_STRING(fd, 6, email, 40);
                 if (e_mail_check(email) == 0)
                     strzcpy(email, "a@a.com", 40); // default e-mail
 
@@ -2504,7 +2498,8 @@ void parse_char(int fd)
                     server[i].ip = RFIFOL(fd, 54);
                     server[i].port = RFIFOW(fd, 58);
                     server[i].users = 0;
-                    memset(server[i].map, 0, sizeof(server[i].map));
+		    for (char (&mapi)[16] : server[i].maps)
+			strzcpy(mapi, "", 16);
                     WFIFOSET(fd, 3);
                     RFIFOSKIP(fd, 60);
                     realloc_fifo(fd, FIFOSIZE_SERVERLINK,
@@ -2566,7 +2561,7 @@ int mapif_sendall(const uint8_t *buf, unsigned int len)
         int fd;
         if ((fd = server_fd[i]) >= 0)
         {
-            memcpy(WFIFOP(fd, 0), buf, len);
+	    WFIFO_BUF_CLONE(fd, buf, len);
             WFIFOSET(fd, len);
             c++;
         }
@@ -2585,7 +2580,7 @@ int mapif_sendallwos(int sfd, const uint8_t *buf, unsigned int len)
         int fd;
         if ((fd = server_fd[i]) >= 0 && fd != sfd)
         {
-            memcpy(WFIFOP(fd, 0), buf, len);
+	    WFIFO_BUF_CLONE(fd, buf, len);
             WFIFOSET(fd, len);
             c++;
         }
@@ -2604,7 +2599,7 @@ int mapif_send(int fd, const uint8_t *buf, unsigned int len)
         {
             if (fd == server_fd[i])
             {
-                memcpy(WFIFOP(fd, 0), buf, len);
+		WFIFO_BUF_CLONE(fd, buf, len);
                 WFIFOSET(fd, len);
                 return 1;
             }
@@ -2643,18 +2638,13 @@ void check_connect_login_server(TimerData *, tick_t)
         session[login_fd]->func_parse = parse_tologin;
         realloc_fifo(login_fd, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
         WFIFOW(login_fd, 0) = 0x2710;
-        memset(WFIFOP(login_fd, 2), 0, 24);
-        memcpy(WFIFOP(login_fd, 2), userid,
-                strlen(userid) < 24 ? strlen(userid) : 24);
-        memset(WFIFOP(login_fd, 26), 0, 24);
-        memcpy(WFIFOP(login_fd, 26), passwd,
-                strlen(passwd) < 24 ? strlen(passwd) : 24);
+	WFIFO_ZERO(login_fd, 2, 24);
+        WFIFO_STRING(login_fd, 2, userid, 24);
+        WFIFO_STRING(login_fd, 26, passwd, 24);
         WFIFOL(login_fd, 50) = 0;
         WFIFOL(login_fd, 54) = char_ip;
         WFIFOL(login_fd, 58) = char_port;
-        memset(WFIFOP(login_fd, 60), 0, 20);
-        memcpy(WFIFOP(login_fd, 60), server_name,
-                strlen(server_name) < 20 ? strlen(server_name) : 20);
+        WFIFO_STRING(login_fd, 60, server_name, 20);
         WFIFOW(login_fd, 80) = 0;
         WFIFOW(login_fd, 82) = char_maintenance;
         WFIFOW(login_fd, 84) = char_new;
@@ -2892,7 +2882,7 @@ int char_config_read(const char *cfgName)
                 continue;
             if (strstr(map, ".gat") != NULL)
             {                   // Verify at least if '.gat' is in the map name
-                memcpy(start_point.map, map, 16);
+                strzcpy(start_point.map_, map, 16);
                 start_point.x = x;
                 start_point.y = y;
             }
@@ -3017,7 +3007,7 @@ int do_init(int argc, char **argv)
 
     for (i = 0; i < MAX_MAP_SERVERS; i++)
     {
-        memset(&server[i], 0, sizeof(struct mmo_map_server));
+        server[i] = mmo_map_server{};
         server_fd[i] = -1;
     }
 

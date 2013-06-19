@@ -71,8 +71,6 @@
 
 #pragma GCC poison wcsdup
 
-#if 0
 #pragma GCC poison memcpy
 #pragma GCC poison memmove
 #pragma GCC poison memset
-#endif

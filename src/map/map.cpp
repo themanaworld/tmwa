@@ -700,7 +700,7 @@ int map_addflooritem_any(struct item *item_data, int amount,
         fitem->third_get_id = owners[2]->bl_id;
     fitem->third_get_tick = tick + owner_protection[2];
 
-    memcpy(&fitem->item_data, item_data, sizeof(*item_data));
+    fitem->item_data = *item_data;
     fitem->item_data.amount = amount;
     // TODO - talk to 4144 about maybe removing this.
     // It has no effect on the server itself, it is visual only.
@@ -749,7 +749,7 @@ void map_addchariddb(int charid, const char *name)
     if (p == NULL)
         p = charid_db.init(charid);
 
-    memcpy(p->nick, name, 24);
+    strzcpy(p->nick, name, 24);
     p->req_id = 0;
 }
 
@@ -813,7 +813,6 @@ void map_quit(dumb_ptr<map_session_data> sd)
     pc_stop_walking(sd, 0);
     pc_stopattack(sd);
     pc_delinvincibletimer(sd);
-    skill_gangsterparadise(sd, 0);
 
     pc_calcstatus(sd, 4);
 
@@ -1030,7 +1029,7 @@ int map_addnpc(map_local *m, dumb_ptr<npc_data> nd)
     if (i == MAX_NPC_PER_MAP)
     {
         if (battle_config.error_log)
-            PRINTF("too many NPCs in one map %s\n", m->name);
+            PRINTF("too many NPCs in one map %s\n", m->name_);
         return -1;
     }
     if (i == m->npc_num)
@@ -1209,11 +1208,11 @@ int map_setipport(const char *name, struct in_addr ip, int port)
     {
         // not exist -> add new data
         auto mdos = make_unique<map_remote>();
-        memcpy(mdos->name, name, 24);
+        strzcpy(mdos->name_, name, 16);
         mdos->gat = NULL;
         mdos->ip = ip;
         mdos->port = port;
-        maps_db.put(mdos->name, std::move(mdos));
+        maps_db.put(mdos->name_, std::move(mdos));
     }
     else
     {
@@ -1263,7 +1262,7 @@ bool map_readmap(map_local *m, size_t num, const std::string& fn)
 
     m->npc_num = 0;
     m->users = 0;
-    memset(&m->flag, 0, sizeof(m->flag));
+    really_memzero_this(&m->flag);
     if (battle_config.pk_mode)
         m->flag.pvp = 1;    // make all maps pvp for pk_mode [Valaris]
     MapCell *gat_m = reinterpret_cast<MapCell *>(&gat_v[4]);
@@ -1288,7 +1287,7 @@ int map_readallmap(void)
 
     for (auto& mit : maps_db)
     {
-        assert (strstr(mit.second->name, ".gat") != NULL);
+        assert (strstr(mit.second->name_, ".gat") != NULL);
         {
             {
                 map_local *ml = static_cast<map_local *>(mit.second.get());
@@ -1329,7 +1328,7 @@ void map_addmap(const std::string& mapname)
     }
 
     auto newmap = make_unique<map_local>();
-    strzcpy(newmap->name, mapname.c_str(), sizeof(newmap->name));
+    strzcpy(newmap->name_, mapname.c_str(), 16);
 }
 
 /*==========================================

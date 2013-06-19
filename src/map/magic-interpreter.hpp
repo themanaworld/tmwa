@@ -41,7 +41,7 @@ struct area_t
         } a_rect;
         dumb_ptr<area_t> a_union[2];
 
-        au() { memset(this, '\0', sizeof(*this)); }
+        au() { really_memzero_this(this); }
         ~au() = default;
         au(const au&) = default;
         au& operator = (const au&) = default;
@@ -52,7 +52,7 @@ struct area_t
 
 struct val_t
 {
-    union v
+    union vu
     {
         int v_int;
         DIR v_dir;
@@ -65,10 +65,10 @@ struct val_t
         dumb_ptr<invocation> v_invocation;
         dumb_ptr<spell_t> v_spell;
 
-        v() { memset(this, '\0', sizeof(*this)); }
-        ~v() = default;
-        v(const v&) = default;
-        v& operator = (const v&) = default;
+        vu() { really_memzero_this(this); }
+        ~vu() = default;
+        vu(const vu&) = default;
+        vu& operator = (const vu&) = default;
     } v;
     TYPE ty;
 };
@@ -101,7 +101,7 @@ struct e_area_t
         } a_rect;
         dumb_ptr<e_area_t> a_union[2];
 
-        a0() { memset(this, '\0', sizeof(*this)); }
+        a0() { really_memzero_this(this); }
         ~a0() = default;
         a0(const a0&) = default;
         a0& operator = (const a0&) = default;
@@ -129,7 +129,7 @@ struct expr_t
             int id;
         } e_field;
 
-        eu() { memset(this, '\0', sizeof(*this)); }
+        eu() { really_memzero_this(this); }
         ~eu() = default;
         eu(const eu&) = default;
         eu& operator = (const eu&) = default;
@@ -181,7 +181,7 @@ struct effect_t
             dumb_ptr<effect_t> body;
         } e_call;
 
-        e0() { memset(this, '\0', sizeof(*this)); }
+        e0() { really_memzero_this(this); }
         ~e0() = default;
         e0(const e0&) = default;
         e0& operator = (const e0&) = default;
@@ -218,7 +218,7 @@ struct spellguard_t
         dumb_ptr<component_t> s_catalysts;
         dumb_ptr<spellguard_t> s_alt;   /* either `next' or `s.s_alt' */
         effect_set_t s_effect;
-        su() { memset(this, '\0', sizeof(*this)); }
+        su() { really_memzero_this(this); }
         ~su() = default;
         su(const su&) = default;
         su& operator = (const su&) = default;
@@ -340,10 +340,10 @@ struct cont_activation_record_t
             dumb_ptr<val_t[]> old_actualpa;
         } c_proc;
 
-        cu() { memset(this, '\0', sizeof(*this)); }
-        ~cu() {}
-        cu(const cu&) = delete;
-        cu& operator = (const cu&) = delete;
+        cu() { really_memzero_this(this); }
+        ~cu() = default;
+        cu(const cu&) = default;
+        cu& operator = (const cu&) = default;
     } c;
     CONT_STACK ty;
 };

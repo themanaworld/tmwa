@@ -7,10 +7,20 @@
 #include <cstring>
 
 #include <string>
+#include <type_traits>
 
 #include "const_array.hpp"
 #include "operators.hpp"
 #include "utils2.hpp"
+
+template<class T>
+struct is_trivially_copyable
+: std::integral_constant<bool,
+    // come back when GCC actually implements the public traits properly
+    __has_trivial_copy(T)
+    && __has_trivial_assign(T)
+    && __has_trivial_destructor(T)>
+{};
 
 int remove_control_chars(char *str);
 int e_mail_check(const char *email);
@@ -25,9 +35,36 @@ void strzcpy(char *dest, const char *src, size_t n)
     if (n)
     {
         strncpy(dest, src, n);
-        dest[n-1] = '\0';
+        dest[n - 1] = '\0';
     }
 }
+
+inline
+void really_memcpy(uint8_t *dest, const uint8_t *src, size_t n)
+{
+    memcpy(dest, src, n);
+}
+
+inline
+void really_memmove(uint8_t *dest, const uint8_t *src, size_t n)
+{
+    memmove(dest, src, n);
+}
+
+inline
+void really_memset0(uint8_t *dest, size_t n)
+{
+    memset(dest, '\0', n);
+}
+template<class T>
+void really_memzero_this(T *v)
+{
+    static_assert(is_trivially_copyable<T>::value, "only for mostly-pod types");
+    static_assert(std::is_class<T>::value || std::is_union<T>::value, "Only for user-defined structures (for now)");
+    memset(v, '\0', sizeof(*v));
+}
+template<class T, size_t n>
+void really_memzero_this(T (&)[n]) = delete;
 
 // Exists in place of time_t, to give it a predictable printf-format.
 // (on x86 and amd64, time_t == long, but not on x32)

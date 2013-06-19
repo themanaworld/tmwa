@@ -1417,7 +1417,7 @@ void builtin_isat(ScriptState *st)
     using namespace operators;
     push_val(st->stack, ByteCode::INT,
             (x == sd->bl_x) && (y == sd->bl_y)
-            && (str == sd->bl_m->name));
+            && (str == sd->bl_m->name_));
 }
 
 /*==========================================
@@ -1441,7 +1441,7 @@ void builtin_warp(ScriptState *st)
         if (sd->bl_m->flag.noreturn)    // 蝶禁止
             return;
 
-        pc_setpos(sd, sd->status.save_point.map,
+        pc_setpos(sd, sd->status.save_point.map_,
                    sd->status.save_point.x, sd->status.save_point.y, BeingRemoveWhy::WARPED);
     }
     else if (str == "Save")
@@ -1449,7 +1449,7 @@ void builtin_warp(ScriptState *st)
         if (sd->bl_m->flag.noreturn)    // 蝶禁止
             return;
 
-        pc_setpos(sd, sd->status.save_point.map,
+        pc_setpos(sd, sd->status.save_point.map_,
                    sd->status.save_point.x, sd->status.save_point.y, BeingRemoveWhy::WARPED);
     }
     else
@@ -1892,7 +1892,6 @@ static
 void builtin_getitem(ScriptState *st)
 {
     int nameid, amount;
-    struct item item_tmp;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
 
@@ -1919,7 +1918,7 @@ void builtin_getitem(ScriptState *st)
 
     if (nameid > 0)
     {
-        memset(&item_tmp, 0, sizeof(item_tmp));
+        struct item item_tmp {};
         item_tmp.nameid = nameid;
         item_tmp.identify = 1;
         if (HARGO2(5))    //アイテムを指定したIDに渡す
@@ -1947,7 +1946,6 @@ void builtin_makeitem(ScriptState *st)
 {
     int nameid, amount, flag = 0;
     int x, y;
-    struct item item_tmp;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
 
@@ -1980,7 +1978,7 @@ void builtin_makeitem(ScriptState *st)
 
     if (nameid > 0)
     {
-        memset(&item_tmp, 0, sizeof(item_tmp));
+        struct item item_tmp {};
         item_tmp.nameid = nameid;
         if (!flag)
             item_tmp.identify = 1;
@@ -2787,7 +2785,7 @@ void builtin_announce(ScriptState *st)
         clif_GMmessage(bl, str, flag);
     }
     else
-        intif_GMmessage(str, flag);
+        intif_GMmessage(str);
 }
 
 /*==========================================
@@ -3989,7 +3987,7 @@ void builtin_getsavepoint(ScriptState *st)
     {
         case 0:
         {
-            dumb_string mapname = dumb_string::copy(sd->status.save_point.map);
+            dumb_string mapname = dumb_string::copy(sd->status.save_point.map_);
             push_str(st->stack, ByteCode::STR, mapname);
         }
             break;
@@ -4059,7 +4057,7 @@ void builtin_isin(ScriptState *st)
     push_val(st->stack, ByteCode::INT,
               (sd->bl_x >= x1 && sd->bl_x <= x2)
               && (sd->bl_y >= y1 && sd->bl_y <= y2)
-              && (str == sd->bl_m->name));
+              && (str == sd->bl_m->name_));
 }
 
 // Trigger the shop on a (hopefully) nearby shop NPC
@@ -4147,7 +4145,7 @@ void builtin_getmap(ScriptState *st)
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
     // A map_data lives essentially forever.
-    push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(sd->bl_m->name));
+    push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(sd->bl_m->name_));
 }
 
 //

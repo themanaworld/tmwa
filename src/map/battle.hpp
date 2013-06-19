@@ -114,7 +114,6 @@ extern struct Battle_Config
     int base_exp_rate, job_exp_rate;
     int death_penalty_type;
     int death_penalty_base, death_penalty_job;
-    int pvp_exp;               // [MouseJstr]
     int gtb_pvp_only;          // [MouseJstr]
     int zeny_penalty;
     int restart_hp_rate;

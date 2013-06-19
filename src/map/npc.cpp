@@ -47,8 +47,10 @@ Map<std::string, struct event_data> ev_db;
 static
 DMap<std::string, dumb_ptr<npc_data>> npcname_db;
 
+// used for clock-based event triggers
+// only tm_min, tm_hour, and tm_mday are used
 static
-struct tm ev_tm_b;       // 時計イベント用
+struct tm ev_tm_b;
 
 /*==========================================
  * NPCの無効化/有効化
@@ -72,7 +74,7 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
         if (nd->flag & 1)
             return;
 
-        memcpy(aname, nd->name, sizeof(nd->name));
+        strzcpy(aname, nd->name, sizeof(nd->name));
         if (sd->areanpc_id == nd->bl_id)
             return;
         sd->areanpc_id = nd->bl_id;
@@ -134,18 +136,15 @@ int npc_event_dequeue(dumb_ptr<map_session_data> sd)
 
     sd->npc_id = 0;
 
-    if (sd->eventqueue[0][0]) // キューのイベント処理
+    if (!sd->eventqueuel.empty())
     {
-        if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueue[0]))
+        if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueuel.front().c_str()))
         {
             PRINTF("npc_event_dequeue(): Event timer is full.\n");
             return 0;
         }
 
-        if (MAX_EVENTQUEUE > 1)
-            memmove(sd->eventqueue[0], sd->eventqueue[1],
-                     (MAX_EVENTQUEUE - 1) * sizeof(sd->eventqueue[0]));
-        sd->eventqueue[MAX_EVENTQUEUE - 1][0] = '\0';
+        sd->eventqueuel.pop_front();
         return 1;
     }
 
@@ -471,24 +470,7 @@ int npc_event(dumb_ptr<map_session_data> sd, const char *eventname,
 
     if (sd->npc_id != 0)
     {
-//      if (battle_config.error_log)
-//          PRINTF("npc_event: npc_id != 0\n");
-        int i;
-        for (i = 0; i < MAX_EVENTQUEUE; i++)
-            if (!sd->eventqueue[i][0])
-                break;
-        if (i == MAX_EVENTQUEUE)
-        {
-            if (battle_config.error_log)
-                PRINTF("npc_event: event queue is full !\n");
-        }
-        else
-        {
-//          if (battle_config.etc_log)
-//              PRINTF("npc_event: enqueue\n");
-            strncpy(sd->eventqueue[i], eventname, 50);
-            sd->eventqueue[i][49] = '\0';
-        }
+        sd->eventqueuel.push_back(eventname);
         return 1;
     }
     if (nd->flag & 1)
@@ -595,7 +577,7 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
         case NpcSubtype::SCRIPT:
         {
             char aname[50] {};
-            memcpy(aname, m->npc[i]->name, sizeof(m->npc[i]->name));
+            strzcpy(aname, m->npc[i]->name, 24);
 
             if (sd->areanpc_id == m->npc[i]->bl_id)
                 return 1;
@@ -825,8 +807,7 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
         if ((item_data = itemdb_exists(item_list[i * 2 + 1])) != NULL)
         {
             int amount = item_list[i * 2];
-            struct item item_tmp;
-            memset(&item_tmp, 0, sizeof(item_tmp));
+            struct item item_tmp {};
 
             item_tmp.nameid = item_data->nameid;
             item_tmp.identify = 1;  // npc販売アイテムは鑑定済み
@@ -978,8 +959,8 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     nd->bl_y = y;
     nd->dir = DIR::S;
     nd->flag = 0;
-    memcpy(nd->name, w3, 24);
-    memcpy(nd->exname, w3, 24);
+    strzcpy(nd->name, w3, 24);
+    strzcpy(nd->exname, w3, 24);
 
     if (!battle_config.warp_point_debug)
         nd->npc_class = WARP_CLASS;
@@ -990,7 +971,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
-    memcpy(nd->warp.name, to_mapname, 16);
+    strzcpy(nd->warp.name, to_mapname, 16);
     xs += 2;
     ys += 2;
     nd->warp.x = to_x;
@@ -1101,7 +1082,7 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = dir;
     nd->flag = 0;
-    memcpy(nd->name, w3, 24);
+    strzcpy(nd->name, w3, 24);
     nd->npc_class = atoi(w4);
     nd->speed = std::chrono::milliseconds(200);
     nd->option = Option::ZERO;
@@ -1274,13 +1255,13 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     if (p)
     {
         *p = 0;
-        memcpy(nd->name, w3, 24);
-        memcpy(nd->exname, p + 2, 24);
+        strzcpy(nd->name, w3, 24);
+        strzcpy(nd->exname, p + 2, 24);
     }
     else
     {
-        memcpy(nd->name, w3, 24);
-        memcpy(nd->exname, w3, 24);
+        strzcpy(nd->name, w3, 24);
+        strzcpy(nd->exname, w3, 24);
     }
 
     nd->bl_prev = nd->bl_next = NULL;
@@ -1462,11 +1443,11 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->bl_x = x;
         md->bl_y = y;
         if (strcmp(w3, "--en--") == 0)
-            memcpy(md->name, mob_db[mob_class].name, 24);
+            strzcpy(md->name, mob_db[mob_class].name, 24);
         else if (strcmp(w3, "--ja--") == 0)
-            memcpy(md->name, mob_db[mob_class].jname, 24);
+            strzcpy(md->name, mob_db[mob_class].jname, 24);
         else
-            memcpy(md->name, w3, 24);
+            strzcpy(md->name, w3, 24);
 
         md->n = i;
         md->mob_class = mob_class;
@@ -1479,7 +1460,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->spawn.delay1 = delay1;
         md->spawn.delay2 = delay2;
 
-        memset(&md->state, 0, sizeof(md->state));
+        really_memzero_this(&md->state);
         // md->timer = nullptr;
         md->target_id = 0;
         md->attacked_id = 0;
@@ -1487,9 +1468,9 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->lootitemv.clear();
 
         if (strlen(eventname) >= 4)
-            memcpy(md->npc_event, eventname, 24);
+            strzcpy(md->npc_event, eventname, 24);
         else
-            memset(md->npc_event, 0, 24);
+            strzcpy(md->npc_event, "", 24);
 
         md->bl_type = BL::MOB;
         map_addiddb(md);
@@ -1526,13 +1507,13 @@ int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
     {
         if (strcmp(w4, "SavePoint") == 0)
         {
-            memcpy(m->save.map, "SavePoint", 16);
+            strzcpy(m->save.map_, "SavePoint", 16);
             m->save.x = -1;
             m->save.y = -1;
         }
         else if (sscanf(w4, "%[^,],%d,%d", savemap, &savex, &savey) == 3)
         {
-            memcpy(m->save.map, savemap, 16);
+            strzcpy(m->save.map_, savemap, 16);
             m->save.x = savex;
             m->save.y = savey;
         }
@@ -1714,7 +1695,10 @@ void npc_free(dumb_ptr<npc_data> nd)
  */
 int do_init_npc(void)
 {
-    memset(&ev_tm_b, -1, sizeof(ev_tm_b));
+    // other fields unused
+    ev_tm_b.tm_min = -1;
+    ev_tm_b.tm_hour = -1;
+    ev_tm_b.tm_mday = -1;
 
     for (; !npc_srcs.empty(); npc_srcs.pop_front())
     {

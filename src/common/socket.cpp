@@ -38,7 +38,7 @@ std::array<std::unique_ptr<struct socket_data>, FD_SETSIZE> session;
 inline
 void RFIFOFLUSH(int fd)
 {
-    memmove(&session[fd]->rdata[0], RFIFOP(fd, 0), RFIFOREST(fd));
+    really_memmove(&session[fd]->rdata[0], static_cast<const uint8_t *>(RFIFOP(fd, 0)), RFIFOREST(fd));
     session[fd]->rdata_size = RFIFOREST(fd);
     session[fd]->rdata_pos = 0;
 }
@@ -97,7 +97,7 @@ void send_from_fifo(int fd)
         session[fd]->wdata_size -= len;
         if (session[fd]->wdata_size)
         {
-            memmove(&session[fd]->wdata[0], &session[fd]->wdata[len],
+            really_memmove(&session[fd]->wdata[0], &session[fd]->wdata[len],
                      session[fd]->wdata_size);
         }
         session[fd]->connected = 1;
