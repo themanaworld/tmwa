@@ -26,6 +26,7 @@
 #include <algorithm>
 
 #include "const_array.hpp"
+#include "strings.hpp"
 
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
@@ -260,6 +261,8 @@ struct dumb_string
     {
         return !impl;
     }
+
+    operator ZString() { return ZString(ZString::really_construct_from_a_pointer, c_str()); }
 
 #if 0
     friend bool operator == (dumb_string l, dumb_string r)

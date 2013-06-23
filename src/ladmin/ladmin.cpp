@@ -1392,7 +1392,7 @@ int delaccount(const char *param)
     {
         PRINTF("\033[1;36m ** Are you really sure to DELETE account [%s]? (y/n) > \033[0m", name);
         fflush(stdout);
-	strzcpy(confirm, "", sizeof(confirm));
+        strzcpy(confirm, "", sizeof(confirm));
         i = 0;
         while ((letter = getchar()) != '\n')
             confirm[i++] = letter;
@@ -2709,7 +2709,7 @@ void parse_fromlogin(int fd)
                     char md5str[64] = "";
                     size_t key_len = RFIFOW(fd, 2) - 4;
                     uint8_t md5bin[32];
-		    char md5key[key_len];
+                    char md5key[key_len];
                     RFIFO_STRING(fd, 4, md5key, key_len);
                     if (passenc == 1)
                     {
@@ -2878,84 +2878,104 @@ void parse_fromlogin(int fd)
             case 0x7931:       // Answer of login-server about an account creation
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int accid = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (accid == -1)
                 {
                     PRINTF("Account [%s] creation failed. Same account already exists.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] creation failed. Same account already exists.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s] is successfully created [id: %d].\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, accid);
                     LADMIN_LOG("Account [%s] is successfully created [id: %d].\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, accid);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7933:       // Answer of login-server about an account deletion
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int accid = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (accid == -1)
                 {
                     PRINTF("Account [%s] deletion failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] deletion failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s][id: %d] is successfully DELETED.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, accid);
                     LADMIN_LOG("Account [%s][id: %d] is successfully DELETED.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, accid);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7935:       // answer of the change of an account password
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int accid = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (accid == -1)
                 {
                     PRINTF("Account [%s] password changing failed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     PRINTF("Account [%s] doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account password changing failed. The compte [%s] doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s][id: %d] password successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, accid);
                     LADMIN_LOG("Account [%s][id: %d] password successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, accid);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7937:       // answer of the change of an account state
                 if (RFIFOREST(fd) < 34)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int accid = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                int state = RFIFOL(fd, 30);
+                if (accid == -1)
                 {
                     PRINTF("Account [%s] state changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] state changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     std::string tmpstr = STRPRINTF(
                              "Account [%s] state successfully changed in [",
-                             static_cast<const char *>(RFIFOP(fd, 6)));
-                    switch (RFIFOL(fd, 30))
+                             name);
+                    switch (state)
                     {
                         case 0:
                             tmpstr += "0: Account OK";
@@ -2996,6 +3016,7 @@ void parse_fromlogin(int fd)
                     LADMIN_LOG("%s\n", tmpstr);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 34);
                 break;
 
@@ -3016,7 +3037,7 @@ void parse_fromlogin(int fd)
                         // Displaying of result
                         for (int i = 4; i < RFIFOW(fd, 2); i += 32)
                         {
-			    char name[20];
+                            char name[20];
                             RFIFO_STRING(fd, i + 6, name, 20);
                             PRINTF("    %-20s : %5d\n", name,
                                     RFIFOW(fd, i + 26));
@@ -3030,167 +3051,205 @@ void parse_fromlogin(int fd)
             case 0x793b:       // answer of the check of a password
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("The account [%s] doesn't exist or the password is incorrect.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("The account [%s] doesn't exist or the password is incorrect.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("The proposed password is correct for the account [%s][id: %d].\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                     LADMIN_LOG("The proposed password is correct for the account [%s][id: %d].\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x793d:       // answer of the change of an account sex
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Account [%s] sex changing failed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     PRINTF("Account [%s] doesn't exist or the sex is already the good sex.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account sex changing failed. The compte [%s] doesn't exist or the sex is already the good sex.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s][id: %d] sex successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                     LADMIN_LOG("Account [%s][id: %d] sex successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x793f:       // answer of the change of an account GM level
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Account [%s] GM level changing failed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     PRINTF("Account [%s] doesn't exist, the GM level is already the good GM level\n",
-                         static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     PRINTF("or it's impossible to modify the GM accounts file.\n");
                     LADMIN_LOG("Account GM level changing failed. The compte [%s] doesn't exist, the GM level is already the good sex or it's impossible to modify the GM accounts file.\n",
-                          static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s][id: %d] GM level successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                     LADMIN_LOG("Account [%s][id: %d] GM level successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7941:       // answer of the change of an account email
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Account [%s] e-mail changing failed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     PRINTF("Account [%s] doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account e-mail changing failed. The compte [%s] doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s][id: %d] e-mail successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                     LADMIN_LOG("Account [%s][id: %d] e-mail successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7943:       // answer of the change of an account memo
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Account [%s] memo changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] memo changing failed. Account doesn't exist.\n",
-
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("Account [%s][id: %d] memo successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                     LADMIN_LOG("Account [%s][id: %d] memo successfully changed.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7945:       // answer of an account id search
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Unable to find the account [%s] id. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Unable to find the account [%s] id. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
                     PRINTF("The account [%s] have the id: %d.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                     LADMIN_LOG("The account [%s] have the id: %d.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                            name, account_id);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7947:       // answer of an account name search
                 if (RFIFOREST(fd) < 30)
                     return;
-                if (strcmp(static_cast<const char *>(RFIFOP(fd, 6)), "") == 0)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (strcmp(name, "") == 0)
                 {
                     PRINTF("Unable to find the account [%d] name. Account doesn't exist.\n",
-                         RFIFOL(fd, 2));
+                            account_id);
                     LADMIN_LOG("Unable to find the account [%d] name. Account doesn't exist.\n",
-                          RFIFOL(fd, 2));
+                            account_id);
                 }
                 else
                 {
                     PRINTF("The account [id: %d] have the name: %s.\n",
-                            RFIFOL(fd, 2), static_cast<const char *>(RFIFOP(fd, 6)));
+                            account_id, name);
                     LADMIN_LOG("The account [id: %d] have the name: %s.\n",
-                            RFIFOL(fd, 2), static_cast<const char *>(RFIFOP(fd, 6)));
+                            account_id, name);
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 30);
                 break;
 
             case 0x7949:       // answer of an account validity limit set
                 if (RFIFOREST(fd) < 34)
                     return;
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
                 if (RFIFOL(fd, 2) == -1)
                 {
                     PRINTF("Account [%s] validity limit changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] validity limit changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
@@ -3198,34 +3257,39 @@ void parse_fromlogin(int fd)
                     if (!timestamp)
                     {
                         PRINTF("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                                name, account_id);
                         LADMIN_LOG("Validity Limit of the account [%s][id: %d] successfully changed to [unlimited].\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                                name, account_id);
                     }
                     else
                     {
                         timestamp_seconds_buffer tmpstr;
                         stamp_time(tmpstr, &timestamp);
                         PRINTF("Validity Limit of the account [%s][id: %d] successfully changed to be until %s.\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2), tmpstr);
+                                name, account_id, tmpstr);
                         LADMIN_LOG("Validity Limit of the account [%s][id: %d] successfully changed to be until %s.\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2),
+                                name, account_id,
                                 tmpstr);
                     }
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 34);
                 break;
 
             case 0x794b:       // answer of an account ban set
                 if (RFIFOREST(fd) < 34)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
@@ -3233,34 +3297,39 @@ void parse_fromlogin(int fd)
                     if (!timestamp)
                     {
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                                name, account_id);
                         LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                                name, account_id);
                     }
                     else
                     {
                         timestamp_seconds_buffer tmpstr;
                         stamp_time(tmpstr, &timestamp);
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2), tmpstr);
+                                name, RFIFOL(fd, 2), tmpstr);
                         LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2),
+                                name, RFIFOL(fd, 2),
                                 tmpstr);
                     }
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 34);
                 break;
 
             case 0x794d:       // answer of an account ban date/time changing
                 if (RFIFOREST(fd) < 34)
                     return;
-                if (RFIFOL(fd, 2) == -1)
+            {
+                int account_id = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                if (account_id == -1)
                 {
                     PRINTF("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                     LADMIN_LOG("Account [%s] final date of banishment changing failed. Account doesn't exist.\n",
-                            static_cast<const char *>(RFIFOP(fd, 6)));
+                            name);
                 }
                 else
                 {
@@ -3268,23 +3337,24 @@ void parse_fromlogin(int fd)
                     if (!timestamp)
                     {
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                                name, account_id);
                         LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to [unbanished].\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2));
+                                name, account_id);
                     }
                     else
                     {
                         timestamp_seconds_buffer tmpstr;
                         stamp_time(tmpstr, &timestamp);
                         PRINTF("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2),
+                                name, account_id,
                                 tmpstr);
                         LADMIN_LOG("Final date of banishment of the account [%s][id: %d] successfully changed to be until %s.\n",
-                                static_cast<const char *>(RFIFOP(fd, 6)), RFIFOL(fd, 2),
+                                name, account_id,
                                 tmpstr);
                     }
                 }
                 bytes_to_read = 0;
+            }
                 RFIFOSKIP(fd, 34);
                 break;
 

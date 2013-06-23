@@ -208,7 +208,7 @@ void mapif_parse_SaveStorage(int fd)
     else
     {
         s = account2storage(account_id);
-	RFIFO_STRUCT(fd, 8, *s);
+        RFIFO_STRUCT(fd, 8, *s);
         mapif_save_storage_ack(fd, account_id);
     }
 }

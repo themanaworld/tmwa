@@ -2313,7 +2313,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     int max_hp;
     tick_t tick = gettick();
     dumb_ptr<map_session_data> mvp_sd = NULL, second_sd = NULL, third_sd = NULL;
-    double tdmg;
 
     nullpo_ret(md);        //srcはNULLで呼ばれる場合もあるので、他でチェック
 
@@ -2454,8 +2453,6 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     // map外に消えた人は計算から除くので
     // overkill分は無いけどsumはmax_hpとは違う
-
-    tdmg = 0;
 
     // snip a prelude loop, now merged
 

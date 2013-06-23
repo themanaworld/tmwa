@@ -92,6 +92,15 @@ struct skill_value
 {
     unsigned short lv;
     SkillFlags flags;
+
+    friend bool operator == (const skill_value& l, const skill_value& r)
+    {
+        return l.lv == r.lv && l.flags == r.flags;
+    }
+    friend bool operator != (const skill_value& l, const skill_value& r)
+    {
+        return !(l == r);
+    }
 };
 
 struct global_reg

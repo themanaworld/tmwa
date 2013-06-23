@@ -3,6 +3,7 @@
 
 #include "sanity.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -38,6 +39,26 @@ struct earray
     T *end()
     {
         return _data + size_t(max);
+    }
+
+    const T *begin() const
+    {
+        return _data;
+    }
+
+    const T *end() const
+    {
+        return _data + size_t(max);
+    }
+
+    friend bool operator == (const earray& l, const earray& r)
+    {
+        return std::equal(l.begin(), l.end(), r.begin());
+    }
+
+    friend bool operator != (const earray& l, const earray& r)
+    {
+        return !(l == r);
     }
 };
 

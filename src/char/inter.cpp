@@ -421,8 +421,8 @@ void mapif_parse_WisRequest(int fd)
             size_t len = RFIFOW(fd, 2) - 52;
             RFIFO_STRING(fd, 4, wd.src, 24);
             RFIFO_STRING(fd, 28, wd.dst, 24);
-	    char tmpbuf[len];
-	    RFIFO_STRING(fd, 52, tmpbuf, len);
+            char tmpbuf[len];
+            RFIFO_STRING(fd, 52, tmpbuf, len);
             wd.msg = std::string(tmpbuf);
             wd.tick = gettick();
             wis_db.insert(wd.id, wd);

@@ -205,8 +205,7 @@ int npc_event_doall_l(const char *name, int rid, int argc, argrec_t *args)
     int c = 0;
     char buf[64] = "::";
 
-    strncpy(buf + 2, name, sizeof(buf)-3);
-    buf[sizeof(buf)-1] = '\0';
+    strzcpy(buf + 2, name, 62);
     for (auto& pair : ev_db)
         npc_event_doall_sub(pair.first, &pair.second, &c, buf, rid, argc, args);
     return c;
@@ -1624,10 +1623,8 @@ dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
     retval->bl_type = BL::NPC;
     retval->npc_subtype = NpcSubtype::MESSAGE;
 
-    strncpy(retval->name, name, 23);
-    strncpy(retval->exname, name, 23);
-    retval->name[15] = 0;
-    retval->exname[15] = 0;
+    strzcpy(retval->name, name, 24);
+    strzcpy(retval->exname, name, 24);
     if (message)
         retval->message = message;
 

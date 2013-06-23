@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <fstream>
+
 #include "../common/cxxstdio.hpp"
 #include "../common/random.hpp"
 #include "../common/nullpo.hpp"
@@ -732,25 +734,16 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         PRINTF("Connection accepted: Character '%s' (account: %d).\n",
                 sd->status.name, sd->status.account_id);
 
-    // Message of the Dayの送信
+    // TODO fix this to cache and use inotify
     {
-        char buf[256];
-        FILE *fp;
-        if ((fp = fopen_(motd_txt, "r")) != NULL)
+        std::ifstream in(motd_txt);
+        if (in.is_open())
         {
-            while (fgets(buf, sizeof(buf) - 1, fp) != NULL)
+            std::string buf;
+            while (std::getline(in, buf))
             {
-                for (int i = 0; buf[i]; i++)
-                {
-                    if (buf[i] == '\r' || buf[i] == '\n')
-                    {
-                        buf[i] = 0;
-                        break;
-                    }
-                }
                 clif_displaymessage(sd->fd, buf);
             }
-            fclose_(fp);
         }
     }
 
@@ -1447,9 +1440,9 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         return 0;
     }
 
-    if (memcmp(&b_skill, &sd->status.skill, sizeof(sd->status.skill))
+    if (b_skill != sd->status.skill
         || b_attackrange != sd->attackrange)
-        clif_skillinfoblock(sd);   // スキル送信
+        clif_skillinfoblock(sd);
 
     if (b_speed != sd->speed)
         clif_updatestatus(sd, SP::SPEED);

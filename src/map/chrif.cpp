@@ -22,7 +22,8 @@
 #include "../poison.hpp"
 
 static
-const int packet_len_table[0x20] = {
+const int packet_len_table[0x20] =
+{
     60, 3, 10, 27, 22, -1, 6, -1,   // 2af8-2aff
     6, -1, 18, 7, -1, 49, 44, 0,    // 2b00-2b07
     6, 30, -1, 10, 86, 7, 44, 34,   // 2b08-2b0f
@@ -179,9 +180,9 @@ int chrif_recvmap(int fd)
     port = RFIFOW(fd, 8);
     for (i = 10, j = 0; i < RFIFOW(fd, 2); i += 16, j++)
     {
-        map_setipport(static_cast<const char *>(RFIFOP(fd, i)), ip, port);
-//      if (battle_config.etc_log)
-//          PRINTF("recv map %d %s\n", j, RFIFOP(fd,i));
+        char map[16];
+        RFIFO_STRING(fd, i, map, 16);
+        map_setipport(map, ip, port);
     }
     if (battle_config.etc_log)
         PRINTF("recv map on %s:%d (%d maps)\n", ip2str(ip), port, j);
@@ -244,8 +245,13 @@ int chrif_changemapserverack(int fd)
         pc_authfail(sd->fd);
         return 0;
     }
-    clif_changemapserver(sd, static_cast<const char *>(RFIFOP(fd, 18)), RFIFOW(fd, 34),
-                          RFIFOW(fd, 36), in_addr{RFIFOL(fd, 38)}, RFIFOW(fd, 42));
+    char mapname[16];
+    RFIFO_STRING(fd, 18, mapname, 16);
+    uint16_t x = RFIFOW(fd, 34);
+    uint16_t y = RFIFOW(fd, 36);
+    auto ip = in_addr{RFIFOL(fd, 38)};
+    uint16_t port = RFIFOW(fd, 42);
+    clif_changemapserver(sd, mapname, x, y, ip, port);
 
     return 0;
 }
@@ -887,7 +893,7 @@ int chrif_accountban(int fd)
                 TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 7));    // status or final date of a banishment
                 char tmpstr[] = WITH_TIMESTAMP("Your account has been banished until ");
                 REPLACE_TIMESTAMP(tmpstr, timestamp);
-                clif_displaymessage(sd->fd, tmpstr);
+                clif_displaymessage(sd->fd, const_(tmpstr));
             }
             clif_setwaitclose(sd->fd); // forced to disconnect for the change
         }
@@ -1097,9 +1103,17 @@ void chrif_parse(int fd)
                 chrif_sendmapack(fd);
                 break;
             case 0x2afd:
-                pc_authok(RFIFOL(fd, 4), RFIFOL(fd, 8),
-                           static_cast<time_t>(RFIFOL(fd, 12)), RFIFOW(fd, 16),
-                           static_cast<const struct mmo_charstatus *>(RFIFOP(fd, 18)));
+            {
+                int id = RFIFOL(fd, 4);
+                int login_id2 = RFIFOL(fd, 8);
+                TimeT connect_until_time = static_cast<time_t>(RFIFOL(fd, 12));
+                short tmw_version = RFIFOW(fd, 16);
+                struct mmo_charstatus st {};
+                RFIFO_STRUCT(fd, 18, st);
+                pc_authok(id, login_id2,
+                        connect_until_time, tmw_version,
+                        &st);
+            }
                 break;
             case 0x2afe:
                 pc_authfail(RFIFOL(fd, 2));
@@ -1117,7 +1131,12 @@ void chrif_parse(int fd)
                 chrif_changemapserverack(fd);
                 break;
             case 0x2b09:
-                map_addchariddb(RFIFOL(fd, 2), static_cast<const char *>(RFIFOP(fd, 6)));
+            {
+                int charid = RFIFOL(fd, 2);
+                char name[24];
+                RFIFO_STRING(fd, 6, name, 24);
+                map_addchariddb(charid, name);
+            }
                 break;
             case 0x2b0b:
                 chrif_changedgm(fd);

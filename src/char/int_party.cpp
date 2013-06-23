@@ -382,8 +382,9 @@ void mapif_party_broken(int party_id, int flag)
 
 // パーティ内発言
 static
-void mapif_party_message(int party_id, int account_id, const char *mes, int len)
+void mapif_party_message(int party_id, int account_id, const char *mes)
 {
+    size_t len = strlen(mes);
     unsigned char buf[len + 12];
 
     WBUFW(buf, 0) = 0x3827;
@@ -575,10 +576,9 @@ void mapif_parse_BreakParty(int fd, int party_id)
 
 // パーティメッセージ送信
 static
-void mapif_parse_PartyMessage(int, int party_id, int account_id, const char *mes,
-                              int len)
+void mapif_parse_PartyMessage(int, int party_id, int account_id, const char *mes)
 {
-    mapif_party_message(party_id, account_id, mes, len);
+    mapif_party_message(party_id, account_id, mes);
 }
 
 // パーティチェック要求
@@ -598,60 +598,114 @@ int inter_party_parse_frommap(int fd)
     switch (RFIFOW(fd, 0))
     {
         case 0x3020:
+        {
+            int account = RFIFOL(fd, 2);
+            char name[24];
+            RFIFO_STRING(fd, 6, name, 24);
+            char nick[24];
+            RFIFO_STRING(fd, 30, nick, 24);
+            char map[16];
+            RFIFO_STRING(fd, 54, map, 16);
+            uint16_t lv = RFIFOW(fd, 70);
             mapif_parse_CreateParty(fd,
-                    RFIFOL(fd, 2),
-                    static_cast<const char *>(RFIFOP(fd, 6)),
-                    static_cast<const char *>(RFIFOP(fd, 30)),
-                    static_cast<const char *>(RFIFOP(fd, 54)),
-                    RFIFOW(fd, 70));
+                    account,
+                    name,
+                    nick,
+                    map,
+                    lv);
+        }
             break;
         case 0x3021:
-            mapif_parse_PartyInfo(fd, RFIFOL(fd, 2));
+        {
+            int party_id = RFIFOL(fd, 2);
+            mapif_parse_PartyInfo(fd, party_id);
+        }
             break;
         case 0x3022:
+        {
+            int party_id = RFIFOL(fd, 2);
+            int account_id = RFIFOL(fd, 6);
+            char nick[24];
+            RFIFO_STRING(fd, 10, nick, 24);
+            char map[16];
+            RFIFO_STRING(fd, 34, map, 16);
+            uint16_t lv = RFIFOW(fd, 50);
             mapif_parse_PartyAddMember(fd,
-                    RFIFOL(fd, 2),
-                    RFIFOL(fd, 6),
-                    static_cast<const char *>(RFIFOP(fd, 10)),
-                    static_cast<const char *>(RFIFOP(fd, 34)),
-                    RFIFOW(fd, 50));
+                    party_id,
+                    account_id,
+                    nick,
+                    map,
+                    lv);
+        }
             break;
         case 0x3023:
+        {
+            int party_id = RFIFOL(fd, 2);
+            int account_id = RFIFOL(fd, 6);
+            uint16_t exp = RFIFOW(fd, 10);
+            uint16_t item = RFIFOW(fd, 12);
             mapif_parse_PartyChangeOption(fd,
-                    RFIFOL(fd, 2),
-                    RFIFOL(fd, 6),
-                    RFIFOW(fd, 10),
-                    RFIFOW(fd, 12));
+                    party_id,
+                    account_id,
+                    exp,
+                    item);
+        }
             break;
         case 0x3024:
+        {
+            int party_id = RFIFOL(fd, 2);
+            int account_id = RFIFOL(fd, 6);
             mapif_parse_PartyLeave(fd,
-                    RFIFOL(fd, 2),
-                    RFIFOL(fd, 6));
+                    party_id,
+                    account_id);
+        }
             break;
         case 0x3025:
+        {
+            int party_id = RFIFOL(fd, 2);
+            int account_id = RFIFOL(fd, 6);
+            char map[16];
+            RFIFO_STRING(fd, 10, map, 16);
+            uint8_t online = RFIFOB(fd, 26);
+            uint16_t lv = RFIFOW(fd, 27);
             mapif_parse_PartyChangeMap(fd,
-                    RFIFOL(fd, 2),
-                    RFIFOL(fd, 6),
-                    static_cast<const char *>(RFIFOP(fd, 10)),
-                    RFIFOB(fd, 26),
-                    RFIFOW(fd, 27));
+                    party_id,
+                    account_id,
+                    map,
+                    online,
+                    lv);
+        }
             break;
         case 0x3026:
-            mapif_parse_BreakParty(fd,
-                    RFIFOL(fd, 2));
+        {
+            int party_id = RFIFOL(fd, 2);
+            mapif_parse_BreakParty(fd, party_id);
+        }
             break;
         case 0x3027:
+        {
+            size_t len = RFIFOW(fd, 2) - 12;
+            int party_id = RFIFOL(fd, 4);
+            int account_id = RFIFOL(fd, 8);
+            char mes[len];
+            RFIFO_STRING(fd, 12, mes, len);
             mapif_parse_PartyMessage(fd,
-                    RFIFOL(fd, 4),
-                    RFIFOL(fd, 8),
-                    static_cast<const char *>(RFIFOP(fd, 12)),
-                    RFIFOW(fd, 2) - 12);
+                    party_id,
+                    account_id,
+                    mes);
+        }
             break;
         case 0x3028:
+        {
+            int party_id = RFIFOL(fd, 2);
+            int account_id = RFIFOL(fd, 6);
+            char nick[24];
+            RFIFO_STRING(fd, 10, nick, 24);
             mapif_parse_PartyCheck(fd,
-                    RFIFOL(fd, 2),
-                    RFIFOL(fd, 6),
-                    static_cast<const char *>(RFIFOP(fd, 10)));
+                    party_id,
+                    account_id,
+                    nick);
+        }
             break;
         default:
             return 0;

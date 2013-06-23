@@ -391,7 +391,8 @@ bool check_ip(struct in_addr ip)
     for (const AccessEntry& ae : access_allow)
     {
         const char *p = ae.data();
-        if (memcmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
+#warning "TODO remove the strncmp part and use an IPAddress4 class"
+        if (strncmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
         {
             flag = ACF::ALLOW;
             if (access_order == ACO::ALLOW_DENY)
@@ -404,7 +405,7 @@ bool check_ip(struct in_addr ip)
     for (const AccessEntry& ae : access_deny)
     {
         const char *p = ae.data();
-        if (memcmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
+        if (strncmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
         {
             flag = ACF::DENY;
             return 0;
@@ -443,7 +444,7 @@ bool check_ladminip(struct in_addr ip)
     for (const AccessEntry& ae : access_ladmin)
     {
         const char *p = ae.data();
-        if (memcmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
+        if (strncmp(p, buf, strlen(p)) == 0 || check_ipmask(ip, p))
             return true;
     }
 
@@ -1151,7 +1152,6 @@ void parse_fromchar(int fd)
                 acc = RFIFOL(fd, 2);   // speed up
                 RFIFO_STRING(fd, 6, email, 40);
                 remove_control_chars(email);
-                //PRINTF("parse_fromchar: an e-mail creation of an account with a default e-mail: server '%s', account: %d, e-mail: '%s'.\n", server[id].name, acc, RFIFOP(fd,6));
                 if (e_mail_check(email) == 0)
                     LOGIN_LOG("Char-server '%s': Attempt to create an e-mail on an account with a default e-mail REFUSED - e-mail is invalid (account: %d, ip: %s)\n",
                          server[id].name, acc, ip);
@@ -1214,7 +1214,11 @@ void parse_fromchar(int fd)
                     WBUFW(buf, 0) = 0x2721;
                     WBUFL(buf, 2) = acc;
                     WBUFL(buf, 6) = 0;
-                    if (strcmp(static_cast<const char *>(RFIFOP(fd, 8)), gm_pass) == 0)
+                    size_t len = RFIFOW(fd, 2) - 8;
+                    char pass[len];
+                    RFIFO_STRING(fd, 8, pass, len);
+
+                    if (strcmp(pass, gm_pass) == 0)
                     {
                         // only non-GM can become GM
                         if (isGM(acc) == 0)
@@ -1511,7 +1515,7 @@ void parse_fromchar(int fd)
                         {
                             LOGIN_LOG("Char-server '%s': receiving (from the char-server) of account_reg2 (account: %d, ip: %s).\n",
                                  server[id].name, acc, ip);
-			    size_t len = RFIFOW(fd, 2);
+                            size_t len = RFIFOW(fd, 2);
                             int j;
                             for (p = 8, j = 0;
                                  p < len && j < ACCOUNT_REG2_NUM;
@@ -1524,7 +1528,7 @@ void parse_fromchar(int fd)
                             ad.account_reg2_num = j;
                             // Sending information towards the other char-servers.
                             uint8_t buf[len];
-			    RFIFO_BUF_CLONE(fd, buf, len);
+                            RFIFO_BUF_CLONE(fd, buf, len);
                             WBUFW(buf, 0) = 0x2729;
                             charif_sendallwos(fd, buf, WBUFW(buf, 2));
 //                      PRINTF("parse_fromchar: receiving (from the char-server) of account_reg2 (account id: %d).\n", acc);
@@ -1578,7 +1582,7 @@ void parse_fromchar(int fd)
                     acc = RFIFOL(fd, 2);
                     RFIFO_STRING(fd, 6, actual_pass, 24);
                     remove_control_chars(actual_pass);
-		    RFIFO_STRING(fd, 30, new_pass, 24);
+                    RFIFO_STRING(fd, 30, new_pass, 24);
                     remove_control_chars(new_pass);
 
                     int status = 0;
@@ -1637,7 +1641,7 @@ void parse_fromchar(int fd)
                     FPRINTF(logfp, "Detail (in hex):\n");
                     FPRINTF(logfp,
                              "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
-		    char tmpstr[16 + 1] {};
+                    char tmpstr[16 + 1] {};
                     int i;
                     for (i = 0; i < RFIFOREST(fd); i++)
                     {
@@ -1653,7 +1657,7 @@ void parse_fromchar(int fd)
                         else if ((i + 1) % 16 == 0)
                         {
                             FPRINTF(logfp, " %s\n", tmpstr);
-			    strzcpy(tmpstr, "", 16 + 1);
+                            strzcpy(tmpstr, "", 16 + 1);
                         }
                     }
                     if (i % 16 != 0)
@@ -1774,7 +1778,7 @@ void parse_admin(int fd)
                 if (RFIFOREST(fd) < 10)
                     return;
                 uint8_t buf[10];
-		RFIFO_BUF_CLONE(fd, buf, 10);
+                RFIFO_BUF_CLONE(fd, buf, 10);
                 // forward package to char servers
                 charif_sendallwos(-1, buf, 10);
                 RFIFOSKIP(fd, 10);
@@ -1826,7 +1830,7 @@ void parse_admin(int fd)
                         {
                             int new_id;
                             char email[40];
-                            strzcpy(email, static_cast<const char *>(RFIFOP(fd, 51)), 40);
+                            RFIFO_STRING(fd, 51, email, 40);
                             remove_control_chars(email);
                             new_id = mmo_auth_new(&ma, ma.sex, email);
                             LOGIN_LOG("'ladmin': Account creation (account: %s (id: %d), sex: %c, email: %s, ip: %s)\n",
@@ -1847,13 +1851,12 @@ void parse_admin(int fd)
             {
                 WFIFOW(fd, 0) = 0x7933;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
                     // TODO rename so I don't need anti-shadow braces
-                    {
                     // Char-server is notified of deletion (for characters deletion).
                     uint8_t buf[6];
                     WBUFW(buf, 0) = 0x2730;
@@ -1866,13 +1869,12 @@ void parse_admin(int fd)
                     LOGIN_LOG("'ladmin': Account deletion (account: %s, id: %d, ip: %s) - saved in next line:\n",
                          ad->userid, ad->account_id,
                          ip);
-                    }
                     {
-                        std::string buf = mmo_auth_tostr(ad);
-                        LOGIN_LOG("%s\n", buf);
+                        std::string buf2 = mmo_auth_tostr(ad);
+                        LOGIN_LOG("%s\n", buf2);
                     }
                     // delete account
-		    strzcpy(ad->userid, "", 24);
+                    strzcpy(ad->userid, "", 24);
                     ad->account_id = -1;
                 }
                 else
@@ -1892,13 +1894,15 @@ void parse_admin(int fd)
             {
                 WFIFOW(fd, 0) = 0x7935;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
                     WFIFO_STRING(fd, 6, ad->userid, 24);
-                    strzcpy(ad->pass, MD5_saltcrypt(static_cast<const char *>(RFIFOP(fd, 26)), make_salt()), 40);
+                    char plain[24];
+                    RFIFO_STRING(fd, 26, plain, 24);
+                    strzcpy(ad->pass, MD5_saltcrypt(plain, make_salt()), 40);
                     WFIFOL(fd, 2) = ad->account_id;
                     LOGIN_LOG("'ladmin': Modification of a password (account: %s, new password: %s, ip: %s)\n",
                          ad->userid, ad->pass, ip);
@@ -1922,10 +1926,10 @@ void parse_admin(int fd)
                     int statut;
                     WFIFOW(fd, 0) = 0x7937;
                     WFIFOL(fd, 2) = -1;
-                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    RFIFO_STRING(fd, 2, account_name, 24);
                     remove_control_chars(account_name);
                     statut = RFIFOL(fd, 26);
-                    strzcpy(error_message, static_cast<const char *>(RFIFOP(fd, 30)), 20);
+                    RFIFO_STRING(fd, 30, error_message, 20);
                     remove_control_chars(error_message);
                     if (statut != 7 || error_message[0] == '\0')
                     {           // 7: // 6 = Your are Prohibited to log in until %s
@@ -2006,14 +2010,14 @@ void parse_admin(int fd)
             {
                 WFIFOW(fd, 0) = 0x793b;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 const AuthData *ad = search_account(account_name);
                 if (ad)
                 {
                     WFIFO_STRING(fd, 6, ad->userid, 24);
                     char pass[24];
-                    strzcpy(pass, static_cast<const char *>(RFIFOP(fd, 26)), 24);
+                    RFIFO_STRING(fd, 26, pass, 24);
                     if (pass_ok(pass, ad->pass))
                     {
                         WFIFOL(fd, 2) = ad->account_id;
@@ -2044,7 +2048,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x793d;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 WFIFO_STRING(fd, 6, account_name, 24);
                 {
@@ -2107,7 +2111,7 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x793f;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 WFIFO_STRING(fd, 6, account_name, 24);
                 {
@@ -2253,12 +2257,12 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7941;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 WFIFO_STRING(fd, 6, account_name, 24);
                 {
                     char email[40];
-                    strzcpy(email, static_cast<const char *>(RFIFOP(fd, 26)), 40);
+                    RFIFO_STRING(fd, 26, email, 40);
                     if (e_mail_check(email) == 0)
                     {
                         LOGIN_LOG("'ladmin': Attempt to give an invalid e-mail (account: %s, ip: %s)\n",
@@ -2294,23 +2298,23 @@ void parse_admin(int fd)
             {
                 WFIFOW(fd, 0) = 0x7943;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 AuthData *ad = search_account(account_name);
                 if (ad)
                 {
                     size_t size_of_memo = sizeof(ad->memo);
                     WFIFO_STRING(fd, 6, ad->userid, 24);
-		    strzcpy(ad->memo, "", size_of_memo);
+                    strzcpy(ad->memo, "", size_of_memo);
                     if (RFIFOW(fd, 26) == 0)
                     {
                         strzcpy(ad->memo, "!", size_of_memo);
                     }
                     else
                     {
-			size_t len = RFIFOW(fd, 26);
-			if (len > size_of_memo)
-			    len = size_of_memo;
+                        size_t len = RFIFOW(fd, 26);
+                        if (len > size_of_memo)
+                            len = size_of_memo;
                         RFIFO_STRING(fd, 28, ad->memo, len);
                     }
                     ad->memo[size_of_memo - 1] = '\0';
@@ -2336,7 +2340,7 @@ void parse_admin(int fd)
             {
                 WFIFOW(fd, 0) = 0x7945;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 const AuthData *ad = search_account(account_name);
                 if (ad)
@@ -2363,12 +2367,12 @@ void parse_admin(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7947;
                 WFIFOL(fd, 2) = RFIFOL(fd, 2);
-		WFIFO_ZERO(fd, 6, 24);
+                WFIFO_ZERO(fd, 6, 24);
                 for (const AuthData& ad : auth_data)
                 {
                     if (ad.account_id == RFIFOL(fd, 2))
                     {
-                        strncpy(static_cast<char *>(WFIFOP(fd, 6)), ad.userid, 24);
+                        WFIFO_STRING(fd, 6, ad.userid, 24);
                         LOGIN_LOG("'ladmin': Request (by id) of an account name (account: %s, id: %d, ip: %s)\n",
                              ad.userid, RFIFOL(fd, 2), ip);
                         goto x7946_out;
@@ -2376,7 +2380,7 @@ void parse_admin(int fd)
                 }
                 LOGIN_LOG("'ladmin': Name request (by id) of an unknown account (id: %d, ip: %s)\n",
                         RFIFOL(fd, 2), ip);
-                strncpy(static_cast<char *>(WFIFOP(fd, 6)), "", 24);
+                WFIFO_STRING(fd, 6, "", 24);
             x7946_out:
                 WFIFOSET(fd, 30);
                 RFIFOSKIP(fd, 6);
@@ -2388,7 +2392,7 @@ void parse_admin(int fd)
                 {
                     WFIFOW(fd, 0) = 0x7949;
                     WFIFOL(fd, 2) = -1;
-                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    RFIFO_STRING(fd, 2, account_name, 24);
                     remove_control_chars(account_name);
                     TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 26));
                     timestamp_seconds_buffer tmpstr = "unlimited";
@@ -2427,7 +2431,7 @@ void parse_admin(int fd)
                 {
                     WFIFOW(fd, 0) = 0x794b;
                     WFIFOL(fd, 2) = -1;
-                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    RFIFO_STRING(fd, 2, account_name, 24);
                     remove_control_chars(account_name);
                     TimeT timestamp = static_cast<time_t>(RFIFOL(fd, 26));
                     if (timestamp <= TimeT::now())
@@ -2482,7 +2486,7 @@ void parse_admin(int fd)
                 {
                     WFIFOW(fd, 0) = 0x794d;
                     WFIFOL(fd, 2) = -1;
-                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    RFIFO_STRING(fd, 2, account_name, 24);
                     remove_control_chars(account_name);
                     AuthData *ad = search_account(account_name);
                     if (ad)
@@ -2587,22 +2591,28 @@ void parse_admin(int fd)
                     goto x794e_have_no_server;
                     {
                     x794e_have_server:
-			// overwrite the -1
+                        // overwrite the -1
                         WFIFOW(fd, 2) = 0;
 
-			size_t len = RFIFOL(fd, 4);
-			char message[len];
-			RFIFO_STRING(fd, 8, message, len);
+                        size_t len = RFIFOL(fd, 4);
+                        char message[len];
+                        RFIFO_STRING(fd, 8, message, len);
                         remove_control_chars(message);
-			const char *message_ptr = message;
-			LOGIN_LOG("'ladmin': Receiving a message for broadcast (message: %s, ip: %s)\n",
-				message_ptr, ip);
+                        const char *message_ptr = message;
+                        LOGIN_LOG("'ladmin': Receiving a message for broadcast (message: %s, ip: %s)\n",
+                                message_ptr, ip);
                         // send same message to all char-servers (no answer)
                         uint8_t buf[len + 8];
-			RFIFO_BUF_CLONE(fd, buf, 8 + len);
+                        RFIFO_BUF_CLONE(fd, buf, 8 + len);
                         WBUFW(buf, 0) = 0x2726;
                         charif_sendallwos(-1, buf, 8 + len);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wuninitialized" // work around a gcc bug
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Wpragmas"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
                     }
+#pragma GCC diagnostic pop
                 }
             x794e_have_no_server:
                 WFIFOSET(fd, 4);
@@ -2615,7 +2625,7 @@ void parse_admin(int fd)
                 {
                     WFIFOW(fd, 0) = 0x7951;
                     WFIFOL(fd, 2) = -1;
-                    strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    RFIFO_STRING(fd, 2, account_name, 24);
                     remove_control_chars(account_name);
                     AuthData *ad = search_account(account_name);
                     if (ad)
@@ -2704,7 +2714,7 @@ void parse_admin(int fd)
             {
                 WFIFOW(fd, 0) = 0x7953;
                 WFIFOL(fd, 2) = -1;
-                strzcpy(account_name, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                RFIFO_STRING(fd, 2, account_name, 24);
                 remove_control_chars(account_name);
                 const AuthData *ad = search_account(account_name);
                 if (ad)
@@ -2721,9 +2731,9 @@ void parse_admin(int fd)
                     WFIFO_STRING(fd, 100, ad->email, 40);
                     WFIFOL(fd, 140) = static_cast<time_t>(ad->connect_until_time);
                     WFIFOL(fd, 144) = static_cast<time_t>(ad->ban_until_time);
-		    size_t len = strlen(ad->memo) + 1;
+                    size_t len = strlen(ad->memo) + 1;
                     WFIFOW(fd, 148) = len;
-		    WFIFO_STRING(fd, 150, ad->memo, len);
+                    WFIFO_STRING(fd, 150, ad->memo, len);
                     LOGIN_LOG("'ladmin': Sending information of an account (request by the name; account: %s, id: %d, ip: %s)\n",
                          ad->userid, ad->account_id,
                          ip);
@@ -2764,9 +2774,9 @@ void parse_admin(int fd)
                         WFIFO_STRING(fd, 100, ad.email, 40);
                         WFIFOL(fd, 140) = static_cast<time_t>(ad.connect_until_time);
                         WFIFOL(fd, 144) = static_cast<time_t>(ad.ban_until_time);
-			size_t len = strlen(ad.memo) + 1;
+                        size_t len = strlen(ad.memo) + 1;
                         WFIFOW(fd, 148) = len;
-			WFIFO_STRING(fd, 150, ad.memo, len);
+                        WFIFO_STRING(fd, 150, ad.memo, len);
                         WFIFOSET(fd, 150 + len);
                         goto x7954_out;
                     }
@@ -2774,7 +2784,7 @@ void parse_admin(int fd)
                 {
                     LOGIN_LOG("'ladmin': Attempt to obtain information (by the id) of an unknown account (id: %d, ip: %s)\n",
                          RFIFOL(fd, 2), ip);
-                    strncpy(static_cast<char *>(WFIFOP(fd, 7)), "", 24);
+                    WFIFO_STRING(fd, 7, "", 24);
                     WFIFOW(fd, 148) = 0;
                     WFIFOSET(fd, 150);
                 }
@@ -2798,7 +2808,7 @@ void parse_admin(int fd)
                 if (logfp)
                 {
                     timestamp_milliseconds_buffer timestr;
-		    stamp_time(timestr);
+                    stamp_time(timestr);
                     FPRINTF(logfp,
                              "%s: receiving of an unknown packet -> disconnection\n",
                              timestr);
@@ -2808,7 +2818,7 @@ void parse_admin(int fd)
                     FPRINTF(logfp, "Detail (in hex):\n");
                     FPRINTF(logfp,
                              "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
-		    char tmpstr[16 + 1] {};
+                    char tmpstr[16 + 1] {};
                     int i;
                     for (i = 0; i < RFIFOREST(fd); i++)
                     {
@@ -2905,16 +2915,24 @@ void parse_login(int fd)
             if (RFIFOW(fd, 0) == 0x64 || RFIFOW(fd, 0) == 0x01dd)
             {
                 if (RFIFOREST(fd) >= ((RFIFOW(fd, 0) == 0x64) ? 55 : 47))
+                {
+                    char account_name[24];
+                    RFIFO_STRING(fd, 6, account_name, 24);
                     PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), account: %s.\n",
                          fd, RFIFOW(fd, 0), RFIFOREST(fd),
-                         static_cast<const char *>(RFIFOP(fd, 6)));
+                         account_name);
+                }
             }
             else if (RFIFOW(fd, 0) == 0x2710)
             {
                 if (RFIFOREST(fd) >= 86)
+                {
+                    char server_name[16];
+                    RFIFO_STRING(fd, 60, server_name, 16);
                     PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu), server: %s.\n",
                          fd, RFIFOW(fd, 0), RFIFOREST(fd),
-                         static_cast<const char *>(RFIFOP(fd, 60)));
+                         server_name);
+                }
             }
             else
                 PRINTF("parse_login: connection #%d, packet: 0x%x (with being read: %zu).\n",
@@ -2939,9 +2957,9 @@ void parse_login(int fd)
                 if (RFIFOREST(fd) < 55)
                     return;
 
-                strzcpy(account.userid, static_cast<const char *>(RFIFOP(fd, 6)), 24);
+                RFIFO_STRING(fd, 6, account.userid, 24);
                 remove_control_chars(account.userid);
-                strzcpy(account.passwd, static_cast<const char *>(RFIFOP(fd, 30)), 24);
+                RFIFO_STRING(fd, 30, account.passwd, 24);
                 remove_control_chars(account.passwd);
                 account.passwdenc = 0;
 
@@ -3007,7 +3025,7 @@ void parse_login(int fd)
                             size_t host_len = strlen(update_host);
                             if (host_len > 0)
                             {
-				host_len++;
+                                host_len++;
                                 WFIFOW(fd, 0) = 0x63;
                                 WFIFOW(fd, 2) = 4 + host_len;
                                 WFIFO_STRING(fd, 4, update_host, host_len);
@@ -3073,7 +3091,7 @@ void parse_login(int fd)
                 }
                 else
                 {
-		    WFIFO_ZERO(fd, 0, 23);
+                    WFIFO_ZERO(fd, 0, 23);
                     WFIFOW(fd, 0) = 0x6a;
                     WFIFOB(fd, 2) = result;
                     if (result == 6)
@@ -3143,12 +3161,12 @@ void parse_login(int fd)
                 {
                     int len;
                     char server_name[20];
-                    strzcpy(account.userid, static_cast<const char *>(RFIFOP(fd, 2)), 24);
+                    RFIFO_STRING(fd, 2, account.userid, 24);
                     remove_control_chars(account.userid);
-                    strzcpy(account.passwd, static_cast<const char *>(RFIFOP(fd, 26)), 24);
+                    RFIFO_STRING(fd, 26, account.passwd, 24);
                     remove_control_chars(account.passwd);
                     account.passwdenc = 0;
-                    strzcpy(server_name, static_cast<const char *>(RFIFOP(fd, 60)), 20);
+                    RFIFO_STRING(fd, 60, server_name, 20);
                     remove_control_chars(server_name);
                     LOGIN_LOG("Connection request of the char-server '%s' @ %d.%d.%d.%d:%d (ip: %s)\n",
                          server_name, RFIFOB(fd, 54), RFIFOB(fd, 55),
@@ -3265,7 +3283,7 @@ void parse_login(int fd)
                     {
                         // non encrypted password
                         char password[24];
-                        strzcpy(password, static_cast<const char *>(RFIFOP(fd, 4)), 24);
+                        RFIFO_STRING(fd, 4, password, 24);
                         remove_control_chars(password);
                         // If remote administration is enabled and password sent by client matches password read from login server configuration file
                         if ((admin_state == 1)
@@ -3294,18 +3312,18 @@ void parse_login(int fd)
                             uint8_t md5bin[32];
                             if (RFIFOW(fd, 2) == 1)
                             {
-                                strncpy(md5str, ld->md5key, sizeof(ld->md5key));  // 20
+                                strcpy(md5str, ld->md5key);  // 20
                                 strcat(md5str, admin_pass);    // 24
                             }
                             else if (RFIFOW(fd, 2) == 2)
                             {
-                                strncpy(md5str, admin_pass, sizeof(admin_pass));  // 24
+                                strcpy(md5str, admin_pass);  // 24
                                 strcat(md5str, ld->md5key);    // 20
                             }
                             MD5_to_bin(MD5_from_cstring(md5str), md5bin);
                             // If remote administration is enabled and password hash sent by client matches hash of password read from login server configuration file
                             if ((admin_state == 1)
-                                && (memcmp(md5bin, RFIFOP(fd, 4), 16) == 0))
+                                && really_memequal(md5bin, static_cast<const uint8_t *>(RFIFOP(fd, 4)), 16))
                             {
                                 LOGIN_LOG("'ladmin'-login: Connection in administration mode accepted (encrypted password, ip: %s)\n",
                                      ip);
@@ -3346,7 +3364,7 @@ void parse_login(int fd)
                         FPRINTF(logfp,
                                  "---- 00-01-02-03-04-05-06-07  08-09-0A-0B-0C-0D-0E-0F\n");
 
-			char tmpstr[16 + 1] {};
+                        char tmpstr[16 + 1] {};
 
                         int i;
                         for (i = 0; i < RFIFOREST(fd); i++)
@@ -3363,7 +3381,7 @@ void parse_login(int fd)
                             else if ((i + 1) % 16 == 0)
                             {
                                 FPRINTF(logfp, " %s\n", tmpstr);
-				strzcpy(tmpstr, "", 16 + 1);
+                                strzcpy(tmpstr, "", 16 + 1);
                             }
                         }
                         if (i % 16 != 0)
@@ -3397,7 +3415,7 @@ int login_lan_config_read(const char *lancfgName)
     struct hostent *h = NULL;
 
     // set default configuration
-    strncpy(lan_char_ip, "127.0.0.1", sizeof(lan_char_ip));
+    strcpy(lan_char_ip, "127.0.0.1");
     subneti[0] = 127;
     subneti[1] = 0;
     subneti[2] = 0;

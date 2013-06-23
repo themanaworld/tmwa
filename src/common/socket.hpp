@@ -103,12 +103,18 @@ FILE *fopen_(const char *path, const char *mode);
 bool free_fds(void);
 
 template<class T>
-uint8_t *pod_addressof(T& structure)
+uint8_t *pod_addressof_m(T& structure)
 {
     static_assert(is_trivially_copyable<T>::value, "Can only byte-copy POD-ish structs");
     return &reinterpret_cast<uint8_t&>(structure);
 }
 
+template<class T>
+const uint8_t *pod_addressof_c(const T& structure)
+{
+    static_assert(is_trivially_copyable<T>::value, "Can only byte-copy POD-ish structs");
+    return &reinterpret_cast<const uint8_t&>(structure);
+}
 
 
 /// Check how much can be read
@@ -141,7 +147,7 @@ uint32_t RFIFOL(int fd, size_t pos)
 template<class T>
 void RFIFO_STRUCT(int fd, size_t pos, T& structure)
 {
-    really_memcpy(pod_addressof(structure), static_cast<const uint8_t *>(RFIFOP(fd, pos)), sizeof(T));
+    really_memcpy(pod_addressof_m(structure), static_cast<const uint8_t *>(RFIFOP(fd, pos)), sizeof(T));
 }
 inline
 void RFIFO_STRING(int fd, size_t pos, char *out, size_t len)
@@ -181,7 +187,7 @@ uint32_t RBUFL(const uint8_t *p, size_t pos)
 template<class T>
 void RBUF_STRUCT(const uint8_t *p, size_t pos, T& structure)
 {
-    really_memcpy(pod_addressof(structure), p + pos, sizeof(T));
+    really_memcpy(pod_addressof_m(structure), p + pos, sizeof(T));
 }
 inline
 void RBUF_STRING(const uint8_t *p, size_t pos, char *out, size_t len)
@@ -220,7 +226,7 @@ uint32_t& WFIFOL(int fd, size_t pos)
 template<class T>
 void WFIFO_STRUCT(int fd, size_t pos, T& structure)
 {
-    really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, pos)), pod_addressof(structure), sizeof(T));
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, pos)), pod_addressof_c(structure), sizeof(T));
 }
 inline
 void WFIFO_STRING(int fd, size_t pos, const char *s, size_t len)
@@ -267,7 +273,7 @@ uint32_t& WBUFL(uint8_t *p, size_t pos)
 template<class T>
 void WBUF_STRUCT(uint8_t *p, size_t pos, T& structure)
 {
-    really_memcpy(p + pos, pod_addressof(structure), sizeof(T));
+    really_memcpy(p + pos, pod_addressof_c(structure), sizeof(T));
 }
 inline
 void WBUF_STRING(uint8_t *p, size_t pos, const char *s, size_t len)

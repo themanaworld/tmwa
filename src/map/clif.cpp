@@ -248,15 +248,6 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
 
     if (session[sd->fd] != NULL)
     {
-        if (WFIFOP(sd->fd, 0) == buf)
-        {
-            PRINTF("WARNING: Invalid use of clif_send function\n");
-            PRINTF("         Packet x%4x use a WFIFO of a player instead of to use a buffer.\n",
-                 RBUFW(buf, 0));
-            PRINTF("         Please correct your code.\n");
-            // don't send to not move the pointer of the packet for next sessions in the loop
-        }
-        else
         {
             if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {
@@ -1261,15 +1252,15 @@ int clif_selllist(dumb_ptr<map_session_data> sd)
  */
 int clif_scriptmes(dumb_ptr<map_session_data> sd, int npcid, const char *mes)
 {
-    int fd;
-
     nullpo_ret(sd);
 
-    fd = sd->fd;
+    int fd = sd->fd;
+
+    size_t len = strlen(mes) + 1;
     WFIFOW(fd, 0) = 0xb4;
-    WFIFOW(fd, 2) = strlen(mes) + 9;
+    WFIFOW(fd, 2) = len + 8;
     WFIFOL(fd, 4) = npcid;
-    strcpy(static_cast<char *>(WFIFOP(fd, 8)), mes);
+    WFIFO_STRING(fd, 8, mes, len);
     WFIFOSET(fd, WFIFOW(fd, 2));
 
     return 0;
@@ -1317,15 +1308,14 @@ int clif_scriptclose(dumb_ptr<map_session_data> sd, int npcid)
  */
 int clif_scriptmenu(dumb_ptr<map_session_data> sd, int npcid, const char *mes)
 {
-    int fd;
-
     nullpo_ret(sd);
 
-    fd = sd->fd;
+    int fd = sd->fd;
+    size_t len = strlen(mes) + 1;
     WFIFOW(fd, 0) = 0xb7;
-    WFIFOW(fd, 2) = strlen(mes) + 8;
+    WFIFOW(fd, 2) = len + 8;
     WFIFOL(fd, 4) = npcid;
-    strcpy(static_cast<char *>(WFIFOP(fd, 8)), mes);
+    WFIFO_STRING(fd, 8, mes, len);
     WFIFOSET(fd, WFIFOW(fd, 2));
 
     return 0;
@@ -2275,13 +2265,11 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
  */
 int clif_traderequest(dumb_ptr<map_session_data> sd, const char *name)
 {
-    int fd;
-
     nullpo_ret(sd);
 
-    fd = sd->fd;
+    int fd = sd->fd;
     WFIFOW(fd, 0) = 0xe5;
-    strcpy(static_cast<char *>(WFIFOP(fd, 2)), name);
+    WFIFO_STRING(fd, 2, name, 24);
     WFIFOSET(fd, clif_parse_func_table[0xe5].len);
 
     return 0;
@@ -2608,16 +2596,17 @@ void clif_getareachar_pc(dumb_ptr<map_session_data> sd,
     nullpo_retv(sd);
     nullpo_retv(dstsd);
 
+    uint8_t buf[256];
     if (dstsd->walktimer)
     {
-        len = clif_set007b(dstsd, static_cast<uint8_t *>(WFIFOP(sd->fd, 0)));
-        WFIFOSET(sd->fd, len);
+        len = clif_set007b(dstsd, buf);
     }
     else
     {
-        len = clif_set0078(dstsd, static_cast<uint8_t *>(WFIFOP(sd->fd, 0)));
-        WFIFOSET(sd->fd, len);
+        len = clif_set0078(dstsd, buf);
     }
+    WFIFO_BUF_CLONE(sd->fd, buf, len);
+    WFIFOSET(sd->fd, len);
 
     if (battle_config.save_clothcolor == 1 && dstsd->status.clothes_color > 0)
         clif_changelook(dstsd, LOOK::CLOTHES_COLOR,
@@ -3137,7 +3126,7 @@ int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
  * Send message (modified by [Yor])
  *------------------------------------------
  */
-void clif_displaymessage(int fd, const_string mes)
+void clif_displaymessage(int fd, ZString mes)
 {
     if (mes)
     {
@@ -3145,7 +3134,7 @@ void clif_displaymessage(int fd, const_string mes)
         WFIFOW(fd, 0) = 0x8e;
         size_t str_len = mes.size() + 1; // NUL (might not be NUL yet)
         WFIFOW(fd, 2) = 4 + str_len;
-        WFIFO_STRING(fd, 4, mes.data(), str_len);
+        WFIFO_STRING(fd, 4, mes.c_str(), str_len);
         WFIFOSET(fd, 4 + str_len);
     }
 }
@@ -3154,14 +3143,14 @@ void clif_displaymessage(int fd, const_string mes)
  * 天の声を送信する
  *------------------------------------------
  */
-void clif_GMmessage(dumb_ptr<block_list> bl, const_string mes, int flag)
+void clif_GMmessage(dumb_ptr<block_list> bl, ZString mes, int flag)
 {
     size_t str_len = mes.size() + 1;
     unsigned char buf[str_len + 4];
 
     WBUFW(buf, 0) = 0x9a;
     WBUFW(buf, 2) = str_len + 4;
-    WBUF_STRING(buf, 4, mes.data(), str_len);
+    WBUF_STRING(buf, 4, mes.c_str(), str_len);
     flag &= 0x07;
     clif_send(buf, WBUFW(buf, 2), bl,
                (flag == 1) ? SendWho::ALL_SAMEMAP :
@@ -4689,16 +4678,9 @@ void clif_parse_NpcStringInput(int fd, dumb_ptr<map_session_data> sd)
      */
     if (len < 0)
         return;
-
-    if (len >= sizeof(sd->npc_str) - 1)
-    {
-        PRINTF("clif_parse_NpcStringInput(): Input string too long!\n");
-        len = sizeof(sd->npc_str) - 1;
-    }
-
-    if (len > 0)
-        strncpy(sd->npc_str, static_cast<const char *>(RFIFOP(fd, 8)), len);
-    sd->npc_str[len] = '\0';
+    char buf[len];
+    RFIFO_STRING(fd, 8, buf, len);
+    sd->npc_str = buf;
 
     map_scriptcont(sd, RFIFOL(fd, 4));
 }
@@ -4783,7 +4765,9 @@ void clif_parse_CreateParty(int fd, dumb_ptr<map_session_data> sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_PARTY) >= 2)
     {
-        party_create(sd, static_cast<const char *>(RFIFOP(fd, 2)));
+        char name[24];
+        RFIFO_STRING(fd, 2, name, 24);
+        party_create(sd, name);
     }
     else
         clif_skill_fail(sd, SkillID::ONE, 0, 4);
@@ -4841,7 +4825,10 @@ void clif_parse_LeaveParty(int, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_RemovePartyMember(int fd, dumb_ptr<map_session_data> sd)
 {
-    party_removemember(sd, RFIFOL(fd, 2), static_cast<const char *>(RFIFOP(fd, 6)));
+    int account_id = RFIFOL(fd, 2);
+    char name[24];
+    RFIFO_STRING(fd, 6, name, 24);
+    party_removemember(sd, account_id, name);
 }
 
 /*==========================================
@@ -5584,14 +5571,16 @@ std::string clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
         return std::string();
     }
 
-    const char *p = static_cast<const char *>(RFIFOP(fd, 4));
+    size_t pstart = 4;
     size_t buf_len = msg_len;
     if (type == ChatType::Whisper)
     {
-        p += 24;
+        pstart += 24;
         buf_len -= 24;
     }
-    const char *pend = p + buf_len;
+    char pbuf[buf_len + 1];
+    // I had to change strzcpy for this :(
+    RFIFO_STRING(fd, pstart, pbuf, buf_len + 1);
 
     /*
      * The client attempted to exceed the maximum message length.
@@ -5608,8 +5597,8 @@ std::string clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
 
     if (type == ChatType::Global)
     {
-        const char *pos = strstr(p, " : ");
-        if (!pos || pos != p + name_len || memcmp(p, sd->status.name, name_len))
+        XString p = ZString(ZString::really_construct_from_a_pointer, pbuf);
+        if (!(p.startswith(const_(sd->status.name)) && p.xslice_t(name_len).startswith(" : ")))
         {
             /* Disallow malformed/spoofed messages. */
             clif_setwaitclose(fd);
@@ -5617,12 +5606,10 @@ std::string clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
             return std::string();
         }
         /* Step beyond the separator. */
-        p = pos + 3;
+        XString xs = p.xslice_t(name_len + 3);
+        return std::string(xs.begin(), xs.end());
     }
-
-    std::string buf(p, pend);
-
-    return buf;
+    return pbuf;
 }
 
 /*==========================================

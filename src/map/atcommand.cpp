@@ -4,6 +4,8 @@
 #include <cstring>
 #include <ctime>
 
+#include <fstream>
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/mmo.hpp"
@@ -432,14 +434,15 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     {
-        char command[100] {};
         const char *str = message;
         const char *p = message;
+        // split the first word
         while (*p && !isspace(*p))
             p++;
-        if (p - str >= sizeof(command))    // too long
-            return true;
-        strncpy(command, str, p - str);
+        size_t len = p - str;
+        char command[len + 1];
+        strzcpy(command, str, len + 1);
+        // skip the spaces; pass as argv
         while (isspace(*p))
             p++;
 
@@ -447,7 +450,8 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
             if (info->proc(fd, sd, command, p) != 0)
             {
                 // Command can not be executed
-                std::string output = STRPRINTF("%s failed.", command);
+                const char *command_ = command;
+                std::string output = STRPRINTF("%s failed.", command_);
                 clif_displaymessage(fd, output);
             }
             else
@@ -1773,33 +1777,20 @@ int atcommand_joblevelup(const int fd, dumb_ptr<map_session_data> sd,
 int atcommand_help(const int fd, dumb_ptr<map_session_data> sd,
                     const char *, const char *)
 {
-    char buf[2048] {};
-    int i, gm_level;
-    FILE *fp;
-
-    if ((fp = fopen_(help_txt, "r")) != NULL)
+    std::ifstream in(help_txt);
+    if (in.is_open())
     {
         clif_displaymessage(fd, "Help commands:");
-        gm_level = pc_isGM(sd);
-        while (fgets(buf, sizeof(buf) - 1, fp) != NULL)
+        int gm_level = pc_isGM(sd);
+        std::string line;
+        while (std::getline(in, line))
         {
-            if (buf[0] == '/' && buf[1] == '/')
+            std::string w1, w2;
+            if (!split_key_value(line, &w1, &w2))
                 continue;
-            for (i = 0; buf[i] != '\0'; i++)
-            {
-                if (buf[i] == '\r' || buf[i] == '\n')
-                {
-                    buf[i] = '\0';
-                    break;
-                }
-            }
-            char w1[2048], w2[2048];
-            if (sscanf(buf, "%2047[^:]:%2047[^\n]", w1, w2) < 2)
-                clif_displaymessage(fd, buf);
-            else if (gm_level >= atoi(w1))
+            if (gm_level >= atoi(w1.c_str()))
                 clif_displaymessage(fd, w2);
         }
-        fclose_(fp);
     }
     else
     {

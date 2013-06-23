@@ -137,7 +137,7 @@ void magic_free_env(dumb_ptr<env_t> env)
 }
 
 dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
-	dumb_ptr<map_session_data> caster, int spellpower, const_string param)
+        dumb_ptr<map_session_data> caster, int spellpower, const_string param)
 {
     dumb_ptr<env_t> env = alloc_env(conf);
 

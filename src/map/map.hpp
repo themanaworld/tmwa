@@ -161,7 +161,7 @@ struct map_session_data : block_list, SessionData
     // but one should probably be replaced with a ScriptPointer ???
     const ScriptBuffer *npc_script, *npc_scriptroot;
     std::vector<struct script_data> npc_stackbuf;
-    char npc_str[256];
+    std::string npc_str;
     struct
     {
         unsigned storage:1;

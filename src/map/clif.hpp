@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "../common/const_array.hpp"
+#include "../common/strings.hpp"
 #include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"
@@ -146,8 +147,8 @@ int clif_party_xy(struct party *p, dumb_ptr<map_session_data> sd);
 int clif_party_hp(struct party *p, dumb_ptr<map_session_data> sd);
 
 // atcommand
-void clif_displaymessage(int fd, const_string mes);
-void clif_GMmessage(dumb_ptr<block_list> bl, const_string mes, int flag);
+void clif_displaymessage(int fd, ZString mes);
+void clif_GMmessage(dumb_ptr<block_list> bl, ZString mes, int flag);
 void clif_resurrection(dumb_ptr<block_list> bl, int type);
 
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag);    // special effects [Valaris]

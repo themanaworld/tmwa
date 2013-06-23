@@ -8,6 +8,12 @@ BISON = bison
 CXXFLAGS = -pipe -g -O2 ${WARNINGS}
 WARNINGS = -include src/warnings.hpp
 
+# Location of gtest source tree. It must contain the file src/gtest-all.cc
+# Note: linking against a precompiled library is NOT supported;
+# it may have used different CXXFLAGS. See
+# http://code.google.com/p/googletest/wiki/FAQ#Why_is_it_not_recommended_to_install_a_pre-compiled_copy_of_Goog
+GTEST_DIR = /usr/src/gtest
+
 # works on both x86 and x86_64
 override CXX += -std=c++0x
 # for linking

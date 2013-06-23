@@ -63,7 +63,7 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message)
     if (tmw_CheckChatLameness(sd, message))
         sd->chat_lines_in += battle_config.chat_lame_penalty;
 
-    strncpy(sd->chat_lastmsg, message, battle_config.chat_maxline);
+    strzcpy(sd->chat_lastmsg, message, battle_config.chat_maxline);
 
     if (sd->chat_lines_in >= battle_config.chat_spam_flood
         || sd->chat_total_repeats >= battle_config.chat_spam_flood)

@@ -74,3 +74,5 @@
 #pragma GCC poison memcpy
 #pragma GCC poison memmove
 #pragma GCC poison memset
+#pragma GCC poison memcmp
+#pragma GCC poison strncpy // in favor of strzcpy

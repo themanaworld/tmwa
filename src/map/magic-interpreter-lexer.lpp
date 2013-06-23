@@ -113,13 +113,13 @@
     char *dst = &string[0];
     while (*src && *src != '"')
     {
-	if (*src == '\\')
-	{
-	    *dst++ = src[1];
-	    src += 2;
-	}
-	else
-	    *dst++ = *src++;
+        if (*src == '\\')
+        {
+            *dst++ = src[1];
+            src += 2;
+        }
+        else
+            *dst++ = *src++;
     }
     *dst = '\0'; /* terminate */
     magic_frontend_lval.s = string;

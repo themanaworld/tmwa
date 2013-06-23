@@ -1563,7 +1563,7 @@ void builtin_input(ScriptState *st)
         sd->state.menu_or_input = 0;
         if (postfix == '$')
         {
-            set_reg(sd, type, num, dumb_string::fake(sd->npc_str));
+            set_reg(sd, type, num, dumb_string::fake(sd->npc_str.c_str()));
         }
         else
         {
@@ -2795,7 +2795,7 @@ void builtin_announce(ScriptState *st)
 static
 void builtin_mapannounce_sub(dumb_ptr<block_list> bl, dumb_string str, int flag)
 {
-    clif_GMmessage(bl, str.c_str(), flag | 3);
+    clif_GMmessage(bl, str, flag | 3);
 }
 
 static

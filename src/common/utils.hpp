@@ -34,7 +34,8 @@ void strzcpy(char *dest, const char *src, size_t n)
 {
     if (n)
     {
-        strncpy(dest, src, n);
+        // hmph
+        strncpy(dest, src, n - 1);
         dest[n - 1] = '\0';
     }
 }
@@ -49,6 +50,11 @@ inline
 void really_memmove(uint8_t *dest, const uint8_t *src, size_t n)
 {
     memmove(dest, src, n);
+}
+inline
+bool really_memequal(const uint8_t *a, const uint8_t *b, size_t n)
+{
+    return memcmp(a, b, n) == 0;
 }
 
 inline
@@ -139,5 +145,11 @@ static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
             )[-1],                                          \
             &t                                              \
     )
+
+template<class T>
+const T& const_(T& t)
+{
+    return t;
+}
 
 #endif //UTILS_HPP

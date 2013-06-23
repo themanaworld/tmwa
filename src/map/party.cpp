@@ -65,8 +65,7 @@ int party_create(dumb_ptr<map_session_data> sd, const char *name)
     char pname[24];
     nullpo_ret(sd);
 
-    strncpy(pname, name, 24);
-    pname[23] = '\0';
+    strzcpy(pname, name, 24);
     tmw_TrimStr(pname);
 
     /* The party name is empty/invalid. */

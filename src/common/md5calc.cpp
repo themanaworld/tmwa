@@ -317,7 +317,8 @@ const char *make_salt(void)
 bool pass_ok(const char *password, const char *crypted)
 {
     char buf[40];
-    strncpy(buf, crypted, 40);
+    strzcpy(buf, crypted, 40);
+    // crypted is like !salt$hash
     char *salt = buf + 1;
     *strchr(salt, '$') = '\0';
 

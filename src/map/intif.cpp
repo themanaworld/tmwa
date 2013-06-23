@@ -286,13 +286,16 @@ int intif_parse_WisEnd(int fd)
 {
     dumb_ptr<map_session_data> sd;
 
+    char name[24];
+    RFIFO_STRING(fd, 2, name, 24);
+    uint8_t flag = RFIFOB(fd, 26);
     if (battle_config.etc_log)
         // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
         PRINTF("intif_parse_wisend: player: %s, flag: %d\n",
-                static_cast<const char *>(RFIFOP(fd, 2)), RFIFOB(fd, 26));
-    sd = map_nick2sd(static_cast<const char *>(RFIFOP(fd, 2)));
+                name, flag);
+    sd = map_nick2sd(name);
     if (sd != NULL)
-        clif_wis_end(sd->fd, RFIFOB(fd, 26));
+        clif_wis_end(sd->fd, flag);
 
     return 0;
 }
@@ -414,8 +417,12 @@ void intif_parse_PartyCreated(int fd)
 {
     if (battle_config.etc_log)
         PRINTF("intif: party created\n");
-    party_created(RFIFOL(fd, 2), RFIFOB(fd, 6), RFIFOL(fd, 7),
-            static_cast<const char *>(RFIFOP(fd, 11)));
+    int account_id = RFIFOL(fd, 2);
+    int fail = RFIFOB(fd, 6);
+    int party_id = RFIFOL(fd, 7);
+    char name[24];
+    RFIFO_STRING(fd, 11, name, 24);
+    party_created(account_id, fail, party_id, name);
 }
 
 // パーティ情報
@@ -438,7 +445,9 @@ void intif_parse_PartyInfo(int fd)
                     RFIFOL(fd, 4), RFIFOW(fd, 2),
                     sizeof(struct party) + 4);
     }
-    party_recv_info(static_cast<const struct party *>(RFIFOP(fd, 4)));
+    party p {};
+    RFIFO_STRUCT(fd, 4, p);
+    party_recv_info(&p);
 }
 
 // パーティ追加通知
@@ -463,10 +472,14 @@ void intif_parse_PartyOptionChanged(int fd)
 static
 void intif_parse_PartyMemberLeaved(int fd)
 {
+    int party_id = RFIFOL(fd, 2);
+    int account_id = RFIFOL(fd, 6);
+    char name[24];
+    RFIFO_STRING(fd, 10, name, 24);
     if (battle_config.etc_log)
-        PRINTF("intif: party member leaved %d %d %s\n", RFIFOL(fd, 2),
-                RFIFOL(fd, 6), static_cast<const char *>(RFIFOP(fd, 10)));
-    party_member_leaved(RFIFOL(fd, 2), RFIFOL(fd, 6), static_cast<const char *>(RFIFOP(fd, 10)));
+        PRINTF("intif: party member leaved %d %d %s\n",
+                party_id, account_id, name);
+    party_member_leaved(party_id, account_id, name);
 }
 
 // パーティ解散通知
@@ -480,18 +493,19 @@ void intif_parse_PartyBroken(int fd)
 static
 void intif_parse_PartyMove(int fd)
 {
-//  if(battle_config.etc_log)
-//      PRINTF("intif: party move %d %d %s %d %d\n",RFIFOL(fd,2),RFIFOL(fd,6),RFIFOP(fd,10),RFIFOB(fd,26),RFIFOW(fd,27));
-    party_recv_movemap(RFIFOL(fd, 2), RFIFOL(fd, 6), static_cast<const char *>(RFIFOP(fd, 10)),
-                        RFIFOB(fd, 26), RFIFOW(fd, 27));
+    int party_id = RFIFOL(fd, 2);
+    int account_id = RFIFOL(fd, 6);
+    char map[16];
+    RFIFO_STRING(fd, 10, map, 16);
+    uint8_t online = RFIFOB(fd, 26);
+    uint16_t lv = RFIFOW(fd, 27);
+    party_recv_movemap(party_id, account_id, map, online, lv);
 }
 
 // パーティメッセージ
 static
 void intif_parse_PartyMessage(int fd)
 {
-//  if(battle_config.etc_log)
-//      PRINTF("intif_parse_PartyMessage: %s\n",RFIFOP(fd,12));
     size_t len = RFIFOW(fd, 2) - 12;
     char buf[len];
     RFIFO_STRING(fd, 12, buf, len);
@@ -532,9 +546,11 @@ int intif_parse(int fd)
     switch (cmd)
     {
         case 0x3800:
-            clif_GMmessage(NULL,
-                    const_string(static_cast<const char *>(RFIFOP(fd, 4)),
-                        (packet_len - 4) - 1), 0);
+        {
+            char mes[packet_len - 4];
+            RFIFO_STRING(fd, 4, mes, packet_len - 4);
+            clif_GMmessage(NULL, ZString(ZString::really_construct_from_a_pointer, mes), 0);
+        }
             break;
         case 0x3801:
             intif_parse_WisMessage(fd);
