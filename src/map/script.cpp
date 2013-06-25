@@ -53,9 +53,9 @@ static
 str_data_t LABEL_NEXTLINE_;
 
 static
-DMap<int, int> mapreg_db;
+DMap<SIR, int> mapreg_db;
 static
-Map<int, std::string> mapregstr_db;
+Map<SIR, std::string> mapregstr_db;
 static
 int mapreg_dirty = -1;
 char mapreg_txt[256] = "save/mapreg.txt";
@@ -99,9 +99,9 @@ static
 void run_func(ScriptState *st);
 
 static
-void mapreg_setreg(int num, int val);
+void mapreg_setreg(SIR num, int val);
 static
-void mapreg_setregstr(int num, const char *str);
+void mapreg_setregstr(SIR num, const char *str);
 
 struct BuiltinFunction
 {
@@ -879,14 +879,14 @@ void get_val(ScriptState *st, struct script_data *data)
     if (data->type == ByteCode::PARAM_)
     {
         if ((sd = script_rid2sd(st)) == NULL)
-            PRINTF("get_val error param SP::%d\n", data->u.num);
+            PRINTF("get_val error param SP::%d\n", data->u.numi);
         data->type = ByteCode::INT;
         if (sd)
-            data->u.num = pc_readparam(sd, static_cast<SP>(data->u.num));
+            data->u.numi = pc_readparam(sd, static_cast<SP>(data->u.numi));
     }
     else if (data->type == ByteCode::VARIABLE)
     {
-        const std::string& name = variable_names.outtern(data->u.num & 0x00ffffff);
+        const std::string& name = variable_names.outtern(data->u.reg.base());
         char prefix = name.front();
         char postfix = name.back();
 
@@ -901,11 +901,11 @@ void get_val(ScriptState *st, struct script_data *data)
             if (prefix == '@' || prefix == 'l')
             {
                 if (sd)
-                    data->u.str = dumb_string::fake(pc_readregstr(sd, data->u.num));
+                    data->u.str = dumb_string::fake(pc_readregstr(sd, data->u.reg));
             }
             else if (prefix == '$')
             {
-                std::string *s = mapregstr_db.search(data->u.num);
+                std::string *s = mapregstr_db.search(data->u.reg);
                 data->u.str = s ? dumb_string::fake(s->c_str()) : dumb_string();
             }
             else
@@ -922,29 +922,29 @@ void get_val(ScriptState *st, struct script_data *data)
             if (prefix == '@' || prefix == 'l')
             {
                 if (sd)
-                    data->u.num = pc_readreg(sd, data->u.num);
+                    data->u.numi = pc_readreg(sd, data->u.reg);
             }
             else if (prefix == '$')
             {
-                data->u.num = mapreg_db.get(data->u.num);
+                data->u.numi = mapreg_db.get(data->u.reg);
             }
             else if (prefix == '#')
             {
                 if (name[1] == '#')
                 {
                     if (sd)
-                        data->u.num = pc_readaccountreg2(sd, name.c_str());
+                        data->u.numi = pc_readaccountreg2(sd, name.c_str());
                 }
                 else
                 {
                     if (sd)
-                        data->u.num = pc_readaccountreg(sd, name.c_str());
+                        data->u.numi = pc_readaccountreg(sd, name.c_str());
                 }
             }
             else
             {
                 if (sd)
-                    data->u.num = pc_readglobalreg(sd, name.c_str());
+                    data->u.numi = pc_readglobalreg(sd, name.c_str());
             }
         }
     }
@@ -955,11 +955,11 @@ void get_val(ScriptState *st, struct script_data *data)
  *------------------------------------------
  */
 static
-struct script_data get_val2(ScriptState *st, int num)
+struct script_data get_val2(ScriptState *st, SIR reg)
 {
     struct script_data dat;
     dat.type = ByteCode::VARIABLE;
-    dat.u.num = num;
+    dat.u.reg = reg;
     get_val(st, &dat);
     return dat;
 }
@@ -969,17 +969,17 @@ struct script_data get_val2(ScriptState *st, int num)
  *------------------------------------------
  */
 static
-void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, size_t num, struct script_data vd)
+void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct script_data vd)
 {
     if (type == ByteCode::PARAM_)
     {
-        int val = vd.u.num;
-        pc_setparam(sd, static_cast<SP>(num), val);
+        int val = vd.u.numi;
+        pc_setparam(sd, reg.sp(), val);
         return;
     }
     assert (type == ByteCode::VARIABLE);
 
-    const std::string& name = variable_names.outtern(num);
+    const std::string& name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -988,11 +988,11 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, size_t num, struct sc
         dumb_string str = vd.u.str;
         if (prefix == '@' || prefix == 'l')
         {
-            pc_setregstr(sd, num, str.c_str());
+            pc_setregstr(sd, reg, str.c_str());
         }
         else if (prefix == '$')
         {
-            mapreg_setregstr(num, str.c_str());
+            mapreg_setregstr(reg, str.c_str());
         }
         else
         {
@@ -1002,14 +1002,14 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, size_t num, struct sc
     else
     {
         // 数値
-        int val = vd.u.num;
+        int val = vd.u.numi;
         if (prefix == '@' || prefix == 'l')
         {
-            pc_setreg(sd, num, val);
+            pc_setreg(sd, reg, val);
         }
         else if (prefix == '$')
         {
-            mapreg_setreg(num, val);
+            mapreg_setreg(reg, val);
         }
         else if (prefix == '#')
         {
@@ -1026,33 +1026,33 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, size_t num, struct sc
 }
 
 static
-void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, size_t num, int id)
+void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, int id)
 {
     struct script_data vd;
-    vd.u.num = id;
-    set_reg(sd, type, num, vd);
+    vd.u.numi = id;
+    set_reg(sd, type, reg, vd);
 }
 
 static
-void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, size_t num, dumb_string zd)
+void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, dumb_string zd)
 {
     struct script_data vd;
     vd.u.str = zd;
-    set_reg(sd, type, num, vd);
+    set_reg(sd, type, reg, vd);
 }
 
 /*==========================================
  * 文字列への変換
  *------------------------------------------
  */
-static
+static __attribute__((warn_unused_result))
 dumb_string conv_str(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
     assert (data->type != ByteCode::RETINFO);
     if (data->type == ByteCode::INT)
     {
-        std::string buf = STRPRINTF("%d", data->u.num);
+        std::string buf = STRPRINTF("%d", data->u.numi);
         data->type = ByteCode::STR;
         data->u.str = dumb_string::copys(buf);
     }
@@ -1063,7 +1063,7 @@ dumb_string conv_str(ScriptState *st, struct script_data *data)
  * 数値へ変換
  *------------------------------------------
  */
-static
+static __attribute__((warn_unused_result))
 int conv_num(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
@@ -1071,15 +1071,15 @@ int conv_num(ScriptState *st, struct script_data *data)
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
         dumb_string p = data->u.str;
-        data->u.num = atoi(p.c_str());
+        data->u.numi = atoi(p.c_str());
         if (data->type == ByteCode::STR)
             p.delete_();
         data->type = ByteCode::INT;
     }
-    return data->u.num;
+    return data->u.numi;
 }
 
-static
+static __attribute__((warn_unused_result))
 const ScriptBuffer *conv_script(ScriptState *st, struct script_data *data)
 {
     get_val(st, data);
@@ -1092,15 +1092,24 @@ const ScriptBuffer *conv_script(ScriptState *st, struct script_data *data)
  *------------------------------------------
  */
 static
-void push_val(struct script_stack *stack, ByteCode type, int val)
+void push_int(struct script_stack *stack, ByteCode type, int val)
 {
-    assert (type != ByteCode::RETINFO);
-    assert (type != ByteCode::STR);
-    assert (type != ByteCode::CONSTSTR);
+    assert (type == ByteCode::POS || type == ByteCode::INT || type == ByteCode::ARG || type == ByteCode::FUNC_REF);
 
     script_data nsd {};
     nsd.type = type;
-    nsd.u.num = val;
+    nsd.u.numi = val;
+    stack->stack_datav.push_back(nsd);
+}
+
+static
+void push_reg(struct script_stack *stack, ByteCode type, SIR reg)
+{
+    assert (type == ByteCode::PARAM_ || type == ByteCode::VARIABLE);
+
+    script_data nsd {};
+    nsd.type = type;
+    nsd.u.reg = reg;
     stack->stack_datav.push_back(nsd);
 }
 
@@ -1213,9 +1222,9 @@ void builtin_callfunc(ScriptState *st)
             push_copy(st->stack, i);
 #endif
 
-        push_val(st->stack, ByteCode::INT, j); // 引数の数をプッシュ
-        push_val(st->stack, ByteCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
-        push_val(st->stack, ByteCode::INT, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+        push_int(st->stack, ByteCode::INT, j); // 引数の数をプッシュ
+        push_int(st->stack, ByteCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
+        push_int(st->stack, ByteCode::INT, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
         push_script(st->stack, ByteCode::RETINFO, st->scriptp.code);  // 現在のスクリプトをプッシュ
 
         st->scriptp = ScriptPointer(scr, 0);
@@ -1244,9 +1253,9 @@ void builtin_callsub(ScriptState *st)
         push_copy(st->stack, i);
 #endif
 
-    push_val(st->stack, ByteCode::INT, j); // 引数の数をプッシュ
-    push_val(st->stack, ByteCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
-    push_val(st->stack, ByteCode::INT, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
+    push_int(st->stack, ByteCode::INT, j); // 引数の数をプッシュ
+    push_int(st->stack, ByteCode::INT, st->defsp); // 現在の基準スタックポインタをプッシュ
+    push_int(st->stack, ByteCode::INT, st->scriptp.pos);   // 現在のスクリプト位置をプッシュ
     push_script(st->stack, ByteCode::RETINFO, st->scriptp.code);  // 現在のスクリプトをプッシュ
 
     st->scriptp.pos = pos_;
@@ -1342,7 +1351,7 @@ void builtin_menu(ScriptState *st)
         // not just the displayed number that ends with the "".
         // (Would it be better to pop the stack before rerunning?)
         int menu_choices = (st->end - (st->start + 2)) / 2;
-        pc_setreg(sd, variable_names.intern("@menu"), sd->npc_menu);
+        pc_setreg(sd, SIR::from(variable_names.intern("@menu")), sd->npc_menu);
         sd->state.menu_or_input = 0;
         if (sd->npc_menu > 0 && sd->npc_menu <= menu_choices)
         {
@@ -1371,12 +1380,12 @@ void builtin_rand(ScriptState *st)
         int max = conv_num(st, &AARGO2(3));
         if (min > max)
             std::swap(max, min);
-        push_val(st->stack, ByteCode::INT, random_::in(min, max));
+        push_int(st->stack, ByteCode::INT, random_::in(min, max));
     }
     else
     {
         int range = conv_num(st, &AARGO2(2));
-        push_val(st->stack, ByteCode::INT, range <= 0 ? 0 : random_::to(range));
+        push_int(st->stack, ByteCode::INT, range <= 0 ? 0 : random_::to(range));
     }
 }
 
@@ -1393,7 +1402,7 @@ void builtin_pow(ScriptState *st)
     b = conv_num(st, &AARGO2(3));
 
 #warning "This is silly"
-    push_val(st->stack, ByteCode::INT, static_cast<int>(pow(a * 0.001, b)));
+    push_int(st->stack, ByteCode::INT, static_cast<int>(pow(a * 0.001, b)));
 
 }
 
@@ -1415,7 +1424,7 @@ void builtin_isat(ScriptState *st)
         return;
 
     using namespace operators;
-    push_val(st->stack, ByteCode::INT,
+    push_int(st->stack, ByteCode::INT,
             (x == sd->bl_x) && (y == sd->bl_y)
             && (str == sd->bl_m->name_));
 }
@@ -1551,8 +1560,8 @@ void builtin_input(ScriptState *st)
     ByteCode type = scrd.type;
     assert (type == ByteCode::VARIABLE);
 
-    int num = scrd.u.num;
-    const std::string& name = variable_names.outtern(num & 0x00ffffff);
+    SIR reg = scrd.u.reg;
+    const std::string& name = variable_names.outtern(reg.base());
 //  char prefix = name.front();
     char postfix = name.back();
 
@@ -1563,7 +1572,7 @@ void builtin_input(ScriptState *st)
         sd->state.menu_or_input = 0;
         if (postfix == '$')
         {
-            set_reg(sd, type, num, dumb_string::fake(sd->npc_str.c_str()));
+            set_reg(sd, type, reg, dumb_string::fake(sd->npc_str.c_str()));
         }
         else
         {
@@ -1576,7 +1585,7 @@ void builtin_input(ScriptState *st)
                 builtin_close(st); //** close
             }
 
-            set_reg(sd, type, num, sd->npc_amount);
+            set_reg(sd, type, reg, sd->npc_amount);
         }
     }
     else
@@ -1607,14 +1616,13 @@ void builtin_if (ScriptState *st)
     // 関数名をコピー
     push_copy(st->stack, st->start + 3);
     // 間に引数マーカを入れて
-    push_val(st->stack, ByteCode::ARG, 0);
+    push_int(st->stack, ByteCode::ARG, 0);
     // 残りの引数をコピー
     for (i = st->start + 4; i < st->end; i++)
     {
         push_copy(st->stack, i);
     }
     run_func(st);
-
 }
 
 /*==========================================
@@ -1625,16 +1633,16 @@ static
 void builtin_set(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = NULL;
-    int num = AARGO2(2).u.num;
+    SIR reg = AARGO2(2).u.reg;
     if (AARGO2(2).type == ByteCode::PARAM_)
     {
         sd = script_rid2sd(st);
 
         int val = conv_num(st, &AARGO2(3));
-        set_reg(sd, ByteCode::PARAM_, num, val);
+        set_reg(sd, ByteCode::PARAM_, reg, val);
         return;
     }
-    const std::string& name = variable_names.outtern(num & 0x00ffffff);
+    const std::string& name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -1647,13 +1655,13 @@ void builtin_set(ScriptState *st)
     {
         // 文字列
         dumb_string str = conv_str(st, &AARGO2(3));
-        set_reg(sd, ByteCode::VARIABLE, num, str);
+        set_reg(sd, ByteCode::VARIABLE, reg, str);
     }
     else
     {
         // 数値
         int val = conv_num(st, &AARGO2(3));
-        set_reg(sd, ByteCode::VARIABLE, num, val);
+        set_reg(sd, ByteCode::VARIABLE, reg, val);
     }
 
 }
@@ -1667,8 +1675,8 @@ void builtin_setarray(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = NULL;
     assert (AARGO2(2).type == ByteCode::VARIABLE);
-    int num = AARGO2(2).u.num;
-    const std::string& name = variable_names.outtern(num & 0x00ffffff);
+    SIR reg = AARGO2(2).u.reg;
+    const std::string& name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -1683,9 +1691,9 @@ void builtin_setarray(ScriptState *st)
     for (int j = 0, i = st->start + 3; i < st->end && j < 128; i++, j++)
     {
         if (postfix == '$')
-            set_reg(sd, ByteCode::VARIABLE, num + (j << 24), conv_str(st, &AARGO2(i - st->start)));
+            set_reg(sd, ByteCode::VARIABLE, reg.iplus(j), conv_str(st, &AARGO2(i - st->start)));
         else
-            set_reg(sd, ByteCode::VARIABLE, num + (j << 24), conv_num(st, &AARGO2(i - st->start)));
+            set_reg(sd, ByteCode::VARIABLE, reg.iplus(j), conv_num(st, &AARGO2(i - st->start)));
     }
 }
 
@@ -1698,8 +1706,8 @@ void builtin_cleararray(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = NULL;
     assert (AARGO2(2).type == ByteCode::VARIABLE);
-    int num = AARGO2(2).u.num;
-    const std::string& name = variable_names.outtern(num & 0x00ffffff);
+    SIR reg = AARGO2(2).u.reg;
+    const std::string& name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
     int sz = conv_num(st, &AARGO2(4));
@@ -1712,12 +1720,13 @@ void builtin_cleararray(ScriptState *st)
     if (prefix != '$')
         sd = script_rid2sd(st);
 
-    if (postfix == '$')
-        for (int i = 0; i < sz; i++)
-            set_reg(sd, ByteCode::VARIABLE, num + (i << 24), conv_str(st, &AARGO2(3)));
-    else
-        for (int i = 0; i < sz; i++)
-            set_reg(sd, ByteCode::VARIABLE, num + (i << 24), conv_num(st, &AARGO2(3)));
+    for (int i = 0; i < sz; i++)
+    {
+        if (postfix == '$')
+            set_reg(sd, ByteCode::VARIABLE, reg.iplus(i), conv_str(st, &AARGO2(3)));
+        else
+            set_reg(sd, ByteCode::VARIABLE, reg.iplus(i), conv_num(st, &AARGO2(3)));
+    }
 
 }
 
@@ -1726,13 +1735,14 @@ void builtin_cleararray(ScriptState *st)
  *------------------------------------------
  */
 static
-int getarraysize(ScriptState *st, int num, int postfix)
+int getarraysize(ScriptState *st, SIR reg, bool is_string)
 {
-    int i = (num >> 24), c = i;
+    int i = reg.index(), c = i;
     for (; i < 128; i++)
     {
-        struct script_data vd = get_val2(st, num + (i << 24));
-        if (postfix == '$' ? bool(vd.u.str[0]) : bool(vd.u.num))
+        // This is obviously not what was intended
+        struct script_data vd = get_val2(st, reg.iplus(i));
+        if (is_string ? bool(vd.u.str[0]) : bool(vd.u.numi))
             c = i;
     }
     return c + 1;
@@ -1742,8 +1752,8 @@ static
 void builtin_getarraysize(ScriptState *st)
 {
     assert (AARGO2(2).type == ByteCode::VARIABLE);
-    int num = AARGO2(2).u.num;
-    const std::string& name = variable_names.outtern(num & 0x00ffffff);
+    SIR reg = AARGO2(2).u.reg;
+    const std::string& name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -1753,7 +1763,7 @@ void builtin_getarraysize(ScriptState *st)
         return;
     }
 
-    push_val(st->stack, ByteCode::INT, getarraysize(st, num, postfix));
+    push_int(st->stack, ByteCode::INT, getarraysize(st, reg, postfix == '$'));
 }
 
 /*==========================================
@@ -1770,18 +1780,18 @@ void builtin_getelementofarray(ScriptState *st)
         {
             PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n",
                  i);
-            push_val(st->stack, ByteCode::INT, 0);
+            push_int(st->stack, ByteCode::INT, 0);
         }
         else
         {
-            push_val(st->stack, ByteCode::VARIABLE,
-                      (i << 24) | AARGO2(2).u.num);
+            push_reg(st->stack, ByteCode::VARIABLE,
+                    AARGO2(2).u.reg.iplus(i));
         }
     }
     else
     {
         PRINTF("script: getelementofarray (operator[]): param1 not name !\n");
-        push_val(st->stack, ByteCode::INT, 0);
+        push_int(st->stack, ByteCode::INT, 0);
     }
 }
 
@@ -1836,7 +1846,7 @@ void builtin_countitem(ScriptState *st)
         if (battle_config.error_log)
             PRINTF("wrong item ID : countitem (%i)\n", nameid);
     }
-    push_val(st->stack, ByteCode::INT, count);
+    push_int(st->stack, ByteCode::INT, count);
 
 }
 
@@ -1869,17 +1879,17 @@ void builtin_checkweight(ScriptState *st)
     if (amount <= 0 || nameid < 500)
     {
         //if get wrong item ID or amount<=0, don't count weight of non existing items
-        push_val(st->stack, ByteCode::INT, 0);
+        push_int(st->stack, ByteCode::INT, 0);
         return;
     }
 
     if (itemdb_weight(nameid) * amount + sd->weight > sd->max_weight)
     {
-        push_val(st->stack, ByteCode::INT, 0);
+        push_int(st->stack, ByteCode::INT, 0);
     }
     else
     {
-        push_val(st->stack, ByteCode::INT, 1);
+        push_int(st->stack, ByteCode::INT, 1);
     }
 
 }
@@ -2072,11 +2082,11 @@ void builtin_readparam(ScriptState *st)
 
     if (sd == NULL)
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
         return;
     }
 
-    push_val(st->stack, ByteCode::INT, pc_readparam(sd, type));
+    push_int(st->stack, ByteCode::INT, pc_readparam(sd, type));
 
 }
 
@@ -2097,17 +2107,17 @@ void builtin_getcharid(ScriptState *st)
         sd = script_rid2sd(st);
     if (sd == NULL)
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
         return;
     }
     if (num == 0)
-        push_val(st->stack, ByteCode::INT, sd->status.char_id);
+        push_int(st->stack, ByteCode::INT, sd->status.char_id);
     if (num == 1)
-        push_val(st->stack, ByteCode::INT, sd->status.party_id);
+        push_int(st->stack, ByteCode::INT, sd->status.party_id);
     if (num == 2)
-        push_val(st->stack, ByteCode::INT, 0/*guild_id*/);
+        push_int(st->stack, ByteCode::INT, 0/*guild_id*/);
     if (num == 3)
-        push_val(st->stack, ByteCode::INT, sd->status.account_id);
+        push_int(st->stack, ByteCode::INT, sd->status.account_id);
 }
 
 /*==========================================
@@ -2198,13 +2208,13 @@ void builtin_getequipid(ScriptState *st)
     {
         item = sd->inventory_data[i];
         if (item)
-            push_val(st->stack, ByteCode::INT, item->nameid);
+            push_int(st->stack, ByteCode::INT, item->nameid);
         else
-            push_val(st->stack, ByteCode::INT, 0);
+            push_int(st->stack, ByteCode::INT, 0);
     }
     else
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
     }
 }
 
@@ -2329,7 +2339,7 @@ static
 void builtin_getskilllv(ScriptState *st)
 {
     SkillID id = SkillID(conv_num(st, &AARGO2(2)));
-    push_val(st->stack, ByteCode::INT, pc_checkskill(script_rid2sd(st), id));
+    push_int(st->stack, ByteCode::INT, pc_checkskill(script_rid2sd(st), id));
 }
 
 /*==========================================
@@ -2339,7 +2349,7 @@ void builtin_getskilllv(ScriptState *st)
 static
 void builtin_getgmlevel(ScriptState *st)
 {
-    push_val(st->stack, ByteCode::INT, pc_isGM(script_rid2sd(st)));
+    push_int(st->stack, ByteCode::INT, pc_isGM(script_rid2sd(st)));
 }
 
 /*==========================================
@@ -2364,7 +2374,7 @@ void builtin_getopt2(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    push_val(st->stack, ByteCode::INT, uint16_t(sd->opt2));
+    push_int(st->stack, ByteCode::INT, uint16_t(sd->opt2));
 
 }
 
@@ -2425,18 +2435,18 @@ void builtin_gettimetick(ScriptState *st)   /* Asgard Version */
         case 1:
         {
             struct tm t = TimeT::now();
-            push_val(st->stack, ByteCode::INT,
+            push_int(st->stack, ByteCode::INT,
                     t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec);
             break;
         }
         /* Seconds since Unix epoch. */
         case 2:
-            push_val(st->stack, ByteCode::INT, static_cast<time_t>(TimeT::now()));
+            push_int(st->stack, ByteCode::INT, static_cast<time_t>(TimeT::now()));
             break;
         /* System tick(unsigned int, and yes, it will wrap). */
         case 0:
         default:
-            push_val(st->stack, ByteCode::INT, gettick().time_since_epoch().count());
+            push_int(st->stack, ByteCode::INT, gettick().time_since_epoch().count());
             break;
     }
 }
@@ -2458,28 +2468,28 @@ void builtin_gettime(ScriptState *st)   /* Asgard Version */
     switch (type)
     {
         case 1:                //Sec(0~59)
-            push_val(st->stack, ByteCode::INT, t.tm_sec);
+            push_int(st->stack, ByteCode::INT, t.tm_sec);
             break;
         case 2:                //Min(0~59)
-            push_val(st->stack, ByteCode::INT, t.tm_min);
+            push_int(st->stack, ByteCode::INT, t.tm_min);
             break;
         case 3:                //Hour(0~23)
-            push_val(st->stack, ByteCode::INT, t.tm_hour);
+            push_int(st->stack, ByteCode::INT, t.tm_hour);
             break;
         case 4:                //WeekDay(0~6)
-            push_val(st->stack, ByteCode::INT, t.tm_wday);
+            push_int(st->stack, ByteCode::INT, t.tm_wday);
             break;
         case 5:                //MonthDay(01~31)
-            push_val(st->stack, ByteCode::INT, t.tm_mday);
+            push_int(st->stack, ByteCode::INT, t.tm_mday);
             break;
         case 6:                //Month(01~12)
-            push_val(st->stack, ByteCode::INT, t.tm_mon + 1);
+            push_int(st->stack, ByteCode::INT, t.tm_mon + 1);
             break;
         case 7:                //Year(20xx)
-            push_val(st->stack, ByteCode::INT, t.tm_year + 1900);
+            push_int(st->stack, ByteCode::INT, t.tm_year + 1900);
             break;
         default:               //(format error)
-            push_val(st->stack, ByteCode::INT, -1);
+            push_int(st->stack, ByteCode::INT, -1);
             break;
     }
 }
@@ -2742,7 +2752,7 @@ void builtin_getnpctimer(ScriptState *st)
             val = nd->scr.timer_eventv.size();
             break;
     }
-    push_val(st->stack, ByteCode::INT, val);
+    push_int(st->stack, ByteCode::INT, val);
 }
 
 /*==========================================
@@ -2836,7 +2846,7 @@ void builtin_getusers(ScriptState *st)
             val = map_getusers();
             break;
     }
-    push_val(st->stack, ByteCode::INT, val);
+    push_int(st->stack, ByteCode::INT, val);
 }
 
 /*==========================================
@@ -2850,10 +2860,10 @@ void builtin_getmapusers(ScriptState *st)
     map_local *m = map_mapname2mapid(str.c_str());
     if (m == nullptr)
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
         return;
     }
-    push_val(st->stack, ByteCode::INT, m->users);
+    push_int(st->stack, ByteCode::INT, m->users);
 }
 
 /*==========================================
@@ -2891,7 +2901,7 @@ void builtin_getareausers(ScriptState *st)
     map_local *m = map_mapname2mapid(str.c_str());
     if (m == nullptr)
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
         return;
     }
     map_foreachinarea(std::bind(living ? builtin_getareausers_living_sub: builtin_getareausers_sub, ph::_1, &users),
@@ -2899,7 +2909,7 @@ void builtin_getareausers(ScriptState *st)
             x0, y0,
             x1, y1,
             BL::PC);
-    push_val(st->stack, ByteCode::INT, users);
+    push_int(st->stack, ByteCode::INT, users);
 }
 
 /*==========================================
@@ -2960,7 +2970,7 @@ void builtin_getareadropitem(ScriptState *st)
     map_local *m = map_mapname2mapid(str.c_str());
     if (m == nullptr)
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
         return;
     }
     if (delitems)
@@ -2976,7 +2986,7 @@ void builtin_getareadropitem(ScriptState *st)
                 x1, y1,
                 BL::ITEM);
 
-    push_val(st->stack, ByteCode::INT, amount);
+    push_int(st->stack, ByteCode::INT, amount);
 }
 
 /*==========================================
@@ -3049,7 +3059,7 @@ void builtin_sc_check(ScriptState *st)
     StatusChange type = StatusChange(conv_num(st, &AARGO2(2)));
     bl = map_id2bl(st->rid);
 
-    push_val(st->stack, ByteCode::INT, skill_status_change_active(bl, type));
+    push_int(st->stack, ByteCode::INT, skill_status_change_active(bl, type));
 
 }
 
@@ -3109,7 +3119,7 @@ static
 void builtin_attachrid(ScriptState *st)
 {
     st->rid = conv_num(st, &AARGO2(2));
-    push_val(st->stack, ByteCode::INT, (map_id2sd(st->rid) != NULL));
+    push_int(st->stack, ByteCode::INT, (map_id2sd(st->rid) != NULL));
 }
 
 /*==========================================
@@ -3129,7 +3139,7 @@ void builtin_detachrid(ScriptState *st)
 static
 void builtin_isloggedin(ScriptState *st)
 {
-    push_val(st->stack, ByteCode::INT,
+    push_int(st->stack, ByteCode::INT,
               map_id2sd(conv_num(st,
                           &AARGO2(2))) != NULL);
 }
@@ -3342,7 +3352,7 @@ void builtin_getmapflag(ScriptState *st)
         }
     }
 
-    push_val(st->stack, ByteCode::INT, r);
+    push_int(st->stack, ByteCode::INT, r);
 }
 
 static
@@ -3476,7 +3486,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
     map_local *m = map_mapname2mapid(mapname.c_str());
     if (m == nullptr)
     {
-        push_val(st->stack, ByteCode::INT, -1);
+        push_int(st->stack, ByteCode::INT, -1);
         return;
     }
     map_foreachinarea(std::bind(builtin_mobcount_sub, ph::_1, event, &c),
@@ -3485,7 +3495,7 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
             m->xs, m->ys,
             BL::MOB);
 
-    push_val(st->stack, ByteCode::INT, (c - 1));
+    push_int(st->stack, ByteCode::INT, (c - 1));
 
 }
 
@@ -3498,10 +3508,10 @@ void builtin_marriage(ScriptState *st)
 
     if (sd == NULL || p_sd == NULL || pc_marriage(sd, p_sd) < 0)
     {
-        push_val(st->stack, ByteCode::INT, 0);
+        push_int(st->stack, ByteCode::INT, 0);
         return;
     }
-    push_val(st->stack, ByteCode::INT, 1);
+    push_int(st->stack, ByteCode::INT, 1);
 }
 
 static
@@ -3515,11 +3525,11 @@ void builtin_divorce(ScriptState *st)
 
     if (sd == NULL || pc_divorce(sd) < 0)
     {
-        push_val(st->stack, ByteCode::INT, 0);
+        push_int(st->stack, ByteCode::INT, 0);
         return;
     }
 
-    push_val(st->stack, ByteCode::INT, 1);
+    push_int(st->stack, ByteCode::INT, 1);
 }
 
 /*==========================================
@@ -3571,7 +3581,7 @@ void builtin_getpartnerid2(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_val(st->stack, ByteCode::INT, sd->status.partner_id);
+    push_int(st->stack, ByteCode::INT, sd->status.partner_id);
 }
 
 /*==========================================
@@ -3590,30 +3600,30 @@ void builtin_getinventorylist(ScriptState *st)
         if (sd->status.inventory[i].nameid > 0
             && sd->status.inventory[i].amount > 0)
         {
-            pc_setreg(sd, variable_names.intern("@inventorylist_id") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_id"), j),
                        sd->status.inventory[i].nameid);
-            pc_setreg(sd, variable_names.intern("@inventorylist_amount") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_amount"), j),
                        sd->status.inventory[i].amount);
-            pc_setreg(sd, variable_names.intern("@inventorylist_equip") + (j << 24),
-                       uint16_t(sd->status.inventory[i].equip));
-            pc_setreg(sd, variable_names.intern("@inventorylist_refine") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_equip"), j),
+                    static_cast<uint16_t>(sd->status.inventory[i].equip));
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_refine"), j),
                        sd->status.inventory[i].refine);
-            pc_setreg(sd, variable_names.intern("@inventorylist_identify") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_identify"), j),
                        sd->status.inventory[i].identify);
-            pc_setreg(sd, variable_names.intern("@inventorylist_attribute") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_attribute"), j),
                        sd->status.inventory[i].attribute);
-            pc_setreg(sd, variable_names.intern("@inventorylist_card1") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card1"), j),
                        sd->status.inventory[i].card[0]);
-            pc_setreg(sd, variable_names.intern("@inventorylist_card2") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card2"), j),
                        sd->status.inventory[i].card[1]);
-            pc_setreg(sd, variable_names.intern("@inventorylist_card3") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card3"), j),
                        sd->status.inventory[i].card[2]);
-            pc_setreg(sd, variable_names.intern("@inventorylist_card4") + (j << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card4"), j),
                        sd->status.inventory[i].card[3]);
             j++;
         }
     }
-    pc_setreg(sd, variable_names.intern("@inventorylist_count"), j);
+    pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_count")), j);
 }
 
 static
@@ -3633,18 +3643,18 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
 
         if (sd->status.skill[skill_id].lv)
         {
-            pc_setreg(sd, variable_names.intern("@skilllist_id") + (count << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_id"), count),
                     static_cast<uint16_t>(skill_id));
-            pc_setreg(sd, variable_names.intern("@skilllist_lv") + (count << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_lv"), count),
                     sd->status.skill[skill_id].lv);
-            pc_setreg(sd, variable_names.intern("@skilllist_flag") + (count << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"), count),
                     static_cast<uint16_t>(sd->status.skill[skill_id].flags));
-            pc_setregstr(sd, variable_names.intern("@skilllist_name$") + (count << 24),
+            pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"), count),
                     skill_name(skill_id).c_str());
             ++count;
         }
     }
-    pc_setreg(sd, variable_names.intern("@skilllist_count"), count);
+    pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count")), count);
 
 }
 
@@ -3664,18 +3674,18 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
         if (sd->status.skill[skill_id].lv
             && !bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         {
-            pc_setreg(sd, variable_names.intern("@skilllist_id") + (count << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_id"), count),
                     static_cast<uint16_t>(skill_id));
-            pc_setreg(sd, variable_names.intern("@skilllist_lv") + (count << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_lv"), count),
                     sd->status.skill[skill_id].lv);
-            pc_setreg(sd, variable_names.intern("@skilllist_flag") + (count << 24),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"), count),
                     static_cast<uint16_t>(sd->status.skill[skill_id].flags));
-            pc_setregstr(sd, variable_names.intern("@skilllist_name$") + (count << 24),
+            pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"), count),
                     skill_name(skill_id).c_str());
             ++count;
         }
     }
-    pc_setreg(sd, variable_names.intern("@skilllist_count"), count);
+    pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count")), count);
 }
 
 static
@@ -3964,7 +3974,7 @@ void builtin_getlook(ScriptState *st)
             break;
     }
 
-    push_val(st->stack, ByteCode::INT, val);
+    push_int(st->stack, ByteCode::INT, val);
 }
 
 /*==========================================
@@ -3992,10 +4002,10 @@ void builtin_getsavepoint(ScriptState *st)
         }
             break;
         case 1:
-            push_val(st->stack, ByteCode::INT, x);
+            push_int(st->stack, ByteCode::INT, x);
             break;
         case 2:
-            push_val(st->stack, ByteCode::INT, y);
+            push_int(st->stack, ByteCode::INT, y);
             break;
     }
 }
@@ -4054,7 +4064,7 @@ void builtin_isin(ScriptState *st)
         return;
 
     using namespace operators;
-    push_val(st->stack, ByteCode::INT,
+    push_int(st->stack, ByteCode::INT,
               (sd->bl_x >= x1 && sd->bl_x <= x2)
               && (sd->bl_y >= y1 && sd->bl_y <= y2)
               && (str == sd->bl_m->name_));
@@ -4087,7 +4097,7 @@ void builtin_isdead(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_val(st->stack, ByteCode::INT, pc_isdead(sd));
+    push_int(st->stack, ByteCode::INT, pc_isdead(sd));
 }
 
 /*========================================
@@ -4121,7 +4131,7 @@ void builtin_getx(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_val(st->stack, ByteCode::INT, sd->bl_x);
+    push_int(st->stack, ByteCode::INT, sd->bl_x);
 }
 
 /*============================
@@ -4133,7 +4143,7 @@ void builtin_gety(ScriptState *st)
 {
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    push_val(st->stack, ByteCode::INT, sd->bl_y);
+    push_int(st->stack, ByteCode::INT, sd->bl_y);
 }
 
 /*
@@ -4199,7 +4209,7 @@ int pop_val(ScriptState *st)
     get_val(st, &back);
     int rv = 0;
     if (back.type == ByteCode::INT)
-        rv = back.u.num;
+        rv = back.u.numi;
     st->stack->stack_datav.pop_back();
     return rv;
 }
@@ -4227,7 +4237,7 @@ void op_add(ScriptState *st)
 
     if (!(isstr(back) || isstr(back1)))
     {
-        back1.u.num += back.u.num;
+        back1.u.numi += back.u.numi;
     }
     else
     {
@@ -4279,7 +4289,7 @@ void op_2str(ScriptState *st, ByteCode op, dumb_string s1, dumb_string s2)
             break;
     }
 
-    push_val(st->stack, ByteCode::INT, a);
+    push_int(st->stack, ByteCode::INT, a);
 }
 
 /*==========================================
@@ -4343,7 +4353,7 @@ void op_2num(ScriptState *st, ByteCode op, int i1, int i2)
             i1 = i1 << i2;
             break;
     }
-    push_val(st->stack, ByteCode::INT, i1);
+    push_int(st->stack, ByteCode::INT, i1);
 }
 
 /*==========================================
@@ -4373,13 +4383,13 @@ void op_2(ScriptState *st, ByteCode op)
     else if (!(isstr(d1) || isstr(d2)))
     {
         // ii => op_2num
-        op_2num(st, op, d1.u.num, d2.u.num);
+        op_2num(st, op, d1.u.numi, d2.u.numi);
     }
     else
     {
         // si,is => error
         PRINTF("script: op_2: int&str, str&int not allow.\n");
-        push_val(st->stack, ByteCode::INT, 0);
+        push_int(st->stack, ByteCode::INT, 0);
     }
 }
 
@@ -4404,7 +4414,7 @@ void op_1num(ScriptState *st, ByteCode op)
             i1 = !i1;
             break;
     }
-    push_val(st->stack, ByteCode::INT, i1);
+    push_int(st->stack, ByteCode::INT, i1);
 }
 
 /*==========================================
@@ -4431,7 +4441,7 @@ void run_func(ScriptState *st)
     st->start = start_sp;
     st->end = end_sp;
 
-    size_t func = st->stack->stack_datav[st->start].u.num;
+    size_t func = st->stack->stack_datav[st->start].u.numi;
     if (st->stack->stack_datav[st->start].type != ByteCode::FUNC_REF)
     {
         PRINTF("run_func: not function and command! \n");
@@ -4450,25 +4460,25 @@ void run_func(ScriptState *st)
             switch (d.type)
             {
                 case ByteCode::INT:
-                    PRINTF(" int(%d)", d.u.num);
+                    PRINTF(" int(%d)", d.u.numi);
                     break;
                 case ByteCode::RETINFO:
                     PRINTF(" retinfo(%p)", static_cast<const void *>(d.u.script));
                     break;
                 case ByteCode::PARAM_:
-                    PRINTF(" param(%d)", d.u.num);
+                    PRINTF(" param(%d)", d.u.reg.sp());
                     break;
                 case ByteCode::VARIABLE:
-                    PRINTF(" name(%s)", variable_names.outtern(d.u.num));
+                    PRINTF(" name(%s)[%d]", variable_names.outtern(d.u.reg.base()), d.u.reg.index());
                     break;
                 case ByteCode::ARG:
                     PRINTF(" arg");
                     break;
                 case ByteCode::POS:
-                    PRINTF(" pos(%d)", d.u.num);
+                    PRINTF(" pos(%d)", d.u.numi);
                     break;
-                default:
-                    PRINTF(" %d,%d", d.type, d.u.num);
+                default: // ?
+                    PRINTF(" %d,%d", d.type, d.u.numi);
             }
         }
         PRINTF("\n");
@@ -4536,7 +4546,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                 break;
             case ByteCode::INT:
                 // synthesized!
-                push_val(stack, ByteCode::INT, get_num(&st->scriptp));
+                push_int(stack, ByteCode::INT, get_num(&st->scriptp));
                 break;
 
             case ByteCode::POS:
@@ -4549,14 +4559,24 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                 arg |= static_cast<uint8_t>(st->scriptp.pop()) << 0;
                 arg |= static_cast<uint8_t>(st->scriptp.pop()) << 8;
                 arg |= static_cast<uint8_t>(st->scriptp.pop()) << 16;
-                push_val(stack, c, arg);
+                switch(c)
+                {
+                case ByteCode::POS:
+                    push_int(stack, ByteCode::POS, arg);
+                    break;
+                case ByteCode::VARIABLE:
+                    push_reg(stack, ByteCode::VARIABLE, SIR::from(arg));
+                    break;
+                case ByteCode::FUNC_REF:
+                    push_int(stack, ByteCode::FUNC_REF, arg);
+                    break;
+                }
             }
                 break;
             case ByteCode::ARG:
-                push_val(stack, c, 0);
+                push_int(stack, ByteCode::ARG, 0);
                 break;
             case ByteCode::STR:
-                // ScriptPointer.pops() leaves it .pos pointing to the \0.
                 push_str(stack, ByteCode::CONSTSTR, dumb_string::fake(st->scriptp.pops()));
                 break;
             case ByteCode::FUNC_:
@@ -4685,9 +4705,9 @@ int run_script_l(ScriptPointer sp, int rid, int oid,
     for (i = 0; i < args_nr; i++)
     {
         if (args[i].name[strlen(args[i].name) - 1] == '$')
-            pc_setregstr(sd, variable_names.intern(args[i].name), args[i].v.s);
+            pc_setregstr(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.s);
         else
-            pc_setreg(sd, variable_names.intern(args[i].name), args[i].v.i);
+            pc_setreg(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.i);
     }
     run_script_main(&st, rootscript);
 
@@ -4699,9 +4719,9 @@ int run_script_l(ScriptPointer sp, int rid, int oid,
  * マップ変数の変更
  *------------------------------------------
  */
-void mapreg_setreg(int num, int val)
+void mapreg_setreg(SIR reg, int val)
 {
-    mapreg_db.put(num, val);
+    mapreg_db.put(reg, val);
 
     mapreg_dirty = 1;
 }
@@ -4710,12 +4730,12 @@ void mapreg_setreg(int num, int val)
  * 文字列型マップ変数の変更
  *------------------------------------------
  */
-void mapreg_setregstr(int num, const char *str)
+void mapreg_setregstr(SIR reg, const char *str)
 {
     if (!str || !*str)
-        mapregstr_db.erase(num);
+        mapregstr_db.erase(reg);
     else
-        mapregstr_db.insert(num, str);
+        mapregstr_db.insert(reg, str);
 
     mapreg_dirty = 1;
 }
@@ -4747,7 +4767,7 @@ void script_load_mapreg(void)
                         &buf2)))
         {
             int s = variable_names.intern(buf1);
-            int key = (index << 24) | s;
+            SIR key = SIR::from(s, index);
             if (buf1.back() == '$')
             {
                 mapregstr_db.insert(key, buf2);
@@ -4775,9 +4795,9 @@ void script_load_mapreg(void)
  *------------------------------------------
  */
 static
-void script_save_mapreg_intsub(int key, int data, FILE *fp)
+void script_save_mapreg_intsub(SIR key, int data, FILE *fp)
 {
-    int num = key & 0x00ffffff, i = key >> 24;
+    int num = key.base(), i = key.index();
     const std::string& name = variable_names.outtern(num);
     if (name[1] != '@')
     {
@@ -4789,9 +4809,9 @@ void script_save_mapreg_intsub(int key, int data, FILE *fp)
 }
 
 static
-void script_save_mapreg_strsub(int key, const std::string& data, FILE *fp)
+void script_save_mapreg_strsub(SIR key, const std::string& data, FILE *fp)
 {
-    int num = key & 0x00ffffff, i = key >> 24;
+    int num = key.base(), i = key.index();
     const std::string& name = variable_names.outtern(num);
     if (name[1] != '@')
     {

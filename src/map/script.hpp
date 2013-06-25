@@ -10,6 +10,8 @@
 #include "../common/db.hpp"
 #include "../common/dumb_ptr.hpp"
 
+#include "map.t.hpp"
+
 enum class ByteCode : uint8_t;
 struct str_data_t;
 
@@ -60,8 +62,34 @@ struct ScriptPointer
     {
         const char *rv = code->get_str(pos);
         pos += strlen(rv);
+        ++pos;
         return rv;
     }
+};
+
+// internal
+class SIR
+{
+    uint32_t impl;
+    SIR(SP v)
+    : impl(static_cast<uint32_t>(v))
+    {}
+    SIR(unsigned v, uint8_t i)
+    : impl((i << 24) | v)
+    {}
+public:
+    SIR() : impl() {}
+
+    unsigned base() const { return impl & 0x00ffffff; }
+    uint8_t index() const { return impl >> 24; }
+    SIR iplus(uint8_t i) const { return SIR(base(), index() + i); }
+    static SIR from(unsigned v, uint8_t i=0) { return SIR(v, i); }
+
+    SP sp() const { return static_cast<SP>(impl); }
+    static SIR from(SP v) { return SIR(v); }
+
+    friend bool operator == (SIR l, SIR r) { return l.impl == r.impl; }
+    friend bool operator < (SIR l, SIR r) { return l.impl < r.impl; }
 };
 
 struct script_data
@@ -69,7 +97,8 @@ struct script_data
     ByteCode type;
     union uu
     {
-        int num;
+        SIR reg;
+        int numi;
         dumb_string str;
         // Not a ScriptPointer - pos is stored in a separate slot,
         // to avoid exploding the struct for everyone.

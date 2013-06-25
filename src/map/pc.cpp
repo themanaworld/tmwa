@@ -4111,7 +4111,7 @@ int pc_setoption(dumb_ptr<map_session_data> sd, Option type)
  * script用変数の値を読む
  *------------------------------------------
  */
-int pc_readreg(dumb_ptr<map_session_data> sd, int reg)
+int pc_readreg(dumb_ptr<map_session_data> sd, SIR reg)
 {
     nullpo_ret(sd);
 
@@ -4122,7 +4122,7 @@ int pc_readreg(dumb_ptr<map_session_data> sd, int reg)
  * script用変数の値を設定
  *------------------------------------------
  */
-void pc_setreg(dumb_ptr<map_session_data> sd, int reg, int val)
+void pc_setreg(dumb_ptr<map_session_data> sd, SIR reg, int val)
 {
     nullpo_retv(sd);
 
@@ -4133,7 +4133,7 @@ void pc_setreg(dumb_ptr<map_session_data> sd, int reg, int val)
  * script用文字列変数の値を読む
  *------------------------------------------
  */
-const char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg)
+const char *pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
 {
     nullpo_ret(sd);
 
@@ -4148,10 +4148,9 @@ const char *pc_readregstr(dumb_ptr<map_session_data> sd, int reg)
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-void pc_setregstr(dumb_ptr<map_session_data> sd, int reg, const char *str)
+void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, const char *str)
 {
     nullpo_retv(sd);
-
 
     if (!*str)
     {

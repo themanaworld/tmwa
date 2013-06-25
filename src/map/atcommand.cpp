@@ -6025,7 +6025,7 @@ int atcommand_skillpool_info(const int fd, dumb_ptr<map_session_data>,
 
         for (i = 0; i < skill_pool_skills_size; ++i)
         {
-            const std::string& name = skill_name(skill_pool_skills[i]);
+            const FString& name = skill_name(skill_pool_skills[i]);
             int lvl = pl_sd->status.skill[skill_pool_skills[i]].lv;
 
             if (lvl)

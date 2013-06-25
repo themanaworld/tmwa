@@ -232,9 +232,11 @@ struct map_session_data : block_list, SessionData
     int die_counter;
 
     // register keys are ints (interned)
-    DMap<int, int> regm;
+    // Not anymore! Well, sort of.
+    DMap<SIR, int> regm;
     // can't be DMap because we want predictable .c_str()s
-    Map<int, std::string> regstrm;
+    // This could change once FString ensures CoW.
+    Map<SIR, std::string> regstrm;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
@@ -591,7 +593,7 @@ void map_log(const_string line);
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status.char_id, sd->bl_m->name_, sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : "undefined"), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);

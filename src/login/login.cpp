@@ -3148,7 +3148,7 @@ void parse_login(int fd)
 
                 RFIFOSKIP(fd, 2);
                 WFIFOW(fd, 0) = 0x01dc;
-                WFIFOW(fd, 2) = 4 + ld->md5keylen;
+                WFIFOW(fd, 2) = 4 + ld->md5keylen + 1;
                 WFIFO_STRING(fd, 4, ld->md5key, ld->md5keylen + 1);
                 WFIFOSET(fd, WFIFOW(fd, 2));
                 session[fd]->session_data = std::move(ld);

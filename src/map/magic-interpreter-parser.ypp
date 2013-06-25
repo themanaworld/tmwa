@@ -1195,7 +1195,7 @@ dumb_ptr<expr_t> fun_expr(const std::string& name, const_array<dumb_ptr<expr_t>>
         expr->e.e_funapp.column = column;
         expr->e.e_funapp.id = id;
 
-        assert (argv.size() < MAX_ARGS);
+        assert (argv.size() <= MAX_ARGS);
         expr->e.e_funapp.args_nr = argv.size();
 
         std::copy(argv.begin(), argv.end(), expr->e.e_funapp.args);
@@ -1309,7 +1309,7 @@ dumb_ptr<effect_t> op_effect(const std::string& name, const_array<dumb_ptr<expr_
         effect->e.e_op.line_nr = line;
         effect->e.e_op.column = column;
         effect->e.e_op.id = id;
-        assert (argv.size() < MAX_ARGS);
+        assert (argv.size() <= MAX_ARGS);
         effect->e.e_op.args_nr = argv.size();
 
         std::copy(argv.begin(), argv.end(), effect->e.e_op.args);

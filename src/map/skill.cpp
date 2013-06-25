@@ -49,7 +49,7 @@ struct skill_name_db skill_names[] =
     {SkillID::TMW_ASTRAL_SOUL, "ASTRAL_SOUL", "Astral Soul"},
     {SkillID::TMW_RAGING, "RAGING", "Raging"},
 
-    {SkillID::ZERO, nullptr, nullptr}
+    {SkillID::ZERO, "", ""}
 };
 
 earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;

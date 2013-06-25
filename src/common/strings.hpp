@@ -163,8 +163,13 @@ namespace strings
     /// TODO implement a special one, that guarantees refcounting.
     class FString : public _crtp_string<FString>
     {
-        const std::string _hack;
+        /*const*/ std::string _hack;
     public:
+#ifndef __clang__
+        __attribute__((warning("This should be removed in the next diff")))
+#endif
+        FString(std::string s) : _hack(std::move(s)) {}
+
         FString() : _hack() {}
         FString(const MString& s) : _hack(s.begin(), s.end()) {}
         template<size_t n>
@@ -250,6 +255,7 @@ namespace strings
         __attribute__((warning("This should be removed in the next diff")))
 #endif
         ZString(const std::string& s) : _b(&*s.begin()), _e(&*s.end()) {}
+
         enum { really_construct_from_a_pointer };
         ZString() { *this = ZString(""); }
         // no MString
@@ -515,8 +521,11 @@ namespace strings
 
     // cxxstdio helpers
     // I think the conversion will happen automatically. TODO test this.
-    //const char *convert_for_printf(const FString& fs) { return fs.c_str(); }
-    //const char *convert_for_printf(const TString& ts) { return ts.c_str(); }
+    // Nope, it doesn't, since there's a template
+    inline
+    const char *convert_for_printf(const FString& fs) { return fs.c_str(); }
+    inline
+    const char *convert_for_printf(const TString& ts) { return ts.c_str(); }
     inline
     const char *convert_for_printf(const ZString& zs) { return zs.c_str(); }
 } // namespace strings

@@ -1797,8 +1797,8 @@ int do_init_npc(void)
                 nsl);
         fflush(stdout);
     }
-    PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d]\n",
-            npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob);
+    PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n",
+            npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob, "");
 
     return 0;
 }

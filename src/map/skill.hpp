@@ -3,6 +3,8 @@
 
 #include "skill.t.hpp"
 
+#include "../common/strings.hpp"
+
 #include "map.hpp"
 
 constexpr int MAX_SKILL_PRODUCE_DB = 150;
@@ -34,8 +36,13 @@ earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 struct skill_name_db
 {
     SkillID id;                    // skill id
-    std::string name;                 // search strings
-    std::string desc;                 // description that shows up for searches
+    FString name;                 // search strings
+    FString desc;                 // description that shows up for searches
+
+    // this makes const char(&)[] not decay into const char * in {}
+    skill_name_db(SkillID i, FString n, FString d)
+    : id(i), name(n), desc(d)
+    {}
 };
 
 // used only by @skillid for iteration - should be depublicized
@@ -119,7 +126,7 @@ bool skill_pool_is_activated(dumb_ptr<map_session_data> sd, SkillID skill);
 int skill_pool_deactivate(dumb_ptr<map_session_data> sd, SkillID skill);
 // Yield configurable skill name
 inline
-const std::string& skill_name(SkillID skill)
+const FString& skill_name(SkillID skill)
 {
     return skill_lookup_by_id(skill).desc;
 }

@@ -62,9 +62,6 @@ dumb_ptr<block_list> object[MAX_FLOORITEM];
 static
 int first_free_object_id = 0, last_object_id = 0;
 
-static
-int map_port = 0;
-
 interval_t autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
 
@@ -1329,6 +1326,9 @@ void map_addmap(const std::string& mapname)
 
     auto newmap = make_unique<map_local>();
     strzcpy(newmap->name_, mapname.c_str(), 16);
+    // novice challenge: figure out why this is necessary, and why it works
+    const char *name = newmap->name_;
+    maps_db.put(name, std::move(newmap));
 }
 
 /*==========================================
@@ -1679,7 +1679,7 @@ int do_init(int argc, char *argv[])
         PRINTF("The server is running in \033[1;31mPK Mode\033[0m.\n");
 
     PRINTF("The map-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
-         map_port);
+            clif_getport());
 
     return 0;
 }
