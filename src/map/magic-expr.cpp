@@ -102,6 +102,7 @@ const char *show_entity(dumb_ptr<block_list> entity)
             /* Sorry about this one... */
             // WTF? item_data is a struct item, not a struct item_data
             // return ((struct item_data *) (&entity->as_item()->item_data))->name;
+            abort();
         case BL::SPELL:
             return "%invocation(ERROR:this-should-not-be-an-entity)";
         default:

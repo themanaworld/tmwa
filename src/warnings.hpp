@@ -213,7 +213,11 @@ EG(-Wclobbered)
 E(-Wcomment)
 
 // A fixable difference between c++11 and c++14
+#if (defined(__clang__)) && __has_warning("-Wconstexpr-not-const")
 EC(-Wconstexpr-not-const)
+#else
+static_assert('?', "-Wconstexpr-not-const not in this version")
+#endif
 
 /// Warn for implicit type conversions that may
 /// change a value
