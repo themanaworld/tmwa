@@ -29,16 +29,6 @@ struct item_data
     int refine;
     std::unique_ptr<const ScriptBuffer> use_script;
     std::unique_ptr<const ScriptBuffer> equip_script;
-    struct
-    {
-        unsigned available:1;
-        unsigned value_notdc:1;
-        unsigned value_notoc:1;
-        unsigned no_equip:3;
-        unsigned no_drop:1;
-        unsigned no_use:1;
-    } flag;
-    int view_id;
 };
 
 struct random_item_data
@@ -77,30 +67,9 @@ int itemdb_wlv(int n)
     return itemdb_search(n)->wlv;
 }
 inline
-bool itemdb_available(int n)
-{
-    return itemdb_exists(n) && itemdb_search(n)->flag.available;
-}
-inline
-int itemdb_viewid(int n)
-{
-    return itemdb_search(n)->view_id;
-}
-
-inline
 int itemdb_value_sell(int n)
 {
     return itemdb_search(n)->value_sell;
-}
-inline
-int itemdb_value_notdc(int n)
-{
-    return itemdb_search(n)->flag.value_notdc;
-}
-inline
-int itemdb_value_notoc(int n)
-{
-    return itemdb_search(n)->flag.value_notoc;
 }
 
 int itemdb_isequip(int);

@@ -26,10 +26,6 @@ static
 void itemdb_read(void);
 static
 int itemdb_readdb(void);
-static
-int itemdb_read_itemavail(void);
-static
-int itemdb_read_noequip(void);
 
 /*==========================================
  * 名前で検索用
@@ -82,11 +78,6 @@ struct item_data *itemdb_search(int nameid)
     id->weight = 10;
     id->sex = 2;
     id->elv = 0;
-    id->flag.available = 0;
-    id->flag.value_notdc = 0;   //一応・・・
-    id->flag.value_notoc = 0;
-    id->flag.no_equip = 0;
-    id->view_id = 0;
 
     if (nameid > 500 && nameid < 600)
         id->type = ItemType::USE;
@@ -235,10 +226,6 @@ int itemdb_readdb(void)
             id->wlv = atoi(str[14]);
             id->elv = atoi(str[15]);
             id->look = static_cast<ItemLook>(atoi(str[16]));
-            id->flag.available = 1;
-            id->flag.value_notdc = 0;
-            id->flag.value_notoc = 0;
-            id->view_id = 0;
 
             id->use_script = NULL;
             id->equip_script = NULL;
@@ -254,110 +241,6 @@ int itemdb_readdb(void)
         fclose_(fp);
         PRINTF("read %s done (count=%d)\n", filename[i], ln);
     }
-    return 0;
-}
-
-// Removed item_value_db, don't re-add!
-
-/*==========================================
- * アイテム使用可能フラグのオーバーライド
- *------------------------------------------
- */
-static
-int itemdb_read_itemavail(void)
-{
-    FILE *fp;
-    char line[1024];
-    int ln = 0;
-    int nameid, j, k;
-
-    if ((fp = fopen_("db/item_avail.txt", "r")) == NULL)
-    {
-        PRINTF("can't read db/item_avail.txt\n");
-        return -1;
-    }
-
-    while (fgets(line, 1020, fp))
-    {
-        struct item_data *id;
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        char *str[10] {};
-        char *p;
-        for (j = 0, p = line; j < 2 && p; j++)
-        {
-            str[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-
-        if (str[0] == NULL)
-            continue;
-
-        nameid = atoi(str[0]);
-        if (nameid < 0 || nameid >= 20000 || !(id = itemdb_exists(nameid)))
-            continue;
-        k = atoi(str[1]);
-        if (k > 0)
-        {
-            id->flag.available = 1;
-            id->view_id = k;
-        }
-        else
-            id->flag.available = 0;
-        ln++;
-    }
-    fclose_(fp);
-    PRINTF("read db/item_avail.txt done (count=%d)\n", ln);
-    return 0;
-}
-
-/*==========================================
- * 装備制限ファイル読み出し
- *------------------------------------------
- */
-static
-int itemdb_read_noequip(void)
-{
-    FILE *fp;
-    char line[1024];
-    int ln = 0;
-    int nameid, j;
-    struct item_data *id;
-
-    if ((fp = fopen_("db/item_noequip.txt", "r")) == NULL)
-    {
-        PRINTF("can't read db/item_noequip.txt\n");
-        return -1;
-    }
-    while (fgets(line, 1020, fp))
-    {
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        char *str[32] {};
-        char *p;
-        for (j = 0, p = line; j < 2 && p; j++)
-        {
-            str[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        if (str[0] == NULL)
-            continue;
-
-        nameid = atoi(str[0]);
-        if (nameid <= 0 || nameid >= 20000 || !(id = itemdb_exists(nameid)))
-            continue;
-
-        id->flag.no_equip = atoi(str[1]);
-
-        ln++;
-
-    }
-    fclose_(fp);
-    PRINTF("read db/item_noequip.txt done (count=%d)\n", ln);
     return 0;
 }
 
@@ -420,8 +303,6 @@ static
 void itemdb_read(void)
 {
     itemdb_readdb();
-    itemdb_read_itemavail();
-    itemdb_read_noequip();
 }
 
 /*==========================================

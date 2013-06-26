@@ -143,7 +143,6 @@ extern struct Battle_Config
     int resurrection_exp;
     int shop_exp;
     int combo_delay_rate;
-    int item_check;
     int wedding_modifydisplay;
     int natural_healhp_interval;
     int natural_healsp_interval;

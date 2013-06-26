@@ -593,7 +593,7 @@ void map_log(const_string line);
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : "undefined"), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : "undefined.gat"), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);

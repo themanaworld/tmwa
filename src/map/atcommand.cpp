@@ -666,7 +666,7 @@ int atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
                                          "You are not authorised to warp someone to this map.");
                     return -1;
                 }
-                if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
+                if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
                     clif_displaymessage(fd,
@@ -741,7 +741,7 @@ int atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
                                  "You are not authorised to warp you to this map.");
             return -1;
         }
-        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
+        if (sd->bl_m && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -816,14 +816,14 @@ int atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
 
     if ((pl_sd = map_nick2sd(character)) != NULL)
     {
-        if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarpto
+        if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to the map of this player.");
             return -1;
         }
-        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
+        if (sd->bl_m && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -859,14 +859,14 @@ int atcommand_jump(const int fd, dumb_ptr<map_session_data> sd,
         y = random_::in(1, 399);
     if (x > 0 && x < 800 && y > 0 && y < 800)
     {
-        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
+        if (sd->bl_m && sd->bl_m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
                                  "You are not authorised to warp you to your actual map.");
             return -1;
         }
-        if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
+        if (sd->bl_m && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
             clif_displaymessage(fd,
@@ -1274,7 +1274,7 @@ int atcommand_load(const int fd, dumb_ptr<map_session_data> sd,
                              "You are not authorised to warp you to your save map.");
         return -1;
     }
-    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
+    if (sd->bl_m && sd->bl_m->flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -2517,14 +2517,14 @@ int atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
     {
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
         {                       // you can recall only lower or same level
-            if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
+            if (sd->bl_m && sd->bl_m->flag.nowarpto
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
                 clif_displaymessage(fd,
                                      "You are not authorised to warp somenone to your actual map.");
                 return -1;
             }
-            if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
+            if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
                 clif_displaymessage(fd,
@@ -4156,7 +4156,7 @@ int atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
 {
     int count;
 
-    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
+    if (sd->bl_m && sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -4176,7 +4176,7 @@ int atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can recall only lower or same level
-            if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
+            if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 count++;
             else
@@ -4214,7 +4214,7 @@ int atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
         return -1;
     }
 
-    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarpto
+    if (sd->bl_m && sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
@@ -4235,7 +4235,7 @@ int atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.party_id == p->party_id)
             {
-                if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarp
+                if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                     count++;
                 else
@@ -5931,14 +5931,14 @@ int atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
             pl_sd = get_start();
     }
 
-    if (pl_sd->bl_m != nullptr && pl_sd->bl_m->flag.nowarpto
+    if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,
                              "You are not authorised to warp you to the map of this player.");
         return -1;
     }
-    if (sd->bl_m != nullptr && sd->bl_m->flag.nowarp
+    if (sd->bl_m && sd->bl_m->flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
         clif_displaymessage(fd,

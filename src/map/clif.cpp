@@ -517,17 +517,12 @@ int clif_charselectok(int id)
 static
 int clif_set009e(dumb_ptr<flooritem_data> fitem, uint8_t *buf)
 {
-    int view;
-
     nullpo_ret(fitem);
 
     //009e <ID>.l <name ID>.w <identify flag>.B <X>.w <Y>.w <subX>.B <subY>.B <amount>.w
     WBUFW(buf, 0) = 0x9e;
     WBUFL(buf, 2) = fitem->bl_id;
-    if ((view = itemdb_viewid(fitem->item_data.nameid)) > 0)
-        WBUFW(buf, 6) = view;
-    else
-        WBUFW(buf, 6) = fitem->item_data.nameid;
+    WBUFW(buf, 6) = fitem->item_data.nameid;
     WBUFB(buf, 8) = fitem->item_data.identify;
     WBUFW(buf, 9) = fitem->bl_x;
     WBUFW(buf, 11) = fitem->bl_y;
@@ -676,12 +671,7 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
         if (sd->equip_index[EQUIP::WEAPON] >= 0
             && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
         {
-            if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
-                WBUFW(buf, 18) =
-                    sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
-            else
-                WBUFW(buf, 18) =
-                    sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
+            WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
         }
         else
             WBUFW(buf, 18) = 0;
@@ -690,10 +680,7 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
         && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
         && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
     {
-        if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
-            WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
-        else
-            WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
+        WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
     }
     else
         WBUFW(buf, 20) = 0;
@@ -740,10 +727,7 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
     if (sd->equip_index[EQUIP::WEAPON] >= 0
         && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
     {
-        if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
-            WBUFW(buf, 18) = sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
-        else
-            WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
+        WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
     }
     else
         WBUFW(buf, 18) = 0;
@@ -751,10 +735,7 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
         && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
         && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
     {
-        if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
-            WBUFW(buf, 20) = sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
-        else
-            WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
+        WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
     }
     else
         WBUFW(buf, 20) = 0;
@@ -1204,10 +1185,7 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
         WFIFOL(fd, 4 + i * 11) = val; // base price
         WFIFOL(fd, 8 + i * 11) = val; // actual price
         WFIFOB(fd, 12 + i * 11) = uint8_t(id->type);
-        if (id->view_id > 0)
-            WFIFOW(fd, 13 + i * 11) = id->view_id;
-        else
-            WFIFOW(fd, 13 + i * 11) = nd->shop_items[i].nameid;
+        WFIFOW(fd, 13 + i * 11) = nd->shop_items[i].nameid;
     }
     WFIFOW(fd, 2) = i * 11 + 4;
     WFIFOSET(fd, WFIFOW(fd, 2));
@@ -1416,10 +1394,7 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
         WFIFOW(fd, 0) = 0xa0;
         WFIFOW(fd, 2) = n + 2;
         WFIFOW(fd, 4) = amount;
-        if (sd->inventory_data[n]->view_id > 0)
-            WFIFOW(fd, 6) = sd->inventory_data[n]->view_id;
-        else
-            WFIFOW(fd, 6) = sd->status.inventory[n].nameid;
+        WFIFOW(fd, 6) = sd->status.inventory[n].nameid;
         WFIFOB(fd, 8) = sd->status.inventory[n].identify;
         if (sd->status.inventory[n].broken == 1)
             WFIFOB(fd, 9) = 1; // is weapon broken [Valaris]
@@ -1437,27 +1412,10 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
         }
         else
         {
-            int j;
-            if (sd->status.inventory[n].card[0] > 0
-                && (j = itemdb_viewid(sd->status.inventory[n].card[0])) > 0)
-                WFIFOW(fd, 11) = j;
-            else
-                WFIFOW(fd, 11) = sd->status.inventory[n].card[0];
-            if (sd->status.inventory[n].card[1] > 0
-                && (j = itemdb_viewid(sd->status.inventory[n].card[1])) > 0)
-                WFIFOW(fd, 13) = j;
-            else
-                WFIFOW(fd, 13) = sd->status.inventory[n].card[1];
-            if (sd->status.inventory[n].card[2] > 0
-                && (j = itemdb_viewid(sd->status.inventory[n].card[2])) > 0)
-                WFIFOW(fd, 15) = j;
-            else
-                WFIFOW(fd, 15) = sd->status.inventory[n].card[2];
-            if (sd->status.inventory[n].card[3] > 0
-                && (j = itemdb_viewid(sd->status.inventory[n].card[3])) > 0)
-                WFIFOW(fd, 17) = j;
-            else
-                WFIFOW(fd, 17) = sd->status.inventory[n].card[3];
+            WFIFOW(fd, 11) = sd->status.inventory[n].card[0];
+            WFIFOW(fd, 13) = sd->status.inventory[n].card[1];
+            WFIFOW(fd, 15) = sd->status.inventory[n].card[2];
+            WFIFOW(fd, 17) = sd->status.inventory[n].card[3];
         }
         WFIFOW(fd, 19) = uint16_t(pc_equippoint(sd, n));
         WFIFOB(fd, 21) = uint8_t(sd->inventory_data[n]->type == ItemType::_7
@@ -1509,10 +1467,7 @@ int clif_itemlist(dumb_ptr<map_session_data> sd)
             || itemdb_isequip2(sd->inventory_data[i]))
             continue;
         WFIFOW(fd, n * 18 + 4) = i + 2;
-        if (sd->inventory_data[i]->view_id > 0)
-            WFIFOW(fd, n * 18 + 6) = sd->inventory_data[i]->view_id;
-        else
-            WFIFOW(fd, n * 18 + 6) = sd->status.inventory[i].nameid;
+        WFIFOW(fd, n * 18 + 6) = sd->status.inventory[i].nameid;
         WFIFOB(fd, n * 18 + 8) = uint8_t(sd->inventory_data[i]->type);
         WFIFOB(fd, n * 18 + 9) = sd->status.inventory[i].identify;
         WFIFOW(fd, n * 18 + 10) = sd->status.inventory[i].amount;
@@ -1558,10 +1513,7 @@ int clif_equiplist(dumb_ptr<map_session_data> sd)
             || !itemdb_isequip2(sd->inventory_data[i]))
             continue;
         WFIFOW(fd, n * 20 + 4) = i + 2;
-        if (sd->inventory_data[i]->view_id > 0)
-            WFIFOW(fd, n * 20 + 6) = sd->inventory_data[i]->view_id;
-        else
-            WFIFOW(fd, n * 20 + 6) = sd->status.inventory[i].nameid;
+        WFIFOW(fd, n * 20 + 6) = sd->status.inventory[i].nameid;
         WFIFOB(fd, n * 20 + 8) = uint8_t(
                 sd->inventory_data[i]->type == ItemType::_7
                 ? ItemType::WEAPON
@@ -1585,27 +1537,10 @@ int clif_equiplist(dumb_ptr<map_session_data> sd)
         }
         else
         {
-            int j;
-            if (sd->status.inventory[i].card[0] > 0
-                && (j = itemdb_viewid(sd->status.inventory[i].card[0])) > 0)
-                WFIFOW(fd, n * 20 + 16) = j;
-            else
-                WFIFOW(fd, n * 20 + 16) = sd->status.inventory[i].card[0];
-            if (sd->status.inventory[i].card[1] > 0
-                && (j = itemdb_viewid(sd->status.inventory[i].card[1])) > 0)
-                WFIFOW(fd, n * 20 + 18) = j;
-            else
-                WFIFOW(fd, n * 20 + 18) = sd->status.inventory[i].card[1];
-            if (sd->status.inventory[i].card[2] > 0
-                && (j = itemdb_viewid(sd->status.inventory[i].card[2])) > 0)
-                WFIFOW(fd, n * 20 + 20) = j;
-            else
-                WFIFOW(fd, n * 20 + 20) = sd->status.inventory[i].card[2];
-            if (sd->status.inventory[i].card[3] > 0
-                && (j = itemdb_viewid(sd->status.inventory[i].card[3])) > 0)
-                WFIFOW(fd, n * 20 + 22) = j;
-            else
-                WFIFOW(fd, n * 20 + 22) = sd->status.inventory[i].card[3];
+            WFIFOW(fd, n * 20 + 16) = sd->status.inventory[i].card[0];
+            WFIFOW(fd, n * 20 + 18) = sd->status.inventory[i].card[1];
+            WFIFOW(fd, n * 20 + 20) = sd->status.inventory[i].card[2];
+            WFIFOW(fd, n * 20 + 22) = sd->status.inventory[i].card[3];
         }
         n++;
     }
@@ -1641,10 +1576,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
             continue;
 
         WFIFOW(fd, n * 18 + 4) = i + 1;
-        if (id->view_id > 0)
-            WFIFOW(fd, n * 18 + 6) = id->view_id;
-        else
-            WFIFOW(fd, n * 18 + 6) = stor->storage_[i].nameid;
+        WFIFOW(fd, n * 18 + 6) = stor->storage_[i].nameid;
         WFIFOB(fd, n * 18 + 8) = uint8_t(id->type);
         WFIFOB(fd, n * 18 + 9) = stor->storage_[i].identify;
         WFIFOW(fd, n * 18 + 10) = stor->storage_[i].amount;
@@ -1686,10 +1618,7 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
         if (!itemdb_isequip2(id))
             continue;
         WFIFOW(fd, n * 20 + 4) = i + 1;
-        if (id->view_id > 0)
-            WFIFOW(fd, n * 20 + 6) = id->view_id;
-        else
-            WFIFOW(fd, n * 20 + 6) = stor->storage_[i].nameid;
+        WFIFOW(fd, n * 20 + 6) = stor->storage_[i].nameid;
         WFIFOB(fd, n * 20 + 8) = uint8_t(id->type);
         WFIFOB(fd, n * 20 + 9) = stor->storage_[i].identify;
         WFIFOW(fd, n * 20 + 10) = uint16_t(id->equip);
@@ -1710,27 +1639,10 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
         }
         else
         {
-            int j;
-            if (stor->storage_[i].card[0] > 0
-                && (j = itemdb_viewid(stor->storage_[i].card[0])) > 0)
-                WFIFOW(fd, n * 20 + 16) = j;
-            else
-                WFIFOW(fd, n * 20 + 16) = stor->storage_[i].card[0];
-            if (stor->storage_[i].card[1] > 0
-                && (j = itemdb_viewid(stor->storage_[i].card[1])) > 0)
-                WFIFOW(fd, n * 20 + 18) = j;
-            else
-                WFIFOW(fd, n * 20 + 18) = stor->storage_[i].card[1];
-            if (stor->storage_[i].card[2] > 0
-                && (j = itemdb_viewid(stor->storage_[i].card[2])) > 0)
-                WFIFOW(fd, n * 20 + 20) = j;
-            else
-                WFIFOW(fd, n * 20 + 20) = stor->storage_[i].card[2];
-            if (stor->storage_[i].card[3] > 0
-                && (j = itemdb_viewid(stor->storage_[i].card[3])) > 0)
-                WFIFOW(fd, n * 20 + 22) = j;
-            else
-                WFIFOW(fd, n * 20 + 22) = stor->storage_[i].card[3];
+            WFIFOW(fd, n * 20 + 16) = stor->storage_[i].card[0];
+            WFIFOW(fd, n * 20 + 18) = stor->storage_[i].card[1];
+            WFIFOW(fd, n * 20 + 20) = stor->storage_[i].card[2];
+            WFIFOW(fd, n * 20 + 22) = stor->storage_[i].card[3];
         }
         n++;
     }
@@ -1950,15 +1862,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
             if (sd->equip_index[equip_point] >= 0
                 && sd->inventory_data[sd->equip_index[equip_point]])
             {
-                if (sd->
-                    inventory_data[sd->equip_index[equip_point]]->view_id > 0)
-                    WBUFW(buf, 7) =
-                        sd->inventory_data[sd->
-                                           equip_index[equip_point]]->view_id;
-                else
-                    WBUFW(buf, 7) =
-                        sd->status.inventory[sd->
-                                             equip_index[equip_point]].nameid;
+                WBUFW(buf, 7) = sd->status.inventory[sd->equip_index[equip_point]].nameid;
             }
             else
                 WBUFW(buf, 7) = 0;
@@ -1974,12 +1878,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                 if (sd->equip_index[EQUIP::WEAPON] >= 0
                     && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
                 {
-                    if (sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id > 0)
-                        WBUFW(buf, 7) =
-                            sd->inventory_data[sd->equip_index[EQUIP::WEAPON]]->view_id;
-                    else
-                        WBUFW(buf, 7) =
-                            sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
+                    WBUFW(buf, 7) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
                 }
                 else
                     WBUFW(buf, 7) = 0;
@@ -1988,12 +1887,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                 && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
                 && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
             {
-                if (sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id > 0)
-                    WBUFW(buf, 9) =
-                        sd->inventory_data[sd->equip_index[EQUIP::SHIELD]]->view_id;
-                else
-                    WBUFW(buf, 9) =
-                        sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
+                WBUFW(buf, 9) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
             }
             else
                 WBUFW(buf, 9) = 0;
@@ -2245,11 +2139,7 @@ int clif_useitemack(dumb_ptr<map_session_data> sd, int index, int amount,
 
         WBUFW(buf, 0) = 0x1c8;
         WBUFW(buf, 2) = index + 2;
-        if (sd->inventory_data[index]
-            && sd->inventory_data[index]->view_id > 0)
-            WBUFW(buf, 4) = sd->inventory_data[index]->view_id;
-        else
-            WBUFW(buf, 4) = sd->status.inventory[index].nameid;
+        WBUFW(buf, 4) = sd->status.inventory[index].nameid;
         WBUFL(buf, 6) = sd->bl_id;
         WBUFW(buf, 10) = amount;
         WBUFB(buf, 12) = ok;
@@ -2300,12 +2190,10 @@ int clif_tradestart(dumb_ptr<map_session_data> sd, int type)
 int clif_tradeadditem(dumb_ptr<map_session_data> sd,
                        dumb_ptr<map_session_data> tsd, int index, int amount)
 {
-    int fd, j;
-
     nullpo_ret(sd);
     nullpo_ret(tsd);
 
-    fd = tsd->fd;
+    int fd = tsd->fd;
     WFIFOW(fd, 0) = 0xe9;
     WFIFOL(fd, 2) = amount;
     if (index == 0)
@@ -2322,11 +2210,7 @@ int clif_tradeadditem(dumb_ptr<map_session_data> sd,
     else
     {
         index -= 2;
-        if (sd->inventory_data[index]
-            && sd->inventory_data[index]->view_id > 0)
-            WFIFOW(fd, 6) = sd->inventory_data[index]->view_id;
-        else
-            WFIFOW(fd, 6) = sd->status.inventory[index].nameid;    // type id
+        WFIFOW(fd, 6) = sd->status.inventory[index].nameid;    // type id
         WFIFOB(fd, 8) = sd->status.inventory[index].identify;  //identify flag
         if (sd->status.inventory[index].broken == 1)
             WFIFOB(fd, 9) = 1; // is broke weapon [Valaris]
@@ -2344,30 +2228,10 @@ int clif_tradeadditem(dumb_ptr<map_session_data> sd,
         }
         else
         {
-            if (sd->status.inventory[index].card[0] > 0
-                && (j =
-                    itemdb_viewid(sd->status.inventory[index].card[0])) > 0)
-                WFIFOW(fd, 11) = j;
-            else
-                WFIFOW(fd, 11) = sd->status.inventory[index].card[0];
-            if (sd->status.inventory[index].card[1] > 0
-                && (j =
-                    itemdb_viewid(sd->status.inventory[index].card[1])) > 0)
-                WFIFOW(fd, 13) = j;
-            else
-                WFIFOW(fd, 13) = sd->status.inventory[index].card[1];
-            if (sd->status.inventory[index].card[2] > 0
-                && (j =
-                    itemdb_viewid(sd->status.inventory[index].card[2])) > 0)
-                WFIFOW(fd, 15) = j;
-            else
-                WFIFOW(fd, 15) = sd->status.inventory[index].card[2];
-            if (sd->status.inventory[index].card[3] > 0
-                && (j =
-                    itemdb_viewid(sd->status.inventory[index].card[3])) > 0)
-                WFIFOW(fd, 17) = j;
-            else
-                WFIFOW(fd, 17) = sd->status.inventory[index].card[3];
+            WFIFOW(fd, 11) = sd->status.inventory[index].card[0];
+            WFIFOW(fd, 13) = sd->status.inventory[index].card[1];
+            WFIFOW(fd, 15) = sd->status.inventory[index].card[2];
+            WFIFOW(fd, 17) = sd->status.inventory[index].card[3];
         }
     }
     WFIFOSET(fd, clif_parse_func_table[0xe9].len);
@@ -2477,12 +2341,10 @@ int clif_updatestorageamount(dumb_ptr<map_session_data> sd,
 int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
                            int index, int amount)
 {
-    int fd, j;
-
     nullpo_ret(sd);
     nullpo_ret(stor);
 
-    fd = sd->fd;
+    int fd = sd->fd;
     WFIFOW(fd, 0) = 0xf4;      // Storage item added
     WFIFOW(fd, 2) = index + 1; // index
     WFIFOL(fd, 4) = amount;    // amount
@@ -2507,26 +2369,10 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
     }
     else
     {
-        if (stor->storage_[index].card[0] > 0
-            && (j = itemdb_viewid(stor->storage_[index].card[0])) > 0)
-            WFIFOW(fd, 13) = j;
-        else
-            WFIFOW(fd, 13) = stor->storage_[index].card[0];
-        if (stor->storage_[index].card[1] > 0
-            && (j = itemdb_viewid(stor->storage_[index].card[1])) > 0)
-            WFIFOW(fd, 15) = j;
-        else
-            WFIFOW(fd, 15) = stor->storage_[index].card[1];
-        if (stor->storage_[index].card[2] > 0
-            && (j = itemdb_viewid(stor->storage_[index].card[2])) > 0)
-            WFIFOW(fd, 17) = j;
-        else
-            WFIFOW(fd, 17) = stor->storage_[index].card[2];
-        if (stor->storage_[index].card[3] > 0
-            && (j = itemdb_viewid(stor->storage_[index].card[3])) > 0)
-            WFIFOW(fd, 19) = j;
-        else
-            WFIFOW(fd, 19) = stor->storage_[index].card[3];
+        WFIFOW(fd, 13) = stor->storage_[index].card[0];
+        WFIFOW(fd, 15) = stor->storage_[index].card[1];
+        WFIFOW(fd, 17) = stor->storage_[index].card[2];
+        WFIFOW(fd, 19) = stor->storage_[index].card[3];
     }
     WFIFOSET(fd, clif_parse_func_table[0xf4].len);
 
@@ -2765,19 +2611,14 @@ static
 void clif_getareachar_item(dumb_ptr<map_session_data> sd,
                             dumb_ptr<flooritem_data> fitem)
 {
-    int view, fd;
-
     nullpo_retv(sd);
     nullpo_retv(fitem);
 
-    fd = sd->fd;
+    int fd = sd->fd;
     //009d <ID>.l <item ID>.w <identify flag>.B <X>.w <Y>.w <amount>.w <subX>.B <subY>.B
     WFIFOW(fd, 0) = 0x9d;
     WFIFOL(fd, 2) = fitem->bl_id;
-    if ((view = itemdb_viewid(fitem->item_data.nameid)) > 0)
-        WFIFOW(fd, 6) = view;
-    else
-        WFIFOW(fd, 6) = fitem->item_data.nameid;
+    WFIFOW(fd, 6) = fitem->item_data.nameid;
     WFIFOB(fd, 8) = fitem->item_data.identify;
     WFIFOW(fd, 9) = fitem->bl_x;
     WFIFOW(fd, 11) = fitem->bl_y;

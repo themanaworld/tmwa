@@ -2352,7 +2352,6 @@ int battle_config_read(const char *cfgName)
         battle_config.resurrection_exp = 0;
         battle_config.shop_exp = 0;
         battle_config.combo_delay_rate = 100;
-        battle_config.item_check = 1;
         battle_config.wedding_modifydisplay = 0;
         battle_config.natural_healhp_interval = 6000;
         battle_config.natural_healsp_interval = 8000;
@@ -2533,7 +2532,6 @@ int battle_config_read(const char *cfgName)
             {"resurrection_exp", &battle_config.resurrection_exp},
             {"shop_exp", &battle_config.shop_exp},
             {"combo_delay_rate", &battle_config.combo_delay_rate},
-            {"item_check", &battle_config.item_check},
             {"wedding_modifydisplay", &battle_config.wedding_modifydisplay},
             {"natural_healhp_interval", &battle_config.natural_healhp_interval},
             {"natural_healsp_interval", &battle_config.natural_healsp_interval},

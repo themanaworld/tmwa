@@ -593,9 +593,6 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
 
-    if (sd->bl_m->flag.pvp
-        && (item->flag.no_equip == 1 || item->flag.no_equip == 3))
-        return 0;
     return 1;
 }
 
@@ -2227,11 +2224,6 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
         return 0;
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
-    if (nameid == 601
-        && (sd->bl_m->flag.noteleport))
-    {
-        return 0;
-    }
 
     if (item->sex != 2 && sd->status.sex != item->sex)
         return 0;
@@ -2266,29 +2258,6 @@ int pc_useitem(dumb_ptr<map_session_data> sd, int n)
 
         clif_useitemack(sd, n, amount - 1, 1);
         pc_delitem(sd, n, 1, 1);
-    }
-
-    return 0;
-}
-
-/*==========================================
- * カートアイテムを減らす
- *------------------------------------------
- */
-static
-int pc_cart_delitem(dumb_ptr<map_session_data> sd, int n, int amount, int)
-{
-    nullpo_retr(1, sd);
-
-    if (sd->status.cart[n].nameid == 0 || sd->status.cart[n].amount < amount)
-        return 1;
-
-    sd->status.cart[n].amount -= amount;
-    sd->cart_weight -= itemdb_weight(sd->status.cart[n].nameid) * amount;
-    if (sd->status.cart[n].amount <= 0)
-    {
-        sd->status.cart[n] = item{};
-        sd->cart_num--;
     }
 
     return 0;
@@ -2453,8 +2422,7 @@ int pc_can_reach(dumb_ptr<map_session_data> sd, int x, int y)
     wpd.path_len = 0;
     wpd.path_pos = 0;
     wpd.path_half = 0;
-    return (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, x, y, 0) !=
-            -1) ? 1 : 0;
+    return (path_search(&wpd, sd->bl_m, sd->bl_x, sd->bl_y, x, y, 0) != -1);
 }
 
 //
@@ -4685,7 +4653,6 @@ int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
 int pc_checkitem(dumb_ptr<map_session_data> sd)
 {
     int i, j, k, id, calc_flag = 0;
-    struct item_data *it = NULL;
 
     nullpo_ret(sd);
 
@@ -4694,14 +4661,6 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
     {
         if ((id = sd->status.inventory[i].nameid) == 0)
             continue;
-        if (battle_config.item_check && !itemdb_available(id))
-        {
-            if (battle_config.error_log)
-                PRINTF("illeagal item id %d in %d[%s] inventory.\n", id,
-                        sd->bl_id, sd->status.name);
-            pc_delitem(sd, i, sd->status.inventory[i].amount, 3);
-            continue;
-        }
         if (i > j)
         {
             sd->status.inventory[j] = sd->status.inventory[i];
@@ -4719,14 +4678,6 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
     {
         if ((id = sd->status.cart[i].nameid) == 0)
             continue;
-        if (battle_config.item_check && !itemdb_available(id))
-        {
-            if (battle_config.error_log)
-                PRINTF("illeagal item id %d in %d[%s] cart.\n", id,
-                        sd->bl_id, sd->status.name);
-            pc_cart_delitem(sd, i, sd->status.cart[i].amount, 1);
-            continue;
-        }
         if (i > j)
         {
             sd->status.cart[j] = sd->status.cart[i];
@@ -4740,21 +4691,10 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
 
     for (i = 0; i < MAX_INVENTORY; i++)
     {
-
-        it = sd->inventory_data[i];
-
         if (sd->status.inventory[i].nameid == 0)
             continue;
         if (bool(sd->status.inventory[i].equip & ~pc_equippoint(sd, i)))
         {
-            sd->status.inventory[i].equip = EPOS::ZERO;
-            calc_flag = 1;
-        }
-        //装備制限チェック
-        if (bool(sd->status.inventory[i].equip)
-            && sd->bl_m->flag.pvp
-            && (it->flag.no_equip == 1 || it->flag.no_equip == 3))
-        {                       //PvP制限
             sd->status.inventory[i].equip = EPOS::ZERO;
             calc_flag = 1;
         }
