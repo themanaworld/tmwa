@@ -234,7 +234,7 @@ struct dumb_string
 
     const char *c_str() const
     {
-        return &impl[0];
+        return impl ? &impl[0] : "";
     }
 
     std::string str() const
