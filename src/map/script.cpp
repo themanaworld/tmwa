@@ -879,10 +879,10 @@ void get_val(ScriptState *st, struct script_data *data)
     if (data->type == ByteCode::PARAM_)
     {
         if ((sd = script_rid2sd(st)) == NULL)
-            PRINTF("get_val error param SP::%d\n", data->u.numi);
+            PRINTF("get_val error param SP::%d\n", data->u.reg.sp());
         data->type = ByteCode::INT;
         if (sd)
-            data->u.numi = pc_readparam(sd, static_cast<SP>(data->u.numi));
+            data->u.numi = pc_readparam(sd, data->u.reg.sp());
     }
     else if (data->type == ByteCode::VARIABLE)
     {
@@ -973,6 +973,7 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
 {
     if (type == ByteCode::PARAM_)
     {
+        assert (vd.type == ByteCode::INT);
         int val = vd.u.numi;
         pc_setparam(sd, reg.sp(), val);
         return;
@@ -4552,6 +4553,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
             case ByteCode::POS:
             case ByteCode::VARIABLE:
             case ByteCode::FUNC_REF:
+            case ByteCode::PARAM_:
                 // Note that these 3 have *very* different meanings,
                 // despite being encoded similarly.
             {
@@ -4569,6 +4571,10 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                     break;
                 case ByteCode::FUNC_REF:
                     push_int(stack, ByteCode::FUNC_REF, arg);
+                    break;
+                case ByteCode::PARAM_:
+                    SP arg_sp = static_cast<SP>(arg);
+                    push_reg(stack, ByteCode::PARAM_, SIR::from(arg_sp));
                     break;
                 }
             }
