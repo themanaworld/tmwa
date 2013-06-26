@@ -1030,6 +1030,7 @@ static
 void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, int id)
 {
     struct script_data vd;
+    vd.type = ByteCode::INT;
     vd.u.numi = id;
     set_reg(sd, type, reg, vd);
 }
@@ -1038,6 +1039,7 @@ static
 void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, dumb_string zd)
 {
     struct script_data vd;
+    vd.type = ByteCode::CONSTSTR;
     vd.u.str = zd;
     set_reg(sd, type, reg, vd);
 }
