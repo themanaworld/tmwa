@@ -125,6 +125,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                 clif_tradeadditem(sd, target_sd, 0, amount);
             }
         }
+        // note: amount is overridden below!
         else if (amount <= sd->status.inventory[index - 2].amount
                  && amount > 0)
         {
@@ -166,10 +167,12 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                         target_sd->max_weight)
                     {
                         clif_tradeitemok(sd, index, 0, 1); //fail to add item -- the player was over weighted.
+                        amount = 0; // [MouseJstr]
                     }
                     else if (free_ <= 0)
                     {
                         clif_tradeitemok(sd, index, 0, 2); //fail to add item -- no free slots at receiver
+                        amount = 0; // peavey
                     }
                     else
                     {
