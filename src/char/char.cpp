@@ -820,6 +820,7 @@ void create_online_files(void)
                 {
                     if (online_chars[&cd - &char_data.front()] == -1)
                         continue;
+                    players++;
                     FPRINTF(fp2, "      <tr>\n");
                     // displaying the character name
                     {
