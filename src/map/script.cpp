@@ -4234,9 +4234,9 @@ void op_add(ScriptState *st)
     get_val(st, &st->stack->stack_datav.back());
     script_data back = st->stack->stack_datav.back();
     st->stack->stack_datav.pop_back();
-    get_val(st, &st->stack->stack_datav.back());
+
     script_data& back1 = st->stack->stack_datav.back();
-    st->stack->stack_datav.pop_back();
+    get_val(st, &back1);
 
     if (!(isstr(back) || isstr(back1)))
     {
@@ -4246,7 +4246,6 @@ void op_add(ScriptState *st)
     {
         dumb_string sb = conv_str(st, &back);
         dumb_string sb1 = conv_str(st, &back1);
-        // ssの予定
         std::string buf = sb1.str() + sb.str();
         if (back1.type == ByteCode::STR)
             back1.u.str.delete_();
