@@ -219,7 +219,8 @@ struct dumb_string
     dumb_string fake(const char *p)
     {
         dumb_string rv;
-        rv.impl = dumb_ptr<char[]>(const_cast<char *>(p), strlen(p));
+        size_t len = p ? strlen(p) : 0;
+        rv.impl = dumb_ptr<char[]>(const_cast<char *>(p), len);
         return rv;
     }
 
