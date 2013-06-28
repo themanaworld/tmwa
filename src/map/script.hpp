@@ -157,4 +157,6 @@ void do_final_script(void);
 
 extern char mapreg_txt[256];
 
+extern int script_errors;
+
 #endif // SCRIPT_HPP

@@ -1800,5 +1800,11 @@ int do_init_npc(void)
     PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n",
             npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob, "");
 
+    if (script_errors)
+    {
+        PRINTF("Cowardly refusing to continue after %d errors\n", script_errors);
+        abort();
+    }
+
     return 0;
 }

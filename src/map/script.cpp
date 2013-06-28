@@ -325,6 +325,7 @@ const char *startptr;
 static
 int startline;
 
+int script_errors = 0;
 /*==========================================
  * エラーメッセージ出力
  *------------------------------------------
@@ -332,6 +333,8 @@ int startline;
 static
 void disp_error_message(const char *mes, const char *pos_)
 {
+    script_errors++;
+
     int line;
     const char *p;
 
@@ -348,7 +351,7 @@ void disp_error_message(const char *mes, const char *pos_)
         }
         if (lineend == NULL || pos_ < lineend)
         {
-            PRINTF("%s line %d : ", mes, line);
+            PRINTF("\n%s\nline %d : ", mes, line);
             for (int i = 0;
                  (linestart[i] != '\r') && (linestart[i] != '\n')
                  && linestart[i]; i++)
@@ -432,7 +435,12 @@ const char *ScriptBuffer::parse_simpleexpr(const char *p)
             disp_error_message("unexpected character", p);
             exit(1);
         }
-        str_data_t *ld = add_strp(std::string(p, p2));
+        std::string word(p, p2);
+        if (parse_cmd_if && (word == "callsub" || word == "callfunc"))
+        {
+            disp_error_message("callsub/callfunc not allowed in an if statement", p);
+        }
+        str_data_t *ld = add_strp(word);
 
         parse_cmdp = ld;          // warn_*_mismatch_paramnumのために必要
         // why not just check l->str == "if" or std::string(p, p2) == "if"?
