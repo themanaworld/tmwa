@@ -103,13 +103,13 @@ namespace strings
         const T& _ref() const { return static_cast<const T&>(*this); }
         iterator begin() const { return _ref().begin(); }
         iterator end() const { return _ref().end(); }
+        const FString *base() const { return _ref().base(); }
     public:
         size_t size() const { return end() - begin(); }
         reverse_iterator rbegin() const { return reverse_iterator(end()); }
         reverse_iterator rend() const { return reverse_iterator(begin()); }
         operator bool() { return size(); }
         bool operator !() { return !size(); }
-
 
         char operator[](size_t i) const { return begin()[i]; }
         char front() const { return *begin(); }
@@ -181,6 +181,7 @@ namespace strings
 
         iterator begin() const { return &*_hack.begin(); }
         iterator end() const { return &*_hack.end(); }
+        const FString *base() const { return this; }
         const char *c_str() const { return &*begin(); }
 
         TString oslice_t(size_t o) const;
@@ -201,9 +202,14 @@ namespace strings
     public:
         TString() : _s(), _o() {}
         TString(FString b, size_t i=0) : _s(std::move(b)), _o(i) {}
+        template<size_t n>
+        TString(char (&s)[n]) = delete;
+        template<size_t n>
+        TString(const char (&s)[n]) : _s(s), _o(0) {}
 
         iterator begin() const { return &_s.begin()[_o]; }
         iterator end() const { return &*_s.end(); }
+        const FString *base() const { return &_s; }
         const char *c_str() const { return &*begin(); }
 
         TString oslice_t(size_t o) const;
@@ -227,10 +233,16 @@ namespace strings
         SString() : _s(), _b(), _e() {}
         SString(FString f) : _s(std::move(f)), _b(), _e(_s.size()) {}
         SString(TString t) : _s(t._s), _e(_s.size()) {}
+        template<size_t n>
+        SString(char (&s)[n]) = delete;
+        template<size_t n>
+        SString(const char (&s)[n]) : _s(s), _b(0), _e(_s.size()) {}
+
         SString(FString f, size_t b, size_t e) : _s(std::move(f)), _b(b), _e(e) {}
 
         iterator begin() const { return &_s.begin()[_b]; }
         iterator end() const { return &_s.begin()[_e]; }
+        const FString *base() const { return &_s; }
 
         SString oslice_t(size_t o) const;
         SString oslice_h(size_t o) const;
@@ -250,26 +262,29 @@ namespace strings
     class ZString : public _crtp_string<ZString>
     {
         iterator _b, _e;
+        // optional
+        const FString *_base;
     public:
 #ifndef __clang__
         __attribute__((warning("This should be removed in the next diff")))
 #endif
-        ZString(const std::string& s) : _b(&*s.begin()), _e(&*s.end()) {}
+        ZString(const std::string& s) : _b(&*s.begin()), _e(&*s.end()), _base(nullptr) {}
 
         enum { really_construct_from_a_pointer };
         ZString() { *this = ZString(""); }
         // no MString
-        ZString(const FString& s) : _b(&*s.begin()), _e(&*s.end()) {}
-        ZString(const TString& s) : _b(&*s.begin()), _e(&*s.end()) {}
-        // no SString
-        ZString(decltype(really_construct_from_a_pointer), const char *s) : _b(s), _e(s + strlen(s)) {}
+        ZString(const FString& s) : _b(&*s.begin()), _e(&*s.end()), _base(s.base()) {}
+        ZString(const TString& s) : _b(&*s.begin()), _e(&*s.end()), _base(s.base()) {}
+        ZString(const SString&) = delete;
+        ZString(decltype(really_construct_from_a_pointer), const char *s, const FString *base_) : _b(s), _e(s + strlen(s)), _base(base_) {}
         template<size_t n>
         ZString(char (&s)[n]) = delete;
         template<size_t n>
-        ZString(const char (&s)[n]) : _b(s), _e(s + strlen(s)) {}
+        ZString(const char (&s)[n], const FString *base_=nullptr) : _b(s), _e(s + strlen(s)), _base(base_) {}
 
         iterator begin() const { return _b; }
         iterator end() const { return _e; }
+        const FString *base() const { return _base; }
         const char *c_str() const { return &*begin(); }
 
         ZString oslice_t(size_t o) const;
@@ -278,6 +293,13 @@ namespace strings
         XString orslice_h(size_t no) const;
         XString olslice(size_t o, size_t l) const;
         XString opslice(size_t b, size_t e) const;
+
+        operator FString()
+        { if (_base) return SString(*_base, &*_b - &*_base->begin(), &*_e - &*_base->begin()); else return FString(_b, _e); }
+        operator TString()
+        { if (_base) return SString(*_base, &*_b - &*_base->begin(), &*_e - &*_base->begin()); else return FString(_b, _e); }
+        operator SString()
+        { if (_base) return SString(*_base, &*_b - &*_base->begin(), &*_e - &*_base->begin()); else return FString(_b, _e); }
     };
 
     /// A non-owning string that is not guaranteed to be NUL-terminated.
@@ -285,24 +307,31 @@ namespace strings
     class XString : public _crtp_string<XString>
     {
         iterator _b, _e;
+        // optional
+        const FString *_base;
     public:
         // do I really want this?
         XString() : _b(nullptr), _e(nullptr) {}
         XString(std::nullptr_t) = delete;
         // no MString
-        XString(const FString& s) : _b(&*s.begin()), _e(&*s.end()) {}
-        XString(const TString& s) : _b(&*s.begin()), _e(&*s.end()) {}
-        XString(const SString& s) : _b(&*s.begin()), _e(&*s.end()) {}
-        XString(const ZString& s) : _b(&*s.begin()), _e(&*s.end()) {}
+        XString(const FString& s) : _b(&*s.begin()), _e(&*s.end()), _base(s.base()) {}
+        XString(const TString& s) : _b(&*s.begin()), _e(&*s.end()), _base(s.base()) {}
+        XString(const SString& s) : _b(&*s.begin()), _e(&*s.end()), _base(s.base()) {}
+        XString(const ZString& s) : _b(&*s.begin()), _e(&*s.end()), _base(s.base()) {}
         template<size_t n>
         XString(char (&s)[n]) = delete;
         template<size_t n>
-        XString(const char (&s)[n]) : _b(s), _e(s + strlen(s)) {}
+        XString(const char (&s)[n]) : _b(s), _e(s + strlen(s)), _base(nullptr) {}
         // mostly internal
-        XString(const char *b, const char *e) : _b(b), _e(e) {}
+        XString(const char *b, const char *e, const FString *base_) : _b(b), _e(e), _base(base_) {}
+        XString(decltype(ZString::really_construct_from_a_pointer) e, const char *s, const FString *base_)
+        {
+            *this = ZString(e, s, base_);
+        }
 
         iterator begin() const { return _b; }
         iterator end() const { return _e; }
+        const FString *base() const { return _base; };
 
         XString oslice_t(size_t o) const { return xslice_t(o); }
         XString oslice_h(size_t o) const { return xslice_h(o); }
@@ -310,6 +339,14 @@ namespace strings
         XString orslice_h(size_t no) const { return xrslice_h(no); }
         XString olslice(size_t o, size_t l) const { return xlslice(o, l); }
         XString opslice(size_t b, size_t e) const { return xpslice(b, e); }
+
+        operator FString()
+        { if (_base) return SString(*_base, &*_b - &*_base->begin(), &*_e - &*_base->begin()); else return FString(_b, _e); }
+        operator TString()
+        { if (_base) return SString(*_base, &*_b - &*_base->begin(), &*_e - &*_base->begin()); else return FString(_b, _e); }
+        operator SString()
+        { if (_base) return SString(*_base, &*_b - &*_base->begin(), &*_e - &*_base->begin()); else return FString(_b, _e); }
+        operator ZString() = delete;
     };
 
     template<uint8_t n>
@@ -332,6 +369,22 @@ namespace strings
         }
         // poor man's delegated constructors
         // needed for gcc 4.6 compatibility
+        VString(FString f)
+        {
+            *this = XString(f);
+        }
+        VString(TString t)
+        {
+            *this = XString(t);
+        }
+        VString(SString s)
+        {
+            *this = XString(s);
+        }
+        VString(ZString z)
+        {
+            *this = XString(z);
+        }
         template<size_t m>
         VString(char (&s)[m]) = delete;
         template<size_t m>
@@ -342,7 +395,7 @@ namespace strings
         }
         VString(decltype(ZString::really_construct_from_a_pointer) e, const char *s)
         {
-            *this = XString(ZString(e, s));
+            *this = XString(e, s, nullptr);
         }
         VString()
         {
@@ -351,6 +404,7 @@ namespace strings
         // hopefully this is obvious
         iterator begin() const { return std::begin(_data); }
         iterator end() const { return std::end(_data) - _special; }
+        const FString *base() const { return nullptr; };
         const char *c_str() const { return &*begin(); }
 
         VString oslice_t(size_t o) const { return this->xslice_t(o); }
@@ -359,7 +413,12 @@ namespace strings
         VString orslice_h(size_t no) const { return this->xrslice_h(no); }
         VString olslice(size_t o, size_t l) const { return this->xlslice(o, l); }
         VString opslice(size_t b, size_t e) const { return this->xpslice(b, e); }
-        operator XString() const { return XString(&*begin(), &*end()); }
+
+        operator FString() const { return FString(begin(), end()); }
+        operator TString() const { return FString(begin(), end()); }
+        operator SString() const { return FString(begin(), end()); }
+        operator ZString() const { return ZString(_data); }
+        operator XString() const { return XString(&*begin(), &*end(), nullptr); }
     };
 
 
@@ -415,22 +474,22 @@ namespace strings
     // _crtp_string
     template<class T>
     XS _crtp_string<T>::xslice_t(size_t o) const
-    { return XS(&begin()[o], &*end()); }
+    { return XS(&begin()[o], &*end(), base()); }
     template<class T>
     XS _crtp_string<T>::xslice_h(size_t o) const
-    { return XS(&*begin(), &begin()[o]); }
+    { return XS(&*begin(), &begin()[o], base()); }
     template<class T>
     XS _crtp_string<T>::xrslice_t(size_t no) const
-    { return XS(&end()[-no], &*end()); }
+    { return XS(&end()[-no], &*end(), base()); }
     template<class T>
     XS _crtp_string<T>::xrslice_h(size_t no) const
-    { return XS(&*begin(), &end()[-no]); }
+    { return XS(&*begin(), &end()[-no], base()); }
     template<class T>
     XS _crtp_string<T>::xlslice(size_t o, size_t l) const
-    { return XS(&begin()[o], &begin()[o + l]); }
+    { return XS(&begin()[o], &begin()[o + l], base()); }
     template<class T>
     XS _crtp_string<T>::xpslice(size_t b, size_t e) const
-    { return XS(&begin()[b], &begin()[e]); }
+    { return XS(&begin()[b], &begin()[e], base()); }
     template<class T>
     bool _crtp_string<T>::startswith(XS x) const
     { return size() > x.size() && xslice_h(x.size()) == x; }
@@ -501,22 +560,22 @@ namespace strings
     // ZString
     inline
     ZS ZS::oslice_t(size_t o) const
-    { return ZS(really_construct_from_a_pointer, &begin()[o]); }
+    { return ZS(really_construct_from_a_pointer, &begin()[o], base()); }
     inline
     XS ZS::oslice_h(size_t o) const
-    { return XS(&*begin(), &begin()[o]); }
+    { return XS(&*begin(), &begin()[o], base()); }
     inline
     ZS ZS::orslice_t(size_t no) const
-    { return ZS(really_construct_from_a_pointer, &end()[-no]); }
+    { return ZS(really_construct_from_a_pointer, &end()[-no], base()); }
     inline
     XS ZS::orslice_h(size_t no) const
-    { return XS(&*begin(), &end()[-no]); }
+    { return XS(&*begin(), &end()[-no], base()); }
     inline
     XS ZS::olslice(size_t o, size_t l) const
-    { return XS(&begin()[o], &begin()[o + l]); }
+    { return XS(&begin()[o], &begin()[o + l], base()); }
     inline
     XS ZS::opslice(size_t b, size_t e) const
-    { return XS(&begin()[b], &begin()[e]); }
+    { return XS(&begin()[b], &begin()[e], base()); }
 
 
     // cxxstdio helpers
