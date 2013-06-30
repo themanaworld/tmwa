@@ -15,11 +15,12 @@
 
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
+#include "../common/io.hpp"
 
 #include "../poison.hpp"
 
 static
-std::map<std::string, std::string> load_resnametable()
+std::map<MapName, FString> load_resnametable()
 {
     std::ifstream in("data/resnametable.txt");
     if (!in.is_open())
@@ -27,12 +28,13 @@ std::map<std::string, std::string> load_resnametable()
         fprintf(stderr, "Missing data/resnametable.txt");
         abort();
     }
-    std::map<std::string, std::string> out;
+    std::map<MapName, FString> out;
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string key, value;
+        MapName key;
+        FString value;
         if (!extract(line,
                     record<'#'>(&key, &value)))
             continue;
@@ -43,29 +45,32 @@ std::map<std::string, std::string> load_resnametable()
 
 /// Change *.gat to *.wlk
 static
-std::string grfio_resnametable(const_string rname)
+FString grfio_resnametable(MapName rname)
 {
     static
-    std::map<std::string, std::string> resnametable = load_resnametable();
+    std::map<MapName, FString> resnametable = load_resnametable();
 
-    return resnametable.at(std::string(rname.begin(), rname.end()));
+    return resnametable.at(rname);
 }
 
-std::vector<uint8_t> grfio_reads(const_string rname)
+std::vector<uint8_t> grfio_reads(MapName rname)
 {
-    std::string lfname = "data/" + grfio_resnametable(rname);
+    MString lfname_;
+    lfname_ += "data/";
+    lfname_ += grfio_resnametable(rname);
+    FString lfname = FString(lfname_);
 
     int fd = open(lfname.c_str(), O_RDONLY);
     if (fd == -1)
     {
         FPRINTF(stderr, "Resource %s (file %s) not found\n",
-                std::string(rname.begin(), rname.end()), lfname);
+                rname, lfname);
         return {};
     }
     off_t len = lseek(fd, 0, SEEK_END);
     assert (len != -1);
     std::vector<uint8_t> buffer(len);
-    int err = pread(fd, buffer.data(), len, 0);
+    ssize_t err = pread(fd, buffer.data(), len, 0);
     assert (err == len);
     close(fd);
     return buffer;

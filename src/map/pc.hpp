@@ -62,8 +62,8 @@ int pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos);
 int pc_walktoxy(dumb_ptr<map_session_data>, int, int);
 int pc_stop_walking(dumb_ptr<map_session_data>, int);
 int pc_movepos(dumb_ptr<map_session_data>, int, int);
-int pc_setpos(dumb_ptr<map_session_data>, const char *, int, int, BeingRemoveWhy);
-void pc_setsavepoint(dumb_ptr<map_session_data>, const char *, int, int);
+int pc_setpos(dumb_ptr<map_session_data>, MapName, int, int, BeingRemoveWhy);
+void pc_setsavepoint(dumb_ptr<map_session_data>, MapName, int, int);
 int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type);
 
 ADDITEM pc_checkadditem(dumb_ptr<map_session_data>, int, int);
@@ -120,17 +120,17 @@ int pc_readparam(dumb_ptr<map_session_data>, SP);
 int pc_setparam(dumb_ptr<map_session_data>, SP, int);
 int pc_readreg(dumb_ptr<map_session_data>, SIR);
 void pc_setreg(dumb_ptr<map_session_data>, SIR, int);
-const char *pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg);
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, const char *str);
-int pc_readglobalreg(dumb_ptr<map_session_data>, const char *);
-int pc_setglobalreg(dumb_ptr<map_session_data>, const char *, int);
-int pc_readaccountreg(dumb_ptr<map_session_data>, const char *);
-int pc_setaccountreg(dumb_ptr<map_session_data>, const char *, int);
-int pc_readaccountreg2(dumb_ptr<map_session_data>, const char *);
-int pc_setaccountreg2(dumb_ptr<map_session_data>, const char *, int);
+ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg);
+void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, FString str);
+int pc_readglobalreg(dumb_ptr<map_session_data>, VarName );
+int pc_setglobalreg(dumb_ptr<map_session_data>, VarName , int);
+int pc_readaccountreg(dumb_ptr<map_session_data>, VarName );
+int pc_setaccountreg(dumb_ptr<map_session_data>, VarName , int);
+int pc_readaccountreg2(dumb_ptr<map_session_data>, VarName );
+int pc_setaccountreg2(dumb_ptr<map_session_data>, VarName , int);
 
 int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick,
-        const char *name);
+        NpcEvent name);
 int pc_cleareventtimer(dumb_ptr<map_session_data> sd);
 
 int pc_calc_pvprank(dumb_ptr<map_session_data> sd);

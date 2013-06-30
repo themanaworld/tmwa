@@ -15,19 +15,19 @@ constexpr int WARP_DEBUG_CLASS = 722;
 constexpr int INVISIBLE_CLASS = 32767;
 
 int npc_event_dequeue(dumb_ptr<map_session_data> sd);
-int npc_event(dumb_ptr<map_session_data> sd, const char *npcname, int);
-int npc_timer_event(const char *eventname);   // Added by RoVeRT
-int npc_command(dumb_ptr<map_session_data> sd, const char *npcname, const char *command);
+int npc_event(dumb_ptr<map_session_data> sd, NpcEvent npcname, int);
+void npc_timer_event(NpcEvent eventname);   // Added by RoVeRT
+int npc_command(dumb_ptr<map_session_data> sd, NpcName npcname, XString command);
 int npc_touch_areanpc(dumb_ptr<map_session_data>, map_local *, int, int);
 int npc_click(dumb_ptr<map_session_data>, int);
 int npc_scriptcont(dumb_ptr<map_session_data>, int);
 int npc_buysellsel(dumb_ptr<map_session_data>, int, int);
 int npc_buylist(dumb_ptr<map_session_data>, int, const uint16_t *);
 int npc_selllist(dumb_ptr<map_session_data>, int, const uint16_t *);
-int npc_parse_warp(const char *w1, const char *w2, const char *w3, const char *w4);
+int npc_parse_warp(XString w1, XString, NpcName w3, XString w4);
 
-int npc_enable(const char *name, bool flag);
-dumb_ptr<npc_data> npc_name2id(const char *name);
+int npc_enable(NpcName name, bool flag);
+dumb_ptr<npc_data> npc_name2id(NpcName name);
 
 int npc_get_new_npc_id(void);
 
@@ -37,30 +37,27 @@ int npc_get_new_npc_id(void);
  * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
  */
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        int class_, const char *name, const char *message);    // message is strdup'd within
+        int class_, NpcName name, FString message);
 
 /**
  * Uninstalls and frees an NPC
  */
 void npc_free(dumb_ptr<npc_data> npc);
 
-void npc_addsrcfile(const char *);
-void npc_delsrcfile(const char *);
+void npc_addsrcfile(FString);
+void npc_delsrcfile(FString);
 int do_init_npc(void);
 int npc_event_do_oninit(void);
 
-struct argrec;
-int npc_event_doall_l(const char *name, int rid,
-        int argc, struct argrec *argv);
-int npc_event_do_l(const char *name, int rid,
-        int argc, struct argrec *argv);
+int npc_event_doall_l(ScriptLabel name, int rid, int argc, struct argrec_t *argv);
+int npc_event_do_l(NpcEvent name, int rid, int argc, struct argrec_t *argv);
 inline
-int npc_event_doall(const char *name)
+int npc_event_doall(ScriptLabel name)
 {
     return npc_event_doall_l(name, 0, 0, NULL);
 }
 inline
-int npc_event_do(const char *name)
+int npc_event_do(NpcEvent name)
 {
     return npc_event_do_l(name, 0, 0, NULL);
 }

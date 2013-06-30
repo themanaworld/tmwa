@@ -17,14 +17,12 @@
 #include "../poison.hpp"
 
 static
-void tmw_AutoBan(dumb_ptr<map_session_data> sd, const char *reason, int length);
+void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length);
 static
-int tmw_CheckChatLameness(dumb_ptr<map_session_data> sd, const char *message);
-static
-int tmw_ShorterStrlen(const char *s1, const char *s2);
+bool tmw_CheckChatLameness(dumb_ptr<map_session_data> sd, XString message);
 
 
-int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message)
+int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
 {
     nullpo_retr(1, sd);
     TimeT now = TimeT::now();
@@ -48,8 +46,7 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message)
     sd->chat_lines_in++;
 
     // Penalty for repeats.
-    if (strncmp(sd->chat_lastmsg, message,
-         tmw_ShorterStrlen(sd->chat_lastmsg, message)) == 0)
+    if (sd->chat_lastmsg.startswith(message) || message.startswith(sd->chat_lastmsg))
     {
         sd->chat_lines_in += battle_config.chat_lame_penalty;
         sd->chat_total_repeats++;
@@ -63,7 +60,7 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message)
     if (tmw_CheckChatLameness(sd, message))
         sd->chat_lines_in += battle_config.chat_lame_penalty;
 
-    strzcpy(sd->chat_lastmsg, message, battle_config.chat_maxline);
+    sd->chat_lastmsg = message;
 
     if (sd->chat_lines_in >= battle_config.chat_spam_flood
         || sd->chat_total_repeats >= battle_config.chat_spam_flood)
@@ -86,73 +83,58 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message)
     return 0;
 }
 
-void tmw_AutoBan(dumb_ptr<map_session_data> sd, const char *reason, int length)
+void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
 {
     if (length == 0 || sd->auto_ban_info.in_progress)
         return;
 
     sd->auto_ban_info.in_progress = 1;
 
-    std::string hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
+    FString hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
             sd->status.name,
             reason);
-    tmw_GmHackMsg(hack_msg.c_str());
+    tmw_GmHackMsg(hack_msg);
 
-    std::string fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
+    FString fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
             sd->status.name, length, reason);
     log_atcommand(sd, fake_command);
 
-    std::string anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
+    FString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
             reason);
 
     clif_displaymessage(sd->fd, anotherbuf);
     /* type: 2 - ban(year, month, day, hour, minute, second) */
-    chrif_char_ask_name(-1, sd->status.name, 2, 0, 0, 0, length, 0, 0);
+    HumanTimeDiff ban_len {};
+    ban_len.hour = length;
+    chrif_char_ask_name(-1, sd->status.name, 2, ban_len);
     clif_setwaitclose(sd->fd);
 }
 
-// Compares the length of two strings and returns that of the shorter
-int tmw_ShorterStrlen(const char *s1, const char *s2)
-{
-    int s1_len = strlen(s1);
-    int s2_len = strlen(s2);
-    return (s2_len >= s1_len ? s1_len : s2_len);
-}
-
 // Returns true if more than 50% of input message is caps or punctuation
-int tmw_CheckChatLameness(dumb_ptr<map_session_data>, const char *message)
+bool tmw_CheckChatLameness(dumb_ptr<map_session_data>, XString message)
 {
-    int count, lame;
+    int lame = 0;
 
-    for (count = lame = 0; *message; message++, count++)
-        if (isupper(*message) || ispunct(*message))
-            lame++;
+    for (char c : message)
+    {
+        if (c <= ' ')
+            continue;
+        if (c > '~')
+            continue;
+        if ('0' <= c && c <= '9')
+            continue;
+        if ('a' <= c && c <= 'z')
+            continue;
+        lame++;
+    }
 
-    if (count > 7 && lame > count / 2)
-        return (1);
-
-    return (0);
+    return message.size() > 7 && lame > message.size() / 2;
 }
 
 // Sends a whisper to all GMs
-void tmw_GmHackMsg(const char *line)
+void tmw_GmHackMsg(ZString line)
 {
     intif_wis_message_to_gm(wisp_server_name,
-                             battle_config.hack_info_GM_level,
-                             line);
-}
-
-/* Remove leading and trailing spaces from a string, modifying in place. */
-void tmw_TrimStr(char *const ob)
-{
-    char *const oe = ob + strlen(ob);
-    char *nb = ob;
-    while (*nb && isspace(*nb))
-        nb++;
-    char *ne = oe;
-    while (ne != nb && isspace(ne[-1]))
-        ne--;
-    // not like memcpy - allowed to overlap one way
-    char *zb = std::copy(nb, ne, ob);
-    std::fill(zb, oe, '\0');
+            battle_config.hack_info_GM_level,
+            line);
 }

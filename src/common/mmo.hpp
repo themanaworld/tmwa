@@ -4,7 +4,10 @@
 
 # include "sanity.hpp"
 # include "timer.t.hpp"
-# include "utils.hpp"
+# include "utils2.hpp"
+
+// affects CharName
+# define NAME_IGNORING_CASE 1
 
 constexpr int FIFOSIZE_SERVERLINK = 256 * 1024;
 
@@ -36,6 +39,105 @@ constexpr int MAX_PARTY = 12;
 # define MAX_CLOTH_COLOR battle_config.max_cloth_color
 
 # define CHAR_CONF_NAME  "conf/char_athena.conf"
+
+struct AccountName : VString<23> {};
+struct AccountPass : VString<23> {};
+struct AccountCrypt : VString<39> {};
+struct AccountEmail : VString<39> {};
+struct ServerName : VString<19> {};
+struct PartyName : VString<23> {};
+struct VarName : VString<31> {};
+template<class T>
+T stringish(VString<sizeof(T) - 1> iv)
+{
+    T rv;
+    static_cast<VString<sizeof(T) - 1>&>(rv) = iv;
+    return rv;
+}
+#define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com")
+
+// It is decreed: a mapname shall not contain an extension
+class MapName : public strings::_crtp_string<MapName, MapName, ZString, XString>
+{
+    VString<15> _impl;
+public:
+    MapName() = default;
+    MapName(VString<15> v) : _impl(v.oislice_h(std::find(v.begin(), v.end(), '.'))) {}
+
+    iterator begin() const { return &*_impl.begin(); }
+    iterator end() const { return &*_impl.begin(); }
+    const char *c_str() const { return _impl.c_str(); }
+
+    operator FString() const { return _impl; }
+    operator TString() const { return _impl; }
+    operator SString() const { return _impl; }
+    operator ZString() const { return _impl; }
+    operator XString() const { return _impl; }
+};
+template<>
+inline
+MapName stringish<MapName>(VString<15> iv)
+{
+    return iv;
+}
+inline
+const char *decay_for_printf(const MapName& vs) { return vs.c_str(); }
+
+// It is decreed: a charname is sometimes case sensitive
+struct CharName
+{
+private:
+    VString<23> _impl;
+public:
+    CharName() = default;
+    explicit CharName(VString<23> name)
+    : _impl(name)
+    {}
+
+    VString<23> to__actual() const
+    {
+        return _impl;
+    }
+    VString<23> to__lower() const
+    {
+        return _impl.to_lower();
+    }
+    VString<23> to__upper() const
+    {
+        return _impl.to_upper();
+    }
+    VString<23> to__canonical() const
+    {
+#if NAME_IGNORING_CASE == 0
+        return to__actual();
+#endif
+#if NAME_IGNORING_CASE == 1
+        return to__lower();
+#endif
+    }
+
+    friend bool operator == (const CharName& l, const CharName& r)
+    { return l.to__canonical() == r.to__canonical(); }
+    friend bool operator != (const CharName& l, const CharName& r)
+    { return l.to__canonical() != r.to__canonical(); }
+    friend bool operator < (const CharName& l, const CharName& r)
+    { return l.to__canonical() < r.to__canonical(); }
+    friend bool operator <= (const CharName& l, const CharName& r)
+    { return l.to__canonical() <= r.to__canonical(); }
+    friend bool operator > (const CharName& l, const CharName& r)
+    { return l.to__canonical() > r.to__canonical(); }
+    friend bool operator >= (const CharName& l, const CharName& r)
+    { return l.to__canonical() >= r.to__canonical(); }
+
+    friend
+    VString<23> convert_for_printf(const CharName& vs) { return vs.to__actual(); }
+};
+template<>
+inline
+CharName stringish<CharName>(VString<23> iv)
+{
+    return CharName(iv);
+}
 
 namespace e
 {
@@ -78,7 +180,7 @@ struct item
 
 struct point
 {
-    char map_[16];
+    MapName map_;
     short x, y;
 };
 
@@ -105,7 +207,7 @@ struct skill_value
 
 struct global_reg
 {
-    char str[32];
+    VarName str;
     int value;
 };
 
@@ -182,7 +284,7 @@ struct mmo_charstatus
     short shield;
     short head_top, head_mid, head_bottom;
 
-    char name[24];
+    CharName name;
     unsigned char base_level, job_level;
     earray<short, ATTR, ATTR::COUNT> attrs;
     unsigned char char_num, sex;
@@ -221,7 +323,8 @@ struct GM_Account
 struct party_member
 {
     int account_id;
-    char name[24], map[24];
+    CharName name;
+    MapName map;
     int leader, online, lv;
     struct map_session_data *sd;
 };
@@ -229,16 +332,10 @@ struct party_member
 struct party
 {
     int party_id;
-    char name[24];
+    PartyName name;
     int exp;
     int item;
     struct party_member member[MAX_PARTY];
-};
-
-struct square
-{
-    int val1[5];
-    int val2[5];
 };
 
 #endif // MMO_HPP

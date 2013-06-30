@@ -7,8 +7,9 @@
 #include <fstream>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/random.hpp"
+#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/random.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 
@@ -56,7 +57,7 @@ constexpr int MAGIC_SKILL_THRESHOLD = 200;
         MAP_LOG_PC(sd, "XP %d %d JOB %d %d %d ZENY %d + %d " suffix,    \
                 sd->status.base_level, sd->status.base_exp,             \
                 sd->status.job_level, sd->status.job_exp, sd->status.skill_point, \
-                sd->status.zeny, pc_readaccountreg(sd, "BankAccount"))
+                sd->status.zeny, pc_readaccountreg(sd, stringish<VarName>("BankAccount")))
 
 #define MAP_LOG_MAGIC(sd, suffix)       \
         MAP_LOG_PC(sd, "MAGIC %d %d %d %d %d %d EXP %d %d " suffix,     \
@@ -66,8 +67,8 @@ constexpr int MAGIC_SKILL_THRESHOLD = 200;
                    sd->status.skill[SkillID::TMW_MAGIC_TRANSMUTE].lv,   \
                    sd->status.skill[SkillID::TMW_MAGIC_NATURE].lv,      \
                    sd->status.skill[SkillID::TMW_MAGIC_ETHER].lv,       \
-                   pc_readglobalreg(sd, "MAGIC_EXPERIENCE") & 0xffff,   \
-                   (pc_readglobalreg(sd, "MAGIC_EXPERIENCE") >> 24) & 0xff)
+                   pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE")) & 0xffff,   \
+                   (pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE")) >> 24) & 0xff)
 
 static //const
 int max_weight_base_0 = 20000;
@@ -412,7 +413,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
     }
     else
     {
-        strzcpy(sd->status.last_point.map_, sd->mapname_, 16);
+        sd->status.last_point.map_ = sd->mapname_;
         sd->status.last_point.x = sd->bl_x;
         sd->status.last_point.y = sd->bl_y;
     }
@@ -421,7 +422,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
     if (sd->bl_m->flag.nosave)
     {
         map_local *m = sd->bl_m;
-        if (strcmp(m->save.map_, "SavePoint") == 0)
+        if (m->save.map_ == "SavePoint")
             sd->status.last_point = sd->status.save_point;
         else
             sd->status.last_point = m->save;
@@ -712,11 +713,11 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 
     clif_authok(sd);
     map_addnickdb(sd);
-    if (map_charid2nick(sd->status.char_id) == NULL)
+    if (!map_charid2nick(sd->status.char_id).to__actual())
         map_addchariddb(sd->status.char_id, sd->status.name);
 
     //スパノビ用死にカウンターのスクリプト変数からの読み出しとsdへのセット
-    sd->die_counter = pc_readglobalreg(sd, "PC_DIE_COUNTER");
+    sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"));
 
     // ステータス初期計算など
     pc_calcstatus(sd, 1);
@@ -732,12 +733,13 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
                 sd->status.name, sd->status.account_id);
 
     // TODO fix this to cache and use inotify
+    // this is far from the only such thing, but most of the others are logs
     {
-        std::ifstream in(motd_txt);
+        std::ifstream in(motd_txt.c_str());
         if (in.is_open())
         {
-            std::string buf;
-            while (std::getline(in, buf))
+            FString buf;
+            while (io::getline(in, buf))
             {
                 clif_displaymessage(sd->fd, buf);
             }
@@ -750,7 +752,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     sd->chat_reset_due = TimeT();
     sd->chat_lines_in = sd->chat_total_repeats = 0;
     sd->chat_repeat_reset_due = TimeT();
-    sd->chat_lastmsg[0] = '\0';
+    sd->chat_lastmsg = FString();
 
     for (tick_t& t : sd->flood_rates)
         t = tick_t();
@@ -768,7 +770,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         char tmpstr[] = WITH_TIMESTAMP("Your account time limit is: ");
         REPLACE_TIMESTAMP(tmpstr, connect_until_time);
 
-        clif_wis_message(sd->fd, wisp_server_name, tmpstr);
+        clif_wis_message(sd->fd, wisp_server_name, const_(tmpstr));
     }
     pc_calcstatus(sd, 1);
 
@@ -1024,16 +1026,16 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                         int c = sd->status.inventory[index].card[j];
                         if (c > 0)
                         {
-                            argrec_t arg[2];
-                            arg[0].name = "@slotId";
-                            arg[0].v.i = int(i);
-                            arg[1].name = "@itemId";
-                            arg[1].v.i = sd->inventory_data[index]->nameid;
+                            argrec_t arg[2] =
+                            {
+                                {"@slotId", static_cast<int>(i)},
+                                {"@itemId", sd->inventory_data[index]->nameid},
+                            };
                             if (i == EQUIP::SHIELD
                                 && sd->status.inventory[index].equip == EPOS::SHIELD)
                                 sd->state.lr_flag = 1;
-                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id,
-                                        0, 2, arg);
+                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id, 0,
+                                    2, arg);
                             sd->state.lr_flag = 0;
                         }
                     }
@@ -1050,13 +1052,13 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     {           // カード
                         int c = sd->status.inventory[index].card[j];
                         if (c > 0) {
-                            argrec_t arg[2];
-                            arg[0].name = "@slotId";
-                            arg[0].v.i = int(i);
-                            arg[1].name = "@itemId";
-                            arg[1].v.i = sd->inventory_data[index]->nameid;
-                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id,
-                                        0, 2, arg);
+                            argrec_t arg[2] =
+                            {
+                                {"@slotId", static_cast<int>(i)},
+                                {"@itemId", sd->inventory_data[index]->nameid}
+                            };
+                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id, 0,
+                                    2, arg);
                         }
                     }
                 }
@@ -1113,23 +1115,25 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     sd->attackrange_ += sd->inventory_data[index]->range;
                     sd->state.lr_flag = 1;
                     {
-                        argrec_t arg[2];
-                        arg[0].name = "@slotId";
-                        arg[0].v.i = int(i);
-                        arg[1].name = "@itemId";
-                        arg[1].v.i = sd->inventory_data[index]->nameid;
+                        argrec_t arg[2] =
+                        {
+                            {"@slotId", static_cast<int>(i)},
+                            {"@itemId", sd->inventory_data[index]->nameid},
+                        };
                         run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                                      sd->bl_id, 0, 2, arg);
+                                sd->bl_id, 0,
+                                2, arg);
                     }
                     sd->state.lr_flag = 0;
                 }
                 else
-                {               //二刀流武器以外
-                    argrec_t arg[2];
-                    arg[0].name = "@slotId";
-                    arg[0].v.i = int(i);
-                    arg[1].name = "@itemId";
-                    arg[1].v.i = sd->inventory_data[index]->nameid;
+                {
+                    //二刀流武器以外
+                    argrec_t arg[2] =
+                    {
+                        {"@slotId", static_cast<int>(i)},
+                        {"@itemId", sd->inventory_data[index]->nameid},
+                    };
                     sd->watk += sd->inventory_data[index]->atk;
                     sd->watk2 += (r = sd->status.inventory[index].refine) * // 精錬攻撃力
                         0;
@@ -1142,21 +1146,23 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     }
                     sd->attackrange += sd->inventory_data[index]->range;
                     run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                                  sd->bl_id, 0, 2, arg);
+                            sd->bl_id, 0,
+                            2, arg);
                 }
             }
             else if (sd->inventory_data[index]->type == ItemType::ARMOR)
             {
-                argrec_t arg[2];
-                arg[0].name = "@slotId";
-                arg[0].v.i = int(i);
-                arg[1].name = "@itemId";
-                arg[1].v.i = sd->inventory_data[index]->nameid;
+                argrec_t arg[2] =
+                {
+                    {"@slotId", static_cast<int>(i)},
+                    {"@itemId", sd->inventory_data[index]->nameid},
+                };
                 sd->watk += sd->inventory_data[index]->atk;
                 refinedef +=
                     sd->status.inventory[index].refine * 0;
                 run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
-                              sd->bl_id, 0, 2, arg);
+                        sd->bl_id, 0,
+                        2, arg);
             }
         }
     }
@@ -1174,14 +1180,15 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         index = sd->equip_index[EQUIP::ARROW];
         if (sd->inventory_data[index])
         {                       //まだ属性が入っていない
-            argrec_t arg[2];
-            arg[0].name = "@slotId";
-            arg[0].v.i = int(EQUIP::ARROW);
-            arg[1].name = "@itemId";
-            arg[1].v.i = sd->inventory_data[index]->nameid;
+            argrec_t arg[2] =
+            {
+                {"@slotId", static_cast<int>(EQUIP::ARROW)},
+                {"@itemId", sd->inventory_data[index]->nameid},
+            };
             sd->state.lr_flag = 2;
-            run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0), sd->bl_id,
-                        0, 2, arg);
+            run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
+                    sd->bl_id, 0,
+                    2, arg);
             sd->state.lr_flag = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
         }
@@ -1888,7 +1895,6 @@ int pc_payzeny(dumb_ptr<map_session_data> sd, int zeny)
 {
     nullpo_ret(sd);
 
-#warning "Why is this a double?"
     double z = sd->status.zeny;
     if (sd->status.zeny < zeny || z - zeny > MAX_ZENY)
         return 1;
@@ -2270,10 +2276,10 @@ int pc_useitem(dumb_ptr<map_session_data> sd, int n)
  * PCの位置設定
  *------------------------------------------
  */
-int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int y,
-       BeingRemoveWhy clrtype)
+int pc_setpos(dumb_ptr<map_session_data> sd,
+        MapName mapname_org, int x, int y, BeingRemoveWhy clrtype)
 {
-    char mapname_[16];
+    MapName mapname_;
 
     nullpo_ret(sd);
 
@@ -2294,16 +2300,12 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
 //        pc_setstand (sd); // [fate] Nothing wrong with warping while sitting
     }
 
-    strzcpy(mapname_, mapname_org, 16);
-    if (strstr(mapname_, ".gat") == NULL && strlen(mapname_) < 16 - 4)
-    {
-        strcat(mapname_, ".gat");
-    }
+    mapname_ = mapname_org;
 
     map_local *m = map_mapname2mapid(mapname_);
     if (!m)
     {
-        if (sd->mapname_[0])
+        if (sd->mapname_)
         {
             struct in_addr ip;
             int port;
@@ -2312,7 +2314,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
                 skill_stop_dancing(sd, 1);
                 clif_clearchar(sd, clrtype);
                 map_delblock(sd);
-                strzcpy(sd->mapname_, mapname_, 16);
+                sd->mapname_ = mapname_;
                 sd->bl_x = x;
                 sd->bl_y = y;
                 sd->state.waitingdisconnect = 1;
@@ -2359,7 +2361,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd, const char *mapname_org, int x, int
         clif_changemap(sd, m->name_, x, y); // [MouseJstr]
     }
 
-    strzcpy(sd->mapname_, mapname_, 16);
+    sd->mapname_ = mapname_;
     sd->bl_m = m;
     sd->to_x = x;
     sd->to_y = y;
@@ -3080,7 +3082,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
 
     if (battle_config.disp_experience)
     {
-        std::string output = STRPRINTF(
+        FString output = STRPRINTF(
                 "Experienced Gained Base:%d Job:%d",
                 base_exp, job_exp);
         clif_displaymessage(sd->fd, output);
@@ -3476,7 +3478,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     pc_stop_walking(sd, 0);
     skill_castcancel(sd, 0);  // 詠唱の中止
     clif_clearchar(sd, BeingRemoveWhy::DEAD);
-    pc_setglobalreg(sd, "PC_DIE_COUNTER", ++sd->die_counter);  //死にカウンター書き込み
+    pc_setglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"), ++sd->die_counter);  //死にカウンター書き込み
     skill_status_change_clear(sd, 0); // ステータス異常を解除する
     clif_updatestatus(sd, SP::HP);
     pc_calcstatus(sd, 0);
@@ -3566,17 +3568,16 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (src && src->bl_type == BL::PC)
     {
         // [Fate] PK death, trigger scripts
-        argrec_t arg[3];
-        arg[0].name = "@killerrid";
-        arg[0].v.i = src->bl_id;
-        arg[1].name = "@victimrid";
-        arg[1].v.i = sd->bl_id;
-        arg[2].name = "@victimlvl";
-        arg[2].v.i = sd->status.base_level;
-        npc_event_doall_l("OnPCKilledEvent", sd->bl_id, 3, arg);
-        npc_event_doall_l("OnPCKillEvent", src->bl_id, 3, arg);
+        argrec_t arg[3] =
+        {
+            {"@killerrid", src->bl_id},
+            {"@victimrid", sd->bl_id},
+            {"@victimlvl", sd->status.base_level},
+        };
+        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"), sd->bl_id, 3, arg);
+        npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"), src->bl_id, 3, arg);
     }
-    npc_event_doall_l("OnPCDieEvent", sd->bl_id, 0, NULL);
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"), sd->bl_id, 0, NULL);
 
     return 0;
 }
@@ -4101,26 +4102,26 @@ void pc_setreg(dumb_ptr<map_session_data> sd, SIR reg, int val)
  * script用文字列変数の値を読む
  *------------------------------------------
  */
-const char *pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
+ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
 {
-    nullpo_ret(sd);
+    nullpo_retr(ZString(), sd);
 
-    std::string *s = sd->regstrm.search(reg);
+    FString *s = sd->regstrm.search(reg);
     if (s)
-        return s->c_str();
+        return *s;
 
-    return NULL;
+    return ZString();
 }
 
 /*==========================================
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, const char *str)
+void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, FString str)
 {
     nullpo_retv(sd);
 
-    if (!*str)
+    if (!str)
     {
         sd->regstrm.erase(reg);
         return;
@@ -4133,7 +4134,7 @@ void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, const char *str)
  * script用グローバル変数の値を読む
  *------------------------------------------
  */
-int pc_readglobalreg(dumb_ptr<map_session_data> sd, const char *reg)
+int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
 
@@ -4141,7 +4142,7 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, const char *reg)
 
     for (i = 0; i < sd->status.global_reg_num; i++)
     {
-        if (strcmp(sd->status.global_reg[i].str, reg) == 0)
+        if (sd->status.global_reg[i].str == reg)
             return sd->status.global_reg[i].value;
     }
 
@@ -4152,14 +4153,14 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, const char *reg)
  * script用グローバル変数の値を設定
  *------------------------------------------
  */
-int pc_setglobalreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
+int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 {
     int i;
 
     nullpo_ret(sd);
 
     //PC_DIE_COUNTERがスクリプトなどで変更された時の処理
-    if (strcmp(reg, "PC_DIE_COUNTER") == 0 && sd->die_counter != val)
+    if (reg == stringish<VarName>("PC_DIE_COUNTER") && sd->die_counter != val)
     {
         sd->die_counter = val;
         pc_calcstatus(sd, 0);
@@ -4168,7 +4169,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
     {
         for (i = 0; i < sd->status.global_reg_num; i++)
         {
-            if (strcmp(sd->status.global_reg[i].str, reg) == 0)
+            if (sd->status.global_reg[i].str == reg)
             {
                 sd->status.global_reg[i] =
                     sd->status.global_reg[sd->status.global_reg_num - 1];
@@ -4180,7 +4181,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
     }
     for (i = 0; i < sd->status.global_reg_num; i++)
     {
-        if (strcmp(sd->status.global_reg[i].str, reg) == 0)
+        if (sd->status.global_reg[i].str == reg)
         {
             sd->status.global_reg[i].value = val;
             return 0;
@@ -4188,7 +4189,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
     }
     if (sd->status.global_reg_num < GLOBAL_REG_NUM)
     {
-        strcpy(sd->status.global_reg[i].str, reg);
+        sd->status.global_reg[i].str = reg;
         sd->status.global_reg[i].value = val;
         sd->status.global_reg_num++;
         return 0;
@@ -4204,7 +4205,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
  * script用アカウント変数の値を読む
  *------------------------------------------
  */
-int pc_readaccountreg(dumb_ptr<map_session_data> sd, const char *reg)
+int pc_readaccountreg(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
 
@@ -4212,7 +4213,7 @@ int pc_readaccountreg(dumb_ptr<map_session_data> sd, const char *reg)
 
     for (i = 0; i < sd->status.account_reg_num; i++)
     {
-        if (strcmp(sd->status.account_reg[i].str, reg) == 0)
+        if (sd->status.account_reg[i].str == reg)
             return sd->status.account_reg[i].value;
     }
 
@@ -4223,7 +4224,7 @@ int pc_readaccountreg(dumb_ptr<map_session_data> sd, const char *reg)
  * script用アカウント変数の値を設定
  *------------------------------------------
  */
-int pc_setaccountreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
+int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
 {
     int i;
 
@@ -4233,7 +4234,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
     {
         for (i = 0; i < sd->status.account_reg_num; i++)
         {
-            if (strcmp(sd->status.account_reg[i].str, reg) == 0)
+            if (sd->status.account_reg[i].str == reg)
             {
                 sd->status.account_reg[i] =
                     sd->status.account_reg[sd->status.account_reg_num - 1];
@@ -4246,7 +4247,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
     }
     for (i = 0; i < sd->status.account_reg_num; i++)
     {
-        if (strcmp(sd->status.account_reg[i].str, reg) == 0)
+        if (sd->status.account_reg[i].str == reg)
         {
             sd->status.account_reg[i].value = val;
             intif_saveaccountreg(sd);
@@ -4255,7 +4256,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
     }
     if (sd->status.account_reg_num < ACCOUNT_REG_NUM)
     {
-        strcpy(sd->status.account_reg[i].str, reg);
+        sd->status.account_reg[i].str == reg;
         sd->status.account_reg[i].value = val;
         sd->status.account_reg_num++;
         intif_saveaccountreg(sd);
@@ -4272,7 +4273,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, const char *reg, int val)
  * script用アカウント変数2の値を読む
  *------------------------------------------
  */
-int pc_readaccountreg2(dumb_ptr<map_session_data> sd, const char *reg)
+int pc_readaccountreg2(dumb_ptr<map_session_data> sd, VarName reg)
 {
     int i;
 
@@ -4280,7 +4281,7 @@ int pc_readaccountreg2(dumb_ptr<map_session_data> sd, const char *reg)
 
     for (i = 0; i < sd->status.account_reg2_num; i++)
     {
-        if (strcmp(sd->status.account_reg2[i].str, reg) == 0)
+        if (sd->status.account_reg2[i].str == reg)
             return sd->status.account_reg2[i].value;
     }
 
@@ -4291,7 +4292,7 @@ int pc_readaccountreg2(dumb_ptr<map_session_data> sd, const char *reg)
  * script用アカウント変数2の値を設定
  *------------------------------------------
  */
-int pc_setaccountreg2(dumb_ptr<map_session_data> sd, const char *reg, int val)
+int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
 {
     int i;
 
@@ -4301,7 +4302,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, const char *reg, int val)
     {
         for (i = 0; i < sd->status.account_reg2_num; i++)
         {
-            if (strcmp(sd->status.account_reg2[i].str, reg) == 0)
+            if (sd->status.account_reg2[i].str == reg)
             {
                 sd->status.account_reg2[i] =
                     sd->status.account_reg2[sd->status.account_reg2_num - 1];
@@ -4314,7 +4315,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, const char *reg, int val)
     }
     for (i = 0; i < sd->status.account_reg2_num; i++)
     {
-        if (strcmp(sd->status.account_reg2[i].str, reg) == 0)
+        if (sd->status.account_reg2[i].str == reg)
         {
             sd->status.account_reg2[i].value = val;
             chrif_saveaccountreg2(sd);
@@ -4323,7 +4324,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, const char *reg, int val)
     }
     if (sd->status.account_reg2_num < ACCOUNT_REG2_NUM)
     {
-        strcpy(sd->status.account_reg2[i].str, reg);
+        sd->status.account_reg2[i].str = reg;
         sd->status.account_reg2[i].value = val;
         sd->status.account_reg2_num++;
         chrif_saveaccountreg2(sd);
@@ -4341,21 +4342,19 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, const char *reg, int val)
  *------------------------------------------
  */
 static
-void pc_eventtimer(TimerData *, tick_t, int id, dumb_string data)
+void pc_eventtimer(TimerData *, tick_t, int id, NpcEvent data)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(id);
     assert (sd != NULL);
 
-    npc_event(sd, data.c_str(), 0);
-
-    data.delete_();
+    npc_event(sd, data, 0);
 }
 
 /*==========================================
  * イベントタイマー追加
  *------------------------------------------
  */
-int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, const char *name)
+int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, NpcEvent name)
 {
     int i;
 
@@ -4367,10 +4366,9 @@ int pc_addeventtimer(dumb_ptr<map_session_data> sd, interval_t tick, const char 
 
     if (i < MAX_EVENTTIMER)
     {
-        dumb_string evname = dumb_string::copyn(name, 24);
         sd->eventtimer[i] = Timer(gettick() + tick,
                 std::bind(pc_eventtimer, ph::_1, ph::_2,
-                    sd->bl_id, evname));
+                    sd->bl_id, name));
         return 1;
     }
 
@@ -4869,13 +4867,12 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
 dumb_ptr<map_session_data> pc_get_partner(dumb_ptr<map_session_data> sd)
 {
     dumb_ptr<map_session_data> p_sd = NULL;
-    char *nick;
     if (sd == NULL || !pc_ismarried(sd))
         return NULL;
 
-    nick = map_charid2nick(sd->status.partner_id);
+    CharName nick = map_charid2nick(sd->status.partner_id);
 
-    if (nick == NULL)
+    if (!nick.to__actual())
         return NULL;
 
     if ((p_sd = map_nick2sd(nick)) == NULL)
@@ -5167,11 +5164,11 @@ void pc_natural_heal(TimerData *, tick_t tick)
  * セーブポイントの保存
  *------------------------------------------
  */
-void pc_setsavepoint(dumb_ptr<map_session_data> sd, const char *mapname, int x, int y)
+void pc_setsavepoint(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y)
 {
     nullpo_retv(sd);
 
-    strzcpy(sd->status.save_point.map_, mapname, 16);
+    sd->status.save_point.map_ = mapname;
     sd->status.save_point.x = x;
     sd->status.save_point.y = y;
 }
@@ -5316,7 +5313,7 @@ int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
     }
     else
 #endif
-        pc_setglobalreg(sd, "MAGIC_CAST_TICK", 0);
+        pc_setglobalreg(sd, stringish<VarName>("MAGIC_CAST_TICK"), 0);
 
     MAP_LOG_STATS(sd, "LOGOUT");
     return 0;

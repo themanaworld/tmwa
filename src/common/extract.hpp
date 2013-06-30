@@ -27,14 +27,15 @@
 #include "mmo.hpp"
 #include "utils.hpp"
 
-template<class T, typename=typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, char>::value>::type>
-bool extract(const_string str, T *iv)
+template<class T, typename=typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, char>::value && !std::is_same<T, bool>::value>::type>
+bool extract(XString str, T *iv)
 {
     if (!str || str.size() > 20)
         return false;
     if (!((str.front() == '-' && std::is_signed<T>::value)
             || ('0' <= str.front() && str.front() <= '9')))
         return false;
+    // needs a NUL, but can't always be given one. TODO VString?
     char buf[20 + 1];
     std::copy(str.begin(), str.end(), buf);
     buf[str.size()] = '\0';
@@ -60,14 +61,14 @@ bool extract(const_string str, T *iv)
 }
 
 inline
-bool extract(const_string str, TimeT *tv)
+bool extract(XString str, TimeT *tv)
 {
     return extract(str, &tv->value);
 }
 
 // extra typename=void to workaround some duplicate overload rule
 template<class T, typename=typename std::enable_if<std::is_enum<T>::value>::type, typename=void>
-bool extract(const_string str, T *iv)
+bool extract(XString str, T *iv)
 {
     typedef typename underlying_type<T>::type U;
     U v;
@@ -79,59 +80,90 @@ bool extract(const_string str, T *iv)
     return true;
 }
 
-bool extract(const_string str, const_string *rv);
+bool extract(XString str, XString *rv);
 
-bool extract(const_string str, std::string *rv);
+bool extract(XString str, FString *rv);
 
-template<size_t N>
-__attribute__((deprecated))
-bool extract(const_string str, char (*out)[N])
+template<uint8_t N>
+bool extract(XString str, VString<N> *out)
 {
-    if (str.size() >= N)
+    if (str.size() > N)
         return false;
-    std::copy(str.begin(), str.end(), *out);
-    std::fill(*out + str.size() , *out + N, '\0');
+    *out = str;
     return true;
+}
+
+template<class T>
+class LStripper
+{
+public:
+    T impl;
+};
+
+template<class T>
+LStripper<T> lstripping(T v)
+{
+    return {v};
+}
+
+template<class T>
+bool extract(XString str, LStripper<T> out)
+{
+    return extract(str.lstrip(), out.impl);
 }
 
 // basically just a std::tuple
 // but it provides its data members publically
-template<char split, class... T>
+template<char split, int n, class... T>
 class Record;
-template<char split>
-class Record<split>
+template<char split, int n>
+class Record<split, n>
 {
 };
-template<char split, class F, class... R>
-class Record<split, F, R...>
+template<char split, int n, class F, class... R>
+class Record<split, n, F, R...>
 {
 public:
     F frist;
-    Record<split, R...> rest;
+    Record<split, n - 1, R...> rest;
 public:
     Record(F f, R... r)
     : frist(f), rest(r...)
     {}
 };
 template<char split, class... T>
-Record<split, T...> record(T... t)
+Record<split, sizeof...(T), T...> record(T... t)
 {
-    return Record<split, T...>(t...);
+    return Record<split, sizeof...(T), T...>(t...);
+}
+template<char split, int n, class... T>
+Record<split, n, T...> record(T... t)
+{
+    static_assert(0 < n && n < sizeof...(T), "don't be silly");
+    return Record<split, n, T...>(t...);
 }
 
-template<char split>
-bool extract(const_string str, Record<split>)
+template<char split, int n>
+bool extract(XString str, Record<split, n>)
 {
     return !str;
 }
-template<char split, class F, class... R>
-bool extract(const_string str, Record<split, F, R...> rec)
+
+template<char split, int n, class F, class... R>
+bool extract(XString str, Record<split, n, F, R...> rec)
 {
-    const char *s = std::find(str.begin(), str.end(), split);
+    XString::iterator s = std::find(str.begin(), str.end(), split);
+    XString::iterator s2 = s;
+    if (s2 != str.end())
+        ++s2;
+    XString head = str.xislice_h(s);
+    XString tail = str.xislice_t(s2);
     if (s == str.end())
-        return sizeof...(R) == 0 && extract(str, rec.frist);
-    return extract(const_string(str.begin(), s), rec.frist)
-        && extract(const_string(s + 1, str.end()), rec.rest);
+        return (extract(head, rec.frist) && n <= 1)
+            || (!head && n <= 0);
+
+    return (extract(head, rec.frist) || n <= 0)
+        && extract(tail, rec.rest);
 }
 
 template<char split, class T>
@@ -147,20 +179,41 @@ VRecord<split, T> vrec(std::vector<T> *arr)
 }
 
 template<char split, class T>
-bool extract(const_string str, VRecord<split, T> rec)
+bool extract(XString str, VRecord<split, T> rec)
 {
-    if (str.empty())
+    if (!str)
         return true;
-    const char *s = std::find(str.begin(), str.end(), split);
+    XString::iterator s = std::find(str.begin(), str.end(), split);
     rec.arr->emplace_back();
     if (s == str.end())
         return extract(str, &rec.arr->back());
-    return extract(const_string(str.begin(), s), &rec.arr->back())
-        && extract(const_string(s + 1, str.end()), rec);
+    return extract(str.xislice_h(s), &rec.arr->back())
+        && extract(str.xislice_t(s + 1), rec);
 }
 
-bool extract(const_string str, struct global_reg *var);
+bool extract(XString str, struct global_reg *var);
 
-bool extract(const_string str, struct item *it);
+bool extract(XString str, struct item *it);
+
+inline
+bool extract(XString str, MapName *m)
+{
+    VString<15> tmp;
+    bool rv = extract(str, &tmp);
+    *m = tmp;
+    return rv;
+}
+
+inline
+bool extract(XString str, CharName *out)
+{
+    VString<23> tmp;
+    if (extract(str, &tmp))
+    {
+        *out = CharName(tmp);
+        return true;
+    }
+    return false;
+}
 
 #endif // EXTRACT_HPP

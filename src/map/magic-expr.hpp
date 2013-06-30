@@ -16,34 +16,34 @@
  *  . : any, except for fail/undef
  *  _ : any, including fail, but not undef
  */
-typedef struct fun
+struct fun_t
 {
-    const char *name;
-    const char *signature;
+    ZString name;
+    ZString signature;
     char ret_ty;
     int (*fun)(dumb_ptr<env_t> env, val_t *result, const_array<val_t> arga);
-} fun_t;
+};
 
-typedef struct op
+struct op_t
 {
-    const char *name;
-    const char *signature;
+    ZString name;
+    ZString signature;
     int (*op)(dumb_ptr<env_t> env, const_array<val_t> arga);
-} op_t;
+};
 
 /**
  * Retrieves a function by name
  * @param name The name to look up
- * @return A function of that name, or NULL, and a function index
+ * @return A function of that name, or NULL.
  */
-fun_t *magic_get_fun(const std::string& name, int *index);
+fun_t *magic_get_fun(ZString name);
 
 /**
  * Retrieves an operation by name
  * @param name The name to look up
  * @return An operation of that name, or NULL, and a function index
  */
-op_t *magic_get_op(const std::string& name, int *index);
+op_t *magic_get_op(ZString name);
 
 /**
  * Evaluates an expression and stores the result in `dest'
@@ -58,7 +58,7 @@ int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 /**
  * Evaluates an expression and coerces the result into a string
  */
-std::string magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
+FString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 
 dumb_ptr<expr_t> magic_new_expr(EXPR ty);
 

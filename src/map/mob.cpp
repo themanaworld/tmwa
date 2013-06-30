@@ -7,10 +7,13 @@
 #include <cstring>
 
 #include <algorithm>
+#include <fstream>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/random.hpp"
+#include "../common/extract.hpp"
+#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/random.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 
@@ -53,14 +56,13 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
  * Mob is searched with a name.
  *------------------------------------------
  */
-int mobdb_searchname(const char *str)
+int mobdb_searchname(MobName str)
 {
     int i;
 
     for (i = 0; i < sizeof(mob_db) / sizeof(mob_db[0]); i++)
     {
-        if (strcasecmp(mob_db[i].name, str) == 0
-            || strcmp(mob_db[i].jname, str) == 0)
+        if (mob_db[i].name == str || mob_db[i].jname == str)
             return i;
     }
 
@@ -88,16 +90,16 @@ void mob_init(dumb_ptr<mob_data> md);
  *------------------------------------------
  */
 static
-void mob_spawn_dataset(dumb_ptr<mob_data> md, const char *mobname, int mob_class)
+void mob_spawn_dataset(dumb_ptr<mob_data> md, MobName mobname, int mob_class)
 {
     nullpo_retv(md);
 
-    if (strcmp(mobname, "--en--") == 0)
-        strzcpy(md->name, mob_db[mob_class].name, 24);
-    else if (strcmp(mobname, "--ja--") == 0)
-        strzcpy(md->name, mob_db[mob_class].jname, 24);
+    if (mobname == ENGLISH_NAME)
+        md->name = mob_db[mob_class].name;
+    else if (mobname == JAPANESE_NAME)
+        md->name = mob_db[mob_class].jname;
     else
-        strzcpy(md->name, mobname, 24);
+        md->name = mobname;
 
     md->bl_prev = NULL;
     md->bl_next = NULL;
@@ -362,15 +364,16 @@ void mob_init(dumb_ptr<mob_data> md)
  * The MOB appearance for one time (for scripts)
  *------------------------------------------
  */
-int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
-                    int x, int y, const char *mobname, int mob_class, int amount,
-                    const char *event)
+int mob_once_spawn(dumb_ptr<map_session_data> sd,
+        MapName mapname, int x, int y,
+        MobName mobname, int mob_class, int amount,
+        NpcEvent event)
 {
     dumb_ptr<mob_data> md = NULL;
     map_local *m;
     int count, r = mob_class;
 
-    if (sd && strcmp(mapname, "this") == 0)
+    if (sd && mapname == MOB_THIS_MAP)
         m = sd->bl_m;
     else
         m = map_mapname2mapid(mapname);
@@ -410,7 +413,7 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
         md->spawn.delay1 = static_cast<interval_t>(-1);   // Only once is a flag.
         md->spawn.delay2 = static_cast<interval_t>(-1);   // Only once is a flag.
 
-        strzcpy(md->npc_event, event, 50);
+        md->npc_event = event;
 
         md->bl_type = BL::MOB;
         map_addiddb(md);
@@ -423,15 +426,15 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd, const char *mapname,
  * The MOB appearance for one time (& area specification for scripts)
  *------------------------------------------
  */
-int mob_once_spawn_area(dumb_ptr<map_session_data> sd, const char *mapname,
-                         int x0, int y0, int x1, int y1,
-                         const char *mobname, int mob_class, int amount,
-                         const char *event)
+int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
+        MapName mapname, int x0, int y0, int x1, int y1,
+        MobName mobname, int mob_class, int amount,
+        NpcEvent event)
 {
     int x, y, i, max, lx = -1, ly = -1, id = 0;
     map_local *m;
 
-    if (strcmp(mapname, "this") == 0)
+    if (mapname == MOB_THIS_MAP)
         m = sd->bl_m;
     else
         m = map_mapname2mapid(mapname);
@@ -2624,7 +2627,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     }                           // [MouseJstr]
 
     // SCRIPT実行
-    if (md->npc_event[0])
+    if (md->npc_event)
     {
         if (sd == NULL)
         {
@@ -2877,7 +2880,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
                 y = by;
             }
 
-            mob_spawn_dataset(md, "--ja--", mob_class);
+            mob_spawn_dataset(md, JAPANESE_NAME, mob_class);
             md->bl_prev = NULL;
             md->bl_next = NULL;
             md->bl_m = m;
@@ -2893,7 +2896,7 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag)
             md->spawn.delay1 = static_cast<interval_t>(-1);   // 一度のみフラグ
             md->spawn.delay2 = static_cast<interval_t>(-1);   // 一度のみフラグ
 
-            strzcpy(md->npc_event, "", 50);
+            md->npc_event = NpcEvent();
             md->bl_type = BL::MOB;
             map_addiddb(md);
             mob_spawn(md->bl_id);
@@ -3341,8 +3344,8 @@ int mob_makedummymobdb(int mob_class)
 {
     int i;
 
-    sprintf(mob_db[mob_class].name, "mob%d", mob_class);
-    sprintf(mob_db[mob_class].jname, "mob%d", mob_class);
+    SNPRINTF(mob_db[mob_class].name, 24, "mob%d", mob_class);
+    SNPRINTF(mob_db[mob_class].jname, 24, "mob%d", mob_class);
     mob_db[mob_class].lv = 1;
     mob_db[mob_class].max_hp = 1000;
     mob_db[mob_class].max_sp = 1;
@@ -3377,6 +3380,18 @@ int mob_makedummymobdb(int mob_class)
     return 0;
 }
 
+static
+bool extract(XString str, LevelElement *le)
+{
+    int tmp;
+    if (extract(str, &tmp))
+    {
+        le->unpack(tmp);
+        return true;
+    }
+    return false;
+}
+
 /*==========================================
  * db/mob_db.txt reading
  *------------------------------------------
@@ -3384,57 +3399,95 @@ int mob_makedummymobdb(int mob_class)
 static
 int mob_readdb(void)
 {
-    FILE *fp;
-    char line[1024];
-    const char *filename[] = { "db/mob_db.txt", "db/mob_db2.txt" };
+    const char *filename = "db/mob_db.txt";
 
     for (mob_db_& e : mob_db)
         e = mob_db_{};
 
-    for (int j = 0; j < 2; j++)
     {
-
-        fp = fopen_(filename[j], "r");
-        if (fp == NULL)
+        std::ifstream in(filename);
+        if (!in.is_open())
         {
-            if (j > 0)
-                continue;
             return -1;
         }
-        while (fgets(line, 1020, fp))
+        FString line;
+        while (io::getline(in, line))
         {
             int mob_class;
-            char *str[57], *p, *np;
 
-            if (line[0] == '/' && line[1] == '/')
+            if (line.startswith("//"))
                 continue;
+            struct mob_db_ mdbv {};
 
-            p = line;
-            for (int i = 0; i < 57; i++)
-            {
-                while (*p == '\t' || *p == ' ')
-                    p++;
-                if ((np = strchr(p, ',')) != NULL)
-                {
-                    str[i] = p;
-                    *np = 0;
-                    p = np + 1;
-                }
-                else
-                    str[i] = p;
-            }
+            XString ignore;
 
-            mob_class = atoi(str[0]);
+            extract(line, record<','>(
+                        &mob_class,
+                        lstripping(&mdbv.name),
+                        lstripping(&mdbv.jname),
+                        lstripping(&mdbv.lv),
+                        lstripping(&mdbv.max_hp),
+                        lstripping(&mdbv.max_sp),
+                        lstripping(&mdbv.base_exp),
+                        lstripping(&mdbv.job_exp),
+                        lstripping(&mdbv.range),
+                        lstripping(&mdbv.atk1),
+                        lstripping(&mdbv.atk2),
+                        lstripping(&mdbv.def),
+                        lstripping(&mdbv.mdef),
+                        lstripping(&mdbv.attrs[ATTR::STR]),
+                        lstripping(&mdbv.attrs[ATTR::AGI]),
+                        lstripping(&mdbv.attrs[ATTR::VIT]),
+                        lstripping(&mdbv.attrs[ATTR::INT]),
+                        lstripping(&mdbv.attrs[ATTR::DEX]),
+                        lstripping(&mdbv.attrs[ATTR::LUK]),
+                        lstripping(&mdbv.range2),
+                        lstripping(&mdbv.range3),
+                        lstripping(&mdbv.size),
+                        lstripping(&mdbv.race),
+                        lstripping(&mdbv.element),
+                        lstripping(&mdbv.mode),
+                        lstripping(&mdbv.speed),
+                        lstripping(&mdbv.adelay),
+                        lstripping(&mdbv.amotion),
+                        lstripping(&mdbv.dmotion),
+                        lstripping(&mdbv.dropitem[0].nameid),
+                        lstripping(&mdbv.dropitem[0].p.num),
+                        lstripping(&mdbv.dropitem[1].nameid),
+                        lstripping(&mdbv.dropitem[1].p.num),
+                        lstripping(&mdbv.dropitem[2].nameid),
+                        lstripping(&mdbv.dropitem[2].p.num),
+                        lstripping(&mdbv.dropitem[3].nameid),
+                        lstripping(&mdbv.dropitem[3].p.num),
+                        lstripping(&mdbv.dropitem[4].nameid),
+                        lstripping(&mdbv.dropitem[4].p.num),
+                        lstripping(&mdbv.dropitem[5].nameid),
+                        lstripping(&mdbv.dropitem[5].p.num),
+                        lstripping(&mdbv.dropitem[6].nameid),
+                        lstripping(&mdbv.dropitem[6].p.num),
+                        lstripping(&mdbv.dropitem[7].nameid),
+                        lstripping(&mdbv.dropitem[7].p.num),
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        &ignore,
+                        lstripping(&mdbv.mutations_nr),
+                        lstripping(&mdbv.mutation_power)
+                    )
+            );
+
             if (mob_class <= 1000 || mob_class > 2000)
                 continue;
 
-            strzcpy(mob_db[mob_class].name, str[1], 24);
-            strzcpy(mob_db[mob_class].jname, str[2], 24);
-            mob_db[mob_class].lv = atoi(str[3]);
-            mob_db[mob_class].max_hp = atoi(str[4]);
-            mob_db[mob_class].max_sp = atoi(str[5]);
+            // TODO move this lower
+            mob_db[mob_class] = std::move(mdbv);
 
-            mob_db[mob_class].base_exp = atoi(str[6]);
             if (mob_db[mob_class].base_exp < 0)
                 mob_db[mob_class].base_exp = 0;
             else if (mob_db[mob_class].base_exp > 0
@@ -3444,9 +3497,8 @@ int mob_readdb(void)
                          battle_config.base_exp_rate / 100 < 0))
                 mob_db[mob_class].base_exp = 1000000000;
             else
-                mob_db[mob_class].base_exp *= battle_config.base_exp_rate / 100;
+                mob_db[mob_class].base_exp = mob_db[mob_class].base_exp * battle_config.base_exp_rate / 100;
 
-            mob_db[mob_class].job_exp = atoi(str[7]);
             if (mob_db[mob_class].job_exp < 0)
                 mob_db[mob_class].job_exp = 0;
             else if (mob_db[mob_class].job_exp > 0
@@ -3456,40 +3508,16 @@ int mob_readdb(void)
                          battle_config.job_exp_rate / 100 < 0))
                 mob_db[mob_class].job_exp = 1000000000;
             else
-                mob_db[mob_class].job_exp *= battle_config.job_exp_rate / 100;
-
-            mob_db[mob_class].range = atoi(str[8]);
-            mob_db[mob_class].atk1 = atoi(str[9]);
-            mob_db[mob_class].atk2 = atoi(str[10]);
-            mob_db[mob_class].def = atoi(str[11]);
-            mob_db[mob_class].mdef = atoi(str[12]);
-            mob_db[mob_class].attrs[ATTR::STR] = atoi(str[13]);
-            mob_db[mob_class].attrs[ATTR::AGI] = atoi(str[14]);
-            mob_db[mob_class].attrs[ATTR::VIT] = atoi(str[15]);
-            mob_db[mob_class].attrs[ATTR::INT] = atoi(str[16]);
-            mob_db[mob_class].attrs[ATTR::DEX] = atoi(str[17]);
-            mob_db[mob_class].attrs[ATTR::LUK] = atoi(str[18]);
-            mob_db[mob_class].range2 = atoi(str[19]);
-            mob_db[mob_class].range3 = atoi(str[20]);
-            mob_db[mob_class].size = atoi(str[21]); // always 1
-            mob_db[mob_class].race = static_cast<Race>(atoi(str[22]));
-            mob_db[mob_class].element = LevelElement::unpack(atoi(str[23]));
-            mob_db[mob_class].mode = static_cast<MobMode>(atoi(str[24]));
-            mob_db[mob_class].speed = atoi(str[25]);
-            mob_db[mob_class].adelay = atoi(str[26]);
-            mob_db[mob_class].amotion = atoi(str[27]);
-            mob_db[mob_class].dmotion = atoi(str[28]);
+                mob_db[mob_class].job_exp = mob_db[mob_class].job_exp * battle_config.job_exp_rate / 100;
 
             for (int i = 0; i < 8; i++)
             {
-                mob_db[mob_class].dropitem[i].nameid = atoi(str[29 + i * 2]);
-                int rate = atoi(str[30 + i * 2]);
+                int rate = mob_db[mob_class].dropitem[i].p.num;
                 if (rate < 1) rate = 1;
                 if (rate > 10000) rate = 10000;
                 mob_db[mob_class].dropitem[i].p.num = rate;
             }
-            mob_db[mob_class].mutations_nr = atoi(str[55]);
-            mob_db[mob_class].mutation_power = atoi(str[56]);
+
 
             mob_db[mob_class].skills.clear();
 
@@ -3506,22 +3534,14 @@ int mob_readdb(void)
             if (mob_db[mob_class].base_exp == 0)
                 mob_db[mob_class].base_exp = mob_gen_exp(&mob_db[mob_class]);
         }
-        fclose_(fp);
-        PRINTF("read %s done\n", filename[j]);
+        PRINTF("read %s done\n", filename);
     }
     return 0;
 }
 
-/*==========================================
- * db/mob_skill_db.txt reading
- *------------------------------------------
- */
-static
-int mob_readskilldb(void)
+template<>
+bool extract<MobSkillCondition, void, void>(XString str, MobSkillCondition *msc)
 {
-    FILE *fp;
-    char line[1024];
-
     const struct
     {
         char str[32];
@@ -3534,6 +3554,18 @@ int mob_readskilldb(void)
         {"slavelt", MobSkillCondition::MSC_SLAVELT},
         {"slavele", MobSkillCondition::MSC_SLAVELE},
     };
+    for (auto& pair : cond1)
+        if (str == pair.str)
+        {
+            *msc = pair.id;
+            return true;
+        }
+    return false;
+}
+
+template<>
+bool extract<MobSkillState, void, void>(XString str, MobSkillState *mss)
+{
     const struct
     {
         char str[32];
@@ -3545,6 +3577,18 @@ int mob_readskilldb(void)
         {"walk", MobSkillState::MSS_WALK},
         {"attack", MobSkillState::MSS_ATTACK},
     };
+    for (auto& pair : state)
+        if (str == pair.str)
+        {
+            *mss = pair.id;
+            return true;
+        }
+    return false;
+}
+
+template<>
+bool extract<MobSkillTarget, void, void>(XString str, MobSkillTarget *mst)
+{
     const struct
     {
         char str[32];
@@ -3554,90 +3598,93 @@ int mob_readskilldb(void)
         {"target", MobSkillTarget::MST_TARGET},
         {"self", MobSkillTarget::MST_SELF},
     };
-
-    int x;
-    const char *filename[] = { "db/mob_skill_db.txt", "db/mob_skill_db2.txt" };
-
-    for (x = 0; x < 2; x++)
-    {
-
-        fp = fopen_(filename[x], "r");
-        if (fp == NULL)
+    for (auto& pair : target)
+        if (str == pair.str)
         {
-            if (x == 0)
-                PRINTF("can't read %s\n", filename[x]);
-            continue;
+            *mst = pair.id;
+            return true;
         }
-        while (fgets(line, 1020, fp))
+    return false;
+}
+
+/*==========================================
+ * db/mob_skill_db.txt reading
+ *------------------------------------------
+ */
+static
+int mob_readskilldb(void)
+{
+    const char *filename = "db/mob_skill_db.txt";
+
+    {
+        std::ifstream in(filename);
+        if (!in.is_open())
+        {
+            PRINTF("can't read %s\n", filename);
+            return 0;
+        }
+        FString line;
+        while (io::getline(in, line))
         {
             int mob_id;
-            int j = 0;
 
-            if (line[0] == '/' && line[1] == '/')
+            if (line.startswith("//"))
                 continue;
 
-            char *sp[20] {};
-            char *p;
-            int i;
-            for (i = 0, p = line; i < 18 && p; i++)
-            {
-                sp[i] = p;
-                p = strchr(p, ',');
-                if (p != NULL)
-                    *p++ = 0;
-            }
-            if ((mob_id = atoi(sp[0])) <= 0)
-                continue;
-
-            if (strcmp(sp[1], "clear") == 0)
+            XString blah;
+            if (extract(line, record<','>(&mob_id, &blah)) && mob_id > 0 && blah == "clear")
             {
                 mob_db[mob_id].skills.clear();
                 continue;
             }
 
-            mob_db[mob_id].skills.push_back(mob_skill{});
-            struct mob_skill *ms = &mob_db[mob_id].skills.back();
+            struct mob_skill msv {};
+            msv.emotion = -1;
+            int casttime, delay;
+            XString cancellable;
 
-            ms->state = static_cast<MobSkillState>(atoi(sp[2]));
-            for (j = 0; j < sizeof(state) / sizeof(state[0]); j++)
-            {
-                if (strcmp(sp[2], state[j].str) == 0)
-                    ms->state = state[j].id;
-            }
-            ms->skill_id = SkillID(atoi(sp[3]));
-            ms->skill_lv = atoi(sp[4]);
+            if (!extract(
+                        line,
+                        record<',', 17>(
+                            &mob_id,
+                            &blah,
+                            &msv.state,
+                            &msv.skill_id,
+                            &msv.skill_lv,
+                            &msv.permillage,
+                            &casttime,
+                            &delay,
+                            &cancellable,
+                            &msv.target,
+                            &msv.cond1,
+                            &msv.cond2i,
+                            &msv.val[0],
+                            &msv.val[1],
+                            &msv.val[2],
+                            &msv.val[3],
+                            &msv.val[4],
 
-            ms->permillage = atoi(sp[5]);
-            ms->casttime = static_cast<interval_t>(atoi(sp[6]));
-            ms->delay = static_cast<interval_t>(atoi(sp[7]));
-            ms->cancel = atoi(sp[8]);
-            if (strcmp(sp[8], "yes") == 0)
-                ms->cancel = 1;
-            ms->target = static_cast<MobSkillTarget>(atoi(sp[9]));
-            for (j = 0; j < sizeof(target) / sizeof(target[0]); j++)
-            {
-                if (strcmp(sp[9], target[j].str) == 0)
-                    ms->target = target[j].id;
-            }
-            ms->cond1 = MobSkillCondition::ANY;
-            for (j = 0; j < sizeof(cond1) / sizeof(cond1[0]); j++)
-            {
-                if (strcmp(sp[10], cond1[j].str) == 0)
-                    ms->cond1 = cond1[j].id;
-            }
-            ms->cond2i = atoi(sp[11]);
-            ms->val[0] = atoi(sp[12]);
-            ms->val[1] = atoi(sp[13]);
-            ms->val[2] = atoi(sp[14]);
-            ms->val[3] = atoi(sp[15]);
-            ms->val[4] = atoi(sp[16]);
-            if (sp[17] != NULL && strlen(sp[17]) > 2)
-                ms->emotion = atoi(sp[17]);
+                            &msv.emotion
+                        )
+                    )
+            )
+                continue;
+            if (cancellable == "yes")
+                msv.cancel = true;
+            else if (cancellable == "no")
+                msv.cancel = false;
             else
-                ms->emotion = -1;
+                continue;
+
+            msv.casttime = std::chrono::milliseconds(casttime);
+            msv.delay = std::chrono::milliseconds(delay);
+
+            if (mob_id <= 0)
+                continue;
+
+            mob_db[mob_id].skills.push_back(std::move(msv));
         }
-        fclose_(fp);
-        PRINTF("read %s done\n", filename[x]);
+        PRINTF("read %s done\n", filename);
     }
     return 0;
 }

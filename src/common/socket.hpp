@@ -96,12 +96,6 @@ void do_socket(void);
 // themselves as servers
 void set_defaultparse(void(*defaultparse)(int));
 
-/// Wrappers to track number of free FDs
-void fclose_(FILE * fp);
-FILE *fopen_(const char *path, const char *mode);
-
-bool free_fds(void);
-
 template<class T>
 uint8_t *pod_addressof_m(T& structure)
 {
@@ -149,10 +143,22 @@ void RFIFO_STRUCT(int fd, size_t pos, T& structure)
 {
     really_memcpy(pod_addressof_m(structure), static_cast<const uint8_t *>(RFIFOP(fd, pos)), sizeof(T));
 }
+template<uint8_t len>
 inline
-void RFIFO_STRING(int fd, size_t pos, char *out, size_t len)
+VString<len-1> RFIFO_STRING(int fd, size_t pos)
 {
-    strzcpy(out, static_cast<const char *>(RFIFOP(fd, pos)), len);
+    const char *const begin = static_cast<const char *>(RFIFOP(fd, pos));
+    const char *const end = begin + len-1;
+    const char *const mid = std::find(begin, end, '\0');
+    return XString(begin, mid, nullptr);
+}
+inline
+FString RFIFO_STRING(int fd, size_t pos, size_t len)
+{
+    const char *const begin = static_cast<const char *>(RFIFOP(fd, pos));
+    const char *const end = begin + len;
+    const char *const mid = std::find(begin, end, '\0');
+    return XString(begin, mid, nullptr);
 }
 inline
 void RFIFO_BUF_CLONE(int fd, uint8_t *buf, size_t len)
@@ -189,14 +195,27 @@ void RBUF_STRUCT(const uint8_t *p, size_t pos, T& structure)
 {
     really_memcpy(pod_addressof_m(structure), p + pos, sizeof(T));
 }
+template<uint8_t len>
 inline
-void RBUF_STRING(const uint8_t *p, size_t pos, char *out, size_t len)
+VString<len-1> RBUF_STRING(const uint8_t *p, size_t pos)
 {
-    strzcpy(out, static_cast<const char *>(RBUFP(p, pos)), len);
+    const char *const begin = static_cast<const char *>(RBUFP(p, pos));
+    const char *const end = begin + len-1;
+    const char *const mid = std::find(begin, end, '\0');
+    return XString(begin, mid, nullptr);
+}
+inline
+FString RBUF_STRING(const uint8_t *p, size_t pos, size_t len)
+{
+    const char *const begin = static_cast<const char *>(RBUFP(p, pos));
+    const char *const end = begin + len;
+    const char *const mid = std::find(begin, end, '\0');
+    return XString(begin, mid, nullptr);
 }
 
 
 /// Unused - check how much data can be written
+// the existence of this seems scary
 inline
 size_t WFIFOSPACE(int fd)
 {
@@ -229,9 +248,12 @@ void WFIFO_STRUCT(int fd, size_t pos, T& structure)
     really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, pos)), pod_addressof_c(structure), sizeof(T));
 }
 inline
-void WFIFO_STRING(int fd, size_t pos, const char *s, size_t len)
+void WFIFO_STRING(int fd, size_t pos, XString s, size_t len)
 {
-    strzcpy(static_cast<char *>(WFIFOP(fd, pos)), s, len);
+    char *const begin = static_cast<char *>(WFIFOP(fd, pos));
+    char *const end = begin + len;
+    char *const mid = std::copy(s.begin(), s.end(), begin);
+    std::fill(mid, end, '\0');
 }
 inline
 void WFIFO_ZERO(int fd, size_t pos, size_t len)
@@ -276,9 +298,12 @@ void WBUF_STRUCT(uint8_t *p, size_t pos, T& structure)
     really_memcpy(p + pos, pod_addressof_c(structure), sizeof(T));
 }
 inline
-void WBUF_STRING(uint8_t *p, size_t pos, const char *s, size_t len)
+void WBUF_STRING(uint8_t *p, size_t pos, XString s, size_t len)
 {
-    strzcpy(static_cast<char *>(WBUFP(p, pos)), s, len);
+    char *const begin = static_cast<char *>(WBUFP(p, pos));
+    char *const end = begin + len;
+    char *const mid = std::copy(s.begin(), s.end(), begin);
+    std::fill(mid, end, '\0');
 }
 inline
 void WBUF_ZERO(uint8_t *p, size_t pos, size_t len)

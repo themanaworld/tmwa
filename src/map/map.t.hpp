@@ -555,4 +555,9 @@ ENUM_BITWISE_OPERATORS(MapCell)
 }
 using e::MapCell;
 
+struct MobName : VString<23> {};
+struct NpcName : VString<23> {};
+struct ScriptLabel : VString<23> {};
+struct ItemName : VString<23> {};
+
 #endif // MAP_T_HPP

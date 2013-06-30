@@ -4,16 +4,19 @@
 #include <cassert>
 
 #include <map>
-#include <string>
 #include <vector>
+
+#include "strings.hpp"
 
 class InternPool
 {
-    std::map<std::string, size_t> known;
-    std::vector<std::string> names;
+    std::map<FString, size_t> known;
+    std::vector<FString> names;
 public:
-    size_t intern(const std::string& name)
+    size_t intern(XString name_)
     {
+        FString name = name_;
+        // hm, I could change this to do aliases
         auto pair = known.insert({name, known.size()});
         if (pair.second)
             names.push_back(name);
@@ -21,7 +24,7 @@ public:
         return pair.first->second;
     }
 
-    const std::string& outtern(size_t sz) const
+    ZString outtern(size_t sz) const
     {
         return names[sz];
     }

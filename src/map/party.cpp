@@ -44,14 +44,14 @@ struct party *party_search(int party_id)
 }
 
 static
-void party_searchname_sub(struct party *p, const char *str, struct party **dst)
+void party_searchname_sub(struct party *p, PartyName str, struct party **dst)
 {
-    if (strcasecmp(p->name, str) == 0)
+    if (p->name == str)
         *dst = p;
 }
 
 // パーティ名検索
-struct party *party_searchname(const char *str)
+struct party *party_searchname(PartyName str)
 {
     struct party *p = NULL;
     for (auto& pair : party_db)
@@ -60,21 +60,19 @@ struct party *party_searchname(const char *str)
 }
 
 /* Process a party creation request. */
-int party_create(dumb_ptr<map_session_data> sd, const char *name)
+int party_create(dumb_ptr<map_session_data> sd, PartyName name)
 {
-    char pname[24];
     nullpo_ret(sd);
 
-    strzcpy(pname, name, 24);
-    tmw_TrimStr(pname);
+    name = stringish<PartyName>(name.strip());
 
     /* The party name is empty/invalid. */
-    if (!*pname)
+    if (!name)
         clif_party_created(sd, 1);
 
     /* Make sure the character isn't already in a party. */
     if (sd->status.party_id == 0)
-        intif_create_party(sd, pname);
+        intif_create_party(sd, name);
     else
         clif_party_created(sd, 2);
 
@@ -82,7 +80,7 @@ int party_create(dumb_ptr<map_session_data> sd, const char *name)
 }
 
 /* Relay the result of a party creation request. */
-void party_created(int account_id, int fail, int party_id, const char *name)
+void party_created(int account_id, int fail, int party_id, PartyName name)
 {
     dumb_ptr<map_session_data> sd;
     sd = map_id2sd(account_id);
@@ -103,7 +101,7 @@ void party_created(int account_id, int fail, int party_id, const char *name)
 
         p = party_db.init(party_id);
         p->party_id = party_id;
-        strzcpy(p->name, name, 24);
+        p->name = name;
 
         /* The party was created successfully. */
         clif_party_created(sd, 0);
@@ -139,7 +137,7 @@ int party_check_member(struct party *p)
                 {               // パーティにデータがあるか確認
                     if (p->member[j].account_id == sd->status.account_id)
                     {
-                        if (strcmp(p->member[j].name, sd->status.name) == 0)
+                        if (p->member[j].name == sd->status.name)
                             f = 0;  // データがある
                         else
                         {
@@ -369,7 +367,7 @@ int party_member_added(int party_id, int account_id, int flag)
 }
 
 // パーティ除名要求
-int party_removemember(dumb_ptr<map_session_data> sd, int account_id, const char *)
+int party_removemember(dumb_ptr<map_session_data> sd, int account_id)
 {
     struct party *p;
     int i;
@@ -420,7 +418,7 @@ int party_leave(dumb_ptr<map_session_data> sd)
 }
 
 // パーティメンバが脱退した
-int party_member_leaved(int party_id, int account_id, const char *name)
+int party_member_leaved(int party_id, int account_id, CharName name)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(account_id);
     struct party *p = party_search(party_id);
@@ -499,8 +497,8 @@ int party_optionchanged(int party_id, int account_id, int exp, int item,
 }
 
 // パーティメンバの移動通知
-void party_recv_movemap(int party_id, int account_id, const char *mapname, int online,
-                        int lv)
+void party_recv_movemap(int party_id, int account_id, MapName mapname,
+        int online, int lv)
 {
     struct party *p;
     int i;
@@ -516,7 +514,7 @@ void party_recv_movemap(int party_id, int account_id, const char *mapname, int o
         }
         if (m->account_id == account_id)
         {
-            strzcpy(m->map, mapname, 16);
+            m->map = mapname;
             m->online = online;
             m->lv = lv;
             break;
@@ -597,7 +595,7 @@ int party_send_logout(dumb_ptr<map_session_data> sd)
 }
 
 // パーティメッセージ送信
-void party_send_message(dumb_ptr<map_session_data> sd, const char *mes)
+void party_send_message(dumb_ptr<map_session_data> sd, XString mes)
 {
     if (sd->status.party_id == 0)
         return;
@@ -605,7 +603,7 @@ void party_send_message(dumb_ptr<map_session_data> sd, const char *mes)
 }
 
 // パーティメッセージ受信
-void party_recv_message(int party_id, int account_id, const char *mes)
+void party_recv_message(int party_id, int account_id, XString mes)
 {
     struct party *p;
     if ((p = party_search(party_id)) == NULL)
@@ -618,8 +616,8 @@ void party_check_conflict(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    intif_party_checkconflict(sd->status.party_id, sd->status.account_id,
-                               sd->status.name);
+    intif_party_checkconflict(sd->status.party_id,
+            sd->status.account_id, sd->status.name);
 }
 
 // 位置やＨＰ通知用

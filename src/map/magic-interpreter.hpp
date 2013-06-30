@@ -10,6 +10,8 @@
 #include "script.hpp"
 #include "skill.t.hpp"
 
+struct fun_t;
+struct op_t;
 struct expr_t;
 struct val_t;
 struct location_t;
@@ -118,7 +120,8 @@ struct expr_t
         e_area_t e_area;
         struct
         {
-            int id, line_nr, column;
+            fun_t *funp;
+            int line_nr, column;
             int args_nr;
             dumb_ptr<expr_t> args[MAX_ARGS];
         } e_funapp;
@@ -169,7 +172,7 @@ struct effect_t
         dumb_ptr<const ScriptBuffer> e_script;
         struct
         {
-            int id;
+            op_t *opp;
             int args_nr;
             int line_nr, column;
             dumb_ptr<expr_t> args[MAX_ARGS];
@@ -238,9 +241,8 @@ struct letdef_t
 
 struct spell_t
 {
-    std::string name;
-    std::string invocation;
-    int index_;                 // Relative location in the definitions file
+    FString name;
+    FString invocation;
     SPELL_FLAG flags;
     int arg;
     SPELLARG spellarg_ty;
@@ -256,8 +258,8 @@ struct spell_t
 
 struct teleport_anchor_t
 {
-    std::string name;
-    std::string invocation;
+    FString name;
+    FString invocation;
     dumb_ptr<expr_t> location;
 };
 
@@ -269,15 +271,15 @@ struct magic_conf_t
 {
     struct mcvar
     {
-        std::string name;
+        FString name;
         val_t val;
     };
     // This should probably be done by a dedicated "intern pool" class
     std::vector<mcvar> varv;
 
-    std::map<std::string, dumb_ptr<spell_t>> spells_by_name, spells_by_invocation;
+    std::map<FString, dumb_ptr<spell_t>> spells_by_name, spells_by_invocation;
 
-    std::map<std::string, dumb_ptr<teleport_anchor_t>> anchors_by_name, anchors_by_invocation;
+    std::map<FString, dumb_ptr<teleport_anchor_t>> anchors_by_name, anchors_by_invocation;
 };
 
 /* Execution environment */
@@ -390,10 +392,10 @@ extern env_t magic_default_env; /* Fake default environment */
  */
 void magic_add_component(dumb_ptr<component_t> *component_holder, int id, int count);
 
-dumb_ptr<teleport_anchor_t> magic_find_anchor(const std::string& name);
+dumb_ptr<teleport_anchor_t> magic_find_anchor(XString name);
 
 dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
-        dumb_ptr<map_session_data> caster, int spellpower, const_string param);
+        dumb_ptr<map_session_data> caster, int spellpower, XString param);
 
 void magic_free_env(dumb_ptr<env_t> env);
 
@@ -419,7 +421,7 @@ int spell_unbind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invoca
  */
 dumb_ptr<invocation> spell_clone_effect(dumb_ptr<invocation> source);
 
-dumb_ptr<spell_t> magic_find_spell(const std::string& invocation);
+dumb_ptr<spell_t> magic_find_spell(XString invocation);
 
 /* The following is used only by the parser: */
 struct args_rec_t
@@ -429,7 +431,7 @@ struct args_rec_t
 
 struct proc_t
 {
-    std::string name;
+    FString name;
     std::vector<int> argv;
     dumb_ptr<effect_t> body;
 

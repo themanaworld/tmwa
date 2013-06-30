@@ -15,18 +15,18 @@ struct mmo_map_server
     long ip;
     short port;
     int users;
-    char maps[MAX_MAP_PER_SERVER][16];
+    MapName maps[MAX_MAP_PER_SERVER];
 };
 
-const mmo_charstatus *search_character(const char *character_name);
+const mmo_charstatus *search_character(CharName character_name);
 
 int mapif_sendall(const uint8_t *buf, unsigned int len);
 int mapif_sendallwos(int fd, const uint8_t *buf, unsigned int len);
 int mapif_send(int fd, const uint8_t *buf, unsigned int len);
 
-void char_log(const_string line);
+void char_log(XString line);
 
 #define CHAR_LOG(fmt, ...)  \
-    char_log(static_cast<const std::string&>(STRPRINTF(fmt, ## __VA_ARGS__)))
+    char_log(STRPRINTF(fmt, ## __VA_ARGS__))
 
 #endif // CHAR_HPP

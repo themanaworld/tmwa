@@ -202,25 +202,25 @@ struct dumb_string
     {
         return dumb_string::copy(sz, sz + strlen(sz));
     }
-    static dumb_string copys(const std::string& s)
+    static dumb_string copys(XString s)
     {
         return dumb_string::copy(&*s.begin(), &*s.end());
     }
-    static dumb_string copyn(const char *sn, size_t n)
+    static
+#ifndef __clang__
+    __attribute__((warning("shouldn't use this - slice instead")))
+#endif
+    dumb_string copyn(const char *sn, size_t n)
     {
         return dumb_string::copy(sn, sn + strnlen(sn, n));
     }
-    static dumb_string copyc(const_string s)
-    {
-        return dumb_string::copy(s.begin(), s.end());
-    }
 
     static
-    dumb_string fake(const char *p)
+    dumb_string fake(ZString p)
     {
         dumb_string rv;
-        size_t len = p ? strlen(p) : 0;
-        rv.impl = dumb_ptr<char[]>(const_cast<char *>(p), len);
+        size_t len = p.size();
+        rv.impl = dumb_ptr<char[]>(const_cast<char *>(p.c_str()), len);
         return rv;
     }
 
@@ -235,17 +235,17 @@ struct dumb_string
 
     const char *c_str() const
     {
-        return impl ? &impl[0] : "";
+        return &impl[0];
     }
 
-    std::string str() const
+    operator ZString() const
     {
-        return c_str();
+        return ZString(ZString::really_construct_from_a_pointer, c_str(), nullptr);
     }
 
-    operator const_string() const
+    FString str() const
     {
-        return const_string(c_str());
+        return ZString(*this);
     }
 
     char& operator[](size_t i) const
@@ -262,116 +262,7 @@ struct dumb_string
     {
         return !impl;
     }
-
-    operator ZString() { return ZString(ZString::really_construct_from_a_pointer, c_str()); }
-
-#if 0
-    friend bool operator == (dumb_string l, dumb_string r)
-    {
-        return l.impl == r.impl;
-    }
-    friend bool operator != (dumb_string l, dumb_string r)
-    {
-        return !(l == r);
-    }
-#endif
 };
-
-namespace operators
-{
-    inline
-    bool operator == (dumb_string l, dumb_string r)
-    {
-        return strcmp(l.c_str(), r.c_str()) == 0;
-    }
-    inline
-    bool operator != (dumb_string l, dumb_string r)
-    {
-        return strcmp(l.c_str(), r.c_str()) != 0;
-    }
-    inline
-    bool operator < (dumb_string l, dumb_string r)
-    {
-        return strcmp(l.c_str(), r.c_str()) < 0;
-    }
-    inline
-    bool operator <= (dumb_string l, dumb_string r)
-    {
-        return strcmp(l.c_str(), r.c_str()) <= 0;
-    }
-    inline
-    bool operator > (dumb_string l, dumb_string r)
-    {
-        return strcmp(l.c_str(), r.c_str()) > 0;
-    }
-    inline
-    bool operator >= (dumb_string l, dumb_string r)
-    {
-        return strcmp(l.c_str(), r.c_str()) >= 0;
-    }
-
-    inline
-    bool operator == (const char *l, dumb_string r)
-    {
-        return strcmp(l, r.c_str()) == 0;
-    }
-    inline
-    bool operator != (const char *l, dumb_string r)
-    {
-        return strcmp(l, r.c_str()) != 0;
-    }
-    inline
-    bool operator < (const char *l, dumb_string r)
-    {
-        return strcmp(l, r.c_str()) < 0;
-    }
-    inline
-    bool operator <= (const char *l, dumb_string r)
-    {
-        return strcmp(l, r.c_str()) <= 0;
-    }
-    inline
-    bool operator > (const char *l, dumb_string r)
-    {
-        return strcmp(l, r.c_str()) > 0;
-    }
-    inline
-    bool operator >= (const char *l, dumb_string r)
-    {
-        return strcmp(l, r.c_str()) >= 0;
-    }
-
-    inline
-    bool operator == (dumb_string l, const char *r)
-    {
-        return strcmp(l.c_str(), r) == 0;
-    }
-    inline
-    bool operator != (dumb_string l, const char *r)
-    {
-        return strcmp(l.c_str(), r) != 0;
-    }
-    inline
-    bool operator < (dumb_string l, const char *r)
-    {
-        return strcmp(l.c_str(), r) < 0;
-    }
-    inline
-    bool operator <= (dumb_string l, const char *r)
-    {
-        return strcmp(l.c_str(), r) <= 0;
-    }
-    inline
-    bool operator > (dumb_string l, const char *r)
-    {
-        return strcmp(l.c_str(), r) > 0;
-    }
-    inline
-    bool operator >= (dumb_string l, const char *r)
-    {
-        return strcmp(l.c_str(), r) >= 0;
-    }
-}
 
 inline
 const char *convert_for_printf(dumb_string ds)

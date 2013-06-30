@@ -12,12 +12,15 @@
 #include <cstring>
 #include <ctime>
 
+#include <bitset>
 #include <fstream>
 
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
+#include "../common/human_time_diff.hpp"
+#include "../common/io.hpp"
 #include "../common/lock.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -48,21 +51,21 @@ std::chrono::milliseconds DEFAULT_AUTOSAVE_INTERVAL =
 static
 int login_fd, char_fd;
 static
-char userid[24];
+AccountName userid;
 static
-char passwd[24];
+AccountPass passwd;
 static
-char server_name[20];
+ServerName server_name;
 static
-char wisp_server_name[24] = "Server";
+CharName wisp_server_name = stringish<CharName>("Server");
 static
-char login_ip_str[16];
+IP_String login_ip_str;
 static
 int login_ip;
 static
 int login_port = 6900;
 static
-char char_ip_str[16];
+IP_String char_ip_str;
 static
 int char_ip;
 static
@@ -72,31 +75,29 @@ int char_maintenance;
 static
 int char_new;
 static
-char char_txt[1024];
+FString char_txt;
 static
-char unknown_char_name[24] = "Unknown";
+CharName unknown_char_name = stringish<CharName>("Unknown");
 static
-char char_log_filename[1024] = "log/char.log";
+FString char_log_filename = "log/char.log";
 //Added for lan support
 static
-char lan_map_ip[128];
+IP_String lan_map_ip;
 static
 uint8_t subneti[4];
 static
 uint8_t subnetmaski[4];
 static
-int name_ignoring_case = 0;    // Allow or not identical name for characters but with a different case by [Yor]
-static
 int char_name_option = 0;      // Option to know which letters/symbols are authorised in the name of a character (0: all, 1: only those in char_name_letters, 2: all EXCEPT those in char_name_letters) by [Yor]
 static
-char char_name_letters[1024] = "";  // list of letters/symbols authorised (or not) in a character name. by [Yor]
+std::bitset<256> char_name_letters;  // list of letters/symbols authorised (or not) in a character name. by [Yor]
 
 struct char_session_data : SessionData
 {
     int account_id, login_id1, login_id2, sex;
     unsigned short packet_tmw_version;
-    char email[40];             // e-mail (default: a@a.com) by [Yor]
-    TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
+    AccountEmail email;
+    TimeT connect_until_time;
 };
 
 void SessionDeleter::operator()(SessionData *sd)
@@ -140,16 +141,16 @@ int start_armor = 1202;
 
 // Initial position (it's possible to set it in conf file)
 static
-struct point start_point = { "new_1-1.gat", 53, 111 };
+struct point start_point = { {"001-1.gat"}, 273, 354 };
 
 static
 std::vector<GM_Account> gm_accounts;
 
 // online players by [Yor]
 static
-char online_txt_filename[1024] = "online.txt";
+FString online_txt_filename = "online.txt";
 static
-char online_html_filename[1024] = "online.html";
+FString online_html_filename = "online.html";
 static
 int online_sorting_option = 0; // sorting option to display online players in online files
 static
@@ -168,13 +169,13 @@ pid_t pid = 0;                  // For forked DB writes
 //------------------------------
 // Writing function of logs file
 //------------------------------
-void char_log(const_string line)
+void char_log(XString line)
 {
-    FILE *logfp = fopen_(char_log_filename, "a");
+    FILE *logfp = fopen(char_log_filename.c_str(), "a");
     if (!logfp)
         return;
     log_with_timestamp(logfp, line);
-    fclose_(logfp);
+    fclose(logfp);
 }
 
 //----------------------------------------------------------------------
@@ -198,26 +199,16 @@ int isGM(int account_id)
 //   and returns index if only 1 character is found
 //   and similar to the searched name.
 //----------------------------------------------
-const mmo_charstatus *search_character(const char *character_name)
+const mmo_charstatus *search_character(CharName character_name)
 {
-    int quantity = 0;
-    const mmo_charstatus *index = nullptr;
     for (const mmo_charstatus& cd : char_data)
     {
-        // Without case sensitive check (increase the number of similar character names found)
-        if (strcasecmp(cd.name, character_name) == 0)
         {
             // Strict comparison (if found, we finish the function immediatly with correct value)
-            if (strcmp(cd.name, character_name) == 0)
+            if (cd.name == character_name)
                 return &cd;
-            quantity++;
-            index = &cd;
         }
     }
-    // Here, the exact character name is not found
-    // We return the found index of a similar account ONLY if there is 1 similar character
-    if (quantity == 1)
-        return index;
 
     // Exact character name is not found and 0 or more than 1 similar characters have been found ==> we say not found
     return nullptr;
@@ -226,18 +217,16 @@ const mmo_charstatus *search_character(const char *character_name)
 //-------------------------------------------------
 // Function to create the character line (for save)
 //-------------------------------------------------
-__inline__ static
-std::string mmo_char_tostr(struct mmo_charstatus *p)
+static
+FString mmo_char_tostr(struct mmo_charstatus *p)
 {
     // on multi-map server, sometimes it's posssible that last_point become void. (reason???) We check that to not lost character at restart.
-    if (p->last_point.map_[0] == '\0')
+    if (!p->last_point.map_)
     {
-        strzcpy(p->last_point.map_, "001-1.gat", 16);
-        p->last_point.x = 273;
-        p->last_point.y = 354;
+        p->last_point = start_point;
     }
 
-    std::string str_p;
+    MString str_p;
     str_p += STRPRINTF(
             "%d\t"
             "%d,%d\t"
@@ -329,11 +318,11 @@ std::string mmo_char_tostr(struct mmo_charstatus *p)
                     p->global_reg[i].value);
     str_p += '\t';
 
-    return str_p;
+    return FString(str_p);
 }
 
 static
-bool extract(const_string str, struct point *p)
+bool extract(XString str, struct point *p)
 {
     return extract(str, record<','>(&p->map_, &p->x, &p->y));
 }
@@ -346,7 +335,7 @@ struct skill_loader
 };
 
 static
-bool extract(const_string str, struct skill_loader *s)
+bool extract(XString str, struct skill_loader *s)
 {
     uint32_t flags_and_level;
     if (!extract(str,
@@ -361,7 +350,7 @@ bool extract(const_string str, struct skill_loader *s)
 // Function to set the character from the line (at read of characters file)
 //-------------------------------------------------------------------------
 static
-bool extract(const_string str, struct mmo_charstatus *p)
+bool extract(XString str, struct mmo_charstatus *p)
 {
     // initilialise character
     *p = mmo_charstatus{};
@@ -397,14 +386,14 @@ bool extract(const_string str, struct mmo_charstatus *p)
                     vrec<' '>(&vars))))
         return false;
 
-    if (strcmp(wisp_server_name, p->name) == 0)
+    if (wisp_server_name == p->name)
         return false;
 
     for (const mmo_charstatus& cd : char_data)
     {
         if (cd.char_id == p->char_id)
             return false;
-        if (strcmp(cd.name, p->name) == 0)
+        if (cd.name == p->name)
             return false;
     }
 
@@ -448,7 +437,7 @@ int mmo_char_init(void)
     char_data.clear();
     online_chars.clear();
 
-    std::ifstream in(char_txt);
+    std::ifstream in(char_txt.c_str());
     if (!in.is_open())
     {
         PRINTF("Characters file not found: %s.\n", char_txt);
@@ -459,17 +448,13 @@ int mmo_char_init(void)
     }
 
     int line_count = 0;
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
         line_count++;
 
-        if (line[0] == '/' && line[1] == '/')
+        if (line.startswith("//"))
             continue;
-        if (line.back() == '\r')
-        {
-            line.back() = 0;
-        }
 
         {
             int i, j = 0;
@@ -511,10 +496,7 @@ static
 void mmo_char_sync(void)
 {
     int lock;
-    FILE *fp;
-
-    // Data save
-    fp = lock_fopen(char_txt, &lock);
+    FILE *fp = lock_fopen(char_txt, &lock);
     if (fp == NULL)
     {
         PRINTF("WARNING: Server can't not save characters.\n");
@@ -525,7 +507,7 @@ void mmo_char_sync(void)
         // yes, we need a mutable reference to do the saves ...
         for (mmo_charstatus& cd : char_data)
         {
-            std::string line = mmo_char_tostr(&cd);
+            FString line = mmo_char_tostr(&cd);
             fwrite(line.data(), 1, line.size(), fp);
             fputc('\n', fp);
         }
@@ -565,43 +547,17 @@ void mmo_char_sync_timer(TimerData *, tick_t)
         _exit(0);
 }
 
-//----------------------------------------------------
-// Remove trailing whitespace from a name
-//----------------------------------------------------
-static
-void remove_trailing_blanks(char *name)
-{
-    char *tail = name + strlen(name) - 1;
-
-    while (tail > name && *tail == ' ')
-        *tail-- = 0;
-}
-
-//----------------------------------------------------
-// Remove prefix whitespace from a name
-//----------------------------------------------------
-static
-void remove_prefix_blanks(char *name)
-{
-    char *dst = name;
-    char *src = name;
-
-    while (*src == ' ')         // find first nonblank
-        ++src;
-    while ((*dst++ = *src++));  // `strmove'
-}
-
 //-----------------------------------
 // Function to create a new character
 //-----------------------------------
 static
-mmo_charstatus *make_new_char(int fd, char *name, const uint8_t (&stats)[6], uint8_t slot, uint16_t hair_color, uint16_t hair_style)
+mmo_charstatus *make_new_char(int fd, CharName name, const uint8_t (&stats)[6], uint8_t slot, uint16_t hair_color, uint16_t hair_style)
 {
     // ugh
     char_session_data *sd = static_cast<char_session_data *>(session[fd]->session_data.get());
 
     // remove control characters from the name
-    if (remove_control_chars(name))
+    if (!name.to__actual().is_print())
     {
         CHAR_LOG("Make new char error (control char received in the name): (connection #%d, account: %d).\n",
              fd, sd->account_id);
@@ -609,11 +565,15 @@ mmo_charstatus *make_new_char(int fd, char *name, const uint8_t (&stats)[6], uin
     }
 
     // Eliminate whitespace
-    remove_trailing_blanks(name);
-    remove_prefix_blanks(name);
+    if (name.to__actual() != name.to__actual().strip())
+    {
+        CHAR_LOG("Make new char error (leading/trailing whitespace): (connection #%d, account: %d, name: '%s'.\n",
+               fd, sd->account_id, name);
+        return nullptr;
+    }
 
     // check lenght of character name
-    if (strlen(name) < 4)
+    if (name.to__actual().size() < 4)
     {
         CHAR_LOG("Make new char error (character name too small): (connection #%d, account: %d, name: '%s').\n",
              fd, sd->account_id, name);
@@ -624,22 +584,22 @@ mmo_charstatus *make_new_char(int fd, char *name, const uint8_t (&stats)[6], uin
     if (char_name_option == 1)
     {
         // only letters/symbols in char_name_letters are authorised
-        for (int i = 0; name[i]; i++)
-            if (strchr(char_name_letters, name[i]) == NULL)
+        for (uint8_t c : name.to__actual())
+            if (!char_name_letters[c])
             {
                 CHAR_LOG("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c.\n",
-                     fd, sd->account_id, name, name[i]);
+                        fd, sd->account_id, name, c);
                 return nullptr;
             }
     }
     else if (char_name_option == 2)
     {
         // letters/symbols in char_name_letters are forbidden
-        for (int i = 0; name[i]; i++)
-            if (strchr(char_name_letters, name[i]) != NULL)
+        for (uint8_t c : name.to__actual())
+            if (char_name_letters[c])
             {
                 CHAR_LOG("Make new char error (invalid letter in the name): (connection #%d, account: %d), name: %s, invalid letter: %c.\n",
-                     fd, sd->account_id, name, name[i]);
+                        fd, sd->account_id, name, c);
                 return nullptr;
             }
     }                           // else, all letters/symbols are authorised (except control char removed before)
@@ -674,9 +634,7 @@ mmo_charstatus *make_new_char(int fd, char *name, const uint8_t (&stats)[6], uin
 
     for (const mmo_charstatus& cd : char_data)
     {
-        if ((name_ignoring_case != 0 && strcmp(cd.name, name) == 0)
-            || (name_ignoring_case == 0
-                && strcasecmp(cd.name, name) == 0))
+        if (cd.name == name)
         {
             CHAR_LOG("Make new char error (name already exists): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
                  fd, sd->account_id, slot, name, cd.name,
@@ -697,7 +655,7 @@ mmo_charstatus *make_new_char(int fd, char *name, const uint8_t (&stats)[6], uin
         }
     }
 
-    if (strcmp(wisp_server_name, name) == 0)
+    if (wisp_server_name == name)
     {
         CHAR_LOG("Make new char error (name used is wisp name for server): (connection #%d, account: %d) slot %d, name: %s (actual name whisper server: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
              fd, sd->account_id, slot, name, wisp_server_name,
@@ -723,7 +681,7 @@ mmo_charstatus *make_new_char(int fd, char *name, const uint8_t (&stats)[6], uin
     cd.char_id = char_id_count++;
     cd.account_id = sd->account_id;
     cd.char_num = slot;
-    strcpy(cd.name, name);
+    cd.name = name;
     cd.species = 0;
     cd.base_level = 1;
     cd.job_level = 1;
@@ -771,10 +729,10 @@ static
 void create_online_files(void)
 {
     // write files
-    FILE *fp = fopen_(online_txt_filename, "w");
+    FILE *fp = fopen(online_txt_filename.c_str(), "w");
     if (fp != NULL)
     {
-        FILE *fp2 = fopen_(online_html_filename, "w");
+        FILE *fp2 = fopen(online_html_filename.c_str(), "w");
         if (fp2 != NULL)
         {
             // get time
@@ -836,9 +794,9 @@ void create_online_files(void)
                         FPRINTF(fp2, "        <td>");
                         if (gml >= online_gm_display_min_level)
                             FPRINTF(fp2, "<b>");
-                        for (int k = 0; cd.name[k]; k++)
+                        for (char c : cd.name.to__actual())
                         {
-                            switch (cd.name[k])
+                            switch (c)
                             {
                             case '&':
                                 FPRINTF(fp2, "&amp;");
@@ -850,7 +808,7 @@ void create_online_files(void)
                                 FPRINTF(fp2, "&gt;");
                                 break;
                             default:
-                                FPRINTF(fp2, "%c", cd.name[k]);
+                                FPRINTF(fp2, "%c", c);
                                 break;
                             };
                         }
@@ -882,9 +840,9 @@ void create_online_files(void)
             }
             FPRINTF(fp2, "  </BODY>\n");
             FPRINTF(fp2, "</HTML>\n");
-            fclose_(fp2);
+            fclose(fp2);
         }
-        fclose_(fp);
+        fclose(fp);
     }
 
     return;
@@ -983,7 +941,7 @@ int mmo_char_send006b(int fd, struct char_session_data *sd)
         WFIFOW(fd, j + 72) = find_equip_view(p, EPOS::MISC2);
 //      WFIFOW(fd,j+72) = p->clothes_color;
 
-        WFIFO_STRING(fd, j + 74, p->name, 24);
+        WFIFO_STRING(fd, j + 74, p->name.to__actual(), 24);
 
         WFIFOB(fd, j + 98) = min(p->attrs[ATTR::STR], 255);
         WFIFOB(fd, j + 99) = min(p->attrs[ATTR::AGI], 255);
@@ -1192,9 +1150,9 @@ void parse_tologin(int fd)
 //                          PRINTF("max_connect_user (unlimited) -> accepted.\n");
 //                      else
 //                          PRINTF("count_users(): %d < max_connect_user (%d) -> accepted.\n", count_users(), max_connect_user);
-                            RFIFO_STRING(fd, 7, sd->email, 40);
-                            if (e_mail_check(sd->email) == 0)
-                                strzcpy(sd->email, "a@a.com", 40); // default e-mail
+                            sd->email = stringish<AccountEmail>(RFIFO_STRING<40>(fd, 7));
+                            if (!e_mail_check(sd->email))
+                                sd->email = DEFAULT_EMAIL;
                             sd->connect_until_time = static_cast<time_t>(RFIFOL(fd, 47));
                             // send characters to player
                             mmo_char_send006b(i, sd);
@@ -1226,9 +1184,9 @@ void parse_tologin(int fd)
                     {
                         if (sd->account_id == RFIFOL(fd, 2))
                         {
-                            RFIFO_STRING(fd, 6, sd->email, 40);
-                            if (e_mail_check(sd->email) == 0)
-                                strzcpy(sd->email, "a@a.com", 40); // default e-mail
+                            sd->email = stringish<AccountEmail>(RFIFO_STRING<40>(fd, 6));
+                            if (!e_mail_check(sd->email))
+                                sd->email = DEFAULT_EMAIL;
                             sd->connect_until_time = static_cast<time_t>(RFIFOL(fd, 46));
                             break;
                         }
@@ -1309,29 +1267,20 @@ void parse_tologin(int fd)
                     else
                     {
                         size_t len = RFIFOL(fd, 4);
-                        char message[len];
-                        RFIFO_STRING(fd, 8, message, len);
-                        remove_control_chars(message);
-                        // remove all first spaces
-                        char *p = message;
-                        while (p[0] == ' ')
-                            p++;
+                        FString message = RFIFO_STRING(fd, 8, len).to_print().lstrip();
                         // if message is only composed of spaces
-                        if (p[0] == '\0')
+                        if (!message)
                             CHAR_LOG("Receiving a message for broadcast, but message is only a lot of spaces.\n");
                         // else send message to all map-servers
                         else
                         {
-                            {
-                                const char *message_ptr = message;
-                                CHAR_LOG("'ladmin': Receiving a message for broadcast (message (in yellow): %s)\n",
-                                     message_ptr);
-                            }
+                            CHAR_LOG("'ladmin': Receiving a message for broadcast (message (in yellow): %s)\n",
+                                    message);
                             // send broadcast to all map-servers
                             uint8_t buf[4 + len];
                             WBUFW(buf, 0) = 0x3800;
-                            WBUFW(buf, 2) = 4 + sizeof(message);
-                            WBUF_STRING(buf, 4, message, sizeof(message));
+                            WBUFW(buf, 2) = 4 + len;
+                            WBUF_STRING(buf, 4, message, len);
                             mapif_sendall(buf, WBUFW(buf, 2));
                         }
                     }
@@ -1351,7 +1300,7 @@ void parse_tologin(int fd)
                          p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
                          p += 36, j++)
                     {
-                        RFIFO_STRING(fd, p, reg[j].str, 32);
+                        reg[j].str = stringish<VarName>(RFIFO_STRING<32>(fd, p));
                         reg[j].value = RFIFOL(fd, p + 32);
                     }
                     set_account_reg2(acc, j, reg);
@@ -1594,7 +1543,6 @@ void parse_frommap(int fd)
                 {               // don't send request if no login-server
                     WFIFOW(login_fd, 0) = 0x2709;
                     WFIFOSET(login_fd, 2);
-//              PRINTF("char : request from map-server to reload GM accounts -> login-server.\n");
                 }
                 RFIFOSKIP(fd, 2);
                 break;
@@ -1604,13 +1552,12 @@ void parse_frommap(int fd)
                 if (RFIFOREST(fd) < 4 || RFIFOREST(fd) < RFIFOW(fd, 2))
                     return;
             {
-                for (char (&foo)[16] : server[id].maps)
-                    strzcpy(foo, "", 16);
+                for (MapName &foo : server[id].maps)
+                    foo = MapName();
                 int j = 0;
                 for (int i = 4; i < RFIFOW(fd, 2); i += 16)
                 {
-                    RFIFO_STRING(fd, i, server[id].maps[j], 16);
-//              PRINTF("set map %d.%d : %s\n", id, j, server[id].map[j]);
+                    server[id].maps[j] = RFIFO_STRING<16>(fd, i);
                     j++;
                 }
                 {
@@ -1624,7 +1571,7 @@ void parse_frommap(int fd)
                 }
                 WFIFOW(fd, 0) = 0x2afb;
                 WFIFOB(fd, 2) = 0;
-                WFIFO_STRING(fd, 3, wisp_server_name, 24);
+                WFIFO_STRING(fd, 3, wisp_server_name.to__actual(), 24);
                 WFIFOSET(fd, 27);
                 {
                     unsigned char buf[16384];
@@ -1831,7 +1778,7 @@ void parse_frommap(int fd)
                 if (RFIFOREST(fd) < 6)
                     return;
             {
-                const char *name = unknown_char_name;
+                CharName name = unknown_char_name;
                 for (const mmo_charstatus& cd : char_data)
                 {
                     if (cd.char_id == RFIFOL(fd, 2))
@@ -1842,7 +1789,7 @@ void parse_frommap(int fd)
                 }
                 WFIFOW(fd, 0) = 0x2b09;
                 WFIFOL(fd, 2) = RFIFOL(fd, 2);
-                WFIFO_STRING(fd, 6, name, 24);
+                WFIFO_STRING(fd, 6, name.to__actual(), 24);
                 WFIFOSET(fd, 30);
             }
                 RFIFOSKIP(fd, 6);
@@ -1887,9 +1834,8 @@ void parse_frommap(int fd)
                 if (RFIFOREST(fd) < 44)
                     return;
                 {
-                    char character_name[24];
                     int acc = RFIFOL(fd, 2);  // account_id of who ask (-1 if nobody)
-                    RFIFO_STRING(fd, 6, character_name, 24);
+                    CharName character_name = stringish<CharName>(RFIFO_STRING<24>(fd, 6));
                     // prepare answer
                     WFIFOW(fd, 0) = 0x2b0f;    // answer
                     WFIFOL(fd, 2) = acc;   // who want do operation
@@ -1898,7 +1844,7 @@ void parse_frommap(int fd)
                     const mmo_charstatus *cd = search_character(character_name);
                     if (cd)
                     {
-                        WFIFO_STRING(fd, 6, cd->name, 24); // put correct name if found
+                        WFIFO_STRING(fd, 6, cd->name.to__actual(), 24); // put correct name if found
                         WFIFOW(fd, 32) = 0;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                         switch (RFIFOW(fd, 30))
                         {
@@ -1928,12 +1874,9 @@ void parse_frommap(int fd)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_fd, 0) = 0x2725;
                                         WFIFOL(login_fd, 2) = cd->account_id;  // account value
-                                        WFIFOW(login_fd, 6) = RFIFOW(fd, 32); // year
-                                        WFIFOW(login_fd, 8) = RFIFOW(fd, 34); // month
-                                        WFIFOW(login_fd, 10) = RFIFOW(fd, 36);    // day
-                                        WFIFOW(login_fd, 12) = RFIFOW(fd, 38);    // hour
-                                        WFIFOW(login_fd, 14) = RFIFOW(fd, 40);    // minute
-                                        WFIFOW(login_fd, 16) = RFIFOW(fd, 42);    // second
+                                        HumanTimeDiff ban_change;
+                                        RFIFO_STRUCT(fd, 32, ban_change);
+                                        WFIFO_STRUCT(login_fd, 6, ban_change);
                                         WFIFOSET(login_fd, 18);
 //                          PRINTF("char : status -> login: account %d, ban: %dy %dm %dd %dh %dmn %ds\n",
 //                                 char_data[i].account_id, (short)RFIFOW(fd,32), (short)RFIFOW(fd,34), (short)RFIFOW(fd,36), (short)RFIFOW(fd,38), (short)RFIFOW(fd,40), (short)RFIFOW(fd,42));
@@ -2001,7 +1944,7 @@ void parse_frommap(int fd)
                     else
                     {
                         // character name not found
-                        WFIFO_STRING(fd, 6, character_name, 24);
+                        WFIFO_STRING(fd, 6, character_name.to__actual(), 24);
                         WFIFOW(fd, 32) = 1;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                     }
                     // send answer if a player ask, not if the server ask
@@ -2027,7 +1970,7 @@ void parse_frommap(int fd)
                          p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
                          p += 36, j++)
                     {
-                        RFIFO_STRING(fd, p, reg[j].str, 32);
+                        reg[j].str = stringish<VarName>(RFIFO_STRING<32>(fd, p));
                         reg[j].value = RFIFOL(fd, p + 32);
                     }
                     set_account_reg2(acc, j, reg);
@@ -2079,29 +2022,14 @@ void parse_frommap(int fd)
 }
 
 static
-int search_mapserver(const char *map)
+int search_mapserver(XString map)
 {
-    int i, j;
-    char temp_map[16];
-    int temp_map_len;
-
-//  PRINTF("Searching the map-server for map '%s'... ", map);
-    strzcpy(temp_map, map, sizeof(temp_map));
-    if (strchr(temp_map, '.') != NULL)
-        temp_map[strchr(temp_map, '.') - temp_map + 1] = '\0'; // suppress the '.gat', but conserve the '.' to be sure of the name of the map
-
-    temp_map_len = strlen(temp_map);
-    for (i = 0; i < MAX_MAP_SERVERS; i++)
+    for (int i = 0; i < MAX_MAP_SERVERS; i++)
         if (server_fd[i] >= 0)
-            for (j = 0; server[i].maps[j][0]; j++)
-                //PRINTF("%s : %s = %d\n", server[i].map[j], map, strncmp(server[i].map[j], temp_map, temp_map_len));
-                if (strncmp(server[i].maps[j], temp_map, temp_map_len) == 0)
-                {
-//                  PRINTF("found -> server #%d.\n", i);
+            for (int j = 0; server[i].maps[j][0]; j++)
+                if (server[i].maps[j] == map)
                     return i;
-                }
 
-//  PRINTF("not found.\n");
     return -1;
 }
 
@@ -2134,7 +2062,7 @@ int lan_ip_check(unsigned char *p)
 static
 void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_t *p)
 {
-    const char *ip = ip2str(session[fd]->client_addr.sin_addr);
+    IP_String ip = ip2str(session[fd]->client_addr.sin_addr);
 
     {
         mmo_charstatus *cd = nullptr;
@@ -2164,7 +2092,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                         && server[j].maps[0][0])
                     {   // change save point to one of map found on the server (the first)
                         i = j;
-                        strzcpy(cd->last_point.map_, server[j].maps[0], 16);
+                        cd->last_point.map_ = server[j].maps[0];
                         PRINTF("Map-server #%d found with a map: '%s'.\n",
                              j, server[j].maps[0]);
                         // coordonates are unknown
@@ -2187,7 +2115,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                  sd->account_id, cd->char_num, ip);
             PRINTF("--Send IP of map-server. ");
             if (lan_ip_check(p))
-                WFIFOL(fd, 22) = inet_addr(lan_map_ip);
+                WFIFOL(fd, 22) = inet_addr(lan_map_ip.c_str());
             else
                 WFIFOL(fd, 22) = server[i].ip;
             WFIFOW(fd, 26) = server[i].port;
@@ -2211,7 +2139,6 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
 static
 void parse_char(int fd)
 {
-    char email[40];
     uint8_t *p = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
 
     if (login_fd < 0 || session[fd]->eof)
@@ -2243,11 +2170,9 @@ void parse_char(int fd)
                 {
                     WFIFOW(login_fd, 0) = 0x2740;
                     WFIFOL(login_fd, 2) = sd->account_id;
-                    char old_pass[24];
-                    RFIFO_STRING(fd, 2, old_pass, 24);
+                    AccountPass old_pass = stringish<AccountPass>(RFIFO_STRING<24>(fd, 2));
                     WFIFO_STRING(login_fd, 6, old_pass, 24);
-                    char new_pass[24];
-                    RFIFO_STRING(fd, 26, new_pass, 24);
+                    AccountPass new_pass = stringish<AccountPass>(RFIFO_STRING<24>(fd, 26));
                     WFIFO_STRING(login_fd, 30, new_pass, 24);
                     WFIFOSET(login_fd, 54);
                 }
@@ -2269,7 +2194,7 @@ void parse_char(int fd)
                     {
                         session[fd]->session_data = make_unique<char_session_data, SessionDeleter>();
                         sd = static_cast<char_session_data *>(session[fd]->session_data.get());
-                        strzcpy(sd->email, "no mail", 40);  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
+                        sd->email = stringish<AccountEmail>("no mail");  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
                         sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
                     sd->account_id = RFIFOL(fd, 2);
@@ -2354,8 +2279,7 @@ void parse_char(int fd)
                 if (!sd || RFIFOREST(fd) < 37)
                     return;
             {
-                char name[24];
-                RFIFO_STRING(fd, 2, name, 24);
+                CharName name = stringish<CharName>(RFIFO_STRING<24>(fd, 2));
                 uint8_t stats[6];
                 for (int i = 0; i < 6; ++i)
                     stats[i] = RFIFOB(fd, 26 + i);
@@ -2401,7 +2325,7 @@ void parse_char(int fd)
                 WFIFOW(fd, 2 + 68) = cd->head_mid;
                 WFIFOW(fd, 2 + 70) = cd->hair_color;
 
-                WFIFO_STRING(fd, 2 + 74, cd->name, 24);
+                WFIFO_STRING(fd, 2 + 74, cd->name.to__actual(), 24);
 
                 WFIFOB(fd, 2 + 98) = min(cd->attrs[ATTR::STR], 255);
                 WFIFOB(fd, 2 + 99) = min(cd->attrs[ATTR::AGI], 255);
@@ -2419,9 +2343,10 @@ void parse_char(int fd)
             case 0x68:         // delete char //Yor's Fix
                 if (!sd || RFIFOREST(fd) < 46)
                     return;
-                RFIFO_STRING(fd, 6, email, 40);
-                if (e_mail_check(email) == 0)
-                    strzcpy(email, "a@a.com", 40); // default e-mail
+            {
+                AccountEmail email = stringish<AccountEmail>(RFIFO_STRING<40>(fd, 6));
+                if (!e_mail_check(email))
+                    email = DEFAULT_EMAIL;
 
                 {
                     {
@@ -2457,6 +2382,7 @@ void parse_char(int fd)
                         WFIFOSET(fd, 3);
                     }
                 }
+            }
             x68_out:
                 RFIFOSKIP(fd, 46);
                 break;
@@ -2472,12 +2398,10 @@ void parse_char(int fd)
                     if (server_fd[i] < 0)
                         break;
                 }
-                char userid_[24];
-                RFIFO_STRING(fd, 2, userid_, 24);
-                char passwd_[24];
-                RFIFO_STRING(fd, 26, passwd_, 24);
-                if (i == MAX_MAP_SERVERS || strcmp(userid_, userid)
-                    || strcmp(passwd_, passwd))
+                AccountName userid_ = stringish<AccountName>(RFIFO_STRING<24>(fd, 2));
+                AccountPass passwd_ = stringish<AccountPass>(RFIFO_STRING<24>(fd, 26));
+                if (i == MAX_MAP_SERVERS || userid_ != userid
+                    || passwd_ != passwd)
                 {
                     WFIFOB(fd, 2) = 3;
                     WFIFOSET(fd, 3);
@@ -2495,8 +2419,8 @@ void parse_char(int fd)
                     server[i].ip = RFIFOL(fd, 54);
                     server[i].port = RFIFOW(fd, 58);
                     server[i].users = 0;
-                    for (char (&mapi)[16] : server[i].maps)
-                        strzcpy(mapi, "", 16);
+                    for (MapName& mapi : server[i].maps)
+                        mapi = MapName();
                     WFIFOSET(fd, 3);
                     RFIFOSKIP(fd, 60);
                     realloc_fifo(fd, FIFOSIZE_SERVERLINK,
@@ -2653,12 +2577,12 @@ void check_connect_login_server(TimerData *, tick_t)
 // Reading Lan Support configuration by [Yor]
 //-------------------------------------------
 static
-int lan_config_read(const char *lancfgName)
+int lan_config_read(ZString lancfgName)
 {
     struct hostent *h = NULL;
 
     // set default configuration
-    strzcpy(lan_map_ip, "127.0.0.1", sizeof(lan_map_ip));
+    lan_map_ip = stringish<IP_String>("127.0.0.1");
     subneti[0] = 127;
     subneti[1] = 0;
     subneti[2] = 0;
@@ -2666,7 +2590,7 @@ int lan_config_read(const char *lancfgName)
     for (int j = 0; j < 4; j++)
         subnetmaski[j] = 255;
 
-    std::ifstream in(lancfgName);
+    std::ifstream in(lancfgName.c_str());
 
     if (!in.is_open())
     {
@@ -2676,10 +2600,11 @@ int lan_config_read(const char *lancfgName)
 
     PRINTF("---start reading of Lan Support configuration...\n");
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string w1, w2;
+        SString w1;
+        TString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
@@ -2689,7 +2614,7 @@ int lan_config_read(const char *lancfgName)
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                sprintf(lan_map_ip, "%d.%d.%d.%d",
+                SNPRINTF(lan_map_ip, 16, "%d.%d.%d.%d",
                          static_cast<uint8_t>(h->h_addr[0]),
                          static_cast<uint8_t>(h->h_addr[1]),
                          static_cast<uint8_t>(h->h_addr[2]),
@@ -2697,7 +2622,7 @@ int lan_config_read(const char *lancfgName)
             }
             else
             {
-                strzcpy(lan_map_ip, w2.c_str(), sizeof(lan_map_ip));
+                lan_map_ip = stringish<IP_String>(w2);
             }
             PRINTF("LAN IP of map-server: %s.\n", lan_map_ip);
         }
@@ -2742,14 +2667,15 @@ int lan_config_read(const char *lancfgName)
         }
         else
         {
-            PRINTF("WARNING: unknown lan config key: %s\n", w1);
+            FString w1z = w1;
+            PRINTF("WARNING: unknown lan config key: %s\n", w1z);
         }
     }
 
     // sub-network check of the map-server
     {
         unsigned char p[4];
-        sscanf(lan_map_ip, "%hhu.%hhu.%hhu.%hhu", &p[0], &p[1], &p[2], &p[3]);
+        SSCANF(lan_map_ip, "%hhu.%hhu.%hhu.%hhu", &p[0], &p[1], &p[2], &p[3]);
         PRINTF("LAN test of LAN IP of the map-server: ");
         if (lan_ip_check(p) == 0)
         {
@@ -2763,11 +2689,11 @@ int lan_config_read(const char *lancfgName)
 }
 
 static
-int char_config_read(const char *cfgName)
+int char_config_read(ZString cfgName)
 {
     struct hostent *h = NULL;
 
-    std::ifstream in(cfgName);
+    std::ifstream in(cfgName.c_str());
 
     if (!in.is_open())
     {
@@ -2775,45 +2701,43 @@ int char_config_read(const char *cfgName)
         exit(1);
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string w1, w2;
+        SString w1;
+        TString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
         if (w1 == "userid")
-            strzcpy(userid, w2.c_str(), 24);
+            userid = stringish<AccountName>(w2);
         else if (w1 == "passwd")
-            strzcpy(passwd, w2.c_str(), 24);
+            passwd = stringish<AccountPass>(w2);
         else if (w1 == "server_name")
         {
-            strzcpy(server_name, w2.c_str(), sizeof(server_name));
+            server_name = stringish<ServerName>(w2);
             PRINTF("%s server has been intialized\n", w2);
         }
         else if (w1 == "wisp_server_name")
         {
             if (w2.size() >= 4)
-                strzcpy(wisp_server_name, w2.c_str(), sizeof(wisp_server_name));
+                wisp_server_name = stringish<CharName>(w2);
         }
         else if (w1 == "login_ip")
         {
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                PRINTF("Login server IP address : %s -> %d.%d.%d.%d\n", w2,
+                SNPRINTF(login_ip_str, 16, "%d.%d.%d.%d",
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
                         static_cast<uint8_t>(h->h_addr[2]),
                         static_cast<uint8_t>(h->h_addr[3]));
-                sprintf(login_ip_str, "%d.%d.%d.%d",
-                         static_cast<uint8_t>(h->h_addr[0]),
-                         static_cast<uint8_t>(h->h_addr[1]),
-                         static_cast<uint8_t>(h->h_addr[2]),
-                         static_cast<uint8_t>(h->h_addr[3]));
+                PRINTF("Login server IP address : %s -> %s\n",
+                        w2, login_ip_str);
             }
             else
-                strzcpy(login_ip_str, w2.c_str(), 16);
+                login_ip_str = stringish<IP_String>(w2);
         }
         else if (w1 == "login_port")
         {
@@ -2824,20 +2748,16 @@ int char_config_read(const char *cfgName)
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                PRINTF("Character server IP address : %s -> %d.%d.%d.%d\n",
-                        w2,
+                SNPRINTF(char_ip_str, 16, "%d.%d.%d.%d",
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
                         static_cast<uint8_t>(h->h_addr[2]),
                         static_cast<uint8_t>(h->h_addr[3]));
-                sprintf(char_ip_str, "%d.%d.%d.%d",
-                         static_cast<uint8_t>(h->h_addr[0]),
-                         static_cast<uint8_t>(h->h_addr[1]),
-                         static_cast<uint8_t>(h->h_addr[2]),
-                         static_cast<uint8_t>(h->h_addr[3]));
+                PRINTF("Character server IP address : %s -> %s\n",
+                        w2, char_ip_str);
             }
             else
-                strzcpy(char_ip_str, w2.c_str(), 16);
+                char_ip_str = stringish<IP_String>(w2);
         }
         else if (w1 == "char_port")
         {
@@ -2853,7 +2773,7 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "char_txt")
         {
-            strzcpy(char_txt, w2.c_str(), sizeof(char_txt));
+            char_txt = w2;
         }
         else if (w1 == "max_connect_user")
         {
@@ -2863,7 +2783,7 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "check_ip_flag")
         {
-            check_ip_flag = config_switch(w2.c_str());
+            check_ip_flag = config_switch(w2);
         }
         else if (w1 == "autosave_time")
         {
@@ -2873,16 +2793,7 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "start_point")
         {
-            char map[32];
-            int x, y;
-            if (SSCANF(w2, "%[^,],%d,%d", map, &x, &y) < 3)
-                continue;
-            if (strstr(map, ".gat") != NULL)
-            {                   // Verify at least if '.gat' is in the map name
-                strzcpy(start_point.map_, map, 16);
-                start_point.x = x;
-                start_point.y = y;
-            }
+            extract(w2, &start_point);
         }
         else if (w1 == "start_zeny")
         {
@@ -2904,15 +2815,11 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "unknown_char_name")
         {
-            strzcpy(unknown_char_name, w2.c_str(), 24);
+            unknown_char_name = stringish<CharName>(w2);
         }
         else if (w1 == "char_log_filename")
         {
-            strzcpy(char_log_filename, w2.c_str(), sizeof(char_log_filename));
-        }
-        else if (w1 == "name_ignoring_case")
-        {
-            name_ignoring_case = config_switch(w2.c_str());
+            char_log_filename = w2;
         }
         else if (w1 == "char_name_option")
         {
@@ -2920,15 +2827,16 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "char_name_letters")
         {
-            strzcpy(char_name_letters, w2.c_str(), sizeof(char_name_letters));
+            for (uint8_t c : w2)
+                char_name_letters[c] = true;
         }
         else if (w1 == "online_txt_filename")
         {
-            strzcpy(online_txt_filename, w2.c_str(), sizeof(online_txt_filename));
+            online_txt_filename = w2;
         }
         else if (w1 == "online_html_filename")
         {
-            strzcpy(online_html_filename, w2.c_str(), sizeof(online_html_filename));
+            online_html_filename = w2;
         }
         else if (w1 == "online_sorting_option")
         {
@@ -2948,7 +2856,7 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "anti_freeze_enable")
         {
-            anti_freeze_enable = config_switch(w2.c_str());
+            anti_freeze_enable = config_switch(w2);
         }
         else if (w1 == "anti_freeze_interval")
         {
@@ -2958,11 +2866,12 @@ int char_config_read(const char *cfgName)
         }
         else if (w1 == "import")
         {
-            char_config_read(w2.c_str());
+            char_config_read(w2);
         }
         else
         {
-            PRINTF("WARNING: unknown char config key: %s\n", w1);
+            FString w1z = w1;
+            PRINTF("WARNING: unknown char config key: %s\n", w1z);
         }
     }
 
@@ -2988,7 +2897,7 @@ void term_func(void)
     CHAR_LOG("----End of char-server (normal end with closing of all files).\n");
 }
 
-int do_init(int argc, char **argv)
+int do_init(int argc, ZString *argv)
 {
     int i;
 
@@ -2996,11 +2905,17 @@ int do_init(int argc, char **argv)
     CHAR_LOG("");
     CHAR_LOG("The char-server starting...\n");
 
-    char_config_read((argc < 2) ? CHAR_CONF_NAME : argv[1]);
-    lan_config_read((argc > 1) ? argv[1] : LOGIN_LAN_CONF_NAME);
+    if (argc > 1)
+        char_config_read(argv[1]);
+    else
+        char_config_read(CHAR_CONF_NAME);
+    if (argc > 1)
+        lan_config_read(argv[2]);
+    else
+        lan_config_read(LOGIN_LAN_CONF_NAME);
 
-    login_ip = inet_addr(login_ip_str);
-    char_ip = inet_addr(char_ip_str);
+    login_ip = inet_addr(login_ip_str.c_str());
+    char_ip = inet_addr(char_ip_str.c_str());
 
     for (i = 0; i < MAX_MAP_SERVERS; i++)
     {
@@ -3013,7 +2928,10 @@ int do_init(int argc, char **argv)
     update_online = TimeT::now();
     create_online_files();     // update online players files at start of the server
 
-    inter_init((argc > 2) ? argv[2] : inter_cfgName);  // inter server 初期化
+    if (argc > 3)
+        inter_init(argv[3]);
+    else
+        inter_init(inter_cfgName);
 
 //    set_termfunc (do_final);
     set_defaultparse(parse_char);

@@ -184,10 +184,10 @@ interval_t do_timer(tick_t tick)
     return std::max(nextmin, std::chrono::milliseconds(10));
 }
 
-tick_t file_modified(const char *name)
+tick_t file_modified(ZString name)
 {
     struct stat buf;
-    if (stat(name, &buf))
+    if (stat(name.c_str(), &buf))
         return tick_t();
     return tick_t(std::chrono::seconds(buf.st_mtime));
 }

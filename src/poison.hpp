@@ -6,6 +6,8 @@
 // double (use a fixed class)
 #pragma GCC poison float
 
+#pragma GCC poison dynamic_cast
+
 // Local time is forbidden.
 #pragma GCC poison timelocal // timegm
 #pragma GCC poison mktime // timegm
@@ -76,3 +78,10 @@
 #pragma GCC poison memset
 #pragma GCC poison memcmp
 #pragma GCC poison strncpy // in favor of strzcpy
+
+#pragma GCC poison string // in favor of FString, MString, etc.
+#pragma GCC poison strcasecmp
+#pragma GCC poison toupper
+#pragma GCC poison tolower
+#pragma GCC poison isupper
+#pragma GCC poison islower

@@ -32,13 +32,15 @@ const int packet_len_table[0x20] =
 
 int char_fd;
 static
-char char_ip_str[16];
+IP_String char_ip_str;
 static
 int char_ip;
 static
 int char_port = 6121;
 static
-char userid[24], passwd[24];
+AccountName userid;
+static
+AccountPass passwd;
 static
 int chrif_state;
 
@@ -47,21 +49,21 @@ int chrif_state;
  *
  *------------------------------------------
  */
-void chrif_setuserid(const char *id)
+void chrif_setuserid(AccountName id)
 {
-    strzcpy(userid, id, sizeof(userid));
+    userid = id;
 }
 
 /*==========================================
  *
  *------------------------------------------
  */
-void chrif_setpasswd(const char *pwd)
+void chrif_setpasswd(AccountPass pwd)
 {
-    strzcpy(passwd, pwd, sizeof(passwd));
+    passwd = pwd;
 }
 
-char *chrif_getpasswd(void)
+AccountPass chrif_getpasswd(void)
 {
     return passwd;
 }
@@ -70,10 +72,10 @@ char *chrif_getpasswd(void)
  *
  *------------------------------------------
  */
-void chrif_setip(const char *ip)
+void chrif_setip(IP_String ip)
 {
-    strzcpy(char_ip_str, ip, sizeof(char_ip_str));
-    char_ip = inet_addr(char_ip_str);
+    char_ip_str = ip;
+    char_ip = inet_addr(char_ip_str.c_str());
 }
 
 /*==========================================
@@ -180,8 +182,7 @@ int chrif_recvmap(int fd)
     port = RFIFOW(fd, 8);
     for (i = 10, j = 0; i < RFIFOW(fd, 2); i += 16, j++)
     {
-        char map[16];
-        RFIFO_STRING(fd, i, map, 16);
+        MapName map = RFIFO_STRING<16>(fd, i);
         map_setipport(map, ip, port);
     }
     if (battle_config.etc_log)
@@ -194,8 +195,8 @@ int chrif_recvmap(int fd)
  * マップ鯖間移動のためのデータ準備要求
  *------------------------------------------
  */
-int chrif_changemapserver(dumb_ptr<map_session_data> sd, char *name, int x,
-                           int y, struct in_addr ip, short port)
+int chrif_changemapserver(dumb_ptr<map_session_data> sd,
+        MapName name, int x, int y, struct in_addr ip, short port)
 {
     int i, s_ip;
 
@@ -245,8 +246,7 @@ int chrif_changemapserverack(int fd)
         pc_authfail(sd->fd);
         return 0;
     }
-    char mapname[16];
-    RFIFO_STRING(fd, 18, mapname, 16);
+    MapName mapname = RFIFO_STRING<16>(fd, 18);
     uint16_t x = RFIFOW(fd, 34);
     uint16_t y = RFIFOW(fd, 36);
     auto ip = in_addr{RFIFOL(fd, 38)};
@@ -274,9 +274,9 @@ int chrif_connectack(int fd)
     chrif_sendmap(fd);
 
     PRINTF("chrif: OnCharIfInit event done. (%d events)\n",
-            npc_event_doall("OnCharIfInit"));
+            npc_event_doall(stringish<ScriptLabel>("OnCharIfInit")));
     PRINTF("chrif: OnInterIfInit event done. (%d events)\n",
-            npc_event_doall("OnInterIfInit"));
+            npc_event_doall(stringish<ScriptLabel>("OnInterIfInit")));
 
     // <Agit> Run Event [AgitInit]
 //  PRINTF("NPC_Event:[OnAgitInit] do (%d) events (Agit Initialize).\n", npc_event_doall("OnAgitInit"));
@@ -298,7 +298,7 @@ int chrif_sendmapack(int fd)
         exit(1);
     }
 
-    RFIFO_STRING(fd, 3, wisp_server_name, 24);
+    wisp_server_name = stringish<CharName>(RFIFO_STRING<24>(fd, 3));
 
     chrif_state = 2;
 
@@ -385,26 +385,25 @@ int chrif_searchcharid(int char_id)
  * GMに変化要求
  *------------------------------------------
  */
-int chrif_changegm(int id, const char *pass, int len)
+void chrif_changegm(int id, ZString pass)
 {
     if (battle_config.etc_log)
         PRINTF("chrif_changegm: account: %d, password: '%s'.\n", id, pass);
 
+    size_t len = pass.size() + 1;
     WFIFOW(char_fd, 0) = 0x2b0a;
     WFIFOW(char_fd, 2) = len + 8;
     WFIFOL(char_fd, 4) = id;
     WFIFO_STRING(char_fd, 8, pass, len);
     WFIFOSET(char_fd, len + 8);
-
-    return 0;
 }
 
 /*==========================================
  * Change Email
  *------------------------------------------
  */
-int chrif_changeemail(int id, const char *actual_email,
-                       const char *new_email)
+void chrif_changeemail(int id, AccountEmail actual_email,
+        AccountEmail new_email)
 {
     if (battle_config.etc_log)
         PRINTF("chrif_changeemail: account: %d, actual_email: '%s', new_email: '%s'.\n",
@@ -415,8 +414,6 @@ int chrif_changeemail(int id, const char *actual_email,
     WFIFO_STRING(char_fd, 6, actual_email, 40);
     WFIFO_STRING(char_fd, 46, new_email, 40);
     WFIFOSET(char_fd, 86);
-
-    return 0;
 }
 
 /*==========================================
@@ -430,27 +427,17 @@ int chrif_changeemail(int id, const char *actual_email,
  *   5: changesex
  *------------------------------------------
  */
-int chrif_char_ask_name(int id, char *character_name, short operation_type,
-                         int year, int month, int day, int hour, int minute,
-                         int second)
+void chrif_char_ask_name(int id, CharName character_name, short operation_type,
+        HumanTimeDiff modif)
 {
     WFIFOW(char_fd, 0) = 0x2b0e;
     WFIFOL(char_fd, 2) = id;   // account_id of who ask (for answer) -1 if nobody
-    WFIFO_STRING(char_fd, 6, character_name, 24);
+    WFIFO_STRING(char_fd, 6, character_name.to__actual(), 24);
     WFIFOW(char_fd, 30) = operation_type;  // type of operation
     if (operation_type == 2)
-    {
-        WFIFOW(char_fd, 32) = year;
-        WFIFOW(char_fd, 34) = month;
-        WFIFOW(char_fd, 36) = day;
-        WFIFOW(char_fd, 38) = hour;
-        WFIFOW(char_fd, 40) = minute;
-        WFIFOW(char_fd, 42) = second;
-    }
+        WFIFO_STRUCT(char_fd, 32, modif);
     PRINTF("chrif : sended 0x2b0e\n");
     WFIFOSET(char_fd, 44);
-
-    return 0;
 }
 
 /*==========================================
@@ -472,17 +459,13 @@ int chrif_char_ask_name(int id, char *character_name, short operation_type,
 static
 int chrif_char_ask_name_answer(int fd)
 {
-    int acc;
-    dumb_ptr<map_session_data> sd;
-    char player_name[24];
+    int acc = RFIFOL(fd, 2);       // account_id of who has asked (-1 if nobody)
+    CharName player_name = stringish<CharName>(RFIFO_STRING<24>(fd, 6));
 
-    acc = RFIFOL(fd, 2);       // account_id of who has asked (-1 if nobody)
-    RFIFO_STRING(fd, 6, player_name, 24);
-
-    sd = map_id2sd(acc);
+    dumb_ptr<map_session_data> sd = map_id2sd(acc);
     if (acc >= 0 && sd != NULL)
     {
-        std::string output;
+        FString output;
         if (RFIFOW(fd, 32) == 1)   // player not found
             output = STRPRINTF("The player '%s' doesn't exist.",
                     player_name);
@@ -597,7 +580,7 @@ int chrif_char_ask_name_answer(int fd)
                     break;
             }
         }
-        if (!output.empty())
+        if (output)
             clif_displaymessage(sd->fd, output);
     }
     else
@@ -611,7 +594,7 @@ int chrif_char_ask_name_answer(int fd)
  *------------------------------------------
  */
 static
-int chrif_changedgm(int fd)
+void chrif_changedgm(int fd)
 {
     int acc, level;
     dumb_ptr<map_session_data> sd = NULL;
@@ -631,8 +614,6 @@ int chrif_changedgm(int fd)
         else
             clif_displaymessage(sd->fd, "Failure of GM modification.");
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -640,7 +621,7 @@ int chrif_changedgm(int fd)
  *------------------------------------------
  */
 static
-int chrif_changedsex(int fd)
+void chrif_changedsex(int fd)
 {
     int acc, sex, i;
     dumb_ptr<map_session_data> sd;
@@ -678,8 +659,6 @@ int chrif_changedsex(int fd)
             PRINTF("chrif_changedsex failed.\n");
         }
     }
-
-    return 0;
 }
 
 /*==========================================
@@ -726,11 +705,10 @@ int chrif_accountreg2(int fd)
     for (p = 8, j = 0; p < RFIFOW(fd, 2) && j < ACCOUNT_REG2_NUM;
          p += 36, j++)
     {
-        RFIFO_STRING(fd, p, sd->status.account_reg2[j].str, 32);
+        sd->status.account_reg2[j].str = stringish<VarName>(RFIFO_STRING<32>(fd, p));
         sd->status.account_reg2[j].value = RFIFOL(fd, p + 32);
     }
     sd->status.account_reg2_num = j;
-//  PRINTF("chrif: accountreg2\n");
 
     return 0;
 }
@@ -1133,8 +1111,7 @@ void chrif_parse(int fd)
             case 0x2b09:
             {
                 int charid = RFIFOL(fd, 2);
-                char name[24];
-                RFIFO_STRING(fd, 6, name, 24);
+                CharName name = stringish<CharName>(RFIFO_STRING<24>(fd, 6));
                 map_addchariddb(charid, name);
             }
                 break;

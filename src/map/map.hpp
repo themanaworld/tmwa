@@ -8,9 +8,11 @@
 #include <functional>
 #include <list>
 
+#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/matrix.hpp"
 #include "../common/socket.hpp"
+#include "../common/strings.hpp"
 #include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"
@@ -32,6 +34,38 @@ constexpr int MAX_WALKPATH = 48;
 constexpr int MAX_DROP_PER_MAP = 48;
 
 constexpr interval_t DEFAULT_AUTOSAVE_INTERVAL = std::chrono::minutes(1);
+
+// formerly VString<49>, as name::label
+struct NpcEvent
+{
+    NpcName npc;
+    ScriptLabel label;
+
+    explicit operator bool()
+    {
+        return npc || label;
+    }
+    bool operator !()
+    {
+        return !bool(*this);
+    }
+
+    friend bool operator == (const NpcEvent& l, const NpcEvent& r)
+    {
+        return l.npc == r.npc && l.label == r.label;
+    }
+
+    friend bool operator < (const NpcEvent& l, const NpcEvent& r)
+    {
+        return l.npc < r.npc || (l.npc == r.npc && l.label < r.label);
+    }
+
+    friend VString<49> convert_for_printf(NpcEvent ev)
+    {
+        return STRNPRINTF(50, "%s::%s", ev.npc, ev.label);
+    }
+};
+bool extract(XString str, NpcEvent *ev);
 
 struct map_session_data;
 struct npc_data;
@@ -71,16 +105,6 @@ struct walkpath_data
     unsigned char path_len, path_pos, path_half;
     DIR path[MAX_WALKPATH];
 };
-struct script_reg
-{
-    int index;
-    int data;
-};
-struct script_regstr
-{
-    int index;
-    char data[256];
-};
 struct status_change
 {
     Timer timer;
@@ -92,7 +116,6 @@ struct invocation;
 
 struct npc_data;
 struct item_data;
-struct square;
 
 struct quick_regeneration
 {                               // [Fate]
@@ -141,7 +164,7 @@ struct map_session_data : block_list, SessionData
     earray<short, EQUIP, EQUIP::COUNT> equip_index;
     int weight, max_weight;
     int cart_weight, cart_max_weight, cart_num, cart_max_num;
-    char mapname_[16];
+    MapName mapname_;
     int fd, new_fd;
     short to_x, to_y;
     interval_t speed;
@@ -161,7 +184,7 @@ struct map_session_data : block_list, SessionData
     // but one should probably be replaced with a ScriptPointer ???
     const ScriptBuffer *npc_script, *npc_scriptroot;
     std::vector<struct script_data> npc_stackbuf;
-    std::string npc_str;
+    FString npc_str;
     struct
     {
         unsigned storage:1;
@@ -236,7 +259,7 @@ struct map_session_data : block_list, SessionData
     DMap<SIR, int> regm;
     // can't be DMap because we want predictable .c_str()s
     // This could change once FString ensures CoW.
-    Map<SIR, std::string> regstrm;
+    Map<SIR, FString> regstrm;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
@@ -252,15 +275,13 @@ struct map_session_data : block_list, SessionData
 
     int partyspy;              // [Syrus22]
 
-    char message[80];
-
     int catch_target_class;
 
     int pvp_point, pvp_rank;
     Timer pvp_timer;
     int pvp_lastusers;
 
-    std::list<std::string> eventqueuel;
+    std::list<NpcEvent> eventqueuel;
     Timer eventtimer[MAX_EVENTTIMER];
 
     struct
@@ -272,7 +293,7 @@ struct map_session_data : block_list, SessionData
     TimeT chat_repeat_reset_due;
     int chat_lines_in;
     int chat_total_repeats;
-    char chat_lastmsg[513];
+    FString chat_lastmsg;
 
     tick_t flood_rates[0x220];
     TimeT packet_flood_reset_due;
@@ -288,7 +309,7 @@ struct npc_timerevent_list
 };
 struct npc_label_list
 {
-    char name[24];
+    ScriptLabel name;
     int pos;
 };
 struct npc_item_list
@@ -307,15 +328,14 @@ struct npc_data : block_list
     short npc_class;
     DIR dir;
     interval_t speed;
-    char name[24];
-    char exname[24];
+    NpcName name;
     Opt1 opt1;
     Opt2 opt2;
     Opt3 opt3;
     Option option;
     short flag;
 
-    std::list<std::string> eventqueuel;
+    std::list<FString> eventqueuel;
     Timer eventtimer[MAX_EVENTTIMER];
     short arenaflag;
 
@@ -370,14 +390,14 @@ public:
     {
         short xs, ys;
         short x, y;
-        char name[16];
+        MapName name;
     } warp;
 };
 
 class npc_data_message : public npc_data
 {
 public:
-    std::string message;
+    FString message;
 };
 
 constexpr int MOB_XP_BONUS_BASE = 1024;
@@ -395,7 +415,7 @@ struct mob_data : block_list
         short x0, y0, xs, ys;
         interval_t delay1, delay2;
     } spawn;
-    char name[24];
+    MobName name;
     struct
     {
         MS state;
@@ -448,7 +468,7 @@ struct mob_data : block_list
     LevelElement def_ele;
     int master_id, master_dist;
     int exclusion_src, exclusion_party;
-    char npc_event[50];
+    NpcEvent npc_event;
     // [Fate] mob-specific stats
     earray<unsigned short, mob_stat, mob_stat::LAST> stats;
     short size;
@@ -461,14 +481,14 @@ struct BlockLists
 
 struct map_abstract
 {
-    char name_[16];
+    MapName name_;
     // gat is NULL for map_remote and non-NULL or map_local
     std::unique_ptr<MapCell[]> gat;
 
     virtual ~map_abstract() {}
 };
 extern
-UPMap<std::string, map_abstract> maps_db;
+UPMap<MapName, map_abstract> maps_db;
 
 struct map_local : map_abstract
 {
@@ -537,10 +557,10 @@ struct flooritem_data : block_list
 extern interval_t autosave_interval;
 extern int save_settings;
 
-extern char motd_txt[];
-extern char help_txt[];
+extern FString motd_txt;
+extern FString help_txt;
 
-extern char wisp_server_name[];
+extern CharName wisp_server_name;
 
 // 鯖全体情報
 void map_setusers(int);
@@ -587,13 +607,13 @@ void map_quit(dumb_ptr<map_session_data>);
 // npc
 int map_addnpc(map_local *, dumb_ptr<npc_data>);
 
-void map_log(const_string line);
+void map_log(XString line);
 #define MAP_LOG(format, ...) \
-    map_log(static_cast<const std::string&>(STRPRINTF(format, ## __VA_ARGS__)))
+    map_log(STRPRINTF(format, ## __VA_ARGS__))
 
 #define MAP_LOG_PC(sd, fmt, ...)    \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : "undefined.gat"), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat")), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);
@@ -614,8 +634,8 @@ int map_addflooritem(struct item *, int,
 // キャラid＝＞キャラ名 変換関連
 extern
 DMap<int, dumb_ptr<block_list>> id_db;
-void map_addchariddb(int charid, const char *name);
-char *map_charid2nick(int);
+void map_addchariddb(int charid, CharName name);
+CharName map_charid2nick(int);
 
 dumb_ptr<map_session_data> map_id2sd(int);
 dumb_ptr<block_list> map_id2bl(int);
@@ -683,14 +703,14 @@ dumb_ptr<invocation> map_id_is_spell(int id)
 }
 
 
-map_local *map_mapname2mapid(const char *);
-int map_mapname2ipport(const char *, struct in_addr *, int *);
-int map_setipport(const char *name, struct in_addr ip, int port);
+map_local *map_mapname2mapid(MapName);
+int map_mapname2ipport(MapName, struct in_addr *, int *);
+int map_setipport(MapName name, struct in_addr ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);
 void map_addnickdb(dumb_ptr<map_session_data>);
 int map_scriptcont(dumb_ptr<map_session_data> sd, int id);  /* Continues a script either on a spell or on an NPC */
-dumb_ptr<map_session_data> map_nick2sd(const char *);
+dumb_ptr<map_session_data> map_nick2sd(CharName);
 int compare_item(struct item *a, struct item *b);
 
 dumb_ptr<map_session_data> map_get_first_session(void);

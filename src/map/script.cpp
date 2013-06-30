@@ -13,6 +13,7 @@
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/intern-pool.hpp"
+#include "../common/io.hpp"
 #include "../common/lock.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"
@@ -42,27 +43,27 @@ constexpr bool DEBUG_RUN = false;
 struct str_data_t
 {
     ByteCode type;
-    std::string strs;
+    FString strs;
     int backpatch;
     int label_;
     int val;
 };
 static
-Map<std::string, str_data_t> str_datam;
+Map<FString, str_data_t> str_datam;
 static
 str_data_t LABEL_NEXTLINE_;
 
 static
 DMap<SIR, int> mapreg_db;
 static
-Map<SIR, std::string> mapregstr_db;
+Map<SIR, FString> mapregstr_db;
 static
 int mapreg_dirty = -1;
-char mapreg_txt[256] = "save/mapreg.txt";
+FString mapreg_txt = "save/mapreg.txt";
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
-Map<std::string, int> scriptlabel_db;
-UPMap<std::string, const ScriptBuffer> userfunc_db;
+Map<ScriptLabel, int> scriptlabel_db;
+UPMap<FString, const ScriptBuffer> userfunc_db;
 
 static
 const char *pos[11] =
@@ -101,13 +102,13 @@ void run_func(ScriptState *st);
 static
 void mapreg_setreg(SIR num, int val);
 static
-void mapreg_setregstr(SIR num, const char *str);
+void mapreg_setregstr(SIR num, XString str);
 
 struct BuiltinFunction
 {
     void (*func)(ScriptState *);
-    const char *name;
-    const char *arg;
+    ZString name;
+    ZString arg;
 };
 // defined later
 extern BuiltinFunction builtin_functions[];
@@ -132,29 +133,21 @@ enum class ByteCode : uint8_t
 };
 
 static
-str_data_t *search_strp(const std::string& p)
+str_data_t *search_strp(XString p)
 {
     return str_datam.search(p);
 }
 
 static
-str_data_t *add_strp(const std::string& p)
+str_data_t *add_strp(XString p)
 {
-    // TODO remove lowcase
-    std::string lowcase = p;
-    for (char& c : lowcase)
-        c = tolower(c);
-
-    if (str_data_t *rv = search_strp(lowcase))
-        return rv;
-
-    // ?
     if (str_data_t *rv = search_strp(p))
         return rv;
 
-    str_data_t *datum = str_datam.init(p);
+    FString p2 = p;
+    str_data_t *datum = str_datam.init(p2);
     datum->type = ByteCode::NOP;
-    datum->strs = p;
+    datum->strs = p2;
     datum->backpatch = -1;
     datum->label_ = -1;
     return datum;
@@ -266,7 +259,7 @@ void ScriptBuffer::set_label(str_data_t *ld, int pos_)
  *------------------------------------------
  */
 static
-const char *skip_space(const char *p)
+ZString::iterator skip_space(ZString::iterator p)
 {
     while (1)
     {
@@ -296,7 +289,7 @@ const char *skip_space(const char *p)
  *------------------------------------------
  */
 static
-const char *skip_word(const char *p)
+ZString::iterator skip_word(ZString::iterator p)
 {
     // prefix
     if (*p == '$')
@@ -320,8 +313,10 @@ const char *skip_word(const char *p)
     return p;
 }
 
+// TODO: replace this whole mess with some sort of input stream that works
+// a line at a time.
 static
-const char *startptr;
+ZString startptr;
 static
 int startline;
 
@@ -331,30 +326,23 @@ int script_errors = 0;
  *------------------------------------------
  */
 static
-void disp_error_message(const char *mes, const char *pos_)
+void disp_error_message(ZString mes, ZString::iterator pos_)
 {
     script_errors++;
 
-    int line;
-    const char *p;
+    assert (startptr.begin() <= pos_ && pos_ <= startptr.end());
 
-    for (line = startline, p = startptr; p && *p; line++)
+    int line;
+    ZString::iterator p;
+
+    for (line = startline, p = startptr.begin(); p != startptr.end(); line++)
     {
-        const char *linestart = p;
-        char *lineend = const_cast<char *>(strchr(p, '\n'));
-        // always initialized, but clang is not smart enough
-        char c = '\0';
-        if (lineend)
-        {
-            c = *lineend;
-            *lineend = 0;
-        }
-        if (lineend == NULL || pos_ < lineend)
+        ZString::iterator linestart = p;
+        ZString::iterator lineend = std::find(p, startptr.end(), '\n');
+        if (pos_ < lineend)
         {
             PRINTF("\n%s\nline %d : ", mes, line);
-            for (int i = 0;
-                 (linestart[i] != '\r') && (linestart[i] != '\n')
-                 && linestart[i]; i++)
+            for (int i = 0; linestart + i != lineend; i++)
             {
                 if (linestart + i != pos_)
                     PRINTF("%c", linestart[i]);
@@ -362,11 +350,8 @@ void disp_error_message(const char *mes, const char *pos_)
                     PRINTF("\'%c\'", linestart[i]);
             }
             PRINTF("\a\n");
-            if (lineend)
-                *lineend = c;
             return;
         }
-        *lineend = c;
         p = lineend + 1;
     }
 }
@@ -375,9 +360,8 @@ void disp_error_message(const char *mes, const char *pos_)
  * 項の解析
  *------------------------------------------
  */
-const char *ScriptBuffer::parse_simpleexpr(const char *p)
+ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
 {
-    int i;
     p = skip_space(p);
 
     if (*p == ';' || *p == ',')
@@ -399,9 +383,9 @@ const char *ScriptBuffer::parse_simpleexpr(const char *p)
     else if (isdigit(*p) || ((*p == '-' || *p == '+') && isdigit(p[1])))
     {
         char *np;
-        i = strtoul(p, &np, 0);
+        int i = strtoul(&*p, &np, 0);
         add_scripti(i);
-        p = np;
+        p += np - &*p;
     }
     else if (*p == '"')
     {
@@ -409,7 +393,7 @@ const char *ScriptBuffer::parse_simpleexpr(const char *p)
         p++;
         while (*p && *p != '"')
         {
-            if (p[-1] <= 0x7e && *p == '\\')
+            if (*p == '\\')
                 p++;
             else if (*p == '\n')
             {
@@ -429,13 +413,13 @@ const char *ScriptBuffer::parse_simpleexpr(const char *p)
     else
     {
         // label , register , function etc
-        const char *p2 = skip_word(p);
+        ZString::iterator p2 = skip_word(p);
         if (p2 == p)
         {
             disp_error_message("unexpected character", p);
             exit(1);
         }
-        std::string word(p, p2);
+        XString word(&*p, &*p2, nullptr);
         if (parse_cmd_if && (word == "callsub" || word == "callfunc"))
         {
             disp_error_message("callsub/callfunc not allowed in an if statement", p);
@@ -476,7 +460,7 @@ const char *ScriptBuffer::parse_simpleexpr(const char *p)
  * 式の解析
  *------------------------------------------
  */
-const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
+ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
 {
     ByteCode op;
     int opl, len;
@@ -485,7 +469,7 @@ const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
 
     if (*p == '-')
     {
-        const char *tmpp = skip_space(p + 1);
+        ZString::iterator tmpp = skip_space(p + 1);
         if (*tmpp == ';' || *tmpp == ',')
         {
             add_scriptl(&LABEL_NEXTLINE_);
@@ -493,7 +477,7 @@ const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
             return p;
         }
     }
-    const char *tmpp = p;
+    ZString::iterator tmpp = p;
     if ((op = ByteCode::NEG, *p == '-') || (op = ByteCode::LNOT, *p == '!')
         || (op = ByteCode::NOT, *p == '~'))
     {
@@ -528,7 +512,7 @@ const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
         {
             int i = 0;
             str_data_t *funcp = parse_cmdp;
-            const char *plist[128];
+            ZString::iterator plist[128];
 
             if (funcp->type != ByteCode::FUNC_)
             {
@@ -563,7 +547,7 @@ const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
             if (funcp->type == ByteCode::FUNC_
                 && script_config.warn_func_mismatch_paramnum)
             {
-                const char *arg = builtin_functions[funcp->val].arg;
+                ZString arg = builtin_functions[funcp->val].arg;
                 int j = 0;
                 for (j = 0; arg[j]; j++)
                     if (arg[j] == '*')
@@ -571,7 +555,7 @@ const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
                 if ((arg[j] == 0 && i != j) || (arg[j] == '*' && i < j))
                 {
                     disp_error_message("illegal number of parameters",
-                                        plist[(i < j) ? i : j]);
+                            plist[std::min(i, j)]);
                 }
             }
         }
@@ -589,7 +573,7 @@ const char *ScriptBuffer::parse_subexpr(const char *p, int limit)
  * 式の評価
  *------------------------------------------
  */
-const char *ScriptBuffer::parse_expr(const char *p)
+ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
 {
     switch (*p)
     {
@@ -610,10 +594,10 @@ const char *ScriptBuffer::parse_expr(const char *p)
  * 行の解析
  *------------------------------------------
  */
-const char *ScriptBuffer::parse_line(const char *p)
+ZString::iterator ScriptBuffer::parse_line(ZString::iterator p)
 {
     int i = 0;
-    const char *plist[128];
+    ZString::iterator plist[128];
 
     p = skip_space(p);
     if (*p == ';')
@@ -622,7 +606,7 @@ const char *ScriptBuffer::parse_line(const char *p)
     parse_cmd_if = 0;           // warn_cmd_no_commaのために必要
 
     // 最初は関数名
-    const char *p2 = p;
+    ZString::iterator p2 = p;
     p = parse_simpleexpr(p);
     p = skip_space(p);
 
@@ -634,7 +618,7 @@ const char *ScriptBuffer::parse_line(const char *p)
     }
 
     add_scriptc(ByteCode::ARG);
-    while (p && *p && *p != ';' && i < 128)
+    while (*p && *p != ';' && i < 128)
     {
         plist[i] = p;
 
@@ -652,7 +636,7 @@ const char *ScriptBuffer::parse_line(const char *p)
         i++;
     }
     plist[i] = p;
-    if (!p || *(p++) != ';')
+    if (*(p++) != ';')
     {
         disp_error_message("need ';'", p);
         exit(1);
@@ -662,7 +646,7 @@ const char *ScriptBuffer::parse_line(const char *p)
     if (cmd->type == ByteCode::FUNC_
         && script_config.warn_cmd_mismatch_paramnum)
     {
-        const char *arg = builtin_functions[cmd->val].arg;
+        ZString arg = builtin_functions[cmd->val].arg;
         int j = 0;
         for (j = 0; arg[j]; j++)
             if (arg[j] == '*')
@@ -670,7 +654,7 @@ const char *ScriptBuffer::parse_line(const char *p)
         if ((arg[j] == 0 && i != j) || (arg[j] == '*' && i < j))
         {
             disp_error_message("illegal number of parameters",
-                                plist[(i < j) ? i : j]);
+                    plist[std::min(i, j)]);
         }
     }
 
@@ -706,26 +690,24 @@ void read_constdb(void)
         return;
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        if (line[0] == '/' && line[1] == '/')
+        if (line.startswith("//"))
             continue;
 
-        std::string name;
+        FString name;
         int val;
         int type = 0; // if not provided
         if (SSCANF(line, "%m[A-Za-z0-9_] %i %i", &name, &val, &type) < 2)
             continue;
-        for (char& c : name)
-            c = tolower(c);
         str_data_t *n = add_strp(name);
         n->type = type ? ByteCode::PARAM_ : ByteCode::INT;
         n->val = val;
     }
 }
 
-std::unique_ptr<const ScriptBuffer> parse_script(const char *src, int line)
+std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line)
 {
     auto script_buf = make_unique<ScriptBuffer>();
     script_buf->parse_script(src, line);
@@ -736,9 +718,8 @@ std::unique_ptr<const ScriptBuffer> parse_script(const char *src, int line)
  * スクリプトの解析
  *------------------------------------------
  */
-void ScriptBuffer::parse_script(const char *src, int line)
+void ScriptBuffer::parse_script(ZString src, int line)
 {
-    const char *p;
     static int first = 1;
 
     if (first)
@@ -768,21 +749,20 @@ void ScriptBuffer::parse_script(const char *src, int line)
     startptr = src;
     startline = line;
 
-    p = src;
+    ZString::iterator p = src.begin();
     p = skip_space(p);
     if (*p != '{')
     {
         disp_error_message("not found '{'", p);
         abort();
     }
-    for (p++; p && *p && *p != '}';)
+    for (p++; *p && *p != '}';)
     {
         p = skip_space(p);
-        // labelだけ特殊処理
         if (*skip_space(skip_word(p)) == ':')
         {
-            const char *tmpp = skip_word(p);
-            std::string str(p, tmpp);
+            ZString::iterator tmpp = skip_word(p);
+            XString str(&*p, &*tmpp, nullptr);
             str_data_t *ld = add_strp(str);
             bool e1 = ld->type != ByteCode::NOP;
             bool e2 = ld->type == ByteCode::POS;
@@ -794,7 +774,7 @@ void ScriptBuffer::parse_script(const char *src, int line)
                 exit(1);
             }
             set_label(ld, script_buf.size());
-            scriptlabel_db.insert(str, script_buf.size());
+            scriptlabel_db.insert(stringish<ScriptLabel>(str), script_buf.size());
             p = tmpp + 1;
             continue;
         }
@@ -894,7 +874,8 @@ void get_val(ScriptState *st, struct script_data *data)
     }
     else if (data->type == ByteCode::VARIABLE)
     {
-        const std::string& name = variable_names.outtern(data->u.reg.base());
+        ZString name_ = variable_names.outtern(data->u.reg.base());
+        VarName name = stringish<VarName>(name_);
         char prefix = name.front();
         char postfix = name.back();
 
@@ -913,8 +894,8 @@ void get_val(ScriptState *st, struct script_data *data)
             }
             else if (prefix == '$')
             {
-                std::string *s = mapregstr_db.search(data->u.reg);
-                data->u.str = s ? dumb_string::fake(s->c_str()) : dumb_string();
+                FString *s = mapregstr_db.search(data->u.reg);
+                data->u.str = s ? dumb_string::fake(*s) : dumb_string();
             }
             else
             {
@@ -941,18 +922,18 @@ void get_val(ScriptState *st, struct script_data *data)
                 if (name[1] == '#')
                 {
                     if (sd)
-                        data->u.numi = pc_readaccountreg2(sd, name.c_str());
+                        data->u.numi = pc_readaccountreg2(sd, name);
                 }
                 else
                 {
                     if (sd)
-                        data->u.numi = pc_readaccountreg(sd, name.c_str());
+                        data->u.numi = pc_readaccountreg(sd, name);
                 }
             }
             else
             {
                 if (sd)
-                    data->u.numi = pc_readglobalreg(sd, name.c_str());
+                    data->u.numi = pc_readglobalreg(sd, name);
             }
         }
     }
@@ -988,7 +969,8 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
     }
     assert (type == ByteCode::VARIABLE);
 
-    const std::string& name = variable_names.outtern(reg.base());
+    ZString name_ = variable_names.outtern(reg.base());
+    VarName name = stringish<VarName>(name_);
     char prefix = name.front();
     char postfix = name.back();
 
@@ -997,11 +979,11 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
         dumb_string str = vd.u.str;
         if (prefix == '@' || prefix == 'l')
         {
-            pc_setregstr(sd, reg, str.c_str());
+            pc_setregstr(sd, reg, str.str());
         }
         else if (prefix == '$')
         {
-            mapreg_setregstr(reg, str.c_str());
+            mapreg_setregstr(reg, str.str());
         }
         else
         {
@@ -1023,13 +1005,13 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
         else if (prefix == '#')
         {
             if (name[1] == '#')
-                pc_setaccountreg2(sd, name.c_str(), val);
+                pc_setaccountreg2(sd, name, val);
             else
-                pc_setaccountreg(sd, name.c_str(), val);
+                pc_setaccountreg(sd, name, val);
         }
         else
         {
-            pc_setglobalreg(sd, name.c_str(), val);
+            pc_setglobalreg(sd, name, val);
         }
     }
 }
@@ -1063,7 +1045,7 @@ dumb_string conv_str(ScriptState *st, struct script_data *data)
     assert (data->type != ByteCode::RETINFO);
     if (data->type == ByteCode::INT)
     {
-        std::string buf = STRPRINTF("%d", data->u.numi);
+        FString buf = STRPRINTF("%d", data->u.numi);
         data->type = ByteCode::STR;
         data->u.str = dumb_string::copys(buf);
     }
@@ -1193,7 +1175,7 @@ static
 void builtin_mes(ScriptState *st)
 {
     dumb_string mes = conv_str(st, &AARGO2(2));
-    clif_scriptmes(script_rid2sd(st), st->oid, mes.c_str());
+    clif_scriptmes(script_rid2sd(st), st->oid, ZString(mes));
 }
 
 /*==========================================
@@ -1334,17 +1316,17 @@ void builtin_menu(ScriptState *st)
         st->state = ScriptEndState::RERUNLINE;
         sd->state.menu_or_input = 1;
 
-        std::string buf;
+        MString buf;
         for (int i = st->start + 2; i < st->end; i += 2)
         {
             dumb_string choice_str = conv_str(st, &AARGO2(i - st->start));
             if (!choice_str[0])
                 break;
-            buf += choice_str.c_str();
+            buf += ZString(choice_str);
             buf += ':';
         }
 
-        clif_scriptmenu(script_rid2sd(st), st->oid, buf.c_str());
+        clif_scriptmenu(script_rid2sd(st), st->oid, FString(buf));
     }
     else
     {
@@ -1427,14 +1409,13 @@ void builtin_isat(ScriptState *st)
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x = conv_num(st, &AARGO2(3));
     y = conv_num(st, &AARGO2(4));
 
     if (!sd)
         return;
 
-    using namespace operators;
     push_int(st->stack, ByteCode::INT,
             (x == sd->bl_x) && (y == sd->bl_y)
             && (str == sd->bl_m->name_));
@@ -1450,10 +1431,9 @@ void builtin_warp(ScriptState *st)
     int x, y;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x = conv_num(st, &AARGO2(3));
     y = conv_num(st, &AARGO2(4));
-    using namespace operators;
     if (str == "Random")
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else if (str == "SavePoint")
@@ -1461,19 +1441,19 @@ void builtin_warp(ScriptState *st)
         if (sd->bl_m->flag.noreturn)    // 蝶禁止
             return;
 
-        pc_setpos(sd, sd->status.save_point.map_,
-                   sd->status.save_point.x, sd->status.save_point.y, BeingRemoveWhy::WARPED);
+        pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x, sd->status.save_point.y,
+                BeingRemoveWhy::WARPED);
     }
     else if (str == "Save")
     {
         if (sd->bl_m->flag.noreturn)    // 蝶禁止
             return;
 
-        pc_setpos(sd, sd->status.save_point.map_,
-                   sd->status.save_point.x, sd->status.save_point.y, BeingRemoveWhy::WARPED);
+        pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x, sd->status.save_point.y,
+                BeingRemoveWhy::WARPED);
     }
     else
-        pc_setpos(sd, str.c_str(), x, y, BeingRemoveWhy::GONE);
+        pc_setpos(sd, str, x, y, BeingRemoveWhy::GONE);
 }
 
 /*==========================================
@@ -1481,14 +1461,13 @@ void builtin_warp(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_areawarp_sub(dumb_ptr<block_list> bl, dumb_string mapname, int x, int y)
+void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y)
 {
     dumb_ptr<map_session_data> sd = bl->as_player();
-    using namespace operators;
     if (mapname == "Random")
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else
-        pc_setpos(sd, mapname.c_str(), x, y, BeingRemoveWhy::GONE);
+        pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
 }
 
 static
@@ -1497,16 +1476,16 @@ void builtin_areawarp(ScriptState *st)
     int x, y;
     int x0, y0, x1, y1;
 
-    dumb_string mapname = conv_str(st, &AARGO2(2));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x0 = conv_num(st, &AARGO2(3));
     y0 = conv_num(st, &AARGO2(4));
     x1 = conv_num(st, &AARGO2(5));
     y1 = conv_num(st, &AARGO2(6));
-    dumb_string str = conv_str(st, &AARGO2(7));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(7))));
     x = conv_num(st, &AARGO2(8));
     y = conv_num(st, &AARGO2(9));
 
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
         return;
 
@@ -1572,7 +1551,7 @@ void builtin_input(ScriptState *st)
     assert (type == ByteCode::VARIABLE);
 
     SIR reg = scrd.u.reg;
-    const std::string& name = variable_names.outtern(reg.base());
+    ZString name = variable_names.outtern(reg.base());
 //  char prefix = name.front();
     char postfix = name.back();
 
@@ -1583,7 +1562,7 @@ void builtin_input(ScriptState *st)
         sd->state.menu_or_input = 0;
         if (postfix == '$')
         {
-            set_reg(sd, type, reg, dumb_string::fake(sd->npc_str.c_str()));
+            set_reg(sd, type, reg, dumb_string::fake(sd->npc_str));
         }
         else
         {
@@ -1653,7 +1632,7 @@ void builtin_set(ScriptState *st)
         set_reg(sd, ByteCode::PARAM_, reg, val);
         return;
     }
-    const std::string& name = variable_names.outtern(reg.base());
+    ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -1687,7 +1666,7 @@ void builtin_setarray(ScriptState *st)
     dumb_ptr<map_session_data> sd = NULL;
     assert (AARGO2(2).type == ByteCode::VARIABLE);
     SIR reg = AARGO2(2).u.reg;
-    const std::string& name = variable_names.outtern(reg.base());
+    ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -1718,7 +1697,7 @@ void builtin_cleararray(ScriptState *st)
     dumb_ptr<map_session_data> sd = NULL;
     assert (AARGO2(2).type == ByteCode::VARIABLE);
     SIR reg = AARGO2(2).u.reg;
-    const std::string& name = variable_names.outtern(reg.base());
+    ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
     int sz = conv_num(st, &AARGO2(4));
@@ -1764,7 +1743,7 @@ void builtin_getarraysize(ScriptState *st)
 {
     assert (AARGO2(2).type == ByteCode::VARIABLE);
     SIR reg = AARGO2(2).u.reg;
-    const std::string& name = variable_names.outtern(reg.base());
+    ZString name = variable_names.outtern(reg.base());
     char prefix = name.front();
     char postfix = name.back();
 
@@ -1838,8 +1817,8 @@ void builtin_countitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        struct item_data *item_data = itemdb_searchname(name);
         if (item_data != NULL)
             nameid = item_data->nameid;
     }
@@ -1878,8 +1857,8 @@ void builtin_checkweight(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        struct item_data *item_data = itemdb_searchname(name);
         if (item_data)
             nameid = item_data->nameid;
     }
@@ -1922,8 +1901,8 @@ void builtin_getitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        struct item_data *item_data = itemdb_searchname(name);
         nameid = 727;           //Default to iten
         if (item_data != NULL)
             nameid = item_data->nameid;
@@ -1976,8 +1955,8 @@ void builtin_makeitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        struct item_data *item_data = itemdb_searchname(name);
         nameid = 512;           //Apple Item ID
         if (item_data)
             nameid = item_data->nameid;
@@ -1986,16 +1965,15 @@ void builtin_makeitem(ScriptState *st)
         nameid = conv_num(st, data);
 
     amount = conv_num(st, &AARGO2(3));
-    dumb_string mapname = conv_str(st, &AARGO2(4));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(4))));
     x = conv_num(st, &AARGO2(5));
     y = conv_num(st, &AARGO2(6));
 
     map_local *m;
-    using namespace operators;
-    if (sd && mapname == "this")
+    if (sd && mapname == MOB_THIS_MAP)
         m = sd->bl_m;
     else
-        m = map_mapname2mapid(mapname.c_str());
+        m = map_mapname2mapid(mapname);
 
     if (nameid > 0)
     {
@@ -2028,8 +2006,8 @@ void builtin_delitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        struct item_data *item_data = itemdb_searchname(name);
         //nameid=512;
         if (item_data)
             nameid = item_data->nameid;
@@ -2087,7 +2065,7 @@ void builtin_readparam(ScriptState *st)
 
     SP type = SP(conv_num(st, &AARGO2(2)));
     if (HARGO2(3))
-        sd = map_nick2sd(conv_str(st, &AARGO2(3)).c_str());
+        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARGO2(3)))));
     else
         sd = script_rid2sd(st);
 
@@ -2113,7 +2091,7 @@ void builtin_getcharid(ScriptState *st)
 
     num = conv_num(st, &AARGO2(2));
     if (HARGO2(3))
-        sd = map_nick2sd(conv_str(st, &AARGO2(3)).c_str());
+        sd = map_nick2sd(stringish<CharName>(ZString(conv_str(st, &AARGO2(3)))));
     else
         sd = script_rid2sd(st);
     if (sd == NULL)
@@ -2141,7 +2119,7 @@ dumb_string builtin_getpartyname_sub(int party_id)
     struct party *p = party_search(party_id);
 
     if (p)
-        return dumb_string::copy(p->name);
+        return dumb_string::copys(p->name);
 
     return dumb_string();
 }
@@ -2160,7 +2138,7 @@ void builtin_strcharinfo(ScriptState *st)
     num = conv_num(st, &AARGO2(2));
     if (num == 0)
     {
-        dumb_string buf = dumb_string::copy(sd->status.name);
+        dumb_string buf = dumb_string::copys(sd->status.name.to__actual());
         push_str(st->stack, ByteCode::STR, buf);
     }
     if (num == 1)
@@ -2240,7 +2218,7 @@ void builtin_getequipname(ScriptState *st)
     dumb_ptr<map_session_data> sd;
     struct item_data *item;
 
-    std::string buf;
+    FString buf;
 
     sd = script_rid2sd(st);
     num = conv_num(st, &AARGO2(2));
@@ -2418,10 +2396,10 @@ void builtin_savepoint(ScriptState *st)
 {
     int x, y;
 
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x = conv_num(st, &AARGO2(3));
     y = conv_num(st, &AARGO2(4));
-    pc_setsavepoint(script_rid2sd(st), str.c_str(), x, y);
+    pc_setsavepoint(script_rid2sd(st), str, x, y);
 }
 
 /*==========================================
@@ -2551,19 +2529,19 @@ static
 void builtin_monster(ScriptState *st)
 {
     int mob_class, amount, x, y;
-    const char *event = "";
+    NpcEvent event;
 
-    dumb_string mapname = conv_str(st, &AARGO2(2));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x = conv_num(st, &AARGO2(3));
     y = conv_num(st, &AARGO2(4));
-    dumb_string str = conv_str(st, &AARGO2(5));
+    MobName str = stringish<MobName>(ZString(conv_str(st, &AARGO2(5))));
     mob_class = conv_num(st, &AARGO2(6));
     amount = conv_num(st, &AARGO2(7));
     if (HARGO2(8))
-        event = conv_str(st, &AARGO2(8)).c_str();
+        extract(ZString(conv_str(st, &AARGO2(8))), &event);
 
-    mob_once_spawn(map_id2sd(st->rid), mapname.c_str(), x, y, str.c_str(), mob_class, amount,
-                    event);
+    mob_once_spawn(map_id2sd(st->rid), mapname, x, y, str, mob_class, amount,
+            event);
 }
 
 /*==========================================
@@ -2574,21 +2552,21 @@ static
 void builtin_areamonster(ScriptState *st)
 {
     int mob_class, amount, x0, y0, x1, y1;
-    const char *event = "";
+    NpcEvent event;
 
-    dumb_string mapname = conv_str(st, &AARGO2(2));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x0 = conv_num(st, &AARGO2(3));
     y0 = conv_num(st, &AARGO2(4));
     x1 = conv_num(st, &AARGO2(5));
     y1 = conv_num(st, &AARGO2(6));
-    dumb_string str = conv_str(st, &AARGO2(7));
+    MobName str = stringish<MobName>(ZString(conv_str(st, &AARGO2(7))));
     mob_class = conv_num(st, &AARGO2(8));
     amount = conv_num(st, &AARGO2(9));
     if (HARGO2(10))
-        event = conv_str(st, &AARGO2(10)).c_str();
+        extract(ZString(conv_str(st, &AARGO2(10))), &event);
 
-    mob_once_spawn_area(map_id2sd(st->rid), mapname.c_str(), x0, y0, x1, y1, str.c_str(), mob_class,
-                         amount, event);
+    mob_once_spawn_area(map_id2sd(st->rid), mapname, x0, y0, x1, y1, str, mob_class,
+            amount, event);
 }
 
 /*==========================================
@@ -2596,17 +2574,16 @@ void builtin_areamonster(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_killmonster_sub(dumb_ptr<block_list> bl, dumb_string event, int allflag)
+void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
 {
     dumb_ptr<mob_data> md = bl->as_mob();
-    if (!allflag)
+    if (event)
     {
-        using namespace operators;
         if (event == md->npc_event)
             mob_delete(md);
         return;
     }
-    else if (allflag)
+    else if (!event)
     {
         if (md->spawn.delay1 == static_cast<interval_t>(-1)
             && md->spawn.delay2 == static_cast<interval_t>(-1))
@@ -2618,17 +2595,16 @@ void builtin_killmonster_sub(dumb_ptr<block_list> bl, dumb_string event, int all
 static
 void builtin_killmonster(ScriptState *st)
 {
-    int allflag = 0;
-    dumb_string mapname = conv_str(st, &AARGO2(2));
-    dumb_string event = conv_str(st, &AARGO2(3));
-    using namespace operators;
-    if (event == "All")
-        allflag = 1;
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    ZString event_ = ZString(conv_str(st, &AARGO2(3)));
+    NpcEvent event;
+    if (event_ != "All")
+        extract(event_, &event);
 
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
         return;
-    map_foreachinarea(std::bind(builtin_killmonster_sub, ph::_1, event, allflag),
+    map_foreachinarea(std::bind(builtin_killmonster_sub, ph::_1, event),
             m,
             0, 0,
             m->xs, m->ys,
@@ -2644,9 +2620,9 @@ void builtin_killmonsterall_sub(dumb_ptr<block_list> bl)
 static
 void builtin_killmonsterall(ScriptState *st)
 {
-    dumb_string mapname = conv_str(st, &AARGO2(2));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
 
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
         return;
     map_foreachinarea(builtin_killmonsterall_sub,
@@ -2663,8 +2639,10 @@ void builtin_killmonsterall(ScriptState *st)
 static
 void builtin_donpcevent(ScriptState *st)
 {
-    dumb_string event = conv_str(st, &AARGO2(2));
-    npc_event_do(event.c_str());
+    ZString event_ = ZString(conv_str(st, &AARGO2(2)));
+    NpcEvent event;
+    extract(event_, &event);
+    npc_event_do(event);
 }
 
 /*==========================================
@@ -2675,8 +2653,10 @@ static
 void builtin_addtimer(ScriptState *st)
 {
     interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(2)));
-    dumb_string event = conv_str(st, &AARGO2(3));
-    pc_addeventtimer(script_rid2sd(st), tick, event.c_str());
+    ZString event_ = ZString(conv_str(st, &AARGO2(3)));
+    NpcEvent event;
+    extract(event_, &event);
+    pc_addeventtimer(script_rid2sd(st), tick, event);
 }
 
 /*==========================================
@@ -2688,7 +2668,7 @@ void builtin_initnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
     if (HARGO2(2))
-        nd_ = npc_name2id(conv_str(st, &AARGO2(2)).c_str());
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     else
         nd_ = map_id_as_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2707,7 +2687,7 @@ void builtin_startnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
     if (HARGO2(2))
-        nd_ = npc_name2id(conv_str(st, &AARGO2(2)).c_str());
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     else
         nd_ = map_id_as_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2725,7 +2705,7 @@ void builtin_stopnpctimer(ScriptState *st)
 {
     dumb_ptr<npc_data> nd_;
     if (HARGO2(2))
-        nd_ = npc_name2id(conv_str(st, &AARGO2(2)).c_str());
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     else
         nd_ = map_id_as_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2745,7 +2725,7 @@ void builtin_getnpctimer(ScriptState *st)
     int type = conv_num(st, &AARGO2(2));
     int val = 0;
     if (HARGO2(3))
-        nd_ = npc_name2id(conv_str(st, &AARGO2(3)).c_str());
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(3)))));
     else
         nd_ = map_id_as_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2776,7 +2756,7 @@ void builtin_setnpctimer(ScriptState *st)
     dumb_ptr<npc_data> nd_;
     interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(2)));
     if (HARGO2(3))
-        nd_ = npc_name2id(conv_str(st, &AARGO2(3)).c_str());
+        nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(3)))));
     else
         nd_ = map_id_as_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
@@ -2793,7 +2773,7 @@ static
 void builtin_announce(ScriptState *st)
 {
     int flag;
-    dumb_string str = conv_str(st, &AARGO2(2));
+    ZString str = ZString(conv_str(st, &AARGO2(2)));
     flag = conv_num(st, &AARGO2(3));
 
     if (flag & 0x0f)
@@ -2814,7 +2794,7 @@ void builtin_announce(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_mapannounce_sub(dumb_ptr<block_list> bl, dumb_string str, int flag)
+void builtin_mapannounce_sub(dumb_ptr<block_list> bl, XString str, int flag)
 {
     clif_GMmessage(bl, str, flag | 3);
 }
@@ -2824,11 +2804,11 @@ void builtin_mapannounce(ScriptState *st)
 {
     int flag;
 
-    dumb_string mapname = conv_str(st, &AARGO2(2));
-    dumb_string str = conv_str(st, &AARGO2(3));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    ZString str = ZString(conv_str(st, &AARGO2(3)));
     flag = conv_num(st, &AARGO2(4));
 
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
         return;
     map_foreachinarea(std::bind(builtin_mapannounce_sub, ph::_1, str, flag & 0x10),
@@ -2867,8 +2847,8 @@ void builtin_getusers(ScriptState *st)
 static
 void builtin_getmapusers(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
-    map_local *m = map_mapname2mapid(str.c_str());
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
         push_int(st->stack, ByteCode::INT, -1);
@@ -2898,7 +2878,7 @@ static
 void builtin_getareausers(ScriptState *st)
 {
     int x0, y0, x1, y1, users = 0;
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x0 = conv_num(st, &AARGO2(3));
     y0 = conv_num(st, &AARGO2(4));
     x1 = conv_num(st, &AARGO2(5));
@@ -2909,7 +2889,7 @@ void builtin_getareausers(ScriptState *st)
     {
         living = conv_num(st, &AARGO2(7));
     }
-    map_local *m = map_mapname2mapid(str.c_str());
+    map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
         push_int(st->stack, ByteCode::INT, -1);
@@ -2956,7 +2936,7 @@ void builtin_getareadropitem(ScriptState *st)
     int x0, y0, x1, y1, item, amount = 0, delitems = 0;
     struct script_data *data;
 
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x0 = conv_num(st, &AARGO2(3));
     y0 = conv_num(st, &AARGO2(4));
     x1 = conv_num(st, &AARGO2(5));
@@ -2966,8 +2946,8 @@ void builtin_getareadropitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        struct item_data *item_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        struct item_data *item_data = itemdb_searchname(name);
         item = 512;
         if (item_data)
             item = item_data->nameid;
@@ -2978,7 +2958,7 @@ void builtin_getareadropitem(ScriptState *st)
     if (HARGO2(8))
         delitems = conv_num(st, &AARGO2(8));
 
-    map_local *m = map_mapname2mapid(str.c_str());
+    map_local *m = map_mapname2mapid(str);
     if (m == nullptr)
     {
         push_int(st->stack, ByteCode::INT, -1);
@@ -3007,8 +2987,8 @@ void builtin_getareadropitem(ScriptState *st)
 static
 void builtin_enablenpc(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
-    npc_enable(str.c_str(), 1);
+    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    npc_enable(str, 1);
 }
 
 /*==========================================
@@ -3018,8 +2998,8 @@ void builtin_enablenpc(ScriptState *st)
 static
 void builtin_disablenpc(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
-    npc_enable(str.c_str(), 0);
+    NpcName str = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    npc_enable(str, 0);
 }
 
 /*==========================================
@@ -3118,7 +3098,7 @@ void builtin_changesex(ScriptState *st)
         sd->status.sex = 0;
         sd->sex = 0;
     }
-    chrif_char_ask_name(-1, sd->status.name, 5, 0, 0, 0, 0, 0, 0); // type: 5 - changesex
+    chrif_char_ask_name(-1, sd->status.name, 5, HumanTimeDiff()); // type: 5 - changesex
     chrif_save(sd);
 }
 
@@ -3187,9 +3167,9 @@ enum
 static
 void builtin_setmapflag(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
-    map_local *m = map_mapname2mapid(str.c_str());
+    map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
         switch (i)
@@ -3247,9 +3227,9 @@ void builtin_setmapflag(ScriptState *st)
 static
 void builtin_removemapflag(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
-    map_local *m = map_mapname2mapid(str.c_str());
+    map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
         switch (i)
@@ -3308,9 +3288,9 @@ void builtin_getmapflag(ScriptState *st)
 {
     int r = -1;
 
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
-    map_local *m = map_mapname2mapid(str.c_str());
+    map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
         switch (i)
@@ -3369,8 +3349,8 @@ void builtin_getmapflag(ScriptState *st)
 static
 void builtin_pvpon(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
-    map_local *m = map_mapname2mapid(str.c_str());
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    map_local *m = map_mapname2mapid(str);
     if (m != nullptr && !m->flag.pvp && !m->flag.nopvp)
     {
         m->flag.pvp = 1;
@@ -3403,8 +3383,8 @@ void builtin_pvpon(ScriptState *st)
 static
 void builtin_pvpoff(ScriptState *st)
 {
-    dumb_string str = conv_str(st, &AARGO2(2));
-    map_local *m = map_mapname2mapid(str.c_str());
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    map_local *m = map_mapname2mapid(str);
     if (m != nullptr && m->flag.pvp && m->flag.nopvp)
     {
         m->flag.pvp = 0;
@@ -3450,13 +3430,13 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
     int x, y;
     int x0, y0, x1, y1;
 
-    dumb_string mapname = conv_str(st, &AARGO2(2));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x0 = 0;
     y0 = 0;
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     x1 = m->xs;
     y1 = m->ys;
-    dumb_string str = conv_str(st, &AARGO2(3));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(3))));
     x = conv_num(st, &AARGO2(4));
     y = conv_num(st, &AARGO2(5));
 
@@ -3473,16 +3453,15 @@ void builtin_mapwarp(ScriptState *st)   // Added by RoVeRT
 static
 void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
 {
-    dumb_string npc = conv_str(st, &AARGO2(2));
-    dumb_string command = conv_str(st, &AARGO2(3));
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    ZString command = ZString(conv_str(st, &AARGO2(3)));
 
-    npc_command(map_id2sd(st->rid), npc.c_str(), command.c_str());
+    npc_command(map_id2sd(st->rid), npc, command);
 }
 
 static
-void builtin_mobcount_sub(dumb_ptr<block_list> bl, dumb_string event, int *c)
+void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 {
-    using namespace operators;
     if (event == bl->as_mob()->npc_event)
         (*c)++;
 }
@@ -3491,10 +3470,12 @@ static
 void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 {
     int c = 0;
-    dumb_string mapname = conv_str(st, &AARGO2(2));
-    dumb_string event = conv_str(st, &AARGO2(3));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
+    ZString event_ = ZString(conv_str(st, &AARGO2(3)));
+    NpcEvent event;
+    extract(event_, &event);
 
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
     {
         push_int(st->stack, ByteCode::INT, -1);
@@ -3513,9 +3494,9 @@ void builtin_mobcount(ScriptState *st)  // Added by RoVeRT
 static
 void builtin_marriage(ScriptState *st)
 {
-    dumb_string partner = conv_str(st, &AARGO2(2));
+    CharName partner = stringish<CharName>(ZString(conv_str(st, &AARGO2(2))));
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
-    dumb_ptr<map_session_data> p_sd = map_nick2sd(partner.c_str());
+    dumb_ptr<map_session_data> p_sd = map_nick2sd(partner);
 
     if (sd == NULL || p_sd == NULL || pc_marriage(sd, p_sd) < 0)
     {
@@ -3557,8 +3538,8 @@ void builtin_getitemname(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        dumb_string name = conv_str(st, data);
-        i_data = itemdb_searchname(name.c_str());
+        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        i_data = itemdb_searchname(name);
     }
     else
     {
@@ -3568,9 +3549,9 @@ void builtin_getitemname(ScriptState *st)
 
     dumb_string item_name;
     if (i_data)
-        item_name = dumb_string::copy(i_data->jname);
+        item_name = dumb_string::copys(i_data->jname);
     else
-        item_name = dumb_string::copy("Unknown Item");
+        item_name = dumb_string::copys("Unknown Item");
 
     push_str(st->stack, ByteCode::STR, item_name);
 }
@@ -3580,11 +3561,11 @@ void builtin_getspellinvocation(ScriptState *st)
 {
     dumb_string name = conv_str(st, &AARGO2(2));
 
-    const char *invocation = magic_find_invocation(name.str());
+    FString invocation = magic_find_invocation(name.str());
     if (!invocation)
         invocation = "...";
 
-    push_str(st->stack, ByteCode::STR, dumb_string::copy(invocation));
+    push_str(st->stack, ByteCode::STR, dumb_string::copys(invocation));
 }
 
 static
@@ -3661,7 +3642,7 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
             pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"), count),
                     static_cast<uint16_t>(sd->status.skill[skill_id].flags));
             pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"), count),
-                    skill_name(skill_id).c_str());
+                    skill_name(skill_id));
             ++count;
         }
     }
@@ -3692,7 +3673,7 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
             pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"), count),
                     static_cast<uint16_t>(sd->status.skill[skill_id].flags));
             pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"), count),
-                    skill_name(skill_id).c_str());
+                    skill_name(skill_id));
             ++count;
         }
     }
@@ -3737,7 +3718,7 @@ void builtin_misceffect(ScriptState *st)
 {
     int type;
     int id = 0;
-    dumb_string name;
+    CharName name;
     dumb_ptr<block_list> bl = NULL;
 
     type = conv_num(st, &AARGO2(2));
@@ -3749,14 +3730,14 @@ void builtin_misceffect(ScriptState *st)
         get_val(st, sdata);
 
         if (sdata->type == ByteCode::STR || sdata->type == ByteCode::CONSTSTR)
-            name = conv_str(st, sdata);
+            name = stringish<CharName>(ZString(conv_str(st, sdata)));
         else
             id = conv_num(st, sdata);
     }
 
-    if (name)
+    if (name.to__actual())
     {
-        dumb_ptr<map_session_data> sd = map_nick2sd(name.c_str());
+        dumb_ptr<map_session_data> sd = map_nick2sd(name);
         if (sd)
             bl = sd;
     }
@@ -3867,7 +3848,7 @@ void builtin_gmcommand(ScriptState *st)
     sd = script_rid2sd(st);
     dumb_string cmd = conv_str(st, &AARGO2(2));
 
-    is_atcommand(sd->fd, sd, cmd.c_str(), 99);
+    is_atcommand(sd->fd, sd, cmd, 99);
 
 }
 
@@ -3884,8 +3865,8 @@ void builtin_npcwarp(ScriptState *st)
 
     x = conv_num(st, &AARGO2(2));
     y = conv_num(st, &AARGO2(3));
-    dumb_string npc = conv_str(st, &AARGO2(4));
-    nd = npc_name2id(npc.c_str());
+    NpcName npc = stringish<NpcName>(ZString(conv_str(st, &AARGO2(4))));
+    nd = npc_name2id(npc);
 
     if (!nd)
         return;
@@ -3898,12 +3879,12 @@ void builtin_npcwarp(ScriptState *st)
             || y < 0 || y > m->ys - 1)
         return;
 
-    npc_enable(npc.c_str(), 0);
+    npc_enable(npc, 0);
     map_delblock(nd); /* [Freeyorp] */
     nd->bl_x = x;
     nd->bl_y = y;
     map_addblock(nd);
-    npc_enable(npc.c_str(), 1);
+    npc_enable(npc, 1);
 
 }
 
@@ -3915,10 +3896,10 @@ void builtin_npcwarp(ScriptState *st)
 static
 void builtin_message(ScriptState *st)
 {
-    dumb_string player = conv_str(st, &AARGO2(2));
-    dumb_string msg = conv_str(st, &AARGO2(3));
+    CharName player = stringish<CharName>(ZString(conv_str(st, &AARGO2(2))));
+    ZString msg = ZString(conv_str(st, &AARGO2(3)));
 
-    dumb_ptr<map_session_data> pl_sd = map_nick2sd(player.c_str());
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(player);
     if (pl_sd == NULL)
         return;
     clif_displaymessage(pl_sd->fd, msg);
@@ -3939,8 +3920,11 @@ void builtin_npctalk(ScriptState *st)
 
     if (nd)
     {
-        std::string message = std::string(nd->name) + " : " + str.c_str();
-        clif_message(nd, message.c_str());
+        MString message;
+        message += nd->name;
+        message += " : ";
+        message += ZString(str);
+        clif_message(nd, FString(message));
     }
 }
 
@@ -4008,7 +3992,7 @@ void builtin_getsavepoint(ScriptState *st)
     {
         case 0:
         {
-            dumb_string mapname = dumb_string::copy(sd->status.save_point.map_);
+            dumb_string mapname = dumb_string::copys(sd->status.save_point.map_);
             push_str(st->stack, ByteCode::STR, mapname);
         }
             break;
@@ -4026,9 +4010,9 @@ void builtin_getsavepoint(ScriptState *st)
  *------------------------------------------
  */
 static
-void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, dumb_string event)
+void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent event)
 {
-    pc_addeventtimer(bl->as_player(), tick, event.c_str());
+    pc_addeventtimer(bl->as_player(), tick, event);
 }
 
 static
@@ -4036,15 +4020,17 @@ void builtin_areatimer(ScriptState *st)
 {
     int x0, y0, x1, y1;
 
-    dumb_string mapname = conv_str(st, &AARGO2(2));
+    MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x0 = conv_num(st, &AARGO2(3));
     y0 = conv_num(st, &AARGO2(4));
     x1 = conv_num(st, &AARGO2(5));
     y1 = conv_num(st, &AARGO2(6));
     interval_t tick = static_cast<interval_t>(conv_num(st, &AARGO2(7)));
-    dumb_string event = conv_str(st, &AARGO2(8));
+    ZString event_ = ZString(conv_str(st, &AARGO2(8)));
+    NpcEvent event;
+    extract(event_, &event);
 
-    map_local *m = map_mapname2mapid(mapname.c_str());
+    map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
         return;
 
@@ -4065,7 +4051,7 @@ void builtin_isin(ScriptState *st)
     int x1, y1, x2, y2;
     dumb_ptr<map_session_data> sd = script_rid2sd(st);
 
-    dumb_string str = conv_str(st, &AARGO2(2));
+    MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x1 = conv_num(st, &AARGO2(3));
     y1 = conv_num(st, &AARGO2(4));
     x2 = conv_num(st, &AARGO2(5));
@@ -4074,7 +4060,6 @@ void builtin_isin(ScriptState *st)
     if (!sd)
         return;
 
-    using namespace operators;
     push_int(st->stack, ByteCode::INT,
               (sd->bl_x >= x1 && sd->bl_x <= x2)
               && (sd->bl_y >= y1 && sd->bl_y <= y2)
@@ -4091,7 +4076,7 @@ void builtin_shop(ScriptState *st)
     if (!sd)
         return;
 
-    nd = npc_name2id(conv_str(st, &AARGO2(2)).c_str());
+    nd = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     if (!nd)
         return;
 
@@ -4118,18 +4103,18 @@ void builtin_isdead(ScriptState *st)
 static
 void builtin_fakenpcname(ScriptState *st)
 {
-    dumb_string name = conv_str(st, &AARGO2(2));
-    dumb_string newname = conv_str(st, &AARGO2(3));
+    NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    NpcName newname = stringish<NpcName>(ZString(conv_str(st, &AARGO2(3))));
     int newsprite = conv_num(st, &AARGO2(4));
-    dumb_ptr<npc_data> nd = npc_name2id(name.c_str());
+    dumb_ptr<npc_data> nd = npc_name2id(name);
     if (!nd)
         return;
-    strzcpy(nd->name, newname.c_str(), sizeof(nd->name));
+    nd->name = newname;
     nd->npc_class = newsprite;
 
     // Refresh this npc
-    npc_enable(name.c_str(), 0);
-    npc_enable(name.c_str(), 1);
+    npc_enable(name, 0);
+    npc_enable(name, 1);
 
 }
 
@@ -4254,13 +4239,15 @@ void op_add(ScriptState *st)
     {
         dumb_string sb = conv_str(st, &back);
         dumb_string sb1 = conv_str(st, &back1);
-        std::string buf = sb1.str() + sb.str();
+        MString buf;
+        buf += ZString(sb1);
+        buf += ZString(sb);
         if (back1.type == ByteCode::STR)
             back1.u.str.delete_();
         if (back.type == ByteCode::STR)
             back.u.str.delete_();
         back1.type = ByteCode::STR;
-        back1.u.str = dumb_string::copys(buf);
+        back1.u.str = dumb_string::copys(FString(buf));
     }
 }
 
@@ -4269,11 +4256,12 @@ void op_add(ScriptState *st)
  *------------------------------------------
  */
 static
-void op_2str(ScriptState *st, ByteCode op, dumb_string s1, dumb_string s2)
+void op_2str(ScriptState *st, ByteCode op, dumb_string s1_, dumb_string s2_)
 {
+    ZString s1 = ZString(s1_);
+    ZString s2 = ZString(s2_);
     int a = 0;
 
-    using namespace operators;
     switch (op)
     {
         case ByteCode::EQ:
@@ -4697,7 +4685,7 @@ int run_script(ScriptPointer sp, int rid, int oid)
 }
 
 int run_script_l(ScriptPointer sp, int rid, int oid,
-                  int args_nr, argrec_t *args)
+        int args_nr, argrec_t *args)
 {
     struct script_stack stack;
     ScriptState st;
@@ -4719,7 +4707,7 @@ int run_script_l(ScriptPointer sp, int rid, int oid,
     st.oid = oid;
     for (i = 0; i < args_nr; i++)
     {
-        if (args[i].name[strlen(args[i].name) - 1] == '$')
+        if (args[i].name.back() == '$')
             pc_setregstr(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.s);
         else
             pc_setreg(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.i);
@@ -4745,9 +4733,9 @@ void mapreg_setreg(SIR reg, int val)
  * 文字列型マップ変数の変更
  *------------------------------------------
  */
-void mapreg_setregstr(SIR reg, const char *str)
+void mapreg_setregstr(SIR reg, XString str)
 {
-    if (!str || !*str)
+    if (!str)
         mapregstr_db.erase(reg);
     else
         mapregstr_db.insert(reg, str);
@@ -4762,15 +4750,15 @@ void mapreg_setregstr(SIR reg, const char *str)
 static
 void script_load_mapreg(void)
 {
-    std::ifstream in(mapreg_txt);
+    std::ifstream in(mapreg_txt.c_str());
 
     if (!in.is_open())
         return;
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string buf1, buf2;
+        XString buf1, buf2;
         int index = 0;
         if (extract(line,
                     record<'\t'>(
@@ -4798,7 +4786,7 @@ void script_load_mapreg(void)
         else
         {
         borken:
-            PRINTF("%s: %s broken data !\n", mapreg_txt, buf1);
+            PRINTF("%s: %s broken data !\n", mapreg_txt, FString(buf1));
             continue;
         }
     }
@@ -4813,7 +4801,7 @@ static
 void script_save_mapreg_intsub(SIR key, int data, FILE *fp)
 {
     int num = key.base(), i = key.index();
-    const std::string& name = variable_names.outtern(num);
+    ZString name = variable_names.outtern(num);
     if (name[1] != '@')
     {
         if (i == 0)
@@ -4824,10 +4812,10 @@ void script_save_mapreg_intsub(SIR key, int data, FILE *fp)
 }
 
 static
-void script_save_mapreg_strsub(SIR key, const std::string& data, FILE *fp)
+void script_save_mapreg_strsub(SIR key, ZString data, FILE *fp)
 {
     int num = key.base(), i = key.index();
-    const std::string& name = variable_names.outtern(num);
+    ZString name = variable_names.outtern(num);
     if (name[1] != '@')
     {
         if (i == 0)
@@ -4876,12 +4864,8 @@ void do_final_script(void)
         script_save_mapreg();
 
     mapreg_db.clear();
-    for (auto& pair : mapregstr_db)
-        pair.second.clear();
     mapregstr_db.clear();
     scriptlabel_db.clear();
-    for (auto& pair : userfunc_db)
-        pair.second.reset();
     userfunc_db.clear();
 
     str_datam.clear();
@@ -4902,7 +4886,7 @@ void do_init_script(void)
 }
 
 #define BUILTIN(func, args) \
-{builtin_##func, #func, args}
+{builtin_##func, {#func}, {args}}
 
 BuiltinFunction builtin_functions[] =
 {
@@ -5022,5 +5006,5 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getx, ""),
     BUILTIN(gety, ""),
     BUILTIN(getmap, ""),
-    {NULL, NULL, NULL},
+    {nullptr, ZString(), ZString()},
 };

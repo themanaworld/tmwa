@@ -19,21 +19,25 @@
 // I still don't get why this is necessary.
 #define YYLEX_PARAM 0, 0
 
+// can't use src/warnings.hpp in generated code
 #pragma GCC diagnostic warning "-Wall"
 #pragma GCC diagnostic warning "-Wextra"
 #pragma GCC diagnostic warning "-Wformat"
+#ifndef __clang__
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#endif
 
 static
-size_t intern_id(const_string id_name);
+size_t intern_id(ZString id_name);
 
 static
-dumb_ptr<expr_t> fun_expr(const std::string& name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
+dumb_ptr<expr_t> fun_expr(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
 
 static
 dumb_ptr<expr_t> dot_expr(dumb_ptr<expr_t> lhs, int id);
 
 static
-void BIN_EXPR(dumb_ptr<expr_t> & x, const std::string& name, dumb_ptr<expr_t> arg1, dumb_ptr<expr_t> arg2, int line, int column)
+void BIN_EXPR(dumb_ptr<expr_t>& x, FString name, dumb_ptr<expr_t> arg1, dumb_ptr<expr_t> arg2, int line, int column)
 {
     dumb_ptr<expr_t> e[2];
     e[0] = arg1;
@@ -72,7 +76,7 @@ static
 void add_teleport_anchor(dumb_ptr<teleport_anchor_t> anchor, int line_nr);
 
 static
-dumb_ptr<effect_t> op_effect(const std::string& name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
+dumb_ptr<effect_t> op_effect(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
 
 // in magic-interpreter-lexer.cpp
 int magic_frontend_lex(YYSTYPE *, YYLTYPE *);
@@ -81,13 +85,13 @@ static
 void install_proc(dumb_ptr<proc_t> proc);
 
 static
-dumb_ptr<effect_t> call_proc(const_string name, dumb_ptr<std::vector<dumb_ptr<expr_t>>> argvp, int line_nr, int column);
+dumb_ptr<effect_t> call_proc(ZString name, dumb_ptr<std::vector<dumb_ptr<expr_t>>> argvp, int line_nr, int column);
 
 static
-void bind_constant(const std::string& name, val_t *val, int line_nr);
+void bind_constant(FString name, val_t *val, int line_nr);
 
 static
-val_t *find_constant(const std::string& name);
+val_t *find_constant(FString name);
 
 } // %code
 
@@ -919,7 +923,7 @@ item_name
 
 : STRING
 {
-    struct item_data *item = itemdb_searchname($1.c_str());
+    struct item_data *item = itemdb_searchname(stringish<ItemName>(ZString($1)));
     if (!item)
     {
         fail(@1.first_line, @1.first_column, "Unknown item `%s'\n", $1.c_str());
@@ -1066,7 +1070,7 @@ effect
 | SCRIPT_DATA
 {
     $$ = new_effect(EFFECT::SCRIPT);
-    $$->e.e_script = dumb_ptr<const ScriptBuffer>(parse_script($1.c_str(), @1.first_line).release());
+    $$->e.e_script = dumb_ptr<const ScriptBuffer>(parse_script(ZString($1), @1.first_line).release());
     $1.delete_();
     if ($$->e.e_script == NULL)
         fail(@1.first_line, @1.first_column, "Failed to compile script\n");
@@ -1098,9 +1102,8 @@ effect_list
 
 %%
 
-size_t intern_id(const_string id_name_)
+size_t intern_id(ZString id_name)
 {
-    std::string id_name(id_name_.begin(), id_name_.end());
     size_t i;
     for (i = 0; i < magic_conf.varv.size(); i++)
         if (id_name == magic_conf.varv[i].name)
@@ -1173,18 +1176,17 @@ dumb_ptr<expr_t> dot_expr(dumb_ptr<expr_t> expr, int id)
     return retval;
 }
 
-dumb_ptr<expr_t> fun_expr(const std::string& name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
+dumb_ptr<expr_t> fun_expr(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
 {
-    int id;
     dumb_ptr<expr_t> expr;
-    fun_t *fun = magic_get_fun(name, &id);
+    fun_t *fun = magic_get_fun(name);
 
     if (!fun)
         fail(line, column, "Unknown function `%s'\n", name.c_str());
-    else if (strlen(fun->signature) != argv.size())
+    else if (fun->signature.size() != argv.size())
     {
         fail(line, column, "Incorrect number of arguments to function `%s': Expected %zu, found %zu\n",
-                name.c_str(), strlen(fun->signature), argv.size());
+                name.c_str(), fun->signature.size(), argv.size());
         fun = NULL;
     }
 
@@ -1193,7 +1195,7 @@ dumb_ptr<expr_t> fun_expr(const std::string& name, const_array<dumb_ptr<expr_t>>
         expr = magic_new_expr(EXPR::FUNAPP);
         expr->e.e_funapp.line_nr = line;
         expr->e.e_funapp.column = column;
-        expr->e.e_funapp.id = id;
+        expr->e.e_funapp.funp = fun;
 
         assert (argv.size() <= MAX_ARGS);
         expr->e.e_funapp.args_nr = argv.size();
@@ -1212,10 +1214,7 @@ dumb_ptr<expr_t> fun_expr(const std::string& name, const_array<dumb_ptr<expr_t>>
 
 dumb_ptr<spell_t> new_spell(dumb_ptr<spellguard_t> guard)
 {
-    static int spell_counter = 0;
-
     auto retval = dumb_ptr<spell_t>::make();
-    retval->index_ = ++spell_counter;
     retval->spellguard = guard;
     return retval;
 }
@@ -1288,18 +1287,17 @@ dumb_ptr<effect_t> set_effect_continuation(dumb_ptr<effect_t> src, dumb_ptr<effe
     return retval;
 }
 
-dumb_ptr<effect_t> op_effect(const std::string& name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
+dumb_ptr<effect_t> op_effect(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
 {
-    int id;
     dumb_ptr<effect_t> effect;
-    op_t *op = magic_get_op(name, &id);
+    op_t *op = magic_get_op(name);
 
     if (!op)
         fail(line, column, "Unknown operation `%s'\n", name.c_str());
-    else if (strlen(op->signature) != argv.size())
+    else if (op->signature.size() != argv.size())
     {
         fail(line, column, "Incorrect number of arguments to operation `%s': Expected %zu, found %zu\n",
-                name.c_str(), strlen(op->signature), argv.size());
+                name.c_str(), op->signature.size(), argv.size());
         op = NULL;
     }
 
@@ -1308,7 +1306,7 @@ dumb_ptr<effect_t> op_effect(const std::string& name, const_array<dumb_ptr<expr_
         effect = new_effect(EFFECT::OP);
         effect->e.e_op.line_nr = line;
         effect->e.e_op.column = column;
-        effect->e.e_op.id = id;
+        effect->e.e_op.opp = op;
         assert (argv.size() <= MAX_ARGS);
         effect->e.e_op.args_nr = argv.size();
 
@@ -1321,7 +1319,7 @@ dumb_ptr<effect_t> op_effect(const std::string& name, const_array<dumb_ptr<expr_
 }
 
 
-std::map<std::string, proc_t> procs;
+std::map<FString, proc_t> procs;
 
 // I think this was a memory leak (or undefined behavior)
 void install_proc(dumb_ptr<proc_t> proc)
@@ -1329,9 +1327,8 @@ void install_proc(dumb_ptr<proc_t> proc)
     procs.insert({proc->name, std::move(*proc)});
 }
 
-dumb_ptr<effect_t> call_proc(const_string name_, dumb_ptr<std::vector<dumb_ptr<expr_t>>> argvp, int line_nr, int column)
+dumb_ptr<effect_t> call_proc(ZString name, dumb_ptr<std::vector<dumb_ptr<expr_t>>> argvp, int line_nr, int column)
 {
-    std::string name(name_.begin(), name_.end());
     auto pi = procs.find(name);
     if (pi == procs.end())
     {
@@ -1355,9 +1352,9 @@ dumb_ptr<effect_t> call_proc(const_string name_, dumb_ptr<std::vector<dumb_ptr<e
     return retval;
 }
 
-std::map<std::string, val_t> const_defm;
+std::map<FString, val_t> const_defm;
 
-void bind_constant(const std::string& name, val_t *val, int line_nr)
+void bind_constant(FString name, val_t *val, int line_nr)
 {
     if (!const_defm.insert({name, *val}).second)
     {
@@ -1365,7 +1362,7 @@ void bind_constant(const std::string& name, val_t *val, int line_nr)
     }
 }
 
-val_t *find_constant(const std::string& name)
+val_t *find_constant(FString name)
 {
     auto it = const_defm.find(name);
     if (it != const_defm.end())
@@ -1379,7 +1376,7 @@ static
 int error_flag;
 
 inline
-void INTERN_ASSERT(const char *name, int id)
+void INTERN_ASSERT(ZString name, int id)
 {
     int zid = intern_id(name);
     if (zid != id)

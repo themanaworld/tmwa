@@ -21,7 +21,7 @@ struct invocation;              /* Spell invocation */
  * \return 1 or -1 if the input message was magic and was handled by this function, 0 otherwise.  -1 is returned when the
  *         message should not be repeated.
  */
-int magic_message(dumb_ptr<map_session_data> caster, const std::string& source_invocation);
+int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation);
 
 /**
  * Removes the shroud from a character
@@ -49,16 +49,16 @@ void do_init_magic(void);
 /**
  * Identifies the invocation used to trigger a spell
  *
- * Returns NULL if not found
+ * Returns empty string if not found
  */
-const char *magic_find_invocation(const std::string& spellame);
+FString magic_find_invocation(XString spellname);
 
 /**
  * Identifies the invocation used to denote a teleport location
  *
- * Returns NULL if not found
+ * Returns empty string if not found
  */
-const char *magic_find_anchor_invocation(const std::string& teleport_location);
+FString magic_find_anchor_invocation(XString teleport_location);
 
 /**
  * Execute a spell invocation and sets up timers to finish

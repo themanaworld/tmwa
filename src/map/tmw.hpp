@@ -6,8 +6,7 @@
 
 #include "map.hpp"
 
-int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, const char *message);
-void tmw_GmHackMsg(const char *line);
-void tmw_TrimStr(char *str);
+int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message);
+void tmw_GmHackMsg(ZString line);
 
 #endif // TMW_HPP

@@ -12,31 +12,29 @@
 /// Return a pair of strings, {spellname, parameter}
 /// Parameter may be empty.
 static
-std::pair<std::string, std::string> magic_tokenise(std::string src)
+std::pair<XString, XString> magic_tokenise(XString src)
 {
-    std::string retval = std::move(src);
-    const std::string::iterator rvb = retval.begin(), rve = retval.end();
-    std::string::iterator seeker = std::find(rvb, rve, ' ');
+    auto seeker = std::find(src.begin(), src.end(), ' ');
 
-    if (seeker == retval.end())
+    if (seeker == src.end())
     {
-        return {retval, std::string()};
+        return {src, XString()};
     }
     else
     {
-        std::string rv1(rvb, seeker);
+        XString rv1 = src.xislice_h(seeker);
         ++seeker;
 
-        while (seeker != rve && *seeker == ' ')
+        while (seeker != src.end() && *seeker == ' ')
             ++seeker;
 
         // Note: this very well could be empty
-        std::string rv2(seeker, rve);
+        XString rv2 = src.xislice_t(seeker);
         return {rv1, rv2};
     }
 }
 
-int magic_message(dumb_ptr<map_session_data> caster, const std::string& source_invocation)
+int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 {
     if (pc_isdead(caster))
         return 0;
@@ -52,8 +50,8 @@ int magic_message(dumb_ptr<map_session_data> caster, const std::string& source_i
         magic_unshroud(caster);
 
     auto pair = magic_tokenise(source_invocation);
-    std::string spell_invocation = std::move(pair.first);
-    std::string parameter = std::move(pair.second);
+    XString spell_invocation = pair.first;
+    XString parameter = pair.second;
 
     dumb_ptr<spell_t> spell = magic_find_spell(spell_invocation);
 

@@ -248,4 +248,33 @@ typename std::enable_if<is_array_of_unknown_bound<T>::value, std::unique_ptr<T, 
     return std::unique_ptr<E[], D>(new E[sz]());
 }
 
+template<class T>
+const T& const_(T& t)
+{
+    return t;
+}
+
+template<class T, class U>
+T no_cast(U&& u)
+{
+    typedef typename std::remove_reference<T>::type Ti;
+    typedef typename std::remove_reference<U>::type Ui;
+    typedef typename std::remove_cv<Ti>::type Tb;
+    typedef typename std::remove_cv<Ui>::type Ub;
+    static_assert(std::is_same<Tb, Ub>::value, "not no cast");
+    return std::forward<U>(u);
+}
+
+template<class T, class U>
+T base_cast(U&& u)
+{
+    static_assert(std::is_reference<T>::value, "must base cast with references");
+    typedef typename std::remove_reference<T>::type Ti;
+    typedef typename std::remove_reference<U>::type Ui;
+    typedef typename std::remove_cv<Ti>::type Tb;
+    typedef typename std::remove_cv<Ui>::type Ub;
+    static_assert(std::is_base_of<Tb, Ub>::value, "not base cast");
+    return std::forward<U>(u);
+}
+
 #endif // UTILS2_HPP

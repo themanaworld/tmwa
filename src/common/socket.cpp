@@ -21,8 +21,6 @@
 static
 fd_set readfds;
 int fd_max;
-static
-int currentuse;
 
 static
 const uint32_t RFIFO_SIZE = 65536;
@@ -128,15 +126,16 @@ void connect_client(int listen_fd)
         perror("accept");
         return;
     }
+    if (fd >= SOFT_LIMIT)
+    {
+        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n", fd);
+        shutdown(fd, SHUT_RDWR);
+        close(fd);
+        return;
+    }
     if (fd_max <= fd)
     {
         fd_max = fd + 1;
-    }
-    if (!free_fds())
-    {
-        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n", fd);
-        delete_session(fd);
-        return;
     }
 
     const int yes = 1;
@@ -178,8 +177,6 @@ void connect_client(int listen_fd)
     session[fd]->client_addr = client_address;
     session[fd]->created = TimeT::now();
     session[fd]->connected = 0;
-
-    currentuse++;
 }
 
 int make_listen_port(uint16_t port)
@@ -237,7 +234,6 @@ int make_listen_port(uint16_t port)
     session[fd]->created = TimeT::now();
     session[fd]->connected = 1;
 
-    currentuse++;
     return fd;
 }
 
@@ -295,7 +291,6 @@ int make_connection(uint32_t ip, uint16_t port)
     session[fd]->created = TimeT::now();
     session[fd]->connected = 1;
 
-    currentuse++;
     return fd;
 }
 
@@ -326,13 +321,6 @@ void delete_session(int fd)
     // just close() would try to keep sending buffers
     shutdown(fd, SHUT_RDWR);
     close(fd);
-    currentuse--;
-    if (currentuse < 0)
-    {
-        FPRINTF(stderr, "delete_session: current sessions negative!\n");
-        currentuse = 0;
-    }
-    return;
 }
 
 void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size)
@@ -446,7 +434,6 @@ void do_socket(void)
 #pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_ZERO(&readfds);
 #pragma GCC diagnostic pop
-    currentuse = 3;
 }
 
 void RFIFOSKIP(int fd, size_t len)
@@ -459,24 +446,4 @@ void RFIFOSKIP(int fd, size_t len)
         FPRINTF(stderr, "too many skip\n");
         abort();
     }
-}
-
-void fclose_(FILE * fp)
-{
-    if (fclose(fp))
-        perror("fclose"), abort();
-    currentuse--;
-}
-
-FILE *fopen_(const char *path, const char *mode)
-{
-    FILE *f = fopen(path, mode);
-    if (f)
-        currentuse++;
-    return f;
-}
-
-bool free_fds(void)
-{
-    return currentuse < SOFT_LIMIT;
 }

@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include "cxxstdio.hpp"
 #include "random.hpp"
 #include "utils.hpp"
 
@@ -171,7 +172,7 @@ void MD5_do_block(MD5_state* state, MD5_block block)
 #undef d
 }
 
-void MD5_to_bin(MD5_state state, uint8_t out[0x10])
+void MD5_to_bin(MD5_state state, md5_binary& out)
 {
     for (int i = 0; i < 0x10; i++)
         out[i] = state.val[i / 4] >> 8 * (i % 4);
@@ -180,47 +181,47 @@ void MD5_to_bin(MD5_state state, uint8_t out[0x10])
 static
 const char hex[] = "0123456789abcdef";
 
-void MD5_to_str(MD5_state state, char out[0x21])
+void MD5_to_str(MD5_state state, md5_string& out_)
 {
-    uint8_t bin[16];
+    md5_binary bin;
     MD5_to_bin(state, bin);
+    char out[0x20];
     for (int i = 0; i < 0x10; i++)
         out[2 * i] = hex[bin[i] >> 4],
         out[2 * i + 1] = hex[bin[i] & 0xf];
-    out[0x20] = '\0';
+    out_ = stringish<md5_string>(XString(out, out + 0x20, nullptr));
 }
 
-MD5_state MD5_from_string(const char* msg, const size_t msglen)
+MD5_state MD5_from_string(XString msg)
 {
     MD5_state state;
     MD5_init(&state);
     MD5_block block;
-    size_t rem = msglen;
-    while (rem >= 64)
+    const uint64_t msg_full_len = msg.size();
+    while (msg.size() >= 64)
     {
         for (int i = 0; i < 0x10; i++)
             X[i] = msg[4 * i + 0] | msg[4 * i + 1] << 8 | msg[4 * i + 2] << 16 | msg[4 * i + 3] << 24;
         MD5_do_block(&state, block);
-        msg += 64;
-        rem -= 64;
+        msg = msg.xslice_t(64);
     }
     // now pad 1-512 bits + the 64-bit length - may be two blocks
     uint8_t buf[0x40] = {};
-    really_memcpy(buf, reinterpret_cast<const uint8_t *>(msg), rem);
-    buf[rem] = 0x80; // a single one bit
-    if (64 - rem > 8)
+    really_memcpy(buf, reinterpret_cast<const uint8_t *>(msg.data()), msg.size());
+    buf[msg.size()] = 0x80; // a single one bit
+    if (64 - msg.size() > 8)
     {
         for (int i = 0; i < 8; i++)
-            buf[0x38 + i] = (static_cast<uint64_t>(msglen) * 8) >> (i * 8);
+            buf[0x38 + i] = (msg_full_len * 8) >> (i * 8);
     }
     for (int i = 0; i < 0x10; i++)
         X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
     MD5_do_block(&state, block);
-    if (64 - rem <= 8)
+    if (64 - msg.size() <= 8)
     {
         really_memset0(buf, 0x38);
         for (int i = 0; i < 8; i++)
-            buf[0x38 + i] = (static_cast<uint64_t>(msglen) * 8) >> (i * 8);
+            buf[0x38 + i] = (msg_full_len * 8) >> (i * 8);
         for (int i = 0; i < 0x10; i++)
             X[i] = buf[4 * i + 0] | buf[4 * i + 1] << 8 | buf[4 * i + 2] << 16 | buf[4 * i + 3] << 24;
         MD5_do_block(&state, block);
@@ -228,12 +229,8 @@ MD5_state MD5_from_string(const char* msg, const size_t msglen)
     return state;
 }
 
-// This could be reimplemented without the strlen()
-MD5_state MD5_from_cstring(const char* msg)
-{
-    return MD5_from_string(msg, strlen(msg));
-}
-
+// TODO - refactor MD5 into a stream, and merge the implementations
+// I once implemented an ostream that does it ...
 MD5_state MD5_from_FILE(FILE* in)
 {
     uint64_t total_len = 0;
@@ -286,50 +283,53 @@ MD5_state MD5_from_FILE(FILE* in)
 
 // Hash a password with a salt.
 // Whoever wrote this FAILS programming
-const char *MD5_saltcrypt(const char *key, const char *salt)
+AccountCrypt MD5_saltcrypt(AccountPass key, SaltString salt)
 {
-    char buf[65];
+    char cbuf[64] {};
 
     // hash the key then the salt
     // buf ends up as a 64-char NUL-terminated string
-    MD5_to_str(MD5_from_cstring(key), buf);
-    MD5_to_str(MD5_from_cstring(salt), buf + 32);
+    md5_string tbuf, tbuf2;
+    MD5_to_str(MD5_from_string(key), tbuf);
+    MD5_to_str(MD5_from_string(salt), tbuf2);
+    const auto it = std::copy(tbuf.begin(), tbuf.end(), std::begin(cbuf));
+    auto it2 = std::copy(tbuf2.begin(), tbuf2.end(), it);
+    assert(it2 == std::end(cbuf));
 
-    // Hash the buffer back into sbuf - this is stupid
-    // (luckily, putting the result into itself is safe)
-    MD5_to_str(MD5_from_cstring(buf), buf + 32);
+    md5_string tbuf3;
+    MD5_to_str(MD5_from_string(XString(std::begin(cbuf), it2, nullptr)), tbuf3);
 
-    static char obuf[33];
+    VString<31> obuf;
+
     // This truncates the string, but we have to keep it like that for compatibility
-    snprintf(obuf, 32, "!%s$%s", salt, buf + 32);
-    return obuf;
+    SNPRINTF(obuf, 32, "!%s$%s", salt, tbuf3);
+    return stringish<AccountCrypt>(obuf);
 }
 
-const char *make_salt(void)
+SaltString make_salt(void)
 {
-    static char salt[6];
+    char salt[5];
     for (int i = 0; i < 5; i++)
         // 126 would probably actually be okay
         salt[i] = random_::in(48, 125);
-    return salt;
+    return stringish<SaltString>(XString(salt + 0, salt + 5, nullptr));
 }
 
-bool pass_ok(const char *password, const char *crypted)
+bool pass_ok(AccountPass password, AccountCrypt crypted)
 {
-    char buf[40];
-    strzcpy(buf, crypted, 40);
     // crypted is like !salt$hash
-    char *salt = buf + 1;
-    *strchr(salt, '$') = '\0';
+    auto begin = crypted.begin() + 1;
+    auto end = std::find(begin, crypted.end(), '$');
+    SaltString salt = stringish<SaltString>(crypted.xislice(begin, end));
 
-    return !strcmp(crypted, MD5_saltcrypt(password, salt));
+    return crypted == MD5_saltcrypt(password, salt);
 }
 
 // [M|h]ashes up an IP address and a secret key
 // to return a hopefully unique masked IP.
-struct in_addr MD5_ip(char *secret, struct in_addr ip)
+struct in_addr MD5_ip(struct in_addr ip)
 {
-    uint8_t obuf[16];
+    static SaltString secret = make_salt();
     union
     {
         uint8_t bytes[4];
@@ -337,10 +337,10 @@ struct in_addr MD5_ip(char *secret, struct in_addr ip)
     } conv;
 
     // MD5sum a secret + the IP address
-    char ipbuf[32] {};
-    snprintf(ipbuf, sizeof(ipbuf), "%u%s", ip.s_addr, secret);
-    /// TODO stop it from being a cstring
-    MD5_to_bin(MD5_from_cstring(ipbuf), obuf);
+    VString<31> ipbuf;
+    SNPRINTF(ipbuf, 32, "%u%s", ip.s_addr, secret);
+    md5_binary obuf;
+    MD5_to_bin(MD5_from_string(ipbuf), obuf);
 
     // Fold the md5sum to 32 bits, pack the bytes to an in_addr
     conv.bytes[0] = obuf[0] ^ obuf[1] ^ obuf[8] ^ obuf[9];

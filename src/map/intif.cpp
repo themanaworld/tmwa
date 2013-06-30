@@ -36,25 +36,25 @@ const int packet_len_table[] =
 // inter serverへの送信
 
 // Message for all GMs on all map servers
-void intif_GMmessage(const_string mes)
+void intif_GMmessage(XString mes)
 {
     WFIFOW(char_fd, 0) = 0x3000;
     size_t len = mes.size() + 1;
     WFIFOW(char_fd, 2) = 4 + len;
-    WFIFO_STRING(char_fd, 4, mes.data(), len);
+    WFIFO_STRING(char_fd, 4, mes, len);
     WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 }
 
 // The transmission of Wisp/Page to inter-server (player not found on this server)
-void intif_wis_message(dumb_ptr<map_session_data> sd, const char *nick, const char *mes)
+void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes)
 {
     nullpo_retv(sd);
 
-    size_t mes_len = strlen(mes) + 1;
+    size_t mes_len = mes.size() + 1;
     WFIFOW(char_fd, 0) = 0x3001;
     WFIFOW(char_fd, 2) = mes_len + 52;
-    WFIFO_STRING(char_fd, 4, sd->status.name, 24);
-    WFIFO_STRING(char_fd, 28, nick, 24);
+    WFIFO_STRING(char_fd, 4, sd->status.name.to__actual(), 24);
+    WFIFO_STRING(char_fd, 28, nick.to__actual(), 24);
     WFIFO_STRING(char_fd, 52, mes, mes_len);
     WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 
@@ -77,19 +77,19 @@ void intif_wis_replay(int id, int flag)
 }
 
 // The transmission of GM only Wisp/Page from server to inter-server
-void intif_wis_message_to_gm(const char *Wisp_name, int min_gm_level, const char *mes)
+void intif_wis_message_to_gm(CharName Wisp_name, int min_gm_level, ZString mes)
 {
-    size_t mes_len = strlen(mes) + 1;
+    size_t mes_len = mes.size() + 1;
     WFIFOW(char_fd, 0) = 0x3003;
     WFIFOW(char_fd, 2) = mes_len + 30;
-    WFIFO_STRING(char_fd, 4, Wisp_name, 24);
+    WFIFO_STRING(char_fd, 4, Wisp_name.to__actual(), 24);
     WFIFOW(char_fd, 28) = min_gm_level;
     WFIFO_STRING(char_fd, 30, mes, mes_len);
     WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_message_to_gm: from: '%s', min level: %d, message: '%s'.\n",
-             Wisp_name, min_gm_level, mes);
+                Wisp_name, min_gm_level, mes);
 }
 
 // アカウント変数送信
@@ -140,14 +140,14 @@ void intif_send_storage(struct storage *stor)
 }
 
 // パーティ作成要求
-void intif_create_party(dumb_ptr<map_session_data> sd, const char *name)
+void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
 {
     nullpo_retv(sd);
 
     WFIFOW(char_fd, 0) = 0x3020;
     WFIFOL(char_fd, 2) = sd->status.account_id;
     WFIFO_STRING(char_fd, 6, name, 24);
-    WFIFO_STRING(char_fd, 30, sd->status.name, 24);
+    WFIFO_STRING(char_fd, 30, sd->status.name.to__actual(), 24);
     WFIFO_STRING(char_fd, 54, sd->bl_m->name_, 16);
     WFIFOW(char_fd, 70) = sd->status.base_level;
     WFIFOSET(char_fd, 72);
@@ -171,7 +171,7 @@ void intif_party_addmember(int party_id, int account_id)
         WFIFOW(char_fd, 0) = 0x3022;
         WFIFOL(char_fd, 2) = party_id;
         WFIFOL(char_fd, 6) = account_id;
-        WFIFO_STRING(char_fd, 10, sd->status.name, 24);
+        WFIFO_STRING(char_fd, 10, sd->status.name.to__actual(), 24);
         WFIFO_STRING(char_fd, 34, sd->bl_m->name_, 16);
         WFIFOW(char_fd, 50) = sd->status.base_level;
         WFIFOSET(char_fd, 52);
@@ -214,9 +214,9 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
 }
 
 // パーティ会話送信
-void intif_party_message(int party_id, int account_id, const char *mes)
+void intif_party_message(int party_id, int account_id, XString mes)
 {
-    size_t len = strlen(mes) + 1;
+    size_t len = mes.size() + 1;
     WFIFOW(char_fd, 0) = 0x3027;
     WFIFOW(char_fd, 2) = len + 12;
     WFIFOL(char_fd, 4) = party_id;
@@ -226,12 +226,12 @@ void intif_party_message(int party_id, int account_id, const char *mes)
 }
 
 // パーティ競合チェック要求
-void intif_party_checkconflict(int party_id, int account_id, const char *nick)
+void intif_party_checkconflict(int party_id, int account_id, CharName nick)
 {
     WFIFOW(char_fd, 0) = 0x3028;
     WFIFOL(char_fd, 2) = party_id;
     WFIFOL(char_fd, 6) = account_id;
-    WFIFO_STRING(char_fd, 10, nick, 24);
+    WFIFO_STRING(char_fd, 10, nick.to__actual(), 24);
     WFIFOSET(char_fd, 34);
 }
 
@@ -245,26 +245,22 @@ int intif_parse_WisMessage(int fd)
     // rewritten by [Yor]
     dumb_ptr<map_session_data> sd;
 
-    char from[24];
-    RFIFO_STRING(fd, 8, from, 24);
-    char to[24];
-    RFIFO_STRING(fd, 32, to, 24);
+    CharName from = stringish<CharName>(RFIFO_STRING<24>(fd, 8));
+    CharName to = stringish<CharName>(RFIFO_STRING<24>(fd, 32));
 
     size_t len = RFIFOW(fd, 2) - 56;
-    char buf[len];
-    RFIFO_STRING(fd, 56, buf, len);
+    FString buf = RFIFO_STRING(fd, 56, len);
 
     if (battle_config.etc_log)
     {
-        const char *mes = buf;
         PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s, message: '%s'\n",
              RFIFOL(fd, 4),
              from,
              to,
-             mes);
+             buf);
     }
     sd = map_nick2sd(to); // Searching destination player
-    if (sd != NULL && strcmp(sd->status.name, to) == 0)
+    if (sd != NULL && sd->status.name == to)
     {
         // exactly same name (inter-server have checked the name before)
         {
@@ -286,8 +282,7 @@ int intif_parse_WisEnd(int fd)
 {
     dumb_ptr<map_session_data> sd;
 
-    char name[24];
-    RFIFO_STRING(fd, 2, name, 24);
+    CharName name = stringish<CharName>(RFIFO_STRING<24>(fd, 2));
     uint8_t flag = RFIFOB(fd, 26);
     if (battle_config.etc_log)
         // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
@@ -306,17 +301,15 @@ void mapif_parse_WisToGM(int fd)
 {
     // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
     int min_gm_level, len;
-    char Wisp_name[24];
 
     if (RFIFOW(fd, 2) - 30 <= 0)
         return;
 
     len = RFIFOW(fd, 2) - 30;
-    char message[len];
 
     min_gm_level = RFIFOW(fd, 28);
-    RFIFO_STRING(fd, 4, Wisp_name, 24);
-    RFIFO_STRING(fd, 30, message, len);
+    CharName Wisp_name = stringish<CharName>(RFIFO_STRING<24>(fd, 4));
+    FString message = RFIFO_STRING(fd, 30, len);
     // information is sended to all online GM
     for (int i = 0; i < fd_max; i++)
     {
@@ -341,7 +334,7 @@ int intif_parse_AccountReg(int fd)
     for (p = 8, j = 0; p < RFIFOW(fd, 2) && j < ACCOUNT_REG_NUM;
          p += 36, j++)
     {
-        RFIFO_STRING(fd, p, sd->status.account_reg[j].str, 32);
+        sd->status.account_reg[j].str = stringish<VarName>(RFIFO_STRING<32>(fd, p));
         sd->status.account_reg[j].value = RFIFOL(fd, p + 32);
     }
     sd->status.account_reg_num = j;
@@ -420,8 +413,7 @@ void intif_parse_PartyCreated(int fd)
     int account_id = RFIFOL(fd, 2);
     int fail = RFIFOB(fd, 6);
     int party_id = RFIFOL(fd, 7);
-    char name[24];
-    RFIFO_STRING(fd, 11, name, 24);
+    PartyName name = stringish<PartyName>(RFIFO_STRING<24>(fd, 11));
     party_created(account_id, fail, party_id, name);
 }
 
@@ -474,8 +466,7 @@ void intif_parse_PartyMemberLeaved(int fd)
 {
     int party_id = RFIFOL(fd, 2);
     int account_id = RFIFOL(fd, 6);
-    char name[24];
-    RFIFO_STRING(fd, 10, name, 24);
+    CharName name = stringish<CharName>(RFIFO_STRING<24>(fd, 10));
     if (battle_config.etc_log)
         PRINTF("intif: party member leaved %d %d %s\n",
                 party_id, account_id, name);
@@ -495,8 +486,7 @@ void intif_parse_PartyMove(int fd)
 {
     int party_id = RFIFOL(fd, 2);
     int account_id = RFIFOL(fd, 6);
-    char map[16];
-    RFIFO_STRING(fd, 10, map, 16);
+    MapName map = stringish<MapName>(RFIFO_STRING<16>(fd, 10));
     uint8_t online = RFIFOB(fd, 26);
     uint16_t lv = RFIFOW(fd, 27);
     party_recv_movemap(party_id, account_id, map, online, lv);
@@ -507,8 +497,7 @@ static
 void intif_parse_PartyMessage(int fd)
 {
     size_t len = RFIFOW(fd, 2) - 12;
-    char buf[len];
-    RFIFO_STRING(fd, 12, buf, len);
+    FString buf = RFIFO_STRING(fd, 12, len);
     party_recv_message(RFIFOL(fd, 4), RFIFOL(fd, 8), buf);
 }
 
@@ -547,9 +536,8 @@ int intif_parse(int fd)
     {
         case 0x3800:
         {
-            char mes[packet_len - 4];
-            RFIFO_STRING(fd, 4, mes, packet_len - 4);
-            clif_GMmessage(NULL, ZString(ZString::really_construct_from_a_pointer, mes), 0);
+            FString mes = RFIFO_STRING(fd, 4, packet_len - 4);
+            clif_GMmessage(NULL, mes, 0);
         }
             break;
         case 0x3801:

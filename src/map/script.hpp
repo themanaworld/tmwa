@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <cstring> // for inlined get_str - TODO remove
 
-#include <string>
 #include <vector>
 
 #include "../common/db.hpp"
 #include "../common/dumb_ptr.hpp"
+#include "../common/utils.hpp"
 
 #include "map.t.hpp"
 
@@ -25,17 +25,17 @@ public:
     void add_scripti(uint32_t a);
     void add_scriptl(str_data_t *a);
     void set_label(str_data_t *ld, int pos_);
-    const char *parse_simpleexpr(const char *p);
-    const char *parse_subexpr(const char *p, int limit);
-    const char *parse_expr(const char *p);
-    const char *parse_line(const char *p);
-    void parse_script(const char *src, int line);
+    ZString::iterator parse_simpleexpr(ZString::iterator p);
+    ZString::iterator parse_subexpr(ZString::iterator p, int limit);
+    ZString::iterator parse_expr(ZString::iterator p);
+    ZString::iterator parse_line(ZString::iterator p);
+    void parse_script(ZString src, int line);
 
     // consumption methods used only by script.cpp
     ByteCode operator[](size_t i) const { return script_buf[i]; }
-    const char *get_str(size_t i) const
+    ZString get_str(size_t i) const
     {
-        return reinterpret_cast<const char *>(&script_buf[i]);
+        return ZString(ZString::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
     }
 
     // method used elsewhere
@@ -58,10 +58,10 @@ struct ScriptPointer
 
     ByteCode peek() const { return (*code)[pos]; }
     ByteCode pop() { return (*code)[pos++]; }
-    const char *pops()
+    ZString pops()
     {
-        const char *rv = code->get_str(pos);
-        pos += strlen(rv);
+        ZString rv = code->get_str(pos);
+        pos += rv.size();
         ++pos;
         return rv;
     }
@@ -129,33 +129,36 @@ public:
     int defsp, new_defsp;
 };
 
-std::unique_ptr<const ScriptBuffer> parse_script(const char *, int);
-typedef struct argrec
+std::unique_ptr<const ScriptBuffer> parse_script(ZString, int);
+struct argrec_t
 {
-    const char *name;
+    ZString name;
     union _aru
     {
         int i;
-        const char *s;
+        ZString s;
 
-        _aru() = default;
         _aru(int n) : i(n) {}
-        _aru(const char *z) : s(z) {}
+        _aru(ZString z) : s(z) {}
     } v;
-} argrec_t;
+
+    argrec_t(ZString n, int i) : name(n), v(i) {}
+    argrec_t(ZString n, ZString z) : name(n), v(z) {}
+};
 int run_script_l(ScriptPointer, int, int, int, argrec_t *args);
 int run_script(ScriptPointer, int, int);
 
+struct ScriptLabel;
 extern
-Map<std::string, int> scriptlabel_db;
+Map<ScriptLabel, int> scriptlabel_db;
 extern
-UPMap<std::string, const ScriptBuffer> userfunc_db;
+UPMap<FString, const ScriptBuffer> userfunc_db;
 
 void script_config_read();
 void do_init_script(void);
 void do_final_script(void);
 
-extern char mapreg_txt[256];
+extern FString mapreg_txt;
 
 extern int script_errors;
 

@@ -17,6 +17,7 @@
 #include <fstream>
 
 #include "../common/cxxstdio.hpp"
+#include "../common/io.hpp"
 #include "../common/utils.hpp"
 
 #include "../poison.hpp"
@@ -29,30 +30,30 @@
 
 // initialiized to $HOME/tmwserver
 static
-std::string workdir;
+FString workdir;
 //the rest are relative to workdir
 static
-std::string login_server = LOGIN_SERVER;
+FString login_server = LOGIN_SERVER;
 static
-std::string map_server = MAP_SERVER;
+FString map_server = MAP_SERVER;
 static
-std::string char_server = CHAR_SERVER;
+FString char_server = CHAR_SERVER;
 
 static
 pid_t pid_login, pid_map, pid_char;
 
 static
-std::string make_path(const std::string& base, const std::string& path)
+FString make_path(XString base, XString path)
 {
-    std::string out(base.size() + 1 + path.size(), '\0');
-    std::string::iterator it = std::copy(base.begin(), base.end(), out.begin());
-    *it++ = '/';
-    std::copy(path.begin(), path.end(), it);
-    return out;
+    MString m;
+    m += base;
+    m += '/';
+    m += path;
+    return FString(m);
 }
 
 static
-void parse_option(const std::string& name, const std::string& value)
+void parse_option(XString name, ZString value)
 {
     if (name == "login_server")
         login_server = value;
@@ -63,23 +64,28 @@ void parse_option(const std::string& name, const std::string& value)
     else if (name == "workdir")
         workdir = value;
     else
-        FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n", name, value);
+    {
+        FString name_ = name;
+        FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n",
+                name_, value);
+    }
 }
 
 static
-void read_config(const std::string& filename)
+void read_config(ZString filename)
 {
-    std::ifstream in(filename);
+    std::ifstream in(filename.c_str());
     if (!in.is_open())
     {
         FPRINTF(stderr, "Monitor config file not found: %s\n", filename);
         exit(1);
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string name, value;
+        SString name;
+        TString value;
         if (!split_key_value(line, &name, &value))
             continue;
 
@@ -88,7 +94,8 @@ void read_config(const std::string& filename)
 }
 
 static
-pid_t start_process(const std::string& exec) {
+pid_t start_process(ZString exec)
+{
     const char *args[2] = {exec.c_str(), NULL};
     pid_t pid = fork();
     if (pid == -1)
@@ -135,11 +142,11 @@ int main(int argc, char *argv[])
     signal(SIGQUIT, stop_process);
     signal(SIGABRT, stop_process);
 
-    workdir = make_path(getenv("HOME"), "tmwserver");
+    workdir = make_path(ZString(ZString::really_construct_from_a_pointer, getenv("HOME"), nullptr), "tmwserver");
 
-    std::string config = CONFIG;
+    ZString config = CONFIG;
     if (argc > 1)
-        config = argv[1];
+        config = ZString(ZString::really_construct_from_a_pointer, argv[1], nullptr);
     read_config(config);
 
     if (chdir(workdir.c_str()) < 0)

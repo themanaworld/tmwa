@@ -5,8 +5,9 @@
 #include <fstream>
 
 #include "../common/cxxstdio.hpp"
-#include "../common/random.hpp"
+#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/random.hpp"
 
 #include "clif.hpp"
 #include "itemdb.hpp"
@@ -2290,7 +2291,7 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
  * 設定ファイルを読み込む
  *------------------------------------------
  */
-int battle_config_read(const char *cfgName)
+int battle_config_read(ZString cfgName)
 {
     static int count = 0;
 
@@ -2458,200 +2459,203 @@ int battle_config_read(const char *cfgName)
         battle_config.mob_splash_radius = -1;
     }
 
-    std::ifstream in(cfgName);
+    std::ifstream in(cfgName.c_str());
     if (!in.is_open())
     {
         PRINTF("file not found: %s\n", cfgName);
         return 1;
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
+#define BATTLE_CONFIG_VAR2(name, varname) {{name}, &battle_config.varname}
+#define BATTLE_CONFIG_VAR(name) BATTLE_CONFIG_VAR2(#name, name)
         // s/{"\([a-zA-Z_0-9]*\)", &battle_config.\1}/BATTLE_CONFIG_VAR(\1)/
         const struct
         {
-            const char *str;
+            ZString str;
             int *val;
         } data[] =
         {
-            {"warp_point_debug", &battle_config.warp_point_debug},
-            {"enemy_critical", &battle_config.enemy_critical},
-            {"enemy_critical_rate", &battle_config.enemy_critical_rate},
-            {"enemy_str", &battle_config.enemy_str},
-            {"enemy_perfect_flee", &battle_config.enemy_perfect_flee},
-            {"casting_rate", &battle_config.cast_rate},
-            {"delay_rate", &battle_config.delay_rate},
-            {"delay_dependon_dex", &battle_config.delay_dependon_dex},
-            {"skill_delay_attack_enable", &battle_config.sdelay_attack_enable},
-            {"left_cardfix_to_right", &battle_config.left_cardfix_to_right},
-            {"player_skill_add_range", &battle_config.pc_skill_add_range},
-            {"skill_out_range_consume", &battle_config.skill_out_range_consume},
-            {"monster_skill_add_range", &battle_config.mob_skill_add_range},
-            {"player_damage_delay", &battle_config.pc_damage_delay},
-            {"defunit_not_enemy", &battle_config.defnotenemy},
-            {"random_monster_checklv", &battle_config.random_monster_checklv},
-            {"attribute_recover", &battle_config.attr_recover},
-            {"flooritem_lifetime", &battle_config.flooritem_lifetime},
-            {"item_auto_get", &battle_config.item_auto_get},
-            {"drop_pickup_safety_zone", &battle_config.drop_pickup_safety_zone},
-            {"item_first_get_time", &battle_config.item_first_get_time},
-            {"item_second_get_time", &battle_config.item_second_get_time},
-            {"item_third_get_time", &battle_config.item_third_get_time},
-            {"base_exp_rate", &battle_config.base_exp_rate},
-            {"job_exp_rate", &battle_config.job_exp_rate},
-            {"gtb_pvp_only", &battle_config.gtb_pvp_only},
-            {"death_penalty_type", &battle_config.death_penalty_type},
-            {"death_penalty_base", &battle_config.death_penalty_base},
-            {"death_penalty_job", &battle_config.death_penalty_job},
-            {"zeny_penalty", &battle_config.zeny_penalty},
-            {"restart_hp_rate", &battle_config.restart_hp_rate},
-            {"restart_sp_rate", &battle_config.restart_sp_rate},
-            {"monster_hp_rate", &battle_config.monster_hp_rate},
-            {"monster_max_aspd", &battle_config.monster_max_aspd},
-            {"atcommand_gm_only", &battle_config.atc_gmonly},
-            {"atcommand_spawn_quantity_limit", &battle_config.atc_spawn_quantity_limit},
-            {"gm_all_skill", &battle_config.gm_allskill},
-            {"gm_all_skill_add_abra", &battle_config.gm_allskill_addabra},
-            {"gm_all_equipment", &battle_config.gm_allequip},
-            {"gm_skill_unconditional", &battle_config.gm_skilluncond},
-            {"player_skillfree", &battle_config.skillfree},
-            {"player_skillup_limit", &battle_config.skillup_limit},
-            {"weapon_produce_rate", &battle_config.wp_rate},
-            {"potion_produce_rate", &battle_config.pp_rate},
-            {"monster_active_enable", &battle_config.monster_active_enable},
-            {"mob_skill_use", &battle_config.mob_skill_use},
-            {"mob_count_rate", &battle_config.mob_count_rate},
-            {"quest_skill_learn", &battle_config.quest_skill_learn},
-            {"quest_skill_reset", &battle_config.quest_skill_reset},
-            {"basic_skill_check", &battle_config.basic_skill_check},
-            {"player_invincible_time", &battle_config.pc_invincible_time},
-            {"skill_min_damage", &battle_config.skill_min_damage},
-            {"finger_offensive_type", &battle_config.finger_offensive_type},
-            {"heal_exp", &battle_config.heal_exp},
-            {"resurrection_exp", &battle_config.resurrection_exp},
-            {"shop_exp", &battle_config.shop_exp},
-            {"combo_delay_rate", &battle_config.combo_delay_rate},
-            {"wedding_modifydisplay", &battle_config.wedding_modifydisplay},
-            {"natural_healhp_interval", &battle_config.natural_healhp_interval},
-            {"natural_healsp_interval", &battle_config.natural_healsp_interval},
-            {"natural_heal_skill_interval", &battle_config.natural_heal_skill_interval},
-            {"natural_heal_weight_rate", &battle_config.natural_heal_weight_rate},
-            {"itemheal_regeneration_factor", &battle_config.itemheal_regeneration_factor},
-            {"item_name_override_grffile", &battle_config.item_name_override_grffile},
-            {"arrow_decrement", &battle_config.arrow_decrement},
-            {"max_aspd", &battle_config.max_aspd},
-            {"max_hp", &battle_config.max_hp},
-            {"max_sp", &battle_config.max_sp},
-            {"max_lv", &battle_config.max_lv},
-            {"max_parameter", &battle_config.max_parameter},
-            {"max_cart_weight", &battle_config.max_cart_weight},
-            {"player_skill_log", &battle_config.pc_skill_log},
-            {"monster_skill_log", &battle_config.mob_skill_log},
-            {"battle_log", &battle_config.battle_log},
-            {"save_log", &battle_config.save_log},
-            {"error_log", &battle_config.error_log},
-            {"etc_log", &battle_config.etc_log},
-            {"save_clothcolor", &battle_config.save_clothcolor},
-            {"undead_detect_type", &battle_config.undead_detect_type},
-            {"player_auto_counter_type", &battle_config.pc_auto_counter_type},
-            {"monster_auto_counter_type", &battle_config.monster_auto_counter_type},
-            {"agi_penaly_type", &battle_config.agi_penaly_type},
-            {"agi_penaly_count", &battle_config.agi_penaly_count},
-            {"agi_penaly_num", &battle_config.agi_penaly_num},
-            {"agi_penaly_count_lv", &battle_config.agi_penaly_count_lv},
-            {"vit_penaly_type", &battle_config.vit_penaly_type},
-            {"vit_penaly_count", &battle_config.vit_penaly_count},
-            {"vit_penaly_num", &battle_config.vit_penaly_num},
-            {"vit_penaly_count_lv", &battle_config.vit_penaly_count_lv},
-            {"player_skill_reiteration", &battle_config.pc_skill_reiteration},
-            {"monster_skill_reiteration", &battle_config.monster_skill_reiteration},
-            {"player_skill_nofootset", &battle_config.pc_skill_nofootset},
-            {"monster_skill_nofootset", &battle_config.monster_skill_nofootset},
-            {"player_cloak_check_type", &battle_config.pc_cloak_check_type},
-            {"monster_cloak_check_type", &battle_config.monster_cloak_check_type},
-            {"mob_changetarget_byskill", &battle_config.mob_changetarget_byskill},
-            {"player_attack_direction_change", &battle_config.pc_attack_direction_change},
-            {"monster_attack_direction_change", &battle_config.monster_attack_direction_change},
-            {"player_land_skill_limit", &battle_config.pc_land_skill_limit},
-            {"monster_land_skill_limit", &battle_config.monster_land_skill_limit},
-            {"party_skill_penaly", &battle_config.party_skill_penaly},
-            {"monster_class_change_full_recover", &battle_config.monster_class_change_full_recover},
-            {"produce_item_name_input", &battle_config.produce_item_name_input},
-            {"produce_potion_name_input", &battle_config.produce_potion_name_input},
-            {"making_arrow_name_input", &battle_config.making_arrow_name_input},
-            {"holywater_name_input", &battle_config.holywater_name_input},
-            {"display_delay_skill_fail", &battle_config.display_delay_skill_fail},
-            {"chat_warpportal", &battle_config.chat_warpportal},
-            {"mob_warpportal", &battle_config.mob_warpportal},
-            {"dead_branch_active", &battle_config.dead_branch_active},
-            {"show_steal_in_same_party", &battle_config.show_steal_in_same_party},
-            {"enable_upper_class", &battle_config.enable_upper_class},
-            {"mob_attack_attr_none", &battle_config.mob_attack_attr_none},
-            {"mob_ghostring_fix", &battle_config.mob_ghostring_fix},
-            {"pc_attack_attr_none", &battle_config.pc_attack_attr_none},
-            {"gx_allhit", &battle_config.gx_allhit},
-            {"gx_cardfix", &battle_config.gx_cardfix},
-            {"gx_dupele", &battle_config.gx_dupele},
-            {"gx_disptype", &battle_config.gx_disptype},
-            {"player_skill_partner_check", &battle_config.player_skill_partner_check},
-            {"hide_GM_session", &battle_config.hide_GM_session},
-            {"unit_movement_type", &battle_config.unit_movement_type},
-            {"invite_request_check", &battle_config.invite_request_check},
-            {"skill_removetrap_type", &battle_config.skill_removetrap_type},
-            {"disp_experience", &battle_config.disp_experience},
-            {"riding_weight", &battle_config.riding_weight},
-            {"prevent_logout", &battle_config.prevent_logout},   // Added by RoVeRT
-            {"alchemist_summon_reward", &battle_config.alchemist_summon_reward}, // [Valaris]
-            {"maximum_level", &battle_config.maximum_level}, // [Valaris]
-            {"drops_by_luk", &battle_config.drops_by_luk},   // [Valaris]
-            {"monsters_ignore_gm", &battle_config.monsters_ignore_gm},   // [Valaris]
-            {"pk_mode", &battle_config.pk_mode}, // [Valaris]
-            {"multi_level_up", &battle_config.multi_level_up},   // [Valaris]
-            {"backstab_bow_penalty", &battle_config.backstab_bow_penalty},
-            {"show_mob_hp", &battle_config.show_mob_hp}, // [Valaris]
-            {"hack_info_GM_level", &battle_config.hack_info_GM_level},   // added by [Yor]
-            {"any_warp_GM_min_level", &battle_config.any_warp_GM_min_level}, // added by [Yor]
-            {"packet_ver_flag", &battle_config.packet_ver_flag}, // added by [Yor]
-            {"min_hair_style", &battle_config.min_hair_style},   // added by [MouseJstr]
-            {"max_hair_style", &battle_config.max_hair_style},   // added by [MouseJstr]
-            {"min_hair_color", &battle_config.min_hair_color},   // added by [MouseJstr]
-            {"max_hair_color", &battle_config.max_hair_color},   // added by [MouseJstr]
-            {"min_cloth_color", &battle_config.min_cloth_color}, // added by [MouseJstr]
-            {"max_cloth_color", &battle_config.max_cloth_color}, // added by [MouseJstr]
-            {"castrate_dex_scale", &battle_config.castrate_dex_scale},   // added by [MouseJstr]
-            {"area_size", &battle_config.area_size}, // added by [MouseJstr]
-            {"chat_lame_penalty", &battle_config.chat_lame_penalty},
-            {"chat_spam_threshold", &battle_config.chat_spam_threshold},
-            {"chat_spam_flood", &battle_config.chat_spam_flood},
-            {"chat_spam_ban", &battle_config.chat_spam_ban},
-            {"chat_spam_warn", &battle_config.chat_spam_warn},
-            {"chat_maxline", &battle_config.chat_maxline},
-            {"packet_spam_threshold", &battle_config.packet_spam_threshold},
-            {"packet_spam_flood", &battle_config.packet_spam_flood},
-            {"packet_spam_kick", &battle_config.packet_spam_kick},
-            {"mask_ip_gms", &battle_config.mask_ip_gms},
-            {"mob_splash_radius", &battle_config.mob_splash_radius},
+            BATTLE_CONFIG_VAR(warp_point_debug),
+            BATTLE_CONFIG_VAR(enemy_critical),
+            BATTLE_CONFIG_VAR(enemy_critical_rate),
+            BATTLE_CONFIG_VAR(enemy_str),
+            BATTLE_CONFIG_VAR(enemy_perfect_flee),
+            BATTLE_CONFIG_VAR2("casting_rate", cast_rate),
+            BATTLE_CONFIG_VAR(delay_rate),
+            BATTLE_CONFIG_VAR(delay_dependon_dex),
+            BATTLE_CONFIG_VAR2("skill_delay_attack_enable", sdelay_attack_enable),
+            BATTLE_CONFIG_VAR(left_cardfix_to_right),
+            BATTLE_CONFIG_VAR2("player_skill_add_range", pc_skill_add_range),
+            BATTLE_CONFIG_VAR(skill_out_range_consume),
+            BATTLE_CONFIG_VAR2("monster_skill_add_range", mob_skill_add_range),
+            BATTLE_CONFIG_VAR2("player_damage_delay", pc_damage_delay),
+            BATTLE_CONFIG_VAR2("defunit_not_enemy", defnotenemy),
+            BATTLE_CONFIG_VAR(random_monster_checklv),
+            BATTLE_CONFIG_VAR2("attribute_recover", attr_recover),
+            BATTLE_CONFIG_VAR(flooritem_lifetime),
+            BATTLE_CONFIG_VAR(item_auto_get),
+            BATTLE_CONFIG_VAR(drop_pickup_safety_zone),
+            BATTLE_CONFIG_VAR(item_first_get_time),
+            BATTLE_CONFIG_VAR(item_second_get_time),
+            BATTLE_CONFIG_VAR(item_third_get_time),
+            BATTLE_CONFIG_VAR(base_exp_rate),
+            BATTLE_CONFIG_VAR(job_exp_rate),
+            BATTLE_CONFIG_VAR(gtb_pvp_only),
+            BATTLE_CONFIG_VAR(death_penalty_type),
+            BATTLE_CONFIG_VAR(death_penalty_base),
+            BATTLE_CONFIG_VAR(death_penalty_job),
+            BATTLE_CONFIG_VAR(zeny_penalty),
+            BATTLE_CONFIG_VAR(restart_hp_rate),
+            BATTLE_CONFIG_VAR(restart_sp_rate),
+            BATTLE_CONFIG_VAR(monster_hp_rate),
+            BATTLE_CONFIG_VAR(monster_max_aspd),
+            BATTLE_CONFIG_VAR2("atcommand_gm_only", atc_gmonly),
+            BATTLE_CONFIG_VAR2("atcommand_spawn_quantity_limit", atc_spawn_quantity_limit),
+            BATTLE_CONFIG_VAR2("gm_all_skill", gm_allskill),
+            BATTLE_CONFIG_VAR2("gm_all_skill_add_abra", gm_allskill_addabra),
+            BATTLE_CONFIG_VAR2("gm_all_equipment", gm_allequip),
+            BATTLE_CONFIG_VAR2("gm_skill_unconditional", gm_skilluncond),
+            BATTLE_CONFIG_VAR2("player_skillfree", skillfree),
+            BATTLE_CONFIG_VAR2("player_skillup_limit", skillup_limit),
+            BATTLE_CONFIG_VAR2("weapon_produce_rate", wp_rate),
+            BATTLE_CONFIG_VAR2("potion_produce_rate", pp_rate),
+            BATTLE_CONFIG_VAR(monster_active_enable),
+            BATTLE_CONFIG_VAR(mob_skill_use),
+            BATTLE_CONFIG_VAR(mob_count_rate),
+            BATTLE_CONFIG_VAR(quest_skill_learn),
+            BATTLE_CONFIG_VAR(quest_skill_reset),
+            BATTLE_CONFIG_VAR(basic_skill_check),
+            BATTLE_CONFIG_VAR2("player_invincible_time", pc_invincible_time),
+            BATTLE_CONFIG_VAR(skill_min_damage),
+            BATTLE_CONFIG_VAR(finger_offensive_type),
+            BATTLE_CONFIG_VAR(heal_exp),
+            BATTLE_CONFIG_VAR(resurrection_exp),
+            BATTLE_CONFIG_VAR(shop_exp),
+            BATTLE_CONFIG_VAR(combo_delay_rate),
+            BATTLE_CONFIG_VAR(wedding_modifydisplay),
+            BATTLE_CONFIG_VAR(natural_healhp_interval),
+            BATTLE_CONFIG_VAR(natural_healsp_interval),
+            BATTLE_CONFIG_VAR(natural_heal_skill_interval),
+            BATTLE_CONFIG_VAR(natural_heal_weight_rate),
+            BATTLE_CONFIG_VAR(itemheal_regeneration_factor),
+            BATTLE_CONFIG_VAR(item_name_override_grffile),
+            BATTLE_CONFIG_VAR(arrow_decrement),
+            BATTLE_CONFIG_VAR(max_aspd),
+            BATTLE_CONFIG_VAR(max_hp),
+            BATTLE_CONFIG_VAR(max_sp),
+            BATTLE_CONFIG_VAR(max_lv),
+            BATTLE_CONFIG_VAR(max_parameter),
+            BATTLE_CONFIG_VAR(max_cart_weight),
+            BATTLE_CONFIG_VAR2("player_skill_log", pc_skill_log),
+            BATTLE_CONFIG_VAR2("monster_skill_log", mob_skill_log),
+            BATTLE_CONFIG_VAR(battle_log),
+            BATTLE_CONFIG_VAR(save_log),
+            BATTLE_CONFIG_VAR(error_log),
+            BATTLE_CONFIG_VAR(etc_log),
+            BATTLE_CONFIG_VAR(save_clothcolor),
+            BATTLE_CONFIG_VAR(undead_detect_type),
+            BATTLE_CONFIG_VAR2("player_auto_counter_type", pc_auto_counter_type),
+            BATTLE_CONFIG_VAR(monster_auto_counter_type),
+            BATTLE_CONFIG_VAR(agi_penaly_type),
+            BATTLE_CONFIG_VAR(agi_penaly_count),
+            BATTLE_CONFIG_VAR(agi_penaly_num),
+            BATTLE_CONFIG_VAR(agi_penaly_count_lv),
+            BATTLE_CONFIG_VAR(vit_penaly_type),
+            BATTLE_CONFIG_VAR(vit_penaly_count),
+            BATTLE_CONFIG_VAR(vit_penaly_num),
+            BATTLE_CONFIG_VAR(vit_penaly_count_lv),
+            BATTLE_CONFIG_VAR2("player_skill_reiteration", pc_skill_reiteration),
+            BATTLE_CONFIG_VAR(monster_skill_reiteration),
+            BATTLE_CONFIG_VAR2("player_skill_nofootset", pc_skill_nofootset),
+            BATTLE_CONFIG_VAR(monster_skill_nofootset),
+            BATTLE_CONFIG_VAR2("player_cloak_check_type", pc_cloak_check_type),
+            BATTLE_CONFIG_VAR(monster_cloak_check_type),
+            BATTLE_CONFIG_VAR(mob_changetarget_byskill),
+            BATTLE_CONFIG_VAR2("player_attack_direction_change", pc_attack_direction_change),
+            BATTLE_CONFIG_VAR(monster_attack_direction_change),
+            BATTLE_CONFIG_VAR2("player_land_skill_limit", pc_land_skill_limit),
+            BATTLE_CONFIG_VAR(monster_land_skill_limit),
+            BATTLE_CONFIG_VAR(party_skill_penaly),
+            BATTLE_CONFIG_VAR(monster_class_change_full_recover),
+            BATTLE_CONFIG_VAR(produce_item_name_input),
+            BATTLE_CONFIG_VAR(produce_potion_name_input),
+            BATTLE_CONFIG_VAR(making_arrow_name_input),
+            BATTLE_CONFIG_VAR(holywater_name_input),
+            BATTLE_CONFIG_VAR(display_delay_skill_fail),
+            BATTLE_CONFIG_VAR(chat_warpportal),
+            BATTLE_CONFIG_VAR(mob_warpportal),
+            BATTLE_CONFIG_VAR(dead_branch_active),
+            BATTLE_CONFIG_VAR(show_steal_in_same_party),
+            BATTLE_CONFIG_VAR(enable_upper_class),
+            BATTLE_CONFIG_VAR(mob_attack_attr_none),
+            BATTLE_CONFIG_VAR(mob_ghostring_fix),
+            BATTLE_CONFIG_VAR(pc_attack_attr_none),
+            BATTLE_CONFIG_VAR(gx_allhit),
+            BATTLE_CONFIG_VAR(gx_cardfix),
+            BATTLE_CONFIG_VAR(gx_dupele),
+            BATTLE_CONFIG_VAR(gx_disptype),
+            BATTLE_CONFIG_VAR(player_skill_partner_check),
+            BATTLE_CONFIG_VAR(hide_GM_session),
+            BATTLE_CONFIG_VAR(unit_movement_type),
+            BATTLE_CONFIG_VAR(invite_request_check),
+            BATTLE_CONFIG_VAR(skill_removetrap_type),
+            BATTLE_CONFIG_VAR(disp_experience),
+            BATTLE_CONFIG_VAR(riding_weight),
+            BATTLE_CONFIG_VAR(prevent_logout),   // Added by RoVeRT
+            BATTLE_CONFIG_VAR(alchemist_summon_reward), // [Valaris]
+            BATTLE_CONFIG_VAR(maximum_level), // [Valaris]
+            BATTLE_CONFIG_VAR(drops_by_luk),   // [Valaris]
+            BATTLE_CONFIG_VAR(monsters_ignore_gm),   // [Valaris]
+            BATTLE_CONFIG_VAR(pk_mode), // [Valaris]
+            BATTLE_CONFIG_VAR(multi_level_up),   // [Valaris]
+            BATTLE_CONFIG_VAR(backstab_bow_penalty),
+            BATTLE_CONFIG_VAR(show_mob_hp), // [Valaris]
+            BATTLE_CONFIG_VAR(hack_info_GM_level),   // added by [Yor]
+            BATTLE_CONFIG_VAR(any_warp_GM_min_level), // added by [Yor]
+            BATTLE_CONFIG_VAR(packet_ver_flag), // added by [Yor]
+            BATTLE_CONFIG_VAR(min_hair_style),   // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(max_hair_style),   // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(min_hair_color),   // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(max_hair_color),   // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(min_cloth_color), // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(max_cloth_color), // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(castrate_dex_scale),   // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(area_size), // added by [MouseJstr]
+            BATTLE_CONFIG_VAR(chat_lame_penalty),
+            BATTLE_CONFIG_VAR(chat_spam_threshold),
+            BATTLE_CONFIG_VAR(chat_spam_flood),
+            BATTLE_CONFIG_VAR(chat_spam_ban),
+            BATTLE_CONFIG_VAR(chat_spam_warn),
+            BATTLE_CONFIG_VAR(chat_maxline),
+            BATTLE_CONFIG_VAR(packet_spam_threshold),
+            BATTLE_CONFIG_VAR(packet_spam_flood),
+            BATTLE_CONFIG_VAR(packet_spam_kick),
+            BATTLE_CONFIG_VAR(mask_ip_gms),
+            BATTLE_CONFIG_VAR(mob_splash_radius),
         };
 
-        std::string w1, w2;
+        SString w1;
+        TString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
         if (w1 == "import")
         {
-            battle_config_read(w2.c_str());
+            battle_config_read(w2);
             continue;
         }
 
         for (auto datum : data)
             if (w1 == datum.str)
             {
-                *datum.val = config_switch(w2.c_str());
+                *datum.val = config_switch(w2);
                 goto continue_outer;
             }
 
-        PRINTF("WARNING: unknown battle conf key: %s\n", w1);
+        PRINTF("WARNING: unknown battle conf key: %s\n", FString(w1));
 
     continue_outer:
         ;

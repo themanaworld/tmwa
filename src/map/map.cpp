@@ -15,6 +15,8 @@
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
+#include "../common/extract.hpp"
+#include "../common/io.hpp"
 #include "../common/random2.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -41,14 +43,14 @@
 
 DMap<int, dumb_ptr<block_list>> id_db;
 
-UPMap<std::string, map_abstract> maps_db;
+UPMap<MapName, map_abstract> maps_db;
 
 static
-DMap<std::string, dumb_ptr<map_session_data>> nick_db;
+DMap<CharName, dumb_ptr<map_session_data>> nick_db;
 
 struct charid2nick
 {
-    char nick[24];
+    CharName nick;
     int req_id;
 };
 
@@ -65,17 +67,23 @@ int first_free_object_id = 0, last_object_id = 0;
 interval_t autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
 
-char motd_txt[256] = "conf/motd.txt";
-char help_txt[256] = "conf/help.txt";
+FString motd_txt = "conf/motd.txt";
+FString help_txt = "conf/help.txt";
 
-char wisp_server_name[24] = "Server";   // can be modified in char-server configuration file
+CharName wisp_server_name = stringish<CharName>("Server");   // can be modified in char-server configuration file
 
 static
-void map_delmap(const std::string& mapname);
+void map_delmap(MapName mapname);
 
 void SessionDeleter::operator()(SessionData *sd)
 {
     really_delete1 static_cast<map_session_data *>(sd);
+}
+
+bool extract(XString str, NpcEvent *ev)
+{
+    XString mid;
+    return extract(str, record<':'>(&ev->npc, &mid, &ev->label)) && !mid;
 }
 
 /*==========================================
@@ -740,13 +748,13 @@ int map_addflooritem(struct item *item_data, int amount,
  * charid_dbへ追加(返信待ちがあれば返信)
  *------------------------------------------
  */
-void map_addchariddb(int charid, const char *name)
+void map_addchariddb(int charid, CharName name)
 {
     struct charid2nick *p = charid_db.search(charid);
     if (p == NULL)
         p = charid_db.init(charid);
 
-    strzcpy(p->nick, name, 24);
+    p->nick = name;
     p->req_id = 0;
 }
 
@@ -876,14 +884,14 @@ dumb_ptr<map_session_data> map_id2sd(int id)
  * char_id番号の名前を探す
  *------------------------------------------
  */
-char *map_charid2nick(int id)
+CharName map_charid2nick(int id)
 {
     struct charid2nick *p = charid_db.search(id);
 
     if (p == NULL)
-        return NULL;
+        return CharName();
     if (p->req_id != 0)
-        return NULL;
+        return CharName();
     return p->nick;
 }
 
@@ -958,40 +966,21 @@ dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
  * return map_session_data pointer or NULL
  *------------------------------------------
  */
-dumb_ptr<map_session_data> map_nick2sd(const char *nick)
+dumb_ptr<map_session_data> map_nick2sd(CharName nick)
 {
-    int i, quantity = 0, nicklen;
-    dumb_ptr<map_session_data> sd = NULL;
-
-    if (nick == NULL)
-        return NULL;
-
-    nicklen = strlen(nick);
-
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
     {
         if (!session[i])
             continue;
         map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
         if (pl_sd && pl_sd->state.auth)
         {
-            // Without case sensitive check (increase the number of similar character names found)
-            if (strncasecmp(pl_sd->status.name, nick, nicklen) == 0)
             {
-                // Strict comparison (if found, we finish the function immediatly with correct value)
-                if (strcmp(pl_sd->status.name, nick) == 0)
+                if (pl_sd->status.name == nick)
                     return dumb_ptr<map_session_data>(pl_sd);
-                quantity++;
-                sd = dumb_ptr<map_session_data>(pl_sd);
             }
         }
     }
-    // Here, the exact character name is not found
-    // We return the found index of a similar account ONLY if there is 1 similar character
-    if (quantity == 1)
-        return sd;
-
-    // Exact character name is not found and 0 or more than 1 similar characters have been found ==> we say not found
     return NULL;
 }
 
@@ -1077,7 +1066,7 @@ void map_removenpc(void)
  * map名からmap番号へ変換
  *------------------------------------------
  */
-map_local *map_mapname2mapid(const char *name)
+map_local *map_mapname2mapid(MapName name)
 {
     map_abstract *md = maps_db.get(name);
     if (md == NULL || md->gat == NULL)
@@ -1089,7 +1078,7 @@ map_local *map_mapname2mapid(const char *name)
  * 他鯖map名からip,port変換
  *------------------------------------------
  */
-int map_mapname2ipport(const char *name, struct in_addr *ip, int *port)
+int map_mapname2ipport(MapName name, struct in_addr *ip, int *port)
 {
     map_abstract *md = maps_db.get(name);
     if (md == NULL || md->gat)
@@ -1198,14 +1187,14 @@ void map_setcell(map_local *m, int x, int y, MapCell t)
  * 他鯖管理のマップをdbに追加
  *------------------------------------------
  */
-int map_setipport(const char *name, struct in_addr ip, int port)
+int map_setipport(MapName name, struct in_addr ip, int port)
 {
     map_abstract *md = maps_db.get(name);
     if (md == NULL)
     {
         // not exist -> add new data
         auto mdos = make_unique<map_remote>();
-        strzcpy(mdos->name_, name, 16);
+        mdos->name_ = name;
         mdos->gat = NULL;
         mdos->ip = ip;
         mdos->port = port;
@@ -1239,7 +1228,7 @@ int map_setipport(const char *name, struct in_addr ip, int port)
  *------------------------------------------
  */
 static
-bool map_readmap(map_local *m, size_t num, const std::string& fn)
+bool map_readmap(map_local *m, size_t num, MapName fn)
 {
     // read & convert fn
     std::vector<uint8_t> gat_v = grfio_reads(fn);
@@ -1251,7 +1240,7 @@ bool map_readmap(map_local *m, size_t num, const std::string& fn)
     int ys = m->ys = gat_v[2] | gat_v[3] << 8;
     PRINTF("\rLoading Maps [%zu/%zu]: %-30s  (%i, %i)",
             num, maps_db.size(),
-            std::string(fn.begin(), fn.end()), xs, ys);
+            fn, xs, ys);
     fflush(stdout);
 
     assert (s == xs * ys);
@@ -1284,7 +1273,6 @@ int map_readallmap(void)
 
     for (auto& mit : maps_db)
     {
-        assert (strstr(mit.second->name_, ".gat") != NULL);
         {
             {
                 map_local *ml = static_cast<map_local *>(mit.second.get());
@@ -1316,7 +1304,7 @@ int map_readallmap(void)
  *------------------------------------------
  */
 static
-void map_addmap(const std::string& mapname)
+void map_addmap(MapName mapname)
 {
     if (mapname == "clear")
     {
@@ -1325,9 +1313,10 @@ void map_addmap(const std::string& mapname)
     }
 
     auto newmap = make_unique<map_local>();
-    strzcpy(newmap->name_, mapname.c_str(), 16);
-    // novice challenge: figure out why this is necessary, and why it works
-    const char *name = newmap->name_;
+    newmap->name_ = mapname;
+    // novice challenge: figure out why this is necessary,
+    // and why the previous version worked
+    MapName name = newmap->name_;
     maps_db.put(name, std::move(newmap));
 }
 
@@ -1335,7 +1324,7 @@ void map_addmap(const std::string& mapname)
  * 読み込むmapを削除する
  *------------------------------------------
  */
-void map_delmap(const std::string& mapname)
+void map_delmap(MapName mapname)
 {
     if (mapname == "all")
     {
@@ -1351,7 +1340,7 @@ constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
 static
 FILE *map_logfile = NULL;
 static
-std::string map_logfile_name;
+FString map_logfile_name;
 static
 long map_logfile_index;
 
@@ -1360,7 +1349,7 @@ void map_close_logfile(void)
 {
     if (map_logfile)
     {
-        std::string filename = STRPRINTF("%s.%ld", map_logfile_name, map_logfile_index);
+        FString filename = STRPRINTF("%s.%ld", map_logfile_name, map_logfile_index);
         const char *args[] =
         {
             "gzip",
@@ -1386,7 +1375,7 @@ void map_start_logfile(long index)
 {
     map_logfile_index = index;
 
-    std::string filename_buf = STRPRINTF(
+    FString filename_buf = STRPRINTF(
             "%s.%ld",
             map_logfile_name,
             map_logfile_index);
@@ -1396,7 +1385,7 @@ void map_start_logfile(long index)
 }
 
 static
-void map_set_logfile(std::string filename)
+void map_set_logfile(FString filename)
 {
     struct timeval tv;
 
@@ -1408,7 +1397,7 @@ void map_set_logfile(std::string filename)
     MAP_LOG("log-start v5");
 }
 
-void map_log(const_string line)
+void map_log(XString line)
 {
     if (!map_logfile)
         return;
@@ -1430,49 +1419,51 @@ void map_log(const_string line)
  *------------------------------------------
  */
 static
-int map_config_read(const char *cfgName)
+int map_config_read(ZString cfgName)
 {
     struct hostent *h = NULL;
 
-    std::ifstream in(cfgName);
+    std::ifstream in(cfgName.c_str());
     if (!in.is_open())
     {
         PRINTF("Map configuration file not found at: %s\n", cfgName);
         exit(1);
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string w1, w2;
+        SString w1;
+        TString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
         if (w1 == "userid")
         {
-            chrif_setuserid(w2.c_str());
+            AccountName name = stringish<AccountName>(w2);
+            chrif_setuserid(name);
         }
         else if (w1 == "passwd")
         {
-            chrif_setpasswd(w2.c_str());
+            AccountPass pass = stringish<AccountPass>(w2);
+            chrif_setpasswd(pass);
         }
         else if (w1 == "char_ip")
         {
             h = gethostbyname(w2.c_str());
+            IP_String w2ip;
             if (h != NULL)
             {
-                PRINTF("Character server IP address : %s -> %d.%d.%d.%d\n",
-                     w2,
-                     static_cast<uint8_t>(h->h_addr[0]),
-                     static_cast<uint8_t>(h->h_addr[1]),
-                     static_cast<uint8_t>(h->h_addr[2]),
-                     static_cast<uint8_t>(h->h_addr[3]));
-                SPRINTF(w2, "%d.%d.%d.%d",
-                         static_cast<uint8_t>(h->h_addr[0]),
-                         static_cast<uint8_t>(h->h_addr[1]),
-                         static_cast<uint8_t>(h->h_addr[2]),
-                         static_cast<uint8_t>(h->h_addr[3]));
+                SNPRINTF(w2ip, 16, "%d.%d.%d.%d",
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]));
+                PRINTF("Character server IP address : %s -> %s\n",
+                        w2, w2ip);
             }
-            chrif_setip(w2.c_str());
+            else
+                w2ip = stringish<IP_String>(w2);
+            chrif_setip(w2ip);
         }
         else if (w1 == "char_port")
         {
@@ -1481,20 +1472,20 @@ int map_config_read(const char *cfgName)
         else if (w1 == "map_ip")
         {
             h = gethostbyname(w2.c_str());
+            IP_String w2ip;
             if (h != NULL)
             {
-                PRINTF("Map server IP address : %s -> %d.%d.%d.%d\n", w2,
-                        static_cast<uint8_t>(h->h_addr[0]),
-                        static_cast<uint8_t>(h->h_addr[1]),
-                        static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]));
-                SPRINTF(w2, "%d.%d.%d.%d",
+                SNPRINTF(w2ip, 16, "%d.%d.%d.%d",
                          static_cast<uint8_t>(h->h_addr[0]),
                          static_cast<uint8_t>(h->h_addr[1]),
                          static_cast<uint8_t>(h->h_addr[2]),
                          static_cast<uint8_t>(h->h_addr[3]));
+                PRINTF("Map server IP address : %s -> %s\n",
+                        w2, w2ip);
             }
-            clif_setip(w2.c_str());
+            else
+                w2ip = stringish<IP_String>(w2);
+            clif_setip(w2ip);
         }
         else if (w1 == "map_port")
         {
@@ -1502,19 +1493,21 @@ int map_config_read(const char *cfgName)
         }
         else if (w1 == "map")
         {
-            map_addmap(w2.c_str());
+            MapName name = VString<15>(w2);
+            map_addmap(name);
         }
         else if (w1 == "delmap")
         {
-            map_delmap(w2.c_str());
+            MapName name = VString<15>(w2);
+            map_delmap(name);
         }
         else if (w1 == "npc")
         {
-            npc_addsrcfile(w2.c_str());
+            npc_addsrcfile(w2);
         }
         else if (w1 == "delnpc")
         {
-            npc_delsrcfile(w2.c_str());
+            npc_delsrcfile(w2);
         }
         else if (w1 == "autosave_time")
         {
@@ -1524,15 +1517,15 @@ int map_config_read(const char *cfgName)
         }
         else if (w1 == "motd_txt")
         {
-            strzcpy(motd_txt, w2.c_str(), sizeof(motd_txt));
+            motd_txt = w2;
         }
         else if (w1 == "help_txt")
         {
-            strzcpy(help_txt, w2.c_str(), sizeof(help_txt));
+            help_txt = w2;
         }
         else if (w1 == "mapreg_txt")
         {
-            strzcpy(mapreg_txt, w2.c_str(), sizeof(mapreg_txt));
+            mapreg_txt = w2;
         }
         else if (w1 == "gm_log")
         {
@@ -1540,11 +1533,11 @@ int map_config_read(const char *cfgName)
         }
         else if (w1 == "log_file")
         {
-            map_set_logfile(w2.c_str());
+            map_set_logfile(w2);
         }
         else if (w1 == "import")
         {
-            map_config_read(w2.c_str());
+            map_config_read(w2);
         }
     }
 
@@ -1632,26 +1625,26 @@ int compare_item(struct item *a, struct item *b)
  * Map-Server Init and Command-line Arguments [Valaris]
  *------------------------------------------------------
  */
-int do_init(int argc, char *argv[])
+int do_init(int argc, ZString *argv)
 {
     int i;
 
-    const char *MAP_CONF_NAME = "conf/map_athena.conf";
-    const char *BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
-    const char *ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
+    ZString MAP_CONF_NAME = "conf/map_athena.conf";
+    ZString BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
+    ZString ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
 
     for (i = 1; i < argc; i++)
     {
 
-        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "--h") == 0
-            || strcmp(argv[i], "--?") == 0 || strcmp(argv[i], "/?") == 0)
+        if (argv[i] == "--help" || argv[i] == "-h"
+            || argv[i] == "-?" || argv[i] == "/?")
             map_helpscreen();
-        else if (strcmp(argv[i], "--map_config") == 0)
-            MAP_CONF_NAME = argv[i + 1];
-        else if (strcmp(argv[i], "--battle_config") == 0)
-            BATTLE_CONF_FILENAME = argv[i + 1];
-        else if (strcmp(argv[i], "--atcommand_config") == 0)
-            ATCOMMAND_CONF_FILENAME = argv[i + 1];
+        else if (argv[i] == "--map_config")
+            MAP_CONF_NAME = argv[++i];
+        else if (argv[i] == "--battle_config")
+            BATTLE_CONF_FILENAME = argv[++i];
+        else if (argv[i] == "--atcommand_config")
+            ATCOMMAND_CONF_FILENAME = argv[++i];
     }
 
     map_config_read(MAP_CONF_NAME);

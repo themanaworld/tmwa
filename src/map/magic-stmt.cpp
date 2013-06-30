@@ -276,7 +276,7 @@ dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
     /* 1 minute should be enough for all interesting spell effects, I hope */
     std::chrono::seconds delay = std::chrono::seconds(30);
     dumb_ptr<npc_data> effect_npc = npc_spawn_text(m, x, y,
-            INVISIBLE_NPC, "", "?");
+            INVISIBLE_NPC, NpcName(), "?");
     int effect_npc_id = effect_npc->bl_id;
 
     entity_effect(effect_npc, effect, tdelay);
@@ -415,8 +415,9 @@ int op_messenger_npc(dumb_ptr<env_t>, const_array<val_t> args)
     dumb_ptr<npc_data> npc;
     location_t *loc = &ARGLOCATION(0);
 
+    NpcName npcname = stringish<NpcName>(ARGSTR(2));
     npc = npc_spawn_text(loc->m, loc->x, loc->y,
-            ARGINT(1), ARGSTR(2).c_str(), ARGSTR(3).c_str());
+            ARGINT(1), npcname, ARGSTR(3));
 
     Timer(gettick() + static_cast<interval_t>(ARGINT(4)),
             std::bind(timer_callback_kill_npc, ph::_1, ph::_2,
@@ -446,13 +447,13 @@ void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int d
                 pc_touch_all_relevant_npcs(character);
 
                 // Note that touching NPCs may have triggered warping and thereby updated x and y:
-                const char *map_name = character->bl_m->name_;
+                MapName map_name = character->bl_m->name_;
 
                 // Warp part #1: update relevant data, interrupt trading etc.:
                 pc_setpos(character, map_name, character->bl_x, character->bl_y, BeingRemoveWhy::GONE);
                 // Warp part #2: now notify the client
                 clif_changemap(character, map_name,
-                                character->bl_x, character->bl_y);
+                        character->bl_x, character->bl_y);
                 break;
             }
             case BL::MOB:
@@ -688,8 +689,8 @@ int op_spawn(dumb_ptr<env_t>, const_array<val_t> args)
         int mob_id;
         dumb_ptr<mob_data> mob;
 
-        mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, "--ja--",    // Is that needed?
-                                 monster_id, 1, "");
+        mob_id = mob_once_spawn(owner, loc.m->name_, loc.x, loc.y, JAPANESE_NAME,    // Is that needed?
+                monster_id, 1, NpcEvent());
 
         mob = map_id_as_mob(mob_id);
 
@@ -823,7 +824,8 @@ int op_set_script_variable(dumb_ptr<env_t>, const_array<val_t> args)
     if (!c)
         return 1;
 
-    pc_setglobalreg(c, ARGSTR(1).c_str(), ARGINT(2));
+    VarName varname = stringish<VarName>(ARGSTR(1));
+    pc_setglobalreg(c, varname, ARGINT(2));
 
     return 0;
 }
@@ -893,73 +895,43 @@ int op_gain_exp(dumb_ptr<env_t>, const_array<val_t> args)
     return 0;
 }
 
+#define MAGIC_OPERATION(name, args, impl) {{name}, {{name}, {args}, impl}}
+#define MAGIC_OPERATION1(name, args) MAGIC_OPERATION(#name, args, op_##name)
 static
-op_t operations[] =
+std::map<ZString, op_t> operations =
 {
-    {"sfx", ".ii", op_sfx},
-    {"instaheal", "eii", op_instaheal},
-    {"itemheal", "eii", op_itemheal},
-    {"shroud", "ei", op_shroud},
-    {"unshroud", "e", op_reveal},
-    {"message", "es", op_message},
-    {"messenger_npc", "lissi", op_messenger_npc},
-    {"move", "ed", op_move},
-    {"warp", "el", op_warp},
-    {"banish", "e", op_banish},
-    {"status_change", "eiiiiii", op_status_change},
-    {"stop_status_change", "ei", op_stop_status_change},
-    {"override_attack", "eiiiiii", op_override_attack},
-    {"create_item", "e.i", op_create_item},
-    {"aggravate", "eie", op_aggravate},
-    {"spawn", "aeiiii", op_spawn},
-    {"injure", "eeii", op_injure},
-    {"emote", "ei", op_emote},
-    {"set_script_variable", "esi", op_set_script_variable},
-    {"set_hair_colour", "ei", op_set_hair_colour},
-    {"set_hair_style", "ei", op_set_hair_style},
-    {"drop_item", "l.ii", op_drop_item_for},
-    {"drop_item_for", "l.iiei", op_drop_item_for},
-    {"gain_experience", "eiii", op_gain_exp},
-    {NULL, NULL, NULL}
+    MAGIC_OPERATION1(sfx, ".ii"),
+    MAGIC_OPERATION1(instaheal, "eii"),
+    MAGIC_OPERATION1(itemheal, "eii"),
+    MAGIC_OPERATION1(shroud, "ei"),
+    MAGIC_OPERATION("unshroud", "e", op_reveal),
+    MAGIC_OPERATION1(message, "es"),
+    MAGIC_OPERATION1(messenger_npc, "lissi"),
+    MAGIC_OPERATION1(move, "ed"),
+    MAGIC_OPERATION1(warp, "el"),
+    MAGIC_OPERATION1(banish, "e"),
+    MAGIC_OPERATION1(status_change, "eiiiiii"),
+    MAGIC_OPERATION1(stop_status_change, "ei"),
+    MAGIC_OPERATION1(override_attack, "eiiiiii"),
+    MAGIC_OPERATION1(create_item, "e.i"),
+    MAGIC_OPERATION1(aggravate, "eie"),
+    MAGIC_OPERATION1(spawn, "aeiiii"),
+    MAGIC_OPERATION1(injure, "eeii"),
+    MAGIC_OPERATION1(emote, "ei"),
+    MAGIC_OPERATION1(set_script_variable, "esi"),
+    MAGIC_OPERATION1(set_hair_colour, "ei"),
+    MAGIC_OPERATION1(set_hair_style, "ei"),
+    MAGIC_OPERATION("drop_item", "l.ii", op_drop_item_for),
+    MAGIC_OPERATION1(drop_item_for, "l.iiei"),
+    MAGIC_OPERATION("gain_experience", "eiii", op_gain_exp),
 };
 
-static
-int operations_sorted = 0;
-static
-int operation_count;
-
-static __attribute__((deprecated))
-int compare_operations(const void *lhs, const void *rhs)
+op_t *magic_get_op(ZString name)
 {
-    return strcmp(static_cast<const op_t *>(lhs)->name, static_cast<const op_t *>(rhs)->name);
-}
-
-op_t *magic_get_op(const std::string& name, int *index)
-{
-    op_t key;
-
-    if (!operations_sorted)
-    {
-        op_t *opc = operations;
-
-        while (opc->name)
-            ++opc;
-
-        operation_count = opc - operations;
-
-        qsort(operations, operation_count, sizeof(op_t),
-               compare_operations);
-        operations_sorted = 1;
-    }
-
-    key.name = name.c_str();
-    op_t *op = static_cast<op_t *>(bsearch(&key, operations, operation_count, sizeof(op_t),
-                        compare_operations));
-
-    if (op && index)
-        *index = op - operations;
-
-    return op;
+    auto it = operations.find(name);
+    if (it == operations.end())
+        return nullptr;
+    return &it->second;
 }
 
 void spell_effect_report_termination(int invocation_id, int bl_id,
@@ -1443,11 +1415,12 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 if (caster)
                 {
                     dumb_ptr<env_t> env = invocation_->env;
-                    argrec_t arg[] =
+                    ZString caster_name = (caster ? caster->status.name : CharName()).to__actual();
+                    argrec_t arg[3] =
                     {
                         {"@target", env->VAR(VAR_TARGET).ty == TYPE::ENTITY ? 0 : env->VAR(VAR_TARGET).v.v_int},
                         {"@caster", invocation_->caster},
-                        {"@caster_name$", caster ? caster->status.name : ""},
+                        {"@caster_name$", caster_name},
                     };
                     int message_recipient =
                         env->VAR(VAR_SCRIPTTARGET).ty ==
@@ -1461,14 +1434,13 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
                     if (!invocation_->script_pos)    // first time running this script?
                         clif_spawn_fake_npc_for_player(recipient,
-                                                        invocation_->bl_id);
+                                invocation_->bl_id);
                     // We have to do this or otherwise the client won't think that it's
                     // dealing with an NPC
 
                     int newpos = run_script_l(
                             ScriptPointer(&*e->e.e_script, invocation_->script_pos),
-                            message_recipient,
-                            invocation_->bl_id,
+                            message_recipient, invocation_->bl_id,
                             3, arg);
                     /* Returns the new script position, or -1 once the script is finished */
                     if (newpos != -1)
@@ -1492,7 +1464,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
             case EFFECT::OP:
             {
-                op_t *op = &operations[e->e.e_op.id];
+                op_t *op = e->e.e_op.opp;
                 val_t args[MAX_ARGS];
 
                 for (i = 0; i < e->e.e_op.args_nr; i++)

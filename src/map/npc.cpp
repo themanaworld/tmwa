@@ -9,6 +9,7 @@
 
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
+#include "../common/extract.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -25,7 +26,7 @@
 #include "../poison.hpp"
 
 static
-std::list<std::string> npc_srcs;
+std::list<FString> npc_srcs;
 
 static
 int npc_id = START_NPC_NUM;
@@ -43,9 +44,9 @@ struct event_data
     int pos;
 };
 static
-Map<std::string, struct event_data> ev_db;
+Map<NpcEvent, struct event_data> ev_db;
 static
-DMap<std::string, dumb_ptr<npc_data>> npcname_db;
+DMap<NpcName, dumb_ptr<npc_data>> npcname_db;
 
 // used for clock-based event triggers
 // only tm_min, tm_hour, and tm_mday are used
@@ -62,7 +63,6 @@ static
 void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
 {
     dumb_ptr<map_session_data> sd;
-    char aname[50] {};
 
     nullpo_retv(bl);
 
@@ -74,16 +74,17 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
         if (nd->flag & 1)
             return;
 
-        strzcpy(aname, nd->name, sizeof(nd->name));
+        NpcEvent aname;
+        aname.npc = nd->name;
+        aname.label = stringish<ScriptLabel>("OnTouch");
         if (sd->areanpc_id == nd->bl_id)
             return;
         sd->areanpc_id = nd->bl_id;
-        strcat(aname, "::OnTouch");
         npc_event(sd, aname, 0);
     }
 }
 
-int npc_enable(const char *name, bool flag)
+int npc_enable(NpcName name, bool flag)
 {
     dumb_ptr<npc_data> nd = npcname_db.get(name);
     if (nd == NULL)
@@ -121,7 +122,7 @@ int npc_enable(const char *name, bool flag)
  * NPCを名前で探す
  *------------------------------------------
  */
-dumb_ptr<npc_data> npc_name2id(const char *name)
+dumb_ptr<npc_data> npc_name2id(NpcName name)
 {
     return npcname_db.get(name);
 }
@@ -138,7 +139,7 @@ int npc_event_dequeue(dumb_ptr<map_session_data> sd)
 
     if (!sd->eventqueuel.empty())
     {
-        if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueuel.front().c_str()))
+        if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueuel.front()))
         {
             PRINTF("npc_event_dequeue(): Event timer is full.\n");
             return 0;
@@ -163,7 +164,7 @@ int npc_delete(dumb_ptr<npc_data> nd)
     return 0;
 }
 
-int npc_timer_event(const char *eventname) // Added by RoVeRT
+void npc_timer_event(NpcEvent eventname)
 {
     struct event_data *ev = ev_db.search(eventname);
     dumb_ptr<npc_data_script> nd;
@@ -171,13 +172,12 @@ int npc_timer_event(const char *eventname) // Added by RoVeRT
 
     if ((ev == NULL || (nd = ev->nd) == NULL))
     {
-        PRINTF("npc_event: event not found [%s]\n", eventname);
-        return 0;
+        PRINTF("npc_event: event not found [%s]\n",
+                eventname);
+        return;
     }
 
     run_script(ScriptPointer(nd->scr.script.get(), ev->pos), nd->bl_id, nd->bl_id);
-
-    return 0;
 }
 
 /*==========================================
@@ -185,55 +185,51 @@ int npc_timer_event(const char *eventname) // Added by RoVeRT
  *------------------------------------------
  */
 static
-void npc_event_doall_sub(const std::string& key, struct event_data *ev,
-        int *c, const char *name, int rid, int argc, argrec_t *argv)
+void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
+        int *c, ScriptLabel name, int rid, int argc, argrec_t *argv)
 {
-    const char *p = key.c_str();
+    ScriptLabel p = key.label;
 
     nullpo_retv(ev);
 
-    if ((p = strchr(p, ':')) && p && strcasecmp(name, p) == 0)
+    if (name == p)
     {
-        run_script_l(ScriptPointer(ev->nd->scr.script.get(), ev->pos), rid, ev->nd->bl_id, argc,
-                      argv);
+        run_script_l(ScriptPointer(ev->nd->scr.script.get(), ev->pos), rid, ev->nd->bl_id,
+                argc, argv);
         (*c)++;
     }
 }
 
-int npc_event_doall_l(const char *name, int rid, int argc, argrec_t *args)
+int npc_event_doall_l(ScriptLabel name, int rid, int argc, argrec_t *args)
 {
     int c = 0;
-    char buf[64] = "::";
 
-    strzcpy(buf + 2, name, 62);
     for (auto& pair : ev_db)
-        npc_event_doall_sub(pair.first, &pair.second, &c, buf, rid, argc, args);
+        npc_event_doall_sub(pair.first, &pair.second, &c, name, rid, argc, args);
     return c;
 }
 
 static
-void npc_event_do_sub(const std::string& key, struct event_data *ev,
-        int *c, const char *name, int rid, int argc, argrec_t *argv)
+void npc_event_do_sub(NpcEvent key, struct event_data *ev,
+        int *c, NpcEvent name, int rid, int argc, argrec_t *argv)
 {
-    const char *p = key.c_str();
-
     nullpo_retv(ev);
 
-    if (p && strcasecmp(name, p) == 0)
+    if (name == key)
     {
-        run_script_l(ScriptPointer(ev->nd->scr.script.get(), ev->pos), rid, ev->nd->bl_id, argc,
-                      argv);
+        run_script_l(ScriptPointer(ev->nd->scr.script.get(), ev->pos), rid, ev->nd->bl_id,
+                argc, argv);
         (*c)++;
     }
 }
 
-int npc_event_do_l(const char *name, int rid, int argc, argrec_t *args)
+int npc_event_do_l(NpcEvent name, int rid, int argc, argrec_t *args)
 {
     int c = 0;
 
-    if (*name == ':' && name[1] == ':')
+    if (!name.npc)
     {
-        return npc_event_doall_l(name + 2, rid, argc, args);
+        return npc_event_doall_l(name.label, rid, argc, args);
     }
 
     for (auto& pair : ev_db)
@@ -250,25 +246,23 @@ void npc_event_do_clock(TimerData *, tick_t)
 {
     struct tm t = TimeT::now();
 
+    ScriptLabel buf;
     if (t.tm_min != ev_tm_b.tm_min)
     {
-        std::string buf;
-        buf = STRPRINTF("OnMinute%02d", t.tm_min);
-        npc_event_doall(buf.c_str());
-        buf = STRPRINTF("OnClock%02d%02d", t.tm_hour, t.tm_min);
-        npc_event_doall(buf.c_str());
+        SNPRINTF(buf, 24, "OnMinute%02d", t.tm_min);
+        npc_event_doall(buf);
+        SNPRINTF(buf, 24, "OnClock%02d%02d", t.tm_hour, t.tm_min);
+        npc_event_doall(buf);
     }
     if (t.tm_hour != ev_tm_b.tm_hour)
     {
-        std::string buf;
-        buf = STRPRINTF("OnHour%02d", t.tm_hour);
-        npc_event_doall(buf.c_str());
+        SNPRINTF(buf, 24, "OnHour%02d", t.tm_hour);
+        npc_event_doall(buf);
     }
     if (t.tm_mday != ev_tm_b.tm_mday)
     {
-        std::string buf;
-        buf = STRPRINTF("OnDay%02d%02d", t.tm_mon + 1, t.tm_mday);
-        npc_event_doall(buf.c_str());
+        SNPRINTF(buf, 24, "OnDay%02d%02d", t.tm_mon + 1, t.tm_mday);
+        npc_event_doall(buf);
     }
     ev_tm_b = t;
 }
@@ -279,7 +273,7 @@ void npc_event_do_clock(TimerData *, tick_t)
  */
 int npc_event_do_oninit(void)
 {
-    int c = npc_event_doall("OnInit");
+    int c = npc_event_doall(stringish<ScriptLabel>("OnInit"));
     PRINTF("npc: OnInit Event done. (%d npc)\n", c);
 
     Timer(gettick() + std::chrono::milliseconds(100),
@@ -414,41 +408,34 @@ void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer)
  * イベント型のNPC処理
  *------------------------------------------
  */
-int npc_event(dumb_ptr<map_session_data> sd, const char *eventname,
-               int mob_kill)
+int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
+        int mob_kill)
 {
     struct event_data *ev = ev_db.search(eventname);
     dumb_ptr<npc_data_script> nd;
     int xs, ys;
-    char mobevent[100];
 
     if (sd == NULL)
     {
         PRINTF("npc_event nullpo?\n");
     }
 
-    if (ev == NULL && eventname
-        && strcmp(((eventname) + strlen(eventname) - 9), "::OnTouch") == 0)
+    if (ev == NULL && eventname.label == stringish<ScriptLabel>("OnTouch"))
         return 1;
 
     if (ev == NULL || (nd = ev->nd) == NULL)
     {
-        if (mob_kill && (ev == NULL || (nd = ev->nd) == NULL))
+        if (mob_kill)
         {
-            strcpy(mobevent, eventname);
-            strcat(mobevent, "::OnMyMobDead");
-            ev = ev_db.search(mobevent);
-            if (ev == NULL || (nd = ev->nd) == NULL)
             {
-                if (strncasecmp(eventname, "GM_MONSTER", 10) != 0)
-                    PRINTF("npc_event: event not found [%s]\n", mobevent);
                 return 0;
             }
         }
         else
         {
             if (battle_config.error_log)
-                PRINTF("npc_event: event not found [%s]\n", eventname);
+                PRINTF("npc_event: event not found [%s]\n",
+                        eventname);
             return 0;
         }
     }
@@ -485,22 +472,19 @@ int npc_event(dumb_ptr<map_session_data> sd, const char *eventname,
 }
 
 static
-void npc_command_sub(const std::string& key, struct event_data *ev, const char *npcname, const char *command)
+void npc_command_sub(NpcEvent key, struct event_data *ev, NpcName npcname, XString command)
 {
-    const char *p = key.c_str();
-    char temp[100];
-
-    if (strcmp(ev->nd->name, npcname) == 0 && (p = strchr(p, ':')) && p
-        && strncasecmp("::OnCommand", p, 10) == 0)
+    if (ev->nd->name == npcname
+        && key.label.startswith("OnCommand"))
     {
-        sscanf(&p[11], "%s", temp);
+        XString temp = key.label.xslice_t(9);
 
-        if (strcmp(command, temp) == 0)
+        if (command == temp)
             run_script(ScriptPointer(ev->nd->scr.script.get(), ev->pos), 0, ev->nd->bl_id);
     }
 }
 
-int npc_command(dumb_ptr<map_session_data>, const char *npcname, const char *command)
+int npc_command(dumb_ptr<map_session_data>, NpcName npcname, XString command)
 {
     for (auto& pair : ev_db)
         npc_command_sub(pair.first, &pair.second, npcname, command);
@@ -575,14 +559,14 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
             break;
         case NpcSubtype::SCRIPT:
         {
-            char aname[50] {};
-            strzcpy(aname, m->npc[i]->name, 24);
+            NpcEvent aname;
+            aname.npc = m->npc[i]->name;
+            aname.label = stringish<ScriptLabel>("OnTouch");
 
             if (sd->areanpc_id == m->npc[i]->bl_id)
                 return 1;
 
             sd->areanpc_id = m->npc[i]->bl_id;
-            strcat(aname, "::OnTouch");
             if (npc_event(sd, aname, 0) > 0)
                 npc_click(sd, m->npc[i]->bl_id);
             break;
@@ -658,9 +642,9 @@ int npc_click(dumb_ptr<map_session_data> sd, int id)
             sd->npc_pos = run_script(ScriptPointer(nd->as_script()->scr.script.get(), 0), sd->bl_id, id);
             break;
         case NpcSubtype::MESSAGE:
-            if (!nd->as_message()->message.empty())
+            if (nd->as_message()->message)
             {
-                clif_scriptmes(sd, id, nd->as_message()->message.c_str());
+                clif_scriptmes(sd, id, nd->as_message()->message);
                 clif_scriptclose(sd, id);
             }
             break;
@@ -893,9 +877,9 @@ void npc_clearsrcfile(void)
  * 読み込むnpcファイルの追加
  *------------------------------------------
  */
-void npc_addsrcfile(const char *name)
+void npc_addsrcfile(FString name)
 {
-    if (strcasecmp(name, "clear") == 0)
+    if (name == "clear")
     {
         npc_clearsrcfile();
         return;
@@ -908,9 +892,9 @@ void npc_addsrcfile(const char *name)
  * 読み込むnpcファイルの削除
  *------------------------------------------
  */
-void npc_delsrcfile(const char *name)
+void npc_delsrcfile(FString name)
 {
-    if (strcasecmp(name, "all") == 0)
+    if (name == "all")
     {
         npc_clearsrcfile();
         return;
@@ -930,17 +914,15 @@ void npc_delsrcfile(const char *name)
  * warp行解析
  *------------------------------------------
  */
-int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
+int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
 {
     int x, y, xs, ys, to_x, to_y;
     int i, j;
-    char mapname[24], to_mapname[24];
+    MapName mapname, to_mapname;
     dumb_ptr<npc_data_warp> nd;
 
-    // 引数の個数チェック
-    if (sscanf(w1, "%[^,],%d,%d", mapname, &x, &y) != 3 ||
-        sscanf(w4, "%d,%d,%[^,],%d,%d", &xs, &ys, to_mapname, &to_x,
-                &to_y) != 5)
+    if (!extract(w1, record<','>(&mapname, &x, &y)) ||
+        !extract(w4, record<','>(&xs, &ys, &to_mapname, &to_x, &to_y)))
     {
         PRINTF("bad warp line : %s\n", w3);
         return 1;
@@ -958,8 +940,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     nd->bl_y = y;
     nd->dir = DIR::S;
     nd->flag = 0;
-    strzcpy(nd->name, w3, 24);
-    strzcpy(nd->exname, w3, 24);
+    nd->name = w3;
 
     if (!battle_config.warp_point_debug)
         nd->npc_class = WARP_CLASS;
@@ -970,7 +951,7 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
-    strzcpy(nd->warp.name, to_mapname, 16);
+    nd->warp.name = to_mapname;
     xs += 2;
     ys += 2;
     nd->warp.x = to_x;
@@ -1004,24 +985,51 @@ int npc_parse_warp(const char *w1, const char *, const char *w3, const char *w4)
     return 0;
 }
 
+static
+bool extract(XString xs, npc_item_list *itv)
+{
+    XString name_or_id;
+    if (!extract(xs, record<':'>(&name_or_id, &itv->value)))
+        return false;
+    struct item_data *id = nullptr;
+    if (extract(name_or_id, &itv->nameid) && itv->nameid > 0)
+        goto return_true;
+
+    id = itemdb_searchname(stringish<ItemName>(name_or_id.rstrip()));
+    if (id == NULL)
+        return false;
+    itv->nameid = id->nameid;
+    goto return_true;
+
+return_true:
+    if (itv->value < 0)
+    {
+        if (id == NULL)
+            id = itemdb_search(itv->nameid);
+        itv->value = id->value_buy * abs(itv->value);
+    }
+    return true;
+}
+
 /*==========================================
  * shop行解析
  *------------------------------------------
  */
 static
-int npc_parse_shop(char *w1, char *, char *w3, char *w4)
+int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
 {
-    char *p;
     int x, y;
     DIR dir;
-    char mapname[24];
+    MapName mapname;
     dumb_ptr<npc_data_shop> nd;
+    ZString::iterator w4comma;
+    int npc_class;
 
-    // 引数の個数チェック
-    int dir_; // TODO use SSCANF or extract
-    if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir_) != 4
+    int dir_; // TODO use enum directly in extract
+    if (!extract(w1, record<','>(&mapname, &x, &y, &dir_))
         || dir_ < 0 || dir_ >= 8
-        || strchr(w4, ',') == NULL)
+        || (w4comma = std::find(w4a.begin(), w4a.end(), ',')) == w4a.end()
+        || !extract(w4a.xislice_h(w4comma), &npc_class))
     {
         PRINTF("bad shop line : %s\n", w3);
         return 1;
@@ -1030,44 +1038,15 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     map_local *m = map_mapname2mapid(mapname);
 
     nd.new_();
-    p = strchr(w4, ',');
+    ZString w4b = w4a.xislice_t(w4comma + 1);
 
-    while (p)
+    if (!extract(w4b, vrec<','>(&nd->shop_items)))
     {
-        int nameid, value;
-        char name[24];
-        struct item_data *id = NULL;
-        p++;
-        if (sscanf(p, "%d:%d", &nameid, &value) == 2)
-        {
-        }
-        else if (sscanf(p, "%s :%d", name, &value) == 2)
-        {
-            id = itemdb_searchname(name);
-            if (id == NULL)
-                nameid = -1;
-            else
-                nameid = id->nameid;
-        }
-        else
-            break;
-
-        if (nameid > 0)
-        {
-            npc_item_list sh_it;
-            sh_it.nameid = nameid;
-            if (value < 0)
-            {
-                if (id == NULL)
-                    id = itemdb_search(nameid);
-                value = id->value_buy * abs(value);
-
-            }
-            sh_it.value = value;
-            nd->shop_items.push_back(sh_it);
-        }
-        p = strchr(p, ',');
+        PRINTF("bad shop items : %s\n", w3);
+        PRINTF("   somewhere --> %s\n", w4b);
+        nd->shop_items.clear();
     }
+
     if (nd->shop_items.empty())
     {
         nd.delete_();
@@ -1081,15 +1060,14 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
     nd->bl_id = npc_get_new_npc_id();
     nd->dir = dir;
     nd->flag = 0;
-    strzcpy(nd->name, w3, 24);
-    nd->npc_class = atoi(w4);
+    nd->name = w3;
+    nd->npc_class = npc_class;
     nd->speed = std::chrono::milliseconds(200);
     nd->option = Option::ZERO;
     nd->opt1 = Opt1::ZERO;
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
 
-    //PRINTF("shop npc %s %d read done\n",mapname,nd->bl_id);
     npc_shop++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SHOP;
@@ -1106,12 +1084,12 @@ int npc_parse_shop(char *w1, char *, char *w3, char *w4)
  *------------------------------------------
  */
 static
-void npc_convertlabel_db(const std::string& lname, int pos, dumb_ptr<npc_data_script> nd)
+void npc_convertlabel_db(ScriptLabel lname, int pos, dumb_ptr<npc_data_script> nd)
 {
     nullpo_retv(nd);
 
     struct npc_label_list eln {};
-    strzcpy(eln.name, lname.c_str(), sizeof(eln.name));
+    eln.name = lname;
     eln.pos = pos;
     nd->scr.label_listv.push_back(std::move(eln));
 }
@@ -1121,20 +1099,19 @@ void npc_convertlabel_db(const std::string& lname, int pos, dumb_ptr<npc_data_sc
  *------------------------------------------
  */
 static
-int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
-                      const char *first_line, FILE * fp, int *lines)
+int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
+        XString first_line, FILE *fp, int *lines)
 {
     int x, y;
     DIR dir = DIR::S;
     map_local *m;
     int xs = 0, ys = 0, npc_class = 0;   // [Valaris] thanks to fov
-    char mapname[24];
+    MapName mapname;
     std::unique_ptr<const ScriptBuffer> script = NULL;
     dumb_ptr<npc_data_script> nd;
     int evflag = 0;
-    char *p;
 
-    if (strcmp(w1, "-") == 0)
+    if (w1 == "-")
     {
         x = 0;
         y = 0;
@@ -1142,11 +1119,10 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     }
     else
     {
-        // 引数の個数チェック
-        int dir_; // TODO use SSCANF or extract
-        if (sscanf(w1, "%[^,],%d,%d,%d", mapname, &x, &y, &dir_) != 4
+        int dir_; // TODO use enum directly in extract
+        if (!extract(w1, record<','>(&mapname, &x, &y, &dir_))
             || dir_ < 0 || dir_ >= 8
-            || (strcmp(w2, "script") == 0 && strchr(w4, ',') == NULL))
+            || (w2 == "script" && !w4.contains(',')))
         {
             PRINTF("bad script line : %s\n", w3);
             return 1;
@@ -1155,29 +1131,33 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         m = map_mapname2mapid(mapname);
     }
 
-    if (strcmp(w2, "script") == 0)
+    if (w2 == "script")
     {
         // may be empty
-        std::string srcbuf = strchrnul(first_line, '{');
+        MString srcbuf;
+        srcbuf += first_line.xislice_t(std::find(first_line.begin(), first_line.end(), '{'));
         // Note: it was a bug that this was missing. I think.
         int startline = *lines;
 
-        while (1)
+        // while (!srcbuf.rstrip().endswith('}'))
+        while (true)
         {
-            size_t i = srcbuf.find_last_not_of(" \t\n\r\f\v");
-            if (i != std::string::npos && srcbuf[i] == '}')
+            auto it = std::find_if_not(srcbuf.rbegin(), srcbuf.rend(), [](char c){ return c == ' ' || c == '\n'; });
+            if (it != srcbuf.rend() && *it == '}')
                 break;
-            char line[1024];
-            if (!fgets(line, 1020, fp))
+
+            char line_[1024];
+            if (!fgets(line_, 1020, fp))
                 // eof
                 break;
             (*lines)++;
             if (feof(fp))
                 break;
-            if (srcbuf.empty())
+            ZString line(ZString::really_construct_from_a_pointer, line_, nullptr);
+            if (!srcbuf)
             {
                 // may be a no-op
-                srcbuf = strchrnul(line, '{');
+                srcbuf += line.xislice_t(std::find(line.begin(), line.end(), '{'));
                 // safe to execute more than once
                 // But will usually only happen once
                 startline = *lines;
@@ -1185,7 +1165,7 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
             else
                 srcbuf += line;
         }
-        script = parse_script(srcbuf.c_str(), startline);
+        script = parse_script(FString(srcbuf), startline);
         if (script == NULL)
             // script parse error?
             return 1;
@@ -1200,13 +1180,9 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
 
     if (m == nullptr)
     {
-        // スクリプトコピー用のダミーNPC
     }
-    else if (sscanf(w4, "%d,%d,%d", &npc_class, &xs, &ys) == 3)
+    else if (extract(w4, record<','>(&npc_class, &xs, &ys)))
     {
-        // 接触型NPC
-        int i, j;
-
         if (xs >= 0)
             xs = xs * 2 + 1;
         if (ys >= 0)
@@ -1215,9 +1191,9 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         if (npc_class >= 0)
         {
 
-            for (i = 0; i < ys; i++)
+            for (int i = 0; i < ys; i++)
             {
-                for (j = 0; j < xs; j++)
+                for (int j = 0; j < xs; j++)
                 {
                     int x_lo = x - xs / 2;
                     int y_lo = y - ys / 2;
@@ -1235,32 +1211,24 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         nd->scr.ys = ys;
     }
     else
-    {                           // クリック型NPC
-        npc_class = atoi(w4);
+    {
+        npc_class = atoi(w4.c_str());
         nd->scr.xs = 0;
         nd->scr.ys = 0;
     }
 
     if (npc_class < 0 && m != nullptr)
-    {                           // イベント型NPC
+    {
         evflag = 1;
     }
 
-    while ((p = strchr(w3, ':')))
+    if (w3.contains(':'))
     {
-        if (p[1] == ':')
-            break;
+        assert(false && "feature removed");
+        abort();
     }
-    if (p)
     {
-        *p = 0;
-        strzcpy(nd->name, w3, 24);
-        strzcpy(nd->exname, p + 2, 24);
-    }
-    else
-    {
-        strzcpy(nd->name, w3, 24);
-        strzcpy(nd->exname, w3, 24);
+        nd->name = w3;
     }
 
     nd->bl_prev = nd->bl_next = NULL;
@@ -1288,37 +1256,36 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
         map_addblock(nd);
 
         if (evflag)
-        {                       // イベント型
+        {
             struct event_data ev {};
             ev.nd = nd;
             ev.pos = 0;
-            ev_db.insert(nd->exname, ev);
+            NpcEvent npcev;
+            npcev.npc = nd->name;
+            npcev.label = ScriptLabel();
+            ev_db.insert(npcev, ev);
         }
         else
             clif_spawnnpc(nd);
     }
-    npcname_db.put(nd->exname, nd);
+    npcname_db.put(nd->name, nd);
 
     for (auto& pair : scriptlabel_db)
         npc_convertlabel_db(pair.first, pair.second, nd);
 
     for (npc_label_list& el : nd->scr.label_listv)
     {
-        char *lname = el.name;
+        ScriptLabel lname = el.name;
         int pos = el.pos;
 
-        if ((lname[0] == 'O' || lname[0] == 'o')
-            && (lname[1] == 'N' || lname[1] == 'n'))
+        if (lname.startswith("On"))
         {
-            if (strlen(lname) > 24)
-            {
-                PRINTF("npc_parse_script: label name error !\n");
-                exit(1);
-            }
             struct event_data ev {};
             ev.nd = nd;
             ev.pos = pos;
-            std::string buf = STRPRINTF("%s::%s", nd->exname, lname);
+            NpcEvent buf;
+            buf.npc = nd->name;
+            buf.label = lname;
             ev_db.insert(buf, ev);
         }
     }
@@ -1327,10 +1294,10 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
     // ラベルデータからタイマーイベント取り込み
     for (npc_label_list& el : nd->scr.label_listv)
     {
-        int t_ = 0, n = 0;
-        char *lname = el.name;
+        int t_ = 0;
+        ScriptLabel lname = el.name;
         int pos = el.pos;
-        if (sscanf(lname, "OnTimer%d%n", &t_, &n) == 1 && lname[n] == '\0')
+        if (lname.startswith("OnTimer") && extract(lname.xslice_t(7), &t_))
         {
             interval_t t = static_cast<interval_t>(t_);
 
@@ -1360,40 +1327,41 @@ int npc_parse_script(char *w1, char *w2, char *w3, char *w4,
  *------------------------------------------
  */
 static
-int npc_parse_function(char *, char *, char *w3, char *,
-                               char *first_line, FILE * fp, int *lines)
+int npc_parse_function(XString, XString, XString w3, ZString,
+        XString first_line, FILE *fp, int *lines)
 {
-    std::string srcbuf = strchrnul(first_line, '{');
+    MString srcbuf;
+    srcbuf += first_line.xislice_t(std::find(first_line.begin(), first_line.end(), '{'));
     int startline = *lines;
 
-    while (1)
+    while (true)
     {
-        size_t i = srcbuf.find_last_not_of(" \t\n\r\f\v");
-        if (i != std::string::npos && srcbuf[i] == '}')
+        auto it = std::find_if_not(srcbuf.rbegin(), srcbuf.rend(), [](char c){ return c == ' ' || c == '\n'; });
+        if (it != srcbuf.rend() && *it == '}')
             break;
-        char line[1024];
-        if (!fgets(line, 1020, fp))
+        char line_[1024];
+        if (!fgets(line_, 1020, fp))
             break;
         (*lines)++;
         if (feof(fp))
             break;
-        if (srcbuf.empty())
+        ZString line(ZString::really_construct_from_a_pointer, line_, nullptr);
+        if (!srcbuf)
         {
-            srcbuf = strchrnul(line, '{');
+            srcbuf += line.xislice_t(std::find(line.begin(), line.end(), '{'));
             startline = *lines;
         }
         else
             srcbuf += line;
     }
-    std::unique_ptr<const ScriptBuffer> script = parse_script(srcbuf.c_str(), startline);
+    std::unique_ptr<const ScriptBuffer> script = parse_script(FString(srcbuf), startline);
     if (script == NULL)
     {
         // script parse error?
         return 1;
     }
 
-    std::string p = w3;
-    userfunc_db.put(p, std::move(script));
+    userfunc_db.put(w3, std::move(script));
 
     return 0;
 }
@@ -1403,20 +1371,18 @@ int npc_parse_function(char *, char *, char *w3, char *,
  *------------------------------------------
  */
 static
-int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
+int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
 {
     int x, y, xs, ys, mob_class, num;
     int i;
-    char mapname[24];
-    char eventname[24] = "";
+    MapName mapname;
+    NpcEvent eventname;
     dumb_ptr<mob_data> md;
 
     xs = ys = 0;
     int delay1_ = 0, delay2_ = 0;
-    // 引数の個数チェック
-    if (sscanf(w1, "%[^,],%d,%d,%d,%d", mapname, &x, &y, &xs, &ys) < 3 ||
-        sscanf(w4, "%d,%d,%d,%d,%s", &mob_class, &num, &delay1_, &delay2_,
-                eventname) < 2)
+    if (!extract(w1, record<',', 3>(&mapname, &x, &y, &xs, &ys)) ||
+        !extract(w4, record<',', 2>(&mob_class, &num, &delay1_, &delay2_, &eventname)))
     {
         PRINTF("bad monster line : %s\n", w3);
         return 1;
@@ -1441,12 +1407,12 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
         md->bl_m = m;
         md->bl_x = x;
         md->bl_y = y;
-        if (strcmp(w3, "--en--") == 0)
-            strzcpy(md->name, mob_db[mob_class].name, 24);
-        else if (strcmp(w3, "--ja--") == 0)
-            strzcpy(md->name, mob_db[mob_class].jname, 24);
+        if (w3 == ENGLISH_NAME)
+            md->name = mob_db[mob_class].name;
+        else if (w3 == JAPANESE_NAME)
+            md->name = mob_db[mob_class].jname;
         else
-            strzcpy(md->name, w3, 24);
+            md->name = w3;
 
         md->n = i;
         md->mob_class = mob_class;
@@ -1466,10 +1432,7 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
 
         md->lootitemv.clear();
 
-        if (strlen(eventname) >= 4)
-            strzcpy(md->npc_event, eventname, 24);
-        else
-            strzcpy(md->npc_event, "", 24);
+        md->npc_event = eventname;
 
         md->bl_type = BL::MOB;
         map_addiddb(md);
@@ -1487,123 +1450,121 @@ int npc_parse_mob(const char *w1, const char *, const char *w3, const char *w4)
  *------------------------------------------
  */
 static
-int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
+int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
 {
-    char mapname[24], savemap[16];
+    MapName mapname, savemap;
     int savex, savey;
 
-    // 引数の個数チェック
-//  if (    sscanf(w1,"%[^,],%d,%d,%d",mapname,&x,&y,&dir) != 4 )
-    if (sscanf(w1, "%[^,]", mapname) != 1)
+    mapname = stringish<MapName>(w1);
+    if (!mapname)
         return 1;
 
     map_local *m = map_mapname2mapid(mapname);
     if (m == nullptr)
         return 1;
 
-//マップフラグ
-    if (strcasecmp(w3, "nosave") == 0)
+    if (w3 == "nosave")
     {
-        if (strcmp(w4, "SavePoint") == 0)
+        if (w4 == "SavePoint")
         {
-            strzcpy(m->save.map_, "SavePoint", 16);
+            m->save.map_ = stringish<MapName>("SavePoint");
             m->save.x = -1;
             m->save.y = -1;
         }
-        else if (sscanf(w4, "%[^,],%d,%d", savemap, &savex, &savey) == 3)
+        else if (extract(w4, record<','>(&savemap, &savex, &savey)))
         {
-            strzcpy(m->save.map_, savemap, 16);
+            m->save.map_ = savemap;
             m->save.x = savex;
             m->save.y = savey;
         }
         m->flag.nosave = 1;
     }
-    else if (strcasecmp(w3, "nomemo") == 0)
+    else if (w3 == "nomemo")
     {
         m->flag.nomemo = 1;
     }
-    else if (strcasecmp(w3, "noteleport") == 0)
+    else if (w3 == "noteleport")
     {
         m->flag.noteleport = 1;
     }
-    else if (strcasecmp(w3, "nowarp") == 0)
+    else if (w3 == "nowarp")
     {
         m->flag.nowarp = 1;
     }
-    else if (strcasecmp(w3, "nowarpto") == 0)
+    else if (w3 == "nowarpto")
     {
         m->flag.nowarpto = 1;
     }
-    else if (strcasecmp(w3, "noreturn") == 0)
+    else if (w3 == "noreturn")
     {
         m->flag.noreturn = 1;
     }
-    else if (strcasecmp(w3, "monster_noteleport") == 0)
+    else if (w3 == "monster_noteleport")
     {
         m->flag.monster_noteleport = 1;
     }
-    else if (strcasecmp(w3, "nobranch") == 0)
+    else if (w3 == "nobranch")
     {
         m->flag.nobranch = 1;
     }
-    else if (strcasecmp(w3, "nopenalty") == 0)
+    else if (w3 == "nopenalty")
     {
         m->flag.nopenalty = 1;
     }
-    else if (strcasecmp(w3, "pvp") == 0)
+    else if (w3 == "pvp")
     {
         m->flag.pvp = 1;
     }
-    else if (strcasecmp(w3, "pvp_noparty") == 0)
+    else if (w3 == "pvp_noparty")
     {
         m->flag.pvp_noparty = 1;
     }
-    else if (strcasecmp(w3, "pvp_nocalcrank") == 0)
+    else if (w3 == "pvp_nocalcrank")
     {
         m->flag.pvp_nocalcrank = 1;
     }
-    else if (strcasecmp(w3, "nozenypenalty") == 0)
+    else if (w3 == "nozenypenalty")
     {
         m->flag.nozenypenalty = 1;
     }
-    else if (strcasecmp(w3, "notrade") == 0)
+    else if (w3 == "notrade")
     {
         m->flag.notrade = 1;
     }
-    else if (battle_config.pk_mode && strcasecmp(w3, "nopvp") == 0)
+    else if (battle_config.pk_mode && w3 == "nopvp")
     {                           // nopvp for pk mode [Valaris]
         m->flag.nopvp = 1;
         m->flag.pvp = 0;
     }
-    else if (strcasecmp(w3, "noicewall") == 0)
+    else if (w3 == "noicewall")
     {                           // noicewall [Valaris]
         m->flag.noicewall = 1;
     }
-    else if (strcasecmp(w3, "snow") == 0)
+    else if (w3 == "snow")
     {                           // snow [Valaris]
         m->flag.snow = 1;
     }
-    else if (strcasecmp(w3, "fog") == 0)
+    else if (w3 == "fog")
     {                           // fog [Valaris]
         m->flag.fog = 1;
     }
-    else if (strcasecmp(w3, "sakura") == 0)
+    else if (w3 == "sakura")
     {                           // sakura [Valaris]
         m->flag.sakura = 1;
     }
-    else if (strcasecmp(w3, "leaves") == 0)
+    else if (w3 == "leaves")
     {                           // leaves [Valaris]
         m->flag.leaves = 1;
     }
-    else if (strcasecmp(w3, "rain") == 0)
+    else if (w3 == "rain")
     {                           // rain [Valaris]
         m->flag.rain = 1;
     }
-    else if (strcasecmp(w3, "no_player_drops") == 0)
+    else if (w3 == "no_player_drops")
     {                           // no player drops [Jaxad0127]
         m->flag.no_player_drops = 1;
     }
-    else if (strcasecmp(w3, "town") == 0)
+    else if (w3 == "town")
     {                           // town/safe zone [remoitnane]
         m->flag.town = 1;
     }
@@ -1612,7 +1573,7 @@ int npc_parse_mapflag(char *w1, char *, char *w3, char *w4)
 }
 
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        int npc_class, const char *name, const char *message)
+        int npc_class, NpcName name, FString message)
 {
     dumb_ptr<npc_data_message> retval;
     retval.new_();
@@ -1623,8 +1584,7 @@ dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
     retval->bl_type = BL::NPC;
     retval->npc_subtype = NpcSubtype::MESSAGE;
 
-    strzcpy(retval->name, name, 24);
-    strzcpy(retval->exname, name, 24);
+    retval->name = name;
     if (message)
         retval->message = message;
 
@@ -1656,7 +1616,7 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
     {
         dumb_ptr<npc_data_message> nd = nd_->as_message();
-        nd->message.clear();
+        nd->message = FString();
     }
     nd_.delete_();
 }
@@ -1699,100 +1659,91 @@ int do_init_npc(void)
 
     for (; !npc_srcs.empty(); npc_srcs.pop_front())
     {
-        std::string& nsl = npc_srcs.front();
-        FILE *fp = fopen_(nsl.c_str(), "r");
+        FString nsl = npc_srcs.front();
+        FILE *fp = fopen(nsl.c_str(), "r");
         if (fp == NULL)
         {
             PRINTF("file not found : %s\n", nsl);
             exit(1);
         }
         int lines = 0;
-        char line[1024];
-        while (fgets(line, 1020, fp))
+        char line_[1024];
+        while (fgets(line_, 1020, fp))
         {
-            char w1[1024], w2[1024], w3[1024], w4[1024], mapname[1024];
-            int i, j, w4pos, count;
+            // because it's still fgets
+            line_[strlen(line_) - 1] = '\0';
+            ZString zline(ZString::really_construct_from_a_pointer, line_, nullptr);
+            XString w1, w2, w3, w4x;
+            ZString w4z;
             lines++;
 
-            if (line[0] == '/' && line[1] == '/')
+            if (!zline)
                 continue;
-            // 不要なスペースやタブの連続は詰める
-            for (i = j = 0; line[i]; i++)
+            if (zline.startswith("//"))
+                continue;
+
+            if (!extract(zline, record<'|', 3>(&w1, &w2, &w3, &w4x)) || !w1 || !w2 || !w3)
             {
-                if (line[i] == ' ')
-                {
-                    if (!
-                        ((line[i + 1]
-                          && (isspace(line[i + 1]) || line[i + 1] == ','))
-                         || (j && line[j - 1] == ',')))
-                        line[j++] = ' ';
-                }
-                else if (line[i] == '\t' || line[i] == '|')
-                {
-                    if (!(j && (line[j - 1] == '\t' || line[j - 1] == '|')))
-                        line[j++] = '\t';
-                }
-                else
-                    line[j++] = line[i];
-            }
-            // 最初はタブ区切りでチェックしてみて、ダメならスペース区切りで確認
-            if ((count =
-                 sscanf(line, "%[^\t]\t%[^\t]\t%[^\t\r\n]\t%n%[^\t\r\n]", w1,
-                         w2, w3, &w4pos, w4)) < 3
-                && (count =
-                    sscanf(line, "%s%s%s%n%s", w1, w2, w3, &w4pos, w4)) < 3)
-            {
+                FPRINTF(stderr, "%s:%d: Broken script line: %s\n", nsl, lines, zline);
                 continue;
             }
-            // マップの存在確認
-            if (strcmp(w1, "-") != 0 && strcasecmp(w1, "function") != 0)
+            if (&*w4x.end() == &*zline.end())
             {
-                sscanf(w1, "%[^,]", mapname);
+                w4z = zline.xrslice_t(w4x.size());
+            }
+            assert(bool(w4x) == bool(w4z));
+
+            if (w1 != "-" && w1 != "function")
+            {
+                auto comma = std::find(w1.begin(), w1.end(), ',');
+                MapName mapname = stringish<MapName>(w1.xislice_h(comma));
                 map_local *m = map_mapname2mapid(mapname);
-                if (strlen(mapname) > 16 || m == nullptr)
+                if (m == nullptr)
                 {
                     // "mapname" is not assigned to this server
+                    FPRINTF(stderr, "%s:%d: Map not found: %s\n", nsl, lines, mapname);
                     continue;
                 }
             }
-            if (strcasecmp(w2, "warp") == 0 && count > 3)
+            if (w2 == "warp")
             {
-                npc_parse_warp(w1, w2, w3, w4);
+                NpcName npcname = stringish<NpcName>(w3);
+                npc_parse_warp(w1, w2, npcname, w4z);
             }
-            else if (strcasecmp(w2, "shop") == 0 && count > 3)
+            else if (w2 == "shop")
             {
-                npc_parse_shop(w1, w2, w3, w4);
+                NpcName npcname = stringish<NpcName>(w3);
+                npc_parse_shop(w1, w2, npcname, w4z);
             }
-            else if (strcasecmp(w2, "script") == 0 && count > 3)
+            else if (w2 == "script")
             {
-                if (strcasecmp(w1, "function") == 0)
+                if (w1 == "function")
                 {
-                    npc_parse_function(w1, w2, w3, w4, line + w4pos, fp,
-                                        &lines);
+                    npc_parse_function(w1, w2, w3, w4z,
+                            w4x, fp, &lines);
                 }
                 else
                 {
-                    npc_parse_script(w1, w2, w3, w4, line + w4pos, fp,
-                                      &lines);
+                    NpcName npcname = stringish<NpcName>(w3);
+                    npc_parse_script(w1, w2, npcname, w4z,
+                            w4x, fp, &lines);
                 }
             }
-            else if ((i =
-                      0, sscanf(w2, "duplicate%n", &i), (i > 0
-                                                          && w2[i] == '('))
-                     && count > 3)
+            else if (w2 == "monster")
             {
-                npc_parse_script(w1, w2, w3, w4, line + w4pos, fp, &lines);
+                MobName mobname = stringish<MobName>(w3);
+                npc_parse_mob(w1, w2, mobname, w4z);
             }
-            else if (strcasecmp(w2, "monster") == 0 && count > 3)
+            else if (w2 == "mapflag")
             {
-                npc_parse_mob(w1, w2, w3, w4);
+                npc_parse_mapflag(w1, w2, w3, w4z);
             }
-            else if (strcasecmp(w2, "mapflag") == 0 && count >= 3)
+            else
             {
-                npc_parse_mapflag(w1, w2, w3, w4);
+                PRINTF("odd script line: %s\n", zline);
             }
         }
-        fclose_(fp);
+        fclose(fp);
         PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
                 nsl);
         fflush(stdout);

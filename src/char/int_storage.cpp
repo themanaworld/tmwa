@@ -9,6 +9,7 @@
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
+#include "../common/io.hpp"
 #include "../common/lock.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
@@ -17,16 +18,17 @@
 
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
-char storage_txt[1024] = "save/storage.txt";
+FString storage_txt = "save/storage.txt";
 
 static
 Map<int, struct storage> storage_db;
 
 // 倉庫データを文字列に変換
 static
-std::string storage_tostr(struct storage *p)
+FString storage_tostr(struct storage *p)
 {
-    std::string str = STRPRINTF(
+    MString str;
+    str += STRPRINTF(
             "%d,%d\t",
             p->account_id, p->storage_amount);
 
@@ -53,13 +55,13 @@ std::string storage_tostr(struct storage *p)
     str += '\t';
 
     if (!f)
-        str.clear();
-    return str;
+        return FString();
+    return FString(str);
 }
 
 // 文字列を倉庫データに変換
 static
-bool extract(const_string str, struct storage *p)
+bool extract(XString str, struct storage *p)
 {
     std::vector<struct item> storage_items;
     if (!extract(str,
@@ -73,7 +75,7 @@ bool extract(const_string str, struct storage *p)
     if (p->account_id <= 0)
         return false;
 
-    if (storage_items.size() >= MAX_STORAGE)
+    if (storage_items.size() > MAX_STORAGE)
         return false;
     std::copy(storage_items.begin(), storage_items.end(), p->storage_);
 
@@ -98,15 +100,15 @@ int inter_storage_init(void)
 {
     int c = 0;
 
-    std::ifstream in(storage_txt);
+    std::ifstream in(storage_txt.c_str());
     if (!in.is_open())
     {
         PRINTF("cant't read : %s\n", storage_txt);
         return 1;
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
         struct storage s {};
         if (extract(line, &s))
@@ -127,8 +129,8 @@ int inter_storage_init(void)
 static
 void inter_storage_save_sub(struct storage *data, FILE *fp)
 {
-    std::string line = storage_tostr(data);
-    if (!line.empty())
+    FString line = storage_tostr(data);
+    if (line)
         FPRINTF(fp, "%s\n", line);
 }
 

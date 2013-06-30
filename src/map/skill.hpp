@@ -21,7 +21,8 @@ struct skill_db_
     int num_k;
     int cast[MAX_SKILL_LEVEL], delay[MAX_SKILL_LEVEL];
     int upkeep_time[MAX_SKILL_LEVEL], upkeep_time2[MAX_SKILL_LEVEL];
-    int castcancel, cast_def_rate;
+    bool castcancel;
+    int cast_def_rate;
     int inf2, maxcount;
     int hp[MAX_SKILL_LEVEL], sp[MAX_SKILL_LEVEL], mhp[MAX_SKILL_LEVEL],
         hp_rate[MAX_SKILL_LEVEL], sp_rate[MAX_SKILL_LEVEL],
@@ -49,7 +50,7 @@ struct skill_name_db
 extern struct skill_name_db skill_names[];
 
 skill_name_db& skill_lookup_by_id(SkillID id);
-skill_name_db& skill_lookup_by_name(const char *name);
+skill_name_db& skill_lookup_by_name(XString name);
 
 struct block_list;
 struct map_session_data;

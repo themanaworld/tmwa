@@ -10,6 +10,7 @@
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
+#include "../common/io.hpp"
 #include "../common/lock.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
@@ -25,10 +26,10 @@
 // that is the waiting time of answers of all map-servers
 constexpr std::chrono::minutes WISDATA_TTL = std::chrono::minutes(1);
 
-char inter_log_filename[1024] = "log/inter.log";
+FString inter_log_filename = "log/inter.log";
 
 static
-char accreg_txt[1024] = "save/accreg.txt";
+FString accreg_txt = "save/accreg.txt";
 
 struct accreg
 {
@@ -59,8 +60,8 @@ struct WisData
 {
     int id, fd, count;
     tick_t tick;
-    char src[24], dst[24];
-    std::string msg;
+    CharName src, dst;
+    FString msg;
 };
 static
 Map<int, struct WisData> wis_db;
@@ -71,17 +72,18 @@ std::vector<int> wis_dellistv;
 
 // アカウント変数を文字列へ変換
 static
-std::string inter_accreg_tostr(struct accreg *reg)
+FString inter_accreg_tostr(struct accreg *reg)
 {
-    std::string str STRPRINTF("%d\t", reg->account_id);
+    MString str;
+    str += STRPRINTF("%d\t", reg->account_id);
     for (int j = 0; j < reg->reg_num; j++)
         str += STRPRINTF("%s,%d ", reg->reg[j].str, reg->reg[j].value);
-    return str;
+    return FString(str);
 }
 
 // アカウント変数を文字列から変換
 static
-bool extract(const_string str, struct accreg *reg)
+bool extract(XString str, struct accreg *reg)
 {
     std::vector<struct global_reg> vars;
     if (!extract(str,
@@ -105,11 +107,11 @@ int inter_accreg_init(void)
 {
     int c = 0;
 
-    std::ifstream in(accreg_txt);
+    std::ifstream in(accreg_txt.c_str());
     if (!in.is_open())
         return 1;
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
         struct accreg reg {};
         if (extract(line, &reg))
@@ -133,7 +135,7 @@ void inter_accreg_save_sub(struct accreg *reg, FILE *fp)
 {
     if (reg->reg_num > 0)
     {
-        std::string line = inter_accreg_tostr(reg);
+        FString line = inter_accreg_tostr(reg);
         fwrite(line.data(), 1, line.size(), fp);
         fputc('\n', fp);
     }
@@ -166,33 +168,34 @@ int inter_accreg_save(void)
  *------------------------------------------
  */
 static
-int inter_config_read(const char *cfgName)
+int inter_config_read(ZString cfgName)
 {
-    std::ifstream in(cfgName);
+    std::ifstream in(cfgName.c_str());
     if (!in.is_open())
     {
         PRINTF("file not found: %s\n", cfgName);
         return 1;
     }
 
-    std::string line;
-    while (std::getline(in, line))
+    FString line;
+    while (io::getline(in, line))
     {
-        std::string w1, w2;
+        SString w1;
+        TString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
         if (w1 == "storage_txt")
         {
-            strzcpy(storage_txt, w2.c_str(), sizeof(storage_txt));
+            storage_txt = w2;
         }
         else if (w1 == "party_txt")
         {
-            strzcpy(party_txt, w2.c_str(), sizeof(party_txt));
+            party_txt = w2;
         }
         else if (w1 == "accreg_txt")
         {
-            strzcpy(accreg_txt, w2.c_str(), sizeof(accreg_txt));
+            accreg_txt = w2;
         }
         else if (w1 == "party_share_level")
         {
@@ -202,15 +205,16 @@ int inter_config_read(const char *cfgName)
         }
         else if (w1 == "inter_log_filename")
         {
-            strzcpy(inter_log_filename, w2.c_str(), sizeof(inter_log_filename));
+            inter_log_filename = w2;
         }
         else if (w1 == "import")
         {
-            inter_config_read(w2.c_str());
+            inter_config_read(w2);
         }
         else
         {
-            PRINTF("WARNING: unknown inter config key: %s\n", w1);
+            FString w1z = w1;
+            PRINTF("WARNING: unknown inter config key: %s\n", w1z);
         }
     }
 
@@ -218,25 +222,21 @@ int inter_config_read(const char *cfgName)
 }
 
 // セーブ
-int inter_save(void)
+void inter_save(void)
 {
     inter_party_save();
     inter_storage_save();
     inter_accreg_save();
-
-    return 0;
 }
 
 // 初期化
-int inter_init(const char *file)
+void inter_init(ZString file)
 {
     inter_config_read(file);
 
     inter_party_init();
     inter_storage_init();
     inter_accreg_init();
-
-    return 0;
 }
 
 //--------------------------------------------------------
@@ -244,9 +244,9 @@ int inter_init(const char *file)
 
 // GMメッセージ送信
 static
-void mapif_GMmessage(const char *mes)
+void mapif_GMmessage(XString mes)
 {
-    size_t str_len = strlen(mes) + 1;
+    size_t str_len = mes.size() + 1;
     size_t msg_len = str_len + 4;
     uint8_t buf[msg_len];
 
@@ -266,9 +266,9 @@ void mapif_wis_message(struct WisData *wd)
     WBUFW(buf, 0) = 0x3801;
     WBUFW(buf, 2) = 56 + str_size;
     WBUFL(buf, 4) = wd->id;
-    WBUF_STRING(buf, 8, wd->src, 24);
-    WBUF_STRING(buf, 32, wd->dst, 24);
-    WBUF_STRING(buf, 56, wd->msg.c_str(), str_size);
+    WBUF_STRING(buf, 8, wd->src.to__actual(), 24);
+    WBUF_STRING(buf, 32, wd->dst.to__actual(), 24);
+    WBUF_STRING(buf, 56, wd->msg, str_size);
     wd->count = mapif_sendall(buf, WBUFW(buf, 2));
 }
 
@@ -279,7 +279,7 @@ void mapif_wis_end(struct WisData *wd, int flag)
     uint8_t buf[27];
 
     WBUFW(buf, 0) = 0x3802;
-    WBUF_STRING(buf, 2, wd->src, 24);
+    WBUF_STRING(buf, 2, wd->src.to__actual(), 24);
     WBUFB(buf, 26) = flag;     // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     mapif_send(wd->fd, buf, 27);
 }
@@ -362,8 +362,7 @@ void mapif_parse_GMmessage(int fd)
 {
     size_t msg_len = RFIFOW(fd, 2);
     size_t str_len = msg_len - 4;
-    char buf[str_len];
-    RFIFO_STRING(fd, 4, buf, str_len);
+    FString buf = RFIFO_STRING(fd, 4, str_len);
 
     mapif_GMmessage(buf);
 }
@@ -380,10 +379,8 @@ void mapif_parse_WisRequest(int fd)
         return;
     }
 
-    char from[24];
-    char to[24];
-    RFIFO_STRING(fd, 4, from, 24);
-    RFIFO_STRING(fd, 28, to, 24);
+    CharName from = stringish<CharName>(RFIFO_STRING<24>(fd, 4));
+    CharName to = stringish<CharName>(RFIFO_STRING<24>(fd, 28));
 
     // search if character exists before to ask all map-servers
     const mmo_charstatus *mcs = search_character(to);
@@ -391,7 +388,7 @@ void mapif_parse_WisRequest(int fd)
     {
         uint8_t buf[27];
         WBUFW(buf, 0) = 0x3802;
-        WBUF_STRING(buf, 2, from, 24);
+        WBUF_STRING(buf, 2, from.to__actual(), 24);
         WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
         mapif_send(fd, buf, 27);
         // Character exists. So, ask all map-servers
@@ -399,19 +396,19 @@ void mapif_parse_WisRequest(int fd)
     else
     {
         // to be sure of the correct name, rewrite it
-        strzcpy(to, mcs->name, 24);
+        to = mcs->name;
         // if source is destination, don't ask other servers.
-        if (strcmp(from, to) == 0)
+        if (from == to)
         {
             uint8_t buf[27];
             WBUFW(buf, 0) = 0x3802;
-            WBUF_STRING(buf, 2, from, 24);
+            WBUF_STRING(buf, 2, from.to__actual(), 24);
             WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
             mapif_send(fd, buf, 27);
         }
         else
         {
-            struct WisData wd;
+            struct WisData wd {};
 
             // Whether the failure of previous wisp/page transmission (timeout)
             check_ttl_wisdata();
@@ -419,11 +416,9 @@ void mapif_parse_WisRequest(int fd)
             wd.id = ++wisid;
             wd.fd = fd;
             size_t len = RFIFOW(fd, 2) - 52;
-            RFIFO_STRING(fd, 4, wd.src, 24);
-            RFIFO_STRING(fd, 28, wd.dst, 24);
-            char tmpbuf[len];
-            RFIFO_STRING(fd, 52, tmpbuf, len);
-            wd.msg = std::string(tmpbuf);
+            wd.src = from;
+            wd.dst = to;
+            wd.msg = RFIFO_STRING(fd, 52, len);
             wd.tick = gettick();
             wis_db.insert(wd.id, wd);
             mapif_wis_message(&wd);
@@ -480,7 +475,7 @@ void mapif_parse_AccReg(int fd)
     for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW(fd, 2);
          j++, p += 36)
     {
-        RFIFO_STRING(fd, p, reg->reg[j].str, 32);
+        reg->reg[j].str = stringish<VarName>(RFIFO_STRING<32>(fd, p));
         reg->reg[j].value = RFIFOL(fd, p + 32);
     }
     reg->reg_num = j;

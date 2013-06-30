@@ -5,9 +5,13 @@
 #include <cstring>
 #include <ctime>
 
+#include <fstream>
+
 #include "../common/cxxstdio.hpp"
-#include "../common/random.hpp"
+#include "../common/extract.hpp"
+#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/random.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 
@@ -1144,24 +1148,24 @@ void skill_unit_timer_sub_ondelete(dumb_ptr<block_list> bl,
  */
 
 static
-SP scan_stat(char *statname)
+SP scan_stat(XString statname)
 {
-    if (!strcasecmp(statname, "str"))
+    if (statname == "str")
         return SP::STR;
-    if (!strcasecmp(statname, "dex"))
+    if (statname == "dex")
         return SP::DEX;
-    if (!strcasecmp(statname, "agi"))
+    if (statname == "agi")
         return SP::AGI;
-    if (!strcasecmp(statname, "vit"))
+    if (statname == "vit")
         return SP::VIT;
-    if (!strcasecmp(statname, "int"))
+    if (statname == "int")
         return SP::INT;
-    if (!strcasecmp(statname, "luk"))
+    if (statname == "luk")
         return SP::LUK;
-    if (!strcasecmp(statname, "none"))
+    if (statname == "none")
         return SP::ZERO;
 
-    FPRINTF(stderr, "Unknown stat `%s'\n", statname);
+    FPRINTF(stderr, "Unknown stat `%s'\n", FString(statname));
     return SP::ZERO;
 }
 
@@ -1174,93 +1178,89 @@ SP scan_stat(char *statname)
 static
 int skill_readdb(void)
 {
-    int j;
-    FILE *fp;
-    char line[1024], *p;
-
     /* The main skill database */
     for (skill_db_& skdb : skill_db)
         skdb = skill_db_{};
 
-    fp = fopen_("db/skill_db.txt", "r");
-    if (fp == NULL)
+    std::ifstream in("db/skill_db.txt");
+    if (!in)
     {
         PRINTF("can't read db/skill_db.txt\n");
         return 1;
     }
-    while (fgets(line, 1020, fp))
-    {
-        char *split[50];
-        if (line[0] == '/' && line[1] == '/')
-            continue;
-        for (j = 0, p = line; j < 18 && p; j++)
-        {
-            while (*p == '\t' || *p == ' ')
-                p++;
-            split[j] = p;
-            p = strchr(p, ',');
-            if (p)
-                *p++ = 0;
-        }
-        if (split[17] == NULL || j < 18)
-        {
-            FPRINTF(stderr, "Incomplete skill db data online (%d entries)\n",
-                     j);
-            continue;
-        }
 
-        SkillID i = SkillID(atoi(split[0]));
+    FString line_;
+    while (io::getline(in, line_))
+    {
+        XString comment = "//";
+        XString line = line_.xislice_h(std::search(line_.begin(), line_.end(), comment.begin(), comment.end())).rstrip();
+        if (!line)
+            continue;
+
+        struct skill_db_ skdb {};
+
+        SkillID i;
+        XString castcancel, ignore, flags, stat, desc;
+        if (!extract(line,
+                    record<','>(
+                        &i,
+                        lstripping(&skdb.range_k),
+                        lstripping(&skdb.hit),
+                        lstripping(&skdb.inf),
+                        lstripping(&skdb.pl),
+                        lstripping(&skdb.nk),
+                        lstripping(&skdb.max_raise),
+                        lstripping(&skdb.max),
+                        lstripping(&skdb.num_k),
+                        lstripping(&castcancel),
+                        lstripping(&skdb.cast_def_rate),
+                        lstripping(&skdb.inf2),
+                        lstripping(&skdb.maxcount),
+                        lstripping(&ignore), // weapon/magic/misc/none
+                        lstripping(&ignore), // blow count
+                        lstripping(&flags),
+                        lstripping(&stat),
+                        lstripping(&desc)
+                    )
+                )
+        )
+            continue;
         if (/*i < SkillID() ||*/ i > SkillID::MAX_SKILL_DB)
             continue;
 
-        char *split2_0;
-        split2_0 = split[1];
-        skill_db[i].range_k = atoi(split2_0);
-        skill_db[i].hit = atoi(split[2]);
-        skill_db[i].inf = atoi(split[3]);
-        skill_db[i].pl = atoi(split[4]);
-        skill_db[i].nk = atoi(split[5]);
-        skill_db[i].max_raise = atoi(split[6]);
-        skill_db[i].max = atoi(split[7]);
-
-        split2_0 = split[8];
-        skill_db[i].num_k = atoi(split2_0);
-
-        if (strcasecmp(split[9], "yes") == 0)
-            skill_db[i].castcancel = 1;
+        if (castcancel == "yes")
+            skdb.castcancel = true;
+        else if (castcancel == "no")
+            skdb.castcancel = false;
         else
-            skill_db[i].castcancel = 0;
-        skill_db[i].cast_def_rate = atoi(split[10]);
-        skill_db[i].inf2 = atoi(split[11]);
-        skill_db[i].maxcount = atoi(split[12]);
-        // split[13] was one of: BF::WEAPON, BF::MAGIC, BF::MISC, BF::ZERO
-        // split[14] was colon-separated blow counts.
+            continue;
 
-        if (!strcasecmp(split[15], "passive"))
+        if (flags == "passive")
         {
             skill_pool_register(i);
-            skill_db[i].poolflags = SkillFlags::POOL_FLAG;
+            skdb.poolflags = SkillFlags::POOL_FLAG;
         }
-        else if (!strcasecmp(split[15], "active"))
+        else if (flags == "active")
         {
             skill_pool_register(i);
-            skill_db[i].poolflags = SkillFlags::POOL_FLAG | SkillFlags::POOL_ACTIVE;
+            skdb.poolflags = SkillFlags::POOL_FLAG | SkillFlags::POOL_ACTIVE;
         }
+        else if (flags == "no")
+            skdb.poolflags = SkillFlags::ZERO;
         else
-            skill_db[i].poolflags = SkillFlags::ZERO;
+            continue;
 
-        skill_db[i].stat = scan_stat(split[16]);
+        skdb.stat = scan_stat(stat);
 
-        std::string tmp = split[17];
-        size_t space = tmp.find_first_of(" \t\n");
-        if (space != std::string::npos)
-            tmp.resize(space);
+        MString tmp;
+        tmp += desc;
         for (char& c : tmp)
             if (c == '_')
                 c = ' ';
-        skill_lookup_by_id(i).desc = std::move(tmp);
+
+        skill_db[i] = skdb;
+        skill_lookup_by_id(i).desc = FString(tmp);
     }
-    fclose_(fp);
     PRINTF("read db/skill_db.txt done\n");
 
     return 0;
@@ -1299,10 +1299,10 @@ skill_name_db& skill_lookup_by_id(SkillID id)
     return skill_names[num_names - 1];
 }
 
-skill_name_db& skill_lookup_by_name(const char *name)
+skill_name_db& skill_lookup_by_name(XString name)
 {
     for (skill_name_db& ner : skill_names)
-        if (!strcasecmp(name, ner.name.c_str()) || !strcasecmp(name, ner.desc.c_str()))
+        if (name == ner.name || name == ner.desc)
             return ner;
     return skill_names[num_names - 1];
 }

@@ -3,10 +3,14 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <fstream>
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
-#include "../common/random.hpp"
+#include "../common/extract.hpp"
+#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
+#include "../common/random.hpp"
 #include "../common/socket.hpp"
 
 #include "../poison.hpp"
@@ -33,9 +37,9 @@ int itemdb_readdb(void);
  */
 // name = item alias, so we should find items aliases first. if not found then look for "jname" (full name)
 static
-void itemdb_searchname_sub(struct item_data *item, const char *str, struct item_data **dst)
+void itemdb_searchname_sub(struct item_data *item, ItemName str, struct item_data **dst)
 {
-    if (strcasecmp(item->name, str) == 0) //by lupus
+    if (item->name == str)
         *dst = item;
 }
 
@@ -43,7 +47,7 @@ void itemdb_searchname_sub(struct item_data *item, const char *str, struct item_
  * 名前で検索
  *------------------------------------------
  */
-struct item_data *itemdb_searchname(const char *str)
+struct item_data *itemdb_searchname(ItemName str)
 {
     struct item_data *item = NULL;
     for (auto& pair : item_db)
@@ -148,62 +152,70 @@ int itemdb_isequip3(int nameid)
 static
 int itemdb_readdb(void)
 {
-    FILE *fp;
-    char line[1024];
     int ln = 0, lines = 0;
-    int nameid, j;
-    struct item_data *id;
-    int i = 0;
-    const char *filename[] = { "db/item_db.txt", "db/item_db2.txt" };
+    const char *filename = "db/item_db.txt";
 
-    for (i = 0; i < 2; i++)
     {
+        std::ifstream in(filename);
 
-        fp = fopen_(filename[i], "r");
-        if (fp == NULL)
+        if (!in.is_open())
         {
-            if (i > 0)
-                continue;
-            PRINTF("can't read %s\n", filename[i]);
+            PRINTF("can't read %s\n", filename);
             exit(1);
         }
 
         lines = 0;
-        while (fgets(line, 1020, fp))
+
+        FString line;
+        while (io::getline(in, line))
         {
             lines++;
-            if (line[0] == '/' && line[1] == '/')
+            if (!line)
                 continue;
-            char *str[32] {};
-            char *p;
-            char *np;
-            for (j = 0, np = p = line; j < 17 && p; j++)
-            {
-                while (*p == '\t' || *p == ' ')
-                    p++;
-                str[j] = p;
-                p = strchr(p, ',');
-                if (p)
-                {
-                    *p++ = 0;
-                    np = p;
-                }
-            }
-            if (str[0] == NULL)
+            if (line.startswith("//"))
                 continue;
+            // a line is 17 normal fields followed by 2 {} fields
+            // the fields are separated by ", *", but there may be ,
+            // in the {}.
 
-            nameid = atoi(str[0]);
-            if (nameid <= 0 || nameid >= 20000)
+            auto it = std::find(line.begin(), line.end(), '{');
+            XString main_part = line.xislice_h(it).rstrip();
+            // According to the code, tail_part may be empty. See later.
+            ZString tail_part = line.xislice_t(it);
+
+            item_data idv {};
+            if (!extract(
+                        main_part, record<','>(
+                            &idv.nameid,
+                            lstripping(&idv.name),
+                            lstripping(&idv.jname),
+                            lstripping(&idv.type),
+                            lstripping(&idv.value_buy),
+                            lstripping(&idv.value_sell),
+                            lstripping(&idv.weight),
+                            lstripping(&idv.atk),
+                            lstripping(&idv.def),
+                            lstripping(&idv.range),
+                            lstripping(&idv.magic_bonus),
+                            lstripping(&idv.slot),
+                            lstripping(&idv.sex),
+                            lstripping(&idv.equip),
+                            lstripping(&idv.wlv),
+                            lstripping(&idv.elv),
+                            lstripping(&idv.look)
+                        )
+                    )
+            )
+            {
+                PRINTF("%s:%d: error: bad item line: %s\n",
+                        filename, lines, line);
                 continue;
+            }
+
             ln++;
 
-            //ID,Name,Jname,Type,Price,Sell,Weight,ATK,DEF,Range,Slot,Job,Gender,Loc,wLV,eLV,View
-            id = itemdb_search(nameid);
-            strzcpy(id->name, str[1], 24);
-            strzcpy(id->jname, str[2], 24);
-            id->type = ItemType(atoi(str[3]));
-            id->value_buy = atoi(str[4]);
-            id->value_sell = atoi(str[5]);
+            struct item_data *id = itemdb_search(idv.nameid);
+            *id = std::move(idv);
             if (id->value_buy == 0 && id->value_sell == 0)
             {
             }
@@ -215,31 +227,20 @@ int itemdb_readdb(void)
             {
                 id->value_sell = id->value_buy / 2;
             }
-            id->weight = atoi(str[6]);
-            id->atk = atoi(str[7]);
-            id->def = atoi(str[8]);
-            id->range = atoi(str[9]);
-            id->magic_bonus = atoi(str[10]);
-            id->slot = atoi(str[11]);
-            id->sex = atoi(str[12]);
-            id->equip = EPOS(atoi(str[13]));
-            id->wlv = atoi(str[14]);
-            id->elv = atoi(str[15]);
-            id->look = static_cast<ItemLook>(atoi(str[16]));
 
             id->use_script = NULL;
             id->equip_script = NULL;
 
-            if ((p = strchr(np, '{')) == NULL)
+            if (!tail_part)
                 continue;
-            id->use_script = parse_script(p, lines);
+            id->use_script = parse_script(tail_part, lines);
 
-            if ((p = strchr(p + 1, '{')) == NULL)
+            tail_part = tail_part.xislice_t(std::find(tail_part.begin() + 1, tail_part.end(), '{'));
+            if (!tail_part)
                 continue;
-            id->equip_script = parse_script(p, lines);
+            id->equip_script = parse_script(tail_part, lines);
         }
-        fclose_(fp);
-        PRINTF("read %s done (count=%d)\n", filename[i], ln);
+        PRINTF("read %s done (count=%d)\n", filename, ln);
     }
     return 0;
 }

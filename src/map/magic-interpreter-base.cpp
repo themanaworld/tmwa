@@ -62,16 +62,16 @@ void set_spell SETTER(dumb_ptr<spell_t>, TYPE::SPELL, v_spell)
 magic_conf_t magic_conf;        /* Global magic conf */
 env_t magic_default_env = { &magic_conf, NULL };
 
-const char *magic_find_invocation(const std::string& spellname)
+FString magic_find_invocation(XString spellname)
 {
     auto it = magic_conf.spells_by_name.find(spellname);
     if (it != magic_conf.spells_by_name.end())
-        return it->second->invocation.c_str();
+        return it->second->invocation;
 
-    return NULL;
+    return FString();
 }
 
-dumb_ptr<spell_t> magic_find_spell(const std::string& invocation)
+dumb_ptr<spell_t> magic_find_spell(XString invocation)
 {
     auto it = magic_conf.spells_by_invocation.find(invocation);
     if (it != magic_conf.spells_by_invocation.end())
@@ -84,17 +84,17 @@ dumb_ptr<spell_t> magic_find_spell(const std::string& invocation)
 /* Spell anchors */
 /* -------------------------------------------------------------------------------- */
 
-const char *magic_find_anchor_invocation(const std::string& anchor_name)
+FString magic_find_anchor_invocation(XString anchor_name)
 {
     auto it = magic_conf.anchors_by_name.find(anchor_name);
 
     if (it != magic_conf.anchors_by_name.end())
-        return it->second->invocation.c_str();
+        return it->second->invocation;
 
-    return NULL;
+    return FString();
 }
 
-dumb_ptr<teleport_anchor_t> magic_find_anchor(const std::string& name)
+dumb_ptr<teleport_anchor_t> magic_find_anchor(XString name)
 {
     auto it = magic_conf.anchors_by_invocation.find(name);
     if (it != magic_conf.anchors_by_invocation.end())
@@ -137,7 +137,7 @@ void magic_free_env(dumb_ptr<env_t> env)
 }
 
 dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
-        dumb_ptr<map_session_data> caster, int spellpower, const_string param)
+        dumb_ptr<map_session_data> caster, int spellpower, XString param)
 {
     dumb_ptr<env_t> env = alloc_env(conf);
 
@@ -145,12 +145,13 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
     {
 
         case SPELLARG::STRING:
-            set_env_string(spell->arg, dumb_string::copyc(param));
+            set_env_string(spell->arg, dumb_string::copys(param));
             break;
 
         case SPELLARG::PC:
         {
-            dumb_ptr<map_session_data> subject = map_nick2sd(std::string(param.begin(), param.end()).c_str());
+            CharName name = stringish<CharName>(param);
+            dumb_ptr<map_session_data> subject = map_nick2sd(name);
             if (!subject)
                 subject = caster;
             set_env_entity(spell->arg, subject);

@@ -6,13 +6,13 @@
 #include "map.hpp"
 
 bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
-        const char *message, int gmlvl);
+        ZString message, int gmlvl);
 
-int atcommand_config_read(const char *cfgName);
+int atcommand_config_read(ZString cfgName);
 
-void log_atcommand(dumb_ptr<map_session_data> sd, const_string cmd);
+void log_atcommand(dumb_ptr<map_session_data> sd, XString cmd);
 
 // only used by map.cpp
-extern std::string gm_logfile_name;
+extern FString gm_logfile_name;
 
 #endif // ATCOMMAND_HPP

@@ -14,7 +14,7 @@
 #include "pc.t.hpp"
 #include "skill.t.hpp"
 
-void clif_setip(const char *);
+void clif_setip(IP_String);
 void clif_setport(int);
 
 struct in_addr clif_getip(void);
@@ -38,23 +38,23 @@ int clif_spawnmob(dumb_ptr<mob_data>); // area
 int clif_walkok(dumb_ptr<map_session_data>);   // self
 int clif_movechar(dumb_ptr<map_session_data>); // area
 int clif_movemob(dumb_ptr<mob_data>);  //area
-void clif_changemap(dumb_ptr<map_session_data>, const char *, int, int);  //self
-void clif_changemapserver(dumb_ptr<map_session_data>, const char *, int, int, struct in_addr, int);  //self
+void clif_changemap(dumb_ptr<map_session_data>, MapName, int, int);  //self
+void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, struct in_addr, int);  //self
 void clif_fixpos(dumb_ptr<block_list>); // area
 int clif_fixmobpos(dumb_ptr<mob_data> md);
 int clif_fixpcpos(dumb_ptr<map_session_data> sd);
 int clif_npcbuysell(dumb_ptr<map_session_data>, int);  //self
 int clif_buylist(dumb_ptr<map_session_data>, dumb_ptr<npc_data_shop>);   //self
 int clif_selllist(dumb_ptr<map_session_data>); //self
-int clif_scriptmes(dumb_ptr<map_session_data>, int, const char *);   //self
-int clif_scriptnext(dumb_ptr<map_session_data>, int);  //self
-int clif_scriptclose(dumb_ptr<map_session_data>, int); //self
-int clif_scriptmenu(dumb_ptr<map_session_data>, int, const char *);  //self
-int clif_scriptinput(dumb_ptr<map_session_data>, int); //self
-int clif_scriptinputstr(dumb_ptr<map_session_data> sd, int npcid);  // self
-int clif_viewpoint(dumb_ptr<map_session_data>, int, int, int, int, int, int);  //self
+void clif_scriptmes(dumb_ptr<map_session_data>, int, XString);   //self
+void clif_scriptnext(dumb_ptr<map_session_data>, int);  //self
+void clif_scriptclose(dumb_ptr<map_session_data>, int); //self
+void clif_scriptmenu(dumb_ptr<map_session_data>, int, XString);  //self
+void clif_scriptinput(dumb_ptr<map_session_data>, int); //self
+void clif_scriptinputstr(dumb_ptr<map_session_data> sd, int npcid);  // self
+void clif_viewpoint(dumb_ptr<map_session_data>, int, int, int, int, int, int);  //self
 int clif_additem(dumb_ptr<map_session_data>, int, int, PickupFail);   //self
-int clif_delitem(dumb_ptr<map_session_data>, int, int);    //self
+void clif_delitem(dumb_ptr<map_session_data>, int, int);    //self
 int clif_updatestatus(dumb_ptr<map_session_data>, SP);    //self
 int clif_damage(dumb_ptr<block_list>, dumb_ptr<block_list>,
         tick_t, interval_t, interval_t,
@@ -79,9 +79,9 @@ void clif_emotion(dumb_ptr<block_list> bl, int type);
 void clif_sitting(int fd, dumb_ptr<map_session_data> sd);
 
 // trade
-int clif_traderequest(dumb_ptr<map_session_data> sd, const char *name);
-int clif_tradestart(dumb_ptr<map_session_data> sd, int type);
-int clif_tradeadditem(dumb_ptr<map_session_data> sd,
+void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);
+void clif_tradestart(dumb_ptr<map_session_data> sd, int type);
+void clif_tradeadditem(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> tsd, int index, int amount);
 int clif_tradeitemok(dumb_ptr<map_session_data> sd, int index, int amount,
         int fail);
@@ -122,11 +122,11 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 int clif_status_change(dumb_ptr<block_list> bl,
         StatusChange type, int flag);
 
-void clif_wis_message(int fd, const char *nick, const char *mes);
+void clif_wis_message(int fd, CharName nick, XString mes);
 void clif_wis_end(int fd, int flag);
 
-int clif_itemlist(dumb_ptr<map_session_data> sd);
-int clif_equiplist(dumb_ptr<map_session_data> sd);
+void clif_itemlist(dumb_ptr<map_session_data> sd);
+void clif_equiplist(dumb_ptr<map_session_data> sd);
 
 int clif_mvp_effect(dumb_ptr<map_session_data> sd);
 
@@ -137,22 +137,22 @@ int clif_party_created(dumb_ptr<map_session_data> sd, int flag);
 int clif_party_info(struct party *p, int fd);
 void clif_party_invite(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> tsd);
-int clif_party_inviteack(dumb_ptr<map_session_data> sd, const char *nick, int flag);
+void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag);
 void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd,
         int flag);
-int clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
-        int account_id, const char *name, int flag);
-void clif_party_message(struct party *p, int account_id, const char *mes);
+void clif_party_leaved(struct party *p, dumb_ptr<map_session_data> sd,
+        int account_id, CharName name, int flag);
+void clif_party_message(struct party *p, int account_id, XString mes);
 int clif_party_xy(struct party *p, dumb_ptr<map_session_data> sd);
 int clif_party_hp(struct party *p, dumb_ptr<map_session_data> sd);
 
 // atcommand
-void clif_displaymessage(int fd, ZString mes);
-void clif_GMmessage(dumb_ptr<block_list> bl, ZString mes, int flag);
+void clif_displaymessage(int fd, XString mes);
+void clif_GMmessage(dumb_ptr<block_list> bl, XString mes, int flag);
 void clif_resurrection(dumb_ptr<block_list> bl, int type);
 
 int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag);    // special effects [Valaris]
-void clif_message(dumb_ptr<block_list> bl, const char *msg);   // messages (from mobs/npcs) [Valaris]
+void clif_message(dumb_ptr<block_list> bl, XString msg);   // messages (from mobs/npcs) [Valaris]
 
 int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
         int type);

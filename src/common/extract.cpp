@@ -18,28 +18,31 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-bool extract(const_string str, const_string *rv)
+#include "../poison.hpp"
+
+bool extract(XString str, XString *rv)
 {
     *rv = str;
     return true;
 }
 
-bool extract(const_string str, std::string *rv)
+bool extract(XString str, FString *rv)
 {
-    *rv = std::string(str.begin(), str.end());
+    *rv = str;
     return true;
 }
 
-bool extract(const_string str, struct global_reg *var)
+bool extract(XString str, struct global_reg *var)
 {
     return extract(str,
             record<','>(&var->str, &var->value));
 }
 
-bool extract(const_string str, struct item *it)
+bool extract(XString str, struct item *it)
 {
+    it->broken = 0;
     return extract(str,
-            record<','>(
+            record<',', 11>(
                 &it->id,
                 &it->nameid,
                 &it->amount,
@@ -51,18 +54,5 @@ bool extract(const_string str, struct item *it)
                 &it->card[1],
                 &it->card[2],
                 &it->card[3],
-                &it->broken))
-        || extract(str,
-            record<','>(
-                &it->id,
-                &it->nameid,
-                &it->amount,
-                &it->equip,
-                &it->identify,
-                &it->refine,
-                &it->attribute,
-                &it->card[0],
-                &it->card[1],
-                &it->card[2],
-                &it->card[3]));
+                &it->broken));
 }

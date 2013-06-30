@@ -12,3 +12,5 @@
 /src/map/magic-interpreter-lexer.cpp
 # generated header dependencies
 /deps.make
+# tags file
+/tags

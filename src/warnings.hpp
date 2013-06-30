@@ -167,7 +167,8 @@
 
 /// Warn about things that will change when compiling
 /// with an ABI-compliant compiler
-I(-Wabi)
+// see note about -fabi-version=6 in the makefile
+E(-Wabi)
 
 /// Warn if a subobject has an abi_tag attribute that
 /// the complete object type does not have
@@ -191,9 +192,10 @@ E(-Wbuiltin-macro-redefined)
 
 /// Warn about C++ constructs whose meaning differs
 /// between ISO C++ 1998 and ISO C++ 2011
-// This has gone funky lately. It probably doesn't do anything anyway.
+// This has gone funky lately. It probably doesn't do anything useful anyway.
 //E(-Wc++0x-compat)
 //W(-Wc++11-compat)
+I(-Wc++0x-compat)
 
 /// Warn about pointer casts which increase alignment
 X(-Wcast-align)
@@ -298,7 +300,7 @@ E(-Wfloat-equal)
 // see below
 EG(-Wformat)
 // but gcc 4.8 warns on %ms, since we enabled -Wpedantic.
-WG48(-Wformat)
+//WG48(-Wformat)
 
 /// Warn about format strings that contain NUL bytes
 EG(-Wformat-contains-nul)
@@ -474,7 +476,9 @@ E(-Wparentheses)
 
 /// Issue warnings needed for strict compliance to
 /// the standard
-EG48(-Wpedantic)
+//EG48(-Wpedantic)
+// lots of minor extensions are used
+IG48(-Wpedantic)
 // a bit too noisy
 XC(-Wpedantic)
 

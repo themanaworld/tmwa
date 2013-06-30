@@ -9,9 +9,7 @@
 struct item_data
 {
     int nameid;
-    char name[24], jname[24];
-    char prefix[24], suffix[24];
-    char cardillustname[64];
+    ItemName name, jname;
     int value_buy;
     int value_sell;
     ItemType type;
@@ -37,7 +35,7 @@ struct random_item_data
     int per;
 };
 
-struct item_data *itemdb_searchname(const char *name);
+struct item_data *itemdb_searchname(ItemName name);
 struct item_data *itemdb_search(int nameid);
 struct item_data *itemdb_exists(int nameid);
 

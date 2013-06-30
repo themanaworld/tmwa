@@ -5,120 +5,97 @@
 
 #include <algorithm>
 
+#include "cxxstdio.hpp"
+#include "extract.hpp"
+
 #include "../poison.hpp"
-
-//-----------------------------------------------------
-// Function to suppress control characters in a string.
-//-----------------------------------------------------
-int remove_control_chars(char *str)
-{
-    int i;
-    int change = 0;
-
-    for (i = 0; str[i]; i++)
-    {
-        if (0 <= str[i] && str[i] < 32)
-        {
-            str[i] = '_';
-            change = 1;
-        }
-    }
-
-    return change;
-}
 
 //---------------------------------------------------
 // E-mail check: return 0 (not correct) or 1 (valid).
 //---------------------------------------------------
-int e_mail_check(const char *email)
+bool e_mail_check(XString email)
 {
-    char ch;
-    const char *last_arobas;
-
     // athena limits
-    if (strlen(email) < 3 || strlen(email) > 39)
+    if (email.size() < 3 || email.size() > 39)
         return 0;
 
     // part of RFC limits (official reference of e-mail description)
-    if (strchr(email, '@') == NULL || email[strlen(email) - 1] == '@')
+    XString::iterator at = std::find(email.begin(), email.end(), '@');
+    if (at == email.end())
         return 0;
-
-    if (email[strlen(email) - 1] == '.')
+    XString username = email.xislice_h(at);
+    XString hostname = email.xislice_t(at + 1);
+    if (!username || !hostname)
         return 0;
-
-    last_arobas = strrchr(email, '@');
-
-    if (strstr(last_arobas, "@.") != NULL ||
-        strstr(last_arobas, "..") != NULL)
+    if (hostname.contains('@'))
         return 0;
-
-    for (ch = 1; ch < 32; ch++)
-    {
-        if (strchr(last_arobas, ch) != NULL)
-        {
-            return 0;
-        }
-    }
-
-    if (strchr(last_arobas, ' ') != NULL ||
-        strchr(last_arobas, ';') != NULL)
+    if (hostname.front() == '.' || hostname.back() == '.')
         return 0;
-
-    // all correct
-    return 1;
+    if (hostname.contains_seq(".."))
+        return 0;
+    if (email.contains_any(" ;"))
+        return 0;
+    return email.is_print();
 }
 
 //-------------------------------------------------
 // Return numerical value of a switch configuration
 // on/off, english, français, deutsch, español
 //-------------------------------------------------
-int config_switch (const char *str)
+int config_switch (ZString str)
 {
-    if (strcasecmp(str, "on") == 0 || strcasecmp(str, "yes") == 0
-        || strcasecmp(str, "oui") == 0 || strcasecmp(str, "ja") == 0
-        || strcasecmp(str, "si") == 0)
+    if (str == "on" || str == "yes"
+        || str == "oui" || str == "ja"
+        || str == "si")
         return 1;
-    if (strcasecmp(str, "off") == 0 || strcasecmp(str, "no") == 0
-        || strcasecmp(str, "non") == 0 || strcasecmp(str, "nein") == 0)
+    if (str == "off" || str == "no"
+        || str == "non" || str == "nein")
         return 0;
 
-    return atoi(str);
+    int rv;
+    if (extract(str, &rv))
+        return rv;
+    FPRINTF(stderr, "Fatal: bad option value %s", str);
+    abort();
 }
 
-const char *ip2str(struct in_addr ip, bool extra_dot)
+IP_String ip2str(struct in_addr ip)
 {
     const uint8_t *p = reinterpret_cast<const uint8_t *>(&ip);
-    static char buf[17];
-    if (extra_dot)
-        sprintf(buf, "%d.%d.%d.%d.", p[0], p[1], p[2], p[3]);
-    else
-        sprintf(buf, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
-    return buf;
+
+    IP_String out;
+    SNPRINTF(out, 16, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
+    return out;
+}
+VString<16> ip2str_extradot(struct in_addr ip)
+{
+    const uint8_t *p = reinterpret_cast<const uint8_t *>(&ip);
+    VString<16> out;
+    SNPRINTF(out, 17, "%d.%d.%d.%d.", p[0], p[1], p[2], p[3]);
+    return out;
 }
 
-bool split_key_value(const std::string& line, std::string *w1, std::string *w2)
+bool split_key_value(const FString& line, SString *w1, TString *w2)
 {
-    std::string::const_iterator begin = line.begin(), end = line.end();
+    FString::iterator begin = line.begin(), end = line.end();
 
-    if (line[0] == '/' && line[1] == '/')
+    if (line.startswith("//"))
         return false;
-    if (line.back() == '\r')
-        --end;
-    if (line.empty())
+    if (begin == end)
         return false;
 
     if (std::find_if(begin, end,
                 [](unsigned char c) { return c < ' '; }
                 ) != line.end())
         return false;
-    std::string::const_iterator colon = std::find(begin, end, ':');
+    FString::iterator colon = std::find(begin, end, ':');
     if (colon == end)
         return false;
-    w1->assign(begin, colon);
+    *w1 = line.oislice(begin, colon);
     ++colon;
     while (std::isspace(*colon))
         ++colon;
-    w2->assign(colon, end);
+    *w2 = line.oislice(colon, end);
     return true;
 }
 
@@ -128,18 +105,22 @@ static_assert(sizeof(timestamp_milliseconds_buffer) == 24, "millis buffer");
 void stamp_time(timestamp_seconds_buffer& out, const TimeT *t)
 {
     struct tm when = t ? *t : TimeT::now();
-    strftime(out, 20, "%Y-%m-%d %H:%M:%S", &when);
+    char buf[20];
+    strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
+    out = stringish<timestamp_seconds_buffer>(const_(buf));
 }
 void stamp_time(timestamp_milliseconds_buffer& out)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     struct tm when = TimeT(tv.tv_sec);
-    strftime(out, 20, "%Y-%m-%d %H:%M:%S", &when);
-    sprintf(out + 19, ".%03d", int(tv.tv_usec / 1000));
+    char buf[24];
+    strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
+    sprintf(buf + 19, ".%03d", static_cast<int>(tv.tv_usec / 1000));
+    out = stringish<timestamp_milliseconds_buffer>(const_(buf));
 }
 
-void log_with_timestamp(FILE *out, const_string line)
+void log_with_timestamp(FILE *out, XString line)
 {
     if (!line)
     {
@@ -148,7 +129,7 @@ void log_with_timestamp(FILE *out, const_string line)
     }
     timestamp_milliseconds_buffer tmpstr;
     stamp_time(tmpstr);
-    fwrite(tmpstr, 1, sizeof(tmpstr), out);
+    fputs(tmpstr.c_str(), out);
     fputs(": ", out);
     fwrite(line.data(), 1, line.size(), out);
     if (line.back() != '\n')

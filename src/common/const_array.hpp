@@ -25,11 +25,11 @@
 
 #include <iterator>
 #include <ostream>
-#include <string>
 #include <vector>
 
 #ifdef WORKAROUND_GCC46_COMPILER
 // constexpr is buggy with templates in this version
+// Is this still needed now that const_string is removed?
 # define constexpr /* nothing */
 #endif
 
@@ -125,57 +125,8 @@ public:
     }
 };
 
-// subclass just provides a simpler name and some conversions
-// Important note: it must be safe to dereference end, though
-// the value is unspecified.
-class const_string : public const_array<char>
-{
-public:
-    // Implicit conversion from C string.
-    constexpr
-    const_string(const char *z)
-    : const_array<char>(z, z ? strlen(z) : 0)
-    {}
-
-    // Same as parent constructor.
-    constexpr
-    const_string(const char *s, size_t l)
-    : const_array<char>(s, l)
-    {}
-
-    // Same as parent constructor.
-    constexpr
-    const_string(const char *b, const char *e)
-    : const_array<char>(b, e)
-    {}
-
-    // Same as parent constructor.
-    const_string(const std::vector<char> s)
-    : const_array<char>(s)
-    {}
-
-    // Implicit conversion from C++ string.
-    const_string(const std::string& s)
-    : const_array<char>(s.data(), s.size())
-    {}
-
-    // but disallow converion from a temporary.
-    const_string(std::string&&) = delete;
-
-    // allow being sloppy
-    constexpr
-    const_string(const_array<char> a)
-    : const_array<char>(a)
-    {}
-};
 #ifdef WORKAROUND_GCC46_COMPILER
 # undef constexpr
 #endif
-
-inline
-std::ostream& operator << (std::ostream& o, const_string s)
-{
-    return o.write(s.data(), s.size());
-}
 
 #endif // CONST_ARRAY_HPP

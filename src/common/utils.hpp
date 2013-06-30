@@ -6,12 +6,14 @@
 #include <cstdio>
 #include <cstring>
 
-#include <string>
 #include <type_traits>
 
 #include "const_array.hpp"
 #include "operators.hpp"
+#include "strings.hpp"
 #include "utils2.hpp"
+
+struct IP_String : VString<15> {};
 
 template<class T>
 struct is_trivially_copyable
@@ -22,23 +24,12 @@ struct is_trivially_copyable
     && __has_trivial_destructor(T)>
 {};
 
-int remove_control_chars(char *str);
-int e_mail_check(const char *email);
-int config_switch (const char *str);
-const char *ip2str(struct in_addr ip, bool extra_dot = false);
+bool e_mail_check(XString email);
+int config_switch (ZString str);
+IP_String ip2str(struct in_addr ip);
+VString<15 + 1> ip2str_extradot(struct in_addr ip);
 
-bool split_key_value(const std::string& line, std::string *w1, std::string *w2);
-
-inline
-void strzcpy(char *dest, const char *src, size_t n)
-{
-    if (n)
-    {
-        // hmph
-        strncpy(dest, src, n - 1);
-        dest[n - 1] = '\0';
-    }
-}
+bool split_key_value(const FString& line, SString *w1, TString *w2);
 
 inline
 void really_memcpy(uint8_t *dest, const uint8_t *src, size_t n)
@@ -123,13 +114,14 @@ long long& convert_for_scanf(TimeT& t)
     return t.value;
 }
 
-typedef char timestamp_seconds_buffer[20];
-typedef char timestamp_milliseconds_buffer[24];
+struct timestamp_seconds_buffer : VString<19> {};
+struct timestamp_milliseconds_buffer : VString<23> {};
 void stamp_time(timestamp_seconds_buffer&, const TimeT *t=nullptr);
 void stamp_time(timestamp_milliseconds_buffer&);
 
-void log_with_timestamp(FILE *out, const_string line);
+void log_with_timestamp(FILE *out, XString line);
 
+// TODO VString?
 #define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"
 static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
         "timestamp size");
@@ -138,6 +130,7 @@ static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
 //  sizeof:        01234567890123456789012345678
 //  str + sizeof:                               ^
 //  -1:                     ^
+// there's probably a better way to do this now
 #define REPLACE_TIMESTAMP(str, t)                           \
     stamp_time(                                             \
             reinterpret_cast<timestamp_seconds_buffer *>(   \
@@ -145,11 +138,5 @@ static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
             )[-1],                                          \
             &t                                              \
     )
-
-template<class T>
-const T& const_(T& t)
-{
-    return t;
-}
 
 #endif //UTILS_HPP

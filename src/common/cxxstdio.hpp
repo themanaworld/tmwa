@@ -24,35 +24,17 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include <string>
-
 #include "const_array.hpp"
 #include "utils2.hpp"
 
 
 namespace cxxstdio
 {
+    // other implementations of do_vprint or do_vscan are injected by ADL.
     inline __attribute__((format(printf, 2, 0)))
     int do_vprint(FILE *out, const char *fmt, va_list ap)
     {
         return vfprintf(out, fmt, ap);
-    }
-
-    inline __attribute__((format(printf, 2, 0)))
-    int do_vprint(std::string& out, const char *fmt, va_list ap)
-    {
-        int len;
-        {
-            va_list ap2;
-            va_copy(ap2, ap);
-            len = vsnprintf(nullptr, 0, fmt, ap2);
-            va_end(ap2);
-        }
-        char buffer[len + 1];
-        vsnprintf(buffer, len + 1, fmt, ap);
-
-        out = buffer;
-        return len;
     }
 
     inline __attribute__((format(scanf, 2, 0)))
@@ -71,13 +53,6 @@ namespace cxxstdio
     inline
     int do_vscan(const char *, const char *, va_list) = delete;
 #endif
-
-    inline __attribute__((format(scanf, 2, 0)))
-    int do_vscan(const std::string& in, const char *fmt, va_list ap)
-    {
-        return vsscanf(in.c_str(), fmt, ap);
-    }
-
 
     template<class T>
     inline __attribute__((format(printf, 2, 3)))
@@ -104,11 +79,17 @@ namespace cxxstdio
     }
 
 
-    template<class T>
-    typename remove_enum<T>::type convert_for_printf(T v)
+    template<class T, typename=typename std::enable_if<!std::is_class<T>::value>::type>
+    typename remove_enum<T>::type decay_for_printf(T v)
     {
         typedef typename remove_enum<T>::type repr_type;
         return repr_type(v);
+    }
+
+    template<class T, typename=decltype(decay_for_printf(std::declval<T&&>()))>
+    T&& convert_for_printf(T&& v)
+    {
+        return std::forward<T>(v);
     }
 
     template<class T, typename = typename std::enable_if<!std::is_enum<T>::value>::type>
@@ -152,7 +133,7 @@ namespace cxxstdio
     }
     template<class E>
     constexpr
-    E get_max_value(E)
+    E get_enum_max_value(E)
     {
         return E::max_value;
     }
@@ -199,34 +180,6 @@ namespace cxxstdio
         return v;
     }
 
-
-    inline
-    const char *convert_for_printf(const std::string& s)
-    {
-        return s.c_str();
-    }
-
-    class StringConverter
-    {
-        std::string& out;
-        char *mid;
-    public:
-        StringConverter(std::string& s)
-        : out(s), mid(nullptr)
-        {}
-        ~StringConverter();
-        char **operator &()
-        {
-            return &mid;
-        }
-    };
-
-    inline
-    StringConverter convert_for_scanf(std::string& s)
-    {
-        return StringConverter(s);
-    }
-
     template<class Format>
     class PrintFormatter
     {
@@ -238,7 +191,7 @@ namespace cxxstdio
             constexpr static
             const char *print_format = Format::print_format();
             return do_print(std::forward<T>(t), print_format,
-                    convert_for_printf(std::forward<A>(a))...);
+                    decay_for_printf(convert_for_printf(std::forward<A>(a)))...);
         }
     };
 
@@ -257,7 +210,7 @@ namespace cxxstdio
         }
     };
 
-#define FPRINTF(file, fmt, ...)                                     \
+#define XPRINTF(out, fmt, ...)                                      \
     ([&]() -> int                                                   \
     {                                                               \
         struct format_impl                                          \
@@ -265,10 +218,10 @@ namespace cxxstdio
             constexpr static                                        \
             const char *print_format() { return fmt; }              \
         };                                                          \
-        return cxxstdio::PrintFormatter<format_impl>::print(file, ## __VA_ARGS__);  \
+        return cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);   \
     }())
 
-#define FSCANF(file, fmt, ...)                                  \
+#define XSCANF(out, fmt, ...)                                   \
     ([&]() -> int                                               \
     {                                                           \
         struct format_impl                                      \
@@ -276,20 +229,31 @@ namespace cxxstdio
             constexpr static                                    \
             const char *scan_format() { return fmt; }           \
         };                                                      \
-        return cxxstdio::ScanFormatter<format_impl>::scan(file, ## __VA_ARGS__);    \
+        return cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);     \
     }())
 
+#define FPRINTF(file, fmt, ...)     XPRINTF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
+#define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
 #define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
-#define SPRINTF(str, fmt, ...)      FPRINTF(str, fmt, ## __VA_ARGS__)
+#define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<FString&>(str), fmt, ## __VA_ARGS__)
+#define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
 #define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
-#define SSCANF(str, fmt, ...)       FSCANF(str, fmt, ## __VA_ARGS__)
+#define SSCANF(str, fmt, ...)       XSCANF(/*ZString or compatible*/str, fmt, ## __VA_ARGS__)
 
 #define STRPRINTF(fmt, ...)                     \
-    ([&]() -> std::string                       \
+    ([&]() -> FString                           \
     {                                           \
-        std::string _out_impl;                  \
+        FString _out_impl;                      \
         SPRINTF(_out_impl, fmt, ## __VA_ARGS__);\
         return _out_impl;                       \
+    }())
+
+#define STRNPRINTF(n, fmt, ...)                     \
+    ([&]() -> VString<n - 1>                        \
+    {                                               \
+        VString<n - 1> _out_impl;                   \
+        SNPRINTF(_out_impl, n, fmt, ## __VA_ARGS__);\
+        return _out_impl;                           \
     }())
 
 } // namespace cxxstdio

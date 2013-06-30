@@ -87,12 +87,12 @@ void magic_clear_var(val_t *v)
 }
 
 static
-const char *show_entity(dumb_ptr<block_list> entity)
+FString show_entity(dumb_ptr<block_list> entity)
 {
     switch (entity->bl_type)
     {
         case BL::PC:
-            return entity->as_player()->status.name;
+            return entity->as_player()->status.name.to__actual();
         case BL::NPC:
             return entity->as_npc()->name;
         case BL::MOB:
@@ -104,23 +104,23 @@ const char *show_entity(dumb_ptr<block_list> entity)
             // return ((struct item_data *) (&entity->as_item()->item_data))->name;
             abort();
         case BL::SPELL:
-            return "%invocation(ERROR:this-should-not-be-an-entity)";
+            return {"%invocation(ERROR:this-should-not-be-an-entity)"};
         default:
-            return "%unknown-entity";
+            return {"%unknown-entity"};
     }
 }
 
 static
 void stringify(val_t *v, int within_op)
 {
-    static const char *dirs[8] =
-    {
-        "south", "south-west",
-        "west", "north-west",
-        "north", "north-east",
-        "east", "south-east"
-    };
-    std::string buf;
+    static earray<ZString, DIR, DIR::COUNT> dirs //=
+    {{
+        {"south"}, {"south-west"},
+        {"west"}, {"north-west"},
+        {"north"}, {"north-east"},
+        {"east"}, {"south-east"},
+    }};
+    FString buf;
 
     switch (v->ty)
     {
@@ -136,7 +136,7 @@ void stringify(val_t *v, int within_op)
             return;
 
         case TYPE::DIR:
-            buf = dirs[v->v.v_int];
+            buf = dirs[v->v.v_dir];
             break;
 
         case TYPE::ENTITY:
@@ -278,7 +278,10 @@ int fun_add(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
         stringify(&args[1], 1);
         /* Yes, we could speed this up. */
         // ugh
-        RESULTSTR = dumb_string::copys(ARGSTR(0).str() + ARGSTR(1).str());
+        MString m;
+        m += ARGSTR(0);
+        m += ARGSTR(1);
+        RESULTSTR = dumb_string::copys(FString(m));
         result->ty = TYPE::STRING;
     }
     return 0;
@@ -351,7 +354,6 @@ int fun_gte(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
     {
         stringify(&args[0], 1);
         stringify(&args[1], 1);
-        using namespace operators;
         RESULTINT = ARGSTR(0) >= ARGSTR(1);
     }
     else
@@ -370,7 +372,6 @@ int fun_gt(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
     {
         stringify(&args[0], 1);
         stringify(&args[1], 1);
-        using namespace operators;
         RESULTINT = ARGSTR(0) > ARGSTR(1);
     }
     else
@@ -389,7 +390,6 @@ int fun_eq(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
     {
         stringify(&args[0], 1);
         stringify(&args[1], 1);
-        using namespace operators;
         RESULTINT = ARGSTR(0) == ARGSTR(1);
     }
     else if (ARG_TYPE(0) == TYPE::DIR && ARG_TYPE(1) == TYPE::DIR)
@@ -652,7 +652,7 @@ int fun_name_of(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
     if (ARG_TYPE(0) == TYPE::ENTITY)
     {
-        RESULTSTR = dumb_string::copy(show_entity(ARGENTITY(0)));
+        RESULTSTR = dumb_string::copys(show_entity(ARGENTITY(0)));
         return 0;
     }
     else if (ARG_TYPE(0) == TYPE::SPELL)
@@ -745,7 +745,7 @@ magic_find_item(const_array<val_t> args, int index, struct item *item_, int *sta
     if (ARG_TYPE(index) == TYPE::INT)
         item_data = itemdb_exists(ARGINT(index));
     else if (ARG_TYPE(index) == TYPE::STRING)
-        item_data = itemdb_searchname(ARGSTR(index).c_str());
+        item_data = itemdb_searchname(stringish<ItemName>(ARGSTR(index)));
     else
         return -1;
 
@@ -874,14 +874,16 @@ int fun_failed(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 static
 int fun_npc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
-    RESULTENTITY = npc_name2id(ARGSTR(0).c_str());
+    NpcName name = stringish<NpcName>(ARGSTR(0));
+    RESULTENTITY = npc_name2id(name);
     return RESULTENTITY == NULL;
 }
 
 static
 int fun_pc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
-    RESULTENTITY = map_nick2sd(ARGSTR(0).c_str());
+    CharName name = stringish<CharName>(ARGSTR(0));
+    RESULTENTITY = map_nick2sd(name);
     return RESULTENTITY == NULL;
 }
 
@@ -913,7 +915,7 @@ int fun_rdistance(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 static
 int fun_anchor(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
 {
-    dumb_ptr<teleport_anchor_t> anchor = magic_find_anchor(ARGSTR(0).str());
+    dumb_ptr<teleport_anchor_t> anchor = magic_find_anchor(ARGSTR(0));
 
     if (!anchor)
         return 1;
@@ -997,12 +999,12 @@ static
 int fun_read_script_int(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject_p = ARGENTITY(0);
-    dumb_string var_name = ARGSTR(1);
+    VarName var_name = stringish<VarName>(ARGSTR(1));
 
     if (subject_p->bl_type != BL::PC)
         return 1;
 
-    RESULTINT = pc_readglobalreg(subject_p->as_player(), var_name.c_str());
+    RESULTINT = pc_readglobalreg(subject_p->as_player(), var_name);
     return 0;
 }
 
@@ -1051,13 +1053,6 @@ static
 int fun_element_level(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
     RESULTINT = battle_get_element(ARGENTITY(0)).level;
-    return 0;
-}
-
-static
-int fun_index(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
-{
-    RESULTINT = ARGSPELL(0)->index_;
     return 0;
 }
 
@@ -1136,7 +1131,7 @@ static
 int fun_map_nr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
 #warning "Evil assumptions!"
-    const char *mapname = ARGLOCATION(0).m->name_;
+    MapName mapname = ARGLOCATION(0).m->name_;
 
     RESULTINT = ((mapname[0] - '0') * 100)
         + ((mapname[1] - '0') * 10) + ((mapname[2] - '0'));
@@ -1221,123 +1216,93 @@ int fun_extract_healer_xp(dumb_ptr<env_t>, val_t *result, const_array<val_t> arg
     return 0;
 }
 
+#define MAGIC_FUNCTION(name, args, ret, impl) {{name}, {{name}, {args}, ret, impl}}
+#define MAGIC_FUNCTION1(name, args, ret) MAGIC_FUNCTION(#name, args, ret, fun_##name)
 static
-fun_t functions[] =
+std::map<ZString, fun_t> functions =
 {
-    {"+", "..", '.', fun_add},
-    {"-", "ii", 'i', fun_sub},
-    {"*", "ii", 'i', fun_mul},
-    {"/", "ii", 'i', fun_div},
-    {"%", "ii", 'i', fun_mod},
-    {"||", "ii", 'i', fun_or},
-    {"&&", "ii", 'i', fun_and},
-    {">", "..", 'i', fun_gt},
-    {">=", "..", 'i', fun_gte},
-    {"=", "..", 'i', fun_eq},
-    {"|", "..", 'i', fun_bitor},
-    {"&", "ii", 'i', fun_bitand},
-    {"^", "ii", 'i', fun_bitxor},
-    {"<<", "ii", 'i', fun_bitshl},
-    {">>", "ii", 'i', fun_bitshr},
-    {"not", "i", 'i', fun_not},
-    {"neg", "i", 'i', fun_neg},
-    {"max", "ii", 'i', fun_max},
-    {"min", "ii", 'i', fun_min},
-    {"is_in", "la", 'i', fun_is_in},
-    {"if_then_else", "i__", '_', fun_if_then_else},
-    {"skill", "ei", 'i', fun_skill},
-    {"str", "e", 'i', fun_get_str},
-    {"agi", "e", 'i', fun_get_agi},
-    {"vit", "e", 'i', fun_get_vit},
-    {"dex", "e", 'i', fun_get_dex},
-    {"luk", "e", 'i', fun_get_luk},
-    {"int", "e", 'i', fun_get_int},
-    {"level", "e", 'i', fun_get_lv},
-    {"mdef", "e", 'i', fun_get_mdef},
-    {"def", "e", 'i', fun_get_def},
-    {"hp", "e", 'i', fun_get_hp},
-    {"max_hp", "e", 'i', fun_get_max_hp},
-    {"sp", "e", 'i', fun_get_sp},
-    {"max_sp", "e", 'i', fun_get_max_sp},
-    {"dir", "e", 'd', fun_get_dir},
-    {"name_of", ".", 's', fun_name_of},
-    {"mob_id", "e", 'i', fun_mob_id},
-    {"location", "e", 'l', fun_location},
-    {"random", "i", 'i', fun_random},
-    {"random_dir", "i", 'd', fun_random_dir},
-    {"hash_entity", "e", 'i', fun_hash_entity},
-    {"is_married", "e", 'i', fun_is_married},
-    {"partner", "e", 'e', fun_partner},
-    {"awayfrom", "ldi", 'l', fun_awayfrom},
-    {"failed", "_", 'i', fun_failed},
-    {"pc", "s", 'e', fun_pc},
-    {"npc", "s", 'e', fun_npc},
-    {"distance", "ll", 'i', fun_distance},
-    {"rdistance", "ll", 'i', fun_rdistance},
-    {"anchor", "s", 'a', fun_anchor},
-    {"random_location", "a", 'l', fun_pick_location},
-    {"script_int", "es", 'i', fun_read_script_int},
-    {"rbox", "li", 'a', fun_rbox},
-    {"count_item", "e.", 'i', fun_count_item},
-    {"line_of_sight", "ll", 'i', fun_line_of_sight},
-    {"running_status_update", "ei", 'i', fun_running_status_update},
-    {"status_option", "ei", 'i', fun_status_option},
-    {"element", "e", 'i', fun_element},
-    {"element_level", "e", 'i', fun_element_level},
-    {"has_shroud", "e", 'i', fun_has_shroud},
-    {"is_equipped", "e.", 'i', fun_is_equipped},
-    {"spell_index", "S", 'i', fun_index},
-    {"is_exterior", "l", 'i', fun_is_exterior},
-    {"contains_string", "ss", 'i', fun_contains_string},
-    {"strstr", "ss", 'i', fun_strstr},
-    {"strlen", "s", 'i', fun_strlen},
-    {"substr", "sii", 's', fun_substr},
-    {"sqrt", "i", 'i', fun_sqrt},
-    {"map_level", "l", 'i', fun_map_level},
-    {"map_nr", "l", 'i', fun_map_nr},
-    {"dir_towards", "lli", 'd', fun_dir_towards},
-    {"is_dead", "e", 'i', fun_is_dead},
-    {"is_pc", "e", 'i', fun_is_pc},
-    {"extract_healer_experience", "ei", 'i', fun_extract_healer_xp},
-    {NULL, NULL, '.', NULL}
+    MAGIC_FUNCTION("+", "..", '.', fun_add),
+    MAGIC_FUNCTION("-", "ii", 'i', fun_sub),
+    MAGIC_FUNCTION("*", "ii", 'i', fun_mul),
+    MAGIC_FUNCTION("/", "ii", 'i', fun_div),
+    MAGIC_FUNCTION("%", "ii", 'i', fun_mod),
+    MAGIC_FUNCTION("||", "ii", 'i', fun_or),
+    MAGIC_FUNCTION("&&", "ii", 'i', fun_and),
+    MAGIC_FUNCTION(">", "..", 'i', fun_gt),
+    MAGIC_FUNCTION(">=", "..", 'i', fun_gte),
+    MAGIC_FUNCTION("=", "..", 'i', fun_eq),
+    MAGIC_FUNCTION("|", "..", 'i', fun_bitor),
+    MAGIC_FUNCTION("&", "ii", 'i', fun_bitand),
+    MAGIC_FUNCTION("^", "ii", 'i', fun_bitxor),
+    MAGIC_FUNCTION("<<", "ii", 'i', fun_bitshl),
+    MAGIC_FUNCTION(">>", "ii", 'i', fun_bitshr),
+    MAGIC_FUNCTION1(not, "i", 'i'),
+    MAGIC_FUNCTION1(neg, "i", 'i'),
+    MAGIC_FUNCTION1(max, "ii", 'i'),
+    MAGIC_FUNCTION1(min, "ii", 'i'),
+    MAGIC_FUNCTION1(is_in, "la", 'i'),
+    MAGIC_FUNCTION1(if_then_else, "i__", '_'),
+    MAGIC_FUNCTION1(skill, "ei", 'i'),
+    MAGIC_FUNCTION("str", "e", 'i', fun_get_str),
+    MAGIC_FUNCTION("agi", "e", 'i', fun_get_agi),
+    MAGIC_FUNCTION("vit", "e", 'i', fun_get_vit),
+    MAGIC_FUNCTION("dex", "e", 'i', fun_get_dex),
+    MAGIC_FUNCTION("luk", "e", 'i', fun_get_luk),
+    MAGIC_FUNCTION("int", "e", 'i', fun_get_int),
+    MAGIC_FUNCTION("level", "e", 'i', fun_get_lv),
+    MAGIC_FUNCTION("mdef", "e", 'i', fun_get_mdef),
+    MAGIC_FUNCTION("def", "e", 'i', fun_get_def),
+    MAGIC_FUNCTION("hp", "e", 'i', fun_get_hp),
+    MAGIC_FUNCTION("max_hp", "e", 'i', fun_get_max_hp),
+    MAGIC_FUNCTION("sp", "e", 'i', fun_get_sp),
+    MAGIC_FUNCTION("max_sp", "e", 'i', fun_get_max_sp),
+    MAGIC_FUNCTION("dir", "e", 'd', fun_get_dir),
+    MAGIC_FUNCTION1(name_of, ".", 's'),
+    MAGIC_FUNCTION1(mob_id, "e", 'i'),
+    MAGIC_FUNCTION1(location, "e", 'l'),
+    MAGIC_FUNCTION1(random, "i", 'i'),
+    MAGIC_FUNCTION1(random_dir, "i", 'd'),
+    MAGIC_FUNCTION1(hash_entity, "e", 'i'),
+    MAGIC_FUNCTION1(is_married, "e", 'i'),
+    MAGIC_FUNCTION1(partner, "e", 'e'),
+    MAGIC_FUNCTION1(awayfrom, "ldi", 'l'),
+    MAGIC_FUNCTION1(failed, "_", 'i'),
+    MAGIC_FUNCTION1(pc, "s", 'e'),
+    MAGIC_FUNCTION1(npc, "s", 'e'),
+    MAGIC_FUNCTION1(distance, "ll", 'i'),
+    MAGIC_FUNCTION1(rdistance, "ll", 'i'),
+    MAGIC_FUNCTION1(anchor, "s", 'a'),
+    MAGIC_FUNCTION("random_location", "a", 'l', fun_pick_location),
+    MAGIC_FUNCTION("script_int", "es", 'i', fun_read_script_int),
+    MAGIC_FUNCTION1(rbox, "li", 'a'),
+    MAGIC_FUNCTION1(count_item, "e.", 'i'),
+    MAGIC_FUNCTION1(line_of_sight, "ll", 'i'),
+    MAGIC_FUNCTION1(running_status_update, "ei", 'i'),
+    MAGIC_FUNCTION1(status_option, "ei", 'i'),
+    MAGIC_FUNCTION1(element, "e", 'i'),
+    MAGIC_FUNCTION1(element_level, "e", 'i'),
+    MAGIC_FUNCTION1(has_shroud, "e", 'i'),
+    MAGIC_FUNCTION1(is_equipped, "e.", 'i'),
+    MAGIC_FUNCTION1(is_exterior, "l", 'i'),
+    MAGIC_FUNCTION1(contains_string, "ss", 'i'),
+    MAGIC_FUNCTION1(strstr, "ss", 'i'),
+    MAGIC_FUNCTION1(strlen, "s", 'i'),
+    MAGIC_FUNCTION1(substr, "sii", 's'),
+    MAGIC_FUNCTION1(sqrt, "i", 'i'),
+    MAGIC_FUNCTION1(map_level, "l", 'i'),
+    MAGIC_FUNCTION1(map_nr, "l", 'i'),
+    MAGIC_FUNCTION1(dir_towards, "lli", 'd'),
+    MAGIC_FUNCTION1(is_dead, "e", 'i'),
+    MAGIC_FUNCTION1(is_pc, "e", 'i'),
+    MAGIC_FUNCTION("extract_healer_experience", "ei", 'i', fun_extract_healer_xp),
 };
 
-static
-int functions_are_sorted = 0;
-
-static __attribute__((deprecated))
-int compare_fun(const void *lhs, const void *rhs)
+fun_t *magic_get_fun(ZString name)
 {
-    return strcmp(static_cast<const fun_t *>(lhs)->name, static_cast<const fun_t *>(rhs)->name);
-}
-
-fun_t *magic_get_fun(const std::string& name, int *index)
-{
-    static
-    int functions_nr;
-    fun_t *result;
-    fun_t key;
-
-    if (!functions_are_sorted)
-    {
-        fun_t *it = functions;
-
-        while (it->name)
-            ++it;
-        functions_nr = it - functions;
-
-        qsort(functions, functions_nr, sizeof(fun_t), compare_fun);
-        functions_are_sorted = 1;
-    }
-
-    key.name = name.c_str();
-    result = static_cast<fun_t *>(bsearch(&key, functions, functions_nr, sizeof(fun_t),
-                                compare_fun));
-
-    if (result && index)
-        *index = result - functions;
-
-    return result;
+    auto it = functions.find(name);
+    if (it == functions.end())
+        return nullptr;
+    return &it->second;
 }
 
 // 1 on failure
@@ -1352,7 +1317,8 @@ int eval_location(dumb_ptr<env_t> env, location_t *dest, e_location_t *expr)
     if (CHECK_TYPE(&m, TYPE::STRING)
         && CHECK_TYPE(&x, TYPE::INT) && CHECK_TYPE(&y, TYPE::INT))
     {
-        map_local *map_id = map_mapname2mapid(m.v.v_string.c_str());
+        MapName name = VString<15>(ZString(m.v.v_string));
+        map_local *map_id = map_mapname2mapid(name);
         magic_clear_var(&m);
         if (!map_id)
             return 1;
@@ -1509,8 +1475,8 @@ TYPE type_key(char ty_key)
     }
 }
 
-int magic_signature_check(const char *opname, const char *funname, const char *signature,
-                           int args_nr, val_t *args, int line, int column)
+int magic_signature_check(ZString opname, ZString funname, ZString signature,
+        int args_nr, val_t *args, int line, int column)
 {
     int i;
     for (i = 0; i < args_nr; i++)
@@ -1620,7 +1586,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
             val_t arguments[MAX_ARGS];
             int args_nr = expr->e.e_funapp.args_nr;
             int i;
-            fun_t *f = functions + expr->e.e_funapp.id;
+            fun_t *f = expr->e.e_funapp.funp;
 
             for (i = 0; i < args_nr; ++i)
                 magic_eval(env, &arguments[i], expr->e.e_funapp.args[i]);
@@ -1705,13 +1671,13 @@ int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
     return result.v.v_int;
 }
 
-std::string magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
+FString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
 {
     val_t result;
     magic_eval(env, &result, expr);
 
     if (result.ty == TYPE::FAIL || result.ty == TYPE::UNDEF)
-        return "?";
+        return {"?"};
 
     stringify(&result, 0);
 

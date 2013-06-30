@@ -259,6 +259,6 @@ extern struct Battle_Config
     int mob_splash_radius;
 } battle_config;
 
-int battle_config_read(const char *cfgName);
+int battle_config_read(ZString cfgName);
 
 #endif // BATTLE_HPP

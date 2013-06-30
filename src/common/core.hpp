@@ -3,6 +3,8 @@
 
 #include "sanity.hpp"
 
+#include "strings.hpp"
+
 /// core.c contains a server-independent main() function
 /// and then runs a do_sendrecv loop
 
@@ -12,7 +14,7 @@ extern bool runflag;
 
 /// This is an external function defined by each server
 /// This function must register stuff for the parse loop
-extern int do_init(int, char **);
+extern int do_init(int, ZString *);
 
 /// Cleanup function called whenever a signal kills us
 /// or when if we manage to exit() gracefully.

@@ -11,6 +11,10 @@
 #include "map.hpp"
 #include "skill.t.hpp"
 
+#define ENGLISH_NAME stringish<MobName>("--en--")
+#define JAPANESE_NAME stringish<MobName>("--ja--")
+#define MOB_THIS_MAP stringish<MapName>("this")
+
 struct mob_skill
 {
     MobSkillState state;
@@ -18,7 +22,7 @@ struct mob_skill
     short skill_lv;
     short permillage;
     interval_t casttime, delay;
-    short cancel;
+    bool cancel;
     MobSkillCondition cond1;
     int cond2i;
     MobSkillTarget target;
@@ -28,7 +32,7 @@ struct mob_skill
 
 struct mob_db_
 {
-    char name[24], jname[24];
+    MobName name, jname;
     int lv;
     int max_hp, max_sp;
     int base_exp, job_exp;
@@ -55,14 +59,16 @@ struct mob_db_
 };
 extern struct mob_db_ mob_db[];
 
-int mobdb_searchname(const char *str);
+int mobdb_searchname(MobName str);
 int mobdb_checkid(const int id);
 int mob_once_spawn(dumb_ptr<map_session_data> sd,
-        const char *mapname, int x, int y,
-        const char *mobname, int class_, int amount, const char *event);
+        MapName mapname, int x, int y,
+        MobName mobname, int class_, int amount,
+        NpcEvent event);
 int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
-        const char *mapname, int x0, int y0, int x1, int y1,
-        const char *mobname, int class_, int amount, const char *event);
+        MapName mapname, int x0, int y0, int x1, int y1,
+        MobName mobname, int class_, int amount,
+        NpcEvent event);
 
 int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist);
 int mob_stop_walking(dumb_ptr<mob_data> md, int type);
