@@ -4256,7 +4256,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
     }
     if (sd->status.account_reg_num < ACCOUNT_REG_NUM)
     {
-        sd->status.account_reg[i].str == reg;
+        sd->status.account_reg[i].str = reg;
         sd->status.account_reg[i].value = val;
         sd->status.account_reg_num++;
         intif_saveaccountreg(sd);
