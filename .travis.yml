@@ -15,6 +15,7 @@ notifications:
     channels:   "chat.freenode.net#tmwa"
     on_success: always
     on_failure: always
+    use_notice: true
 
 ## Commands before installing prerequisites
 # before_install: git submodule update --init --recursive
@@ -37,7 +38,8 @@ install:
 
 ## Main test script
 script:
-  - make -k -j2 CXX=${REAL_CXX}\ -fabi-version=6 CPPFLAGS=-DQUIET
+  - ./configure CXX=${REAL_CXX}\ -fabi-version=6 CPPFLAGS=-DQUIET
+  - make -k -j2
 
 ## Do something after the main test script
 after_script:

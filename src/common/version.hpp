@@ -1,24 +1,61 @@
-/// Some constants to identify the version of (e)Athena
-/// The values are different if the client connects (-1,'T','M','W',flags32)
-// These numbers have never been changed while TMW
 #ifndef VERSION_HPP
 #define VERSION_HPP
-//When a server receives a 0x7530 packet from an admin connection,
-//it sends an 0x7531 packet with the following bytes
-# define ATHENA_MAJOR_VERSION    1   // Major Version
-# define ATHENA_MINOR_VERSION    0   // Minor Version
-# define ATHENA_REVISION         0   // Revision
 
-# define ATHENA_RELEASE_FLAG     1   // 1=Develop,0=Stable
-# define ATHENA_OFFICIAL_FLAG    1   // 1=Mod,0=Official
+// TODO generate this from ./configure
 
-// and a bitmask of these (the char server sends char and inter)
-# define ATHENA_SERVER_LOGIN     1   // login server
-# define ATHENA_SERVER_CHAR      2   // char server
-# define ATHENA_SERVER_INTER     4   // inter server
-# define ATHENA_SERVER_MAP       8   // map server
+# define TMWA_VERSION_MAJOR     13
+# define TMWA_VERSION_MINOR     8
+# define TMWA_VERSION_PATCH     5
+# define TMWA_DEVELOP_FLAG      1
 
-// and this as two bytes
-# define ATHENA_MOD_VERSION   1052   // mod version (patch No.)
+// TODO make these bitwise enums
+# define TMWA_FLAG_REGISTRATION 0x01
+
+# define TMWA_SERVER_LOGIN      0x01
+# define TMWA_SERVER_CHAR       0x02
+# define TMWA_SERVER_INTER      0x04
+# define TMWA_SERVER_MAP        0x08
+
+# define TMWA_VENDOR            "Vanilla"
+# define TMWA_VENDOR_VERSION    0
+
+struct Version
+{
+    uint8_t major;
+    uint8_t minor; // flavor1
+    uint8_t patch; // flavor2
+    uint8_t devel; // flavor3
+
+    uint8_t flags;
+    uint8_t which;
+    uint16_t vend;
+    // can't add vendor name yet
+};
+static_assert(sizeof(Version) == 8, "this is send over the network, can't change");
+
+constexpr Version CURRENT_LOGIN_SERVER_VERSION =
+{
+    TMWA_VERSION_MAJOR, TMWA_VERSION_MINOR, TMWA_VERSION_PATCH,
+    TMWA_DEVELOP_FLAG,
+
+    0, TMWA_SERVER_LOGIN,
+    TMWA_VENDOR_VERSION,
+};
+constexpr Version CURRENT_CHAR_SERVER_VERSION =
+{
+    TMWA_VERSION_MAJOR, TMWA_VERSION_MINOR, TMWA_VERSION_PATCH,
+    TMWA_DEVELOP_FLAG,
+
+    0, TMWA_SERVER_CHAR | TMWA_SERVER_INTER,
+    TMWA_VENDOR_VERSION,
+};
+constexpr Version CURRENT_MAP_SERVER_VERSION =
+{
+    TMWA_VERSION_MAJOR, TMWA_VERSION_MINOR, TMWA_VERSION_PATCH,
+    TMWA_DEVELOP_FLAG,
+
+    0, TMWA_SERVER_MAP,
+    TMWA_VENDOR_VERSION,
+};
 
 #endif // VERSION_HPP

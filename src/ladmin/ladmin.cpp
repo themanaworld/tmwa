@@ -1942,28 +1942,18 @@ void parse_fromlogin(int fd)
             case 0x7531:       // Displaying of the version of the login-server
                 if (RFIFOREST(fd) < 10)
                     return;
+            {
                 Iprintf("  Login-Server [%s:%d]\n", loginserverip,
                          loginserverport);
-                if (RFIFOB(login_fd, 5) == 0)
-                {
-                    Iprintf("  eAthena version stable-%d.%d",
-                            RFIFOB(login_fd, 2),
-                            RFIFOB(login_fd, 3));
-                }
-                else
-                {
-                    Iprintf("  eAthena version dev-%d.%d",
-                            RFIFOB(login_fd, 2),
-                            RFIFOB(login_fd, 3));
-                }
-                if (RFIFOB(login_fd, 4) == 0)
-                    Iprintf(" revision %d", RFIFOB(login_fd, 4));
-                if (RFIFOB(login_fd, 6) == 0)
-                {
-                    Iprintf("%d.\n", RFIFOW(login_fd, 8));
-                }
-                else
-                    Iprintf("-mod%d.\n", RFIFOW(login_fd, 8));
+                Version version;
+                RFIFO_STRUCT(login_fd, 2, version);
+                Iprintf("  tmwA version %hhu.%hhu.%hhu (dev? %hhu) (flags %hhx) (which %hhx) (vend %hu)\n",
+                        version.major, version.minor, version.patch,
+                        version.devel,
+
+                        version.flags, version.which,
+                        version.vend);
+            }
                 bytes_to_read = 0;
                 RFIFOSKIP(fd, 10);
                 break;
@@ -2872,8 +2862,13 @@ int do_init(int argc, ZString *argv)
     set_defaultparse(parse_fromlogin);
 
     Iprintf("EAthena login-server administration tool.\n");
-    Iprintf("(for eAthena version %d.%d.%d.)\n", ATHENA_MAJOR_VERSION,
-             ATHENA_MINOR_VERSION, ATHENA_REVISION);
+    Version version = CURRENT_LOGIN_SERVER_VERSION;
+    Iprintf("for tmwA version %hhu.%hhu.%hhu (dev? %hhu) (flags %hhx) (which %hhx) (vend %hu)\n",
+            version.major, version.minor, version.patch,
+            version.devel,
+
+            version.flags, version.which,
+            version.vend);
 
     LADMIN_LOG("Ladmin is ready.\n");
     Iprintf("Ladmin is \033[1;32mready\033[0m.\n\n");

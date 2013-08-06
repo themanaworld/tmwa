@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+#   Copyright 2013 Ben Longbons <b.r.longbons@gmail.com>
+#
+#   This file is part of The Mana World (Athena server)
+#
+#   attoconf is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   attoconf is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with attoconf.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import print_function, division, absolute_import
+
+import os
+import subprocess
+import sys
+
+from attoconf.version import require_version
+require_version(0, 3)
+
+from attoconf.classy import add_slots
+from attoconf.lib.c import Cxx
+from attoconf.lib.lex import Flex
+from attoconf.lib.yacc import Bison
+from attoconf.lib.install import Install
+from attoconf.lib.make import Make
+from attoconf.types import enum
+
+
+def get_version(srcdir):
+    return subprocess.check_output(
+            ['git', 'describe', '--tags'],
+            cwd=srcdir).strip()
+
+
+@add_slots
+class Configuration(Cxx, Flex, Bison, Install, Make):
+    def general(self):
+        super(Configuration, self).general()
+        home = os.path.expanduser('~')
+        self.add_alias('--user', ['--prefix=%s' % home],
+                help='alias for --prefix=$HOME', hidden=False)
+
+    def features(self):
+        super(Configuration, self).features()
+        # TODO: check VERSION_CONTROL environment variable?
+        # not really important: this option is only to make Frost happy
+        self.add_option('--enable-backups-during-install', init='none',
+                type=enum('none', 'numbered', 'existing', 'simple'), check=None,
+                help='Back up existing files during \'make install\'', hidden=True,
+                help_var='CONTROL')
+
+
+def main():
+    srcdir = os.path.dirname(sys.argv[0])
+    proj = Configuration(srcdir)
+    proj.set_package('tmwa', get_version(srcdir), 'The Mana World (Athena server)')
+    proj.jiggle()
+    build = proj.build('.')
+    build.configure(sys.argv[1:], os.environ)
+
+
+if __name__ == '__main__':
+    main()

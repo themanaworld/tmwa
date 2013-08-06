@@ -1,0 +1,3 @@
+[submodule "deps/attoconf"]
+	path = deps/attoconf
+	url = git://github.com/o11c/attoconf.git

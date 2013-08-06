@@ -1,4 +1,11 @@
-#! /usr/bin/make -f
+ifneq (${SRC_DIR},.)
+$(error out-of-tree builds not supported yet, sorry)
+endif
+# but there are bits working toward it
+
+vpath %.cpp ${SRC_DIR}
+vpath %.hpp ${SRC_DIR}
+
 SHELL=/bin/bash
 BUILD_DIR = obj
 default: login-server char-server map-server ladmin eathena-monitor
@@ -18,7 +25,7 @@ include make.defs
 
 # The default recipe is suboptimal
 %.cpp: %.lpp
-	$(LEX) -o $@ $<
+	$(FLEX) -o $@ $<
 %.cpp %.h: %.ypp
 	$(BISON) -d -o $*.cpp $<
 
@@ -81,19 +88,17 @@ ${BUILD_DIR}/map/magic-interpreter-lexer.o ${BUILD_DIR}/map/magic-interpreter-pa
 
 # deps.make is *NOT* automatically rebuilt normally
 # but the generated source files do need to be done first
-deps.make: src/map/magic-interpreter-parser.cpp src/map/magic-interpreter-lexer.cpp
-	for F in `find src/ -name '*.cpp'`; do \
+deps.make: ${SRC_DIR}/src/map/magic-interpreter-parser.cpp ${SRC_DIR}/src/map/magic-interpreter-lexer.cpp
+	for F in `cd ${SRC_DIR}; find src/ -name '*.cpp'`; do \
 	    ${CXX} ${CPPFLAGS} -MM "$$F" -MT "$$(sed 's/src/$${BUILD_DIR}/;s/\.cpp/.o/' <<< "$$F")"; \
 	done > deps.make
 	echo '# vim: filetype=make' >> deps.make
 
 include deps.make
 
-prefix=/usr/local
-BACKUPS=numbered
 install:
-	install -d ${prefix}/bin/
-	install --backup=${BACKUPS} -t ${prefix}/bin/ $(wildcard ${PROGS})
+	install -d ${BINDIR}
+	install --backup=${ENABLE_BACKUPS_DURING_INSTALL} -t ${BINDIR} $(wildcard ${PROGS})
 
 # might need changes later to handle static declarations (solution:
 # run ctags twice, specifying forward patterns for the declarations

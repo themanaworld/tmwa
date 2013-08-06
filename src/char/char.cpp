@@ -2449,13 +2449,7 @@ void parse_char(int fd)
 
             case 0x7530:       // Athena情報所得
                 WFIFOW(fd, 0) = 0x7531;
-                WFIFOB(fd, 2) = ATHENA_MAJOR_VERSION;
-                WFIFOB(fd, 3) = ATHENA_MINOR_VERSION;
-                WFIFOB(fd, 4) = ATHENA_REVISION;
-                WFIFOB(fd, 5) = ATHENA_RELEASE_FLAG;
-                WFIFOB(fd, 6) = ATHENA_OFFICIAL_FLAG;
-                WFIFOB(fd, 7) = ATHENA_SERVER_INTER | ATHENA_SERVER_CHAR;
-                WFIFOW(fd, 8) = ATHENA_MOD_VERSION;
+                WFIFO_STRUCT(fd, 2, CURRENT_CHAR_SERVER_VERSION);
                 WFIFOSET(fd, 10);
                 RFIFOSKIP(fd, 2);
                 return;

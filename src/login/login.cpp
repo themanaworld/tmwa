@@ -1654,13 +1654,7 @@ void parse_admin(int fd)
                 LOGIN_LOG("'ladmin': Sending of the server version (ip: %s)\n",
                            ip);
                 WFIFOW(fd, 0) = 0x7531;
-                WFIFOB(fd, 2) = ATHENA_MAJOR_VERSION;
-                WFIFOB(fd, 3) = ATHENA_MINOR_VERSION;
-                WFIFOB(fd, 4) = ATHENA_REVISION;
-                WFIFOB(fd, 5) = ATHENA_RELEASE_FLAG;
-                WFIFOB(fd, 6) = ATHENA_OFFICIAL_FLAG;
-                WFIFOB(fd, 7) = ATHENA_SERVER_LOGIN;
-                WFIFOW(fd, 8) = ATHENA_MOD_VERSION;
+                WFIFO_STRUCT(fd, 2, CURRENT_LOGIN_SERVER_VERSION);
                 WFIFOSET(fd, 10);
                 RFIFOSKIP(fd, 2);
                 break;
@@ -3110,12 +3104,12 @@ void parse_login(int fd)
                 LOGIN_LOG("Sending of the server version (ip: %s)\n",
                            ip);
                 WFIFOW(fd, 0) = 0x7531;
-                WFIFOB(fd, 2) = -1;
-                WFIFOB(fd, 3) = 'T';
-                WFIFOB(fd, 4) = 'M';
-                WFIFOB(fd, 5) = 'W';
-                WFIFOL(fd, 6) = new_account_flag ? 1 : 0;
+            {
+                Version version = CURRENT_LOGIN_SERVER_VERSION;
+                version.flags = new_account_flag ? 1 : 0;
+                WFIFO_STRUCT(fd, 2, version);
                 WFIFOSET(fd, 10);
+            }
                 RFIFOSKIP(fd, 2);
                 break;
 

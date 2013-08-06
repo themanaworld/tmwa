@@ -1,14 +1,7 @@
 # vim: filetype=make
 #
-# defaults
-CXX = g++
-
-LEX = flex
-BISON = bison
-CXXFLAGS = ${DEBUG} ${OPT} ${WARNINGS}
-# these being separate use useful for development
-DEBUG = -g
-OPT = -pipe -O2
+# This file is deprecated. Everything here should be moved to 'configure'.
+CXXFLAGS += ${WARNINGS}
 WARNINGS = -include src/warnings.hpp
 
 # Location of gtest source tree. It must contain the file src/gtest-all.cc
