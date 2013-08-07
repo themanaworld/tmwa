@@ -24,13 +24,14 @@ import subprocess
 import sys
 
 from attoconf.version import require_version
-require_version(0, 3)
+require_version(0, 5)
 
 from attoconf.classy import add_slots
 from attoconf.lib.c import Cxx
 from attoconf.lib.lex import Flex
 from attoconf.lib.yacc import Bison
 from attoconf.lib.install import Install
+from attoconf.lib.config_hash import ConfigHash
 from attoconf.lib.make import Make
 from attoconf.types import enum
 
@@ -42,7 +43,7 @@ def get_version(srcdir):
 
 
 @add_slots
-class Configuration(Cxx, Flex, Bison, Install, Make):
+class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
     def general(self):
         super(Configuration, self).general()
         home = os.path.expanduser('~')
