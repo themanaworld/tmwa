@@ -20,11 +20,14 @@
 from __future__ import print_function, division, absolute_import
 
 import os
-import subprocess
 import sys
 
-from attoconf.version import require_version
-require_version(0, 5)
+try:
+    from attoconf.version import require_version
+except ImportError:
+    sys.exit('attoconf missing - please run: git submodule update --init')
+else:
+    require_version(0, 6)
 
 from attoconf.classy import add_slots
 from attoconf.lib.c import Cxx
@@ -34,12 +37,6 @@ from attoconf.lib.install import Install
 from attoconf.lib.config_hash import ConfigHash
 from attoconf.lib.make import Make
 from attoconf.types import enum
-
-
-def get_version(srcdir):
-    return subprocess.check_output(
-            ['git', 'describe', '--tags'],
-            cwd=srcdir).strip()
 
 
 @add_slots
@@ -55,7 +52,7 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
         # TODO: check VERSION_CONTROL environment variable?
         # not really important: this option is only to make Frost happy
         self.add_option('--enable-backups-during-install', init='none',
-                type=enum('none', 'numbered', 'existing', 'simple'), check=None,
+                type=enum('none', 'numbered', 'existing', 'simple'), check=lambda build, CONTROL: None,
                 help='Back up existing files during \'make install\'', hidden=True,
                 help_var='CONTROL')
 
@@ -63,7 +60,7 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
 def main():
     srcdir = os.path.dirname(sys.argv[0])
     proj = Configuration(srcdir)
-    proj.set_package('tmwa', get_version(srcdir), 'The Mana World (Athena server)')
+    proj.set_package('tmwa', 'The Mana World (Athena server)')
     proj.jiggle()
     build = proj.build('.')
     build.configure(sys.argv[1:], os.environ)
