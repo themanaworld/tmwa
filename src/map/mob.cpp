@@ -3415,13 +3415,13 @@ int mob_readdb(void)
         {
             int mob_class;
 
-            if (line.startswith("//"))
+            if (!line || line.startswith("//"))
                 continue;
             struct mob_db_ mdbv {};
 
             XString ignore;
 
-            extract(line, record<','>(
+            bool okay = extract(line, record<','>(
                         &mob_class,
                         lstripping(&mdbv.name),
                         lstripping(&mdbv.jname),
@@ -3482,8 +3482,11 @@ int mob_readdb(void)
                     )
             );
 
-            if (mob_class <= 1000 || mob_class > 2000)
+            if (!okay || mob_class <= 1000 || mob_class > 2000)
+            {
+                PRINTF("bad mob line: %s\n", line);
                 continue;
+            }
 
             // TODO move this lower
             mob_db[mob_class] = std::move(mdbv);
