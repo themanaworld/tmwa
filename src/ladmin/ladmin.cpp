@@ -665,7 +665,7 @@ void addaccount(ZString param, int emailflag)
     if (!name.is_print())
         return;
 
-    if (XString("MF").contains(sex))
+    if (!XString("MF").contains(sex))
     {
         PRINTF("Illegal gender [%c]. Please input M or F.\n", sex);
         LADMIN_LOG("Illegal gender [%c]. Please input M or F.\n", sex);
