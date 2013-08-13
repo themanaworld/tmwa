@@ -1778,7 +1778,7 @@ void prompt(void)
         Iprintf("\033[0m");
         fflush(stdout);
 
-        if (!eathena_interactive_session && !buf)
+        if (!std::cin)
             exit(0);
 
         if (!buf.is_print())
