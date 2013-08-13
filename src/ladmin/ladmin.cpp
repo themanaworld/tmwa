@@ -739,7 +739,7 @@ void banaddaccount(ZString param)
 
     WFIFOW(login_fd, 0) = 0x794c;
     WFIFO_STRING(login_fd, 2, name, 24);
-    WFIFO_STRUCT(login_fd, 24, modif);
+    WFIFO_STRUCT(login_fd, 26, modif);
     WFIFOSET(login_fd, 38);
     bytes_to_read = 1;
 }
