@@ -891,7 +891,8 @@ void bansetaccount(ZString param)
     XString date;
     XString time_;
 
-    if (!qsplit(param, &name, &date, &time_))
+    if (!qsplit(param, &name, &date, &time_)
+            && !qsplit(param, &name, &date))
     {
         PRINTF("Please input an account name, a date and a hour.\n");
         PRINTF("<example>: banset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
@@ -1601,7 +1602,8 @@ void timesetaccount(ZString param)
     TimeT connect_until_time = TimeT();
     struct tm tmtime = connect_until_time;   // initialize
 
-    if (!qsplit(param, &name, &date, &time_))
+    if (!qsplit(param, &name, &date, &time_)
+            && !qsplit(param, &name, &date))
     {
         PRINTF("Please input an account name, a date and a hour.\n");
         PRINTF("<example>: timeset <account_name> yyyy/mm/dd [hh:mm:ss]\n");
