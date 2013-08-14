@@ -1781,7 +1781,7 @@ int atcommand_help(const int fd, dumb_ptr<map_session_data> sd,
             if (!split_key_value(line, &w1, &w2))
                 continue;
             int level;
-            extract(w1, &level);
+            extract(w1.strip(), &level);
             if (gm_level >= level)
                 clif_displaymessage(fd, w2);
         }
