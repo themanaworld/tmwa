@@ -287,29 +287,28 @@ int npc_event_do_oninit(void)
     return 0;
 }
 
-/*==========================================
- * タイマーイベント実行
- *------------------------------------------
- */
+/// Callback for npc OnTimer*: labels.
+/// This will be called later if you call npc_timerevent_start.
+/// This function may only expire, but not deactivate, the counter.
 static
 void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
 {
     dumb_ptr<npc_data_script> nd = map_id2bl(id)->as_npc()->as_script();
     assert (nd != NULL);
     assert (nd->npc_subtype == NpcSubtype::SCRIPT);
-    assert (nd->scr.nexttimer != nd->scr.timer_eventv.end());
+    assert (nd->scr.next_event != nd->scr.timer_eventv.end());
 
     nd->scr.timertick = tick;
-    auto te = nd->scr.nexttimer;
+    const auto te = nd->scr.next_event;
     // nd->scr.timerid = nullptr;
 
     // er, isn't this the same as nd->scr.timer = te->timer?
     interval_t t = nd->scr.timer += data;
     assert (t == te->timer);
-    ++nd->scr.nexttimer;
-    if (nd->scr.nexttimer != nd->scr.timer_eventv.end())
+    ++nd->scr.next_event;
+    if (nd->scr.next_event != nd->scr.timer_eventv.end())
     {
-        interval_t next = nd->scr.nexttimer->timer - t;
+        interval_t next = nd->scr.next_event->timer - t;
         nd->scr.timerid = Timer(tick + next,
                 std::bind(npc_timerevent, ph::_1, ph::_2,
                     id, next));
@@ -318,21 +317,69 @@ void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
     run_script(ScriptPointer(nd->scr.script.get(), te->pos), 0, nd->bl_id);
 }
 
-/*==========================================
- * タイマーイベント開始
- *------------------------------------------
- */
+/// Start (or resume) counting ticks to the next npc_timerevent.
+/// If the tick is already high enough, just set it to expired.
 void npc_timerevent_start(dumb_ptr<npc_data_script> nd)
 {
     nullpo_retv(nd);
 
-    if (nd->scr.timer_eventv.empty())
+    if (nd->scr.timer_active)
         return;
-    if (nd->scr.nexttimer != nd->scr.timer_eventv.end())
+    nd->scr.timer_active = true;
+
+    if (nd->scr.timer_eventv.empty())
         return;
     if (nd->scr.timer == nd->scr.timer_eventv.back().timer)
         return;
+    assert (nd->scr.timer < nd->scr.timer_eventv.back().timer);
 
+    nd->scr.timertick = gettick();
+
+    auto jt = nd->scr.next_event;
+    assert (jt != nd->scr.timer_eventv.end());
+
+    interval_t next = jt->timer - nd->scr.timer;
+    nd->scr.timerid = Timer(gettick() + next,
+            std::bind(npc_timerevent, ph::_1, ph::_2,
+                nd->bl_id, next));
+}
+
+/// Stop the tick counter.
+/// If the count was expired, just deactivate it.
+void npc_timerevent_stop(dumb_ptr<npc_data_script> nd)
+{
+    nullpo_retv(nd);
+
+    if (!nd->scr.timer_active)
+        return;
+    nd->scr.timer_active = false;
+
+    if (nd->scr.timerid)
+    {
+        nd->scr.timer += gettick() - nd->scr.timertick;
+        nd->scr.timerid.cancel();
+    }
+}
+
+/// Get the number of ticks on the counter.
+/// If there is an actual timer running, this involves math.
+interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd)
+{
+    nullpo_retr(interval_t::zero(), nd);
+
+    interval_t tick = nd->scr.timer;
+
+    if (nd->scr.timerid)
+        tick += gettick() - nd->scr.timertick;
+    return tick;
+}
+
+/// Helper method to update the "next event" iterator.
+/// Note that now the iterator is always valid unless it is at the end.
+/// Previously, it was invalid when the counter was deactivated.
+static
+void npc_timerevent_calc_next(dumb_ptr<npc_data_script> nd)
+{
     npc_timerevent_list phony {};
     phony.timer = nd->scr.timer;
 
@@ -343,66 +390,31 @@ void npc_timerevent_start(dumb_ptr<npc_data_script> nd)
                 return l.timer < r.timer;
             }
     );
-    nd->scr.nexttimer = jt;
-    nd->scr.timertick = gettick();
-
-    if (jt == nd->scr.timer_eventv.end())
-        // shouldn't happen?
-        return;
-
-    interval_t next = jt->timer - nd->scr.timer;
-    nd->scr.timerid = Timer(gettick() + next,
-            std::bind(npc_timerevent, ph::_1, ph::_2,
-                nd->bl_id, next));
+    nd->scr.next_event = jt;
 }
 
-/*==========================================
- * タイマーイベント終了
- *------------------------------------------
- */
-void npc_timerevent_stop(dumb_ptr<npc_data_script> nd)
-{
-    nullpo_retv(nd);
-
-    if (nd->scr.nexttimer != nd->scr.timer_eventv.end())
-    {
-        nd->scr.nexttimer = nd->scr.timer_eventv.end();
-        nd->scr.timer += gettick() - nd->scr.timertick;
-        nd->scr.timerid.cancel();
-    }
-}
-
-/*==========================================
- * タイマー値の所得
- *------------------------------------------
- */
-interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd)
-{
-    nullpo_retr(interval_t::zero(), nd);
-
-    interval_t tick = nd->scr.timer;
-
-    // Couldn't we just check the truthiness of the timer?
-    // Or would that be affected by the (new!) detach logic?
-    // Of course, you'd be slightly crazy to check the tick when you are
-    // called with it.
-    if (nd->scr.nexttimer != nd->scr.timer_eventv.end())
-        tick += gettick() - nd->scr.timertick;
-    return tick;
-}
-
-/*==========================================
- * タイマー値の設定
- *------------------------------------------
- */
+/// Set the tick counter.
+/// If the timer was active, this means stopping and restarting the timer.
+/// Note: active includes expired.
 void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer)
 {
     nullpo_retv(nd);
 
-    bool flag = nd->scr.nexttimer != nd->scr.timer_eventv.end();
+    if (nd->scr.timer_eventv.empty())
+        return;
+    if (newtimer > nd->scr.timer_eventv.back().timer)
+        newtimer = nd->scr.timer_eventv.back().timer;
+    if (newtimer < interval_t::zero())
+        newtimer = interval_t::zero();
+    if (newtimer == nd->scr.timer)
+        return;
 
-    npc_timerevent_stop(nd);
+    bool flag = nd->scr.timer_active;
+
+    if (flag)
+        npc_timerevent_stop(nd);
     nd->scr.timer = newtimer;
+    npc_timerevent_calc_next(nd);
     if (flag)
         npc_timerevent_start(nd);
 }
@@ -1335,7 +1347,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         int t_ = 0;
         ScriptLabel lname = el.name;
         int pos = el.pos;
-        if (lname.startswith("OnTimer") && extract(lname.xslice_t(7), &t_))
+        if (lname.startswith("OnTimer") && extract(lname.xslice_t(7), &t_) && t_ > 0)
         {
             interval_t t = static_cast<interval_t>(t_);
 
@@ -1354,7 +1366,10 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             nd->scr.timer_eventv.insert(it, std::move(tel));
         }
     }
-    nd->scr.nexttimer = nd->scr.timer_eventv.end();
+    // The counter starts stopped with 0 ticks, which is the first event,
+    // unless there is none, in which case begin == end.
+    nd->scr.timer = interval_t::zero();
+    nd->scr.next_event = nd->scr.timer_eventv.begin();
     // nd->scr.timerid = nullptr;
 
     return 0;

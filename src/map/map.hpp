@@ -359,6 +359,9 @@ public:
         std::unique_ptr<const ScriptBuffer> script;
         // Diameter.
         short xs, ys;
+
+        // Whether the timer advances if not beyond end.
+        bool timer_active;
         // Tick counter through the timers.
         // It is actually updated when frobbing the thing in any way.
         // If this is timer_eventv().back().timer, it is expired
@@ -367,11 +370,12 @@ public:
         // Actual timer that fires the event.
         Timer timerid;
         // Event to be fired, or .end() if no timer.
-        std::vector<npc_timerevent_list>::iterator nexttimer;
+        std::vector<npc_timerevent_list>::iterator next_event;
         // When the timer started. Needed to get the true diff, or to stop.
         tick_t timertick;
         // List of label events to call.
         std::vector<npc_timerevent_list> timer_eventv;
+
         // List of (name, offset) label locations in the bytecode
         std::vector<npc_label_list> label_listv;
     } scr;

@@ -2737,7 +2737,7 @@ void builtin_getnpctimer(ScriptState *st)
             val = npc_gettimerevent_tick(nd).count();
             break;
         case 1:
-            val = nd->scr.nexttimer != nd->scr.timer_eventv.end();
+            val = nd->scr.timer_active;
             break;
         case 2:
             val = nd->scr.timer_eventv.size();
