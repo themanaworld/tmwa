@@ -4464,7 +4464,6 @@ void run_func(ScriptState *st)
         PRINTF("stack dump :");
         for (script_data& d : st->stack->stack_datav)
         {
-            // this is not *nearly* complete enough to be useful ...
             switch (d.type)
             {
                 case ByteCode::INT:
@@ -4485,7 +4484,16 @@ void run_func(ScriptState *st)
                 case ByteCode::POS:
                     PRINTF(" pos(%d)", d.u.numi);
                     break;
-                default: // ?
+                case ByteCode::STR:
+                    PRINTF(" str(%s)", d.u.str);
+                    break;
+                case ByteCode::CONSTSTR:
+                    PRINTF(" cstr(%s)", d.u.str);
+                    break;
+                case ByteCode::FUNC_REF:
+                    PRINTF(" func(%s)", builtin_functions[d.u.numi].name);
+                    break;
+                default:
                     PRINTF(" %d,%d", d.type, d.u.numi);
             }
         }
