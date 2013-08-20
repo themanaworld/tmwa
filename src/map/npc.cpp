@@ -930,10 +930,10 @@ void register_npc_name(dumb_ptr<npc_data> nd)
 {
     ZString types[4] =
     {
-        "WARP",
-        "SHOP",
-        "SCRIPT",
-        "MESSAGE",
+        {"WARP"},
+        {"SHOP"},
+        {"SCRIPT"},
+        {"MESSAGE"},
     };
     if (!nd->name)
     {

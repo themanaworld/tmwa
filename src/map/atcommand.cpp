@@ -5574,12 +5574,12 @@ size_t magic_skills_nr = sizeof(magic_skills) / sizeof(magic_skills[0]);
 static
 ZString magic_skill_names[magic_skills_nr] =
 {
-    "magic",
-    "life",
-    "war",
-    "transmute",
-    "nature",
-    "astral"
+    {"magic"},
+    {"life"},
+    {"war"},
+    {"transmute"},
+    {"nature"},
+    {"astral"},
 };
 
 int atcommand_magic_info(const int fd, dumb_ptr<map_session_data>,
