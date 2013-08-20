@@ -30,7 +30,7 @@ install:
         sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test &&
         sudo apt-get update -qq;
     fi
-  - sudo apt-get install -qq ${REAL_CXX}
+  - sudo apt-get install -qq ${REAL_CXX/clang++/clang}
   - sudo apt-get install -qq libgtest-dev
 
 ## Do something before the main test script
