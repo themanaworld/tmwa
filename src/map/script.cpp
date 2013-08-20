@@ -3869,7 +3869,10 @@ void builtin_npcwarp(ScriptState *st)
     nd = npc_name2id(npc);
 
     if (!nd)
+    {
+        PRINTF("builtin_npcwarp: no such npc: %s\n", npc);
         return;
+    }
 
     map_local *m = nd->bl_m;
 
@@ -4076,9 +4079,13 @@ void builtin_shop(ScriptState *st)
     if (!sd)
         return;
 
-    nd = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
+    NpcName name = stringish<NpcName>(ZString(conv_str(st, &AARGO2(2))));
+    nd = npc_name2id(name);
     if (!nd)
+    {
+        PRINTF("builtin_shop: no such npc: %s\n", name);
         return;
+    }
 
     builtin_close(st);
     clif_npcbuysell(sd, nd->bl_id);
@@ -4108,7 +4115,10 @@ void builtin_fakenpcname(ScriptState *st)
     int newsprite = conv_num(st, &AARGO2(4));
     dumb_ptr<npc_data> nd = npc_name2id(name);
     if (!nd)
+    {
+        PRINTF("builtin_fakenpcname: no such npc: %s\n", name);
         return;
+    }
     nd->name = newname;
     nd->npc_class = newsprite;
 

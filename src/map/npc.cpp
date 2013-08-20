@@ -46,7 +46,7 @@ struct event_data
 static
 Map<NpcEvent, struct event_data> ev_db;
 static
-DMap<NpcName, dumb_ptr<npc_data>> npcname_db;
+DMap<NpcName, dumb_ptr<npc_data>> npcs_by_name;
 
 // used for clock-based event triggers
 // only tm_min, tm_hour, and tm_mday are used
@@ -86,9 +86,12 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
 
 int npc_enable(NpcName name, bool flag)
 {
-    dumb_ptr<npc_data> nd = npcname_db.get(name);
+    dumb_ptr<npc_data> nd = npc_name2id(name);
     if (nd == NULL)
+    {
+        PRINTF("npc_enable(%s, %s) failed.\n", name, flag ? "true" : "false");
         return 0;
+    }
 
     if (flag)
     {                           // 有効化
@@ -124,7 +127,7 @@ int npc_enable(NpcName name, bool flag)
  */
 dumb_ptr<npc_data> npc_name2id(NpcName name)
 {
-    return npcname_db.get(name);
+    return npcs_by_name.get(name);
 }
 
 /*==========================================
@@ -910,6 +913,41 @@ void npc_delsrcfile(FString name)
     }
 }
 
+static
+void register_npc_name(dumb_ptr<npc_data> nd)
+{
+    ZString types[4] =
+    {
+        "WARP",
+        "SHOP",
+        "SCRIPT",
+        "MESSAGE",
+    };
+    if (!nd->name)
+    {
+        PRINTF("WARNING: npc with no name:\n%s @ %s,%d,%d\n",
+                types[static_cast<int>(nd->npc_subtype)],
+                nd->bl_m->name_, nd->bl_x, nd->bl_y);
+        return;
+    }
+    if (dumb_ptr<npc_data> nd_old = npcs_by_name.get(nd->name))
+    {
+        if (nd->npc_subtype != NpcSubtype::WARP
+                || nd_old->npc_subtype != NpcSubtype::WARP)
+        {
+            PRINTF("WARNING: replacing npc with name: %s\n", nd->name);
+            PRINTF("old: %s @ %s,%d,%d\n",
+                    types[static_cast<int>(nd_old->npc_subtype)],
+                    nd_old->bl_m->name_, nd_old->bl_x, nd_old->bl_y);
+            PRINTF("new: %s @ %s,%d,%d\n",
+                    types[static_cast<int>(nd->npc_subtype)],
+                    nd->bl_m->name_, nd->bl_x, nd->bl_y);
+        }
+    }
+    // TODO also check #s ?
+    npcs_by_name.put(nd->name, nd);
+}
+
 /*==========================================
  * warp行解析
  *------------------------------------------
@@ -980,7 +1018,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     nd->npc_subtype = NpcSubtype::WARP;
     map_addblock(nd);
     clif_spawnnpc(nd);
-    npcname_db.put(nd->name, nd);
+    register_npc_name(nd);
 
     return 0;
 }
@@ -1074,7 +1112,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
     nd->n = map_addnpc(m, nd);
     map_addblock(nd);
     clif_spawnnpc(nd);
-    npcname_db.put(nd->name, nd);
+    register_npc_name(nd);
 
     return 0;
 }
@@ -1268,7 +1306,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         else
             clif_spawnnpc(nd);
     }
-    npcname_db.put(nd->name, nd);
+    register_npc_name(nd);
 
     for (auto& pair : scriptlabel_db)
         npc_convertlabel_db(pair.first, pair.second, nd);
@@ -1594,8 +1632,7 @@ dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
     clif_spawnnpc(retval);
     map_addblock(retval);
     map_addiddb(retval);
-    if (retval->name && retval->name[0])
-        npcname_db.put(retval->name, retval);
+    register_npc_name(retval);
 
     return retval;
 }
@@ -1666,6 +1703,8 @@ int do_init_npc(void)
             PRINTF("file not found : %s\n", nsl);
             exit(1);
         }
+        PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
+                nsl);
         int lines = 0;
         char line_[1024];
         while (fgets(line_, 1020, fp))
@@ -1744,8 +1783,6 @@ int do_init_npc(void)
             }
         }
         fclose(fp);
-        PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
-                nsl);
         fflush(stdout);
     }
     PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n",
