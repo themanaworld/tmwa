@@ -2,11 +2,13 @@
 #define VERSION_HPP
 
 // TODO generate this from ./configure
+// Actually, it should be done from the Makefile
+// it should be possible to use a ./config.status for a long time
 
 # define TMWA_VERSION_MAJOR     13
 # define TMWA_VERSION_MINOR     8
-# define TMWA_VERSION_PATCH     5
-# define TMWA_DEVELOP_FLAG      1
+# define TMWA_VERSION_PATCH     21
+# define TMWA_DEVELOP_FLAG      0
 
 // TODO make these bitwise enums
 # define TMWA_FLAG_REGISTRATION 0x01
