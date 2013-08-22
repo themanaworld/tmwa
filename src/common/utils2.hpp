@@ -277,4 +277,11 @@ T base_cast(U&& u)
     return std::forward<U>(u);
 }
 
+// use this when e.g. U is an int of unknown size
+template<class T, class U>
+T maybe_cast(U u)
+{
+    return u;
+}
+
 #endif // UTILS2_HPP

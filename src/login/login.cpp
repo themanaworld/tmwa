@@ -3792,7 +3792,7 @@ void save_config_in_log(void)
         LOGIN_LOG("- to NOT check GM accounts file modifications.\n");
     else
         LOGIN_LOG("- to check GM accounts file modifications every %lld seconds.\n",
-             static_cast<long long>(gm_account_filename_check_timer.count()));
+             maybe_cast<long long>(gm_account_filename_check_timer.count()));
 
     // not necessary to log the 'login_log_filename', we are inside :)
 
