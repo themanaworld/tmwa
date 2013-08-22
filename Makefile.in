@@ -10,7 +10,28 @@ SHELL=/bin/bash
 BUILD_DIR = obj
 default: login-server char-server map-server ladmin eathena-monitor
 .DELETE_ON_ERROR:
-include make.defs
+
+# this used to be in make.defs
+CXXFLAGS += ${WARNINGS}
+ifeq (${ENABLE_WARNINGS},yes)
+WARNINGS = -include src/warnings.hpp
+endif
+
+# gdb bug 15801
+ifeq (${ENABLE_ABI6},yes)
+CXX += -fabi-version=6
+endif
+ifeq (${ENABLE_CYGWIN_HACKS},yes)
+override CXX += -std=gnu++0x
+else
+override CXX += -std=c++0x
+endif
+# for linking
+override CC = ${CXX}
+
+override CXXFLAGS += -fstack-protector -fno-strict-aliasing
+override CXXFLAGS += -fvisibility=hidden
+# end what used to be in make.defs
 
 .PHONY: all clean common most
 # With no prerequisites, no target should ever be implicitly deleted.

@@ -38,7 +38,7 @@ install:
 
 ## Main test script
 script:
-  - ./configure CXX=${REAL_CXX}\ -fabi-version=6 CPPFLAGS=-DQUIET
+  - ./configure --dev CXX=${REAL_CXX} CPPFLAGS=-DQUIET
   - make -k -j2
 
 ## Do something after the main test script

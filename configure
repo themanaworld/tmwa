@@ -36,8 +36,10 @@ from attoconf.lib.yacc import Bison
 from attoconf.lib.install import Install
 from attoconf.lib.config_hash import ConfigHash
 from attoconf.lib.make import Make
-from attoconf.types import enum
+from attoconf.types import enum, filepath
 
+
+yesno = enum('yes', 'no')
 
 @add_slots
 class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
@@ -46,6 +48,8 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
         home = os.path.expanduser('~')
         self.add_alias('--user', ['--prefix=%s' % home],
                 help='alias for --prefix=$HOME', hidden=False)
+        self.add_alias('--dev', ['--user', '--enable-warnings', '--enable-abi6'],
+                help=None, hidden=False)
 
     def features(self):
         super(Configuration, self).features()
@@ -55,6 +59,31 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
                 type=enum('none', 'numbered', 'existing', 'simple'), check=lambda build, CONTROL: None,
                 help='Back up existing files during \'make install\'', hidden=True,
                 help_var='CONTROL')
+        self.add_bool_feature('warnings', init='no',
+                check=lambda build, ENABLE_WARNINGS: None,
+                help='Enable warnings (for development)')
+        self.add_bool_feature('abi6', init='no',
+                check=lambda build, ENABLE_ABI6: None,
+                help='Force a nonbuggy gcc ABI (for development)')
+        self.add_bool_feature('cygwin-hacks', init='no',
+                check=lambda build, ENABLE_CYGWIN_HACKS: None,
+                help='Work around bugs in certain cygwin versions')
+
+    def vars(self):
+        super(Configuration, self).vars()
+        self.add_option('GTEST_DIR', init='/usr/src/gtest',
+                # http://code.google.com/p/googletest/wiki/FAQ#Why_is_it_not_recommended_to_install_a_pre-compiled_copy_of_Goog
+                type=filepath, check=lambda build, GTEST_DIR: None,
+                help='Location of Google Test sources, must contain src/gtest-all.cc (linking to a precompiled library is NOT supported)', hidden=False)
+
+    def add_bool_feature(self, arg, hidden=False, **kwargs):
+        positive = '--enable-' + arg
+        negative = '--disable-' + arg
+        self.add_option(positive, type=yesno, hidden=hidden, **kwargs)
+        # TODO: instead reveal one of the aliases and hide the main
+        # this requires messing with help slightly
+        self.add_alias(positive, [positive + '=yes'], help=None, hidden=True)
+        self.add_alias(negative, [positive + '=no'], help=None, hidden=True)
 
 
 def main():
