@@ -404,18 +404,18 @@ FILE *get_gm_log();
 /*========================================
  * At-command logging
  */
-void log_atcommand(dumb_ptr<map_session_data> sd, XString cmd)
+void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
 {
     FILE *fp = get_gm_log();
     if (!fp)
         return;
     timestamp_seconds_buffer tmpstr;
     stamp_time(tmpstr);
-    FPRINTF(fp, "[%s] %s(%d,%d) %s(%d) : ",
+    FPRINTF(fp, "[%s] %s(%d,%d) %s(%d) : %s\n",
             tmpstr,
             sd->bl_m->name_, sd->bl_x, sd->bl_y,
-            sd->status.name, sd->status.account_id);
-    fwrite(cmd.data(), 1, cmd.size(), fp);
+            sd->status.name, sd->status.account_id,
+            cmd);
 }
 
 FString gm_logfile_name;

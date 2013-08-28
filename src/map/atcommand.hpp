@@ -10,7 +10,7 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
 
 int atcommand_config_read(ZString cfgName);
 
-void log_atcommand(dumb_ptr<map_session_data> sd, XString cmd);
+void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd);
 
 // only used by map.cpp
 extern FString gm_logfile_name;
