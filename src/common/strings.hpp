@@ -119,6 +119,10 @@ namespace strings
         operator bool() const { return size(); }
         bool operator !() const { return !size(); }
 
+        // the existence of this has led to bugs
+        // it's not really sane from a unicode perspective anyway ...
+        // prefer startswith or extract
+        __attribute__((deprecated))
         char operator[](size_t i) const { return begin()[i]; }
         char front() const { return *begin(); }
         char back() const { return end()[-1]; }

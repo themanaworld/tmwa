@@ -65,7 +65,7 @@ public:
     MapName(VString<15> v) : _impl(v.oislice_h(std::find(v.begin(), v.end(), '.'))) {}
 
     iterator begin() const { return &*_impl.begin(); }
-    iterator end() const { return &*_impl.begin(); }
+    iterator end() const { return &*_impl.end(); }
     const char *c_str() const { return _impl.c_str(); }
 
     operator FString() const { return _impl; }

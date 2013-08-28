@@ -674,7 +674,7 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd)
     for (j = 0; j < sd->status.account_reg2_num; j++)
     {
         struct global_reg *reg = &sd->status.account_reg2[j];
-        if (reg->str[0] && reg->value != 0)
+        if (reg->str && reg->value != 0)
         {
             WFIFO_STRING(char_fd, p, reg->str, 32);
             WFIFOL(char_fd, p + 32) = reg->value;

@@ -256,8 +256,9 @@ FString mmo_char_tostr(struct mmo_charstatus *p)
             p->weapon, p->shield, p->head_top, p->head_mid, p->head_bottom,
             p->last_point.map_, p->last_point.x, p->last_point.y,
             p->save_point.map_, p->save_point.x, p->save_point.y, p->partner_id);
+
     for (int i = 0; i < 10; i++)
-        if (p->memo_point[i].map_[0])
+        if (p->memo_point[i].map_)
         {
             str_p += STRPRINTF("%s,%d,%d ",
                     p->memo_point[i].map_, p->memo_point[i].x, p->memo_point[i].y);
@@ -312,7 +313,7 @@ FString mmo_char_tostr(struct mmo_charstatus *p)
     str_p += '\t';
 
     for (int i = 0; i < p->global_reg_num; i++)
-        if (p->global_reg[i].str[0])
+        if (p->global_reg[i].str)
             str_p += STRPRINTF("%s,%d ",
                     p->global_reg[i].str,
                     p->global_reg[i].value);
@@ -1118,7 +1119,7 @@ void parse_tologin(int fd)
                     // if no map-server already connected, display a message...
                     int i;
                     for (i = 0; i < MAX_MAP_SERVERS; i++)
-                        if (server_fd[i] >= 0 && server[i].maps[0][0])   // if map-server online and at least 1 map
+                        if (server_fd[i] >= 0 && server[i].maps[0])   // if map-server online and at least 1 map
                             break;
                     if (i == MAX_MAP_SERVERS)
                         PRINTF("Awaiting maps from map-server.\n");
@@ -1603,7 +1604,7 @@ void parse_frommap(int fd)
                             WFIFOW(fd, 8) = server[x].port;
                             j = 0;
                             for (int i = 0; i < MAX_MAP_PER_SERVER; i++)
-                                if (server[x].maps[i][0])
+                                if (server[x].maps[i])
                                     WFIFO_STRING(fd, 10 + (j++) * 16, server[x].maps[i], 16);
                             if (j > 0)
                             {
@@ -2026,7 +2027,7 @@ int search_mapserver(XString map)
 {
     for (int i = 0; i < MAX_MAP_SERVERS; i++)
         if (server_fd[i] >= 0)
-            for (int j = 0; server[i].maps[j][0]; j++)
+            for (int j = 0; server[i].maps[j]; j++)
                 if (server[i].maps[j] == map)
                     return i;
 
@@ -2089,7 +2090,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                 i = 0;
                 for (j = 0; j < MAX_MAP_SERVERS; j++)
                     if (server_fd[j] >= 0
-                        && server[j].maps[0][0])
+                        && server[j].maps[0])
                     {   // change save point to one of map found on the server (the first)
                         i = j;
                         cd->last_point.map_ = server[j].maps[0];

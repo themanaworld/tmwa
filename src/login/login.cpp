@@ -501,7 +501,7 @@ FString mmo_auth_tostr(const AuthData *p)
             p->ban_until_time);
 
     for (int i = 0; i < p->account_reg2_num; i++)
-        if (p->account_reg2[i].str[0])
+        if (p->account_reg2[i].str)
             str += STRPRINTF("%s,%d ",
                     p->account_reg2[i].str, p->account_reg2[i].value);
 
@@ -541,7 +541,7 @@ bool extract(XString line, AuthData *ad)
     }
     // If a password is not encrypted, we encrypt it now.
     // A password beginning with ! and - in the memo field is our magic
-    if (ad->pass[0] != '!' && ad->memo[0] == '-')
+    if (!ad->pass.startswith('!') && ad->memo.startswith('-'))
     {
         XString pass = ad->pass;
         AccountPass plain = stringish<AccountPass>(pass);

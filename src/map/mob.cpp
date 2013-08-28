@@ -76,7 +76,7 @@ int mobdb_searchname(MobName str)
 int mobdb_checkid(const int id)
 {
     if (id <= 0 || id >= (sizeof(mob_db) / sizeof(mob_db[0]))
-        || mob_db[id].name[0] == '\0')
+        || !mob_db[id].name)
         return 0;
 
     return id;

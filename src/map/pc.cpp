@@ -2354,7 +2354,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
         while (bool(read_gatp(m, x, y) & MapCell::UNWALKABLE));
     }
 
-    if (sd->mapname_[0] && sd->bl_prev != NULL)
+    if (sd->mapname_ && sd->bl_prev != NULL)
     {
         clif_clearchar(sd, clrtype);
         map_delblock(sd);
