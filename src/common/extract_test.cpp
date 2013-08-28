@@ -317,3 +317,16 @@ TEST(extract, record_str)
     EXPECT_EQ("", z);
     x = y = z = "";
 }
+
+TEST(extract, mapname)
+{
+    MapName map;
+    EXPECT_TRUE(extract("abc", &map));
+    EXPECT_EQ(map, "abc");
+    EXPECT_TRUE(extract("abc.gat", &map));
+    EXPECT_EQ(map, "abc");
+    EXPECT_TRUE(extract("abcdefghijklmno", &map));
+    EXPECT_EQ(map, "abcdefghijklmno");
+    EXPECT_TRUE(extract("abcdefghijklmno.gat", &map));
+    EXPECT_EQ(map, "abcdefghijklmno");
+}

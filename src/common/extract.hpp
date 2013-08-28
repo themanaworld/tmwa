@@ -198,6 +198,8 @@ bool extract(XString str, struct item *it);
 inline
 bool extract(XString str, MapName *m)
 {
+    XString::iterator it = std::find(str.begin(), str.end(), '.');
+    str = str.xislice_h(it);
     VString<15> tmp;
     bool rv = extract(str, &tmp);
     *m = tmp;
