@@ -53,11 +53,25 @@ after_script:
 # compiler: gcc-4.6
 # compiler: gcc-4.7
 # compiler: clang
+compiler:
+  - gcc
+  - clang
 
 ## Environment variables to expand the build matrix
 ## Needed because 'compiler: gcc' overwrites CXX
+## https://github.com/travis-ci/travis-ci/issues/979
 env:
   - REAL_CXX=g++-4.6
   - REAL_CXX=g++-4.7
   - REAL_CXX=g++-4.8
   - REAL_CXX=clang++
+matrix:
+  exclude:
+    - compiler: gcc
+      env: REAL_CXX=clang++
+    - compiler: clang
+      env: REAL_CXX=g++-4.6
+    - compiler: clang
+      env: REAL_CXX=g++-4.7
+    - compiler: clang
+      env: REAL_CXX=g++-4.8
