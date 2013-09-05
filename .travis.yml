@@ -34,7 +34,13 @@ install:
   - sudo apt-get install -qq libgtest-dev
 
 ## Do something before the main test script
-# before_script: ...
+before_script:
+  -
+    if [ $PACKAGE = clang-3.1 ];
+    then
+      wget http://clang.llvm.org/libstdc++4.6-clang11.patch;
+      sudo patch /usr/include/c++/4.6/type_traits < libstdc++4.6-clang11.patch;
+    fi
 
 ## Main test script
 script:
