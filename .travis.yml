@@ -18,24 +18,19 @@ notifications:
     use_notice: true
 
 ## Commands before installing prerequisites
-# before_install: git submodule update --init --recursive
+before_install: export CC=${REAL_CC} CXX=${REAL_CXX}
 
 ## Install prerequisites
 install:
 # if > or | folding is used, error
 # but YAML folds by default on this, so it works (I hope)
   -
-    if [ "${REAL_CXX}" = "g++-4.7" ] || [ "${REAL_CXX}" = "g++-4.8" ];
+    if [ -n "$PPA" ];
     then
-        sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test &&
-        sudo apt-get update -qq;
+        sudo add-apt-repository --yes $PPA;
     fi
-  -
-    if ! [ "${REAL_CXX}" = "clang++" ];
-    then
-        sudo apt-get install -qq ${REAL_CXX};
-        sudo apt-get update -qq;
-    fi
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq $PACKAGE
   - sudo apt-get install -qq libgtest-dev
 
 ## Do something before the main test script
@@ -43,8 +38,7 @@ install:
 
 ## Main test script
 script:
-  - ${REAL_CXX} --version
-  - ./configure --dev CXX=${REAL_CXX} CPPFLAGS=-DQUIET
+  - ./configure --dev CPPFLAGS=-DQUIET
   - make -k -j2
 
 ## Do something after the main test script
@@ -52,31 +46,33 @@ after_script:
   - make test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
 ### The rest of the file creates a build matrix
-### containing gcc-4.6 through gcc-4.7 and clang-3.1
+### containing gcc-4.6 through gcc-4.8 and clang-3.1 through clang-3.3
 
 ## This doesn't work - travis defaults to plain gcc if unknown
-# compiler: gcc-4.6
-# compiler: gcc-4.7
-# compiler: clang
-compiler:
-  - gcc
-  - clang
-
-## Environment variables to expand the build matrix
-## Needed because 'compiler: gcc' overwrites CXX
-## https://github.com/travis-ci/travis-ci/issues/979
+## http://github.com/travis-ci/travis-ci/issues/979
+#compiler:
+#  - gcc-4.6
+#  - gcc-4.7
+#  - gcc-4.8
+#  - clang-3.1
+#  - clang-3.2
+#  - clang-3.3
 env:
-  - REAL_CXX=g++-4.6
-  - REAL_CXX=g++-4.7
-  - REAL_CXX=g++-4.8
-  - REAL_CXX=clang++
+  - ignore=this
+
 matrix:
   exclude:
+    - env: ignore=this
+  include:
+    - compiler: clang
+      env: REAL_CC=clang-3.1 REAL_CXX=clang++-3.1 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.1
+    - compiler: clang
+      env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2
+    - compiler: clang
+      env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3
     - compiler: gcc
-      env: REAL_CXX=clang++
-    - compiler: clang
-      env: REAL_CXX=g++-4.6
-    - compiler: clang
-      env: REAL_CXX=g++-4.7
-    - compiler: clang
-      env: REAL_CXX=g++-4.8
+      env: REAL_CC=gcc-4.6   REAL_CXX=g++-4.6     PPA=                            PACKAGE=g++-4.6
+    - compiler: gcc
+      env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7
+    - compiler: gcc
+      env: REAL_CC=gcc-4.8   REAL_CXX=g++-4.8     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.8
