@@ -2260,10 +2260,11 @@ int pc_useitem(dumb_ptr<map_session_data> sd, int n)
             return 1;
         }
 
-        run_script(ScriptPointer(sd->inventory_data[n]->use_script.get(), 0), sd->bl_id, 0);
-
+        const ScriptBuffer *script = sd->inventory_data[n]->use_script.get();
         clif_useitemack(sd, n, amount - 1, 1);
         pc_delitem(sd, n, 1, 1);
+
+        run_script(ScriptPointer(script, 0), sd->bl_id, 0);
     }
 
     return 0;
