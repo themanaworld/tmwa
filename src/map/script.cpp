@@ -1678,7 +1678,7 @@ void builtin_setarray(ScriptState *st)
     if (prefix != '$')
         sd = script_rid2sd(st);
 
-    for (int j = 0, i = st->start + 3; i < st->end && j < 128; i++, j++)
+    for (int j = 0, i = st->start + 3; i < st->end && j < 256; i++, j++)
     {
         if (postfix == '$')
             set_reg(sd, ByteCode::VARIABLE, reg.iplus(j), conv_str(st, &AARGO2(i - st->start)));
@@ -1728,7 +1728,7 @@ static
 int getarraysize(ScriptState *st, SIR reg, bool is_string)
 {
     int i = reg.index(), c = i;
-    for (; i < 128; i++)
+    for (; i < 256; i++)
     {
         // This is obviously not what was intended
         struct script_data vd = get_val2(st, reg.iplus(i));
@@ -1766,7 +1766,7 @@ void builtin_getelementofarray(ScriptState *st)
     if (AARGO2(2).type == ByteCode::VARIABLE)
     {
         int i = conv_num(st, &AARGO2(3));
-        if (i > 127 || i < 0)
+        if (i > 255 || i < 0)
         {
             PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n",
                  i);
