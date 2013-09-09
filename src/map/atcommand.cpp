@@ -418,14 +418,14 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
             cmd);
 }
 
-FString gm_logfile_name;
+FString gm_log;
 /*==========================================
  * Log a timestamped line to GM log file
  *------------------------------------------
  */
 FILE *get_gm_log()
 {
-    if (!gm_logfile_name)
+    if (!gm_log)
         return NULL;
 
     struct tm ctime = TimeT::now();
@@ -441,7 +441,7 @@ FILE *get_gm_log()
     last_logfile_nr = logfile_nr;
 
     FString fullname = STRPRINTF("%s.%04d-%02d",
-            gm_logfile_name, year, month);
+            gm_log, year, month);
 
     if (gm_logfile)
         fclose(gm_logfile);
@@ -451,7 +451,7 @@ FILE *get_gm_log()
     if (!gm_logfile)
     {
         perror("GM log file");
-        gm_logfile_name = FString();
+        gm_log = FString();
     }
     return gm_logfile;
 }
@@ -511,7 +511,7 @@ AtCommandInfo *atcommand(const int level, ZString message)
 {
     ZString p = message;
 
-    if (battle_config.atc_gmonly != 0 && !level)    // level = pc_isGM(sd)
+    if (battle_config.atcommand_gm_only != 0 && !level)    // level = pc_isGM(sd)
         return nullptr;
     if (!p)
     {
@@ -1466,8 +1466,8 @@ int atcommand_alive(const int fd, dumb_ptr<map_session_data> sd,
     sd->status.hp = sd->status.max_hp;
     sd->status.sp = sd->status.max_sp;
     pc_setstand(sd);
-    if (static_cast<interval_t>(battle_config.pc_invincible_time) > interval_t::zero())
-        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.pc_invincible_time));
+    if (static_cast<interval_t>(battle_config.player_invincible_time) > interval_t::zero())
+        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.player_invincible_time));
     clif_updatestatus(sd, SP::HP);
     clif_updatestatus(sd, SP::SP);
     clif_resurrection(sd, 1);
@@ -2081,9 +2081,9 @@ int atcommand_spawn(const int fd, dumb_ptr<map_session_data> sd,
         number = 1;
 
     // If value of atcommand_spawn_quantity_limit directive is greater than or equal to 1 and quantity of monsters is greater than value of the directive
-    if (battle_config.atc_spawn_quantity_limit >= 1
-        && number > battle_config.atc_spawn_quantity_limit)
-        number = battle_config.atc_spawn_quantity_limit;
+    if (battle_config.atcommand_spawn_quantity_limit >= 1
+        && number > battle_config.atcommand_spawn_quantity_limit)
+        number = battle_config.atcommand_spawn_quantity_limit;
 
     if (battle_config.etc_log)
         PRINTF("@spawn monster='%s' id=%d count=%d (%d,%d)\n",
@@ -2546,8 +2546,8 @@ int atcommand_revive(const int fd, dumb_ptr<map_session_data> sd,
     {
         pl_sd->status.hp = pl_sd->status.max_hp;
         pc_setstand(pl_sd);
-        if (static_cast<interval_t>(battle_config.pc_invincible_time) > interval_t::zero())
-            pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.pc_invincible_time));
+        if (static_cast<interval_t>(battle_config.player_invincible_time) > interval_t::zero())
+            pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.player_invincible_time));
         clif_updatestatus(pl_sd, SP::HP);
         clif_updatestatus(pl_sd, SP::SP);
         clif_resurrection(pl_sd, 1);
@@ -5917,10 +5917,7 @@ int atcommand_skill_learn(const int fd, dumb_ptr<map_session_data>,
 int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
         ZString message)
 {
-    struct sockaddr_in sai;
     CharName character;
-    socklen_t sa_len = sizeof(struct sockaddr);
-    unsigned long ip;
 
     if (!asplit(message, &character))
     {
@@ -5935,14 +5932,7 @@ int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
         return -1;
     }
 
-    if (getpeername(pl_sd->fd, reinterpret_cast<struct sockaddr *>(&sai), &sa_len))
-    {
-        clif_displaymessage(fd,
-                "Guru Meditation Error: getpeername() failed");
-        return -1;
-    }
-
-    ip = sai.sin_addr.s_addr;
+    IP4Address ip = pl_sd->get_ip();
 
     // We now have the IP address of a character.
     // Loop over all logged in sessions looking for matches.
@@ -5954,11 +5944,8 @@ int atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
         pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            if (getpeername(pl_sd->fd, reinterpret_cast<struct sockaddr *>(&sai), &sa_len))
-                continue;
-
             // Is checking GM levels really needed here?
-            if (ip == sai.sin_addr.s_addr)
+            if (ip == pl_sd->get_ip())
             {
                 FString output = STRPRINTF(
                         "Name: %s | Location: %s %d %d",

@@ -32,9 +32,7 @@ const int packet_len_table[0x20] =
 
 int char_fd;
 static
-IP_String char_ip_str;
-static
-int char_ip;
+IP4Address char_ip;
 static
 int char_port = 6121;
 static
@@ -72,10 +70,9 @@ AccountPass chrif_getpasswd(void)
  *
  *------------------------------------------
  */
-void chrif_setip(IP_String ip)
+void chrif_setip(IP4Address ip)
 {
-    char_ip_str = ip;
-    char_ip = inet_addr(char_ip_str.c_str());
+    char_ip = ip;
 }
 
 /*==========================================
@@ -134,7 +131,7 @@ int chrif_connect(int fd)
     WFIFO_STRING(fd, 2, userid, 24);
     WFIFO_STRING(fd, 26, passwd, 24);
     WFIFOL(fd, 50) = 0;
-    WFIFOL(fd, 54) = clif_getip().s_addr;
+    WFIFOIP(fd, 54) = clif_getip();
     WFIFOW(fd, 58) = clif_getport();  // [Valaris] thanks to fov
     WFIFOSET(fd, 60);
 
@@ -172,21 +169,21 @@ int chrif_sendmap(int fd)
 static
 int chrif_recvmap(int fd)
 {
-    int i, j, port;
+    int i, j;
 
     if (chrif_state < 2)        // まだ準備中
         return -1;
 
-    struct in_addr ip;
-    ip.s_addr = RFIFOL(fd, 4);
-    port = RFIFOW(fd, 8);
+    IP4Address ip = RFIFOIP(fd, 4);
+    uint16_t port = RFIFOW(fd, 8);
     for (i = 10, j = 0; i < RFIFOW(fd, 2); i += 16, j++)
     {
         MapName map = RFIFO_STRING<16>(fd, i);
         map_setipport(map, ip, port);
     }
     if (battle_config.etc_log)
-        PRINTF("recv map on %s:%d (%d maps)\n", ip2str(ip), port, j);
+        PRINTF("recv map on %s:%d (%d maps)\n",
+                ip, port, j);
 
     return 0;
 }
@@ -196,17 +193,16 @@ int chrif_recvmap(int fd)
  *------------------------------------------
  */
 int chrif_changemapserver(dumb_ptr<map_session_data> sd,
-        MapName name, int x, int y, struct in_addr ip, short port)
+        MapName name, int x, int y, IP4Address ip, short port)
 {
-    int i, s_ip;
-
     nullpo_retr(-1, sd);
 
-    s_ip = 0;
-    for (i = 0; i < fd_max; i++)
+    IP4Address s_ip;
+    for (int i = 0; i < fd_max; i++)
         if (session[i] && dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
         {
-            s_ip = session[i]->client_addr.sin_addr.s_addr;
+            assert (i == sd->fd);
+            s_ip = session[i]->client_ip;
             break;
         }
 
@@ -218,10 +214,10 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
     WFIFO_STRING(char_fd, 18, name, 16);
     WFIFOW(char_fd, 34) = x;
     WFIFOW(char_fd, 36) = y;
-    WFIFOL(char_fd, 38) = ip.s_addr;
+    WFIFOIP(char_fd, 38) = ip;
     WFIFOL(char_fd, 42) = port;
     WFIFOB(char_fd, 44) = sd->status.sex;
-    WFIFOL(char_fd, 45) = s_ip;
+    WFIFOIP(char_fd, 45) = s_ip;
     WFIFOSET(char_fd, 49);
 
     return 0;
@@ -249,7 +245,7 @@ int chrif_changemapserverack(int fd)
     MapName mapname = RFIFO_STRING<16>(fd, 18);
     uint16_t x = RFIFOW(fd, 34);
     uint16_t y = RFIFOW(fd, 36);
-    auto ip = in_addr{RFIFOL(fd, 38)};
+    IP4Address ip = RFIFOIP(fd, 38);
     uint16_t port = RFIFOW(fd, 42);
     clif_changemapserver(sd, mapname, x, y, ip, port);
 
@@ -311,22 +307,21 @@ int chrif_sendmapack(int fd)
  */
 int chrif_authreq(dumb_ptr<map_session_data> sd)
 {
-    int i;
-
     nullpo_retr(-1, sd);
 
     if (!sd || !char_fd || !sd->bl_id || !sd->login_id1)
         return -1;
 
-    for (i = 0; i < fd_max; i++)
+    for (int i = 0; i < fd_max; i++)
         if (session[i] && dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
         {
+            assert (i == sd->fd);
             WFIFOW(char_fd, 0) = 0x2afc;
             WFIFOL(char_fd, 2) = sd->bl_id;
             WFIFOL(char_fd, 6) = sd->char_id;
             WFIFOL(char_fd, 10) = sd->login_id1;
             WFIFOL(char_fd, 14) = sd->login_id2;
-            WFIFOL(char_fd, 18) = session[i]->client_addr.sin_addr.s_addr;
+            WFIFOIP(char_fd, 18) = session[i]->client_ip;
             WFIFOSET(char_fd, 22);
             break;
         }
@@ -340,18 +335,17 @@ int chrif_authreq(dumb_ptr<map_session_data> sd)
  */
 int chrif_charselectreq(dumb_ptr<map_session_data> sd)
 {
-    int i, s_ip;
-
     nullpo_retr(-1, sd);
 
     if (!sd || !char_fd || !sd->bl_id || !sd->login_id1)
         return -1;
 
-    s_ip = 0;
-    for (i = 0; i < fd_max; i++)
+    IP4Address s_ip;
+    for (int i = 0; i < fd_max; i++)
         if (session[i] && dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
         {
-            s_ip = session[i]->client_addr.sin_addr.s_addr;
+            assert (i == sd->fd);
+            s_ip = session[i]->client_ip;
             break;
         }
 
@@ -359,24 +353,8 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
     WFIFOL(char_fd, 2) = sd->bl_id;
     WFIFOL(char_fd, 6) = sd->login_id1;
     WFIFOL(char_fd, 10) = sd->login_id2;
-    WFIFOL(char_fd, 14) = s_ip;
+    WFIFOIP(char_fd, 14) = s_ip;
     WFIFOSET(char_fd, 18);
-
-    return 0;
-}
-
-/*==========================================
- * キャラ名問い合わせ
- *------------------------------------------
- */
-int chrif_searchcharid(int char_id)
-{
-    if (!char_id)
-        return -1;
-
-    WFIFOW(char_fd, 0) = 0x2b08;
-    WFIFOL(char_fd, 2) = char_id;
-    WFIFOSET(char_fd, 6);
 
     return 0;
 }
@@ -1107,13 +1085,6 @@ void chrif_parse(int fd)
                 break;
             case 0x2b06:
                 chrif_changemapserverack(fd);
-                break;
-            case 0x2b09:
-            {
-                int charid = RFIFOL(fd, 2);
-                CharName name = stringish<CharName>(RFIFO_STRING<24>(fd, 6));
-                map_addchariddb(charid, name);
-            }
                 break;
             case 0x2b0b:
                 chrif_changedgm(fd);

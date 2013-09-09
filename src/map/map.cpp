@@ -64,7 +64,7 @@ dumb_ptr<block_list> object[MAX_FLOORITEM];
 static
 int first_free_object_id = 0, last_object_id = 0;
 
-interval_t autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+interval_t autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
 
 FString motd_txt = "conf/motd.txt";
@@ -1078,7 +1078,7 @@ map_local *map_mapname2mapid(MapName name)
  * 他鯖map名からip,port変換
  *------------------------------------------
  */
-int map_mapname2ipport(MapName name, struct in_addr *ip, int *port)
+int map_mapname2ipport(MapName name, IP4Address *ip, int *port)
 {
     map_abstract *md = maps_db.get(name);
     if (md == NULL || md->gat)
@@ -1187,7 +1187,7 @@ void map_setcell(map_local *m, int x, int y, MapCell t)
  * 他鯖管理のマップをdbに追加
  *------------------------------------------
  */
-int map_setipport(MapName name, struct in_addr ip, int port)
+int map_setipport(MapName name, IP4Address ip, int port)
 {
     map_abstract *md = maps_db.get(name);
     if (md == NULL)
@@ -1205,10 +1205,10 @@ int map_setipport(MapName name, struct in_addr ip, int port)
         if (md->gat)
         {
             // local -> check data
-            if (ip.s_addr != clif_getip().s_addr || port != clif_getport())
+            if (ip != clif_getip() || port != clif_getport())
             {
-                PRINTF("from char server : %s -> %s:%d\n", name, ip2str(ip),
-                        port);
+                PRINTF("from char server : %s -> %s:%d\n",
+                        name, ip, port);
                 return 1;
             }
         }
@@ -1450,19 +1450,23 @@ int map_config_read(ZString cfgName)
         else if (w1 == "char_ip")
         {
             h = gethostbyname(w2.c_str());
-            IP_String w2ip;
+            IP4Address w2ip;
             if (h != NULL)
             {
-                SNPRINTF(w2ip, 16, "%d.%d.%d.%d",
+                w2ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
                         static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]));
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
                 PRINTF("Character server IP address : %s -> %s\n",
                         w2, w2ip);
             }
             else
-                w2ip = stringish<IP_String>(w2);
+            {
+                PRINTF("Bad IP value: %s\n", line);
+                abort();
+            }
             chrif_setip(w2ip);
         }
         else if (w1 == "char_port")
@@ -1472,19 +1476,23 @@ int map_config_read(ZString cfgName)
         else if (w1 == "map_ip")
         {
             h = gethostbyname(w2.c_str());
-            IP_String w2ip;
+            IP4Address w2ip;
             if (h != NULL)
             {
-                SNPRINTF(w2ip, 16, "%d.%d.%d.%d",
-                         static_cast<uint8_t>(h->h_addr[0]),
-                         static_cast<uint8_t>(h->h_addr[1]),
-                         static_cast<uint8_t>(h->h_addr[2]),
-                         static_cast<uint8_t>(h->h_addr[3]));
+                w2ip = IP4Address({
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
                 PRINTF("Map server IP address : %s -> %s\n",
                         w2, w2ip);
             }
             else
-                w2ip = stringish<IP_String>(w2);
+            {
+                PRINTF("Bad IP value: %s\n", line);
+                abort();
+            }
             clif_setip(w2ip);
         }
         else if (w1 == "map_port")
@@ -1511,9 +1519,9 @@ int map_config_read(ZString cfgName)
         }
         else if (w1 == "autosave_time")
         {
-            autosave_interval = std::chrono::seconds(atoi(w2.c_str()));
-            if (autosave_interval <= interval_t::zero())
-                autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+            autosave_time = std::chrono::seconds(atoi(w2.c_str()));
+            if (autosave_time <= interval_t::zero())
+                autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
         }
         else if (w1 == "motd_txt")
         {
@@ -1529,7 +1537,7 @@ int map_config_read(ZString cfgName)
         }
         else if (w1 == "gm_log")
         {
-            gm_logfile_name = std::move(w2);
+            gm_log = std::move(w2);
         }
         else if (w1 == "log_file")
         {

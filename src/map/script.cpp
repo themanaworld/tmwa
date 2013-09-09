@@ -66,7 +66,7 @@ Map<ScriptLabel, int> scriptlabel_db;
 UPMap<FString, const ScriptBuffer> userfunc_db;
 
 static
-const char *pos[11] =
+const char *pos_str[11] =
 {
     "Head",
     "Body",
@@ -2227,13 +2227,13 @@ void builtin_getequipname(ScriptState *st)
     {
         item = sd->inventory_data[i];
         if (item)
-            buf = STRPRINTF("%s-[%s]", pos[num - 1], item->jname);
+            buf = STRPRINTF("%s-[%s]", pos_str[num - 1], item->jname);
         else
-            buf = STRPRINTF("%s-[%s]", pos[num - 1], pos[10]);
+            buf = STRPRINTF("%s-[%s]", pos_str[num - 1], pos_str[10]);
     }
     else
     {
-        buf = STRPRINTF("%s-[%s]", pos[num - 1], pos[10]);
+        buf = STRPRINTF("%s-[%s]", pos_str[num - 1], pos_str[10]);
     }
     push_str(st->stack, ByteCode::STR, dumb_string::copys(buf));
 

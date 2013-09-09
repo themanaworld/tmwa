@@ -56,11 +56,9 @@ struct mmo_account
 struct mmo_char_server
 {
     ServerName name;
-    long ip;
-    short port;
-    int users;
-    int maintenance;
-    int is_new;
+    IP4Address ip;
+    uint16_t port;
+    uint16_t users;
 };
 
 static
@@ -68,15 +66,13 @@ int account_id_count = START_ACCOUNT_NUM;
 static
 int server_num;
 static
-int new_account_flag = 0;
+int new_account = 0;
 static
 int login_port = 6900;
 static
-IP_String lan_char_ip;
+IP4Address lan_char_ip;
 static
-uint8_t subneti[4];
-static
-uint8_t subnetmaski[4];
+IP4Mask lan_subnet;
 static
 FString update_host;
 static
@@ -85,7 +81,7 @@ ServerName main_server;
 static
 FString account_filename = "save/account.txt";
 static
-FString GM_account_filename = "conf/GM_account.txt";
+FString gm_account_filename = "conf/GM_account.txt";
 static
 FString login_log_filename = "log/login.log";
 static
@@ -113,7 +109,7 @@ int server_freezeflag[MAX_SERVERS];    // Char-server anti-freeze system. Counte
 static
 int anti_freeze_enable = 0;
 static
-std::chrono::seconds ANTI_FREEZE_INTERVAL = std::chrono::seconds(15);
+std::chrono::seconds anti_freeze_interval = std::chrono::seconds(15);
 
 static
 int login_fd;
@@ -122,16 +118,13 @@ enum class ACO
 {
     DENY_ALLOW,
     ALLOW_DENY,
-    MUTUAL_FAILTURE,
+    MUTUAL_FAILURE,
 };
-
-// TODO: port the new code for this
-struct AccessEntry : VString<127> {};
 
 static
 ACO access_order = ACO::DENY_ALLOW;
 static
-std::vector<AccessEntry>
+std::vector<IP4Mask>
 access_allow, access_deny, access_ladmin;
 
 static
@@ -155,7 +148,8 @@ constexpr int AUTH_FIFO_SIZE = 256;
 struct
 {
     int account_id, login_id1, login_id2;
-    int ip, sex, delflag;
+    IP4Address ip;
+    int sex, delflag;
 } auth_fifo[AUTH_FIFO_SIZE];
 static
 int auth_fifo_pos = 0;
@@ -172,7 +166,7 @@ struct AuthData
     timestamp_seconds_buffer error_message;     // Message of error code #6 = Your are Prohibited to log in until %s (packet 0x006a)
     TimeT ban_until_time;      // # of seconds 1/1/1970 (timestamp): ban time limit of the account (0 = no ban)
     TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
-    IP_String last_ip;           // save of last IP of connection
+    IP4Address last_ip;           // save of last IP of connection
     VString<254> memo;             // a memo field
     int account_reg2_num;
     struct global_reg account_reg2[ACCOUNT_REG2_NUM];
@@ -250,15 +244,15 @@ int read_gm_account(void)
 
     gm_account_db.clear();
 
-    creation_time_GM_account_file = file_modified(GM_account_filename);
+    creation_time_GM_account_file = file_modified(gm_account_filename);
 
-    if ((fp = fopen(GM_account_filename.c_str(), "r")) == NULL)
+    if ((fp = fopen(gm_account_filename.c_str(), "r")) == NULL)
     {
         PRINTF("read_gm_account: GM accounts file [%s] not found.\n",
-                GM_account_filename);
+                gm_account_filename);
         PRINTF("                 Actually, there is no GM accounts on the server.\n");
         LOGIN_LOG("read_gm_account: GM accounts file [%s] not found.\n",
-                   GM_account_filename);
+                   gm_account_filename);
         LOGIN_LOG("                 Actually, there is no GM accounts on the server.\n");
         return 1;
     }
@@ -272,16 +266,16 @@ int read_gm_account(void)
         if (sscanf(line, "%d %hhu", &p.account_id, &p.level) != 2
             && sscanf(line, "%d: %hhu", &p.account_id, &p.level) != 2)
             PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format.\n",
-                 GM_account_filename);
+                 gm_account_filename);
         else if (p.level <= 0)
             PRINTF("read_gm_account: file [%s] %dth account (invalid level [0 or negative]: %d).\n",
-                 GM_account_filename, c + 1, p.level);
+                 gm_account_filename, c + 1, p.level);
         else
         {
             if (p.level > 99)
             {
                 PRINTF("read_gm_account: file [%s] %dth account (invalid level, but corrected: %d->99).\n",
-                     GM_account_filename, c + 1, p.level);
+                     gm_account_filename, c + 1, p.level);
                 p.level = 99;
             }
             if ((GM_level = isGM(p.account_id)) > 0)
@@ -312,57 +306,18 @@ int read_gm_account(void)
     fclose(fp);
 
     PRINTF("read_gm_account: file '%s' readed (%d GM accounts found).\n",
-            GM_account_filename, c);
+            gm_account_filename, c);
     LOGIN_LOG("read_gm_account: file '%s' readed (%d GM accounts found).\n",
-               GM_account_filename, c);
+               gm_account_filename, c);
 
     return 0;
-}
-
-//--------------------------------------------------------------
-// Test of the IP mask
-// (ip: IP to be tested, str: mask x.x.x.x/# or x.x.x.x/y.y.y.y)
-//--------------------------------------------------------------
-static
-int check_ipmask(struct in_addr ip, ZString str)
-{
-    unsigned int mask = 0, ip2;
-    uint8_t *p = reinterpret_cast<uint8_t *>(&ip2),
-                  *p2 = reinterpret_cast<uint8_t *>(&mask);
-    int i = 0;
-    unsigned int m;
-
-    if (SSCANF(str, "%hhu.%hhu.%hhu.%hhu/%n",
-                &p[0], &p[1], &p[2], &p[3], &i) != 4
-            || i == 0)
-        return 0;
-
-    if (SSCANF(str.oslice_t(i), "%hhu.%hhu.%hhu.%hhu",
-                &p2[0], &p2[1], &p2[2], &p2[3]) == 4)
-    {
-        mask = ntohl(mask);
-    }
-    else if (SSCANF(str.oslice_t(i), "%u", &m) == 1 && m <= 32)
-    {
-        for (i = 0; i < m && i < 32; i++)
-            mask = (mask >> 1) | 0x80000000;
-    }
-    else
-    {
-        PRINTF("check_ipmask: invalid mask [%s].\n", str);
-        return 0;
-    }
-
-//  PRINTF("Tested IP: %08x, network: %08x, network mask: %08x\n",
-//         (unsigned int)ntohl(ip), (unsigned int)ntohl(ip2), (unsigned int)mask);
-    return ((ntohl(ip.s_addr) & mask) == (ntohl(ip2) & mask));
 }
 
 //---------------------
 // Access control by IP
 //---------------------
 static
-bool check_ip(struct in_addr ip)
+bool check_ip(IP4Address ip)
 {
     enum class ACF
     {
@@ -376,33 +331,26 @@ bool check_ip(struct in_addr ip)
         return 1;
     // When there is no restriction, all IP are authorised.
 
-//  +   012.345.: front match form, or
-//      all: all IP are matched, or
-//      012.345.678.901/24: network form (mask with # of bits), or
-//      012.345.678.901/255.255.255.0: network form (mask with ip mask)
-//  +   Note about the DNS resolution (like www.ne.jp, etc.):
-//      There is no guarantee to have an answer.
-//      If we have an answer, there is no guarantee to have a 100% correct value.
-//      And, the waiting time (to check) can be long (over 1 minute to a timeout). That can block the software.
-//      So, DNS notation isn't authorised for ip checking.
-    VString<16> buf = ip2str_extradot(ip);
-
-    for (const AccessEntry& ae : access_allow)
+    if (std::find_if(access_allow.begin(), access_allow.end(),
+                [&ip](IP4Mask m)
+                {
+                    return m.covers(ip);
+                }) != access_allow.end())
     {
-#warning "TODO use an IPAddress4 and IPMask4 class"
-        if (buf.startswith(ae) || check_ipmask(ip, ae))
         {
             flag = ACF::ALLOW;
             if (access_order == ACO::ALLOW_DENY)
                 // With 'allow, deny' (deny if not allow), allow has priority
                 return 1;
-            break;
         }
     }
 
-    for (const AccessEntry& ae : access_deny)
+    if (std::find_if(access_deny.begin(), access_deny.end(),
+                [&ip](IP4Mask m)
+                {
+                    return m.covers(ip);
+                }) != access_deny.end())
     {
-        if (buf.startswith(ae) || check_ipmask(ip, ae))
         {
             flag = ACF::DENY;
             return 0;
@@ -421,30 +369,17 @@ bool check_ip(struct in_addr ip)
 // Access control by IP for ladmin
 //--------------------------------
 static
-bool check_ladminip(struct in_addr ip)
+bool check_ladminip(IP4Address ip)
 {
     if (access_ladmin.empty())
         // When there is no restriction, all IP are authorised.
         return true;
 
-//  +   012.345.: front match form, or
-//      all: all IP are matched, or
-//      012.345.678.901/24: network form (mask with # of bits), or
-//      012.345.678.901/255.255.255.0: network form (mask with ip mask)
-//  +   Note about the DNS resolution (like www.ne.jp, etc.):
-//      There is no guarantee to have an answer.
-//      If we have an answer, there is no guarantee to have a 100% correct value.
-//      And, the waiting time (to check) can be long (over 1 minute to a timeout). That can block the software.
-//      So, DNS notation isn't authorised for ip checking.
-    VString<16> buf = ip2str_extradot(ip);
-
-    for (const AccessEntry& ae : access_ladmin)
-    {
-        if (buf.startswith(ae) || check_ipmask(ip, ae))
-            return true;
-    }
-
-    return false;
+    return std::find_if(access_ladmin.begin(), access_ladmin.end(),
+            [&ip](IP4Mask m)
+            {
+                return m.covers(ip);
+            }) != access_ladmin.end();
 }
 
 //-----------------------------------------------
@@ -513,6 +448,7 @@ bool extract(XString line, AuthData *ad)
 {
     std::vector<struct global_reg> vars;
     VString<1> sex;
+    VString<15> ip;
     if (!extract(line,
                 record<'\t'>(
                     &ad->account_id,
@@ -525,10 +461,13 @@ bool extract(XString line, AuthData *ad)
                     &ad->email,
                     &ad->error_message,
                     &ad->connect_until_time,
-                    &ad->last_ip,
+                    &ip,
                     &ad->memo,
                     &ad->ban_until_time,
                     vrec<' '>(&vars))))
+        return false;
+    ad->last_ip = IP4Address();
+    if (ip != "-" && !extract(ip, &ad->last_ip))
         return false;
     if (ad->account_id > END_ACCOUNT_NUM)
         return false;
@@ -767,7 +706,7 @@ void check_GM_file(TimerData *, tick_t)
         return;
 
     // get last modify time/date
-    tick_t new_time = file_modified(GM_account_filename);
+    tick_t new_time = file_modified(gm_account_filename);
 
     if (new_time != creation_time_GM_account_file)
     {
@@ -814,7 +753,7 @@ int mmo_auth_new(struct mmo_account *account, char sex, AccountEmail email)
         ad.connect_until_time = timestamp;
     }
 
-    ad.last_ip = stringish<IP_String>("-");
+    ad.last_ip = IP4Address();
     ad.memo = "!";
     ad.account_reg2_num = 0;
     auth_data.push_back(ad);
@@ -830,12 +769,12 @@ int mmo_auth(struct mmo_account *account, int fd)
 {
     char new_account_sex = '\0';
 
-    IP_String ip = ip2str(session[fd]->client_addr.sin_addr);
+    IP4Address ip = session[fd]->client_ip;
 
     // Account creation with _M/_F
     if (account->passwdenc == 0
         && (account->userid.endswith("_F") || account->userid.endswith("_M"))
-        && new_account_flag == 1 && account_id_count <= END_ACCOUNT_NUM
+        && new_account == 1 && account_id_count <= END_ACCOUNT_NUM
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
         new_account_sex = account->userid.back();
@@ -983,7 +922,7 @@ void char_anti_freeze_system(TimerData *, tick_t)
 static
 void parse_fromchar(int fd)
 {
-    IP_String ip = ip2str(session[fd]->client_addr.sin_addr);
+    IP4Address ip = session[fd]->client_ip;
 
     int id;
     for (id = 0; id < MAX_SERVERS; id++)
@@ -1034,7 +973,7 @@ void parse_fromchar(int fd)
                             auth_fifo[i].login_id2 == RFIFOL(fd, 10) &&    // relate to the versions higher than 18
                             auth_fifo[i].sex == RFIFOB(fd, 14) &&
                             (!check_ip_flag
-                             || auth_fifo[i].ip == RFIFOL(fd, 15))
+                             || auth_fifo[i].ip == RFIFOIP(fd, 15))
                             && !auth_fifo[i].delflag)
                         {
                             int p;
@@ -1179,7 +1118,7 @@ void parse_fromchar(int fd)
                             if (level_new_gm > 0)
                             {
                                 // if we can open the file to add the new GM
-                                if ((fp = fopen(GM_account_filename.c_str(), "a")) != NULL)
+                                if ((fp = fopen(gm_account_filename.c_str(), "a")) != NULL)
                                 {
                                     timestamp_seconds_buffer tmpstr;
                                     stamp_time(tmpstr);
@@ -1632,7 +1571,7 @@ void parse_fromchar(int fd)
 static
 void parse_admin(int fd)
 {
-    IP_String ip = ip2str(session[fd]->client_addr.sin_addr);
+    IP4Address ip = session[fd]->client_ip;
 
     if (session[fd]->eof)
     {
@@ -1911,12 +1850,12 @@ void parse_admin(int fd)
                 {
                     if (server_fd[i] >= 0)
                     {
-                        WFIFOL(fd, 4 + server_num * 32) = server[i].ip;
+                        WFIFOIP(fd, 4 + server_num * 32) = server[i].ip;
                         WFIFOW(fd, 4 + server_num * 32 + 4) = server[i].port;
                         WFIFO_STRING(fd, 4 + server_num * 32 + 6, server[i].name, 20);
                         WFIFOW(fd, 4 + server_num * 32 + 26) = server[i].users;
-                        WFIFOW(fd, 4 + server_num * 32 + 28) = server[i].maintenance;
-                        WFIFOW(fd, 4 + server_num * 32 + 30) = server[i].is_new;
+                        WFIFOW(fd, 4 + server_num * 32 + 28) = 0; //maintenance;
+                        WFIFOW(fd, 4 + server_num * 32 + 30) = 0; //is_new;
                         server_num++;
                     }
                 }
@@ -2057,9 +1996,9 @@ void parse_admin(int fd)
                                 char line[512];
                                 int GM_account, GM_level;
                                 int modify_flag;
-                                if ((fp2 = lock_fopen(GM_account_filename, &lock)) != NULL)
+                                if ((fp2 = lock_fopen(gm_account_filename, &lock)) != NULL)
                                 {
-                                    if ((fp = fopen(GM_account_filename.c_str(), "r")) != NULL)
+                                    if ((fp = fopen(gm_account_filename.c_str(), "r")) != NULL)
                                     {
                                         timestamp_seconds_buffer tmpstr;
                                         stamp_time(tmpstr);
@@ -2129,7 +2068,7 @@ void parse_admin(int fd)
                                              ad->userid, acc,
                                              new_gm_level, ip);
                                     }
-                                    lock_fclose(fp2, GM_account_filename, &lock);
+                                    lock_fclose(fp2, gm_account_filename, &lock);
                                     WFIFOL(fd, 2) = acc;
                                     LOGIN_LOG("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)\n",
                                          ad->userid, acc,
@@ -2540,7 +2479,7 @@ void parse_admin(int fd)
                         else
                         {
                             TimeT now = TimeT::now();
-                            TimeT timestamp;
+                            TimeT timestamp = ad->connect_until_time;
                             if (!timestamp || timestamp < now)
                                 timestamp = now;
                             struct tm tmtime = timestamp;
@@ -2627,7 +2566,7 @@ void parse_admin(int fd)
                     WFIFOL(fd, 36) = ad->state;
                     WFIFO_STRING(fd, 40, ad->error_message, 20);
                     WFIFO_STRING(fd, 60, ad->lastlogin, 24);
-                    WFIFO_STRING(fd, 84, ad->last_ip, 16);
+                    WFIFO_STRING(fd, 84, convert_for_printf(ad->last_ip), 16);
                     WFIFO_STRING(fd, 100, ad->email, 40);
                     WFIFOL(fd, 140) = static_cast<time_t>(ad->connect_until_time);
                     WFIFOL(fd, 144) = static_cast<time_t>(ad->ban_until_time);
@@ -2670,7 +2609,7 @@ void parse_admin(int fd)
                         WFIFOL(fd, 36) = ad.state;
                         WFIFO_STRING(fd, 40, ad.error_message, 20);
                         WFIFO_STRING(fd, 60, ad.lastlogin, 24);
-                        WFIFO_STRING(fd, 84, ad.last_ip, 16);
+                        WFIFO_STRING(fd, 84, convert_for_printf(ad.last_ip), 16);
                         WFIFO_STRING(fd, 100, ad.email, 40);
                         WFIFOL(fd, 140) = static_cast<time_t>(ad.connect_until_time);
                         WFIFOL(fd, 144) = static_cast<time_t>(ad.ban_until_time);
@@ -2765,25 +2704,11 @@ void parse_admin(int fd)
 //--------------------------------------------
 // Test to know if an IP come from LAN or WAN.
 //--------------------------------------------
-// TODO fix to not take a ptr-to-uint8_t
 static
-int lan_ip_check(unsigned char *p)
+bool lan_ip_check(IP4Address p)
 {
-    int i;
-    int lancheck = 1;
+    bool lancheck = lan_subnet.covers(p);
 
-//  PRINTF("lan_ip_check: to compare: %d.%d.%d.%d, network: %d.%d.%d.%d/%d.%d.%d.%d\n",
-//         p[0], p[1], p[2], p[3],
-//         subneti[0], subneti[1], subneti[2], subneti[3],
-//         subnetmaski[0], subnetmaski[1], subnetmaski[2], subnetmaski[3]);
-    for (i = 0; i < 4; i++)
-    {
-        if ((subneti[i] & subnetmaski[i]) != (p[i] & subnetmaski[i]))
-        {
-            lancheck = 0;
-            break;
-        }
-    }
     PRINTF("LAN test (result): %s source\033[0m.\n",
             (lancheck) ? "\033[1;36mLAN" : "\033[1;32mWAN");
     return lancheck;
@@ -2797,9 +2722,8 @@ void parse_login(int fd)
 {
     struct mmo_account account;
     int result, j;
-    uint8_t *p = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
 
-    IP_String ip = ip2str(session[fd]->client_addr.sin_addr);
+    IP4Address ip = session[fd]->client_ip;
 
     if (session[fd]->eof)
     {
@@ -2861,7 +2785,7 @@ void parse_login(int fd)
                 LOGIN_LOG("Request for connection (non encryption mode) of %s (ip: %s).\n",
                     account.userid, ip);
 
-                if (!check_ip(session[fd]->client_addr.sin_addr))
+                if (!check_ip(ip))
                 {
                     LOGIN_LOG("Connection refused: IP isn't authorised (deny/allow, ip: %s).\n",
                          ip);
@@ -2934,15 +2858,15 @@ void parse_login(int fd)
                         {
                             if (server_fd[i] >= 0)
                             {
-                                if (lan_ip_check(p))
-                                    WFIFOL(fd, 47 + server_num * 32) = inet_addr(lan_char_ip.c_str());
+                                if (lan_ip_check(ip))
+                                    WFIFOIP(fd, 47 + server_num * 32) = lan_char_ip;
                                 else
-                                    WFIFOL(fd, 47 + server_num * 32) = server[i].ip;
+                                    WFIFOIP(fd, 47 + server_num * 32) = server[i].ip;
                                 WFIFOW(fd, 47 + server_num * 32 + 4) = server[i].port;
                                 WFIFO_STRING(fd, 47 + server_num * 32 + 6, server[i].name, 20);
                                 WFIFOW(fd, 47 + server_num * 32 + 26) = server[i].users;
-                                WFIFOW(fd, 47 + server_num * 32 + 28) = server[i].maintenance;
-                                WFIFOW(fd, 47 + server_num * 32 + 30) = server[i].is_new;
+                                WFIFOW(fd, 47 + server_num * 32 + 28) = 0; //maintenance;
+                                WFIFOW(fd, 47 + server_num * 32 + 30) = 0; //is_new;
                                 server_num++;
                             }
                         }
@@ -2969,7 +2893,7 @@ void parse_login(int fd)
                             auth_fifo[auth_fifo_pos].sex = account.sex;
                             auth_fifo[auth_fifo_pos].delflag = 0;
                             auth_fifo[auth_fifo_pos].ip =
-                                session[fd]->client_addr.sin_addr.s_addr;
+                                session[fd]->client_ip;
                             auth_fifo_pos++;
                             // if no char-server, don't send void list of servers, just disconnect the player with proper message
                         }
@@ -3021,10 +2945,8 @@ void parse_login(int fd)
                     account.passwd = stringish<AccountPass>(RFIFO_STRING<24>(fd, 26).to_print());
                     account.passwdenc = 0;
                     ServerName server_name = stringish<ServerName>(RFIFO_STRING<20>(fd, 60).to_print());
-                    LOGIN_LOG("Connection request of the char-server '%s' @ %d.%d.%d.%d:%d (ip: %s)\n",
-                         server_name, RFIFOB(fd, 54), RFIFOB(fd, 55),
-                         RFIFOB(fd, 56), RFIFOB(fd, 57), RFIFOW(fd, 58),
-                         ip);
+                    LOGIN_LOG("Connection request of the char-server '%s' @ %s:%d (ip: %s)\n",
+                            server_name, RFIFOIP(fd, 54), RFIFOW(fd, 58), ip);
                     result = mmo_auth(&account, fd);
 
                     if (result == -1 && account.sex == 2)
@@ -3059,12 +2981,12 @@ void parse_login(int fd)
                         PRINTF("Connection of the char-server '%s' accepted.\n",
                              server_name);
                         server[account.account_id] = mmo_char_server{};
-                        server[account.account_id].ip = RFIFOL(fd, 54);
+                        server[account.account_id].ip = RFIFOIP(fd, 54);
                         server[account.account_id].port = RFIFOW(fd, 58);
                         server[account.account_id].name = server_name;
                         server[account.account_id].users = 0;
-                        server[account.account_id].maintenance = RFIFOW(fd, 82);
-                        server[account.account_id].is_new = RFIFOW(fd, 84);
+                        //maintenance = RFIFOW(fd, 82);
+                        //is_new = RFIFOW(fd, 84);
                         server_fd[account.account_id] = fd;
                         if (anti_freeze_enable)
                             server_freezeflag[account.account_id] = 5;  // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
@@ -3106,7 +3028,7 @@ void parse_login(int fd)
                 WFIFOW(fd, 0) = 0x7531;
             {
                 Version version = CURRENT_LOGIN_SERVER_VERSION;
-                version.flags = new_account_flag ? 1 : 0;
+                version.flags = new_account ? 1 : 0;
                 WFIFO_STRUCT(fd, 2, version);
                 WFIFOSET(fd, 10);
             }
@@ -3124,7 +3046,7 @@ void parse_login(int fd)
                     return;
                 WFIFOW(fd, 0) = 0x7919;
                 WFIFOB(fd, 2) = 1;
-                if (!check_ladminip(session[fd]->client_addr.sin_addr))
+                if (!check_ladminip(session[fd]->client_ip))
                 {
                     LOGIN_LOG("'ladmin'-login: Connection in administration mode refused: IP isn't authorised (ladmin_allow, ip: %s).\n",
                          ip);
@@ -3235,13 +3157,8 @@ int login_lan_config_read(ZString lancfgName)
     struct hostent *h = NULL;
 
     // set default configuration
-    lan_char_ip = stringish<IP_String>("127.0.0.1");
-    subneti[0] = 127;
-    subneti[1] = 0;
-    subneti[2] = 0;
-    subneti[3] = 1;
-    for (int j = 0; j < 4; j++)
-        subnetmaski[j] = 255;
+    lan_char_ip = IP4_LOCALHOST;
+    lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 
     std::ifstream in(lancfgName.c_str());
 
@@ -3268,55 +3185,30 @@ int login_lan_config_read(ZString lancfgName)
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                SNPRINTF(lan_char_ip, 16, "%d.%d.%d.%d",
-                         static_cast<uint8_t>(h->h_addr[0]),
-                         static_cast<uint8_t>(h->h_addr[1]),
-                         static_cast<uint8_t>(h->h_addr[2]),
-                         static_cast<uint8_t>(h->h_addr[3]));
+                lan_char_ip = IP4Address({
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
             }
             else
             {
-                lan_char_ip = stringish<IP_String>(w2);
+                PRINTF("Bad IP value: %s\n", line);
+                abort();
             }
             PRINTF("LAN IP of char-server: %s.\n", lan_char_ip);
         }
-        else if (w1 == "subnet")
+        else if (w1 == "subnet" /*backward compatibility*/
+                || w1 == "lan_subnet")
         {
-            // Read Subnetwork
-            for (int j = 0; j < 4; j++)
-                subneti[j] = 0;
-            h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (!extract(w2, &lan_subnet))
             {
-                for (int j = 0; j < 4; j++)
-                    subneti[j] = h->h_addr[j];
+                PRINTF("Bad IP mask: %s\n", line);
+                abort();
             }
-            else
-            {
-                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subneti[0], &subneti[1],
-                        &subneti[2], &subneti[3]);
-            }
-            PRINTF("Sub-network of the char-server: %d.%d.%d.%d.\n",
-                    subneti[0], subneti[1], subneti[2], subneti[3]);
-        }
-        else if (w1 == "subnetmask")
-        {                       // Read Subnetwork Mask
-            for (int j = 0; j < 4; j++)
-                subnetmaski[j] = 255;
-            h = gethostbyname(w2.c_str());
-            if (h != NULL)
-            {
-                for (int j = 0; j < 4; j++)
-                    subnetmaski[j] = h->h_addr[j];
-            }
-            else
-            {
-                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subnetmaski[0], &subnetmaski[1],
-                        &subnetmaski[2], &subnetmaski[3]);
-            }
-            PRINTF("Sub-network mask of the char-server: %d.%d.%d.%d.\n",
-                    subnetmaski[0], subnetmaski[1], subnetmaski[2],
-                    subnetmaski[3]);
+            PRINTF("Sub-network of the char-server: %s.\n",
+                    lan_subnet);
         }
         else
         {
@@ -3328,17 +3220,13 @@ int login_lan_config_read(ZString lancfgName)
     // log the LAN configuration
     LOGIN_LOG("The LAN configuration of the server is set:\n");
     LOGIN_LOG("- with LAN IP of char-server: %s.\n", lan_char_ip);
-    LOGIN_LOG("- with the sub-network of the char-server: %d.%d.%d.%d/%d.%d.%d.%d.\n",
-         subneti[0], subneti[1], subneti[2], subneti[3],
-         subnetmaski[0], subnetmaski[1], subnetmaski[2], subnetmaski[3]);
+    LOGIN_LOG("- with the sub-network of the char-server: %s.\n",
+            lan_subnet);
 
     // sub-network check of the char-server
     {
-        unsigned char p[4];
-        SSCANF(lan_char_ip, "%hhu.%hhu.%hhu.%hhu",
-                &p[0], &p[1], &p[2], &p[3]);
         PRINTF("LAN test of LAN IP of the char-server: ");
-        if (lan_ip_check(p) == 0)
+        if (!lan_ip_check(lan_char_ip))
         {
             PRINTF("\033[1;31m***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network\033[0m\n");
             LOGIN_LOG("***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network.\n");
@@ -3389,19 +3277,25 @@ int login_config_read(ZString cfgName)
             }
             else
             {
+                // a.b.c.d/0.0.0.0 (canonically, 0.0.0.0/0) covers all
                 if (w2 == "all")
                 {
                     // reset all previous values
                     access_ladmin.clear();
                     // set to all
-                    access_ladmin.push_back(AccessEntry());
+                    access_ladmin.push_back(IP4Mask());
                 }
                 else if (w2
-                         && !(access_ladmin.size() == 1
-                              && access_ladmin.front() == AccessEntry()))
+                        && !(access_ladmin.size() == 1
+                            && access_ladmin.front().mask() == IP4Address()))
                 {
                     // don't add IP if already 'all'
-                    AccessEntry n = stringish<AccessEntry>(w2);
+                    IP4Mask n;
+                    if (!extract(w2, &n))
+                    {
+                        PRINTF("Bad IP mask: %s\n", line);
+                        abort();
+                    }
                     access_ladmin.push_back(n);
                 }
             }
@@ -3416,7 +3310,7 @@ int login_config_read(ZString cfgName)
         }
         else if (w1 == "new_account")
         {
-            new_account_flag = config_switch(w2);
+            new_account = config_switch(w2);
         }
         else if (w1 == "login_port")
         {
@@ -3428,7 +3322,7 @@ int login_config_read(ZString cfgName)
         }
         else if (w1 == "gm_account_filename")
         {
-            GM_account_filename = w2;
+            gm_account_filename = w2;
         }
         else if (w1 == "gm_account_filename_check_timer")
         {
@@ -3481,7 +3375,7 @@ int login_config_read(ZString cfgName)
             else if (w2 == "allow,deny" || w2 == "allow, deny")
                 access_order = ACO::ALLOW_DENY;
             else if (w2 == "mutual-failture" || w2 == "mutual-failure")
-                access_order = ACO::MUTUAL_FAILTURE;
+                access_order = ACO::MUTUAL_FAILURE;
             else
                 PRINTF("Bad order: %s\n", w2);
         }
@@ -3498,14 +3392,19 @@ int login_config_read(ZString cfgName)
                     // reset all previous values
                     access_allow.clear();
                     // set to all
-                    access_allow.push_back(AccessEntry());
+                    access_allow.push_back(IP4Mask());
                 }
                 else if (w2
-                         && !(access_allow.size() == 1
-                              && access_allow.front() == AccessEntry()))
+                        && !(access_allow.size() == 1
+                            && access_allow.front().mask() == IP4Address()))
                 {
                     // don't add IP if already 'all'
-                    AccessEntry n = stringish<AccessEntry>(w2);
+                    IP4Mask n;
+                    if (!extract(w2, &n))
+                    {
+                        PRINTF("Bad IP mask: %s\n", line);
+                        abort();
+                    }
                     access_allow.push_back(n);
                 }
             }
@@ -3523,14 +3422,19 @@ int login_config_read(ZString cfgName)
                     // reset all previous values
                     access_deny.clear();
                     // set to all
-                    access_deny.push_back(AccessEntry());
+                    access_deny.push_back(IP4Mask());
                 }
                 else if (w2
-                         && !(access_deny.size() == 1
-                              && access_deny.front() == AccessEntry()))
+                        && !(access_deny.size() == 1
+                            && access_deny.front().mask() == IP4Address()))
                 {
                     // don't add IP if already 'all'
-                    AccessEntry n = stringish<AccessEntry>(w2);
+                    IP4Mask n;
+                    if (!extract(w2, &n))
+                    {
+                        PRINTF("Bad IP mask: %s\n", line);
+                        abort();
+                    }
                     access_deny.push_back(n);
                 }
             }
@@ -3541,7 +3445,7 @@ int login_config_read(ZString cfgName)
         }
         else if (w1 == "anti_freeze_interval")
         {
-            ANTI_FREEZE_INTERVAL = std::max(
+            anti_freeze_interval = std::max(
                     std::chrono::seconds(atoi(w2.c_str())),
                     std::chrono::seconds(5));
         }
@@ -3611,10 +3515,10 @@ void display_conf_warnings(void)
         level_new_gm = 60;
     }
 
-    if (new_account_flag != 0 && new_account_flag != 1)
+    if (new_account != 0 && new_account != 1)
     {
         PRINTF("***WARNING: Invalid value for new_account parameter -> set to 0 (no new account).\n");
-        new_account_flag = 0;
+        new_account = 0;
     }
 
     if (login_port < 1024 || login_port > 65535)
@@ -3701,7 +3605,7 @@ void display_conf_warnings(void)
 
     if (access_order == ACO::DENY_ALLOW)
     {
-        if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
+        if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
         {
             PRINTF("***WARNING: The IP security order is 'deny,allow' (allow if not deny).\n");
             PRINTF("            And you refuse ALL IP.\n");
@@ -3716,14 +3620,15 @@ void display_conf_warnings(void)
         }
     }
     else
-    {                           // ACO_MUTUAL_FAILTURE
+    {
+        // ACO::MUTUAL_FAILURE
         if (access_allow.empty())
         {
             PRINTF("***WARNING: The IP security order is 'mutual-failture'\n");
             PRINTF("            (allow if in the allow list and not in the deny list).\n");
             PRINTF("            But, NO IP IS AUTHORISED!\n");
         }
-        else if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
+        else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
         {
             PRINTF("***WARNING: The IP security order is mutual-failture\n");
             PRINTF("            (allow if in the allow list and not in the deny list).\n");
@@ -3755,14 +3660,14 @@ void save_config_in_log(void)
         LOGIN_LOG("- with a remote administration with the password of %zu character(s).\n",
                 admin_pass.size());
     if (access_ladmin.empty()
-        || (access_ladmin.size() == 1 && access_ladmin.front() == AccessEntry()))
+        || (access_ladmin.size() == 1 && access_ladmin.front().mask() == IP4Address()))
     {
         LOGIN_LOG("- to accept any IP for remote administration\n");
     }
     else
     {
         LOGIN_LOG("- to accept following IP for remote administration:\n");
-        for (const AccessEntry& ae : access_ladmin)
+        for (const IP4Mask& ae : access_ladmin)
             LOGIN_LOG("  %s\n", ae);
     }
 
@@ -3779,7 +3684,7 @@ void save_config_in_log(void)
         LOGIN_LOG("- to create GM with level '%d' when @gm is used.\n",
                    level_new_gm);
 
-    if (new_account_flag == 1)
+    if (new_account == 1)
         LOGIN_LOG("- to ALLOW new users (with _F/_M).\n");
     else
         LOGIN_LOG("- to NOT ALLOW new users (with _F/_M).\n");
@@ -3787,7 +3692,7 @@ void save_config_in_log(void)
     LOGIN_LOG("- with the accounts file name: '%s'.\n",
                account_filename);
     LOGIN_LOG("- with the GM accounts file name: '%s'.\n",
-               GM_account_filename);
+               gm_account_filename);
     if (gm_account_filename_check_timer == interval_t::zero())
         LOGIN_LOG("- to NOT check GM accounts file modifications.\n");
     else
@@ -3847,14 +3752,14 @@ void save_config_in_log(void)
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). You refuse no IP.\n");
         }
-        else if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
+        else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). You refuse ALL IP.\n");
         }
         else
         {
             LOGIN_LOG("- with the IP security order: 'deny,allow' (allow if not deny). Refused IP are:\n");
-            for (const AccessEntry& ae : access_deny)
+            for (IP4Mask ae : access_deny)
                 LOGIN_LOG("  %s\n", ae);
         }
     }
@@ -3864,14 +3769,14 @@ void save_config_in_log(void)
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). But, NO IP IS AUTHORISED!\n");
         }
-        else if (access_allow.size() == 1 && access_allow.front() == AccessEntry())
+        else if (access_allow.size() == 1 && access_allow.front().mask() == IP4Address())
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). You authorise ALL IP.\n");
         }
         else
         {
             LOGIN_LOG("- with the IP security order: 'allow,deny' (deny if not allow). Authorised IP are:\n");
-            for (const AccessEntry& ae : access_allow)
+            for (IP4Mask ae : access_allow)
                 LOGIN_LOG("  %s\n", ae);
         }
     }
@@ -3882,24 +3787,24 @@ void save_config_in_log(void)
         {
             LOGIN_LOG("  But, NO IP IS AUTHORISED!\n");
         }
-        else if (access_deny.size() == 1 && access_deny.front() == AccessEntry())
+        else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
         {
             LOGIN_LOG("  But, you refuse ALL IP!\n");
         }
         else
         {
-            if (access_allow.size() == 1 && access_allow.front() == AccessEntry())
+            if (access_allow.size() == 1 && access_allow.front().mask() == IP4Address())
             {
                 LOGIN_LOG("  You authorise ALL IP.\n");
             }
             else
             {
                 LOGIN_LOG("  Authorised IP are:\n");
-                for (const AccessEntry& ae : access_allow)
+                for (IP4Mask ae : access_allow)
                     LOGIN_LOG("    %s\n", ae);
             }
             LOGIN_LOG("  Refused IP are:\n");
-            for (const AccessEntry& ae : access_deny)
+            for (IP4Mask ae : access_deny)
                 LOGIN_LOG("    %s\n", ae);
         }
     }
@@ -3964,7 +3869,7 @@ int do_init(int argc, ZString *argv)
     {
         Timer(gettick() + std::chrono::seconds(1),
                 char_anti_freeze_system,
-                ANTI_FREEZE_INTERVAL
+                anti_freeze_interval
         ).detach();
     }
 

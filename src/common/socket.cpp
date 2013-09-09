@@ -174,7 +174,7 @@ void connect_client(int listen_fd)
     session[fd]->func_recv = recv_to_fifo;
     session[fd]->func_send = send_from_fifo;
     session[fd]->func_parse = default_func_parse;
-    session[fd]->client_addr = client_address;
+    session[fd]->client_ip = IP4Address(client_address.sin_addr);
     session[fd]->created = TimeT::now();
     session[fd]->connected = 0;
 }
@@ -240,7 +240,7 @@ int make_listen_port(uint16_t port)
     return fd;
 }
 
-int make_connection(uint32_t ip, uint16_t port)
+int make_connection(IP4Address ip, uint16_t port)
 {
     struct sockaddr_in server_address;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -264,7 +264,7 @@ int make_connection(uint32_t ip, uint16_t port)
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 
     server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = ip;
+    server_address.sin_addr = in_addr(ip);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #if __GNUC__ > 4 || __GNUC_MINOR__ >= 8

@@ -26,8 +26,6 @@
 // that is the waiting time of answers of all map-servers
 constexpr std::chrono::minutes WISDATA_TTL = std::chrono::minutes(1);
 
-FString inter_log_filename = "log/inter.log";
-
 static
 FString accreg_txt = "save/accreg.txt";
 
@@ -202,10 +200,6 @@ int inter_config_read(ZString cfgName)
             party_share_level = atoi(w2.c_str());
             if (party_share_level < 0)
                 party_share_level = 0;
-        }
-        else if (w1 == "inter_log_filename")
-        {
-            inter_log_filename = w2;
         }
         else if (w1 == "import")
         {

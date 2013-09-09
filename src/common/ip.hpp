@@ -21,6 +21,8 @@
 
 #include "sanity.hpp"
 
+#include <netinet/in.h>
+
 #include "extract.hpp"
 #include "strings.hpp"
 
@@ -53,6 +55,17 @@ public:
     IP4Address(const uint8_t (&a)[4])
     : _addr{a[0], a[1], a[2], a[3]}
     {}
+    explicit
+    IP4Address(struct in_addr addr)
+    {
+        static_assert(sizeof(addr) == sizeof(_addr), "4 bytes");
+        *this = IP4Address(reinterpret_cast<const uint8_t (&)[4]>(addr));
+    }
+    explicit
+    operator struct in_addr() const
+    {
+        return reinterpret_cast<const struct in_addr&>(_addr);
+    }
 
     constexpr friend
     IP4Address operator & (IP4Address l, IP4Address r)

@@ -327,26 +327,21 @@ bool pass_ok(AccountPass password, AccountCrypt crypted)
 
 // [M|h]ashes up an IP address and a secret key
 // to return a hopefully unique masked IP.
-struct in_addr MD5_ip(struct in_addr ip)
+IP4Address MD5_ip(IP4Address ip)
 {
     static SaltString secret = make_salt();
-    union
-    {
-        uint8_t bytes[4];
-        struct in_addr ip;
-    } conv;
 
     // MD5sum a secret + the IP address
     VString<31> ipbuf;
-    SNPRINTF(ipbuf, 32, "%u%s", ip.s_addr, secret);
+    SNPRINTF(ipbuf, 32, "%s %s", ip, secret);
     md5_binary obuf;
     MD5_to_bin(MD5_from_string(ipbuf), obuf);
 
     // Fold the md5sum to 32 bits, pack the bytes to an in_addr
-    conv.bytes[0] = obuf[0] ^ obuf[1] ^ obuf[8] ^ obuf[9];
-    conv.bytes[1] = obuf[2] ^ obuf[3] ^ obuf[10] ^ obuf[11];
-    conv.bytes[2] = obuf[4] ^ obuf[5] ^ obuf[12] ^ obuf[13];
-    conv.bytes[3] = obuf[6] ^ obuf[7] ^ obuf[14] ^ obuf[15];
-
-    return conv.ip;
+    return IP4Address({
+            static_cast<uint8_t>(obuf[0] ^ obuf[1] ^ obuf[8] ^ obuf[9]),
+            static_cast<uint8_t>(obuf[2] ^ obuf[3] ^ obuf[10] ^ obuf[11]),
+            static_cast<uint8_t>(obuf[4] ^ obuf[5] ^ obuf[12] ^ obuf[13]),
+            static_cast<uint8_t>(obuf[6] ^ obuf[7] ^ obuf[14] ^ obuf[15]),
+    });
 }

@@ -10,6 +10,7 @@
 # include <array>
 
 # include "dumb_ptr.hpp"
+# include "ip.hpp"
 # include "utils.hpp"
 # include "timer.t.hpp"
 
@@ -43,7 +44,7 @@ struct socket_data
     /// Note that there is no need for a wdata_pos
     size_t rdata_pos;
 
-    struct sockaddr_in client_addr;
+    IP4Address client_ip;
 
     /// Send or recieve
     /// Only called when select() indicates the socket is ready
@@ -78,7 +79,7 @@ extern int fd_max;
 int make_listen_port(uint16_t port);
 /// Connect to an address, return a connected socket or -1
 // FIXME - this is IPv4 only!
-int make_connection(uint32_t ip, uint16_t port);
+int make_connection(IP4Address ip, uint16_t port);
 /// free() the structure and close() the fd
 void delete_session(int);
 /// Make a the internal queues bigger
@@ -143,6 +144,13 @@ void RFIFO_STRUCT(int fd, size_t pos, T& structure)
 {
     really_memcpy(pod_addressof_m(structure), static_cast<const uint8_t *>(RFIFOP(fd, pos)), sizeof(T));
 }
+inline
+IP4Address RFIFOIP(int fd, size_t pos)
+{
+    IP4Address o;
+    RFIFO_STRUCT(fd, pos, o);
+    return o;
+}
 template<uint8_t len>
 inline
 VString<len-1> RFIFO_STRING(int fd, size_t pos)
@@ -194,6 +202,13 @@ template<class T>
 void RBUF_STRUCT(const uint8_t *p, size_t pos, T& structure)
 {
     really_memcpy(pod_addressof_m(structure), p + pos, sizeof(T));
+}
+inline
+IP4Address RBUFIP(const uint8_t *p, size_t pos)
+{
+    IP4Address o;
+    RBUF_STRUCT(p, pos, o);
+    return o;
 }
 template<uint8_t len>
 inline
@@ -248,6 +263,12 @@ void WFIFO_STRUCT(int fd, size_t pos, T& structure)
     really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, pos)), pod_addressof_c(structure), sizeof(T));
 }
 inline
+IP4Address& WFIFOIP(int fd, size_t pos)
+{
+    static_assert(is_trivially_copyable<IP4Address>::value, "That was the whole point");
+    return *static_cast<IP4Address *>(WFIFOP(fd, pos));
+}
+inline
 void WFIFO_STRING(int fd, size_t pos, XString s, size_t len)
 {
     char *const begin = static_cast<char *>(WFIFOP(fd, pos));
@@ -296,6 +317,11 @@ template<class T>
 void WBUF_STRUCT(uint8_t *p, size_t pos, T& structure)
 {
     really_memcpy(p + pos, pod_addressof_c(structure), sizeof(T));
+}
+inline
+IP4Address& WBUFIP(uint8_t *p, size_t pos)
+{
+    return *static_cast<IP4Address *>(WBUFP(p, pos));
 }
 inline
 void WBUF_STRING(uint8_t *p, size_t pos, XString s, size_t len)

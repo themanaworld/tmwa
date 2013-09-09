@@ -13,8 +13,6 @@
 #include "strings.hpp"
 #include "utils2.hpp"
 
-struct IP_String : VString<15> {};
-
 template<class T>
 struct is_trivially_copyable
 : std::integral_constant<bool,
@@ -26,8 +24,6 @@ struct is_trivially_copyable
 
 bool e_mail_check(XString email);
 int config_switch (ZString str);
-IP_String ip2str(struct in_addr ip);
-VString<15 + 1> ip2str_extradot(struct in_addr ip);
 
 bool split_key_value(const FString& line, SString *w1, TString *w2);
 

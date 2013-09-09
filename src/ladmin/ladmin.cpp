@@ -36,11 +36,11 @@ int eathena_interactive_session;
 //   (see login_athena.conf, 'admin_state' parameter)
 //-------------------------------------------------------------------------
 static
-IP_String loginserverip = stringish<IP_String>("127.0.0.1");   // IP of login-server
+IP4Address login_ip = IP4_LOCALHOST;   // IP of login-server
 static
-int loginserverport = 6900;    // Port of login-server
+int login_port = 6900;    // Port of login-server
 static
-AccountPass loginserveradminpassword = stringish<AccountPass>("admin");    // Administration password
+AccountPass admin_pass = stringish<AccountPass>("admin");    // Administration password
 static
 FString ladmin_log_filename = "log/ladmin.log";
 //-------------------------------------------------------------------------
@@ -225,8 +225,6 @@ FString ladmin_log_filename = "log/ladmin.log";
 //-------------------------------------------------------------------------
 static
 int login_fd;
-static
-int login_ip;
 static
 int bytes_to_read = 0;         // flag to know if we waiting bytes from login-server
 static
@@ -1903,9 +1901,9 @@ void parse_fromlogin(int fd)
     if (session[fd]->eof)
     {
         PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n",
-             loginserverip, loginserverport);
+                login_ip, login_port);
         LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n",
-              loginserverip, loginserverport);
+                login_ip, login_port);
         delete_session(fd);
         exit(0);
     }
@@ -1945,8 +1943,8 @@ void parse_fromlogin(int fd)
                 if (RFIFOREST(fd) < 10)
                     return;
             {
-                Iprintf("  Login-Server [%s:%d]\n", loginserverip,
-                         loginserverport);
+                Iprintf("  Login-Server [%s:%d]\n",
+                        login_ip, login_port);
                 Version version;
                 RFIFO_STRUCT(login_fd, 2, version);
                 Iprintf("  tmwA version %hhu.%hhu.%hhu (dev? %hhu) (flags %hhx) (which %hhx) (vend %hu)\n",
@@ -2608,7 +2606,7 @@ void parse_fromlogin(int fd)
                     int state = RFIFOL(fd, 36);
                     timestamp_seconds_buffer error_message = stringish<timestamp_seconds_buffer>(RFIFO_STRING<20>(fd, 40));
                     timestamp_milliseconds_buffer lastlogin = stringish<timestamp_milliseconds_buffer>(RFIFO_STRING<24>(fd, 60));
-                    IP_String last_ip = stringish<IP_String>(RFIFO_STRING<16>(fd, 84));
+                    VString<15> last_ip_ = RFIFO_STRING<16>(fd, 84);
                     AccountEmail email = stringish<AccountEmail>(RFIFO_STRING<40>(fd, 100));
                     TimeT connect_until_time = static_cast<time_t>(RFIFOL(fd, 140));
                     TimeT ban_until_time = static_cast<time_t>(RFIFOL(fd, 144));
@@ -2703,7 +2701,7 @@ void parse_fromlogin(int fd)
                             PRINTF(" Count:  %d connection.\n",
                                     connections);
                         PRINTF(" Last connection at: %s (ip: %s)\n",
-                                lastlogin, last_ip);
+                                lastlogin, last_ip_);
                         if (!connect_until_time)
                         {
                             PRINTF(" Validity limit: unlimited.\n");
@@ -2743,13 +2741,13 @@ int Connect_login_server(void)
     Iprintf("Attempt to connect to login-server...\n");
     LADMIN_LOG("Attempt to connect to login-server...\n");
 
-    if ((login_fd = make_connection(login_ip, loginserverport)) < 0)
+    if ((login_fd = make_connection(login_ip, login_port)) < 0)
         return 0;
 
     {
         WFIFOW(login_fd, 0) = 0x7918;  // Request for administation login
         WFIFOW(login_fd, 2) = 0;   // no encrypted
-        WFIFO_STRING(login_fd, 4, loginserveradminpassword, 24);
+        WFIFO_STRING(login_fd, 4, admin_pass, 24);
         WFIFOSET(login_fd, 28);
         bytes_to_read = 1;
 
@@ -2788,28 +2786,23 @@ int ladmin_config_read(ZString cfgName)
             struct hostent *h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                Iprintf("Login server IP address: %s -> %d.%d.%d.%d\n",
-                        w2,
+                Iprintf("Login server IP address: %s -> %s\n",
+                        w2, login_ip);
+                login_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
                         static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]));
-                SNPRINTF(loginserverip, 16, "%d.%d.%d.%d",
-                        static_cast<uint8_t>(h->h_addr[0]),
-                        static_cast<uint8_t>(h->h_addr[1]),
-                        static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]));
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
             }
-            else
-                loginserverip = stringish<IP_String>(w2);
         }
         else if (w1 == "login_port")
         {
-            loginserverport = atoi(w2.c_str());
+            login_port = atoi(w2.c_str());
         }
         else if (w1 == "admin_pass")
         {
-            loginserveradminpassword = stringish<AccountPass>(w2);
+            admin_pass = stringish<AccountPass>(w2);
         }
         else if (w1 == "ladmin_log_filename")
         {
@@ -2824,8 +2817,6 @@ int ladmin_config_read(ZString cfgName)
             PRINTF("WARNING: unknown ladmin config key: %s\n", FString(w1));
         }
     }
-
-    login_ip = inet_addr(loginserverip.c_str());
 
     Iprintf("---End reading of Ladmin configuration file.\n");
 

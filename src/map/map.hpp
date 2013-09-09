@@ -165,7 +165,7 @@ struct map_session_data : block_list, SessionData
     int weight, max_weight;
     int cart_weight, cart_max_weight, cart_num, cart_max_num;
     MapName mapname_;
-    int fd, new_fd;
+    int fd; // use this, you idiots!
     short to_x, to_y;
     interval_t speed;
     Opt1 opt1;
@@ -299,7 +299,10 @@ struct map_session_data : block_list, SessionData
     TimeT packet_flood_reset_due;
     int packet_flood_in;
 
-    struct in_addr ip;
+    IP4Address get_ip()
+    {
+        return session[fd]->client_ip;
+    }
 };
 
 struct npc_timerevent_list
@@ -539,8 +542,8 @@ struct map_local : map_abstract
 
 struct map_remote : map_abstract
 {
-    struct in_addr ip;
-    unsigned int port;
+    IP4Address ip;
+    uint16_t port;
 };
 
 inline
@@ -558,7 +561,7 @@ struct flooritem_data : block_list
     struct item item_data;
 };
 
-extern interval_t autosave_interval;
+extern interval_t autosave_time;
 extern int save_settings;
 
 extern FString motd_txt;
@@ -708,8 +711,8 @@ dumb_ptr<invocation> map_id_is_spell(int id)
 
 
 map_local *map_mapname2mapid(MapName);
-int map_mapname2ipport(MapName, struct in_addr *, int *);
-int map_setipport(MapName name, struct in_addr ip, int port);
+int map_mapname2ipport(MapName, IP4Address *, int *);
+int map_setipport(MapName name, IP4Address ip, int port);
 void map_addiddb(dumb_ptr<block_list>);
 void map_deliddb(dumb_ptr<block_list> bl);
 void map_addnickdb(dumb_ptr<map_session_data>);

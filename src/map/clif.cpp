@@ -107,9 +107,7 @@ void WFIFOPOS2(int fd, size_t pos, uint16_t x0, uint16_t y0, uint16_t x1, uint16
 }
 
 static
-IP_String map_ip_str;
-static
-struct in_addr map_ip;
+IP4Address map_ip;
 static
 int map_port = 5121;
 
@@ -121,10 +119,9 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
  * map鯖のip設定
  *------------------------------------------
  */
-void clif_setip(IP_String ip)
+void clif_setip(IP4Address ip)
 {
-    map_ip_str = ip;
-    map_ip.s_addr = inet_addr(map_ip_str.c_str());
+    map_ip = ip;
 }
 
 /*==========================================
@@ -140,7 +137,7 @@ void clif_setport(int port)
  * map鯖のip読み出し
  *------------------------------------------
  */
-struct in_addr clif_getip(void)
+IP4Address clif_getip(void)
 {
     return map_ip;
 }
@@ -1114,7 +1111,7 @@ void clif_changemap(dumb_ptr<map_session_data> sd, MapName mapname, int x, int y
  *------------------------------------------
  */
 void clif_changemapserver(dumb_ptr<map_session_data> sd,
-        MapName mapname, int x, int y, struct in_addr ip, int port)
+        MapName mapname, int x, int y, IP4Address ip, int port)
 {
     nullpo_retv(sd);
 
@@ -1123,7 +1120,7 @@ void clif_changemapserver(dumb_ptr<map_session_data> sd,
     WFIFO_STRING(fd, 2, mapname, 16);
     WFIFOW(fd, 18) = x;
     WFIFOW(fd, 20) = y;
-    WFIFOL(fd, 22) = ip.s_addr;
+    WFIFOIP(fd, 22) = ip;
     WFIFOW(fd, 26) = port;
     WFIFOSET(fd, clif_parse_func_table[0x92].len);
 }
@@ -3526,9 +3523,9 @@ void clif_parse_LoadEndAck(int, dumb_ptr<map_session_data> sd)
     // 119
     // 78
 
-    if (battle_config.pc_invincible_time > 0)
+    if (battle_config.player_invincible_time > 0)
     {
-        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.pc_invincible_time));
+        pc_setinvincibletimer(sd, static_cast<interval_t>(battle_config.player_invincible_time));
     }
 
     map_addblock(sd);     // ブロック登録
@@ -3735,15 +3732,15 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
 
             if (pc_isGM(sd) >= battle_config.hack_info_GM_level)
             {
-                struct in_addr ip = ssd->ip;
+                IP4Address ip = ssd->get_ip();
                 WFIFOW(fd, 0) = 0x20C;
 
                 // Mask the IP using the char-server password
                 if (battle_config.mask_ip_gms)
-                    ip = MD5_ip(ssd->ip);
+                    ip = MD5_ip(ip);
 
                 WFIFOL(fd, 2) = account_id;
-                WFIFOL(fd, 6) = ip.s_addr;
+                WFIFOIP(fd, 6) = ip;
                 WFIFOSET(fd, clif_parse_func_table[0x20C].len);
              }
 
@@ -3944,7 +3941,7 @@ void clif_parse_ActionRequest(int fd, dumb_ptr<map_session_data> sd)
         case 0x07:             // continuous attack
             if (bool(sd->status.option & Option::HIDE))
                 return;
-            if (!battle_config.sdelay_attack_enable)
+            if (!battle_config.skill_delay_attack_enable)
             {
                 if (tick < sd->canact_tick)
                 {

@@ -583,8 +583,8 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
     item = sd->inventory_data[n];
     sc_data = battle_get_sc_data(sd);
 
-    if (battle_config.gm_allequip > 0
-        && pc_isGM(sd) >= battle_config.gm_allequip)
+    if (battle_config.gm_all_equipment > 0
+        && pc_isGM(sd) >= battle_config.gm_all_equipment)
         return 1;
 
     if (item == NULL)
@@ -609,8 +609,6 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 
     struct party *p;
     tick_t tick = gettick();
-    struct sockaddr_in sai;
-    socklen_t sa_len = sizeof(struct sockaddr);
 
     sd = map_id2sd(id);
     if (sd == NULL)
@@ -758,10 +756,6 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         t = tick_t();
     sd->packet_flood_reset_due = TimeT();
     sd->packet_flood_in = 0;
-
-    // Obtain IP address (if they are still connected)
-    if (!getpeername(sd->fd, reinterpret_cast<struct sockaddr *>(&sai), &sa_len))
-        sd->ip = sai.sin_addr;
 
     // message of the limited time of the account
     if (connect_until_time)
@@ -2308,7 +2302,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
     {
         if (sd->mapname_)
         {
-            struct in_addr ip;
+            IP4Address ip;
             int port;
             if (map_mapname2ipport(mapname_, &ip, &port) == 0)
             {
@@ -2638,7 +2632,7 @@ int pc_stop_walking(dumb_ptr<map_session_data> sd, int type)
     sd->to_y = sd->bl_y;
     if (type & 0x01)
         clif_fixpos(sd);
-    if (type & 0x02 && battle_config.pc_damage_delay)
+    if (type & 0x02 && battle_config.player_damage_delay)
     {
         tick_t tick = gettick();
         interval_t delay = battle_get_dmotion(sd);
@@ -2794,7 +2788,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     if (opt != NULL && bool(*opt & Option::REAL_ANY_HIDE))
         return;
 
-    if (!battle_config.sdelay_attack_enable)
+    if (!battle_config.skill_delay_attack_enable)
     {
         if (tick < sd->canact_tick)
         {
@@ -2837,7 +2831,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
         }
         else
         {
-            if (battle_config.pc_attack_direction_change)
+            if (battle_config.player_attack_direction_change)
                 sd->dir = sd->head_dir = map_calc_dir(sd, bl->bl_x, bl->bl_y);  // 向き設定
 
             if (sd->walktimer)
@@ -5207,7 +5201,7 @@ void pc_autosave(TimerData *, tick_t)
     if (save_flag == 0)
         last_save_fd = 0;
 
-    interval_t interval = autosave_interval / (clif_countusers() + 1);
+    interval_t interval = autosave_time / (clif_countusers() + 1);
     if (interval <= interval_t::zero())
         interval = std::chrono::milliseconds(1);
     Timer(gettick() + interval,
@@ -5265,7 +5259,7 @@ int do_init_pc(void)
             pc_natural_heal,
             NATURAL_HEAL_INTERVAL
     ).detach();
-    Timer(gettick() + autosave_interval,
+    Timer(gettick() + autosave_time,
             pc_autosave
     ).detach();
 

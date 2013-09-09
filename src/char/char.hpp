@@ -2,6 +2,7 @@
 #define CHAR_HPP
 
 #include "../common/const_array.hpp"
+#include "../common/ip.hpp"
 #include "../common/mmo.hpp"
 
 constexpr int MAX_MAP_SERVERS = 30;
@@ -12,7 +13,7 @@ constexpr int MAX_MAP_SERVERS = 30;
 
 struct mmo_map_server
 {
-    long ip;
+    IP4Address ip;
     short port;
     int users;
     MapName maps[MAX_MAP_PER_SERVER];

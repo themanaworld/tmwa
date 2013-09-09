@@ -582,7 +582,7 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
             interval * castrate * (battle_config.castrate_dex_scale -
                                dex) / (battle_config.castrate_dex_scale *
                                        100);
-        interval = interval * battle_config.cast_rate / 100;
+        interval = interval * battle_config.casting_rate / 100;
     }
 
     return std::max(interval, interval_t::zero());

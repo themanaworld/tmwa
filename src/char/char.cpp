@@ -41,7 +41,7 @@ int server_freezeflag[MAX_MAP_SERVERS];    // Map-server anti-freeze system. Cou
 static
 int anti_freeze_enable = 0;
 static
-std::chrono::seconds ANTI_FREEZE_INTERVAL = std::chrono::seconds(6);
+std::chrono::seconds anti_freeze_interval = std::chrono::seconds(6);
 
 constexpr
 std::chrono::milliseconds DEFAULT_AUTOSAVE_INTERVAL =
@@ -59,21 +59,13 @@ ServerName server_name;
 static
 CharName wisp_server_name = stringish<CharName>("Server");
 static
-IP_String login_ip_str;
-static
-int login_ip;
+IP4Address login_ip;
 static
 int login_port = 6900;
 static
-IP_String char_ip_str;
-static
-int char_ip;
+IP4Address char_ip;
 static
 int char_port = 6121;
-static
-int char_maintenance;
-static
-int char_new;
 static
 FString char_txt;
 static
@@ -82,11 +74,9 @@ static
 FString char_log_filename = "log/char.log";
 //Added for lan support
 static
-IP_String lan_map_ip;
+IP4Address lan_map_ip;
 static
-uint8_t subneti[4];
-static
-uint8_t subnetmaski[4];
+IP4Mask lan_subnet;
 static
 int char_name_option = 0;      // Option to know which letters/symbols are authorised in the name of a character (0: all, 1: only those in char_name_letters, 2: all EXCEPT those in char_name_letters) by [Yor]
 static
@@ -110,7 +100,7 @@ struct AuthFifoEntry
     int account_id;
     int char_id;
     int login_id1, login_id2;
-    int ip;
+    IP4Address ip;
     int delflag;
     int sex;
     unsigned short packet_tmw_version;
@@ -131,13 +121,7 @@ std::vector<mmo_charstatus> char_data;
 static
 int max_connect_user = 0;
 static
-std::chrono::milliseconds autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
-static
-int start_zeny = 500;
-static
-int start_weapon = 1201;
-static
-int start_armor = 1202;
+std::chrono::milliseconds autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 
 // Initial position (it's possible to set it in conf file)
 static
@@ -666,10 +650,7 @@ mmo_charstatus *make_new_char(int fd, CharName name, const uint8_t (&stats)[6], 
         return nullptr;
     }
 
-    char ip[16];
-    uint8_t *sin_addr = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
-    sprintf(ip, "%d.%d.%d.%d", sin_addr[0], sin_addr[1], sin_addr[2],
-             sin_addr[3]);
+    IP4Address ip = session[fd]->client_ip;
 
     CHAR_LOG("Creation of New Character: (connection #%d, account: %d) slot %d, character Name: %s, stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d. [%s]\n",
          fd, sd->account_id, slot, name,
@@ -688,7 +669,7 @@ mmo_charstatus *make_new_char(int fd, CharName name, const uint8_t (&stats)[6], 
     cd.job_level = 1;
     cd.base_exp = 0;
     cd.job_exp = 0;
-    cd.zeny = start_zeny;
+    cd.zeny = 0;
     cd.attrs[ATTR::STR] = stats[0];
     cd.attrs[ATTR::AGI] = stats[1];
     cd.attrs[ATTR::VIT] = stats[2];
@@ -1562,12 +1543,11 @@ void parse_frommap(int fd)
                     j++;
                 }
                 {
-                    uint8_t *p = reinterpret_cast<uint8_t *>(&server[id].ip);
-                    PRINTF("Map-Server %d connected: %d maps, from IP %d.%d.%d.%d port %d.\n",
-                         id, j, p[0], p[1], p[2], p[3], server[id].port);
+                    PRINTF("Map-Server %d connected: %d maps, from IP %s port %d.\n",
+                         id, j, server[id].ip, server[id].port);
                     PRINTF("Map-server %d loading complete.\n", id);
-                    CHAR_LOG("Map-Server %d connected: %d maps, from IP %d.%d.%d.%d port %d. Map-server %d loading complete.\n",
-                         id, j, p[0], p[1], p[2], p[3],
+                    CHAR_LOG("Map-Server %d connected: %d maps, from IP %s port %d. Map-server %d loading complete.\n",
+                         id, j, server[id].ip,
                          server[id].port, id);
                 }
                 WFIFOW(fd, 0) = 0x2afb;
@@ -1587,7 +1567,7 @@ void parse_frommap(int fd)
                     {
                         WBUFW(buf, 0) = 0x2b04;
                         WBUFW(buf, 2) = j * 16 + 10;
-                        WBUFL(buf, 4) = server[id].ip;
+                        WBUFIP(buf, 4) = server[id].ip;
                         WBUFW(buf, 8) = server[id].port;
                         // server[id].maps[i] = RFIFO_STRING(fd, 4 + i * 16)
                         for (int i = 0; i < j; ++i)
@@ -1600,7 +1580,7 @@ void parse_frommap(int fd)
                         if (server_fd[x] >= 0 && x != id)
                         {
                             WFIFOW(fd, 0) = 0x2b04;
-                            WFIFOL(fd, 4) = server[x].ip;
+                            WFIFOIP(fd, 4) = server[x].ip;
                             WFIFOW(fd, 8) = server[x].port;
                             j = 0;
                             for (int i = 0; i < MAX_MAP_PER_SERVER; i++)
@@ -1630,7 +1610,7 @@ void parse_frommap(int fd)
                         afi.login_id1 == RFIFOL(fd, 10) &&
                         // here, it's the only area where it's possible that we doesn't know login_id2 (map-server asks just after 0x72 packet, that doesn't given the value)
                         (afi.login_id2 == RFIFOL(fd, 14) || RFIFOL(fd, 14) == 0) &&  // relate to the versions higher than 18
-                        (!check_ip_flag || afi.ip == RFIFOL(fd, 18))
+                        (!check_ip_flag || afi.ip == RFIFOIP(fd, 18))
                         && !afi.delflag)
                     {
                         mmo_charstatus *cd = nullptr;
@@ -1732,7 +1712,7 @@ void parse_frommap(int fd)
                 auth_fifo_iter->login_id2 = RFIFOL(fd, 10);
                 auth_fifo_iter->delflag = 2;
                 auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
-                auth_fifo_iter->ip = RFIFOL(fd, 14);
+                auth_fifo_iter->ip = RFIFOIP(fd, 14);
                 auth_fifo_iter++;
                 WFIFOW(fd, 0) = 0x2b03;
                 WFIFOL(fd, 2) = RFIFOL(fd, 2);
@@ -1758,7 +1738,7 @@ void parse_frommap(int fd)
                 auth_fifo_iter->delflag = 0;
                 auth_fifo_iter->sex = RFIFOB(fd, 44);
                 auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
-                auth_fifo_iter->ip = RFIFOL(fd, 45);
+                auth_fifo_iter->ip = RFIFOIP(fd, 45);
 
                 // default, if not found in the loop
                 WFIFOW(fd, 6) = 1;
@@ -1772,28 +1752,6 @@ void parse_frommap(int fd)
                     }
                 WFIFOSET(fd, 44);
                 RFIFOSKIP(fd, 49);
-                break;
-
-                // キャラ名検索
-            case 0x2b08:
-                if (RFIFOREST(fd) < 6)
-                    return;
-            {
-                CharName name = unknown_char_name;
-                for (const mmo_charstatus& cd : char_data)
-                {
-                    if (cd.char_id == RFIFOL(fd, 2))
-                    {
-                        name = cd.name;
-                        break;
-                    }
-                }
-                WFIFOW(fd, 0) = 0x2b09;
-                WFIFOL(fd, 2) = RFIFOL(fd, 2);
-                WFIFO_STRING(fd, 6, name.to__actual(), 24);
-                WFIFOSET(fd, 30);
-            }
-                RFIFOSKIP(fd, 6);
                 break;
 
                 // it is a request to become GM
@@ -2038,33 +1996,18 @@ int search_mapserver(XString map)
 // Test to know if an IP come from LAN or WAN. by [Yor]
 //-----------------------------------------------------
 static
-int lan_ip_check(unsigned char *p)
+int lan_ip_check(IP4Address addr)
 {
-    int i;
-    int lancheck = 1;
+    bool lancheck = lan_subnet.covers(addr);
 
-//  PRINTF("lan_ip_check: to compare: %d.%d.%d.%d, network: %d.%d.%d.%d/%d.%d.%d.%d\n",
-//         p[0], p[1], p[2], p[3],
-//         subneti[0], subneti[1], subneti[2], subneti[3],
-//         subnetmaski[0], subnetmaski[1], subnetmaski[2], subnetmaski[3]);
-    for (i = 0; i < 4; i++)
-    {
-        if ((subneti[i] & subnetmaski[i]) != (p[i] & subnetmaski[i]))
-        {
-            lancheck = 0;
-            break;
-        }
-    }
     PRINTF("LAN test (result): %s source\033[0m.\n",
             (lancheck) ? "\033[1;36mLAN" : "\033[1;32mWAN");
     return lancheck;
 }
 
 static
-void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_t *p)
+void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, IP4Address ip)
 {
-    IP_String ip = ip2str(session[fd]->client_addr.sin_addr);
-
     {
         mmo_charstatus *cd = nullptr;
         for (mmo_charstatus& cdi : char_data)
@@ -2115,10 +2058,10 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
                  cd->name,
                  sd->account_id, cd->char_num, ip);
             PRINTF("--Send IP of map-server. ");
-            if (lan_ip_check(p))
-                WFIFOL(fd, 22) = inet_addr(lan_map_ip.c_str());
+            if (lan_ip_check(ip))
+                WFIFOIP(fd, 22) = lan_map_ip;
             else
-                WFIFOL(fd, 22) = server[i].ip;
+                WFIFOIP(fd, 22) = server[i].ip;
             WFIFOW(fd, 26) = server[i].port;
             WFIFOSET(fd, 28);
             if (auth_fifo_iter == auth_fifo.end())
@@ -2130,7 +2073,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
             auth_fifo_iter->delflag = 0;
             auth_fifo_iter->sex = sd->sex;
             auth_fifo_iter->connect_until_time = sd->connect_until_time;
-            auth_fifo_iter->ip = session[fd]->client_addr.sin_addr.s_addr;
+            auth_fifo_iter->ip = session[fd]->client_ip;
             auth_fifo_iter->packet_tmw_version = sd->packet_tmw_version;
             auth_fifo_iter++;
         }
@@ -2140,7 +2083,7 @@ void handle_x0066(int fd, struct char_session_data *sd, uint8_t rfifob_2, uint8_
 static
 void parse_char(int fd)
 {
-    uint8_t *p = reinterpret_cast<uint8_t *>(&session[fd]->client_addr.sin_addr);
+    IP4Address ip = session[fd]->client_ip;
 
     if (login_fd < 0 || session[fd]->eof)
     {                           // disconnect any player (already connected to char-server or coming back from map-server) if login-server is diconnected.
@@ -2213,7 +2156,7 @@ void parse_char(int fd)
                             && afi.login_id1 == sd->login_id1
                             && afi.login_id2 == sd->login_id2
                             && (!check_ip_flag
-                                || afi.ip == session[fd]->client_addr.sin_addr.s_addr)
+                                || afi.ip == session[fd]->client_ip)
                             && afi.delflag == 2)
                         {
                             afi.delflag = 1;
@@ -2253,8 +2196,7 @@ void parse_char(int fd)
                             WFIFOL(login_fd, 6) = sd->login_id1;
                             WFIFOL(login_fd, 10) = sd->login_id2;  // relate to the versions higher than 18
                             WFIFOB(login_fd, 14) = sd->sex;
-                            WFIFOL(login_fd, 15) =
-                                session[fd]->client_addr.sin_addr.s_addr;
+                            WFIFOIP(login_fd, 15) = session[fd]->client_ip;
                             WFIFOSET(login_fd, 19);
                         }
                         else
@@ -2272,7 +2214,7 @@ void parse_char(int fd)
             case 0x66:         // キャラ選択
                 if (!sd || RFIFOREST(fd) < 3)
                     return;
-                handle_x0066(fd, sd, RFIFOB(fd, 2), p);
+                handle_x0066(fd, sd, RFIFOB(fd, 2), ip);
                 RFIFOSKIP(fd, 3);
                 break;
 
@@ -2417,7 +2359,7 @@ void parse_char(int fd)
                     if (anti_freeze_enable)
                         server_freezeflag[i] = 5;   // Map anti-freeze system. Counter. 5 ok, 4...0 freezed
                     // ignore RFIFOL(fd, 50)
-                    server[i].ip = RFIFOL(fd, 54);
+                    server[i].ip = RFIFOIP(fd, 54);
                     server[i].port = RFIFOW(fd, 58);
                     server[i].users = 0;
                     for (MapName& mapi : server[i].maps)
@@ -2558,12 +2500,12 @@ void check_connect_login_server(TimerData *, tick_t)
         WFIFO_STRING(login_fd, 2, userid, 24);
         WFIFO_STRING(login_fd, 26, passwd, 24);
         WFIFOL(login_fd, 50) = 0;
-        WFIFOL(login_fd, 54) = char_ip;
+        WFIFOIP(login_fd, 54) = char_ip;
         WFIFOL(login_fd, 58) = char_port;
         WFIFO_STRING(login_fd, 60, server_name, 20);
         WFIFOW(login_fd, 80) = 0;
-        WFIFOW(login_fd, 82) = char_maintenance;
-        WFIFOW(login_fd, 84) = char_new;
+        WFIFOW(login_fd, 82) = 0; //char_maintenance;
+        WFIFOW(login_fd, 84) = 0; //char_new;
         WFIFOSET(login_fd, 86);
     }
 }
@@ -2577,13 +2519,8 @@ int lan_config_read(ZString lancfgName)
     struct hostent *h = NULL;
 
     // set default configuration
-    lan_map_ip = stringish<IP_String>("127.0.0.1");
-    subneti[0] = 127;
-    subneti[1] = 0;
-    subneti[2] = 0;
-    subneti[3] = 1;
-    for (int j = 0; j < 4; j++)
-        subnetmaski[j] = 255;
+    lan_map_ip = IP4_LOCALHOST;
+    lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 
     std::ifstream in(lancfgName.c_str());
 
@@ -2609,56 +2546,30 @@ int lan_config_read(ZString lancfgName)
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                SNPRINTF(lan_map_ip, 16, "%d.%d.%d.%d",
-                         static_cast<uint8_t>(h->h_addr[0]),
-                         static_cast<uint8_t>(h->h_addr[1]),
-                         static_cast<uint8_t>(h->h_addr[2]),
-                         static_cast<uint8_t>(h->h_addr[3]));
+                lan_map_ip = IP4Address({
+                        static_cast<uint8_t>(h->h_addr[0]),
+                        static_cast<uint8_t>(h->h_addr[1]),
+                        static_cast<uint8_t>(h->h_addr[2]),
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
             }
             else
             {
-                lan_map_ip = stringish<IP_String>(w2);
+                PRINTF("Bad IP value: %s\n", line);
+                abort();
             }
             PRINTF("LAN IP of map-server: %s.\n", lan_map_ip);
         }
-        else if (w1 == "subnet")
+        else if (w1 == "subnet" /*backward compatibility*/
+                || w1 == "lan_subnet")
         {
-            // Read Subnetwork
-            for (int j = 0; j < 4; j++)
-                subneti[j] = 0;
-            h = gethostbyname(w2.c_str());
-            if (h != NULL)
+            if (!extract(w2, &lan_subnet))
             {
-                for (int j = 0; j < 4; j++)
-                    subneti[j] = h->h_addr[j];
+                PRINTF("Bad IP mask: %s\n", line);
+                abort();
             }
-            else
-            {
-                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subneti[0], &subneti[1],
-                        &subneti[2], &subneti[3]);
-            }
-            PRINTF("Sub-network of the map-server: %d.%d.%d.%d.\n",
-                    subneti[0], subneti[1], subneti[2], subneti[3]);
-        }
-        else if (w1 == "subnetmask")
-        {
-            // Read Subnetwork Mask
-            for (int j = 0; j < 4; j++)
-                subnetmaski[j] = 255;
-            h = gethostbyname(w2.c_str());
-            if (h != NULL)
-            {
-                for (int j = 0; j < 4; j++)
-                    subnetmaski[j] = h->h_addr[j];
-            }
-            else
-            {
-                SSCANF(w2, "%hhu.%hhu.%hhu.%hhu", &subnetmaski[0], &subnetmaski[1],
-                        &subnetmaski[2], &subnetmaski[3]);
-            }
-            PRINTF("Sub-network mask of the map-server: %d.%d.%d.%d.\n",
-                    subnetmaski[0], subnetmaski[1], subnetmaski[2],
-                    subnetmaski[3]);
+            PRINTF("Sub-network of the map-server: %s.\n",
+                    lan_subnet);
         }
         else
         {
@@ -2669,10 +2580,8 @@ int lan_config_read(ZString lancfgName)
 
     // sub-network check of the map-server
     {
-        unsigned char p[4];
-        SSCANF(lan_map_ip, "%hhu.%hhu.%hhu.%hhu", &p[0], &p[1], &p[2], &p[3]);
         PRINTF("LAN test of LAN IP of the map-server: ");
-        if (lan_ip_check(p) == 0)
+        if (!lan_ip_check(lan_map_ip))
         {
             PRINTF("\033[1;31m***ERROR: LAN IP of the map-server doesn't belong to the specified Sub-network.\033[0m\n");
         }
@@ -2723,16 +2632,20 @@ int char_config_read(ZString cfgName)
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                SNPRINTF(login_ip_str, 16, "%d.%d.%d.%d",
+                login_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
                         static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]));
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
                 PRINTF("Login server IP address : %s -> %s\n",
-                        w2, login_ip_str);
+                        w2, login_ip);
             }
             else
-                login_ip_str = stringish<IP_String>(w2);
+            {
+                PRINTF("Bad IP value: %s\n", line);
+                abort();
+            }
         }
         else if (w1 == "login_port")
         {
@@ -2743,28 +2656,24 @@ int char_config_read(ZString cfgName)
             h = gethostbyname(w2.c_str());
             if (h != NULL)
             {
-                SNPRINTF(char_ip_str, 16, "%d.%d.%d.%d",
+                char_ip = IP4Address({
                         static_cast<uint8_t>(h->h_addr[0]),
                         static_cast<uint8_t>(h->h_addr[1]),
                         static_cast<uint8_t>(h->h_addr[2]),
-                        static_cast<uint8_t>(h->h_addr[3]));
+                        static_cast<uint8_t>(h->h_addr[3]),
+                });
                 PRINTF("Character server IP address : %s -> %s\n",
-                        w2, char_ip_str);
+                        w2, char_ip);
             }
             else
-                char_ip_str = stringish<IP_String>(w2);
+            {
+                PRINTF("Bad IP value: %s\n", line);
+                abort();
+            }
         }
         else if (w1 == "char_port")
         {
             char_port = atoi(w2.c_str());
-        }
-        else if (w1 == "char_maintenance")
-        {
-            char_maintenance = atoi(w2.c_str());
-        }
-        else if (w1 == "char_new")
-        {
-            char_new = atoi(w2.c_str());
         }
         else if (w1 == "char_txt")
         {
@@ -2782,31 +2691,13 @@ int char_config_read(ZString cfgName)
         }
         else if (w1 == "autosave_time")
         {
-            autosave_interval = std::chrono::seconds(atoi(w2.c_str()));
-            if (autosave_interval <= std::chrono::seconds::zero())
-                autosave_interval = DEFAULT_AUTOSAVE_INTERVAL;
+            autosave_time = std::chrono::seconds(atoi(w2.c_str()));
+            if (autosave_time <= std::chrono::seconds::zero())
+                autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
         }
         else if (w1 == "start_point")
         {
             extract(w2, &start_point);
-        }
-        else if (w1 == "start_zeny")
-        {
-            start_zeny = atoi(w2.c_str());
-            if (start_zeny < 0)
-                start_zeny = 0;
-        }
-        else if (w1 == "start_weapon")
-        {
-            start_weapon = atoi(w2.c_str());
-            if (start_weapon < 0)
-                start_weapon = 0;
-        }
-        else if (w1 == "start_armor")
-        {
-            start_armor = atoi(w2.c_str());
-            if (start_armor < 0)
-                start_armor = 0;
         }
         else if (w1 == "unknown_char_name")
         {
@@ -2822,8 +2713,11 @@ int char_config_read(ZString cfgName)
         }
         else if (w1 == "char_name_letters")
         {
-            for (uint8_t c : w2)
-                char_name_letters[c] = true;
+            if (!w2)
+                char_name_letters.reset();
+            else
+                for (uint8_t c : w2)
+                    char_name_letters[c] = true;
         }
         else if (w1 == "online_txt_filename")
         {
@@ -2855,7 +2749,7 @@ int char_config_read(ZString cfgName)
         }
         else if (w1 == "anti_freeze_interval")
         {
-            ANTI_FREEZE_INTERVAL = std::max(
+            anti_freeze_interval = std::max(
                     std::chrono::seconds(atoi(w2.c_str())),
                     std::chrono::seconds(5));
         }
@@ -2909,9 +2803,6 @@ int do_init(int argc, ZString *argv)
     else
         lan_config_read(LOGIN_LAN_CONF_NAME);
 
-    login_ip = inet_addr(login_ip_str.c_str());
-    char_ip = inet_addr(char_ip_str.c_str());
-
     for (i = 0; i < MAX_MAP_SERVERS; i++)
     {
         server[i] = mmo_map_server{};
@@ -2941,16 +2832,16 @@ int do_init(int argc, ZString *argv)
             send_users_tologin,
             std::chrono::seconds(5)
     ).detach();
-    Timer(gettick() + autosave_interval,
+    Timer(gettick() + autosave_time,
             mmo_char_sync_timer,
-            autosave_interval
+            autosave_time
     ).detach();
 
     if (anti_freeze_enable > 0)
     {
         Timer(gettick() + std::chrono::seconds(1),
                 map_anti_freeze_system,
-                ANTI_FREEZE_INTERVAL
+                anti_freeze_interval
         ).detach();
     }
 

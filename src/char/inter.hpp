@@ -12,6 +12,5 @@ int inter_check_length(int fd, int length);
 #define inter_cfgName "conf/inter_athena.conf"
 
 extern int party_share_level;
-extern FString inter_log_filename;
 
 #endif // INTER_HPP

@@ -6,6 +6,7 @@
 #include <functional>
 
 #include "../common/const_array.hpp"
+#include "../common/ip.hpp"
 #include "../common/strings.hpp"
 #include "../common/timer.t.hpp"
 
@@ -14,10 +15,10 @@
 #include "pc.t.hpp"
 #include "skill.t.hpp"
 
-void clif_setip(IP_String);
+void clif_setip(IP4Address);
 void clif_setport(int);
 
-struct in_addr clif_getip(void);
+IP4Address clif_getip(void);
 int clif_getport(void);
 int clif_countusers(void);
 void clif_setwaitclose(int);
@@ -39,7 +40,7 @@ int clif_walkok(dumb_ptr<map_session_data>);   // self
 int clif_movechar(dumb_ptr<map_session_data>); // area
 int clif_movemob(dumb_ptr<mob_data>);  //area
 void clif_changemap(dumb_ptr<map_session_data>, MapName, int, int);  //self
-void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, struct in_addr, int);  //self
+void clif_changemapserver(dumb_ptr<map_session_data>, MapName, int, int, IP4Address, int);  //self
 void clif_fixpos(dumb_ptr<block_list>); // area
 int clif_fixmobpos(dumb_ptr<mob_data> md);
 int clif_fixpcpos(dumb_ptr<map_session_data> sd);

@@ -11,6 +11,7 @@
 
 #include <array>
 
+#include "ip.hpp"
 #include "mmo.hpp"
 #include "strings.hpp"
 
@@ -53,7 +54,7 @@ SaltString make_salt(void);
 /// check plaintext password against saved saltcrypt
 bool pass_ok(AccountPass password, AccountCrypt crypted);
 
-/// This returns an in_addr because it is configurable whether it gets called at all
-struct in_addr MD5_ip(struct in_addr ip);
+/// This returns an IP4Address because it is configurable whether it gets called at all
+IP4Address MD5_ip(IP4Address ip);
 
 #endif // MD5CALC_HPP

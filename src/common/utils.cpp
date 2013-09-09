@@ -44,11 +44,11 @@ bool e_mail_check(XString email)
 //-------------------------------------------------
 int config_switch (ZString str)
 {
-    if (str == "on" || str == "yes"
+    if (str == "true" || str == "on" || str == "yes"
         || str == "oui" || str == "ja"
         || str == "si")
         return 1;
-    if (str == "off" || str == "no"
+    if (str == "false" || str == "off" || str == "no"
         || str == "non" || str == "nein")
         return 0;
 
@@ -57,22 +57,6 @@ int config_switch (ZString str)
         return rv;
     FPRINTF(stderr, "Fatal: bad option value %s", str);
     abort();
-}
-
-IP_String ip2str(struct in_addr ip)
-{
-    const uint8_t *p = reinterpret_cast<const uint8_t *>(&ip);
-
-    IP_String out;
-    SNPRINTF(out, 16, "%d.%d.%d.%d", p[0], p[1], p[2], p[3]);
-    return out;
-}
-VString<16> ip2str_extradot(struct in_addr ip)
-{
-    const uint8_t *p = reinterpret_cast<const uint8_t *>(&ip);
-    VString<16> out;
-    SNPRINTF(out, 17, "%d.%d.%d.%d.", p[0], p[1], p[2], p[3]);
-    return out;
 }
 
 bool split_key_value(const FString& line, SString *w1, TString *w2)

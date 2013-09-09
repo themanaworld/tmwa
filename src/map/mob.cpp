@@ -3001,12 +3001,12 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
     range = skill_get_range(md->skillid, md->skilllv);
     if (range < 0)
         range = battle_get_range(md) - (range + 1);
-    if (range + battle_config.mob_skill_add_range < distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y))
+    if (range + battle_config.monster_skill_add_range < distance(md->bl_x, md->bl_y, bl->bl_x, bl->bl_y))
         return;
 
     md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
 
-    if (battle_config.mob_skill_log == 1)
+    if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
                 md->skillid, md->mob_class);
     mob_stop_walking(md, 0);
@@ -3053,11 +3053,11 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
     range = skill_get_range(md->skillid, md->skilllv);
     if (range < 0)
         range = battle_get_range(md) - (range + 1);
-    if (range + battle_config.mob_skill_add_range < distance(md->bl_x, md->bl_y, md->skillx, md->skilly))
+    if (range + battle_config.monster_skill_add_range < distance(md->bl_x, md->bl_y, md->skillx, md->skilly))
         return;
     md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
 
-    if (battle_config.mob_skill_log == 1)
+    if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
                 md->skillid, md->mob_class);
     mob_stop_walking(md, 0);
@@ -3107,7 +3107,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
     md->state.skillcastcancel = ms->cancel;
     md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
 
-    if (battle_config.mob_skill_log == 1)
+    if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n",
                 target->bl_id, skill_id, skill_lv,
                 static_cast<uint32_t>(casttime.count()), md->mob_class);
@@ -3178,7 +3178,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
     md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
     md->state.skillcastcancel = ms->cancel;
 
-    if (battle_config.mob_skill_log == 1)
+    if (battle_config.monster_skill_log == 1)
         PRINTF("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n",
              skill_x, skill_y, skill_id, skill_lv,
              static_cast<uint32_t>(casttime.count()), md->mob_class);

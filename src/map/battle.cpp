@@ -2302,18 +2302,12 @@ int battle_config_read(ZString cfgName)
         battle_config.enemy_critical_rate = 100;
         battle_config.enemy_str = 1;
         battle_config.enemy_perfect_flee = 0;
-        battle_config.cast_rate = 100;
+        battle_config.casting_rate = 100;
         battle_config.delay_rate = 100;
         battle_config.delay_dependon_dex = 0;
-        battle_config.sdelay_attack_enable = 0;
-        battle_config.left_cardfix_to_right = 0;
-        battle_config.pc_skill_add_range = 0;
-        battle_config.skill_out_range_consume = 1;
-        battle_config.mob_skill_add_range = 0;
-        battle_config.pc_damage_delay = 1;
-        battle_config.defnotenemy = 1;
-        battle_config.random_monster_checklv = 1;
-        battle_config.attr_recover = 1;
+        battle_config.skill_delay_attack_enable = 0;
+        battle_config.monster_skill_add_range = 0;
+        battle_config.player_damage_delay = 1;
         battle_config.flooritem_lifetime = std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
         battle_config.item_auto_get = 0;
         battle_config.drop_pickup_safety_zone = 20;
@@ -2323,43 +2317,26 @@ int battle_config_read(ZString cfgName)
 
         battle_config.base_exp_rate = 100;
         battle_config.job_exp_rate = 100;
-        battle_config.gtb_pvp_only = 0;
         battle_config.death_penalty_type = 0;
         battle_config.death_penalty_base = 0;
         battle_config.death_penalty_job = 0;
-        battle_config.zeny_penalty = 0;
         battle_config.restart_hp_rate = 0;
         battle_config.restart_sp_rate = 0;
         battle_config.monster_hp_rate = 100;
         battle_config.monster_max_aspd = 199;
-        battle_config.atc_gmonly = 0;
-        battle_config.gm_allskill = 0;
-        battle_config.gm_allequip = 0;
-        battle_config.gm_skilluncond = 0;
-        battle_config.skillfree = 0;
-        battle_config.skillup_limit = 0;
-        battle_config.wp_rate = 100;
-        battle_config.pp_rate = 100;
+        battle_config.atcommand_gm_only = 0;
+        battle_config.gm_all_equipment = 0;
         battle_config.monster_active_enable = 1;
         battle_config.mob_skill_use = 1;
         battle_config.mob_count_rate = 100;
-        battle_config.quest_skill_learn = 0;
-        battle_config.quest_skill_reset = 1;
         battle_config.basic_skill_check = 1;
-        battle_config.pc_invincible_time = 5000;
+        battle_config.player_invincible_time = 5000;
         battle_config.skill_min_damage = 0;
-        battle_config.finger_offensive_type = 0;
-        battle_config.heal_exp = 0;
-        battle_config.resurrection_exp = 0;
-        battle_config.shop_exp = 0;
-        battle_config.combo_delay_rate = 100;
-        battle_config.wedding_modifydisplay = 0;
         battle_config.natural_healhp_interval = 6000;
         battle_config.natural_healsp_interval = 8000;
         battle_config.natural_heal_skill_interval = 10000;
         battle_config.natural_heal_weight_rate = 50;
         battle_config.itemheal_regeneration_factor = 1;
-        battle_config.item_name_override_grffile = 1;
         battle_config.arrow_decrement = 1;
         battle_config.max_aspd = 199;
         battle_config.max_hp = 32500;
@@ -2367,16 +2344,13 @@ int battle_config_read(ZString cfgName)
         battle_config.max_lv = 99;  // [MouseJstr]
         battle_config.max_parameter = 99;
         battle_config.max_cart_weight = 8000;
-        battle_config.pc_skill_log = 0;
-        battle_config.mob_skill_log = 0;
+        battle_config.monster_skill_log = 0;
         battle_config.battle_log = 0;
         battle_config.save_log = 0;
         battle_config.error_log = 1;
         battle_config.etc_log = 1;
         battle_config.save_clothcolor = 0;
         battle_config.undead_detect_type = 0;
-        battle_config.pc_auto_counter_type = 1;
-        battle_config.monster_auto_counter_type = 1;
         battle_config.agi_penaly_type = 0;
         battle_config.agi_penaly_count = 3;
         battle_config.agi_penaly_num = 0;
@@ -2385,53 +2359,22 @@ int battle_config_read(ZString cfgName)
         battle_config.vit_penaly_count = 3;
         battle_config.vit_penaly_num = 0;
         battle_config.vit_penaly_count_lv = static_cast<int>(ATK::DEF); // FIXME
-        battle_config.pc_skill_reiteration = 0;
-        battle_config.monster_skill_reiteration = 0;
-        battle_config.pc_skill_nofootset = 0;
-        battle_config.monster_skill_nofootset = 0;
-        battle_config.pc_cloak_check_type = 0;
-        battle_config.monster_cloak_check_type = 0;
         battle_config.mob_changetarget_byskill = 0;
-        battle_config.pc_attack_direction_change = 1;
+        battle_config.player_attack_direction_change = 1;
         battle_config.monster_attack_direction_change = 1;
-        battle_config.pc_undead_nofreeze = 0;
-        battle_config.pc_land_skill_limit = 1;
-        battle_config.monster_land_skill_limit = 1;
-        battle_config.party_skill_penaly = 1;
-        battle_config.monster_class_change_full_recover = 0;
-        battle_config.produce_item_name_input = 1;
-        battle_config.produce_potion_name_input = 1;
-        battle_config.making_arrow_name_input = 1;
-        battle_config.holywater_name_input = 1;
         battle_config.display_delay_skill_fail = 1;
-        battle_config.chat_warpportal = 0;
-        battle_config.mob_warpportal = 0;
         battle_config.dead_branch_active = 0;
         battle_config.show_steal_in_same_party = 0;
-        battle_config.enable_upper_class = 0;
-        battle_config.pc_attack_attr_none = 0;
-        battle_config.mob_attack_attr_none = 1;
-        battle_config.mob_ghostring_fix = 0;
-        battle_config.gx_allhit = 0;
-        battle_config.gx_cardfix = 0;
-        battle_config.gx_dupele = 1;
-        battle_config.gx_disptype = 1;
-        battle_config.player_skill_partner_check = 1;
         battle_config.hide_GM_session = 0;
-        battle_config.unit_movement_type = 0;
         battle_config.invite_request_check = 1;
-        battle_config.skill_removetrap_type = 0;
         battle_config.disp_experience = 0;
         battle_config.prevent_logout = 1;   // Added by RoVeRT
         battle_config.maximum_level = 255;  // Added by Valaris
         battle_config.drops_by_luk = 0; // [Valaris]
         battle_config.pk_mode = 0;  // [Valaris]
         battle_config.multi_level_up = 0;   // [Valaris]
-        battle_config.backstab_bow_penalty = 0; // Akaru
-        battle_config.show_mob_hp = 0;  // [Valaris]
         battle_config.hack_info_GM_level = 60;  // added by [Yor] (default: 60, GM level)
         battle_config.any_warp_GM_min_level = 20;   // added by [Yor]
-        battle_config.packet_ver_flag = 63; // added by [Yor]
         battle_config.min_hair_style = 0;
         battle_config.max_hair_style = 20;
         battle_config.min_hair_color = 0;
@@ -2469,9 +2412,7 @@ int battle_config_read(ZString cfgName)
     FString line;
     while (io::getline(in, line))
     {
-#define BATTLE_CONFIG_VAR2(name, varname) {{name}, &battle_config.varname}
-#define BATTLE_CONFIG_VAR(name) BATTLE_CONFIG_VAR2(#name, name)
-        // s/{"\([a-zA-Z_0-9]*\)", &battle_config.\1}/BATTLE_CONFIG_VAR(\1)/
+#define BATTLE_CONFIG_VAR(name) {{#name}, &battle_config.name}
         const struct
         {
             ZString str;
@@ -2483,18 +2424,12 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(enemy_critical_rate),
             BATTLE_CONFIG_VAR(enemy_str),
             BATTLE_CONFIG_VAR(enemy_perfect_flee),
-            BATTLE_CONFIG_VAR2("casting_rate", cast_rate),
+            BATTLE_CONFIG_VAR(casting_rate),
             BATTLE_CONFIG_VAR(delay_rate),
             BATTLE_CONFIG_VAR(delay_dependon_dex),
-            BATTLE_CONFIG_VAR2("skill_delay_attack_enable", sdelay_attack_enable),
-            BATTLE_CONFIG_VAR(left_cardfix_to_right),
-            BATTLE_CONFIG_VAR2("player_skill_add_range", pc_skill_add_range),
-            BATTLE_CONFIG_VAR(skill_out_range_consume),
-            BATTLE_CONFIG_VAR2("monster_skill_add_range", mob_skill_add_range),
-            BATTLE_CONFIG_VAR2("player_damage_delay", pc_damage_delay),
-            BATTLE_CONFIG_VAR2("defunit_not_enemy", defnotenemy),
-            BATTLE_CONFIG_VAR(random_monster_checklv),
-            BATTLE_CONFIG_VAR2("attribute_recover", attr_recover),
+            BATTLE_CONFIG_VAR(skill_delay_attack_enable),
+            BATTLE_CONFIG_VAR(monster_skill_add_range),
+            BATTLE_CONFIG_VAR(player_damage_delay),
             BATTLE_CONFIG_VAR(flooritem_lifetime),
             BATTLE_CONFIG_VAR(item_auto_get),
             BATTLE_CONFIG_VAR(drop_pickup_safety_zone),
@@ -2503,45 +2438,27 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(item_third_get_time),
             BATTLE_CONFIG_VAR(base_exp_rate),
             BATTLE_CONFIG_VAR(job_exp_rate),
-            BATTLE_CONFIG_VAR(gtb_pvp_only),
             BATTLE_CONFIG_VAR(death_penalty_type),
             BATTLE_CONFIG_VAR(death_penalty_base),
             BATTLE_CONFIG_VAR(death_penalty_job),
-            BATTLE_CONFIG_VAR(zeny_penalty),
             BATTLE_CONFIG_VAR(restart_hp_rate),
             BATTLE_CONFIG_VAR(restart_sp_rate),
             BATTLE_CONFIG_VAR(monster_hp_rate),
             BATTLE_CONFIG_VAR(monster_max_aspd),
-            BATTLE_CONFIG_VAR2("atcommand_gm_only", atc_gmonly),
-            BATTLE_CONFIG_VAR2("atcommand_spawn_quantity_limit", atc_spawn_quantity_limit),
-            BATTLE_CONFIG_VAR2("gm_all_skill", gm_allskill),
-            BATTLE_CONFIG_VAR2("gm_all_skill_add_abra", gm_allskill_addabra),
-            BATTLE_CONFIG_VAR2("gm_all_equipment", gm_allequip),
-            BATTLE_CONFIG_VAR2("gm_skill_unconditional", gm_skilluncond),
-            BATTLE_CONFIG_VAR2("player_skillfree", skillfree),
-            BATTLE_CONFIG_VAR2("player_skillup_limit", skillup_limit),
-            BATTLE_CONFIG_VAR2("weapon_produce_rate", wp_rate),
-            BATTLE_CONFIG_VAR2("potion_produce_rate", pp_rate),
+            BATTLE_CONFIG_VAR(atcommand_gm_only),
+            BATTLE_CONFIG_VAR(atcommand_spawn_quantity_limit),
+            BATTLE_CONFIG_VAR(gm_all_equipment),
             BATTLE_CONFIG_VAR(monster_active_enable),
             BATTLE_CONFIG_VAR(mob_skill_use),
             BATTLE_CONFIG_VAR(mob_count_rate),
-            BATTLE_CONFIG_VAR(quest_skill_learn),
-            BATTLE_CONFIG_VAR(quest_skill_reset),
             BATTLE_CONFIG_VAR(basic_skill_check),
-            BATTLE_CONFIG_VAR2("player_invincible_time", pc_invincible_time),
+            BATTLE_CONFIG_VAR(player_invincible_time),
             BATTLE_CONFIG_VAR(skill_min_damage),
-            BATTLE_CONFIG_VAR(finger_offensive_type),
-            BATTLE_CONFIG_VAR(heal_exp),
-            BATTLE_CONFIG_VAR(resurrection_exp),
-            BATTLE_CONFIG_VAR(shop_exp),
-            BATTLE_CONFIG_VAR(combo_delay_rate),
-            BATTLE_CONFIG_VAR(wedding_modifydisplay),
             BATTLE_CONFIG_VAR(natural_healhp_interval),
             BATTLE_CONFIG_VAR(natural_healsp_interval),
             BATTLE_CONFIG_VAR(natural_heal_skill_interval),
             BATTLE_CONFIG_VAR(natural_heal_weight_rate),
             BATTLE_CONFIG_VAR(itemheal_regeneration_factor),
-            BATTLE_CONFIG_VAR(item_name_override_grffile),
             BATTLE_CONFIG_VAR(arrow_decrement),
             BATTLE_CONFIG_VAR(max_aspd),
             BATTLE_CONFIG_VAR(max_hp),
@@ -2549,16 +2466,13 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(max_lv),
             BATTLE_CONFIG_VAR(max_parameter),
             BATTLE_CONFIG_VAR(max_cart_weight),
-            BATTLE_CONFIG_VAR2("player_skill_log", pc_skill_log),
-            BATTLE_CONFIG_VAR2("monster_skill_log", mob_skill_log),
+            BATTLE_CONFIG_VAR(monster_skill_log),
             BATTLE_CONFIG_VAR(battle_log),
             BATTLE_CONFIG_VAR(save_log),
             BATTLE_CONFIG_VAR(error_log),
             BATTLE_CONFIG_VAR(etc_log),
             BATTLE_CONFIG_VAR(save_clothcolor),
             BATTLE_CONFIG_VAR(undead_detect_type),
-            BATTLE_CONFIG_VAR2("player_auto_counter_type", pc_auto_counter_type),
-            BATTLE_CONFIG_VAR(monster_auto_counter_type),
             BATTLE_CONFIG_VAR(agi_penaly_type),
             BATTLE_CONFIG_VAR(agi_penaly_count),
             BATTLE_CONFIG_VAR(agi_penaly_num),
@@ -2567,43 +2481,15 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(vit_penaly_count),
             BATTLE_CONFIG_VAR(vit_penaly_num),
             BATTLE_CONFIG_VAR(vit_penaly_count_lv),
-            BATTLE_CONFIG_VAR2("player_skill_reiteration", pc_skill_reiteration),
-            BATTLE_CONFIG_VAR(monster_skill_reiteration),
-            BATTLE_CONFIG_VAR2("player_skill_nofootset", pc_skill_nofootset),
-            BATTLE_CONFIG_VAR(monster_skill_nofootset),
-            BATTLE_CONFIG_VAR2("player_cloak_check_type", pc_cloak_check_type),
-            BATTLE_CONFIG_VAR(monster_cloak_check_type),
             BATTLE_CONFIG_VAR(mob_changetarget_byskill),
-            BATTLE_CONFIG_VAR2("player_attack_direction_change", pc_attack_direction_change),
+            BATTLE_CONFIG_VAR(player_attack_direction_change),
             BATTLE_CONFIG_VAR(monster_attack_direction_change),
-            BATTLE_CONFIG_VAR2("player_land_skill_limit", pc_land_skill_limit),
-            BATTLE_CONFIG_VAR(monster_land_skill_limit),
-            BATTLE_CONFIG_VAR(party_skill_penaly),
-            BATTLE_CONFIG_VAR(monster_class_change_full_recover),
-            BATTLE_CONFIG_VAR(produce_item_name_input),
-            BATTLE_CONFIG_VAR(produce_potion_name_input),
-            BATTLE_CONFIG_VAR(making_arrow_name_input),
-            BATTLE_CONFIG_VAR(holywater_name_input),
             BATTLE_CONFIG_VAR(display_delay_skill_fail),
-            BATTLE_CONFIG_VAR(chat_warpportal),
-            BATTLE_CONFIG_VAR(mob_warpportal),
             BATTLE_CONFIG_VAR(dead_branch_active),
             BATTLE_CONFIG_VAR(show_steal_in_same_party),
-            BATTLE_CONFIG_VAR(enable_upper_class),
-            BATTLE_CONFIG_VAR(mob_attack_attr_none),
-            BATTLE_CONFIG_VAR(mob_ghostring_fix),
-            BATTLE_CONFIG_VAR(pc_attack_attr_none),
-            BATTLE_CONFIG_VAR(gx_allhit),
-            BATTLE_CONFIG_VAR(gx_cardfix),
-            BATTLE_CONFIG_VAR(gx_dupele),
-            BATTLE_CONFIG_VAR(gx_disptype),
-            BATTLE_CONFIG_VAR(player_skill_partner_check),
             BATTLE_CONFIG_VAR(hide_GM_session),
-            BATTLE_CONFIG_VAR(unit_movement_type),
             BATTLE_CONFIG_VAR(invite_request_check),
-            BATTLE_CONFIG_VAR(skill_removetrap_type),
             BATTLE_CONFIG_VAR(disp_experience),
-            BATTLE_CONFIG_VAR(riding_weight),
             BATTLE_CONFIG_VAR(prevent_logout),   // Added by RoVeRT
             BATTLE_CONFIG_VAR(alchemist_summon_reward), // [Valaris]
             BATTLE_CONFIG_VAR(maximum_level), // [Valaris]
@@ -2611,11 +2497,8 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(monsters_ignore_gm),   // [Valaris]
             BATTLE_CONFIG_VAR(pk_mode), // [Valaris]
             BATTLE_CONFIG_VAR(multi_level_up),   // [Valaris]
-            BATTLE_CONFIG_VAR(backstab_bow_penalty),
-            BATTLE_CONFIG_VAR(show_mob_hp), // [Valaris]
             BATTLE_CONFIG_VAR(hack_info_GM_level),   // added by [Yor]
             BATTLE_CONFIG_VAR(any_warp_GM_min_level), // added by [Yor]
-            BATTLE_CONFIG_VAR(packet_ver_flag), // added by [Yor]
             BATTLE_CONFIG_VAR(min_hair_style),   // added by [MouseJstr]
             BATTLE_CONFIG_VAR(max_hair_style),   // added by [MouseJstr]
             BATTLE_CONFIG_VAR(min_hair_color),   // added by [MouseJstr]
@@ -2771,11 +2654,6 @@ int battle_config_read(ZString cfgName)
             battle_config.mask_ip_gms = 0;
         else if (battle_config.mask_ip_gms > 1)
             battle_config.mask_ip_gms = 1;
-
-        // at least 1 client must be accepted
-        if ((battle_config.packet_ver_flag & 63) == 0)  // added by [Yor]
-            battle_config.packet_ver_flag = 63; // accept all clients
-
     }
 
     return 0;
