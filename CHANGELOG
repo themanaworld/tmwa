@@ -1,0 +1,10 @@
+v13.9.12:
+  - Also allow "true" and "false" as boolean values in config files.
+  - The format of lan_support.conf has changed slightly.
+    If you have made any adjustments, you MUST update it.
+  - Increase maximum size of a script array from 128 to 256.
+  - Fix scissors bug.
+v13.8.28:
+  - First release - finally cleaned up enough to feel good about.
+  - For a partial list of changes since branch 'unsupported', see
+    http://forums.themanaworld.org/viewtopic.php?f=2&t=17670

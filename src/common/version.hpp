@@ -6,9 +6,9 @@
 // it should be possible to use a ./config.status for a long time
 
 # define TMWA_VERSION_MAJOR     13
-# define TMWA_VERSION_MINOR     8
-# define TMWA_VERSION_PATCH     28
-# define TMWA_DEVELOP_FLAG      1
+# define TMWA_VERSION_MINOR     9
+# define TMWA_VERSION_PATCH     12
+# define TMWA_DEVELOP_FLAG      0
 
 // TODO make these bitwise enums
 # define TMWA_FLAG_REGISTRATION 0x01
