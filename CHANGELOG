@@ -1,3 +1,4 @@
+next:
 v13.9.12:
   - Also allow "true" and "false" as boolean values in config files.
   - The format of lan_support.conf has changed slightly.
