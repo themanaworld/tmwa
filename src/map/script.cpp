@@ -420,9 +420,9 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
             exit(1);
         }
         XString word(&*p, &*p2, nullptr);
-        if (parse_cmd_if && (word == "callsub" || word == "callfunc"))
+        if (parse_cmd_if && (word == "callsub" || word == "callfunc" || word == "return"))
         {
-            disp_error_message("callsub/callfunc not allowed in an if statement", p);
+            disp_error_message("Sorry, callsub/callfunc/return have never worked properly in an if statement.", p);
         }
         str_data_t *ld = add_strp(word);
 
@@ -4527,6 +4527,136 @@ void run_func(ScriptState *st)
         pop_stack(st->stack, olddefsp - 4 - i, olddefsp);  // 要らなくなったスタック(引数と復帰用データ)削除
 
         st->state = ScriptEndState::GOTO;
+    }
+}
+
+// pretend it's external so this can be called in the debugger
+void dump_script(const ScriptBuffer *script);
+void dump_script(const ScriptBuffer *script)
+{
+    ScriptPointer scriptp(script, 0);
+    while (scriptp.pos < reinterpret_cast<const std::vector<ByteCode> *>(script)->size())
+    {
+        PRINTF("%6zu: ", scriptp.pos);
+        switch (ByteCode c = get_com(&scriptp))
+        {
+            case ByteCode::EOL:
+                PRINTF("EOL\n"); // extra newline between functions
+                break;
+            case ByteCode::INT:
+                // synthesized!
+                PRINTF("INT %d", get_num(&scriptp));
+                break;
+
+            case ByteCode::POS:
+            case ByteCode::VARIABLE:
+            case ByteCode::FUNC_REF:
+            case ByteCode::PARAM_:
+            {
+                int arg = 0;
+                arg |= static_cast<uint8_t>(scriptp.pop()) << 0;
+                arg |= static_cast<uint8_t>(scriptp.pop()) << 8;
+                arg |= static_cast<uint8_t>(scriptp.pop()) << 16;
+                switch(c)
+                {
+                case ByteCode::POS:
+                    PRINTF("POS %d", arg);
+                    break;
+                case ByteCode::VARIABLE:
+                    PRINTF("VARIABLE %s", variable_names.outtern(arg));
+                    break;
+                case ByteCode::FUNC_REF:
+                    PRINTF("FUNC_REF %s", builtin_functions[arg].name);
+                    break;
+                case ByteCode::PARAM_:
+                    PRINTF("PARAM SP::#%d (sorry)", arg);
+                    break;
+                }
+            }
+                break;
+            case ByteCode::ARG:
+                PRINTF("ARG");
+                break;
+            case ByteCode::STR:
+                PRINTF("STR \"%s\"", scriptp.pops());
+                break;
+            case ByteCode::FUNC_:
+                PRINTF("FUNC_");
+                break;
+
+            case ByteCode::ADD:
+                PRINTF("ADD");
+                break;
+            case ByteCode::SUB:
+                PRINTF("SUB");
+                break;
+            case ByteCode::MUL:
+                PRINTF("MUL");
+                break;
+            case ByteCode::DIV:
+                PRINTF("DIV");
+                break;
+            case ByteCode::MOD:
+                PRINTF("MOD");
+                break;
+            case ByteCode::EQ:
+                PRINTF("EQ");
+                break;
+            case ByteCode::NE:
+                PRINTF("NE");
+                break;
+            case ByteCode::GT:
+                PRINTF("GT");
+                break;
+            case ByteCode::GE:
+                PRINTF("GE");
+                break;
+            case ByteCode::LT:
+                PRINTF("LT");
+                break;
+            case ByteCode::LE:
+                PRINTF("LE");
+                break;
+            case ByteCode::AND:
+                PRINTF("AND");
+                break;
+            case ByteCode::OR:
+                PRINTF("OR");
+                break;
+            case ByteCode::XOR:
+                PRINTF("XOR");
+                break;
+            case ByteCode::LAND:
+                PRINTF("LAND");
+                break;
+            case ByteCode::LOR:
+                PRINTF("LOR");
+                break;
+            case ByteCode::R_SHIFT:
+                PRINTF("R_SHIFT");
+                break;
+            case ByteCode::L_SHIFT:
+                PRINTF("L_SHIFT");
+                break;
+            case ByteCode::NEG:
+                PRINTF("NEG");
+                break;
+            case ByteCode::NOT:
+                PRINTF("NOT");
+                break;
+            case ByteCode::LNOT:
+                PRINTF("LNOT");
+                break;
+
+            case ByteCode::NOP:
+                PRINTF("NOP");
+                break;
+
+            default:
+                PRINTF("??? %d", c);
+                break;
+        }
+        PRINTF("\n");
     }
 }
 
