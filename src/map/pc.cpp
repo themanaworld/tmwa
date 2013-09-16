@@ -3228,6 +3228,7 @@ int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
     val = sd->status.attrs[attr] + val;
     val = std::min(val, battle_config.max_parameter);
     val = std::max(val, 1);
+    sd->status.attrs[attr] = val;
     clif_updatestatus(sd, sp_to_usp(type));
     clif_updatestatus(sd, type);
     pc_calcstatus(sd, 0);
