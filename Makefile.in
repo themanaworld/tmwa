@@ -1,8 +1,5 @@
-ifneq (${SRC_DIR},.)
-$(error out-of-tree builds not supported yet, sorry)
-endif
-# but there are bits working toward it
-
+vpath %.ypp ${SRC_DIR}
+vpath %.lpp ${SRC_DIR}
 vpath %.cpp ${SRC_DIR}
 vpath %.hpp ${SRC_DIR}
 
@@ -14,7 +11,7 @@ default: login-server char-server map-server ladmin eathena-monitor
 # this used to be in make.defs
 CXXFLAGS += ${WARNINGS}
 ifeq (${ENABLE_WARNINGS},yes)
-WARNINGS = -include src/warnings.hpp
+WARNINGS = -include ${SRC_DIR}/src/warnings.hpp
 endif
 
 # gdb bug 15801
@@ -46,8 +43,10 @@ override CXXFLAGS += -fvisibility=hidden
 
 # The default recipe is suboptimal
 %.cpp: %.lpp
+	+mkdir -p ${@D}
 	$(FLEX) -o $@ $<
-%.cpp %.h: %.ypp
+%.cpp %.hpp: %.ypp
+	+mkdir -p ${@D}
 	$(BISON) -d -o $*.cpp $<
 
 
@@ -106,13 +105,15 @@ ${BUILD_DIR}/tool/eathena-monitor: ${BUILD_DIR}/tool/eathena-monitor.o ${BUILD_D
 
 # silence build warnings for code beyond my control
 ${BUILD_DIR}/map/magic-interpreter-lexer.o ${BUILD_DIR}/map/magic-interpreter-parser.o ${BUILD_DIR}/gtest-all.o: override WARNINGS=
+# for out-of-tree builds
+${BUILD_DIR}/map/magic-interpreter-lexer.o ${BUILD_DIR}/map/magic-interpreter-parser.o: override CPPFLAGS+=-I${SRC_DIR}/src/map
 
 # deps.make is *NOT* automatically rebuilt normally
 # but the generated source files do need to be done first
-deps.make: ${SRC_DIR}/src/map/magic-interpreter-parser.cpp ${SRC_DIR}/src/map/magic-interpreter-lexer.cpp
-	for F in `cd ${SRC_DIR}; find src/ -name '*.cpp'`; do \
-	    ${CXX} ${CPPFLAGS} -MM "$$F" -MT "$$(sed 's/src/$${BUILD_DIR}/;s/\.cpp/.o/' <<< "$$F")"; \
-	done > deps.make
+deps.make: src/map/magic-interpreter-parser.cpp src/map/magic-interpreter-lexer.cpp
+	( cd ${SRC_DIR}; for F in `find src/ -name '*.cpp'`; do \
+	    ${CXX} ${CPPFLAGS} ${CXXFLAGS} -MM "$$F" -MT "$$(sed 's/src/$${BUILD_DIR}/;s/\.cpp/.o/' <<< "$$F")"; \
+	done ) > deps.make
 	echo '# vim: filetype=make' >> deps.make
 
 include deps.make
@@ -124,8 +125,8 @@ install:
 # might need changes later to handle static declarations (solution:
 # run ctags twice, specifying forward patterns for the declarations
 # and backward patterns for the definition)
-tags: $(shell git ls-files src/)
+tags: $(shell cd ${SRC_DIR}; git ls-files src/ | grep -v GNUmakefile)
 	ctags --totals --c-kinds=+px -f $@ $^
-Makefile: Makefile.in
+Makefile: ${SRC_DIR}/Makefile.in
 	@echo Makefile.in updated, you must rerun configure
 	@false
