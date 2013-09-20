@@ -1,5 +1,5 @@
 .SUFFIXES:
-all:
+common:
 	${MAKE} -C ../.. common
 clean:
 	rm -r ../../obj/common/

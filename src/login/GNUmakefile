@@ -1,6 +1,6 @@
 .SUFFIXES:
-all:
-	${MAKE} -C ../.. login-server
+bin/tmwa-login:
+	${MAKE} -C ../.. bin/tmwa-login
 clean:
 	rm -r ../../obj/login/
 %::

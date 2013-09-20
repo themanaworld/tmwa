@@ -1,3 +1,5 @@
+#include "magic-interpreter-base.hpp"
+
 #include "magic-interpreter-aux.hpp"
 #include "magic-interpreter.hpp"
 

@@ -2,6 +2,7 @@
 #define SKILL_HPP
 
 #include "skill.t.hpp"
+#include "skill-pools.hpp"
 
 #include "../common/strings.hpp"
 

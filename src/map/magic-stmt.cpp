@@ -1,3 +1,5 @@
+#include "magic-stmt.hpp"
+
 #include <cassert>
 
 #include "../common/cxxstdio.hpp"

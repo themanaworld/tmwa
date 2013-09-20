@@ -3,7 +3,15 @@
 #include "../common/cxxstdio.hpp"
 
 #include "magic-interpreter.hpp"
+
 #include "pc.hpp"
+
+#include "magic-expr.hpp"
+#include "magic-interpreter-base.hpp"
+#include "magic-interpreter-lexer.hpp"
+#include "magic-interpreter-parser.hpp"
+#include "magic-stmt.hpp"
+#include "magic.hpp"
 
 #include "../poison.hpp"
 

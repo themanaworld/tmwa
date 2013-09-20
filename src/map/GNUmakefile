@@ -1,6 +1,6 @@
 .SUFFIXES:
-all:
-	${MAKE} -C ../.. map-server
+bin/tmwa-map:
+	${MAKE} -C ../.. bin/tmwa-map
 clean:
 	rm -r ../../obj/map/
 %::

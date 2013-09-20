@@ -1,4 +1,6 @@
 %{
+#include "magic-interpreter-lexer.hpp"
+#
 #include "magic-interpreter-parser.hpp"
 
 #include "../common/cxxstdio.hpp"
