@@ -255,6 +255,11 @@ install:
 	install -d ${BINDIR}
 	install --backup=${ENABLE_BACKUPS_DURING_INSTALL} -t ${BINDIR} \
 	    $(wildcard ${BINARIES})
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-login ${BINDIR}/login-server
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-char ${BINDIR}/char-server
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-map ${BINDIR}/map-server
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-admin ${BINDIR}/ladmin
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-monitor ${BINDIR}/eathena-monitor
 tags: ${SOURCES} ${HEADERS}
 	ctags --totals --c-kinds=+px -f $@ $^
 
