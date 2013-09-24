@@ -80,7 +80,7 @@ ifeq (${MAKE_RESTARTS},)
 # Note: the space is necessary
 $(info )
 $(info Welcome to the One Makefile)
-$(info Copyright 2012 Ben Longbons)
+$(info Copyright 2012-2013 Ben Longbons)
 $(info )
 $(info One Makefile to build them all,)
 $(info One Makefile to find them,)
@@ -124,8 +124,16 @@ REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp')
 SOURCES := ${GEN_SOURCES} ${REAL_SOURCES}
 HEADERS := ${GEN_HEADERS} ${REAL_HEADERS}
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
+PREPROCESSED := $(patsubst %.d,%.ii,${DEPENDS})
+IRS := $(patsubst %.d,%.ll,${DEPENDS})
+BITCODES := $(patsubst %.d,%.bc,${DEPENDS})
+ASSEMBLED := $(patsubst %.d,%.s,${DEPENDS})
 OBJECTS := $(patsubst %.d,%.o,${DEPENDS})
 GEN_DEPENDS := $(patsubst src/%.cpp,obj/%.d,${GEN_SOURCES})
+GEN_PREPROCESSED := $(patsubst %.d,%.ii,${GEN_DEPENDS})
+GEN_IRS := $(patsubst %.d,%.ll,${GEN_DEPENDS})
+GEN_BITCODES := $(patsubst %.d,%.bc,${GEN_DEPENDS})
+GEN_ASSEMBLED := $(patsubst %.d,%.s,${GEN_DEPENDS})
 GEN_OBJECTS := $(patsubst %.d,%.o,${GEN_DEPENDS})
 MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
 BINARIES := $(patsubst src/%/main.cpp,bin/tmwa-%,${MAIN_SOURCES})
@@ -177,18 +185,22 @@ CXXFLAGS += ${WARNINGS}
 ifeq (${ENABLE_WARNINGS},yes)
 WARNINGS := -include ${SRC_DIR}/src/warnings.hpp
 endif
-${GEN_DEPENDS} ${GEN_OBJECTS}: override WARNINGS :=
-${GEN_DEPENDS} ${GEN_OBJECTS}: override CPPFLAGS += -I ${SRC_DIR}/$(patsubst obj/%,src/%,${@D})
+${GEN_DEPENDS} ${GEN_PREPROCESSED} ${GEN_IRS} ${GEN_BITCODES} ${GEN_ASSEMBLED} ${GEN_OBJECTS}: override WARNINGS :=
+${GEN_DEPENDS} ${GEN_PREPROCESSED} ${GEN_IRS} ${GEN_BITCODES} ${GEN_ASSEMBLED} ${GEN_OBJECTS}: override CPPFLAGS += -I ${SRC_DIR}/$(patsubst obj/%,src/%,${@D})
 
 # related to gdb bug 15801
 ifeq (${ENABLE_ABI6},yes)
 CXXFLAGS += -fabi-version=6
 endif
+
+# This needs to edit CXX instead of CXXFLAGS in order to make
+# the %.ii rule work.
 ifeq (${ENABLE_CYGWIN_HACKS},yes)
-override CXXFLAGS += -std=gnu++0x
+override CXX += -std=gnu++0x
 else
-override CXXFLAGS += -std=c++0x
+override CXX += -std=c++0x
 endif
+
 CXXFLAGS += -fstack-protector
 override CXXFLAGS += -fno-strict-aliasing
 override CXXFLAGS += -fvisibility=hidden
@@ -203,7 +215,13 @@ vpath %.hpp ${SRC_DIR}
 .DEFAULT_GOAL := all
 # main goals
 all: ${BINARIES}
-sources: ${GEN_SOURCES} ${GEN_HEADERS}
+cpp: ${GEN_SOURCES} ${GEN_HEADERS}
+ii: ${PREPROCESSED}
+ll: ${IRS}
+bc: ${BITCODES}
+s: ${ASSEMBLED}
+o: ${OBJECTS}
+
 mostlyclean:
 	rm -rf obj
 clean: mostlyclean
@@ -226,6 +244,18 @@ obj/%.d: src/%.cpp
 	    -e 's: ${SRC_DIR}/: :g' \
 	    > $@
 # the above SRC_DIR replacement is not really safe, but it works okayish.
+obj/%.ii: src/%.cpp
+	$(MKDIR_FIRST)
+	${CXX} ${CPPFLAGS} -E -o $@ $<
+obj/%.ll: src/%.cpp
+	$(MKDIR_FIRST)
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -emit-llvm -o $@ $<
+obj/%.bc: src/%.cpp
+	$(MKDIR_FIRST)
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -emit-llvm -o $@ $<
+obj/%.s: src/%.cpp
+	$(MKDIR_FIRST)
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -o $@ $<
 obj/%.o: src/%.cpp
 	$(MKDIR_FIRST)
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
@@ -234,6 +264,7 @@ obj/%/autolist.d: $(filter-out %/autolist.d,${DEPENDS})
 	echo $@: $(filter %_test.d,$^) > $@
 include ${DEPENDS}
 
+# I'm not convinced keeping the bin/ is a good idea
 bin/%:
 	$(MKDIR_FIRST)
 	${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
@@ -252,14 +283,25 @@ test: $(patsubst bin/%,.run-%,${TEST_BINARIES})
 	$<
 
 install:
-	install -d ${BINDIR}
-	install --backup=${ENABLE_BACKUPS_DURING_INSTALL} -t ${BINDIR} \
+	install -d ${DESTDIR}${BINDIR}
+	install --backup=${ENABLE_BACKUPS_DURING_INSTALL} -t ${DESTDIR}${BINDIR} \
 	    $(wildcard ${BINARIES})
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-login ${BINDIR}/login-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-char ${BINDIR}/char-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-map ${BINDIR}/map-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-admin ${BINDIR}/ladmin
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-monitor ${BINDIR}/eathena-monitor
+# Is wildcard really the right thing to do? ^
+# cases to consider:
+#   all binaries built
+#   all binaries present, but some outdated. This is hard unless I dep.
+#   some binaries built
+#   no binaries built
+ifeq (${ENABLE_COMPAT_SYMLINKS},yes)
+	@echo Installing compatibility symlinks
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-login ${DESTDIR}${BINDIR}/login-server
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-char ${DESTDIR}${BINDIR}/char-server
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-map ${DESTDIR}${BINDIR}/map-server
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-admin ${DESTDIR}${BINDIR}/ladmin
+	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-monitor ${DESTDIR}${BINDIR}/eathena-monitor
+else
+	@echo Not installing compatibility symlinks
+endif
 tags: ${SOURCES} ${HEADERS}
 	ctags --totals --c-kinds=+px -f $@ $^
 

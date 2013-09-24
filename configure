@@ -68,6 +68,9 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
         self.add_bool_feature('cygwin-hacks', init='no',
                 check=lambda build, ENABLE_CYGWIN_HACKS: None,
                 help='Work around bugs in certain cygwin versions')
+        self.add_bool_feature('compat-symlinks', init='yes',
+                check=lambda build, ENABLE_COMPAT_SYMLINKS: None,
+                help='Install symlinks to avoid breaking old scripts')
 
     def vars(self):
         super(Configuration, self).vars()
