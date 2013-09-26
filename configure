@@ -27,7 +27,7 @@ try:
 except ImportError:
     sys.exit('attoconf missing - please run: git submodule update --init')
 else:
-    require_version(0, 6)
+    require_version(0, 8)
 
 from attoconf.classy import add_slots
 from attoconf.lib.c import Cxx
@@ -35,14 +35,14 @@ from attoconf.lib.lex import Flex
 from attoconf.lib.yacc import Bison
 from attoconf.lib.install import Install
 from attoconf.lib.config_hash import ConfigHash
-from attoconf.lib.make import Make
+from attoconf.lib.templates import Templates
 from attoconf.types import enum, filepath
 
 
 yesno = enum('yes', 'no')
 
 @add_slots
-class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
+class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Templates):
     def general(self):
         super(Configuration, self).general()
         home = os.path.expanduser('~')
@@ -91,8 +91,12 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Make):
 
 def main():
     srcdir = os.path.dirname(sys.argv[0])
-    proj = Configuration(srcdir)
-    proj.set_package('tmwa', 'The Mana World (Athena server)')
+    proj = Configuration(
+            srcdir=srcdir,
+            package='tmwa',
+            package_name='The Mana World (Athena server)',
+            template_files=['Makefile'],
+    )
     proj.jiggle()
     build = proj.build('.')
     build.configure(sys.argv[1:], os.environ)
