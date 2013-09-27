@@ -5,6 +5,12 @@
 
 #include <algorithm>
 
+#include "../strings/fstring.hpp"
+#include "../strings/tstring.hpp"
+#include "../strings/sstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "cxxstdio.hpp"
 #include "extract.hpp"
 
@@ -42,7 +48,7 @@ bool e_mail_check(XString email)
 // Return numerical value of a switch configuration
 // on/off, english, français, deutsch, español
 //-------------------------------------------------
-int config_switch (ZString str)
+int config_switch(ZString str)
 {
     if (str == "true" || str == "on" || str == "yes"
         || str == "oui" || str == "ja"

@@ -2,6 +2,9 @@
 
 #include <cstring>
 
+#include "../strings/xstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "cxxstdio.hpp"
 #include "random.hpp"
 #include "utils.hpp"

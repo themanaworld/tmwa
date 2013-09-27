@@ -4,6 +4,11 @@
 
 #include <fstream>
 
+#include "../strings/fstring.hpp"
+#include "../strings/tstring.hpp"
+#include "../strings/sstring.hpp"
+#include "../strings/zstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/io.hpp"
 #include "../common/nullpo.hpp"

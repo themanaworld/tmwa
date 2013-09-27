@@ -21,8 +21,9 @@
 
 #include "sanity.hpp"
 
+#include "../strings/xstring.hpp"
+
 #include "extract.hpp"
-#include "strings.hpp"
 
 struct HumanTimeDiff
 {

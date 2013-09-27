@@ -8,9 +8,11 @@
 
 #include <type_traits>
 
+#include "../strings/fwd.hpp"
+#include "../strings/vstring.hpp"
+
 #include "const_array.hpp"
 #include "operators.hpp"
-#include "strings.hpp"
 #include "utils2.hpp"
 
 template<class T>

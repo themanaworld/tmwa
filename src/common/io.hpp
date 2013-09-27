@@ -4,7 +4,7 @@
 #include <istream>
 #include <ostream>
 
-#include "strings.hpp"
+#include "../strings/fstring.hpp"
 
 namespace io
 {

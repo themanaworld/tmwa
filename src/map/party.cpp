@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"

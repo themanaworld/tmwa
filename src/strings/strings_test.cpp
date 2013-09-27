@@ -1,4 +1,4 @@
-#include "strings.hpp"
+#include "all.hpp"
 
 #include <algorithm>
 
@@ -228,6 +228,24 @@ TYPED_TEST_P(StringTest, convert)
     EXPECT_EQ(v, v3);
     EXPECT_EQ(l, l3);
     EXPECT_EQ(hi, hi3);
+
+    TypeParam f4(f);
+    TypeParam t4(t);
+    TypeParam s4(s);
+    TypeParam z4(z);
+    TypeParam x4(x);
+    TypeParam v4(v);
+    TypeParam l4(l);
+    TypeParam hi4(hi);
+
+    EXPECT_EQ(f, f4);
+    EXPECT_EQ(t, t4);
+    EXPECT_EQ(s, s4);
+    EXPECT_EQ(z, z4);
+    EXPECT_EQ(x, x4);
+    EXPECT_EQ(v, v4);
+    EXPECT_EQ(l, l4);
+    EXPECT_EQ(hi, hi4);
 }
 
 REGISTER_TYPED_TEST_CASE_P(StringTest,
@@ -244,7 +262,7 @@ TEST(VStringTest, basic)
     EXPECT_EQ(5, hi.size());
     EXPECT_EQ(hi, hi);
     // truncation
-    VString<5> hi2(ZString::really_construct_from_a_pointer, "Hello, world!");
+    VString<5> hi2(strings::really_construct_from_a_pointer, "Hello, world!");
     EXPECT_EQ(5, hi2.size());
     EXPECT_EQ(hi, hi2);
     // short

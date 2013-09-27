@@ -6,6 +6,10 @@
 #include <cstring>
 #include <ctime>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/random.hpp"

@@ -7,6 +7,11 @@
 
 #include <list>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -1208,7 +1213,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             (*lines)++;
             if (feof(fp))
                 break;
-            ZString line(ZString::really_construct_from_a_pointer, line_, nullptr);
+            ZString line(strings::really_construct_from_a_pointer, line_, nullptr);
             if (!srcbuf)
             {
                 // may be a no-op
@@ -1403,7 +1408,7 @@ int npc_parse_function(XString, XString, XString w3, ZString,
         (*lines)++;
         if (feof(fp))
             break;
-        ZString line(ZString::really_construct_from_a_pointer, line_, nullptr);
+        ZString line(strings::really_construct_from_a_pointer, line_, nullptr);
         if (!srcbuf)
         {
             srcbuf += line.xislice_t(std::find(line.begin(), line.end(), '{'));
@@ -1731,7 +1736,7 @@ int do_init_npc(void)
         {
             // because it's still fgets
             line_[strlen(line_) - 1] = '\0';
-            ZString zline(ZString::really_construct_from_a_pointer, line_, nullptr);
+            ZString zline(strings::really_construct_from_a_pointer, line_, nullptr);
             XString w1, w2, w3, w4x;
             ZString w4z;
             lines++;

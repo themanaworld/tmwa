@@ -3,6 +3,9 @@
 #define MMO_HPP
 
 # include "sanity.hpp"
+
+# include "../strings/vstring.hpp"
+
 # include "timer.t.hpp"
 # include "utils2.hpp"
 
@@ -57,7 +60,7 @@ T stringish(VString<sizeof(T) - 1> iv)
 #define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com")
 
 // It is decreed: a mapname shall not contain an extension
-class MapName : public strings::_crtp_string<MapName, MapName, ZString, XString>
+class MapName : public strings::_crtp_string<MapName, MapName, strings::ZPair>
 {
     VString<15> _impl;
 public:

@@ -8,11 +8,14 @@
 #include <functional>
 #include <list>
 
+#include "../strings/fwd.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/matrix.hpp"
 #include "../common/socket.hpp"
-#include "../common/strings.hpp"
 #include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"

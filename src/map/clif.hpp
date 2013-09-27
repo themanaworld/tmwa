@@ -5,9 +5,10 @@
 
 #include <functional>
 
+#include "../strings/fwd.hpp"
+
 #include "../common/const_array.hpp"
 #include "../common/ip.hpp"
-#include "../common/strings.hpp"
 #include "../common/timer.t.hpp"
 
 #include "battle.t.hpp"

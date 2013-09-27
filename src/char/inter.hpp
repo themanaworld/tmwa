@@ -1,7 +1,7 @@
 #ifndef INTER_HPP
 #define INTER_HPP
 
-#include "../common/strings.hpp"
+#include "../strings/fwd.hpp"
 
 void inter_init(ZString file);
 void inter_save(void);

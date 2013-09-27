@@ -3,6 +3,8 @@
 
 #include "pc.t.hpp"
 
+#include "../strings/fwd.hpp"
+
 #include "clif.t.hpp"
 #include "map.hpp"
 

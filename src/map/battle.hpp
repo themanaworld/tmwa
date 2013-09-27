@@ -3,6 +3,8 @@
 
 #include "battle.t.hpp"
 
+#include "../strings/fwd.hpp"
+
 #include "../common/timer.t.hpp"
 
 #include "magic-interpreter.t.hpp"

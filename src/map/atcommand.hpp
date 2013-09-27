@@ -1,6 +1,8 @@
 #ifndef ATCOMMAND_HPP
 #define ATCOMMAND_HPP
 
+#include "../strings/fwd.hpp"
+
 #include "../common/const_array.hpp"
 
 #include "map.hpp"

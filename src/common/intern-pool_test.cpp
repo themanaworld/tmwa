@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../strings/base.hpp"
+
 TEST(InternPool, whydoesthisalwaysneedasecondname)
 {
     InternPool p;

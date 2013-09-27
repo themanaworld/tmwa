@@ -67,7 +67,7 @@
 # 10. Support per-target build flags? (requires renaming)
 
 ifeq ($(findstring s,$(firstword ${MAKEFLAGS})),)
-ifeq (${MAKE_RESTARTS},)
+ifndef MAKE_RESTARTS
 # TODO: should I write this in tengwar?
 # The major problem is that it's usually encoded in the PUA
 # and thus requires a font specification.
@@ -237,6 +237,8 @@ distclean: clean
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
 	${BISON} -d -o $*.cpp $<
+ifndef MAKE_RESTARTS
+# prevent errors if missing header
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
 	set -o pipefail; \
@@ -245,6 +247,7 @@ obj/%.d: src/%.cpp
 	    | sed -e ':again; s:/[^/ ]*/../:/:; t again' \
 	    -e 's: ${SRC_DIR}/: :g' \
 	    > $@
+endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp
 	$(MKDIR_FIRST)
@@ -308,8 +311,8 @@ tags: ${SOURCES} ${HEADERS}
 	ctags --totals --c-kinds=+px -f $@ $^
 
 Makefile: ${SRC_DIR}/Makefile.in
-	@echo Makefile.in updated, you must rerun configure
-	@false
+	@echo Makefile.in updated, reconfiguring ...
+	./config.status
 
 include ${SRC_DIR}/version.make
 

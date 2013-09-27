@@ -53,7 +53,7 @@ ifeq '${MAKEFILE_LIST}' ' Makefile'
 # should be used only in special circumstances."
 # If you do not understand *exactly* why I do this instead of
 # %::;${MAKE}, stay away from this code. You have been warned.
-.default-target-wrapper ${MAKECMDGOALS}: .all-target-wrapper
+.default-target-wrapper ${MAKECMDGOALS}: .all-target-wrapper ; @:
 .all-target-wrapper:
 	${MAKE} -rRf ${SRC_DIR}/real.make ${MAKECMDGOALS}
 endif

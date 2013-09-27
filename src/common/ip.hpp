@@ -23,8 +23,9 @@
 
 #include <netinet/in.h>
 
+#include "../strings/fwd.hpp"
+
 #include "extract.hpp"
-#include "strings.hpp"
 
 // TODO - in the long run ports belong here also
 // and of course, IPv6 stuff.

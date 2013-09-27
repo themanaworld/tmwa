@@ -5,6 +5,9 @@
 
 #include <cassert>
 
+#include "../strings/fwd.hpp"
+#include "../strings/fstring.hpp"
+
 #include "magic.hpp"
 #include "map.hpp"
 #include "script.hpp"

@@ -1,6 +1,8 @@
 #ifndef MAGIC_EXPR_EVAL_HPP
 #define MAGIC_EXPR_EVAL_HPP
 
+#include "../strings/zstring.hpp"
+
 #include "../common/utils2.hpp"
 
 #include "magic-interpreter.hpp"

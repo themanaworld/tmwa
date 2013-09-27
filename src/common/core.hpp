@@ -3,7 +3,7 @@
 
 #include "sanity.hpp"
 
-#include "strings.hpp"
+#include "../strings/fwd.hpp"
 
 /// core.c contains a server-independent main() function
 /// and then runs a do_sendrecv loop

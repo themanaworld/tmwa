@@ -8,6 +8,8 @@
 
 #include <queue>
 
+#include "../strings/zstring.hpp"
+
 #include "cxxstdio.hpp"
 #include "utils.hpp"
 

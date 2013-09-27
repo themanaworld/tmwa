@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "../strings/zstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/random2.hpp"
 #include "../common/timer.hpp"

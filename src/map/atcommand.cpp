@@ -6,6 +6,14 @@
 
 #include <fstream>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/tstring.hpp"
+#include "../strings/sstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"

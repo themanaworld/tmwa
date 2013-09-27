@@ -3,6 +3,9 @@
 #include "magic-interpreter-aux.hpp"
 #include "magic-interpreter.hpp"
 
+#include "../strings/fstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/timer.hpp"
 

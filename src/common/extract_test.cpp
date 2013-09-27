@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../strings/xstring.hpp"
+
 TEST(extract, record_int)
 {
     int x, y, z;

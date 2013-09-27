@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "../strings/fwd.hpp"
+
 #include "../common/timer.t.hpp"
 
 #include "map.hpp"

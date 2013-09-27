@@ -1,6 +1,8 @@
 #ifndef TMW_HPP
 #define TMW_HPP
 
+#include "../strings/fwd.hpp"
+
 #include "../common/const_array.hpp"
 #include "../common/dumb_ptr.hpp"
 
