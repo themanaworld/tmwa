@@ -8,7 +8,7 @@
 # define TMWA_VERSION_MAJOR     13
 # define TMWA_VERSION_MINOR     9
 # define TMWA_VERSION_PATCH     27
-# define TMWA_DEVELOP_FLAG      0
+# define TMWA_DEVELOP_FLAG      1
 
 // TODO make these bitwise enums
 # define TMWA_FLAG_REGISTRATION 0x01
