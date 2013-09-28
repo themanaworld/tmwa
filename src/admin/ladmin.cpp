@@ -48,7 +48,7 @@ FString ladmin_log_filename = "log/ladmin.log";
 //    To use these commands you can only type only the first letters.
 //    You must type a minimum of letters (you can not type 'a',
 //      because ladmin doesn't know if it's for 'aide' or for 'add')
-//    <Example> q <= quit, li <= list, pass <= passwd, etc.
+//    <Example> q <= quit, li <= list, pass <= password, etc.
 //
 //  Note: every time you must give a account_name, you can use "" or '' (spaces can be included)
 //
@@ -152,7 +152,7 @@ FString ladmin_log_filename = "log/ladmin.log";
 //  name <account_id>
 //    Give the name of an account.
 //
-//  passwd <account_name> <new_password>
+//  password <account_name> <new_password>
 //    Change the password of an account.
 //    When new password is omitted, the input is done without displaying of the pressed keys.
 //
@@ -473,7 +473,7 @@ void display_help(ZString param)
     }
     else if (command == "password")
     {
-        PRINTF("passwd <account_name> <new_password>\n");
+        PRINTF("password <account_name> <new_password>\n");
         PRINTF("  Change the password of an account.\n");
         PRINTF("  When new password is omitted,\n");
         PRINTF("  the input is done without displaying of the pressed keys.\n");
@@ -606,7 +606,7 @@ void display_help(ZString param)
         PRINTF("                                         without state and not banished\n");
         PRINTF(" memo <account_name> <memo>           -- Modify the memo of an account\n");
         PRINTF(" name <account_id>                    -- Give the name of an account\n");
-        PRINTF(" passwd <account_name> <new_password> -- Change the password of an account\n");
+        PRINTF(" password <account_name> <new_password> -- Change the password of an account\n");
         PRINTF(" quit/end/exit                        -- End of the program of administation\n");
         PRINTF(" reloadGM                             -- Reload GM configuration file\n");
         PRINTF(" search <expression>                  -- Seek accounts\n");
@@ -1330,7 +1330,7 @@ void changepasswd(ZString param)
     if (!qsplit(param, &name, &password))
     {
         PRINTF("Please input an account name.\n");
-        PRINTF("<example> passwd testname newpassword\n");
+        PRINTF("<example> password testname newpassword\n");
         LADMIN_LOG("Incomplete parameters to change the password of an account ('password' command).\n");
         return;
     }
