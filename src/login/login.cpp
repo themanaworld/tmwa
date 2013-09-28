@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <array>
 #include <fstream>
+#include <set>
 #include <type_traits>
 
 #include "../common/core.hpp"
@@ -471,12 +472,19 @@ bool extract(XString line, AuthData *ad)
         return false;
     if (ad->account_id > END_ACCOUNT_NUM)
         return false;
-    for (const AuthData& adi : auth_data)
+    // TODO replace *every* lookup with a map lookup
+    static std::set<int> seen_ids;
+    static std::set<AccountName> seen_names;
+    // we don't have to worry about deleted characters,
+    // this is only called during startup
+    auto _seen_id = seen_ids.insert(ad->account_id);
+    if (!_seen_id.second)
+        return false;
+    auto _seen_name = seen_names.insert(ad->userid);
+    if (!_seen_name.second)
     {
-        if (adi.account_id == ad->account_id)
-            return false;
-        if (adi.userid == ad->userid)
-            return false;
+        seen_ids.erase(_seen_id.first);
+        return false;
     }
     // If a password is not encrypted, we encrypt it now.
     // A password beginning with ! and - in the memo field is our magic
