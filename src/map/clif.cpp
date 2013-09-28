@@ -3851,10 +3851,24 @@ void clif_parse_ChangeDir(int fd, dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    // RFIFOW(fd, 2) is always 0
-    DIR dir = static_cast<DIR>(RFIFOB(fd, 4));
-    if (dir >= DIR::COUNT)
+    // RFIFOW(fd, 2) and WBUFW(buf, 6) are always 0
+    // TODO perhaps we could use that to remove this hack?
+    DIR dir;
+    uint8_t client_dir = RFIFOB(fd, 4);
+    // the client uses a diffenent direction enum ... ugh
+    switch (client_dir)
+    {
+    case 1 | 0: dir = DIR::S; break; // down
+    case 1 | 2: dir = DIR::SW; break;
+    case 0 | 2: dir = DIR::W; break; // left
+    case 4 | 2: dir = DIR::NW; break;
+    case 4 | 0: dir = DIR::N; break; // up
+    case 4 | 8: dir = DIR::NE; break;
+    case 0 | 8: dir = DIR::E; break; // right
+    case 1 | 8: dir = DIR::SE; break;
+    default:
         return;
+    }
 
     if (dir == sd->dir)
         return;
@@ -3864,7 +3878,7 @@ void clif_parse_ChangeDir(int fd, dumb_ptr<map_session_data> sd)
     WBUFW(buf, 0) = 0x9c;
     WBUFL(buf, 2) = sd->bl_id;
     WBUFW(buf, 6) = 0;
-    WBUFB(buf, 8) = static_cast<uint8_t>(dir);
+    WBUFB(buf, 8) = client_dir;
 
     clif_send(buf, clif_parse_func_table[0x9c].len, sd, SendWho::AREA_WOS);
 
