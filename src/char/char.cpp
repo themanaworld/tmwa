@@ -14,6 +14,7 @@
 
 #include <bitset>
 #include <fstream>
+#include <set>
 
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
@@ -374,12 +375,19 @@ bool extract(XString str, struct mmo_charstatus *p)
     if (wisp_server_name == p->name)
         return false;
 
-    for (const mmo_charstatus& cd : char_data)
+    // TODO replace *every* lookup with a map lookup
+    static std::set<int> seen_ids;
+    static std::set<CharName> seen_names;
+    // we don't have to worry about deleted characters,
+    // this is only called during startup
+    auto _seen_id = seen_ids.insert(p->char_id);
+    if (!_seen_id.second)
+        return false;
+    auto _seen_name = seen_names.insert(p->name);
+    if (!_seen_name.second)
     {
-        if (cd.char_id == p->char_id)
-            return false;
-        if (cd.name == p->name)
-            return false;
+        seen_ids.erase(_seen_id.first);
+        return false;
     }
 
     if (memos.size() > 10)
