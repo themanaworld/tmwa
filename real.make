@@ -235,6 +235,8 @@ distclean: clean
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
 	${BISON} -d -o $*.cpp $<
+%.hpp: ;
+# hpp rule is needed for disappearing headers
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
 	set -o pipefail; \
