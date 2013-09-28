@@ -23,7 +23,7 @@ struct tmp_path
 static
 int calc_index(int x, int y)
 {
-    return (x + y * MAX_WALKPATH) & (MAX_WALKPATH * MAX_WALKPATH - 1);
+    return (x + y * MAX_WALKPATH) % (MAX_WALKPATH * MAX_WALKPATH);
 }
 
 /*==========================================
