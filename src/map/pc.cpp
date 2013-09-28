@@ -4662,8 +4662,8 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
         }
         j++;
     }
-    while (j < MAX_INVENTORY)
-        sd->status.inventory[j++] = item{};
+    for (k = j; k < MAX_INVENTORY; ++k)
+        sd->status.inventory[k] = item{};
     for (k = j; k < MAX_INVENTORY; k++)
         sd->inventory_data[k] = NULL;
 
