@@ -2613,6 +2613,12 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
         case BL::ITEM:
             clif_getareachar_item(sd, bl->as_item());
             break;
+        case BL::SPELL:
+            // spell objects are not visible
+            // (at least, I *think* that's what this code is for)
+            // in any case, this is not a behavior change, just silencing
+            // the below warning
+            break;
         default:
             if (battle_config.error_log)
                 PRINTF("get area char ??? %d\n",
