@@ -3386,7 +3386,7 @@ bool extract(XString str, LevelElement *le)
     int tmp;
     if (extract(str, &tmp))
     {
-        le->unpack(tmp);
+        *le = LevelElement::unpack(tmp);
         return true;
     }
     return false;
