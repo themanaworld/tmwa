@@ -937,6 +937,8 @@ void register_npc_name(dumb_ptr<npc_data> nd)
     };
     if (!nd->name)
     {
+        if (nd->npc_subtype == NpcSubtype::MESSAGE)
+            return;
         PRINTF("WARNING: npc with no name:\n%s @ %s,%d,%d\n",
                 types[static_cast<int>(nd->npc_subtype)],
                 nd->bl_m->name_, nd->bl_x, nd->bl_y);
