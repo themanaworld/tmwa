@@ -59,8 +59,8 @@ void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes
     WFIFOSET(char_fd, WFIFOW(char_fd, 2));
 
     if (battle_config.etc_log)
-        PRINTF("intif_wis_message from %s to %s (message: '%s')\n",
-                sd->status.name, nick, mes);
+        PRINTF("intif_wis_message from %s to %s)\n",
+                sd->status.name, nick);
 }
 
 // The reply of Wisp/page
@@ -253,11 +253,10 @@ int intif_parse_WisMessage(int fd)
 
     if (battle_config.etc_log)
     {
-        PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s, message: '%s'\n",
+        PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s\n",
              RFIFOL(fd, 4),
              from,
-             to,
-             buf);
+             to);
     }
     sd = map_nick2sd(to); // Searching destination player
     if (sd != NULL && sd->status.name == to)
