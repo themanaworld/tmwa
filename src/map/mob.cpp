@@ -2475,21 +2475,39 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         };
         std::vector<DmgLogParty> ptv;
 
+        int mvp_dmg = 0, second_dmg = 0, third_dmg = 0;
         for (mob_data::DmgLogEntry& dle : md->dmglogv)
         {
             dumb_ptr<map_session_data> tmpsdi = map_id2sd(dle.id);
+            int tmpdmg = dle.dmg;
             if (tmpsdi == NULL)
                 continue;
             if (tmpsdi->bl_m != md->bl_m || pc_isdead(tmpsdi))
                 continue;
 
             // this way is actually fair, unlike the old way
-            if (!mvp_sd)
+            // that refers to the subsequents ... was buggy though
+            if (tmpdmg > mvp_dmg)
+            {
+                third_sd = second_sd;
+                third_dmg = second_dmg;
+                second_sd = mvp_sd;
+                second_dmg = mvp_dmg;
                 mvp_sd = tmpsdi;
-            else if (!second_sd)
+                mvp_dmg = tmpdmg;
+            }
+            else if (tmpdmg > second_dmg)
+            {
+                third_sd = second_sd;
+                third_dmg = second_dmg;
                 second_sd = tmpsdi;
-            else if (!third_sd)
+                second_dmg = tmpdmg;
+            }
+            else if (tmpdmg > third_dmg)
+            {
                 third_sd = tmpsdi;
+                third_dmg = tmpdmg;
+            }
 
             int base_exp, job_exp, flag = 1;
             double per;
