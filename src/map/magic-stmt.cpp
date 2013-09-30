@@ -953,6 +953,7 @@ void spell_effect_report_termination(int invocation_id, int bl_id,
             invocation_->status_change_refv.pop_back();
 
             try_to_finish_invocation(invocation_);
+            return;
         }
     }
 
