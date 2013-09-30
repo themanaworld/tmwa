@@ -223,7 +223,7 @@ s: ${ASSEMBLED}
 o: ${OBJECTS}
 
 mostlyclean:
-	rm -rf obj
+	rm -rf obj conf-raw
 clean: mostlyclean
 	rm -rf bin
 distclean: clean
@@ -235,12 +235,10 @@ distclean: clean
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
 	${BISON} -d -o $*.cpp $<
-%.hpp: ;
-# hpp rule is needed for disappearing headers
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
 	set -o pipefail; \
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -MM $< \
+	${CXX} ${CPPFLAGS} ${CXXFLAGS} -MG -MP -MM $< \
 	    -MT '$@ $(patsubst %.d,%.o,$@)' \
 	    | sed -e ':again; s:/[^/ ]*/../:/:; t again' \
 	    -e 's: ${SRC_DIR}/: :g' \
@@ -310,3 +308,25 @@ tags: ${SOURCES} ${HEADERS}
 Makefile: ${SRC_DIR}/Makefile.in
 	@echo Makefile.in updated, you must rerun configure
 	@false
+
+include ${SRC_DIR}/version.make
+
+# TODO - fix pattern priority bug so I can make these .hpp
+#
+# This is complicated and still isn't optimal.
+conf-raw/int-%.h: FORCE
+	$(MKDIR_FIRST)
+	@grep -s -q '^$(value $*)$$' $@ \
+	|| { \
+	    echo "#define $* \\"; \
+	    echo '$(value $*)'; \
+	} > $@
+conf-raw/str-%.h: FORCE
+	$(MKDIR_FIRST)
+	@grep -s -q '^"$(value $*)"$$' $@ \
+	|| { \
+	    echo "#define $* \\"; \
+	    echo '"$(value $*)"'; \
+	} > $@
+FORCE: ;
+override CPPFLAGS += -I .
