@@ -27,7 +27,11 @@ try:
 except ImportError:
     sys.exit('attoconf missing - please run: git submodule update --init')
 else:
-    require_version(0, 8)
+    try:
+        require_version(0, 8)
+    except SystemExit as e:
+        e.code += '\nPlease run: git submodule update'
+        raise
 
 from attoconf.classy import add_slots
 from attoconf.lib.c import Cxx
