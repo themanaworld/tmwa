@@ -9,7 +9,7 @@
 #include "magic-expr.hpp"
 #include "magic-interpreter-base.hpp"
 #include "magic-interpreter-lexer.hpp"
-#include "magic-interpreter-parser.hpp"
+#include "src/map/magic-interpreter-parser.hpp"
 #include "magic-stmt.hpp"
 #include "magic.hpp"
 

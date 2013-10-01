@@ -186,7 +186,9 @@ ifeq (${ENABLE_WARNINGS},yes)
 WARNINGS := -include ${SRC_DIR}/src/warnings.hpp
 endif
 ${GEN_DEPENDS} ${GEN_PREPROCESSED} ${GEN_IRS} ${GEN_BITCODES} ${GEN_ASSEMBLED} ${GEN_OBJECTS}: override WARNINGS :=
-${GEN_DEPENDS} ${GEN_PREPROCESSED} ${GEN_IRS} ${GEN_BITCODES} ${GEN_ASSEMBLED} ${GEN_OBJECTS}: override CPPFLAGS += -I ${SRC_DIR}/$(patsubst obj/%,src/%,${@D})
+# can't just override for generated objects,
+# because a generated header might be used for a non-generated object.
+override CPPFLAGS += -I ${SRC_DIR}/$(patsubst obj/%,src/%,${@D})
 
 # related to gdb bug 15801
 ifeq (${ENABLE_ABI6},yes)
@@ -239,7 +241,7 @@ obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
 	set -o pipefail; \
 	${CXX} ${CPPFLAGS} ${CXXFLAGS} -MG -MP -MM $< \
-	    -MT '$@ $(patsubst %.d,%.o,$@)' \
+	    -MT '$(patsubst %.d,%.ii,$@) $(patsubst %.d,%.ll,$@) $(patsubst %.d,%.bc,$@) $(patsubst %.d,%.s,$@) $(patsubst %.d,%.o,$@) $@' \
 	    | sed -e ':again; s:/[^/ ]*/../:/:; t again' \
 	    -e 's: ${SRC_DIR}/: :g' \
 	    > $@
