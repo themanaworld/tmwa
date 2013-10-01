@@ -1,4 +1,19 @@
-next:
+v13.9.30:
+  - streamline release process
+  - fix drop order assignment
+  - show different GM level types in online list
+  - remove logging of failed whispers (successful ones were never logged)
+  - fix some warnings
+v13.9.29:
+  - fix monster elements
+v13.9.28:
+  - also make login server startup much faster
+  - fix turning right
+  - fix pathfinding a bit
+  - fix a small part of ladmin help
+v13.9.27:
+  - fix a bug with trades
+  - make char server startup much faster
 v13.9.21:
   - With the new Makefile, the binary names have changed. Instead of
     login-server, ladmin, etc., they are now tmwa-login, tmwa-admin, etc.
