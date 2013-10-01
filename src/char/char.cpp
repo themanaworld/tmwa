@@ -140,6 +140,8 @@ static
 int online_sorting_option = 0; // sorting option to display online players in online files
 static
 int online_refresh_html = 20;  // refresh time (in sec) of the html file in the explorer
+static
+int online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when we want to display it
 
 static
 std::vector<int> online_chars;              // same size of char_data, and id value of current server (or -1)
@@ -772,23 +774,15 @@ void create_online_files(void)
                     {
                         // without/with 'GM' display
                         int gml = isGM(cd.account_id);
-                        const char *suffix = "";
-                        if (gml)
-                            suffix = "(special)";
-                        if (gml == 1)
-                            suffix = "(bot)";
-                        if (gml == 40 || gml == 80)
-                            suffix = "(dev)";
-                        if (gml == 60)
-                            suffix = "(gm)";
-                        if (gml == 99)
-                            suffix = "(admin)";
-
-                        FPRINTF(fp, "%-24s %s", cd.name, suffix);
-
+                        {
+                            if (gml >= online_gm_display_min_level)
+                                FPRINTF(fp, "%-24s (GM) ", cd.name);
+                            else
+                                FPRINTF(fp, "%-24s      ", cd.name);
+                        }
                         // name of the character in the html (no < >, because that create problem in html code)
                         FPRINTF(fp2, "        <td>");
-                        if (*suffix)
+                        if (gml >= online_gm_display_min_level)
                             FPRINTF(fp2, "<b>");
                         for (char c : cd.name.to__actual())
                         {
@@ -808,10 +802,8 @@ void create_online_files(void)
                                 break;
                             };
                         }
-
-                        if (*suffix)
-                            FPRINTF(fp2, "</b> %s", suffix);
-
+                        if (gml >= online_gm_display_min_level)
+                            FPRINTF(fp2, "</b> (GM)");
                         FPRINTF(fp2, "</td>\n");
                     }
                     FPRINTF(fp, "\n");
@@ -2746,6 +2738,12 @@ int char_config_read(ZString cfgName)
         else if (w1 == "online_sorting_option")
         {
             online_sorting_option = atoi(w2.c_str());
+        }
+        else if (w1 == "online_gm_display_min_level")
+        {                       // minimum GM level to display 'GM' when we want to display it
+            online_gm_display_min_level = atoi(w2.c_str());
+            if (online_gm_display_min_level < 5)    // send online file every 5 seconds to player is enough
+                online_gm_display_min_level = 5;
         }
         else if (w1 == "online_refresh_html")
         {
