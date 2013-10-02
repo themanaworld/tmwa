@@ -602,8 +602,11 @@ int npc_checknear(dumb_ptr<map_session_data> sd, int id)
     nullpo_ret(sd);
 
     nd = map_id_as_npc(id);
-    assert (nd != NULL);
-    assert (nd->bl_type == BL::NPC);
+    // this actually happens
+    if (nd == NULL)
+        return 1;
+    if (nd->bl_type != BL::NPC)
+        return 1;
 
     if (nd->npc_class < 0)          // イベント系は常にOK
         return 0;
