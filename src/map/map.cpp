@@ -1360,6 +1360,7 @@ void map_close_logfile(void)
         char **argv = const_cast<char **>(args);
 
         fclose(map_logfile);
+        map_logfile = NULL;
 
         if (!fork())
         {
@@ -1583,8 +1584,6 @@ void cleanup_sub(dumb_ptr<block_list> bl)
  */
 void term_func(void)
 {
-    map_close_logfile();
-
     for (auto& mit : maps_db)
     {
         if (!mit.second->gat)
@@ -1608,6 +1607,8 @@ void term_func(void)
     do_final_script();
     do_final_itemdb();
     do_final_storage();
+
+    map_close_logfile();
 }
 
 /// --help was passed
