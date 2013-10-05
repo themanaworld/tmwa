@@ -17,8 +17,6 @@
 
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
-#include "../strings/tstring.hpp"
-#include "../strings/sstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
@@ -794,7 +792,7 @@ int mmo_auth(struct mmo_account *account, int fd)
         && (account->userid.size() - 2) >= 4 && account->passwd.size() >= 4)
     {
         new_account_sex = account->userid.back();
-        account->userid = stringish<AccountName>(account->userid.orslice_h(2));
+        account->userid = stringish<AccountName>(account->userid.xrslice_h(2));
     }
 
     // Strict account search
@@ -3190,8 +3188,8 @@ int login_lan_config_read(ZString lancfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
@@ -3272,8 +3270,8 @@ int login_config_read(ZString cfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 

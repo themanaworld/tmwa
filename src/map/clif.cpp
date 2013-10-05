@@ -3761,7 +3761,7 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
             NpcName name = bl->as_npc()->name;
             // [fate] elim hashed out/invisible names for the client
             auto it = std::find(name.begin(), name.end(), '#');
-            WFIFO_STRING(fd, 6, name.oislice_h(it), 24);
+            WFIFO_STRING(fd, 6, name.xislice_h(it), 24);
             WFIFOSET(fd, clif_parse_func_table[0x95].len);
         }
             break;

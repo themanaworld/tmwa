@@ -53,16 +53,6 @@ namespace strings
         iterator begin() const;
         iterator end() const;
         const FString *base() const;
-
-        XString oslice_t(size_t o) const { return xslice_t(o); }
-        XString oslice_h(size_t o) const { return xslice_h(o); }
-        XString orslice_t(size_t no) const { return xrslice_t(no); }
-        XString orslice_h(size_t no) const { return xrslice_h(no); }
-        XString oislice_t(iterator it) const { return xislice_t(it); }
-        XString oislice_h(iterator it) const { return xislice_h(it); }
-        XString olslice(size_t o, size_t l) const { return xlslice(o, l); }
-        XString opslice(size_t b, size_t e) const { return xpslice(b, e); }
-        XString oislice(iterator b, iterator e) const { return xislice(b, e); }
     };
 } // namespace strings
 

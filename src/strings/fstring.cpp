@@ -85,25 +85,6 @@ namespace strings
         return &*begin();
     }
 
-    TS FS::oslice_t(size_t o) const
-    { return TS(*this, o); }
-    SS FS::oslice_h(size_t o) const
-    { return SS(*this, 0, o); }
-    TS FS::orslice_t(size_t no) const
-    { return TS(*this, size() - no); }
-    SS FS::orslice_h(size_t no) const
-    { return SS(*this, 0, size() - no); }
-    TS FS::oislice_t(iterator it) const
-    { return TS(*this, it - begin()); }
-    SS FS::oislice_h(iterator it) const
-    { return SS(*this, 0, it - begin()); }
-    SS FS::olslice(size_t o, size_t l) const
-    { return SS(*this, o, o + l); }
-    SS FS::opslice(size_t b, size_t e) const
-    { return SS(*this, b, e); }
-    SS FS::oislice(iterator b, iterator e) const
-    { return SS(*this, b - begin(), e - begin()); }
-
     const char *decay_for_printf(const FString& fs)
     {
         return fs.c_str();

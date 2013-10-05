@@ -56,25 +56,6 @@ namespace strings
         return &*begin();
     }
 
-    ZS ZS::oslice_t(size_t o) const
-    { return ZS(really_construct_from_a_pointer, &begin()[o], base()); }
-    XS ZS::oslice_h(size_t o) const
-    { return XS(&*begin(), &begin()[o], base()); }
-    ZS ZS::orslice_t(size_t no) const
-    { return ZS(really_construct_from_a_pointer, &end()[-no], base()); }
-    XS ZS::orslice_h(size_t no) const
-    { return XS(&*begin(), &end()[-no], base()); }
-    ZS ZS::oislice_t(iterator it) const
-    { return ZS(really_construct_from_a_pointer, &*it, base()); }
-    XS ZS::oislice_h(iterator it) const
-    { return XS(&*begin(), &*it, base()); }
-    XS ZS::olslice(size_t o, size_t l) const
-    { return XS(&begin()[o], &begin()[o + l], base()); }
-    XS ZS::opslice(size_t b, size_t e) const
-    { return XS(&begin()[b], &begin()[e], base()); }
-    XS ZS::oislice(iterator b, iterator e) const
-    { return XS(&*b, &*e, base()); }
-
     const char *decay_for_printf(const ZString& zs)
     {
         return zs.c_str();

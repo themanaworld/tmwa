@@ -9,8 +9,6 @@
 
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
-#include "../strings/tstring.hpp"
-#include "../strings/sstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -185,8 +183,8 @@ int inter_config_read(ZString cfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 

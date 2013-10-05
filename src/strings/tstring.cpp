@@ -72,25 +72,6 @@ namespace strings
         return &*begin();
     }
 
-    TS TS::oslice_t(size_t o) const
-    { return TS(_s, _o + o); }
-    SS TS::oslice_h(size_t o) const
-    { return SS(_s, _o, _o + o); }
-    TS TS::orslice_t(size_t no) const
-    { return TS(_s, _s.size() - no); }
-    SS TS::orslice_h(size_t no) const
-    { return SS(_s, _o, _s.size() - no); }
-    TS TS::oislice_t(iterator it) const
-    { return TS(_s, _o + it - begin()); }
-    SS TS::oislice_h(iterator it) const
-    { return SS(_s, _o, _o + it - begin()); }
-    SS TS::olslice(size_t o, size_t l) const
-    { return SS(_s, _o + o, _o + o + l); }
-    SS TS::opslice(size_t b, size_t e) const
-    { return SS(_s, _o + b, _o + e); }
-    SS TS::oislice(iterator b, iterator e) const
-    { return SS(_s, _o + b - begin(), _o + e - begin()); }
-
     const char *decay_for_printf(const TString& ts)
     {
         return ts.c_str();

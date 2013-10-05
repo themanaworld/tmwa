@@ -50,16 +50,6 @@ namespace strings
         iterator end() const;
         const FString *base() const;
         const char *c_str() const;
-
-        VString oslice_t(size_t o) const { return this->xslice_t(o); }
-        VString oslice_h(size_t o) const { return this->xslice_h(o); }
-        VString orslice_t(size_t no) const { return this->xrslice_t(no); }
-        VString orslice_h(size_t no) const { return this->xrslice_h(no); }
-        VString oislice_t(iterator it) const { return this->xislice_t(it); }
-        VString oislice_h(iterator it) const { return this->xislice_h(it); }
-        VString olslice(size_t o, size_t l) const { return this->xlslice(o, l); }
-        VString opslice(size_t b, size_t e) const { return this->xpslice(b, e); }
-        VString oislice(iterator b, iterator e) const { return this->xislice(b, e); }
     };
 
     // cxxstdio helpers

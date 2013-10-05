@@ -18,8 +18,6 @@
 
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
-#include "../strings/tstring.hpp"
-#include "../strings/sstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -91,8 +89,8 @@ void read_config(ZString filename)
     FString line;
     while (io::getline(in, line))
     {
-        SString name;
-        TString value;
+        XString name;
+        ZString value;
         if (!split_key_value(line, &name, &value))
             continue;
 

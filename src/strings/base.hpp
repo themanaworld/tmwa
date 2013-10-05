@@ -190,14 +190,6 @@ namespace strings
     auto operator > (const L& l, const R& r) -> decltype((pair_compare(l, r), true));
     template<class L, class R, typename=typename std::enable_if<string_comparison_allowed<L, R>::value>::type>
     auto operator >= (const L& l, const R& r) -> decltype((pair_compare(l, r), true));
-
-    // sadness
-    typedef MString MS;
-    typedef FString FS;
-    typedef TString TS;
-    typedef SString SS;
-    typedef ZString ZS;
-    typedef XString XS;
 } // namespace strings
 
 #include "base.tcc"

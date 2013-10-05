@@ -54,16 +54,6 @@ namespace strings
         iterator end() const;
         const FString *base() const;
         const char *c_str() const;
-
-        ZString oslice_t(size_t o) const;
-        XString oslice_h(size_t o) const;
-        ZString orslice_t(size_t no) const;
-        XString orslice_h(size_t no) const;
-        ZString oislice_t(iterator it) const;
-        XString oislice_h(iterator it) const;
-        XString olslice(size_t o, size_t l) const;
-        XString opslice(size_t b, size_t e) const;
-        XString oislice(iterator b, iterator e) const;
     };
 
     // cxxstdio helpers

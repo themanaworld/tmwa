@@ -163,21 +163,6 @@ TYPED_TEST_P(StringTest, xslice)
     EXPECT_TRUE(hi.endswith("World!"));
 }
 
-TYPED_TEST_P(StringTest, oslice)
-{
-    TypeParam hi("Hello, World!");
-    EXPECT_EQ(" World!", hi.oslice_t(6));
-    EXPECT_EQ("Hello,", hi.oslice_h(6));
-    EXPECT_EQ("World!", hi.orslice_t(6));
-    EXPECT_EQ("Hello, ", hi.orslice_h(6));
-    typename TypeParam::iterator it = std::find(hi.begin(), hi.end(), ' ');
-    EXPECT_EQ(" World!", hi.oislice_t(it));
-    EXPECT_EQ("Hello,", hi.oislice_h(it));
-    EXPECT_EQ("World", hi.olslice(7, 5));
-    EXPECT_EQ("World", hi.opslice(7, 12));
-    EXPECT_EQ("World", hi.oislice(hi.begin() + 7, hi.begin() + 12));
-}
-
 TYPED_TEST_P(StringTest, convert)
 {
     constexpr bool is_zstring = std::is_same<TypeParam, ZString>::value;
@@ -249,7 +234,7 @@ TYPED_TEST_P(StringTest, convert)
 }
 
 REGISTER_TYPED_TEST_CASE_P(StringTest,
-        basic, order, iterators, xslice, oslice, convert);
+        basic, order, iterators, xslice, convert);
 
 typedef ::testing::Types<
     FString, TString, SString, ZString, XString, VString<255>

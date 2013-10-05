@@ -65,7 +65,7 @@ class MapName : public strings::_crtp_string<MapName, MapName, strings::ZPair>
     VString<15> _impl;
 public:
     MapName() = default;
-    MapName(VString<15> v) : _impl(v.oislice_h(std::find(v.begin(), v.end(), '.'))) {}
+    MapName(VString<15> v) : _impl(v.xislice_h(std::find(v.begin(), v.end(), '.'))) {}
 
     iterator begin() const { return &*_impl.begin(); }
     iterator end() const { return &*_impl.end(); }

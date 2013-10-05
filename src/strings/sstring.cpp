@@ -69,23 +69,4 @@ namespace strings
     {
         return &_s;
     }
-
-    SS SS::oslice_t(size_t o) const
-    { return SS(_s, _b + o, _e); }
-    SS SS::oslice_h(size_t o) const
-    { return SS(_s, _b, _b + o); }
-    SS SS::orslice_t(size_t no) const
-    { return SS(_s, _e - no, _e); }
-    SS SS::orslice_h(size_t no) const
-    { return SS(_s, _b, _e - no); }
-    SS SS::oislice_t(iterator it) const
-    { return SS(_s, _b + it - begin(), _e); }
-    SS SS::oislice_h(iterator it) const
-    { return SS(_s, _b, _b + it - begin()); }
-    SS SS::olslice(size_t o, size_t l) const
-    { return SS(_s, _b + o, _b + o + l); }
-    SS SS::opslice(size_t b, size_t e) const
-    { return SS(_s, _b + b, _b + e); }
-    SS SS::oislice(iterator b, iterator e) const
-    { return SS(_s, _b + b - begin(), _b + e - begin()); }
 } // namespace strings

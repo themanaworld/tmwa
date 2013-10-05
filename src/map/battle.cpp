@@ -5,8 +5,6 @@
 #include <fstream>
 
 #include "../strings/fstring.hpp"
-#include "../strings/tstring.hpp"
-#include "../strings/sstring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../common/cxxstdio.hpp"
@@ -2525,8 +2523,8 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(mob_splash_radius),
         };
 
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
