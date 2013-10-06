@@ -3908,9 +3908,10 @@ void clif_parse_Emotion(int fd, dumb_ptr<map_session_data> sd)
     if (battle_config.basic_skill_check == 0
         || pc_checkskill(sd, SkillID::NV_EMOTE) >= 1)
     {
+        uint8_t emote = RFIFOB(fd, 2);
         WBUFW(buf, 0) = 0xc0;
         WBUFL(buf, 2) = sd->bl_id;
-        WBUFB(buf, 6) = RFIFOB(fd, 2);
+        WBUFB(buf, 6) = emote;
         clif_send(buf, clif_parse_func_table[0xc0].len, sd, SendWho::AREA);
     }
     else

@@ -2607,12 +2607,14 @@ void parse_admin(int fd)
             case 0x7954:       // Request about information of an account (by account id)
                 if (RFIFOREST(fd) < 6)
                     return;
+            {
+                int account_id = RFIFOL(fd, 2);
                 WFIFOW(fd, 0) = 0x7953;
-                WFIFOL(fd, 2) = RFIFOL(fd, 2);
+                WFIFOL(fd, 2) = account_id;
                 WFIFO_ZERO(fd, 7, 24);
                 for (const AuthData& ad : auth_data)
                 {
-                    if (ad.account_id == RFIFOL(fd, 2))
+                    if (ad.account_id == account_id)
                     {
                         LOGIN_LOG("'ladmin': Sending information of an account (request by the id; account: %s, id: %d, ip: %s)\n",
                              ad.userid, RFIFOL(fd, 2), ip);
@@ -2641,6 +2643,7 @@ void parse_admin(int fd)
                     WFIFOW(fd, 148) = 0;
                     WFIFOSET(fd, 150);
                 }
+            }
             x7954_out:
                 RFIFOSKIP(fd, 6);
                 break;
