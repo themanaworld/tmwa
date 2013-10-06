@@ -13,7 +13,7 @@ struct item_data
     int value_buy;
     int value_sell;
     ItemType type;
-    int sex;
+    SEX sex;
     EPOS equip;
     int weight;
     int atk;

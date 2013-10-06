@@ -437,7 +437,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 int pc_setnewpc(dumb_ptr<map_session_data> sd, int account_id, int char_id,
-        int login_id1, tick_t client_tick, int sex)
+        int login_id1, tick_t client_tick, SEX sex)
 {
     nullpo_ret(sd);
 
@@ -592,7 +592,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
 
     if (item == NULL)
         return 0;
-    if (item->sex != 2 && sd->status.sex != item->sex)
+    if (item->sex != SEX::SERVER && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -2228,7 +2228,7 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
 
-    if (item->sex != 2 && sd->status.sex != item->sex)
+    if (item->sex != SEX::SERVER && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -3615,7 +3615,7 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
             val = sd->status.species;
             break;
         case SP::SEX:
-            val = sd->sex;
+            val = static_cast<uint8_t>(sd->sex);
             break;
         case SP::WEIGHT:
             val = sd->weight;
@@ -3743,7 +3743,8 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             break;
         case SP::SEX:
-            sd->sex = val;
+            // this is a really bad idea
+            sd->sex = static_cast<SEX>(val);
             break;
         case SP::WEIGHT:
             sd->weight = val;

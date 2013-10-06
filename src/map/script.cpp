@@ -3093,15 +3093,15 @@ void builtin_changesex(ScriptState *st)
     dumb_ptr<map_session_data> sd = NULL;
     sd = script_rid2sd(st);
 
-    if (sd->status.sex == 0)
+    if (sd->status.sex == SEX::FEMALE)
     {
-        sd->status.sex = 1;
-        sd->sex = 1;
+        sd->status.sex = SEX::MALE;
+        sd->sex = SEX::MALE;
     }
-    else if (sd->status.sex == 1)
+    else if (sd->status.sex == SEX::MALE)
     {
-        sd->status.sex = 0;
-        sd->sex = 0;
+        sd->status.sex = SEX::FEMALE;
+        sd->sex = SEX::FEMALE;
     }
     chrif_char_ask_name(-1, sd->status.name, 5, HumanTimeDiff()); // type: 5 - changesex
     chrif_save(sd);

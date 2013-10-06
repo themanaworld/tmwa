@@ -57,7 +57,7 @@ struct mmo_account
     long login_id2;
     long char_id;
     timestamp_milliseconds_buffer lastlogin;
-    int sex;
+    SEX sex;
 };
 
 struct mmo_char_server
@@ -156,14 +156,16 @@ struct
 {
     int account_id, login_id1, login_id2;
     IP4Address ip;
-    int sex, delflag;
+    SEX sex;
+    int delflag;
 } auth_fifo[AUTH_FIFO_SIZE];
 static
 int auth_fifo_pos = 0;
 
 struct AuthData
 {
-    int account_id, sex;
+    int account_id;
+    SEX sex;
     AccountName userid;
     AccountCrypt pass;
     timestamp_milliseconds_buffer lastlogin;
@@ -432,7 +434,7 @@ FString mmo_auth_tostr(const AuthData *p)
             p->userid,
             p->pass,
             p->lastlogin,
-            (p->sex == 2) ? 'S' : (p->sex ? 'M' : 'F'),
+            sex_to_char(p->sex),
             p->logincount,
             p->state,
             p->email,
@@ -504,13 +506,9 @@ bool extract(XString line, AuthData *ad)
 
     if (sex.size() != 1)
         return false;
-    switch (sex.front())
-    {
-    case 'S': case 's': ad->sex = 2; break;
-    case 'M': case 'm': ad->sex = 1; break;
-    case 'F': case 'f': ad->sex = 0; break;
-    default: return false;
-    }
+    ad->sex  = sex_from_char(sex.front());
+    if (ad->sex == SEX::ERROR)
+        return false;
 
     if (!e_mail_check(ad->email))
         ad->email = DEFAULT_EMAIL;
@@ -571,7 +569,7 @@ int mmo_auth_init(void)
 
         if (isGM(ad.account_id) > 0)
             GM_count++;
-        if (ad.sex == 2)
+        if (ad.sex == SEX::SERVER)
             server_count++;
 
         if (ad.account_id >= account_id_count)
@@ -733,7 +731,7 @@ void check_GM_file(TimerData *, tick_t)
 // Account creation (with e-mail check)
 //-------------------------------------
 static
-int mmo_auth_new(struct mmo_account *account, char sex, AccountEmail email)
+int mmo_auth_new(struct mmo_account *account, SEX sex, AccountEmail email)
 {
     while (isGM(account_id_count) > 0)
         account_id_count++;
@@ -744,7 +742,7 @@ int mmo_auth_new(struct mmo_account *account, char sex, AccountEmail email)
     ad.userid = account->userid;
     ad.pass = MD5_saltcrypt(account->passwd, make_salt());
     ad.lastlogin = stringish<timestamp_milliseconds_buffer>("-");
-    ad.sex = (sex == 'M');
+    ad.sex = sex;
     ad.logincount = 0;
     ad.state = 0;
 
@@ -881,7 +879,7 @@ int mmo_auth(struct mmo_account *account, int fd)
         }
         else
         {
-            int new_id = mmo_auth_new(account, new_account_sex, DEFAULT_EMAIL);
+            int new_id = mmo_auth_new(account, sex_from_char(new_account_sex), DEFAULT_EMAIL);
             LOGIN_LOG("Account creation and authentification accepted (account %s (id: %d), sex: %c, connection with _F/_M, ip: %s)\n",
                  account->userid, new_id,
                  new_account_sex, ip);
@@ -985,7 +983,7 @@ void parse_fromchar(int fd)
                         if (auth_fifo[i].account_id == acc &&
                             auth_fifo[i].login_id1 == RFIFOL(fd, 6) &&
                             auth_fifo[i].login_id2 == RFIFOL(fd, 10) &&    // relate to the versions higher than 18
-                            auth_fifo[i].sex == RFIFOB(fd, 14) &&
+                            auth_fifo[i].sex == static_cast<SEX>(RFIFOB(fd, 14)) &&
                             (!check_ip_flag
                              || auth_fifo[i].ip == RFIFOIP(fd, 15))
                             && !auth_fifo[i].delflag)
@@ -1364,26 +1362,27 @@ void parse_fromchar(int fd)
                 if (RFIFOREST(fd) < 6)
                     return;
                 {
-                    int acc, sex;
+                    int acc;
                     acc = RFIFOL(fd, 2);
                     for (AuthData& ad : auth_data)
                     {
                         if (ad.account_id == acc)
                         {
-                            if (ad.sex == 2)
+                            if (ad.sex == SEX::SERVER)
                                 LOGIN_LOG("Char-server '%s': Error of sex change - Server account (suggested account: %d, actual sex %d (Server), ip: %s).\n",
                                      server[id].name, acc,
                                      ad.sex, ip);
                             else
                             {
                                 unsigned char buf[16];
-                                if (ad.sex == 0)
-                                    sex = 1;
+                                SEX sex;
+                                if (ad.sex == SEX::FEMALE)
+                                    sex = SEX::MALE;
                                 else
-                                    sex = 0;
+                                    sex = SEX::FEMALE;
                                 LOGIN_LOG("Char-server '%s': Sex change (account: %d, new sex %c, ip: %s).\n",
                                      server[id].name, acc,
-                                     (sex == 2) ? 'S' : (sex ? 'M' : 'F'),
+                                     sex_to_char(sex),
                                      ip);
                                 for (int j = 0; j < AUTH_FIFO_SIZE; j++)
                                     if (auth_fifo[j].account_id == acc)
@@ -1391,7 +1390,7 @@ void parse_fromchar(int fd)
                                 ad.sex = sex;
                                 WBUFW(buf, 0) = 0x2723;
                                 WBUFL(buf, 2) = acc;
-                                WBUFB(buf, 6) = sex;
+                                WBUFB(buf, 6) = static_cast<uint8_t>(sex);
                                 charif_sendallwos(-1, buf, 7);
                             }
                             goto x2727_out;
@@ -1646,7 +1645,7 @@ void parse_admin(int fd)
                             WFIFOL(fd, len) = account_id;
                             WFIFOB(fd, len + 4) = isGM(account_id);
                             WFIFO_STRING(fd, len + 5, ad.userid, 24);
-                            WFIFOB(fd, len + 29) = ad.sex;
+                            WFIFOB(fd, len + 29) = static_cast<uint8_t>(ad.sex);
                             WFIFOL(fd, len + 30) = ad.logincount;
                             if (ad.state == 0 && ad.ban_until_time)  // if no state and banished
                                 WFIFOL(fd, len + 34) = 7;  // 6 = Your are Prohibited to log in until %s
@@ -1682,7 +1681,7 @@ void parse_admin(int fd)
                     ma.userid = stringish<AccountName>(RFIFO_STRING<24>(fd, 2).to_print());
                     ma.passwd = stringish<AccountPass>(RFIFO_STRING<24>(fd, 26).to_print());
                     ma.lastlogin = stringish<timestamp_milliseconds_buffer>("-");
-                    ma.sex = RFIFOB(fd, 50);
+                    ma.sex = sex_from_char(RFIFOB(fd, 50));
                     WFIFOW(fd, 0) = 0x7931;
                     WFIFOL(fd, 2) = -1;
                     WFIFO_STRING(fd, 6, ma.userid, 24);
@@ -1691,7 +1690,7 @@ void parse_admin(int fd)
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account or pass is too short, ip: %s)\n",
                              ip);
                     }
-                    else if (ma.sex != 'F' && ma.sex != 'M')
+                    else if (ma.sex != SEX::FEMALE && ma.sex != SEX::MALE)
                     {
                         LOGIN_LOG("'ladmin': Attempt to create an invalid account (account: %s, invalid sex, ip: %s)\n",
                              ma.userid, ip);
@@ -1924,16 +1923,11 @@ void parse_admin(int fd)
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(fd, 2).to_print());
                 WFIFO_STRING(fd, 6, account_name, 24);
                 {
-                    char sex;
-                    sex = RFIFOB(fd, 26);
-                    if (sex != 'F' && sex != 'M')
+                    SEX sex = sex_from_char(RFIFOB(fd, 26));
+                    if (sex != SEX::FEMALE && sex != SEX::MALE)
                     {
-                        if (sex > 31)
-                            LOGIN_LOG("'ladmin': Attempt to give an invalid sex (account: %s, received sex: %c, ip: %s)\n",
-                                 account_name, sex, ip);
-                        else
-                            LOGIN_LOG("'ladmin': Attempt to give an invalid sex (account: %s, received sex: 'control char', ip: %s)\n",
-                                 account_name, ip);
+                        LOGIN_LOG("'ladmin': Attempt to give an invalid sex (account: %s, received sex: %c, ip: %s)\n",
+                                account_name, sex_to_char(sex), ip);
                     }
                     else
                     {
@@ -1941,9 +1935,7 @@ void parse_admin(int fd)
                         if (ad)
                         {
                             WFIFO_STRING(fd, 6, ad->userid, 24);
-                            if (ad->sex !=
-                                ((sex == 'S' || sex == 's') ? 2
-                                    : (sex == 'M' || sex == 'm')))
+                            if (ad->sex != sex)
                             {
                                 unsigned char buf[16];
                                 WFIFOL(fd, 2) = ad->account_id;
@@ -1951,26 +1943,25 @@ void parse_admin(int fd)
                                     if (auth_fifo[j].account_id ==
                                         ad->account_id)
                                         auth_fifo[j].login_id1++;   // to avoid reconnection error when come back from map-server (char-server will ask again the authentification)
-                                ad->sex = (sex == 'S' || sex == 's') ? 2
-                                    : (sex == 'M' || sex == 'm');
+                                ad->sex = sex;
                                 LOGIN_LOG("'ladmin': Modification of a sex (account: %s, new sex: %c, ip: %s)\n",
-                                     ad->userid, sex, ip);
+                                     ad->userid, sex_to_char(sex), ip);
                                 // send to all char-server the change
                                 WBUFW(buf, 0) = 0x2723;
                                 WBUFL(buf, 2) = ad->account_id;
-                                WBUFB(buf, 6) = ad->sex;
+                                WBUFB(buf, 6) = static_cast<uint8_t>(ad->sex);
                                 charif_sendallwos(-1, buf, 7);
                             }
                             else
                             {
                                 LOGIN_LOG("'ladmin': Modification of a sex, but the sex is already the good sex (account: %s, sex: %c, ip: %s)\n",
-                                     ad->userid, sex, ip);
+                                     ad->userid, sex_to_char(sex), ip);
                             }
                         }
                         else
                         {
                             LOGIN_LOG("'ladmin': Attempt to modify the sex of an unknown account (account: %s, received sex: %c, ip: %s)\n",
-                                 account_name, sex, ip);
+                                 account_name, sex_to_char(sex), ip);
                         }
                     }
                 }
@@ -2575,7 +2566,7 @@ void parse_admin(int fd)
                     WFIFOL(fd, 2) = ad->account_id;
                     WFIFOB(fd, 6) = isGM(ad->account_id);
                     WFIFO_STRING(fd, 7, ad->userid, 24);
-                    WFIFOB(fd, 31) = ad->sex;
+                    WFIFOB(fd, 31) = static_cast<uint8_t>(ad->sex);
                     WFIFOL(fd, 32) = ad->logincount;
                     WFIFOL(fd, 36) = ad->state;
                     WFIFO_STRING(fd, 40, ad->error_message, 20);
@@ -2620,7 +2611,7 @@ void parse_admin(int fd)
                              ad.userid, RFIFOL(fd, 2), ip);
                         WFIFOB(fd, 6) = isGM(ad.account_id);
                         WFIFO_STRING(fd, 7, ad.userid, 24);
-                        WFIFOB(fd, 31) = ad.sex;
+                        WFIFOB(fd, 31) = static_cast<uint8_t>(ad.sex);
                         WFIFOL(fd, 32) = ad.logincount;
                         WFIFOL(fd, 36) = ad.state;
                         WFIFO_STRING(fd, 40, ad.error_message, 20);
@@ -2897,7 +2888,7 @@ void parse_login(int fd)
                             WFIFOL(fd, 12) = account.login_id2;
                             WFIFOL(fd, 16) = 0;    // in old version, that was for ip (not more used)
                             WFIFO_STRING(fd, 20, account.lastlogin, 24);    // in old version, that was for name (not more used)
-                            WFIFOB(fd, 46) = account.sex;
+                            WFIFOB(fd, 46) = static_cast<uint8_t>(account.sex);
                             WFIFOSET(fd, 47 + 32 * server_num);
                             if (auth_fifo_pos >= AUTH_FIFO_SIZE)
                                 auth_fifo_pos = 0;
@@ -2966,7 +2957,7 @@ void parse_login(int fd)
                             server_name, RFIFOIP(fd, 54), RFIFOW(fd, 58), ip);
                     result = mmo_auth(&account, fd);
 
-                    if (result == -1 && account.sex == 2)
+                    if (result == -1 && account.sex == SEX::SERVER)
                     {
                         // If this is the main server, and we don't already have a main server
                         if (server_fd[0] <= 0
@@ -2988,7 +2979,7 @@ void parse_login(int fd)
                         }
                     }
 
-                    if (result == -1 && account.sex == 2
+                    if (result == -1 && account.sex == SEX::SERVER
                         && account.account_id < MAX_SERVERS
                         && server_fd[account.account_id] == -1)
                     {

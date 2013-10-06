@@ -267,6 +267,36 @@ enum class ItemLook : uint16_t
     DUAL_26 = 0x16,
 };
 
+enum class SEX : uint8_t
+{
+    FEMALE = 0,
+    MALE = 1,
+    SERVER = 2,
+    ERROR,
+};
+inline
+char sex_to_char(SEX sex)
+{
+    switch (sex)
+    {
+    case SEX::FEMALE: return 'F';
+    case SEX::MALE: return 'M';
+    case SEX::SERVER: return 'S';
+    default: return '\0';
+    }
+}
+inline
+SEX sex_from_char(char c)
+{
+    switch (c)
+    {
+    case 'F': return SEX::FEMALE;
+    case 'M': return SEX::MALE;
+    case 'S': return SEX::SERVER;
+    default: return SEX::ERROR;
+    }
+}
+
 struct mmo_charstatus
 {
     int char_id;
@@ -290,7 +320,8 @@ struct mmo_charstatus
     CharName name;
     unsigned char base_level, job_level;
     earray<short, ATTR, ATTR::COUNT> attrs;
-    unsigned char char_num, sex;
+    unsigned char char_num;
+    SEX sex;
 
     unsigned long mapip;
     unsigned int mapport;

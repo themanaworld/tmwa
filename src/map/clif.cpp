@@ -694,9 +694,9 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
     WBUFL(buf, 34) = 0 /*guild_id*/;
     WBUFW(buf, 38) = 0 /*guild_emblem_id*/;
     WBUFW(buf, 40) = sd->status.manner;
-    WBUFW(buf, 42) = uint16_t(sd->opt3);
+    WBUFW(buf, 42) = static_cast<uint16_t>(sd->opt3);
     WBUFB(buf, 44) = sd->status.karma;
-    WBUFB(buf, 45) = sd->sex;
+    WBUFB(buf, 45) = static_cast<uint8_t>(sd->sex);
     WBUFPOS(buf, 46, sd->bl_x, sd->bl_y);
     // work around ICE in gcc 4.6
     uint8_t dir = static_cast<uint8_t>(sd->dir);
@@ -750,9 +750,9 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
     WBUFL(buf, 38) = 0/*guild_id*/;
     WBUFW(buf, 42) = 0/*guild_emblem_id*/;
     WBUFW(buf, 44) = sd->status.manner;
-    WBUFW(buf, 46) = uint16_t(sd->opt3);
+    WBUFW(buf, 46) = static_cast<uint16_t>(sd->opt3);
     WBUFB(buf, 48) = sd->status.karma;
-    WBUFB(buf, 49) = sd->sex;
+    WBUFB(buf, 49) = static_cast<uint8_t>(sd->sex);
     WBUFPOS2(buf, 50, sd->bl_x, sd->bl_y, sd->to_x, sd->to_y);
     WBUFW(buf, 55) = pc_isGM(sd) == 60 ? 0x80 : 0;
     WBUFB(buf, 57) = 5;
@@ -3484,7 +3484,7 @@ void clif_parse_WantToConnection(int fd, dumb_ptr<map_session_data> sd)
 
         pc_setnewpc(sd, account_id, RFIFOL(fd, 6), RFIFOL(fd, 10),
                 tick_t(static_cast<interval_t>(RFIFOL(fd, 14))),
-                RFIFOB(fd, 18));
+                static_cast<SEX>(RFIFOB(fd, 18)));
 
         map_addiddb(sd);
 

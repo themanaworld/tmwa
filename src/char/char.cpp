@@ -90,7 +90,8 @@ std::bitset<256> char_name_letters;  // list of letters/symbols authorised (or n
 
 struct char_session_data : SessionData
 {
-    int account_id, login_id1, login_id2, sex;
+    int account_id, login_id1, login_id2;
+    SEX sex;
     unsigned short packet_tmw_version;
     AccountEmail email;
     TimeT connect_until_time;
@@ -108,7 +109,7 @@ struct AuthFifoEntry
     int login_id1, login_id2;
     IP4Address ip;
     int delflag;
-    int sex;
+    SEX sex;
     unsigned short packet_tmw_version;
     TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 };
@@ -1210,7 +1211,7 @@ void parse_tologin(int fd)
                 {
                     unsigned char buf[7];
                     int acc = RFIFOL(fd, 2);
-                    int sex = RFIFOB(fd, 6);
+                    SEX sex = static_cast<SEX>(RFIFOB(fd, 6));
                     RFIFOSKIP(fd, 7);
                     if (acc > 0)
                     {
@@ -1239,7 +1240,7 @@ void parse_tologin(int fd)
                     }
                     WBUFW(buf, 0) = 0x2b0d;
                     WBUFL(buf, 2) = acc;
-                    WBUFB(buf, 6) = sex;
+                    WBUFB(buf, 6) = static_cast<uint8_t>(sex);
                     mapif_sendall(buf, 7);
                 }
                 break;
@@ -1759,7 +1760,7 @@ void parse_frommap(int fd)
                 auth_fifo_iter->login_id1 = RFIFOL(fd, 6);
                 auth_fifo_iter->login_id2 = RFIFOL(fd, 10);
                 auth_fifo_iter->delflag = 0;
-                auth_fifo_iter->sex = RFIFOB(fd, 44);
+                auth_fifo_iter->sex = static_cast<SEX>(RFIFOB(fd, 44));
                 auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
                 auth_fifo_iter->ip = RFIFOIP(fd, 45);
 
@@ -2173,7 +2174,7 @@ void parse_char(int fd)
                     sd->login_id1 = RFIFOL(fd, 6);
                     sd->login_id2 = RFIFOL(fd, 10);
                     sd->packet_tmw_version = RFIFOW(fd, 14);
-                    sd->sex = RFIFOB(fd, 16);
+                    sd->sex = static_cast<SEX>(RFIFOB(fd, 16));
                     // send back account_id
                     WFIFOL(fd, 0) = account_id;
                     WFIFOSET(fd, 4);
@@ -2223,7 +2224,7 @@ void parse_char(int fd)
                             WFIFOL(login_fd, 2) = sd->account_id;
                             WFIFOL(login_fd, 6) = sd->login_id1;
                             WFIFOL(login_fd, 10) = sd->login_id2;  // relate to the versions higher than 18
-                            WFIFOB(login_fd, 14) = sd->sex;
+                            WFIFOB(login_fd, 14) = static_cast<uint8_t>(sd->sex);
                             WFIFOIP(login_fd, 15) = session[fd]->client_ip;
                             WFIFOSET(login_fd, 19);
                         }

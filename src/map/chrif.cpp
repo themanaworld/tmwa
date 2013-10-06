@@ -219,7 +219,7 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
     WFIFOW(char_fd, 36) = y;
     WFIFOIP(char_fd, 38) = ip;
     WFIFOL(char_fd, 42) = port;
-    WFIFOB(char_fd, 44) = sd->status.sex;
+    WFIFOB(char_fd, 44) = static_cast<uint8_t>(sd->status.sex);
     WFIFOIP(char_fd, 45) = s_ip;
     WFIFOSET(char_fd, 49);
 
@@ -604,11 +604,11 @@ void chrif_changedgm(int fd)
 static
 void chrif_changedsex(int fd)
 {
-    int acc, sex, i;
+    int acc, i;
     dumb_ptr<map_session_data> sd;
 
     acc = RFIFOL(fd, 2);
-    sex = RFIFOL(fd, 6);
+    SEX sex = static_cast<SEX>(RFIFOB(fd, 6));
     if (battle_config.etc_log)
         PRINTF("chrif_changedsex %d.\n", acc);
     sd = map_id2sd(acc);
@@ -616,7 +616,10 @@ void chrif_changedsex(int fd)
     {
         if (sd != NULL && sd->status.sex != sex)
         {
-            sd->sex = sd->status.sex = !sd->status.sex;
+            if (sd->status.sex == SEX::MALE)
+                sd->sex = sd->status.sex = SEX::FEMALE;
+            else if (sd->status.sex == SEX::FEMALE)
+                sd->sex = sd->status.sex = SEX::MALE;
             // to avoid any problem with equipment and invalid sex, equipment is unequiped.
             for (i = 0; i < MAX_INVENTORY; i++)
             {

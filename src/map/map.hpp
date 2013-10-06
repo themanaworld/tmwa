@@ -160,7 +160,8 @@ struct map_session_data : block_list, SessionData
         unsigned unbreakable_armor:1;
         unsigned deaf:1;
     } special_state;
-    int char_id, login_id1, login_id2, sex;
+    int char_id, login_id1, login_id2;
+    SEX sex;
     unsigned char tmw_version;  // tmw client version
     struct mmo_charstatus status;
     struct item_data *inventory_data[MAX_INVENTORY];

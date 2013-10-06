@@ -477,11 +477,6 @@ int mob_once_spawn_area(dumb_ptr<map_session_data> sd,
 }
 
 // TODO: deprecate these
-int mob_get_sex(int mob_class)
-{
-    return mob_db[mob_class].sex;
-}
-
 short mob_get_hair(int mob_class)
 {
     return mob_db[mob_class].hair;
@@ -3545,7 +3540,6 @@ int mob_readdb(void)
 
             mob_db[mob_class].skills.clear();
 
-            mob_db[mob_class].sex = 0;
             mob_db[mob_class].hair = 0;
             mob_db[mob_class].hair_color = 0;
             mob_db[mob_class].weapon = 0;

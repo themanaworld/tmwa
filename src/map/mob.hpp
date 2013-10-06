@@ -52,7 +52,6 @@ struct mob_db_
         int nameid;
         random_::Fixed<int, 10000> p;
     } dropitem[8];
-    int sex;
     short hair, hair_color, weapon, shield, head_top, head_mid, head_buttom, option, clothes_color; // [Valaris]
     int equip;                 // [Valaris]
     std::vector<struct mob_skill> skills;
@@ -76,7 +75,6 @@ int mob_stopattack(dumb_ptr<mob_data>);
 int mob_spawn(int);
 int mob_damage(dumb_ptr<block_list>, dumb_ptr<mob_data>, int, int);
 int mob_heal(dumb_ptr<mob_data>, int);
-int mob_get_sex(int);
 short mob_get_hair(int);
 short mob_get_hair_color(int);
 short mob_get_weapon(int);
