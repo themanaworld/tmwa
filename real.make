@@ -335,3 +335,25 @@ conf-raw/str-%.h: FORCE
 	} > $@
 FORCE: ;
 override CPPFLAGS += -I .
+
+# distribution tarballs
+# this only works from within a git checkout
+dist/%/version.make:
+	$(MKDIR_FIRST)
+	git show HEAD:version.make > $@
+	sed 's/^VERSION_FULL := .*/#&\nVERSION_FULL := ${VERSION_FULL}/' -i $@
+	sed 's/^VERSION_HASH := .*/#&\nVERSION_HASH := ${VERSION_HASH}/' -i $@
+dist/%-src.tar: dist/%/version.make
+	git archive --prefix=$*/ -o $@ HEAD
+	( cd dist && tar uf $*-src.tar --mtime="$$(git log -n1 --pretty=%cd)" --mode=664 --owner=root --group=root $*/version.make )
+	rm dist/$*/version.make
+	rmdir dist/$*/
+dist/%-attoconf-only.tar:
+	$(MKDIR_FIRST)
+	git --git-dir=deps/attoconf/.git archive --prefix=$*/deps/attoconf/ HEAD -o $@
+dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
+	cp dist/$*-src.tar $@
+	tar Af $@ dist/$*-attoconf-only.tar
+
+dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
+.PHONY: dist

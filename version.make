@@ -1,5 +1,3 @@
-# TODO replace this file in tarballs
-# for now, only git builds will work.
 VERSION_FULL := $(shell cd ${SRC_DIR}; git describe --tags HEAD)
 VERSION_HASH := $(shell cd ${SRC_DIR}; git rev-parse HEAD)
 
@@ -11,7 +9,8 @@ VERSION_DEVEL := $(word 4,${version_bits})
 ifeq "${VERSION_DEVEL}" ""
     VERSION_DEVEL := 0
 endif
-VERSION_FULL += $(shell cd ${SRC_DIR}; git diff --quiet HEAD || echo dirty)
+# tracking dirty trees is more trouble than it's worth
+#VERSION_FULL += $(shell cd ${SRC_DIR}; git diff --quiet HEAD || echo dirty)
 
 VENDOR := Vanilla
 VENDOR_VERSION := 0

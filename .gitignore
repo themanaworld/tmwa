@@ -2,6 +2,7 @@
 /conf-raw/
 /obj/
 /bin/
+/dist/
 # Generated source files
 /src/map/magic-interpreter-parser.hpp
 /src/map/magic-interpreter-parser.cpp
