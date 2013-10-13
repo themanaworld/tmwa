@@ -36,9 +36,9 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
 #define ARG_TYPE(x) args[x].ty
 #define ENTITY_TYPE(x) ARGENTITY(x)->bl_type
 
-#define ARGPC(x)  (ARGENTITY(x)->as_player())
-#define ARGNPC(x)  (ARGENTITY(x)->as_npc())
-#define ARGMOB(x)  (ARGENTITY(x)->as_mob())
+#define ARGPC(x)  (ARGENTITY(x)->is_player())
+#define ARGNPC(x)  (ARGENTITY(x)->is_npc())
+#define ARGMOB(x)  (ARGENTITY(x)->is_mob())
 
 #define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
 

@@ -73,7 +73,7 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
 
     assert (bl->bl_type == BL::PC);
     {
-        sd = bl->as_player();
+        sd = bl->is_player();
 
         // not if disabled
         if (nd->flag & 1)
@@ -298,7 +298,7 @@ int npc_event_do_oninit(void)
 static
 void npc_timerevent(TimerData *, tick_t tick, int id, interval_t data)
 {
-    dumb_ptr<npc_data_script> nd = map_id2bl(id)->as_npc()->as_script();
+    dumb_ptr<npc_data_script> nd = map_id2bl(id)->is_npc()->is_script();
     assert (nd != NULL);
     assert (nd->npc_subtype == NpcSubtype::SCRIPT);
     assert (nd->scr.next_event != nd->scr.timer_eventv.end());
@@ -537,8 +537,8 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
         switch (m->npc[i]->npc_subtype)
         {
             case NpcSubtype::WARP:
-                xs = m->npc[i]->as_warp()->warp.xs;
-                ys = m->npc[i]->as_warp()->warp.ys;
+                xs = m->npc[i]->is_warp()->warp.xs;
+                ys = m->npc[i]->is_warp()->warp.ys;
                 break;
             case NpcSubtype::MESSAGE:
                 assert (0 && "I'm pretty sure these are never put on a map");
@@ -546,8 +546,8 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
                 ys = 0;
                 break;
             case NpcSubtype::SCRIPT:
-                xs = m->npc[i]->as_script()->scr.xs;
-                ys = m->npc[i]->as_script()->scr.ys;
+                xs = m->npc[i]->is_script()->scr.xs;
+                ys = m->npc[i]->is_script()->scr.ys;
                 break;
             default:
                 continue;
@@ -571,8 +571,8 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
     {
         case NpcSubtype::WARP:
             skill_stop_dancing(sd, 0);
-            pc_setpos(sd, m->npc[i]->as_warp()->warp.name,
-                       m->npc[i]->as_warp()->warp.x, m->npc[i]->as_warp()->warp.y, BeingRemoveWhy::GONE);
+            pc_setpos(sd, m->npc[i]->is_warp()->warp.name,
+                       m->npc[i]->is_warp()->warp.x, m->npc[i]->is_warp()->warp.y, BeingRemoveWhy::GONE);
             break;
         case NpcSubtype::MESSAGE:
             assert (0 && "I'm pretty sure these NPCs are never put on a map.");
@@ -606,7 +606,7 @@ int npc_checknear(dumb_ptr<map_session_data> sd, int id)
 
     nullpo_ret(sd);
 
-    nd = map_id_as_npc(id);
+    nd = map_id_is_npc(id);
     // this actually happens
     if (nd == NULL)
         return 1;
@@ -649,7 +649,7 @@ int npc_click(dumb_ptr<map_session_data> sd, int id)
         return 1;
     }
 
-    nd = map_id_as_npc(id);
+    nd = map_id_is_npc(id);
 
     if (nd->flag & 1)           // 無効化されている
         return 1;
@@ -662,12 +662,12 @@ int npc_click(dumb_ptr<map_session_data> sd, int id)
             npc_event_dequeue(sd);
             break;
         case NpcSubtype::SCRIPT:
-            sd->npc_pos = run_script(ScriptPointer(nd->as_script()->scr.script.get(), 0), sd->bl_id, id);
+            sd->npc_pos = run_script(ScriptPointer(nd->is_script()->scr.script.get(), 0), sd->bl_id, id);
             break;
         case NpcSubtype::MESSAGE:
-            if (nd->as_message()->message)
+            if (nd->is_message()->message)
             {
-                clif_scriptmes(sd, id, nd->as_message()->message);
+                clif_scriptmes(sd, id, nd->is_message()->message);
                 clif_scriptclose(sd, id);
             }
             break;
@@ -694,7 +694,7 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, int id)
         return 1;
     }
 
-    nd = map_id_as_npc(id);
+    nd = map_id_is_npc(id);
 
     if (!nd /* NPC was disposed? */  || nd->npc_subtype == NpcSubtype::MESSAGE)
     {
@@ -703,7 +703,7 @@ int npc_scriptcont(dumb_ptr<map_session_data> sd, int id)
         return 0;
     }
 
-    sd->npc_pos = run_script(ScriptPointer(nd->as_script()->scr.script.get(), sd->npc_pos), sd->bl_id, id);
+    sd->npc_pos = run_script(ScriptPointer(nd->is_script()->scr.script.get(), sd->npc_pos), sd->bl_id, id);
 
     return 0;
 }
@@ -721,7 +721,7 @@ int npc_buysellsel(dumb_ptr<map_session_data> sd, int id, int type)
     if (npc_checknear(sd, id))
         return 1;
 
-    nd = map_id_as_npc(id);
+    nd = map_id_is_npc(id);
     if (nd->npc_subtype != NpcSubtype::SHOP)
     {
         if (battle_config.error_log)
@@ -735,7 +735,7 @@ int npc_buysellsel(dumb_ptr<map_session_data> sd, int id, int type)
     sd->npc_shopid = id;
     if (type == 0)
     {
-        clif_buylist(sd, nd->as_shop());
+        clif_buylist(sd, nd->is_shop());
     }
     else
     {
@@ -762,21 +762,21 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
     if (npc_checknear(sd, sd->npc_shopid))
         return 3;
 
-    nd = map_id_as_npc(sd->npc_shopid);
+    nd = map_id_is_npc(sd->npc_shopid);
     if (nd->npc_subtype != NpcSubtype::SHOP)
         return 3;
 
     for (i = 0, w = 0, z = 0; i < n; i++)
     {
-        for (j = 0; j < nd->as_shop()->shop_items.size(); j++)
+        for (j = 0; j < nd->is_shop()->shop_items.size(); j++)
         {
-            if (nd->as_shop()->shop_items[j].nameid == item_list[i * 2 + 1])
+            if (nd->is_shop()->shop_items[j].nameid == item_list[i * 2 + 1])
                 break;
         }
-        if (j == nd->as_shop()->shop_items.size())
+        if (j == nd->is_shop()->shop_items.size())
             return 3;
 
-        z += static_cast<double>(nd->as_shop()->shop_items[j].value) * item_list[i * 2];
+        z += static_cast<double>(nd->is_shop()->shop_items[j].value) * item_list[i * 2];
         itemamount += item_list[i * 2];
 
         switch (pc_checkadditem(sd, item_list[i * 2 + 1], item_list[i * 2]))
@@ -1667,7 +1667,7 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
 {
     if (nd_->npc_subtype == NpcSubtype::SCRIPT)
     {
-        dumb_ptr<npc_data_script> nd = nd_->as_script();
+        dumb_ptr<npc_data_script> nd = nd_->is_script();
         nd->scr.timer_eventv.clear();
 
         {
@@ -1677,7 +1677,7 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     }
     else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
     {
-        dumb_ptr<npc_data_message> nd = nd_->as_message();
+        dumb_ptr<npc_data_message> nd = nd_->is_message();
         nd->message = FString();
     }
     nd_.delete_();

@@ -415,7 +415,7 @@ void spell_update_location(dumb_ptr<invocation> invocation)
         dumb_ptr<block_list> owner_bl = map_id2bl(invocation->subject);
         if (!owner_bl)
             return;
-        dumb_ptr<map_session_data> owner = owner_bl->as_player();
+        dumb_ptr<map_session_data> owner = owner_bl->is_player();
 
         spell_set_location(invocation, owner);
     }

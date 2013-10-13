@@ -689,9 +689,9 @@ int mob_check_attack(dumb_ptr<mob_data> md)
     }
 
     if (tbl->bl_type == BL::PC)
-        tsd = tbl->as_player();
+        tsd = tbl->is_player();
     else if (tbl->bl_type == BL::MOB)
-        tmd = tbl->as_mob();
+        tmd = tbl->is_mob();
     else
         return 0;
 
@@ -907,7 +907,7 @@ void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
     if (bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
         return;
 
-    md = bl->as_mob();
+    md = bl->is_mob();
 
     if (md->bl_prev == NULL || md->state.state == MS::DEAD)
         return;
@@ -1009,7 +1009,7 @@ int mob_setdelayspawn(int id)
     if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
         return -1;
 
-    md = bl->as_mob();
+    md = bl->is_mob();
     nullpo_retr(-1, md);
 
     if (!md || md->bl_type != BL::MOB)
@@ -1055,7 +1055,7 @@ int mob_spawn(int id)
     if (!bl || bl->bl_type == BL::NUL || bl->bl_type != BL::MOB)
         return -1;
 
-    md = bl->as_mob();
+    md = bl->is_mob();
     nullpo_retr(-1, md);
 
     if (!md || md->bl_type == BL::NUL || md->bl_type != BL::MOB)
@@ -1255,7 +1255,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
 
     if (bl->bl_type == BL::PC && battle_config.monsters_ignore_gm == 1)
     {                           // option to have monsters ignore GMs [Valaris]
-        dumb_ptr<map_session_data> sd = bl->as_player();
+        dumb_ptr<map_session_data> sd = bl->is_player();
         if (pc_isGM(sd))
             return 0;
     }
@@ -1338,7 +1338,7 @@ int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
     {
         if (bl->bl_type == BL::PC)
         {
-            sd = bl->as_player();
+            sd = bl->is_player();
             nullpo_ret(sd);
             if (sd->invincible_timer || pc_isinvisible(sd))
                 return 0;
@@ -1377,9 +1377,9 @@ void mob_ai_sub_hard_activesearch(dumb_ptr<block_list> bl,
     nullpo_retv(pcc);
 
     if (bl->bl_type == BL::PC)
-        tsd = bl->as_player();
+        tsd = bl->is_player();
     else if (bl->bl_type == BL::MOB)
-        tmd = bl->as_mob();
+        tmd = bl->is_mob();
     else
         return;
 
@@ -1490,7 +1490,7 @@ void mob_ai_sub_hard_linksearch(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md, 
     dumb_ptr<mob_data> tmd;
 
     nullpo_retv(bl);
-    tmd = bl->as_mob();
+    tmd = bl->is_mob();
     nullpo_retv(md);
     nullpo_retv(target);
 
@@ -1527,7 +1527,7 @@ int mob_ai_sub_hard_slavemob(dumb_ptr<mob_data> md, tick_t tick)
     nullpo_ret(md);
 
     if ((bl = map_id2bl(md->master_id)) != NULL)
-        mmd = bl->as_mob();
+        mmd = bl->is_mob();
 
     mode = mob_db[md->mob_class].mode;
 
@@ -1733,7 +1733,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
     MobMode mode;
 
     nullpo_retv(bl);
-    md = bl->as_mob();
+    md = bl->is_mob();
 
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME)
         return;
@@ -1787,7 +1787,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         if (abl)
         {
             if (abl->bl_type == BL::PC)
-                asd = abl->as_player();
+                asd = abl->is_player();
             if (asd == NULL || md->bl_m != abl->bl_m || abl->bl_prev == NULL
                 || asd->invincible_timer || pc_isinvisible(asd)
                 || (dist =
@@ -1855,9 +1855,9 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
         if ((tbl = map_id2bl(md->target_id)))
         {
             if (tbl->bl_type == BL::PC)
-                tsd = tbl->as_player();
+                tsd = tbl->is_player();
             else if (tbl->bl_type == BL::MOB)
-                tmd = tbl->as_mob();
+                tmd = tbl->is_mob();
             if (tsd || tmd)
             {
                 if (tbl->bl_m != md->bl_m || tbl->bl_prev == NULL
@@ -1988,7 +1988,7 @@ void mob_ai_sub_hard(dumb_ptr<block_list> bl, tick_t tick)
                         return;   // 攻撃中
                     if (md->state.state == MS::WALK)
                         mob_stop_walking(md, 1);   // 歩行中なら停止
-                    fitem = tbl->as_item();
+                    fitem = tbl->is_item();
                     md->lootitemv.push_back(fitem->item_data);
                     map_clearflooritem(tbl->bl_id);
                     mob_unlocktarget(md, tick);
@@ -2074,7 +2074,7 @@ void mob_ai_sub_lazy(dumb_ptr<block_list> bl, tick_t tick)
     if (bl->bl_type != BL::MOB)
         return;
 
-    dumb_ptr<mob_data> md = bl->as_mob();
+    dumb_ptr<mob_data> md = bl->is_mob();
 
     if (tick < md->last_thinktime + MIN_MOBTHINKTIME * 10)
         return;
@@ -2259,7 +2259,7 @@ void mob_timer_delete(TimerData *, tick_t, int id)
 
     nullpo_retv(bl);
 
-    md = bl->as_mob();
+    md = bl->is_mob();
     mob_catch_delete(md, BeingRemoveWhy::WARPED);
 }
 
@@ -2273,7 +2273,7 @@ void mob_deleteslave_sub(dumb_ptr<block_list> bl, int id)
     dumb_ptr<mob_data> md;
 
     nullpo_retv(bl);
-    md = bl->as_mob();
+    md = bl->is_mob();
 
     if (md->master_id > 0 && md->master_id == id)
         mob_damage(NULL, md, md->hp, 1);
@@ -2331,7 +2331,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
 
     if (src && src->bl_type == BL::PC)
     {
-        sd = src->as_player();
+        sd = src->is_player();
         mvp_sd = sd;
     }
 
@@ -2395,13 +2395,13 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 md->attacked_id = sd->bl_id;
         }
         if (src && src->bl_type == BL::MOB
-            && src->as_mob()->state.special_mob_ai)
+            && src->is_mob()->state.special_mob_ai)
         {
-            dumb_ptr<mob_data> md2 = src->as_mob();
+            dumb_ptr<mob_data> md2 = src->is_mob();
             dumb_ptr<block_list> master_bl = map_id2bl(md2->master_id);
             if (master_bl && master_bl->bl_type == BL::PC)
             {
-                MAP_LOG_PC(master_bl->as_player(),
+                MAP_LOG_PC(master_bl->is_player(),
                             "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d",
                             md2->bl_id, md2->mob_class, md->bl_id, md->mob_class,
                             damage);
@@ -2450,7 +2450,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
     max_hp = battle_get_max_hp(md);
 
     if (src && src->bl_type == BL::MOB)
-        mob_unlocktarget(src->as_mob(), tick);
+        mob_unlocktarget(src->is_mob(), tick);
 
     // map外に消えた人は計算から除くので
     // overkill分は無いけどsumはmax_hpとは違う
@@ -2703,7 +2703,7 @@ int mob_heal(dumb_ptr<mob_data> md, int heal)
 static
 void mob_warpslave_sub(dumb_ptr<block_list> bl, int id, int x, int y)
 {
-    dumb_ptr<mob_data> md = bl->as_mob();
+    dumb_ptr<mob_data> md = bl->is_mob();
 
     if (md->master_id == id)
     {
@@ -2821,7 +2821,7 @@ void mob_countslave_sub(dumb_ptr<block_list> bl, int id, int *c)
     dumb_ptr<mob_data> md;
 
     nullpo_retv(bl);
-    md = bl->as_mob();
+    md = bl->is_mob();
 
     if (md->master_id == id)
         (*c)++;
@@ -2939,14 +2939,14 @@ void mob_counttargeted_sub(dumb_ptr<block_list> bl,
         return;
     if (bl->bl_type == BL::PC)
     {
-        dumb_ptr<map_session_data> sd = bl->as_player();
+        dumb_ptr<map_session_data> sd = bl->is_player();
         if (sd && sd->attacktarget == id && sd->attacktimer
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
     else if (bl->bl_type == BL::MOB)
     {
-        dumb_ptr<mob_data> md = bl->as_mob();
+        dumb_ptr<mob_data> md = bl->is_mob();
         if (md && md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
             (*c)++;
@@ -2989,7 +2989,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
 
     if ((mbl = map_id2bl(id)) == NULL) //詠唱したMobがもういないというのは良くある正常処理
         return;
-    if ((md = mbl->as_mob()) == NULL)
+    if ((md = mbl->is_mob()) == NULL)
     {
         PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n", mbl->bl_id);
         return;
@@ -3057,7 +3057,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
     if ((bl = map_id2bl(id)) == NULL)
         return;
 
-    md = bl->as_mob();
+    md = bl->is_mob();
     nullpo_retv(md);
 
     if (md->bl_type != BL::MOB || md->bl_prev == NULL)

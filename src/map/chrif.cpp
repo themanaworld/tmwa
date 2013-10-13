@@ -923,7 +923,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
     {
         case BL::PC:
         {
-            dumb_ptr<map_session_data> pc = bl->as_player();
+            dumb_ptr<map_session_data> pc = bl->is_player();
             struct storage *stor = account2storage2(pc->status.account_id);
             int j;
 
@@ -958,7 +958,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
 
         case BL::MOB:
         {
-            dumb_ptr<mob_data> mob = bl->as_mob();
+            dumb_ptr<mob_data> mob = bl->is_mob();
             for (struct item& itm : mob->lootitemv)
                 FIX(itm);
             break;
@@ -966,7 +966,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
 
         case BL::ITEM:
         {
-            dumb_ptr<flooritem_data> item = bl->as_item();
+            dumb_ptr<flooritem_data> item = bl->is_item();
             FIX(item->item_data);
             break;
         }

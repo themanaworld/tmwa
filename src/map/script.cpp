@@ -1468,7 +1468,7 @@ void builtin_warp(ScriptState *st)
 static
 void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y)
 {
-    dumb_ptr<map_session_data> sd = bl->as_player();
+    dumb_ptr<map_session_data> sd = bl->is_player();
     if (mapname == "Random")
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else
@@ -2581,7 +2581,7 @@ void builtin_areamonster(ScriptState *st)
 static
 void builtin_killmonster_sub(dumb_ptr<block_list> bl, NpcEvent event)
 {
-    dumb_ptr<mob_data> md = bl->as_mob();
+    dumb_ptr<mob_data> md = bl->is_mob();
     if (event)
     {
         if (event == md->npc_event)
@@ -2619,7 +2619,7 @@ void builtin_killmonster(ScriptState *st)
 static
 void builtin_killmonsterall_sub(dumb_ptr<block_list> bl)
 {
-    mob_delete(bl->as_mob());
+    mob_delete(bl->is_mob());
 }
 
 static
@@ -2675,9 +2675,9 @@ void builtin_initnpctimer(ScriptState *st)
     if (HARGO2(2))
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     else
-        nd_ = map_id_as_npc(st->oid);
+        nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
-    dumb_ptr<npc_data_script> nd = nd_->as_script();
+    dumb_ptr<npc_data_script> nd = nd_->is_script();
 
     npc_settimerevent_tick(nd, interval_t::zero());
     npc_timerevent_start(nd);
@@ -2694,9 +2694,9 @@ void builtin_startnpctimer(ScriptState *st)
     if (HARGO2(2))
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     else
-        nd_ = map_id_as_npc(st->oid);
+        nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
-    dumb_ptr<npc_data_script> nd = nd_->as_script();
+    dumb_ptr<npc_data_script> nd = nd_->is_script();
 
     npc_timerevent_start(nd);
 }
@@ -2712,9 +2712,9 @@ void builtin_stopnpctimer(ScriptState *st)
     if (HARGO2(2))
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(2)))));
     else
-        nd_ = map_id_as_npc(st->oid);
+        nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
-    dumb_ptr<npc_data_script> nd = nd_->as_script();
+    dumb_ptr<npc_data_script> nd = nd_->is_script();
 
     npc_timerevent_stop(nd);
 }
@@ -2732,9 +2732,9 @@ void builtin_getnpctimer(ScriptState *st)
     if (HARGO2(3))
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(3)))));
     else
-        nd_ = map_id_as_npc(st->oid);
+        nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
-    dumb_ptr<npc_data_script> nd = nd_->as_script();
+    dumb_ptr<npc_data_script> nd = nd_->is_script();
 
     switch (type)
     {
@@ -2763,9 +2763,9 @@ void builtin_setnpctimer(ScriptState *st)
     if (HARGO2(3))
         nd_ = npc_name2id(stringish<NpcName>(ZString(conv_str(st, &AARGO2(3)))));
     else
-        nd_ = map_id_as_npc(st->oid);
+        nd_ = map_id_is_npc(st->oid);
     assert (nd_ && nd_->npc_subtype == NpcSubtype::SCRIPT);
-    dumb_ptr<npc_data_script> nd = nd_->as_script();
+    dumb_ptr<npc_data_script> nd = nd_->is_script();
 
     npc_settimerevent_tick(nd, tick);
 }
@@ -2875,7 +2875,7 @@ void builtin_getareausers_sub(dumb_ptr<block_list>, int *users)
 static
 void builtin_getareausers_living_sub(dumb_ptr<block_list> bl, int *users)
 {
-    if (!pc_isdead(bl->as_player()))
+    if (!pc_isdead(bl->is_player()))
         (*users)++;
 }
 
@@ -2915,7 +2915,7 @@ void builtin_getareausers(ScriptState *st)
 static
 void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, int item, int *amount)
 {
-    dumb_ptr<flooritem_data> drop = bl->as_item();
+    dumb_ptr<flooritem_data> drop = bl->is_item();
 
     if (drop->item_data.nameid == item)
         (*amount) += drop->item_data.amount;
@@ -2925,7 +2925,7 @@ void builtin_getareadropitem_sub(dumb_ptr<block_list> bl, int item, int *amount)
 static
 void builtin_getareadropitem_sub_anddelete(dumb_ptr<block_list> bl, int item, int *amount)
 {
-    dumb_ptr<flooritem_data> drop = bl->as_item();
+    dumb_ptr<flooritem_data> drop = bl->is_item();
 
     if (drop->item_data.nameid == item)
     {
@@ -3467,7 +3467,7 @@ void builtin_cmdothernpc(ScriptState *st)   // Added by RoVeRT
 static
 void builtin_mobcount_sub(dumb_ptr<block_list> bl, NpcEvent event, int *c)
 {
-    if (event == bl->as_mob()->npc_event)
+    if (event == bl->is_mob()->npc_event)
         (*c)++;
 }
 
@@ -3923,7 +3923,7 @@ void builtin_message(ScriptState *st)
 static
 void builtin_npctalk(ScriptState *st)
 {
-    dumb_ptr<npc_data> nd = map_id_as_npc(st->oid);
+    dumb_ptr<npc_data> nd = map_id_is_npc(st->oid);
     dumb_string str = conv_str(st, &AARGO2(2));
 
     if (nd)
@@ -4020,7 +4020,7 @@ void builtin_getsavepoint(ScriptState *st)
 static
 void builtin_areatimer_sub(dumb_ptr<block_list> bl, interval_t tick, NpcEvent event)
 {
-    pc_addeventtimer(bl->as_player(), tick, event);
+    pc_addeventtimer(bl->is_player(), tick, event);
 }
 
 static

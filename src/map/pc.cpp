@@ -362,14 +362,14 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
         return;
     if (bl->bl_type == BL::PC)
     {
-        dumb_ptr<map_session_data> sd = bl->as_player();
+        dumb_ptr<map_session_data> sd = bl->is_player();
         if (sd->attacktarget == id && sd->attacktimer
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
     else if (bl->bl_type == BL::MOB)
     {
-        dumb_ptr<mob_data> md = bl->as_mob();
+        dumb_ptr<mob_data> md = bl->is_mob();
         if (md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
 
@@ -2775,7 +2775,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     if (bl == NULL || bl->bl_prev == NULL)
         return;
 
-    if (bl->bl_type == BL::PC && pc_isdead(bl->as_player()))
+    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
         return;
 
     // 同じmapでないなら攻撃しない
@@ -3427,7 +3427,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         if (src->bl_type == BL::PC)
         {
             MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d",
-                        src->as_player()->status.char_id,
+                        src->is_player()->status.char_id,
                         damage);
         }
         else
@@ -3550,7 +3550,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         {
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
-                src->as_player()->pvp_point++;
+                src->is_player()->pvp_point++;
             pc_setdead(sd);
         }
         // 強制送還
@@ -4747,7 +4747,7 @@ void pc_calc_pvprank_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd2
     dumb_ptr<map_session_data> sd1;
 
     nullpo_retv(bl);
-    sd1 = bl->as_player();
+    sd1 = bl->is_player();
     nullpo_retv(sd2);
 
     if (sd1->pvp_point > sd2->pvp_point)

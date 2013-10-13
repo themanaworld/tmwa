@@ -582,7 +582,7 @@ int map_delobject(int id, BL type)
 
     map_delobjectnofree(id, type);
     if (obj->bl_type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
-        pc_cleanup(obj->as_player());
+        pc_cleanup(obj->is_player());
 
     MapBlockLock::freeblock(obj);
 
@@ -630,7 +630,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
 {
     dumb_ptr<block_list> obj = object[id];
     assert (obj && obj->bl_type == BL::ITEM);
-    dumb_ptr<flooritem_data> fitem = obj->as_item();
+    dumb_ptr<flooritem_data> fitem = obj->is_item();
     if (!tid)
         fitem->cleartimer.cancel();
     clif_clearflooritem(fitem, 0);
@@ -1569,16 +1569,16 @@ void cleanup_sub(dumb_ptr<block_list> bl)
             map_delblock(bl);  // There is something better...
             break;
         case BL::NPC:
-            npc_delete(bl->as_npc());
+            npc_delete(bl->is_npc());
             break;
         case BL::MOB:
-            mob_delete(bl->as_mob());
+            mob_delete(bl->is_mob());
             break;
         case BL::ITEM:
             map_clearflooritem(bl->bl_id);
             break;
         case BL::SPELL:
-            spell_free_invocation(bl->as_spell());
+            spell_free_invocation(bl->is_spell());
             break;
     }
 }
@@ -1703,7 +1703,7 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, int id)
         case BL::NPC:
             return npc_scriptcont(sd, id);
         case BL::SPELL:
-            spell_execute_script(bl->as_spell());
+            spell_execute_script(bl->is_spell());
             break;
     }
 

@@ -553,7 +553,7 @@ void atkillmonster_sub(dumb_ptr<block_list> bl, int flag)
 {
     nullpo_retv(bl);
 
-    dumb_ptr<mob_data> md = bl->as_mob();
+    dumb_ptr<mob_data> md = bl->is_mob();
     if (flag)
         mob_damage(NULL, md, md->hp, 2);
     else
@@ -2184,7 +2184,7 @@ void atlist_nearby_sub(dumb_ptr<block_list> bl, int fd)
     nullpo_retv(bl);
 
     FString buf = STRPRINTF(" - \"%s\"",
-            bl->as_player()->status.name);
+            bl->is_player()->status.name);
     clif_displaymessage(fd, buf);
 }
 
@@ -5456,7 +5456,7 @@ int atcommand_summon(const int, dumb_ptr<map_session_data> sd,
     y = sd->bl_y + random_::in(-5, 4);
 
     id = mob_once_spawn(sd, MOB_THIS_MAP, x, y, JAPANESE_NAME, mob_id, 1, NpcEvent());
-    dumb_ptr<mob_data> md = map_id_as_mob(id);
+    dumb_ptr<mob_data> md = map_id_is_mob(id);
     if (md)
     {
         md->master_id = sd->bl_id;
@@ -5725,7 +5725,7 @@ int atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
 {
     dumb_ptr<map_session_data> pl_sd;
 
-    pl_sd = map_id_as_player(sd->followtarget);
+    pl_sd = map_id_is_player(sd->followtarget);
 
     if (pl_sd)
         pl_sd = get_next(pl_sd);

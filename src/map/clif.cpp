@@ -196,7 +196,7 @@ int is_deaf(dumb_ptr<block_list> bl)
 {
     if (!bl || bl->bl_type != BL::PC)
         return 0;
-    dumb_ptr<map_session_data> sd = bl->as_player();
+    dumb_ptr<map_session_data> sd = bl->is_player();
     return sd->special_state.deaf;
 }
 
@@ -224,7 +224,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
         dumb_ptr<block_list> src_bl, SendWho type)
 {
     nullpo_retv(bl);
-    dumb_ptr<map_session_data> sd = bl->as_player();
+    dumb_ptr<map_session_data> sd = bl->is_player();
 
     switch (type)
     {
@@ -236,7 +236,7 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
         case SendWho::AREA_CHAT_WOC:
             if (is_deaf(bl)
                 && !(bl->bl_type == BL::PC
-                     && pc_isGM(src_bl->as_player())))
+                     && pc_isGM(src_bl->is_player())))
             {
                 clif_emotion_towards(src_bl, bl, EMOTE_IGNORED);
                 return;
@@ -276,7 +276,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
 
         if (bl->bl_type == BL::PC)
         {
-            dumb_ptr<map_session_data> sd2 = bl->as_player();
+            dumb_ptr<map_session_data> sd2 = bl->is_player();
             if (bool(sd2->status.option & Option::INVISIBILITY))
             {
                 // Obscure hidden GMs
@@ -362,7 +362,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
         case SendWho::PARTY_SAMEMAP_WOS:    // 自分以外の同じマップの全パーティーメンバに送信
             if (bl->bl_type == BL::PC)
             {
-                dumb_ptr<map_session_data> sd = bl->as_player();
+                dumb_ptr<map_session_data> sd = bl->is_player();
                 if (sd->partyspy > 0)
                 {
                     p = party_search(sd->partyspy);
@@ -420,7 +420,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
             break;
         case SendWho::SELF:
         {
-            dumb_ptr<map_session_data> sd = bl->as_player();
+            dumb_ptr<map_session_data> sd = bl->is_player();
             if (clif_parse_func_table[RBUFW(buf, 0)].len)
             {
                 // packet must exist
@@ -1815,7 +1815,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
     nullpo_ret(bl);
 
     if (bl->bl_type == BL::PC)
-        sd = bl->as_player();
+        sd = bl->is_player();
 
     if (sd && bool(sd->status.option & Option::INVISIBILITY))
         return 0;
@@ -2604,18 +2604,18 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
     switch (bl->bl_type)
     {
         case BL::PC:
-            if (sd == bl->as_player())
+            if (sd == bl->is_player())
                 break;
-            clif_getareachar_pc(sd, bl->as_player());
+            clif_getareachar_pc(sd, bl->is_player());
             break;
         case BL::NPC:
-            clif_getareachar_npc(sd, bl->as_npc());
+            clif_getareachar_npc(sd, bl->is_npc());
             break;
         case BL::MOB:
-            clif_getareachar_mob(sd, bl->as_mob());
+            clif_getareachar_mob(sd, bl->is_mob());
             break;
         case BL::ITEM:
-            clif_getareachar_item(sd, bl->as_item());
+            clif_getareachar_item(sd, bl->is_item());
             break;
         case BL::SPELL:
             // spell objects are not visible
@@ -2645,7 +2645,7 @@ void clif_pcoutsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
     switch (bl->bl_type)
     {
         case BL::PC:
-            dstsd = bl->as_player();
+            dstsd = bl->is_player();
             if (sd != dstsd)
             {
                 clif_clearchar_id(dstsd->bl_id, BeingRemoveWhy::GONE, sd->fd);
@@ -2653,14 +2653,14 @@ void clif_pcoutsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             }
             break;
         case BL::NPC:
-            if (bl->as_npc()->npc_class != INVISIBLE_CLASS)
+            if (bl->is_npc()->npc_class != INVISIBLE_CLASS)
                 clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->fd);
             break;
         case BL::MOB:
             clif_clearchar_id(bl->bl_id, BeingRemoveWhy::GONE, sd->fd);
             break;
         case BL::ITEM:
-            clif_clearflooritem(bl->as_item(), sd->fd);
+            clif_clearflooritem(bl->is_item(), sd->fd);
             break;
     }
 }
@@ -2679,7 +2679,7 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
     switch (bl->bl_type)
     {
         case BL::PC:
-            dstsd = bl->as_player();
+            dstsd = bl->is_player();
             if (sd != dstsd)
             {
                 clif_getareachar_pc(sd, dstsd);
@@ -2687,13 +2687,13 @@ void clif_pcinsight(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             }
             break;
         case BL::NPC:
-            clif_getareachar_npc(sd, bl->as_npc());
+            clif_getareachar_npc(sd, bl->is_npc());
             break;
         case BL::MOB:
-            clif_getareachar_mob(sd, bl->as_mob());
+            clif_getareachar_mob(sd, bl->is_mob());
             break;
         case BL::ITEM:
-            clif_getareachar_item(sd, bl->as_item());
+            clif_getareachar_item(sd, bl->is_item());
             break;
     }
 }
@@ -2711,7 +2711,7 @@ void clif_moboutsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
 
     if (bl->bl_type == BL::PC)
     {
-        sd = bl->as_player();
+        sd = bl->is_player();
         clif_clearchar_id(md->bl_id, BeingRemoveWhy::GONE, sd->fd);
     }
 }
@@ -2729,7 +2729,7 @@ void clif_mobinsight(dumb_ptr<block_list> bl, dumb_ptr<mob_data> md)
 
     if (bl->bl_type == BL::PC)
     {
-        sd = bl->as_player();
+        sd = bl->is_player();
         clif_getareachar_mob(sd, md);
     }
 }
@@ -3337,7 +3337,7 @@ void clif_emotion_towards(dumb_ptr<block_list> bl,
 {
     unsigned char buf[8];
     int len = clif_parse_func_table[0xc0].len;
-    dumb_ptr<map_session_data> sd = target->as_player();
+    dumb_ptr<map_session_data> sd = target->is_player();
 
     nullpo_retv(bl);
     nullpo_retv(target);
@@ -3706,7 +3706,7 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
     {
         case BL::PC:
         {
-            dumb_ptr<map_session_data> ssd = bl->as_player();
+            dumb_ptr<map_session_data> ssd = bl->is_player();
 
             nullpo_retv(ssd);
 
@@ -3758,7 +3758,7 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
             break;
         case BL::NPC:
         {
-            NpcName name = bl->as_npc()->name;
+            NpcName name = bl->is_npc()->name;
             // [fate] elim hashed out/invisible names for the client
             auto it = std::find(name.begin(), name.end(), '#');
             WFIFO_STRING(fd, 6, name.xislice_h(it), 24);
@@ -3767,7 +3767,7 @@ void clif_parse_GetCharNameRequest(int fd, dumb_ptr<map_session_data> sd)
             break;
         case BL::MOB:
         {
-            dumb_ptr<mob_data> md = bl->as_mob();
+            dumb_ptr<mob_data> md = bl->is_mob();
 
             nullpo_retv(md);
 

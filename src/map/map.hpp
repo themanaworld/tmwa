@@ -90,12 +90,15 @@ struct block_list
     block_list& operator = (block_list&&) = delete;
     virtual ~block_list() {}
 
+private:
+    // historically, a lot of code used this.
+    // historically, a lot of code crashed.
     dumb_ptr<map_session_data> as_player();
     dumb_ptr<npc_data> as_npc();
     dumb_ptr<mob_data> as_mob();
     dumb_ptr<flooritem_data> as_item();
     dumb_ptr<invocation> as_spell();
-
+public:
     dumb_ptr<map_session_data> is_player();
     dumb_ptr<npc_data> is_npc();
     dumb_ptr<mob_data> is_mob();
@@ -346,11 +349,12 @@ struct npc_data : block_list
     Timer eventtimer[MAX_EVENTTIMER];
     short arenaflag;
 
+private:
     dumb_ptr<npc_data_script> as_script();
     dumb_ptr<npc_data_shop> as_shop();
     dumb_ptr<npc_data_warp> as_warp();
     dumb_ptr<npc_data_message> as_message();
-
+public:
     dumb_ptr<npc_data_script> is_script();
     dumb_ptr<npc_data_shop> is_shop();
     dumb_ptr<npc_data_warp> is_warp();
@@ -650,37 +654,6 @@ CharName map_charid2nick(int);
 
 dumb_ptr<map_session_data> map_id2sd(int);
 dumb_ptr<block_list> map_id2bl(int);
-
-inline
-dumb_ptr<map_session_data> map_id_as_player(int id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->as_player() : nullptr;
-}
-inline
-dumb_ptr<npc_data> map_id_as_npc(int id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->as_npc() : nullptr;
-}
-inline
-dumb_ptr<mob_data> map_id_as_mob(int id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->as_mob() : nullptr;
-}
-inline
-dumb_ptr<flooritem_data> map_id_as_item(int id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->as_item() : nullptr;
-}
-inline
-dumb_ptr<invocation> map_id_as_spell(int id)
-{
-    dumb_ptr<block_list> bl = map_id2bl(id);
-    return bl ? bl->as_spell() : nullptr;
-}
 
 inline
 dumb_ptr<map_session_data> map_id_is_player(int id)
