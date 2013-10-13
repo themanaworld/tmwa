@@ -592,7 +592,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
 
     if (item == NULL)
         return 0;
-    if (item->sex != SEX::SERVER && sd->status.sex != item->sex)
+    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -2228,7 +2228,7 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
 
-    if (item->sex != SEX::SERVER && sd->status.sex != item->sex)
+    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;

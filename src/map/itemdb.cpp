@@ -84,7 +84,7 @@ struct item_data *itemdb_search(int nameid)
     id->value_buy = 10;
     id->value_sell = id->value_buy / 2;
     id->weight = 10;
-    id->sex = SEX::SERVER;
+    id->sex = SEX::NEUTRAL;
     id->elv = 0;
 
     if (nameid > 500 && nameid < 600)

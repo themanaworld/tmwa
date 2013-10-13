@@ -271,8 +271,8 @@ enum class SEX : uint8_t
 {
     FEMALE = 0,
     MALE = 1,
-    SERVER = 2,
-    ERROR,
+    // For items. This is also used as error, sometime.
+    NEUTRAL = 2,
 };
 inline
 char sex_to_char(SEX sex)
@@ -281,7 +281,6 @@ char sex_to_char(SEX sex)
     {
     case SEX::FEMALE: return 'F';
     case SEX::MALE: return 'M';
-    case SEX::SERVER: return 'S';
     default: return '\0';
     }
 }
@@ -292,8 +291,7 @@ SEX sex_from_char(char c)
     {
     case 'F': return SEX::FEMALE;
     case 'M': return SEX::MALE;
-    case 'S': return SEX::SERVER;
-    default: return SEX::ERROR;
+    default: return SEX::NEUTRAL;
     }
 }
 

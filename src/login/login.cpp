@@ -83,6 +83,10 @@ IP4Mask lan_subnet;
 static
 FString update_host;
 static
+AccountName userid;
+static
+AccountPass passwd;
+static
 ServerName main_server;
 
 static
@@ -507,7 +511,7 @@ bool extract(XString line, AuthData *ad)
     if (sex.size() != 1)
         return false;
     ad->sex  = sex_from_char(sex.front());
-    if (ad->sex == SEX::ERROR)
+    if (ad->sex == SEX::NEUTRAL)
         return false;
 
     if (!e_mail_check(ad->email))
@@ -532,7 +536,6 @@ static
 int mmo_auth_init(void)
 {
     int GM_count = 0;
-    int server_count = 0;
 
     std::ifstream in(account_filename.c_str());
     if (!in.is_open())
@@ -569,15 +572,13 @@ int mmo_auth_init(void)
 
         if (isGM(ad.account_id) > 0)
             GM_count++;
-        if (ad.sex == SEX::SERVER)
-            server_count++;
 
         if (ad.account_id >= account_id_count)
             account_id_count = ad.account_id + 1;
     }
 
-    FString str = STRPRINTF("%s has %zu accounts (%d GMs, %d servers)\n",
-            account_filename, auth_data.size(), GM_count, server_count);
+    FString str = STRPRINTF("%s has %zu accounts (%d GMs)\n",
+            account_filename, auth_data.size(), GM_count);
     PRINTF("%s: %s\n", __PRETTY_FUNCTION__, str);
     LOGIN_LOG("%s\n", line);
 
@@ -1368,11 +1369,6 @@ void parse_fromchar(int fd)
                     {
                         if (ad.account_id == acc)
                         {
-                            if (ad.sex == SEX::SERVER)
-                                LOGIN_LOG("Char-server '%s': Error of sex change - Server account (suggested account: %d, actual sex %d (Server), ip: %s).\n",
-                                     server[id].name, acc,
-                                     ad.sex, ip);
-                            else
                             {
                                 unsigned char buf[16];
                                 SEX sex;
@@ -2955,15 +2951,14 @@ void parse_login(int fd)
                     ServerName server_name = stringish<ServerName>(RFIFO_STRING<20>(fd, 60).to_print());
                     LOGIN_LOG("Connection request of the char-server '%s' @ %s:%d (ip: %s)\n",
                             server_name, RFIFOIP(fd, 54), RFIFOW(fd, 58), ip);
-                    result = mmo_auth(&account, fd);
-
-                    if (result == -1 && account.sex == SEX::SERVER)
+                    if (account.userid == userid && account.passwd == passwd)
                     {
                         // If this is the main server, and we don't already have a main server
                         if (server_fd[0] <= 0
                             && server_name == main_server)
                         {
                             account.account_id = 0;
+                            goto x2710_okay;
                         }
                         else
                         {
@@ -2973,16 +2968,15 @@ void parse_login(int fd)
                                 if (server_fd[i] <= 0)
                                 {
                                     account.account_id = i;
-                                    break;
+                                    goto x2710_okay;
                                 }
                             }
                         }
                     }
+                    goto x2710_refused;
 
-                    if (result == -1 && account.sex == SEX::SERVER
-                        && account.account_id < MAX_SERVERS
-                        && server_fd[account.account_id] == -1)
                     {
+                    x2710_okay:
                         LOGIN_LOG("Connection of the char-server '%s' accepted (account: %s, pass: %s, ip: %s)\n",
                              server_name, account.userid,
                              account.passwd, ip);
@@ -3016,9 +3010,10 @@ void parse_login(int fd)
                             }
                         WFIFOW(fd, 2) = len;
                         WFIFOSET(fd, len);
+                        goto x2710_done;
                     }
-                    else
                     {
+                    x2710_refused:
                         LOGIN_LOG("Connexion of the char-server '%s' REFUSED (account: %s, pass: %s, ip: %s)\n",
                              server_name, account.userid,
                              account.passwd, ip);
@@ -3027,6 +3022,7 @@ void parse_login(int fd)
                         WFIFOSET(fd, 3);
                     }
                 }
+            x2710_done:
                 RFIFOSKIP(fd, 86);
                 return;
 
@@ -3468,6 +3464,14 @@ int login_config_read(ZString cfgName)
         else if (w1 == "main_server")
         {
             main_server = stringish<ServerName>(w2);
+        }
+        else if (w1 == "userid")
+        {
+            userid = stringish<AccountName>(w2);
+        }
+        else if (w1 == "passwd")
+        {
+            passwd = stringish<AccountPass>(w2);
         }
         else
         {
