@@ -1393,8 +1393,9 @@ void changesex(ZString param)
     }
     char sex = sex_.front();
 
-    if (name.is_print())
+    if (!name.is_print())
     {
+        PRINTF("bad name\n");
         return;
     }
 
