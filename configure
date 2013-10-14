@@ -55,6 +55,14 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Templates):
         self.add_alias('--dev', ['--user', '--enable-warnings', '--enable-abi6'],
                 help=None, hidden=False)
 
+    def paths(self):
+        super(Configuration, self).paths()
+
+        self.add_option('--debugdir', init='/',
+                type=filepath, check=lambda build, DIR: None,
+                help='root for split debug files (often /usr/lib/debug)', hidden=False,
+                help_var='DIR')
+
     def features(self):
         super(Configuration, self).features()
         # TODO: check VERSION_CONTROL environment variable?
@@ -75,6 +83,9 @@ class Configuration(Cxx, Flex, Bison, Install, ConfigHash, Templates):
         self.add_bool_feature('compat-symlinks', init='yes',
                 check=lambda build, ENABLE_COMPAT_SYMLINKS: None,
                 help='Install symlinks to avoid breaking old scripts')
+        self.add_bool_feature('debug', init='yes',
+                check=lambda build, ENABLE_DEBUG: None,
+                help='Install extra files useful for debugging')
 
     def vars(self):
         super(Configuration, self).vars()

@@ -273,6 +273,10 @@ include ${DEPENDS}
 bin/%:
 	$(MKDIR_FIRST)
 	${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
+	cat ${SRC_DIR}/src/main-gdb-head.py \
+	    $(wildcard $(patsubst obj/%.o,${SRC_DIR}/src/%.py,$^)) \
+	    ${SRC_DIR}/src/main-gdb-tail.py \
+	    > $@-gdb.py
 
 ${TEST_BINARIES}: obj/gtest-all.o
 
@@ -287,26 +291,46 @@ test: $(patsubst bin/%,.run-%,${TEST_BINARIES})
 .run-%: bin/%
 	$<
 
+install := install --backup=${ENABLE_BACKUPS_DURING_INSTALL}
+install_exe := ${install}
+install_dir := ${install} -d
+install_data := ${install} -m 0644
+install_symlink := ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf
+
 install:
-	install -d ${DESTDIR}${BINDIR}
-	install --backup=${ENABLE_BACKUPS_DURING_INSTALL} -t ${DESTDIR}${BINDIR} \
-	    $(wildcard ${BINARIES})
-# Is wildcard really the right thing to do? ^
-# cases to consider:
-#   all binaries built
-#   all binaries present, but some outdated. This is hard unless I dep.
-#   some binaries built
-#   no binaries built
+	@echo = Done installing
+
+install: install-bin
+install-bin:
+	@echo + Installing binaries
+	${install_dir} ${DESTDIR}${BINDIR}
+	${install_exe} -t ${DESTDIR}${BINDIR} \
+	    ${BINARIES}
+install-bin: install-bin-compat
+install-bin-compat:
 ifeq (${ENABLE_COMPAT_SYMLINKS},yes)
-	@echo Installing compatibility symlinks
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-login ${DESTDIR}${BINDIR}/login-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-char ${DESTDIR}${BINDIR}/char-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-map ${DESTDIR}${BINDIR}/map-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-admin ${DESTDIR}${BINDIR}/ladmin
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-monitor ${DESTDIR}${BINDIR}/eathena-monitor
+	@echo + Installing compatibility symlinks
+	${install_dir} ${DESTDIR}${BINDIR}
+	${install_symlink} tmwa-login ${DESTDIR}${BINDIR}/login-server
+	${install_symlink} tmwa-char ${DESTDIR}${BINDIR}/char-server
+	${install_symlink} tmwa-map ${DESTDIR}${BINDIR}/map-server
+	${install_symlink} tmwa-admin ${DESTDIR}${BINDIR}/ladmin
+	${install_symlink} tmwa-monitor ${DESTDIR}${BINDIR}/eathena-monitor
 else
-	@echo Not installing compatibility symlinks
+	@echo - Not installing compatibility symlinks
 endif
+
+install: install-debug
+install-debug:
+ifeq (${ENABLE_DEBUG},yes)
+	@echo + Installing debug files
+	${install_dir} ${DESTDIR}${DEBUGDIR}${BINDIR}
+	${install_data} -t ${DESTDIR}${DEBUGDIR}${BINDIR} \
+	    $(patsubst %,%-gdb.py,${BINARIES})
+else
+	@echo - Not installing debug files
+endif
+
 tags: ${SOURCES} ${HEADERS}
 	ctags --totals --c-kinds=+px -f $@ $^
 
@@ -325,6 +349,15 @@ conf-raw/int-%.h: FORCE
 	|| { \
 	    echo "#define $* \\"; \
 	    echo '$(value $*)'; \
+	} > $@
+bool_yes := true
+bool_no := false
+conf-raw/bool-%.h: FORCE
+	$(MKDIR_FIRST)
+	@grep -s -q '^$(bool_$(value $*))$$' $@ \
+	|| { \
+	    echo "#define $* \\"; \
+	    echo '$(bool_$(value $*))'; \
 	} > $@
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
