@@ -422,6 +422,7 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
             sd->bl_m->name_, sd->bl_x, sd->bl_y,
             sd->status.name, sd->status.account_id,
             cmd);
+    fflush(fp);
 }
 
 FString gm_log;
