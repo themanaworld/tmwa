@@ -145,6 +145,7 @@ ATCOMMAND_FUNC(character_storage_list);    // by Yor
 ATCOMMAND_FUNC(character_cart_list);   // by Yor
 ATCOMMAND_FUNC(addwarp);       // by MouseJstr
 ATCOMMAND_FUNC(killer);        // by MouseJstr
+ATCOMMAND_FUNC(charkiller);    // by o11c
 ATCOMMAND_FUNC(npcmove);       // by MouseJstr
 ATCOMMAND_FUNC(killable);      // by MouseJstr
 ATCOMMAND_FUNC(charkillable);  // by MouseJstr
@@ -310,6 +311,7 @@ AtCommandInfo atcommand_info[] =
     {"@charcartlist", 40, atcommand_character_cart_list}, // by Yor
     {"@addwarp", 20, atcommand_addwarp}, // by MouseJstr
     {"@killer", 60, atcommand_killer},    // by MouseJstr
+    {"@charkiller", 60, atcommand_charkiller},    // by o11c
     {"@npcmove", 20, atcommand_npcmove}, // by MouseJstr
     {"@killable", 40, atcommand_killable},  // by MouseJstr
     {"@charkillable", 40, atcommand_charkillable},  // by MouseJstr
@@ -5059,6 +5061,39 @@ int atcommand_killer(const int fd, dumb_ptr<map_session_data> sd,
         clif_displaymessage(fd, "You be a killa...");
     else
         clif_displaymessage(fd, "You gonna be own3d...");
+
+    return 0;
+}
+
+/*==========================================
+ * @charkiller by o11c, for symmetry
+ * enable another player to kill other players even when not in pvp
+ *------------------------------------------
+ */
+int atcommand_charkiller(const int fd, dumb_ptr<map_session_data>,
+        ZString message)
+{
+    CharName character;
+
+    if (!asplit(message, &character))
+        return -1;
+
+    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
+    if (pl_sd == NULL)
+        return -1;
+
+    pl_sd->special_state.killer = !pl_sd->special_state.killer;
+
+    if (pl_sd->special_state.killer)
+    {
+        clif_displaymessage(fd, "The player is now a killer");
+        clif_displaymessage(pl_sd->fd, "You are now a killer");
+    }
+    else
+    {
+        clif_displaymessage(fd, "The player is no longer a killer");
+        clif_displaymessage(pl_sd->fd, "You are no longer a killer");
+    }
 
     return 0;
 }
