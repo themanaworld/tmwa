@@ -684,7 +684,20 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         sd->sc_data[i].val1 = 0;
     }
     sd->sc_count = 0;
-    sd->status.option = Option::ZERO;
+    {
+        Option old_option = sd->status.option;
+        sd->status.option = Option::ZERO;
+
+        // This would leak information.
+        // It's better to make it obvious that players can see you.
+        if (false && bool(old_option & Option::INVISIBILITY))
+            is_atcommand(sd->fd, sd, "@invisible", 0);
+
+        if (bool(old_option & Option::HIDE))
+            is_atcommand(sd->fd, sd, "@hide", 0);
+        // atcommand_hide might already send it, but also might not
+        clif_changeoption(sd);
+    }
 
     // パーティー関係の初期化
     sd->party_sended = 0;
