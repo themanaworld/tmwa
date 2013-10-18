@@ -1043,7 +1043,7 @@ int fun_running_status_update(dumb_ptr<env_t>, val_t *result, const_array<val_t>
 static
 int fun_status_option(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
-    RESULTINT = (bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(0))));
+    RESULTINT = (bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(1))));
     return 0;
 }
 
