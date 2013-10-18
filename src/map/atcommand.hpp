@@ -17,4 +17,6 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd);
 // only used by map.cpp
 extern FString gm_log;
 
+void atcommand_config_write(ZString cfgName);
+
 #endif // ATCOMMAND_HPP

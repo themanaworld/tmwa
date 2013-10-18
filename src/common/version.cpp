@@ -26,3 +26,10 @@ Version CURRENT_MAP_SERVER_VERSION =
     0, TMWA_SERVER_MAP,
     VENDOR_VERSION,
 };
+
+#define S2(a) #a
+#define S(a) S2(a)
+
+const char CURRENT_VERSION_STRING[] = "TMWA "
+        S(VERSION_MAJOR) "." S(VERSION_MINOR) "." S(VERSION_PATCH)
+        " dev" S(VERSION_DEVEL) " (" VENDOR " " S(VENDOR_VERSION) ")";

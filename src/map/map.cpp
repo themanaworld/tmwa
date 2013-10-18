@@ -1659,6 +1659,12 @@ int do_init(int argc, ZString *argv)
             BATTLE_CONF_FILENAME = argv[++i];
         else if (argv[i] == "--atcommand_config")
             ATCOMMAND_CONF_FILENAME = argv[++i];
+        else if (argv[i] == "--write-atcommand-config")
+        {
+            ZString filename = argv[++i];
+            atcommand_config_write(filename);
+            exit(0);
+        }
     }
 
     map_config_read(MAP_CONF_NAME);
