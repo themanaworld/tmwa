@@ -173,9 +173,12 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
         return;
     timestamp_seconds_buffer tmpstr;
     stamp_time(tmpstr);
+    MapName map = (sd->bl_m
+            ? sd->bl_m->name_
+            : stringish<MapName>("undefined.gat"));
     FPRINTF(fp, "[%s] %s(%d,%d) %s(%d) : %s\n",
             tmpstr,
-            sd->bl_m->name_, sd->bl_x, sd->bl_y,
+            map, sd->bl_x, sd->bl_y,
             sd->status.name, sd->status.account_id,
             cmd);
     fflush(fp);
