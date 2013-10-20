@@ -7,11 +7,16 @@
 # This lets us enumerate what *we* added.
 initial_globals = set(globals())
 
+import re
+
 def finish():
-    diff = set(globals()) - initial_globals
-    fp = FastPrinters()
-    # After this, don't access any more globals in this function.
     global finish, initial_globals, FastPrinters
+
+    diff = set(globals()) - initial_globals \
+            - {'finish', 'initial_globals', 'FastPrinters'}
+    fp = FastPrinters()
+
+    # After this, don't access any more globals in this function.
     del finish, initial_globals, FastPrinters
 
     for k in diff:
@@ -20,6 +25,8 @@ def finish():
             fp.add_printer(v)
 
     gdb.current_objfile().pretty_printers.append(fp)
+    print('Added %d custom printers for %s'
+            % (len(fp.printers), gdb.current_objfile().filename))
 
 class FastPrinters(object):
     ''' printer dispatch the way gdb *should* have done it
