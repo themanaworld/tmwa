@@ -746,20 +746,6 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         PRINTF("Connection accepted: Character '%s' (account: %d).\n",
                 sd->status.name, sd->status.account_id);
 
-    // TODO fix this to cache and use inotify
-    // this is far from the only such thing, but most of the others are logs
-    {
-        std::ifstream in(motd_txt.c_str());
-        if (in.is_open())
-        {
-            FString buf;
-            while (io::getline(in, buf))
-            {
-                clif_displaymessage(sd->fd, buf);
-            }
-        }
-    }
-
     sd->auto_ban_info.in_progress = 0;
 
     // Initialize antispam vars
@@ -785,6 +771,21 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     pc_calcstatus(sd, 1);
 
     return 0;
+}
+
+// TODO fix this to cache and use inotify
+// this is far from the only such thing, but most of the others are logs
+void pc_show_motd(dumb_ptr<map_session_data> sd)
+{
+    std::ifstream in(motd_txt.c_str());
+    if (in.is_open())
+    {
+        FString buf;
+        while (io::getline(in, buf))
+        {
+            clif_displaymessage(sd->fd, buf);
+        }
+    }
 }
 
 /*==========================================

@@ -3596,6 +3596,8 @@ void clif_parse_LoadEndAck(int, dumb_ptr<map_session_data> sd)
             sd->bl_x - AREA_SIZE, sd->bl_y - AREA_SIZE,
             sd->bl_x + AREA_SIZE, sd->bl_y + AREA_SIZE,
             BL::NUL);
+
+    pc_show_motd(sd);
 }
 
 /*==========================================

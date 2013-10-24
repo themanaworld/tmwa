@@ -151,6 +151,8 @@ int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t);
 int pc_delinvincibletimer(dumb_ptr<map_session_data> sd);
 int pc_logout(dumb_ptr<map_session_data> sd);   // [fate] Player logs out
 
+void pc_show_motd(dumb_ptr<map_session_data> sd);
+
 int do_init_pc(void);
 
 #endif // PC_HPP
