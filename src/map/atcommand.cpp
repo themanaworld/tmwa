@@ -73,7 +73,7 @@ Map<XString, AtCommandInfo> atcommand_info;
 
 
 static
-AtCommandInfo *atcommand(const int level, XString cmd);
+AtCommandInfo *atcommand(XString cmd);
 
 // These @commands are used within other @commands.
 static
@@ -231,8 +231,17 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
     ZString arg;
     asplit(message, &command, &arg);
 
-    AtCommandInfo *info = atcommand(gmlvl > 0 ? gmlvl : pc_isGM(sd), command);
+    AtCommandInfo *info = atcommand(command);
 
+    if (!gmlvl)
+        gmlvl = pc_isGM(sd);
+    if (battle_config.atcommand_gm_only != 0 && !gmlvl)
+    {
+        FString output = STRPRINTF("GM command is level 0, but this server disables level 0 commands: %s",
+                FString(command));
+        clif_displaymessage(fd, output);
+        return true;
+    }
     if (!info)
     {
         FString output = STRPRINTF("GM command not found: %s",
@@ -240,6 +249,14 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
         clif_displaymessage(fd, output);
         return true;
         // don't show in chat
+    }
+    if (info->level > gmlvl)
+    {
+        FString output = STRPRINTF("GM command is level %d, but you are level %d: %s",
+                info->level, gmlvl,
+                FString(command));
+        clif_displaymessage(fd, output);
+        return true;
     }
 
     {
@@ -274,18 +291,13 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
     }
 }
 
-AtCommandInfo *atcommand(const int level, XString cmd)
+AtCommandInfo *atcommand(XString cmd)
 {
-    if (battle_config.atcommand_gm_only != 0 && !level)
-        // level = pc_isGM(sd)
-        return nullptr;
-
     if (cmd.startswith('@'))
     {
         XString command = cmd.xslice_t(1);
         AtCommandInfo *it = atcommand_info.search(command);
-        if (it && level >= it->level)
-            return it;
+        return it;
     }
     return nullptr;
 }
