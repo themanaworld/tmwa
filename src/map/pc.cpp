@@ -777,6 +777,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 // this is far from the only such thing, but most of the others are logs
 void pc_show_motd(dumb_ptr<map_session_data> sd)
 {
+    sd->state.seen_motd = true;
     std::ifstream in(motd_txt.c_str());
     if (in.is_open())
     {
