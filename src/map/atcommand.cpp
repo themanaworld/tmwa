@@ -357,6 +357,19 @@ int atcommand_config_read(ZString cfgName)
 /// @ command processing functions
 
 static
+void atc_do_help(const int fd, const char *cmd, const AtCommandInfo& info)
+{
+    auto msg = STRPRINTF("\u2007\u2007%d: @%s %s", info.level, cmd, info.args);
+    // manually padding because *space*
+    size_t ll = 1;
+    if (info.level >= 10)
+        ++ll;
+    if (info.level >= 100)
+        ++ll;
+    clif_displaymessage(fd, msg.xslice_t((ll - 1) * 3));
+}
+
+static
 ATCE atcommand_help(const int fd, dumb_ptr<map_session_data>,
         ZString message)
 {
@@ -386,7 +399,7 @@ ATCE atcommand_help(const int fd, dumb_ptr<map_session_data>,
         {
             const char *cmd = &*pair.first.begin();
             const AtCommandInfo& info = pair.second;
-            clif_displaymessage(fd, STRPRINTF("@%s %s", cmd, info.args));
+            atc_do_help(fd, cmd, info);
         }
         return ATCE::OKAY;
     }
@@ -405,7 +418,7 @@ ATCE atcommand_help(const int fd, dumb_ptr<map_session_data>,
         const char *cmd = &*pair.first.begin();
         const AtCommandInfo& info = pair.second;
         if (low <= info.level && info.level < high)
-            clif_displaymessage(fd, STRPRINTF("@%s %s", cmd, info.args));
+            atc_do_help(fd, cmd, info);
     }
     return ATCE::OKAY;
 }
