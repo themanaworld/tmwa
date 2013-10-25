@@ -3,6 +3,9 @@
 #define MMO_HPP
 
 # include "sanity.hpp"
+
+# include "../strings/vstring.hpp"
+
 # include "timer.t.hpp"
 # include "utils2.hpp"
 
@@ -57,12 +60,12 @@ T stringish(VString<sizeof(T) - 1> iv)
 #define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com")
 
 // It is decreed: a mapname shall not contain an extension
-class MapName : public strings::_crtp_string<MapName, MapName, ZString, XString>
+class MapName : public strings::_crtp_string<MapName, MapName, strings::ZPair>
 {
     VString<15> _impl;
 public:
     MapName() = default;
-    MapName(VString<15> v) : _impl(v.oislice_h(std::find(v.begin(), v.end(), '.'))) {}
+    MapName(VString<15> v) : _impl(v.xislice_h(std::find(v.begin(), v.end(), '.'))) {}
 
     iterator begin() const { return &*_impl.begin(); }
     iterator end() const { return &*_impl.end(); }
@@ -264,6 +267,34 @@ enum class ItemLook : uint16_t
     DUAL_26 = 0x16,
 };
 
+enum class SEX : uint8_t
+{
+    FEMALE = 0,
+    MALE = 1,
+    // For items. This is also used as error, sometime.
+    NEUTRAL = 2,
+};
+inline
+char sex_to_char(SEX sex)
+{
+    switch (sex)
+    {
+    case SEX::FEMALE: return 'F';
+    case SEX::MALE: return 'M';
+    default: return '\0';
+    }
+}
+inline
+SEX sex_from_char(char c)
+{
+    switch (c)
+    {
+    case 'F': return SEX::FEMALE;
+    case 'M': return SEX::MALE;
+    default: return SEX::NEUTRAL;
+    }
+}
+
 struct mmo_charstatus
 {
     int char_id;
@@ -287,7 +318,8 @@ struct mmo_charstatus
     CharName name;
     unsigned char base_level, job_level;
     earray<short, ATTR, ATTR::COUNT> attrs;
-    unsigned char char_num, sex;
+    unsigned char char_num;
+    SEX sex;
 
     unsigned long mapip;
     unsigned int mapport;

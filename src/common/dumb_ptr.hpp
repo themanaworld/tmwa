@@ -25,8 +25,11 @@
 
 #include <algorithm>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "const_array.hpp"
-#include "strings.hpp"
 
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
@@ -240,7 +243,7 @@ struct dumb_string
 
     operator ZString() const
     {
-        return ZString(ZString::really_construct_from_a_pointer, c_str(), nullptr);
+        return ZString(strings::really_construct_from_a_pointer, c_str(), nullptr);
     }
 
     FString str() const

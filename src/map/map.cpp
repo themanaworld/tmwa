@@ -12,6 +12,11 @@
 
 #include <fstream>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
@@ -577,7 +582,7 @@ int map_delobject(int id, BL type)
 
     map_delobjectnofree(id, type);
     if (obj->bl_type == BL::PC)     // [Fate] Not sure where else to put this... I'm not sure where delobject for PCs is called from
-        pc_cleanup(obj->as_player());
+        pc_cleanup(obj->is_player());
 
     MapBlockLock::freeblock(obj);
 
@@ -625,7 +630,7 @@ void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
 {
     dumb_ptr<block_list> obj = object[id];
     assert (obj && obj->bl_type == BL::ITEM);
-    dumb_ptr<flooritem_data> fitem = obj->as_item();
+    dumb_ptr<flooritem_data> fitem = obj->is_item();
     if (!tid)
         fitem->cleartimer.cancel();
     clif_clearflooritem(fitem, 0);
@@ -1360,6 +1365,7 @@ void map_close_logfile(void)
         char **argv = const_cast<char **>(args);
 
         fclose(map_logfile);
+        map_logfile = NULL;
 
         if (!fork())
         {
@@ -1433,8 +1439,8 @@ int map_config_read(ZString cfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
         if (w1 == "userid")
@@ -1563,16 +1569,16 @@ void cleanup_sub(dumb_ptr<block_list> bl)
             map_delblock(bl);  // There is something better...
             break;
         case BL::NPC:
-            npc_delete(bl->as_npc());
+            npc_delete(bl->is_npc());
             break;
         case BL::MOB:
-            mob_delete(bl->as_mob());
+            mob_delete(bl->is_mob());
             break;
         case BL::ITEM:
             map_clearflooritem(bl->bl_id);
             break;
         case BL::SPELL:
-            spell_free_invocation(bl->as_spell());
+            spell_free_invocation(bl->is_spell());
             break;
     }
 }
@@ -1583,8 +1589,6 @@ void cleanup_sub(dumb_ptr<block_list> bl)
  */
 void term_func(void)
 {
-    map_close_logfile();
-
     for (auto& mit : maps_db)
     {
         if (!mit.second->gat)
@@ -1608,6 +1612,8 @@ void term_func(void)
     do_final_script();
     do_final_itemdb();
     do_final_storage();
+
+    map_close_logfile();
 }
 
 /// --help was passed
@@ -1653,6 +1659,12 @@ int do_init(int argc, ZString *argv)
             BATTLE_CONF_FILENAME = argv[++i];
         else if (argv[i] == "--atcommand_config")
             ATCOMMAND_CONF_FILENAME = argv[++i];
+        else if (argv[i] == "--write-atcommand-config")
+        {
+            ZString filename = argv[++i];
+            atcommand_config_write(filename);
+            exit(0);
+        }
     }
 
     map_config_read(MAP_CONF_NAME);
@@ -1697,7 +1709,7 @@ int map_scriptcont(dumb_ptr<map_session_data> sd, int id)
         case BL::NPC:
             return npc_scriptcont(sd, id);
         case BL::SPELL:
-            spell_execute_script(bl->as_spell());
+            spell_execute_script(bl->is_spell());
             break;
     }
 

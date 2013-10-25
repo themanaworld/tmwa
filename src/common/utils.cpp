@@ -5,6 +5,10 @@
 
 #include <algorithm>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "cxxstdio.hpp"
 #include "extract.hpp"
 
@@ -42,7 +46,7 @@ bool e_mail_check(XString email)
 // Return numerical value of a switch configuration
 // on/off, english, français, deutsch, español
 //-------------------------------------------------
-int config_switch (ZString str)
+int config_switch(ZString str)
 {
     if (str == "true" || str == "on" || str == "yes"
         || str == "oui" || str == "ja"
@@ -59,27 +63,25 @@ int config_switch (ZString str)
     abort();
 }
 
-bool split_key_value(const FString& line, SString *w1, TString *w2)
+bool split_key_value(ZString line, XString *w1, ZString *w2)
 {
-    FString::iterator begin = line.begin(), end = line.end();
-
     if (line.startswith("//"))
         return false;
-    if (begin == end)
+    if (!line)
         return false;
 
-    if (std::find_if(begin, end,
+    if (std::find_if(line.begin(), line.end(),
                 [](unsigned char c) { return c < ' '; }
                 ) != line.end())
         return false;
-    FString::iterator colon = std::find(begin, end, ':');
-    if (colon == end)
+    ZString::iterator colon = std::find(line.begin(), line.end(), ':');
+    if (colon == line.end())
         return false;
-    *w1 = line.oislice(begin, colon);
+    *w1 = line.xislice_h(colon);
     ++colon;
     while (std::isspace(*colon))
         ++colon;
-    *w2 = line.oislice(colon, end);
+    *w2 = line.xislice_t(colon);
     return true;
 }
 

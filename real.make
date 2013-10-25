@@ -67,7 +67,7 @@
 # 10. Support per-target build flags? (requires renaming)
 
 ifeq ($(findstring s,$(firstword ${MAKEFLAGS})),)
-ifeq (${MAKE_RESTARTS},)
+ifndef MAKE_RESTARTS
 # TODO: should I write this in tengwar?
 # The major problem is that it's usually encoded in the PUA
 # and thus requires a font specification.
@@ -237,6 +237,8 @@ distclean: clean
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
 	${BISON} -d -o $*.cpp $<
+ifndef MAKE_RESTARTS
+# prevent errors if missing header
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
 	set -o pipefail; \
@@ -245,6 +247,7 @@ obj/%.d: src/%.cpp
 	    | sed -e ':again; s:/[^/ ]*/../:/:; t again' \
 	    -e 's: ${SRC_DIR}/: :g' \
 	    > $@
+endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp
 	$(MKDIR_FIRST)
@@ -270,6 +273,10 @@ include ${DEPENDS}
 bin/%:
 	$(MKDIR_FIRST)
 	${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
+	cat ${SRC_DIR}/src/main-gdb-head.py \
+	    $(wildcard $(patsubst obj/%.o,${SRC_DIR}/src/%.py,$^)) \
+	    ${SRC_DIR}/src/main-gdb-tail.py \
+	    > $@-gdb.py
 
 ${TEST_BINARIES}: obj/gtest-all.o
 
@@ -284,32 +291,52 @@ test: $(patsubst bin/%,.run-%,${TEST_BINARIES})
 .run-%: bin/%
 	$<
 
+install := install --backup=${ENABLE_BACKUPS_DURING_INSTALL}
+install_exe := ${install}
+install_dir := ${install} -d
+install_data := ${install} -m 0644
+install_symlink := ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf
+
 install:
-	install -d ${DESTDIR}${BINDIR}
-	install --backup=${ENABLE_BACKUPS_DURING_INSTALL} -t ${DESTDIR}${BINDIR} \
-	    $(wildcard ${BINARIES})
-# Is wildcard really the right thing to do? ^
-# cases to consider:
-#   all binaries built
-#   all binaries present, but some outdated. This is hard unless I dep.
-#   some binaries built
-#   no binaries built
+	@echo = Done installing
+
+install: install-bin
+install-bin:
+	@echo + Installing binaries
+	${install_dir} ${DESTDIR}${BINDIR}
+	${install_exe} -t ${DESTDIR}${BINDIR} \
+	    ${BINARIES}
+install-bin: install-bin-compat
+install-bin-compat:
 ifeq (${ENABLE_COMPAT_SYMLINKS},yes)
-	@echo Installing compatibility symlinks
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-login ${DESTDIR}${BINDIR}/login-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-char ${DESTDIR}${BINDIR}/char-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-map ${DESTDIR}${BINDIR}/map-server
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-admin ${DESTDIR}${BINDIR}/ladmin
-	ln --backup=${ENABLE_BACKUPS_DURING_INSTALL} -sf tmwa-monitor ${DESTDIR}${BINDIR}/eathena-monitor
+	@echo + Installing compatibility symlinks
+	${install_dir} ${DESTDIR}${BINDIR}
+	${install_symlink} tmwa-login ${DESTDIR}${BINDIR}/login-server
+	${install_symlink} tmwa-char ${DESTDIR}${BINDIR}/char-server
+	${install_symlink} tmwa-map ${DESTDIR}${BINDIR}/map-server
+	${install_symlink} tmwa-admin ${DESTDIR}${BINDIR}/ladmin
+	${install_symlink} tmwa-monitor ${DESTDIR}${BINDIR}/eathena-monitor
 else
-	@echo Not installing compatibility symlinks
+	@echo - Not installing compatibility symlinks
 endif
+
+install: install-debug
+install-debug:
+ifeq (${ENABLE_DEBUG},yes)
+	@echo + Installing debug files
+	${install_dir} ${DESTDIR}${DEBUGDIR}${BINDIR}
+	${install_data} -t ${DESTDIR}${DEBUGDIR}${BINDIR} \
+	    $(patsubst %,%-gdb.py,${BINARIES})
+else
+	@echo - Not installing debug files
+endif
+
 tags: ${SOURCES} ${HEADERS}
 	ctags --totals --c-kinds=+px -f $@ $^
 
 Makefile: ${SRC_DIR}/Makefile.in
-	@echo Makefile.in updated, you must rerun configure
-	@false
+	@echo Makefile.in updated, reconfiguring ...
+	./config.status
 
 include ${SRC_DIR}/version.make
 
@@ -323,6 +350,15 @@ conf-raw/int-%.h: FORCE
 	    echo "#define $* \\"; \
 	    echo '$(value $*)'; \
 	} > $@
+bool_yes := true
+bool_no := false
+conf-raw/bool-%.h: FORCE
+	$(MKDIR_FIRST)
+	@grep -s -q '^$(bool_$(value $*))$$' $@ \
+	|| { \
+	    echo "#define $* \\"; \
+	    echo '$(bool_$(value $*))'; \
+	} > $@
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
 	@grep -s -q '^"$(value $*)"$$' $@ \
@@ -332,3 +368,25 @@ conf-raw/str-%.h: FORCE
 	} > $@
 FORCE: ;
 override CPPFLAGS += -I .
+
+# distribution tarballs
+# this only works from within a git checkout
+dist/%/version.make:
+	$(MKDIR_FIRST)
+	git show HEAD:version.make > $@
+	sed 's/^VERSION_FULL := .*/#&\nVERSION_FULL := ${VERSION_FULL}/' -i $@
+	sed 's/^VERSION_HASH := .*/#&\nVERSION_HASH := ${VERSION_HASH}/' -i $@
+dist/%-src.tar: dist/%/version.make
+	git archive --prefix=$*/ -o $@ HEAD
+	( cd dist && tar uf $*-src.tar --mtime="$$(git log -n1 --pretty=%cd)" --mode=664 --owner=root --group=root $*/version.make )
+	rm dist/$*/version.make
+	rmdir dist/$*/
+dist/%-attoconf-only.tar:
+	$(MKDIR_FIRST)
+	git --git-dir=deps/attoconf/.git archive --prefix=$*/deps/attoconf/ HEAD -o $@
+dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
+	cp dist/$*-src.tar $@
+	tar Af $@ dist/$*-attoconf-only.tar
+
+dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
+.PHONY: dist

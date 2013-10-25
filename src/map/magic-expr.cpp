@@ -5,6 +5,11 @@
 #include <cassert>
 #include <cmath>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/random.hpp"
 
@@ -92,16 +97,16 @@ FString show_entity(dumb_ptr<block_list> entity)
     switch (entity->bl_type)
     {
         case BL::PC:
-            return entity->as_player()->status.name.to__actual();
+            return entity->is_player()->status.name.to__actual();
         case BL::NPC:
-            return entity->as_npc()->name;
+            return entity->is_npc()->name;
         case BL::MOB:
-            return entity->as_mob()->name;
+            return entity->is_mob()->name;
         case BL::ITEM:
             assert (0 && "There is no way this code did what it was supposed to do!");
             /* Sorry about this one... */
             // WTF? item_data is a struct item, not a struct item_data
-            // return ((struct item_data *) (&entity->as_item()->item_data))->name;
+            // return ((struct item_data *) (&entity->is_item()->item_data))->name;
             abort();
         case BL::SPELL:
             return {"%invocation(ERROR:this-should-not-be-an-entity)"};
@@ -163,7 +168,7 @@ void stringify(val_t *v, int within_op)
         {
             dumb_ptr<invocation> invocation_ = within_op
                 ? v->v.v_invocation
-                : map_id2bl(v->v.v_int)->as_spell();
+                : map_id2bl(v->v.v_int)->is_spell();
             buf = invocation_->spell->name;
         }
             break;
@@ -601,7 +606,7 @@ int fun_skill(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_has_shroud(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_his_shroud(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
     RESULTINT = (ENTITY_TYPE(0) == BL::PC && ARGPC(0)->state.shroud_active);
     return 0;
@@ -1004,7 +1009,7 @@ int fun_read_script_int(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
     if (subject_p->bl_type != BL::PC)
         return 1;
 
-    RESULTINT = pc_readglobalreg(subject_p->as_player(), var_name);
+    RESULTINT = pc_readglobalreg(subject_p->is_player(), var_name);
     return 0;
 }
 
@@ -1038,7 +1043,7 @@ int fun_running_status_update(dumb_ptr<env_t>, val_t *result, const_array<val_t>
 static
 int fun_status_option(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
-    RESULTINT = (bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(0))));
+    RESULTINT = (bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(1))));
     return 0;
 }
 
@@ -1281,7 +1286,7 @@ std::map<ZString, fun_t> functions =
     MAGIC_FUNCTION1(status_option, "ei", 'i'),
     MAGIC_FUNCTION1(element, "e", 'i'),
     MAGIC_FUNCTION1(element_level, "e", 'i'),
-    MAGIC_FUNCTION1(has_shroud, "e", 'i'),
+    MAGIC_FUNCTION1(his_shroud, "e", 'i'),
     MAGIC_FUNCTION1(is_equipped, "e.", 'i'),
     MAGIC_FUNCTION1(is_exterior, "l", 'i'),
     MAGIC_FUNCTION1(contains_string, "ss", 'i'),
@@ -1495,7 +1500,7 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         }
         else if (ty == TYPE::INVOCATION)
         {
-            arg->v.v_invocation = map_id2bl(arg->v.v_int)->as_spell();
+            arg->v.v_invocation = map_id2bl(arg->v.v_int)->is_spell();
             if (!arg->v.v_entity)
                 ty = arg->ty = TYPE::FAIL;
         }
@@ -1630,7 +1635,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 
             if (v.ty == TYPE::INVOCATION)
             {
-                dumb_ptr<invocation> t = map_id2bl(v.v.v_int)->as_spell();
+                dumb_ptr<invocation> t = map_id2bl(v.v.v_int)->is_spell();
 
                 if (!t)
                     dest->ty = TYPE::UNDEF;

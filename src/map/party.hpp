@@ -3,6 +3,8 @@
 
 #include <functional>
 
+#include "../strings/fwd.hpp"
+
 #include "map.hpp"
 
 struct party;

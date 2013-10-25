@@ -1,4 +1,4 @@
-#include "strings.hpp"
+#include "all.hpp"
 
 #include <gtest/gtest.h>
 

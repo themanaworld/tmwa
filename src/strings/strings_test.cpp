@@ -1,4 +1,4 @@
-#include "strings.hpp"
+#include "all.hpp"
 
 #include <algorithm>
 
@@ -163,21 +163,6 @@ TYPED_TEST_P(StringTest, xslice)
     EXPECT_TRUE(hi.endswith("World!"));
 }
 
-TYPED_TEST_P(StringTest, oslice)
-{
-    TypeParam hi("Hello, World!");
-    EXPECT_EQ(" World!", hi.oslice_t(6));
-    EXPECT_EQ("Hello,", hi.oslice_h(6));
-    EXPECT_EQ("World!", hi.orslice_t(6));
-    EXPECT_EQ("Hello, ", hi.orslice_h(6));
-    typename TypeParam::iterator it = std::find(hi.begin(), hi.end(), ' ');
-    EXPECT_EQ(" World!", hi.oislice_t(it));
-    EXPECT_EQ("Hello,", hi.oislice_h(it));
-    EXPECT_EQ("World", hi.olslice(7, 5));
-    EXPECT_EQ("World", hi.opslice(7, 12));
-    EXPECT_EQ("World", hi.oislice(hi.begin() + 7, hi.begin() + 12));
-}
-
 TYPED_TEST_P(StringTest, convert)
 {
     constexpr bool is_zstring = std::is_same<TypeParam, ZString>::value;
@@ -228,10 +213,28 @@ TYPED_TEST_P(StringTest, convert)
     EXPECT_EQ(v, v3);
     EXPECT_EQ(l, l3);
     EXPECT_EQ(hi, hi3);
+
+    TypeParam f4(f);
+    TypeParam t4(t);
+    TypeParam s4(s);
+    TypeParam z4(z);
+    TypeParam x4(x);
+    TypeParam v4(v);
+    TypeParam l4(l);
+    TypeParam hi4(hi);
+
+    EXPECT_EQ(f, f4);
+    EXPECT_EQ(t, t4);
+    EXPECT_EQ(s, s4);
+    EXPECT_EQ(z, z4);
+    EXPECT_EQ(x, x4);
+    EXPECT_EQ(v, v4);
+    EXPECT_EQ(l, l4);
+    EXPECT_EQ(hi, hi4);
 }
 
 REGISTER_TYPED_TEST_CASE_P(StringTest,
-        basic, order, iterators, xslice, oslice, convert);
+        basic, order, iterators, xslice, convert);
 
 typedef ::testing::Types<
     FString, TString, SString, ZString, XString, VString<255>
@@ -244,7 +247,7 @@ TEST(VStringTest, basic)
     EXPECT_EQ(5, hi.size());
     EXPECT_EQ(hi, hi);
     // truncation
-    VString<5> hi2(ZString::really_construct_from_a_pointer, "Hello, world!");
+    VString<5> hi2(strings::really_construct_from_a_pointer, "Hello, world!");
     EXPECT_EQ(5, hi2.size());
     EXPECT_EQ(hi, hi2);
     // short

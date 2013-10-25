@@ -4,7 +4,8 @@
 #include "skill.t.hpp"
 #include "skill-pools.hpp"
 
-#include "../common/strings.hpp"
+#include "../strings/fwd.hpp"
+#include "../strings/fstring.hpp"
 
 #include "map.hpp"
 

@@ -1,5 +1,7 @@
 #include <cstring>
 
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 
 #include "magic-interpreter.hpp"

@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "../common/mmo.hpp"
-#include "../common/strings.hpp"
 
 /// Load a resource into memory, subject to data/resnametable.txt.
 /// Normally, resourcename is xxx-y.gat and the file is xxx-y.wlk.

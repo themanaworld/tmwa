@@ -6,6 +6,9 @@
 
 #include <fstream>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/io.hpp"
 #include "../common/nullpo.hpp"
@@ -359,14 +362,14 @@ void pc_counttargeted_sub(dumb_ptr<block_list> bl,
         return;
     if (bl->bl_type == BL::PC)
     {
-        dumb_ptr<map_session_data> sd = bl->as_player();
+        dumb_ptr<map_session_data> sd = bl->is_player();
         if (sd->attacktarget == id && sd->attacktimer
             && sd->attacktarget_lv >= target_lv)
             (*c)++;
     }
     else if (bl->bl_type == BL::MOB)
     {
-        dumb_ptr<mob_data> md = bl->as_mob();
+        dumb_ptr<mob_data> md = bl->is_mob();
         if (md->target_id == id && md->timer
             && md->state.state == MS::ATTACK && md->target_lv >= target_lv)
 
@@ -434,7 +437,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
  *------------------------------------------
  */
 int pc_setnewpc(dumb_ptr<map_session_data> sd, int account_id, int char_id,
-        int login_id1, tick_t client_tick, int sex)
+        int login_id1, tick_t client_tick, SEX sex)
 {
     nullpo_ret(sd);
 
@@ -589,7 +592,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
 
     if (item == NULL)
         return 0;
-    if (item->sex != 2 && sd->status.sex != item->sex)
+    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -681,7 +684,20 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         sd->sc_data[i].val1 = 0;
     }
     sd->sc_count = 0;
-    sd->status.option = Option::ZERO;
+    {
+        Option old_option = sd->status.option;
+        sd->status.option = Option::ZERO;
+
+        // This would leak information.
+        // It's better to make it obvious that players can see you.
+        if (false && bool(old_option & Option::INVISIBILITY))
+            is_atcommand(sd->fd, sd, "@invisible", 0);
+
+        if (bool(old_option & Option::HIDE))
+            is_atcommand(sd->fd, sd, "@hide", 0);
+        // atcommand_hide might already send it, but also might not
+        clif_changeoption(sd);
+    }
 
     // パーティー関係の初期化
     sd->party_sended = 0;
@@ -730,20 +746,6 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         PRINTF("Connection accepted: Character '%s' (account: %d).\n",
                 sd->status.name, sd->status.account_id);
 
-    // TODO fix this to cache and use inotify
-    // this is far from the only such thing, but most of the others are logs
-    {
-        std::ifstream in(motd_txt.c_str());
-        if (in.is_open())
-        {
-            FString buf;
-            while (io::getline(in, buf))
-            {
-                clif_displaymessage(sd->fd, buf);
-            }
-        }
-    }
-
     sd->auto_ban_info.in_progress = 0;
 
     // Initialize antispam vars
@@ -769,6 +771,22 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     pc_calcstatus(sd, 1);
 
     return 0;
+}
+
+// TODO fix this to cache and use inotify
+// this is far from the only such thing, but most of the others are logs
+void pc_show_motd(dumb_ptr<map_session_data> sd)
+{
+    sd->state.seen_motd = true;
+    std::ifstream in(motd_txt.c_str());
+    if (in.is_open())
+    {
+        FString buf;
+        while (io::getline(in, buf))
+        {
+            clif_displaymessage(sd->fd, buf);
+        }
+    }
 }
 
 /*==========================================
@@ -2225,7 +2243,7 @@ int pc_isUseitem(dumb_ptr<map_session_data> sd, int n)
     if (itemdb_type(nameid) != ItemType::USE)
         return 0;
 
-    if (item->sex != 2 && sd->status.sex != item->sex)
+    if (item->sex != SEX::NEUTRAL && sd->status.sex != item->sex)
         return 0;
     if (item->elv > 0 && sd->status.base_level < item->elv)
         return 0;
@@ -2772,7 +2790,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
     if (bl == NULL || bl->bl_prev == NULL)
         return;
 
-    if (bl->bl_type == BL::PC && pc_isdead(bl->as_player()))
+    if (bl->bl_type == BL::PC && pc_isdead(bl->is_player()))
         return;
 
     // 同じmapでないなら攻撃しない
@@ -3424,7 +3442,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         if (src->bl_type == BL::PC)
         {
             MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d",
-                        src->as_player()->status.char_id,
+                        src->is_player()->status.char_id,
                         damage);
         }
         else
@@ -3547,7 +3565,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         {
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
-                src->as_player()->pvp_point++;
+                src->is_player()->pvp_point++;
             pc_setdead(sd);
         }
         // 強制送還
@@ -3612,7 +3630,7 @@ int pc_readparam(dumb_ptr<map_session_data> sd, SP type)
             val = sd->status.species;
             break;
         case SP::SEX:
-            val = sd->sex;
+            val = static_cast<uint8_t>(sd->sex);
             break;
         case SP::WEIGHT:
             val = sd->weight;
@@ -3740,7 +3758,8 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             break;
         case SP::SEX:
-            sd->sex = val;
+            // this is a really bad idea
+            sd->sex = static_cast<SEX>(val);
             break;
         case SP::WEIGHT:
             sd->weight = val;
@@ -4743,7 +4762,7 @@ void pc_calc_pvprank_sub(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd2
     dumb_ptr<map_session_data> sd1;
 
     nullpo_retv(bl);
-    sd1 = bl->as_player();
+    sd1 = bl->is_player();
     nullpo_retv(sd2);
 
     if (sd1->pvp_point > sd2->pvp_point)

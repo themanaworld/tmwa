@@ -4,6 +4,9 @@
 
 #include <cstdio>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+
 #include "cxxstdio.hpp"
 #include "socket.hpp"
 

@@ -1,6 +1,8 @@
 #ifndef INTIF_HPP
 #define INTIF_HPP
 
+#include "../strings/fwd.hpp"
+
 #include "../common/const_array.hpp"
 
 #include "map.hpp"

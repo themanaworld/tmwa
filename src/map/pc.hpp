@@ -3,6 +3,8 @@
 
 #include "pc.t.hpp"
 
+#include "../strings/fwd.hpp"
+
 #include "clif.t.hpp"
 #include "map.hpp"
 
@@ -50,7 +52,7 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
         ATK target_lv);
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
-int pc_setnewpc(dumb_ptr<map_session_data>, int, int, int, tick_t, int);
+int pc_setnewpc(dumb_ptr<map_session_data>, int, int, int, tick_t, SEX);
 int pc_authok(int, int, TimeT, short tmw_version, const struct mmo_charstatus *);
 int pc_authfail(int);
 
@@ -148,6 +150,8 @@ int pc_read_gm_account(int fd);
 int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t);
 int pc_delinvincibletimer(dumb_ptr<map_session_data> sd);
 int pc_logout(dumb_ptr<map_session_data> sd);   // [fate] Player logs out
+
+void pc_show_motd(dumb_ptr<map_session_data> sd);
 
 int do_init_pc(void);
 

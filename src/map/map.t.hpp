@@ -1,6 +1,8 @@
 #ifndef MAP_T_HPP
 #define MAP_T_HPP
 
+#include "../strings/vstring.hpp"
+
 #include "../common/mmo.hpp"
 #include "../common/utils2.hpp"
 

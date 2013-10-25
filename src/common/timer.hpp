@@ -5,7 +5,7 @@
 
 # include "sanity.hpp"
 
-# include "strings.hpp"
+# include "../strings/fwd.hpp"
 
 // updated automatically when using milli_clock::now()
 // which is done only by core.cpp

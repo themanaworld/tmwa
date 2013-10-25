@@ -16,6 +16,11 @@
 #include <fstream>
 #include <set>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
@@ -85,7 +90,8 @@ std::bitset<256> char_name_letters;  // list of letters/symbols authorised (or n
 
 struct char_session_data : SessionData
 {
-    int account_id, login_id1, login_id2, sex;
+    int account_id, login_id1, login_id2;
+    SEX sex;
     unsigned short packet_tmw_version;
     AccountEmail email;
     TimeT connect_until_time;
@@ -103,7 +109,7 @@ struct AuthFifoEntry
     int login_id1, login_id2;
     IP4Address ip;
     int delflag;
-    int sex;
+    SEX sex;
     unsigned short packet_tmw_version;
     TimeT connect_until_time;  // # of seconds 1/1/1970 (timestamp): Validity limit of the account (0 = unlimited)
 };
@@ -1205,7 +1211,7 @@ void parse_tologin(int fd)
                 {
                     unsigned char buf[7];
                     int acc = RFIFOL(fd, 2);
-                    int sex = RFIFOB(fd, 6);
+                    SEX sex = static_cast<SEX>(RFIFOB(fd, 6));
                     RFIFOSKIP(fd, 7);
                     if (acc > 0)
                     {
@@ -1234,7 +1240,7 @@ void parse_tologin(int fd)
                     }
                     WBUFW(buf, 0) = 0x2b0d;
                     WBUFL(buf, 2) = acc;
-                    WBUFB(buf, 6) = sex;
+                    WBUFB(buf, 6) = static_cast<uint8_t>(sex);
                     mapif_sendall(buf, 7);
                 }
                 break;
@@ -1610,15 +1616,21 @@ void parse_frommap(int fd)
             case 0x2afc:
                 if (RFIFOREST(fd) < 22)
                     return;
+            {
+                int account_id = RFIFOL(fd, 2);
+                int char_id = RFIFOL(fd, 6);
+                int login_id1 = RFIFOL(fd, 10);
+                int login_id2 = RFIFOL(fd, 14);
+                IP4Address ip = RFIFOIP(fd, 18);
                 //PRINTF("auth_fifo search: account: %d, char: %d, secure: %08x-%08x\n", RFIFOL(fd,2), RFIFOL(fd,6), RFIFOL(fd,10), RFIFOL(fd,14));
                 for (AuthFifoEntry& afi : auth_fifo)
                 {
-                    if (afi.account_id == RFIFOL(fd, 2) &&
-                        afi.char_id == RFIFOL(fd, 6) &&
-                        afi.login_id1 == RFIFOL(fd, 10) &&
+                    if (afi.account_id == account_id &&
+                        afi.char_id == char_id &&
+                        afi.login_id1 == login_id1 &&
                         // here, it's the only area where it's possible that we doesn't know login_id2 (map-server asks just after 0x72 packet, that doesn't given the value)
-                        (afi.login_id2 == RFIFOL(fd, 14) || RFIFOL(fd, 14) == 0) &&  // relate to the versions higher than 18
-                        (!check_ip_flag || afi.ip == RFIFOIP(fd, 18))
+                        (afi.login_id2 == login_id2 || login_id2 == 0) &&  // relate to the versions higher than 18
+                        (!check_ip_flag || afi.ip == ip)
                         && !afi.delflag)
                     {
                         mmo_charstatus *cd = nullptr;
@@ -1634,7 +1646,7 @@ void parse_frommap(int fd)
                         afi.delflag = 1;
                         WFIFOW(fd, 0) = 0x2afd;
                         WFIFOW(fd, 2) = 18 + sizeof(*cd);
-                        WFIFOL(fd, 4) = RFIFOL(fd, 2);
+                        WFIFOL(fd, 4) = account_id;
                         WFIFOL(fd, 8) = afi.login_id2;
                         WFIFOL(fd, 12) = static_cast<time_t>(afi.connect_until_time);
                         cd->sex = afi.sex;
@@ -1650,11 +1662,12 @@ void parse_frommap(int fd)
                 }
                 {
                     WFIFOW(fd, 0) = 0x2afe;
-                    WFIFOL(fd, 2) = RFIFOL(fd, 2);
+                    WFIFOL(fd, 2) = account_id;
                     WFIFOSET(fd, 6);
                     PRINTF("auth_fifo search error! account %d not authentified.\n",
-                         RFIFOL(fd, 2));
+                            account_id);
                 }
+            }
             x2afc_out:
                 RFIFOSKIP(fd, 22);
                 break;
@@ -1712,9 +1725,11 @@ void parse_frommap(int fd)
             case 0x2b02:
                 if (RFIFOREST(fd) < 18)
                     return;
+            {
+                int account_id = RFIFOL(fd, 2);
                 if (auth_fifo_iter == auth_fifo.end())
                     auth_fifo_iter = auth_fifo.begin();
-                auth_fifo_iter->account_id = RFIFOL(fd, 2);
+                auth_fifo_iter->account_id = account_id;
                 auth_fifo_iter->char_id = 0;
                 auth_fifo_iter->login_id1 = RFIFOL(fd, 6);
                 auth_fifo_iter->login_id2 = RFIFOL(fd, 10);
@@ -1723,9 +1738,10 @@ void parse_frommap(int fd)
                 auth_fifo_iter->ip = RFIFOIP(fd, 14);
                 auth_fifo_iter++;
                 WFIFOW(fd, 0) = 0x2b03;
-                WFIFOL(fd, 2) = RFIFOL(fd, 2);
+                WFIFOL(fd, 2) = account_id;
                 WFIFOB(fd, 6) = 0;
                 WFIFOSET(fd, 7);
+            }
                 RFIFOSKIP(fd, 18);
                 break;
 
@@ -1744,7 +1760,7 @@ void parse_frommap(int fd)
                 auth_fifo_iter->login_id1 = RFIFOL(fd, 6);
                 auth_fifo_iter->login_id2 = RFIFOL(fd, 10);
                 auth_fifo_iter->delflag = 0;
-                auth_fifo_iter->sex = RFIFOB(fd, 44);
+                auth_fifo_iter->sex = static_cast<SEX>(RFIFOB(fd, 44));
                 auth_fifo_iter->connect_until_time = TimeT();    // unlimited/unknown time by default (not display in map-server)
                 auth_fifo_iter->ip = RFIFOIP(fd, 45);
 
@@ -1766,6 +1782,8 @@ void parse_frommap(int fd)
             case 0x2b0a:
                 if (RFIFOREST(fd) < 4 || RFIFOREST(fd) < RFIFOW(fd, 2))
                     return;
+            {
+                int account_id = RFIFOL(fd, 4);
                 if (login_fd > 0)
                 {               // don't send request if no login-server
                     size_t len = RFIFOW(fd, 2);
@@ -1776,10 +1794,11 @@ void parse_frommap(int fd)
                 else
                 {
                     WFIFOW(fd, 0) = 0x2b0b;
-                    WFIFOL(fd, 2) = RFIFOL(fd, 4);
+                    WFIFOL(fd, 2) = account_id;
                     WFIFOL(fd, 6) = 0;
                     WFIFOSET(fd, 10);
                 }
+            }
                 RFIFOSKIP(fd, RFIFOW(fd, 2));
                 break;
 
@@ -1803,10 +1822,11 @@ void parse_frommap(int fd)
                 {
                     int acc = RFIFOL(fd, 2);  // account_id of who ask (-1 if nobody)
                     CharName character_name = stringish<CharName>(RFIFO_STRING<24>(fd, 6));
+                    int operation = RFIFOW(fd, 30);
                     // prepare answer
                     WFIFOW(fd, 0) = 0x2b0f;    // answer
                     WFIFOL(fd, 2) = acc;   // who want do operation
-                    WFIFOW(fd, 30) = RFIFOW(fd, 30);  // type of operation: 1-block, 2-ban, 3-unblock, 4-unban, 5-changesex
+                    WFIFOW(fd, 30) = operation;  // type of operation: 1-block, 2-ban, 3-unblock, 4-unban, 5-changesex
                     // search character
                     const mmo_charstatus *cd = search_character(character_name);
                     if (cd)
@@ -2135,13 +2155,14 @@ void parse_char(int fd)
                 if (RFIFOREST(fd) < 17)
                     return;
                 {
-                    int GM_value = isGM(RFIFOL(fd, 2));
+                    int account_id = RFIFOL(fd, 2);
+                    int GM_value = isGM(account_id);
                     if (GM_value)
                         PRINTF("Account Logged On; Account ID: %d (GM level %d).\n",
-                                RFIFOL(fd, 2), GM_value);
+                                account_id, GM_value);
                     else
                         PRINTF("Account Logged On; Account ID: %d.\n",
-                                RFIFOL(fd, 2));
+                                account_id);
                     if (sd == NULL)
                     {
                         session[fd]->session_data = make_unique<char_session_data, SessionDeleter>();
@@ -2149,13 +2170,13 @@ void parse_char(int fd)
                         sd->email = stringish<AccountEmail>("no mail");  // put here a mail without '@' to refuse deletion if we don't receive the e-mail
                         sd->connect_until_time = TimeT(); // unknow or illimited (not displaying on map-server)
                     }
-                    sd->account_id = RFIFOL(fd, 2);
+                    sd->account_id = account_id;
                     sd->login_id1 = RFIFOL(fd, 6);
                     sd->login_id2 = RFIFOL(fd, 10);
                     sd->packet_tmw_version = RFIFOW(fd, 14);
-                    sd->sex = RFIFOB(fd, 16);
+                    sd->sex = static_cast<SEX>(RFIFOB(fd, 16));
                     // send back account_id
-                    WFIFOL(fd, 0) = RFIFOL(fd, 2);
+                    WFIFOL(fd, 0) = account_id;
                     WFIFOSET(fd, 4);
                     // search authentification
                     for (AuthFifoEntry& afi : auth_fifo)
@@ -2203,7 +2224,7 @@ void parse_char(int fd)
                             WFIFOL(login_fd, 2) = sd->account_id;
                             WFIFOL(login_fd, 6) = sd->login_id1;
                             WFIFOL(login_fd, 10) = sd->login_id2;  // relate to the versions higher than 18
-                            WFIFOB(login_fd, 14) = sd->sex;
+                            WFIFOB(login_fd, 14) = static_cast<uint8_t>(sd->sex);
                             WFIFOIP(login_fd, 15) = session[fd]->client_ip;
                             WFIFOSET(login_fd, 19);
                         }
@@ -2543,8 +2564,8 @@ int lan_config_read(ZString lancfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 
@@ -2616,8 +2637,8 @@ int char_config_read(ZString cfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 

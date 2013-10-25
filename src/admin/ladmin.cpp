@@ -8,6 +8,12 @@
 #include <fstream>
 #include <iostream>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/human_time_diff.hpp"
@@ -1387,8 +1393,9 @@ void changesex(ZString param)
     }
     char sex = sex_.front();
 
-    if (name.is_print())
+    if (!name.is_print())
     {
+        PRINTF("bad name\n");
         return;
     }
 
@@ -2776,8 +2783,8 @@ int ladmin_config_read(ZString cfgName)
     FString line;
     while (io::getline(in, line))
     {
-        SString w1;
-        TString w2;
+        XString w1;
+        ZString w2;
         if (!split_key_value(line, &w1, &w2))
             continue;
 

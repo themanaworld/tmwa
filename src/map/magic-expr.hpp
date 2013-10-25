@@ -3,6 +3,9 @@
 
 #include "magic-interpreter.hpp"
 
+#include "../strings/fwd.hpp"
+#include "../strings/zstring.hpp"
+
 /*
  * Argument types:
  *  i : int

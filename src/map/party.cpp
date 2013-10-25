@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/nullpo.hpp"
@@ -683,7 +685,7 @@ void party_send_hp_check(dumb_ptr<block_list> bl, int party_id, int *flag)
     dumb_ptr<map_session_data> sd;
 
     nullpo_retv(bl);
-    sd = bl->as_player();
+    sd = bl->is_player();
 
     if (sd->status.party_id == party_id)
     {

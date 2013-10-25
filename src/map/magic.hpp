@@ -1,6 +1,8 @@
 #ifndef MAGIC_HPP
 #define MAGIC_HPP
 
+#include "../strings/fwd.hpp"
+
 #include "../common/dumb_ptr.hpp"
 
 #include "map.hpp"

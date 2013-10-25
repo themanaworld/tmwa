@@ -5,7 +5,7 @@
 
 #include <cstdio>
 
-#include "strings.hpp"
+#include "../strings/fwd.hpp"
 
 // TODO replace with a class
 

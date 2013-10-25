@@ -16,6 +16,11 @@
 
 #include <fstream>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/io.hpp"
 #include "../common/utils.hpp"
@@ -84,8 +89,8 @@ void read_config(ZString filename)
     FString line;
     while (io::getline(in, line))
     {
-        SString name;
-        TString value;
+        XString name;
+        ZString value;
         if (!split_key_value(line, &name, &value))
             continue;
 
@@ -142,11 +147,11 @@ int main(int argc, char *argv[])
     signal(SIGQUIT, stop_process);
     signal(SIGABRT, stop_process);
 
-    workdir = make_path(ZString(ZString::really_construct_from_a_pointer, getenv("HOME"), nullptr), "tmwserver");
+    workdir = make_path(ZString(strings::really_construct_from_a_pointer, getenv("HOME"), nullptr), "tmwserver");
 
     ZString config = CONFIG;
     if (argc > 1)
-        config = ZString(ZString::really_construct_from_a_pointer, argv[1], nullptr);
+        config = ZString(strings::really_construct_from_a_pointer, argv[1], nullptr);
     read_config(config);
 
     if (chdir(workdir.c_str()) < 0)

@@ -5,6 +5,10 @@
 
 #include <fstream>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"

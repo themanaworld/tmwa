@@ -23,6 +23,8 @@
 
 #include <algorithm>
 
+#include "../strings/xstring.hpp"
+
 #include "const_array.hpp"
 #include "mmo.hpp"
 #include "utils.hpp"

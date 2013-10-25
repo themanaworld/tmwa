@@ -1,6 +1,8 @@
 #ifndef CHRIF_HPP
 #define CHRIF_HPP
 
+#include "../strings/fwd.hpp"
+
 #include "../common/dumb_ptr.hpp"
 #include "../common/human_time_diff.hpp"
 #include "../common/ip.hpp"

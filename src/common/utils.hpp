@@ -8,9 +8,11 @@
 
 #include <type_traits>
 
+#include "../strings/fwd.hpp"
+#include "../strings/vstring.hpp"
+
 #include "const_array.hpp"
 #include "operators.hpp"
-#include "strings.hpp"
 #include "utils2.hpp"
 
 template<class T>
@@ -25,7 +27,7 @@ struct is_trivially_copyable
 bool e_mail_check(XString email);
 int config_switch (ZString str);
 
-bool split_key_value(const FString& line, SString *w1, TString *w2);
+bool split_key_value(ZString line, XString *w1, ZString *w2);
 
 inline
 void really_memcpy(uint8_t *dest, const uint8_t *src, size_t n)

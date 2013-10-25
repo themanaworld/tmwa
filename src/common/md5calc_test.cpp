@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include "../strings/xstring.hpp"
+#include "../strings/vstring.hpp"
+
 #include "utils.hpp"
 
 // This should be made part of the main API,

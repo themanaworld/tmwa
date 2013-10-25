@@ -13,6 +13,9 @@
 #include <fstream>
 #include <map>
 
+#include "../strings/mstring.hpp"
+#include "../strings/fstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
 #include "../common/io.hpp"

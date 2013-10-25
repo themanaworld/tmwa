@@ -5,6 +5,10 @@
 
 #include <fstream>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -80,7 +84,7 @@ struct item_data *itemdb_search(int nameid)
     id->value_buy = 10;
     id->value_sell = id->value_buy / 2;
     id->weight = 10;
-    id->sex = 2;
+    id->sex = SEX::NEUTRAL;
     id->elv = 0;
 
     if (nameid > 500 && nameid < 600)

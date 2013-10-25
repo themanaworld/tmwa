@@ -3,6 +3,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"

@@ -27,6 +27,7 @@ HTMLDIR = @HTMLDIR@
 DVIDIR = @DVIDIR@
 PDFDIR = @PDFDIR@
 PSDIR = @PSDIR@
+DEBUGDIR = @DEBUGDIR@
 
 
 BISON = @BISON@
@@ -43,6 +44,7 @@ ENABLE_WARNINGS = @ENABLE_WARNINGS@
 ENABLE_ABI6 = @ENABLE_ABI6@
 ENABLE_CYGWIN_HACKS = @ENABLE_CYGWIN_HACKS@
 ENABLE_COMPAT_SYMLINKS = @ENABLE_COMPAT_SYMLINKS@
+ENABLE_DEBUG = @ENABLE_DEBUG@
 
 
 
@@ -53,7 +55,7 @@ ifeq '${MAKEFILE_LIST}' ' Makefile'
 # should be used only in special circumstances."
 # If you do not understand *exactly* why I do this instead of
 # %::;${MAKE}, stay away from this code. You have been warned.
-.default-target-wrapper ${MAKECMDGOALS}: .all-target-wrapper
+.default-target-wrapper ${MAKECMDGOALS}: .all-target-wrapper ; @:
 .all-target-wrapper:
 	${MAKE} -rRf ${SRC_DIR}/real.make ${MAKECMDGOALS}
 endif

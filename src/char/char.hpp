@@ -1,6 +1,8 @@
 #ifndef CHAR_HPP
 #define CHAR_HPP
 
+#include "../strings/fwd.hpp"
+
 #include "../common/const_array.hpp"
 #include "../common/ip.hpp"
 #include "../common/mmo.hpp"

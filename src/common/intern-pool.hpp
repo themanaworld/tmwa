@@ -6,7 +6,9 @@
 #include <map>
 #include <vector>
 
-#include "strings.hpp"
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+#include "../strings/xstring.hpp"
 
 class InternPool
 {

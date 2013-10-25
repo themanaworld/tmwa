@@ -10,6 +10,9 @@
 #include <cassert>
 #include <cstdarg> // exception to "no va_list" rule, even after cxxstdio
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+
 #include "../common/const_array.hpp"
 #include "../common/cxxstdio.hpp"
 

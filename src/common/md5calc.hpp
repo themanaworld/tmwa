@@ -11,9 +11,11 @@
 
 #include <array>
 
+#include "../strings/fwd.hpp"
+#include "../strings/vstring.hpp"
+
 #include "ip.hpp"
 #include "mmo.hpp"
-#include "strings.hpp"
 
 /// The digest state - becomes the output
 struct MD5_state

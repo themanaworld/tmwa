@@ -6,6 +6,9 @@
 
 #include <vector>
 
+#include "../strings/fstring.hpp"
+#include "../strings/zstring.hpp"
+
 #include "../common/db.hpp"
 #include "../common/dumb_ptr.hpp"
 #include "../common/utils.hpp"
@@ -17,6 +20,8 @@ struct str_data_t;
 
 class ScriptBuffer
 {
+    typedef ZString::iterator ZSit;
+
     std::vector<ByteCode> script_buf;
 public:
     // construction methods used only by script.cpp
@@ -25,17 +30,17 @@ public:
     void add_scripti(uint32_t a);
     void add_scriptl(str_data_t *a);
     void set_label(str_data_t *ld, int pos_);
-    ZString::iterator parse_simpleexpr(ZString::iterator p);
-    ZString::iterator parse_subexpr(ZString::iterator p, int limit);
-    ZString::iterator parse_expr(ZString::iterator p);
-    ZString::iterator parse_line(ZString::iterator p);
+    ZSit parse_simpleexpr(ZSit p);
+    ZSit parse_subexpr(ZSit p, int limit);
+    ZSit parse_expr(ZSit p);
+    ZSit parse_line(ZSit p);
     void parse_script(ZString src, int line);
 
     // consumption methods used only by script.cpp
     ByteCode operator[](size_t i) const { return script_buf[i]; }
     ZString get_str(size_t i) const
     {
-        return ZString(ZString::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
+        return ZString(strings::really_construct_from_a_pointer, reinterpret_cast<const char *>(&script_buf[i]), nullptr);
     }
 
     // method used elsewhere

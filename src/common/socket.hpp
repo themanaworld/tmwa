@@ -9,6 +9,10 @@
 
 # include <array>
 
+# include "../strings/fstring.hpp"
+# include "../strings/vstring.hpp"
+# include "../strings/xstring.hpp"
+
 # include "dumb_ptr.hpp"
 # include "ip.hpp"
 # include "utils.hpp"
