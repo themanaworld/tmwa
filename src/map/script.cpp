@@ -2165,7 +2165,7 @@ void builtin_strcharinfo(ScriptState *st)
 // indexed by the equip_* in db/const.txt
 // TODO change to use EQUIP
 static
-EPOS equip[10] =
+EPOS equip[11] =
 {
     EPOS::HAT,
     EPOS::MISC1,
@@ -2177,6 +2177,7 @@ EPOS equip[10] =
     EPOS::MISC2,
     EPOS::TORSO,
     EPOS::LEGS,
+    EPOS::ARROW,
 };
 
 /*==========================================
