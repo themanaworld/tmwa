@@ -3161,6 +3161,7 @@ enum
     MF_SAKURA = 18,
     MF_LEAVES = 19,
     MF_RAIN = 20,
+    MF_RESAVE = 21,
 };
 
 static
@@ -3242,6 +3243,9 @@ void builtin_removemapflag(ScriptState *st)
             case MF_NOSAVE:
                 m->flag.nosave = 0;
                 break;
+            case MF_RESAVE:
+                m->flag.resave = 0;
+                break;
             case MF_NOBRANCH:
                 m->flag.nobranch = 0;
                 break;
@@ -3302,6 +3306,9 @@ void builtin_getmapflag(ScriptState *st)
                 break;
             case MF_NOSAVE:
                 r = m->flag.nosave;
+                break;
+            case MF_RESAVE:
+                r = m->flag.resave;
                 break;
             case MF_NOBRANCH:
                 r = m->flag.nobranch;

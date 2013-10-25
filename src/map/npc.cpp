@@ -1542,6 +1542,16 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
         }
         m->flag.nosave = 1;
     }
+    else if (w3 == "resave")
+    {
+        if (extract(w4, record<','>(&savemap, &savex, &savey)))
+        {
+            m->resave.map_ = savemap;
+            m->resave.x = savex;
+            m->resave.y = savey;
+        }
+        m->flag.resave = 1;
+    }
     else if (w3 == "nomemo")
     {
         m->flag.nomemo = 1;
