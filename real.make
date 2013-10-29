@@ -120,7 +120,7 @@ GEN_SOURCES := \
 GEN_HEADERS := \
     $(patsubst %.ypp,%.hpp,${PARSERS})
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
-REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp')
+REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp' -o -name '*.tcc')
 SOURCES := ${GEN_SOURCES} ${REAL_SOURCES}
 HEADERS := ${GEN_HEADERS} ${REAL_HEADERS}
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
@@ -332,7 +332,7 @@ else
 endif
 
 tags: ${SOURCES} ${HEADERS}
-	ctags --totals --c-kinds=+px -f $@ $^
+	ctags --totals -h .tcc --langmap=C++:+.tcc --c-kinds=+px -f $@ $^
 
 Makefile: ${SRC_DIR}/Makefile.in
 	@echo Makefile.in updated, reconfiguring ...
