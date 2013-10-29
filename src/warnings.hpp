@@ -612,7 +612,7 @@ E(-Wunused-parameter)
 /// Warn if a caller of a function, marked with
 /// attribute warn_unused_result, does not use its
 /// return value
-W(-Wunused-result)
+E(-Wunused-result)
 
 /// Warn when an expression value is unused
 E(-Wunused-value)
