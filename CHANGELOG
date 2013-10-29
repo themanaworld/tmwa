@@ -1,3 +1,24 @@
+v13.10.29:
+  - show MOTD in a way that works
+  - ignore hidden GMs in more scripts
+  - make @hide persist without crashing
+  - rewrite @help and other dispatch
+  - fix totally broken status_option, which caused GM invisibility to fail
+  - add @charkiller
+  - make @hide to persist
+  - flush the GM log all the time
+  - add debug printers
+  - use config for internal server userid/passwd instead of accounts.txt
+    This requires updated config files in the data repo.
+    IF YOU DO NOT UPDATE THIS, YOUR SERVER WILL NOT WORK.
+  - fix reversed error condition in ladmin changesex
+  - actually kick the player when their sex is changed by a script
+  - implement 'make dist'
+  - fix crash due to logging after log is closed
+v13.10.2:
+  - remove some asserts that shouldn't fail, but do anyway
+v13.9.31:
+  - don't show different GM level types, it breaks guildbot
 v13.9.30:
   - streamline release process
   - fix drop order assignment
