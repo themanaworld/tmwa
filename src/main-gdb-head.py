@@ -9,6 +9,26 @@ initial_globals = set(globals())
 
 import re
 
+# copied from gdb/types.py for compatibility with old gdb
+def get_basic_type(type_):
+    """Return the "basic" type of a type.
+
+    Arguments:
+        type_: The type to reduce to its basic type.
+
+    Returns:
+        type_ with const/volatile is stripped away,
+        and typedefs/references converted to the underlying type.
+    """
+
+    while (type_.code == gdb.TYPE_CODE_REF or
+           type_.code == gdb.TYPE_CODE_TYPEDEF):
+        if type_.code == gdb.TYPE_CODE_REF:
+            type_ = type_.target()
+        else:
+            type_ = type_.strip_typedefs()
+    return type_.unqualified()
+
 def finish():
     global finish, initial_globals, FastPrinters
 
@@ -54,8 +74,8 @@ class FastPrinters(object):
         return name
 
     def __call__(self, value):
-        stype = gdb.types.get_basic_type(value.type).tag
-        #dtype = gdb.types.get_basic_type(value.dynamic_type).tag
+        stype = get_basic_type(value.type).tag
+        #dtype = get_basic_type(value.dynamic_type).tag
         if stype is None:
             return
 
