@@ -44,7 +44,9 @@ before_script:
 
 ## Main test script
 script:
-  - ./configure --dev CPPFLAGS=-DQUIET
+  - mkdir build
+  - cd build
+  - ../configure --dev CPPFLAGS=-DQUIET
   - make -k -j2
 
 ## Do something after the main test script

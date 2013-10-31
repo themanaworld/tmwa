@@ -212,6 +212,7 @@ vpath %.ypp ${SRC_DIR}
 vpath %.lpp ${SRC_DIR}
 vpath %.cpp ${SRC_DIR}
 vpath %.hpp ${SRC_DIR}
+vpath %.tcc ${SRC_DIR}
 
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all
