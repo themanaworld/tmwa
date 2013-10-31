@@ -60,13 +60,15 @@ class FastPrinters(object):
 
     def add_printer(self, cls):
         assert hasattr(cls, 'enabled')
+        # TODO: check if the class name exists
+        # this is really hard since templates are involved
         self.printers[cls.name] = cls
 
     @property
     def subprinters(self):
         return self.printers.values()
 
-    def strip_templates(self, name, __pattern=re.compile('<[^<>]>')):
+    def strip_templates(self, name, __pattern=re.compile('<[^<>]*>')):
         # TODO what about '<' and '>' as non-type template parameters?
         changed = 1
         while changed:
