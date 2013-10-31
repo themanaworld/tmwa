@@ -261,7 +261,7 @@ namespace strings
     template<class T, class O, class P>
     bool _crtp_string<T, O, P>::contains_any(XPair s) const
     {
-        return std::find_if(s.begin(), s.end(), [this](char c) { return this->contains(c); }) != end();
+        return std::find_if(s.begin(), s.end(), [this](char c) { return this->contains(c); }) != s.end();
     }
 
     template<class T, class O, class P>

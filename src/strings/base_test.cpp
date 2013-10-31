@@ -1,4 +1,7 @@
 #include "base.hpp"
+
+#include <gtest/gtest.h>
+
 #include "vstring.hpp"
 #include "xstring.hpp"
 #include "fstring.hpp"
@@ -16,3 +19,10 @@ static_assert(!string_comparison_allowed<_test, _test2>::value, "t2");
 static_assert(string_comparison_allowed<VString<1>, XString>::value, "vx");
 static_assert(string_comparison_allowed<XString, XString>::value, "xx");
 static_assert(string_comparison_allowed<XString, FString>::value, "xf");
+
+TEST(strings, contains)
+{
+    XString hi = "Hello";
+    EXPECT_TRUE(hi.contains_any("Hi"));
+    EXPECT_FALSE(hi.contains_any("hi"));
+}
