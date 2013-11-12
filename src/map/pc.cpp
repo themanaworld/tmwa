@@ -3729,6 +3729,9 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
             }
             clif_updatestatus(sd, type);
             break;
+        case SP::CLASS:
+            sd->status.species = val;
+            break;
         case SP::SKILLPOINT:
             sd->status.skill_point = val;
             break;
