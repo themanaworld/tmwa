@@ -10,9 +10,9 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
-#include "../common/cxxstdio.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/random.hpp"
 #include "../common/nullpo.hpp"

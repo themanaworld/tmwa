@@ -10,11 +10,11 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
 #include "../common/core.hpp"
-#include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
 #include "../common/human_time_diff.hpp"
 #include "../common/mmo.hpp"

@@ -1,7 +1,7 @@
 #ifndef CORE_HPP
 #define CORE_HPP
 
-#include "sanity.hpp"
+#include "../sanity.hpp"
 
 #include "../strings/fwd.hpp"
 

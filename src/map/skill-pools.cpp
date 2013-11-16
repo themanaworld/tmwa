@@ -1,6 +1,6 @@
 #include "skill.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "battle.hpp"
 #include "pc.hpp"

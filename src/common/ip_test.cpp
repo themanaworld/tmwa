@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 
 #define CB(X) (std::integral_constant<bool, (X)>::value)
 TEST(ip4addr, cmp)

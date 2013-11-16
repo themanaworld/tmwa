@@ -15,9 +15,9 @@
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
 
 #include "../poison.hpp"

@@ -12,7 +12,7 @@
 #include <cstring>
 #include <ctime>
 
-#include "cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 //#include "mmo.hpp"
 #include "utils.hpp"
 

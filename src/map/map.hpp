@@ -12,7 +12,8 @@
 #include "../strings/fstring.hpp"
 #include "../strings/vstring.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
+
 #include "../common/db.hpp"
 #include "../common/matrix.hpp"
 #include "../common/socket.hpp"

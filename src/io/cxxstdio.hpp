@@ -1,5 +1,5 @@
-#ifndef CXXSTDIO_HPP
-#define CXXSTDIO_HPP
+#ifndef TMWA_IO_CXXSTDIO_HPP
+#define TMWA_IO_CXXSTDIO_HPP
 //    cxxstdio.hpp - pass C++ types through scanf/printf
 //
 //    Copyright © 2011-2013 Ben Longbons <b.r.longbons@gmail.com>
@@ -19,15 +19,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "sanity.hpp"
+#include "../sanity.hpp"
 
 #include <cstdarg>
 #include <cstdio>
 
-#include "../io/fwd.hpp"
+// TODO get rid of these header order violations
+#include "../common/const_array.hpp"
+#include "../common/utils2.hpp"
 
-#include "const_array.hpp"
-#include "utils2.hpp"
+#include "fwd.hpp"
 
 
 namespace cxxstdio
@@ -260,4 +261,4 @@ namespace cxxstdio
 
 } // namespace cxxstdio
 
-#endif // CXXSTDIO_HPP
+#endif // TMWA_IO_CXXSTDIO_HPP

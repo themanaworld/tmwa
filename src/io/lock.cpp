@@ -23,8 +23,7 @@
 
 #include "../strings/zstring.hpp"
 
-// TODO remove this violation of include order
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "../poison.hpp"
 

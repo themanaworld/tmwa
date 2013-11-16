@@ -7,9 +7,9 @@
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/cxxstdio.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"

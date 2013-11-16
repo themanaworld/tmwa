@@ -11,10 +11,10 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
-#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/socket.hpp"

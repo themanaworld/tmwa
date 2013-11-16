@@ -4,7 +4,8 @@
 
 #include "../strings/zstring.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
+
 #include "../common/random2.hpp"
 #include "../common/timer.hpp"
 

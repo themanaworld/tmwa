@@ -1,7 +1,7 @@
 #ifndef SOCKET_HPP
 #define SOCKET_HPP
 
-# include "sanity.hpp"
+# include "../sanity.hpp"
 
 # include <netinet/in.h>
 

@@ -25,7 +25,7 @@
 #include "../strings/mstring.hpp"
 #include "../strings/zstring.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "../poison.hpp"
 

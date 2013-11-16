@@ -3,7 +3,7 @@
 #
 #include "magic-interpreter-parser.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 
 #ifdef HEADING
 # error "what platform is this? please tell me who #defined HEADING"

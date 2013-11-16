@@ -1,6 +1,6 @@
-/// return wrappers for unexpected NULL pointers
-#ifndef SANITY_HPP
-#define SANITY_HPP
+/// Keep spatulas out of the build environment
+#ifndef TMWA_SANITY_HPP
+#define TMWA_SANITY_HPP
 
 # ifndef __cplusplus
 #  error "Please compile in C++ mode"
@@ -28,7 +28,7 @@
 // Known platform dependencies:
 // endianness for the [RW]FIFO.* macros
 // possibly, some signal-handling
-#  error "Unsupported platform use x86 / amd64 only"
+#  error "Unsupported platform, we use x86 / amd64 only"
 # endif // not __i386__
 
-#endif // SANITY_HPP
+#endif // TMWA_SANITY_HPP

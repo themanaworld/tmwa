@@ -1,6 +1,7 @@
 #include "trade.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
+
 #include "../common/nullpo.hpp"
 
 #include "battle.hpp"

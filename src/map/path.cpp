@@ -2,7 +2,8 @@
 
 #include <cassert>
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
+
 #include "../common/random.hpp"
 #include "../common/nullpo.hpp"
 

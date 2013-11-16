@@ -3,7 +3,7 @@
 
 # include "random.t.hpp"
 
-# include "sanity.hpp"
+# include "../sanity.hpp"
 
 # include <random>
 

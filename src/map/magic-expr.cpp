@@ -10,7 +10,8 @@
 #include "../strings/zstring.hpp"
 #include "../strings/vstring.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
+
 #include "../common/random.hpp"
 
 #include "battle.hpp"

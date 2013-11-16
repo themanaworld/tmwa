@@ -2,7 +2,7 @@
 #ifndef MMO_HPP
 #define MMO_HPP
 
-# include "sanity.hpp"
+# include "../sanity.hpp"
 
 # include "../strings/vstring.hpp"
 

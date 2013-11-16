@@ -1,7 +1,7 @@
 #ifndef MD5CALC_HPP
 #define MD5CALC_HPP
 
-#include "sanity.hpp"
+#include "../sanity.hpp"
 
 #include <netinet/in.h>
 

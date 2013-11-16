@@ -2,7 +2,7 @@
 
 #include "../strings/xstring.hpp"
 
-#include "../common/cxxstdio.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "magic-interpreter.hpp"
 

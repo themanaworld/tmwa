@@ -1,7 +1,7 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "sanity.hpp"
+#include "../sanity.hpp"
 
 #include <cstdio>
 #include <cstring>

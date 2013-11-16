@@ -15,11 +15,11 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 #include "../io/read.hpp"
 
 #include "../common/core.hpp"
-#include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/random2.hpp"

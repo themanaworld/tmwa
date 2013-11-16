@@ -9,9 +9,9 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
-#include "cxxstdio.hpp"
 #include "extract.hpp"
 
 #include "../poison.hpp"

@@ -11,9 +11,9 @@
 #include "../strings/fstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
