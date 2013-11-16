@@ -27,7 +27,7 @@
 
 #include "../common/cxxstdio.hpp"
 
-#include "src/poison.hpp"
+#include "../poison.hpp"
 
 
 namespace io

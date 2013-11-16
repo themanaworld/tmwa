@@ -25,7 +25,7 @@
 
 #include "../strings/xstring.hpp"
 
-#include "src/poison.hpp"
+#include "../poison.hpp"
 
 
 namespace io
