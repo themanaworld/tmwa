@@ -5440,8 +5440,9 @@ void clif_parse(int fd)
         {                       // too small a packet disconnect
             session[fd]->eof = 1;
         }
-        if (RFIFOW(fd, 0) != 0x72)
-        {                       // first packet not auth, disconnect
+        if (RFIFOW(fd, 0) != 0x72 && RFIFOW(fd, 0) != 0x7530)
+        {
+            // first packet must be auth or finger
             session[fd]->eof = 1;
         }
     }
