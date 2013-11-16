@@ -5,19 +5,18 @@
 
 #include <cassert>
 
-#include <fstream>
-#include <iostream>
-
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/read.hpp"
+#include "../io/write.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/human_time_diff.hpp"
-#include "../common/io.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
@@ -257,11 +256,10 @@ void SessionDeleter::operator()(SessionData *)
 static
 void ladmin_log(XString line)
 {
-    FILE *logfp = fopen(ladmin_log_filename.c_str(), "a");
-    if (!logfp)
+    io::AppendFile logfp(ladmin_log_filename);
+    if (!logfp.is_open())
         return;
     log_with_timestamp(logfp, line);
-    fclose(logfp);
 }
 
 static
@@ -1779,13 +1777,15 @@ void prompt(void)
         fflush(stdout);
 
         // get command and parameter
+        // TODO figure out a better way to do stdio
+        static auto cin = make_unique<io::ReadFile>(dup(0));
         FString buf;
-        io::getline(std::cin, buf);
+        cin->getline(buf);
 
         Iprintf("\033[0m");
         fflush(stdout);
 
-        if (!std::cin)
+        if (!cin->is_open())
             exit(0);
 
         if (!buf.is_print())
@@ -2771,7 +2771,7 @@ int Connect_login_server(void)
 static
 int ladmin_config_read(ZString cfgName)
 {
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("\033[0mConfiguration file (%s) not found.\n", cfgName);
@@ -2781,7 +2781,7 @@ int ladmin_config_read(ZString cfgName)
     Iprintf("\033[0m---Start reading of Ladmin configuration file (%s)\n",
          cfgName);
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;

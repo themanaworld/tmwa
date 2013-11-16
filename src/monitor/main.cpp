@@ -14,15 +14,14 @@
 
 #include <csignal>
 
-#include <fstream>
-
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
-#include "../common/io.hpp"
 #include "../common/utils.hpp"
 
 #include "../poison.hpp"
@@ -79,7 +78,7 @@ void parse_option(XString name, ZString value)
 static
 void read_config(ZString filename)
 {
-    std::ifstream in(filename.c_str());
+    io::ReadFile in(filename);
     if (!in.is_open())
     {
         FPRINTF(stderr, "Monitor config file not found: %s\n", filename);
@@ -87,7 +86,7 @@ void read_config(ZString filename)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString name;
         ZString value;

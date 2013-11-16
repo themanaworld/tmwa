@@ -3,17 +3,16 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <fstream>
-
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/lock.hpp"
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
-#include "../common/lock.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
 
@@ -105,14 +104,14 @@ bool extract(XString str, party *p)
 // パーティデータのロード
 int inter_party_init(void)
 {
-    std::ifstream in(party_txt.c_str());
+    io::ReadFile in(party_txt);
     if (!in.is_open())
         return 1;
 
     // TODO: convert to use char_id, and change to extract()
     FString line;
     int c = 0;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         int i, j = 0;
         if (SSCANF(line, "%d\t%%newid%%\n%n", &i, &j) == 1 && j > 0
@@ -144,19 +143,17 @@ int inter_party_init(void)
 
 // パーティーデータのセーブ用
 static
-void inter_party_save_sub(struct party *data, FILE *fp)
+void inter_party_save_sub(struct party *data, io::WriteFile& fp)
 {
     FString line = inter_party_tostr(data);
-    FPRINTF(fp, "%s\n", line);
+    fp.put_line(line);
 }
 
 // パーティーデータのセーブ
 int inter_party_save(void)
 {
-    FILE *fp;
-    int lock;
-
-    if ((fp = lock_fopen(party_txt, &lock)) == NULL)
+    io::WriteLock fp(party_txt);
+    if (!fp.is_open())
     {
         PRINTF("int_party: cant write [%s] !!! data is lost !!!\n",
                 party_txt);
@@ -164,9 +161,6 @@ int inter_party_save(void)
     }
     for (auto& pair : party_db)
         inter_party_save_sub(&pair.second, fp);
-//  FPRINTF(fp, "%d\t%%newid%%\n", party_newid);
-    lock_fclose(fp, party_txt, &lock);
-//  PRINTF("int_party: %s saved.\n", party_txt);
 
     return 0;
 }

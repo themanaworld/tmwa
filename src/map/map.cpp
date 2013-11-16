@@ -10,18 +10,18 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <fstream>
-
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/write.hpp"
+#include "../io/read.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
 #include "../common/random2.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
@@ -1343,7 +1343,7 @@ void map_delmap(MapName mapname)
 constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
 
 static
-FILE *map_logfile = NULL;
+std::unique_ptr<io::AppendFile> map_logfile;
 static
 FString map_logfile_name;
 static
@@ -1364,8 +1364,7 @@ void map_close_logfile(void)
         };
         char **argv = const_cast<char **>(args);
 
-        fclose(map_logfile);
-        map_logfile = NULL;
+        map_logfile.reset();
 
         if (!fork())
         {
@@ -1385,9 +1384,12 @@ void map_start_logfile(long index)
             "%s.%ld",
             map_logfile_name,
             map_logfile_index);
-    map_logfile = fopen(filename_buf.c_str(), "w+");
-    if (!map_logfile)
+    map_logfile = make_unique<io::AppendFile>(filename_buf);
+    if (!map_logfile->is_open())
+    {
+        map_logfile.reset();
         perror(map_logfile_name.c_str());
+    }
 }
 
 static
@@ -1417,7 +1419,7 @@ void map_log(XString line)
         map_start_logfile(i);
     }
 
-    log_with_timestamp(map_logfile, line);
+    log_with_timestamp(*map_logfile, line);
 }
 
 /*==========================================
@@ -1429,7 +1431,7 @@ int map_config_read(ZString cfgName)
 {
     struct hostent *h = NULL;
 
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("Map configuration file not found at: %s\n", cfgName);
@@ -1437,7 +1439,7 @@ int map_config_read(ZString cfgName)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;

@@ -2,13 +2,12 @@
 
 #include <cstring>
 
-#include <fstream>
-
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
-#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 
@@ -2405,7 +2404,7 @@ int battle_config_read(ZString cfgName)
         battle_config.mob_splash_radius = -1;
     }
 
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("file not found: %s\n", cfgName);
@@ -2413,7 +2412,7 @@ int battle_config_read(ZString cfgName)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
 #define BATTLE_CONFIG_VAR(name) {{#name}, &battle_config.name}
         const struct

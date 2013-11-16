@@ -4,19 +4,19 @@
 #include <cstring>
 #include <ctime>
 
-#include <fstream>
-
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/read.hpp"
+#include "../io/write.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
 #include "../common/human_time_diff.hpp"
-#include "../common/io.hpp"
 #include "../common/mmo.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
@@ -92,9 +92,9 @@ ATCE atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
 
 void atcommand_config_write(ZString cfgName)
 {
-    FILE *out = fopen(cfgName.c_str(), "w");
+    io::WriteFile out(cfgName);
 
-    if (!out)
+    if (!out.is_open())
     {
         FPRINTF(stderr, "Failed to write atcommand config: %s\n", cfgName);
         return;
@@ -117,8 +117,6 @@ void atcommand_config_write(ZString cfgName)
                 cmd, info.args,
                 cmd, info.level);
     }
-
-    fclose(out);
 }
 
 
@@ -164,11 +162,11 @@ bool asplit(ZString raw, F *first_arg, R *... rest_args)
 }
 
 static
-FILE *get_gm_log();
+io::AppendFile *get_gm_log();
 
 void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
 {
-    FILE *fp = get_gm_log();
+    io::AppendFile *fp = get_gm_log();
     if (!fp)
         return;
     timestamp_seconds_buffer tmpstr;
@@ -176,17 +174,16 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
     MapName map = (sd->bl_m
             ? sd->bl_m->name_
             : stringish<MapName>("undefined.gat"));
-    FPRINTF(fp, "[%s] %s(%d,%d) %s(%d) : %s\n",
+    FPRINTF(*fp, "[%s] %s(%d,%d) %s(%d) : %s\n",
             tmpstr,
             map, sd->bl_x, sd->bl_y,
             sd->status.name, sd->status.account_id,
             cmd);
-    fflush(fp);
 }
 
 FString gm_log;
 
-FILE *get_gm_log()
+io::AppendFile *get_gm_log()
 {
     if (!gm_log)
         return NULL;
@@ -197,26 +194,26 @@ FILE *get_gm_log()
     int month = ctime.tm_mon + 1;
     int logfile_nr = (year * 12) + month;
 
-    static FILE *gm_logfile = NULL;
+    static std::unique_ptr<io::AppendFile> gm_logfile;
     static int last_logfile_nr = 0;
     if (logfile_nr == last_logfile_nr)
-        return gm_logfile;
+        return gm_logfile.get();
     last_logfile_nr = logfile_nr;
 
     FString fullname = STRPRINTF("%s.%04d-%02d",
             gm_log, year, month);
 
     if (gm_logfile)
-        fclose(gm_logfile);
+        gm_logfile.reset();
 
-    gm_logfile = fopen(fullname.c_str(), "a");
+    gm_logfile = make_unique<io::AppendFile>(fullname, true);
 
     if (!gm_logfile)
     {
         perror("GM log file");
         gm_log = FString();
     }
-    return gm_logfile;
+    return gm_logfile.get();
 }
 
 bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
@@ -322,7 +319,7 @@ AtCommandInfo *get_atcommandinfo_byname(XString name)
 
 int atcommand_config_read(ZString cfgName)
 {
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("At commands configuration file not found: %s\n", cfgName);
@@ -330,7 +327,7 @@ int atcommand_config_read(ZString cfgName)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;
@@ -1277,7 +1274,7 @@ ATCE atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
 {
     ItemName item_name;
     int number = 0, item_id;
-    struct item_data *item_data;
+    struct item_data *item_data = NULL;
     int get_count, i;
 
     if (!extract(message, record<' ', 1>(&item_name, &number)))
@@ -3847,7 +3844,7 @@ static
 ATCE atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    struct item_data *item_data, *item_temp;
+    struct item_data *item_data = NULL, *item_temp;
     int i, j, count, counter, counter2;
     CharName character;
 
@@ -4001,7 +3998,7 @@ ATCE atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> s
         ZString message)
 {
     struct storage *stor;
-    struct item_data *item_data, *item_temp;
+    struct item_data *item_data = NULL, *item_temp;
     int i, j, count, counter, counter2;
     CharName character;
 
@@ -4121,7 +4118,7 @@ static
 ATCE atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    struct item_data *item_data, *item_temp;
+    struct item_data *item_data = NULL, *item_temp;
     int i, j, count, counter, counter2;
     CharName character;
 

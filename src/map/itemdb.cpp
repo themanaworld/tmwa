@@ -3,16 +3,15 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <fstream>
-
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"
@@ -157,10 +156,10 @@ static
 int itemdb_readdb(void)
 {
     int ln = 0, lines = 0;
-    const char *filename = "db/item_db.txt";
+    ZString filename = "db/item_db.txt";
 
     {
-        std::ifstream in(filename);
+        io::ReadFile in(filename);
 
         if (!in.is_open())
         {
@@ -171,7 +170,7 @@ int itemdb_readdb(void)
         lines = 0;
 
         FString line;
-        while (io::getline(in, line))
+        while (in.getline(line))
         {
             lines++;
             if (!line)

@@ -11,6 +11,8 @@
 #include "../strings/fwd.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/fwd.hpp"
+
 #include "const_array.hpp"
 #include "operators.hpp"
 #include "utils2.hpp"
@@ -117,7 +119,7 @@ struct timestamp_milliseconds_buffer : VString<23> {};
 void stamp_time(timestamp_seconds_buffer&, const TimeT *t=nullptr);
 void stamp_time(timestamp_milliseconds_buffer&);
 
-void log_with_timestamp(FILE *out, XString line);
+void log_with_timestamp(io::WriteFile& out, XString line);
 
 // TODO VString?
 #define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"

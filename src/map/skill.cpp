@@ -5,15 +5,14 @@
 #include <cstring>
 #include <ctime>
 
-#include <fstream>
-
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"
@@ -1186,15 +1185,15 @@ int skill_readdb(void)
     for (skill_db_& skdb : skill_db)
         skdb = skill_db_{};
 
-    std::ifstream in("db/skill_db.txt");
-    if (!in)
+    io::ReadFile in("db/skill_db.txt");
+    if (!in.is_open())
     {
         PRINTF("can't read db/skill_db.txt\n");
         return 1;
     }
 
     FString line_;
-    while (io::getline(in, line_))
+    while (in.getline(line_))
     {
         XString comment = "//";
         XString line = line_.xislice_h(std::search(line_.begin(), line_.end(), comment.begin(), comment.end())).rstrip();

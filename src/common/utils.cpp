@@ -9,6 +9,8 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/write.hpp"
+
 #include "cxxstdio.hpp"
 #include "extract.hpp"
 
@@ -106,18 +108,16 @@ void stamp_time(timestamp_milliseconds_buffer& out)
     out = stringish<timestamp_milliseconds_buffer>(const_(buf));
 }
 
-void log_with_timestamp(FILE *out, XString line)
+void log_with_timestamp(io::WriteFile& out, XString line)
 {
     if (!line)
     {
-        fputc('\n', out);
+        out.put('\n');
         return;
     }
     timestamp_milliseconds_buffer tmpstr;
     stamp_time(tmpstr);
-    fputs(tmpstr.c_str(), out);
-    fputs(": ", out);
-    fwrite(line.data(), 1, line.size(), out);
-    if (line.back() != '\n')
-        fputc('\n', out);
+    out.really_put(tmpstr.data(), tmpstr.size());
+    out.really_put(": ", 2);
+    out.put_line(line);
 }

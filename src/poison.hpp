@@ -1,3 +1,5 @@
+#ifndef GENERATING_DEPENDENCIES
+
 // impossible(*) to use safely
 // removed in C11
 #pragma GCC poison gets
@@ -85,3 +87,15 @@
 #pragma GCC poison tolower
 #pragma GCC poison isupper
 #pragma GCC poison islower
+
+// in favor of io::ReadFile and io::WriteFile
+// note that stdout and stderr are NOT poisoned (yet)
+#pragma GCC poison FILE
+#pragma GCC poison istream
+#pragma GCC poison ostream
+#pragma GCC poison iostream
+#pragma GCC poison ifstream
+#pragma GCC poison ofstream
+#pragma GCC poison fstream
+
+#endif // GENERATING_DEPENDENCIES

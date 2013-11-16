@@ -7,19 +7,18 @@
 #include <cstring>
 #include <ctime>
 
-#include <fstream>
-
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/lock.hpp"
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/intern-pool.hpp"
-#include "../common/io.hpp"
-#include "../common/lock.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"
 #include "../common/utils.hpp"
@@ -688,7 +687,7 @@ void add_builtin_functions(void)
 static
 void read_constdb(void)
 {
-    std::ifstream in("db/const.txt");
+    io::ReadFile in("db/const.txt");
     if (!in.is_open())
     {
         PRINTF("can't read db/const.txt\n");
@@ -696,7 +695,7 @@ void read_constdb(void)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         if (line.startswith("//"))
             continue;
@@ -704,6 +703,7 @@ void read_constdb(void)
         FString name;
         int val;
         int type = 0; // if not provided
+        // TODO get rid of SSCANF - this is the last serious use
         if (SSCANF(line, "%m[A-Za-z0-9_] %i %i", &name, &val, &type) < 2)
             continue;
         str_data_t *n = add_strp(name);
@@ -4898,13 +4898,13 @@ void mapreg_setregstr(SIR reg, XString str)
 static
 void script_load_mapreg(void)
 {
-    std::ifstream in(mapreg_txt.c_str());
+    io::ReadFile in(mapreg_txt);
 
     if (!in.is_open())
         return;
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString buf1, buf2;
         int index = 0;
@@ -4946,7 +4946,7 @@ void script_load_mapreg(void)
  *------------------------------------------
  */
 static
-void script_save_mapreg_intsub(SIR key, int data, FILE *fp)
+void script_save_mapreg_intsub(SIR key, int data, io::WriteFile& fp)
 {
     int num = key.base(), i = key.index();
     ZString name = variable_names.outtern(num);
@@ -4960,7 +4960,7 @@ void script_save_mapreg_intsub(SIR key, int data, FILE *fp)
 }
 
 static
-void script_save_mapreg_strsub(SIR key, ZString data, FILE *fp)
+void script_save_mapreg_strsub(SIR key, ZString data, io::WriteFile& fp)
 {
     int num = key.base(), i = key.index();
     ZString name = variable_names.outtern(num);
@@ -4976,16 +4976,13 @@ void script_save_mapreg_strsub(SIR key, ZString data, FILE *fp)
 static
 void script_save_mapreg(void)
 {
-    FILE *fp;
-    int lock;
-
-    if ((fp = lock_fopen(mapreg_txt, &lock)) == NULL)
+    io::WriteLock fp(mapreg_txt);
+    if (!fp.is_open())
         return;
     for (auto& pair : mapreg_db)
         script_save_mapreg_intsub(pair.first, pair.second, fp);
     for (auto& pair : mapregstr_db)
         script_save_mapreg_strsub(pair.first, pair.second, fp);
-    lock_fclose(fp, mapreg_txt, &lock);
     mapreg_dirty = 0;
 }
 

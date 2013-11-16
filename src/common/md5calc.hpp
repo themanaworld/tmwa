@@ -14,6 +14,8 @@
 #include "../strings/fwd.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/fwd.hpp"
+
 #include "ip.hpp"
 #include "mmo.hpp"
 
@@ -43,7 +45,7 @@ void MD5_to_str(MD5_state state, md5_string& out);
 
 // Convenience
 MD5_state MD5_from_string(XString msg);
-MD5_state MD5_from_FILE(FILE* in);
+MD5_state MD5_from_FILE(io::ReadFile& in);
 
 
 // whoever wrote this fails basic understanding of

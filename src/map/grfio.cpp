@@ -10,22 +10,22 @@
 #include <cstdio>
 #include <cstring>
 
-#include <fstream>
 #include <map>
 
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
 
 #include "../poison.hpp"
 
 static
 std::map<MapName, FString> load_resnametable()
 {
-    std::ifstream in("data/resnametable.txt");
+    io::ReadFile in("data/resnametable.txt");
     if (!in.is_open())
     {
         fprintf(stderr, "Missing data/resnametable.txt");
@@ -34,7 +34,7 @@ std::map<MapName, FString> load_resnametable()
     std::map<MapName, FString> out;
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         MapName key;
         FString value;

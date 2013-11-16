@@ -5,6 +5,8 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "cxxstdio.hpp"
 #include "random.hpp"
 #include "utils.hpp"
@@ -234,7 +236,7 @@ MD5_state MD5_from_string(XString msg)
 
 // TODO - refactor MD5 into a stream, and merge the implementations
 // I once implemented an ostream that does it ...
-MD5_state MD5_from_FILE(FILE* in)
+MD5_state MD5_from_FILE(io::ReadFile& in)
 {
     uint64_t total_len = 0;
 
@@ -248,7 +250,7 @@ MD5_state MD5_from_FILE(FILE* in)
 
     while (true)
     {
-        size_t rv = fread(buf + block_len, 1, 0x40 - block_len, in);
+        size_t rv = in.get(sign_cast<char *>(buf + block_len), 0x40 - block_len);
         if (!rv)
             break;
         total_len += 8 * rv; // in bits

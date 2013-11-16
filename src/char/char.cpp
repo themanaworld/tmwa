@@ -13,7 +13,6 @@
 #include <ctime>
 
 #include <bitset>
-#include <fstream>
 #include <set>
 
 #include "../strings/mstring.hpp"
@@ -21,13 +20,14 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/lock.hpp"
+#include "../io/read.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/human_time_diff.hpp"
-#include "../common/io.hpp"
-#include "../common/lock.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 #include "../common/version.hpp"
@@ -162,11 +162,10 @@ pid_t pid = 0;                  // For forked DB writes
 //------------------------------
 void char_log(XString line)
 {
-    FILE *logfp = fopen(char_log_filename.c_str(), "a");
-    if (!logfp)
+    io::AppendFile logfp(char_log_filename, true);
+    if (!logfp.is_open())
         return;
     log_with_timestamp(logfp, line);
-    fclose(logfp);
 }
 
 //----------------------------------------------------------------------
@@ -436,7 +435,7 @@ int mmo_char_init(void)
     char_data.clear();
     online_chars.clear();
 
-    std::ifstream in(char_txt.c_str());
+    io::ReadFile in(char_txt);
     if (!in.is_open())
     {
         PRINTF("Characters file not found: %s.\n", char_txt);
@@ -448,7 +447,7 @@ int mmo_char_init(void)
 
     int line_count = 0;
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         line_count++;
 
@@ -494,9 +493,8 @@ int mmo_char_init(void)
 static
 void mmo_char_sync(void)
 {
-    int lock;
-    FILE *fp = lock_fopen(char_txt, &lock);
-    if (fp == NULL)
+    io::WriteLock fp(char_txt);
+    if (!fp.is_open())
     {
         PRINTF("WARNING: Server can't not save characters.\n");
         CHAR_LOG("WARNING: Server can't not save characters.\n");
@@ -507,11 +505,9 @@ void mmo_char_sync(void)
         for (mmo_charstatus& cd : char_data)
         {
             FString line = mmo_char_tostr(&cd);
-            fwrite(line.data(), 1, line.size(), fp);
-            fputc('\n', fp);
+            fp.put_line(line);
         }
         FPRINTF(fp, "%d\t%%newid%%\n", char_id_count);
-        lock_fclose(fp, char_txt, &lock);
     }
 }
 
@@ -725,14 +721,13 @@ static
 void create_online_files(void)
 {
     // write files
-    FILE *fp = fopen(online_txt_filename.c_str(), "w");
-    if (fp != NULL)
+    io::WriteFile fp(online_txt_filename);
+    if (fp.is_open())
     {
-        FILE *fp2 = fopen(online_html_filename.c_str(), "w");
-        if (fp2 != NULL)
+        io::WriteFile fp2(online_html_filename);
+        if (fp2.is_open())
         {
             // get time
-#warning "Need to convert/check the PHP code"
             timestamp_seconds_buffer timetemp;
             stamp_time(timetemp);
             // write heading
@@ -836,9 +831,7 @@ void create_online_files(void)
             }
             FPRINTF(fp2, "  </BODY>\n");
             FPRINTF(fp2, "</HTML>\n");
-            fclose(fp2);
         }
-        fclose(fp);
     }
 
     return;
@@ -1363,7 +1356,7 @@ void parse_tologin(int fd)
                 if (RFIFOREST(fd) < 6)
                     return;
                 // Deletion of all characters of the account
-#warning "This comment is a lie, but it's still true."
+//#warning "This comment is a lie, but it's still true."
                 // needs to use index because they may move during resize
                 for (int idx = 0; idx < char_data.size(); idx++)
                 {
@@ -2551,7 +2544,7 @@ int lan_config_read(ZString lancfgName)
     lan_map_ip = IP4_LOCALHOST;
     lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 
-    std::ifstream in(lancfgName.c_str());
+    io::ReadFile in(lancfgName);
 
     if (!in.is_open())
     {
@@ -2562,7 +2555,7 @@ int lan_config_read(ZString lancfgName)
     PRINTF("---start reading of Lan Support configuration...\n");
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;
@@ -2626,7 +2619,7 @@ int char_config_read(ZString cfgName)
 {
     struct hostent *h = NULL;
 
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
 
     if (!in.is_open())
     {
@@ -2635,7 +2628,7 @@ int char_config_read(ZString cfgName)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;

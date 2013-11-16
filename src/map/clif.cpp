@@ -10,6 +10,8 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/write.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/random.hpp"
@@ -5536,8 +5538,7 @@ void clif_parse(int fd)
 #ifdef DUMP_UNKNOWN_PACKET
             {
                 int i;
-                FILE *fp;
-                char packet_txt[256] = "save/packet.txt";
+                ZString packet_txt = "save/packet.txt";
                 PRINTF("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
                 for (i = 0; i < packet_len; i++)
                 {
@@ -5554,7 +5555,8 @@ void clif_parse(int fd)
                 else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                     PRINTF("\nAccount ID %d.\n", sd->bl_id);
 
-                if ((fp = fopen(packet_txt, "a")) == NULL)
+                io::AppendFile fp(packet_txt);
+                if (!fp.is_open())
                 {
                     PRINTF("clif.c: cant write [%s] !!! data is lost !!!\n",
                             packet_txt);
@@ -5586,7 +5588,6 @@ void clif_parse(int fd)
                         FPRINTF(fp, "%02X ", RFIFOB(fd, i));
                     }
                     FPRINTF(fp, "\n\n");
-                    fclose(fp);
                 }
             }
 #endif

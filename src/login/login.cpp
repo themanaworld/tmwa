@@ -11,7 +11,6 @@
 
 #include <algorithm>
 #include <array>
-#include <fstream>
 #include <set>
 #include <type_traits>
 
@@ -21,13 +20,14 @@
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../io/lock.hpp"
+#include "../io/read.hpp"
+
 #include "../common/core.hpp"
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/human_time_diff.hpp"
-#include "../common/io.hpp"
-#include "../common/lock.hpp"
 #include "../common/md5calc.hpp"
 #include "../common/mmo.hpp"
 #include "../common/random.hpp"
@@ -224,11 +224,10 @@ using e::VERSION_2;
 static
 void login_log(XString line)
 {
-    FILE *logfp = fopen(login_log_filename.c_str(), "a");
-    if (!logfp)
+    io::AppendFile logfp(login_log_filename);
+    if (!logfp.is_open())
         return;
     log_with_timestamp(logfp, line);
-    fclose(logfp);
 }
 
 //----------------------------------------------------------------------
@@ -250,8 +249,6 @@ uint8_t isGM(int account_id)
 static
 int read_gm_account(void)
 {
-    char line[512];
-    FILE *fp;
     int c = 0;
     int GM_level;
 
@@ -259,7 +256,8 @@ int read_gm_account(void)
 
     creation_time_GM_account_file = file_modified(gm_account_filename);
 
-    if ((fp = fopen(gm_account_filename.c_str(), "r")) == NULL)
+    io::ReadFile fp(gm_account_filename);
+    if (!fp.is_open())
     {
         PRINTF("read_gm_account: GM accounts file [%s] not found.\n",
                 gm_account_filename);
@@ -271,15 +269,17 @@ int read_gm_account(void)
     }
     // limited to 4000, because we send information to char-servers (more than 4000 GM accounts???)
     // int (id) + int (level) = 8 bytes * 4000 = 32k (limit of packets in windows)
-    while (fgets(line, sizeof(line) - 1, fp) && c < 4000)
+    FString line;
+    while (fp.getline(line) && c < 4000)
     {
-        if ((line[0] == '/' && line[1] == '/') || line[0] == '\0' || line[0] == '\n')
+        if (!line)
+            continue;
+        if (line.startswith("//"))
             continue;
         GM_Account p {};
-        if (sscanf(line, "%d %hhu", &p.account_id, &p.level) != 2
-            && sscanf(line, "%d: %hhu", &p.account_id, &p.level) != 2)
-            PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format.\n",
-                 gm_account_filename);
+        if (!extract(line, record<' '>(&p.account_id, &p.level)))
+            PRINTF("read_gm_account: file [%s], invalid 'id_acount level' format: '%s'\n",
+                 gm_account_filename, line);
         else if (p.level <= 0)
             PRINTF("read_gm_account: file [%s] %dth account (invalid level [0 or negative]: %d).\n",
                  gm_account_filename, c + 1, p.level);
@@ -316,7 +316,6 @@ int read_gm_account(void)
             }
         }
     }
-    fclose(fp);
 
     PRINTF("read_gm_account: file '%s' readed (%d GM accounts found).\n",
             gm_account_filename, c);
@@ -537,7 +536,7 @@ int mmo_auth_init(void)
 {
     int GM_count = 0;
 
-    std::ifstream in(account_filename.c_str());
+    io::ReadFile in(account_filename);
     if (!in.is_open())
     {
         // no account file -> no account -> no login, including char-server (ERROR)
@@ -547,7 +546,7 @@ int mmo_auth_init(void)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         if (line.startswith("//"))
             continue;
@@ -591,13 +590,13 @@ int mmo_auth_init(void)
 static
 void mmo_auth_sync(void)
 {
-    FILE *fp;
-    int lock;
+    io::WriteLock fp(account_filename);
 
-    // Data save
-    fp = lock_fopen(account_filename, &lock);
-    if (fp == NULL)
+    if (!fp.is_open())
+    {
+        PRINTF("uh-oh - unable to save accounts\n");
         return;
+    }
     FPRINTF(fp,
              "// Accounts file: here are saved all information about the accounts.\n");
     FPRINTF(fp,
@@ -625,13 +624,9 @@ void mmo_auth_sync(void)
             continue;
 
         FString line = mmo_auth_tostr(&ad);
-        FPRINTF(fp, "%s\n", line);
+        fp.put_line(line);
     }
     FPRINTF(fp, "%d\t%%newid%%\n", account_id_count);
-
-    lock_fclose(fp, account_filename, &lock);
-
-    return;
 }
 
 // We want to sync the DB to disk as little as possible as it's fairly
@@ -1113,7 +1108,6 @@ void parse_fromchar(int fd)
                 {
                     int acc;
                     unsigned char buf[10];
-                    FILE *fp;
                     acc = RFIFOL(fd, 4);
                     //PRINTF("parse_fromchar: Request to become a GM acount from %d account.\n", acc);
                     WBUFW(buf, 0) = 0x2721;
@@ -1131,7 +1125,8 @@ void parse_fromchar(int fd)
                             if (level_new_gm > 0)
                             {
                                 // if we can open the file to add the new GM
-                                if ((fp = fopen(gm_account_filename.c_str(), "a")) != NULL)
+                                io::AppendFile fp(gm_account_filename);
+                                if (fp.is_open())
                                 {
                                     timestamp_seconds_buffer tmpstr;
                                     stamp_time(tmpstr);
@@ -1139,7 +1134,10 @@ void parse_fromchar(int fd)
                                              "\n// %s: @GM command on account %d\n%d %d\n",
                                              tmpstr,
                                              acc, acc, level_new_gm);
-                                    fclose(fp);
+                                    if (!fp.close())
+                                    {
+                                        PRINTF("warning: didn't actually save GM file\n");
+                                    }
                                     WBUFL(buf, 6) = level_new_gm;
                                     read_gm_account();
                                     send_GM_accounts();
@@ -1517,8 +1515,8 @@ void parse_fromchar(int fd)
 
             default:
             {
-                FILE *logfp = fopen(login_log_unknown_packets_filename.c_str(), "a");
-                if (logfp)
+                io::AppendFile logfp(login_log_unknown_packets_filename);
+                if (logfp.is_open())
                 {
                     timestamp_milliseconds_buffer timestr;
                     stamp_time(timestr);
@@ -1561,7 +1559,6 @@ void parse_fromchar(int fd)
                         FPRINTF(logfp, " %s\n", tmpstr);
                     }
                     FPRINTF(logfp, "\n");
-                    fclose(logfp);
                 }
             }
                 PRINTF("parse_fromchar: Unknown packet 0x%x (from a char-server)! -> disconnection.\n",
@@ -1974,6 +1971,7 @@ void parse_admin(int fd)
                 WFIFOL(fd, 2) = -1;
                 AccountName account_name = stringish<AccountName>(RFIFO_STRING<24>(fd, 2).to_print());
                 WFIFO_STRING(fd, 6, account_name, 24);
+                bool reread = false;
                 {
                     char new_gm_level;
                     new_gm_level = RFIFOB(fd, 26);
@@ -1992,46 +1990,30 @@ void parse_admin(int fd)
                             if (isGM(acc) != new_gm_level)
                             {
                                 // modification of the file
-                                FILE *fp, *fp2;
-                                int lock;
-                                char line[512];
                                 int GM_account, GM_level;
                                 int modify_flag;
-                                if ((fp2 = lock_fopen(gm_account_filename, &lock)) != NULL)
+                                io::WriteLock fp2(gm_account_filename);
+                                if (fp2.is_open())
                                 {
-                                    if ((fp = fopen(gm_account_filename.c_str(), "r")) != NULL)
+                                    io::ReadFile fp(gm_account_filename);
+                                    if (fp.is_open())
                                     {
                                         timestamp_seconds_buffer tmpstr;
                                         stamp_time(tmpstr);
                                         modify_flag = 0;
                                         // read/write GM file
-                                        while (fgets(line, sizeof(line) - 1, fp))
+                                        FString line;
+                                        while (fp.getline(line))
                                         {
-                                            while (line[0] != '\0'
-                                                   && line[strlen(line) - 1] == '\n')
-                                                line[strlen(line) - 1] = '\0';
-                                            if ((line[0] == '/'
-                                                 && line[1] == '/')
-                                                || line[0] == '\0')
-                                                FPRINTF(fp2, "%s\n",
-                                                         line);
+                                            if (!line || line.startswith("//"))
+                                                fp2.put_line(line);
                                             else
                                             {
-                                                if (sscanf(line, "%d %d",
-                                                     &GM_account,
-                                                     &GM_level) != 2
-                                                    && sscanf(line, "%d: %d",
-                                                               &GM_account,
-                                                               &GM_level) !=
-                                                    2)
-                                                    FPRINTF(fp2,
-                                                             "%s\n",
-                                                             line);
+                                                if (!extract(line, record<' '>(&GM_account, &GM_level)))
+                                                    fp2.put_line(line);
                                                 else if (GM_account != acc)
-                                                    FPRINTF(fp2,
-                                                             "%s\n",
-                                                             line);
-                                                else if (new_gm_level < 1)
+                                                    fp2.put_line(line);
+                                                else if (new_gm_level == 0)
                                                 {
                                                     FPRINTF(fp2,
                                                              "// %s: 'ladmin' GM level removed on account %d '%s' (previous level: %d)\n//%d %d\n",
@@ -2061,7 +2043,6 @@ void parse_admin(int fd)
                                                      tmpstr, acc,
                                                      ad->userid, acc,
                                                      new_gm_level);
-                                        fclose(fp);
                                     }
                                     else
                                     {
@@ -2069,14 +2050,11 @@ void parse_admin(int fd)
                                              ad->userid, acc,
                                              new_gm_level, ip);
                                     }
-                                    lock_fclose(fp2, gm_account_filename, &lock);
                                     WFIFOL(fd, 2) = acc;
                                     LOGIN_LOG("'ladmin': Modification of a GM level (account: %s (%d), new GM level: %d, ip: %s)\n",
                                          ad->userid, acc,
                                          new_gm_level, ip);
-                                    // read and send new GM informations
-                                    read_gm_account();
-                                    send_GM_accounts();
+                                    reread = true;
                                 }
                                 else
                                 {
@@ -2099,6 +2077,12 @@ void parse_admin(int fd)
                                  ip);
                         }
                     }
+                }
+                if (reread)
+                {
+                    // read and send new GM informations
+                    read_gm_account();
+                    send_GM_accounts();
                 }
                 WFIFOSET(fd, 30);
             }
@@ -2646,8 +2630,8 @@ void parse_admin(int fd)
 
             default:
             {
-                FILE *logfp = fopen(login_log_unknown_packets_filename.c_str(), "a");
-                if (logfp)
+                io::AppendFile logfp(login_log_unknown_packets_filename);
+                if (logfp.is_open())
                 {
                     timestamp_milliseconds_buffer timestr;
                     stamp_time(timestr);
@@ -2690,7 +2674,6 @@ void parse_admin(int fd)
                         FPRINTF(logfp, " %s\n", tmpstr);
                     }
                     FPRINTF(logfp, "\n");
-                    fclose(logfp);
                 }
             }
                 LOGIN_LOG("'ladmin': End of connection, unknown packet (ip: %s)\n",
@@ -3094,8 +3077,8 @@ void parse_login(int fd)
             default:
                 if (save_unknown_packets)
                 {
-                    FILE *logfp = fopen(login_log_unknown_packets_filename.c_str(), "a");
-                    if (logfp)
+                    io::AppendFile logfp(login_log_unknown_packets_filename);
+                    if (logfp.is_open())
                     {
                         timestamp_milliseconds_buffer timestr;
                         stamp_time(timestr);
@@ -3141,7 +3124,6 @@ void parse_login(int fd)
                             FPRINTF(logfp, " %s\n", tmpstr);
                         }
                         FPRINTF(logfp, "\n");
-                        fclose(logfp);
                     }
                 }
                 LOGIN_LOG("End of connection, unknown packet (ip: %s)\n", ip);
@@ -3164,7 +3146,7 @@ int login_lan_config_read(ZString lancfgName)
     lan_char_ip = IP4_LOCALHOST;
     lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 
-    std::ifstream in(lancfgName.c_str());
+    io::ReadFile in(lancfgName);
 
     if (!in.is_open())
     {
@@ -3176,7 +3158,7 @@ int login_lan_config_read(ZString lancfgName)
     PRINTF("---Start reading Lan Support configuration file\n");
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;
@@ -3248,7 +3230,7 @@ int login_lan_config_read(ZString lancfgName)
 static
 int login_config_read(ZString cfgName)
 {
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("Configuration file (%s) not found.\n", cfgName);
@@ -3258,7 +3240,7 @@ int login_config_read(ZString cfgName)
     PRINTF("---Start reading of Login Server configuration file (%s)\n",
             cfgName);
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;

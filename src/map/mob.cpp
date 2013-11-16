@@ -7,14 +7,14 @@
 #include <cstring>
 
 #include <algorithm>
-#include <fstream>
 
 #include "../strings/fstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"
@@ -3415,19 +3415,19 @@ bool extract(XString str, LevelElement *le)
 static
 int mob_readdb(void)
 {
-    const char *filename = "db/mob_db.txt";
+    ZString filename = "db/mob_db.txt";
 
     for (mob_db_& e : mob_db)
         e = mob_db_{};
 
     {
-        std::ifstream in(filename);
+        io::ReadFile in(filename);
         if (!in.is_open())
         {
             return -1;
         }
         FString line;
-        while (io::getline(in, line))
+        while (in.getline(line))
         {
             int mob_class;
 
@@ -3632,17 +3632,17 @@ bool extract<MobSkillTarget, void, void>(XString str, MobSkillTarget *mst)
 static
 int mob_readskilldb(void)
 {
-    const char *filename = "db/mob_skill_db.txt";
+    ZString filename = "db/mob_skill_db.txt";
 
     {
-        std::ifstream in(filename);
+        io::ReadFile in(filename);
         if (!in.is_open())
         {
             PRINTF("can't read %s\n", filename);
             return 0;
         }
         FString line;
-        while (io::getline(in, line))
+        while (in.getline(line))
         {
             int mob_id;
 

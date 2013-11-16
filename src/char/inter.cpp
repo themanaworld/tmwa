@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <fstream>
 #include <vector>
 
 #include "../strings/mstring.hpp"
@@ -12,11 +11,12 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/lock.hpp"
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
-#include "../common/lock.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
 #include "../common/utils.hpp"
@@ -110,11 +110,11 @@ int inter_accreg_init(void)
 {
     int c = 0;
 
-    std::ifstream in(accreg_txt.c_str());
+    io::ReadFile in(accreg_txt);
     if (!in.is_open())
         return 1;
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         struct accreg reg {};
         if (extract(line, &reg))
@@ -134,13 +134,12 @@ int inter_accreg_init(void)
 
 // アカウント変数のセーブ用
 static
-void inter_accreg_save_sub(struct accreg *reg, FILE *fp)
+void inter_accreg_save_sub(struct accreg *reg, io::WriteFile& fp)
 {
     if (reg->reg_num > 0)
     {
         FString line = inter_accreg_tostr(reg);
-        fwrite(line.data(), 1, line.size(), fp);
-        fputc('\n', fp);
+        fp.put_line(line);
     }
 }
 
@@ -148,10 +147,8 @@ void inter_accreg_save_sub(struct accreg *reg, FILE *fp)
 static
 int inter_accreg_save(void)
 {
-    FILE *fp;
-    int lock;
-
-    if ((fp = lock_fopen(accreg_txt, &lock)) == NULL)
+    io::WriteLock fp(accreg_txt);
+    if (!fp.is_open())
     {
         PRINTF("int_accreg: cant write [%s] !!! data is lost !!!\n",
                 accreg_txt);
@@ -159,7 +156,6 @@ int inter_accreg_save(void)
     }
     for (auto& pair : accreg_db)
         inter_accreg_save_sub(&pair.second, fp);
-    lock_fclose(fp, accreg_txt, &lock);
 
     return 0;
 }
@@ -173,7 +169,7 @@ int inter_accreg_save(void)
 static
 int inter_config_read(ZString cfgName)
 {
-    std::ifstream in(cfgName.c_str());
+    io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("file not found: %s\n", cfgName);
@@ -181,7 +177,7 @@ int inter_config_read(ZString cfgName)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         XString w1;
         ZString w2;

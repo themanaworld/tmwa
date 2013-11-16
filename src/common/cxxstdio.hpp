@@ -24,6 +24,8 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "../io/fwd.hpp"
+
 #include "const_array.hpp"
 #include "utils2.hpp"
 
@@ -211,28 +213,28 @@ namespace cxxstdio
     };
 
 #define XPRINTF(out, fmt, ...)                                      \
-    ([&]() -> int                                                   \
+    (/*[&]() -> int*/                                                   \
     {                                                               \
         struct format_impl                                          \
         {                                                           \
             constexpr static                                        \
             const char *print_format() { return fmt; }              \
         };                                                          \
-        return cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);   \
-    }())
+        /*return*/ cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);   \
+    }/*()*/)
 
 #define XSCANF(out, fmt, ...)                                   \
-    ([&]() -> int                                               \
+    (/*[&]() -> int*/                                               \
     {                                                           \
         struct format_impl                                      \
         {                                                       \
             constexpr static                                    \
             const char *scan_format() { return fmt; }           \
         };                                                      \
-        return cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);     \
-    }())
+        /*return*/ cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);     \
+    }/*()*/)
 
-#define FPRINTF(file, fmt, ...)     XPRINTF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
+#define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
 #define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
 #define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
 #define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<FString&>(str), fmt, ## __VA_ARGS__)
@@ -241,20 +243,20 @@ namespace cxxstdio
 #define SSCANF(str, fmt, ...)       XSCANF(/*ZString or compatible*/str, fmt, ## __VA_ARGS__)
 
 #define STRPRINTF(fmt, ...)                     \
-    ([&]() -> FString                           \
+    (/*[&]() -> FString*/                           \
     {                                           \
         FString _out_impl;                      \
         SPRINTF(_out_impl, fmt, ## __VA_ARGS__);\
-        return _out_impl;                       \
-    }())
+        /*return*/ _out_impl;                       \
+    }/*()*/)
 
 #define STRNPRINTF(n, fmt, ...)                     \
-    ([&]() -> VString<n - 1>                        \
+    (/*[&]() -> VString<n - 1>*/                        \
     {                                               \
         VString<n - 1> _out_impl;                   \
         SNPRINTF(_out_impl, n, fmt, ## __VA_ARGS__);\
-        return _out_impl;                           \
-    }())
+        /*return*/ _out_impl;                           \
+    }/*()*/)
 
 } // namespace cxxstdio
 

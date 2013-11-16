@@ -4,13 +4,12 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <fstream>
-
 #include "../strings/fstring.hpp"
 #include "../strings/zstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
-#include "../common/io.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 #include "../common/socket.hpp"
@@ -778,11 +777,11 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 void pc_show_motd(dumb_ptr<map_session_data> sd)
 {
     sd->state.seen_motd = true;
-    std::ifstream in(motd_txt.c_str());
+    io::ReadFile in(motd_txt);
     if (in.is_open())
     {
         FString buf;
-        while (io::getline(in, buf))
+        while (in.getline(buf))
         {
             clif_displaymessage(sd->fd, buf);
         }

@@ -243,7 +243,7 @@ ifndef MAKE_RESTARTS
 obj/%.d: src/%.cpp
 	$(MKDIR_FIRST)
 	set -o pipefail; \
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -MG -MP -MM $< \
+	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MP -MM $< \
 	    -MT '$(patsubst %.d,%.ii,$@) $(patsubst %.d,%.ll,$@) $(patsubst %.d,%.bc,$@) $(patsubst %.d,%.s,$@) $(patsubst %.d,%.o,$@) $@' \
 	    | sed -e ':again; s:/[^/ ]*/../:/:; t again' \
 	    -e 's: ${SRC_DIR}/: :g' \

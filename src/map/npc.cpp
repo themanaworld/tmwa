@@ -12,6 +12,8 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -1160,7 +1162,7 @@ void npc_convertlabel_db(ScriptLabel lname, int pos, dumb_ptr<npc_data_script> n
  */
 static
 int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
-        XString first_line, FILE *fp, int *lines)
+        XString first_line, io::ReadFile& fp, int *lines)
 {
     int x, y;
     DIR dir = DIR::S;
@@ -1206,14 +1208,11 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             if (it != srcbuf.rend() && *it == '}')
                 break;
 
-            char line_[1024];
-            if (!fgets(line_, 1020, fp))
+            FString line;
+            if (!fp.getline(line))
                 // eof
                 break;
             (*lines)++;
-            if (feof(fp))
-                break;
-            ZString line(strings::really_construct_from_a_pointer, line_, nullptr);
             if (!srcbuf)
             {
                 // may be a no-op
@@ -1224,6 +1223,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             }
             else
                 srcbuf += line;
+            srcbuf += '\n';
         }
         script = parse_script(FString(srcbuf), startline);
         if (script == NULL)
@@ -1391,7 +1391,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
  */
 static
 int npc_parse_function(XString, XString, XString w3, ZString,
-        XString first_line, FILE *fp, int *lines)
+        XString first_line, io::ReadFile& fp, int *lines)
 {
     MString srcbuf;
     srcbuf += first_line.xislice_t(std::find(first_line.begin(), first_line.end(), '{'));
@@ -1402,13 +1402,11 @@ int npc_parse_function(XString, XString, XString w3, ZString,
         auto it = std::find_if_not(srcbuf.rbegin(), srcbuf.rend(), [](char c){ return c == ' ' || c == '\n'; });
         if (it != srcbuf.rend() && *it == '}')
             break;
-        char line_[1024];
-        if (!fgets(line_, 1020, fp))
+
+        FString line;
+        if (!fp.getline(line))
             break;
         (*lines)++;
-        if (feof(fp))
-            break;
-        ZString line(strings::really_construct_from_a_pointer, line_, nullptr);
         if (!srcbuf)
         {
             srcbuf += line.xislice_t(std::find(line.begin(), line.end(), '{'));
@@ -1416,6 +1414,7 @@ int npc_parse_function(XString, XString, XString w3, ZString,
         }
         else
             srcbuf += line;
+        srcbuf += '\n';
     }
     std::unique_ptr<const ScriptBuffer> script = parse_script(FString(srcbuf), startline);
     if (script == NULL)
@@ -1722,8 +1721,8 @@ int do_init_npc(void)
     for (; !npc_srcs.empty(); npc_srcs.pop_front())
     {
         FString nsl = npc_srcs.front();
-        FILE *fp = fopen(nsl.c_str(), "r");
-        if (fp == NULL)
+        io::ReadFile fp(nsl);
+        if (!fp.is_open())
         {
             PRINTF("file not found : %s\n", nsl);
             exit(1);
@@ -1731,12 +1730,9 @@ int do_init_npc(void)
         PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
                 nsl);
         int lines = 0;
-        char line_[1024];
-        while (fgets(line_, 1020, fp))
+        FString zline;
+        while (fp.getline(zline))
         {
-            // because it's still fgets
-            line_[strlen(line_) - 1] = '\0';
-            ZString zline(strings::really_construct_from_a_pointer, line_, nullptr);
             XString w1, w2, w3, w4x;
             ZString w4z;
             lines++;
@@ -1807,7 +1803,6 @@ int do_init_npc(void)
                 PRINTF("odd script line: %s\n", zline);
             }
         }
-        fclose(fp);
         fflush(stdout);
     }
     PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n",

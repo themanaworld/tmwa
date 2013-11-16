@@ -284,4 +284,12 @@ T maybe_cast(U u)
     return u;
 }
 
+template<class T, class U>
+typename std::remove_pointer<T>::type *sign_cast(U *u)
+{
+    typedef typename std::remove_pointer<T>::type T_;
+    static_assert(sizeof(T_) == sizeof(U), "sign cast must be same size");
+    return reinterpret_cast<T_ *>(u);
+}
+
 #endif // UTILS2_HPP

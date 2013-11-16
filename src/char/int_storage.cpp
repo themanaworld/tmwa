@@ -4,17 +4,17 @@
 #include <cstring>
 
 #include <functional>
-#include <fstream>
 
 #include "../strings/mstring.hpp"
 #include "../strings/fstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../io/lock.hpp"
+#include "../io/read.hpp"
+
 #include "../common/cxxstdio.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
-#include "../common/io.hpp"
-#include "../common/lock.hpp"
 #include "../common/mmo.hpp"
 #include "../common/socket.hpp"
 
@@ -104,7 +104,7 @@ int inter_storage_init(void)
 {
     int c = 0;
 
-    std::ifstream in(storage_txt.c_str());
+    io::ReadFile in(storage_txt);
     if (!in.is_open())
     {
         PRINTF("cant't read : %s\n", storage_txt);
@@ -112,7 +112,7 @@ int inter_storage_init(void)
     }
 
     FString line;
-    while (io::getline(in, line))
+    while (in.getline(line))
     {
         struct storage s {};
         if (extract(line, &s))
@@ -131,21 +131,20 @@ int inter_storage_init(void)
 }
 
 static
-void inter_storage_save_sub(struct storage *data, FILE *fp)
+void inter_storage_save_sub(struct storage *data, io::WriteFile& fp)
 {
     FString line = storage_tostr(data);
     if (line)
-        FPRINTF(fp, "%s\n", line);
+        fp.put_line(line);
 }
 
 //---------------------------------------------------------
 // 倉庫データを書き込む
 int inter_storage_save(void)
 {
-    FILE *fp;
-    int lock;
+    io::WriteLock fp(storage_txt);
 
-    if ((fp = lock_fopen(storage_txt, &lock)) == NULL)
+    if (!fp.is_open())
     {
         PRINTF("int_storage: cant write [%s] !!! data is lost !!!\n",
                 storage_txt);
@@ -153,8 +152,6 @@ int inter_storage_save(void)
     }
     for (auto& pair : storage_db)
         inter_storage_save_sub(&pair.second, fp);
-    lock_fclose(fp, storage_txt, &lock);
-//  PRINTF("int_storage: %s saved.\n",storage_txt);
     return 0;
 }
 
