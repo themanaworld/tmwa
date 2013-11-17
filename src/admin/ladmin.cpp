@@ -69,7 +69,7 @@ FString ladmin_log_filename = "log/ladmin.log";
 //    When the password is omitted, the input is done without displaying of the pressed keys.
 //    <example> add testname Male testpass
 //
-//  ban/banish yyyy/mm/dd hh:mm:ss <account name>
+//  ban yyyy/mm/dd hh:mm:ss <account name>
 //    Changes the final date of a banishment of an account.
 //    Like banset, but <account name> is at end.
 //
@@ -109,7 +109,7 @@ FString ladmin_log_filename = "log/ladmin.log";
 //    Like the 'add' command, but with e-mail moreover.
 //    <example> create testname Male my@mail.com testpass
 //
-//  del <account name>
+//  delete <account name>
 //    Remove an account.
 //    This order requires confirmation. After confirmation, the account is deleted.
 //
@@ -135,19 +135,19 @@ FString ladmin_log_filename = "log/ladmin.log";
 //  kamib <message>
 //    Sends a broadcast message on all map-server (in blue).
 //
-//  list/ls [start_id [end_id]]
+//  list [start_id [end_id]]
 //    Display a list of accounts.
 //    'start_id', 'end_id': indicate end and start identifiers.
 //    Research by name is not possible with this command.
 //    <example> list 10 9999999
 //
-//  listBan/lsBan [start_id [end_id]]
+//  listban [start_id [end_id]]
 //    Like list/ls, but only for accounts with state or banished
 //
-//  listGM/lsGM [start_id [end_id]]
+//  listgm [start_id [end_id]]
 //    Like list/ls, but only for GM accounts
 //
-//  listOK/lsOK [start_id [end_id]]
+//  listok [start_id [end_id]]
 //    Like list/ls, but only for accounts without state and not banished
 //
 //  memo <account_name> <memo>
@@ -164,7 +164,7 @@ FString ladmin_log_filename = "log/ladmin.log";
 //  quit/end/exit
 //    End of the program of administration
 //
-//  reloadGM
+//  reloadgm
 //    Reload GM configuration file
 //
 //  search <expression>
@@ -340,7 +340,7 @@ void display_help(ZString param)
     }
     else if (command == "ban")
     {
-        PRINTF("ban/banish yyyy/mm/dd hh:mm:ss <account name>\n");
+        PRINTF("ban yyyy/mm/dd hh:mm:ss <account name>\n");
         PRINTF("  Changes the final date of a banishment of an account.\n");
         PRINTF("  Like banset, but <account name> is at end.\n");
     }
@@ -393,7 +393,7 @@ void display_help(ZString param)
     }
     else if (command == "delete")
     {
-        PRINTF("del <account name>\n");
+        PRINTF("delete <account name>\n");
         PRINTF("  Remove an account.\n");
         PRINTF("  This order requires confirmation. After confirmation, the account is deleted.\n");
     }
@@ -451,17 +451,17 @@ void display_help(ZString param)
     }
     else if (command == "listban")
     {
-        PRINTF("listBan/lsBan [start_id [end_id]]\n");
+        PRINTF("listban [start_id [end_id]]\n");
         PRINTF("  Like list/ls, but only for accounts with state or banished.\n");
     }
     else if (command == "listgm")
     {
-        PRINTF("listGM/lsGM [start_id [end_id]]\n");
+        PRINTF("listgm [start_id [end_id]]\n");
         PRINTF("  Like list/ls, but only for GM accounts.\n");
     }
     else if (command == "listok")
     {
-        PRINTF("listOK/lsOK [start_id [end_id]]\n");
+        PRINTF("listok [start_id [end_id]]\n");
         PRINTF("  Like list/ls, but only for accounts without state and not banished.\n");
     }
     else if (command == "memo")
@@ -585,15 +585,15 @@ void display_help(ZString param)
         PRINTF(" help/?                          -- Display this help\n");
         PRINTF(" help/? [command]                -- Display the help of the command\n");
         PRINTF(" add <account_name> <sex> <password>  -- Create an account with default email\n");
-        PRINTF(" ban/banish yyyy/mm/dd hh:mm:ss <account name> -- Change final date of a ban\n");
-        PRINTF(" banadd/ba <account_name> <modifier>  -- Add or substract time from the final\n");
+        PRINTF(" ban yyyy/mm/dd hh:mm:ss <account name> -- Change final date of a ban\n");
+        PRINTF(" banadd <account_name> <modifier>     -- Add or substract time from the final\n");
         PRINTF("   example: ba apple +1m-2mn1s-2y        date of a banishment of an account\n");
-        PRINTF(" banset/bs <account_name> yyyy/mm/dd [hh:mm:ss] -- Change final date of a ban\n");
-        PRINTF(" banset/bs <account_name> 0           -- Un-banish an account\n");
+        PRINTF(" banset <account_name> yyyy/mm/dd [hh:mm:ss] -- Change final date of a ban\n");
+        PRINTF(" banset <account_name> 0              -- Un-banish an account\n");
         PRINTF(" block <account name>     -- Set state 5 (blocked by the GM Team) to an account\n");
         PRINTF(" check <account_name> <password>      -- Check the validity of a password\n");
         PRINTF(" create <account_name> <sex> <email> <passwrd> -- Create an account with email\n");
-        PRINTF(" del <account name>                   -- Remove an account\n");
+        PRINTF(" delete <account name>                -- Remove an account\n");
         PRINTF(" email <account_name> <email>         -- Modify an email of an account\n");
         PRINTF(" getcount                             -- Give the number of players online\n");
         PRINTF(" gm <account_name> [GM_level]         -- Modify the GM level of an account\n");
@@ -602,11 +602,11 @@ void display_help(ZString param)
         PRINTF(" itemfrob <source-id> <dest-id>       -- Map all items from one item ID to another\n");
         PRINTF(" kami <message>                       -- Sends a broadcast message (in yellow)\n");
         PRINTF(" kamib <message>                      -- Sends a broadcast message (in blue)\n");
-        PRINTF(" list/ls [First_id [Last_id]]         -- Display a list of accounts\n");
-        PRINTF(" listBan/lsBan [First_id [Last_id] ]  -- Display a list of accounts\n");
+        PRINTF(" list [First_id [Last_id]]            -- Display a list of accounts\n");
+        PRINTF(" listban [First_id [Last_id] ]        -- Display a list of accounts\n");
         PRINTF("                                         with state or banished\n");
-        PRINTF(" listGM/lsGM [First_id [Last_id]]     -- Display a list of GM accounts\n");
-        PRINTF(" listOK/lsOK [First_id [Last_id] ]    -- Display a list of accounts\n");
+        PRINTF(" listgm [First_id [Last_id]]          -- Display a list of GM accounts\n");
+        PRINTF(" listok [First_id [Last_id] ]         -- Display a list of accounts\n");
         PRINTF("                                         without state and not banished\n");
         PRINTF(" memo <account_name> <memo>           -- Modify the memo of an account\n");
         PRINTF(" name <account_id>                    -- Give the name of an account\n");
@@ -616,11 +616,11 @@ void display_help(ZString param)
         PRINTF(" search <expression>                  -- Seek accounts\n");
         PRINTF(" sex <nomcompte> <sexe>               -- Modify the sex of an account\n");
         PRINTF(" state <account_name> <new_state> <error_message_#7> -- Change the state\n");
-        PRINTF(" timeadd/ta <account_name> <modifier> -- Add or substract time from the\n");
+        PRINTF(" timeadd <account_name> <modifier>    -- Add or substract time from the\n");
         PRINTF("   example: ta apple +1m-2mn1s-2y        validity limit of an account\n");
-        PRINTF(" timeset/ts <account_name> yyyy/mm/dd [hh:mm:ss] -- Change the validify limit\n");
-        PRINTF(" timeset/ts <account_name> 0          -- Give a unlimited validity limit\n");
-        PRINTF(" unban/unbanish <account name>        -- Remove the banishment of an account\n");
+        PRINTF(" timeset <account_name> yyyy/mm/dd [hh:mm:ss] -- Change the validify limit\n");
+        PRINTF(" timeset <account_name> 0             -- Give a unlimited validity limit\n");
+        PRINTF(" unban <account name>                 -- Remove the banishment of an account\n");
         PRINTF(" unblock <account name>               -- Set state 0 (Account ok) to an account\n");
         PRINTF(" version                              -- Gives the version of the login-server\n");
         PRINTF(" who <account name>                   -- Display all information of an account\n");
@@ -979,7 +979,7 @@ void delaccount(ZString param)
     if (!qsplit(param, &name))
     {
         PRINTF("Please input an account name.\n");
-        PRINTF("<example> del testnametodelete\n");
+        PRINTF("<example> delete testnametodelete\n");
         LADMIN_LOG("No name given to delete an account ('delete' command).\n");
         return;
     }
