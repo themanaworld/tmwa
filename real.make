@@ -271,6 +271,8 @@ obj/%/autolist.d: $(filter-out %/autolist.d,${DEPENDS})
 include ${DEPENDS}
 
 # I'm not convinced keeping the bin/ is a good idea
+# TODO - for development, regenerate -gdb.py even if the binary
+# doesn't need to be rebuilt. For release, the version forces rebuild.
 bin/%:
 	$(MKDIR_FIRST)
 	${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
