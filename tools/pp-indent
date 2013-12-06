@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8
+##    pp-indent - Filter to apply indentation to preprocessor statements
+##
+##    Copyright ©2013 Ben Longbons <b.r.longbons@gmail.com>
+##
+##    This file is part of The Mana World (Athena server)
+##
+##    This program is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 3 of the License, or
+##    (at your option) any later version.
+##
+##    This program is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    You should have received a copy of the GNU General Public License
+##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Settings.
+
+pre_indent = ''
+post_indent = ' '
+rules = {
+    'if': (0, 1),
+    'ifdef': (0, 1),
+    'ifndef': (0, 1),
+    'else': (-1, 1),
+    'elif': (-1, 1),
+    'endif': (-1, 0),
+    'define_h': (-1, 1),
+}
+
+import sys
+
+depth = 0
+for line in sys.stdin:
+    sline = line.lstrip()
+    if not sline.startswith('#'):
+        sys.stdout.write(line)
+        continue
+    line = sline[1:].lstrip()
+    if not line:
+        sys.stdout.write('\n')
+        continue
+    word = line.split(None, 1)[0]
+    if word == 'define' and line.endswith('_HPP\n'):
+        word = 'define_h'
+    pre, post = rules.get(word, (0, 0))
+    depth += pre
+    sys.stdout.writelines([depth * pre_indent, '#', depth * post_indent, line])
+    depth += post

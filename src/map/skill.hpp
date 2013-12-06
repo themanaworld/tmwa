@@ -1,13 +1,13 @@
 #ifndef SKILL_HPP
 #define SKILL_HPP
 
-#include "skill.t.hpp"
-#include "skill-pools.hpp"
+# include "skill.t.hpp"
+# include "skill-pools.hpp"
 
-#include "../strings/fwd.hpp"
-#include "../strings/fstring.hpp"
+# include "../strings/fwd.hpp"
+# include "../strings/fstring.hpp"
 
-#include "map.hpp"
+# include "map.hpp"
 
 constexpr int MAX_SKILL_PRODUCE_DB = 150;
 constexpr int MAX_SKILL_ARROW_DB = 150;

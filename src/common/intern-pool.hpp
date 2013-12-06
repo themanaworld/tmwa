@@ -1,14 +1,14 @@
 #ifndef INTERN_POOL_HPP
 #define INTERN_POOL_HPP
 
-#include <cassert>
+# include <cassert>
 
-#include <map>
-#include <vector>
+# include <map>
+# include <vector>
 
-#include "../strings/fstring.hpp"
-#include "../strings/zstring.hpp"
-#include "../strings/xstring.hpp"
+# include "../strings/fstring.hpp"
+# include "../strings/zstring.hpp"
+# include "../strings/xstring.hpp"
 
 class InternPool
 {

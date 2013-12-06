@@ -1,14 +1,14 @@
 #ifndef MAGIC_HPP
 #define MAGIC_HPP
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "../common/dumb_ptr.hpp"
+# include "../common/dumb_ptr.hpp"
 
-#include "map.hpp"
-#include "skill.t.hpp"
+# include "map.hpp"
+# include "skill.t.hpp"
 
-#define MAGIC_CONFIG_FILE "conf/magic.conf"
+# define MAGIC_CONFIG_FILE "conf/magic.conf"
 
 struct invocation;              /* Spell invocation */
 

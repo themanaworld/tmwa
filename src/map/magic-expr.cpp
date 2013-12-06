@@ -613,12 +613,12 @@ int fun_his_shroud(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
     return 0;
 }
 
-#define BATTLE_GETTER(name)                                     \
-static                                                          \
-int fun_get_##name(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)    \
-{                                                               \
-    RESULTINT = battle_get_##name(ARGENTITY(0));                \
-    return 0;                                                   \
+#define BATTLE_GETTER(name)                                                 \
+static                                                                      \
+int fun_get_##name(dumb_ptr<env_t>, val_t *result, const_array<val_t> args) \
+{                                                                           \
+    RESULTINT = battle_get_##name(ARGENTITY(0));                            \
+    return 0;                                                               \
 }
 
 BATTLE_GETTER(str)
@@ -639,15 +639,15 @@ int fun_get_dir(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
     return 0;
 }
 
-#define MMO_GETTER(name)                                        \
-static                                                          \
-int fun_get_##name(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)    \
-{                                                               \
-    if (ENTITY_TYPE(0) == BL::PC)                                       \
-        RESULTINT = ARGPC(0)->status.name;                      \
-    else                                                        \
-        RESULTINT = 0;                                          \
-    return 0;                                                   \
+#define MMO_GETTER(name)                                                    \
+static                                                                      \
+int fun_get_##name(dumb_ptr<env_t>, val_t *result, const_array<val_t> args) \
+{                                                                           \
+    if (ENTITY_TYPE(0) == BL::PC)                                           \
+        RESULTINT = ARGPC(0)->status.name;                                  \
+    else                                                                    \
+        RESULTINT = 0;                                                      \
+    return 0;                                                               \
 }
 
 MMO_GETTER(sp)

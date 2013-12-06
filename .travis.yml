@@ -48,6 +48,8 @@ script:
   - cd build
   - ../configure --dev CPPFLAGS=-DQUIET
   - make -k -j2
+  - make format
+  - git diff --exit-code
 
 ## Do something after the main test script
 after_script:

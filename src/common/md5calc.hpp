@@ -1,23 +1,23 @@
 #ifndef MD5CALC_HPP
 #define MD5CALC_HPP
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <netinet/in.h>
+# include <netinet/in.h>
 
-#include <cstdint>
-#include <cstddef>
-#include <cstdio>
+# include <cstdint>
+# include <cstddef>
+# include <cstdio>
 
-#include <array>
+# include <array>
 
-#include "../strings/fwd.hpp"
-#include "../strings/vstring.hpp"
+# include "../strings/fwd.hpp"
+# include "../strings/vstring.hpp"
 
-#include "../io/fwd.hpp"
+# include "../io/fwd.hpp"
 
-#include "ip.hpp"
-#include "mmo.hpp"
+# include "ip.hpp"
+# include "mmo.hpp"
 
 /// The digest state - becomes the output
 struct MD5_state

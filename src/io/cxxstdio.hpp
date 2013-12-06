@@ -19,16 +19,16 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <cstdarg>
-#include <cstdio>
+# include <cstdarg>
+# include <cstdio>
 
 // TODO get rid of these header order violations
-#include "../common/const_array.hpp"
-#include "../common/utils2.hpp"
+# include "../common/const_array.hpp"
+# include "../common/utils2.hpp"
 
-#include "fwd.hpp"
+# include "fwd.hpp"
 
 
 namespace cxxstdio
@@ -46,16 +46,16 @@ namespace cxxstdio
         return vfscanf(in, fmt, ap);
     }
 
-#if 0
+# if 0
     inline __attribute__((format(scanf, 2, 0)))
     int do_vscan(const char *in, const char *fmt, va_list ap)
     {
         return vsscanf(in, fmt, ap);
     }
-#else
+# else
     inline
     int do_vscan(const char *, const char *, va_list) = delete;
-#endif
+# endif
 
     template<class T>
     inline __attribute__((format(printf, 2, 3)))
@@ -101,7 +101,7 @@ namespace cxxstdio
         return v;
     }
 
-#if 0
+# if 0
     template<class E>
     constexpr
     E get_enum_min_value(decltype(E::min_value))
@@ -127,7 +127,7 @@ namespace cxxstdio
     {
         return def;
     }
-#else
+# else
     template<class E>
     constexpr
     E get_enum_min_value(E)
@@ -140,24 +140,24 @@ namespace cxxstdio
     {
         return E::max_value;
     }
-#endif
+# endif
 
     template<class E>
     class EnumConverter
     {
         E& out;
         typedef typename underlying_type<E>::type U;
-#if 0
+# if 0
         constexpr static
         U min_value = U(get_enum_min_value<E>(E(std::numeric_limits<U>::min())));
         constexpr static
         U max_value = U(get_enum_max_value<E>(E(std::numeric_limits<U>::max())));
-#else
+# else
         constexpr static
         U min_value = U(get_enum_min_value(E()));
         constexpr static
         U max_value = U(get_enum_max_value(E()));
-#endif
+# endif
         U mid;
     public:
         EnumConverter(E& e)
@@ -165,10 +165,10 @@ namespace cxxstdio
         {}
         ~EnumConverter()
         {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wtype-limits"
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wtype-limits"
             if (min_value <= mid && mid <= max_value)
-#pragma GCC diagnostic pop
+# pragma GCC diagnostic pop
                 out = E(mid);
         }
         U *operator &()
@@ -213,49 +213,49 @@ namespace cxxstdio
         }
     };
 
-#define XPRINTF(out, fmt, ...)                                      \
-    (/*[&]() -> int*/                                                   \
-    {                                                               \
-        struct format_impl                                          \
-        {                                                           \
-            constexpr static                                        \
-            const char *print_format() { return fmt; }              \
-        };                                                          \
+# define XPRINTF(out, fmt, ...)                                                         \
+    (/*[&]() -> int*/                                                                   \
+    {                                                                                   \
+        struct format_impl                                                              \
+        {                                                                               \
+            constexpr static                                                            \
+            const char *print_format() { return fmt; }                                  \
+        };                                                                              \
         /*return*/ cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);   \
     }/*()*/)
 
-#define XSCANF(out, fmt, ...)                                   \
-    (/*[&]() -> int*/                                               \
-    {                                                           \
-        struct format_impl                                      \
-        {                                                       \
-            constexpr static                                    \
-            const char *scan_format() { return fmt; }           \
-        };                                                      \
-        /*return*/ cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);     \
+# define XSCANF(out, fmt, ...)                                                      \
+    (/*[&]() -> int*/                                                               \
+    {                                                                               \
+        struct format_impl                                                          \
+        {                                                                           \
+            constexpr static                                                        \
+            const char *scan_format() { return fmt; }                               \
+        };                                                                          \
+        /*return*/ cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__); \
     }/*()*/)
 
-#define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
-#define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
-#define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
-#define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<FString&>(str), fmt, ## __VA_ARGS__)
-#define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
-#define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
-#define SSCANF(str, fmt, ...)       XSCANF(/*ZString or compatible*/str, fmt, ## __VA_ARGS__)
+# define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
+# define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
+# define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
+# define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<FString&>(str), fmt, ## __VA_ARGS__)
+# define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
+# define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
+# define SSCANF(str, fmt, ...)       XSCANF(/*ZString or compatible*/str, fmt, ## __VA_ARGS__)
 
-#define STRPRINTF(fmt, ...)                     \
+# define STRPRINTF(fmt, ...)                        \
     (/*[&]() -> FString*/                           \
-    {                                           \
-        FString _out_impl;                      \
-        SPRINTF(_out_impl, fmt, ## __VA_ARGS__);\
+    {                                               \
+        FString _out_impl;                          \
+        SPRINTF(_out_impl, fmt, ## __VA_ARGS__);    \
         /*return*/ _out_impl;                       \
     }/*()*/)
 
-#define STRNPRINTF(n, fmt, ...)                     \
+# define STRNPRINTF(n, fmt, ...)                        \
     (/*[&]() -> VString<n - 1>*/                        \
-    {                                               \
-        VString<n - 1> _out_impl;                   \
-        SNPRINTF(_out_impl, n, fmt, ## __VA_ARGS__);\
+    {                                                   \
+        VString<n - 1> _out_impl;                       \
+        SNPRINTF(_out_impl, n, fmt, ## __VA_ARGS__);    \
         /*return*/ _out_impl;                           \
     }/*()*/)
 

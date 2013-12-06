@@ -1,7 +1,7 @@
 #ifndef BATTLE_T_HPP
 #define BATTLE_T_HPP
 
-#include "../common/utils2.hpp"
+# include "../common/utils2.hpp"
 
 namespace e
 {

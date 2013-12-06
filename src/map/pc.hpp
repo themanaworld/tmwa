@@ -1,12 +1,12 @@
 #ifndef PC_HPP
 #define PC_HPP
 
-#include "pc.t.hpp"
+# include "pc.t.hpp"
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "clif.t.hpp"
-#include "map.hpp"
+# include "clif.t.hpp"
+# include "map.hpp"
 
 inline
 void pc_setsit(dumb_ptr<map_session_data> sd)

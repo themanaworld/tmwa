@@ -1,19 +1,19 @@
 #ifndef SCRIPT_HPP
 #define SCRIPT_HPP
 
-#include <cstdint>
-#include <cstring> // for inlined get_str - TODO remove
+# include <cstdint>
+# include <cstring> // for inlined get_str - TODO remove
 
-#include <vector>
+# include <vector>
 
-#include "../strings/fstring.hpp"
-#include "../strings/zstring.hpp"
+# include "../strings/fstring.hpp"
+# include "../strings/zstring.hpp"
 
-#include "../common/db.hpp"
-#include "../common/dumb_ptr.hpp"
-#include "../common/utils.hpp"
+# include "../common/db.hpp"
+# include "../common/dumb_ptr.hpp"
+# include "../common/utils.hpp"
 
-#include "map.t.hpp"
+# include "map.t.hpp"
 
 enum class ByteCode : uint8_t;
 struct str_data_t;

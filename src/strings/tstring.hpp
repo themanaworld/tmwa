@@ -19,8 +19,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "base.hpp"
-#include "fstring.hpp"
+# include "base.hpp"
+# include "fstring.hpp"
 
 namespace strings
 {
@@ -61,6 +61,6 @@ namespace strings
     const char *decay_for_printf(const TString& ts);
 } // namespace strings
 
-#include "tstring.tcc"
+# include "tstring.tcc"
 
 #endif // TMWA_STRINGS_TSTRING_HPP

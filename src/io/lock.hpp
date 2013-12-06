@@ -19,9 +19,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "write.hpp"
+# include "write.hpp"
 
-#include "../strings/fstring.hpp"
+# include "../strings/fstring.hpp"
 
 
 namespace io

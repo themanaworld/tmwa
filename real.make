@@ -106,6 +106,8 @@ endif
 
 include Makefile # for variables - this is handled VERY carefully
 
+export PATH:=$(realpath ${SRC_DIR}/tools):${PATH}
+
 # bash is needed for 'set -o pipefail' below - I have had real bugs there!
 # It's just not worth the bother to see if another shell works when it
 # needs to *and* fails when it needs to. Just use bash.
@@ -245,7 +247,7 @@ obj/%.d: src/%.cpp
 	set -o pipefail; \
 	${CXX} ${CPPFLAGS} -DGENERATING_DEPENDENCIES ${CXXFLAGS} -MG -MP -MM $< \
 	    -MT '$(patsubst %.d,%.ii,$@) $(patsubst %.d,%.ll,$@) $(patsubst %.d,%.bc,$@) $(patsubst %.d,%.s,$@) $(patsubst %.d,%.o,$@) $@' \
-	    | sed -e ':again; s:/[^/ ]*/\.\./:/:; t again' \
+	    | sed -e ':again; s:/[^/. ]*/\.\./:/:; t again' \
 	    -e 's: ${SRC_DIR}/: :g' \
 	    > $@
 endif
@@ -348,27 +350,15 @@ include ${SRC_DIR}/version.make
 # This is complicated and still isn't optimal.
 conf-raw/int-%.h: FORCE
 	$(MKDIR_FIRST)
-	@grep -s -q '^$(value $*)$$' $@ \
-	|| { \
-	    echo "#define $* \\"; \
-	    echo '$(value $*)'; \
-	} > $@
+	echo '#define $* $(value $*)' | maybe-replace $@
 bool_yes := true
 bool_no := false
 conf-raw/bool-%.h: FORCE
 	$(MKDIR_FIRST)
-	@grep -s -q '^$(bool_$(value $*))$$' $@ \
-	|| { \
-	    echo "#define $* \\"; \
-	    echo '$(bool_$(value $*))'; \
-	} > $@
+	echo '#define $* $(bool_$(value $*))' | maybe-replace $@
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
-	@grep -s -q '^"$(value $*)"$$' $@ \
-	|| { \
-	    echo "#define $* \\"; \
-	    echo '"$(value $*)"'; \
-	} > $@
+	echo '#define $* "$(value $*)"' | maybe-replace $@
 FORCE: ;
 override CPPFLAGS += -I .
 
@@ -393,3 +383,7 @@ dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 
 dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
 .PHONY: dist
+
+format:
+	cd ${SRC_DIR} && apply-filter 'pp-indent | bs-align' ${REAL_SOURCES} ${REAL_HEADERS} ${LEXERS} ${PARSERS}
+.PHONY: format

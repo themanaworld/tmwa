@@ -19,19 +19,19 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <cstring>
+# include <cstring>
 
-#include <iterator>
-#include <ostream>
-#include <vector>
+# include <iterator>
+# include <ostream>
+# include <vector>
 
-#ifdef WORKAROUND_GCC46_COMPILER
+# ifdef WORKAROUND_GCC46_COMPILER
 // constexpr is buggy with templates in this version
 // Is this still needed now that const_string is removed?
-# define constexpr /* nothing */
-#endif
+#  define constexpr /* nothing */
+# endif
 
 // TODO see if I ever actually use this, and not the subclass
 template<class T>
@@ -125,8 +125,8 @@ public:
     }
 };
 
-#ifdef WORKAROUND_GCC46_COMPILER
-# undef constexpr
-#endif
+# ifdef WORKAROUND_GCC46_COMPILER
+#  undef constexpr
+# endif
 
 #endif // CONST_ARRAY_HPP

@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "base.hpp"
+# include "base.hpp"
 
 namespace strings
 {
@@ -64,6 +64,6 @@ namespace strings
     int do_vprint(VString<len>& out, const char *fmt, va_list ap);
 } // namespace strings
 
-#include "vstring.tcc"
+# include "vstring.tcc"
 
 #endif // TMWA_STRINGS_VSTRING_HPP

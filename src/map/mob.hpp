@@ -1,19 +1,19 @@
 #ifndef MOB_HPP
 #define MOB_HPP
 
-#include "mob.t.hpp"
+# include "mob.t.hpp"
 
-#include "../common/mmo.hpp"
-#include "../common/timer.t.hpp"
-#include "../common/random.t.hpp"
+# include "../common/mmo.hpp"
+# include "../common/timer.t.hpp"
+# include "../common/random.t.hpp"
 
-#include "clif.t.hpp"
-#include "map.hpp"
-#include "skill.t.hpp"
+# include "clif.t.hpp"
+# include "map.hpp"
+# include "skill.t.hpp"
 
-#define ENGLISH_NAME stringish<MobName>("--en--")
-#define JAPANESE_NAME stringish<MobName>("--ja--")
-#define MOB_THIS_MAP stringish<MapName>("this")
+# define ENGLISH_NAME stringish<MobName>("--en--")
+# define JAPANESE_NAME stringish<MobName>("--ja--")
+# define MOB_THIS_MAP stringish<MapName>("this")
 
 struct mob_skill
 {

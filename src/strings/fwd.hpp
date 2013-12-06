@@ -19,7 +19,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
 // It is a common mistake to assume that one string class for everything.
 // Because C++ and TMWA have a C legacy, there are a few more here

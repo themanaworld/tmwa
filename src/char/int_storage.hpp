@@ -1,7 +1,7 @@
 #ifndef INT_STORAGE_HPP
 #define INT_STORAGE_HPP
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
 int inter_storage_init(void);
 int inter_storage_save(void);

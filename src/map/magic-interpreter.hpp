@@ -1,17 +1,17 @@
 #ifndef MAGIC_INTERPRETER_HPP
 #define MAGIC_INTERPRETER_HPP
 
-#include "magic-interpreter.t.hpp"
+# include "magic-interpreter.t.hpp"
 
-#include <cassert>
+# include <cassert>
 
-#include "../strings/fwd.hpp"
-#include "../strings/fstring.hpp"
+# include "../strings/fwd.hpp"
+# include "../strings/fstring.hpp"
 
-#include "magic.hpp"
-#include "map.hpp"
-#include "script.hpp"
-#include "skill.t.hpp"
+# include "magic.hpp"
+# include "map.hpp"
+# include "script.hpp"
+# include "skill.t.hpp"
 
 struct fun_t;
 struct op_t;
@@ -82,7 +82,7 @@ struct val_t
 /* Expressions */
 /* ----------- */
 
-#define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
+# define MAX_ARGS 7              /* Max. # of args used in builtin primitive functions */
 
 struct e_location_t
 {
@@ -288,15 +288,15 @@ struct magic_conf_t
 /* Execution environment */
 
 // these are not an enum they're a nasty intern hack
-#define VAR_MIN_CASTTIME        0
-#define VAR_OBSCURE_CHANCE      1
-#define VAR_CASTER              2
-#define VAR_SPELLPOWER          3
-#define VAR_SPELL               4
-#define VAR_INVOCATION          5
-#define VAR_TARGET              6
-#define VAR_SCRIPTTARGET        7
-#define VAR_LOCATION            8
+# define VAR_MIN_CASTTIME        0
+# define VAR_OBSCURE_CHANCE      1
+# define VAR_CASTER              2
+# define VAR_SPELLPOWER          3
+# define VAR_SPELL               4
+# define VAR_INVOCATION          5
+# define VAR_TARGET              6
+# define VAR_SCRIPTTARGET        7
+# define VAR_LOCATION            8
 
 struct magic_config;
 
@@ -316,7 +316,7 @@ struct env_t
 
 };
 
-#define MAX_STACK_SIZE 32
+# define MAX_STACK_SIZE 32
 
 struct cont_activation_record_t
 {

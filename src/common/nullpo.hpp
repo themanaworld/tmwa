@@ -11,7 +11,7 @@
 /// nullpo_retr(rv, cond) - return given value instead
 
 # ifndef BUG_FREE
-#  define nullpo_retr(ret, t) \
+#  define nullpo_retr(ret, t)                                   \
     if (nullpo_chk(__FILE__, __LINE__, __PRETTY_FUNCTION__, t)) \
         return ret;
 # else // BUG_FREE

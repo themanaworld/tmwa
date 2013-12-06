@@ -19,11 +19,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <cstdarg>
+# include <cstdarg>
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
 namespace io
 {

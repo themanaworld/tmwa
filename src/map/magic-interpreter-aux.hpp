@@ -1,7 +1,7 @@
 #ifndef MAGIC_INTERPRETER_AUX_HPP
 #define MAGIC_INTERPRETER_AUX_HPP
 
-#include "magic-interpreter.t.hpp"
+# include "magic-interpreter.t.hpp"
 
 template<class T>
 bool CHECK_TYPE(T *v, TYPE t)

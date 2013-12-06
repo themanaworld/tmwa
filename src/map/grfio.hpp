@@ -1,11 +1,11 @@
 #ifndef GRFIO_HPP
 #define GRFIO_HPP
 
-#include <cstdint>
+# include <cstdint>
 
-#include <vector>
+# include <vector>
 
-#include "../common/mmo.hpp"
+# include "../common/mmo.hpp"
 
 /// Load a resource into memory, subject to data/resnametable.txt.
 /// Normally, resourcename is xxx-y.gat and the file is xxx-y.wlk.

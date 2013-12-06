@@ -19,10 +19,10 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "fwd.hpp"
-#include "pair.hpp"
+# include "fwd.hpp"
+# include "pair.hpp"
 
-#include <iterator>
+# include <iterator>
 
 // It is a common mistake to assume that one string class for everything.
 // Because C++ and TMWA have a C legacy, there are a few more here
@@ -192,6 +192,6 @@ namespace strings
     auto operator >= (const L& l, const R& r) -> decltype((pair_compare(l, r), true));
 } // namespace strings
 
-#include "base.tcc"
+# include "base.tcc"
 
 #endif // TMWA_STRINGS_BASE_HPP

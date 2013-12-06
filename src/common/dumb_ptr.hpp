@@ -19,17 +19,17 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <cstring>
+# include <cstring>
 
-#include <algorithm>
+# include <algorithm>
 
-#include "../strings/fstring.hpp"
-#include "../strings/zstring.hpp"
-#include "../strings/xstring.hpp"
+# include "../strings/fstring.hpp"
+# include "../strings/zstring.hpp"
+# include "../strings/xstring.hpp"
 
-#include "const_array.hpp"
+# include "const_array.hpp"
 
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
@@ -210,9 +210,9 @@ struct dumb_string
         return dumb_string::copy(&*s.begin(), &*s.end());
     }
     static
-#ifndef __clang__
+# ifndef __clang__
     __attribute__((warning("shouldn't use this - slice instead")))
-#endif
+# endif
     dumb_string copyn(const char *sn, size_t n)
     {
         return dumb_string::copy(sn, sn + strnlen(sn, n));

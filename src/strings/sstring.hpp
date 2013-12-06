@@ -19,8 +19,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "base.hpp"
-#include "fstring.hpp"
+# include "base.hpp"
+# include "fstring.hpp"
 
 namespace strings
 {
@@ -54,6 +54,6 @@ namespace strings
     };
 } // namespace strings
 
-#include "sstring.tcc"
+# include "sstring.tcc"
 
 #endif // TMWA_STRINGS_SSTRING_HPP

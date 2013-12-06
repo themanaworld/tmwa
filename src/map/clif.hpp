@@ -1,20 +1,20 @@
 #ifndef CLIF_HPP
 #define CLIF_HPP
 
-#include "clif.t.hpp"
+# include "clif.t.hpp"
 
-#include <functional>
+# include <functional>
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "../common/const_array.hpp"
-#include "../common/ip.hpp"
-#include "../common/timer.t.hpp"
+# include "../common/const_array.hpp"
+# include "../common/ip.hpp"
+# include "../common/timer.t.hpp"
 
-#include "battle.t.hpp"
-#include "map.hpp"
-#include "pc.t.hpp"
-#include "skill.t.hpp"
+# include "battle.t.hpp"
+# include "map.hpp"
+# include "pc.t.hpp"
+# include "skill.t.hpp"
 
 void clif_setip(IP4Address);
 void clif_setport(int);

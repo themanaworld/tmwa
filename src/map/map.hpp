@@ -1,33 +1,33 @@
 #ifndef MAP_HPP
 #define MAP_HPP
 
-#include "map.t.hpp"
+# include "map.t.hpp"
 
-#include <netinet/in.h>
+# include <netinet/in.h>
 
-#include <functional>
-#include <list>
+# include <functional>
+# include <list>
 
-#include "../strings/fwd.hpp"
-#include "../strings/fstring.hpp"
-#include "../strings/vstring.hpp"
+# include "../strings/fwd.hpp"
+# include "../strings/fstring.hpp"
+# include "../strings/vstring.hpp"
 
-#include "../io/cxxstdio.hpp"
+# include "../io/cxxstdio.hpp"
 
-#include "../common/db.hpp"
-#include "../common/matrix.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.t.hpp"
+# include "../common/db.hpp"
+# include "../common/matrix.hpp"
+# include "../common/socket.hpp"
+# include "../common/timer.t.hpp"
 
-#include "battle.t.hpp"
-#include "magic-interpreter.t.hpp"
-#include "mob.t.hpp"
-#include "script.hpp"   // change to script.t.hpp
-#include "skill.t.hpp"
+# include "battle.t.hpp"
+# include "magic-interpreter.t.hpp"
+# include "mob.t.hpp"
+# include "script.hpp"   // change to script.t.hpp
+# include "skill.t.hpp"
 
 constexpr int MAX_NPC_PER_MAP = 512;
 constexpr int BLOCK_SIZE = 8;
-#define AREA_SIZE battle_config.area_size
+# define AREA_SIZE battle_config.area_size
 constexpr std::chrono::seconds LIFETIME_FLOORITEM = std::chrono::minutes(1);
 constexpr int MAX_SKILL_LEVEL = 100;
 constexpr int MAX_EVENTTIMER = 32;
@@ -625,10 +625,10 @@ void map_quit(dumb_ptr<map_session_data>);
 int map_addnpc(map_local *, dumb_ptr<npc_data>);
 
 void map_log(XString line);
-#define MAP_LOG(format, ...) \
+# define MAP_LOG(format, ...)   \
     map_log(STRPRINTF(format, ## __VA_ARGS__))
 
-#define MAP_LOG_PC(sd, fmt, ...)    \
+# define MAP_LOG_PC(sd, fmt, ...)   \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
             sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat")), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 

@@ -1,10 +1,10 @@
 #ifndef MAP_T_HPP
 #define MAP_T_HPP
 
-#include "../strings/vstring.hpp"
+# include "../strings/vstring.hpp"
 
-#include "../common/mmo.hpp"
-#include "../common/utils2.hpp"
+# include "../common/mmo.hpp"
+# include "../common/utils2.hpp"
 
 namespace e
 {
@@ -137,9 +137,9 @@ enum class SP : uint16_t
     BASEEXP                     = 1,
     // sent to client
     JOBEXP                      = 2,
-#if 0
+# if 0
     KARMA                       = 3,
-#endif
+# endif
 
     // sent to client
     HP                          = 5,
@@ -224,12 +224,12 @@ enum class SP : uint16_t
     // sent to client
     JOBLEVEL                    = 55,
 
-#if 0
+# if 0
     PARTNER                     = 57,
     CART                        = 58,
     FAME                        = 59,
     UNBREAKABLE                 = 60,
-#endif
+# endif
 
     DEAF                        = 70,
 
@@ -238,154 +238,154 @@ enum class SP : uint16_t
 
     // sent to client
     ATTACKRANGE                 = 1000,
-#if 0
+# if 0
     ATKELE                      = 1001,
-#endif
-#if 0
+# endif
+# if 0
     DEFELE                      = 1002,
-#endif
-#if 0
+# endif
+# if 0
     CASTRATE                    = 1003,
-#endif
+# endif
     MAXHPRATE                   = 1004,
-#if 0
+# if 0
     MAXSPRATE                   = 1005,
-#endif
-#if 0
+# endif
+# if 0
     SPRATE                      = 1006,
-#endif
+# endif
 
-#if 0
+# if 0
     ADDEFF                      = 1012,
-#endif
-#if 0
+# endif
+# if 0
     RESEFF                      = 1013,
-#endif
+# endif
     BASE_ATK                    = 1014,
     ASPD_RATE                   = 1015,
     HP_RECOV_RATE               = 1016,
-#if 0
+# if 0
     SP_RECOV_RATE               = 1017,
-#endif
-#if 0
+# endif
+# if 0
     SPEED_RATE                  = 1018,
-#endif
+# endif
     CRITICAL_DEF                = 1019,
-#if 0
+# if 0
     NEAR_ATK_DEF                = 1020,
-#endif
-#if 0
+# endif
+# if 0
     LONG_ATK_DEF                = 1021,
-#endif
-#if 0
+# endif
+# if 0
     DOUBLE_RATE                 = 1022,
-#endif
+# endif
     DOUBLE_ADD_RATE             = 1023,
-#if 0
+# if 0
     MATK                        = 1024,
-#endif
-#if 0
+# endif
+# if 0
     MATK_RATE                   = 1025,
-#endif
-#if 0
+# endif
+# if 0
     IGNORE_DEF_ELE              = 1026,
-#endif
-#if 0
+# endif
+# if 0
     IGNORE_DEF_RACE             = 1027,
-#endif
-#if 0
+# endif
+# if 0
     ATK_RATE                    = 1028,
-#endif
+# endif
     SPEED_ADDRATE               = 1029,
-#if 0
+# if 0
     ASPD_ADDRATE                = 1030,
-#endif
-#if 0
+# endif
+# if 0
     MAGIC_ATK_DEF               = 1031,
-#endif
-#if 0
+# endif
+# if 0
     MISC_ATK_DEF                = 1032,
-#endif
-#if 0
+# endif
+# if 0
     IGNORE_MDEF_ELE             = 1033,
-#endif
-#if 0
+# endif
+# if 0
     IGNORE_MDEF_RACE            = 1034,
-#endif
+# endif
 
-#if 0
+# if 0
     PERFECT_HIT_RATE            = 1038,
-#endif
-#if 0
+# endif
+# if 0
     PERFECT_HIT_ADD_RATE        = 1039,
-#endif
-#if 0
+# endif
+# if 0
     CRITICAL_RATE               = 1040,
-#endif
-#if 0
+# endif
+# if 0
     GET_ZENY_NUM                = 1041,
-#endif
-#if 0
+# endif
+# if 0
     ADD_GET_ZENY_NUM            = 1042,
-#endif
+# endif
 
-#if 0
+# if 0
     ADD_MONSTER_DROP_ITEM       = 1047,
-#endif
-#if 0
+# endif
+# if 0
     DEF_RATIO_ATK_ELE           = 1048,
-#endif
-#if 0
+# endif
+# if 0
     DEF_RATIO_ATK_RACE          = 1049,
-#endif
-#if 0
+# endif
+# if 0
     ADD_SPEED                   = 1050,
-#endif
-#if 0
+# endif
+# if 0
     HIT_RATE                    = 1051,
-#endif
-#if 0
+# endif
+# if 0
     FLEE_RATE                   = 1052,
-#endif
-#if 0
+# endif
+# if 0
     FLEE2_RATE                  = 1053,
-#endif
+# endif
     DEF_RATE                    = 1054,
     DEF2_RATE                   = 1055,
-#if 0
+# if 0
     MDEF_RATE                   = 1056,
-#endif
-#if 0
+# endif
+# if 0
     MDEF2_RATE                  = 1057,
-#endif
-#if 0
+# endif
+# if 0
     SPLASH_RANGE                = 1058,
-#endif
-#if 0
+# endif
+# if 0
     SPLASH_ADD_RANGE            = 1059,
-#endif
+# endif
 
     HP_DRAIN_RATE               = 1061,
-#if 0
+# if 0
     SP_DRAIN_RATE               = 1062,
-#endif
-#if 0
+# endif
+# if 0
     SHORT_WEAPON_DAMAGE_RETURN  = 1063,
-#endif
-#if 0
+# endif
+# if 0
     LONG_WEAPON_DAMAGE_RETURN   = 1064,
-#endif
+# endif
 
-#if 0
+# if 0
     ADDEFF2                     = 1067,
-#endif
+# endif
     BREAK_WEAPON_RATE           = 1068,
     BREAK_ARMOR_RATE            = 1069,
     ADD_STEAL_RATE              = 1070,
     MAGIC_DAMAGE_RETURN         = 1071,
-#if 0
+# if 0
     RANDOM_ATTACK_INCREASE      = 1072,
-#endif
+# endif
 };
 
 constexpr

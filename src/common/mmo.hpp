@@ -57,7 +57,7 @@ T stringish(VString<sizeof(T) - 1> iv)
     static_cast<VString<sizeof(T) - 1>&>(rv) = iv;
     return rv;
 }
-#define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com")
+# define DEFAULT_EMAIL stringish<AccountEmail>("a@a.com")
 
 // It is decreed: a mapname shall not contain an extension
 class MapName : public strings::_crtp_string<MapName, MapName, strings::ZPair>
@@ -111,12 +111,12 @@ public:
     }
     VString<23> to__canonical() const
     {
-#if NAME_IGNORING_CASE == 0
+# if NAME_IGNORING_CASE == 0
         return to__actual();
-#endif
-#if NAME_IGNORING_CASE == 1
+# endif
+# if NAME_IGNORING_CASE == 1
         return to__lower();
-#endif
+# endif
     }
 
     friend bool operator == (const CharName& l, const CharName& r)

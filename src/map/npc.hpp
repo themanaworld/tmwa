@@ -1,14 +1,14 @@
 #ifndef NPC_HPP
 #define NPC_HPP
 
-#include <cstddef>
-#include <cstdint>
+# include <cstddef>
+# include <cstdint>
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "../common/timer.t.hpp"
+# include "../common/timer.t.hpp"
 
-#include "map.hpp"
+# include "map.hpp"
 
 constexpr int START_NPC_NUM = 110000000;
 

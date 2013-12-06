@@ -1,7 +1,7 @@
 #ifndef CLIF_T_HPP
 #define CLIF_T_HPP
 
-#include <cstdint>
+# include <cstdint>
 
 enum class BeingRemoveWhy : uint8_t
 {

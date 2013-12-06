@@ -1,7 +1,7 @@
 #ifndef PC_T_HPP
 #define PC_T_HPP
 
-#include <cstdint>
+# include <cstdint>
 
 enum class PC_GAINEXP_REASON
 {

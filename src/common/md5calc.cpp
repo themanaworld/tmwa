@@ -16,7 +16,7 @@
 // auxilary data
 /*
 sin() constant table
-# Reformatted output of:
+#Reformatted output of:
 echo 'scale=40; obase=16; for (i=1;i<=64;i++) print 2^32 * sin(i), "\n"' |
 bc | sed 's/^-//;s/^/0x/;s/\..*$/,/'
 */

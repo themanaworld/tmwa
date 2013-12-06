@@ -1,21 +1,21 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <cstdio>
-#include <cstring>
+# include <cstdio>
+# include <cstring>
 
-#include <type_traits>
+# include <type_traits>
 
-#include "../strings/fwd.hpp"
-#include "../strings/vstring.hpp"
+# include "../strings/fwd.hpp"
+# include "../strings/vstring.hpp"
 
-#include "../io/fwd.hpp"
+# include "../io/fwd.hpp"
 
-#include "const_array.hpp"
-#include "operators.hpp"
-#include "utils2.hpp"
+# include "const_array.hpp"
+# include "operators.hpp"
+# include "utils2.hpp"
 
 template<class T>
 struct is_trivially_copyable
@@ -122,16 +122,16 @@ void stamp_time(timestamp_milliseconds_buffer&);
 void log_with_timestamp(io::WriteFile& out, XString line);
 
 // TODO VString?
-#define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"
+# define TIMESTAMP_DUMMY "YYYY-MM-DD HH:MM:SS"
 static_assert(sizeof(TIMESTAMP_DUMMY) == sizeof(timestamp_seconds_buffer),
         "timestamp size");
-#define WITH_TIMESTAMP(str) str TIMESTAMP_DUMMY
+# define WITH_TIMESTAMP(str) str TIMESTAMP_DUMMY
 //  str:            prefix: YYYY-MM-DD HH:MM:SS
 //  sizeof:        01234567890123456789012345678
 //  str + sizeof:                               ^
 //  -1:                     ^
 // there's probably a better way to do this now
-#define REPLACE_TIMESTAMP(str, t)                           \
+# define REPLACE_TIMESTAMP(str, t)                          \
     stamp_time(                                             \
             reinterpret_cast<timestamp_seconds_buffer *>(   \
                 str + sizeof(str)                           \

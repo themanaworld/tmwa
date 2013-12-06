@@ -19,13 +19,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <netinet/in.h>
+# include <netinet/in.h>
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "extract.hpp"
+# include "extract.hpp"
 
 // TODO - in the long run ports belong here also
 // and of course, IPv6 stuff.

@@ -19,11 +19,11 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <cstring>
+# include <cstring>
 
-#include "fwd.hpp"
+# include "fwd.hpp"
 
 namespace strings
 {

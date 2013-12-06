@@ -1,0 +1,10 @@
+#!/bin/bash -eu
+# Apply a filter command to a set of files
+
+filter=$1; shift
+for arg
+do
+    echo apply-filter "$filter" "$arg"
+    bash -c "$filter" < "$arg" > "$arg.tmp"
+    maybe-mv "$arg.tmp" "$arg"
+done

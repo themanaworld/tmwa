@@ -4,7 +4,7 @@
 #ifndef STORAGE_HPP
 #define STORAGE_HPP
 
-#include "map.hpp"
+# include "map.hpp"
 
 int storage_storageopen(dumb_ptr<map_session_data> sd);
 int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount);

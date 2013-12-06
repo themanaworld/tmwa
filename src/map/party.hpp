@@ -1,11 +1,11 @@
 #ifndef PARTY_HPP
 #define PARTY_HPP
 
-#include <functional>
+# include <functional>
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "map.hpp"
+# include "map.hpp"
 
 struct party;
 struct map_session_data;

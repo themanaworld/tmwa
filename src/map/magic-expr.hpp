@@ -1,10 +1,10 @@
 #ifndef MAGIC_EXPR_HPP
 #define MAGIC_EXPR_HPP
 
-#include "magic-interpreter.hpp"
+# include "magic-interpreter.hpp"
 
-#include "../strings/fwd.hpp"
-#include "../strings/zstring.hpp"
+# include "../strings/fwd.hpp"
+# include "../strings/zstring.hpp"
 
 /*
  * Argument types:
@@ -74,7 +74,7 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area);
 // ret -1: not a string, ret 1: no such item, ret 0: OK
 int magic_find_item(const_array<val_t> args, int index, struct item *item, int *stackable);
 
-#define GET_ARG_ITEM(index, dest, stackable)                    \
+# define GET_ARG_ITEM(index, dest, stackable)                   \
      switch (magic_find_item(args, index, &dest, &stackable))   \
     {                                                           \
         case -1: return 1;                                      \

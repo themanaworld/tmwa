@@ -46,7 +46,7 @@ constexpr std::chrono::milliseconds PVP_CALCRANK_INTERVAL =
 constexpr int MAGIC_SKILL_THRESHOLD = 200;
 #endif
 
-#define MAP_LOG_STATS(sd, suffix)       \
+#define MAP_LOG_STATS(sd, suffix)                           \
         MAP_LOG_PC(sd, "STAT %d %d %d %d %d %d " suffix,    \
                 sd->status.attrs[ATTR::STR],                \
                 sd->status.attrs[ATTR::AGI],                \
@@ -55,20 +55,20 @@ constexpr int MAGIC_SKILL_THRESHOLD = 200;
                 sd->status.attrs[ATTR::DEX],                \
                 sd->status.attrs[ATTR::LUK])
 
-#define MAP_LOG_XP(sd, suffix)  \
-        MAP_LOG_PC(sd, "XP %d %d JOB %d %d %d ZENY %d + %d " suffix,    \
-                sd->status.base_level, sd->status.base_exp,             \
-                sd->status.job_level, sd->status.job_exp, sd->status.skill_point, \
+#define MAP_LOG_XP(sd, suffix)                                                      \
+        MAP_LOG_PC(sd, "XP %d %d JOB %d %d %d ZENY %d + %d " suffix,                \
+                sd->status.base_level, sd->status.base_exp,                         \
+                sd->status.job_level, sd->status.job_exp, sd->status.skill_point,   \
                 sd->status.zeny, pc_readaccountreg(sd, stringish<VarName>("BankAccount")))
 
-#define MAP_LOG_MAGIC(sd, suffix)       \
-        MAP_LOG_PC(sd, "MAGIC %d %d %d %d %d %d EXP %d %d " suffix,     \
-                   sd->status.skill[SkillID::TMW_MAGIC].lv,             \
-                   sd->status.skill[SkillID::TMW_MAGIC_LIFE].lv,        \
-                   sd->status.skill[SkillID::TMW_MAGIC_WAR].lv,         \
-                   sd->status.skill[SkillID::TMW_MAGIC_TRANSMUTE].lv,   \
-                   sd->status.skill[SkillID::TMW_MAGIC_NATURE].lv,      \
-                   sd->status.skill[SkillID::TMW_MAGIC_ETHER].lv,       \
+#define MAP_LOG_MAGIC(sd, suffix)                                                           \
+        MAP_LOG_PC(sd, "MAGIC %d %d %d %d %d %d EXP %d %d " suffix,                         \
+                   sd->status.skill[SkillID::TMW_MAGIC].lv,                                 \
+                   sd->status.skill[SkillID::TMW_MAGIC_LIFE].lv,                            \
+                   sd->status.skill[SkillID::TMW_MAGIC_WAR].lv,                             \
+                   sd->status.skill[SkillID::TMW_MAGIC_TRANSMUTE].lv,                       \
+                   sd->status.skill[SkillID::TMW_MAGIC_NATURE].lv,                          \
+                   sd->status.skill[SkillID::TMW_MAGIC_ETHER].lv,                           \
                    pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE")) & 0xffff,   \
                    (pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE")) >> 24) & 0xff)
 

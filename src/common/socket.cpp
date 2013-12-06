@@ -208,7 +208,7 @@ int make_listen_port(uint16_t port)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #if __GNUC__ > 4 || __GNUC_MINOR__ >= 8
-#pragma GCC diagnostic ignored "-Wuseless-cast"
+# pragma GCC diagnostic ignored "-Wuseless-cast"
 #endif
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
     server_address.sin_port = htons(port);
@@ -268,7 +268,7 @@ int make_connection(IP4Address ip, uint16_t port)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 #if __GNUC__ > 4 || __GNUC_MINOR__ >= 8
-#pragma GCC diagnostic ignored "-Wuseless-cast"
+# pragma GCC diagnostic ignored "-Wuseless-cast"
 #endif
     server_address.sin_port = htons(port);
 #pragma GCC diagnostic pop

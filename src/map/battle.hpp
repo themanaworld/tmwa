@@ -1,15 +1,15 @@
 #ifndef BATTLE_HPP
 #define BATTLE_HPP
 
-#include "battle.t.hpp"
+# include "battle.t.hpp"
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
-#include "../common/timer.t.hpp"
+# include "../common/timer.t.hpp"
 
-#include "magic-interpreter.t.hpp"
-#include "map.t.hpp"
-#include "skill.t.hpp"
+# include "magic-interpreter.t.hpp"
+# include "map.t.hpp"
+# include "skill.t.hpp"
 
 // ダメージ
 struct Damage

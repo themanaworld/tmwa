@@ -19,15 +19,15 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <algorithm>
+# include <algorithm>
 
-#include "../strings/xstring.hpp"
+# include "../strings/xstring.hpp"
 
-#include "const_array.hpp"
-#include "mmo.hpp"
-#include "utils.hpp"
+# include "const_array.hpp"
+# include "mmo.hpp"
+# include "utils.hpp"
 
 template<class T, typename=typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, char>::value && !std::is_same<T, bool>::value>::type>
 bool extract(XString str, T *iv)

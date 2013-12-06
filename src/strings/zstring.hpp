@@ -19,9 +19,9 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstring>
+# include <cstring>
 
-#include "base.hpp"
+# include "base.hpp"
 
 namespace strings
 {
@@ -66,6 +66,6 @@ namespace strings
     int do_vscan(ZString in, const char *fmt, va_list ap);
 } // namespace strings
 
-#include "zstring.tcc"
+# include "zstring.tcc"
 
 #endif // TMWA_STRINGS_ZSTRING_HPP

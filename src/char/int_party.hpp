@@ -1,7 +1,7 @@
 #ifndef INT_PARTY_HPP
 #define INT_PARTY_HPP
 
-#include "../strings/fwd.hpp"
+# include "../strings/fwd.hpp"
 
 int inter_party_init(void);
 int inter_party_save(void);

@@ -1,7 +1,7 @@
 #ifndef MOB_T_HPP
 #define MOB_T_HPP
 
-#include <cstdint>
+# include <cstdint>
 
 enum class MobSkillTarget
 {

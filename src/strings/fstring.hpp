@@ -19,13 +19,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <cstdarg>
-#include <cstring>
+# include <cstdarg>
+# include <cstring>
 
-#include <memory>
-#include <vector>
+# include <memory>
+# include <vector>
 
-#include "base.hpp"
+# include "base.hpp"
 
 namespace strings
 {
@@ -89,6 +89,6 @@ namespace strings
     StringConverter convert_for_scanf(FString& s);
 } // namespace strings
 
-#include "fstring.tcc"
+# include "fstring.tcc"
 
 #endif // TMWA_STRINGS_FSTRING_HPP

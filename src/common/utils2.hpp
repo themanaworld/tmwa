@@ -1,19 +1,19 @@
 #ifndef UTILS2_HPP
 #define UTILS2_HPP
 
-#include "../sanity.hpp"
+# include "../sanity.hpp"
 
-#include <algorithm>
-#include <functional>
-#include <iterator>
-#include <memory>
-#include <type_traits>
+# include <algorithm>
+# include <functional>
+# include <iterator>
+# include <memory>
+# include <type_traits>
 
-#ifdef __clang__
-# define FALLTHROUGH [[clang::fallthrough]]
-#else
-# define FALLTHROUGH /* fallthrough */
-#endif
+# ifdef __clang__
+#  define FALLTHROUGH [[clang::fallthrough]]
+# else
+#  define FALLTHROUGH /* fallthrough */
+# endif
 
 template<class T, class E, E max>
 struct earray
@@ -136,44 +136,44 @@ struct remove_enum<E, true>
 };
 
 
-#define ENUM_BITWISE_OPERATORS(E)               \
-inline                                          \
-E operator & (E l, E r)                         \
-{                                               \
-    typedef underlying_type<E>::type U;         \
-    return E(U(l) & U(r));                      \
-}                                               \
-inline                                          \
-E operator | (E l, E r)                         \
-{                                               \
-    typedef underlying_type<E>::type U;         \
-    return E(U(l) | U(r));                      \
-}                                               \
-inline                                          \
-E operator ^ (E l, E r)                         \
-{                                               \
-    typedef underlying_type<E>::type U;         \
-    return E(U(l) ^ U(r));                      \
-}                                               \
-inline                                          \
-E& operator &= (E& l, E r)                      \
-{                                               \
-    return l = l & r;                           \
-}                                               \
-inline                                          \
-E& operator |= (E& l, E r)                      \
-{                                               \
-    return l = l | r;                           \
-}                                               \
-inline                                          \
-E& operator ^= (E& l, E r)                      \
-{                                               \
-    return l = l ^ r;                           \
-}                                               \
-inline                                          \
-E operator ~ (E r)                              \
-{                                               \
-    return E(-1) ^ r;                           \
+# define ENUM_BITWISE_OPERATORS(E)      \
+inline                                  \
+E operator & (E l, E r)                 \
+{                                       \
+    typedef underlying_type<E>::type U; \
+    return E(U(l) & U(r));              \
+}                                       \
+inline                                  \
+E operator | (E l, E r)                 \
+{                                       \
+    typedef underlying_type<E>::type U; \
+    return E(U(l) | U(r));              \
+}                                       \
+inline                                  \
+E operator ^ (E l, E r)                 \
+{                                       \
+    typedef underlying_type<E>::type U; \
+    return E(U(l) ^ U(r));              \
+}                                       \
+inline                                  \
+E& operator &= (E& l, E r)              \
+{                                       \
+    return l = l & r;                   \
+}                                       \
+inline                                  \
+E& operator |= (E& l, E r)              \
+{                                       \
+    return l = l | r;                   \
+}                                       \
+inline                                  \
+E& operator ^= (E& l, E r)              \
+{                                       \
+    return l = l ^ r;                   \
+}                                       \
+inline                                  \
+E operator ~ (E r)                      \
+{                                       \
+    return E(-1) ^ r;                   \
 }
 
 template<class E>

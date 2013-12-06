@@ -1,9 +1,9 @@
 #ifndef SKILL_T_HPP
 #define SKILL_T_HPP
 
-#include <cstdint>
+# include <cstdint>
 
-#include "../common/utils2.hpp"
+# include "../common/utils2.hpp"
 
 // TODO remove most of these as their corresponding SkillIDs get deleted.
 enum class StatusChange : uint16_t

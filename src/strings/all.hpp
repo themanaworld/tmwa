@@ -19,13 +19,13 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "base.hpp"
-#include "mstring.hpp"
-#include "fstring.hpp"
-#include "tstring.hpp"
-#include "sstring.hpp"
-#include "zstring.hpp"
-#include "xstring.hpp"
-#include "vstring.hpp"
+# include "base.hpp"
+# include "mstring.hpp"
+# include "fstring.hpp"
+# include "tstring.hpp"
+# include "sstring.hpp"
+# include "zstring.hpp"
+# include "xstring.hpp"
+# include "vstring.hpp"
 
 #endif // TMWA_STRINGS_ALL_HPP

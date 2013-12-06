@@ -1,0 +1,8 @@
+#!/bin/bash -eu
+# Replace one file with another, but maybe don't update the timestamp
+if cmp -s "$1" "$2"
+then
+    rm "$1"
+else
+    mv "$1" "$2"
+fi
