@@ -1,0 +1,194 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8
+##    indent - Top-level indenter for lex files
+##
+##    Copyright ©2013 Ben Longbons <b.r.longbons@gmail.com>
+##
+##    This file is part of The Mana World (Athena server)
+##
+##    This program is free software: you can redistribute it and/or modify
+##    it under the terms of the GNU General Public License as published by
+##    the Free Software Foundation, either version 3 of the License, or
+##    (at your option) any later version.
+##
+##    This program is distributed in the hope that it will be useful,
+##    but WITHOUT ANY WARRANTY; without even the implied warranty of
+##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##    GNU General Public License for more details.
+##
+##    You should have received a copy of the GNU General Public License
+##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+'''
+A lex file is a series of sections.
+
+In the initial section:
+    If it begins with whitespace, it is indented code
+    It might be a /* comment */
+    It might be a #line
+    It might be a %s, %x, %pointer, %array, %option %[a-z][0-9].*
+    It might be a %{ codeblock %}
+    It might be a %top { codeblock }
+    It might be a name and an expansion
+    A %% switches to the second section
+
+In a comment:
+    */ is the end
+
+In a codeblock:
+    if it started with %{, %} ends it
+    if it started with %top{, } ends it if it matches the nesting
+
+In section 2's header:
+    there may be %{ %} sections, possibly nested
+    there may also be indented code
+    there may be unindented code if it's inside the %{ %}
+
+In section 2 proper:
+    pattern         action
+    <sc>pattern     action
+    <sc>{
+        pattern     action
+    }
+    a %% switches to section 3
+
+In section 3:
+    everything is just C code
+'''
+
+# Settings.
+pad = 2
+indent = 4
+brace = True
+
+# Code.
+import subprocess
+import sys
+
+class Table:
+    ''' Aligned output
+    '''
+    def __init__(self):
+        self.buf = []
+        self.size = 0
+    def put1(self, line):
+        line = line.rstrip()
+        self.buf.append((line, ''))
+    def put2(self, left, right):
+        left = left.rstrip()
+        right = right.strip()
+        self.buf.append((left, right))
+        if right and len(left) > self.size:
+            self.size = len(left)
+    def flush(self):
+        self.size += pad
+        if self.size % indent:
+            self.size += indent - self.size % indent
+        for l, r in self.buf:
+            if not r:
+                sys.stdout.writelines([l, '\n'])
+            else:
+                need = self.size - len(l)
+                sys.stdout.writelines([l, ' ' * need, r, '\n'])
+        del self.buf[:]
+        self.size = 0
+
+table = Table()
+# definitions section (mostly used for options actually)
+in_code = False
+code = bytearray()
+for line in sys.stdin:
+    if line == '%%\n':
+        break
+    if line == '%{\n':
+        in_code = True
+        continue
+    if in_code:
+        if line == '%}\n':
+            in_code = False
+            continue
+        code += line
+        continue
+    if not line.strip() or line != line.lstrip():
+        # starts with whitespace or is an empty line ('\n')
+        code += line
+        continue
+    if code.strip():
+        if brace:
+            table.put1('%{')
+        for line2 in subprocess.Popen(['indent-cpp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(code)[0].strip().split('\n'):
+            # this looks bad actually
+            table.put1(0 * indent * ' ' + line2)
+        if brace:
+            table.put1('%}')
+            table.put1('')
+        code = bytearray()
+    elif code:
+        table.put1('')
+
+    if line.startswith('%'):
+        if line.startswith('%top'):
+            raise NotImplementedError('top block not yet supported')
+        table.put1(line)
+    elif line[0].isalpha() or line[0] == '_':
+        table.put2(*line.split(None, 1))
+    else:
+        table.put1(line)
+
+assert not in_code
+del code
+del in_code
+table.flush()
+sys.stdout.write('\n%%\n')
+
+# rule section
+for line in sys.stdin:
+    if line == '%%\n':
+        break
+    if line.startswith('<') and not line.startswith('<<'):
+        raise NotImplementedError('start conditions not yet supported')
+    i = 0
+    p = 0
+    bs = False
+    while True:
+        if bs:
+            bs = False
+            i += 1
+            continue
+        if line[i] == '\\':
+            bs = True
+            i += 1
+            continue
+        if not p and line[i].isspace():
+            break
+        if line[i] == '"':
+            i += 1
+            while line[i] != '"':
+                if line[i] == '\\':
+                    i += 1
+                i += 1
+        elif line[i] == '[':
+            i += 1
+            if line[i] == '^':
+                i += 1
+            while line[i] != ']':
+                i += 1
+        elif line[i] == '(':
+            p += 1
+        elif line[i] == ')':
+            assert p
+            p -= 1
+        i += 1
+    del bs
+    del p
+    pattern = line[:i]
+    rule = line[i:].strip()
+    del i
+
+    sys.stdout.write(line)
+
+sys.stdout.write('%%\n')
+
+# 3rd section is just copied verbatim ... IF it exists
+tail = subprocess.Popen(['indent-cpp'], stdin=subprocess.PIPE, stdout=None)
+tail.stdin.writelines(sys.stdin)

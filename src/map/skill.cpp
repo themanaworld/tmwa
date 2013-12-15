@@ -842,6 +842,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
                     {
                         if (bl->bl_type == BL::PC)
                         {
+                            // TODO boundscheck this
                             hp = 3 + hp * 3 / 200;
                             pc_heal(bl->is_player(), -hp, 0);
                         }

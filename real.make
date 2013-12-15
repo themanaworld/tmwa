@@ -384,6 +384,13 @@ dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
 .PHONY: dist
 
-format:
-	cd ${SRC_DIR} && apply-filter 'pp-indent | bs-align' ${REAL_SOURCES} ${REAL_HEADERS} ${LEXERS} ${PARSERS}
-.PHONY: format
+format: format-cpp format-hpp format-lpp format-ypp
+format-cpp:
+	cd ${SRC_DIR} && apply-filter indent-cpp ${REAL_SOURCES}
+format-hpp:
+	cd ${SRC_DIR} && apply-filter indent-cpp ${REAL_HEADERS}
+format-lpp:
+	cd ${SRC_DIR} && apply-filter indent-lpp ${LEXERS}
+format-ypp:
+	cd ${SRC_DIR} && apply-filter indent-ypp ${PARSERS}
+.PHONY: format format-cpp format-hpp format-lpp format-ypp

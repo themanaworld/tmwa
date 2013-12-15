@@ -2,9 +2,10 @@
 # Apply a filter command to a set of files
 
 filter=$1; shift
+trap 'rm -f "$arg.tmp"' EXIT
 for arg
 do
     echo apply-filter "$filter" "$arg"
-    bash -c "$filter" < "$arg" > "$arg.tmp"
+    bash -c "set -o pipefail; $filter" < "$arg" > "$arg.tmp"
     maybe-mv "$arg.tmp" "$arg"
 done
