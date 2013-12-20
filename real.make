@@ -386,11 +386,11 @@ dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
 
 format: format-cpp format-hpp format-lpp format-ypp
 format-cpp:
-	cd ${SRC_DIR} && apply-filter indent-cpp ${REAL_SOURCES}
+	cd ${SRC_DIR} && apply-filter 'indenter -cpp' ${REAL_SOURCES}
 format-hpp:
-	cd ${SRC_DIR} && apply-filter indent-cpp ${REAL_HEADERS}
+	cd ${SRC_DIR} && apply-filter 'indenter -cpp' ${REAL_HEADERS}
 format-lpp:
-	cd ${SRC_DIR} && apply-filter indent-lpp ${LEXERS}
+	cd ${SRC_DIR} && apply-filter 'indenter -lpp' ${LEXERS}
 format-ypp:
-	cd ${SRC_DIR} && apply-filter indent-ypp ${PARSERS}
+	cd ${SRC_DIR} && apply-filter 'indenter -ypp' ${PARSERS}
 .PHONY: format format-cpp format-hpp format-lpp format-ypp
