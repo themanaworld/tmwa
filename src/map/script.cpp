@@ -16,6 +16,7 @@
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
+#include "../common/core.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/intern-pool.hpp"
@@ -4164,6 +4165,13 @@ void builtin_getmap(ScriptState *st)
     push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(sd->bl_m->name_));
 }
 
+static
+void builtin_mapexit(ScriptState *st)
+{
+    runflag = 0;
+}
+
+
 //
 // 実行部main
 //
@@ -5151,5 +5159,6 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(getx, ""),
     BUILTIN(gety, ""),
     BUILTIN(getmap, ""),
+    BUILTIN(mapexit, ""),
     {nullptr, ZString(), ZString()},
 };
