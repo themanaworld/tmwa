@@ -4166,7 +4166,7 @@ void builtin_getmap(ScriptState *st)
 }
 
 static
-void builtin_mapexit(ScriptState *st)
+void builtin_mapexit(ScriptState *)
 {
     runflag = 0;
 }

@@ -413,7 +413,9 @@ EC(-Wmissing-prototypes)
 
 ///
 // like -Wmissing-declarations but for variables instead of functions
+#ifndef GTEST_HAS_PTHREAD // this is a hack
 EC(-Wmissing-variable-declarations)
+#endif
 
 /// Warn about constructs not instrumented by
 /// -fmudflap

@@ -7,10 +7,15 @@
 static
 int string_pipe(ZString sz)
 {
-    // if this doesn't work we'll get test failures anyway
     int pfd[2];
-    pipe(pfd);
-    write(pfd[1], sz.c_str(), sz.size());
+    if (-1 == pipe(pfd))
+        return -1;
+    if (sz.size() != write(pfd[1], sz.c_str(), sz.size()))
+    {
+        close(pfd[0]);
+        close(pfd[1]);
+        return -1;
+    }
     close(pfd[1]);
     return pfd[0];
 }
