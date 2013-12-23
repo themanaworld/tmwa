@@ -13,7 +13,11 @@ static
 int pipew(int& rfd)
 {
     int pfd[2];
-    pipe2(pfd, O_NONBLOCK);
+    if (-1 == pipe2(pfd, O_NONBLOCK))
+    {
+        rfd = -1;
+        return -1;
+    }
     rfd = pfd[0];
     return pfd[1];
 }
