@@ -275,7 +275,7 @@ semicolons
 
 proc_formals_list
 
-: /* empty  */
+: /* empty */
 {
     $$ = dumb_ptr<proc_t>::make();
 }

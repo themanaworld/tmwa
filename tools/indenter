@@ -146,6 +146,7 @@ def format_lex_or_yacc_definitions():
 
 def format_lex_rules():
     'rule section'
+    table = Table()
     for line in sys.stdin:
         if line == '%%\n':
             break
@@ -186,15 +187,123 @@ def format_lex_rules():
         del bs
         del p
         pattern = line[:i]
-        rule = line[i:].strip()
+        rule = bytearray(line[i:])
         del i
+        count = rule.count('{') - rule.count('}')
+        while count:
+            blah = next(sys.stdin)
+            rule += blah
+            count += blah.count('{') - blah.count('}')
+        rules = indent_cpp_slop(rule)
+        table.put2(pattern, rules[0])
+        for line in rules[1:]:
+            table.put1(line)
 
-        sys.stdout.write(line)
-
+    table.flush()
     sys.stdout.write('%%\n')
 
 def format_yacc_rules():
-    format_passthrough() # TODO only until %%
+    '''
+        tokens are any of:
+        word
+        word[namedref]
+        'c'
+        "str"
+        { code }
+        break before {
+        break twice before a : or |
+        break twice before and thrice after a ;
+        put a softspace after everything except ;
+    '''
+    sys.stdout.write('\n')
+    softspace = '' # NOT reset by new lines
+    for line in sys.stdin:
+        if line == '%%\n':
+            break
+        line = line.strip()
+        while line:
+            if line.startswith("'"):
+                bs = False
+                for i, c in enumerate(line):
+                    if bs:
+                        continue
+                    bs = c == '\\'
+                    if i and c == "'":
+                        break
+                else:
+                    raise Exception('broken char')
+                i += 1
+                word = line[:i]
+                line = line[i:].lstrip()
+                sys.stdout.writelines([softspace, word])
+                softspace = ' '
+                continue
+            if line.startswith('"'):
+                for i, c in enumerate(line):
+                    if bs:
+                        continue
+                    bs = c == '\\'
+                    if i and c == '"':
+                        break
+                else:
+                    raise Exception('broken string')
+                i += 1
+                word = line[:i]
+                line = line[i:].lstrip()
+                sys.stdout.writelines([softspace, word])
+                softspace = ' '
+                continue
+            if line.startswith(':'):
+                line = line[1:].lstrip()
+                sys.stdout.write('\n\n:')
+                softspace = ' '
+                continue
+            if line.startswith('{'):
+                line += '\n'
+                lines = bytearray()
+                # TODO fix braces in comments and strings
+                lo = 1
+                behold = 1
+                while behold:
+                    i = line.find('}', lo)
+                    if i == -1:
+                        behold += line[lo:].count('{')
+                        lines += line
+                        line = next(sys.stdin)
+                        lo = 0
+                    else:
+                        behold -= 1
+                        i += 1
+                        behold += line[lo:i].count('{')
+                        lo = i
+                lines += line[:lo]
+                for line2 in indent_cpp_slop(lines):
+                    sys.stdout.writelines(['\n', line2])
+                line = line[lo:].strip()
+                softspace = ' '
+                continue
+            if line.startswith(';'):
+                line = line[1:].lstrip()
+                sys.stdout.write('\n\n;\n\n\n')
+                softspace = ''
+                continue
+            if line.startswith('|'):
+                line = line[1:].lstrip()
+                sys.stdout.write('\n\n|')
+                softspace = ' '
+                continue
+            # screw comments
+            word, _, line = line.partition(' ')
+            line = line.lstrip()
+            if word.endswith(':'):
+                word = word[-1]
+                line = ':' + line
+            sys.stdout.writelines([softspace, word])
+            softspace = ' '
+            continue
+        # while line
+    # for line in stdin
+    sys.stdout.write('%%\n')
 
 def format_lex():
     '''
@@ -239,6 +348,43 @@ def format_lex():
     format_cc()
 
 def format_yacc():
+    ''' A yacc file is a series of sections.
+
+    In the initial section:
+        whitespace and comments are ignored.
+        %someoption
+        =
+        |
+        ;
+        name
+        name:
+        int
+
+        'char'
+        "string"
+        <*>
+        <>
+        <something>
+        %{ prologue %}
+        { braced code }
+        [ bracketed identifier ]
+        %% switch to section 2
+
+    In the second section:
+        is actually the same! wtf?
+        But in practice:
+
+        name:
+            symbol 'c' "str" { code }
+        |
+            symbol 'c' "str" { code } /* in any order */
+        ;
+        any name may instead be name[namedref]
+        code may additionally contain $$, $1, $namedref
+
+    In section 3:
+        everything is C code.
+    '''
     format_lex_or_yacc_definitions()
     format_yacc_rules()
     format_cc()
