@@ -19,6 +19,16 @@
 ##    You should have received a copy of the GNU General Public License
 ##    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+from __future__ import print_function
+
+from collections import namedtuple
+import cStringIO
+import string
+import subprocess
+import sys
+
+
 # Settings.
 class LexSettings:
     pad = 2
@@ -26,9 +36,146 @@ class LexSettings:
     brace = True
     nested_indent = 0 # 4
 
+
 # Code.
-import subprocess
-import sys
+Location = namedtuple('Location', ('name', 'line', 'column', 'text'))
+if 1:
+    def _diagnostic(self, level, msg, to):
+        print('{file}:{line}:{column}: {level}: {msg}'.format(
+                file=self.name, line=self.line, column=self.column,
+                level=level, msg=msg),
+            file=sys.stderr)
+        print(self.text, file=sys.stderr)
+        if to:
+            assert to.name == self.name
+            assert to.line == self.line
+            assert to.column >= self.column
+        else:
+            to = self
+        print(' ' * (self.column - 1) + '^' + '~' * (to.column - self.column), file=sys.stderr)
+    def error(self, msg, to=None):
+        self._diagnostic('error', msg, to)
+    def warning(self, msg, to=None):
+        self._diagnostic('warning', msg, to)
+    def note(self, msg, to=None):
+        self._diagnostic('note', msg, to)
+    Location._diagnostic = _diagnostic
+    Location.error = error
+    Location.warning = warning
+    Location.note = note
+    del _diagnostic, error, warning, note
+
+
+class Reader(object):
+    __slots__ = ('_name', '_stream', '_buffer', '_line', '_column')
+    def __init__(self, name, stream, line=1, column=1):
+        ''' Create a new character reader that is smart with lines.
+        '''
+        self._name = name
+        self._stream = stream
+        self._buffer = '\n'
+        self._line = line - 1
+        self._column = 0
+
+        column -= 1
+        self.adv()
+        self._buffer = ' ' * column + self._buffer
+        self._column = column
+        # no skew on input (actually belongs below)
+
+    def get(self):
+        ''' Fetch the current character, or falsy on EOF
+        '''
+        if self._buffer:
+            return self._buffer[self._column]
+        else:
+            return None # less prone to accidental errors than ''
+
+    def loc(self):
+        ''' Fetch the Location of the current character.
+        '''
+        # internally we store 0-based, but users want 1-based
+        # also, cut off the newline
+        return Location(self._name, self._line, self._column + 1,
+                self._buffer[:-1])
+
+    def adv(self):
+        if self._buffer[self._column] == '\n':
+            self._buffer = self._stream.readline()
+            self._line += 1
+            self._column = 0
+            if self._buffer and not self._buffer.endswith('\n'):
+                self._buffer += '\n'
+        else:
+            self._column += 1
+
+def string_reader(s, name='<string>', line=1, column=1):
+    return Reader(name, cStringIO.StringIO(s), line, column)
+
+def take_while(b, r, s):
+    assert isinstance(b, bytearray)
+    assert isinstance(r, Reader)
+    s = frozenset(s)
+    while True:
+        c = r.get()
+        if not c or c not in s:
+            break
+        b += c
+        r.adv()
+
+def take_mlc(b, r):
+    assert isinstance(b, bytearray)
+    assert isinstance(r, Reader)
+
+    star = False
+    while True:
+        c = r.get()
+        r.adv()
+        b += c
+        if star and c == '/':
+            return
+        star = c == '*'
+
+def take_slc(b, r):
+    assert isinstance(b, bytearray)
+    assert isinstance(r, Reader)
+
+    bs = False
+    while True:
+        c = r.get()
+        # if c == '\n': return
+        r.adv()
+        b += c
+        if c == '\n' and not bs:
+            return
+        bs = c == '\\'
+
+def take_char(b, r):
+    assert isinstance(b, bytearray)
+    assert isinstance(r, Reader)
+
+    bs = False
+    while True:
+        c = r.get()
+        r.adv()
+        b += c
+        if not bs and c == '\'':
+            return
+        bs = not bs and c == '\\'
+
+def take_str(b, r):
+    assert isinstance(b, bytearray)
+    assert isinstance(r, Reader)
+
+    bs = False
+    while True:
+        c = r.get()
+        r.adv()
+        b += c
+        if not bs and c == '"':
+            return
+        bs = not bs and c == '\\'
+
 
 def round_up(i, a):
     m = i % a
@@ -87,7 +234,7 @@ def format_lex_or_yacc_definitions():
         if code.strip():
             if LexSettings.brace:
                 table.put1('%{')
-            for line2 in subprocess.Popen(['indent-cpp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(code)[0].strip().split('\n'):
+            for line2 in indent_cpp_slop(code):
                 table.put1(LexSettings.nested_indent * ' ' + line2)
             if LexSettings.brace:
                 table.put1('%}')
@@ -184,6 +331,9 @@ def format_lex_rules():
                 assert p
                 p -= 1
             i += 1
+        if not i:
+            table.put1('')
+            continue
         del bs
         del p
         pattern = line[:i]
@@ -390,18 +540,143 @@ def format_yacc():
     format_cc()
 
 def format_cc():
-    tail = subprocess.Popen(['indent-cpp'], stdin=subprocess.PIPE, stdout=None)
+    sys.stdout.flush()
+    tail = subprocess.Popen(['indenter-cpp'], stdin=subprocess.PIPE, stdout=None)
     tail.stdin.writelines(sys.stdin)
+    tail.stdin.close()
+    sys.exit(tail.wait())
 
 def indent_cpp_slop(code):
-    return subprocess.Popen(['indent-cpp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(code)[0].strip().split('\n')
+    return subprocess.Popen(['indenter-cpp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(code)[0].strip().split('\n')
+
+operators = {
+    '#', '##',
+    '+', '++', '+=',
+    '-', '--', '-=', '->', '->*',
+    '*', '*=',
+    '/', '/=',
+    '%', '%=',
+    '=', '==',
+    '!', '!=',
+    '~',
+    '|', '||', '|=',
+    '&', '&&', '&=',
+    '^', '^=',
+    '<', '<=', '<<', '<<=',
+    '>', '>=', '>>', '>>=',
+    '.', '..', '.*', '...',
+    ':', '::',
+    '(', ')',
+    '[', ']',
+    '{', '}',
+    '?',
+    ',', ';',
+
+    '//', '/*', # comments are specially handled at end
+}
+operators = {
+    k: {v[len(k):] for v in operators if v is not k and v.startswith(k)}
+    for k in operators
+}
+
+num1 = string.digits
+num_x = num1 + '.\''
+ident1 = string.ascii_letters + '_$@' # $@ for bison
+ident_x = ident1 + string.digits
+
+class CxxLexer(object):
+    __slots__ = ('_reader', '_w', '_t', '_f', '_namespaces', '_classes')
+
+    def __init__(self, reader):
+        self._reader = reader
+        self.adv()
+        self._namespaces = []
+        self._classes = []
+
+    def get(self):
+        return self._w, self._t, self._f
+
+    def adv(self):
+        self._w, self._t, self._f = self.pull()
+
+    def pull(self):
+        r = self._reader
+
+        white = bytearray()
+        while True:
+            c = r.get()
+            if not c:
+                return '\n', None, None
+            if not c.isspace():
+                break
+            white += c
+            r.adv()
+
+        black = bytearray()
+        black += c
+        l = r.loc()
+        r.adv()
+
+        if c in operators:
+            while True:
+                c = r.get()
+                if not c or c.isspace():
+                    break
+                op = operators[str(black)]
+                if c not in op:
+                    break
+                black += c
+                r.adv()
+            if black == '/*':
+                take_mlc(black, r)
+            if black == '//':
+                take_slc(black, r)
+        elif c in num1:
+            take_while(black, r, num_x)
+            c = r.get()
+            if c in ident1:
+                black += c
+                r.adv()
+                take_while(black, r, ident_x)
+        elif c in ident1:
+            take_while(black, r, ident_x)
+            c = r.get()
+            if black in ('L', 'u8', 'u', 'U') and c == '"':
+                black += c
+                r.adv()
+                take_str(black, r)
+        elif c == '\'':
+            take_char(black, r)
+        elif c == '"':
+            take_str(black, r)
+        else:
+            l.error('Unknown character: %r' % c)
+            sys.exit(1)
+
+        # c is the first char of the next thing
+        return white, black, None
+
+def whitespace(w, (t, f), (pt, pf)):
+    return w
 
 def format_ii():
-    format_passthrough()
+    r = Reader('<stdin>', sys.stdin)
+    l = CxxLexer(r)
+    pt = None
+    pf = None
+    while True:
+        w, t, f = l.get()
+        if not t:
+            break
+        l.adv()
 
-def format_passthrough():
-    for line in sys.stdin:
-        sys.stdout.write(line)
+        w = whitespace(w, (t, f), (pt, pf))
+        sys.stdout.writelines([w, t])
+        #print('w:', repr(str(w)))
+        #print('t:', t)
+        pt, pf = t, f
+    if not pt.endswith('\n'):
+        sys.stdout.write('\n')
 
 exts = {
         '-lpp': format_lex,

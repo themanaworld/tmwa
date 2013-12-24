@@ -81,4 +81,3 @@ TEST(humantimediff, multiple)
     EXPECT_EQ(0, diff.second);
     EXPECT_FALSE(extract("1y2y", &diff));
 }
-

@@ -1,0 +1,9 @@
+#!/bin/bash -e
+# this is the implementation of indenter -cpp
+set -o pipefail
+expand |
+sed -e 's:^ *//:&&:' -e 's:^ *#://#:' |
+indenter -ipp |
+sed -e 's:^ *// *#:#:' -e 's:^\( *//\) *//:\1:' |
+pp-indent |
+bs-align

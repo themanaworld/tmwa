@@ -153,3 +153,4 @@
 .                       FPRINTF(stderr, "%s: Unexpected character in line %d\n", MAGIC_CONFIG_FILE, magic_frontend_lineno);
 
 %%
+// nothing to see here, move along

@@ -53,6 +53,7 @@
 # 5. Remove the few (obvious) bits that are hard-coded for TMWA.
 # 6. Handle testing better. I'm guessing I should actually compile just
 #   one foo_test.cpp file into each executable test ...
+# 7. Refactor into several files after all. We need extensibility!
 #
 # IWBNMI:
 # 1. Add 'make check' and 'make installcheck'.
@@ -123,6 +124,8 @@ GEN_HEADERS := \
     $(patsubst %.ypp,%.hpp,${PARSERS})
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
 REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp' -o -name '*.tcc')
+REAL_SOURCES := $(filter-out ${GEN_SOURCES},${REAL_SOURCES})
+REAL_HEADERS := $(filter-out ${GEN_HEADERS},${REAL_HEADERS})
 SOURCES := ${GEN_SOURCES} ${REAL_SOURCES}
 HEADERS := ${GEN_HEADERS} ${REAL_HEADERS}
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
@@ -231,7 +234,8 @@ mostlyclean:
 	rm -rf obj conf-raw
 clean: mostlyclean
 	rm -rf bin
-distclean: clean
+distclean: clean gen-clean
+gen-clean:
 	rm -f ${GEN_SOURCES} ${GEN_HEADERS}
 
 %.cpp: %.lpp
@@ -384,13 +388,30 @@ dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
 .PHONY: dist
 
-format: format-cpp format-hpp format-lpp format-ypp
-format-cpp:
-	cd ${SRC_DIR} && apply-filter 'indenter -cpp' ${REAL_SOURCES}
-format-hpp:
-	cd ${SRC_DIR} && apply-filter 'indenter -cpp' ${REAL_HEADERS}
-format-lpp:
-	cd ${SRC_DIR} && apply-filter 'indenter -lpp' ${LEXERS}
-format-ypp:
-	cd ${SRC_DIR} && apply-filter 'indenter -ypp' ${PARSERS}
+# lpp and ypp are (currently) very slow, so do them first (parallel)
+format: format-lpp format-ypp format-cpp format-hpp
+format-cpp: $(patsubst src/%,obj/%.formatted,${REAL_SOURCES})
+format-hpp: $(patsubst src/%,obj/%.formatted,${REAL_HEADERS})
+format-lpp: $(patsubst src/%,obj/%.formatted,${LEXERS})
+format-ypp: $(patsubst src/%,obj/%.formatted,${PARSERS})
+obj/%.cpp.formatted: src/%.cpp tools/indenter
+	$(MKDIR_FIRST)
+	cd ${SRC_DIR} && apply-filter 'indenter -cpp' $<
+	touch $@
+obj/%.hpp.formatted: src/%.hpp tools/indenter
+	$(MKDIR_FIRST)
+	cd ${SRC_DIR} && apply-filter 'indenter -cpp' $<
+	touch $@
+obj/%.tcc.formatted: src/%.tcc tools/indenter
+	$(MKDIR_FIRST)
+	cd ${SRC_DIR} && apply-filter 'indenter -cpp' $<
+	touch $@
+obj/%.lpp.formatted: src/%.lpp tools/indenter
+	$(MKDIR_FIRST)
+	cd ${SRC_DIR} && apply-filter 'indenter -lpp' $<
+	touch $@
+obj/%.ypp.formatted: src/%.ypp tools/indenter
+	$(MKDIR_FIRST)
+	cd ${SRC_DIR} && apply-filter 'indenter -ypp' $<
+	touch $@
 .PHONY: format format-cpp format-hpp format-lpp format-ypp
