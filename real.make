@@ -218,6 +218,7 @@ vpath %.lpp ${SRC_DIR}
 vpath %.cpp ${SRC_DIR}
 vpath %.hpp ${SRC_DIR}
 vpath %.tcc ${SRC_DIR}
+vpath tools/% ${SRC_DIR}
 
 .DELETE_ON_ERROR:
 .DEFAULT_GOAL := all
@@ -396,22 +397,22 @@ format-lpp: $(patsubst src/%,obj/%.formatted,${LEXERS})
 format-ypp: $(patsubst src/%,obj/%.formatted,${PARSERS})
 obj/%.cpp.formatted: src/%.cpp tools/indenter
 	$(MKDIR_FIRST)
-	cd ${SRC_DIR} && apply-filter 'indenter -cpp' $<
+	apply-filter 'indenter -cpp' $<
 	touch $@
 obj/%.hpp.formatted: src/%.hpp tools/indenter
 	$(MKDIR_FIRST)
-	cd ${SRC_DIR} && apply-filter 'indenter -cpp' $<
+	apply-filter 'indenter -cpp' $<
 	touch $@
 obj/%.tcc.formatted: src/%.tcc tools/indenter
 	$(MKDIR_FIRST)
-	cd ${SRC_DIR} && apply-filter 'indenter -cpp' $<
+	apply-filter 'indenter -cpp' $<
 	touch $@
 obj/%.lpp.formatted: src/%.lpp tools/indenter
 	$(MKDIR_FIRST)
-	cd ${SRC_DIR} && apply-filter 'indenter -lpp' $<
+	apply-filter 'indenter -lpp' $<
 	touch $@
 obj/%.ypp.formatted: src/%.ypp tools/indenter
 	$(MKDIR_FIRST)
-	cd ${SRC_DIR} && apply-filter 'indenter -ypp' $<
+	apply-filter 'indenter -ypp' $<
 	touch $@
 .PHONY: format format-cpp format-hpp format-lpp format-ypp
