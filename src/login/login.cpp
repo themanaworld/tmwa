@@ -534,7 +534,7 @@ bool extract(XString line, AuthData *ad)
 static
 int mmo_auth_init(void)
 {
-    int GM_count = 0;
+    int gm_count = 0;
 
     io::ReadFile in(account_filename);
     if (!in.is_open())
@@ -570,14 +570,14 @@ int mmo_auth_init(void)
         auth_data.push_back(ad);
 
         if (isGM(ad.account_id) > 0)
-            GM_count++;
+            gm_count++;
 
         if (ad.account_id >= account_id_count)
             account_id_count = ad.account_id + 1;
     }
 
     FString str = STRPRINTF("%s has %zu accounts (%d GMs)\n",
-            account_filename, auth_data.size(), GM_count);
+            account_filename, auth_data.size(), gm_count);
     PRINTF("%s: %s\n", __PRETTY_FUNCTION__, str);
     LOGIN_LOG("%s\n", line);
 

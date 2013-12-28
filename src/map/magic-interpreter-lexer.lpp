@@ -12,7 +12,6 @@
 #define FIXLOC magic_frontend_lloc.first_line = magic_frontend_lineno
 
 #define HEADING(dir) { magic_frontend_lval.i = dir; FIXLOC; return DIR; }
-
 %}
 
 %option yylineno

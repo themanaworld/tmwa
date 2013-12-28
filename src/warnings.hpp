@@ -56,12 +56,13 @@
 // BEGIN Macros to make my life easier
 
 // stringification requirement - #sw within #ar
+// this is a lie ^
 #define P(ar) _Pragma(#ar)
 
 // Use "GCC diagnostic" for warnings applicable to all versions.
-#define I(sw) P(GCC diagnostic ignored #sw)
-#define W(sw) P(GCC diagnostic warning #sw)
-#define E(sw) P(GCC diagnostic error #sw)
+#define I(sw) P(GCC diagnostic ignored sw)
+#define W(sw) P(GCC diagnostic warning sw)
+#define E(sw) P(GCC diagnostic error sw)
 // configurable thing (also change in clang below!)
 #define X(sw) I(sw)
 
@@ -69,26 +70,26 @@
 #ifdef __clang__
 
 // Use "clang diagnostic" for warnings specific to clang
-# define IC(sw) P(clang diagnostic ignored #sw)
-# define WC(sw) P(clang diagnostic warning #sw)
-# define EC(sw) P(clang diagnostic error #sw)
+# define IC(sw) P(clang diagnostic ignored sw)
+# define WC(sw) P(clang diagnostic warning sw)
+# define EC(sw) P(clang diagnostic error sw)
 # define XC(sw) IC(sw) // this is below
 
 // warning specific to gcc
-# define IG(sw) static_assert('I', #sw "skipped for clang");
-# define WG(sw) static_assert('W', #sw "skipped for clang");
-# define EG(sw) static_assert('E', #sw "skipped for clang");
-# define XG(sw) static_assert('X', #sw "skipped for clang");
+# define IG(sw) static_assert('I', sw "skipped for clang");
+# define WG(sw) static_assert('W', sw "skipped for clang");
+# define EG(sw) static_assert('E', sw "skipped for clang");
+# define XG(sw) static_assert('X', sw "skipped for clang");
 
-# define IG47(sw) static_assert('I', #sw "only for gcc 4.7+");
-# define WG47(sw) static_assert('W', #sw "only for gcc 4.7+");
-# define EG47(sw) static_assert('E', #sw "only for gcc 4.7+");
-# define XG47(sw) static_assert('X', #sw "only for gcc 4.7+");
+# define IG47(sw) static_assert('I', sw "only for gcc 4.7+");
+# define WG47(sw) static_assert('W', sw "only for gcc 4.7+");
+# define EG47(sw) static_assert('E', sw "only for gcc 4.7+");
+# define XG47(sw) static_assert('X', sw "only for gcc 4.7+");
 
-# define IG48(sw) static_assert('I', #sw "only for gcc 4.8+");
-# define WG48(sw) static_assert('W', #sw "only for gcc 4.8+");
-# define EG48(sw) static_assert('E', #sw "only for gcc 4.8+");
-# define XG48(sw) static_assert('X', #sw "only for gcc 4.8+");
+# define IG48(sw) static_assert('I', sw "only for gcc 4.8+");
+# define WG48(sw) static_assert('W', sw "only for gcc 4.8+");
+# define EG48(sw) static_assert('E', sw "only for gcc 4.8+");
+# define XG48(sw) static_assert('X', sw "only for gcc 4.8+");
 
 # define I47(sw) I(sw)
 # define W47(sw) W(sw)
@@ -103,10 +104,10 @@
 #else
 
 // warnings specific to clang
-# define IC(sw) static_assert('I', #sw "skipped for gcc");
-# define WC(sw) static_assert('W', #sw "skipped for gcc");
-# define EC(sw) static_assert('E', #sw "skipped for gcc");
-# define XC(sw) static_assert('X', #sw "skipped for gcc");
+# define IC(sw) static_assert('I', sw "skipped for gcc");
+# define WC(sw) static_assert('W', sw "skipped for gcc");
+# define EC(sw) static_assert('E', sw "skipped for gcc");
+# define XC(sw) static_assert('X', sw "skipped for gcc");
 
 // warnings specific to gcc
 # define IG(sw) I(sw)
@@ -128,15 +129,15 @@
 #   define E47(sw) E(sw)
 #   define X47(sw) X(sw)
 #  else
-#   define IG47(sw) static_assert('I', #sw "only for gcc 4.7+");
-#   define WG47(sw) static_assert('W', #sw "only for gcc 4.7+");
-#   define EG47(sw) static_assert('E', #sw "only for gcc 4.7+");
-#   define XG47(sw) static_assert('X', #sw "only for gcc 4.7+");
+#   define IG47(sw) static_assert('I', sw "only for gcc 4.7+");
+#   define WG47(sw) static_assert('W', sw "only for gcc 4.7+");
+#   define EG47(sw) static_assert('E', sw "only for gcc 4.7+");
+#   define XG47(sw) static_assert('X', sw "only for gcc 4.7+");
 
-#   define I47(sw) static_assert('I', #sw "only for gcc 4.7+ or clang");
-#   define W47(sw) static_assert('W', #sw "only for gcc 4.7+ or clang");
-#   define E47(sw) static_assert('E', #sw "only for gcc 4.7+ or clang");
-#   define X47(sw) static_assert('X', #sw "only for gcc 4.7+ or clang");
+#   define I47(sw) static_assert('I', sw "only for gcc 4.7+ or clang");
+#   define W47(sw) static_assert('W', sw "only for gcc 4.7+ or clang");
+#   define E47(sw) static_assert('E', sw "only for gcc 4.7+ or clang");
+#   define X47(sw) static_assert('X', sw "only for gcc 4.7+ or clang");
 #  endif // __GNUC_MINOR__
 #  if __GNUC_MINOR__ >= 8
 #   define IG48(sw) IG(sw)
@@ -149,15 +150,15 @@
 #   define E48(sw) EG(sw)
 #   define X48(sw) XG(sw)
 #  else
-#   define IG48(sw) static_assert('I', #sw "only for gcc 4.8+");
-#   define WG48(sw) static_assert('W', #sw "only for gcc 4.8+");
-#   define EG48(sw) static_assert('E', #sw "only for gcc 4.8+");
-#   define XG48(sw) static_assert('X', #sw "only for gcc 4.8+");
+#   define IG48(sw) static_assert('I', sw "only for gcc 4.8+");
+#   define WG48(sw) static_assert('W', sw "only for gcc 4.8+");
+#   define EG48(sw) static_assert('E', sw "only for gcc 4.8+");
+#   define XG48(sw) static_assert('X', sw "only for gcc 4.8+");
 
-#   define I48(sw) static_assert('I', #sw "only for gcc 4.8+ or clang");
-#   define W48(sw) static_assert('W', #sw "only for gcc 4.8+ or clang");
-#   define E48(sw) static_assert('E', #sw "only for gcc 4.8+ or clang");
-#   define X48(sw) static_assert('X', #sw "only for gcc 4.8+ or clang");
+#   define I48(sw) static_assert('I', sw "only for gcc 4.8+ or clang");
+#   define W48(sw) static_assert('W', sw "only for gcc 4.8+ or clang");
+#   define E48(sw) static_assert('E', sw "only for gcc 4.8+ or clang");
+#   define X48(sw) static_assert('X', sw "only for gcc 4.8+ or clang");
 #  endif // __GNUC_MINOR__
 # endif // __GNUC__
 #endif // __clang__
@@ -168,56 +169,56 @@
 /// Warn about things that will change when compiling
 /// with an ABI-compliant compiler
 // see note about -fabi-version=6 in the makefile
-E(-Wabi)
+E("-Wabi")
 
 /// Warn if a subobject has an abi_tag attribute that
 /// the complete object type does not have
-WG48(-Wabi-tag)
+WG48("-Wabi-tag")
 
 /// Warn about suspicious uses of memory addresses
-E(-Waddress)
+E("-Waddress")
 
 /// Warn about returning structures, unions or arrays
-I(-Waggregate-return)
+I("-Waggregate-return")
 
 /// Warn if an array is accessed out of bounds
-E(-Warray-bounds)
+E("-Warray-bounds")
 
 /// Warn about inappropriate attribute usage
-E(-Wattributes)
+E("-Wattributes")
 
 /// Warn when a built-in preprocessor macro is
 // undefined or redefined
-E(-Wbuiltin-macro-redefined)
+E("-Wbuiltin-macro-redefined")
 
 /// Warn about C++ constructs whose meaning differs
 /// between ISO C++ 1998 and ISO C++ 2011
 // This has gone funky lately. It probably doesn't do anything useful anyway.
-//E(-Wc++0x-compat)
-//W(-Wc++11-compat)
-I(-Wc++0x-compat)
+//E("-Wc++0x-compat")
+//W("-Wc++11-compat")
+I("-Wc++0x-compat")
 
 /// Warn about pointer casts which increase alignment
-X(-Wcast-align)
+X("-Wcast-align")
 
 /// Warn about casts which discard qualifiers
-E(-Wcast-qual)
+E("-Wcast-qual")
 
 /// Warn about subscripts whose type is "char"
-E(-Wchar-subscripts)
+E("-Wchar-subscripts")
 
 /// Warn about variables that might be changed by
 /// "longjmp" or "vfork"
-EG(-Wclobbered)
+EG("-Wclobbered")
 
 /// Warn about possibly nested block comments, and
 /// C++ comments spanning more than one physical line
-E(-Wcomment)
+E("-Wcomment")
 
 // A fixable difference between c++11 and c++14
 #ifdef __clang__
 # if __has_warning("-Wconstexpr-not-const")
-EC(-Wconstexpr-not-const)
+EC("-Wconstexpr-not-const")
 # else
 static_assert('E', "-Wconstexpr-not-const not in this clang version");
 # endif
@@ -227,434 +228,434 @@ static_assert('E', "-Wconstexpr-not-const not in GCC");
 
 /// Warn for implicit type conversions that may
 /// change a value
-X(-Wconversion)
+X("-Wconversion")
 
 /// Warn for converting NULL from/to a non-pointer
 /// type
-E(-Wconversion-null)
+E("-Wconversion-null")
 
 /// Warn in case profiles in -fprofile-use do not
 /// match
-WG(-Wcoverage-mismatch)
+WG("-Wcoverage-mismatch")
 
 ///
-XC(-Wcovered-switch-default)
+XC("-Wcovered-switch-default")
 
 /// Warn when a #warning directive is encountered
-WG(-Wcpp)
+WG("-Wcpp")
 
 /// Warn when all constructors and destructors are
 /// private
-E(-Wctor-dtor-privacy)
+E("-Wctor-dtor-privacy")
 
 /// Warn about deleting polymorphic objects with non-
 /// virtual destructors
-E47(-Wdelete-non-virtual-dtor)
+E47("-Wdelete-non-virtual-dtor")
 
 /// Warn if a deprecated compiler feature, class,
 /// method, or field is used
-W(-Wdeprecated)
+W("-Wdeprecated")
 
-/// Warn about uses of __attribute__((deprecated))
+/// Warn about uses of __attribute__((deprecated)")
 /// declarations
-W(-Wdeprecated-declarations)
+W("-Wdeprecated-declarations")
 #ifdef QUIET
-I(-Wdeprecated-declarations)
+I("-Wdeprecated-declarations")
 #endif
 
 /// Warn when an optimization pass is disabled
-W(-Wdisabled-optimization)
+W("-Wdisabled-optimization")
 
 /// Warn about compile-time integer division by zero
-E(-Wdiv-by-zero)
+E("-Wdiv-by-zero")
 
 ///
-WC(-Wdocumentation)
+WC("-Wdocumentation")
 
 /// Warn about implicit conversions from "float" to
 /// "double"
-IG(-Wdouble-promotion)
+IG("-Wdouble-promotion")
 
 /// Warn about violations of Effective C++ style rules
-I(-Weffc++)
+I("-Weffc++")
 
 /// Warn about an empty body in an if or else
 /// statement
-E(-Wempty-body)
+E("-Wempty-body")
 
 /// Warn about stray tokens after #elif and #endif
-E(-Wendif-labels)
+E("-Wendif-labels")
 
 /// Warn about comparison of different enum types
-E(-Wenum-compare)
+E("-Wenum-compare")
 
 ///
-EC(-Wextra-semi)
+EC("-Wextra-semi")
 
 /// Warn if testing floating point numbers for
 /// equality
-E(-Wfloat-equal)
+E("-Wfloat-equal")
 
 /// Warn about printf/scanf/strftime/strfmon format
 /// string anomalies
 // see below
-EG(-Wformat)
+EG("-Wformat")
 // but gcc 4.8 warns on %ms, since we enabled -Wpedantic.
-//WG48(-Wformat)
+//WG48("-Wformat")
 
 /// Warn about format strings that contain NUL bytes
-EG(-Wformat-contains-nul)
+EG("-Wformat-contains-nul")
 
 /// Warn if passing too many arguments to a function
 /// for its format string
-E(-Wformat-extra-args)
+E("-Wformat-extra-args")
 
 /// Warn about format strings that are not literals
-EG(-Wformat-nonliteral)
+EG("-Wformat-nonliteral")
 // Available in clang, but not smart enough to handle constexpr.
-IC(-Wformat-nonliteral)
+IC("-Wformat-nonliteral")
 
 /// Warn about possible security problems with format
 /// functions
-EG(-Wformat-security)
+EG("-Wformat-security")
 // Same.
-IC(-Wformat-security)
+IC("-Wformat-security")
 
 /// Warn about strftime formats yielding 2-digit years
-E(-Wformat-y2k)
+E("-Wformat-y2k")
 
 /// Warn about zero-length formats
-I(-Wformat-zero-length)
+I("-Wformat-zero-length")
 
 /// Warn when attempting to free a non-heap object
-EG47(-Wfree-nonheap-object)
+EG47("-Wfree-nonheap-object")
 
 // -Wgnu is a clang alias for -Wpedantic
 
 /// Warn whenever type qualifiers are ignored.
-E(-Wignored-qualifiers)
+E("-Wignored-qualifiers")
 
 ///
-EC(-Wimplicit-fallthrough)
+EC("-Wimplicit-fallthrough")
 
 /// Warn about C++11 inheriting constructors when the
 /// base has a variadic constructor
-WG48(-Winherited-variadic-ctor)
+WG48("-Winherited-variadic-ctor")
 
 /// Warn about variables which are initialized to
 /// themselves
-E(-Winit-self)
+E("-Winit-self")
 
 /// Warn when an inlined function cannot be inlined
-X(-Winline)
+X("-Winline")
 
 /// Warn when there is a cast to a pointer from an
 /// integer of a different size
-E(-Wint-to-pointer-cast)
+E("-Wint-to-pointer-cast")
 
 /// Warn when an atomic memory model parameter is
 /// known to be outside the valid range.
-WG47(-Winvalid-memory-model)
+WG47("-Winvalid-memory-model")
 
 /// Warn about invalid uses of the "offsetof" macro
-E(-Winvalid-offsetof)
+E("-Winvalid-offsetof")
 
 /// Warn about PCH files that are found but not used
-E(-Winvalid-pch)
+E("-Winvalid-pch")
 
 /// Warn when a string or character literal is
 /// followed by a ud-suffix which does not begin with
 /// an underscore.
-WG48(-Wliteral-suffix)
+WG48("-Wliteral-suffix")
 
 /// Warn when a logical operator is suspiciously
 /// always evaluating to true or false
-WG(-Wlogical-op)
+WG("-Wlogical-op")
 
 /// Do not warn about using "long long" when -pedantic
-I(-Wlong-long)
+I("-Wlong-long")
 
 /// Warn about suspicious declarations of "main"
-E(-Wmain)
+E("-Wmain")
 
 /// Warn about maybe uninitialized automatic variables
-EG47(-Wmaybe-uninitialized)
+EG47("-Wmaybe-uninitialized")
 
 /// Warn about possibly missing braces around
 /// initializers
 // beware of things like std::array!
-E(-Wmissing-braces)
+E("-Wmissing-braces")
 
 /// Warn about global functions without previous
 /// declarations
 // This doesn't work for clang, it wants -Wmissing-prototypes instead.
-E(-Wmissing-declarations)
+E("-Wmissing-declarations")
 
 /// Warn about missing fields in struct initializers
 // Actually supported by GCC, but gives warnings when I don't want, e.g.:
 // Foo foo = {};
-EC(-Wmissing-field-initializers)
-IG(-Wmissing-field-initializers)
+EC("-Wmissing-field-initializers")
+IG("-Wmissing-field-initializers")
 
 /// Warn about functions which might be candidates
 /// for format attributes
-E(-Wmissing-format-attribute)
+E("-Wmissing-format-attribute")
 
 /// Warn about user-specified include directories
 /// that do not exist
-E(-Wmissing-include-dirs)
+E("-Wmissing-include-dirs")
 
 /// Warn about functions which might be candidates
-/// for __attribute__((noreturn))
-W(-Wmissing-noreturn)
+/// for __attribute__((noreturn)")
+W("-Wmissing-noreturn")
 
 // clang uses this instead of -Wmissing-declarations
-EC(-Wmissing-prototypes)
+EC("-Wmissing-prototypes")
 
 ///
 // like -Wmissing-declarations but for variables instead of functions
 #ifndef GTEST_HAS_PTHREAD // this is a hack
-EC(-Wmissing-variable-declarations)
+EC("-Wmissing-variable-declarations")
 #endif
 
 /// Warn about constructs not instrumented by
 /// -fmudflap
-EG(-Wmudflap)
+EG("-Wmudflap")
 
 /// Warn about use of multi-character character
 /// constants
-E(-Wmultichar)
+E("-Wmultichar")
 
 /// Warn about narrowing conversions within { } that
 /// are ill-formed in C++11
-EG47(-Wnarrowing)
+EG47("-Wnarrowing")
 
 /// Warn when a noexcept expression evaluates to
 /// false even though the expression can't actually
 /// throw
-WG(-Wnoexcept)
+WG("-Wnoexcept")
 
 /// Warn when non-templatized friend functions are
 /// declared within a template
-EG(-Wnon-template-friend)
+EG("-Wnon-template-friend")
 
 /// Warn about non-virtual destructors
-E(-Wnon-virtual-dtor)
+E("-Wnon-virtual-dtor")
 
 /// Warn about NULL being passed to argument slots
 /// marked as requiring non-NULL
-E(-Wnonnull)
+E("-Wnonnull")
 
 ///
-XC(-Wnull-conversion)
+XC("-Wnull-conversion")
 
 /// Warn if a C-style cast is used in a program
-E(-Wold-style-cast)
+E("-Wold-style-cast")
 
 /// Warn about overflow in arithmetic expressions
-W(-Woverflow)
+W("-Woverflow")
 
 /// Warn if a string is longer than the maximum
 /// portable length specified by the standard
-//X(-Woverlength-strings)
+//X("-Woverlength-strings")
 
 /// Warn about overloaded virtual function names
-E(-Woverloaded-virtual)
+E("-Woverloaded-virtual")
 
 /// Warn when the packed attribute has no effect on
 /// struct layout
-E(-Wpacked)
+E("-Wpacked")
 
 /// Warn about packed bit-fields whose offset changed
 /// in GCC 4.4
-WG(-Wpacked-bitfield-compat)
+WG("-Wpacked-bitfield-compat")
 
 /// Warn when padding is required to align structure
 /// members
-I(-Wpadded)
+I("-Wpadded")
 
 /// Warn about possibly missing parentheses
-E(-Wparentheses)
+E("-Wparentheses")
 
 /// Issue warnings needed for strict compliance to
 /// the standard
-//EG48(-Wpedantic)
+//EG48("-Wpedantic")
 // lots of minor extensions are used
-IG48(-Wpedantic)
+IG48("-Wpedantic")
 // a bit too noisy
-XC(-Wpedantic)
+XC("-Wpedantic")
 
 /// Warn when converting the type of pointers to
 /// member functions
-EG(-Wpmf-conversions)
+EG("-Wpmf-conversions")
 
 /// Warn about function pointer arithmetic
-E(-Wpointer-arith)
+E("-Wpointer-arith")
 
 /// Warn about misuses of pragmas
-EG(-Wpragmas)
+EG("-Wpragmas")
 
 /// Warn about multiple declarations of the same
 /// object
-W(-Wredundant-decls)
+W("-Wredundant-decls")
 
 /// Warn when the compiler reorders code
-E(-Wreorder)
+E("-Wreorder")
 
 /// Warn about returning a pointer/reference to a
 /// local or temporary variable.
-WG48(-Wreturn-local-addr)
+WG48("-Wreturn-local-addr")
 
 /// Warn whenever a function's return type defaults
 /// to "int" (C), or about inconsistent return types
-/// (C++)
-E(-Wreturn-type)
+/// (C++")
+E("-Wreturn-type")
 
 /// Warn about possible violations of sequence point
 /// rules
-E(-Wsequence-point)
+E("-Wsequence-point")
 
 /// Warn when one local variable shadows another
-E(-Wshadow)
+E("-Wshadow")
 
 /// Warn about signed-unsigned comparisons
-X(-Wsign-compare)
+X("-Wsign-compare")
 
 /// Warn when overload promotes from unsigned to
 /// signed
-X(-Wsign-promo)
+X("-Wsign-promo")
 
 /// This switch lacks documentation
-WG48(-Wsizeof-pointer-memaccess)
+WG48("-Wsizeof-pointer-memaccess")
 
 /// Warn when not issuing stack smashing protection
 /// for some reason
-X(-Wstack-protector)
+X("-Wstack-protector")
 
 /// Warn about code which might break strict aliasing
 /// rules
-E(-Wstrict-aliasing)
+E("-Wstrict-aliasing")
 
 /// Warn about uncasted NULL used as sentinel
-WG(-Wstrict-null-sentinel)
+WG("-Wstrict-null-sentinel")
 
 /// Warn about optimizations that assume that signed
 /// overflow is undefined
-X(-Wstrict-overflow)
+X("-Wstrict-overflow")
 
 /// Warn about enumerated switches, with no default,
 /// missing a case
-X(-Wswitch)
+X("-Wswitch")
 
 /// Warn about enumerated switches missing a
 /// "default:" statement
-X(-Wswitch-default)
+X("-Wswitch-default")
 
 /// Warn about all enumerated switches missing a
 /// specific case
-X(-Wswitch-enum)
+X("-Wswitch-enum")
 
 /// Warn when __sync_fetch_and_nand and
 /// __sync_nand_and_fetch built-in functions are used
-WG(-Wsync-nand)
+WG("-Wsync-nand")
 
 /// Warn whenever a trampoline is generated
-EG(-Wtrampolines)
+EG("-Wtrampolines")
 
 /// Warn if trigraphs are encountered that might
 /// affect the meaning of the program
-E(-Wtrigraphs)
+E("-Wtrigraphs")
 
 /// Warn if a comparison is always true or always
 /// false due to the limited range of the data type
-E(-Wtype-limits)
+E("-Wtype-limits")
 
 /// Warn if an undefined macro is used in an #if
 /// directive
-E(-Wundef)
+E("-Wundef")
 
 /// Warn about uninitialized automatic variables
-E(-Wuninitialized)
+E("-Wuninitialized")
 
 /// Warn about unrecognized pragmas
-E(-Wunknown-pragmas)
+E("-Wunknown-pragmas")
 
 ///
 // Not an error because of some remaining enum+default
-WC(-Wunreachable-code)
+WC("-Wunreachable-code")
 
 /// Warn if the loop cannot be optimized due to
 /// nontrivial assumptions.
-XG(-Wunsafe-loop-optimizations)
+XG("-Wunsafe-loop-optimizations")
 
 /// Warn when a function parameter is only set,
 /// otherwise unused
-EG(-Wunused-but-set-parameter)
+EG("-Wunused-but-set-parameter")
 
 /// Warn when a variable is only set, otherwise unused
-EG(-Wunused-but-set-variable)
+EG("-Wunused-but-set-variable")
 
 /// Warn when a function is unused
-E(-Wunused-function)
+E("-Wunused-function")
 
 /// Warn when a label is unused
-E(-Wunused-label)
+E("-Wunused-label")
 
 /// Warn when typedefs locally defined in a function
 /// are not used
-EG47(-Wunused-local-typedefs)
+EG47("-Wunused-local-typedefs")
 
 /// Warn about macros defined in the main file that
 /// are not used
-W(-Wunused-macros)
+W("-Wunused-macros")
 
 /// Warn when a function parameter is unused
-E(-Wunused-parameter)
+E("-Wunused-parameter")
 
 /// Warn if a caller of a function, marked with
 /// attribute warn_unused_result, does not use its
 /// return value
-E(-Wunused-result)
+E("-Wunused-result")
 
 /// Warn when an expression value is unused
-E(-Wunused-value)
+E("-Wunused-value")
 
 /// Warn when a variable is unused
-E(-Wunused-variable)
+E("-Wunused-variable")
 
 /// Warn about useless casts
-EG48(-Wuseless-cast)
+EG48("-Wuseless-cast")
 
 /// Warn about questionable usage of the macros used
 /// to retrieve variable arguments
-EG48(-Wvarargs)
+EG48("-Wvarargs")
 
 /// Warn about using variadic macros
-W(-Wvariadic-macros)
+W("-Wvariadic-macros")
 
 /// Warn when a vector operation is compiled
 /// outside the SIMD
-WG47(-Wvector-operation-performance)
+WG47("-Wvector-operation-performance")
 
 /// Warn if a virtual base has a non-trivial move
 /// assignment operator
-EG48(-Wvirtual-move-assign)
+EG48("-Wvirtual-move-assign")
 
 /// Warn if a variable length array is used
-I(-Wvla)
+I("-Wvla")
 
 /// Warn when a register variable is declared volatile
-E(-Wvolatile-register-var)
+E("-Wvolatile-register-var")
 
 /// In C++, nonzero means warn about deprecated
 /// conversion from string literals to 'char *'.  In
 /// C, similar warning, except that the conversion is
 /// of course not deprecated by the ISO C standard.
-E(-Wwrite-strings)
+E("-Wwrite-strings")
 
 /// Warn when a literal '0' is used as null
 /// pointer
-XG47(-Wzero-as-null-pointer-constant)
+XG47("-Wzero-as-null-pointer-constant")
 
 
 // clean up after myself

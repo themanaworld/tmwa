@@ -59,11 +59,15 @@ if 1:
         self._diagnostic('warning', msg, to)
     def note(self, msg, to=None):
         self._diagnostic('note', msg, to)
+    def fatal(self, msg, to=None):
+        self.error(msg, to)
+        sys.exit(1)
     Location._diagnostic = _diagnostic
     Location.error = error
     Location.warning = warning
     Location.note = note
-    del _diagnostic, error, warning, note
+    Location.fatal = fatal
+    del _diagnostic, error, warning, note, fatal
 
 
 class Reader(object):
@@ -144,10 +148,10 @@ def take_slc(b, r):
     while True:
         c = r.get()
         # if c == '\n': return
-        r.adv()
-        b += c
         if c == '\n' and not bs:
             return
+        r.adv()
+        b += c
         bs = c == '\\'
 
 def take_char(b, r):
@@ -214,7 +218,7 @@ def format_lex_or_yacc_definitions():
     'definitions section (mostly used for options actually)'
     table = Table()
     in_code = False
-    code = bytearray()
+    code = ''
     for line in sys.stdin:
         if line == '%%\n':
             break
@@ -241,7 +245,7 @@ def format_lex_or_yacc_definitions():
                 table.put1('')
         elif code:
             table.put1('')
-        code = bytearray()
+        code = ''
 
         if line.startswith('%'):
             # %top is flex, %code and %union are bison
@@ -249,7 +253,7 @@ def format_lex_or_yacc_definitions():
             if union or line.startswith('%top') or line.startswith('%code'):
                 # TODO fix stupidity when in strings or comments
                 count = line.count('{')
-                #code = bytearray()
+                #code = ''
                 if union:
                     assert count <= 1
                     code += line[1:]
@@ -277,7 +281,7 @@ def format_lex_or_yacc_definitions():
                 else:
                     for line2 in indent_cpp_slop(code):
                         table.put1(LexSettings.nested_indent * ' ' + line2)
-                code = bytearray()
+                code = ''
             else:
                 table.put1(line)
         elif line[0].isalpha() or line[0] == '_':
@@ -337,7 +341,7 @@ def format_lex_rules():
         del bs
         del p
         pattern = line[:i]
-        rule = bytearray(line[i:])
+        rule = line[i:]
         del i
         count = rule.count('{') - rule.count('}')
         while count:
@@ -410,7 +414,7 @@ def format_yacc_rules():
                 continue
             if line.startswith('{'):
                 line += '\n'
-                lines = bytearray()
+                lines = ''
                 # TODO fix braces in comments and strings
                 lo = 1
                 behold = 1
@@ -547,7 +551,12 @@ def format_cc():
     sys.exit(tail.wait())
 
 def indent_cpp_slop(code):
-    return subprocess.Popen(['indenter-cpp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE).communicate(code)[0].strip().split('\n')
+    proc = subprocess.Popen(['indenter-cpp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    rv = proc.communicate(code)[0].strip().split('\n')
+    prv = proc.wait()
+    if prv:
+        sys.exit(prv)
+    return rv
 
 operators = {
     '#', '##',
@@ -578,6 +587,21 @@ operators = {
     k: {v[len(k):] for v in operators if v is not k and v.startswith(k)}
     for k in operators
 }
+# *please* don't use any of these except and, or, and not
+operator_map = {
+    'and':      '&&',
+    'and_eq':   '&=',
+    'bitand':   '&',
+    'bitor':    '|',
+    'compl':    '~',
+    'not':      '!',
+    'not_eq':   '!=',
+    'or':       '||',
+    'or_eq':    '|=',
+    'xor':      '^',
+    'xor_eq':   '^=',
+}
+
 
 num1 = string.digits
 num_x = num1 + '.\''
@@ -585,7 +609,7 @@ ident1 = string.ascii_letters + '_$@' # $@ for bison
 ident_x = ident1 + string.digits
 
 class CxxLexer(object):
-    __slots__ = ('_reader', '_w', '_t', '_f', '_namespaces', '_classes')
+    __slots__ = ('_reader', '_w', '_t', '_l', '_namespaces', '_classes')
 
     def __init__(self, reader):
         self._reader = reader
@@ -593,11 +617,11 @@ class CxxLexer(object):
         self._namespaces = []
         self._classes = []
 
-    def get(self):
-        return self._w, self._t, self._f
+    def get2(self):
+        return self._w, self._t, self._l
 
     def adv(self):
-        self._w, self._t, self._f = self.pull()
+        self._w, self._t, self._l = self.pull()
 
     def pull(self):
         r = self._reader
@@ -606,11 +630,12 @@ class CxxLexer(object):
         while True:
             c = r.get()
             if not c:
-                return '\n', None, None
+                return '\n', None, r.loc()
             if not c.isspace():
                 break
             white += c
             r.adv()
+        white = str(white)
 
         black = bytearray()
         black += c
@@ -652,31 +677,351 @@ class CxxLexer(object):
         else:
             l.error('Unknown character: %r' % c)
             sys.exit(1)
+        black = str(black)
 
-        # c is the first char of the next thing
-        return white, black, None
+        return white, black, l
 
-def whitespace(w, (t, f), (pt, pf)):
-    return w
+
+class Flavored(object):
+    __slots__ = ('_str')
+
+    def __init__(self, s):
+        self._str = s
+
+class Control(Flavored):
+    __slots__ = ()
+
+class Binary(Flavored):
+    __slots__ = ()
+
+class Unary(Flavored):
+    __slots__ = ()
+
+class Postfix(Flavored):
+    __slots__ = ()
+
+class Type(Flavored):
+    __slots__ = ()
+
+class Value(Flavored):
+    __slots__ = ()
+
+class Literal(Value):
+    __slots__ = ()
+
+class TypeExpr(Flavored):
+    __slots__ = ()
+
+class Attr(Flavored):
+    __slots__ = ()
+
+class Def(Flavored):
+    __slots__ = ()
+
+class MatchHead(Flavored):
+    __slots__ = ('_tail_char', '_purpose')
+    def __init__(self, s, t, p):
+        Flavored.__init__(self, s)
+        assert isinstance(t, str)
+        self._tail_char = t
+        self._purpose = p
+
+class MatchTail(Flavored):
+    __slots__ = ('_head_obj')
+    def __init__(self, s, head):
+        Flavored.__init__(self, s)
+        assert isinstance(head, MatchHead)
+        self._head_obj = head
+    @property
+    def _purpose(self):
+        return self._head_obj._purpose
+
+class MatchTail2(Flavored):
+    __slots__ = ('_head_inner', '_head_outer')
+    def __init__(self, s, head_inner, head_outer):
+        Flavored.__init__(self, s)
+        assert isinstance(head_inner, MatchHead)
+        assert isinstance(head_outer, MatchHead)
+        self._head_inner = head_inner
+        self._head_outer = head_outer
+
+    @property
+    def _purpose(self):
+        return self._head_outer._purpose
+
+
+class CxxFormatter(object):
+    __slots__ = ('_lexer', '_w', '_t', '_types', '_values', '_type_expressions', '_scopes')
+
+    def __init__(self, lexer):
+        assert isinstance(lexer, CxxLexer)
+        self._lexer = lexer
+        self._w = None
+        self._t = None
+        self._scopes = []
+
+        self._types = {
+            'auto',
+            'bool',
+            'char',
+            'char16_t',
+            'char32_t',
+            'double',
+            'float',
+            'int',
+            'long',
+            'short',
+            'signed',
+            'unsigned',
+            'void',
+            'wchar_t',
+        }
+        self._values = {
+            'alignof',
+            'const_cast',
+            'dynamic_cast',
+            'false',
+            'nullptr',
+            'reinterpret_cast',
+            'sizeof',
+            'static_cast',
+            'this',
+            'typeid',
+            'true',
+        }
+        self._type_expressions = {
+            'decltype',
+        }
+
+    # the following two functions should *generally* not access self
+    # but they do need to a bit
+    def flavor2(self, w, t, l):
+        ''' Given the next token and its whitespace, calculate the flavor.
+
+            Note: the need to know the preceding whitespace is a hack
+            (but a pretty good one!)
+
+            self.w, self.t, and self.f still contain the previous token.
+        '''
+        if t.startswith('//') or t.startswith('/*') or (t.startswith('#') and len(t) > 2):
+            return None
+        if t[0] in num1 or t[0] == '\'':
+            return Literal(t)
+        if '"' in t:
+            if self._t and self._t._str == 'extern':
+                # extern "C"
+                return Attr(t)
+            return Literal(t)
+        o = operator_map.get(t, t)
+
+        if o in {
+            '#',
+            '!',
+            '~',
+        }:
+            return Unary(t)
+        if o in {
+            '##',
+            '+=',
+            '-=',
+            '->',
+            '->*',
+            '*=',
+            '/',
+            '/=',
+            '%',
+            '%=',
+            '=',
+            '==',
+            '!=',
+            '|',
+            '||',
+            '|=',
+            '&=',
+            '^',
+            '^=',
+            '<=',
+            '<<',
+            '<<=',
+            '>=',
+            '>>=',
+            '.',
+            '..',
+            '.*',
+            '::',
+        }:
+            return Binary(t)
+        if o == '<':
+            if w:
+                return Binary(t)
+        u = {'<': '>', '(': ')', '{': '}', '[': ']'}.get(o)
+        if u is not None:
+            rv = MatchHead(t, u, None) # fix this, it is CRITICAL
+            self._scopes.append(rv)
+            return rv
+        if o == '>' or o == '>>':
+            if not self._scopes or self._scopes[-1]._str != '<':
+                return Binary(t)
+        if o == '>>':
+            assert len(self._scopes) >= 2
+            assert self._scopes[-1]._str == '<'
+            assert self._scopes[-2]._str == '<'
+            return MatchTail2(t, self._scopes.pop(), self._scopes.pop())
+        if o in {'>', ')', '}', ']'}:
+            if not self._scopes:
+                l.fatal('Unexpected %r' % t)
+            if self._scopes[-1]._tail_char != t:
+                l.fatal('Expected %r, got %r' % (self._scopes[-1]._tail_char, t))
+            return MatchTail(t, self._scopes.pop())
+        if o == '...':
+            return Postfix(t)
+        if o in {'*', '&', '&&'}:
+            if isinstance(self._t, Type):
+                return Type(t)
+        if o in {'+', '-', '*', '&', '&&'}:
+            # && is a gcc extension for address-of-a-label
+            if isinstance(self._t, (Unary, Binary, Control, MatchHead)):
+                return Unary(t)
+            elif isinstance(self._t, (Value, Postfix, MatchTail, MatchTail2)):
+                return Binary(t)
+            else:
+                l.fatal('Not sure how to handle ambiguous unary/binary after instance of %r' % self._t.__class__.__name__)
+        if o in {'--', '++'}:
+            if isinstance(self._t, (Unary, Binary, Control, MatchHead)):
+                return Unary(t)
+            elif isinstance(self._t, (Value, Postfix, MatchTail, MatchTail2)):
+                return Postfix(t)
+            else:
+                l.fatal('Not sure how to handle ambiguous prefix/postfix after instance of %r' % self._t.__class__.__name__)
+        if o in {',', ';'}:
+            return Binary(t)
+        if o == '?':
+            return Binary(t)
+        if o == ':':
+            return Binary(t)
+
+        assert t == o
+        assert t[0] in ident1
+        assert all(c in ident_x for c in t[1:])
+
+        # keywords!
+        if t == '__attribute__':
+            return Attr(t)
+        if t in {
+            'alignas',
+            'constexpr',
+            'explicit',
+            'export',
+            'extern',
+            'friend',
+            'inline',
+            'mutable',
+            'register',
+            'static',
+            'thread_local',
+            'virtual',
+        }:
+            return Attr(t)
+        if t in {
+            'const',
+            'volatile',
+        }:
+            if self._t is None or isinstance(self._t, (Attr, Binary, MatchTail, MatchTail2)): # ; is binary
+                return Attr(t)
+            if isinstance(self._t, Def):
+                # trailing function
+                return Attr(t)
+            return Type(t)
+        if t in {'final', 'override'}:
+            # theoretically, should only do this for thingy
+            return Attr(t)
+        if t == 'noexcept':
+            if isinstance(self._t, (Attr, MatchTail, MatchTail2)):
+                return Attr(t)
+            else:
+                return Value(t)
+        if t == 'asm':
+            return Value(t)
+        if t in {'delete', 'default'} and isinstance(self._t, Binary): # = delete
+            return Value(t)
+        if t in {'new', 'delete'}:
+            return Unary(t)
+        if t in {'case', 'goto', 'return', 'throw'}:
+            return Unary(t)
+        if t in {'default', 'public', 'private', 'protected'}:
+            return Value(t)
+        if t in {'break', 'continue'}:
+            return Value(t)
+        if t in {'try', 'catch', 'do', 'else', 'for', 'if', 'switch', 'while'}:
+            return Control(t)
+        if t in {'class', 'enum', 'struct', 'typename', 'union'}:
+            return Def(t)
+        if t == 'static_assert':
+            return Value(t)
+        if t == 'operator':
+            return Value(t)
+        if t == 'namespace':
+            return Def(t)
+        if t == 'template':
+            return Def(t)
+        if t == 'typedef':
+            return Def(t)
+        if t == 'using':
+            return Unary(t)
+
+        if t in self._type_expressions:
+            return TypeExpr(t)
+
+        # types, values, and keywords that act like one of those
+        if t in self._types:
+            return Type(t)
+        if t in self._values:
+            return Value(t)
+        u = t.replace('_', '')
+        if u.isupper():
+            return Value(t)
+        if u and u[0].isupper():
+            return Type(t)
+        return Value(t)
+
+    def whitespace(self, pt, t):
+        ''' Given a token and its flavor, calculate its whitespace.
+        '''
+        w = self._w # TODO set to '' instead to force calculation
+        for func in [
+        ]:
+            w = func(w, pt, t)
+        return w
 
 def format_ii():
     r = Reader('<stdin>', sys.stdin)
     l = CxxLexer(r)
-    pt = None
-    pf = None
+    f = CxxFormatter(l)
     while True:
-        w, t, f = l.get()
-        if not t:
+        wspace, raw_tok, loc = l.get2()
+        assert isinstance(wspace, str)
+        if raw_tok is None:
             break
+        assert isinstance(raw_tok, str)
         l.adv()
 
-        w = whitespace(w, (t, f), (pt, pf))
-        sys.stdout.writelines([w, t])
-        #print('w:', repr(str(w)))
-        #print('t:', t)
-        pt, pf = t, f
-    if not pt.endswith('\n'):
+        prev_tok = f._t
+        cooked_tok = f.flavor2(wspace, raw_tok, loc)
+        if cooked_tok is None:
+            f._w = wspace # or ' '
+            # f._t is unchanged
+        else:
+            f._w = wspace
+            f._t = cooked_tok
+        wspace = f.whitespace(prev_tok, cooked_tok)
+
+        if cooked_tok is None:
+            sys.stdout.writelines([wspace, raw_tok])
+        else:
+            sys.stdout.writelines([wspace, cooked_tok._str])
+    if 1:
         sys.stdout.write('\n')
+
 
 exts = {
         '-lpp': format_lex,
