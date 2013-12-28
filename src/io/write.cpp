@@ -40,7 +40,7 @@ namespace io
     {
         if (fd != -1)
         {
-            if (!close())
+            if (close() == -1)
                 abort();
         }
     }
