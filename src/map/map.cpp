@@ -1400,7 +1400,7 @@ void map_set_logfile(FString filename)
     map_logfile_name = std::move(filename);
     gettimeofday(&tv, NULL);
 
-    map_start_logfile(tv.tv_sec);
+    map_start_logfile(tv.tv_sec >> LOGFILE_SECONDS_PER_CHUNK_SHIFT);
 
     MAP_LOG("log-start v5");
 }
