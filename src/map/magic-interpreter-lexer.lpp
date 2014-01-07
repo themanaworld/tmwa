@@ -13,8 +13,6 @@
 
 #define HEADING(dir) { magic_frontend_lval.i = dir; FIXLOC; return DIR; }
 
-// silence compiler warnings
-#define YY_USER_INIT (void)yylval, (void)yylloc
 %}
 
 %option yylineno
@@ -22,7 +20,6 @@
 %option prefix="magic_frontend_"
 %option nounput
 %option noinput
-%option bison-bridge bison-locations
 
 %%
 

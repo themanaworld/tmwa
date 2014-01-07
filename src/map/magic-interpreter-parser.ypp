@@ -20,9 +20,6 @@
 #include "itemdb.hpp"
 #include "magic-expr.hpp"
 
-// I still don't get why this is necessary.
-#define YYLEX_PARAM 0, 0
-
 // can't use src/warnings.hpp in generated code
 #pragma GCC diagnostic warning "-Wall"
 #pragma GCC diagnostic warning "-Wextra"
@@ -83,7 +80,7 @@ static
 dumb_ptr<effect_t> op_effect(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
 
 // in magic-interpreter-lexer.cpp
-int magic_frontend_lex(YYSTYPE *, YYLTYPE *);
+int magic_frontend_lex(void);
 
 static
 void install_proc(dumb_ptr<proc_t> proc);
