@@ -2,7 +2,7 @@
 #define TMWA_STRINGS_FSTRING_HPP
 //    strings/fstring.hpp - An owned, reference-counted immutable string.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -22,24 +22,34 @@
 # include <cstdarg>
 # include <cstring>
 
-# include <memory>
-# include <vector>
-
 # include "base.hpp"
 
 namespace strings
 {
     /// An owning string that has reached its final contents.
     /// The storage is NUL-terminated
-    /// TODO reimplement without std::shared_ptr
     class FString : public _crtp_string<FString, FString, ZPair>
     {
-        std::shared_ptr<std::vector<char>> _hack2;
+        struct Rep
+        {
+            size_t count;
+            size_t size;
+            char body[];
+        };
+        static
+        uint8_t empty_string_rep[sizeof(Rep) + 1];
+
+        Rep *owned;
 
         template<class It>
         void _assign(It b, It e);
     public:
         FString();
+        FString(const FString&);
+        FString(FString&&);
+        FString& operator = (const FString&);
+        FString& operator = (FString&&);
+        ~FString();
 
         explicit FString(const MString& s);
 

@@ -17,6 +17,8 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include "mstring.hpp"
+
 namespace strings
 {
     template<class It>
@@ -24,22 +26,24 @@ namespace strings
     {
         if (b == e)
         {
-            // TODO use a special empty object
-            // return;
+            *this = FString();
+            return;
         }
         if (!std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<It>::iterator_category>::value)
         {
             // can't use std::distance
-            _hack2 = std::make_shared<std::vector<char>>();
+            MString m;
             for (; b != e; ++b)
-                _hack2->push_back(*b);
-            _hack2->push_back('\0');
-            _hack2->shrink_to_fit();
+                m += *b;
+            *this = FString(m); // will recurse
             return;
         }
         size_t diff = std::distance(b, e);
-        _hack2 = std::make_shared<std::vector<char>>(diff + 1, '\0');
-        std::copy(b, e, _hack2->begin());
+        owned = static_cast<Rep *>(::operator new(sizeof(Rep) + diff + 1));
+        owned->count = 0;
+        owned->size = diff;
+        std::copy(b, e, owned->body);
+        owned->body[diff] = '\0';
     }
 
     template<size_t n>
