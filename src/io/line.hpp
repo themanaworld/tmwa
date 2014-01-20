@@ -1,0 +1,92 @@
+#ifndef TMWA_IO_LINE_HPP
+#define TMWA_IO_LINE_HPP
+//    io/line.hpp - Input from files, line-by-line
+//
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//
+//    This file is part of The Mana World (Athena server)
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# include "../sanity.hpp"
+
+# include "../strings/fstring.hpp"
+# include "../strings/zstring.hpp"
+
+# include "read.hpp"
+
+
+namespace io
+{
+    struct Line
+    {
+        FString text;
+
+        FString filename;
+        // 1-based
+        uint16_t line, column;
+
+        FString message_str(ZString cat, ZString msg);
+        void message(ZString cat, ZString msg);
+        void note(ZString msg) { message("note", msg); }
+        void warning(ZString msg) { message("warning", msg); }
+        void error(ZString msg) { message("error", msg); }
+    };
+
+    // psst, don't tell anyone
+    struct LineChar : Line
+    {
+        char ch()
+        {
+            size_t c = column - 1;
+            if (c == text.size())
+                return '\n';
+            return text[c];
+        }
+    };
+
+    class LineReader
+    {
+    protected:
+        FString filename;
+        uint16_t line, column;
+        ReadFile rf;
+    public:
+        explicit
+        LineReader(ZString name);
+        LineReader(LineReader&&) = delete;
+        // needed for unit tests
+        LineReader(ZString name, int fd);
+
+        bool read_line(Line& l);
+        bool is_open();
+    };
+
+    class LineCharReader : private LineReader
+    {
+        FString line_text;
+    public:
+        explicit
+        LineCharReader(ZString name);
+        LineCharReader(LineCharReader&&) = delete;
+        LineCharReader(ZString name, int fd);
+
+        bool get(LineChar& c);
+        void adv();
+        bool ok();
+        bool is_open();
+    };
+} // namespace io
+
+#endif //TMWA_IO_LINE_HPP
