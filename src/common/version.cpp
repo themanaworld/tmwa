@@ -2,6 +2,18 @@
 
 #include "../conf/version.hpp"
 
+#include "../strings/xstring.hpp"
+
+#include "extract.hpp"
+
+Version CURRENT_VERSION =
+{
+    VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
+    VERSION_DEVEL,
+
+    0, 0,
+    VENDOR_VERSION,
+};
 Version CURRENT_LOGIN_SERVER_VERSION =
 {
     VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH,
@@ -33,3 +45,9 @@ Version CURRENT_MAP_SERVER_VERSION =
 const char CURRENT_VERSION_STRING[] = "TMWA "
         S(VERSION_MAJOR) "." S(VERSION_MINOR) "." S(VERSION_PATCH)
         " dev" S(VERSION_DEVEL) " (" VENDOR " " S(VENDOR_VERSION) ")";
+
+bool extract(XString str, Version *vers)
+{
+    *vers = {};
+    return extract(str, record<'.'>(&vers->major, &vers->minor, &vers->patch));
+}

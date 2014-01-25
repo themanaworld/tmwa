@@ -14,6 +14,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/extract.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
@@ -3408,31 +3409,24 @@ bool extract(XString str, LevelElement *le)
     return false;
 }
 
-/*==========================================
- * db/mob_db.txt reading
- *------------------------------------------
- */
-static
-int mob_readdb(void)
+bool mob_readdb(ZString filename)
 {
-    ZString filename = "db/mob_db.txt";
-
-    for (mob_db_& e : mob_db)
-        e = mob_db_{};
-
+    bool rv = true;
     {
         io::ReadFile in(filename);
         if (!in.is_open())
         {
-            return -1;
+            PRINTF("Unable to read mob db: %s\n", filename);
+            return false;
         }
         FString line;
         while (in.getline(line))
         {
             int mob_class;
 
-            if (!line || line.startswith("//"))
+            if (is_comment(line))
                 continue;
+
             struct mob_db_ mdbv {};
 
             XString ignore;
@@ -3501,6 +3495,7 @@ int mob_readdb(void)
             if (!okay || mob_class <= 1000 || mob_class > 2000)
             {
                 PRINTF("bad mob line: %s\n", line);
+                rv = false;
                 continue;
             }
 
@@ -3554,7 +3549,7 @@ int mob_readdb(void)
         }
         PRINTF("read %s done\n", filename);
     }
-    return 0;
+    return rv;
 }
 
 template<>
@@ -3625,28 +3620,22 @@ bool extract<MobSkillTarget, void, void>(XString str, MobSkillTarget *mst)
     return false;
 }
 
-/*==========================================
- * db/mob_skill_db.txt reading
- *------------------------------------------
- */
-static
-int mob_readskilldb(void)
+bool mob_readskilldb(ZString filename)
 {
-    ZString filename = "db/mob_skill_db.txt";
-
+    bool rv = true;
     {
         io::ReadFile in(filename);
         if (!in.is_open())
         {
             PRINTF("can't read %s\n", filename);
-            return 0;
+            return false;
         }
         FString line;
         while (in.getline(line))
         {
             int mob_id;
 
-            if (line.startswith("//"))
+            if (is_comment(line))
                 continue;
 
             XString blah;
@@ -3692,43 +3681,29 @@ int mob_readskilldb(void)
             else if (cancellable == "no")
                 msv.cancel = false;
             else
+            {
+                rv = false;
                 continue;
+            }
 
             msv.casttime = std::chrono::milliseconds(casttime);
             msv.delay = std::chrono::milliseconds(delay);
 
             if (mob_id <= 0)
+            {
+                rv = false;
                 continue;
+            }
 
             mob_db[mob_id].skills.push_back(std::move(msv));
         }
         PRINTF("read %s done\n", filename);
     }
-    return 0;
+    return rv;
 }
 
-void mob_reload(void)
+void do_init_mob2(void)
 {
-    /*
-     *
-     * <empty monster database>
-     * mob_read();
-     *
-     */
-
-    do_init_mob();
-}
-
-/*==========================================
- * Circumference initialization of mob
- *------------------------------------------
- */
-int do_init_mob(void)
-{
-    mob_readdb();
-
-    mob_readskilldb();
-
     Timer(gettick() + MIN_MOBTHINKTIME,
             mob_ai_hard,
             MIN_MOBTHINKTIME
@@ -3737,6 +3712,4 @@ int do_init_mob(void)
             mob_ai_lazy,
             MIN_MOBTHINKTIME * 10
     ).detach();
-
-    return 0;
 }

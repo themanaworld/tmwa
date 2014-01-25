@@ -44,11 +44,6 @@ void spell_effect_report_termination(int invocation, int bl_id,
         StatusChange sc_id, int supplanted);
 
 /**
- * Initialise all spells, read config data
- */
-void do_init_magic(void);
-
-/**
  * Identifies the invocation used to trigger a spell
  *
  * Returns empty string if not found

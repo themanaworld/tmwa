@@ -10,6 +10,8 @@
 
 #include "../strings/zstring.hpp"
 
+#include "../io/cxxstdio.hpp"
+
 #include "random.hpp"
 #include "socket.hpp"
 #include "timer.hpp"
@@ -46,12 +48,15 @@ sigfunc compat_signal(int signo, sigfunc func)
     return oact.sa_handler;
 }
 
+volatile
+bool runflag = true;
+
 static
 void chld_proc(int)
 {
     wait(NULL);
 }
-static __attribute__((noreturn))
+static
 void sig_proc(int)
 {
     for (int i = 1; i < 31; ++i)
@@ -59,11 +64,8 @@ void sig_proc(int)
 #pragma GCC diagnostic ignored "-Wold-style-cast"
         compat_signal(i, SIG_IGN);
 #pragma GCC diagnostic pop
-    term_func();
-    _exit(0);
+    runflag = false;
 }
-
-bool runflag = true;
 
 /*
     Note about fatal signals:
@@ -83,6 +85,12 @@ int main(int argc, char **argv)
     for (int i = 0; i < argc; ++i)
         args[i] = ZString(strings::really_construct_from_a_pointer, argv[i], nullptr);
     do_init(argc, args);
+
+    if (!runflag)
+    {
+        PRINTF("Fatal error during startup; exiting\n");
+        return 1;
+    }
     // set up exit handlers *after* the initialization has happened.
     // This is because term_func is likely to depend on successful init.
 

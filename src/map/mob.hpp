@@ -84,7 +84,10 @@ short mob_get_head_mid(int);
 short mob_get_head_buttom(int);
 short mob_get_clothes_color(int);  //player mob dye [Valaris]
 int mob_get_equip(int);       // mob equip [Valaris]
-int do_init_mob(void);
+
+bool mob_readdb(ZString filename);
+bool mob_readskilldb(ZString filename);
+void do_init_mob2(void);
 
 int mob_delete(dumb_ptr<mob_data> md);
 int mob_catch_delete(dumb_ptr<mob_data> md, BeingRemoveWhy type);

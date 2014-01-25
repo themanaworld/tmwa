@@ -10,7 +10,7 @@
 bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
         ZString message, int gmlvl);
 
-int atcommand_config_read(ZString cfgName);
+bool atcommand_config_read(ZString cfgName);
 
 void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd);
 

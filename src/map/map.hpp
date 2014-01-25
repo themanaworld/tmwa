@@ -575,7 +575,6 @@ extern interval_t autosave_time;
 extern int save_settings;
 
 extern FString motd_txt;
-extern FString help_txt;
 
 extern CharName wisp_server_name;
 

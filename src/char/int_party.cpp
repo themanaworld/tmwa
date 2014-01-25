@@ -102,11 +102,11 @@ bool extract(XString str, party *p)
 }
 
 // パーティデータのロード
-int inter_party_init(void)
+void inter_party_init(void)
 {
     io::ReadFile in(party_txt);
     if (!in.is_open())
-        return 1;
+        return;
 
     // TODO: convert to use char_id, and change to extract()
     FString line;
@@ -136,9 +136,6 @@ int inter_party_init(void)
         }
         c++;
     }
-//  PRINTF("int_party: %s read done (%d parties)\n", party_txt, c);
-
-    return 0;
 }
 
 // パーティーデータのセーブ用

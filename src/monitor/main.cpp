@@ -22,6 +22,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/utils.hpp"
 
 #include "../poison.hpp"
@@ -57,7 +58,7 @@ FString make_path(XString base, XString path)
 }
 
 static
-void parse_option(XString name, ZString value)
+bool parse_option(XString name, ZString value)
 {
     if (name == "login_server")
         login_server = value;
@@ -72,12 +73,15 @@ void parse_option(XString name, ZString value)
         FString name_ = name;
         FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n",
                 name_, value);
+        return false;
     }
+    return true;
 }
 
 static
-void read_config(ZString filename)
+bool read_config(ZString filename)
 {
+    bool rv = true;
     io::ReadFile in(filename);
     if (!in.is_open())
     {
@@ -88,13 +92,25 @@ void read_config(ZString filename)
     FString line;
     while (in.getline(line))
     {
+        if (is_comment(line))
+            continue;
         XString name;
         ZString value;
-        if (!split_key_value(line, &name, &value))
+        if (!config_split(line, &name, &value))
+        {
+            PRINTF("Bad line: %s\n", line);
+            rv = false;
             continue;
+        }
 
-        parse_option(name, value);
+        if (!parse_option(name, value))
+        {
+            PRINTF("Bad key/value: %s\n", line);
+            rv = false;
+            continue;
+        }
     }
+    return rv;
 }
 
 static

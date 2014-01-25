@@ -5597,14 +5597,8 @@ void clif_parse(int fd)
     RFIFOSKIP(fd, packet_len);
 }
 
-/*==========================================
- *
- *------------------------------------------
- */
-int do_init_clif (void)
+void do_init_clif(void)
 {
     set_defaultparse(clif_parse);
     make_listen_port(map_port);
-
-    return 0;
 }

@@ -34,7 +34,7 @@ int chrif_saveaccountreg2(dumb_ptr<map_session_data> sd);
 int chrif_reloadGMdb(void);
 int chrif_send_divorce(int char_id);
 
-int do_init_chrif (void);
+void do_init_chrif(void);
 
 // only used by intif.cpp
 extern int char_fd;

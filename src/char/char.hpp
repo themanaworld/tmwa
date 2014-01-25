@@ -9,10 +9,6 @@
 
 constexpr int MAX_MAP_SERVERS = 30;
 
-# define CHAR_CONF_NAME  "conf/char_athena.conf"
-
-# define LOGIN_LAN_CONF_NAME     "conf/lan_support.conf"
-
 struct mmo_map_server
 {
     IP4Address ip;

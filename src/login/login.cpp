@@ -24,6 +24,7 @@
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/core.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -39,9 +40,6 @@
 #include "../poison.hpp"
 
 constexpr int MAX_SERVERS = 30;
-
-#define LOGIN_CONF_NAME "conf/login_athena.conf"
-#define LAN_CONF_NAME "conf/lan_support.conf"
 
 constexpr int START_ACCOUNT_NUM = 2000000;
 constexpr int END_ACCOUNT_NUM = 100000000;
@@ -77,9 +75,9 @@ int new_account = 0;
 static
 int login_port = 6900;
 static
-IP4Address lan_char_ip;
+IP4Address lan_char_ip = IP4_LOCALHOST;
 static
-IP4Mask lan_subnet;
+IP4Mask lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 static
 FString update_host;
 static
@@ -272,9 +270,7 @@ int read_gm_account(void)
     FString line;
     while (fp.getline(line) && c < 4000)
     {
-        if (!line)
-            continue;
-        if (line.startswith("//"))
+        if (is_comment(line))
             continue;
         GM_Account p {};
         if (!extract(line, record<' '>(&p.account_id, &p.level)))
@@ -540,6 +536,7 @@ int mmo_auth_init(void)
     if (!in.is_open())
     {
         // no account file -> no account -> no login, including char-server (ERROR)
+        // not anymore! :-)
         PRINTF("\033[1;31mmmo_auth_init: Accounts file [%s] not found.\033[0m\n",
              account_filename);
         return 0;
@@ -548,7 +545,7 @@ int mmo_auth_init(void)
     FString line;
     while (in.getline(line))
     {
-        if (line.startswith("//"))
+        if (is_comment(line))
             continue;
         if (std::find_if(line.begin(), line.end(),
                     [](unsigned char c) { return c < ' ' && c != '\t'; }
@@ -2005,7 +2002,7 @@ void parse_admin(int fd)
                                         FString line;
                                         while (fp.getline(line))
                                         {
-                                            if (!line || line.startswith("//"))
+                                            if (is_comment(line))
                                                 fp2.put_line(line);
                                             else
                                             {
@@ -3138,33 +3135,11 @@ void parse_login(int fd)
 // Reading Lan Support configuration
 //----------------------------------
 static
-int login_lan_config_read(ZString lancfgName)
+bool login_lan_config(XString w1, ZString w2)
 {
     struct hostent *h = NULL;
 
-    // set default configuration
-    lan_char_ip = IP4_LOCALHOST;
-    lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
-
-    io::ReadFile in(lancfgName);
-
-    if (!in.is_open())
     {
-        PRINTF("***WARNING: LAN Support configuration file is not found: %s\n",
-             lancfgName);
-        return 1;
-    }
-
-    PRINTF("---Start reading Lan Support configuration file\n");
-
-    FString line;
-    while (in.getline(line))
-    {
-        XString w1;
-        ZString w2;
-        if (!split_key_value(line, &w1, &w2))
-            continue;
-
         if (w1 == "lan_char_ip")
         {
             // Read Char-Server Lan IP Address
@@ -3180,8 +3155,8 @@ int login_lan_config_read(ZString lancfgName)
             }
             else
             {
-                PRINTF("Bad IP value: %s\n", line);
-                abort();
+                PRINTF("Bad IP value: %s\n", w2);
+                return false;
             }
             PRINTF("LAN IP of char-server: %s.\n", lan_char_ip);
         }
@@ -3190,19 +3165,23 @@ int login_lan_config_read(ZString lancfgName)
         {
             if (!extract(w2, &lan_subnet))
             {
-                PRINTF("Bad IP mask: %s\n", line);
-                abort();
+                PRINTF("Bad IP mask: %s\n", w2);
+                return false;
             }
             PRINTF("Sub-network of the char-server: %s.\n",
                     lan_subnet);
         }
         else
         {
-            FString w1z = w1;
-            PRINTF("WARNING: unknown lan-config key: %s\n", w1z);
+            return false;
         }
     }
+    return true;
+}
 
+static
+bool lan_check()
+{
     // log the LAN configuration
     LOGIN_LOG("The LAN configuration of the server is set:\n");
     LOGIN_LOG("- with LAN IP of char-server: %s.\n", lan_char_ip);
@@ -3216,37 +3195,20 @@ int login_lan_config_read(ZString lancfgName)
         {
             PRINTF("\033[1;31m***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network\033[0m\n");
             LOGIN_LOG("***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network.\n");
+            return false;
         }
     }
 
-    PRINTF("---End reading of Lan Support configuration file\n");
-
-    return 0;
+    return true;
 }
 
 //-----------------------------------
 // Reading general configuration file
 //-----------------------------------
 static
-int login_config_read(ZString cfgName)
+bool login_config(XString w1, ZString w2)
 {
-    io::ReadFile in(cfgName);
-    if (!in.is_open())
     {
-        PRINTF("Configuration file (%s) not found.\n", cfgName);
-        return 1;
-    }
-
-    PRINTF("---Start reading of Login Server configuration file (%s)\n",
-            cfgName);
-    FString line;
-    while (in.getline(line))
-    {
-        XString w1;
-        ZString w2;
-        if (!split_key_value(line, &w1, &w2))
-            continue;
-
         if (w1 == "admin_state")
         {
             admin_state = config_switch(w2);
@@ -3279,8 +3241,8 @@ int login_config_read(ZString cfgName)
                     IP4Mask n;
                     if (!extract(w2, &n))
                     {
-                        PRINTF("Bad IP mask: %s\n", line);
-                        abort();
+                        PRINTF("Bad IP mask: %s\n", w2);
+                        return false;
                     }
                     access_ladmin.push_back(n);
                 }
@@ -3363,7 +3325,10 @@ int login_config_read(ZString cfgName)
             else if (w2 == "mutual-failture" || w2 == "mutual-failure")
                 access_order = ACO::MUTUAL_FAILURE;
             else
+            {
                 PRINTF("Bad order: %s\n", w2);
+                return false;
+            }
         }
         else if (w1 == "allow")
         {
@@ -3388,8 +3353,8 @@ int login_config_read(ZString cfgName)
                     IP4Mask n;
                     if (!extract(w2, &n))
                     {
-                        PRINTF("Bad IP mask: %s\n", line);
-                        abort();
+                        PRINTF("Bad IP mask: %s\n", w2);
+                        return false;
                     }
                     access_allow.push_back(n);
                 }
@@ -3418,8 +3383,8 @@ int login_config_read(ZString cfgName)
                     IP4Mask n;
                     if (!extract(w2, &n))
                     {
-                        PRINTF("Bad IP mask: %s\n", line);
-                        abort();
+                        PRINTF("Bad IP mask: %s\n", w2);
+                        return false;
                     }
                     access_deny.push_back(n);
                 }
@@ -3434,10 +3399,6 @@ int login_config_read(ZString cfgName)
             anti_freeze_interval = std::max(
                     std::chrono::seconds(atoi(w2.c_str())),
                     std::chrono::seconds(5));
-        }
-        else if (w1 == "import")
-        {
-            login_config_read(w2);
         }
         else if (w1 == "update_host")
         {
@@ -3457,26 +3418,25 @@ int login_config_read(ZString cfgName)
         }
         else
         {
-            FString w1z = w1;
-            PRINTF("WARNING: unknown login config key: %s\n", w1z);
+            return false;
         }
     }
 
-    PRINTF("---End reading of Login Server configuration file.\n");
-
-    return 0;
+    return true;
 }
 
 //-------------------------------------
 // Displaying of configuration warnings
 //-------------------------------------
 static
-void display_conf_warnings(void)
+bool display_conf_warnings(void)
 {
+    bool rv = true;
     if (admin_state != 0 && admin_state != 1)
     {
         PRINTF("***WARNING: Invalid value for admin_state parameter -> set to 0 (no remote admin).\n");
         admin_state = 0;
+        rv = false;
     }
 
     if (admin_state == 1)
@@ -3484,6 +3444,7 @@ void display_conf_warnings(void)
         if (!admin_pass)
         {
             PRINTF("***WARNING: Administrator password is void (admin_pass).\n");
+            rv = false;
         }
         else if (admin_pass == stringish<AccountPass>("admin"))
         {
@@ -3496,6 +3457,7 @@ void display_conf_warnings(void)
     {
         PRINTF("***WARNING: 'To GM become' password is void (gm_pass).\n");
         PRINTF("            We highly recommend that you set one password.\n");
+        rv = false;
     }
     else if (gm_pass == "gm")
     {
@@ -3507,18 +3469,21 @@ void display_conf_warnings(void)
     {
         PRINTF("***WARNING: Invalid value for level_new_gm parameter -> set to 60 (default).\n");
         level_new_gm = 60;
+        rv = false;
     }
 
     if (new_account != 0 && new_account != 1)
     {
         PRINTF("***WARNING: Invalid value for new_account parameter -> set to 0 (no new account).\n");
         new_account = 0;
+        rv = false;
     }
 
     if (login_port < 1024 || login_port > 65535)
     {
         PRINTF("***WARNING: Invalid value for login_port parameter -> set to 6900 (default).\n");
         login_port = 6900;
+        rv = false;
     }
 
     if (gm_account_filename_check_timer.count() < 0)
@@ -3526,18 +3491,21 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n");
         PRINTF("            -> set to 15 sec (default).\n");
         gm_account_filename_check_timer = std::chrono::seconds(15);
+        rv = false;
     }
     else if (gm_account_filename_check_timer == std::chrono::seconds(1))
     {
         PRINTF("***WARNING: Invalid value for gm_account_filename_check_timer parameter.\n");
         PRINTF("            -> set to 2 sec (minimum value).\n");
         gm_account_filename_check_timer = std::chrono::seconds(2);
+        rv = false;
     }
 
     if (save_unknown_packets != 0 && save_unknown_packets != 1)
     {
         PRINTF("WARNING: Invalid value for save_unknown_packets parameter -> set to 0-no save.\n");
         save_unknown_packets = 0;
+        rv = false;
     }
 
     if (display_parse_login != 0 && display_parse_login != 1)
@@ -3545,6 +3513,7 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for display_parse_login parameter\n");
         PRINTF("            -> set to 0 (no display).\n");
         display_parse_login = 0;
+        rv = false;
     }
 
     if (display_parse_admin != 0 && display_parse_admin != 1)
@@ -3552,6 +3521,7 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for display_parse_admin parameter\n");
         PRINTF("            -> set to 0 (no display).\n");
         display_parse_admin = 0;
+        rv = false;
     }
 
     if (display_parse_fromchar < 0 || display_parse_fromchar > 2)
@@ -3559,6 +3529,7 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for display_parse_fromchar parameter\n");
         PRINTF("            -> set to 0 (no display).\n");
         display_parse_fromchar = 0;
+        rv = false;
     }
 
     if (min_level_to_connect < 0)
@@ -3567,6 +3538,7 @@ void display_conf_warnings(void)
              min_level_to_connect);
         PRINTF("            -> set to 0 (any player).\n");
         min_level_to_connect = 0;
+        rv = false;
     }
     else if (min_level_to_connect > 99)
     {                           // 0: all players, 1-99 at least gm level x
@@ -3574,6 +3546,7 @@ void display_conf_warnings(void)
              min_level_to_connect);
         PRINTF("            -> set to 99 (only GM level 99).\n");
         min_level_to_connect = 99;
+        rv = false;
     }
 
     if (add_to_unlimited_account != 0 && add_to_unlimited_account != 1)
@@ -3581,6 +3554,7 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for add_to_unlimited_account parameter\n");
         PRINTF("            -> set to 0 (impossible to add a time to an unlimited account).\n");
         add_to_unlimited_account = 0;
+        rv = false;
     }
 
     if (start_limited_time < -1)
@@ -3588,6 +3562,7 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for start_limited_time parameter\n");
         PRINTF("            -> set to -1 (new accounts are created with unlimited time).\n");
         start_limited_time = -1;
+        rv = false;
     }
 
     if (check_ip_flag != 0 && check_ip_flag != 1)
@@ -3595,6 +3570,7 @@ void display_conf_warnings(void)
         PRINTF("***WARNING: Invalid value for check_ip_flag parameter\n");
         PRINTF("            -> set to 1 (check players ip between login-server & char-server).\n");
         check_ip_flag = 1;
+        rv = false;
     }
 
     if (access_order == ACO::DENY_ALLOW)
@@ -3603,6 +3579,7 @@ void display_conf_warnings(void)
         {
             PRINTF("***WARNING: The IP security order is 'deny,allow' (allow if not deny).\n");
             PRINTF("            And you refuse ALL IP.\n");
+            rv = false;
         }
     }
     else if (access_order == ACO::ALLOW_DENY)
@@ -3611,6 +3588,7 @@ void display_conf_warnings(void)
         {
             PRINTF("***WARNING: The IP security order is 'allow,deny' (deny if not allow).\n");
             PRINTF("            But, NO IP IS AUTHORISED!\n");
+            rv = false;
         }
     }
     else
@@ -3621,14 +3599,17 @@ void display_conf_warnings(void)
             PRINTF("***WARNING: The IP security order is 'mutual-failture'\n");
             PRINTF("            (allow if in the allow list and not in the deny list).\n");
             PRINTF("            But, NO IP IS AUTHORISED!\n");
+            rv = false;
         }
         else if (access_deny.size() == 1 && access_deny.front().mask() == IP4Address())
         {
             PRINTF("***WARNING: The IP security order is mutual-failture\n");
             PRINTF("            (allow if in the allow list and not in the deny list).\n");
             PRINTF("            But, you refuse ALL IP!\n");
+            rv = false;
         }
     }
+    return rv;
 }
 
 //-------------------------------
@@ -3825,22 +3806,61 @@ void term_func(void)
     LOGIN_LOG("----End of login-server (normal end with closing of all files).\n");
 }
 
+static
+bool login_confs(XString key, ZString value)
+{
+    unsigned sum = 0;
+    sum += login_config(key, value);
+    sum += login_lan_config(key, value);
+    if (sum >= 2)
+        abort();
+    return sum;
+}
+
 //------------------------------
 // Main function of login-server
 //------------------------------
 int do_init(int argc, ZString *argv)
 {
-    // read login-server configuration
-    if (argc > 1)
-        login_config_read(argv[1]);
-    else
-        login_config_read(LOGIN_CONF_NAME);
-    display_conf_warnings();   // not in login_config_read, because we can use 'import' option, and display same message twice or more
-    save_config_in_log();      // not before, because log file name can be changed
-    if (argc > 2)
-        login_lan_config_read(argv[2]);
-    else
-        login_lan_config_read(LAN_CONF_NAME);
+    bool loaded_config_yet = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (argv[i].startswith('-'))
+        {
+            if (argv[i] == "--help")
+            {
+                PRINTF("Usage: %s [--help] [--version] [files...]\n",
+                        argv[0]);
+                exit(0);
+            }
+            else if (argv[i] == "--version")
+            {
+                PRINTF("%s\n", CURRENT_VERSION_STRING);
+                exit(0);
+            }
+            else
+            {
+                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                runflag = false;
+            }
+        }
+        else
+        {
+            loaded_config_yet = true;
+            runflag &= load_config_file(argv[i], login_confs);
+        }
+    }
+
+    if (!loaded_config_yet)
+        runflag &= load_config_file("conf/tmwa-login.conf", login_confs);
+
+    // not in login_config_read, because we can use 'import' option, and display same message twice or more
+    // (why is that bad?)
+    runflag &= display_conf_warnings();
+    // not before, because log file name can be changed
+    // (that doesn't stop the char-server though)
+    save_config_in_log();
+    runflag &= lan_check();
 
     for (int i = 0; i < AUTH_FIFO_SIZE; i++)
         auth_fifo[i].delflag = 1;

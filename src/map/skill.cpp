@@ -1173,29 +1173,21 @@ SP scan_stat(XString statname)
     return SP::ZERO;
 }
 
-/*==========================================
- * スキル関係ファイル読み込み
- * skill_db.txt スキルデータ
- * skill_cast_db.txt スキルの詠唱時間とディレイデータ
- *------------------------------------------
- */
-static
-int skill_readdb(void)
+bool skill_readdb(ZString filename)
 {
-    /* The main skill database */
-    for (skill_db_& skdb : skill_db)
-        skdb = skill_db_{};
-
-    io::ReadFile in("db/skill_db.txt");
+    io::ReadFile in(filename);
     if (!in.is_open())
     {
-        PRINTF("can't read db/skill_db.txt\n");
-        return 1;
+        PRINTF("can't read %s\n", filename);
+        return false;
     }
 
+    bool rv = true;
     FString line_;
     while (in.getline(line_))
     {
+        // is_comment only works for whole-line comments
+        // that could change once the Z dependency is dropped ...
         XString comment = "//";
         XString line = line_.xislice_h(std::search(line_.begin(), line_.end(), comment.begin(), comment.end())).rstrip();
         if (!line)
@@ -1228,16 +1220,25 @@ int skill_readdb(void)
                     )
                 )
         )
+        {
+            rv = false;
             continue;
+        }
         if (/*i < SkillID() ||*/ i > SkillID::MAX_SKILL_DB)
+        {
+            rv = false;
             continue;
+        }
 
         if (castcancel == "yes")
             skdb.castcancel = true;
         else if (castcancel == "no")
             skdb.castcancel = false;
         else
+        {
+            rv = false;
             continue;
+        }
 
         if (flags == "passive")
         {
@@ -1252,7 +1253,10 @@ int skill_readdb(void)
         else if (flags == "no")
             skdb.poolflags = SkillFlags::ZERO;
         else
+        {
+            rv = false;
             continue;
+        }
 
         skdb.stat = scan_stat(stat);
 
@@ -1265,32 +1269,9 @@ int skill_readdb(void)
         skill_db[i] = skdb;
         skill_lookup_by_id(i).desc = FString(tmp);
     }
-    PRINTF("read db/skill_db.txt done\n");
+    PRINTF("read %s done\n", filename);
 
-    return 0;
-}
-
-void skill_reload(void)
-{
-    /*
-     *
-     * <empty skill database>
-     * <?>
-     *
-     */
-
-    do_init_skill();
-}
-
-/*==========================================
- * スキル関係初期化処理
- *------------------------------------------
- */
-int do_init_skill(void)
-{
-    skill_readdb();
-
-    return 0;
+    return rv;
 }
 
 constexpr size_t num_names = sizeof(skill_names) / sizeof(skill_names[0]);

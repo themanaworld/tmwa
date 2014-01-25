@@ -57,7 +57,7 @@ skill_name_db& skill_lookup_by_name(XString name);
 struct block_list;
 struct map_session_data;
 
-int do_init_skill(void);
+bool skill_readdb(ZString filename);
 
 // スキルデータベースへのアクセサ
 int skill_get_hit(SkillID id);

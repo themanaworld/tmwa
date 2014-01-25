@@ -5269,11 +5269,7 @@ void pc_calc_sigma(void)
     }
 }
 
-/*==========================================
- * pc関 係初期化
- *------------------------------------------
- */
-int do_init_pc(void)
+void do_init_pc(void)
 {
     pc_calc_sigma();
     natural_heal_prev_tick = gettick() + NATURAL_HEAL_INTERVAL;
@@ -5284,8 +5280,6 @@ int do_init_pc(void)
     Timer(gettick() + autosave_time,
             pc_autosave
     ).detach();
-
-    return 0;
 }
 
 void pc_cleanup(dumb_ptr<map_session_data> sd)

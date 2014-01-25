@@ -8,9 +8,8 @@
 /// core.c contains a server-independent main() function
 /// and then runs a do_sendrecv loop
 
-/// When this is cleared, the server exits gracefully
-/// only used by map server's GM command: @mapexit
-extern bool runflag;
+/// When this is cleared, the server exits gracefully.
+extern volatile bool runflag;
 
 /// This is an external function defined by each server
 /// This function must register stuff for the parse loop

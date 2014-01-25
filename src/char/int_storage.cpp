@@ -100,7 +100,7 @@ struct storage *account2storage(int account_id)
 
 //---------------------------------------------------------
 // 倉庫データを読み込む
-int inter_storage_init(void)
+void inter_storage_init(void)
 {
     int c = 0;
 
@@ -108,7 +108,7 @@ int inter_storage_init(void)
     if (!in.is_open())
     {
         PRINTF("cant't read : %s\n", storage_txt);
-        return 1;
+        return;
     }
 
     FString line;
@@ -126,8 +126,6 @@ int inter_storage_init(void)
         }
         c++;
     }
-
-    return 0;
 }
 
 static

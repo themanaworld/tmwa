@@ -19,6 +19,7 @@
 #include "../io/write.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/core.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -26,6 +27,7 @@
 #include "../common/nullpo.hpp"
 #include "../common/socket.hpp"
 #include "../common/timer.hpp"
+#include "../common/version.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"
@@ -73,7 +75,6 @@ interval_t autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
 
 FString motd_txt = "conf/motd.txt";
-FString help_txt = "conf/help.txt";
 
 CharName wisp_server_name = stringish<CharName>("Server");   // can be modified in char-server configuration file
 
@@ -1271,8 +1272,10 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
  *------------------------------------------
  */
 static
-int map_readallmap(void)
+bool map_readallmap(void)
 {
+    // I am increasingly of the opinion that this needs to be moved earlier.
+
     int maps_removed = 0;
     int num = 0;
 
@@ -1299,9 +1302,10 @@ int map_readallmap(void)
     {
         PRINTF("Cowardly refusing to keep going after removing %d maps.\n",
                 maps_removed);
-        exit(1);
+        return false;
     }
-    return 0;
+
+    return true;
 }
 
 /*==========================================
@@ -1427,7 +1431,7 @@ void map_log(XString line)
  *------------------------------------------
  */
 static
-int map_config_read(ZString cfgName)
+bool map_config_read(ZString cfgName)
 {
     struct hostent *h = NULL;
 
@@ -1435,16 +1439,23 @@ int map_config_read(ZString cfgName)
     if (!in.is_open())
     {
         PRINTF("Map configuration file not found at: %s\n", cfgName);
-        exit(1);
+        return false;
     }
 
+    bool rv = true;
     FString line;
     while (in.getline(line))
     {
+        if (is_comment(line))
+            continue;
         XString w1;
         ZString w2;
-        if (!split_key_value(line, &w1, &w2))
+        if (!config_split(line, &w1, &w2))
+        {
+            PRINTF("Bad config line: %s\n", line);
+            rv = false;
             continue;
+        }
         if (w1 == "userid")
         {
             AccountName name = stringish<AccountName>(w2);
@@ -1473,7 +1484,7 @@ int map_config_read(ZString cfgName)
             else
             {
                 PRINTF("Bad IP value: %s\n", line);
-                abort();
+                return false;
             }
             chrif_setip(w2ip);
         }
@@ -1499,7 +1510,7 @@ int map_config_read(ZString cfgName)
             else
             {
                 PRINTF("Bad IP value: %s\n", line);
-                abort();
+                return false;
             }
             clif_setip(w2ip);
         }
@@ -1535,10 +1546,6 @@ int map_config_read(ZString cfgName)
         {
             motd_txt = w2;
         }
-        else if (w1 == "help_txt")
-        {
-            help_txt = w2;
-        }
         else if (w1 == "mapreg_txt")
         {
             mapreg_txt = w2;
@@ -1553,11 +1560,11 @@ int map_config_read(ZString cfgName)
         }
         else if (w1 == "import")
         {
-            map_config_read(w2);
+            rv &= map_config_read(w2);
         }
     }
 
-    return 0;
+    return rv;
 }
 
 static
@@ -1618,14 +1625,6 @@ void term_func(void)
     map_close_logfile();
 }
 
-/// --help was passed
-// FIXME this should produce output
-static __attribute__((noreturn))
-void map_helpscreen(void)
-{
-    exit(1);
-}
-
 int compare_item(struct item *a, struct item *b)
 {
     return ((a->nameid == b->nameid) &&
@@ -1637,56 +1636,93 @@ int compare_item(struct item *a, struct item *b)
             (a->card[2] == b->card[2]) && (a->card[3] == b->card[3]));
 }
 
+static
+bool map_confs(XString key, ZString value)
+{
+    if (key == "map_conf")
+        return map_config_read(value);
+    if (key == "battle_conf")
+        return battle_config_read(value);
+    if (key == "atcommand_conf")
+        return atcommand_config_read(value);
+
+    if (key == "item_db")
+        return itemdb_readdb(value);
+    if (key == "mob_db")
+        return mob_readdb(value);
+    if (key == "mob_skill_db")
+        return mob_readskilldb(value);
+    if (key == "skill_db")
+        return skill_readdb(value);
+    if (key == "magic_conf")
+        return magic_init1(value);
+    PRINTF("unknown map conf key: %s\n", FString(key));
+    return false;
+}
+
 /*======================================================
  * Map-Server Init and Command-line Arguments [Valaris]
  *------------------------------------------------------
  */
 int do_init(int argc, ZString *argv)
 {
-    int i;
+    runflag &= magic_init0();
 
-    ZString MAP_CONF_NAME = "conf/map_athena.conf";
-    ZString BATTLE_CONF_FILENAME = "conf/battle_athena.conf";
-    ZString ATCOMMAND_CONF_FILENAME = "conf/atcommand_athena.conf";
-
-    for (i = 1; i < argc; i++)
+    bool loaded_config_yet = false;
+    for (int i = 1; i < argc; ++i)
     {
-
-        if (argv[i] == "--help" || argv[i] == "-h"
-            || argv[i] == "-?" || argv[i] == "/?")
-            map_helpscreen();
-        else if (argv[i] == "--map_config")
-            MAP_CONF_NAME = argv[++i];
-        else if (argv[i] == "--battle_config")
-            BATTLE_CONF_FILENAME = argv[++i];
-        else if (argv[i] == "--atcommand_config")
-            ATCOMMAND_CONF_FILENAME = argv[++i];
-        else if (argv[i] == "--write-atcommand-config")
+        if (argv[i].startswith('-'))
         {
-            ZString filename = argv[++i];
-            atcommand_config_write(filename);
-            exit(0);
+            if (argv[i] == "--help")
+            {
+                PRINTF("Usage: %s [--help] [--version] [--write_atcommand_config outfile] [files...]\n",
+                        argv[0]);
+                exit(0);
+            }
+            else if (argv[i] == "--version")
+            {
+                PRINTF("%s\n", CURRENT_VERSION_STRING);
+                exit(0);
+            }
+            else if (argv[i] == "--write-atcommand-config")
+            {
+                ++i;
+                if (i == argc)
+                {
+                    PRINTF("Missing argument\n");
+                    exit(1);
+                }
+                ZString filename = argv[i];
+                atcommand_config_write(filename);
+                exit(0);
+            }
+            else
+            {
+                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                runflag = false;
+            }
+        }
+        else
+        {
+            loaded_config_yet = true;
+            runflag &= load_config_file(argv[i], map_confs);
         }
     }
 
-    map_config_read(MAP_CONF_NAME);
-    battle_config_read(BATTLE_CONF_FILENAME);
-    atcommand_config_read(ATCOMMAND_CONF_FILENAME);
-    script_config_read();
+    if (!loaded_config_yet)
+        runflag &= load_config_file("conf/tmwa-map.conf", map_confs);
 
-    map_readallmap();
+    battle_config_check();
+    runflag &= map_readallmap();
 
-    do_init_chrif ();
-    do_init_clif ();
-    do_init_itemdb();
-    do_init_mob();             // npcの初期化時内でmob_spawnして、mob_dbを参照するのでinit_npcより先
+    do_init_chrif();
+    do_init_clif();
+    do_init_mob2();
     do_init_script();
-    do_init_npc();
+
+    runflag &= do_init_npc();
     do_init_pc();
     do_init_party();
-    do_init_storage();
-    do_init_skill();
-    do_init_magic();
 
     npc_event_do_oninit();     // npcのOnInitイベント実行
 

@@ -161,6 +161,6 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
 
 int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 
-int do_init_clif (void);
+void do_init_clif(void);
 
 #endif // CLIF_HPP

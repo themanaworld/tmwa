@@ -10,7 +10,6 @@ int storage_storageopen(dumb_ptr<map_session_data> sd);
 int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount);
 int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount);
 int storage_storageclose(dumb_ptr<map_session_data> sd);
-void do_init_storage(void);
 void do_final_storage(void);
 struct storage *account2storage(int account_id);
 struct storage *account2storage2(int account_id);

@@ -3,6 +3,8 @@
 
 # include <cstdint>
 
+# include "../strings/fwd.hpp"
+
 // TODO make these bitwise enums
 # define TMWA_FLAG_REGISTRATION 0x01
 
@@ -25,10 +27,43 @@ struct Version
 };
 static_assert(sizeof(Version) == 8, "this is sent over the network, can't change");
 
+extern Version CURRENT_VERSION;
+
 extern Version CURRENT_LOGIN_SERVER_VERSION;
 extern Version CURRENT_CHAR_SERVER_VERSION;
 extern Version CURRENT_MAP_SERVER_VERSION;
 
 extern const char CURRENT_VERSION_STRING[];
+
+bool extract(XString str, Version *vers);
+
+constexpr
+bool operator < (Version l, Version r)
+{
+    return (l.major < r.major
+            || (l.major == r.major
+                && (l.minor < r.minor
+                    || (l.minor == r.minor
+                        && (l.patch < r.patch
+                            || (l.patch == r.patch
+                                && (l.devel < r.devel
+                                    || (l.devel == r.devel
+                                        && l.vend < r.vend))))))));
+}
+constexpr
+bool operator > (Version l, Version r)
+{
+    return r < l;
+}
+constexpr
+bool operator <= (Version l, Version r)
+{
+    return !(r < l);
+}
+constexpr
+bool operator >= (Version l, Version r)
+{
+    return !(l < r);
+}
 
 #endif // TMWA_COMMON_VERSION_HPP

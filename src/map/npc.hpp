@@ -48,7 +48,7 @@ void npc_free(dumb_ptr<npc_data> npc);
 
 void npc_addsrcfile(FString);
 void npc_delsrcfile(FString);
-int do_init_npc(void);
+bool do_init_npc(void);
 int npc_event_do_oninit(void);
 
 int npc_event_doall_l(ScriptLabel name, int rid, int argc, struct argrec_t *argv);

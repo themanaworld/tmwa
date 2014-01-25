@@ -3,7 +3,7 @@
 
 # include "../strings/fwd.hpp"
 
-int inter_party_init(void);
+void inter_party_init(void);
 int inter_party_save(void);
 
 int inter_party_parse_frommap(int fd);

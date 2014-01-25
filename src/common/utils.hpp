@@ -29,8 +29,6 @@ struct is_trivially_copyable
 bool e_mail_check(XString email);
 int config_switch (ZString str);
 
-bool split_key_value(ZString line, XString *w1, ZString *w2);
-
 inline
 void really_memcpy(uint8_t *dest, const uint8_t *src, size_t n)
 {

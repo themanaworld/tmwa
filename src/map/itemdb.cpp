@@ -10,6 +10,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/nullpo.hpp"
@@ -28,11 +29,6 @@ static
 Map<int, struct item_data> item_db;
 
 // Function declarations
-
-static
-void itemdb_read(void);
-static
-int itemdb_readdb(void);
 
 /*==========================================
  * 名前で検索用
@@ -148,15 +144,11 @@ int itemdb_isequip3(int nameid)
         || type == ItemType::_8);
 }
 
-/*==========================================
- * アイテムデータベースの読み込み
- *------------------------------------------
- */
-static
-int itemdb_readdb(void)
+bool itemdb_readdb(ZString filename)
 {
+    bool rv = true;
+
     int ln = 0, lines = 0;
-    ZString filename = "db/item_db.txt";
 
     {
         io::ReadFile in(filename);
@@ -164,7 +156,7 @@ int itemdb_readdb(void)
         if (!in.is_open())
         {
             PRINTF("can't read %s\n", filename);
-            exit(1);
+            return false;
         }
 
         lines = 0;
@@ -173,9 +165,7 @@ int itemdb_readdb(void)
         while (in.getline(line))
         {
             lines++;
-            if (!line)
-                continue;
-            if (line.startswith("//"))
+            if (is_comment(line))
                 continue;
             // a line is 17 normal fields followed by 2 {} fields
             // the fields are separated by ", *", but there may be ,
@@ -212,6 +202,7 @@ int itemdb_readdb(void)
             {
                 PRINTF("%s:%d: error: bad item line: %s\n",
                         filename, lines, line);
+                rv = false;
                 continue;
             }
 
@@ -245,7 +236,8 @@ int itemdb_readdb(void)
         }
         PRINTF("read %s done (count=%d)\n", filename, ln);
     }
-    return 0;
+
+    return rv;
 }
 
 /*==========================================
@@ -259,18 +251,6 @@ void itemdb_final(struct item_data *id)
     id->equip_script.reset();
 }
 
-void itemdb_reload(void)
-{
-    /*
-     *
-     * <empty item databases>
-     * itemdb_read();
-     *
-     */
-
-    do_init_itemdb();
-}
-
 /*==========================================
  *
  *------------------------------------------
@@ -280,40 +260,4 @@ void do_final_itemdb(void)
     for (auto& pair : item_db)
         itemdb_final(&pair.second);
     item_db.clear();
-}
-
-/*
-static
-FILE *dfp;
-static
-int itemdebug(void *key,void *data,_va_list ap){
-//      struct item_data *id=(struct item_data *)data;
-        FPRINTF(dfp,"%6d", (int)key);
-        return 0;
-}
-void itemdebugtxt()
-{
-        dfp=fopen_("itemdebug.txt","wt");
-        numdb_foreach(item_db,itemdebug);
-        fclose_(dfp);
-}
-*/
-
-/*====================================
- * Removed item_value_db, don't re-add
- *------------------------------------
- */
-static
-void itemdb_read(void)
-{
-    itemdb_readdb();
-}
-
-/*==========================================
- *
- *------------------------------------------
- */
-void do_init_itemdb(void)
-{
-    itemdb_read();
 }

@@ -24,6 +24,7 @@
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/core.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -80,9 +81,9 @@ static
 FString char_log_filename = "log/char.log";
 //Added for lan support
 static
-IP4Address lan_map_ip;
+IP4Address lan_map_ip = IP4_LOCALHOST;
 static
-IP4Mask lan_subnet;
+IP4Mask lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 static
 int char_name_option = 0;      // Option to know which letters/symbols are authorised in the name of a character (0: all, 1: only those in char_name_letters, 2: all EXCEPT those in char_name_letters) by [Yor]
 static
@@ -451,7 +452,7 @@ int mmo_char_init(void)
     {
         line_count++;
 
-        if (line.startswith("//"))
+        if (is_comment(line))
             continue;
 
         {
@@ -2536,32 +2537,11 @@ void check_connect_login_server(TimerData *, tick_t)
 // Reading Lan Support configuration by [Yor]
 //-------------------------------------------
 static
-int lan_config_read(ZString lancfgName)
+bool char_lan_config(XString w1, ZString w2)
 {
     struct hostent *h = NULL;
 
-    // set default configuration
-    lan_map_ip = IP4_LOCALHOST;
-    lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
-
-    io::ReadFile in(lancfgName);
-
-    if (!in.is_open())
     {
-        PRINTF("LAN support configuration file not found: %s\n", lancfgName);
-        return 1;
-    }
-
-    PRINTF("---start reading of Lan Support configuration...\n");
-
-    FString line;
-    while (in.getline(line))
-    {
-        XString w1;
-        ZString w2;
-        if (!split_key_value(line, &w1, &w2))
-            continue;
-
         if (w1 == "lan_map_ip")
         {
             // Read map-server Lan IP Address
@@ -2577,8 +2557,8 @@ int lan_config_read(ZString lancfgName)
             }
             else
             {
-                PRINTF("Bad IP value: %s\n", line);
-                abort();
+                PRINTF("Bad IP value: %s\n", w2);
+                return false;
             }
             PRINTF("LAN IP of map-server: %s.\n", lan_map_ip);
         }
@@ -2587,54 +2567,42 @@ int lan_config_read(ZString lancfgName)
         {
             if (!extract(w2, &lan_subnet))
             {
-                PRINTF("Bad IP mask: %s\n", line);
-                abort();
+                PRINTF("Bad IP mask: %s\n", w2);
+                return false;
             }
             PRINTF("Sub-network of the map-server: %s.\n",
                     lan_subnet);
         }
         else
         {
-            FString w1z = w1;
-            PRINTF("WARNING: unknown lan config key: %s\n", w1z);
+            return false;
         }
     }
+    return true;
+}
 
+static
+bool lan_check()
+{
     // sub-network check of the map-server
     {
         PRINTF("LAN test of LAN IP of the map-server: ");
         if (!lan_ip_check(lan_map_ip))
         {
             PRINTF("\033[1;31m***ERROR: LAN IP of the map-server doesn't belong to the specified Sub-network.\033[0m\n");
+            return false;
         }
     }
 
-    PRINTF("---End reading of Lan Support configuration...\n");
-
-    return 0;
+    return true;
 }
 
 static
-int char_config_read(ZString cfgName)
+bool char_config(XString w1, ZString w2)
 {
     struct hostent *h = NULL;
 
-    io::ReadFile in(cfgName);
-
-    if (!in.is_open())
     {
-        PRINTF("Configuration file not found: %s.\n", cfgName);
-        exit(1);
-    }
-
-    FString line;
-    while (in.getline(line))
-    {
-        XString w1;
-        ZString w2;
-        if (!split_key_value(line, &w1, &w2))
-            continue;
-
         if (w1 == "userid")
             userid = stringish<AccountName>(w2);
         else if (w1 == "passwd")
@@ -2665,8 +2633,8 @@ int char_config_read(ZString cfgName)
             }
             else
             {
-                PRINTF("Bad IP value: %s\n", line);
-                abort();
+                PRINTF("Bad IP value: %s\n", w2);
+                return false;
             }
         }
         else if (w1 == "login_port")
@@ -2689,8 +2657,8 @@ int char_config_read(ZString cfgName)
             }
             else
             {
-                PRINTF("Bad IP value: %s\n", line);
-                abort();
+                PRINTF("Bad IP value: %s\n", w2);
+                return false;
             }
         }
         else if (w1 == "char_port")
@@ -2775,18 +2743,13 @@ int char_config_read(ZString cfgName)
                     std::chrono::seconds(atoi(w2.c_str())),
                     std::chrono::seconds(5));
         }
-        else if (w1 == "import")
-        {
-            char_config_read(w2);
-        }
         else
         {
-            FString w1z = w1;
-            PRINTF("WARNING: unknown char config key: %s\n", w1z);
+            return false;
         }
     }
 
-    return 0;
+    return true;
 }
 
 void term_func(void)
@@ -2808,38 +2771,69 @@ void term_func(void)
     CHAR_LOG("----End of char-server (normal end with closing of all files).\n");
 }
 
+static
+bool char_confs(XString key, ZString value)
+{
+    unsigned sum = 0;
+    sum += char_config(key, value);
+    sum += char_lan_config(key, value);
+    sum += inter_config(key, value);
+    if (sum >= 2)
+        abort();
+    return sum;
+}
+
 int do_init(int argc, ZString *argv)
 {
-    int i;
-
-    // a newline in the log...
-    CHAR_LOG("");
-    CHAR_LOG("The char-server starting...\n");
-
-    if (argc > 1)
-        char_config_read(argv[1]);
-    else
-        char_config_read(CHAR_CONF_NAME);
-    if (argc > 1)
-        lan_config_read(argv[2]);
-    else
-        lan_config_read(LOGIN_LAN_CONF_NAME);
-
-    for (i = 0; i < MAX_MAP_SERVERS; i++)
+    for (int i = 0; i < MAX_MAP_SERVERS; i++)
     {
         server[i] = mmo_map_server{};
         server_fd[i] = -1;
     }
 
+    bool loaded_config_yet = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (argv[i].startswith('-'))
+        {
+            if (argv[i] == "--help")
+            {
+                PRINTF("Usage: %s [--help] [--version] [files...]\n",
+                        argv[0]);
+                exit(0);
+            }
+            else if (argv[i] == "--version")
+            {
+                PRINTF("%s\n", CURRENT_VERSION_STRING);
+                exit(0);
+            }
+            else
+            {
+                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                runflag = false;
+            }
+        }
+        else
+        {
+            loaded_config_yet = true;
+            runflag &= load_config_file(argv[i], char_confs);
+        }
+    }
+
+    if (!loaded_config_yet)
+        runflag &= load_config_file("conf/tmwa-char.conf", char_confs);
+
+    // a newline in the log...
+    CHAR_LOG("");
+    CHAR_LOG("The char-server starting...\n");
+
+    runflag &= lan_check();
+    inter_init2();
+
     mmo_char_init();
 
     update_online = TimeT::now();
     create_online_files();     // update online players files at start of the server
-
-    if (argc > 3)
-        inter_init(argv[3]);
-    else
-        inter_init(inter_cfgName);
 
 //    set_termfunc (do_final);
     set_defaultparse(parse_char);

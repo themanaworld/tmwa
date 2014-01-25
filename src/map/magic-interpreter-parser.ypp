@@ -1381,16 +1381,17 @@ void INTERN_ASSERT(ZString name, int id)
 {
     int zid = intern_id(name);
     if (zid != id)
+    {
         FPRINTF(stderr,
             "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n",
             name, zid, id);
-    error_flag = 1;
+        error_flag = 1;
+    }
 }
 
 extern FILE *magic_frontend_in;
 
-// must be called after itemdb initialisation
-int magic_init(const char *conffile)
+bool magic_init0()
 {
     error_flag = 0;
 
@@ -1404,18 +1405,24 @@ int magic_init(const char *conffile)
     INTERN_ASSERT("script_target", VAR_SCRIPTTARGET);
     INTERN_ASSERT("location", VAR_LOCATION);
 
-    magic_frontend_in = fopen(conffile, "r");
+    return !error_flag;
+}
+
+// must be called after itemdb initialisation
+bool magic_init1(ZString conffile)
+{
+    magic_frontend_in = fopen(conffile.c_str(), "r");
     if (!magic_frontend_in)
     {
         FPRINTF(stderr, "[magic-conf] Magic configuration file `%s' not found -> no magic.\n", conffile);
-        return 0;
+        return false;
     }
     magic_frontend_parse();
 
     PRINTF("[magic-conf] Magic initialised.  %zu spells, %zu teleport anchors.\n",
         magic_conf.spells_by_name.size(), magic_conf.anchors_by_name.size());
 
-    return error_flag;
+    return !error_flag;
 }
 
 extern int magic_frontend_lineno;

@@ -16,6 +16,7 @@
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/core.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
@@ -89,13 +90,20 @@ const char *pos_str[11] =
 static
 struct Script_Config
 {
-    int warn_func_no_comma;
-    int warn_cmd_no_comma;
-    int warn_func_mismatch_paramnum;
-    int warn_cmd_mismatch_paramnum;
-    int check_cmdcount;
-    int check_gotocount;
+    static const
+    int warn_func_no_comma = 1;
+    static const
+    int warn_cmd_no_comma = 1;
+    static const
+    int warn_func_mismatch_paramnum = 1;
+    static const
+    int warn_cmd_mismatch_paramnum = 1;
+    static const
+    int check_cmdcount = 8192;
+    static const
+    int check_gotocount = 512;
 } script_config;
+
 static
 int parse_cmd_if = 0;
 static
@@ -698,7 +706,7 @@ void read_constdb(void)
     FString line;
     while (in.getline(line))
     {
-        if (line.startswith("//"))
+        if (is_comment(line))
             continue;
 
         FString name;
@@ -4999,16 +5007,6 @@ void script_autosave_mapreg(TimerData *, tick_t)
 {
     if (mapreg_dirty)
         script_save_mapreg();
-}
-
-void script_config_read()
-{
-    script_config.warn_func_no_comma = 1;
-    script_config.warn_cmd_no_comma = 1;
-    script_config.warn_func_mismatch_paramnum = 1;
-    script_config.warn_cmd_mismatch_paramnum = 1;
-    script_config.check_cmdcount = 8192;
-    script_config.check_gotocount = 512;
 }
 
 void do_final_script(void)

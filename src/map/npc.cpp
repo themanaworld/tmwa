@@ -15,6 +15,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/nullpo.hpp"
@@ -1711,8 +1712,9 @@ void npc_free(dumb_ptr<npc_data> nd)
  * npc初期化
  *------------------------------------------
  */
-int do_init_npc(void)
+bool do_init_npc(void)
 {
+    bool rv = true;
     // other fields unused
     ev_tm_b.tm_min = -1;
     ev_tm_b.tm_hour = -1;
@@ -1725,7 +1727,8 @@ int do_init_npc(void)
         if (!fp.is_open())
         {
             PRINTF("file not found : %s\n", nsl);
-            exit(1);
+            rv = false;
+            continue;
         }
         PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
                 nsl);
@@ -1737,14 +1740,13 @@ int do_init_npc(void)
             ZString w4z;
             lines++;
 
-            if (!zline)
-                continue;
-            if (zline.startswith("//"))
+            if (is_comment(zline))
                 continue;
 
             if (!extract(zline, record<'|', 3>(&w1, &w2, &w3, &w4x)) || !w1 || !w2 || !w3)
             {
                 FPRINTF(stderr, "%s:%d: Broken script line: %s\n", nsl, lines, zline);
+                rv = false;
                 continue;
             }
             if (&*w4x.end() == &*zline.end())
@@ -1762,6 +1764,7 @@ int do_init_npc(void)
                 {
                     // "mapname" is not assigned to this server
                     FPRINTF(stderr, "%s:%d: Map not found: %s\n", nsl, lines, mapname);
+                    rv = false;
                     continue;
                 }
             }
@@ -1801,6 +1804,7 @@ int do_init_npc(void)
             else
             {
                 PRINTF("odd script line: %s\n", zline);
+                script_errors++;
             }
         }
         fflush(stdout);
@@ -1811,8 +1815,7 @@ int do_init_npc(void)
     if (script_errors)
     {
         PRINTF("Cowardly refusing to continue after %d errors\n", script_errors);
-        abort();
+        rv = false;
     }
-
-    return 0;
+    return rv;
 }

@@ -14,6 +14,7 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/core.hpp"
 #include "../common/extract.hpp"
 #include "../common/human_time_diff.hpp"
@@ -317,22 +318,29 @@ AtCommandInfo *get_atcommandinfo_byname(XString name)
     return atcommand_info.search(name);
 }
 
-int atcommand_config_read(ZString cfgName)
+bool atcommand_config_read(ZString cfgName)
 {
     io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("At commands configuration file not found: %s\n", cfgName);
-        return 1;
+        return false;
     }
 
+    bool rv = true;
     FString line;
     while (in.getline(line))
     {
+        if (is_comment(line))
+            continue;
         XString w1;
         ZString w2;
-        if (!split_key_value(line, &w1, &w2))
+        if (!config_split(line, &w1, &w2))
+        {
+            PRINTF("Bad config line: %s\n", line);
+            rv = false;
             continue;
+        }
         AtCommandInfo *p = get_atcommandinfo_byname(w1);
         if (p != NULL)
         {
@@ -343,12 +351,15 @@ int atcommand_config_read(ZString cfgName)
                 p->level = 0;
         }
         else if (w1 == "import")
-            atcommand_config_read(w2);
+            rv &= atcommand_config_read(w2);
         else
+        {
             PRINTF("%s: bad line: %s\n", cfgName, line);
+            rv = false;
+        }
     }
 
-    return 0;
+    return rv;
 }
 
 /// @ command processing functions
@@ -3384,61 +3395,6 @@ ATCE atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_reloaditemdb(const int fd, dumb_ptr<map_session_data>,
-        ZString)
-{
-    itemdb_reload();
-    clif_displaymessage(fd, "Item database reloaded.");
-
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_reloadmobdb(const int fd, dumb_ptr<map_session_data>,
-        ZString)
-{
-    mob_reload();
-    clif_displaymessage(fd, "Monster database reloaded.");
-
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_reloadskilldb(const int fd, dumb_ptr<map_session_data>,
-        ZString)
-{
-    skill_reload();
-    clif_displaymessage(fd, "Skill database reloaded.");
-
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_reloadscript(const int fd, dumb_ptr<map_session_data>,
-        ZString)
-{
-    do_init_npc();
-    do_init_script();
-
-    npc_event_do_oninit();
-
-    clif_displaymessage(fd, "Scripts reloaded.");
-
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_reloadgmdb(const int fd, dumb_ptr<map_session_data>,
-        ZString)
-{
-    chrif_reloadGMdb();
-
-    clif_displaymessage(fd, "Login-server asked to reload GM accounts and their level.");
-
-    return ATCE::OKAY;
-}
-
-static
 ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
         ZString message)
 {
@@ -5331,21 +5287,6 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"charstreset", {"<charname>",
         60, atcommand_charstreset,
         "Reset a player's stat points"}},
-    {"reloaditemdb", {"",
-        99, atcommand_reloaditemdb,
-        "Allegedly to reload the item database"}},
-    {"reloadmobdb", {"",
-        99, atcommand_reloadmobdb,
-        "Allegedly to reload the mob database"}},
-    {"reloadskilldb", {"",
-        99, atcommand_reloadskilldb,
-        "Allegedly to reload the skill database"}},
-    {"reloadscript", {"",
-        99, atcommand_reloadscript,
-        "Allegedly to reload the script database"}},
-    {"reloadgmdb", {"",
-        99, atcommand_reloadgmdb,
-        "Unnecessarily reload the GM database"}},
     {"charreset", {"<charname>",
         60, atcommand_charreset,
         "Reset a player's skills, stats, and magic"}},

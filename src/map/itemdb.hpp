@@ -77,6 +77,6 @@ int itemdb_isequip3(int);
 void itemdb_reload(void);
 
 void do_final_itemdb(void);
-void do_init_itemdb(void);
+bool itemdb_readdb(ZString filename);
 
 #endif // ITEMDB_HPP

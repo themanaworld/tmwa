@@ -15,6 +15,7 @@
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/core.hpp"
 #include "../common/human_time_diff.hpp"
 #include "../common/md5calc.hpp"
@@ -25,7 +26,6 @@
 
 #include "../poison.hpp"
 
-#define LADMIN_CONF_NAME        "conf/ladmin_athena.conf"
 
 static
 int eathena_interactive_session;
@@ -2784,29 +2784,10 @@ int Connect_login_server(void)
     return 0;
 }
 
-//-----------------------------------
-// Reading general configuration file
-//-----------------------------------
 static
-int ladmin_config_read(ZString cfgName)
+bool admin_confs(XString w1, ZString w2)
 {
-    io::ReadFile in(cfgName);
-    if (!in.is_open())
     {
-        PRINTF("\033[0mConfiguration file (%s) not found.\n", cfgName);
-        return 1;
-    }
-
-    Iprintf("\033[0m---Start reading of Ladmin configuration file (%s)\n",
-         cfgName);
-    FString line;
-    while (in.getline(line))
-    {
-        XString w1;
-        ZString w2;
-        if (!split_key_value(line, &w1, &w2))
-            continue;
-
         if (w1 == "login_ip")
         {
             struct hostent *h = gethostbyname(w2.c_str());
@@ -2834,19 +2815,13 @@ int ladmin_config_read(ZString cfgName)
         {
             ladmin_log_filename = w2;
         }
-        else if (w1 == "import")
-        {
-            ladmin_config_read(w2);
-        }
         else
         {
             PRINTF("WARNING: unknown ladmin config key: %s\n", FString(w1));
+            return false;
         }
     }
-
-    Iprintf("---End reading of Ladmin configuration file.\n");
-
-    return 0;
+    return true;
 }
 
 //--------------------------------------
@@ -2871,9 +2846,39 @@ void term_func(void)
 //------------------------
 int do_init(int argc, ZString *argv)
 {
+    bool loaded_config_yet = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (argv[i].startswith('-'))
+        {
+            if (argv[i] == "--help")
+            {
+                PRINTF("Usage: %s [--help] [--version] [files...]\n",
+                        argv[0]);
+                exit(0);
+            }
+            else if (argv[i] == "--version")
+            {
+                PRINTF("%s\n", CURRENT_VERSION_STRING);
+                exit(0);
+            }
+            else
+            {
+                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                runflag = false;
+            }
+        }
+        else
+        {
+            loaded_config_yet = true;
+            runflag &= load_config_file(argv[i], admin_confs);
+        }
+    }
+
+    if (!loaded_config_yet)
+        runflag &= load_config_file("conf/tmwa-admin.conf", admin_confs);
+
     eathena_interactive_session = isatty(0);
-    // read ladmin configuration
-    ladmin_config_read((argc > 1) ? argv[1] : LADMIN_CONF_NAME);
 
     LADMIN_LOG("");
     LADMIN_LOG("Configuration file readed.\n");

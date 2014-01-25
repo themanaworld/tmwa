@@ -445,8 +445,9 @@ struct proc_t
     {}
 };
 
+bool magic_init0();
 // must be called after itemdb initialisation
-int magic_init(const char *);
+bool magic_init1(ZString filename);
 void spell_update_location(dumb_ptr<invocation> invocation);
 
 #endif // MAGIC_INTERPRETER_HPP

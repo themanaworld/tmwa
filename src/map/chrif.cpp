@@ -1187,7 +1187,7 @@ void check_connect_char_server(TimerData *, tick_t)
  *
  *------------------------------------------
  */
-int do_init_chrif (void)
+void do_init_chrif(void)
 {
     Timer(gettick() + std::chrono::seconds(1),
             check_connect_char_server,
@@ -1197,6 +1197,4 @@ int do_init_chrif (void)
             send_users_tochar,
             std::chrono::seconds(5)
     ).detach();
-
-    return 0;
 }

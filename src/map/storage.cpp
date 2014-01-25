@@ -21,10 +21,6 @@
 static
 Map<int, struct storage> storage_db;
 
-void do_init_storage(void)
-{
-}
-
 void do_final_storage(void)
 {
     storage_db.clear();

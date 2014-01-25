@@ -159,7 +159,6 @@ Map<ScriptLabel, int> scriptlabel_db;
 extern
 UPMap<FString, const ScriptBuffer> userfunc_db;
 
-void script_config_read();
 void do_init_script(void);
 void do_final_script(void);
 

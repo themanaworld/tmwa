@@ -24,6 +24,7 @@ namespace strings
     template<class It>
     void FString::_assign(It b, It e)
     {
+        owned = nullptr;
         if (b == e)
         {
             *this = FString();

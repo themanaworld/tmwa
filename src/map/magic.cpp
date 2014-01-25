@@ -104,8 +104,3 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
 
     return 0;                   /* Not a spell */
 }
-
-void do_init_magic(void)
-{
-    magic_init(MAGIC_CONFIG_FILE);
-}

@@ -15,6 +15,7 @@
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/db.hpp"
 #include "../common/extract.hpp"
 #include "../common/socket.hpp"
@@ -106,13 +107,13 @@ bool extract(XString str, struct accreg *reg)
 
 // アカウント変数の読み込み
 static
-int inter_accreg_init(void)
+void inter_accreg_init(void)
 {
     int c = 0;
 
     io::ReadFile in(accreg_txt);
     if (!in.is_open())
-        return 1;
+        return;
     FString line;
     while (in.getline(line))
     {
@@ -128,8 +129,6 @@ int inter_accreg_init(void)
         }
         c++;
     }
-
-    return 0;
 }
 
 // アカウント変数のセーブ用
@@ -160,30 +159,9 @@ int inter_accreg_save(void)
     return 0;
 }
 
-//--------------------------------------------------------
-
-/*==========================================
- * 設定ファイルを読み込む
- *------------------------------------------
- */
-static
-int inter_config_read(ZString cfgName)
+bool inter_config(XString w1, ZString w2)
 {
-    io::ReadFile in(cfgName);
-    if (!in.is_open())
     {
-        PRINTF("file not found: %s\n", cfgName);
-        return 1;
-    }
-
-    FString line;
-    while (in.getline(line))
-    {
-        XString w1;
-        ZString w2;
-        if (!split_key_value(line, &w1, &w2))
-            continue;
-
         if (w1 == "storage_txt")
         {
             storage_txt = w2;
@@ -202,18 +180,13 @@ int inter_config_read(ZString cfgName)
             if (party_share_level < 0)
                 party_share_level = 0;
         }
-        else if (w1 == "import")
-        {
-            inter_config_read(w2);
-        }
         else
         {
-            FString w1z = w1;
-            PRINTF("WARNING: unknown inter config key: %s\n", w1z);
+            return false;
         }
     }
 
-    return 0;
+    return true;
 }
 
 // セーブ
@@ -225,10 +198,8 @@ void inter_save(void)
 }
 
 // 初期化
-void inter_init(ZString file)
+void inter_init2()
 {
-    inter_config_read(file);
-
     inter_party_init();
     inter_storage_init();
     inter_accreg_init();

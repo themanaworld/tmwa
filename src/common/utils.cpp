@@ -65,28 +65,6 @@ int config_switch(ZString str)
     abort();
 }
 
-bool split_key_value(ZString line, XString *w1, ZString *w2)
-{
-    if (line.startswith("//"))
-        return false;
-    if (!line)
-        return false;
-
-    if (std::find_if(line.begin(), line.end(),
-                [](unsigned char c) { return c < ' '; }
-                ) != line.end())
-        return false;
-    ZString::iterator colon = std::find(line.begin(), line.end(), ':');
-    if (colon == line.end())
-        return false;
-    *w1 = line.xislice_h(colon);
-    ++colon;
-    while (std::isspace(*colon))
-        ++colon;
-    *w2 = line.xislice_t(colon);
-    return true;
-}
-
 static_assert(sizeof(timestamp_seconds_buffer) == 20, "seconds buffer");
 static_assert(sizeof(timestamp_milliseconds_buffer) == 24, "millis buffer");
 

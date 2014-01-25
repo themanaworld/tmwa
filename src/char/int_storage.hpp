@@ -3,7 +3,7 @@
 
 # include "../strings/fwd.hpp"
 
-int inter_storage_init(void);
+void inter_storage_init(void);
 int inter_storage_save(void);
 void inter_storage_delete(int account_id);
 struct storage *account2storage(int account_id);

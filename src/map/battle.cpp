@@ -8,6 +8,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
+#include "../common/config_parse.hpp"
 #include "../common/nullpo.hpp"
 #include "../common/random.hpp"
 
@@ -21,7 +22,13 @@
 
 #include "../poison.hpp"
 
-struct Battle_Config battle_config;
+
+static Battle_Config init_battle_config();
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+struct Battle_Config battle_config = init_battle_config();
+#pragma GCC diagnostic pop
 
 /*==========================================
  * 自分をロックしている対象の数を返す(汎用)
@@ -2289,15 +2296,12 @@ int battle_check_range(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
                          bl->bl_x - dx, bl->bl_y - dy, 0x10001) != -1) ? 1 : 0;
 }
 
-/*==========================================
- * 設定ファイルを読み込む
- *------------------------------------------
- */
-int battle_config_read(ZString cfgName)
+Battle_Config init_battle_config()
 {
-    static int count = 0;
-
-    if ((count++) == 0)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+    Battle_Config battle_config;
+#pragma GCC diagnostic pop
     {
         battle_config.warp_point_debug = 0;
         battle_config.enemy_critical = 0;
@@ -2403,12 +2407,17 @@ int battle_config_read(ZString cfgName)
 
         battle_config.mob_splash_radius = -1;
     }
+    return battle_config;
+}
 
+bool battle_config_read(ZString cfgName)
+{
+    bool rv = true;
     io::ReadFile in(cfgName);
     if (!in.is_open())
     {
         PRINTF("file not found: %s\n", cfgName);
-        return 1;
+        return false;
     }
 
     FString line;
@@ -2522,10 +2531,16 @@ int battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(mob_splash_radius),
         };
 
+        if (is_comment(line))
+            continue;
         XString w1;
         ZString w2;
-        if (!split_key_value(line, &w1, &w2))
+        if (!config_split(line, &w1, &w2))
+        {
+            PRINTF("Bad config line: %s\n", line);
+            rv = false;
             continue;
+        }
 
         if (w1 == "import")
         {
@@ -2541,12 +2556,17 @@ int battle_config_read(ZString cfgName)
             }
 
         PRINTF("WARNING: unknown battle conf key: %s\n", FString(w1));
+        rv = false;
 
     continue_outer:
         ;
     }
 
-    if (--count == 0)
+    return rv;
+}
+
+void battle_config_check()
+{
     {
         if (static_cast<interval_t>(battle_config.flooritem_lifetime) < std::chrono::seconds(1))
             battle_config.flooritem_lifetime = std::chrono::duration_cast<std::chrono::milliseconds>(LIFETIME_FLOORITEM).count();
@@ -2657,6 +2677,4 @@ int battle_config_read(ZString cfgName)
         else if (battle_config.mask_ip_gms > 1)
             battle_config.mask_ip_gms = 1;
     }
-
-    return 0;
 }
