@@ -166,4 +166,6 @@ extern FString mapreg_txt;
 
 extern int script_errors;
 
+bool read_constdb(ZString filename);
+
 #endif // SCRIPT_HPP

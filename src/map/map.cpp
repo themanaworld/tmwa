@@ -1656,6 +1656,11 @@ bool map_confs(XString key, ZString value)
         return skill_readdb(value);
     if (key == "magic_conf")
         return magic_init1(value);
+
+    if (key == "resnametable")
+        return load_resnametable(value);
+    if (key == "const_db")
+        return read_constdb(value);
     PRINTF("unknown map conf key: %s\n", FString(key));
     return false;
 }

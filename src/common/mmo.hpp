@@ -41,8 +41,6 @@ constexpr int MAX_PARTY = 12;
 # define MIN_CLOTH_COLOR battle_config.min_cloth_color
 # define MAX_CLOTH_COLOR battle_config.max_cloth_color
 
-# define CHAR_CONF_NAME  "conf/char_athena.conf"
-
 struct AccountName : VString<23> {};
 struct AccountPass : VString<23> {};
 struct AccountCrypt : VString<39> {};

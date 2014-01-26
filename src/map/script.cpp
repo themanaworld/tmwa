@@ -689,20 +689,16 @@ void add_builtin_functions(void)
     }
 }
 
-/*==========================================
- * 定数データベースの読み込み
- *------------------------------------------
- */
-static
-void read_constdb(void)
+bool read_constdb(ZString filename)
 {
-    io::ReadFile in("db/const.txt");
+    io::ReadFile in(filename);
     if (!in.is_open())
     {
-        PRINTF("can't read db/const.txt\n");
-        return;
+        PRINTF("can't read %s\n", filename);
+        return false;
     }
 
+    bool rv = true;
     FString line;
     while (in.getline(line))
     {
@@ -714,11 +710,16 @@ void read_constdb(void)
         int type = 0; // if not provided
         // TODO get rid of SSCANF - this is the last serious use
         if (SSCANF(line, "%m[A-Za-z0-9_] %i %i", &name, &val, &type) < 2)
+        {
+            PRINTF("Bad const line: %s\n", line);
+            rv = false;
             continue;
+        }
         str_data_t *n = add_strp(name);
         n->type = type ? ByteCode::PARAM_ : ByteCode::INT;
         n->val = val;
     }
+    return rv;
 }
 
 std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line)
@@ -739,7 +740,6 @@ void ScriptBuffer::parse_script(ZString src, int line)
     if (first)
     {
         add_builtin_functions();
-        read_constdb();
     }
     first = 0;
     LABEL_NEXTLINE_.type = ByteCode::NOP;

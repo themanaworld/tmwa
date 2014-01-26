@@ -8,8 +8,6 @@
 # include "map.hpp"
 # include "skill.t.hpp"
 
-# define MAGIC_CONFIG_FILE "conf/magic.conf"
-
 struct invocation;              /* Spell invocation */
 
 /**

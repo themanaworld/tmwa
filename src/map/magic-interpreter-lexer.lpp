@@ -146,7 +146,7 @@
 "#".*$                  /* Ignore comments */
 "//".*$                 /* Ignore comments */
 [ \n\t\r]               /* ignore whitespace */
-.                       FPRINTF(stderr, "%s: Unexpected character in line %d\n", MAGIC_CONFIG_FILE, magic_frontend_lineno);
+.                       FPRINTF(stderr, "%s: Unexpected character in line %d\n", current_magic_filename, magic_frontend_lineno);
 
 %%
 // nothing to see here, move along

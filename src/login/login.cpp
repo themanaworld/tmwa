@@ -90,7 +90,7 @@ ServerName main_server;
 static
 FString account_filename = "save/account.txt";
 static
-FString gm_account_filename = "conf/GM_account.txt";
+FString gm_account_filename = "save/gm_account.txt";
 static
 FString login_log_filename = "log/login.log";
 static

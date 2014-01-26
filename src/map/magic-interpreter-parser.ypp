@@ -1,6 +1,9 @@
 %code requires
 {
 #include "magic-interpreter.hpp"
+
+extern
+FString current_magic_filename;
 } // %code requires
 
 %code
@@ -19,6 +22,8 @@
 
 #include "itemdb.hpp"
 #include "magic-expr.hpp"
+
+FString current_magic_filename;
 
 // can't use src/warnings.hpp in generated code
 #pragma GCC diagnostic warning "-Wall"
@@ -1411,6 +1416,7 @@ bool magic_init0()
 // must be called after itemdb initialisation
 bool magic_init1(ZString conffile)
 {
+    current_magic_filename = conffile;
     magic_frontend_in = fopen(conffile.c_str(), "r");
     if (!magic_frontend_in)
     {

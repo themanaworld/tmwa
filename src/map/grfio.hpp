@@ -7,6 +7,8 @@
 
 # include "../common/mmo.hpp"
 
+bool load_resnametable(ZString filename);
+
 /// Load a resource into memory, subject to data/resnametable.txt.
 /// Normally, resourcename is xxx-y.gat and the file is xxx-y.wlk.
 /// Currently there is exactly one .wlk per .gat, but multiples are fine.

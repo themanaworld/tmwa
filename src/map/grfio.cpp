@@ -23,16 +23,18 @@
 #include "../poison.hpp"
 
 static
-std::map<MapName, FString> load_resnametable()
+std::map<MapName, FString> resnametable;
+
+bool load_resnametable(ZString filename)
 {
-    io::ReadFile in("data/resnametable.txt");
+    io::ReadFile in(filename);
     if (!in.is_open())
     {
-        fprintf(stderr, "Missing data/resnametable.txt");
-        abort();
+        FPRINTF(stderr, "Missing %s\n", filename);
+        return false;
     }
-    std::map<MapName, FString> out;
 
+    bool rv = true;
     FString line;
     while (in.getline(line))
     {
@@ -40,19 +42,20 @@ std::map<MapName, FString> load_resnametable()
         FString value;
         if (!extract(line,
                     record<'#'>(&key, &value)))
+        {
+            PRINTF("Bad resnametable line: %s\n", line);
+            rv = false;
             continue;
-        out[key] = value;
+        }
+        resnametable[key] = value;
     }
-    return out;
+    return rv;
 }
 
 /// Change *.gat to *.wlk
 static
 FString grfio_resnametable(MapName rname)
 {
-    static
-    std::map<MapName, FString> resnametable = load_resnametable();
-
     return resnametable.at(rname);
 }
 
