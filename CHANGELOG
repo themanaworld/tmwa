@@ -1,3 +1,25 @@
+v14.1.27:
+  - new tracking IO for better errors
+  - Unified config parsing! This *requires* new config files in server-data
+  - reimplement shared string better
+  - fix IO-related abort during shutdown
+  - fix the numbering of certain map logs
+  - add mapexit script command, since @mapexit doesn't work without a player
+  - start enforcing code format automatically
+  - add debug printers
+v13.11.24:
+  - don't consume spell components when under @hide
+  - tmwa-admin no longer logs passwords in cleartext
+  - tmwa-admin help slightly fixed (still terrible)
+  - make tmwa-finger work for tmwa-map also
+  - allow setting class
+  - I/O rewrite
+  - allow checking whether arrows are equipped
+  - more printers
+v13.10.31:
+  - make debug printers more compatible with older systems
+  - fix account creation with ladmin
+  - fix building out of tree
 v13.10.29:
   - show MOTD in a way that works
   - ignore hidden GMs in more scripts

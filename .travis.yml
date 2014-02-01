@@ -47,13 +47,13 @@ script:
   - mkdir build
   - cd build
   - ../configure --dev CPPFLAGS=-DQUIET
-  - make -k -j2
-  - make format
+  - make -R -k -j2
+  - make -R format
   - git diff --exit-code
 
 ## Do something after the main test script
 after_script:
-  - make test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
+  - make -R test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
 ### The rest of the file creates a build matrix
 ### containing gcc-4.6 through gcc-4.8 and clang-3.1 through clang-3.3
