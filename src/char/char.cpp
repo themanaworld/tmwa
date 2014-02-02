@@ -2828,9 +2828,9 @@ int do_init(int argc, ZString *argv)
     CHAR_LOG("The char-server starting...\n");
 
     runflag &= lan_check();
-    inter_init2();
 
     mmo_char_init();
+    inter_init2();
 
     update_online = TimeT::now();
     create_online_files();     // update online players files at start of the server

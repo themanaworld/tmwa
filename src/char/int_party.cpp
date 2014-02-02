@@ -101,6 +101,27 @@ bool extract(XString str, party *p)
     return true;
 }
 
+static
+void party_check_deleted_init(struct party *p)
+{
+    for (int i = 0; i < MAX_PARTY; i++)
+    {
+        if (!p->member[i].account_id)
+            continue;
+        const struct mmo_charstatus *c = search_character(p->member[i].name);
+        if (!c || c->account_id != p->member[i].account_id)
+        {
+            CHAR_LOG("WARNING: deleting obsolete party member %d %s of %d %s\n",
+                    p->member[i].account_id, p->member[i].name,
+                    p->party_id, p->name);
+            PRINTF("WARNING: deleting obsolete party member %d %s of %d %s\n",
+                    p->member[i].account_id, p->member[i].name,
+                    p->party_id, p->name);
+            p->member[i] = party_member{};
+        }
+    }
+}
+
 // パーティデータのロード
 void inter_party_init(void)
 {
@@ -126,6 +147,7 @@ void inter_party_init(void)
         {
             if (p.party_id >= party_newid)
                 party_newid = p.party_id + 1;
+            party_check_deleted_init(&p);
             party_db.insert(p.party_id, p);
             party_check_empty(&p);
         }
@@ -378,6 +400,7 @@ void mapif_party_broken(int party_id, int flag)
     WBUFB(buf, 6) = flag;
     mapif_sendall(buf, 7);
     PRINTF("int_party: broken %d\n", party_id);
+    CHAR_LOG("int_party: broken %d\n", party_id);
 }
 
 // パーティ内発言
