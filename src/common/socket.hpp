@@ -29,7 +29,7 @@ struct SessionDeleter
 
 // Struct declaration
 
-struct socket_data
+struct Session
 {
     /// Checks whether a newly-connected socket actually does anything
     TimeT created;
@@ -54,16 +54,24 @@ struct socket_data
     /// Only called when select() indicates the socket is ready
     /// If, after that, nothing is read, it sets eof
     // These could probably be hard-coded with a little work
-    void (*func_recv)(int);
-    void (*func_send)(int);
+    void (*func_recv)(Session *);
+    void (*func_send)(Session *);
     /// This is the important one
     /// Set to different functions depending on whether the connection
     /// is a player or a server/ladmin
     /// Can be set explicitly or via set_defaultparse
-    void (*func_parse)(int);
+    void (*func_parse)(Session *);
     /// Server-specific data type
     std::unique_ptr<SessionData, SessionDeleter> session_data;
+
+    int fd;
 };
+
+inline
+int convert_for_printf(Session *s)
+{
+    return s->fd;
+}
 
 // save file descriptors for important stuff
 constexpr int SOFT_LIMIT = FD_SETSIZE - 50;
@@ -73,21 +81,21 @@ constexpr int CONNECT_TIMEOUT = 15;
 
 /// Everyone who has connected
 // note: call delete_session(i) to null out an element
-extern std::array<std::unique_ptr<socket_data>, FD_SETSIZE> session;
+extern std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
 
 /// Maximum used FD, +1
 extern int fd_max;
 
 /// open a socket, bind, and listen. Return an fd, or -1 if socket() fails,
 /// but exit if bind() or listen() fails
-int make_listen_port(uint16_t port);
+Session *make_listen_port(uint16_t port);
 /// Connect to an address, return a connected socket or -1
 // FIXME - this is IPv4 only!
-int make_connection(IP4Address ip, uint16_t port);
+Session *make_connection(IP4Address ip, uint16_t port);
 /// free() the structure and close() the fd
-void delete_session(int);
+void delete_session(Session *);
 /// Make a the internal queues bigger
-void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size);
+void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size);
 /// Update all sockets that can be read/written from the queues
 void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
@@ -99,7 +107,7 @@ void do_socket(void);
 /// Change the default parser for newly connected clients
 // typically called once per server, but individual clients may identify
 // themselves as servers
-void set_defaultparse(void(*defaultparse)(int));
+void set_defaultparse(void(*defaultparse)(Session *));
 
 template<class T>
 uint8_t *pod_addressof_m(T& structure)
@@ -118,68 +126,68 @@ const uint8_t *pod_addressof_c(const T& structure)
 
 /// Check how much can be read
 inline
-size_t RFIFOREST(int fd)
+size_t RFIFOREST(Session *s)
 {
-    return session[fd]->rdata_size - session[fd]->rdata_pos;
+    return s->rdata_size - s->rdata_pos;
 }
 /// Read from the queue
 inline
-const void *RFIFOP(int fd, size_t pos)
+const void *RFIFOP(Session *s, size_t pos)
 {
-    return &session[fd]->rdata[session[fd]->rdata_pos + pos];
+    return &s->rdata[s->rdata_pos + pos];
 }
 inline
-uint8_t RFIFOB(int fd, size_t pos)
+uint8_t RFIFOB(Session *s, size_t pos)
 {
-    return *static_cast<const uint8_t *>(RFIFOP(fd, pos));
+    return *static_cast<const uint8_t *>(RFIFOP(s, pos));
 }
 inline
-uint16_t RFIFOW(int fd, size_t pos)
+uint16_t RFIFOW(Session *s, size_t pos)
 {
-    return *static_cast<const uint16_t *>(RFIFOP(fd, pos));
+    return *static_cast<const uint16_t *>(RFIFOP(s, pos));
 }
 inline
-uint32_t RFIFOL(int fd, size_t pos)
+uint32_t RFIFOL(Session *s, size_t pos)
 {
-    return *static_cast<const uint32_t *>(RFIFOP(fd, pos));
+    return *static_cast<const uint32_t *>(RFIFOP(s, pos));
 }
 template<class T>
-void RFIFO_STRUCT(int fd, size_t pos, T& structure)
+void RFIFO_STRUCT(Session *s, size_t pos, T& structure)
 {
-    really_memcpy(pod_addressof_m(structure), static_cast<const uint8_t *>(RFIFOP(fd, pos)), sizeof(T));
+    really_memcpy(pod_addressof_m(structure), static_cast<const uint8_t *>(RFIFOP(s, pos)), sizeof(T));
 }
 inline
-IP4Address RFIFOIP(int fd, size_t pos)
+IP4Address RFIFOIP(Session *s, size_t pos)
 {
     IP4Address o;
-    RFIFO_STRUCT(fd, pos, o);
+    RFIFO_STRUCT(s, pos, o);
     return o;
 }
 template<uint8_t len>
 inline
-VString<len-1> RFIFO_STRING(int fd, size_t pos)
+VString<len-1> RFIFO_STRING(Session *s, size_t pos)
 {
-    const char *const begin = static_cast<const char *>(RFIFOP(fd, pos));
+    const char *const begin = static_cast<const char *>(RFIFOP(s, pos));
     const char *const end = begin + len-1;
     const char *const mid = std::find(begin, end, '\0');
     return XString(begin, mid, nullptr);
 }
 inline
-FString RFIFO_STRING(int fd, size_t pos, size_t len)
+FString RFIFO_STRING(Session *s, size_t pos, size_t len)
 {
-    const char *const begin = static_cast<const char *>(RFIFOP(fd, pos));
+    const char *const begin = static_cast<const char *>(RFIFOP(s, pos));
     const char *const end = begin + len;
     const char *const mid = std::find(begin, end, '\0');
     return XString(begin, mid, nullptr);
 }
 inline
-void RFIFO_BUF_CLONE(int fd, uint8_t *buf, size_t len)
+void RFIFO_BUF_CLONE(Session *s, uint8_t *buf, size_t len)
 {
-    really_memcpy(buf, static_cast<const uint8_t *>(RFIFOP(fd, 0)), len);
+    really_memcpy(buf, static_cast<const uint8_t *>(RFIFOP(s, 0)), len);
 }
 
 /// Done reading
-void RFIFOSKIP(int fd, size_t len);
+void RFIFOSKIP(Session *s, size_t len);
 
 /// Read from an arbitrary buffer
 inline
@@ -236,65 +244,65 @@ FString RBUF_STRING(const uint8_t *p, size_t pos, size_t len)
 /// Unused - check how much data can be written
 // the existence of this seems scary
 inline
-size_t WFIFOSPACE(int fd)
+size_t WFIFOSPACE(Session *s)
 {
-    return session[fd]->max_wdata - session[fd]->wdata_size;
+    return s->max_wdata - s->wdata_size;
 }
 /// Write to the queue
 inline
-void *WFIFOP(int fd, size_t pos)
+void *WFIFOP(Session *s, size_t pos)
 {
-    return &session[fd]->wdata[session[fd]->wdata_size + pos];
+    return &s->wdata[s->wdata_size + pos];
 }
 inline
-uint8_t& WFIFOB(int fd, size_t pos)
+uint8_t& WFIFOB(Session *s, size_t pos)
 {
-    return *static_cast<uint8_t *>(WFIFOP(fd, pos));
+    return *static_cast<uint8_t *>(WFIFOP(s, pos));
 }
 inline
-uint16_t& WFIFOW(int fd, size_t pos)
+uint16_t& WFIFOW(Session *s, size_t pos)
 {
-    return *static_cast<uint16_t *>(WFIFOP(fd, pos));
+    return *static_cast<uint16_t *>(WFIFOP(s, pos));
 }
 inline
-uint32_t& WFIFOL(int fd, size_t pos)
+uint32_t& WFIFOL(Session *s, size_t pos)
 {
-    return *static_cast<uint32_t *>(WFIFOP(fd, pos));
+    return *static_cast<uint32_t *>(WFIFOP(s, pos));
 }
 template<class T>
-void WFIFO_STRUCT(int fd, size_t pos, T& structure)
+void WFIFO_STRUCT(Session *s, size_t pos, T& structure)
 {
-    really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, pos)), pod_addressof_c(structure), sizeof(T));
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(s, pos)), pod_addressof_c(structure), sizeof(T));
 }
 inline
-IP4Address& WFIFOIP(int fd, size_t pos)
+IP4Address& WFIFOIP(Session *s, size_t pos)
 {
     static_assert(is_trivially_copyable<IP4Address>::value, "That was the whole point");
-    return *static_cast<IP4Address *>(WFIFOP(fd, pos));
+    return *static_cast<IP4Address *>(WFIFOP(s, pos));
 }
 inline
-void WFIFO_STRING(int fd, size_t pos, XString s, size_t len)
+void WFIFO_STRING(Session *s, size_t pos, XString str, size_t len)
 {
-    char *const begin = static_cast<char *>(WFIFOP(fd, pos));
+    char *const begin = static_cast<char *>(WFIFOP(s, pos));
     char *const end = begin + len;
-    char *const mid = std::copy(s.begin(), s.end(), begin);
+    char *const mid = std::copy(str.begin(), str.end(), begin);
     std::fill(mid, end, '\0');
 }
 inline
-void WFIFO_ZERO(int fd, size_t pos, size_t len)
+void WFIFO_ZERO(Session *s, size_t pos, size_t len)
 {
-    uint8_t *b = static_cast<uint8_t *>(WFIFOP(fd, pos));
+    uint8_t *b = static_cast<uint8_t *>(WFIFOP(s, pos));
     uint8_t *e = b + len;
     std::fill(b, e, '\0');
 }
 inline
-void WFIFO_BUF_CLONE(int fd, const uint8_t *buf, size_t len)
+void WFIFO_BUF_CLONE(Session *s, const uint8_t *buf, size_t len)
 {
-    really_memcpy(static_cast<uint8_t *>(WFIFOP(fd, 0)), buf, len);
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(s, 0)), buf, len);
 }
 
 /// Finish writing
-void WFIFOSET(int fd, size_t len);
+void WFIFOSET(Session *s, size_t len);
 
 /// Write to an arbitrary buffer
 inline
@@ -344,10 +352,10 @@ void WBUF_ZERO(uint8_t *p, size_t pos, size_t len)
 }
 
 inline
-void RFIFO_WFIFO_CLONE(int rfd, int wfd, size_t len)
+void RFIFO_WFIFO_CLONE(Session *rs, Session *ws, size_t len)
 {
-    really_memcpy(static_cast<uint8_t *>(WFIFOP(wfd, 0)),
-            static_cast<const uint8_t *>(RFIFOP(rfd, 0)), len);
+    really_memcpy(static_cast<uint8_t *>(WFIFOP(ws, 0)),
+            static_cast<const uint8_t *>(RFIFOP(rs, 0)), len);
 }
 
 #endif // SOCKET_HPP

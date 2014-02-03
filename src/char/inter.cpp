@@ -28,10 +28,6 @@
 
 #include "../poison.hpp"
 
-// Existence time of Wisp/page data (60 seconds)
-// that is the waiting time of answers of all map-servers
-constexpr std::chrono::minutes WISDATA_TTL = std::chrono::minutes(1);
-
 static
 FString accreg_txt = "save/accreg.txt";
 
@@ -59,18 +55,6 @@ int inter_recv_packet_length[] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     48, 14, -1, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
-
-struct WisData
-{
-    int id, fd, count;
-    tick_t tick;
-    CharName src, dst;
-    FString msg;
-};
-static
-Map<int, struct WisData> wis_db;
-static
-std::vector<int> wis_dellistv;
 
 //--------------------------------------------------------
 
@@ -222,101 +206,71 @@ void mapif_GMmessage(XString mes)
     mapif_sendall(buf, msg_len);
 }
 
-// Wisp/page transmission to all map-server
+// Wisp/page transmission to correct map-server
 static
-void mapif_wis_message(struct WisData *wd)
+void mapif_wis_message(Session *tms, CharName src, CharName dst, XString msg)
 {
-    size_t str_size = wd->msg.size() + 1;
+    const mmo_charstatus *mcs = search_character(src);
+    assert (mcs);
+
+    size_t str_size = msg.size() + 1;
     uint8_t buf[56 + str_size];
 
     WBUFW(buf, 0) = 0x3801;
     WBUFW(buf, 2) = 56 + str_size;
-    WBUFL(buf, 4) = wd->id;
-    WBUF_STRING(buf, 8, wd->src.to__actual(), 24);
-    WBUF_STRING(buf, 32, wd->dst.to__actual(), 24);
-    WBUF_STRING(buf, 56, wd->msg, str_size);
-    wd->count = mapif_sendall(buf, WBUFW(buf, 2));
+    WBUFL(buf, 4) = mcs->char_id; // formerly, whisper ID
+    WBUF_STRING(buf, 8, src.to__actual(), 24);
+    WBUF_STRING(buf, 32, dst.to__actual(), 24);
+    WBUF_STRING(buf, 56, msg, str_size);
+    mapif_send(tms, buf, WBUFW(buf, 2));
 }
 
 // Wisp/page transmission result to map-server
 static
-void mapif_wis_end(struct WisData *wd, int flag)
+void mapif_wis_end(Session *sms, CharName sender, int flag)
 {
     uint8_t buf[27];
 
     WBUFW(buf, 0) = 0x3802;
-    WBUF_STRING(buf, 2, wd->src.to__actual(), 24);
+    WBUF_STRING(buf, 2, sender.to__actual(), 24);
     WBUFB(buf, 26) = flag;     // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-    mapif_send(wd->fd, buf, 27);
+    mapif_send(sms, buf, 27);
 }
 
 // アカウント変数送信
 static
-void mapif_account_reg(int fd)
+void mapif_account_reg(Session *s)
 {
-    size_t len = RFIFOW(fd, 2);
+    size_t len = RFIFOW(s, 2);
     uint8_t buf[len];
-    RFIFO_BUF_CLONE(fd, buf, len);
+    RFIFO_BUF_CLONE(s, buf, len);
     WBUFW(buf, 0) = 0x3804;
-    mapif_sendallwos(fd, buf, WBUFW(buf, 2));
+    mapif_sendallwos(s, buf, WBUFW(buf, 2));
 }
 
 // アカウント変数要求返信
 static
-void mapif_account_reg_reply(int fd, int account_id)
+void mapif_account_reg_reply(Session *s, int account_id)
 {
     struct accreg *reg = accreg_db.search(account_id);
 
-    WFIFOW(fd, 0) = 0x3804;
-    WFIFOL(fd, 4) = account_id;
+    WFIFOW(s, 0) = 0x3804;
+    WFIFOL(s, 4) = account_id;
     if (reg == NULL)
     {
-        WFIFOW(fd, 2) = 8;
+        WFIFOW(s, 2) = 8;
     }
     else
     {
         int j, p;
         for (j = 0, p = 8; j < reg->reg_num; j++, p += 36)
         {
-            WFIFO_STRING(fd, p, reg->reg[j].str, 32);
-            WFIFOL(fd, p + 32) = reg->reg[j].value;
+            WFIFO_STRING(s, p, reg->reg[j].str, 32);
+            WFIFOL(s, p + 32) = reg->reg[j].value;
         }
-        WFIFOW(fd, 2) = p;
+        WFIFOW(s, 2) = p;
     }
-    WFIFOSET(fd, WFIFOW(fd, 2));
-}
-
-//--------------------------------------------------------
-
-// Existence check of WISP data
-static
-void check_ttl_wisdata_sub(struct WisData *wd, tick_t tick)
-{
-    if (tick > wd->tick + WISDATA_TTL)
-        wis_dellistv.push_back(wd->id);
-}
-
-static
-void check_ttl_wisdata(void)
-{
-    tick_t tick = gettick();
-
-    // this code looks silly now, but let's wait a bit to refactor properly
-    {
-        wis_dellistv.clear();
-        for (auto& pair : wis_db)
-            check_ttl_wisdata_sub(&pair.second, tick);
-        for (int it : wis_dellistv)
-        {
-            struct WisData *wd = wis_db.search(it);
-            assert (wd);
-            PRINTF("inter: wis data id=%d time out : from %s to %s\n",
-                    wd->id, wd->src, wd->dst);
-            // removed. not send information after a timeout. Just no answer for the player
-            //mapif_wis_end(wd, 1); // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-            wis_db.erase(wd->id);
-        }
-    }
+    WFIFOSET(s, WFIFOW(s, 2));
 }
 
 //--------------------------------------------------------
@@ -324,29 +278,27 @@ void check_ttl_wisdata(void)
 
 // GMメッセージ送信
 static
-void mapif_parse_GMmessage(int fd)
+void mapif_parse_GMmessage(Session *s)
 {
-    size_t msg_len = RFIFOW(fd, 2);
+    size_t msg_len = RFIFOW(s, 2);
     size_t str_len = msg_len - 4;
-    FString buf = RFIFO_STRING(fd, 4, str_len);
+    FString buf = RFIFO_STRING(s, 4, str_len);
 
     mapif_GMmessage(buf);
 }
 
 // Wisp/page request to send
 static
-void mapif_parse_WisRequest(int fd)
+void mapif_parse_WisRequest(Session *sms)
 {
-    static int wisid = 0;
-
-    if (RFIFOW(fd, 2) - 52 <= 0)
+    if (RFIFOW(sms, 2) - 52 <= 0)
     {                           // normaly, impossible, but who knows...
         PRINTF("inter: Wis message doesn't exist.\n");
         return;
     }
 
-    CharName from = stringish<CharName>(RFIFO_STRING<24>(fd, 4));
-    CharName to = stringish<CharName>(RFIFO_STRING<24>(fd, 28));
+    CharName from = stringish<CharName>(RFIFO_STRING<24>(sms, 4));
+    CharName to = stringish<CharName>(RFIFO_STRING<24>(sms, 28));
 
     // search if character exists before to ask all map-servers
     const mmo_charstatus *mcs = search_character(to);
@@ -356,7 +308,7 @@ void mapif_parse_WisRequest(int fd)
         WBUFW(buf, 0) = 0x3802;
         WBUF_STRING(buf, 2, from.to__actual(), 24);
         WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-        mapif_send(fd, buf, 27);
+        mapif_send(sms, buf, 27);
         // Character exists. So, ask all map-servers
     }
     else
@@ -370,42 +322,36 @@ void mapif_parse_WisRequest(int fd)
             WBUFW(buf, 0) = 0x3802;
             WBUF_STRING(buf, 2, from.to__actual(), 24);
             WBUFB(buf, 26) = 1;    // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-            mapif_send(fd, buf, 27);
+            mapif_send(sms, buf, 27);
         }
         else
         {
-            struct WisData wd {};
-
-            // Whether the failure of previous wisp/page transmission (timeout)
-            check_ttl_wisdata();
-
-            wd.id = ++wisid;
-            wd.fd = fd;
-            size_t len = RFIFOW(fd, 2) - 52;
-            wd.src = from;
-            wd.dst = to;
-            wd.msg = RFIFO_STRING(fd, 52, len);
-            wd.tick = gettick();
-            wis_db.insert(wd.id, wd);
-            mapif_wis_message(&wd);
+            size_t len = RFIFOW(sms, 2) - 52;
+            Session *tms = server_for(mcs); // for to
+            FString msg = RFIFO_STRING(sms, 52, len);
+            if (tms)
+            {
+                mapif_wis_message(tms, from, to, msg);
+            }
+            else
+            {
+                mapif_wis_end(sms, from, 1);
+            }
         }
     }
 }
 
 // Wisp/page transmission result
 static
-int mapif_parse_WisReply(int fd)
+int mapif_parse_WisReply(Session *tms)
 {
-    int id = RFIFOL(fd, 2), flag = RFIFOB(fd, 6);
-    struct WisData *wd = wis_db.search(id);
+    int id = RFIFOL(tms, 2), flag = RFIFOB(tms, 6);
 
-    if (wd == NULL)
-        return 0;               // This wisp was probably suppress before, because it was timeout of because of target was found on another map-server
-
-    if ((--wd->count) <= 0 || flag != 1)
+    const mmo_charstatus *smcs = search_character_id(id);
+    CharName from = smcs->name;
+    Session *sms = server_for(smcs);
     {
-        mapif_wis_end(wd, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-        wis_db.erase(id);
+        mapif_wis_end(sms, from, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
     }
 
     return 0;
@@ -413,48 +359,48 @@ int mapif_parse_WisReply(int fd)
 
 // Received wisp message from map-server for ALL gm (just copy the message and resends it to ALL map-servers)
 static
-void mapif_parse_WisToGM(int fd)
+void mapif_parse_WisToGM(Session *s)
 {
-    size_t len = RFIFOW(fd, 2);
+    size_t len = RFIFOW(s, 2);
     uint8_t buf[len];
     // 0x3003/0x3803 <packet_len>.w <wispname>.24B <min_gm_level>.w <message>.?B
 
-    RFIFO_BUF_CLONE(fd, buf, len);
+    RFIFO_BUF_CLONE(s, buf, len);
     WBUFW(buf, 0) = 0x3803;
     mapif_sendall(buf, len);
 }
 
 // アカウント変数保存要求
 static
-void mapif_parse_AccReg(int fd)
+void mapif_parse_AccReg(Session *s)
 {
     int j, p;
-    struct accreg *reg = accreg_db.search(RFIFOL(fd, 4));
+    struct accreg *reg = accreg_db.search(RFIFOL(s, 4));
 
     if (reg == NULL)
     {
-        int account_id = RFIFOL(fd, 4);
+        int account_id = RFIFOL(s, 4);
         reg = accreg_db.init(account_id);
         reg->account_id = account_id;
     }
 
-    for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW(fd, 2);
+    for (j = 0, p = 8; j < ACCOUNT_REG_NUM && p < RFIFOW(s, 2);
          j++, p += 36)
     {
-        reg->reg[j].str = stringish<VarName>(RFIFO_STRING<32>(fd, p));
-        reg->reg[j].value = RFIFOL(fd, p + 32);
+        reg->reg[j].str = stringish<VarName>(RFIFO_STRING<32>(s, p));
+        reg->reg[j].value = RFIFOL(s, p + 32);
     }
     reg->reg_num = j;
 
     // 他のMAPサーバーに送信
-    mapif_account_reg(fd);
+    mapif_account_reg(s);
 }
 
 // アカウント変数送信要求
 static
-void mapif_parse_AccRegRequest(int fd)
+void mapif_parse_AccRegRequest(Session *s)
 {
-    mapif_account_reg_reply(fd, RFIFOL(fd, 2));
+    mapif_account_reg_reply(s, RFIFOL(s, 2));
 }
 
 //--------------------------------------------------------
@@ -462,9 +408,9 @@ void mapif_parse_AccRegRequest(int fd)
 // map server からの通信（１パケットのみ解析すること）
 // エラーなら0(false)、処理できたなら1、
 // パケット長が足りなければ2をかえさなければならない
-int inter_parse_frommap(int fd)
+int inter_parse_frommap(Session *ms)
 {
-    int cmd = RFIFOW(fd, 0);
+    int cmd = RFIFOW(ms, 0);
     int len = 0;
 
     // inter鯖管轄かを調べる
@@ -477,54 +423,54 @@ int inter_parse_frommap(int fd)
 
     // パケット長を調べる
     if ((len =
-         inter_check_length(fd,
+         inter_check_length(ms,
                              inter_recv_packet_length[cmd - 0x3000])) == 0)
         return 2;
 
     switch (cmd)
     {
         case 0x3000:
-            mapif_parse_GMmessage(fd);
+            mapif_parse_GMmessage(ms);
             break;
         case 0x3001:
-            mapif_parse_WisRequest(fd);
+            mapif_parse_WisRequest(ms);
             break;
         case 0x3002:
-            mapif_parse_WisReply(fd);
+            mapif_parse_WisReply(ms);
             break;
         case 0x3003:
-            mapif_parse_WisToGM(fd);
+            mapif_parse_WisToGM(ms);
             break;
         case 0x3004:
-            mapif_parse_AccReg(fd);
+            mapif_parse_AccReg(ms);
             break;
         case 0x3005:
-            mapif_parse_AccRegRequest(fd);
+            mapif_parse_AccRegRequest(ms);
             break;
         default:
-            if (inter_party_parse_frommap(fd))
+            if (inter_party_parse_frommap(ms))
                 break;
-            if (inter_storage_parse_frommap(fd))
+            if (inter_storage_parse_frommap(ms))
                 break;
             return 0;
     }
-    RFIFOSKIP(fd, len);
+    RFIFOSKIP(ms, len);
 
     return 1;
 }
 
 // RFIFOのパケット長確認
 // 必要パケット長があればパケット長、まだ足りなければ0
-int inter_check_length(int fd, int length)
+int inter_check_length(Session *s, int length)
 {
     if (length == -1)
     {                           // 可変パケット長
-        if (RFIFOREST(fd) < 4) // パケット長が未着
+        if (RFIFOREST(s) < 4) // パケット長が未着
             return 0;
-        length = RFIFOW(fd, 2);
+        length = RFIFOW(s, 2);
     }
 
-    if (RFIFOREST(fd) < length)    // パケットが未着
+    if (RFIFOREST(s) < length)    // パケットが未着
         return 0;
 
     return length;

@@ -205,7 +205,7 @@ int party_recv_info(const struct party *sp)
                            && sd->status.party_id == p->party_id) ? sd.operator->() : NULL;
     }
 
-    clif_party_info(p, -1);
+    clif_party_info(p, nullptr);
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // 設定情報の送信
@@ -231,7 +231,7 @@ int party_invite(dumb_ptr<map_session_data> sd, int account_id)
 
     nullpo_ret(sd);
 
-    if (!tsd || !p || !tsd->fd)
+    if (!tsd || !p || !tsd->sess)
         return 0;
 
     if (!battle_config.invite_request_check)
@@ -540,7 +540,7 @@ void party_recv_movemap(int party_id, int account_id, MapName mapname,
 
     party_send_xy_clear(p);    // 座標再通知要請
 
-    clif_party_info(p, -1);
+    clif_party_info(p, nullptr);
 }
 
 // パーティメンバの移動
@@ -566,7 +566,7 @@ int party_send_movemap(dumb_ptr<map_session_data> sd)
         party_check_member(p); // 所属を確認する
         if (sd->status.party_id == p->party_id)
         {
-            clif_party_info(p, sd->fd);
+            clif_party_info(p, sd->sess);
             clif_party_option(p, sd, 0x100);
             sd->party_sended = 1;
         }

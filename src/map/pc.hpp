@@ -54,7 +54,7 @@ int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
 int pc_setnewpc(dumb_ptr<map_session_data>, int, int, int, tick_t, SEX);
 int pc_authok(int, int, TimeT, short tmw_version, const struct mmo_charstatus *);
-int pc_authfail(int);
+int pc_authfail(int accid);
 
 EPOS pc_equippoint(dumb_ptr<map_session_data> sd, int n);
 
@@ -146,7 +146,7 @@ void pc_set_gm_level(int account_id, uint8_t level);
 void pc_setstand(dumb_ptr<map_session_data> sd);
 void pc_cleanup(dumb_ptr<map_session_data> sd);  // [Fate] Clean up after a logged-out PC
 
-int pc_read_gm_account(int fd);
+int pc_read_gm_account(Session *);
 int pc_setinvincibletimer(dumb_ptr<map_session_data> sd, interval_t);
 int pc_delinvincibletimer(dumb_ptr<map_session_data> sd);
 int pc_logout(dumb_ptr<map_session_data> sd);   // [fate] Player logs out

@@ -7,7 +7,7 @@
 
 # include "map.hpp"
 
-bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
+bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, int gmlvl);
 
 bool atcommand_config_read(ZString cfgName);

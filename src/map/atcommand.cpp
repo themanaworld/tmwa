@@ -58,10 +58,10 @@ struct AtCommandInfo
 {
     ZString args;
     int level;
-    ATCE (*proc)(const int fd, dumb_ptr<map_session_data> sd, ZString message);
+    ATCE (*proc)(Session *s, dumb_ptr<map_session_data> sd, ZString message);
     ZString help;
 
-    AtCommandInfo(ZString a, int l, ATCE (*p)(const int, dumb_ptr<map_session_data>, ZString), ZString h)
+    AtCommandInfo(ZString a, int l, ATCE (*p)(Session *s, dumb_ptr<map_session_data>, ZString), ZString h)
     : args(a), level(l), proc(p), help(h)
     {}
 };
@@ -78,16 +78,16 @@ AtCommandInfo *atcommand(XString cmd);
 
 // These @commands are used within other @commands.
 static
-ATCE atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
         ZString message);
 static
-ATCE atcommand_skill_learn(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_skill_learn(Session *s, dumb_ptr<map_session_data>,
         ZString message);
 static
-ATCE atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charwarp(Session *s, dumb_ptr<map_session_data> sd,
         ZString message);
 static
-ATCE atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charstreset(Session *s, dumb_ptr<map_session_data> sd,
         ZString message);
 
 
@@ -217,7 +217,7 @@ io::AppendFile *get_gm_log()
     return gm_logfile.get();
 }
 
-bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
+bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, int gmlvl)
 {
     nullpo_retr(false, sd);
@@ -237,14 +237,14 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
     {
         FString output = STRPRINTF("GM command is level 0, but this server disables level 0 commands: %s",
                 FString(command));
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         return true;
     }
     if (!info)
     {
         FString output = STRPRINTF("GM command not found: %s",
                 FString(command));
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         return true;
         // don't show in chat
     }
@@ -253,13 +253,13 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
         FString output = STRPRINTF("GM command is level %d, but you are level %d: %s",
                 info->level, gmlvl,
                 FString(command));
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         return true;
     }
 
     {
         {
-            ATCE err = info->proc(fd, sd, arg);
+            ATCE err = info->proc(s, sd, arg);
             switch (err)
             {
             case ATCE::OKAY:
@@ -268,17 +268,17 @@ bool is_atcommand(const int fd, dumb_ptr<map_session_data> sd,
                     log_atcommand(sd, message);
                 break;
             case ATCE::USAGE:
-                clif_displaymessage(fd, "Command failed: usage error");
-                clif_displaymessage(fd, STRPRINTF("Usage: %s %s", FString(command), info->args));
+                clif_displaymessage(s, "Command failed: usage error");
+                clif_displaymessage(s, STRPRINTF("Usage: %s %s", FString(command), info->args));
                 break;
             case ATCE::EXIST:
-                clif_displaymessage(fd, "Command failed: something does not exist (or already exists)");
+                clif_displaymessage(s, "Command failed: something does not exist (or already exists)");
                 break;
             case ATCE::RANGE:
-                clif_displaymessage(fd, "Command failed: value out of range");
+                clif_displaymessage(s, "Command failed: value out of range");
                 break;
             case ATCE::PERM:
-                clif_displaymessage(fd, "Command failed: permission denied");
+                clif_displaymessage(s, "Command failed: permission denied");
                 break;
             default:
                 abort();
@@ -365,7 +365,7 @@ bool atcommand_config_read(ZString cfgName)
 /// @ command processing functions
 
 static
-void atc_do_help(const int fd, const char *cmd, const AtCommandInfo& info)
+void atc_do_help(Session *s, const char *cmd, const AtCommandInfo& info)
 {
     auto msg = STRPRINTF("\u2007\u2007%d: @%s %s", info.level, cmd, info.args);
     // manually padding because *space*
@@ -374,18 +374,18 @@ void atc_do_help(const int fd, const char *cmd, const AtCommandInfo& info)
         ++ll;
     if (info.level >= 100)
         ++ll;
-    clif_displaymessage(fd, msg.xslice_t((ll - 1) * 3));
+    clif_displaymessage(s, msg.xslice_t((ll - 1) * 3));
 }
 
 static
-ATCE atcommand_help(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_help(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     if (!message)
     {
-        clif_displaymessage(fd, "There is too much help to display it all at once");
-        clif_displaymessage(fd, "Try @help <@command> or @help <category> or @help <level[-level]>");
-        clif_displaymessage(fd, "Right now the only category is 'all'");
+        clif_displaymessage(s, "There is too much help to display it all at once");
+        clif_displaymessage(s, "Try @help <@command> or @help <category> or @help <level[-level]>");
+        clif_displaymessage(s, "Right now the only category is 'all'");
         return ATCE::OKAY;
     }
 
@@ -395,19 +395,19 @@ ATCE atcommand_help(const int fd, dumb_ptr<map_session_data>,
         const AtCommandInfo *info = atcommand_info.search(cmd);
         if (!info)
             return ATCE::EXIST;
-        clif_displaymessage(fd, STRPRINTF("Usage: @%s %s", cmd, info->args));
-        clif_displaymessage(fd, info->help);
+        clif_displaymessage(s, STRPRINTF("Usage: @%s %s", cmd, info->args));
+        clif_displaymessage(s, info->help);
         return ATCE::OKAY;
     }
 
     if (message == "all")
     {
-        clif_displaymessage(fd, "Synopses of GM commands in category 'all':");
+        clif_displaymessage(s, "Synopses of GM commands in category 'all':");
         for (const auto& pair : atcommand_info)
         {
             const char *cmd = &*pair.first.begin();
             const AtCommandInfo& info = pair.second;
-            atc_do_help(fd, cmd, info);
+            atc_do_help(s, cmd, info);
         }
         return ATCE::OKAY;
     }
@@ -420,19 +420,19 @@ ATCE atcommand_help(const int fd, dumb_ptr<map_session_data>,
 
     if (low < 0 || high > 100 || low >= high)
         return ATCE::RANGE;
-    clif_displaymessage(fd, STRPRINTF("Synopses of GM commands in level [%d, %d):", low, high));
+    clif_displaymessage(s, STRPRINTF("Synopses of GM commands in level [%d, %d):", low, high));
     for (const auto& pair : atcommand_info)
     {
         const char *cmd = &*pair.first.begin();
         const AtCommandInfo& info = pair.second;
         if (low <= info.level && info.level < high)
-            atc_do_help(fd, cmd, info);
+            atc_do_help(s, cmd, info);
     }
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_setup(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_setup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int level = 1;
@@ -444,31 +444,31 @@ ATCE atcommand_setup(const int fd, dumb_ptr<map_session_data> sd,
 
     FString buf;
     buf = STRPRINTF("-255 %s", character);
-    atcommand_character_baselevel(fd, sd, buf);
+    atcommand_character_baselevel(s, sd, buf);
 
     buf = STRPRINTF("%d %s", level, character);
-    atcommand_character_baselevel(fd, sd, buf);
+    atcommand_character_baselevel(s, sd, buf);
 
     // Emote skill
     buf = STRPRINTF("1 1 %s", character);
-    atcommand_skill_learn(fd, sd, buf);
+    atcommand_skill_learn(s, sd, buf);
 
     // Trade skill
     buf = STRPRINTF("2 1 %s", character);
-    atcommand_skill_learn(fd, sd, buf);
+    atcommand_skill_learn(s, sd, buf);
 
     // Party skill
     STRPRINTF("2 2 %s", character);
-    atcommand_skill_learn(fd, sd, buf);
+    atcommand_skill_learn(s, sd, buf);
 
     STRPRINTF("018-1.gat 24 98 %s", character);
-    atcommand_charwarp(fd, sd, buf);
+    atcommand_charwarp(s, sd, buf);
 
     return ATCE::OKAY;
 }
 
 //static
-ATCE atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charwarp(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MapName map_name;
@@ -495,43 +495,43 @@ ATCE atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
                 if (m != nullptr && m->flag.nowarpto
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
-                    clif_displaymessage(fd,
+                    clif_displaymessage(s,
                             "You are not authorised to warp someone to this map.");
                     return ATCE::PERM;
                 }
                 if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarp
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
-                    clif_displaymessage(fd,
+                    clif_displaymessage(s,
                             "You are not authorised to warp this player from its actual map.");
                     return ATCE::PERM;
                 }
                 if (pc_setpos(pl_sd, map_name, x, y, BeingRemoveWhy::WARPED) == 0)
                 {
-                    clif_displaymessage(pl_sd->fd, "Warped.");
-                    clif_displaymessage(fd, "Player warped (message sends to player too).");
+                    clif_displaymessage(pl_sd->sess, "Warped.");
+                    clif_displaymessage(s, "Player warped (message sends to player too).");
                 }
                 else
                 {
-                    clif_displaymessage(fd, "Map not found.");
+                    clif_displaymessage(s, "Map not found.");
                     return ATCE::EXIST;
                 }
             }
             else
             {
-                clif_displaymessage(fd, "Coordinates out of range.");
+                clif_displaymessage(s, "Coordinates out of range.");
                 return ATCE::RANGE;
             }
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -539,7 +539,7 @@ ATCE atcommand_charwarp(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_warp(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MapName map_name;
@@ -548,7 +548,7 @@ ATCE atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
     if (!message
         || !extract(message, record<' ', 1>(&map_name, &x, &y)))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Please, enter a map (usage: @warp <mapname> <x> <y>).");
         return ATCE::USAGE;
     }
@@ -564,28 +564,28 @@ ATCE atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
         if (m != nullptr && m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "You are not authorised to warp you to this map.");
             return ATCE::PERM;
         }
         if (sd->bl_m && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map.");
             return ATCE::PERM;
         }
         if (pc_setpos(sd, map_name, x, y, BeingRemoveWhy::WARPED) == 0)
-            clif_displaymessage(fd, "Warped.");
+            clif_displaymessage(s, "Warped.");
         else
         {
-            clif_displaymessage(fd, "Map not found.");
+            clif_displaymessage(s, "Map not found.");
             return ATCE::EXIST;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Coordinates out of range.");
+        clif_displaymessage(s, "Coordinates out of range.");
         return ATCE::RANGE;
     }
 
@@ -593,7 +593,7 @@ ATCE atcommand_warp(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_where(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_where(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -609,11 +609,11 @@ ATCE atcommand_where(const int fd, dumb_ptr<map_session_data> sd,
         FString output = STRPRINTF("%s: %s (%d,%d)",
                 pl_sd->status.name,
                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -621,14 +621,14 @@ ATCE atcommand_where(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
 
     if (!asplit(message, &character))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Please, enter a player name (usage: @jumpto/@warpto/@goto <char name>).");
         return ATCE::USAGE;
     }
@@ -639,24 +639,24 @@ ATCE atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
         if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "You are not authorised to warp you to the map of this player.");
             return ATCE::PERM;
         }
         if (sd->bl_m && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map.");
             return ATCE::PERM;
         }
         pc_setpos(sd, pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
         FString output = STRPRINTF("Jump to %s", character);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -664,7 +664,7 @@ ATCE atcommand_goto(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_jump(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int x = 0, y = 0;
@@ -680,24 +680,24 @@ ATCE atcommand_jump(const int fd, dumb_ptr<map_session_data> sd,
         if (sd->bl_m && sd->bl_m->flag.nowarpto
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "You are not authorised to warp you to your actual map.");
             return ATCE::PERM;
         }
         if (sd->bl_m && sd->bl_m->flag.nowarp
             && battle_config.any_warp_GM_min_level > pc_isGM(sd))
         {
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "You are not authorised to warp you from your actual map.");
             return ATCE::PERM;
         }
         pc_setpos(sd, sd->mapname_, x, y, BeingRemoveWhy::WARPED);
         FString output = STRPRINTF("Jump to %d %d", x, y);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
     else
     {
-        clif_displaymessage(fd, "Coordinates out of range.");
+        clif_displaymessage(s, "Coordinates out of range.");
         return ATCE::RANGE;
     }
 
@@ -705,7 +705,7 @@ ATCE atcommand_jump(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
@@ -717,9 +717,10 @@ ATCE atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
     GM_level = pc_isGM(sd);
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
@@ -744,7 +745,7 @@ ATCE atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
                                 "Name: %s | Location: %s %d %d",
                                 pl_sd->status.name, pl_sd->mapname_,
                                 pl_sd->bl_x, pl_sd->bl_y);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                     count++;
                 }
             }
@@ -752,20 +753,20 @@ ATCE atcommand_who(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     if (count == 0)
-        clif_displaymessage(fd, "No player found.");
+        clif_displaymessage(s, "No player found.");
     else if (count == 1)
-        clif_displaymessage(fd, "1 player found.");
+        clif_displaymessage(s, "1 player found.");
     else
     {
         FString output = STRPRINTF("%d players found.", count);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_whogroup(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
@@ -779,9 +780,10 @@ ATCE atcommand_whogroup(const int fd, dumb_ptr<map_session_data> sd,
     GM_level = pc_isGM(sd);
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
@@ -802,7 +804,7 @@ ATCE atcommand_whogroup(const int fd, dumb_ptr<map_session_data> sd,
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Party: '%s'",
                                 pl_sd->status.name, pl_GM_level, temp0);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                     count++;
                 }
             }
@@ -810,20 +812,20 @@ ATCE atcommand_whogroup(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     if (count == 0)
-        clif_displaymessage(fd, "No player found.");
+        clif_displaymessage(s, "No player found.");
     else if (count == 1)
-        clif_displaymessage(fd, "1 player found.");
+        clif_displaymessage(s, "1 player found.");
     else
     {
         FString output = STRPRINTF("%d players found.", count);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
@@ -842,9 +844,10 @@ ATCE atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
     GM_level = pc_isGM(sd);
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
@@ -867,7 +870,7 @@ ATCE atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
                                 "Name: %s | Location: %s %d %d",
                                 pl_sd->status.name, pl_sd->mapname_,
                                 pl_sd->bl_x, pl_sd->bl_y);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                     count++;
                 }
             }
@@ -876,13 +879,13 @@ ATCE atcommand_whomap(const int fd, dumb_ptr<map_session_data> sd,
 
     FString output = STRPRINTF("%d players found in map '%s'.",
             count, map_id->name_);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
@@ -902,9 +905,10 @@ ATCE atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
     GM_level = pc_isGM(sd);
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
@@ -925,7 +929,7 @@ ATCE atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
                     else
                         output = STRPRINTF("Name: %s | Party: '%s'",
                                 pl_sd->status.name, temp0);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                     count++;
                 }
             }
@@ -941,13 +945,13 @@ ATCE atcommand_whomapgroup(const int fd, dumb_ptr<map_session_data> sd,
     {
         output = STRPRINTF("%d players found in map '%s'.", count, map_id->name_);
     }
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count;
@@ -961,9 +965,10 @@ ATCE atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
     GM_level = pc_isGM(sd);
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             pl_GM_level = pc_isGM(pl_sd);
@@ -984,19 +989,19 @@ ATCE atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
-                        clif_displaymessage(fd, output);
+                        clif_displaymessage(s, output);
                         output = STRPRINTF(
                                 "       BLvl: %d | Job: %s (Lvl: %d)",
                                 pl_sd->status.base_level,
                                 "Novice/Human",
                                 pl_sd->status.job_level);
-                        clif_displaymessage(fd, output);
+                        clif_displaymessage(s, output);
                         p = party_search(pl_sd->status.party_id);
                         PartyName temp0 = p ? p->name : stringish<PartyName>("None");
                         output = STRPRINTF(
                                 "       Party: '%s'",
                                 temp0);
-                        clif_displaymessage(fd, output);
+                        clif_displaymessage(s, output);
                         count++;
                     }
                 }
@@ -1005,59 +1010,59 @@ ATCE atcommand_whogm(const int fd, dumb_ptr<map_session_data> sd,
     }
 
     if (count == 0)
-        clif_displaymessage(fd, "No GM found.");
+        clif_displaymessage(s, "No GM found.");
     else if (count == 1)
-        clif_displaymessage(fd, "1 GM found.");
+        clif_displaymessage(s, "1 GM found.");
     else
     {
         FString output = STRPRINTF("%d GMs found.", count);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_save(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_save(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     pc_setsavepoint(sd, sd->mapname_, sd->bl_x, sd->bl_y);
     pc_makesavestatus(sd);
     chrif_save(sd);
-    clif_displaymessage(fd, "Character data respawn point saved.");
+    clif_displaymessage(s, "Character data respawn point saved.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_load(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_load(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     map_local *m = map_mapname2mapid(sd->status.save_point.map_);
     if (m != nullptr && m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                              "You are not authorised to warp you to your save map.");
         return ATCE::PERM;
     }
     if (sd->bl_m && sd->bl_m->flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                              "You are not authorised to warp you from your actual map.");
         return ATCE::PERM;
     }
 
     pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
                sd->status.save_point.y, BeingRemoveWhy::GONE);
-    clif_displaymessage(fd, "Warping to respawn point.");
+    clif_displaymessage(s, "Warping to respawn point.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_speed(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_speed(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     if (!message)
@@ -1066,7 +1071,7 @@ ATCE atcommand_speed(const int fd, dumb_ptr<map_session_data> sd,
                 "Please, enter a speed value (usage: @speed <%d-%d>).",
                 static_cast<uint32_t>(MIN_WALK_SPEED.count()),
                 static_cast<uint32_t>(MAX_WALK_SPEED.count()));
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         return ATCE::USAGE;
     }
 
@@ -1077,7 +1082,7 @@ ATCE atcommand_speed(const int fd, dumb_ptr<map_session_data> sd,
         //sd->walktimer = x;
         //この文を追加 by れ
         clif_updatestatus(sd, SP::SPEED);
-        clif_displaymessage(fd, "Speed changed.");
+        clif_displaymessage(s, "Speed changed.");
     }
     else
     {
@@ -1085,7 +1090,7 @@ ATCE atcommand_speed(const int fd, dumb_ptr<map_session_data> sd,
                 "Please, enter a valid speed value (usage: @speed <%d-%d>).",
                 static_cast<uint32_t>(MIN_WALK_SPEED.count()),
                 static_cast<uint32_t>(MAX_WALK_SPEED.count()));
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         return ATCE::RANGE;
     }
 
@@ -1093,21 +1098,21 @@ ATCE atcommand_speed(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_storage(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_storage(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     struct storage *stor;
 
     if (sd->state.storage_open)
     {
-        clif_displaymessage(fd, "msg_table[250]");
+        clif_displaymessage(s, "msg_table[250]");
         return ATCE::EXIST;
     }
 
     if ((stor = account2storage2(sd->status.account_id)) != NULL
         && stor->storage_status == 1)
     {
-        clif_displaymessage(fd, "msg_table[250]");
+        clif_displaymessage(s, "msg_table[250]");
         return ATCE::EXIST;
     }
 
@@ -1117,7 +1122,7 @@ ATCE atcommand_storage(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_option(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_option(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     Opt1 param1 = Opt1::ZERO;
@@ -1133,24 +1138,24 @@ ATCE atcommand_option(const int fd, dumb_ptr<map_session_data> sd,
 
     clif_changeoption(sd);
     pc_calcstatus(sd, 0);
-    clif_displaymessage(fd, "Options changed.");
+    clif_displaymessage(s, "Options changed.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_hide(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_hide(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     if (bool(sd->status.option & Option::HIDE))
     {
         sd->status.option &= ~Option::HIDE;
-        clif_displaymessage(fd, "Invisible: Off.");
+        clif_displaymessage(s, "Invisible: Off.");
     }
     else
     {
         sd->status.option |= Option::HIDE;
-        clif_displaymessage(fd, "Invisible: On.");
+        clif_displaymessage(s, "Invisible: On.");
     }
     clif_changeoption(sd);
 
@@ -1158,17 +1163,17 @@ ATCE atcommand_hide(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_die(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_die(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     pc_damage(NULL, sd, sd->status.hp + 1);
-    clif_displaymessage(fd, "A pity! You've died.");
+    clif_displaymessage(s, "A pity! You've died.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_kill(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_kill(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -1183,17 +1188,17 @@ ATCE atcommand_kill(const int fd, dumb_ptr<map_session_data> sd,
         {
             // you can kill only lower or same level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
-            clif_displaymessage(fd, "Character killed.");
+            clif_displaymessage(s, "Character killed.");
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -1201,7 +1206,7 @@ ATCE atcommand_kill(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_alive(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_alive(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     sd->status.hp = sd->status.max_hp;
@@ -1212,13 +1217,13 @@ ATCE atcommand_alive(const int fd, dumb_ptr<map_session_data> sd,
     clif_updatestatus(sd, SP::HP);
     clif_updatestatus(sd, SP::SP);
     clif_resurrection(sd, 1);
-    clif_displaymessage(fd, "You've been revived! It's a miracle!");
+    clif_displaymessage(s, "You've been revived! It's a miracle!");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_kami(const int, dumb_ptr<map_session_data>,
+ATCE atcommand_kami(Session *, dumb_ptr<map_session_data>,
         ZString message)
 {
     if (!message)
@@ -1230,7 +1235,7 @@ ATCE atcommand_kami(const int, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_heal(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_heal(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int hp = 0, sp = 0;
@@ -1266,13 +1271,13 @@ ATCE atcommand_heal(const int fd, dumb_ptr<map_session_data> sd,
     {
         pc_heal(sd, hp, sp);
         if (hp >= 0 && sp >= 0)
-            clif_displaymessage(fd, "HP, SP recovered.");
+            clif_displaymessage(s, "HP, SP recovered.");
         else
-            clif_displaymessage(fd, "HP or/and SP modified.");
+            clif_displaymessage(s, "HP or/and SP modified.");
     }
     else
     {
-        clif_displaymessage(fd, "HP and SP are already with the good value.");
+        clif_displaymessage(s, "HP and SP are already with the good value.");
         return ATCE::RANGE;
     }
 
@@ -1280,7 +1285,7 @@ ATCE atcommand_heal(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     ItemName item_name;
@@ -1290,7 +1295,7 @@ ATCE atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
 
     if (!extract(message, record<' ', 1>(&item_name, &number)))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Please, enter an item name/id (usage: @item <item name or ID> [quantity]).");
         return ATCE::USAGE;
     }
@@ -1323,11 +1328,11 @@ ATCE atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
                 != PickupFail::OKAY)
                 clif_additem(sd, 0, 0, flag);
         }
-        clif_displaymessage(fd, "Item created.");
+        clif_displaymessage(s, "Item created.");
     }
     else
     {
-        clif_displaymessage(fd, "Invalid item ID or name.");
+        clif_displaymessage(s, "Invalid item ID or name.");
         return ATCE::EXIST;
     }
 
@@ -1335,7 +1340,7 @@ ATCE atcommand_item(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_itemreset(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_itemreset(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int i;
@@ -1346,13 +1351,13 @@ ATCE atcommand_itemreset(const int fd, dumb_ptr<map_session_data> sd,
             && sd->status.inventory[i].equip == EPOS::ZERO)
             pc_delitem(sd, i, sd->status.inventory[i].amount, 0);
     }
-    clif_displaymessage(fd, "All of your items have been removed.");
+    clif_displaymessage(s, "All of your items have been removed.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_itemcheck(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_itemcheck(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     pc_checkitem(sd);
@@ -1361,14 +1366,14 @@ ATCE atcommand_itemcheck(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_baselevelup(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_baselevelup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int level, i;
 
     if (!extract(message, &level) || !level)
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Please, enter a level adjustement (usage: @blvl <number of levels>).");
         return ATCE::USAGE;
     }
@@ -1377,7 +1382,7 @@ ATCE atcommand_baselevelup(const int fd, dumb_ptr<map_session_data> sd,
     {
         if (sd->status.base_level == battle_config.maximum_level)
         {
-            clif_displaymessage(fd, "Base level can't go any higher.");
+            clif_displaymessage(s, "Base level can't go any higher.");
             return ATCE::RANGE;
         }
         if (level > battle_config.maximum_level || level > (battle_config.maximum_level - sd->status.base_level))
@@ -1392,13 +1397,13 @@ ATCE atcommand_baselevelup(const int fd, dumb_ptr<map_session_data> sd,
         pc_calcstatus(sd, 0);
         pc_heal(sd, sd->status.max_hp, sd->status.max_sp);
         clif_misceffect(sd, 0);
-        clif_displaymessage(fd, "Base level raised.");
+        clif_displaymessage(s, "Base level raised.");
     }
     else
     {
         if (sd->status.base_level == 1)
         {
-            clif_displaymessage(fd, "Base level can't go any lower.");
+            clif_displaymessage(s, "Base level can't go any lower.");
             return ATCE::USAGE;
         }
         if (level < -battle_config.maximum_level || level < (1 - sd->status.base_level))
@@ -1418,7 +1423,7 @@ ATCE atcommand_baselevelup(const int fd, dumb_ptr<map_session_data> sd,
         clif_updatestatus(sd, SP::BASELEVEL);
         clif_updatestatus(sd, SP::NEXTBASEEXP);
         pc_calcstatus(sd, 0);
-        clif_displaymessage(fd, "Base level lowered.");
+        clif_displaymessage(s, "Base level lowered.");
     }
 
     return ATCE::OKAY;
@@ -1427,7 +1432,7 @@ ATCE atcommand_baselevelup(const int fd, dumb_ptr<map_session_data> sd,
 // TODO: merge this with pc_setparam(SP::JOBLEVEL)
 // then fix the funny 50 and/or 10 limitation.
 static
-ATCE atcommand_joblevelup(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_joblevelup(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int up_level = 50, level;
@@ -1441,7 +1446,7 @@ ATCE atcommand_joblevelup(const int fd, dumb_ptr<map_session_data> sd,
     {
         if (sd->status.job_level == up_level)
         {
-            clif_displaymessage(fd, "Job level can't go any higher.");
+            clif_displaymessage(s, "Job level can't go any higher.");
             return ATCE::RANGE;
         }
         if (level > up_level || level > (up_level - sd->status.job_level))
@@ -1454,13 +1459,13 @@ ATCE atcommand_joblevelup(const int fd, dumb_ptr<map_session_data> sd,
         clif_updatestatus(sd, SP::SKILLPOINT);
         pc_calcstatus(sd, 0);
         clif_misceffect(sd, 1);
-        clif_displaymessage(fd, "Job level raised.");
+        clif_displaymessage(s, "Job level raised.");
     }
     else
     {
         if (sd->status.job_level == 1)
         {
-            clif_displaymessage(fd, "Job level can't go any lower.");
+            clif_displaymessage(s, "Job level can't go any lower.");
             return ATCE::RANGE;
         }
         if (level < -up_level || level < (1 - sd->status.job_level))
@@ -1478,14 +1483,14 @@ ATCE atcommand_joblevelup(const int fd, dumb_ptr<map_session_data> sd,
         }
         // to add: remove status points from skills
         pc_calcstatus(sd, 0);
-        clif_displaymessage(fd, "Job level lowered.");
+        clif_displaymessage(s, "Job level lowered.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_gm(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_gm(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     if (!message)
@@ -1494,7 +1499,7 @@ ATCE atcommand_gm(const int fd, dumb_ptr<map_session_data> sd,
     if (pc_isGM(sd))
     {
         // a GM can not use this function. only a normal player (become gm is not for gm!)
-        clif_displaymessage(fd, "You already have some GM powers.");
+        clif_displaymessage(s, "You already have some GM powers.");
         return ATCE::PERM;
     }
     else
@@ -1504,13 +1509,13 @@ ATCE atcommand_gm(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_pvpoff(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     if (battle_config.pk_mode)
     {
         //disable command if server is in PK mode [Valaris]
-        clif_displaymessage(fd, "This option cannot be used in PK Mode.");
+        clif_displaymessage(s, "This option cannot be used in PK Mode.");
         return ATCE::EXIST;
     }
 
@@ -1519,9 +1524,10 @@ ATCE atcommand_pvpoff(const int fd, dumb_ptr<map_session_data> sd,
         sd->bl_m->flag.pvp = 0;
         for (int i = 0; i < fd_max; i++)
         {
-            if (!session[i])
+            Session *s2 = session[i].get();
+            if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 if (sd->bl_m == pl_sd->bl_m)
@@ -1530,11 +1536,11 @@ ATCE atcommand_pvpoff(const int fd, dumb_ptr<map_session_data> sd,
                 }
             }
         }
-        clif_displaymessage(fd, "PvP: Off.");
+        clif_displaymessage(s, "PvP: Off.");
     }
     else
     {
-        clif_displaymessage(fd, "PvP is already Off.");
+        clif_displaymessage(s, "PvP is already Off.");
         return ATCE::EXIST;
     }
 
@@ -1542,13 +1548,13 @@ ATCE atcommand_pvpoff(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_pvpon(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     if (battle_config.pk_mode)
     {
         //disable command if server is in PK mode [Valaris]
-        clif_displaymessage(fd, "This option cannot be used in PK Mode.");
+        clif_displaymessage(s, "This option cannot be used in PK Mode.");
         return ATCE::EXIST;
     }
 
@@ -1557,9 +1563,10 @@ ATCE atcommand_pvpon(const int fd, dumb_ptr<map_session_data> sd,
         sd->bl_m->flag.pvp = 1;
         for (int i = 0; i < fd_max; i++)
         {
-            if (!session[i])
+            Session *s2 = session[i].get();
+            if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 if (sd->bl_m == pl_sd->bl_m && !pl_sd->pvp_timer)
@@ -1572,11 +1579,11 @@ ATCE atcommand_pvpon(const int fd, dumb_ptr<map_session_data> sd,
                 }
             }
         }
-        clif_displaymessage(fd, "PvP: On.");
+        clif_displaymessage(s, "PvP: On.");
     }
     else
     {
-        clif_displaymessage(fd, "PvP is already On.");
+        clif_displaymessage(s, "PvP is already On.");
         return ATCE::EXIST;
     }
 
@@ -1584,7 +1591,7 @@ ATCE atcommand_pvpon(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_model(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_model(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int hair_style = 0, hair_color = 0, cloth_color = 0;
@@ -1600,7 +1607,7 @@ ATCE atcommand_model(const int fd, dumb_ptr<map_session_data> sd,
             pc_changelook(sd, LOOK::HAIR, hair_style);
             pc_changelook(sd, LOOK::HAIR_COLOR, hair_color);
             pc_changelook(sd, LOOK::CLOTHES_COLOR, cloth_color);
-            clif_displaymessage(fd, "Appearence changed.");
+            clif_displaymessage(s, "Appearence changed.");
         }
     }
     else
@@ -1610,7 +1617,7 @@ ATCE atcommand_model(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_dye(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_dye(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int cloth_color = 0;
@@ -1622,7 +1629,7 @@ ATCE atcommand_dye(const int fd, dumb_ptr<map_session_data> sd,
     {
         {
             pc_changelook(sd, LOOK::CLOTHES_COLOR, cloth_color);
-            clif_displaymessage(fd, "Appearence changed.");
+            clif_displaymessage(s, "Appearence changed.");
         }
     }
     else
@@ -1632,7 +1639,7 @@ ATCE atcommand_dye(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_hair_style(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_hair_style(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int hair_style = 0;
@@ -1644,7 +1651,7 @@ ATCE atcommand_hair_style(const int fd, dumb_ptr<map_session_data> sd,
     {
         {
             pc_changelook(sd, LOOK::HAIR, hair_style);
-            clif_displaymessage(fd, "Appearence changed.");
+            clif_displaymessage(s, "Appearence changed.");
         }
     }
     else
@@ -1654,7 +1661,7 @@ ATCE atcommand_hair_style(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_hair_color(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_hair_color(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int hair_color = 0;
@@ -1666,7 +1673,7 @@ ATCE atcommand_hair_color(const int fd, dumb_ptr<map_session_data> sd,
     {
         {
             pc_changelook(sd, LOOK::HAIR_COLOR, hair_color);
-            clif_displaymessage(fd, "Appearence changed.");
+            clif_displaymessage(s, "Appearence changed.");
         }
     }
     else
@@ -1676,7 +1683,7 @@ ATCE atcommand_hair_color(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_spawn(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MobName monster;
@@ -1736,16 +1743,16 @@ ATCE atcommand_spawn(const int fd, dumb_ptr<map_session_data> sd,
 
     if (count != 0)
         if (number == count)
-            clif_displaymessage(fd, "All monster summoned!");
+            clif_displaymessage(s, "All monster summoned!");
         else
         {
             FString output = STRPRINTF("%d monster(s) summoned!",
                     count);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
     else
     {
-        clif_displaymessage(fd, "Invalid monster ID or name.");
+        clif_displaymessage(s, "Invalid monster ID or name.");
         return ATCE::EXIST;
     }
 
@@ -1753,7 +1760,7 @@ ATCE atcommand_spawn(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-void atcommand_killmonster_sub(const int fd, dumb_ptr<map_session_data> sd,
+void atcommand_killmonster_sub(Session *s, dumb_ptr<map_session_data> sd,
         ZString message, const int drop)
 {
     map_local *map_id;
@@ -1771,34 +1778,34 @@ void atcommand_killmonster_sub(const int fd, dumb_ptr<map_session_data> sd,
             map_id->xs, map_id->ys,
             BL::MOB);
 
-    clif_displaymessage(fd, "All monsters killed!");
+    clif_displaymessage(s, "All monsters killed!");
 }
 
 static
-ATCE atcommand_killmonster(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_killmonster(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    atcommand_killmonster_sub(fd, sd, message, 1);
+    atcommand_killmonster_sub(s, sd, message, 1);
 
     return ATCE::OKAY;
 }
 
 static
-void atlist_nearby_sub(dumb_ptr<block_list> bl, int fd)
+void atlist_nearby_sub(dumb_ptr<block_list> bl, Session *s)
 {
     nullpo_retv(bl);
 
     FString buf = STRPRINTF(" - \"%s\"",
             bl->is_player()->status.name);
-    clif_displaymessage(fd, buf);
+    clif_displaymessage(s, buf);
 }
 
 static
-ATCE atcommand_list_nearby(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_list_nearby(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    clif_displaymessage(fd, "Nearby players:");
-    map_foreachinarea(std::bind(atlist_nearby_sub, ph::_1, fd),
+    clif_displaymessage(s, "Nearby players:");
+    map_foreachinarea(std::bind(atlist_nearby_sub, ph::_1, s),
             sd->bl_m,
             sd->bl_x - 1, sd->bl_y - 1,
             sd->bl_x + 1, sd->bl_x + 1,
@@ -1808,16 +1815,16 @@ ATCE atcommand_list_nearby(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_killmonster2(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_killmonster2(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    atcommand_killmonster_sub(fd, sd, message, 0);
+    atcommand_killmonster_sub(s, sd, message, 0);
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_gat(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_gat(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int y;
@@ -1832,14 +1839,14 @@ ATCE atcommand_gat(const int fd, dumb_ptr<map_session_data> sd,
                 map_getcell(sd->bl_m, sd->bl_x, sd->bl_y + y),
                 map_getcell(sd->bl_m, sd->bl_x + 1, sd->bl_y + y),
                 map_getcell(sd->bl_m, sd->bl_x + 2, sd->bl_y + y));
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_packet(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_packet(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     StatusChange type {};
@@ -1854,7 +1861,7 @@ ATCE atcommand_packet(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_statuspoint(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_statuspoint(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int point, new_status_point;
@@ -1874,7 +1881,7 @@ ATCE atcommand_statuspoint(const int fd, dumb_ptr<map_session_data> sd,
     {
         sd->status.status_point = new_status_point;
         clif_updatestatus(sd, SP::STATUSPOINT);
-        clif_displaymessage(fd, "Number of status points changed!");
+        clif_displaymessage(s, "Number of status points changed!");
     }
     else
         return ATCE::RANGE;
@@ -1883,7 +1890,7 @@ ATCE atcommand_statuspoint(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_skillpoint(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_skillpoint(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int point, new_skill_point;
@@ -1903,7 +1910,7 @@ ATCE atcommand_skillpoint(const int fd, dumb_ptr<map_session_data> sd,
     {
         sd->status.skill_point = new_skill_point;
         clif_updatestatus(sd, SP::SKILLPOINT);
-        clif_displaymessage(fd, "Number of skill points changed!");
+        clif_displaymessage(s, "Number of skill points changed!");
     }
     else
         return ATCE::RANGE;
@@ -1912,7 +1919,7 @@ ATCE atcommand_skillpoint(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_zeny(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_zeny(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int zeny, new_zeny;
@@ -1932,7 +1939,7 @@ ATCE atcommand_zeny(const int fd, dumb_ptr<map_session_data> sd,
     {
         sd->status.zeny = new_zeny;
         clif_updatestatus(sd, SP::ZENY);
-        clif_displaymessage(fd, "Number of zenys changed!");
+        clif_displaymessage(s, "Number of zenys changed!");
     }
     else
         return ATCE::RANGE;
@@ -1941,7 +1948,7 @@ ATCE atcommand_zeny(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 template<ATTR attr>
-ATCE atcommand_param(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_param(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int value = 0, new_value;
@@ -1964,7 +1971,7 @@ ATCE atcommand_param(const int fd, dumb_ptr<map_session_data> sd,
         clif_updatestatus(sd, attr_to_sp(attr));
         clif_updatestatus(sd, attr_to_usp(attr));
         pc_calcstatus(sd, 0);
-        clif_displaymessage(fd, "Stat changed.");
+        clif_displaymessage(s, "Stat changed.");
     }
     else
         return ATCE::RANGE;
@@ -1973,7 +1980,7 @@ ATCE atcommand_param(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_all_stats(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_all_stats(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int count, value = 0, new_value;
@@ -2005,7 +2012,7 @@ ATCE atcommand_all_stats(const int fd, dumb_ptr<map_session_data> sd,
 
     if (count > 0)
         // if at least 1 stat modified
-        clif_displaymessage(fd, "All stats changed!");
+        clif_displaymessage(s, "All stats changed!");
     else
         return ATCE::RANGE;
 
@@ -2013,7 +2020,7 @@ ATCE atcommand_all_stats(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_recall(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2030,30 +2037,30 @@ ATCE atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
             if (sd->bl_m && sd->bl_m->flag.nowarpto
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
-                clif_displaymessage(fd,
+                clif_displaymessage(s,
                         "You are not authorised to warp somenone to your actual map.");
                 return ATCE::PERM;
             }
             if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarp
                 && battle_config.any_warp_GM_min_level > pc_isGM(sd))
             {
-                clif_displaymessage(fd,
+                clif_displaymessage(s,
                         "You are not authorised to warp this player from its actual map.");
                 return ATCE::PERM;
             }
             pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
             FString output = STRPRINTF("%s recalled!", character);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2061,7 +2068,7 @@ ATCE atcommand_recall(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_revive(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_revive(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2079,11 +2086,11 @@ ATCE atcommand_revive(const int fd, dumb_ptr<map_session_data> sd,
         clif_updatestatus(pl_sd, SP::HP);
         clif_updatestatus(pl_sd, SP::SP);
         clif_resurrection(pl_sd, 1);
-        clif_displaymessage(fd, "Character revived.");
+        clif_displaymessage(s, "Character revived.");
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2091,7 +2098,7 @@ ATCE atcommand_revive(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_character_stats(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_character_stats(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -2104,37 +2111,37 @@ ATCE atcommand_character_stats(const int fd, dumb_ptr<map_session_data>,
     {
         FString output;
         output = STRPRINTF("'%s' stats:", pl_sd->status.name);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Base Level - %d", pl_sd->status.base_level),
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Job - Novice/Human (level %d)", pl_sd->status.job_level);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Hp - %d", pl_sd->status.hp);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("MaxHp - %d", pl_sd->status.max_hp);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Sp - %d", pl_sd->status.sp);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("MaxSp - %d", pl_sd->status.max_sp);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Str - %3d", pl_sd->status.attrs[ATTR::STR]);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Agi - %3d", pl_sd->status.attrs[ATTR::AGI]);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Vit - %3d", pl_sd->status.attrs[ATTR::VIT]);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Int - %3d", pl_sd->status.attrs[ATTR::INT]);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Dex - %3d", pl_sd->status.attrs[ATTR::DEX]);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Luk - %3d", pl_sd->status.attrs[ATTR::LUK]);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         output = STRPRINTF("Zeny - %d", pl_sd->status.zeny);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2142,7 +2149,7 @@ ATCE atcommand_character_stats(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_character_stats_all(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
         ZString)
 {
     int count;
@@ -2150,9 +2157,10 @@ ATCE atcommand_character_stats_all(const int fd, dumb_ptr<map_session_data>,
     count = 0;
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             FString gmlevel;
@@ -2168,7 +2176,7 @@ ATCE atcommand_character_stats_all(const int fd, dumb_ptr<map_session_data>,
                     pl_sd->status.job_level,
                     pl_sd->status.hp, pl_sd->status.max_hp,
                     pl_sd->status.sp, pl_sd->status.max_sp);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
             output = STRPRINTF("STR: %d | AGI: %d | VIT: %d | INT: %d | DEX: %d | LUK: %d | Zeny: %d %s",
                      pl_sd->status.attrs[ATTR::STR],
                      pl_sd->status.attrs[ATTR::AGI],
@@ -2178,27 +2186,27 @@ ATCE atcommand_character_stats_all(const int fd, dumb_ptr<map_session_data>,
                      pl_sd->status.attrs[ATTR::LUK],
                      pl_sd->status.zeny,
                      gmlevel);
-            clif_displaymessage(fd, output);
-            clif_displaymessage(fd, "--------");
+            clif_displaymessage(s, output);
+            clif_displaymessage(s, "--------");
             count++;
         }
     }
 
     if (count == 0)
-        clif_displaymessage(fd, "No player found.");
+        clif_displaymessage(s, "No player found.");
     else if (count == 1)
-        clif_displaymessage(fd, "1 player found.");
+        clif_displaymessage(s, "1 player found.");
     else
     {
         FString output = STRPRINTF("%d players found.", count);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_character_option(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_option(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     Opt1 opt1;
@@ -2220,17 +2228,17 @@ ATCE atcommand_character_option(const int fd, dumb_ptr<map_session_data> sd,
 
             clif_changeoption(pl_sd);
             pc_calcstatus(pl_sd, 0);
-            clif_displaymessage(fd, "Character's options changed.");
+            clif_displaymessage(s, "Character's options changed.");
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2238,7 +2246,7 @@ ATCE atcommand_character_option(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_char_change_sex(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_char_change_sex(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2249,14 +2257,14 @@ ATCE atcommand_char_change_sex(const int fd, dumb_ptr<map_session_data> sd,
     {
         chrif_char_ask_name(sd->status.account_id, character, 5, HumanTimeDiff());
         // type: 5 - changesex
-        clif_displaymessage(fd, "Character name sends to char-server to ask it.");
+        clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_char_block(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_char_block(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2267,14 +2275,14 @@ ATCE atcommand_char_block(const int fd, dumb_ptr<map_session_data> sd,
     {
         chrif_char_ask_name(sd->status.account_id, character, 1, HumanTimeDiff());
         // type: 1 - block
-        clif_displaymessage(fd, "Character name sends to char-server to ask it.");
+        clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_char_ban(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_char_ban(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     HumanTimeDiff modif;
@@ -2287,14 +2295,14 @@ ATCE atcommand_char_ban(const int fd, dumb_ptr<map_session_data> sd,
     {
         chrif_char_ask_name(sd->status.account_id, character, 2, modif);
         // type: 2 - ban
-        clif_displaymessage(fd, "Character name sends to char-server to ask it.");
+        clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_char_unblock(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_char_unblock(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2306,14 +2314,14 @@ ATCE atcommand_char_unblock(const int fd, dumb_ptr<map_session_data> sd,
         // send answer to login server via char-server
         chrif_char_ask_name(sd->status.account_id, character, 3, HumanTimeDiff());
         // type: 3 - unblock
-        clif_displaymessage(fd, "Character name sends to char-server to ask it.");
+        clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_char_unban(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_char_unban(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2325,14 +2333,14 @@ ATCE atcommand_char_unban(const int fd, dumb_ptr<map_session_data> sd,
         // send answer to login server via char-server
         chrif_char_ask_name(sd->status.account_id, character, 4, HumanTimeDiff());
         // type: 4 - unban
-        clif_displaymessage(fd, "Character name sends to char-server to ask it.");
+        clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_save(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MapName map_name;
@@ -2352,7 +2360,7 @@ ATCE atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
             map_local *m = map_mapname2mapid(map_name);
             if (m == nullptr)
             {
-                clif_displaymessage(fd, "Map not found.");
+                clif_displaymessage(s, "Map not found.");
                 return ATCE::EXIST;
             }
             else
@@ -2360,23 +2368,23 @@ ATCE atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
                 if (m != nullptr && m->flag.nowarpto
                     && battle_config.any_warp_GM_min_level > pc_isGM(sd))
                 {
-                    clif_displaymessage(fd,
+                    clif_displaymessage(s,
                             "You are not authorised to set this map as a save map.");
                     return ATCE::PERM;
                 }
                 pc_setsavepoint(pl_sd, map_name, x, y);
-                clif_displaymessage(fd, "Character's respawn point changed.");
+                clif_displaymessage(s, "Character's respawn point changed.");
             }
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2384,47 +2392,49 @@ ATCE atcommand_character_save(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_doom(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_doom(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
-            && pl_sd->state.auth && i != fd
+            && pl_sd->state.auth && s2 != s
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
-            clif_displaymessage(pl_sd->fd, "The holy messenger has given judgement.");
+            clif_displaymessage(pl_sd->sess, "The holy messenger has given judgement.");
         }
     }
-    clif_displaymessage(fd, "Judgement was made.");
+    clif_displaymessage(s, "Judgement was made.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_doommap(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_doommap(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
-            && pl_sd->state.auth && i != fd && sd->bl_m == pl_sd->bl_m
+            && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
-            clif_displaymessage(pl_sd->fd, "The holy messenger has given judgement.");
+            clif_displaymessage(pl_sd->sess, "The holy messenger has given judgement.");
         }
     }
-    clif_displaymessage(fd, "Judgement was made.");
+    clif_displaymessage(s, "Judgement was made.");
 
     return ATCE::OKAY;
 }
@@ -2440,46 +2450,48 @@ void atcommand_raise_sub(dumb_ptr<map_session_data> sd)
         clif_updatestatus(sd, SP::HP);
         clif_updatestatus(sd, SP::SP);
         clif_resurrection(sd, 1);
-        clif_displaymessage(sd->fd, "Mercy has been shown.");
+        clif_displaymessage(sd->sess, "Mercy has been shown.");
     }
 }
 
 static
-ATCE atcommand_raise(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_raise(Session *s, dumb_ptr<map_session_data>,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         atcommand_raise_sub(pl_sd);
     }
-    clif_displaymessage(fd, "Mercy has been granted.");
+    clif_displaymessage(s, "Mercy has been granted.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_raisemap(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_raisemap(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth && sd->bl_m == pl_sd->bl_m)
             atcommand_raise_sub(pl_sd);
     }
-    clif_displaymessage(fd, "Mercy has been granted.");
+    clif_displaymessage(s, "Mercy has been granted.");
 
     return ATCE::OKAY;
 }
 
 //static
-ATCE atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_baselevel(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2499,7 +2511,7 @@ ATCE atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
             {
                 if (pl_sd->status.base_level == battle_config.maximum_level)
                 {
-                    clif_displaymessage(fd, "Character's base level can't go any higher.");
+                    clif_displaymessage(s, "Character's base level can't go any higher.");
                     return ATCE::RANGE;
                 }
                 if (level > battle_config.maximum_level || level > (battle_config.maximum_level - pl_sd->status.base_level))
@@ -2517,13 +2529,13 @@ ATCE atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
                 pc_calcstatus(pl_sd, 0);
                 pc_heal(pl_sd, pl_sd->status.max_hp, pl_sd->status.max_sp);
                 clif_misceffect(pl_sd, 0);
-                clif_displaymessage(fd, "Character's base level raised.");
+                clif_displaymessage(s, "Character's base level raised.");
             }
             else
             {
                 if (pl_sd->status.base_level == 1)
                 {
-                    clif_displaymessage(fd, "Character's base level can't go any lower.");
+                    clif_displaymessage(s, "Character's base level can't go any lower.");
                     return ATCE::RANGE;
                 }
                 if (level < -battle_config.maximum_level || level < (1 - pl_sd->status.base_level))
@@ -2545,20 +2557,20 @@ ATCE atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
                 clif_updatestatus(pl_sd, SP::NEXTBASEEXP);
                 clif_updatestatus(pl_sd, SP::BASEEXP);
                 pc_calcstatus(pl_sd, 0);
-                clif_displaymessage(fd, "Character's base level lowered.");
+                clif_displaymessage(s, "Character's base level lowered.");
             }
             // Reset their stat points to prevent extra points from stacking
-            atcommand_charstreset(fd, sd, character.to__actual());
+            atcommand_charstreset(s, sd, character.to__actual());
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2566,7 +2578,7 @@ ATCE atcommand_character_baselevel(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_character_joblevel(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_joblevel(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2588,7 +2600,7 @@ ATCE atcommand_character_joblevel(const int fd, dumb_ptr<map_session_data> sd,
             {
                 if (pl_sd->status.job_level == max_level)
                 {
-                    clif_displaymessage(fd, "Character's job level can't go any higher.");
+                    clif_displaymessage(s, "Character's job level can't go any higher.");
                     return ATCE::RANGE;
                 }
                 if (pl_sd->status.job_level + level > max_level)
@@ -2600,13 +2612,13 @@ ATCE atcommand_character_joblevel(const int fd, dumb_ptr<map_session_data> sd,
                 clif_updatestatus(pl_sd, SP::SKILLPOINT);
                 pc_calcstatus(pl_sd, 0);
                 clif_misceffect(pl_sd, 1);
-                clif_displaymessage(fd, "character's job level raised.");
+                clif_displaymessage(s, "character's job level raised.");
             }
             else
             {
                 if (pl_sd->status.job_level == 1)
                 {
-                    clif_displaymessage(fd, "Character's job level can't go any lower.");
+                    clif_displaymessage(s, "Character's job level can't go any lower.");
                     return ATCE::RANGE;
                 }
                 if (pl_sd->status.job_level + level < 1)
@@ -2623,18 +2635,18 @@ ATCE atcommand_character_joblevel(const int fd, dumb_ptr<map_session_data> sd,
                 }
                 // to add: remove status points from skills
                 pc_calcstatus(pl_sd, 0);
-                clif_displaymessage(fd, "Character's job level lowered.");
+                clif_displaymessage(s, "Character's job level lowered.");
             }
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2642,7 +2654,7 @@ ATCE atcommand_character_joblevel(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_kick(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_kick(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2658,13 +2670,13 @@ ATCE atcommand_kick(const int fd, dumb_ptr<map_session_data> sd,
             clif_GM_kick(sd, pl_sd, 1);
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2672,14 +2684,15 @@ ATCE atcommand_kick(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_kickall(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_kickall(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
@@ -2689,13 +2702,13 @@ ATCE atcommand_kickall(const int fd, dumb_ptr<map_session_data> sd,
         }
     }
 
-    clif_displaymessage(fd, "All players have been kicked!");
+    clif_displaymessage(s, "All players have been kicked!");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_questskill(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_questskill(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     SkillID skill_id;
@@ -2710,23 +2723,23 @@ ATCE atcommand_questskill(const int fd, dumb_ptr<map_session_data> sd,
             if (pc_checkskill(sd, skill_id) == 0)
             {
                 pc_skill(sd, skill_id, 1, 0);
-                clif_displaymessage(fd, "You have learned the skill.");
+                clif_displaymessage(s, "You have learned the skill.");
             }
             else
             {
-                clif_displaymessage(fd, "You already have this quest skill.");
+                clif_displaymessage(s, "You already have this quest skill.");
                 return ATCE::EXIST;
             }
         }
         else
         {
-            clif_displaymessage(fd, "This skill number doesn't exist or isn't a quest skill.");
+            clif_displaymessage(s, "This skill number doesn't exist or isn't a quest skill.");
             return ATCE::RANGE;
         }
     }
     else
     {
-        clif_displaymessage(fd, "This skill number doesn't exist.");
+        clif_displaymessage(s, "This skill number doesn't exist.");
         return ATCE::RANGE;
     }
 
@@ -2734,7 +2747,7 @@ ATCE atcommand_questskill(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_charquestskill(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charquestskill(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -2753,29 +2766,29 @@ ATCE atcommand_charquestskill(const int fd, dumb_ptr<map_session_data>,
                 if (pc_checkskill(pl_sd, skill_id) == 0)
                 {
                     pc_skill(pl_sd, skill_id, 1, 0);
-                    clif_displaymessage(fd, "This player has learned the skill.");
+                    clif_displaymessage(s, "This player has learned the skill.");
                 }
                 else
                 {
-                    clif_displaymessage(fd, "This player already has this quest skill.");
+                    clif_displaymessage(s, "This player already has this quest skill.");
                     return ATCE::EXIST;
                 }
             }
             else
             {
-                clif_displaymessage(fd, "Character not found.");
+                clif_displaymessage(s, "Character not found.");
                 return ATCE::EXIST;
             }
         }
         else
         {
-            clif_displaymessage(fd, "This skill number doesn't exist or isn't a quest skill.");
+            clif_displaymessage(s, "This skill number doesn't exist or isn't a quest skill.");
             return ATCE::RANGE;
         }
     }
     else
     {
-        clif_displaymessage(fd, "This skill number doesn't exist.");
+        clif_displaymessage(s, "This skill number doesn't exist.");
         return ATCE::RANGE;
     }
 
@@ -2783,7 +2796,7 @@ ATCE atcommand_charquestskill(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_lostskill(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_lostskill(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     SkillID skill_id;
@@ -2800,23 +2813,23 @@ ATCE atcommand_lostskill(const int fd, dumb_ptr<map_session_data> sd,
                 sd->status.skill[skill_id].lv = 0;
                 sd->status.skill[skill_id].flags = SkillFlags::ZERO;
                 clif_skillinfoblock(sd);
-                clif_displaymessage(fd, "You have forgotten the skill.");
+                clif_displaymessage(s, "You have forgotten the skill.");
             }
             else
             {
-                clif_displaymessage(fd, "You don't have this quest skill.");
+                clif_displaymessage(s, "You don't have this quest skill.");
                 return ATCE::EXIST;
             }
         }
         else
         {
-            clif_displaymessage(fd, "This skill number doesn't exist or isn't a quest skill.");
+            clif_displaymessage(s, "This skill number doesn't exist or isn't a quest skill.");
             return ATCE::RANGE;
         }
     }
     else
     {
-        clif_displaymessage(fd, "This skill number doesn't exist.");
+        clif_displaymessage(s, "This skill number doesn't exist.");
         return ATCE::RANGE;
     }
 
@@ -2824,7 +2837,7 @@ ATCE atcommand_lostskill(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_charlostskill(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charlostskill(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -2845,29 +2858,29 @@ ATCE atcommand_charlostskill(const int fd, dumb_ptr<map_session_data>,
                     pl_sd->status.skill[skill_id].lv = 0;
                     pl_sd->status.skill[skill_id].flags = SkillFlags::ZERO;
                     clif_skillinfoblock(pl_sd);
-                    clif_displaymessage(fd, "This player has forgotten the skill.");
+                    clif_displaymessage(s, "This player has forgotten the skill.");
                 }
                 else
                 {
-                    clif_displaymessage(fd, "This player doesn't have this quest skill.");
+                    clif_displaymessage(s, "This player doesn't have this quest skill.");
                     return ATCE::EXIST;
                 }
             }
             else
             {
-                clif_displaymessage(fd, "Character not found.");
+                clif_displaymessage(s, "Character not found.");
                 return ATCE::EXIST;
             }
         }
         else
         {
-            clif_displaymessage(fd, "This skill number doesn't exist or isn't a quest skill.");
+            clif_displaymessage(s, "This skill number doesn't exist or isn't a quest skill.");
             return ATCE::RANGE;
         }
     }
     else
     {
-        clif_displaymessage(fd, "This skill number doesn't exist.");
+        clif_displaymessage(s, "This skill number doesn't exist.");
         return ATCE::RANGE;
     }
 
@@ -2875,7 +2888,7 @@ ATCE atcommand_charlostskill(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_party(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_party(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     PartyName party;
@@ -2889,14 +2902,15 @@ ATCE atcommand_party(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_mapexit(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_mapexit(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             if (sd->status.account_id != pl_sd->status.account_id)
@@ -2911,7 +2925,7 @@ ATCE atcommand_mapexit(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_idsearch(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     ItemName item_name;
@@ -2922,7 +2936,7 @@ ATCE atcommand_idsearch(const int fd, dumb_ptr<map_session_data>,
         return ATCE::USAGE;
 
     FString output = STRPRINTF("The reference result of '%s' (name: id):", item_name);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     match = 0;
     for (i = 0; i < 20000; i++)
     {
@@ -2931,17 +2945,17 @@ ATCE atcommand_idsearch(const int fd, dumb_ptr<map_session_data>,
         {
             match++;
             output = STRPRINTF("%s: %d", item->jname, item->nameid);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
     }
     output = STRPRINTF("It is %d affair above.", match);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_charskreset(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charskreset(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2958,17 +2972,17 @@ ATCE atcommand_charskreset(const int fd, dumb_ptr<map_session_data> sd,
             pc_resetskill(pl_sd);
             FString output = STRPRINTF(
                     "'%s' skill points reseted!", character);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -2976,7 +2990,7 @@ ATCE atcommand_charskreset(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 //static
-ATCE atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charstreset(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -2994,17 +3008,17 @@ ATCE atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
             FString output = STRPRINTF(
                     "'%s' stats points reseted!",
                     character);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3012,7 +3026,7 @@ ATCE atcommand_charstreset(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_charreset(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charreset(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -3034,17 +3048,17 @@ ATCE atcommand_charreset(const int fd, dumb_ptr<map_session_data> sd,
             // [Fate] Reset magic experience
             FString output = STRPRINTF(
                     "'%s' skill and stats points reseted!", character);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3052,7 +3066,7 @@ ATCE atcommand_charreset(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_char_wipe(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -3118,17 +3132,17 @@ ATCE atcommand_char_wipe(const int fd, dumb_ptr<map_session_data> sd,
             // [Fate] Reset magic experience
 
             FString output = STRPRINTF("%s:  wiped.", character);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3136,7 +3150,7 @@ ATCE atcommand_char_wipe(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_charmodel(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charmodel(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     unsigned hair_style = 0, hair_color = 0, cloth_color = 0;
@@ -3156,7 +3170,7 @@ ATCE atcommand_charmodel(const int fd, dumb_ptr<map_session_data>,
                 pc_changelook(pl_sd, LOOK::HAIR, hair_style);
                 pc_changelook(pl_sd, LOOK::HAIR_COLOR, hair_color);
                 pc_changelook(pl_sd, LOOK::CLOTHES_COLOR, cloth_color);
-                clif_displaymessage(fd, "Appearence changed.");
+                clif_displaymessage(s, "Appearence changed.");
             }
         }
         else
@@ -3164,7 +3178,7 @@ ATCE atcommand_charmodel(const int fd, dumb_ptr<map_session_data>,
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3172,7 +3186,7 @@ ATCE atcommand_charmodel(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_charskpoint(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charskpoint(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -3197,14 +3211,14 @@ ATCE atcommand_charskpoint(const int fd, dumb_ptr<map_session_data>,
         {
             pl_sd->status.skill_point = new_skill_point;
             clif_updatestatus(pl_sd, SP::SKILLPOINT);
-            clif_displaymessage(fd, "Character's number of skill points changed!");
+            clif_displaymessage(s, "Character's number of skill points changed!");
         }
         else
             return ATCE::RANGE;
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3212,7 +3226,7 @@ ATCE atcommand_charskpoint(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_charstpoint(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charstpoint(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -3237,14 +3251,14 @@ ATCE atcommand_charstpoint(const int fd, dumb_ptr<map_session_data>,
         {
             pl_sd->status.status_point = new_status_point;
             clif_updatestatus(pl_sd, SP::STATUSPOINT);
-            clif_displaymessage(fd, "Character's number of status points changed!");
+            clif_displaymessage(s, "Character's number of status points changed!");
         }
         else
             return ATCE::RANGE;
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3252,7 +3266,7 @@ ATCE atcommand_charstpoint(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_charzeny(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charzeny(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -3275,14 +3289,14 @@ ATCE atcommand_charzeny(const int fd, dumb_ptr<map_session_data>,
         {
             pl_sd->status.zeny = new_zeny;
             clif_updatestatus(pl_sd, SP::ZENY);
-            clif_displaymessage(fd, "Character's number of zenys changed!");
+            clif_displaymessage(s, "Character's number of zenys changed!");
         }
         else
             return ATCE::RANGE;
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3290,7 +3304,7 @@ ATCE atcommand_charzeny(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int count;
@@ -3298,7 +3312,7 @@ ATCE atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
     if (sd->bl_m && sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "You are not authorised to warp somenone to your actual map.");
         return ATCE::PERM;
     }
@@ -3306,9 +3320,10 @@ ATCE atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
     count = 0;
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth
             && sd->status.account_id != pl_sd->status.account_id
@@ -3323,20 +3338,20 @@ ATCE atcommand_recallall(const int fd, dumb_ptr<map_session_data> sd,
         }
     }
 
-    clif_displaymessage(fd, "All characters recalled!");
+    clif_displaymessage(s, "All characters recalled!");
     if (count)
     {
         FString output = STRPRINTF(
                 "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
                 count);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     PartyName party_name;
@@ -3349,7 +3364,7 @@ ATCE atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
     if (sd->bl_m && sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "You are not authorised to warp somenone to your actual map.");
         return ATCE::PERM;
     }
@@ -3361,9 +3376,10 @@ ATCE atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
         count = 0;
         for (int i = 0; i < fd_max; i++)
         {
-            if (!session[i])
+            Session *s2 = session[i].get();
+            if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth
                 && sd->status.account_id != pl_sd->status.account_id
                 && pl_sd->status.party_id == p->party_id)
@@ -3376,18 +3392,18 @@ ATCE atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
             }
         }
         FString output = STRPRINTF("All online characters of the %s party are near you.", p->name);
-        clif_displaymessage(fd, output);
+        clif_displaymessage(s, output);
         if (count)
         {
             output = STRPRINTF(
                     "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
                     count);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
     }
     else
     {
-        clif_displaymessage(fd, "Incorrect name or ID, or no one from the party is online.");
+        clif_displaymessage(s, "Incorrect name or ID, or no one from the party is online.");
         return ATCE::EXIST;
     }
 
@@ -3395,7 +3411,7 @@ ATCE atcommand_partyrecall(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     dumb_ptr<npc_data> nd = NULL;
@@ -3415,42 +3431,42 @@ ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
     if (m_id != nullptr)
         return ATCE::EXIST;
 
-    clif_displaymessage(fd, "------ Map Info ------");
+    clif_displaymessage(s, "------ Map Info ------");
     FString output = STRPRINTF("Map Name: %s", map_name);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("Players In Map: %d", m_id->users);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("NPCs In Map: %d", m_id->npc_num);
-    clif_displaymessage(fd, output);
-    clif_displaymessage(fd, "------ Map Flags ------");
+    clif_displaymessage(s, output);
+    clif_displaymessage(s, "------ Map Flags ------");
     output = STRPRINTF("Player vs Player: %s | No Party: %s",
              (m_id->flag.pvp) ? "True" : "False",
              (m_id->flag.pvp_noparty) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Dead Branch: %s",
              (m_id->flag.nobranch) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Memo: %s",
              (m_id->flag.nomemo) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Penalty: %s",
              (m_id->flag.nopenalty) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Return: %s",
              (m_id->flag.noreturn) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Save: %s",
              (m_id->flag.nosave) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Teleport: %s",
              (m_id->flag.noteleport) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Monster Teleport: %s",
              (m_id->flag.monster_noteleport) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
     output = STRPRINTF("No Zeny Penalty: %s",
              (m_id->flag.nozenypenalty) ? "True" : "False");
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
 
     switch (list)
     {
@@ -3458,24 +3474,25 @@ ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
             // Do nothing. It's list 0, no additional display.
             break;
         case 1:
-            clif_displaymessage(fd, "----- Players in Map -----");
+            clif_displaymessage(s, "----- Players in Map -----");
             for (int i = 0; i < fd_max; i++)
             {
-                if (!session[i])
+                Session *s2 = session[i].get();
+                if (!s2)
                     continue;
-                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+                dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
                 if (pl_sd && pl_sd->state.auth
                     && pl_sd->mapname_ == map_name)
                 {
                     output = STRPRINTF(
                             "Player '%s' (session #%d) | Location: %d,%d",
                             pl_sd->status.name, i, pl_sd->bl_x, pl_sd->bl_y);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                 }
             }
             break;
         case 2:
-            clif_displaymessage(fd, "----- NPCs in Map -----");
+            clif_displaymessage(s, "----- NPCs in Map -----");
             for (int i = 0; i < m_id->npc_num;)
             {
                 nd = m_id->npc[i];
@@ -3518,12 +3535,12 @@ ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
                          "NPC %d: %s | Direction: %s | Sprite: %d | Location: %d %d",
                          ++i, nd->name, direction, nd->npc_class, nd->bl_x,
                          nd->bl_y);
-                clif_displaymessage(fd, output);
+                clif_displaymessage(s, output);
             }
             break;
         default:
             // normally impossible to arrive here
-            clif_displaymessage(fd,
+            clif_displaymessage(s,
                     "Please, enter at least a valid list number (usage: @mapinfo <0-2> [map]).");
             return ATCE::USAGE;
     }
@@ -3532,7 +3549,7 @@ ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_partyspy(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     PartyName party_name;
@@ -3549,18 +3566,18 @@ ATCE atcommand_partyspy(const int fd, dumb_ptr<map_session_data> sd,
         {
             sd->partyspy = 0;
             FString output = STRPRINTF("No longer spying on the %s party.", p->name);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
         else
         {
             sd->partyspy = p->party_id;
             FString output = STRPRINTF("Spying on the %s party.", p->name);
-            clif_displaymessage(fd, output);
+            clif_displaymessage(s, output);
         }
     }
     else
     {
-        clif_displaymessage(fd, "Incorrect name or ID, or no one from the party is online.");
+        clif_displaymessage(s, "Incorrect name or ID, or no one from the party is online.");
         return ATCE::EXIST;
     }
 
@@ -3568,7 +3585,7 @@ ATCE atcommand_partyspy(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_enablenpc(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_enablenpc(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     NpcName NPCname;
@@ -3579,11 +3596,11 @@ ATCE atcommand_enablenpc(const int fd, dumb_ptr<map_session_data>,
     if (npc_name2id(NPCname) != NULL)
     {
         npc_enable(NPCname, 1);
-        clif_displaymessage(fd, "Npc Enabled.");
+        clif_displaymessage(s, "Npc Enabled.");
     }
     else
     {
-        clif_displaymessage(fd, "This NPC doesn't exist.");
+        clif_displaymessage(s, "This NPC doesn't exist.");
         return ATCE::EXIST;
     }
 
@@ -3591,7 +3608,7 @@ ATCE atcommand_enablenpc(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_disablenpc(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_disablenpc(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     NpcName NPCname;
@@ -3602,11 +3619,11 @@ ATCE atcommand_disablenpc(const int fd, dumb_ptr<map_session_data>,
     if (npc_name2id(NPCname) != NULL)
     {
         npc_enable(NPCname, 0);
-        clif_displaymessage(fd, "Npc Disabled.");
+        clif_displaymessage(s, "Npc Disabled.");
     }
     else
     {
-        clif_displaymessage(fd, "This NPC doesn't exist.");
+        clif_displaymessage(s, "This NPC doesn't exist.");
         return ATCE::EXIST;
     }
 
@@ -3614,19 +3631,19 @@ ATCE atcommand_disablenpc(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_servertime(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_servertime(Session *s, dumb_ptr<map_session_data>,
         ZString)
 {
     timestamp_seconds_buffer tsbuf;
     stamp_time(tsbuf);
     FString temp = STRPRINTF("Server time: %s", tsbuf);
-    clif_displaymessage(fd, temp);
+    clif_displaymessage(s, temp);
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_chardelitem(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -3664,35 +3681,35 @@ ATCE atcommand_chardelitem(const int fd, dumb_ptr<map_session_data> sd,
                     FString output = STRPRINTF(
                             "%d item(s) removed by a GM.",
                             count);
-                    clif_displaymessage(pl_sd->fd, output);
+                    clif_displaymessage(pl_sd->sess, output);
 
                     if (number == count)
                         output = STRPRINTF("%d item(s) removed from the player.", count);
                     else
                         output = STRPRINTF("%d item(s) removed. Player had only %d on %d items.", count, count, number);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                 }
                 else
                 {
-                    clif_displaymessage(fd, "Character does not have the item.");
+                    clif_displaymessage(s, "Character does not have the item.");
                     return ATCE::EXIST;
                 }
             }
             else
             {
-                clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+                clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
                 return ATCE::PERM;
             }
         }
         else
         {
-            clif_displaymessage(fd, "Character not found.");
+            clif_displaymessage(s, "Character not found.");
             return ATCE::EXIST;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Invalid item ID or name.");
+        clif_displaymessage(s, "Invalid item ID or name.");
         return ATCE::RANGE;
     }
 
@@ -3700,7 +3717,7 @@ ATCE atcommand_chardelitem(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_broadcast(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_broadcast(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     if (!message)
@@ -3713,7 +3730,7 @@ ATCE atcommand_broadcast(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_localbroadcast(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_localbroadcast(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     if (!message)
@@ -3727,7 +3744,7 @@ ATCE atcommand_localbroadcast(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_email(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_email(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     AccountEmail actual_email;
@@ -3738,35 +3755,35 @@ ATCE atcommand_email(const int fd, dumb_ptr<map_session_data> sd,
 
     if (!e_mail_check(actual_email))
     {
-        clif_displaymessage(fd, "Invalid actual email. If you have default e-mail, type a@a.com.");
+        clif_displaymessage(s, "Invalid actual email. If you have default e-mail, type a@a.com.");
         return ATCE::RANGE;
     }
     else if (!e_mail_check(new_email))
     {
-        clif_displaymessage(fd, "Invalid new email. Please enter a real e-mail.");
+        clif_displaymessage(s, "Invalid new email. Please enter a real e-mail.");
         return ATCE::RANGE;
     }
     else if (new_email == DEFAULT_EMAIL)
     {
-        clif_displaymessage(fd, "New email must be a real e-mail.");
+        clif_displaymessage(s, "New email must be a real e-mail.");
         return ATCE::RANGE;
     }
     else if (actual_email == new_email)
     {
-        clif_displaymessage(fd, "New email must be different of the actual e-mail.");
+        clif_displaymessage(s, "New email must be different of the actual e-mail.");
         return ATCE::RANGE;
     }
     else
     {
         chrif_changeemail(sd->status.account_id, actual_email, new_email);
-        clif_displaymessage(fd, "Information sended to login-server via char-server.");
+        clif_displaymessage(s, "Information sended to login-server via char-server.");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_effect(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_effect(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     int type = 0, flag = 0;
@@ -3776,19 +3793,20 @@ ATCE atcommand_effect(const int fd, dumb_ptr<map_session_data> sd,
     if (flag <= 0)
     {
         clif_specialeffect(sd, type, flag);
-        clif_displaymessage(fd, "Your Effect Has Changed.");
+        clif_displaymessage(s, "Your Effect Has Changed.");
     }
     else
     {
         for (int i = 0; i < fd_max; i++)
         {
-            if (!session[i])
+            Session *s2 = session[i].get();
+            if (!s2)
                 continue;
-            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+            dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth)
             {
                 clif_specialeffect(pl_sd, type, flag);
-                clif_displaymessage(pl_sd->fd, "Your Effect Has Changed.");
+                clif_displaymessage(pl_sd->sess, "Your Effect Has Changed.");
             }
         }
     }
@@ -3797,7 +3815,7 @@ ATCE atcommand_effect(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     struct item_data *item_data = NULL, *item_temp;
@@ -3829,7 +3847,7 @@ ATCE atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
                         FString output = STRPRINTF(
                                 "------ Items list of '%s' ------",
                                 pl_sd->status.name);
-                        clif_displaymessage(fd, output);
+                        clif_displaymessage(s, output);
                     }
                     EPOS equip = pl_sd->status.inventory[i].equip;
                     MString equipstr;
@@ -3886,7 +3904,7 @@ ATCE atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
                                  item_data->name, item_data->jname,
                                  pl_sd->status.inventory[i].nameid,
                                  FString(equipstr));
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
 
                     MString voutput;
                     counter2 = 0;
@@ -3920,29 +3938,29 @@ ATCE atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
                         // replace trailing ", "
                         voutput.pop_back();
                         voutput.back() = ')';
-                        clif_displaymessage(fd, FString(voutput));
+                        clif_displaymessage(s, FString(voutput));
                     }
                 }
             }
             if (count == 0)
-                clif_displaymessage(fd, "No item found on this player.");
+                clif_displaymessage(s, "No item found on this player.");
             else
             {
                 FString output = STRPRINTF(
                         "%d item(s) found in %d kind(s) of items.",
                         counter, count);
-                clif_displaymessage(fd, output);
+                clif_displaymessage(s, output);
             }
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -3950,7 +3968,7 @@ ATCE atcommand_character_item_list(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     struct storage *stor;
@@ -3984,7 +4002,7 @@ ATCE atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> s
                             FString output = STRPRINTF(
                                     "------ Storage items list of '%s' ------",
                                     pl_sd->status.name);
-                            clif_displaymessage(fd, output);
+                            clif_displaymessage(s, output);
                         }
                         FString output;
                         if (stor->storage_[i].refine)
@@ -4000,7 +4018,7 @@ ATCE atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> s
                                      stor->storage_[i].amount,
                                      item_data->name, item_data->jname,
                                      stor->storage_[i].nameid);
-                        clif_displaymessage(fd, output);
+                        clif_displaymessage(s, output);
 
                         MString voutput;
                         counter2 = 0;
@@ -4034,36 +4052,36 @@ ATCE atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> s
                             // replace last ", "
                             voutput.pop_back();
                             voutput.back() = ')';
-                            clif_displaymessage(fd, FString(voutput));
+                            clif_displaymessage(s, FString(voutput));
                         }
                     }
                 }
                 if (count == 0)
-                    clif_displaymessage(fd,
+                    clif_displaymessage(s,
                             "No item found in the storage of this player.");
                 else
                 {
                     FString output = STRPRINTF(
                             "%d item(s) found in %d kind(s) of items.",
                             counter, count);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
                 }
             }
             else
             {
-                clif_displaymessage(fd, "This player has no storage.");
+                clif_displaymessage(s, "This player has no storage.");
                 return ATCE::OKAY;
             }
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -4071,7 +4089,7 @@ ATCE atcommand_character_storage_list(const int fd, dumb_ptr<map_session_data> s
 }
 
 static
-ATCE atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_character_cart_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     struct item_data *item_data = NULL, *item_temp;
@@ -4102,7 +4120,7 @@ ATCE atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
                         FString output = STRPRINTF(
                                 "------ Cart items list of '%s' ------",
                                 pl_sd->status.name);
-                        clif_displaymessage(fd, output);
+                        clif_displaymessage(s, output);
                     }
 
                     FString output;
@@ -4120,7 +4138,7 @@ ATCE atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
                                 pl_sd->status.cart[i].amount,
                                 item_data->name, item_data->jname,
                                 pl_sd->status.cart[i].nameid);
-                    clif_displaymessage(fd, output);
+                    clif_displaymessage(s, output);
 
                     MString voutput;
                     counter2 = 0;
@@ -4152,29 +4170,29 @@ ATCE atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
                     {
                         voutput.pop_back();
                         voutput.back() = '0';
-                        clif_displaymessage(fd, FString(voutput));
+                        clif_displaymessage(s, FString(voutput));
                     }
                 }
             }
             if (count == 0)
-                clif_displaymessage(fd,
+                clif_displaymessage(s,
                         "No item found in the cart of this player.");
             else
             {
                 FString output = STRPRINTF("%d item(s) found in %d kind(s) of items.",
                          counter, count);
-                clif_displaymessage(fd, output);
+                clif_displaymessage(s, output);
             }
         }
         else
         {
-            clif_displaymessage(fd, "Your GM level don't authorise you to do this action on this player.");
+            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
             return ATCE::PERM;
         }
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -4182,21 +4200,21 @@ ATCE atcommand_character_cart_list(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_killer(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_killer(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     sd->special_state.killer = !sd->special_state.killer;
 
     if (sd->special_state.killer)
-        clif_displaymessage(fd, "You be a killa...");
+        clif_displaymessage(s, "You be a killa...");
     else
-        clif_displaymessage(fd, "You gonna be own3d...");
+        clif_displaymessage(s, "You gonna be own3d...");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_charkiller(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charkiller(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4212,34 +4230,34 @@ ATCE atcommand_charkiller(const int fd, dumb_ptr<map_session_data>,
 
     if (pl_sd->special_state.killer)
     {
-        clif_displaymessage(fd, "The player is now a killer");
-        clif_displaymessage(pl_sd->fd, "You are now a killer");
+        clif_displaymessage(s, "The player is now a killer");
+        clif_displaymessage(pl_sd->sess, "You are now a killer");
     }
     else
     {
-        clif_displaymessage(fd, "The player is no longer a killer");
-        clif_displaymessage(pl_sd->fd, "You are no longer a killer");
+        clif_displaymessage(s, "The player is no longer a killer");
+        clif_displaymessage(pl_sd->sess, "You are no longer a killer");
     }
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_killable(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_killable(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     sd->special_state.killable = !sd->special_state.killable;
 
     if (sd->special_state.killable)
-        clif_displaymessage(fd, "You gonna be own3d...");
+        clif_displaymessage(s, "You gonna be own3d...");
     else
-        clif_displaymessage(fd, "You be a killa...");
+        clif_displaymessage(s, "You be a killa...");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_charkillable(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_charkillable(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4254,15 +4272,15 @@ ATCE atcommand_charkillable(const int fd, dumb_ptr<map_session_data>,
     pl_sd->special_state.killable = !pl_sd->special_state.killable;
 
     if (pl_sd->special_state.killable)
-        clif_displaymessage(fd, "The player is now killable");
+        clif_displaymessage(s, "The player is now killable");
     else
-        clif_displaymessage(fd, "The player is no longer killable");
+        clif_displaymessage(s, "The player is no longer killable");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_npcmove(const int, dumb_ptr<map_session_data>,
+ATCE atcommand_npcmove(Session *, dumb_ptr<map_session_data>,
         ZString message)
 {
     NpcName character;
@@ -4285,7 +4303,7 @@ ATCE atcommand_npcmove(const int, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_addwarp(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MapName mapname;
@@ -4305,13 +4323,13 @@ ATCE atcommand_addwarp(const int fd, dumb_ptr<map_session_data> sd,
         return ATCE::RANGE;
 
     FString output = STRPRINTF("New warp NPC => %s", w3);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_chareffect(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_chareffect(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName target;
@@ -4325,13 +4343,13 @@ ATCE atcommand_chareffect(const int fd, dumb_ptr<map_session_data>,
         return ATCE::EXIST;
 
     clif_specialeffect(pl_sd, type, 0);
-    clif_displaymessage(fd, "Your Effect Has Changed.");
+    clif_displaymessage(s, "Your Effect Has Changed.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_dropall(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_dropall(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int i;
@@ -4348,7 +4366,7 @@ ATCE atcommand_dropall(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_chardropall(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_chardropall(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4368,15 +4386,15 @@ ATCE atcommand_chardropall(const int fd, dumb_ptr<map_session_data>,
         }
     }
 
-    clif_displaymessage(pl_sd->fd, "Ever play 52 card pickup?");
-    clif_displaymessage(fd, "It is done");
-    //clif_displaymessage(fd, "It is offical.. your a jerk");
+    clif_displaymessage(pl_sd->sess, "Ever play 52 card pickup?");
+    clif_displaymessage(s, "It is done");
+    //clif_displaymessage(s, "It is offical.. your a jerk");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_storeall(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_storeall(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int i;
@@ -4388,11 +4406,11 @@ ATCE atcommand_storeall(const int fd, dumb_ptr<map_session_data> sd,
         {
             case 2:
                 //Try again
-                clif_displaymessage(fd, "run this command again..");
+                clif_displaymessage(s, "run this command again..");
                 return ATCE::OKAY;
             case 1:
                 //Failure
-                clif_displaymessage(fd,
+                clif_displaymessage(s,
                         "You can't open the storage currently.");
                 return ATCE::EXIST;
         }
@@ -4408,12 +4426,12 @@ ATCE atcommand_storeall(const int fd, dumb_ptr<map_session_data> sd,
     }
     storage_storageclose(sd);
 
-    clif_displaymessage(fd, "It is done");
+    clif_displaymessage(s, "It is done");
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_charstoreall(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_charstoreall(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -4428,9 +4446,9 @@ ATCE atcommand_charstoreall(const int fd, dumb_ptr<map_session_data> sd,
     {
         // TODO figure out what the hell this is talking about,
         // and especially why it's different from the other one.
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Had to open the characters storage window...");
-        clif_displaymessage(fd, "run this command again..");
+        clif_displaymessage(s, "run this command again..");
         return ATCE::OKAY;
     }
     for (int i = 0; i < MAX_INVENTORY; i++)
@@ -4444,19 +4462,19 @@ ATCE atcommand_charstoreall(const int fd, dumb_ptr<map_session_data> sd,
     }
     storage_storageclose(pl_sd);
 
-    clif_displaymessage(pl_sd->fd,
+    clif_displaymessage(pl_sd->sess,
             "Everything you own has been put away for safe keeping.");
-    clif_displaymessage(pl_sd->fd,
+    clif_displaymessage(pl_sd->sess,
             "go to the nearest kafka to retrieve it..");
-    clif_displaymessage(pl_sd->fd, "   -- the management");
+    clif_displaymessage(pl_sd->sess, "   -- the management");
 
-    clif_displaymessage(fd, "It is done");
+    clif_displaymessage(s, "It is done");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_rain(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_rain(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int effno = 0;
@@ -4470,7 +4488,7 @@ ATCE atcommand_rain(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_snow(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_snow(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int effno = 0;
@@ -4484,7 +4502,7 @@ ATCE atcommand_snow(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_sakura(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_sakura(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int effno = 0;
@@ -4498,7 +4516,7 @@ ATCE atcommand_sakura(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_fog(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_fog(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int effno = 0;
@@ -4513,7 +4531,7 @@ ATCE atcommand_fog(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_leaves(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_leaves(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     int effno = 0;
@@ -4527,7 +4545,7 @@ ATCE atcommand_leaves(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_summon(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_summon(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MobName name;
@@ -4565,7 +4583,7 @@ ATCE atcommand_summon(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_adjcmdlvl(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_adjcmdlvl(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     int newlev;
@@ -4573,7 +4591,7 @@ ATCE atcommand_adjcmdlvl(const int fd, dumb_ptr<map_session_data>,
 
     if (!extract(message, record<' '>(&newlev, &cmd)))
     {
-        clif_displaymessage(fd, "usage: @adjcmdlvl <lvl> <command>.");
+        clif_displaymessage(s, "usage: @adjcmdlvl <lvl> <command>.");
         return ATCE::USAGE;
     }
 
@@ -4582,17 +4600,17 @@ ATCE atcommand_adjcmdlvl(const int fd, dumb_ptr<map_session_data>,
         if (it)
         {
             it->level = newlev;
-            clif_displaymessage(fd, "@command level changed.");
+            clif_displaymessage(s, "@command level changed.");
             return ATCE::OKAY;
         }
     }
 
-    clif_displaymessage(fd, "@command not found.");
+    clif_displaymessage(s, "@command not found.");
     return ATCE::EXIST;
 }
 
 static
-ATCE atcommand_adjgmlvl(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_adjgmlvl(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     int newlev;
@@ -4601,7 +4619,7 @@ ATCE atcommand_adjgmlvl(const int fd, dumb_ptr<map_session_data>,
     if (!asplit(message, &newlev, &user)
         || newlev < 0 || newlev > 99)
     {
-        clif_displaymessage(fd, "usage: @adjgmlvl <lvl> <user>.");
+        clif_displaymessage(s, "usage: @adjgmlvl <lvl> <user>.");
         return ATCE::USAGE;
     }
 
@@ -4615,7 +4633,7 @@ ATCE atcommand_adjgmlvl(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_trade(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_trade(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
@@ -4660,7 +4678,7 @@ ZString magic_skill_names[magic_skills_nr] =
 };
 
 static
-ATCE atcommand_magic_info(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_magic_info(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4674,7 +4692,7 @@ ATCE atcommand_magic_info(const int fd, dumb_ptr<map_session_data>,
         FString buf = STRPRINTF(
                 "`%s' has the following magic skills:",
                 character);
-        clif_displaymessage(fd, buf);
+        clif_displaymessage(s, buf);
 
         for (size_t i = 0; i < magic_skills_nr; i++)
         {
@@ -4684,13 +4702,13 @@ ATCE atcommand_magic_info(const int fd, dumb_ptr<map_session_data>,
                     pl_sd->status.skill[sk].lv,
                     magic_skill_names[i]);
             if (pl_sd->status.skill[sk].lv)
-                clif_displaymessage(fd, buf);
+                clif_displaymessage(s, buf);
         }
 
         return ATCE::OKAY;
     }
 
-    clif_displaymessage(fd, "Character not found.");
+    clif_displaymessage(s, "Character not found.");
     return ATCE::EXIST;
 }
 
@@ -4701,7 +4719,7 @@ void set_skill(dumb_ptr<map_session_data> sd, SkillID i, int level)
 }
 
 static
-ATCE atcommand_set_magic(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_set_magic(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4710,7 +4728,7 @@ ATCE atcommand_set_magic(const int fd, dumb_ptr<map_session_data>,
 
     if (!asplit(message, &magic_type, &value, &character))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Usage: @setmagic <school> <value> <char-name>, where <school> is either `magic', one of the school names, or `all'.");
         return ATCE::USAGE;
     }
@@ -4732,7 +4750,7 @@ ATCE atcommand_set_magic(const int fd, dumb_ptr<map_session_data>,
 
     if (skill_index == SkillID::NEGATIVE)
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "Incorrect school of magic.  Use `magic', `nature', `life', `war', `transmute', `ether', or `all'.");
         return ATCE::RANGE;
     }
@@ -4750,12 +4768,12 @@ ATCE atcommand_set_magic(const int fd, dumb_ptr<map_session_data>,
         return ATCE::OKAY;
     }
 
-    clif_displaymessage(fd, "Character not found.");
+    clif_displaymessage(s, "Character not found.");
     return ATCE::EXIST;
 }
 
 static
-ATCE atcommand_log(const int, dumb_ptr<map_session_data>,
+ATCE atcommand_log(Session *, dumb_ptr<map_session_data>,
         ZString)
 {
     return ATCE::OKAY;
@@ -4763,7 +4781,7 @@ ATCE atcommand_log(const int, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_tee(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_tee(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MString data;
@@ -4775,7 +4793,7 @@ ATCE atcommand_tee(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_invisible(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_invisible(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     pc_invisibility(sd, 1);
@@ -4783,7 +4801,7 @@ ATCE atcommand_invisible(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_visible(const int, dumb_ptr<map_session_data> sd,
+ATCE atcommand_visible(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
     pc_invisibility(sd, 0);
@@ -4791,7 +4809,7 @@ ATCE atcommand_visible(const int, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> (*get_start)(void),
         dumb_ptr<map_session_data> (*get_next)(dumb_ptr<map_session_data>))
 {
@@ -4815,20 +4833,20 @@ ATCE atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
     if (pl_sd->bl_m && pl_sd->bl_m->flag.nowarpto
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "You are not authorised to warp you to the map of this player.");
         return ATCE::PERM;
     }
     if (sd->bl_m && sd->bl_m->flag.nowarp
         && battle_config.any_warp_GM_min_level > pc_isGM(sd))
     {
-        clif_displaymessage(fd,
+        clif_displaymessage(s,
                 "You are not authorised to warp you from your actual map.");
         return ATCE::PERM;
     }
     pc_setpos(sd, pl_sd->bl_m->name_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
     FString output = STRPRINTF("Jump to %s", pl_sd->status.name);
-    clif_displaymessage(fd, output);
+    clif_displaymessage(s, output);
 
     sd->followtarget = pl_sd->bl_id;
 
@@ -4836,19 +4854,19 @@ ATCE atcommand_jump_iterate(const int fd, dumb_ptr<map_session_data> sd,
 }
 
 static
-ATCE atcommand_iterate_forward_over_players(const int fd, dumb_ptr<map_session_data> sd, ZString)
+ATCE atcommand_iterate_forward_over_players(Session *s, dumb_ptr<map_session_data> sd, ZString)
 {
-    return atcommand_jump_iterate(fd, sd, map_get_first_session, map_get_next_session);
+    return atcommand_jump_iterate(s, sd, map_get_first_session, map_get_next_session);
 }
 
 static
-ATCE atcommand_iterate_backwards_over_players(const int fd, dumb_ptr<map_session_data> sd, ZString)
+ATCE atcommand_iterate_backwards_over_players(Session *s, dumb_ptr<map_session_data> sd, ZString)
 {
-    return atcommand_jump_iterate(fd, sd, map_get_last_session, map_get_prev_session);
+    return atcommand_jump_iterate(s, sd, map_get_last_session, map_get_prev_session);
 }
 
 static
-ATCE atcommand_wgm(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_wgm(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     if (tmw_CheckChatSpam(sd, message))
@@ -4856,14 +4874,14 @@ ATCE atcommand_wgm(const int fd, dumb_ptr<map_session_data> sd,
 
     tmw_GmHackMsg(STRPRINTF("[GM] %s: %s", sd->status.name, message));
     if (!pc_isGM(sd))
-        clif_displaymessage(fd, "Message sent.");
+        clif_displaymessage(s, "Message sent.");
 
     return ATCE::OKAY;
 }
 
 
 static
-ATCE atcommand_skillpool_info(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_skillpool_info(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4881,19 +4899,19 @@ ATCE atcommand_skillpool_info(const int fd, dumb_ptr<map_session_data>,
         FString buf = STRPRINTF(
                 "Active skills %d out of %d for %s:",
                 pool_skills_nr, skill_pool_max(pl_sd), character);
-        clif_displaymessage(fd, buf);
+        clif_displaymessage(s, buf);
         for (i = 0; i < pool_skills_nr; ++i)
         {
             buf = STRPRINTF(" - %s [%d]: power %d",
                     skill_name(pool_skills[i]),
                     pool_skills[i],
                     skill_power(pl_sd, pool_skills[i]));
-            clif_displaymessage(fd, buf);
+            clif_displaymessage(s, buf);
         }
 
         buf = STRPRINTF("Learned skills out of %d for %s:",
                 skill_pool_skills_size, character);
-        clif_displaymessage(fd, buf);
+        clif_displaymessage(s, buf);
 
         for (i = 0; i < skill_pool_skills_size; ++i)
         {
@@ -4904,14 +4922,14 @@ ATCE atcommand_skillpool_info(const int fd, dumb_ptr<map_session_data>,
             {
                 buf = STRPRINTF(" - %s [%d]: lvl %d",
                         name, skill_pool_skills[i], lvl);
-                clif_displaymessage(fd, buf);
+                clif_displaymessage(s, buf);
             }
         }
 
     }
     else
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -4919,7 +4937,7 @@ ATCE atcommand_skillpool_info(const int fd, dumb_ptr<map_session_data>,
 }
 
 static
-ATCE atcommand_skillpool_focus(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_skillpool_focus(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4927,7 +4945,7 @@ ATCE atcommand_skillpool_focus(const int fd, dumb_ptr<map_session_data>,
 
     if (!asplit(message, &skill, &character))
     {
-        clif_displaymessage(fd, "Usage: @sp-focus <skill-nr> <char_name>");
+        clif_displaymessage(s, "Usage: @sp-focus <skill-nr> <char_name>");
         return ATCE::USAGE;
     }
 
@@ -4935,18 +4953,18 @@ ATCE atcommand_skillpool_focus(const int fd, dumb_ptr<map_session_data>,
     if (pl_sd != NULL)
     {
         if (skill_pool_activate(pl_sd, skill))
-            clif_displaymessage(fd, "Activation failed.");
+            clif_displaymessage(s, "Activation failed.");
         else
-            clif_displaymessage(fd, "Activation successful.");
+            clif_displaymessage(s, "Activation successful.");
     }
     else
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_skillpool_unfocus(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_skillpool_unfocus(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4959,18 +4977,18 @@ ATCE atcommand_skillpool_unfocus(const int fd, dumb_ptr<map_session_data>,
     if (pl_sd != NULL)
     {
         if (skill_pool_deactivate(pl_sd, skill))
-            clif_displaymessage(fd, "Deactivation failed.");
+            clif_displaymessage(s, "Deactivation failed.");
         else
-            clif_displaymessage(fd, "Deactivation successful.");
+            clif_displaymessage(s, "Deactivation successful.");
     }
     else
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
 
     return ATCE::OKAY;
 }
 
 //static
-ATCE atcommand_skill_learn(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_skill_learn(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -4987,13 +5005,13 @@ ATCE atcommand_skill_learn(const int fd, dumb_ptr<map_session_data>,
         clif_skillinfoblock(pl_sd);
     }
     else
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
 
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
+ATCE atcommand_ipcheck(Session *s, dumb_ptr<map_session_data>,
         ZString message)
 {
     CharName character;
@@ -5004,7 +5022,7 @@ ATCE atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd == NULL)
     {
-        clif_displaymessage(fd, "Character not found.");
+        clif_displaymessage(s, "Character not found.");
         return ATCE::EXIST;
     }
 
@@ -5015,9 +5033,10 @@ ATCE atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
 
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
             // Is checking GM levels really needed here?
@@ -5027,35 +5046,36 @@ ATCE atcommand_ipcheck(const int fd, dumb_ptr<map_session_data>,
                         "Name: %s | Location: %s %d %d",
                         pl_sd->status.name, pl_sd->mapname_,
                         pl_sd->bl_x, pl_sd->bl_y);
-                clif_displaymessage(fd, output);
+                clif_displaymessage(s, output);
             }
         }
     }
 
-    clif_displaymessage(fd, "End of list");
+    clif_displaymessage(s, "End of list");
     return ATCE::OKAY;
 }
 
 static
-ATCE atcommand_doomspot(const int fd, dumb_ptr<map_session_data> sd,
+ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s2 = session[i].get();
+        if (!s2)
             continue;
-        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
-            && pl_sd->state.auth && i != fd && sd->bl_m == pl_sd->bl_m
+            && pl_sd->state.auth && s2 != s && sd->bl_m == pl_sd->bl_m
             && sd->bl_x == pl_sd->bl_x && sd->bl_y == pl_sd->bl_y
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can doom only lower or same gm level
             pc_damage(NULL, pl_sd, pl_sd->status.hp + 1);
-            clif_displaymessage(pl_sd->fd, "The holy messenger has given judgement.");
+            clif_displaymessage(pl_sd->sess, "The holy messenger has given judgement.");
         }
     }
-    clif_displaymessage(fd, "Judgement was made.");
+    clif_displaymessage(s, "Judgement was made.");
 
     return ATCE::OKAY;
 }

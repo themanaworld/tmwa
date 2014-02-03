@@ -174,7 +174,7 @@ struct map_session_data : block_list, SessionData
     int weight, max_weight;
     int cart_weight, cart_max_weight, cart_num, cart_max_num;
     MapName mapname_;
-    int fd; // use this, you idiots!
+    Session *sess; // use this, you idiots!
     short to_x, to_y;
     interval_t speed;
     Opt1 opt1;
@@ -310,7 +310,7 @@ struct map_session_data : block_list, SessionData
 
     IP4Address get_ip()
     {
-        return session[fd]->client_ip;
+        return sess->client_ip;
     }
 };
 

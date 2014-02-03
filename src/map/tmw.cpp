@@ -81,8 +81,8 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
         (sd->chat_lines_in >= battle_config.chat_spam_warn
          || sd->chat_total_repeats >= battle_config.chat_spam_warn))
     {
-        clif_displaymessage(sd->fd, "WARNING: You are about to be automatically banned for spam!");
-        clif_displaymessage(sd->fd, "WARNING: Please slow down, do not repeat, and do not SHOUT!");
+        clif_displaymessage(sd->sess, "WARNING: You are about to be automatically banned for spam!");
+        clif_displaymessage(sd->sess, "WARNING: Please slow down, do not repeat, and do not SHOUT!");
     }
 
     return 0;
@@ -107,12 +107,12 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
     FString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
             reason);
 
-    clif_displaymessage(sd->fd, anotherbuf);
+    clif_displaymessage(sd->sess, anotherbuf);
     /* type: 2 - ban(year, month, day, hour, minute, second) */
     HumanTimeDiff ban_len {};
     ban_len.hour = length;
     chrif_char_ask_name(-1, sd->status.name, 2, ban_len);
-    clif_setwaitclose(sd->fd);
+    clif_setwaitclose(sd->sess);
 }
 
 // Returns true if more than 50% of input message is caps or punctuation

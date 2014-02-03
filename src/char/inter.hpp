@@ -3,12 +3,14 @@
 
 # include "../strings/fwd.hpp"
 
+class Session;
+
 bool inter_config(XString key, ZString value);
 void inter_init2();
 void inter_save(void);
-int inter_parse_frommap(int fd);
+int inter_parse_frommap(Session *ms);
 
-int inter_check_length(int fd, int length);
+int inter_check_length(Session *ms, int length);
 
 extern int party_share_level;
 

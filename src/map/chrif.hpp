@@ -37,6 +37,6 @@ int chrif_send_divorce(int char_id);
 void do_init_chrif(void);
 
 // only used by intif.cpp
-extern int char_fd;
+extern Session *char_session;
 
 #endif // CHRIF_HPP

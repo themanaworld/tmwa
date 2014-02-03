@@ -164,24 +164,24 @@ void inter_storage_delete(int account_id)
 
 // 倉庫データの送信
 static
-void mapif_load_storage(int fd, int account_id)
+void mapif_load_storage(Session *ss, int account_id)
 {
-    struct storage *s = account2storage(account_id);
-    WFIFOW(fd, 0) = 0x3810;
-    WFIFOW(fd, 2) = sizeof(struct storage) + 8;
-    WFIFOL(fd, 4) = account_id;
-    WFIFO_STRUCT(fd, 8, *s);
-    WFIFOSET(fd, WFIFOW(fd, 2));
+    struct storage *st = account2storage(account_id);
+    WFIFOW(ss, 0) = 0x3810;
+    WFIFOW(ss, 2) = sizeof(struct storage) + 8;
+    WFIFOL(ss, 4) = account_id;
+    WFIFO_STRUCT(ss, 8, *st);
+    WFIFOSET(ss, WFIFOW(ss, 2));
 }
 
 // 倉庫データ保存完了送信
 static
-void mapif_save_storage_ack(int fd, int account_id)
+void mapif_save_storage_ack(Session *ss, int account_id)
 {
-    WFIFOW(fd, 0) = 0x3811;
-    WFIFOL(fd, 2) = account_id;
-    WFIFOB(fd, 6) = 0;
-    WFIFOSET(fd, 7);
+    WFIFOW(ss, 0) = 0x3811;
+    WFIFOL(ss, 2) = account_id;
+    WFIFOB(ss, 6) = 0;
+    WFIFOSET(ss, 7);
 }
 
 //---------------------------------------------------------
@@ -189,18 +189,18 @@ void mapif_save_storage_ack(int fd, int account_id)
 
 // 倉庫データ要求受信
 static
-void mapif_parse_LoadStorage(int fd)
+void mapif_parse_LoadStorage(Session *ss)
 {
-    mapif_load_storage(fd, RFIFOL(fd, 2));
+    mapif_load_storage(ss, RFIFOL(ss, 2));
 }
 
 // 倉庫データ受信＆保存
 static
-void mapif_parse_SaveStorage(int fd)
+void mapif_parse_SaveStorage(Session *ss)
 {
-    struct storage *s;
-    int account_id = RFIFOL(fd, 4);
-    int len = RFIFOW(fd, 2);
+    struct storage *st;
+    int account_id = RFIFOL(ss, 4);
+    int len = RFIFOW(ss, 2);
     if (sizeof(struct storage) != len - 8)
     {
         PRINTF("inter storage: data size error %zu %d\n",
@@ -208,9 +208,9 @@ void mapif_parse_SaveStorage(int fd)
     }
     else
     {
-        s = account2storage(account_id);
-        RFIFO_STRUCT(fd, 8, *s);
-        mapif_save_storage_ack(fd, account_id);
+        st = account2storage(account_id);
+        RFIFO_STRUCT(ss, 8, *st);
+        mapif_save_storage_ack(ss, account_id);
     }
 }
 
@@ -219,15 +219,15 @@ void mapif_parse_SaveStorage(int fd)
 // ・パケット長データはinter.cにセットしておくこと
 // ・パケット長チェックや、RFIFOSKIPは呼び出し元で行われるので行ってはならない
 // ・エラーなら0(false)、そうでないなら1(true)をかえさなければならない
-int inter_storage_parse_frommap(int fd)
+int inter_storage_parse_frommap(Session *ms)
 {
-    switch (RFIFOW(fd, 0))
+    switch (RFIFOW(ms, 0))
     {
         case 0x3010:
-            mapif_parse_LoadStorage(fd);
+            mapif_parse_LoadStorage(ms);
             break;
         case 0x3011:
-            mapif_parse_SaveStorage(fd);
+            mapif_parse_SaveStorage(ms);
             break;
         default:
             return 0;

@@ -7,6 +7,8 @@
 # include "../common/ip.hpp"
 # include "../common/mmo.hpp"
 
+class Session;
+
 constexpr int MAX_MAP_SERVERS = 30;
 
 struct mmo_map_server
@@ -18,10 +20,12 @@ struct mmo_map_server
 };
 
 const mmo_charstatus *search_character(CharName character_name);
+const mmo_charstatus *search_character_id(int char_id);
+Session *server_for(const mmo_charstatus *mcs);
 
 int mapif_sendall(const uint8_t *buf, unsigned int len);
-int mapif_sendallwos(int fd, const uint8_t *buf, unsigned int len);
-int mapif_send(int fd, const uint8_t *buf, unsigned int len);
+int mapif_sendallwos(Session *s, const uint8_t *buf, unsigned int len);
+int mapif_send(Session *s, const uint8_t *buf, unsigned int len);
 
 void char_log(XString line);
 

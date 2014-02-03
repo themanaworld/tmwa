@@ -29,98 +29,98 @@ const uint32_t WFIFO_SIZE = 65536;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
-std::array<std::unique_ptr<struct socket_data>, FD_SETSIZE> session;
+std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
 #pragma GCC diagnostic pop
 
 /// clean up by discarding handled bytes
 inline
-void RFIFOFLUSH(int fd)
+void RFIFOFLUSH(Session *s)
 {
-    really_memmove(&session[fd]->rdata[0], &session[fd]->rdata[session[fd]->rdata_pos], RFIFOREST(fd));
-    session[fd]->rdata_size = RFIFOREST(fd);
-    session[fd]->rdata_pos = 0;
+    really_memmove(&s->rdata[0], &s->rdata[s->rdata_pos], RFIFOREST(s));
+    s->rdata_size = RFIFOREST(s);
+    s->rdata_pos = 0;
 }
 
 /// how much room there is to read more data
 inline
-size_t RFIFOSPACE(int fd)
+size_t RFIFOSPACE(Session *s)
 {
-    return session[fd]->max_rdata - session[fd]->rdata_size;
+    return s->max_rdata - s->rdata_size;
 }
 
 
 /// Discard all input
 static
-void null_parse(int fd);
+void null_parse(Session *s);
 /// Default parser for new connections
 static
-void (*default_func_parse)(int) = null_parse;
+void (*default_func_parse)(Session *) = null_parse;
 
-void set_defaultparse(void (*defaultparse)(int))
+void set_defaultparse(void (*defaultparse)(Session *))
 {
     default_func_parse = defaultparse;
 }
 
 /// Read from socket to the queue
 static
-void recv_to_fifo(int fd)
+void recv_to_fifo(Session *s)
 {
-    if (session[fd]->eof)
+    if (s->eof)
         return;
 
-    ssize_t len = read(fd, &session[fd]->rdata[session[fd]->rdata_size],
-                        RFIFOSPACE(fd));
+    ssize_t len = read(s->fd, &s->rdata[s->rdata_size],
+                        RFIFOSPACE(s));
 
     if (len > 0)
     {
-        session[fd]->rdata_size += len;
-        session[fd]->connected = 1;
+        s->rdata_size += len;
+        s->connected = 1;
     }
     else
     {
-        session[fd]->eof = 1;
+        s->eof = 1;
     }
 }
 
 static
-void send_from_fifo(int fd)
+void send_from_fifo(Session *s)
 {
-    if (session[fd]->eof)
+    if (s->eof)
         return;
 
-    ssize_t len = write(fd, &session[fd]->wdata[0], session[fd]->wdata_size);
+    ssize_t len = write(s->fd, &s->wdata[0], s->wdata_size);
 
     if (len > 0)
     {
-        session[fd]->wdata_size -= len;
-        if (session[fd]->wdata_size)
+        s->wdata_size -= len;
+        if (s->wdata_size)
         {
-            really_memmove(&session[fd]->wdata[0], &session[fd]->wdata[len],
-                     session[fd]->wdata_size);
+            really_memmove(&s->wdata[0], &s->wdata[len],
+                     s->wdata_size);
         }
-        session[fd]->connected = 1;
+        s->connected = 1;
     }
     else
     {
-        session[fd]->eof = 1;
+        s->eof = 1;
     }
 }
 
 static
-void null_parse(int fd)
+void null_parse(Session *s)
 {
-    PRINTF("null_parse : %d\n", fd);
-    RFIFOSKIP(fd, RFIFOREST(fd));
+    PRINTF("null_parse : %d\n", s);
+    RFIFOSKIP(s, RFIFOREST(s));
 }
 
 
 static
-void connect_client(int listen_fd)
+void connect_client(Session *ls)
 {
     struct sockaddr_in client_address;
     socklen_t len = sizeof(client_address);
 
-    int fd = accept(listen_fd, reinterpret_cast<struct sockaddr *>(&client_address), &len);
+    int fd = accept(ls->fd, reinterpret_cast<struct sockaddr *>(&client_address), &len);
     if (fd == -1)
     {
         perror("accept");
@@ -165,28 +165,30 @@ void connect_client(int listen_fd)
 
     fcntl(fd, F_SETFL, O_NONBLOCK);
 
-    session[fd] = make_unique<socket_data>();
-    session[fd]->rdata.new_(RFIFO_SIZE);
-    session[fd]->wdata.new_(WFIFO_SIZE);
+    session[fd] = make_unique<Session>();
+    Session *s = session[fd].get();
+    s->fd = fd;
+    s->rdata.new_(RFIFO_SIZE);
+    s->wdata.new_(WFIFO_SIZE);
 
-    session[fd]->max_rdata = RFIFO_SIZE;
-    session[fd]->max_wdata = WFIFO_SIZE;
-    session[fd]->func_recv = recv_to_fifo;
-    session[fd]->func_send = send_from_fifo;
-    session[fd]->func_parse = default_func_parse;
-    session[fd]->client_ip = IP4Address(client_address.sin_addr);
-    session[fd]->created = TimeT::now();
-    session[fd]->connected = 0;
+    s->max_rdata = RFIFO_SIZE;
+    s->max_wdata = WFIFO_SIZE;
+    s->func_recv = recv_to_fifo;
+    s->func_send = send_from_fifo;
+    s->func_parse = default_func_parse;
+    s->client_ip = IP4Address(client_address.sin_addr);
+    s->created = TimeT::now();
+    s->connected = 0;
 }
 
-int make_listen_port(uint16_t port)
+Session *make_listen_port(uint16_t port)
 {
     struct sockaddr_in server_address;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
-        return -1;
+        return nullptr;
     }
     if (fd_max <= fd)
         fd_max = fd + 1;
@@ -231,23 +233,25 @@ int make_listen_port(uint16_t port)
     FD_SET(fd, &readfds);
 #pragma GCC diagnostic pop
 
-    session[fd] = make_unique<socket_data>();
+    session[fd] = make_unique<Session>();
+    Session *s = session[fd].get();
+    s->fd = fd;
 
-    session[fd]->func_recv = connect_client;
-    session[fd]->created = TimeT::now();
-    session[fd]->connected = 1;
+    s->func_recv = connect_client;
+    s->created = TimeT::now();
+    s->connected = 1;
 
-    return fd;
+    return s;
 }
 
-int make_connection(IP4Address ip, uint16_t port)
+Session *make_connection(IP4Address ip, uint16_t port)
 {
     struct sockaddr_in server_address;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd == -1)
     {
         perror("socket");
-        return -1;
+        return nullptr;
     }
     if (fd_max <= fd)
         fd_max = fd + 1;
@@ -285,28 +289,29 @@ int make_connection(IP4Address ip, uint16_t port)
     FD_SET(fd, &readfds);
 #pragma GCC diagnostic pop
 
-    session[fd] = make_unique<socket_data>();
-    session[fd]->rdata.new_(RFIFO_SIZE);
-    session[fd]->wdata.new_(WFIFO_SIZE);
+    session[fd] = make_unique<Session>();
+    Session *s = session[fd].get();
+    s->fd = fd;
+    s->rdata.new_(RFIFO_SIZE);
+    s->wdata.new_(WFIFO_SIZE);
 
-    session[fd]->max_rdata = RFIFO_SIZE;
-    session[fd]->max_wdata = WFIFO_SIZE;
-    session[fd]->func_recv = recv_to_fifo;
-    session[fd]->func_send = send_from_fifo;
-    session[fd]->func_parse = default_func_parse;
-    session[fd]->created = TimeT::now();
-    session[fd]->connected = 1;
+    s->max_rdata = RFIFO_SIZE;
+    s->max_wdata = WFIFO_SIZE;
+    s->func_recv = recv_to_fifo;
+    s->func_send = send_from_fifo;
+    s->func_parse = default_func_parse;
+    s->created = TimeT::now();
+    s->connected = 1;
 
-    return fd;
+    return s;
 }
 
-void delete_session(int fd)
+void delete_session(Session *s)
 {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    if (fd < 0 || fd >= FD_SETSIZE)
-#pragma GCC diagnostic pop
+    if (!s)
         return;
+
+    int fd = s->fd;
     // If this was the highest fd, decrease it
     // We could add a loop to decrement fd_max further for every null session,
     // but this is cheap and good enough for the typical case
@@ -316,11 +321,10 @@ void delete_session(int fd)
 #pragma GCC diagnostic ignored "-Wold-style-cast"
     FD_CLR(fd, &readfds);
 #pragma GCC diagnostic pop
-    if (session[fd])
     {
-        session[fd]->rdata.delete_();
-        session[fd]->wdata.delete_();
-        session[fd]->session_data.reset();
+        s->rdata.delete_();
+        s->wdata.delete_();
+        s->session_data.reset();
         session[fd].reset();
     }
 
@@ -329,9 +333,8 @@ void delete_session(int fd)
     close(fd);
 }
 
-void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size)
+void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
 {
-    const std::unique_ptr<socket_data>& s = session[fd];
     if (s->max_rdata != rfifo_size && s->rdata_size < rfifo_size)
     {
         s->rdata.resize(rfifo_size);
@@ -344,18 +347,17 @@ void realloc_fifo(int fd, size_t rfifo_size, size_t wfifo_size)
     }
 }
 
-void WFIFOSET(int fd, size_t len)
+void WFIFOSET(Session *s, size_t len)
 {
-    std::unique_ptr<socket_data>& s = session[fd];
     if (s->wdata_size + len + 16384 > s->max_wdata)
     {
-        realloc_fifo(fd, s->max_rdata, s->max_wdata << 1);
-        PRINTF("socket: %d wdata expanded to %zu bytes.\n", fd, s->max_wdata);
+        realloc_fifo(s, s->max_rdata, s->max_wdata << 1);
+        PRINTF("socket: %d wdata expanded to %zu bytes.\n", s, s->max_wdata);
     }
     if (s->wdata_size + len + 2048 < s->max_wdata)
         s->wdata_size += len;
     else
-        FPRINTF(stderr, "socket: %d wdata lost !!\n", fd), abort();
+        FPRINTF(stderr, "socket: %d wdata lost !!\n", s), abort();
 }
 
 void do_sendrecv(interval_t next_ms)
@@ -384,26 +386,27 @@ void do_sendrecv(interval_t next_ms)
         return;
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s = session[i].get();
+        if (!s)
             continue;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
         if (FD_ISSET(i, &wfd))
 #pragma GCC diagnostic pop
         {
-            if (session[i]->func_send)
+            if (s->func_send)
                 //send_from_fifo(i);
-                session[i]->func_send(i);
+                s->func_send(s);
         }
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
         if (FD_ISSET(i, &rfd))
 #pragma GCC diagnostic pop
         {
-            if (session[i]->func_recv)
+            if (s->func_recv)
                 //recv_to_fifo(i);
                 //or connect_client(i);
-                session[i]->func_recv(i);
+                s->func_recv(s);
         }
     }
 }
@@ -412,25 +415,26 @@ void do_parsepacket(void)
 {
     for (int i = 0; i < fd_max; i++)
     {
-        if (!session[i])
+        Session *s = session[i].get();
+        if (!s)
             continue;
-        if (!session[i]->connected
-            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(session[i]->created) > CONNECT_TIMEOUT)
+        if (!s->connected
+            && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT)
         {
             PRINTF("Session #%d timed out\n", i);
-            session[i]->eof = 1;
+            s->eof = 1;
         }
-        if (!session[i]->rdata_size && !session[i]->eof)
+        if (!s->rdata_size && !s->eof)
             continue;
-        if (session[i]->func_parse)
+        if (s->func_parse)
         {
-            session[i]->func_parse(i);
+            s->func_parse(s);
             /// some func_parse may call delete_session
-            if (!session[i])
+            if (!s)
                 continue;
         }
         /// Reclaim buffer space for what was read
-        RFIFOFLUSH(i);
+        RFIFOFLUSH(s);
     }
 }
 
@@ -442,9 +446,8 @@ void do_socket(void)
 #pragma GCC diagnostic pop
 }
 
-void RFIFOSKIP(int fd, size_t len)
+void RFIFOSKIP(Session *s, size_t len)
 {
-    std::unique_ptr<socket_data>& s = session[fd];
     s->rdata_pos += len;
 
     if (s->rdata_size < s->rdata_pos)

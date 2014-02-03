@@ -953,7 +953,7 @@ dumb_ptr<map_session_data> map_get_first_session(void)
 
 dumb_ptr<map_session_data> map_get_next_session(dumb_ptr<map_session_data> d)
 {
-    return map_get_session_forward(d->fd + 1);
+    return map_get_session_forward(d->sess->fd + 1);
 }
 
 dumb_ptr<map_session_data> map_get_last_session(void)
@@ -963,7 +963,7 @@ dumb_ptr<map_session_data> map_get_last_session(void)
 
 dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
 {
-    return map_get_session_backward(d->fd - 1);
+    return map_get_session_backward(d->sess->fd - 1);
 }
 
 /*==========================================
@@ -1612,7 +1612,7 @@ void term_func(void)
     }
 
     for (int i = 0; i < fd_max; i++)
-        delete_session(i);
+        delete_session(session[i].get());
 
     map_removenpc();
 

@@ -7,7 +7,7 @@
 
 # include "map.hpp"
 
-int intif_parse(int fd);
+int intif_parse(Session *);
 
 void intif_GMmessage(XString mes);
 

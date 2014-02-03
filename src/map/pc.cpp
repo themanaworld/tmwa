@@ -623,7 +623,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 
     if (sd->status.sex != sd->sex)
     {
-        clif_authfail_fd(sd->fd, 0);
+        clif_authfail_fd(sd->sess, 0);
         return 1;
     }
 
@@ -690,10 +690,10 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         // This would leak information.
         // It's better to make it obvious that players can see you.
         if (false && bool(old_option & Option::INVISIBILITY))
-            is_atcommand(sd->fd, sd, "@invisible", 0);
+            is_atcommand(sd->sess, sd, "@invisible", 0);
 
         if (bool(old_option & Option::HIDE))
-            is_atcommand(sd->fd, sd, "@hide", 0);
+            is_atcommand(sd->sess, sd, "@hide", 0);
         // atcommand_hide might already send it, but also might not
         clif_changeoption(sd);
     }
@@ -765,7 +765,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         char tmpstr[] = WITH_TIMESTAMP("Your account time limit is: ");
         REPLACE_TIMESTAMP(tmpstr, connect_until_time);
 
-        clif_wis_message(sd->fd, wisp_server_name, const_(tmpstr));
+        clif_wis_message(sd->sess, wisp_server_name, const_(tmpstr));
     }
     pc_calcstatus(sd, 1);
 
@@ -783,7 +783,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
         FString buf;
         while (in.getline(buf))
         {
-            clif_displaymessage(sd->fd, buf);
+            clif_displaymessage(sd->sess, buf);
         }
     }
 }
@@ -800,7 +800,7 @@ int pc_authfail(int id)
     if (sd == NULL)
         return 1;
 
-    clif_authfail_fd(sd->fd, 0);
+    clif_authfail_fd(sd->sess, 0);
 
     return 0;
 }
@@ -2890,7 +2890,7 @@ int pc_attack(dumb_ptr<map_session_data> sd, int target_id, int type)
 
     if (bl->bl_type == BL::NPC)
     {                           // monster npcs [Valaris]
-        npc_click(sd, RFIFOL(sd->fd, 2));
+        npc_click(sd, RFIFOL(sd->sess, 2));
         return 0;
     }
 
@@ -3097,7 +3097,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
         FString output = STRPRINTF(
                 "Experienced Gained Base:%d Job:%d",
                 base_exp, job_exp);
-        clif_displaymessage(sd->fd, output);
+        clif_displaymessage(sd->sess, output);
     }
 
     return 0;
@@ -5201,13 +5201,13 @@ void pc_autosave_sub(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    if (save_flag == 0 && sd->fd > last_save_fd)
+    if (save_flag == 0 && sd->sess->fd > last_save_fd)
     {
         pc_makesavestatus(sd);
         chrif_save(sd);
 
         save_flag = 1;
-        last_save_fd = sd->fd;
+        last_save_fd = sd->sess->fd;
     }
 }
 
@@ -5221,7 +5221,7 @@ void pc_autosave(TimerData *, tick_t)
     save_flag = 0;
     clif_foreachclient(pc_autosave_sub);
     if (save_flag == 0)
-        last_save_fd = 0;
+        last_save_fd = -1;
 
     interval_t interval = autosave_time / (clif_countusers() + 1);
     if (interval <= interval_t::zero())
@@ -5231,15 +5231,15 @@ void pc_autosave(TimerData *, tick_t)
     ).detach();
 }
 
-int pc_read_gm_account(int fd)
+int pc_read_gm_account(Session *s)
 {
     gm_accountm.clear();
 
     // (RFIFOW(fd, 2) - 4) / 5
-    for (int i = 4; i < RFIFOW(fd, 2); i += 5)
+    for (int i = 4; i < RFIFOW(s, 2); i += 5)
     {
-        int account_id = RFIFOL(fd, i);
-        uint8_t level = RFIFOB(fd, i + 4);
+        int account_id = RFIFOL(s, i);
+        uint8_t level = RFIFOB(s, i + 4);
         gm_accountm[account_id] = level;
     }
     return gm_accountm.size();

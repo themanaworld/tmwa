@@ -3857,7 +3857,7 @@ void builtin_gmcommand(ScriptState *st)
     sd = script_rid2sd(st);
     dumb_string cmd = conv_str(st, &AARGO2(2));
 
-    is_atcommand(sd->fd, sd, cmd, 99);
+    is_atcommand(sd->sess, sd, cmd, 99);
 
 }
 
@@ -3914,7 +3914,7 @@ void builtin_message(ScriptState *st)
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(player);
     if (pl_sd == NULL)
         return;
-    clif_displaymessage(pl_sd->fd, msg);
+    clif_displaymessage(pl_sd->sess, msg);
 
 }
 

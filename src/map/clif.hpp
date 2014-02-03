@@ -22,16 +22,16 @@ void clif_setport(int);
 IP4Address clif_getip(void);
 int clif_getport(void);
 int clif_countusers(void);
-void clif_setwaitclose(int);
+void clif_setwaitclose(Session *);
 
 int clif_authok(dumb_ptr<map_session_data>);
-int clif_authfail_fd(int, int);
+int clif_authfail_fd(Session *, int);
 int clif_charselectok(int);
 int clif_dropflooritem(dumb_ptr<flooritem_data>);
-int clif_clearflooritem(dumb_ptr<flooritem_data>, int);
+int clif_clearflooritem(dumb_ptr<flooritem_data>, Session *);
 int clif_clearchar(dumb_ptr<block_list>, BeingRemoveWhy); // area or fd
 int clif_clearchar_delay(tick_t, dumb_ptr<block_list>, BeingRemoveWhy);
-void clif_clearchar_id(int, BeingRemoveWhy, int);
+void clif_clearchar_id(int, BeingRemoveWhy, Session *);
 int clif_spawnpc(dumb_ptr<map_session_data>);  //area
 int clif_spawnnpc(dumb_ptr<npc_data>); // area
 int clif_spawn_fake_npc_for_player(dumb_ptr<map_session_data> sd,
@@ -78,7 +78,7 @@ int clif_changeoption(dumb_ptr<block_list>);   // area
 int clif_useitemack(dumb_ptr<map_session_data>, int, int, int);    // self
 
 void clif_emotion(dumb_ptr<block_list> bl, int type);
-void clif_sitting(int fd, dumb_ptr<map_session_data> sd);
+void clif_sitting(Session *, dumb_ptr<map_session_data> sd);
 
 // trade
 void clif_traderequest(dumb_ptr<map_session_data> sd, CharName name);
@@ -124,8 +124,8 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
 int clif_status_change(dumb_ptr<block_list> bl,
         StatusChange type, int flag);
 
-void clif_wis_message(int fd, CharName nick, XString mes);
-void clif_wis_end(int fd, int flag);
+void clif_wis_message(Session *s, CharName nick, XString mes);
+void clif_wis_end(Session *s, int flag);
 
 void clif_itemlist(dumb_ptr<map_session_data> sd);
 void clif_equiplist(dumb_ptr<map_session_data> sd);
@@ -136,7 +136,7 @@ int clif_movetoattack(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> bl);
 
 // party
 int clif_party_created(dumb_ptr<map_session_data> sd, int flag);
-int clif_party_info(struct party *p, int fd);
+int clif_party_info(struct party *p, Session *s);
 void clif_party_invite(dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> tsd);
 void clif_party_inviteack(dumb_ptr<map_session_data> sd, CharName nick, int flag);
@@ -149,7 +149,7 @@ int clif_party_xy(struct party *p, dumb_ptr<map_session_data> sd);
 int clif_party_hp(struct party *p, dumb_ptr<map_session_data> sd);
 
 // atcommand
-void clif_displaymessage(int fd, XString mes);
+void clif_displaymessage(Session *s, XString mes);
 void clif_GMmessage(dumb_ptr<block_list> bl, XString mes, int flag);
 void clif_resurrection(dumb_ptr<block_list> bl, int type);
 

@@ -263,7 +263,7 @@ void magic_unshroud(dumb_ptr<map_session_data> other_char)
     other_char->state.shroud_active = 0;
     // Now warp the caster out of and back into here to refresh everyone's display
     char_update(other_char);
-    clif_displaymessage(other_char->fd, "Your shroud has been dispelled!");
+    clif_displaymessage(other_char->sess, "Your shroud has been dispelled!");
 //        entity_effect(other_char, MAGIC_EFFECT_REVEAL);
 }
 
@@ -401,7 +401,7 @@ int op_message(dumb_ptr<env_t>, const_array<val_t> args)
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
 
     if (subject)
-        clif_displaymessage(subject->fd, ARGSTR(1));
+        clif_displaymessage(subject->sess, ARGSTR(1));
 
     return 0;
 }
@@ -1458,7 +1458,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     }
                     else
                         invocation_->script_pos = 0;
-                    clif_clearchar_id(invocation_->bl_id, BeingRemoveWhy::DEAD, caster->fd);
+                    clif_clearchar_id(invocation_->bl_id, BeingRemoveWhy::DEAD, caster->sess);
                 }
                 REFRESH_INVOCATION; // Script may have killed the caster
                 break;
