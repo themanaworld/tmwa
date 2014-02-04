@@ -521,6 +521,7 @@ struct map_local : map_abstract
         unsigned noreturn:1;
         unsigned monster_noteleport:1;
         unsigned nosave:1;
+        unsigned resave:1;
         unsigned nobranch:1;
         unsigned nopenalty:1;
         unsigned pvp:1;
@@ -541,6 +542,7 @@ struct map_local : map_abstract
         unsigned town:1;        // [remoitnane]
     } flag;
     struct point save;
+    struct point resave;
     dumb_ptr<npc_data> npc[MAX_NPC_PER_MAP];
     struct
     {

@@ -1049,8 +1049,16 @@ ATCE atcommand_load(const int fd, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
 
-    pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
-               sd->status.save_point.y, BeingRemoveWhy::GONE);
+    if (sd->bl_m->flag.resave)
+    {
+        pc_setpos(sd, sd->bl_m->resave.map_, sd->bl_m->resave.x,
+                   sd->bl_m->resave.y, BeingRemoveWhy::GONE);
+    }
+    else
+    {
+        pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
+                   sd->status.save_point.y, BeingRemoveWhy::GONE);
+    }
     clif_displaymessage(fd, "Warping to respawn point.");
 
     return ATCE::OKAY;
@@ -3441,6 +3449,9 @@ ATCE atcommand_mapinfo(const int fd, dumb_ptr<map_session_data> sd,
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Save: %s",
              (m_id->flag.nosave) ? "True" : "False");
+    clif_displaymessage(fd, output);
+    output = STRPRINTF("Re Save: %s",
+             (m_id->flag.resave) ? "True" : "False");
     clif_displaymessage(fd, output);
     output = STRPRINTF("No Teleport: %s",
              (m_id->flag.noteleport) ? "True" : "False");
