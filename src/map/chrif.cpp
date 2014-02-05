@@ -202,15 +202,15 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
     nullpo_retr(-1, sd);
 
     IP4Address s_ip;
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s = session[i].get();
+        Session *s = get_session(i);
         if (!s)
             continue;
         if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
         {
             assert (s == sd->sess);
-            s_ip = session[i]->client_ip;
+            s_ip = s->client_ip;
             break;
         }
     }
@@ -321,12 +321,12 @@ int chrif_authreq(dumb_ptr<map_session_data> sd)
     if (!sd || !char_session || !sd->bl_id || !sd->login_id1)
         return -1;
 
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s = session[i].get();
+        Session *s = get_session(i);
         if (!s)
             continue;
-        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get())) == sd)
+        if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
         {
             assert (s == sd->sess);
             WFIFOW(char_session, 0) = 0x2afc;
@@ -334,7 +334,7 @@ int chrif_authreq(dumb_ptr<map_session_data> sd)
             WFIFOL(char_session, 6) = sd->char_id;
             WFIFOL(char_session, 10) = sd->login_id1;
             WFIFOL(char_session, 14) = sd->login_id2;
-            WFIFOIP(char_session, 18) = session[i]->client_ip;
+            WFIFOIP(char_session, 18) = s->client_ip;
             WFIFOSET(char_session, 22);
             break;
         }
@@ -355,9 +355,9 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
         return -1;
 
     IP4Address s_ip;
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s = session[i].get();
+        Session *s = get_session(i);
         if (!s)
             continue;
         if (dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get())) == sd)
@@ -1157,11 +1157,12 @@ void send_users_tochar(TimerData *, tick_t)
         return;
 
     WFIFOW(char_session, 0) = 0x2aff;
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
         if (sd && sd->state.auth &&
             !((battle_config.hide_GM_session
                || sd->state.shroud_active

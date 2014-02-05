@@ -10,22 +10,21 @@
 #include "../strings/xstring.hpp"
 
 static
-int pipew(int& rfd)
+io::FD pipew(io::FD& rfd)
 {
-    int pfd[2];
-    if (-1 == pipe2(pfd, O_NONBLOCK))
+    io::FD wfd;
+    if (-1 == io::FD::pipe2(rfd, wfd, O_NONBLOCK))
     {
-        rfd = -1;
-        return -1;
+        rfd = io::FD();
+        return io::FD();
     }
-    rfd = pfd[0];
-    return pfd[1];
+    return wfd;
 }
 
 class PipeWriter
 {
 private:
-    int rfd;
+    io::FD rfd;
 public:
     io::WriteFile wf;
 public:
@@ -34,7 +33,7 @@ public:
     {}
     ~PipeWriter()
     {
-        close(rfd);
+        rfd.close();
     }
     FString slurp()
     {
@@ -42,7 +41,7 @@ public:
         char buf[4096];
         while (true)
         {
-            ssize_t rv = read(rfd, buf, sizeof(buf));
+            ssize_t rv = rfd.read(buf, sizeof(buf));
             if (rv == -1)
             {
                 if (errno != EAGAIN)

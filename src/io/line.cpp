@@ -25,7 +25,7 @@
 #include "../strings/mstring.hpp"
 #include "../strings/zstring.hpp"
 
-#include "../io/cxxstdio.hpp"
+#include "cxxstdio.hpp"
 
 #include "../poison.hpp"
 
@@ -62,7 +62,7 @@ namespace io
     : filename(name), line(0), column(0), rf(name)
     {}
 
-    LineReader::LineReader(ZString name, int fd)
+    LineReader::LineReader(ZString name, FD fd)
     : filename(name), line(0), column(0), rf(fd)
     {}
 
@@ -94,7 +94,7 @@ namespace io
     }
     // sigh, copy-paste
     // in just a couple months I can drop support for gcc 4.6 though
-    LineCharReader::LineCharReader(ZString name, int fd)
+    LineCharReader::LineCharReader(ZString name, FD fd)
     : LineReader(name, fd)
     {
         column = 1; // not 0, not whole line

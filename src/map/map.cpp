@@ -871,13 +871,14 @@ dumb_ptr<map_session_data> map_id2sd(int id)
                 return (struct map_session_data*)bl;
         return NULL;
 */
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        if (session[i]->session_data)
+        if (s->session_data)
         {
-            map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
             if (sd->bl_id == id)
                 return dumb_ptr<map_session_data>(sd);
         }
@@ -905,13 +906,13 @@ CharName map_charid2nick(int id)
 /* [Fate] Operations to iterate over active map sessions */
 
 static
-dumb_ptr<map_session_data> map_get_session(int i)
+dumb_ptr<map_session_data> map_get_session(io::FD i)
 {
-    if (i >= 0 && i < fd_max)
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             return nullptr;
-        map_session_data *d = static_cast<map_session_data *>(session[i]->session_data.get());
+        map_session_data *d = static_cast<map_session_data *>(s->session_data.get());
         if (d && d->state.auth)
             return dumb_ptr<map_session_data>(d);
     }
@@ -922,9 +923,9 @@ dumb_ptr<map_session_data> map_get_session(int i)
 static
 dumb_ptr<map_session_data> map_get_session_forward(int start)
 {
-    for (int i = start; i < fd_max; i++)
+    for (int i = start; i < get_fd_max(); i++)
     {
-        dumb_ptr<map_session_data> d = map_get_session(i);
+        dumb_ptr<map_session_data> d = map_get_session(io::FD::cast_dammit(i));
         if (d)
             return d;
     }
@@ -935,10 +936,9 @@ dumb_ptr<map_session_data> map_get_session_forward(int start)
 static
 dumb_ptr<map_session_data> map_get_session_backward(int start)
 {
-    int i;
-    for (i = start; i >= 0; i--)
+    for (int i = start; i >= 0; i--)
     {
-        dumb_ptr<map_session_data> d = map_get_session(i);
+        dumb_ptr<map_session_data> d = map_get_session(io::FD::cast_dammit(i));
         if (d)
             return d;
     }
@@ -953,17 +953,17 @@ dumb_ptr<map_session_data> map_get_first_session(void)
 
 dumb_ptr<map_session_data> map_get_next_session(dumb_ptr<map_session_data> d)
 {
-    return map_get_session_forward(d->sess->fd + 1);
+    return map_get_session_forward(d->sess->fd.uncast_dammit() + 1);
 }
 
 dumb_ptr<map_session_data> map_get_last_session(void)
 {
-    return map_get_session_backward(fd_max);
+    return map_get_session_backward(get_fd_max());
 }
 
 dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
 {
-    return map_get_session_backward(d->sess->fd - 1);
+    return map_get_session_backward(d->sess->fd.uncast_dammit() - 1);
 }
 
 /*==========================================
@@ -974,11 +974,12 @@ dumb_ptr<map_session_data> map_get_prev_session(dumb_ptr<map_session_data> d)
  */
 dumb_ptr<map_session_data> map_nick2sd(CharName nick)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        map_session_data *pl_sd = static_cast<map_session_data *>(s->session_data.get());
         if (pl_sd && pl_sd->state.auth)
         {
             {
@@ -1611,8 +1612,8 @@ void term_func(void)
                 BL::NUL);
     }
 
-    for (int i = 0; i < fd_max; i++)
-        delete_session(session[i].get());
+    for (io::FD i : iter_fds())
+        delete_session(get_session(i));
 
     map_removenpc();
 

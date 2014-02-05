@@ -25,19 +25,21 @@
 
 # include "../strings/fwd.hpp"
 
+# include "fd.hpp"
+
 namespace io
 {
     class WriteFile
     {
     private:
-        int fd;
+        FD fd;
         bool lb;
         struct {} _unused;
         unsigned short buflen;
         char buf[4096];
     public:
         explicit
-        WriteFile(int fd, bool linebuffered=false);
+        WriteFile(FD fd, bool linebuffered=false);
         explicit
         WriteFile(ZString name, bool linebuffered=false);
         WriteFile(WriteFile&&) = delete;

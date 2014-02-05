@@ -32,31 +32,31 @@
 
 namespace io
 {
-    ReadFile::ReadFile(int f)
+    ReadFile::ReadFile(FD f)
     : fd(f), start(0), end(0)
     {
     }
     ReadFile::ReadFile(ZString name)
-    : fd(open(name.c_str(), O_RDONLY | O_CLOEXEC)), start(0), end(0)
+    : fd(FD::open(name, O_RDONLY | O_CLOEXEC)), start(0), end(0)
     {
     }
     ReadFile::~ReadFile()
     {
-        close(fd);
-        fd = -1;
+        fd.close();
+        fd = FD();
     }
 
     bool ReadFile::get(char& c)
     {
         if (start == end)
         {
-            if (fd == -1)
+            if (fd == FD())
                 return false;
-            ssize_t rv = read(fd, &buf, sizeof(buf));
+            ssize_t rv = fd.read(&buf, sizeof(buf));
             if (rv == 0 || rv == -1)
             {
-                close(fd);
-                fd = -1;
+                fd.close();
+                fd = FD();
                 return false;
             }
             start = 0;
@@ -117,6 +117,6 @@ namespace io
 
     bool ReadFile::is_open()
     {
-        return fd != -1;
+        return fd != FD();
     }
 } // namespace io

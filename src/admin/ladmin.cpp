@@ -1778,7 +1778,7 @@ void prompt(void)
 
         // get command and parameter
         // TODO figure out a better way to do stdio
-        static auto cin = make_unique<io::ReadFile>(dup(0));
+        static auto cin = make_unique<io::ReadFile>(io::FD::stdin().dup());
         FString buf;
         cin->getline(buf);
 

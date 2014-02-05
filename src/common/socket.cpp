@@ -19,7 +19,8 @@
 #include "../poison.hpp"
 
 static
-fd_set readfds;
+io::FD_Set readfds;
+static
 int fd_max;
 
 static
@@ -29,8 +30,34 @@ const uint32_t WFIFO_SIZE = 65536;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+static
 std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
 #pragma GCC diagnostic pop
+
+void set_session(io::FD fd, std::unique_ptr<Session> sess)
+{
+    int f = fd.uncast_dammit();
+    assert (0 <= f && f < FD_SETSIZE);
+    session[f] = std::move(sess);
+}
+Session *get_session(io::FD fd)
+{
+    int f = fd.uncast_dammit();
+    if (0 <= f && f < FD_SETSIZE)
+        return session[f].get();
+    return nullptr;
+}
+void reset_session(io::FD fd)
+{
+    int f = fd.uncast_dammit();
+    assert (0 <= f && f < FD_SETSIZE);
+    session[f] = nullptr;
+}
+int get_fd_max() { return fd_max; }
+IteratorPair<ValueIterator<io::FD, IncrFD>> iter_fds()
+{
+    return {io::FD::cast_dammit(0), io::FD::cast_dammit(fd_max)};
+}
 
 /// clean up by discarding handled bytes
 inline
@@ -68,7 +95,7 @@ void recv_to_fifo(Session *s)
     if (s->eof)
         return;
 
-    ssize_t len = read(s->fd, &s->rdata[s->rdata_size],
+    ssize_t len = s->fd.read(&s->rdata[s->rdata_size],
                         RFIFOSPACE(s));
 
     if (len > 0)
@@ -88,7 +115,7 @@ void send_from_fifo(Session *s)
     if (s->eof)
         return;
 
-    ssize_t len = write(s->fd, &s->wdata[0], s->wdata_size);
+    ssize_t len = s->fd.write(&s->wdata[0], s->wdata_size);
 
     if (len > 0)
     {
@@ -120,53 +147,50 @@ void connect_client(Session *ls)
     struct sockaddr_in client_address;
     socklen_t len = sizeof(client_address);
 
-    int fd = accept(ls->fd, reinterpret_cast<struct sockaddr *>(&client_address), &len);
-    if (fd == -1)
+    io::FD fd = ls->fd.accept(reinterpret_cast<struct sockaddr *>(&client_address), &len);
+    if (fd == io::FD())
     {
         perror("accept");
         return;
     }
-    if (fd >= SOFT_LIMIT)
+    if (fd.uncast_dammit() >= SOFT_LIMIT)
     {
-        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n", fd);
-        shutdown(fd, SHUT_RDWR);
-        close(fd);
+        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n", fd.uncast_dammit());
+        fd.shutdown(SHUT_RDWR);
+        fd.close();
         return;
     }
-    if (fd_max <= fd)
+    if (fd_max <= fd.uncast_dammit())
     {
-        fd_max = fd + 1;
+        fd_max = fd.uncast_dammit() + 1;
     }
 
     const int yes = 1;
     /// Allow to bind() again after the server restarts.
     // Since the socket is still in the TIME_WAIT, there's a possibility
     // that formerly lost packets might be delivered and confuse the server.
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+    fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
     /// Testing shows this is indeed a good idea.
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
+    fd.setsockopt(IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 
     // Linux-ism: Set socket options to optimize for thin streams
     // See http://lwn.net/Articles/308919/ and
     // Documentation/networking/tcp-thin.txt .. Kernel 3.2+
 #ifdef TCP_THIN_LINEAR_TIMEOUTS
-    setsockopt(fd, IPPROTO_TCP, TCP_THIN_LINEAR_TIMEOUTS, &yes, sizeof yes);
+    fd.setsockopt(IPPROTO_TCP, TCP_THIN_LINEAR_TIMEOUTS, &yes, sizeof yes);
 #endif
 #ifdef TCP_THIN_DUPACK
-    setsockopt(fd, IPPROTO_TCP, TCP_THIN_DUPACK, &yes, sizeof yes);
+    fd.setsockopt(IPPROTO_TCP, TCP_THIN_DUPACK, &yes, sizeof yes);
 #endif
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    FD_SET(fd, &readfds);
-#pragma GCC diagnostic pop
+    readfds.set(fd);
 
-    fcntl(fd, F_SETFL, O_NONBLOCK);
+    fd.fcntl(F_SETFL, O_NONBLOCK);
 
-    session[fd] = make_unique<Session>();
-    Session *s = session[fd].get();
+    set_session(fd, make_unique<Session>());
+    Session *s = get_session(fd);
     s->fd = fd;
     s->rdata.new_(RFIFO_SIZE);
     s->wdata.new_(WFIFO_SIZE);
@@ -184,27 +208,27 @@ void connect_client(Session *ls)
 Session *make_listen_port(uint16_t port)
 {
     struct sockaddr_in server_address;
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd == -1)
+    io::FD fd = io::FD::socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == io::FD())
     {
         perror("socket");
         return nullptr;
     }
-    if (fd_max <= fd)
-        fd_max = fd + 1;
+    if (fd_max <= fd.uncast_dammit())
+        fd_max = fd.uncast_dammit() + 1;
 
-    fcntl(fd, F_SETFL, O_NONBLOCK);
+    fd.fcntl(F_SETFL, O_NONBLOCK);
 
     const int yes = 1;
     /// Allow to bind() again after the server restarts.
     // Since the socket is still in the TIME_WAIT, there's a possibility
     // that formerly lost packets might be delivered and confuse the server.
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+    fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
     // I'm not convinced this is a good idea; although in minimizes the
     // latency for an individual write, it increases traffic in general.
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
+    fd.setsockopt(IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 
     server_address.sin_family = AF_INET;
 #pragma GCC diagnostic push
@@ -216,25 +240,22 @@ Session *make_listen_port(uint16_t port)
     server_address.sin_port = htons(port);
 #pragma GCC diagnostic pop
 
-    if (bind(fd, reinterpret_cast<struct sockaddr *>(&server_address),
+    if (fd.bind(reinterpret_cast<struct sockaddr *>(&server_address),
               sizeof(server_address)) == -1)
     {
         perror("bind");
         exit(1);
     }
-    if (listen(fd, 5) == -1)
+    if (fd.listen(5) == -1)
     {                           /* error */
         perror("listen");
         exit(1);
     }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    FD_SET(fd, &readfds);
-#pragma GCC diagnostic pop
+    readfds.set(fd);
 
-    session[fd] = make_unique<Session>();
-    Session *s = session[fd].get();
+    set_session(fd, make_unique<Session>());
+    Session *s = get_session(fd);
     s->fd = fd;
 
     s->func_recv = connect_client;
@@ -247,25 +268,25 @@ Session *make_listen_port(uint16_t port)
 Session *make_connection(IP4Address ip, uint16_t port)
 {
     struct sockaddr_in server_address;
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (fd == -1)
+    io::FD fd = io::FD::socket(AF_INET, SOCK_STREAM, 0);
+    if (fd == io::FD())
     {
         perror("socket");
         return nullptr;
     }
-    if (fd_max <= fd)
-        fd_max = fd + 1;
+    if (fd_max <= fd.uncast_dammit())
+        fd_max = fd.uncast_dammit() + 1;
 
     const int yes = 1;
     /// Allow to bind() again after the server restarts.
     // Since the socket is still in the TIME_WAIT, there's a possibility
     // that formerly lost packets might be delivered and confuse the server.
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+    fd.setsockopt(SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
     /// Send packets as soon as possible
     /// even if the kernel thinks there is too little for it to be worth it!
     // I'm not convinced this is a good idea; although in minimizes the
     // latency for an individual write, it increases traffic in general.
-    setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
+    fd.setsockopt(IPPROTO_TCP, TCP_NODELAY, &yes, sizeof yes);
 
     server_address.sin_family = AF_INET;
     server_address.sin_addr = in_addr(ip);
@@ -277,20 +298,17 @@ Session *make_connection(IP4Address ip, uint16_t port)
     server_address.sin_port = htons(port);
 #pragma GCC diagnostic pop
 
-    fcntl(fd, F_SETFL, O_NONBLOCK);
+    fd.fcntl(F_SETFL, O_NONBLOCK);
 
     /// Errors not caught - we must not block
     /// Let the main select() loop detect when we know the state
-    connect(fd, reinterpret_cast<struct sockaddr *>(&server_address),
+    fd.connect(reinterpret_cast<struct sockaddr *>(&server_address),
              sizeof(struct sockaddr_in));
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    FD_SET(fd, &readfds);
-#pragma GCC diagnostic pop
+    readfds.set(fd);
 
-    session[fd] = make_unique<Session>();
-    Session *s = session[fd].get();
+    set_session(fd, make_unique<Session>());
+    Session *s = get_session(fd);
     s->fd = fd;
     s->rdata.new_(RFIFO_SIZE);
     s->wdata.new_(WFIFO_SIZE);
@@ -311,26 +329,23 @@ void delete_session(Session *s)
     if (!s)
         return;
 
-    int fd = s->fd;
+    io::FD fd = s->fd;
     // If this was the highest fd, decrease it
     // We could add a loop to decrement fd_max further for every null session,
     // but this is cheap and good enough for the typical case
-    if (fd == fd_max - 1)
+    if (fd.uncast_dammit() == fd_max - 1)
         fd_max--;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    FD_CLR(fd, &readfds);
-#pragma GCC diagnostic pop
+    readfds.clr(fd);
     {
         s->rdata.delete_();
         s->wdata.delete_();
         s->session_data.reset();
-        session[fd].reset();
+        reset_session(fd);
     }
 
     // just close() would try to keep sending buffers
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
+    fd.shutdown(SHUT_RDWR);
+    fd.close();
 }
 
 void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size)
@@ -362,18 +377,12 @@ void WFIFOSET(Session *s, size_t len)
 
 void do_sendrecv(interval_t next_ms)
 {
-    fd_set rfd = readfds, wfd;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    FD_ZERO(&wfd);
-#pragma GCC diagnostic pop
-    for (int i = 0; i < fd_max; i++)
+    io::FD_Set rfd = readfds, wfd;
+    for (io::FD i : iter_fds())
     {
-        if (session[i] && session[i]->wdata_size)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-            FD_SET(i, &wfd);
-#pragma GCC diagnostic pop
+        Session *s = get_session(i);
+        if (s && s->wdata_size)
+            wfd.set(i);
     }
     struct timeval timeout;
     {
@@ -382,26 +391,20 @@ void do_sendrecv(interval_t next_ms)
         timeout.tv_sec = next_s.count();
         timeout.tv_usec = next_us.count();
     }
-    if (select(fd_max, &rfd, &wfd, NULL, &timeout) <= 0)
+    if (io::FD_Set::select(fd_max, &rfd, &wfd, NULL, &timeout) <= 0)
         return;
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s = session[i].get();
+        Session *s = get_session(i);
         if (!s)
             continue;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-        if (FD_ISSET(i, &wfd))
-#pragma GCC diagnostic pop
+        if (wfd.isset(i))
         {
             if (s->func_send)
                 //send_from_fifo(i);
                 s->func_send(s);
         }
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-        if (FD_ISSET(i, &rfd))
-#pragma GCC diagnostic pop
+        if (rfd.isset(i))
         {
             if (s->func_recv)
                 //recv_to_fifo(i);
@@ -413,15 +416,15 @@ void do_sendrecv(interval_t next_ms)
 
 void do_parsepacket(void)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s = session[i].get();
+        Session *s = get_session(i);
         if (!s)
             continue;
         if (!s->connected
             && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT)
         {
-            PRINTF("Session #%d timed out\n", i);
+            PRINTF("Session #%d timed out\n", s);
             s->eof = 1;
         }
         if (!s->rdata_size && !s->eof)
@@ -436,14 +439,6 @@ void do_parsepacket(void)
         /// Reclaim buffer space for what was read
         RFIFOFLUSH(s);
     }
-}
-
-void do_socket(void)
-{
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wold-style-cast"
-    FD_ZERO(&readfds);
-#pragma GCC diagnostic pop
 }
 
 void RFIFOSKIP(Session *s, size_t len)

@@ -24,6 +24,7 @@
 # include "../strings/fstring.hpp"
 # include "../strings/zstring.hpp"
 
+# include "fd.hpp"
 # include "read.hpp"
 
 
@@ -67,7 +68,7 @@ namespace io
         LineReader(ZString name);
         LineReader(LineReader&&) = delete;
         // needed for unit tests
-        LineReader(ZString name, int fd);
+        LineReader(ZString name, FD fd);
 
         bool read_line(Line& l);
         bool is_open();
@@ -80,7 +81,7 @@ namespace io
         explicit
         LineCharReader(ZString name);
         LineCharReader(LineCharReader&&) = delete;
-        LineCharReader(ZString name, int fd);
+        LineCharReader(ZString name, FD fd);
 
         bool get(LineChar& c);
         void adv();

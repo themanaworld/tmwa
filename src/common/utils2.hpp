@@ -9,6 +9,8 @@
 # include <memory>
 # include <type_traits>
 
+# include "iter.hpp"
+
 # ifdef __clang__
 #  define FALLTHROUGH [[clang::fallthrough]]
 # else
@@ -92,25 +94,6 @@ public:
     }
 };
 
-template<class It>
-class IteratorPair
-{
-    It _b, _e;
-public:
-    IteratorPair(It b, It e)
-    : _b(b), _e(e)
-    {}
-
-    It begin() { return _b; }
-    It end() { return _e; }
-};
-
-template<class It>
-IteratorPair<It> iterator_pair(It b, It e)
-{
-    return {b, e};
-}
-
 // std::underlying_type isn't supported until gcc 4.7
 // this is a poor man's emulation
 template<class E>
@@ -177,41 +160,19 @@ E operator ~ (E r)                      \
 }
 
 template<class E>
-class EnumValueIterator
+class EnumMath
 {
     typedef typename underlying_type<E>::type U;
-    E value;
 public:
-    EnumValueIterator(E v)
-    : value(v)
-    {}
-
-    E operator *()
+    static
+    E inced(E v)
     {
-      return value;
-    }
-    EnumValueIterator& operator++ ()
-    {
-       value = E(U(value) + 1);
-       return *this;
-    }
-    EnumValueIterator& operator-- ()
-    {
-       value = E(U(value) - 1);
-       return *this;
-    }
-    friend bool operator == (EnumValueIterator l, EnumValueIterator r)
-    {
-       return l.value == r.value;
-    }
-    friend bool operator != (EnumValueIterator l, EnumValueIterator r)
-    {
-       return !(l == r);
+        return E(U(v) + 1);
     }
 };
 
 template<class E>
-IteratorPair<EnumValueIterator<E>> erange(E b, E e)
+IteratorPair<ValueIterator<E, EnumMath<E>>> erange(E b, E e)
 {
     return {b, e};
 }

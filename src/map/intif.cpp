@@ -315,9 +315,9 @@ void mapif_parse_WisToGM(Session *s)
     CharName Wisp_name = stringish<CharName>(RFIFO_STRING<24>(s, 4));
     FString message = RFIFO_STRING(s, 30, len);
     // information is sended to all online GM
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));

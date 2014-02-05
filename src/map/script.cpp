@@ -3367,11 +3367,12 @@ void builtin_pvpon(ScriptState *st)
         if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
             return;
 
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            if (!session[i])
+            Session *s = get_session(i);
+            if (!s)
                 continue;
-            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            map_session_data *pl_sd = static_cast<map_session_data *>(s->session_data.get());
             if (pl_sd && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl_m && !pl_sd->pvp_timer)
@@ -3401,11 +3402,12 @@ void builtin_pvpoff(ScriptState *st)
         if (battle_config.pk_mode)  // disable ranking options if pk_mode is on [Valaris]
             return;
 
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            if (!session[i])
+            Session *s = get_session(i);
+            if (!s)
                 continue;
-            map_session_data *pl_sd = static_cast<map_session_data *>(session[i]->session_data.get());
+            map_session_data *pl_sd = static_cast<map_session_data *>(s->session_data.get());
             if (pl_sd && pl_sd->state.auth)
             {
                 if (m == pl_sd->bl_m)

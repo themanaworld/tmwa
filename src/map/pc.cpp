@@ -5201,13 +5201,13 @@ void pc_autosave_sub(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    if (save_flag == 0 && sd->sess->fd > last_save_fd)
+    if (save_flag == 0 && sd->sess->fd.uncast_dammit() > last_save_fd)
     {
         pc_makesavestatus(sd);
         chrif_save(sd);
 
         save_flag = 1;
-        last_save_fd = sd->sess->fd;
+        last_save_fd = sd->sess->fd.uncast_dammit();
     }
 }
 

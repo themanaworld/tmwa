@@ -23,7 +23,8 @@
 
 #include "../strings/zstring.hpp"
 
-#include "../io/cxxstdio.hpp"
+#include "cxxstdio.hpp"
+#include "fd.hpp"
 
 #include "../poison.hpp"
 
@@ -35,29 +36,29 @@ const int backup_count = 10;
 /// Protected file writing
 /// (Until the file is closed, it keeps the old file)
 
-// Start writing a tmpfile
-static
-int get_lock_open(ZString filename, int *info)
-{
-    int fd;
-    int no = getpid();
-
-    // Get a filename that doesn't already exist
-    FString newfile;
-    do
-    {
-        newfile = STRPRINTF("%s_%d.tmp", filename, no++);
-        fd = open(newfile.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0666);
-    }
-    while (fd == -1 && errno == EEXIST);
-    if (fd == -1)
-        abort();
-    *info = --no;
-    return fd;
-}
-
 namespace io
 {
+    // Start writing a tmpfile
+    static
+    FD get_lock_open(ZString filename, int *info)
+    {
+        FD fd;
+        int no = getpid();
+
+        // Get a filename that doesn't already exist
+        FString newfile;
+        do
+        {
+            newfile = STRPRINTF("%s_%d.tmp", filename, no++);
+            fd = FD::open(newfile, O_WRONLY | O_CREAT | O_EXCL, 0666);
+        }
+        while (fd == FD() && errno == EEXIST);
+        if (fd == FD())
+            abort();
+        *info = --no;
+        return fd;
+    }
+
     WriteLock::WriteLock(FString fn, bool linebuffered)
     : WriteFile(get_lock_open(fn, &tmp_suffix), linebuffered), filename(fn)
     {}

@@ -30,18 +30,20 @@
 
 namespace io
 {
-    WriteFile::WriteFile(int f, bool linebuffered)
+    WriteFile::WriteFile(FD f, bool linebuffered)
     : fd(f), lb(linebuffered), buflen(0)
     {}
     WriteFile::WriteFile(ZString name, bool linebuffered)
-    : fd(open(name.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666)), lb(linebuffered), buflen(0)
+    : fd(FD::open(name, O_WRONLY | O_CREAT | O_TRUNC, 0666)), lb(linebuffered), buflen(0)
     {}
     WriteFile::~WriteFile()
     {
-        if (fd != -1)
+        if (fd != FD())
         {
-            if (close() == -1)
+            if (!close())
+            {
                 abort();
+            }
         }
     }
 
@@ -69,7 +71,7 @@ namespace io
                     {buf + offset, buflen - offset},
                     {const_cast<char *>(dat), len},
                 };
-                ssize_t rv = writev(fd, iov, 2);
+                ssize_t rv = fd.writev(iov, 2);
                 if (rv <= 0)
                     goto write_fail;
                 offset += rv;
@@ -81,7 +83,7 @@ namespace io
 
         while (len > sizeof(buf))
         {
-            ssize_t rv = write(fd, dat, len);
+            ssize_t rv = fd.write(dat, len);
             if (rv <= 0)
                 goto write_fail;
             dat += rv;
@@ -102,7 +104,7 @@ namespace io
                 size_t remaining = rend - last_nl;
                 while (remaining)
                 {
-                    ssize_t rv = write(fd, buf + offset, remaining);
+                    ssize_t rv = fd.write(buf + offset, remaining);
                     if (rv <= 0)
                         goto write_fail;
                     offset += rv;
@@ -115,8 +117,8 @@ namespace io
         return;
 
     write_fail:
-        ::close(fd);
-        fd = -1;
+        fd.close();
+        fd = FD();
         return;
     }
 
@@ -132,28 +134,28 @@ namespace io
         size_t off = 0;
         while (off < buflen)
         {
-            ssize_t rv = write(fd, buf + off, buflen - off);
+            ssize_t rv = fd.write(buf + off, buflen - off);
             if (rv <= 0)
             {
-                ::close(fd);
-                fd = -1;
+                fd.close();
+                fd = FD();
                 return false;
             }
             off += rv;
         }
 
-        int f = fd;
-        fd = -1;
-        return ::close(f) == 0;
+        FD f = fd;
+        fd = FD();
+        return f.close() == 0;
     }
 
     bool WriteFile::is_open()
     {
-        return fd != -1;
+        return fd != FD();
     }
 
     AppendFile::AppendFile(ZString name, bool linebuffered)
-    : WriteFile(open(name.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666), linebuffered)
+    : WriteFile(FD::open(name, O_WRONLY | O_CREAT | O_APPEND, 0666), linebuffered)
     {}
 
     int do_vprint(WriteFile& out, const char *fmt, va_list ap)

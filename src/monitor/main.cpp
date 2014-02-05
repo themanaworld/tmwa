@@ -20,6 +20,7 @@
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
+#include "../io/fd.hpp"
 #include "../io/read.hpp"
 
 #include "../common/config_parse.hpp"
@@ -183,19 +184,21 @@ int main(int argc, char *argv[])
     {
         //make sure all possible file descriptors are free for use by the servers
         //if there are file descriptors higher than the max open from before the limit dropped, that's not our problem
-        int fd = sysconf(_SC_OPEN_MAX);
-        while (--fd > 2)
-           if (close(fd) == 0)
-               FPRINTF(stderr, "close fd %d\n", fd);
-        fd = open("/dev/null", O_RDWR);
-        if (fd < 0)
+        io::FD fd = io::FD::sysconf_SC_OPEN_MAX();
+        while ((fd = fd.prev()) > io::FD::stderr())
+        {
+            if (fd.close() == 0)
+                FPRINTF(stderr, "close fd %d\n", fd.uncast_dammit());
+        }
+        fd = io::FD::open("/dev/null", O_RDWR);
+        if (fd == io::FD())
         {
             perror("open /dev/null");
             exit(1);
         }
-        dup2(fd, 0);
-        dup2(fd, 1);
-        close(fd);
+        fd.dup2(io::FD::stdin());
+        fd.dup2(io::FD::stdout());
+        fd.close();
     }
     while (1)
     {

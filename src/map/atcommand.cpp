@@ -715,9 +715,9 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -778,9 +778,9 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -842,9 +842,9 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -903,9 +903,9 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -963,9 +963,9 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
 
     count = 0;
     GM_level = pc_isGM(sd);
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -1522,9 +1522,9 @@ ATCE atcommand_pvpoff(Session *s, dumb_ptr<map_session_data> sd,
     if (sd->bl_m->flag.pvp)
     {
         sd->bl_m->flag.pvp = 0;
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            Session *s2 = session[i].get();
+            Session *s2 = get_session(i);
             if (!s2)
                 continue;
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -1561,9 +1561,9 @@ ATCE atcommand_pvpon(Session *s, dumb_ptr<map_session_data> sd,
     if (!sd->bl_m->flag.pvp && !sd->bl_m->flag.nopvp)
     {
         sd->bl_m->flag.pvp = 1;
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            Session *s2 = session[i].get();
+            Session *s2 = get_session(i);
             if (!s2)
                 continue;
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2155,9 +2155,9 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
     int count;
 
     count = 0;
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2395,9 +2395,9 @@ static
 ATCE atcommand_doom(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2419,9 +2419,9 @@ static
 ATCE atcommand_doommap(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2458,9 +2458,9 @@ static
 ATCE atcommand_raise(Session *s, dumb_ptr<map_session_data>,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2475,9 +2475,9 @@ static
 ATCE atcommand_raisemap(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2687,9 +2687,9 @@ static
 ATCE atcommand_kickall(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -2905,9 +2905,9 @@ static
 ATCE atcommand_mapexit(Session *, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -3318,9 +3318,9 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
     }
 
     count = 0;
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -3374,9 +3374,9 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
         (p = party_search(atoi(message.c_str()))) != NULL)
     {
         count = 0;
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            Session *s2 = session[i].get();
+            Session *s2 = get_session(i);
             if (!s2)
                 continue;
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -3475,9 +3475,9 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
             break;
         case 1:
             clif_displaymessage(s, "----- Players in Map -----");
-            for (int i = 0; i < fd_max; i++)
+            for (io::FD i : iter_fds())
             {
-                Session *s2 = session[i].get();
+                Session *s2 = get_session(i);
                 if (!s2)
                     continue;
                 dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -3486,7 +3486,7 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
                 {
                     output = STRPRINTF(
                             "Player '%s' (session #%d) | Location: %d,%d",
-                            pl_sd->status.name, i, pl_sd->bl_x, pl_sd->bl_y);
+                            pl_sd->status.name, s2, pl_sd->bl_x, pl_sd->bl_y);
                     clif_displaymessage(s, output);
                 }
             }
@@ -3797,9 +3797,9 @@ ATCE atcommand_effect(Session *s, dumb_ptr<map_session_data> sd,
     }
     else
     {
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            Session *s2 = session[i].get();
+            Session *s2 = get_session(i);
             if (!s2)
                 continue;
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -5031,9 +5031,9 @@ ATCE atcommand_ipcheck(Session *s, dumb_ptr<map_session_data>,
     // We now have the IP address of a character.
     // Loop over all logged in sessions looking for matches.
 
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
@@ -5059,9 +5059,9 @@ static
 ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
         ZString)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        Session *s2 = session[i].get();
+        Session *s2 = get_session(i);
         if (!s2)
             continue;
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));

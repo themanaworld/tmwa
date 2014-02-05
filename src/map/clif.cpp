@@ -165,11 +165,12 @@ int clif_countusers(void)
 {
     int users = 0;
 
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
         if (sd && sd->state.auth && !(battle_config.hide_GM_session && pc_isGM(sd)))
             users++;
     }
@@ -182,11 +183,12 @@ int clif_countusers(void)
  */
 int clif_foreachclient(std::function<void (dumb_ptr<map_session_data>)> func)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
         if (sd && sd->state.auth)
             func(sd);
     }
@@ -302,9 +304,9 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
     switch (type)
     {
         case SendWho::ALL_CLIENT:       // 全クライアントに送信
-            for (int i = 0; i < fd_max; i++)
+            for (io::FD i : iter_fds())
             {
-                Session *s = session[i].get();
+                Session *s = get_session(i);
                 if (!s)
                     continue;
                 dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
@@ -320,9 +322,9 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
             }
             break;
         case SendWho::ALL_SAMEMAP:      // 同じマップの全クライアントに送信
-            for (int i = 0; i < fd_max; i++)
+            for (io::FD i : iter_fds())
             {
-                Session *s = session[i].get();
+                Session *s = get_session(i);
                 if (!s)
                     continue;
                 dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
@@ -402,9 +404,9 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
                         }
                     }
                 }
-                for (int i = 0; i < fd_max; i++)
+                for (io::FD i : iter_fds())
                 {
-                    Session *s = session[i].get();
+                    Session *s = get_session(i);
                     if (!s)
                         continue;
                     dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
@@ -3379,11 +3381,12 @@ int clif_specialeffect(dumb_ptr<block_list> bl, int type, int flag)
 
     if (flag == 2)
     {
-        for (int i = 0; i < fd_max; i++)
+        for (io::FD i : iter_fds())
         {
-            if (!session[i])
+            Session *s = get_session(i);
+            if (!s)
                 continue;
-            dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+            dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
             if (sd && sd->state.auth && sd->bl_m == bl->bl_m)
                 clif_specialeffect(sd, type, 1);
         }

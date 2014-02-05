@@ -126,11 +126,12 @@ int party_check_member(struct party *p)
 {
     nullpo_ret(p);
 
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
         if (sd && sd->state.auth)
         {
             if (sd->status.party_id == p->party_id)
@@ -165,11 +166,12 @@ int party_check_member(struct party *p)
 // 情報所得失敗（そのIDのキャラを全部未所属にする）
 int party_recv_noinfo(int party_id)
 {
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        Session *s = get_session(i);
+        if (!s)
             continue;
-        map_session_data *sd = static_cast<map_session_data *>(session[i]->session_data.get());
+        map_session_data *sd = static_cast<map_session_data *>(s->session_data.get());
         if (sd && sd->state.auth)
         {
             if (sd->status.party_id == party_id)

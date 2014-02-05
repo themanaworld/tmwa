@@ -1046,16 +1046,16 @@ static
 int disconnect_player(int accound_id)
 {
     // disconnect player if online on char-server
-    for (int i = 0; i < fd_max; i++)
+    for (io::FD i : iter_fds())
     {
-        if (!session[i])
+        if (!get_session(i))
             continue;
-        struct char_session_data *sd = static_cast<char_session_data *>(session[i]->session_data.get());
+        struct char_session_data *sd = static_cast<char_session_data *>(get_session(i)->session_data.get());
         if (sd)
         {
             if (sd->account_id == accound_id)
             {
-                session[i]->eof = 1;
+                get_session(i)->eof = 1;
                 return 1;
             }
         }
@@ -1142,9 +1142,9 @@ void parse_tologin(Session *ls)
                 if (RFIFOREST(ls) < 51)
                     return;
 //          PRINTF("parse_tologin 2713 : %d\n", RFIFOB(fd,6));
-                for (int i = 0; i < fd_max; i++)
+                for (io::FD i : iter_fds())
                 {
-                    Session *s2 = session[i].get();
+                    Session *s2 = get_session(i);
                     if (!s2)
                         continue;
                     sd = static_cast<char_session_data *>(s2->session_data.get());
@@ -1188,9 +1188,9 @@ void parse_tologin(Session *ls)
             case 0x2717:
                 if (RFIFOREST(ls) < 50)
                     return;
-                for (int i = 0; i < fd_max; i++)
+                for (io::FD i : iter_fds())
                 {
-                    Session *s2 = session[i].get();
+                    Session *s2 = get_session(i);
                     if (!s2)
                         continue;
                     sd = static_cast<char_session_data *>(s2->session_data.get());
@@ -1464,13 +1464,12 @@ void parse_tologin(Session *ls)
                 if (RFIFOREST(ls) < 7)
                     return;
                 {
-                    int acc, status, i;
-                    acc = RFIFOL(ls, 2);
-                    status = RFIFOB(ls, 6);
+                    int acc = RFIFOL(ls, 2);
+                    int status = RFIFOB(ls, 6);
 
-                    for (i = 0; i < fd_max; i++)
+                    for (io::FD i : iter_fds())
                     {
-                        Session *s2 = session[i].get();
+                        Session *s2 = get_session(i);
                         if (!s2)
                             continue;
                         sd = static_cast<char_session_data *>(s2->session_data.get());

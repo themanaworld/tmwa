@@ -2652,11 +2652,12 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
                 sd = mvp_sd;
             else
             {
-                for (int i = 0; i < fd_max; i++)
+                for (io::FD i : iter_fds())
                 {
-                    if (!session[i])
+                    Session *s = get_session(i);
+                    if (!s)
                         continue;
-                    dumb_ptr<map_session_data> tmp_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(session[i]->session_data.get()));
+                    dumb_ptr<map_session_data> tmp_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
                     if (tmp_sd && tmp_sd->state.auth)
                     {
                         if (md->bl_m == tmp_sd->bl_m)

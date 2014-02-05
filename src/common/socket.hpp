@@ -13,6 +13,8 @@
 # include "../strings/vstring.hpp"
 # include "../strings/xstring.hpp"
 
+# include "../io/fd.hpp"
+
 # include "dumb_ptr.hpp"
 # include "ip.hpp"
 # include "utils.hpp"
@@ -64,13 +66,13 @@ struct Session
     /// Server-specific data type
     std::unique_ptr<SessionData, SessionDeleter> session_data;
 
-    int fd;
+    io::FD fd;
 };
 
 inline
 int convert_for_printf(Session *s)
 {
-    return s->fd;
+    return s->fd.uncast_dammit();
 }
 
 // save file descriptors for important stuff
@@ -79,12 +81,23 @@ constexpr int SOFT_LIMIT = FD_SETSIZE - 50;
 // socket timeout to establish a full connection in seconds
 constexpr int CONNECT_TIMEOUT = 15;
 
-/// Everyone who has connected
-// note: call delete_session(i) to null out an element
-extern std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
 
-/// Maximum used FD, +1
-extern int fd_max;
+void set_session(io::FD fd, std::unique_ptr<Session> sess);
+Session *get_session(io::FD fd);
+void reset_session(io::FD fd);
+int get_fd_max();
+
+class IncrFD
+{
+public:
+    static
+    io::FD inced(io::FD v)
+    {
+        return io::FD::cast_dammit(v.uncast_dammit() + 1);
+    }
+};
+IteratorPair<ValueIterator<io::FD, IncrFD>> iter_fds();
+
 
 /// open a socket, bind, and listen. Return an fd, or -1 if socket() fails,
 /// but exit if bind() or listen() fails
@@ -100,9 +113,6 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size);
 void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
 void do_parsepacket(void);
-
-/// An init function
-void do_socket(void);
 
 /// Change the default parser for newly connected clients
 // typically called once per server, but individual clients may identify

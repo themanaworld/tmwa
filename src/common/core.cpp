@@ -78,8 +78,6 @@ void sig_proc(int)
  */
 int main(int argc, char **argv)
 {
-    do_socket();
-
     // ZString args[argc]; is (deliberately!) not supported by clang yet
     ZString *args = static_cast<ZString *>(alloca(argc * sizeof(ZString)));
     for (int i = 0; i < argc; ++i)

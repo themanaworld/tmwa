@@ -5,19 +5,19 @@
 #include "../strings/zstring.hpp"
 
 static
-int string_pipe(ZString sz)
+io::FD string_pipe(ZString sz)
 {
-    int pfd[2];
-    if (-1 == pipe(pfd))
-        return -1;
-    if (sz.size() != write(pfd[1], sz.c_str(), sz.size()))
+    io::FD rfd, wfd;
+    if (-1 == io::FD::pipe(rfd, wfd))
+        return io::FD();
+    if (sz.size() != wfd.write(sz.c_str(), sz.size()))
     {
-        close(pfd[0]);
-        close(pfd[1]);
-        return -1;
+        rfd.close();
+        wfd.close();
+        return io::FD();
     }
-    close(pfd[1]);
-    return pfd[0];
+    wfd.close();
+    return rfd;
 }
 
 TEST(io, line1)

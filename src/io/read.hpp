@@ -23,18 +23,19 @@
 
 # include "../strings/fwd.hpp"
 
+# include "fd.hpp"
 
 namespace io
 {
     class ReadFile
     {
     private:
-        int fd;
+        FD fd;
         unsigned short start, end;
         char buf[4096];
     public:
         explicit
-        ReadFile(int fd);
+        ReadFile(FD fd);
         explicit
         ReadFile(ZString name);
         ReadFile(ReadFile&&) = delete;
