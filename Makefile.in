@@ -46,6 +46,8 @@ ENABLE_CYGWIN_HACKS = @ENABLE_CYGWIN_HACKS@
 ENABLE_COMPAT_SYMLINKS = @ENABLE_COMPAT_SYMLINKS@
 ENABLE_DEBUG = @ENABLE_DEBUG@
 
+TESTER =
+TEST_ARGS =
 
 
 ##    real.make - The One Makefile that builds them all.
@@ -141,6 +143,11 @@ $(info )
 else
 $(info The Road goes ever on and on ...)
 endif
+endif
+
+c = @colorize 6: 2:$< 3:$@ :
+ifneq '$c' ''
+l = @colorize 6: $(patsubst %,2:%,$^) 3:$@ :
 endif
 
 .SUFFIXES:
@@ -273,19 +280,19 @@ s: ${ASSEMBLED}
 o: ${OBJECTS}
 
 mostlyclean:
-	rm -rf obj conf-raw
+	$c rm -rf obj conf-raw
 clean: mostlyclean
-	rm -rf bin
+	$c rm -rf bin
 distclean: clean gen-clean
 gen-clean:
-	rm -f ${GEN_SOURCES} ${GEN_HEADERS}
+	$c rm -f ${GEN_SOURCES} ${GEN_HEADERS}
 
 %.cpp: %.lpp
 	$(MKDIR_FIRST)
-	${FLEX} -o $@ $<
+	$c ${FLEX} -o $@ $<
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
-	${BISON} -d -o $*.cpp $<
+	$c ${BISON} --defines=$*.hpp -o $*.cpp $<
 ifndef MAKE_RESTARTS
 # prevent errors if missing header
 obj/%.d: src/%.cpp
@@ -300,19 +307,19 @@ endif
 # the above SRC_DIR replacement is not really safe, but it works okayish.
 obj/%.ii: src/%.cpp
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} -E -o $@ $<
+	$c ${CXX} ${CPPFLAGS} -E -o $@ $<
 obj/%.ll: src/%.cpp
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -emit-llvm -o $@ $<
+	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -emit-llvm -o $@ $<
 obj/%.bc: src/%.cpp
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -emit-llvm -o $@ $<
+	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -emit-llvm -o $@ $<
 obj/%.s: src/%.cpp
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -o $@ $<
+	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -S -o $@ $<
 obj/%.o: src/%.cpp
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
+	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
 obj/%/autolist.d: $(filter-out %/autolist.d,${DEPENDS})
 	echo $@: $(filter %_test.d,$^) > $@
@@ -323,7 +330,7 @@ include ${DEPENDS}
 # doesn't need to be rebuilt. For release, the version forces rebuild.
 bin/%:
 	$(MKDIR_FIRST)
-	${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
+	$l ${CXX} ${LDFLAGS} $^ ${LDLIBS} -o $@
 	cat ${SRC_DIR}/src/main-gdb-head.py \
 	    $(wildcard $(patsubst obj/%.o,${SRC_DIR}/src/%.py,$^)) \
 	    ${SRC_DIR}/src/main-gdb-tail.py \
@@ -336,11 +343,11 @@ $(filter %_test.o,${OBJECTS}) obj/gtest-all.o: override CPPFLAGS += -DGTEST_HAS_
 obj/gtest-all.o: override WARNINGS :=
 obj/gtest-all.o: ${GTEST_DIR}/src/gtest-all.cc
 	$(MKDIR_FIRST)
-	${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
+	$c ${CXX} ${CPPFLAGS} ${CXXFLAGS} -c -o $@ $<
 
 test: $(patsubst bin/%,.run-%,${TEST_BINARIES})
 .run-%: bin/%
-	$<
+	${TESTER} $< ${TEST_ARGS}
 
 install := install --backup=${ENABLE_BACKUPS_DURING_INSTALL}
 install_exe := ${install}
@@ -383,7 +390,7 @@ else
 endif
 
 tags: ${SOURCES} ${HEADERS}
-	ctags --totals -h .tcc --langmap=C++:+.tcc --c-kinds=+px -f $@ $^
+	$l ctags --totals -h .tcc --langmap=C++:+.tcc --c-kinds=+px -f $@ $^
 
 Makefile: ${SRC_DIR}/Makefile.in
 	@echo Makefile.in updated, reconfiguring ...

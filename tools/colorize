@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
+
+import os
+import sys
+
+def color(i):
+    if 0 <= i < 8:
+        return '\x1b[%dm' % (30 + i)
+    if 8 <= i < 16:
+        return '\x1b[%dm' % (90 + (i - 8))
+
+def main(argv):
+    colors = {}
+    while argv:
+        arg0 = argv[0]
+        del argv[0]
+        if arg0 == ':':
+            break
+        if ':' not in arg0:
+            continue
+        c, w = arg0.split(':', 1)
+        colors[w] = color(int(c))
+    if 1:
+        arg = argv[0]
+        c = colors.get('', '')
+        e = c and '\x1b[m'
+        print(c, arg, e, sep='', end=''),
+    for arg in argv[1:]:
+        c = colors.get(arg, '')
+        e = c and '\x1b[m'
+        print(' ', c, arg, e, sep='', end=''),
+    print()
+    sys.stdout.flush()
+    os.execvp(argv[0], argv)
+
+if __name__ == '__main__':
+    main(sys.argv[:])
