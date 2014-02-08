@@ -43,6 +43,7 @@ namespace io
         explicit
         WriteFile(ZString name, bool linebuffered=false);
         WriteFile(WriteFile&&) = delete;
+        WriteFile& operator = (WriteFile&&) = delete;
         ~WriteFile();
 
         void put(char);

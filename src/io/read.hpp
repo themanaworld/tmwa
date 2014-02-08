@@ -38,6 +38,7 @@ namespace io
         ReadFile(FD fd);
         explicit
         ReadFile(ZString name);
+        ReadFile& operator = (ReadFile&&) = delete;
         ReadFile(ReadFile&&) = delete;
         ~ReadFile();
 

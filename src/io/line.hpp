@@ -67,6 +67,7 @@ namespace io
         explicit
         LineReader(ZString name);
         LineReader(LineReader&&) = delete;
+        LineReader& operator = (LineReader&&) = delete;
         // needed for unit tests
         LineReader(ZString name, FD fd);
 
@@ -81,6 +82,7 @@ namespace io
         explicit
         LineCharReader(ZString name);
         LineCharReader(LineCharReader&&) = delete;
+        LineCharReader& operator = (LineCharReader&&) = delete;
         LineCharReader(ZString name, FD fd);
 
         bool get(LineChar& c);
