@@ -23,6 +23,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/tty.hpp"
 
 #include "../common/config_parse.hpp"
 #include "../common/core.hpp"
@@ -537,7 +538,7 @@ int mmo_auth_init(void)
     {
         // no account file -> no account -> no login, including char-server (ERROR)
         // not anymore! :-)
-        PRINTF("\033[1;31mmmo_auth_init: Accounts file [%s] not found.\033[0m\n",
+        PRINTF(SGR_BOLD SGR_RED "mmo_auth_init: Accounts file [%s] not found." SGR_RESET "\n",
              account_filename);
         return 0;
     }
@@ -2693,8 +2694,8 @@ bool lan_ip_check(IP4Address p)
 {
     bool lancheck = lan_subnet.covers(p);
 
-    PRINTF("LAN test (result): %s source\033[0m.\n",
-            (lancheck) ? "\033[1;36mLAN" : "\033[1;32mWAN");
+    PRINTF("LAN test (result): %s.\n",
+            (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET);
     return lancheck;
 }
 
@@ -3193,7 +3194,7 @@ bool lan_check()
         PRINTF("LAN test of LAN IP of the char-server: ");
         if (!lan_ip_check(lan_char_ip))
         {
-            PRINTF("\033[1;31m***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network\033[0m\n");
+            PRINTF(SGR_BOLD SGR_RED "***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network" SGR_RESET "\n");
             LOGIN_LOG("***ERROR: LAN IP of the char-server doesn't belong to the specified Sub-network.\n");
             return false;
         }
@@ -3897,7 +3898,7 @@ int do_init(int argc, ZString *argv)
     LOGIN_LOG("The login-server is ready (Server is listening on the port %d).\n",
          login_port);
 
-    PRINTF("The login-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
+    PRINTF("The login-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n",
          login_port);
 
     return 0;

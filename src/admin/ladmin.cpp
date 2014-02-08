@@ -13,6 +13,7 @@
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
+#include "../io/tty.hpp"
 #include "../io/write.hpp"
 
 #include "../common/config_parse.hpp"
@@ -990,7 +991,7 @@ void delaccount(ZString param)
     char confirm;
     do
     {
-        PRINTF("\033[1;36m ** Are you really sure to DELETE account [%s]? (y/n) > \033[0m", name);
+        PRINTF(SGR_BOLD SGR_CYAN " ** Are you really sure to DELETE account [%s]? (y/n) > " SGR_RESET, name);
         fflush(stdout);
         int seek = getchar();
         confirm = seek;
@@ -1763,17 +1764,10 @@ void prompt(void)
     // while we don't wait new packets
     while (bytes_to_read == 0)
     {
-        // for help with the console colors look here:
-        // http://www.edoceo.com/liberum/?doc=PRINTF-with-color
-        // some code explanation (used here):
-        // \033[2J : clear screen and go up/left (0, 0 position)
-        // \033[K  : clear line from actual position to end of the line
-        // \033[0m : reset color parameter
-        // \033[1m : use bold for font
         Iprintf("\n");
-        Iprintf("\033[32mTo list the commands, type 'enter'.\033[0m\n");
-        Iprintf("\033[0;36mLadmin-> \033[0m");
-        Iprintf("\033[1m");
+        Iprintf(SGR_GREEN "To list the commands, type 'enter'." SGR_RESET "\n");
+        Iprintf(SGR_CYAN "Ladmin-> " SGR_RESET);
+        Iprintf(SGR_BOLD);
         fflush(stdout);
 
         // get command and parameter
@@ -1782,7 +1776,7 @@ void prompt(void)
         FString buf;
         cin->getline(buf);
 
-        Iprintf("\033[0m");
+        Iprintf(SGR_RESET);
         fflush(stdout);
 
         if (!cin->is_open())
@@ -2835,7 +2829,7 @@ void term_func(void)
     {
         delete_session(login_session);
 
-        Iprintf("\033[0m----End of Ladmin (normal end with closing of all files).\n");
+        Iprintf(SGR_RESET "----End of Ladmin (normal end with closing of all files).\n");
         LADMIN_LOG("----End of Ladmin (normal end with closing of all files).\n");
 
         already_exit_function = 1;
@@ -2896,7 +2890,7 @@ int do_init(int argc, ZString *argv)
             version.vend);
 
     LADMIN_LOG("Ladmin is ready.\n");
-    Iprintf("Ladmin is \033[1;32mready\033[0m.\n\n");
+    Iprintf("Ladmin is " SGR_BOLD SGR_GREEN "ready" SGR_RESET ".\n\n");
 
     Connect_login_server();
 

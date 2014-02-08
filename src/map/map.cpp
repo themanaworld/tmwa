@@ -16,8 +16,9 @@
 #include "../strings/vstring.hpp"
 
 #include "../io/cxxstdio.hpp"
-#include "../io/write.hpp"
 #include "../io/read.hpp"
+#include "../io/tty.hpp"
+#include "../io/write.hpp"
 
 #include "../common/config_parse.hpp"
 #include "../common/core.hpp"
@@ -1733,9 +1734,9 @@ int do_init(int argc, ZString *argv)
     npc_event_do_oninit();     // npcのOnInitイベント実行
 
     if (battle_config.pk_mode == 1)
-        PRINTF("The server is running in \033[1;31mPK Mode\033[0m.\n");
+        PRINTF("The server is running in " SGR_BOLD SGR_RED "PK Mode" SGR_RESET "\n");
 
-    PRINTF("The map-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
+    PRINTF("The map-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n",
             clif_getport());
 
     return 0;

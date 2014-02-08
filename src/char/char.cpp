@@ -23,6 +23,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
+#include "../io/tty.hpp"
 
 #include "../common/config_parse.hpp"
 #include "../common/core.hpp"
@@ -2057,8 +2058,8 @@ int lan_ip_check(IP4Address addr)
 {
     bool lancheck = lan_subnet.covers(addr);
 
-    PRINTF("LAN test (result): %s source\033[0m.\n",
-            (lancheck) ? "\033[1;36mLAN" : "\033[1;32mWAN");
+    PRINTF("LAN test (result): %s.\n",
+            (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET);
     return lancheck;
 }
 
@@ -2625,7 +2626,7 @@ bool lan_check()
         PRINTF("LAN test of LAN IP of the map-server: ");
         if (!lan_ip_check(lan_map_ip))
         {
-            PRINTF("\033[1;31m***ERROR: LAN IP of the map-server doesn't belong to the specified Sub-network.\033[0m\n");
+            PRINTF(SGR_BOLD SGR_RED "***ERROR: LAN IP of the map-server doesn't belong to the specified Sub-network." SGR_RESET "\n");
             return false;
         }
     }
@@ -2894,7 +2895,7 @@ int do_init(int argc, ZString *argv)
     CHAR_LOG("The char-server is ready (Server is listening on the port %d).\n",
               char_port);
 
-    PRINTF("The char-server is \033[1;32mready\033[0m (Server is listening on the port %d).\n\n",
+    PRINTF("The char-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n",
          char_port);
 
     return 0;
