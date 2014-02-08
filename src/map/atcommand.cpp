@@ -5,7 +5,7 @@
 #include <ctime>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
@@ -182,7 +182,7 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
             cmd);
 }
 
-FString gm_log;
+AString gm_log;
 
 io::AppendFile *get_gm_log()
 {
@@ -201,7 +201,7 @@ io::AppendFile *get_gm_log()
         return gm_logfile.get();
     last_logfile_nr = logfile_nr;
 
-    FString fullname = STRPRINTF("%s.%04d-%02d",
+    AString fullname = STRPRINTF("%s.%04d-%02d",
             gm_log, year, month);
 
     if (gm_logfile)
@@ -212,7 +212,7 @@ io::AppendFile *get_gm_log()
     if (!gm_logfile)
     {
         perror("GM log file");
-        gm_log = FString();
+        gm_log = AString();
     }
     return gm_logfile.get();
 }
@@ -235,24 +235,24 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
         gmlvl = pc_isGM(sd);
     if (battle_config.atcommand_gm_only != 0 && !gmlvl)
     {
-        FString output = STRPRINTF("GM command is level 0, but this server disables level 0 commands: %s",
-                FString(command));
+        AString output = STRPRINTF("GM command is level 0, but this server disables level 0 commands: %s",
+                AString(command));
         clif_displaymessage(s, output);
         return true;
     }
     if (!info)
     {
-        FString output = STRPRINTF("GM command not found: %s",
-                FString(command));
+        AString output = STRPRINTF("GM command not found: %s",
+                AString(command));
         clif_displaymessage(s, output);
         return true;
         // don't show in chat
     }
     if (info->level > gmlvl)
     {
-        FString output = STRPRINTF("GM command is level %d, but you are level %d: %s",
+        AString output = STRPRINTF("GM command is level %d, but you are level %d: %s",
                 info->level, gmlvl,
-                FString(command));
+                AString(command));
         clif_displaymessage(s, output);
         return true;
     }
@@ -269,7 +269,7 @@ bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,
                 break;
             case ATCE::USAGE:
                 clif_displaymessage(s, "Command failed: usage error");
-                clif_displaymessage(s, STRPRINTF("Usage: %s %s", FString(command), info->args));
+                clif_displaymessage(s, STRPRINTF("Usage: %s %s", AString(command), info->args));
                 break;
             case ATCE::EXIST:
                 clif_displaymessage(s, "Command failed: something does not exist (or already exists)");
@@ -328,7 +328,7 @@ bool atcommand_config_read(ZString cfgName)
     }
 
     bool rv = true;
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         if (is_comment(line))
@@ -442,7 +442,7 @@ ATCE atcommand_setup(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
     level--;
 
-    FString buf;
+    AString buf;
     buf = STRPRINTF("-255 %s", character);
     atcommand_character_baselevel(s, sd, buf);
 
@@ -606,7 +606,7 @@ ATCE atcommand_where(Session *s, dumb_ptr<map_session_data> sd,
           && (pc_isGM(pl_sd) > pc_isGM(sd))))
     {
         // you can look only lower or same level
-        FString output = STRPRINTF("%s: %s (%d,%d)",
+        AString output = STRPRINTF("%s: %s (%d,%d)",
                 pl_sd->status.name,
                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
         clif_displaymessage(s, output);
@@ -651,7 +651,7 @@ ATCE atcommand_goto(Session *s, dumb_ptr<map_session_data> sd,
             return ATCE::PERM;
         }
         pc_setpos(sd, pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
-        FString output = STRPRINTF("Jump to %s", character);
+        AString output = STRPRINTF("Jump to %s", character);
         clif_displaymessage(s, output);
     }
     else
@@ -692,7 +692,7 @@ ATCE atcommand_jump(Session *s, dumb_ptr<map_session_data> sd,
             return ATCE::PERM;
         }
         pc_setpos(sd, sd->mapname_, x, y, BeingRemoveWhy::WARPED);
-        FString output = STRPRINTF("Jump to %d %d", x, y);
+        AString output = STRPRINTF("Jump to %d %d", x, y);
         clif_displaymessage(s, output);
     }
     else
@@ -734,7 +734,7 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
                 if (player_name.contains_seq(match_text))
                 {
                     // search with no case sensitive
-                    FString output;
+                    AString output;
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
@@ -758,7 +758,7 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, "1 player found.");
     else
     {
-        FString output = STRPRINTF("%d players found.", count);
+        AString output = STRPRINTF("%d players found.", count);
         clif_displaymessage(s, output);
     }
 
@@ -799,7 +799,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
                     // search with no case sensitive
                     p = party_search(pl_sd->status.party_id);
                     PartyName temp0 = p ? p->name : stringish<PartyName>("None");
-                    FString output;
+                    AString output;
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Party: '%s'",
@@ -817,7 +817,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, "1 player found.");
     else
     {
-        FString output = STRPRINTF("%d players found.", count);
+        AString output = STRPRINTF("%d players found.", count);
         clif_displaymessage(s, output);
     }
 
@@ -859,7 +859,7 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
                 // you can look only lower or same level
                 if (pl_sd->bl_m == map_id)
                 {
-                    FString output;
+                    AString output;
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
@@ -877,7 +877,7 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
         }
     }
 
-    FString output = STRPRINTF("%d players found in map '%s'.",
+    AString output = STRPRINTF("%d players found in map '%s'.",
             count, map_id->name_);
     clif_displaymessage(s, output);
 
@@ -922,7 +922,7 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
                 {
                     p = party_search(pl_sd->status.party_id);
                     PartyName temp0 = p ? p->name : stringish<PartyName>("None");
-                    FString output;
+                    AString output;
                     if (pl_GM_level > 0)
                         output = STRPRINTF("Name: %s (GM:%d) | Party: '%s'",
                                 pl_sd->status.name, pl_GM_level, temp0);
@@ -936,7 +936,7 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
         }
     }
 
-    FString output;
+    AString output;
     if (count == 0)
         output = STRPRINTF("No player found in map '%s'.", map_id->name_);
     else if (count == 1)
@@ -984,7 +984,7 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
                     if (player_name.contains_seq(match_text))
                     {
                         // search with no case sensitive
-                        FString output;
+                        AString output;
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
                                 pl_sd->status.name, pl_GM_level,
@@ -1015,7 +1015,7 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
         clif_displaymessage(s, "1 GM found.");
     else
     {
-        FString output = STRPRINTF("%d GMs found.", count);
+        AString output = STRPRINTF("%d GMs found.", count);
         clif_displaymessage(s, output);
     }
 
@@ -1067,7 +1067,7 @@ ATCE atcommand_speed(Session *s, dumb_ptr<map_session_data> sd,
 {
     if (!message)
     {
-        FString output = STRPRINTF(
+        AString output = STRPRINTF(
                 "Please, enter a speed value (usage: @speed <%d-%d>).",
                 static_cast<uint32_t>(MIN_WALK_SPEED.count()),
                 static_cast<uint32_t>(MAX_WALK_SPEED.count()));
@@ -1086,7 +1086,7 @@ ATCE atcommand_speed(Session *s, dumb_ptr<map_session_data> sd,
     }
     else
     {
-        FString output = STRPRINTF(
+        AString output = STRPRINTF(
                 "Please, enter a valid speed value (usage: @speed <%d-%d>).",
                 static_cast<uint32_t>(MIN_WALK_SPEED.count()),
                 static_cast<uint32_t>(MAX_WALK_SPEED.count()));
@@ -1746,7 +1746,7 @@ ATCE atcommand_spawn(Session *s, dumb_ptr<map_session_data> sd,
             clif_displaymessage(s, "All monster summoned!");
         else
         {
-            FString output = STRPRINTF("%d monster(s) summoned!",
+            AString output = STRPRINTF("%d monster(s) summoned!",
                     count);
             clif_displaymessage(s, output);
         }
@@ -1795,7 +1795,7 @@ void atlist_nearby_sub(dumb_ptr<block_list> bl, Session *s)
 {
     nullpo_retv(bl);
 
-    FString buf = STRPRINTF(" - \"%s\"",
+    AString buf = STRPRINTF(" - \"%s\"",
             bl->is_player()->status.name);
     clif_displaymessage(s, buf);
 }
@@ -1831,7 +1831,7 @@ ATCE atcommand_gat(Session *s, dumb_ptr<map_session_data> sd,
 
     for (y = 2; y >= -2; y--)
     {
-        FString output = STRPRINTF(
+        AString output = STRPRINTF(
                 "%s (x= %d, y= %d) %02X %02X %02X %02X %02X",
                 sd->bl_m->name_, sd->bl_x - 2, sd->bl_y + y,
                 map_getcell(sd->bl_m, sd->bl_x - 2, sd->bl_y + y),
@@ -2049,7 +2049,7 @@ ATCE atcommand_recall(Session *s, dumb_ptr<map_session_data> sd,
                 return ATCE::PERM;
             }
             pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
-            FString output = STRPRINTF("%s recalled!", character);
+            AString output = STRPRINTF("%s recalled!", character);
             clif_displaymessage(s, output);
         }
         else
@@ -2109,7 +2109,7 @@ ATCE atcommand_character_stats(Session *s, dumb_ptr<map_session_data>,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd != NULL)
     {
-        FString output;
+        AString output;
         output = STRPRINTF("'%s' stats:", pl_sd->status.name);
         clif_displaymessage(s, output);
         output = STRPRINTF("Base Level - %d", pl_sd->status.base_level),
@@ -2163,13 +2163,13 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            FString gmlevel;
+            AString gmlevel;
             if (pc_isGM(pl_sd) > 0)
                 gmlevel = STRPRINTF("| GM Lvl: %d", pc_isGM(pl_sd));
             else
                 gmlevel = " ";
 
-            FString output;
+            AString output;
             output = STRPRINTF(
                     "Name: %s | BLvl: %d | Job: Novice/Human (Lvl: %d) | HP: %d/%d | SP: %d/%d",
                     pl_sd->status.name, pl_sd->status.base_level,
@@ -2198,7 +2198,7 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
         clif_displaymessage(s, "1 player found.");
     else
     {
-        FString output = STRPRINTF("%d players found.", count);
+        AString output = STRPRINTF("%d players found.", count);
         clif_displaymessage(s, output);
     }
 
@@ -2935,7 +2935,7 @@ ATCE atcommand_idsearch(Session *s, dumb_ptr<map_session_data>,
     if (!extract(message, &item_name) || !item_name)
         return ATCE::USAGE;
 
-    FString output = STRPRINTF("The reference result of '%s' (name: id):", item_name);
+    AString output = STRPRINTF("The reference result of '%s' (name: id):", item_name);
     clif_displaymessage(s, output);
     match = 0;
     for (i = 0; i < 20000; i++)
@@ -2970,7 +2970,7 @@ ATCE atcommand_charskreset(Session *s, dumb_ptr<map_session_data> sd,
         {
             // you can reset skill points only lower or same gm level
             pc_resetskill(pl_sd);
-            FString output = STRPRINTF(
+            AString output = STRPRINTF(
                     "'%s' skill points reseted!", character);
             clif_displaymessage(s, output);
         }
@@ -3005,7 +3005,7 @@ ATCE atcommand_charstreset(Session *s, dumb_ptr<map_session_data> sd,
         {
             // you can reset stats points only lower or same gm level
             pc_resetstate(pl_sd);
-            FString output = STRPRINTF(
+            AString output = STRPRINTF(
                     "'%s' stats points reseted!",
                     character);
             clif_displaymessage(s, output);
@@ -3046,7 +3046,7 @@ ATCE atcommand_charreset(Session *s, dumb_ptr<map_session_data> sd,
             // [Fate] Reset magic quest variables
             pc_setglobalreg(pl_sd, stringish<VarName>("MAGIC_EXP"), 0);
             // [Fate] Reset magic experience
-            FString output = STRPRINTF(
+            AString output = STRPRINTF(
                     "'%s' skill and stats points reseted!", character);
             clif_displaymessage(s, output);
         }
@@ -3131,7 +3131,7 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
             pc_setglobalreg(pl_sd, stringish<VarName>("MAGIC_EXP"), 0);
             // [Fate] Reset magic experience
 
-            FString output = STRPRINTF("%s:  wiped.", character);
+            AString output = STRPRINTF("%s:  wiped.", character);
             clif_displaymessage(s, output);
         }
         else
@@ -3341,7 +3341,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
     clif_displaymessage(s, "All characters recalled!");
     if (count)
     {
-        FString output = STRPRINTF(
+        AString output = STRPRINTF(
                 "Because you are not authorised to warp from some maps, %d player(s) have not been recalled.",
                 count);
         clif_displaymessage(s, output);
@@ -3391,7 +3391,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                     pc_setpos(pl_sd, sd->mapname_, sd->bl_x, sd->bl_y, BeingRemoveWhy::QUIT);
             }
         }
-        FString output = STRPRINTF("All online characters of the %s party are near you.", p->name);
+        AString output = STRPRINTF("All online characters of the %s party are near you.", p->name);
         clif_displaymessage(s, output);
         if (count)
         {
@@ -3432,7 +3432,7 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::EXIST;
 
     clif_displaymessage(s, "------ Map Info ------");
-    FString output = STRPRINTF("Map Name: %s", map_name);
+    AString output = STRPRINTF("Map Name: %s", map_name);
     clif_displaymessage(s, output);
     output = STRPRINTF("Players In Map: %d", m_id->users);
     clif_displaymessage(s, output);
@@ -3565,13 +3565,13 @@ ATCE atcommand_partyspy(Session *s, dumb_ptr<map_session_data> sd,
         if (sd->partyspy == p->party_id)
         {
             sd->partyspy = 0;
-            FString output = STRPRINTF("No longer spying on the %s party.", p->name);
+            AString output = STRPRINTF("No longer spying on the %s party.", p->name);
             clif_displaymessage(s, output);
         }
         else
         {
             sd->partyspy = p->party_id;
-            FString output = STRPRINTF("Spying on the %s party.", p->name);
+            AString output = STRPRINTF("Spying on the %s party.", p->name);
             clif_displaymessage(s, output);
         }
     }
@@ -3636,7 +3636,7 @@ ATCE atcommand_servertime(Session *s, dumb_ptr<map_session_data>,
 {
     timestamp_seconds_buffer tsbuf;
     stamp_time(tsbuf);
-    FString temp = STRPRINTF("Server time: %s", tsbuf);
+    AString temp = STRPRINTF("Server time: %s", tsbuf);
     clif_displaymessage(s, temp);
 
     return ATCE::OKAY;
@@ -3678,7 +3678,7 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
                         item_position = pc_search_inventory(pl_sd, item_id);
                         // for next loop
                     }
-                    FString output = STRPRINTF(
+                    AString output = STRPRINTF(
                             "%d item(s) removed by a GM.",
                             count);
                     clif_displaymessage(pl_sd->sess, output);
@@ -3723,7 +3723,7 @@ ATCE atcommand_broadcast(Session *, dumb_ptr<map_session_data> sd,
     if (!message)
         return ATCE::USAGE;
 
-    FString output = STRPRINTF("%s : %s", sd->status.name, message);
+    AString output = STRPRINTF("%s : %s", sd->status.name, message);
     intif_GMmessage(output);
 
     return ATCE::OKAY;
@@ -3736,7 +3736,7 @@ ATCE atcommand_localbroadcast(Session *, dumb_ptr<map_session_data> sd,
     if (!message)
         return ATCE::USAGE;
 
-    FString output = STRPRINTF("%s : %s", sd->status.name, message);
+    AString output = STRPRINTF("%s : %s", sd->status.name, message);
 
     clif_GMmessage(sd, output, 1);
 
@@ -3844,7 +3844,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                     count++;
                     if (count == 1)
                     {
-                        FString output = STRPRINTF(
+                        AString output = STRPRINTF(
                                 "------ Items list of '%s' ------",
                                 pl_sd->status.name);
                         clif_displaymessage(s, output);
@@ -3888,7 +3888,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                     else
                         equipstr = MString();
 
-                    FString output;
+                    AString output;
                     if (sd->status.inventory[i].refine)
                         output = STRPRINTF("%d %s %+d (%s %+d, id: %d) %s",
                                  pl_sd->status.inventory[i].amount,
@@ -3897,13 +3897,13 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                                  item_data->jname,
                                  pl_sd->status.inventory[i].refine,
                                  pl_sd->status.inventory[i].nameid,
-                                 FString(equipstr));
+                                 AString(equipstr));
                     else
                         output = STRPRINTF("%d %s (%s, id: %d) %s",
                                  pl_sd->status.inventory[i].amount,
                                  item_data->name, item_data->jname,
                                  pl_sd->status.inventory[i].nameid,
-                                 FString(equipstr));
+                                 AString(equipstr));
                     clif_displaymessage(s, output);
 
                     MString voutput;
@@ -3938,7 +3938,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                         // replace trailing ", "
                         voutput.pop_back();
                         voutput.back() = ')';
-                        clif_displaymessage(s, FString(voutput));
+                        clif_displaymessage(s, AString(voutput));
                     }
                 }
             }
@@ -3946,7 +3946,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                 clif_displaymessage(s, "No item found on this player.");
             else
             {
-                FString output = STRPRINTF(
+                AString output = STRPRINTF(
                         "%d item(s) found in %d kind(s) of items.",
                         counter, count);
                 clif_displaymessage(s, output);
@@ -3999,12 +3999,12 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                         count++;
                         if (count == 1)
                         {
-                            FString output = STRPRINTF(
+                            AString output = STRPRINTF(
                                     "------ Storage items list of '%s' ------",
                                     pl_sd->status.name);
                             clif_displaymessage(s, output);
                         }
-                        FString output;
+                        AString output;
                         if (stor->storage_[i].refine)
                             output = STRPRINTF("%d %s %+d (%s %+d, id: %d)",
                                      stor->storage_[i].amount,
@@ -4052,7 +4052,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                             // replace last ", "
                             voutput.pop_back();
                             voutput.back() = ')';
-                            clif_displaymessage(s, FString(voutput));
+                            clif_displaymessage(s, AString(voutput));
                         }
                     }
                 }
@@ -4061,7 +4061,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                             "No item found in the storage of this player.");
                 else
                 {
-                    FString output = STRPRINTF(
+                    AString output = STRPRINTF(
                             "%d item(s) found in %d kind(s) of items.",
                             counter, count);
                     clif_displaymessage(s, output);
@@ -4117,13 +4117,13 @@ ATCE atcommand_character_cart_list(Session *s, dumb_ptr<map_session_data> sd,
                     count++;
                     if (count == 1)
                     {
-                        FString output = STRPRINTF(
+                        AString output = STRPRINTF(
                                 "------ Cart items list of '%s' ------",
                                 pl_sd->status.name);
                         clif_displaymessage(s, output);
                     }
 
-                    FString output;
+                    AString output;
                     if (pl_sd->status.cart[i].refine)
                         output = STRPRINTF("%d %s %+d (%s %+d, id: %d)",
                                 pl_sd->status.cart[i].amount,
@@ -4170,7 +4170,7 @@ ATCE atcommand_character_cart_list(Session *s, dumb_ptr<map_session_data> sd,
                     {
                         voutput.pop_back();
                         voutput.back() = '0';
-                        clif_displaymessage(s, FString(voutput));
+                        clif_displaymessage(s, AString(voutput));
                     }
                 }
             }
@@ -4179,7 +4179,7 @@ ATCE atcommand_character_cart_list(Session *s, dumb_ptr<map_session_data> sd,
                         "No item found in the cart of this player.");
             else
             {
-                FString output = STRPRINTF("%d item(s) found in %d kind(s) of items.",
+                AString output = STRPRINTF("%d item(s) found in %d kind(s) of items.",
                          counter, count);
                 clif_displaymessage(s, output);
             }
@@ -4312,9 +4312,9 @@ ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
     if (!extract(message, record<' '>(&mapname, &x, &y)))
         return ATCE::USAGE;
 
-    FString w1 = STRPRINTF("%s,%d,%d", sd->mapname_, sd->bl_x, sd->bl_y);
-    FString w3 = STRPRINTF("%s%d%d%d%d", mapname, sd->bl_x, sd->bl_y, x, y);
-    FString w4 = STRPRINTF("1,1,%s.gat,%d,%d", mapname, x, y);
+    AString w1 = STRPRINTF("%s,%d,%d", sd->mapname_, sd->bl_x, sd->bl_y);
+    AString w3 = STRPRINTF("%s%d%d%d%d", mapname, sd->bl_x, sd->bl_y, x, y);
+    AString w4 = STRPRINTF("1,1,%s.gat,%d,%d", mapname, x, y);
 
     NpcName w3name = stringish<NpcName>(w3);
     int ret = npc_parse_warp(w1, ZString("warp"), w3name, w4);
@@ -4322,7 +4322,7 @@ ATCE atcommand_addwarp(Session *s, dumb_ptr<map_session_data> sd,
         // warp failed
         return ATCE::RANGE;
 
-    FString output = STRPRINTF("New warp NPC => %s", w3);
+    AString output = STRPRINTF("New warp NPC => %s", w3);
     clif_displaymessage(s, output);
 
     return ATCE::OKAY;
@@ -4689,7 +4689,7 @@ ATCE atcommand_magic_info(Session *s, dumb_ptr<map_session_data>,
     dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
     if (pl_sd)
     {
-        FString buf = STRPRINTF(
+        AString buf = STRPRINTF(
                 "`%s' has the following magic skills:",
                 character);
         clif_displaymessage(s, buf);
@@ -4788,7 +4788,7 @@ ATCE atcommand_tee(Session *, dumb_ptr<map_session_data> sd,
     data += sd->status.name.to__actual();
     data += " : ";
     data += message;
-    clif_message(sd, FString(data));
+    clif_message(sd, AString(data));
     return ATCE::OKAY;
 }
 
@@ -4845,7 +4845,7 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
     pc_setpos(sd, pl_sd->bl_m->name_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
-    FString output = STRPRINTF("Jump to %s", pl_sd->status.name);
+    AString output = STRPRINTF("Jump to %s", pl_sd->status.name);
     clif_displaymessage(s, output);
 
     sd->followtarget = pl_sd->bl_id;
@@ -4896,7 +4896,7 @@ ATCE atcommand_skillpool_info(Session *s, dumb_ptr<map_session_data>,
         int pool_skills_nr = skill_pool(pl_sd, pool_skills);
         int i;
 
-        FString buf = STRPRINTF(
+        AString buf = STRPRINTF(
                 "Active skills %d out of %d for %s:",
                 pool_skills_nr, skill_pool_max(pl_sd), character);
         clif_displaymessage(s, buf);
@@ -4915,7 +4915,7 @@ ATCE atcommand_skillpool_info(Session *s, dumb_ptr<map_session_data>,
 
         for (i = 0; i < skill_pool_skills_size; ++i)
         {
-            const FString& name = skill_name(skill_pool_skills[i]);
+            const RString& name = skill_name(skill_pool_skills[i]);
             int lvl = pl_sd->status.skill[skill_pool_skills[i]].lv;
 
             if (lvl)
@@ -5042,7 +5042,7 @@ ATCE atcommand_ipcheck(Session *s, dumb_ptr<map_session_data>,
             // Is checking GM levels really needed here?
             if (ip == pl_sd->get_ip())
             {
-                FString output = STRPRINTF(
+                AString output = STRPRINTF(
                         "Name: %s | Location: %s %d %d",
                         pl_sd->status.name, pl_sd->mapname_,
                         pl_sd->bl_x, pl_sd->bl_y);

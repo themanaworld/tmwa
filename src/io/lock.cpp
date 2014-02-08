@@ -46,7 +46,7 @@ namespace io
         int no = getpid();
 
         // Get a filename that doesn't already exist
-        FString newfile;
+        AString newfile;
         do
         {
             newfile = STRPRINTF("%s_%d.tmp", filename, no++);
@@ -59,7 +59,7 @@ namespace io
         return fd;
     }
 
-    WriteLock::WriteLock(FString fn, bool linebuffered)
+    WriteLock::WriteLock(RString fn, bool linebuffered)
     : WriteFile(get_lock_open(fn, &tmp_suffix), linebuffered), filename(fn)
     {}
     WriteLock::~WriteLock()
@@ -72,16 +72,16 @@ namespace io
         }
 
         int n = backup_count;
-        FString old_filename = STRPRINTF("%s.%d", filename, n);
+        AString old_filename = STRPRINTF("%s.%d", filename, n);
         while (--n)
         {
-            FString newer_filename = STRPRINTF("%s.%d", filename, n);
+            AString newer_filename = STRPRINTF("%s.%d", filename, n);
             rename(newer_filename.c_str(), old_filename.c_str());
             old_filename = std::move(newer_filename);
         }
         rename(filename.c_str(), old_filename.c_str());
 
-        FString tmpfile = STRPRINTF("%s_%d.tmp", filename, tmp_suffix);
+        AString tmpfile = STRPRINTF("%s_%d.tmp", filename, tmp_suffix);
         rename(tmpfile.c_str(), filename.c_str());
     }
 } // namespace io

@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -3420,7 +3420,7 @@ bool mob_readdb(ZString filename)
             PRINTF("Unable to read mob db: %s\n", filename);
             return false;
         }
-        FString line;
+        AString line;
         while (in.getline(line))
         {
             int mob_class;
@@ -3631,7 +3631,7 @@ bool mob_readskilldb(ZString filename)
             PRINTF("can't read %s\n", filename);
             return false;
         }
-        FString line;
+        AString line;
         while (in.getline(line))
         {
             int mob_id;

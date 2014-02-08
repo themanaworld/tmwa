@@ -88,7 +88,7 @@ namespace strings
         const T& _ref() const;
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
     public:
         size_t size() const;
         reverse_iterator rbegin() const;

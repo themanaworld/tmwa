@@ -6,7 +6,7 @@
 #include <ctime>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/rstring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -1169,7 +1169,7 @@ SP scan_stat(XString statname)
     if (statname == "none")
         return SP::ZERO;
 
-    FPRINTF(stderr, "Unknown stat `%s'\n", FString(statname));
+    FPRINTF(stderr, "Unknown stat `%s'\n", AString(statname));
     return SP::ZERO;
 }
 
@@ -1183,7 +1183,7 @@ bool skill_readdb(ZString filename)
     }
 
     bool rv = true;
-    FString line_;
+    AString line_;
     while (in.getline(line_))
     {
         // is_comment only works for whole-line comments
@@ -1267,7 +1267,7 @@ bool skill_readdb(ZString filename)
                 c = ' ';
 
         skill_db[i] = skdb;
-        skill_lookup_by_id(i).desc = FString(tmp);
+        skill_lookup_by_id(i).desc = RString(tmp);
     }
     PRINTF("read %s done\n", filename);
 

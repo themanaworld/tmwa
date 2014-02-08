@@ -61,7 +61,7 @@ int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 /**
  * Evaluates an expression and coerces the result into a string
  */
-FString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
+AString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr);
 
 dumb_ptr<expr_t> magic_new_expr(EXPR ty);
 

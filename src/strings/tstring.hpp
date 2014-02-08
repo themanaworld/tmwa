@@ -20,20 +20,21 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # include "base.hpp"
-# include "fstring.hpp"
+# include "rstring.hpp"
 
 namespace strings
 {
-    /// An owning string that represents a tail slice of an FString.
+    /// An owning string that represents a tail slice of an RString.
     /// Guaranteed to be NUL-terminated.
     class TString : public _crtp_string<TString, TString, ZPair>
     {
         friend class SString;
-        FString _s;
+        RString _s;
         size_t _o;
     public:
         TString();
-        TString(FString b, size_t i=0);
+        TString(RString b, size_t i=0);
+        TString(AString b, size_t i=0);
         //TString(const TString&)
         TString(const SString&);
         TString(const ZString&);
@@ -50,7 +51,7 @@ namespace strings
 
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
         const char *c_str() const;
     };
 

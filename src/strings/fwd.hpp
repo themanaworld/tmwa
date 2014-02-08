@@ -28,7 +28,8 @@ namespace strings
 {
     // owning
     class MString;
-    class FString;
+    class RString;
+    class AString;
     class TString; // C legacy version of SString
     class SString; // is this one really worth it?
 
@@ -46,7 +47,8 @@ namespace strings
 } // namespace strings
 
 using strings::MString;
-using strings::FString;
+using strings::RString;
+using strings::AString;
 using strings::TString;
 using strings::SString;
 

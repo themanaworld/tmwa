@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -2420,7 +2420,7 @@ bool battle_config_read(ZString cfgName)
         return false;
     }
 
-    FString line;
+    AString line;
     while (in.getline(line))
     {
 #define BATTLE_CONFIG_VAR(name) {{#name}, &battle_config.name}
@@ -2555,7 +2555,7 @@ bool battle_config_read(ZString cfgName)
                 goto continue_outer;
             }
 
-        PRINTF("WARNING: unknown battle conf key: %s\n", FString(w1));
+        PRINTF("WARNING: unknown battle conf key: %s\n", AString(w1));
         rv = false;
 
     continue_outer:

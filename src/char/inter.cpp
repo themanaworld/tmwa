@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -29,7 +29,7 @@
 #include "../poison.hpp"
 
 static
-FString accreg_txt = "save/accreg.txt";
+AString accreg_txt = "save/accreg.txt";
 
 struct accreg
 {
@@ -60,13 +60,13 @@ int inter_recv_packet_length[] =
 
 // アカウント変数を文字列へ変換
 static
-FString inter_accreg_tostr(struct accreg *reg)
+AString inter_accreg_tostr(struct accreg *reg)
 {
     MString str;
     str += STRPRINTF("%d\t", reg->account_id);
     for (int j = 0; j < reg->reg_num; j++)
         str += STRPRINTF("%s,%d ", reg->reg[j].str, reg->reg[j].value);
-    return FString(str);
+    return AString(str);
 }
 
 // アカウント変数を文字列から変換
@@ -98,7 +98,7 @@ void inter_accreg_init(void)
     io::ReadFile in(accreg_txt);
     if (!in.is_open())
         return;
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         struct accreg reg {};
@@ -121,7 +121,7 @@ void inter_accreg_save_sub(struct accreg *reg, io::WriteFile& fp)
 {
     if (reg->reg_num > 0)
     {
-        FString line = inter_accreg_tostr(reg);
+        AString line = inter_accreg_tostr(reg);
         fp.put_line(line);
     }
 }
@@ -282,7 +282,7 @@ void mapif_parse_GMmessage(Session *s)
 {
     size_t msg_len = RFIFOW(s, 2);
     size_t str_len = msg_len - 4;
-    FString buf = RFIFO_STRING(s, 4, str_len);
+    AString buf = RFIFO_STRING(s, 4, str_len);
 
     mapif_GMmessage(buf);
 }
@@ -328,7 +328,7 @@ void mapif_parse_WisRequest(Session *sms)
         {
             size_t len = RFIFOW(sms, 2) - 52;
             Session *tms = server_for(mcs); // for to
-            FString msg = RFIFO_STRING(sms, 52, len);
+            AString msg = RFIFO_STRING(sms, 52, len);
             if (tms)
             {
                 mapif_wis_message(tms, from, to, msg);

@@ -3,7 +3,7 @@
 #include "magic-interpreter-aux.hpp"
 #include "magic-interpreter.hpp"
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -68,13 +68,13 @@ void set_spell SETTER(dumb_ptr<spell_t>, TYPE::SPELL, v_spell)
 magic_conf_t magic_conf;        /* Global magic conf */
 env_t magic_default_env = { &magic_conf, NULL };
 
-FString magic_find_invocation(XString spellname)
+AString magic_find_invocation(XString spellname)
 {
     auto it = magic_conf.spells_by_name.find(spellname);
     if (it != magic_conf.spells_by_name.end())
         return it->second->invocation;
 
-    return FString();
+    return AString();
 }
 
 dumb_ptr<spell_t> magic_find_spell(XString invocation)
@@ -90,14 +90,14 @@ dumb_ptr<spell_t> magic_find_spell(XString invocation)
 /* Spell anchors */
 /* -------------------------------------------------------------------------------- */
 
-FString magic_find_anchor_invocation(XString anchor_name)
+AString magic_find_anchor_invocation(XString anchor_name)
 {
     auto it = magic_conf.anchors_by_name.find(anchor_name);
 
     if (it != magic_conf.anchors_by_name.end())
         return it->second->invocation;
 
-    return FString();
+    return AString();
 }
 
 dumb_ptr<teleport_anchor_t> magic_find_anchor(XString name)

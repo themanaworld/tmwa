@@ -4,7 +4,7 @@
 
 #include "vstring.hpp"
 #include "xstring.hpp"
-#include "fstring.hpp"
+#include "rstring.hpp"
 
 using namespace strings;
 
@@ -18,7 +18,7 @@ static_assert(!string_comparison_allowed<_test, VString<1>>::value, "tv");
 static_assert(!string_comparison_allowed<_test, _test2>::value, "t2");
 static_assert(string_comparison_allowed<VString<1>, XString>::value, "vx");
 static_assert(string_comparison_allowed<XString, XString>::value, "xx");
-static_assert(string_comparison_allowed<XString, FString>::value, "xf");
+static_assert(string_comparison_allowed<XString, RString>::value, "xf");
 
 TEST(strings, contains)
 {

@@ -6,7 +6,8 @@
 
 # include <vector>
 
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
+# include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
 
 # include "../common/db.hpp"
@@ -157,12 +158,12 @@ struct ScriptLabel;
 extern
 Map<ScriptLabel, int> scriptlabel_db;
 extern
-UPMap<FString, const ScriptBuffer> userfunc_db;
+UPMap<RString, const ScriptBuffer> userfunc_db;
 
 void do_init_script(void);
 void do_final_script(void);
 
-extern FString mapreg_txt;
+extern AString mapreg_txt;
 
 extern int script_errors;
 

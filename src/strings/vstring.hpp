@@ -31,7 +31,8 @@ namespace strings
     public:
         typedef typename _crtp_string<VString<n>, VString<n>, ZPair>::iterator iterator;
         VString(XString x);
-        VString(FString f);
+        VString(RString f);
+        VString(AString f);
         VString(TString t);
         VString(SString s);
         VString(ZString z);
@@ -48,7 +49,7 @@ namespace strings
 
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
         const char *c_str() const;
     };
 

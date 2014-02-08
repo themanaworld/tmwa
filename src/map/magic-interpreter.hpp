@@ -6,7 +6,7 @@
 # include <cassert>
 
 # include "../strings/fwd.hpp"
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
 
 # include "magic.hpp"
 # include "map.hpp"
@@ -244,8 +244,8 @@ struct letdef_t
 
 struct spell_t
 {
-    FString name;
-    FString invocation;
+    RString name;
+    RString invocation;
     SPELL_FLAG flags;
     int arg;
     SPELLARG spellarg_ty;
@@ -261,8 +261,8 @@ struct spell_t
 
 struct teleport_anchor_t
 {
-    FString name;
-    FString invocation;
+    RString name;
+    RString invocation;
     dumb_ptr<expr_t> location;
 };
 
@@ -274,15 +274,15 @@ struct magic_conf_t
 {
     struct mcvar
     {
-        FString name;
+        RString name;
         val_t val;
     };
     // This should probably be done by a dedicated "intern pool" class
     std::vector<mcvar> varv;
 
-    std::map<FString, dumb_ptr<spell_t>> spells_by_name, spells_by_invocation;
+    std::map<RString, dumb_ptr<spell_t>> spells_by_name, spells_by_invocation;
 
-    std::map<FString, dumb_ptr<teleport_anchor_t>> anchors_by_name, anchors_by_invocation;
+    std::map<RString, dumb_ptr<teleport_anchor_t>> anchors_by_name, anchors_by_invocation;
 };
 
 /* Execution environment */
@@ -434,7 +434,7 @@ struct args_rec_t
 
 struct proc_t
 {
-    FString name;
+    RString name;
     std::vector<int> argv;
     dumb_ptr<effect_t> body;
 

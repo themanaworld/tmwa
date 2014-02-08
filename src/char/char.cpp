@@ -16,7 +16,7 @@
 #include <set>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -74,11 +74,11 @@ IP4Address char_ip;
 static
 int char_port = 6121;
 static
-FString char_txt;
+AString char_txt;
 static
 CharName unknown_char_name = stringish<CharName>("Unknown");
 static
-FString char_log_filename = "log/char.log";
+AString char_log_filename = "log/char.log";
 //Added for lan support
 static
 IP4Address lan_map_ip = IP4_LOCALHOST;
@@ -140,9 +140,9 @@ std::vector<GM_Account> gm_accounts;
 
 // online players by [Yor]
 static
-FString online_txt_filename = "online.txt";
+AString online_txt_filename = "online.txt";
 static
-FString online_html_filename = "online.html";
+AString online_html_filename = "online.html";
 static
 int online_sorting_option = 0; // sorting option to display online players in online files
 static
@@ -232,7 +232,7 @@ Session *& server_for_m(const mmo_charstatus *mcs)
 // Function to create the character line (for save)
 //-------------------------------------------------
 static
-FString mmo_char_tostr(struct mmo_charstatus *p)
+AString mmo_char_tostr(struct mmo_charstatus *p)
 {
     // on multi-map server, sometimes it's posssible that last_point become void. (reason???) We check that to not lost character at restart.
     if (!p->last_point.map_)
@@ -333,7 +333,7 @@ FString mmo_char_tostr(struct mmo_charstatus *p)
                     p->global_reg[i].value);
     str_p += '\t';
 
-    return FString(str_p);
+    return AString(str_p);
 }
 
 static
@@ -470,7 +470,7 @@ int mmo_char_init(void)
     }
 
     int line_count = 0;
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         line_count++;
@@ -528,7 +528,7 @@ void mmo_char_sync(void)
         // yes, we need a mutable reference to do the saves ...
         for (mmo_charstatus& cd : char_data)
         {
-            FString line = mmo_char_tostr(&cd);
+            AString line = mmo_char_tostr(&cd);
             fp.put_line(line);
         }
         FPRINTF(fp, "%d\t%%newid%%\n", char_id_count);
@@ -1282,7 +1282,7 @@ void parse_tologin(Session *ls)
                     else
                     {
                         size_t len = RFIFOL(ls, 4);
-                        FString message = RFIFO_STRING(ls, 8, len).to_print().lstrip();
+                        AString message = RFIFO_STRING(ls, 8, len).to_print().lstrip();
                         // if message is only composed of spaces
                         if (!message)
                             CHAR_LOG("Receiving a message for broadcast, but message is only a lot of spaces.\n");

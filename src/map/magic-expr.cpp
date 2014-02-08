@@ -6,7 +6,7 @@
 #include <cmath>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/vstring.hpp"
 
@@ -93,7 +93,7 @@ void magic_clear_var(val_t *v)
 }
 
 static
-FString show_entity(dumb_ptr<block_list> entity)
+AString show_entity(dumb_ptr<block_list> entity)
 {
     switch (entity->bl_type)
     {
@@ -126,7 +126,7 @@ void stringify(val_t *v, int within_op)
         {"north"}, {"north-east"},
         {"east"}, {"south-east"},
     }};
-    FString buf;
+    AString buf;
 
     switch (v->ty)
     {
@@ -287,7 +287,7 @@ int fun_add(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
         MString m;
         m += ARGSTR(0);
         m += ARGSTR(1);
-        RESULTSTR = dumb_string::copys(FString(m));
+        RESULTSTR = dumb_string::copys(AString(m));
         result->ty = TYPE::STRING;
     }
     return 0;
@@ -1677,7 +1677,7 @@ int magic_eval_int(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
     return result.v.v_int;
 }
 
-FString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
+AString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
 {
     val_t result;
     magic_eval(env, &result, expr);

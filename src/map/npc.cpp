@@ -8,7 +8,7 @@
 #include <list>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -34,7 +34,7 @@
 #include "../poison.hpp"
 
 static
-std::list<FString> npc_srcs;
+std::list<AString> npc_srcs;
 
 static
 int npc_id = START_NPC_NUM;
@@ -903,7 +903,7 @@ void npc_clearsrcfile(void)
  * 読み込むnpcファイルの追加
  *------------------------------------------
  */
-void npc_addsrcfile(FString name)
+void npc_addsrcfile(AString name)
 {
     if (name == "clear")
     {
@@ -918,7 +918,7 @@ void npc_addsrcfile(FString name)
  * 読み込むnpcファイルの削除
  *------------------------------------------
  */
-void npc_delsrcfile(FString name)
+void npc_delsrcfile(XString name)
 {
     if (name == "all")
     {
@@ -1209,7 +1209,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
             if (it != srcbuf.rend() && *it == '}')
                 break;
 
-            FString line;
+            AString line;
             if (!fp.getline(line))
                 // eof
                 break;
@@ -1226,7 +1226,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
                 srcbuf += line;
             srcbuf += '\n';
         }
-        script = parse_script(FString(srcbuf), startline);
+        script = parse_script(AString(srcbuf), startline);
         if (script == NULL)
             // script parse error?
             return 1;
@@ -1404,7 +1404,7 @@ int npc_parse_function(XString, XString, XString w3, ZString,
         if (it != srcbuf.rend() && *it == '}')
             break;
 
-        FString line;
+        AString line;
         if (!fp.getline(line))
             break;
         (*lines)++;
@@ -1417,7 +1417,7 @@ int npc_parse_function(XString, XString, XString w3, ZString,
             srcbuf += line;
         srcbuf += '\n';
     }
-    std::unique_ptr<const ScriptBuffer> script = parse_script(FString(srcbuf), startline);
+    std::unique_ptr<const ScriptBuffer> script = parse_script(AString(srcbuf), startline);
     if (script == NULL)
     {
         // script parse error?
@@ -1636,7 +1636,7 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
 }
 
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        int npc_class, NpcName name, FString message)
+        int npc_class, NpcName name, AString message)
 {
     dumb_ptr<npc_data_message> retval;
     retval.new_();
@@ -1678,7 +1678,7 @@ void npc_free_internal(dumb_ptr<npc_data> nd_)
     else if (nd_->npc_subtype == NpcSubtype::MESSAGE)
     {
         dumb_ptr<npc_data_message> nd = nd_->is_message();
-        nd->message = FString();
+        nd->message = AString();
     }
     nd_.delete_();
 }
@@ -1722,7 +1722,7 @@ bool do_init_npc(void)
 
     for (; !npc_srcs.empty(); npc_srcs.pop_front())
     {
-        FString nsl = npc_srcs.front();
+        AString nsl = npc_srcs.front();
         io::ReadFile fp(nsl);
         if (!fp.is_open())
         {
@@ -1733,7 +1733,7 @@ bool do_init_npc(void)
         PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
                 nsl);
         int lines = 0;
-        FString zline;
+        AString zline;
         while (fp.getline(zline))
         {
             XString w1, w2, w3, w4x;

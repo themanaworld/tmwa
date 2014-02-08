@@ -25,7 +25,7 @@
 
 # include <algorithm>
 
-# include "../strings/fstring.hpp"
+# include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
 # include "../strings/xstring.hpp"
 
@@ -246,7 +246,7 @@ struct dumb_string
         return ZString(strings::really_construct_from_a_pointer, c_str(), nullptr);
     }
 
-    FString str() const
+    AString str() const
     {
         return ZString(*this);
     }

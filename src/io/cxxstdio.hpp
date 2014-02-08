@@ -238,15 +238,15 @@ namespace cxxstdio
 # define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
 # define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
 # define PRINTF(fmt, ...)            FPRINTF(stdout, fmt, ## __VA_ARGS__)
-# define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<FString&>(str), fmt, ## __VA_ARGS__)
+# define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<AString&>(str), fmt, ## __VA_ARGS__)
 # define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
 # define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
 # define SSCANF(str, fmt, ...)       XSCANF(/*ZString or compatible*/str, fmt, ## __VA_ARGS__)
 
 # define STRPRINTF(fmt, ...)                        \
-    (/*[&]() -> FString*/                           \
+    (/*[&]() -> AString*/                           \
     {                                               \
-        FString _out_impl;                          \
+        AString _out_impl;                          \
         SPRINTF(_out_impl, fmt, ## __VA_ARGS__);    \
         /*return*/ _out_impl;                       \
     }/*()*/)

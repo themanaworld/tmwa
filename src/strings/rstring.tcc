@@ -1,4 +1,4 @@
-//    strings/fstring.tcc - Inline functions for fstring.hpp
+//    strings/rstring.tcc - Inline functions for rstring.hpp
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -22,12 +22,12 @@
 namespace strings
 {
     template<class It>
-    void FString::_assign(It b, It e)
+    void RString::_assign(It b, It e)
     {
         owned = nullptr;
         if (b == e)
         {
-            *this = FString();
+            *this = RString();
             return;
         }
         if (!std::is_base_of<std::forward_iterator_tag, typename std::iterator_traits<It>::iterator_category>::value)
@@ -36,7 +36,7 @@ namespace strings
             MString m;
             for (; b != e; ++b)
                 m += *b;
-            *this = FString(m); // will recurse
+            *this = RString(m); // will recurse
             return;
         }
         size_t diff = std::distance(b, e);
@@ -48,19 +48,19 @@ namespace strings
     }
 
     template<size_t n>
-    FString::FString(const char (&s)[n])
+    RString::RString(const char (&s)[n])
     {
         _assign(s, s + strlen(s));
     }
 
     template<class It>
-    FString::FString(It b, It e)
+    RString::RString(It b, It e)
     {
         _assign(b, e);
     }
 
     template<uint8_t n>
-    FString::FString(const VString<n>& v)
+    RString::RString(const VString<n>& v)
     {
         _assign(v.begin(), v.end());
     }

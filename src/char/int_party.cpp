@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -21,7 +21,7 @@
 
 #include "../poison.hpp"
 
-FString party_txt = "save/party.txt";
+AString party_txt = "save/party.txt";
 
 static
 Map<int, struct party> party_db;
@@ -37,7 +37,7 @@ void mapif_parse_PartyLeave(Session *s, int party_id, int account_id);
 
 // パーティデータの文字列への変換
 static
-FString inter_party_tostr(struct party *p)
+AString inter_party_tostr(struct party *p)
 {
     MString str;
     str += STRPRINTF(
@@ -59,7 +59,7 @@ FString inter_party_tostr(struct party *p)
                 m->name);
     }
 
-    return FString(str);
+    return AString(str);
 }
 
 static
@@ -130,7 +130,7 @@ void inter_party_init(void)
         return;
 
     // TODO: convert to use char_id, and change to extract()
-    FString line;
+    AString line;
     int c = 0;
     while (in.getline(line))
     {
@@ -164,7 +164,7 @@ void inter_party_init(void)
 static
 void inter_party_save_sub(struct party *data, io::WriteFile& fp)
 {
-    FString line = inter_party_tostr(data);
+    AString line = inter_party_tostr(data);
     fp.put_line(line);
 }
 
@@ -701,7 +701,7 @@ int inter_party_parse_frommap(Session *ms)
             size_t len = RFIFOW(ms, 2) - 12;
             int party_id = RFIFOL(ms, 4);
             int account_id = RFIFOL(ms, 8);
-            FString mes = RFIFO_STRING(ms, 12, len);
+            AString mes = RFIFO_STRING(ms, 12, len);
             mapif_parse_PartyMessage(ms,
                     party_id,
                     account_id,

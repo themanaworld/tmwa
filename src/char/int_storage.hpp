@@ -12,6 +12,6 @@ struct storage *account2storage(int account_id);
 
 int inter_storage_parse_frommap(Session *ms);
 
-extern FString storage_txt;
+extern AString storage_txt;
 
 #endif // INT_STORAGE_HPP

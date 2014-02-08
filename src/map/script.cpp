@@ -8,7 +8,8 @@
 #include <ctime>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -49,27 +50,27 @@ constexpr bool DEBUG_RUN = false;
 struct str_data_t
 {
     ByteCode type;
-    FString strs;
+    RString strs;
     int backpatch;
     int label_;
     int val;
 };
 static
-Map<FString, str_data_t> str_datam;
+Map<RString, str_data_t> str_datam;
 static
 str_data_t LABEL_NEXTLINE_;
 
 static
 DMap<SIR, int> mapreg_db;
 static
-Map<SIR, FString> mapregstr_db;
+Map<SIR, RString> mapregstr_db;
 static
 int mapreg_dirty = -1;
-FString mapreg_txt = "save/mapreg.txt";
+AString mapreg_txt = "save/mapreg.txt";
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
 Map<ScriptLabel, int> scriptlabel_db;
-UPMap<FString, const ScriptBuffer> userfunc_db;
+UPMap<RString, const ScriptBuffer> userfunc_db;
 
 static
 const char *pos_str[11] =
@@ -157,7 +158,7 @@ str_data_t *add_strp(XString p)
     if (str_data_t *rv = search_strp(p))
         return rv;
 
-    FString p2 = p;
+    RString p2 = p;
     str_data_t *datum = str_datam.init(p2);
     datum->type = ByteCode::NOP;
     datum->strs = p2;
@@ -699,13 +700,13 @@ bool read_constdb(ZString filename)
     }
 
     bool rv = true;
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         if (is_comment(line))
             continue;
 
-        FString name;
+        AString name;
         int val;
         int type = 0; // if not provided
         // TODO get rid of SSCANF - this is the last serious use
@@ -908,7 +909,7 @@ void get_val(ScriptState *st, struct script_data *data)
             }
             else if (prefix == '$')
             {
-                FString *s = mapregstr_db.search(data->u.reg);
+                RString *s = mapregstr_db.search(data->u.reg);
                 data->u.str = s ? dumb_string::fake(*s) : dumb_string();
             }
             else
@@ -1059,7 +1060,7 @@ dumb_string conv_str(ScriptState *st, struct script_data *data)
     assert (data->type != ByteCode::RETINFO);
     if (data->type == ByteCode::INT)
     {
-        FString buf = STRPRINTF("%d", data->u.numi);
+        AString buf = STRPRINTF("%d", data->u.numi);
         data->type = ByteCode::STR;
         data->u.str = dumb_string::copys(buf);
     }
@@ -1340,7 +1341,7 @@ void builtin_menu(ScriptState *st)
             buf += ':';
         }
 
-        clif_scriptmenu(script_rid2sd(st), st->oid, FString(buf));
+        clif_scriptmenu(script_rid2sd(st), st->oid, AString(buf));
     }
     else
     {
@@ -2233,7 +2234,7 @@ void builtin_getequipname(ScriptState *st)
     dumb_ptr<map_session_data> sd;
     struct item_data *item;
 
-    FString buf;
+    AString buf;
 
     sd = script_rid2sd(st);
     num = conv_num(st, &AARGO2(2));
@@ -3572,7 +3573,7 @@ void builtin_getspellinvocation(ScriptState *st)
 {
     dumb_string name = conv_str(st, &AARGO2(2));
 
-    FString invocation = magic_find_invocation(name.str());
+    AString invocation = magic_find_invocation(name.str());
     if (!invocation)
         invocation = "...";
 
@@ -3938,7 +3939,7 @@ void builtin_npctalk(ScriptState *st)
         message += nd->name;
         message += " : ";
         message += ZString(str);
-        clif_message(nd, FString(message));
+        clif_message(nd, AString(message));
     }
 }
 
@@ -4275,7 +4276,7 @@ void op_add(ScriptState *st)
         if (back.type == ByteCode::STR)
             back.u.str.delete_();
         back1.type = ByteCode::STR;
-        back1.u.str = dumb_string::copys(FString(buf));
+        back1.u.str = dumb_string::copys(AString(buf));
     }
 }
 
@@ -4921,7 +4922,7 @@ void script_load_mapreg(void)
     if (!in.is_open())
         return;
 
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         XString buf1, buf2;
@@ -4952,7 +4953,7 @@ void script_load_mapreg(void)
         else
         {
         borken:
-            PRINTF("%s: %s broken data !\n", mapreg_txt, FString(buf1));
+            PRINTF("%s: %s broken data !\n", mapreg_txt, AString(buf1));
             continue;
         }
     }

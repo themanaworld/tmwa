@@ -9,7 +9,7 @@
 
 # include <array>
 
-# include "../strings/fstring.hpp"
+# include "../strings/astring.hpp"
 # include "../strings/vstring.hpp"
 # include "../strings/xstring.hpp"
 
@@ -183,7 +183,7 @@ VString<len-1> RFIFO_STRING(Session *s, size_t pos)
     return XString(begin, mid, nullptr);
 }
 inline
-FString RFIFO_STRING(Session *s, size_t pos, size_t len)
+AString RFIFO_STRING(Session *s, size_t pos, size_t len)
 {
     const char *const begin = static_cast<const char *>(RFIFOP(s, pos));
     const char *const end = begin + len;
@@ -242,7 +242,7 @@ VString<len-1> RBUF_STRING(const uint8_t *p, size_t pos)
     return XString(begin, mid, nullptr);
 }
 inline
-FString RBUF_STRING(const uint8_t *p, size_t pos, size_t len)
+AString RBUF_STRING(const uint8_t *p, size_t pos, size_t len)
 {
     const char *const begin = static_cast<const char *>(RBUFP(p, pos));
     const char *const end = begin + len;

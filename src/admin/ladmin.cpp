@@ -6,7 +6,7 @@
 #include <cassert>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
@@ -48,7 +48,7 @@ int login_port = 6900;    // Port of login-server
 static
 AccountPass admin_pass = stringish<AccountPass>("admin");    // Administration password
 static
-FString ladmin_log_filename = "log/ladmin.log";
+AString ladmin_log_filename = "log/ladmin.log";
 //-------------------------------------------------------------------------
 //  LIST of COMMANDs that you can type at the prompt:
 //    To use these commands you can only type only the first letters.
@@ -582,7 +582,7 @@ void display_help(ZString param)
     {
         if (command)
             PRINTF("Unknown command [%s] for help. Displaying of all commands.\n",
-                 FString(command));
+                 AString(command));
         PRINTF(" help/?                          -- Display this help\n");
         PRINTF(" help/? [command]                -- Display the help of the command\n");
         PRINTF(" add <account_name> <sex> <password>  -- Create an account with default email\n");
@@ -678,9 +678,9 @@ void addaccount(ZString param, int emailflag)
     if (!e_mail_check(email_))
     {
         PRINTF("Invalid email [%s]. Please input a valid e-mail.\n",
-                FString(email_));
+                AString(email_));
         LADMIN_LOG("Invalid email [%s]. Please input a valid e-mail.\n",
-                FString(email_));
+                AString(email_));
         return;
     }
     AccountEmail email = stringish<AccountEmail>(email_);
@@ -1040,9 +1040,9 @@ void changeemail(ZString param)
     if (!e_mail_check(email_))
     {
         PRINTF("Invalid email [%s]. Please input a valid e-mail.\n",
-                FString(email_));
+                AString(email_));
         LADMIN_LOG("Invalid email [%s]. Please input a valid e-mail.\n",
-                FString(email_));
+                AString(email_));
         return;
     }
     AccountEmail email = stringish<AccountEmail>(email_);
@@ -1773,7 +1773,7 @@ void prompt(void)
         // get command and parameter
         // TODO figure out a better way to do stdio
         static auto cin = make_unique<io::ReadFile>(io::FD::stdin().dup());
-        FString buf;
+        AString buf;
         cin->getline(buf);
 
         Iprintf(SGR_RESET);
@@ -1791,7 +1791,7 @@ void prompt(void)
 
         // extract command name and parameters
         auto space = std::find(buf.begin(), buf.end(), ' ');
-        FString command = buf.xislice_h(space);
+        AString command = buf.xislice_h(space);
         while (*space == ' ')
             ++space;
 
@@ -1809,7 +1809,7 @@ void prompt(void)
         {
             // We don't want passwords in the log - Camel
             if (command == "create" || command == "add" || command == "password") {
-                FString name, email_, password;
+                AString name, email_, password;
                 VString<1> sex_;
 
                 if (qsplit(parameters, &name, &sex_, &email_, &password))
@@ -2218,7 +2218,7 @@ void parse_fromlogin(Session *s)
                             break;
                     }
                     tmpstr += ']';
-                    FString tmpstr_ = FString(tmpstr);
+                    AString tmpstr_ = AString(tmpstr);
                     PRINTF("%s\n", tmpstr_);
                     LADMIN_LOG("%s\n", tmpstr_);
                 }
@@ -2630,7 +2630,7 @@ void parse_fromlogin(Session *s)
                     AccountEmail email = stringish<AccountEmail>(RFIFO_STRING<40>(s, 100));
                     TimeT connect_until_time = static_cast<time_t>(RFIFOL(s, 140));
                     TimeT ban_until_time = static_cast<time_t>(RFIFOL(s, 144));
-                    FString memo = RFIFO_STRING(s, 150, RFIFOW(s, 148));
+                    AString memo = RFIFO_STRING(s, 150, RFIFOW(s, 148));
                     if (account_id == -1)
                     {
                         PRINTF("Unabled to find the account [%s]. Account doesn't exist.\n",
@@ -2812,7 +2812,7 @@ bool admin_confs(XString w1, ZString w2)
         }
         else
         {
-            PRINTF("WARNING: unknown ladmin config key: %s\n", FString(w1));
+            PRINTF("WARNING: unknown ladmin config key: %s\n", AString(w1));
             return false;
         }
     }

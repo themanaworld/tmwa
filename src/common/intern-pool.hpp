@@ -6,18 +6,19 @@
 # include <map>
 # include <vector>
 
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
 # include "../strings/zstring.hpp"
 # include "../strings/xstring.hpp"
 
 class InternPool
 {
-    std::map<FString, size_t> known;
-    std::vector<FString> names;
+    std::map<RString, size_t> known;
+    std::vector<RString> names;
 public:
     size_t intern(XString name_)
     {
-        FString name = name_;
+        // TODO just look up the XString, the memory should not move by now
+        RString name = name_;
         // hm, I could change this to do aliases
         auto pair = known.insert({name, known.size()});
         if (pair.second)

@@ -27,8 +27,23 @@ namespace strings
     TString::TString()
     : _s(), _o()
     {}
-    TString::TString(FString b, size_t i)
+    TString::TString(RString b, size_t i)
     : _s(std::move(b)), _o(i)
+    {}
+    static
+    RString get_owned_tlice(AString a, size_t *i)
+    {
+        if (a.base())
+        {
+            return std::move(a);
+        }
+        size_t oi = *i;
+        *i = 0;
+        return a.xslice_t(oi);
+    }
+    TString::TString(AString b, size_t i)
+    : _s(get_owned_tlice(std::move(b), &i))
+    , _o(i)
     {}
     TString::TString(const SString& s)
     {
@@ -40,15 +55,15 @@ namespace strings
     }
     TString::TString(const XString& x)
     {
-        const FString *f = x.base();
+        const RString *r = x.base();
         const char *xb = &*x.begin();
         const char *xe = &*x.end();
-        const char *fb = f ? &*f->begin() : nullptr;
-        const char *fe = f ? &*f->end() : nullptr;
-        if (f && xe == fe)
-            *this = TString(*f, xb - fb);
+        const char *rb = r ? &*r->begin() : nullptr;
+        const char *re = r ? &*r->end() : nullptr;
+        if (r && xe == re)
+            *this = TString(*r, xb - rb);
         else
-            *this = FString(x);
+            *this = RString(x);
     }
 
     TString::TString(XPair p)
@@ -63,7 +78,7 @@ namespace strings
     {
         return &*_s.end();
     }
-    const FString *TString::base() const
+    const RString *TString::base() const
     {
         return &_s;
     }

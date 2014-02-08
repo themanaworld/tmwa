@@ -23,7 +23,7 @@ io::FD string_pipe(ZString sz)
 TEST(io, read1)
 {
     io::ReadFile rf(string_pipe("Hello"));
-    FString hi;
+    AString hi;
     EXPECT_TRUE(rf.getline(hi));
     EXPECT_EQ(hi, "Hello");
     EXPECT_FALSE(rf.getline(hi));
@@ -31,7 +31,7 @@ TEST(io, read1)
 TEST(io, read2)
 {
     io::ReadFile rf(string_pipe("Hello\n"));
-    FString hi;
+    AString hi;
     EXPECT_TRUE(rf.getline(hi));
     EXPECT_EQ(hi, "Hello");
     EXPECT_FALSE(rf.getline(hi));
@@ -39,7 +39,7 @@ TEST(io, read2)
 TEST(io, read3)
 {
     io::ReadFile rf(string_pipe("Hello\r"));
-    FString hi;
+    AString hi;
     EXPECT_TRUE(rf.getline(hi));
     EXPECT_EQ(hi, "Hello");
     EXPECT_FALSE(rf.getline(hi));
@@ -47,7 +47,7 @@ TEST(io, read3)
 TEST(io, read4)
 {
     io::ReadFile rf(string_pipe("Hello\r\n"));
-    FString hi;
+    AString hi;
     EXPECT_TRUE(rf.getline(hi));
     EXPECT_EQ(hi, "Hello");
     EXPECT_FALSE(rf.getline(hi));
@@ -55,7 +55,7 @@ TEST(io, read4)
 TEST(io, read5)
 {
     io::ReadFile rf(string_pipe("Hello\n\r"));
-    FString hi;
+    AString hi;
     EXPECT_TRUE(rf.getline(hi));
     EXPECT_EQ(hi, "Hello");
     EXPECT_TRUE(rf.getline(hi));

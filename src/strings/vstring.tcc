@@ -21,7 +21,8 @@
 
 #include "../common/utils2.hpp"
 
-#include "fstring.hpp"
+#include "rstring.hpp"
+#include "astring.hpp"
 #include "tstring.hpp"
 #include "sstring.hpp"
 #include "zstring.hpp"
@@ -43,9 +44,14 @@ namespace strings
     // poor man's delegated constructors
     // needed for gcc 4.6 compatibility
     template<uint8_t n>
-    VString<n>::VString(FString f)
+    VString<n>::VString(RString f)
     {
         *this = XString(f);
+    }
+    template<uint8_t n>
+    VString<n>::VString(AString a)
+    {
+        *this = XString(a);
     }
     template<uint8_t n>
     VString<n>::VString(TString t)
@@ -109,7 +115,7 @@ namespace strings
         return std::end(_data) - _special;
     }
     template<uint8_t n>
-    const FString *VString<n>::base() const
+    const RString *VString<n>::base() const
     {
         return nullptr;
     }

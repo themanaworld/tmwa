@@ -46,14 +46,14 @@ void spell_effect_report_termination(int invocation, int bl_id,
  *
  * Returns empty string if not found
  */
-FString magic_find_invocation(XString spellname);
+AString magic_find_invocation(XString spellname);
 
 /**
  * Identifies the invocation used to denote a teleport location
  *
  * Returns empty string if not found
  */
-FString magic_find_anchor_invocation(XString teleport_location);
+AString magic_find_anchor_invocation(XString teleport_location);
 
 /**
  * Execute a spell invocation and sets up timers to finish

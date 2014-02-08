@@ -10,7 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
@@ -75,7 +75,7 @@ int first_free_object_id = 0, last_object_id = 0;
 interval_t autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
 
-FString motd_txt = "conf/motd.txt";
+AString motd_txt = "conf/motd.txt";
 
 CharName wisp_server_name = stringish<CharName>("Server");   // can be modified in char-server configuration file
 
@@ -1351,7 +1351,7 @@ constexpr int LOGFILE_SECONDS_PER_CHUNK_SHIFT = 10;
 static
 std::unique_ptr<io::AppendFile> map_logfile;
 static
-FString map_logfile_name;
+AString map_logfile_name;
 static
 long map_logfile_index;
 
@@ -1360,7 +1360,7 @@ void map_close_logfile(void)
 {
     if (map_logfile)
     {
-        FString filename = STRPRINTF("%s.%ld", map_logfile_name, map_logfile_index);
+        AString filename = STRPRINTF("%s.%ld", map_logfile_name, map_logfile_index);
         const char *args[] =
         {
             "gzip",
@@ -1386,7 +1386,7 @@ void map_start_logfile(long index)
 {
     map_logfile_index = index;
 
-    FString filename_buf = STRPRINTF(
+    AString filename_buf = STRPRINTF(
             "%s.%ld",
             map_logfile_name,
             map_logfile_index);
@@ -1399,7 +1399,7 @@ void map_start_logfile(long index)
 }
 
 static
-void map_set_logfile(FString filename)
+void map_set_logfile(AString filename)
 {
     struct timeval tv;
 
@@ -1445,7 +1445,7 @@ bool map_config_read(ZString cfgName)
     }
 
     bool rv = true;
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         if (is_comment(line))
@@ -1663,7 +1663,7 @@ bool map_confs(XString key, ZString value)
         return load_resnametable(value);
     if (key == "const_db")
         return read_constdb(value);
-    PRINTF("unknown map conf key: %s\n", FString(key));
+    PRINTF("unknown map conf key: %s\n", AString(key));
     return false;
 }
 

@@ -12,6 +12,6 @@ int inter_party_parse_frommap(Session *ms);
 
 void inter_party_leave(int party_id, int account_id);
 
-extern FString party_txt;
+extern AString party_txt;
 
 #endif // INT_PARTY_HPP

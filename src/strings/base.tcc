@@ -104,7 +104,7 @@ namespace strings
         return _ref().end();
     }
     template<class T, class O, class P>
-    const FString *_crtp_string<T, O, P>::base() const
+    const RString *_crtp_string<T, O, P>::base() const
     {
         return _ref().base();
     }

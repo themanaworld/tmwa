@@ -21,7 +21,8 @@
 
 # include "base.hpp"
 # include "mstring.hpp"
-# include "fstring.hpp"
+# include "rstring.hpp"
+# include "astring.hpp"
 # include "tstring.hpp"
 # include "sstring.hpp"
 # include "zstring.hpp"

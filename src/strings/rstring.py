@@ -1,8 +1,8 @@
-class FString(object):
-    ''' print a FString
+class RString(object):
+    ''' print a RString
     '''
     __slots__ = ('_value')
-    name = 'strings::FString'
+    name = 'strings::RString'
     enabled = True
 
     def __init__(self, value):

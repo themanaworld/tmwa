@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/mstring.hpp"
 #include "../strings/zstring.hpp"
 
@@ -74,7 +74,7 @@ namespace io
         }
         return len;
     }
-    bool ReadFile::getline(FString& line)
+    bool ReadFile::getline(AString& line)
     {
         MString tmp;
         char c;
@@ -111,7 +111,7 @@ namespace io
         }
         else if (!happy && anything)
             PRINTF("warning: file does not contain a trailing newline\n");
-        line = FString(tmp);
+        line = AString(tmp);
         return anything;
     }
 

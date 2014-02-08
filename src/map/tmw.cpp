@@ -3,7 +3,7 @@
 #include <cctype>
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -95,16 +95,16 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
 
     sd->auto_ban_info.in_progress = 1;
 
-    FString hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
+    AString hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
             sd->status.name,
             reason);
     tmw_GmHackMsg(hack_msg);
 
-    FString fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
+    AString fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
             sd->status.name, length, reason);
     log_atcommand(sd, fake_command);
 
-    FString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
+    AString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
             reason);
 
     clif_displaymessage(sd->sess, anotherbuf);

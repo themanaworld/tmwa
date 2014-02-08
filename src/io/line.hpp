@@ -21,7 +21,8 @@
 
 # include "../sanity.hpp"
 
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
+# include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
 
 # include "fd.hpp"
@@ -30,15 +31,16 @@
 
 namespace io
 {
+    // TODO split this out
     struct Line
     {
-        FString text;
+        RString text;
 
-        FString filename;
+        RString filename;
         // 1-based
         uint16_t line, column;
 
-        FString message_str(ZString cat, ZString msg);
+        AString message_str(ZString cat, ZString msg);
         void message(ZString cat, ZString msg);
         void note(ZString msg) { message("note", msg); }
         void warning(ZString msg) { message("warning", msg); }
@@ -60,7 +62,7 @@ namespace io
     class LineReader
     {
     protected:
-        FString filename;
+        RString filename;
         uint16_t line, column;
         ReadFile rf;
     public:
@@ -77,7 +79,7 @@ namespace io
 
     class LineCharReader : private LineReader
     {
-        FString line_text;
+        RString line_text;
     public:
         explicit
         LineCharReader(ZString name);

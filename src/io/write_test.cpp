@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/mstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -35,7 +35,7 @@ public:
     {
         rfd.close();
     }
-    FString slurp()
+    AString slurp()
     {
         MString tmp;
         char buf[4096];
@@ -52,7 +52,7 @@ public:
                 break;
             tmp += XString(buf + 0, buf + rv, nullptr);
         }
-        return FString(tmp);
+        return AString(tmp);
     }
 };
 
@@ -73,10 +73,10 @@ TEST(io, write2)
     PipeWriter pw(true);
     io::WriteFile& wf = pw.wf;
     wf.really_put("Hello, ", 7);
-    EXPECT_EQ("", std::string(pw.slurp().c_str()));
+    EXPECT_EQ("", pw.slurp());
     wf.put_line("World!");
     wf.really_put("XXX", 3);
-    EXPECT_EQ("Hello, World!\n", std::string(pw.slurp().c_str()));
+    EXPECT_EQ("Hello, World!\n", pw.slurp());
     EXPECT_TRUE(wf.close());
-    EXPECT_EQ("XXX", std::string(pw.slurp().c_str()));
+    EXPECT_EQ("XXX", pw.slurp());
 }

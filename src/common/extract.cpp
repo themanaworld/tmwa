@@ -18,7 +18,7 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
@@ -30,7 +30,7 @@ bool extract(XString str, XString *rv)
     return true;
 }
 
-bool extract(XString str, FString *rv)
+bool extract(XString str, AString *rv)
 {
     *rv = str;
     return true;

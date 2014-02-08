@@ -1,5 +1,5 @@
-#include "fstring.hpp"
-//    strings/fstring.cpp - Functions for fstring.hpp
+#include "rstring.hpp"
+//    strings/rstring.cpp - Functions for rstring.hpp
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -27,26 +27,28 @@
 
 namespace strings
 {
-    uint8_t FString::empty_string_rep[sizeof(Rep) + 1];
+    static_assert(sizeof(RString) == sizeof(const char *), "RString");
 
-    FString::FString()
+    uint8_t RString::empty_string_rep[sizeof(Rep) + 1];
+
+    RString::RString()
     : owned(reinterpret_cast<Rep *>(&empty_string_rep))
     {
         owned->count++;
     }
 
-    FString::FString(const FString& r)
+    RString::RString(const RString& r)
     : owned(r.owned)
     {
         owned->count++;
     }
-    FString::FString(FString&& r)
+    RString::RString(RString&& r)
     : owned(reinterpret_cast<Rep *>(&empty_string_rep))
     {
         std::swap(owned, r.owned);
         r.owned->count++;
     }
-    FString& FString::operator = (const FString& r)
+    RString& RString::operator = (const RString& r)
     {
         // order important for self-assign
         r.owned->count++;
@@ -57,49 +59,61 @@ namespace strings
         owned = r.owned;
         return *this;
     }
-    FString& FString::operator = (FString&& r)
+    RString& RString::operator = (RString&& r)
     {
         std::swap(owned, r.owned);
         return *this;
     }
-    FString::~FString()
+    RString::RString(AString a)
+    : owned(nullptr)
+    {
+        if (RString *r = const_cast<RString *>(a.base()))
+        {
+            *this = std::move(*r);
+        }
+        else
+        {
+            *this = XPair(a);
+        }
+    }
+    RString::~RString()
     {
         if (owned && !owned->count--)
             ::operator delete(owned);
         owned = nullptr;
     }
 
-    FString::FString(const MString& s)
+    RString::RString(const MString& s)
     : owned(nullptr)
     {
         _assign(s.begin(), s.end());
     }
 
-    FString::FString(XPair p)
+    RString::RString(XPair p)
     : owned(nullptr)
     {
         _assign(p.begin(), p.end());
     }
 
-    FString::FString(const TString& t)
+    RString::RString(const TString& t)
     : owned(nullptr)
     {
         *this = XString(t);
     }
-    FString::FString(const SString& s)
+    RString::RString(const SString& s)
     : owned(nullptr)
     {
         *this = XString(s);
     }
-    FString::FString(ZString z)
+    RString::RString(ZString z)
     : owned(nullptr)
     {
         *this = XString(z);
     }
-    FString::FString(XString x)
+    RString::RString(XString x)
     : owned(nullptr)
     {
-        const FString *f = x.base();
+        const RString *f = x.base();
         const char *xb = &*x.begin();
         const char *xe = &*x.end();
         const char *fb = f ? &*f->begin() : nullptr;
@@ -110,29 +124,29 @@ namespace strings
             _assign(x.begin(), x.end());
     }
 
-    FString::iterator FString::begin() const
+    RString::iterator RString::begin() const
     {
         return owned->body;
     }
-    FString::iterator FString::end() const
+    RString::iterator RString::end() const
     {
         return owned->body + owned->size;
     }
-    const FString *FString::base() const
+    const RString *RString::base() const
     {
         return this;
     }
-    const char *FString::c_str() const
+    const char *RString::c_str() const
     {
         return &*begin();
     }
 
-    const char *decay_for_printf(const FString& fs)
+    const char *decay_for_printf(const RString& fs)
     {
         return fs.c_str();
     }
 
-    int do_vprint(FString& out, const char *fmt, va_list ap)
+    int do_vprint(RString& out, const char *fmt, va_list ap)
     {
         int len;
         {
@@ -144,30 +158,7 @@ namespace strings
         char buffer[len + 1];
         vsnprintf(buffer, len + 1, fmt, ap);
 
-        out = FString(buffer, buffer + len);
+        out = RString(buffer, buffer + len);
         return len;
-    }
-
-    StringConverter::StringConverter(FString& s)
-    : out(s), mid(nullptr)
-    {}
-
-    StringConverter::~StringConverter()
-    {
-        if (mid)
-        {
-            out = ZString(really_construct_from_a_pointer, mid, nullptr);
-            free(mid);
-        }
-    }
-
-    char **StringConverter::operator &()
-    {
-        return &mid;
-    }
-
-    StringConverter convert_for_scanf(FString& s)
-    {
-        return StringConverter(s);
     }
 } // namespace strings

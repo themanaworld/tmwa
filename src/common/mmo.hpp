@@ -69,7 +69,8 @@ public:
     iterator end() const { return &*_impl.end(); }
     const char *c_str() const { return _impl.c_str(); }
 
-    operator FString() const { return _impl; }
+    operator RString() const { return _impl; }
+    operator AString() const { return _impl; }
     operator TString() const { return _impl; }
     operator SString() const { return _impl; }
     operator ZString() const { return _impl; }

@@ -1,6 +1,6 @@
-#ifndef TMWA_STRINGS_FSTRING_HPP
-#define TMWA_STRINGS_FSTRING_HPP
-//    strings/fstring.hpp - An owned, reference-counted immutable string.
+#ifndef TMWA_STRINGS_RSTRING_HPP
+#define TMWA_STRINGS_RSTRING_HPP
+//    strings/rstring.hpp - An owned, reference-counted immutable string.
 //
 //    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -28,7 +28,7 @@ namespace strings
 {
     /// An owning string that has reached its final contents.
     /// The storage is NUL-terminated
-    class FString : public _crtp_string<FString, FString, ZPair>
+    class RString : public _crtp_string<RString, RString, ZPair>
     {
         struct Rep
         {
@@ -44,36 +44,37 @@ namespace strings
         template<class It>
         void _assign(It b, It e);
     public:
-        FString();
-        FString(const FString&);
-        FString(FString&&);
-        FString& operator = (const FString&);
-        FString& operator = (FString&&);
-        ~FString();
+        RString();
+        RString(const RString&);
+        RString(RString&&);
+        RString& operator = (const RString&);
+        RString& operator = (RString&&);
+        RString(AString);
+        ~RString();
 
-        explicit FString(const MString& s);
-
-        template<size_t n>
-        FString(char (&s)[n]) = delete;
+        explicit RString(const MString& s);
 
         template<size_t n>
-        FString(const char (&s)[n]);
+        RString(char (&s)[n]) = delete;
+
+        template<size_t n>
+        RString(const char (&s)[n]);
 
         template<class It>
-        FString(It b, It e);
+        RString(It b, It e);
 
-        FString(XPair p);
-        //FString(const FString&)
-        FString(const TString&);
-        FString(const SString&);
-        FString(ZString);
-        FString(XString);
+        RString(XPair p);
+        //RString(const RString&)
+        RString(const TString&);
+        RString(const SString&);
+        RString(ZString);
+        RString(XString);
         template<uint8_t n>
-        FString(const VString<n>& v);
+        RString(const VString<n>& v);
 
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
         const char *c_str() const;
     };
 
@@ -81,24 +82,12 @@ namespace strings
     // I think the conversion will happen automatically. TODO test this.
     // Nope, it doesn't, since there's a template
     // Actually, it might now.
-    const char *decay_for_printf(const FString& fs);
+    const char *decay_for_printf(const RString& fs);
 
     __attribute__((format(printf, 2, 0)))
-    int do_vprint(FString& out, const char *fmt, va_list ap);
-
-    class StringConverter
-    {
-        FString& out;
-        char *mid;
-    public:
-        StringConverter(FString& s);
-        ~StringConverter();
-        char **operator &();
-    };
-
-    StringConverter convert_for_scanf(FString& s);
+    int do_vprint(RString& out, const char *fmt, va_list ap);
 } // namespace strings
 
-# include "fstring.tcc"
+# include "rstring.tcc"
 
-#endif // TMWA_STRINGS_FSTRING_HPP
+#endif // TMWA_STRINGS_RSTRING_HPP

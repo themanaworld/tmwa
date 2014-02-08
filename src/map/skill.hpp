@@ -5,7 +5,8 @@
 # include "skill-pools.hpp"
 
 # include "../strings/fwd.hpp"
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
+# include "../strings/astring.hpp"
 
 # include "map.hpp"
 
@@ -39,11 +40,11 @@ earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 struct skill_name_db
 {
     SkillID id;                    // skill id
-    FString name;                 // search strings
-    FString desc;                 // description that shows up for searches
+    RString name;                 // search strings
+    RString desc;                 // description that shows up for searches
 
     // this makes const char(&)[] not decay into const char * in {}
-    skill_name_db(SkillID i, FString n, FString d)
+    skill_name_db(SkillID i, RString n, RString d)
     : id(i), name(n), desc(d)
     {}
 };
@@ -129,7 +130,7 @@ bool skill_pool_is_activated(dumb_ptr<map_session_data> sd, SkillID skill);
 int skill_pool_deactivate(dumb_ptr<map_session_data> sd, SkillID skill);
 // Yield configurable skill name
 inline
-const FString& skill_name(SkillID skill)
+const RString& skill_name(SkillID skill)
 {
     return skill_lookup_by_id(skill).desc;
 }

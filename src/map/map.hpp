@@ -9,7 +9,8 @@
 # include <list>
 
 # include "../strings/fwd.hpp"
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
+# include "../strings/astring.hpp"
 # include "../strings/vstring.hpp"
 
 # include "../io/cxxstdio.hpp"
@@ -193,7 +194,7 @@ struct map_session_data : block_list, SessionData
     // but one should probably be replaced with a ScriptPointer ???
     const ScriptBuffer *npc_script, *npc_scriptroot;
     std::vector<struct script_data> npc_stackbuf;
-    FString npc_str;
+    RString npc_str;
     struct
     {
         unsigned storage:1;
@@ -267,8 +268,8 @@ struct map_session_data : block_list, SessionData
     // Not anymore! Well, sort of.
     DMap<SIR, int> regm;
     // can't be DMap because we want predictable .c_str()s
-    // This could change once FString ensures CoW.
-    Map<SIR, FString> regstrm;
+    // TODO this can change now
+    Map<SIR, RString> regstrm;
 
     earray<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short sc_count;
@@ -302,7 +303,7 @@ struct map_session_data : block_list, SessionData
     TimeT chat_repeat_reset_due;
     int chat_lines_in;
     int chat_total_repeats;
-    FString chat_lastmsg;
+    RString chat_lastmsg;
 
     tick_t flood_rates[0x220];
     TimeT packet_flood_reset_due;
@@ -347,7 +348,7 @@ struct npc_data : block_list
     Option option;
     short flag;
 
-    std::list<FString> eventqueuel;
+    std::list<RString> eventqueuel;
     Timer eventtimer[MAX_EVENTTIMER];
     short arenaflag;
 
@@ -414,7 +415,7 @@ public:
 class npc_data_message : public npc_data
 {
 public:
-    FString message;
+    RString message;
 };
 
 constexpr int MOB_XP_BONUS_BASE = 1024;
@@ -574,7 +575,7 @@ struct flooritem_data : block_list
 extern interval_t autosave_time;
 extern int save_settings;
 
-extern FString motd_txt;
+extern AString motd_txt;
 
 extern CharName wisp_server_name;
 

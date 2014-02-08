@@ -27,15 +27,16 @@ namespace strings
 {
     /// A non-owning string that is guaranteed to be NUL-terminated.
     /// This should be only used as a parameter.
-    class ZString : public _crtp_string<ZString, FString, ZPair>
+    class ZString : public _crtp_string<ZString, AString, ZPair>
     {
         iterator _b, _e;
         // optional
-        const FString *_base;
+        const RString *_base;
     public:
         ZString();
         // no MString
-        ZString(const FString& s);
+        ZString(const RString& s);
+        ZString(const AString& s);
         ZString(const TString& s);
         ZString(const SString&) = delete;
         //ZString(ZString);
@@ -43,16 +44,16 @@ namespace strings
         template<uint8_t n>
         ZString(const VString<n>& s);
         // dangerous
-        ZString(const char *b, const char *e, const FString *base_);
-        ZString(decltype(really_construct_from_a_pointer), const char *s, const FString *base_);
+        ZString(const char *b, const char *e, const RString *base_);
+        ZString(decltype(really_construct_from_a_pointer), const char *s, const RString *base_);
         template<size_t n>
         ZString(char (&s)[n]) = delete;
         template<size_t n>
-        ZString(const char (&s)[n], const FString *base_=nullptr);
+        ZString(const char (&s)[n], const RString *base_=nullptr);
 
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
         const char *c_str() const;
     };
 

@@ -25,17 +25,18 @@ namespace strings
 {
     /// A non-owning string that is not guaranteed to be NUL-terminated.
     /// This should be only used as a parameter.
-    class XString : public _crtp_string<XString, FString, XPair>
+    class XString : public _crtp_string<XString, AString, XPair>
     {
         iterator _b, _e;
         // optional
-        const FString *_base;
+        const RString *_base;
     public:
         // do I really want this?
         XString();
         XString(std::nullptr_t) = delete;
         // no MString
-        XString(const FString& s);
+        XString(const RString& s);
+        XString(const AString& s);
         XString(const TString& s);
         XString(const SString& s);
         XString(const ZString& s);
@@ -46,13 +47,13 @@ namespace strings
         template<size_t n>
         XString(const char (&s)[n]);
         // mostly internal
-        XString(const char *b, const char *e, const FString *base_);
-        XString(decltype(really_construct_from_a_pointer) e, const char *s, const FString *base_);
+        XString(const char *b, const char *e, const RString *base_);
+        XString(decltype(really_construct_from_a_pointer) e, const char *s, const RString *base_);
         XString(XPair p);
 
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
     };
 } // namespace strings
 

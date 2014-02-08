@@ -15,7 +15,7 @@
 #include <type_traits>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
@@ -80,7 +80,7 @@ IP4Address lan_char_ip = IP4_LOCALHOST;
 static
 IP4Mask lan_subnet = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
 static
-FString update_host;
+AString update_host;
 static
 AccountName userid;
 static
@@ -89,13 +89,13 @@ static
 ServerName main_server;
 
 static
-FString account_filename = "save/account.txt";
+AString account_filename = "save/account.txt";
 static
-FString gm_account_filename = "save/gm_account.txt";
+AString gm_account_filename = "save/gm_account.txt";
 static
-FString login_log_filename = "log/login.log";
+AString login_log_filename = "log/login.log";
 static
-FString login_log_unknown_packets_filename = "log/login_unknown_packets.log";
+AString login_log_unknown_packets_filename = "log/login_unknown_packets.log";
 static
 int save_unknown_packets = 0;
 static
@@ -191,7 +191,7 @@ int admin_state = 0;
 static
 AccountPass admin_pass;
 static
-FString gm_pass;
+AString gm_pass;
 static
 int level_new_gm = 60;
 
@@ -268,7 +268,7 @@ int read_gm_account(void)
     }
     // limited to 4000, because we send information to char-servers (more than 4000 GM accounts???)
     // int (id) + int (level) = 8 bytes * 4000 = 32k (limit of packets in windows)
-    FString line;
+    AString line;
     while (fp.getline(line) && c < 4000)
     {
         if (is_comment(line))
@@ -413,7 +413,7 @@ AuthData *search_account(AccountName account_name)
 // Create a string to save the account in the account file
 //--------------------------------------------------------
 static
-FString mmo_auth_tostr(const AuthData *p)
+AString mmo_auth_tostr(const AuthData *p)
 {
     MString str;
     str += STRPRINTF(
@@ -449,7 +449,7 @@ FString mmo_auth_tostr(const AuthData *p)
             str += STRPRINTF("%s,%d ",
                     p->account_reg2[i].str, p->account_reg2[i].value);
 
-    return FString(str);
+    return AString(str);
 }
 
 static
@@ -543,7 +543,7 @@ int mmo_auth_init(void)
         return 0;
     }
 
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         if (is_comment(line))
@@ -574,7 +574,7 @@ int mmo_auth_init(void)
             account_id_count = ad.account_id + 1;
     }
 
-    FString str = STRPRINTF("%s has %zu accounts (%d GMs)\n",
+    AString str = STRPRINTF("%s has %zu accounts (%d GMs)\n",
             account_filename, auth_data.size(), gm_count);
     PRINTF("%s: %s\n", __PRETTY_FUNCTION__, str);
     LOGIN_LOG("%s\n", line);
@@ -621,7 +621,7 @@ void mmo_auth_sync(void)
         if (ad.account_id < 0)
             continue;
 
-        FString line = mmo_auth_tostr(&ad);
+        AString line = mmo_auth_tostr(&ad);
         fp.put_line(line);
     }
     FPRINTF(fp, "%d\t%%newid%%\n", account_id_count);
@@ -1112,7 +1112,7 @@ void parse_fromchar(Session *s)
                     WBUFL(buf, 2) = acc;
                     WBUFL(buf, 6) = 0;
                     size_t len = RFIFOW(s, 2) - 8;
-                    FString pass = RFIFO_STRING(s, 8, len);
+                    AString pass = RFIFO_STRING(s, 8, len);
 
                     if (pass == gm_pass)
                     {
@@ -1740,7 +1740,7 @@ void parse_admin(Session *s)
                          ad->userid, ad->account_id,
                          ip);
                     {
-                        FString buf2 = mmo_auth_tostr(ad);
+                        AString buf2 = mmo_auth_tostr(ad);
                         LOGIN_LOG("%s\n", buf2);
                     }
                     // delete account
@@ -2000,7 +2000,7 @@ void parse_admin(Session *s)
                                         stamp_time(tmpstr);
                                         modify_flag = 0;
                                         // read/write GM file
-                                        FString line;
+                                        AString line;
                                         while (fp.getline(line))
                                         {
                                             if (is_comment(line))
@@ -2426,7 +2426,7 @@ void parse_admin(Session *s)
                         WFIFOW(s, 2) = 0;
 
                         size_t len = RFIFOL(s, 4);
-                        FString message = RFIFO_STRING(s, 8, len).to_print();
+                        AString message = RFIFO_STRING(s, 8, len).to_print();
                         LOGIN_LOG("'ladmin': Receiving a message for broadcast (message: %s, ip: %s)\n",
                                 message, ip);
                         // send same message to all char-servers (no answer)

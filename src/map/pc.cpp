@@ -4,7 +4,8 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -751,7 +752,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     sd->chat_reset_due = TimeT();
     sd->chat_lines_in = sd->chat_total_repeats = 0;
     sd->chat_repeat_reset_due = TimeT();
-    sd->chat_lastmsg = FString();
+    sd->chat_lastmsg = RString();
 
     for (tick_t& t : sd->flood_rates)
         t = tick_t();
@@ -780,7 +781,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     io::ReadFile in(motd_txt);
     if (in.is_open())
     {
-        FString buf;
+        AString buf;
         while (in.getline(buf))
         {
             clif_displaymessage(sd->sess, buf);
@@ -3094,7 +3095,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
 
     if (battle_config.disp_experience)
     {
-        FString output = STRPRINTF(
+        AString output = STRPRINTF(
                 "Experienced Gained Base:%d Job:%d",
                 base_exp, job_exp);
         clif_displaymessage(sd->sess, output);
@@ -4123,7 +4124,7 @@ ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
 {
     nullpo_retr(ZString(), sd);
 
-    FString *s = sd->regstrm.search(reg);
+    RString *s = sd->regstrm.search(reg);
     if (s)
         return *s;
 
@@ -4134,7 +4135,7 @@ ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg)
  * script用文字列変数の値を設定
  *------------------------------------------
  */
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, FString str)
+void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str)
 {
     nullpo_retv(sd);
 

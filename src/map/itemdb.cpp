@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -161,7 +161,7 @@ bool itemdb_readdb(ZString filename)
 
         lines = 0;
 
-        FString line;
+        AString line;
         while (in.getline(line))
         {
             lines++;

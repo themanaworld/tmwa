@@ -6,7 +6,7 @@
 #include <cstring>
 #include <ctime>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -217,7 +217,7 @@ enum class ChatType
 };
 
 static
-FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type);
+AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type);
 
 /*==========================================
  * clif_sendでSendWho::AREA*指定時用
@@ -3761,7 +3761,7 @@ void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    FString mbuf = clif_validate_chat(sd, ChatType::Global);
+    AString mbuf = clif_validate_chat(sd, ChatType::Global);
     if (!mbuf)
     {
         clif_displaymessage(s, "Your message could not be sent.");
@@ -4017,7 +4017,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    FString mbuf = clif_validate_chat(sd, ChatType::Whisper);
+    AString mbuf = clif_validate_chat(sd, ChatType::Whisper);
     if (!mbuf)
     {
         clif_displaymessage(s, "Your message could not be sent.");
@@ -4628,7 +4628,7 @@ void clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    FString mbuf = clif_validate_chat(sd, ChatType::Party);
+    AString mbuf = clif_validate_chat(sd, ChatType::Party);
     if (!mbuf)
     {
         clif_displaymessage(s, "Your message could not be sent.");
@@ -5294,15 +5294,15 @@ void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, const char *msg)
  * @return a dynamically allocated copy of the message, or empty string upon failure
  */
 static
-FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
+AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
 {
-    nullpo_retr(FString(), sd);
+    nullpo_retr(AString(), sd);
     /*
      * Don't send chat in the period between the ban and the connection's
      * closure.
      */
     if (sd->auto_ban_info.in_progress)
-        return FString();
+        return AString();
 
     Session *s = sd->sess;
     size_t msg_len = RFIFOW(s, 2) - 4;
@@ -5326,14 +5326,14 @@ FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
     if (!msg_len)
     {
         WARN_MALFORMED_MSG(sd, "no message sent");
-        return FString();
+        return AString();
     }
 
     /* The client sent (or claims to have sent) an empty message. */
     if (msg_len == min_len)
     {
         WARN_MALFORMED_MSG(sd, "empty message");
-        return FString();
+        return AString();
     }
 
     /* The protocol specifies that the target must be 24 bytes long. */
@@ -5342,7 +5342,7 @@ FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
         /* Disallow malformed messages. */
         clif_setwaitclose(s);
         WARN_MALFORMED_MSG(sd, "illegal target name");
-        return FString();
+        return AString();
     }
 
     size_t pstart = 4;
@@ -5352,7 +5352,7 @@ FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
         pstart += 24;
         buf_len -= 24;
     }
-    FString pbuf = RFIFO_STRING(s, pstart, buf_len);
+    AString pbuf = RFIFO_STRING(s, pstart, buf_len);
 
     /*
      * The client attempted to exceed the maximum message length.
@@ -5364,7 +5364,7 @@ FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
     if (buf_len >= battle_config.chat_maxline)
     {
         WARN_MALFORMED_MSG(sd, "exceeded maximum message length");
-        return FString();
+        return AString();
     }
 
     if (type == ChatType::Global)
@@ -5375,7 +5375,7 @@ FString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
             /* Disallow malformed/spoofed messages. */
             clif_setwaitclose(s);
             WARN_MALFORMED_MSG(sd, "spoofed name/invalid format");
-            return FString();
+            return AString();
         }
         /* Step beyond the separator. */
         XString xs = p.xslice_t(name_len + 3);

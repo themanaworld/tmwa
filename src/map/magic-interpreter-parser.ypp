@@ -3,7 +3,7 @@
 #include "magic-interpreter.hpp"
 
 extern
-FString current_magic_filename;
+AString current_magic_filename;
 } // %code requires
 
 %code
@@ -13,7 +13,8 @@ FString current_magic_filename;
 #include <cassert>
 #include <cstdarg> // exception to "no va_list" rule, even after cxxstdio
 
-#include "../strings/fstring.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -23,7 +24,7 @@ FString current_magic_filename;
 #include "itemdb.hpp"
 #include "magic-expr.hpp"
 
-FString current_magic_filename;
+AString current_magic_filename;
 
 // can't use src/warnings.hpp in generated code
 #pragma GCC diagnostic warning "-Wall"
@@ -37,13 +38,13 @@ static
 size_t intern_id(ZString id_name);
 
 static
-dumb_ptr<expr_t> fun_expr(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
+dumb_ptr<expr_t> fun_expr(AString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
 
 static
 dumb_ptr<expr_t> dot_expr(dumb_ptr<expr_t> lhs, int id);
 
 static
-void BIN_EXPR(dumb_ptr<expr_t>& x, FString name, dumb_ptr<expr_t> arg1, dumb_ptr<expr_t> arg2, int line, int column)
+void BIN_EXPR(dumb_ptr<expr_t>& x, AString name, dumb_ptr<expr_t> arg1, dumb_ptr<expr_t> arg2, int line, int column)
 {
     dumb_ptr<expr_t> e[2];
     e[0] = arg1;
@@ -82,7 +83,7 @@ static
 void add_teleport_anchor(dumb_ptr<teleport_anchor_t> anchor, int line_nr);
 
 static
-dumb_ptr<effect_t> op_effect(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
+dumb_ptr<effect_t> op_effect(AString name, const_array<dumb_ptr<expr_t>> argv, int line, int column);
 
 // in magic-interpreter-lexer.cpp
 int magic_frontend_lex(void);
@@ -94,10 +95,10 @@ static
 dumb_ptr<effect_t> call_proc(ZString name, dumb_ptr<std::vector<dumb_ptr<expr_t>>> argvp, int line_nr, int column);
 
 static
-void bind_constant(FString name, val_t *val, int line_nr);
+void bind_constant(RString name, val_t *val, int line_nr);
 
 static
-val_t *find_constant(FString name);
+val_t *find_constant(RString name);
 
 } // %code
 
@@ -1182,7 +1183,7 @@ dumb_ptr<expr_t> dot_expr(dumb_ptr<expr_t> expr, int id)
     return retval;
 }
 
-dumb_ptr<expr_t> fun_expr(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
+dumb_ptr<expr_t> fun_expr(AString name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
 {
     dumb_ptr<expr_t> expr;
     fun_t *fun = magic_get_fun(name);
@@ -1293,7 +1294,7 @@ dumb_ptr<effect_t> set_effect_continuation(dumb_ptr<effect_t> src, dumb_ptr<effe
     return retval;
 }
 
-dumb_ptr<effect_t> op_effect(FString name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
+dumb_ptr<effect_t> op_effect(AString name, const_array<dumb_ptr<expr_t>> argv, int line, int column)
 {
     dumb_ptr<effect_t> effect;
     op_t *op = magic_get_op(name);
@@ -1325,7 +1326,7 @@ dumb_ptr<effect_t> op_effect(FString name, const_array<dumb_ptr<expr_t>> argv, i
 }
 
 
-std::map<FString, proc_t> procs;
+std::map<RString, proc_t> procs;
 
 // I think this was a memory leak (or undefined behavior)
 void install_proc(dumb_ptr<proc_t> proc)
@@ -1358,9 +1359,9 @@ dumb_ptr<effect_t> call_proc(ZString name, dumb_ptr<std::vector<dumb_ptr<expr_t>
     return retval;
 }
 
-std::map<FString, val_t> const_defm;
+std::map<RString, val_t> const_defm;
 
-void bind_constant(FString name, val_t *val, int line_nr)
+void bind_constant(RString name, val_t *val, int line_nr)
 {
     if (!const_defm.insert({name, *val}).second)
     {
@@ -1368,7 +1369,7 @@ void bind_constant(FString name, val_t *val, int line_nr)
     }
 }
 
-val_t *find_constant(FString name)
+val_t *find_constant(RString name)
 {
     auto it = const_defm.find(name);
     if (it != const_defm.end())

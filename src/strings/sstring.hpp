@@ -1,6 +1,6 @@
 #ifndef TMWA_STRINGS_SSTRING_HPP
 #define TMWA_STRINGS_SSTRING_HPP
-//    strings/sstring.hpp - A full slice of an FString.
+//    strings/sstring.hpp - A full slice of an RString.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -20,19 +20,20 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # include "base.hpp"
-# include "fstring.hpp"
+# include "rstring.hpp"
 
 namespace strings
 {
-    /// An owning string that represents a arbitrary slice of an FString.
+    /// An owning string that represents a arbitrary slice of an RString.
     /// Not guaranteed to be NUL-terminated.
     class SString : public _crtp_string<SString, SString, XPair>
     {
-        FString _s;
+        RString _s;
         size_t _b, _e;
     public:
         SString();
-        SString(FString f);
+        SString(RString f);
+        SString(AString f);
         SString(TString t);
         //SString(const SString&);
         SString(const ZString&);
@@ -45,12 +46,13 @@ namespace strings
         SString(const char (&s)[n]);
         //template<class It>
         //SString(It b, It e) : _s(b, e), _b(0), _e(_s.size()) {}
-        SString(FString f, size_t b, size_t e);
+        SString(RString f, size_t b, size_t e);
+        SString(AString f, size_t b, size_t e);
         SString(XPair p);
 
         iterator begin() const;
         iterator end() const;
-        const FString *base() const;
+        const RString *base() const;
     };
 } // namespace strings
 

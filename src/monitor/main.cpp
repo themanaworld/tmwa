@@ -15,7 +15,7 @@
 #include <csignal>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -36,26 +36,26 @@
 
 // initialiized to $HOME/tmwserver
 static
-FString workdir;
+AString workdir;
 //the rest are relative to workdir
 static
-FString login_server = LOGIN_SERVER;
+AString login_server = LOGIN_SERVER;
 static
-FString map_server = MAP_SERVER;
+AString map_server = MAP_SERVER;
 static
-FString char_server = CHAR_SERVER;
+AString char_server = CHAR_SERVER;
 
 static
 pid_t pid_login, pid_map, pid_char;
 
 static
-FString make_path(XString base, XString path)
+AString make_path(XString base, XString path)
 {
     MString m;
     m += base;
     m += '/';
     m += path;
-    return FString(m);
+    return AString(m);
 }
 
 static
@@ -71,9 +71,8 @@ bool parse_option(XString name, ZString value)
         workdir = value;
     else
     {
-        FString name_ = name;
         FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n",
-                name_, value);
+                AString(name), value);
         return false;
     }
     return true;
@@ -90,7 +89,7 @@ bool read_config(ZString filename)
         exit(1);
     }
 
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         if (is_comment(line))
@@ -179,8 +178,8 @@ int main(int argc, char *argv[])
     PRINTF("Starting:\n");
     PRINTF("* workdir: %s\n",  workdir);
     PRINTF("* login_server: %s\n", login_server);
-    PRINTF("* map_server: %s\n", map_server);
     PRINTF("* char_server: %s\n", char_server);
+    PRINTF("* map_server: %s\n", map_server);
     {
         //make sure all possible file descriptors are free for use by the servers
         //if there are file descriptors higher than the max open from before the limit dropped, that's not our problem

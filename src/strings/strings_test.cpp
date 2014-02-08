@@ -21,7 +21,7 @@ TYPED_TEST_P(StringTest, basic)
     EXPECT_EQ(0, hi0.size());
 
     __attribute__((unused))
-    const FString *base = hi.base();
+    const RString *base = hi.base();
 }
 
 TYPED_TEST_P(StringTest, order)
@@ -168,7 +168,8 @@ TYPED_TEST_P(StringTest, convert)
     constexpr bool is_zstring = std::is_same<TypeParam, ZString>::value;
     typedef typename std::conditional<is_zstring, TString, SString>::type Sstring;
     typedef typename std::conditional<is_zstring, ZString, XString>::type Xstring;
-    FString f = "f";
+    RString r = "r";
+    AString a = "a";
     TString t = "t";
     Sstring s = "s";
     ZString z = "z";
@@ -177,7 +178,8 @@ TYPED_TEST_P(StringTest, convert)
     const char l[] = "l";
     VString<5> hi = "hello";
 
-    TypeParam f2 = f;
+    TypeParam r2 = r;
+    TypeParam a2 = a;
     TypeParam t2 = t;
     TypeParam s2 = s;
     TypeParam z2 = z;
@@ -186,7 +188,8 @@ TYPED_TEST_P(StringTest, convert)
     TypeParam l2 = l;
     TypeParam hi2 = hi;
 
-    EXPECT_EQ(f, f2);
+    EXPECT_EQ(r, r2);
+    EXPECT_EQ(a, a2);
     EXPECT_EQ(t, t2);
     EXPECT_EQ(s, s2);
     EXPECT_EQ(z, z2);
@@ -195,8 +198,9 @@ TYPED_TEST_P(StringTest, convert)
     EXPECT_EQ(l, l2);
     EXPECT_EQ(hi, hi2);
 
-    TypeParam f3, t3, s3, z3, x3, v3, l3, hi3;
-    f3 = f;
+    TypeParam r3, a3, t3, s3, z3, x3, v3, l3, hi3;
+    r3 = r;
+    a3 = a;
     t3 = t;
     s3 = s;
     z3 = z;
@@ -205,7 +209,8 @@ TYPED_TEST_P(StringTest, convert)
     l3 = l;
     hi3 = hi;
 
-    EXPECT_EQ(f, f3);
+    EXPECT_EQ(r, r3);
+    EXPECT_EQ(a, a3);
     EXPECT_EQ(t, t3);
     EXPECT_EQ(s, s3);
     EXPECT_EQ(z, z3);
@@ -214,7 +219,8 @@ TYPED_TEST_P(StringTest, convert)
     EXPECT_EQ(l, l3);
     EXPECT_EQ(hi, hi3);
 
-    TypeParam f4(f);
+    TypeParam r4(r);
+    TypeParam a4(a);
     TypeParam t4(t);
     TypeParam s4(s);
     TypeParam z4(z);
@@ -223,7 +229,8 @@ TYPED_TEST_P(StringTest, convert)
     TypeParam l4(l);
     TypeParam hi4(hi);
 
-    EXPECT_EQ(f, f4);
+    EXPECT_EQ(r, r4);
+    EXPECT_EQ(a, a4);
     EXPECT_EQ(t, t4);
     EXPECT_EQ(s, s4);
     EXPECT_EQ(z, z4);
@@ -237,7 +244,7 @@ REGISTER_TYPED_TEST_CASE_P(StringTest,
         basic, order, iterators, xslice, convert);
 
 typedef ::testing::Types<
-    FString, TString, SString, ZString, XString, VString<255>
+    RString, AString, TString, SString, ZString, XString, VString<255>
 > MostStringTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(StringStuff, StringTest, MostStringTypes);
 
@@ -274,6 +281,6 @@ REGISTER_TYPED_TEST_CASE_P(NulStringTest,
         basic);
 
 typedef ::testing::Types<
-    FString, TString, ZString, VString<255>
+    RString, AString, TString, ZString, VString<255>
 > NulStringTypes;
 INSTANTIATE_TYPED_TEST_CASE_P(NulStringStuff, NulStringTest, NulStringTypes);

@@ -26,16 +26,19 @@ namespace strings
     {
         *this = ZString("");
     }
-    ZString::ZString(const FString& s)
+    ZString::ZString(const RString& s)
+    : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
+    {}
+    ZString::ZString(const AString& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
     ZString::ZString(const TString& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
-    ZString::ZString(const char *b, const char *e, const FString *base_)
+    ZString::ZString(const char *b, const char *e, const RString *base_)
     : _b(b), _e(e), _base(base_)
     {}
-    ZString::ZString(decltype(really_construct_from_a_pointer), const char *s, const FString *base_)
+    ZString::ZString(decltype(really_construct_from_a_pointer), const char *s, const RString *base_)
     : _b(s), _e(s + strlen(s)), _base(base_)
     {}
 
@@ -47,7 +50,7 @@ namespace strings
     {
         return _e;
     }
-    const FString *ZString::base() const
+    const RString *ZString::base() const
     {
         return _base;
     }

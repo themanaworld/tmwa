@@ -123,7 +123,7 @@ int pc_setparam(dumb_ptr<map_session_data>, SP, int);
 int pc_readreg(dumb_ptr<map_session_data>, SIR);
 void pc_setreg(dumb_ptr<map_session_data>, SIR, int);
 ZString pc_readregstr(dumb_ptr<map_session_data> sd, SIR reg);
-void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, FString str);
+void pc_setregstr(dumb_ptr<map_session_data> sd, SIR reg, RString str);
 int pc_readglobalreg(dumb_ptr<map_session_data>, VarName );
 int pc_setglobalreg(dumb_ptr<map_session_data>, VarName , int);
 int pc_readaccountreg(dumb_ptr<map_session_data>, VarName );

@@ -21,17 +21,17 @@
 
 # include "write.hpp"
 
-# include "../strings/fstring.hpp"
+# include "../strings/rstring.hpp"
 
 
 namespace io
 {
     class WriteLock : public WriteFile
     {
-        FString filename;
+        RString filename;
         int tmp_suffix;
     public:
-        WriteLock(FString filename, bool linebuffered=false);
+        WriteLock(RString filename, bool linebuffered=false);
         ~WriteLock();
         bool close() = delete;
     };

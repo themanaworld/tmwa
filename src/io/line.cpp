@@ -21,7 +21,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/mstring.hpp"
 #include "../strings/zstring.hpp"
 
@@ -32,7 +32,7 @@
 
 namespace io
 {
-    FString Line::message_str(ZString cat, ZString msg)
+    AString Line::message_str(ZString cat, ZString msg)
     {
         MString out;
         if (column)
@@ -43,7 +43,7 @@ namespace io
                     filename, line, cat, msg);
         out += STRPRINTF("%s\n", text);
         out += STRPRINTF("%*c\n", column, '^');
-        return FString(out);
+        return AString(out);
     }
 
     void Line::message(ZString cat, ZString msg)
@@ -68,8 +68,10 @@ namespace io
 
     bool LineReader::read_line(Line& l)
     {
-        if (rf.getline(l.text))
+        AString text;
+        if (rf.getline(text))
         {
+            l.text = text;
             l.filename = filename;
             l.line = ++line;
             l.column = 0; // whole line

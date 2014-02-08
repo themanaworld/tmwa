@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -462,7 +462,7 @@ int chrif_char_ask_name_answer(Session *s)
     dumb_ptr<map_session_data> sd = map_id2sd(acc);
     if (acc >= 0 && sd != NULL)
     {
-        FString output;
+        AString output;
         if (RFIFOW(s, 32) == 1)   // player not found
             output = STRPRINTF("The player '%s' doesn't exist.",
                     player_name);

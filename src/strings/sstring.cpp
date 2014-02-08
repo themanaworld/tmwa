@@ -27,8 +27,11 @@ namespace strings
     SString::SString()
     : _s(), _b(), _e()
     {}
-    SString::SString(FString f)
-    : _s(std::move(f)), _b(), _e(_s.size())
+    SString::SString(RString r)
+    : _s(std::move(r)), _b(), _e(_s.size())
+    {}
+    SString::SString(AString a)
+    : _s(std::move(a)), _b(), _e(_s.size())
     {}
     SString::SString(TString t)
     : _s(t._s), _b(0), _e(_s.size())
@@ -39,19 +42,39 @@ namespace strings
     }
     SString::SString(const XString& x)
     {
-        const FString *f = x.base();
+        const RString *r = x.base();
         const char *xb = &*x.begin();
         const char *xe = &*x.end();
-        const char *fb = f ? &*f->begin() : nullptr;
-        //const char *fe = f ? &*f->end() : nullptr;
-        if (f)
-            *this = SString(*f, xb - fb, xe - fb);
+        const char *rb = r ? &*r->begin() : nullptr;
+        //const char *re = r ? &*r->end() : nullptr;
+        if (r)
+            *this = SString(*r, xb - rb, xe - rb);
         else
-            *this = FString(x);
+            *this = RString(x);
     }
 
-    SString::SString(FString f, size_t b, size_t e)
-    : _s(std::move(f)), _b(b), _e(e)
+    SString::SString(RString r, size_t b, size_t e)
+    : _s(std::move(r)), _b(b), _e(e)
+    {}
+    static
+    RString get_owned_slice(AString a, size_t *b, size_t *e)
+    {
+        if (a.base())
+        {
+            // it's futile
+            return std::move(a);
+        }
+        // have to allocate anyway, so cut first
+        size_t ob = *b;
+        size_t oe = *e;
+        *e -= *b;
+        *b = 0;
+        return a.xpslice(ob, oe);
+    }
+    SString::SString(AString a, size_t b, size_t e)
+    : _s(get_owned_slice(std::move(a), &b, &e))
+    , _b(b)
+    , _e(e)
     {}
     SString::SString(XPair p)
     : _s(p), _b(0), _e(p.size())
@@ -65,7 +88,7 @@ namespace strings
     {
         return &_s.begin()[_e];
     }
-    const FString *SString::base() const
+    const RString *SString::base() const
     {
         return &_s;
     }

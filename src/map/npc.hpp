@@ -39,15 +39,15 @@ int npc_get_new_npc_id(void);
  * \param message The message to speak.  If message is NULL, the NPC will not do anything at all.
  */
 dumb_ptr<npc_data> npc_spawn_text(map_local *m, int x, int y,
-        int class_, NpcName name, FString message);
+        int class_, NpcName name, AString message);
 
 /**
  * Uninstalls and frees an NPC
  */
 void npc_free(dumb_ptr<npc_data> npc);
 
-void npc_addsrcfile(FString);
-void npc_delsrcfile(FString);
+void npc_addsrcfile(AString);
+void npc_delsrcfile(XString);
 bool do_init_npc(void);
 int npc_event_do_oninit(void);
 

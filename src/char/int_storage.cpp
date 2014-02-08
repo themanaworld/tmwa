@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
@@ -22,14 +22,14 @@
 
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
-FString storage_txt = "save/storage.txt";
+AString storage_txt = "save/storage.txt";
 
 static
 Map<int, struct storage> storage_db;
 
 // 倉庫データを文字列に変換
 static
-FString storage_tostr(struct storage *p)
+AString storage_tostr(struct storage *p)
 {
     MString str;
     str += STRPRINTF(
@@ -59,8 +59,8 @@ FString storage_tostr(struct storage *p)
     str += '\t';
 
     if (!f)
-        return FString();
-    return FString(str);
+        return AString();
+    return AString(str);
 }
 
 // 文字列を倉庫データに変換
@@ -111,7 +111,7 @@ void inter_storage_init(void)
         return;
     }
 
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         struct storage s {};
@@ -131,7 +131,7 @@ void inter_storage_init(void)
 static
 void inter_storage_save_sub(struct storage *data, io::WriteFile& fp)
 {
-    FString line = storage_tostr(data);
+    AString line = storage_tostr(data);
     if (line)
         fp.put_line(line);
 }

@@ -84,7 +84,7 @@ bool extract(XString str, T *iv)
 
 bool extract(XString str, XString *rv);
 
-bool extract(XString str, FString *rv);
+bool extract(XString str, AString *rv);
 
 template<uint8_t N>
 bool extract(XString str, VString<N> *out)

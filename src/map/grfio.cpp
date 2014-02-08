@@ -13,7 +13,8 @@
 #include <map>
 
 #include "../strings/mstring.hpp"
-#include "../strings/fstring.hpp"
+#include "../strings/rstring.hpp"
+#include "../strings/astring.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
@@ -23,7 +24,7 @@
 #include "../poison.hpp"
 
 static
-std::map<MapName, FString> resnametable;
+std::map<MapName, RString> resnametable;
 
 bool load_resnametable(ZString filename)
 {
@@ -35,11 +36,11 @@ bool load_resnametable(ZString filename)
     }
 
     bool rv = true;
-    FString line;
+    AString line;
     while (in.getline(line))
     {
         MapName key;
-        FString value;
+        AString value;
         if (!extract(line,
                     record<'#'>(&key, &value)))
         {
@@ -47,6 +48,7 @@ bool load_resnametable(ZString filename)
             rv = false;
             continue;
         }
+        // TODO add "data/" here ...
         resnametable[key] = value;
     }
     return rv;
@@ -54,18 +56,21 @@ bool load_resnametable(ZString filename)
 
 /// Change *.gat to *.wlk
 static
-FString grfio_resnametable(MapName rname)
+RString grfio_resnametable(MapName rname)
 {
+    // TODO return an error instead of throwing an exception
     return resnametable.at(rname);
 }
 
 std::vector<uint8_t> grfio_reads(MapName rname)
 {
     MString lfname_;
+    // TODO ... instead of here
     lfname_ += "data/";
     lfname_ += grfio_resnametable(rname);
-    FString lfname = FString(lfname_);
+    AString lfname = AString(lfname_);
 
+    // TODO wrap this immediately
     int fd = open(lfname.c_str(), O_RDONLY);
     if (fd == -1)
     {

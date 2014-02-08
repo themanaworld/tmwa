@@ -29,7 +29,7 @@ namespace strings
     {}
 
     template<size_t n>
-    ZString::ZString(const char (&s)[n], const FString *base_)
+    ZString::ZString(const char (&s)[n], const RString *base_)
     : _b(s), _e(s + strlen(s)), _base(base_)
     {}
 } // namespace strings

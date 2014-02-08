@@ -23,7 +23,10 @@ namespace strings
     XString::XString()
     : _b(""), _e(_b), _base()
     {}
-    XString::XString(const FString& s)
+    XString::XString(const RString& s)
+    : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
+    {}
+    XString::XString(const AString& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
     XString::XString(const TString& s)
@@ -36,10 +39,10 @@ namespace strings
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
 
-    XString::XString(const char *b, const char *e, const FString *base_)
+    XString::XString(const char *b, const char *e, const RString *base_)
     : _b(b), _e(e), _base(base_)
     {}
-    XString::XString(decltype(really_construct_from_a_pointer) e, const char *s, const FString *base_)
+    XString::XString(decltype(really_construct_from_a_pointer) e, const char *s, const RString *base_)
     {
         *this = ZString(e, s, base_);
     }
@@ -55,7 +58,7 @@ namespace strings
     {
         return _e;
     }
-    const FString *XString::base() const
+    const RString *XString::base() const
     {
         return _base;
     }

@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "../strings/fstring.hpp"
+#include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
@@ -254,7 +254,7 @@ int intif_parse_WisMessage(Session *s)
     CharName to = stringish<CharName>(RFIFO_STRING<24>(s, 32));
 
     size_t len = RFIFOW(s, 2) - 56;
-    FString buf = RFIFO_STRING(s, 56, len);
+    AString buf = RFIFO_STRING(s, 56, len);
 
     if (battle_config.etc_log)
     {
@@ -313,7 +313,7 @@ void mapif_parse_WisToGM(Session *s)
 
     min_gm_level = RFIFOW(s, 28);
     CharName Wisp_name = stringish<CharName>(RFIFO_STRING<24>(s, 4));
-    FString message = RFIFO_STRING(s, 30, len);
+    AString message = RFIFO_STRING(s, 30, len);
     // information is sended to all online GM
     for (io::FD i : iter_fds())
     {
@@ -503,7 +503,7 @@ static
 void intif_parse_PartyMessage(Session *s)
 {
     size_t len = RFIFOW(s, 2) - 12;
-    FString buf = RFIFO_STRING(s, 12, len);
+    AString buf = RFIFO_STRING(s, 12, len);
     party_recv_message(RFIFOL(s, 4), RFIFOL(s, 8), buf);
 }
 
@@ -542,7 +542,7 @@ int intif_parse(Session *s)
     {
         case 0x3800:
         {
-            FString mes = RFIFO_STRING(s, 4, packet_len - 4);
+            AString mes = RFIFO_STRING(s, 4, packet_len - 4);
             clif_GMmessage(NULL, mes, 0);
         }
             break;

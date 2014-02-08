@@ -44,7 +44,7 @@ namespace io
 
         bool get(char&);
         size_t get(char *buf, size_t len);
-        bool getline(FString&);
+        bool getline(AString&);
 
         bool is_open();
     };
