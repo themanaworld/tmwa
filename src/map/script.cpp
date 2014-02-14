@@ -3145,93 +3145,17 @@ void builtin_isloggedin(ScriptState *st)
                           &AARGO2(2))) != NULL);
 }
 
-/*==========================================
- *
- *------------------------------------------
- */
-enum
-{
-    MF_NOMEMO = 0,
-    MF_NOTELEPORT = 1,
-    MF_NOSAVE = 2,
-    MF_NOBRANCH = 3,
-    MF_NOPENALTY = 4,
-    MF_NOZENYPENALTY = 5,
-    MF_PVP = 6,
-    MF_PVP_NOPARTY = 7,
-    //MF_PVP_NOGUILD = 8,
-    //MF_GVG = 9,
-    //MF_GVG_NOPARTY = 10,
-    MF_NOTRADE = 11,
-    //MF_NOSKILL = 12,
-    MF_NOWARP = 13,
-    MF_NOPVP = 14,
-    MF_NOICEWALL = 15,
-    MF_SNOW = 16,
-    MF_FOG = 17,
-    MF_SAKURA = 18,
-    MF_LEAVES = 19,
-    MF_RAIN = 20,
-};
-
 static
 void builtin_setmapflag(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
+    MapFlag mf = static_cast<MapFlag>(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
-        switch (i)
-        {
-            case MF_NOMEMO:
-                m->flag.nomemo = 1;
-                break;
-            case MF_NOTELEPORT:
-                m->flag.noteleport = 1;
-                break;
-            case MF_NOBRANCH:
-                m->flag.nobranch = 1;
-                break;
-            case MF_NOPENALTY:
-                m->flag.nopenalty = 1;
-                break;
-            case MF_PVP_NOPARTY:
-                m->flag.pvp_noparty = 1;
-                break;
-            case MF_NOZENYPENALTY:
-                m->flag.nozenypenalty = 1;
-                break;
-            case MF_NOTRADE:
-                m->flag.notrade = 1;
-                break;
-            case MF_NOWARP:
-                m->flag.nowarp = 1;
-                break;
-            case MF_NOPVP:
-                m->flag.nopvp = 1;
-                break;
-            case MF_NOICEWALL: // [Valaris]
-                m->flag.noicewall = 1;
-                break;
-            case MF_SNOW:      // [Valaris]
-                m->flag.snow = 1;
-                break;
-            case MF_FOG:       // [Valaris]
-                m->flag.fog = 1;
-                break;
-            case MF_SAKURA:    // [Valaris]
-                m->flag.sakura = 1;
-                break;
-            case MF_LEAVES:    // [Valaris]
-                m->flag.leaves = 1;
-                break;
-            case MF_RAIN:      // [Valaris]
-                m->flag.rain = 1;
-                break;
-        }
+        m->flag.set(mf, 1);
     }
-
 }
 
 static
@@ -3239,57 +3163,11 @@ void builtin_removemapflag(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
+    MapFlag mf = static_cast<MapFlag>(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
-        switch (i)
-        {
-            case MF_NOMEMO:
-                m->flag.nomemo = 0;
-                break;
-            case MF_NOTELEPORT:
-                m->flag.noteleport = 0;
-                break;
-            case MF_NOSAVE:
-                m->flag.nosave = 0;
-                break;
-            case MF_NOBRANCH:
-                m->flag.nobranch = 0;
-                break;
-            case MF_NOPENALTY:
-                m->flag.nopenalty = 0;
-                break;
-            case MF_PVP_NOPARTY:
-                m->flag.pvp_noparty = 0;
-                break;
-            case MF_NOZENYPENALTY:
-                m->flag.nozenypenalty = 0;
-                break;
-            case MF_NOWARP:
-                m->flag.nowarp = 0;
-                break;
-            case MF_NOPVP:
-                m->flag.nopvp = 0;
-                break;
-            case MF_NOICEWALL: // [Valaris]
-                m->flag.noicewall = 0;
-                break;
-            case MF_SNOW:      // [Valaris]
-                m->flag.snow = 0;
-                break;
-            case MF_FOG:       // [Valaris]
-                m->flag.fog = 0;
-                break;
-            case MF_SAKURA:    // [Valaris]
-                m->flag.sakura = 0;
-                break;
-            case MF_LEAVES:    // [Valaris]
-                m->flag.leaves = 0;
-                break;
-            case MF_RAIN:      // [Valaris]
-                m->flag.rain = 0;
-                break;
-        }
+        m->flag.set(mf, 0);
     }
 }
 
@@ -3300,57 +3178,11 @@ void builtin_getmapflag(ScriptState *st)
 
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
+    MapFlag mf = static_cast<MapFlag>(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
-        switch (i)
-        {
-            case MF_NOMEMO:
-                r = m->flag.nomemo;
-                break;
-            case MF_NOTELEPORT:
-                r = m->flag.noteleport;
-                break;
-            case MF_NOSAVE:
-                r = m->flag.nosave;
-                break;
-            case MF_NOBRANCH:
-                r = m->flag.nobranch;
-                break;
-            case MF_NOPENALTY:
-                r = m->flag.nopenalty;
-                break;
-            case MF_PVP_NOPARTY:
-                r = m->flag.pvp_noparty;
-                break;
-            case MF_NOZENYPENALTY:
-                r = m->flag.nozenypenalty;
-                break;
-            case MF_NOWARP:
-                r = m->flag.nowarp;
-                break;
-            case MF_NOPVP:
-                r = m->flag.nopvp;
-                break;
-            case MF_NOICEWALL: // [Valaris]
-                r = m->flag.noicewall;
-                break;
-            case MF_SNOW:      // [Valaris]
-                r = m->flag.snow;
-                break;
-            case MF_FOG:       // [Valaris]
-                r = m->flag.fog;
-                break;
-            case MF_SAKURA:    // [Valaris]
-                r = m->flag.sakura;
-                break;
-            case MF_LEAVES:    // [Valaris]
-                r = m->flag.leaves;
-                break;
-            case MF_RAIN:      // [Valaris]
-                r = m->flag.rain;
-                break;
-        }
+        r = m->flag.get(mf);
     }
 
     push_int(st->stack, ByteCode::INT, r);

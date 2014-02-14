@@ -1526,7 +1526,18 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
     if (m == nullptr)
         return 1;
 
-    if (w3 == "nosave")
+    MapFlag mf;
+    if (!extract(w3, &mf))
+        return 1;
+
+    if (battle_config.pk_mode && mf == MapFlag::NOPVP)
+    {
+        m->flag.nopvp = 1;
+        m->flag.pvp = 0;
+        return 0;
+    }
+
+    if (mf == MapFlag::NOSAVE)
     {
         if (w4 == "SavePoint")
         {
@@ -1540,97 +1551,8 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
             m->save.x = savex;
             m->save.y = savey;
         }
-        m->flag.nosave = 1;
     }
-    else if (w3 == "nomemo")
-    {
-        m->flag.nomemo = 1;
-    }
-    else if (w3 == "noteleport")
-    {
-        m->flag.noteleport = 1;
-    }
-    else if (w3 == "nowarp")
-    {
-        m->flag.nowarp = 1;
-    }
-    else if (w3 == "nowarpto")
-    {
-        m->flag.nowarpto = 1;
-    }
-    else if (w3 == "noreturn")
-    {
-        m->flag.noreturn = 1;
-    }
-    else if (w3 == "monster_noteleport")
-    {
-        m->flag.monster_noteleport = 1;
-    }
-    else if (w3 == "nobranch")
-    {
-        m->flag.nobranch = 1;
-    }
-    else if (w3 == "nopenalty")
-    {
-        m->flag.nopenalty = 1;
-    }
-    else if (w3 == "pvp")
-    {
-        m->flag.pvp = 1;
-    }
-    else if (w3 == "pvp_noparty")
-    {
-        m->flag.pvp_noparty = 1;
-    }
-    else if (w3 == "pvp_nocalcrank")
-    {
-        m->flag.pvp_nocalcrank = 1;
-    }
-    else if (w3 == "nozenypenalty")
-    {
-        m->flag.nozenypenalty = 1;
-    }
-    else if (w3 == "notrade")
-    {
-        m->flag.notrade = 1;
-    }
-    else if (battle_config.pk_mode && w3 == "nopvp")
-    {                           // nopvp for pk mode [Valaris]
-        m->flag.nopvp = 1;
-        m->flag.pvp = 0;
-    }
-    else if (w3 == "noicewall")
-    {                           // noicewall [Valaris]
-        m->flag.noicewall = 1;
-    }
-    else if (w3 == "snow")
-    {                           // snow [Valaris]
-        m->flag.snow = 1;
-    }
-    else if (w3 == "fog")
-    {                           // fog [Valaris]
-        m->flag.fog = 1;
-    }
-    else if (w3 == "sakura")
-    {                           // sakura [Valaris]
-        m->flag.sakura = 1;
-    }
-    else if (w3 == "leaves")
-    {                           // leaves [Valaris]
-        m->flag.leaves = 1;
-    }
-    else if (w3 == "rain")
-    {                           // rain [Valaris]
-        m->flag.rain = 1;
-    }
-    else if (w3 == "no_player_drops")
-    {                           // no player drops [Jaxad0127]
-        m->flag.no_player_drops = 1;
-    }
-    else if (w3 == "town")
-    {                           // town/safe zone [remoitnane]
-        m->flag.town = 1;
-    }
+    m->flag.set(mf, true);
 
     return 0;
 }

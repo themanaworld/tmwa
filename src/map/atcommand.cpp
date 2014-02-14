@@ -3443,12 +3443,6 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
              (m_id->flag.pvp) ? "True" : "False",
              (m_id->flag.pvp_noparty) ? "True" : "False");
     clif_displaymessage(s, output);
-    output = STRPRINTF("No Dead Branch: %s",
-             (m_id->flag.nobranch) ? "True" : "False");
-    clif_displaymessage(s, output);
-    output = STRPRINTF("No Memo: %s",
-             (m_id->flag.nomemo) ? "True" : "False");
-    clif_displaymessage(s, output);
     output = STRPRINTF("No Penalty: %s",
              (m_id->flag.nopenalty) ? "True" : "False");
     clif_displaymessage(s, output);
@@ -3463,9 +3457,6 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
     clif_displaymessage(s, output);
     output = STRPRINTF("No Monster Teleport: %s",
              (m_id->flag.monster_noteleport) ? "True" : "False");
-    clif_displaymessage(s, output);
-    output = STRPRINTF("No Zeny Penalty: %s",
-             (m_id->flag.nozenypenalty) ? "True" : "False");
     clif_displaymessage(s, output);
 
     switch (list)

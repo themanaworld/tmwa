@@ -22,6 +22,7 @@
 
 # include "battle.t.hpp"
 # include "magic-interpreter.t.hpp"
+# include "mapflag.hpp"
 # include "mob.t.hpp"
 # include "script.hpp"   // change to script.t.hpp
 # include "skill.t.hpp"
@@ -514,33 +515,7 @@ struct map_local : map_abstract
     short xs, ys;
     int npc_num;
     int users;
-    struct
-    {
-        unsigned alias:1;
-        unsigned nomemo:1;
-        unsigned noteleport:1;
-        unsigned noreturn:1;
-        unsigned monster_noteleport:1;
-        unsigned nosave:1;
-        unsigned nobranch:1;
-        unsigned nopenalty:1;
-        unsigned pvp:1;
-        unsigned pvp_noparty:1;
-        unsigned pvp_nocalcrank:1;
-        unsigned nozenypenalty:1;
-        unsigned notrade:1;
-        unsigned nowarp:1;
-        unsigned nowarpto:1;
-        unsigned nopvp:1;       // [Valaris]
-        unsigned noicewall:1;   // [Valaris]
-        unsigned snow:1;        // [Valaris]
-        unsigned fog:1;         // [Valaris]
-        unsigned sakura:1;      // [Valaris]
-        unsigned leaves:1;      // [Valaris]
-        unsigned rain:1;        // [Valaris]
-        unsigned no_player_drops:1; // [Jaxad0127]
-        unsigned town:1;        // [remoitnane]
-    } flag;
+    MapFlags flag;
     struct point save;
     dumb_ptr<npc_data> npc[MAX_NPC_PER_MAP];
     struct
