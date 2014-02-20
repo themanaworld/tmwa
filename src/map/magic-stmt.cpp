@@ -772,7 +772,7 @@ int op_injure(dumb_ptr<env_t> env, const_array<val_t> args)
     int mdef = battle_get_mdef(target);
 
     if (target->bl_type == BL::PC
-        && !target->bl_m->flag.pvp
+        && !target->bl_m->flag.get(MapFlag::PVP)
         && !target->is_player()->special_state.killable
         && (caster->bl_type != BL::PC || !caster->is_player()->special_state.killer))
         return 0;               /* Cannot damage other players outside of pvp */
@@ -1088,7 +1088,7 @@ void find_entities_in_area_c(dumb_ptr<block_list> target,
             if (filter == FOREACH_FILTER::PC
                 || filter == FOREACH_FILTER::ENTITY
                 || (filter == FOREACH_FILTER::TARGET
-                    && target->bl_m->flag.pvp))
+                    && target->bl_m->flag.get(MapFlag::PVP)))
                 break;
             else if (filter == FOREACH_FILTER::SPELL)
             {                   /* Check all spells bound to the caster */

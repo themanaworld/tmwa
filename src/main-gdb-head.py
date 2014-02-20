@@ -5,7 +5,7 @@
 
 # gdb sticks everything in one scope.
 # This lets us enumerate what *we* added.
-initial_globals = set(globals())
+initial_globals = {id(v):v for v in globals().itervalues()}
 
 import re
 
@@ -32,15 +32,16 @@ def get_basic_type(type_):
 def finish():
     global finish, initial_globals, FastPrinters
 
-    diff = set(globals()) - initial_globals \
+    final_globals = {id(v):v for v in globals().itervalues()}
+    diff = final_globals.viewkeys() - initial_globals.viewkeys() \
             - {'finish', 'initial_globals', 'FastPrinters'}
     fp = FastPrinters()
 
     # After this, don't access any more globals in this function.
     del finish, initial_globals, FastPrinters
 
-    for k in diff:
-        v = globals()[k]
+    for i in diff:
+        v = final_globals[i]
         if hasattr(v, 'children') or hasattr(v, 'to_string'):
             fp.add_printer(v)
 

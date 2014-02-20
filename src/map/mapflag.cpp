@@ -24,110 +24,15 @@
 
 bool MapFlags::get(MapFlag mf) const
 {
-    switch (mf)
-    {
-    case MapFlag::NOTELEPORT:
-        return noteleport;
-    case MapFlag::NORETURN:
-        return noreturn;
-    case MapFlag::MONSTER_NOTELEPORT:
-        return monster_noteleport;
-    case MapFlag::NOSAVE:
-        return nosave;
-    case MapFlag::NOPENALTY:
-        return nopenalty;
-    case MapFlag::PVP:
-        return pvp;
-    case MapFlag::PVP_NOPARTY:
-        return pvp_noparty;
-    case MapFlag::PVP_NOCALCRANK:
-        return pvp_nocalcrank;
-    case MapFlag::NOWARP:
-        return nowarp;
-    case MapFlag::NOWARPTO:
-        return nowarpto;
-    case MapFlag::NOPVP:
-        return nopvp;
-    case MapFlag::SNOW:
-        return snow;
-    case MapFlag::FOG:
-        return fog;
-    case MapFlag::SAKURA:
-        return sakura;
-    case MapFlag::LEAVES:
-        return leaves;
-    case MapFlag::RAIN:
-        return rain;
-    case MapFlag::NO_PLAYER_DROPS:
-        return no_player_drops;
-    case MapFlag::TOWN:
-        return town;
-    default:
-        return false;
-    }
+    return flags & static_cast<unsigned>(mf);
 }
 
 void MapFlags::set(MapFlag mf, bool val)
 {
-    switch (mf)
-    {
-    case MapFlag::NOTELEPORT:
-        noteleport = val;
-        break;
-    case MapFlag::NORETURN:
-        noreturn = val;
-        break;
-    case MapFlag::MONSTER_NOTELEPORT:
-        monster_noteleport = val;
-        break;
-    case MapFlag::NOSAVE:
-        nosave = val;
-        break;
-    case MapFlag::NOPENALTY:
-        nopenalty = val;
-        break;
-    case MapFlag::PVP:
-        pvp = val;
-        break;
-    case MapFlag::PVP_NOPARTY:
-        pvp_noparty = val;
-        break;
-    case MapFlag::PVP_NOCALCRANK:
-        pvp_nocalcrank = val;
-        break;
-    case MapFlag::NOWARP:
-        nowarp = val;
-        break;
-    case MapFlag::NOWARPTO:
-        nowarpto = val;
-        break;
-    case MapFlag::NOPVP:
-        nopvp = val;
-        break;
-    case MapFlag::SNOW:
-        snow = val;
-        break;
-    case MapFlag::FOG:
-        fog = val;
-        break;
-    case MapFlag::SAKURA:
-        sakura = val;
-        break;
-    case MapFlag::LEAVES:
-        leaves = val;
-        break;
-    case MapFlag::RAIN:
-        rain = val;
-        break;
-    case MapFlag::NO_PLAYER_DROPS:
-        no_player_drops = val;
-        break;
-    case MapFlag::TOWN:
-        town = val;
-        break;
-    default:
-        break;
-    }
+    if (val)
+        flags |= static_cast<unsigned>(mf);
+    else
+        flags &=~ static_cast<unsigned>(mf);
 }
 
 template<>
@@ -176,4 +81,9 @@ bool extract<MapFlag, void, void>(XString str, MapFlag *mf)
             return true;
         }
     return false;
+}
+
+MapFlag map_flag_from_int(int shift)
+{
+    return static_cast<MapFlag>(1 << shift);
 }

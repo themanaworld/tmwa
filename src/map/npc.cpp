@@ -1532,8 +1532,8 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
 
     if (battle_config.pk_mode && mf == MapFlag::NOPVP)
     {
-        m->flag.nopvp = 1;
-        m->flag.pvp = 0;
+        m->flag.set(MapFlag::NOPVP, 1);
+        m->flag.set(MapFlag::PVP, 0);
         return 0;
     }
 

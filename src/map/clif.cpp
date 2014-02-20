@@ -887,15 +887,15 @@ int clif_spawnpc(dumb_ptr<map_session_data> sd)
     WBUFW(buf, 51) = 0;
     clif_send(buf, clif_parse_func_table[0x1d9].len, sd, SendWho::AREA_WOS);
 
-    if (sd->bl_m->flag.snow)
+    if (sd->bl_m->flag.get(MapFlag::SNOW))
         clif_specialeffect(sd, 162, 1);
-    if (sd->bl_m->flag.fog)
+    if (sd->bl_m->flag.get(MapFlag::FOG))
         clif_specialeffect(sd, 233, 1);
-    if (sd->bl_m->flag.sakura)
+    if (sd->bl_m->flag.get(MapFlag::SAKURA))
         clif_specialeffect(sd, 163, 1);
-    if (sd->bl_m->flag.leaves)
+    if (sd->bl_m->flag.get(MapFlag::LEAVES))
         clif_specialeffect(sd, 333, 1);
-    if (sd->bl_m->flag.rain)
+    if (sd->bl_m->flag.get(MapFlag::RAIN))
         clif_specialeffect(sd, 161, 1);
 
 //        clif_changelook_accessories(sd, NULL);
@@ -3512,7 +3512,7 @@ void clif_parse_LoadEndAck(Session *, dumb_ptr<map_session_data> sd)
     if (!battle_config.pk_mode)
         sd->pvp_timer.cancel();
 
-    if (sd->bl_m->flag.pvp)
+    if (sd->bl_m->flag.get(MapFlag::PVP))
     {
         if (!battle_config.pk_mode)
         {
@@ -4122,7 +4122,7 @@ void clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
         clif_clearchar(sd, BeingRemoveWhy::DEAD);
         return;
     }
-    if (sd->bl_m->flag.no_player_drops)
+    if (sd->bl_m->flag.get(MapFlag::NO_PLAYER_DROPS))
     {
         clif_displaymessage(sd->sess, "Can't drop items here.");
         return;

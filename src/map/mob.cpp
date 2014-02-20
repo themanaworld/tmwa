@@ -788,7 +788,7 @@ int mob_attack(dumb_ptr<mob_data> md, tick_t tick)
     // If you are reading this, please note:
     // it is highly platform-specific that this even works at all.
     int radius = battle_config.mob_splash_radius;
-    if (radius >= 0 && tbl->bl_type == BL::PC && !tbl->bl_m->flag.town)
+    if (radius >= 0 && tbl->bl_type == BL::PC && !tbl->bl_m->flag.get(MapFlag::TOWN))
         map_foreachinarea(std::bind(mob_ancillary_attack, ph::_1, md, tbl, tick),
                 tbl->bl_m,
                 tbl->bl_x - radius, tbl->bl_y - radius,
@@ -2747,7 +2747,7 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
 
     if (type != BeingRemoveWhy::NEGATIVE1)
     {
-        if (md->bl_m->flag.monster_noteleport)
+        if (md->bl_m->flag.get(MapFlag::MONSTER_NOTELEPORT))
             return 0;
         clif_clearchar(md, type);
     }
@@ -3272,7 +3272,7 @@ int mobskill_use(dumb_ptr<mob_data> md, tick_t tick,
                     flag = (md->hp < max_hp * msii.cond2i / 100);
                     break;
                 case MobSkillCondition::MSC_NOTINTOWN:     // Only outside of towns.
-                    flag = !md->bl_m->flag.town;
+                    flag = !md->bl_m->flag.get(MapFlag::TOWN);
                     break;
                 case MobSkillCondition::MSC_SLAVELT:  // slave < num
                     flag = (mob_countslave(md) < msii.cond2i);

@@ -1451,17 +1451,9 @@ void builtin_warp(ScriptState *st)
     y = conv_num(st, &AARGO2(4));
     if (str == "Random")
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
-    else if (str == "SavePoint")
+    else if (str == "SavePoint" or str == "Save")
     {
-        if (sd->bl_m->flag.noreturn)    // 蝶禁止
-            return;
-
-        pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x, sd->status.save_point.y,
-                BeingRemoveWhy::WARPED);
-    }
-    else if (str == "Save")
-    {
-        if (sd->bl_m->flag.noreturn)    // 蝶禁止
+        if (sd->bl_m->flag.get(MapFlag::NORETURN))
             return;
 
         pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x, sd->status.save_point.y,
@@ -3150,7 +3142,7 @@ void builtin_setmapflag(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
-    MapFlag mf = static_cast<MapFlag>(i);
+    MapFlag mf = map_flag_from_int(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
@@ -3163,7 +3155,7 @@ void builtin_removemapflag(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
-    MapFlag mf = static_cast<MapFlag>(i);
+    MapFlag mf = map_flag_from_int(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
@@ -3178,7 +3170,7 @@ void builtin_getmapflag(ScriptState *st)
 
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     int i = conv_num(st, &AARGO2(3));
-    MapFlag mf = static_cast<MapFlag>(i);
+    MapFlag mf = map_flag_from_int(i);
     map_local *m = map_mapname2mapid(str);
     if (m != nullptr)
     {
@@ -3193,9 +3185,9 @@ void builtin_pvpon(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     map_local *m = map_mapname2mapid(str);
-    if (m != nullptr && !m->flag.pvp && !m->flag.nopvp)
+    if (m != nullptr && !m->flag.get(MapFlag::PVP) && !m->flag.get(MapFlag::NOPVP))
     {
-        m->flag.pvp = 1;
+        m->flag.set(MapFlag::PVP, 1);
 
         if (battle_config.pk_mode)  // disable ranking functions if pk_mode is on [Valaris]
             return;
@@ -3228,9 +3220,9 @@ void builtin_pvpoff(ScriptState *st)
 {
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     map_local *m = map_mapname2mapid(str);
-    if (m != nullptr && m->flag.pvp && m->flag.nopvp)
+    if (m != nullptr && m->flag.get(MapFlag::PVP) && m->flag.get(MapFlag::NOPVP))
     {
-        m->flag.pvp = 0;
+        m->flag.set(MapFlag::PVP, 0);
 
         if (battle_config.pk_mode)  // disable ranking options if pk_mode is on [Valaris]
             return;

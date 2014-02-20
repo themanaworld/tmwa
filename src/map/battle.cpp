@@ -2236,12 +2236,12 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
     if (ss->bl_type == BL::PC && target->bl_type == BL::PC)
     {                           // 両方PVPモードなら否定（敵）
-        if (ss->bl_m->flag.pvp
+        if (ss->bl_m->flag.get(MapFlag::PVP)
             || pc_iskiller(ss->is_player(), target->is_player()))
         {                       // [MouseJstr]
             if (battle_config.pk_mode)
                 return 1;       // prevent novice engagement in pk_mode [Valaris]
-            else if (ss->bl_m->flag.pvp_noparty && s_p > 0 && t_p > 0
+            else if (ss->bl_m->flag.get(MapFlag::PVP_NOPARTY) && s_p > 0 && t_p > 0
                      && s_p == t_p)
                 return 1;
             return 0;

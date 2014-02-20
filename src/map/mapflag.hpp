@@ -31,61 +31,45 @@
 // Hm, I guess if I did them builtin instead of loading from const.txt ...
 enum class MapFlag
 {
-    //ALIAS = 21,
-    //NOMEMO = 0,
-    NOTELEPORT = 1,
-    NORETURN = 22,
-    MONSTER_NOTELEPORT = 23,
-    NOSAVE = 2,
-    //NOBRANCH = 3,
-    NOPENALTY = 4,
-    PVP = 6,
-    PVP_NOPARTY = 7,
-    //PVP_NOGUILD = 8,
-    //PVP_NIGHTMAREDROP = 24,
-    PVP_NOCALCRANK = 25,
-    //GVG = 9,
-    //GVG_NOPARTY = 10,
-    //NOZENYPENALTY = 5,
-    //NOTRADE = 11,
-    //NOSKILL = 12,
-    NOWARP = 13,
-    NOWARPTO = 26,
-    NOPVP = 14,
-    //NOICEWALL = 15,
-    SNOW = 16,
-    FOG = 17,
-    SAKURA = 18,
-    LEAVES = 19,
-    RAIN = 20,
-    NO_PLAYER_DROPS = 27,
-    TOWN = 28,
+    //ALIAS = 1 << 21,
+    //NOMEMO = 1 << 0,
+    NOTELEPORT = 1 << 1,
+    NORETURN = 1 << 22,
+    MONSTER_NOTELEPORT = 1 << 23,
+    NOSAVE = 1 << 2,
+    //NOBRANCH = 1 << 3,
+    NOPENALTY = 1 << 4,
+    PVP = 1 << 6,
+    PVP_NOPARTY = 1 << 7,
+    //PVP_NOGUILD = 1 << 8,
+    //PVP_NIGHTMAREDROP = 1 << 24,
+    PVP_NOCALCRANK = 1 << 25,
+    //GVG = 1 << 9,
+    //GVG_NOPARTY = 1 << 10,
+    //NOZENYPENALTY = 1 << 5,
+    //NOTRADE = 1 << 11,
+    //NOSKILL = 1 << 12,
+    NOWARP = 1 << 13,
+    NOWARPTO = 1 << 26,
+    NOPVP = 1 << 14,
+    //NOICEWALL = 1 << 15,
+    SNOW = 1 << 16,
+    FOG = 1 << 17,
+    SAKURA = 1 << 18,
+    LEAVES = 1 << 19,
+    RAIN = 1 << 20,
+    NO_PLAYER_DROPS = 1 << 27,
+    TOWN = 1 << 28,
 
-    COUNT = 29,
+    //UNUSED1 = 1 << 29,
+    //UNUSED2 = 1 << 30,
+    //UNUSED3 = 1 << 31,
 };
 
 
 class MapFlags
 {
-public:
-    unsigned noteleport:1;
-    unsigned noreturn:1;
-    unsigned monster_noteleport:1;
-    unsigned nosave:1;
-    unsigned nopenalty:1;
-    unsigned pvp:1;
-    unsigned pvp_noparty:1;
-    unsigned pvp_nocalcrank:1;
-    unsigned nowarp:1;
-    unsigned nowarpto:1;
-    unsigned nopvp:1;       // [Valaris]
-    unsigned snow:1;        // [Valaris]
-    unsigned fog:1;         // [Valaris]
-    unsigned sakura:1;      // [Valaris]
-    unsigned leaves:1;      // [Valaris]
-    unsigned rain:1;        // [Valaris]
-    unsigned no_player_drops:1; // [Jaxad0127]
-    unsigned town:1;        // [remoitnane]
+    uint32_t flags;
 public:
     bool get(MapFlag) const;
     void set(MapFlag, bool);
@@ -94,5 +78,6 @@ public:
 template<>
 bool extract<MapFlag, void, void>(XString str, MapFlag *mf);
 
-#endif // TMWA_MAP_MAPFLAG_HPP
+MapFlag map_flag_from_int(int shift);
 
+#endif // TMWA_MAP_MAPFLAG_HPP

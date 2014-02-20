@@ -1258,7 +1258,7 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
     m->users = 0;
     really_memzero_this(&m->flag);
     if (battle_config.pk_mode)
-        m->flag.pvp = 1;    // make all maps pvp for pk_mode [Valaris]
+        m->flag.set(MapFlag::PVP, 1);
     MapCell *gat_m = reinterpret_cast<MapCell *>(&gat_v[4]);
     std::copy(gat_m, gat_m + s, &m->gat[0]);
 

@@ -422,7 +422,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
     }
 
     // セーブ禁止マップだったので指定位置に移動
-    if (sd->bl_m->flag.nosave)
+    if (sd->bl_m->flag.get(MapFlag::NOSAVE))
     {
         map_local *m = sd->bl_m;
         if (m->save.map_ == "SavePoint")
@@ -2402,7 +2402,7 @@ int pc_randomwarp(dumb_ptr<map_session_data> sd, BeingRemoveWhy type)
 
     map_local *m = sd->bl_m;
 
-    if (sd->bl_m->flag.noteleport)  // テレポート禁止
+    if (sd->bl_m->flag.get(MapFlag::NOTELEPORT))  // テレポート禁止
         return 0;
 
     do
@@ -3503,7 +3503,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     if (battle_config.death_penalty_type > 0 && sd->status.base_level >= 20)
     {
         // changed penalty options, added death by player if pk_mode [Valaris]
-        if (!sd->bl_m->flag.nopenalty)
+        if (!sd->bl_m->flag.get(MapFlag::NOPENALTY))
         {
             if (battle_config.death_penalty_type == 1
                 && battle_config.death_penalty_base > 0)
@@ -3558,10 +3558,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     }
 
     // pvp
-    if (sd->bl_m->flag.pvp && !battle_config.pk_mode)
+    if (sd->bl_m->flag.get(MapFlag::PVP) && !battle_config.pk_mode)
     {                           // disable certain pvp functions on pk_mode [Valaris]
         //ランキング計算
-        if (!sd->bl_m->flag.pvp_nocalcrank)
+        if (!sd->bl_m->flag.get(MapFlag::PVP_NOCALCRANK))
         {
             sd->pvp_point -= 5;
             if (src && src->bl_type == BL::PC)
@@ -4782,7 +4782,7 @@ int pc_calc_pvprank(dumb_ptr<map_session_data> sd)
     map_local *m = sd->bl_m;
     nullpo_ret(m);
 
-    if (!(m->flag.pvp))
+    if (!(m->flag.get(MapFlag::PVP)))
         return 0;
     sd->pvp_rank = 1;
     map_foreachinarea(std::bind(pc_calc_pvprank_sub, ph::_1, sd),
