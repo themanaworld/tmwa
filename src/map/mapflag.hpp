@@ -61,7 +61,7 @@ enum class MapFlag
     NO_PLAYER_DROPS = 1 << 27,
     TOWN = 1 << 28,
 
-    //UNUSED1 = 1 << 29,
+    OUTSIDE = 1 << 29,
     //UNUSED2 = 1 << 30,
     //UNUSED3 = 1 << 31,
 };
