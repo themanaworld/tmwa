@@ -73,6 +73,7 @@ bool extract<MapFlag, void, void>(XString str, MapFlag *mf)
         {"rain", MapFlag::RAIN},
         {"no_player_drops", MapFlag::NO_PLAYER_DROPS},
         {"town", MapFlag::TOWN},
+        {"outside", MapFlag::OUTSIDE},
     };
     for (auto& pair : flags)
         if (str == pair.str)
