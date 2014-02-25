@@ -1006,11 +1006,26 @@ int fun_read_script_int(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
     dumb_ptr<block_list> subject_p = ARGENTITY(0);
     VarName var_name = stringish<VarName>(ARGSTR(1));
+    int array_index = 0;
 
     if (subject_p->bl_type != BL::PC)
         return 1;
 
-    RESULTINT = pc_readglobalreg(subject_p->is_player(), var_name);
+    RESULTINT = get_script_var_i(subject_p->is_player(), var_name, array_index);
+    return 0;
+}
+
+static
+int fun_read_script_str(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+{
+    dumb_ptr<block_list> subject_p = ARGENTITY(0);
+    VarName var_name = stringish<VarName>(ARGSTR(1));
+    int array_index = 0;
+
+    if (subject_p->bl_type != BL::PC)
+        return 1;
+
+    RESULTSTR = dumb_string::copys(get_script_var_s(subject_p->is_player(), var_name, array_index));
     return 0;
 }
 
@@ -1280,6 +1295,7 @@ std::map<ZString, fun_t> functions =
     MAGIC_FUNCTION1(anchor, "s", 'a'),
     MAGIC_FUNCTION("random_location", "a", 'l', fun_pick_location),
     MAGIC_FUNCTION("script_int", "es", 'i', fun_read_script_int),
+    MAGIC_FUNCTION("script_str", "es", 's', fun_read_script_str),
     MAGIC_FUNCTION1(rbox, "li", 'a'),
     MAGIC_FUNCTION1(count_item, "e.", 'i'),
     MAGIC_FUNCTION1(line_of_sight, "ll", 'i'),

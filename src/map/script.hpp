@@ -169,4 +169,10 @@ extern int script_errors;
 
 bool read_constdb(ZString filename);
 
+void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val);
+void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString val);
+
+int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e);
+ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e);
+
 #endif // SCRIPT_HPP

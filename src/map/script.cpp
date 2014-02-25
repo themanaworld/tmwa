@@ -875,13 +875,11 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
  *------------------------------------------
  */
 static
-void get_val(ScriptState *st, struct script_data *data)
+void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
 {
-    dumb_ptr<map_session_data> sd = NULL;
-
     if (data->type == ByteCode::PARAM_)
     {
-        if ((sd = script_rid2sd(st)) == NULL)
+        if (sd == NULL)
             PRINTF("get_val error param SP::%d\n", data->u.reg.sp());
         data->type = ByteCode::INT;
         if (sd)
@@ -896,7 +894,7 @@ void get_val(ScriptState *st, struct script_data *data)
 
         if (prefix != '$')
         {
-            if ((sd = script_rid2sd(st)) == NULL)
+            if (sd == NULL)
                 PRINTF("get_val error name?:%s\n", name);
         }
         if (postfix == '$')
@@ -952,6 +950,13 @@ void get_val(ScriptState *st, struct script_data *data)
             }
         }
     }
+}
+
+static __attribute__((deprecated))
+void get_val(ScriptState *st, struct script_data *data)
+{
+    dumb_ptr<map_session_data> sd = st->rid ? map_id2sd(st->rid) : nullptr;
+    get_val(sd, data);
 }
 
 /*==========================================
@@ -4987,3 +4992,42 @@ BuiltinFunction builtin_functions[] =
     BUILTIN(mapexit, ""),
     {nullptr, ZString(), ZString()},
 };
+
+void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val)
+{
+    size_t k = variable_names.intern(var);
+    SIR reg = SIR::from(k, e);
+    set_reg(sd, ByteCode::INT, reg, val);
+}
+void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString val)
+{
+    size_t k = variable_names.intern(var);
+    SIR reg = SIR::from(k, e);
+    set_reg(sd, ByteCode::INT, reg, dumb_string::copys(val));
+}
+int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e)
+{
+    size_t k = variable_names.intern(var);
+    SIR reg = SIR::from(k, e);
+    struct script_data dat;
+    dat.type = ByteCode::VARIABLE;
+    dat.u.reg = reg;
+    get_val(sd, &dat);
+    if (dat.type == ByteCode::INT)
+        return dat.u.numi;
+    PRINTF("Warning: you lied about the type and I'm too lazy to fix it!");
+    return 0;
+}
+ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
+{
+    size_t k = variable_names.intern(var);
+    SIR reg = SIR::from(k, e);
+    struct script_data dat;
+    dat.type = ByteCode::VARIABLE;
+    dat.u.reg = reg;
+    get_val(sd, &dat);
+    if (dat.type == ByteCode::CONSTSTR)
+        return dat.u.str;
+    PRINTF("Warning: you lied about the type and I can't fix it!");
+    return ZString();
+}

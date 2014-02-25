@@ -825,12 +825,28 @@ static
 int op_set_script_variable(dumb_ptr<env_t>, const_array<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
+    VarName varname = stringish<VarName>(ARGSTR(1));
+    int array_index = 0;
 
     if (!c)
         return 1;
 
+    set_script_var_i(c, varname, array_index, ARGINT(2));
+
+    return 0;
+}
+
+static
+int op_set_script_str(dumb_ptr<env_t>, const_array<val_t> args)
+{
+    dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     VarName varname = stringish<VarName>(ARGSTR(1));
-    pc_setglobalreg(c, varname, ARGINT(2));
+    int array_index = 0;
+
+    if (!c)
+        return 1;
+
+    set_script_var_s(c, varname, array_index, ARGSTR(2));
 
     return 0;
 }
@@ -924,6 +940,7 @@ std::map<ZString, op_t> operations =
     MAGIC_OPERATION1(injure, "eeii"),
     MAGIC_OPERATION1(emote, "ei"),
     MAGIC_OPERATION1(set_script_variable, "esi"),
+    MAGIC_OPERATION1(set_script_str, "ess"),
     MAGIC_OPERATION1(set_hair_colour, "ei"),
     MAGIC_OPERATION1(set_hair_style, "ei"),
     MAGIC_OPERATION("drop_item", "l.ii", op_drop_item_for),
