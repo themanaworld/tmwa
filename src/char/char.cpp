@@ -7,6 +7,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <sys/resource.h>
+
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -555,8 +557,13 @@ void mmo_char_sync_timer(TimerData *, tick_t)
 
     // This can take a lot of time. Fork a child to handle the work and return at once
     // If we're unable to fork just continue running the function normally
-    if ((pid = fork()) > 0)
+    if ((pid = fork()) > 0) {
         return;
+    }
+
+    // If we're a child, run as a lower priority process
+    if (pid == 0)
+        setpriority(PRIO_PROCESS, getpid(), 10);
 
     mmo_char_sync();
     inter_save();

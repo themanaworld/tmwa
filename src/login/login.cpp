@@ -5,6 +5,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
+#include <sys/resource.h>
+
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -651,6 +653,10 @@ void check_auth_sync(TimerData *, tick_t)
     // If we're unable to fork just continue running the function normally
     if ((pid = fork()) > 0)
         return;
+
+    // If we're a child, run as a lower priority process
+    if (pid == 0)
+        setpriority(PRIO_PROCESS, getpid(), 10);
 
     mmo_auth_sync();
 
