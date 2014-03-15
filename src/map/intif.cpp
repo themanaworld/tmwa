@@ -58,14 +58,14 @@ void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes
     size_t mes_len = mes.size() + 1;
     WFIFOW(char_session, 0) = 0x3001;
     WFIFOW(char_session, 2) = mes_len + 52;
-    WFIFO_STRING(char_session, 4, sd->status.name.to__actual(), 24);
+    WFIFO_STRING(char_session, 4, sd->status_key.name.to__actual(), 24);
     WFIFO_STRING(char_session, 28, nick.to__actual(), 24);
     WFIFO_STRING(char_session, 52, mes, mes_len);
     WFIFOSET(char_session, WFIFOW(char_session, 2));
 
     if (battle_config.etc_log)
         PRINTF("intif_wis_message from %s to %s)\n",
-                sd->status.name, nick);
+                sd->status_key.name, nick);
 }
 
 // The reply of Wisp/page
@@ -150,9 +150,9 @@ void intif_create_party(dumb_ptr<map_session_data> sd, PartyName name)
     nullpo_retv(sd);
 
     WFIFOW(char_session, 0) = 0x3020;
-    WFIFOL(char_session, 2) = sd->status.account_id;
+    WFIFOL(char_session, 2) = sd->status_key.account_id;
     WFIFO_STRING(char_session, 6, name, 24);
-    WFIFO_STRING(char_session, 30, sd->status.name.to__actual(), 24);
+    WFIFO_STRING(char_session, 30, sd->status_key.name.to__actual(), 24);
     WFIFO_STRING(char_session, 54, sd->bl_m->name_, 16);
     WFIFOW(char_session, 70) = sd->status.base_level;
     WFIFOSET(char_session, 72);
@@ -176,7 +176,7 @@ void intif_party_addmember(int party_id, int account_id)
         WFIFOW(char_session, 0) = 0x3022;
         WFIFOL(char_session, 2) = party_id;
         WFIFOL(char_session, 6) = account_id;
-        WFIFO_STRING(char_session, 10, sd->status.name.to__actual(), 24);
+        WFIFO_STRING(char_session, 10, sd->status_key.name.to__actual(), 24);
         WFIFO_STRING(char_session, 34, sd->bl_m->name_, 16);
         WFIFOW(char_session, 50) = sd->status.base_level;
         WFIFOSET(char_session, 52);
@@ -210,7 +210,7 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online)
     {
         WFIFOW(char_session, 0) = 0x3025;
         WFIFOL(char_session, 2) = sd->status.party_id;
-        WFIFOL(char_session, 6) = sd->status.account_id;
+        WFIFOL(char_session, 6) = sd->status_key.account_id;
         WFIFO_STRING(char_session, 10, sd->bl_m->name_, 16);
         WFIFOB(char_session, 26) = online;
         WFIFOW(char_session, 27) = sd->status.base_level;
@@ -264,7 +264,7 @@ int intif_parse_WisMessage(Session *s)
              to);
     }
     sd = map_nick2sd(to); // Searching destination player
-    if (sd != NULL && sd->status.name == to)
+    if (sd != NULL && sd->status_key.name == to)
     {
         // exactly same name (inter-server have checked the name before)
         {
@@ -369,14 +369,14 @@ int intif_parse_LoadStorage(Session *s)
     {                           // Already open.. lets ignore this update
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: storage received for a client already open (User %d:%d)\n",
-                 sd->status.account_id, sd->status.char_id);
+                 sd->status_key.account_id, sd->status_key.char_id);
         return 1;
     }
     if (stor->dirty)
     {                           // Already have storage, and it has been modified and not saved yet! Exploit! [Skotlex]
         if (battle_config.error_log)
             PRINTF("intif_parse_LoadStorage: received storage for an already modified non-saved storage! (User %d:%d)\n",
-                 sd->status.account_id, sd->status.char_id);
+                 sd->status_key.account_id, sd->status_key.char_id);
         return 1;
     }
 

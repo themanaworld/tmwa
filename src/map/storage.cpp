@@ -60,10 +60,10 @@ int storage_storageopen(dumb_ptr<map_session_data> sd)
     if (sd->state.storage_open)
         return 1;               //Already open?
 
-    struct storage *stor = storage_db.search(sd->status.account_id);
+    struct storage *stor = storage_db.search(sd->status_key.account_id);
     if (stor == NULL)
     {                           //Request storage.
-        intif_request_storage(sd->status.account_id);
+        intif_request_storage(sd->status_key.account_id);
         return 1;
     }
 
@@ -158,7 +158,7 @@ int storage_storageadd(dumb_ptr<map_session_data> sd, int index, int amount)
     struct storage *stor;
 
     nullpo_ret(sd);
-    stor = account2storage2(sd->status.account_id);
+    stor = account2storage2(sd->status_key.account_id);
     nullpo_ret(stor);
 
     if ((stor->storage_amount > MAX_STORAGE) || !stor->storage_status)
@@ -194,7 +194,7 @@ int storage_storageget(dumb_ptr<map_session_data> sd, int index, int amount)
     PickupFail flag;
 
     nullpo_ret(sd);
-    stor = account2storage2(sd->status.account_id);
+    stor = account2storage2(sd->status_key.account_id);
     nullpo_ret(stor);
 
     if (index < 0 || index >= MAX_STORAGE)
@@ -223,7 +223,7 @@ int storage_storageclose(dumb_ptr<map_session_data> sd)
     struct storage *stor;
 
     nullpo_ret(sd);
-    stor = account2storage2(sd->status.account_id);
+    stor = account2storage2(sd->status_key.account_id);
     nullpo_ret(stor);
 
     clif_storageclose(sd);
@@ -232,7 +232,7 @@ int storage_storageclose(dumb_ptr<map_session_data> sd)
         if (save_settings & 4)
             chrif_save(sd);    //Invokes the storage saving as well.
         else
-            storage_storage_save(sd->status.account_id, 0);
+            storage_storage_save(sd->status_key.account_id, 0);
     }
     stor->storage_status = 0;
     sd->state.storage_open = 0;
@@ -256,7 +256,7 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd)
 
     nullpo_ret(sd);
 
-    stor = account2storage2(sd->status.account_id);
+    stor = account2storage2(sd->status_key.account_id);
     if (stor)
     {
         chrif_save(sd);        //Invokes the storage saving as well.

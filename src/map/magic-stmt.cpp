@@ -328,7 +328,7 @@ int op_instaheal(dumb_ptr<env_t> env, const_array<val_t> args)
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
         dumb_ptr<map_session_data> subject_pc = subject->is_player();
         MAP_LOG_PC(caster_pc, "SPELLHEAL-INSTA PC%d FOR %d",
-                    subject_pc->status.char_id, ARGINT(1));
+                    subject_pc->status_key.char_id, ARGINT(1));
     }
 
     battle_heal(caster, subject, ARGINT(1), ARGINT(2), 0);
@@ -1438,7 +1438,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 if (caster)
                 {
                     dumb_ptr<env_t> env = invocation_->env;
-                    ZString caster_name = (caster ? caster->status.name : CharName()).to__actual();
+                    ZString caster_name = (caster ? caster->status_key.name : CharName()).to__actual();
                     argrec_t arg[3] =
                     {
                         {"@target", env->VAR(VAR_TARGET).ty == TYPE::ENTITY ? 0 : env->VAR(VAR_TARGET).v.v_int},

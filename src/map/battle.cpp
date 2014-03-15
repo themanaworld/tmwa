@@ -2050,10 +2050,10 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
             MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
-                     sd->status.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
+                     sd->status_key.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
                      (target->bl_type == BL::PC) ? "PC" : "MOB",
                      (target->bl_type == BL::PC)
-                     ? target->is_player()-> status.char_id
+                     ? target->is_player()-> status_key.char_id
                      : target->bl_id,
                      battle_get_class(target),
                      wd.damage + wd.damage2, weapon);
@@ -2063,10 +2063,10 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         {
             dumb_ptr<map_session_data> sd2 = target->is_player();
             MAP_LOG("PC%d %s:%d,%d WPNINJURY %s%d %d FOR %d",
-                     sd2->status.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
+                     sd2->status_key.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
                      (src->bl_type == BL::PC) ? "PC" : "MOB",
                      (src->bl_type == BL::PC)
-                     ? src->is_player()->status.char_id
+                     ? src->is_player()->status_key.char_id
                      : src->bl_id,
                      battle_get_class(src),
                      wd.damage + wd.damage2);

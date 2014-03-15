@@ -178,7 +178,7 @@ void log_atcommand(dumb_ptr<map_session_data> sd, ZString cmd)
     FPRINTF(*fp, "[%s] %s(%d,%d) %s(%d) : %s\n",
             tmpstr,
             map, sd->bl_x, sd->bl_y,
-            sd->status.name, sd->status.account_id,
+            sd->status_key.name, sd->status_key.account_id,
             cmd);
 }
 
@@ -607,7 +607,7 @@ ATCE atcommand_where(Session *s, dumb_ptr<map_session_data> sd,
     {
         // you can look only lower or same level
         AString output = STRPRINTF("%s: %s (%d,%d)",
-                pl_sd->status.name,
+                pl_sd->status_key.name,
                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
         clif_displaymessage(s, output);
     }
@@ -730,7 +730,7 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
                  && (pl_GM_level > GM_level)))
             {
                 // you can look only lower or same level
-                VString<23> player_name = pl_sd->status.name.to__lower();
+                VString<23> player_name = pl_sd->status_key.name.to__lower();
                 if (player_name.contains_seq(match_text))
                 {
                     // search with no case sensitive
@@ -738,12 +738,12 @@ ATCE atcommand_who(Session *s, dumb_ptr<map_session_data> sd,
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
-                                pl_sd->status.name, pl_GM_level,
+                                pl_sd->status_key.name, pl_GM_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                     else
                         output = STRPRINTF(
                                 "Name: %s | Location: %s %d %d",
-                                pl_sd->status.name, pl_sd->mapname_,
+                                pl_sd->status_key.name, pl_sd->mapname_,
                                 pl_sd->bl_x, pl_sd->bl_y);
                     clif_displaymessage(s, output);
                     count++;
@@ -793,7 +793,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
                  && (pl_GM_level > GM_level)))
             {
                 // you can look only lower or same level
-                VString<23> player_name = pl_sd->status.name.to__lower();
+                VString<23> player_name = pl_sd->status_key.name.to__lower();
                 if (player_name.contains_seq(match_text))
                 {
                     // search with no case sensitive
@@ -803,7 +803,7 @@ ATCE atcommand_whogroup(Session *s, dumb_ptr<map_session_data> sd,
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Party: '%s'",
-                                pl_sd->status.name, pl_GM_level, temp0);
+                                pl_sd->status_key.name, pl_GM_level, temp0);
                     clif_displaymessage(s, output);
                     count++;
                 }
@@ -863,12 +863,12 @@ ATCE atcommand_whomap(Session *s, dumb_ptr<map_session_data> sd,
                     if (pl_GM_level > 0)
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
-                                pl_sd->status.name, pl_GM_level,
+                                pl_sd->status_key.name, pl_GM_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                     else
                         output = STRPRINTF(
                                 "Name: %s | Location: %s %d %d",
-                                pl_sd->status.name, pl_sd->mapname_,
+                                pl_sd->status_key.name, pl_sd->mapname_,
                                 pl_sd->bl_x, pl_sd->bl_y);
                     clif_displaymessage(s, output);
                     count++;
@@ -925,10 +925,10 @@ ATCE atcommand_whomapgroup(Session *s, dumb_ptr<map_session_data> sd,
                     AString output;
                     if (pl_GM_level > 0)
                         output = STRPRINTF("Name: %s (GM:%d) | Party: '%s'",
-                                pl_sd->status.name, pl_GM_level, temp0);
+                                pl_sd->status_key.name, pl_GM_level, temp0);
                     else
                         output = STRPRINTF("Name: %s | Party: '%s'",
-                                pl_sd->status.name, temp0);
+                                pl_sd->status_key.name, temp0);
                     clif_displaymessage(s, output);
                     count++;
                 }
@@ -980,14 +980,14 @@ ATCE atcommand_whogm(Session *s, dumb_ptr<map_session_data> sd,
                      && (pl_GM_level > GM_level)))
                 {
                     // you can look only lower or same level
-                    VString<23> player_name = pl_sd->status.name.to__lower();
+                    VString<23> player_name = pl_sd->status_key.name.to__lower();
                     if (player_name.contains_seq(match_text))
                     {
                         // search with no case sensitive
                         AString output;
                         output = STRPRINTF(
                                 "Name: %s (GM:%d) | Location: %s %d %d",
-                                pl_sd->status.name, pl_GM_level,
+                                pl_sd->status_key.name, pl_GM_level,
                                 pl_sd->mapname_, pl_sd->bl_x, pl_sd->bl_y);
                         clif_displaymessage(s, output);
                         output = STRPRINTF(
@@ -1109,7 +1109,7 @@ ATCE atcommand_storage(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::EXIST;
     }
 
-    if ((stor = account2storage2(sd->status.account_id)) != NULL
+    if ((stor = account2storage2(sd->status_key.account_id)) != NULL
         && stor->storage_status == 1)
     {
         clif_displaymessage(s, "msg_table[250]");
@@ -1503,7 +1503,7 @@ ATCE atcommand_gm(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
     else
-        chrif_changegm(sd->status.account_id, message);
+        chrif_changegm(sd->status_key.account_id, message);
 
     return ATCE::OKAY;
 }
@@ -1796,7 +1796,7 @@ void atlist_nearby_sub(dumb_ptr<block_list> bl, Session *s)
     nullpo_retv(bl);
 
     AString buf = STRPRINTF(" - \"%s\"",
-            bl->is_player()->status.name);
+            bl->is_player()->status_key.name);
     clif_displaymessage(s, buf);
 }
 
@@ -2110,7 +2110,7 @@ ATCE atcommand_character_stats(Session *s, dumb_ptr<map_session_data>,
     if (pl_sd != NULL)
     {
         AString output;
-        output = STRPRINTF("'%s' stats:", pl_sd->status.name);
+        output = STRPRINTF("'%s' stats:", pl_sd->status_key.name);
         clif_displaymessage(s, output);
         output = STRPRINTF("Base Level - %d", pl_sd->status.base_level),
         clif_displaymessage(s, output);
@@ -2172,7 +2172,7 @@ ATCE atcommand_character_stats_all(Session *s, dumb_ptr<map_session_data>,
             AString output;
             output = STRPRINTF(
                     "Name: %s | BLvl: %d | Job: Novice/Human (Lvl: %d) | HP: %d/%d | SP: %d/%d",
-                    pl_sd->status.name, pl_sd->status.base_level,
+                    pl_sd->status_key.name, pl_sd->status.base_level,
                     pl_sd->status.job_level,
                     pl_sd->status.hp, pl_sd->status.max_hp,
                     pl_sd->status.sp, pl_sd->status.max_sp);
@@ -2255,7 +2255,7 @@ ATCE atcommand_char_change_sex(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     {
-        chrif_char_ask_name(sd->status.account_id, character, 5, HumanTimeDiff());
+        chrif_char_ask_name(sd->status_key.account_id, character, 5, HumanTimeDiff());
         // type: 5 - changesex
         clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
@@ -2273,7 +2273,7 @@ ATCE atcommand_char_block(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     {
-        chrif_char_ask_name(sd->status.account_id, character, 1, HumanTimeDiff());
+        chrif_char_ask_name(sd->status_key.account_id, character, 1, HumanTimeDiff());
         // type: 1 - block
         clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
@@ -2293,7 +2293,7 @@ ATCE atcommand_char_ban(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     {
-        chrif_char_ask_name(sd->status.account_id, character, 2, modif);
+        chrif_char_ask_name(sd->status_key.account_id, character, 2, modif);
         // type: 2 - ban
         clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
@@ -2312,7 +2312,7 @@ ATCE atcommand_char_unblock(Session *s, dumb_ptr<map_session_data> sd,
 
     {
         // send answer to login server via char-server
-        chrif_char_ask_name(sd->status.account_id, character, 3, HumanTimeDiff());
+        chrif_char_ask_name(sd->status_key.account_id, character, 3, HumanTimeDiff());
         // type: 3 - unblock
         clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
@@ -2331,7 +2331,7 @@ ATCE atcommand_char_unban(Session *s, dumb_ptr<map_session_data> sd,
 
     {
         // send answer to login server via char-server
-        chrif_char_ask_name(sd->status.account_id, character, 4, HumanTimeDiff());
+        chrif_char_ask_name(sd->status_key.account_id, character, 4, HumanTimeDiff());
         // type: 4 - unban
         clif_displaymessage(s, "Character name sends to char-server to ask it.");
     }
@@ -2697,7 +2697,7 @@ ATCE atcommand_kickall(Session *s, dumb_ptr<map_session_data> sd,
             && pl_sd->state.auth && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can kick only lower or same gm level
-            if (sd->status.account_id != pl_sd->status.account_id)
+            if (sd->status_key.account_id != pl_sd->status_key.account_id)
                 clif_GM_kick(sd, pl_sd, 0);
         }
     }
@@ -2913,7 +2913,7 @@ ATCE atcommand_mapexit(Session *, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd && pl_sd->state.auth)
         {
-            if (sd->status.account_id != pl_sd->status.account_id)
+            if (sd->status_key.account_id != pl_sd->status_key.account_id)
                 clif_GM_kick(sd, pl_sd, 0);
         }
     }
@@ -3326,7 +3326,7 @@ ATCE atcommand_recallall(Session *s, dumb_ptr<map_session_data> sd,
         dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
         if (pl_sd
             && pl_sd->state.auth
-            && sd->status.account_id != pl_sd->status.account_id
+            && sd->status_key.account_id != pl_sd->status_key.account_id
             && pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can recall only lower or same level
@@ -3381,7 +3381,7 @@ ATCE atcommand_partyrecall(Session *s, dumb_ptr<map_session_data> sd,
                 continue;
             dumb_ptr<map_session_data> pl_sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s2->session_data.get()));
             if (pl_sd && pl_sd->state.auth
-                && sd->status.account_id != pl_sd->status.account_id
+                && sd->status_key.account_id != pl_sd->status_key.account_id
                 && pl_sd->status.party_id == p->party_id)
             {
                 if (pl_sd->bl_m && pl_sd->bl_m->flag.get(MapFlag::NOWARP)
@@ -3477,7 +3477,7 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
                 {
                     output = STRPRINTF(
                             "Player '%s' (session #%d) | Location: %d,%d",
-                            pl_sd->status.name, s2, pl_sd->bl_x, pl_sd->bl_y);
+                            pl_sd->status_key.name, s2, pl_sd->bl_x, pl_sd->bl_y);
                     clif_displaymessage(s, output);
                 }
             }
@@ -3714,7 +3714,7 @@ ATCE atcommand_broadcast(Session *, dumb_ptr<map_session_data> sd,
     if (!message)
         return ATCE::USAGE;
 
-    AString output = STRPRINTF("%s : %s", sd->status.name, message);
+    AString output = STRPRINTF("%s : %s", sd->status_key.name, message);
     intif_GMmessage(output);
 
     return ATCE::OKAY;
@@ -3727,7 +3727,7 @@ ATCE atcommand_localbroadcast(Session *, dumb_ptr<map_session_data> sd,
     if (!message)
         return ATCE::USAGE;
 
-    AString output = STRPRINTF("%s : %s", sd->status.name, message);
+    AString output = STRPRINTF("%s : %s", sd->status_key.name, message);
 
     clif_GMmessage(sd, output, 1);
 
@@ -3766,7 +3766,7 @@ ATCE atcommand_email(Session *s, dumb_ptr<map_session_data> sd,
     }
     else
     {
-        chrif_changeemail(sd->status.account_id, actual_email, new_email);
+        chrif_changeemail(sd->status_key.account_id, actual_email, new_email);
         clif_displaymessage(s, "Information sended to login-server via char-server.");
     }
 
@@ -3837,7 +3837,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                     {
                         AString output = STRPRINTF(
                                 "------ Items list of '%s' ------",
-                                pl_sd->status.name);
+                                pl_sd->status_key.name);
                         clif_displaymessage(s, output);
                     }
                     EPOS equip = pl_sd->status.inventory[i].equip;
@@ -3976,7 +3976,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         if (pc_isGM(sd) >= pc_isGM(pl_sd))
         {
             // you can look items only lower or same level
-            if ((stor = account2storage2(pl_sd->status.account_id)) != NULL)
+            if ((stor = account2storage2(pl_sd->status_key.account_id)) != NULL)
             {
                 counter = 0;
                 count = 0;
@@ -3992,7 +3992,7 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                         {
                             AString output = STRPRINTF(
                                     "------ Storage items list of '%s' ------",
-                                    pl_sd->status.name);
+                                    pl_sd->status_key.name);
                             clif_displaymessage(s, output);
                         }
                         AString output;
@@ -4110,7 +4110,7 @@ ATCE atcommand_character_cart_list(Session *s, dumb_ptr<map_session_data> sd,
                     {
                         AString output = STRPRINTF(
                                 "------ Cart items list of '%s' ------",
-                                pl_sd->status.name);
+                                pl_sd->status_key.name);
                         clif_displaymessage(s, output);
                     }
 
@@ -4618,7 +4618,7 @@ ATCE atcommand_adjgmlvl(Session *s, dumb_ptr<map_session_data>,
     if (pl_sd == NULL)
         return ATCE::EXIST;
 
-    pc_set_gm_level(pl_sd->status.account_id, newlev);
+    pc_set_gm_level(pl_sd->status_key.account_id, newlev);
 
     return ATCE::OKAY;
 }
@@ -4776,7 +4776,7 @@ ATCE atcommand_tee(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     MString data;
-    data += sd->status.name.to__actual();
+    data += sd->status_key.name.to__actual();
     data += " : ";
     data += message;
     clif_message(sd, AString(data));
@@ -4836,7 +4836,7 @@ ATCE atcommand_jump_iterate(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
     pc_setpos(sd, pl_sd->bl_m->name_, pl_sd->bl_x, pl_sd->bl_y, BeingRemoveWhy::WARPED);
-    AString output = STRPRINTF("Jump to %s", pl_sd->status.name);
+    AString output = STRPRINTF("Jump to %s", pl_sd->status_key.name);
     clif_displaymessage(s, output);
 
     sd->followtarget = pl_sd->bl_id;
@@ -4863,7 +4863,7 @@ ATCE atcommand_wgm(Session *s, dumb_ptr<map_session_data> sd,
     if (tmw_CheckChatSpam(sd, message))
         return ATCE::OKAY;
 
-    tmw_GmHackMsg(STRPRINTF("[GM] %s: %s", sd->status.name, message));
+    tmw_GmHackMsg(STRPRINTF("[GM] %s: %s", sd->status_key.name, message));
     if (!pc_isGM(sd))
         clif_displaymessage(s, "Message sent.");
 
@@ -5035,7 +5035,7 @@ ATCE atcommand_ipcheck(Session *s, dumb_ptr<map_session_data>,
             {
                 AString output = STRPRINTF(
                         "Name: %s | Location: %s %d %d",
-                        pl_sd->status.name, pl_sd->mapname_,
+                        pl_sd->status_key.name, pl_sd->mapname_,
                         pl_sd->bl_x, pl_sd->bl_y);
                 clif_displaymessage(s, output);
             }

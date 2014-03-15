@@ -127,7 +127,7 @@ int check_ip_flag = 1;         // It's to check IP of a player between char-serv
 static
 int char_id_count = 150000;
 static
-std::vector<mmo_charstatus> char_data;
+std::vector<CharPair> char_keys;
 static
 int max_connect_user = 0;
 static
@@ -153,7 +153,7 @@ static
 int online_gm_display_min_level = 20;  // minimum GM level to display 'GM' when we want to display it
 
 static
-std::vector<Session *> online_chars;              // same size of char_data, and id value of current server (or -1)
+std::vector<Session *> online_chars;              // same size of char_keys, and id value of current server (or -1)
 static
 TimeT update_online;           // to update online files when we receiving information from a server (not less than 8 seconds)
 
@@ -192,13 +192,13 @@ int isGM(int account_id)
 //   and returns index if only 1 character is found
 //   and similar to the searched name.
 //----------------------------------------------
-const mmo_charstatus *search_character(CharName character_name)
+const CharPair *search_character(CharName character_name)
 {
-    for (const mmo_charstatus& cd : char_data)
+    for (const CharPair& cd : char_keys)
     {
         {
             // Strict comparison (if found, we finish the function immediatly with correct value)
-            if (cd.name == character_name)
+            if (cd.key.name == character_name)
                 return &cd;
         }
     }
@@ -207,35 +207,38 @@ const mmo_charstatus *search_character(CharName character_name)
     return nullptr;
 }
 
-const mmo_charstatus *search_character_id(int char_id)
+const CharPair *search_character_id(int char_id)
 {
-    for (const mmo_charstatus& cd : char_data)
+    for (const CharPair& cd : char_keys)
     {
-        if (cd.char_id == char_id)
+        if (cd.key.char_id == char_id)
             return &cd;
     }
 
     return nullptr;
 }
 
-Session *server_for(const mmo_charstatus *mcs)
+// TODO make these DIE already
+Session *server_for(const CharPair *mcs)
 {
     if (!mcs)
         return nullptr;
-    return online_chars[mcs - &char_data.front()];
+    return online_chars[mcs - &char_keys.front()];
 }
 static
-Session *& server_for_m(const mmo_charstatus *mcs)
+Session *& server_for_m(const CharPair *mcs)
 {
-    return online_chars[mcs - &char_data.front()];
+    return online_chars[mcs - &char_keys.front()];
 }
 
 //-------------------------------------------------
 // Function to create the character line (for save)
 //-------------------------------------------------
 static
-AString mmo_char_tostr(struct mmo_charstatus *p)
+AString mmo_char_tostr(struct CharPair *cp)
 {
+    CharKey *k = &cp->key;
+    CharData *p = cp->data.get();
     // on multi-map server, sometimes it's posssible that last_point become void. (reason???) We check that to not lost character at restart.
     if (!p->last_point.map_)
     {
@@ -258,9 +261,9 @@ AString mmo_char_tostr(struct mmo_charstatus *p)
             "%d,%d,%d,%d,%d\t"
             "%s,%d,%d\t"
             "%s,%d,%d,%d\t",
-            p->char_id,
-            p->account_id, p->char_num,
-            p->name,
+            k->char_id,
+            k->account_id, k->char_num,
+            k->name,
             p->species, p->base_level, p->job_level,
             p->base_exp, p->job_exp, p->zeny,
             p->hp, p->max_hp, p->sp, p->max_sp,
@@ -367,10 +370,10 @@ bool extract(XString str, struct skill_loader *s)
 // Function to set the character from the line (at read of characters file)
 //-------------------------------------------------------------------------
 static
-bool extract(XString str, struct mmo_charstatus *p)
+bool extract(XString str, CharPair *cp)
 {
-    // initilialise character
-    *p = mmo_charstatus{};
+    CharKey *k = &cp->key;
+    CharData *p = cp->data.get();
 
     uint32_t unused_guild_id, unused_pet_id;
     std::vector<struct point> memos;
@@ -379,9 +382,9 @@ bool extract(XString str, struct mmo_charstatus *p)
     std::vector<struct global_reg> vars;
     if (!extract(str,
                 record<'\t'>(
-                    &p->char_id,
-                    record<','>(&p->account_id, &p->char_num),
-                    &p->name,
+                    &k->char_id,
+                    record<','>(&k->account_id, &k->char_num),
+                    &k->name,
                     record<','>(&p->species, &p->base_level, &p->job_level),
                     record<','>(&p->base_exp, &p->job_exp, &p->zeny),
                     record<','>(&p->hp, &p->max_hp, &p->sp, &p->max_sp),
@@ -403,7 +406,7 @@ bool extract(XString str, struct mmo_charstatus *p)
                     vrec<' '>(&vars))))
         return false;
 
-    if (wisp_server_name == p->name)
+    if (wisp_server_name == k->name)
         return false;
 
     // TODO replace *every* lookup with a map lookup
@@ -411,10 +414,10 @@ bool extract(XString str, struct mmo_charstatus *p)
     static std::set<CharName> seen_names;
     // we don't have to worry about deleted characters,
     // this is only called during startup
-    auto _seen_id = seen_ids.insert(p->char_id);
+    auto _seen_id = seen_ids.insert(k->char_id);
     if (!_seen_id.second)
         return false;
-    auto _seen_name = seen_names.insert(p->name);
+    auto _seen_name = seen_names.insert(k->name);
     if (!_seen_name.second)
     {
         seen_ids.erase(_seen_id.first);
@@ -458,7 +461,7 @@ bool extract(XString str, struct mmo_charstatus *p)
 static
 int mmo_char_init(void)
 {
-    char_data.clear();
+    char_keys.clear();
     online_chars.clear();
 
     io::ReadFile in(char_txt);
@@ -490,22 +493,22 @@ int mmo_char_init(void)
             }
         }
 
-        mmo_charstatus cd {};
+        CharPair cd;
         if (!extract(line, &cd))
         {
             CHAR_LOG("Char skipped\n%s", line);
             continue;
         }
-        if (cd.char_id >= char_id_count)
-            char_id_count = cd.char_id + 1;
-        char_data.push_back(std::move(cd));
+        if (cd.key.char_id >= char_id_count)
+            char_id_count = cd.key.char_id + 1;
+        char_keys.push_back(std::move(cd));
         online_chars.push_back(nullptr);
     }
 
     PRINTF("mmo_char_init: %zu characters read in %s.\n",
-            char_data.size(), char_txt);
+            char_keys.size(), char_txt);
     CHAR_LOG("mmo_char_init: %zu characters read in %s.\n",
-            char_data.size(), char_txt);
+            char_keys.size(), char_txt);
 
     CHAR_LOG("Id for the next created character: %d.\n",
             char_id_count);
@@ -528,7 +531,7 @@ void mmo_char_sync(void)
     }
     {
         // yes, we need a mutable reference to do the saves ...
-        for (mmo_charstatus& cd : char_data)
+        for (CharPair& cd : char_keys)
         {
             AString line = mmo_char_tostr(&cd);
             fp.put_line(line);
@@ -577,7 +580,7 @@ void mmo_char_sync_timer(TimerData *, tick_t)
 // Function to create a new character
 //-----------------------------------
 static
-mmo_charstatus *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], uint8_t slot, uint16_t hair_color, uint16_t hair_style)
+CharPair *make_new_char(Session *s, CharName name, const uint8_t (&stats)[6], uint8_t slot, uint16_t hair_color, uint16_t hair_style)
 {
     // ugh
     char_session_data *sd = static_cast<char_session_data *>(s->session_data.get());
@@ -658,22 +661,22 @@ mmo_charstatus *make_new_char(Session *s, CharName name, const uint8_t (&stats)[
         }
     }
 
-    for (const mmo_charstatus& cd : char_data)
+    for (const CharPair& cd : char_keys)
     {
-        if (cd.name == name)
+        if (cd.key.name == name)
         {
             CHAR_LOG("Make new char error (name already exists): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
-                 s, sd->account_id, slot, name, cd.name,
+                 s, sd->account_id, slot, name, cd.key.name,
                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
                  stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
                  hair_style, hair_color);
             return nullptr;
         }
-        if (cd.account_id == sd->account_id
-            && cd.char_num == slot)
+        if (cd.key.account_id == sd->account_id
+            && cd.key.char_num == slot)
         {
             CHAR_LOG("Make new char error (slot already used): (connection #%d, account: %d) slot %d, name: %s (actual name of other char: %s), stats: %d+%d+%d+%d+%d+%d=%d, hair: %d, hair color: %d.\n",
-                 s, sd->account_id, slot, name, cd.name,
+                 s, sd->account_id, slot, name, cd.key.name,
                  stats[0], stats[1], stats[2], stats[3], stats[4], stats[5],
                  stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
                  hair_style, hair_color);
@@ -699,12 +702,14 @@ mmo_charstatus *make_new_char(Session *s, CharName name, const uint8_t (&stats)[
          stats[0] + stats[1] + stats[2] + stats[3] + stats[4] + stats[5],
          hair_style, hair_color, ip);
 
-    mmo_charstatus cd {};
+    CharPair cp;
+    CharKey& ck = cp.key;
+    CharData& cd = *cp.data;
 
-    cd.char_id = char_id_count++;
-    cd.account_id = sd->account_id;
-    cd.char_num = slot;
-    cd.name = name;
+    ck.char_id = char_id_count++;
+    ck.account_id = sd->account_id;
+    ck.char_num = slot;
+    ck.name = name;
     cd.species = 0;
     cd.base_level = 1;
     cd.job_level = 1;
@@ -739,10 +744,10 @@ mmo_charstatus *make_new_char(Session *s, CharName name, const uint8_t (&stats)[
     cd.head_bottom = 0;
     cd.last_point = start_point;
     cd.save_point = start_point;
-    char_data.push_back(std::move(cd));
+    char_keys.push_back(std::move(cp));
     online_chars.push_back(nullptr);
 
-    return &char_data.back();
+    return &char_keys.back();
 }
 
 //-------------------------------------------------------------
@@ -796,7 +801,7 @@ void create_online_files(void)
                 FPRINTF(fp, "\n");
 
                 // display each player.
-                for (struct mmo_charstatus& cd : char_data)
+                for (CharPair& cd : char_keys)
                 {
                     if (!server_for(&cd))
                         continue;
@@ -805,18 +810,18 @@ void create_online_files(void)
                     // displaying the character name
                     {
                         // without/with 'GM' display
-                        int gml = isGM(cd.account_id);
+                        int gml = isGM(cd.key.account_id);
                         {
                             if (gml >= online_gm_display_min_level)
-                                FPRINTF(fp, "%-24s (GM) ", cd.name);
+                                FPRINTF(fp, "%-24s (GM) ", cd.key.name);
                             else
-                                FPRINTF(fp, "%-24s      ", cd.name);
+                                FPRINTF(fp, "%-24s      ", cd.key.name);
                         }
                         // name of the character in the html (no < >, because that create problem in html code)
                         FPRINTF(fp2, "        <td>");
                         if (gml >= online_gm_display_min_level)
                             FPRINTF(fp2, "<b>");
-                        for (char c : cd.name.to__actual())
+                        for (char c : cd.key.name.to__actual())
                         {
                             switch (c)
                             {
@@ -888,8 +893,9 @@ int count_users(void)
 // [Fate] Find inventory item based on equipment mask, return view.  ID must match view ID (!).
 //----------------------------------------
 static
-int find_equip_view(const mmo_charstatus *p, EPOS equipmask)
+int find_equip_view(const CharPair *cp, EPOS equipmask)
 {
+    CharData *p = cp->data.get();
     for (int i = 0; i < MAX_INVENTORY; i++)
         if (p->inventory[i].nameid && p->inventory[i].amount
             && bool(p->inventory[i].equip & equipmask))
@@ -904,10 +910,10 @@ static
 int mmo_char_send006b(Session *s, struct char_session_data *sd)
 {
     int found_num = 0;
-    std::array<const mmo_charstatus *, 9> found_char;
-    for (const mmo_charstatus& cd : char_data)
+    std::array<const CharPair *, 9> found_char;
+    for (const CharPair& cd : char_keys)
     {
-        if (cd.account_id == sd->account_id)
+        if (cd.key.account_id == sd->account_id)
         {
             found_char[found_num] = &cd;
             found_num++;
@@ -923,19 +929,22 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
 
     for (int i = 0; i < found_num; i++)
     {
-        const mmo_charstatus *p = found_char[i];
+        const CharPair *cp = found_char[i];
         int j = offset + (i * 106);
 
-        WFIFOL(s, j) = p->char_id;
+        const CharKey *k = &cp->key;
+        const CharData *p = cp->data.get();
+
+        WFIFOL(s, j) = k->char_id;
         WFIFOL(s, j + 4) = p->base_exp;
         WFIFOL(s, j + 8) = p->zeny;
         WFIFOL(s, j + 12) = p->job_exp;
         WFIFOL(s, j + 16) = p->job_level;
 
-        WFIFOW(s, j + 20) = find_equip_view(p, EPOS::SHOES);
-        WFIFOW(s, j + 22) = find_equip_view(p, EPOS::GLOVES);
-        WFIFOW(s, j + 24) = find_equip_view(p, EPOS::CAPE);
-        WFIFOW(s, j + 26) = find_equip_view(p, EPOS::MISC1);
+        WFIFOW(s, j + 20) = find_equip_view(cp, EPOS::SHOES);
+        WFIFOW(s, j + 22) = find_equip_view(cp, EPOS::GLOVES);
+        WFIFOW(s, j + 24) = find_equip_view(cp, EPOS::CAPE);
+        WFIFOW(s, j + 26) = find_equip_view(cp, EPOS::MISC1);
         WFIFOL(s, j + 28) = static_cast<uint16_t>(p->option);
 
         WFIFOL(s, j + 32) = p->karma;
@@ -958,10 +967,10 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         WFIFOW(s, j + 66) = p->head_top;
         WFIFOW(s, j + 68) = p->head_mid;
         WFIFOW(s, j + 70) = p->hair_color;
-        WFIFOW(s, j + 72) = find_equip_view(p, EPOS::MISC2);
+        WFIFOW(s, j + 72) = find_equip_view(cp, EPOS::MISC2);
 //      WFIFOW(s,j+72) = p->clothes_color;
 
-        WFIFO_STRING(s, j + 74, p->name.to__actual(), 24);
+        WFIFO_STRING(s, j + 74, k->name.to__actual(), 24);
 
         WFIFOB(s, j + 98) = min(p->attrs[ATTR::STR], 255);
         WFIFOB(s, j + 99) = min(p->attrs[ATTR::AGI], 255);
@@ -969,7 +978,7 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
         WFIFOB(s, j + 101) = min(p->attrs[ATTR::INT], 255);
         WFIFOB(s, j + 102) = min(p->attrs[ATTR::DEX], 255);
         WFIFOB(s, j + 103) = min(p->attrs[ATTR::LUK], 255);
-        WFIFOB(s, j + 104) = p->char_num;
+        WFIFOB(s, j + 104) = k->char_num;
     }
 
     WFIFOSET(s, WFIFOW(s, 2));
@@ -981,15 +990,15 @@ static
 int set_account_reg2(int acc, int num, struct global_reg *reg)
 {
     int c = 0;
-    for (mmo_charstatus& cd : char_data)
+    for (CharPair& cd : char_keys)
     {
-        if (cd.account_id == acc)
+        if (cd.key.account_id == acc)
         {
             for (int i = 0; i < num; ++i)
-                cd.account_reg2[i] = reg[i];
-            cd.account_reg2_num = num;
+                cd.data->account_reg2[i] = reg[i];
+            cd.data->account_reg2_num = num;
             for (int i = num; i < ACCOUNT_REG2_NUM; ++i)
-                cd.account_reg2[i] = global_reg{};
+                cd.data->account_reg2[i] = global_reg{};
             c++;
         }
     }
@@ -998,39 +1007,42 @@ int set_account_reg2(int acc, int num, struct global_reg *reg)
 
 // Divorce a character from it's partner and let the map server know
 static
-int char_divorce(struct mmo_charstatus *cs)
+int char_divorce(CharPair *cp)
 {
     uint8_t buf[10];
 
-    if (cs == NULL)
+    if (cp == NULL)
         return 0;
+
+    CharKey *ck = &cp->key;
+    CharData *cs = cp->data.get();
 
     if (cs->partner_id <= 0)
     {
         WBUFW(buf, 0) = 0x2b12;
-        WBUFL(buf, 2) = cs->char_id;
+        WBUFL(buf, 2) = ck->char_id;
         WBUFL(buf, 6) = 0;     // partner id 0 means failure
         mapif_sendall(buf, 10);
         return 0;
     }
 
     WBUFW(buf, 0) = 0x2b12;
-    WBUFL(buf, 2) = cs->char_id;
+    WBUFL(buf, 2) = ck->char_id;
 
-    for (mmo_charstatus& cd : char_data)
+    for (CharPair& cd : char_keys)
     {
-        if (cd.char_id == cs->partner_id
-            && cd.partner_id == cs->char_id)
+        if (cd.key.char_id == cs->partner_id
+            && cd.data->partner_id == ck->char_id)
         {
             WBUFL(buf, 6) = cs->partner_id;
             mapif_sendall(buf, 10);
             cs->partner_id = 0;
-            cd.partner_id = 0;
+            cd.data->partner_id = 0;
             return 0;
         }
         // The other char doesn't have us as their partner, so just clear our partner
         // Don't worry about this, as the map server should verify itself that the other doesn't have us as a partner, and so won't mess with their marriage
-        else if (cd.char_id == cs->partner_id)
+        else if (cd.key.char_id == cs->partner_id)
         {
             WBUFL(buf, 6) = cs->partner_id;
             mapif_sendall(buf, 10);
@@ -1074,20 +1086,23 @@ int disconnect_player(int accound_id)
 
 // キャラ削除に伴うデータ削除
 static
-int char_delete(struct mmo_charstatus *cs)
+int char_delete(CharPair *cp)
 {
+    CharKey *ck = &cp->key;
+    CharData *cs = cp->data.get();
+
     // パーティー脱退
     if (cs->party_id)
-        inter_party_leave(cs->party_id, cs->account_id);
+        inter_party_leave(cs->party_id, ck->account_id);
     // 離婚
     if (cs->partner_id)
-        char_divorce(cs);
+        char_divorce(cp);
 
     // Force the character (and all on the same account) to leave all map servers
     {
         unsigned char buf[6];
         WBUFW(buf, 0) = 0x2afe;
-        WBUFL(buf, 2) = cs->account_id;
+        WBUFL(buf, 2) = ck->account_id;
         mapif_sendall(buf, 6);
     }
 
@@ -1241,9 +1256,11 @@ void parse_tologin(Session *ls)
                     RFIFOSKIP(ls, 7);
                     if (acc > 0)
                     {
-                        for (struct mmo_charstatus& cd : char_data)
+                        for (CharPair& cp : char_keys)
                         {
-                            if (cd.account_id == acc)
+                            CharKey& ck = cp.key;
+                            CharData& cd = *cp.data;
+                            if (ck.account_id == acc)
                             {
                                 cd.sex = sex;
 //                      auth_fifo[i].sex = sex;
@@ -1350,10 +1367,12 @@ void parse_tologin(Session *ls)
                 WBUFL(buf, 6) = dest_id;
 
                 mapif_sendall(buf, 10);    // forward package to map servers
-                for (struct mmo_charstatus& cd : char_data)
+                for (CharPair& cp : char_keys)
                 {
-                    struct mmo_charstatus *c = &cd;
-                    struct storage *s = account2storage(c->account_id);
+                    CharKey *k = &cp.key;
+                    CharData& cd = *cp.data.get();
+                    CharData *c = &cd;
+                    struct storage *s = account2storage(k->account_id);
                     int changes = 0;
                     int j;
 #define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
@@ -1373,8 +1392,8 @@ void parse_tologin(Session *ls)
 #undef FIX
                     if (changes)
                         CHAR_LOG("itemfrob(%d -> %d):  `%s'(%d, account %d): changed %d times\n",
-                             source_id, dest_id, c->name, c->char_id,
-                             c->account_id, changes);
+                             source_id, dest_id, k->name, k->char_id,
+                             k->account_id, changes);
 
                 }
 
@@ -1391,23 +1410,26 @@ void parse_tologin(Session *ls)
                 // Deletion of all characters of the account
 //#warning "This comment is a lie, but it's still true."
                 // needs to use index because they may move during resize
-                for (int idx = 0; idx < char_data.size(); idx++)
+                for (int idx = 0; idx < char_keys.size(); idx++)
                 {
-                    mmo_charstatus& cd = char_data[idx];
-                    if (cd.account_id == RFIFOL(ls, 2))
+                    CharPair& cp = char_keys[idx];
+                    CharKey& ck = cp.key;
+                    if (ck.account_id == RFIFOL(ls, 2))
                     {
-                        char_delete(&cd);
-                        if (&cd != &char_data.back())
+                        char_delete(&cp);
+                        if (&cp != &char_keys.back())
                         {
-                            std::swap(cd, char_data.back());
+                            std::swap(cp, char_keys.back());
                             // if moved character owns to deleted account, check again it's character
-                            if (cd.account_id == RFIFOL(ls, 2))
+                            // YES this is the newly swapped one
+                            // we could avoid this by working backwards
+                            if (ck.account_id == RFIFOL(ls, 2))
                             {
                                 idx--;
                                 // Correct moved character reference in the character's owner by [Yor]
                             }
                         }
-                        char_data.pop_back();
+                        char_keys.pop_back();
                     }
                 }
                 // Deletion of the storage
@@ -1659,19 +1681,23 @@ void parse_frommap(Session *ms)
                         (!check_ip_flag || afi.ip == ip)
                         && !afi.delflag)
                     {
-                        mmo_charstatus *cd = nullptr;
-                        for (mmo_charstatus& cdi : char_data)
+                        CharPair *cp = nullptr;
+                        for (CharPair& cdi : char_keys)
                         {
-                            if (cdi.char_id == afi.char_id)
+                            if (cdi.key.char_id == afi.char_id)
                             {
-                                cd = &cdi;
+                                cp = &cdi;
                                 break;
                             }
                         }
-                        assert (cd && "uh-oh - deleted while in queue?");
+                        assert (cp && "uh-oh - deleted while in queue?");
+
+                        CharKey *ck = &cp->key;
+                        CharData *cd = cp->data.get();
+
                         afi.delflag = 1;
                         WFIFOW(ms, 0) = 0x2afd;
-                        WFIFOW(ms, 2) = 18 + sizeof(*cd);
+                        WFIFOW(ms, 2) = 18 + sizeof(*ck) + sizeof(*cd);
                         WFIFOL(ms, 4) = account_id;
                         WFIFOL(ms, 8) = afi.login_id2;
                         WFIFOL(ms, 12) = static_cast<time_t>(afi.connect_until_time);
@@ -1680,7 +1706,8 @@ void parse_frommap(Session *ms)
                         FPRINTF(stderr,
                                  "From queue index %zd: recalling packet version %d\n",
                                  (&afi - &auth_fifo.front()), afi.packet_tmw_version);
-                        WFIFO_STRUCT(ms, 18, *cd);
+                        WFIFO_STRUCT(ms, 18, *ck);
+                        WFIFO_STRUCT(ms, 18 + sizeof(*ck), *cd);
                         WFIFOSET(ms, WFIFOW(ms, 2));
                         //PRINTF("auth_fifo search success (auth #%d, account %d, character: %d).\n", i, RFIFOL(fd,2), RFIFOL(fd,6));
                         goto x2afc_out;
@@ -1716,9 +1743,9 @@ void parse_frommap(Session *ms)
                 for (int i = 0; i < server[id].users; i++)
                 {
                     int char_id = RFIFOL(ms, 6 + i * 4);
-                    for (const mmo_charstatus& cd : char_data)
+                    for (const CharPair& cd : char_keys)
                     {
-                        if (cd.char_id == char_id)
+                        if (cd.key.char_id == char_id)
                         {
                             server_for_m(&cd) = ms;
                             break;
@@ -1740,12 +1767,13 @@ void parse_frommap(Session *ms)
             case 0x2b01:
                 if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
                     return;
-                for (mmo_charstatus& cd : char_data)
+                for (CharPair& cd : char_keys)
                 {
-                    if (cd.account_id == RFIFOL(ms, 4) &&
-                        cd.char_id == RFIFOL(ms, 8))
+                    if (cd.key.account_id == RFIFOL(ms, 4) &&
+                        cd.key.char_id == RFIFOL(ms, 8))
                     {
-                        RFIFO_STRUCT(ms, 12, cd);
+                        RFIFO_STRUCT(ms, 12, cd.key);
+                        RFIFO_STRUCT(ms, 12 + sizeof(cd.key), *cd.data);
                         break;
                     }
                 }
@@ -1797,9 +1825,9 @@ void parse_frommap(Session *ms)
 
                 // default, if not found in the loop
                 WFIFOW(ms, 6) = 1;
-                for (const mmo_charstatus& cd : char_data)
-                    if (cd.account_id == RFIFOL(ms, 2) &&
-                        cd.char_id == RFIFOL(ms, 14))
+                for (const CharPair& cd : char_keys)
+                    if (cd.key.account_id == RFIFOL(ms, 2) &&
+                        cd.key.char_id == RFIFOL(ms, 14))
                     {
                         auth_fifo_iter++;
                         WFIFOL(ms, 6) = 0;
@@ -1859,24 +1887,24 @@ void parse_frommap(Session *ms)
                     WFIFOL(ms, 2) = acc;   // who want do operation
                     WFIFOW(ms, 30) = operation;  // type of operation: 1-block, 2-ban, 3-unblock, 4-unban, 5-changesex
                     // search character
-                    const mmo_charstatus *cd = search_character(character_name);
+                    const CharPair *cd = search_character(character_name);
                     if (cd)
                     {
-                        WFIFO_STRING(ms, 6, cd->name.to__actual(), 24); // put correct name if found
+                        const CharKey *ck = &cd->key;
+                        WFIFO_STRING(ms, 6, ck->name.to__actual(), 24); // put correct name if found
                         WFIFOW(ms, 32) = 0;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
                         switch (RFIFOW(ms, 30))
                         {
                             case 1:    // block
                                 if (acc == -1
-                                    || isGM(acc) >= isGM(cd->account_id))
+                                    || isGM(acc) >= isGM(ck->account_id))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2724;
-                                        WFIFOL(login_session, 2) = cd->account_id;  // account value
+                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
                                         WFIFOL(login_session, 6) = 5;   // status of the account
                                         WFIFOSET(login_session, 10);
-//                          PRINTF("char : status -> login: account %d, status: %d \n", char_data[i].account_id, 5);
                                     }
                                     else
                                         WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
@@ -1886,18 +1914,16 @@ void parse_frommap(Session *ms)
                                 break;
                             case 2:    // ban
                                 if (acc == -1
-                                    || isGM(acc) >= isGM(cd->account_id))
+                                    || isGM(acc) >= isGM(ck->account_id))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2725;
-                                        WFIFOL(login_session, 2) = cd->account_id;  // account value
+                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
                                         HumanTimeDiff ban_change;
                                         RFIFO_STRUCT(ms, 32, ban_change);
                                         WFIFO_STRUCT(login_session, 6, ban_change);
                                         WFIFOSET(login_session, 18);
-//                          PRINTF("char : status -> login: account %d, ban: %dy %dm %dd %dh %dmn %ds\n",
-//                                 char_data[i].account_id, (short)RFIFOW(fd,32), (short)RFIFOW(fd,34), (short)RFIFOW(fd,36), (short)RFIFOW(fd,38), (short)RFIFOW(fd,40), (short)RFIFOW(fd,42));
                                     }
                                     else
                                         WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
@@ -1907,15 +1933,14 @@ void parse_frommap(Session *ms)
                                 break;
                             case 3:    // unblock
                                 if (acc == -1
-                                    || isGM(acc) >= isGM(cd->account_id))
+                                    || isGM(acc) >= isGM(ck->account_id))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2724;
-                                        WFIFOL(login_session, 2) = cd->account_id;  // account value
+                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
                                         WFIFOL(login_session, 6) = 0;   // status of the account
                                         WFIFOSET(login_session, 10);
-//                          PRINTF("char : status -> login: account %d, status: %d \n", char_data[i].account_id, 0);
                                     }
                                     else
                                         WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
@@ -1925,14 +1950,13 @@ void parse_frommap(Session *ms)
                                 break;
                             case 4:    // unban
                                 if (acc == -1
-                                    || isGM(acc) >= isGM(cd->account_id))
+                                    || isGM(acc) >= isGM(ck->account_id))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x272a;
-                                        WFIFOL(login_session, 2) = cd->account_id;  // account value
+                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
                                         WFIFOSET(login_session, 6);
-//                          PRINTF("char : status -> login: account %d, unban request\n", char_data[i].account_id);
                                     }
                                     else
                                         WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
@@ -1942,14 +1966,13 @@ void parse_frommap(Session *ms)
                                 break;
                             case 5:    // changesex
                                 if (acc == -1
-                                    || isGM(acc) >= isGM(cd->account_id))
+                                    || isGM(acc) >= isGM(ck->account_id))
                                 {
                                     if (login_session)
                                     {   // don't send request if no login-server
                                         WFIFOW(login_session, 0) = 0x2727;
-                                        WFIFOL(login_session, 2) = cd->account_id;  // account value
+                                        WFIFOL(login_session, 2) = ck->account_id;  // account value
                                         WFIFOSET(login_session, 6);
-//                          PRINTF("char : status -> login: account %d, change sex request\n", char_data[i].account_id);
                                     }
                                     else
                                         WFIFOW(ms, 32) = 3;    // answer: 0-login-server resquest done, 1-player not found, 2-gm level too low, 3-login-server offline
@@ -2009,8 +2032,8 @@ void parse_frommap(Session *ms)
                 if (RFIFOREST(ms) < 4)
                     return;
                 {
-                    for (mmo_charstatus& cd : char_data)
-                        if (cd.char_id == RFIFOL(ms, 2))
+                    for (CharPair& cd : char_keys)
+                        if (cd.key.char_id == RFIFOL(ms, 2))
                         {
                             char_divorce(&cd);
                             break;
@@ -2074,20 +2097,23 @@ static
 void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP4Address ip)
 {
     {
-        mmo_charstatus *cd = nullptr;
-        for (mmo_charstatus& cdi : char_data)
+        CharPair *cp = nullptr;
+        for (CharPair& cdi : char_keys)
         {
-            if (cdi.account_id == sd->account_id && cdi.char_num == rfifob_2)
+            if (cdi.key.account_id == sd->account_id && cdi.key.char_num == rfifob_2)
             {
-                cd = &cdi;
+                cp = &cdi;
                 break;
             }
         }
-        if (cd)
+        if (cp)
         {
+            CharKey *ck = &cp->key;
+            CharData *cd = cp->data.get();
+
             CHAR_LOG("Character Selected, Account ID: %d, Character Slot: %d, Character Name: %s [%s]\n",
                  sd->account_id, rfifob_2,
-                 cd->name, ip);
+                 ck->name, ip);
             // searching map server
             int i = search_mapserver(cd->last_point.map_);
             // if map is not found, we check major cities
@@ -2117,11 +2143,11 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
                 }
             }
             WFIFOW(s, 0) = 0x71;
-            WFIFOL(s, 2) = cd->char_id;
+            WFIFOL(s, 2) = ck->char_id;
             WFIFO_STRING(s, 6, cd->last_point.map_, 16);
             PRINTF("Character selection '%s' (account: %d, slot: %d) [%s]\n",
-                 cd->name,
-                 sd->account_id, cd->char_num, ip);
+                 ck->name,
+                 sd->account_id, ck->char_num, ip);
             PRINTF("--Send IP of map-server. ");
             if (lan_ip_check(ip))
                 WFIFOIP(s, 22) = lan_map_ip;
@@ -2132,7 +2158,7 @@ void handle_x0066(Session *s, struct char_session_data *sd, uint8_t rfifob_2, IP
             if (auth_fifo_iter == auth_fifo.end())
                 auth_fifo_iter = auth_fifo.begin();
             auth_fifo_iter->account_id = sd->account_id;
-            auth_fifo_iter->char_id = cd->char_id;
+            auth_fifo_iter->char_id = ck->char_id;
             auth_fifo_iter->login_id1 = sd->login_id1;
             auth_fifo_iter->login_id2 = sd->login_id2;
             auth_fifo_iter->delflag = 0;
@@ -2295,8 +2321,8 @@ void parse_char(Session *s)
                 uint8_t slot = RFIFOB(s, 32);
                 uint16_t hair_color = RFIFOW(s, 33);
                 uint16_t hair_style = RFIFOW(s, 35);
-                const struct mmo_charstatus *cd = make_new_char(s, name, stats, slot, hair_color, hair_style);
-                if (!cd)
+                const CharPair *cp = make_new_char(s, name, stats, slot, hair_color, hair_style);
+                if (!cp)
                 {
                     WFIFOW(s, 0) = 0x6e;
                     WFIFOB(s, 2) = 0x00;
@@ -2304,11 +2330,13 @@ void parse_char(Session *s)
                     RFIFOSKIP(s, 37);
                     break;
                 }
+                const CharKey *ck = &cp->key;
+                const CharData *cd = cp->data.get();
 
                 WFIFOW(s, 0) = 0x6d;
                 WFIFO_ZERO(s, 2, 106);
 
-                WFIFOL(s, 2) = cd->char_id;
+                WFIFOL(s, 2) = ck->char_id;
                 WFIFOL(s, 2 + 4) = cd->base_exp;
                 WFIFOL(s, 2 + 8) = cd->zeny;
                 WFIFOL(s, 2 + 12) = cd->job_exp;
@@ -2322,7 +2350,7 @@ void parse_char(Session *s)
                 WFIFOW(s, 2 + 44) = min(cd->max_hp, 0x7fff);
                 WFIFOW(s, 2 + 46) = min(cd->sp, 0x7fff);
                 WFIFOW(s, 2 + 48) = min(cd->max_sp, 0x7fff);
-                WFIFOW(s, 2 + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // char_data[i].speed;
+                WFIFOW(s, 2 + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // cd->speed;
                 WFIFOW(s, 2 + 52) = cd->species;
                 WFIFOW(s, 2 + 54) = cd->hair;
 
@@ -2334,7 +2362,7 @@ void parse_char(Session *s)
                 WFIFOW(s, 2 + 68) = cd->head_mid;
                 WFIFOW(s, 2 + 70) = cd->hair_color;
 
-                WFIFO_STRING(s, 2 + 74, cd->name.to__actual(), 24);
+                WFIFO_STRING(s, 2 + 74, ck->name.to__actual(), 24);
 
                 WFIFOB(s, 2 + 98) = min(cd->attrs[ATTR::STR], 255);
                 WFIFOB(s, 2 + 99) = min(cd->attrs[ATTR::AGI], 255);
@@ -2342,7 +2370,7 @@ void parse_char(Session *s)
                 WFIFOB(s, 2 + 101) = min(cd->attrs[ATTR::INT], 255);
                 WFIFOB(s, 2 + 102) = min(cd->attrs[ATTR::DEX], 255);
                 WFIFOB(s, 2 + 103) = min(cd->attrs[ATTR::LUK], 255);
-                WFIFOB(s, 2 + 104) = cd->char_num;
+                WFIFOB(s, 2 + 104) = ck->char_num;
 
                 WFIFOSET(s, 108);
             }
@@ -2359,10 +2387,10 @@ void parse_char(Session *s)
 
                 {
                     {
-                        struct mmo_charstatus *cs = nullptr;
-                        for (mmo_charstatus& cd : char_data)
+                        CharPair *cs = nullptr;
+                        for (CharPair& cd : char_keys)
                         {
-                            if (cd.char_id == RFIFOL(s, 2))
+                            if (cd.key.char_id == RFIFOL(s, 2))
                             {
                                 cs = &cd;
                                 break;
@@ -2373,12 +2401,12 @@ void parse_char(Session *s)
                         {
                             char_delete(cs);   // deletion process
 
-                            if (cs != &char_data.back())
+                            if (cs != &char_keys.back())
                             {
-                                std::swap(*cs, char_data.back());
+                                std::swap(*cs, char_keys.back());
                             }
 
-                            char_data.pop_back();
+                            char_keys.pop_back();
                             WFIFOW(s, 0) = 0x6f;
                             WFIFOSET(s, 2);
                             goto x68_out;
@@ -2808,7 +2836,7 @@ void term_func(void)
 
     gm_accounts.clear();
 
-    char_data.clear();
+    char_keys.clear();
     delete_session(login_session);
     delete_session(char_session);
 

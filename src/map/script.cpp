@@ -2112,13 +2112,13 @@ void builtin_getcharid(ScriptState *st)
         return;
     }
     if (num == 0)
-        push_int(st->stack, ByteCode::INT, sd->status.char_id);
+        push_int(st->stack, ByteCode::INT, sd->status_key.char_id);
     if (num == 1)
         push_int(st->stack, ByteCode::INT, sd->status.party_id);
     if (num == 2)
         push_int(st->stack, ByteCode::INT, 0/*guild_id*/);
     if (num == 3)
-        push_int(st->stack, ByteCode::INT, sd->status.account_id);
+        push_int(st->stack, ByteCode::INT, sd->status_key.account_id);
 }
 
 /*==========================================
@@ -2150,7 +2150,7 @@ void builtin_strcharinfo(ScriptState *st)
     num = conv_num(st, &AARGO2(2));
     if (num == 0)
     {
-        dumb_string buf = dumb_string::copys(sd->status.name.to__actual());
+        dumb_string buf = dumb_string::copys(sd->status_key.name.to__actual());
         push_str(st->stack, ByteCode::STR, buf);
     }
     if (num == 1)
@@ -3105,7 +3105,7 @@ void builtin_changesex(ScriptState *st)
     dumb_ptr<map_session_data> sd = NULL;
     sd = script_rid2sd(st);
 
-    chrif_char_ask_name(-1, sd->status.name, 5, HumanTimeDiff()); // type: 5 - changesex
+    chrif_char_ask_name(-1, sd->status_key.name, 5, HumanTimeDiff()); // type: 5 - changesex
     chrif_save(sd);
 }
 

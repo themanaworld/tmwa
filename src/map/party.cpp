@@ -139,9 +139,9 @@ int party_check_member(struct party *p)
                 int j, f = 1;
                 for (j = 0; j < MAX_PARTY; j++)
                 {               // パーティにデータがあるか確認
-                    if (p->member[j].account_id == sd->status.account_id)
+                    if (p->member[j].account_id == sd->status_key.account_id)
                     {
-                        if (p->member[j].name == sd->status.name)
+                        if (p->member[j].name == sd->status_key.name)
                             f = 0;  // データがある
                         else
                         {
@@ -155,7 +155,7 @@ int party_check_member(struct party *p)
                     sd->status.party_id = 0;
                     if (battle_config.error_log)
                         PRINTF("party: check_member %d[%s] is not member\n",
-                                sd->status.account_id, sd->status.name);
+                                sd->status_key.account_id, sd->status_key.name);
                 }
             }
         }
@@ -242,7 +242,7 @@ int party_invite(dumb_ptr<map_session_data> sd, int account_id)
         if (tsd->trade_partner || tsd->npc_id
             || tsd->npc_shopid || pc_checkskill(tsd, SkillID::NV_PARTY) < 1)
         {
-            clif_party_inviteack(sd, tsd->status.name, 1);
+            clif_party_inviteack(sd, tsd->status_key.name, 1);
             return 0;
         }
     }
@@ -250,7 +250,7 @@ int party_invite(dumb_ptr<map_session_data> sd, int account_id)
     /* The target player is already in a party, or has a pending invitation. */
     if (tsd->status.party_id > 0 || tsd->party_invite > 0)
     {
-        clif_party_inviteack(sd, tsd->status.name, 0);
+        clif_party_inviteack(sd, tsd->status_key.name, 0);
         return 0;
     }
 
@@ -264,7 +264,7 @@ int party_invite(dumb_ptr<map_session_data> sd, int account_id)
          */
         if (p->member[i].account_id == account_id)
         {
-            clif_party_inviteack(sd, tsd->status.name, 1);
+            clif_party_inviteack(sd, tsd->status_key.name, 1);
             return 0;
         }
 
@@ -275,13 +275,13 @@ int party_invite(dumb_ptr<map_session_data> sd, int account_id)
     /* There isn't enough room for a new member. */
     if (full)
     {
-        clif_party_inviteack(sd, tsd->status.name, 3);
+        clif_party_inviteack(sd, tsd->status_key.name, 3);
         return 0;
     }
 
     /* Otherwise, relay the invitation to the target player. */
     tsd->party_invite = sd->status.party_id;
-    tsd->party_invite_account = sd->status.account_id;
+    tsd->party_invite_account = sd->status_key.account_id;
 
     clif_party_invite(sd, tsd);
     return 0;
@@ -305,7 +305,7 @@ int party_reply_invite(dumb_ptr<map_session_data> sd, int account_id, int flag)
 
     /* The invitation was accepted. */
     if (flag == 1)
-        intif_party_addmember(sd->party_invite, sd->status.account_id);
+        intif_party_addmember(sd->party_invite, sd->status_key.account_id);
     /* The invitation was rejected. */
     else
     {
@@ -316,7 +316,7 @@ int party_reply_invite(dumb_ptr<map_session_data> sd, int account_id, int flag)
         sd->party_invite_account = 0;
 
         if ((tsd = map_id2sd(account_id)))
-            clif_party_inviteack(tsd, sd->status.name, 1);
+            clif_party_inviteack(tsd, sd->status_key.name, 1);
     }
     return 0;
 }
@@ -352,7 +352,7 @@ int party_member_added(int party_id, int account_id, int flag)
     if (flag == 1)
     {                           // 失敗
         if (sd2 != NULL)
-            clif_party_inviteack(sd2, sd->status.name, 0);
+            clif_party_inviteack(sd2, sd->status_key.name, 0);
         return 0;
     }
 
@@ -361,7 +361,7 @@ int party_member_added(int party_id, int account_id, int flag)
     sd->status.party_id = party_id;
 
     if (sd2 != NULL)
-        clif_party_inviteack(sd2, sd->status.name, 2);
+        clif_party_inviteack(sd2, sd->status_key.name, 2);
 
     // いちおう競合確認
     party_check_conflict(sd);
@@ -384,7 +384,7 @@ int party_removemember(dumb_ptr<map_session_data> sd, int account_id)
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // リーダーかどうかチェック
-        if (p->member[i].account_id == sd->status.account_id)
+        if (p->member[i].account_id == sd->status_key.account_id)
             if (p->member[i].leader == 0)
                 return 0;
     }
@@ -413,9 +413,9 @@ int party_leave(dumb_ptr<map_session_data> sd)
 
     for (i = 0; i < MAX_PARTY; i++)
     {                           // 所属しているか
-        if (p->member[i].account_id == sd->status.account_id)
+        if (p->member[i].account_id == sd->status_key.account_id)
         {
-            intif_party_leave(p->party_id, sd->status.account_id);
+            intif_party_leave(p->party_id, sd->status_key.account_id);
             return 0;
         }
     }
@@ -479,7 +479,7 @@ int party_changeoption(dumb_ptr<map_session_data> sd, int exp, int item)
     if (sd->status.party_id == 0
         || (p = party_search(sd->status.party_id)) == NULL)
         return 0;
-    intif_party_changeoption(sd->status.party_id, sd->status.account_id, exp,
+    intif_party_changeoption(sd->status.party_id, sd->status_key.account_id, exp,
                               item);
     return 0;
 }
@@ -604,7 +604,7 @@ void party_send_message(dumb_ptr<map_session_data> sd, XString mes)
 {
     if (sd->status.party_id == 0)
         return;
-    intif_party_message(sd->status.party_id, sd->status.account_id, mes);
+    intif_party_message(sd->status.party_id, sd->status_key.account_id, mes);
 }
 
 // パーティメッセージ受信
@@ -622,7 +622,7 @@ void party_check_conflict(dumb_ptr<map_session_data> sd)
     nullpo_retv(sd);
 
     intif_party_checkconflict(sd->status.party_id,
-            sd->status.account_id, sd->status.name);
+            sd->status_key.account_id, sd->status_key.name);
 }
 
 // 位置やＨＰ通知用

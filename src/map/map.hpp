@@ -170,7 +170,8 @@ struct map_session_data : block_list, SessionData
     int char_id, login_id1, login_id2;
     SEX sex;
     unsigned char tmw_version;  // tmw client version
-    struct mmo_charstatus status;
+    CharKey status_key;
+    CharData status;
     struct item_data *inventory_data[MAX_INVENTORY];
     earray<short, EQUIP, EQUIP::COUNT> equip_index;
     int weight, max_weight;
@@ -605,7 +606,7 @@ void map_log(XString line);
 
 # define MAP_LOG_PC(sd, fmt, ...)   \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat")), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status_key.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat")), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);

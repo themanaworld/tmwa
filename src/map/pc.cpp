@@ -243,7 +243,7 @@ uint8_t pc_isGM(dumb_ptr<map_session_data> sd)
 {
     nullpo_ret(sd);
 
-    auto it = gm_accountm.find(sd->status.account_id);
+    auto it = gm_accountm.find(sd->status_key.account_id);
     if (it != gm_accountm.end())
         return it->second;
     return 0;
@@ -606,7 +606,7 @@ int pc_isequip(dumb_ptr<map_session_data> sd, int n)
  *------------------------------------------
  */
 int pc_authok(int id, int login_id2, TimeT connect_until_time,
-               short tmw_version, const struct mmo_charstatus *st)
+        short tmw_version, const CharKey *st_key, const CharData *st_data)
 {
     dumb_ptr<map_session_data> sd = NULL;
 
@@ -620,7 +620,8 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     sd->login_id2 = login_id2;
     sd->tmw_version = tmw_version;
 
-    sd->status = *st;
+    sd->status_key = *st_key;
+    sd->status = *st_data;
 
     if (sd->status.sex != sd->sex)
     {
@@ -727,8 +728,8 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 
     clif_authok(sd);
     map_addnickdb(sd);
-    if (!map_charid2nick(sd->status.char_id).to__actual())
-        map_addchariddb(sd->status.char_id, sd->status.name);
+    if (!map_charid2nick(sd->status_key.char_id).to__actual())
+        map_addchariddb(sd->status_key.char_id, sd->status_key.name);
 
     //スパノビ用死にカウンターのスクリプト変数からの読み出しとsdへのセット
     sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"));
@@ -739,12 +740,12 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     if (pc_isGM(sd))
     {
         PRINTF("Connection accepted: character '%s' (account: %d; GM level %d).\n",
-             sd->status.name, sd->status.account_id, pc_isGM(sd));
+             sd->status_key.name, sd->status_key.account_id, pc_isGM(sd));
         clif_updatestatus(sd, SP::GM);
     }
     else
         PRINTF("Connection accepted: Character '%s' (account: %d).\n",
-                sd->status.name, sd->status.account_id);
+                sd->status_key.name, sd->status_key.account_id);
 
     sd->auto_ban_info.in_progress = 0;
 
@@ -2148,7 +2149,7 @@ int can_pick_item_up_from(dumb_ptr<map_session_data> self, int other_id)
         return 1;
 
     /* From our partner? */
-    if (self->status.partner_id == other->status.char_id)
+    if (self->status.partner_id == other->status_key.char_id)
         return 1;
 
     /* From a party member? */
@@ -3442,7 +3443,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         if (src->bl_type == BL::PC)
         {
             MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d",
-                        src->is_player()->status.char_id,
+                        src->is_player()->status_key.char_id,
                         damage);
         }
         else
@@ -4837,8 +4838,8 @@ int pc_marriage(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> dstsd)
     if (sd == NULL || dstsd == NULL || sd->status.partner_id > 0
         || dstsd->status.partner_id > 0)
         return -1;
-    sd->status.partner_id = dstsd->status.char_id;
-    dstsd->status.partner_id = sd->status.char_id;
+    sd->status.partner_id = dstsd->status_key.char_id;
+    dstsd->status.partner_id = sd->status_key.char_id;
     return 0;
 }
 
@@ -4856,8 +4857,8 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
     if ((p_sd =
          map_nick2sd(map_charid2nick(sd->status.partner_id))) != NULL)
     {
-        if (p_sd->status.partner_id != sd->status.char_id
-            || sd->status.partner_id != p_sd->status.char_id)
+        if (p_sd->status.partner_id != sd->status_key.char_id
+            || sd->status.partner_id != p_sd->status_key.char_id)
         {
             PRINTF("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n",
                     sd->status.partner_id, p_sd->status.partner_id);
@@ -4873,7 +4874,7 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
         }
     }
     else
-        chrif_send_divorce(sd->status.char_id);
+        chrif_send_divorce(sd->status_key.char_id);
 
     return 0;
 }

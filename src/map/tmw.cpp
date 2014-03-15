@@ -96,12 +96,12 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
     sd->auto_ban_info.in_progress = 1;
 
     AString hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
-            sd->status.name,
+            sd->status_key.name,
             reason);
     tmw_GmHackMsg(hack_msg);
 
     AString fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
-            sd->status.name, length, reason);
+            sd->status_key.name, length, reason);
     log_atcommand(sd, fake_command);
 
     AString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
@@ -111,7 +111,7 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
     /* type: 2 - ban(year, month, day, hour, minute, second) */
     HumanTimeDiff ban_len {};
     ban_len.hour = length;
-    chrif_char_ask_name(-1, sd->status.name, 2, ban_len);
+    chrif_char_ask_name(-1, sd->status_key.name, 2, ban_len);
     clif_setwaitclose(sd->sess);
 }
 

@@ -795,7 +795,7 @@ void map_addnickdb(dumb_ptr<map_session_data> sd)
 {
     nullpo_retv(sd);
 
-    nick_db.put(sd->status.name, sd);
+    nick_db.put(sd->status_key.name, sd);
 }
 
 /*==========================================
@@ -846,8 +846,8 @@ void map_quit(dumb_ptr<map_session_data> sd)
     map_delblock(sd);
 
     id_db.put(sd->bl_id, nullptr);
-    nick_db.put(sd->status.name, nullptr);
-    charid_db.erase(sd->status.char_id);
+    nick_db.put(sd->status_key.name, nullptr);
+    charid_db.erase(sd->status_key.char_id);
 }
 
 /*==========================================
@@ -984,7 +984,7 @@ dumb_ptr<map_session_data> map_nick2sd(CharName nick)
         if (pl_sd && pl_sd->state.auth)
         {
             {
-                if (pl_sd->status.name == nick)
+                if (pl_sd->status_key.name == nick)
                     return dumb_ptr<map_session_data>(pl_sd);
             }
         }

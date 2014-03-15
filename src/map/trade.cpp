@@ -56,9 +56,9 @@ void trade_traderequest(dumb_ptr<map_session_data> sd, int target_id)
             }
             else if (sd != target_sd)
             {
-                target_sd->trade_partner = sd->status.account_id;
-                sd->trade_partner = target_sd->status.account_id;
-                clif_traderequest(target_sd, sd->status.name);
+                target_sd->trade_partner = sd->status_key.account_id;
+                sd->trade_partner = target_sd->status_key.account_id;
+                clif_traderequest(target_sd, sd->status_key.name);
             }
         }
     }
@@ -326,7 +326,7 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
     if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
     {
         MAP_LOG_PC(sd, " TRADECOMMIT WITH %d GIVE %d GET %d",
-                    target_sd->status.char_id, sd->deal_zeny,
+                    target_sd->status_key.char_id, sd->deal_zeny,
                     target_sd->deal_zeny);
         if ((sd->deal_locked >= 1) && (target_sd->deal_locked >= 1))
         {                       // both have pressed 'ok'

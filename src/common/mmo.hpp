@@ -294,10 +294,16 @@ SEX sex_from_char(char c)
     }
 }
 
-struct mmo_charstatus
+struct CharKey
 {
-    int char_id;
+    CharName name;
     int account_id;
+    int char_id;
+    unsigned char char_num;
+};
+
+struct CharData
+{
     int partner_id;
 
     int base_exp, job_exp, zeny;
@@ -314,10 +320,8 @@ struct mmo_charstatus
     short shield;
     short head_top, head_mid, head_bottom;
 
-    CharName name;
     unsigned char base_level, job_level;
     earray<short, ATTR, ATTR::COUNT> attrs;
-    unsigned char char_num;
     SEX sex;
 
     unsigned long mapip;
@@ -332,6 +336,16 @@ struct mmo_charstatus
     struct global_reg account_reg[ACCOUNT_REG_NUM];
     int account_reg2_num;
     struct global_reg account_reg2[ACCOUNT_REG2_NUM];
+};
+
+struct CharPair
+{
+    CharKey key;
+    std::unique_ptr<CharData> data;
+
+    CharPair()
+    : key{}, data(make_unique<CharData>())
+    {}
 };
 
 struct storage

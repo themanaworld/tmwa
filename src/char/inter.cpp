@@ -210,7 +210,7 @@ void mapif_GMmessage(XString mes)
 static
 void mapif_wis_message(Session *tms, CharName src, CharName dst, XString msg)
 {
-    const mmo_charstatus *mcs = search_character(src);
+    const CharPair *mcs = search_character(src);
     assert (mcs);
 
     size_t str_size = msg.size() + 1;
@@ -218,7 +218,7 @@ void mapif_wis_message(Session *tms, CharName src, CharName dst, XString msg)
 
     WBUFW(buf, 0) = 0x3801;
     WBUFW(buf, 2) = 56 + str_size;
-    WBUFL(buf, 4) = mcs->char_id; // formerly, whisper ID
+    WBUFL(buf, 4) = mcs->key.char_id; // formerly, whisper ID
     WBUF_STRING(buf, 8, src.to__actual(), 24);
     WBUF_STRING(buf, 32, dst.to__actual(), 24);
     WBUF_STRING(buf, 56, msg, str_size);
@@ -301,7 +301,7 @@ void mapif_parse_WisRequest(Session *sms)
     CharName to = stringish<CharName>(RFIFO_STRING<24>(sms, 28));
 
     // search if character exists before to ask all map-servers
-    const mmo_charstatus *mcs = search_character(to);
+    const CharPair *mcs = search_character(to);
     if (!mcs)
     {
         uint8_t buf[27];
@@ -314,7 +314,7 @@ void mapif_parse_WisRequest(Session *sms)
     else
     {
         // to be sure of the correct name, rewrite it
-        to = mcs->name;
+        to = mcs->key.name;
         // if source is destination, don't ask other servers.
         if (from == to)
         {
@@ -347,8 +347,8 @@ int mapif_parse_WisReply(Session *tms)
 {
     int id = RFIFOL(tms, 2), flag = RFIFOB(tms, 6);
 
-    const mmo_charstatus *smcs = search_character_id(id);
-    CharName from = smcs->name;
+    const CharPair *smcs = search_character_id(id);
+    CharName from = smcs->key.name;
     Session *sms = server_for(smcs);
     {
         mapif_wis_end(sms, from, flag);   // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target

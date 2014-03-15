@@ -108,8 +108,8 @@ void party_check_deleted_init(struct party *p)
     {
         if (!p->member[i].account_id)
             continue;
-        const struct mmo_charstatus *c = search_character(p->member[i].name);
-        if (!c || c->account_id != p->member[i].account_id)
+        const CharPair *c = search_character(p->member[i].name);
+        if (!c || c->key.account_id != p->member[i].account_id)
         {
             CHAR_LOG("WARNING: deleting obsolete party member %d %s of %d %s\n",
                     p->member[i].account_id, p->member[i].name,

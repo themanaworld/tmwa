@@ -3069,7 +3069,7 @@ void clif_party_invite(dumb_ptr<map_session_data> sd,
         return;
 
     WFIFOW(s, 0) = 0xfe;
-    WFIFOL(s, 2) = sd->status.account_id;
+    WFIFOL(s, 2) = sd->status_key.account_id;
     WFIFO_STRING(s, 6, p->name, 24);
     WFIFOSET(s, clif_parse_func_table[0xfe].len);
 }
@@ -3212,12 +3212,12 @@ int clif_party_xy(struct party *, dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x107;
-    WBUFL(buf, 2) = sd->status.account_id;
+    WBUFL(buf, 2) = sd->status_key.account_id;
     WBUFW(buf, 6) = sd->bl_x;
     WBUFW(buf, 8) = sd->bl_y;
     clif_send(buf, clif_parse_func_table[0x107].len, sd, SendWho::PARTY_SAMEMAP_WOS);
 //  if(battle_config.etc_log)
-//      PRINTF("clif_party_xy %d\n",sd->status.account_id);
+//      PRINTF("clif_party_xy %d\n",sd->status_key.account_id);
     return 0;
 }
 
@@ -3232,13 +3232,13 @@ int clif_party_hp(struct party *, dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     WBUFW(buf, 0) = 0x106;
-    WBUFL(buf, 2) = sd->status.account_id;
+    WBUFL(buf, 2) = sd->status_key.account_id;
     WBUFW(buf, 6) = (sd->status.hp > 0x7fff) ? 0x7fff : sd->status.hp;
     WBUFW(buf, 8) =
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
     clif_send(buf, clif_parse_func_table[0x106].len, sd, SendWho::PARTY_AREA_WOS);
 //  if(battle_config.etc_log)
-//      PRINTF("clif_party_hp %d\n",sd->status.account_id);
+//      PRINTF("clif_party_hp %d\n",sd->status_key.account_id);
     return 0;
 }
 
@@ -3358,7 +3358,7 @@ int clif_GM_kick(dumb_ptr<map_session_data> sd, dumb_ptr<map_session_data> tsd,
     nullpo_ret(tsd);
 
     if (type)
-        clif_GM_kickack(sd, tsd->status.account_id);
+        clif_GM_kickack(sd, tsd->status_key.account_id);
     tsd->opt1 = Opt1::ZERO;
     tsd->opt2 = Opt2::ZERO;
     clif_parse_QuitGame(tsd->sess, tsd);
@@ -3679,7 +3679,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
             if (ssd->state.shroud_active)
                 WFIFO_STRING(s, 6, "", 24);
             else
-                WFIFO_STRING(s, 6, ssd->status.name.to__actual(), 24);
+                WFIFO_STRING(s, 6, ssd->status_key.name.to__actual(), 24);
             WFIFOSET(s, clif_parse_func_table[0x95].len);
 
             struct party *p = NULL;
@@ -4044,7 +4044,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
      */
     CharName tname = stringish<CharName>(RFIFO_STRING<24>(s, 4));
     if (!(dstsd = map_nick2sd(tname))
-            || dstsd->status.name != tname)
+            || dstsd->status_key.name != tname)
         intif_wis_message(sd, tname, mbuf);
     else
     {
@@ -4059,7 +4059,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
             {
                 /* The player is not being ignored. */
                 {
-                    clif_wis_message(dstsd->sess, sd->status.name, mbuf);
+                    clif_wis_message(dstsd->sess, sd->status_key.name, mbuf);
                     /* The whisper was sent successfully. */
                     clif_wis_end(s, 0);
                 }
@@ -5261,7 +5261,7 @@ int clif_check_packet_flood(Session *s, int cmd)
 
         if (sd->packet_flood_in >= battle_config.packet_spam_flood)
         {
-            PRINTF("packet flood detected from %s [0x%x]\n", sd->status.name, cmd);
+            PRINTF("packet flood detected from %s [0x%x]\n", sd->status_key.name, cmd);
             if (battle_config.packet_spam_kick)
             {
                 s->eof = 1; // Kick
@@ -5281,7 +5281,7 @@ inline
 void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, const char *msg)
 {
     PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed message: %s.\n",
-            sd->status.name, sd->status.account_id, msg);
+            sd->status_key.name, sd->status_key.account_id, msg);
 }
 /**
  * Validate message integrity (inspired by upstream source (eAthena)).
@@ -5306,7 +5306,7 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
 
     Session *s = sd->sess;
     size_t msg_len = RFIFOW(s, 2) - 4;
-    size_t name_len = sd->status.name.to__actual().size();
+    size_t name_len = sd->status_key.name.to__actual().size();
     /*
      * At least one character is required in all instances.
      * Notes for length checks:
@@ -5370,7 +5370,7 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
     if (type == ChatType::Global)
     {
         XString p = pbuf;
-        if (!(p.startswith(sd->status.name.to__actual()) && p.xslice_t(name_len).startswith(" : ")))
+        if (!(p.startswith(sd->status_key.name.to__actual()) && p.xslice_t(name_len).startswith(" : ")))
         {
             /* Disallow malformed/spoofed messages. */
             clif_setwaitclose(s);
@@ -5416,7 +5416,7 @@ void clif_parse(Session *s)
             pc_logout(sd);
             clif_quitsave(s, sd);
 
-            PRINTF("Player [%s] has logged off your server.\n", sd->status.name);  // Player logout display [Valaris]
+            PRINTF("Player [%s] has logged off your server.\n", sd->status_key.name);  // Player logout display [Valaris]
         }
         else if (sd)
         {                       // not authentified! (refused by char-server or disconnect before to be authentified)
@@ -5511,8 +5511,8 @@ void clif_parse(Session *s)
                 if (sd && sd->state.auth)
                 {
                     PRINTF("\nAccount ID %d, character ID %d, player name %s.\n",
-                            sd->status.account_id, sd->status.char_id,
-                            sd->status.name);
+                            sd->status_key.account_id, sd->status_key.char_id,
+                            sd->status_key.name);
                 }
                 else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                     PRINTF("\nAccount ID %d.\n", sd->bl_id);
@@ -5533,8 +5533,8 @@ void clif_parse(Session *s)
                         FPRINTF(fp,
                                 "%s\nPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n",
                                 now,
-                                sd->status.account_id,
-                                sd->status.char_id, sd->status.name);
+                                sd->status_key.account_id,
+                                sd->status_key.char_id, sd->status_key.name);
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                         FPRINTF(fp,

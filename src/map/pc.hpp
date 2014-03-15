@@ -53,7 +53,7 @@ int pc_counttargeted(dumb_ptr<map_session_data> sd, dumb_ptr<block_list> src,
 int pc_setrestartvalue(dumb_ptr<map_session_data> sd, int type);
 void pc_makesavestatus(dumb_ptr<map_session_data>);
 int pc_setnewpc(dumb_ptr<map_session_data>, int, int, int, tick_t, SEX);
-int pc_authok(int, int, TimeT, short tmw_version, const struct mmo_charstatus *);
+int pc_authok(int, int, TimeT, short tmw_version, const CharKey *, const CharData *);
 int pc_authfail(int accid);
 
 EPOS pc_equippoint(dumb_ptr<map_session_data> sd, int n);

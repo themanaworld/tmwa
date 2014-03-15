@@ -111,15 +111,16 @@ int chrif_save(dumb_ptr<map_session_data> sd)
     pc_makesavestatus(sd);
 
     WFIFOW(char_session, 0) = 0x2b01;
-    WFIFOW(char_session, 2) = sizeof(sd->status) + 12;
+    WFIFOW(char_session, 2) = sizeof(sd->status_key) + sizeof(sd->status) + 12;
     WFIFOL(char_session, 4) = sd->bl_id;
     WFIFOL(char_session, 8) = sd->char_id;
-    WFIFO_STRUCT(char_session, 12, sd->status);
+    WFIFO_STRUCT(char_session, 12, sd->status_key);
+    WFIFO_STRUCT(char_session, 12 + sizeof(sd->status_key), sd->status);
     WFIFOSET(char_session, WFIFOW(char_session, 2));
 
     //For data sync
     if (sd->state.storage_open)
-        storage_storage_save(sd->status.account_id, 0);
+        storage_storage_save(sd->status_key.account_id, 0);
 
     return 0;
 }
@@ -219,7 +220,7 @@ int chrif_changemapserver(dumb_ptr<map_session_data> sd,
     WFIFOL(char_session, 2) = sd->bl_id;
     WFIFOL(char_session, 6) = sd->login_id1;
     WFIFOL(char_session, 10) = sd->login_id2;
-    WFIFOL(char_session, 14) = sd->status.char_id;
+    WFIFOL(char_session, 14) = sd->status_key.char_id;
     WFIFO_STRING(char_session, 18, name, 16);
     WFIFOW(char_session, 34) = x;
     WFIFOW(char_session, 36) = y;
@@ -241,14 +242,14 @@ int chrif_changemapserverack(Session *s)
 {
     dumb_ptr<map_session_data> sd = map_id2sd(RFIFOL(s, 2));
 
-    if (sd == NULL || sd->status.char_id != RFIFOL(s, 14))
+    if (sd == NULL || sd->status_key.char_id != RFIFOL(s, 14))
         return -1;
 
     if (RFIFOL(s, 6) == 1)
     {
         if (battle_config.error_log)
             PRINTF("map server change failed.\n");
-        pc_authfail(sd->status.account_id);
+        pc_authfail(sd->status_key.account_id);
         return 0;
     }
     MapName mapname = RFIFO_STRING<16>(s, 18);
@@ -939,7 +940,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
         case BL::PC:
         {
             dumb_ptr<map_session_data> pc = bl->is_player();
-            struct storage *stor = account2storage2(pc->status.account_id);
+            struct storage *stor = account2storage2(pc->status_key.account_id);
             int j;
 
             for (j = 0; j < MAX_INVENTORY; j++)
@@ -1085,11 +1086,13 @@ void chrif_parse(Session *s)
                 int login_id2 = RFIFOL(s, 8);
                 TimeT connect_until_time = static_cast<time_t>(RFIFOL(s, 12));
                 short tmw_version = RFIFOW(s, 16);
-                struct mmo_charstatus st {};
-                RFIFO_STRUCT(s, 18, st);
+                CharKey st_key;
+                CharData st_data;
+                RFIFO_STRUCT(s, 18, st_key);
+                RFIFO_STRUCT(s, 18 + sizeof(st_key), st_data);
                 pc_authok(id, login_id2,
                         connect_until_time, tmw_version,
-                        &st);
+                        &st_key, &st_data);
             }
                 break;
             case 0x2afe:
@@ -1168,7 +1171,7 @@ void send_users_tochar(TimerData *, tick_t)
                || sd->state.shroud_active
                || bool(sd->status.option & Option::HIDE)) && pc_isGM(sd)))
         {
-            WFIFOL(char_session, 6 + 4 * users) = sd->status.char_id;
+            WFIFOL(char_session, 6 + 4 * users) = sd->status_key.char_id;
             users++;
         }
     }

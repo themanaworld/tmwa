@@ -98,7 +98,7 @@ AString show_entity(dumb_ptr<block_list> entity)
     switch (entity->bl_type)
     {
         case BL::PC:
-            return entity->is_player()->status.name.to__actual();
+            return entity->is_player()->status_key.name.to__actual();
         case BL::NPC:
             return entity->is_npc()->name;
         case BL::MOB:
