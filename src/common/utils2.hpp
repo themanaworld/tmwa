@@ -199,7 +199,7 @@ struct is_array_of_unknown_bound
 template<class T, class D=std::default_delete<T>, class... A>
 typename std::enable_if<!is_array_of_unknown_bound<T>::value, std::unique_ptr<T, D>>::type make_unique(A&&... a)
 {
-    return std::unique_ptr<T, D>(new T(a...));
+    return std::unique_ptr<T, D>(new T(std::forward<A>(a)...));
 }
 
 template<class T, class D=std::default_delete<T>>

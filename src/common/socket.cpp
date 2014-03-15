@@ -13,7 +13,8 @@
 #include <ctime>
 
 #include "../io/cxxstdio.hpp"
-//#include "mmo.hpp"
+#include "core.hpp"
+#include "timer.hpp"
 #include "utils.hpp"
 
 #include "../poison.hpp"
@@ -377,12 +378,26 @@ void WFIFOSET(Session *s, size_t len)
 
 void do_sendrecv(interval_t next_ms)
 {
+    bool any = false;
     io::FD_Set rfd = readfds, wfd;
     for (io::FD i : iter_fds())
     {
         Session *s = get_session(i);
-        if (s && s->wdata_size)
-            wfd.set(i);
+        if (s)
+        {
+            any = true;
+            if (s->wdata_size)
+                wfd.set(i);
+        }
+    }
+    if (!any)
+    {
+        if (!has_timers())
+        {
+            PRINTF("Shutting down - nothing to do\n");
+            runflag = false;
+        }
+        return;
     }
     struct timeval timeout;
     {
@@ -433,6 +448,12 @@ void do_parsepacket(void)
         {
             s->func_parse(s);
             /// some func_parse may call delete_session
+            s = get_session(i);
+            if (s && s->eof)
+            {
+                delete_session(s);
+                s = nullptr;
+            }
             if (!s)
                 continue;
         }

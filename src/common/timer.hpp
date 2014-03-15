@@ -24,4 +24,7 @@ interval_t do_timer(tick_t tick);
 /// Stat a file, and return its modification time, truncated to seconds.
 tick_t file_modified(ZString name);
 
+/// Check if there are any events at all scheduled.
+bool has_timers();
+
 #endif // TIMER_HPP

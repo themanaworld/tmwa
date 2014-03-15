@@ -194,3 +194,8 @@ tick_t file_modified(ZString name)
         return tick_t();
     return tick_t(std::chrono::seconds(buf.st_mtime));
 }
+
+bool has_timers()
+{
+    return !timer_heap.empty();
+}
