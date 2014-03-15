@@ -945,8 +945,7 @@ void ladmin_itemfrob_c2(dumb_ptr<block_list> bl, int source_id, int dest_id)
 
             for (j = 0; j < MAX_INVENTORY; j++)
                 IFIX(pc->status.inventory[j].nameid);
-            for (j = 0; j < MAX_CART; j++)
-                IFIX(pc->status.cart[j].nameid);
+            // cart is no longer supported
             // IFIX(pc->status.weapon);
             IFIX(pc->status.shield);
             IFIX(pc->status.head_top);

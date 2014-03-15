@@ -176,6 +176,7 @@ bool itemdb_readdb(ZString filename)
             // According to the code, tail_part may be empty. See later.
             ZString tail_part = line.xislice_t(it);
 
+            XString unused_slot_count;
             item_data idv {};
             if (!extract(
                         main_part, record<','>(
@@ -190,7 +191,7 @@ bool itemdb_readdb(ZString filename)
                             lstripping(&idv.def),
                             lstripping(&idv.range),
                             lstripping(&idv.magic_bonus),
-                            lstripping(&idv.slot),
+                            lstripping(&unused_slot_count),
                             lstripping(&idv.sex),
                             lstripping(&idv.equip),
                             lstripping(&idv.wlv),

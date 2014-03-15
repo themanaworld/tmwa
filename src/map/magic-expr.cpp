@@ -770,7 +770,6 @@ magic_find_item(const_array<val_t> args, int index, struct item *item_, int *sta
 
     *item_ = item();
     item_->nameid = item_data->nameid;
-    item_->identify = 1;
 
     return 0;
 }

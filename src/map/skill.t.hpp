@@ -26,9 +26,6 @@ enum class StatusChange : uint16_t
     // the rest are the normal effects
     SC_SLOWPOISON       = 14,   // item script
 
-    SC_BROKNARMOR       = 32,   // ?
-    SC_BROKNWEAPON      = 33,   // ?
-
     SC_WEIGHT50         = 35,   // ? sort of used
     SC_WEIGHT90         = 36,   // definitely used
     SC_SPEEDPOTION0     = 37,   // item script

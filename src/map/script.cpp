@@ -1932,7 +1932,6 @@ void builtin_getitem(ScriptState *st)
     {
         struct item item_tmp {};
         item_tmp.nameid = nameid;
-        item_tmp.identify = 1;
         if (HARGO2(5))    //アイテムを指定したIDに渡す
             sd = map_id2sd(conv_num(st, &AARGO2(5)));
         if (sd == NULL)         //アイテムを渡す相手がいなかったらお帰り
@@ -1956,7 +1955,7 @@ void builtin_getitem(ScriptState *st)
 static
 void builtin_makeitem(ScriptState *st)
 {
-    int nameid, amount, flag = 0;
+    int nameid, amount;
     int x, y;
     dumb_ptr<map_session_data> sd;
     struct script_data *data;
@@ -1991,14 +1990,9 @@ void builtin_makeitem(ScriptState *st)
     {
         struct item item_tmp {};
         item_tmp.nameid = nameid;
-        if (!flag)
-            item_tmp.identify = 1;
-        else
-            item_tmp.identify = !itemdb_isequip3(nameid);
 
         map_addflooritem(&item_tmp, amount, m, x, y, NULL, NULL, NULL);
     }
-
 }
 
 /*==========================================
@@ -3439,20 +3433,6 @@ void builtin_getinventorylist(ScriptState *st)
                        sd->status.inventory[i].amount);
             pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_equip"), j),
                     static_cast<uint16_t>(sd->status.inventory[i].equip));
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_refine"), j),
-                       sd->status.inventory[i].refine);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_identify"), j),
-                       sd->status.inventory[i].identify);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_attribute"), j),
-                       sd->status.inventory[i].attribute);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card1"), j),
-                       sd->status.inventory[i].card[0]);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card2"), j),
-                       sd->status.inventory[i].card[1]);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card3"), j),
-                       sd->status.inventory[i].card[2]);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_card4"), j),
-                       sd->status.inventory[i].card[3]);
             j++;
         }
     }

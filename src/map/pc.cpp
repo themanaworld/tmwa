@@ -932,19 +932,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 sd->inventory_data[i]->weight *
                 sd->status.inventory[i].amount;
         }
-        sd->cart_max_weight = battle_config.max_cart_weight;
-        sd->cart_weight = 0;
-        sd->cart_max_num = MAX_CART;
-        sd->cart_num = 0;
-        for (int i = 0; i < MAX_CART; i++)
-        {
-            if (sd->status.cart[i].nameid == 0)
-                continue;
-            sd->cart_weight +=
-                itemdb_weight(sd->status.cart[i].nameid) *
-                sd->status.cart[i].amount;
-            sd->cart_num++;
-        }
+        // used to fill cart
     }
 
     for (auto& p : sd->paramb)
@@ -967,8 +955,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     sd->status.max_sp = 0;
     sd->attackrange = 0;
     sd->attackrange_ = 0;
-    sd->star = 0;
-    sd->overrefine = 0;
     sd->matk1 = 0;
     sd->matk2 = 0;
     sd->speed = DEFAULT_WALK_SPEED;
@@ -985,8 +971,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     sd->watk_ = 0;              //二刀流用(仮)
     sd->watk_2 = 0;
-    sd->star_ = 0;
-    sd->overrefine_ = 0;
 
     sd->aspd_rate = 100;
     sd->speed_rate = 100;
@@ -1027,55 +1011,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             sd->spellpower_bonus_target +=
                 sd->inventory_data[index]->magic_bonus;
 
-            if (sd->inventory_data[index]->type == ItemType::WEAPON)
-            {
-                if (sd->status.inventory[index].card[0] != 0x00ff
-                    && sd->status.inventory[index].card[0] != 0x00fe
-                    && sd->status.inventory[index].card[0] != static_cast<short>(0xff00))
-                {
-                    int j;
-                    for (j = 0; j < sd->inventory_data[index]->slot; j++)
-                    {           // カード
-                        int c = sd->status.inventory[index].card[j];
-                        if (c > 0)
-                        {
-                            argrec_t arg[2] =
-                            {
-                                {"@slotId", static_cast<int>(i)},
-                                {"@itemId", sd->inventory_data[index]->nameid},
-                            };
-                            if (i == EQUIP::SHIELD
-                                && sd->status.inventory[index].equip == EPOS::SHIELD)
-                                sd->state.lr_flag = 1;
-                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id, 0,
-                                    2, arg);
-                            sd->state.lr_flag = 0;
-                        }
-                    }
-                }
-            }
-            else if (sd->inventory_data[index]->type == ItemType::ARMOR)
-            {                   // 防具
-                if (sd->status.inventory[index].card[0] != 0x00ff
-                    && sd->status.inventory[index].card[0] != 0x00fe
-                    && sd->status.inventory[index].card[0] != static_cast<short>(0xff00))
-                {
-                    int j;
-                    for (j = 0; j < sd->inventory_data[index]->slot; j++)
-                    {           // カード
-                        int c = sd->status.inventory[index].card[j];
-                        if (c > 0) {
-                            argrec_t arg[2] =
-                            {
-                                {"@slotId", static_cast<int>(i)},
-                                {"@itemId", sd->inventory_data[index]->nameid}
-                            };
-                            run_script_l(ScriptPointer(itemdb_equipscript(c), 0), sd->bl_id, 0,
-                                    2, arg);
-                        }
-                    }
-                }
-            }
+            // used to apply cards
         }
     }
 
@@ -1110,21 +1046,13 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             sd->def += sd->inventory_data[index]->def;
             if (sd->inventory_data[index]->type == ItemType::WEAPON)
             {
-                int r;
                 if (i == EQUIP::SHIELD
                     && sd->status.inventory[index].equip == EPOS::SHIELD)
                 {
                     //二刀流用データ入力
                     sd->watk_ += sd->inventory_data[index]->atk;
-                    sd->watk_2 = (r = sd->status.inventory[index].refine) * // 精錬攻撃力
-                        0;
-                    if ((r -= 10) > 0) // 過剰精錬ボーナス
-                        sd->overrefine_ = r * 0;
+                    sd->watk_2 = 0;
 
-                    if (sd->status.inventory[index].card[0] == 0x00ff)
-                    {           // 製造武器
-                        sd->star_ = (sd->status.inventory[index].card[1] >> 8); // 星のかけら
-                    }
                     sd->attackrange_ += sd->inventory_data[index]->range;
                     sd->state.lr_flag = 1;
                     {
@@ -1148,15 +1076,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                         {"@itemId", sd->inventory_data[index]->nameid},
                     };
                     sd->watk += sd->inventory_data[index]->atk;
-                    sd->watk2 += (r = sd->status.inventory[index].refine) * // 精錬攻撃力
-                        0;
-                    if ((r -= 10) > 0) // 過剰精錬ボーナス
-                        sd->overrefine += r * 0;
 
-                    if (sd->status.inventory[index].card[0] == 0x00ff)
-                    {           // 製造武器
-                        sd->star += (sd->status.inventory[index].card[1] >> 8); // 星のかけら
-                    }
                     sd->attackrange += sd->inventory_data[index]->range;
                     run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                             sd->bl_id, 0,
@@ -1171,8 +1091,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     {"@itemId", sd->inventory_data[index]->nameid},
                 };
                 sd->watk += sd->inventory_data[index]->atk;
-                refinedef +=
-                    sd->status.inventory[index].refine * 0;
                 run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                         sd->bl_id, 0,
                         2, arg);
@@ -2027,11 +1945,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, struct item *item_data,
     {
         // 装 備品ではないので、既所有品なら個数のみ変化させる
         for (i = 0; i < MAX_INVENTORY; i++)
-            if (sd->status.inventory[i].nameid == item_data->nameid &&
-                sd->status.inventory[i].card[0] == item_data->card[0]
-                && sd->status.inventory[i].card[1] == item_data->card[1]
-                && sd->status.inventory[i].card[2] == item_data->card[2]
-                && sd->status.inventory[i].card[3] == item_data->card[3])
+            if (sd->status.inventory[i].nameid == item_data->nameid)
             {
                 if (sd->status.inventory[i].amount + amount > MAX_AMOUNT)
                     return PickupFail::STACK_FULL;
@@ -4454,8 +4368,8 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     if (battle_config.battle_log)
         PRINTF("equip %d (%d) %x:%x\n",
                 nameid, n, id->equip, pos);
-    if (!pc_isequip(sd, n) || pos == EPOS::ZERO || sd->status.inventory[n].broken == 1)
-    {                           // [Valaris]
+    if (!pc_isequip(sd, n) || pos == EPOS::ZERO)
+    {
         clif_equipitemack(sd, n, EPOS::ZERO, 0);    // fail
         return 0;
     }
@@ -4623,11 +4537,6 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
         }
         pc_signal_advanced_equipment_change(sd, n);
 
-        if (sd->sc_data[StatusChange::SC_BROKNWEAPON].timer
-            && bool(sd->status.inventory[n].equip & EPOS::WEAPON)
-            && sd->status.inventory[n].broken == 1)
-            skill_status_change_end(sd, StatusChange::SC_BROKNWEAPON, nullptr);
-
         clif_unequipitemack(sd, n, sd->status.inventory[n].equip, 1);
         sd->status.inventory[n].equip = EPOS::ZERO;
     }
@@ -4689,22 +4598,6 @@ int pc_checkitem(dumb_ptr<map_session_data> sd)
         sd->status.inventory[k] = item{};
     for (k = j; k < MAX_INVENTORY; k++)
         sd->inventory_data[k] = NULL;
-
-    // カート内空き詰め
-    for (i = j = 0; i < MAX_CART; i++)
-    {
-        if ((id = sd->status.cart[i].nameid) == 0)
-            continue;
-        if (i > j)
-        {
-            sd->status.cart[j] = sd->status.cart[i];
-        }
-        j++;
-    }
-    while (j < MAX_CART)
-        sd->status.cart[j++] = item{};
-
-    // 装 備位置チェック
 
     for (i = 0; i < MAX_INVENTORY; i++)
     {

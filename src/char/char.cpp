@@ -276,12 +276,7 @@ AString mmo_char_tostr(struct CharPair *cp)
             p->last_point.map_, p->last_point.x, p->last_point.y,
             p->save_point.map_, p->save_point.x, p->save_point.y, p->partner_id);
 
-    for (int i = 0; i < 10; i++)
-        if (p->memo_point[i].map_)
-        {
-            str_p += STRPRINTF("%s,%d,%d ",
-                    p->memo_point[i].map_, p->memo_point[i].x, p->memo_point[i].y);
-        }
+    // memos were here (no longer supported)
     str_p += '\t';
 
     for (int i = 0; i < MAX_INVENTORY; i++)
@@ -292,34 +287,18 @@ AString mmo_char_tostr(struct CharPair *cp)
                     p->inventory[i].nameid,
                     p->inventory[i].amount,
                     p->inventory[i].equip,
-                    p->inventory[i].identify,
-                    p->inventory[i].refine,
-                    p->inventory[i].attribute,
-                    p->inventory[i].card[0],
-                    p->inventory[i].card[1],
-                    p->inventory[i].card[2],
-                    p->inventory[i].card[3],
-                    p->inventory[i].broken);
+                    1 /*identify*/,
+                    0 /*refine*/,
+                    0 /*attribute*/,
+                    0 /*card[0]*/,
+                    0 /*card[1]*/,
+                    0 /*card[2]*/,
+                    0 /*card[3]*/,
+                    0 /*broken*/);
         }
     str_p += '\t';
 
-    for (int i = 0; i < MAX_CART; i++)
-        if (p->cart[i].nameid)
-        {
-            str_p += STRPRINTF("%d,%d,%d,%hhu,%d,%hd,%hhu,%d,%d,%d,%d,%d ",
-                    p->cart[i].id,
-                    p->cart[i].nameid,
-                    p->cart[i].amount,
-                    p->cart[i].equip,
-                    p->cart[i].identify,
-                    p->cart[i].refine,
-                    p->cart[i].attribute,
-                    p->cart[i].card[0],
-                    p->cart[i].card[1],
-                    p->cart[i].card[2],
-                    p->cart[i].card[3],
-                    p->cart[i].broken);
-        }
+    // cart was here (no longer supported)
     str_p += '\t';
 
     for (SkillID i : erange(SkillID(), MAX_SKILL))
@@ -376,8 +355,9 @@ bool extract(XString str, CharPair *cp)
     CharData *p = cp->data.get();
 
     uint32_t unused_guild_id, unused_pet_id;
-    std::vector<struct point> memos;
-    std::vector<struct item> inventory, cart;
+    XString unused_memos;
+    std::vector<struct item> inventory;
+    XString unused_cart;
     std::vector<struct skill_loader> skills;
     std::vector<struct global_reg> vars;
     if (!extract(str,
@@ -399,9 +379,9 @@ bool extract(XString str, CharPair *cp)
                     // of this, instead of adding a new \t
                     // or putting it elsewhere, like by pet/guild
                     record<','>(&p->save_point.map_, &p->save_point.x, &p->save_point.y, &p->partner_id),
-                    vrec<' '>(&memos),
+                    &unused_memos,
                     vrec<' '>(&inventory),
-                    vrec<' '>(&cart),
+                    &unused_cart,
                     vrec<' '>(&skills),
                     vrec<' '>(&vars))))
         return false;
@@ -424,20 +404,14 @@ bool extract(XString str, CharPair *cp)
         return false;
     }
 
-    if (memos.size() > 10)
-        return false;
-    std::copy(memos.begin(), memos.end(), p->memo_point);
-    // number of memo points is not saved - it just detects map name '\0'
+    // memos were here - no longer supported
 
     if (inventory.size() > MAX_INVENTORY)
         return false;
     std::copy(inventory.begin(), inventory.end(), p->inventory);
     // number of inventory items is not saved - it just detects nameid 0
 
-    if (cart.size() > MAX_CART)
-       return false;
-    std::copy(cart.begin(), cart.end(), p->cart);
-    // number of cart items is not saved - it just detects nameid 0
+    // cart was here - no longer supported
 
     for (struct skill_loader& sk : skills)
     {
@@ -1378,8 +1352,7 @@ void parse_tologin(Session *ls)
 #define FIX(v) if (v == source_id) {v = dest_id; ++changes; }
                     for (j = 0; j < MAX_INVENTORY; j++)
                         FIX(c->inventory[j].nameid);
-                    for (j = 0; j < MAX_CART; j++)
-                        FIX(c->cart[j].nameid);
+                    // used to FIX cart, but it's no longer supported
                     // FIX(c->weapon);
                     FIX(c->shield);
                     FIX(c->head_top);

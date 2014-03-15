@@ -1322,7 +1322,6 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         {
             struct item item_tmp {};
             item_tmp.nameid = item_id;
-            item_tmp.identify = 1;
             PickupFail flag;
             if ((flag = pc_additem(sd, &item_tmp, get_count))
                 != PickupFail::OKAY)
@@ -3114,12 +3113,8 @@ ATCE atcommand_char_wipe(Session *s, dumb_ptr<map_session_data> sd,
             // Give knife and shirt
             struct item item;
             item.nameid = 1201;
-            // knife
-            item.identify = 1;
-            item.broken = 0;
             pc_additem(pl_sd, &item, 1);
             item.nameid = 1202;
-            // shirt
             pc_additem(pl_sd, &item, 1);
 
             // Reset stats and skills
@@ -3809,8 +3804,8 @@ static
 ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    struct item_data *item_data = NULL, *item_temp;
-    int i, j, count, counter, counter2;
+    struct item_data *item_data = NULL;
+    int i, count, counter;
     CharName character;
 
     if (!asplit(message, &character))
@@ -3880,16 +3875,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                         equipstr = MString();
 
                     AString output;
-                    if (sd->status.inventory[i].refine)
-                        output = STRPRINTF("%d %s %+d (%s %+d, id: %d) %s",
-                                 pl_sd->status.inventory[i].amount,
-                                 item_data->name,
-                                 pl_sd->status.inventory[i].refine,
-                                 item_data->jname,
-                                 pl_sd->status.inventory[i].refine,
-                                 pl_sd->status.inventory[i].nameid,
-                                 AString(equipstr));
-                    else
+                    if (true)
                         output = STRPRINTF("%d %s (%s, id: %d) %s",
                                  pl_sd->status.inventory[i].amount,
                                  item_data->name, item_data->jname,
@@ -3897,40 +3883,7 @@ ATCE atcommand_character_item_list(Session *s, dumb_ptr<map_session_data> sd,
                                  AString(equipstr));
                     clif_displaymessage(s, output);
 
-                    MString voutput;
-                    counter2 = 0;
-                    for (j = 0; j < item_data->slot; j++)
-                    {
-                        if (pl_sd->status.inventory[i].card[j])
-                        {
-                            if ((item_temp =
-                                 itemdb_search(pl_sd->status.
-                                                inventory[i].card[j])) !=
-                                NULL)
-                            {
-                                if (!voutput)
-                                    voutput += STRPRINTF(
-                                            " -> (card(s): "
-                                            "#%d %s (%s), ",
-                                            ++counter2,
-                                            item_temp->name,
-                                            item_temp->jname);
-                                else
-                                    voutput += STRPRINTF(
-                                            "#%d %s (%s), ",
-                                            ++counter2,
-                                            item_temp->name,
-                                            item_temp->jname);
-                            }
-                        }
-                    }
-                    if (voutput)
-                    {
-                        // replace trailing ", "
-                        voutput.pop_back();
-                        voutput.back() = ')';
-                        clif_displaymessage(s, AString(voutput));
-                    }
+                    // snip cards
                 }
             }
             if (count == 0)
@@ -3963,8 +3916,8 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     struct storage *stor;
-    struct item_data *item_data = NULL, *item_temp;
-    int i, j, count, counter, counter2;
+    struct item_data *item_data = NULL;
+    int i, count, counter;
     CharName character;
 
     if (!asplit(message, &character))
@@ -3996,55 +3949,12 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
                             clif_displaymessage(s, output);
                         }
                         AString output;
-                        if (stor->storage_[i].refine)
-                            output = STRPRINTF("%d %s %+d (%s %+d, id: %d)",
-                                     stor->storage_[i].amount,
-                                     item_data->name,
-                                     stor->storage_[i].refine,
-                                     item_data->jname,
-                                     stor->storage_[i].refine,
-                                     stor->storage_[i].nameid);
-                        else
+                        if (true)
                             output = STRPRINTF("%d %s (%s, id: %d)",
                                      stor->storage_[i].amount,
                                      item_data->name, item_data->jname,
                                      stor->storage_[i].nameid);
                         clif_displaymessage(s, output);
-
-                        MString voutput;
-                        counter2 = 0;
-                        for (j = 0; j < item_data->slot; j++)
-                        {
-                            if (stor->storage_[i].card[j])
-                            {
-                                if ((item_temp =
-                                     itemdb_search(stor->
-                                                    storage_[i].card[j])) !=
-                                    NULL)
-                                {
-                                    if (!voutput)
-                                        voutput += STRPRINTF(
-                                                " -> (card(s): "
-                                                "#%d %s (%s), ",
-                                                ++counter2,
-                                                item_temp->name,
-                                                item_temp->jname);
-                                    else
-                                        voutput += STRPRINTF(
-                                                "#%d %s (%s), ",
-                                                ++counter2,
-                                                item_temp->name,
-                                                item_temp->jname);
-                                }
-                            }
-                        }
-                        if (voutput)
-                        {
-                            // replace last ", "
-                            voutput.pop_back();
-                            voutput.back() = ')';
-                            clif_displaymessage(s, AString(voutput));
-                        }
                     }
                 }
                 if (count == 0)
@@ -4062,117 +3972,6 @@ ATCE atcommand_character_storage_list(Session *s, dumb_ptr<map_session_data> sd,
             {
                 clif_displaymessage(s, "This player has no storage.");
                 return ATCE::OKAY;
-            }
-        }
-        else
-        {
-            clif_displaymessage(s, "Your GM level don't authorise you to do this action on this player.");
-            return ATCE::PERM;
-        }
-    }
-    else
-    {
-        clif_displaymessage(s, "Character not found.");
-        return ATCE::EXIST;
-    }
-
-    return ATCE::OKAY;
-}
-
-static
-ATCE atcommand_character_cart_list(Session *s, dumb_ptr<map_session_data> sd,
-        ZString message)
-{
-    struct item_data *item_data = NULL, *item_temp;
-    int i, j, count, counter, counter2;
-    CharName character;
-
-    if (!asplit(message, &character))
-        return ATCE::USAGE;
-
-    dumb_ptr<map_session_data> pl_sd = map_nick2sd(character);
-    if (pl_sd != NULL)
-    {
-        if (pc_isGM(sd) >= pc_isGM(pl_sd))
-        {
-            // you can look items only lower or same level
-            counter = 0;
-            count = 0;
-            for (i = 0; i < MAX_CART; i++)
-            {
-                if (pl_sd->status.cart[i].nameid > 0
-                    && (item_data =
-                        itemdb_search(pl_sd->status.cart[i].nameid)) != NULL)
-                {
-                    counter = counter + pl_sd->status.cart[i].amount;
-                    count++;
-                    if (count == 1)
-                    {
-                        AString output = STRPRINTF(
-                                "------ Cart items list of '%s' ------",
-                                pl_sd->status_key.name);
-                        clif_displaymessage(s, output);
-                    }
-
-                    AString output;
-                    if (pl_sd->status.cart[i].refine)
-                        output = STRPRINTF("%d %s %+d (%s %+d, id: %d)",
-                                pl_sd->status.cart[i].amount,
-                                item_data->name,
-                                pl_sd->status.cart[i].refine,
-                                item_data->jname,
-                                pl_sd->status.cart[i].refine,
-                                pl_sd->status.cart[i].nameid);
-                    else
-
-                        output = STRPRINTF("%d %s (%s, id: %d)",
-                                pl_sd->status.cart[i].amount,
-                                item_data->name, item_data->jname,
-                                pl_sd->status.cart[i].nameid);
-                    clif_displaymessage(s, output);
-
-                    MString voutput;
-                    counter2 = 0;
-                    for (j = 0; j < item_data->slot; j++)
-                    {
-                        if (pl_sd->status.cart[i].card[j])
-                        {
-                            if ((item_temp =
-                                 itemdb_search(pl_sd->status.
-                                                cart[i].card[j])) != NULL)
-                            {
-                                if (!voutput)
-                                    voutput += STRPRINTF(
-                                            " -> (card(s): "
-                                            "#%d %s (%s), ",
-                                            ++counter2,
-                                            item_temp->name,
-                                            item_temp->jname);
-                                else
-                                    voutput += STRPRINTF(
-                                            "#%d %s (%s), ",
-                                            ++counter2,
-                                            item_temp->name,
-                                            item_temp->jname);
-                            }
-                        }
-                    }
-                    if (voutput)
-                    {
-                        voutput.pop_back();
-                        voutput.back() = '0';
-                        clif_displaymessage(s, AString(voutput));
-                    }
-                }
-            }
-            if (count == 0)
-                clif_displaymessage(s,
-                        "No item found in the cart of this player.");
-            else
-            {
-                AString output = STRPRINTF("%d item(s) found in %d kind(s) of items.",
-                         counter, count);
-                clif_displaymessage(s, output);
             }
         }
         else
@@ -5379,9 +5178,6 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"charstoragelist", {"<charname>",
         99, atcommand_character_storage_list,
         "List a player's storage"}},
-    {"charcartlist", {"<charname>",
-        99, atcommand_character_cart_list,
-        "List a player's cart"}},
     {"addwarp", {"<mapname> <x> <y>",
         80, atcommand_addwarp,
         "Create a new permanent warp"}},

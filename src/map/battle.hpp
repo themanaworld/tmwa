@@ -133,7 +133,6 @@ extern struct Battle_Config
     int max_sp;
     int max_lv;
     int max_parameter;
-    int max_cart_weight;
     int monster_skill_log;
     int battle_log;
     int save_log;

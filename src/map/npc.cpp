@@ -819,7 +819,6 @@ int npc_buylist(dumb_ptr<map_session_data> sd, int n,
             struct item item_tmp {};
 
             item_tmp.nameid = item_data->nameid;
-            item_tmp.identify = 1;  // npc販売アイテムは鑑定済み
 
             if (amount > 1
                 && (item_data->type == ItemType::WEAPON

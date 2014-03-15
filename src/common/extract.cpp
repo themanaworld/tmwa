@@ -44,19 +44,19 @@ bool extract(XString str, struct global_reg *var)
 
 bool extract(XString str, struct item *it)
 {
-    it->broken = 0;
+    XString ignored;
     return extract(str,
             record<',', 11>(
                 &it->id,
                 &it->nameid,
                 &it->amount,
                 &it->equip,
-                &it->identify,
-                &it->refine,
-                &it->attribute,
-                &it->card[0],
-                &it->card[1],
-                &it->card[2],
-                &it->card[3],
-                &it->broken));
+                &ignored,
+                &ignored,
+                &ignored,
+                &ignored,
+                &ignored,
+                &ignored,
+                &ignored,
+                &ignored));
 }

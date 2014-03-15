@@ -1452,12 +1452,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     if (sd->double_rate > 0 && skill_num == SkillID::ZERO && skill_lv >= 0)
         da = random_::chance({sd->double_rate, 100});
 
-    // 過剰精錬ボーナス
-    if (sd->overrefine > 0)
-        damage += random_::in(1, sd->overrefine);
-    if (sd->overrefine_ > 0)
-        damage2 += random_::in(1, sd->overrefine_);
-
     if (!da)
     {                           //ダブルアタックが発動していない
         // クリティカル計算
@@ -1643,10 +1637,6 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         damage = 0;
     if (damage2 < 0)
         damage2 = 0;
-
-    // 星のかけら、気球の適用
-    damage += sd->star;
-    damage2 += sd->star_;
 
     // >二刀流の左右ダメージ計算誰かやってくれぇぇぇぇえええ！
     // >map_session_data に左手ダメージ(atk,atk2)追加して
@@ -2349,7 +2339,6 @@ Battle_Config init_battle_config()
         battle_config.max_sp = 32500;
         battle_config.max_lv = 99;  // [MouseJstr]
         battle_config.max_parameter = 99;
-        battle_config.max_cart_weight = 8000;
         battle_config.monster_skill_log = 0;
         battle_config.battle_log = 0;
         battle_config.save_log = 0;
@@ -2476,7 +2465,6 @@ bool battle_config_read(ZString cfgName)
             BATTLE_CONFIG_VAR(max_sp),
             BATTLE_CONFIG_VAR(max_lv),
             BATTLE_CONFIG_VAR(max_parameter),
-            BATTLE_CONFIG_VAR(max_cart_weight),
             BATTLE_CONFIG_VAR(monster_skill_log),
             BATTLE_CONFIG_VAR(battle_log),
             BATTLE_CONFIG_VAR(save_log),
@@ -2611,11 +2599,6 @@ void battle_config_check()
             battle_config.max_parameter = 10;
         if (battle_config.max_parameter > 10000)
             battle_config.max_parameter = 10000;
-        if (battle_config.max_cart_weight > 1000000)
-            battle_config.max_cart_weight = 1000000;
-        if (battle_config.max_cart_weight < 100)
-            battle_config.max_cart_weight = 100;
-        battle_config.max_cart_weight *= 10;
 
         if (battle_config.agi_penaly_count < 2)
             battle_config.agi_penaly_count = 2;

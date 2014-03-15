@@ -528,7 +528,7 @@ int clif_set009e(dumb_ptr<flooritem_data> fitem, uint8_t *buf)
     WBUFW(buf, 0) = 0x9e;
     WBUFL(buf, 2) = fitem->bl_id;
     WBUFW(buf, 6) = fitem->item_data.nameid;
-    WBUFB(buf, 8) = fitem->item_data.identify;
+    WBUFB(buf, 8) = 1; //identify;
     WBUFW(buf, 9) = fitem->bl_x;
     WBUFW(buf, 11) = fitem->bl_y;
     WBUFB(buf, 13) = fitem->subx;
@@ -1369,27 +1369,14 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
         WFIFOW(s, 2) = n + 2;
         WFIFOW(s, 4) = amount;
         WFIFOW(s, 6) = sd->status.inventory[n].nameid;
-        WFIFOB(s, 8) = sd->status.inventory[n].identify;
-        if (sd->status.inventory[n].broken == 1)
-            WFIFOB(s, 9) = 1; // is weapon broken [Valaris]
-        else
-            WFIFOB(s, 9) = sd->status.inventory[n].attribute;
-        WFIFOB(s, 10) = sd->status.inventory[n].refine;
-        if (sd->status.inventory[n].card[0] == 0x00ff
-            || sd->status.inventory[n].card[0] == 0x00fe
-            || sd->status.inventory[n].card[0] == static_cast<short>(0xff00))
+        WFIFOB(s, 8) = 1; //identify;
+        WFIFOB(s, 9) = 0; // broken or attribute;
+        WFIFOB(s, 10) = 0; //refine;
         {
-            WFIFOW(s, 11) = sd->status.inventory[n].card[0];
-            WFIFOW(s, 13) = sd->status.inventory[n].card[1];
-            WFIFOW(s, 15) = sd->status.inventory[n].card[2];
-            WFIFOW(s, 17) = sd->status.inventory[n].card[3];
-        }
-        else
-        {
-            WFIFOW(s, 11) = sd->status.inventory[n].card[0];
-            WFIFOW(s, 13) = sd->status.inventory[n].card[1];
-            WFIFOW(s, 15) = sd->status.inventory[n].card[2];
-            WFIFOW(s, 17) = sd->status.inventory[n].card[3];
+            WFIFOW(s, 11) = 0; //card[0];
+            WFIFOW(s, 13) = 0; //card[1];
+            WFIFOW(s, 15) = 0; //card[2];
+            WFIFOW(s, 17) = 0; //card[3];
         }
         WFIFOW(s, 19) = uint16_t(pc_equippoint(sd, n));
         WFIFOB(s, 21) = uint8_t(sd->inventory_data[n]->type == ItemType::_7
@@ -1439,7 +1426,7 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
         WFIFOW(s, n * 18 + 4) = i + 2;
         WFIFOW(s, n * 18 + 6) = sd->status.inventory[i].nameid;
         WFIFOB(s, n * 18 + 8) = uint8_t(sd->inventory_data[i]->type);
-        WFIFOB(s, n * 18 + 9) = sd->status.inventory[i].identify;
+        WFIFOB(s, n * 18 + 9) = 1; //identify;
         WFIFOW(s, n * 18 + 10) = sd->status.inventory[i].amount;
         if (sd->inventory_data[i]->equip == EPOS::ARROW)
         {
@@ -1449,10 +1436,10 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
         }
         else
             WFIFOW(s, n * 18 + 12) = uint16_t(EPOS::ZERO);
-        WFIFOW(s, n * 18 + 14) = sd->status.inventory[i].card[0];
-        WFIFOW(s, n * 18 + 16) = sd->status.inventory[i].card[1];
-        WFIFOW(s, n * 18 + 18) = sd->status.inventory[i].card[2];
-        WFIFOW(s, n * 18 + 20) = sd->status.inventory[i].card[3];
+        WFIFOW(s, n * 18 + 14) = 0; //card[0];
+        WFIFOW(s, n * 18 + 16) = 0; //card[1];
+        WFIFOW(s, n * 18 + 18) = 0; //card[2];
+        WFIFOW(s, n * 18 + 20) = 0; //card[3];
         n++;
     }
     if (n)
@@ -1487,29 +1474,16 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
                 sd->inventory_data[i]->type == ItemType::_7
                 ? ItemType::WEAPON
                 : sd->inventory_data[i]->type);
-        WFIFOB(s, n * 20 + 9) = sd->status.inventory[i].identify;
+        WFIFOB(s, n * 20 + 9) = 0; //identify;
         WFIFOW(s, n * 20 + 10) = uint16_t(pc_equippoint(sd, i));
         WFIFOW(s, n * 20 + 12) = uint16_t(sd->status.inventory[i].equip);
-        if (sd->status.inventory[i].broken == 1)
-            WFIFOB(s, n * 20 + 14) = 1;   // is weapon broken [Valaris]
-        else
-            WFIFOB(s, n * 20 + 14) = sd->status.inventory[i].attribute;
-        WFIFOB(s, n * 20 + 15) = sd->status.inventory[i].refine;
-        if (sd->status.inventory[i].card[0] == 0x00ff
-            || sd->status.inventory[i].card[0] == 0x00fe
-            || sd->status.inventory[i].card[0] == static_cast<short>(0xff00))
+        WFIFOB(s, n * 20 + 14) = 0; //broken or attribute;
+        WFIFOB(s, n * 20 + 15) = 0; //refine;
         {
-            WFIFOW(s, n * 20 + 16) = sd->status.inventory[i].card[0];
-            WFIFOW(s, n * 20 + 18) = sd->status.inventory[i].card[1];
-            WFIFOW(s, n * 20 + 20) = sd->status.inventory[i].card[2];
-            WFIFOW(s, n * 20 + 22) = sd->status.inventory[i].card[3];
-        }
-        else
-        {
-            WFIFOW(s, n * 20 + 16) = sd->status.inventory[i].card[0];
-            WFIFOW(s, n * 20 + 18) = sd->status.inventory[i].card[1];
-            WFIFOW(s, n * 20 + 20) = sd->status.inventory[i].card[2];
-            WFIFOW(s, n * 20 + 22) = sd->status.inventory[i].card[3];
+            WFIFOW(s, n * 20 + 16) = 0; //card[0];
+            WFIFOW(s, n * 20 + 18) = 0; //card[1];
+            WFIFOW(s, n * 20 + 20) = 0; //card[2];
+            WFIFOW(s, n * 20 + 22) = 0; //card[3];
         }
         n++;
     }
@@ -1546,13 +1520,13 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
         WFIFOW(s, n * 18 + 4) = i + 1;
         WFIFOW(s, n * 18 + 6) = stor->storage_[i].nameid;
         WFIFOB(s, n * 18 + 8) = uint8_t(id->type);
-        WFIFOB(s, n * 18 + 9) = stor->storage_[i].identify;
+        WFIFOB(s, n * 18 + 9) = 0; //identify;
         WFIFOW(s, n * 18 + 10) = stor->storage_[i].amount;
         WFIFOW(s, n * 18 + 12) = 0;
-        WFIFOW(s, n * 18 + 14) = stor->storage_[i].card[0];
-        WFIFOW(s, n * 18 + 16) = stor->storage_[i].card[1];
-        WFIFOW(s, n * 18 + 18) = stor->storage_[i].card[2];
-        WFIFOW(s, n * 18 + 20) = stor->storage_[i].card[3];
+        WFIFOW(s, n * 18 + 14) = 0; //card[0];
+        WFIFOW(s, n * 18 + 16) = 0; //card[1];
+        WFIFOW(s, n * 18 + 18) = 0; //card[2];
+        WFIFOW(s, n * 18 + 20) = 0; //card[3];
         n++;
     }
     if (n)
@@ -1588,29 +1562,16 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
         WFIFOW(s, n * 20 + 4) = i + 1;
         WFIFOW(s, n * 20 + 6) = stor->storage_[i].nameid;
         WFIFOB(s, n * 20 + 8) = uint8_t(id->type);
-        WFIFOB(s, n * 20 + 9) = stor->storage_[i].identify;
+        WFIFOB(s, n * 20 + 9) = 0; //identify;
         WFIFOW(s, n * 20 + 10) = uint16_t(id->equip);
         WFIFOW(s, n * 20 + 12) = uint16_t(stor->storage_[i].equip);
-        if (stor->storage_[i].broken == 1)
-            WFIFOB(s, n * 20 + 14) = 1;   //is weapon broken [Valaris]
-        else
-            WFIFOB(s, n * 20 + 14) = stor->storage_[i].attribute;
-        WFIFOB(s, n * 20 + 15) = stor->storage_[i].refine;
-        if (stor->storage_[i].card[0] == 0x00ff
-            || stor->storage_[i].card[0] == 0x00fe
-            || stor->storage_[i].card[0] == static_cast<short>(0xff00))
+        WFIFOB(s, n * 20 + 14) = 0; //broken or attribute
+        WFIFOB(s, n * 20 + 15) = 0; //refine;
         {
-            WFIFOW(s, n * 20 + 16) = stor->storage_[i].card[0];
-            WFIFOW(s, n * 20 + 18) = stor->storage_[i].card[1];
-            WFIFOW(s, n * 20 + 20) = stor->storage_[i].card[2];
-            WFIFOW(s, n * 20 + 22) = stor->storage_[i].card[3];
-        }
-        else
-        {
-            WFIFOW(s, n * 20 + 16) = stor->storage_[i].card[0];
-            WFIFOW(s, n * 20 + 18) = stor->storage_[i].card[1];
-            WFIFOW(s, n * 20 + 20) = stor->storage_[i].card[2];
-            WFIFOW(s, n * 20 + 22) = stor->storage_[i].card[3];
+            WFIFOW(s, n * 20 + 16) = 0; //card[0];
+            WFIFOW(s, n * 20 + 18) = 0; //card[1];
+            WFIFOW(s, n * 20 + 20) = 0; //card[2];
+            WFIFOW(s, n * 20 + 22) = 0; //card[3];
         }
         n++;
     }
@@ -2164,27 +2125,14 @@ void clif_tradeadditem(dumb_ptr<map_session_data> sd,
     {
         index -= 2;
         WFIFOW(s, 6) = sd->status.inventory[index].nameid;    // type id
-        WFIFOB(s, 8) = sd->status.inventory[index].identify;  //identify flag
-        if (sd->status.inventory[index].broken == 1)
-            WFIFOB(s, 9) = 1; // is broke weapon [Valaris]
-        else
-            WFIFOB(s, 9) = sd->status.inventory[index].attribute; // attribute
-        WFIFOB(s, 10) = sd->status.inventory[index].refine;   //refine
-        if (sd->status.inventory[index].card[0] == 0x00ff
-            || sd->status.inventory[index].card[0] == 0x00fe
-            || sd->status.inventory[index].card[0] == static_cast<short>(0xff00))
+        WFIFOB(s, 8) = 0; //identify;
+        WFIFOB(s, 9) = 0; //broken or attribute;
+        WFIFOB(s, 10) = 0; //refine;
         {
-            WFIFOW(s, 11) = sd->status.inventory[index].card[0];  //card (4w)
-            WFIFOW(s, 13) = sd->status.inventory[index].card[1];  //card (4w)
-            WFIFOW(s, 15) = sd->status.inventory[index].card[2];  //card (4w)
-            WFIFOW(s, 17) = sd->status.inventory[index].card[3];  //card (4w)
-        }
-        else
-        {
-            WFIFOW(s, 11) = sd->status.inventory[index].card[0];
-            WFIFOW(s, 13) = sd->status.inventory[index].card[1];
-            WFIFOW(s, 15) = sd->status.inventory[index].card[2];
-            WFIFOW(s, 17) = sd->status.inventory[index].card[3];
+            WFIFOW(s, 11) = 0; //card[0];
+            WFIFOW(s, 13) = 0; //card[1];
+            WFIFOW(s, 15) = 0; //card[2];
+            WFIFOW(s, 17) = 0; //card[3];
         }
     }
     WFIFOSET(s, clif_parse_func_table[0xe9].len);
@@ -2293,27 +2241,14 @@ int clif_storageitemadded(dumb_ptr<map_session_data> sd, struct storage *stor,
                 WFIFOW(fd,8) =view;
         else*/
     WFIFOW(s, 8) = stor->storage_[index].nameid;
-    WFIFOB(s, 10) = stor->storage_[index].identify;   //identify flag
-    if (stor->storage_[index].broken == 1)
-        WFIFOB(s, 11) = 1;    // is weapon broken [Valaris]
-    else
-        WFIFOB(s, 11) = stor->storage_[index].attribute;  // attribute
-    WFIFOB(s, 12) = stor->storage_[index].refine; //refine
-    if (stor->storage_[index].card[0] == 0x00ff
-        || stor->storage_[index].card[0] == 0x00fe
-        || stor->storage_[index].card[0] == static_cast<short>(0xff00))
+    WFIFOB(s, 10) = 0; //identify;
+    WFIFOB(s, 11) = 0; //broken or attribute;
+    WFIFOB(s, 12) = 0; //refine;
     {
-        WFIFOW(s, 13) = stor->storage_[index].card[0];    //card (4w)
-        WFIFOW(s, 15) = stor->storage_[index].card[1];    //card (4w)
-        WFIFOW(s, 17) = stor->storage_[index].card[2];    //card (4w)
-        WFIFOW(s, 19) = stor->storage_[index].card[3];    //card (4w)
-    }
-    else
-    {
-        WFIFOW(s, 13) = stor->storage_[index].card[0];
-        WFIFOW(s, 15) = stor->storage_[index].card[1];
-        WFIFOW(s, 17) = stor->storage_[index].card[2];
-        WFIFOW(s, 19) = stor->storage_[index].card[3];
+        WFIFOW(s, 13) = 0; //card[0];
+        WFIFOW(s, 15) = 0; //card[1];
+        WFIFOW(s, 17) = 0; //card[2];
+        WFIFOW(s, 19) = 0; //card[3];
     }
     WFIFOSET(s, clif_parse_func_table[0xf4].len);
 
@@ -2556,7 +2491,7 @@ void clif_getareachar_item(dumb_ptr<map_session_data> sd,
     WFIFOW(s, 0) = 0x9d;
     WFIFOL(s, 2) = fitem->bl_id;
     WFIFOW(s, 6) = fitem->item_data.nameid;
-    WFIFOB(s, 8) = fitem->item_data.identify;
+    WFIFOB(s, 8) = 0; //identify;
     WFIFOW(s, 9) = fitem->bl_x;
     WFIFOW(s, 11) = fitem->bl_y;
     WFIFOW(s, 13) = fitem->item_data.amount;
@@ -3465,8 +3400,6 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_LoadEndAck(Session *, dumb_ptr<map_session_data> sd)
 {
-//  struct item_data* item;
-    int i;
     nullpo_retv(sd);
 
     if (sd->bl_prev != NULL)
@@ -3540,17 +3473,7 @@ void clif_parse_LoadEndAck(Session *, dumb_ptr<map_session_data> sd)
 
     // option
     clif_changeoption(sd);
-    for (i = 0; i < MAX_INVENTORY; i++)
-    {
-        if (bool(sd->status.inventory[i].equip)
-            && bool(sd->status.inventory[i].equip & EPOS::WEAPON)
-            && sd->status.inventory[i].broken == 1)
-            skill_status_change_start(sd, StatusChange::SC_BROKNWEAPON, 0, interval_t::zero());
-        if (bool(sd->status.inventory[i].equip)
-            && bool(sd->status.inventory[i].equip & EPOS::MISC1)
-            && sd->status.inventory[i].broken == 1)
-            skill_status_change_start(sd, StatusChange::SC_BROKNARMOR, 0, interval_t::zero());
-    }
+    // broken equipment
 
 //        clif_changelook_accessories(sd, NULL);
 
@@ -4184,20 +4107,10 @@ void clif_parse_EquipItem(Session *s, dumb_ptr<map_session_data> sd)
     if (sd->npc_id != 0)
         return;
 
-    if (sd->status.inventory[index].identify != 1)
-    {                           // 未鑑定
-        // Bjorn: Auto-identify items when equipping them as there
-        //  is no nice way to do this in the client yet.
-        sd->status.inventory[index].identify = 1;
-        //clif_equipitemack(sd,index,0,0);  // fail
-        //return;
-    }
-    //ペット用装備であるかないか
     if (sd->inventory_data[index])
     {
         EPOS epos = EPOS(RFIFOW(s, 4));
         if (sd->inventory_data[index]->type == ItemType::ARROW)
-            // 矢を無理やり装備できるように（−−；
             epos = EPOS::ARROW;
 
         // Note: the EPOS argument to pc_equipitem is actually ignored
@@ -4222,10 +4135,6 @@ void clif_parse_UnequipItem(Session *s, dumb_ptr<map_session_data> sd)
         return;
     }
     index = RFIFOW(s, 2) - 2;
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNWEAPON].timer)
-        skill_status_change_end(sd, StatusChange::SC_BROKNWEAPON, nullptr);
-    if (sd->status.inventory[index].broken == 1 && sd->sc_data[StatusChange::SC_BROKNARMOR].timer)
-        skill_status_change_end(sd, StatusChange::SC_BROKNARMOR, nullptr);
 
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO)

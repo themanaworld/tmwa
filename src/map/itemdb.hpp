@@ -20,11 +20,9 @@ struct item_data
     int def;
     int range;
     int magic_bonus;
-    int slot;
     ItemLook look;
     int elv;
     int wlv;
-    int refine;
     std::unique_ptr<const ScriptBuffer> use_script;
     std::unique_ptr<const ScriptBuffer> equip_script;
 };

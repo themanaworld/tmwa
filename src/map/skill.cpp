@@ -873,8 +873,6 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
             /* 時間切れ無し？？ */
         case StatusChange::SC_WEIGHT50:
         case StatusChange::SC_WEIGHT90:
-        case StatusChange::SC_BROKNWEAPON:
-        case StatusChange::SC_BROKNARMOR:
             sc_data[type].timer = Timer(tick + std::chrono::minutes(10),
                     std::bind(skill_status_change_timer, ph::_1, ph::_2,
                         bl->bl_id, type));
@@ -1006,8 +1004,6 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
 
         case StatusChange::SC_WEIGHT50:
         case StatusChange::SC_WEIGHT90:
-        case StatusChange::SC_BROKNWEAPON:
-        case StatusChange::SC_BROKNARMOR:
             tick = std::chrono::minutes(10);
             break;
 

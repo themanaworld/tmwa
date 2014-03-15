@@ -175,7 +175,6 @@ struct map_session_data : block_list, SessionData
     struct item_data *inventory_data[MAX_INVENTORY];
     earray<short, EQUIP, EQUIP::COUNT> equip_index;
     int weight, max_weight;
-    int cart_weight, cart_max_weight, cart_num, cart_max_num;
     MapName mapname_;
     Session *sess; // use this, you idiots!
     short to_x, to_y;
@@ -244,10 +243,8 @@ struct map_session_data : block_list, SessionData
     interval_t aspd, amotion, dmotion;
     int watk, watk2;
     int def, def2, mdef, mdef2, critical, matk1, matk2;
-    int star, overrefine;
     int hprate, sprate, dsprate;
     int watk_, watk_2;
-    int star_, overrefine_;  //二刀流のために追加
     int base_atk, atk_rate;
     int arrow_atk;
     int arrow_cri, arrow_hit, arrow_range;

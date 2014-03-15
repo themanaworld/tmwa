@@ -2170,7 +2170,6 @@ void mob_delay_item_drop(TimerData *, tick_t, struct delay_item_drop ditem)
 
     temp_item.nameid = ditem.nameid;
     temp_item.amount = ditem.amount;
-    temp_item.identify = !itemdb_isequip3(temp_item.nameid);
 
     if (battle_config.item_auto_get == 1)
     {

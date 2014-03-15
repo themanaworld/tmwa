@@ -46,13 +46,14 @@ AString storage_tostr(struct storage *p)
                     p->storage_[i].nameid,
                     p->storage_[i].amount,
                     p->storage_[i].equip,
-                    p->storage_[i].identify,
-                    p->storage_[i].refine,
-                    p->storage_[i].attribute,
-                    p->storage_[i].card[0],
-                    p->storage_[i].card[1],
-                    p->storage_[i].card[2],
-                    p->storage_[i].card[3]);
+                    0 /*identify*/,
+                    0 /*refine*/,
+                    0 /*attribute*/,
+                    0 /*card[0]*/,
+                    0 /*card[1]*/,
+                    0 /*card[2]*/,
+                    0 /*card[3]*/);
+            // shouldn't that include 'broken' also? Oh, well ...
             f++;
         }
 

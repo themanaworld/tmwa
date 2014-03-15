@@ -1629,13 +1629,7 @@ void term_func(void)
 
 int compare_item(struct item *a, struct item *b)
 {
-    return ((a->nameid == b->nameid) &&
-            (a->identify == b->identify) &&
-            (a->refine == b->refine) &&
-            (a->attribute == b->attribute) &&
-            (a->card[0] == b->card[0]) &&
-            (a->card[1] == b->card[1]) &&
-            (a->card[2] == b->card[2]) && (a->card[3] == b->card[3]));
+    return (a->nameid == b->nameid);
 }
 
 static

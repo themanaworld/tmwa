@@ -18,7 +18,6 @@ constexpr int MAX_MAP_PER_SERVER = 512;
 constexpr int MAX_INVENTORY = 100;
 constexpr int MAX_AMOUNT = 30000;
 constexpr int MAX_ZENY = 1000000000;     // 1G zeny
-constexpr int MAX_CART = 100;
 
 enum class SkillID : uint16_t;
 constexpr SkillID MAX_SKILL = SkillID(474); // not 450
@@ -173,11 +172,6 @@ struct item
     short nameid;
     short amount;
     EPOS equip;
-    uint8_t identify;
-    uint8_t refine;
-    uint8_t attribute;
-    short card[4];
-    short broken;
 };
 
 struct point
@@ -327,8 +321,8 @@ struct CharData
     unsigned long mapip;
     unsigned int mapport;
 
-    struct point last_point, save_point, memo_point[10];
-    struct item inventory[MAX_INVENTORY], cart[MAX_CART];
+    struct point last_point, save_point;
+    struct item inventory[MAX_INVENTORY];
     earray<skill_value, SkillID, MAX_SKILL> skill;
     int global_reg_num;
     struct global_reg global_reg[GLOBAL_REG_NUM];
