@@ -169,6 +169,7 @@ GEN_SOURCES := \
     $(patsubst %.lpp,%.cpp,${LEXERS}) \
     $(patsubst %.ypp,%.cpp,${PARSERS})
 GEN_HEADERS := \
+    $(patsubst %.lpp,%.hpp,${LEXERS}) \
     $(patsubst %.ypp,%.hpp,${PARSERS})
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
 REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp' -o -name '*.tcc')
@@ -287,9 +288,9 @@ distclean: clean gen-clean
 gen-clean:
 	$c rm -f ${GEN_SOURCES} ${GEN_HEADERS}
 
-%.cpp: %.lpp
+%.cpp %.hpp: %.lpp
 	$(MKDIR_FIRST)
-	$c ${FLEX} -o $@ $<
+	$c ${FLEX} --header-file=$*.hpp -o $*.cpp $<
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
 	$c ${BISON} --defines=$*.hpp -o $*.cpp $<

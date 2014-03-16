@@ -32,7 +32,7 @@
 
 namespace io
 {
-    AString Line::message_str(ZString cat, ZString msg)
+    AString Line::message_str(ZString cat, ZString msg) const
     {
         MString out;
         if (column)
@@ -46,7 +46,7 @@ namespace io
         return AString(out);
     }
 
-    void Line::message(ZString cat, ZString msg)
+    void Line::message(ZString cat, ZString msg) const
     {
         if (column)
             FPRINTF(stderr, "%s:%u:%u: %s: %s\n",
@@ -56,6 +56,45 @@ namespace io
                     filename, line, cat, msg);
         FPRINTF(stderr, "%s\n", text);
         FPRINTF(stderr, "%*c\n", column, '^');
+    }
+
+    AString LineSpan::message_str(ZString cat, ZString msg) const
+    {
+        assert (begin.column);
+        assert (end.column);
+        assert (begin.column <= end.column);
+
+        MString out;
+        if (begin.line == end.line)
+        {
+            out += STRPRINTF("%s:%u:%u: %s: %s\n",
+                    begin.filename, begin.line, begin.column, cat, msg);
+            out += STRPRINTF("%s\n", begin.text);
+            out += STRPRINTF("%*c", begin.column, '^');
+            for (unsigned c = begin.column; c != end.column; ++c)
+                out += '~';
+            out += '\n';
+        }
+        else
+        {
+            out += STRPRINTF("%s:%u:%u: %s: %s\n",
+                    begin.filename, begin.line, begin.column, cat, msg);
+            out += STRPRINTF("%s\n", begin.text);
+            out += STRPRINTF("%*c", begin.column, '^');
+            for (unsigned c = begin.column; c != begin.text.size(); ++c)
+                out += '~';
+            out += " ...\n";
+            out += STRPRINTF("%s\n", end.text);
+            for (unsigned c = 0; c != end.column; ++c)
+                out += '~';
+            out += '\n';
+        }
+        return AString(out);
+    }
+
+    void LineSpan::message(ZString cat, ZString msg) const
+    {
+        FPRINTF(stderr, "%s", message_str(cat, msg));
     }
 
     LineReader::LineReader(ZString name)

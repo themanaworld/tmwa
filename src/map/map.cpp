@@ -41,6 +41,7 @@
 #include "itemdb.hpp"
 #include "magic.hpp"
 #include "magic-interpreter.hpp"
+#include "magic-v2.hpp"
 #include "mob.hpp"
 #include "npc.hpp"
 #include "party.hpp"
@@ -1654,7 +1655,7 @@ bool map_confs(XString key, ZString value)
     if (key == "skill_db")
         return skill_readdb(value);
     if (key == "magic_conf")
-        return magic_init1(value);
+        return load_magic_file_v2(value);
 
     if (key == "resnametable")
         return load_resnametable(value);

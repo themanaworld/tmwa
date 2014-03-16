@@ -33,7 +33,8 @@ struct random_item_data
     int per;
 };
 
-struct item_data *itemdb_searchname(ItemName name);
+struct item_data *itemdb_searchname(ItemName name) = delete;
+struct item_data *itemdb_searchname(XString name);
 struct item_data *itemdb_search(int nameid);
 struct item_data *itemdb_exists(int nameid);
 

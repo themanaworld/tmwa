@@ -358,7 +358,7 @@ int fun_neg(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 static
 int fun_gte(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 {
-    if (ARG_TYPE(0) == TYPE::STRING || ARG_TYPE(1) ==  TYPE::STRING)
+    if (ARG_TYPE(0) == TYPE::STRING || ARG_TYPE(1) == TYPE::STRING)
     {
         stringify(&args[0], 1);
         stringify(&args[1], 1);
@@ -370,6 +370,14 @@ int fun_gte(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
         intify(&args[1]);
         RESULTINT = ARGINT(0) >= ARGINT(1);
     }
+    return 0;
+}
+
+static
+int fun_lt(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+{
+    fun_gte(env, result, args);
+    RESULTINT = !RESULTINT;
     return 0;
 }
 
@@ -388,6 +396,14 @@ int fun_gt(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
         intify(&args[1]);
         RESULTINT = ARGINT(0) > ARGINT(1);
     }
+    return 0;
+}
+
+static
+int fun_lte(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+{
+    fun_gt(env, result, args);
+    RESULTINT = !RESULTINT;
     return 0;
 }
 
@@ -420,6 +436,14 @@ int fun_eq(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
         intify(&args[1]);
         RESULTINT = ARGINT(0) == ARGINT(1);
     }
+    return 0;
+}
+
+static
+int fun_ne(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+{
+    fun_eq(env, result, args);
+    RESULTINT = !RESULTINT;
     return 0;
 }
 
@@ -753,7 +777,7 @@ magic_find_item(const_array<val_t> args, int index, struct item *item_, int *sta
     if (ARG_TYPE(index) == TYPE::INT)
         item_data = itemdb_exists(ARGINT(index));
     else if (ARG_TYPE(index) == TYPE::STRING)
-        item_data = itemdb_searchname(stringish<ItemName>(ARGSTR(index)));
+        item_data = itemdb_searchname(ARGSTR(index));
     else
         return -1;
 
@@ -1250,9 +1274,12 @@ std::map<ZString, fun_t> functions =
     MAGIC_FUNCTION("%", "ii", 'i', fun_mod),
     MAGIC_FUNCTION("||", "ii", 'i', fun_or),
     MAGIC_FUNCTION("&&", "ii", 'i', fun_and),
+    MAGIC_FUNCTION("<", "..", 'i', fun_lt),
     MAGIC_FUNCTION(">", "..", 'i', fun_gt),
+    MAGIC_FUNCTION("<=", "..", 'i', fun_lte),
     MAGIC_FUNCTION(">=", "..", 'i', fun_gte),
-    MAGIC_FUNCTION("=", "..", 'i', fun_eq),
+    MAGIC_FUNCTION("==", "..", 'i', fun_eq),
+    MAGIC_FUNCTION("!=", "..", 'i', fun_ne),
     MAGIC_FUNCTION("|", "..", 'i', fun_bitor),
     MAGIC_FUNCTION("&", "ii", 'i', fun_bitand),
     MAGIC_FUNCTION("^", "ii", 'i', fun_bitxor),

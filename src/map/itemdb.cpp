@@ -48,8 +48,11 @@ void itemdb_searchname_sub(struct item_data *item, ItemName str, struct item_dat
  * 名前で検索
  *------------------------------------------
  */
-struct item_data *itemdb_searchname(ItemName str)
+struct item_data *itemdb_searchname(XString str_)
 {
+    ItemName str = stringish<ItemName>(str_);
+    if (XString(str) != str_)
+        return nullptr;
     struct item_data *item = NULL;
     for (auto& pair : item_db)
         itemdb_searchname_sub(&pair.second, str, &item);

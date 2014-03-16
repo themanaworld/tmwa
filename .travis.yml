@@ -49,12 +49,12 @@ script:
   - cd build
   - ../configure --dev CPPFLAGS=-DQUIET
   - make -R -k -j2
-  - make -R format
-  - git diff --exit-code
+  - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 
 ## Do something after the main test script
 after_script:
-  - make -R test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
+  - make -R -k -j2 format
+  - git diff --exit-code
 
 ### The rest of the file creates a build matrix
 ### containing gcc-4.6 through gcc-4.8 and clang-3.1 through clang-3.3
@@ -84,6 +84,8 @@ matrix:
       env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2
     - compiler: clang
       env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3
+    - compiler: clang
+      env: REAL_CC=clang-3.4 REAL_CXX=clang++-3.4 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.4
     - compiler: gcc
       env: REAL_CC=gcc-4.6   REAL_CXX=g++-4.6     PPA=                            PACKAGE=g++-4.6
     - compiler: gcc

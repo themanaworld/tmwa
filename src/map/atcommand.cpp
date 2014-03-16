@@ -1290,7 +1290,7 @@ static
 ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    ItemName item_name;
+    XString item_name;
     int number = 0, item_id;
     struct item_data *item_data = NULL;
     int get_count, i;
@@ -1306,9 +1306,12 @@ ATCE atcommand_item(Session *s, dumb_ptr<map_session_data> sd,
         number = 1;
 
     item_id = 0;
-    if ((item_data = itemdb_searchname(item_name)) != NULL ||
-        (item_data = itemdb_exists(atoi(item_name.c_str()))) != NULL)
+    if ((item_data = itemdb_searchname(item_name)) != NULL)
         item_id = item_data->nameid;
+    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
+        item_id = item_data->nameid;
+    else
+        item_id = 0;
 
     if (item_id >= 500)
     {
@@ -3635,7 +3638,7 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
         ZString message)
 {
     CharName character;
-    ItemName item_name;
+    XString item_name;
     int i, number = 0, item_id, item_position, count;
     struct item_data *item_data;
 
@@ -3643,9 +3646,12 @@ ATCE atcommand_chardelitem(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::USAGE;
 
     item_id = 0;
-    if ((item_data = itemdb_searchname(item_name)) != NULL ||
-        (item_data = itemdb_exists(atoi(item_name.c_str()))) != NULL)
+    if ((item_data = itemdb_searchname(item_name)) != NULL)
         item_id = item_data->nameid;
+    else if (extract(item_name, &item_id) && (item_data = itemdb_exists(item_id)) != NULL)
+        item_id = item_data->nameid;
+    else
+        item_id = 0;
 
     if (item_id > 500)
     {

@@ -348,3 +348,50 @@ TEST(io, linechar5)
     lr.adv();
     EXPECT_FALSE(lr.get(c));
 }
+
+TEST(io, linespan)
+{
+    io::LineCharReader lr("<span>", string_pipe("Hello\nWorld\n"));
+    io::LineSpan span;
+    do
+    {
+        lr.get(span.begin);
+        lr.adv();
+    }
+    while (span.begin.ch() != 'e');
+    do
+    {
+        lr.get(span.end);
+        lr.adv();
+    }
+    while (span.end.ch() != 'o');
+    EXPECT_EQ(span.message_str("info", "meh"),
+            "<span>:1:2: info: meh\n"
+            "Hello\n"
+            " ^~~~\n"
+    );
+    do
+    {
+        lr.get(span.end);
+        lr.adv();
+    }
+    while (span.end.ch() != 'r');
+
+    EXPECT_EQ(span.begin.message_str("note", "foo"),
+            "<span>:1:2: note: foo\n"
+            "Hello\n"
+            " ^\n"
+    );
+    EXPECT_EQ(span.end.message_str("warning", "bar"),
+            "<span>:2:3: warning: bar\n"
+            "World\n"
+            "  ^\n"
+    );
+    EXPECT_EQ(span.message_str("error", "qux"),
+            "<span>:1:2: error: qux\n"
+            "Hello\n"
+            " ^~~~ ...\n"
+            "World\n"
+            "~~~\n"
+    );
+}

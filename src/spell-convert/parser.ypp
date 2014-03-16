@@ -1,0 +1,882 @@
+%code requires
+{
+/* vim: set ft=yacc: */
+#include "../strings/rstring.hpp"
+
+#include "ast.hpp"
+
+#undef YYERROR_VERBOSE
+#define YYERROR_VERBOSE 1
+} // %code requires
+
+%code
+{
+//#include "parser.hpp"
+#include "lexer.hpp"
+
+#include "../io/cxxstdio.hpp"
+
+#include "../sexpr/lexer.hpp"
+
+void yyerror(const char *msg) { FPRINTF(stderr, "Fatal: %s\n", msg); abort(); }
+} // %code
+
+%name-prefix "spell_converter"
+
+%union
+{
+    RString *s;
+    std::vector<RString> *vs;
+    Effect *e;
+    std::deque<Effect *> *ve;
+    SpellDef *spelldef;
+    SpellArg *spellarg;
+    TopLevel *top;
+    Expression *expr;
+    std::vector<Expression *> *vx;
+    Location *loc;
+    Item *it;
+    std::vector<Item *> *vit;
+    Assignment *a;
+    std::vector<Assignment *> *va;
+    SpellBod *b;
+    std::vector<SpellBod *> *vb;
+    SpellGuard *g;
+    std::vector<SpellGuard *> *vg;
+} // %union
+
+%expect 7
+
+%token <s> INT
+%token <s> STRING
+%token <s> ID
+%token <s> DIR
+
+%token '='
+%token '<'
+%token '>'
+%token '+'
+%token '-'
+%token '*'
+%token '/'
+%token '%'
+%token '@'
+%token ','
+%token '.'
+%token ':'
+%token ';'
+%token '|'
+%token '['
+%token ']'
+%token '&'
+%token '^'
+
+%token CONST
+%token PROCEDURE
+%token CALL
+%token SILENT
+%token LOCAL
+%token NONMAGIC
+%token SHL
+%token SHR
+%token EQ
+%token NEQ
+%token GTE
+%token LTE
+%token ANDAND
+%token OROR
+%token <s> SCRIPT_DATA
+%token TO
+%token TOWARDS
+%token TELEPORT_ANCHOR
+%token SPELL
+%token LET
+%token IN
+%token END
+%token DARROW
+%token STRING_TY
+%token REQUIRE
+%token CATALYSTS
+%token COMPONENTS
+%token MANA
+%token CASTTIME
+%token SKIP
+%token ABORT
+%token BREAK
+%token EFFECT_
+%token ATEND
+%token ATTRIGGER
+%token PC_F
+%token NPC_F
+%token MOB_F
+%token ENTITY_F
+%token TARGET_F
+%token IF
+%token THEN
+%token ELSE
+%token FOREACH
+%token FOR
+%token DO
+%token SLEEP
+
+%type <s> value
+%type <loc> location
+%type <expr> area
+%type <vx> arg_list
+%type <vx> arg_list_ne
+%type <va> defs
+%type <spelldef> spelldef
+%type <spellarg> argopt
+%type <a> def
+%type <vb> spellbody_list
+%type <b> spellbody
+%type <g> spellguard
+%type <vg> spellguard_list
+%type <g> prereq
+%type <it> item
+%type <vit> items
+%type <vit> item_list
+%type <s> item_name
+%type <s> selection;
+%type <e> effect
+%type <ve> effect_list
+%type <ve> maybe_trigger
+%type <ve> maybe_end
+%type <vs> spell_flags;
+
+%type <expr> expr
+%type <s> arg_ty
+%type <vs> proc_formals_list
+%type <vs> proc_formals_list_ne
+
+%type <top> spellconf_option
+
+%left OROR
+%left ANDAND
+%left '<' '>' GTE LTE NEQ EQ
+%left '+' '-'
+%left '*' '/' '%'
+%left SHL SHR '&' '^' '|'
+%right '='
+%left OR
+%left DARROW
+%left '.'
+
+%%
+
+spellconf
+
+: /* empty */
+
+| spellconf semicolons spellconf_option
+{
+    $3->dump();
+}
+
+;
+
+
+semicolons
+
+: /* empty */
+
+| semicolons ';'
+
+;
+
+
+proc_formals_list
+
+: /* empty */
+{
+    $$ = new std::vector<RString>();
+}
+
+| proc_formals_list_ne
+{
+    $$ = $1;
+}
+
+;
+
+
+proc_formals_list_ne
+
+: ID
+{
+    $$ = new std::vector<RString>();
+    $$->push_back(*$1);
+}
+
+| proc_formals_list_ne ',' ID
+{
+    $$ = $1;
+    $$->push_back(*$3);
+}
+
+;
+
+
+spellconf_option
+
+: ID '=' expr
+{
+    $$ = new Assignment{*$1, $3};
+}
+
+| CONST ID '=' expr
+{
+    $$ = new Constant{*$2, $4};
+}
+
+| TELEPORT_ANCHOR ID ':' expr '=' expr
+{
+    $$ = new Teleport{*$2, $4, $6};
+}
+
+| PROCEDURE ID '(' proc_formals_list ')' '=' effect_list
+{
+    $$ = new Procedure{*$2, $4, $7};
+}
+
+| spell_flags SPELL ID argopt ':' expr '=' spelldef
+{
+    $$ = new Spell{$1, *$3, $4, $6, $8};
+}
+
+;
+
+
+spell_flags
+
+: /* empty */
+{
+    $$ = new std::vector<RString>();
+}
+
+| spell_flags LOCAL
+{
+    $$ = $1;
+    $$->push_back("LOCAL");
+}
+
+| spell_flags NONMAGIC
+{
+    $$ = $1;
+    $$->push_back("NONMAGIC");
+}
+
+| spell_flags SILENT
+{
+    $$ = $1;
+    $$->push_back("SILENT");
+}
+
+;
+
+
+argopt
+
+: /* empty */
+{
+    $$ = new SpellArg{};
+}
+
+| '(' ID ':' arg_ty ')'
+{
+    $$ = new SpellArg{*$2, *$4};
+}
+
+;
+
+
+arg_ty
+
+: PC_F
+{
+    $$ = new RString("PC");
+}
+
+| STRING_TY
+{
+    $$ = new RString("STRING");
+}
+
+;
+
+
+value
+
+: DIR
+{
+    $$ = $1;
+}
+
+| INT
+{
+    $$ = $1;
+}
+
+| STRING
+{
+    $$ = $1;
+}
+
+;
+
+
+expr
+
+: value
+{
+    $$ = new SimpleExpr{*$1};
+}
+
+| ID
+{
+    $$ = new SimpleExpr{*$1};
+}
+
+| area
+{
+    $$ = $1;
+}
+
+| expr '+' expr
+{
+    $$ = new BinExpr{$1, "+", $3};
+}
+
+| expr '-' expr
+{
+    $$ = new BinExpr{$1, "-", $3};
+}
+
+| expr '*' expr
+{
+    $$ = new BinExpr{$1, "*", $3};
+}
+
+| expr '%' expr
+{
+    $$ = new BinExpr{$1, "%", $3};
+}
+
+| expr '/' expr
+{
+    $$ = new BinExpr{$1, "/", $3};
+}
+
+| expr '<' expr
+{
+    $$ = new BinExpr{$1, "<", $3};
+}
+
+| expr '>' expr
+{
+    $$ = new BinExpr{$1, ">", $3};
+}
+
+| expr '&' expr
+{
+    $$ = new BinExpr{$1, "&", $3};
+}
+
+| expr '^' expr
+{
+    $$ = new BinExpr{$1, "^", $3};
+}
+
+| expr '|' expr
+{
+    $$ = new BinExpr{$1, "|", $3};
+}
+
+| expr SHL expr
+{
+    $$ = new BinExpr{$1, "<<", $3};
+}
+
+| expr SHR expr
+{
+    $$ = new BinExpr{$1, ">>", $3};
+}
+
+| expr LTE expr
+{
+    $$ = new BinExpr{$1, "<=", $3};
+}
+
+| expr GTE expr
+{
+    $$ = new BinExpr{$1, ">=", $3};
+}
+
+| expr ANDAND expr
+{
+    $$ = new BinExpr{$1, "&&", $3};
+}
+
+| expr OROR expr
+{
+    $$ = new BinExpr{$1, "||", $3};
+}
+
+| expr EQ expr
+{
+    $$ = new BinExpr{$1, "==", $3};
+}
+
+| expr '=' expr
+{
+    // convert to ==
+    $$ = new BinExpr{$1, "==", $3};
+}
+
+| expr NEQ expr
+{
+    $$ = new BinExpr{$1, "!=", $3};
+}
+
+| ID '(' arg_list ')'
+{
+    $$ = new CallExpr{*$1, $3};
+}
+
+| '(' expr ')'
+{
+    $$ = $2;
+}
+
+| expr '.' ID
+{
+    $$ = new BinExpr{$1, ".", new SimpleExpr(*$3)};
+}
+
+;
+
+
+arg_list
+
+: /* empty */
+{
+    $$ = new std::vector<Expression *>();
+}
+
+| arg_list_ne
+{
+    $$ = $1;
+}
+
+;
+
+
+arg_list_ne
+
+: expr
+{
+    $$ = new std::vector<Expression *>();
+    $$->push_back($1);
+}
+
+| arg_list_ne ',' expr
+{
+    $$ = $1;
+    $$->push_back($3);
+}
+
+;
+
+
+location
+
+: '@' '(' expr ',' expr ',' expr ')'
+{
+    $$ = new Location{$3, $5, $7};
+}
+
+;
+
+
+area
+
+: location
+{
+    $$ = new AreaLoc{$1};
+}
+
+| location '@' '+' '(' expr ',' expr ')'
+{
+    $$ = new AreaRect{$1, $5, $7};
+}
+
+| location TOWARDS expr ':' '(' expr ',' expr ')'
+{
+    $$ = new AreaBar{$1, $3, $6, $8};
+}
+
+;
+
+
+spelldef
+
+: spellbody_list
+{
+    $$ = new SpellDef{new std::vector<Assignment *>{}, $1};
+}
+
+| LET defs IN spellbody_list
+{
+    $$ = new SpellDef{$2, $4};
+}
+
+;
+
+
+defs
+
+: semicolons
+{
+    $$ = new std::vector<Assignment *>();
+}
+
+| defs def semicolons
+{
+    $$ = $1;
+    $$->push_back($2);
+}
+
+;
+
+
+def
+
+: ID '=' expr
+{
+    $$ = new Assignment{*$1, $3};
+}
+
+;
+
+
+spellbody_list
+
+: spellbody
+{
+    $$ = new std::vector<SpellBod *>();
+    $$->push_back($1);
+}
+
+| spellbody_list '|' spellbody
+{
+    $$ = $1;
+    $$->push_back($3);
+}
+
+;
+
+
+spellbody
+
+: spellguard DARROW spellbody
+{
+    $$ = new SpellBodGuarded{$1, $3};
+}
+
+| '(' spellbody_list ')'
+{
+    $$ = new SpellBodList{$2};
+}
+
+| EFFECT_ effect_list maybe_trigger maybe_end
+{
+    $$ = new SpellBodEffect{$2, $3, $4};
+}
+
+;
+
+
+maybe_trigger
+
+: /* empty */
+{
+    $$ = nullptr;
+}
+
+| ATTRIGGER effect_list
+{
+    $$ = $2;
+}
+
+;
+
+
+maybe_end
+
+: /* empty */
+{
+    $$ = nullptr;
+}
+
+| ATEND effect_list
+{
+    $$ = $2;
+}
+
+;
+
+
+spellguard
+
+: prereq
+{
+    $$ = $1;
+}
+
+| spellguard OR spellguard
+{
+    $$ = new SpellGuardOr($1, $3);
+}
+
+| '(' spellguard_list ')'
+{
+    $$ = new SpellGuardList{$2};
+}
+
+;
+
+
+spellguard_list
+
+: spellguard
+{
+    $$ = new std::vector<SpellGuard *>();
+    $$->push_back($1);
+}
+
+| spellguard_list ',' spellguard
+{
+    $$ = $1;
+    $$->push_back($3);
+}
+
+;
+
+
+prereq
+
+: REQUIRE expr
+{
+    $$ = new SpellGuardRequire{$2};
+}
+
+| CATALYSTS items
+{
+    $$ = new SpellGuardCatalysts{$2};
+}
+
+| COMPONENTS items
+{
+    $$ = new SpellGuardComponents{$2};
+}
+
+| MANA expr
+{
+    $$ = new SpellGuardMana{$2};
+}
+
+| CASTTIME expr
+{
+    $$ = new SpellGuardCasttime{$2};
+}
+
+;
+
+
+items
+
+: '[' item_list ']'
+{
+    $$ = $2;
+}
+
+;
+
+
+item_list
+
+: item
+{
+    $$ = new std::vector<Item *>();
+    $$->push_back($1);
+}
+
+| item_list ',' item
+{
+    $$ = $1;
+    $$->push_back($3);
+}
+
+;
+
+
+item
+
+: INT '*' item_name
+{
+    $$ = new Item{*$1, *$3};
+}
+
+| item_name
+{
+    $$ = new Item{RString(), *$1};
+}
+
+;
+
+
+item_name
+
+: STRING
+{
+    $$ = $1;
+}
+
+| INT
+{
+    $$ = $1;
+}
+
+;
+
+
+selection
+
+: PC_F
+{
+    $$ = new RString{"PC"};
+}
+
+| MOB_F
+{
+    $$ = new RString{"MOB"};
+}
+
+| ENTITY_F
+{
+    $$ = new RString{"ENTITY"};
+}
+
+| SPELL
+{
+    $$ = new RString{"SPELL"};
+}
+
+| TARGET_F
+{
+    $$ = new RString{"TARGET"};
+}
+
+| NPC_F
+{
+    $$ = new RString{"NPC"};
+}
+
+;
+
+
+effect
+
+: '(' effect_list ')'
+{
+    $$ = new EffectList{$2};
+}
+
+| SKIP ';'
+{
+    $$ = new SimpleEffect{"SKIP"};
+}
+
+| ABORT ';'
+{
+    $$ = new SimpleEffect{"ABORT"};
+}
+
+| END ';'
+{
+    $$ = new SimpleEffect{"END"};
+}
+
+| BREAK ';'
+{
+    $$ = new SimpleEffect{"BREAK"};
+}
+
+| ID '=' expr ';'
+{
+    $$ = new Assignment(*$1, $3);
+}
+
+| FOREACH selection ID IN expr DO effect
+{
+    $$ = new ForeachEffect{*$2, *$3, $5, $7};
+}
+
+| FOR ID '=' expr TO expr DO effect
+{
+    $$ = new ForEffect{*$2, $4, $6, $8};
+}
+
+| IF expr THEN effect ELSE effect
+{
+    $$ = new IfEffect{$2, $4, $6};
+}
+
+| IF expr THEN effect
+{
+    $$ = new IfEffect{$2, $4};
+}
+
+| SLEEP expr ';'
+{
+    $$ = new SleepEffect{$2};
+}
+
+| ID '(' arg_list ')' ';'
+{
+    $$ = new CallExpr{*$1, $3};
+}
+
+| SCRIPT_DATA
+{
+    AString tmp = sexpr::escape(*$1);
+    $$ = new ScriptEffect{RString(tmp)};
+}
+
+| CALL ID '(' arg_list ')' ';'
+{
+    $$ = new ExplicitCallEffect{*$2, $4};
+}
+
+;
+
+
+effect_list
+
+: /* empty */
+{
+    $$ = new std::deque<Effect *>();
+}
+
+| effect semicolons effect_list
+{
+    // because of grammar problems, doing this right generates reduce/reduce conflicts
+    $$ = $3;
+    $$->push_front($1);
+}
+
+;
+
+
+%%
+// Nothing to see here, move along

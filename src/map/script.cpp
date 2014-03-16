@@ -1832,7 +1832,7 @@ void builtin_countitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
         if (item_data != NULL)
             nameid = item_data->nameid;
@@ -1872,7 +1872,7 @@ void builtin_checkweight(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
         if (item_data)
             nameid = item_data->nameid;
@@ -1916,7 +1916,7 @@ void builtin_getitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
         nameid = 727;           //Default to iten
         if (item_data != NULL)
@@ -1969,7 +1969,7 @@ void builtin_makeitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
         nameid = 512;           //Apple Item ID
         if (item_data)
@@ -2015,7 +2015,7 @@ void builtin_delitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
         //nameid=512;
         if (item_data)
@@ -2960,7 +2960,7 @@ void builtin_getareadropitem(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         struct item_data *item_data = itemdb_searchname(name);
         item = 512;
         if (item_data)
@@ -3376,7 +3376,7 @@ void builtin_getitemname(ScriptState *st)
     get_val(st, data);
     if (data->type == ByteCode::STR || data->type == ByteCode::CONSTSTR)
     {
-        ItemName name = stringish<ItemName>(ZString(conv_str(st, data)));
+        ZString name = ZString(conv_str(st, data));
         i_data = itemdb_searchname(name);
     }
     else

@@ -40,11 +40,11 @@ namespace io
         // 1-based
         uint16_t line, column;
 
-        AString message_str(ZString cat, ZString msg);
-        void message(ZString cat, ZString msg);
-        void note(ZString msg) { message("note", msg); }
-        void warning(ZString msg) { message("warning", msg); }
-        void error(ZString msg) { message("error", msg); }
+        AString message_str(ZString cat, ZString msg) const;
+        void message(ZString cat, ZString msg) const;
+        void note(ZString msg) const { message("note", msg); }
+        void warning(ZString msg) const { message("warning", msg); }
+        void error(ZString msg) const { message("error", msg); }
     };
 
     // psst, don't tell anyone
@@ -57,6 +57,17 @@ namespace io
                 return '\n';
             return text[c];
         }
+    };
+
+    struct LineSpan
+    {
+        LineChar begin, end;
+
+        AString message_str(ZString cat, ZString msg) const;
+        void message(ZString cat, ZString msg) const;
+        void note(ZString msg) const { message("note", msg); }
+        void warning(ZString msg) const { message("warning", msg); }
+        void error(ZString msg) const { message("error", msg); }
     };
 
     class LineReader

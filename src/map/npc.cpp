@@ -1060,7 +1060,7 @@ bool extract(XString xs, npc_item_list *itv)
     if (extract(name_or_id, &itv->nameid) && itv->nameid > 0)
         goto return_true;
 
-    id = itemdb_searchname(stringish<ItemName>(name_or_id.rstrip()));
+    id = itemdb_searchname(name_or_id.rstrip());
     if (id == NULL)
         return false;
     itv->nameid = id->nameid;
