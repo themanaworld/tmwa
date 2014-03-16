@@ -54,3 +54,6 @@ class script_data(object):
             yield 'str', v['str']
         else:
             yield 'numi', v['numi']
+
+    def to_string(self):
+        return None

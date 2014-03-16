@@ -1,5 +1,5 @@
-#ifndef MOB_T_HPP
-#define MOB_T_HPP
+#ifndef TMWA_MAP_MOB_T_HPP
+#define TMWA_MAP_MOB_T_HPP
 
 # include <cstdint>
 
@@ -38,4 +38,4 @@ enum class MobSkillState : uint8_t
     MSS_CHASE,
 };
 
-#endif // MOB_T_HPP
+#endif // TMWA_MAP_MOB_T_HPP

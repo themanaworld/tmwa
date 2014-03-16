@@ -1,11 +1,12 @@
-#ifndef MOB_HPP
-#define MOB_HPP
+#ifndef TMWA_MAP_MOB_HPP
+#define TMWA_MAP_MOB_HPP
 
 # include "mob.t.hpp"
 
-# include "../common/mmo.hpp"
-# include "../common/timer.t.hpp"
-# include "../common/random.t.hpp"
+# include "../generic/random.t.hpp"
+
+# include "../mmo/mmo.hpp"
+# include "../mmo/timer.t.hpp"
 
 # include "clif.t.hpp"
 # include "map.hpp"
@@ -108,4 +109,4 @@ int mob_summonslave(dumb_ptr<mob_data> md2, int *value, int amount, int flag);
 
 void mob_reload(void);
 
-#endif // MOB_HPP
+#endif // TMWA_MAP_MOB_HPP

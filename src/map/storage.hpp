@@ -1,8 +1,8 @@
+#ifndef TMWA_MAP_STORAGE_HPP
+#define TMWA_MAP_STORAGE_HPP
+
 // Copyright (c) Athena Dev Teams - Licensed under GNU GPL
 // For more information, see COPYING in the main folder
-
-#ifndef STORAGE_HPP
-#define STORAGE_HPP
 
 # include "map.hpp"
 
@@ -17,4 +17,4 @@ int storage_storage_quit(dumb_ptr<map_session_data> sd);
 int storage_storage_save(int account_id, int final);
 int storage_storage_saved(int account_id);
 
-#endif // STORAGE_HPP
+#endif // TMWA_MAP_STORAGE_HPP

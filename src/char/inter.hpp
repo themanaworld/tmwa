@@ -1,5 +1,5 @@
-#ifndef INTER_HPP
-#define INTER_HPP
+#ifndef TMWA_CHAR_INTER_HPP
+#define TMWA_CHAR_INTER_HPP
 
 # include "../strings/fwd.hpp"
 
@@ -14,4 +14,4 @@ int inter_check_length(Session *ms, int length);
 
 extern int party_share_level;
 
-#endif // INTER_HPP
+#endif // TMWA_CHAR_INTER_HPP

@@ -1,5 +1,5 @@
-#ifndef MAGIC_INTERPRETER_AUX_HPP
-#define MAGIC_INTERPRETER_AUX_HPP
+#ifndef TMWA_MAP_MAGIC_INTERPRETER_AUX_HPP
+#define TMWA_MAP_MAGIC_INTERPRETER_AUX_HPP
 
 # include "magic-interpreter.t.hpp"
 
@@ -9,4 +9,4 @@ bool CHECK_TYPE(T *v, TYPE t)
     return v->ty == t;
 }
 
-#endif // MAGIC_INTERPRETER_AUX_HPP
+#endif // TMWA_MAP_MAGIC_INTERPRETER_AUX_HPP

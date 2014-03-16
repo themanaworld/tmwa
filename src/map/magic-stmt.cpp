@@ -2,12 +2,16 @@
 
 #include <cassert>
 
+#include "../compat/attr.hpp"
+#include "../compat/fun.hpp"
+
 #include "../strings/zstring.hpp"
+
+#include "../generic/random2.hpp"
 
 #include "../io/cxxstdio.hpp"
 
-#include "../common/random2.hpp"
-#include "../common/timer.hpp"
+#include "../mmo/timer.hpp"
 
 #include "magic-expr.hpp"
 #include "magic-expr-eval.hpp"

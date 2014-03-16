@@ -17,24 +17,27 @@
 #include <bitset>
 #include <set>
 
+#include "../compat/alg.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
+
+#include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/core.hpp"
-#include "../common/db.hpp"
-#include "../common/extract.hpp"
-#include "../common/human_time_diff.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/version.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/core.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/human_time_diff.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
+#include "../mmo/version.hpp"
 
 #include "inter.hpp"
 #include "int_party.hpp"

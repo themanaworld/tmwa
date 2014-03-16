@@ -19,7 +19,7 @@
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/extract.hpp"
+#include "../mmo/extract.hpp"
 
 #include "../poison.hpp"
 

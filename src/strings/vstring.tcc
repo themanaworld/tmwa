@@ -19,7 +19,7 @@
 
 #include <cassert>
 
-#include "../common/utils2.hpp"
+#include "../compat/cast.hpp"
 
 #include "rstring.hpp"
 #include "astring.hpp"

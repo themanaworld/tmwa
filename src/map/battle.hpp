@@ -1,11 +1,11 @@
-#ifndef BATTLE_HPP
-#define BATTLE_HPP
+#ifndef TMWA_MAP_BATTLE_HPP
+#define TMWA_MAP_BATTLE_HPP
 
 # include "battle.t.hpp"
 
 # include "../strings/fwd.hpp"
 
-# include "../common/timer.t.hpp"
+# include "../mmo/timer.t.hpp"
 
 # include "magic-interpreter.t.hpp"
 # include "map.t.hpp"
@@ -204,4 +204,4 @@ extern struct Battle_Config
 bool battle_config_read(ZString cfgName);
 void battle_config_check();
 
-#endif // BATTLE_HPP
+#endif // TMWA_MAP_BATTLE_HPP

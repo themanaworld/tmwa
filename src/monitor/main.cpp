@@ -23,8 +23,8 @@
 #include "../io/fd.hpp"
 #include "../io/read.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/utils.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/utils.hpp"
 
 #include "../poison.hpp"
 

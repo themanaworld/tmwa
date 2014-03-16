@@ -1,7 +1,7 @@
-#ifndef BATTLE_T_HPP
-#define BATTLE_T_HPP
+#ifndef TMWA_MAP_BATTLE_T_HPP
+#define TMWA_MAP_BATTLE_T_HPP
 
-# include "../common/utils2.hpp"
+# include "../generic/enum.hpp"
 
 namespace e
 {
@@ -226,4 +226,4 @@ enum class DamageType : uint8_t
     FLEE2       = 0x0b,
 };
 
-#endif // BATTLE_T_HPP
+#endif // TMWA_MAP_BATTLE_T_HPP

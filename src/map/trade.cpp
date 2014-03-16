@@ -1,8 +1,8 @@
 #include "trade.hpp"
 
-#include "../io/cxxstdio.hpp"
+#include "../compat/nullpo.hpp"
 
-#include "../common/nullpo.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

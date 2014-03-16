@@ -1,9 +1,9 @@
-#ifndef ATCOMMAND_HPP
-#define ATCOMMAND_HPP
+#ifndef TMWA_MAP_ATCOMMAND_HPP
+#define TMWA_MAP_ATCOMMAND_HPP
 
 # include "../strings/fwd.hpp"
 
-# include "../common/const_array.hpp"
+# include "../generic/const_array.hpp"
 
 # include "map.hpp"
 
@@ -19,4 +19,4 @@ extern AString gm_log;
 
 void atcommand_config_write(ZString cfgName);
 
-#endif // ATCOMMAND_HPP
+#endif // TMWA_MAP_ATCOMMAND_HPP

@@ -1,9 +1,7 @@
-#ifndef MAGIC_EXPR_EVAL_HPP
-#define MAGIC_EXPR_EVAL_HPP
+#ifndef TMWA_MAP_MAGIC_EXPR_EVAL_HPP
+#define TMWA_MAP_MAGIC_EXPR_EVAL_HPP
 
 # include "../strings/zstring.hpp"
-
-# include "../common/utils2.hpp"
 
 # include "magic-interpreter.hpp"
 
@@ -42,4 +40,4 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
 
 # define ARG_MAY_BE_AREA(x) (ARG_TYPE(x) == TYPE::AREA || ARG_TYPE(x) == TYPE::LOCATION)
 
-#endif // MAGIC_EXPR_EVAL_HPP
+#endif // TMWA_MAP_MAGIC_EXPR_EVAL_HPP

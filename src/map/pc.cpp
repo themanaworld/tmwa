@@ -4,17 +4,21 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "../compat/alg.hpp"
+#include "../compat/fun.hpp"
+#include "../compat/nullpo.hpp"
+
 #include "../strings/rstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/nullpo.hpp"
-#include "../common/random.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

@@ -22,6 +22,8 @@
 #include "zstring.hpp"
 #include "xstring.hpp"
 
+#include "../poison.hpp"
+
 namespace strings
 {
     TString::TString()

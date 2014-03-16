@@ -3,14 +3,15 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "../compat/nullpo.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
 #include "../io/cxxstdio.hpp"
 
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
+#include "../mmo/socket.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"

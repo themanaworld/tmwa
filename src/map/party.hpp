@@ -1,5 +1,5 @@
-#ifndef PARTY_HPP
-#define PARTY_HPP
+#ifndef TMWA_MAP_PARTY_HPP
+#define TMWA_MAP_PARTY_HPP
 
 # include <functional>
 
@@ -48,4 +48,4 @@ int party_exp_share(struct party *p, map_local *map, int base_exp, int job_exp);
 void party_foreachsamemap(std::function<void(dumb_ptr<block_list>)> func,
         dumb_ptr<map_session_data> sd, int type);
 
-#endif // PARTY_HPP
+#endif // TMWA_MAP_PARTY_HPP

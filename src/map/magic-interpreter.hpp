@@ -1,5 +1,5 @@
-#ifndef MAGIC_INTERPRETER_HPP
-#define MAGIC_INTERPRETER_HPP
+#ifndef TMWA_MAP_MAGIC_INTERPRETER_HPP
+#define TMWA_MAP_MAGIC_INTERPRETER_HPP
 
 # include "magic-interpreter.t.hpp"
 
@@ -450,4 +450,4 @@ bool magic_init0();
 bool magic_init1(ZString filename);
 void spell_update_location(dumb_ptr<invocation> invocation);
 
-#endif // MAGIC_INTERPRETER_HPP
+#endif // TMWA_MAP_MAGIC_INTERPRETER_HPP

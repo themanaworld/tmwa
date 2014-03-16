@@ -1,9 +1,9 @@
-#ifndef MAGIC_HPP
-#define MAGIC_HPP
+#ifndef TMWA_MAP_MAGIC_HPP
+#define TMWA_MAP_MAGIC_HPP
 
 # include "../strings/fwd.hpp"
 
-# include "../common/dumb_ptr.hpp"
+# include "../mmo/dumb_ptr.hpp"
 
 # include "map.hpp"
 # include "skill.t.hpp"
@@ -80,4 +80,4 @@ int spell_attack(int caster, int target);
 
 void spell_free_invocation(dumb_ptr<invocation> invocation);
 
-#endif // MAGIC_HPP
+#endif // TMWA_MAP_MAGIC_HPP

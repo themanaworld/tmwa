@@ -7,25 +7,28 @@
 #include <cstring>
 #include <ctime>
 
+#include "../compat/fun.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/rstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/db.hpp"
+#include "../generic/intern-pool.hpp"
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/core.hpp"
-#include "../common/db.hpp"
-#include "../common/extract.hpp"
-#include "../common/intern-pool.hpp"
-#include "../common/random.hpp"
-#include "../common/socket.hpp"
-#include "../common/utils.hpp"
-#include "../common/timer.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/core.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/utils.hpp"
+#include "../mmo/timer.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

@@ -1,10 +1,9 @@
-#ifndef MAP_T_HPP
-#define MAP_T_HPP
+#ifndef TMWA_MAP_MAP_T_HPP
+#define TMWA_MAP_MAP_T_HPP
 
 # include "../strings/vstring.hpp"
 
-# include "../common/mmo.hpp"
-# include "../common/utils2.hpp"
+# include "../mmo/mmo.hpp"
 
 namespace e
 {
@@ -562,4 +561,4 @@ struct NpcName : VString<23> {};
 struct ScriptLabel : VString<23> {};
 struct ItemName : VString<23> {};
 
-#endif // MAP_T_HPP
+#endif // TMWA_MAP_MAP_T_HPP

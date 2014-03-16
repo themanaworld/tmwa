@@ -65,6 +65,14 @@ namespace strings
     int do_vprint(VString<len>& out, const char *fmt, va_list ap);
 } // namespace strings
 
+template<class T>
+T stringish(VString<sizeof(T) - 1> iv)
+{
+    T rv;
+    static_cast<VString<sizeof(T) - 1>&>(rv) = iv;
+    return rv;
+}
+
 # include "vstring.tcc"
 
 #endif // TMWA_STRINGS_VSTRING_HPP

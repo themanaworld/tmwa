@@ -94,4 +94,4 @@ namespace io
     };
 } // namespace io
 
-#endif //TMWA_IO_LINE_HPP
+#endif // TMWA_IO_LINE_HPP

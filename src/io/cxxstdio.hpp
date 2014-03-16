@@ -24,9 +24,10 @@
 # include <cstdarg>
 # include <cstdio>
 
-// TODO get rid of these header order violations
-# include "../common/const_array.hpp"
-# include "../common/utils2.hpp"
+# include "../compat/cast.hpp"
+
+# include "../generic/const_array.hpp"
+# include "../generic/enum.hpp"
 
 # include "fwd.hpp"
 
@@ -213,27 +214,25 @@ namespace cxxstdio
         }
     };
 
-# define XPRINTF(out, fmt, ...)                                                         \
-    (/*[&]() -> int*/                                                                   \
-    {                                                                                   \
-        struct format_impl                                                              \
-        {                                                                               \
-            constexpr static                                                            \
-            const char *print_format() { return fmt; }                                  \
-        };                                                                              \
-        /*return*/ cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);   \
-    }/*()*/)
+# define XPRINTF(out, fmt, ...)                                             \
+    ({                                                                      \
+        struct format_impl                                                  \
+        {                                                                   \
+            constexpr static                                                \
+            const char *print_format() { return fmt; }                      \
+        };                                                                  \
+        cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);  \
+    })
 
-# define XSCANF(out, fmt, ...)                                                      \
-    (/*[&]() -> int*/                                                               \
-    {                                                                               \
-        struct format_impl                                                          \
-        {                                                                           \
-            constexpr static                                                        \
-            const char *scan_format() { return fmt; }                               \
-        };                                                                          \
-        /*return*/ cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__); \
-    }/*()*/)
+# define XSCANF(out, fmt, ...)                                              \
+    ({                                                                      \
+        struct format_impl                                                  \
+        {                                                                   \
+            constexpr static                                                \
+            const char *scan_format() { return fmt; }                       \
+        };                                                                  \
+        cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);    \
+    })
 
 # define FPRINTF(file, fmt, ...)     XPRINTF(/*no_cast<FILE *>*/(file), fmt, ## __VA_ARGS__)
 # define FSCANF(file, fmt, ...)      XSCANF(no_cast<FILE *>(file), fmt, ## __VA_ARGS__)
@@ -241,23 +240,21 @@ namespace cxxstdio
 # define SPRINTF(str, fmt, ...)      XPRINTF(base_cast<AString&>(str), fmt, ## __VA_ARGS__)
 # define SNPRINTF(str, n, fmt, ...)  XPRINTF(base_cast<VString<n-1>&>(str), fmt, ## __VA_ARGS__)
 # define SCANF(fmt, ...)             FSCANF(stdin, fmt, ## __VA_ARGS__)
-# define SSCANF(str, fmt, ...)       XSCANF(/*ZString or compatible*/str, fmt, ## __VA_ARGS__)
+# define SSCANF(str, fmt, ...)       XSCANF(maybe_cast<ZString>(str), fmt, ## __VA_ARGS__)
 
 # define STRPRINTF(fmt, ...)                        \
-    (/*[&]() -> AString*/                           \
-    {                                               \
+    ({                                              \
         AString _out_impl;                          \
         SPRINTF(_out_impl, fmt, ## __VA_ARGS__);    \
-        /*return*/ _out_impl;                       \
-    }/*()*/)
+        _out_impl;                                  \
+    })
 
 # define STRNPRINTF(n, fmt, ...)                        \
-    (/*[&]() -> VString<n - 1>*/                        \
-    {                                                   \
+    ({                                                  \
         VString<n - 1> _out_impl;                       \
         SNPRINTF(_out_impl, n, fmt, ## __VA_ARGS__);    \
-        /*return*/ _out_impl;                           \
-    }/*()*/)
+        _out_impl;                                      \
+    })
 
 } // namespace cxxstdio
 

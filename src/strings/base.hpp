@@ -22,6 +22,8 @@
 # include "fwd.hpp"
 # include "pair.hpp"
 
+# include <cstddef>
+
 # include <iterator>
 
 // It is a common mistake to assume that one string class for everything.

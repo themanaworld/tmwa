@@ -20,6 +20,8 @@
 
 #include "xstring.hpp"
 
+#include "../poison.hpp"
+
 namespace strings
 {
     ZString::ZString()

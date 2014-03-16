@@ -1,7 +1,7 @@
-#ifndef MAGIC_INTERPRETER_T_HPP
-#define MAGIC_INTERPRETER_T_HPP
+#ifndef TMWA_MAP_MAGIC_INTERPRETER_T_HPP
+#define TMWA_MAP_MAGIC_INTERPRETER_T_HPP
 
-# include "../common/utils2.hpp"
+# include "../generic/enum.hpp"
 
 enum class SPELLARG : uint8_t
 {
@@ -156,4 +156,4 @@ ENUM_BITWISE_OPERATORS(INVOCATION_FLAG)
 }
 using e::INVOCATION_FLAG;
 
-#endif // MAGIC_INTERPRETER_T_HPP
+#endif // TMWA_MAP_MAGIC_INTERPRETER_T_HPP

@@ -11,16 +11,17 @@
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/db.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/db.hpp"
-#include "../common/extract.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/utils.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 
 #include "char.hpp"
 #include "int_party.hpp"

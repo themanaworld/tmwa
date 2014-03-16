@@ -35,4 +35,4 @@
 
 # define SGR_RESET "\e[0m"
 
-#endif //TMWA_IO_TTY_HPP
+#endif // TMWA_IO_TTY_HPP

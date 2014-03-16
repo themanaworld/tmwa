@@ -4,27 +4,29 @@
 #include <cstring>
 #include <ctime>
 
+#include "../compat/nullpo.hpp"
+#include "../compat/fun.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
 
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 #include "../io/write.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/core.hpp"
-#include "../common/extract.hpp"
-#include "../common/human_time_diff.hpp"
-#include "../common/mmo.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/random.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/utils2.hpp"
-#include "../common/version.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/core.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/human_time_diff.hpp"
+#include "../mmo/mmo.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
+#include "../mmo/version.hpp"
 
 #include "battle.hpp"
 #include "chrif.hpp"

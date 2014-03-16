@@ -10,11 +10,6 @@
 #  error "Your compiler is absolutely ancient. You have no chance ..."
 # endif // __GNUC__ < 4
 
-/// Convert type assumptions to use the standard types here
-# include <cstdint>
-/// size_t, NULL
-# include <cstddef>
-
 # if __GNUC__ == 4
 // clang identifies as GCC 4.2, but is mostly okay.
 // Until a bug-free release of it happens, though, I won't recommend it.

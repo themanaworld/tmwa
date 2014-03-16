@@ -21,7 +21,7 @@
 
 # include "../sanity.hpp"
 
-# include "../common/extract.hpp" // TODO remove this (requires specializing the *other* half)
+# include "../mmo/extract.hpp" // TODO remove this (requires specializing the *other* half)
 
 # include "../strings/xstring.hpp"
 

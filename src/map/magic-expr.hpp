@@ -1,5 +1,5 @@
-#ifndef MAGIC_EXPR_HPP
-#define MAGIC_EXPR_HPP
+#ifndef TMWA_MAP_MAGIC_EXPR_HPP
+#define TMWA_MAP_MAGIC_EXPR_HPP
 
 # include "magic-interpreter.hpp"
 
@@ -84,4 +84,4 @@ int magic_find_item(const_array<val_t> args, int index, struct item *item, int *
 
 int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area);
 
-#endif // MAGIC_EXPR_HPP
+#endif // TMWA_MAP_MAGIC_EXPR_HPP

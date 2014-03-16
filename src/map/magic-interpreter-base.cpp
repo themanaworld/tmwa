@@ -8,7 +8,7 @@
 
 #include "../io/cxxstdio.hpp"
 
-#include "../common/timer.hpp"
+#include "../mmo/timer.hpp"
 
 #include "magic-expr.hpp"
 

@@ -1,5 +1,5 @@
-#ifndef PC_HPP
-#define PC_HPP
+#ifndef TMWA_MAP_PC_HPP
+#define TMWA_MAP_PC_HPP
 
 # include "pc.t.hpp"
 
@@ -155,4 +155,4 @@ void pc_show_motd(dumb_ptr<map_session_data> sd);
 
 void do_init_pc(void);
 
-#endif // PC_HPP
+#endif // TMWA_MAP_PC_HPP

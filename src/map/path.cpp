@@ -2,10 +2,11 @@
 
 #include <cassert>
 
-#include "../io/cxxstdio.hpp"
+#include "../compat/nullpo.hpp"
 
-#include "../common/random.hpp"
-#include "../common/nullpo.hpp"
+#include "../generic/random.hpp"
+
+#include "../io/cxxstdio.hpp"
 
 #include "battle.hpp"
 

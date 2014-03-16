@@ -1,5 +1,5 @@
-#ifndef SCRIPT_HPP
-#define SCRIPT_HPP
+#ifndef TMWA_MAP_SCRIPT_HPP
+#define TMWA_MAP_SCRIPT_HPP
 
 # include <cstdint>
 # include <cstring> // for inlined get_str - TODO remove
@@ -10,9 +10,10 @@
 # include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
 
-# include "../common/db.hpp"
-# include "../common/dumb_ptr.hpp"
-# include "../common/utils.hpp"
+# include "../generic/db.hpp"
+
+# include "../mmo/dumb_ptr.hpp"
+# include "../mmo/utils.hpp"
 
 # include "map.t.hpp"
 
@@ -175,4 +176,4 @@ void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString
 int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e);
 ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e);
 
-#endif // SCRIPT_HPP
+#endif // TMWA_MAP_SCRIPT_HPP

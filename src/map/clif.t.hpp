@@ -1,5 +1,5 @@
-#ifndef CLIF_T_HPP
-#define CLIF_T_HPP
+#ifndef TMWA_MAP_CLIF_T_HPP
+#define TMWA_MAP_CLIF_T_HPP
 
 # include <cstdint>
 
@@ -18,4 +18,4 @@ enum class BeingRemoveWhy : uint8_t
     NEGATIVE1 = 0xff,
 };
 
-#endif // CLIF_T_HPP
+#endif // TMWA_MAP_CLIF_T_HPP

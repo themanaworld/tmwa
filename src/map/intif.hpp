@@ -1,9 +1,9 @@
-#ifndef INTIF_HPP
-#define INTIF_HPP
+#ifndef TMWA_MAP_INTIF_HPP
+#define TMWA_MAP_INTIF_HPP
 
 # include "../strings/fwd.hpp"
 
-# include "../common/const_array.hpp"
+# include "../generic/const_array.hpp"
 
 # include "map.hpp"
 
@@ -30,4 +30,4 @@ void intif_party_changemap(dumb_ptr<map_session_data> sd, int online);
 void intif_party_message(int party_id, int account_id, XString mes);
 void intif_party_checkconflict(int party_id, int account_id, CharName nick);
 
-#endif // INTIF_HPP
+#endif // TMWA_MAP_INTIF_HPP

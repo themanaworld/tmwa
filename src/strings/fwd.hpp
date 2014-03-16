@@ -21,6 +21,8 @@
 
 # include "../sanity.hpp"
 
+# include <cstdint>
+
 // It is a common mistake to assume that one string class for everything.
 // Because C++ and TMWA have a C legacy, there are a few more here
 // than would probably be necessary in an ideal language.

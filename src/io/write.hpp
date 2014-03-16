@@ -66,4 +66,4 @@ namespace io
     int do_vprint(WriteFile& out, const char *fmt, va_list ap);
 } // namespace io
 
-#endif //TMWA_IO_WRITE_HPP
+#endif // TMWA_IO_WRITE_HPP

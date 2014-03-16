@@ -1,5 +1,5 @@
-#ifndef CONF_VERSION_HPP
-#define CONF_VERSION_HPP
+#ifndef TMWA_CONF_VERSION_HPP
+#define TMWA_CONF_VERSION_HPP
 
 # include "conf-raw/str-VERSION_FULL.h"
 # include "conf-raw/str-VERSION_HASH.h"
@@ -12,4 +12,4 @@
 # include "conf-raw/str-VENDOR.h"
 # include "conf-raw/int-VENDOR_VERSION.h"
 
-#endif
+#endif // TMWA_CONF_VERSION_HPP

@@ -23,6 +23,7 @@
 
 #include "../strings/zstring.hpp"
 
+#include "../poison.hpp"
 
 namespace io
 {

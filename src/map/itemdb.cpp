@@ -3,19 +3,21 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "../compat/nullpo.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/db.hpp"
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/db.hpp"
-#include "../common/extract.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/random.hpp"
-#include "../common/socket.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/socket.hpp"
 
 #include "../poison.hpp"
 

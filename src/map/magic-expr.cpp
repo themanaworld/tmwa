@@ -5,14 +5,16 @@
 #include <cassert>
 #include <cmath>
 
+#include "../compat/alg.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/vstring.hpp"
 
-#include "../io/cxxstdio.hpp"
+#include "../generic/random.hpp"
 
-#include "../common/random.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "battle.hpp"
 #include "npc.hpp"

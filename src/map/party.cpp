@@ -2,14 +2,16 @@
 
 #include <cstring>
 
+#include "../compat/nullpo.hpp"
+
 #include "../strings/xstring.hpp"
+
+#include "../generic/db.hpp"
 
 #include "../io/cxxstdio.hpp"
 
-#include "../common/db.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

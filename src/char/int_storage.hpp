@@ -1,5 +1,5 @@
-#ifndef INT_STORAGE_HPP
-#define INT_STORAGE_HPP
+#ifndef TMWA_CHAR_INT_STORAGE_HPP
+#define TMWA_CHAR_INT_STORAGE_HPP
 
 # include "../strings/fwd.hpp"
 
@@ -14,4 +14,4 @@ int inter_storage_parse_frommap(Session *ms);
 
 extern AString storage_txt;
 
-#endif // INT_STORAGE_HPP
+#endif // TMWA_CHAR_INT_STORAGE_HPP

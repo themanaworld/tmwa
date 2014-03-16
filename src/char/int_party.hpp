@@ -1,5 +1,5 @@
-#ifndef INT_PARTY_HPP
-#define INT_PARTY_HPP
+#ifndef TMWA_CHAR_INT_PARTY_HPP
+#define TMWA_CHAR_INT_PARTY_HPP
 
 # include "../strings/fwd.hpp"
 
@@ -14,4 +14,4 @@ void inter_party_leave(int party_id, int account_id);
 
 extern AString party_txt;
 
-#endif // INT_PARTY_HPP
+#endif // TMWA_CHAR_INT_PARTY_HPP

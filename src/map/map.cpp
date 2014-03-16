@@ -10,25 +10,28 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "../compat/nullpo.hpp"
+#include "../compat/fun.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 #include "../strings/vstring.hpp"
+
+#include "../generic/db.hpp"
+#include "../generic/random2.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 #include "../io/tty.hpp"
 #include "../io/write.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/core.hpp"
-#include "../common/db.hpp"
-#include "../common/extract.hpp"
-#include "../common/random2.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/version.hpp"
+#include "../mmo/config_parse.hpp"
+#include "../mmo/core.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
+#include "../mmo/version.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

@@ -1,5 +1,5 @@
-#ifndef TRADE_HPP
-#define TRADE_HPP
+#ifndef TMWA_MAP_TRADE_HPP
+#define TMWA_MAP_TRADE_HPP
 
 # include "map.hpp"
 
@@ -11,4 +11,4 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd);
 void trade_tradecommit(dumb_ptr<map_session_data> sd);
 void trade_verifyzeny(dumb_ptr<map_session_data> sd);
 
-#endif // TRADE_HPP
+#endif // TMWA_MAP_TRADE_HPP

@@ -5,18 +5,22 @@
 #include <cstring>
 #include <ctime>
 
+#include "../compat/attr.hpp"
+#include "../compat/fun.hpp"
+#include "../compat/nullpo.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/rstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/extract.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/random.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

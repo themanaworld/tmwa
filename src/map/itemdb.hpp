@@ -1,7 +1,7 @@
-#ifndef ITEMDB_HPP
-#define ITEMDB_HPP
+#ifndef TMWA_MAP_ITEMDB_HPP
+#define TMWA_MAP_ITEMDB_HPP
 
-# include "../common/mmo.hpp"
+# include "../mmo/mmo.hpp"
 
 # include "map.t.hpp"
 # include "script.hpp"
@@ -77,4 +77,4 @@ void itemdb_reload(void);
 void do_final_itemdb(void);
 bool itemdb_readdb(ZString filename);
 
-#endif // ITEMDB_HPP
+#endif // TMWA_MAP_ITEMDB_HPP

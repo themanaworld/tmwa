@@ -17,9 +17,9 @@ AString current_magic_filename;
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
-#include "../io/cxxstdio.hpp"
+#include "../generic/const_array.hpp"
 
-#include "../common/const_array.hpp"
+#include "../io/cxxstdio.hpp"
 
 #include "itemdb.hpp"
 #include "magic-expr.hpp"

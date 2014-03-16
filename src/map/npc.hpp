@@ -1,12 +1,12 @@
-#ifndef NPC_HPP
-#define NPC_HPP
+#ifndef TMWA_MAP_NPC_HPP
+#define TMWA_MAP_NPC_HPP
 
 # include <cstddef>
 # include <cstdint>
 
 # include "../strings/fwd.hpp"
 
-# include "../common/timer.t.hpp"
+# include "../mmo/timer.t.hpp"
 
 # include "map.hpp"
 
@@ -70,4 +70,4 @@ interval_t npc_gettimerevent_tick(dumb_ptr<npc_data_script> nd);
 void npc_settimerevent_tick(dumb_ptr<npc_data_script> nd, interval_t newtimer);
 int npc_delete(dumb_ptr<npc_data> nd);
 
-#endif // NPC_HPP
+#endif // TMWA_MAP_NPC_HPP

@@ -6,19 +6,24 @@
 #include <cstring>
 #include <ctime>
 
+#include "../compat/alg.hpp"
+#include "../compat/attr.hpp"
+#include "../compat/fun.hpp"
+#include "../compat/nullpo.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/random.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/write.hpp"
 
-#include "../common/md5calc.hpp"
-#include "../common/random.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/version.hpp"
+#include "../mmo/md5more.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
+#include "../mmo/version.hpp"
 
 #include "atcommand.hpp"
 #include "battle.hpp"

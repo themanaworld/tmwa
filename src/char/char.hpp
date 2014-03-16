@@ -1,11 +1,12 @@
-#ifndef CHAR_HPP
-#define CHAR_HPP
+#ifndef TMWA_CHAR_CHAR_HPP
+#define TMWA_CHAR_CHAR_HPP
 
 # include "../strings/fwd.hpp"
 
-# include "../common/const_array.hpp"
-# include "../common/ip.hpp"
-# include "../common/mmo.hpp"
+# include "../generic/const_array.hpp"
+
+# include "../mmo/ip.hpp"
+# include "../mmo/mmo.hpp"
 
 class Session;
 
@@ -32,4 +33,4 @@ void char_log(XString line);
 # define CHAR_LOG(fmt, ...) \
     char_log(STRPRINTF(fmt, ## __VA_ARGS__))
 
-#endif // CHAR_HPP
+#endif // TMWA_CHAR_CHAR_HPP

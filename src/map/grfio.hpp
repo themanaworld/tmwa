@@ -1,11 +1,11 @@
-#ifndef GRFIO_HPP
-#define GRFIO_HPP
+#ifndef TMWA_MAP_GRFIO_HPP
+#define TMWA_MAP_GRFIO_HPP
 
 # include <cstdint>
 
 # include <vector>
 
-# include "../common/mmo.hpp"
+# include "../mmo/mmo.hpp"
 
 bool load_resnametable(ZString filename);
 
@@ -14,4 +14,4 @@ bool load_resnametable(ZString filename);
 /// Currently there is exactly one .wlk per .gat, but multiples are fine.
 std::vector<uint8_t> grfio_reads(MapName resourcename);
 
-#endif // GRFIO_HPP
+#endif // TMWA_MAP_GRFIO_HPP

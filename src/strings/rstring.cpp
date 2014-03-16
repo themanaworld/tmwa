@@ -25,6 +25,8 @@
 #include "xstring.hpp"
 #include "vstring.hpp"
 
+//#include "../poison.hpp"
+
 namespace strings
 {
     static_assert(sizeof(RString) == sizeof(const char *), "RString");

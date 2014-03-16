@@ -50,4 +50,4 @@ namespace io
     };
 } // namespace io
 
-#endif //TMWA_IO_READ_HPP
+#endif // TMWA_IO_READ_HPP

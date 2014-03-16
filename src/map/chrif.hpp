@@ -1,11 +1,11 @@
-#ifndef CHRIF_HPP
-#define CHRIF_HPP
+#ifndef TMWA_MAP_CHRIF_HPP
+#define TMWA_MAP_CHRIF_HPP
 
 # include "../strings/fwd.hpp"
 
-# include "../common/dumb_ptr.hpp"
-# include "../common/human_time_diff.hpp"
-# include "../common/ip.hpp"
+# include "../mmo/dumb_ptr.hpp"
+# include "../mmo/human_time_diff.hpp"
+# include "../mmo/ip.hpp"
 
 # include "map.hpp"
 
@@ -39,4 +39,4 @@ void do_init_chrif(void);
 // only used by intif.cpp
 extern Session *char_session;
 
-#endif // CHRIF_HPP
+#endif // TMWA_MAP_CHRIF_HPP

@@ -29,4 +29,4 @@ namespace io
     class AppendFile;
 } // namespace io
 
-#endif //TMWA_IO_FWD_HPP
+#endif // TMWA_IO_FWD_HPP

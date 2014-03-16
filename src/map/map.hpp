@@ -1,5 +1,5 @@
-#ifndef MAP_HPP
-#define MAP_HPP
+#ifndef TMWA_MAP_MAP_HPP
+#define TMWA_MAP_MAP_HPP
 
 # include "map.t.hpp"
 
@@ -13,12 +13,13 @@
 # include "../strings/astring.hpp"
 # include "../strings/vstring.hpp"
 
+# include "../generic/db.hpp"
+# include "../generic/matrix.hpp"
+
 # include "../io/cxxstdio.hpp"
 
-# include "../common/db.hpp"
-# include "../common/matrix.hpp"
-# include "../common/socket.hpp"
-# include "../common/timer.t.hpp"
+# include "../mmo/socket.hpp"
+# include "../mmo/timer.t.hpp"
 
 # include "battle.t.hpp"
 # include "magic-interpreter.t.hpp"
@@ -714,4 +715,4 @@ inline dumb_ptr<npc_data_shop> npc_data::is_shop() { return npc_subtype == NpcSu
 inline dumb_ptr<npc_data_warp> npc_data::is_warp() { return npc_subtype == NpcSubtype::WARP ? as_warp() : nullptr ; }
 inline dumb_ptr<npc_data_message> npc_data::is_message() { return npc_subtype == NpcSubtype::MESSAGE ? as_message() : nullptr ; }
 
-#endif // MAP_HPP
+#endif // TMWA_MAP_MAP_HPP

@@ -4,15 +4,17 @@
 
 #include <cstring>
 
+#include "../compat/fun.hpp"
+#include "../compat/nullpo.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 
 #include "../io/cxxstdio.hpp"
 
-#include "../common/nullpo.hpp"
-#include "../common/socket.hpp"
-#include "../common/timer.hpp"
-#include "../common/utils.hpp"
+#include "../mmo/socket.hpp"
+#include "../mmo/timer.hpp"
+#include "../mmo/utils.hpp"
 
 #include "battle.hpp"
 #include "clif.hpp"

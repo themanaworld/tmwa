@@ -1,9 +1,9 @@
-#ifndef SKILL_T_HPP
-#define SKILL_T_HPP
+#ifndef TMWA_MAP_SKILL_T_HPP
+#define TMWA_MAP_SKILL_T_HPP
 
 # include <cstdint>
 
-# include "../common/utils2.hpp"
+# include "../generic/enum.hpp"
 
 // TODO remove most of these as their corresponding SkillIDs get deleted.
 enum class StatusChange : uint16_t
@@ -110,4 +110,4 @@ ENUM_BITWISE_OPERATORS(SkillFlags)
 }
 using e::SkillFlags;
 
-#endif // SKILL_T_HPP
+#endif // TMWA_MAP_SKILL_T_HPP

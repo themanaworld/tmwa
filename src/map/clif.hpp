@@ -1,5 +1,5 @@
-#ifndef CLIF_HPP
-#define CLIF_HPP
+#ifndef TMWA_MAP_CLIF_HPP
+#define TMWA_MAP_CLIF_HPP
 
 # include "clif.t.hpp"
 
@@ -7,9 +7,10 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../common/const_array.hpp"
-# include "../common/ip.hpp"
-# include "../common/timer.t.hpp"
+# include "../generic/const_array.hpp"
+
+# include "../mmo/ip.hpp"
+# include "../mmo/timer.t.hpp"
 
 # include "battle.t.hpp"
 # include "map.hpp"
@@ -163,4 +164,4 @@ int clif_foreachclient(std::function<void(dumb_ptr<map_session_data>)>);
 
 void do_init_clif(void);
 
-#endif // CLIF_HPP
+#endif // TMWA_MAP_CLIF_HPP

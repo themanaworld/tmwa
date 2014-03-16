@@ -9,14 +9,15 @@
 #include "../strings/astring.hpp"
 #include "../strings/xstring.hpp"
 
+#include "../generic/db.hpp"
+
 #include "../io/cxxstdio.hpp"
 #include "../io/lock.hpp"
 #include "../io/read.hpp"
 
-#include "../common/db.hpp"
-#include "../common/extract.hpp"
-#include "../common/mmo.hpp"
-#include "../common/socket.hpp"
+#include "../mmo/extract.hpp"
+#include "../mmo/mmo.hpp"
+#include "../mmo/socket.hpp"
 
 #include "../poison.hpp"
 

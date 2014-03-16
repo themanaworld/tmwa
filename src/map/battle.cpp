@@ -2,15 +2,18 @@
 
 #include <cstring>
 
+#include "../compat/alg.hpp"
+#include "../compat/nullpo.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
+
+#include "../generic/random.hpp"
 
 #include "../io/cxxstdio.hpp"
 #include "../io/read.hpp"
 
-#include "../common/config_parse.hpp"
-#include "../common/nullpo.hpp"
-#include "../common/random.hpp"
+#include "../mmo/config_parse.hpp"
 
 #include "clif.hpp"
 #include "itemdb.hpp"

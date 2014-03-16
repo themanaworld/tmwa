@@ -1,5 +1,5 @@
-#ifndef SKILL_HPP
-#define SKILL_HPP
+#ifndef TMWA_MAP_SKILL_HPP
+#define TMWA_MAP_SKILL_HPP
 
 # include "skill.t.hpp"
 # include "skill-pools.hpp"
@@ -143,4 +143,4 @@ int skill_power_bl(dumb_ptr<block_list> bl, SkillID skill);
 
 // [Fate] Remember that a certain skill ID belongs to a pool skill
 void skill_pool_register(SkillID id);
-#endif // SKILL_HPP
+#endif // TMWA_MAP_SKILL_HPP

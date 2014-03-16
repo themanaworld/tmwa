@@ -1,5 +1,5 @@
-#ifndef PC_T_HPP
-#define PC_T_HPP
+#ifndef TMWA_MAP_PC_T_HPP
+#define TMWA_MAP_PC_T_HPP
 
 # include <cstdint>
 
@@ -41,4 +41,4 @@ enum class PickupFail : uint8_t
     DROP_STEAL  = 6,
 };
 
-#endif // PC_T_HPP
+#endif // TMWA_MAP_PC_T_HPP

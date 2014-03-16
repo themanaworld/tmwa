@@ -1,13 +1,13 @@
+#include "storage.hpp"
 // Copyright (c) Athena Dev Teams - Licensed under GNU GPL
 // For more information, see COPYING in the main folder
-
-#include "storage.hpp"
 
 #include <cstdlib>
 #include <cstring>
 
-#include "../common/db.hpp"
-#include "../common/nullpo.hpp"
+#include "../compat/nullpo.hpp"
+
+#include "../generic/db.hpp"
 
 #include "chrif.hpp"
 #include "clif.hpp"
