@@ -3,7 +3,7 @@
 
 # include "../strings/fwd.hpp"
 
-class Session;
+struct Session;
 
 void inter_storage_init(void);
 int inter_storage_save(void);

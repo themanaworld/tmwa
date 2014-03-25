@@ -47,7 +47,7 @@ before_script:
 script:
   - mkdir build
   - cd build
-  - ../configure --dev CPPFLAGS=-DQUIET
+  - ../configure --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6`
   - make -R -k -j2
   - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
 

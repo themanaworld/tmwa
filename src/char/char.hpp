@@ -8,7 +8,7 @@
 # include "../mmo/ip.hpp"
 # include "../mmo/mmo.hpp"
 
-class Session;
+struct Session;
 
 constexpr int MAX_MAP_SERVERS = 30;
 

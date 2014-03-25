@@ -3,7 +3,7 @@
 
 # include "../strings/fwd.hpp"
 
-class Session;
+struct Session;
 
 bool inter_config(XString key, ZString value);
 void inter_init2();

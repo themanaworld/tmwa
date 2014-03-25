@@ -21,12 +21,6 @@
 
 #include "../poison.hpp"
 
-constexpr int MAX_RANDITEM = 2000;
-
-// ** ITEMDB_OVERRIDE_NAME_VERBOSE **
-//   定義すると、itemdb.txtとgrfで名前が異なる場合、表示します.
-//#define ITEMDB_OVERRIDE_NAME_VERBOSE  1
-
 static
 Map<int, struct item_data> item_db;
 

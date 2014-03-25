@@ -60,7 +60,7 @@ namespace cxxstdio
 
     template<class T>
     inline __attribute__((format(printf, 2, 3)))
-    int do_print(T&& t, const char *fmt, ...) throw()
+    int do_print(T&& t, const char *fmt, ...)
     {
         int rv;
         va_list ap;
@@ -72,7 +72,7 @@ namespace cxxstdio
 
     template<class T>
     inline __attribute__((format(scanf, 2, 3)))
-    int do_scan(T&& t, const char *fmt, ...) throw()
+    int do_scan(T&& t, const char *fmt, ...)
     {
         int rv;
         va_list ap;

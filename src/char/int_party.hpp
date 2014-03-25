@@ -3,7 +3,7 @@
 
 # include "../strings/fwd.hpp"
 
-class Session;
+struct Session;
 
 void inter_party_init(void);
 int inter_party_save(void);

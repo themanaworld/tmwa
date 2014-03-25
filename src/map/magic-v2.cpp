@@ -411,7 +411,7 @@ namespace magic_v2
         case sexpr::TOKEN:
             {
                 ZString dirs[8] = {
-                    "S", "SW", "W", "NW", "N", "NE", "E", "SE",
+                    ZString("S"), ZString("SW"), ZString("W"), ZString("NW"), ZString("N"), ZString("NE"), ZString("E"), ZString("SE"),
                 };
                 auto begin = std::begin(dirs);
                 auto end = std::end(dirs);

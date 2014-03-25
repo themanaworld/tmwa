@@ -6,9 +6,9 @@
 
 # include "../strings/rstring.hpp"
 
-#if __GNUC__ == 4 && __GNUC_MINOR__ == 6
-#define override
-#endif
+# if __GNUC__ == 4 && __GNUC_MINOR__ == 6
+#  define override
+# endif
 
 // We just leak
 # pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
@@ -438,8 +438,8 @@ struct AreaBar : Expression
     virtual void show() override;
 };
 
-#ifdef override
-#undef override
-#endif
+# ifdef override
+#  undef override
+# endif
 
 #endif // AST_HPP
