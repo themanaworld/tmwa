@@ -288,12 +288,16 @@ distclean: clean gen-clean
 gen-clean:
 	$c rm -f ${GEN_SOURCES} ${GEN_HEADERS}
 
+# This rule is now deleted by default because it's sensitive to versions
+ifeq (${LUCKY},1)
 %.cpp %.hpp: %.lpp
 	$(MKDIR_FIRST)
 	$c ${FLEX} --header-file=$*.hpp -o $*.cpp $<
 %.cpp %.hpp: %.ypp
 	$(MKDIR_FIRST)
 	$c ${BISON} --defines=$*.hpp -o $*.cpp $<
+endif
+
 ifndef MAKE_RESTARTS
 # prevent errors if missing header
 obj/%.d: src/%.cpp

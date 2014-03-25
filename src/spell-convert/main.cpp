@@ -1,5 +1,5 @@
-#include "src/spell-convert/lexer.hpp"
-#include "src/spell-convert/parser.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
 
 int main()
 {
