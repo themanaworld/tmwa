@@ -4980,13 +4980,13 @@ void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    set_reg(sd, ByteCode::INT, reg, val);
+    set_reg(sd, ByteCode::VARIABLE, reg, val);
 }
 void set_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e, XString val)
 {
     size_t k = variable_names.intern(var);
     SIR reg = SIR::from(k, e);
-    set_reg(sd, ByteCode::INT, reg, dumb_string::copys(val));
+    set_reg(sd, ByteCode::VARIABLE, reg, dumb_string::copys(val));
 }
 int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e)
 {
