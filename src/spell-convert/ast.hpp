@@ -6,6 +6,10 @@
 
 # include "../strings/rstring.hpp"
 
+#if __GNUC__ == 4 && __GNUC_MINOR__ == 6
+#define override
+#endif
+
 // We just leak
 # pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 
@@ -111,6 +115,9 @@ struct SpellArg
 {
     RString varname;
     RString vartype;
+
+    SpellArg() : varname(), vartype() {}
+    SpellArg(RString n, RString t) : varname(n), vartype(t) {}
 };
 
 struct Effect
@@ -340,6 +347,8 @@ struct Item
 {
     RString count;
     RString item;
+
+    Item(RString c, RString i) : count(c), item(i) {}
 };
 
 struct Expression
@@ -428,5 +437,9 @@ struct AreaBar : Expression
 
     virtual void show() override;
 };
+
+#ifdef override
+#undef override
+#endif
 
 #endif // AST_HPP
