@@ -416,7 +416,14 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
     if (pc_isdead(sd))
     {
         pc_setrestartvalue(sd, 0);
-        sd->status.last_point = sd->status.save_point;
+        if (sd->bl_m->flag.get(MapFlag::RESAVE))
+        {
+            sd->status.last_point = sd->bl_m->resave;
+        }
+        else
+        {
+            sd->status.last_point = sd->status.save_point;
+        }
     }
     else
     {

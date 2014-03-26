@@ -42,6 +42,7 @@ class MapFlags(object):
             ('NO_PLAYER_DROPS', 27),
             ('TOWN', 28),
             ('OUTSIDE', 29),
+            ('RESAVE', 30),
         ]:
             v = 1 << v
             if i & v:

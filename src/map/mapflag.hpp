@@ -62,7 +62,7 @@ enum class MapFlag
     TOWN = 1 << 28,
 
     OUTSIDE = 1 << 29,
-    //UNUSED2 = 1 << 30,
+    RESAVE = 1 << 30,
     //UNUSED3 = 1 << 31,
 };
 

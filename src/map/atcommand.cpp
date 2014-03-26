@@ -1056,8 +1056,17 @@ ATCE atcommand_load(Session *s, dumb_ptr<map_session_data> sd,
         return ATCE::PERM;
     }
 
-    pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
-               sd->status.save_point.y, BeingRemoveWhy::GONE);
+    // TODO deduplicate with clif_parse_Restart and pc_make_savestatus
+    if (sd->bl_m->flag.get(MapFlag::RESAVE))
+    {
+        pc_setpos(sd, sd->bl_m->resave.map_, sd->bl_m->resave.x,
+                sd->bl_m->resave.y, BeingRemoveWhy::GONE);
+    }
+    else
+    {
+        pc_setpos(sd, sd->status.save_point.map_, sd->status.save_point.x,
+                sd->status.save_point.y, BeingRemoveWhy::GONE);
+    }
     clif_displaymessage(s, "Warping to respawn point.");
 
     return ATCE::OKAY;
@@ -3451,6 +3460,9 @@ ATCE atcommand_mapinfo(Session *s, dumb_ptr<map_session_data> sd,
     clif_displaymessage(s, output);
     output = STRPRINTF("No Save: %s",
              (m_id->flag.get(MapFlag::NOSAVE)) ? "True" : "False");
+    clif_displaymessage(s, output);
+    output = STRPRINTF("Re Save: %s",
+             (m_id->flag.get(MapFlag::RESAVE)) ? "True" : "False");
     clif_displaymessage(s, output);
     output = STRPRINTF("No Teleport: %s",
              (m_id->flag.get(MapFlag::NOTELEPORT)) ? "True" : "False");

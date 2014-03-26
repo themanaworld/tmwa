@@ -516,6 +516,7 @@ struct map_local : map_abstract
     int users;
     MapFlags flag;
     struct point save;
+    struct point resave;
     dumb_ptr<npc_data> npc[MAX_NPC_PER_MAP];
     struct
     {

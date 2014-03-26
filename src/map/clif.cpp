@@ -3905,9 +3905,18 @@ void clif_parse_Restart(Session *s, dumb_ptr<map_session_data> sd)
             {
                 pc_setstand(sd);
                 pc_setrestartvalue(sd, 3);
-                pc_setpos(sd, sd->status.save_point.map_,
-                           sd->status.save_point.x, sd->status.save_point.y,
-                           BeingRemoveWhy::QUIT);
+                if (sd->bl_m->flag.get(MapFlag::RESAVE))
+                {
+                    pc_setpos(sd, sd->bl_m->resave.map_,
+                            sd->bl_m->resave.x, sd->bl_m->resave.y,
+                            BeingRemoveWhy::QUIT);
+                }
+                else
+                {
+                    pc_setpos(sd, sd->status.save_point.map_,
+                            sd->status.save_point.x, sd->status.save_point.y,
+                            BeingRemoveWhy::QUIT);
+                }
             }
             break;
         case 0x01:
