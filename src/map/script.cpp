@@ -7,6 +7,8 @@
 #include <cstring>
 #include <ctime>
 
+#include <set>
+
 #include "../compat/fun.hpp"
 
 #include "../strings/mstring.hpp"
@@ -489,6 +491,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         ZString::iterator tmpp = skip_space(p + 1);
         if (*tmpp == ';' || *tmpp == ',')
         {
+            --script_errors; disp_error_message("deprecated: implicit 'next statement' label", p);
             add_scriptl(&LABEL_NEXTLINE_);
             p++;
             return p;
@@ -611,7 +614,7 @@ ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
  * 行の解析
  *------------------------------------------
  */
-ZString::iterator ScriptBuffer::parse_line(ZString::iterator p)
+ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
 {
     int i = 0;
     ZString::iterator plist[128];
@@ -632,6 +635,20 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p)
     {
         disp_error_message("expect command", p2);
 //      exit(0);
+    }
+
+    {
+        static
+        std::set<ZString> terminators =
+        {
+            "goto",
+            "return",
+            "close",
+            "menu",
+            "end",
+            "mapexit",
+        };
+        *can_step = terminators.count(cmd->strs) == 0;
     }
 
     add_scriptc(ByteCode::ARG);
@@ -726,10 +743,10 @@ bool read_constdb(ZString filename)
     return rv;
 }
 
-std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line)
+std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line, bool implicit_end)
 {
     auto script_buf = make_unique<ScriptBuffer>();
-    script_buf->parse_script(src, line);
+    script_buf->parse_script(src, line, implicit_end);
     return std::move(script_buf);
 }
 
@@ -737,7 +754,7 @@ std::unique_ptr<const ScriptBuffer> parse_script(ZString src, int line)
  * スクリプトの解析
  *------------------------------------------
  */
-void ScriptBuffer::parse_script(ZString src, int line)
+void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 {
     static int first = 1;
 
@@ -767,6 +784,8 @@ void ScriptBuffer::parse_script(ZString src, int line)
     startptr = src;
     startline = line;
 
+    bool can_step = true;
+
     ZString::iterator p = src.begin();
     p = skip_space(p);
     if (*p != '{')
@@ -779,6 +798,12 @@ void ScriptBuffer::parse_script(ZString src, int line)
         p = skip_space(p);
         if (*skip_space(skip_word(p)) == ':')
         {
+            if (can_step)
+            {
+                --script_errors; disp_error_message("deprecated: implicit fallthrough", p);
+            }
+            can_step = true;
+
             ZString::iterator tmpp = skip_word(p);
             XString str(&*p, &*tmpp, nullptr);
             str_data_t *ld = add_strp(str);
@@ -797,8 +822,12 @@ void ScriptBuffer::parse_script(ZString src, int line)
             continue;
         }
 
+        if (!can_step)
+        {
+            --script_errors; disp_error_message("deprecated: unreachable statement", p);
+        }
         // 他は全部一緒くた
-        p = parse_line(p);
+        p = parse_line(p, &can_step);
         p = skip_space(p);
         add_scriptc(ByteCode::EOL);
 
@@ -808,6 +837,10 @@ void ScriptBuffer::parse_script(ZString src, int line)
         LABEL_NEXTLINE_.label_ = -1;
     }
 
+    if (can_step && !implicit_end)
+    {
+        --script_errors; disp_error_message("deprecated: implicit end", p);
+    }
     add_scriptc(ByteCode::NOP);
 
     // resolve the unknown labels

@@ -762,7 +762,7 @@ namespace magic_v2
             if (s._list[1]._type != sexpr::STRING)
                 return fail(s._list[1], "not string");
             ZString body = s._list[1]._str;
-            std::unique_ptr<const ScriptBuffer> script = parse_script(body, s._list[1]._span.begin.line);
+            std::unique_ptr<const ScriptBuffer> script = parse_script(body, s._list[1]._span.begin.line, true);
             if (!script)
                 return fail(s._list[1], "script does not compile");
             out = new_effect(EFFECT::SCRIPT);

@@ -227,12 +227,12 @@ bool itemdb_readdb(ZString filename)
 
             if (!tail_part)
                 continue;
-            id->use_script = parse_script(tail_part, lines);
+            id->use_script = parse_script(tail_part, lines, true);
 
             tail_part = tail_part.xislice_t(std::find(tail_part.begin() + 1, tail_part.end(), '{'));
             if (!tail_part)
                 continue;
-            id->equip_script = parse_script(tail_part, lines);
+            id->equip_script = parse_script(tail_part, lines, true);
         }
         PRINTF("read %s done (count=%d)\n", filename, ln);
     }

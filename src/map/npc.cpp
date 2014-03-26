@@ -1228,7 +1228,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
                 srcbuf += line;
             srcbuf += '\n';
         }
-        script = parse_script(AString(srcbuf), startline);
+        script = parse_script(AString(srcbuf), startline, false);
         if (script == NULL)
             // script parse error?
             return 1;
@@ -1419,7 +1419,7 @@ int npc_parse_function(XString, XString, XString w3, ZString,
             srcbuf += line;
         srcbuf += '\n';
     }
-    std::unique_ptr<const ScriptBuffer> script = parse_script(AString(srcbuf), startline);
+    std::unique_ptr<const ScriptBuffer> script = parse_script(AString(srcbuf), startline, false);
     if (script == NULL)
     {
         // script parse error?

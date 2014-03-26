@@ -35,8 +35,8 @@ public:
     ZSit parse_simpleexpr(ZSit p);
     ZSit parse_subexpr(ZSit p, int limit);
     ZSit parse_expr(ZSit p);
-    ZSit parse_line(ZSit p);
-    void parse_script(ZString src, int line);
+    ZSit parse_line(ZSit p, bool *canstep);
+    void parse_script(ZString src, int line, bool implicit_end);
 
     // consumption methods used only by script.cpp
     ByteCode operator[](size_t i) const { return script_buf[i]; }
@@ -136,7 +136,8 @@ public:
     int defsp, new_defsp;
 };
 
-std::unique_ptr<const ScriptBuffer> parse_script(ZString, int);
+std::unique_ptr<const ScriptBuffer> parse_script(ZString, int, bool implicit_end);
+
 struct argrec_t
 {
     ZString name;
