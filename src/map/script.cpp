@@ -3662,8 +3662,11 @@ void builtin_nude(ScriptState *st)
         return;
 
     for (EQUIP i : EQUIPs)
-        if (sd->equip_index[i] >= 0)
-            pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER);
+    {
+        int idx = sd->equip_index_maybe[i];
+        if (idx >= 0)
+            pc_unequipitem(sd, idx, CalcStatus::LATER);
+    }
     pc_calcstatus(sd, 0);
 
 }
@@ -3682,9 +3685,12 @@ void builtin_unequipbyid(ScriptState *st)
 
     EQUIP slot_id = EQUIP(conv_num(st, &AARGO2(2)));
 
-    if (slot_id >= EQUIP() && slot_id < EQUIP::COUNT
-        && sd->equip_index[slot_id] >= 0)
-        pc_unequipitem(sd, sd->equip_index[slot_id], CalcStatus::LATER);
+    if (slot_id >= EQUIP() && slot_id < EQUIP::COUNT)
+    {
+        int idx = sd->equip_index_maybe[slot_id];
+        if (idx >= 0)
+            pc_unequipitem(sd, idx, CalcStatus::LATER);
+    }
 
     pc_calcstatus(sd, 0);
 

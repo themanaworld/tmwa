@@ -543,7 +543,7 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
     nullpo_ret(sd);
 
     for (EQUIP i : EQUIPs)
-        sd->equip_index[i] = -1;
+        sd->equip_index_maybe[i] = -1;
 
     for (int i = 0; i < MAX_INVENTORY; i++)
     {
@@ -553,7 +553,7 @@ int pc_setequipindex(dumb_ptr<map_session_data> sd)
         {
             for (EQUIP j : EQUIPs)
                 if (bool(sd->status.inventory[i].equip & equip_pos[j]))
-                    sd->equip_index[j] = i;
+                    sd->equip_index_maybe[j] = i;
             if (bool(sd->status.inventory[i].equip & EPOS::WEAPON))
             {
                 if (sd->inventory_data[i])
@@ -897,7 +897,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     int b_watk, b_def, b_watk2, b_def2, b_flee2, b_critical,
         b_attackrange, b_matk1, b_matk2, b_mdef, b_mdef2;
     int b_base_atk;
-    int bl, index;
+    int bl;
     int aspd_rate, refinedef = 0;
     int str, dstr, dex;
 
@@ -1005,16 +1005,16 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
 
     for (EQUIP i : EQUIPs_noarrow)
     {
-        index = sd->equip_index[i];
+        int index = sd->equip_index_maybe[i];
         if (index < 0)
             continue;
-        if (i == EQUIP::WEAPON && sd->equip_index[EQUIP::SHIELD] == index)
+        if (i == EQUIP::WEAPON && sd->equip_index_maybe[EQUIP::SHIELD] == index)
             continue;
-        if (i == EQUIP::TORSO && sd->equip_index[EQUIP::LEGS] == index)
+        if (i == EQUIP::TORSO && sd->equip_index_maybe[EQUIP::LEGS] == index)
             continue;
         if (i == EQUIP::HAT
-            && (sd->equip_index[EQUIP::TORSO] == index
-                || sd->equip_index[EQUIP::LEGS] == index))
+            && (sd->equip_index_maybe[EQUIP::TORSO] == index
+                || sd->equip_index_maybe[EQUIP::LEGS] == index))
             continue;
 
         if (sd->inventory_data[index])
@@ -1041,16 +1041,16 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     // 装備品によるステータス変化はここで実行
     for (EQUIP i : EQUIPs_noarrow)
     {
-        index = sd->equip_index[i];
+        int index = sd->equip_index_maybe[i];
         if (index < 0)
             continue;
-        if (i == EQUIP::WEAPON && sd->equip_index[EQUIP::SHIELD] == index)
+        if (i == EQUIP::WEAPON && sd->equip_index_maybe[EQUIP::SHIELD] == index)
             continue;
-        if (i == EQUIP::TORSO && sd->equip_index[EQUIP::LEGS] == index)
+        if (i == EQUIP::TORSO && sd->equip_index_maybe[EQUIP::LEGS] == index)
             continue;
         if (i == EQUIP::HAT
-            && (sd->equip_index[EQUIP::TORSO] == index
-                || sd->equip_index[EQUIP::LEGS] == index))
+            && (sd->equip_index_maybe[EQUIP::TORSO] == index
+                || sd->equip_index_maybe[EQUIP::LEGS] == index))
             continue;
         if (sd->inventory_data[index])
         {
@@ -1117,9 +1117,10 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->watk_2 += skill_power(sd, SkillID::TMW_BRAWLING) >> 3;  // +25 for 200
     }
 
-    if (sd->equip_index[EQUIP::ARROW] >= 0)
+    int aidx = sd->equip_index_maybe[EQUIP::ARROW];
+    if (aidx >= 0)
     {                           // 矢
-        index = sd->equip_index[EQUIP::ARROW];
+        int index = aidx;
         if (sd->inventory_data[index])
         {                       //まだ属性が入っていない
             argrec_t arg[2] =
@@ -2687,7 +2688,7 @@ int pc_checkequip(dumb_ptr<map_session_data> sd, EPOS pos)
     for (EQUIP i : EQUIPs)
     {
         if (bool(pos & equip_pos[i]))
-            return sd->equip_index[i];
+            return sd->equip_index_maybe[i];
     }
 
     return -1;
@@ -3278,12 +3279,15 @@ int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
     for (EQUIP i : EQUIPs)
     {
         // unequip items that can't be equipped by base 1 [Valaris]
-        if (sd->equip_index[i] >= 0)
-            if (!pc_isequip(sd, sd->equip_index[i]))
+        short *idx = &sd->equip_index_maybe[i];
+        if (*idx >= 0)
+        {
+            if (!pc_isequip(sd, *idx))
             {
-                pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER);
-                sd->equip_index[i] = -1;
+                pc_unequipitem(sd, *idx, CalcStatus::LATER);
+                *idx = -1;
             }
+        }
     }
 
     clif_skillinfoblock(sd);
@@ -4394,10 +4398,12 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     {
         // アクセサリ用例外処理
         EPOS epor = EPOS::ZERO;
-        if (sd->equip_index[EQUIP::MISC2] >= 0)
-            epor |= sd->status.inventory[sd->equip_index[EQUIP::MISC2]].equip;
-        if (sd->equip_index[EQUIP::CAPE] >= 0)
-            epor |= sd->status.inventory[sd->equip_index[EQUIP::CAPE]].equip;
+        int midx = sd->equip_index_maybe[EQUIP::MISC2];
+        int cidx = sd->equip_index_maybe[EQUIP::CAPE];
+        if (midx >= 0)
+            epor |= sd->status.inventory[midx].equip;
+        if (cidx >= 0)
+            epor |= sd->status.inventory[cidx].equip;
         epor &= (EPOS::MISC2 | EPOS::CAPE);
         pos = (epor == EPOS::CAPE ? EPOS::MISC2 : EPOS::CAPE);
     }
@@ -4406,9 +4412,10 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     {
         if (bool(pos & equip_pos[i]))
         {
-            if (sd->equip_index[i] >= 0)    //Slot taken, remove item from there.
-                pc_unequipitem(sd, sd->equip_index[i], CalcStatus::LATER);
-            sd->equip_index[i] = n;
+            short *idx = &sd->equip_index_maybe[i];
+            if (*idx >= 0)    //Slot taken, remove item from there.
+                pc_unequipitem(sd, *idx, CalcStatus::LATER);
+            *idx = n;
         }
     }
     // 弓矢装備
@@ -4427,7 +4434,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     for (EQUIP i : EQUIPs)
     {
         if (bool(pos & equip_pos[i]))
-            sd->equip_index[i] = n;
+            sd->equip_index_maybe[i] = n;
     }
     sd->status.inventory[n].equip = pos;
 
@@ -4517,7 +4524,7 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
         for (EQUIP i : EQUIPs)
         {
             if (bool(sd->status.inventory[n].equip & equip_pos[i]))
-                sd->equip_index[i] = -1;
+                sd->equip_index_maybe[i] = -1;
         }
         if (bool(sd->status.inventory[n].equip & EPOS::WEAPON))
         {
@@ -4574,11 +4581,11 @@ int pc_unequipinvyitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
     {
         if (equip_pos[i] != EPOS::ZERO
             && !bool(equip_pos[i] & EPOS::ARROW) // probably a bug
-            && sd->equip_index[i] == n)
+            && sd->equip_index_maybe[i] == n)
         {
             //Slot taken, remove item from there.
-            pc_unequipitem(sd, sd->equip_index[i], type);
-            sd->equip_index[i] = -1;
+            pc_unequipitem(sd, sd->equip_index_maybe[i], type);
+            sd->equip_index_maybe[i] = -1;
         }
     }
 

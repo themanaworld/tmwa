@@ -174,7 +174,7 @@ struct map_session_data : block_list, SessionData
     CharKey status_key;
     CharData status;
     Array<struct item_data *, MAX_INVENTORY> inventory_data;
-    earray<short, EQUIP, EQUIP::COUNT> equip_index;
+    earray<short, EQUIP, EQUIP::COUNT> equip_index_maybe;
     int weight, max_weight;
     MapName mapname_;
     Session *sess; // use this, you idiots!

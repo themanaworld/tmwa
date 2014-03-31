@@ -830,13 +830,14 @@ int fun_is_equipped(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
         return 1;
 
     for (EQUIP i : EQUIPs)
-        if (chr->equip_index[i] >= 0
-            && chr->status.inventory[chr->equip_index[i]].nameid ==
-            item.nameid)
+    {
+        int idx = chr->equip_index_maybe[i];
+        if (idx >= 0 && chr->status.inventory[idx].nameid == item.nameid)
         {
             retval = true;
             break;
         }
+    }
 
     RESULTINT = retval;
     return 0;

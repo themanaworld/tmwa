@@ -674,23 +674,23 @@ int clif_set0078(dumb_ptr<map_session_data> sd, unsigned char *buf)
     WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
     WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
+
+    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
     if (sd->attack_spell_override)
         WBUFW(buf, 18) = sd->attack_spell_look_override;
     else
     {
-        if (sd->equip_index[EQUIP::WEAPON] >= 0
-            && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
+        if (widx >= 0 && sd->inventory_data[widx])
         {
-            WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
+            WBUFW(buf, 18) = sd->status.inventory[widx].nameid;
         }
         else
             WBUFW(buf, 18) = 0;
     }
-    if (sd->equip_index[EQUIP::SHIELD] >= 0
-        && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
-        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
+    if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
     {
-        WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
+        WBUFW(buf, 20) = sd->status.inventory[sidx].nameid;
     }
     else
         WBUFW(buf, 20) = 0;
@@ -734,18 +734,17 @@ int clif_set007b(dumb_ptr<map_session_data> sd, unsigned char *buf)
     WBUFW(buf, 12) = static_cast<uint16_t>(sd->status.option);
     WBUFW(buf, 14) = sd->status.species;
     WBUFW(buf, 16) = sd->status.hair;
-    if (sd->equip_index[EQUIP::WEAPON] >= 0
-        && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
+    int widx = sd->equip_index_maybe[EQUIP::WEAPON];
+    int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
+    if (widx >= 0 && sd->inventory_data[widx])
     {
-        WBUFW(buf, 18) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
+        WBUFW(buf, 18) = sd->status.inventory[widx].nameid;
     }
     else
         WBUFW(buf, 18) = 0;
-    if (sd->equip_index[EQUIP::SHIELD] >= 0
-        && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
-        && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
+    if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
     {
-        WBUFW(buf, 20) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
+        WBUFW(buf, 20) = sd->status.inventory[sidx].nameid;
     }
     else
         WBUFW(buf, 20) = 0;
@@ -1793,10 +1792,10 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
             EQUIP equip_point = equip_points[type];
 
             WBUFB(buf, 6) = uint16_t(type);
-            if (sd->equip_index[equip_point] >= 0
-                && sd->inventory_data[sd->equip_index[equip_point]])
+            int idx = sd->equip_index_maybe[equip_point];
+            if (idx >= 0 && sd->inventory_data[idx])
             {
-                WBUFW(buf, 7) = sd->status.inventory[sd->equip_index[equip_point]].nameid;
+                WBUFW(buf, 7) = sd->status.inventory[idx].nameid;
             }
             else
                 WBUFW(buf, 7) = 0;
@@ -1805,23 +1804,22 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
         else
         {
             WBUFB(buf, 6) = 2;
+            int widx = sd->equip_index_maybe[EQUIP::WEAPON];
+            int sidx = sd->equip_index_maybe[EQUIP::SHIELD];
             if (sd->attack_spell_override)
                 WBUFW(buf, 7) = sd->attack_spell_look_override;
             else
             {
-                if (sd->equip_index[EQUIP::WEAPON] >= 0
-                    && sd->inventory_data[sd->equip_index[EQUIP::WEAPON]])
+                if (widx >= 0 && sd->inventory_data[widx])
                 {
-                    WBUFW(buf, 7) = sd->status.inventory[sd->equip_index[EQUIP::WEAPON]].nameid;
+                    WBUFW(buf, 7) = sd->status.inventory[widx].nameid;
                 }
                 else
                     WBUFW(buf, 7) = 0;
             }
-            if (sd->equip_index[EQUIP::SHIELD] >= 0
-                && sd->equip_index[EQUIP::SHIELD] != sd->equip_index[EQUIP::WEAPON]
-                && sd->inventory_data[sd->equip_index[EQUIP::SHIELD]])
+            if (sidx >= 0 && sidx != widx && sd->inventory_data[sidx])
             {
-                WBUFW(buf, 9) = sd->status.inventory[sd->equip_index[EQUIP::SHIELD]].nameid;
+                WBUFW(buf, 9) = sd->status.inventory[sidx].nameid;
             }
             else
                 WBUFW(buf, 9) = 0;
