@@ -165,6 +165,7 @@ struct AuthFifo
     SEX sex;
     int delflag;
 };
+static
 Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
 static
 int auth_fifo_pos = 0;

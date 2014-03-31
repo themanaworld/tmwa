@@ -4105,8 +4105,10 @@ ATCE atcommand_npcmove(Session *, dumb_ptr<map_session_data>,
         return ATCE::EXIST;
 
     npc_enable(character, 0);
+    map_delblock(nd);
     nd->bl_x = x;
     nd->bl_y = y;
+    map_addblock(nd);
     npc_enable(character, 1);
 
     return ATCE::OKAY;
