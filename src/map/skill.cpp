@@ -232,7 +232,7 @@ int skill_attack(BF attack_type, dumb_ptr<block_list> src,
         SkillID skillid, int skilllv, tick_t tick, BCT flag)
 {
     struct Damage dmg;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int type, lv, damage;
 
     nullpo_ret(src);
@@ -550,7 +550,7 @@ int skill_castend_nodamage_id(dumb_ptr<block_list> src, dumb_ptr<block_list> bl,
 interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
 {
     dumb_ptr<mob_data> md;        // [Valaris]
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int dex;
     int castrate = 100;
     SkillID skill;
@@ -601,7 +601,7 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
  */
 interval_t skill_delayfix(dumb_ptr<block_list> bl, interval_t interval)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(interval_t::zero(), bl);
 
@@ -663,7 +663,7 @@ int skill_castcancel(dumb_ptr<block_list> bl, int)
  */
 int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
@@ -682,7 +682,7 @@ int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
 
 void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerData *tid)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int opt_flag = 0, calc_flag = 0;
     short *sc_count;
     Option *option;
@@ -806,7 +806,7 @@ void skill_status_change_timer(TimerData *tid, tick_t tick, int id, StatusChange
 {
     dumb_ptr<block_list> bl;
     dumb_ptr<map_session_data> sd = NULL;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     //short *sc_count; //使ってない？
 
     if ((bl = map_id2bl(id)) == NULL)
@@ -907,7 +907,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
         interval_t tick, int spell_invocation)
 {
     dumb_ptr<map_session_data> sd = NULL;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short *sc_count;
     Option *option;
     Opt1 *opt1;
@@ -1081,7 +1081,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
  */
 int skill_status_change_clear(dumb_ptr<block_list> bl, int type)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     short *sc_count;
     Option *option;
     Opt1 *opt1;

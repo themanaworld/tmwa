@@ -113,7 +113,7 @@ public:
 struct walkpath_data
 {
     unsigned char path_len, path_pos, path_half;
-    DIR path[MAX_WALKPATH];
+    Array<DIR, MAX_WALKPATH> path;
 };
 struct status_change
 {
@@ -173,7 +173,7 @@ struct map_session_data : block_list, SessionData
     unsigned char tmw_version;  // tmw client version
     CharKey status_key;
     CharData status;
-    struct item_data *inventory_data[MAX_INVENTORY];
+    Array<struct item_data *, MAX_INVENTORY> inventory_data;
     earray<short, EQUIP, EQUIP::COUNT> equip_index;
     int weight, max_weight;
     MapName mapname_;
@@ -275,8 +275,8 @@ struct map_session_data : block_list, SessionData
     short sc_count;
 
     int trade_partner;
-    int deal_item_index[10];
-    int deal_item_amount[10];
+    Array<int, TRADE_MAX> deal_item_index;
+    Array<int, TRADE_MAX> deal_item_amount;
     int deal_zeny;
     short deal_locked;
 
@@ -292,7 +292,7 @@ struct map_session_data : block_list, SessionData
     int pvp_lastusers;
 
     std::list<NpcEvent> eventqueuel;
-    Timer eventtimer[MAX_EVENTTIMER];
+    Array<Timer, MAX_EVENTTIMER> eventtimer;
 
     struct
     {
@@ -349,7 +349,7 @@ struct npc_data : block_list
     short flag;
 
     std::list<RString> eventqueuel;
-    Timer eventtimer[MAX_EVENTTIMER];
+    Array<Timer, MAX_EVENTTIMER> eventtimer;
     short arenaflag;
 
 private:
@@ -517,13 +517,7 @@ struct map_local : map_abstract
     MapFlags flag;
     struct point save;
     struct point resave;
-    dumb_ptr<npc_data> npc[MAX_NPC_PER_MAP];
-    struct
-    {
-        int drop_id;
-        int drop_type;
-        int drop_per;
-    } drop_list[MAX_DROP_PER_MAP];
+    Array<dumb_ptr<npc_data>, MAX_NPC_PER_MAP> npc;
 };
 
 struct map_remote : map_abstract
@@ -535,6 +529,8 @@ struct map_remote : map_abstract
 inline
 MapCell read_gatp(map_local *m, int x, int y)
 {
+    assert (0 <= x && x < m->xs);
+    assert (0 <= y && y < m->ys);
     return m->gat[x + y * m->xs];
 }
 

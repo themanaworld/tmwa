@@ -35,7 +35,7 @@ AString accreg_txt = "save/accreg.txt";
 struct accreg
 {
     int account_id, reg_num;
-    struct global_reg reg[ACCOUNT_REG_NUM];
+    Array<struct global_reg, ACCOUNT_REG_NUM> reg;
 };
 static
 Map<int, struct accreg> accreg_db;
@@ -63,6 +63,7 @@ int inter_recv_packet_length[] =
 static
 AString inter_accreg_tostr(struct accreg *reg)
 {
+    assert(reg->reg_num < ACCOUNT_REG_NUM);
     MString str;
     str += STRPRINTF("%d\t", reg->account_id);
     for (int j = 0; j < reg->reg_num; j++)
@@ -85,7 +86,7 @@ bool extract(XString str, struct accreg *reg)
 
     if (vars.size() > ACCOUNT_REG_NUM)
         return false;
-    std::copy(vars.begin(), vars.end(), reg->reg);
+    std::copy(vars.begin(), vars.end(), reg->reg.begin());
     reg->reg_num = vars.size();
     return true;
 }
@@ -263,6 +264,7 @@ void mapif_account_reg_reply(Session *s, int account_id)
     }
     else
     {
+        assert (reg->reg_num < ACCOUNT_REG_NUM);
         int j, p;
         for (j = 0, p = 8; j < reg->reg_num; j++, p += 36)
         {

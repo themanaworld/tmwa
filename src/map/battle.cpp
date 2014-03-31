@@ -166,7 +166,7 @@ int battle_get_max_hp(dumb_ptr<block_list> bl)
 int battle_get_str(dumb_ptr<block_list> bl)
 {
     int str = 0;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
@@ -189,7 +189,7 @@ int battle_get_str(dumb_ptr<block_list> bl)
 int battle_get_agi(dumb_ptr<block_list> bl)
 {
     int agi = 0;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
@@ -211,7 +211,7 @@ int battle_get_agi(dumb_ptr<block_list> bl)
 int battle_get_vit(dumb_ptr<block_list> bl)
 {
     int vit = 0;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
@@ -233,7 +233,7 @@ int battle_get_vit(dumb_ptr<block_list> bl)
 int battle_get_int(dumb_ptr<block_list> bl)
 {
     int int_ = 0;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
@@ -255,7 +255,7 @@ int battle_get_int(dumb_ptr<block_list> bl)
 int battle_get_dex(dumb_ptr<block_list> bl)
 {
     int dex = 0;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
@@ -277,7 +277,7 @@ int battle_get_dex(dumb_ptr<block_list> bl)
 int battle_get_luk(dumb_ptr<block_list> bl)
 {
     int luk = 0;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
@@ -300,7 +300,7 @@ static
 int battle_get_flee(dumb_ptr<block_list> bl)
 {
     int flee = 1;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
@@ -329,7 +329,7 @@ static
 int battle_get_hit(dumb_ptr<block_list> bl)
 {
     int hit = 1;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
@@ -357,7 +357,7 @@ static
 int battle_get_flee2(dumb_ptr<block_list> bl)
 {
     int flee2 = 1;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
@@ -389,7 +389,7 @@ static
 int battle_get_critical(dumb_ptr<block_list> bl)
 {
     int critical = 1;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_retr(1, bl);
     sc_data = battle_get_sc_data(bl);
@@ -415,7 +415,7 @@ int battle_get_critical(dumb_ptr<block_list> bl)
 static
 int battle_get_baseatk(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int batk = 1;
 
     nullpo_retr(1, bl);
@@ -442,7 +442,7 @@ int battle_get_baseatk(dumb_ptr<block_list> bl)
 static
 int battle_get_atk(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int atk = 0;
 
     nullpo_ret(bl);
@@ -518,7 +518,7 @@ int battle_get_atk_2(dumb_ptr<block_list> bl)
 static
 int battle_get_matk1(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     nullpo_ret(bl);
     sc_data = battle_get_sc_data(bl);
     if (bl->bl_type == BL::MOB)
@@ -563,7 +563,7 @@ int battle_get_matk2(dumb_ptr<block_list> bl)
  */
 int battle_get_def(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int def = 0;
 
     nullpo_ret(bl);
@@ -599,7 +599,7 @@ int battle_get_def(dumb_ptr<block_list> bl)
  */
 int battle_get_mdef(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int mdef = 0;
 
     nullpo_ret(bl);
@@ -634,7 +634,7 @@ int battle_get_mdef(dumb_ptr<block_list> bl)
  */
 int battle_get_def2(dumb_ptr<block_list> bl)
 {
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int def2 = 1;
 
     nullpo_retr(1, bl);
@@ -715,7 +715,7 @@ interval_t battle_get_adelay(dumb_ptr<block_list> bl)
         return bl->is_player()->aspd * 2;
     else
     {
-        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
+        eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data = battle_get_sc_data(bl);
         interval_t adelay = std::chrono::seconds(4);
         int aspd_rate = 100;
         if (bl->bl_type == BL::MOB)
@@ -743,7 +743,7 @@ interval_t battle_get_amotion(dumb_ptr<block_list> bl)
         return bl->is_player()->amotion;
     else
     {
-        eptr<struct status_change, StatusChange> sc_data = battle_get_sc_data(bl);
+        eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data = battle_get_sc_data(bl);
         interval_t amotion = std::chrono::seconds(2);
         int aspd_rate = 100;
         if (bl->bl_type == BL::MOB)
@@ -846,7 +846,7 @@ int battle_get_stat(SP stat_id, dumb_ptr<block_list> bl)
 }
 
 // StatusChange系の所得
-eptr<struct status_change, StatusChange> battle_get_sc_data(dumb_ptr<block_list> bl)
+eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> battle_get_sc_data(dumb_ptr<block_list> bl)
 {
     nullpo_retr(nullptr, bl);
 
@@ -1064,7 +1064,7 @@ struct Damage battle_calc_mob_weapon_attack(dumb_ptr<block_list> src,
     BF flag;
     int ac_flag = 0;
     ATK dmg_lv = ATK::ZERO;
-    eptr<struct status_change, StatusChange> sc_data, t_sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data, t_sc_data;
 
     nullpo_retr(wd, src);
     nullpo_retr(wd, target);
@@ -1337,7 +1337,7 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
     int div_;
     BF flag;
     ATK dmg_lv = ATK::ZERO;
-    eptr<struct status_change, StatusChange> sc_data, t_sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data, t_sc_data;
     int atkmax_ = 0, atkmin_ = 0;  //二刀流用
     int watk, watk_;
     bool da = false;
@@ -1959,7 +1959,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         tick_t tick)
 {
     dumb_ptr<map_session_data> sd = NULL;
-    eptr<struct status_change, StatusChange> t_sc_data = battle_get_sc_data(target);
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> t_sc_data = battle_get_sc_data(target);
     struct Damage wd;
 
     nullpo_retr(ATK::ZERO, src);

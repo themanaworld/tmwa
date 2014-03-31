@@ -254,7 +254,7 @@ namespace magic_v2
         return true;
     }
     static
-    bool op_effect(io::LineSpan span, ZString name, const_array<dumb_ptr<expr_t>> argv, dumb_ptr<effect_t>& effect)
+    bool op_effect(io::LineSpan span, ZString name, Slice<dumb_ptr<expr_t>> argv, dumb_ptr<effect_t>& effect)
     {
         op_t *op = magic_get_op(name);
         if (!op)
@@ -290,7 +290,7 @@ namespace magic_v2
         return retval;
     }
     static
-    bool fun_expr(io::LineSpan span, ZString name, const_array<dumb_ptr<expr_t>> argv, dumb_ptr<expr_t>& expr)
+    bool fun_expr(io::LineSpan span, ZString name, Slice<dumb_ptr<expr_t>> argv, dumb_ptr<expr_t>& expr)
     {
         fun_t *fun = magic_get_fun(name);
         if (!fun)
@@ -322,7 +322,7 @@ namespace magic_v2
         e[0] = left;
         e[1] = right;
         dumb_ptr<expr_t> rv;
-        if (!fun_expr(span, name, const_array<dumb_ptr<expr_t>>(e, 2), rv))
+        if (!fun_expr(span, name, e, rv))
             abort();
         return rv;
     }

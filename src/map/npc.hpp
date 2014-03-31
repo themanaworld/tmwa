@@ -51,17 +51,17 @@ void npc_delsrcfile(XString);
 bool do_init_npc(void);
 int npc_event_do_oninit(void);
 
-int npc_event_doall_l(ScriptLabel name, int rid, int argc, struct argrec_t *argv);
-int npc_event_do_l(NpcEvent name, int rid, int argc, struct argrec_t *argv);
+int npc_event_doall_l(ScriptLabel name, int rid, Slice<argrec_t> argv);
+int npc_event_do_l(NpcEvent name, int rid, Slice<argrec_t> argv);
 inline
 int npc_event_doall(ScriptLabel name)
 {
-    return npc_event_doall_l(name, 0, 0, NULL);
+    return npc_event_doall_l(name, 0, nullptr);
 }
 inline
 int npc_event_do(NpcEvent name)
 {
-    return npc_event_do_l(name, 0, 0, NULL);
+    return npc_event_do_l(name, 0, nullptr);
 }
 
 void npc_timerevent_start(dumb_ptr<npc_data_script> nd);

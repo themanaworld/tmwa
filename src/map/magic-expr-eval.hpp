@@ -1,6 +1,8 @@
 #ifndef TMWA_MAP_MAGIC_EXPR_EVAL_HPP
 #define TMWA_MAP_MAGIC_EXPR_EVAL_HPP
 
+# include "../range/slice.hpp"
+
 # include "../strings/zstring.hpp"
 
 # include "magic-interpreter.hpp"
@@ -8,7 +10,7 @@
 /* Helper definitions for dealing with functions and operations */
 
 int magic_signature_check(ZString opname, ZString funname, ZString signature,
-        int args_nr, val_t *args, int line, int column);
+        Slice<val_t> args, int line, int column);
 
 void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
         area_t& area);

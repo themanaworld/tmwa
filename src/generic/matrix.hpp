@@ -3,6 +3,8 @@
 
 # include "../sanity.hpp"
 
+# include <cassert>
+
 # include "../compat/memory.hpp"
 
 template<class T>
@@ -34,10 +36,14 @@ public:
 
     T& ref(size_t x, size_t y)
     {
+        assert (x < _xs);
+        assert (y < _ys);
         return _data[x + y * _xs];
     }
     const T& ref(size_t x, size_t y) const
     {
+        assert (x < _xs);
+        assert (y < _ys);
         return _data[x + y * _xs];
     }
 

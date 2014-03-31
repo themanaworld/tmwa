@@ -83,8 +83,10 @@ bool extract(XString str, struct storage *p)
 
     if (storage_items.size() > MAX_STORAGE)
         return false;
-    std::copy(storage_items.begin(), storage_items.end(), p->storage_);
+    std::copy(storage_items.begin(), storage_items.end(), p->storage_.begin());
 
+    if (p->storage_amount != storage_items.size())
+        PRINTF("WARNING: storage desync for %d\n", p->account_id);
     return true;
 }
 

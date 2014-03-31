@@ -7,8 +7,6 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../generic/const_array.hpp"
-
 # include "../mmo/ip.hpp"
 # include "../mmo/timer.t.hpp"
 

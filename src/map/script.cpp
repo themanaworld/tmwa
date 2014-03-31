@@ -78,20 +78,20 @@ Map<ScriptLabel, int> scriptlabel_db;
 UPMap<RString, const ScriptBuffer> userfunc_db;
 
 static
-const char *pos_str[11] =
-{
-    "Head",
-    "Body",
-    "Left hand",
-    "Right hand",
-    "Robe",
-    "Shoes",
-    "Accessory 1",
-    "Accessory 2",
-    "Head 2",
-    "Head 3",
-    "Not Equipped",
-};
+Array<ZString, 11> pos_str //=
+{{
+    ZString("Head"),
+    ZString("Body"),
+    ZString("Left hand"),
+    ZString("Right hand"),
+    ZString("Robe"),
+    ZString("Shoes"),
+    ZString("Accessory 1"),
+    ZString("Accessory 2"),
+    ZString("Head 2"),
+    ZString("Head 3"),
+    ZString("Not Equipped"),
+}};
 
 static
 struct Script_Config
@@ -2202,8 +2202,8 @@ void builtin_strcharinfo(ScriptState *st)
 // indexed by the equip_* in db/const.txt
 // TODO change to use EQUIP
 static
-EPOS equip[11] =
-{
+Array<EPOS, 11> equip //=
+{{
     EPOS::HAT,
     EPOS::MISC1,
     EPOS::SHIELD,
@@ -2215,7 +2215,7 @@ EPOS equip[11] =
     EPOS::TORSO,
     EPOS::LEGS,
     EPOS::ARROW,
-};
+}};
 
 /*==========================================
  * GetEquipID(Pos);     Pos: 1-10
@@ -4693,11 +4693,11 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
  */
 int run_script(ScriptPointer sp, int rid, int oid)
 {
-    return run_script_l(sp, rid, oid, 0, NULL);
+    return run_script_l(sp, rid, oid, nullptr);
 }
 
 int run_script_l(ScriptPointer sp, int rid, int oid,
-        int args_nr, argrec_t *args)
+        Slice<argrec_t> args)
 {
     struct script_stack stack;
     ScriptState st;
@@ -4717,7 +4717,7 @@ int run_script_l(ScriptPointer sp, int rid, int oid,
     st.scriptp = sp;
     st.rid = rid;
     st.oid = oid;
-    for (i = 0; i < args_nr; i++)
+    for (i = 0; i < args.size(); i++)
     {
         if (args[i].name.back() == '$')
             pc_setregstr(sd, SIR::from(variable_names.intern(args[i].name)), args[i].v.s);

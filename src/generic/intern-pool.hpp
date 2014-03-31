@@ -29,6 +29,7 @@ public:
 
     ZString outtern(size_t sz) const
     {
+        assert (sz < names.size());
         return names[sz];
     }
 

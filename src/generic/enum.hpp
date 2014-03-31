@@ -3,6 +3,8 @@
 
 # include "../sanity.hpp"
 
+# include <cassert>
+
 # include <type_traits>
 
 # include "../compat/iter.hpp"
@@ -10,17 +12,27 @@
 template<class T, class E, E max>
 struct earray
 {
+    constexpr static
+    size_t size()
+    {
+        return static_cast<size_t>(max);
+    }
+
     // no ctor/dtor and one public member variable for easy initialization
-    T _data[size_t(max)];
+    T _data[size()];
 
     T& operator[](E v)
     {
-        return _data[size_t(v)];
+        auto i = static_cast<size_t>(v);
+        assert (i < size());
+        return _data[i];
     }
 
     const T& operator[](E v) const
     {
-        return _data[size_t(v)];
+        auto i = static_cast<size_t>(v);
+        assert (i < size());
+        return _data[i];
     }
 
     T *begin()
@@ -30,7 +42,7 @@ struct earray
 
     T *end()
     {
-        return _data + size_t(max);
+        return _data + size();
     }
 
     const T *begin() const
@@ -40,7 +52,7 @@ struct earray
 
     const T *end() const
     {
-        return _data + size_t(max);
+        return _data + size();
     }
 
     friend bool operator == (const earray& l, const earray& r)
@@ -54,23 +66,30 @@ struct earray
     }
 };
 
-template<class T, class E>
+template<class T, class E, E max>
 class eptr
 {
+    constexpr static
+    size_t size()
+    {
+        return static_cast<size_t>(max);
+    }
+
     T *_data;
 public:
     eptr(std::nullptr_t=nullptr)
     : _data(nullptr)
     {}
 
-    template<E max>
     eptr(earray<T, E, max>& arr)
     : _data(arr._data)
     {}
 
-    T& operator [](E v)
+    T& operator [](E v) const
     {
-        return _data[size_t(v)];
+        auto i = static_cast<size_t>(v);
+        assert (i < size());
+        return _data[i];
     }
 
     explicit operator bool()
@@ -109,6 +128,8 @@ struct remove_enum<E, true>
 };
 
 
+// This really should just go in a namespace
+// that's how I use it anyway ...
 # define ENUM_BITWISE_OPERATORS(E)      \
 inline                                  \
 E operator & (E l, E r)                 \

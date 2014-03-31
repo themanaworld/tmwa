@@ -1305,7 +1305,7 @@ int mob_can_reach(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int range)
 int mob_target(dumb_ptr<mob_data> md, dumb_ptr<block_list> bl, int dist)
 {
     dumb_ptr<map_session_data> sd;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     MobMode mode;
 
     nullpo_ret(md);
@@ -3560,15 +3560,15 @@ bool extract<MobSkillCondition, void, void>(XString str, MobSkillCondition *msc)
 {
     const struct
     {
-        char str[32];
+        ZString str;
         MobSkillCondition id;
     } cond1[] =
     {
-        {"always", MobSkillCondition::MSC_ALWAYS},
-        {"myhpltmaxrate", MobSkillCondition::MSC_MYHPLTMAXRATE},
-        {"notintown", MobSkillCondition::MSC_NOTINTOWN},
-        {"slavelt", MobSkillCondition::MSC_SLAVELT},
-        {"slavele", MobSkillCondition::MSC_SLAVELE},
+        {ZString("always"), MobSkillCondition::MSC_ALWAYS},
+        {ZString("myhpltmaxrate"), MobSkillCondition::MSC_MYHPLTMAXRATE},
+        {ZString("notintown"), MobSkillCondition::MSC_NOTINTOWN},
+        {ZString("slavelt"), MobSkillCondition::MSC_SLAVELT},
+        {ZString("slavele"), MobSkillCondition::MSC_SLAVELE},
     };
     for (auto& pair : cond1)
         if (str == pair.str)
@@ -3584,14 +3584,14 @@ bool extract<MobSkillState, void, void>(XString str, MobSkillState *mss)
 {
     const struct
     {
-        char str[32];
+        ZString str;
         MobSkillState id;
     } state[] =
     {
-        {"any", MobSkillState::ANY},
-        {"idle", MobSkillState::MSS_IDLE},
-        {"walk", MobSkillState::MSS_WALK},
-        {"attack", MobSkillState::MSS_ATTACK},
+        {ZString("any"), MobSkillState::ANY},
+        {ZString("idle"), MobSkillState::MSS_IDLE},
+        {ZString("walk"), MobSkillState::MSS_WALK},
+        {ZString("attack"), MobSkillState::MSS_ATTACK},
     };
     for (auto& pair : state)
         if (str == pair.str)
@@ -3607,12 +3607,12 @@ bool extract<MobSkillTarget, void, void>(XString str, MobSkillTarget *mst)
 {
     const struct
     {
-        char str[32];
+        ZString str;
         MobSkillTarget id;
     } target[] =
     {
-        {"target", MobSkillTarget::MST_TARGET},
-        {"self", MobSkillTarget::MST_SELF},
+        {ZString("target"), MobSkillTarget::MST_TARGET},
+        {ZString("self"), MobSkillTarget::MST_SELF},
     };
     for (auto& pair : target)
         if (str == pair.str)

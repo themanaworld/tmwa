@@ -3,8 +3,6 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../generic/const_array.hpp"
-
 # include "map.hpp"
 
 int intif_parse(Session *);

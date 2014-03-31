@@ -21,6 +21,7 @@ constexpr int MAX_MAP_PER_SERVER = 512;
 constexpr int MAX_INVENTORY = 100;
 constexpr int MAX_AMOUNT = 30000;
 constexpr int MAX_ZENY = 1000000000;     // 1G zeny
+constexpr int TRADE_MAX = 10;
 
 enum class SkillID : uint16_t;
 constexpr SkillID MAX_SKILL = SkillID(474); // not 450
@@ -42,6 +43,20 @@ constexpr int MAX_PARTY = 12;
 # define MAX_HAIR_COLOR battle_config.max_hair_color
 # define MIN_CLOTH_COLOR battle_config.min_cloth_color
 # define MAX_CLOTH_COLOR battle_config.max_cloth_color
+
+template<class T, size_t n>
+struct Array
+{
+    T data[n];
+public:
+    T& operator [](size_t i) { assert (i < n); return data[i]; }
+    const T& operator [](size_t i) const { assert (i < n); return data[i]; }
+
+    T *begin() { return data + 0; }
+    T *end() { return data + n; }
+    const T *begin() const { return data + 0; }
+    const T *end() const { return data + n; }
+};
 
 struct AccountName : VString<23> {};
 struct AccountPass : VString<23> {};
@@ -319,14 +334,14 @@ struct CharData
     unsigned int mapport;
 
     struct point last_point, save_point;
-    struct item inventory[MAX_INVENTORY];
+    Array<struct item, MAX_INVENTORY> inventory;
     earray<skill_value, SkillID, MAX_SKILL> skill;
     int global_reg_num;
-    struct global_reg global_reg[GLOBAL_REG_NUM];
+    Array<struct global_reg, GLOBAL_REG_NUM> global_reg;
     int account_reg_num;
-    struct global_reg account_reg[ACCOUNT_REG_NUM];
+    Array<struct global_reg, ACCOUNT_REG_NUM> account_reg;
     int account_reg2_num;
-    struct global_reg account_reg2[ACCOUNT_REG2_NUM];
+    Array<struct global_reg, ACCOUNT_REG2_NUM> account_reg2;
 };
 
 struct CharPair
@@ -345,10 +360,8 @@ struct storage
     int account_id;
     short storage_status;
     short storage_amount;
-    struct item storage_[MAX_STORAGE];
+    Array<struct item, MAX_STORAGE> storage_;
 };
-
-//struct map_session_data;
 
 struct GM_Account
 {
@@ -371,7 +384,7 @@ struct party
     PartyName name;
     int exp;
     int item;
-    struct party_member member[MAX_PARTY];
+    Array<struct party_member, MAX_PARTY> member;
 };
 
 #endif // TMWA_MMO_MMO_HPP

@@ -6,6 +6,8 @@
 
 # include <vector>
 
+# include "../range/slice.hpp"
+
 # include "../strings/rstring.hpp"
 # include "../strings/astring.hpp"
 # include "../strings/zstring.hpp"
@@ -153,7 +155,7 @@ struct argrec_t
     argrec_t(ZString n, int i) : name(n), v(i) {}
     argrec_t(ZString n, ZString z) : name(n), v(z) {}
 };
-int run_script_l(ScriptPointer, int, int, int, argrec_t *args);
+int run_script_l(ScriptPointer, int, int, Slice<argrec_t> args);
 int run_script(ScriptPointer, int, int);
 
 struct ScriptLabel;

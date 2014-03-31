@@ -3,8 +3,6 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../generic/const_array.hpp"
-
 # include "../mmo/ip.hpp"
 # include "../mmo/mmo.hpp"
 
@@ -17,7 +15,7 @@ struct mmo_map_server
     IP4Address ip;
     short port;
     int users;
-    MapName maps[MAX_MAP_PER_SERVER];
+    Array<MapName, MAX_MAP_PER_SERVER> maps;
 };
 
 const CharPair *search_character(CharName character_name);

@@ -28,9 +28,7 @@
 namespace strings
 {
     // TODO instead typedef ranges::Contiguous<const char>
-    // or whatever it becomes once it exists.
-    // const_array is just a hack, as evidenced by the fact
-    // that it's not really const.
+    // or whatever it becomes once it exists (probably grown from Slice).
     class XPair
     {
         const char *_begin;

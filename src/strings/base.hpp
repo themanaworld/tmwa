@@ -31,6 +31,8 @@
 // than would probably be necessary in an ideal language.
 namespace strings
 {
+    // TODO reimplement some things in terms of Slice and Slice::iterator?
+
     // simple pointer-wrapping iterator that can be used to get distinct
     // types for different containers.
     template<class Tag>

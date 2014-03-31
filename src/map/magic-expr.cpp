@@ -261,7 +261,7 @@ void make_spell(val_t *v)
 }
 
 static
-int fun_add(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_add(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARG_TYPE(0) == TYPE::INT && ARG_TYPE(1) == TYPE::INT)
     {
@@ -296,21 +296,21 @@ int fun_add(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_sub(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_sub(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) - ARGINT(1);
     return 0;
 }
 
 static
-int fun_mul(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_mul(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) * ARGINT(1);
     return 0;
 }
 
 static
-int fun_div(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_div(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (!ARGINT(1))
         return 1;               /* division by zero */
@@ -319,7 +319,7 @@ int fun_div(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_mod(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_mod(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (!ARGINT(1))
         return 1;               /* division by zero */
@@ -328,35 +328,35 @@ int fun_mod(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_or(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_or(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) || ARGINT(1);
     return 0;
 }
 
 static
-int fun_and(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_and(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) && ARGINT(1);
     return 0;
 }
 
 static
-int fun_not(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_not(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = !ARGINT(0);
     return 0;
 }
 
 static
-int fun_neg(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_neg(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ~ARGINT(0);
     return 0;
 }
 
 static
-int fun_gte(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_gte(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARG_TYPE(0) == TYPE::STRING || ARG_TYPE(1) == TYPE::STRING)
     {
@@ -374,7 +374,7 @@ int fun_gte(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_lt(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+int fun_lt(dumb_ptr<env_t> env, val_t *result, Slice<val_t> args)
 {
     fun_gte(env, result, args);
     RESULTINT = !RESULTINT;
@@ -382,7 +382,7 @@ int fun_lt(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_gt(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_gt(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARG_TYPE(0) == TYPE::STRING || ARG_TYPE(1) == TYPE::STRING)
     {
@@ -400,7 +400,7 @@ int fun_gt(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_lte(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+int fun_lte(dumb_ptr<env_t> env, val_t *result, Slice<val_t> args)
 {
     fun_gt(env, result, args);
     RESULTINT = !RESULTINT;
@@ -408,7 +408,7 @@ int fun_lte(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_eq(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_eq(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARG_TYPE(0) == TYPE::STRING || ARG_TYPE(1) == TYPE::STRING)
     {
@@ -440,7 +440,7 @@ int fun_eq(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_ne(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+int fun_ne(dumb_ptr<env_t> env, val_t *result, Slice<val_t> args)
 {
     fun_eq(env, result, args);
     RESULTINT = !RESULTINT;
@@ -448,56 +448,56 @@ int fun_ne(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_bitand(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_bitand(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) & ARGINT(1);
     return 0;
 }
 
 static
-int fun_bitor(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_bitor(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) | ARGINT(1);
     return 0;
 }
 
 static
-int fun_bitxor(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_bitxor(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) ^ ARGINT(1);
     return 0;
 }
 
 static
-int fun_bitshl(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_bitshl(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) << ARGINT(1);
     return 0;
 }
 
 static
-int fun_bitshr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_bitshr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGINT(0) >> ARGINT(1);
     return 0;
 }
 
 static
-int fun_max(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_max(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = max(ARGINT(0), ARGINT(1));
     return 0;
 }
 
 static
-int fun_min(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_min(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = min(ARGINT(0), ARGINT(1));
     return 0;
 }
 
 static
-int fun_if_then_else(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_if_then_else(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARGINT(0))
         magic_copy_var(result, &args[1]);
@@ -606,7 +606,7 @@ int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area)
 }
 
 static
-int fun_is_in(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_is_in(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = magic_location_in_area(ARGLOCATION(0).m,
                                         ARGLOCATION(0).x,
@@ -615,7 +615,7 @@ int fun_is_in(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_skill(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_skill(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ENTITY_TYPE(0) != BL::PC
         // don't convert to enum until after the range check
@@ -633,18 +633,18 @@ int fun_skill(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_his_shroud(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_his_shroud(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = (ENTITY_TYPE(0) == BL::PC && ARGPC(0)->state.shroud_active);
     return 0;
 }
 
-#define BATTLE_GETTER(name)                                                 \
-static                                                                      \
-int fun_get_##name(dumb_ptr<env_t>, val_t *result, const_array<val_t> args) \
-{                                                                           \
-    RESULTINT = battle_get_##name(ARGENTITY(0));                            \
-    return 0;                                                               \
+#define BATTLE_GETTER(name)                                             \
+static                                                                  \
+int fun_get_##name(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)   \
+{                                                                       \
+    RESULTINT = battle_get_##name(ARGENTITY(0));                        \
+    return 0;                                                           \
 }
 
 BATTLE_GETTER(str)
@@ -659,28 +659,28 @@ BATTLE_GETTER(mdef)
 BATTLE_GETTER(def)
 BATTLE_GETTER(max_hp)
 static
-int fun_get_dir(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_get_dir(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTDIR = battle_get_dir(ARGENTITY(0));
     return 0;
 }
 
-#define MMO_GETTER(name)                                                    \
-static                                                                      \
-int fun_get_##name(dumb_ptr<env_t>, val_t *result, const_array<val_t> args) \
-{                                                                           \
-    if (ENTITY_TYPE(0) == BL::PC)                                           \
-        RESULTINT = ARGPC(0)->status.name;                                  \
-    else                                                                    \
-        RESULTINT = 0;                                                      \
-    return 0;                                                               \
+#define MMO_GETTER(name)                                                \
+static                                                                  \
+int fun_get_##name(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)   \
+{                                                                       \
+    if (ENTITY_TYPE(0) == BL::PC)                                       \
+        RESULTINT = ARGPC(0)->status.name;                              \
+    else                                                                \
+        RESULTINT = 0;                                                  \
+    return 0;                                                           \
 }
 
 MMO_GETTER(sp)
 MMO_GETTER(max_sp)
 
 static
-int fun_name_of(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_name_of(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARG_TYPE(0) == TYPE::ENTITY)
     {
@@ -702,7 +702,7 @@ int fun_name_of(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 
 /* [Freeyorp] I'm putting this one in as name_of seems to have issues with summoned or spawned mobs. */
 static
-int fun_mob_id(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_mob_id(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ENTITY_TYPE(0) != BL::MOB)
         return 1;
@@ -727,14 +727,14 @@ void COPY_LOCATION(location_t& dest, block_list& src)
 }
 
 static
-int fun_location(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_location(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     COPY_LOCATION(RESULTLOCATION, *(ARGENTITY(0)));
     return 0;
 }
 
 static
-int fun_random(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_random(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     int delta = ARGINT(0);
     if (delta < 0)
@@ -752,7 +752,7 @@ int fun_random(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_random_dir(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_random_dir(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARGINT(0))
         RESULTDIR = random_::choice({DIR::S, DIR::SW, DIR::W, DIR::NW, DIR::N, DIR::NE, DIR::E, DIR::SE});
@@ -762,14 +762,14 @@ int fun_random_dir(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_hash_entity(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_hash_entity(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARGENTITY(0)->bl_id;
     return 0;
 }
 
 int                            // ret -1: not a string, ret 1: no such item, ret 0: OK
-magic_find_item(const_array<val_t> args, int index, struct item *item_, int *stackable)
+magic_find_item(Slice<val_t> args, int index, struct item *item_, int *stackable)
 {
     struct item_data *item_data;
     int must_add_sequentially;
@@ -801,7 +801,7 @@ magic_find_item(const_array<val_t> args, int index, struct item *item_, int *sta
 }
 
 static
-int fun_count_item(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_count_item(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     int stackable;
@@ -817,7 +817,7 @@ int fun_count_item(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_is_equipped(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_is_equipped(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> chr = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     int stackable;
@@ -843,28 +843,28 @@ int fun_is_equipped(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_is_married(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_is_married(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = (ENTITY_TYPE(0) == BL::PC && ARGPC(0)->status.partner_id);
     return 0;
 }
 
 static
-int fun_is_dead(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_is_dead(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = (ENTITY_TYPE(0) == BL::PC && pc_isdead(ARGPC(0)));
     return 0;
 }
 
 static
-int fun_is_pc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_is_pc(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = (ENTITY_TYPE(0) == BL::PC);
     return 0;
 }
 
 static
-int fun_partner(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_partner(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ENTITY_TYPE(0) == BL::PC && ARGPC(0)->status.partner_id)
     {
@@ -877,7 +877,7 @@ int fun_partner(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_awayfrom(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_awayfrom(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     location_t *loc = &ARGLOCATION(0);
     int dx = dirx[ARGDIR(1)];
@@ -896,14 +896,14 @@ int fun_awayfrom(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_failed(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_failed(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = ARG_TYPE(0) == TYPE::FAIL;
     return 0;
 }
 
 static
-int fun_npc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_npc(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     NpcName name = stringish<NpcName>(ARGSTR(0));
     RESULTENTITY = npc_name2id(name);
@@ -911,7 +911,7 @@ int fun_npc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_pc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_pc(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     CharName name = stringish<CharName>(ARGSTR(0));
     RESULTENTITY = map_nick2sd(name);
@@ -919,7 +919,7 @@ int fun_pc(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_distance(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_distance(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARGLOCATION(0).m != ARGLOCATION(1).m)
         RESULTINT = 0x7fffffff;
@@ -930,7 +930,7 @@ int fun_distance(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_rdistance(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_rdistance(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ARGLOCATION(0).m != ARGLOCATION(1).m)
         RESULTINT = 0x7fffffff;
@@ -944,7 +944,7 @@ int fun_rdistance(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_anchor(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
+int fun_anchor(dumb_ptr<env_t> env, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<teleport_anchor_t> anchor = magic_find_anchor(ARGSTR(0));
 
@@ -964,7 +964,7 @@ int fun_anchor(dumb_ptr<env_t> env, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_line_of_sight(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_line_of_sight(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     block_list e1, e2;
 
@@ -1020,14 +1020,14 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
 }
 
 static
-int fun_pick_location(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_pick_location(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     magic_random_location(&result->v.v_location, ARGAREA(0));
     return 0;
 }
 
 static
-int fun_read_script_int(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_read_script_int(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject_p = ARGENTITY(0);
     VarName var_name = stringish<VarName>(ARGSTR(1));
@@ -1041,7 +1041,7 @@ int fun_read_script_int(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_read_script_str(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_read_script_str(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject_p = ARGENTITY(0);
     VarName var_name = stringish<VarName>(ARGSTR(1));
@@ -1055,7 +1055,7 @@ int fun_read_script_str(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_rbox(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_rbox(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     location_t loc = ARGLOCATION(0);
     int radius = ARGINT(1);
@@ -1071,7 +1071,7 @@ int fun_rbox(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_running_status_update(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_running_status_update(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     if (ENTITY_TYPE(0) != BL::PC && ENTITY_TYPE(0) != BL::MOB)
         return 1;
@@ -1082,28 +1082,28 @@ int fun_running_status_update(dumb_ptr<env_t>, val_t *result, const_array<val_t>
 }
 
 static
-int fun_status_option(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_status_option(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = (bool((ARGPC(0))->status.option & static_cast<Option>(ARGINT(1))));
     return 0;
 }
 
 static
-int fun_element(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_element(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = static_cast<int>(battle_get_element(ARGENTITY(0)).element);
     return 0;
 }
 
 static
-int fun_element_level(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_element_level(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = battle_get_element(ARGENTITY(0)).level;
     return 0;
 }
 
 static
-int fun_is_exterior(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_is_exterior(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
 #warning "Evil assumptions!"
     RESULTINT = ARGLOCATION(0).m->name_[4] == '1';
@@ -1111,14 +1111,14 @@ int fun_is_exterior(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_contains_string(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_contains_string(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = NULL != strstr(ARGSTR(0).c_str(), ARGSTR(1).c_str());
     return 0;
 }
 
 static
-int fun_strstr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_strstr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     const char *offset = strstr(ARGSTR(0).c_str(), ARGSTR(1).c_str());
     RESULTINT = offset - ARGSTR(0).c_str();
@@ -1126,14 +1126,14 @@ int fun_strstr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_strlen(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_strlen(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = strlen(ARGSTR(0).c_str());
     return 0;
 }
 
 static
-int fun_substr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_substr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     const char *src = ARGSTR(0).c_str();
     const int slen = strlen(src);
@@ -1159,14 +1159,14 @@ int fun_substr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_sqrt(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_sqrt(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     RESULTINT = static_cast<int>(sqrt(ARGINT(0)));
     return 0;
 }
 
 static
-int fun_map_level(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_map_level(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
 #warning "Evil assumptions!"
     RESULTINT = ARGLOCATION(0).m->name_[4] - '0';
@@ -1174,7 +1174,7 @@ int fun_map_level(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_map_nr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_map_nr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
 #warning "Evil assumptions!"
     MapName mapname = ARGLOCATION(0).m->name_;
@@ -1185,7 +1185,7 @@ int fun_map_nr(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_dir_towards(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_dir_towards(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     int dx;
     int dy;
@@ -1251,7 +1251,7 @@ int fun_dir_towards(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
 }
 
 static
-int fun_extract_healer_xp(dumb_ptr<env_t>, val_t *result, const_array<val_t> args)
+int fun_extract_healer_xp(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> sd = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -1526,10 +1526,10 @@ TYPE type_key(char ty_key)
 }
 
 int magic_signature_check(ZString opname, ZString funname, ZString signature,
-        int args_nr, val_t *args, int line, int column)
+        Slice<val_t> args, int line, int column)
 {
     int i;
-    for (i = 0; i < args_nr; i++)
+    for (i = 0; i < args.size(); i++)
     {
         val_t *arg = &args[i];
         char ty_key = signature[i];
@@ -1553,8 +1553,8 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         if (!ty_key)
         {
             FPRINTF(stderr,
-                     "[magic-eval]:  L%d:%d: Too many arguments (%d) to %s `%s'\n",
-                     line, column, args_nr, opname, funname);
+                     "[magic-eval]:  L%d:%d: Too many arguments (%zu) to %s `%s'\n",
+                     line, column, args.size(), opname, funname);
             return 1;
         }
 
@@ -1640,9 +1640,9 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 
             for (i = 0; i < args_nr; ++i)
                 magic_eval(env, &arguments[i], expr->e.e_funapp.args[i]);
-            if (magic_signature_check("function", f->name, f->signature, args_nr, arguments,
+            if (magic_signature_check("function", f->name, f->signature, Slice<val_t>(arguments, args_nr),
                         expr->e.e_funapp.line_nr, expr->e.e_funapp.column)
-                    || f->fun(env, dest, const_array<val_t>(arguments, args_nr)))
+                    || f->fun(env, dest, Slice<val_t>(arguments, args_nr)))
                 dest->ty = TYPE::FAIL;
             else
             {

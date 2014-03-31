@@ -22,17 +22,16 @@ struct skill_db_
     SkillFlags poolflags;
     int max_raise; // `max' is the global max, `max_raise' is the maximum attainable via skill-ups
     int num_k;
-    int cast[MAX_SKILL_LEVEL], delay[MAX_SKILL_LEVEL];
-    int upkeep_time[MAX_SKILL_LEVEL], upkeep_time2[MAX_SKILL_LEVEL];
+    Array<int, MAX_SKILL_LEVEL> cast, delay;
+    Array<int, MAX_SKILL_LEVEL> upkeep_time, upkeep_time2;
     bool castcancel;
     int cast_def_rate;
     int inf2, maxcount;
-    int hp[MAX_SKILL_LEVEL], sp[MAX_SKILL_LEVEL], mhp[MAX_SKILL_LEVEL],
-        hp_rate[MAX_SKILL_LEVEL], sp_rate[MAX_SKILL_LEVEL],
-        zeny[MAX_SKILL_LEVEL];
+    Array<int, MAX_SKILL_LEVEL> hp, sp, mhp,
+        hprate, sp_rate,
+        zeny;
     int weapon;
-    int itemid[10], amount[10];
-    int castnodex[MAX_SKILL_LEVEL];
+    Array<int, MAX_SKILL_LEVEL> castnodex;
 };
 extern
 earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
@@ -115,7 +114,7 @@ constexpr int MAX_SKILL_POOL = 3;
 // Max. # of skills that may be classified as pool skills in db/skill_db.txt
 constexpr int MAX_POOL_SKILLS = 128;
 
-extern SkillID skill_pool_skills[MAX_POOL_SKILLS];  // All pool skills
+extern Array<SkillID, MAX_POOL_SKILLS> skill_pool_skills;  // All pool skills
 extern int skill_pool_skills_size;  // Number of entries in skill_pool_skills
 
 // Yields all active skills in the skill pool; no more than MAX_SKILL_POOL.  Return is number of skills.

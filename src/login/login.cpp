@@ -114,11 +114,11 @@ static
 int display_parse_fromchar = 0;    // 0: no, 1: yes (without packet 0x2714), 2: all packets
 
 static
-struct mmo_char_server server[MAX_SERVERS];
+Array<struct mmo_char_server, MAX_SERVERS> server;
 static
-Session *server_session[MAX_SERVERS];
+Array<Session *, MAX_SERVERS> server_session;
 static
-int server_freezeflag[MAX_SERVERS];    // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
+Array<int, MAX_SERVERS> server_freezeflag;    // Char-server anti-freeze system. Counter. 5 ok, 4...0 freezed
 static
 int anti_freeze_enable = 0;
 static
@@ -158,13 +158,14 @@ void SessionDeleter::operator()(SessionData *)
 #pragma GCC diagnostic pop
 
 constexpr int AUTH_FIFO_SIZE = 256;
-struct
+struct AuthFifo
 {
     int account_id, login_id1, login_id2;
     IP4Address ip;
     SEX sex;
     int delflag;
-} auth_fifo[AUTH_FIFO_SIZE];
+};
+Array<AuthFifo, AUTH_FIFO_SIZE> auth_fifo;
 static
 int auth_fifo_pos = 0;
 
@@ -184,7 +185,7 @@ struct AuthData
     IP4Address last_ip;           // save of last IP of connection
     VString<254> memo;             // a memo field
     int account_reg2_num;
-    struct global_reg account_reg2[ACCOUNT_REG2_NUM];
+    Array<struct global_reg, ACCOUNT_REG2_NUM> account_reg2;
 };
 static
 std::vector<AuthData> auth_data;
@@ -447,6 +448,7 @@ AString mmo_auth_tostr(const AuthData *p)
             p->memo,
             p->ban_until_time);
 
+    assert (p->account_reg2_num < ACCOUNT_REG2_NUM);
     for (int i = 0; i < p->account_reg2_num; i++)
         if (p->account_reg2[i].str)
             str += STRPRINTF("%s,%d ",
@@ -522,7 +524,7 @@ bool extract(XString line, AuthData *ad)
 
     if (vars.size() > ACCOUNT_REG2_NUM)
         return false;
-    std::copy(vars.begin(), vars.end(), ad->account_reg2);
+    std::copy(vars.begin(), vars.end(), ad->account_reg2.begin());
     ad->account_reg2_num = vars.size();
 
     return true;
@@ -3827,34 +3829,36 @@ bool login_confs(XString key, ZString value)
 //------------------------------
 // Main function of login-server
 //------------------------------
-int do_init(int argc, ZString *argv)
+int do_init(Slice<ZString> argv)
 {
+    ZString argv0 = argv.pop_front();
     bool loaded_config_yet = false;
-    for (int i = 1; i < argc; ++i)
+    while (argv)
     {
-        if (argv[i].startswith('-'))
+        ZString argvi = argv.pop_front();
+        if (argvi.startswith('-'))
         {
-            if (argv[i] == "--help")
+            if (argvi == "--help")
             {
                 PRINTF("Usage: %s [--help] [--version] [files...]\n",
-                        argv[0]);
+                        argv0);
                 exit(0);
             }
-            else if (argv[i] == "--version")
+            else if (argvi == "--version")
             {
                 PRINTF("%s\n", CURRENT_VERSION_STRING);
                 exit(0);
             }
             else
             {
-                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                FPRINTF(stderr, "Unknown argument: %s\n", argvi);
                 runflag = false;
             }
         }
         else
         {
             loaded_config_yet = true;
-            runflag &= load_config_file(argv[i], login_confs);
+            runflag &= load_config_file(argvi, login_confs);
         }
     }
 

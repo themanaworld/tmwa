@@ -7,7 +7,7 @@
 
 #include "../poison.hpp"
 
-SkillID skill_pool_skills[MAX_POOL_SKILLS];
+Array<SkillID, MAX_POOL_SKILLS> skill_pool_skills;
 int skill_pool_skills_size = 0;
 
 void skill_pool_register(SkillID id)

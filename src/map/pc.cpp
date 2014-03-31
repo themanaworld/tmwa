@@ -589,7 +589,7 @@ static
 int pc_isequip(dumb_ptr<map_session_data> sd, int n)
 {
     struct item_data *item;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     //転生や養子の場合の元の職業を算出する
 
     nullpo_ret(sd);
@@ -1074,7 +1074,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                         };
                         run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                                 sd->bl_id, 0,
-                                2, arg);
+                                arg);
                     }
                     sd->state.lr_flag = 0;
                 }
@@ -1091,7 +1091,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     sd->attackrange += sd->inventory_data[index]->range;
                     run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                             sd->bl_id, 0,
-                            2, arg);
+                            arg);
                 }
             }
             else if (sd->inventory_data[index]->type == ItemType::ARMOR)
@@ -1104,7 +1104,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                 sd->watk += sd->inventory_data[index]->atk;
                 run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                         sd->bl_id, 0,
-                        2, arg);
+                        arg);
             }
         }
     }
@@ -1130,7 +1130,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             sd->state.lr_flag = 2;
             run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                     sd->bl_id, 0,
-                    2, arg);
+                    arg);
             sd->state.lr_flag = 0;
             sd->arrow_atk += sd->inventory_data[index]->atk;
         }
@@ -2702,7 +2702,7 @@ void pc_attack_timer(TimerData *, tick_t tick, int id)
 {
     dumb_ptr<map_session_data> sd;
     dumb_ptr<block_list> bl;
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
     int dist, range;
 
     sd = map_id2sd(id);
@@ -3514,10 +3514,10 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
             {"@victimrid", sd->bl_id},
             {"@victimlvl", sd->status.base_level},
         };
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"), sd->bl_id, 3, arg);
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"), src->bl_id, 3, arg);
+        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"), sd->bl_id, arg);
+        npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"), src->bl_id, arg);
     }
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"), sd->bl_id, 0, NULL);
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"), sd->bl_id, nullptr);
 
     return 0;
 }
@@ -4084,6 +4084,7 @@ int pc_readglobalreg(dumb_ptr<map_session_data> sd, VarName reg)
 
     nullpo_ret(sd);
 
+    assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
     for (i = 0; i < sd->status.global_reg_num; i++)
     {
         if (sd->status.global_reg[i].str == reg)
@@ -4109,6 +4110,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         sd->die_counter = val;
         pc_calcstatus(sd, 0);
     }
+    assert (sd->status.global_reg_num < GLOBAL_REG_NUM);
     if (val == 0)
     {
         for (i = 0; i < sd->status.global_reg_num; i++)
@@ -4155,6 +4157,7 @@ int pc_readaccountreg(dumb_ptr<map_session_data> sd, VarName reg)
 
     nullpo_ret(sd);
 
+    assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
     for (i = 0; i < sd->status.account_reg_num; i++)
     {
         if (sd->status.account_reg[i].str == reg)

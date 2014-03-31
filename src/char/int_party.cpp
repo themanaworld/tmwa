@@ -381,6 +381,7 @@ void mapif_party_leaved(int party_id, int account_id, CharName name)
 static
 void mapif_party_membermoved(struct party *p, int idx)
 {
+    assert (idx < MAX_PARTY);
     unsigned char buf[29];
 
     WBUFW(buf, 0) = 0x3825;

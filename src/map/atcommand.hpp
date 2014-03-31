@@ -3,8 +3,6 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../generic/const_array.hpp"
-
 # include "map.hpp"
 
 bool is_atcommand(Session *s, dumb_ptr<map_session_data> sd,

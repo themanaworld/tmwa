@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     ZString *args = static_cast<ZString *>(alloca(argc * sizeof(ZString)));
     for (int i = 0; i < argc; ++i)
         args[i] = ZString(strings::really_construct_from_a_pointer, argv[i], nullptr);
-    do_init(argc, args);
+    do_init(Slice<ZString>(args, argc));
 
     if (!runflag)
     {

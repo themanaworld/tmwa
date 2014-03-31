@@ -104,6 +104,7 @@ void intif_saveaccountreg(dumb_ptr<map_session_data> sd)
     int j, p;
 
     nullpo_retv(sd);
+    assert (sd->status.account_reg_num < ACCOUNT_REG_NUM);
 
     WFIFOW(char_session, 0) = 0x3004;
     WFIFOL(char_session, 4) = sd->bl_id;

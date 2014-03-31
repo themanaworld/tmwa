@@ -26,7 +26,6 @@
 
 # include "../compat/cast.hpp"
 
-# include "../generic/const_array.hpp"
 # include "../generic/enum.hpp"
 
 # include "fwd.hpp"

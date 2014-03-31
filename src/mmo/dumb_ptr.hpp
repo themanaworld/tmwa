@@ -29,8 +29,6 @@
 # include "../strings/zstring.hpp"
 # include "../strings/xstring.hpp"
 
-# include "../generic/const_array.hpp"
-
 // unmanaged new/delete-able pointer
 // should be replaced by std::unique_ptr<T>
 template<class T>

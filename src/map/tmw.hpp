@@ -3,8 +3,6 @@
 
 # include "../strings/fwd.hpp"
 
-# include "../generic/const_array.hpp"
-
 # include "../mmo/dumb_ptr.hpp"
 
 # include "map.hpp"

@@ -72,7 +72,7 @@ Map<int, struct charid2nick> charid_db;
 static
 int users = 0;
 static
-dumb_ptr<block_list> object[MAX_FLOORITEM];
+Array<dumb_ptr<block_list>, MAX_FLOORITEM> object;
 static
 int first_free_object_id = 0, last_object_id = 0;
 
@@ -546,6 +546,7 @@ int map_addobject(dumb_ptr<block_list> bl)
  */
 int map_delobjectnofree(int id, BL type)
 {
+    assert (id < MAX_FLOORITEM);
     if (!object[id])
         return 0;
 
@@ -581,6 +582,7 @@ int map_delobjectnofree(int id, BL type)
  */
 int map_delobject(int id, BL type)
 {
+    assert (id < MAX_FLOORITEM);
     dumb_ptr<block_list> obj = object[id];
 
     if (obj == NULL)
@@ -603,6 +605,7 @@ int map_delobject(int id, BL type)
 void map_foreachobject(std::function<void(dumb_ptr<block_list>)> func,
         BL type)
 {
+    assert (last_object_id < MAX_FLOORITEM);
     std::vector<dumb_ptr<block_list>> bl_list;
     for (int i = 2; i <= last_object_id; i++)
     {
@@ -634,6 +637,7 @@ void map_foreachobject(std::function<void(dumb_ptr<block_list>)> func,
  */
 void map_clearflooritem_timer(TimerData *tid, tick_t, int id)
 {
+    assert (id < MAX_FLOORITEM);
     dumb_ptr<block_list> obj = object[id];
     assert (obj && obj->bl_type == BL::ITEM);
     dumb_ptr<flooritem_data> fitem = obj->is_item();
@@ -1669,48 +1673,49 @@ bool map_confs(XString key, ZString value)
  * Map-Server Init and Command-line Arguments [Valaris]
  *------------------------------------------------------
  */
-int do_init(int argc, ZString *argv)
+int do_init(Slice<ZString> argv)
 {
+    ZString argv0 = argv.pop_front();
     runflag &= magic_init0();
 
     bool loaded_config_yet = false;
-    for (int i = 1; i < argc; ++i)
+    while (argv)
     {
-        if (argv[i].startswith('-'))
+        ZString argvi = argv.pop_front();
+        if (argvi.startswith('-'))
         {
-            if (argv[i] == "--help")
+            if (argvi == "--help")
             {
                 PRINTF("Usage: %s [--help] [--version] [--write_atcommand_config outfile] [files...]\n",
-                        argv[0]);
+                        argv0);
                 exit(0);
             }
-            else if (argv[i] == "--version")
+            else if (argvi == "--version")
             {
                 PRINTF("%s\n", CURRENT_VERSION_STRING);
                 exit(0);
             }
-            else if (argv[i] == "--write-atcommand-config")
+            else if (argvi == "--write-atcommand-config")
             {
-                ++i;
-                if (i == argc)
+                if (!argv)
                 {
                     PRINTF("Missing argument\n");
                     exit(1);
                 }
-                ZString filename = argv[i];
+                ZString filename = argv.pop_front();
                 atcommand_config_write(filename);
                 exit(0);
             }
             else
             {
-                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                FPRINTF(stderr, "Unknown argument: %s\n", argvi);
                 runflag = false;
             }
         }
         else
         {
             loaded_config_yet = true;
-            runflag &= load_config_file(argv[i], map_confs);
+            runflag &= load_config_file(argvi, map_confs);
         }
     }
 

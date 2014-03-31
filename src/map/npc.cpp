@@ -200,7 +200,7 @@ void npc_timer_event(NpcEvent eventname)
  */
 static
 void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
-        int *c, ScriptLabel name, int rid, int argc, argrec_t *argv)
+        int *c, ScriptLabel name, int rid, Slice<argrec_t> argv)
 {
     ScriptLabel p = key.label;
 
@@ -209,45 +209,45 @@ void npc_event_doall_sub(NpcEvent key, struct event_data *ev,
     if (name == p)
     {
         run_script_l(ScriptPointer(ev->nd->scr.script.get(), ev->pos), rid, ev->nd->bl_id,
-                argc, argv);
+                argv);
         (*c)++;
     }
 }
 
-int npc_event_doall_l(ScriptLabel name, int rid, int argc, argrec_t *args)
+int npc_event_doall_l(ScriptLabel name, int rid, Slice<argrec_t> args)
 {
     int c = 0;
 
     for (auto& pair : ev_db)
-        npc_event_doall_sub(pair.first, &pair.second, &c, name, rid, argc, args);
+        npc_event_doall_sub(pair.first, &pair.second, &c, name, rid, args);
     return c;
 }
 
 static
 void npc_event_do_sub(NpcEvent key, struct event_data *ev,
-        int *c, NpcEvent name, int rid, int argc, argrec_t *argv)
+        int *c, NpcEvent name, int rid, Slice<argrec_t> argv)
 {
     nullpo_retv(ev);
 
     if (name == key)
     {
         run_script_l(ScriptPointer(ev->nd->scr.script.get(), ev->pos), rid, ev->nd->bl_id,
-                argc, argv);
+                argv);
         (*c)++;
     }
 }
 
-int npc_event_do_l(NpcEvent name, int rid, int argc, argrec_t *args)
+int npc_event_do_l(NpcEvent name, int rid, Slice<argrec_t> args)
 {
     int c = 0;
 
     if (!name.npc)
     {
-        return npc_event_doall_l(name.label, rid, argc, args);
+        return npc_event_doall_l(name.label, rid, args);
     }
 
     for (auto& pair : ev_db)
-        npc_event_do_sub(pair.first, &pair.second, &c, name, rid, argc, args);
+        npc_event_do_sub(pair.first, &pair.second, &c, name, rid, args);
     return c;
 }
 

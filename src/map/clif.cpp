@@ -2021,7 +2021,7 @@ int clif_misceffect(dumb_ptr<block_list> bl, int type)
 int clif_changeoption(dumb_ptr<block_list> bl)
 {
     uint8_t buf[32];
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(bl);
 
@@ -2435,7 +2435,7 @@ int clif_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         int div, DamageType type, int damage2)
 {
     unsigned char buf[256];
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(src);
     nullpo_ret(dst);
@@ -2800,7 +2800,7 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
         int div, SkillID skill_id, int skill_lv, int type)
 {
     unsigned char buf[64];
-    eptr<struct status_change, StatusChange> sc_data;
+    eptr<struct status_change, StatusChange, StatusChange::MAX_STATUSCHANGE> sc_data;
 
     nullpo_ret(src);
     nullpo_ret(dst);

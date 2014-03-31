@@ -25,8 +25,6 @@
 
 # include "../strings/xstring.hpp"
 
-# include "../generic/const_array.hpp"
-
 # include "mmo.hpp"
 # include "utils.hpp"
 

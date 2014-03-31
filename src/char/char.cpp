@@ -46,11 +46,11 @@
 #include "../poison.hpp"
 
 static
-struct mmo_map_server server[MAX_MAP_SERVERS];
+Array<struct mmo_map_server, MAX_MAP_SERVERS> server;
 static
-Session *server_session[MAX_MAP_SERVERS];
+Array<Session *, MAX_MAP_SERVERS> server_session;
 static
-int server_freezeflag[MAX_MAP_SERVERS];    // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
+Array<int, MAX_MAP_SERVERS> server_freezeflag;    // Map-server anti-freeze system. Counter. 5 ok, 4...0 freezed
 static
 int anti_freeze_enable = 0;
 static
@@ -313,6 +313,7 @@ AString mmo_char_tostr(struct CharPair *cp)
         }
     str_p += '\t';
 
+    assert (p->global_reg_num < GLOBAL_REG_NUM);
     for (int i = 0; i < p->global_reg_num; i++)
         if (p->global_reg[i].str)
             str_p += STRPRINTF("%s,%d ",
@@ -411,14 +412,14 @@ bool extract(XString str, CharPair *cp)
 
     if (inventory.size() > MAX_INVENTORY)
         return false;
-    std::copy(inventory.begin(), inventory.end(), p->inventory);
+    std::copy(inventory.begin(), inventory.end(), p->inventory.begin());
     // number of inventory items is not saved - it just detects nameid 0
 
     // cart was here - no longer supported
 
     for (struct skill_loader& sk : skills)
     {
-        if (sk.id > MAX_SKILL)
+        if (sk.id >= MAX_SKILL)
             return false;
         p->skill[sk.id].lv = sk.level;
         p->skill[sk.id].flags = sk.flags;
@@ -426,7 +427,7 @@ bool extract(XString str, CharPair *cp)
 
     if (vars.size() > GLOBAL_REG_NUM)
         return false;
-    std::copy(vars.begin(), vars.end(), p->global_reg);
+    std::copy(vars.begin(), vars.end(), p->global_reg.begin());
     p->global_reg_num = vars.size();
 
     return true;
@@ -964,8 +965,10 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
 }
 
 static
-int set_account_reg2(int acc, int num, struct global_reg *reg)
+int set_account_reg2(int acc, Slice<global_reg> reg)
 {
+    size_t num = reg.size();
+    assert (num < ACCOUNT_REG2_NUM);
     int c = 0;
     for (CharPair& cd : char_keys)
     {
@@ -1309,7 +1312,7 @@ void parse_tologin(Session *ls)
                 if (RFIFOREST(ls) < 4 || RFIFOREST(ls) < RFIFOW(ls, 2))
                     return;
                 {
-                    struct global_reg reg[ACCOUNT_REG2_NUM];
+                    Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
                     int j, p, acc;
                     acc = RFIFOL(ls, 4);
                     for (p = 8, j = 0;
@@ -1319,7 +1322,7 @@ void parse_tologin(Session *ls)
                         reg[j].str = stringish<VarName>(RFIFO_STRING<32>(ls, p));
                         reg[j].value = RFIFOL(ls, p + 32);
                     }
-                    set_account_reg2(acc, j, reg);
+                    set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), j));
 
                     size_t len = RFIFOW(ls, 2);
                     uint8_t buf[len];
@@ -1980,7 +1983,7 @@ void parse_frommap(Session *ms)
                 if (RFIFOREST(ms) < 4 || RFIFOREST(ms) < RFIFOW(ms, 2))
                     return;
                 {
-                    struct global_reg reg[ACCOUNT_REG2_NUM];
+                    Array<struct global_reg, ACCOUNT_REG2_NUM> reg;
                     int p, j;
                     int acc = RFIFOL(ms, 4);
                     for (p = 8, j = 0;
@@ -1990,7 +1993,7 @@ void parse_frommap(Session *ms)
                         reg[j].str = stringish<VarName>(RFIFO_STRING<32>(ms, p));
                         reg[j].value = RFIFOL(ms, p + 32);
                     }
-                    set_account_reg2(acc, j, reg);
+                    set_account_reg2(acc, Slice<struct global_reg>(reg.begin(), j));
                     // loginサーバーへ送る
                     if (login_session)
                     {
@@ -2831,34 +2834,37 @@ bool char_confs(XString key, ZString value)
     return sum;
 }
 
-int do_init(int argc, ZString *argv)
+int do_init(Slice<ZString> argv)
 {
+    ZString argv0 = argv.pop_front();
+
     bool loaded_config_yet = false;
-    for (int i = 1; i < argc; ++i)
+    while (argv)
     {
-        if (argv[i].startswith('-'))
+        ZString argvi = argv.pop_front();
+        if (argvi.startswith('-'))
         {
-            if (argv[i] == "--help")
+            if (argvi == "--help")
             {
                 PRINTF("Usage: %s [--help] [--version] [files...]\n",
-                        argv[0]);
+                        argv0);
                 exit(0);
             }
-            else if (argv[i] == "--version")
+            else if (argvi == "--version")
             {
                 PRINTF("%s\n", CURRENT_VERSION_STRING);
                 exit(0);
             }
             else
             {
-                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                FPRINTF(stderr, "Unknown argument: %s\n", argvi);
                 runflag = false;
             }
         }
         else
         {
             loaded_config_yet = true;
-            runflag &= load_config_file(argv[i], char_confs);
+            runflag &= load_config_file(argvi, char_confs);
         }
     }
 

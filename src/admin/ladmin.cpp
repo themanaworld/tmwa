@@ -2840,34 +2840,36 @@ void term_func(void)
 //------------------------
 // Main function of ladmin
 //------------------------
-int do_init(int argc, ZString *argv)
+int do_init(Slice<ZString> argv)
 {
+    ZString argv0 = argv.pop_front();
     bool loaded_config_yet = false;
-    for (int i = 1; i < argc; ++i)
+    while (argv)
     {
-        if (argv[i].startswith('-'))
+        ZString argvi = argv.pop_front();
+        if (argvi.startswith('-'))
         {
-            if (argv[i] == "--help")
+            if (argvi == "--help")
             {
                 PRINTF("Usage: %s [--help] [--version] [files...]\n",
-                        argv[0]);
+                        argv0);
                 exit(0);
             }
-            else if (argv[i] == "--version")
+            else if (argvi == "--version")
             {
                 PRINTF("%s\n", CURRENT_VERSION_STRING);
                 exit(0);
             }
             else
             {
-                FPRINTF(stderr, "Unknown argument: %s\n", argv[i]);
+                FPRINTF(stderr, "Unknown argument: %s\n", argvi);
                 runflag = false;
             }
         }
         else
         {
             loaded_config_yet = true;
-            runflag &= load_config_file(argv[i], admin_confs);
+            runflag &= load_config_file(argvi, admin_confs);
         }
     }
 

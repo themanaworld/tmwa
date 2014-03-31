@@ -298,7 +298,7 @@ dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
 }
 
 static
-int op_sfx(dumb_ptr<env_t>, const_array<val_t> args)
+int op_sfx(dumb_ptr<env_t>, Slice<val_t> args)
 {
     interval_t delay = static_cast<interval_t>(ARGINT(2));
 
@@ -319,7 +319,7 @@ int op_sfx(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_instaheal(dumb_ptr<env_t> env, const_array<val_t> args)
+int op_instaheal(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> caster = (env->VAR(VAR_CASTER).ty == TYPE::ENTITY)
         ? map_id2bl(env->VAR(VAR_CASTER).v.v_int) : NULL;
@@ -340,7 +340,7 @@ int op_instaheal(dumb_ptr<env_t> env, const_array<val_t> args)
 }
 
 static
-int op_itemheal(dumb_ptr<env_t> env, const_array<val_t> args)
+int op_itemheal(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     if (subject->bl_type == BL::PC)
@@ -370,7 +370,7 @@ using e::Shroud;
 #define ARGCHAR(n) (ARGENTITY(n)->is_player())
 
 static
-int op_shroud(dumb_ptr<env_t>, const_array<val_t> args)
+int op_shroud(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
     Shroud arg = static_cast<Shroud>(ARGINT(1));
@@ -389,7 +389,7 @@ int op_shroud(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_reveal(dumb_ptr<env_t>, const_array<val_t> args)
+int op_reveal(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
 
@@ -400,7 +400,7 @@ int op_reveal(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_message(dumb_ptr<env_t>, const_array<val_t> args)
+int op_message(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> subject = ARGCHAR(0);
 
@@ -419,7 +419,7 @@ void timer_callback_kill_npc(TimerData *, tick_t, int npc_id)
 }
 
 static
-int op_messenger_npc(dumb_ptr<env_t>, const_array<val_t> args)
+int op_messenger_npc(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<npc_data> npc;
     location_t *loc = &ARGLOCATION(0);
@@ -476,7 +476,7 @@ void entity_warp(dumb_ptr<block_list> target, map_local *destm, int destx, int d
 }
 
 static
-int op_move(dumb_ptr<env_t>, const_array<val_t> args)
+int op_move(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     DIR dir = ARGDIR(1);
@@ -491,7 +491,7 @@ int op_move(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_warp(dumb_ptr<env_t>, const_array<val_t> args)
+int op_warp(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     location_t *loc = &ARGLOCATION(1);
@@ -502,7 +502,7 @@ int op_warp(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_banish(dumb_ptr<env_t>, const_array<val_t> args)
+int op_banish(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
@@ -529,7 +529,7 @@ void record_status_change(dumb_ptr<invocation> invocation_, int bl_id,
 }
 
 static
-int op_status_change(dumb_ptr<env_t> env, const_array<val_t> args)
+int op_status_change(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
     int invocation_id = env->VAR(VAR_INVOCATION).ty == TYPE::INVOCATION
@@ -550,7 +550,7 @@ int op_status_change(dumb_ptr<env_t> env, const_array<val_t> args)
 }
 
 static
-int op_stop_status_change(dumb_ptr<env_t>, const_array<val_t> args)
+int op_stop_status_change(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> subject = ARGENTITY(0);
 
@@ -561,7 +561,7 @@ int op_stop_status_change(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_override_attack(dumb_ptr<env_t> env, const_array<val_t> args)
+int op_override_attack(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> psubject = ARGENTITY(0);
     int charges = ARGINT(1);
@@ -602,7 +602,7 @@ int op_override_attack(dumb_ptr<env_t> env, const_array<val_t> args)
 }
 
 static
-int op_create_item(dumb_ptr<env_t>, const_array<val_t> args)
+int op_create_item(dumb_ptr<env_t>, Slice<val_t> args)
 {
     struct item item;
     dumb_ptr<block_list> entity = ARGENTITY(0);
@@ -640,7 +640,7 @@ bool AGGRAVATION_MODE_MAKES_AGGRESSIVE(int n)
 }
 
 static
-int op_aggravate(dumb_ptr<env_t>, const_array<val_t> args)
+int op_aggravate(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> victim = ARGENTITY(2);
     int mode = ARGINT(1);
@@ -675,7 +675,7 @@ enum class MonsterAttitude
 };
 
 static
-int op_spawn(dumb_ptr<env_t>, const_array<val_t> args)
+int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<area_t> area = ARGAREA(0);
     dumb_ptr<block_list> owner_e = ARGENTITY(1);
@@ -766,7 +766,7 @@ const char *get_invocation_name(dumb_ptr<env_t> env)
 }
 
 static
-int op_injure(dumb_ptr<env_t> env, const_array<val_t> args)
+int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
 {
     dumb_ptr<block_list> caster = ARGENTITY(0);
     dumb_ptr<block_list> target = ARGENTITY(1);
@@ -816,7 +816,7 @@ int op_injure(dumb_ptr<env_t> env, const_array<val_t> args)
 }
 
 static
-int op_emote(dumb_ptr<env_t>, const_array<val_t> args)
+int op_emote(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<block_list> victim = ARGENTITY(0);
     int emotion = ARGINT(1);
@@ -826,7 +826,7 @@ int op_emote(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_set_script_variable(dumb_ptr<env_t>, const_array<val_t> args)
+int op_set_script_variable(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     VarName varname = stringish<VarName>(ARGSTR(1));
@@ -841,7 +841,7 @@ int op_set_script_variable(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_set_script_str(dumb_ptr<env_t>, const_array<val_t> args)
+int op_set_script_str(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
     VarName varname = stringish<VarName>(ARGSTR(1));
@@ -856,7 +856,7 @@ int op_set_script_str(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_set_hair_colour(dumb_ptr<env_t>, const_array<val_t> args)
+int op_set_hair_colour(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -869,7 +869,7 @@ int op_set_hair_colour(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_set_hair_style(dumb_ptr<env_t>, const_array<val_t> args)
+int op_set_hair_style(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -882,7 +882,7 @@ int op_set_hair_style(dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_drop_item_for (dumb_ptr<env_t>, const_array<val_t> args)
+int op_drop_item_for (dumb_ptr<env_t>, Slice<val_t> args)
 {
     struct item item;
     int stackable;
@@ -908,7 +908,7 @@ int op_drop_item_for (dumb_ptr<env_t>, const_array<val_t> args)
 }
 
 static
-int op_gain_exp(dumb_ptr<env_t>, const_array<val_t> args)
+int op_gain_exp(dumb_ptr<env_t>, Slice<val_t> args)
 {
     dumb_ptr<map_session_data> c = (ENTITY_TYPE(0) == BL::PC) ? ARGPC(0) : NULL;
 
@@ -1468,7 +1468,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     int newpos = run_script_l(
                             ScriptPointer(&*e->e.e_script, invocation_->script_pos),
                             message_recipient, invocation_->bl_id,
-                            3, arg);
+                            arg);
                     /* Returns the new script position, or -1 once the script is finished */
                     if (newpos != -1)
                     {
@@ -1498,10 +1498,10 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     magic_eval(invocation_->env, &args[i], e->e.e_op.args[i]);
 
                 if (!magic_signature_check("effect", op->name, op->signature,
-                                            e->e.e_op.args_nr, args,
+                                            Slice<val_t>(args, e->e.e_op.args_nr),
                                             e->e.e_op.line_nr,
                                             e->e.e_op.column))
-                    op->op(invocation_->env, const_array<val_t>(args, e->e.e_op.args_nr));
+                    op->op(invocation_->env, Slice<val_t>(args, e->e.e_op.args_nr));
 
                 for (i = 0; i < e->e.e_op.args_nr; i++)
                     magic_clear_var(&args[i]);

@@ -10,7 +10,6 @@
 # include "../strings/fwd.hpp"
 # include "../strings/vstring.hpp"
 
-# include "../generic/const_array.hpp"
 # include "../generic/operators.hpp"
 
 # include "../io/fwd.hpp"

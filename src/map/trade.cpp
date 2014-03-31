@@ -137,7 +137,7 @@ void trade_tradeadditem(dumb_ptr<map_session_data> sd, int index, int amount)
                     && target_sd->inventory_data[i] == NULL)
                     free_++;
             }
-            for (trade_i = 0; trade_i < 10; trade_i++)
+            for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
             {
                 if (sd->deal_item_amount[trade_i] == 0)
                 {
@@ -238,7 +238,7 @@ void trade_tradeok(dumb_ptr<map_session_data> sd)
 
     nullpo_retv(sd);
 
-    for (trade_i = 0; trade_i < 10; trade_i++)
+    for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
     {
         if (sd->deal_item_amount[trade_i] >
             sd->status.inventory[sd->deal_item_index[trade_i] - 2].amount
@@ -272,7 +272,7 @@ void trade_tradecancel(dumb_ptr<map_session_data> sd)
 
     if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
     {
-        for (trade_i = 0; trade_i < 10; trade_i++)
+        for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
         {                       //give items back (only virtual)
             if (sd->deal_item_amount[trade_i] != 0)
             {
@@ -352,7 +352,7 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                 }
                 sd->trade_partner = 0;
                 target_sd->trade_partner = 0;
-                for (trade_i = 0; trade_i < 10; trade_i++)
+                for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
                 {
                     if (sd->deal_item_amount[trade_i] != 0)
                     {
