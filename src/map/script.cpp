@@ -75,6 +75,7 @@ AString mapreg_txt = "save/mapreg.txt";
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
 Map<ScriptLabel, int> scriptlabel_db;
+std::set<ScriptLabel> probable_labels;
 UPMap<RString, const ScriptBuffer> userfunc_db;
 
 static
@@ -319,8 +320,6 @@ ZString::iterator skip_word(ZString::iterator p)
         p++;                    // account変数用
     if (*p == '#')
         p++;                    // ワールドaccount変数用
-    if (*p == 'l')
-        p++;                    // 一時的変数用(like weiss)
 
     while (isalnum(*p) || *p == '_')
         p++;
@@ -439,6 +438,8 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
             exit(1);
         }
         XString word(&*p, &*p2, nullptr);
+        if (word.startswith("On") || word.startswith("L_") || word.startswith("S_"))
+            probable_labels.insert(stringish<ScriptLabel>(word));
         if (parse_cmd_if && (word == "callsub" || word == "callfunc" || word == "return"))
         {
             disp_error_message("Sorry, callsub/callfunc/return have never worked properly in an if statement.", p);
@@ -647,6 +648,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
             "menu",
             "end",
             "mapexit",
+            "shop",
         };
         *can_step = terminators.count(cmd->strs) == 0;
     }
@@ -865,6 +867,23 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         }
     }
 
+    for (const auto& pair : scriptlabel_db)
+    {
+        ScriptLabel key = pair.first;
+        if (key.startswith("On"))
+            continue;
+        if (!(key.startswith("L_") || key.startswith("S_")))
+            PRINTF("Warning: ugly label: %s\n", key);
+        else if (!probable_labels.count(key))
+            PRINTF("Warning: unused label: %s\n", key);
+    }
+    for (ScriptLabel used : probable_labels)
+    {
+        if (!scriptlabel_db.search(used))
+            PRINTF("Warning: no such label: %s\n", used);
+    }
+    probable_labels.clear();
+
     if (!DEBUG_DISP)
         return;
     for (size_t i = 0; i < script_buf.size(); i++)
@@ -936,7 +955,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
         if (postfix == '$')
         {
             data->type = ByteCode::CONSTSTR;
-            if (prefix == '@' || prefix == 'l')
+            if (prefix == '@')
             {
                 if (sd)
                     data->u.str = dumb_string::fake(pc_readregstr(sd, data->u.reg));
@@ -957,7 +976,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
         else
         {
             data->type = ByteCode::INT;
-            if (prefix == '@' || prefix == 'l')
+            if (prefix == '@')
             {
                 if (sd)
                     data->u.numi = pc_readreg(sd, data->u.reg);
@@ -1033,7 +1052,7 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
     if (postfix == '$')
     {
         dumb_string str = vd.u.str;
-        if (prefix == '@' || prefix == 'l')
+        if (prefix == '@')
         {
             pc_setregstr(sd, reg, str.str());
         }
@@ -1050,7 +1069,7 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
     {
         // 数値
         int val = vd.u.numi;
-        if (prefix == '@' || prefix == 'l')
+        if (prefix == '@')
         {
             pc_setreg(sd, reg, val);
         }
