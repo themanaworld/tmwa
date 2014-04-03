@@ -4596,11 +4596,7 @@ static
 ATCE atcommand_tee(Session *, dumb_ptr<map_session_data> sd,
         ZString message)
 {
-    MString data;
-    data += sd->status_key.name.to__actual();
-    data += " : ";
-    data += message;
-    clif_message(sd, AString(data));
+    clif_message(sd, message);
     return ATCE::OKAY;
 }
 
