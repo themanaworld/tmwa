@@ -155,6 +155,8 @@ endif
 # even though all the related bugs have already been fixed.
 $(foreach var,$(filter-out .% MAKE% SUFFIXES,${.VARIABLES}),$(if $(filter default,$(origin ${var})),$(eval ${var} =)))
 
+.SECONDARY:
+
 export PATH:=$(realpath ${SRC_DIR}/tools):${PATH}
 
 # bash is needed for 'set -o pipefail' below - I have had real bugs there!
@@ -421,17 +423,17 @@ override CPPFLAGS += -I .
 # this only works from within a git checkout
 dist/%/version.make:
 	$(MKDIR_FIRST)
-	git show HEAD:version.make > $@
+	git --git-dir=${SRC_DIR}/.git show HEAD:version.make > $@
 	sed 's/^VERSION_FULL := .*/#&\nVERSION_FULL := ${VERSION_FULL}/' -i $@
 	sed 's/^VERSION_HASH := .*/#&\nVERSION_HASH := ${VERSION_HASH}/' -i $@
 dist/%-src.tar: dist/%/version.make
-	git archive --prefix=$*/ -o $@ HEAD
-	( cd dist && tar uf $*-src.tar --mtime="$$(git log -n1 --pretty=%cd)" --mode=664 --owner=root --group=root $*/version.make )
+	git --git-dir=${SRC_DIR}/.git archive --prefix=$*/ -o $@ HEAD
+	( cd dist && tar uf $*-src.tar --mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%cd)" --mode=664 --owner=root --group=root $*/version.make )
 	rm dist/$*/version.make
 	rmdir dist/$*/
 dist/%-attoconf-only.tar:
 	$(MKDIR_FIRST)
-	git --git-dir=deps/attoconf/.git archive --prefix=$*/deps/attoconf/ HEAD -o $@
+	git --git-dir=${SRC_DIR}/deps/attoconf/.git archive --prefix=$*/deps/attoconf/ HEAD -o $@
 dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 	cp dist/$*-src.tar $@
 	tar Af $@ dist/$*-attoconf-only.tar

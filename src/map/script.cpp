@@ -75,6 +75,7 @@ AString mapreg_txt = "save/mapreg.txt";
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
 Map<ScriptLabel, int> scriptlabel_db;
+static
 std::set<ScriptLabel> probable_labels;
 UPMap<RString, const ScriptBuffer> userfunc_db;
 

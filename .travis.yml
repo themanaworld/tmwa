@@ -47,6 +47,7 @@ before_script:
 script:
   - mkdir build
   - cd build
+  - git init
   - ../configure --dev CPPFLAGS=-DQUIET `! [[ $CXX =~ clang* ]] || echo --disable-abi6`
   - make -R -k -j2
   - make -R -k -j2 test TESTER='valgrind --error-exitcode=1 --track-fds=yes'
@@ -54,7 +55,8 @@ script:
 ## Do something after the main test script
 after_script:
   - make -R -k -j2 format
-  - git diff --exit-code
+  - git --git-dir=../.git --work-tree=.. diff --exit-code
+  - make -R -k -j2 dist
 
 ### The rest of the file creates a build matrix
 ### containing gcc-4.6 through gcc-4.8 and clang-3.1 through clang-3.3
@@ -95,6 +97,9 @@ matrix:
 
 # everything that was pushed to master was already on 'test', except
 # the version change and some doc changes.
+# As of the next release, current 'master' will become 'stable' and current
+# 'test' will become 'master' (now that 'test' doesn't crash all the time)
 branches:
   except:
     - master
+    - stable

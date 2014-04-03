@@ -9,6 +9,9 @@ it. However, please read the note about server-data below.
 For user instructions, see:
 http://wiki.themanaworld.org/index.php/How_to_Develop
 
+Important Note: building from a github-generated tarball does not work!
+You must either build from a git checkout or from a 'make dist' tarball.
+
 
 The rest of this file contains information relevant only to
 1. Distributors.

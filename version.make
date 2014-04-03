@@ -1,5 +1,5 @@
-VERSION_FULL := $(shell cd ${SRC_DIR}; git describe --tags HEAD)
-VERSION_HASH := $(shell cd ${SRC_DIR}; git rev-parse HEAD)
+VERSION_FULL := $(shell git --git-dir=${SRC_DIR}/.git describe --tags HEAD)
+VERSION_HASH := $(shell git --git-dir=${SRC_DIR}/.git rev-parse HEAD)
 
 version_bits := $(subst v, ,$(subst -, ,$(subst ., ,${VERSION_FULL})))
 VERSION_MAJOR := $(word 1,${version_bits})
