@@ -62,7 +62,7 @@ namespace io
     {
         assert (begin.column);
         assert (end.column);
-        assert (begin.column <= end.column);
+        assert (begin.line < end.line || begin.column <= end.column);
 
         MString out;
         if (begin.line == end.line)
