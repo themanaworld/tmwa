@@ -4,6 +4,8 @@
 #include <cstring>
 #include <ctime>
 
+#include "../conf/version.hpp"
+
 #include "../compat/nullpo.hpp"
 #include "../compat/fun.hpp"
 
@@ -4888,6 +4890,22 @@ ATCE atcommand_doomspot(Session *s, dumb_ptr<map_session_data> sd,
     return ATCE::OKAY;
 }
 
+static
+ATCE atcommand_source(Session *s, dumb_ptr<map_session_data>,
+        ZString)
+{
+    clif_displaymessage(s,
+            "This server code consists of Free Software under GPL3&AGPL3");
+    clif_displaymessage(s,
+            "This is commit " VERSION_HASH ", also known as " VERSION_FULL);
+    clif_displaymessage(s,
+            "The version is " VERSION_STRING);
+    clif_displaymessage(s,
+            "For source, see " VENDOR_SOURCE);
+
+    return ATCE::OKAY;
+}
+
 
 
 // declared extern above
@@ -5310,4 +5328,7 @@ Map<XString, AtCommandInfo> atcommand_info =
     {"doomspot", {"",
         60, atcommand_doomspot,
         "Kill all players on the same tile"}},
+    {"source", {"",
+        0, atcommand_source,
+        "Legal information about source code (must be a level 0 command!)"}},
 };

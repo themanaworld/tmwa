@@ -789,6 +789,14 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
 // this is far from the only such thing, but most of the others are logs
 void pc_show_motd(dumb_ptr<map_session_data> sd)
 {
+    // Attention all forks: DO NOT REMOVE THIS NOTICE.
+    // It exists to meet legal requirements.
+    //
+    // If you remove the sending of this message,
+    // the license does not permit you to publicly use this software.
+
+    clif_displaymessage(sd->sess, "This server is Free Software, for details type @source in chat or use the tmwa-source tool");
+
     sd->state.seen_motd = true;
     io::ReadFile in(motd_txt);
     if (in.is_open())

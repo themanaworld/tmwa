@@ -14,7 +14,7 @@ Version CURRENT_VERSION =
     VERSION_DEVEL,
 
     0, 0,
-    VENDOR_VERSION,
+    VENDOR_POINT,
 };
 Version CURRENT_LOGIN_SERVER_VERSION =
 {
@@ -22,7 +22,7 @@ Version CURRENT_LOGIN_SERVER_VERSION =
     VERSION_DEVEL,
 
     0, TMWA_SERVER_LOGIN,
-    VENDOR_VERSION,
+    VENDOR_POINT,
 };
 Version CURRENT_CHAR_SERVER_VERSION =
 {
@@ -30,7 +30,7 @@ Version CURRENT_CHAR_SERVER_VERSION =
     VERSION_DEVEL,
 
     0, TMWA_SERVER_CHAR | TMWA_SERVER_INTER,
-    VENDOR_VERSION,
+    VENDOR_POINT,
 };
 Version CURRENT_MAP_SERVER_VERSION =
 {
@@ -38,18 +38,15 @@ Version CURRENT_MAP_SERVER_VERSION =
     VERSION_DEVEL,
 
     0, TMWA_SERVER_MAP,
-    VENDOR_VERSION,
+    VENDOR_POINT,
 };
 
-#define S2(a) #a
-#define S(a) S2(a)
-
-const char CURRENT_VERSION_STRING[] = "TMWA "
-        S(VERSION_MAJOR) "." S(VERSION_MINOR) "." S(VERSION_PATCH)
-        " dev" S(VERSION_DEVEL) " (" VENDOR " " S(VENDOR_VERSION) ")";
+const char CURRENT_VERSION_STRING[] = VERSION_STRING;
 
 bool extract(XString str, Version *vers)
 {
     *vers = {};
+    // TODO should I try to extract dev and vend also?
+    // It would've been useful during the magic migration.
     return extract(str, record<'.'>(&vers->major, &vers->minor, &vers->patch));
 }

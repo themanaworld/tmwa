@@ -39,6 +39,9 @@ exception, I always tell the content devs who also idle there.
 
 1. Distributors.
 # random not-quite-YAML
+Important notes:
+ - Go read version.make
+ - TMWA requires git to build by default, use 'make dist' to get a tarball.
 platform dependencies:
   architecture:
     tested: x86 and (finally!) amd64; possibly x32
