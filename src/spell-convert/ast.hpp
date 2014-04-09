@@ -1,5 +1,25 @@
-#ifndef AST_HPP
-#define AST_HPP
+#ifndef TMWA_SPELL_CONVERT_AST_HPP
+#define TMWA_SPELL_CONVERT_AST_HPP
+//    ast.hpp - Hacky converter between magic formats.
+//
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
+//
+//    This file is part of The Mana World (Athena server)
+//
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
+//    the Free Software Foundation, either version 3 of the License, or
+//    (at your option) any later version.
+//
+//    This program is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//    GNU General Public License for more details.
+//
+//    You should have received a copy of the GNU General Public License
+//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# include "../sanity.hpp"
 
 # include <deque>
 # include <vector>
@@ -222,10 +242,10 @@ struct ExplicitCallEffect : Effect
 
 struct SleepEffect : Effect
 {
-    Expression *time;
+    Expression *time_;
 
     SleepEffect(Expression *t)
-    : time(t)
+    : time_(t)
     {}
 
     virtual void print() override;
@@ -336,9 +356,9 @@ struct SpellGuardMana : SpellGuard
 };
 struct SpellGuardCasttime : SpellGuard
 {
-    Expression *time;
+    Expression *time_;
 
-    SpellGuardCasttime(Expression *x) : time(x) {}
+    SpellGuardCasttime(Expression *x) : time_(x) {}
 
     virtual void declare() override;
 };
@@ -442,4 +462,4 @@ struct AreaBar : Expression
 #  undef override
 # endif
 
-#endif // AST_HPP
+#endif // TMWA_SPELL_CONVERT_AST_HPP

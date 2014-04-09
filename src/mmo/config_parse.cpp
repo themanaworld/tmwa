@@ -1,5 +1,5 @@
 #include "config_parse.hpp"
-//    config_parse.hpp - Framework for per-server config parsers.
+//    config_parse.cpp - Framework for per-server config parsers.
 //
 //    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //

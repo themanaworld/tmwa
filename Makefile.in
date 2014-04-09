@@ -450,21 +450,28 @@ format-ypp: $(patsubst src/%,obj/%.formatted,${PARSERS})
 obj/%.cpp.formatted: src/%.cpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
+	fgrep -q Copyright $<
+	fgrep -q ../poison.hpp $<
 	touch $@
 obj/%.hpp.formatted: src/%.hpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
+	fgrep -q Copyright $<
+	fgrep -q ../sanity.hpp $<
 	touch $@
 obj/%.tcc.formatted: src/%.tcc tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
+	fgrep -q Copyright $<
 	touch $@
 obj/%.lpp.formatted: src/%.lpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -lpp' $<
+	fgrep -q Copyright $<
 	touch $@
 obj/%.ypp.formatted: src/%.ypp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -ypp' $<
+	fgrep -q Copyright $<
 	touch $@
 .PHONY: format format-cpp format-hpp format-lpp format-ypp

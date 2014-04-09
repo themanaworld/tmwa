@@ -1,6 +1,6 @@
 #ifndef TMWA_STRINGS_BASE_HPP
 #define TMWA_STRINGS_BASE_HPP
-//    strings/base.cls.hpp - CRTP base for string implementations.
+//    strings/base.hpp - CRTP base for string implementations.
 //
 //    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
 //
@@ -18,6 +18,8 @@
 //
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# include "../sanity.hpp"
 
 # include "fwd.hpp"
 # include "pair.hpp"
