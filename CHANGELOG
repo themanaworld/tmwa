@@ -1,3 +1,25 @@
+v14.4.9:
+  - fix tarball timestamps
+  - added all missing copyright notices
+  - use AGPL for my new files; add @source command and makefile support
+  - fix a multiline span assertion missed by the testsuite
+  - @tee no longer duplicates the speaker's name
+  - fix @npcmove between blocks
+  - fix out-of-bounds crash when unarmed (exposed by shrinking character)
+  - bounds-checks for most arrays
+  - lots of deprecation warnings in the script parser (sorry)
+  - finally merge wushin's "local savepoint override" patch
+  - new magic frontend with sexpr; temporary converter
+  - if doing nothing, stop doing anything
+  - script variables of all types can now be used by magic
+  - flexible mapflags
+  - split out the character keys for better paging (network ABI change)
+  - lower priority for background processes
+  - add a more efficient string for temporaries
+  - make build prettier
+  - strictify sessions and fds
+  - recover nonexistent party member slots
+  - remove the middle makefile
 v14.1.27:
   - new tracking IO for better errors
   - Unified config parsing! This *requires* new config files in server-data
