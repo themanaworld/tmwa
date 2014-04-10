@@ -95,11 +95,8 @@ matrix:
     - compiler: gcc
       env: REAL_CC=gcc-4.8   REAL_CXX=g++-4.8     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.8
 
-# everything that was pushed to master was already on 'test', except
+# everything that was pushed to stable was already on 'master', except
 # the version change and some doc changes.
-# As of the next release, current 'master' will become 'stable' and current
-# 'test' will become 'master' (now that 'test' doesn't crash all the time)
 branches:
   except:
-    - master
     - stable

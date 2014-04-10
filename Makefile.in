@@ -417,6 +417,7 @@ conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
 	echo '#define $* "$(value $*)"' | maybe-replace $@
 FORCE: ;
+.PHONY: FORCE
 override CPPFLAGS += -I .
 
 # distribution tarballs
@@ -428,7 +429,7 @@ dist/%/version.make:
 	sed 's/^VERSION_HASH := .*/#&\nVERSION_HASH := ${VERSION_HASH}/' -i $@
 dist/%-src.tar: dist/%/version.make
 	git --git-dir=${SRC_DIR}/.git archive --prefix=$*/ -o $@ HEAD
-	( cd dist && tar uf $*-src.tar --mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%cd)" --mode=664 --owner=root --group=root $*/version.make )
+	( mtime="$$(git --git-dir=${SRC_DIR}/.git log -n1 --pretty=%ci)" && cd dist && tar uf $*-src.tar --mtime="$${mtime}" --mode=664 --owner=root --group=root $*/version.make )
 	rm dist/$*/version.make
 	rmdir dist/$*/
 dist/%-attoconf-only.tar:
