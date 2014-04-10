@@ -3828,11 +3828,7 @@ void builtin_npctalk(ScriptState *st)
 
     if (nd)
     {
-        MString message;
-        message += nd->name;
-        message += " : ";
-        message += ZString(str);
-        clif_message(nd, AString(message));
+        clif_message(nd, XString(str));
     }
 }
 
