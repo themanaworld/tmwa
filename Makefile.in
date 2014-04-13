@@ -165,32 +165,16 @@ export PATH:=$(realpath ${SRC_DIR}/tools):${PATH}
 SHELL=bash
 
 # path lists
-LEXERS := $(shell cd ${SRC_DIR}; find src/ -name '*.lpp')
-PARSERS := $(shell cd ${SRC_DIR}; find src/ -name '*.ypp')
-GEN_SOURCES := \
-    $(patsubst %.lpp,%.cpp,${LEXERS}) \
-    $(patsubst %.ypp,%.cpp,${PARSERS})
-GEN_HEADERS := \
-    $(patsubst %.lpp,%.hpp,${LEXERS}) \
-    $(patsubst %.ypp,%.hpp,${PARSERS})
 REAL_SOURCES := $(shell cd ${SRC_DIR}; find src/ -name '*.cpp')
 REAL_HEADERS := $(shell cd ${SRC_DIR}; find src/ -name '*.hpp' -o -name '*.tcc')
-REAL_SOURCES := $(filter-out ${GEN_SOURCES},${REAL_SOURCES})
-REAL_HEADERS := $(filter-out ${GEN_HEADERS},${REAL_HEADERS})
-SOURCES := ${GEN_SOURCES} ${REAL_SOURCES}
-HEADERS := ${GEN_HEADERS} ${REAL_HEADERS}
+SOURCES := ${REAL_SOURCES}
+HEADERS := ${REAL_HEADERS}
 DEPENDS := $(patsubst src/%.cpp,obj/%.d,${SOURCES})
 PREPROCESSED := $(patsubst %.d,%.ii,${DEPENDS})
 IRS := $(patsubst %.d,%.ll,${DEPENDS})
 BITCODES := $(patsubst %.d,%.bc,${DEPENDS})
 ASSEMBLED := $(patsubst %.d,%.s,${DEPENDS})
 OBJECTS := $(patsubst %.d,%.o,${DEPENDS})
-GEN_DEPENDS := $(patsubst src/%.cpp,obj/%.d,${GEN_SOURCES})
-GEN_PREPROCESSED := $(patsubst %.d,%.ii,${GEN_DEPENDS})
-GEN_IRS := $(patsubst %.d,%.ll,${GEN_DEPENDS})
-GEN_BITCODES := $(patsubst %.d,%.bc,${GEN_DEPENDS})
-GEN_ASSEMBLED := $(patsubst %.d,%.s,${GEN_DEPENDS})
-GEN_OBJECTS := $(patsubst %.d,%.o,${GEN_DEPENDS})
 MAIN_SOURCES := $(filter %/main.cpp,${SOURCES})
 BINARIES := $(patsubst src/%/main.cpp,bin/tmwa-%,${MAIN_SOURCES})
 
@@ -241,7 +225,6 @@ CXXFLAGS += ${WARNINGS}
 ifeq (${ENABLE_WARNINGS},yes)
 WARNINGS := -include ${SRC_DIR}/src/warnings.hpp
 endif
-${GEN_DEPENDS} ${GEN_PREPROCESSED} ${GEN_IRS} ${GEN_BITCODES} ${GEN_ASSEMBLED} ${GEN_OBJECTS}: override WARNINGS :=
 
 # related to gdb bug 15801
 ifeq (${ENABLE_ABI6},yes)
@@ -261,8 +244,6 @@ override CXXFLAGS += -fno-strict-aliasing
 override CXXFLAGS += -fvisibility=hidden
 
 # actual rules
-vpath %.ypp ${SRC_DIR}
-vpath %.lpp ${SRC_DIR}
 vpath %.cpp ${SRC_DIR}
 vpath %.hpp ${SRC_DIR}
 vpath %.tcc ${SRC_DIR}
@@ -272,7 +253,6 @@ vpath tools/% ${SRC_DIR}
 .DEFAULT_GOAL := all
 # main goals
 all: ${BINARIES}
-cpp: ${GEN_SOURCES} ${GEN_HEADERS}
 ii: ${PREPROCESSED}
 ll: ${IRS}
 bc: ${BITCODES}
@@ -284,18 +264,7 @@ mostlyclean:
 clean: mostlyclean
 	$c rm -rf bin
 distclean: clean gen-clean
-gen-clean:
-	$c rm -f ${GEN_SOURCES} ${GEN_HEADERS}
-
-# This rule is now deleted by default because it's sensitive to versions
-ifeq (${LUCKY},1)
-%.cpp %.hpp: %.lpp
-	$(MKDIR_FIRST)
-	$c ${FLEX} --header-file=$*.hpp -o $*.cpp $<
-%.cpp %.hpp: %.ypp
-	$(MKDIR_FIRST)
-	$c ${BISON} --defines=$*.hpp -o $*.cpp $<
-endif
+gen-clean: ;
 
 ifndef MAKE_RESTARTS
 # prevent errors if missing header
@@ -442,12 +411,9 @@ dist/%-bundled.tar: dist/%-src.tar dist/%-attoconf-only.tar
 dist: dist/tmwa-${VERSION_FULL}-src.tar dist/tmwa-${VERSION_FULL}-bundled.tar
 .PHONY: dist
 
-# lpp and ypp are (currently) very slow, so do them first (parallel)
-format: format-lpp format-ypp format-cpp format-hpp
+format: format-cpp format-hpp
 format-cpp: $(patsubst src/%,obj/%.formatted,${REAL_SOURCES})
 format-hpp: $(patsubst src/%,obj/%.formatted,${REAL_HEADERS})
-format-lpp: $(patsubst src/%,obj/%.formatted,${LEXERS})
-format-ypp: $(patsubst src/%,obj/%.formatted,${PARSERS})
 obj/%.cpp.formatted: src/%.cpp tools/indenter
 	$(MKDIR_FIRST)
 	apply-filter 'indenter -cpp' $<
@@ -465,14 +431,4 @@ obj/%.tcc.formatted: src/%.tcc tools/indenter
 	apply-filter 'indenter -cpp' $<
 	fgrep -q Copyright $<
 	touch $@
-obj/%.lpp.formatted: src/%.lpp tools/indenter
-	$(MKDIR_FIRST)
-	apply-filter 'indenter -lpp' $<
-	fgrep -q Copyright $<
-	touch $@
-obj/%.ypp.formatted: src/%.ypp tools/indenter
-	$(MKDIR_FIRST)
-	apply-filter 'indenter -ypp' $<
-	fgrep -q Copyright $<
-	touch $@
-.PHONY: format format-cpp format-hpp format-lpp format-ypp
+.PHONY: format format-cpp format-hpp
