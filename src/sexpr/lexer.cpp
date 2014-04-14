@@ -28,14 +28,14 @@ namespace sexpr
 {
     Lexeme Lexer::_adv()
     {
-        XString whitespace = " \t\n\r\v\f";
+        LString whitespace = " \t\n\r\v\f"_s;
         while (true)
         {
             if (!_in.get(_span.begin))
             {
                 if (!_depth.empty())
                 {
-                    _depth.back().error("Unmatched '('");
+                    _depth.back().error("Unmatched '('"_s);
                     return TOK_ERROR;
                 }
                 return TOK_EOF;
@@ -52,14 +52,14 @@ namespace sexpr
         switch (co)
         {
         case '(':
-            _string = "(";
+            _string = "("_s;
             _depth.push_back(_span.end);
             return TOK_OPEN;
         case ')':
-            _string = ")";
+            _string = ")"_s;
             if (_depth.empty())
             {
-                _span.end.error("Unmatched ')'");
+                _span.end.error("Unmatched ')'"_s);
                 return TOK_ERROR;
             }
             _depth.pop_back();
@@ -73,7 +73,7 @@ namespace sexpr
                 {
                     if (!_in.get(_span.end))
                     {
-                        _span.error("EOF in string literal");
+                        _span.error("EOF in string literal"_s);
                         return TOK_ERROR;
                     }
                     char ch = _span.end.ch();
@@ -89,7 +89,7 @@ namespace sexpr
 
                     if (!_in.get(_span.end))
                     {
-                        _span.end.error("EOF at backslash in string");
+                        _span.end.error("EOF at backslash in string"_s);
                         return TOK_ERROR;
                     }
                     ch = _span.end.ch();
@@ -97,7 +97,7 @@ namespace sexpr
                     switch (ch)
                     {
                     default:
-                        _span.end.error("Unknown backslash sequence");
+                        _span.end.error("Unknown backslash sequence"_s);
                         return TOK_ERROR;
                     case 'a': collect += '\a'; break;
                     case 'b': collect += '\b'; break;
@@ -117,7 +117,7 @@ namespace sexpr
                                 tmp *= 16;
                                 if (!_in.get(_span.end))
                                 {
-                                    _span.end.error("EOF after \\x in string");
+                                    _span.end.error("EOF after \\x in string"_s);
                                     return TOK_ERROR;
                                 }
                                 char cx = _span.end.ch();
@@ -130,7 +130,7 @@ namespace sexpr
                                     tmp += cx - 'a' + 10;
                                 else
                                 {
-                                    _span.end.error("Non-hex char after \\x");
+                                    _span.end.error("Non-hex char after \\x"_s);
                                     return TOK_ERROR;
                                 }
                             }
@@ -143,7 +143,7 @@ namespace sexpr
             }
         case '\'':
         case '\\':
-            _span.end.error("forbidden character");
+            _span.end.error("forbidden character"_s);
             return TOK_ERROR;
         default:
             // this includes integers - they are differentiated in parsing
@@ -168,7 +168,7 @@ namespace sexpr
                 }
                 _string = AString(collect);
                 if (!_string.is_print())
-                    _span.error("String is not entirely printable");
+                    _span.error("String is not entirely printable"_s);
                 return TOK_TOKEN;
             }
         }
@@ -178,23 +178,23 @@ namespace sexpr
     {
         switch (c)
         {
-        case '\a': return {"\\a"};
-        case '\b': return {"\\b"};
-        case '\e': return {"\\e"};
-        case '\f': return {"\\f"};
-        //case '\n': return {"\\n"};
-        case '\r': return {"\\r"};
-        case '\t': return {"\\t"};
-        case '\v': return {"\\v"};
-        case '\\': return {"\\\\"};
-        case '\"': return {"\\\""};
+        case '\a': return "\\a"_s;
+        case '\b': return "\\b"_s;
+        case '\e': return "\\e"_s;
+        case '\f': return "\\f"_s;
+        //case '\n': return "\\n"_s;
+        case '\r': return "\\r"_s;
+        case '\t': return "\\t"_s;
+        case '\v': return "\\v"_s;
+        case '\\': return "\\\\"_s;
+        case '\"': return "\\\""_s;
         default:
             if (c == '\n')
                 return c;
             if (' ' <= c && c <= '~')
                 return c;
             else
-                return STRNPRINTF(5, "\\x%02x", static_cast<uint8_t>(c));
+                return STRNPRINTF(5, "\\x%02x"_fmt, static_cast<uint8_t>(c));
         }
     }
     AString escape(XString s)
@@ -207,22 +207,22 @@ namespace sexpr
         return AString(m);
     }
 
-    ZString token_name(Lexeme tok)
+    LString token_name(Lexeme tok)
     {
         switch (tok)
         {
         case TOK_EOF:
-            return ZString("EOF");
+            return "EOF"_s;
         case TOK_OPEN:
-            return ZString("OPEN");
+            return "OPEN"_s;
         case TOK_CLOSE:
-            return ZString("CLOSE");
+            return "CLOSE"_s;
         case TOK_STRING:
-            return ZString("STRING");
+            return "STRING"_s;
         case TOK_TOKEN:
-            return ZString("TOKEN");
+            return "TOKEN"_s;
         default:
-            return ZString("ERROR");
+            return "ERROR"_s;
         }
     }
 } // namespace sexpr

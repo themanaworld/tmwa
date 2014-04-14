@@ -40,6 +40,9 @@ namespace strings
     XString::XString(const ZString& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
+    XString::XString(const LString& s)
+    : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
+    {}
 
     XString::XString(const char *b, const char *e, const RString *base_)
     : _b(b), _e(e), _base(base_)

@@ -26,7 +26,7 @@ namespace strings
 {
     ZString::ZString()
     {
-        *this = ZString("");
+        *this = ZString(""_s);
     }
     ZString::ZString(const RString& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
@@ -35,6 +35,9 @@ namespace strings
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
     ZString::ZString(const TString& s)
+    : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
+    {}
+    ZString::ZString(const LString& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(s.base())
     {}
     ZString::ZString(const char *b, const char *e, const RString *base_)

@@ -57,9 +57,9 @@ bool e_mail_check(XString email)
         return 0;
     if (hostname.front() == '.' || hostname.back() == '.')
         return 0;
-    if (hostname.contains_seq(".."))
+    if (hostname.contains_seq(".."_s))
         return 0;
-    if (email.contains_any(" ;"))
+    if (email.contains_any(" ;"_s))
         return 0;
     return email.is_print();
 }
@@ -70,18 +70,18 @@ bool e_mail_check(XString email)
 //-------------------------------------------------
 int config_switch(ZString str)
 {
-    if (str == "true" || str == "on" || str == "yes"
-        || str == "oui" || str == "ja"
-        || str == "si")
+    if (str == "true"_s || str == "on"_s || str == "yes"_s
+        || str == "oui"_s || str == "ja"_s
+        || str == "si"_s)
         return 1;
-    if (str == "false" || str == "off" || str == "no"
-        || str == "non" || str == "nein")
+    if (str == "false"_s || str == "off"_s || str == "no"_s
+        || str == "non"_s || str == "nein"_s)
         return 0;
 
     int rv;
     if (extract(str, &rv))
         return rv;
-    FPRINTF(stderr, "Fatal: bad option value %s", str);
+    FPRINTF(stderr, "Fatal: bad option value %s"_fmt, str);
     abort();
 }
 
@@ -93,7 +93,7 @@ void stamp_time(timestamp_seconds_buffer& out, const TimeT *t)
     struct tm when = t ? *t : TimeT::now();
     char buf[20];
     strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
-    out = stringish<timestamp_seconds_buffer>(const_(buf));
+    out = stringish<timestamp_seconds_buffer>(VString<19>(strings::really_construct_from_a_pointer, buf));
 }
 void stamp_time(timestamp_milliseconds_buffer& out)
 {
@@ -103,7 +103,7 @@ void stamp_time(timestamp_milliseconds_buffer& out)
     char buf[24];
     strftime(buf, 20, "%Y-%m-%d %H:%M:%S", &when);
     sprintf(buf + 19, ".%03d", static_cast<int>(tv.tv_usec / 1000));
-    out = stringish<timestamp_milliseconds_buffer>(const_(buf));
+    out = stringish<timestamp_milliseconds_buffer>(VString<23>(strings::really_construct_from_a_pointer, buf));
 }
 
 void log_with_timestamp(io::WriteFile& out, XString line)

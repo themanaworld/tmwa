@@ -76,11 +76,9 @@ namespace strings
         *this = XString(v);
     }
     template<uint8_t n>
-    template<size_t m>
-    VString<n>::VString(const char (&s)[m])
+    VString<n>::VString(LString l)
     {
-        static_assert(m <= n + 1, "string would truncate");
-        *this = XString(s);
+        *this = XString(l);
     }
     template<uint8_t n>
     VString<n>::VString(decltype(really_construct_from_a_pointer) e, const char *s)
@@ -143,7 +141,7 @@ namespace strings
         char buffer[len + 1];
         vsnprintf(buffer, len + 1, fmt, ap);
 
-        out = const_(buffer);
+        out = VString<len>(strings::really_construct_from_a_pointer, buffer);
         return len;
     }
 } // namespace strings

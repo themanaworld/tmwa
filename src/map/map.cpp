@@ -100,9 +100,9 @@ int first_free_object_id = 0, last_object_id = 0;
 interval_t autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
 int save_settings = 0xFFFF;
 
-AString motd_txt = "conf/motd.txt";
+AString motd_txt = "conf/motd.txt"_s;
 
-CharName wisp_server_name = stringish<CharName>("Server");   // can be modified in char-server configuration file
+CharName wisp_server_name = stringish<CharName>("Server"_s);   // can be modified in char-server configuration file
 
 static
 void map_delmap(MapName mapname);
@@ -186,7 +186,7 @@ int map_addblock(dumb_ptr<block_list> bl)
     if (bl->bl_prev)
     {
         if (battle_config.error_log)
-            PRINTF("map_addblock error : bl->bl_prev!=NULL\n");
+            PRINTF("map_addblock error : bl->bl_prev!=NULL\n"_fmt);
         return 0;
     }
 
@@ -235,7 +235,7 @@ int map_delblock(dumb_ptr<block_list> bl)
         {
             // prevがNULLでnextがNULLでないのは有ってはならない
             if (battle_config.error_log)
-                PRINTF("map_delblock error : bl->bl_next!=NULL\n");
+                PRINTF("map_delblock error : bl->bl_next!=NULL\n"_fmt);
         }
         return 0;
     }
@@ -538,7 +538,7 @@ int map_addobject(dumb_ptr<block_list> bl)
     int i;
     if (!bl)
     {
-        PRINTF("map_addobject nullpo?\n");
+        PRINTF("map_addobject nullpo?\n"_fmt);
         return 0;
     }
     if (first_free_object_id < 2 || first_free_object_id >= MAX_FLOORITEM)
@@ -549,7 +549,7 @@ int map_addobject(dumb_ptr<block_list> bl)
     if (i >= MAX_FLOORITEM)
     {
         if (battle_config.error_log)
-            PRINTF("no free object id\n");
+            PRINTF("no free object id\n"_fmt);
         return 0;
     }
     first_free_object_id = i;
@@ -573,7 +573,7 @@ int map_delobjectnofree(int id, BL type)
 
     if (object[id]->bl_type != type)
     {
-        FPRINTF(stderr, "Incorrect type: expected %d, got %d\n",
+        FPRINTF(stderr, "Incorrect type: expected %d, got %d\n"_fmt,
                 type,
                 object[id]->bl_type);
         abort();
@@ -1052,7 +1052,7 @@ int map_addnpc(map_local *m, dumb_ptr<npc_data> nd)
     if (i == MAX_NPC_PER_MAP)
     {
         if (battle_config.error_log)
-            PRINTF("too many NPCs in one map %s\n", m->name_);
+            PRINTF("too many NPCs in one map %s\n"_fmt, m->name_);
         return -1;
     }
     if (i == m->npc_num)
@@ -1096,7 +1096,7 @@ void map_removenpc(void)
             }
         }
     }
-    PRINTF("%d NPCs removed.\n", n);
+    PRINTF("%d NPCs removed.\n"_fmt, n);
 }
 
 /*==========================================
@@ -1244,7 +1244,7 @@ int map_setipport(MapName name, IP4Address ip, int port)
             // local -> check data
             if (ip != clif_getip() || port != clif_getport())
             {
-                PRINTF("from char server : %s -> %s:%d\n",
+                PRINTF("from char server : %s -> %s:%d\n"_fmt,
                         name, ip, port);
                 return 1;
             }
@@ -1275,7 +1275,7 @@ bool map_readmap(map_local *m, size_t num, MapName fn)
 
     int xs = m->xs = gat_v[0] | gat_v[1] << 8;
     int ys = m->ys = gat_v[2] | gat_v[3] << 8;
-    PRINTF("\rLoading Maps [%zu/%zu]: %-30s  (%i, %i)",
+    PRINTF("\rLoading Maps [%zu/%zu]: %-30s  (%i, %i)"_fmt,
             num, maps_db.size(),
             fn, xs, ys);
     fflush(stdout);
@@ -1328,10 +1328,10 @@ bool map_readallmap(void)
         }
     }
 
-    PRINTF("\rMaps Loaded: %-65zu\n", maps_db.size());
+    PRINTF("\rMaps Loaded: %-65zu\n"_fmt, maps_db.size());
     if (maps_removed)
     {
-        PRINTF("Cowardly refusing to keep going after removing %d maps.\n",
+        PRINTF("Cowardly refusing to keep going after removing %d maps.\n"_fmt,
                 maps_removed);
         return false;
     }
@@ -1346,7 +1346,7 @@ bool map_readallmap(void)
 static
 void map_addmap(MapName mapname)
 {
-    if (mapname == "clear")
+    if (mapname == "clear"_s)
     {
         maps_db.clear();
         return;
@@ -1366,7 +1366,7 @@ void map_addmap(MapName mapname)
  */
 void map_delmap(MapName mapname)
 {
-    if (mapname == "all")
+    if (mapname == "all"_s)
     {
         maps_db.clear();
         return;
@@ -1389,7 +1389,7 @@ void map_close_logfile(void)
 {
     if (map_logfile)
     {
-        AString filename = STRPRINTF("%s.%ld", map_logfile_name, map_logfile_index);
+        AString filename = STRPRINTF("%s.%ld"_fmt, map_logfile_name, map_logfile_index);
         const char *args[] =
         {
             "gzip",
@@ -1416,7 +1416,7 @@ void map_start_logfile(long index)
     map_logfile_index = index;
 
     AString filename_buf = STRPRINTF(
-            "%s.%ld",
+            "%s.%ld"_fmt,
             map_logfile_name,
             map_logfile_index);
     map_logfile = make_unique<io::AppendFile>(filename_buf);
@@ -1437,7 +1437,7 @@ void map_set_logfile(AString filename)
 
     map_start_logfile(tv.tv_sec >> LOGFILE_SECONDS_PER_CHUNK_SHIFT);
 
-    MAP_LOG("log-start v5");
+    MAP_LOG("log-start v5"_fmt);
 }
 
 void map_log(XString line)
@@ -1469,7 +1469,7 @@ bool map_config_read(ZString cfgName)
     io::ReadFile in(cfgName);
     if (!in.is_open())
     {
-        PRINTF("Map configuration file not found at: %s\n", cfgName);
+        PRINTF("Map configuration file not found at: %s\n"_fmt, cfgName);
         return false;
     }
 
@@ -1483,21 +1483,21 @@ bool map_config_read(ZString cfgName)
         ZString w2;
         if (!config_split(line, &w1, &w2))
         {
-            PRINTF("Bad config line: %s\n", line);
+            PRINTF("Bad config line: %s\n"_fmt, line);
             rv = false;
             continue;
         }
-        if (w1 == "userid")
+        if (w1 == "userid"_s)
         {
             AccountName name = stringish<AccountName>(w2);
             chrif_setuserid(name);
         }
-        else if (w1 == "passwd")
+        else if (w1 == "passwd"_s)
         {
             AccountPass pass = stringish<AccountPass>(w2);
             chrif_setpasswd(pass);
         }
-        else if (w1 == "char_ip")
+        else if (w1 == "char_ip"_s)
         {
             h = gethostbyname(w2.c_str());
             IP4Address w2ip;
@@ -1509,21 +1509,21 @@ bool map_config_read(ZString cfgName)
                         static_cast<uint8_t>(h->h_addr[2]),
                         static_cast<uint8_t>(h->h_addr[3]),
                 });
-                PRINTF("Character server IP address : %s -> %s\n",
+                PRINTF("Character server IP address : %s -> %s\n"_fmt,
                         w2, w2ip);
             }
             else
             {
-                PRINTF("Bad IP value: %s\n", line);
+                PRINTF("Bad IP value: %s\n"_fmt, line);
                 return false;
             }
             chrif_setip(w2ip);
         }
-        else if (w1 == "char_port")
+        else if (w1 == "char_port"_s)
         {
             chrif_setport(atoi(w2.c_str()));
         }
-        else if (w1 == "map_ip")
+        else if (w1 == "map_ip"_s)
         {
             h = gethostbyname(w2.c_str());
             IP4Address w2ip;
@@ -1535,61 +1535,61 @@ bool map_config_read(ZString cfgName)
                         static_cast<uint8_t>(h->h_addr[2]),
                         static_cast<uint8_t>(h->h_addr[3]),
                 });
-                PRINTF("Map server IP address : %s -> %s\n",
+                PRINTF("Map server IP address : %s -> %s\n"_fmt,
                         w2, w2ip);
             }
             else
             {
-                PRINTF("Bad IP value: %s\n", line);
+                PRINTF("Bad IP value: %s\n"_fmt, line);
                 return false;
             }
             clif_setip(w2ip);
         }
-        else if (w1 == "map_port")
+        else if (w1 == "map_port"_s)
         {
             clif_setport(atoi(w2.c_str()));
         }
-        else if (w1 == "map")
+        else if (w1 == "map"_s)
         {
             MapName name = VString<15>(w2);
             map_addmap(name);
         }
-        else if (w1 == "delmap")
+        else if (w1 == "delmap"_s)
         {
             MapName name = VString<15>(w2);
             map_delmap(name);
         }
-        else if (w1 == "npc")
+        else if (w1 == "npc"_s)
         {
             npc_addsrcfile(w2);
         }
-        else if (w1 == "delnpc")
+        else if (w1 == "delnpc"_s)
         {
             npc_delsrcfile(w2);
         }
-        else if (w1 == "autosave_time")
+        else if (w1 == "autosave_time"_s)
         {
             autosave_time = std::chrono::seconds(atoi(w2.c_str()));
             if (autosave_time <= interval_t::zero())
                 autosave_time = DEFAULT_AUTOSAVE_INTERVAL;
         }
-        else if (w1 == "motd_txt")
+        else if (w1 == "motd_txt"_s)
         {
             motd_txt = w2;
         }
-        else if (w1 == "mapreg_txt")
+        else if (w1 == "mapreg_txt"_s)
         {
             mapreg_txt = w2;
         }
-        else if (w1 == "gm_log")
+        else if (w1 == "gm_log"_s)
         {
             gm_log = std::move(w2);
         }
-        else if (w1 == "log_file")
+        else if (w1 == "log_file"_s)
         {
             map_set_logfile(w2);
         }
-        else if (w1 == "import")
+        else if (w1 == "import"_s)
         {
             rv &= map_config_read(w2);
         }
@@ -1664,29 +1664,29 @@ int compare_item(struct item *a, struct item *b)
 static
 bool map_confs(XString key, ZString value)
 {
-    if (key == "map_conf")
+    if (key == "map_conf"_s)
         return map_config_read(value);
-    if (key == "battle_conf")
+    if (key == "battle_conf"_s)
         return battle_config_read(value);
-    if (key == "atcommand_conf")
+    if (key == "atcommand_conf"_s)
         return atcommand_config_read(value);
 
-    if (key == "item_db")
+    if (key == "item_db"_s)
         return itemdb_readdb(value);
-    if (key == "mob_db")
+    if (key == "mob_db"_s)
         return mob_readdb(value);
-    if (key == "mob_skill_db")
+    if (key == "mob_skill_db"_s)
         return mob_readskilldb(value);
-    if (key == "skill_db")
+    if (key == "skill_db"_s)
         return skill_readdb(value);
-    if (key == "magic_conf")
+    if (key == "magic_conf"_s)
         return load_magic_file_v2(value);
 
-    if (key == "resnametable")
+    if (key == "resnametable"_s)
         return load_resnametable(value);
-    if (key == "const_db")
+    if (key == "const_db"_s)
         return read_constdb(value);
-    PRINTF("unknown map conf key: %s\n", AString(key));
+    PRINTF("unknown map conf key: %s\n"_fmt, AString(key));
     return false;
 }
 
@@ -1705,22 +1705,22 @@ int do_init(Slice<ZString> argv)
         ZString argvi = argv.pop_front();
         if (argvi.startswith('-'))
         {
-            if (argvi == "--help")
+            if (argvi == "--help"_s)
             {
-                PRINTF("Usage: %s [--help] [--version] [--write_atcommand_config outfile] [files...]\n",
+                PRINTF("Usage: %s [--help] [--version] [--write_atcommand_config outfile] [files...]\n"_fmt,
                         argv0);
                 exit(0);
             }
-            else if (argvi == "--version")
+            else if (argvi == "--version"_s)
             {
-                PRINTF("%s\n", CURRENT_VERSION_STRING);
+                PRINTF("%s\n"_fmt, CURRENT_VERSION_STRING);
                 exit(0);
             }
-            else if (argvi == "--write-atcommand-config")
+            else if (argvi == "--write-atcommand-config"_s)
             {
                 if (!argv)
                 {
-                    PRINTF("Missing argument\n");
+                    PRINTF("Missing argument\n"_fmt);
                     exit(1);
                 }
                 ZString filename = argv.pop_front();
@@ -1729,7 +1729,7 @@ int do_init(Slice<ZString> argv)
             }
             else
             {
-                FPRINTF(stderr, "Unknown argument: %s\n", argvi);
+                FPRINTF(stderr, "Unknown argument: %s\n"_fmt, argvi);
                 runflag = false;
             }
         }
@@ -1741,7 +1741,7 @@ int do_init(Slice<ZString> argv)
     }
 
     if (!loaded_config_yet)
-        runflag &= load_config_file("conf/tmwa-map.conf", map_confs);
+        runflag &= load_config_file("conf/tmwa-map.conf"_s, map_confs);
 
     battle_config_check();
     runflag &= map_readallmap();
@@ -1758,9 +1758,9 @@ int do_init(Slice<ZString> argv)
     npc_event_do_oninit();     // npcのOnInitイベント実行
 
     if (battle_config.pk_mode == 1)
-        PRINTF("The server is running in " SGR_BOLD SGR_RED "PK Mode" SGR_RESET "\n");
+        PRINTF("The server is running in " SGR_BOLD SGR_RED "PK Mode" SGR_RESET "\n"_fmt);
 
-    PRINTF("The map-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n",
+    PRINTF("The map-server is " SGR_BOLD SGR_GREEN "ready" SGR_RESET " (Server is listening on the port %d).\n\n"_fmt,
             clif_getport());
 
     return 0;

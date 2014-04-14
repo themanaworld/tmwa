@@ -156,6 +156,13 @@ namespace strings
             special = 255 - x.size();
         }
     }
+    AString::AString(LString l)
+    : data{}, special()
+    {
+        new(r_ptr()) RString();
+        special = 255;
+        *this = XString(l);
+    }
 
     AString::iterator AString::begin() const
     {

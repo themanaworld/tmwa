@@ -21,6 +21,7 @@
 
 # include "../sanity.hpp"
 
+# include <cstddef>
 # include <cstdint>
 
 // It is a common mistake to assume that one string class for everything.
@@ -40,12 +41,18 @@ namespace strings
     class XString;
 
     // semi-owning
+    class LString;
+    class FormatString;
     template<uint8_t len>
     class VString;
 
     // refactor this into a function?
     enum _type_that_just_has_a_name_to_fix_linkage
     { really_construct_from_a_pointer };
+
+    LString operator "" _s(const char *, size_t);
+    constexpr
+    FormatString operator "" _fmt(const char *, size_t);
 } // namespace strings
 
 using strings::MString;
@@ -57,6 +64,11 @@ using strings::SString;
 using strings::ZString;
 using strings::XString;
 
+using strings::LString;
+using strings::FormatString;
 using strings::VString;
+
+using strings::operator "" _s;
+using strings::operator "" _fmt;
 
 #endif // TMWA_STRINGS_FWD_HPP

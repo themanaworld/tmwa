@@ -50,7 +50,7 @@
 #include "../poison.hpp"
 
 static
-AString accreg_txt = "save/accreg.txt";
+AString accreg_txt = "save/accreg.txt"_s;
 
 struct accreg
 {
@@ -85,9 +85,9 @@ AString inter_accreg_tostr(struct accreg *reg)
 {
     assert(reg->reg_num < ACCOUNT_REG_NUM);
     MString str;
-    str += STRPRINTF("%d\t", reg->account_id);
+    str += STRPRINTF("%d\t"_fmt, reg->account_id);
     for (int j = 0; j < reg->reg_num; j++)
-        str += STRPRINTF("%s,%d ", reg->reg[j].str, reg->reg[j].value);
+        str += STRPRINTF("%s,%d "_fmt, reg->reg[j].str, reg->reg[j].value);
     return AString(str);
 }
 
@@ -130,7 +130,7 @@ void inter_accreg_init(void)
         }
         else
         {
-            PRINTF("inter: accreg: broken data [%s] line %d\n", accreg_txt,
+            PRINTF("inter: accreg: broken data [%s] line %d\n"_fmt, accreg_txt,
                     c);
         }
         c++;
@@ -155,7 +155,7 @@ int inter_accreg_save(void)
     io::WriteLock fp(accreg_txt);
     if (!fp.is_open())
     {
-        PRINTF("int_accreg: cant write [%s] !!! data is lost !!!\n",
+        PRINTF("int_accreg: cant write [%s] !!! data is lost !!!\n"_fmt,
                 accreg_txt);
         return 1;
     }
@@ -168,19 +168,19 @@ int inter_accreg_save(void)
 bool inter_config(XString w1, ZString w2)
 {
     {
-        if (w1 == "storage_txt")
+        if (w1 == "storage_txt"_s)
         {
             storage_txt = w2;
         }
-        else if (w1 == "party_txt")
+        else if (w1 == "party_txt"_s)
         {
             party_txt = w2;
         }
-        else if (w1 == "accreg_txt")
+        else if (w1 == "accreg_txt"_s)
         {
             accreg_txt = w2;
         }
-        else if (w1 == "party_share_level")
+        else if (w1 == "party_share_level"_s)
         {
             party_share_level = atoi(w2.c_str());
             if (party_share_level < 0)
@@ -316,7 +316,7 @@ void mapif_parse_WisRequest(Session *sms)
 {
     if (RFIFOW(sms, 2) - 52 <= 0)
     {                           // normaly, impossible, but who knows...
-        PRINTF("inter: Wis message doesn't exist.\n");
+        PRINTF("inter: Wis message doesn't exist.\n"_fmt);
         return;
     }
 

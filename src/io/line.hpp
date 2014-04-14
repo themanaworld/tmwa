@@ -42,9 +42,9 @@ namespace io
 
         AString message_str(ZString cat, ZString msg) const;
         void message(ZString cat, ZString msg) const;
-        void note(ZString msg) const { message("note", msg); }
-        void warning(ZString msg) const { message("warning", msg); }
-        void error(ZString msg) const { message("error", msg); }
+        void note(ZString msg) const { message("note"_s, msg); }
+        void warning(ZString msg) const { message("warning"_s, msg); }
+        void error(ZString msg) const { message("error"_s, msg); }
     };
 
     // psst, don't tell anyone
@@ -65,9 +65,9 @@ namespace io
 
         AString message_str(ZString cat, ZString msg) const;
         void message(ZString cat, ZString msg) const;
-        void note(ZString msg) const { message("note", msg); }
-        void warning(ZString msg) const { message("warning", msg); }
-        void error(ZString msg) const { message("error", msg); }
+        void note(ZString msg) const { message("note"_s, msg); }
+        void warning(ZString msg) const { message("warning"_s, msg); }
+        void error(ZString msg) const { message("error"_s, msg); }
     };
 
     class LineReader

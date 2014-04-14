@@ -93,7 +93,7 @@ static
 Map<SIR, RString> mapregstr_db;
 static
 int mapreg_dirty = -1;
-AString mapreg_txt = "save/mapreg.txt";
+AString mapreg_txt = "save/mapreg.txt"_s;
 constexpr std::chrono::milliseconds MAPREG_AUTOSAVE_INTERVAL = std::chrono::seconds(10);
 
 Map<ScriptLabel, int> scriptlabel_db;
@@ -102,19 +102,19 @@ std::set<ScriptLabel> probable_labels;
 UPMap<RString, const ScriptBuffer> userfunc_db;
 
 static
-Array<ZString, 11> pos_str //=
+Array<LString, 11> pos_str //=
 {{
-    ZString("Head"),
-    ZString("Body"),
-    ZString("Left hand"),
-    ZString("Right hand"),
-    ZString("Robe"),
-    ZString("Shoes"),
-    ZString("Accessory 1"),
-    ZString("Accessory 2"),
-    ZString("Head 2"),
-    ZString("Head 3"),
-    ZString("Not Equipped"),
+    "Head"_s,
+    "Body"_s,
+    "Left hand"_s,
+    "Right hand"_s,
+    "Robe"_s,
+    "Shoes"_s,
+    "Accessory 1"_s,
+    "Accessory 2"_s,
+    "Head 2"_s,
+    "Head 3"_s,
+    "Not Equipped"_s,
 }};
 
 static
@@ -150,8 +150,8 @@ void mapreg_setregstr(SIR num, XString str);
 struct BuiltinFunction
 {
     void (*func)(ScriptState *);
-    ZString name;
-    ZString arg;
+    LString name;
+    LString arg;
 };
 // defined later
 extern BuiltinFunction builtin_functions[];
@@ -382,15 +382,15 @@ void disp_error_message(ZString mes, ZString::iterator pos_)
         ZString::iterator lineend = std::find(p, startptr.end(), '\n');
         if (pos_ < lineend)
         {
-            PRINTF("\n%s\nline %d : ", mes, line);
+            PRINTF("\n%s\nline %d : "_fmt, mes, line);
             for (int i = 0; linestart + i != lineend; i++)
             {
                 if (linestart + i != pos_)
-                    PRINTF("%c", linestart[i]);
+                    PRINTF("%c"_fmt, linestart[i]);
                 else
-                    PRINTF("\'%c\'", linestart[i]);
+                    PRINTF("\'%c\'"_fmt, linestart[i]);
             }
-            PRINTF("\a\n");
+            PRINTF("\a\n"_fmt);
             return;
         }
         p = lineend + 1;
@@ -407,7 +407,7 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
 
     if (*p == ';' || *p == ',')
     {
-        disp_error_message("unexpected expr end", p);
+        disp_error_message("unexpected expr end"_s, p);
         exit(1);
     }
     if (*p == '(')
@@ -417,7 +417,7 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
         p = skip_space(p);
         if ((*p++) != ')')
         {
-            disp_error_message("unmatch ')'", p);
+            disp_error_message("unmatch ')'"_s, p);
             exit(1);
         }
     }
@@ -438,14 +438,14 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
                 p++;
             else if (*p == '\n')
             {
-                disp_error_message("unexpected newline @ string", p);
+                disp_error_message("unexpected newline @ string"_s, p);
                 exit(1);
             }
             add_scriptb(*p++);
         }
         if (!*p)
         {
-            disp_error_message("unexpected eof @ string", p);
+            disp_error_message("unexpected eof @ string"_s, p);
             exit(1);
         }
         add_scriptb(0);
@@ -457,35 +457,35 @@ ZString::iterator ScriptBuffer::parse_simpleexpr(ZString::iterator p)
         ZString::iterator p2 = skip_word(p);
         if (p2 == p)
         {
-            disp_error_message("unexpected character", p);
+            disp_error_message("unexpected character"_s, p);
             exit(1);
         }
         XString word(&*p, &*p2, nullptr);
-        if (word.startswith("On") || word.startswith("L_") || word.startswith("S_"))
+        if (word.startswith("On"_s) || word.startswith("L_"_s) || word.startswith("S_"_s))
             probable_labels.insert(stringish<ScriptLabel>(word));
-        if (parse_cmd_if && (word == "callsub" || word == "callfunc" || word == "return"))
+        if (parse_cmd_if && (word == "callsub"_s || word == "callfunc"_s || word == "return"_s))
         {
-            disp_error_message("Sorry, callsub/callfunc/return have never worked properly in an if statement.", p);
+            disp_error_message("Sorry, callsub/callfunc/return have never worked properly in an if statement."_s, p);
         }
         str_data_t *ld = add_strp(word);
 
         parse_cmdp = ld;          // warn_*_mismatch_paramnumのために必要
-        // why not just check l->str == "if" or std::string(p, p2) == "if"?
-        if (ld == search_strp("if")) // warn_cmd_no_commaのために必要
+        // why not just check l->str == "if"_s or std::string(p, p2) == "if"_s?
+        if (ld == search_strp("if"_s)) // warn_cmd_no_commaのために必要
             parse_cmd_if++;
         p = p2;
 
         if (ld->type != ByteCode::FUNC_ && *p == '[')
         {
             // array(name[i] => getelementofarray(name,i) )
-            add_scriptl(search_strp("getelementofarray"));
+            add_scriptl(search_strp("getelementofarray"_s));
             add_scriptc(ByteCode::ARG);
             add_scriptl(ld);
             p = parse_subexpr(p + 1, -1);
             p = skip_space(p);
             if (*p != ']')
             {
-                disp_error_message("unmatch ']'", p);
+                disp_error_message("unmatch ']'"_s, p);
                 exit(1);
             }
             p++;
@@ -515,7 +515,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
         ZString::iterator tmpp = skip_space(p + 1);
         if (*tmpp == ';' || *tmpp == ',')
         {
-            --script_errors; disp_error_message("deprecated: implicit 'next statement' label", p);
+            --script_errors; disp_error_message("deprecated: implicit 'next statement' label"_s, p);
             add_scriptl(&LABEL_NEXTLINE_);
             p++;
             return p;
@@ -560,7 +560,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
 
             if (funcp->type != ByteCode::FUNC_)
             {
-                disp_error_message("expect function", tmpp);
+                disp_error_message("expect function"_s, tmpp);
                 exit(0);
             }
 
@@ -574,7 +574,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
                     p++;
                 else if (*p != ')' && script_config.warn_func_no_comma)
                 {
-                    disp_error_message("expect ',' or ')' at func params",
+                    disp_error_message("expect ',' or ')' at func params"_s,
                                         p);
                 }
                 p = skip_space(p);
@@ -583,7 +583,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
             plist[i] = p;
             if (*p != ')')
             {
-                disp_error_message("func request '(' ')'", p);
+                disp_error_message("func request '(' ')'"_s, p);
                 exit(1);
             }
             p++;
@@ -598,7 +598,7 @@ ZString::iterator ScriptBuffer::parse_subexpr(ZString::iterator p, int limit)
                         break;
                 if ((arg[j] == 0 && i != j) || (arg[j] == '*' && i < j))
                 {
-                    disp_error_message("illegal number of parameters",
+                    disp_error_message("illegal number of parameters"_s,
                             plist[std::min(i, j)]);
                 }
             }
@@ -627,7 +627,7 @@ ZString::iterator ScriptBuffer::parse_expr(ZString::iterator p)
         case '[':
         case ']':
         case '}':
-            disp_error_message("unexpected char", p);
+            disp_error_message("unexpected char"_s, p);
             exit(1);
     }
     p = parse_subexpr(p, -1);
@@ -657,21 +657,22 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     str_data_t *cmd = parse_cmdp;
     if (cmd->type != ByteCode::FUNC_)
     {
-        disp_error_message("expect command", p2);
+        disp_error_message("expect command"_s, p2);
 //      exit(0);
     }
 
     {
+        // TODO should be LString, but no heterogenous lookup yet
         static
         std::set<ZString> terminators =
         {
-            "goto",
-            "return",
-            "close",
-            "menu",
-            "end",
-            "mapexit",
-            "shop",
+            "goto"_s,
+            "return"_s,
+            "close"_s,
+            "menu"_s,
+            "end"_s,
+            "mapexit"_s,
+            "shop"_s,
         };
         *can_step = terminators.count(cmd->strs) == 0;
     }
@@ -689,7 +690,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
         else if (*p != ';' && script_config.warn_cmd_no_comma
                  && parse_cmd_if * 2 <= i)
         {
-            disp_error_message("expect ',' or ';' at cmd params", p);
+            disp_error_message("expect ',' or ';' at cmd params"_s, p);
         }
         p = skip_space(p);
         i++;
@@ -697,7 +698,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
     plist[i] = p;
     if (*(p++) != ';')
     {
-        disp_error_message("need ';'", p);
+        disp_error_message("need ';'"_s, p);
         exit(1);
     }
     add_scriptc(ByteCode::FUNC_);
@@ -712,7 +713,7 @@ ZString::iterator ScriptBuffer::parse_line(ZString::iterator p, bool *can_step)
                 break;
         if ((arg[j] == 0 && i != j) || (arg[j] == '*' && i < j))
         {
-            disp_error_message("illegal number of parameters",
+            disp_error_message("illegal number of parameters"_s,
                     plist[std::min(i, j)]);
         }
     }
@@ -740,7 +741,7 @@ bool read_constdb(ZString filename)
     io::ReadFile in(filename);
     if (!in.is_open())
     {
-        PRINTF("can't read %s\n", filename);
+        PRINTF("can't read %s\n"_fmt, filename);
         return false;
     }
 
@@ -755,9 +756,9 @@ bool read_constdb(ZString filename)
         int val;
         int type = 0; // if not provided
         // TODO get rid of SSCANF - this is the last serious use
-        if (SSCANF(line, "%m[A-Za-z0-9_] %i %i", &name, &val, &type) < 2)
+        if (SSCANF(line, "%m[A-Za-z0-9_] %i %i"_fmt, &name, &val, &type) < 2)
         {
-            PRINTF("Bad const line: %s\n", line);
+            PRINTF("Bad const line: %s\n"_fmt, line);
             rv = false;
             continue;
         }
@@ -815,7 +816,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
     p = skip_space(p);
     if (*p != '{')
     {
-        disp_error_message("not found '{'", p);
+        disp_error_message("not found '{'"_s, p);
         abort();
     }
     for (p++; *p && *p != '}';)
@@ -825,7 +826,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
         {
             if (can_step)
             {
-                --script_errors; disp_error_message("deprecated: implicit fallthrough", p);
+                --script_errors; disp_error_message("deprecated: implicit fallthrough"_s, p);
             }
             can_step = true;
 
@@ -838,7 +839,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
             assert (e1 == e2 && e2 == e3);
             if (e3)
             {
-                disp_error_message("dup label ", p);
+                disp_error_message("dup label "_s, p);
                 exit(1);
             }
             set_label(ld, script_buf.size());
@@ -849,7 +850,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
         if (!can_step)
         {
-            --script_errors; disp_error_message("deprecated: unreachable statement", p);
+            --script_errors; disp_error_message("deprecated: unreachable statement"_s, p);
         }
         // 他は全部一緒くた
         p = parse_line(p, &can_step);
@@ -864,7 +865,7 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
 
     if (can_step && !implicit_end)
     {
-        --script_errors; disp_error_message("deprecated: implicit end", p);
+        --script_errors; disp_error_message("deprecated: implicit end"_s, p);
     }
     add_scriptc(ByteCode::NOP);
 
@@ -893,17 +894,17 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
     for (const auto& pair : scriptlabel_db)
     {
         ScriptLabel key = pair.first;
-        if (key.startswith("On"))
+        if (key.startswith("On"_s))
             continue;
-        if (!(key.startswith("L_") || key.startswith("S_")))
-            PRINTF("Warning: ugly label: %s\n", key);
+        if (!(key.startswith("L_"_s) || key.startswith("S_"_s)))
+            PRINTF("Warning: ugly label: %s\n"_fmt, key);
         else if (!probable_labels.count(key))
-            PRINTF("Warning: unused label: %s\n", key);
+            PRINTF("Warning: unused label: %s\n"_fmt, key);
     }
     for (ScriptLabel used : probable_labels)
     {
         if (!scriptlabel_db.search(used))
-            PRINTF("Warning: no such label: %s\n", used);
+            PRINTF("Warning: no such label: %s\n"_fmt, used);
     }
     probable_labels.clear();
 
@@ -912,12 +913,12 @@ void ScriptBuffer::parse_script(ZString src, int line, bool implicit_end)
     for (size_t i = 0; i < script_buf.size(); i++)
     {
         if ((i & 15) == 0)
-            PRINTF("%04zx : ", i);
-        PRINTF("%02x ", script_buf[i]);
+            PRINTF("%04zx : "_fmt, i);
+        PRINTF("%02x "_fmt, script_buf[i]);
         if ((i & 15) == 15)
-            PRINTF("\n");
+            PRINTF("\n"_fmt);
     }
-    PRINTF("\n");
+    PRINTF("\n"_fmt);
 }
 
 //
@@ -943,7 +944,7 @@ dumb_ptr<map_session_data> script_rid2sd(ScriptState *st)
     dumb_ptr<map_session_data> sd = map_id2sd(st->rid);
     if (!sd)
     {
-        PRINTF("script_rid2sd: fatal error ! player not attached!\n");
+        PRINTF("script_rid2sd: fatal error ! player not attached!\n"_fmt);
     }
     return sd;
 }
@@ -958,7 +959,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
     if (data->type == ByteCode::PARAM_)
     {
         if (sd == NULL)
-            PRINTF("get_val error param SP::%d\n", data->u.reg.sp());
+            PRINTF("get_val error param SP::%d\n"_fmt, data->u.reg.sp());
         data->type = ByteCode::INT;
         if (sd)
             data->u.numi = pc_readparam(sd, data->u.reg.sp());
@@ -973,7 +974,7 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
         if (prefix != '$')
         {
             if (sd == NULL)
-                PRINTF("get_val error name?:%s\n", name);
+                PRINTF("get_val error name?:%s\n"_fmt, name);
         }
         if (postfix == '$')
         {
@@ -990,11 +991,11 @@ void get_val(dumb_ptr<map_session_data> sd, struct script_data *data)
             }
             else
             {
-                PRINTF("script: get_val: illegal scope string variable.\n");
-                data->u.str = dumb_string::fake("!!ERROR!!");
+                PRINTF("script: get_val: illegal scope string variable.\n"_fmt);
+                data->u.str = dumb_string::fake("!!ERROR!!"_s);
             }
             if (!data->u.str)
-                data->u.str = dumb_string::fake("");
+                data->u.str = dumb_string::fake(""_s);
         }
         else
         {
@@ -1085,7 +1086,7 @@ void set_reg(dumb_ptr<map_session_data> sd, ByteCode type, SIR reg, struct scrip
         }
         else
         {
-            PRINTF("script: set_reg: illegal scope string variable !");
+            PRINTF("script: set_reg: illegal scope string variable !"_fmt);
         }
     }
     else
@@ -1143,7 +1144,7 @@ dumb_string conv_str(ScriptState *st, struct script_data *data)
     assert (data->type != ByteCode::RETINFO);
     if (data->type == ByteCode::INT)
     {
-        AString buf = STRPRINTF("%d", data->u.numi);
+        AString buf = STRPRINTF("%d"_fmt, data->u.numi);
         data->type = ByteCode::STR;
         data->u.str = dumb_string::copys(buf);
     }
@@ -1285,7 +1286,7 @@ void builtin_goto(ScriptState *st)
 {
     if (AARGO2(2).type != ByteCode::POS)
     {
-        PRINTF("script: goto: not label !\n");
+        PRINTF("script: goto: not label !\n"_fmt);
         st->state = ScriptEndState::END;
         return;
     }
@@ -1324,7 +1325,7 @@ void builtin_callfunc(ScriptState *st)
     }
     else
     {
-        PRINTF("script:callfunc: function not found! [%s]\n", str);
+        PRINTF("script:callfunc: function not found! [%s]\n"_fmt, str);
         st->state = ScriptEndState::END;
     }
 }
@@ -1442,7 +1443,7 @@ void builtin_menu(ScriptState *st)
         // not just the displayed number that ends with the "".
         // (Would it be better to pop the stack before rerunning?)
         int menu_choices = (st->end - (st->start + 2)) / 2;
-        pc_setreg(sd, SIR::from(variable_names.intern("@menu")), sd->npc_menu);
+        pc_setreg(sd, SIR::from(variable_names.intern("@menu"_s)), sd->npc_menu);
         sd->state.menu_or_input = 0;
         if (sd->npc_menu > 0 && sd->npc_menu <= menu_choices)
         {
@@ -1532,9 +1533,9 @@ void builtin_warp(ScriptState *st)
     MapName str = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     x = conv_num(st, &AARGO2(3));
     y = conv_num(st, &AARGO2(4));
-    if (str == "Random")
+    if (str == "Random"_s)
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
-    else if (str == "SavePoint" or str == "Save")
+    else if (str == "SavePoint"_s or str == "Save"_s)
     {
         if (sd->bl_m->flag.get(MapFlag::NORETURN))
             return;
@@ -1554,7 +1555,7 @@ static
 void builtin_areawarp_sub(dumb_ptr<block_list> bl, MapName mapname, int x, int y)
 {
     dumb_ptr<map_session_data> sd = bl->is_player();
-    if (mapname == "Random")
+    if (mapname == "Random"_s)
         pc_randomwarp(sd, BeingRemoveWhy::WARPED);
     else
         pc_setpos(sd, mapname, x, y, BeingRemoveWhy::GONE);
@@ -1762,7 +1763,7 @@ void builtin_setarray(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        PRINTF("builtin_setarray: illegal scope !\n");
+        PRINTF("builtin_setarray: illegal scope !\n"_fmt);
         return;
     }
     if (prefix != '$')
@@ -1794,7 +1795,7 @@ void builtin_cleararray(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        PRINTF("builtin_cleararray: illegal scope !\n");
+        PRINTF("builtin_cleararray: illegal scope !\n"_fmt);
         return;
     }
     if (prefix != '$')
@@ -1839,7 +1840,7 @@ void builtin_getarraysize(ScriptState *st)
 
     if (prefix != '$' && prefix != '@')
     {
-        PRINTF("builtin_copyarray: illegal scope !\n");
+        PRINTF("builtin_copyarray: illegal scope !\n"_fmt);
         return;
     }
 
@@ -1858,7 +1859,7 @@ void builtin_getelementofarray(ScriptState *st)
         int i = conv_num(st, &AARGO2(3));
         if (i > 255 || i < 0)
         {
-            PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n",
+            PRINTF("script: getelementofarray (operator[]): param2 illegal number %d\n"_fmt,
                  i);
             push_int(st->stack, ByteCode::INT, 0);
         }
@@ -1870,7 +1871,7 @@ void builtin_getelementofarray(ScriptState *st)
     }
     else
     {
-        PRINTF("script: getelementofarray (operator[]): param1 not name !\n");
+        PRINTF("script: getelementofarray (operator[]): param1 not name !\n"_fmt);
         push_int(st->stack, ByteCode::INT, 0);
     }
 }
@@ -1924,7 +1925,7 @@ void builtin_countitem(ScriptState *st)
     else
     {
         if (battle_config.error_log)
-            PRINTF("wrong item ID : countitem (%i)\n", nameid);
+            PRINTF("wrong item ID : countitem (%i)\n"_fmt, nameid);
     }
     push_int(st->stack, ByteCode::INT, count);
 
@@ -2104,7 +2105,6 @@ void builtin_delitem(ScriptState *st)
     if (nameid < 500 || amount <= 0)
     {
         //by Lupus. Don't run FOR if u got wrong item ID or amount<=0
-        //PRINTF("wrong item ID or amount<=0 : delitem %i,\n",nameid,amount);
         return;
     }
 
@@ -2231,12 +2231,12 @@ void builtin_strcharinfo(ScriptState *st)
         if (buf)
             push_str(st->stack, ByteCode::STR, buf);
         else
-            push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(""));
+            push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(""_s));
     }
     if (num == 2)
     {
         // was: guild name
-        push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(""));
+        push_str(st->stack, ByteCode::CONSTSTR, dumb_string::fake(""_s));
     }
 
 }
@@ -2273,7 +2273,7 @@ void builtin_getequipid(ScriptState *st)
     sd = script_rid2sd(st);
     if (sd == NULL)
     {
-        PRINTF("getequipid: sd == NULL\n");
+        PRINTF("getequipid: sd == NULL\n"_fmt);
         return;
     }
     num = conv_num(st, &AARGO2(2));
@@ -2312,13 +2312,13 @@ void builtin_getequipname(ScriptState *st)
     {
         item = sd->inventory_data[i];
         if (item)
-            buf = STRPRINTF("%s-[%s]", pos_str[num - 1], item->jname);
+            buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], item->jname);
         else
-            buf = STRPRINTF("%s-[%s]", pos_str[num - 1], pos_str[10]);
+            buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
     }
     else
     {
-        buf = STRPRINTF("%s-[%s]", pos_str[num - 1], pos_str[10]);
+        buf = STRPRINTF("%s-[%s]"_fmt, pos_str[num - 1], pos_str[10]);
     }
     push_str(st->stack, ByteCode::STR, dumb_string::copys(buf));
 
@@ -2683,7 +2683,7 @@ void builtin_killmonster(ScriptState *st)
     MapName mapname = stringish<MapName>(ZString(conv_str(st, &AARGO2(2))));
     ZString event_ = ZString(conv_str(st, &AARGO2(3)));
     NpcEvent event;
-    if (event_ != "All")
+    if (event_ != "All"_s)
         extract(event_, &event);
 
     map_local *m = map_mapname2mapid(mapname);
@@ -3151,7 +3151,7 @@ static
 void builtin_debugmes(ScriptState *st)
 {
     dumb_string mes = conv_str(st, &AARGO2(2));
-    PRINTF("script debug : %d %d : %s\n",
+    PRINTF("script debug : %d %d : %s\n"_fmt,
             st->rid, st->oid, mes);
 }
 
@@ -3464,7 +3464,7 @@ void builtin_getitemname(ScriptState *st)
     if (i_data)
         item_name = dumb_string::copys(i_data->jname);
     else
-        item_name = dumb_string::copys("Unknown Item");
+        item_name = dumb_string::copys("Unknown Item"_s);
 
     push_str(st->stack, ByteCode::STR, item_name);
 }
@@ -3476,7 +3476,7 @@ void builtin_getspellinvocation(ScriptState *st)
 
     AString invocation = magic_find_invocation(name.str());
     if (!invocation)
-        invocation = "...";
+        invocation = "..."_s;
 
     push_str(st->stack, ByteCode::STR, dumb_string::copys(invocation));
 }
@@ -3505,16 +3505,16 @@ void builtin_getinventorylist(ScriptState *st)
         if (sd->status.inventory[i].nameid > 0
             && sd->status.inventory[i].amount > 0)
         {
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_id"), j),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_id"_s), j),
                        sd->status.inventory[i].nameid);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_amount"), j),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_amount"_s), j),
                        sd->status.inventory[i].amount);
-            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_equip"), j),
+            pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_equip"_s), j),
                     static_cast<uint16_t>(sd->status.inventory[i].equip));
             j++;
         }
     }
-    pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_count")), j);
+    pc_setreg(sd, SIR::from(variable_names.intern("@inventorylist_count"_s)), j);
 }
 
 static
@@ -3534,18 +3534,18 @@ void builtin_getactivatedpoolskilllist(ScriptState *st)
 
         if (sd->status.skill[skill_id].lv)
         {
-            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_id"), count),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_id"_s), count),
                     static_cast<uint16_t>(skill_id));
-            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_lv"), count),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_lv"_s), count),
                     sd->status.skill[skill_id].lv);
-            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"), count),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"_s), count),
                     static_cast<uint16_t>(sd->status.skill[skill_id].flags));
-            pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"), count),
+            pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"_s), count),
                     skill_name(skill_id));
             ++count;
         }
     }
-    pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count")), count);
+    pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count"_s)), count);
 
 }
 
@@ -3565,18 +3565,18 @@ void builtin_getunactivatedpoolskilllist(ScriptState *st)
         if (sd->status.skill[skill_id].lv
             && !bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
         {
-            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_id"), count),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_id"_s), count),
                     static_cast<uint16_t>(skill_id));
-            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_lv"), count),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_lv"_s), count),
                     sd->status.skill[skill_id].lv);
-            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"), count),
+            pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_flag"_s), count),
                     static_cast<uint16_t>(sd->status.skill[skill_id].flags));
-            pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"), count),
+            pc_setregstr(sd, SIR::from(variable_names.intern("@skilllist_name$"_s), count),
                     skill_name(skill_id));
             ++count;
         }
     }
-    pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count")), count);
+    pc_setreg(sd, SIR::from(variable_names.intern("@skilllist_count"_s)), count);
 }
 
 static
@@ -3775,7 +3775,7 @@ void builtin_npcwarp(ScriptState *st)
 
     if (!nd)
     {
-        PRINTF("builtin_npcwarp: no such npc: %s\n", npc);
+        PRINTF("builtin_npcwarp: no such npc: %s\n"_fmt, npc);
         return;
     }
 
@@ -3984,7 +3984,7 @@ void builtin_shop(ScriptState *st)
     nd = npc_name2id(name);
     if (!nd)
     {
-        PRINTF("builtin_shop: no such npc: %s\n", name);
+        PRINTF("builtin_shop: no such npc: %s\n"_fmt, name);
         return;
     }
 
@@ -4017,7 +4017,7 @@ void builtin_fakenpcname(ScriptState *st)
     dumb_ptr<npc_data> nd = npc_name2id(name);
     if (!nd)
     {
-        PRINTF("builtin_fakenpcname: no such npc: %s\n", name);
+        PRINTF("builtin_fakenpcname: no such npc: %s\n"_fmt, name);
         return;
     }
     nd->name = newname;
@@ -4201,7 +4201,7 @@ void op_2str(ScriptState *st, ByteCode op, dumb_string s1_, dumb_string s2_)
             a = s1 <= s2;
             break;
         default:
-            PRINTF("illegal string operater\n");
+            PRINTF("illegal string operater\n"_fmt);
             break;
     }
 
@@ -4304,7 +4304,7 @@ void op_2(ScriptState *st, ByteCode op)
     else
     {
         // si,is => error
-        PRINTF("script: op_2: int&str, str&int not allow.\n");
+        PRINTF("script: op_2: int&str, str&int not allow.\n"_fmt);
         push_int(st->stack, ByteCode::INT, 0);
     }
 }
@@ -4347,7 +4347,7 @@ void run_func(ScriptState *st)
         if (start_sp == 0)
         {
             if (battle_config.error_log)
-                PRINTF("function not found\n");
+                PRINTF("function not found\n"_fmt);
             st->state = ScriptEndState::END;
             return;
         }
@@ -4360,52 +4360,52 @@ void run_func(ScriptState *st)
     size_t func = st->stack->stack_datav[st->start].u.numi;
     if (st->stack->stack_datav[st->start].type != ByteCode::FUNC_REF)
     {
-        PRINTF("run_func: not function and command! \n");
+        PRINTF("run_func: not function and command! \n"_fmt);
         st->state = ScriptEndState::END;
         return;
     }
 
     if (DEBUG_RUN && battle_config.etc_log)
     {
-        PRINTF("run_func : %s\n",
+        PRINTF("run_func : %s\n"_fmt,
                 builtin_functions[func].name);
-        PRINTF("stack dump :");
+        PRINTF("stack dump :"_fmt);
         for (script_data& d : st->stack->stack_datav)
         {
             switch (d.type)
             {
                 case ByteCode::INT:
-                    PRINTF(" int(%d)", d.u.numi);
+                    PRINTF(" int(%d)"_fmt, d.u.numi);
                     break;
                 case ByteCode::RETINFO:
-                    PRINTF(" retinfo(%p)", static_cast<const void *>(d.u.script));
+                    PRINTF(" retinfo(%p)"_fmt, static_cast<const void *>(d.u.script));
                     break;
                 case ByteCode::PARAM_:
-                    PRINTF(" param(%d)", d.u.reg.sp());
+                    PRINTF(" param(%d)"_fmt, d.u.reg.sp());
                     break;
                 case ByteCode::VARIABLE:
-                    PRINTF(" name(%s)[%d]", variable_names.outtern(d.u.reg.base()), d.u.reg.index());
+                    PRINTF(" name(%s)[%d]"_fmt, variable_names.outtern(d.u.reg.base()), d.u.reg.index());
                     break;
                 case ByteCode::ARG:
-                    PRINTF(" arg");
+                    PRINTF(" arg"_fmt);
                     break;
                 case ByteCode::POS:
-                    PRINTF(" pos(%d)", d.u.numi);
+                    PRINTF(" pos(%d)"_fmt, d.u.numi);
                     break;
                 case ByteCode::STR:
-                    PRINTF(" str(%s)", d.u.str);
+                    PRINTF(" str(%s)"_fmt, d.u.str);
                     break;
                 case ByteCode::CONSTSTR:
-                    PRINTF(" cstr(%s)", d.u.str);
+                    PRINTF(" cstr(%s)"_fmt, d.u.str);
                     break;
                 case ByteCode::FUNC_REF:
-                    PRINTF(" func(%s)", builtin_functions[d.u.numi].name);
+                    PRINTF(" func(%s)"_fmt, builtin_functions[d.u.numi].name);
                     break;
                 default:
-                    PRINTF(" %d,%d", d.type, d.u.numi);
+                    PRINTF(" %d,%d"_fmt, d.type, d.u.numi);
             }
         }
-        PRINTF("\n");
+        PRINTF("\n"_fmt);
     }
     builtin_functions[func].func(st);
 
@@ -4420,7 +4420,7 @@ void run_func(ScriptState *st)
         if (st->defsp < 4
             || st->stack->stack_datav[st->defsp - 1].type != ByteCode::RETINFO)
         {
-            PRINTF("script:run_func (return) return without callfunc or callsub!\n");
+            PRINTF("script:run_func (return) return without callfunc or callsub!\n"_fmt);
             st->state = ScriptEndState::END;
             return;
         }
@@ -4445,15 +4445,15 @@ void dump_script(const ScriptBuffer *script)
     ScriptPointer scriptp(script, 0);
     while (scriptp.pos < reinterpret_cast<const std::vector<ByteCode> *>(script)->size())
     {
-        PRINTF("%6zu: ", scriptp.pos);
+        PRINTF("%6zu: "_fmt, scriptp.pos);
         switch (ByteCode c = get_com(&scriptp))
         {
             case ByteCode::EOL:
-                PRINTF("EOL\n"); // extra newline between functions
+                PRINTF("EOL\n"_fmt); // extra newline between functions
                 break;
             case ByteCode::INT:
                 // synthesized!
-                PRINTF("INT %d", get_num(&scriptp));
+                PRINTF("INT %d"_fmt, get_num(&scriptp));
                 break;
 
             case ByteCode::POS:
@@ -4468,103 +4468,103 @@ void dump_script(const ScriptBuffer *script)
                 switch(c)
                 {
                 case ByteCode::POS:
-                    PRINTF("POS %d", arg);
+                    PRINTF("POS %d"_fmt, arg);
                     break;
                 case ByteCode::VARIABLE:
-                    PRINTF("VARIABLE %s", variable_names.outtern(arg));
+                    PRINTF("VARIABLE %s"_fmt, variable_names.outtern(arg));
                     break;
                 case ByteCode::FUNC_REF:
-                    PRINTF("FUNC_REF %s", builtin_functions[arg].name);
+                    PRINTF("FUNC_REF %s"_fmt, builtin_functions[arg].name);
                     break;
                 case ByteCode::PARAM_:
-                    PRINTF("PARAM SP::#%d (sorry)", arg);
+                    PRINTF("PARAM SP::#%d (sorry)"_fmt, arg);
                     break;
                 }
             }
                 break;
             case ByteCode::ARG:
-                PRINTF("ARG");
+                PRINTF("ARG"_fmt);
                 break;
             case ByteCode::STR:
-                PRINTF("STR \"%s\"", scriptp.pops());
+                PRINTF("STR \"%s\""_fmt, scriptp.pops());
                 break;
             case ByteCode::FUNC_:
-                PRINTF("FUNC_");
+                PRINTF("FUNC_"_fmt);
                 break;
 
             case ByteCode::ADD:
-                PRINTF("ADD");
+                PRINTF("ADD"_fmt);
                 break;
             case ByteCode::SUB:
-                PRINTF("SUB");
+                PRINTF("SUB"_fmt);
                 break;
             case ByteCode::MUL:
-                PRINTF("MUL");
+                PRINTF("MUL"_fmt);
                 break;
             case ByteCode::DIV:
-                PRINTF("DIV");
+                PRINTF("DIV"_fmt);
                 break;
             case ByteCode::MOD:
-                PRINTF("MOD");
+                PRINTF("MOD"_fmt);
                 break;
             case ByteCode::EQ:
-                PRINTF("EQ");
+                PRINTF("EQ"_fmt);
                 break;
             case ByteCode::NE:
-                PRINTF("NE");
+                PRINTF("NE"_fmt);
                 break;
             case ByteCode::GT:
-                PRINTF("GT");
+                PRINTF("GT"_fmt);
                 break;
             case ByteCode::GE:
-                PRINTF("GE");
+                PRINTF("GE"_fmt);
                 break;
             case ByteCode::LT:
-                PRINTF("LT");
+                PRINTF("LT"_fmt);
                 break;
             case ByteCode::LE:
-                PRINTF("LE");
+                PRINTF("LE"_fmt);
                 break;
             case ByteCode::AND:
-                PRINTF("AND");
+                PRINTF("AND"_fmt);
                 break;
             case ByteCode::OR:
-                PRINTF("OR");
+                PRINTF("OR"_fmt);
                 break;
             case ByteCode::XOR:
-                PRINTF("XOR");
+                PRINTF("XOR"_fmt);
                 break;
             case ByteCode::LAND:
-                PRINTF("LAND");
+                PRINTF("LAND"_fmt);
                 break;
             case ByteCode::LOR:
-                PRINTF("LOR");
+                PRINTF("LOR"_fmt);
                 break;
             case ByteCode::R_SHIFT:
-                PRINTF("R_SHIFT");
+                PRINTF("R_SHIFT"_fmt);
                 break;
             case ByteCode::L_SHIFT:
-                PRINTF("L_SHIFT");
+                PRINTF("L_SHIFT"_fmt);
                 break;
             case ByteCode::NEG:
-                PRINTF("NEG");
+                PRINTF("NEG"_fmt);
                 break;
             case ByteCode::NOT:
-                PRINTF("NOT");
+                PRINTF("NOT"_fmt);
                 break;
             case ByteCode::LNOT:
-                PRINTF("LNOT");
+                PRINTF("LNOT"_fmt);
                 break;
 
             case ByteCode::NOP:
-                PRINTF("NOP");
+                PRINTF("NOP"_fmt);
                 break;
 
             default:
-                PRINTF("??? %d", c);
+                PRINTF("??? %d"_fmt, c);
                 break;
         }
-        PRINTF("\n");
+        PRINTF("\n"_fmt);
     }
 }
 
@@ -4591,7 +4591,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                 if (stack->stack_datav.size() != st->defsp)
                 {
                     if (battle_config.error_log)
-                        PRINTF("stack.sp (%zu) != default (%d)\n",
+                        PRINTF("stack.sp (%zu) != default (%d)\n"_fmt,
                                 stack->stack_datav.size(),
                                 st->defsp);
                     stack->stack_datav.resize(st->defsp);
@@ -4646,7 +4646,7 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
                     st->state = ScriptEndState::ZERO;
                     if (gotocount > 0 && (--gotocount) <= 0)
                     {
-                        PRINTF("run_script: infinity loop !\n");
+                        PRINTF("run_script: infinity loop !\n"_fmt);
                         st->state = ScriptEndState::END;
                     }
                 }
@@ -4688,14 +4688,14 @@ void run_script_main(ScriptState *st, const ScriptBuffer *rootscript)
 
             default:
                 if (battle_config.error_log)
-                    PRINTF("unknown command : %d @ %zu\n",
+                    PRINTF("unknown command : %d @ %zu\n"_fmt,
                             c, st->scriptp.pos);
                 st->state = ScriptEndState::END;
                 break;
         }
         if (cmdcount > 0 && (--cmdcount) <= 0)
         {
-            PRINTF("run_script: infinity loop !\n");
+            PRINTF("run_script: infinity loop !\n"_fmt);
             st->state = ScriptEndState::END;
         }
     }
@@ -4842,7 +4842,7 @@ void script_load_mapreg(void)
         else
         {
         borken:
-            PRINTF("%s: %s broken data !\n", mapreg_txt, AString(buf1));
+            PRINTF("%s: %s broken data !\n"_fmt, mapreg_txt, AString(buf1));
             continue;
         }
     }
@@ -4861,9 +4861,9 @@ void script_save_mapreg_intsub(SIR key, int data, io::WriteFile& fp)
     if (name[1] != '@')
     {
         if (i == 0)
-            FPRINTF(fp, "%s\t%d\n", name, data);
+            FPRINTF(fp, "%s\t%d\n"_fmt, name, data);
         else
-            FPRINTF(fp, "%s,%d\t%d\n", name, i, data);
+            FPRINTF(fp, "%s,%d\t%d\n"_fmt, name, i, data);
     }
 }
 
@@ -4875,9 +4875,9 @@ void script_save_mapreg_strsub(SIR key, ZString data, io::WriteFile& fp)
     if (name[1] != '@')
     {
         if (i == 0)
-            FPRINTF(fp, "%s\t%s\n", name, data);
+            FPRINTF(fp, "%s\t%s\n"_fmt, name, data);
         else
-            FPRINTF(fp, "%s,%d\t%s\n", name, i, data);
+            FPRINTF(fp, "%s,%d\t%s\n"_fmt, name, i, data);
     }
 }
 
@@ -4929,128 +4929,128 @@ void do_init_script(void)
 }
 
 #define BUILTIN(func, args) \
-{builtin_##func, {#func}, {args}}
+{builtin_##func, #func ## _s, {args}}
 
 BuiltinFunction builtin_functions[] =
 {
-    BUILTIN(mes, "s"),
-    BUILTIN(next, ""),
-    BUILTIN(close, ""),
-    BUILTIN(close2, ""),
-    BUILTIN(menu, "sL*"),
-    BUILTIN(goto, "L"),
-    BUILTIN(callsub, "L"),
-    BUILTIN(callfunc, "F"),
-    BUILTIN(return, ""),
-    BUILTIN(input, "N"),
-    BUILTIN(warp, "Mxy"),
-    BUILTIN(isat, "Mxy"),
-    BUILTIN(areawarp, "MxyxyMxy"),
-    BUILTIN(setlook, "ii"),
-    BUILTIN(set, "Ne"),
-    BUILTIN(setarray, "Ne*"),
-    BUILTIN(cleararray, "Nei"),
-    BUILTIN(getarraysize, "N"),
-    BUILTIN(getelementofarray, "Ni"),
-    BUILTIN(if, "iF*"),
-    BUILTIN(getitem, "Ii**"),
-    BUILTIN(makeitem, "IiMxy"),
-    BUILTIN(delitem, "Ii"),
-    BUILTIN(heal, "ii"),
-    BUILTIN(itemheal, "ii"),
-    BUILTIN(percentheal, "ii"),
-    BUILTIN(rand, "i*"),
-    BUILTIN(pow, "ii"),
-    BUILTIN(countitem, "I"),
-    BUILTIN(checkweight, "Ii"),
-    BUILTIN(readparam, "i*"),
-    BUILTIN(getcharid, "i*"),
-    BUILTIN(strcharinfo, "i"),
-    BUILTIN(getequipid, "i"),
-    BUILTIN(getequipname, "i"),
-    BUILTIN(statusup2, "ii"),
-    BUILTIN(bonus, "ii"),
-    BUILTIN(bonus2, "iii"),
-    BUILTIN(skill, "ii*"),
-    BUILTIN(setskill, "ii"),
-    BUILTIN(getskilllv, "i"),
-    BUILTIN(getgmlevel, ""),
-    BUILTIN(end, ""),
-    BUILTIN(getopt2, ""),
-    BUILTIN(setopt2, "i"),
-    BUILTIN(savepoint, "Mxy"),
-    BUILTIN(gettimetick, "i"),
-    BUILTIN(gettime, "i"),
-    BUILTIN(openstorage, "*"),
-    BUILTIN(monster, "Mxysmi*"),
-    BUILTIN(areamonster, "Mxyxysmi*"),
-    BUILTIN(killmonster, "ME"),
-    BUILTIN(killmonsterall, "M"),
-    BUILTIN(donpcevent, "E"),
-    BUILTIN(addtimer, "tE"),
-    BUILTIN(initnpctimer, ""),
-    BUILTIN(stopnpctimer, ""),
-    BUILTIN(startnpctimer, "*"),
-    BUILTIN(setnpctimer, "i"),
-    BUILTIN(getnpctimer, "i"),
-    BUILTIN(announce, "si"),
-    BUILTIN(mapannounce, "Msi"),
-    BUILTIN(getusers, "i"),
-    BUILTIN(getmapusers, "M"),
-    BUILTIN(getareausers, "Mxyxy*"),
-    BUILTIN(getareadropitem, "Mxyxyi*"),
-    BUILTIN(enablenpc, "s"),
-    BUILTIN(disablenpc, "s"),
-    BUILTIN(sc_start, "iTi*"),
-    BUILTIN(sc_end, "i"),
-    BUILTIN(sc_check, "i"),
-    BUILTIN(debugmes, "s"),
-    BUILTIN(resetstatus, ""),
-    BUILTIN(changesex, ""),
-    BUILTIN(attachrid, "i"),
-    BUILTIN(detachrid, ""),
-    BUILTIN(isloggedin, "i"),
-    BUILTIN(setmapflag, "Mi"),
-    BUILTIN(removemapflag, "Mi"),
-    BUILTIN(getmapflag, "Mi"),
-    BUILTIN(pvpon, "M"),
-    BUILTIN(pvpoff, "M"),
-    BUILTIN(emotion, "i"),
-    BUILTIN(marriage, "P"),
-    BUILTIN(divorce, ""),
-    BUILTIN(getitemname, "I"),
-    BUILTIN(getspellinvocation, "s"),
-    BUILTIN(getpartnerid2, ""),
-    BUILTIN(getexp, "ii"),
-    BUILTIN(getinventorylist, ""),
-    BUILTIN(getactivatedpoolskilllist, ""),
-    BUILTIN(getunactivatedpoolskilllist, ""),
-    BUILTIN(poolskill, "i"),
-    BUILTIN(unpoolskill, "i"),
-    BUILTIN(misceffect, "i*"),
-    BUILTIN(specialeffect, "i"),
-    BUILTIN(specialeffect2, "i"),
-    BUILTIN(nude, ""),
-    BUILTIN(mapwarp, "MMxy"),
-    BUILTIN(cmdothernpc, "ss"),
-    BUILTIN(gmcommand, "s"),
-    BUILTIN(npcwarp, "xys"),
-    BUILTIN(message, "Ps"),
-    BUILTIN(npctalk, "s"),
-    BUILTIN(mobcount, "ME"),
-    BUILTIN(getlook, "i"),
-    BUILTIN(getsavepoint, "i"),
-    BUILTIN(areatimer, "MxyxytE"),
-    BUILTIN(isin, "Mxyxy"),
-    BUILTIN(shop, "s"),
-    BUILTIN(isdead, ""),
-    BUILTIN(unequipbyid, "i"),
-    BUILTIN(fakenpcname, "ssi"),
-    BUILTIN(getx, ""),
-    BUILTIN(gety, ""),
-    BUILTIN(getmap, ""),
-    BUILTIN(mapexit, ""),
-    {nullptr, ZString(), ZString()},
+    BUILTIN(mes, "s"_s),
+    BUILTIN(next, ""_s),
+    BUILTIN(close, ""_s),
+    BUILTIN(close2, ""_s),
+    BUILTIN(menu, "sL*"_s),
+    BUILTIN(goto, "L"_s),
+    BUILTIN(callsub, "L"_s),
+    BUILTIN(callfunc, "F"_s),
+    BUILTIN(return, ""_s),
+    BUILTIN(input, "N"_s),
+    BUILTIN(warp, "Mxy"_s),
+    BUILTIN(isat, "Mxy"_s),
+    BUILTIN(areawarp, "MxyxyMxy"_s),
+    BUILTIN(setlook, "ii"_s),
+    BUILTIN(set, "Ne"_s),
+    BUILTIN(setarray, "Ne*"_s),
+    BUILTIN(cleararray, "Nei"_s),
+    BUILTIN(getarraysize, "N"_s),
+    BUILTIN(getelementofarray, "Ni"_s),
+    BUILTIN(if, "iF*"_s),
+    BUILTIN(getitem, "Ii**"_s),
+    BUILTIN(makeitem, "IiMxy"_s),
+    BUILTIN(delitem, "Ii"_s),
+    BUILTIN(heal, "ii"_s),
+    BUILTIN(itemheal, "ii"_s),
+    BUILTIN(percentheal, "ii"_s),
+    BUILTIN(rand, "i*"_s),
+    BUILTIN(pow, "ii"_s),
+    BUILTIN(countitem, "I"_s),
+    BUILTIN(checkweight, "Ii"_s),
+    BUILTIN(readparam, "i*"_s),
+    BUILTIN(getcharid, "i*"_s),
+    BUILTIN(strcharinfo, "i"_s),
+    BUILTIN(getequipid, "i"_s),
+    BUILTIN(getequipname, "i"_s),
+    BUILTIN(statusup2, "ii"_s),
+    BUILTIN(bonus, "ii"_s),
+    BUILTIN(bonus2, "iii"_s),
+    BUILTIN(skill, "ii*"_s),
+    BUILTIN(setskill, "ii"_s),
+    BUILTIN(getskilllv, "i"_s),
+    BUILTIN(getgmlevel, ""_s),
+    BUILTIN(end, ""_s),
+    BUILTIN(getopt2, ""_s),
+    BUILTIN(setopt2, "i"_s),
+    BUILTIN(savepoint, "Mxy"_s),
+    BUILTIN(gettimetick, "i"_s),
+    BUILTIN(gettime, "i"_s),
+    BUILTIN(openstorage, "*"_s),
+    BUILTIN(monster, "Mxysmi*"_s),
+    BUILTIN(areamonster, "Mxyxysmi*"_s),
+    BUILTIN(killmonster, "ME"_s),
+    BUILTIN(killmonsterall, "M"_s),
+    BUILTIN(donpcevent, "E"_s),
+    BUILTIN(addtimer, "tE"_s),
+    BUILTIN(initnpctimer, ""_s),
+    BUILTIN(stopnpctimer, ""_s),
+    BUILTIN(startnpctimer, "*"_s),
+    BUILTIN(setnpctimer, "i"_s),
+    BUILTIN(getnpctimer, "i"_s),
+    BUILTIN(announce, "si"_s),
+    BUILTIN(mapannounce, "Msi"_s),
+    BUILTIN(getusers, "i"_s),
+    BUILTIN(getmapusers, "M"_s),
+    BUILTIN(getareausers, "Mxyxy*"_s),
+    BUILTIN(getareadropitem, "Mxyxyi*"_s),
+    BUILTIN(enablenpc, "s"_s),
+    BUILTIN(disablenpc, "s"_s),
+    BUILTIN(sc_start, "iTi*"_s),
+    BUILTIN(sc_end, "i"_s),
+    BUILTIN(sc_check, "i"_s),
+    BUILTIN(debugmes, "s"_s),
+    BUILTIN(resetstatus, ""_s),
+    BUILTIN(changesex, ""_s),
+    BUILTIN(attachrid, "i"_s),
+    BUILTIN(detachrid, ""_s),
+    BUILTIN(isloggedin, "i"_s),
+    BUILTIN(setmapflag, "Mi"_s),
+    BUILTIN(removemapflag, "Mi"_s),
+    BUILTIN(getmapflag, "Mi"_s),
+    BUILTIN(pvpon, "M"_s),
+    BUILTIN(pvpoff, "M"_s),
+    BUILTIN(emotion, "i"_s),
+    BUILTIN(marriage, "P"_s),
+    BUILTIN(divorce, ""_s),
+    BUILTIN(getitemname, "I"_s),
+    BUILTIN(getspellinvocation, "s"_s),
+    BUILTIN(getpartnerid2, ""_s),
+    BUILTIN(getexp, "ii"_s),
+    BUILTIN(getinventorylist, ""_s),
+    BUILTIN(getactivatedpoolskilllist, ""_s),
+    BUILTIN(getunactivatedpoolskilllist, ""_s),
+    BUILTIN(poolskill, "i"_s),
+    BUILTIN(unpoolskill, "i"_s),
+    BUILTIN(misceffect, "i*"_s),
+    BUILTIN(specialeffect, "i"_s),
+    BUILTIN(specialeffect2, "i"_s),
+    BUILTIN(nude, ""_s),
+    BUILTIN(mapwarp, "MMxy"_s),
+    BUILTIN(cmdothernpc, "ss"_s),
+    BUILTIN(gmcommand, "s"_s),
+    BUILTIN(npcwarp, "xys"_s),
+    BUILTIN(message, "Ps"_s),
+    BUILTIN(npctalk, "s"_s),
+    BUILTIN(mobcount, "ME"_s),
+    BUILTIN(getlook, "i"_s),
+    BUILTIN(getsavepoint, "i"_s),
+    BUILTIN(areatimer, "MxyxytE"_s),
+    BUILTIN(isin, "Mxyxy"_s),
+    BUILTIN(shop, "s"_s),
+    BUILTIN(isdead, ""_s),
+    BUILTIN(unequipbyid, "i"_s),
+    BUILTIN(fakenpcname, "ssi"_s),
+    BUILTIN(getx, ""_s),
+    BUILTIN(gety, ""_s),
+    BUILTIN(getmap, ""_s),
+    BUILTIN(mapexit, ""_s),
+    {nullptr, ""_s, ""_s},
 };
 
 void set_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e, int val)
@@ -5075,7 +5075,7 @@ int get_script_var_i(dumb_ptr<map_session_data> sd, VarName var, int e)
     get_val(sd, &dat);
     if (dat.type == ByteCode::INT)
         return dat.u.numi;
-    PRINTF("Warning: you lied about the type and I'm too lazy to fix it!");
+    PRINTF("Warning: you lied about the type and I'm too lazy to fix it!"_fmt);
     return 0;
 }
 ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
@@ -5088,6 +5088,6 @@ ZString get_script_var_s(dumb_ptr<map_session_data> sd, VarName var, int e)
     get_val(sd, &dat);
     if (dat.type == ByteCode::CONSTSTR)
         return dat.u.str;
-    PRINTF("Warning: you lied about the type and I can't fix it!");
+    PRINTF("Warning: you lied about the type and I can't fix it!"_fmt);
     return ZString();
 }

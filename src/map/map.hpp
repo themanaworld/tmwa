@@ -91,7 +91,7 @@ struct NpcEvent
 
     friend VString<49> convert_for_printf(NpcEvent ev)
     {
-        return STRNPRINTF(50, "%s::%s", ev.npc, ev.label);
+        return STRNPRINTF(50, "%s::%s"_fmt, ev.npc, ev.label);
     }
 };
 bool extract(XString str, NpcEvent *ev);
@@ -623,7 +623,7 @@ void map_log(XString line);
 
 # define MAP_LOG_PC(sd, fmt, ...)   \
     MAP_LOG("PC%d %s:%d,%d " fmt,   \
-            sd->status_key.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat")), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
+            sd->status_key.char_id, (sd->bl_m ? sd->bl_m->name_ : stringish<MapName>("undefined.gat"_s)), sd->bl_x, sd->bl_y, ## __VA_ARGS__)
 
 // 床アイテム関連
 void map_clearflooritem_timer(TimerData *, tick_t, int);

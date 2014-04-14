@@ -85,7 +85,7 @@ void intif_wis_message(dumb_ptr<map_session_data> sd, CharName nick, ZString mes
     WFIFOSET(char_session, WFIFOW(char_session, 2));
 
     if (battle_config.etc_log)
-        PRINTF("intif_wis_message from %s to %s)\n",
+        PRINTF("intif_wis_message from %s to %s)\n"_fmt,
                 sd->status_key.name, nick);
 }
 
@@ -99,7 +99,7 @@ void intif_wis_replay(int id, int flag)
     WFIFOSET(char_session, 7);
 
     if (battle_config.etc_log)
-        PRINTF("intif_wis_replay: id: %d, flag:%d\n", id, flag);
+        PRINTF("intif_wis_replay: id: %d, flag:%d\n"_fmt, id, flag);
 }
 
 // The transmission of GM only Wisp/Page from server to inter-server
@@ -114,7 +114,7 @@ void intif_wis_message_to_gm(CharName Wisp_name, int min_gm_level, ZString mes)
     WFIFOSET(char_session, WFIFOW(char_session, 2));
 
     if (battle_config.etc_log)
-        PRINTF("intif_wis_message_to_gm: from: '%s', min level: %d, message: '%s'.\n",
+        PRINTF("intif_wis_message_to_gm: from: '%s', min level: %d, message: '%s'.\n"_fmt,
                 Wisp_name, min_gm_level, mes);
 }
 
@@ -280,7 +280,7 @@ int intif_parse_WisMessage(Session *s)
 
     if (battle_config.etc_log)
     {
-        PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s\n",
+        PRINTF("intif_parse_wismessage: id: %d, from: %s, to: %s\n"_fmt,
              RFIFOL(s, 4),
              from,
              to);
@@ -312,7 +312,7 @@ int intif_parse_WisEnd(Session *s)
     uint8_t flag = RFIFOB(s, 26);
     if (battle_config.etc_log)
         // flag: 0: success to send wisper, 1: target character is not loged in?, 2: ignored by target
-        PRINTF("intif_parse_wisend: player: %s, flag: %d\n",
+        PRINTF("intif_parse_wisend: player: %s, flag: %d\n"_fmt,
                 name, flag);
     sd = map_nick2sd(name);
     if (sd != NULL)
@@ -366,7 +366,6 @@ int intif_parse_AccountReg(Session *s)
         sd->status.account_reg[j].value = RFIFOL(s, p + 32);
     }
     sd->status.account_reg_num = j;
-//  PRINTF("intif: accountreg\n");
 
     return 0;
 }
@@ -382,7 +381,7 @@ int intif_parse_LoadStorage(Session *s)
     if (sd == NULL)
     {
         if (battle_config.error_log)
-            PRINTF("intif_parse_LoadStorage: user not found %d\n",
+            PRINTF("intif_parse_LoadStorage: user not found %d\n"_fmt,
                     RFIFOL(s, 4));
         return 1;
     }
@@ -390,14 +389,14 @@ int intif_parse_LoadStorage(Session *s)
     if (stor->storage_status == 1)
     {                           // Already open.. lets ignore this update
         if (battle_config.error_log)
-            PRINTF("intif_parse_LoadStorage: storage received for a client already open (User %d:%d)\n",
+            PRINTF("intif_parse_LoadStorage: storage received for a client already open (User %d:%d)\n"_fmt,
                  sd->status_key.account_id, sd->status_key.char_id);
         return 1;
     }
     if (stor->dirty)
     {                           // Already have storage, and it has been modified and not saved yet! Exploit! [Skotlex]
         if (battle_config.error_log)
-            PRINTF("intif_parse_LoadStorage: received storage for an already modified non-saved storage! (User %d:%d)\n",
+            PRINTF("intif_parse_LoadStorage: received storage for an already modified non-saved storage! (User %d:%d)\n"_fmt,
                  sd->status_key.account_id, sd->status_key.char_id);
         return 1;
     }
@@ -405,12 +404,12 @@ int intif_parse_LoadStorage(Session *s)
     if (RFIFOW(s, 2) - 8 != sizeof(struct storage))
     {
         if (battle_config.error_log)
-            PRINTF("intif_parse_LoadStorage: data size error %d %zu\n",
+            PRINTF("intif_parse_LoadStorage: data size error %d %zu\n"_fmt,
                     RFIFOW(s, 2) - 8, sizeof(struct storage));
         return 1;
     }
     if (battle_config.save_log)
-        PRINTF("intif_openstorage: %d\n", RFIFOL(s, 4));
+        PRINTF("intif_openstorage: %d\n"_fmt, RFIFOL(s, 4));
     RFIFO_STRUCT(s, 8, *stor);
     stor->dirty = 0;
     stor->storage_status = 1;
@@ -427,7 +426,7 @@ static
 void intif_parse_SaveStorage(Session *s)
 {
     if (battle_config.save_log)
-        PRINTF("intif_savestorage: done %d %d\n", RFIFOL(s, 2),
+        PRINTF("intif_savestorage: done %d %d\n"_fmt, RFIFOL(s, 2),
                 RFIFOB(s, 6));
     storage_storage_saved(RFIFOL(s, 2));
 }
@@ -437,7 +436,7 @@ static
 void intif_parse_PartyCreated(Session *s)
 {
     if (battle_config.etc_log)
-        PRINTF("intif: party created\n");
+        PRINTF("intif: party created\n"_fmt);
     int account_id = RFIFOL(s, 2);
     int fail = RFIFOB(s, 6);
     int party_id = RFIFOL(s, 7);
@@ -452,16 +451,15 @@ void intif_parse_PartyInfo(Session *s)
     if (RFIFOW(s, 2) == 8)
     {
         if (battle_config.error_log)
-            PRINTF("intif: party noinfo %d\n", RFIFOL(s, 4));
+            PRINTF("intif: party noinfo %d\n"_fmt, RFIFOL(s, 4));
         party_recv_noinfo(RFIFOL(s, 4));
         return;
     }
 
-//  PRINTF("intif: party info %d\n",RFIFOL(fd,4));
     if (RFIFOW(s, 2) != sizeof(struct party) + 4)
     {
         if (battle_config.error_log)
-            PRINTF("intif: party info : data size error %d %d %zu\n",
+            PRINTF("intif: party info : data size error %d %d %zu\n"_fmt,
                     RFIFOL(s, 4), RFIFOW(s, 2),
                     sizeof(struct party) + 4);
     }
@@ -475,7 +473,7 @@ static
 void intif_parse_PartyMemberAdded(Session *s)
 {
     if (battle_config.etc_log)
-        PRINTF("intif: party member added %d %d %d\n", RFIFOL(s, 2),
+        PRINTF("intif: party member added %d %d %d\n"_fmt, RFIFOL(s, 2),
                 RFIFOL(s, 6), RFIFOB(s, 10));
     party_member_added(RFIFOL(s, 2), RFIFOL(s, 6), RFIFOB(s, 10));
 }
@@ -496,7 +494,7 @@ void intif_parse_PartyMemberLeaved(Session *s)
     int account_id = RFIFOL(s, 6);
     CharName name = stringish<CharName>(RFIFO_STRING<24>(s, 10));
     if (battle_config.etc_log)
-        PRINTF("intif: party member leaved %d %d %s\n",
+        PRINTF("intif: party member leaved %d %d %s\n"_fmt,
                 party_id, account_id, name);
     party_member_leaved(party_id, account_id, name);
 }
@@ -553,8 +551,6 @@ int intif_parse(Session *s)
             return 2;
         packet_len = RFIFOW(s, 2);
     }
-//  if(battle_config.etc_log)
-//      PRINTF("intif_parse %d %x %d %d\n",fd,cmd,packet_len,RFIFOREST(fd));
     if (RFIFOREST(s) < packet_len)
     {
         return 2;
@@ -612,7 +608,7 @@ int intif_parse(Session *s)
             break;
         default:
             if (battle_config.error_log)
-                PRINTF("intif_parse : unknown packet %d %x\n", s,
+                PRINTF("intif_parse : unknown packet %d %x\n"_fmt, s,
                         RFIFOW(s, 0));
             return 0;
     }

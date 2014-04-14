@@ -58,19 +58,19 @@ void print_val(val_t *v)
     switch (v->ty)
     {
         case TYPE::UNDEF:
-            FPRINTF(stderr, "UNDEF");
+            FPRINTF(stderr, "UNDEF"_fmt);
             break;
         case TYPE::INT:
-            FPRINTF(stderr, "%d", v->v.v_int);
+            FPRINTF(stderr, "%d"_fmt, v->v.v_int);
             break;
         case TYPE::DIR:
-            FPRINTF(stderr, "dir%d", v->v.v_int);
+            FPRINTF(stderr, "dir%d"_fmt, v->v.v_int);
             break;
         case TYPE::STRING:
-            FPRINTF(stderr, "`%s'", v->v.v_string);
+            FPRINTF(stderr, "`%s'"_fmt, v->v.v_string);
             break;
         default:
-            FPRINTF(stderr, "ty%d", v->ty);
+            FPRINTF(stderr, "ty%d"_fmt, v->ty);
             break;
     }
 }
@@ -84,11 +84,11 @@ void dump_env(env_t *env)
         val_t *v = &env->vars[i];
         val_t *bv = &env->base_env->vars[i];
 
-        FPRINTF(stderr, "%02x %30s ", i, env->base_env->var_name[i]);
+        FPRINTF(stderr, "%02x %30s "_fmt, i, env->base_env->var_name[i]);
         print_val(v);
-        FPRINTF(stderr, "\t(");
+        FPRINTF(stderr, "\t("_fmt);
         print_val(bv);
-        FPRINTF(stderr, ")\n");
+        FPRINTF(stderr, ")\n"_fmt);
     }
 }
 #endif
@@ -286,7 +286,7 @@ void magic_unshroud(dumb_ptr<map_session_data> other_char)
     other_char->state.shroud_active = 0;
     // Now warp the caster out of and back into here to refresh everyone's display
     char_update(other_char);
-    clif_displaymessage(other_char->sess, "Your shroud has been dispelled!");
+    clif_displaymessage(other_char->sess, "Your shroud has been dispelled!"_s);
 //        entity_effect(other_char, MAGIC_EFFECT_REVEAL);
 }
 
@@ -304,7 +304,7 @@ dumb_ptr<npc_data> local_spell_effect(map_local *m, int x, int y, int effect,
     /* 1 minute should be enough for all interesting spell effects, I hope */
     std::chrono::seconds delay = std::chrono::seconds(30);
     dumb_ptr<npc_data> effect_npc = npc_spawn_text(m, x, y,
-            INVISIBLE_NPC, NpcName(), "?");
+            INVISIBLE_NPC, NpcName(), "?"_s);
     int effect_npc_id = effect_npc->bl_id;
 
     entity_effect(effect_npc, effect, tdelay);
@@ -350,7 +350,7 @@ int op_instaheal(dumb_ptr<env_t> env, Slice<val_t> args)
     {
         dumb_ptr<map_session_data> caster_pc = caster->is_player();
         dumb_ptr<map_session_data> subject_pc = subject->is_player();
-        MAP_LOG_PC(caster_pc, "SPELLHEAL-INSTA PC%d FOR %d",
+        MAP_LOG_PC(caster_pc, "SPELLHEAL-INSTA PC%d FOR %d"_fmt,
                     subject_pc->status_key.char_id, ARGINT(1));
     }
 
@@ -770,18 +770,18 @@ int op_spawn(dumb_ptr<env_t>, Slice<val_t> args)
 }
 
 static
-const char *get_invocation_name(dumb_ptr<env_t> env)
+ZString get_invocation_name(dumb_ptr<env_t> env)
 {
     dumb_ptr<invocation> invocation_;
 
     if (env->VAR(VAR_INVOCATION).ty != TYPE::INVOCATION)
-        return "?";
+        return "?"_s;
     invocation_ = map_id_is_spell(env->VAR(VAR_INVOCATION).v.v_int);
 
     if (invocation_)
-        return invocation_->spell->name.c_str();
+        return invocation_->spell->name;
     else
-        return "??";
+        return "??"_s;
 }
 
 static
@@ -824,7 +824,7 @@ int op_injure(dumb_ptr<env_t> env, Slice<val_t> args)
         {
             dumb_ptr<mob_data> mob = target->is_mob();
 
-            MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s",
+            MAP_LOG_PC(caster_pc, "SPELLDMG MOB%d %d FOR %d BY %s"_fmt,
                         mob->bl_id, mob->mob_class, damage_caused,
                         get_invocation_name(env));
         }
@@ -940,35 +940,35 @@ int op_gain_exp(dumb_ptr<env_t>, Slice<val_t> args)
 }
 
 #define MAGIC_OPERATION(name, args, impl) {{name}, {{name}, {args}, impl}}
-#define MAGIC_OPERATION1(name, args) MAGIC_OPERATION(#name, args, op_##name)
+#define MAGIC_OPERATION1(name, args) MAGIC_OPERATION(#name##_s, args, op_##name)
 static
 std::map<ZString, op_t> operations =
 {
-    MAGIC_OPERATION1(sfx, ".ii"),
-    MAGIC_OPERATION1(instaheal, "eii"),
-    MAGIC_OPERATION1(itemheal, "eii"),
-    MAGIC_OPERATION1(shroud, "ei"),
-    MAGIC_OPERATION("unshroud", "e", op_reveal),
-    MAGIC_OPERATION1(message, "es"),
-    MAGIC_OPERATION1(messenger_npc, "lissi"),
-    MAGIC_OPERATION1(move, "ed"),
-    MAGIC_OPERATION1(warp, "el"),
-    MAGIC_OPERATION1(banish, "e"),
-    MAGIC_OPERATION1(status_change, "eiiiiii"),
-    MAGIC_OPERATION1(stop_status_change, "ei"),
-    MAGIC_OPERATION1(override_attack, "eiiiiii"),
-    MAGIC_OPERATION1(create_item, "e.i"),
-    MAGIC_OPERATION1(aggravate, "eie"),
-    MAGIC_OPERATION1(spawn, "aeiiii"),
-    MAGIC_OPERATION1(injure, "eeii"),
-    MAGIC_OPERATION1(emote, "ei"),
-    MAGIC_OPERATION1(set_script_variable, "esi"),
-    MAGIC_OPERATION1(set_script_str, "ess"),
-    MAGIC_OPERATION1(set_hair_colour, "ei"),
-    MAGIC_OPERATION1(set_hair_style, "ei"),
-    MAGIC_OPERATION("drop_item", "l.ii", op_drop_item_for),
-    MAGIC_OPERATION1(drop_item_for, "l.iiei"),
-    MAGIC_OPERATION("gain_experience", "eiii", op_gain_exp),
+    MAGIC_OPERATION1(sfx, ".ii"_s),
+    MAGIC_OPERATION1(instaheal, "eii"_s),
+    MAGIC_OPERATION1(itemheal, "eii"_s),
+    MAGIC_OPERATION1(shroud, "ei"_s),
+    MAGIC_OPERATION("unshroud"_s, "e"_s, op_reveal),
+    MAGIC_OPERATION1(message, "es"_s),
+    MAGIC_OPERATION1(messenger_npc, "lissi"_s),
+    MAGIC_OPERATION1(move, "ed"_s),
+    MAGIC_OPERATION1(warp, "el"_s),
+    MAGIC_OPERATION1(banish, "e"_s),
+    MAGIC_OPERATION1(status_change, "eiiiiii"_s),
+    MAGIC_OPERATION1(stop_status_change, "ei"_s),
+    MAGIC_OPERATION1(override_attack, "eiiiiii"_s),
+    MAGIC_OPERATION1(create_item, "e.i"_s),
+    MAGIC_OPERATION1(aggravate, "eie"_s),
+    MAGIC_OPERATION1(spawn, "aeiiii"_s),
+    MAGIC_OPERATION1(injure, "eeii"_s),
+    MAGIC_OPERATION1(emote, "ei"_s),
+    MAGIC_OPERATION1(set_script_variable, "esi"_s),
+    MAGIC_OPERATION1(set_script_str, "ess"_s),
+    MAGIC_OPERATION1(set_hair_colour, "ei"_s),
+    MAGIC_OPERATION1(set_hair_style, "ei"_s),
+    MAGIC_OPERATION("drop_item"_s, "l.ii"_s, op_drop_item_for),
+    MAGIC_OPERATION1(drop_item_for, "l.iiei"_s),
+    MAGIC_OPERATION("gain_experience"_s, "eiii"_s, op_gain_exp),
 };
 
 op_t *magic_get_op(ZString name)
@@ -1004,7 +1004,7 @@ void spell_effect_report_termination(int invocation_id, int bl_id,
         dumb_ptr<block_list> entity = map_id2bl(bl_id);
         if (entity->bl_type == BL::PC)
             FPRINTF(stderr,
-                     "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n",
+                     "[magic] INTERNAL ERROR: spell-effect-report-termination:  tried to terminate on unexpected bl %d, sc %d\n"_fmt,
                      bl_id, sc_id);
         return;
     }
@@ -1089,7 +1089,7 @@ dumb_ptr<effect_t> return_to_stack(dumb_ptr<invocation> invocation_)
 
             default:
                 FPRINTF(stderr,
-                         "[magic] INTERNAL ERROR: While executing spell `%s':  stack corruption\n",
+                         "[magic] INTERNAL ERROR: While executing spell `%s':  stack corruption\n"_fmt,
                          invocation_->spell->name);
                 return NULL;
         }
@@ -1105,7 +1105,7 @@ cont_activation_record_t *add_stack_entry(dumb_ptr<invocation> invocation_,
     if (invocation_->stack_size >= MAX_STACK_SIZE)
     {
         FPRINTF(stderr,
-                 "[magic] Execution stack size exceeded in spell `%s'; truncating effect\n",
+                 "[magic] Execution stack size exceeded in spell `%s'; truncating effect\n"_fmt,
                  invocation_->spell->name);
         invocation_->stack_size--;
         return NULL;
@@ -1221,7 +1221,7 @@ dumb_ptr<effect_t> run_foreach(dumb_ptr<invocation> invocation,
     {
         magic_clear_var(&area);
         FPRINTF(stderr,
-                 "[magic] Error in spell `%s':  FOREACH loop over non-area\n",
+                 "[magic] Error in spell `%s':  FOREACH loop over non-area\n"_fmt,
                  invocation->spell->name.c_str());
         return return_location;
     }
@@ -1271,7 +1271,7 @@ dumb_ptr<effect_t> run_for (dumb_ptr<invocation> invocation,
         magic_clear_var(&start);
         magic_clear_var(&stop);
         FPRINTF(stderr,
-                 "[magic] Error in spell `%s':  FOR loop start or stop point is not an integer\n",
+                 "[magic] Error in spell `%s':  FOR loop start or stop point is not an integer\n"_fmt,
                  invocation->spell->name);
         return return_location;
     }
@@ -1319,9 +1319,9 @@ void print_cfg(int i, effect_t *e)
 {
     int j;
     for (j = 0; j < i; j++)
-        PRINTF("    ");
+        PRINTF("    "_fmt);
 
-    PRINTF("%p: ", e);
+    PRINTF("%p: "_fmt, e);
 
     if (!e)
     {
@@ -1354,11 +1354,11 @@ void print_cfg(int i, effect_t *e)
         case EFFECT::IF:
             puts("IF");
             for (j = 0; j < i; j++)
-                PRINTF("    ");
+                PRINTF("    "_fmt);
             puts("THEN");
             print_cfg(i + 1, e->e.e_if.true_branch);
             for (j = 0; j < i; j++)
-                PRINTF("    ");
+                PRINTF("    "_fmt);
             puts("ELSE");
             print_cfg(i + 1, e->e.e_if.false_branch);
             break;
@@ -1395,7 +1395,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 #define REFRESH_INVOCATION invocation_ = map_id_is_spell(invocation_id); if (!invocation_) return interval_t::zero();
 
 #ifdef DEBUG
-    FPRINTF(stderr, "Resuming execution:  invocation of `%s'\n",
+    FPRINTF(stderr, "Resuming execution:  invocation of `%s'\n"_fmt,
              invocation_->spell->name);
     print_cfg(1, invocation_->current_effect);
 #endif
@@ -1406,7 +1406,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
         int i;
 
 #ifdef DEBUG
-        FPRINTF(stderr, "Next step of type %d\n", e->ty);
+        FPRINTF(stderr, "Next step of type %d\n"_fmt, e->ty);
         dump_env(invocation_->env);
 #endif
 
@@ -1464,9 +1464,9 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                     ZString caster_name = (caster ? caster->status_key.name : CharName()).to__actual();
                     argrec_t arg[3] =
                     {
-                        {"@target", env->VAR(VAR_TARGET).ty == TYPE::ENTITY ? 0 : env->VAR(VAR_TARGET).v.v_int},
-                        {"@caster", invocation_->caster},
-                        {"@caster_name$", caster_name},
+                        {"@target"_s, env->VAR(VAR_TARGET).ty == TYPE::ENTITY ? 0 : env->VAR(VAR_TARGET).v.v_int},
+                        {"@caster"_s, invocation_->caster},
+                        {"@caster_name$"_s, caster_name},
                     };
                     int message_recipient =
                         env->VAR(VAR_SCRIPTTARGET).ty ==
@@ -1516,7 +1516,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
                 for (i = 0; i < e->e.e_op.args_nr; i++)
                     magic_eval(invocation_->env, &args[i], e->e.e_op.args[i]);
 
-                if (!magic_signature_check("effect", op->name, op->signature,
+                if (!magic_signature_check("effect"_s, op->name, op->signature,
                                             Slice<val_t>(args, e->e.e_op.args_nr),
                                             e->e.e_op.line_nr,
                                             e->e.e_op.column))
@@ -1535,7 +1535,7 @@ interval_t spell_run(dumb_ptr<invocation> invocation_, int allow_delete)
 
             default:
                 FPRINTF(stderr,
-                         "[magic] INTERNAL ERROR: Unknown effect %d\n",
+                         "[magic] INTERNAL ERROR: Unknown effect %d\n"_fmt,
                          e->ty);
         }
 

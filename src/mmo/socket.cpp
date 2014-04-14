@@ -158,7 +158,7 @@ void send_from_fifo(Session *s)
 static
 void null_parse(Session *s)
 {
-    PRINTF("null_parse : %d\n", s);
+    PRINTF("null_parse : %d\n"_fmt, s);
     RFIFOSKIP(s, RFIFOREST(s));
 }
 
@@ -177,7 +177,7 @@ void connect_client(Session *ls)
     }
     if (fd.uncast_dammit() >= SOFT_LIMIT)
     {
-        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n", fd.uncast_dammit());
+        FPRINTF(stderr, "softlimit reached, disconnecting : %d\n"_fmt, fd.uncast_dammit());
         fd.shutdown(SHUT_RDWR);
         fd.close();
         return;
@@ -389,12 +389,12 @@ void WFIFOSET(Session *s, size_t len)
     if (s->wdata_size + len + 16384 > s->max_wdata)
     {
         realloc_fifo(s, s->max_rdata, s->max_wdata << 1);
-        PRINTF("socket: %d wdata expanded to %zu bytes.\n", s, s->max_wdata);
+        PRINTF("socket: %d wdata expanded to %zu bytes.\n"_fmt, s, s->max_wdata);
     }
     if (s->wdata_size + len + 2048 < s->max_wdata)
         s->wdata_size += len;
     else
-        FPRINTF(stderr, "socket: %d wdata lost !!\n", s), abort();
+        FPRINTF(stderr, "socket: %d wdata lost !!\n"_fmt, s), abort();
 }
 
 void do_sendrecv(interval_t next_ms)
@@ -415,7 +415,7 @@ void do_sendrecv(interval_t next_ms)
     {
         if (!has_timers())
         {
-            PRINTF("Shutting down - nothing to do\n");
+            PRINTF("Shutting down - nothing to do\n"_fmt);
             runflag = false;
         }
         return;
@@ -460,7 +460,7 @@ void do_parsepacket(void)
         if (!s->connected
             && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT)
         {
-            PRINTF("Session #%d timed out\n", s);
+            PRINTF("Session #%d timed out\n"_fmt, s);
             s->eof = 1;
         }
         if (!s->rdata_size && !s->eof)
@@ -489,7 +489,7 @@ void RFIFOSKIP(Session *s, size_t len)
 
     if (s->rdata_size < s->rdata_pos)
     {
-        FPRINTF(stderr, "too many skip\n");
+        FPRINTF(stderr, "too many skip\n"_fmt);
         abort();
     }
 }

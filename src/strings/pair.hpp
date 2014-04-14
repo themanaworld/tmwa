@@ -2,7 +2,7 @@
 #define TMWA_STRINGS_PAIR_HPP
 //    strings/pair.hpp - Internal contiguous range.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2013-2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -40,12 +40,6 @@ namespace strings
         XPair(const char *b, const char *e)
         : _begin(b), _end(e)
         {}
-        template<size_t n>
-        XPair(char (&arr)[n]) = delete;
-        template<size_t n>
-        XPair(const char (&arr)[n])
-        : _begin(arr), _end(arr + strlen(arr))
-        {}
 
         const char *begin() const { return _begin; }
         const char *end() const { return _end; }
@@ -59,11 +53,14 @@ namespace strings
         ZPair(const char *b, const char *e)
         : XPair(b, e)
         {}
-        template<size_t n>
-        ZPair(char (&arr)[n]) = delete;
-        template<size_t n>
-        ZPair(const char (&arr)[n])
-        : XPair(arr)
+    };
+    struct LPair : ZPair
+    {
+        typedef LString TailSlice;
+        typedef XString FullSlice;
+
+        LPair(const char *b, const char *e)
+        : ZPair(b, e)
         {}
     };
 } // namespace strings

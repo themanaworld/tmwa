@@ -464,7 +464,7 @@ int clif_send(const uint8_t *buf, int len, dumb_ptr<block_list> bl, SendWho type
 
         default:
             if (battle_config.error_log)
-                PRINTF("clif_send まだ作ってないよー\n");
+                PRINTF("clif_send まだ作ってないよー\n"_fmt);
             return -1;
     }
 
@@ -1770,7 +1770,7 @@ int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
 
         default:
             if (battle_config.error_log)
-                PRINTF("clif_updatestatus : make %d routine\n",
+                PRINTF("clif_updatestatus : make %d routine\n"_fmt,
                         type);
             return 1;
     }
@@ -2557,7 +2557,7 @@ void clif_getareachar(dumb_ptr<block_list> bl, dumb_ptr<map_session_data> sd)
             break;
         default:
             if (battle_config.error_log)
-                PRINTF("get area char ??? %d\n",
+                PRINTF("get area char ??? %d\n"_fmt,
                         bl->bl_type);
             break;
     }
@@ -3070,8 +3070,6 @@ void clif_party_option(struct party *p, dumb_ptr<map_session_data> sd, int flag)
 
     nullpo_retv(p);
 
-//  if(battle_config.etc_log)
-//      PRINTF("clif_party_option: %d %d %d\n",p->exp,p->item,flag);
     if (sd == NULL && flag == 0)
     {
         int i;
@@ -3174,8 +3172,6 @@ int clif_party_xy(struct party *, dumb_ptr<map_session_data> sd)
     WBUFW(buf, 6) = sd->bl_x;
     WBUFW(buf, 8) = sd->bl_y;
     clif_send(buf, clif_parse_func_table[0x107].len, sd, SendWho::PARTY_SAMEMAP_WOS);
-//  if(battle_config.etc_log)
-//      PRINTF("clif_party_xy %d\n",sd->status_key.account_id);
     return 0;
 }
 
@@ -3195,8 +3191,6 @@ int clif_party_hp(struct party *, dumb_ptr<map_session_data> sd)
     WBUFW(buf, 8) =
         (sd->status.max_hp > 0x7fff) ? 0x7fff : sd->status.max_hp;
     clif_send(buf, clif_parse_func_table[0x106].len, sd, SendWho::PARTY_AREA_WOS);
-//  if(battle_config.etc_log)
-//      PRINTF("clif_party_hp %d\n",sd->status_key.account_id);
     return 0;
 }
 
@@ -3374,7 +3368,7 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
     if (sd)
     {
         if (battle_config.error_log)
-            PRINTF("clif_parse_WantToConnection : invalid request?\n");
+            PRINTF("clif_parse_WantToConnection : invalid request?\n"_fmt);
         return;
     }
 
@@ -3394,7 +3388,7 @@ void clif_parse_WantToConnection(Session *s, dumb_ptr<map_session_data> sd)
     {
         clif_authfail_fd(s, 2);   // same id
         clif_authfail_fd(old_sd->sess, 2);   // same id
-        PRINTF("clif_parse_WantToConnection: Double connection for account %d (sessions: #%d (new) and #%d (old)).\n",
+        PRINTF("clif_parse_WantToConnection: Double connection for account %d (sessions: #%d (new) and #%d (old)).\n"_fmt,
              account_id, s, old_sd->sess);
     }
     else
@@ -3623,7 +3617,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
             nullpo_retv(ssd);
 
             if (ssd->state.shroud_active)
-                WFIFO_STRING(s, 6, "", 24);
+                WFIFO_STRING(s, 6, ""_s, 24);
             else
                 WFIFO_STRING(s, 6, ssd->status_key.name.to__actual(), 24);
             WFIFOSET(s, clif_parse_func_table[0x95].len);
@@ -3645,9 +3639,9 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
                 WFIFOW(s, 0) = 0x195;
                 WFIFOL(s, 2) = account_id;
                 WFIFO_STRING(s, 6, party_name, 24);
-                WFIFO_STRING(s, 30, "", 24);
-                WFIFO_STRING(s, 54, "", 24);
-                WFIFO_STRING(s, 78, "", 24); // We send this value twice because the client expects it
+                WFIFO_STRING(s, 30, ""_s, 24);
+                WFIFO_STRING(s, 54, ""_s, 24);
+                WFIFO_STRING(s, 78, ""_s, 24); // We send this value twice because the client expects it
                 WFIFOSET(s, clif_parse_func_table[0x195].len);
 
             }
@@ -3689,7 +3683,7 @@ void clif_parse_GetCharNameRequest(Session *s, dumb_ptr<map_session_data> sd)
             break;
         default:
             if (battle_config.error_log)
-                PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n",
+                PRINTF("clif_parse_GetCharNameRequest : bad type %d (%d)\n"_fmt,
                         bl->bl_type, account_id);
             break;
     }
@@ -3710,7 +3704,7 @@ void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
     AString mbuf = clif_validate_chat(sd, ChatType::Global);
     if (!mbuf)
     {
-        clif_displaymessage(s, "Your message could not be sent.");
+        clif_displaymessage(s, "Your message could not be sent."_s);
         return;
     }
 
@@ -3722,7 +3716,7 @@ void clif_parse_GlobalMessage(Session *s, dumb_ptr<map_session_data> sd)
         /* Don't send chat that results in an automatic ban. */
         if (tmw_CheckChatSpam(sd, mbuf))
         {
-            clif_displaymessage(s, "Your message could not be sent.");
+            clif_displaymessage(s, "Your message could not be sent."_s);
             return;
         }
 
@@ -3975,7 +3969,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
     AString mbuf = clif_validate_chat(sd, ChatType::Whisper);
     if (!mbuf)
     {
-        clif_displaymessage(s, "Your message could not be sent.");
+        clif_displaymessage(s, "Your message could not be sent."_s);
         return;
     }
 
@@ -3987,7 +3981,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
     /* Don't send chat that results in an automatic ban. */
     if (tmw_CheckChatSpam(sd, mbuf))
     {
-        clif_displaymessage(s, "Your message could not be sent.");
+        clif_displaymessage(s, "Your message could not be sent."_s);
         return;
     }
 
@@ -4006,7 +4000,7 @@ void clif_parse_Wis(Session *s, dumb_ptr<map_session_data> sd)
         /* Refuse messages addressed to self. */
         if (dstsd->sess == s)
         {
-            ZString mes = "You cannot page yourself.";
+            ZString mes = "You cannot page yourself."_s;
             clif_wis_message(s, wisp_server_name, mes);
         }
         else
@@ -4079,13 +4073,13 @@ void clif_parse_DropItem(Session *s, dumb_ptr<map_session_data> sd)
     }
     if (sd->bl_m->flag.get(MapFlag::NO_PLAYER_DROPS))
     {
-        clif_displaymessage(sd->sess, "Can't drop items here.");
+        clif_displaymessage(sd->sess, "Can't drop items here."_s);
         return;
     }
     if (sd->npc_id != 0
         || sd->opt1 != Opt1::ZERO)
     {
-        clif_displaymessage(sd->sess, "Can't drop items right now.");
+        clif_displaymessage(sd->sess, "Can't drop items right now."_s);
         return;
     }
 
@@ -4572,7 +4566,7 @@ void clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
     AString mbuf = clif_validate_chat(sd, ChatType::Party);
     if (!mbuf)
     {
-        clif_displaymessage(s, "Your message could not be sent.");
+        clif_displaymessage(s, "Your message could not be sent."_s);
         return;
     }
 
@@ -4582,7 +4576,7 @@ void clif_parse_PartyMessage(Session *s, dumb_ptr<map_session_data> sd)
     /* Don't send chat that results in an automatic ban. */
     if (tmw_CheckChatSpam(sd, mbuf))
     {
-        clif_displaymessage(s, "Your message could not be sent.");
+        clif_displaymessage(s, "Your message could not be sent."_s);
         return;
     }
 
@@ -5202,7 +5196,7 @@ int clif_check_packet_flood(Session *s, int cmd)
 
         if (sd->packet_flood_in >= battle_config.packet_spam_flood)
         {
-            PRINTF("packet flood detected from %s [0x%x]\n", sd->status_key.name, cmd);
+            PRINTF("packet flood detected from %s [0x%x]\n"_fmt, sd->status_key.name, cmd);
             if (battle_config.packet_spam_kick)
             {
                 s->eof = 1; // Kick
@@ -5219,9 +5213,9 @@ int clif_check_packet_flood(Session *s, int cmd)
 }
 
 inline
-void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, const char *msg)
+void WARN_MALFORMED_MSG(dumb_ptr<map_session_data> sd, ZString msg)
 {
-    PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed message: %s.\n",
+    PRINTF("clif_validate_chat(): %s (ID %d) sent a malformed message: %s.\n"_fmt,
             sd->status_key.name, sd->status_key.account_id, msg);
 }
 /**
@@ -5266,14 +5260,14 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
     /* The player just sent the header (2) and length (2) words. */
     if (!msg_len)
     {
-        WARN_MALFORMED_MSG(sd, "no message sent");
+        WARN_MALFORMED_MSG(sd, "no message sent"_s);
         return AString();
     }
 
     /* The client sent (or claims to have sent) an empty message. */
     if (msg_len == min_len)
     {
-        WARN_MALFORMED_MSG(sd, "empty message");
+        WARN_MALFORMED_MSG(sd, "empty message"_s);
         return AString();
     }
 
@@ -5282,7 +5276,7 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
     {
         /* Disallow malformed messages. */
         clif_setwaitclose(s);
-        WARN_MALFORMED_MSG(sd, "illegal target name");
+        WARN_MALFORMED_MSG(sd, "illegal target name"_s);
         return AString();
     }
 
@@ -5304,18 +5298,18 @@ AString clif_validate_chat(dumb_ptr<map_session_data> sd, ChatType type)
      */
     if (buf_len >= battle_config.chat_maxline)
     {
-        WARN_MALFORMED_MSG(sd, "exceeded maximum message length");
+        WARN_MALFORMED_MSG(sd, "exceeded maximum message length"_s);
         return AString();
     }
 
     if (type == ChatType::Global)
     {
         XString p = pbuf;
-        if (!(p.startswith(sd->status_key.name.to__actual()) && p.xslice_t(name_len).startswith(" : ")))
+        if (!(p.startswith(sd->status_key.name.to__actual()) && p.xslice_t(name_len).startswith(" : "_s)))
         {
             /* Disallow malformed/spoofed messages. */
             clif_setwaitclose(s);
-            WARN_MALFORMED_MSG(sd, "spoofed name/invalid format");
+            WARN_MALFORMED_MSG(sd, "spoofed name/invalid format"_s);
             return AString();
         }
         /* Step beyond the separator. */
@@ -5357,11 +5351,11 @@ void clif_parse(Session *s)
             pc_logout(sd);
             clif_quitsave(s, sd);
 
-            PRINTF("Player [%s] has logged off your server.\n", sd->status_key.name);  // Player logout display [Valaris]
+            PRINTF("Player [%s] has logged off your server.\n"_fmt, sd->status_key.name);  // Player logout display [Valaris]
         }
         else if (sd)
         {                       // not authentified! (refused by char-server or disconnect before to be authentified)
-            PRINTF("Player with account [%d] has logged off your server (not auth account).\n", sd->bl_id);    // Player logout display [Yor]
+            PRINTF("Player with account [%d] has logged off your server (not auth account).\n"_fmt, sd->bl_id);    // Player logout display [Yor]
             map_deliddb(sd);  // account_id has been included in the DB before auth answer
         }
         if (s)
@@ -5436,32 +5430,32 @@ void clif_parse(Session *s)
         if (battle_config.error_log)
         {
             if (s)
-                PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %d\n",
+                PRINTF("\nclif_parse: session #%d, packet 0x%x, lenght %d\n"_fmt,
                         s, cmd, packet_len);
 #ifdef DUMP_UNKNOWN_PACKET
             {
                 int i;
-                ZString packet_txt = "save/packet.txt";
-                PRINTF("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
+                ZString packet_txt = "save/packet.txt"_s;
+                PRINTF("---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F"_fmt);
                 for (i = 0; i < packet_len; i++)
                 {
                     if ((i & 15) == 0)
-                        PRINTF("\n%04X ", i);
-                    PRINTF("%02X ", RFIFOB(s, i));
+                        PRINTF("\n%04X "_fmt, i);
+                    PRINTF("%02X "_fmt, RFIFOB(s, i));
                 }
                 if (sd && sd->state.auth)
                 {
-                    PRINTF("\nAccount ID %d, character ID %d, player name %s.\n",
+                    PRINTF("\nAccount ID %d, character ID %d, player name %s.\n"_fmt,
                             sd->status_key.account_id, sd->status_key.char_id,
                             sd->status_key.name);
                 }
                 else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
-                    PRINTF("\nAccount ID %d.\n", sd->bl_id);
+                    PRINTF("\nAccount ID %d.\n"_fmt, sd->bl_id);
 
                 io::AppendFile fp(packet_txt);
                 if (!fp.is_open())
                 {
-                    PRINTF("clif.c: cant write [%s] !!! data is lost !!!\n",
+                    PRINTF("clif.c: cant write [%s] !!! data is lost !!!\n"_fmt,
                             packet_txt);
                     return;
                 }
@@ -5472,25 +5466,25 @@ void clif_parse(Session *s)
                     if (sd && sd->state.auth)
                     {
                         FPRINTF(fp,
-                                "%s\nPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n",
+                                "%s\nPlayer with account ID %d (character ID %d, player name %s) sent wrong packet:\n"_fmt,
                                 now,
                                 sd->status_key.account_id,
                                 sd->status_key.char_id, sd->status_key.name);
                     }
                     else if (sd)    // not authentified! (refused by char-server or disconnect before to be authentified)
                         FPRINTF(fp,
-                                "%s\nPlayer with account ID %d sent wrong packet:\n",
+                                "%s\nPlayer with account ID %d sent wrong packet:\n"_fmt,
                                 now, sd->bl_id);
 
                     FPRINTF(fp,
-                             "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F");
+                             "\t---- 00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F"_fmt);
                     for (i = 0; i < packet_len; i++)
                     {
                         if ((i & 15) == 0)
-                            FPRINTF(fp, "\n\t%04X ", i);
-                        FPRINTF(fp, "%02X ", RFIFOB(s, i));
+                            FPRINTF(fp, "\n\t%04X "_fmt, i);
+                        FPRINTF(fp, "%02X "_fmt, RFIFOB(s, i));
                     }
-                    FPRINTF(fp, "\n\n");
+                    FPRINTF(fp, "\n\n"_fmt);
                 }
             }
 #endif

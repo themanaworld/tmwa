@@ -42,7 +42,7 @@
 
 #include "../poison.hpp"
 
-AString party_txt = "save/party.txt";
+AString party_txt = "save/party.txt"_s;
 
 static
 Map<int, struct party> party_db;
@@ -64,7 +64,7 @@ AString inter_party_tostr(struct party *p)
     str += STRPRINTF(
             "%d\t"
             "%s\t"
-            "%d,%d\t",
+            "%d,%d\t"_fmt,
             p->party_id,
             p->name,
             p->exp, p->item);
@@ -75,7 +75,7 @@ AString inter_party_tostr(struct party *p)
             continue;
         str += STRPRINTF(
                 "%d,%d\t"
-                "%s\t",
+                "%s\t"_fmt,
                 m->account_id, m->leader,
                 m->name);
     }
@@ -132,10 +132,10 @@ void party_check_deleted_init(struct party *p)
         const CharPair *c = search_character(p->member[i].name);
         if (!c || c->key.account_id != p->member[i].account_id)
         {
-            CHAR_LOG("WARNING: deleting obsolete party member %d %s of %d %s\n",
+            CHAR_LOG("WARNING: deleting obsolete party member %d %s of %d %s\n"_fmt,
                     p->member[i].account_id, p->member[i].name,
                     p->party_id, p->name);
-            PRINTF("WARNING: deleting obsolete party member %d %s of %d %s\n",
+            PRINTF("WARNING: deleting obsolete party member %d %s of %d %s\n"_fmt,
                     p->member[i].account_id, p->member[i].name,
                     p->party_id, p->name);
             p->member[i] = party_member{};
@@ -156,7 +156,7 @@ void inter_party_init(void)
     while (in.getline(line))
     {
         int i, j = 0;
-        if (SSCANF(line, "%d\t%%newid%%\n%n", &i, &j) == 1 && j > 0
+        if (SSCANF(line, "%d\t%%newid%%\n%n"_fmt, &i, &j) == 1 && j > 0
             && party_newid <= i)
         {
             party_newid = i;
@@ -174,7 +174,7 @@ void inter_party_init(void)
         }
         else
         {
-            PRINTF("int_party: broken data [%s] line %d\n", party_txt,
+            PRINTF("int_party: broken data [%s] line %d\n"_fmt, party_txt,
                     c + 1);
         }
         c++;
@@ -195,7 +195,7 @@ int inter_party_save(void)
     io::WriteLock fp(party_txt);
     if (!fp.is_open())
     {
-        PRINTF("int_party: cant write [%s] !!! data is lost !!!\n",
+        PRINTF("int_party: cant write [%s] !!! data is lost !!!\n"_fmt,
                 party_txt);
         return 1;
     }
@@ -251,10 +251,8 @@ int party_check_empty(struct party *p)
 {
     int i;
 
-//  PRINTF("party check empty %08X\n", (int)p);
     for (i = 0; i < MAX_PARTY; i++)
     {
-//      PRINTF("%d acc=%d\n", i, p->member[i].account_id);
         if (p->member[i].account_id > 0)
         {
             return 0;
@@ -283,7 +281,7 @@ void party_check_conflict_sub(struct party *p,
             && p->member[i].name == nick)
         {
             // 別のパーティに偽の所属データがあるので脱退
-            PRINTF("int_party: party conflict! %d %d %d\n", account_id,
+            PRINTF("int_party: party conflict! %d %d %d\n"_fmt, account_id,
                     party_id, p->party_id);
             mapif_parse_PartyLeave(nullptr, p->party_id, account_id);
         }
@@ -313,13 +311,13 @@ void mapif_party_created(Session *s, int account_id, struct party *p)
         WFIFOB(s, 6) = 0;
         WFIFOL(s, 7) = p->party_id;
         WFIFO_STRING(s, 11, p->name, 24);
-        PRINTF("int_party: created! %d %s\n", p->party_id, p->name);
+        PRINTF("int_party: created! %d %s\n"_fmt, p->party_id, p->name);
     }
     else
     {
         WFIFOB(s, 6) = 1;
         WFIFOL(s, 7) = 0;
-        WFIFO_STRING(s, 11, "error", 24);
+        WFIFO_STRING(s, 11, "error"_s, 24);
     }
     WFIFOSET(s, 35);
 }
@@ -332,7 +330,7 @@ void mapif_party_noinfo(Session *s, int party_id)
     WFIFOW(s, 2) = 8;
     WFIFOL(s, 4) = party_id;
     WFIFOSET(s, 8);
-    PRINTF("int_party: info not found %d\n", party_id);
+    PRINTF("int_party: info not found %d\n"_fmt, party_id);
 }
 
 // パーティ情報まとめ送り
@@ -348,7 +346,6 @@ void mapif_party_info(Session *s, struct party *p)
         mapif_sendall(buf, WBUFW(buf, 2));
     else
         mapif_send(s, buf, WBUFW(buf, 2));
-//  PRINTF("int_party: info %d %s\n", p->party_id, p->name);
 }
 
 // パーティメンバ追加可否
@@ -379,7 +376,7 @@ void mapif_party_optionchanged(Session *s, struct party *p, int account_id,
         mapif_sendall(buf, 15);
     else
         mapif_send(s, buf, 15);
-    PRINTF("int_party: option changed %d %d %d %d %d\n", p->party_id,
+    PRINTF("int_party: option changed %d %d %d %d %d\n"_fmt, p->party_id,
             account_id, p->exp, p->item, flag);
 }
 
@@ -394,7 +391,7 @@ void mapif_party_leaved(int party_id, int account_id, CharName name)
     WBUFL(buf, 6) = account_id;
     WBUF_STRING(buf, 10, name.to__actual(), 24);
     mapif_sendall(buf, 34);
-    PRINTF("int_party: party leaved %d %d %s\n", party_id, account_id, name);
+    PRINTF("int_party: party leaved %d %d %s\n"_fmt, party_id, account_id, name);
 }
 
 // パーティマップ更新通知
@@ -421,8 +418,8 @@ void mapif_party_broken(int party_id, int flag)
     WBUFL(buf, 2) = party_id;
     WBUFB(buf, 6) = flag;
     mapif_sendall(buf, 7);
-    PRINTF("int_party: broken %d\n", party_id);
-    CHAR_LOG("int_party: broken %d\n", party_id);
+    PRINTF("int_party: broken %d\n"_fmt, party_id);
+    CHAR_LOG("int_party: broken %d\n"_fmt, party_id);
 }
 
 // パーティ内発言
@@ -451,7 +448,7 @@ void mapif_parse_CreateParty(Session *s, int account_id, PartyName name, CharNam
     {
         if (!name.is_print())
         {
-            PRINTF("int_party: illegal party name [%s]\n", name);
+            PRINTF("int_party: illegal party name [%s]\n"_fmt, name);
             mapif_party_created(s, account_id, NULL);
             return;
         }
@@ -459,7 +456,7 @@ void mapif_parse_CreateParty(Session *s, int account_id, PartyName name, CharNam
 
     if (search_partyname(name) != NULL)
     {
-        PRINTF("int_party: same name party exists [%s]\n", name);
+        PRINTF("int_party: same name party exists [%s]\n"_fmt, name);
         mapif_party_created(s, account_id, NULL);
         return;
     }

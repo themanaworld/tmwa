@@ -50,7 +50,7 @@ bool load_resnametable(ZString filename)
     io::ReadFile in(filename);
     if (!in.is_open())
     {
-        FPRINTF(stderr, "Missing %s\n", filename);
+        FPRINTF(stderr, "Missing %s\n"_fmt, filename);
         return false;
     }
 
@@ -63,7 +63,7 @@ bool load_resnametable(ZString filename)
         if (!extract(line,
                     record<'#'>(&key, &value)))
         {
-            PRINTF("Bad resnametable line: %s\n", line);
+            PRINTF("Bad resnametable line: %s\n"_fmt, line);
             rv = false;
             continue;
         }
@@ -85,7 +85,7 @@ std::vector<uint8_t> grfio_reads(MapName rname)
 {
     MString lfname_;
     // TODO ... instead of here
-    lfname_ += "data/";
+    lfname_ += "data/"_s;
     lfname_ += grfio_resnametable(rname);
     AString lfname = AString(lfname_);
 
@@ -93,7 +93,7 @@ std::vector<uint8_t> grfio_reads(MapName rname)
     int fd = open(lfname.c_str(), O_RDONLY);
     if (fd == -1)
     {
-        FPRINTF(stderr, "Resource %s (file %s) not found\n",
+        FPRINTF(stderr, "Resource %s (file %s) not found\n"_fmt,
                 rname, lfname);
         return {};
     }

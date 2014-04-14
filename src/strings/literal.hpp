@@ -1,8 +1,8 @@
-#ifndef TMWA_STRINGS_ZSTRING_HPP
-#define TMWA_STRINGS_ZSTRING_HPP
-//    strings/zstring.hpp - A borrowed tail slice of a string.
+#ifndef TMWA_STRINGS_LITERAL_HPP
+#define TMWA_STRINGS_LITERAL_HPP
+//    strings/literal.hpp - A string stored in the readonly data segment.
 //
-//    Copyright © 2013 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -24,32 +24,20 @@
 # include <cstring>
 
 # include "base.hpp"
-# include "literal.hpp"
 
 namespace strings
 {
-    /// A non-owning string that is guaranteed to be NUL-terminated.
-    /// This should be only used as a parameter.
-    class ZString : public _crtp_string<ZString, AString, ZPair>
+    /// A statically owned string that is guaranteed to be NUL-terminated.
+    /// This is a more permissive lifetime than anybody else has.
+    class LString : public _crtp_string<LString, AString, LPair>
     {
         iterator _b, _e;
         // optional
         const RString *_base;
+    private:
+        LString(const char *b, const char *e);
+        friend LString operator "" _s(const char *, size_t);
     public:
-        ZString();
-        // no MString
-        ZString(const RString& s);
-        ZString(const AString& s);
-        ZString(const TString& s);
-        ZString(const SString&) = delete;
-        //ZString(ZString);
-        ZString(const XString&) = delete;
-        template<uint8_t n>
-        ZString(const VString<n>& s);
-        ZString(const LString& s);
-        // dangerous
-        ZString(const char *b, const char *e, const RString *base_);
-        ZString(decltype(really_construct_from_a_pointer), const char *s, const RString *base_);
 
         iterator begin() const;
         iterator end() const;
@@ -57,16 +45,38 @@ namespace strings
         const char *c_str() const;
     };
 
+    class FormatString
+    {
+        const char *_format;
+
+        friend constexpr FormatString operator "" _fmt(const char *, size_t);
+        constexpr explicit
+        FormatString(const char *f) : _format(f) {}
+    public:
+        constexpr
+        const char *format_string() { return _format; }
+    };
+
+
     // cxxstdio helpers
     // I think the conversion will happen automatically. TODO test this.
     // Nope, it doesn't, since there's a template
     // Actually, it might now.
-    const char *decay_for_printf(const ZString& zs);
+    const char *decay_for_printf(const LString& zs);
 
     __attribute__((format(scanf, 2, 0)))
-    int do_vscan(ZString in, const char *fmt, va_list ap);
+    int do_vscan(LString in, const char *fmt, va_list ap);
+
+    inline
+    LString operator "" _s(const char *s, size_t)
+    {
+        return LString(s, s + __builtin_strlen(s));
+    }
+    constexpr
+    FormatString operator "" _fmt(const char *s, size_t)
+    {
+        return FormatString(s);
+    }
 } // namespace strings
 
-# include "zstring.tcc"
-
-#endif // TMWA_STRINGS_ZSTRING_HPP
+#endif // TMWA_STRINGS_LSTRING_HPP

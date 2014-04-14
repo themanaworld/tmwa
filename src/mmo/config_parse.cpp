@@ -30,7 +30,7 @@
 
 bool is_comment(XString line)
 {
-    return not line or line.startswith("//");
+    return not line or line.startswith("//"_s);
 }
 
 template<class ZS>
@@ -72,7 +72,7 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
     io::LineReader in(filename);
     if (!in.is_open())
     {
-        PRINTF("Unable to open file: %s\n", filename);
+        PRINTF("Unable to open file: %s\n"_fmt, filename);
         return false;
     }
     io::Line line;
@@ -85,16 +85,16 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
         ZString value;
         if (!config_split(line.text, &key, &value))
         {
-            line.error("Bad config line");
+            line.error("Bad config line"_s);
             rv = false;
             continue;
         }
-        if (key == "import")
+        if (key == "import"_s)
         {
             rv &= load_config_file(value, slave);
             continue;
         }
-        else if (key == "version-lt")
+        else if (key == "version-lt"_s)
         {
             Version vers;
             if (!extract(value, &vers))
@@ -106,7 +106,7 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
                 continue;
             break;
         }
-        else if (key == "version-le")
+        else if (key == "version-le"_s)
         {
             Version vers;
             if (!extract(value, &vers))
@@ -118,7 +118,7 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
                 continue;
             break;
         }
-        else if (key == "version-gt")
+        else if (key == "version-gt"_s)
         {
             Version vers;
             if (!extract(value, &vers))
@@ -130,7 +130,7 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
                 continue;
             break;
         }
-        else if (key == "version-ge")
+        else if (key == "version-ge"_s)
         {
             Version vers;
             if (!extract(value, &vers))
@@ -144,7 +144,7 @@ bool load_config_file(ZString filename, ConfigItemParser slave)
         }
         else if (!slave(key, value))
         {
-            line.error("Bad config key or value");
+            line.error("Bad config key or value"_s);
             rv = false;
             continue;
         }

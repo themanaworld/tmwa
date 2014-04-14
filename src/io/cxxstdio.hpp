@@ -192,7 +192,7 @@ namespace cxxstdio
         int print(T&& t, A&&... a)
         {
             constexpr static
-            const char *print_format = Format::print_format();
+            const char *print_format = Format::print_format().format_string();
             return do_print(std::forward<T>(t), print_format,
                     decay_for_printf(convert_for_printf(std::forward<A>(a)))...);
         }
@@ -207,7 +207,7 @@ namespace cxxstdio
         int scan(T&& t, A&&... a)
         {
             constexpr static
-            const char *scan_format = Format::scan_format();
+            const char *scan_format = Format::scan_format().format_string();
             return do_scan(std::forward<T>(t), scan_format,
                     &convert_for_scanf(*a)...);
         }
@@ -218,7 +218,7 @@ namespace cxxstdio
         struct format_impl                                                  \
         {                                                                   \
             constexpr static                                                \
-            const char *print_format() { return fmt; }                      \
+            FormatString print_format() { return fmt; }                     \
         };                                                                  \
         cxxstdio::PrintFormatter<format_impl>::print(out, ## __VA_ARGS__);  \
     })
@@ -228,7 +228,7 @@ namespace cxxstdio
         struct format_impl                                                  \
         {                                                                   \
             constexpr static                                                \
-            const char *scan_format() { return fmt; }                       \
+            FormatString scan_format() { return fmt; }                      \
         };                                                                  \
         cxxstdio::ScanFormatter<format_impl>::scan(out, ## __VA_ARGS__);    \
     })

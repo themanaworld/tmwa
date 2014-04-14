@@ -67,7 +67,7 @@ namespace sexpr
     VString<4> escape(char c);
     AString escape(XString s);
 
-    ZString token_name(Lexeme tok);
+    LString token_name(Lexeme tok);
 } // namespace sexpr
 
 #endif // TMWA_SEXPR_LEXER_HPP

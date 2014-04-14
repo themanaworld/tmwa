@@ -103,6 +103,8 @@ enum class NpcSubtype : uint8_t
     SHOP,
     SCRIPT,
     MESSAGE,
+
+    COUNT,
 };
 
 enum class mob_stat

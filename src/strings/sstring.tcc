@@ -25,9 +25,4 @@ namespace strings
     SString::SString(const VString<n>& v)
     : _s(v), _b(0), _e(_s.size())
     {}
-
-    template<size_t n>
-    SString::SString(const char (&s)[n])
-    : _s(s), _b(0), _e(_s.size())
-    {}
 } // namespace strings

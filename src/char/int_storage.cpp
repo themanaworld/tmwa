@@ -43,7 +43,7 @@
 
 // ファイル名のデフォルト
 // inter_config_read()で再設定される
-AString storage_txt = "save/storage.txt";
+AString storage_txt = "save/storage.txt"_s;
 
 static
 Map<int, struct storage> storage_db;
@@ -54,7 +54,7 @@ AString storage_tostr(struct storage *p)
 {
     MString str;
     str += STRPRINTF(
-            "%d,%d\t",
+            "%d,%d\t"_fmt,
             p->account_id, p->storage_amount);
 
     int f = 0;
@@ -62,7 +62,7 @@ AString storage_tostr(struct storage *p)
         if (p->storage_[i].nameid && p->storage_[i].amount)
         {
             str += STRPRINTF(
-                    "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d ",
+                    "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d "_fmt,
                     p->storage_[i].id,
                     p->storage_[i].nameid,
                     p->storage_[i].amount,
@@ -106,7 +106,7 @@ bool extract(XString str, struct storage *p)
     std::copy(storage_items.begin(), storage_items.end(), p->storage_.begin());
 
     if (p->storage_amount != storage_items.size())
-        PRINTF("WARNING: storage desync for %d\n", p->account_id);
+        PRINTF("WARNING: storage desync for %d\n"_fmt, p->account_id);
     return true;
 }
 
@@ -131,7 +131,7 @@ void inter_storage_init(void)
     io::ReadFile in(storage_txt);
     if (!in.is_open())
     {
-        PRINTF("cant't read : %s\n", storage_txt);
+        PRINTF("cant't read : %s\n"_fmt, storage_txt);
         return;
     }
 
@@ -145,7 +145,7 @@ void inter_storage_init(void)
         }
         else
         {
-            PRINTF("int_storage: broken data [%s] line %d\n",
+            PRINTF("int_storage: broken data [%s] line %d\n"_fmt,
                     storage_txt, c);
         }
         c++;
@@ -168,7 +168,7 @@ int inter_storage_save(void)
 
     if (!fp.is_open())
     {
-        PRINTF("int_storage: cant write [%s] !!! data is lost !!!\n",
+        PRINTF("int_storage: cant write [%s] !!! data is lost !!!\n"_fmt,
                 storage_txt);
         return 1;
     }
@@ -227,7 +227,7 @@ void mapif_parse_SaveStorage(Session *ss)
     int len = RFIFOW(ss, 2);
     if (sizeof(struct storage) != len - 8)
     {
-        PRINTF("inter storage: data size error %zu %d\n",
+        PRINTF("inter storage: data size error %zu %d\n"_fmt,
                 sizeof(struct storage), len - 8);
     }
     else

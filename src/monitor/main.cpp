@@ -39,10 +39,10 @@
 
 #include "../poison.hpp"
 
-#define LOGIN_SERVER "./login-server"
-#define MAP_SERVER "./map-server"
-#define CHAR_SERVER "./char-server"
-#define CONFIG "conf/eathena-monitor.conf"
+#define LOGIN_SERVER "./login-server"_s
+#define MAP_SERVER "./map-server"_s
+#define CHAR_SERVER "./char-server"_s
+#define CONFIG "conf/eathena-monitor.conf"_s
 
 
 // initialiized to $HOME/tmwserver
@@ -72,17 +72,17 @@ AString make_path(XString base, XString path)
 static
 bool parse_option(XString name, ZString value)
 {
-    if (name == "login_server")
+    if (name == "login_server"_s)
         login_server = value;
-    else if (name == "map_server")
+    else if (name == "map_server"_s)
         map_server = value;
-    else if (name == "char_server")
+    else if (name == "char_server"_s)
         char_server = value;
-    else if (name == "workdir")
+    else if (name == "workdir"_s)
         workdir = value;
     else
     {
-        FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n",
+        FPRINTF(stderr, "WARNING: ingnoring invalid option '%s' : '%s'\n"_fmt,
                 AString(name), value);
         return false;
     }
@@ -96,7 +96,7 @@ bool read_config(ZString filename)
     io::ReadFile in(filename);
     if (!in.is_open())
     {
-        FPRINTF(stderr, "Monitor config file not found: %s\n", filename);
+        FPRINTF(stderr, "Monitor config file not found: %s\n"_fmt, filename);
         exit(1);
     }
 
@@ -109,14 +109,14 @@ bool read_config(ZString filename)
         ZString value;
         if (!config_split(line, &name, &value))
         {
-            PRINTF("Bad line: %s\n", line);
+            PRINTF("Bad line: %s\n"_fmt, line);
             rv = false;
             continue;
         }
 
         if (!parse_option(name, value))
         {
-            PRINTF("Bad key/value: %s\n", line);
+            PRINTF("Bad key/value: %s\n"_fmt, line);
             rv = false;
             continue;
         }
@@ -131,7 +131,7 @@ pid_t start_process(ZString exec)
     pid_t pid = fork();
     if (pid == -1)
     {
-        FPRINTF(stderr, "Failed to fork");
+        FPRINTF(stderr, "Failed to fork"_fmt);
         return 0;
     }
     if (pid == 0)
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
     signal(SIGQUIT, stop_process);
     signal(SIGABRT, stop_process);
 
-    workdir = make_path(ZString(strings::really_construct_from_a_pointer, getenv("HOME"), nullptr), "tmwserver");
+    workdir = make_path(ZString(strings::really_construct_from_a_pointer, getenv("HOME"), nullptr), "tmwserver"_s);
 
     ZString config = CONFIG;
     if (argc > 1)
@@ -186,11 +186,11 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    PRINTF("Starting:\n");
-    PRINTF("* workdir: %s\n",  workdir);
-    PRINTF("* login_server: %s\n", login_server);
-    PRINTF("* char_server: %s\n", char_server);
-    PRINTF("* map_server: %s\n", map_server);
+    PRINTF("Starting:\n"_fmt);
+    PRINTF("* workdir: %s\n"_fmt,  workdir);
+    PRINTF("* login_server: %s\n"_fmt, login_server);
+    PRINTF("* char_server: %s\n"_fmt, char_server);
+    PRINTF("* map_server: %s\n"_fmt, map_server);
     {
         //make sure all possible file descriptors are free for use by the servers
         //if there are file descriptors higher than the max open from before the limit dropped, that's not our problem
@@ -198,9 +198,9 @@ int main(int argc, char *argv[])
         while ((fd = fd.prev()) > io::FD::stderr())
         {
             if (fd.close() == 0)
-                FPRINTF(stderr, "close fd %d\n", fd.uncast_dammit());
+                FPRINTF(stderr, "close fd %d\n"_fmt, fd.uncast_dammit());
         }
-        fd = io::FD::open("/dev/null", O_RDWR);
+        fd = io::FD::open("/dev/null"_s, O_RDWR);
         if (fd == io::FD())
         {
             perror("open /dev/null");
@@ -219,19 +219,19 @@ int main(int argc, char *argv[])
         if (!pid_login)
         {
             pid_login = start_process(login_server);
-            FPRINTF(stderr, "[%s] forked login server: %lu\n",
+            FPRINTF(stderr, "[%s] forked login server: %lu\n"_fmt,
                     timestamp, static_cast<unsigned long>(pid_login));
         }
         if (!pid_char)
         {
             pid_char = start_process(char_server);
-            FPRINTF(stderr, "[%s] forked char server: %lu\n",
+            FPRINTF(stderr, "[%s] forked char server: %lu\n"_fmt,
                     timestamp, static_cast<unsigned long>(pid_char));
         }
         if (!pid_map)
         {
             pid_map = start_process(map_server);
-            FPRINTF(stderr, "[%s] forked map server: %lu\n",
+            FPRINTF(stderr, "[%s] forked map server: %lu\n"_fmt,
                     timestamp, static_cast<unsigned long>(pid_map));
         }
         pid_t dead = wait(NULL);

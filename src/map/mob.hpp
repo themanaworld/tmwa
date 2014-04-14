@@ -34,9 +34,9 @@
 # include "map.hpp"
 # include "skill.t.hpp"
 
-# define ENGLISH_NAME stringish<MobName>("--en--")
-# define JAPANESE_NAME stringish<MobName>("--ja--")
-# define MOB_THIS_MAP stringish<MapName>("this")
+# define ENGLISH_NAME stringish<MobName>("--en--"_s)
+# define JAPANESE_NAME stringish<MobName>("--ja--"_s)
+# define MOB_THIS_MAP stringish<MapName>("this"_s)
 
 struct mob_skill
 {

@@ -345,7 +345,7 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
 
     if ((target_sd = map_id2sd(sd->trade_partner)) != NULL)
     {
-        MAP_LOG_PC(sd, " TRADECOMMIT WITH %d GIVE %d GET %d",
+        MAP_LOG_PC(sd, " TRADECOMMIT WITH %d GIVE %d GET %d"_fmt,
                     target_sd->status_key.char_id, sd->deal_zeny,
                     target_sd->deal_zeny);
         if ((sd->deal_locked >= 1) && (target_sd->deal_locked >= 1))
@@ -360,14 +360,14 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                 {
                     sd->deal_zeny = 0;
                     trade_tradecancel(sd);
-                    MAP_LOG_PC(sd, " TRADECANCEL");
+                    MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
                     return;
                 }
                 if (target_sd->deal_zeny > target_sd->status.zeny)
                 {
                     target_sd->deal_zeny = 0;
                     trade_tradecancel(sd);
-                    MAP_LOG_PC(sd, " TRADECANCEL");
+                    MAP_LOG_PC(sd, " TRADECANCEL"_fmt);
                     return;
                 }
                 sd->trade_partner = 0;
@@ -431,7 +431,7 @@ void trade_tradecommit(dumb_ptr<map_session_data> sd)
                 target_sd->deal_locked = 0;
                 clif_tradecompleted(sd, 0);
                 clif_tradecompleted(target_sd, 0);
-                MAP_LOG_PC(sd, " TRADEOK");
+                MAP_LOG_PC(sd, " TRADEOK"_fmt);
             }
         }
     }

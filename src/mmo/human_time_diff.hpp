@@ -61,21 +61,21 @@ bool extract(XString str, HumanTimeDiff *iv)
         str = str.xislice_t(it2);
 
         short *ptr = nullptr;
-        if (suffix == "y" || suffix == "a")
+        if (suffix == "y"_s || suffix == "a"_s)
             ptr = &iv->year;
-        else if (suffix == "m")
+        else if (suffix == "m"_s)
             ptr = &iv->month;
-        else if (suffix == "j" || suffix == "d")
+        else if (suffix == "j"_s || suffix == "d"_s)
             ptr = &iv->day;
-        else if (suffix == "h")
+        else if (suffix == "h"_s)
             ptr = &iv->hour;
-        else if (suffix == "mn")
+        else if (suffix == "mn"_s)
             ptr = &iv->minute;
-        else if (suffix == "s")
+        else if (suffix == "s"_s)
             ptr = &iv->second;
         else
             return false;
-        if (number.startswith('+') && !number.startswith("+-"))
+        if (number.startswith('+') && !number.startswith("+-"_s))
             number = number.xslice_t(1);
         if (*ptr || !extract(number, ptr))
             return false;

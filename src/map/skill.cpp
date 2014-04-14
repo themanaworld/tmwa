@@ -54,34 +54,34 @@
 
 struct skill_name_db skill_names[] =
 {
-    {SkillID::AC_OWL, "OWL", "Owl's_Eye"},
+    {SkillID::AC_OWL, "OWL"_s, "Owl's_Eye"_s},
 
-    {SkillID::NPC_EMOTION, "EMOTION", "NPC_EMOTION"},
-    {SkillID::NPC_POISON, "POISON", "NPC_POISON"},
-    {SkillID::NPC_SELFDESTRUCTION, "SELFDESTRUCTION", "Kabooooom!"},
-    {SkillID::NPC_SUMMONSLAVE, "SUMMONSLAVE", "NPC_SUMMONSLAVE"},
+    {SkillID::NPC_EMOTION, "EMOTION"_s, "NPC_EMOTION"_s},
+    {SkillID::NPC_POISON, "POISON"_s, "NPC_POISON"_s},
+    {SkillID::NPC_SELFDESTRUCTION, "SELFDESTRUCTION"_s, "Kabooooom!"_s},
+    {SkillID::NPC_SUMMONSLAVE, "SUMMONSLAVE"_s, "NPC_SUMMONSLAVE"_s},
 
-    {SkillID::NV_EMOTE, "EMOTE", "Emote_Skill"},
-    {SkillID::NV_TRADE, "TRADE", "Trade_Skill"},
-    {SkillID::NV_PARTY, "PARTY", "Party_Skill"},
+    {SkillID::NV_EMOTE, "EMOTE"_s, "Emote_Skill"_s},
+    {SkillID::NV_TRADE, "TRADE"_s, "Trade_Skill"_s},
+    {SkillID::NV_PARTY, "PARTY"_s, "Party_Skill"_s},
 
-    {SkillID::TMW_MAGIC, "MAGIC", "General Magic"},
-    {SkillID::TMW_MAGIC_LIFE, "MAGIC_LIFE", "Life Magic"},
-    {SkillID::TMW_MAGIC_WAR, "MAGIC_WAR", "War Magic"},
-    {SkillID::TMW_MAGIC_TRANSMUTE, "MAGIC_TRANSMUTE", "Transmutation Magic"},
-    {SkillID::TMW_MAGIC_NATURE, "MAGIC_NATURE", "Nature Magic"},
-    {SkillID::TMW_MAGIC_ETHER, "MAGIC_ETHER", "Astral Magic"},
-    {SkillID::TMW_MAGIC_DARK, "MAGIC_DARK", "Dark Magic"},
-    {SkillID::TMW_MAGIC_LIGHT, "MAGIC_LIGHT", "Light Magic"},
+    {SkillID::TMW_MAGIC, "MAGIC"_s, "General Magic"_s},
+    {SkillID::TMW_MAGIC_LIFE, "MAGIC_LIFE"_s, "Life Magic"_s},
+    {SkillID::TMW_MAGIC_WAR, "MAGIC_WAR"_s, "War Magic"_s},
+    {SkillID::TMW_MAGIC_TRANSMUTE, "MAGIC_TRANSMUTE"_s, "Transmutation Magic"_s},
+    {SkillID::TMW_MAGIC_NATURE, "MAGIC_NATURE"_s, "Nature Magic"_s},
+    {SkillID::TMW_MAGIC_ETHER, "MAGIC_ETHER"_s, "Astral Magic"_s},
+    {SkillID::TMW_MAGIC_DARK, "MAGIC_DARK"_s, "Dark Magic"_s},
+    {SkillID::TMW_MAGIC_LIGHT, "MAGIC_LIGHT"_s, "Light Magic"_s},
 
-    {SkillID::TMW_BRAWLING, "BRAWLING", "Brawling"},
-    {SkillID::TMW_LUCKY_COUNTER, "LUCKY_COUNTER", "Lucky Counter"},
-    {SkillID::TMW_SPEED, "SPEED", "Speed"},
-    {SkillID::TMW_RESIST_POISON, "RESIST_POISON", "Resist Poison"},
-    {SkillID::TMW_ASTRAL_SOUL, "ASTRAL_SOUL", "Astral Soul"},
-    {SkillID::TMW_RAGING, "RAGING", "Raging"},
+    {SkillID::TMW_BRAWLING, "BRAWLING"_s, "Brawling"_s},
+    {SkillID::TMW_LUCKY_COUNTER, "LUCKY_COUNTER"_s, "Lucky Counter"_s},
+    {SkillID::TMW_SPEED, "SPEED"_s, "Speed"_s},
+    {SkillID::TMW_RESIST_POISON, "RESIST_POISON"_s, "Resist Poison"_s},
+    {SkillID::TMW_ASTRAL_SOUL, "ASTRAL_SOUL"_s, "Astral Soul"_s},
+    {SkillID::TMW_RAGING, "RAGING"_s, "Raging"_s},
 
-    {SkillID::ZERO, "", ""}
+    {SkillID::ZERO, ""_s, ""_s}
 };
 
 earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
@@ -690,7 +690,7 @@ int skill_status_change_active(dumb_ptr<block_list> bl, StatusChange type)
     if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
     {
         if (battle_config.error_log)
-            PRINTF("skill_status_change_active: neither MOB nor PC !\n");
+            PRINTF("skill_status_change_active: neither MOB nor PC !\n"_fmt);
         return 0;
     }
 
@@ -715,7 +715,7 @@ void skill_status_change_end(dumb_ptr<block_list> bl, StatusChange type, TimerDa
     if (bl->bl_type != BL::PC && bl->bl_type != BL::MOB)
     {
         if (battle_config.error_log)
-            PRINTF("skill_status_change_end: neither MOB nor PC !\n");
+            PRINTF("skill_status_change_end: neither MOB nor PC !\n"_fmt);
         return;
     }
     sc_data = battle_get_sc_data(bl);
@@ -971,7 +971,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
     else
     {
         if (battle_config.error_log)
-            PRINTF("skill_status_change_start: neither MOB nor PC !\n");
+            PRINTF("skill_status_change_start: neither MOB nor PC !\n"_fmt);
         return 0;
     }
 
@@ -1045,7 +1045,7 @@ int skill_status_effect(dumb_ptr<block_list> bl, StatusChange type,
             break;
         default:
             if (battle_config.error_log)
-                PRINTF("UnknownStatusChange [%d]\n", type);
+                PRINTF("UnknownStatusChange [%d]\n"_fmt, type);
             return 0;
     }
 
@@ -1175,22 +1175,22 @@ void skill_unit_timer_sub_ondelete(dumb_ptr<block_list> bl,
 static
 SP scan_stat(XString statname)
 {
-    if (statname == "str")
+    if (statname == "str"_s)
         return SP::STR;
-    if (statname == "dex")
+    if (statname == "dex"_s)
         return SP::DEX;
-    if (statname == "agi")
+    if (statname == "agi"_s)
         return SP::AGI;
-    if (statname == "vit")
+    if (statname == "vit"_s)
         return SP::VIT;
-    if (statname == "int")
+    if (statname == "int"_s)
         return SP::INT;
-    if (statname == "luk")
+    if (statname == "luk"_s)
         return SP::LUK;
-    if (statname == "none")
+    if (statname == "none"_s)
         return SP::ZERO;
 
-    FPRINTF(stderr, "Unknown stat `%s'\n", AString(statname));
+    FPRINTF(stderr, "Unknown stat `%s'\n"_fmt, AString(statname));
     return SP::ZERO;
 }
 
@@ -1199,7 +1199,7 @@ bool skill_readdb(ZString filename)
     io::ReadFile in(filename);
     if (!in.is_open())
     {
-        PRINTF("can't read %s\n", filename);
+        PRINTF("can't read %s\n"_fmt, filename);
         return false;
     }
 
@@ -1209,7 +1209,7 @@ bool skill_readdb(ZString filename)
     {
         // is_comment only works for whole-line comments
         // that could change once the Z dependency is dropped ...
-        XString comment = "//";
+        LString comment = "//"_s;
         XString line = line_.xislice_h(std::search(line_.begin(), line_.end(), comment.begin(), comment.end())).rstrip();
         if (!line)
             continue;
@@ -1251,9 +1251,9 @@ bool skill_readdb(ZString filename)
             continue;
         }
 
-        if (castcancel == "yes")
+        if (castcancel == "yes"_s)
             skdb.castcancel = true;
-        else if (castcancel == "no")
+        else if (castcancel == "no"_s)
             skdb.castcancel = false;
         else
         {
@@ -1261,17 +1261,17 @@ bool skill_readdb(ZString filename)
             continue;
         }
 
-        if (flags == "passive")
+        if (flags == "passive"_s)
         {
             skill_pool_register(i);
             skdb.poolflags = SkillFlags::POOL_FLAG;
         }
-        else if (flags == "active")
+        else if (flags == "active"_s)
         {
             skill_pool_register(i);
             skdb.poolflags = SkillFlags::POOL_FLAG | SkillFlags::POOL_ACTIVE;
         }
-        else if (flags == "no")
+        else if (flags == "no"_s)
             skdb.poolflags = SkillFlags::ZERO;
         else
         {
@@ -1290,7 +1290,7 @@ bool skill_readdb(ZString filename)
         skill_db[i] = skdb;
         skill_lookup_by_id(i).desc = RString(tmp);
     }
-    PRINTF("read %s done\n", filename);
+    PRINTF("read %s done\n"_fmt, filename);
 
     return rv;
 }

@@ -98,12 +98,12 @@ int magic_message(dumb_ptr<map_session_data> caster, XString source_invocation)
             effects = NULL;
 
 #ifdef DEBUG
-        FPRINTF(stderr, "Found spell `%s', triggered = %d\n", spell_,
+        FPRINTF(stderr, "Found spell `%s', triggered = %d\n"_fmt, spell_,
                  effects != NULL);
 #endif
 
-        MAP_LOG_PC(caster, "CAST %s %s",
-                    spell->name, effects ? "SUCCESS" : "FAILURE");
+        MAP_LOG_PC(caster, "CAST %s %s"_fmt,
+                    spell->name, effects ? "SUCCESS"_s : "FAILURE"_s);
 
         if (effects)
         {

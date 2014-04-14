@@ -47,12 +47,6 @@ namespace strings
         owned->body[diff] = '\0';
     }
 
-    template<size_t n>
-    RString::RString(const char (&s)[n])
-    {
-        _assign(s, s + strlen(s));
-    }
-
     template<class It>
     RString::RString(It b, It e)
     {

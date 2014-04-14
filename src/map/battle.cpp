@@ -1965,7 +1965,7 @@ struct Damage battle_calc_attack(BF attack_type,
                                             flag);
         default:
             if (battle_config.error_log)
-                PRINTF("battle_calc_attack: unknwon attack type ! %d\n",
+                PRINTF("battle_calc_attack: unknwon attack type ! %d\n"_fmt,
                         attack_type);
             break;
     }
@@ -2040,7 +2040,7 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
 
             wd.damage -= reduction;
             MAP_LOG_PC(target->is_player(),
-                        "MAGIC-ABSORB-DMG %d", reduction);
+                        "MAGIC-ABSORB-DMG %d"_fmt, reduction);
         }
 
         {
@@ -2064,9 +2064,9 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
                     && bool(sd->status.inventory[weapon_index].equip & EPOS::WEAPON))
                 weapon = sd->inventory_data[weapon_index]->nameid;
 
-            MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d",
+            MAP_LOG("PC%d %s:%d,%d WPNDMG %s%d %d FOR %d WPN %d"_fmt,
                      sd->status_key.char_id, src->bl_m->name_, src->bl_x, src->bl_y,
-                     (target->bl_type == BL::PC) ? "PC" : "MOB",
+                     (target->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
                      (target->bl_type == BL::PC)
                      ? target->is_player()-> status_key.char_id
                      : target->bl_id,
@@ -2077,9 +2077,9 @@ ATK battle_weapon_attack(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         if (target->bl_type == BL::PC)
         {
             dumb_ptr<map_session_data> sd2 = target->is_player();
-            MAP_LOG("PC%d %s:%d,%d WPNINJURY %s%d %d FOR %d",
+            MAP_LOG("PC%d %s:%d,%d WPNINJURY %s%d %d FOR %d"_fmt,
                      sd2->status_key.char_id, target->bl_m->name_, target->bl_x, target->bl_y,
-                     (src->bl_type == BL::PC) ? "PC" : "MOB",
+                     (src->bl_type == BL::PC) ? "PC"_s : "MOB"_s,
                      (src->bl_type == BL::PC)
                      ? src->is_player()->status_key.char_id
                      : src->bl_id,
@@ -2245,9 +2245,6 @@ int battle_check_target(dumb_ptr<block_list> src, dumb_ptr<block_list> target,
         else                    // パーティ検索なら同じパーティじゃない時点で否定
             return 0;
     }
-
-//PRINTF("ss:%d src:%d target:%d flag:0x%x %d %d ",ss->bl_id,src->bl_id,target->bl_id,flag,src->bl_type,target->bl_type);
-//PRINTF("p:%d %d g:%d %d\n",s_p,t_p,s_g,t_g);
 
     if (ss->bl_type == BL::PC && target->bl_type == BL::PC)
     {                           // 両方PVPモードなら否定（敵）
@@ -2430,17 +2427,17 @@ bool battle_config_read(ZString cfgName)
     io::ReadFile in(cfgName);
     if (!in.is_open())
     {
-        PRINTF("file not found: %s\n", cfgName);
+        PRINTF("file not found: %s\n"_fmt, cfgName);
         return false;
     }
 
     AString line;
     while (in.getline(line))
     {
-#define BATTLE_CONFIG_VAR(name) {{#name}, &battle_config.name}
+#define BATTLE_CONFIG_VAR(name) {#name##_s, &battle_config.name}
         const struct
         {
-            ZString str;
+            LString str;
             int *val;
         } data[] =
         {
@@ -2550,12 +2547,12 @@ bool battle_config_read(ZString cfgName)
         ZString w2;
         if (!config_split(line, &w1, &w2))
         {
-            PRINTF("Bad config line: %s\n", line);
+            PRINTF("Bad config line: %s\n"_fmt, line);
             rv = false;
             continue;
         }
 
-        if (w1 == "import")
+        if (w1 == "import"_s)
         {
             battle_config_read(w2);
             continue;
@@ -2568,7 +2565,7 @@ bool battle_config_read(ZString cfgName)
                 goto continue_outer;
             }
 
-        PRINTF("WARNING: unknown battle conf key: %s\n", AString(w1));
+        PRINTF("WARNING: unknown battle conf key: %s\n"_fmt, AString(w1));
         rv = false;
 
     continue_outer:

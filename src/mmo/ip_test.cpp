@@ -66,32 +66,32 @@ TEST(ip4addr, cmp)
 TEST(ip4addr, str)
 {
     IP4Address a;
-    EXPECT_EQ("0.0.0.0", STRNPRINTF(17, "%s", a));
-    EXPECT_EQ("127.0.0.1", STRNPRINTF(17, "%s", IP4_LOCALHOST));
-    EXPECT_EQ("255.255.255.255", STRNPRINTF(17, "%s", IP4_BROADCAST));
+    EXPECT_EQ("0.0.0.0"_s, STRNPRINTF(17, "%s"_fmt, a));
+    EXPECT_EQ("127.0.0.1"_s, STRNPRINTF(17, "%s"_fmt, IP4_LOCALHOST));
+    EXPECT_EQ("255.255.255.255"_s, STRNPRINTF(17, "%s"_fmt, IP4_BROADCAST));
 }
 
 TEST(ip4addr, extract)
 {
     IP4Address a;
-    EXPECT_TRUE(extract("0.0.0.0", &a));
-    EXPECT_EQ("0.0.0.0", STRNPRINTF(16, "%s", a));
-    EXPECT_TRUE(extract("127.0.0.1", &a));
-    EXPECT_EQ("127.0.0.1", STRNPRINTF(16, "%s", a));
-    EXPECT_TRUE(extract("255.255.255.255", &a));
-    EXPECT_EQ("255.255.255.255", STRNPRINTF(16, "%s", a));
-    EXPECT_TRUE(extract("1.2.3.4", &a));
-    EXPECT_EQ("1.2.3.4", STRNPRINTF(16, "%s", a));
+    EXPECT_TRUE(extract("0.0.0.0"_s, &a));
+    EXPECT_EQ("0.0.0.0"_s, STRNPRINTF(16, "%s"_fmt, a));
+    EXPECT_TRUE(extract("127.0.0.1"_s, &a));
+    EXPECT_EQ("127.0.0.1"_s, STRNPRINTF(16, "%s"_fmt, a));
+    EXPECT_TRUE(extract("255.255.255.255"_s, &a));
+    EXPECT_EQ("255.255.255.255"_s, STRNPRINTF(16, "%s"_fmt, a));
+    EXPECT_TRUE(extract("1.2.3.4"_s, &a));
+    EXPECT_EQ("1.2.3.4"_s, STRNPRINTF(16, "%s"_fmt, a));
 
-    EXPECT_FALSE(extract("1.2.3.4.5", &a));
-    EXPECT_FALSE(extract("1.2.3.4.", &a));
-    EXPECT_FALSE(extract("1.2.3.", &a));
-    EXPECT_FALSE(extract("1.2.3", &a));
-    EXPECT_FALSE(extract("1.2.", &a));
-    EXPECT_FALSE(extract("1.2", &a));
-    EXPECT_FALSE(extract("1.", &a));
-    EXPECT_FALSE(extract("1", &a));
-    EXPECT_FALSE(extract("", &a));
+    EXPECT_FALSE(extract("1.2.3.4.5"_s, &a));
+    EXPECT_FALSE(extract("1.2.3.4."_s, &a));
+    EXPECT_FALSE(extract("1.2.3."_s, &a));
+    EXPECT_FALSE(extract("1.2.3"_s, &a));
+    EXPECT_FALSE(extract("1.2."_s, &a));
+    EXPECT_FALSE(extract("1.2"_s, &a));
+    EXPECT_FALSE(extract("1."_s, &a));
+    EXPECT_FALSE(extract("1"_s, &a));
+    EXPECT_FALSE(extract(""_s, &a));
 }
 
 
@@ -108,139 +108,139 @@ TEST(ip4mask, body)
 TEST(ip4mask, str)
 {
     IP4Mask m;
-    EXPECT_EQ("0.0.0.0/0.0.0.0", STRNPRINTF(33, "%s", m));
+    EXPECT_EQ("0.0.0.0/0.0.0.0"_s, STRNPRINTF(33, "%s"_fmt, m));
     m = IP4Mask(IP4_LOCALHOST, IP4_BROADCAST);
-    EXPECT_EQ("127.0.0.1/255.255.255.255", STRNPRINTF(33, "%s", m));
+    EXPECT_EQ("127.0.0.1/255.255.255.255"_s, STRNPRINTF(33, "%s"_fmt, m));
 }
 
 TEST(ip4mask, extract)
 {
     IP4Mask m;
-    EXPECT_FALSE(extract("9.8.7.6/33", &m));
-    EXPECT_FALSE(extract("9.8.7.6.5", &m));
-    EXPECT_FALSE(extract("9.8.7.6/", &m));
-    EXPECT_FALSE(extract("9.8.7", &m));
-    EXPECT_FALSE(extract("9.8", &m));
-    EXPECT_FALSE(extract("9", &m));
+    EXPECT_FALSE(extract("9.8.7.6/33"_s, &m));
+    EXPECT_FALSE(extract("9.8.7.6.5"_s, &m));
+    EXPECT_FALSE(extract("9.8.7.6/"_s, &m));
+    EXPECT_FALSE(extract("9.8.7"_s, &m));
+    EXPECT_FALSE(extract("9.8"_s, &m));
+    EXPECT_FALSE(extract("9"_s, &m));
 
-    EXPECT_TRUE(extract("127.0.0.1", &m));
-    EXPECT_EQ("127.0.0.1/255.255.255.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("127.0.0.1.", &m));
-    EXPECT_EQ("127.0.0.1/255.255.255.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("127.0.0.", &m));
-    EXPECT_EQ("127.0.0.0/255.255.255.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("127.0.", &m));
-    EXPECT_EQ("127.0.0.0/255.255.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("127.", &m));
-    EXPECT_EQ("127.0.0.0/255.0.0.0", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("127.0.0.1"_s, &m));
+    EXPECT_EQ("127.0.0.1/255.255.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("127.0.0.1."_s, &m));
+    EXPECT_EQ("127.0.0.1/255.255.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("127.0.0."_s, &m));
+    EXPECT_EQ("127.0.0.0/255.255.255.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("127.0."_s, &m));
+    EXPECT_EQ("127.0.0.0/255.255.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("127."_s, &m));
+    EXPECT_EQ("127.0.0.0/255.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
 
-    EXPECT_TRUE(extract("1.2.3.4/255.255.255.255", &m));
-    EXPECT_EQ("1.2.3.4/255.255.255.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.2.3.0/255.255.255.0", &m));
-    EXPECT_EQ("1.2.3.0/255.255.255.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.2.0.4/255.255.0.255", &m));
-    EXPECT_EQ("1.2.0.4/255.255.0.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.2.0.0/255.255.0.0", &m));
-    EXPECT_EQ("1.2.0.0/255.255.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.0.3.4/255.0.255.255", &m));
-    EXPECT_EQ("1.0.3.4/255.0.255.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.0.3.0/255.0.255.0", &m));
-    EXPECT_EQ("1.0.3.0/255.0.255.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.0.0.4/255.0.0.255", &m));
-    EXPECT_EQ("1.0.0.4/255.0.0.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("1.0.0.0/255.0.0.0", &m));
-    EXPECT_EQ("1.0.0.0/255.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.2.3.4/0.255.255.255", &m));
-    EXPECT_EQ("0.2.3.4/0.255.255.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.2.3.0/0.255.255.0", &m));
-    EXPECT_EQ("0.2.3.0/0.255.255.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.2.0.4/0.255.0.255", &m));
-    EXPECT_EQ("0.2.0.4/0.255.0.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.2.0.0/0.255.0.0", &m));
-    EXPECT_EQ("0.2.0.0/0.255.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.3.4/0.0.255.255", &m));
-    EXPECT_EQ("0.0.3.4/0.0.255.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.3.0/0.0.255.0", &m));
-    EXPECT_EQ("0.0.3.0/0.0.255.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.4/0.0.0.255", &m));
-    EXPECT_EQ("0.0.0.4/0.0.0.255", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/0.0.0.0", &m));
-    EXPECT_EQ("0.0.0.0/0.0.0.0", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("1.2.3.4/255.255.255.255"_s, &m));
+    EXPECT_EQ("1.2.3.4/255.255.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.2.3.0/255.255.255.0"_s, &m));
+    EXPECT_EQ("1.2.3.0/255.255.255.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.2.0.4/255.255.0.255"_s, &m));
+    EXPECT_EQ("1.2.0.4/255.255.0.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.2.0.0/255.255.0.0"_s, &m));
+    EXPECT_EQ("1.2.0.0/255.255.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.0.3.4/255.0.255.255"_s, &m));
+    EXPECT_EQ("1.0.3.4/255.0.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.0.3.0/255.0.255.0"_s, &m));
+    EXPECT_EQ("1.0.3.0/255.0.255.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.0.0.4/255.0.0.255"_s, &m));
+    EXPECT_EQ("1.0.0.4/255.0.0.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("1.0.0.0/255.0.0.0"_s, &m));
+    EXPECT_EQ("1.0.0.0/255.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.2.3.4/0.255.255.255"_s, &m));
+    EXPECT_EQ("0.2.3.4/0.255.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.2.3.0/0.255.255.0"_s, &m));
+    EXPECT_EQ("0.2.3.0/0.255.255.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.2.0.4/0.255.0.255"_s, &m));
+    EXPECT_EQ("0.2.0.4/0.255.0.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.2.0.0/0.255.0.0"_s, &m));
+    EXPECT_EQ("0.2.0.0/0.255.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.3.4/0.0.255.255"_s, &m));
+    EXPECT_EQ("0.0.3.4/0.0.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.3.0/0.0.255.0"_s, &m));
+    EXPECT_EQ("0.0.3.0/0.0.255.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.4/0.0.0.255"_s, &m));
+    EXPECT_EQ("0.0.0.4/0.0.0.255"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/0.0.0.0"_s, &m));
+    EXPECT_EQ("0.0.0.0/0.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
 
     // please don't do this
-    EXPECT_TRUE(extract("120.248.200.217/89.57.126.5", &m));
-    EXPECT_EQ("88.56.72.1/89.57.126.5", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("120.248.200.217/89.57.126.5"_s, &m));
+    EXPECT_EQ("88.56.72.1/89.57.126.5"_s, STRNPRINTF(32, "%s"_fmt, m));
 
-    EXPECT_TRUE(extract("0.0.0.0/32", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.255", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("0.0.0.0/32"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.255"_s, STRNPRINTF(32, "%s"_fmt, m));
 
-    EXPECT_TRUE(extract("0.0.0.0/31", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.254", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/30", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.252", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/29", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.248", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/28", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.240", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/27", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.224", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/26", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.192", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/25", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.128", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/24", &m));
-    EXPECT_EQ("0.0.0.0/255.255.255.0", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("0.0.0.0/31"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.254"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/30"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.252"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/29"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.248"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/28"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.240"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/27"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.224"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/26"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.192"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/25"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.128"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/24"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.255.0"_s, STRNPRINTF(32, "%s"_fmt, m));
 
-    EXPECT_TRUE(extract("0.0.0.0/23", &m));
-    EXPECT_EQ("0.0.0.0/255.255.254.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/22", &m));
-    EXPECT_EQ("0.0.0.0/255.255.252.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/21", &m));
-    EXPECT_EQ("0.0.0.0/255.255.248.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/20", &m));
-    EXPECT_EQ("0.0.0.0/255.255.240.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/19", &m));
-    EXPECT_EQ("0.0.0.0/255.255.224.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/18", &m));
-    EXPECT_EQ("0.0.0.0/255.255.192.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/17", &m));
-    EXPECT_EQ("0.0.0.0/255.255.128.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/16", &m));
-    EXPECT_EQ("0.0.0.0/255.255.0.0", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("0.0.0.0/23"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.254.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/22"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.252.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/21"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.248.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/20"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.240.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/19"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.224.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/18"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.192.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/17"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.128.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/16"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.255.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
 
-    EXPECT_TRUE(extract("0.0.0.0/15", &m));
-    EXPECT_EQ("0.0.0.0/255.254.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/14", &m));
-    EXPECT_EQ("0.0.0.0/255.252.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/13", &m));
-    EXPECT_EQ("0.0.0.0/255.248.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/12", &m));
-    EXPECT_EQ("0.0.0.0/255.240.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/11", &m));
-    EXPECT_EQ("0.0.0.0/255.224.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/10", &m));
-    EXPECT_EQ("0.0.0.0/255.192.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/9", &m));
-    EXPECT_EQ("0.0.0.0/255.128.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/8", &m));
-    EXPECT_EQ("0.0.0.0/255.0.0.0", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("0.0.0.0/15"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.254.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/14"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.252.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/13"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.248.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/12"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.240.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/11"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.224.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/10"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.192.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/9"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.128.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/8"_s, &m));
+    EXPECT_EQ("0.0.0.0/255.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
 
-    EXPECT_TRUE(extract("0.0.0.0/7", &m));
-    EXPECT_EQ("0.0.0.0/254.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/6", &m));
-    EXPECT_EQ("0.0.0.0/252.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/5", &m));
-    EXPECT_EQ("0.0.0.0/248.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/4", &m));
-    EXPECT_EQ("0.0.0.0/240.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/3", &m));
-    EXPECT_EQ("0.0.0.0/224.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/2", &m));
-    EXPECT_EQ("0.0.0.0/192.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/1", &m));
-    EXPECT_EQ("0.0.0.0/128.0.0.0", STRNPRINTF(32, "%s", m));
-    EXPECT_TRUE(extract("0.0.0.0/0", &m));
-    EXPECT_EQ("0.0.0.0/0.0.0.0", STRNPRINTF(32, "%s", m));
+    EXPECT_TRUE(extract("0.0.0.0/7"_s, &m));
+    EXPECT_EQ("0.0.0.0/254.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/6"_s, &m));
+    EXPECT_EQ("0.0.0.0/252.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/5"_s, &m));
+    EXPECT_EQ("0.0.0.0/248.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/4"_s, &m));
+    EXPECT_EQ("0.0.0.0/240.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/3"_s, &m));
+    EXPECT_EQ("0.0.0.0/224.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/2"_s, &m));
+    EXPECT_EQ("0.0.0.0/192.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/1"_s, &m));
+    EXPECT_EQ("0.0.0.0/128.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
+    EXPECT_TRUE(extract("0.0.0.0/0"_s, &m));
+    EXPECT_EQ("0.0.0.0/0.0.0.0"_s, STRNPRINTF(32, "%s"_fmt, m));
 }
 
 TEST(ip4mask, cover)
@@ -344,7 +344,7 @@ TEST(ip4mask, cover)
     EXPECT_FALSE(m.covers(IP4Address({192, 169, 0, 0})));
 
     // OTOH this is crazy
-    EXPECT_TRUE(extract("120.248.200.217/89.57.126.5", &m));
+    EXPECT_TRUE(extract("120.248.200.217/89.57.126.5"_s, &m));
     EXPECT_TRUE(m.covers(IP4Address({120, 248, 200, 217})));
     EXPECT_TRUE(m.covers(IP4Address({88, 56, 72, 1})));
     EXPECT_FALSE(m.covers(IP4Address({88, 56, 72, 0})));

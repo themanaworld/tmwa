@@ -104,11 +104,11 @@ bool extract(XString str, IP4Mask *rv)
 VString<15> convert_for_printf(IP4Address a_)
 {
     const uint8_t *a = a_.bytes();
-    return STRNPRINTF(16, "%hhu.%hhu.%hhu.%hhu", a[0], a[1], a[2], a[3]);
+    return STRNPRINTF(16, "%hhu.%hhu.%hhu.%hhu"_fmt, a[0], a[1], a[2], a[3]);
 }
 
 VString<31> convert_for_printf(IP4Mask a)
 {
-    return STRNPRINTF(32, "%s/%s",
+    return STRNPRINTF(32, "%s/%s"_fmt,
             a.addr(), a.mask());
 }

@@ -187,7 +187,7 @@ dumb_ptr<env_t> spell_create_env(magic_conf_t *conf, dumb_ptr<spell_t> spell,
             break;
 
         default:
-            FPRINTF(stderr, "Unexpected spellarg type %d\n",
+            FPRINTF(stderr, "Unexpected spellarg type %d\n"_fmt,
                      spell->spellarg_ty);
     }
 
@@ -370,7 +370,7 @@ effect_set_t *spellguard_check_sub(spellguard_check_t *check,
                 return NULL;
 
         default:
-            FPRINTF(stderr, "Unexpected spellguard type %d\n",
+            FPRINTF(stderr, "Unexpected spellguard type %d\n"_fmt,
                     guard->ty);
             return NULL;
     }
@@ -519,7 +519,7 @@ void spell_bind(dumb_ptr<map_session_data> subject, dumb_ptr<invocation> invocat
         {
             int *i = NULL;
             FPRINTF(stderr,
-                     "[magic] INTERNAL ERROR: Attempt to re-bind spell invocation `%s'\n",
+                     "[magic] INTERNAL ERROR: Attempt to re-bind spell invocation `%s'\n"_fmt,
                      invocation->spell->name);
             *i = 1;
             return;

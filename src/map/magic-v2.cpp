@@ -61,7 +61,7 @@ namespace magic_v2
         if (zid != id)
         {
             FPRINTF(stderr,
-                "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n",
+                "[magic-conf] INTERNAL ERROR: Builtin special var %s interned to %d, not %d as it should be!\n"_fmt,
                 name, zid, id);
         }
         return zid == id;
@@ -72,15 +72,15 @@ namespace magic_v2
     {
         bool ok = true;
 
-        ok &= INTERN_ASSERT("min_casttime", VAR_MIN_CASTTIME);
-        ok &= INTERN_ASSERT("obscure_chance", VAR_OBSCURE_CHANCE);
-        ok &= INTERN_ASSERT("caster", VAR_CASTER);
-        ok &= INTERN_ASSERT("spellpower", VAR_SPELLPOWER);
-        ok &= INTERN_ASSERT("self_spell", VAR_SPELL);
-        ok &= INTERN_ASSERT("self_invocation", VAR_INVOCATION);
-        ok &= INTERN_ASSERT("target", VAR_TARGET);
-        ok &= INTERN_ASSERT("script_target", VAR_SCRIPTTARGET);
-        ok &= INTERN_ASSERT("location", VAR_LOCATION);
+        ok &= INTERN_ASSERT("min_casttime"_s, VAR_MIN_CASTTIME);
+        ok &= INTERN_ASSERT("obscure_chance"_s, VAR_OBSCURE_CHANCE);
+        ok &= INTERN_ASSERT("caster"_s, VAR_CASTER);
+        ok &= INTERN_ASSERT("spellpower"_s, VAR_SPELLPOWER);
+        ok &= INTERN_ASSERT("self_spell"_s, VAR_SPELL);
+        ok &= INTERN_ASSERT("self_invocation"_s, VAR_INVOCATION);
+        ok &= INTERN_ASSERT("target"_s, VAR_TARGET);
+        ok &= INTERN_ASSERT("script_target"_s, VAR_SCRIPTTARGET);
+        ok &= INTERN_ASSERT("location"_s, VAR_LOCATION);
 
         return ok;
     }
@@ -91,7 +91,7 @@ namespace magic_v2
     {
         if (!const_defm.insert({name, *val}).second)
         {
-            span.error(STRPRINTF("Redefinition of constant '%s'", name));
+            span.error(STRPRINTF("Redefinition of constant '%s'"_fmt, name));
             return false;
         }
         return true;
@@ -184,14 +184,14 @@ namespace magic_v2
         auto pair1 = magic_conf.spells_by_name.insert({spell->name, spell});
         if (!pair1.second)
         {
-            span.error(STRPRINTF("Attempt to redefine spell '%s'", spell->name));
+            span.error(STRPRINTF("Attempt to redefine spell '%s'"_fmt, spell->name));
             return false;
         }
 
         auto pair2 = magic_conf.spells_by_invocation.insert({spell->invocation, spell});
         if (!pair2.second)
         {
-            span.error(STRPRINTF("Attempt to redefine spell invocation '%s'", spell->invocation));
+            span.error(STRPRINTF("Attempt to redefine spell invocation '%s'"_fmt, spell->invocation));
             magic_conf.spells_by_name.erase(pair1.first);
             return false;
         }
@@ -203,14 +203,14 @@ namespace magic_v2
         auto pair1 = magic_conf.anchors_by_name.insert({anchor->name, anchor});
         if (!pair1.second)
         {
-            span.error(STRPRINTF("Attempt to redefine teleport anchor '%s'", anchor->name));
+            span.error(STRPRINTF("Attempt to redefine teleport anchor '%s'"_fmt, anchor->name));
             return false;
         }
 
         auto pair2 = magic_conf.anchors_by_invocation.insert({anchor->name, anchor});
         if (!pair2.second)
         {
-            span.error(STRPRINTF("Attempt to redefine anchor invocation '%s'", anchor->invocation));
+            span.error(STRPRINTF("Attempt to redefine anchor invocation '%s'"_fmt, anchor->invocation));
             magic_conf.anchors_by_name.erase(pair1.first);
             return false;
         }
@@ -223,7 +223,7 @@ namespace magic_v2
         RString name = proc->name;
         if (!procs.insert({name, std::move(*proc)}).second)
         {
-            span.error("procedure already exists");
+            span.error("procedure already exists"_s);
             return false;
         }
         return true;
@@ -234,7 +234,7 @@ namespace magic_v2
         auto pi = procs.find(name);
         if (pi == procs.end())
         {
-            span.error(STRPRINTF("Unknown procedure '%s'", name));
+            span.error(STRPRINTF("Unknown procedure '%s'"_fmt, name));
             return false;
         }
 
@@ -242,7 +242,7 @@ namespace magic_v2
 
         if (p->argv.size() != argvp->size())
         {
-            span.error(STRPRINTF("Procedure %s/%zu invoked with %zu parameters",
+            span.error(STRPRINTF("Procedure %s/%zu invoked with %zu parameters"_fmt,
                         name, p->argv.size(), argvp->size()));
             return false;
         }
@@ -259,12 +259,12 @@ namespace magic_v2
         op_t *op = magic_get_op(name);
         if (!op)
         {
-            span.error(STRPRINTF("Unknown operation '%s'", name));
+            span.error(STRPRINTF("Unknown operation '%s'"_fmt, name));
             return false;
         }
         if (op->signature.size() != argv.size())
         {
-            span.error(STRPRINTF("Incorrect number of arguments to operation '%s': Expected %zu, found %zu",
+            span.error(STRPRINTF("Incorrect number of arguments to operation '%s': Expected %zu, found %zu"_fmt,
                     name, op->signature.size(), argv.size()));
             return false;
         }
@@ -295,12 +295,12 @@ namespace magic_v2
         fun_t *fun = magic_get_fun(name);
         if (!fun)
         {
-            span.error(STRPRINTF("Unknown function '%s'", name));
+            span.error(STRPRINTF("Unknown function '%s'"_fmt, name));
             return false;
         }
         if (fun->signature.size() != argv.size())
         {
-            span.error(STRPRINTF("Incorrect number of arguments to function '%s': Expected %zu, found %zu",
+            span.error(STRPRINTF("Incorrect number of arguments to function '%s': Expected %zu, found %zu"_fmt,
                     name, fun->signature.size(), argv.size()));
             return false;
         }
@@ -362,20 +362,20 @@ namespace magic_v2
             return false;
         if (s._list[0]._type != sexpr::TOKEN)
             return false;
-        return s._list[0]._str == "DISABLED";
+        return s._list[0]._str == "DISABLED"_s;
     }
 
     static
     bool parse_loc(const SExpr& s, e_location_t& loc)
     {
         if (s._type != sexpr::LIST)
-            return fail(s, "loc not list");
+            return fail(s, "loc not list"_s);
         if (s._list.size() != 4)
-            return fail(s, "loc not 3 args");
+            return fail(s, "loc not 3 args"_s);
         if (s._list[0]._type != sexpr::TOKEN)
-            return fail(s._list[0], "loc cmd not tok");
-        if (s._list[0]._str != "@")
-            return fail(s._list[0], "loc cmd not cmd");
+            return fail(s._list[0], "loc cmd not tok"_s);
+        if (s._list[0]._str != "@"_s)
+            return fail(s._list[0], "loc cmd not cmd"_s);
         return parse_expression(s._list[1], loc.m)
             && parse_expression(s._list[2], loc.x)
             && parse_expression(s._list[3], loc.y);
@@ -392,7 +392,7 @@ namespace magic_v2
                 val.ty = TYPE::INT;
                 val.v.v_int = x._int;
                 if (val.v.v_int != x._int)
-                    return fail(x, "integer too large");
+                    return fail(x, "integer too large"_s);
 
                 out = magic_new_expr(EXPR::VAL);
                 out->e.e_val = val;
@@ -410,9 +410,11 @@ namespace magic_v2
             }
         case sexpr::TOKEN:
             {
-                ZString dirs[8] = {
-                    ZString("S"), ZString("SW"), ZString("W"), ZString("NW"), ZString("N"), ZString("NE"), ZString("E"), ZString("SE"),
-                };
+                earray<LString, DIR, DIR::COUNT> dirs //=
+                {{
+                    "S"_s, "SW"_s, "W"_s, "NW"_s,
+                    "N"_s, "NE"_s, "E"_s, "SE"_s,
+                }};
                 auto begin = std::begin(dirs);
                 auto end = std::end(dirs);
                 auto it = std::find(begin, end, x._str);
@@ -444,13 +446,13 @@ namespace magic_v2
             break;
         case sexpr::LIST:
             if (x._list.empty())
-                return fail(x, "empty list");
+                return fail(x, "empty list"_s);
             {
                 if (x._list[0]._type != sexpr::TOKEN)
-                    return fail(x._list[0], "op not token");
+                    return fail(x._list[0], "op not token"_s);
                 ZString op = x._list[0]._str;
                 // area
-                if (op == "@")
+                if (op == "@"_s)
                 {
                     e_location_t loc;
                     if (!parse_loc(x, loc))
@@ -460,7 +462,7 @@ namespace magic_v2
                     out->e.e_area.a.a_loc = loc;
                     return true;
                 }
-                if (op == "@+")
+                if (op == "@+"_s)
                 {
                     e_location_t loc;
                     dumb_ptr<expr_t> width;
@@ -478,7 +480,7 @@ namespace magic_v2
                     out->e.e_area.a.a_rect.height = height;
                     return true;
                 }
-                if (op == "TOWARDS")
+                if (op == "TOWARDS"_s)
                 {
                     e_location_t loc;
                     dumb_ptr<expr_t> dir;
@@ -500,33 +502,33 @@ namespace magic_v2
                     out->e.e_area.a.a_bar.depth = depth;
                     return true;
                 }
-                if (op == ".")
+                if (op == "."_s)
                 {
                     if (x._list.size() != 3)
-                        return fail(x, ". not 2");
+                        return fail(x, ". not 2"_s);
                     dumb_ptr<expr_t> expr;
                     if (!parse_expression(x._list[1], expr))
                         return false;
                     if (x._list[2]._type != sexpr::TOKEN)
-                        return fail(x._list[2], ".elem not name");
+                        return fail(x._list[2], ".elem not name"_s);
                     ZString elem = x._list[2]._str;
                     out = dot_expr(expr, intern_id(elem));
                     return true;
                 }
-                static
+                static // TODO LString
                 std::set<ZString> ops =
                 {
-                    "<", ">", "<=", ">=", "==", "!=",
-                    "+", "-", "*", "%", "/",
-                    "&", "^", "|", "<<", ">>",
-                    "&&", "||",
+                    "<"_s, ">"_s, "<="_s, ">="_s, "=="_s, "!="_s,
+                    "+"_s, "-"_s, "*"_s, "%"_s, "/"_s,
+                    "&"_s, "^"_s, "|"_s, "<<"_s, ">>"_s,
+                    "&&"_s, "||"_s,
                 };
                 // TODO implement unary operators
                 if (ops.count(op))
                 {
                     // operators are n-ary and left-associative
                     if (x._list.size() < 3)
-                        return fail(x, "operator not at least 2 args");
+                        return fail(x, "operator not at least 2 args"_s);
                     auto begin = x._list.begin() + 1;
                     auto end = x._list.end();
                     if (!parse_expression(*begin, out))
@@ -565,23 +567,23 @@ namespace magic_v2
 
             item_data *item = itemdb_searchname(s._str);
             if (!item)
-                return fail(s, "no such item");
+                return fail(s, "no such item"_s);
             id = item->nameid;
             return true;
         }
         if (s._type != sexpr::LIST)
-            return fail(s, "item not string or list");
+            return fail(s, "item not string or list"_s);
         if (s._list.size() != 2)
-            return fail(s, "item list is not pair");
+            return fail(s, "item list is not pair"_s);
         if (s._list[0]._type != sexpr::INT)
-            return fail(s._list[0], "item pair first not int");
+            return fail(s._list[0], "item pair first not int"_s);
         count = s._list[0]._int;
         if (s._list[1]._type != sexpr::STRING)
-            return fail(s._list[1], "item pair second not name");
+            return fail(s._list[1], "item pair second not name"_s);
 
         item_data *item = itemdb_searchname(s._list[1]._str);
         if (!item)
-            return fail(s, "no such item");
+            return fail(s, "no such item"_s);
         id = item->nameid;
         return true;
     }
@@ -590,18 +592,18 @@ namespace magic_v2
     bool parse_spellguard(const SExpr& s, dumb_ptr<spellguard_t>& out)
     {
         if (s._type != sexpr::LIST)
-            return fail(s, "not list");
+            return fail(s, "not list"_s);
         if (s._list.empty())
-            return fail(s, "empty list");
+            return fail(s, "empty list"_s);
         if (s._list[0]._type != sexpr::TOKEN)
-            return fail(s._list[0], "not token");
+            return fail(s._list[0], "not token"_s);
         ZString cmd = s._list[0]._str;
-        if (cmd == "OR")
+        if (cmd == "OR"_s)
         {
             auto begin = s._list.begin() + 1;
             auto end = s._list.end();
             if (begin == end)
-                return fail(s, "missing arguments");
+                return fail(s, "missing arguments"_s);
             if (!parse_spellguard(*begin, out))
                 return false;
             ++begin;
@@ -617,14 +619,14 @@ namespace magic_v2
             }
             return true;
         }
-        if (cmd == "GUARD")
+        if (cmd == "GUARD"_s)
         {
             auto begin = s._list.begin() + 1;
             auto end = s._list.end();
             while (is_comment(end[-1]))
                 --end;
             if (begin == end)
-                return fail(s, "missing arguments");
+                return fail(s, "missing arguments"_s);
             if (!parse_spellguard(end[-1], out))
                 return false;
             --end;
@@ -639,10 +641,10 @@ namespace magic_v2
             }
             return true;
         }
-        if (cmd == "REQUIRE")
+        if (cmd == "REQUIRE"_s)
         {
             if (s._list.size() != 2)
-                return fail(s, "not one argument");
+                return fail(s, "not one argument"_s);
             dumb_ptr<expr_t> condition;
             if (!parse_expression(s._list[1], condition))
                 return false;
@@ -650,10 +652,10 @@ namespace magic_v2
             out->s.s_condition = condition;
             return true;
         }
-        if (cmd == "MANA")
+        if (cmd == "MANA"_s)
         {
             if (s._list.size() != 2)
-                return fail(s, "not one argument");
+                return fail(s, "not one argument"_s);
             dumb_ptr<expr_t> mana;
             if (!parse_expression(s._list[1], mana))
                 return false;
@@ -661,10 +663,10 @@ namespace magic_v2
             out->s.s_mana = mana;
             return true;
         }
-        if (cmd == "CASTTIME")
+        if (cmd == "CASTTIME"_s)
         {
             if (s._list.size() != 2)
-                return fail(s, "not one argument");
+                return fail(s, "not one argument"_s);
             dumb_ptr<expr_t> casttime;
             if (!parse_expression(s._list[1], casttime))
                 return false;
@@ -672,7 +674,7 @@ namespace magic_v2
             out->s.s_casttime = casttime;
             return true;
         }
-        if (cmd == "CATALYSTS")
+        if (cmd == "CATALYSTS"_s)
         {
             dumb_ptr<component_t> items = nullptr;
             for (auto it = s._list.begin() + 1, end = s._list.end(); it != end; ++it)
@@ -686,7 +688,7 @@ namespace magic_v2
             out->s.s_catalysts = items;
             return true;
         }
-        if (cmd == "COMPONENTS")
+        if (cmd == "COMPONENTS"_s)
         {
             dumb_ptr<component_t> items = nullptr;
             for (auto it = s._list.begin() + 1, end = s._list.end(); it != end; ++it)
@@ -700,7 +702,7 @@ namespace magic_v2
             out->s.s_components = items;
             return true;
         }
-        return fail(s._list[0], "unknown guard");
+        return fail(s._list[0], "unknown guard"_s);
     }
 
     static
@@ -727,25 +729,25 @@ namespace magic_v2
     bool parse_effect(const SExpr& s, dumb_ptr<effect_t>& out)
     {
         if (s._type != sexpr::LIST)
-            return fail(s, "not list");
+            return fail(s, "not list"_s);
         if (s._list.empty())
-            return fail(s, "empty list");
+            return fail(s, "empty list"_s);
         if (s._list[0]._type != sexpr::TOKEN)
-            return fail(s._list[0], "not token");
+            return fail(s._list[0], "not token"_s);
         ZString cmd = s._list[0]._str;
-        if (cmd == "BLOCK")
+        if (cmd == "BLOCK"_s)
         {
             return build_effect_list(s._list.begin() + 1, s._list.end(), out);
         }
-        if (cmd == "SET")
+        if (cmd == "SET"_s)
         {
             if (s._list.size() != 3)
-                return fail(s, "not 2 args");
+                return fail(s, "not 2 args"_s);
             if (s._list[1]._type != sexpr::TOKEN)
-                return fail(s._list[1], "not token");
+                return fail(s._list[1], "not token"_s);
             ZString name = s._list[1]._str;
             if (find_constant(name))
-                return fail(s._list[1], "assigning to constant");
+                return fail(s._list[1], "assigning to constant"_s);
             dumb_ptr<expr_t> expr;
             if (!parse_expression(s._list[2], expr))
                 return false;
@@ -755,72 +757,72 @@ namespace magic_v2
             out->e.e_assign.expr = expr;
             return true;
         }
-        if (cmd == "SCRIPT")
+        if (cmd == "SCRIPT"_s)
         {
             if (s._list.size() != 2)
-                return fail(s, "not 1 arg");
+                return fail(s, "not 1 arg"_s);
             if (s._list[1]._type != sexpr::STRING)
-                return fail(s._list[1], "not string");
+                return fail(s._list[1], "not string"_s);
             ZString body = s._list[1]._str;
             std::unique_ptr<const ScriptBuffer> script = parse_script(body, s._list[1]._span.begin.line, true);
             if (!script)
-                return fail(s._list[1], "script does not compile");
+                return fail(s._list[1], "script does not compile"_s);
             out = new_effect(EFFECT::SCRIPT);
             out->e.e_script = dumb_ptr<const ScriptBuffer>(script.release());
             return true;
         }
-        if (cmd == "SKIP")
+        if (cmd == "SKIP"_s)
         {
             if (s._list.size() != 1)
-                return fail(s, "not 0 arg");
+                return fail(s, "not 0 arg"_s);
             out = new_effect(EFFECT::SKIP);
             return true;
         }
-        if (cmd == "ABORT")
+        if (cmd == "ABORT"_s)
         {
             if (s._list.size() != 1)
-                return fail(s, "not 0 arg");
+                return fail(s, "not 0 arg"_s);
             out = new_effect(EFFECT::ABORT);
             return true;
         }
-        if (cmd == "END")
+        if (cmd == "END"_s)
         {
             if (s._list.size() != 1)
-                return fail(s, "not 0 arg");
+                return fail(s, "not 0 arg"_s);
             out = new_effect(EFFECT::END);
             return true;
         }
-        if (cmd == "BREAK")
+        if (cmd == "BREAK"_s)
         {
             if (s._list.size() != 1)
-                return fail(s, "not 0 arg");
+                return fail(s, "not 0 arg"_s);
             out = new_effect(EFFECT::BREAK);
             return true;
         }
-        if (cmd == "FOREACH")
+        if (cmd == "FOREACH"_s)
         {
             if (s._list.size() != 5)
-                return fail(s, "not 4 arg");
+                return fail(s, "not 4 arg"_s);
             if (s._list[1]._type != sexpr::TOKEN)
-                return fail(s._list[1], "foreach type not token");
+                return fail(s._list[1], "foreach type not token"_s);
             ZString type = s._list[1]._str;
             FOREACH_FILTER filter;
-            if (type == "PC")
+            if (type == "PC"_s)
                 filter = FOREACH_FILTER::PC;
-            else if (type == "MOB")
+            else if (type == "MOB"_s)
                 filter = FOREACH_FILTER::MOB;
-            else if (type == "ENTITY")
+            else if (type == "ENTITY"_s)
                 filter = FOREACH_FILTER::ENTITY;
-            else if (type == "SPELL")
+            else if (type == "SPELL"_s)
                 filter = FOREACH_FILTER::SPELL;
-            else if (type == "TARGET")
+            else if (type == "TARGET"_s)
                 filter = FOREACH_FILTER::TARGET;
-            else if (type == "NPC")
+            else if (type == "NPC"_s)
                 filter = FOREACH_FILTER::NPC;
             else
-                return fail(s._list[1], "unknown foreach filter");
+                return fail(s._list[1], "unknown foreach filter"_s);
             if (s._list[2]._type != sexpr::TOKEN)
-                return fail(s._list[2], "foreach var not token");
+                return fail(s._list[2], "foreach var not token"_s);
             ZString var = s._list[2]._str;
             dumb_ptr<expr_t> area;
             dumb_ptr<effect_t> effect;
@@ -835,12 +837,12 @@ namespace magic_v2
             out->e.e_foreach.filter = filter;
             return true;
         }
-        if (cmd == "FOR")
+        if (cmd == "FOR"_s)
         {
             if (s._list.size() != 5)
-                return fail(s, "not 4 arg");
+                return fail(s, "not 4 arg"_s);
             if (s._list[1]._type != sexpr::TOKEN)
-                return fail(s._list[1], "for var not token");
+                return fail(s._list[1], "for var not token"_s);
             ZString var = s._list[1]._str;
             dumb_ptr<expr_t> low;
             dumb_ptr<expr_t> high;
@@ -858,10 +860,10 @@ namespace magic_v2
             out->e.e_for.body = effect;
             return true;
         }
-        if (cmd == "IF")
+        if (cmd == "IF"_s)
         {
             if (s._list.size() != 3 && s._list.size() != 4)
-                return fail(s, "not 2 or 3 args");
+                return fail(s, "not 2 or 3 args"_s);
             dumb_ptr<expr_t> cond;
             dumb_ptr<effect_t> if_true;
             dumb_ptr<effect_t> if_false;
@@ -882,10 +884,10 @@ namespace magic_v2
             out->e.e_if.false_branch = if_false;
             return true;
         }
-        if (cmd == "WAIT")
+        if (cmd == "WAIT"_s)
         {
             if (s._list.size() != 2)
-                return fail(s, "not 1 arg");
+                return fail(s, "not 1 arg"_s);
             dumb_ptr<expr_t> expr;
             if (!parse_expression(s._list[1], expr))
                 return false;
@@ -893,12 +895,12 @@ namespace magic_v2
             out->e.e_sleep = expr;
             return true;
         }
-        if (cmd == "CALL")
+        if (cmd == "CALL"_s)
         {
             if (s._list.size() < 2)
-                return fail(s, "call what?");
+                return fail(s, "call what?"_s);
             if (s._list[1]._type != sexpr::TOKEN)
-                return fail(s._list[1], "call token please");
+                return fail(s._list[1], "call token please"_s);
             ZString func = s._list[1]._str;
             auto argvp = dumb_ptr<std::vector<dumb_ptr<expr_t>>>::make();
             for (auto it = s._list.begin() + 2, end = s._list.end(); it != end; ++it)
@@ -925,16 +927,16 @@ namespace magic_v2
     bool parse_spellbody(const SExpr& s, dumb_ptr<spellguard_t>& out)
     {
         if (s._type != sexpr::LIST)
-            return fail(s, "not list");
+            return fail(s, "not list"_s);
         if (s._list.empty())
-            return fail(s, "empty list");
+            return fail(s, "empty list"_s);
         if (s._list[0]._type != sexpr::TOKEN)
-            return fail(s._list[0], "not token");
+            return fail(s._list[0], "not token"_s);
         ZString cmd = s._list[0]._str;
-        if (cmd == "=>")
+        if (cmd == "=>"_s)
         {
             if (s._list.size() != 3)
-                return fail(s, "list does not have exactly 2 arguments");
+                return fail(s, "list does not have exactly 2 arguments"_s);
             dumb_ptr<spellguard_t> guard;
             if (!parse_spellguard(s._list[1], guard))
                 return false;
@@ -944,10 +946,10 @@ namespace magic_v2
             out = spellguard_implication(guard, body);
             return true;
         }
-        if (cmd == "|")
+        if (cmd == "|"_s)
         {
             if (s._list.size() == 1)
-                return fail(s, "spellbody choice empty");
+                return fail(s, "spellbody choice empty"_s);
             auto begin = s._list.begin() + 1;
             auto end = s._list.end();
             if (!parse_spellbody(*begin, out))
@@ -965,7 +967,7 @@ namespace magic_v2
             }
             return true;
         }
-        if (cmd == "EFFECT")
+        if (cmd == "EFFECT"_s)
         {
             auto begin = s._list.begin() + 1;
             auto end = s._list.end();
@@ -978,7 +980,7 @@ namespace magic_v2
                 --end;
             if (end[-1]._type == sexpr::LIST && !end[-1]._list.empty()
                     && end[-1]._list[0]._type == sexpr::TOKEN
-                    && end[-1]._list[0]._str == "ATEND")
+                    && end[-1]._list[0]._str == "ATEND"_s)
             {
                 auto atb = end[-1]._list.begin() + 1;
                 auto ate = end[-1]._list.end();
@@ -995,7 +997,7 @@ namespace magic_v2
             }
             if (end[-1]._type == sexpr::LIST && !end[-1]._list.empty()
                     && end[-1]._list[0]._type == sexpr::TOKEN
-                    && end[-1]._list[0]._str == "ATTRIGGER")
+                    && end[-1]._list[0]._str == "ATTRIGGER"_s)
             {
                 auto atb = end[-1]._list.begin() + 1;
                 auto ate = end[-1]._list.end();
@@ -1015,20 +1017,20 @@ namespace magic_v2
             out->s.s_effect.at_end = atend;
             return true;
         }
-        return fail(s._list[0], "unknown spellbody");
+        return fail(s._list[0], "unknown spellbody"_s);
     }
 
     static
     bool parse_top_set(const std::vector<SExpr>& in)
     {
         if (in.size() != 3)
-            return fail(in[0], "not 2 arguments");
+            return fail(in[0], "not 2 arguments"_s);
         ZString name = in[1]._str;
         dumb_ptr<expr_t> expr;
         if (!parse_expression(in[2], expr))
             return false;
         if (find_constant(name))
-            return fail(in[1], "assign constant");
+            return fail(in[1], "assign constant"_s);
         size_t var_id = intern_id(name);
         magic_eval(dumb_ptr<env_t>(&magic_default_env), &magic_conf.varv[var_id].val, expr);
         return true;
@@ -1037,9 +1039,9 @@ namespace magic_v2
     bool parse_const(io::LineSpan span, const std::vector<SExpr>& in)
     {
         if (in.size() != 3)
-            return fail(in[0], "not 2 arguments");
+            return fail(in[0], "not 2 arguments"_s);
         if (in[1]._type != sexpr::TOKEN)
-            return fail(in[1], "not token");
+            return fail(in[1], "not token"_s);
         ZString name = in[1]._str;
         dumb_ptr<expr_t> expr;
         if (!parse_expression(in[2], expr))
@@ -1052,13 +1054,13 @@ namespace magic_v2
     bool parse_anchor(io::LineSpan span, const std::vector<SExpr>& in)
     {
         if (in.size() != 4)
-            return fail(in[0], "not 3 arguments");
+            return fail(in[0], "not 3 arguments"_s);
         auto anchor = dumb_ptr<teleport_anchor_t>::make();
         if (in[1]._type != sexpr::TOKEN)
-            return fail(in[1], "not token");
+            return fail(in[1], "not token"_s);
         anchor->name = in[1]._str;
         if (in[2]._type != sexpr::STRING)
-            return fail(in[2], "not string");
+            return fail(in[2], "not string"_s);
         anchor->invocation = in[2]._str;
         dumb_ptr<expr_t> expr;
         if (!parse_expression(in[3], expr))
@@ -1070,17 +1072,17 @@ namespace magic_v2
     bool parse_proc(io::LineSpan span, const std::vector<SExpr>& in)
     {
         if (in.size() < 4)
-            return fail(in[0], "not at least 3 arguments");
+            return fail(in[0], "not at least 3 arguments"_s);
         auto proc = dumb_ptr<proc_t>::make();
         if (in[1]._type != sexpr::TOKEN)
-            return fail(in[1], "name not token");
+            return fail(in[1], "name not token"_s);
         proc->name = in[1]._str;
         if (in[2]._type != sexpr::LIST)
-            return fail(in[2], "args not list");
+            return fail(in[2], "args not list"_s);
         for (const SExpr& arg : in[2]._list)
         {
             if (arg._type != sexpr::TOKEN)
-                return fail(arg, "arg not token");
+                return fail(arg, "arg not token"_s);
             proc->argv.push_back(intern_id(arg._str));
         }
         if (!build_effect_list(in.begin() + 3, in.end(), proc->body))
@@ -1091,37 +1093,37 @@ namespace magic_v2
     bool parse_spell(io::LineSpan span, const std::vector<SExpr>& in)
     {
         if (in.size() < 6)
-            return fail(in[0], "not at least 5 arguments");
+            return fail(in[0], "not at least 5 arguments"_s);
         if (in[1]._type != sexpr::LIST)
-            return fail(in[1], "flags not list");
+            return fail(in[1], "flags not list"_s);
 
         auto spell = dumb_ptr<spell_t>::make();
 
         for (const SExpr& s : in[1]._list)
         {
             if (s._type != sexpr::TOKEN)
-                return fail(s, "flag not token");
+                return fail(s, "flag not token"_s);
             SPELL_FLAG flag = SPELL_FLAG::ZERO;
-            if (s._str == "LOCAL")
+            if (s._str == "LOCAL"_s)
                 flag = SPELL_FLAG::LOCAL;
-            else if (s._str == "NONMAGIC")
+            else if (s._str == "NONMAGIC"_s)
                 flag = SPELL_FLAG::NONMAGIC;
-            else if (s._str == "SILENT")
+            else if (s._str == "SILENT"_s)
                 flag = SPELL_FLAG::SILENT;
             else
-                return fail(s, "unknown flag");
+                return fail(s, "unknown flag"_s);
             if (bool(spell->flags & flag))
-                return fail(s, "duplicate flag");
+                return fail(s, "duplicate flag"_s);
             spell->flags |= flag;
         }
         if (in[2]._type != sexpr::TOKEN)
-            return fail(in[2], "name not token");
+            return fail(in[2], "name not token"_s);
         spell->name = in[2]._str;
         if (in[3]._type != sexpr::STRING)
-            return fail(in[3], "invoc not string");
+            return fail(in[3], "invoc not string"_s);
         spell->invocation = in[3]._str;
         if (in[4]._type != sexpr::LIST)
-            return fail(in[4], "spellarg not list");
+            return fail(in[4], "spellarg not list"_s);
         if (in[4]._list.size() == 0)
         {
             spell->spellarg_ty = SPELLARG::NONE;
@@ -1129,18 +1131,18 @@ namespace magic_v2
         else
         {
             if (in[4]._list.size() != 2)
-                return fail(in[4], "spellarg not empty list or pair");
+                return fail(in[4], "spellarg not empty list or pair"_s);
             if (in[4]._list[0]._type != sexpr::TOKEN)
-                return fail(in[4]._list[0], "spellarg type not token");
+                return fail(in[4]._list[0], "spellarg type not token"_s);
             if (in[4]._list[1]._type != sexpr::TOKEN)
-                return fail(in[4]._list[1], "spellarg name not token");
+                return fail(in[4]._list[1], "spellarg name not token"_s);
             ZString ty = in[4]._list[0]._str;
-            if (ty == "PC")
+            if (ty == "PC"_s)
                 spell->spellarg_ty = SPELLARG::PC;
-            else if (ty == "STRING")
+            else if (ty == "STRING"_s)
                 spell->spellarg_ty = SPELLARG::STRING;
             else
-                return fail(in[4]._list[0], "unknown spellarg type");
+                return fail(in[4]._list[0], "unknown spellarg type"_s);
             ZString an = in[4]._list[1]._str;
             spell->arg = intern_id(an);
         }
@@ -1148,19 +1150,19 @@ namespace magic_v2
         for (;; ++it)
         {
             if (it == in.end())
-                return fail(it[-1], "end of list scanning LET defs");
+                return fail(it[-1], "end of list scanning LET defs"_s);
             if (is_comment(*it))
                 continue;
             if (it->_type != sexpr::LIST || it->_list.empty())
                 break;
-            if (it->_list[0]._type != sexpr::TOKEN || it->_list[0]._str != "LET")
+            if (it->_list[0]._type != sexpr::TOKEN || it->_list[0]._str != "LET"_s)
                 break;
 
             if (it->_list[1]._type != sexpr::TOKEN)
-                return fail(it->_list[1], "let name not token");
+                return fail(it->_list[1], "let name not token"_s);
             ZString name = it->_list[1]._str;
             if (find_constant(name))
-                return fail(it->_list[1], "constant exists");
+                return fail(it->_list[1], "constant exists"_s);
             dumb_ptr<expr_t> expr;
             if (!parse_expression(it->_list[2], expr))
                 return false;
@@ -1170,7 +1172,7 @@ namespace magic_v2
             spell->letdefv.push_back(let);
         }
         if (it + 1 != in.end())
-            return fail(*it, "expected only one body entry besides LET");
+            return fail(*it, "expected only one body entry besides LET"_s);
 
         // formally, 'guard' only refers to the first argument of '=>'
         // but internally, spellbodies use the same thing
@@ -1186,23 +1188,23 @@ namespace magic_v2
     {
         if (vs.empty())
         {
-            span.error("Empty list at top");
+            span.error("Empty list at top"_s);
             return false;
         }
         if (vs[0]._type != sexpr::TOKEN)
-            return fail(vs[0], "top not token");
+            return fail(vs[0], "top not token"_s);
         ZString cmd = vs[0]._str;
-        if (cmd == "CONST")
+        if (cmd == "CONST"_s)
             return parse_const(span, vs);
-        if (cmd == "PROCEDURE")
+        if (cmd == "PROCEDURE"_s)
             return parse_proc(span, vs);
-        if (cmd == "SET")
+        if (cmd == "SET"_s)
             return parse_top_set(vs);
-        if (cmd == "SPELL")
+        if (cmd == "SPELL"_s)
             return parse_spell(span, vs);
-        if (cmd == "TELEPORT-ANCHOR")
+        if (cmd == "TELEPORT-ANCHOR"_s)
             return parse_anchor(span, vs);
-        return fail(vs[0], "Unknown top-level command");
+        return fail(vs[0], "Unknown top-level command"_s);
     }
 
     static
@@ -1214,14 +1216,14 @@ namespace magic_v2
             if (is_comment(s))
                 continue;
             if (s._type != sexpr::LIST)
-                return fail(s, "top-level entity not a list or comment");
+                return fail(s, "top-level entity not a list or comment"_s);
             if (!parse_top(s._span, s._list))
                 return false;
         }
         // handle low-level errors
         if (in.peek() != sexpr::TOK_EOF)
         {
-            in.span().error("parser gave up before end of file");
+            in.span().error("parser gave up before end of file"_s);
             return false;
         }
         return true;
@@ -1239,7 +1241,7 @@ bool load_magic_file_v2(ZString filename)
     bool rv = magic_v2::loop(in);
     if (!rv)
     {
-        in.span().error(STRPRINTF("next token: %s '%s'", sexpr::token_name(in.peek()), in.val_string()));
+        in.span().error(STRPRINTF("next token: %s '%s'"_fmt, sexpr::token_name(in.peek()), in.val_string()));
     }
     return rv;
 }

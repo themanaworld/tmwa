@@ -209,7 +209,7 @@ int chrif_recvmap(Session *s)
         map_setipport(map, ip, port);
     }
     if (battle_config.etc_log)
-        PRINTF("recv map on %s:%d (%d maps)\n",
+        PRINTF("recv map on %s:%d (%d maps)\n"_fmt,
                 ip, port, j);
 
     return 0;
@@ -270,7 +270,7 @@ int chrif_changemapserverack(Session *s)
     if (RFIFOL(s, 6) == 1)
     {
         if (battle_config.error_log)
-            PRINTF("map server change failed.\n");
+            PRINTF("map server change failed.\n"_fmt);
         pc_authfail(sd->status_key.account_id);
         return 0;
     }
@@ -293,21 +293,18 @@ int chrif_connectack(Session *s)
 {
     if (RFIFOB(s, 2))
     {
-        PRINTF("Connected to char-server failed %d.\n", RFIFOB(s, 2));
+        PRINTF("Connected to char-server failed %d.\n"_fmt, RFIFOB(s, 2));
         exit(1);
     }
-    PRINTF("Connected to char-server (connection #%d).\n", s);
+    PRINTF("Connected to char-server (connection #%d).\n"_fmt, s);
     chrif_state = 1;
 
     chrif_sendmap(s);
 
-    PRINTF("chrif: OnCharIfInit event done. (%d events)\n",
-            npc_event_doall(stringish<ScriptLabel>("OnCharIfInit")));
-    PRINTF("chrif: OnInterIfInit event done. (%d events)\n",
-            npc_event_doall(stringish<ScriptLabel>("OnInterIfInit")));
-
-    // <Agit> Run Event [AgitInit]
-//  PRINTF("NPC_Event:[OnAgitInit] do (%d) events (Agit Initialize).\n", npc_event_doall("OnAgitInit"));
+    PRINTF("chrif: OnCharIfInit event done. (%d events)\n"_fmt,
+            npc_event_doall(stringish<ScriptLabel>("OnCharIfInit"_s)));
+    PRINTF("chrif: OnInterIfInit event done. (%d events)\n"_fmt,
+            npc_event_doall(stringish<ScriptLabel>("OnInterIfInit"_s)));
 
     return 0;
 }
@@ -321,7 +318,7 @@ int chrif_sendmapack(Session *s)
 {
     if (RFIFOB(s, 2))
     {
-        PRINTF("chrif : send map list to char server failed %d\n",
+        PRINTF("chrif : send map list to char server failed %d\n"_fmt,
                 RFIFOB(s, 2));
         exit(1);
     }
@@ -408,7 +405,7 @@ int chrif_charselectreq(dumb_ptr<map_session_data> sd)
 void chrif_changegm(int id, ZString pass)
 {
     if (battle_config.etc_log)
-        PRINTF("chrif_changegm: account: %d, password: '%s'.\n", id, pass);
+        PRINTF("chrif_changegm: account: %d, password: '%s'.\n"_fmt, id, pass);
 
     size_t len = pass.size() + 1;
     WFIFOW(char_session, 0) = 0x2b0a;
@@ -426,7 +423,7 @@ void chrif_changeemail(int id, AccountEmail actual_email,
         AccountEmail new_email)
 {
     if (battle_config.etc_log)
-        PRINTF("chrif_changeemail: account: %d, actual_email: '%s', new_email: '%s'.\n",
+        PRINTF("chrif_changeemail: account: %d, actual_email: '%s', new_email: '%s'.\n"_fmt,
              id, actual_email, new_email);
 
     WFIFOW(char_session, 0) = 0x2b0c;
@@ -456,7 +453,7 @@ void chrif_char_ask_name(int id, CharName character_name, short operation_type,
     WFIFOW(char_session, 30) = operation_type;  // type of operation
     if (operation_type == 2)
         WFIFO_STRUCT(char_session, 32, modif);
-    PRINTF("chrif : sended 0x2b0e\n");
+    PRINTF("chrif : sended 0x2b0e\n"_fmt);
     WFIFOSET(char_session, 44);
 }
 
@@ -487,7 +484,7 @@ int chrif_char_ask_name_answer(Session *s)
     {
         AString output;
         if (RFIFOW(s, 32) == 1)   // player not found
-            output = STRPRINTF("The player '%s' doesn't exist.",
+            output = STRPRINTF("The player '%s' doesn't exist."_fmt,
                     player_name);
         else
         {
@@ -498,18 +495,18 @@ int chrif_char_ask_name_answer(Session *s)
                     {
                         case 0:    // login-server resquest done
                             output = STRPRINTF(
-                                    "Login-server has been asked to block the player '%s'.",
+                                    "Login-server has been asked to block the player '%s'."_fmt,
                                     player_name);
                             break;
                             //case 1: // player not found
                         case 2:    // gm level too low
                             output = STRPRINTF(
-                                    "Your GM level don't authorise you to block the player '%s'.",
+                                    "Your GM level don't authorise you to block the player '%s'."_fmt,
                                     player_name);
                             break;
                         case 3:    // login-server offline
                             output = STRPRINTF(
-                                    "Login-server is offline. Impossible to block the the player '%s'.",
+                                    "Login-server is offline. Impossible to block the the player '%s'."_fmt,
                                     player_name);
                             break;
                     }
@@ -519,18 +516,18 @@ int chrif_char_ask_name_answer(Session *s)
                     {
                         case 0:    // login-server resquest done
                             output = STRPRINTF(
-                                    "Login-server has been asked to ban the player '%s'.",
+                                    "Login-server has been asked to ban the player '%s'."_fmt,
                                     player_name);
                             break;
                             //case 1: // player not found
                         case 2:    // gm level too low
                             output = STRPRINTF(
-                                    "Your GM level don't authorise you to ban the player '%s'.",
+                                    "Your GM level don't authorise you to ban the player '%s'."_fmt,
                                     player_name);
                             break;
                         case 3:    // login-server offline
                             output = STRPRINTF(
-                                    "Login-server is offline. Impossible to ban the the player '%s'.",
+                                    "Login-server is offline. Impossible to ban the the player '%s'."_fmt,
                                     player_name);
                             break;
                     }
@@ -540,18 +537,18 @@ int chrif_char_ask_name_answer(Session *s)
                     {
                         case 0:    // login-server resquest done
                             output = STRPRINTF(
-                                    "Login-server has been asked to unblock the player '%s'.",
+                                    "Login-server has been asked to unblock the player '%s'."_fmt,
                                     player_name);
                             break;
                             //case 1: // player not found
                         case 2:    // gm level too low
                             output = STRPRINTF(
-                                    "Your GM level don't authorise you to unblock the player '%s'.",
+                                    "Your GM level don't authorise you to unblock the player '%s'."_fmt,
                                     player_name);
                             break;
                         case 3:    // login-server offline
                             output = STRPRINTF(
-                                    "Login-server is offline. Impossible to unblock the the player '%s'.",
+                                    "Login-server is offline. Impossible to unblock the the player '%s'."_fmt,
                                     player_name);
                             break;
                     }
@@ -561,18 +558,18 @@ int chrif_char_ask_name_answer(Session *s)
                     {
                         case 0:    // login-server resquest done
                             output = STRPRINTF(
-                                    "Login-server has been asked to unban the player '%s'.",
+                                    "Login-server has been asked to unban the player '%s'."_fmt,
                                     player_name);
                             break;
                             //case 1: // player not found
                         case 2:    // gm level too low
                             output = STRPRINTF(
-                                    "Your GM level don't authorise you to unban the player '%s'.",
+                                    "Your GM level don't authorise you to unban the player '%s'."_fmt,
                                     player_name);
                             break;
                         case 3:    // login-server offline
                             output = STRPRINTF(
-                                    "Login-server is offline. Impossible to unban the the player '%s'.",
+                                    "Login-server is offline. Impossible to unban the the player '%s'."_fmt,
                                     player_name);
                             break;
                     }
@@ -582,18 +579,18 @@ int chrif_char_ask_name_answer(Session *s)
                     {
                         case 0:    // login-server resquest done
                             output = STRPRINTF(
-                                    "Login-server has been asked to change the sex of the player '%s'.",
+                                    "Login-server has been asked to change the sex of the player '%s'."_fmt,
                                     player_name);
                             break;
                             //case 1: // player not found
                         case 2:    // gm level too low
                             output = STRPRINTF(
-                                    "Your GM level don't authorise you to change the sex of the player '%s'.",
+                                    "Your GM level don't authorise you to change the sex of the player '%s'."_fmt,
                                     player_name);
                             break;
                         case 3:    // login-server offline
                             output = STRPRINTF(
-                                    "Login-server is offline. Impossible to change the sex of the the player '%s'.",
+                                    "Login-server is offline. Impossible to change the sex of the the player '%s'."_fmt,
                                     player_name);
                             break;
                     }
@@ -604,7 +601,7 @@ int chrif_char_ask_name_answer(Session *s)
             clif_displaymessage(sd->sess, output);
     }
     else
-        PRINTF("chrif_char_ask_name_answer failed - player not online.\n");
+        PRINTF("chrif_char_ask_name_answer failed - player not online.\n"_fmt);
 
     return 0;
 }
@@ -625,14 +622,14 @@ void chrif_changedgm(Session *s)
     sd = map_id2sd(acc);
 
     if (battle_config.etc_log)
-        PRINTF("chrif_changedgm: account: %d, GM level 0 -> %d.\n", acc,
+        PRINTF("chrif_changedgm: account: %d, GM level 0 -> %d.\n"_fmt, acc,
                 level);
     if (sd != NULL)
     {
         if (level > 0)
-            clif_displaymessage(sd->sess, "GM modification success.");
+            clif_displaymessage(sd->sess, "GM modification success."_s);
         else
-            clif_displaymessage(sd->sess, "Failure of GM modification.");
+            clif_displaymessage(sd->sess, "Failure of GM modification."_s);
     }
 }
 
@@ -649,7 +646,7 @@ void chrif_changedsex(Session *s)
     acc = RFIFOL(s, 2);
     SEX sex = static_cast<SEX>(RFIFOB(s, 6));
     if (battle_config.etc_log)
-        PRINTF("chrif_changedsex %d.\n", acc);
+        PRINTF("chrif_changedsex %d.\n"_fmt, acc);
     sd = map_id2sd(acc);
     if (acc > 0)
     {
@@ -671,7 +668,7 @@ void chrif_changedsex(Session *s)
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             // do same modify in login-server for the account, but no in char-server (it ask again login_id1 to login, and don't remember it)
             clif_displaymessage(sd->sess,
-                                 "Your sex has been changed (need disconexion by the server)...");
+                                 "Your sex has been changed (need disconexion by the server)..."_s);
             clif_setwaitclose(sd->sess); // forced to disconnect for the change
         }
     }
@@ -679,7 +676,7 @@ void chrif_changedsex(Session *s)
     {
         if (sd != NULL)
         {
-            PRINTF("chrif_changedsex failed.\n");
+            PRINTF("chrif_changedsex failed.\n"_fmt);
         }
     }
 }
@@ -797,7 +794,7 @@ int chrif_accountdeletion(Session *s)
 
     acc = RFIFOL(s, 2);
     if (battle_config.etc_log)
-        PRINTF("chrif_accountdeletion %d.\n", acc);
+        PRINTF("chrif_accountdeletion %d.\n"_fmt, acc);
     sd = map_id2sd(acc);
     if (acc > 0)
     {
@@ -805,14 +802,14 @@ int chrif_accountdeletion(Session *s)
         {
             sd->login_id1++;    // change identify, because if player come back in char within the 5 seconds, he can change its characters
             clif_displaymessage(sd->sess,
-                                 "Your account has been deleted (disconnection)...");
+                                 "Your account has been deleted (disconnection)..."_s);
             clif_setwaitclose(sd->sess); // forced to disconnect for the change
         }
     }
     else
     {
         if (sd != NULL)
-            PRINTF("chrif_accountdeletion failed - player not online.\n");
+            PRINTF("chrif_accountdeletion failed - player not online.\n"_fmt);
     }
 
     return 0;
@@ -830,7 +827,7 @@ int chrif_accountban(Session *s)
 
     acc = RFIFOL(s, 2);
     if (battle_config.etc_log)
-        PRINTF("chrif_accountban %d.\n", acc);
+        PRINTF("chrif_accountban %d.\n"_fmt, acc);
     sd = map_id2sd(acc);
     if (acc > 0)
     {
@@ -843,57 +840,58 @@ int chrif_accountban(Session *s)
                 {               // status or final date of a banishment
                     case 1:    // 0 = Unregistered ID
                         clif_displaymessage(sd->sess,
-                                             "Your account has 'Unregistered'.");
+                                             "Your account has 'Unregistered'."_s);
                         break;
                     case 2:    // 1 = Incorrect Password
                         clif_displaymessage(sd->sess,
-                                             "Your account has an 'Incorrect Password'...");
+                                             "Your account has an 'Incorrect Password'..."_s);
                         break;
                     case 3:    // 2 = This ID is expired
                         clif_displaymessage(sd->sess,
-                                             "Your account has expired.");
+                                             "Your account has expired."_s);
                         break;
                     case 4:    // 3 = Rejected from Server
                         clif_displaymessage(sd->sess,
-                                             "Your account has been rejected from server.");
+                                             "Your account has been rejected from server."_s);
                         break;
                     case 5:    // 4 = You have been blocked by the GM Team
                         clif_displaymessage(sd->sess,
-                                             "Your account has been blocked by the GM Team.");
+                                             "Your account has been blocked by the GM Team."_s);
                         break;
                     case 6:    // 5 = Your Game's EXE file is not the latest version
                         clif_displaymessage(sd->sess,
-                                             "Your Game's EXE file is not the latest version.");
+                                             "Your Game's EXE file is not the latest version."_s);
                         break;
                     case 7:    // 6 = Your are Prohibited to log in until %s
                         clif_displaymessage(sd->sess,
-                                             "Your account has been prohibited to log in.");
+                                             "Your account has been prohibited to log in."_s);
                         break;
                     case 8:    // 7 = Server is jammed due to over populated
                         clif_displaymessage(sd->sess,
-                                             "Server is jammed due to over populated.");
+                                             "Server is jammed due to over populated."_s);
                         break;
                     case 9:    // 8 = No MSG (actually, all states after 9 except 99 are No MSG, use only this)
                         clif_displaymessage(sd->sess,
-                                             "Your account has not more authorised.");
+                                             "Your account has not more authorised."_s);
                         break;
                     case 100:  // 99 = This ID has been totally erased
                         clif_displaymessage(sd->sess,
-                                             "Your account has been totally erased.");
+                                             "Your account has been totally erased."_s);
                         break;
                     default:
                         clif_displaymessage(sd->sess,
-                                             "Your account has not more authorised.");
+                                             "Your account has not more authorised."_s);
                         break;
                 }
             }
             else if (RFIFOB(s, 6) == 1)
             {
                 // 0: change of statut, 1: ban
-                TimeT timestamp = static_cast<time_t>(RFIFOL(s, 7));    // status or final date of a banishment
-                char tmpstr[] = WITH_TIMESTAMP("Your account has been banished until ");
-                REPLACE_TIMESTAMP(tmpstr, timestamp);
-                clif_displaymessage(sd->sess, const_(tmpstr));
+                const TimeT timestamp = static_cast<time_t>(RFIFOL(s, 7));    // status or final date of a banishment
+                timestamp_seconds_buffer buffer;
+                stamp_time(buffer, &timestamp);
+                AString tmpstr = STRPRINTF("Your account has been banished until %s"_fmt, buffer);
+                clif_displaymessage(sd->sess, tmpstr);
             }
             clif_setwaitclose(sd->sess); // forced to disconnect for the change
         }
@@ -901,7 +899,7 @@ int chrif_accountban(Session *s)
     else
     {
         if (sd != NULL)
-            PRINTF("chrif_accountban failed - player not online.\n");
+            PRINTF("chrif_accountban failed - player not online.\n"_fmt);
     }
 
     return 0;
@@ -914,7 +912,7 @@ int chrif_accountban(Session *s)
 static
 int chrif_recvgmaccounts(Session *s)
 {
-    PRINTF("From login-server: receiving of %d GM accounts information.\n",
+    PRINTF("From login-server: receiving of %d GM accounts information.\n"_fmt,
             pc_read_gm_account(s));
 
     return 0;
@@ -1052,7 +1050,7 @@ void chrif_parse(Session *s)
     {
         if (s == char_session)
         {
-            PRINTF("Map-server can't connect to char-server (connection #%d).\n",
+            PRINTF("Map-server can't connect to char-server (connection #%d).\n"_fmt,
                  s);
             char_session = nullptr;
         }
@@ -1158,7 +1156,7 @@ void chrif_parse(Session *s)
 
             default:
                 if (battle_config.error_log)
-                    PRINTF("chrif_parse : unknown packet %d %d\n", s,
+                    PRINTF("chrif_parse : unknown packet %d %d\n"_fmt, s,
                             RFIFOW(s, 0));
                 s->eof = 1;
                 return;
@@ -1211,7 +1209,7 @@ void check_connect_char_server(TimerData *, tick_t)
 {
     if (!char_session)
     {
-        PRINTF("Attempt to connect to char-server...\n");
+        PRINTF("Attempt to connect to char-server...\n"_fmt);
         chrif_state = 0;
         char_session = make_connection(char_ip, char_port);
         if (!char_session)

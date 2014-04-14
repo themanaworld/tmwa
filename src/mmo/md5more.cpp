@@ -103,7 +103,7 @@ AccountCrypt MD5_saltcrypt(AccountPass key, SaltString salt)
     VString<31> obuf;
 
     // This truncates the string, but we have to keep it like that for compatibility
-    SNPRINTF(obuf, 32, "!%s$%s", salt, tbuf3);
+    SNPRINTF(obuf, 32, "!%s$%s"_fmt, salt, tbuf3);
     return stringish<AccountCrypt>(obuf);
 }
 
@@ -134,7 +134,7 @@ IP4Address MD5_ip(IP4Address ip)
 
     // MD5sum a secret + the IP address
     VString<31> ipbuf;
-    SNPRINTF(ipbuf, 32, "%s %s", ip, secret);
+    SNPRINTF(ipbuf, 32, "%s %s"_fmt, ip, secret);
     md5_binary obuf;
     MD5_to_bin(MD5_from_string(ipbuf), obuf);
 

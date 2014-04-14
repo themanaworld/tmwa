@@ -28,13 +28,13 @@ TEST(InternPool, whydoesthisalwaysneedasecondname)
 {
     InternPool p;
     EXPECT_EQ(0, p.size());
-    EXPECT_EQ(0, p.intern("hello"));
-    EXPECT_EQ(0, p.intern("hello"));
+    EXPECT_EQ(0, p.intern("hello"_s));
+    EXPECT_EQ(0, p.intern("hello"_s));
     EXPECT_EQ(1, p.size());
-    EXPECT_EQ(1, p.intern("world"));
-    EXPECT_EQ(0, p.intern("hello"));
-    EXPECT_EQ(1, p.intern("world"));
+    EXPECT_EQ(1, p.intern("world"_s));
+    EXPECT_EQ(0, p.intern("hello"_s));
+    EXPECT_EQ(1, p.intern("world"_s));
     EXPECT_EQ(2, p.size());
-    EXPECT_EQ("hello", p.outtern(0));
-    EXPECT_EQ("world", p.outtern(1));
+    EXPECT_EQ("hello"_s, p.outtern(0));
+    EXPECT_EQ("world"_s, p.outtern(1));
 }

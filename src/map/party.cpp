@@ -121,7 +121,7 @@ void party_created(int account_id, int fail, int party_id, PartyName name)
         struct party *p = party_db.search(party_id);
         if (p != NULL)
         {
-            PRINTF("party_created(): ID already exists!\n");
+            PRINTF("party_created(): ID already exists!\n"_fmt);
             exit(1);
         }
 
@@ -177,7 +177,7 @@ int party_check_member(struct party *p)
                 {
                     sd->status.party_id = 0;
                     if (battle_config.error_log)
-                        PRINTF("party: check_member %d[%s] is not member\n",
+                        PRINTF("party: check_member %d[%s] is not member\n"_fmt,
                                 sd->status_key.account_id, sd->status_key.name);
                 }
             }
@@ -355,7 +355,7 @@ int party_member_added(int party_id, int account_id, int flag)
         if (flag == 0)
         {
             if (battle_config.error_log)
-                PRINTF("party: member added error %d is not online\n",
+                PRINTF("party: member added error %d is not online\n"_fmt,
                         account_id);
             intif_party_leave(party_id, account_id);   // キャラ側に登録できなかったため脱退要求を出す
         }
@@ -367,7 +367,7 @@ int party_member_added(int party_id, int account_id, int flag)
 
     if (p == NULL)
     {
-        PRINTF("party_member_added: party %d not found.\n", party_id);
+        PRINTF("party_member_added: party %d not found.\n"_fmt, party_id);
         intif_party_leave(party_id, account_id);
         return 0;
     }
@@ -537,7 +537,7 @@ void party_recv_movemap(int party_id, int account_id, MapName mapname,
         struct party_member *m = &p->member[i];
         if (m == NULL)
         {
-            PRINTF("party_recv_movemap nullpo?\n");
+            PRINTF("party_recv_movemap nullpo?\n"_fmt);
             return;
         }
         if (m->account_id == account_id)
@@ -551,7 +551,7 @@ void party_recv_movemap(int party_id, int account_id, MapName mapname,
     if (i == MAX_PARTY)
     {
         if (battle_config.error_log)
-            PRINTF("party: not found member %d on %d[%s]", account_id,
+            PRINTF("party: not found member %d on %d[%s]"_fmt, account_id,
                     party_id, p->name);
         return;
     }

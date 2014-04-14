@@ -34,16 +34,17 @@
 # if __GNUC__ == 4
 // clang identifies as GCC 4.2, but is mostly okay.
 // Until a bug-free release of it happens, though, I won't recommend it.
-// (patched) clang 3.1 would be the requirement
-#  if __GNUC_MINOR__ < 6 && !defined(__clang__)
-#   error "Please upgrade to at least GCC 4.6"
-#  endif // __GNUC_MINOR__ < 6 && !defined(__clang__)
+// clang 3.2 is the minimum that the CI builds are using
+#  if __GNUC_MINOR__ < 7 && !defined(__clang__)
+#   error "Please upgrade to at least GCC 4.7"
+#  endif // __GNUC_MINOR__ < 7 && !defined(__clang__)
 # endif // __GNUC__ == 4
 
 # if not defined(__i386__) and not defined(__x86_64__)
 // Known platform dependencies:
 // endianness for the [RW]FIFO.* macros
 // possibly, some signal-handling
+// some integer sizes (partially fixed for the x32 ABI)
 #  error "Unsupported platform, we use x86 / amd64 only"
 # endif // not __i386__
 

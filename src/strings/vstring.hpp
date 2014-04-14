@@ -40,10 +40,7 @@ namespace strings
         VString(ZString z);
         template<uint8_t m>
         VString(VString<m> v);
-        template<size_t m>
-        VString(char (&s)[m]) = delete;
-        template<size_t m>
-        VString(const char (&s)[m]);
+        VString(LString l);
         VString(decltype(really_construct_from_a_pointer) e, const char *s);
         VString(char c);
         VString();

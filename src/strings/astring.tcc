@@ -21,23 +21,6 @@
 
 namespace strings
 {
-    template<size_t n>
-    AString::AString(const char (&s)[n])
-    : data{}, special()
-    {
-        XPair x = s;
-        if (x.size() > 255 || x.size() == 0)
-        {
-            new(r_ptr()) RString(x);
-            special = 255;
-        }
-        else
-        {
-            *std::copy(x.begin(), x.end(), data) = '\0';
-            special = 255 - x.size();
-        }
-    }
-
     template<class It>
     AString::AString(It b, It e)
     : data{}, special()

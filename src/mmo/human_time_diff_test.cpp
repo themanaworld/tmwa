@@ -28,7 +28,7 @@ TEST(humantimediff, single)
 {
     HumanTimeDiff diff;
 
-    EXPECT_TRUE(extract("42y", &diff));
+    EXPECT_TRUE(extract("42y"_s, &diff));
     EXPECT_EQ(42, diff.year);
     EXPECT_EQ(0, diff.month);
     EXPECT_EQ(0, diff.day);
@@ -36,7 +36,7 @@ TEST(humantimediff, single)
     EXPECT_EQ(0, diff.minute);
     EXPECT_EQ(0, diff.second);
 
-    EXPECT_TRUE(extract("42m", &diff));
+    EXPECT_TRUE(extract("42m"_s, &diff));
     EXPECT_EQ(0, diff.year);
     EXPECT_EQ(42, diff.month);
     EXPECT_EQ(0, diff.day);
@@ -44,7 +44,7 @@ TEST(humantimediff, single)
     EXPECT_EQ(0, diff.minute);
     EXPECT_EQ(0, diff.second);
 
-    EXPECT_TRUE(extract("42d", &diff));
+    EXPECT_TRUE(extract("42d"_s, &diff));
     EXPECT_EQ(0, diff.year);
     EXPECT_EQ(0, diff.month);
     EXPECT_EQ(42, diff.day);
@@ -52,7 +52,7 @@ TEST(humantimediff, single)
     EXPECT_EQ(0, diff.minute);
     EXPECT_EQ(0, diff.second);
 
-    EXPECT_TRUE(extract("42h", &diff));
+    EXPECT_TRUE(extract("42h"_s, &diff));
     EXPECT_EQ(0, diff.year);
     EXPECT_EQ(0, diff.month);
     EXPECT_EQ(0, diff.day);
@@ -60,7 +60,7 @@ TEST(humantimediff, single)
     EXPECT_EQ(0, diff.minute);
     EXPECT_EQ(0, diff.second);
 
-    EXPECT_TRUE(extract("42mn", &diff));
+    EXPECT_TRUE(extract("42mn"_s, &diff));
     EXPECT_EQ(0, diff.year);
     EXPECT_EQ(0, diff.month);
     EXPECT_EQ(0, diff.day);
@@ -68,7 +68,7 @@ TEST(humantimediff, single)
     EXPECT_EQ(42, diff.minute);
     EXPECT_EQ(0, diff.second);
 
-    EXPECT_TRUE(extract("42s", &diff));
+    EXPECT_TRUE(extract("42s"_s, &diff));
     EXPECT_EQ(0, diff.year);
     EXPECT_EQ(0, diff.month);
     EXPECT_EQ(0, diff.day);
@@ -76,28 +76,28 @@ TEST(humantimediff, single)
     EXPECT_EQ(0, diff.minute);
     EXPECT_EQ(42, diff.second);
 
-    EXPECT_TRUE(extract("+42y", &diff));
+    EXPECT_TRUE(extract("+42y"_s, &diff));
     EXPECT_EQ(42, diff.year);
-    EXPECT_TRUE(extract("-42y", &diff));
+    EXPECT_TRUE(extract("-42y"_s, &diff));
     EXPECT_EQ(-42, diff.year);
-    EXPECT_FALSE(extract("++42y", &diff));
-    EXPECT_FALSE(extract("+-42y", &diff));
-    EXPECT_FALSE(extract("-+42y", &diff));
-    EXPECT_FALSE(extract("--42y", &diff));
-    EXPECT_FALSE(extract("4+2y", &diff));
-    EXPECT_FALSE(extract("42z", &diff));
+    EXPECT_FALSE(extract("++42y"_s, &diff));
+    EXPECT_FALSE(extract("+-42y"_s, &diff));
+    EXPECT_FALSE(extract("-+42y"_s, &diff));
+    EXPECT_FALSE(extract("--42y"_s, &diff));
+    EXPECT_FALSE(extract("4+2y"_s, &diff));
+    EXPECT_FALSE(extract("42z"_s, &diff));
 }
 
 TEST(humantimediff, multiple)
 {
     HumanTimeDiff diff;
 
-    EXPECT_TRUE(extract("42y23m-2d", &diff));
+    EXPECT_TRUE(extract("42y23m-2d"_s, &diff));
     EXPECT_EQ(42, diff.year);
     EXPECT_EQ(23, diff.month);
     EXPECT_EQ(-2, diff.day);
     EXPECT_EQ(0, diff.hour);
     EXPECT_EQ(0, diff.minute);
     EXPECT_EQ(0, diff.second);
-    EXPECT_FALSE(extract("1y2y", &diff));
+    EXPECT_FALSE(extract("1y2y"_s, &diff));
 }

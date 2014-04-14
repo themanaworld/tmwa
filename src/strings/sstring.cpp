@@ -54,6 +54,10 @@ namespace strings
         else
             *this = RString(x);
     }
+    SString::SString(const LString& l)
+    {
+        *this = XString(l);
+    }
 
     SString::SString(RString r, size_t b, size_t e)
     : _s(std::move(r)), _b(b), _e(e)

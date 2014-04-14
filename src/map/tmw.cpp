@@ -91,7 +91,7 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
     {
         sd->chat_lines_in = sd->chat_total_repeats = 0;
 
-        tmw_AutoBan(sd, "chat", battle_config.chat_spam_ban);
+        tmw_AutoBan(sd, "chat"_s, battle_config.chat_spam_ban);
 
         return 1;
     }
@@ -100,8 +100,8 @@ int tmw_CheckChatSpam(dumb_ptr<map_session_data> sd, XString message)
         (sd->chat_lines_in >= battle_config.chat_spam_warn
          || sd->chat_total_repeats >= battle_config.chat_spam_warn))
     {
-        clif_displaymessage(sd->sess, "WARNING: You are about to be automatically banned for spam!");
-        clif_displaymessage(sd->sess, "WARNING: Please slow down, do not repeat, and do not SHOUT!");
+        clif_displaymessage(sd->sess, "WARNING: You are about to be automatically banned for spam!"_s);
+        clif_displaymessage(sd->sess, "WARNING: Please slow down, do not repeat, and do not SHOUT!"_s);
     }
 
     return 0;
@@ -114,16 +114,16 @@ void tmw_AutoBan(dumb_ptr<map_session_data> sd, ZString reason, int length)
 
     sd->auto_ban_info.in_progress = 1;
 
-    AString hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam",
+    AString hack_msg = STRPRINTF("[GM] %s has been autobanned for %s spam"_fmt,
             sd->status_key.name,
             reason);
     tmw_GmHackMsg(hack_msg);
 
-    AString fake_command = STRPRINTF("@autoban %s %dh (%s spam)",
+    AString fake_command = STRPRINTF("@autoban %s %dh (%s spam)"_fmt,
             sd->status_key.name, length, reason);
     log_atcommand(sd, fake_command);
 
-    AString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam.",
+    AString anotherbuf = STRPRINTF("You have been banned for %s spamming. Please do not spam."_fmt,
             reason);
 
     clif_displaymessage(sd->sess, anotherbuf);

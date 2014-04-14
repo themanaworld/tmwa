@@ -43,10 +43,7 @@ namespace strings
         TString(const XString&);
         template<uint8_t n>
         TString(const VString<n>& v);
-        template<size_t n>
-        TString(char (&s)[n]) = delete;
-        template<size_t n>
-        TString(const char (&s)[n]);
+        TString(const LString&);
         //template<class It>
         //TString(It b, It e) : _s(b, e), _o(0) {}
         TString(XPair p);

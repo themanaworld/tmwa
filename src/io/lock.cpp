@@ -49,7 +49,7 @@ namespace io
         AString newfile;
         do
         {
-            newfile = STRPRINTF("%s_%d.tmp", filename, no++);
+            newfile = STRPRINTF("%s_%d.tmp"_fmt, filename, no++);
             fd = FD::open(newfile, O_WRONLY | O_CREAT | O_EXCL, 0666);
         }
         while (fd == FD() && errno == EEXIST);
@@ -67,21 +67,21 @@ namespace io
         if (!WriteFile::close())
         {
             // leave partial file
-            FPRINTF(stderr, "Warning: failed to write replacement for %s\n", filename);
+            FPRINTF(stderr, "Warning: failed to write replacement for %s\n"_fmt, filename);
             abort();
         }
 
         int n = backup_count;
-        AString old_filename = STRPRINTF("%s.%d", filename, n);
+        AString old_filename = STRPRINTF("%s.%d"_fmt, filename, n);
         while (--n)
         {
-            AString newer_filename = STRPRINTF("%s.%d", filename, n);
+            AString newer_filename = STRPRINTF("%s.%d"_fmt, filename, n);
             rename(newer_filename.c_str(), old_filename.c_str());
             old_filename = std::move(newer_filename);
         }
         rename(filename.c_str(), old_filename.c_str());
 
-        AString tmpfile = STRPRINTF("%s_%d.tmp", filename, tmp_suffix);
+        AString tmpfile = STRPRINTF("%s_%d.tmp"_fmt, filename, tmp_suffix);
         rename(tmpfile.c_str(), filename.c_str());
     }
 } // namespace io

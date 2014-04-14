@@ -86,7 +86,7 @@ constexpr int MAGIC_SKILL_THRESHOLD = 200;
         MAP_LOG_PC(sd, "XP %d %d JOB %d %d %d ZENY %d + %d " suffix,                \
                 sd->status.base_level, sd->status.base_exp,                         \
                 sd->status.job_level, sd->status.job_exp, sd->status.skill_point,   \
-                sd->status.zeny, pc_readaccountreg(sd, stringish<VarName>("BankAccount")))
+                sd->status.zeny, pc_readaccountreg(sd, stringish<VarName>("BankAccount"_s)))
 
 #define MAP_LOG_MAGIC(sd, suffix)                                                           \
         MAP_LOG_PC(sd, "MAGIC %d %d %d %d %d %d EXP %d %d " suffix,                         \
@@ -96,8 +96,8 @@ constexpr int MAGIC_SKILL_THRESHOLD = 200;
                    sd->status.skill[SkillID::TMW_MAGIC_TRANSMUTE].lv,                       \
                    sd->status.skill[SkillID::TMW_MAGIC_NATURE].lv,                          \
                    sd->status.skill[SkillID::TMW_MAGIC_ETHER].lv,                           \
-                   pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE")) & 0xffff,   \
-                   (pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE")) >> 24) & 0xff)
+                   pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE"_s)) & 0xffff, \
+                   (pc_readglobalreg(sd, stringish<VarName>("MAGIC_EXPERIENCE"_s)) >> 24) & 0xff)
 
 static //const
 int max_weight_base_0 = 20000;
@@ -458,7 +458,7 @@ void pc_makesavestatus(dumb_ptr<map_session_data> sd)
     if (sd->bl_m->flag.get(MapFlag::NOSAVE))
     {
         map_local *m = sd->bl_m;
-        if (m->save.map_ == "SavePoint")
+        if (m->save.map_ == "SavePoint"_s)
             sd->status.last_point = sd->status.save_point;
         else
             sd->status.last_point = m->save;
@@ -662,9 +662,9 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         return 1;
     }
 
-    MAP_LOG_STATS(sd, "LOGIN");
-    MAP_LOG_XP(sd, "LOGIN");
-    MAP_LOG_MAGIC(sd, "LOGIN");
+    MAP_LOG_STATS(sd, "LOGIN"_fmt);
+    MAP_LOG_XP(sd, "LOGIN"_fmt);
+    MAP_LOG_MAGIC(sd, "LOGIN"_fmt);
 
     really_memzero_this(&sd->state);
     // 基本的な初期化
@@ -702,7 +702,7 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // The above is no longer accurate now that we use <chrono>, but
     // I'm still not reverting this.
     // -o11c
-    sd->cast_tick = tick; // + pc_readglobalreg (sd, "MAGIC_CAST_TICK");
+    sd->cast_tick = tick; // + pc_readglobalreg (sd, "MAGIC_CAST_TICK"_s);
 
     // アカウント変数の送信要求
     intif_request_accountreg(sd);
@@ -725,10 +725,10 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         // This would leak information.
         // It's better to make it obvious that players can see you.
         if (false && bool(old_option & Option::INVISIBILITY))
-            is_atcommand(sd->sess, sd, "@invisible", 0);
+            is_atcommand(sd->sess, sd, "@invisible"_s, 0);
 
         if (bool(old_option & Option::HIDE))
-            is_atcommand(sd->sess, sd, "@hide", 0);
+            is_atcommand(sd->sess, sd, "@hide"_s, 0);
         // atcommand_hide might already send it, but also might not
         clif_changeoption(sd);
     }
@@ -765,19 +765,19 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
         map_addchariddb(sd->status_key.char_id, sd->status_key.name);
 
     //スパノビ用死にカウンターのスクリプト変数からの読み出しとsdへのセット
-    sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"));
+    sd->die_counter = pc_readglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s));
 
     // ステータス初期計算など
     pc_calcstatus(sd, 1);
 
     if (pc_isGM(sd))
     {
-        PRINTF("Connection accepted: character '%s' (account: %d; GM level %d).\n",
+        PRINTF("Connection accepted: character '%s' (account: %d; GM level %d).\n"_fmt,
              sd->status_key.name, sd->status_key.account_id, pc_isGM(sd));
         clif_updatestatus(sd, SP::GM);
     }
     else
-        PRINTF("Connection accepted: Character '%s' (account: %d).\n",
+        PRINTF("Connection accepted: Character '%s' (account: %d).\n"_fmt,
                 sd->status_key.name, sd->status_key.account_id);
 
     sd->auto_ban_info.in_progress = 0;
@@ -796,11 +796,11 @@ int pc_authok(int id, int login_id2, TimeT connect_until_time,
     // message of the limited time of the account
     if (connect_until_time)
     {
-        // don't display if it's unlimited or unknow value
-        char tmpstr[] = WITH_TIMESTAMP("Your account time limit is: ");
-        REPLACE_TIMESTAMP(tmpstr, connect_until_time);
+        timestamp_seconds_buffer buffer;
+        stamp_time(buffer, &connect_until_time);
+        AString tmpstr = STRPRINTF("Your account time limit is: %s"_fmt, buffer);
 
-        clif_wis_message(sd->sess, wisp_server_name, const_(tmpstr));
+        clif_wis_message(sd->sess, wisp_server_name, tmpstr);
     }
     pc_calcstatus(sd, 1);
 
@@ -817,7 +817,7 @@ void pc_show_motd(dumb_ptr<map_session_data> sd)
     // If you remove the sending of this message,
     // the license does not permit you to publicly use this software.
 
-    clif_displaymessage(sd->sess, "This server is Free Software, for details type @source in chat or use the tmwa-source tool");
+    clif_displaymessage(sd->sess, "This server is Free Software, for details type @source in chat or use the tmwa-source tool"_s);
 
     sd->state.seen_motd = true;
     io::ReadFile in(motd_txt);
@@ -1099,8 +1099,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     {
                         argrec_t arg[2] =
                         {
-                            {"@slotId", static_cast<int>(i)},
-                            {"@itemId", sd->inventory_data[index]->nameid},
+                            {"@slotId"_s, static_cast<int>(i)},
+                            {"@itemId"_s, sd->inventory_data[index]->nameid},
                         };
                         run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
                                 sd->bl_id, 0,
@@ -1113,8 +1113,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
                     //二刀流武器以外
                     argrec_t arg[2] =
                     {
-                        {"@slotId", static_cast<int>(i)},
-                        {"@itemId", sd->inventory_data[index]->nameid},
+                        {"@slotId"_s, static_cast<int>(i)},
+                        {"@itemId"_s, sd->inventory_data[index]->nameid},
                     };
                     sd->watk += sd->inventory_data[index]->atk;
 
@@ -1128,8 +1128,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
             {
                 argrec_t arg[2] =
                 {
-                    {"@slotId", static_cast<int>(i)},
-                    {"@itemId", sd->inventory_data[index]->nameid},
+                    {"@slotId"_s, static_cast<int>(i)},
+                    {"@itemId"_s, sd->inventory_data[index]->nameid},
                 };
                 sd->watk += sd->inventory_data[index]->atk;
                 run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
@@ -1155,8 +1155,8 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         {                       //まだ属性が入っていない
             argrec_t arg[2] =
             {
-                {"@slotId", static_cast<int>(EQUIP::ARROW)},
-                {"@itemId", sd->inventory_data[index]->nameid},
+                {"@slotId"_s, static_cast<int>(EQUIP::ARROW)},
+                {"@itemId"_s, sd->inventory_data[index]->nameid},
             };
             sd->state.lr_flag = 2;
             run_script_l(ScriptPointer(sd->inventory_data[index]->equip_script.get(), 0),
@@ -1206,7 +1206,6 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     }
     dstr = str / 10;
     sd->base_atk += str + dstr * dstr + dex / 5 + sd->paramc[ATTR::LUK] / 5;
-//FPRINTF(stderr, "baseatk = %d = x + %d + %d + %d + %d\n", sd->base_atk, str, dstr*dstr, dex/5, sd->paramc[ATTR::LUK]/5);
     sd->matk1 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 5) * (sd->paramc[ATTR::INT] / 5);
     sd->matk2 += sd->paramc[ATTR::INT] + (sd->paramc[ATTR::INT] / 7) * (sd->paramc[ATTR::INT] / 7);
     if (sd->matk1 < sd->matk2)
@@ -1731,7 +1730,7 @@ int pc_bonus(dumb_ptr<map_session_data> sd, SP type, int val)
             break;
         default:
             if (battle_config.error_log)
-                PRINTF("pc_bonus: unknown type %d %d !\n",
+                PRINTF("pc_bonus: unknown type %d %d !\n"_fmt,
                         type, val);
             break;
     }
@@ -1776,7 +1775,7 @@ int pc_bonus2(dumb_ptr<map_session_data> sd, SP type, int type2, int val)
 #endif
         default:
             if (battle_config.error_log)
-                PRINTF("pc_bonus2: unknown type %d %d %d!\n",
+                PRINTF("pc_bonus2: unknown type %d %d %d!\n"_fmt,
                         type, type2, val);
             break;
     }
@@ -1794,7 +1793,7 @@ int pc_skill(dumb_ptr<map_session_data> sd, SkillID id, int level, int flag)
     if (level > MAX_SKILL_LEVEL)
     {
         if (battle_config.error_log)
-            PRINTF("support card skill only!\n");
+            PRINTF("support card skill only!\n"_fmt);
         return 0;
     }
     if (!flag && (sd->status.skill[id].lv || level == 0))
@@ -1970,7 +1969,7 @@ PickupFail pc_additem(dumb_ptr<map_session_data> sd, struct item *item_data,
     struct item_data *data;
     int i, w;
 
-    MAP_LOG_PC(sd, "PICKUP %d %d", item_data->nameid, amount);
+    MAP_LOG_PC(sd, "PICKUP %d %d"_fmt, item_data->nameid, amount);
 
     nullpo_retr(PickupFail::BAD_ITEM, sd);
     nullpo_retr(PickupFail::BAD_ITEM, item_data);
@@ -2314,7 +2313,7 @@ int pc_setpos(dumb_ptr<map_session_data> sd,
         if (x || y)
         {
             if (battle_config.error_log)
-                PRINTF("stacked (%d,%d)\n", x, y);
+                PRINTF("stacked (%d,%d)\n"_fmt, x, y);
         }
         do
         {
@@ -2915,7 +2914,7 @@ int pc_checkbaselevelup(dumb_ptr<map_session_data> sd)
         //レベルアップしたのでパーティー情報を更新する
         //(公平範囲チェック)
         party_send_movemap(sd);
-        MAP_LOG_XP(sd, "LEVELUP");
+        MAP_LOG_XP(sd, "LEVELUP"_fmt);
         return 1;
     }
 
@@ -2971,7 +2970,7 @@ int pc_checkjoblevelup(dumb_ptr<map_session_data> sd)
         clif_updatestatus(sd, SP::SKILLPOINT);
         pc_calcstatus(sd, 0);
 
-        MAP_LOG_PC(sd, "SKILLPOINTS-UP %d", sd->status.skill_point);
+        MAP_LOG_PC(sd, "SKILLPOINTS-UP %d"_fmt, sd->status.skill_point);
 
         if (sd->status.job_level < 250
             && sd->status.job_level < sd->status.base_level * 2)
@@ -2992,16 +2991,16 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
     if (sd->bl_prev == NULL || pc_isdead(sd))
         return 0;
 
-    earray<const char *, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons //=
+    earray<LString, PC_GAINEXP_REASON, PC_GAINEXP_REASON::COUNT> reasons //=
     {{
-        "KILLXP",
-        "HEALXP",
-        "SCRIPTXP",
-        "SHAREXP",
+        "KILLXP"_s,
+        "HEALXP"_s,
+        "SCRIPTXP"_s,
+        "SHAREXP"_s,
         /* Insert new types here */
-        "UNKNOWNXP"
+        "UNKNOWNXP"_s
     }};
-    MAP_LOG_PC(sd, "GAINXP %d %d %s", base_exp, job_exp, reasons[reason]);
+    MAP_LOG_PC(sd, "GAINXP %d %d %s"_fmt, base_exp, job_exp, reasons[reason]);
 
     if (!battle_config.multi_level_up && pc_nextbaseafter(sd))
     {
@@ -3053,7 +3052,7 @@ int pc_gainexp_reason(dumb_ptr<map_session_data> sd, int base_exp, int job_exp,
     if (battle_config.disp_experience)
     {
         AString output = STRPRINTF(
-                "Experienced Gained Base:%d Job:%d",
+                "Experienced Gained Base:%d Job:%d"_fmt,
                 base_exp, job_exp);
         clif_displaymessage(sd->sess, output);
     }
@@ -3181,7 +3180,7 @@ int pc_statusup(dumb_ptr<map_session_data> sd, SP type)
     pc_calcstatus(sd, 0);
     clif_statusupack(sd, type, 1, val);
 
-    MAP_LOG_STATS(sd, "STATUP");
+    MAP_LOG_STATS(sd, "STATUP"_fmt);
 
     return 0;
 }
@@ -3208,7 +3207,7 @@ int pc_statusup2(dumb_ptr<map_session_data> sd, SP type, int val)
     clif_updatestatus(sd, type);
     pc_calcstatus(sd, 0);
     clif_statusupack(sd, type, 1, val);
-    MAP_LOG_STATS(sd, "STATUP2");
+    MAP_LOG_STATS(sd, "STATUP2"_fmt);
 
     return 0;
 }
@@ -3232,7 +3231,7 @@ int pc_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
         clif_skillup(sd, skill_num);
         clif_updatestatus(sd, SP::SKILLPOINT);
         clif_skillinfoblock(sd);
-        MAP_LOG_PC(sd, "SKILLUP %d %d %d",
+        MAP_LOG_PC(sd, "SKILLUP %d %d %d"_fmt,
                 skill_num, sd->status.skill[skill_num].lv,
                 skill_power(sd, skill_num));
     }
@@ -3323,7 +3322,7 @@ int pc_resetlvl(dumb_ptr<map_session_data> sd, int type)
     clif_skillinfoblock(sd);
     pc_calcstatus(sd, 0);
 
-    MAP_LOG_STATS(sd, "STATRESET");
+    MAP_LOG_STATS(sd, "STATRESET"_fmt);
 
     return 0;
 }
@@ -3401,17 +3400,17 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     {
         if (src->bl_type == BL::PC)
         {
-            MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d",
+            MAP_LOG_PC(sd, "INJURED-BY PC%d FOR %d"_fmt,
                         src->is_player()->status_key.char_id,
                         damage);
         }
         else
         {
-            MAP_LOG_PC(sd, "INJURED-BY MOB%d FOR %d", src->bl_id, damage);
+            MAP_LOG_PC(sd, "INJURED-BY MOB%d FOR %d"_fmt, src->bl_id, damage);
         }
     }
     else
-        MAP_LOG_PC(sd, "INJURED-BY null FOR %d", damage);
+        MAP_LOG_PC(sd, "INJURED-BY null FOR %d"_fmt, damage);
 
     pc_stop_walking(sd, 3);
     // 演奏/ダンスの中断
@@ -3437,7 +3436,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         return 0;
     }
 
-    MAP_LOG_PC(sd, "DEAD%s", "");
+    MAP_LOG_PC(sd, "DEAD%s"_fmt, ""_s);
 
     // Character is dead!
 
@@ -3452,7 +3451,7 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
     pc_stop_walking(sd, 0);
     skill_castcancel(sd, 0);  // 詠唱の中止
     clif_clearchar(sd, BeingRemoveWhy::DEAD);
-    pc_setglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"), ++sd->die_counter);  //死にカウンター書き込み
+    pc_setglobalreg(sd, stringish<VarName>("PC_DIE_COUNTER"_s), ++sd->die_counter);  //死にカウンター書き込み
     skill_status_change_clear(sd, 0); // ステータス異常を解除する
     clif_updatestatus(sd, SP::HP);
     pc_calcstatus(sd, 0);
@@ -3544,14 +3543,14 @@ int pc_damage(dumb_ptr<block_list> src, dumb_ptr<map_session_data> sd,
         // [Fate] PK death, trigger scripts
         argrec_t arg[3] =
         {
-            {"@killerrid", src->bl_id},
-            {"@victimrid", sd->bl_id},
-            {"@victimlvl", sd->status.base_level},
+            {"@killerrid"_s, src->bl_id},
+            {"@victimrid"_s, sd->bl_id},
+            {"@victimlvl"_s, sd->status.base_level},
         };
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"), sd->bl_id, arg);
-        npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"), src->bl_id, arg);
+        npc_event_doall_l(stringish<ScriptLabel>("OnPCKilledEvent"_s), sd->bl_id, arg);
+        npc_event_doall_l(stringish<ScriptLabel>("OnPCKillEvent"_s), src->bl_id, arg);
     }
-    npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"), sd->bl_id, nullptr);
+    npc_event_doall_l(stringish<ScriptLabel>("OnPCDieEvent"_s), sd->bl_id, nullptr);
 
     return 0;
 }
@@ -3762,9 +3761,6 @@ int pc_setparam(dumb_ptr<map_session_data> sd, SP type, int val)
  */
 int pc_heal(dumb_ptr<map_session_data> sd, int hp, int sp)
 {
-//  if(battle_config.battle_log)
-//      PRINTF("heal %d %d\n",hp,sp);
-
     nullpo_ret(sd);
 
     if (pc_checkoverhp(sd))
@@ -4139,7 +4135,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
     nullpo_ret(sd);
 
     //PC_DIE_COUNTERがスクリプトなどで変更された時の処理
-    if (reg == stringish<VarName>("PC_DIE_COUNTER") && sd->die_counter != val)
+    if (reg == stringish<VarName>("PC_DIE_COUNTER"_s) && sd->die_counter != val)
     {
         sd->die_counter = val;
         pc_calcstatus(sd, 0);
@@ -4175,7 +4171,7 @@ int pc_setglobalreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        PRINTF("pc_setglobalreg : couldn't set %s (GLOBAL_REG_NUM = %d)\n",
+        PRINTF("pc_setglobalreg : couldn't set %s (GLOBAL_REG_NUM = %d)\n"_fmt,
                 reg, GLOBAL_REG_NUM);
 
     return 1;
@@ -4244,7 +4240,7 @@ int pc_setaccountreg(dumb_ptr<map_session_data> sd, VarName reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        PRINTF("pc_setaccountreg : couldn't set %s (ACCOUNT_REG_NUM = %d)\n",
+        PRINTF("pc_setaccountreg : couldn't set %s (ACCOUNT_REG_NUM = %d)\n"_fmt,
                 reg, ACCOUNT_REG_NUM);
 
     return 1;
@@ -4312,7 +4308,7 @@ int pc_setaccountreg2(dumb_ptr<map_session_data> sd, VarName reg, int val)
         return 0;
     }
     if (battle_config.error_log)
-        PRINTF("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %d)\n",
+        PRINTF("pc_setaccountreg2 : couldn't set %s (ACCOUNT_REG2_NUM = %d)\n"_fmt,
              reg, ACCOUNT_REG2_NUM);
 
     return 1;
@@ -4414,7 +4410,7 @@ int pc_equipitem(dumb_ptr<map_session_data> sd, int n, EPOS)
     EPOS pos = pc_equippoint(sd, n);
 
     if (battle_config.battle_log)
-        PRINTF("equip %d (%d) %x:%x\n",
+        PRINTF("equip %d (%d) %x:%x\n"_fmt,
                 nameid, n, id->equip, pos);
     if (!pc_isequip(sd, n) || pos == EPOS::ZERO)
     {
@@ -4546,7 +4542,7 @@ int pc_unequipitem(dumb_ptr<map_session_data> sd, int n, CalcStatus type)
 // -- moonsoul  (if player is berserk then cannot unequip)
 //
     if (battle_config.battle_log)
-        PRINTF("unequip %d %x:%x\n",
+        PRINTF("unequip %d %x:%x\n"_fmt,
                 n, pc_equippoint(sd, n),
                 sd->status.inventory[n].equip);
     if (bool(sd->status.inventory[n].equip))
@@ -4804,7 +4800,7 @@ int pc_divorce(dumb_ptr<map_session_data> sd)
         if (p_sd->status.partner_id != sd->status_key.char_id
             || sd->status.partner_id != p_sd->status_key.char_id)
         {
-            PRINTF("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n",
+            PRINTF("pc_divorce: Illegal partner_id sd=%d p_sd=%d\n"_fmt,
                     sd->status.partner_id, p_sd->status.partner_id);
             return -1;
         }
@@ -5265,13 +5261,13 @@ int pc_logout(dumb_ptr<map_session_data> sd) // [fate] Player logs out
     // Removed because it's buggy, see above.
     if (sd->cast_tick > tick)
     {
-        if (pc_setglobalreg(sd, "MAGIC_CAST_TICK", sd->cast_tick - tick))
+        if (pc_setglobalreg(sd, "MAGIC_CAST_TICK"_s, sd->cast_tick - tick))
             sd->status.sp = 1;
     }
     else
 #endif
-        pc_setglobalreg(sd, stringish<VarName>("MAGIC_CAST_TICK"), 0);
+        pc_setglobalreg(sd, stringish<VarName>("MAGIC_CAST_TICK"_s), 0);
 
-    MAP_LOG_STATS(sd, "LOGOUT");
+    MAP_LOG_STATS(sd, "LOGOUT"_fmt);
     return 0;
 }

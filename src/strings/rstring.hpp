@@ -56,12 +56,6 @@ namespace strings
 
         explicit RString(const MString& s);
 
-        template<size_t n>
-        RString(char (&s)[n]) = delete;
-
-        template<size_t n>
-        RString(const char (&s)[n]);
-
         template<class It>
         RString(It b, It e);
 
@@ -73,6 +67,7 @@ namespace strings
         RString(XString);
         template<uint8_t n>
         RString(const VString<n>& v);
+        RString(LString s);
 
         iterator begin() const;
         iterator end() const;

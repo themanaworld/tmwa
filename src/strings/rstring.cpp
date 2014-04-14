@@ -125,6 +125,11 @@ namespace strings
         else
             _assign(x.begin(), x.end());
     }
+    RString::RString(LString l)
+    : owned(nullptr)
+    {
+        *this = XString(l);
+    }
 
     RString::iterator RString::begin() const
     {

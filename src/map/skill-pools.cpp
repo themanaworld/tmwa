@@ -34,7 +34,7 @@ void skill_pool_register(SkillID id)
     if (skill_pool_skills_size + 1 >= MAX_POOL_SKILLS)
     {
         FPRINTF(stderr,
-                 "Too many pool skills! Increase MAX_POOL_SKILLS and recompile.");
+                 "Too many pool skills! Increase MAX_POOL_SKILLS and recompile."_fmt);
         return;
     }
 
@@ -78,7 +78,7 @@ int skill_pool_activate(dumb_ptr<map_session_data> sd, SkillID skill_id)
     {
         sd->status.skill[skill_id].flags |= SkillFlags::POOL_ACTIVATED;
         pc_calcstatus(sd, 0);
-        MAP_LOG_PC(sd, "SKILL-ACTIVATE %d %d %d",
+        MAP_LOG_PC(sd, "SKILL-ACTIVATE %d %d %d"_fmt,
                 skill_id, sd->status.skill[skill_id].lv,
                 skill_power(sd, skill_id));
         return 0;
@@ -97,7 +97,7 @@ int skill_pool_deactivate(dumb_ptr<map_session_data> sd, SkillID skill_id)
     if (bool(sd->status.skill[skill_id].flags & SkillFlags::POOL_ACTIVATED))
     {
         sd->status.skill[skill_id].flags &= ~SkillFlags::POOL_ACTIVATED;
-        MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d", skill_id);
+        MAP_LOG_PC(sd, "SKILL-DEACTIVATE %d"_fmt, skill_id);
         pc_calcstatus(sd, 0);
         return 0;
     }

@@ -27,9 +27,4 @@ namespace strings
     ZString::ZString(const VString<n>& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(nullptr)
     {}
-
-    template<size_t n>
-    ZString::ZString(const char (&s)[n], const RString *base_)
-    : _b(s), _e(s + strlen(s)), _base(base_)
-    {}
 } // namespace strings

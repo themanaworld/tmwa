@@ -42,10 +42,7 @@ namespace strings
         SString(const XString&);
         template<uint8_t n>
         SString(const VString<n>& v);
-        template<size_t n>
-        SString(char (&s)[n]) = delete;
-        template<size_t n>
-        SString(const char (&s)[n]);
+        SString(const LString&);
         //template<class It>
         //SString(It b, It e) : _s(b, e), _b(0), _e(_s.size()) {}
         SString(RString f, size_t b, size_t e);

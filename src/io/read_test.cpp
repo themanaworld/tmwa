@@ -42,42 +42,42 @@ io::FD string_pipe(ZString sz)
 
 TEST(io, read1)
 {
-    io::ReadFile rf(string_pipe("Hello"));
+    io::ReadFile rf(string_pipe("Hello"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
-    EXPECT_EQ(hi, "Hello");
+    EXPECT_EQ(hi, "Hello"_s);
     EXPECT_FALSE(rf.getline(hi));
 }
 TEST(io, read2)
 {
-    io::ReadFile rf(string_pipe("Hello\n"));
+    io::ReadFile rf(string_pipe("Hello\n"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
-    EXPECT_EQ(hi, "Hello");
+    EXPECT_EQ(hi, "Hello"_s);
     EXPECT_FALSE(rf.getline(hi));
 }
 TEST(io, read3)
 {
-    io::ReadFile rf(string_pipe("Hello\r"));
+    io::ReadFile rf(string_pipe("Hello\r"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
-    EXPECT_EQ(hi, "Hello");
+    EXPECT_EQ(hi, "Hello"_s);
     EXPECT_FALSE(rf.getline(hi));
 }
 TEST(io, read4)
 {
-    io::ReadFile rf(string_pipe("Hello\r\n"));
+    io::ReadFile rf(string_pipe("Hello\r\n"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
-    EXPECT_EQ(hi, "Hello");
+    EXPECT_EQ(hi, "Hello"_s);
     EXPECT_FALSE(rf.getline(hi));
 }
 TEST(io, read5)
 {
-    io::ReadFile rf(string_pipe("Hello\n\r"));
+    io::ReadFile rf(string_pipe("Hello\n\r"_s));
     AString hi;
     EXPECT_TRUE(rf.getline(hi));
-    EXPECT_EQ(hi, "Hello");
+    EXPECT_EQ(hi, "Hello"_s);
     EXPECT_TRUE(rf.getline(hi));
     EXPECT_FALSE(hi);
     EXPECT_FALSE(rf.getline(hi));

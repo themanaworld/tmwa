@@ -22,6 +22,7 @@
 # include "../sanity.hpp"
 
 # include "base.hpp"
+# include "literal.hpp"
 
 namespace strings
 {
@@ -44,10 +45,7 @@ namespace strings
         XString(const ZString& s);
         template<uint8_t n>
         XString(const VString<n>& s);
-        template<size_t n>
-        XString(char (&s)[n]) = delete;
-        template<size_t n>
-        XString(const char (&s)[n]);
+        XString(const LString& s);
         // mostly internal
         XString(const char *b, const char *e, const RString *base_);
         XString(decltype(really_construct_from_a_pointer) e, const char *s, const RString *base_);

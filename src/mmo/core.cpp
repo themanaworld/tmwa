@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 
     if (!runflag)
     {
-        PRINTF("Fatal error during startup; exiting\n");
+        PRINTF("Fatal error during startup; exiting\n"_fmt);
         return 1;
     }
     // set up exit handlers *after* the initialization has happened.

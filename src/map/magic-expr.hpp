@@ -44,8 +44,8 @@
  */
 struct fun_t
 {
-    ZString name;
-    ZString signature;
+    LString name;
+    LString signature;
     char ret_ty;
     int (*fun)(dumb_ptr<env_t> env, val_t *result, Slice<val_t> arga);
 };

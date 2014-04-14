@@ -74,22 +74,15 @@ env:
   - ignore=this
 
 matrix:
-  allow_failures:
-    - compiler: clang
-      env: REAL_CC=clang-3.1 REAL_CXX=clang++-3.1 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.1
   exclude:
     - env: ignore=this
   include:
-    - compiler: clang
-      env: REAL_CC=clang-3.1 REAL_CXX=clang++-3.1 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.1
     - compiler: clang
       env: REAL_CC=clang-3.2 REAL_CXX=clang++-3.2 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.2
     - compiler: clang
       env: REAL_CC=clang-3.3 REAL_CXX=clang++-3.3 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.3
     - compiler: clang
       env: REAL_CC=clang-3.4 REAL_CXX=clang++-3.4 PPA=ppa:h-rayflood/llvm         PACKAGE=clang-3.4
-    - compiler: gcc
-      env: REAL_CC=gcc-4.6   REAL_CXX=g++-4.6     PPA=                            PACKAGE=g++-4.6
     - compiler: gcc
       env: REAL_CC=gcc-4.7   REAL_CXX=g++-4.7     PPA=ppa:ubuntu-toolchain-r/test PACKAGE=g++-4.7
     - compiler: gcc

@@ -42,80 +42,80 @@ io::FD string_pipe(ZString sz)
 
 TEST(io, line1)
 {
-    io::LineReader lr("<string1>", string_pipe("Hello World\n"));
+    io::LineReader lr("<string1>"_s, string_pipe("Hello World\n"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "Hello World");
-    EXPECT_EQ(hi.filename, "<string1>");
+    EXPECT_EQ(hi.text, "Hello World"_s);
+    EXPECT_EQ(hi.filename, "<string1>"_s);
     EXPECT_EQ(hi.line, 1);
     EXPECT_EQ(hi.column, 0);
     EXPECT_FALSE(lr.read_line(hi));
 }
 TEST(io, line2)
 {
-    io::LineReader lr("<string2>", string_pipe("Hello\nWorld"));
+    io::LineReader lr("<string2>"_s, string_pipe("Hello\nWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "Hello");
-    EXPECT_EQ(hi.filename, "<string2>");
+    EXPECT_EQ(hi.text, "Hello"_s);
+    EXPECT_EQ(hi.filename, "<string2>"_s);
     EXPECT_EQ(hi.line, 1);
     EXPECT_EQ(hi.column, 0);
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "World");
-    EXPECT_EQ(hi.filename, "<string2>");
+    EXPECT_EQ(hi.text, "World"_s);
+    EXPECT_EQ(hi.filename, "<string2>"_s);
     EXPECT_EQ(hi.line, 2);
     EXPECT_EQ(hi.column, 0);
     EXPECT_FALSE(lr.read_line(hi));
 }
 TEST(io, line3)
 {
-    io::LineReader lr("<string3>", string_pipe("Hello\rWorld"));
+    io::LineReader lr("<string3>"_s, string_pipe("Hello\rWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "Hello");
-    EXPECT_EQ(hi.filename, "<string3>");
+    EXPECT_EQ(hi.text, "Hello"_s);
+    EXPECT_EQ(hi.filename, "<string3>"_s);
     EXPECT_EQ(hi.line, 1);
     EXPECT_EQ(hi.column, 0);
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "World");
-    EXPECT_EQ(hi.filename, "<string3>");
+    EXPECT_EQ(hi.text, "World"_s);
+    EXPECT_EQ(hi.filename, "<string3>"_s);
     EXPECT_EQ(hi.line, 2);
     EXPECT_EQ(hi.column, 0);
     EXPECT_FALSE(lr.read_line(hi));
 }
 TEST(io, line4)
 {
-    io::LineReader lr("<string4>", string_pipe("Hello\r\nWorld"));
+    io::LineReader lr("<string4>"_s, string_pipe("Hello\r\nWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "Hello");
-    EXPECT_EQ(hi.filename, "<string4>");
+    EXPECT_EQ(hi.text, "Hello"_s);
+    EXPECT_EQ(hi.filename, "<string4>"_s);
     EXPECT_EQ(hi.line, 1);
     EXPECT_EQ(hi.column, 0);
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "World");
-    EXPECT_EQ(hi.filename, "<string4>");
+    EXPECT_EQ(hi.text, "World"_s);
+    EXPECT_EQ(hi.filename, "<string4>"_s);
     EXPECT_EQ(hi.line, 2);
     EXPECT_EQ(hi.column, 0);
     EXPECT_FALSE(lr.read_line(hi));
 }
 TEST(io, line5)
 {
-    io::LineReader lr("<string5>", string_pipe("Hello\n\rWorld"));
+    io::LineReader lr("<string5>"_s, string_pipe("Hello\n\rWorld"_s));
     io::Line hi;
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "Hello");
-    EXPECT_EQ(hi.filename, "<string5>");
+    EXPECT_EQ(hi.text, "Hello"_s);
+    EXPECT_EQ(hi.filename, "<string5>"_s);
     EXPECT_EQ(hi.line, 1);
     EXPECT_EQ(hi.column, 0);
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "");
-    EXPECT_EQ(hi.filename, "<string5>");
+    EXPECT_EQ(hi.text, ""_s);
+    EXPECT_EQ(hi.filename, "<string5>"_s);
     EXPECT_EQ(hi.line, 2);
     EXPECT_EQ(hi.column, 0);
     EXPECT_TRUE(lr.read_line(hi));
-    EXPECT_EQ(hi.text, "World");
-    EXPECT_EQ(hi.filename, "<string5>");
+    EXPECT_EQ(hi.text, "World"_s);
+    EXPECT_EQ(hi.filename, "<string5>"_s);
     EXPECT_EQ(hi.line, 3);
     EXPECT_EQ(hi.column, 0);
     EXPECT_FALSE(lr.read_line(hi));
@@ -123,47 +123,47 @@ TEST(io, line5)
 
 TEST(io, linechar1)
 {
-    io::LineCharReader lr("<stringchar1>", string_pipe("Hi Wu\n"));
+    io::LineCharReader lr("<stringchar1>"_s, string_pipe("Hi Wu\n"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'H');
-    EXPECT_EQ(c.text, "Hi Wu");
-    EXPECT_EQ(c.filename, "<stringchar1>");
+    EXPECT_EQ(c.text, "Hi Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar1>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'i');
-    EXPECT_EQ(c.text, "Hi Wu");
-    EXPECT_EQ(c.filename, "<stringchar1>");
+    EXPECT_EQ(c.text, "Hi Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar1>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), ' ');
-    EXPECT_EQ(c.text, "Hi Wu");
-    EXPECT_EQ(c.filename, "<stringchar1>");
+    EXPECT_EQ(c.text, "Hi Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar1>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 3);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'W');
-    EXPECT_EQ(c.text, "Hi Wu");
-    EXPECT_EQ(c.filename, "<stringchar1>");
+    EXPECT_EQ(c.text, "Hi Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar1>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 4);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'u');
-    EXPECT_EQ(c.text, "Hi Wu");
-    EXPECT_EQ(c.filename, "<stringchar1>");
+    EXPECT_EQ(c.text, "Hi Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar1>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 5);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Hi Wu");
-    EXPECT_EQ(c.filename, "<stringchar1>");
+    EXPECT_EQ(c.text, "Hi Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar1>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 6);
     lr.adv();
@@ -171,47 +171,47 @@ TEST(io, linechar1)
 }
 TEST(io, linechar2)
 {
-    io::LineCharReader lr("<stringchar2>", string_pipe("Hi\nWu"));
+    io::LineCharReader lr("<stringchar2>"_s, string_pipe("Hi\nWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'H');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar2>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar2>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'i');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar2>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar2>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar2>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar2>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 3);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'W');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar2>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar2>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'u');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar2>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar2>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar2>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar2>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 3);
     lr.adv();
@@ -219,47 +219,47 @@ TEST(io, linechar2)
 }
 TEST(io, linechar3)
 {
-    io::LineCharReader lr("<stringchar3>", string_pipe("Hi\rWu"));
+    io::LineCharReader lr("<stringchar3>"_s, string_pipe("Hi\rWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'H');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar3>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar3>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'i');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar3>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar3>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar3>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar3>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 3);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'W');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar3>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar3>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'u');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar3>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar3>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar3>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar3>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 3);
     lr.adv();
@@ -267,47 +267,47 @@ TEST(io, linechar3)
 }
 TEST(io, linechar4)
 {
-    io::LineCharReader lr("<stringchar4>", string_pipe("Hi\r\nWu"));
+    io::LineCharReader lr("<stringchar4>"_s, string_pipe("Hi\r\nWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'H');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar4>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar4>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'i');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar4>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar4>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar4>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar4>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 3);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'W');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar4>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar4>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'u');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar4>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar4>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar4>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar4>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 3);
     lr.adv();
@@ -315,54 +315,54 @@ TEST(io, linechar4)
 }
 TEST(io, linechar5)
 {
-    io::LineCharReader lr("<stringchar5>", string_pipe("Hi\n\rWu"));
+    io::LineCharReader lr("<stringchar5>"_s, string_pipe("Hi\n\rWu"_s));
     io::LineChar c;
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'H');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'i');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Hi");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, "Hi"_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 1);
     EXPECT_EQ(c.column, 3);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, ""_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 2);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'W');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 3);
     EXPECT_EQ(c.column, 1);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), 'u');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 3);
     EXPECT_EQ(c.column, 2);
     lr.adv();
     EXPECT_TRUE(lr.get(c));
     EXPECT_EQ(c.ch(), '\n');
-    EXPECT_EQ(c.text, "Wu");
-    EXPECT_EQ(c.filename, "<stringchar5>");
+    EXPECT_EQ(c.text, "Wu"_s);
+    EXPECT_EQ(c.filename, "<stringchar5>"_s);
     EXPECT_EQ(c.line, 3);
     EXPECT_EQ(c.column, 3);
     lr.adv();
@@ -371,7 +371,7 @@ TEST(io, linechar5)
 
 TEST(io, linespan)
 {
-    io::LineCharReader lr("<span>", string_pipe("Hello,\nWorld!\n"));
+    io::LineCharReader lr("<span>"_s, string_pipe("Hello,\nWorld!\n"_s));
     io::LineSpan span;
     do
     {
@@ -385,10 +385,10 @@ TEST(io, linespan)
         lr.adv();
     }
     while (span.end.ch() != 'o');
-    EXPECT_EQ(span.message_str("info", "meh"),
+    EXPECT_EQ(span.message_str("info"_s, "meh"_s),
             "<span>:1:2: info: meh\n"
             "Hello,\n"
-            " ^~~~\n"
+            " ^~~~\n"_s
     );
     span.begin = span.end;
     do
@@ -398,21 +398,21 @@ TEST(io, linespan)
     }
     while (span.end.ch() != 'r');
 
-    EXPECT_EQ(span.begin.message_str("note", "foo"),
+    EXPECT_EQ(span.begin.message_str("note"_s, "foo"_s),
             "<span>:1:5: note: foo\n"
             "Hello,\n"
-            "    ^\n"
+            "    ^\n"_s
     );
-    EXPECT_EQ(span.end.message_str("warning", "bar"),
+    EXPECT_EQ(span.end.message_str("warning"_s, "bar"_s),
             "<span>:2:3: warning: bar\n"
             "World!\n"
-            "  ^\n"
+            "  ^\n"_s
     );
-    EXPECT_EQ(span.message_str("error", "qux"),
+    EXPECT_EQ(span.message_str("error"_s, "qux"_s),
             "<span>:1:5: error: qux\n"
             "Hello,\n"
             "    ^~ ...\n"
             "World!\n"
-            "~~~\n"
+            "~~~\n"_s
     );
 }

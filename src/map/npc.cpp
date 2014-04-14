@@ -107,7 +107,7 @@ void npc_enable_sub(dumb_ptr<block_list> bl, dumb_ptr<npc_data> nd)
 
         NpcEvent aname;
         aname.npc = nd->name;
-        aname.label = stringish<ScriptLabel>("OnTouch");
+        aname.label = stringish<ScriptLabel>("OnTouch"_s);
         if (sd->areanpc_id == nd->bl_id)
             return;
         sd->areanpc_id = nd->bl_id;
@@ -120,7 +120,7 @@ int npc_enable(NpcName name, bool flag)
     dumb_ptr<npc_data> nd = npc_name2id(name);
     if (nd == NULL)
     {
-        PRINTF("npc_enable(%s, %s) failed.\n", name, flag ? "true" : "false");
+        PRINTF("npc_enable(%s, %s) failed.\n"_fmt, name, flag ? "true"_s : "false"_s);
         return 0;
     }
 
@@ -175,7 +175,7 @@ int npc_event_dequeue(dumb_ptr<map_session_data> sd)
     {
         if (!pc_addeventtimer(sd, std::chrono::milliseconds(100), sd->eventqueuel.front()))
         {
-            PRINTF("npc_event_dequeue(): Event timer is full.\n");
+            PRINTF("npc_event_dequeue(): Event timer is full.\n"_fmt);
             return 0;
         }
 
@@ -206,7 +206,7 @@ void npc_timer_event(NpcEvent eventname)
 
     if ((ev == NULL || (nd = ev->nd) == NULL))
     {
-        PRINTF("npc_event: event not found [%s]\n",
+        PRINTF("npc_event: event not found [%s]\n"_fmt,
                 eventname);
         return;
     }
@@ -283,19 +283,19 @@ void npc_event_do_clock(TimerData *, tick_t)
     ScriptLabel buf;
     if (t.tm_min != ev_tm_b.tm_min)
     {
-        SNPRINTF(buf, 24, "OnMinute%02d", t.tm_min);
+        SNPRINTF(buf, 24, "OnMinute%02d"_fmt, t.tm_min);
         npc_event_doall(buf);
-        SNPRINTF(buf, 24, "OnClock%02d%02d", t.tm_hour, t.tm_min);
+        SNPRINTF(buf, 24, "OnClock%02d%02d"_fmt, t.tm_hour, t.tm_min);
         npc_event_doall(buf);
     }
     if (t.tm_hour != ev_tm_b.tm_hour)
     {
-        SNPRINTF(buf, 24, "OnHour%02d", t.tm_hour);
+        SNPRINTF(buf, 24, "OnHour%02d"_fmt, t.tm_hour);
         npc_event_doall(buf);
     }
     if (t.tm_mday != ev_tm_b.tm_mday)
     {
-        SNPRINTF(buf, 24, "OnDay%02d%02d", t.tm_mon + 1, t.tm_mday);
+        SNPRINTF(buf, 24, "OnDay%02d%02d"_fmt, t.tm_mon + 1, t.tm_mday);
         npc_event_doall(buf);
     }
     ev_tm_b = t;
@@ -307,8 +307,8 @@ void npc_event_do_clock(TimerData *, tick_t)
  */
 int npc_event_do_oninit(void)
 {
-    int c = npc_event_doall(stringish<ScriptLabel>("OnInit"));
-    PRINTF("npc: OnInit Event done. (%d npc)\n", c);
+    int c = npc_event_doall(stringish<ScriptLabel>("OnInit"_s));
+    PRINTF("npc: OnInit Event done. (%d npc)\n"_fmt, c);
 
     Timer(gettick() + std::chrono::milliseconds(100),
             npc_event_do_clock,
@@ -463,10 +463,10 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
 
     if (sd == NULL)
     {
-        PRINTF("npc_event nullpo?\n");
+        PRINTF("npc_event nullpo?\n"_fmt);
     }
 
-    if (ev == NULL && eventname.label == stringish<ScriptLabel>("OnTouch"))
+    if (ev == NULL && eventname.label == stringish<ScriptLabel>("OnTouch"_s))
         return 1;
 
     if (ev == NULL || (nd = ev->nd) == NULL)
@@ -480,7 +480,7 @@ int npc_event(dumb_ptr<map_session_data> sd, NpcEvent eventname,
         else
         {
             if (battle_config.error_log)
-                PRINTF("npc_event: event not found [%s]\n",
+                PRINTF("npc_event: event not found [%s]\n"_fmt,
                         eventname);
             return 0;
         }
@@ -521,7 +521,7 @@ static
 void npc_command_sub(NpcEvent key, struct event_data *ev, NpcName npcname, XString command)
 {
     if (ev->nd->name == npcname
-        && key.label.startswith("OnCommand"))
+        && key.label.startswith("OnCommand"_s))
     {
         XString temp = key.label.xslice_t(9);
 
@@ -567,7 +567,7 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
                 ys = m->npc[i]->is_warp()->warp.ys;
                 break;
             case NpcSubtype::MESSAGE:
-                assert (0 && "I'm pretty sure these are never put on a map");
+                assert (0 && "I'm pretty sure these are never put on a map"_s);
                 xs = 0;
                 ys = 0;
                 break;
@@ -589,7 +589,7 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
         if (f)
         {
             if (battle_config.error_log)
-                PRINTF("npc_touch_areanpc : some bug \n");
+                PRINTF("npc_touch_areanpc : some bug \n"_fmt);
         }
         return 1;
     }
@@ -601,13 +601,13 @@ int npc_touch_areanpc(dumb_ptr<map_session_data> sd, map_local *m, int x, int y)
                        m->npc[i]->is_warp()->warp.x, m->npc[i]->is_warp()->warp.y, BeingRemoveWhy::GONE);
             break;
         case NpcSubtype::MESSAGE:
-            assert (0 && "I'm pretty sure these NPCs are never put on a map.");
+            assert (0 && "I'm pretty sure these NPCs are never put on a map."_s);
             break;
         case NpcSubtype::SCRIPT:
         {
             NpcEvent aname;
             aname.npc = m->npc[i]->name;
-            aname.label = stringish<ScriptLabel>("OnTouch");
+            aname.label = stringish<ScriptLabel>("OnTouch"_s);
 
             if (sd->areanpc_id == m->npc[i]->bl_id)
                 return 1;
@@ -666,7 +666,7 @@ int npc_click(dumb_ptr<map_session_data> sd, int id)
     if (sd->npc_id != 0)
     {
         if (battle_config.error_log)
-            PRINTF("npc_click: npc_id != 0\n");
+            PRINTF("npc_click: npc_id != 0\n"_fmt);
         return 1;
     }
 
@@ -751,7 +751,7 @@ int npc_buysellsel(dumb_ptr<map_session_data> sd, int id, int type)
     if (nd->npc_subtype != NpcSubtype::SHOP)
     {
         if (battle_config.error_log)
-            PRINTF("no such shop npc : %d\n", id);
+            PRINTF("no such shop npc : %d\n"_fmt, id);
         sd->npc_id = 0;
         return 1;
     }
@@ -927,7 +927,7 @@ void npc_clearsrcfile(void)
  */
 void npc_addsrcfile(AString name)
 {
-    if (name == "clear")
+    if (name == "clear"_s)
     {
         npc_clearsrcfile();
         return;
@@ -942,7 +942,7 @@ void npc_addsrcfile(AString name)
  */
 void npc_delsrcfile(XString name)
 {
-    if (name == "all")
+    if (name == "all"_s)
     {
         npc_clearsrcfile();
         return;
@@ -961,19 +961,19 @@ void npc_delsrcfile(XString name)
 static
 void register_npc_name(dumb_ptr<npc_data> nd)
 {
-    ZString types[4] =
-    {
-        {"WARP"},
-        {"SHOP"},
-        {"SCRIPT"},
-        {"MESSAGE"},
-    };
+    earray<LString, NpcSubtype, NpcSubtype::COUNT> types //=
+    {{
+        "WARP"_s,
+        "SHOP"_s,
+        "SCRIPT"_s,
+        "MESSAGE"_s,
+    }};
     if (!nd->name)
     {
         if (nd->npc_subtype == NpcSubtype::MESSAGE)
             return;
-        PRINTF("WARNING: npc with no name:\n%s @ %s,%d,%d\n",
-                types[static_cast<int>(nd->npc_subtype)],
+        PRINTF("WARNING: npc with no name:\n%s @ %s,%d,%d\n"_fmt,
+                types[nd->npc_subtype],
                 nd->bl_m->name_, nd->bl_x, nd->bl_y);
         return;
     }
@@ -982,12 +982,12 @@ void register_npc_name(dumb_ptr<npc_data> nd)
         if (nd->npc_subtype != NpcSubtype::WARP
                 || nd_old->npc_subtype != NpcSubtype::WARP)
         {
-            PRINTF("WARNING: replacing npc with name: %s\n", nd->name);
-            PRINTF("old: %s @ %s,%d,%d\n",
-                    types[static_cast<int>(nd_old->npc_subtype)],
+            PRINTF("WARNING: replacing npc with name: %s\n"_fmt, nd->name);
+            PRINTF("old: %s @ %s,%d,%d\n"_fmt,
+                    types[nd_old->npc_subtype],
                     nd_old->bl_m->name_, nd_old->bl_x, nd_old->bl_y);
-            PRINTF("new: %s @ %s,%d,%d\n",
-                    types[static_cast<int>(nd->npc_subtype)],
+            PRINTF("new: %s @ %s,%d,%d\n"_fmt,
+                    types[nd->npc_subtype],
                     nd->bl_m->name_, nd->bl_x, nd->bl_y);
         }
     }
@@ -1009,7 +1009,7 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
     if (!extract(w1, record<','>(&mapname, &x, &y)) ||
         !extract(w4, record<','>(&xs, &ys, &to_mapname, &to_x, &to_y)))
     {
-        PRINTF("bad warp line : %s\n", w3);
+        PRINTF("bad warp line : %s\n"_fmt, w3);
         return 1;
     }
 
@@ -1059,7 +1059,6 @@ int npc_parse_warp(XString w1, XString, NpcName w3, XString w4)
         }
     }
 
-//  PRINTF("warp npc %s %d read done\n",mapname,nd->bl_id);
     npc_warp++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::WARP;
@@ -1116,7 +1115,7 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
         || (w4comma = std::find(w4a.begin(), w4a.end(), ',')) == w4a.end()
         || !extract(w4a.xislice_h(w4comma), &npc_class))
     {
-        PRINTF("bad shop line : %s\n", w3);
+        PRINTF("bad shop line : %s\n"_fmt, w3);
         return 1;
     }
     dir = static_cast<DIR>(dir_);
@@ -1127,8 +1126,8 @@ int npc_parse_shop(XString w1, XString, NpcName w3, ZString w4a)
 
     if (!extract(w4b, vrec<','>(&nd->shop_items)))
     {
-        PRINTF("bad shop items : %s\n", w3);
-        PRINTF("   somewhere --> %s\n", w4b);
+        PRINTF("bad shop items : %s\n"_fmt, w3);
+        PRINTF("   somewhere --> %s\n"_fmt, w4b);
         nd->shop_items.clear();
     }
 
@@ -1196,7 +1195,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     dumb_ptr<npc_data_script> nd;
     int evflag = 0;
 
-    if (w1 == "-")
+    if (w1 == "-"_s)
     {
         x = 0;
         y = 0;
@@ -1207,16 +1206,16 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         int dir_; // TODO use enum directly in extract
         if (!extract(w1, record<','>(&mapname, &x, &y, &dir_))
             || dir_ < 0 || dir_ >= 8
-            || (w2 == "script" && !w4.contains(',')))
+            || (w2 == "script"_s && !w4.contains(',')))
         {
-            PRINTF("bad script line : %s\n", w3);
+            PRINTF("bad script line : %s\n"_fmt, w3);
             return 1;
         }
         dir = static_cast<DIR>(dir_);
         m = map_mapname2mapid(mapname);
     }
 
-    if (w2 == "script")
+    if (w2 == "script"_s)
     {
         // may be empty
         MString srcbuf;
@@ -1255,7 +1254,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     }
     else
     {
-        assert(0 && "duplicate() is no longer supported!\n");
+        assert(0 && "duplicate() is no longer supported!\n"_s);
         return 0;
     }
 
@@ -1307,7 +1306,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
 
     if (w3.contains(':'))
     {
-        assert(false && "feature removed");
+        assert(false && "feature removed"_s);
         abort();
     }
     {
@@ -1329,7 +1328,6 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
     nd->opt2 = Opt2::ZERO;
     nd->opt3 = Opt3::ZERO;
 
-    //PRINTF("script npc %s %d %d read done\n",mapname,nd->bl_id,nd->class);
     npc_script++;
     nd->bl_type = BL::NPC;
     nd->npc_subtype = NpcSubtype::SCRIPT;
@@ -1361,7 +1359,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         ScriptLabel lname = el.name;
         int pos = el.pos;
 
-        if (lname.startswith("On"))
+        if (lname.startswith("On"_s))
         {
             struct event_data ev {};
             ev.nd = nd;
@@ -1380,7 +1378,7 @@ int npc_parse_script(XString w1, XString w2, NpcName w3, ZString w4,
         int t_ = 0;
         ScriptLabel lname = el.name;
         int pos = el.pos;
-        if (lname.startswith("OnTimer") && extract(lname.xslice_t(7), &t_) && t_ > 0)
+        if (lname.startswith("OnTimer"_s) && extract(lname.xslice_t(7), &t_) && t_ > 0)
         {
             interval_t t = static_cast<interval_t>(t_);
 
@@ -1469,7 +1467,7 @@ int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
     if (!extract(w1, record<',', 3>(&mapname, &x, &y, &xs, &ys)) ||
         !extract(w4, record<',', 2>(&mob_class, &num, &delay1_, &delay2_, &eventname)))
     {
-        PRINTF("bad monster line : %s\n", w3);
+        PRINTF("bad monster line : %s\n"_fmt, w3);
         return 1;
     }
     interval_t delay1 = std::chrono::milliseconds(delay1_);
@@ -1525,7 +1523,6 @@ int npc_parse_mob(XString w1, XString, MobName w3, ZString w4)
 
         npc_mob++;
     }
-    //PRINTF("warp npc %s %d read done\n",mapname,nd->bl_id);
 
     return 0;
 }
@@ -1561,9 +1558,9 @@ int npc_parse_mapflag(XString w1, XString, XString w3, ZString w4)
 
     if (mf == MapFlag::NOSAVE)
     {
-        if (w4 == "SavePoint")
+        if (w4 == "SavePoint"_s)
         {
-            m->save.map_ = stringish<MapName>("SavePoint");
+            m->save.map_ = stringish<MapName>("SavePoint"_s);
             m->save.x = -1;
             m->save.y = -1;
         }
@@ -1679,11 +1676,11 @@ bool do_init_npc(void)
         io::ReadFile fp(nsl);
         if (!fp.is_open())
         {
-            PRINTF("file not found : %s\n", nsl);
+            PRINTF("file not found : %s\n"_fmt, nsl);
             rv = false;
             continue;
         }
-        PRINTF("\rLoading NPCs [%d]: %-54s", npc_id - START_NPC_NUM,
+        PRINTF("\rLoading NPCs [%d]: %-54s"_fmt, npc_id - START_NPC_NUM,
                 nsl);
         int lines = 0;
         AString zline;
@@ -1698,7 +1695,7 @@ bool do_init_npc(void)
 
             if (!extract(zline, record<'|', 3>(&w1, &w2, &w3, &w4x)) || !w1 || !w2 || !w3)
             {
-                FPRINTF(stderr, "%s:%d: Broken script line: %s\n", nsl, lines, zline);
+                FPRINTF(stderr, "%s:%d: Broken script line: %s\n"_fmt, nsl, lines, zline);
                 rv = false;
                 continue;
             }
@@ -1708,7 +1705,7 @@ bool do_init_npc(void)
             }
             assert(bool(w4x) == bool(w4z));
 
-            if (w1 != "-" && w1 != "function")
+            if (w1 != "-"_s && w1 != "function"_s)
             {
                 auto comma = std::find(w1.begin(), w1.end(), ',');
                 MapName mapname = stringish<MapName>(w1.xislice_h(comma));
@@ -1716,24 +1713,24 @@ bool do_init_npc(void)
                 if (m == nullptr)
                 {
                     // "mapname" is not assigned to this server
-                    FPRINTF(stderr, "%s:%d: Map not found: %s\n", nsl, lines, mapname);
+                    FPRINTF(stderr, "%s:%d: Map not found: %s\n"_fmt, nsl, lines, mapname);
                     rv = false;
                     continue;
                 }
             }
-            if (w2 == "warp")
+            if (w2 == "warp"_s)
             {
                 NpcName npcname = stringish<NpcName>(w3);
                 npc_parse_warp(w1, w2, npcname, w4z);
             }
-            else if (w2 == "shop")
+            else if (w2 == "shop"_s)
             {
                 NpcName npcname = stringish<NpcName>(w3);
                 npc_parse_shop(w1, w2, npcname, w4z);
             }
-            else if (w2 == "script")
+            else if (w2 == "script"_s)
             {
-                if (w1 == "function")
+                if (w1 == "function"_s)
                 {
                     npc_parse_function(w1, w2, w3, w4z,
                             w4x, fp, &lines);
@@ -1745,29 +1742,29 @@ bool do_init_npc(void)
                             w4x, fp, &lines);
                 }
             }
-            else if (w2 == "monster")
+            else if (w2 == "monster"_s)
             {
                 MobName mobname = stringish<MobName>(w3);
                 npc_parse_mob(w1, w2, mobname, w4z);
             }
-            else if (w2 == "mapflag")
+            else if (w2 == "mapflag"_s)
             {
                 npc_parse_mapflag(w1, w2, w3, w4z);
             }
             else
             {
-                PRINTF("odd script line: %s\n", zline);
+                PRINTF("odd script line: %s\n"_fmt, zline);
                 script_errors++;
             }
         }
         fflush(stdout);
     }
-    PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n",
-            npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob, "");
+    PRINTF("\rNPCs Loaded: %d [Warps:%d Shops:%d Scripts:%d Mobs:%d] %20s\n"_fmt,
+            npc_id - START_NPC_NUM, npc_warp, npc_shop, npc_script, npc_mob, ""_s);
 
     if (script_errors)
     {
-        PRINTF("Cowardly refusing to continue after %d errors\n", script_errors);
+        PRINTF("Cowardly refusing to continue after %d errors\n"_fmt, script_errors);
         rv = false;
     }
     return rv;

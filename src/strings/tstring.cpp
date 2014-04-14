@@ -67,6 +67,10 @@ namespace strings
         else
             *this = RString(x);
     }
+    TString::TString(const LString& l)
+    {
+        *this = XString(l);
+    }
 
     TString::TString(XPair p)
     : _s(p), _o(0)

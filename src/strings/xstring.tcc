@@ -25,8 +25,4 @@ namespace strings
     XString::XString(const VString<n>& s)
     : _b(&*s.begin()), _e(&*s.end()), _base(nullptr)
     {}
-    template<size_t n>
-    XString::XString(const char (&s)[n])
-    : _b(s), _e(s + strlen(s)), _base(nullptr)
-    {}
 } // namespace strings

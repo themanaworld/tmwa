@@ -25,23 +25,23 @@
 
 TEST(StringTests, traits2)
 {
-    ZString print_non = "\t\e";
-    ZString print_mix = "n\t";
-    RString print_all = "n ";
+    ZString print_non = "\t\e"_s;
+    ZString print_mix = "n\t"_s;
+    RString print_all = "n "_s;
     EXPECT_FALSE(print_non.has_print());
     EXPECT_TRUE(print_mix.has_print());
     EXPECT_TRUE(print_all.has_print());
     EXPECT_FALSE(print_non.is_print());
     EXPECT_FALSE(print_mix.is_print());
     EXPECT_TRUE(print_all.is_print());
-    EXPECT_EQ("__", print_non.to_print());
-    EXPECT_EQ("n_", print_mix.to_print());
-    EXPECT_EQ("n ", print_all.to_print());
+    EXPECT_EQ("__"_s, print_non.to_print());
+    EXPECT_EQ("n_"_s, print_mix.to_print());
+    EXPECT_EQ("n "_s, print_all.to_print());
     EXPECT_EQ(print_all.begin(), print_all.to_print().begin());
 
-    ZString graph_non = " \e";
-    ZString graph_mix = "n ";
-    RString graph_all = "n.";
+    ZString graph_non = " \e"_s;
+    ZString graph_mix = "n "_s;
+    RString graph_all = "n."_s;
     EXPECT_FALSE(graph_non.has_graph());
     EXPECT_TRUE(graph_mix.has_graph());
     EXPECT_TRUE(graph_all.has_graph());
@@ -49,37 +49,37 @@ TEST(StringTests, traits2)
     EXPECT_FALSE(graph_mix.is_graph());
     EXPECT_TRUE(graph_all.is_graph());
 
-    ZString lower_non = "0A";
-    ZString lower_mix = "Oa";
-    RString lower_all = "oa";
+    ZString lower_non = "0A"_s;
+    ZString lower_mix = "Oa"_s;
+    RString lower_all = "oa"_s;
     EXPECT_FALSE(lower_non.has_lower());
     EXPECT_TRUE(lower_mix.has_lower());
     EXPECT_TRUE(lower_all.has_lower());
     EXPECT_FALSE(lower_non.is_lower());
     EXPECT_FALSE(lower_mix.is_lower());
     EXPECT_TRUE(lower_all.is_lower());
-    EXPECT_EQ("0a", lower_non.to_lower());
-    EXPECT_EQ("oa", lower_mix.to_lower());
-    EXPECT_EQ("oa", lower_all.to_lower());
+    EXPECT_EQ("0a"_s, lower_non.to_lower());
+    EXPECT_EQ("oa"_s, lower_mix.to_lower());
+    EXPECT_EQ("oa"_s, lower_all.to_lower());
     EXPECT_EQ(lower_all.begin(), lower_all.to_lower().begin());
 
-    ZString upper_non = "0a";
-    ZString upper_mix = "oA";
-    RString upper_all = "OA";
+    ZString upper_non = "0a"_s;
+    ZString upper_mix = "oA"_s;
+    RString upper_all = "OA"_s;
     EXPECT_FALSE(upper_non.has_upper());
     EXPECT_TRUE(upper_mix.has_upper());
     EXPECT_TRUE(upper_all.has_upper());
     EXPECT_FALSE(upper_non.is_upper());
     EXPECT_FALSE(upper_mix.is_upper());
     EXPECT_TRUE(upper_all.is_upper());
-    EXPECT_EQ("0A", upper_non.to_upper());
-    EXPECT_EQ("OA", upper_mix.to_upper());
-    EXPECT_EQ("OA", upper_all.to_upper());
+    EXPECT_EQ("0A"_s, upper_non.to_upper());
+    EXPECT_EQ("OA"_s, upper_mix.to_upper());
+    EXPECT_EQ("OA"_s, upper_all.to_upper());
     EXPECT_EQ(upper_all.begin(), upper_all.to_upper().begin());
 
-    ZString alpha_non = " 0";
-    ZString alpha_mix = "n ";
-    RString alpha_all = "nA";
+    ZString alpha_non = " 0"_s;
+    ZString alpha_mix = "n "_s;
+    RString alpha_all = "nA"_s;
     EXPECT_FALSE(alpha_non.has_alpha());
     EXPECT_TRUE(alpha_mix.has_alpha());
     EXPECT_TRUE(alpha_all.has_alpha());
@@ -87,9 +87,9 @@ TEST(StringTests, traits2)
     EXPECT_FALSE(alpha_mix.is_alpha());
     EXPECT_TRUE(alpha_all.is_alpha());
 
-    ZString digit2_non = "a9";
-    ZString digit2_mix = "20";
-    RString digit2_all = "01";
+    ZString digit2_non = "a9"_s;
+    ZString digit2_mix = "20"_s;
+    RString digit2_all = "01"_s;
     EXPECT_FALSE(digit2_non.has_digit2());
     EXPECT_TRUE(digit2_mix.has_digit2());
     EXPECT_TRUE(digit2_all.has_digit2());
@@ -97,9 +97,9 @@ TEST(StringTests, traits2)
     EXPECT_FALSE(digit2_mix.is_digit2());
     EXPECT_TRUE(digit2_all.is_digit2());
 
-    ZString digit8_non = "a9";
-    ZString digit8_mix = "80";
-    RString digit8_all = "37";
+    ZString digit8_non = "a9"_s;
+    ZString digit8_mix = "80"_s;
+    RString digit8_all = "37"_s;
     EXPECT_FALSE(digit8_non.has_digit8());
     EXPECT_TRUE(digit8_mix.has_digit8());
     EXPECT_TRUE(digit8_all.has_digit8());
@@ -107,9 +107,9 @@ TEST(StringTests, traits2)
     EXPECT_FALSE(digit8_mix.is_digit8());
     EXPECT_TRUE(digit8_all.is_digit8());
 
-    ZString digit10_non = "az";
-    ZString digit10_mix = "a9";
-    RString digit10_all = "42";
+    ZString digit10_non = "az"_s;
+    ZString digit10_mix = "a9"_s;
+    RString digit10_all = "42"_s;
     EXPECT_FALSE(digit10_non.has_digit10());
     EXPECT_TRUE(digit10_mix.has_digit10());
     EXPECT_TRUE(digit10_all.has_digit10());
@@ -117,9 +117,9 @@ TEST(StringTests, traits2)
     EXPECT_FALSE(digit10_mix.is_digit10());
     EXPECT_TRUE(digit10_all.is_digit10());
 
-    ZString digit16_non = "gz";
-    ZString digit16_mix = "ao";
-    RString digit16_all = "be";
+    ZString digit16_non = "gz"_s;
+    ZString digit16_mix = "ao"_s;
+    RString digit16_all = "be"_s;
     EXPECT_FALSE(digit16_non.has_digit16());
     EXPECT_TRUE(digit16_mix.has_digit16());
     EXPECT_TRUE(digit16_all.has_digit16());
@@ -127,9 +127,9 @@ TEST(StringTests, traits2)
     EXPECT_FALSE(digit16_mix.is_digit16());
     EXPECT_TRUE(digit16_all.is_digit16());
 
-    ZString alnum_non = " .";
-    ZString alnum_mix = "n ";
-    RString alnum_all = "n0";
+    ZString alnum_non = " ."_s;
+    ZString alnum_mix = "n "_s;
+    RString alnum_all = "n0"_s;
     EXPECT_FALSE(alnum_non.has_alnum());
     EXPECT_TRUE(alnum_mix.has_alnum());
     EXPECT_TRUE(alnum_all.has_alnum());
@@ -140,7 +140,7 @@ TEST(StringTests, traits2)
 
 TEST(StringTests, rempty)
 {
-    const char empty_text[] = "";
+    LString empty_text = ""_s;
     RString r = empty_text;
     EXPECT_EQ(r.size(), 0);
     AString a = empty_text;
@@ -166,7 +166,7 @@ TEST(StringTests, rempty)
 }
 TEST(StringTests, rshort)
 {
-    const char short_text[] = "0123456789";
+    LString short_text = "0123456789"_s;
     RString r = short_text;
     EXPECT_EQ(r.size(), 10);
     AString a = short_text;
@@ -193,13 +193,13 @@ TEST(StringTests, rshort)
 
 TEST(StringTests, rlong)
 {
-    const char long_text[] =
+    LString long_text =
         "01234567890123456789012345678901234567890123456789"
         "0123456789012345678901234567890123456789012345 100"
         "01234567890123456789012345678901234567890123456789"
         "0123456789012345678901234567890123456789012345 200"
         "01234567890123456789012345678901234567890123456789"
-        "0123456789012345678901234567890123456789012345 300";
+        "0123456789012345678901234567890123456789012345 300"_s;
     RString r = long_text;
     EXPECT_EQ(r.size(), 300);
     AString a = long_text;

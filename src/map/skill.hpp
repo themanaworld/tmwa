@@ -61,11 +61,11 @@ earray<skill_db_, SkillID, SkillID::MAX_SKILL_DB> skill_db;
 struct skill_name_db
 {
     SkillID id;                    // skill id
-    RString name;                 // search strings
+    LString name;                 // search strings
     RString desc;                 // description that shows up for searches
 
     // this makes const char(&)[] not decay into const char * in {}
-    skill_name_db(SkillID i, RString n, RString d)
+    skill_name_db(SkillID i, LString n, LString d)
     : id(i), name(n), desc(d)
     {}
 };

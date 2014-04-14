@@ -60,7 +60,7 @@ void push_heap_path(int *heap, struct tmp_path *tp, int index)
 
     if (heap == NULL || tp == NULL)
     {
-        PRINTF("push_heap_path nullpo\n");
+        PRINTF("push_heap_path nullpo\n"_fmt);
         return;
     }
 
@@ -90,7 +90,7 @@ void update_heap_path(int *heap, struct tmp_path *tp, int index)
             break;
     if (h == heap[0])
     {
-        FPRINTF(stderr, "update_heap_path bug\n");
+        FPRINTF(stderr, "update_heap_path bug\n"_fmt);
         exit(1);
     }
     for (i = (h - 1) / 2;

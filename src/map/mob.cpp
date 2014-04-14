@@ -322,7 +322,7 @@ int mob_gen_exp(mob_db_ *mob)
         * static_cast<double>(battle_config.base_exp_rate) / 100.);
     if (xp < 1)
         xp = 1;
-    PRINTF("Exp for mob '%s' generated: %d\n", mob->name, xp);
+    PRINTF("Exp for mob '%s' generated: %d\n"_fmt, mob->name, xp);
     return xp;
 }
 
@@ -417,7 +417,7 @@ int mob_once_spawn(dumb_ptr<map_session_data> sd,
     }
     else if (x <= 0 || y <= 0)
     {
-        PRINTF("mob_once_spawn: ??\n");
+        PRINTF("mob_once_spawn: ??\n"_fmt);
     }
 
     for (count = 0; count < amount; count++)
@@ -948,7 +948,7 @@ void mob_timer(TimerData *, tick_t tick, int id, unsigned char data)
             break;
         default:
             if (battle_config.error_log == 1)
-                PRINTF("mob_timer : %d ?\n",
+                PRINTF("mob_timer : %d ?\n"_fmt,
                         md->state.state);
             break;
     }
@@ -1115,8 +1115,6 @@ int mob_spawn(int id)
 
         if (i >= 50)
         {
-    //      if(battle_config.error_log==1)
-    //          PRINTF("MOB spawn error %d @ %s\n",id,map[md->bl_m].name);
             Timer(tick + std::chrono::seconds(5),
                     std::bind(mob_delayspawn, ph::_1, ph::_2,
                         id)
@@ -1718,7 +1716,7 @@ int mob_randomwalk(dumb_ptr<mob_data> md, tick_t tick)
                 if (md->move_fail_count > 1000)
                 {
                     if (battle_config.error_log == 1)
-                        PRINTF("MOB cant move. random spawn %d, mob_class = %d\n",
+                        PRINTF("MOB cant move. random spawn %d, mob_class = %d\n"_fmt,
                              md->bl_id, md->mob_class);
                     md->move_fail_count = 0;
                     mob_spawn(md->bl_id);
@@ -2358,12 +2356,10 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         mvp_sd = sd;
     }
 
-//  if(battle_config.battle_log)
-//      PRINTF("mob_damage %d %d %d\n",md->hp,max_hp,damage);
     if (md->bl_prev == NULL)
     {
         if (battle_config.error_log == 1)
-            PRINTF("mob_damage : BlockError!!\n");
+            PRINTF("mob_damage : BlockError!!\n"_fmt);
         return 0;
     }
 
@@ -2425,7 +2421,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
             if (master_bl && master_bl->bl_type == BL::PC)
             {
                 MAP_LOG_PC(master_bl->is_player(),
-                            "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d",
+                            "MOB-TO-MOB-DMG FROM MOB%d %d TO MOB%d %d FOR %d"_fmt,
                             md2->bl_id, md2->mob_class, md->bl_id, md->mob_class,
                             damage);
             }
@@ -2461,7 +2457,7 @@ int mob_damage(dumb_ptr<block_list> src, dumb_ptr<mob_data> md, int damage,
         return 0;
     }
 
-    MAP_LOG("MOB%d DEAD", md->bl_id);
+    MAP_LOG("MOB%d DEAD"_fmt, md->bl_id);
 
     // ----- ここから死亡処理 -----
 
@@ -2742,7 +2738,6 @@ void mob_warpslave_sub(dumb_ptr<block_list> bl, int id, int x, int y)
 static
 int mob_warpslave(dumb_ptr<mob_data> md, int x, int y)
 {
-//PRINTF("warp slave\n");
     map_foreachinarea(std::bind(mob_warpslave_sub, ph::_1, md->bl_id, md->bl_x, md->bl_y),
             md->bl_m,
             x - AREA_SIZE, y - AREA_SIZE,
@@ -2808,7 +2803,7 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
     else
     {
         if (battle_config.error_log == 1)
-            PRINTF("MOB %d warp failed, mob_class = %d\n", md->bl_id, md->mob_class);
+            PRINTF("MOB %d warp failed, mob_class = %d\n"_fmt, md->bl_id, md->mob_class);
     }
 
     md->target_id = 0;          // タゲを解除する
@@ -2821,7 +2816,7 @@ int mob_warp(dumb_ptr<mob_data> md, map_local *m, int x, int y, BeingRemoveWhy t
         && i == 1000)
     {
         if (battle_config.battle_log == 1)
-            PRINTF("MOB %d warp to (%d,%d), mob_class = %d\n", md->bl_id, x, y,
+            PRINTF("MOB %d warp to (%d,%d), mob_class = %d\n"_fmt, md->bl_id, x, y,
                     md->mob_class);
     }
 
@@ -3015,7 +3010,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
         return;
     if ((md = mbl->is_mob()) == NULL)
     {
-        PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n", mbl->bl_id);
+        PRINTF("mobskill_castend_id nullpo mbl->bl_id:%d\n"_fmt, mbl->bl_id);
         return;
     }
     if (md->bl_type != BL::MOB || md->bl_prev == NULL)
@@ -3029,7 +3024,6 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
 
     if ((bl = map_id2bl(md->skilltarget)) == NULL || bl->bl_prev == NULL)
     {                           //スキルターゲットが存在しない
-        //PRINTF("mobskill_castend_id nullpo\n");//ターゲットがいないときはnullpoじゃなくて普通に終了
         return;
     }
     if (md->bl_m != bl->bl_m)
@@ -3047,7 +3041,7 @@ void mobskill_castend_id(TimerData *, tick_t tick, int id)
     md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
 
     if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
+        PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
                 md->skillid, md->mob_class);
     mob_stop_walking(md, 0);
 
@@ -3098,7 +3092,7 @@ void mobskill_castend_pos(TimerData *, tick_t tick, int id)
     md->skilldelayup[md->skillidx - &mob_db[md->mob_class].skills.front()] = tick;
 
     if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill castend skill=%d, mob_class = %d\n",
+        PRINTF("MOB skill castend skill=%d, mob_class = %d\n"_fmt,
                 md->skillid, md->mob_class);
     mob_stop_walking(md, 0);
 }
@@ -3148,7 +3142,7 @@ int mobskill_use_id(dumb_ptr<mob_data> md, dumb_ptr<block_list> target,
     md->skilldelayup[ms - &mob_db[md->mob_class].skills.front()] = gettick();
 
     if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n",
+        PRINTF("MOB skill use target_id=%d skill=%d lv=%d cast=%d, mob_class = %d\n"_fmt,
                 target->bl_id, skill_id, skill_lv,
                 static_cast<uint32_t>(casttime.count()), md->mob_class);
 
@@ -3219,7 +3213,7 @@ int mobskill_use_pos(dumb_ptr<mob_data> md,
     md->state.skillcastcancel = ms->cancel;
 
     if (battle_config.monster_skill_log == 1)
-        PRINTF("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n",
+        PRINTF("MOB skill use target_pos= (%d,%d) skill=%d lv=%d cast=%d, mob_class = %d\n"_fmt,
              skill_x, skill_y, skill_id, skill_lv,
              static_cast<uint32_t>(casttime.count()), md->mob_class);
 
@@ -3384,8 +3378,8 @@ int mob_makedummymobdb(int mob_class)
 {
     int i;
 
-    SNPRINTF(mob_db[mob_class].name, 24, "mob%d", mob_class);
-    SNPRINTF(mob_db[mob_class].jname, 24, "mob%d", mob_class);
+    SNPRINTF(mob_db[mob_class].name, 24, "mob%d"_fmt, mob_class);
+    SNPRINTF(mob_db[mob_class].jname, 24, "mob%d"_fmt, mob_class);
     mob_db[mob_class].lv = 1;
     mob_db[mob_class].max_hp = 1000;
     mob_db[mob_class].max_sp = 1;
@@ -3439,7 +3433,7 @@ bool mob_readdb(ZString filename)
         io::ReadFile in(filename);
         if (!in.is_open())
         {
-            PRINTF("Unable to read mob db: %s\n", filename);
+            PRINTF("Unable to read mob db: %s\n"_fmt, filename);
             return false;
         }
         AString line;
@@ -3517,7 +3511,7 @@ bool mob_readdb(ZString filename)
 
             if (!okay || mob_class <= 1000 || mob_class > 2000)
             {
-                PRINTF("bad mob line: %s\n", line);
+                PRINTF("bad mob line: %s\n"_fmt, line);
                 rv = false;
                 continue;
             }
@@ -3570,7 +3564,7 @@ bool mob_readdb(ZString filename)
             if (mob_db[mob_class].base_exp == 0)
                 mob_db[mob_class].base_exp = mob_gen_exp(&mob_db[mob_class]);
         }
-        PRINTF("read %s done\n", filename);
+        PRINTF("read %s done\n"_fmt, filename);
     }
     return rv;
 }
@@ -3580,15 +3574,15 @@ bool extract<MobSkillCondition, void, void>(XString str, MobSkillCondition *msc)
 {
     const struct
     {
-        ZString str;
+        LString str;
         MobSkillCondition id;
     } cond1[] =
     {
-        {ZString("always"), MobSkillCondition::MSC_ALWAYS},
-        {ZString("myhpltmaxrate"), MobSkillCondition::MSC_MYHPLTMAXRATE},
-        {ZString("notintown"), MobSkillCondition::MSC_NOTINTOWN},
-        {ZString("slavelt"), MobSkillCondition::MSC_SLAVELT},
-        {ZString("slavele"), MobSkillCondition::MSC_SLAVELE},
+        {"always"_s, MobSkillCondition::MSC_ALWAYS},
+        {"myhpltmaxrate"_s, MobSkillCondition::MSC_MYHPLTMAXRATE},
+        {"notintown"_s, MobSkillCondition::MSC_NOTINTOWN},
+        {"slavelt"_s, MobSkillCondition::MSC_SLAVELT},
+        {"slavele"_s, MobSkillCondition::MSC_SLAVELE},
     };
     for (auto& pair : cond1)
         if (str == pair.str)
@@ -3604,14 +3598,14 @@ bool extract<MobSkillState, void, void>(XString str, MobSkillState *mss)
 {
     const struct
     {
-        ZString str;
+        LString str;
         MobSkillState id;
     } state[] =
     {
-        {ZString("any"), MobSkillState::ANY},
-        {ZString("idle"), MobSkillState::MSS_IDLE},
-        {ZString("walk"), MobSkillState::MSS_WALK},
-        {ZString("attack"), MobSkillState::MSS_ATTACK},
+        {"any"_s, MobSkillState::ANY},
+        {"idle"_s, MobSkillState::MSS_IDLE},
+        {"walk"_s, MobSkillState::MSS_WALK},
+        {"attack"_s, MobSkillState::MSS_ATTACK},
     };
     for (auto& pair : state)
         if (str == pair.str)
@@ -3627,12 +3621,12 @@ bool extract<MobSkillTarget, void, void>(XString str, MobSkillTarget *mst)
 {
     const struct
     {
-        ZString str;
+        LString str;
         MobSkillTarget id;
     } target[] =
     {
-        {ZString("target"), MobSkillTarget::MST_TARGET},
-        {ZString("self"), MobSkillTarget::MST_SELF},
+        {"target"_s, MobSkillTarget::MST_TARGET},
+        {"self"_s, MobSkillTarget::MST_SELF},
     };
     for (auto& pair : target)
         if (str == pair.str)
@@ -3650,7 +3644,7 @@ bool mob_readskilldb(ZString filename)
         io::ReadFile in(filename);
         if (!in.is_open())
         {
-            PRINTF("can't read %s\n", filename);
+            PRINTF("can't read %s\n"_fmt, filename);
             return false;
         }
         AString line;
@@ -3662,7 +3656,7 @@ bool mob_readskilldb(ZString filename)
                 continue;
 
             XString blah;
-            if (extract(line, record<','>(&mob_id, &blah)) && mob_id > 0 && blah == "clear")
+            if (extract(line, record<','>(&mob_id, &blah)) && mob_id > 0 && blah == "clear"_s)
             {
                 mob_db[mob_id].skills.clear();
                 continue;
@@ -3699,9 +3693,9 @@ bool mob_readskilldb(ZString filename)
                     )
             )
                 continue;
-            if (cancellable == "yes")
+            if (cancellable == "yes"_s)
                 msv.cancel = true;
-            else if (cancellable == "no")
+            else if (cancellable == "no"_s)
                 msv.cancel = false;
             else
             {
@@ -3720,7 +3714,7 @@ bool mob_readskilldb(ZString filename)
 
             mob_db[mob_id].skills.push_back(std::move(msv));
         }
-        PRINTF("read %s done\n", filename);
+        PRINTF("read %s done\n"_fmt, filename);
     }
     return rv;
 }

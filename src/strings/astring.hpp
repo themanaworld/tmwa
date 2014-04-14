@@ -49,12 +49,6 @@ namespace strings
 
         explicit AString(const MString& s);
 
-        template<size_t n>
-        AString(char (&s)[n]) = delete;
-
-        template<size_t n>
-        AString(const char (&s)[n]);
-
         template<class It>
         AString(It b, It e);
 
@@ -66,6 +60,7 @@ namespace strings
         AString(XString);
         template<uint8_t n>
         AString(const VString<n>& v);
+        AString(LString s);
 
         iterator begin() const;
         iterator end() const;

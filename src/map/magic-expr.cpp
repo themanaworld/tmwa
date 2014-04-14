@@ -125,38 +125,38 @@ AString show_entity(dumb_ptr<block_list> entity)
         case BL::MOB:
             return entity->is_mob()->name;
         case BL::ITEM:
-            assert (0 && "There is no way this code did what it was supposed to do!");
+            assert (0 && "There is no way this code did what it was supposed to do!"_s);
             /* Sorry about this one... */
             // WTF? item_data is a struct item, not a struct item_data
             // return ((struct item_data *) (&entity->is_item()->item_data))->name;
             abort();
         case BL::SPELL:
-            return {"%invocation(ERROR:this-should-not-be-an-entity)"};
+            return "%invocation(ERROR:this-should-not-be-an-entity)"_s;
         default:
-            return {"%unknown-entity"};
+            return "%unknown-entity"_s;
     }
 }
 
 static
 void stringify(val_t *v, int within_op)
 {
-    static earray<ZString, DIR, DIR::COUNT> dirs //=
+    static earray<LString, DIR, DIR::COUNT> dirs //=
     {{
-        {"south"}, {"south-west"},
-        {"west"}, {"north-west"},
-        {"north"}, {"north-east"},
-        {"east"}, {"south-east"},
+        "south"_s, "south-west"_s,
+        "west"_s, "north-west"_s,
+        "north"_s, "north-east"_s,
+        "east"_s, "south-east"_s,
     }};
     AString buf;
 
     switch (v->ty)
     {
         case TYPE::UNDEF:
-            buf = "UNDEF";
+            buf = "UNDEF"_s;
             break;
 
         case TYPE::INT:
-            buf = STRPRINTF("%i", v->v.v_int);
+            buf = STRPRINTF("%i"_fmt, v->v.v_int);
             break;
 
         case TYPE::STRING:
@@ -171,14 +171,14 @@ void stringify(val_t *v, int within_op)
             break;
 
         case TYPE::LOCATION:
-            buf = STRPRINTF("<\"%s\", %d, %d>",
+            buf = STRPRINTF("<\"%s\", %d, %d>"_fmt,
                     v->v.v_location.m->name_,
                     v->v.v_location.x,
                     v->v.v_location.y);
             break;
 
         case TYPE::AREA:
-            buf = "%area";
+            buf = "%area"_s;
             free_area(v->v.v_area);
             break;
 
@@ -196,7 +196,7 @@ void stringify(val_t *v, int within_op)
             break;
 
         default:
-            FPRINTF(stderr, "[magic] INTERNAL ERROR: Cannot stringify %d\n",
+            FPRINTF(stderr, "[magic] INTERNAL ERROR: Cannot stringify %d\n"_fmt,
                     v->ty);
             return;
     }
@@ -590,7 +590,7 @@ void magic_area_rect(map_local **m, int *x, int *y, int *width, int *height,
 
                 default:
                     FPRINTF(stderr,
-                             "Error: Trying to compute area of NE/SE/NW/SW-facing bar");
+                             "Error: Trying to compute area of NE/SE/NW/SW-facing bar"_fmt);
                     *x = tx;
                     *y = ty;
                     *width = *height = 1;
@@ -619,7 +619,7 @@ int magic_location_in_area(map_local *m, int x, int y, dumb_ptr<area_t> area)
                     && (x < ax + awidth) && (y < ay + aheight));
         }
         default:
-            FPRINTF(stderr, "INTERNAL ERROR: Invalid area\n");
+            FPRINTF(stderr, "INTERNAL ERROR: Invalid area\n"_fmt);
             return 0;
     }
 }
@@ -1034,7 +1034,7 @@ void magic_random_location(location_t *dest, dumb_ptr<area_t> area)
         }
 
         default:
-            FPRINTF(stderr, "Unknown area type %d\n",
+            FPRINTF(stderr, "Unknown area type %d\n"_fmt,
                     area->ty);
     }
 }
@@ -1282,89 +1282,89 @@ int fun_extract_healer_xp(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     return 0;
 }
 
-#define MAGIC_FUNCTION(name, args, ret, impl) {{name}, {{name}, {args}, ret, impl}}
-#define MAGIC_FUNCTION1(name, args, ret) MAGIC_FUNCTION(#name, args, ret, fun_##name)
-static
+#define MAGIC_FUNCTION(name, args, ret, impl) {name, {name, args, ret, impl}}
+#define MAGIC_FUNCTION1(name, args, ret) MAGIC_FUNCTION(#name##_s, args, ret, fun_##name)
+static // should be LString, but no heterogenous lookup yet
 std::map<ZString, fun_t> functions =
 {
-    MAGIC_FUNCTION("+", "..", '.', fun_add),
-    MAGIC_FUNCTION("-", "ii", 'i', fun_sub),
-    MAGIC_FUNCTION("*", "ii", 'i', fun_mul),
-    MAGIC_FUNCTION("/", "ii", 'i', fun_div),
-    MAGIC_FUNCTION("%", "ii", 'i', fun_mod),
-    MAGIC_FUNCTION("||", "ii", 'i', fun_or),
-    MAGIC_FUNCTION("&&", "ii", 'i', fun_and),
-    MAGIC_FUNCTION("<", "..", 'i', fun_lt),
-    MAGIC_FUNCTION(">", "..", 'i', fun_gt),
-    MAGIC_FUNCTION("<=", "..", 'i', fun_lte),
-    MAGIC_FUNCTION(">=", "..", 'i', fun_gte),
-    MAGIC_FUNCTION("==", "..", 'i', fun_eq),
-    MAGIC_FUNCTION("!=", "..", 'i', fun_ne),
-    MAGIC_FUNCTION("|", "..", 'i', fun_bitor),
-    MAGIC_FUNCTION("&", "ii", 'i', fun_bitand),
-    MAGIC_FUNCTION("^", "ii", 'i', fun_bitxor),
-    MAGIC_FUNCTION("<<", "ii", 'i', fun_bitshl),
-    MAGIC_FUNCTION(">>", "ii", 'i', fun_bitshr),
-    MAGIC_FUNCTION1(not, "i", 'i'),
-    MAGIC_FUNCTION1(neg, "i", 'i'),
-    MAGIC_FUNCTION1(max, "ii", 'i'),
-    MAGIC_FUNCTION1(min, "ii", 'i'),
-    MAGIC_FUNCTION1(is_in, "la", 'i'),
-    MAGIC_FUNCTION1(if_then_else, "i__", '_'),
-    MAGIC_FUNCTION1(skill, "ei", 'i'),
-    MAGIC_FUNCTION("str", "e", 'i', fun_get_str),
-    MAGIC_FUNCTION("agi", "e", 'i', fun_get_agi),
-    MAGIC_FUNCTION("vit", "e", 'i', fun_get_vit),
-    MAGIC_FUNCTION("dex", "e", 'i', fun_get_dex),
-    MAGIC_FUNCTION("luk", "e", 'i', fun_get_luk),
-    MAGIC_FUNCTION("int", "e", 'i', fun_get_int),
-    MAGIC_FUNCTION("level", "e", 'i', fun_get_lv),
-    MAGIC_FUNCTION("mdef", "e", 'i', fun_get_mdef),
-    MAGIC_FUNCTION("def", "e", 'i', fun_get_def),
-    MAGIC_FUNCTION("hp", "e", 'i', fun_get_hp),
-    MAGIC_FUNCTION("max_hp", "e", 'i', fun_get_max_hp),
-    MAGIC_FUNCTION("sp", "e", 'i', fun_get_sp),
-    MAGIC_FUNCTION("max_sp", "e", 'i', fun_get_max_sp),
-    MAGIC_FUNCTION("dir", "e", 'd', fun_get_dir),
-    MAGIC_FUNCTION1(name_of, ".", 's'),
-    MAGIC_FUNCTION1(mob_id, "e", 'i'),
-    MAGIC_FUNCTION1(location, "e", 'l'),
-    MAGIC_FUNCTION1(random, "i", 'i'),
-    MAGIC_FUNCTION1(random_dir, "i", 'd'),
-    MAGIC_FUNCTION1(hash_entity, "e", 'i'),
-    MAGIC_FUNCTION1(is_married, "e", 'i'),
-    MAGIC_FUNCTION1(partner, "e", 'e'),
-    MAGIC_FUNCTION1(awayfrom, "ldi", 'l'),
-    MAGIC_FUNCTION1(failed, "_", 'i'),
-    MAGIC_FUNCTION1(pc, "s", 'e'),
-    MAGIC_FUNCTION1(npc, "s", 'e'),
-    MAGIC_FUNCTION1(distance, "ll", 'i'),
-    MAGIC_FUNCTION1(rdistance, "ll", 'i'),
-    MAGIC_FUNCTION1(anchor, "s", 'a'),
-    MAGIC_FUNCTION("random_location", "a", 'l', fun_pick_location),
-    MAGIC_FUNCTION("script_int", "es", 'i', fun_read_script_int),
-    MAGIC_FUNCTION("script_str", "es", 's', fun_read_script_str),
-    MAGIC_FUNCTION1(rbox, "li", 'a'),
-    MAGIC_FUNCTION1(count_item, "e.", 'i'),
-    MAGIC_FUNCTION1(line_of_sight, "ll", 'i'),
-    MAGIC_FUNCTION1(running_status_update, "ei", 'i'),
-    MAGIC_FUNCTION1(status_option, "ei", 'i'),
-    MAGIC_FUNCTION1(element, "e", 'i'),
-    MAGIC_FUNCTION1(element_level, "e", 'i'),
-    MAGIC_FUNCTION1(his_shroud, "e", 'i'),
-    MAGIC_FUNCTION1(is_equipped, "e.", 'i'),
-    MAGIC_FUNCTION1(is_exterior, "l", 'i'),
-    MAGIC_FUNCTION1(contains_string, "ss", 'i'),
-    MAGIC_FUNCTION1(strstr, "ss", 'i'),
-    MAGIC_FUNCTION1(strlen, "s", 'i'),
-    MAGIC_FUNCTION1(substr, "sii", 's'),
-    MAGIC_FUNCTION1(sqrt, "i", 'i'),
-    MAGIC_FUNCTION1(map_level, "l", 'i'),
-    MAGIC_FUNCTION1(map_nr, "l", 'i'),
-    MAGIC_FUNCTION1(dir_towards, "lli", 'd'),
-    MAGIC_FUNCTION1(is_dead, "e", 'i'),
-    MAGIC_FUNCTION1(is_pc, "e", 'i'),
-    MAGIC_FUNCTION("extract_healer_experience", "ei", 'i', fun_extract_healer_xp),
+    MAGIC_FUNCTION("+"_s, ".."_s, '.', fun_add),
+    MAGIC_FUNCTION("-"_s, "ii"_s, 'i', fun_sub),
+    MAGIC_FUNCTION("*"_s, "ii"_s, 'i', fun_mul),
+    MAGIC_FUNCTION("/"_s, "ii"_s, 'i', fun_div),
+    MAGIC_FUNCTION("%"_s, "ii"_s, 'i', fun_mod),
+    MAGIC_FUNCTION("||"_s, "ii"_s, 'i', fun_or),
+    MAGIC_FUNCTION("&&"_s, "ii"_s, 'i', fun_and),
+    MAGIC_FUNCTION("<"_s, ".."_s, 'i', fun_lt),
+    MAGIC_FUNCTION(">"_s, ".."_s, 'i', fun_gt),
+    MAGIC_FUNCTION("<="_s, ".."_s, 'i', fun_lte),
+    MAGIC_FUNCTION(">="_s, ".."_s, 'i', fun_gte),
+    MAGIC_FUNCTION("=="_s, ".."_s, 'i', fun_eq),
+    MAGIC_FUNCTION("!="_s, ".."_s, 'i', fun_ne),
+    MAGIC_FUNCTION("|"_s, ".."_s, 'i', fun_bitor),
+    MAGIC_FUNCTION("&"_s, "ii"_s, 'i', fun_bitand),
+    MAGIC_FUNCTION("^"_s, "ii"_s, 'i', fun_bitxor),
+    MAGIC_FUNCTION("<<"_s, "ii"_s, 'i', fun_bitshl),
+    MAGIC_FUNCTION(">>"_s, "ii"_s, 'i', fun_bitshr),
+    MAGIC_FUNCTION1(not, "i"_s, 'i'),
+    MAGIC_FUNCTION1(neg, "i"_s, 'i'),
+    MAGIC_FUNCTION1(max, "ii"_s, 'i'),
+    MAGIC_FUNCTION1(min, "ii"_s, 'i'),
+    MAGIC_FUNCTION1(is_in, "la"_s, 'i'),
+    MAGIC_FUNCTION1(if_then_else, "i__"_s, '_'),
+    MAGIC_FUNCTION1(skill, "ei"_s, 'i'),
+    MAGIC_FUNCTION("str"_s, "e"_s, 'i', fun_get_str),
+    MAGIC_FUNCTION("agi"_s, "e"_s, 'i', fun_get_agi),
+    MAGIC_FUNCTION("vit"_s, "e"_s, 'i', fun_get_vit),
+    MAGIC_FUNCTION("dex"_s, "e"_s, 'i', fun_get_dex),
+    MAGIC_FUNCTION("luk"_s, "e"_s, 'i', fun_get_luk),
+    MAGIC_FUNCTION("int"_s, "e"_s, 'i', fun_get_int),
+    MAGIC_FUNCTION("level"_s, "e"_s, 'i', fun_get_lv),
+    MAGIC_FUNCTION("mdef"_s, "e"_s, 'i', fun_get_mdef),
+    MAGIC_FUNCTION("def"_s, "e"_s, 'i', fun_get_def),
+    MAGIC_FUNCTION("hp"_s, "e"_s, 'i', fun_get_hp),
+    MAGIC_FUNCTION("max_hp"_s, "e"_s, 'i', fun_get_max_hp),
+    MAGIC_FUNCTION("sp"_s, "e"_s, 'i', fun_get_sp),
+    MAGIC_FUNCTION("max_sp"_s, "e"_s, 'i', fun_get_max_sp),
+    MAGIC_FUNCTION("dir"_s, "e"_s, 'd', fun_get_dir),
+    MAGIC_FUNCTION1(name_of, "."_s, 's'),
+    MAGIC_FUNCTION1(mob_id, "e"_s, 'i'),
+    MAGIC_FUNCTION1(location, "e"_s, 'l'),
+    MAGIC_FUNCTION1(random, "i"_s, 'i'),
+    MAGIC_FUNCTION1(random_dir, "i"_s, 'd'),
+    MAGIC_FUNCTION1(hash_entity, "e"_s, 'i'),
+    MAGIC_FUNCTION1(is_married, "e"_s, 'i'),
+    MAGIC_FUNCTION1(partner, "e"_s, 'e'),
+    MAGIC_FUNCTION1(awayfrom, "ldi"_s, 'l'),
+    MAGIC_FUNCTION1(failed, "_"_s, 'i'),
+    MAGIC_FUNCTION1(pc, "s"_s, 'e'),
+    MAGIC_FUNCTION1(npc, "s"_s, 'e'),
+    MAGIC_FUNCTION1(distance, "ll"_s, 'i'),
+    MAGIC_FUNCTION1(rdistance, "ll"_s, 'i'),
+    MAGIC_FUNCTION1(anchor, "s"_s, 'a'),
+    MAGIC_FUNCTION("random_location"_s, "a"_s, 'l', fun_pick_location),
+    MAGIC_FUNCTION("script_int"_s, "es"_s, 'i', fun_read_script_int),
+    MAGIC_FUNCTION("script_str"_s, "es"_s, 's', fun_read_script_str),
+    MAGIC_FUNCTION1(rbox, "li"_s, 'a'),
+    MAGIC_FUNCTION1(count_item, "e."_s, 'i'),
+    MAGIC_FUNCTION1(line_of_sight, "ll"_s, 'i'),
+    MAGIC_FUNCTION1(running_status_update, "ei"_s, 'i'),
+    MAGIC_FUNCTION1(status_option, "ei"_s, 'i'),
+    MAGIC_FUNCTION1(element, "e"_s, 'i'),
+    MAGIC_FUNCTION1(element_level, "e"_s, 'i'),
+    MAGIC_FUNCTION1(his_shroud, "e"_s, 'i'),
+    MAGIC_FUNCTION1(is_equipped, "e."_s, 'i'),
+    MAGIC_FUNCTION1(is_exterior, "l"_s, 'i'),
+    MAGIC_FUNCTION1(contains_string, "ss"_s, 'i'),
+    MAGIC_FUNCTION1(strstr, "ss"_s, 'i'),
+    MAGIC_FUNCTION1(strlen, "s"_s, 'i'),
+    MAGIC_FUNCTION1(substr, "sii"_s, 's'),
+    MAGIC_FUNCTION1(sqrt, "i"_s, 'i'),
+    MAGIC_FUNCTION1(map_level, "l"_s, 'i'),
+    MAGIC_FUNCTION1(map_nr, "l"_s, 'i'),
+    MAGIC_FUNCTION1(dir_towards, "lli"_s, 'd'),
+    MAGIC_FUNCTION1(is_dead, "e"_s, 'i'),
+    MAGIC_FUNCTION1(is_pc, "e"_s, 'i'),
+    MAGIC_FUNCTION("extract_healer_experience"_s, "ei"_s, 'i', fun_extract_healer_xp),
 };
 
 fun_t *magic_get_fun(ZString name)
@@ -1512,7 +1512,7 @@ dumb_ptr<area_t> eval_area(dumb_ptr<env_t> env, e_area_t& expr_)
         }
 
         default:
-            FPRINTF(stderr, "INTERNAL ERROR: Unknown area type %d\n",
+            FPRINTF(stderr, "INTERNAL ERROR: Unknown area type %d\n"_fmt,
                     area->ty);
             area.delete_();
             return NULL;
@@ -1573,7 +1573,7 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         if (!ty_key)
         {
             FPRINTF(stderr,
-                     "[magic-eval]:  L%d:%d: Too many arguments (%zu) to %s `%s'\n",
+                     "[magic-eval]:  L%d:%d: Too many arguments (%zu) to %s `%s'\n"_fmt,
                      line, column, args.size(), opname, funname);
             return 1;
         }
@@ -1587,7 +1587,7 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         if (ty == TYPE::UNDEF)
         {
             FPRINTF(stderr,
-                     "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' undefined\n",
+                     "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' undefined\n"_fmt,
                      line, column, i + 1, opname, funname);
             return 1;
         }
@@ -1619,7 +1619,7 @@ int magic_signature_check(ZString opname, ZString funname, ZString signature,
         {                       /* Coercion failed? */
             if (ty != TYPE::FAIL)
                 FPRINTF(stderr,
-                         "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' of incorrect type (%d)\n",
+                         "[magic-eval]:  L%d:%d: Argument #%d to %s `%s' of incorrect type (%d)\n"_fmt,
                          line, column, i + 1, opname, funname,
                          ty);
             return 1;
@@ -1660,7 +1660,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 
             for (i = 0; i < args_nr; ++i)
                 magic_eval(env, &arguments[i], expr->e.e_funapp.args[i]);
-            if (magic_signature_check("function", f->name, f->signature, Slice<val_t>(arguments, args_nr),
+            if (magic_signature_check("function"_s, f->name, f->signature, Slice<val_t>(arguments, args_nr),
                         expr->e.e_funapp.line_nr, expr->e.e_funapp.column)
                     || f->fun(env, dest, Slice<val_t>(arguments, args_nr)))
                 dest->ty = TYPE::FAIL;
@@ -1713,7 +1713,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
             else
             {
                 FPRINTF(stderr,
-                         "[magic] Attempt to access field %s on non-spell\n",
+                         "[magic] Attempt to access field %s on non-spell\n"_fmt,
                          env->base_env->varv[id].name);
                 dest->ty = TYPE::FAIL;
             }
@@ -1722,7 +1722,7 @@ void magic_eval(dumb_ptr<env_t> env, val_t *dest, dumb_ptr<expr_t> expr)
 
         default:
             FPRINTF(stderr,
-                     "[magic] INTERNAL ERROR: Unknown expression type %d\n",
+                     "[magic] INTERNAL ERROR: Unknown expression type %d\n"_fmt,
                      expr->ty);
             break;
     }
@@ -1747,7 +1747,7 @@ AString magic_eval_str(dumb_ptr<env_t> env, dumb_ptr<expr_t> expr)
     magic_eval(env, &result, expr);
 
     if (result.ty == TYPE::FAIL || result.ty == TYPE::UNDEF)
-        return {"?"};
+        return "?"_s;
 
     stringify(&result, 0);
 

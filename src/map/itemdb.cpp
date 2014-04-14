@@ -174,7 +174,7 @@ bool itemdb_readdb(ZString filename)
 
         if (!in.is_open())
         {
-            PRINTF("can't read %s\n", filename);
+            PRINTF("can't read %s\n"_fmt, filename);
             return false;
         }
 
@@ -220,7 +220,7 @@ bool itemdb_readdb(ZString filename)
                     )
             )
             {
-                PRINTF("%s:%d: error: bad item line: %s\n",
+                PRINTF("%s:%d: error: bad item line: %s\n"_fmt,
                         filename, lines, line);
                 rv = false;
                 continue;
@@ -254,7 +254,7 @@ bool itemdb_readdb(ZString filename)
                 continue;
             id->equip_script = parse_script(tail_part, lines, true);
         }
-        PRINTF("read %s done (count=%d)\n", filename, ln);
+        PRINTF("read %s done (count=%d)\n"_fmt, filename, ln);
     }
 
     return rv;

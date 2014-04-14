@@ -65,7 +65,7 @@ public:
             if (rv == -1)
             {
                 if (errno != EAGAIN)
-                    return {"Error, read failed :("};
+                    return "Error, read failed :("_s;
                 rv = 0;
             }
             if (rv == 0)
@@ -81,11 +81,11 @@ TEST(io, write1)
     PipeWriter pw(false);
     io::WriteFile& wf = pw.wf;
     wf.really_put("Hello, ", 7);
-    EXPECT_EQ("", pw.slurp());
-    wf.put_line("World!\n");
-    EXPECT_EQ("", pw.slurp());
+    EXPECT_EQ(""_s, pw.slurp());
+    wf.put_line("World!\n"_s);
+    EXPECT_EQ(""_s, pw.slurp());
     EXPECT_TRUE(wf.close());
-    EXPECT_EQ("Hello, World!\n", pw.slurp());
+    EXPECT_EQ("Hello, World!\n"_s, pw.slurp());
 }
 
 TEST(io, write2)
@@ -93,10 +93,10 @@ TEST(io, write2)
     PipeWriter pw(true);
     io::WriteFile& wf = pw.wf;
     wf.really_put("Hello, ", 7);
-    EXPECT_EQ("", pw.slurp());
-    wf.put_line("World!");
+    EXPECT_EQ(""_s, pw.slurp());
+    wf.put_line("World!"_s);
     wf.really_put("XXX", 3);
-    EXPECT_EQ("Hello, World!\n", pw.slurp());
+    EXPECT_EQ("Hello, World!\n"_s, pw.slurp());
     EXPECT_TRUE(wf.close());
-    EXPECT_EQ("XXX", pw.slurp());
+    EXPECT_EQ("XXX"_s, pw.slurp());
 }

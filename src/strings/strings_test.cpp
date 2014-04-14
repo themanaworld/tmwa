@@ -32,10 +32,10 @@ TYPED_TEST_CASE_P(StringTest);
 
 TYPED_TEST_P(StringTest, basic)
 {
-    TypeParam hi("Hello");
+    TypeParam hi("Hello"_s);
     EXPECT_EQ(5, hi.size());
     EXPECT_EQ(hi, hi);
-    const char hi2[] = "Hello\0random garbage";
+    LString hi2 = "Hello\0random garbage"_s;
     EXPECT_EQ(hi, hi2);
     TypeParam hi0;
     EXPECT_EQ(0, hi0.size());
@@ -47,9 +47,9 @@ TYPED_TEST_P(StringTest, basic)
 TYPED_TEST_P(StringTest, order)
 {
     TypeParam a;
-    TypeParam b("Hello");
-    TypeParam c("Hello,");
-    TypeParam d("World!");
+    TypeParam b("Hello"_s);
+    TypeParam c("Hello,"_s);
+    TypeParam d("World!"_s);
 
     // not using EXPECT_LT, etc. for better visibility
 
@@ -158,7 +158,7 @@ TYPED_TEST_P(StringTest, order)
 
 TYPED_TEST_P(StringTest, iterators)
 {
-    TypeParam hi("Hello");
+    TypeParam hi("Hello"_s);
     EXPECT_EQ(hi.begin(), hi.begin());
     EXPECT_NE(hi.begin(), hi.end());
     EXPECT_EQ(5, std::distance(hi.begin(), hi.end()));
@@ -168,19 +168,19 @@ TYPED_TEST_P(StringTest, iterators)
 
 TYPED_TEST_P(StringTest, xslice)
 {
-    TypeParam hi("Hello, World!");
-    EXPECT_EQ(" World!", hi.xslice_t(6));
-    EXPECT_EQ("Hello,", hi.xslice_h(6));
-    EXPECT_EQ("World!", hi.xrslice_t(6));
-    EXPECT_EQ("Hello, ", hi.xrslice_h(6));
+    TypeParam hi("Hello, World!"_s);
+    EXPECT_EQ(" World!"_s, hi.xslice_t(6));
+    EXPECT_EQ("Hello,"_s, hi.xslice_h(6));
+    EXPECT_EQ("World!"_s, hi.xrslice_t(6));
+    EXPECT_EQ("Hello, "_s, hi.xrslice_h(6));
     typename TypeParam::iterator it = std::find(hi.begin(), hi.end(), ' ');
-    EXPECT_EQ(" World!", hi.xislice_t(it));
-    EXPECT_EQ("Hello,", hi.xislice_h(it));
-    EXPECT_EQ("World", hi.xlslice(7, 5));
-    EXPECT_EQ("World", hi.xpslice(7, 12));
-    EXPECT_EQ("World", hi.xislice(hi.begin() + 7, hi.begin() + 12));
-    EXPECT_TRUE(hi.startswith("Hello"));
-    EXPECT_TRUE(hi.endswith("World!"));
+    EXPECT_EQ(" World!"_s, hi.xislice_t(it));
+    EXPECT_EQ("Hello,"_s, hi.xislice_h(it));
+    EXPECT_EQ("World"_s, hi.xlslice(7, 5));
+    EXPECT_EQ("World"_s, hi.xpslice(7, 12));
+    EXPECT_EQ("World"_s, hi.xislice(hi.begin() + 7, hi.begin() + 12));
+    EXPECT_TRUE(hi.startswith("Hello"_s));
+    EXPECT_TRUE(hi.endswith("World!"_s));
 }
 
 TYPED_TEST_P(StringTest, convert)
@@ -188,15 +188,15 @@ TYPED_TEST_P(StringTest, convert)
     constexpr bool is_zstring = std::is_same<TypeParam, ZString>::value;
     typedef typename std::conditional<is_zstring, TString, SString>::type Sstring;
     typedef typename std::conditional<is_zstring, ZString, XString>::type Xstring;
-    RString r = "r";
-    AString a = "a";
-    TString t = "t";
-    Sstring s = "s";
-    ZString z = "z";
-    Xstring x = "x";
-    VString<255> v = "v";
-    const char l[] = "l";
-    VString<5> hi = "hello";
+    RString r = "r"_s;
+    AString a = "a"_s;
+    TString t = "t"_s;
+    Sstring s = "s"_s;
+    ZString z = "z"_s;
+    Xstring x = "x"_s;
+    VString<255> v = "v"_s;
+    LString l = "l"_s;
+    VString<5> hi = "hello"_s;
 
     TypeParam r2 = r;
     TypeParam a2 = a;
@@ -270,7 +270,7 @@ INSTANTIATE_TYPED_TEST_CASE_P(StringStuff, StringTest, MostStringTypes);
 
 TEST(VStringTest, basic)
 {
-    VString<5> hi = "Hello";
+    VString<5> hi = "Hello"_s;
     EXPECT_EQ(5, hi.size());
     EXPECT_EQ(hi, hi);
     // truncation
@@ -278,7 +278,7 @@ TEST(VStringTest, basic)
     EXPECT_EQ(5, hi2.size());
     EXPECT_EQ(hi, hi2);
     // short
-    hi = "hi";
+    hi = "hi"_s;
     EXPECT_EQ(2, hi.size());
     VString<5> hi0;
     EXPECT_EQ(0, hi0.size());
@@ -292,7 +292,7 @@ TYPED_TEST_CASE_P(NulStringTest);
 
 TYPED_TEST_P(NulStringTest, basic)
 {
-    TypeParam hi("hello");
+    TypeParam hi("hello"_s);
     EXPECT_EQ(hi.size(), strlen(hi.c_str()));
     EXPECT_STREQ("hello", hi.c_str());
 }
