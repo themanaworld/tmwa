@@ -61,6 +61,8 @@ struct Session
 
     /// Flag needed since structure must be freed in a server-dependent manner
     bool eof;
+    /// Currently used by clif_setwaitclose
+    Timer timed_close;
 
     /// Since this is a single-threaded application, it can't block
     /// These are the read/write queues

@@ -1098,8 +1098,6 @@ void clif_quitsave(Session *, dumb_ptr<map_session_data> sd)
 static
 void clif_waitclose(TimerData *, tick_t, Session *s)
 {
-    // TODO: what happens if the player disconnects
-    // and someone else connects?
     if (s)
         s->eof = 1;
 }
@@ -1110,10 +1108,10 @@ void clif_waitclose(TimerData *, tick_t, Session *s)
  */
 void clif_setwaitclose(Session *s)
 {
-    Timer(gettick() + std::chrono::seconds(5),
+    s->timed_close = Timer(gettick() + std::chrono::seconds(5),
             std::bind(clif_waitclose, ph::_1, ph::_2,
                 s)
-    ).detach();
+    );
 }
 
 /*==========================================
