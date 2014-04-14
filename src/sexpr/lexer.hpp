@@ -21,6 +21,8 @@
 
 # include "../sanity.hpp"
 
+# include <vector>
+
 # include "../strings/astring.hpp"
 # include "../strings/vstring.hpp"
 # include "../strings/xstring.hpp"

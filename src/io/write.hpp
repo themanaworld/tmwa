@@ -34,7 +34,6 @@ namespace io
     private:
         FD fd;
         bool lb;
-        struct {} _unused;
         unsigned short buflen;
         char buf[4096];
     public:

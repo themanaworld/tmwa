@@ -31,14 +31,14 @@ using namespace strings;
 struct _test : VString<1> {};
 struct _test2 : VString<1> {};
 
-static_assert(string_comparison_allowed<_test, _test>::value, "tt"_s);
-static_assert(string_comparison_allowed<VString<1>, VString<1>>::value, "vv"_s);
-static_assert(!string_comparison_allowed<_test, XString>::value, "tx"_s);
-static_assert(!string_comparison_allowed<_test, VString<1>>::value, "tv"_s);
-static_assert(!string_comparison_allowed<_test, _test2>::value, "t2"_s);
-static_assert(string_comparison_allowed<VString<1>, XString>::value, "vx"_s);
-static_assert(string_comparison_allowed<XString, XString>::value, "xx"_s);
-static_assert(string_comparison_allowed<XString, RString>::value, "xf"_s);
+static_assert(string_comparison_allowed<_test, _test>::value, "tt");
+static_assert(string_comparison_allowed<VString<1>, VString<1>>::value, "vv");
+static_assert(!string_comparison_allowed<_test, XString>::value, "tx");
+static_assert(!string_comparison_allowed<_test, VString<1>>::value, "tv");
+static_assert(!string_comparison_allowed<_test, _test2>::value, "t2");
+static_assert(string_comparison_allowed<VString<1>, XString>::value, "vx");
+static_assert(string_comparison_allowed<XString, XString>::value, "xx");
+static_assert(string_comparison_allowed<XString, RString>::value, "xf");
 
 TEST(strings, contains)
 {

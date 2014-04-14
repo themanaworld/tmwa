@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <cstdlib>
 
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"

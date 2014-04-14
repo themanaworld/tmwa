@@ -23,6 +23,7 @@
 
 # include <cassert>
 
+# include <algorithm>
 # include <type_traits>
 
 # include "../compat/iter.hpp"

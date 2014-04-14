@@ -21,6 +21,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <cerrno>
+#include <cstdlib>
+
 #include "../strings/zstring.hpp"
 
 #include "cxxstdio.hpp"

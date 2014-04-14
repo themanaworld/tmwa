@@ -21,7 +21,11 @@
 
 # include "../sanity.hpp"
 
+# include <cerrno>
+# include <cstdlib>
+
 # include <algorithm>
+# include <vector>
 
 # include "../strings/xstring.hpp"
 

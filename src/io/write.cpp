@@ -23,6 +23,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <cstdlib>
+
 #include "../strings/xstring.hpp"
 
 #include "../poison.hpp"

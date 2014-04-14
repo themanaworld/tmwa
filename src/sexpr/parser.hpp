@@ -21,6 +21,8 @@
 
 # include "../sanity.hpp"
 
+# include <cstdlib>
+
 # include "../strings/zstring.hpp"
 
 # include "../io/line.hpp"

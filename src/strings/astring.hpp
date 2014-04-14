@@ -33,6 +33,9 @@ namespace strings
     /// The storage is NUL-terminated
     class AString : public _crtp_string<AString, AString, ZPair>
     {
+# ifdef __clang__
+        __attribute__((unused))
+# endif
         RString *align[0];
         char data[255];
         unsigned char special;
@@ -83,6 +86,9 @@ namespace strings
         char *mid;
     public:
         AStringConverter(AString& s);
+        // this usually gets elided, but multi dtor calls are fine anyway
+        AStringConverter(const AStringConverter&) = default;
+        AStringConverter& operator = (const AStringConverter&) = delete;
         ~AStringConverter();
         char **operator &();
     };

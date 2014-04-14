@@ -54,7 +54,7 @@ namespace strings
         FormatString(const char *f) : _format(f) {}
     public:
         constexpr
-        const char *format_string() { return _format; }
+        const char *format_string() const { return _format; }
     };
 
 
