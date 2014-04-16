@@ -1417,9 +1417,9 @@ struct Damage battle_calc_pc_weapon_attack(dumb_ptr<block_list> src,
         int dy = abs(src->bl_y - target->bl_y);
         int malus_dist;
 
-        target_distance = max(dx, dy);
+        target_distance = std::max(dx, dy);
         malus_dist =
-            max(0, target_distance - (skill_power(sd, SkillID::AC_OWL) / 75));
+            std::max(0, target_distance - (skill_power(sd, SkillID::AC_OWL) / 75));
         hitrate -= (malus_dist * (malus_dist + 1));
     }
 

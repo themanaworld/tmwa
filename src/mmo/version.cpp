@@ -61,7 +61,7 @@ Version CURRENT_MAP_SERVER_VERSION =
     VENDOR_POINT,
 };
 
-const char CURRENT_VERSION_STRING[] = VERSION_STRING;
+LString CURRENT_VERSION_STRING = VERSION_STRING;
 
 bool extract(XString str, Version *vers)
 {

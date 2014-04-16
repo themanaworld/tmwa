@@ -197,7 +197,7 @@ public:
     static
     E inced(E v)
     {
-        return E(U(v) + 1);
+        return static_cast<E>(static_cast<U>(v) + 1);
     }
 };
 

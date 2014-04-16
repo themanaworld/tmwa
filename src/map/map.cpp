@@ -34,6 +34,8 @@
 #include "../compat/nullpo.hpp"
 #include "../compat/fun.hpp"
 
+#include "../ints/udl.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
@@ -678,7 +680,7 @@ std::pair<uint16_t, uint16_t> map_randfreecell(map_local *m,
         if (!bool(read_gatp(m, x + dx, y + dy) & MapCell::UNWALKABLE))
             return {static_cast<uint16_t>(x + dx), static_cast<uint16_t>(y + dy)};
     }
-    return {static_cast<uint16_t>(0), static_cast<uint16_t>(0)};
+    return {0_u16, 0_u16};
 }
 
 /// Return a randomly selected passable cell within a given range.

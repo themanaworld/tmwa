@@ -1060,7 +1060,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->spellpower_bonus_target < 0)
         sd->spellpower_bonus_target =
             (sd->spellpower_bonus_target * 256) /
-            (min(128 + skill_power(sd, SkillID::TMW_ASTRAL_SOUL), 256));
+            (std::min(128 + skill_power(sd, SkillID::TMW_ASTRAL_SOUL), 256));
 #endif
 
     if (sd->spellpower_bonus_target < sd->spellpower_bonus_current)
@@ -1189,7 +1189,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
         sd->aspd_rate = 20;
 
     for (ATTR attr : ATTRs)
-        sd->paramc[attr] = max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
+        sd->paramc[attr] = std::max(0, sd->status.attrs[attr] + sd->paramb[attr] + sd->parame[attr]);
 
     if (sd->status.weapon == ItemLook::BOW
             || sd->status.weapon == ItemLook::_13
@@ -1303,7 +1303,7 @@ int pc_calcstatus(dumb_ptr<map_session_data> sd, int first)
     if (sd->attackrange > 2)
     {
         // [fate] ranged weapon?
-        sd->attackrange += min(skill_power(sd, SkillID::AC_OWL) / 60, 3);
+        sd->attackrange += std::min(skill_power(sd, SkillID::AC_OWL) / 60, 3);
         sd->hit += skill_power(sd, SkillID::AC_OWL) / 10;   // 20 for 200
     }
 
@@ -2936,8 +2936,7 @@ int pc_skillpt_potential(dumb_ptr<map_session_data> sd)
 {
     int potential = 0;
 
-    for (SkillID skill_id = SkillID(); skill_id < MAX_SKILL;
-            skill_id = SkillID(uint16_t(skill_id) + 1))
+    for (SkillID skill_id : erange(SkillID(), MAX_SKILL))
         if (sd->status.skill[skill_id].lv
             && sd->status.skill[skill_id].lv < skill_db[skill_id].max_raise)
             potential += RAISE_COST(skill_db[skill_id].max_raise)
@@ -3843,9 +3842,9 @@ void pc_heal_quick_accumulate(int new_amount,
     int average_speed = ((new_speed * new_amount) + (current_speed * current_amount)) / (current_amount + new_amount); // new_amount > 0, current_amount >= 0
 
     quick_regen->speed = average_speed;
-    quick_regen->amount = min(current_amount + new_amount, max);
+    quick_regen->amount = std::min(current_amount + new_amount, max);
 
-    quick_regen->tickdelay = min(quick_regen->speed, quick_regen->tickdelay);
+    quick_regen->tickdelay = std::min(quick_regen->speed, quick_regen->tickdelay);
 }
 
 int pc_itemheal(dumb_ptr<map_session_data> sd, int hp, int sp)
@@ -5031,7 +5030,7 @@ int pc_quickregenerate_effect(struct quick_regeneration *quick_regen,
     if (!(quick_regen->tickdelay--))
     {
         int bonus =
-            min(heal_speed * battle_config.itemheal_regeneration_factor,
+            std::min(heal_speed * battle_config.itemheal_regeneration_factor,
                  quick_regen->amount);
 
         quick_regen->amount -= bonus;

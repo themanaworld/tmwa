@@ -55,7 +55,7 @@ extern Version CURRENT_LOGIN_SERVER_VERSION;
 extern Version CURRENT_CHAR_SERVER_VERSION;
 extern Version CURRENT_MAP_SERVER_VERSION;
 
-extern const char CURRENT_VERSION_STRING[];
+extern LString CURRENT_VERSION_STRING;
 
 bool extract(XString str, Version *vers);
 

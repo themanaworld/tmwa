@@ -101,6 +101,9 @@ namespace cxxstdio
         return v;
     }
 
+    const char *convert_for_printf(const char *) = delete;
+    char *convert_for_scanf(char *) = delete;
+
 # if 0
     template<class E>
     constexpr

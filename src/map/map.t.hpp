@@ -414,25 +414,25 @@ enum class SP : uint16_t
 constexpr
 SP attr_to_sp(ATTR attr)
 {
-    return SP(uint16_t(attr) + uint16_t(SP::STR));
+    return static_cast<SP>(static_cast<uint16_t>(attr) + static_cast<uint16_t>(SP::STR));
 }
 
 constexpr
 ATTR sp_to_attr(SP sp)
 {
-    return ATTR(uint16_t(sp) - uint16_t(SP::STR));
+    return static_cast<ATTR>(static_cast<uint16_t>(sp) - static_cast<uint16_t>(SP::STR));
 }
 
 constexpr
 SP attr_to_usp(ATTR attr)
 {
-    return SP(uint16_t(attr) + uint16_t(SP::USTR));
+    return static_cast<SP>(static_cast<uint16_t>(attr) + static_cast<uint16_t>(SP::USTR));
 }
 
 constexpr
 ATTR usp_to_attr(SP sp)
 {
-    return ATTR(uint16_t(sp) - uint16_t(SP::USTR));
+    return static_cast<ATTR>(static_cast<uint16_t>(sp) - static_cast<uint16_t>(SP::USTR));
 }
 
 constexpr

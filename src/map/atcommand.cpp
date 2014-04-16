@@ -130,7 +130,7 @@ void atcommand_config_write(ZString cfgName)
     {
         // This XString is really a ZString, but not declared as one
         // in order to allow non-heterogenous lookup by XString.
-        const char *cmd = &*pair.first.begin();
+        auto cmd = ZString(strings::really_construct_from_a_pointer, &*pair.first.begin(), nullptr);
         const AtCommandInfo& info = pair.second;
 
         FPRINTF(out,
@@ -389,7 +389,7 @@ bool atcommand_config_read(ZString cfgName)
 /// @ command processing functions
 
 static
-void atc_do_help(Session *s, const char *cmd, const AtCommandInfo& info)
+void atc_do_help(Session *s, ZString cmd, const AtCommandInfo& info)
 {
     auto msg = STRPRINTF("\u2007\u2007%d: @%s %s"_fmt, info.level, cmd, info.args);
     // manually padding because *space*
@@ -429,7 +429,7 @@ ATCE atcommand_help(Session *s, dumb_ptr<map_session_data>,
         clif_displaymessage(s, "Synopses of GM commands in category 'all':"_s);
         for (const auto& pair : atcommand_info)
         {
-            const char *cmd = &*pair.first.begin();
+            auto cmd = ZString(strings::really_construct_from_a_pointer, &*pair.first.begin(), nullptr);
             const AtCommandInfo& info = pair.second;
             atc_do_help(s, cmd, info);
         }
@@ -447,7 +447,7 @@ ATCE atcommand_help(Session *s, dumb_ptr<map_session_data>,
     clif_displaymessage(s, STRPRINTF("Synopses of GM commands in level [%d, %d):"_fmt, low, high));
     for (const auto& pair : atcommand_info)
     {
-        const char *cmd = &*pair.first.begin();
+        auto cmd = ZString(strings::really_construct_from_a_pointer, &*pair.first.begin(), nullptr);
         const AtCommandInfo& info = pair.second;
         if (low <= info.level && info.level < high)
             atc_do_help(s, cmd, info);

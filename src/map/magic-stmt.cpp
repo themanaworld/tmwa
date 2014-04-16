@@ -1222,7 +1222,7 @@ dumb_ptr<effect_t> run_foreach(dumb_ptr<invocation> invocation,
         magic_clear_var(&area);
         FPRINTF(stderr,
                  "[magic] Error in spell `%s':  FOREACH loop over non-area\n"_fmt,
-                 invocation->spell->name.c_str());
+                 invocation->spell->name);
         return return_location;
     }
     else

@@ -65,11 +65,11 @@ struct BCT
 };
 
 constexpr
-BCT operator & (BCT l, BCT r) { return {uint8_t(l.lo & r.lo), uint8_t(l.mid & r.mid), uint8_t(l.classic & r.classic), uint8_t(l.level & r.level), uint8_t(l.unused & r.unused) }; }
+BCT operator & (BCT l, BCT r) { return {static_cast<uint8_t>(l.lo & r.lo), static_cast<uint8_t>(l.mid & r.mid), static_cast<uint8_t>(l.classic & r.classic), static_cast<uint8_t>(l.level & r.level), static_cast<uint8_t>(l.unused & r.unused) }; }
 constexpr
-BCT operator | (BCT l, BCT r) { return {uint8_t(l.lo | r.lo), uint8_t(l.mid | r.mid), uint8_t(l.classic | r.classic), uint8_t(l.level | r.level), uint8_t(l.unused | r.unused) }; }
+BCT operator | (BCT l, BCT r) { return {static_cast<uint8_t>(l.lo | r.lo), static_cast<uint8_t>(l.mid | r.mid), static_cast<uint8_t>(l.classic | r.classic), static_cast<uint8_t>(l.level | r.level), static_cast<uint8_t>(l.unused | r.unused) }; }
 constexpr
-BCT operator ^ (BCT l, BCT r) { return {uint8_t(l.lo ^ r.lo), uint8_t(l.mid ^ r.mid), uint8_t(l.classic ^ r.classic), uint8_t(l.level ^ r.level), uint8_t(l.unused ^ r.unused) }; }
+BCT operator ^ (BCT l, BCT r) { return {static_cast<uint8_t>(l.lo ^ r.lo), static_cast<uint8_t>(l.mid ^ r.mid), static_cast<uint8_t>(l.classic ^ r.classic), static_cast<uint8_t>(l.level ^ r.level), static_cast<uint8_t>(l.unused ^ r.unused) }; }
 inline
 BCT& operator &= (BCT& l, BCT r) { return l = l & r; }
 inline

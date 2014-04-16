@@ -2448,7 +2448,7 @@ void builtin_getopt2(ScriptState *st)
 
     sd = script_rid2sd(st);
 
-    push_int(st->stack, ByteCode::INT, uint16_t(sd->opt2));
+    push_int(st->stack, ByteCode::INT, static_cast<uint16_t>(sd->opt2));
 
 }
 

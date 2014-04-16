@@ -631,7 +631,7 @@ int mmo_auth_init(void)
 
     AString str = STRPRINTF("%s has %zu accounts (%d GMs)\n"_fmt,
             account_filename, auth_data.size(), gm_count);
-    PRINTF("%s: %s\n"_fmt, __PRETTY_FUNCTION__, str);
+    PRINTF("mmo_auth_init: %s\n"_fmt, str);
     LOGIN_LOG("%s\n"_fmt, line);
 
     return 0;
@@ -2731,7 +2731,7 @@ bool lan_ip_check(IP4Address p)
     bool lancheck = lan_subnet.covers(p);
 
     PRINTF("LAN test (result): %s.\n"_fmt,
-            (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET);
+            (lancheck) ? SGR_BOLD SGR_CYAN "LAN source" SGR_RESET ""_s : SGR_BOLD SGR_GREEN "WAN source" SGR_RESET ""_s);
     return lancheck;
 }
 

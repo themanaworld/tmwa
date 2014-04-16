@@ -594,7 +594,7 @@ interval_t skill_castfix(dumb_ptr<block_list> bl, interval_t interval)
     sc_data = battle_get_sc_data(bl);
     dex = battle_get_dex(bl);
 
-    if (skill > SkillID::MAX_SKILL_DB /*|| skill < SkillID()*/)
+    if (skill >= SkillID::MAX_SKILL_DB /*|| skill < SkillID()*/)
         return interval_t::zero();
 
     castnodex = skill_get_castnodex(skill, lv);
@@ -1245,7 +1245,7 @@ bool skill_readdb(ZString filename)
             rv = false;
             continue;
         }
-        if (/*i < SkillID() ||*/ i > SkillID::MAX_SKILL_DB)
+        if (/*i < SkillID() ||*/ i >= SkillID::MAX_SKILL_DB)
         {
             rv = false;
             continue;

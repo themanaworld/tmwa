@@ -20,6 +20,8 @@
 
 #include <gtest/gtest.h>
 
+#include "../ints/udl.hpp"
+
 #include "../strings/xstring.hpp"
 
 #include "../poison.hpp"
@@ -33,7 +35,7 @@ TEST(iterpair, strings)
 
 TEST(iterpair, signed8)
 {
-    IteratorPair<ValueIterator<int8_t>> pair = value_range(int8_t(-128), int8_t(127));
+    IteratorPair<ValueIterator<int8_t>> pair = value_range(-128_n8, +127_p8);
     int8_t arr[255] =
     {
         -128, -127, -126, -125, -124, -123, -122, -121, -120,
@@ -68,7 +70,7 @@ TEST(iterpair, signed8)
 
 TEST(iterpair, unsigned8)
 {
-    IteratorPair<ValueIterator<uint8_t>> pair = value_range(uint8_t(0), uint8_t(255));
+    IteratorPair<ValueIterator<uint8_t>> pair = value_range(0_u8, 255_u8);
     uint8_t arr[255] =
     {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9,

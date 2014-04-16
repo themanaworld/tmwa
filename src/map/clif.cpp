@@ -31,6 +31,8 @@
 #include "../compat/fun.hpp"
 #include "../compat/nullpo.hpp"
 
+#include "../ints/cmp.hpp"
+
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
 #include "../strings/xstring.hpp"
@@ -1033,9 +1035,9 @@ int clif_spawnmob(dumb_ptr<mob_data> md)
         WBUFW(buf, 0) = 0x7c;
         WBUFL(buf, 2) = md->bl_id;
         WBUFW(buf, 6) = md->stats[mob_stat::SPEED];
-        WBUFW(buf, 8) = uint16_t(md->opt1);
-        WBUFW(buf, 10) = uint16_t(md->opt2);
-        WBUFW(buf, 12) = uint16_t(md->option);
+        WBUFW(buf, 8) = static_cast<uint16_t>(md->opt1);
+        WBUFW(buf, 10) = static_cast<uint16_t>(md->opt2);
+        WBUFW(buf, 12) = static_cast<uint16_t>(md->option);
         WBUFW(buf, 20) = md->mob_class;
         WBUFPOS(buf, 36, md->bl_x, md->bl_y);
         clif_send(buf, clif_parse_func_table[0x7c].len, md, SendWho::AREA);
@@ -1227,7 +1229,7 @@ int clif_buylist(dumb_ptr<map_session_data> sd, dumb_ptr<npc_data_shop> nd)
         val = nd->shop_items[i].value;
         WFIFOL(s, 4 + i * 11) = val; // base price
         WFIFOL(s, 8 + i * 11) = val; // actual price
-        WFIFOB(s, 12 + i * 11) = uint8_t(id->type);
+        WFIFOB(s, 12 + i * 11) = static_cast<uint8_t>(id->type);
         WFIFOW(s, 13 + i * 11) = nd->shop_items[i].nameid;
     }
     WFIFOW(s, 2) = i * 11 + 4;
@@ -1402,7 +1404,7 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
         WFIFOW(s, 17) = 0;
         WFIFOW(s, 19) = 0;
         WFIFOB(s, 21) = 0;
-        WFIFOB(s, 22) = uint8_t(fail);
+        WFIFOB(s, 22) = static_cast<uint8_t>(fail);
     }
     else
     {
@@ -1423,11 +1425,11 @@ int clif_additem(dumb_ptr<map_session_data> sd, int n, int amount, PickupFail fa
             WFIFOW(s, 15) = 0; //card[2];
             WFIFOW(s, 17) = 0; //card[3];
         }
-        WFIFOW(s, 19) = uint16_t(pc_equippoint(sd, n));
-        WFIFOB(s, 21) = uint8_t(sd->inventory_data[n]->type == ItemType::_7
+        WFIFOW(s, 19) = static_cast<uint16_t>(pc_equippoint(sd, n));
+        WFIFOB(s, 21) = static_cast<uint8_t>(sd->inventory_data[n]->type == ItemType::_7
             ? ItemType::WEAPON
             : sd->inventory_data[n]->type);
-        WFIFOB(s, 22) = uint8_t(fail);
+        WFIFOB(s, 22) = static_cast<uint8_t>(fail);
     }
 
     WFIFOSET(s, clif_parse_func_table[0xa0].len);
@@ -1470,17 +1472,17 @@ void clif_itemlist(dumb_ptr<map_session_data> sd)
             continue;
         WFIFOW(s, n * 18 + 4) = i + 2;
         WFIFOW(s, n * 18 + 6) = sd->status.inventory[i].nameid;
-        WFIFOB(s, n * 18 + 8) = uint8_t(sd->inventory_data[i]->type);
+        WFIFOB(s, n * 18 + 8) = static_cast<uint8_t>(sd->inventory_data[i]->type);
         WFIFOB(s, n * 18 + 9) = 1; //identify;
         WFIFOW(s, n * 18 + 10) = sd->status.inventory[i].amount;
         if (sd->inventory_data[i]->equip == EPOS::ARROW)
         {
-            WFIFOW(s, n * 18 + 12) = uint16_t(EPOS::ARROW);
+            WFIFOW(s, n * 18 + 12) = static_cast<uint16_t>(EPOS::ARROW);
             if (bool(sd->status.inventory[i].equip))
                 arrow = i;      // ついでに矢装備チェック
         }
         else
-            WFIFOW(s, n * 18 + 12) = uint16_t(EPOS::ZERO);
+            WFIFOW(s, n * 18 + 12) = static_cast<uint16_t>(EPOS::ZERO);
         WFIFOW(s, n * 18 + 14) = 0; //card[0];
         WFIFOW(s, n * 18 + 16) = 0; //card[1];
         WFIFOW(s, n * 18 + 18) = 0; //card[2];
@@ -1515,13 +1517,13 @@ void clif_equiplist(dumb_ptr<map_session_data> sd)
             continue;
         WFIFOW(s, n * 20 + 4) = i + 2;
         WFIFOW(s, n * 20 + 6) = sd->status.inventory[i].nameid;
-        WFIFOB(s, n * 20 + 8) = uint8_t(
+        WFIFOB(s, n * 20 + 8) = static_cast<uint8_t>(
                 sd->inventory_data[i]->type == ItemType::_7
                 ? ItemType::WEAPON
                 : sd->inventory_data[i]->type);
         WFIFOB(s, n * 20 + 9) = 0; //identify;
-        WFIFOW(s, n * 20 + 10) = uint16_t(pc_equippoint(sd, i));
-        WFIFOW(s, n * 20 + 12) = uint16_t(sd->status.inventory[i].equip);
+        WFIFOW(s, n * 20 + 10) = static_cast<uint16_t>(pc_equippoint(sd, i));
+        WFIFOW(s, n * 20 + 12) = static_cast<uint16_t>(sd->status.inventory[i].equip);
         WFIFOB(s, n * 20 + 14) = 0; //broken or attribute;
         WFIFOB(s, n * 20 + 15) = 0; //refine;
         {
@@ -1564,7 +1566,7 @@ int clif_storageitemlist(dumb_ptr<map_session_data> sd, struct storage *stor)
 
         WFIFOW(s, n * 18 + 4) = i + 1;
         WFIFOW(s, n * 18 + 6) = stor->storage_[i].nameid;
-        WFIFOB(s, n * 18 + 8) = uint8_t(id->type);
+        WFIFOB(s, n * 18 + 8) = static_cast<uint8_t>(id->type);
         WFIFOB(s, n * 18 + 9) = 0; //identify;
         WFIFOW(s, n * 18 + 10) = stor->storage_[i].amount;
         WFIFOW(s, n * 18 + 12) = 0;
@@ -1606,10 +1608,10 @@ int clif_storageequiplist(dumb_ptr<map_session_data> sd, struct storage *stor)
             continue;
         WFIFOW(s, n * 20 + 4) = i + 1;
         WFIFOW(s, n * 20 + 6) = stor->storage_[i].nameid;
-        WFIFOB(s, n * 20 + 8) = uint8_t(id->type);
+        WFIFOB(s, n * 20 + 8) = static_cast<uint8_t>(id->type);
         WFIFOB(s, n * 20 + 9) = 0; //identify;
-        WFIFOW(s, n * 20 + 10) = uint16_t(id->equip);
-        WFIFOW(s, n * 20 + 12) = uint16_t(stor->storage_[i].equip);
+        WFIFOW(s, n * 20 + 10) = static_cast<uint16_t>(id->equip);
+        WFIFOW(s, n * 20 + 12) = static_cast<uint16_t>(stor->storage_[i].equip);
         WFIFOB(s, n * 20 + 14) = 0; //broken or attribute
         WFIFOB(s, n * 20 + 15) = 0; //refine;
         {
@@ -1778,7 +1780,7 @@ int clif_updatestatus(dumb_ptr<map_session_data> sd, SP type)
         {
             ATTR attr = sp_to_attr(type);
             WFIFOW(s, 0) = 0x141;
-            WFIFOL(s, 2) = uint16_t(type);
+            WFIFOL(s, 2) = static_cast<uint16_t>(type);
             WFIFOL(s, 6) = sd->status.attrs[attr];
             WFIFOL(s, 10) = sd->paramb[attr] + sd->parame[attr];
             len = 14;
@@ -1832,7 +1834,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
         {
             EQUIP equip_point = equip_points[type];
 
-            WBUFB(buf, 6) = uint16_t(type);
+            WBUFB(buf, 6) = static_cast<uint16_t>(type);
             int idx = sd->equip_index_maybe[equip_point];
             if (idx >= 0 && sd->inventory_data[idx])
             {
@@ -1874,7 +1876,7 @@ int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
     {
         WBUFW(buf, 0) = 0x1d7;
         WBUFL(buf, 2) = bl->bl_id;
-        WBUFB(buf, 6) = uint8_t(type);
+        WBUFB(buf, 6) = static_cast<uint8_t>(type);
         WBUFW(buf, 7) = val;
         WBUFW(buf, 9) = 0;
         if (dstsd)
@@ -1899,17 +1901,17 @@ int clif_initialstatus(dumb_ptr<map_session_data> sd)
     WFIFOW(s, 0) = 0xbd;
     WFIFOW(s, 2) = sd->status.status_point;
 
-    WFIFOB(s, 4) = min(sd->status.attrs[ATTR::STR], 255);
+    WFIFOB(s, 4) = saturate<uint8_t>(sd->status.attrs[ATTR::STR]);
     WFIFOB(s, 5) = pc_need_status_point(sd, SP::STR);
-    WFIFOB(s, 6) = min(sd->status.attrs[ATTR::AGI], 255);
+    WFIFOB(s, 6) = saturate<uint8_t>(sd->status.attrs[ATTR::AGI]);
     WFIFOB(s, 7) = pc_need_status_point(sd, SP::AGI);
-    WFIFOB(s, 8) = min(sd->status.attrs[ATTR::VIT], 255);
+    WFIFOB(s, 8) = saturate<uint8_t>(sd->status.attrs[ATTR::VIT]);
     WFIFOB(s, 9) = pc_need_status_point(sd, SP::VIT);
-    WFIFOB(s, 10) = min(sd->status.attrs[ATTR::INT], 255);
+    WFIFOB(s, 10) = saturate<uint8_t>(sd->status.attrs[ATTR::INT]);
     WFIFOB(s, 11) = pc_need_status_point(sd, SP::INT);
-    WFIFOB(s, 12) = min(sd->status.attrs[ATTR::DEX], 255);
+    WFIFOB(s, 12) = saturate<uint8_t>(sd->status.attrs[ATTR::DEX]);
     WFIFOB(s, 13) = pc_need_status_point(sd, SP::DEX);
-    WFIFOB(s, 14) = min(sd->status.attrs[ATTR::LUK], 255);
+    WFIFOB(s, 14) = saturate<uint8_t>(sd->status.attrs[ATTR::LUK]);
     WFIFOB(s, 15) = pc_need_status_point(sd, SP::LUK);
 
     WFIFOW(s, 16) = sd->base_atk + sd->watk;
@@ -1990,7 +1992,7 @@ int clif_statusupack(dumb_ptr<map_session_data> sd, SP type, int ok, int val)
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xbc;
-    WFIFOW(s, 2) = uint16_t(type);
+    WFIFOW(s, 2) = static_cast<uint16_t>(type);
     WFIFOB(s, 4) = ok;
     WFIFOB(s, 5) = val;
     WFIFOSET(s, clif_parse_func_table[0xbc].len);
@@ -2009,7 +2011,7 @@ int clif_equipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xaa;
     WFIFOW(s, 2) = n + 2;
-    WFIFOW(s, 4) = uint16_t(pos);
+    WFIFOW(s, 4) = static_cast<uint16_t>(pos);
     WFIFOB(s, 6) = ok;
     WFIFOSET(s, clif_parse_func_table[0xaa].len);
 
@@ -2027,7 +2029,7 @@ int clif_unequipitemack(dumb_ptr<map_session_data> sd, int n, EPOS pos, int ok)
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0xac;
     WFIFOW(s, 2) = n + 2;
-    WFIFOW(s, 4) = uint16_t(pos);
+    WFIFOW(s, 4) = static_cast<uint16_t>(pos);
     WFIFOB(s, 6) = ok;
     WFIFOSET(s, clif_parse_func_table[0xac].len);
 
@@ -2069,9 +2071,9 @@ int clif_changeoption(dumb_ptr<block_list> bl)
 
     WBUFW(buf, 0) = 0x119;
     WBUFL(buf, 2) = bl->bl_id;
-    WBUFW(buf, 6) = uint16_t(*battle_get_opt1(bl));
-    WBUFW(buf, 8) = uint16_t(*battle_get_opt2(bl));
-    WBUFW(buf, 10) = uint16_t(option);
+    WBUFW(buf, 6) = static_cast<uint16_t>(*battle_get_opt1(bl));
+    WBUFW(buf, 8) = static_cast<uint16_t>(*battle_get_opt2(bl));
+    WBUFW(buf, 10) = static_cast<uint16_t>(option);
     WBUFB(buf, 12) = 0;        // ??
 
     clif_send(buf, clif_parse_func_table[0x119].len, bl, SendWho::AREA);
@@ -2335,7 +2337,7 @@ int clif_storageclose(dumb_ptr<map_session_data> sd)
 void clif_changelook_accessories(dumb_ptr<block_list> bl,
                              dumb_ptr<map_session_data> dest)
 {
-    for (LOOK i = LOOK::SHOES; i < LOOK::COUNT; i = LOOK(uint8_t(i) + 1))
+    for (LOOK i = LOOK::SHOES; i < LOOK::COUNT; i = LOOK(static_cast<uint8_t>(i) + 1))
         clif_changelook_towards(bl, i, 0, dest);
 }
 
@@ -2773,7 +2775,7 @@ int clif_skillup(dumb_ptr<map_session_data> sd, SkillID skill_num)
 
     Session *s = sd->sess;
     WFIFOW(s, 0) = 0x10e;
-    WFIFOW(s, 2) = uint16_t(skill_num);
+    WFIFOW(s, 2) = static_cast<uint16_t>(skill_num);
     WFIFOW(s, 4) = sd->status.skill[skill_num].lv;
     WFIFOW(s, 6) = skill_get_sp(skill_num, sd->status.skill[skill_num].lv);
     range = skill_get_range(skill_num, sd->status.skill[skill_num].lv);
@@ -2820,7 +2822,7 @@ int clif_skill_fail(dumb_ptr<map_session_data> sd, SkillID skill_id, int type,
     }
 
     WFIFOW(s, 0) = 0x110;
-    WFIFOW(s, 2) = uint16_t(skill_id);
+    WFIFOW(s, 2) = static_cast<uint16_t>(skill_id);
     WFIFOW(s, 4) = btype;
     WFIFOW(s, 6) = 0;
     WFIFOB(s, 8) = 0;
@@ -2847,7 +2849,7 @@ int clif_skill_damage(dumb_ptr<block_list> src, dumb_ptr<block_list> dst,
     sc_data = battle_get_sc_data(dst);
 
     WBUFW(buf, 0) = 0x1de;
-    WBUFW(buf, 2) = uint16_t(skill_id);
+    WBUFW(buf, 2) = static_cast<uint16_t>(skill_id);
     WBUFL(buf, 4) = src->bl_id;
     WBUFL(buf, 8) = dst->bl_id;
     WBUFL(buf, 12) = static_cast<uint32_t>(tick.time_since_epoch().count());
@@ -2873,7 +2875,7 @@ int clif_status_change(dumb_ptr<block_list> bl, StatusChange type, int flag)
     nullpo_ret(bl);
 
     WBUFW(buf, 0) = 0x0196;
-    WBUFW(buf, 2) = uint16_t(type);
+    WBUFW(buf, 2) = static_cast<uint16_t>(type);
     WBUFL(buf, 4) = bl->bl_id;
     WBUFB(buf, 8) = flag;
     clif_send(buf, clif_parse_func_table[0x196].len, bl, SendWho::AREA);
@@ -4343,7 +4345,7 @@ void clif_parse_StopAttack(Session *, dumb_ptr<map_session_data> sd)
 static
 void clif_parse_StatusUp(Session *s, dumb_ptr<map_session_data> sd)
 {
-    pc_statusup(sd, SP(RFIFOW(s, 2)));
+    pc_statusup(sd, static_cast<SP>(RFIFOW(s, 2)));
 }
 
 /*==========================================

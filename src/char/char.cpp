@@ -41,6 +41,8 @@
 
 #include "../compat/alg.hpp"
 
+#include "../ints/cmp.hpp"
+
 #include "../strings/mstring.hpp"
 #include "../strings/astring.hpp"
 #include "../strings/zstring.hpp"
@@ -363,7 +365,7 @@ AString mmo_char_tostr(struct CharPair *cp)
         {
             str_p += STRPRINTF("%d,%d "_fmt,
                     i,
-                    p->skill[i].lv | (uint16_t(p->skill[i].flags) << 16));
+                    p->skill[i].lv | (static_cast<uint16_t>(p->skill[i].flags) << 16));
         }
     str_p += '\t';
 
@@ -1004,12 +1006,12 @@ int mmo_char_send006b(Session *s, struct char_session_data *sd)
 
         WFIFO_STRING(s, j + 74, k->name.to__actual(), 24);
 
-        WFIFOB(s, j + 98) = min(p->attrs[ATTR::STR], 255);
-        WFIFOB(s, j + 99) = min(p->attrs[ATTR::AGI], 255);
-        WFIFOB(s, j + 100) = min(p->attrs[ATTR::VIT], 255);
-        WFIFOB(s, j + 101) = min(p->attrs[ATTR::INT], 255);
-        WFIFOB(s, j + 102) = min(p->attrs[ATTR::DEX], 255);
-        WFIFOB(s, j + 103) = min(p->attrs[ATTR::LUK], 255);
+        WFIFOB(s, j + 98) = saturate<uint8_t>(p->attrs[ATTR::STR]);
+        WFIFOB(s, j + 99) = saturate<uint8_t>(p->attrs[ATTR::AGI]);
+        WFIFOB(s, j + 100) = saturate<uint8_t>(p->attrs[ATTR::VIT]);
+        WFIFOB(s, j + 101) = saturate<uint8_t>(p->attrs[ATTR::INT]);
+        WFIFOB(s, j + 102) = saturate<uint8_t>(p->attrs[ATTR::DEX]);
+        WFIFOB(s, j + 103) = saturate<uint8_t>(p->attrs[ATTR::LUK]);
         WFIFOB(s, j + 104) = k->char_num;
     }
 
@@ -2344,10 +2346,10 @@ void parse_char(Session *s)
                 WFIFOL(s, 2 + 32) = cd->manner;
 
                 WFIFOW(s, 2 + 40) = 0x30;
-                WFIFOW(s, 2 + 42) = min(cd->hp, 0x7fff);
-                WFIFOW(s, 2 + 44) = min(cd->max_hp, 0x7fff);
-                WFIFOW(s, 2 + 46) = min(cd->sp, 0x7fff);
-                WFIFOW(s, 2 + 48) = min(cd->max_sp, 0x7fff);
+                WFIFOW(s, 2 + 42) = saturate<int16_t>(cd->hp);
+                WFIFOW(s, 2 + 44) = saturate<int16_t>(cd->max_hp);
+                WFIFOW(s, 2 + 46) = saturate<int16_t>(cd->sp);
+                WFIFOW(s, 2 + 48) = saturate<int16_t>(cd->max_sp);
                 WFIFOW(s, 2 + 50) = static_cast<uint16_t>(DEFAULT_WALK_SPEED.count());   // cd->speed;
                 WFIFOW(s, 2 + 52) = cd->species;
                 WFIFOW(s, 2 + 54) = cd->hair;
@@ -2362,12 +2364,12 @@ void parse_char(Session *s)
 
                 WFIFO_STRING(s, 2 + 74, ck->name.to__actual(), 24);
 
-                WFIFOB(s, 2 + 98) = min(cd->attrs[ATTR::STR], 255);
-                WFIFOB(s, 2 + 99) = min(cd->attrs[ATTR::AGI], 255);
-                WFIFOB(s, 2 + 100) = min(cd->attrs[ATTR::VIT], 255);
-                WFIFOB(s, 2 + 101) = min(cd->attrs[ATTR::INT], 255);
-                WFIFOB(s, 2 + 102) = min(cd->attrs[ATTR::DEX], 255);
-                WFIFOB(s, 2 + 103) = min(cd->attrs[ATTR::LUK], 255);
+                WFIFOB(s, 2 + 98) = saturate<uint8_t>(cd->attrs[ATTR::STR]);
+                WFIFOB(s, 2 + 99) = saturate<uint8_t>(cd->attrs[ATTR::AGI]);
+                WFIFOB(s, 2 + 100) = saturate<uint8_t>(cd->attrs[ATTR::VIT]);
+                WFIFOB(s, 2 + 101) = saturate<uint8_t>(cd->attrs[ATTR::INT]);
+                WFIFOB(s, 2 + 102) = saturate<uint8_t>(cd->attrs[ATTR::DEX]);
+                WFIFOB(s, 2 + 103) = saturate<uint8_t>(cd->attrs[ATTR::LUK]);
                 WFIFOB(s, 2 + 104) = ck->char_num;
 
                 WFIFOSET(s, 108);

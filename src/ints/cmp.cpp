@@ -1,8 +1,7 @@
-#ifndef TMWA_COMPAT_ALG_HPP
-#define TMWA_COMPAT_ALG_HPP
-//    alg.hpp - Silly math stuff.
+#include "cmp.hpp"
+//    cmp.cpp - comparison related operations
 //
-//    Copyright © 2012 Ben Longbons <b.r.longbons@gmail.com>
+//    Copyright © 2014 Ben Longbons <b.r.longbons@gmail.com>
 //
 //    This file is part of The Mana World (Athena server)
 //
@@ -19,23 +18,4 @@
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# include "../sanity.hpp"
-
-# if 0
-#  include <type_traits>
-
-
-template<class A, class B>
-typename std::common_type<A, B>::type min(A a, B b)
-{
-    return a < b ? a : b;
-}
-
-template<class A, class B>
-typename std::common_type<A, B>::type max(A a, B b)
-{
-    return b < a ? a : b;
-}
-# endif
-
-#endif // TMWA_COMPAT_ALG_HPP
+#include "../poison.hpp"

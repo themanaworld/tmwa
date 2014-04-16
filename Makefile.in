@@ -384,7 +384,7 @@ conf-raw/bool-%.h: FORCE
 	echo '#define $* $(bool_$(value $*))' | maybe-replace $@
 conf-raw/str-%.h: FORCE
 	$(MKDIR_FIRST)
-	echo '#define $* "$(value $*)"' | maybe-replace $@
+	echo '#define $* "$(value $*)"_s' | maybe-replace $@
 FORCE: ;
 .PHONY: FORCE
 override CPPFLAGS += -I .

@@ -504,14 +504,14 @@ int fun_bitshr(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 static
 int fun_max(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    RESULTINT = max(ARGINT(0), ARGINT(1));
+    RESULTINT = std::max(ARGINT(0), ARGINT(1));
     return 0;
 }
 
 static
 int fun_min(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
 {
-    RESULTINT = min(ARGINT(0), ARGINT(1));
+    RESULTINT = std::min(ARGINT(0), ARGINT(1));
     return 0;
 }
 
@@ -639,7 +639,7 @@ int fun_skill(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     if (ENTITY_TYPE(0) != BL::PC
         // don't convert to enum until after the range check
         || ARGINT(1) < 0
-        || ARGINT(1) >= uint16_t(MAX_SKILL))
+        || ARGINT(1) >= static_cast<uint16_t>(MAX_SKILL))
     {
         RESULTINT = 0;
     }
@@ -944,7 +944,7 @@ int fun_distance(dumb_ptr<env_t>, val_t *result, Slice<val_t> args)
     if (ARGLOCATION(0).m != ARGLOCATION(1).m)
         RESULTINT = 0x7fffffff;
     else
-        RESULTINT = max(abs(ARGLOCATION(0).x - ARGLOCATION(1).x),
+        RESULTINT = std::max(abs(ARGLOCATION(0).x - ARGLOCATION(1).x),
                          abs(ARGLOCATION(0).y - ARGLOCATION(1).y));
     return 0;
 }
