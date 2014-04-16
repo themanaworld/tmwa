@@ -260,8 +260,11 @@ void trade_tradeok(dumb_ptr<map_session_data> sd)
 
     for (trade_i = 0; trade_i < TRADE_MAX; trade_i++)
     {
+        int index = sd->deal_item_index[trade_i];
+        if (index < 2 || index >= MAX_INVENTORY + 2)
+            continue;
         if (sd->deal_item_amount[trade_i] >
-            sd->status.inventory[sd->deal_item_index[trade_i] - 2].amount
+            sd->status.inventory[index - 2].amount
             || sd->deal_item_amount[trade_i] < 0)
         {
             trade_tradecancel(sd);
