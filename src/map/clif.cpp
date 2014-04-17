@@ -255,9 +255,6 @@ void clif_send_sub(dumb_ptr<block_list> bl, const unsigned char *buf, int len,
     nullpo_retv(bl);
     dumb_ptr<map_session_data> sd = bl->is_player();
 
-    if (sd->sess->eof)
-        return;
-
     switch (type)
     {
         case SendWho::AREA_WOS:
