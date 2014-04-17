@@ -104,17 +104,20 @@ void null_parse(Session *s);
 /// Default parser for new connections
 static
 void (*default_func_parse)(Session *) = null_parse;
+static
+void (*default_delete)(Session *) = nullptr;
 
-void set_defaultparse(void (*defaultparse)(Session *))
+void set_defaultparse(void (*defaultparse)(Session *), void (*on_delete)(Session *))
 {
     default_func_parse = defaultparse;
+    default_delete = on_delete;
 }
 
 /// Read from socket to the queue
 static
 void recv_to_fifo(Session *s)
 {
-    if (s->eof)
+    if (s->private_is_eof())
         return;
 
     ssize_t len = s->fd.read(&s->rdata[s->rdata_size],
@@ -127,14 +130,14 @@ void recv_to_fifo(Session *s)
     }
     else
     {
-        s->eof = 1;
+        s->set_eof();
     }
 }
 
 static
 void send_from_fifo(Session *s)
 {
-    if (s->eof)
+    if (s->private_is_eof())
         return;
 
     ssize_t len = s->fd.write(&s->wdata[0], s->wdata_size);
@@ -151,7 +154,7 @@ void send_from_fifo(Session *s)
     }
     else
     {
-        s->eof = 1;
+        s->set_eof();
     }
 }
 
@@ -222,6 +225,7 @@ void connect_client(Session *ls)
     s->func_recv = recv_to_fifo;
     s->func_send = send_from_fifo;
     s->func_parse = default_func_parse;
+    s->func_delete = default_delete;
     s->client_ip = IP4Address(client_address.sin_addr);
     s->created = TimeT::now();
     s->connected = 0;
@@ -340,6 +344,7 @@ Session *make_connection(IP4Address ip, uint16_t port)
     s->func_recv = recv_to_fifo;
     s->func_send = send_from_fifo;
     s->func_parse = default_func_parse;
+    s->func_delete = default_delete;
     s->created = TimeT::now();
     s->connected = 1;
 
@@ -359,6 +364,8 @@ void delete_session(Session *s)
         fd_max--;
     readfds.clr(fd);
     {
+        s->func_delete(s);
+
         s->rdata.delete_();
         s->wdata.delete_();
         s->session_data.reset();
@@ -461,22 +468,21 @@ void do_parsepacket(void)
             && static_cast<time_t>(TimeT::now()) - static_cast<time_t>(s->created) > CONNECT_TIMEOUT)
         {
             PRINTF("Session #%d timed out\n", s);
-            s->eof = 1;
+            s->set_eof();
         }
-        if (!s->rdata_size && !s->eof)
-            continue;
-        if (s->func_parse)
+        if (s->rdata_size && !s->private_is_eof() && s->func_parse)
         {
             s->func_parse(s);
             /// some func_parse may call delete_session
+            // (that's kind of evil)
             s = get_session(i);
-            if (s && s->eof)
-            {
-                delete_session(s);
-                s = nullptr;
-            }
             if (!s)
                 continue;
+        }
+        if (s->private_is_eof())
+        {
+            delete_session(s);
+            continue;
         }
         /// Reclaim buffer space for what was read
         RFIFOFLUSH(s);

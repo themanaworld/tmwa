@@ -185,6 +185,40 @@ TimeT update_online;           // to update online files when we receiving infor
 static
 pid_t pid = 0;                  // For forked DB writes
 
+static
+void create_online_files(void);
+
+static
+void on_delete(Session *sess)
+{
+    if (sess == login_session)
+    {
+        PRINTF("Char-server can't connect to login-server (connection #%d).\n",
+             sess);
+        login_session = nullptr;
+    }
+    else
+    {
+        auto it = std::find(server_session.begin(), server_session.end(), sess);
+        if (it != server_session.end())
+        {
+            int id = it - server_session.begin();
+            PRINTF("Map-server %d (session #%d) has disconnected.\n", id,
+                    sess);
+            server[id] = mmo_map_server{};
+            server_session[id] = nullptr;
+            for (Session *& oci : online_chars)
+                if (oci == sess)
+                    oci = nullptr;
+            create_online_files(); // update online players files (to remove all online players of this server)
+        }
+        else
+        {
+            // normal player session
+        }
+    }
+}
+
 //------------------------------
 // Writing function of logs file
 //------------------------------
@@ -1077,7 +1111,7 @@ int disconnect_player(int accound_id)
         {
             if (sd->account_id == accound_id)
             {
-                get_session(i)->eof = 1;
+                get_session(i)->set_eof();
                 return 1;
             }
         }
@@ -1116,15 +1150,9 @@ void parse_tologin(Session *ls)
 {
     // only login-server can have an access to here.
     // so, if it isn't the login-server, we disconnect the session (fd != login_fd).
-    if (ls != login_session || ls->eof)
+    if (ls != login_session)
     {
-        if (ls == login_session)
-        {
-            PRINTF("Char-server can't connect to login-server (connection #%d).\n",
-                 ls);
-            login_session = nullptr;
-        }
-        delete_session(ls);
+        ls->set_eof();
         return;
     }
 
@@ -1520,7 +1548,7 @@ void parse_tologin(Session *ls)
                 break;
 
             default:
-                ls->eof = 1;
+                ls->set_eof();
                 return;
         }
     }
@@ -1546,7 +1574,7 @@ void map_anti_freeze_system(TimerData *, tick_t)
                      i);
                 CHAR_LOG("Map-server anti-freeze system: char-server #%d is freezed -> disconnection.\n",
                      i);
-                server_session[i]->eof = 1;
+                server_session[i]->set_eof();
             }
         }
     }
@@ -1559,20 +1587,9 @@ void parse_frommap(Session *ms)
     for (id = 0; id < MAX_MAP_SERVERS; id++)
         if (server_session[id] == ms)
             break;
-    if (id == MAX_MAP_SERVERS || ms->eof)
+    if (id == MAX_MAP_SERVERS)
     {
-        if (id < MAX_MAP_SERVERS)
-        {
-            PRINTF("Map-server %d (session #%d) has disconnected.\n", id,
-                    ms);
-            server[id] = mmo_map_server{};
-            server_session[id] = nullptr;
-            for (Session *& oci : online_chars)
-                if (oci == ms)
-                    oci = nullptr;
-            create_online_files(); // update online players files (to remove all online players of this server)
-        }
-        delete_session(ms);
+        ms->set_eof();
         return;
     }
 
@@ -2057,7 +2074,7 @@ void parse_frommap(Session *ms)
                 // inter server処理でもない場合は切断
                 PRINTF("char: unknown packet 0x%04x (%zu bytes to read in buffer)! (from map).\n",
                      RFIFOW(ms, 0), RFIFOREST(ms));
-                ms->eof = 1;
+                ms->set_eof();
                 return;
         }
     }
@@ -2177,11 +2194,13 @@ void parse_char(Session *s)
 {
     IP4Address ip = s->client_ip;
 
-    if (!login_session || s->eof)
-    {                           // disconnect any player (already connected to char-server or coming back from map-server) if login-server is diconnected.
+    if (!login_session)
+    {
+        s->set_eof();
+
+        // I sure *hope* this doesn't happen ...
         if (s == login_session)
             login_session = nullptr;
-        delete_session(s);
         return;
     }
 
@@ -2493,11 +2512,11 @@ void parse_char(Session *s)
                 return;
 
             case 0x7532:       // 接続の切断(defaultと処理は一緒だが明示的にするため)
-                s->eof = 1;
+                s->set_eof();
                 return;
 
             default:
-                s->eof = 1;
+                s->set_eof();
                 return;
         }
     }
@@ -2906,7 +2925,7 @@ int do_init(Slice<ZString> argv)
     create_online_files();     // update online players files at start of the server
 
 //    set_termfunc (do_final);
-    set_defaultparse(parse_char);
+    set_defaultparse(parse_char, on_delete);
 
     char_session = make_listen_port(char_port);
 

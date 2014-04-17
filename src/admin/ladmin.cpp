@@ -286,6 +286,18 @@ void ladmin_log(XString line)
 }
 
 static
+void on_delete(Session *)
+{
+    {
+        PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n",
+                login_ip, login_port);
+        LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n",
+                login_ip, login_port);
+        exit(0);
+    }
+}
+
+static
 bool qsplit(ZString src)
 {
     return !src;
@@ -1940,16 +1952,6 @@ void prompt(void)
 static
 void parse_fromlogin(Session *s)
 {
-    if (s->eof)
-    {
-        PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n",
-                login_ip, login_port);
-        LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n",
-                login_ip, login_port);
-        delete_session(s);
-        exit(0);
-    }
-
 //  PRINTF("parse_fromlogin : %d %d %d\n", fd, RFIFOREST(fd), RFIFOW(fd,0));
 
     while (RFIFOREST(s) >= 2)
@@ -1966,7 +1968,7 @@ void parse_fromlogin(Session *s)
                     PRINTF(" - administration system not activated, or\n");
                     PRINTF(" - unauthorised IP.\n");
                     LADMIN_LOG("Error at login: incorrect password, administration system not activated, or unauthorised IP.\n");
-                    s->eof = 1;
+                    s->set_eof();
                     //bytes_to_read = 1; // not stop at prompt
                 }
                 else
@@ -2765,7 +2767,7 @@ void parse_fromlogin(Session *s)
             default:
                 PRINTF("Remote administration has been disconnected (unknown packet).\n");
                 LADMIN_LOG("'End of connection, unknown packet.\n");
-                s->eof = 1;
+                s->set_eof();
                 return;
         }
     }
@@ -2902,7 +2904,7 @@ int do_init(Slice<ZString> argv)
     LADMIN_LOG("");
     LADMIN_LOG("Configuration file readed.\n");
 
-    set_defaultparse(parse_fromlogin);
+    set_defaultparse(parse_fromlogin, on_delete);
 
     Iprintf("EAthena login-server administration tool.\n");
     Version version = CURRENT_LOGIN_SERVER_VERSION;

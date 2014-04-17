@@ -59,8 +59,14 @@ struct Session
     TimeT created;
     bool connected;
 
+private:
     /// Flag needed since structure must be freed in a server-dependent manner
     bool eof;
+public:
+    void set_eof() { eof = true; }
+    // not everything is a member yet ...
+    bool private_is_eof() { return eof; }
+
     /// Currently used by clif_setwaitclose
     Timer timed_close;
 
@@ -87,6 +93,8 @@ struct Session
     /// is a player or a server/ladmin
     /// Can be set explicitly or via set_defaultparse
     void (*func_parse)(Session *);
+    /// Cleanup function since we're not fully RAII yet
+    void (*func_delete)(Session *);
     /// Server-specific data type
     std::unique_ptr<SessionData, SessionDeleter> session_data;
 
@@ -141,7 +149,7 @@ void do_parsepacket(void);
 /// Change the default parser for newly connected clients
 // typically called once per server, but individual clients may identify
 // themselves as servers
-void set_defaultparse(void(*defaultparse)(Session *));
+void set_defaultparse(void(*defaultparse)(Session *), void(*defaultdelete)(Session *));
 
 template<class T>
 uint8_t *pod_addressof_m(T& structure)

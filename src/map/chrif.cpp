@@ -1048,15 +1048,9 @@ void chrif_parse(Session *s)
 
     // only char-server can have an access to here.
     // so, if it isn't the char-server, we disconnect the session (fd != char_fd).
-    if (s != char_session || s->eof)
+    if (s != char_session)
     {
-        if (s == char_session)
-        {
-            PRINTF("Map-server can't connect to char-server (connection #%d).\n",
-                 s);
-            char_session = nullptr;
-        }
-        delete_session(s);
+        s->set_eof();
         return;
     }
 
@@ -1077,7 +1071,7 @@ void chrif_parse(Session *s)
             if (r == 2)
                 return;       // intifで処理したが、データが足りない
 
-            s->eof = 1;
+            s->set_eof();
             return;
         }
         packet_len = packet_len_table[cmd - 0x2af8];
@@ -1160,7 +1154,7 @@ void chrif_parse(Session *s)
                 if (battle_config.error_log)
                     PRINTF("chrif_parse : unknown packet %d %d\n", s,
                             RFIFOW(s, 0));
-                s->eof = 1;
+                s->set_eof();
                 return;
         }
         RFIFOSKIP(s, packet_len);

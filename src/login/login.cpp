@@ -256,6 +256,35 @@ void login_log(XString line)
     log_with_timestamp(logfp, line);
 }
 
+static
+void on_delete(Session *sess)
+{
+    auto it = std::find(server_session.begin(), server_session.end(), sess);
+    IP4Address ip = sess->client_ip;
+    if (it != server_session.end())
+    {
+        int id = it - server_session.begin();
+        PRINTF("Char-server '%s' has disconnected.\n", server[id].name);
+        LOGIN_LOG("Char-server '%s' has disconnected (ip: %s).\n",
+                   server[id].name, ip);
+        server_session[id] = nullptr;
+        server[id] = mmo_char_server{};
+    }
+    else
+    {
+        // player session
+        ;
+    }
+}
+
+static
+void on_delete_admin(Session *s)
+{
+    PRINTF("Remote administration has disconnected (session #%d).\n",
+            s);
+}
+
+
 //----------------------------------------------------------------------
 // Determine if an account (id) is a GM account
 // and returns its level (or 0 if it isn't a GM account or if not found)
@@ -948,7 +977,7 @@ void char_anti_freeze_system(TimerData *, tick_t)
                      i, server[i].name);
                 LOGIN_LOG("Char-server anti-freeze system: char-server #%d '%s' is freezed -> disconnection.\n",
                      i, server[i].name);
-                server_session[i]->eof = 1;
+                server_session[i]->set_eof();
             }
         }
     }
@@ -966,17 +995,9 @@ void parse_fromchar(Session *s)
     for (id = 0; id < MAX_SERVERS; id++)
         if (server_session[id] == s)
             break;
-    if (id == MAX_SERVERS || s->eof)
+    if (id == MAX_SERVERS)
     {
-        if (id < MAX_SERVERS)
-        {
-            PRINTF("Char-server '%s' has disconnected.\n", server[id].name);
-            LOGIN_LOG("Char-server '%s' has disconnected (ip: %s).\n",
-                       server[id].name, ip);
-            server_session[id] = nullptr;
-            server[id] = mmo_char_server{};
-        }
-        delete_session(s);
+        s->set_eof();
         return;
     }
 
@@ -1593,7 +1614,7 @@ void parse_fromchar(Session *s)
             }
                 PRINTF("parse_fromchar: Unknown packet 0x%x (from a char-server)! -> disconnection.\n",
                      RFIFOW(s, 0));
-                s->eof = 1;
+                s->set_eof();
                 PRINTF("Char-server has been disconnected (unknown packet).\n");
                 return;
         }
@@ -1608,14 +1629,6 @@ static
 void parse_admin(Session *s)
 {
     IP4Address ip = s->client_ip;
-
-    if (s->eof)
-    {
-        delete_session(s);
-        PRINTF("Remote administration has disconnected (session #%d).\n",
-                s);
-        return;
-    }
 
     while (RFIFOREST(s) >= 2)
     {
@@ -1638,7 +1651,7 @@ void parse_admin(Session *s)
                 LOGIN_LOG("'ladmin': End of connection (ip: %s)\n",
                            ip);
                 RFIFOSKIP(s, 2);
-                s->eof = 1;
+                s->set_eof();
                 break;
 
             case 0x7920:       // Request of an accounts list
@@ -2708,7 +2721,7 @@ void parse_admin(Session *s)
             }
                 LOGIN_LOG("'ladmin': End of connection, unknown packet (ip: %s)\n",
                      ip);
-                s->eof = 1;
+                s->set_eof();
                 PRINTF("Remote administration has been disconnected (unknown packet).\n");
                 return;
         }
@@ -2741,12 +2754,6 @@ void parse_login(Session *s)
     int result, j;
 
     IP4Address ip = s->client_ip;
-
-    if (s->eof)
-    {
-        delete_session(s);
-        return;
-    }
 
     while (RFIFOREST(s) >= 2)
     {
@@ -3054,7 +3061,7 @@ void parse_login(Session *s)
 
             case 0x7532:       // Request to end connection
                 LOGIN_LOG("End of connection (ip: %s)\n", ip);
-                s->eof = 1;
+                s->set_eof();
                 return;
 
             case 0x7918:       // Request for administation login
@@ -3083,6 +3090,7 @@ void parse_login(Session *s)
                             PRINTF("Connection of a remote administration accepted (non encrypted password).\n");
                             WFIFOB(s, 2) = 0;
                             s->func_parse = parse_admin;
+                            s->func_delete = on_delete_admin;
                         }
                         else if (admin_state != 1)
                             LOGIN_LOG("'ladmin'-login: Connection in administration mode REFUSED - remote administration is disabled (non encrypted password: %s, ip: %s)\n",
@@ -3157,7 +3165,7 @@ void parse_login(Session *s)
                     }
                 }
                 LOGIN_LOG("End of connection, unknown packet (ip: %s)\n", ip);
-                s->eof = 1;
+                s->set_eof();
                 return;
         }
     }
@@ -3904,7 +3912,7 @@ int do_init(Slice<ZString> argv)
     read_gm_account();
     mmo_auth_init();
 //     set_termfunc (mmo_auth_sync);
-    set_defaultparse(parse_login);
+    set_defaultparse(parse_login, on_delete);
     login_session = make_listen_port(login_port);
 
 
