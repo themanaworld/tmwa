@@ -362,6 +362,8 @@ void delete_session(Session *s)
 {
     if (!s)
         return;
+    // this needs to be before the fd_max--
+    s->func_delete(s);
 
     io::FD fd = s->fd;
     // If this was the highest fd, decrease it
@@ -371,8 +373,6 @@ void delete_session(Session *s)
         fd_max--;
     readfds.clr(fd);
     {
-        s->func_delete(s);
-
         s->rdata.delete_();
         s->wdata.delete_();
         s->session_data.reset();
