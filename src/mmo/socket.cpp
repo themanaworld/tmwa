@@ -57,6 +57,22 @@ std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
 #pragma GCC diagnostic pop
 
 Session::Session(SessionIO io, SessionParsers p)
+: created()
+, connected()
+, eof()
+, timed_close()
+, rdata(), wdata()
+, max_rdata(), max_wdata()
+, rdata_size(), wdata_size()
+, rdata_pos()
+, client_ip()
+, func_recv()
+, func_send()
+, func_parse()
+, func_delete()
+, for_inferior()
+, session_data()
+, fd()
 {
     set_io(io);
     set_parsers(p);
@@ -154,6 +170,11 @@ void send_from_fifo(Session *s)
     }
 }
 
+static
+void nothing_delete(Session *s)
+{
+    (void)s;
+}
 
 static
 void connect_client(Session *ls)
@@ -268,7 +289,7 @@ Session *make_listen_port(uint16_t port, SessionParsers inferior)
 
     set_session(fd, make_unique<Session>(
                 SessionIO{func_recv: connect_client, func_send: nullptr},
-                SessionParsers{func_parse: nullptr, func_delete: nullptr}));
+                SessionParsers{func_parse: nullptr, func_delete: nothing_delete}));
     Session *s = get_session(fd);
     s->for_inferior = inferior;
     s->fd = fd;
