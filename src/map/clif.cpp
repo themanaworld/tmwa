@@ -149,29 +149,22 @@ static
 void clif_quitsave(Session *, dumb_ptr<map_session_data> sd);
 
 static
-void on_delete(Session *s)
+void clif_delete(Session *s)
 {
-    if (s == char_session)
-    {
-        PRINTF("Map-server can't connect to char-server (connection #%d).\n",
-             s);
-        char_session = nullptr;
-    }
-    else
-    {
-        dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
-        if (sd && sd->state.auth)
-        {
-            pc_logout(sd);
-            clif_quitsave(s, sd);
+    assert (s != char_session);
 
-            PRINTF("Player [%s] has logged off your server.\n", sd->status_key.name);  // Player logout display [Valaris]
-        }
-        else if (sd)
-        {                       // not authentified! (refused by char-server or disconnect before to be authentified)
-            PRINTF("Player with account [%d] has logged off your server (not auth account).\n", sd->bl_id);    // Player logout display [Yor]
-            map_deliddb(sd);  // account_id has been included in the DB before auth answer
-        }
+    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+    if (sd && sd->state.auth)
+    {
+        pc_logout(sd);
+        clif_quitsave(s, sd);
+
+        PRINTF("Player [%s] has logged off your server.\n", sd->status_key.name);  // Player logout display [Valaris]
+    }
+    else if (sd)
+    {                       // not authentified! (refused by char-server or disconnect before to be authentified)
+        PRINTF("Player with account [%d] has logged off your server (not auth account).\n", sd->bl_id);    // Player logout display [Yor]
+        map_deliddb(sd);  // account_id has been included in the DB before auth answer
     }
 }
 
@@ -5515,6 +5508,5 @@ void clif_parse(Session *s)
 
 void do_init_clif(void)
 {
-    set_defaultparse(clif_parse, on_delete);
-    make_listen_port(map_port);
+    make_listen_port(map_port, SessionParsers{func_parse: clif_parse, func_delete: clif_delete});
 }

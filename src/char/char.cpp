@@ -189,34 +189,32 @@ static
 void create_online_files(void);
 
 static
-void on_delete(Session *sess)
+void delete_tologin(Session *sess)
 {
-    if (sess == login_session)
-    {
-        PRINTF("Char-server can't connect to login-server (connection #%d).\n",
-             sess);
-        login_session = nullptr;
-    }
-    else
-    {
-        auto it = std::find(server_session.begin(), server_session.end(), sess);
-        if (it != server_session.end())
-        {
-            int id = it - server_session.begin();
-            PRINTF("Map-server %d (session #%d) has disconnected.\n", id,
-                    sess);
-            server[id] = mmo_map_server{};
-            server_session[id] = nullptr;
-            for (Session *& oci : online_chars)
-                if (oci == sess)
-                    oci = nullptr;
-            create_online_files(); // update online players files (to remove all online players of this server)
-        }
-        else
-        {
-            // normal player session
-        }
-    }
+    assert (sess == login_session);
+    PRINTF("Char-server can't connect to login-server (connection #%d).\n",
+            sess);
+    login_session = nullptr;
+}
+static
+void delete_char(Session *sess)
+{
+    (void)sess;
+}
+static
+void delete_frommap(Session *sess)
+{
+    auto it = std::find(server_session.begin(), server_session.end(), sess);
+    assert (it != server_session.end());
+    int id = it - server_session.begin();
+    PRINTF("Map-server %d (session #%d) has disconnected.\n", id,
+            sess);
+    server[id] = mmo_map_server{};
+    server_session[id] = nullptr;
+    for (Session *& oci : online_chars)
+        if (oci == sess)
+            oci = nullptr;
+    create_online_files(); // update online players files (to remove all online players of this server)
 }
 
 //------------------------------
@@ -2468,7 +2466,7 @@ void parse_char(Session *s)
                 {
                     int len;
                     WFIFOB(s, 2) = 0;
-                    s->func_parse = parse_frommap;
+                    s->set_parsers(SessionParsers{func_parse: parse_frommap, func_delete: delete_frommap});
                     server_session[i] = s;
                     if (anti_freeze_enable)
                         server_freezeflag[i] = 5;   // Map anti-freeze system. Counter. 5 ok, 4...0 freezed
@@ -2605,10 +2603,10 @@ void check_connect_login_server(TimerData *, tick_t)
     if (!login_session)
     {
         PRINTF("Attempt to connect to login-server...\n");
-        login_session = make_connection(login_ip, login_port);
+        login_session = make_connection(login_ip, login_port,
+                SessionParsers{func_parse: parse_tologin, func_delete: delete_tologin});
         if (!login_session)
             return;
-        login_session->func_parse = parse_tologin;
         realloc_fifo(login_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
         WFIFOW(login_session, 0) = 0x2710;
         WFIFO_ZERO(login_session, 2, 24);
@@ -2924,10 +2922,7 @@ int do_init(Slice<ZString> argv)
     update_online = TimeT::now();
     create_online_files();     // update online players files at start of the server
 
-//    set_termfunc (do_final);
-    set_defaultparse(parse_char, on_delete);
-
-    char_session = make_listen_port(char_port);
+    char_session = make_listen_port(char_port, SessionParsers{parse_char, delete_char});
 
     Timer(gettick() + std::chrono::seconds(1),
             check_connect_login_server,

@@ -286,7 +286,7 @@ void ladmin_log(XString line)
 }
 
 static
-void on_delete(Session *)
+void delete_fromlogin(Session *)
 {
     {
         PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n",
@@ -2785,7 +2785,8 @@ int Connect_login_server(void)
     Iprintf("Attempt to connect to login-server...\n");
     LADMIN_LOG("Attempt to connect to login-server...\n");
 
-    login_session = make_connection(login_ip, login_port);
+    login_session = make_connection(login_ip, login_port, SessionParsers{func_parse: parse_fromlogin, func_delete: delete_fromlogin});
+
     if (!login_session)
         return 0;
 
@@ -2903,8 +2904,6 @@ int do_init(Slice<ZString> argv)
 
     LADMIN_LOG("");
     LADMIN_LOG("Configuration file readed.\n");
-
-    set_defaultparse(parse_fromlogin, on_delete);
 
     Iprintf("EAthena login-server administration tool.\n");
     Version version = CURRENT_LOGIN_SERVER_VERSION;

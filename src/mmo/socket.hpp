@@ -51,10 +51,28 @@ struct SessionDeleter
     void operator()(SessionData *sd);
 };
 
-// Struct declaration
+struct Session;
+struct SessionIO
+{
+    void (*func_recv)(Session *);
+    void (*func_send)(Session *);
+};
+
+struct SessionParsers
+{
+    void (*func_parse)(Session *);
+    void (*func_delete)(Session *);
+};
 
 struct Session
 {
+    Session(SessionIO, SessionParsers);
+    Session(Session&&) = delete;
+    Session& operator = (Session&&) = delete;
+
+    void set_io(SessionIO);
+    void set_parsers(SessionParsers);
+
     /// Checks whether a newly-connected socket actually does anything
     TimeT created;
     bool connected;
@@ -64,8 +82,6 @@ private:
     bool eof;
 public:
     void set_eof() { eof = true; }
-    // not everything is a member yet ...
-    bool private_is_eof() { return eof; }
 
     /// Currently used by clif_setwaitclose
     Timer timed_close;
@@ -82,6 +98,7 @@ public:
 
     IP4Address client_ip;
 
+private:
     /// Send or recieve
     /// Only called when select() indicates the socket is ready
     /// If, after that, nothing is read, it sets eof
@@ -91,14 +108,23 @@ public:
     /// This is the important one
     /// Set to different functions depending on whether the connection
     /// is a player or a server/ladmin
-    /// Can be set explicitly or via set_defaultparse
     void (*func_parse)(Session *);
     /// Cleanup function since we're not fully RAII yet
     void (*func_delete)(Session *);
+
+public:
+    // this really ought to be part of session_data, once that gets sane
+    SessionParsers for_inferior;
+
     /// Server-specific data type
+    // (this really should include the deleter, but ...)
     std::unique_ptr<SessionData, SessionDeleter> session_data;
 
     io::FD fd;
+
+    friend void do_sendrecv(interval_t next);
+    friend void do_parsepacket(void);
+    friend void delete_session(Session *);
 };
 
 inline
@@ -133,10 +159,10 @@ IteratorPair<ValueIterator<io::FD, IncrFD>> iter_fds();
 
 /// open a socket, bind, and listen. Return an fd, or -1 if socket() fails,
 /// but exit if bind() or listen() fails
-Session *make_listen_port(uint16_t port);
+Session *make_listen_port(uint16_t port, SessionParsers inferior);
 /// Connect to an address, return a connected socket or -1
 // FIXME - this is IPv4 only!
-Session *make_connection(IP4Address ip, uint16_t port);
+Session *make_connection(IP4Address ip, uint16_t port, SessionParsers);
 /// free() the structure and close() the fd
 void delete_session(Session *);
 /// Make a the internal queues bigger
@@ -145,11 +171,6 @@ void realloc_fifo(Session *s, size_t rfifo_size, size_t wfifo_size);
 void do_sendrecv(interval_t next);
 /// Call the parser function for every socket that has read data
 void do_parsepacket(void);
-
-/// Change the default parser for newly connected clients
-// typically called once per server, but individual clients may identify
-// themselves as servers
-void set_defaultparse(void(*defaultparse)(Session *), void(*defaultdelete)(Session *));
 
 template<class T>
 uint8_t *pod_addressof_m(T& structure)

@@ -1037,6 +1037,15 @@ void ladmin_itemfrob(Session *s)
     }
 }
 
+static
+void chrif_delete(Session *s)
+{
+    assert (s == char_session);
+    PRINTF("Map-server can't connect to char-server (connection #%d).\n",
+            s);
+    char_session = nullptr;
+}
+
 /*==========================================
  *
  *------------------------------------------
@@ -1207,10 +1216,10 @@ void check_connect_char_server(TimerData *, tick_t)
     {
         PRINTF("Attempt to connect to char-server...\n");
         chrif_state = 0;
-        char_session = make_connection(char_ip, char_port);
+        char_session = make_connection(char_ip, char_port,
+                SessionParsers{func_parse: chrif_parse, func_delete: chrif_delete});
         if (!char_session)
             return;
-        char_session->func_parse = chrif_parse;
         realloc_fifo(char_session, FIFOSIZE_SERVERLINK, FIFOSIZE_SERVERLINK);
 
         chrif_connect(char_session);

@@ -56,6 +56,23 @@ static
 std::array<std::unique_ptr<Session>, FD_SETSIZE> session;
 #pragma GCC diagnostic pop
 
+Session::Session(SessionIO io, SessionParsers p)
+{
+    set_io(io);
+    set_parsers(p);
+}
+void Session::set_io(SessionIO io)
+{
+    func_send = io.func_send;
+    func_recv = io.func_recv;
+}
+void Session::set_parsers(SessionParsers p)
+{
+    func_parse = p.func_parse;
+    func_delete = p.func_delete;
+}
+
+
 void set_session(io::FD fd, std::unique_ptr<Session> sess)
 {
     int f = fd.uncast_dammit();
@@ -98,28 +115,10 @@ size_t RFIFOSPACE(Session *s)
 }
 
 
-/// Discard all input
-static
-void null_parse(Session *s);
-/// Default parser for new connections
-static
-void (*default_func_parse)(Session *) = null_parse;
-static
-void (*default_delete)(Session *) = nullptr;
-
-void set_defaultparse(void (*defaultparse)(Session *), void (*on_delete)(Session *))
-{
-    default_func_parse = defaultparse;
-    default_delete = on_delete;
-}
-
 /// Read from socket to the queue
 static
 void recv_to_fifo(Session *s)
 {
-    if (s->private_is_eof())
-        return;
-
     ssize_t len = s->fd.read(&s->rdata[s->rdata_size],
                         RFIFOSPACE(s));
 
@@ -137,9 +136,6 @@ void recv_to_fifo(Session *s)
 static
 void send_from_fifo(Session *s)
 {
-    if (s->private_is_eof())
-        return;
-
     ssize_t len = s->fd.write(&s->wdata[0], s->wdata_size);
 
     if (len > 0)
@@ -156,13 +152,6 @@ void send_from_fifo(Session *s)
     {
         s->set_eof();
     }
-}
-
-static
-void null_parse(Session *s)
-{
-    PRINTF("null_parse : %d\n", s);
-    RFIFOSKIP(s, RFIFOREST(s));
 }
 
 
@@ -214,24 +203,21 @@ void connect_client(Session *ls)
 
     fd.fcntl(F_SETFL, O_NONBLOCK);
 
-    set_session(fd, make_unique<Session>());
+    set_session(fd, make_unique<Session>(
+                SessionIO{func_recv: recv_to_fifo, func_send: send_from_fifo},
+                ls->for_inferior));
     Session *s = get_session(fd);
     s->fd = fd;
     s->rdata.new_(RFIFO_SIZE);
     s->wdata.new_(WFIFO_SIZE);
-
     s->max_rdata = RFIFO_SIZE;
     s->max_wdata = WFIFO_SIZE;
-    s->func_recv = recv_to_fifo;
-    s->func_send = send_from_fifo;
-    s->func_parse = default_func_parse;
-    s->func_delete = default_delete;
     s->client_ip = IP4Address(client_address.sin_addr);
     s->created = TimeT::now();
     s->connected = 0;
 }
 
-Session *make_listen_port(uint16_t port)
+Session *make_listen_port(uint16_t port, SessionParsers inferior)
 {
     struct sockaddr_in server_address;
     io::FD fd = io::FD::socket(AF_INET, SOCK_STREAM, 0);
@@ -280,18 +266,20 @@ Session *make_listen_port(uint16_t port)
 
     readfds.set(fd);
 
-    set_session(fd, make_unique<Session>());
+    set_session(fd, make_unique<Session>(
+                SessionIO{func_recv: connect_client, func_send: nullptr},
+                SessionParsers{func_parse: nullptr, func_delete: nullptr}));
     Session *s = get_session(fd);
+    s->for_inferior = inferior;
     s->fd = fd;
 
-    s->func_recv = connect_client;
     s->created = TimeT::now();
     s->connected = 1;
 
     return s;
 }
 
-Session *make_connection(IP4Address ip, uint16_t port)
+Session *make_connection(IP4Address ip, uint16_t port, SessionParsers parsers)
 {
     struct sockaddr_in server_address;
     io::FD fd = io::FD::socket(AF_INET, SOCK_STREAM, 0);
@@ -333,7 +321,9 @@ Session *make_connection(IP4Address ip, uint16_t port)
 
     readfds.set(fd);
 
-    set_session(fd, make_unique<Session>());
+    set_session(fd, make_unique<Session>(
+                SessionIO{func_recv: recv_to_fifo, func_send: send_from_fifo},
+                parsers));
     Session *s = get_session(fd);
     s->fd = fd;
     s->rdata.new_(RFIFO_SIZE);
@@ -341,10 +331,6 @@ Session *make_connection(IP4Address ip, uint16_t port)
 
     s->max_rdata = RFIFO_SIZE;
     s->max_wdata = WFIFO_SIZE;
-    s->func_recv = recv_to_fifo;
-    s->func_send = send_from_fifo;
-    s->func_parse = default_func_parse;
-    s->func_delete = default_delete;
     s->created = TimeT::now();
     s->connected = 1;
 
@@ -441,13 +427,13 @@ void do_sendrecv(interval_t next_ms)
         Session *s = get_session(i);
         if (!s)
             continue;
-        if (wfd.isset(i))
+        if (wfd.isset(i) && !s->eof)
         {
             if (s->func_send)
                 //send_from_fifo(i);
                 s->func_send(s);
         }
-        if (rfd.isset(i))
+        if (rfd.isset(i) && !s->eof)
         {
             if (s->func_recv)
                 //recv_to_fifo(i);
@@ -470,7 +456,7 @@ void do_parsepacket(void)
             PRINTF("Session #%d timed out\n", s);
             s->set_eof();
         }
-        if (s->rdata_size && !s->private_is_eof() && s->func_parse)
+        if (s->rdata_size && !s->eof && s->func_parse)
         {
             s->func_parse(s);
             /// some func_parse may call delete_session
@@ -479,7 +465,7 @@ void do_parsepacket(void)
             if (!s)
                 continue;
         }
-        if (s->private_is_eof())
+        if (s->eof)
         {
             delete_session(s);
             continue;
