@@ -59,6 +59,7 @@ int chrif_send_divorce(int char_id);
 void do_init_chrif(void);
 
 // only used by intif.cpp
+// and clif.cpp for the new on_delete stuff ...
 extern Session *char_session;
 
 #endif // TMWA_MAP_CHRIF_HPP

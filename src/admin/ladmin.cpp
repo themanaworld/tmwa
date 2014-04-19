@@ -286,6 +286,18 @@ void ladmin_log(XString line)
 }
 
 static
+void delete_fromlogin(Session *)
+{
+    {
+        PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
+                login_ip, login_port);
+        LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
+                login_ip, login_port);
+        exit(0);
+    }
+}
+
+static
 bool qsplit(ZString src)
 {
     return !src;
@@ -1940,16 +1952,6 @@ void prompt(void)
 static
 void parse_fromlogin(Session *s)
 {
-    if (s->eof)
-    {
-        PRINTF("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
-                login_ip, login_port);
-        LADMIN_LOG("Impossible to have a connection with the login-server [%s:%d] !\n"_fmt,
-                login_ip, login_port);
-        delete_session(s);
-        exit(0);
-    }
-
     while (RFIFOREST(s) >= 2)
     {
         switch (RFIFOW(s, 0))
@@ -1964,7 +1966,7 @@ void parse_fromlogin(Session *s)
                     PRINTF(" - administration system not activated, or\n"_fmt);
                     PRINTF(" - unauthorised IP.\n"_fmt);
                     LADMIN_LOG("Error at login: incorrect password, administration system not activated, or unauthorised IP.\n"_fmt);
-                    s->eof = 1;
+                    s->set_eof();
                     //bytes_to_read = 1; // not stop at prompt
                 }
                 else
@@ -2763,7 +2765,7 @@ void parse_fromlogin(Session *s)
             default:
                 PRINTF("Remote administration has been disconnected (unknown packet).\n"_fmt);
                 LADMIN_LOG("'End of connection, unknown packet.\n"_fmt);
-                s->eof = 1;
+                s->set_eof();
                 return;
         }
     }
@@ -2781,7 +2783,8 @@ int Connect_login_server(void)
     Iprintf("Attempt to connect to login-server...\n"_fmt);
     LADMIN_LOG("Attempt to connect to login-server...\n"_fmt);
 
-    login_session = make_connection(login_ip, login_port);
+    login_session = make_connection(login_ip, login_port, SessionParsers{func_parse: parse_fromlogin, func_delete: delete_fromlogin});
+
     if (!login_session)
         return 0;
 
@@ -2899,8 +2902,6 @@ int do_init(Slice<ZString> argv)
 
     LADMIN_LOG(""_fmt);
     LADMIN_LOG("Configuration file readed.\n"_fmt);
-
-    set_defaultparse(parse_fromlogin);
 
     Iprintf("EAthena login-server administration tool.\n"_fmt);
     Version version = CURRENT_LOGIN_SERVER_VERSION;

@@ -145,6 +145,29 @@ int map_port = 5121;
 static
 int clif_changelook_towards(dumb_ptr<block_list> bl, LOOK type, int val,
                              dumb_ptr<map_session_data> dstsd);
+static
+void clif_quitsave(Session *, dumb_ptr<map_session_data> sd);
+
+static
+void clif_delete(Session *s)
+{
+    assert (s != char_session);
+
+    dumb_ptr<map_session_data> sd = dumb_ptr<map_session_data>(static_cast<map_session_data *>(s->session_data.get()));
+    if (sd && sd->state.auth)
+    {
+        pc_logout(sd);
+        clif_quitsave(s, sd);
+
+        PRINTF("Player [%s] has logged off your server.\n"_fmt, sd->status_key.name);  // Player logout display [Valaris]
+    }
+    else if (sd)
+    {                       // not authentified! (refused by char-server or disconnect before to be authentified)
+        PRINTF("Player with account [%d] has logged off your server (not auth account).\n"_fmt, sd->bl_id);    // Player logout display [Yor]
+        map_deliddb(sd);  // account_id has been included in the DB before auth answer
+    }
+}
+
 
 /*==========================================
  * map鯖のip設定
@@ -1098,10 +1121,8 @@ void clif_quitsave(Session *, dumb_ptr<map_session_data> sd)
 static
 void clif_waitclose(TimerData *, tick_t, Session *s)
 {
-    // TODO: what happens if the player disconnects
-    // and someone else connects?
     if (s)
-        s->eof = 1;
+        s->set_eof();
 }
 
 /*==========================================
@@ -1110,10 +1131,10 @@ void clif_waitclose(TimerData *, tick_t, Session *s)
  */
 void clif_setwaitclose(Session *s)
 {
-    Timer(gettick() + std::chrono::seconds(5),
+    s->timed_close = Timer(gettick() + std::chrono::seconds(5),
             std::bind(clif_waitclose, ph::_1, ph::_2,
                 s)
-    ).detach();
+    );
 }
 
 /*==========================================
@@ -5199,7 +5220,7 @@ int clif_check_packet_flood(Session *s, int cmd)
             PRINTF("packet flood detected from %s [0x%x]\n"_fmt, sd->status_key.name, cmd);
             if (battle_config.packet_spam_kick)
             {
-                s->eof = 1; // Kick
+                s->set_eof();
                 return 1;
             }
             sd->packet_flood_in = 0;
@@ -5334,32 +5355,18 @@ void clif_parse(Session *s)
     {
         if (RFIFOREST(s) < 2)
         {                       // too small a packet disconnect
-            s->eof = 1;
+            s->set_eof();
         }
         if (RFIFOW(s, 0) != 0x72 && RFIFOW(s, 0) != 0x7530)
         {
             // first packet must be auth or finger
-            s->eof = 1;
+            s->set_eof();
         }
     }
 
-    // 接続が切れてるので後始末
-    if (!chrif_isconnect() || s->eof)
-    {                           // char鯖に繋がってない間は接続禁止 (!chrif_isconnect())
-        if (sd && sd->state.auth)
-        {
-            pc_logout(sd);
-            clif_quitsave(s, sd);
-
-            PRINTF("Player [%s] has logged off your server.\n"_fmt, sd->status_key.name);  // Player logout display [Valaris]
-        }
-        else if (sd)
-        {                       // not authentified! (refused by char-server or disconnect before to be authentified)
-            PRINTF("Player with account [%d] has logged off your server (not auth account).\n"_fmt, sd->bl_id);    // Player logout display [Yor]
-            map_deliddb(sd);  // account_id has been included in the DB before auth answer
-        }
-        if (s)
-            delete_session(s);
+    if (!chrif_isconnect())
+    {
+        s->set_eof();
         return;
     }
 
@@ -5380,7 +5387,7 @@ void clif_parse(Session *s)
                 RFIFOSKIP(s, 2);
                 break;
             case 0x7532:       // 接続の切断
-                s->eof = 1;
+                s->set_eof();
                 break;
         }
         return;
@@ -5399,7 +5406,7 @@ void clif_parse(Session *s)
         packet_len = RFIFOW(s, 2);
         if (packet_len < 4 || packet_len > 32768)
         {
-            s->eof = 1;
+            s->set_eof();
             return;           // Runt packet (variable out of bounds)
         }
     }
@@ -5495,6 +5502,5 @@ void clif_parse(Session *s)
 
 void do_init_clif(void)
 {
-    set_defaultparse(clif_parse);
-    make_listen_port(map_port);
+    make_listen_port(map_port, SessionParsers{func_parse: clif_parse, func_delete: clif_delete});
 }
